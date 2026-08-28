@@ -29,4 +29,5 @@ export const TYPE_ALIASES = {
   waterfall: 'rangeBar',
   dumbbell: 'rangeBar',
   streamgraph: 'rangeArea',
+  raincloud: 'violin',
 }

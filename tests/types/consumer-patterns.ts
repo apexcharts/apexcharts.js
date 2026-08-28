@@ -285,6 +285,20 @@ const _violinRaw: ApexCharts.ApexOptions = {
 }
 void _boxRaw; void _violinRaw
 
+// raincloud: raw observations in; violin generalizations carry the layout
+const _raincloud: ApexCharts.ApexOptions = {
+  chart: { type: 'raincloud' },
+  series: [{ name: 'Gain', data: [{ x: 'DD', points: [92, 101, 87] }] }],
+  plotOptions: {
+    violin: {
+      side: 'right',
+      box: { show: true, whiskers: 'tukey', width: '15%', capWidth: 0.5 },
+      points: { position: 'left', laneWidth: '40%' },
+    },
+  },
+}
+void _raincloud
+
 // datetime axis: a Date, a timestamp and a date string are all valid x values
 const _dateX: ApexCharts.ApexOptions = {
   chart: { type: 'line' },

@@ -184,6 +184,7 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/context-menu' // right-click context menu (premium, opt-in)
 // import 'apexcharts/features/renderer-canvas' // canvas series renderer (opt-in)
 // import 'apexcharts/features/trellis'     // small multiples (premium, opt-in)
+// import 'apexcharts/features/raincloud'   // raincloud chart type statistics (premium, opt-in)
 ```
 
 A page without a bundler gets the same choice. `apexcharts.js` stays
@@ -238,6 +239,7 @@ Most of ApexCharts is free and open source. A small set of advanced features are
 | Feature | Enabled by |
 |---|---|
 | Unit chart type (dot / pictogram / waffle / beeswarm) | `chart.type: 'unit'` / `chart.type: 'waffle'` |
+| Raincloud chart type (half-density + box + raw points) | `chart.type: 'raincloud'` (needs `apexcharts/features/raincloud`, not in the default bundle) |
 | Storyboard (scrollytelling) | `chart.storyboard.bind(...)` |
 | Linked views / crossfilter | `chart.link.enabled` / `chart.link.dimension` / `ApexCharts.crossfilter()` |
 | Ink layer (on-chart annotation editing) | `chart.ink.enabled` |
@@ -246,7 +248,7 @@ Most of ApexCharts is free and open source. A small set of advanced features are
 | Perspectives (shareable view state) | `chart.perspectives.apply()` / `.save()` / `ApexCharts.perspectives.decode()` |
 | History (undo/redo) | `chart.history.enabled` |
 
-Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Every other chart type and feature is free and never watermarked; the `unit` chart type (listed above, aliased by `waffle`) is the one premium chart type.
+Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Every other chart type and feature is free and never watermarked; the premium chart types are `unit` (aliased by `waffle`) and `raincloud`, both listed above.
 
 ```js
 import ApexCharts from 'apexcharts'

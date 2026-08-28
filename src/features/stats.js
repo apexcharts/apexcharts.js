@@ -44,6 +44,7 @@ import {
   fiveNumberSummary,
   kernelDensity,
   normalizeCounts,
+  observationsOf,
   rowsByBin,
 } from '../charts/common/Stats'
 
@@ -185,39 +186,8 @@ function histogramTransform(ser, w) {
  */
 const derivedData = new WeakSet()
 
-/**
- * The observations attached to one boxPlot / violin datum, or null when the
- * datum does not carry a sample.
- *
- * `points` is the field both types already use for jitter dots, so a sample
- * lives in exactly one place whether the library summarises it or the user
- * pre-summarised it. Violin additionally accepts a flat number array as `y`,
- * which is unambiguous there because a density profile is an array of PAIRS.
- *
- * @param {any} d - one datum
- * @param {boolean} allowFlatY
- * @returns {number[]|null}
- */
-function observationsOf(d, allowFlatY) {
-  if (!d || typeof d !== 'object' || Array.isArray(d)) return null
-
-  /** @type {any} */
-  let raw = null
-  if (Array.isArray(d.points)) raw = d.points
-  else if (Array.isArray(d.y?.points)) raw = d.y.points
-  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === 'number') {
-    raw = d.y
-  }
-  if (!raw) return null
-
-  /** @type {number[]} */
-  const out = []
-  for (let i = 0; i < raw.length; i++) {
-    const v = Utils.parseNumber(raw[i])
-    if (v !== null && isFinite(v)) out.push(v)
-  }
-  return out.length ? out : null
-}
+// (observationsOf moved to charts/common/Stats so the raincloud feature can
+// share it without importing this module's registrations.)
 
 /**
  * boxPlot transform: derive the five-number summary from raw observations.

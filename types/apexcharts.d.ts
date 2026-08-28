@@ -1424,6 +1424,7 @@ type ApexChart = {
   | 'waterfall'
   | 'dumbbell'
   | 'streamgraph'
+  | 'raincloud'
   | 'treemap'
   | 'unit'
   | 'waffle'
@@ -1434,10 +1435,10 @@ type ApexChart = {
   /**
    * Internal — populated when `type` is a first-class alias (`'funnel'`,
    * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`, `'waterfall'`,
-   * `'dumbbell'`, `'streamgraph'`). The
+   * `'dumbbell'`, `'streamgraph'`, `'raincloud'`). The
    * original requested type is preserved here while `type` is normalized to the
-   * underlying renderer (`'bar'`, `'rangeBar'`, `'rangeArea'`, `'radialBar'` or
-   * `'unit'`).
+   * underlying renderer (`'bar'`, `'rangeBar'`, `'rangeArea'`, `'radialBar'`,
+   * `'violin'` or `'unit'`).
    * Read-only for consumers.
    */
   requestedType?:
@@ -1449,6 +1450,7 @@ type ApexChart = {
     | 'waterfall'
     | 'dumbbell'
     | 'streamgraph'
+    | 'raincloud'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -2828,6 +2830,41 @@ type ApexPlotOptions = {
      * categories.
      */
     normalize?: 'individual' | 'group'
+    /**
+     * Which side(s) of the category centerline the density is drawn on.
+     * 'both' (default) is the classic symmetric violin; 'left'/'right'
+     * (vertical charts) and 'top'/'bottom' (horizontal charts) draw a
+     * half-violin — the curve on that side, a flat baseline on the other.
+     * The raincloud chart type presets this ('right', or 'top' when
+     * horizontal).
+     */
+    side?: 'both' | 'left' | 'right' | 'top' | 'bottom'
+    /**
+     * A five-number-summary box beside the density (the raincloud
+     * "umbrella"; also available on a plain violin). Drawn only when a datum
+     * carries `y.summary` — supplied directly as
+     * `[whiskerLow, q1, median, q3, whiskerHigh]`, or derived from the raw
+     * sample by the raincloud feature. The rain/jitter layer is the outlier
+     * display, so the box draws no outlier dots of its own.
+     */
+    box?: {
+      /** Defaults to false; the raincloud preset turns it on. */
+      show?: boolean
+      /** Fraction of the category slot reserved for the box lane ('15%'). */
+      width?: string | number
+      /**
+       * How the deriving transform places the whiskers: at the data extremes
+       * ('minmax', default) or at 1.5*IQR fences clamped to the data
+       * ('tukey', the raincloud preset). A hand-supplied summary is drawn as
+       * given.
+       */
+      whiskers?: 'minmax' | 'tukey'
+      strokeWidth?: number
+      /** Box fill. Defaults to the series colour. */
+      fillColor?: string
+      /** Whisker cap length, 0..1 of the box lane width. Defaults to 0.5. */
+      capWidth?: number
+    }
     /** Individual observations ("jitter") overlaid on the violin shape. */
     points?: {
       show?: boolean
@@ -2838,6 +2875,15 @@ type ApexPlotOptions = {
       jitter?: number
       /** Clamp jitter to the density width at each value so points stay inside. */
       constrainToViolin?: boolean
+      /**
+       * 'center' (default) scatters across the slot centerline, under the
+       * density. 'left'/'right'/'top'/'bottom' move the dots into their own
+       * lane on that side — the raincloud "rain" (preset 'left', or 'bottom'
+       * when horizontal). Off-center dots ignore `constrainToViolin`.
+       */
+      position?: 'center' | 'left' | 'right' | 'top' | 'bottom'
+      /** Fraction of the category slot for the off-center lane ('40%'). */
+      laneWidth?: string | number
       /** Cap per violin; observations beyond this are stride-thinned. */
       maxPoints?: number
       opacity?: number

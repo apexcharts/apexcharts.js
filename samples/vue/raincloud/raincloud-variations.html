@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Raincloud Layout Variations</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 12px auto 4px;
+      }
+      .panel {
+        max-width: 820px;
+        margin: 14px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .controls .label {
+        font-size: 13px;
+        color: #556;
+        margin-right: 2px;
+      }
+      .controls button {
+        padding: 6px 12px;
+        cursor: pointer;
+        border: 1px solid #d3d8e3;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .controls button.active {
+        border-color: #14b8a6;
+        color: #0f766e;
+        background: #f0fdfa;
+        font-weight: 600;
+      }
+      .note {
+        background: #f0fdfa;
+        border-left: 3px solid #14b8a6;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: #c7f0ea;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/features/raincloud.js"></script>
+  <script>
+    // Raw observations per group (Box-Muller Gaussian; Math.random is seeded by
+    // the sample template).
+    function sample(mean, sd, n) {
+      var points = []
+      for (var k = 0; k < n; k++) {
+        var u1 = Math.random(),
+          u2 = Math.random()
+        var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+        points.push(Math.round((mean + g * sd) * 10) / 10)
+      }
+      return points
+    }
+
+    // Each layout is a complete plotOptions.violin spec, so switching between
+    // them never leaves a leaf from the previous layout behind. Hidden layers
+    // hand their lane back to the cloud automatically.
+    var RAINCLOUD_LAYOUTS = {
+      classic: {
+        side: 'right',
+        box: { show: true },
+        points: { show: true, position: 'left' },
+      },
+      'cloud-rain': {
+        side: 'right',
+        box: { show: false },
+        points: { show: true, position: 'left' },
+      },
+      'cloud-box': {
+        side: 'right',
+        box: { show: true },
+        points: { show: false, position: 'left' },
+      },
+      overlay: {
+        side: 'both',
+        box: { show: true },
+        points: { show: true, position: 'center', constrainToViolin: true },
+      },
+    }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="controls">
+        <span class="label">Layout:</span>
+        <button data-layout="classic" class="active">Classic raincloud</button>
+        <button data-layout="cloud-rain">Cloud + rain</button>
+        <button data-layout="cloud-box">Cloud + box</button>
+        <button data-layout="overlay">Violin + box overlay</button>
+      </div>
+    </div>
+    
+    <div id="chart">
+      <apexchart type="raincloud" height="420" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+    <div class="panel">
+      <div class="note">
+        Every raincloud layer is its own switch on <code>plotOptions.violin</code>:
+        <code>side</code> cuts the density to a half-violin,
+        <code>box.show</code> toggles the five-number lane, and
+        <code>points.position</code> moves the raw observations into their own
+        lane or back under the density. A hidden layer hands its lane back to the
+        cloud, so <b>Cloud + rain</b> and <b>Cloud + box</b> reflow instead of
+        leaving a gap, and <b>Violin + box overlay</b>
+        (<code>side: 'both'</code>) is the classic symmetric violin with the box
+        drawn on its centerline.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;controls&quot;&gt;
+          &lt;span class=&quot;label&quot;&gt;Layout:&lt;/span&gt;
+          &lt;button data-layout=&quot;classic&quot; class=&quot;active&quot;&gt;Classic raincloud&lt;/button&gt;
+          &lt;button data-layout=&quot;cloud-rain&quot;&gt;Cloud + rain&lt;/button&gt;
+          &lt;button data-layout=&quot;cloud-box&quot;&gt;Cloud + box&lt;/button&gt;
+          &lt;button data-layout=&quot;overlay&quot;&gt;Violin + box overlay&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;raincloud&quot; height=&quot;420&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+      &lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;note&quot;&gt;
+          Every raincloud layer is its own switch on &lt;code&gt;plotOptions.violin&lt;/code&gt;:
+          &lt;code&gt;side&lt;/code&gt; cuts the density to a half-violin,
+          &lt;code&gt;box.show&lt;/code&gt; toggles the five-number lane, and
+          &lt;code&gt;points.position&lt;/code&gt; moves the raw observations into their own
+          lane or back under the density. A hidden layer hands its lane back to the
+          cloud, so &lt;b&gt;Cloud + rain&lt;/b&gt; and &lt;b&gt;Cloud + box&lt;/b&gt; reflow instead of
+          leaving a gap, and &lt;b&gt;Violin + box overlay&lt;/b&gt;
+          (&lt;code&gt;side: &#39;both&#39;&lt;/code&gt;) is the classic symmetric violin with the box
+          drawn on its centerline.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              name: 'Measurement',
+              data: [
+                { x: 'North', points: sample(52, 9, 160) },
+                { x: 'East', points: sample(61, 6, 160) },
+                { x: 'South', points: sample(47, 12, 160) },
+              ],
+            },
+          ],
+          chartOptions: {
+            chart: {
+              id: 'raincloudVariations',
+              type: 'raincloud',
+              height: 420,
+            },
+            colors: ['#14b8a6'],
+            title: {
+              text: 'One distribution chart, four layouts',
+              align: 'left',
+            },
+            yaxis: {
+              title: {
+                text: 'Measurement',
+              },
+            },
+          },
+
+          raincloudTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance
+          // by its chart.id, then wire the same controls the vanilla build does.
+          // (RAINCLOUD_LAYOUTS lives in the shared head script.)
+          var me = this
+          me.raincloudTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('raincloudVariations')
+            if (!chart) return
+            window.clearInterval(me.raincloudTimer)
+
+            var buttons = Array.prototype.slice.call(
+              document.querySelectorAll('.controls button[data-layout]'),
+            )
+            buttons.forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                buttons.forEach(function (b) {
+                  b.classList.remove('active')
+                })
+                btn.classList.add('active')
+                chart.updateOptions({
+                  plotOptions: {
+                    violin: RAINCLOUD_LAYOUTS[btn.getAttribute('data-layout')],
+                  },
+                })
+              })
+            })
+          }, 50)
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.raincloudTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

@@ -107,6 +107,10 @@ export default class Base {
       violinData: {
         seriesViolinDensity: [],
         seriesViolinPoints: [],
+        // Five-number summaries per (series, category), null where the datum
+        // carries none. Feeds the box lane (raincloud / violin box.show).
+        // New slice: read via w.violinData only, no w.globals shim.
+        seriesViolinSummary: [],
         seriesViolinMin: [],
         seriesViolinMax: [],
       },

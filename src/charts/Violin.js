@@ -9,13 +9,19 @@ import { spline, svgPath } from '../libs/monotone-cubic'
 import { buildJitterGroups, renderJitter } from './common/Jitter'
 
 /**
- * ApexCharts Violin Class — draws a symmetric density curve per category
- * (the "violin") plus optional individual observations ("jitter").
+ * ApexCharts Violin Class — draws a density curve per category (the
+ * "violin") plus optional individual observations ("jitter").
+ *
+ * The body is symmetric by default; `plotOptions.violin.side` cuts it to a
+ * half-violin, `plotOptions.violin.box` adds a five-number box lane, and
+ * `plotOptions.violin.points.position` moves the jitter into its own lane.
+ * Those three together are the raincloud chart type (an alias of violin);
+ * each is equally available to a plain violin.
  *
  * Data is precomputed by the user: each point supplies a density profile
- * (the shape) and a flat array of raw observations (the jitter). See
- * Data.handleViolinData() for the data contract. The density profile and raw
- * points are read from the `w.violinData` slice.
+ * (the shape), a flat array of raw observations (the jitter) and optionally
+ * a five-number summary (the box). See Data.handleViolinData() for the data
+ * contract. All three are read from the `w.violinData` slice.
  *
  * Performance: all jitter points for a series render as ONE <path> node
  * (circle/square sub-paths concatenated), never one element per point. Points
@@ -38,6 +44,19 @@ class Violin extends Bar {
 
     this.violinOptions = w.config.plotOptions.violin
     this.pointsOptions = this.violinOptions.points
+    this.boxOptions = this.violinOptions.box || {}
+    // Cross-axis signs: which side the density is drawn on (0 = symmetric)
+    // and which side the jitter lane sits on (0 = centered on the slot).
+    // Hidden points carve no lane: a raincloud minus its rain reflows that
+    // space to the cloud instead of keeping a dead strip.
+    this.cloudSign = crossSign(this.violinOptions.side)
+    this.rainSign =
+      this.pointsOptions.show === false
+        ? 0
+        : crossSign(this.pointsOptions.position)
+    this.boxShown = this.boxOptions.show === true
+    this.boxFrac = this.boxShown ? laneFrac(this.boxOptions.width, 0.15) : 0
+    this.rainFrac = laneFrac(this.pointsOptions.laneWidth, 0.4)
     this.bandwidthScale = this.violinOptions.bandwidthScale || 1
     // 'individual' → each violin scaled to its own peak density (all equal max
     // width). 'group' → all violins scaled to the densest one in the series, so
@@ -165,6 +184,10 @@ class Violin extends Bar {
           alongFn: paths.alongFn,
           density: paths.density,
           maxWeight: paths.maxWeight,
+          cloudBase: paths.cloudBase,
+          cloudMaxPx: paths.cloudMaxPx,
+          rainCenter: paths.rainCenter,
+          rainHalfPx: paths.rainHalfPx,
         })
         if (pointGroups.length) pointsByViolin.push({ groups: pointGroups, j })
 
@@ -210,6 +233,38 @@ class Violin extends Bar {
             this.isHorizontal ? 'cx' : 'cy',
             `${paths.alongRepresentative}`,
           )
+        }
+
+        // Box lane (raincloud "umbrella" / violin box overlay): sibling paths
+        // with the same `j`, rendered AFTER the cx/cy re-anchor above so the
+        // body stays the first DOM match every tooltip positioner grabs.
+        if (paths.boxPaths) {
+          const boxStrokeWidth = this.boxOptions.strokeWidth ?? 1
+          paths.boxPaths.forEach((bp) => {
+            this.renderSeries({
+              realIndex,
+              pathFill: bp.filled
+                ? this.boxOptions.fillColor || pathFill
+                : 'none',
+              lineFill: w.globals.stroke.colors[realIndex],
+              j,
+              i,
+              pathFrom: bp.pathFrom,
+              pathTo: bp.pathTo,
+              strokeWidth: boxStrokeWidth,
+              elSeries,
+              x,
+              y,
+              series,
+              columnGroupIndex,
+              barHeight,
+              barWidth,
+              elDataLabelsWrap,
+              visibleSeries: this.visibleI,
+              type: 'violin',
+              classes: 'apexcharts-raincloud-box',
+            })
+          })
         }
       }
 
@@ -257,14 +312,24 @@ class Violin extends Bar {
     /** @param {number} v */
     const alongFn = (v) => zeroH - this.logVal(v, realIndex) / yRatio
 
+    const lanes = resolveLanes({
+      halfExtent,
+      cloudSign: this.cloudSign ?? 0,
+      rainSign: this.rainSign ?? 0,
+      boxFrac: this.boxFrac ?? 0,
+      rainFrac: this.rainFrac ?? 0,
+    })
+    const cloudBase = center + lanes.cloudBaseOff
+
     const pathTo = this.buildBodyPath({
       nodes: density.nodes,
-      center,
-      halfExtent,
+      center: cloudBase,
+      halfExtent: lanes.cloudMaxPx,
       maxWeight,
       vertical: true,
       alongFn,
       collapsed: false,
+      sideSign: this.cloudSign,
     })
 
     let pathFrom = null
@@ -282,12 +347,13 @@ class Violin extends Bar {
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
-        center,
-        halfExtent,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
         maxWeight,
         vertical: true,
         alongFn,
         collapsed: true,
+        sideSign: this.cloudSign,
       })
     }
 
@@ -305,6 +371,18 @@ class Violin extends Bar {
       alongFn,
       density,
       maxWeight,
+      cloudBase,
+      cloudMaxPx: lanes.cloudMaxPx,
+      rainCenter: center + lanes.rainCenterOff,
+      rainHalfPx: lanes.rainHalfPx,
+      boxPaths: this.buildBoxSubPaths({
+        realIndex,
+        j,
+        boxCenter: center + lanes.boxCenterOff,
+        boxHalfPx: lanes.boxHalfPx,
+        alongFn,
+        vertical: true,
+      }),
       alongRepresentative: alongFn(this.series[indexes.i][j] ?? 0),
     }
   }
@@ -331,14 +409,24 @@ class Violin extends Bar {
     /** @param {number} v */
     const alongFn = (v) => zeroW + this.logVal(v, realIndex) / yRatio
 
+    const lanes = resolveLanes({
+      halfExtent,
+      cloudSign: this.cloudSign ?? 0,
+      rainSign: this.rainSign ?? 0,
+      boxFrac: this.boxFrac ?? 0,
+      rainFrac: this.rainFrac ?? 0,
+    })
+    const cloudBase = center + lanes.cloudBaseOff
+
     const pathTo = this.buildBodyPath({
       nodes: density.nodes,
-      center,
-      halfExtent,
+      center: cloudBase,
+      halfExtent: lanes.cloudMaxPx,
       maxWeight,
       vertical: false,
       alongFn,
       collapsed: false,
+      sideSign: this.cloudSign,
     })
 
     let pathFrom = null
@@ -356,12 +444,13 @@ class Violin extends Bar {
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
-        center,
-        halfExtent,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
         maxWeight,
         vertical: false,
         alongFn,
         collapsed: true,
+        sideSign: this.cloudSign,
       })
     }
 
@@ -379,6 +468,18 @@ class Violin extends Bar {
       alongFn,
       maxWeight,
       density,
+      cloudBase,
+      cloudMaxPx: lanes.cloudMaxPx,
+      rainCenter: center + lanes.rainCenterOff,
+      rainHalfPx: lanes.rainHalfPx,
+      boxPaths: this.buildBoxSubPaths({
+        realIndex,
+        j,
+        boxCenter: center + lanes.boxCenterOff,
+        boxHalfPx: lanes.boxHalfPx,
+        alongFn,
+        vertical: false,
+      }),
       alongRepresentative: alongFn(this.series[indexes.i][j] ?? 0),
     }
   }
@@ -430,7 +531,13 @@ class Violin extends Bar {
    * parameter for the spline (vertical → Y, horizontal → X); the spline is fed
    * with that axis first and the control points swapped back to screen space.
    *
-   * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean}} opts
+   * Symmetric (`sideSign` 0): the curve mirrors around `center`, whose maximum
+   * half-width is `halfExtent`. One-sided (`sideSign` ±1, the raincloud
+   * "cloud" / half-violin): `center` is the flat BASELINE, the curve bulges up
+   * to `halfExtent` px toward the signed side, and the return edge is a
+   * straight run along the baseline.
+   *
+   * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean, sideSign?:number}} opts
    */
   buildBodyPath({
     nodes,
@@ -440,6 +547,7 @@ class Violin extends Bar {
     vertical,
     alongFn,
     collapsed,
+    sideSign = 0,
   }) {
     const graphics = new Graphics(this.w)
     if (nodes.length === 0) {
@@ -462,12 +570,20 @@ class Violin extends Bar {
     for (let k = 0; k < nodes.length; k++) {
       const a = alongFn(nodes[k].v)
       const wp = wpxOf(nodes[k].w)
+      // One-sided: the "outer" edge carries the whole curve on the signed
+      // side and the "inner" edge collapses onto the baseline. Deliberately
+      // still emitted as two spline segments over the same nodes (the inner
+      // one is collinear, so it renders as a straight edge): the path keeps
+      // the symmetric body's command structure, so a violin <-> raincloud
+      // type change tweens instead of snapping on a shape mismatch.
+      const outer = sideSign === 0 ? center + wp : center + sideSign * wp
+      const inner = sideSign === 0 ? center - wp : center
       if (vertical) {
-        rightPts.push([center + wp, a])
-        leftPts.push([center - wp, a])
+        rightPts.push([outer, a])
+        leftPts.push([inner, a])
       } else {
-        rightPts.push([a, center + wp])
-        leftPts.push([a, center - wp])
+        rightPts.push([a, outer])
+        leftPts.push([a, inner])
       }
     }
     leftPts.reverse()
@@ -477,6 +593,98 @@ class Violin extends Bar {
       this.smoothSegment(leftPts, vertical, true) +
       'z'
     )
+  }
+
+  /**
+   * Build the five-number box sub-paths for one category — the raincloud
+   * "umbrella", or a violin box overlay. Two sub-paths so each can carry its
+   * own fill: the whisker stems + caps (stroke only) and the q1-q3 rect with
+   * its median tick (filled). Both are rendered through renderSeries (same
+   * `j`, multiple sibling paths — the BoxCandleStick pattern), so they
+   * animate and morph like any mark. Deliberately no outlier dots: the
+   * rain/jitter layer draws every observation already.
+   *
+   * Returns null when the box is off or the datum has no summary; entering
+   * paths collapse cross-wise onto the box lane's centerline so the box grows
+   * sideways in sync with the cloud.
+   *
+   * @param {{realIndex:number, j:number, boxCenter:number, boxHalfPx:number, alongFn:(v:number)=>number, vertical:boolean}} opts
+   * @returns {{pathTo:string, pathFrom:string, filled:boolean}[] | null}
+   */
+  buildBoxSubPaths({ realIndex, j, boxCenter, boxHalfPx, alongFn, vertical }) {
+    const w = this.w
+    if (!this.boxShown || boxHalfPx <= 0) return null
+    const summary = w.violinData.seriesViolinSummary[realIndex]?.[j]
+    if (!summary) return null
+
+    const capHalf =
+      boxHalfPx * Math.min(1, Math.max(0, this.boxOptions.capWidth ?? 0.5))
+    const [lo, q1, med, q3, hi] = summary.map((v) => alongFn(v))
+
+    /**
+     * @param {number} half whisker-cap half-length
+     * @param {number} boxHalf box half-width
+     */
+    const build = (half, boxHalf) => {
+      const graphics = new Graphics(this.w)
+      /**
+       * @param {number} cross
+       * @param {number} along
+       * @returns {[number, number]}
+       */
+      const pt = (cross, along) => (vertical ? [cross, along] : [along, cross])
+      /** @param {[number,number][]} pts */
+      const seg = (pts) =>
+        pts
+          .map(
+            ([px, py], k) =>
+              (k === 0 ? graphics.move(px, py) : graphics.line(px, py)),
+          )
+          .join('')
+      const c = boxCenter
+      const whiskers =
+        seg([pt(c, lo), pt(c, q1)]) +
+        seg([pt(c, q3), pt(c, hi)]) +
+        seg([pt(c - half, lo), pt(c + half, lo)]) +
+        seg([pt(c - half, hi), pt(c + half, hi)])
+      const box =
+        seg([
+          pt(c - boxHalf, q1),
+          pt(c + boxHalf, q1),
+          pt(c + boxHalf, q3),
+          pt(c - boxHalf, q3),
+        ]) +
+        'z' +
+        seg([pt(c - boxHalf, med), pt(c + boxHalf, med)])
+      return { whiskers, box }
+    }
+
+    const full = build(capHalf, boxHalfPx)
+    const collapsed = build(0, 0)
+
+    /** @param {string} pathTo @param {string} collapsedFrom */
+    const fromFor = (pathTo, collapsedFrom) => {
+      let pathFrom = null
+      if (w.globals.previousPaths.length > 0) {
+        // Keyed survivor → morph; shape-changed → snap; entering → null.
+        // (No morphTypeChange here: the body path claims the morph target.)
+        pathFrom = this.getPreviousPath(realIndex, j, pathTo)
+      }
+      return pathFrom == null ? collapsedFrom : pathFrom
+    }
+
+    return [
+      {
+        pathTo: full.whiskers,
+        pathFrom: fromFor(full.whiskers, collapsed.whiskers),
+        filled: false,
+      },
+      {
+        pathTo: full.box,
+        pathFrom: fromFor(full.box, collapsed.box),
+        filled: true,
+      },
+    ]
   }
 
   /**
@@ -532,7 +740,12 @@ class Violin extends Bar {
    * groups, each carrying its ramp colour. Offsets are a deterministic index
    * hash (SSR-safe); points beyond maxPoints are stride-thinned.
    *
-   * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number}} opts
+   * Placement: `points.position` 'center' scatters around the slot centerline
+   * (clamped to the density width; one-sided bodies scatter one-sided from the
+   * baseline). Off-center positions put the dots in their own lane (the
+   * raincloud "rain"), where the density clamp no longer applies.
+   *
+   * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number, cloudBase:number, cloudMaxPx:number, rainCenter:number, rainHalfPx:number}} opts
    * @returns {{fill:string|null, d:string}[]}
    */
   buildPointsSubPath({
@@ -543,20 +756,39 @@ class Violin extends Bar {
     alongFn,
     density,
     maxWeight,
+    cloudBase,
+    cloudMaxPx,
+    rainCenter,
+    rainHalfPx,
   }) {
+    const offsetLane = this.rainSign !== 0
+    const scatterCenter = offsetLane
+      ? rainCenter
+      : this.cloudSign !== 0
+        ? cloudBase
+        : center
+    const scatterHalf = offsetLane
+      ? rainHalfPx
+      : this.cloudSign !== 0
+        ? cloudMaxPx
+        : halfExtent
     return buildJitterGroups({
       w: this.w,
       points: this.w.violinData.seriesViolinPoints[realIndex]?.[j],
       seedA: realIndex,
       seedB: j,
-      center,
-      halfExtent,
+      center: scatterCenter,
+      halfExtent: scatterHalf,
       alongFn,
       isHorizontal: this.isHorizontal,
       options: this.pointsOptions,
-      // Violin clamps jitter to the density half-width at each value so dots
-      // stay inside the shape.
-      clampAt: (v) => this.halfWidthAtValue(v, density, halfExtent, maxWeight),
+      // Centered dots clamp to the density half-width at each value so they
+      // stay inside the shape; a dedicated rain lane has no shape to honor.
+      clampAt: offsetLane
+        ? null
+        : (v) => this.halfWidthAtValue(v, density, scatterHalf, maxWeight),
+      // A one-sided body folds centered dots onto its side of the baseline.
+      sideSign: offsetLane ? 0 : this.cloudSign,
     })
   }
 
@@ -622,5 +854,92 @@ function swapPairs(arr) {
   return out
 }
 
+/**
+ * Map a side token to a cross-axis screen sign. The cross axis is x on a
+ * vertical chart and y on a horizontal one, so 'right'/'bottom' are the
+ * positive screen direction and 'left'/'top' the negative one; 'both',
+ * 'center' and anything unrecognized mean "no side" (symmetric / centered).
+ * @param {string | undefined} token
+ * @returns {-1 | 0 | 1}
+ */
+export function crossSign(token) {
+  if (token === 'right' || token === 'bottom') return 1
+  if (token === 'left' || token === 'top') return -1
+  return 0
+}
+
+/**
+ * Parse a lane width — a '40%' string or a 0..1 fraction — into a fraction of
+ * the full slot width, clamped to [0, 0.5] so two lanes can never consume the
+ * slot on their own.
+ * @param {string | number | undefined} val
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function laneFrac(val, fallback) {
+  let frac = fallback
+  if (typeof val === 'string' && val.trim().endsWith('%')) {
+    const n = parseFloat(val)
+    if (isFinite(n)) frac = n / 100
+  } else if (typeof val === 'number' && isFinite(val)) {
+    frac = val
+  }
+  return Math.min(0.5, Math.max(0, frac))
+}
+
+/**
+ * Partition one category slot (center ± halfExtent on the cross axis) into
+ * the raincloud lanes. All outputs are offsets from the slot center (px), so
+ * the function stays pure and orientation-agnostic.
+ *
+ * Symmetric body (cloudSign 0): the cloud keeps the whole slot; the box lane
+ * is centered on the slot (a classic violin+box overlay); an off-center rain
+ * lane hugs its side's edge.
+ *
+ * Half body (cloudSign ±1): lanes fill the slot edge-to-edge from the cloud
+ * side inward — cloud takes `1 - boxFrac - rainFrac` of the slot down to its
+ * flat baseline, the box lane sits against the baseline, the rain lane
+ * against the box. The rain lane is only carved when the points are actually
+ * off-center (rainSign ≠ 0); a hidden box passes boxFrac 0. With neither, the
+ * baseline falls on the slot centerline: a plain half-violin.
+ *
+ * @param {{halfExtent: number, cloudSign: number, rainSign: number, boxFrac: number, rainFrac: number}} o
+ * @returns {{cloudBaseOff: number, cloudMaxPx: number, boxCenterOff: number, boxHalfPx: number, rainCenterOff: number, rainHalfPx: number}}
+ */
+export function resolveLanes({
+  halfExtent,
+  cloudSign,
+  rainSign,
+  boxFrac,
+  rainFrac,
+}) {
+  const boxHalfPx = boxFrac * halfExtent
+  const rainHalfPx = rainSign === 0 ? halfExtent : rainFrac * halfExtent
+  const rainCenterOff = rainSign === 0 ? 0 : rainSign * (halfExtent - rainHalfPx)
+
+  if (cloudSign === 0) {
+    return {
+      cloudBaseOff: 0,
+      cloudMaxPx: halfExtent,
+      boxCenterOff: 0,
+      boxHalfPx,
+      rainCenterOff,
+      rainHalfPx,
+    }
+  }
+
+  const usedRainFrac = rainSign === 0 ? 0 : rainFrac
+  const cloudFrac = Math.max(0, 1 - usedRainFrac - boxFrac)
+  const cloudMaxPx = 2 * cloudFrac * halfExtent
+  const cloudBaseOff = cloudSign * (halfExtent - cloudMaxPx)
+  return {
+    cloudBaseOff,
+    cloudMaxPx,
+    boxCenterOff: cloudBaseOff - cloudSign * boxHalfPx,
+    boxHalfPx,
+    rainCenterOff,
+    rainHalfPx,
+  }
+}
 
 export default Violin

@@ -12,6 +12,7 @@
  *
  * @module charts/common/Stats
  */
+import Utils from '../../utils/Utils'
 
 /**
  * Upper bound on bins. A degenerate binWidth (a stray 1e-9, a range spanning
@@ -450,4 +451,42 @@ export function normalizeCounts(counts, opts = {}) {
     if (typeof w === 'number' && w > 0) return out.map((c) => c / (total * w))
   }
   return out
+}
+
+/**
+ * The observations attached to one boxPlot / violin / raincloud datum, or null
+ * when the datum does not carry a sample.
+ *
+ * `points` is the field these types already use for jitter dots, so a sample
+ * lives in exactly one place whether the library summarises it or the user
+ * pre-summarised it. Density-based types additionally accept a flat number
+ * array as `y`, which is unambiguous there because a density profile is an
+ * array of PAIRS.
+ *
+ * Shared by the stats feature and the raincloud feature; lives here (pure,
+ * side-effect free) so neither add-on has to import the other's registrations.
+ *
+ * @param {any} d - one datum
+ * @param {boolean} allowFlatY
+ * @returns {number[]|null}
+ */
+export function observationsOf(d, allowFlatY) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return null
+
+  /** @type {any} */
+  let raw = null
+  if (Array.isArray(d.points)) raw = d.points
+  else if (Array.isArray(d.y?.points)) raw = d.y.points
+  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === 'number') {
+    raw = d.y
+  }
+  if (!raw) return null
+
+  /** @type {number[]} */
+  const out = []
+  for (let i = 0; i < raw.length; i++) {
+    const v = Utils.parseNumber(raw[i])
+    if (v !== null && isFinite(v)) out.push(v)
+  }
+  return out.length ? out : null
 }

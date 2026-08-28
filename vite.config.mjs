@@ -54,6 +54,7 @@ export const SUB_ENTRIES = {
   waterfall: resolve(__dirname, 'src/entries/waterfall.js'),
   dumbbell: resolve(__dirname, 'src/entries/dumbbell.js'),
   streamgraph: resolve(__dirname, 'src/entries/streamgraph.js'),
+  raincloud: resolve(__dirname, 'src/entries/raincloud.js'),
   donut: resolve(__dirname, 'src/entries/donut.js'),
   polarArea: resolve(__dirname, 'src/entries/polarArea.js'),
   'features/annotations': resolve(__dirname, 'src/features/annotations.js'),
@@ -78,6 +79,7 @@ export const SUB_ENTRIES = {
   'features/measure': resolve(__dirname, 'src/features/measure.js'),
   'features/context-menu': resolve(__dirname, 'src/features/context-menu.js'),
   'features/stats': resolve(__dirname, 'src/features/stats.js'),
+  'features/raincloud': resolve(__dirname, 'src/features/raincloud.js'),
   'features/waterfall': resolve(__dirname, 'src/features/waterfall.js'),
   'features/dumbbell': resolve(__dirname, 'src/features/dumbbell.js'),
   'features/streamgraph': resolve(__dirname, 'src/features/streamgraph.js'),
@@ -304,6 +306,12 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/features/stats.js'),
     global: 'ApexStats',
     out: 'features/stats.js',
+    shared: true,
+  },
+  'features/raincloud': {
+    file: resolve(__dirname, 'src/features/raincloud.js'),
+    global: 'ApexRaincloud',
+    out: 'features/raincloud.js',
     shared: true,
   },
   'features/waterfall': {

@@ -147,6 +147,8 @@ export interface ViolinData {
     Array<{ values: number[]; weights: number[]; maxWeight: number }>
   >
   seriesViolinPoints: number[][][]
+  /** Five-number summary [whiskerLow, q1, median, q3, whiskerHigh] per (series, category); null where the datum carries none */
+  seriesViolinSummary: Array<Array<number[] | null>>
   seriesViolinMin: number[][]
   seriesViolinMax: number[][]
 }

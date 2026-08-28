@@ -4,11 +4,11 @@
  *
  * Gates these premium features, and ONLY when they are actually IN USE (not
  * merely bundled): storyboard, link (crossfilter/linked views), ink, measure,
- * context-menu, perspectives, history, PLUS the premium `unit` (dot-cluster /
- * pictogram) chart type. Everything else (all OTHER chart types, and the free
- * modules weave / renderer-canvas / marks / facet / drilldown / morph /
- * annotations / legend / toolbar / keyboard / exports, and the always-on core)
- * is never gated.
+ * context-menu, perspectives, history, PLUS the premium chart TYPES: `unit`
+ * (dot-cluster / pictogram) and `raincloud`. Everything else (all OTHER chart
+ * types, and the free modules weave / renderer-canvas / marks / facet /
+ * drilldown / morph / annotations / legend / toolbar / keyboard / exports, and
+ * the always-on core) is never gated.
  *
  * Enforcement is trial-mode: a premium feature without a valid, entitled license
  * keeps working, but the chart shows an "APEXCHARTS" watermark. These features
@@ -94,6 +94,11 @@ export function premiumFeaturesInUse(w, ctx) {
   // flags below, "in use" is simply "this chart is a unit chart" - the type is
   // the product. It renders fully in trial mode, just watermarked.
   if (chart.type === 'unit') used.push('unit')
+
+  // raincloud: premium CHART TYPE, same contract as unit. The alias rewrites
+  // chart.type to 'violin', so usage is the REQUESTED type; plain violins are
+  // free and never flag here.
+  if (chart.requestedType === 'raincloud') used.push('raincloud')
 
   // trellis (small multiples): premium FEATURE. "in use" is "this chart is a
   // trellis host" — the split/alignment engine is the product. Panels the

@@ -70,6 +70,15 @@ const TYPE_OWNED_PATHS = [
   'plotOptions.bar.dataLabels.position',
   // A box plot's outlier markers are hit targets; a violin draws none.
   'markers.size',
+  // The violin layers a raincloud rearranges: which side the density is on,
+  // whether the box lane exists and how its whiskers are computed, and where
+  // the jitter sits. All decide what is drawn, so they hand over when the
+  // type changes (violin <-> raincloud) instead of a raincloud's half-body
+  // surviving into a plain violin.
+  'plotOptions.violin.side',
+  'plotOptions.violin.box.show',
+  'plotOptions.violin.box.whiskers',
+  'plotOptions.violin.points.position',
   // Hover and select feedback, off by design on the types that draw their own.
   'states.hover.filter.type',
   'states.active.filter.type',
@@ -371,6 +380,8 @@ export default class Defaults {
       chartDefaults = defaults.dumbbell()
     } else if (requestedType === 'streamgraph') {
       chartDefaults = defaults.streamgraph()
+    } else if (requestedType === 'raincloud') {
+      chartDefaults = defaults.raincloud()
     } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
       chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
     } else {
@@ -1034,6 +1045,45 @@ export default class Defaults {
         crosshairs: {
           width: 1,
         },
+      },
+    }
+  }
+
+  raincloud() {
+    // Raincloud defaults: the violin baseline, with the three layers arranged
+    // side by side. Vertical: rain left, box middle, cloud right (the classic
+    // published layout); horizontal mirrors it as cloud on top, box + rain
+    // below. Every choice here is a plain default the user can set back.
+    const base = this.violin()
+    const horizontal = this.opts?.plotOptions?.bar?.horizontal === true
+    return {
+      ...base,
+      plotOptions: {
+        violin: {
+          side: horizontal ? 'top' : 'right',
+          box: {
+            show: true,
+            // Tukey fences over minmax: the canonical raincloud box, and safe
+            // here precisely because the rain draws every observation, so
+            // nothing beyond the whiskers is hidden.
+            whiskers: 'tukey',
+          },
+          points: {
+            position: horizontal ? 'bottom' : 'left',
+            // Fill most of the rain lane; the lane is the dots' whole home,
+            // unlike the centered violin scatter that shares it with the body.
+            jitter: 0.85,
+          },
+        },
+      },
+      tooltip: {
+        ...base.tooltip,
+        custom: ownedBy(
+          ['raincloud'],
+          (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
+            return this._getRaincloudTooltip(w, seriesIndex, dataPointIndex)
+          },
+        ),
       },
     }
   }
@@ -2291,6 +2341,49 @@ export default class Defaults {
       `<div class="apexcharts-tooltip-violin-name">${name}</div>` +
       `<div>Min: <span class="value">${minV}</span></div>` +
       `<div>Max: <span class="value">${maxV}</span></div>` +
+      `<div>Observations: <span class="value">${pts.length}</span></div>` +
+      '</div>'
+    )
+  }
+
+  /**
+   * Shared tooltip for a raincloud: the five-number summary its box draws,
+   * plus the observation count. Falls back to the violin tooltip when a datum
+   * carries no summary (precomputed density without a sample).
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   */
+  _getRaincloudTooltip(w, seriesIndex, dataPointIndex) {
+    const summary =
+      w.violinData.seriesViolinSummary[seriesIndex]?.[dataPointIndex]
+    if (!summary) {
+      return this._getViolinTooltip(w, seriesIndex, dataPointIndex)
+    }
+    const pts =
+      w.violinData.seriesViolinPoints[seriesIndex]?.[dataPointIndex] || []
+    const name =
+      /** @type {Record<string,any>} */ (w.config.series[seriesIndex]).name ||
+      'series-' + (seriesIndex + 1)
+    // Quantiles are derived, so they arrive with float noise; the tooltip is
+    // read by people.
+    /** @param {number} v */
+    const fmt = (v) => {
+      if (!isFinite(v)) return String(v)
+      const r = Math.round(v)
+      return Math.abs(v - r) < 1e-6 ? String(r) : String(Number(v.toFixed(2)))
+    }
+    const [lo, q1, med, q3, hi] = summary
+
+    return (
+      `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}">` +
+      `<div class="apexcharts-tooltip-violin-name">${name}</div>` +
+      `<div>Whisker high: <span class="value">${fmt(hi)}</span></div>` +
+      `<div>Q3: <span class="value">${fmt(q3)}</span></div>` +
+      `<div>Median: <span class="value">${fmt(med)}</span></div>` +
+      `<div>Q1: <span class="value">${fmt(q1)}</span></div>` +
+      `<div>Whisker low: <span class="value">${fmt(lo)}</span></div>` +
       `<div>Observations: <span class="value">${pts.length}</span></div>` +
       '</div>'
     )

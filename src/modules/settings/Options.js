@@ -997,6 +997,29 @@ export default class Options {
           // own peak). 'group' → all violins share one scale (the densest in the
           // series), so widths stay proportional to density across categories.
           normalize: 'individual',
+          // Which side(s) of the category centerline the density is drawn on.
+          // 'both' is the classic symmetric violin. 'left'/'right' (vertical
+          // charts) and 'top'/'bottom' (horizontal charts) draw a half-violin:
+          // the curve on that side, a straight baseline on the other. The
+          // raincloud preset builds on this; a plain violin can use it too.
+          side: 'both',
+          // A five-number-summary box beside the density. Drawn only when a
+          // datum carries `y.summary` ([whiskerLow, q1, median, q3,
+          // whiskerHigh], supplied directly or derived by a stats transform).
+          // The rain/jitter layer is the outlier display, so the box draws no
+          // outlier dots of its own.
+          box: {
+            show: false,
+            width: '15%', // fraction of the slot reserved for the box lane
+            // 'minmax' → whiskers at the data extremes. 'tukey' → 1.5*IQR
+            // fences clamped to the data. Consumed by the deriving transform;
+            // a hand-supplied summary is drawn as given.
+            whiskers: 'minmax',
+            strokeWidth: 1,
+            // undefined → the series colour.
+            fillColor: undefined,
+            capWidth: 0.5, // whisker cap length, 0..1 of the box lane width
+          },
           // Individual observations ("jitter") overlaid on the violin shape.
           points: {
             show: true,
@@ -1004,6 +1027,12 @@ export default class Options {
             size: 2.5, // radius (px)
             jitter: 0.5, // 0..1 fraction of the half-width to scatter within
             constrainToViolin: true, // clamp jitter to the density width at each value
+            // 'center' scatters across the slot centerline (classic violin).
+            // 'left'/'right'/'top'/'bottom' move the dots into their own lane
+            // on that side (the raincloud "rain"); `constrainToViolin` is
+            // ignored there because the dots no longer sit under the curve.
+            position: 'center',
+            laneWidth: '40%', // fraction of the slot for the off-center lane
             maxPoints: 3000, // cap per violin; excess is stride-thinned
             opacity: 0.9,
             // Default: a darker shade of each violin's own colour, with a white

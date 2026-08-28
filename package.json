@@ -105,6 +105,11 @@
       "import": "./dist/streamgraph.esm.js",
       "require": "./dist/streamgraph.common.js"
     },
+    "./raincloud": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/raincloud.esm.js",
+      "require": "./dist/raincloud.common.js"
+    },
     "./violin": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/violin.esm.js",
@@ -245,6 +250,10 @@
   "./features/stats": {
     "import": "./dist/features/stats.esm.js",
     "require": "./dist/features/stats.common.js"
+  },
+  "./features/raincloud": {
+    "import": "./dist/features/raincloud.esm.js",
+    "require": "./dist/features/raincloud.common.js"
   },
     "./features/waterfall": {
       "import": "./dist/features/waterfall.esm.js",

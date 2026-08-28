@@ -68,6 +68,9 @@ const TIER_2 = [
   'context-menu',
   'history',
   'perspectives',
+  // The first opt-in chart TYPE (premium, like trellis): chart.type
+  // 'raincloud' warns and renders blank on the default bundle by design.
+  'raincloud',
 ]
 
 const RULE = `

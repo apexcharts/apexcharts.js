@@ -222,6 +222,14 @@ export default class Config {
         opts.xaxis.type = 'numeric'
       }
       opts.chart.type = 'bar'
+    } else if (requested === 'raincloud') {
+      // A raincloud is a violin taken apart: half the density curve (the
+      // cloud), the five-number box beside it, the raw observations jittered
+      // on the other side (the rain). Every layer is a violin renderer
+      // capability, so the type routes to `violin`; features/raincloud
+      // supplies the statistics and Defaults.raincloud() flips the layout
+      // presets (kept out of here so each stays user-overridable).
+      opts.chart.type = 'violin'
     }
     return opts
   }

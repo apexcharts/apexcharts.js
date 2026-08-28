@@ -74,6 +74,17 @@ const CASES = {
   // Without this, a bundle that watermarked everything would pass every case
   // above while being catastrophically wrong for free users.
   'free-chart': { watermark: false, premium: false, id: false, key: FORGED },
+  // The raincloud chart TYPE is premium the way unit is: the type is the
+  // product. Driven through the real pairing an application ships (default
+  // bundle + the features/raincloud add-on, which is never bundled), so a
+  // forged key must settle to a watermark on it.
+  'raincloud-forged': {
+    watermark: true,
+    premium: true,
+    id: false,
+    key: FORGED,
+    fixture: 'raincloud',
+  },
   real: {
     watermark: false,
     premium: true,
@@ -172,7 +183,8 @@ async function runCase(bundlePath, caseName) {
   // registers onto the class this bundle exports. When the default bundle
   // inlined its own core instead, ink registered into a registry no chart read,
   // every case came back "no watermark", and this script said so.
-  const addon = resolve(bundle, '..', 'features', 'ink.esm.js')
+  const addonName = spec.fixture === 'raincloud' ? 'raincloud' : 'ink'
+  const addon = resolve(bundle, '..', 'features', `${addonName}.esm.js`)
   if (!existsSync(addon)) {
     throw new Error(`premium feature add-on not found at ${addon} (run: yarn build)`)
   }
@@ -188,22 +200,40 @@ async function runCase(bundlePath, caseName) {
   const key = spec.key()
   if (key !== null) ApexCharts.setLicense(key)
 
-  const chart = new ApexCharts(container, {
-    chart: {
-      type: 'line',
-      width: 600,
-      height: 400,
-      animations: { enabled: false },
-      ...(spec.id ? { id: 'enforcement-check' } : {}),
-      // A premium feature, so the licence decision has an effect at all. Without
-      // one, every case returns "no watermark" and the check proves nothing.
-      // Ink ships outside the default bundle since 7.0; the add-on is imported
-      // above.
-      ...(spec.premium ? { ink: { enabled: true } } : {}),
-    },
-    series: [{ name: 's', data: [3, 1, 4, 1, 5] }],
-    xaxis: { categories: ['a', 'b', 'c', 'd', 'e'] },
-  })
+  const chart = new ApexCharts(
+    container,
+    spec.fixture === 'raincloud'
+      ? {
+          // The premium chart TYPE itself is the licence trigger here; the
+          // add-on imported above supplies its statistics transform.
+          chart: {
+            type: 'raincloud',
+            width: 600,
+            height: 400,
+            animations: { enabled: false },
+            ...(spec.id ? { id: 'enforcement-check' } : {}),
+          },
+          series: [
+            { name: 's', data: [{ x: 'G1', points: [3, 1, 4, 1, 5, 9, 2, 6] }] },
+          ],
+        }
+      : {
+          chart: {
+            type: 'line',
+            width: 600,
+            height: 400,
+            animations: { enabled: false },
+            ...(spec.id ? { id: 'enforcement-check' } : {}),
+            // A premium feature, so the licence decision has an effect at all.
+            // Without one, every case returns "no watermark" and the check
+            // proves nothing. Ink ships outside the default bundle since 7.0;
+            // the add-on is imported above.
+            ...(spec.premium ? { ink: { enabled: true } } : {}),
+          },
+          series: [{ name: 's', data: [3, 1, 4, 1, 5] }],
+          xaxis: { categories: ['a', 'b', 'c', 'd', 'e'] },
+        },
+  )
 
   await chart.render()
 

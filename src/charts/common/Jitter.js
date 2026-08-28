@@ -32,6 +32,7 @@ import Utils from '../../utils/Utils'
  *   isHorizontal: boolean,
  *   options: any,
  *   clampAt?: ((v:number)=>number) | null,
+ *   sideSign?: number,
  * }} o
  * @returns {{fill:string|null, d:string}[]}
  */
@@ -46,6 +47,7 @@ export function buildJitterGroups({
   isHorizontal,
   options,
   clampAt,
+  sideSign,
 }) {
   const opts = options
   if (!opts || opts.show === false) return []
@@ -80,6 +82,9 @@ export function buildJitterGroups({
       if (off > cap) off = cap
       if (off < -cap) off = -cap
     }
+    // One-sided scatter (half-violin bodies): fold the symmetric offset onto
+    // the signed side of `center`, preserving the clamp above.
+    if (sideSign) off = Math.abs(off) * sideSign
     const px = isHorizontal ? a : center + off
     const py = isHorizontal ? center + off : a
     const sub = isSquare ? squareSubPath(px, py, r) : circleSubPath(px, py, r)
