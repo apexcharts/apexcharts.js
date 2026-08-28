@@ -252,3 +252,154 @@ test.describe('Streamgraph: tooltip', () => {
     })
   })
 })
+
+test.describe('Streamgraph: hover outline', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('streamgraph', 'basic-streamgraph')
+  })
+
+  /** Move to a fraction of the plot box and settle. */
+  const hover = async (page, fx, fy) => {
+    const box = await page.locator('.apexcharts-inner').first().boundingBox()
+    await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy)
+    await page.waitForTimeout(120)
+  }
+
+  test('traces the band under the cursor, and only that band', async ({
+    page,
+  }) => {
+    await hover(page, 0.5, 0.5)
+    const o = await page.evaluate(() => {
+      const groups = document.querySelectorAll('.apexcharts-streamgraph-hover')
+      const stroke = groups[0] && groups[0].querySelector('path[stroke]')
+      return {
+        groups: groups.length,
+        // Clipped to the band's OWN shape, which is what keeps the stroke
+        // inset instead of spending half its width on the neighbour above.
+        clipped: !!(stroke && stroke.getAttribute('clip-path')),
+        width: stroke && stroke.getAttribute('stroke-width'),
+        fill: stroke && stroke.getAttribute('fill'),
+      }
+    })
+    expect(o.groups).toBe(1)
+    expect(o.clipped).toBe(true)
+    // Drawn at 2x the configured width; the clip cuts it back to 2px.
+    expect(o.width).toBe('4')
+    expect(o.fill).toBe('none')
+  })
+
+  test('never disagrees with the tooltip about which band that is', async ({
+    page,
+  }) => {
+    // The two resolve the band independently (the outline hit-tests the
+    // geometry, the tooltip runs its own capture), so they can drift apart.
+    // A tooltip naming a band with nothing on the chart pointing at it is the
+    // failure this guards.
+    const disagreements = []
+    for (const fx of [0.2, 0.4, 0.6, 0.8]) {
+      for (const fy of [0.2, 0.4, 0.6, 0.8]) {
+        await hover(page, fx, fy)
+        const r = await page.evaluate(() => {
+          const w = window.chart.w
+          const outline = document.querySelector(
+            '.apexcharts-streamgraph-hover path[stroke]',
+          )
+          let outlined = null
+          document.querySelectorAll('.apexcharts-series').forEach((s) => {
+            const band = s.querySelector('path.apexcharts-rangeArea')
+            if (
+              band &&
+              outline &&
+              band.getAttribute('d') === outline.getAttribute('d')
+            ) {
+              outlined =
+                w.streamgraphData.names[
+                  Number(s.getAttribute('data:realIndex'))
+                ]
+            }
+          })
+          const tip = document.querySelector(
+            '.apexcharts-tooltip-stream-band.apexcharts-active .series-name',
+          )
+          return { outlined, tooltip: tip && tip.textContent }
+        })
+        if (!r.outlined || r.outlined !== r.tooltip) {
+          disagreements.push({ fx, fy, ...r })
+        }
+      }
+    }
+    expect(disagreements).toEqual([])
+  })
+
+  test('a sweep leaves one outline behind, not one per mousemove', async ({
+    page,
+  }) => {
+    for (let i = 1; i <= 10; i++) await hover(page, i / 11, 0.5)
+    const groups = await page.$$eval(
+      '.apexcharts-streamgraph-hover',
+      (ns) => ns.length,
+    )
+    expect(groups).toBe(1)
+  })
+
+  test('clears when the cursor leaves the chart', async ({ page }) => {
+    await hover(page, 0.5, 0.5)
+    expect(
+      await page.$$eval('.apexcharts-streamgraph-hover', (ns) => ns.length),
+    ).toBe(1)
+
+    await page.mouse.move(2, 2)
+    await page.waitForTimeout(250)
+    expect(
+      await page.$$eval('.apexcharts-streamgraph-hover', (ns) => ns.length),
+    ).toBe(0)
+  })
+})
+
+test.describe('Streamgraph: the legend is the control', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('streamgraph', 'basic-streamgraph')
+  })
+
+  test('renders a legend by default, with every band on it', async ({
+    page,
+  }) => {
+    // Not decoration: it is the only thing on a streamgraph you can click, and
+    // pulling a band out to watch the baseline re-solve is most of what there
+    // is to do here.
+    const items = await page.$$eval('.apexcharts-legend-series', (ns) =>
+      ns.map((n) => n.textContent.trim()),
+    )
+    expect(items.sort()).toEqual([
+      'Comedy',
+      'Documentary',
+      'Drama',
+      'Kids',
+      'News',
+      'Sport',
+    ])
+  })
+
+  test('clicking a legend item collapses that band and re-solves the rest', async ({
+    page,
+  }) => {
+    await page.click('.apexcharts-legend-series[rel="4"]')
+    await page.waitForTimeout(900)
+
+    const after = await page.evaluate(() => {
+      const d = window.chart.w.streamgraphData
+      let worst = 0
+      for (let j = 0; j < d.xs.length; j++) {
+        const thickness =
+          d.highs[d.order[d.order.length - 1]][j] - d.lows[d.order[0]][j]
+        const expected = d.order.reduce((a, k) => a + d.values[k][j], 0)
+        worst = Math.max(worst, Math.abs(thickness - expected))
+      }
+      return { order: d.order, hidden: d.hidden, worst }
+    })
+
+    expect(after.order).toHaveLength(5)
+    expect(after.hidden).toHaveLength(1)
+    expect(after.worst).toBeLessThan(1e-9)
+  })
+})

@@ -1169,11 +1169,31 @@ export default class Options {
           //   'inverse'    — the series order, reversed
           //   'none'       — the series order as given
           order: 'inside-out',
+          hover: {
+            // The band under the cursor is traced along its own edges, which
+            // is the surface's only acknowledgement that it can be used.
+            //
+            // The stroke is drawn INSET (clipped to the band's own shape)
+            // because the bands touch edge to edge: there is no gap for a
+            // treatment to live in, so a centred stroke would spend half its
+            // width painting over the band above, and a drop shadow has
+            // nowhere to fall except onto both neighbours. Isolating a band by
+            // dimming the rest is the LEGEND's gesture (see
+            // `legend.onItemHover`), which is deliberate rather than something
+            // that should fire as the cursor sweeps.
+            show: true,
+            // Visible width in px. Drawn at twice this and halved by the clip.
+            strokeWidth: 2,
+            // Defaults to black or white, whichever reads on that band.
+            color: undefined,
+            opacity: 0.9,
+          },
           labels: {
             // The series name written on the band itself, where that band is
-            // thickest. On by default, and the reason `legend.show` defaults
-            // to false for this type: a drifting band is much easier to find
-            // by its own label than by matching a colour to a key.
+            // thickest. On by default: a drifting band is much easier to find
+            // by its own label than by matching a colour to a key, and the
+            // legend is then free to be the thing you click rather than the
+            // only place the names appear.
             show: true,
             // A band narrower than this many pixels is left unlabelled rather
             // than given a name truncated past the point of being a name.

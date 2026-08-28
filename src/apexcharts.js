@@ -651,9 +651,10 @@ export default class ApexCharts {
       // from the geometry the bars were committed at, so it has to follow them.
       me.waterfall?.drawConnectors()
 
-      // Streamgraph: the names written on the bands. Placed from the geometry
-      // the bands were committed at, so it has to follow them.
-      me.streamgraph?.drawLabels()
+      // Streamgraph: the names written on the bands, and the hover outline.
+      // Both are placed from the geometry the bands were committed at, so they
+      // have to follow them.
+      me.streamgraph?.draw()
 
       if (w.config.xaxis.crosshairs.position === 'front') {
         me.crosshairs.drawXCrosshairs()
@@ -1505,9 +1506,10 @@ export default class ApexCharts {
         // that joins them is stale. drawConnectors replaces it in place.
         this.waterfall?.drawConnectors()
 
-        // Same for the streamgraph band labels: the bands moved, so the names
-        // sitting on them are in the wrong places until this replaces them.
-        this.streamgraph?.drawLabels()
+        // Same for the streamgraph chrome: the bands moved, so the names
+        // sitting on them are in the wrong places until this replaces them,
+        // and any hover outline is tracing a shape that has gone.
+        this.streamgraph?.draw()
 
         // Same reflow tweens the full render runs, and for the same reason: a
         // same-shape updateSeries is the MOST common update there is, and it

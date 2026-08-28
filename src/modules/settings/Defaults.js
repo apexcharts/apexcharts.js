@@ -1501,6 +1501,55 @@ export default class Defaults {
       // width of a double. It turns a band worth 26 into "26.0000000000000000".
       // A `tooltip.y` the user configured still wins, because that one is about
       // the numbers being reported rather than the ones being plotted.
+      // Which band the cursor is actually INSIDE, rather than the one the
+      // generic capture picked.
+      //
+      // `getNearestValues` resolves a hover to the series whose stored y is
+      // nearest, and for a range area the stored y is the band's LOWER EDGE
+      // (`seriesYvalues` takes the isRangeStart pass). On a stacked surface
+      // that is close to arbitrary: hovering deep inside Drama captures News,
+      // because News' lower edge happens to run nearer the cursor than Drama's
+      // does. Containment is what a band chart means by "the one you are
+      // pointing at", and it is also what the hover outline traces, so
+      // resolving it here is what keeps the two from naming different bands.
+      const active = (() => {
+        const d = w.streamgraphData
+        const svg = w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-svg')
+        const clientY = w.interact && w.interact.clientY
+        const span = w.globals.maxY - w.globals.minY
+        if (!svg || clientY == null || !span || !isFinite(span)) {
+          return seriesIndex
+        }
+        const rect = svg.getBoundingClientRect()
+        const zoom = w.globals.svgWidth ? rect.width / w.globals.svgWidth : 1
+        const py = (clientY - rect.top) / (zoom || 1) - w.layout.translateY
+        const h = w.layout.gridHeight
+        /** @param {number} v */
+        const yPx = (v) => {
+          const frac = (v - w.globals.minY) / span
+          return w.config.yaxis[0]?.reversed ? frac * h : h - frac * h
+        }
+        let nearest = seriesIndex
+        let gap = Infinity
+        for (let i = 0; i < d.order.length; i++) {
+          const k = d.order[i]
+          const lo = d.lows[k] && d.lows[k][dataPointIndex]
+          const hi = d.highs[k] && d.highs[k][dataPointIndex]
+          if (lo == null || hi == null) continue
+          const a = yPx(hi)
+          const b = yPx(lo)
+          const top = Math.min(a, b)
+          const bottom = Math.max(a, b)
+          if (py >= top && py <= bottom) return k
+          const dist = py < top ? top - py : py - bottom
+          if (dist < gap) {
+            gap = dist
+            nearest = k
+          }
+        }
+        return nearest
+      })()
+
       const configured = w.formatters.ttVal !== undefined
       /** @param {number} k @param {number} v */
       const bandValue = (k, v) => {
@@ -1523,7 +1572,7 @@ export default class Defaults {
         total += v
         rows +=
           '<div class="apexcharts-tooltip-stream-band' +
-          (k === seriesIndex ? ' apexcharts-active' : '') +
+          (k === active ? ' apexcharts-active' : '') +
           '">' +
           '<span class="apexcharts-tooltip-marker" style="background-color: ' +
           w.globals.colors[k] +
@@ -1614,11 +1663,19 @@ export default class Defaults {
         ),
       },
       legend: {
-        // Off by default because the band labels already name every band in
-        // place, and a legend would say the same six things a second time.
-        // Turn `plotOptions.streamgraph.labels.show` off and this back on for
-        // very thin bands that cannot hold a name.
-        show: false,
+        // On, even though the band labels already name every band in place.
+        // The legend and the labels are not doing the same job: a label says
+        // WHICH band this is, and the legend is the only thing on the chart you
+        // can CLICK. Dropping it to avoid saying six names twice took the one
+        // control a streamgraph really wants with it — pulling a band out and
+        // watching the baseline re-solve under it is most of what there is to
+        // do here, and there was no way to ask for it.
+        //
+        // It also covers the bands too thin to hold a name, which are exactly
+        // the ones a reader most needs named.
+        show: true,
+        position: 'top',
+        horizontalAlign: 'center',
       },
     }
   }

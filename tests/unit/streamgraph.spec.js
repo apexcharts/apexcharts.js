@@ -349,13 +349,15 @@ describe('Wiring: the alias reaches the range-area pathway', () => {
     expect(chart.w.config.chart.stacked).toBe(false)
   })
 
-  test('the defaults hide the y-axis and the legend, and open the fill', () => {
+  test('the defaults hide the y-axis, keep the legend, and open the fill', () => {
     const chart = createChartWithOptions({
       chart: { type: 'streamgraph', width: 700, height: 400 },
       series: SERIES,
     })
     expect(chart.w.config.yaxis[0].show).toBe(false)
-    expect(chart.w.config.legend.show).toBe(false)
+    // The legend is the only clickable thing on a streamgraph, and pulling a
+    // band out to watch the baseline re-solve is most of what there is to do.
+    expect(chart.w.config.legend.show).toBe(true)
     expect(chart.w.config.fill.opacity).toBe(1)
     // Any stroke at all draws a seam down every band boundary.
     expect(chart.w.config.stroke.width).toBe(0)
