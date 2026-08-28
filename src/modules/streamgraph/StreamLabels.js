@@ -107,12 +107,13 @@ export default class StreamLabels {
     const graphics = new Graphics(w, this.ctx)
     const group = graphics.group({ class: 'apexcharts-streamgraph-labels' })
 
-    const fontSize = cfg.style?.fontSize || '12px'
+    const fontSize = cfg.style?.fontSize || 'auto'
     const fontFamily = cfg.style?.fontFamily || w.config.chart.fontFamily
     const fontWeight = cfg.style?.fontWeight || 600
     const minWidth = cfg.minWidth == null ? 24 : cfg.minWidth
 
-    let drawn = 0
+    /** @type {any[]} */
+    const placed = []
     for (let i = 0; i < data.order.length; i++) {
       const k = data.order[i]
       const label = this._placeLabel(k, {
@@ -122,7 +123,12 @@ export default class StreamLabels {
         minWidth,
         graphics,
       })
-      if (!label) continue
+      if (label) placed.push({ k, ...label })
+    }
+
+    let drawn = 0
+    for (const label of this._deconflict(placed)) {
+      const k = label.k
 
       const el = graphics.drawText({
         x: label.x,
@@ -130,7 +136,9 @@ export default class StreamLabels {
         text: label.text,
         textAnchor: 'middle',
         dominantBaseline: 'middle',
-        fontSize,
+        // The size a band's own name is drawn at is decided per band, not per
+        // chart (see `_resolveFontSize`).
+        fontSize: label.fontSize,
         fontFamily,
         fontWeight,
         foreColor: cfg.style?.colors?.[k] || label.color,
@@ -167,7 +175,7 @@ export default class StreamLabels {
    *
    * @param {number} k
    * @param {{fontSize: string, fontFamily: string, fontWeight: any, minWidth: number, graphics: any}} opts
-   * @returns {{x: number, y: number, text: string, color: string}|null}
+   * @returns {{x: number, y: number, text: string, color: string, fontSize: string, width: number, height: number, weight: number}|null}
    */
   _placeLabel(k, { fontSize, fontFamily, fontWeight, minWidth, graphics }) {
     const w = this.w
@@ -197,13 +205,20 @@ export default class StreamLabels {
     }
     if (peak === -1) return null
 
+    // The size this band's name is drawn at. On a chart of twenty bands where
+    // one carries half the total, a single size makes a sliver shout as loudly
+    // as the band that IS the story — sizing each name to its own band is what
+    // turns the labels into the chart's hierarchy instead of noise over it.
+    const size = this._resolveFontSize(fontSize, peakT)
+
     // Measured with the weight it will RENDER at: getTextRects measures at
     // 'regular' unless told otherwise, and bold text measured that way comes up
     // short enough to overflow the band it was fitted to.
     const name = String(data.names[k])
-    const rect = graphics.getTextRects(
+    let px = size
+    let rect = graphics.getTextRects(
       name,
-      fontSize,
+      `${px}px`,
       fontFamily,
       '',
       true,
@@ -231,7 +246,30 @@ export default class StreamLabels {
       )
       available = isFinite(step) ? step : 0
     }
-    if (available < minWidth || available < rect.width * 0.35) return null
+    if (available < minWidth) return null
+
+    // A band can be thick and short — a tall narrow spike. Sizing on thickness
+    // alone would then set a name far too wide for the stretch it has to sit
+    // in, and truncating it to fit would print "Do..." where a smaller whole
+    // word would have gone. Text width is near enough linear in font size, so
+    // one step down by the overflow ratio lands it.
+    if (rect.width > available && fontSize === 'auto') {
+      const shrunk = Math.floor(px * (available / rect.width))
+      const floor = this._autoBounds().min
+      if (shrunk < floor) return null
+      px = shrunk
+      rect = graphics.getTextRects(
+        name,
+        `${px}px`,
+        fontFamily,
+        '',
+        true,
+        fontWeight,
+      )
+      // Re-check the band still clears the (now smaller) line box at its peak.
+      if (peakT < rect.height + VPAD * 2) return null
+    }
+    if (available < rect.width * 0.35) return null
 
     const text =
       rect.width <= available
@@ -239,7 +277,7 @@ export default class StreamLabels {
         : graphics.getTextBasedOnMaxWidth({
             text: name,
             maxWidth: available,
-            fontSize,
+            fontSize: `${px}px`,
             fontFamily,
           })
     if (!text || text === '...') return null
@@ -259,7 +297,99 @@ export default class StreamLabels {
     }
     const cy = (this._yPx(lo[anchor]) + this._yPx(hi[anchor])) / 2
 
-    return { x: cx, y: cy, text, color: this._contrastOn(k) }
+    // The drawn width, not the full name's: a truncated label occupies less
+    // room, and the de-overlap pass has to reason about what is actually on
+    // screen.
+    const drawnWidth =
+      text === name ? rect.width : rect.width * (text.length / name.length)
+
+    return {
+      x: cx,
+      y: cy,
+      text,
+      color: this._contrastOn(k),
+      fontSize: `${px}px`,
+      width: drawnWidth,
+      height: rect.height,
+      weight: peakT,
+    }
+  }
+
+  /**
+   * Drop the labels that would land on top of one another.
+   *
+   * Each band picks its own widest stretch with no idea what its neighbours
+   * picked, and on a dense chart two of them routinely want the same patch of
+   * screen. Two names overlapping is worse than one name missing: the reader
+   * can no longer tell which band EITHER belongs to, and the tooltip still
+   * names every band on hover.
+   *
+   * Ranked by the BAND's own thickness, not by the label's area: sorting on
+   * area hands priority to whoever has the longest name, so a sliver called
+   * "Willow Warbler" outranks a dominant band called "Robin". Thickest band
+   * first means the name that survives a collision is the one on the band
+   * carrying more, which is also the one the reader is most likely to want.
+   *
+   * @param {any[]} labels
+   * @returns {any[]}
+   */
+  _deconflict(labels) {
+    const byImportance = labels.slice().sort((a, b) => b.weight - a.weight)
+
+    /** @type {any[]} */
+    const kept = []
+    for (const label of byImportance) {
+      const box = {
+        left: label.x - label.width / 2,
+        right: label.x + label.width / 2,
+        top: label.y - label.height / 2,
+        bottom: label.y + label.height / 2,
+      }
+      const clashes = kept.some(
+        (o) =>
+          box.left < o.box.right &&
+          box.right > o.box.left &&
+          box.top < o.box.bottom &&
+          box.bottom > o.box.top,
+      )
+      if (!clashes) kept.push({ ...label, box })
+    }
+    return kept
+  }
+
+  /** The bounds `fontSize: 'auto'` scales between. */
+  _autoBounds() {
+    const cfg = this.w.config.plotOptions?.streamgraph?.labels || {}
+    return {
+      min: cfg.minFontSize == null ? 9 : cfg.minFontSize,
+      max: cfg.maxFontSize == null ? 30 : cfg.maxFontSize,
+    }
+  }
+
+  /**
+   * The px size band `k`'s name is drawn at, given how thick that band gets.
+   *
+   * `auto` is the default because it is the convention of the form, and because
+   * the alternative actively misleads: a streamgraph's whole claim is that
+   * thickness is quantity, and a fixed size prints that claim in the same voice
+   * for a band carrying half the total and a band carrying a rounding error.
+   *
+   * A literal (`'12px'`) opts out and every name is drawn at it.
+   *
+   * @param {string} fontSize the configured value, or 'auto'
+   * @param {number} peakT the band's greatest thickness, in px
+   * @returns {number} px
+   */
+  _resolveFontSize(fontSize, peakT) {
+    if (fontSize !== 'auto') {
+      const parsed = parseFloat(fontSize)
+      return isFinite(parsed) && parsed > 0 ? parsed : 12
+    }
+    const { min, max } = this._autoBounds()
+    // Just over a third of the band. Big enough that a dominant band reads as
+    // dominant, small enough to leave the breathing room a name needs on both
+    // sides of it rather than filling the band wall to wall.
+    return Math.max(min, Math.min(max, Math.round(peakT * 0.36)))
   }
 
   /**

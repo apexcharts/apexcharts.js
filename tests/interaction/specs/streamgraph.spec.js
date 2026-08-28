@@ -443,3 +443,130 @@ test.describe('Streamgraph: the legend is the control', () => {
     expect(after.worst).toBeLessThan(1e-9)
   })
 })
+
+test.describe('Streamgraph: many bands', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('streamgraph', 'streamgraph-many-series')
+  })
+
+  test('sizes each name to the band it sits on', async ({ page }) => {
+    // A streamgraph's whole claim is that thickness is quantity. One fixed
+    // label size states that claim in the same voice for a band carrying the
+    // chart and a band carrying a rounding error.
+    const labels = await page.evaluate(() => {
+      const d = window.chart.w.streamgraphData
+      const byName = {}
+      d.names.forEach((n, k) => {
+        const lo = d.lows[k]
+        const hi = d.highs[k]
+        if (!lo) return
+        let peak = 0
+        for (let j = 0; j < lo.length; j++) {
+          peak = Math.max(peak, hi[j] - lo[j])
+        }
+        byName[n] = peak
+      })
+      return [
+        ...document.querySelectorAll('.apexcharts-streamgraph-label'),
+      ].map((n) => ({
+        name: n.textContent,
+        size: parseFloat(n.getAttribute('font-size')),
+        peak: byName[n.textContent],
+      }))
+    })
+
+    expect(labels.length).toBeGreaterThan(4)
+    const sizes = labels.map((l) => l.size)
+    expect(new Set(sizes).size).toBeGreaterThan(1)
+    sizes.forEach((s) => {
+      expect(s).toBeGreaterThanOrEqual(9)
+      expect(s).toBeLessThanOrEqual(30)
+    })
+
+    // NOT asserted as strictly monotonic in thickness, because it isn't: a
+    // band can be thick and short (a tall narrow spike), and a name sized on
+    // thickness alone would then be too wide for the stretch it has to sit in,
+    // so it is stepped down to fit. What must hold is the reading: the band
+    // that dominates the chart carries a bigger name than the slivers.
+    const ranked = labels.filter((l) => l.peak).sort((a, b) => b.peak - a.peak)
+    expect(ranked[0].size).toBeGreaterThan(ranked[ranked.length - 1].size)
+  })
+
+  test('never lets two names overlap', async ({ page }) => {
+    // Each band picks its own widest stretch knowing nothing about its
+    // neighbours, so on a dense chart two of them routinely want the same
+    // patch. Two names on top of each other is worse than one name missing:
+    // the reader can no longer tell which band either belongs to.
+    const overlaps = await page.evaluate(() => {
+      const boxes = [
+        ...document.querySelectorAll('.apexcharts-streamgraph-label'),
+      ].map((n) => ({ t: n.textContent, r: n.getBoundingClientRect() }))
+      const hits = []
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i].r
+          const b = boxes[j].r
+          if (
+            a.left < b.right &&
+            a.right > b.left &&
+            a.top < b.bottom &&
+            a.bottom > b.top
+          ) {
+            hits.push([boxes[i].t, boxes[j].t])
+          }
+        }
+      }
+      return hits
+    })
+    expect(overlaps).toEqual([])
+  })
+
+  test('every drawn name stays inside the band it names', async ({ page }) => {
+    const stray = await page.evaluate(() => {
+      const w = window.chart.w
+      const d = w.streamgraphData
+      const h = w.layout.gridHeight
+      const span = w.globals.maxY - w.globals.minY
+      const yPx = (v) => h - ((v - w.globals.minY) / span) * h
+      const out = []
+      document
+        .querySelectorAll('.apexcharts-streamgraph-label')
+        .forEach((el) => {
+          const k = Number(el.getAttribute('data:realIndex'))
+          const lx = Number(el.getAttribute('x'))
+          const ly = Number(el.getAttribute('y'))
+          const xs = w.globals.seriesXvalues[k]
+          let j = 0
+          let best = Infinity
+          xs.forEach((x, idx) => {
+            const dx = Math.abs(x - lx)
+            if (dx < best) {
+              best = dx
+              j = idx
+            }
+          })
+          if (ly < yPx(d.highs[k][j]) || ly > yPx(d.lows[k][j])) {
+            out.push(d.names[k])
+          }
+        })
+      return out
+    })
+    expect(stray).toEqual([])
+  })
+
+  test('a literal fontSize opts out of the scaling', async ({ page }) => {
+    const sizes = await page.evaluate(async () => {
+      window.chart.updateOptions({
+        plotOptions: {
+          streamgraph: { labels: { style: { fontSize: '11px' } } },
+        },
+      })
+      await new Promise((r) => setTimeout(r, 900))
+      return [
+        ...document.querySelectorAll('.apexcharts-streamgraph-label'),
+      ].map((n) => n.getAttribute('font-size'))
+    })
+    expect(sizes.length).toBeGreaterThan(3)
+    expect(new Set(sizes)).toEqual(new Set(['11px']))
+  })
+})

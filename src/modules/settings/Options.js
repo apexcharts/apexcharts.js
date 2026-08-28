@@ -1193,8 +1193,17 @@ export default class Options {
             // A band narrower than this many pixels is left unlabelled rather
             // than given a name truncated past the point of being a name.
             minWidth: 24,
+            // The bounds `fontSize: 'auto'` scales between, in px.
+            minFontSize: 9,
+            maxFontSize: 30,
             style: {
-              fontSize: '12px',
+              // 'auto' sizes each name to the band it sits on, which is the
+              // convention of the form and the reason a streamgraph reads at a
+              // glance: a chart's whole claim is that thickness is quantity,
+              // and one fixed size states that claim in the same voice for a
+              // band carrying half the total and one carrying a rounding
+              // error. Give a literal ('12px') to draw every name the same.
+              fontSize: 'auto',
               fontFamily: undefined,
               fontWeight: 600,
               // Per-series override. By default each label takes black or

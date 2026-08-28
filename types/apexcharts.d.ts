@@ -3081,8 +3081,19 @@ type ApexPlotOptions = {
        * given a name truncated past the point of being a name. Default `24`.
        */
       minWidth?: number
+      /** Lower bound for `fontSize: 'auto'`, in px. Default `9`. */
+      minFontSize?: number
+      /** Upper bound for `fontSize: 'auto'`, in px. Default `30`. */
+      maxFontSize?: number
       style?: {
-        /** Default `'12px'`. */
+        /**
+         * `'auto'` (default) sizes each name to the band it sits on, bounded by
+         * `minFontSize` / `maxFontSize`. That is the convention of the form: a
+         * streamgraph's claim is that thickness is quantity, and one fixed size
+         * states it in the same voice for a band carrying half the total and
+         * one carrying a rounding error. Give a literal (`'12px'`) to draw
+         * every name at the same size.
+         */
         fontSize?: string
         fontFamily?: string
         /** Default `600`. */
