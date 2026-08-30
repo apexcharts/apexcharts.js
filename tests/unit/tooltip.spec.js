@@ -306,6 +306,74 @@ describe('Tooltip.Utils', () => {
       utils.getNearestValues({ hoverArea, elGrid, clientX: 615, clientY: 170 })
       expect(hoverArea.classList.contains('hovering-zoom')).toBe(false)
     })
+
+    // A series whose first values are null -- an indicator's warm-up period is
+    // the everyday case -- is compacted by the `.filter(isNumber)` that feeds
+    // closestInMultiArray, so the j it returns counts only the drawn points.
+    // Resolving that back to a data index must not depend on
+    // globals.hasNullValues: chart.zoom.autoScaleYaxis recomputes that flag
+    // over the visible window, so it goes false as soon as the warm-up scrolls
+    // out of view, while the filter still drops those points.
+    const WARMUP = 20
+    const POINTS = 120
+    const PX_PER_POINT = 10
+    const FIRST_VISIBLE = 60
+
+    function makeWarmupCtx(hasNullValues) {
+      const xvalues = Array.from({ length: POINTS }, (_, i) =>
+        i < WARMUP ? null : (i - FIRST_VISIBLE) * PX_PER_POINT,
+      )
+      const yvalues = Array.from({ length: POINTS }, (_, i) =>
+        i < WARMUP ? null : 100,
+      )
+      return makeHoverCtx({
+        globals: {
+          dataPoints: POINTS,
+          svgWidth: 800,
+          barPadForNumericAxis: 0,
+          isXNumeric: true,
+          hasNullValues,
+          seriesXvalues: [xvalues],
+          seriesYvalues: [yvalues],
+        },
+        layout: { gridWidth: 600, translateX: 0 },
+      })
+    }
+
+    const hoverAtPoint = (index) => {
+      const { ttCtx, elGrid, hoverArea } = index
+      return new TooltipUtils(ttCtx).getNearestValues({
+        hoverArea,
+        elGrid,
+        clientX: (80 - FIRST_VISIBLE) * PX_PER_POINT,
+        clientY: 170,
+      })
+    }
+
+    it('resolves the data index past a leading-null warm-up', () => {
+      expect(hoverAtPoint(makeWarmupCtx(true)).j).toBe(80)
+    })
+
+    it('resolves it whether or not hasNullValues survived the zoom', () => {
+      // The regression: this returned 60, the index into the compacted array,
+      // putting the crosshair WARMUP points to the left of the cursor. The
+      // error is one bar-width per warm-up point, so it is invisible at full
+      // extent and grows without bound as the chart is zoomed in.
+      expect(hoverAtPoint(makeWarmupCtx(false)).j).toBe(80)
+    })
+
+    it('does not let a null out-score a real point at the plot origin', () => {
+      // closestInArray scores a null as 0, so a cursor near x=0 could match a
+      // warm-up slot instead of the nearest drawn point.
+      const { ttCtx, elGrid, hoverArea } = makeWarmupCtx(false)
+      const res = new TooltipUtils(ttCtx).getNearestValues({
+        hoverArea,
+        elGrid,
+        clientX: 2,
+        clientY: 170,
+      })
+      expect(res.j).toBe(FIRST_VISIBLE)
+    })
   })
 
   describe('closestInArray', () => {

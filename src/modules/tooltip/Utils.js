@@ -111,7 +111,7 @@ export default class Utils {
     /**
      * @param {number[]} seriesXVal
      */
-    let seriesXValArr = w.globals.seriesXvalues.map(
+    const seriesXValArr = w.globals.seriesXvalues.map(
       (/** @type {any} */ seriesXVal) => {
         /**
          * @param {number} s
@@ -146,13 +146,44 @@ export default class Utils {
       capturedSeries = closest.index
       j = closest.j ?? 0
 
-      if (capturedSeries !== null && w.globals.hasNullValues) {
-        // initial push, it should be a little smaller than the 1st val
-        seriesXValArr = w.globals.seriesXvalues[capturedSeries]
+      // `seriesXValArr` was compacted by the `.filter` above, so the `j` that
+      // came back counts only non-null points and is NOT the data index.
+      // Re-resolve it against the unfiltered values whenever that filter
+      // dropped anything.
+      //
+      // The test is over EVERY series, not just the captured one: for equal-x
+      // series closestInMultiArray scans them all for the nearest x and keeps
+      // one `j`, deciding `index` separately, so `j` can come from a series
+      // other than `capturedSeries` and carry that series' compaction.
+      //
+      // The condition used to be `w.globals.hasNullValues`, which asks a
+      // different question. `chart.zoom.autoScaleYaxis` makes Range recompute
+      // that flag over the VISIBLE window, so zooming past a series' leading
+      // nulls -- an indicator's warm-up period, say -- cleared it while the
+      // filter still dropped those points. Every hover after that resolved `j`
+      // short by the warm-up length, putting the crosshair that many bars off:
+      // invisible at full extent, and further off the further you zoom in.
+      const wasCompacted = seriesXValArr.some(
+        (/** @type {any[]} */ arr, /** @type {number} */ i) =>
+          arr.length !== w.globals.seriesXvalues[i].length,
+      )
 
-        closest = this.closestInArray(hoverX, seriesXValArr)
-
-        j = closest.j ?? 0
+      if (capturedSeries !== null && wasCompacted) {
+        // Nulls are skipped rather than passed to closestInArray, which scores
+        // a null as 0 and so can win against a genuine point when the cursor is
+        // near the plot's left edge.
+        const unfiltered = w.globals.seriesXvalues[capturedSeries]
+        let nearest = null
+        let nearestDiff = Infinity
+        for (let i = 0; i < unfiltered.length; i++) {
+          if (!Utilities.isNumber(unfiltered[i])) continue
+          const diff = Math.abs(hoverX - unfiltered[i])
+          if (diff < nearestDiff) {
+            nearestDiff = diff
+            nearest = i
+          }
+        }
+        if (nearest !== null) j = nearest
       }
     }
 
