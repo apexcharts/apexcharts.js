@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.0.0
+ * ApexCharts v7.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -327,7 +327,7 @@ class Pie {
     this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
     this.lineColorArr = w.globals.stroke.colors !== void 0 ? w.globals.stroke.colors : w.globals.colors;
     this.defaultSize = Math.min(w.layout.gridWidth, w.layout.gridHeight);
-    this.centerY = this.defaultSize / 2;
+    this.centerY = w.layout.gridHeight / 2;
     this.centerX = w.layout.gridWidth / 2;
     if (w.config.chart.type === "radialBar") {
       this.fullAngle = 360;
@@ -1712,7 +1712,7 @@ class Radial extends Pie {
     });
     if (w.globals.noData) return ret;
     const elSeries = graphics.group();
-    const centerY = this.defaultSize / 2;
+    const centerY = w.layout.gridHeight / 2;
     const centerX = w.layout.gridWidth / 2;
     let size = this.defaultSize / 2.05;
     if (!w.config.chart.sparkline.enabled) {

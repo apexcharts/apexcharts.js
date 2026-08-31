@@ -748,6 +748,69 @@ rect.legend-mouseover-inactive,
   margin-bottom: 5px
 }
 
+/* Streamgraph: every band read out at one column, top-down in stacking order.
+ * A row per band rather than the shared tooltip's list, because a streamgraph's
+ * `[lo, hi]` are stacking offsets and the values the reader gave live on
+ * w.streamgraphData. */
+.apexcharts-tooltip-stream {
+  padding: 5px 8px
+}
+
+.apexcharts-tooltip-stream .apexcharts-tooltip-title {
+  background: transparent;
+  border: 0;
+  padding: 0 0 4px;
+  margin: 0;
+  font-weight: 700
+}
+
+.apexcharts-tooltip-stream-band {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.6;
+  opacity: .72
+}
+
+.apexcharts-tooltip-stream-band.apexcharts-active {
+  opacity: 1;
+  font-weight: 700
+}
+
+.apexcharts-tooltip-stream-band .series-name {
+  flex: 1 1 auto;
+  margin-right: 8px
+}
+
+.apexcharts-tooltip-stream-band .value {
+  font-weight: 700;
+  margin-left: auto
+}
+
+.apexcharts-tooltip-stream-total {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))
+}
+
+.apexcharts-tooltip-stream-total .series-name {
+  flex: 1 1 auto;
+  font-weight: 600
+}
+
+.apexcharts-tooltip-stream-total .value {
+  font-weight: 700;
+  margin-left: auto
+}
+
+/* The band labels themselves. Pointer events off so a name never blocks a
+ * hover on the band it sits on. */
+.apexcharts-streamgraph-label {
+  pointer-events: none
+}
+
 /* X/Y axis tooltips — small popovers that label the crosshair on the
  * axes. Restyled to match the modern data-tooltip palette: solid white
  * body with a subtle border + soft drop-shadow, smaller font, rounded
@@ -1681,4 +1744,37 @@ rect.legend-mouseover-inactive,
 }
 .apexcharts-trellis-legend-item.apexcharts-inactive-legend {
   opacity: 0.45;
+}
+
+/* Printing (#3352). The sheet is narrower than the screen and nothing reports
+   its width to the page, so a chart laid out for the screen would be cropped at
+   the edge of the paper. The chart lays itself out again for print (see
+   chart.print in the options); this caps whatever is left over so it shrinks to
+   fit rather than being cut. Shrink only: a chart narrower than the page keeps
+   the size it was drawn at. */
+@media print {
+  /* Scoped to the class the chart adds while it is laid out for the sheet: this
+     pair of rules is only safe once an identity viewBox is in place, since
+     without one a capped width crops the drawing instead of scaling it. A chart
+     with chart.print.enabled:false gets neither, and prints as it always did. */
+  .apexcharts-canvas.apexcharts-printing,
+  .apexcharts-canvas.apexcharts-printing svg {
+    max-width: 100% !important;
+  }
+
+  .apexcharts-canvas.apexcharts-printing svg {
+    height: auto !important;
+  }
+
+  /* A scaled-down SVG is shorter than the box drawn for it, and the wrapper
+     carries the pre-scale height inline, so without this a chart shrunk to fit a
+     narrow column prints above a white gap the size of what it gave up. The
+     host element's own inline min-height is cleared by _beforePrint. */
+  .apexcharts-canvas.apexcharts-printing {
+    height: auto !important;
+  }
+
+  .apexcharts-toolbar {
+    display: none !important;
+  }
 }

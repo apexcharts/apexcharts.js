@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.0.0
+ * ApexCharts v7.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -4198,9 +4198,13 @@ class Trellis {
         height: ly.panelH,
         width: "100%",
         // The trellis's single ResizeObserver is the only relayout owner
-        // (22a Q4); a panel must never self-rerender on a resize tick.
+        // (22a Q4); a panel must never self-rerender on a resize tick. Printing
+        // is the same rule: a panel re-laying itself out to a printable width
+        // would tear the grid apart, since its position and size are the
+        // orchestrator's to decide.
         redrawOnParentResize: false,
         redrawOnWindowResize: false,
+        print: { enabled: false },
         // Core pads the chart's container by parentHeightOffset (default 15)
         // via an inline min-height; inside a height-budgeted grid cell that
         // slack de-syncs mounted cells from the skeleton reserve (the grid

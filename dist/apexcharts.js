@@ -42,7 +42,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.0.0
+ * ApexCharts v7.1.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -1296,12 +1296,15 @@ var __async = (__this, __arguments, generator) => {
       return utc ? new Date(new Date(timestamp).toUTCString()) : new Date(timestamp);
     }
     /**
-     * @param {string} dateStr
+     * @param {any} dateStr - a date string, or anything isValidDate() was handed
      */
     parseDate(dateStr) {
       const parsed = Date.parse(dateStr);
       if (!isNaN(parsed)) {
         return this.getTimeStamp(dateStr);
+      }
+      if (typeof dateStr !== "string") {
+        return NaN;
       }
       let output = Date.parse(dateStr.replace(/-/g, "/").replace(/[a-z]+/gi, " "));
       output = this.getTimeStamp(output);
@@ -2496,6 +2499,19 @@ var __async = (__this, __arguments, generator) => {
           parentHeightOffset: 15,
           redrawOnParentResize: true,
           redrawOnWindowResize: true,
+          // Printing. The sheet is a layout the page itself never sees: nothing
+          // measures it, no resize is reported for it, and matchMedia('print') is
+          // still false while `beforeprint` runs. So a chart sized from a wide
+          // screen prints at its screen width and the right-hand side falls off
+          // the paper (#3352). `width` is the width, in CSS pixels, to lay the
+          // chart out at for printing, and a chart already narrower than that is
+          // left alone. The default suits A4 and Letter portrait with the usual
+          // margins; whatever is left over is shrunk to fit by the print
+          // stylesheet, so the value only has to be close.
+          print: {
+            enabled: true,
+            width: 700
+          },
           id: void 0,
           group: void 0,
           nonce: void 0,
@@ -2810,6 +2826,44 @@ var __async = (__this, __arguments, generator) => {
             hideZeroBarsWhenGrouped: false,
             isDumbbell: false,
             dumbbellColors: void 0,
+            // `chart.type: 'dumbbell'`, and any range bar drawn `isDumbbell`.
+            // The connector's thickness is `barHeight` / `columnWidth`, and the
+            // size of the marked ends is `markers.size`: they are the bar and its
+            // markers, so they are configured as such.
+            dumbbell: {
+              connector: {
+                // A solid colour for the join. Left undefined, the connector is a
+                // gradient between the two endpoint colours, resolved per row so
+                // that a row where the measures cross still runs the right way.
+                color: void 0,
+                // The join is context for the two marked ends, not a third mark
+                // competing with them.
+                opacity: 0.55
+              },
+              // A value written at each end of the connector. The pair of numbers
+              // IS the comparison, and reading them off an axis costs the glance
+              // the chart was meant to save.
+              dataLabels: {
+                enabled: false,
+                // px clear of the marked end, outward from the connector.
+                offset: 6,
+                // Each label takes its own end's colour, so a value is tied to a
+                // measure by more than its position.
+                colorFromMarker: true,
+                formatter: void 0,
+                style: {
+                  fontSize: "12px",
+                  fontFamily: void 0,
+                  fontWeight: 600,
+                  // Used when colorFromMarker is false.
+                  colors: void 0
+                }
+              },
+              tooltip: {
+                // Names the gap the two dots are on one row to show.
+                differenceLabel: "Difference"
+              }
+            },
             isFunnel: false,
             isFunnel3d: true,
             colors: {
@@ -2941,6 +2995,31 @@ var __async = (__this, __arguments, generator) => {
             // own peak). 'group' → all violins share one scale (the densest in the
             // series), so widths stay proportional to density across categories.
             normalize: "individual",
+            // Which side(s) of the category centerline the density is drawn on.
+            // 'both' is the classic symmetric violin. 'left'/'right' (vertical
+            // charts) and 'top'/'bottom' (horizontal charts) draw a half-violin:
+            // the curve on that side, a straight baseline on the other. The
+            // raincloud preset builds on this; a plain violin can use it too.
+            side: "both",
+            // A five-number-summary box beside the density. Drawn only when a
+            // datum carries `y.summary` ([whiskerLow, q1, median, q3,
+            // whiskerHigh], supplied directly or derived by a stats transform).
+            // The rain/jitter layer is the outlier display, so the box draws no
+            // outlier dots of its own.
+            box: {
+              show: false,
+              width: "15%",
+              // fraction of the slot reserved for the box lane
+              // 'minmax' → whiskers at the data extremes. 'tukey' → 1.5*IQR
+              // fences clamped to the data. Consumed by the deriving transform;
+              // a hand-supplied summary is drawn as given.
+              whiskers: "minmax",
+              strokeWidth: 1,
+              // undefined → the series colour.
+              fillColor: void 0,
+              capWidth: 0.5
+              // whisker cap length, 0..1 of the box lane width
+            },
             // Individual observations ("jitter") overlaid on the violin shape.
             points: {
               show: true,
@@ -2952,6 +3031,13 @@ var __async = (__this, __arguments, generator) => {
               // 0..1 fraction of the half-width to scatter within
               constrainToViolin: true,
               // clamp jitter to the density width at each value
+              // 'center' scatters across the slot centerline (classic violin).
+              // 'left'/'right'/'top'/'bottom' move the dots into their own lane
+              // on that side (the raincloud "rain"); `constrainToViolin` is
+              // ignored there because the dots no longer sit under the curve.
+              position: "center",
+              laneWidth: "40%",
+              // fraction of the slot for the off-center lane
               maxPoints: 3e3,
               // cap per violin; excess is stride-thinned
               opacity: 0.9,
@@ -3044,6 +3130,93 @@ var __async = (__this, __arguments, generator) => {
                 },
                 formatter: void 0
                 // (val) => string, for min/max + hover value
+              }
+            }
+          },
+          waterfall: {
+            // `chart.type: 'waterfall'`. See features/waterfall.
+            colors: {
+              // Up is good, down is bad: the one convention a waterfall is read
+              // by, so it is a default rather than something to configure. A
+              // datum's own `fillColor` still wins.
+              positive: "#00A86F",
+              negative: "#FF4560",
+              // The running-total bars (`isSubtotal` / `isTotal`) take the
+              // series colour from the active palette, so they stay distinct
+              // from the steps AND follow the theme. Name a colour to override.
+              subtotal: void 0,
+              total: void 0
+            },
+            connectors: {
+              // The segments joining each bar's finish to the next one's start.
+              // Without them the floating columns read as unrelated bars.
+              show: true,
+              // Falls back to grid.borderColor, so it is theme-aware.
+              color: void 0,
+              strokeWidth: 1,
+              strokeDashArray: 3
+            }
+          },
+          streamgraph: {
+            // `chart.type: 'streamgraph'`. See features/streamgraph.
+            //
+            // Where the baseline goes:
+            //   'wiggle'     — minimize the total weighted slope of the bands, so
+            //                  the thick ones stay level (the classic form)
+            //   'silhouette' — centre the stack on one horizontal line
+            //   'zero'       — an ordinary stacked area, on the zero line
+            //   'expand'     — each column normalized to its own total, so the
+            //                  chart reads as composition rather than volume
+            offset: "wiggle",
+            // The order the bands stack in, bottom first:
+            //   'inside-out' — the series that peak earliest sit in the middle,
+            //                  later peaks fan outward to whichever side is
+            //                  currently thinner. The middle moves least under a
+            //                  wiggle baseline, so this is what keeps a
+            //                  streamgraph readable
+            //   'inverse'    — the series order, reversed
+            //   'none'       — the series order as given
+            order: "inside-out",
+            hover: {
+              // Hovering a band fades the others, which is the surface's only
+              // acknowledgement that it can be used.
+              //
+              // It fades the OTHERS rather than marking the hovered one because
+              // the bands touch edge to edge and leave no room to mark anything:
+              // a drop shadow falls onto both neighbours, and an edge stroke is
+              // centred on a boundary the band SHARES. Fading needs no room, and
+              // it leaves the hovered band's colour exactly as it was.
+              show: true,
+              // What the other bands drop to. Below ~0.5 the hovered band stops
+              // reading as picked out.
+              opacity: 0.35
+            },
+            labels: {
+              // The series name written on the band itself, where that band is
+              // thickest. On by default: a drifting band is much easier to find
+              // by its own label than by matching a colour to a key, and the
+              // legend is then free to be the thing you click rather than the
+              // only place the names appear.
+              show: true,
+              // A band narrower than this many pixels is left unlabelled rather
+              // than given a name truncated past the point of being a name.
+              minWidth: 24,
+              // The bounds `fontSize: 'auto'` scales between, in px.
+              minFontSize: 9,
+              maxFontSize: 30,
+              style: {
+                // 'auto' sizes each name to the band it sits on, which is the
+                // convention of the form and the reason a streamgraph reads at a
+                // glance: a chart's whole claim is that thickness is quantity,
+                // and one fixed size states that claim in the same voice for a
+                // band carrying half the total and one carrying a rounding
+                // error. Give a literal ('12px') to draw every name the same.
+                fontSize: "auto",
+                fontFamily: void 0,
+                fontWeight: 600,
+                // Per-series override. By default each label takes black or
+                // white, whichever reads on its own band.
+                colors: void 0
               }
             }
           },
@@ -4558,6 +4731,17 @@ var __async = (__this, __arguments, generator) => {
       };
     }
   }
+  const TYPE_ALIASES = {
+    funnel: "bar",
+    pyramid: "bar",
+    gauge: "radialBar",
+    waffle: "unit",
+    histogram: "bar",
+    waterfall: "rangeBar",
+    dumbbell: "rangeBar",
+    streamgraph: "rangeArea",
+    raincloud: "violin"
+  };
   const TYPE_OWNED = "_apexOwnedByType";
   const ownedBy = (types, fn) => {
     const marked = (
@@ -4581,6 +4765,15 @@ var __async = (__this, __arguments, generator) => {
     "plotOptions.bar.dataLabels.position",
     // A box plot's outlier markers are hit targets; a violin draws none.
     "markers.size",
+    // The violin layers a raincloud rearranges: which side the density is on,
+    // whether the box lane exists and how its whiskers are computed, and where
+    // the jitter sits. All decide what is drawn, so they hand over when the
+    // type changes (violin <-> raincloud) instead of a raincloud's half-body
+    // surviving into a plain violin.
+    "plotOptions.violin.side",
+    "plotOptions.violin.box.show",
+    "plotOptions.violin.box.whiskers",
+    "plotOptions.violin.points.position",
     // Hover and select feedback, off by design on the types that draw their own.
     "states.hover.filter.type",
     "states.active.filter.type",
@@ -4623,13 +4816,6 @@ var __async = (__this, __arguments, generator) => {
       /** @type {string} */
       last
     ] = value;
-  };
-  const TYPE_ALIASES = {
-    funnel: "bar",
-    pyramid: "bar",
-    gauge: "radialBar",
-    waffle: "unit",
-    histogram: "bar"
   };
   const typeOpts = (type, config) => {
     var _a, _b;
@@ -4821,6 +5007,14 @@ var __async = (__this, __arguments, generator) => {
         chartDefaults = defaults.gauge();
       } else if (requestedType === "histogram") {
         chartDefaults = defaults.histogram();
+      } else if (requestedType === "waterfall") {
+        chartDefaults = defaults.waterfall();
+      } else if (requestedType === "dumbbell") {
+        chartDefaults = defaults.dumbbell();
+      } else if (requestedType === "streamgraph") {
+        chartDefaults = defaults.streamgraph();
+      } else if (requestedType === "raincloud") {
+        chartDefaults = defaults.raincloud();
       } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
         chartDefaults = /** @type {any} */
         defaults[opts.chart.type]();
@@ -5151,6 +5345,80 @@ var __async = (__this, __arguments, generator) => {
         }
       });
     }
+    waterfall() {
+      const range = this.rangeBar();
+      return __spreadProps(__spreadValues({}, range), {
+        chart: {
+          stacked: false,
+          // A waterfall is a fixed set of named steps, not a window onto a
+          // continuum: there is nothing to zoom into, and a horizontal one would
+          // otherwise inherit the timeline range bar's zoom toolbar.
+          zoom: {
+            enabled: false
+          },
+          animations: {
+            // The bars ARE a left-to-right sequence, so the staggered reveal
+            // traces the walk instead of implying an order that is not there.
+            // (A timeline range bar turns this off; a waterfall wants it.)
+            animateGradually: {
+              enabled: true
+            }
+          }
+        },
+        plotOptions: __spreadProps(__spreadValues({}, range.plotOptions), {
+          bar: __spreadProps(__spreadValues(
+            {},
+            /** @type {any} */
+            range.plotOptions.bar
+          ), {
+            // Narrower than a plain bar's 70%, because the gaps are load-bearing
+            // here: the connectors are drawn in them. Both orientations, so a
+            // horizontal waterfall's connectors have room too.
+            columnWidth: "60%",
+            barHeight: "60%"
+          })
+        }),
+        dataLabels: __spreadProps(__spreadValues(
+          {},
+          /** @type {any} */
+          range.dataLabels
+        ), {
+          // The step is the whole point of a waterfall, so it is written on the
+          // bar by default. The inherited range formatter already reports
+          // `end - start`, which is the delta for a step bar and the sum for a
+          // subtotal / total bar.
+          enabled: true,
+          // Small steps are normal in a waterfall, and a label wider or taller
+          // than its bar gets placed OUTSIDE it. The range column's white label
+          // is then white text on the chart background, so the two smallest steps
+          // of a P&L bridge simply vanished. A pale chip with dark ink reads
+          // wherever the label lands: over a green, red or blue bar, or off it.
+          background: {
+            enabled: true,
+            backgroundColor: "#fff",
+            foreColor: "#373d3f",
+            borderColor: "#e3e8ee",
+            opacity: 0.92
+          }
+        }),
+        legend: {
+          // A waterfall is one series, so the legend would show a single swatch
+          // named after it, and clicking it empties the chart. The legend a
+          // waterfall actually wants names the KINDS of bar (increase, decrease,
+          // total), which is not something the series legend can express.
+          show: false
+        },
+        tooltip: {
+          shared: false,
+          intersect: true,
+          followCursor: false
+          // Deliberately no `custom`: the range-column tooltip reads out
+          // "start - end", which is a span the data never claims. The ordinary
+          // tooltip is correct once the value it prints is the step, which
+          // TooltipLabels.formatYValue takes from `w.waterfallData.values`.
+        }
+      });
+    }
     histogram() {
       var _a, _b, _c, _d;
       const overlaid = Array.isArray((_a = this.opts) == null ? void 0 : _a.series) && this.opts.series.length > 1 && ((_d = (_c = (_b = this.opts) == null ? void 0 : _b.plotOptions) == null ? void 0 : _c.histogram) == null ? void 0 : _d.overlap) !== false;
@@ -5360,6 +5628,39 @@ var __async = (__this, __arguments, generator) => {
         }
       };
     }
+    raincloud() {
+      var _a, _b, _c;
+      const base = this.violin();
+      const horizontal = ((_c = (_b = (_a = this.opts) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.bar) == null ? void 0 : _c.horizontal) === true;
+      return __spreadProps(__spreadValues({}, base), {
+        plotOptions: {
+          violin: {
+            side: horizontal ? "top" : "right",
+            box: {
+              show: true,
+              // Tukey fences over minmax: the canonical raincloud box, and safe
+              // here precisely because the rain draws every observation, so
+              // nothing beyond the whiskers is hidden.
+              whiskers: "tukey"
+            },
+            points: {
+              position: horizontal ? "bottom" : "left",
+              // Fill most of the rain lane; the lane is the dots' whole home,
+              // unlike the centered violin scatter that shares it with the body.
+              jitter: 0.85
+            }
+          }
+        },
+        tooltip: __spreadProps(__spreadValues({}, base.tooltip), {
+          custom: ownedBy(
+            ["raincloud"],
+            ({ seriesIndex, dataPointIndex, w: w2 }) => {
+              return this._getRaincloudTooltip(w2, seriesIndex, dataPointIndex);
+            }
+          )
+        })
+      });
+    }
     rangeBar() {
       const handleTimelineTooltip = (opts) => {
         const { color, seriesName, ylabel, startVal, endVal } = getRangeValues(__spreadProps(__spreadValues({}, opts), {
@@ -5460,10 +5761,107 @@ var __async = (__this, __arguments, generator) => {
         }
       };
     }
+    dumbbell() {
+      const range = this.rangeBar();
+      const endpointRow = (name2, color, value) => '<div class="apexcharts-tooltip-dumbbell-endpoint"><span class="series-name" style="color: ' + color + '">' + name2 + '</span> <span class="value">' + value + "</span></div>";
+      const handleDumbbellTooltip = (opts) => {
+        var _a;
+        const { w: w2, dataPointIndex, seriesIndex } = opts;
+        const dumbbell = w2.dumbbellData;
+        if (!dumbbell || dumbbell.form !== "series") {
+          const { color, seriesName, ylabel: ylabel2, start, end } = getRangeValues(opts);
+          return buildRangeTooltipHTML(__spreadProps(__spreadValues({}, opts), {
+            color,
+            seriesName,
+            ylabel: ylabel2,
+            start,
+            end
+          }));
+        }
+        const values = dumbbell.values[dataPointIndex] || [];
+        const formatter = w2.globals.tooltip.tooltipLabels.getFormatters(seriesIndex);
+        const ylabel = (_a = w2.labelData.labels[dataPointIndex]) != null ? _a : "";
+        let rows = "";
+        const shown = [];
+        for (let k = 0; k < values.length; k++) {
+          if (values[k] === null || dumbbell.hidden.indexOf(k) !== -1) continue;
+          shown.push(values[k]);
+          rows += endpointRow(
+            dumbbell.names[k],
+            w2.globals.colors[k],
+            formatter.yLbFormatter(values[k])
+          );
+        }
+        const gap = shown.length === 2 ? '<div class="apexcharts-tooltip-dumbbell-gap"><span class="category">' + w2.config.plotOptions.bar.dumbbell.tooltip.differenceLabel + ': </span><span class="value">' + formatter.yLbFormatter(Math.abs(shown[1] - shown[0])) + "</span></div>" : "";
+        return '<div class="apexcharts-tooltip-rangebar apexcharts-tooltip-dumbbell"><div><span class="category">' + ylabel + "</span></div>" + rows + gap + "</div>";
+      };
+      return __spreadProps(__spreadValues({}, range), {
+        chart: {
+          stacked: false,
+          // A dumbbell is a fixed set of named rows, not a window onto a
+          // continuum: there is nothing to zoom into, and a horizontal one would
+          // otherwise inherit the timeline range bar's zoom toolbar.
+          zoom: {
+            enabled: false
+          }
+        },
+        plotOptions: __spreadProps(__spreadValues({}, range.plotOptions), {
+          bar: __spreadProps(__spreadValues(
+            {},
+            /** @type {any} */
+            range.plotOptions.bar
+          ), {
+            // The connector, not a bar: thin enough that the marked ends are what
+            // the eye lands on, thick enough to read as a join at a glance.
+            barHeight: 6,
+            columnWidth: 6,
+            dumbbell: {
+              dataLabels: {
+                // The two values ARE the comparison, so they are written at the
+                // ends by default. The centred range label a range bar would draw
+                // reads out `end - start` over the connector, which is the one
+                // number a dumbbell can already be seen to say.
+                enabled: true
+              }
+            }
+          })
+        }),
+        dataLabels: __spreadProps(__spreadValues(
+          {},
+          /** @type {any} */
+          range.dataLabels
+        ), {
+          enabled: false
+        }),
+        legend: {
+          // Two named measures, which is exactly what the series legend is for.
+          // (The `y: [lo, hi]` form has one series and no endpoint names; that is
+          // what `legend.customLegendItems` is for.)
+          show: true,
+          position: "bottom",
+          horizontalAlign: "left",
+          markers: {
+            // Echoes the marked ends rather than the connector.
+            shape: "circle"
+          }
+        },
+        tooltip: {
+          shared: false,
+          intersect: true,
+          followCursor: false,
+          custom: ownedBy(["rangeBar"], handleDumbbellTooltip)
+        }
+      });
+    }
     /**
+     * The connector's thickness, for any range bar drawn `isDumbbell`.
+     *
+     * Written into the opts rather than returned as defaults because it applies
+     * to the flag wherever it is set, not only to `chart.type: 'dumbbell'`.
+     *
      * @param {Record<string, any>} opts
      */
-    dumbbell(opts) {
+    dumbbellSizing(opts) {
       var _a, _b;
       if (!((_a = opts.plotOptions.bar) == null ? void 0 : _a.barHeight)) {
         opts.plotOptions.bar.barHeight = 2;
@@ -5557,6 +5955,161 @@ var __async = (__this, __arguments, generator) => {
           )
         }
       };
+    }
+    streamgraph() {
+      const range = this.rangeArea();
+      const handleStreamTooltip = (opts) => {
+        var _a;
+        const { w: w2, dataPointIndex, seriesIndex } = opts;
+        const data = w2.streamgraphData;
+        if (!data || !Array.isArray(data.order)) {
+          const { color, seriesName, ylabel: ylabel2, start, end } = getRangeValues(opts);
+          return buildRangeTooltipHTML(__spreadProps(__spreadValues({}, opts), {
+            color,
+            seriesName,
+            ylabel: ylabel2,
+            start,
+            end
+          }));
+        }
+        const { ylabel } = getRangeValues(opts);
+        const active = (() => {
+          const d = w2.streamgraphData;
+          const svg = w2.dom.baseEl && w2.dom.baseEl.querySelector(".apexcharts-svg");
+          const clientY = w2.interact && w2.interact.clientY;
+          const span = w2.globals.maxY - w2.globals.minY;
+          if (!svg || clientY == null || !span || !isFinite(span)) {
+            return seriesIndex;
+          }
+          const rect = svg.getBoundingClientRect();
+          const zoom = w2.globals.svgWidth ? rect.width / w2.globals.svgWidth : 1;
+          const py = (clientY - rect.top) / (zoom || 1) - w2.layout.translateY;
+          const h2 = w2.layout.gridHeight;
+          const yPx = (v2) => {
+            var _a2;
+            const frac = (v2 - w2.globals.minY) / span;
+            return ((_a2 = w2.config.yaxis[0]) == null ? void 0 : _a2.reversed) ? frac * h2 : h2 - frac * h2;
+          };
+          let nearest = seriesIndex;
+          let gap = Infinity;
+          for (let i2 = 0; i2 < d.order.length; i2++) {
+            const k = d.order[i2];
+            const lo = d.lows[k] && d.lows[k][dataPointIndex];
+            const hi = d.highs[k] && d.highs[k][dataPointIndex];
+            if (lo == null || hi == null) continue;
+            const a2 = yPx(hi);
+            const b2 = yPx(lo);
+            const top = Math.min(a2, b2);
+            const bottom = Math.max(a2, b2);
+            if (py >= top && py <= bottom) return k;
+            const dist = py < top ? top - py : py - bottom;
+            if (dist < gap) {
+              gap = dist;
+              nearest = k;
+            }
+          }
+          return nearest;
+        })();
+        const configured = w2.formatters.ttVal !== void 0;
+        const bandValue = (k, v2) => {
+          if (configured) {
+            const f = w2.globals.tooltip.tooltipLabels.getFormatters(k);
+            if (typeof f.yLbFormatter === "function") return f.yLbFormatter(v2);
+          }
+          if (Number.isInteger(v2)) return String(v2);
+          return String(Number(v2.toFixed(6)));
+        };
+        let rows = "";
+        let total = 0;
+        for (let i2 = data.order.length - 1; i2 >= 0; i2--) {
+          const k = data.order[i2];
+          const v2 = (_a = data.values[k]) == null ? void 0 : _a[dataPointIndex];
+          if (v2 == null || !isFinite(v2)) continue;
+          total += v2;
+          rows += '<div class="apexcharts-tooltip-stream-band' + (k === active ? " apexcharts-active" : "") + '"><span class="apexcharts-tooltip-marker" style="background-color: ' + w2.globals.colors[k] + '"></span><span class="series-name">' + data.names[k] + '</span> <span class="value">' + bandValue(k, v2) + "</span></div>";
+        }
+        const totalRow = data.offset === "expand" ? "" : '<div class="apexcharts-tooltip-stream-total"><span class="series-name">Total</span> <span class="value">' + bandValue(seriesIndex, total) + "</span></div>";
+        return '<div class="apexcharts-tooltip-stream"><div class="apexcharts-tooltip-title">' + ylabel + "</div>" + rows + totalRow + "</div>";
+      };
+      return __spreadProps(__spreadValues({}, range), {
+        chart: {
+          stacked: false
+        },
+        stroke: {
+          // monotoneCubic, not `smooth`. `smooth` sets its control points at a
+          // fixed fraction of the x gap without consulting the slope on either
+          // side, which puts an inflection at EVERY point: a band that simply
+          // declines (18, 9, 0) is drawn as a run of little S-curves, so it
+          // appears to stall and dip repeatedly on the way down. On a stack of
+          // twenty bands that invented wobble is most of what the reader sees.
+          // Fritsch-Carlson is shape preserving — where the data is monotone the
+          // curve is monotone — so a falling band reads as one continuous fall.
+          curve: "monotoneCubic",
+          // Bands meet edge to edge, so any stroke at all draws a seam down the
+          // middle of every boundary and doubles it at the two outer edges.
+          width: 0
+        },
+        fill: {
+          type: "solid",
+          // A streamgraph reads as one continuous surface, so the bands are
+          // opaque: at range-area's 0.6 the grid shows through and the boundaries
+          // between neighbours turn into a third, muddier colour.
+          opacity: 1
+        },
+        dataLabels: {
+          // One label per point on a stacked surface is unreadable at any real
+          // series count. The names go on the bands instead
+          // (plotOptions.streamgraph.labels).
+          enabled: false
+        },
+        grid: {
+          // There is nothing to measure against, so gridlines only add noise
+          // behind an opaque surface. The x ruler stays: the whole point of the
+          // form is *when* the mix changed.
+          //
+          // `padding` is deliberately left alone. Zeroing it so the surface
+          // bleeds to the plot edges is tempting and costs almost nothing
+          // visually, but it puts the first and last category label half outside
+          // the SVG, so a category streamgraph starts with an axis reading "19"
+          // where it should read "2019".
+          yaxis: { lines: { show: false } }
+        },
+        markers: {
+          size: 0,
+          // A streamgraph has no data points to hit, only bands. The inherited
+          // `sizeOffset` grows a size-0 marker to 3px on hover, which puts a dot
+          // on a band BOUNDARY — a place that is not a value in either band.
+          hover: {
+            size: 0,
+            sizeOffset: 0
+          }
+        },
+        tooltip: {
+          intersect: false,
+          shared: false,
+          followCursor: true,
+          custom: ownedBy(
+            ["streamgraph"],
+            /** @param {Record<string, any>} opts */
+            (opts) => handleStreamTooltip(opts)
+          )
+        },
+        legend: {
+          // On, even though the band labels already name every band in place.
+          // The legend and the labels are not doing the same job: a label says
+          // WHICH band this is, and the legend is the only thing on the chart you
+          // can CLICK. Dropping it to avoid saying six names twice took the one
+          // control a streamgraph really wants with it — pulling a band out and
+          // watching the baseline re-solve under it is most of what there is to
+          // do here, and there was no way to ask for it.
+          //
+          // It also covers the bands too thin to hold a name, which are exactly
+          // the ones a reader most needs named.
+          show: true,
+          position: "top",
+          horizontalAlign: "center"
+        }
+      });
     }
     /**
      * @param {Record<string, any>} defaults
@@ -6203,6 +6756,34 @@ var __async = (__this, __arguments, generator) => {
       );
       return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w2.config.chart.type}"><div class="apexcharts-tooltip-violin-name">${name2}</div><div>Min: <span class="value">${minV}</span></div><div>Max: <span class="value">${maxV}</span></div><div>Observations: <span class="value">${pts.length}</span></div></div>`;
     }
+    /**
+     * Shared tooltip for a raincloud: the five-number summary its box draws,
+     * plus the observation count. Falls back to the violin tooltip when a datum
+     * carries no summary (precomputed density without a sample).
+     *
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {number} seriesIndex
+     * @param {number} dataPointIndex
+     */
+    _getRaincloudTooltip(w2, seriesIndex, dataPointIndex) {
+      var _a, _b;
+      const summary = (_a = w2.violinData.seriesViolinSummary[seriesIndex]) == null ? void 0 : _a[dataPointIndex];
+      if (!summary) {
+        return this._getViolinTooltip(w2, seriesIndex, dataPointIndex);
+      }
+      const pts = ((_b = w2.violinData.seriesViolinPoints[seriesIndex]) == null ? void 0 : _b[dataPointIndex]) || [];
+      const name2 = (
+        /** @type {Record<string,any>} */
+        w2.config.series[seriesIndex].name || "series-" + (seriesIndex + 1)
+      );
+      const fmt = (v2) => {
+        if (!isFinite(v2)) return String(v2);
+        const r2 = Math.round(v2);
+        return Math.abs(v2 - r2) < 1e-6 ? String(r2) : String(Number(v2.toFixed(2)));
+      };
+      const [lo, q1, med, q3, hi] = summary;
+      return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w2.config.chart.type}"><div class="apexcharts-tooltip-violin-name">${name2}</div><div>Whisker high: <span class="value">${fmt(hi)}</span></div><div>Q3: <span class="value">${fmt(q3)}</span></div><div>Median: <span class="value">${fmt(med)}</span></div><div>Q1: <span class="value">${fmt(q1)}</span></div><div>Whisker low: <span class="value">${fmt(lo)}</span></div><div>Observations: <span class="value">${pts.length}</span></div></div>`;
+    }
   }
   class Config {
     /**
@@ -6234,8 +6815,8 @@ var __async = (__this, __arguments, generator) => {
         if (opts.chart.stacked && opts.chart.stackType === "100%") {
           opts = defaults.stacked100(opts);
         }
-        if ((_e = (_d = opts.plotOptions) == null ? void 0 : _d.bar) == null ? void 0 : _e.isDumbbell) {
-          opts = defaults.dumbbell(opts);
+        if (((_e = (_d = opts.plotOptions) == null ? void 0 : _d.bar) == null ? void 0 : _e.isDumbbell) && opts.chart.requestedType !== "dumbbell") {
+          opts = defaults.dumbbellSizing(opts);
         }
         this.checkForDarkTheme(Environment.getApex());
         this.checkForDarkTheme(opts);
@@ -6271,7 +6852,7 @@ var __async = (__this, __arguments, generator) => {
     normalizeAliasedChartType(opts) {
       if (!opts || !opts.chart) return opts;
       const requested = opts.chart.type;
-      if (requested !== "funnel" && requested !== "pyramid" && requested !== "gauge" && requested !== "waffle" && requested !== "histogram") {
+      if (!requested || !TYPE_ALIASES[requested]) {
         return opts;
       }
       opts.chart.requestedType = requested;
@@ -6298,12 +6879,33 @@ var __async = (__this, __arguments, generator) => {
         }
       } else if (requested === "gauge") {
         opts.chart.type = "radialBar";
+      } else if (requested === "waterfall") {
+        opts.chart.stacked = false;
+        opts.chart.type = "rangeBar";
+      } else if (requested === "dumbbell") {
+        opts.plotOptions = opts.plotOptions || {};
+        opts.plotOptions.bar = opts.plotOptions.bar || {};
+        opts.plotOptions.bar.isDumbbell = true;
+        if (opts.plotOptions.bar.horizontal == null) {
+          opts.plotOptions.bar.horizontal = true;
+        }
+        opts.chart.stacked = false;
+        opts.chart.type = "rangeBar";
+      } else if (requested === "streamgraph") {
+        opts.chart.stacked = false;
+        opts.yaxis = opts.yaxis || {};
+        if (!Array.isArray(opts.yaxis) && opts.yaxis.show == null) {
+          opts.yaxis.show = false;
+        }
+        opts.chart.type = "rangeArea";
       } else if (requested === "histogram") {
         opts.xaxis = opts.xaxis || {};
         if (opts.xaxis.type == null) {
           opts.xaxis.type = "numeric";
         }
         opts.chart.type = "bar";
+      } else if (requested === "raincloud") {
+        opts.chart.type = "violin";
       }
       return opts;
     }
@@ -7128,6 +7730,10 @@ var __async = (__this, __arguments, generator) => {
         violinData: {
           seriesViolinDensity: [],
           seriesViolinPoints: [],
+          // Five-number summaries per (series, category), null where the datum
+          // carries none. Feeds the box lane (raincloud / violin box.show).
+          // New slice: read via w.violinData only, no w.globals shim.
+          seriesViolinSummary: [],
           seriesViolinMin: [],
           seriesViolinMax: []
         },
@@ -7143,6 +7749,47 @@ var __async = (__this, __arguments, generator) => {
           rule: "",
           capped: false
         },
+        // Waterfall accumulation — written by the waterfall series transform
+        // (features/waterfall) each parse; empty for every other chart type.
+        //   values[i][j]     = the bar's signed height (end - start), which is
+        //                      the delta for a step bar and the sum for a
+        //                      subtotal / total bar. This is what a label and a
+        //                      tooltip show, in place of the "start - end" a
+        //                      range bar would otherwise read out.
+        //   cumulative[i][j] = the running total AFTER bar j, i.e. the level the
+        //                      connector to bar j+1 is drawn at.
+        //   kinds[i][j]      = 'positive' | 'negative' | 'subtotal' | 'total'
+        //   geometry[i][j]   = the px box the bar was actually drawn in, recorded
+        //                      by RangeBar. Present (as []) only on a waterfall,
+        //                      which is what tells RangeBar to record at all.
+        waterfallData: {
+          values: [],
+          cumulative: [],
+          kinds: [],
+          geometry: null
+        },
+        // Dumbbell endpoints, written by the dumbbell series transform
+        // (features/dumbbell) each parse; null for every other chart type.
+        //   form        = 'series' (N measures merged, endpoints identified) or
+        //                 'pairs' (a y: [lo, hi] series, nothing to identify)
+        //   names[k]    = endpoint k's series name
+        //   values[j][k]= endpoint k's value on row j, or null
+        //   order[j]    = [kLow, kHigh], which endpoint each end of row j's
+        //                 connector belongs to (null when the row is empty)
+        //   carrier     = the series index the merged rows were written to
+        //   hidden[]    = endpoint indices collapsed from the legend
+        dumbbellData: null,
+        // Streamgraph bands, written by the streamgraph series transform
+        // (features/streamgraph) each parse; null for every other chart type.
+        //   names[k]     = band k's series name
+        //   xs[j]        = column j's x value, in drawing order
+        //   values[k][j] = the number the reader gave for band k at column j
+        //   lows/highs   = per-band stacking offsets, or null when collapsed;
+        //                  highs[k][j] IS lows[next][j], not a copy of it
+        //   order[]      = series indices, bottom band first
+        //   offset       = the baseline mode the bands were solved with
+        //   hidden[]     = band indices collapsed from the legend
+        streamgraphData: null,
         // Label / category data — written by Data.parseData() and TimeScale each render.
         labelData: {
           labels: [],
@@ -10979,7 +11626,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} opts
      */
     fillPath(opts) {
-      var _a, _b, _c, _d;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w2 = this.w;
       this.opts = opts;
       const cnf = this.w.config;
@@ -11045,7 +11692,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (useGradient) {
         const colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : [];
-        let type = cnf.fill.gradient.type;
+        let type = (_g = (_f = (_e = opts.fillConfig) == null ? void 0 : _e.gradient) == null ? void 0 : _f.type) != null ? _g : cnf.fill.gradient.type;
         if (drawMultiColorLine) {
           colorStops[this.seriesIndex] = this.computeColorStops(
             this.getSeriesAxisRange(this.seriesIndex),
@@ -14382,11 +15029,49 @@ var __async = (__this, __arguments, generator) => {
       return (hi - lo) / gridWidth;
     }
     /**
+     * Whether the y scale should follow the zoomed x window: chart.zoom.
+     * autoScaleYaxis, or a brush source that asks for it.
+     *
+     * @returns {boolean}
+     */
+    _autoScaleYEnabled() {
+      var _a;
+      const cnf = this.w.config;
+      const brush = (
+        /** @type {any} */
+        (_a = this.w.globals.brushSource) == null ? void 0 : _a.w.config.chart.brush
+      );
+      return !!(cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis || (brush == null ? void 0 : brush.enabled) && (brush == null ? void 0 : brush.autoScaleYaxis));
+    }
+    /**
+     * The x window one series should be measured inside, widened by a rendered
+     * pixel, or null when the axis carries no zoom bounds at all.
+     *
+     * Bounds are read with the same truthiness test the trim loops have always
+     * used, so a legitimate `xaxis.min` of 0 keeps counting as "unset" here
+     * rather than quietly changing which points are in scope.
+     *
+     * @param {number} i
+     * @returns {{lo: number, hi: number} | null}
+     */
+    _autoScaleXBounds(i2) {
+      const cnfX = this.w.config.xaxis;
+      if (!cnfX.min && !cnfX.max) return null;
+      const tolerance = this._xPixelTolerance(this.w.seriesData.seriesX[i2]);
+      return {
+        lo: cnfX.min ? cnfX.min - tolerance : -Infinity,
+        hi: cnfX.max ? cnfX.max + tolerance : Infinity
+      };
+    }
+    /**
      * @param {number} startingSeriesIndex
+     * @param {number} [lowestY]
+     * @param {number} [highestY]
      * @param {number | null} [endingSeriesIndex]
+     * @returns {{minY: number, maxY: number, lowestY: number, highestY: number}}
      */
     getMinYMaxY(startingSeriesIndex, lowestY = Number.MAX_VALUE, highestY = -Number.MAX_VALUE, endingSeriesIndex = null) {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const cnf = this.w.config;
       const gl = this.w.globals;
       let maxY = -Number.MAX_VALUE;
@@ -14411,12 +15096,9 @@ var __async = (__this, __arguments, generator) => {
         seriesMax = this.w.rangeData.seriesRangeEnd;
       }
       let autoScaleYaxis = false;
+      let droppedForWindow = false;
       if (this.w.seriesData.seriesX.length >= endingSeriesIndex) {
-        const brush = (
-          /** @type {any} */
-          (_a = gl.brushSource) == null ? void 0 : _a.w.config.chart.brush
-        );
-        if (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis || (brush == null ? void 0 : brush.enabled) && (brush == null ? void 0 : brush.autoScaleYaxis)) {
+        if (this._autoScaleYEnabled() && !this._ignoreAutoScaleWindow) {
           autoScaleYaxis = true;
         }
       }
@@ -14441,15 +15123,28 @@ var __async = (__this, __arguments, generator) => {
         let firstXIndex = 0;
         let lastXIndex = series[i2].length - 1;
         if (autoScaleYaxis) {
-          const xTolerance = this._xPixelTolerance(this.w.seriesData.seriesX[i2]);
-          if (cnf.xaxis.min) {
-            const lowerBound = cnf.xaxis.min - xTolerance;
-            for (; firstXIndex < lastXIndex && this.w.seriesData.seriesX[i2][firstXIndex] < lowerBound; firstXIndex++) {
+          const xs = this.w.seriesData.seriesX[i2];
+          const bounds = this._autoScaleXBounds(i2);
+          if (bounds && cnf.xaxis.min) {
+            for (; firstXIndex < lastXIndex && xs[firstXIndex] < bounds.lo; firstXIndex++) {
             }
           }
-          if (cnf.xaxis.max) {
-            const upperBound = cnf.xaxis.max + xTolerance;
-            for (; lastXIndex > firstXIndex && this.w.seriesData.seriesX[i2][lastXIndex] > upperBound; lastXIndex--) {
+          if (bounds && cnf.xaxis.max) {
+            for (; lastXIndex > firstXIndex && xs[lastXIndex] > bounds.hi; lastXIndex--) {
+            }
+          }
+          if (bounds && xs && xs.length) {
+            const inWindow = xs[firstXIndex] >= bounds.lo && xs[firstXIndex] <= bounds.hi;
+            if (!inWindow) {
+              const straddles = xs[0] < bounds.lo && xs[xs.length - 1] > bounds.hi;
+              if (straddles && firstXIndex > 0) {
+                lastXIndex = firstXIndex;
+                firstXIndex = lastXIndex - 1;
+              } else {
+                firstXIndex = 0;
+                lastXIndex = -1;
+                droppedForWindow = true;
+              }
             }
           }
         }
@@ -14457,7 +15152,7 @@ var __async = (__this, __arguments, generator) => {
         if (plainNumeric) {
           const arr = series[i2];
           const jEnd = Math.min(lastXIndex, arr.length - 1);
-          const pe = (_b = this.w.seriesData._parsedExtrema) == null ? void 0 : _b[i2];
+          const pe = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[i2];
           if (pe && pe.ref === arr && pe.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
             if (pe.maxY > maxY) maxY = pe.maxY;
             if (pe.lowestY < lowestY) lowestY = pe.lowestY;
@@ -14510,11 +15205,11 @@ var __async = (__this, __arguments, generator) => {
         for (let j = firstXIndex; j <= lastXIndex && j < this.w.seriesData.series[i2].length; j++) {
           let val = series[i2][j];
           if (val !== null && Utils$1.isNumber(val)) {
-            if (typeof ((_c = seriesMax[i2]) == null ? void 0 : _c[j]) !== "undefined") {
+            if (typeof ((_b = seriesMax[i2]) == null ? void 0 : _b[j]) !== "undefined") {
               maxY = Math.max(maxY, seriesMax[i2][j]);
               lowestY = Math.min(lowestY, seriesMax[i2][j]);
             }
-            if (typeof ((_d = seriesMin[i2]) == null ? void 0 : _d[j]) !== "undefined") {
+            if (typeof ((_c = seriesMin[i2]) == null ? void 0 : _c[j]) !== "undefined") {
               lowestY = Math.min(lowestY, seriesMin[i2][j]);
               highestY = Math.max(highestY, seriesMin[i2][j]);
             }
@@ -14543,7 +15238,7 @@ var __async = (__this, __arguments, generator) => {
                 break;
               case "violin":
                 {
-                  if (typeof ((_e = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _e[j]) !== "undefined") {
+                  if (typeof ((_d = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _d[j]) !== "undefined") {
                     maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i2][j]);
                     lowestY = Math.min(
                       lowestY,
@@ -14566,7 +15261,7 @@ var __async = (__this, __arguments, generator) => {
               );
             }
             if (this.w.config.chart.type === "boxPlot" || seriesType === "boxPlot") {
-              const boxPts = (_g = (_f = this.w.candleData.seriesBoxPoints) == null ? void 0 : _f[i2]) == null ? void 0 : _g[j];
+              const boxPts = (_f = (_e = this.w.candleData.seriesBoxPoints) == null ? void 0 : _e[i2]) == null ? void 0 : _f[j];
               if (boxPts) {
                 for (let p2 = 0; p2 < boxPts.length; p2++) {
                   const pv = boxPts[p2];
@@ -14585,7 +15280,7 @@ var __async = (__this, __arguments, generator) => {
                 val.toString().split(".")[1].length
               );
             }
-            if (minY > ((_h = seriesMin[i2]) == null ? void 0 : _h[j]) && ((_i = seriesMin[i2]) == null ? void 0 : _i[j]) < 0) {
+            if (minY > ((_g = seriesMin[i2]) == null ? void 0 : _g[j]) && ((_h = seriesMin[i2]) == null ? void 0 : _h[j]) < 0) {
               minY = seriesMin[i2][j];
             }
           } else {
@@ -14612,6 +15307,19 @@ var __async = (__this, __arguments, generator) => {
         }
         if (minY === Number.MIN_VALUE) {
           minY = 0;
+        }
+      }
+      if (droppedForWindow && maxY === -Number.MAX_VALUE) {
+        this._ignoreAutoScaleWindow = true;
+        try {
+          return this.getMinYMaxY(
+            startingSeriesIndex,
+            Number.MAX_VALUE,
+            -Number.MAX_VALUE,
+            endingSeriesIndex
+          );
+        } finally {
+          this._ignoreAutoScaleWindow = false;
         }
       }
       return {
@@ -14968,6 +15676,7 @@ var __async = (__this, __arguments, generator) => {
     }
     _setStackedMinMax() {
       const gl = this.w.globals;
+      const windowed = this._autoScaleYEnabled();
       if (!this.w.seriesData.series.length) return;
       let seriesGroups = this.w.labelData.seriesGroups;
       if (!seriesGroups.length) {
@@ -14983,7 +15692,11 @@ var __async = (__this, __arguments, generator) => {
         ).filter((f) => f !== null);
         indicesOfSeriesInGroup.forEach((i2) => {
           var _a, _b, _c, _d;
+          const bounds = windowed ? this._autoScaleXBounds(i2) : null;
+          const xs = this.w.seriesData.seriesX[i2];
+          const hasX = !!(bounds && xs && xs.length);
           for (let j = 0; j < this.w.seriesData.series[gl.maxValsInArrayIndex].length; j++) {
+            if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue;
             if (typeof stackedPoss[group][j] === "undefined") {
               stackedPoss[group][j] = 0;
               stackedNegs[group][j] = 0;
@@ -20443,7 +21156,7 @@ var __async = (__this, __arguments, generator) => {
         const svgRect = Utils$1.getBoundingClientRect(this.w.dom.Paper.node);
         let arcTopFromSVGTop = Infinity;
         let arcBottomFromSVGTop = -Infinity;
-        const accumulate = (node) => {
+        const accumulate2 = (node) => {
           var _a2, _b2, _c2, _d2;
           if ((_a2 = node.classList) == null ? void 0 : _a2.contains("apexcharts-radialbar-hollow")) {
             return;
@@ -20452,7 +21165,7 @@ var __async = (__this, __arguments, generator) => {
           if (tag === "text" || tag === "tspan") return;
           const children = Array.from((_d2 = node.children) != null ? _d2 : []);
           if (children.length > 0) {
-            children.forEach((c2) => accumulate(
+            children.forEach((c2) => accumulate2(
               /** @type {Element} */
               c2
             ));
@@ -20468,7 +21181,7 @@ var __async = (__this, __arguments, generator) => {
           }
         };
         Array.from((_c = el.children) != null ? _c : []).forEach(
-          (c2) => accumulate(
+          (c2) => accumulate2(
             /** @type {Element} */
             c2
           )
@@ -20912,7 +21625,7 @@ var __async = (__this, __arguments, generator) => {
     const { maxDepth } = annotate(roots);
     return { roots, maxDepth, nested: false };
   }
-  const RAW_SAMPLE_TYPES = ["histogram"];
+  const RAW_SAMPLE_FEATURES = { histogram: "stats", raincloud: "raincloud" };
   class Data {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -21175,7 +21888,9 @@ var __async = (__this, __arguments, generator) => {
             } else {
               this.w.axisFlags.dataFormatXNumeric = true;
               this.w.axisFlags.isXNumeric = true;
-              this.twoDSeriesX.push(parseFloat(x));
+              this.twoDSeriesX.push(
+                x instanceof Date ? x.getTime() : parseFloat(x)
+              );
             }
           }
         } else if (isXArr) {
@@ -21303,9 +22018,11 @@ var __async = (__this, __arguments, generator) => {
      * Parse a violin series. Each data point carries a precomputed density
      * profile (the violin shape) and an array of raw observations (the jitter):
      *
-     *   { x, y: { density: [[value, weight], ...], points: [v1, v2, ...] } }
+     *   { x, y: { density: [[value, weight], ...], points: [v1, v2, ...],
+     *             summary?: [whiskerLow, q1, median, q3, whiskerHigh] } }
      *
-     * Array fallback form: [x, densityPairs, pointsArray].
+     * Array fallback form: [x, densityPairs, pointsArray, summary?]. The
+     * optional summary feeds the box lane (raincloud, or violin `box.show`).
      *
      * Density `weight` need not be normalized — Violin.js scales each violin by
      * its own maxWeight. The representative scalar pushed into the main series
@@ -21316,11 +22033,12 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} i
      */
     handleViolinData(ser, i2) {
-      var _a, _b, _c, _d, _e, _f;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w2 = this.w;
       const data = ser[i2].data;
       const densityArr = [];
       const pointsArr = [];
+      const summaryArr = [];
       const minArr = [];
       const maxArr = [];
       const placeholders = [];
@@ -21328,6 +22046,7 @@ var __async = (__this, __arguments, generator) => {
         const d = data[j];
         const dens = (_c = (_b = (_a = d == null ? void 0 : d.y) == null ? void 0 : _a.density) != null ? _b : d == null ? void 0 : d[1]) != null ? _c : [];
         const pts = (_f = (_e = (_d = d == null ? void 0 : d.y) == null ? void 0 : _d.points) != null ? _e : d == null ? void 0 : d[2]) != null ? _f : [];
+        const summary = this._parseViolinSummary((_h = (_g = d == null ? void 0 : d.y) == null ? void 0 : _g.summary) != null ? _h : d == null ? void 0 : d[3]);
         const values = [];
         const weights = [];
         let maxWeight = 0;
@@ -21355,8 +22074,13 @@ var __async = (__this, __arguments, generator) => {
           if (p2 < minVal) minVal = p2;
           if (p2 > maxVal) maxVal = p2;
         }
+        if (summary) {
+          if (summary[0] < minVal) minVal = summary[0];
+          if (summary[4] > maxVal) maxVal = summary[4];
+        }
         densityArr.push({ values, weights, maxWeight });
         pointsArr.push(cleanPts);
+        summaryArr.push(summary);
         minArr.push(minVal === Infinity ? 0 : minVal);
         maxArr.push(maxVal === -Infinity ? 0 : maxVal);
         placeholders.push(
@@ -21365,9 +22089,29 @@ var __async = (__this, __arguments, generator) => {
       }
       w2.violinData.seriesViolinDensity[i2] = densityArr;
       w2.violinData.seriesViolinPoints[i2] = pointsArr;
+      w2.violinData.seriesViolinSummary[i2] = summaryArr;
       w2.violinData.seriesViolinMin[i2] = minArr;
       w2.violinData.seriesViolinMax[i2] = maxArr;
       this.twoDSeries = placeholders;
+    }
+    /**
+     * Validate a five-number summary ([whiskerLow, q1, median, q3, whiskerHigh]):
+     * exactly five finite, non-decreasing numbers, else null. Pure shape check;
+     * the statistics themselves come from the datum (hand-supplied or a stats
+     * transform).
+     *
+     * @param {any} raw
+     * @returns {number[] | null}
+     */
+    _parseViolinSummary(raw) {
+      if (!Array.isArray(raw) || raw.length !== 5) return null;
+      const out = [];
+      for (let k = 0; k < 5; k++) {
+        const v2 = Utils$1.parseNumber(raw[k]);
+        if (v2 === null || k > 0 && v2 < out[k - 1]) return null;
+        out.push(v2);
+      }
+      return out;
     }
     /**
      * @param {string} format
@@ -22057,13 +22801,31 @@ var __async = (__this, __arguments, generator) => {
     applySeriesTransform(ser) {
       const cnf = this.w.config;
       const name2 = cnf.chart.requestedType || cnf.chart.type;
+      if (name2 !== "waterfall" && this.w.waterfallData.geometry) {
+        this.w.waterfallData = {
+          values: [],
+          cumulative: [],
+          kinds: [],
+          geometry: null
+        };
+      }
+      if (name2 !== "dumbbell" && this.w.dumbbellData) {
+        this.w.dumbbellData = null;
+      }
+      if (name2 !== "streamgraph" && this.w.streamgraphData) {
+        this.w.streamgraphData = null;
+      }
       const transform = getSeriesTransform(name2);
       if (transform) return transform(ser, this.w);
-      if (!Array.isArray(ser) || RAW_SAMPLE_TYPES.indexOf(name2) === -1) return ser;
+      const feature = (
+        /** @type {Record<string,string>} */
+        RAW_SAMPLE_FEATURES[name2]
+      );
+      if (!Array.isArray(ser) || !feature) return ser;
       if (!this._warnedMissingTransform) {
         this._warnedMissingTransform = true;
         console.warn(
-          `ApexCharts: chart.type '${name2}' needs the stats feature. Add \`import 'apexcharts/features/stats'\`, or import from 'apexcharts/${name2}'.`
+          `ApexCharts: chart.type '${name2}' requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/features/${feature}' (or from 'apexcharts/${name2}'). Script tag: add <script src='.../dist/features/${feature}.js'> after apexcharts.js.`
         );
       }
       return ser.map((s2) => __spreadProps(__spreadValues({}, s2), { data: [] }));
@@ -22299,6 +23061,12 @@ var __async = (__this, __arguments, generator) => {
         });
       } else if (gl.histogramRawSeries) {
         gl.initialSeries = gl.histogramRawSeries;
+      } else if (gl.dumbbellRawSeries) {
+        gl.initialSeries = gl.dumbbellRawSeries;
+      } else if (gl.streamgraphRawSeries) {
+        gl.initialSeries = gl.streamgraphRawSeries;
+      } else if (gl.waterfallRawSeries) {
+        gl.initialSeries = gl.waterfallRawSeries;
       } else if (gl.treemapRawSeries) {
         gl.initialSeries = gl.treemapRawSeries;
       } else {
@@ -22761,6 +23529,9 @@ var __async = (__this, __arguments, generator) => {
         if (overwriteInitialSeries) {
           w2.globals.dataReducerRawSeries = null;
           w2.globals.histogramRawSeries = null;
+          w2.globals.waterfallRawSeries = null;
+          w2.globals.dumbbellRawSeries = null;
+          w2.globals.streamgraphRawSeries = null;
           w2.globals.treemapRawSeries = null;
         }
         this.ctx.data.resetParsingFlags();
@@ -23078,7 +23849,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ hoverArea: any, elGrid: any, clientX: any, clientY: any, context?: any }} opts
      */
     getNearestValues({ hoverArea, elGrid, clientX, clientY }) {
-      var _a, _b;
+      var _a;
       const w2 = this.w;
       const seriesBound = elGrid.getBoundingClientRect();
       const hoverWidth = w2.layout.gridWidth;
@@ -23113,7 +23884,7 @@ var __async = (__this, __arguments, generator) => {
       }
       let capturedSeries = null;
       let closest = null;
-      let seriesXValArr = w2.globals.seriesXvalues.map(
+      const seriesXValArr = w2.globals.seriesXvalues.map(
         (seriesXVal) => {
           return seriesXVal.filter(
             (s2) => Utils$1.isNumber(s2)
@@ -23136,10 +23907,22 @@ var __async = (__this, __arguments, generator) => {
         );
         capturedSeries = closest.index;
         j = (_a = closest.j) != null ? _a : 0;
-        if (capturedSeries !== null && w2.globals.hasNullValues) {
-          seriesXValArr = w2.globals.seriesXvalues[capturedSeries];
-          closest = this.closestInArray(hoverX, seriesXValArr);
-          j = (_b = closest.j) != null ? _b : 0;
+        const wasCompacted = seriesXValArr.some(
+          (arr, i2) => arr.length !== w2.globals.seriesXvalues[i2].length
+        );
+        if (capturedSeries !== null && wasCompacted) {
+          const unfiltered = w2.globals.seriesXvalues[capturedSeries];
+          let nearest = null;
+          let nearestDiff = Infinity;
+          for (let i2 = 0; i2 < unfiltered.length; i2++) {
+            if (!Utils$1.isNumber(unfiltered[i2])) continue;
+            const diff = Math.abs(hoverX - unfiltered[i2]);
+            if (diff < nearestDiff) {
+              nearestDiff = diff;
+              nearest = i2;
+            }
+          }
+          if (nearest !== null) j = nearest;
         }
       }
       w2.interact.capturedSeriesIndex = capturedSeries === null ? -1 : capturedSeries;
@@ -23642,6 +24425,15 @@ var __async = (__this, __arguments, generator) => {
     formatYValue(f, index, j) {
       var _a, _b, _c, _d;
       const w2 = this.w;
+      const steps = w2.waterfallData && w2.waterfallData.values;
+      if (steps && steps[index] && steps[index][j] != null) {
+        return f.yLbFormatter(steps[index][j], {
+          series: steps,
+          seriesIndex: index,
+          dataPointIndex: j,
+          w: w2
+        });
+      }
       if (w2.axisFlags.isRangeData) {
         return f.yLbFormatter((_b = (_a = w2.rangeData.seriesRangeStart) == null ? void 0 : _a[index]) == null ? void 0 : _b[j], {
           series: w2.rangeData.seriesRangeStart,
@@ -27886,6 +28678,10 @@ var __async = (__this, __arguments, generator) => {
       ctx.contextMenu = ContextMenuCtor ? new ContextMenuCtor(w2, ctx) : null;
       const WeaveCtor = reg.get("weave");
       ctx.weave = WeaveCtor ? new WeaveCtor(w2, ctx) : null;
+      const WaterfallCtor = reg.get("waterfall");
+      ctx.waterfall = WaterfallCtor ? new WaterfallCtor(w2, ctx) : null;
+      const StreamgraphCtor = reg.get("streamgraph");
+      ctx.streamgraph = StreamgraphCtor ? new StreamgraphCtor(w2, ctx) : null;
       const TrellisCtor = reg.get("trellis");
       ctx.trellis = TrellisCtor ? new TrellisCtor(w2, ctx) : null;
       const OSThemeCtor = reg.get("osThemeWatcher");
@@ -28245,7 +29041,7 @@ var __async = (__this, __arguments, generator) => {
       ros.delete(fn);
     }
   }
-  const apexCSS = "@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role=\"button\"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role=\"button\"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role=\"button\"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n/* A series still playing its exit tween stays painted so it can visibly shrink\n   away, hiding it on the first frame leaves a hole in a stacked chart for the\n   length of the animation. Dropped once the tween lands. */\n.apexcharts-series-collapsed.apexcharts-series-collapsing {\n  opacity: 1\n}\n\n/* Its labels ride the shrinking marks, but a mark runs out of room for its text\n   well before it reaches zero, so fade them across the exit instead of holding\n   them crisp over a sliver. Duration is set inline from dynamicAnimation.speed. */\n.apexcharts-datalabels.apexcharts-series-collapsing {\n  animation: apexcharts-datalabels-exit var(--apexcharts-dl-exit, 400ms) ease-in\n    forwards;\n}\n\n@keyframes apexcharts-datalabels-exit {\n  from {\n    opacity: 1\n  }\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don't support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  /* Shared by the body and the arrow's two outward facets, so the\n   * hairline reads as one continuous outline around the whole shape.\n   * Keep it strong enough to survive on its own: the shadow below is\n   * elevation, not edge definition. */\n  --apx-tt-border: rgba(15, 23, 42, 0.12);\n  /* Elevation, in three layers: a tight contact shadow that anchors the\n   * bottom edge, a directional key shadow for the lift, and a wide\n   * ambient one that grounds the whole box. Each is weaker and more\n   * diffuse than the last.\n   *\n   * A tooltip is unusual in that it floats over *data*, so reach costs\n   * more than it does on a page: every pixel the shadow travels tints a\n   * bar or a line the reader is trying to compare. These numbers are\n   * tuned to keep the near-edge contrast that reads as elevation while\n   * dropping the long low haze that only muddies the plot.\n   *\n   * Note there is deliberately no `0 0 0 1px` ring layer. That used to\n   * stand in for edge definition back when --apx-tt-border was barely\n   * visible; now that the border is a real hairline (and the arrow\n   * shares it) a ring only double-draws the outline, and being spread\n   * rather than offset it leaked ink upward too, flattening the lift.\n   *\n   * `--apx-tt-shadow-dir` flips the whole stack's Y in one place — see\n   * the `[data-placement=\"bottom\"]` rule further down. */\n  --apx-tt-shadow-dir: 1;\n  --apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, 0.06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, 0.10), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, 0.14);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn't slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned=\"true\"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.16);\n  /* Dark needs more alpha than light to register at all, but not as much\n   * as it used to: the light rim above now carries the edge, so the\n   * shadow is free to be pure elevation instead of doubling as an\n   * outline. Same geometry as light, heavier ink. */\n  --apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, 0.24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, 0.30), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, 0.38);\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n/* Point-annotation hover tooltip (apexcharts/apexcharts.js#2424). Reuses the\n * glass body/border/shadow from `.apexcharts-tooltip` but holds free-form\n * content, so it needs its own padding, wrapping and a sane max width. */\n.apexcharts-tooltip.apexcharts-annotation-tooltip {\n  padding: 6px 10px;\n  max-width: 240px;\n  white-space: normal;\n  line-height: 1.4;\n  pointer-events: none;\n  z-index: 13\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip's rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — a 45°-rotated square straddling the body's edge, so\n * the body's 1px border runs continuously out across the arrow and back.\n * The two facets that face away from the tooltip carry the border; the\n * two that face into it carry none, and the square's opaque fill covers\n * the segment of the body's own border it sits on, hiding the seam.\n *\n * This is why it's a rotated square and not a triangle: `clip-path`\n * erases `border` and `box-shadow` along with everything outside the\n * polygon, which left `filter: drop-shadow` as the only way to suggest\n * an edge — and a drop-shadow can only ever blur one, never draw a\n * hairline. Nothing here needs a filter.\n *\n * Geometry: a square of side S rotated 45° reaches S/√2 from its centre\n * to each corner, so S = 10px gives the ~7px tip overhang that\n * ARROW_TIP_OVERHANG assumes (tooltip/constants.js) over a ~14px base.\n * The offsets park the square's *centre* 1px outside the padding box\n * (-6px = -1px border - 10px/2), i.e. exactly on the body's border line,\n * so the two borders meet end to end instead of overlapping or gapping.\n * `box-sizing` must be border-box or the bordered sides would grow the\n * square asymmetrically and knock its centre off that line. */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  box-sizing: border-box;\n  width: 10px;\n  height: 10px;\n  background: var(--apx-tt-arrow-bg);\n  transform: rotate(45deg);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 5px)\n}\n\n/* Which two sides face outward depends on the placement. Under\n * `rotate(45deg)` the square's bottom-left corner swings to the left,\n * top-right to the right, top-left to the top and bottom-right to the\n * bottom — so the pair of borders below is always the two sharing the\n * corner that ends up as the tip. */\n.apexcharts-tooltip[data-placement=\"right\"] .apexcharts-tooltip-arrow {\n  left: -6px;\n  border-left: 1px solid var(--apx-tt-border);\n  border-bottom: 1px solid var(--apx-tt-border)\n}\n\n.apexcharts-tooltip[data-placement=\"left\"] .apexcharts-tooltip-arrow {\n  right: -6px;\n  border-top: 1px solid var(--apx-tt-border);\n  border-right: 1px solid var(--apx-tt-border)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we centre on `--apx-tt-arrow-x`\n * instead (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement=\"top\"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement=\"bottom\"] .apexcharts-tooltip-arrow {\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 5px)\n}\n\n.apexcharts-tooltip[data-placement=\"top\"] .apexcharts-tooltip-arrow {\n  bottom: -6px;\n  border-right: 1px solid var(--apx-tt-border);\n  border-bottom: 1px solid var(--apx-tt-border)\n}\n\n.apexcharts-tooltip[data-placement=\"bottom\"] .apexcharts-tooltip-arrow {\n  top: -6px;\n  border-top: 1px solid var(--apx-tt-border);\n  border-left: 1px solid var(--apx-tt-border)\n}\n\n/* When the tooltip is flipped below the data point, the default\n * downward-biased shadow leaves its top edge undefined. Negating the\n * direction casts the whole elevation upward instead, so the shadow\n * falls between the tooltip and the mark above it. One multiplier flips\n * all three layers together; the arrow needs no counterpart, since its\n * border doesn't depend on light direction. */\n.apexcharts-tooltip[data-placement=\"bottom\"] {\n  --apx-tt-shadow-dir: -1\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n/* `tooltip.compact`: a tight box instead of a card, for panels a normal card\n   would cover (small multiples, sparklines, tiles). Only the box shrinks, so\n   the arrow and every anchor rule still apply. Rows stay stacked when there\n   are several series (the names are what tells them apart); a one-series\n   chart collapses to a single line, see `-value-only` below. */\n.apexcharts-tooltip.apexcharts-tooltip-compact {\n  padding: 3px 8px;\n  font-size: 11px;\n  line-height: 1.35\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-title {\n  padding: 0;\n  font-size: 11px;\n  white-space: nowrap\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,\n.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child {\n  padding: 0;\n  gap: 5px\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-y-group {\n  padding: 0\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-marker {\n  width: 8px;\n  height: 8px\n}\n\n/* A one-series panel: the series name repeats what the panel header already\n   says, so the value stands alone and the x label becomes its prefix on one\n   line (\"Aug 2024  6.59\"). */\n.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only {\n  /* The tooltip body is a flex COLUMN by default (title row, then series\n     rows); one series needs no column, so the same box turns into one line. */\n  flex-direction: row;\n  align-items: baseline;\n  gap: 6px\n}\n\n.apexcharts-tooltip-value-only .apexcharts-tooltip-marker {\n  display: none\n}\n\n.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label {\n  display: none\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-measure-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-measure-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-measure-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-measure-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector,\n.apexcharts-unit-outer-label,\n.apexcharts-unit-outer-label-group,\n.apexcharts-unit-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector,\n.apexcharts-unit-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay,\n.apexcharts-unit-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n/* Slower than the pie's, on purpose: these come in while the dots are still\n   easing into place, so a longer fade reads as arriving WITH the crowd. */\n.apexcharts-unit-label-delay {\n  animation-duration: .5s\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-drilldown-loading {\n  position: absolute;\n  inset: 0;\n  z-index: 12;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 10px;\n  font-size: 13px;\n  font-family: inherit;\n  color: inherit;\n  background: rgba(255, 255, 255, 0.62);\n  /* The chart underneath stays interactive-looking but must not take clicks\n     while a level is resolving, or a second drill can start mid-fetch. */\n  cursor: progress\n}\n\n.apexcharts-drilldown-loading-spinner {\n  width: 26px;\n  height: 26px;\n  border-radius: 50%;\n  border: 2.5px solid rgba(0, 0, 0, 0.16);\n  border-top-color: rgba(0, 0, 0, 0.55);\n  animation: apexcharts-drilldown-spin 0.7s linear infinite\n}\n\n.apexcharts-drilldown-loading-text {\n  opacity: 0.8\n}\n\n.apexcharts-theme-dark .apexcharts-drilldown-loading {\n  background: rgba(30, 30, 30, 0.62)\n}\n\n.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner {\n  border-color: rgba(255, 255, 255, 0.22);\n  border-top-color: rgba(255, 255, 255, 0.7)\n}\n\n@keyframes apexcharts-drilldown-spin {\n  to {\n    transform: rotate(360deg)\n  }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-drilldown-loading-spinner {\n    animation: apexcharts-drilldown-pulse 1.4s ease-in-out infinite\n  }\n\n  @keyframes apexcharts-drilldown-pulse {\n    0%, 100% {\n      opacity: 0.35\n    }\n\n    50% {\n      opacity: 1\n    }\n  }\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}\n/* ── Trellis (#22): small multiples ─────────────────────────────────────── */\n.apexcharts-trellis {\n  position: relative;\n}\n.apexcharts-trellis-grid {\n  display: grid;\n}\n.apexcharts-trellis-cell {\n  min-width: 0;\n  position: relative;\n}\n.apexcharts-trellis-header {\n  font-size: 12px;\n  font-weight: 600;\n  line-height: 22px;\n  height: 22px;\n  text-align: center;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-title {\n  font-size: 14px;\n  font-weight: 700;\n  padding: 2px 0 6px;\n  color: var(--apx-fore, #373d3f);\n}\n/* Edge-label policy: a muted cell hides its axis-label INK, never the label\n   SPACE — every panel keeps the identical plot rectangle, and flipping the\n   policy on a resize is a class toggle, not a re-render. */\n.apexcharts-trellis-mute-y .apexcharts-yaxis {\n  opacity: 0;\n}\n.apexcharts-trellis-mute-x .apexcharts-xaxis {\n  opacity: 0;\n}\n/* The shared toolbar floats at the top-right, so a grid that has one starts\n   below it: from four columns on, the last cell's header (or a 2-D column\n   strip label) would otherwise run under the buttons. One band for the whole\n   grid, not per panel. */\n.apexcharts-trellis-has-toolbar {\n  padding-top: 24px;\n}\n/* 2-D faceting (P4): column labels once across the top, row labels once\n   down the left. The row strip column is auto-sized; panel columns stay\n   equal fractions, so panel alignment is independent of the strip width. */\n.apexcharts-trellis-strip {\n  font-size: 12px;\n  font-weight: 600;\n  color: var(--apx-fore, #373d3f);\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.apexcharts-trellis-strip-column {\n  text-align: center;\n  line-height: 22px;\n  height: 22px;\n  align-self: end;\n}\n.apexcharts-trellis-strip-row {\n  align-self: center;\n  max-width: 140px;\n  padding-right: 6px;\n}\n/* Empty (row, column) combinations. 'placeholder' keeps a REAL panel with a\n   quiet label; 'skip' shows the tinted skeleton; 'hide' shows nothing while\n   keeping the grid slot. */\n.apexcharts-trellis-cell-empty {\n  position: relative;\n}\n.apexcharts-trellis-empty-label {\n  position: absolute;\n  inset: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  color: var(--apx-fore, #373d3f);\n  opacity: 0.45;\n  pointer-events: none;\n}\n.apexcharts-trellis-cell-hidden > * {\n  visibility: hidden;\n}\n/* P5: one shared gradient strip is a heatmap grid's legend. The slot is\n   content-sized inline (the strip svg's own box); centering is its own. */\n.apexcharts-trellis-gradient-legend {\n  margin: 10px auto 0;\n}\n/* Virtualization (P2): an unmounted panel's mount div reserves the exact\n   panel height (inline min-height) so page height and scroll position never\n   shift; the skeleton itself is a quiet tinted block. Deliberately not\n   animated: a shimmering grid of 200 placeholders is noise. */\n.apexcharts-trellis-panel.apexcharts-trellis-skeleton {\n  background: var(--apx-fore, #373d3f);\n  opacity: 0.05;\n  border-radius: 4px;\n}\n/* tooltip: 'panel' — the group still syncs every panel's crosshair, but only\n   the hovered cell shows its tooltip cards. */\n.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,\n.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,\n.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip {\n  opacity: 0 !important;\n}\n/* tooltip: 'grid' (P3) — ALL per-panel tooltip ink is hidden (the group\n   still computes it; the trellis card reads it) and one trellis-owned card\n   follows the cursor with one row per panel. */\n.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-tooltip,\n.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-xaxistooltip,\n.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-yaxistooltip {\n  opacity: 0 !important;\n}\n.apexcharts-trellis-tooltip {\n  position: absolute;\n  top: 0;\n  left: 0;\n  z-index: 14;\n  pointer-events: none;\n  opacity: 0;\n  transition: opacity 0.1s ease;\n  background: var(--apx-bg, #fff);\n  color: var(--apx-fore, #373d3f);\n  border: 1px solid rgba(120, 120, 120, 0.25);\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);\n  font-size: 12px;\n  min-width: 140px;\n  max-width: 320px;\n}\n.apexcharts-trellis-tooltip-active {\n  opacity: 1;\n}\n.apexcharts-trellis-tooltip .apexcharts-tooltip-title {\n  padding: 5px 10px;\n  font-weight: 600;\n  background: rgba(120, 120, 120, 0.08);\n  border-bottom: 1px solid rgba(120, 120, 120, 0.18);\n  margin-bottom: 2px;\n}\n.apexcharts-trellis-tooltip-row {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 14px;\n  padding: 2px 10px;\n  line-height: 1.6;\n}\n.apexcharts-trellis-tooltip-row-active {\n  background: rgba(120, 120, 120, 0.1);\n  font-weight: 600;\n}\n.apexcharts-trellis-tooltip-key {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.apexcharts-trellis-tooltip-vals {\n  display: flex;\n  gap: 10px;\n  white-space: nowrap;\n}\n.apexcharts-trellis-tooltip-val {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n}\n.apexcharts-trellis-tooltip-marker {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  display: inline-block;\n  flex: none;\n}\n/* Panel promotion (P3): the promoted cell spans the grid; the rest park.\n   The promoted panel is the only visible one, so both its axes unmute. */\n.apexcharts-trellis-cell-promoted {\n  grid-column: 1 / -1;\n}\n.apexcharts-trellis-cell-parked {\n  display: none;\n}\n.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,\n.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis {\n  opacity: 1;\n}\n.apexcharts-trellis-header-clickable {\n  cursor: pointer;\n}\n.apexcharts-trellis-header-clickable:hover {\n  text-decoration: underline;\n  text-underline-offset: 3px;\n}\n.apexcharts-trellis-breadcrumb {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  padding: 2px 0 6px;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-breadcrumb-back {\n  border: none;\n  background: none;\n  padding: 0;\n  font-size: 12px;\n  cursor: pointer;\n  color: var(--apx-accent, #008ffb);\n}\n.apexcharts-trellis-breadcrumb-back:hover {\n  text-decoration: underline;\n}\n.apexcharts-trellis-breadcrumb-sep {\n  opacity: 0.5;\n}\n.apexcharts-trellis-breadcrumb-current {\n  font-weight: 600;\n}\n/* The toolbar download menu (P3). */\n.apexcharts-trellis-menu {\n  position: absolute;\n  top: 26px;\n  right: 0;\n  display: none;\n  flex-direction: column;\n  min-width: 132px;\n  background: var(--apx-bg, #fff);\n  border: 1px solid rgba(120, 120, 120, 0.25);\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);\n  padding: 4px;\n  z-index: 15;\n}\n.apexcharts-trellis-menu-open {\n  display: flex;\n}\n.apexcharts-trellis-menu-item {\n  border: none;\n  background: none;\n  text-align: left;\n  font-size: 12px;\n  padding: 5px 8px;\n  border-radius: 3px;\n  cursor: pointer;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-menu-item:hover {\n  background: rgba(120, 120, 120, 0.12);\n}\n.apexcharts-trellis-toolbar {\n  position: absolute;\n  top: 0;\n  right: 0;\n  display: flex;\n  gap: 2px;\n  z-index: 12;\n}\n.apexcharts-trellis-tool {\n  border: 0;\n  background: transparent;\n  padding: 2px;\n  cursor: pointer;\n  border-radius: 3px;\n  color: #6e8192;\n  line-height: 0;\n}\n.apexcharts-trellis-tool:hover {\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-tool.apexcharts-selected {\n  color: var(--apx-accent, #008ffb);\n}\n.apexcharts-trellis-legend {\n  display: flex;\n  flex-wrap: wrap;\n  justify-content: center;\n  gap: 4px 14px;\n  padding: 8px 10px 2px;\n}\n.apexcharts-trellis-legend-item {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  cursor: pointer;\n  line-height: 1;\n}\n.apexcharts-trellis-legend-item .apexcharts-legend-marker {\n  width: 12px;\n  height: 12px;\n  border-radius: 50%;\n  display: inline-block;\n}\n.apexcharts-trellis-legend-item .apexcharts-legend-text {\n  font-size: 12px;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-legend-item.apexcharts-inactive-legend {\n  opacity: 0.45;\n}\n";
+  const apexCSS = "@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role=\"button\"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role=\"button\"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role=\"button\"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n/* A series still playing its exit tween stays painted so it can visibly shrink\n   away, hiding it on the first frame leaves a hole in a stacked chart for the\n   length of the animation. Dropped once the tween lands. */\n.apexcharts-series-collapsed.apexcharts-series-collapsing {\n  opacity: 1\n}\n\n/* Its labels ride the shrinking marks, but a mark runs out of room for its text\n   well before it reaches zero, so fade them across the exit instead of holding\n   them crisp over a sliver. Duration is set inline from dynamicAnimation.speed. */\n.apexcharts-datalabels.apexcharts-series-collapsing {\n  animation: apexcharts-datalabels-exit var(--apexcharts-dl-exit, 400ms) ease-in\n    forwards;\n}\n\n@keyframes apexcharts-datalabels-exit {\n  from {\n    opacity: 1\n  }\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don't support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  /* Shared by the body and the arrow's two outward facets, so the\n   * hairline reads as one continuous outline around the whole shape.\n   * Keep it strong enough to survive on its own: the shadow below is\n   * elevation, not edge definition. */\n  --apx-tt-border: rgba(15, 23, 42, 0.12);\n  /* Elevation, in three layers: a tight contact shadow that anchors the\n   * bottom edge, a directional key shadow for the lift, and a wide\n   * ambient one that grounds the whole box. Each is weaker and more\n   * diffuse than the last.\n   *\n   * A tooltip is unusual in that it floats over *data*, so reach costs\n   * more than it does on a page: every pixel the shadow travels tints a\n   * bar or a line the reader is trying to compare. These numbers are\n   * tuned to keep the near-edge contrast that reads as elevation while\n   * dropping the long low haze that only muddies the plot.\n   *\n   * Note there is deliberately no `0 0 0 1px` ring layer. That used to\n   * stand in for edge definition back when --apx-tt-border was barely\n   * visible; now that the border is a real hairline (and the arrow\n   * shares it) a ring only double-draws the outline, and being spread\n   * rather than offset it leaked ink upward too, flattening the lift.\n   *\n   * `--apx-tt-shadow-dir` flips the whole stack's Y in one place — see\n   * the `[data-placement=\"bottom\"]` rule further down. */\n  --apx-tt-shadow-dir: 1;\n  --apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, 0.06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, 0.10), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, 0.14);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn't slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned=\"true\"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.16);\n  /* Dark needs more alpha than light to register at all, but not as much\n   * as it used to: the light rim above now carries the edge, so the\n   * shadow is free to be pure elevation instead of doubling as an\n   * outline. Same geometry as light, heavier ink. */\n  --apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, 0.24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, 0.30), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, 0.38);\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n/* Point-annotation hover tooltip (apexcharts/apexcharts.js#2424). Reuses the\n * glass body/border/shadow from `.apexcharts-tooltip` but holds free-form\n * content, so it needs its own padding, wrapping and a sane max width. */\n.apexcharts-tooltip.apexcharts-annotation-tooltip {\n  padding: 6px 10px;\n  max-width: 240px;\n  white-space: normal;\n  line-height: 1.4;\n  pointer-events: none;\n  z-index: 13\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip's rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — a 45°-rotated square straddling the body's edge, so\n * the body's 1px border runs continuously out across the arrow and back.\n * The two facets that face away from the tooltip carry the border; the\n * two that face into it carry none, and the square's opaque fill covers\n * the segment of the body's own border it sits on, hiding the seam.\n *\n * This is why it's a rotated square and not a triangle: `clip-path`\n * erases `border` and `box-shadow` along with everything outside the\n * polygon, which left `filter: drop-shadow` as the only way to suggest\n * an edge — and a drop-shadow can only ever blur one, never draw a\n * hairline. Nothing here needs a filter.\n *\n * Geometry: a square of side S rotated 45° reaches S/√2 from its centre\n * to each corner, so S = 10px gives the ~7px tip overhang that\n * ARROW_TIP_OVERHANG assumes (tooltip/constants.js) over a ~14px base.\n * The offsets park the square's *centre* 1px outside the padding box\n * (-6px = -1px border - 10px/2), i.e. exactly on the body's border line,\n * so the two borders meet end to end instead of overlapping or gapping.\n * `box-sizing` must be border-box or the bordered sides would grow the\n * square asymmetrically and knock its centre off that line. */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  box-sizing: border-box;\n  width: 10px;\n  height: 10px;\n  background: var(--apx-tt-arrow-bg);\n  transform: rotate(45deg);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 5px)\n}\n\n/* Which two sides face outward depends on the placement. Under\n * `rotate(45deg)` the square's bottom-left corner swings to the left,\n * top-right to the right, top-left to the top and bottom-right to the\n * bottom — so the pair of borders below is always the two sharing the\n * corner that ends up as the tip. */\n.apexcharts-tooltip[data-placement=\"right\"] .apexcharts-tooltip-arrow {\n  left: -6px;\n  border-left: 1px solid var(--apx-tt-border);\n  border-bottom: 1px solid var(--apx-tt-border)\n}\n\n.apexcharts-tooltip[data-placement=\"left\"] .apexcharts-tooltip-arrow {\n  right: -6px;\n  border-top: 1px solid var(--apx-tt-border);\n  border-right: 1px solid var(--apx-tt-border)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we centre on `--apx-tt-arrow-x`\n * instead (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement=\"top\"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement=\"bottom\"] .apexcharts-tooltip-arrow {\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 5px)\n}\n\n.apexcharts-tooltip[data-placement=\"top\"] .apexcharts-tooltip-arrow {\n  bottom: -6px;\n  border-right: 1px solid var(--apx-tt-border);\n  border-bottom: 1px solid var(--apx-tt-border)\n}\n\n.apexcharts-tooltip[data-placement=\"bottom\"] .apexcharts-tooltip-arrow {\n  top: -6px;\n  border-top: 1px solid var(--apx-tt-border);\n  border-left: 1px solid var(--apx-tt-border)\n}\n\n/* When the tooltip is flipped below the data point, the default\n * downward-biased shadow leaves its top edge undefined. Negating the\n * direction casts the whole elevation upward instead, so the shadow\n * falls between the tooltip and the mark above it. One multiplier flips\n * all three layers together; the arrow needs no counterpart, since its\n * border doesn't depend on light direction. */\n.apexcharts-tooltip[data-placement=\"bottom\"] {\n  --apx-tt-shadow-dir: -1\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n/* `tooltip.compact`: a tight box instead of a card, for panels a normal card\n   would cover (small multiples, sparklines, tiles). Only the box shrinks, so\n   the arrow and every anchor rule still apply. Rows stay stacked when there\n   are several series (the names are what tells them apart); a one-series\n   chart collapses to a single line, see `-value-only` below. */\n.apexcharts-tooltip.apexcharts-tooltip-compact {\n  padding: 3px 8px;\n  font-size: 11px;\n  line-height: 1.35\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-title {\n  padding: 0;\n  font-size: 11px;\n  white-space: nowrap\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,\n.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child {\n  padding: 0;\n  gap: 5px\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-y-group {\n  padding: 0\n}\n\n.apexcharts-tooltip-compact .apexcharts-tooltip-marker {\n  width: 8px;\n  height: 8px\n}\n\n/* A one-series panel: the series name repeats what the panel header already\n   says, so the value stands alone and the x label becomes its prefix on one\n   line (\"Aug 2024  6.59\"). */\n.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only {\n  /* The tooltip body is a flex COLUMN by default (title row, then series\n     rows); one series needs no column, so the same box turns into one line. */\n  flex-direction: row;\n  align-items: baseline;\n  gap: 6px\n}\n\n.apexcharts-tooltip-value-only .apexcharts-tooltip-marker {\n  display: none\n}\n\n.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label {\n  display: none\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* Streamgraph: every band read out at one column, top-down in stacking order.\n * A row per band rather than the shared tooltip's list, because a streamgraph's\n * `[lo, hi]` are stacking offsets and the values the reader gave live on\n * w.streamgraphData. */\n.apexcharts-tooltip-stream {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-stream .apexcharts-tooltip-title {\n  background: transparent;\n  border: 0;\n  padding: 0 0 4px;\n  margin: 0;\n  font-weight: 700\n}\n\n.apexcharts-tooltip-stream-band {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  line-height: 1.6;\n  opacity: .72\n}\n\n.apexcharts-tooltip-stream-band.apexcharts-active {\n  opacity: 1;\n  font-weight: 700\n}\n\n.apexcharts-tooltip-stream-band .series-name {\n  flex: 1 1 auto;\n  margin-right: 8px\n}\n\n.apexcharts-tooltip-stream-band .value {\n  font-weight: 700;\n  margin-left: auto\n}\n\n.apexcharts-tooltip-stream-total {\n  display: flex;\n  align-items: center;\n  margin-top: 4px;\n  padding-top: 4px;\n  border-top: 1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))\n}\n\n.apexcharts-tooltip-stream-total .series-name {\n  flex: 1 1 auto;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-stream-total .value {\n  font-weight: 700;\n  margin-left: auto\n}\n\n/* The band labels themselves. Pointer events off so a name never blocks a\n * hover on the band it sits on. */\n.apexcharts-streamgraph-label {\n  pointer-events: none\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-measure-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-measure-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-measure-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-measure-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector,\n.apexcharts-unit-outer-label,\n.apexcharts-unit-outer-label-group,\n.apexcharts-unit-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector,\n.apexcharts-unit-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay,\n.apexcharts-unit-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n/* Slower than the pie's, on purpose: these come in while the dots are still\n   easing into place, so a longer fade reads as arriving WITH the crowd. */\n.apexcharts-unit-label-delay {\n  animation-duration: .5s\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-drilldown-loading {\n  position: absolute;\n  inset: 0;\n  z-index: 12;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 10px;\n  font-size: 13px;\n  font-family: inherit;\n  color: inherit;\n  background: rgba(255, 255, 255, 0.62);\n  /* The chart underneath stays interactive-looking but must not take clicks\n     while a level is resolving, or a second drill can start mid-fetch. */\n  cursor: progress\n}\n\n.apexcharts-drilldown-loading-spinner {\n  width: 26px;\n  height: 26px;\n  border-radius: 50%;\n  border: 2.5px solid rgba(0, 0, 0, 0.16);\n  border-top-color: rgba(0, 0, 0, 0.55);\n  animation: apexcharts-drilldown-spin 0.7s linear infinite\n}\n\n.apexcharts-drilldown-loading-text {\n  opacity: 0.8\n}\n\n.apexcharts-theme-dark .apexcharts-drilldown-loading {\n  background: rgba(30, 30, 30, 0.62)\n}\n\n.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner {\n  border-color: rgba(255, 255, 255, 0.22);\n  border-top-color: rgba(255, 255, 255, 0.7)\n}\n\n@keyframes apexcharts-drilldown-spin {\n  to {\n    transform: rotate(360deg)\n  }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-drilldown-loading-spinner {\n    animation: apexcharts-drilldown-pulse 1.4s ease-in-out infinite\n  }\n\n  @keyframes apexcharts-drilldown-pulse {\n    0%, 100% {\n      opacity: 0.35\n    }\n\n    50% {\n      opacity: 1\n    }\n  }\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}\n/* ── Trellis (#22): small multiples ─────────────────────────────────────── */\n.apexcharts-trellis {\n  position: relative;\n}\n.apexcharts-trellis-grid {\n  display: grid;\n}\n.apexcharts-trellis-cell {\n  min-width: 0;\n  position: relative;\n}\n.apexcharts-trellis-header {\n  font-size: 12px;\n  font-weight: 600;\n  line-height: 22px;\n  height: 22px;\n  text-align: center;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-title {\n  font-size: 14px;\n  font-weight: 700;\n  padding: 2px 0 6px;\n  color: var(--apx-fore, #373d3f);\n}\n/* Edge-label policy: a muted cell hides its axis-label INK, never the label\n   SPACE — every panel keeps the identical plot rectangle, and flipping the\n   policy on a resize is a class toggle, not a re-render. */\n.apexcharts-trellis-mute-y .apexcharts-yaxis {\n  opacity: 0;\n}\n.apexcharts-trellis-mute-x .apexcharts-xaxis {\n  opacity: 0;\n}\n/* The shared toolbar floats at the top-right, so a grid that has one starts\n   below it: from four columns on, the last cell's header (or a 2-D column\n   strip label) would otherwise run under the buttons. One band for the whole\n   grid, not per panel. */\n.apexcharts-trellis-has-toolbar {\n  padding-top: 24px;\n}\n/* 2-D faceting (P4): column labels once across the top, row labels once\n   down the left. The row strip column is auto-sized; panel columns stay\n   equal fractions, so panel alignment is independent of the strip width. */\n.apexcharts-trellis-strip {\n  font-size: 12px;\n  font-weight: 600;\n  color: var(--apx-fore, #373d3f);\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.apexcharts-trellis-strip-column {\n  text-align: center;\n  line-height: 22px;\n  height: 22px;\n  align-self: end;\n}\n.apexcharts-trellis-strip-row {\n  align-self: center;\n  max-width: 140px;\n  padding-right: 6px;\n}\n/* Empty (row, column) combinations. 'placeholder' keeps a REAL panel with a\n   quiet label; 'skip' shows the tinted skeleton; 'hide' shows nothing while\n   keeping the grid slot. */\n.apexcharts-trellis-cell-empty {\n  position: relative;\n}\n.apexcharts-trellis-empty-label {\n  position: absolute;\n  inset: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  color: var(--apx-fore, #373d3f);\n  opacity: 0.45;\n  pointer-events: none;\n}\n.apexcharts-trellis-cell-hidden > * {\n  visibility: hidden;\n}\n/* P5: one shared gradient strip is a heatmap grid's legend. The slot is\n   content-sized inline (the strip svg's own box); centering is its own. */\n.apexcharts-trellis-gradient-legend {\n  margin: 10px auto 0;\n}\n/* Virtualization (P2): an unmounted panel's mount div reserves the exact\n   panel height (inline min-height) so page height and scroll position never\n   shift; the skeleton itself is a quiet tinted block. Deliberately not\n   animated: a shimmering grid of 200 placeholders is noise. */\n.apexcharts-trellis-panel.apexcharts-trellis-skeleton {\n  background: var(--apx-fore, #373d3f);\n  opacity: 0.05;\n  border-radius: 4px;\n}\n/* tooltip: 'panel' — the group still syncs every panel's crosshair, but only\n   the hovered cell shows its tooltip cards. */\n.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,\n.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,\n.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip {\n  opacity: 0 !important;\n}\n/* tooltip: 'grid' (P3) — ALL per-panel tooltip ink is hidden (the group\n   still computes it; the trellis card reads it) and one trellis-owned card\n   follows the cursor with one row per panel. */\n.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-tooltip,\n.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-xaxistooltip,\n.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-yaxistooltip {\n  opacity: 0 !important;\n}\n.apexcharts-trellis-tooltip {\n  position: absolute;\n  top: 0;\n  left: 0;\n  z-index: 14;\n  pointer-events: none;\n  opacity: 0;\n  transition: opacity 0.1s ease;\n  background: var(--apx-bg, #fff);\n  color: var(--apx-fore, #373d3f);\n  border: 1px solid rgba(120, 120, 120, 0.25);\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);\n  font-size: 12px;\n  min-width: 140px;\n  max-width: 320px;\n}\n.apexcharts-trellis-tooltip-active {\n  opacity: 1;\n}\n.apexcharts-trellis-tooltip .apexcharts-tooltip-title {\n  padding: 5px 10px;\n  font-weight: 600;\n  background: rgba(120, 120, 120, 0.08);\n  border-bottom: 1px solid rgba(120, 120, 120, 0.18);\n  margin-bottom: 2px;\n}\n.apexcharts-trellis-tooltip-row {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 14px;\n  padding: 2px 10px;\n  line-height: 1.6;\n}\n.apexcharts-trellis-tooltip-row-active {\n  background: rgba(120, 120, 120, 0.1);\n  font-weight: 600;\n}\n.apexcharts-trellis-tooltip-key {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.apexcharts-trellis-tooltip-vals {\n  display: flex;\n  gap: 10px;\n  white-space: nowrap;\n}\n.apexcharts-trellis-tooltip-val {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n}\n.apexcharts-trellis-tooltip-marker {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  display: inline-block;\n  flex: none;\n}\n/* Panel promotion (P3): the promoted cell spans the grid; the rest park.\n   The promoted panel is the only visible one, so both its axes unmute. */\n.apexcharts-trellis-cell-promoted {\n  grid-column: 1 / -1;\n}\n.apexcharts-trellis-cell-parked {\n  display: none;\n}\n.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,\n.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis {\n  opacity: 1;\n}\n.apexcharts-trellis-header-clickable {\n  cursor: pointer;\n}\n.apexcharts-trellis-header-clickable:hover {\n  text-decoration: underline;\n  text-underline-offset: 3px;\n}\n.apexcharts-trellis-breadcrumb {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  padding: 2px 0 6px;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-breadcrumb-back {\n  border: none;\n  background: none;\n  padding: 0;\n  font-size: 12px;\n  cursor: pointer;\n  color: var(--apx-accent, #008ffb);\n}\n.apexcharts-trellis-breadcrumb-back:hover {\n  text-decoration: underline;\n}\n.apexcharts-trellis-breadcrumb-sep {\n  opacity: 0.5;\n}\n.apexcharts-trellis-breadcrumb-current {\n  font-weight: 600;\n}\n/* The toolbar download menu (P3). */\n.apexcharts-trellis-menu {\n  position: absolute;\n  top: 26px;\n  right: 0;\n  display: none;\n  flex-direction: column;\n  min-width: 132px;\n  background: var(--apx-bg, #fff);\n  border: 1px solid rgba(120, 120, 120, 0.25);\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);\n  padding: 4px;\n  z-index: 15;\n}\n.apexcharts-trellis-menu-open {\n  display: flex;\n}\n.apexcharts-trellis-menu-item {\n  border: none;\n  background: none;\n  text-align: left;\n  font-size: 12px;\n  padding: 5px 8px;\n  border-radius: 3px;\n  cursor: pointer;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-menu-item:hover {\n  background: rgba(120, 120, 120, 0.12);\n}\n.apexcharts-trellis-toolbar {\n  position: absolute;\n  top: 0;\n  right: 0;\n  display: flex;\n  gap: 2px;\n  z-index: 12;\n}\n.apexcharts-trellis-tool {\n  border: 0;\n  background: transparent;\n  padding: 2px;\n  cursor: pointer;\n  border-radius: 3px;\n  color: #6e8192;\n  line-height: 0;\n}\n.apexcharts-trellis-tool:hover {\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-tool.apexcharts-selected {\n  color: var(--apx-accent, #008ffb);\n}\n.apexcharts-trellis-legend {\n  display: flex;\n  flex-wrap: wrap;\n  justify-content: center;\n  gap: 4px 14px;\n  padding: 8px 10px 2px;\n}\n.apexcharts-trellis-legend-item {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  cursor: pointer;\n  line-height: 1;\n}\n.apexcharts-trellis-legend-item .apexcharts-legend-marker {\n  width: 12px;\n  height: 12px;\n  border-radius: 50%;\n  display: inline-block;\n}\n.apexcharts-trellis-legend-item .apexcharts-legend-text {\n  font-size: 12px;\n  color: var(--apx-fore, #373d3f);\n}\n.apexcharts-trellis-legend-item.apexcharts-inactive-legend {\n  opacity: 0.45;\n}\n\n/* Printing (#3352). The sheet is narrower than the screen and nothing reports\n   its width to the page, so a chart laid out for the screen would be cropped at\n   the edge of the paper. The chart lays itself out again for print (see\n   chart.print in the options); this caps whatever is left over so it shrinks to\n   fit rather than being cut. Shrink only: a chart narrower than the page keeps\n   the size it was drawn at. */\n@media print {\n  /* Scoped to the class the chart adds while it is laid out for the sheet: this\n     pair of rules is only safe once an identity viewBox is in place, since\n     without one a capped width crops the drawing instead of scaling it. A chart\n     with chart.print.enabled:false gets neither, and prints as it always did. */\n  .apexcharts-canvas.apexcharts-printing,\n  .apexcharts-canvas.apexcharts-printing svg {\n    max-width: 100% !important;\n  }\n\n  .apexcharts-canvas.apexcharts-printing svg {\n    height: auto !important;\n  }\n\n  /* A scaled-down SVG is shorter than the box drawn for it, and the wrapper\n     carries the pre-scale height inline, so without this a chart shrunk to fit a\n     narrow column prints above a white gap the size of what it gave up. The\n     host element's own inline min-height is cleared by _beforePrint. */\n  .apexcharts-canvas.apexcharts-printing {\n    height: auto !important;\n  }\n\n  .apexcharts-toolbar {\n    display: none !important;\n  }\n}\n";
   const e = globalThis.console;
   function t(t2) {
     e.error(t2);
@@ -28479,6 +29275,7 @@ var __async = (__this, __arguments, generator) => {
     const chart = w2 && w2.config && w2.config.chart || {};
     const used = [];
     if (chart.type === "unit") used.push("unit");
+    if (chart.requestedType === "raincloud") used.push("raincloud");
     if (ctx.trellis && typeof ctx.trellis.isActive === "function" && ctx.trellis.isActive()) {
       used.push("trellis");
     }
@@ -28714,6 +29511,14 @@ var __async = (__this, __arguments, generator) => {
       __publicField(this, "eventList", []);
       /** @type {Promise<any> | null} */
       __publicField(this, "_renderPromise", null);
+      /** @type {number | null} */
+      __publicField(this, "_parentResizeWaiter", null);
+      /** @type {{width: any, viewBoxAdded?: boolean, minHeight?: string} | null} */
+      __publicField(this, "_printRestore", null);
+      /** @type {any} */
+      __publicField(this, "beforePrintHandler");
+      /** @type {any} */
+      __publicField(this, "afterPrintHandler");
       /** @type {any} */
       __publicField(this, "config");
       /** @type {any} */
@@ -28735,6 +29540,10 @@ var __async = (__this, __arguments, generator) => {
       /** @type {any} */
       __publicField(this, "weave");
       /** @type {any} */
+      __publicField(this, "waterfall");
+      /** @type {any} */
+      __publicField(this, "streamgraph");
+      /** @type {any} */
       __publicField(this, "renderer");
       /** @type {any} */
       __publicField(this, "rendererController");
@@ -28753,6 +29562,8 @@ var __async = (__this, __arguments, generator) => {
       if (Environment.isBrowser()) {
         this.windowResizeHandler = this._windowResizeHandler.bind(this);
         this.parentResizeHandler = this._parentResizeCallback.bind(this);
+        this.beforePrintHandler = this._beforePrint.bind(this);
+        this.afterPrintHandler = this._afterPrint.bind(this);
       }
     }
     /**
@@ -28809,7 +29620,9 @@ var __async = (__this, __arguments, generator) => {
           }
           if (!this.ink) {
             const inkOn = (_f = (_e = this.w.config.chart) == null ? void 0 : _e.ink) == null ? void 0 : _f.enabled;
-            const anyDraggable = ((_h = (_g = this.w.config.annotations) == null ? void 0 : _g.points) != null ? _h : []).some((p2) => p2 && p2.draggable);
+            const anyDraggable = ((_h = (_g = this.w.config.annotations) == null ? void 0 : _g.points) != null ? _h : []).some(
+              (p2) => p2 && p2.draggable
+            );
             if (inkOn || anyDraggable) {
               console.warn(
                 "ApexCharts: `chart.ink` / `annotations.points[].draggable` requires the ink feature, which is not in the default bundle. Bundler: import 'apexcharts/features/ink'. Script tag: add <script src='.../dist/features/ink.js'> after apexcharts.js."
@@ -28834,6 +29647,10 @@ var __async = (__this, __arguments, generator) => {
                 this.el.parentNode,
                 this.parentResizeHandler
               );
+              if (this._printEnabled()) {
+                window.addEventListener("beforeprint", this.beforePrintHandler);
+                window.addEventListener("afterprint", this.afterPrintHandler);
+              }
             }
             const rootNode = (
               /** @type {any} */
@@ -29028,7 +29845,7 @@ var __async = (__this, __arguments, generator) => {
       const me = this;
       const w2 = me.w;
       return new Promise((resolve, reject) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
         if (me.el === null) {
           return reject(
             new Error("Not enough data to display or target element not found")
@@ -29068,6 +29885,8 @@ var __async = (__this, __arguments, generator) => {
             w2.dom.elGraphical.add(elgrid.elGridBorders);
           }
         }
+        (_e = me.waterfall) == null ? void 0 : _e.drawConnectors();
+        (_f = me.streamgraph) == null ? void 0 : _f.draw();
         if (w2.config.xaxis.crosshairs.position === "front") {
           me.crosshairs.drawXCrosshairs();
         }
@@ -29092,19 +29911,19 @@ var __async = (__this, __arguments, generator) => {
             }
           });
         }
-        (_e = me.annotations) == null ? void 0 : _e.drawAxesAnnotations();
+        (_g = me.annotations) == null ? void 0 : _g.drawAxesAnnotations();
         if (!w2.globals.noData) {
           if (Environment.isBrowser() && w2.config.tooltip.enabled && !w2.globals.noData) {
-            (_f = me.w.globals.tooltip) == null ? void 0 : _f.drawTooltip(graphData.xyRatios);
+            (_h = me.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
           }
           if (w2.config.chart.accessibility.enabled && w2.config.chart.accessibility.keyboard.enabled && w2.config.chart.accessibility.keyboard.navigation.enabled) {
-            (_g = me.keyboardNavigation) == null ? void 0 : _g.init();
+            (_i = me.keyboardNavigation) == null ? void 0 : _i.init();
           }
           if (Environment.isBrowser() && w2.globals.axisCharts && (w2.axisFlags.isXNumeric || /** @type {Record<string,any>} */
           w2.config.xaxis.convertedCatToNumeric || w2.axisFlags.isRangeBar)) {
             if (w2.config.chart.zoom.enabled || w2.config.chart.selection && w2.config.chart.selection.enabled || // @ts-ignore — chart.pan is an internal toolbar config property
             w2.config.chart.pan && w2.config.chart.pan.enabled) {
-              (_h = me.zoomPanSelection) == null ? void 0 : _h.init({
+              (_j = me.zoomPanSelection) == null ? void 0 : _j.init({
                 xyRatios: graphData.xyRatios
               });
             }
@@ -29123,10 +29942,10 @@ var __async = (__this, __arguments, generator) => {
             });
           }
           if (w2.config.chart.toolbar.show && !w2.globals.allSeriesCollapsed) {
-            (_i = me.toolbar) == null ? void 0 : _i.createToolbar();
+            (_k = me.toolbar) == null ? void 0 : _k.createToolbar();
           }
         }
-        (_j = me.weave) == null ? void 0 : _j.dispatch("draw", {
+        (_l = me.weave) == null ? void 0 : _l.dispatch("draw", {
           pass: "full",
           xyRatios: graphData == null ? void 0 : graphData.xyRatios
         });
@@ -29147,7 +29966,7 @@ var __async = (__this, __arguments, generator) => {
      * After calling this, the instance should not be used again.
      */
     destroy() {
-      var _a;
+      var _a, _b;
       if (this.trellis) {
         this.trellis.teardown();
       }
@@ -29160,6 +29979,10 @@ var __async = (__this, __arguments, generator) => {
           this.parentResizeHandler
         );
         clearTimeout((_a = this.w.globals.resizeTimer) != null ? _a : void 0);
+        clearTimeout((_b = this._parentResizeWaiter) != null ? _b : void 0);
+        this._parentResizeWaiter = null;
+        window.removeEventListener("beforeprint", this.beforePrintHandler);
+        window.removeEventListener("afterprint", this.afterPrintHandler);
       }
       const chartID = this.w.config.chart.id;
       if (chartID && Array.isArray(Apex._chartInstances)) {
@@ -29317,16 +30140,16 @@ var __async = (__this, __arguments, generator) => {
       if (me.w.config.chart.animations.enabled) {
         me.series.getPreviousPaths();
       }
-      const histRaw = me.w.globals.histogramRawSeries;
-      if (histRaw) {
-        for (let i2 = 0; i2 < histRaw.length; i2++) {
+      const derivedRaw = me.w.globals.histogramRawSeries || me.w.globals.waterfallRawSeries || me.w.globals.dumbbellRawSeries || me.w.globals.streamgraphRawSeries;
+      if (derivedRaw) {
+        for (let i2 = 0; i2 < derivedRaw.length; i2++) {
           const src = (
             /** @type {any} */
             newData[i2]
           );
-          if (src && Array.isArray(src.data) && Array.isArray(histRaw[i2].data)) {
+          if (src && Array.isArray(src.data) && Array.isArray(derivedRaw[i2].data)) {
             for (let j = 0; j < src.data.length; j++) {
-              histRaw[i2].data.push(src.data[j]);
+              derivedRaw[i2].data.push(src.data[j]);
             }
           }
         }
@@ -29551,7 +30374,7 @@ var __async = (__this, __arguments, generator) => {
      */
     fastUpdate(animate, prevAxisScaleSig) {
       return new Promise((resolve, reject) => {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e;
         try {
           const w2 = this.w;
           const gl = w2.globals;
@@ -29646,12 +30469,14 @@ var __async = (__this, __arguments, generator) => {
           if (w2.config.dataLabels.background.enabled) {
             dataLabels.dataLabelsBackground();
           }
+          (_b = this.waterfall) == null ? void 0 : _b.drawConnectors();
+          (_c = this.streamgraph) == null ? void 0 : _c.draw();
           if (!gl.streamScrolled) applyAxisTransition(w2);
           applyDataLabelTransition(w2);
           if (Environment.isBrowser() && w2.config.tooltip.enabled && !gl.noData) {
-            (_b = w2.globals.tooltip) == null ? void 0 : _b.drawTooltip(xyRatios);
+            (_d = w2.globals.tooltip) == null ? void 0 : _d.drawTooltip(xyRatios);
           }
-          (_c = this.weave) == null ? void 0 : _c.dispatch("draw", { pass: "fast", xyRatios });
+          (_e = this.weave) == null ? void 0 : _e.dispatch("draw", { pass: "fast", xyRatios });
           if (typeof w2.config.chart.events.updated === "function") {
             w2.config.chart.events.updated(this, w2);
           }
@@ -29913,7 +30738,7 @@ var __async = (__this, __arguments, generator) => {
         );
         return _ApexCharts;
       }
-      if (hasChartClass(name2) && !isCustom(name2)) {
+      if (hasChartClass(name2) && !isCustom(name2) || TYPE_ALIASES[name2]) {
         console.warn(
           `[apexcharts] registerSeriesType("${name2}") would override the built-in "${name2}" chart type; pick another name.`
         );
@@ -30687,14 +31512,126 @@ var __async = (__this, __arguments, generator) => {
       _ApexCharts._writeDataProps(this.w.layout, slice);
     }
     _parentResizeCallback() {
-      if (this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
-        this._windowResize();
+      if (!this.w.config.chart.redrawOnParentResize) return;
+      if (!this.w.globals.animationEnded) {
+        this._deferParentResize();
+        return;
+      }
+      this._windowResize();
+    }
+    /**
+     * Re-check the container once the running animation is over. Bounded, because
+     * a chart that never flips animationEnded (one drawing no series, say) must
+     * not swallow the resize that is waiting on it.
+     */
+    _deferParentResize() {
+      var _a;
+      if (this._parentResizeWaiter) return;
+      const startedAt = Date.now();
+      const speed = ((_a = this.w.config.chart.animations) == null ? void 0 : _a.speed) || 800;
+      const giveUpAfter = Math.min(Math.max(1e3 + speed * 2, 1500), 15e3);
+      const check = () => {
+        this._parentResizeWaiter = null;
+        if (this.w.globals.isDestroyed || !Utils$1.elementExists(this.el)) return;
+        if (this.w.globals.animationEnded || Date.now() - startedAt >= giveUpAfter) {
+          this._windowResize();
+          return;
+        }
+        this._parentResizeWaiter = window.setTimeout(check, 100);
+      };
+      this._parentResizeWaiter = window.setTimeout(check, 100);
+    }
+    /**
+     * Whether this chart handles printing.
+     *
+     * A missing or undefined `print` means the default, on: the options merge
+     * copies an explicitly-undefined value straight over the default object, so
+     * `print: undefined` (what `{ print }` yields when the caller omits it) must
+     * not read as "off". `print: false` is not the documented shape, but it is the
+     * obvious way to ask for off, so it counts as off.
+     */
+    _printEnabled() {
+      const print = this.w.config.chart.print;
+      return print !== false && (print == null ? void 0 : print.enabled) !== false;
+    }
+    /**
+     * Lay the chart out for the printable page.
+     *
+     * The sheet is a layout the page never sees. Nothing measures it, no resize
+     * is reported for it, and matchMedia('print') is still false while this
+     * handler runs, so a chart sized from a 1600px screen prints at 1600px and
+     * its right-hand side falls off the paper (#3352). Re-laying it out at a
+     * printable width keeps the labels at their intended size, where scaling a
+     * screen-width chart down to a sheet would shrink 12px text to 4px.
+     */
+    _beforePrint() {
+      var _a, _b, _c, _d, _e, _f;
+      if (this._printRestore || !this._printEnabled()) return;
+      const w2 = this.w;
+      const printWidth = (_b = (_a = w2.config.chart.print) == null ? void 0 : _a.width) != null ? _b : 700;
+      this._printRestore = { width: w2.config.chart.width };
+      if (typeof printWidth === "number" && printWidth > 0 && w2.globals.svgWidth > printWidth) {
+        this.updateHelpers._updateOptions(
+          { chart: { width: printWidth } },
+          false,
+          false,
+          false,
+          false
+        );
+      }
+      const svg = (_d = (_c = w2.dom) == null ? void 0 : _c.Paper) == null ? void 0 : _d.node;
+      if (svg && !svg.getAttribute("viewBox")) {
+        svg.setAttribute(
+          "viewBox",
+          `0 0 ${w2.globals.svgWidth} ${w2.globals.svgHeight}`
+        );
+        this._printRestore.viewBoxAdded = true;
+        (_f = (_e = w2.dom) == null ? void 0 : _e.elWrap) == null ? void 0 : _f.classList.add("apexcharts-printing");
+        const host = (
+          /** @type {HTMLElement} */
+          this.el
+        );
+        if (host && host.style) {
+          this._printRestore.minHeight = host.style.minHeight;
+          host.style.minHeight = "0";
+        }
+      }
+    }
+    /** Put back what _beforePrint() changed. */
+    _afterPrint() {
+      var _a, _b, _c, _d, _e, _f, _g;
+      if (!this._printRestore) return;
+      const w2 = this.w;
+      const restore = this._printRestore;
+      this._printRestore = null;
+      if (restore.viewBoxAdded) {
+        (_c = (_b = (_a = w2.dom) == null ? void 0 : _a.Paper) == null ? void 0 : _b.node) == null ? void 0 : _c.removeAttribute("viewBox");
+        (_e = (_d = w2.dom) == null ? void 0 : _d.elWrap) == null ? void 0 : _e.classList.remove("apexcharts-printing");
+        const host = (
+          /** @type {HTMLElement} */
+          this.el
+        );
+        if (host && host.style) {
+          host.style.minHeight = (_f = restore.minHeight) != null ? _f : "";
+        }
+      }
+      if (w2.config.chart.width !== restore.width) {
+        this.updateHelpers._updateOptions(
+          { chart: { width: restore.width } },
+          false,
+          false,
+          false,
+          false
+        );
+        clearTimeout((_g = w2.globals.resizeTimer) != null ? _g : void 0);
       }
     }
     /**
      * Handle window resize and re-draw the whole chart.
      */
     _windowResize() {
+      var _a;
+      clearTimeout((_a = this.w.globals.resizeTimer) != null ? _a : void 0);
       this.w.globals.resizeTimer = window.setTimeout(() => {
         const gl = this.w.globals;
         if (this.core && gl.lastResizeSignature) {
@@ -40984,6 +41921,23 @@ var __async = (__this, __arguments, generator) => {
     }
     return out;
   }
+  function observationsOf(d, allowFlatY) {
+    var _a;
+    if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+    let raw = null;
+    if (Array.isArray(d.points)) raw = d.points;
+    else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
+    else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
+      raw = d.y;
+    }
+    if (!raw) return null;
+    const out = [];
+    for (let i2 = 0; i2 < raw.length; i2++) {
+      const v2 = Utils$1.parseNumber(raw[i2]);
+      if (v2 !== null && isFinite(v2)) out.push(v2);
+    }
+    return out.length ? out : null;
+  }
   function histogramValues(data) {
     const out = [];
     if (!Array.isArray(data)) return out;
@@ -41058,23 +42012,6 @@ var __async = (__this, __arguments, generator) => {
     });
   }
   const derivedData = /* @__PURE__ */ new WeakSet();
-  function observationsOf(d, allowFlatY) {
-    var _a;
-    if (!d || typeof d !== "object" || Array.isArray(d)) return null;
-    let raw = null;
-    if (Array.isArray(d.points)) raw = d.points;
-    else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
-    else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
-      raw = d.y;
-    }
-    if (!raw) return null;
-    const out = [];
-    for (let i2 = 0; i2 < raw.length; i2++) {
-      const v2 = Utils$1.parseNumber(raw[i2]);
-      if (v2 !== null && isFinite(v2)) out.push(v2);
-    }
-    return out.length ? out : null;
-  }
   function boxPlotTransform(ser, w2) {
     var _a, _b;
     if (!Array.isArray(ser)) return ser;
@@ -41244,6 +42181,1201 @@ var __async = (__this, __arguments, generator) => {
   registerRowSource("histogram", histogramRows);
   registerRowSource("boxPlot", boxPlotRows);
   registerRowSource("violin", violinRows);
+  class Waterfall {
+    /**
+     * @param {any} w
+     * @param {any} ctx
+     */
+    constructor(w2, ctx) {
+      this.w = w2;
+      this.ctx = ctx;
+    }
+    /** @returns {boolean} */
+    isActive() {
+      return this.w.config.chart.requestedType === "waterfall";
+    }
+    /**
+     * Draw (or redraw) the connector layer into the graphical group.
+     *
+     * Called from both render paths and safe to call on a chart that is not a
+     * waterfall, has connectors switched off, or drew no columns.
+     */
+    drawConnectors() {
+      var _a, _b;
+      const w2 = this.w;
+      if (!this.isActive()) return;
+      const cfg = (_b = (_a = w2.config.plotOptions) == null ? void 0 : _a.waterfall) == null ? void 0 : _b.connectors;
+      if (!cfg || cfg.show === false) return;
+      const host = w2.dom.elGraphical;
+      const geo = w2.waterfallData && w2.waterfallData.geometry;
+      if (!host || !geo) return;
+      this.removeConnectors();
+      const graphics = new Graphics(w2, this.ctx);
+      const group = graphics.group({ class: "apexcharts-waterfall-connectors" });
+      const color = cfg.color || w2.config.grid.borderColor;
+      const strokeWidth = cfg.strokeWidth == null ? 1 : cfg.strokeWidth;
+      const dashArray = cfg.strokeDashArray == null ? 3 : cfg.strokeDashArray;
+      let drawn = 0;
+      for (let i2 = 0; i2 < geo.length; i2++) {
+        const bars = geo[i2];
+        if (!Array.isArray(bars)) continue;
+        for (let j = 0; j < bars.length - 1; j++) {
+          const a2 = bars[j];
+          const b2 = bars[j + 1];
+          if (!a2 || !b2) continue;
+          const gap = b2.slotStart - a2.slotEnd;
+          if (!(gap > 0.5)) continue;
+          const line = a2.horizontal ? graphics.drawLine(
+            a2.levelEnd,
+            a2.slotEnd,
+            a2.levelEnd,
+            b2.slotStart,
+            color,
+            dashArray,
+            strokeWidth
+          ) : graphics.drawLine(
+            a2.slotEnd,
+            a2.levelEnd,
+            b2.slotStart,
+            a2.levelEnd,
+            color,
+            dashArray,
+            strokeWidth
+          );
+          line.node.classList.add("apexcharts-waterfall-connector");
+          group.add(line);
+          drawn++;
+        }
+      }
+      if (!drawn) return;
+      group.attr("clip-path", `url(#gridRectBarMask${w2.globals.cuid})`);
+      const xaxisEl = host.node.querySelector(".apexcharts-xaxis");
+      if (xaxisEl) {
+        host.node.insertBefore(group.node, xaxisEl);
+      } else {
+        host.add(group);
+      }
+      this.holdUntilBarsLand(group);
+    }
+    /** Drop the connector layer, if one is present. */
+    removeConnectors() {
+      const host = this.w.dom.elGraphical;
+      const prev = host && host.node.querySelector(".apexcharts-waterfall-connectors");
+      if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+    }
+    /**
+     * Connectors describe where the bars END UP, so drawn at full opacity while
+     * the bars are still growing they hang in mid-air over nothing. Held hidden
+     * and faded in with the rest of the delayed chrome once the bars land.
+     *
+     * When there is no animation to wait for, `showDelayedElements` has already
+     * run for this render, so registering would leave the layer hidden for good.
+     *
+     * @param {any} group
+     */
+    holdUntilBarsLand(group) {
+      const w2 = this.w;
+      const animate = Environment.isBrowser() && w2.globals.shouldAnimate && !w2.globals.animationEnded;
+      if (!animate) return;
+      group.node.classList.add("apexcharts-element-hidden");
+      w2.globals.delayedElements.push({ el: group.node, holdUntilComplete: true });
+    }
+  }
+  function readDatum$2(d, j, categories) {
+    const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
+    if (d == null) {
+      return {
+        x: fallbackX,
+        y: null,
+        isSubtotal: false,
+        isTotal: false,
+        rest: {}
+      };
+    }
+    if (Array.isArray(d)) {
+      return {
+        x: d[0] !== void 0 ? d[0] : fallbackX,
+        y: d[1],
+        isSubtotal: false,
+        isTotal: false,
+        rest: {}
+      };
+    }
+    if (typeof d === "object") {
+      return {
+        x: d.x !== void 0 ? d.x : fallbackX,
+        y: d.y,
+        isSubtotal: d.isSubtotal === true,
+        isTotal: d.isTotal === true,
+        rest: d
+      };
+    }
+    return { x: fallbackX, y: d, isSubtotal: false, isTotal: false, rest: {} };
+  }
+  function isPrecomputed(data) {
+    for (let j = 0; j < data.length; j++) {
+      const d = data[j];
+      const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+      if (Array.isArray(y) && y.length === 2) return true;
+    }
+    return false;
+  }
+  function fillFor(datum, kind, colors) {
+    if (datum && datum.fillColor) return datum.fillColor;
+    const c2 = colors[kind];
+    return typeof c2 === "string" && c2 ? c2 : void 0;
+  }
+  function accumulate(data, categories, colors) {
+    const rows = [];
+    const values = [];
+    const cumulative = [];
+    const kinds = [];
+    let running = 0;
+    let cut = 0;
+    for (let j = 0; j < data.length; j++) {
+      const { x, y, isSubtotal, isTotal, rest } = readDatum$2(
+        data[j],
+        j,
+        categories
+      );
+      let start;
+      let end;
+      let kind;
+      if (isTotal || isSubtotal) {
+        start = isTotal ? 0 : cut;
+        end = running;
+        kind = isTotal ? "total" : "subtotal";
+        cut = running;
+      } else {
+        const delta = Utils$1.parseNumber(y);
+        if (delta === null || !isFinite(delta)) {
+          rows.push(__spreadProps(__spreadValues({}, rest), { x, y: null }));
+          values.push(null);
+          cumulative.push(running);
+          kinds.push(null);
+          continue;
+        }
+        start = running;
+        end = running + delta;
+        running = end;
+        kind = delta < 0 ? "negative" : "positive";
+      }
+      const fill = fillFor(rest, kind, colors);
+      rows.push(__spreadValues(__spreadProps(__spreadValues({}, rest), {
+        x,
+        y: [start, end]
+      }), fill ? { fillColor: fill } : {}));
+      values.push(end - start);
+      cumulative.push(running);
+      kinds.push(kind);
+    }
+    return { data: rows, values, cumulative, kinds };
+  }
+  function waterfallTransform(ser, w2) {
+    var _a, _b, _c;
+    const cnf = w2.config;
+    const gl = w2.globals;
+    if (!Array.isArray(ser)) return ser;
+    if (!gl.waterfallRawSeries) {
+      gl.waterfallRawSeries = ser.map((s2) => __spreadProps(__spreadValues({}, s2), {
+        data: Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data.slice() : s2 == null ? void 0 : s2.data
+      }));
+    }
+    const raw = gl.waterfallRawSeries;
+    const colors = ((_b = (_a = cnf.plotOptions) == null ? void 0 : _a.waterfall) == null ? void 0 : _b.colors) || {};
+    const categories = (_c = cnf.xaxis) == null ? void 0 : _c.categories;
+    const collapsed = gl.collapsedSeriesIndices || [];
+    const values = [];
+    const cumulative = [];
+    const kinds = [];
+    const out = raw.map((s2, i2) => {
+      const data = Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data : [];
+      if (collapsed.indexOf(i2) !== -1) {
+        values[i2] = [];
+        cumulative[i2] = [];
+        kinds[i2] = [];
+        return __spreadProps(__spreadValues({}, s2), { data: [] });
+      }
+      if (isPrecomputed(data)) {
+        values[i2] = data.map((d) => {
+          const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+          if (!Array.isArray(y)) return null;
+          const lo = Utils$1.parseNumber(y[0]);
+          const hi = Utils$1.parseNumber(y[1]);
+          return lo === null || hi === null ? null : hi - lo;
+        });
+        cumulative[i2] = data.map((d) => {
+          const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+          const hi = Array.isArray(y) ? Utils$1.parseNumber(y[1]) : null;
+          return hi === null ? 0 : hi;
+        });
+        kinds[i2] = data.map(() => null);
+        return s2;
+      }
+      const acc = accumulate(data, categories, colors);
+      values[i2] = acc.values;
+      cumulative[i2] = acc.cumulative;
+      kinds[i2] = acc.kinds;
+      return __spreadProps(__spreadValues({}, s2), { data: acc.data });
+    });
+    w2.waterfallData = {
+      values,
+      cumulative,
+      kinds,
+      // A non-null sink is what tells RangeBar to record the px box it drew each
+      // column in, which the connector layer joins up. Fresh every parse.
+      geometry: []
+    };
+    return out;
+  }
+  registerSeriesTransform("waterfall", waterfallTransform);
+  ApexCharts.registerFeatures({ waterfall: Waterfall });
+  function readDatum$1(d, j, categories) {
+    const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
+    if (d == null) return { x: fallbackX, y: null, rest: {} };
+    if (Array.isArray(d)) {
+      return { x: d[0] !== void 0 ? d[0] : fallbackX, y: d[1], rest: {} };
+    }
+    if (typeof d === "object") {
+      return { x: d.x !== void 0 ? d.x : fallbackX, y: d.y, rest: d };
+    }
+    return { x: fallbackX, y: d, rest: {} };
+  }
+  function isPairShaped$1(data) {
+    for (let j = 0; j < data.length; j++) {
+      const d = data[j];
+      const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+      if (Array.isArray(y) && y.length === 2) return true;
+    }
+    return false;
+  }
+  function joinOnX$1(raw, categories) {
+    var _a;
+    const xs = [];
+    const rows = [];
+    const seen = /* @__PURE__ */ new Map();
+    const byX = [];
+    for (let i2 = 0; i2 < raw.length; i2++) {
+      const data = Array.isArray((_a = raw[i2]) == null ? void 0 : _a.data) ? raw[i2].data : [];
+      const map = /* @__PURE__ */ new Map();
+      for (let j = 0; j < data.length; j++) {
+        const { x, y, rest } = readDatum$1(data[j], j, categories);
+        const key = x instanceof Date ? x.getTime() : x;
+        if (!seen.has(key)) {
+          seen.set(key, xs.length);
+          xs.push(x);
+          rows.push(__spreadValues({}, rest));
+        }
+        const rowIndex = (
+          /** @type {number} */
+          seen.get(key)
+        );
+        map.set(rowIndex, Utils$1.parseNumber(y));
+      }
+      byX.push(map);
+    }
+    return { xs, rows, byX };
+  }
+  function dumbbellTransform(ser, w2) {
+    var _a;
+    const cnf = w2.config;
+    const gl = w2.globals;
+    if (!Array.isArray(ser)) return ser;
+    if (!gl.dumbbellRawSeries) {
+      gl.dumbbellRawSeries = ser.map((s2) => __spreadProps(__spreadValues({}, s2), {
+        data: Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data.slice() : s2 == null ? void 0 : s2.data
+      }));
+    }
+    const raw = gl.dumbbellRawSeries;
+    const alreadyPaired = raw.some(
+      (s2) => isPairShaped$1(Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data : [])
+    );
+    if (alreadyPaired) {
+      w2.dumbbellData = {
+        form: "pairs",
+        names: [],
+        values: [],
+        order: [],
+        carrier: 0,
+        hidden: []
+      };
+      return ser;
+    }
+    const categories = (_a = cnf.xaxis) == null ? void 0 : _a.categories;
+    const collapsed = gl.collapsedSeriesIndices || [];
+    const { xs, rows, byX } = joinOnX$1(raw, categories);
+    const values = [];
+    const order = [];
+    const visible = [];
+    for (let k = 0; k < raw.length; k++) {
+      if (collapsed.indexOf(k) === -1) visible.push(k);
+    }
+    const data = [];
+    for (let j = 0; j < xs.length; j++) {
+      const rowValues = [];
+      for (let k = 0; k < raw.length; k++) {
+        const v2 = byX[k].has(j) ? byX[k].get(j) : null;
+        rowValues.push(
+          v2 === null || v2 === void 0 || !isFinite(v2) ? null : v2
+        );
+      }
+      values.push(rowValues);
+      let lo = null;
+      let hi = null;
+      let kLo = -1;
+      let kHi = -1;
+      for (let vi = 0; vi < visible.length; vi++) {
+        const k = visible[vi];
+        const v2 = rowValues[k];
+        if (v2 === null) continue;
+        if (lo === null || v2 < lo) {
+          lo = v2;
+          kLo = k;
+        }
+        if (hi === null || v2 > hi) {
+          hi = v2;
+          kHi = k;
+        }
+      }
+      if (lo === null || hi === null) {
+        order.push(null);
+        data.push(__spreadProps(__spreadValues({}, rows[j]), { x: xs[j], y: null }));
+        continue;
+      }
+      order.push([kLo, kHi]);
+      data.push(__spreadProps(__spreadValues({}, rows[j]), { x: xs[j], y: [lo, hi] }));
+    }
+    w2.dumbbellData = {
+      form: "series",
+      names: raw.map(
+        (s2, k) => {
+          var _a2;
+          return (_a2 = s2 == null ? void 0 : s2.name) != null ? _a2 : `Series ${k + 1}`;
+        }
+      ),
+      values,
+      order,
+      carrier: visible.length ? visible[0] : 0,
+      hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+    };
+    const carrier = w2.dumbbellData.carrier;
+    return raw.map((s2, k) => __spreadProps(__spreadValues({}, s2), {
+      // Every endpoint stays a series so the legend keeps its name, its colour
+      // and its click. Only one of them carries the merged rows: drawing the
+      // same rows N times would stack N identical connectors.
+      data: k === carrier && visible.length ? data : []
+    }));
+  }
+  registerSeriesTransform("dumbbell", dumbbellTransform);
+  const VPAD = 3;
+  class StreamLabels {
+    /**
+     * @param {any} w
+     * @param {any} ctx
+     */
+    constructor(w2, ctx) {
+      this.w = w2;
+      this.ctx = ctx;
+      this._hovered = -1;
+    }
+    /** @returns {boolean} */
+    isActive() {
+      return this.w.config.chart.requestedType === "streamgraph";
+    }
+    /**
+     * Data value -> pixel, the same mapping the line renderer uses
+     * (`Line._initSerieVariables`: `zeroY - v / yRatio`, with baseLineY placing
+     * the zero line). Written out in terms of the domain rather than read off
+     * `xyRatios` so the layer stays independent of the renderer's internals.
+     *
+     * @param {number} v
+     * @returns {number}
+     */
+    _yPx(v2) {
+      var _a;
+      const w2 = this.w;
+      const gl = w2.globals;
+      const h2 = w2.layout.gridHeight;
+      const span = gl.maxY - gl.minY;
+      if (!span || !isFinite(span)) return h2 / 2;
+      const frac = (v2 - gl.minY) / span;
+      return ((_a = w2.config.yaxis[0]) == null ? void 0 : _a.reversed) ? frac * h2 : h2 - frac * h2;
+    }
+    /**
+     * Draw (or redraw) everything this layer owns.
+     *
+     * Called from both render paths and safe to call on a chart that is not a
+     * streamgraph, has labels switched off, or drew no bands.
+     */
+    draw() {
+      if (!this.isActive()) return;
+      this.clearDim();
+      this.bindHover();
+      this.drawLabels();
+    }
+    /**
+     * Draw (or redraw) the band labels.
+     *
+     * Called from both render paths and safe to call on a chart that is not a
+     * streamgraph, has labels switched off, or drew no bands.
+     */
+    drawLabels() {
+      var _a, _b, _c, _d, _e, _f, _g;
+      const w2 = this.w;
+      if (!this.isActive()) return;
+      const cfg = (_b = (_a = w2.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.labels;
+      if (!cfg || cfg.show === false) return;
+      const host = w2.dom.elGraphical;
+      const data = w2.streamgraphData;
+      if (!host || !data) return;
+      this.removeLabels();
+      const graphics = new Graphics(w2, this.ctx);
+      const group = graphics.group({ class: "apexcharts-streamgraph-labels" });
+      const fontSize = ((_c = cfg.style) == null ? void 0 : _c.fontSize) || "auto";
+      const fontFamily = ((_d = cfg.style) == null ? void 0 : _d.fontFamily) || w2.config.chart.fontFamily;
+      const fontWeight = ((_e = cfg.style) == null ? void 0 : _e.fontWeight) || 600;
+      const minWidth = cfg.minWidth == null ? 24 : cfg.minWidth;
+      const placed = [];
+      for (let i2 = 0; i2 < data.order.length; i2++) {
+        const k = data.order[i2];
+        const label = this._placeLabel(k, {
+          fontSize,
+          fontFamily,
+          fontWeight,
+          minWidth,
+          graphics
+        });
+        if (label) placed.push(label);
+      }
+      let drawn = 0;
+      for (const label of this._deconflict(placed)) {
+        const k = label.k;
+        const el = graphics.drawText({
+          x: label.x,
+          y: label.y,
+          text: label.text,
+          textAnchor: "middle",
+          dominantBaseline: "middle",
+          // The size a band's own name is drawn at is decided per band, not per
+          // chart (see `_resolveFontSize`).
+          fontSize: label.fontSize,
+          fontFamily,
+          fontWeight,
+          foreColor: ((_g = (_f = cfg.style) == null ? void 0 : _f.colors) == null ? void 0 : _g[k]) || label.color,
+          cssClass: "apexcharts-streamgraph-label"
+        });
+        el.node.setAttribute("data:realIndex", String(k));
+        group.add(el);
+        drawn++;
+      }
+      if (!drawn) return;
+      const xaxisEl = host.node.querySelector(".apexcharts-xaxis");
+      if (xaxisEl) {
+        host.node.insertBefore(group.node, xaxisEl);
+      } else {
+        host.add(group);
+      }
+      this.holdUntilBandsLand(group);
+    }
+    /**
+     * Where band `k`'s name could go, best spot first, or null if nowhere.
+     *
+     * Returns several candidates rather than one. Each band picks its spot from
+     * its own shape alone, and on a chart where everything peaks in the same
+     * burst that puts every name in the same narrow strip — the first version of
+     * this returned one placement each and the de-overlap pass then had to throw
+     * twenty of twenty-two away. Offering alternatives lets a name that loses its
+     * first choice slide along its own band instead of vanishing.
+     *
+     * A candidate is the middle of a stretch where the band clears the line box,
+     * plus, on a stretch with room to spare, two more spread across it.
+     *
+     * @param {number} k
+     * @param {{fontSize: string, fontFamily: string, fontWeight: any, minWidth: number, graphics: any}} opts
+     * @returns {{k: number, weight: number, candidates: any[]}|null}
+     */
+    _placeLabel(k, { fontSize, fontFamily, fontWeight, minWidth, graphics }) {
+      const w2 = this.w;
+      const data = w2.streamgraphData;
+      const lo = data.lows[k];
+      const hi = data.highs[k];
+      if (!lo || !hi) return null;
+      const xPx = w2.globals.seriesXvalues[k];
+      const m2 = lo.length;
+      if (!Array.isArray(xPx) || xPx.length < m2 || m2 === 0) return null;
+      const thickness = new Array(m2);
+      let peakT = 0;
+      for (let j = 0; j < m2; j++) {
+        const t2 = Math.abs(this._yPx(hi[j]) - this._yPx(lo[j]));
+        thickness[j] = t2;
+        if (t2 > peakT) peakT = t2;
+      }
+      if (peakT <= 0) return null;
+      const size = this._resolveFontSize(fontSize, peakT);
+      const name2 = String(data.names[k]);
+      let px = size;
+      let rect = graphics.getTextRects(
+        name2,
+        `${px}px`,
+        fontFamily,
+        "",
+        true,
+        fontWeight
+      );
+      if (peakT < rect.height + VPAD * 2) return null;
+      const widest = this._widestRun(thickness, xPx, rect.height + VPAD * 2, m2);
+      if (!widest) return null;
+      if (rect.width > widest.width && fontSize === "auto") {
+        const shrunk = Math.floor(px * (widest.width / rect.width));
+        if (shrunk < this._autoBounds().min) return null;
+        px = shrunk;
+        rect = graphics.getTextRects(
+          name2,
+          `${px}px`,
+          fontFamily,
+          "",
+          true,
+          fontWeight
+        );
+        if (peakT < rect.height + VPAD * 2) return null;
+      }
+      const needed = rect.height + VPAD * 2;
+      const candidates = [];
+      for (const run of this._runs(thickness, needed, m2)) {
+        const xL = Number(xPx[run.l]);
+        const xR = Number(xPx[run.r]);
+        if (!isFinite(xL) || !isFinite(xR)) continue;
+        let span = xR - xL;
+        if (span <= 0 && m2 > 1) {
+          const step = Math.abs(
+            Number(xPx[Math.min(run.r + 1, m2 - 1)]) - Number(xPx[Math.max(run.l - 1, 0)])
+          );
+          span = isFinite(step) ? step : 0;
+        }
+        if (span < minWidth || span < rect.width * 0.35) continue;
+        const text = rect.width <= span ? name2 : graphics.getTextBasedOnMaxWidth({
+          text: name2,
+          maxWidth: span,
+          fontSize: `${px}px`,
+          fontFamily
+        });
+        if (!text || text === "...") continue;
+        const drawnWidth = text === name2 ? rect.width : rect.width * (text.length / name2.length);
+        const centres = [xL + span / 2];
+        if (span > drawnWidth * 2.2) {
+          centres.push(xL + drawnWidth / 2 + 2, xR - drawnWidth / 2 - 2);
+        }
+        for (const cx of centres) {
+          let anchor = run.l;
+          let bestDx = Infinity;
+          for (let j = run.l; j <= run.r; j++) {
+            const dx = Math.abs(Number(xPx[j]) - cx);
+            if (dx < bestDx) {
+              bestDx = dx;
+              anchor = j;
+            }
+          }
+          candidates.push({
+            x: cx,
+            y: (this._yPx(lo[anchor]) + this._yPx(hi[anchor])) / 2,
+            text,
+            color: this._contrastOn(k),
+            fontSize: `${px}px`,
+            width: drawnWidth,
+            height: rect.height
+          });
+        }
+        if (candidates.length >= 6) break;
+      }
+      return candidates.length ? { k, weight: peakT, candidates } : null;
+    }
+    /**
+     * The contiguous stretches where the band clears `needed`, thickest first.
+     * @param {number[]} thickness
+     * @param {number} needed
+     * @param {number} m
+     * @returns {Array<{l: number, r: number, maxT: number}>}
+     */
+    _runs(thickness, needed, m2) {
+      const runs = [];
+      let j = 0;
+      while (j < m2) {
+        if (thickness[j] < needed) {
+          j++;
+          continue;
+        }
+        let end = j;
+        let maxT = thickness[j];
+        while (end + 1 < m2 && thickness[end + 1] >= needed) {
+          end++;
+          if (thickness[end] > maxT) maxT = thickness[end];
+        }
+        runs.push({ l: j, r: end, maxT });
+        j = end + 1;
+      }
+      return runs.sort((a2, b2) => b2.maxT - a2.maxT);
+    }
+    /**
+     * The widest qualifying stretch in px, used to decide whether the name has to
+     * be stepped down a size before any placement is attempted.
+     * @param {number[]} thickness
+     * @param {any[]} xPx
+     * @param {number} needed
+     * @param {number} m
+     * @returns {{width: number}|null}
+     */
+    _widestRun(thickness, xPx, needed, m2) {
+      let best = -1;
+      for (const run of this._runs(thickness, needed, m2)) {
+        const span = Number(xPx[run.r]) - Number(xPx[run.l]);
+        if (isFinite(span) && span > best) best = span;
+      }
+      return best >= 0 ? { width: best } : null;
+    }
+    /**
+     * Drop the labels that would land on top of one another.
+     *
+     * Each band picks its own widest stretch with no idea what its neighbours
+     * picked, and on a dense chart two of them routinely want the same patch of
+     * screen. Two names overlapping is worse than one name missing: the reader
+     * can no longer tell which band EITHER belongs to, and the tooltip still
+     * names every band on hover.
+     *
+     * Ranked by the BAND's own thickness, not by the label's area: sorting on
+     * area hands priority to whoever has the longest name, so a sliver called
+     * "Willow Warbler" outranks a dominant band called "Robin". Thickest band
+     * first means the name that survives a collision is the one on the band
+     * carrying more, which is also the one the reader is most likely to want.
+     *
+     * @param {any[]} labels
+     * @returns {any[]}
+     */
+    _deconflict(labels) {
+      const byImportance = labels.slice().sort((a2, b2) => b2.weight - a2.weight);
+      const kept = [];
+      const free = (box) => !kept.some(
+        (o2) => box.left < o2.box.right && box.right > o2.box.left && box.top < o2.box.bottom && box.bottom > o2.box.top
+      );
+      for (const label of byImportance) {
+        for (const c2 of label.candidates) {
+          const box = {
+            left: c2.x - c2.width / 2,
+            right: c2.x + c2.width / 2,
+            top: c2.y - c2.height / 2,
+            bottom: c2.y + c2.height / 2
+          };
+          if (free(box)) {
+            kept.push(__spreadProps(__spreadValues({ k: label.k }, c2), { box }));
+            break;
+          }
+        }
+      }
+      return kept;
+    }
+    /** The bounds `fontSize: 'auto'` scales between. */
+    _autoBounds() {
+      var _a, _b;
+      const cfg = ((_b = (_a = this.w.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.labels) || {};
+      return {
+        min: cfg.minFontSize == null ? 9 : cfg.minFontSize,
+        max: cfg.maxFontSize == null ? 30 : cfg.maxFontSize
+      };
+    }
+    /**
+     * The px size band `k`'s name is drawn at, given how thick that band gets.
+     *
+     * `auto` is the default because it is the convention of the form, and because
+     * the alternative actively misleads: a streamgraph's whole claim is that
+     * thickness is quantity, and a fixed size prints that claim in the same voice
+     * for a band carrying half the total and a band carrying a rounding error.
+     *
+     * A literal (`'12px'`) opts out and every name is drawn at it.
+     *
+     * @param {string} fontSize the configured value, or 'auto'
+     * @param {number} peakT the band's greatest thickness, in px
+     * @returns {number} px
+     */
+    _resolveFontSize(fontSize, peakT) {
+      if (fontSize !== "auto") {
+        const parsed = parseFloat(fontSize);
+        return isFinite(parsed) && parsed > 0 ? parsed : 12;
+      }
+      const { min, max } = this._autoBounds();
+      return Math.max(min, Math.min(max, Math.round(peakT * 0.36)));
+    }
+    /**
+     * Black or white, whichever reads on band `k`'s own fill.
+     *
+     * A streamgraph's palette runs from pale yellows to near-black slates in the
+     * same chart, so one fixed label colour is unreadable on some band every
+     * time.
+     *
+     * @param {number} k
+     * @returns {string}
+     */
+    _contrastOn(k) {
+      var _a;
+      const w2 = this.w;
+      const fill = (_a = w2.globals.colors) == null ? void 0 : _a[k];
+      const rgb = typeof fill === "string" ? Utils$1.parseHex(fill) : null;
+      if (!rgb) return w2.config.chart.foreColor;
+      return Utils$1.relativeLuminance(rgb) > 0.45 ? "#000000" : "#ffffff";
+    }
+    /** Drop the label layer, if one is present. */
+    removeLabels() {
+      const host = this.w.dom.elGraphical;
+      const prev = host && host.node.querySelector(".apexcharts-streamgraph-labels");
+      if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+    }
+    // ── Hover ────────────────────────────────────────────────────────────────
+    /**
+     * Watch the plot for the band under the cursor.
+     *
+     * Bound to the svg rather than to the band paths: with `tooltip.intersect`
+     * off the pointer is not required to be over a path at all, and hit-testing
+     * from the geometry keeps the outline agreeing with the tooltip (both resolve
+     * to the nearest column) whether or not a tooltip is even switched on.
+     *
+     * The flag lives on the node, so a full render (which builds a new svg) binds
+     * again and the fast update path (which keeps the old one) does not stack a
+     * second listener per update.
+     */
+    bindHover() {
+      const w2 = this.w;
+      if (!Environment.isBrowser()) return;
+      if (this._hoverCfg().show === false) return;
+      const svg = w2.dom.baseEl && w2.dom.baseEl.querySelector(".apexcharts-svg");
+      if (!svg || svg.__apexStreamHover) return;
+      svg.__apexStreamHover = true;
+      svg.addEventListener("mousemove", (e2) => {
+        if (!this.isActive() || !this.w.streamgraphData) return;
+        this._dim(this._bandAt(e2));
+      });
+      svg.addEventListener("mouseleave", () => {
+        this._dim(-1);
+      });
+    }
+    /** @returns {Record<string, any>} */
+    _hoverCfg() {
+      var _a, _b;
+      return ((_b = (_a = this.w.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.hover) || {};
+    }
+    /**
+     * Which band is under the pointer, or -1.
+     *
+     * x goes through `AxisMapping.screenXToPlotPx`, the one screen-to-plot
+     * mapping, so a chart inside a CSS-zoomed container hit-tests where it looks.
+     * y is measured off the same svg rect with the same zoom factor.
+     *
+     * @param {MouseEvent} e
+     * @returns {number}
+     */
+    _bandAt(e2) {
+      const w2 = this.w;
+      const d = w2.streamgraphData;
+      if (!d || !d.order.length) return -1;
+      const svg = w2.dom.baseEl && w2.dom.baseEl.querySelector(".apexcharts-svg");
+      if (!svg) return -1;
+      const rect = svg.getBoundingClientRect();
+      const zoom = w2.globals.svgWidth ? rect.width / w2.globals.svgWidth : 1;
+      const px = AxisMapping.screenXToPlotPx(w2, e2.clientX);
+      const py = (e2.clientY - rect.top) / (zoom || 1) - w2.layout.translateY;
+      if (px < 0 || px > w2.layout.gridWidth) return -1;
+      if (py < 0 || py > w2.layout.gridHeight) return -1;
+      const xs = w2.globals.seriesXvalues[d.order[0]];
+      if (!Array.isArray(xs) || !xs.length) return -1;
+      const captured = w2.interact ? w2.interact.capturedDataPointIndex : -1;
+      let j = -1;
+      if (captured >= 0 && captured < xs.length) {
+        j = captured;
+      } else {
+        let best = Infinity;
+        for (let i2 = 0; i2 < xs.length; i2++) {
+          const dx = Math.abs(Number(xs[i2]) - px);
+          if (dx < best) {
+            best = dx;
+            j = i2;
+          }
+        }
+      }
+      if (j < 0) return -1;
+      let nearest = -1;
+      let gap = Infinity;
+      for (let i2 = 0; i2 < d.order.length; i2++) {
+        const k = d.order[i2];
+        const a2 = this._yPx(d.highs[k][j]);
+        const b2 = this._yPx(d.lows[k][j]);
+        const top = Math.min(a2, b2);
+        const bottom = Math.max(a2, b2);
+        if (py >= top && py <= bottom) return k;
+        const dist = py < top ? top - py : py - bottom;
+        if (dist < gap) {
+          gap = dist;
+          nearest = k;
+        }
+      }
+      return nearest;
+    }
+    /**
+     * Bring band `k` forward by dropping every other band's opacity, or clear the
+     * effect when `k` is -1.
+     *
+     * The bands touch edge to edge, so there is no gap for a treatment to live
+     * in: anything drawn ON the hovered band either spends half its width on the
+     * neighbour (a centred stroke) or falls entirely onto both of them (a drop
+     * shadow). Taking the OTHERS down instead is the one move that needs no
+     * empty space to work in, and it leaves the hovered band's colour exactly as
+     * it was, which matters on a chart where colour is the only thing tying a
+     * band to its name.
+     *
+     * A dimmed band's label is RECOLOURED rather than faded with it. Each label
+     * takes black or white by the contrast of the band it sits on at full
+     * strength, so fading the band alone leaves a white name on a band that has
+     * gone pale — the name does not read as de-emphasised, it reads as broken.
+     * Dropped to the chart's own foreColor instead, it stays legible on every
+     * faded band while clearly no longer being the one in focus.
+     *
+     * @param {number} k
+     */
+    _dim(k) {
+      const w2 = this.w;
+      if (k === this._hovered) return;
+      this._hovered = k;
+      const cfg = this._hoverCfg();
+      const dimmed = cfg.opacity == null ? 0.35 : cfg.opacity;
+      const bands = w2.dom.baseEl.querySelectorAll(".apexcharts-series");
+      const labels = w2.dom.baseEl.querySelectorAll(
+        ".apexcharts-streamgraph-label"
+      );
+      const focused = (el, index) => k < 0 || index === k;
+      for (let i2 = 0; i2 < bands.length; i2++) {
+        const el = (
+          /** @type {any} */
+          bands[i2]
+        );
+        el.style.transition = "opacity .15s ease";
+        el.style.opacity = focused(el, Number(el.getAttribute("data:realIndex"))) ? "" : String(dimmed);
+      }
+      for (let i2 = 0; i2 < labels.length; i2++) {
+        const el = (
+          /** @type {any} */
+          labels[i2]
+        );
+        el.style.transition = "opacity .15s ease, fill .15s ease";
+        if (focused(el, Number(el.getAttribute("data:realIndex")))) {
+          this._restoreLabel(el);
+        } else {
+          if (!el.getAttribute("data:fill")) {
+            el.setAttribute("data:fill", el.getAttribute("fill") || "");
+          }
+          el.setAttribute("fill", w2.config.chart.foreColor);
+          el.style.opacity = "0.65";
+        }
+      }
+    }
+    /**
+     * Give one label its own colour back.
+     * @param {any} el
+     */
+    _restoreLabel(el) {
+      const orig = el.getAttribute("data:fill");
+      if (orig) el.setAttribute("fill", orig);
+      el.style.opacity = "";
+    }
+    /** Put every band and label back the way it was drawn. */
+    clearDim() {
+      this._hovered = -1;
+      const w2 = this.w;
+      if (!w2.dom.baseEl) return;
+      const bands = w2.dom.baseEl.querySelectorAll(".apexcharts-series");
+      for (let i2 = 0; i2 < bands.length; i2++) {
+        const el = (
+          /** @type {any} */
+          bands[i2]
+        );
+        el.style.opacity = "";
+      }
+      const labels = w2.dom.baseEl.querySelectorAll(
+        ".apexcharts-streamgraph-label"
+      );
+      for (let i2 = 0; i2 < labels.length; i2++) {
+        this._restoreLabel(
+          /** @type {any} */
+          labels[i2]
+        );
+      }
+    }
+    /**
+     * Labels describe where the bands END UP, so drawn at full opacity while the
+     * bands are still growing they sit over the wrong shapes. Held hidden and
+     * faded in with the rest of the delayed chrome once the bands land.
+     *
+     * When there is no animation to wait for, `showDelayedElements` has already
+     * run for this render, so registering would leave the layer hidden for good.
+     *
+     * @param {any} group
+     */
+    holdUntilBandsLand(group) {
+      const w2 = this.w;
+      const animate = Environment.isBrowser() && w2.globals.shouldAnimate && !w2.globals.animationEnded;
+      if (!animate) return;
+      group.node.classList.add("apexcharts-element-hidden");
+      w2.globals.delayedElements.push({ el: group.node, holdUntilComplete: true });
+    }
+  }
+  const OFFSETS = ["wiggle", "silhouette", "zero", "expand"];
+  const ORDERS = ["inside-out", "inverse", "none"];
+  function readDatum(d, j, categories) {
+    const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
+    if (d == null) return { x: fallbackX, y: null, rest: {} };
+    if (Array.isArray(d)) {
+      return { x: d[0] !== void 0 ? d[0] : fallbackX, y: d[1], rest: {} };
+    }
+    if (typeof d === "object") {
+      return { x: d.x !== void 0 ? d.x : fallbackX, y: d.y, rest: d };
+    }
+    return { x: fallbackX, y: d, rest: {} };
+  }
+  function isPairShaped(data) {
+    for (let j = 0; j < data.length; j++) {
+      const d = data[j];
+      const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+      if (Array.isArray(y) && y.length === 2) return true;
+    }
+    return false;
+  }
+  function joinOnX(raw, categories) {
+    var _a;
+    const xs = [];
+    const rows = [];
+    const seen = /* @__PURE__ */ new Map();
+    const grids = [];
+    for (let k = 0; k < raw.length; k++) {
+      const data = Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
+      const grid = /* @__PURE__ */ new Map();
+      for (let j = 0; j < data.length; j++) {
+        const { x, y, rest } = readDatum(data[j], j, categories);
+        const key = x instanceof Date ? x.getTime() : x;
+        if (!seen.has(key)) {
+          seen.set(key, xs.length);
+          xs.push(x);
+          rows.push(__spreadValues({}, rest));
+        }
+        grid.set(
+          /** @type {number} */
+          seen.get(key),
+          Utils$1.parseNumber(y)
+        );
+      }
+      grids.push(grid);
+    }
+    return { xs, rows, grids };
+  }
+  function sortColumns(xs) {
+    const idx = [];
+    for (let j = 0; j < xs.length; j++) {
+      const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
+      if (typeof x !== "number" || !isFinite(x)) return null;
+      idx.push(j);
+    }
+    const keyed = idx.map((j) => ({
+      j,
+      v: xs[j] instanceof Date ? xs[j].getTime() : xs[j]
+    }));
+    keyed.sort((a2, b2) => a2.v - b2.v);
+    const perm = keyed.map((e2) => e2.j);
+    for (let j = 0; j < perm.length; j++) {
+      if (perm[j] !== j) return perm;
+    }
+    return null;
+  }
+  function orderBands(mode, visible, values) {
+    if (mode === "none") return visible.slice();
+    if (mode === "inverse") return visible.slice().reverse();
+    const sums = {};
+    const peaks = {};
+    for (let i2 = 0; i2 < visible.length; i2++) {
+      const k = visible[i2];
+      const v2 = values[k];
+      let sum = 0;
+      let best = -Infinity;
+      let bestJ = 0;
+      for (let j = 0; j < v2.length; j++) {
+        sum += v2[j];
+        if (v2[j] > best) {
+          best = v2[j];
+          bestJ = j;
+        }
+      }
+      sums[k] = sum;
+      peaks[k] = bestJ;
+    }
+    const byPeak = visible.slice().sort((a2, b2) => peaks[a2] - peaks[b2] || a2 - b2);
+    let top = 0;
+    let bottom = 0;
+    const tops = [];
+    const bottoms = [];
+    for (let i2 = 0; i2 < byPeak.length; i2++) {
+      const k = byPeak[i2];
+      if (top < bottom) {
+        top += sums[k];
+        tops.push(k);
+      } else {
+        bottom += sums[k];
+        bottoms.push(k);
+      }
+    }
+    return bottoms.reverse().concat(tops);
+  }
+  function baselineFor(mode, order, stack, m2) {
+    const base = new Array(m2).fill(0);
+    if (m2 === 0 || order.length === 0) return base;
+    if (mode === "zero" || mode === "expand") return base;
+    if (mode === "silhouette") {
+      for (let j = 0; j < m2; j++) {
+        let total = 0;
+        for (let i2 = 0; i2 < order.length; i2++) total += stack[order[i2]][j];
+        base[j] = -total / 2;
+      }
+      return base;
+    }
+    let y = 0;
+    for (let j = 1; j < m2; j++) {
+      let s1 = 0;
+      let s2 = 0;
+      for (let i2 = 0; i2 < order.length; i2++) {
+        const vi = stack[order[i2]];
+        const now = vi[j];
+        let moved = (now - vi[j - 1]) / 2;
+        for (let k = 0; k < i2; k++) {
+          const vk = stack[order[k]];
+          moved += vk[j] - vk[j - 1];
+        }
+        s1 += now;
+        s2 += moved * now;
+      }
+      if (s1) y -= s2 / s1;
+      base[j] = y;
+    }
+    return base;
+  }
+  function streamgraphTransform(ser, w2) {
+    var _a, _b;
+    const cnf = w2.config;
+    const gl = w2.globals;
+    if (!Array.isArray(ser)) return ser;
+    if (!gl.streamgraphRawSeries) {
+      gl.streamgraphRawSeries = ser.map((s2) => __spreadProps(__spreadValues({}, s2), {
+        data: Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data.slice() : s2 == null ? void 0 : s2.data
+      }));
+    }
+    const raw = gl.streamgraphRawSeries;
+    if (raw.some(
+      (s2) => isPairShaped(Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data : [])
+    )) {
+      w2.streamgraphData = null;
+      return ser;
+    }
+    const opts = ((_a = cnf.plotOptions) == null ? void 0 : _a.streamgraph) || {};
+    const offset = OFFSETS.indexOf(opts.offset) !== -1 ? opts.offset : "wiggle";
+    const order = ORDERS.indexOf(opts.order) !== -1 ? opts.order : "inside-out";
+    const categories = (_b = cnf.xaxis) == null ? void 0 : _b.categories;
+    const collapsed = gl.collapsedSeriesIndices || [];
+    const { xs, rows, grids } = joinOnX(raw, categories);
+    const perm = sortColumns(xs);
+    const columns = perm ? perm.map((j) => xs[j]) : xs;
+    const columnRows = perm ? perm.map((j) => rows[j]) : rows;
+    const m2 = columns.length;
+    let sawNegative = false;
+    const values = [];
+    for (let k = 0; k < raw.length; k++) {
+      const row = new Array(m2);
+      for (let j = 0; j < m2; j++) {
+        const src = grids[k].get(perm ? perm[j] : j);
+        let v2 = src === void 0 || src === null ? 0 : Number(src);
+        if (!isFinite(v2)) v2 = 0;
+        if (v2 < 0) {
+          sawNegative = true;
+          v2 = 0;
+        }
+        row[j] = v2;
+      }
+      values.push(row);
+    }
+    if (sawNegative && !gl.streamgraphWarnedNegative) {
+      gl.streamgraphWarnedNegative = true;
+      console.warn(
+        'ApexCharts: a streamgraph stacks parts of a whole, so negative values have no band to draw and were treated as 0. Use a stacked area (chart.type: "area", chart.stacked: true) for data that goes below zero.'
+      );
+    }
+    const visible = [];
+    for (let k = 0; k < raw.length; k++) {
+      if (collapsed.indexOf(k) === -1) visible.push(k);
+    }
+    let stack = values;
+    if (offset === "expand") {
+      stack = values.map((row) => row.slice());
+      for (let j = 0; j < m2; j++) {
+        let total = 0;
+        for (let i2 = 0; i2 < visible.length; i2++) total += stack[visible[i2]][j];
+        if (total) {
+          for (let i2 = 0; i2 < visible.length; i2++) stack[visible[i2]][j] /= total;
+        }
+      }
+    }
+    const bandOrder = orderBands(order, visible, stack);
+    const base = baselineFor(offset, bandOrder, stack, m2);
+    const lows = raw.map(() => null);
+    const highs = raw.map(() => null);
+    for (let i2 = 0; i2 < bandOrder.length; i2++) {
+      lows[bandOrder[i2]] = new Array(m2);
+      highs[bandOrder[i2]] = new Array(m2);
+    }
+    for (let j = 0; j < m2; j++) {
+      let acc = base[j];
+      for (let i2 = 0; i2 < bandOrder.length; i2++) {
+        const k = bandOrder[i2];
+        const bandLo = (
+          /** @type {number[]} */
+          lows[k]
+        );
+        const bandHi = (
+          /** @type {number[]} */
+          highs[k]
+        );
+        bandLo[j] = acc;
+        acc += stack[k][j];
+        bandHi[j] = acc;
+      }
+    }
+    w2.streamgraphData = {
+      names: raw.map(
+        (s2, k) => {
+          var _a2;
+          return (_a2 = s2 == null ? void 0 : s2.name) != null ? _a2 : `Series ${k + 1}`;
+        }
+      ),
+      xs: columns,
+      values,
+      lows,
+      highs,
+      order: bandOrder,
+      offset,
+      hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+    };
+    return raw.map((s2, k) => {
+      const lo = lows[k];
+      const hi = highs[k];
+      if (!lo || !hi) return __spreadProps(__spreadValues({}, s2), { data: [] });
+      const data = new Array(m2);
+      for (let j = 0; j < m2; j++) {
+        data[j] = __spreadProps(__spreadValues({}, columnRows[j]), { x: columns[j], y: [lo[j], hi[j]] });
+      }
+      return __spreadProps(__spreadValues({}, s2), { data });
+    });
+  }
+  registerSeriesTransform("streamgraph", streamgraphTransform);
+  ApexCharts.registerFeatures({ streamgraph: StreamLabels });
   class BarDataLabels {
     /**
      * @param {import('../../../charts/Bar').default} barCtx
@@ -41264,6 +43396,7 @@ var __async = (__this, __arguments, generator) => {
      * @return {object} dataLabels node-element which you can append later
      **/
     handleBarDataLabels(opts) {
+      var _a, _b;
       const {
         x,
         y,
@@ -41282,6 +43415,8 @@ var __async = (__this, __arguments, generator) => {
       } = opts;
       const w2 = this.w;
       const graphics = new Graphics(this.barCtx.w);
+      const steps = w2.waterfallData && w2.waterfallData.values;
+      const waterfallStep = steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
       const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
       let bcx;
       let bcy;
@@ -41328,7 +43463,7 @@ var __async = (__this, __arguments, generator) => {
         height: 0
       };
       if (w2.config.dataLabels.enabled) {
-        const yLabel = w2.seriesData.series[realIndex][j];
+        const yLabel = waterfallStep !== null ? waterfallStep : w2.seriesData.series[realIndex][j];
         textRects = graphics.getTextRects(
           w2.config.dataLabels.formatter ? w2.config.dataLabels.formatter(yLabel, __spreadProps(__spreadValues({}, w2), {
             seriesIndex: realIndex,
@@ -41368,10 +43503,16 @@ var __async = (__this, __arguments, generator) => {
       } else {
         dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
       }
+      if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
+        const box = (_b = (_a = w2.waterfallData.geometry) == null ? void 0 : _a[realIndex]) == null ? void 0 : _b[j];
+        if (box && box.horizontal) {
+          dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
+        }
+      }
       dataLabels = this.drawCalculatedDataLabels({
         x: dataLabelsPos.dataLabelsX,
         y: dataLabelsPos.dataLabelsY,
-        val: this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? series[realIndex][j] : w2.seriesData.series[realIndex][j],
+        val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? series[realIndex][j] : w2.seriesData.series[realIndex][j],
         i: realIndex,
         j,
         barWidth,
@@ -41970,6 +44111,100 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /**
+     * The x-span that one bar slot covers, in DATA units, on a numeric or
+     * datetime axis. Returns 0 when it cannot be resolved, which leaves the
+     * caller on its category-style fallback.
+     *
+     * `w.globals.minXDiff` cannot serve here on its own, for two reasons:
+     *
+     *  - It is the smallest gap WITHIN a series, minimised over series, so it
+     *    never sees the gaps BETWEEN two series' x values. Series A on the 1st
+     *    and the 4th plus series B on the 2nd gives minXDiff = 3 days while the
+     *    axis really has a 1 day gap, and every bar is drawn 3 days wide, so
+     *    neighbours overlap (#4885).
+     *  - With one data point there are no gaps to measure at all and it is set
+     *    to a 0.5 sentinel, so the slot fell back to the whole grid width and a
+     *    single bar covered most of the chart. Range._handleSingleDataPoint pads
+     *    the axis by ±2 units around a lone point (2 days for datetime, 2 for
+     *    numeric), so one unit is a quarter of the resulting span.
+     *
+     * Cached: the merge below is O(points × series) and every series in a draw
+     * pass asks the same question.
+     *
+     * @returns {number}
+     */
+    barSlotXSpan() {
+      const w2 = this.w;
+      if (this._slotXSpan !== void 0) return this._slotXSpan;
+      let slot = 0;
+      if (w2.globals.dataPoints <= 1) {
+        const span = w2.globals.maxX - w2.globals.minX;
+        slot = span > 0 ? span / 4 : 0;
+      } else {
+        slot = this._unionMinXGap();
+        if (!(slot > 0) || !isFinite(slot)) {
+          const min = w2.globals.minXDiff;
+          slot = min > 0 && isFinite(min) && min !== 0.5 ? min : 0;
+        }
+      }
+      this._slotXSpan = slot;
+      return slot;
+    }
+    /**
+     * Smallest positive gap between neighbouring x values once every series is
+     * merged onto one axis. A k-way merge over the series arrays, which are
+     * already sorted in every ordinary case; an unsorted one can only make the
+     * answer smaller, i.e. the bars narrower, never overlapping.
+     *
+     * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
+     * them would widen every bar the moment someone hid the tightest-spaced
+     * series from the legend, so bar geometry would depend on legend state.
+     *
+     * @returns {number}
+     */
+    _unionMinXGap() {
+      const w2 = this.w;
+      const seriesX = w2.seriesData.seriesX || [];
+      const arrays = [];
+      for (let i2 = 0; i2 < seriesX.length; i2++) {
+        const xs = seriesX[i2];
+        if (Array.isArray(xs) && xs.length > 0) arrays.push(xs);
+      }
+      if (!arrays.length) return 0;
+      const cursor = new Array(arrays.length).fill(0);
+      let prev = NaN;
+      let min = Infinity;
+      for (; ; ) {
+        let next = Infinity;
+        let from = -1;
+        for (let k = 0; k < arrays.length; k++) {
+          const xs = arrays[k];
+          while (cursor[k] < xs.length && typeof xs[cursor[k]] !== "number") {
+            cursor[k]++;
+          }
+          if (cursor[k] >= xs.length) continue;
+          const v2 = xs[cursor[k]];
+          if (v2 !== v2) {
+            cursor[k]++;
+            k--;
+            continue;
+          }
+          if (v2 < next) {
+            next = v2;
+            from = k;
+          }
+        }
+        if (from === -1) break;
+        cursor[from]++;
+        if (prev === prev) {
+          const d = next - prev;
+          if (d > 0 && d < min) min = d;
+        }
+        prev = next;
+      }
+      return isFinite(min) ? min : 0;
+    }
+    /**
      * @param {number} realIndex
      */
     initialPositions(realIndex) {
@@ -42007,8 +44242,9 @@ var __async = (__this, __arguments, generator) => {
         barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
         if (w2.axisFlags.isXNumeric) {
           const xRatio = this.barCtx.xRatio;
-          if (w2.globals.minXDiff && w2.globals.minXDiff !== 0.5 && w2.globals.minXDiff / xRatio > 0) {
-            xDivision = w2.globals.minXDiff / xRatio;
+          const slotXSpan = this.barSlotXSpan();
+          if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
+            xDivision = slotXSpan / xRatio;
           }
           barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
           if (barWidth < 1) {
@@ -42081,7 +44317,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} realIndex
      */
     getPathFillColor(series, i2, j, realIndex) {
-      var _a, _b, _c, _d;
+      var _a;
       const w2 = this.w;
       const fill = new Fill(this.barCtx.w);
       let fillColor = null;
@@ -42096,17 +44332,72 @@ var __async = (__this, __arguments, generator) => {
           }
         });
       }
+      const connectorFill = this.getDumbbellConnectorFill(i2, j);
+      const datumFill = connectorFill || ((_a = w2.config.series[i2].data[j]) == null ? void 0 : _a.fill);
+      const connector = this.barCtx.barOptions.isDumbbell ? w2.config.plotOptions.bar.dumbbell.connector : null;
+      let connectorOpacity;
+      if (connector && connector.color) {
+        fillColor = connector.color;
+        connectorOpacity = connector.opacity;
+      }
       const pathFill = fill.fillPath({
         seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
         dataPointIndex: j,
         color: fillColor,
+        opacity: connectorOpacity,
         value: series[i2][j],
-        fillConfig: (_a = w2.config.series[i2].data[j]) == null ? void 0 : _a.fill,
-        fillType: ((_c = (_b = w2.config.series[i2].data[j]) == null ? void 0 : _b.fill) == null ? void 0 : _c.type) ? (_d = w2.config.series[i2].data[j]) == null ? void 0 : _d.fill.type : Array.isArray(w2.config.fill.type) ? w2.config.fill.type[realIndex] : w2.config.fill.type
+        fillConfig: datumFill,
+        fillType: (datumFill == null ? void 0 : datumFill.type) ? datumFill.type : Array.isArray(w2.config.fill.type) ? w2.config.fill.type[realIndex] : w2.config.fill.type
       });
       return {
         color: pathFill,
         useRangeColor
+      };
+    }
+    /**
+     * The connector's fill for one dumbbell row, or null to leave the fill alone.
+     *
+     * Returns a gradient running from the colour of the measure at the low end to
+     * the colour of the measure at the high end, which is the pair of dots the
+     * connector is between. `w.dumbbellData.order` is what makes it per-row: the
+     * merged interval is emitted low-to-high and no longer knows which measure
+     * was which, so a chart-wide gradient would point the wrong way on any row
+     * where the two cross.
+     *
+     * A user-set `connector.color` means a plain connector, and the `[lo, hi]`
+     * form names no measures to take colours from; both leave the fill alone.
+     *
+     * @param {number} i @param {number} j
+     * @returns {Record<string, any>|null}
+     */
+    getDumbbellConnectorFill(i2, j) {
+      const w2 = this.w;
+      if (!this.barCtx.barOptions.isDumbbell) return null;
+      const dumbbell = w2.dumbbellData;
+      if (!dumbbell || dumbbell.form !== "series") return null;
+      const connector = w2.config.plotOptions.bar.dumbbell.connector;
+      if (connector.color) return null;
+      const order = dumbbell.order[j];
+      if (!order) return null;
+      const from = w2.globals.colors[order[0]];
+      const to = w2.globals.colors[order[1]];
+      if (!from || !to) return null;
+      return {
+        type: "gradient",
+        gradient: {
+          // Along the connector: the value axis is x when the rows are
+          // horizontal, y when they are columns.
+          type: this.barCtx.isHorizontal ? "horizontal" : "vertical",
+          gradientFrom: from,
+          gradientTo: to,
+          opacityFrom: connector.opacity,
+          opacityTo: connector.opacity,
+          stops: [0, 100],
+          // A column's y runs down the screen, so its low end is at the BOTTOM
+          // and the gradient has to be read the other way round to still start
+          // at the low end's colour.
+          inverseColors: !this.barCtx.isHorizontal
+        }
       };
     }
     /**
@@ -42317,7 +44608,13 @@ var __async = (__this, __arguments, generator) => {
       }
       return {
         pathTo,
-        pathFrom
+        pathFrom,
+        // The box the path was built from, AFTER the stroke centering and the
+        // anti-exponential nudge above. Anything that has to line up with a drawn
+        // bar (the waterfall connectors) reads this rather than recomputing the
+        // edges, which is how it stays exact when a stroke width is set.
+        // `y1` is the lower value's edge and `y2` the upper one's.
+        drawnBox: { x1, x2, y1, y2 }
       };
     }
     /**
@@ -42550,7 +44847,10 @@ var __async = (__this, __arguments, generator) => {
       }
       return {
         pathTo,
-        pathFrom
+        pathFrom,
+        // See getColumnPaths. Here `x1` is the start value's edge and `x2` the
+        // end value's, because a horizontal bar's two ends arrive unsorted.
+        drawnBox: { x1, x2, y1, y2 }
       };
     }
     /**
@@ -42598,21 +44898,104 @@ var __async = (__this, __arguments, generator) => {
           pushGoal(goal.value, goal);
         });
       }
-      if (this.barCtx.barOptions.isDumbbell && w2.rangeData.seriesRange.length) {
-        const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w2.globals.colors;
-        const commonAttrs = {
-          strokeHeight: type === "x" ? 0 : w2.globals.markers.size[i2],
-          strokeWidth: type === "x" ? w2.globals.markers.size[i2] : 0,
-          strokeDashArray: 0,
-          strokeLineCap: "round",
-          strokeColor: Array.isArray(colors[i2]) ? colors[i2][0] : colors[i2]
-        };
-        pushGoal(w2.rangeData.seriesRangeStart[i2][j], commonAttrs);
-        pushGoal(w2.rangeData.seriesRangeEnd[i2][j], __spreadProps(__spreadValues({}, commonAttrs), {
-          strokeColor: Array.isArray(colors[i2]) ? colors[i2][1] : colors[i2]
-        }));
+      if (this.barCtx.barOptions.isDumbbell) {
+        const ends = this.getDumbbellEnds(i2, j);
+        if (ends.length) {
+          const commonAttrs = {
+            strokeHeight: type === "x" ? 0 : w2.globals.markers.size[i2],
+            strokeWidth: type === "x" ? w2.globals.markers.size[i2] : 0,
+            strokeDashArray: 0,
+            strokeLineCap: "round"
+          };
+          let lo = 0;
+          let hi = 0;
+          for (let e2 = 1; e2 < ends.length; e2++) {
+            if (ends[e2].value < ends[lo].value) lo = e2;
+            if (ends[e2].value > ends[hi].value) hi = e2;
+          }
+          const labelsCnf = w2.config.plotOptions.bar.dumbbell.dataLabels;
+          ends.forEach((end, e2) => {
+            const attrs = __spreadProps(__spreadValues({}, commonAttrs), { strokeColor: end.color });
+            if (labelsCnf.enabled && (e2 === lo || e2 === hi)) {
+              attrs.label = {
+                text: this.getDumbbellLabelText(end.value, i2, j, end.index),
+                color: labelsCnf.colorFromMarker ? end.color : Array.isArray(labelsCnf.style.colors) ? labelsCnf.style.colors[end.index] || labelsCnf.style.colors[0] : labelsCnf.style.colors,
+                // Away from the connector: the low end reads to its left (below,
+                // on a column), the high end to its right. A lone endpoint has no
+                // connector to be clear of, so it takes the outward side.
+                outward: e2 === lo && lo !== hi ? -1 : 1
+              };
+            }
+            pushGoal(end.value, attrs);
+          });
+        }
       }
       return goals;
+    }
+    /**
+     * The marked ends of one dumbbell row: a value and the colour that says which
+     * measure it belongs to.
+     *
+     * `chart.type: 'dumbbell'` merged N measures into one interval and left the
+     * endpoint identities on `w.dumbbellData`, so an end is coloured after the
+     * SERIES it came from. A row where the two measures cross therefore keeps its
+     * colours, which the interval alone could not say: it is emitted low-to-high
+     * and has forgotten which end was which.
+     *
+     * The `y: [lo, hi]` form names no measures, so it keeps the positional
+     * `dumbbellColors` pathway: colour 0 for the start, colour 1 for the end.
+     *
+     * @param {number} i @param {number} j
+     * @returns {Array<{ value: number, color: string, index: number }>}
+     */
+    getDumbbellEnds(i2, j) {
+      const w2 = this.w;
+      const ends = [];
+      const dumbbell = w2.dumbbellData;
+      if (dumbbell && dumbbell.form === "series") {
+        const values = dumbbell.values[j] || [];
+        for (let k = 0; k < values.length; k++) {
+          const v2 = values[k];
+          if (v2 === null || dumbbell.hidden.indexOf(k) !== -1) continue;
+          ends.push({ value: v2, color: w2.globals.colors[k], index: k });
+        }
+        return ends;
+      }
+      if (!w2.rangeData.seriesRange.length) return ends;
+      const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w2.globals.colors;
+      const pick = (n2) => Array.isArray(colors[i2]) ? colors[i2][n2] : colors[i2];
+      return [
+        { value: w2.rangeData.seriesRangeStart[i2][j], color: pick(0), index: 0 },
+        { value: w2.rangeData.seriesRangeEnd[i2][j], color: pick(1), index: 1 }
+      ];
+    }
+    /**
+     * The text for one end label.
+     *
+     * Deliberately NOT `dataLabels.formatter`: on a range bar that one reads out
+     * `end - start`, so an endpoint run through it would print the gap twice and
+     * the values never. The value-axis formatter is the one that already knows
+     * these numbers are percentages, or dollars, or dates.
+     *
+     * @param {number} value @param {number} i @param {number} j @param {number} k
+     * @returns {string}
+     */
+    getDumbbellLabelText(value, i2, j, k) {
+      const w2 = this.w;
+      const cnf = w2.config.plotOptions.bar.dumbbell.dataLabels;
+      if (typeof cnf.formatter === "function") {
+        return cnf.formatter(value, {
+          seriesIndex: i2,
+          dataPointIndex: j,
+          endpointIndex: k,
+          w: w2
+        });
+      }
+      const axisFormatter = this.barCtx.isHorizontal ? w2.formatters.xLabelFormatter : w2.formatters.yLabelFormatters[0];
+      if (typeof axisFormatter === "function") {
+        return axisFormatter(value, j, w2);
+      }
+      return String(value);
     }
     /** @param {{barXPosition: any, barYPosition: any, goalX: any, goalY: any, barWidth: any, barHeight: any}} opts */
     drawGoalLine({
@@ -42629,7 +45012,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const graphics = new Graphics(this.barCtx.w);
       const lineGroup = graphics.group({
-        className: "apexcharts-bar-goals-groups"
+        class: "apexcharts-bar-goals-groups"
       });
       lineGroup.node.classList.add("apexcharts-element-hidden");
       this.barCtx.w.globals.delayedElements.push({
@@ -42657,6 +45040,16 @@ var __async = (__this, __arguments, generator) => {
                 goal.attrs.strokeLineCap
               );
               lineGroup.add(line);
+              if (goal.attrs.label) {
+                lineGroup.add(
+                  this.drawDumbbellLabel(goal.attrs, {
+                    x: goal.x,
+                    y: y - sHeight,
+                    horizontal: true,
+                    markerSize: goal.attrs.strokeWidth || 0
+                  })
+                );
+              }
             }
           });
         }
@@ -42677,11 +45070,51 @@ var __async = (__this, __arguments, generator) => {
                 goal.attrs.strokeLineCap
               );
               lineGroup.add(line);
+              if (goal.attrs.label) {
+                lineGroup.add(
+                  this.drawDumbbellLabel(goal.attrs, {
+                    x: x - sWidth,
+                    y: goal.y,
+                    horizontal: false,
+                    markerSize: goal.attrs.strokeHeight || 0
+                  })
+                );
+              }
             }
           });
         }
       }
       return lineGroup;
+    }
+    /**
+     * One dumbbell end label, placed clear of the marker it belongs to.
+     *
+     * Offset from the marker's EDGE rather than its centre, so growing
+     * `markers.size` never walks a label under its own dot. Vertically it is
+     * centred on the marker with `dominant-baseline`, which is exact whatever the
+     * font metrics are, where a dy fudge factor drifts with font size.
+     *
+     * @param {Record<string, any>} attrs the goal's attrs, carrying `label`
+     * @param {{x: number, y: number, horizontal: boolean, markerSize: number}} pos
+     */
+    drawDumbbellLabel(attrs, pos) {
+      const w2 = this.w;
+      const graphics = new Graphics(w2);
+      const cnf = w2.config.plotOptions.bar.dumbbell.dataLabels;
+      const gap = pos.markerSize / 2 + cnf.offset;
+      const away = attrs.label.outward;
+      return graphics.drawText({
+        x: pos.x + (pos.horizontal ? gap * away : 0),
+        y: pos.y - (pos.horizontal ? 0 : gap * away),
+        text: attrs.label.text,
+        textAnchor: pos.horizontal ? away < 0 ? "end" : "start" : "middle",
+        dominantBaseline: pos.horizontal ? "central" : away < 0 ? "hanging" : "auto",
+        foreColor: attrs.label.color,
+        fontSize: cnf.style.fontSize,
+        fontFamily: cnf.style.fontFamily,
+        fontWeight: cnf.style.fontWeight,
+        cssClass: "apexcharts-dumbbell-label"
+      });
     }
     /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
     drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
@@ -44029,13 +46462,15 @@ var __async = (__this, __arguments, generator) => {
         xDivision = w2.layout.gridWidth / w2.globals.dataPoints;
         barWidth = xDivision;
         const userColumnWidth = w2.config.plotOptions.bar.columnWidth;
-        if (w2.axisFlags.isXNumeric && w2.globals.dataPoints > 1) {
-          xDivision = w2.globals.minXDiff / this.xRatio;
+        const slotXSpan = w2.axisFlags.isXNumeric ? this.barHelpers.barSlotXSpan() : 0;
+        if (slotXSpan > 0) {
+          xDivision = slotXSpan / this.xRatio;
           barWidth = xDivision * parseInt(this.barOptions.columnWidth, 10) / 100;
-        } else if (String(userColumnWidth).indexOf("%") === -1) {
-          barWidth = parseInt(userColumnWidth, 10);
         } else {
           barWidth *= parseInt(userColumnWidth, 10) / 100;
+        }
+        if (String(userColumnWidth).indexOf("%") === -1) {
+          barWidth = parseInt(userColumnWidth, 10);
         }
         if (this.isReversed) {
           zeroH = this.baseLineY[translationsIndex];
@@ -44292,7 +46727,8 @@ var __async = (__this, __arguments, generator) => {
     alongFn,
     isHorizontal,
     options: options2,
-    clampAt
+    clampAt,
+    sideSign
   }) {
     const opts = options2;
     if (!opts || opts.show === false) return [];
@@ -44323,6 +46759,7 @@ var __async = (__this, __arguments, generator) => {
         if (off > cap) off = cap;
         if (off < -cap) off = -cap;
       }
+      if (sideSign) off = Math.abs(off) * sideSign;
       const px = isHorizontal ? a2 : center + off;
       const py = isHorizontal ? center + off : a2;
       const sub = isSquare ? squareSubPath(px, py, r2) : circleSubPath(px, py, r2);
@@ -44978,11 +47415,18 @@ var __async = (__this, __arguments, generator) => {
      */
     // @ts-ignore -- Violin.draw has extra ctype param compared to Bar.draw
     draw(series, ctype, seriesIndex) {
+      var _a;
       const w2 = this.w;
       const graphics = new Graphics(this.w);
       const fill = new Fill(this.w);
       this.violinOptions = w2.config.plotOptions.violin;
       this.pointsOptions = this.violinOptions.points;
+      this.boxOptions = this.violinOptions.box || {};
+      this.cloudSign = crossSign(this.violinOptions.side);
+      this.rainSign = this.pointsOptions.show === false ? 0 : crossSign(this.pointsOptions.position);
+      this.boxShown = this.boxOptions.show === true;
+      this.boxFrac = this.boxShown ? laneFrac(this.boxOptions.width, 0.15) : 0;
+      this.rainFrac = laneFrac(this.pointsOptions.laneWidth, 0.4);
       this.bandwidthScale = this.violinOptions.bandwidthScale || 1;
       this.normalize = this.violinOptions.normalize || "individual";
       this.distributed = w2.config.plotOptions.bar.distributed;
@@ -45077,7 +47521,11 @@ var __async = (__this, __arguments, generator) => {
             halfExtent: paths.halfExtent,
             alongFn: paths.alongFn,
             density: paths.density,
-            maxWeight: paths.maxWeight
+            maxWeight: paths.maxWeight,
+            cloudBase: paths.cloudBase,
+            cloudMaxPx: paths.cloudMaxPx,
+            rainCenter: paths.rainCenter,
+            rainHalfPx: paths.rainHalfPx
           });
           if (pointGroups.length) pointsByViolin.push({ groups: pointGroups, j });
           const pathFill = fill.fillPath({
@@ -45116,6 +47564,32 @@ var __async = (__this, __arguments, generator) => {
               `${paths.alongRepresentative}`
             );
           }
+          if (paths.boxPaths) {
+            const boxStrokeWidth = (_a = this.boxOptions.strokeWidth) != null ? _a : 1;
+            paths.boxPaths.forEach((bp) => {
+              this.renderSeries({
+                realIndex,
+                pathFill: bp.filled ? this.boxOptions.fillColor || pathFill : "none",
+                lineFill: w2.globals.stroke.colors[realIndex],
+                j,
+                i: i2,
+                pathFrom: bp.pathFrom,
+                pathTo: bp.pathTo,
+                strokeWidth: boxStrokeWidth,
+                elSeries,
+                x,
+                y,
+                series,
+                columnGroupIndex,
+                barHeight,
+                barWidth,
+                elDataLabelsWrap,
+                visibleSeries: this.visibleI,
+                type: "violin",
+                classes: "apexcharts-raincloud-box"
+              });
+            });
+          }
         }
         renderJitter({
           graphics,
@@ -45136,7 +47610,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
     drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w2 = this.w;
       const { realIndex, j, translationsIndex } = indexes;
       const yRatio = this.yRatio[translationsIndex];
@@ -45149,17 +47623,26 @@ var __async = (__this, __arguments, generator) => {
       const density = this.getDensity(realIndex, j);
       const maxWeight = this.effectiveMaxWeight(density);
       const alongFn = (v2) => zeroH - this.logVal(v2, realIndex) / yRatio;
+      const lanes = resolveLanes({
+        halfExtent,
+        cloudSign: (_a = this.cloudSign) != null ? _a : 0,
+        rainSign: (_b = this.rainSign) != null ? _b : 0,
+        boxFrac: (_c = this.boxFrac) != null ? _c : 0,
+        rainFrac: (_d = this.rainFrac) != null ? _d : 0
+      });
+      const cloudBase = center + lanes.cloudBaseOff;
       const pathTo = this.buildBodyPath({
         nodes: density.nodes,
-        center,
-        halfExtent,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
         maxWeight,
         vertical: true,
         alongFn,
-        collapsed: false
+        collapsed: false,
+        sideSign: this.cloudSign
       });
       let pathFrom = null;
-      const morphFrom = (_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(realIndex, j);
+      const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
       if (morphFrom) {
         pathFrom = morphFrom;
       } else if (w2.globals.previousPaths.length > 0) {
@@ -45168,12 +47651,13 @@ var __async = (__this, __arguments, generator) => {
       if (pathFrom == null) {
         pathFrom = this.buildBodyPath({
           nodes: density.nodes,
-          center,
-          halfExtent,
+          center: cloudBase,
+          halfExtent: lanes.cloudMaxPx,
           maxWeight,
           vertical: true,
           alongFn,
-          collapsed: true
+          collapsed: true,
+          sideSign: this.cloudSign
         });
       }
       if (!w2.axisFlags.isXNumeric) {
@@ -45189,12 +47673,24 @@ var __async = (__this, __arguments, generator) => {
         alongFn,
         density,
         maxWeight,
-        alongRepresentative: alongFn((_c = this.series[indexes.i][j]) != null ? _c : 0)
+        cloudBase,
+        cloudMaxPx: lanes.cloudMaxPx,
+        rainCenter: center + lanes.rainCenterOff,
+        rainHalfPx: lanes.rainHalfPx,
+        boxPaths: this.buildBoxSubPaths({
+          realIndex,
+          j,
+          boxCenter: center + lanes.boxCenterOff,
+          boxHalfPx: lanes.boxHalfPx,
+          alongFn,
+          vertical: true
+        }),
+        alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
       };
     }
     /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
     drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w2 = this.w;
       const { realIndex, j } = indexes;
       const yRatio = this.invertedYRatio;
@@ -45207,17 +47703,26 @@ var __async = (__this, __arguments, generator) => {
       const density = this.getDensity(realIndex, j);
       const maxWeight = this.effectiveMaxWeight(density);
       const alongFn = (v2) => zeroW + this.logVal(v2, realIndex) / yRatio;
+      const lanes = resolveLanes({
+        halfExtent,
+        cloudSign: (_a = this.cloudSign) != null ? _a : 0,
+        rainSign: (_b = this.rainSign) != null ? _b : 0,
+        boxFrac: (_c = this.boxFrac) != null ? _c : 0,
+        rainFrac: (_d = this.rainFrac) != null ? _d : 0
+      });
+      const cloudBase = center + lanes.cloudBaseOff;
       const pathTo = this.buildBodyPath({
         nodes: density.nodes,
-        center,
-        halfExtent,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
         maxWeight,
         vertical: false,
         alongFn,
-        collapsed: false
+        collapsed: false,
+        sideSign: this.cloudSign
       });
       let pathFrom = null;
-      const morphFrom = (_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(realIndex, j);
+      const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
       if (morphFrom) {
         pathFrom = morphFrom;
       } else if (w2.globals.previousPaths.length > 0) {
@@ -45226,12 +47731,13 @@ var __async = (__this, __arguments, generator) => {
       if (pathFrom == null) {
         pathFrom = this.buildBodyPath({
           nodes: density.nodes,
-          center,
-          halfExtent,
+          center: cloudBase,
+          halfExtent: lanes.cloudMaxPx,
           maxWeight,
           vertical: false,
           alongFn,
-          collapsed: true
+          collapsed: true,
+          sideSign: this.cloudSign
         });
       }
       if (!w2.axisFlags.isXNumeric) {
@@ -45247,7 +47753,19 @@ var __async = (__this, __arguments, generator) => {
         alongFn,
         maxWeight,
         density,
-        alongRepresentative: alongFn((_c = this.series[indexes.i][j]) != null ? _c : 0)
+        cloudBase,
+        cloudMaxPx: lanes.cloudMaxPx,
+        rainCenter: center + lanes.rainCenterOff,
+        rainHalfPx: lanes.rainHalfPx,
+        boxPaths: this.buildBoxSubPaths({
+          realIndex,
+          j,
+          boxCenter: center + lanes.boxCenterOff,
+          boxHalfPx: lanes.boxHalfPx,
+          alongFn,
+          vertical: false
+        }),
+        alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
       };
     }
     /**
@@ -45292,7 +47810,13 @@ var __async = (__this, __arguments, generator) => {
      * parameter for the spline (vertical → Y, horizontal → X); the spline is fed
      * with that axis first and the control points swapped back to screen space.
      *
-     * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean}} opts
+     * Symmetric (`sideSign` 0): the curve mirrors around `center`, whose maximum
+     * half-width is `halfExtent`. One-sided (`sideSign` ±1, the raincloud
+     * "cloud" / half-violin): `center` is the flat BASELINE, the curve bulges up
+     * to `halfExtent` px toward the signed side, and the return edge is a
+     * straight run along the baseline.
+     *
+     * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean, sideSign?:number}} opts
      */
     buildBodyPath({
       nodes,
@@ -45301,7 +47825,8 @@ var __async = (__this, __arguments, generator) => {
       maxWeight,
       vertical,
       alongFn,
-      collapsed
+      collapsed,
+      sideSign = 0
     }) {
       const graphics = new Graphics(this.w);
       if (nodes.length === 0) {
@@ -45318,16 +47843,80 @@ var __async = (__this, __arguments, generator) => {
       for (let k = 0; k < nodes.length; k++) {
         const a2 = alongFn(nodes[k].v);
         const wp = wpxOf(nodes[k].w);
+        const outer = sideSign === 0 ? center + wp : center + sideSign * wp;
+        const inner = sideSign === 0 ? center - wp : center;
         if (vertical) {
-          rightPts.push([center + wp, a2]);
-          leftPts.push([center - wp, a2]);
+          rightPts.push([outer, a2]);
+          leftPts.push([inner, a2]);
         } else {
-          rightPts.push([a2, center + wp]);
-          leftPts.push([a2, center - wp]);
+          rightPts.push([a2, outer]);
+          leftPts.push([a2, inner]);
         }
       }
       leftPts.reverse();
       return this.smoothSegment(rightPts, vertical, false) + this.smoothSegment(leftPts, vertical, true) + "z";
+    }
+    /**
+     * Build the five-number box sub-paths for one category — the raincloud
+     * "umbrella", or a violin box overlay. Two sub-paths so each can carry its
+     * own fill: the whisker stems + caps (stroke only) and the q1-q3 rect with
+     * its median tick (filled). Both are rendered through renderSeries (same
+     * `j`, multiple sibling paths — the BoxCandleStick pattern), so they
+     * animate and morph like any mark. Deliberately no outlier dots: the
+     * rain/jitter layer draws every observation already.
+     *
+     * Returns null when the box is off or the datum has no summary; entering
+     * paths collapse cross-wise onto the box lane's centerline so the box grows
+     * sideways in sync with the cloud.
+     *
+     * @param {{realIndex:number, j:number, boxCenter:number, boxHalfPx:number, alongFn:(v:number)=>number, vertical:boolean}} opts
+     * @returns {{pathTo:string, pathFrom:string, filled:boolean}[] | null}
+     */
+    buildBoxSubPaths({ realIndex, j, boxCenter, boxHalfPx, alongFn, vertical }) {
+      var _a, _b;
+      const w2 = this.w;
+      if (!this.boxShown || boxHalfPx <= 0) return null;
+      const summary = (_a = w2.violinData.seriesViolinSummary[realIndex]) == null ? void 0 : _a[j];
+      if (!summary) return null;
+      const capHalf = boxHalfPx * Math.min(1, Math.max(0, (_b = this.boxOptions.capWidth) != null ? _b : 0.5));
+      const [lo, q1, med, q3, hi] = summary.map((v2) => alongFn(v2));
+      const build = (half, boxHalf) => {
+        const graphics = new Graphics(this.w);
+        const pt = (cross, along) => vertical ? [cross, along] : [along, cross];
+        const seg = (pts) => pts.map(
+          ([px, py], k) => k === 0 ? graphics.move(px, py) : graphics.line(px, py)
+        ).join("");
+        const c2 = boxCenter;
+        const whiskers = seg([pt(c2, lo), pt(c2, q1)]) + seg([pt(c2, q3), pt(c2, hi)]) + seg([pt(c2 - half, lo), pt(c2 + half, lo)]) + seg([pt(c2 - half, hi), pt(c2 + half, hi)]);
+        const box = seg([
+          pt(c2 - boxHalf, q1),
+          pt(c2 + boxHalf, q1),
+          pt(c2 + boxHalf, q3),
+          pt(c2 - boxHalf, q3)
+        ]) + "z" + seg([pt(c2 - boxHalf, med), pt(c2 + boxHalf, med)]);
+        return { whiskers, box };
+      };
+      const full = build(capHalf, boxHalfPx);
+      const collapsed = build(0, 0);
+      const fromFor = (pathTo, collapsedFrom) => {
+        let pathFrom = null;
+        if (w2.globals.previousPaths.length > 0) {
+          pathFrom = this.getPreviousPath(realIndex, j, pathTo);
+        }
+        return pathFrom == null ? collapsedFrom : pathFrom;
+      };
+      return [
+        {
+          pathTo: full.whiskers,
+          pathFrom: fromFor(full.whiskers, collapsed.whiskers),
+          filled: false
+        },
+        {
+          pathTo: full.box,
+          pathFrom: fromFor(full.box, collapsed.box),
+          filled: true
+        }
+      ];
     }
     /**
      * Emit one edge as a smooth (monotone-cubic) path segment, or a polyline
@@ -45374,7 +47963,12 @@ var __async = (__this, __arguments, generator) => {
      * groups, each carrying its ramp colour. Offsets are a deterministic index
      * hash (SSR-safe); points beyond maxPoints are stride-thinned.
      *
-     * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number}} opts
+     * Placement: `points.position` 'center' scatters around the slot centerline
+     * (clamped to the density width; one-sided bodies scatter one-sided from the
+     * baseline). Off-center positions put the dots in their own lane (the
+     * raincloud "rain"), where the density clamp no longer applies.
+     *
+     * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number, cloudBase:number, cloudMaxPx:number, rainCenter:number, rainHalfPx:number}} opts
      * @returns {{fill:string|null, d:string}[]}
      */
     buildPointsSubPath({
@@ -45384,22 +47978,31 @@ var __async = (__this, __arguments, generator) => {
       halfExtent,
       alongFn,
       density,
-      maxWeight
+      maxWeight,
+      cloudBase,
+      cloudMaxPx,
+      rainCenter,
+      rainHalfPx
     }) {
       var _a;
+      const offsetLane = this.rainSign !== 0;
+      const scatterCenter = offsetLane ? rainCenter : this.cloudSign !== 0 ? cloudBase : center;
+      const scatterHalf = offsetLane ? rainHalfPx : this.cloudSign !== 0 ? cloudMaxPx : halfExtent;
       return buildJitterGroups({
         w: this.w,
         points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j],
         seedA: realIndex,
         seedB: j,
-        center,
-        halfExtent,
+        center: scatterCenter,
+        halfExtent: scatterHalf,
         alongFn,
         isHorizontal: this.isHorizontal,
         options: this.pointsOptions,
-        // Violin clamps jitter to the density half-width at each value so dots
-        // stay inside the shape.
-        clampAt: (v2) => this.halfWidthAtValue(v2, density, halfExtent, maxWeight)
+        // Centered dots clamp to the density half-width at each value so they
+        // stay inside the shape; a dedicated rain lane has no shape to honor.
+        clampAt: offsetLane ? null : (v2) => this.halfWidthAtValue(v2, density, scatterHalf, maxWeight),
+        // A one-sided body folds centered dots onto its side of the baseline.
+        sideSign: offsetLane ? 0 : this.cloudSign
       });
     }
     /**
@@ -45453,6 +48056,54 @@ var __async = (__this, __arguments, generator) => {
       out.push(arr[k + 1], arr[k]);
     }
     return out;
+  }
+  function crossSign(token) {
+    if (token === "right" || token === "bottom") return 1;
+    if (token === "left" || token === "top") return -1;
+    return 0;
+  }
+  function laneFrac(val, fallback) {
+    let frac = fallback;
+    if (typeof val === "string" && val.trim().endsWith("%")) {
+      const n2 = parseFloat(val);
+      if (isFinite(n2)) frac = n2 / 100;
+    } else if (typeof val === "number" && isFinite(val)) {
+      frac = val;
+    }
+    return Math.min(0.5, Math.max(0, frac));
+  }
+  function resolveLanes({
+    halfExtent,
+    cloudSign,
+    rainSign,
+    boxFrac,
+    rainFrac
+  }) {
+    const boxHalfPx = boxFrac * halfExtent;
+    const rainHalfPx = rainSign === 0 ? halfExtent : rainFrac * halfExtent;
+    const rainCenterOff = rainSign === 0 ? 0 : rainSign * (halfExtent - rainHalfPx);
+    if (cloudSign === 0) {
+      return {
+        cloudBaseOff: 0,
+        cloudMaxPx: halfExtent,
+        boxCenterOff: 0,
+        boxHalfPx,
+        rainCenterOff,
+        rainHalfPx
+      };
+    }
+    const usedRainFrac = rainSign === 0 ? 0 : rainFrac;
+    const cloudFrac = Math.max(0, 1 - usedRainFrac - boxFrac);
+    const cloudMaxPx = 2 * cloudFrac * halfExtent;
+    const cloudBaseOff = cloudSign * (halfExtent - cloudMaxPx);
+    return {
+      cloudBaseOff,
+      cloudMaxPx,
+      boxCenterOff: cloudBaseOff - cloudSign * boxHalfPx,
+      boxHalfPx,
+      rainCenterOff,
+      rainHalfPx
+    };
   }
   class TreemapHelpers {
     /**
@@ -47555,7 +50206,7 @@ var __async = (__this, __arguments, generator) => {
       this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
       this.lineColorArr = w2.globals.stroke.colors !== void 0 ? w2.globals.stroke.colors : w2.globals.colors;
       this.defaultSize = Math.min(w2.layout.gridWidth, w2.layout.gridHeight);
-      this.centerY = this.defaultSize / 2;
+      this.centerY = w2.layout.gridHeight / 2;
       this.centerX = w2.layout.gridWidth / 2;
       if (w2.config.chart.type === "radialBar") {
         this.fullAngle = 360;
@@ -49371,7 +52022,7 @@ var __async = (__this, __arguments, generator) => {
       });
       if (w2.globals.noData) return ret;
       const elSeries = graphics.group();
-      const centerY = this.defaultSize / 2;
+      const centerY = w2.layout.gridHeight / 2;
       const centerX = w2.layout.gridWidth / 2;
       let size = this.defaultSize / 2.05;
       if (!w2.config.chart.sparkline.enabled) {
@@ -50404,9 +53055,10 @@ var __async = (__this, __arguments, generator) => {
       const range = this.getRangeValue(realIndex, j);
       let y1 = Math.min(range.start, range.end);
       let y2 = Math.max(range.start, range.end);
-      if (typeof /** @type {any} */
+      const hasValue = !(typeof /** @type {any} */
       ((_a = this.series[i2]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
-      ((_b = this.series[i2]) == null ? void 0 : _b[j]) === null) {
+      ((_b = this.series[i2]) == null ? void 0 : _b[j]) === null);
+      if (!hasValue) {
         y1 = zeroH;
       } else {
         y1 = zeroH - y1 / yRatio;
@@ -50425,6 +53077,19 @@ var __async = (__this, __arguments, generator) => {
         j,
         w: w2
       });
+      if (hasValue) {
+        const box = paths.drawnBox;
+        const endIsUpper = range.end >= range.start;
+        this.recordColumnGeometry(realIndex, j, {
+          slotStart: box.x1,
+          slotEnd: box.x2,
+          // `drawnBox.y1` is the lower VALUE's edge, so which of the two is the
+          // level this bar left behind depends on which way it stepped.
+          levelStart: endIsUpper ? box.y1 : box.y2,
+          levelEnd: endIsUpper ? box.y2 : box.y1,
+          horizontal: false
+        });
+      }
       if (!w2.axisFlags.isXNumeric) {
         x = x + xDivision;
       } else {
@@ -50497,6 +53162,16 @@ var __async = (__this, __arguments, generator) => {
         j,
         w: w2
       });
+      if (range.start != null && range.end != null) {
+        const box = paths.drawnBox;
+        this.recordColumnGeometry(realIndex, j, {
+          slotStart: box.y1,
+          slotEnd: box.y2,
+          levelStart: box.x1,
+          levelEnd: box.x2,
+          horizontal: true
+        });
+      }
       if (!w2.axisFlags.isXNumeric) {
         y = y + yDivision;
       }
@@ -50516,6 +53191,31 @@ var __async = (__this, __arguments, generator) => {
         ),
         y
       };
+    }
+    /**
+     * Record the px box this bar was actually drawn in, for a consumer that has
+     * to line something up with it.
+     *
+     * Only the waterfall connector layer asks (the sink is put on the state by
+     * the waterfall transform, and is null for every other chart), and it asks
+     * because re-deriving slot geometry from the axis is precisely how the
+     * brush<->bar mapping kept drifting half a bar sideways: see the three facts
+     * in `AxisMapping`. Reading back what the renderer committed to cannot drift.
+     *
+     * `slotStart`/`slotEnd` bound the bar along the CATEGORY axis and
+     * `levelStart`/`levelEnd` are the px of its two value bounds, so one shape
+     * describes both orientations.
+     *
+     * @param {number} realIndex
+     * @param {number} j
+     * @param {{slotStart: number, slotEnd: number, levelStart: number, levelEnd: number, horizontal: boolean}} rec
+     */
+    recordColumnGeometry(realIndex, j, rec) {
+      const sink = this.w.waterfallData && this.w.waterfallData.geometry;
+      if (!sink) return;
+      if (!isFinite(rec.slotStart) || !isFinite(rec.levelEnd)) return;
+      if (!sink[realIndex]) sink[realIndex] = [];
+      sink[realIndex][j] = rec;
     }
     /**
      * @param {number} i

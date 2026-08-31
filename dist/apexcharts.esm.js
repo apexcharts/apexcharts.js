@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.0.0
+ * ApexCharts v7.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -10653,6 +10653,23 @@ function normalizeCounts(counts, opts = {}) {
   }
   return out;
 }
+function observationsOf(d, allowFlatY) {
+  var _a;
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  let raw = null;
+  if (Array.isArray(d.points)) raw = d.points;
+  else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
+  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
+    raw = d.y;
+  }
+  if (!raw) return null;
+  const out = [];
+  for (let i = 0; i < raw.length; i++) {
+    const v2 = Utils.parseNumber(raw[i]);
+    if (v2 !== null && isFinite(v2)) out.push(v2);
+  }
+  return out.length ? out : null;
+}
 function histogramValues(data) {
   const out = [];
   if (!Array.isArray(data)) return out;
@@ -10727,23 +10744,6 @@ function histogramTransform(ser, w2) {
   });
 }
 const derivedData = /* @__PURE__ */ new WeakSet();
-function observationsOf(d, allowFlatY) {
-  var _a;
-  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
-  let raw = null;
-  if (Array.isArray(d.points)) raw = d.points;
-  else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
-  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
-    raw = d.y;
-  }
-  if (!raw) return null;
-  const out = [];
-  for (let i = 0; i < raw.length; i++) {
-    const v2 = Utils.parseNumber(raw[i]);
-    if (v2 !== null && isFinite(v2)) out.push(v2);
-  }
-  return out.length ? out : null;
-}
 function boxPlotTransform(ser, w2) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
@@ -10913,6 +10913,1201 @@ registerSeriesTransform("violin", violinTransform);
 registerRowSource("histogram", histogramRows);
 registerRowSource("boxPlot", boxPlotRows);
 registerRowSource("violin", violinRows);
+class Waterfall {
+  /**
+   * @param {any} w
+   * @param {any} ctx
+   */
+  constructor(w2, ctx) {
+    this.w = w2;
+    this.ctx = ctx;
+  }
+  /** @returns {boolean} */
+  isActive() {
+    return this.w.config.chart.requestedType === "waterfall";
+  }
+  /**
+   * Draw (or redraw) the connector layer into the graphical group.
+   *
+   * Called from both render paths and safe to call on a chart that is not a
+   * waterfall, has connectors switched off, or drew no columns.
+   */
+  drawConnectors() {
+    var _a, _b;
+    const w2 = this.w;
+    if (!this.isActive()) return;
+    const cfg = (_b = (_a = w2.config.plotOptions) == null ? void 0 : _a.waterfall) == null ? void 0 : _b.connectors;
+    if (!cfg || cfg.show === false) return;
+    const host = w2.dom.elGraphical;
+    const geo = w2.waterfallData && w2.waterfallData.geometry;
+    if (!host || !geo) return;
+    this.removeConnectors();
+    const graphics = new Graphics(w2, this.ctx);
+    const group = graphics.group({ class: "apexcharts-waterfall-connectors" });
+    const color = cfg.color || w2.config.grid.borderColor;
+    const strokeWidth = cfg.strokeWidth == null ? 1 : cfg.strokeWidth;
+    const dashArray = cfg.strokeDashArray == null ? 3 : cfg.strokeDashArray;
+    let drawn = 0;
+    for (let i = 0; i < geo.length; i++) {
+      const bars = geo[i];
+      if (!Array.isArray(bars)) continue;
+      for (let j = 0; j < bars.length - 1; j++) {
+        const a = bars[j];
+        const b2 = bars[j + 1];
+        if (!a || !b2) continue;
+        const gap = b2.slotStart - a.slotEnd;
+        if (!(gap > 0.5)) continue;
+        const line = a.horizontal ? graphics.drawLine(
+          a.levelEnd,
+          a.slotEnd,
+          a.levelEnd,
+          b2.slotStart,
+          color,
+          dashArray,
+          strokeWidth
+        ) : graphics.drawLine(
+          a.slotEnd,
+          a.levelEnd,
+          b2.slotStart,
+          a.levelEnd,
+          color,
+          dashArray,
+          strokeWidth
+        );
+        line.node.classList.add("apexcharts-waterfall-connector");
+        group.add(line);
+        drawn++;
+      }
+    }
+    if (!drawn) return;
+    group.attr("clip-path", `url(#gridRectBarMask${w2.globals.cuid})`);
+    const xaxisEl = host.node.querySelector(".apexcharts-xaxis");
+    if (xaxisEl) {
+      host.node.insertBefore(group.node, xaxisEl);
+    } else {
+      host.add(group);
+    }
+    this.holdUntilBarsLand(group);
+  }
+  /** Drop the connector layer, if one is present. */
+  removeConnectors() {
+    const host = this.w.dom.elGraphical;
+    const prev = host && host.node.querySelector(".apexcharts-waterfall-connectors");
+    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+  }
+  /**
+   * Connectors describe where the bars END UP, so drawn at full opacity while
+   * the bars are still growing they hang in mid-air over nothing. Held hidden
+   * and faded in with the rest of the delayed chrome once the bars land.
+   *
+   * When there is no animation to wait for, `showDelayedElements` has already
+   * run for this render, so registering would leave the layer hidden for good.
+   *
+   * @param {any} group
+   */
+  holdUntilBarsLand(group) {
+    const w2 = this.w;
+    const animate = Environment.isBrowser() && w2.globals.shouldAnimate && !w2.globals.animationEnded;
+    if (!animate) return;
+    group.node.classList.add("apexcharts-element-hidden");
+    w2.globals.delayedElements.push({ el: group.node, holdUntilComplete: true });
+  }
+}
+function readDatum$2(d, j, categories) {
+  const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
+  if (d == null) {
+    return {
+      x: fallbackX,
+      y: null,
+      isSubtotal: false,
+      isTotal: false,
+      rest: {}
+    };
+  }
+  if (Array.isArray(d)) {
+    return {
+      x: d[0] !== void 0 ? d[0] : fallbackX,
+      y: d[1],
+      isSubtotal: false,
+      isTotal: false,
+      rest: {}
+    };
+  }
+  if (typeof d === "object") {
+    return {
+      x: d.x !== void 0 ? d.x : fallbackX,
+      y: d.y,
+      isSubtotal: d.isSubtotal === true,
+      isTotal: d.isTotal === true,
+      rest: d
+    };
+  }
+  return { x: fallbackX, y: d, isSubtotal: false, isTotal: false, rest: {} };
+}
+function isPrecomputed(data) {
+  for (let j = 0; j < data.length; j++) {
+    const d = data[j];
+    const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+    if (Array.isArray(y) && y.length === 2) return true;
+  }
+  return false;
+}
+function fillFor(datum, kind, colors) {
+  if (datum && datum.fillColor) return datum.fillColor;
+  const c = colors[kind];
+  return typeof c === "string" && c ? c : void 0;
+}
+function accumulate(data, categories, colors) {
+  const rows = [];
+  const values = [];
+  const cumulative = [];
+  const kinds = [];
+  let running = 0;
+  let cut = 0;
+  for (let j = 0; j < data.length; j++) {
+    const { x, y, isSubtotal, isTotal, rest } = readDatum$2(
+      data[j],
+      j,
+      categories
+    );
+    let start;
+    let end;
+    let kind;
+    if (isTotal || isSubtotal) {
+      start = isTotal ? 0 : cut;
+      end = running;
+      kind = isTotal ? "total" : "subtotal";
+      cut = running;
+    } else {
+      const delta = Utils.parseNumber(y);
+      if (delta === null || !isFinite(delta)) {
+        rows.push(__spreadProps(__spreadValues({}, rest), { x, y: null }));
+        values.push(null);
+        cumulative.push(running);
+        kinds.push(null);
+        continue;
+      }
+      start = running;
+      end = running + delta;
+      running = end;
+      kind = delta < 0 ? "negative" : "positive";
+    }
+    const fill = fillFor(rest, kind, colors);
+    rows.push(__spreadValues(__spreadProps(__spreadValues({}, rest), {
+      x,
+      y: [start, end]
+    }), fill ? { fillColor: fill } : {}));
+    values.push(end - start);
+    cumulative.push(running);
+    kinds.push(kind);
+  }
+  return { data: rows, values, cumulative, kinds };
+}
+function waterfallTransform(ser, w2) {
+  var _a, _b, _c;
+  const cnf = w2.config;
+  const gl = w2.globals;
+  if (!Array.isArray(ser)) return ser;
+  if (!gl.waterfallRawSeries) {
+    gl.waterfallRawSeries = ser.map((s) => __spreadProps(__spreadValues({}, s), {
+      data: Array.isArray(s == null ? void 0 : s.data) ? s.data.slice() : s == null ? void 0 : s.data
+    }));
+  }
+  const raw = gl.waterfallRawSeries;
+  const colors = ((_b = (_a = cnf.plotOptions) == null ? void 0 : _a.waterfall) == null ? void 0 : _b.colors) || {};
+  const categories = (_c = cnf.xaxis) == null ? void 0 : _c.categories;
+  const collapsed = gl.collapsedSeriesIndices || [];
+  const values = [];
+  const cumulative = [];
+  const kinds = [];
+  const out = raw.map((s, i) => {
+    const data = Array.isArray(s == null ? void 0 : s.data) ? s.data : [];
+    if (collapsed.indexOf(i) !== -1) {
+      values[i] = [];
+      cumulative[i] = [];
+      kinds[i] = [];
+      return __spreadProps(__spreadValues({}, s), { data: [] });
+    }
+    if (isPrecomputed(data)) {
+      values[i] = data.map((d) => {
+        const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+        if (!Array.isArray(y)) return null;
+        const lo = Utils.parseNumber(y[0]);
+        const hi = Utils.parseNumber(y[1]);
+        return lo === null || hi === null ? null : hi - lo;
+      });
+      cumulative[i] = data.map((d) => {
+        const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+        const hi = Array.isArray(y) ? Utils.parseNumber(y[1]) : null;
+        return hi === null ? 0 : hi;
+      });
+      kinds[i] = data.map(() => null);
+      return s;
+    }
+    const acc = accumulate(data, categories, colors);
+    values[i] = acc.values;
+    cumulative[i] = acc.cumulative;
+    kinds[i] = acc.kinds;
+    return __spreadProps(__spreadValues({}, s), { data: acc.data });
+  });
+  w2.waterfallData = {
+    values,
+    cumulative,
+    kinds,
+    // A non-null sink is what tells RangeBar to record the px box it drew each
+    // column in, which the connector layer joins up. Fresh every parse.
+    geometry: []
+  };
+  return out;
+}
+registerSeriesTransform("waterfall", waterfallTransform);
+_core__default.registerFeatures({ waterfall: Waterfall });
+function readDatum$1(d, j, categories) {
+  const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
+  if (d == null) return { x: fallbackX, y: null, rest: {} };
+  if (Array.isArray(d)) {
+    return { x: d[0] !== void 0 ? d[0] : fallbackX, y: d[1], rest: {} };
+  }
+  if (typeof d === "object") {
+    return { x: d.x !== void 0 ? d.x : fallbackX, y: d.y, rest: d };
+  }
+  return { x: fallbackX, y: d, rest: {} };
+}
+function isPairShaped$1(data) {
+  for (let j = 0; j < data.length; j++) {
+    const d = data[j];
+    const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+    if (Array.isArray(y) && y.length === 2) return true;
+  }
+  return false;
+}
+function joinOnX$1(raw, categories) {
+  var _a;
+  const xs = [];
+  const rows = [];
+  const seen = /* @__PURE__ */ new Map();
+  const byX = [];
+  for (let i = 0; i < raw.length; i++) {
+    const data = Array.isArray((_a = raw[i]) == null ? void 0 : _a.data) ? raw[i].data : [];
+    const map = /* @__PURE__ */ new Map();
+    for (let j = 0; j < data.length; j++) {
+      const { x, y, rest } = readDatum$1(data[j], j, categories);
+      const key = x instanceof Date ? x.getTime() : x;
+      if (!seen.has(key)) {
+        seen.set(key, xs.length);
+        xs.push(x);
+        rows.push(__spreadValues({}, rest));
+      }
+      const rowIndex = (
+        /** @type {number} */
+        seen.get(key)
+      );
+      map.set(rowIndex, Utils.parseNumber(y));
+    }
+    byX.push(map);
+  }
+  return { xs, rows, byX };
+}
+function dumbbellTransform(ser, w2) {
+  var _a;
+  const cnf = w2.config;
+  const gl = w2.globals;
+  if (!Array.isArray(ser)) return ser;
+  if (!gl.dumbbellRawSeries) {
+    gl.dumbbellRawSeries = ser.map((s) => __spreadProps(__spreadValues({}, s), {
+      data: Array.isArray(s == null ? void 0 : s.data) ? s.data.slice() : s == null ? void 0 : s.data
+    }));
+  }
+  const raw = gl.dumbbellRawSeries;
+  const alreadyPaired = raw.some(
+    (s) => isPairShaped$1(Array.isArray(s == null ? void 0 : s.data) ? s.data : [])
+  );
+  if (alreadyPaired) {
+    w2.dumbbellData = {
+      form: "pairs",
+      names: [],
+      values: [],
+      order: [],
+      carrier: 0,
+      hidden: []
+    };
+    return ser;
+  }
+  const categories = (_a = cnf.xaxis) == null ? void 0 : _a.categories;
+  const collapsed = gl.collapsedSeriesIndices || [];
+  const { xs, rows, byX } = joinOnX$1(raw, categories);
+  const values = [];
+  const order = [];
+  const visible = [];
+  for (let k = 0; k < raw.length; k++) {
+    if (collapsed.indexOf(k) === -1) visible.push(k);
+  }
+  const data = [];
+  for (let j = 0; j < xs.length; j++) {
+    const rowValues = [];
+    for (let k = 0; k < raw.length; k++) {
+      const v2 = byX[k].has(j) ? byX[k].get(j) : null;
+      rowValues.push(
+        v2 === null || v2 === void 0 || !isFinite(v2) ? null : v2
+      );
+    }
+    values.push(rowValues);
+    let lo = null;
+    let hi = null;
+    let kLo = -1;
+    let kHi = -1;
+    for (let vi = 0; vi < visible.length; vi++) {
+      const k = visible[vi];
+      const v2 = rowValues[k];
+      if (v2 === null) continue;
+      if (lo === null || v2 < lo) {
+        lo = v2;
+        kLo = k;
+      }
+      if (hi === null || v2 > hi) {
+        hi = v2;
+        kHi = k;
+      }
+    }
+    if (lo === null || hi === null) {
+      order.push(null);
+      data.push(__spreadProps(__spreadValues({}, rows[j]), { x: xs[j], y: null }));
+      continue;
+    }
+    order.push([kLo, kHi]);
+    data.push(__spreadProps(__spreadValues({}, rows[j]), { x: xs[j], y: [lo, hi] }));
+  }
+  w2.dumbbellData = {
+    form: "series",
+    names: raw.map(
+      (s, k) => {
+        var _a2;
+        return (_a2 = s == null ? void 0 : s.name) != null ? _a2 : `Series ${k + 1}`;
+      }
+    ),
+    values,
+    order,
+    carrier: visible.length ? visible[0] : 0,
+    hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+  };
+  const carrier = w2.dumbbellData.carrier;
+  return raw.map((s, k) => __spreadProps(__spreadValues({}, s), {
+    // Every endpoint stays a series so the legend keeps its name, its colour
+    // and its click. Only one of them carries the merged rows: drawing the
+    // same rows N times would stack N identical connectors.
+    data: k === carrier && visible.length ? data : []
+  }));
+}
+registerSeriesTransform("dumbbell", dumbbellTransform);
+const VPAD = 3;
+class StreamLabels {
+  /**
+   * @param {any} w
+   * @param {any} ctx
+   */
+  constructor(w2, ctx) {
+    this.w = w2;
+    this.ctx = ctx;
+    this._hovered = -1;
+  }
+  /** @returns {boolean} */
+  isActive() {
+    return this.w.config.chart.requestedType === "streamgraph";
+  }
+  /**
+   * Data value -> pixel, the same mapping the line renderer uses
+   * (`Line._initSerieVariables`: `zeroY - v / yRatio`, with baseLineY placing
+   * the zero line). Written out in terms of the domain rather than read off
+   * `xyRatios` so the layer stays independent of the renderer's internals.
+   *
+   * @param {number} v
+   * @returns {number}
+   */
+  _yPx(v2) {
+    var _a;
+    const w2 = this.w;
+    const gl = w2.globals;
+    const h = w2.layout.gridHeight;
+    const span = gl.maxY - gl.minY;
+    if (!span || !isFinite(span)) return h / 2;
+    const frac = (v2 - gl.minY) / span;
+    return ((_a = w2.config.yaxis[0]) == null ? void 0 : _a.reversed) ? frac * h : h - frac * h;
+  }
+  /**
+   * Draw (or redraw) everything this layer owns.
+   *
+   * Called from both render paths and safe to call on a chart that is not a
+   * streamgraph, has labels switched off, or drew no bands.
+   */
+  draw() {
+    if (!this.isActive()) return;
+    this.clearDim();
+    this.bindHover();
+    this.drawLabels();
+  }
+  /**
+   * Draw (or redraw) the band labels.
+   *
+   * Called from both render paths and safe to call on a chart that is not a
+   * streamgraph, has labels switched off, or drew no bands.
+   */
+  drawLabels() {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const w2 = this.w;
+    if (!this.isActive()) return;
+    const cfg = (_b = (_a = w2.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.labels;
+    if (!cfg || cfg.show === false) return;
+    const host = w2.dom.elGraphical;
+    const data = w2.streamgraphData;
+    if (!host || !data) return;
+    this.removeLabels();
+    const graphics = new Graphics(w2, this.ctx);
+    const group = graphics.group({ class: "apexcharts-streamgraph-labels" });
+    const fontSize = ((_c = cfg.style) == null ? void 0 : _c.fontSize) || "auto";
+    const fontFamily = ((_d = cfg.style) == null ? void 0 : _d.fontFamily) || w2.config.chart.fontFamily;
+    const fontWeight = ((_e = cfg.style) == null ? void 0 : _e.fontWeight) || 600;
+    const minWidth = cfg.minWidth == null ? 24 : cfg.minWidth;
+    const placed = [];
+    for (let i = 0; i < data.order.length; i++) {
+      const k = data.order[i];
+      const label = this._placeLabel(k, {
+        fontSize,
+        fontFamily,
+        fontWeight,
+        minWidth,
+        graphics
+      });
+      if (label) placed.push(label);
+    }
+    let drawn = 0;
+    for (const label of this._deconflict(placed)) {
+      const k = label.k;
+      const el = graphics.drawText({
+        x: label.x,
+        y: label.y,
+        text: label.text,
+        textAnchor: "middle",
+        dominantBaseline: "middle",
+        // The size a band's own name is drawn at is decided per band, not per
+        // chart (see `_resolveFontSize`).
+        fontSize: label.fontSize,
+        fontFamily,
+        fontWeight,
+        foreColor: ((_g = (_f = cfg.style) == null ? void 0 : _f.colors) == null ? void 0 : _g[k]) || label.color,
+        cssClass: "apexcharts-streamgraph-label"
+      });
+      el.node.setAttribute("data:realIndex", String(k));
+      group.add(el);
+      drawn++;
+    }
+    if (!drawn) return;
+    const xaxisEl = host.node.querySelector(".apexcharts-xaxis");
+    if (xaxisEl) {
+      host.node.insertBefore(group.node, xaxisEl);
+    } else {
+      host.add(group);
+    }
+    this.holdUntilBandsLand(group);
+  }
+  /**
+   * Where band `k`'s name could go, best spot first, or null if nowhere.
+   *
+   * Returns several candidates rather than one. Each band picks its spot from
+   * its own shape alone, and on a chart where everything peaks in the same
+   * burst that puts every name in the same narrow strip — the first version of
+   * this returned one placement each and the de-overlap pass then had to throw
+   * twenty of twenty-two away. Offering alternatives lets a name that loses its
+   * first choice slide along its own band instead of vanishing.
+   *
+   * A candidate is the middle of a stretch where the band clears the line box,
+   * plus, on a stretch with room to spare, two more spread across it.
+   *
+   * @param {number} k
+   * @param {{fontSize: string, fontFamily: string, fontWeight: any, minWidth: number, graphics: any}} opts
+   * @returns {{k: number, weight: number, candidates: any[]}|null}
+   */
+  _placeLabel(k, { fontSize, fontFamily, fontWeight, minWidth, graphics }) {
+    const w2 = this.w;
+    const data = w2.streamgraphData;
+    const lo = data.lows[k];
+    const hi = data.highs[k];
+    if (!lo || !hi) return null;
+    const xPx = w2.globals.seriesXvalues[k];
+    const m2 = lo.length;
+    if (!Array.isArray(xPx) || xPx.length < m2 || m2 === 0) return null;
+    const thickness = new Array(m2);
+    let peakT = 0;
+    for (let j = 0; j < m2; j++) {
+      const t = Math.abs(this._yPx(hi[j]) - this._yPx(lo[j]));
+      thickness[j] = t;
+      if (t > peakT) peakT = t;
+    }
+    if (peakT <= 0) return null;
+    const size = this._resolveFontSize(fontSize, peakT);
+    const name = String(data.names[k]);
+    let px = size;
+    let rect = graphics.getTextRects(
+      name,
+      `${px}px`,
+      fontFamily,
+      "",
+      true,
+      fontWeight
+    );
+    if (peakT < rect.height + VPAD * 2) return null;
+    const widest = this._widestRun(thickness, xPx, rect.height + VPAD * 2, m2);
+    if (!widest) return null;
+    if (rect.width > widest.width && fontSize === "auto") {
+      const shrunk = Math.floor(px * (widest.width / rect.width));
+      if (shrunk < this._autoBounds().min) return null;
+      px = shrunk;
+      rect = graphics.getTextRects(
+        name,
+        `${px}px`,
+        fontFamily,
+        "",
+        true,
+        fontWeight
+      );
+      if (peakT < rect.height + VPAD * 2) return null;
+    }
+    const needed = rect.height + VPAD * 2;
+    const candidates = [];
+    for (const run of this._runs(thickness, needed, m2)) {
+      const xL = Number(xPx[run.l]);
+      const xR = Number(xPx[run.r]);
+      if (!isFinite(xL) || !isFinite(xR)) continue;
+      let span = xR - xL;
+      if (span <= 0 && m2 > 1) {
+        const step = Math.abs(
+          Number(xPx[Math.min(run.r + 1, m2 - 1)]) - Number(xPx[Math.max(run.l - 1, 0)])
+        );
+        span = isFinite(step) ? step : 0;
+      }
+      if (span < minWidth || span < rect.width * 0.35) continue;
+      const text = rect.width <= span ? name : graphics.getTextBasedOnMaxWidth({
+        text: name,
+        maxWidth: span,
+        fontSize: `${px}px`,
+        fontFamily
+      });
+      if (!text || text === "...") continue;
+      const drawnWidth = text === name ? rect.width : rect.width * (text.length / name.length);
+      const centres = [xL + span / 2];
+      if (span > drawnWidth * 2.2) {
+        centres.push(xL + drawnWidth / 2 + 2, xR - drawnWidth / 2 - 2);
+      }
+      for (const cx of centres) {
+        let anchor = run.l;
+        let bestDx = Infinity;
+        for (let j = run.l; j <= run.r; j++) {
+          const dx = Math.abs(Number(xPx[j]) - cx);
+          if (dx < bestDx) {
+            bestDx = dx;
+            anchor = j;
+          }
+        }
+        candidates.push({
+          x: cx,
+          y: (this._yPx(lo[anchor]) + this._yPx(hi[anchor])) / 2,
+          text,
+          color: this._contrastOn(k),
+          fontSize: `${px}px`,
+          width: drawnWidth,
+          height: rect.height
+        });
+      }
+      if (candidates.length >= 6) break;
+    }
+    return candidates.length ? { k, weight: peakT, candidates } : null;
+  }
+  /**
+   * The contiguous stretches where the band clears `needed`, thickest first.
+   * @param {number[]} thickness
+   * @param {number} needed
+   * @param {number} m
+   * @returns {Array<{l: number, r: number, maxT: number}>}
+   */
+  _runs(thickness, needed, m2) {
+    const runs = [];
+    let j = 0;
+    while (j < m2) {
+      if (thickness[j] < needed) {
+        j++;
+        continue;
+      }
+      let end = j;
+      let maxT = thickness[j];
+      while (end + 1 < m2 && thickness[end + 1] >= needed) {
+        end++;
+        if (thickness[end] > maxT) maxT = thickness[end];
+      }
+      runs.push({ l: j, r: end, maxT });
+      j = end + 1;
+    }
+    return runs.sort((a, b2) => b2.maxT - a.maxT);
+  }
+  /**
+   * The widest qualifying stretch in px, used to decide whether the name has to
+   * be stepped down a size before any placement is attempted.
+   * @param {number[]} thickness
+   * @param {any[]} xPx
+   * @param {number} needed
+   * @param {number} m
+   * @returns {{width: number}|null}
+   */
+  _widestRun(thickness, xPx, needed, m2) {
+    let best = -1;
+    for (const run of this._runs(thickness, needed, m2)) {
+      const span = Number(xPx[run.r]) - Number(xPx[run.l]);
+      if (isFinite(span) && span > best) best = span;
+    }
+    return best >= 0 ? { width: best } : null;
+  }
+  /**
+   * Drop the labels that would land on top of one another.
+   *
+   * Each band picks its own widest stretch with no idea what its neighbours
+   * picked, and on a dense chart two of them routinely want the same patch of
+   * screen. Two names overlapping is worse than one name missing: the reader
+   * can no longer tell which band EITHER belongs to, and the tooltip still
+   * names every band on hover.
+   *
+   * Ranked by the BAND's own thickness, not by the label's area: sorting on
+   * area hands priority to whoever has the longest name, so a sliver called
+   * "Willow Warbler" outranks a dominant band called "Robin". Thickest band
+   * first means the name that survives a collision is the one on the band
+   * carrying more, which is also the one the reader is most likely to want.
+   *
+   * @param {any[]} labels
+   * @returns {any[]}
+   */
+  _deconflict(labels) {
+    const byImportance = labels.slice().sort((a, b2) => b2.weight - a.weight);
+    const kept = [];
+    const free = (box) => !kept.some(
+      (o) => box.left < o.box.right && box.right > o.box.left && box.top < o.box.bottom && box.bottom > o.box.top
+    );
+    for (const label of byImportance) {
+      for (const c of label.candidates) {
+        const box = {
+          left: c.x - c.width / 2,
+          right: c.x + c.width / 2,
+          top: c.y - c.height / 2,
+          bottom: c.y + c.height / 2
+        };
+        if (free(box)) {
+          kept.push(__spreadProps(__spreadValues({ k: label.k }, c), { box }));
+          break;
+        }
+      }
+    }
+    return kept;
+  }
+  /** The bounds `fontSize: 'auto'` scales between. */
+  _autoBounds() {
+    var _a, _b;
+    const cfg = ((_b = (_a = this.w.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.labels) || {};
+    return {
+      min: cfg.minFontSize == null ? 9 : cfg.minFontSize,
+      max: cfg.maxFontSize == null ? 30 : cfg.maxFontSize
+    };
+  }
+  /**
+   * The px size band `k`'s name is drawn at, given how thick that band gets.
+   *
+   * `auto` is the default because it is the convention of the form, and because
+   * the alternative actively misleads: a streamgraph's whole claim is that
+   * thickness is quantity, and a fixed size prints that claim in the same voice
+   * for a band carrying half the total and a band carrying a rounding error.
+   *
+   * A literal (`'12px'`) opts out and every name is drawn at it.
+   *
+   * @param {string} fontSize the configured value, or 'auto'
+   * @param {number} peakT the band's greatest thickness, in px
+   * @returns {number} px
+   */
+  _resolveFontSize(fontSize, peakT) {
+    if (fontSize !== "auto") {
+      const parsed = parseFloat(fontSize);
+      return isFinite(parsed) && parsed > 0 ? parsed : 12;
+    }
+    const { min, max } = this._autoBounds();
+    return Math.max(min, Math.min(max, Math.round(peakT * 0.36)));
+  }
+  /**
+   * Black or white, whichever reads on band `k`'s own fill.
+   *
+   * A streamgraph's palette runs from pale yellows to near-black slates in the
+   * same chart, so one fixed label colour is unreadable on some band every
+   * time.
+   *
+   * @param {number} k
+   * @returns {string}
+   */
+  _contrastOn(k) {
+    var _a;
+    const w2 = this.w;
+    const fill = (_a = w2.globals.colors) == null ? void 0 : _a[k];
+    const rgb = typeof fill === "string" ? Utils.parseHex(fill) : null;
+    if (!rgb) return w2.config.chart.foreColor;
+    return Utils.relativeLuminance(rgb) > 0.45 ? "#000000" : "#ffffff";
+  }
+  /** Drop the label layer, if one is present. */
+  removeLabels() {
+    const host = this.w.dom.elGraphical;
+    const prev = host && host.node.querySelector(".apexcharts-streamgraph-labels");
+    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+  }
+  // ── Hover ────────────────────────────────────────────────────────────────
+  /**
+   * Watch the plot for the band under the cursor.
+   *
+   * Bound to the svg rather than to the band paths: with `tooltip.intersect`
+   * off the pointer is not required to be over a path at all, and hit-testing
+   * from the geometry keeps the outline agreeing with the tooltip (both resolve
+   * to the nearest column) whether or not a tooltip is even switched on.
+   *
+   * The flag lives on the node, so a full render (which builds a new svg) binds
+   * again and the fast update path (which keeps the old one) does not stack a
+   * second listener per update.
+   */
+  bindHover() {
+    const w2 = this.w;
+    if (!Environment.isBrowser()) return;
+    if (this._hoverCfg().show === false) return;
+    const svg = w2.dom.baseEl && w2.dom.baseEl.querySelector(".apexcharts-svg");
+    if (!svg || svg.__apexStreamHover) return;
+    svg.__apexStreamHover = true;
+    svg.addEventListener("mousemove", (e) => {
+      if (!this.isActive() || !this.w.streamgraphData) return;
+      this._dim(this._bandAt(e));
+    });
+    svg.addEventListener("mouseleave", () => {
+      this._dim(-1);
+    });
+  }
+  /** @returns {Record<string, any>} */
+  _hoverCfg() {
+    var _a, _b;
+    return ((_b = (_a = this.w.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.hover) || {};
+  }
+  /**
+   * Which band is under the pointer, or -1.
+   *
+   * x goes through `AxisMapping.screenXToPlotPx`, the one screen-to-plot
+   * mapping, so a chart inside a CSS-zoomed container hit-tests where it looks.
+   * y is measured off the same svg rect with the same zoom factor.
+   *
+   * @param {MouseEvent} e
+   * @returns {number}
+   */
+  _bandAt(e) {
+    const w2 = this.w;
+    const d = w2.streamgraphData;
+    if (!d || !d.order.length) return -1;
+    const svg = w2.dom.baseEl && w2.dom.baseEl.querySelector(".apexcharts-svg");
+    if (!svg) return -1;
+    const rect = svg.getBoundingClientRect();
+    const zoom = w2.globals.svgWidth ? rect.width / w2.globals.svgWidth : 1;
+    const px = AxisMapping.screenXToPlotPx(w2, e.clientX);
+    const py = (e.clientY - rect.top) / (zoom || 1) - w2.layout.translateY;
+    if (px < 0 || px > w2.layout.gridWidth) return -1;
+    if (py < 0 || py > w2.layout.gridHeight) return -1;
+    const xs = w2.globals.seriesXvalues[d.order[0]];
+    if (!Array.isArray(xs) || !xs.length) return -1;
+    const captured = w2.interact ? w2.interact.capturedDataPointIndex : -1;
+    let j = -1;
+    if (captured >= 0 && captured < xs.length) {
+      j = captured;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < xs.length; i++) {
+        const dx = Math.abs(Number(xs[i]) - px);
+        if (dx < best) {
+          best = dx;
+          j = i;
+        }
+      }
+    }
+    if (j < 0) return -1;
+    let nearest = -1;
+    let gap = Infinity;
+    for (let i = 0; i < d.order.length; i++) {
+      const k = d.order[i];
+      const a = this._yPx(d.highs[k][j]);
+      const b2 = this._yPx(d.lows[k][j]);
+      const top = Math.min(a, b2);
+      const bottom = Math.max(a, b2);
+      if (py >= top && py <= bottom) return k;
+      const dist = py < top ? top - py : py - bottom;
+      if (dist < gap) {
+        gap = dist;
+        nearest = k;
+      }
+    }
+    return nearest;
+  }
+  /**
+   * Bring band `k` forward by dropping every other band's opacity, or clear the
+   * effect when `k` is -1.
+   *
+   * The bands touch edge to edge, so there is no gap for a treatment to live
+   * in: anything drawn ON the hovered band either spends half its width on the
+   * neighbour (a centred stroke) or falls entirely onto both of them (a drop
+   * shadow). Taking the OTHERS down instead is the one move that needs no
+   * empty space to work in, and it leaves the hovered band's colour exactly as
+   * it was, which matters on a chart where colour is the only thing tying a
+   * band to its name.
+   *
+   * A dimmed band's label is RECOLOURED rather than faded with it. Each label
+   * takes black or white by the contrast of the band it sits on at full
+   * strength, so fading the band alone leaves a white name on a band that has
+   * gone pale — the name does not read as de-emphasised, it reads as broken.
+   * Dropped to the chart's own foreColor instead, it stays legible on every
+   * faded band while clearly no longer being the one in focus.
+   *
+   * @param {number} k
+   */
+  _dim(k) {
+    const w2 = this.w;
+    if (k === this._hovered) return;
+    this._hovered = k;
+    const cfg = this._hoverCfg();
+    const dimmed = cfg.opacity == null ? 0.35 : cfg.opacity;
+    const bands = w2.dom.baseEl.querySelectorAll(".apexcharts-series");
+    const labels = w2.dom.baseEl.querySelectorAll(
+      ".apexcharts-streamgraph-label"
+    );
+    const focused = (el, index) => k < 0 || index === k;
+    for (let i = 0; i < bands.length; i++) {
+      const el = (
+        /** @type {any} */
+        bands[i]
+      );
+      el.style.transition = "opacity .15s ease";
+      el.style.opacity = focused(el, Number(el.getAttribute("data:realIndex"))) ? "" : String(dimmed);
+    }
+    for (let i = 0; i < labels.length; i++) {
+      const el = (
+        /** @type {any} */
+        labels[i]
+      );
+      el.style.transition = "opacity .15s ease, fill .15s ease";
+      if (focused(el, Number(el.getAttribute("data:realIndex")))) {
+        this._restoreLabel(el);
+      } else {
+        if (!el.getAttribute("data:fill")) {
+          el.setAttribute("data:fill", el.getAttribute("fill") || "");
+        }
+        el.setAttribute("fill", w2.config.chart.foreColor);
+        el.style.opacity = "0.65";
+      }
+    }
+  }
+  /**
+   * Give one label its own colour back.
+   * @param {any} el
+   */
+  _restoreLabel(el) {
+    const orig = el.getAttribute("data:fill");
+    if (orig) el.setAttribute("fill", orig);
+    el.style.opacity = "";
+  }
+  /** Put every band and label back the way it was drawn. */
+  clearDim() {
+    this._hovered = -1;
+    const w2 = this.w;
+    if (!w2.dom.baseEl) return;
+    const bands = w2.dom.baseEl.querySelectorAll(".apexcharts-series");
+    for (let i = 0; i < bands.length; i++) {
+      const el = (
+        /** @type {any} */
+        bands[i]
+      );
+      el.style.opacity = "";
+    }
+    const labels = w2.dom.baseEl.querySelectorAll(
+      ".apexcharts-streamgraph-label"
+    );
+    for (let i = 0; i < labels.length; i++) {
+      this._restoreLabel(
+        /** @type {any} */
+        labels[i]
+      );
+    }
+  }
+  /**
+   * Labels describe where the bands END UP, so drawn at full opacity while the
+   * bands are still growing they sit over the wrong shapes. Held hidden and
+   * faded in with the rest of the delayed chrome once the bands land.
+   *
+   * When there is no animation to wait for, `showDelayedElements` has already
+   * run for this render, so registering would leave the layer hidden for good.
+   *
+   * @param {any} group
+   */
+  holdUntilBandsLand(group) {
+    const w2 = this.w;
+    const animate = Environment.isBrowser() && w2.globals.shouldAnimate && !w2.globals.animationEnded;
+    if (!animate) return;
+    group.node.classList.add("apexcharts-element-hidden");
+    w2.globals.delayedElements.push({ el: group.node, holdUntilComplete: true });
+  }
+}
+const OFFSETS = ["wiggle", "silhouette", "zero", "expand"];
+const ORDERS = ["inside-out", "inverse", "none"];
+function readDatum(d, j, categories) {
+  const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
+  if (d == null) return { x: fallbackX, y: null, rest: {} };
+  if (Array.isArray(d)) {
+    return { x: d[0] !== void 0 ? d[0] : fallbackX, y: d[1], rest: {} };
+  }
+  if (typeof d === "object") {
+    return { x: d.x !== void 0 ? d.x : fallbackX, y: d.y, rest: d };
+  }
+  return { x: fallbackX, y: d, rest: {} };
+}
+function isPairShaped(data) {
+  for (let j = 0; j < data.length; j++) {
+    const d = data[j];
+    const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+    if (Array.isArray(y) && y.length === 2) return true;
+  }
+  return false;
+}
+function joinOnX(raw, categories) {
+  var _a;
+  const xs = [];
+  const rows = [];
+  const seen = /* @__PURE__ */ new Map();
+  const grids = [];
+  for (let k = 0; k < raw.length; k++) {
+    const data = Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
+    const grid = /* @__PURE__ */ new Map();
+    for (let j = 0; j < data.length; j++) {
+      const { x, y, rest } = readDatum(data[j], j, categories);
+      const key = x instanceof Date ? x.getTime() : x;
+      if (!seen.has(key)) {
+        seen.set(key, xs.length);
+        xs.push(x);
+        rows.push(__spreadValues({}, rest));
+      }
+      grid.set(
+        /** @type {number} */
+        seen.get(key),
+        Utils.parseNumber(y)
+      );
+    }
+    grids.push(grid);
+  }
+  return { xs, rows, grids };
+}
+function sortColumns(xs) {
+  const idx = [];
+  for (let j = 0; j < xs.length; j++) {
+    const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
+    if (typeof x !== "number" || !isFinite(x)) return null;
+    idx.push(j);
+  }
+  const keyed = idx.map((j) => ({
+    j,
+    v: xs[j] instanceof Date ? xs[j].getTime() : xs[j]
+  }));
+  keyed.sort((a, b2) => a.v - b2.v);
+  const perm = keyed.map((e) => e.j);
+  for (let j = 0; j < perm.length; j++) {
+    if (perm[j] !== j) return perm;
+  }
+  return null;
+}
+function orderBands(mode, visible, values) {
+  if (mode === "none") return visible.slice();
+  if (mode === "inverse") return visible.slice().reverse();
+  const sums = {};
+  const peaks = {};
+  for (let i = 0; i < visible.length; i++) {
+    const k = visible[i];
+    const v2 = values[k];
+    let sum = 0;
+    let best = -Infinity;
+    let bestJ = 0;
+    for (let j = 0; j < v2.length; j++) {
+      sum += v2[j];
+      if (v2[j] > best) {
+        best = v2[j];
+        bestJ = j;
+      }
+    }
+    sums[k] = sum;
+    peaks[k] = bestJ;
+  }
+  const byPeak = visible.slice().sort((a, b2) => peaks[a] - peaks[b2] || a - b2);
+  let top = 0;
+  let bottom = 0;
+  const tops = [];
+  const bottoms = [];
+  for (let i = 0; i < byPeak.length; i++) {
+    const k = byPeak[i];
+    if (top < bottom) {
+      top += sums[k];
+      tops.push(k);
+    } else {
+      bottom += sums[k];
+      bottoms.push(k);
+    }
+  }
+  return bottoms.reverse().concat(tops);
+}
+function baselineFor(mode, order, stack, m2) {
+  const base = new Array(m2).fill(0);
+  if (m2 === 0 || order.length === 0) return base;
+  if (mode === "zero" || mode === "expand") return base;
+  if (mode === "silhouette") {
+    for (let j = 0; j < m2; j++) {
+      let total = 0;
+      for (let i = 0; i < order.length; i++) total += stack[order[i]][j];
+      base[j] = -total / 2;
+    }
+    return base;
+  }
+  let y = 0;
+  for (let j = 1; j < m2; j++) {
+    let s1 = 0;
+    let s2 = 0;
+    for (let i = 0; i < order.length; i++) {
+      const vi = stack[order[i]];
+      const now = vi[j];
+      let moved = (now - vi[j - 1]) / 2;
+      for (let k = 0; k < i; k++) {
+        const vk = stack[order[k]];
+        moved += vk[j] - vk[j - 1];
+      }
+      s1 += now;
+      s2 += moved * now;
+    }
+    if (s1) y -= s2 / s1;
+    base[j] = y;
+  }
+  return base;
+}
+function streamgraphTransform(ser, w2) {
+  var _a, _b;
+  const cnf = w2.config;
+  const gl = w2.globals;
+  if (!Array.isArray(ser)) return ser;
+  if (!gl.streamgraphRawSeries) {
+    gl.streamgraphRawSeries = ser.map((s) => __spreadProps(__spreadValues({}, s), {
+      data: Array.isArray(s == null ? void 0 : s.data) ? s.data.slice() : s == null ? void 0 : s.data
+    }));
+  }
+  const raw = gl.streamgraphRawSeries;
+  if (raw.some(
+    (s) => isPairShaped(Array.isArray(s == null ? void 0 : s.data) ? s.data : [])
+  )) {
+    w2.streamgraphData = null;
+    return ser;
+  }
+  const opts = ((_a = cnf.plotOptions) == null ? void 0 : _a.streamgraph) || {};
+  const offset = OFFSETS.indexOf(opts.offset) !== -1 ? opts.offset : "wiggle";
+  const order = ORDERS.indexOf(opts.order) !== -1 ? opts.order : "inside-out";
+  const categories = (_b = cnf.xaxis) == null ? void 0 : _b.categories;
+  const collapsed = gl.collapsedSeriesIndices || [];
+  const { xs, rows, grids } = joinOnX(raw, categories);
+  const perm = sortColumns(xs);
+  const columns = perm ? perm.map((j) => xs[j]) : xs;
+  const columnRows = perm ? perm.map((j) => rows[j]) : rows;
+  const m2 = columns.length;
+  let sawNegative = false;
+  const values = [];
+  for (let k = 0; k < raw.length; k++) {
+    const row = new Array(m2);
+    for (let j = 0; j < m2; j++) {
+      const src = grids[k].get(perm ? perm[j] : j);
+      let v2 = src === void 0 || src === null ? 0 : Number(src);
+      if (!isFinite(v2)) v2 = 0;
+      if (v2 < 0) {
+        sawNegative = true;
+        v2 = 0;
+      }
+      row[j] = v2;
+    }
+    values.push(row);
+  }
+  if (sawNegative && !gl.streamgraphWarnedNegative) {
+    gl.streamgraphWarnedNegative = true;
+    console.warn(
+      'ApexCharts: a streamgraph stacks parts of a whole, so negative values have no band to draw and were treated as 0. Use a stacked area (chart.type: "area", chart.stacked: true) for data that goes below zero.'
+    );
+  }
+  const visible = [];
+  for (let k = 0; k < raw.length; k++) {
+    if (collapsed.indexOf(k) === -1) visible.push(k);
+  }
+  let stack = values;
+  if (offset === "expand") {
+    stack = values.map((row) => row.slice());
+    for (let j = 0; j < m2; j++) {
+      let total = 0;
+      for (let i = 0; i < visible.length; i++) total += stack[visible[i]][j];
+      if (total) {
+        for (let i = 0; i < visible.length; i++) stack[visible[i]][j] /= total;
+      }
+    }
+  }
+  const bandOrder = orderBands(order, visible, stack);
+  const base = baselineFor(offset, bandOrder, stack, m2);
+  const lows = raw.map(() => null);
+  const highs = raw.map(() => null);
+  for (let i = 0; i < bandOrder.length; i++) {
+    lows[bandOrder[i]] = new Array(m2);
+    highs[bandOrder[i]] = new Array(m2);
+  }
+  for (let j = 0; j < m2; j++) {
+    let acc = base[j];
+    for (let i = 0; i < bandOrder.length; i++) {
+      const k = bandOrder[i];
+      const bandLo = (
+        /** @type {number[]} */
+        lows[k]
+      );
+      const bandHi = (
+        /** @type {number[]} */
+        highs[k]
+      );
+      bandLo[j] = acc;
+      acc += stack[k][j];
+      bandHi[j] = acc;
+    }
+  }
+  w2.streamgraphData = {
+    names: raw.map(
+      (s, k) => {
+        var _a2;
+        return (_a2 = s == null ? void 0 : s.name) != null ? _a2 : `Series ${k + 1}`;
+      }
+    ),
+    xs: columns,
+    values,
+    lows,
+    highs,
+    order: bandOrder,
+    offset,
+    hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+  };
+  return raw.map((s, k) => {
+    const lo = lows[k];
+    const hi = highs[k];
+    if (!lo || !hi) return __spreadProps(__spreadValues({}, s), { data: [] });
+    const data = new Array(m2);
+    for (let j = 0; j < m2; j++) {
+      data[j] = __spreadProps(__spreadValues({}, columnRows[j]), { x: columns[j], y: [lo[j], hi[j]] });
+    }
+    return __spreadProps(__spreadValues({}, s), { data });
+  });
+}
+registerSeriesTransform("streamgraph", streamgraphTransform);
+_core__default.registerFeatures({ streamgraph: StreamLabels });
 const resolveDataLabelOffset = (value, w2, seriesIndex, dataPointIndex) => {
   if (typeof value !== "function") return value;
   const resolved = value({
@@ -11456,6 +12651,7 @@ class BarDataLabels {
    * @return {object} dataLabels node-element which you can append later
    **/
   handleBarDataLabels(opts) {
+    var _a, _b;
     const {
       x,
       y,
@@ -11474,6 +12670,8 @@ class BarDataLabels {
     } = opts;
     const w2 = this.w;
     const graphics = new Graphics(this.barCtx.w);
+    const steps = w2.waterfallData && w2.waterfallData.values;
+    const waterfallStep = steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
     const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
     let bcx;
     let bcy;
@@ -11520,7 +12718,7 @@ class BarDataLabels {
       height: 0
     };
     if (w2.config.dataLabels.enabled) {
-      const yLabel = w2.seriesData.series[realIndex][j];
+      const yLabel = waterfallStep !== null ? waterfallStep : w2.seriesData.series[realIndex][j];
       textRects = graphics.getTextRects(
         w2.config.dataLabels.formatter ? w2.config.dataLabels.formatter(yLabel, __spreadProps(__spreadValues({}, w2), {
           seriesIndex: realIndex,
@@ -11560,10 +12758,16 @@ class BarDataLabels {
     } else {
       dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
     }
+    if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
+      const box = (_b = (_a = w2.waterfallData.geometry) == null ? void 0 : _a[realIndex]) == null ? void 0 : _b[j];
+      if (box && box.horizontal) {
+        dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
+      }
+    }
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? series[realIndex][j] : w2.seriesData.series[realIndex][j],
+      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? series[realIndex][j] : w2.seriesData.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
@@ -12162,6 +13366,100 @@ let Helpers$1 = class Helpers3 {
     }
   }
   /**
+   * The x-span that one bar slot covers, in DATA units, on a numeric or
+   * datetime axis. Returns 0 when it cannot be resolved, which leaves the
+   * caller on its category-style fallback.
+   *
+   * `w.globals.minXDiff` cannot serve here on its own, for two reasons:
+   *
+   *  - It is the smallest gap WITHIN a series, minimised over series, so it
+   *    never sees the gaps BETWEEN two series' x values. Series A on the 1st
+   *    and the 4th plus series B on the 2nd gives minXDiff = 3 days while the
+   *    axis really has a 1 day gap, and every bar is drawn 3 days wide, so
+   *    neighbours overlap (#4885).
+   *  - With one data point there are no gaps to measure at all and it is set
+   *    to a 0.5 sentinel, so the slot fell back to the whole grid width and a
+   *    single bar covered most of the chart. Range._handleSingleDataPoint pads
+   *    the axis by ±2 units around a lone point (2 days for datetime, 2 for
+   *    numeric), so one unit is a quarter of the resulting span.
+   *
+   * Cached: the merge below is O(points × series) and every series in a draw
+   * pass asks the same question.
+   *
+   * @returns {number}
+   */
+  barSlotXSpan() {
+    const w2 = this.w;
+    if (this._slotXSpan !== void 0) return this._slotXSpan;
+    let slot = 0;
+    if (w2.globals.dataPoints <= 1) {
+      const span = w2.globals.maxX - w2.globals.minX;
+      slot = span > 0 ? span / 4 : 0;
+    } else {
+      slot = this._unionMinXGap();
+      if (!(slot > 0) || !isFinite(slot)) {
+        const min = w2.globals.minXDiff;
+        slot = min > 0 && isFinite(min) && min !== 0.5 ? min : 0;
+      }
+    }
+    this._slotXSpan = slot;
+    return slot;
+  }
+  /**
+   * Smallest positive gap between neighbouring x values once every series is
+   * merged onto one axis. A k-way merge over the series arrays, which are
+   * already sorted in every ordinary case; an unsorted one can only make the
+   * answer smaller, i.e. the bars narrower, never overlapping.
+   *
+   * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
+   * them would widen every bar the moment someone hid the tightest-spaced
+   * series from the legend, so bar geometry would depend on legend state.
+   *
+   * @returns {number}
+   */
+  _unionMinXGap() {
+    const w2 = this.w;
+    const seriesX = w2.seriesData.seriesX || [];
+    const arrays = [];
+    for (let i = 0; i < seriesX.length; i++) {
+      const xs = seriesX[i];
+      if (Array.isArray(xs) && xs.length > 0) arrays.push(xs);
+    }
+    if (!arrays.length) return 0;
+    const cursor = new Array(arrays.length).fill(0);
+    let prev = NaN;
+    let min = Infinity;
+    for (; ; ) {
+      let next = Infinity;
+      let from = -1;
+      for (let k = 0; k < arrays.length; k++) {
+        const xs = arrays[k];
+        while (cursor[k] < xs.length && typeof xs[cursor[k]] !== "number") {
+          cursor[k]++;
+        }
+        if (cursor[k] >= xs.length) continue;
+        const v2 = xs[cursor[k]];
+        if (v2 !== v2) {
+          cursor[k]++;
+          k--;
+          continue;
+        }
+        if (v2 < next) {
+          next = v2;
+          from = k;
+        }
+      }
+      if (from === -1) break;
+      cursor[from]++;
+      if (prev === prev) {
+        const d = next - prev;
+        if (d > 0 && d < min) min = d;
+      }
+      prev = next;
+    }
+    return isFinite(min) ? min : 0;
+  }
+  /**
    * @param {number} realIndex
    */
   initialPositions(realIndex) {
@@ -12199,8 +13497,9 @@ let Helpers$1 = class Helpers3 {
       barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
       if (w2.axisFlags.isXNumeric) {
         const xRatio = this.barCtx.xRatio;
-        if (w2.globals.minXDiff && w2.globals.minXDiff !== 0.5 && w2.globals.minXDiff / xRatio > 0) {
-          xDivision = w2.globals.minXDiff / xRatio;
+        const slotXSpan = this.barSlotXSpan();
+        if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
+          xDivision = slotXSpan / xRatio;
         }
         barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
         if (barWidth < 1) {
@@ -12273,7 +13572,7 @@ let Helpers$1 = class Helpers3 {
    * @param {number} realIndex
    */
   getPathFillColor(series, i, j, realIndex) {
-    var _a, _b, _c, _d;
+    var _a;
     const w2 = this.w;
     const fill = new Fill(this.barCtx.w);
     let fillColor = null;
@@ -12288,17 +13587,72 @@ let Helpers$1 = class Helpers3 {
         }
       });
     }
+    const connectorFill = this.getDumbbellConnectorFill(i, j);
+    const datumFill = connectorFill || ((_a = w2.config.series[i].data[j]) == null ? void 0 : _a.fill);
+    const connector = this.barCtx.barOptions.isDumbbell ? w2.config.plotOptions.bar.dumbbell.connector : null;
+    let connectorOpacity;
+    if (connector && connector.color) {
+      fillColor = connector.color;
+      connectorOpacity = connector.opacity;
+    }
     const pathFill = fill.fillPath({
       seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
       dataPointIndex: j,
       color: fillColor,
+      opacity: connectorOpacity,
       value: series[i][j],
-      fillConfig: (_a = w2.config.series[i].data[j]) == null ? void 0 : _a.fill,
-      fillType: ((_c = (_b = w2.config.series[i].data[j]) == null ? void 0 : _b.fill) == null ? void 0 : _c.type) ? (_d = w2.config.series[i].data[j]) == null ? void 0 : _d.fill.type : Array.isArray(w2.config.fill.type) ? w2.config.fill.type[realIndex] : w2.config.fill.type
+      fillConfig: datumFill,
+      fillType: (datumFill == null ? void 0 : datumFill.type) ? datumFill.type : Array.isArray(w2.config.fill.type) ? w2.config.fill.type[realIndex] : w2.config.fill.type
     });
     return {
       color: pathFill,
       useRangeColor
+    };
+  }
+  /**
+   * The connector's fill for one dumbbell row, or null to leave the fill alone.
+   *
+   * Returns a gradient running from the colour of the measure at the low end to
+   * the colour of the measure at the high end, which is the pair of dots the
+   * connector is between. `w.dumbbellData.order` is what makes it per-row: the
+   * merged interval is emitted low-to-high and no longer knows which measure
+   * was which, so a chart-wide gradient would point the wrong way on any row
+   * where the two cross.
+   *
+   * A user-set `connector.color` means a plain connector, and the `[lo, hi]`
+   * form names no measures to take colours from; both leave the fill alone.
+   *
+   * @param {number} i @param {number} j
+   * @returns {Record<string, any>|null}
+   */
+  getDumbbellConnectorFill(i, j) {
+    const w2 = this.w;
+    if (!this.barCtx.barOptions.isDumbbell) return null;
+    const dumbbell = w2.dumbbellData;
+    if (!dumbbell || dumbbell.form !== "series") return null;
+    const connector = w2.config.plotOptions.bar.dumbbell.connector;
+    if (connector.color) return null;
+    const order = dumbbell.order[j];
+    if (!order) return null;
+    const from = w2.globals.colors[order[0]];
+    const to = w2.globals.colors[order[1]];
+    if (!from || !to) return null;
+    return {
+      type: "gradient",
+      gradient: {
+        // Along the connector: the value axis is x when the rows are
+        // horizontal, y when they are columns.
+        type: this.barCtx.isHorizontal ? "horizontal" : "vertical",
+        gradientFrom: from,
+        gradientTo: to,
+        opacityFrom: connector.opacity,
+        opacityTo: connector.opacity,
+        stops: [0, 100],
+        // A column's y runs down the screen, so its low end is at the BOTTOM
+        // and the gradient has to be read the other way round to still start
+        // at the low end's colour.
+        inverseColors: !this.barCtx.isHorizontal
+      }
     };
   }
   /**
@@ -12509,7 +13863,13 @@ let Helpers$1 = class Helpers3 {
     }
     return {
       pathTo,
-      pathFrom
+      pathFrom,
+      // The box the path was built from, AFTER the stroke centering and the
+      // anti-exponential nudge above. Anything that has to line up with a drawn
+      // bar (the waterfall connectors) reads this rather than recomputing the
+      // edges, which is how it stays exact when a stroke width is set.
+      // `y1` is the lower value's edge and `y2` the upper one's.
+      drawnBox: { x1, x2, y1, y2 }
     };
   }
   /**
@@ -12742,7 +14102,10 @@ let Helpers$1 = class Helpers3 {
     }
     return {
       pathTo,
-      pathFrom
+      pathFrom,
+      // See getColumnPaths. Here `x1` is the start value's edge and `x2` the
+      // end value's, because a horizontal bar's two ends arrive unsorted.
+      drawnBox: { x1, x2, y1, y2 }
     };
   }
   /**
@@ -12790,21 +14153,104 @@ let Helpers$1 = class Helpers3 {
         pushGoal(goal.value, goal);
       });
     }
-    if (this.barCtx.barOptions.isDumbbell && w2.rangeData.seriesRange.length) {
-      const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w2.globals.colors;
-      const commonAttrs = {
-        strokeHeight: type === "x" ? 0 : w2.globals.markers.size[i],
-        strokeWidth: type === "x" ? w2.globals.markers.size[i] : 0,
-        strokeDashArray: 0,
-        strokeLineCap: "round",
-        strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i]
-      };
-      pushGoal(w2.rangeData.seriesRangeStart[i][j], commonAttrs);
-      pushGoal(w2.rangeData.seriesRangeEnd[i][j], __spreadProps(__spreadValues({}, commonAttrs), {
-        strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i]
-      }));
+    if (this.barCtx.barOptions.isDumbbell) {
+      const ends = this.getDumbbellEnds(i, j);
+      if (ends.length) {
+        const commonAttrs = {
+          strokeHeight: type === "x" ? 0 : w2.globals.markers.size[i],
+          strokeWidth: type === "x" ? w2.globals.markers.size[i] : 0,
+          strokeDashArray: 0,
+          strokeLineCap: "round"
+        };
+        let lo = 0;
+        let hi = 0;
+        for (let e = 1; e < ends.length; e++) {
+          if (ends[e].value < ends[lo].value) lo = e;
+          if (ends[e].value > ends[hi].value) hi = e;
+        }
+        const labelsCnf = w2.config.plotOptions.bar.dumbbell.dataLabels;
+        ends.forEach((end, e) => {
+          const attrs = __spreadProps(__spreadValues({}, commonAttrs), { strokeColor: end.color });
+          if (labelsCnf.enabled && (e === lo || e === hi)) {
+            attrs.label = {
+              text: this.getDumbbellLabelText(end.value, i, j, end.index),
+              color: labelsCnf.colorFromMarker ? end.color : Array.isArray(labelsCnf.style.colors) ? labelsCnf.style.colors[end.index] || labelsCnf.style.colors[0] : labelsCnf.style.colors,
+              // Away from the connector: the low end reads to its left (below,
+              // on a column), the high end to its right. A lone endpoint has no
+              // connector to be clear of, so it takes the outward side.
+              outward: e === lo && lo !== hi ? -1 : 1
+            };
+          }
+          pushGoal(end.value, attrs);
+        });
+      }
     }
     return goals;
+  }
+  /**
+   * The marked ends of one dumbbell row: a value and the colour that says which
+   * measure it belongs to.
+   *
+   * `chart.type: 'dumbbell'` merged N measures into one interval and left the
+   * endpoint identities on `w.dumbbellData`, so an end is coloured after the
+   * SERIES it came from. A row where the two measures cross therefore keeps its
+   * colours, which the interval alone could not say: it is emitted low-to-high
+   * and has forgotten which end was which.
+   *
+   * The `y: [lo, hi]` form names no measures, so it keeps the positional
+   * `dumbbellColors` pathway: colour 0 for the start, colour 1 for the end.
+   *
+   * @param {number} i @param {number} j
+   * @returns {Array<{ value: number, color: string, index: number }>}
+   */
+  getDumbbellEnds(i, j) {
+    const w2 = this.w;
+    const ends = [];
+    const dumbbell = w2.dumbbellData;
+    if (dumbbell && dumbbell.form === "series") {
+      const values = dumbbell.values[j] || [];
+      for (let k = 0; k < values.length; k++) {
+        const v2 = values[k];
+        if (v2 === null || dumbbell.hidden.indexOf(k) !== -1) continue;
+        ends.push({ value: v2, color: w2.globals.colors[k], index: k });
+      }
+      return ends;
+    }
+    if (!w2.rangeData.seriesRange.length) return ends;
+    const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w2.globals.colors;
+    const pick = (n) => Array.isArray(colors[i]) ? colors[i][n] : colors[i];
+    return [
+      { value: w2.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
+      { value: w2.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 }
+    ];
+  }
+  /**
+   * The text for one end label.
+   *
+   * Deliberately NOT `dataLabels.formatter`: on a range bar that one reads out
+   * `end - start`, so an endpoint run through it would print the gap twice and
+   * the values never. The value-axis formatter is the one that already knows
+   * these numbers are percentages, or dollars, or dates.
+   *
+   * @param {number} value @param {number} i @param {number} j @param {number} k
+   * @returns {string}
+   */
+  getDumbbellLabelText(value, i, j, k) {
+    const w2 = this.w;
+    const cnf = w2.config.plotOptions.bar.dumbbell.dataLabels;
+    if (typeof cnf.formatter === "function") {
+      return cnf.formatter(value, {
+        seriesIndex: i,
+        dataPointIndex: j,
+        endpointIndex: k,
+        w: w2
+      });
+    }
+    const axisFormatter = this.barCtx.isHorizontal ? w2.formatters.xLabelFormatter : w2.formatters.yLabelFormatters[0];
+    if (typeof axisFormatter === "function") {
+      return axisFormatter(value, j, w2);
+    }
+    return String(value);
   }
   /** @param {{barXPosition: any, barYPosition: any, goalX: any, goalY: any, barWidth: any, barHeight: any}} opts */
   drawGoalLine({
@@ -12821,7 +14267,7 @@ let Helpers$1 = class Helpers3 {
     }
     const graphics = new Graphics(this.barCtx.w);
     const lineGroup = graphics.group({
-      className: "apexcharts-bar-goals-groups"
+      class: "apexcharts-bar-goals-groups"
     });
     lineGroup.node.classList.add("apexcharts-element-hidden");
     this.barCtx.w.globals.delayedElements.push({
@@ -12849,6 +14295,16 @@ let Helpers$1 = class Helpers3 {
               goal.attrs.strokeLineCap
             );
             lineGroup.add(line);
+            if (goal.attrs.label) {
+              lineGroup.add(
+                this.drawDumbbellLabel(goal.attrs, {
+                  x: goal.x,
+                  y: y - sHeight,
+                  horizontal: true,
+                  markerSize: goal.attrs.strokeWidth || 0
+                })
+              );
+            }
           }
         });
       }
@@ -12869,11 +14325,51 @@ let Helpers$1 = class Helpers3 {
               goal.attrs.strokeLineCap
             );
             lineGroup.add(line);
+            if (goal.attrs.label) {
+              lineGroup.add(
+                this.drawDumbbellLabel(goal.attrs, {
+                  x: x - sWidth,
+                  y: goal.y,
+                  horizontal: false,
+                  markerSize: goal.attrs.strokeHeight || 0
+                })
+              );
+            }
           }
         });
       }
     }
     return lineGroup;
+  }
+  /**
+   * One dumbbell end label, placed clear of the marker it belongs to.
+   *
+   * Offset from the marker's EDGE rather than its centre, so growing
+   * `markers.size` never walks a label under its own dot. Vertically it is
+   * centred on the marker with `dominant-baseline`, which is exact whatever the
+   * font metrics are, where a dy fudge factor drifts with font size.
+   *
+   * @param {Record<string, any>} attrs the goal's attrs, carrying `label`
+   * @param {{x: number, y: number, horizontal: boolean, markerSize: number}} pos
+   */
+  drawDumbbellLabel(attrs, pos) {
+    const w2 = this.w;
+    const graphics = new Graphics(w2);
+    const cnf = w2.config.plotOptions.bar.dumbbell.dataLabels;
+    const gap = pos.markerSize / 2 + cnf.offset;
+    const away = attrs.label.outward;
+    return graphics.drawText({
+      x: pos.x + (pos.horizontal ? gap * away : 0),
+      y: pos.y - (pos.horizontal ? 0 : gap * away),
+      text: attrs.label.text,
+      textAnchor: pos.horizontal ? away < 0 ? "end" : "start" : "middle",
+      dominantBaseline: pos.horizontal ? "central" : away < 0 ? "hanging" : "auto",
+      foreColor: attrs.label.color,
+      fontSize: cnf.style.fontSize,
+      fontFamily: cnf.style.fontFamily,
+      fontWeight: cnf.style.fontWeight,
+      cssClass: "apexcharts-dumbbell-label"
+    });
   }
   /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
   drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
@@ -14221,13 +15717,15 @@ class BarStacked extends Bar {
       xDivision = w2.layout.gridWidth / w2.globals.dataPoints;
       barWidth = xDivision;
       const userColumnWidth = w2.config.plotOptions.bar.columnWidth;
-      if (w2.axisFlags.isXNumeric && w2.globals.dataPoints > 1) {
-        xDivision = w2.globals.minXDiff / this.xRatio;
+      const slotXSpan = w2.axisFlags.isXNumeric ? this.barHelpers.barSlotXSpan() : 0;
+      if (slotXSpan > 0) {
+        xDivision = slotXSpan / this.xRatio;
         barWidth = xDivision * parseInt(this.barOptions.columnWidth, 10) / 100;
-      } else if (String(userColumnWidth).indexOf("%") === -1) {
-        barWidth = parseInt(userColumnWidth, 10);
       } else {
         barWidth *= parseInt(userColumnWidth, 10) / 100;
+      }
+      if (String(userColumnWidth).indexOf("%") === -1) {
+        barWidth = parseInt(userColumnWidth, 10);
       }
       if (this.isReversed) {
         zeroH = this.baseLineY[translationsIndex];
@@ -14484,7 +15982,8 @@ function buildJitterGroups({
   alongFn,
   isHorizontal,
   options,
-  clampAt
+  clampAt,
+  sideSign
 }) {
   const opts = options;
   if (!opts || opts.show === false) return [];
@@ -14515,6 +16014,7 @@ function buildJitterGroups({
       if (off > cap) off = cap;
       if (off < -cap) off = -cap;
     }
+    if (sideSign) off = Math.abs(off) * sideSign;
     const px = isHorizontal ? a : center + off;
     const py = isHorizontal ? center + off : a;
     const sub = isSquare ? squareSubPath(px, py, r) : circleSubPath(px, py, r);
@@ -15170,11 +16670,18 @@ class Violin extends Bar {
    */
   // @ts-ignore -- Violin.draw has extra ctype param compared to Bar.draw
   draw(series, ctype, seriesIndex) {
+    var _a;
     const w2 = this.w;
     const graphics = new Graphics(this.w);
     const fill = new Fill(this.w);
     this.violinOptions = w2.config.plotOptions.violin;
     this.pointsOptions = this.violinOptions.points;
+    this.boxOptions = this.violinOptions.box || {};
+    this.cloudSign = crossSign(this.violinOptions.side);
+    this.rainSign = this.pointsOptions.show === false ? 0 : crossSign(this.pointsOptions.position);
+    this.boxShown = this.boxOptions.show === true;
+    this.boxFrac = this.boxShown ? laneFrac(this.boxOptions.width, 0.15) : 0;
+    this.rainFrac = laneFrac(this.pointsOptions.laneWidth, 0.4);
     this.bandwidthScale = this.violinOptions.bandwidthScale || 1;
     this.normalize = this.violinOptions.normalize || "individual";
     this.distributed = w2.config.plotOptions.bar.distributed;
@@ -15269,7 +16776,11 @@ class Violin extends Bar {
           halfExtent: paths.halfExtent,
           alongFn: paths.alongFn,
           density: paths.density,
-          maxWeight: paths.maxWeight
+          maxWeight: paths.maxWeight,
+          cloudBase: paths.cloudBase,
+          cloudMaxPx: paths.cloudMaxPx,
+          rainCenter: paths.rainCenter,
+          rainHalfPx: paths.rainHalfPx
         });
         if (pointGroups.length) pointsByViolin.push({ groups: pointGroups, j });
         const pathFill = fill.fillPath({
@@ -15308,6 +16819,32 @@ class Violin extends Bar {
             `${paths.alongRepresentative}`
           );
         }
+        if (paths.boxPaths) {
+          const boxStrokeWidth = (_a = this.boxOptions.strokeWidth) != null ? _a : 1;
+          paths.boxPaths.forEach((bp) => {
+            this.renderSeries({
+              realIndex,
+              pathFill: bp.filled ? this.boxOptions.fillColor || pathFill : "none",
+              lineFill: w2.globals.stroke.colors[realIndex],
+              j,
+              i,
+              pathFrom: bp.pathFrom,
+              pathTo: bp.pathTo,
+              strokeWidth: boxStrokeWidth,
+              elSeries,
+              x,
+              y,
+              series,
+              columnGroupIndex,
+              barHeight,
+              barWidth,
+              elDataLabelsWrap,
+              visibleSeries: this.visibleI,
+              type: "violin",
+              classes: "apexcharts-raincloud-box"
+            });
+          });
+        }
       }
       renderJitter({
         graphics,
@@ -15328,7 +16865,7 @@ class Violin extends Bar {
   }
   /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
   drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f, _g;
     const w2 = this.w;
     const { realIndex, j, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex];
@@ -15341,17 +16878,26 @@ class Violin extends Bar {
     const density = this.getDensity(realIndex, j);
     const maxWeight = this.effectiveMaxWeight(density);
     const alongFn = (v2) => zeroH - this.logVal(v2, realIndex) / yRatio;
+    const lanes = resolveLanes({
+      halfExtent,
+      cloudSign: (_a = this.cloudSign) != null ? _a : 0,
+      rainSign: (_b = this.rainSign) != null ? _b : 0,
+      boxFrac: (_c = this.boxFrac) != null ? _c : 0,
+      rainFrac: (_d = this.rainFrac) != null ? _d : 0
+    });
+    const cloudBase = center + lanes.cloudBaseOff;
     const pathTo = this.buildBodyPath({
       nodes: density.nodes,
-      center,
-      halfExtent,
+      center: cloudBase,
+      halfExtent: lanes.cloudMaxPx,
       maxWeight,
       vertical: true,
       alongFn,
-      collapsed: false
+      collapsed: false,
+      sideSign: this.cloudSign
     });
     let pathFrom = null;
-    const morphFrom = (_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(realIndex, j);
+    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w2.globals.previousPaths.length > 0) {
@@ -15360,12 +16906,13 @@ class Violin extends Bar {
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
-        center,
-        halfExtent,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
         maxWeight,
         vertical: true,
         alongFn,
-        collapsed: true
+        collapsed: true,
+        sideSign: this.cloudSign
       });
     }
     if (!w2.axisFlags.isXNumeric) {
@@ -15381,12 +16928,24 @@ class Violin extends Bar {
       alongFn,
       density,
       maxWeight,
-      alongRepresentative: alongFn((_c = this.series[indexes.i][j]) != null ? _c : 0)
+      cloudBase,
+      cloudMaxPx: lanes.cloudMaxPx,
+      rainCenter: center + lanes.rainCenterOff,
+      rainHalfPx: lanes.rainHalfPx,
+      boxPaths: this.buildBoxSubPaths({
+        realIndex,
+        j,
+        boxCenter: center + lanes.boxCenterOff,
+        boxHalfPx: lanes.boxHalfPx,
+        alongFn,
+        vertical: true
+      }),
+      alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
     };
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
   drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f, _g;
     const w2 = this.w;
     const { realIndex, j } = indexes;
     const yRatio = this.invertedYRatio;
@@ -15399,17 +16958,26 @@ class Violin extends Bar {
     const density = this.getDensity(realIndex, j);
     const maxWeight = this.effectiveMaxWeight(density);
     const alongFn = (v2) => zeroW + this.logVal(v2, realIndex) / yRatio;
+    const lanes = resolveLanes({
+      halfExtent,
+      cloudSign: (_a = this.cloudSign) != null ? _a : 0,
+      rainSign: (_b = this.rainSign) != null ? _b : 0,
+      boxFrac: (_c = this.boxFrac) != null ? _c : 0,
+      rainFrac: (_d = this.rainFrac) != null ? _d : 0
+    });
+    const cloudBase = center + lanes.cloudBaseOff;
     const pathTo = this.buildBodyPath({
       nodes: density.nodes,
-      center,
-      halfExtent,
+      center: cloudBase,
+      halfExtent: lanes.cloudMaxPx,
       maxWeight,
       vertical: false,
       alongFn,
-      collapsed: false
+      collapsed: false,
+      sideSign: this.cloudSign
     });
     let pathFrom = null;
-    const morphFrom = (_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(realIndex, j);
+    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w2.globals.previousPaths.length > 0) {
@@ -15418,12 +16986,13 @@ class Violin extends Bar {
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
-        center,
-        halfExtent,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
         maxWeight,
         vertical: false,
         alongFn,
-        collapsed: true
+        collapsed: true,
+        sideSign: this.cloudSign
       });
     }
     if (!w2.axisFlags.isXNumeric) {
@@ -15439,7 +17008,19 @@ class Violin extends Bar {
       alongFn,
       maxWeight,
       density,
-      alongRepresentative: alongFn((_c = this.series[indexes.i][j]) != null ? _c : 0)
+      cloudBase,
+      cloudMaxPx: lanes.cloudMaxPx,
+      rainCenter: center + lanes.rainCenterOff,
+      rainHalfPx: lanes.rainHalfPx,
+      boxPaths: this.buildBoxSubPaths({
+        realIndex,
+        j,
+        boxCenter: center + lanes.boxCenterOff,
+        boxHalfPx: lanes.boxHalfPx,
+        alongFn,
+        vertical: false
+      }),
+      alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
     };
   }
   /**
@@ -15484,7 +17065,13 @@ class Violin extends Bar {
    * parameter for the spline (vertical → Y, horizontal → X); the spline is fed
    * with that axis first and the control points swapped back to screen space.
    *
-   * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean}} opts
+   * Symmetric (`sideSign` 0): the curve mirrors around `center`, whose maximum
+   * half-width is `halfExtent`. One-sided (`sideSign` ±1, the raincloud
+   * "cloud" / half-violin): `center` is the flat BASELINE, the curve bulges up
+   * to `halfExtent` px toward the signed side, and the return edge is a
+   * straight run along the baseline.
+   *
+   * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean, sideSign?:number}} opts
    */
   buildBodyPath({
     nodes,
@@ -15493,7 +17080,8 @@ class Violin extends Bar {
     maxWeight,
     vertical,
     alongFn,
-    collapsed
+    collapsed,
+    sideSign = 0
   }) {
     const graphics = new Graphics(this.w);
     if (nodes.length === 0) {
@@ -15510,16 +17098,80 @@ class Violin extends Bar {
     for (let k = 0; k < nodes.length; k++) {
       const a = alongFn(nodes[k].v);
       const wp = wpxOf(nodes[k].w);
+      const outer = sideSign === 0 ? center + wp : center + sideSign * wp;
+      const inner = sideSign === 0 ? center - wp : center;
       if (vertical) {
-        rightPts.push([center + wp, a]);
-        leftPts.push([center - wp, a]);
+        rightPts.push([outer, a]);
+        leftPts.push([inner, a]);
       } else {
-        rightPts.push([a, center + wp]);
-        leftPts.push([a, center - wp]);
+        rightPts.push([a, outer]);
+        leftPts.push([a, inner]);
       }
     }
     leftPts.reverse();
     return this.smoothSegment(rightPts, vertical, false) + this.smoothSegment(leftPts, vertical, true) + "z";
+  }
+  /**
+   * Build the five-number box sub-paths for one category — the raincloud
+   * "umbrella", or a violin box overlay. Two sub-paths so each can carry its
+   * own fill: the whisker stems + caps (stroke only) and the q1-q3 rect with
+   * its median tick (filled). Both are rendered through renderSeries (same
+   * `j`, multiple sibling paths — the BoxCandleStick pattern), so they
+   * animate and morph like any mark. Deliberately no outlier dots: the
+   * rain/jitter layer draws every observation already.
+   *
+   * Returns null when the box is off or the datum has no summary; entering
+   * paths collapse cross-wise onto the box lane's centerline so the box grows
+   * sideways in sync with the cloud.
+   *
+   * @param {{realIndex:number, j:number, boxCenter:number, boxHalfPx:number, alongFn:(v:number)=>number, vertical:boolean}} opts
+   * @returns {{pathTo:string, pathFrom:string, filled:boolean}[] | null}
+   */
+  buildBoxSubPaths({ realIndex, j, boxCenter, boxHalfPx, alongFn, vertical }) {
+    var _a, _b;
+    const w2 = this.w;
+    if (!this.boxShown || boxHalfPx <= 0) return null;
+    const summary = (_a = w2.violinData.seriesViolinSummary[realIndex]) == null ? void 0 : _a[j];
+    if (!summary) return null;
+    const capHalf = boxHalfPx * Math.min(1, Math.max(0, (_b = this.boxOptions.capWidth) != null ? _b : 0.5));
+    const [lo, q1, med, q3, hi] = summary.map((v2) => alongFn(v2));
+    const build = (half, boxHalf) => {
+      const graphics = new Graphics(this.w);
+      const pt = (cross, along) => vertical ? [cross, along] : [along, cross];
+      const seg = (pts) => pts.map(
+        ([px, py], k) => k === 0 ? graphics.move(px, py) : graphics.line(px, py)
+      ).join("");
+      const c = boxCenter;
+      const whiskers = seg([pt(c, lo), pt(c, q1)]) + seg([pt(c, q3), pt(c, hi)]) + seg([pt(c - half, lo), pt(c + half, lo)]) + seg([pt(c - half, hi), pt(c + half, hi)]);
+      const box = seg([
+        pt(c - boxHalf, q1),
+        pt(c + boxHalf, q1),
+        pt(c + boxHalf, q3),
+        pt(c - boxHalf, q3)
+      ]) + "z" + seg([pt(c - boxHalf, med), pt(c + boxHalf, med)]);
+      return { whiskers, box };
+    };
+    const full = build(capHalf, boxHalfPx);
+    const collapsed = build(0, 0);
+    const fromFor = (pathTo, collapsedFrom) => {
+      let pathFrom = null;
+      if (w2.globals.previousPaths.length > 0) {
+        pathFrom = this.getPreviousPath(realIndex, j, pathTo);
+      }
+      return pathFrom == null ? collapsedFrom : pathFrom;
+    };
+    return [
+      {
+        pathTo: full.whiskers,
+        pathFrom: fromFor(full.whiskers, collapsed.whiskers),
+        filled: false
+      },
+      {
+        pathTo: full.box,
+        pathFrom: fromFor(full.box, collapsed.box),
+        filled: true
+      }
+    ];
   }
   /**
    * Emit one edge as a smooth (monotone-cubic) path segment, or a polyline
@@ -15566,7 +17218,12 @@ class Violin extends Bar {
    * groups, each carrying its ramp colour. Offsets are a deterministic index
    * hash (SSR-safe); points beyond maxPoints are stride-thinned.
    *
-   * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number}} opts
+   * Placement: `points.position` 'center' scatters around the slot centerline
+   * (clamped to the density width; one-sided bodies scatter one-sided from the
+   * baseline). Off-center positions put the dots in their own lane (the
+   * raincloud "rain"), where the density clamp no longer applies.
+   *
+   * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number, cloudBase:number, cloudMaxPx:number, rainCenter:number, rainHalfPx:number}} opts
    * @returns {{fill:string|null, d:string}[]}
    */
   buildPointsSubPath({
@@ -15576,22 +17233,31 @@ class Violin extends Bar {
     halfExtent,
     alongFn,
     density,
-    maxWeight
+    maxWeight,
+    cloudBase,
+    cloudMaxPx,
+    rainCenter,
+    rainHalfPx
   }) {
     var _a;
+    const offsetLane = this.rainSign !== 0;
+    const scatterCenter = offsetLane ? rainCenter : this.cloudSign !== 0 ? cloudBase : center;
+    const scatterHalf = offsetLane ? rainHalfPx : this.cloudSign !== 0 ? cloudMaxPx : halfExtent;
     return buildJitterGroups({
       w: this.w,
       points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j],
       seedA: realIndex,
       seedB: j,
-      center,
-      halfExtent,
+      center: scatterCenter,
+      halfExtent: scatterHalf,
       alongFn,
       isHorizontal: this.isHorizontal,
       options: this.pointsOptions,
-      // Violin clamps jitter to the density half-width at each value so dots
-      // stay inside the shape.
-      clampAt: (v2) => this.halfWidthAtValue(v2, density, halfExtent, maxWeight)
+      // Centered dots clamp to the density half-width at each value so they
+      // stay inside the shape; a dedicated rain lane has no shape to honor.
+      clampAt: offsetLane ? null : (v2) => this.halfWidthAtValue(v2, density, scatterHalf, maxWeight),
+      // A one-sided body folds centered dots onto its side of the baseline.
+      sideSign: offsetLane ? 0 : this.cloudSign
     });
   }
   /**
@@ -15645,6 +17311,54 @@ function swapPairs(arr) {
     out.push(arr[k + 1], arr[k]);
   }
   return out;
+}
+function crossSign(token) {
+  if (token === "right" || token === "bottom") return 1;
+  if (token === "left" || token === "top") return -1;
+  return 0;
+}
+function laneFrac(val, fallback) {
+  let frac = fallback;
+  if (typeof val === "string" && val.trim().endsWith("%")) {
+    const n = parseFloat(val);
+    if (isFinite(n)) frac = n / 100;
+  } else if (typeof val === "number" && isFinite(val)) {
+    frac = val;
+  }
+  return Math.min(0.5, Math.max(0, frac));
+}
+function resolveLanes({
+  halfExtent,
+  cloudSign,
+  rainSign,
+  boxFrac,
+  rainFrac
+}) {
+  const boxHalfPx = boxFrac * halfExtent;
+  const rainHalfPx = rainSign === 0 ? halfExtent : rainFrac * halfExtent;
+  const rainCenterOff = rainSign === 0 ? 0 : rainSign * (halfExtent - rainHalfPx);
+  if (cloudSign === 0) {
+    return {
+      cloudBaseOff: 0,
+      cloudMaxPx: halfExtent,
+      boxCenterOff: 0,
+      boxHalfPx,
+      rainCenterOff,
+      rainHalfPx
+    };
+  }
+  const usedRainFrac = rainSign === 0 ? 0 : rainFrac;
+  const cloudFrac = Math.max(0, 1 - usedRainFrac - boxFrac);
+  const cloudMaxPx = 2 * cloudFrac * halfExtent;
+  const cloudBaseOff = cloudSign * (halfExtent - cloudMaxPx);
+  return {
+    cloudBaseOff,
+    cloudMaxPx,
+    boxCenterOff: cloudBaseOff - cloudSign * boxHalfPx,
+    boxHalfPx,
+    rainCenterOff,
+    rainHalfPx
+  };
 }
 class TreemapHelpers {
   /**
@@ -17899,7 +19613,7 @@ class Pie {
     this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
     this.lineColorArr = w2.globals.stroke.colors !== void 0 ? w2.globals.stroke.colors : w2.globals.colors;
     this.defaultSize = Math.min(w2.layout.gridWidth, w2.layout.gridHeight);
-    this.centerY = this.defaultSize / 2;
+    this.centerY = w2.layout.gridHeight / 2;
     this.centerX = w2.layout.gridWidth / 2;
     if (w2.config.chart.type === "radialBar") {
       this.fullAngle = 360;
@@ -19715,7 +21429,7 @@ class Radial extends Pie {
     });
     if (w2.globals.noData) return ret;
     const elSeries = graphics.group();
-    const centerY = this.defaultSize / 2;
+    const centerY = w2.layout.gridHeight / 2;
     const centerX = w2.layout.gridWidth / 2;
     let size = this.defaultSize / 2.05;
     if (!w2.config.chart.sparkline.enabled) {
@@ -20748,9 +22462,10 @@ class RangeBar extends Bar {
     const range = this.getRangeValue(realIndex, j);
     let y1 = Math.min(range.start, range.end);
     let y2 = Math.max(range.start, range.end);
-    if (typeof /** @type {any} */
+    const hasValue = !(typeof /** @type {any} */
     ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
+    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null);
+    if (!hasValue) {
       y1 = zeroH;
     } else {
       y1 = zeroH - y1 / yRatio;
@@ -20769,6 +22484,19 @@ class RangeBar extends Bar {
       j,
       w: w2
     });
+    if (hasValue) {
+      const box = paths.drawnBox;
+      const endIsUpper = range.end >= range.start;
+      this.recordColumnGeometry(realIndex, j, {
+        slotStart: box.x1,
+        slotEnd: box.x2,
+        // `drawnBox.y1` is the lower VALUE's edge, so which of the two is the
+        // level this bar left behind depends on which way it stepped.
+        levelStart: endIsUpper ? box.y1 : box.y2,
+        levelEnd: endIsUpper ? box.y2 : box.y1,
+        horizontal: false
+      });
+    }
     if (!w2.axisFlags.isXNumeric) {
       x = x + xDivision;
     } else {
@@ -20841,6 +22569,16 @@ class RangeBar extends Bar {
       j,
       w: w2
     });
+    if (range.start != null && range.end != null) {
+      const box = paths.drawnBox;
+      this.recordColumnGeometry(realIndex, j, {
+        slotStart: box.y1,
+        slotEnd: box.y2,
+        levelStart: box.x1,
+        levelEnd: box.x2,
+        horizontal: true
+      });
+    }
     if (!w2.axisFlags.isXNumeric) {
       y = y + yDivision;
     }
@@ -20860,6 +22598,31 @@ class RangeBar extends Bar {
       ),
       y
     };
+  }
+  /**
+   * Record the px box this bar was actually drawn in, for a consumer that has
+   * to line something up with it.
+   *
+   * Only the waterfall connector layer asks (the sink is put on the state by
+   * the waterfall transform, and is null for every other chart), and it asks
+   * because re-deriving slot geometry from the axis is precisely how the
+   * brush<->bar mapping kept drifting half a bar sideways: see the three facts
+   * in `AxisMapping`. Reading back what the renderer committed to cannot drift.
+   *
+   * `slotStart`/`slotEnd` bound the bar along the CATEGORY axis and
+   * `levelStart`/`levelEnd` are the px of its two value bounds, so one shape
+   * describes both orientations.
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {{slotStart: number, slotEnd: number, levelStart: number, levelEnd: number, horizontal: boolean}} rec
+   */
+  recordColumnGeometry(realIndex, j, rec) {
+    const sink = this.w.waterfallData && this.w.waterfallData.geometry;
+    if (!sink) return;
+    if (!isFinite(rec.slotStart) || !isFinite(rec.levelEnd)) return;
+    if (!sink[realIndex]) sink[realIndex] = [];
+    sink[realIndex][j] = rec;
   }
   /**
    * @param {number} i

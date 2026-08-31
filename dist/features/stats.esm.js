@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.0.0
+ * ApexCharts v7.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -309,6 +309,23 @@ function normalizeCounts(counts, opts = {}) {
   }
   return out;
 }
+function observationsOf(d, allowFlatY) {
+  var _a;
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  let raw = null;
+  if (Array.isArray(d.points)) raw = d.points;
+  else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
+  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
+    raw = d.y;
+  }
+  if (!raw) return null;
+  const out = [];
+  for (let i = 0; i < raw.length; i++) {
+    const v = Utils.parseNumber(raw[i]);
+    if (v !== null && isFinite(v)) out.push(v);
+  }
+  return out.length ? out : null;
+}
 function histogramValues(data) {
   const out = [];
   if (!Array.isArray(data)) return out;
@@ -383,23 +400,6 @@ function histogramTransform(ser, w) {
   });
 }
 const derivedData = /* @__PURE__ */ new WeakSet();
-function observationsOf(d, allowFlatY) {
-  var _a;
-  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
-  let raw = null;
-  if (Array.isArray(d.points)) raw = d.points;
-  else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
-  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
-    raw = d.y;
-  }
-  if (!raw) return null;
-  const out = [];
-  for (let i = 0; i < raw.length; i++) {
-    const v = Utils.parseNumber(raw[i]);
-    if (v !== null && isFinite(v)) out.push(v);
-  }
-  return out.length ? out : null;
-}
 function boxPlotTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
