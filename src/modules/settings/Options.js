@@ -1078,6 +1078,14 @@ export default class Options {
           overlap: true,
         },
         heatmap: {
+          // Cell shape. 'circle' and 'diamond' are inscribed in the cell box;
+          // 'hexagon' is a honeycomb tilemap: alternate rows offset by half a
+          // cell so the hexagons tessellate (categorical layout only; a
+          // numeric/datetime x axis falls back to rect). Non-rect shapes
+          // ignore `radius` and always render as SVG (the canvas renderer's
+          // cell store is rect-only, so it declines them like image fills).
+          shape: 'rect',
+          // Cell corner radius; applies to the rect shape only.
           radius: 2,
           enableShades: true,
           shadeIntensity: 0.5,

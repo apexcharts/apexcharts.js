@@ -133,6 +133,17 @@ export function hasCanvasUnsupportedFeature(w) {
     return true
   }
 
+  // Heatmap cell shapes other than the default rect render as SVG <path>
+  // cells: the canvas cell store is rect-only (drawRectCell), so decline
+  // canvas for them the same way image fills are declined, rather than
+  // inventing a columnar path store for shaped cells.
+  if (
+    w.config.chart.type === 'heatmap' &&
+    (w.config.plotOptions?.heatmap?.shape || 'rect') !== 'rect'
+  ) {
+    return true
+  }
+
   const states = w.config.states || {}
   const hoverFilter = states.hover && states.hover.filter && states.hover.filter.type
   const activeFilter =

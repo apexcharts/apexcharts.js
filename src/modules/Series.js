@@ -717,8 +717,12 @@ export default class Series {
 
     if (heatTreeSeries.length > 0) {
       for (let h = 0; h < heatTreeSeries.length; h++) {
+        // Non-rect heatmap cell shapes render as <path> but still carry the
+        // heatmap-rect class; the capture must see them too or a data update
+        // loses its color-from and tweens in from transparent.
+        const base = `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h}']`
         const seriesEls = w.dom.baseEl.querySelectorAll(
-          `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h}'] rect`,
+          `${base} rect, ${base} path.apexcharts-heatmap-rect`,
         )
 
         const dArr = []

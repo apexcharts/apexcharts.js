@@ -2959,6 +2959,18 @@ type ApexPlotOptions = {
     overlap?: boolean
   }
   heatmap?: {
+    /**
+     * Cell shape. `'circle'` and `'diamond'` are inscribed in the cell box.
+     * `'hexagon'` renders a honeycomb tilemap: alternate rows are offset by
+     * half a cell so the hexagons tessellate, each column's tick sits between
+     * its two row positions, and the lattice's overhang is reserved as extra
+     * grid padding automatically so offset rows never cover the axis labels.
+     * Hexagon applies to the categorical layout only (a numeric/datetime
+     * x axis falls back to `'rect'`). Non-rect shapes ignore `radius` and
+     * always render as SVG. Default `'rect'`.
+     */
+    shape?: 'rect' | 'hexagon' | 'circle' | 'diamond'
+    /** Cell corner radius; applies to the `'rect'` shape only. */
     radius?: number
     enableShades?: boolean
     shadeIntensity?: number

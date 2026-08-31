@@ -104,6 +104,47 @@ export default class Dimensions {
     // Must run before gridWidth has xPadRight subtracted from it below.
     this.dimGrid.gridPadForStackedTotalDataLabels()
 
+    // Honeycomb heatmap: the hexagon lattice overhangs the grid box by a
+    // quarter cell horizontally (the alternating row offsets) and a sixth of
+    // the row pitch vertically (a tessellating hexagon is 4/3 of the pitch
+    // tall), plus half the cell stroke. Reserve that overhang as a
+    // grid-padding floor (same pattern as the sparkline marker inset above),
+    // or the left-shifted rows paint over the y-axis labels. The pad depends
+    // on the cell size, which depends on the padded grid, so solve the fixed
+    // point directly. With clearance m (stroke half-width + a few px of air,
+    // since the y-axis labels end slightly past the unpadded grid edge):
+    //   horizontal: p = ((g - 2p) / n) / 4 + m  =>  p = (g + 4nm) / (4n + 2)
+    //   vertical:   p = ((h - 2p) / r) / 6 + s  =>  p = (h + 6rs) / (6r + 2)
+    // A larger user padding still wins. Skipped when hexagon falls back to
+    // rect (continuous-X), mirroring the check in HeatMap.draw.
+    if (
+      w.config.chart.type === 'heatmap' &&
+      w.config.plotOptions.heatmap.shape === 'hexagon' &&
+      !(
+        (w.config.xaxis.type === 'numeric' ||
+          w.config.xaxis.type === 'datetime') &&
+        w.axisFlags.isXNumeric
+      )
+    ) {
+      const cols = gl.dataPoints || 1
+      const rows = (w.seriesData.series || []).length || 1
+      const gw = w.layout.gridWidth - this.xPadRight - this.xPadLeft
+      const gh = w.layout.gridHeight
+      const strokeW = w.config.stroke.show
+        ? Array.isArray(w.config.stroke.width)
+          ? Math.max(...w.config.stroke.width)
+          : w.config.stroke.width
+        : 0
+      const mx = strokeW / 2 + 6
+      const my = strokeW / 2
+      const px = (gw + 4 * cols * mx) / (4 * cols + 2)
+      const py = (gh + 6 * rows * my) / (6 * rows + 2)
+      this.gridPad.left = Math.max(px, this.gridPad.left)
+      this.gridPad.right = Math.max(px, this.gridPad.right)
+      this.gridPad.top = Math.max(py, this.gridPad.top)
+      this.gridPad.bottom = Math.max(py, this.gridPad.bottom)
+    }
+
     // after calculating everything, apply padding set by user
     w.layout.gridHeight =
       w.layout.gridHeight - this.gridPad.top - this.gridPad.bottom
