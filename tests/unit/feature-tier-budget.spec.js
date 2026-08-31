@@ -39,6 +39,13 @@ const TIER_1 = [
   'marks',
   'facet',
   'stats',
+  // The three 7.1.0 chart types below are GRANDFATHERED (shipped in the
+  // default bundle, clawing them back is a breaking change). They are not
+  // precedent: since 2026-08-31 a NEW chart type defaults to Tier 2, the
+  // raincloud model, with an entry in Data.js's RAW_SAMPLE_FEATURES map so
+  // the default bundle warns loudly instead of failing silently. See the
+  // policy in plans/08-distribution-and-plugin-tiers.md.
+  //
   // Same reason as `stats`: it backs a first-class `chart.type`, not a garnish.
   // `chart.type: 'waterfall'` without it is a chart that silently refuses to
   // draw, which is not a bundle saving anyone asked for.
@@ -81,7 +88,12 @@ A module belongs there only if ALL THREE hold:
   3. useful to a majority of charts.
 Everything else ships as a sub-path entry (bundlers) and a UMD add-on (script
 tag) and is NOT imported by all.js. If you are adding a feature so it "just
-works", document its entry point instead.`
+works", document its entry point instead.
+NEW CHART TYPES default to Tier 2 (policy, 2026-08-31): sub-path entry, UMD
+add-on, and an entry in RAW_SAMPLE_FEATURES (src/modules/Data.js) so the
+default bundle warns and renders blank instead of failing silently. A single
+type is almost never "useful to a majority of charts"; a quiet failure mode
+is fixed by the warning map, not by bundling the type.`
 
 describe('Tier-1 default-bundle budget', () => {
   const source = readFileSync(
