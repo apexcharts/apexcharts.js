@@ -103,3 +103,62 @@ describe('an invalid Date as x', () => {
     ).not.toThrow()
   })
 })
+
+// The same guard un-breaks a null or undefined x, which threw from that same
+// line and is the more common way to hit it: a gap in a data set is spelt
+// `null` far more often than a Date is built from garbage. Without the guard
+// `[{x: 1}, {x: null}, {x: 3}]` renders nothing at all.
+describe('a null or undefined x', () => {
+  function dt() {
+    const chart = createChart(
+      'line',
+      [{ name: 'n', data: [{ x: 1, y: 1 }] }],
+      'numeric',
+    )
+    return new DateTime(chart.w)
+  }
+
+  it('makes isValidDate answer false rather than throw', () => {
+    const d = dt()
+
+    expect(() => d.isValidDate(null)).not.toThrow()
+    expect(() => d.isValidDate(undefined)).not.toThrow()
+    expect(d.isValidDate(null)).toBe(false)
+    expect(d.isValidDate(undefined)).toBe(false)
+  })
+
+  it('leaves the points around the gap where they were', () => {
+    const [seriesX] = parsedX(
+      [
+        {
+          name: 'gap',
+          data: [
+            { x: 1, y: 1 },
+            { x: null, y: 2 },
+            { x: 3, y: 3 },
+          ],
+        },
+      ],
+      'category',
+    )
+
+    expect(seriesX).toEqual([1, null, 3])
+  })
+
+  it('does not take the render down', () => {
+    expect(() =>
+      parsedX(
+        [
+          {
+            name: 'gap',
+            data: [
+              { x: 1, y: 1 },
+              { x: undefined, y: 2 },
+            ],
+          },
+        ],
+        'category',
+      ),
+    ).not.toThrow()
+  })
+})
