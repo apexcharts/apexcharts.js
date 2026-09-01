@@ -1045,10 +1045,15 @@ export default class ApexCharts {
           derivedRaw[i].data = derivedRaw[i].data.concat(src.data)
         }
       }
-      return this.update()
+      return this.update(undefined, overwriteInitialSeries)
     }
 
     const newSeries = me.w.config.series.slice()
+    // chart.dataReducer: config.series is the downsampled window, but the stash
+    // is what every later parse re-reduces from, so the new points have to land
+    // in both. Below the reducer's threshold no reduction runs and config.series
+    // is the one that draws; above it the stash is.
+    const reducerRaw = me.w.globals.dataReducerRawSeries
 
     for (let i = 0; i < newSeries.length; i++) {
       if (newData[i] !== null && typeof newData[i] !== 'undefined') {
@@ -1059,6 +1064,9 @@ export default class ApexCharts {
         // array, and growing it in place is the one internal mutation they
         // cannot be shielded from.
         dstSerie.data = dstSerie.data.concat(srcSerie.data)
+        if (reducerRaw && Array.isArray(reducerRaw[i]?.data)) {
+          reducerRaw[i].data = reducerRaw[i].data.concat(srcSerie.data)
+        }
       }
     }
 
@@ -1068,12 +1076,8 @@ export default class ApexCharts {
     trimStreamingSeries(newSeries, me.w)
 
     me.w.config.series = newSeries
-    if (overwriteInitialSeries) {
-      // lazy snapshot: deep clone deferred to first read
-      me.w.globals.initialSeries = me.w.config.series
-    }
 
-    return this.update()
+    return this.update(undefined, overwriteInitialSeries)
   }
 
   /**
@@ -1097,8 +1101,11 @@ export default class ApexCharts {
 
   /**
    * @param {object} [options]
+   * @param {boolean} [overwriteInitialSeries=false] true only when the caller
+   *   redefined the series before triggering this re-render, so the parse it
+   *   runs is the one that captures the new baseline.
    */
-  update(options) {
+  update(options, overwriteInitialSeries = false) {
     return new Promise((resolve, reject) => {
       // The identical-options skip only pays off for small configs: comparing
       // and cloning megabytes of series data costs more per update than the
@@ -1126,9 +1133,14 @@ export default class ApexCharts {
       new Destroy(this.ctx).clear({ isUpdating: true })
 
       // A re-render replays w.config.series, which carries whatever the last
-      // legend collapse or appendData did to it. Whoever redefined the series
-      // captured the baseline already; this parse must not move it (#5283).
-      const graphData = this.create(this.w.config.series, options ?? {}, false)
+      // legend collapse or appendData did to it. An internal re-render must not
+      // move the baseline resetSeries() restores; only a caller that redefined
+      // the series asks this parse to capture it (#5283).
+      const graphData = this.create(
+        this.w.config.series,
+        options ?? {},
+        overwriteInitialSeries,
+      )
       if (!graphData) return resolve(this)
       this.mount(graphData)
         .then(() => {

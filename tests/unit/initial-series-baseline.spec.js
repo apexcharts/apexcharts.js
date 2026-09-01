@@ -12,6 +12,34 @@ const SERIES = [
   { name: 'B', data: [4, 5, 6] },
 ]
 
+const OBSERVATIONS = [1, 2, 2, 3, 3, 3, 4]
+
+function histogramWith(data) {
+  return createChartWithOptions({
+    chart: { type: 'histogram', width: 600, height: 400 },
+    series: [{ name: 'Sample', data: [...data] }],
+  })
+}
+
+function reducerChartWith(points) {
+  return createChartWithOptions({
+    chart: {
+      type: 'line',
+      width: 600,
+      height: 400,
+      dataReducer: { enabled: true, threshold: 50, targetPoints: 25 },
+    },
+    series: [{ name: 'S', data: points }],
+  })
+}
+
+function ramp(count, from = 0) {
+  return Array.from({ length: count }, (_, i) => ({
+    x: from + i,
+    y: (from + i) % 17,
+  }))
+}
+
 function chartWith(series) {
   return createChartWithOptions({
     chart: { type: 'line' },
@@ -49,15 +77,51 @@ describe('initialSeries across a re-render', () => {
   })
 
   it('honours appendData(newData, false) on a raw-stash chart type', async () => {
-    const chart = createChartWithOptions({
-      chart: { type: 'histogram', width: 600, height: 400 },
-      series: [{ name: 'Sample', data: [1, 2, 2, 3, 3, 3, 4] }],
-    })
+    const chart = histogramWith(OBSERVATIONS)
 
     await chart.appendData([{ data: [9, 9, 9] }], false)
 
     // The stash the snapshot points at, not the binned view.
-    expect(chart.w.globals.initialSeries[0].data).toEqual([1, 2, 2, 3, 3, 3, 4])
+    expect(chart.w.globals.initialSeries[0].data).toEqual(OBSERVATIONS)
+  })
+
+  it('still moves the baseline on appendData(newData, true) on a raw-stash chart type', async () => {
+    const chart = histogramWith(OBSERVATIONS)
+
+    await chart.appendData([{ data: [9, 9, 9] }])
+
+    // Control: the appended observations, still not the binned view.
+    expect(chart.w.globals.initialSeries[0].data).toEqual([
+      ...OBSERVATIONS,
+      9,
+      9,
+      9,
+    ])
+  })
+
+  it('baselines the observations when updateSeries redefines a raw-stash chart', async () => {
+    const chart = histogramWith(OBSERVATIONS)
+
+    await chart.updateSeries([{ name: 'Sample', data: [5, 5, 6, 7, 7, 7, 8] }])
+
+    expect(chart.w.globals.initialSeries[0].data).toEqual([5, 5, 6, 7, 7, 7, 8])
+  })
+
+  it('baselines the full input on appendData(newData, true) with dataReducer', async () => {
+    const chart = reducerChartWith(ramp(400))
+
+    await chart.appendData([{ data: ramp(1, 400) }])
+
+    expect(chart.w.globals.initialSeries[0].data).toHaveLength(401)
+  })
+
+  it('keeps appended points across a re-render with dataReducer', async () => {
+    const chart = reducerChartWith(ramp(400))
+
+    await chart.appendData([{ data: ramp(1, 400) }])
+    await chart.update()
+
+    expect(chart.w.globals.dataReducerRawSeries[0].data).toHaveLength(401)
   })
 
   it('still moves the baseline on appendData(newData, true)', async () => {

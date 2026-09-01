@@ -802,7 +802,7 @@ export interface ChartContext {
   eventList: string[]
 
   // Public methods on the ApexCharts instance
-  update(options?: any): Promise<any>
+  update(options?: any, overwriteInitialSeries?: boolean): Promise<any>
   getSyncedCharts(): any[]
   getGroupedCharts(): any[]
   fastUpdate(animate?: boolean, prevAxisScaleSig?: string): Promise<any>
