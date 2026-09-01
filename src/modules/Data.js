@@ -1919,8 +1919,11 @@ export default class Data {
   // Segregate user provided data into appropriate vars
   /**
    * @param {any[]} ser
+   * @param {boolean} [overwriteInitialSeries] false when the caller is handing
+   *   back the series the chart already has (an internal re-render), so the
+   *   baseline resetSeries() restores must not move.
    */
-  parseData(ser) {
+  parseData(ser, overwriteInitialSeries = true) {
     const w = this.w
     const cnf = w.config
     const gl = w.globals
@@ -2023,7 +2026,7 @@ export default class Data {
       // Same reason again: `ser` is the flattened leaves, so snapshotting it
       // would make resetSeries() restore a treemap that has lost its levels.
       gl.initialSeries = gl.treemapRawSeries
-    } else {
+    } else if (overwriteInitialSeries) {
       // lazy snapshot: the globals setter stores a cheap per-series shallow
       // copy; the deep clone materializes only if something reads it
       gl.initialSeries = ser
