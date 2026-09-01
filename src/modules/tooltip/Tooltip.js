@@ -1139,11 +1139,12 @@ export default class Tooltip {
         x = anchor.x - tooltipRect.ttWidth / 2
         y = anchor.y - tooltipRect.ttHeight - 10
       } else {
+        const zoom = w.dom.elWrap.currentCSSZoom || 1
         x =
-          (w.interact.clientX ?? 0) - seriesBound.left - tooltipRect.ttWidth / 2
+          ((w.interact.clientX ?? 0) - seriesBound.left) / zoom -
+          tooltipRect.ttWidth / 2
         y =
-          (w.interact.clientY ?? 0) -
-          seriesBound.top -
+          ((w.interact.clientY ?? 0) - seriesBound.top) / zoom -
           tooltipRect.ttHeight -
           10
       }
