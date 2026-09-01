@@ -180,9 +180,10 @@ export default class UpdateHelpers {
                 ? prevInitialSeries
                 : Utils.copySeriesShallow(w.config.series)
             w.globals.initialConfig = initialConfig
-            // lazy snapshot: deep clone deferred to first read
-            w.globals.initialSeries = w.config.series
-
+            if (options.series) {
+              // lazy snapshot: deep clone deferred to first read
+              w.globals.initialSeries = w.config.series
+            }
           }
 
           // Keep legend-hidden (collapsed) series hidden across ANY series
@@ -279,7 +280,10 @@ export default class UpdateHelpers {
 
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.
-      const parsedState = this.ctx.data.parseData(newSeries)
+      const parsedState = this.ctx.data.parseData(
+        newSeries,
+        overwriteInitialSeries,
+      )
       this.ctx._writeParsedSeriesData(parsedState.seriesData)
       this.ctx._writeParsedRangeData(parsedState.rangeData)
       this.ctx._writeParsedCandleData(parsedState.candleData)
@@ -291,14 +295,15 @@ export default class UpdateHelpers {
         // defined. A copy, never the live array: this site used to assign
         // w.config.series itself, restoring the very alias #5118 came from, so
         // one updateSeries() would undo the capture Globals.init now makes.
-        // initialSeries was already captured by parseData above through the
-        // lazy-snapshot setter, so no deep clone happens here either.
+        // initialSeries stays as parseData left it: on the raw-stash and
+        // dataReducer types config.series holds rows this library derived, and
+        // reassigning it here made the baseline the bin counts, the accumulated
+        // pairs or the downsampled window rather than the input (#5283).
         if (w.globals.initialConfig) {
           w.globals.initialConfig.series = Utils.copySeriesShallow(
             w.config.series,
           )
         }
-        w.globals.initialSeries = w.config.series
       }
 
       // Use the fast path when the series structure is compatible:
