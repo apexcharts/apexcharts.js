@@ -198,6 +198,15 @@ class Intersect {
         (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
     }
 
+    // Clamp tooltip within grid bounds so it doesn't overflow the
+    // screen on small viewports (fixes treemap tooltip on mobile).
+    const ttW = ttCtx.tooltipRect.ttWidth || 0
+    const ttH = ttCtx.tooltipRect.ttHeight || 0
+    if (x < 0) x = 0
+    if (x + ttW > w.layout.gridWidth) x = w.layout.gridWidth - ttW
+    if (y < 0) y = 0
+    if (y + ttH > w.layout.gridHeight) y = w.layout.gridHeight - ttH
+
     return {
       x,
       y,
