@@ -1919,7 +1919,7 @@ export default class Data {
   // Segregate user provided data into appropriate vars
   /**
    * @param {any[]} ser
-   * @param {boolean} [overwriteInitialSeries] false when the caller is handing
+   * @param {boolean} [overwriteInitialSeries=true] false when the caller hands
    *   back the series the chart already has (an internal re-render), so the
    *   baseline resetSeries() restores must not move.
    */
@@ -1996,7 +1996,10 @@ export default class Data {
     // Re-cloning from cnf.series each parse would corrupt initialSeries and
     // break resetZoom (it would only restore one zoom step). Instead, snapshot
     // from the raw stash so initialSeries always represents the true input.
-    if (gl.dataReducerRawSeries && cnf.chart.dataReducer?.enabled) {
+    if (!overwriteInitialSeries) {
+      // An internal re-render replays the series the chart already has, so the
+      // baseline it was given stays put (#5283).
+    } else if (gl.dataReducerRawSeries && cnf.chart.dataReducer?.enabled) {
       const stash = gl.dataReducerRawSeries
       gl.initialSeries = ser.map((s, i) => ({
         ...s,
@@ -2026,7 +2029,7 @@ export default class Data {
       // Same reason again: `ser` is the flattened leaves, so snapshotting it
       // would make resetSeries() restore a treemap that has lost its levels.
       gl.initialSeries = gl.treemapRawSeries
-    } else if (overwriteInitialSeries) {
+    } else {
       // lazy snapshot: the globals setter stores a cheap per-series shallow
       // copy; the deep clone materializes only if something reads it
       gl.initialSeries = ser

@@ -48,11 +48,24 @@ describe('initialSeries across a re-render', () => {
     expect(chart.w.config.series[0].data).toEqual([1, 2, 3, 99])
   })
 
+  it('honours appendData(newData, false) on a raw-stash chart type', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'histogram', width: 600, height: 400 },
+      series: [{ name: 'Sample', data: [1, 2, 2, 3, 3, 3, 4] }],
+    })
+
+    await chart.appendData([{ data: [9, 9, 9] }], false)
+
+    // The stash the snapshot points at, not the binned view.
+    expect(chart.w.globals.initialSeries[0].data).toEqual([1, 2, 2, 3, 3, 3, 4])
+  })
+
   it('still moves the baseline on appendData(newData, true)', async () => {
     const chart = chartWith([SERIES[0]])
 
     await chart.appendData([{ data: [99] }])
 
+    // Control: a call that redefines the series is allowed to move it.
     expect(chart.w.globals.initialSeries[0].data).toEqual([1, 2, 3, 99])
   })
 
@@ -65,6 +78,7 @@ describe('initialSeries across a re-render', () => {
       { name: 'B', data: [10, 11, 12] },
     ])
 
+    // Control, as above: the collapse must not survive as an empty baseline.
     expect(chart.w.globals.initialSeries[1].data).toEqual([10, 11, 12])
   })
 

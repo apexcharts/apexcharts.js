@@ -184,7 +184,6 @@ export default class UpdateHelpers {
               // lazy snapshot: deep clone deferred to first read
               w.globals.initialSeries = w.config.series
             }
-
           }
 
           // Keep legend-hidden (collapsed) series hidden across ANY series

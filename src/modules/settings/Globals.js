@@ -555,9 +555,9 @@ export default class Globals {
    * copied at capture time.
    *
    * appendData() used to be the exception, growing the shared data array in
-   * place. It now replaces the array instead (`data = data.concat(newData)`),
-   * one array copy per call against the per-point cost this snapshot exists to
-   * avoid, so no internal edit reaches a captured copy any more. The same
+   * place. It now replaces the array instead (`data = data.concat(newData)`):
+   * one array copy per call, against the per-point cost this snapshot exists
+   * to avoid. With that, no internal edit can reach a captured copy. The same
    * holds for `initialConfig.series`, which is captured with the same shape.
    *
    * @param {Record<string, any>} globals
