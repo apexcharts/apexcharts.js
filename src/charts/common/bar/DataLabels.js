@@ -515,6 +515,30 @@ export default class BarDataLabels {
       }
     }
 
+    // Clamp dataLabelsX to prevent labels from extending past the grid
+    // edges and covering the y-axis labels or spilling off the right side.
+    // This mirrors the left-edge/right-edge clipping already present in
+    // calculateBarsDataLabelsPosition (horizontal bars) at lines 562-590.
+    if (dataLabelsConfig.textAnchor === 'middle') {
+      if (dataLabelsX - textRects.width / 2 < 0) {
+        dataLabelsX = textRects.width / 2 + strokeWidth
+      } else if (dataLabelsX + textRects.width / 2 > w.layout.gridWidth) {
+        dataLabelsX = w.layout.gridWidth - textRects.width / 2 - strokeWidth
+      }
+    } else if (dataLabelsConfig.textAnchor === 'start') {
+      if (dataLabelsX < 0) {
+        dataLabelsX = strokeWidth
+      } else if (dataLabelsX + textRects.width > w.layout.gridWidth) {
+        dataLabelsX = w.layout.gridWidth - textRects.width - strokeWidth
+      }
+    } else if (dataLabelsConfig.textAnchor === 'end') {
+      if (dataLabelsX < 1) {
+        dataLabelsX = textRects.width + strokeWidth
+      } else if (dataLabelsX + 1 > w.layout.gridWidth) {
+        dataLabelsX = w.layout.gridWidth - textRects.width - strokeWidth
+      }
+    }
+
     return {
       bcx,
       bcy: y,
