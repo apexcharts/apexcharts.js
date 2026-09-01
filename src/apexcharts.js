@@ -400,7 +400,7 @@ export default class ApexCharts {
   /**
    * @param {any[]} ser
    * @param {object} opts
-   * @param {boolean} [overwriteInitialSeries]
+   * @param {boolean} [overwriteInitialSeries=true]
    */
   create(ser, opts, overwriteInitialSeries = true) {
     const w = this.w
@@ -1042,9 +1042,7 @@ export default class ApexCharts {
           Array.isArray(src.data) &&
           Array.isArray(derivedRaw[i].data)
         ) {
-          for (let j = 0; j < src.data.length; j++) {
-            derivedRaw[i].data.push(src.data[j])
-          }
+          derivedRaw[i].data = derivedRaw[i].data.concat(src.data)
         }
       }
       return this.update()
