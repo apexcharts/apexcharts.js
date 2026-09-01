@@ -400,8 +400,9 @@ export default class ApexCharts {
   /**
    * @param {any[]} ser
    * @param {object} opts
+   * @param {boolean} [overwriteInitialSeries]
    */
-  create(ser, opts) {
+  create(ser, opts, overwriteInitialSeries = true) {
     const w = this.w
 
     // Core modules are preserved across updates (Destroy.clear skips them when
@@ -483,7 +484,7 @@ export default class ApexCharts {
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
     // Phase 1: return value is captured; named writers are stubs (mutations already wrote to gl).
     // Phase 2: writers will route each slice to its dedicated w.* namespace.
-    const parsedState = this.data.parseData(series)
+    const parsedState = this.data.parseData(series, overwriteInitialSeries)
     this._writeParsedSeriesData(parsedState.seriesData)
     this._writeParsedRangeData(parsedState.rangeData)
     this._writeParsedCandleData(parsedState.candleData)
@@ -1056,9 +1057,10 @@ export default class ApexCharts {
         // series entries are always ApexAxisChartSeries objects here
         const srcSerie = /** @type {any} */ (newData[i])
         const dstSerie = /** @type {any} */ (newSeries[i])
-        for (let j = 0; j < srcSerie.data.length; j++) {
-          dstSerie.data.push(srcSerie.data[j])
-        }
+        // Replace the array rather than push into it: the snapshots share this
+        // array, and growing it in place is the one internal mutation they
+        // cannot be shielded from.
+        dstSerie.data = dstSerie.data.concat(srcSerie.data)
       }
     }
 
@@ -1125,7 +1127,10 @@ export default class ApexCharts {
 
       new Destroy(this.ctx).clear({ isUpdating: true })
 
-      const graphData = this.create(this.w.config.series, options ?? {})
+      // A re-render replays w.config.series, which carries whatever the last
+      // legend collapse or appendData did to it. Whoever redefined the series
+      // captured the baseline already; this parse must not move it (#5283).
+      const graphData = this.create(this.w.config.series, options ?? {}, false)
       if (!graphData) return resolve(this)
       this.mount(graphData)
         .then(() => {

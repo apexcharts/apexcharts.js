@@ -180,8 +180,10 @@ export default class UpdateHelpers {
                 ? prevInitialSeries
                 : Utils.copySeriesShallow(w.config.series)
             w.globals.initialConfig = initialConfig
-            // lazy snapshot: deep clone deferred to first read
-            w.globals.initialSeries = w.config.series
+            if (options.series) {
+              // lazy snapshot: deep clone deferred to first read
+              w.globals.initialSeries = w.config.series
+            }
 
           }
 
@@ -279,7 +281,10 @@ export default class UpdateHelpers {
 
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.
-      const parsedState = this.ctx.data.parseData(newSeries)
+      const parsedState = this.ctx.data.parseData(
+        newSeries,
+        overwriteInitialSeries,
+      )
       this.ctx._writeParsedSeriesData(parsedState.seriesData)
       this.ctx._writeParsedRangeData(parsedState.rangeData)
       this.ctx._writeParsedCandleData(parsedState.candleData)
