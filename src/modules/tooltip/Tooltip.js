@@ -770,15 +770,33 @@ export default class Tooltip {
        */
       chartGroups.forEach((ch) => {
         const tooltipEl = this.getElTooltip(ch)
+        const elGrid = ch.w.globals.tooltip.getElGrid()
+        const sourceRect = opt.elGrid?.getBoundingClientRect()
+        const targetRect = elGrid?.getBoundingClientRect()
+        const pointer = e.type === 'touchmove' ? e.touches[0] : e
+        const clientX =
+          sourceRect && targetRect
+            ? targetRect.left +
+              ((pointer.clientX - sourceRect.left) / sourceRect.width) *
+                targetRect.width
+            : pointer.clientX
+        const clientY =
+          sourceRect && targetRect
+            ? targetRect.top +
+              ((pointer.clientY - sourceRect.top) / sourceRect.height) *
+                targetRect.height
+            : pointer.clientY
 
         const newOpts = {
           paths: opt.paths,
           tooltipEl,
           tooltipY: opt.tooltipY,
           tooltipX: opt.tooltipX,
-          elGrid: opt.elGrid,
-          hoverArea: opt.hoverArea,
+          elGrid: elGrid || opt.elGrid,
+          hoverArea: ch.w.dom.Paper?.node || opt.hoverArea,
           ttItems: ch.w.globals.tooltip.ttItems,
+          clientX,
+          clientY,
         }
 
         // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
@@ -868,8 +886,12 @@ export default class Tooltip {
 
     const seriesBound = opt.elGrid.getBoundingClientRect()
 
-    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
-    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
+    const clientX =
+      opt.clientX ??
+      (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX)
+    const clientY =
+      opt.clientY ??
+      (e.type === 'touchmove' ? e.touches[0].clientY : e.clientY)
 
     this.clientY = clientY
     this.clientX = clientX

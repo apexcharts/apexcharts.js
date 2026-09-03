@@ -70,4 +70,59 @@ test.describe('Synchronized charts tooltip sync', () => {
     expect(active).toContain('#chart-line2') // the hovered chart itself
     expect(active).toHaveLength(3)
   })
+
+  test('side-by-side sparklines translate the pointer into each chart', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('line', 'syncing-charts')
+    await page.evaluate(async () => {
+      window.chart.destroy()
+      window.chartLine2.destroy()
+      window.chartArea.destroy()
+      document.body.innerHTML =
+        '<div style="display:flex"><div id="spark-a"></div><div id="spark-b"></div></div>'
+
+      const options = (id, data) => ({
+        chart: {
+          id,
+          group: 'sparks',
+          type: 'line',
+          width: 300,
+          height: 80,
+          sparkline: { enabled: true },
+          animations: { enabled: false },
+        },
+        series: [{ data }],
+        grid: { padding: { left: 110 } },
+        markers: { size: 0 },
+      })
+
+      window.sparkA = new ApexCharts(
+        document.querySelector('#spark-a'),
+        options('spark-a', [25, 66, 41, 59, 25, 44, 12, 36, 9, 21]),
+      )
+      window.sparkB = new ApexCharts(
+        document.querySelector('#spark-b'),
+        options('spark-b', [12, 14, 2, 47, 32, 44, 14, 55, 41, 69]),
+      )
+      await Promise.all([window.sparkA.render(), window.sparkB.render()])
+    })
+
+    const box = await page.locator('#spark-a .apexcharts-svg').boundingBox()
+    await page.mouse.move(box.x + box.width * 0.75, box.y + box.height / 2)
+    await page.waitForTimeout(80)
+
+    for (const id of ['#spark-a', '#spark-b']) {
+      await expect(page.locator(`${id} .apexcharts-tooltip`)).not.toHaveText('')
+      await expect(page.locator(`${id} .apexcharts-xcrosshairs`)).toHaveClass(
+        /apexcharts-active/,
+      )
+    }
+    const indices = await page.evaluate(() => [
+      window.sparkA.w.interact.capturedDataPointIndex,
+      window.sparkB.w.interact.capturedDataPointIndex,
+    ])
+    expect(indices[1]).toBe(indices[0])
+  })
 })
