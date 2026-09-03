@@ -80,10 +80,9 @@ class Utils {
   // `series[i] = 0` for non-axis charts), and those cannot reach a copy made
   // this way because the series object was copied at capture time. The
   // exception is appendData(), whose push loop grows the shared data array in
-  // place, so a copy taken before it does see the appended points; see the
-  // note above defineLazyInitialSeries(). This is the same cheap shape
-  // `globals.initialSeries` captures, so snapshotting a config stays O(n)
-  // instead of deep-cloning every point.
+  // place; its opt-out path materializes the snapshot before appending. This is
+  // the same cheap shape `globals.initialSeries` captures, so snapshotting a
+  // config stays O(n) instead of deep-cloning every point.
   /**
    * @param {any} series
    */

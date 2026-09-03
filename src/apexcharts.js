@@ -1011,6 +1011,9 @@ export default class ApexCharts {
    */
   appendData(newData, overwriteInitialSeries = true) {
     const me = this
+    const initialSeries = overwriteInitialSeries
+      ? undefined
+      : me.w.globals.initialSeries
 
     me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
@@ -1046,7 +1049,9 @@ export default class ApexCharts {
           }
         }
       }
-      return this.update()
+      const updated = this.update()
+      if (!overwriteInitialSeries) me.w.globals.initialSeries = initialSeries
+      return updated
     }
 
     const newSeries = me.w.config.series.slice()
@@ -1073,7 +1078,9 @@ export default class ApexCharts {
       me.w.globals.initialSeries = me.w.config.series
     }
 
-    return this.update()
+    const updated = this.update()
+    if (!overwriteInitialSeries) me.w.globals.initialSeries = initialSeries
+    return updated
   }
 
   /**

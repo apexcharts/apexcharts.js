@@ -339,6 +339,7 @@ export default class Helpers {
   /** @param {{seriesEl: any, realIndex: any}} opts */
   hideSeries({ seriesEl, realIndex }) {
     const w = this.w
+    const initialSeries = w.globals._initialSeriesPeek
 
     const series = this.getSeriesAfterCollapsing({
       realIndex,
@@ -371,6 +372,7 @@ export default class Helpers {
       w.globals.collapsingSeriesIndices = []
     }
     const updated = this.lgCtx.updateSeries(series, animate)
+    w.globals.initialSeries = initialSeries
     // The render is synchronous inside updateSeries, so the flag has already
     // done its job by the time this returns; the promise arm is the guard for
     // any path that defers.

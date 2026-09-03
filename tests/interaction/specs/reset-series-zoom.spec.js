@@ -119,3 +119,20 @@ test('resetSeries() matches the toolbar reset button after a drag zoom', async (
 
   expect(viaResetSeries).toEqual(viaToolbar)
 })
+
+test('resetSeries() restores a hidden series', async ({ page, loadChart }) => {
+  await loadChart(CHART, FIXTURE)
+
+  const result = await page.evaluate(async () => {
+    const data = window.chart.w.config.series[0].data.slice()
+    await window.chart.updateSeries([
+      { name: 'A', data },
+      { name: 'B', data: data.map((point) => [...point]) },
+    ])
+    window.chart.hideSeries('B')
+    await window.chart.resetSeries()
+    return { expected: data, restored: window.chart.w.config.series[1].data }
+  })
+
+  expect(result.restored).toEqual(result.expected)
+})

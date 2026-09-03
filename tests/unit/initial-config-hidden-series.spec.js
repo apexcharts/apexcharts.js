@@ -29,6 +29,24 @@ describe('initialConfig with a hidden series', () => {
     expect(chart.w.globals.initialConfig.series[1].data).toEqual([4, 5, 6])
   })
 
+  it('restores a hidden series on resetSeries', () => {
+    const chart = chartWith(SERIES)
+
+    chart.hideSeries('B')
+    chart.resetSeries(false)
+
+    expect(chart.w.config.series[1].data).toEqual([4, 5, 6])
+  })
+
+  it('preserves the baseline when appendData opts out of overwriting it', async () => {
+    const chart = chartWith(SERIES)
+
+    await chart.appendData([{ data: [7] }, { data: [8] }], false)
+
+    expect(chart.w.globals.initialSeries[0].data).toEqual([1, 2, 3])
+    expect(chart.w.globals.initialSeries[1].data).toEqual([4, 5, 6])
+  })
+
   it('keeps the hidden series data across updateOptions', async () => {
     const chart = chartWith(SERIES)
     chart.hideSeries('B')

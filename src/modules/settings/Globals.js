@@ -558,12 +558,10 @@ export default class Globals {
    * data array. Re-capturing after it does not undo that: the pushed points
    * are already in the array both snapshots point at, so a snapshot taken
    * before the append reads back as appended. That is the documented
-   * behaviour of appendData(overwriteInitialSeries = true), and the `false`
-   * case is not honoured for a separate, older reason: Data.parseData()
-   * re-captures initialSeries unconditionally on the re-render appendData
-   * triggers. Detaching would mean copying the data arrays, which is exactly
-   * the per-point cost this snapshot exists to avoid. The same exception
-   * applies to `initialConfig.series`, which is captured with the same shape.
+   * behaviour of appendData(overwriteInitialSeries = true). The opt-out path
+   * materializes the lazy snapshot before mutating so it can restore it after
+   * the re-render. The same exception applies to `initialConfig.series`, which
+   * is captured with the same shape.
    *
    * @param {Record<string, any>} globals
    */
