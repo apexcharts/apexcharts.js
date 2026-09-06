@@ -170,6 +170,12 @@ export default class PointAnnotations {
    * "moved into the chart" behaviour users expect. Nudge the label's x
    * inward just enough to keep its full rendered width inside the grid.
    *
+   * What has to fit is the label's BOX, not its text node: `label.style.background`
+   * is set by default, and `Helpers.annotationsBackground` draws that background
+   * from the rendered text's bounds plus `label.style.padding`. Clamping the text
+   * alone leaves the drawn box overhanging by the padding, which still clips on a
+   * chart whose grid meets the SVG edge (a sparkline, or zero chart padding).
+   *
    * @param {string} text
    * @param {number} x anchor x, already including `label.offsetX`
    * @param {Record<string, any>} label `anno.label`
@@ -204,6 +210,13 @@ export default class PointAnnotations {
         leftEdge = x - labelWidth / 2
         rightEdge = x + labelWidth / 2
     }
+
+    // Grow the edges to the background box. `orientation: 'vertical'` swaps the
+    // padding pairs in annotationsBackground, but a point annotation's label is
+    // never rotated, so the horizontal pair is always the horizontal one here.
+    const padding = label.style.padding || {}
+    leftEdge -= padding.left || 0
+    rightEdge += padding.right || 0
 
     if (leftEdge < 0) {
       return x - leftEdge

@@ -81,6 +81,11 @@ test.describe('Point annotation labels stay inside the plot area', () => {
       })
     })
 
+    // Measure the label BOX, not the text node. `label.style.background` is on
+    // by default and `annotationsBackground` draws that rect around the text
+    // plus `label.style.padding`, so the rect is what overhangs the grid and
+    // what the SVG viewport clips. Asserting on the <text> alone passes while
+    // the drawn label still pokes out by the padding on each side.
     const bounds = await page.evaluate(() => {
       const grid = document
         .querySelector('.apexcharts-grid')
@@ -92,8 +97,19 @@ test.describe('Point annotation labels stay inside the plot area', () => {
         gridLeft: grid.left,
         gridRight: grid.right,
         labels: labels.map((el) => {
-          const r = el.getBoundingClientRect()
-          return { text: el.textContent, left: r.left, right: r.right }
+          const text = el.getBoundingClientRect()
+          // The background rect is inserted immediately before its label.
+          const bg = el.previousElementSibling
+          const box =
+            bg && bg.tagName.toLowerCase() === 'rect'
+              ? bg.getBoundingClientRect()
+              : text
+          return {
+            text: el.textContent,
+            hasBackground: box !== text,
+            left: box.left,
+            right: box.right,
+          }
         }),
       }
     })
@@ -101,6 +117,12 @@ test.describe('Point annotation labels stay inside the plot area', () => {
     expect(bounds.labels).toHaveLength(2)
 
     for (const label of bounds.labels) {
+      // Guard the guard: if the background stops being drawn, this test must
+      // fail loudly rather than quietly fall back to measuring the text.
+      expect(
+        label.hasBackground,
+        'expected a background rect to measure',
+      ).toBe(true)
       expect(label.left).toBeGreaterThanOrEqual(
         bounds.gridLeft - TOLERANCE_PX,
       )
