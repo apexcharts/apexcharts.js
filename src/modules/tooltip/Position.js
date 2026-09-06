@@ -301,14 +301,18 @@ export default class Position {
       if (!elGrid) return null
       const seriesBound = elGrid.getBoundingClientRect()
 
-      x = ttCtx.e.clientX - seriesBound.left
+      // Same pairing rule as the canvas hit test in Intersect: `seriesBound` is
+      // this chart's own grid, so measure from this chart's pointer. `ttCtx.e`
+      // is the raw event and in a group it belongs to the hovered sibling, so
+      // on its own it would place the box a chart-width outside the plot.
+      x = (ttCtx.clientX ?? ttCtx.e.clientX) - seriesBound.left
       if (x > w.layout.gridWidth / 2) {
         x = x - ttW
         placement = 'left'
       } else {
         placement = 'right'
       }
-      y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
+      y = (ttCtx.clientY ?? ttCtx.e.clientY) + w.layout.translateY - seriesBound.top
       if (y > w.layout.gridHeight / 2) {
         y = y - ttH
       }
