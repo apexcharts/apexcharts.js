@@ -83,7 +83,7 @@ Browse [100+ ready-to-use samples](https://apexcharts.com/javascript-chart-demos
 ## Chart types
 
 - [Line](https://apexcharts.com/javascript-chart-demos/line-charts/) · [Area](https://apexcharts.com/javascript-chart-demos/area-charts/) · [Range Area](https://apexcharts.com/javascript-chart-demos/range-area-charts/)
-- [Bar](https://apexcharts.com/javascript-chart-demos/bar-charts/) · [Column](https://apexcharts.com/javascript-chart-demos/column-charts/) · [Range Bar / Timeline](https://apexcharts.com/javascript-chart-demos/range-bar-charts/) 
+- [Bar](https://apexcharts.com/javascript-chart-demos/bar-charts/) · [Column](https://apexcharts.com/javascript-chart-demos/column-charts/) · [Range Bar / Timeline](https://apexcharts.com/javascript-chart-demos/timeline-charts/) 
 - [Scatter](https://apexcharts.com/javascript-chart-demos/scatter-charts/) · [Bubble](https://apexcharts.com/javascript-chart-demos/bubble-charts/)
 - [Candlestick](https://apexcharts.com/javascript-chart-demos/candlestick-charts/) · [BoxPlot](https://apexcharts.com/javascript-chart-demos/boxplot-charts/) · [Violin](samples/vanilla-js/violin/)
 - [Pie](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Donut](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Polar Area](https://apexcharts.com/javascript-chart-demos/polar-area-charts/) · [Radial Bar / Gauge](https://apexcharts.com/javascript-chart-demos/radialbar-charts/)
@@ -307,7 +307,7 @@ We've partnered with [Infragistics](https://www.infragistics.com/), creators of 
 
 Available for:
 
-[Angular](https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid) · [React](https://www.infragistics.com/products/ignite-ui-react/react/components/grids) · [Blazor](https://www.infragistics.com/products/ignite-ui-blazor/blazor/components/data-grid) · [Web Components](https://www.infragistics.com/products/ignite-ui-web-components/web-components/components/data-grid) · [jQuery](https://www.igniteui.com/grid/overview)
+[Angular](https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid) · [React](https://www.infragistics.com/products/ignite-ui-react/react/components/grids/data-grid) · [Blazor](https://www.infragistics.com/products/ignite-ui-blazor/blazor/components/data-grid) · [Web Components](https://www.infragistics.com/products/ignite-ui-web-components/web-components/components/data-grid) · [jQuery](https://www.igniteui.com/grid/overview)
 
 ## Contact
 
