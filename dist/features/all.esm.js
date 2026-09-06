@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.2.0-rc.1
+ * ApexCharts v7.2.0-rc.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -3251,6 +3251,7 @@ const INERTIA_DEFAULT_FRICTION = 0.92;
 const INERTIA_STOP_VELOCITY = 0.02;
 const FRAME_MS_60FPS = 16.6667;
 const PAN_NUDGE_DIVISOR = 15;
+const PLOT_ORIGIN_PX = 0;
 class ZoomPanSelection extends Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -3590,6 +3591,7 @@ class ZoomPanSelection extends Toolbar {
         }
       }).resize().on("resize", () => {
         var _a;
+        this._clampSelectionRectToPlot();
         if (w.interact.selectionEnabled) {
           w.interact.selection = {
             x: parseFloat(this.selectionRect.node.getAttribute("x")),
@@ -3689,6 +3691,32 @@ class ZoomPanSelection extends Toolbar {
         Graphics.setAttrs(selectionRect.node, scalingAttrs);
       }
     }
+  }
+  /**
+   * Clamp the persistent selection rect to the pixel span the x-domain occupies,
+   * i.e. PLOT_ORIGIN_PX..gridWidth, which under AxisMapping is exactly
+   * minX..maxX. A body drag has always obeyed this box through `this.constraints`;
+   * this puts a handle resize on the same footing.
+   *
+   * The rect itself is rewritten rather than only the numbers reported to
+   * listeners, so the range every consumer receives keeps matching the rect the
+   * user sees (the one-mapping invariant selection-geometry.spec.js guards), and
+   * the handles are repositioned onto the clamped edge so a handle held past the
+   * boundary stays visually pinned there.
+   */
+  _clampSelectionRectToPlot() {
+    const rect = this.selectionRect;
+    if (!rect || !rect.node) return;
+    const maxPx = this.w.layout.gridWidth;
+    if (!(maxPx > PLOT_ORIGIN_PX)) return;
+    const x = parseFloat(rect.node.getAttribute("x")) || 0;
+    const width = parseFloat(rect.node.getAttribute("width")) || 0;
+    const clamp = (px) => Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx);
+    const left = clamp(x);
+    const right = clamp(x + width);
+    if (left === x && right === x + width) return;
+    rect.attr({ x: left, width: right - left });
+    if (rect._updateSelectPositions) rect._updateSelectPositions();
   }
   /**
    * @param {any} rect
@@ -5066,8 +5094,13 @@ class PointAnnotations {
       const tooltipTargets = [point.node];
       applyProgressiveReveal(point, x, w);
       const text = anno.label.text ? anno.label.text : "";
+      const labelX = this.getConstrainedLabelX(
+        text,
+        x + anno.label.offsetX,
+        anno.label
+      );
       const elText = this.annoCtx.graphics.drawText({
-        x: x + anno.label.offsetX,
+        x: labelX,
         y: y + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
         text,
         textAnchor: anno.label.textAnchor,
@@ -5132,6 +5165,62 @@ class PointAnnotations {
         point.node.addEventListener("click", anno.click.bind(this, anno));
       }
     }
+  }
+  /**
+   * A point annotation's label is centered (or start/end anchored) on the
+   * point's x position, with no width limit. Near the left or right edge of
+   * the plot a long label then renders partly outside the chart's SVG
+   * viewport, which clips it (apexcharts/apexcharts.js#5106) instead of the
+   * "moved into the chart" behaviour users expect. Nudge the label's x
+   * inward just enough to keep its full rendered width inside the grid.
+   *
+   * What has to fit is the label's BOX, not its text node: `label.style.background`
+   * is set by default, and `Helpers.annotationsBackground` draws that background
+   * from the rendered text's bounds plus `label.style.padding`. Clamping the text
+   * alone leaves the drawn box overhanging by the padding, which still clips on a
+   * chart whose grid meets the SVG edge (a sparkline, or zero chart padding).
+   *
+   * @param {string} text
+   * @param {number} x anchor x, already including `label.offsetX`
+   * @param {Record<string, any>} label `anno.label`
+   * @returns {number}
+   */
+  getConstrainedLabelX(text, x, label) {
+    const w = this.w;
+    if (!text) return x;
+    const { width: labelWidth } = this.annoCtx.graphics.getTextRects(
+      text,
+      label.style.fontSize,
+      label.style.fontFamily,
+      void 0,
+      true,
+      label.style.fontWeight
+    );
+    let leftEdge;
+    let rightEdge;
+    switch (label.textAnchor) {
+      case "start":
+        leftEdge = x;
+        rightEdge = x + labelWidth;
+        break;
+      case "end":
+        leftEdge = x - labelWidth;
+        rightEdge = x;
+        break;
+      default:
+        leftEdge = x - labelWidth / 2;
+        rightEdge = x + labelWidth / 2;
+    }
+    const padding = label.style.padding || {};
+    leftEdge -= padding.left || 0;
+    rightEdge += padding.right || 0;
+    if (leftEdge < 0) {
+      return x - leftEdge;
+    }
+    if (rightEdge > w.layout.gridWidth) {
+      return x - (rightEdge - w.layout.gridWidth);
+    }
+    return x;
   }
   /**
    * Lazily create (once per chart) and return the shared HTML element used to

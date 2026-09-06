@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v7.2.0-rc.1
+ * ApexCharts v7.2.0-rc.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -622,8 +622,13 @@ class PointAnnotations {
       const tooltipTargets = [point.node];
       applyProgressiveReveal(point, x, w);
       const text = anno.label.text ? anno.label.text : "";
+      const labelX = this.getConstrainedLabelX(
+        text,
+        x + anno.label.offsetX,
+        anno.label
+      );
       const elText = this.annoCtx.graphics.drawText({
-        x: x + anno.label.offsetX,
+        x: labelX,
         y: y + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
         text,
         textAnchor: anno.label.textAnchor,
@@ -688,6 +693,62 @@ class PointAnnotations {
         point.node.addEventListener("click", anno.click.bind(this, anno));
       }
     }
+  }
+  /**
+   * A point annotation's label is centered (or start/end anchored) on the
+   * point's x position, with no width limit. Near the left or right edge of
+   * the plot a long label then renders partly outside the chart's SVG
+   * viewport, which clips it (apexcharts/apexcharts.js#5106) instead of the
+   * "moved into the chart" behaviour users expect. Nudge the label's x
+   * inward just enough to keep its full rendered width inside the grid.
+   *
+   * What has to fit is the label's BOX, not its text node: `label.style.background`
+   * is set by default, and `Helpers.annotationsBackground` draws that background
+   * from the rendered text's bounds plus `label.style.padding`. Clamping the text
+   * alone leaves the drawn box overhanging by the padding, which still clips on a
+   * chart whose grid meets the SVG edge (a sparkline, or zero chart padding).
+   *
+   * @param {string} text
+   * @param {number} x anchor x, already including `label.offsetX`
+   * @param {Record<string, any>} label `anno.label`
+   * @returns {number}
+   */
+  getConstrainedLabelX(text, x, label) {
+    const w = this.w;
+    if (!text) return x;
+    const { width: labelWidth } = this.annoCtx.graphics.getTextRects(
+      text,
+      label.style.fontSize,
+      label.style.fontFamily,
+      void 0,
+      true,
+      label.style.fontWeight
+    );
+    let leftEdge;
+    let rightEdge;
+    switch (label.textAnchor) {
+      case "start":
+        leftEdge = x;
+        rightEdge = x + labelWidth;
+        break;
+      case "end":
+        leftEdge = x - labelWidth;
+        rightEdge = x;
+        break;
+      default:
+        leftEdge = x - labelWidth / 2;
+        rightEdge = x + labelWidth / 2;
+    }
+    const padding = label.style.padding || {};
+    leftEdge -= padding.left || 0;
+    rightEdge += padding.right || 0;
+    if (leftEdge < 0) {
+      return x - leftEdge;
+    }
+    if (rightEdge > w.layout.gridWidth) {
+      return x - (rightEdge - w.layout.gridWidth);
+    }
+    return x;
   }
   /**
    * Lazily create (once per chart) and return the shared HTML element used to

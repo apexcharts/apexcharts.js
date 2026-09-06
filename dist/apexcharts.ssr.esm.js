@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.2.0-rc.1
+ * ApexCharts v7.2.0-rc.2
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -25034,7 +25034,7 @@ class Position {
    * @returns {{ x: number, y: number, placement: 'left'|'right', arrowY: number|null } | null}
    */
   computeTooltipPosition(cx, cy, markerSize = null) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const w2 = this.w;
     const ttCtx = this.ttCtx;
     const tooltipRect = ttCtx.tooltipRect;
@@ -25064,14 +25064,14 @@ class Position {
       const elGrid = ttCtx.getElGrid();
       if (!elGrid) return null;
       const seriesBound = elGrid.getBoundingClientRect();
-      x = ttCtx.e.clientX - seriesBound.left;
+      x = ((_a = ttCtx.clientX) != null ? _a : ttCtx.e.clientX) - seriesBound.left;
       if (x > w2.layout.gridWidth / 2) {
         x = x - ttW;
         placement = "left";
       } else {
         placement = "right";
       }
-      y = ttCtx.e.clientY + w2.layout.translateY - seriesBound.top;
+      y = ((_b = ttCtx.clientY) != null ? _b : ttCtx.e.clientY) + w2.layout.translateY - seriesBound.top;
       if (y > w2.layout.gridHeight / 2) {
         y = y - ttH;
       }
@@ -25095,8 +25095,8 @@ class Position {
     }
     if (isNaN(x)) return null;
     x = x + w2.layout.translateX;
-    const a11y = (_b = (_a = w2.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.accessibility;
-    if ((a11y == null ? void 0 : a11y.enabled) && ((_d = (_c = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _c.navigation) == null ? void 0 : _d.enabled) && ((_g = (_f = (_e = w2.dom) == null ? void 0 : _e.baseEl) == null ? void 0 : _f.querySelector) == null ? void 0 : _g.call(_f, ".apexcharts-keyboard-focused"))) {
+    const a11y = (_d = (_c = w2.config) == null ? void 0 : _c.chart) == null ? void 0 : _d.accessibility;
+    if ((a11y == null ? void 0 : a11y.enabled) && ((_f = (_e = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _e.navigation) == null ? void 0 : _f.enabled) && ((_i = (_h = (_g = w2.dom) == null ? void 0 : _g.baseEl) == null ? void 0 : _h.querySelector) == null ? void 0 : _i.call(_h, ".apexcharts-keyboard-focused"))) {
       const refPointY = arrowEnabled ? pointY : cyNum;
       const margin = (pointSize || 1) + 12;
       const tooltipTop = y;
@@ -25714,7 +25714,7 @@ class Intersect {
   // handle tooltip for heatmaps and treemaps
   /** @param {{e: any, opt: any, x: any, y: any, type: any}} opts */
   handleHeatTreeTooltip({ e: e2, opt, x, y, type }) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const ttCtx = this.ttCtx;
     const w2 = this.w;
     const renderer = w2.globals.activeRenderer;
@@ -25723,8 +25723,8 @@ class Intersect {
     let i2, j, cx, cy, width, height;
     if (canvasCells) {
       const seriesBound = opt.elGrid.getBoundingClientRect();
-      const clientX = e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
-      const clientY = e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
+      const clientX = (_a = opt.clientX) != null ? _a : e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
+      const clientY = (_b = opt.clientY) != null ? _b : e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
       const hit = renderer.hitTest(
         clientX - seriesBound.left,
         clientY - seriesBound.top
@@ -25760,9 +25760,9 @@ class Intersect {
     ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
     const tooltipEl = ttCtx.getElTooltip();
     if (type === "heatmap" && w2.config.tooltip.arrow && !w2.config.tooltip.followCursor && tooltipEl) {
-      const elGridRect = opt.elGrid.getBoundingClientRect();
+      const elGridRect2 = opt.elGrid.getBoundingClientRect();
       const elWrapRect = w2.dom.elWrap.getBoundingClientRect();
-      const gridOffsetXInElWrap = elGridRect.left - elWrapRect.left;
+      const gridOffsetXInElWrap = elGridRect2.left - elWrapRect.left;
       let clLeft, clTop, clRight, clBottom;
       if (canvasCells) {
         clLeft = cx;
@@ -25771,10 +25771,10 @@ class Intersect {
         clBottom = cy + height;
       } else {
         const r2 = hovered.getBoundingClientRect();
-        clLeft = r2.left - elGridRect.left;
-        clTop = r2.top - elGridRect.top;
-        clRight = r2.right - elGridRect.left;
-        clBottom = r2.bottom - elGridRect.top;
+        clLeft = r2.left - elGridRect2.left;
+        clTop = r2.top - elGridRect2.top;
+        clRight = r2.right - elGridRect2.left;
+        clBottom = r2.bottom - elGridRect2.top;
       }
       const ttW = ttCtx.tooltipRect.ttWidth || 0;
       const ttH = ttCtx.tooltipRect.ttHeight || 0;
@@ -25783,8 +25783,8 @@ class Intersect {
       const cellBottomInElWrap = clBottom + w2.layout.translateY;
       const gridTop = w2.layout.translateY;
       const gridBottom = w2.layout.translateY + w2.layout.gridHeight;
-      const gridLeft = gridOffsetXInElWrap;
-      const gridRight = gridOffsetXInElWrap + w2.layout.gridWidth;
+      const gridLeft2 = gridOffsetXInElWrap;
+      const gridRight2 = gridOffsetXInElWrap + w2.layout.gridWidth;
       let placement = "top";
       let finalY = cellTopInElWrap - ttH - ARROW_TIP_OVERHANG;
       if (finalY < gridTop) {
@@ -25797,8 +25797,8 @@ class Intersect {
         }
       }
       let finalX = cellCenterXInElWrap - ttW / 2;
-      if (finalX < gridLeft) finalX = gridLeft;
-      if (finalX + ttW > gridRight) finalX = gridRight - ttW;
+      if (finalX < gridLeft2) finalX = gridLeft2;
+      if (finalX + ttW > gridRight2) finalX = gridRight2 - ttW;
       const arrowX = Math.max(10, Math.min(ttW - 10, cellCenterXInElWrap - finalX));
       ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
         x: finalX,
@@ -25816,9 +25816,15 @@ class Intersect {
     }
     if (ttCtx.w.config.tooltip.followCursor) {
       const seriesBound = w2.dom.elWrap.getBoundingClientRect();
-      x = ((_a = w2.interact.clientX) != null ? _a : 0) - seriesBound.left - (x > w2.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
-      y = ((_b = w2.interact.clientY) != null ? _b : 0) - seriesBound.top - (y > w2.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
+      x = ((_c = w2.interact.clientX) != null ? _c : 0) - seriesBound.left - (x > w2.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
+      y = ((_d = w2.interact.clientY) != null ? _d : 0) - seriesBound.top - (y > w2.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
     }
+    const ttWidth = ttCtx.tooltipRect.ttWidth || 0;
+    const elGridRect = opt.elGrid ? opt.elGrid.getBoundingClientRect() : null;
+    const gridLeft = elGridRect ? elGridRect.left - w2.dom.elWrap.getBoundingClientRect().left : w2.layout.translateX;
+    const gridRight = gridLeft + w2.layout.gridWidth;
+    if (x + ttWidth > gridRight) x = gridRight - ttWidth;
+    if (x < gridLeft) x = gridLeft;
     return {
       x,
       y
@@ -26756,13 +26762,14 @@ class Tooltip {
    */
   /** @param {Record<string, any>} opt @param {any} e */
   seriesHover(opt, e2) {
+    var _a;
     if (this.w.globals.isDestroyed) return;
     this.lastHoverTime = Date.now();
     let chartGroups = [];
     const w2 = this.w;
     const isCfMember = (chart) => {
-      var _a, _b, _c;
-      const link = (_c = (_b = (_a = chart == null ? void 0 : chart.w) == null ? void 0 : _a.config) == null ? void 0 : _b.chart) == null ? void 0 : _c.link;
+      var _a2, _b, _c;
+      const link = (_c = (_b = (_a2 = chart == null ? void 0 : chart.w) == null ? void 0 : _a2.config) == null ? void 0 : _b.chart) == null ? void 0 : _c.link;
       return !!(link && typeof link.dimension === "function");
     };
     if (w2.config.chart.group && !isCfMember(this.ctx)) {
@@ -26772,16 +26779,24 @@ class Tooltip {
       return;
     }
     if (chartGroups.length) {
+      const sourceRect = (_a = opt.elGrid) == null ? void 0 : _a.getBoundingClientRect();
+      const pointer = e2.type === "touchmove" ? e2.touches[0] : e2;
       chartGroups.forEach((ch) => {
         const tooltipEl = this.getElTooltip(ch);
+        const elGrid = ch.w.globals.tooltip.getElGrid();
+        const targetRect = elGrid == null ? void 0 : elGrid.getBoundingClientRect();
+        const clientX = sourceRect && targetRect ? targetRect.left + (pointer.clientX - sourceRect.left) / sourceRect.width * targetRect.width : pointer.clientX;
+        const clientY = sourceRect && targetRect ? targetRect.top + (pointer.clientY - sourceRect.top) / sourceRect.height * targetRect.height : pointer.clientY;
         const newOpts = {
           paths: opt.paths,
           tooltipEl,
           tooltipY: opt.tooltipY,
           tooltipX: opt.tooltipX,
-          elGrid: opt.elGrid,
+          elGrid: elGrid || opt.elGrid,
           hoverArea: opt.hoverArea,
-          ttItems: ch.w.globals.tooltip.ttItems
+          ttItems: ch.w.globals.tooltip.ttItems,
+          clientX,
+          clientY
         };
         if (ch.w.globals.minX === this.w.globals.minX && ch.w.globals.maxX === this.w.globals.maxX) {
           ch.w.globals.tooltip.seriesHoverByContext({
@@ -26841,13 +26856,13 @@ class Tooltip {
   // tooltip handling for line/area/bar/columns/scatter
   /** @param {{e: any, opt: any}} opts */
   axisChartsTooltips({ e: e2, opt }) {
-    var _a;
+    var _a, _b, _c;
     const w2 = this.w;
     let x, y;
     if (!opt.elGrid) return;
     const seriesBound = opt.elGrid.getBoundingClientRect();
-    const clientX = e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
-    const clientY = e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
+    const clientX = (_a = opt.clientX) != null ? _a : e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
+    const clientY = (_b = opt.clientY) != null ? _b : e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
     this.clientY = clientY;
     this.clientX = clientX;
     w2.interact.capturedSeriesIndex = -1;
@@ -26885,7 +26900,7 @@ class Tooltip {
       if (xcrosshairs !== null) {
         xcrosshairs.classList.add("apexcharts-active");
       }
-      const hasYAxisTooltip = (_a = this.yaxisTooltips) == null ? void 0 : _a.filter(
+      const hasYAxisTooltip = (_c = this.yaxisTooltips) == null ? void 0 : _c.filter(
         (b2) => {
           return b2 === true;
         }
@@ -34968,6 +34983,7 @@ const INERTIA_DEFAULT_FRICTION = 0.92;
 const INERTIA_STOP_VELOCITY = 0.02;
 const FRAME_MS_60FPS = 16.6667;
 const PAN_NUDGE_DIVISOR = 15;
+const PLOT_ORIGIN_PX = 0;
 class ZoomPanSelection extends Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -35307,6 +35323,7 @@ class ZoomPanSelection extends Toolbar {
         }
       }).resize().on("resize", () => {
         var _a;
+        this._clampSelectionRectToPlot();
         if (w2.interact.selectionEnabled) {
           w2.interact.selection = {
             x: parseFloat(this.selectionRect.node.getAttribute("x")),
@@ -35406,6 +35423,32 @@ class ZoomPanSelection extends Toolbar {
         Graphics.setAttrs(selectionRect.node, scalingAttrs);
       }
     }
+  }
+  /**
+   * Clamp the persistent selection rect to the pixel span the x-domain occupies,
+   * i.e. PLOT_ORIGIN_PX..gridWidth, which under AxisMapping is exactly
+   * minX..maxX. A body drag has always obeyed this box through `this.constraints`;
+   * this puts a handle resize on the same footing.
+   *
+   * The rect itself is rewritten rather than only the numbers reported to
+   * listeners, so the range every consumer receives keeps matching the rect the
+   * user sees (the one-mapping invariant selection-geometry.spec.js guards), and
+   * the handles are repositioned onto the clamped edge so a handle held past the
+   * boundary stays visually pinned there.
+   */
+  _clampSelectionRectToPlot() {
+    const rect = this.selectionRect;
+    if (!rect || !rect.node) return;
+    const maxPx = this.w.layout.gridWidth;
+    if (!(maxPx > PLOT_ORIGIN_PX)) return;
+    const x = parseFloat(rect.node.getAttribute("x")) || 0;
+    const width = parseFloat(rect.node.getAttribute("width")) || 0;
+    const clamp = (px) => Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx);
+    const left = clamp(x);
+    const right = clamp(x + width);
+    if (left === x && right === x + width) return;
+    rect.attr({ x: left, width: right - left });
+    if (rect._updateSelectPositions) rect._updateSelectPositions();
   }
   /**
    * @param {any} rect
@@ -36781,8 +36824,13 @@ class PointAnnotations {
       const tooltipTargets = [point.node];
       applyProgressiveReveal(point, x, w2);
       const text = anno.label.text ? anno.label.text : "";
+      const labelX = this.getConstrainedLabelX(
+        text,
+        x + anno.label.offsetX,
+        anno.label
+      );
       const elText = this.annoCtx.graphics.drawText({
-        x: x + anno.label.offsetX,
+        x: labelX,
         y: y + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
         text,
         textAnchor: anno.label.textAnchor,
@@ -36847,6 +36895,62 @@ class PointAnnotations {
         point.node.addEventListener("click", anno.click.bind(this, anno));
       }
     }
+  }
+  /**
+   * A point annotation's label is centered (or start/end anchored) on the
+   * point's x position, with no width limit. Near the left or right edge of
+   * the plot a long label then renders partly outside the chart's SVG
+   * viewport, which clips it (apexcharts/apexcharts.js#5106) instead of the
+   * "moved into the chart" behaviour users expect. Nudge the label's x
+   * inward just enough to keep its full rendered width inside the grid.
+   *
+   * What has to fit is the label's BOX, not its text node: `label.style.background`
+   * is set by default, and `Helpers.annotationsBackground` draws that background
+   * from the rendered text's bounds plus `label.style.padding`. Clamping the text
+   * alone leaves the drawn box overhanging by the padding, which still clips on a
+   * chart whose grid meets the SVG edge (a sparkline, or zero chart padding).
+   *
+   * @param {string} text
+   * @param {number} x anchor x, already including `label.offsetX`
+   * @param {Record<string, any>} label `anno.label`
+   * @returns {number}
+   */
+  getConstrainedLabelX(text, x, label) {
+    const w2 = this.w;
+    if (!text) return x;
+    const { width: labelWidth } = this.annoCtx.graphics.getTextRects(
+      text,
+      label.style.fontSize,
+      label.style.fontFamily,
+      void 0,
+      true,
+      label.style.fontWeight
+    );
+    let leftEdge;
+    let rightEdge;
+    switch (label.textAnchor) {
+      case "start":
+        leftEdge = x;
+        rightEdge = x + labelWidth;
+        break;
+      case "end":
+        leftEdge = x - labelWidth;
+        rightEdge = x;
+        break;
+      default:
+        leftEdge = x - labelWidth / 2;
+        rightEdge = x + labelWidth / 2;
+    }
+    const padding = label.style.padding || {};
+    leftEdge -= padding.left || 0;
+    rightEdge += padding.right || 0;
+    if (leftEdge < 0) {
+      return x - leftEdge;
+    }
+    if (rightEdge > w2.layout.gridWidth) {
+      return x - (rightEdge - w2.layout.gridWidth);
+    }
+    return x;
   }
   /**
    * Lazily create (once per chart) and return the shared HTML element used to
@@ -43620,7 +43724,6 @@ class BarDataLabels {
       j,
       realIndex,
       columnGroupIndex,
-      series,
       barHeight,
       barWidth,
       barXPosition,
@@ -43726,7 +43829,16 @@ class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? series[realIndex][j] : w2.seriesData.series[realIndex][j],
+      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? (
+        // Read the percentages globally rather than out of `series`.
+        // Under `stackType: '100%'` BarStacked replaces `series` with
+        // the percentage rows, and in a combo chart it narrows them to
+        // just the series it draws as bars, so `series` is indexed by
+        // bar position while `realIndex` counts every series. A line
+        // ahead of a column pushed `realIndex` past the end and the
+        // label read a value off `undefined` (#2429).
+        w2.globals.seriesPercent[realIndex][j]
+      ) : w2.seriesData.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
@@ -44640,17 +44752,30 @@ let Helpers$1 = class Helpers4 {
    * not grouped. Order within a bucket follows series order, which is stacking
    * order.
    *
+   * `w.globals.columnSeries` (when set) is the combo chart's own list of which
+   * series it draws as bars; a line or area series never occupies a stack
+   * segment, so it is filtered out here rather than left to compete for the
+   * outermost slot (#5296).
+   *
    * @param {number} numSeries
    * @returns {number[][]}
    */
   getStackedSeriesIndices(numSeries) {
-    const groups = this.w.labelData.seriesGroups;
+    const w2 = this.w;
+    const groups = w2.labelData.seriesGroups;
+    const barIndices = w2.globals.columnSeries ? new Set(
+      /** @type {any} */
+      w2.globals.columnSeries.i
+    ) : null;
+    const isBar = (i2) => !barIndices || barIndices.has(i2);
     if (!groups || groups.length < 2) {
-      return [Array.from({ length: numSeries }, (_, i2) => i2)];
+      const bucket = Array.from({ length: numSeries }, (_, i2) => i2).filter(isBar);
+      return bucket.length ? [bucket] : [];
     }
     const buckets = Array.from({ length: groups.length }, () => []);
     const ungrouped = [];
     for (let i2 = 0; i2 < numSeries; i2++) {
+      if (!isBar(i2)) continue;
       const g2 = this.getSeriesGroupIndex(i2);
       if (g2 > -1) buckets[g2].push(i2);
       else ungrouped.push(i2);
@@ -46730,16 +46855,7 @@ class BarStacked extends Bar {
     for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
       prevBarW = prevBarW + this.groupCtx.prevXF[k][j];
     }
-    let gsi = i2;
-    if (
-      /** @type {Record<string,any>} */
-      w2.config.series[realIndex].name
-    ) {
-      gsi = seriesGroup.indexOf(
-        /** @type {Record<string,any>} */
-        w2.config.series[realIndex].name
-      );
-    }
+    const gsi = this.groupCtx.prevX.length;
     if (gsi > 0) {
       let bXP = zeroW;
       if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
@@ -46835,10 +46951,7 @@ class BarStacked extends Bar {
     for (let k = 0; k < this.groupCtx.prevYF.length; k++) {
       prevBarH = prevBarH + (!isNaN(this.groupCtx.prevYF[k][j]) ? this.groupCtx.prevYF[k][j] : 0);
     }
-    let gsi = i2;
-    if (seriesGroup) {
-      gsi = seriesGroup.indexOf(w2.seriesData.seriesNames[realIndex]);
-    }
+    const gsi = this.groupCtx.prevY.length;
     if (gsi > 0 && !w2.axisFlags.isXNumeric || gsi > 0 && w2.axisFlags.isXNumeric && w2.seriesData.seriesX[realIndex - 1][j] === w2.seriesData.seriesX[realIndex][j]) {
       let bYP;
       let prevYValue;

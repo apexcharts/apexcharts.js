@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.2.0-rc.1
+ * ApexCharts v7.2.0-rc.2
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -24368,7 +24368,7 @@ class Position {
    * @returns {{ x: number, y: number, placement: 'left'|'right', arrowY: number|null } | null}
    */
   computeTooltipPosition(cx, cy, markerSize = null) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const w = this.w;
     const ttCtx = this.ttCtx;
     const tooltipRect = ttCtx.tooltipRect;
@@ -24398,14 +24398,14 @@ class Position {
       const elGrid = ttCtx.getElGrid();
       if (!elGrid) return null;
       const seriesBound = elGrid.getBoundingClientRect();
-      x = ttCtx.e.clientX - seriesBound.left;
+      x = ((_a = ttCtx.clientX) != null ? _a : ttCtx.e.clientX) - seriesBound.left;
       if (x > w.layout.gridWidth / 2) {
         x = x - ttW;
         placement = "left";
       } else {
         placement = "right";
       }
-      y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top;
+      y = ((_b = ttCtx.clientY) != null ? _b : ttCtx.e.clientY) + w.layout.translateY - seriesBound.top;
       if (y > w.layout.gridHeight / 2) {
         y = y - ttH;
       }
@@ -24429,8 +24429,8 @@ class Position {
     }
     if (isNaN(x)) return null;
     x = x + w.layout.translateX;
-    const a11y = (_b = (_a = w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.accessibility;
-    if ((a11y == null ? void 0 : a11y.enabled) && ((_d = (_c = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _c.navigation) == null ? void 0 : _d.enabled) && ((_g = (_f = (_e = w.dom) == null ? void 0 : _e.baseEl) == null ? void 0 : _f.querySelector) == null ? void 0 : _g.call(_f, ".apexcharts-keyboard-focused"))) {
+    const a11y = (_d = (_c = w.config) == null ? void 0 : _c.chart) == null ? void 0 : _d.accessibility;
+    if ((a11y == null ? void 0 : a11y.enabled) && ((_f = (_e = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _e.navigation) == null ? void 0 : _f.enabled) && ((_i = (_h = (_g = w.dom) == null ? void 0 : _g.baseEl) == null ? void 0 : _h.querySelector) == null ? void 0 : _i.call(_h, ".apexcharts-keyboard-focused"))) {
       const refPointY = arrowEnabled ? pointY : cyNum;
       const margin = (pointSize || 1) + 12;
       const tooltipTop = y;
@@ -25048,7 +25048,7 @@ class Intersect {
   // handle tooltip for heatmaps and treemaps
   /** @param {{e: any, opt: any, x: any, y: any, type: any}} opts */
   handleHeatTreeTooltip({ e: e2, opt, x, y, type }) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const ttCtx = this.ttCtx;
     const w = this.w;
     const renderer = w.globals.activeRenderer;
@@ -25057,8 +25057,8 @@ class Intersect {
     let i2, j, cx, cy, width, height;
     if (canvasCells) {
       const seriesBound = opt.elGrid.getBoundingClientRect();
-      const clientX = e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
-      const clientY = e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
+      const clientX = (_a = opt.clientX) != null ? _a : e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
+      const clientY = (_b = opt.clientY) != null ? _b : e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
       const hit = renderer.hitTest(
         clientX - seriesBound.left,
         clientY - seriesBound.top
@@ -25094,9 +25094,9 @@ class Intersect {
     ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
     const tooltipEl = ttCtx.getElTooltip();
     if (type === "heatmap" && w.config.tooltip.arrow && !w.config.tooltip.followCursor && tooltipEl) {
-      const elGridRect = opt.elGrid.getBoundingClientRect();
+      const elGridRect2 = opt.elGrid.getBoundingClientRect();
       const elWrapRect = w.dom.elWrap.getBoundingClientRect();
-      const gridOffsetXInElWrap = elGridRect.left - elWrapRect.left;
+      const gridOffsetXInElWrap = elGridRect2.left - elWrapRect.left;
       let clLeft, clTop, clRight, clBottom;
       if (canvasCells) {
         clLeft = cx;
@@ -25105,10 +25105,10 @@ class Intersect {
         clBottom = cy + height;
       } else {
         const r2 = hovered.getBoundingClientRect();
-        clLeft = r2.left - elGridRect.left;
-        clTop = r2.top - elGridRect.top;
-        clRight = r2.right - elGridRect.left;
-        clBottom = r2.bottom - elGridRect.top;
+        clLeft = r2.left - elGridRect2.left;
+        clTop = r2.top - elGridRect2.top;
+        clRight = r2.right - elGridRect2.left;
+        clBottom = r2.bottom - elGridRect2.top;
       }
       const ttW = ttCtx.tooltipRect.ttWidth || 0;
       const ttH = ttCtx.tooltipRect.ttHeight || 0;
@@ -25117,8 +25117,8 @@ class Intersect {
       const cellBottomInElWrap = clBottom + w.layout.translateY;
       const gridTop = w.layout.translateY;
       const gridBottom = w.layout.translateY + w.layout.gridHeight;
-      const gridLeft = gridOffsetXInElWrap;
-      const gridRight = gridOffsetXInElWrap + w.layout.gridWidth;
+      const gridLeft2 = gridOffsetXInElWrap;
+      const gridRight2 = gridOffsetXInElWrap + w.layout.gridWidth;
       let placement = "top";
       let finalY = cellTopInElWrap - ttH - ARROW_TIP_OVERHANG;
       if (finalY < gridTop) {
@@ -25131,8 +25131,8 @@ class Intersect {
         }
       }
       let finalX = cellCenterXInElWrap - ttW / 2;
-      if (finalX < gridLeft) finalX = gridLeft;
-      if (finalX + ttW > gridRight) finalX = gridRight - ttW;
+      if (finalX < gridLeft2) finalX = gridLeft2;
+      if (finalX + ttW > gridRight2) finalX = gridRight2 - ttW;
       const arrowX = Math.max(10, Math.min(ttW - 10, cellCenterXInElWrap - finalX));
       ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
         x: finalX,
@@ -25150,9 +25150,15 @@ class Intersect {
     }
     if (ttCtx.w.config.tooltip.followCursor) {
       const seriesBound = w.dom.elWrap.getBoundingClientRect();
-      x = ((_a = w.interact.clientX) != null ? _a : 0) - seriesBound.left - (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
-      y = ((_b = w.interact.clientY) != null ? _b : 0) - seriesBound.top - (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
+      x = ((_c = w.interact.clientX) != null ? _c : 0) - seriesBound.left - (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
+      y = ((_d = w.interact.clientY) != null ? _d : 0) - seriesBound.top - (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
     }
+    const ttWidth = ttCtx.tooltipRect.ttWidth || 0;
+    const elGridRect = opt.elGrid ? opt.elGrid.getBoundingClientRect() : null;
+    const gridLeft = elGridRect ? elGridRect.left - w.dom.elWrap.getBoundingClientRect().left : w.layout.translateX;
+    const gridRight = gridLeft + w.layout.gridWidth;
+    if (x + ttWidth > gridRight) x = gridRight - ttWidth;
+    if (x < gridLeft) x = gridLeft;
     return {
       x,
       y
@@ -26090,13 +26096,14 @@ class Tooltip {
    */
   /** @param {Record<string, any>} opt @param {any} e */
   seriesHover(opt, e2) {
+    var _a;
     if (this.w.globals.isDestroyed) return;
     this.lastHoverTime = Date.now();
     let chartGroups = [];
     const w = this.w;
     const isCfMember = (chart) => {
-      var _a, _b, _c;
-      const link = (_c = (_b = (_a = chart == null ? void 0 : chart.w) == null ? void 0 : _a.config) == null ? void 0 : _b.chart) == null ? void 0 : _c.link;
+      var _a2, _b, _c;
+      const link = (_c = (_b = (_a2 = chart == null ? void 0 : chart.w) == null ? void 0 : _a2.config) == null ? void 0 : _b.chart) == null ? void 0 : _c.link;
       return !!(link && typeof link.dimension === "function");
     };
     if (w.config.chart.group && !isCfMember(this.ctx)) {
@@ -26106,16 +26113,24 @@ class Tooltip {
       return;
     }
     if (chartGroups.length) {
+      const sourceRect = (_a = opt.elGrid) == null ? void 0 : _a.getBoundingClientRect();
+      const pointer = e2.type === "touchmove" ? e2.touches[0] : e2;
       chartGroups.forEach((ch) => {
         const tooltipEl = this.getElTooltip(ch);
+        const elGrid = ch.w.globals.tooltip.getElGrid();
+        const targetRect = elGrid == null ? void 0 : elGrid.getBoundingClientRect();
+        const clientX = sourceRect && targetRect ? targetRect.left + (pointer.clientX - sourceRect.left) / sourceRect.width * targetRect.width : pointer.clientX;
+        const clientY = sourceRect && targetRect ? targetRect.top + (pointer.clientY - sourceRect.top) / sourceRect.height * targetRect.height : pointer.clientY;
         const newOpts = {
           paths: opt.paths,
           tooltipEl,
           tooltipY: opt.tooltipY,
           tooltipX: opt.tooltipX,
-          elGrid: opt.elGrid,
+          elGrid: elGrid || opt.elGrid,
           hoverArea: opt.hoverArea,
-          ttItems: ch.w.globals.tooltip.ttItems
+          ttItems: ch.w.globals.tooltip.ttItems,
+          clientX,
+          clientY
         };
         if (ch.w.globals.minX === this.w.globals.minX && ch.w.globals.maxX === this.w.globals.maxX) {
           ch.w.globals.tooltip.seriesHoverByContext({
@@ -26175,13 +26190,13 @@ class Tooltip {
   // tooltip handling for line/area/bar/columns/scatter
   /** @param {{e: any, opt: any}} opts */
   axisChartsTooltips({ e: e2, opt }) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     let x, y;
     if (!opt.elGrid) return;
     const seriesBound = opt.elGrid.getBoundingClientRect();
-    const clientX = e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
-    const clientY = e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
+    const clientX = (_a = opt.clientX) != null ? _a : e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
+    const clientY = (_b = opt.clientY) != null ? _b : e2.type === "touchmove" ? e2.touches[0].clientY : e2.clientY;
     this.clientY = clientY;
     this.clientX = clientX;
     w.interact.capturedSeriesIndex = -1;
@@ -26219,7 +26234,7 @@ class Tooltip {
       if (xcrosshairs !== null) {
         xcrosshairs.classList.add("apexcharts-active");
       }
-      const hasYAxisTooltip = (_a = this.yaxisTooltips) == null ? void 0 : _a.filter(
+      const hasYAxisTooltip = (_c = this.yaxisTooltips) == null ? void 0 : _c.filter(
         (b) => {
           return b === true;
         }

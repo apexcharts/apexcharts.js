@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.2.0-rc.1
+ * ApexCharts v7.2.0-rc.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -233,7 +233,6 @@ class BarDataLabels {
       j,
       realIndex,
       columnGroupIndex,
-      series,
       barHeight,
       barWidth,
       barXPosition,
@@ -339,7 +338,16 @@ class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w.config.chart.stackType === "100%" ? series[realIndex][j] : w.seriesData.series[realIndex][j],
+      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w.config.chart.stackType === "100%" ? (
+        // Read the percentages globally rather than out of `series`.
+        // Under `stackType: '100%'` BarStacked replaces `series` with
+        // the percentage rows, and in a combo chart it narrows them to
+        // just the series it draws as bars, so `series` is indexed by
+        // bar position while `realIndex` counts every series. A line
+        // ahead of a column pushed `realIndex` past the end and the
+        // label read a value off `undefined` (#2429).
+        w.globals.seriesPercent[realIndex][j]
+      ) : w.seriesData.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
@@ -1256,17 +1264,30 @@ class Helpers {
    * not grouped. Order within a bucket follows series order, which is stacking
    * order.
    *
+   * `w.globals.columnSeries` (when set) is the combo chart's own list of which
+   * series it draws as bars; a line or area series never occupies a stack
+   * segment, so it is filtered out here rather than left to compete for the
+   * outermost slot (#5296).
+   *
    * @param {number} numSeries
    * @returns {number[][]}
    */
   getStackedSeriesIndices(numSeries) {
-    const groups = this.w.labelData.seriesGroups;
+    const w = this.w;
+    const groups = w.labelData.seriesGroups;
+    const barIndices = w.globals.columnSeries ? new Set(
+      /** @type {any} */
+      w.globals.columnSeries.i
+    ) : null;
+    const isBar = (i) => !barIndices || barIndices.has(i);
     if (!groups || groups.length < 2) {
-      return [Array.from({ length: numSeries }, (_, i) => i)];
+      const bucket = Array.from({ length: numSeries }, (_, i) => i).filter(isBar);
+      return bucket.length ? [bucket] : [];
     }
     const buckets = Array.from({ length: groups.length }, () => []);
     const ungrouped = [];
     for (let i = 0; i < numSeries; i++) {
+      if (!isBar(i)) continue;
       const g = this.getSeriesGroupIndex(i);
       if (g > -1) buckets[g].push(i);
       else ungrouped.push(i);

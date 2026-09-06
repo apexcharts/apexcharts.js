@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.2.0-rc.1
+ * ApexCharts v7.2.0-rc.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -3424,6 +3424,7 @@ const INERTIA_DEFAULT_FRICTION = 0.92;
 const INERTIA_STOP_VELOCITY = 0.02;
 const FRAME_MS_60FPS = 16.6667;
 const PAN_NUDGE_DIVISOR = 15;
+const PLOT_ORIGIN_PX = 0;
 class ZoomPanSelection extends Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -3763,6 +3764,7 @@ class ZoomPanSelection extends Toolbar {
         }
       }).resize().on("resize", () => {
         var _a;
+        this._clampSelectionRectToPlot();
         if (w2.interact.selectionEnabled) {
           w2.interact.selection = {
             x: parseFloat(this.selectionRect.node.getAttribute("x")),
@@ -3862,6 +3864,32 @@ class ZoomPanSelection extends Toolbar {
         Graphics.setAttrs(selectionRect.node, scalingAttrs);
       }
     }
+  }
+  /**
+   * Clamp the persistent selection rect to the pixel span the x-domain occupies,
+   * i.e. PLOT_ORIGIN_PX..gridWidth, which under AxisMapping is exactly
+   * minX..maxX. A body drag has always obeyed this box through `this.constraints`;
+   * this puts a handle resize on the same footing.
+   *
+   * The rect itself is rewritten rather than only the numbers reported to
+   * listeners, so the range every consumer receives keeps matching the rect the
+   * user sees (the one-mapping invariant selection-geometry.spec.js guards), and
+   * the handles are repositioned onto the clamped edge so a handle held past the
+   * boundary stays visually pinned there.
+   */
+  _clampSelectionRectToPlot() {
+    const rect = this.selectionRect;
+    if (!rect || !rect.node) return;
+    const maxPx = this.w.layout.gridWidth;
+    if (!(maxPx > PLOT_ORIGIN_PX)) return;
+    const x = parseFloat(rect.node.getAttribute("x")) || 0;
+    const width = parseFloat(rect.node.getAttribute("width")) || 0;
+    const clamp = (px) => Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx);
+    const left = clamp(x);
+    const right = clamp(x + width);
+    if (left === x && right === x + width) return;
+    rect.attr({ x: left, width: right - left });
+    if (rect._updateSelectPositions) rect._updateSelectPositions();
   }
   /**
    * @param {any} rect
@@ -5237,8 +5265,13 @@ class PointAnnotations {
       const tooltipTargets = [point.node];
       applyProgressiveReveal(point, x, w2);
       const text = anno.label.text ? anno.label.text : "";
+      const labelX = this.getConstrainedLabelX(
+        text,
+        x + anno.label.offsetX,
+        anno.label
+      );
       const elText = this.annoCtx.graphics.drawText({
-        x: x + anno.label.offsetX,
+        x: labelX,
         y: y + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
         text,
         textAnchor: anno.label.textAnchor,
@@ -5303,6 +5336,62 @@ class PointAnnotations {
         point.node.addEventListener("click", anno.click.bind(this, anno));
       }
     }
+  }
+  /**
+   * A point annotation's label is centered (or start/end anchored) on the
+   * point's x position, with no width limit. Near the left or right edge of
+   * the plot a long label then renders partly outside the chart's SVG
+   * viewport, which clips it (apexcharts/apexcharts.js#5106) instead of the
+   * "moved into the chart" behaviour users expect. Nudge the label's x
+   * inward just enough to keep its full rendered width inside the grid.
+   *
+   * What has to fit is the label's BOX, not its text node: `label.style.background`
+   * is set by default, and `Helpers.annotationsBackground` draws that background
+   * from the rendered text's bounds plus `label.style.padding`. Clamping the text
+   * alone leaves the drawn box overhanging by the padding, which still clips on a
+   * chart whose grid meets the SVG edge (a sparkline, or zero chart padding).
+   *
+   * @param {string} text
+   * @param {number} x anchor x, already including `label.offsetX`
+   * @param {Record<string, any>} label `anno.label`
+   * @returns {number}
+   */
+  getConstrainedLabelX(text, x, label) {
+    const w2 = this.w;
+    if (!text) return x;
+    const { width: labelWidth } = this.annoCtx.graphics.getTextRects(
+      text,
+      label.style.fontSize,
+      label.style.fontFamily,
+      void 0,
+      true,
+      label.style.fontWeight
+    );
+    let leftEdge;
+    let rightEdge;
+    switch (label.textAnchor) {
+      case "start":
+        leftEdge = x;
+        rightEdge = x + labelWidth;
+        break;
+      case "end":
+        leftEdge = x - labelWidth;
+        rightEdge = x;
+        break;
+      default:
+        leftEdge = x - labelWidth / 2;
+        rightEdge = x + labelWidth / 2;
+    }
+    const padding = label.style.padding || {};
+    leftEdge -= padding.left || 0;
+    rightEdge += padding.right || 0;
+    if (leftEdge < 0) {
+      return x - leftEdge;
+    }
+    if (rightEdge > w2.layout.gridWidth) {
+      return x - (rightEdge - w2.layout.gridWidth);
+    }
+    return x;
   }
   /**
    * Lazily create (once per chart) and return the shared HTML element used to
@@ -12816,7 +12905,6 @@ class BarDataLabels {
       j,
       realIndex,
       columnGroupIndex,
-      series,
       barHeight,
       barWidth,
       barXPosition,
@@ -12922,7 +13010,16 @@ class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? series[realIndex][j] : w2.seriesData.series[realIndex][j],
+      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w2.config.chart.stackType === "100%" ? (
+        // Read the percentages globally rather than out of `series`.
+        // Under `stackType: '100%'` BarStacked replaces `series` with
+        // the percentage rows, and in a combo chart it narrows them to
+        // just the series it draws as bars, so `series` is indexed by
+        // bar position while `realIndex` counts every series. A line
+        // ahead of a column pushed `realIndex` past the end and the
+        // label read a value off `undefined` (#2429).
+        w2.globals.seriesPercent[realIndex][j]
+      ) : w2.seriesData.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
@@ -13836,17 +13933,30 @@ let Helpers$1 = class Helpers3 {
    * not grouped. Order within a bucket follows series order, which is stacking
    * order.
    *
+   * `w.globals.columnSeries` (when set) is the combo chart's own list of which
+   * series it draws as bars; a line or area series never occupies a stack
+   * segment, so it is filtered out here rather than left to compete for the
+   * outermost slot (#5296).
+   *
    * @param {number} numSeries
    * @returns {number[][]}
    */
   getStackedSeriesIndices(numSeries) {
-    const groups = this.w.labelData.seriesGroups;
+    const w2 = this.w;
+    const groups = w2.labelData.seriesGroups;
+    const barIndices = w2.globals.columnSeries ? new Set(
+      /** @type {any} */
+      w2.globals.columnSeries.i
+    ) : null;
+    const isBar = (i) => !barIndices || barIndices.has(i);
     if (!groups || groups.length < 2) {
-      return [Array.from({ length: numSeries }, (_, i) => i)];
+      const bucket = Array.from({ length: numSeries }, (_, i) => i).filter(isBar);
+      return bucket.length ? [bucket] : [];
     }
     const buckets = Array.from({ length: groups.length }, () => []);
     const ungrouped = [];
     for (let i = 0; i < numSeries; i++) {
+      if (!isBar(i)) continue;
       const g2 = this.getSeriesGroupIndex(i);
       if (g2 > -1) buckets[g2].push(i);
       else ungrouped.push(i);
@@ -15926,16 +16036,7 @@ class BarStacked extends Bar {
     for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
       prevBarW = prevBarW + this.groupCtx.prevXF[k][j];
     }
-    let gsi = i;
-    if (
-      /** @type {Record<string,any>} */
-      w2.config.series[realIndex].name
-    ) {
-      gsi = seriesGroup.indexOf(
-        /** @type {Record<string,any>} */
-        w2.config.series[realIndex].name
-      );
-    }
+    const gsi = this.groupCtx.prevX.length;
     if (gsi > 0) {
       let bXP = zeroW;
       if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
@@ -16031,10 +16132,7 @@ class BarStacked extends Bar {
     for (let k = 0; k < this.groupCtx.prevYF.length; k++) {
       prevBarH = prevBarH + (!isNaN(this.groupCtx.prevYF[k][j]) ? this.groupCtx.prevYF[k][j] : 0);
     }
-    let gsi = i;
-    if (seriesGroup) {
-      gsi = seriesGroup.indexOf(w2.seriesData.seriesNames[realIndex]);
-    }
+    const gsi = this.groupCtx.prevY.length;
     if (gsi > 0 && !w2.axisFlags.isXNumeric || gsi > 0 && w2.axisFlags.isXNumeric && w2.seriesData.seriesX[realIndex - 1][j] === w2.seriesData.seriesX[realIndex][j]) {
       let bYP;
       let prevYValue;
