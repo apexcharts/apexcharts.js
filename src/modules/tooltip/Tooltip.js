@@ -765,15 +765,15 @@ export default class Tooltip {
     }
 
     if (chartGroups.length) {
+      const sourceRect = opt.elGrid?.getBoundingClientRect()
+      const pointer = e.type === 'touchmove' ? e.touches[0] : e
       /**
        * @param {Record<string, any>} ch
        */
       chartGroups.forEach((ch) => {
         const tooltipEl = this.getElTooltip(ch)
         const elGrid = ch.w.globals.tooltip.getElGrid()
-        const sourceRect = opt.elGrid?.getBoundingClientRect()
         const targetRect = elGrid?.getBoundingClientRect()
-        const pointer = e.type === 'touchmove' ? e.touches[0] : e
         const clientX =
           sourceRect && targetRect
             ? targetRect.left +
@@ -793,7 +793,7 @@ export default class Tooltip {
           tooltipY: opt.tooltipY,
           tooltipX: opt.tooltipX,
           elGrid: elGrid || opt.elGrid,
-          hoverArea: ch.w.dom.Paper?.node || opt.hoverArea,
+          hoverArea: opt.hoverArea,
           ttItems: ch.w.globals.tooltip.ttItems,
           clientX,
           clientY,
