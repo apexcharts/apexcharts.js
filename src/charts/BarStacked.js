@@ -446,12 +446,10 @@ class BarStacked extends Bar {
       prevBarW = prevBarW + this.groupCtx.prevXF[k][j]
     }
 
-    let gsi = i // an index to keep track of the series inside a group
-    if (/** @type {Record<string,any>} */ (w.config.series[realIndex]).name) {
-      gsi = seriesGroup.indexOf(
-        /** @type {Record<string,any>} */ (w.config.series[realIndex]).name,
-      )
-    }
+    // Where this series sits in its group's stack. See the note in
+    // drawStackedColumnPaths: the index has to count the series this renderer
+    // has already drawn for the group, which is exactly what prevX holds.
+    const gsi = this.groupCtx.prevX.length
 
     if (gsi > 0) {
       let bXP = zeroW
@@ -573,10 +571,14 @@ class BarStacked extends Bar {
         (!isNaN(this.groupCtx.prevYF[k][j]) ? this.groupCtx.prevYF[k][j] : 0)
     }
 
-    let gsi = i // an index to keep track of the series inside a group
-    if (seriesGroup) {
-      gsi = seriesGroup.indexOf(w.seriesData.seriesNames[realIndex])
-    }
+    // Where this series sits in its group's stack, which is what indexes the
+    // prevY/prevYF/prevYVal arrays. Those arrays are pushed once per series
+    // THIS renderer draws, so the index must count stacked bars only.
+    // Reading the position out of seriesGroup counted every member of the
+    // group, line and area series included, so in a mixed chart every bar
+    // that followed a non-bar series looked past the end of prevY, found no
+    // previous layer and restarted its stack from the axis (#5105).
+    const gsi = this.groupCtx.prevY.length
     if (
       (gsi > 0 && !w.axisFlags.isXNumeric) ||
       (gsi > 0 &&
