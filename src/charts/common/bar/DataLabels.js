@@ -36,7 +36,6 @@ export default class BarDataLabels {
       j,
       realIndex,
       columnGroupIndex,
-      series,
       barHeight,
       barWidth,
       barXPosition,
@@ -206,7 +205,14 @@ export default class BarDataLabels {
           : this.barCtx.isRangeBar
             ? [y1, y2]
             : w.config.chart.stackType === '100%'
-              ? series[realIndex][j]
+              ? // Read the percentages globally rather than out of `series`.
+                // Under `stackType: '100%'` BarStacked replaces `series` with
+                // the percentage rows, and in a combo chart it narrows them to
+                // just the series it draws as bars, so `series` is indexed by
+                // bar position while `realIndex` counts every series. A line
+                // ahead of a column pushed `realIndex` past the end and the
+                // label read a value off `undefined` (#2429).
+                w.globals.seriesPercent[realIndex][j]
               : w.seriesData.series[realIndex][j],
       i: realIndex,
       j,
