@@ -21,6 +21,11 @@ const FRAME_MS_60FPS = 16.6667 // one frame at 60fps; normalizes friction to the
 // A pan nudge shifts the x-window by this fraction of the grid width.
 const PAN_NUDGE_DIVISOR = 15
 
+// Left edge of the x-domain in the plot-origin pixel space the selection rect
+// lives in. Under AxisMapping, minX maps to this pixel and maxX maps to
+// gridWidth, so the pair is the data boundary expressed in rect coordinates.
+const PLOT_ORIGIN_PX = 0
+
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
  *
@@ -523,6 +528,11 @@ export default class ZoomPanSelection extends Toolbar {
         })
         .resize()
         .on('resize', () => {
+          // SVGSelectable moves a handle freely (its only guard is a negative
+          // width), so pull the rect back inside the x-domain before anything
+          // reads it. Without this a handle dragged past the first or last point
+          // keeps widening the rect into empty space (#5123).
+          this._clampSelectionRectToPlot()
           if (w.interact.selectionEnabled) {
             // A handle resize re-reports the selection through the SAME shared
             // mapping (and debounce) as the rect-body drag. The old path
@@ -657,6 +667,41 @@ export default class ZoomPanSelection extends Toolbar {
         Graphics.setAttrs(selectionRect.node, scalingAttrs)
       }
     }
+  }
+
+  /**
+   * Clamp the persistent selection rect to the pixel span the x-domain occupies,
+   * i.e. PLOT_ORIGIN_PX..gridWidth, which under AxisMapping is exactly
+   * minX..maxX. A body drag has always obeyed this box through `this.constraints`;
+   * this puts a handle resize on the same footing.
+   *
+   * The rect itself is rewritten rather than only the numbers reported to
+   * listeners, so the range every consumer receives keeps matching the rect the
+   * user sees (the one-mapping invariant selection-geometry.spec.js guards), and
+   * the handles are repositioned onto the clamped edge so a handle held past the
+   * boundary stays visually pinned there.
+   */
+  _clampSelectionRectToPlot() {
+    const rect = this.selectionRect
+    if (!rect || !rect.node) return
+
+    const maxPx = this.w.layout.gridWidth
+    // A domain with no pixel width (pre-layout, or a destroyed chart) has no
+    // meaningful boundary to clamp against.
+    if (!(maxPx > PLOT_ORIGIN_PX)) return
+
+    const x = parseFloat(rect.node.getAttribute('x')) || 0
+    const width = parseFloat(rect.node.getAttribute('width')) || 0
+
+    const clamp = (/** @type {number} */ px) =>
+      Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx)
+    const left = clamp(x)
+    const right = clamp(x + width)
+
+    if (left === x && right === x + width) return
+
+    rect.attr({ x: left, width: right - left })
+    if (rect._updateSelectPositions) rect._updateSelectPositions()
   }
 
   /**
