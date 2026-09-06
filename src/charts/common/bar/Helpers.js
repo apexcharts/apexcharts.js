@@ -517,15 +517,14 @@ export default class Helpers {
   getStackedSeriesIndices(numSeries) {
     const w = this.w
     const groups = w.labelData.seriesGroups
-    const barIndices = w.globals?.columnSeries
+    const barIndices = w.globals.columnSeries
       ? new Set(/** @type {any} */ (w.globals.columnSeries).i)
       : null
     const isBar = (/** @type {number} */ i) => !barIndices || barIndices.has(i)
 
     if (!groups || groups.length < 2) {
-      return [
-        Array.from({ length: numSeries }, (_, i) => i).filter(isBar),
-      ]
+      const bucket = Array.from({ length: numSeries }, (_, i) => i).filter(isBar)
+      return bucket.length ? [bucket] : []
     }
 
     /** @type {number[][]} */
