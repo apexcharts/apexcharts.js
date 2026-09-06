@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.1.0
+ * ApexCharts v7.2.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -155,7 +155,7 @@ function computeMarkCount(w) {
   return total;
 }
 function hasCanvasUnsupportedFeature(w) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const fillType = w.config.fill && w.config.fill.type;
   const isUnsupportedFill = (t) => t === "pattern" || t === "image" || t === "gradient";
   if (Array.isArray(fillType) ? fillType.some(isUnsupportedFill) : isUnsupportedFill(fillType)) {
@@ -163,6 +163,9 @@ function hasCanvasUnsupportedFeature(w) {
   }
   const lineColors = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.line) == null ? void 0 : _b.colors;
   if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
+    return true;
+  }
+  if (w.config.chart.type === "heatmap" && (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.heatmap) == null ? void 0 : _d.shape) || "rect") !== "rect") {
     return true;
   }
   const states = w.config.states || {};

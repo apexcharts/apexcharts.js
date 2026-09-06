@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.1.0
+ * ApexCharts v7.2.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -685,6 +685,22 @@ let Utils$1 = class Utils {
       });
     }
     return output;
+  }
+  // A per-series shallow copy: the series OBJECTS are copied, their data arrays
+  // are shared. Almost every internal "mutation" of a series' data is a
+  // property REPLACEMENT (`series[i].data = []` on legend collapse,
+  // `series[i] = 0` for non-axis charts), and those cannot reach a copy made
+  // this way because the series object was copied at capture time. The
+  // exception is appendData(), whose push loop grows the shared data array in
+  // place, so a copy taken before it does see the appended points; see the
+  // note above defineLazyInitialSeries(). This is the same cheap shape
+  // `globals.initialSeries` captures, so snapshotting a config stays O(n)
+  // instead of deep-cloning every point.
+  /**
+   * @param {any} series
+   */
+  static copySeriesShallow(series) {
+    return Array.isArray(series) ? series.map((s2) => this.isObject(s2) ? __spreadValues({}, s2) : s2) : series;
   }
   /**
    * @param {any[]} arrToExtend
@@ -3080,6 +3096,14 @@ class Options {
           overlap: true
         },
         heatmap: {
+          // Cell shape. 'circle' and 'diamond' are inscribed in the cell box;
+          // 'hexagon' is a honeycomb tilemap: alternate rows offset by half a
+          // cell so the hexagons tessellate (categorical layout only; a
+          // numeric/datetime x axis falls back to rect). Non-rect shapes
+          // ignore `radius` and always render as SVG (the canvas renderer's
+          // cell store is rect-only, so it declines them like image fills).
+          shape: "rect",
+          // Cell corner radius; applies to the rect shape only.
           radius: 2,
           enableShades: true,
           shadeIntensity: 0.5,
@@ -7595,9 +7619,18 @@ class Globals {
    * Why sharing the data arrays is safe: internal "mutations" of a series'
    * data are property REPLACEMENTS (`series[i].data = []` on legend collapse),
    * which cannot reach the captured copies because each series object was
-   * copied at capture time. The one in-place mutator (appendData's push loop)
-   * re-captures immediately after mutating, so the pending snapshot never
-   * spans the mutation.
+   * copied at capture time.
+   *
+   * The one in-place mutator is appendData(), whose push loop grows the shared
+   * data array. Re-capturing after it does not undo that: the pushed points
+   * are already in the array both snapshots point at, so a snapshot taken
+   * before the append reads back as appended. That is the documented
+   * behaviour of appendData(overwriteInitialSeries = true), and the `false`
+   * case is not honoured for a separate, older reason: Data.parseData()
+   * re-captures initialSeries unconditionally on the re-render appendData
+   * triggers. Detaching would mean copying the data arrays, which is exactly
+   * the per-point cost this snapshot exists to avoid. The same exception
+   * applies to `initialConfig.series`, which is captured with the same shape.
    *
    * @param {Record<string, any>} globals
    */
@@ -7614,9 +7647,7 @@ class Globals {
         return snap;
       },
       set(value) {
-        src = Array.isArray(value) ? value.map(
-          (s2) => s2 && typeof s2 === "object" && !Array.isArray(s2) ? __spreadValues({}, s2) : s2
-        ) : value;
+        src = Utils$1.copySeriesShallow(value);
         snap = null;
         globals._initialSeriesPeek = src;
       }
@@ -7630,7 +7661,12 @@ class Globals {
     const globals = this.globalVars(config);
     this.initGlobalVars(globals);
     this.defineLazyInitialSeries(globals);
-    globals.initialConfig = Utils$1.extend({}, config);
+    const initialConfig = (
+      /** @type {NonNullable<typeof globals.initialConfig>} */
+      Utils$1.extend({}, config)
+    );
+    initialConfig.series = Utils$1.copySeriesShallow(config.series);
+    globals.initialConfig = initialConfig;
     globals.initialSeries = config.series;
     globals.lastXAxis = Utils$1.clone(
       /** @type {NonNullable<typeof globals.initialConfig>} */
@@ -11933,7 +11969,7 @@ function computeMarkCount(w2) {
   return total;
 }
 function hasCanvasUnsupportedFeature(w2) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const fillType = w2.config.fill && w2.config.fill.type;
   const isUnsupportedFill = (t2) => t2 === "pattern" || t2 === "image" || t2 === "gradient";
   if (Array.isArray(fillType) ? fillType.some(isUnsupportedFill) : isUnsupportedFill(fillType)) {
@@ -11941,6 +11977,9 @@ function hasCanvasUnsupportedFeature(w2) {
   }
   const lineColors = (_b = (_a = w2.config.plotOptions) == null ? void 0 : _a.line) == null ? void 0 : _b.colors;
   if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
+    return true;
+  }
+  if (w2.config.chart.type === "heatmap" && (((_d = (_c = w2.config.plotOptions) == null ? void 0 : _c.heatmap) == null ? void 0 : _d.shape) || "rect") !== "rect") {
     return true;
   }
   const states = w2.config.states || {};
@@ -18393,8 +18432,9 @@ class Series {
     );
     if (heatTreeSeries.length > 0) {
       for (let h2 = 0; h2 < heatTreeSeries.length; h2++) {
+        const base = `.apexcharts-${w2.config.chart.type} .apexcharts-series[data\\:realIndex='${h2}']`;
         const seriesEls = w2.dom.baseEl.querySelectorAll(
-          `.apexcharts-${w2.config.chart.type} .apexcharts-series[data\\:realIndex='${h2}'] rect`
+          `${base} rect, ${base} path.apexcharts-heatmap-rect`
         );
         const dArr = [];
         for (let i2 = 0; i2 < seriesEls.length; i2++) {
@@ -19927,6 +19967,21 @@ class Dimensions {
     this.dimGrid.gridPadFortitleSubtitle();
     this.gridPadForBreadcrumb();
     this.dimGrid.gridPadForStackedTotalDataLabels();
+    if (w2.config.chart.type === "heatmap" && w2.config.plotOptions.heatmap.shape === "hexagon" && !((w2.config.xaxis.type === "numeric" || w2.config.xaxis.type === "datetime") && w2.axisFlags.isXNumeric)) {
+      const cols = gl.dataPoints || 1;
+      const rows = (w2.seriesData.series || []).length || 1;
+      const gw = w2.layout.gridWidth - this.xPadRight - this.xPadLeft;
+      const gh = w2.layout.gridHeight;
+      const strokeW = w2.config.stroke.show ? Array.isArray(w2.config.stroke.width) ? Math.max(...w2.config.stroke.width) : w2.config.stroke.width : 0;
+      const mx = strokeW / 2 + 6;
+      const my = strokeW / 2;
+      const px = (gw + 4 * cols * mx) / (4 * cols + 2);
+      const py = (gh + 6 * rows * my) / (6 * rows + 2);
+      this.gridPad.left = Math.max(px, this.gridPad.left);
+      this.gridPad.right = Math.max(px, this.gridPad.right);
+      this.gridPad.top = Math.max(py, this.gridPad.top);
+      this.gridPad.bottom = Math.max(py, this.gridPad.bottom);
+    }
     w2.layout.gridHeight = w2.layout.gridHeight - this.gridPad.top - this.gridPad.bottom;
     w2.layout.gridWidth = w2.layout.gridWidth - this.gridPad.left - this.gridPad.right - this.xPadRight - this.xPadLeft;
     const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(
@@ -23480,7 +23535,13 @@ class UpdateHelpers {
           if (overwriteInitialConfig) {
             w2.globals.lastXAxis = options2.xaxis ? Utils$1.clone(options2.xaxis) : [];
             w2.globals.lastYAxis = options2.yaxis ? Utils$1.clone(options2.yaxis) : [];
-            w2.globals.initialConfig = Utils$1.extend({}, w2.config);
+            const prevInitialSeries = w2.globals.initialConfig && w2.globals.initialConfig.series;
+            const initialConfig = (
+              /** @type {NonNullable<typeof w.globals.initialConfig>} */
+              Utils$1.extend({}, w2.config)
+            );
+            initialConfig.series = !options2.series && prevInitialSeries ? prevInitialSeries : Utils$1.copySeriesShallow(w2.config.series);
+            w2.globals.initialConfig = initialConfig;
             w2.globals.initialSeries = w2.config.series;
           }
           if (options2.series && (w2.globals.collapsedSeriesIndices.length > 0 || w2.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
@@ -23539,7 +23600,9 @@ class UpdateHelpers {
       this.ctx._writeParsedAxisFlags(parsedState.axisFlags);
       if (overwriteInitialSeries) {
         if (w2.globals.initialConfig) {
-          w2.globals.initialConfig.series = w2.config.series;
+          w2.globals.initialConfig.series = Utils$1.copySeriesShallow(
+            w2.config.series
+          );
         }
         w2.globals.initialSeries = w2.config.series;
       }
@@ -40831,7 +40894,7 @@ class Drilldown {
   }
 }
 ApexCharts.registerFeatures({ drilldown: Drilldown });
-const WEAVE_API_VERSION = 1;
+const WEAVE_API_VERSION = 2;
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
   "updateSeries",
@@ -41034,6 +41097,64 @@ function buildPluginAPI(host, record) {
     }),
     // ── curated actions (bound public methods only; NEVER raw w) ──
     chart: buildBoundPublicMethods(ctx),
+    // ── chart shape (v2) ──
+    // What kind of chart this is, for a plugin that has to decide whether it
+    // applies at all. An analysis or derived-series plugin cannot work on every
+    // type, and the alternative to asking is adding a series and letting the
+    // core warn at the user.
+    get info() {
+      return Object.freeze({
+        // The type the caller ASKED for: `requestedType` survives the aliasing
+        // that rewrites e.g. raincloud to violin.
+        type: String(
+          w2.config.chart && (w2.config.chart.requestedType || w2.config.chart.type) || "line"
+        ),
+        // false for pie / donut / radialBar, where `data` is one value per slice.
+        axisChart: w2.globals.axisCharts === true,
+        datetimeX: !!(w2.config.xaxis && w2.config.xaxis.type === "datetime"),
+        // The core refuses to draw a horizontal bar in a combo, so a plugin must
+        // not add a derived series to one.
+        horizontalBars: !!(w2.config.plotOptions && w2.config.plotOptions.bar && w2.config.plotOptions.bar.horizontal),
+        // Whether the chart prints a value on each point, and which series it
+        // prints them for. A plugin that ADDS a series needs both: there is no
+        // per-series dataLabels flag, so `dataLabels.enabledOnSeries` is the
+        // only way to keep labels off a computed series, and narrowing it
+        // without knowing the caller's own value would silently discard it.
+        dataLabels: Object.freeze({
+          enabled: !!(w2.config.dataLabels && w2.config.dataLabels.enabled),
+          enabledOnSeries: Array.isArray(
+            w2.config.dataLabels && w2.config.dataLabels.enabledOnSeries
+          ) ? w2.config.dataLabels.enabledOnSeries.slice() : null
+        })
+      });
+    },
+    // Display labels per x position (v2).
+    //
+    // Resolved config-first on purpose. `globals.categoryLabels` and
+    // `globals.labels` are populated after a mount and EMPTY after an
+    // updateSeries(), so a plugin reading either directly would render real
+    // labels on first paint and ordinals after any update.
+    get categories() {
+      return host._categories();
+    },
+    /**
+     * Declare which series on this chart belong to the plugin rather than to
+     * the caller (v2).
+     *
+     * A plugin that adds computed series has to say so, because the core cannot
+     * tell them apart and several behaviours depend on the distinction. Today
+     * the host uses it to keep them out of the initial-series snapshot, so
+     * `resetSeries()` and the toolbar's reset restore the caller's own data
+     * instead of the plugin's output.
+     *
+     * Idempotent; pass an empty array when the plugin's series are gone.
+     *
+     * @param {string[]} names series names the plugin owns
+     */
+    markDerived(names) {
+      host._markDerived(record.def.name, names);
+      return api;
+    },
     // ── custom events out to the host app ──
     /**
      * Fires as `plugin:<pluginName>:<name>` on the chart's event bus. The
@@ -41068,6 +41189,7 @@ class WeaveHost {
     this._lastPluginsRef = null;
     this._lastData = null;
     this._updatedWired = false;
+    this._derived = null;
     this._onUpdated = this._onUpdated.bind(this);
     this._init();
   }
@@ -41086,6 +41208,7 @@ class WeaveHost {
     this._updatedWired = true;
   }
   _onUpdated() {
+    this._repairInitialSeries();
     this.dispatch("afterUpdate", { pass: "update" });
   }
   /**
@@ -41097,10 +41220,10 @@ class WeaveHost {
       console.error(`[apexcharts] plugin "${entry.name}" is not registered.`);
       return;
     }
-    const v2 = def.apiVersion != null ? def.apiVersion : 1;
-    if (Math.trunc(v2) !== WEAVE_API_VERSION) {
+    const v2 = def.apiVersion != null ? Math.trunc(def.apiVersion) : 1;
+    if (!(v2 >= 1) || v2 > WEAVE_API_VERSION) {
       console.error(
-        `[apexcharts] plugin "${def.name}" targets Weave API v${v2}, host is v${WEAVE_API_VERSION}; skipped.`
+        `[apexcharts] plugin "${def.name}" targets Weave API v${def.apiVersion}, host is v${WEAVE_API_VERSION}; skipped.`
       );
       return;
     }
@@ -41221,19 +41344,113 @@ class WeaveHost {
     const gl = w2.globals;
     const series = w2.seriesData.series || [];
     const seriesX = w2.seriesData.seriesX || [];
+    const cfgSeries = Array.isArray(w2.config.series) ? w2.config.series : [];
     return series.map((sData, i2) => {
+      const row = Array.isArray(sData) ? sData : [sData];
       const xs = seriesX[i2] || [];
-      const points = (sData || []).map((y, j) => ({
+      const points = row.map((y, j) => ({
         x: xs[j] != null ? xs[j] : j,
         y
       }));
+      const cfg = cfgSeries[i2];
+      const raw = cfg && typeof cfg === "object" && Array.isArray(cfg.data) ? cfg.data : [];
       return {
         name: gl.seriesNames ? gl.seriesNames[i2] : void 0,
         hidden: (gl.collapsedSeriesIndices || []).includes(i2),
         color: gl.colors ? gl.colors[i2] : void 0,
-        points
+        points,
+        raw
       };
     });
+  }
+  /**
+   * Display labels per x position, resolved so they survive every render path.
+   *
+   * `config.xaxis.categories` leads because it is the caller's own input;
+   * `globals.categoryLabels` covers labels that came from string-x data, and
+   * `globals.labels` is the last resort. Both globals are populated after a
+   * mount and empty after an updateSeries(), so a consumer reading either alone
+   * gets real labels on first paint and ordinals afterwards.
+   *
+   * @returns {string[]}
+   */
+  _categories() {
+    const w2 = this.w;
+    const gl = w2.globals;
+    const cfgCats = w2.config.xaxis && Array.isArray(w2.config.xaxis.categories) ? w2.config.xaxis.categories : [];
+    const glCats = Array.isArray(gl.categoryLabels) ? gl.categoryLabels : [];
+    const glLabels = Array.isArray(gl.labels) ? gl.labels : [];
+    const src = cfgCats.length ? cfgCats : glCats.length ? glCats : glLabels;
+    const series = w2.seriesData.series || [];
+    let length = 0;
+    for (let i2 = 0; i2 < series.length; i2++) {
+      const row = series[i2];
+      if (Array.isArray(row) && row.length > length) length = row.length;
+    }
+    if (!length) length = src.length;
+    const out = [];
+    for (let i2 = 0; i2 < length; i2++) {
+      const v2 = src[i2];
+      out.push(v2 === void 0 || v2 === null ? String(i2 + 1) : String(v2));
+    }
+    return out;
+  }
+  /**
+   * Record the series a plugin owns, and repair the initial-series snapshot.
+   *
+   * `Data.parseData()` assigns `globals.initialSeries` on every parse
+   * unconditionally, so `updateSeries(..., overwriteInitialSeries: false)` does
+   * NOT keep a plugin's computed series out of it. That assignment is
+   * deliberate (it is what keeps resetSeries() correct for the reducer,
+   * histogram, dumbbell, streamgraph, waterfall and treemap raw-series paths),
+   * so the fix is to put the caller's own series back afterwards rather than to
+   * make the assignment conditional.
+   *
+   * Without this, a plugin that adds a computed series poisons resetSeries():
+   * pressing the toolbar's reset hands the user the plugin's output as if it
+   * were their own data, and it survives switching the plugin off.
+   *
+   * @param {string} pluginName
+   * @param {string[]} names
+   */
+  _markDerived(pluginName, names) {
+    if (!this._derived) this._derived = /* @__PURE__ */ new Map();
+    const list = Array.isArray(names) ? names.map((n2) => String(n2)) : [];
+    if (list.length) {
+      this._derived.set(pluginName, list);
+    } else {
+      this._derived.delete(pluginName);
+    }
+    this._repairInitialSeries();
+  }
+  /** All series names currently claimed by plugins. */
+  _derivedNames() {
+    const out = /* @__PURE__ */ new Set();
+    if (!this._derived) return out;
+    for (const list of this._derived.values()) {
+      for (const n2 of list) out.add(n2);
+    }
+    return out;
+  }
+  _repairInitialSeries() {
+    const drop = this._derivedNames();
+    if (!drop.size) return;
+    const w2 = this.w;
+    const series = (
+      /** @type {any[]} */
+      Array.isArray(w2.config.series) ? w2.config.series : []
+    );
+    const own = series.filter(
+      (s2) => !drop.has(String(s2 && s2.name))
+    );
+    if (!own.length) return;
+    try {
+      w2.globals.initialSeries = own;
+      if (w2.globals.initialConfig && Array.isArray(w2.globals.initialConfig.series)) {
+        w2.globals.initialConfig.series = own;
+      }
+    } catch (e2) {
+    }
   }
   // ─── Theme tokens ───────────────────────────────────────────────────────
   /**
@@ -41337,6 +41554,7 @@ class WeaveHost {
         this._guard(record, "destroy", () => record.def.destroy && record.def.destroy(record.api));
       }
       this.active = [];
+      this._derived = null;
       if (this._updatedWired) {
         this.ctx.removeEventListener && this.ctx.removeEventListener("updated", this._onUpdated);
         this._updatedWired = false;
@@ -48283,6 +48501,7 @@ class HeatMap {
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
     this.helpers = new TreemapHelpers(w2, ctx);
     this.rectRadius = this.w.config.plotOptions.heatmap.radius;
+    this.shape = this.w.config.plotOptions.heatmap.shape || "rect";
     this.strokeWidth = this.w.config.stroke.show ? this.w.config.stroke.width : 0;
   }
   /**
@@ -48292,12 +48511,9 @@ class HeatMap {
     var _a, _b;
     const w2 = this.w;
     const graphics = new Graphics(this.w, this.ctx);
-    const emit = seriesEmitter(this.ctx, graphics);
-    const useCanvas = emit !== graphics && typeof emit.drawRectCell === "function";
     const ret = graphics.group({
       class: "apexcharts-heatmap"
     });
-    ret.attr("clip-path", `url(#gridRectMask${w2.globals.cuid})`);
     const xDivision = w2.layout.gridWidth / w2.globals.dataPoints;
     const yDivision = w2.layout.gridHeight / w2.seriesData.series.length;
     const isContinuousX = (w2.config.xaxis.type === "numeric" || w2.config.xaxis.type === "datetime") && w2.axisFlags.isXNumeric && this.xRatio > 0;
@@ -48305,6 +48521,17 @@ class HeatMap {
     if (isContinuousX) {
       const diff = w2.globals.minXDiff;
       binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision;
+    }
+    let shape = this.shape;
+    if (isContinuousX && shape === "hexagon") {
+      shape = "rect";
+    }
+    const emit = seriesEmitter(this.ctx, graphics);
+    const useCanvas = shape === "rect" && emit !== graphics && typeof emit.drawRectCell === "function";
+    if (shape === "hexagon") {
+      this.applyHexagonClipPath(ret, graphics, xDivision, yDivision);
+    } else {
+      ret.attr("clip-path", `url(#gridRectMask${w2.globals.cuid})`);
     }
     const cellFillOpacity = Array.isArray(w2.config.fill.opacity) ? (_a = w2.config.fill.opacity[0]) != null ? _a : 1 : (_b = w2.config.fill.opacity) != null ? _b : 1;
     let y1 = 0;
@@ -48333,6 +48560,8 @@ class HeatMap {
       }
       let x1 = 0;
       const shadeIntensity = w2.config.plotOptions.heatmap.shadeIntensity;
+      const visualRow = Math.round(y1 / yDivision);
+      const rowOffset = shape === "hexagon" ? (visualRow % 2 === 0 ? -1 : 1) * xDivision / 4 : 0;
       let j = 0;
       for (let dIndex = 0; dIndex < w2.globals.dataPoints; dIndex++) {
         if (!isContinuousX && w2.seriesData.seriesX.length && !w2.globals.allSeriesHasEqualX) {
@@ -48386,14 +48615,27 @@ class HeatMap {
             dataPointIndex: j
           });
         } else {
-          const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius);
-          rect.attr({
-            cx: x1,
+          const isRectCell = shape === "rect";
+          const cell = isRectCell ? graphics.drawRect(x1, y1, cellW, yDivision, radius) : graphics.drawPath({
+            d: this.cellShapePath(
+              shape,
+              x1 + rowOffset,
+              y1,
+              cellW,
+              yDivision
+            ),
+            stroke,
+            strokeWidth: this.strokeWidth,
+            fill: color,
+            fillOpacity: 1
+          });
+          cell.attr({
+            cx: x1 + rowOffset,
             cy: y1
           });
-          rect.node.classList.add("apexcharts-heatmap-rect");
-          elSeries.add(rect);
-          rect.attr({
+          cell.node.classList.add("apexcharts-heatmap-rect");
+          elSeries.add(cell);
+          cell.attr({
             fill: color,
             i: i2,
             index: i2,
@@ -48403,12 +48645,29 @@ class HeatMap {
             stroke,
             color
           });
+          if (!isRectCell) {
+            cell.attr({
+              width: cellW,
+              height: yDivision
+            });
+          }
           if (w2.config.chart.animations.enabled && !w2.globals.dataChanged) {
             let speed = 1;
             if (!w2.globals.resized) {
               speed = w2.config.chart.animations.speed;
             }
-            this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i2, j);
+            if (isRectCell) {
+              this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i2, j);
+            } else {
+              const animations = new Animations(this.w);
+              animations.animatePop(cell, {
+                speed,
+                delay: this.enterStaggerDelay(speed, i2, j),
+                onComplete: () => {
+                  animations.animationCompleted(cell);
+                }
+              });
+            }
           }
           if (w2.globals.dataChanged) {
             let speed = 1;
@@ -48417,7 +48676,7 @@ class HeatMap {
               let colorFrom = w2.globals.previousPaths[i2] && w2.globals.previousPaths[i2][j] && w2.globals.previousPaths[i2][j].color;
               if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
               this.animateHeatColor(
-                rect,
+                cell,
                 Utils$1.isColorHex(colorFrom) ? colorFrom : Utils$1.rgb2hex(colorFrom),
                 Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color),
                 speed
@@ -48434,7 +48693,7 @@ class HeatMap {
         });
         const dataLabels = this.helpers.calculateDataLabels({
           text: formattedText,
-          x: x1 + cellW / 2,
+          x: x1 + rowOffset + cellW / 2,
           y: y1 + yDivision / 2,
           i: i2,
           j,
@@ -48473,28 +48732,8 @@ class HeatMap {
    * @param {number} [col] - data point index (heatmap column)
    */
   animateHeatMap(el, x, y, width, height, speed, row = 0, col = 0) {
-    const w2 = this.w;
     const animations = new Animations(this.w);
-    const animCfg = w2.config.chart.animations;
-    const gradCfg = animCfg.animateGradually;
-    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
-    let delay = 0;
-    if (staggerEnabled) {
-      const seriesCount = (w2.seriesData.series || []).length || 1;
-      const pointsCount = w2.globals.dataPoints || 1;
-      const maxDiag = seriesCount + pointsCount - 2;
-      const baseDelay = Math.min(
-        gradCfg.delay || 0,
-        speed * 0.5 / Math.max(1, maxDiag)
-      );
-      delay = computeStagger({
-        style: "diagonal",
-        index: col,
-        row,
-        col,
-        baseDelay
-      });
-    }
+    const delay = this.enterStaggerDelay(speed, row, col);
     animations.animateRect(
       el,
       {
@@ -48515,6 +48754,110 @@ class HeatMap {
       },
       delay
     );
+  }
+  /**
+   * Diagonal-wave stagger for a cell's enter animation: cells animate in
+   * order of (row + col), so the reveal travels from top-left to
+   * bottom-right. Total stagger is capped at ~half the animation speed
+   * regardless of grid size. Shared by the rect geometry tween and the
+   * shaped-cell scale-in so every shape reveals with the same wave.
+   *
+   * @param {number} speed
+   * @param {number} row - series index (heatmap row)
+   * @param {number} col - data point index (heatmap column)
+   */
+  enterStaggerDelay(speed, row, col) {
+    const w2 = this.w;
+    const gradCfg = w2.config.chart.animations.animateGradually;
+    if (!gradCfg || gradCfg.enabled === false) {
+      return 0;
+    }
+    const seriesCount = (w2.seriesData.series || []).length || 1;
+    const pointsCount = w2.globals.dataPoints || 1;
+    const maxDiag = seriesCount + pointsCount - 2;
+    const baseDelay = Math.min(
+      gradCfg.delay || 0,
+      speed * 0.5 / Math.max(1, maxDiag)
+    );
+    return computeStagger({
+      style: "diagonal",
+      index: col,
+      row,
+      col,
+      baseDelay
+    });
+  }
+  /**
+   * SVG path for a non-rect cell. x/y/width/height describe the cell's own
+   * box (for hexagons, x already includes the row's honeycomb offset).
+   *
+   * - 'circle': inscribed in the cell box, radius = half the shorter side.
+   * - 'diamond': the rhombus joining the box edges' midpoints, so neighbours
+   *   touch at those midpoints.
+   * - 'hexagon': a pointy-top hexagon stretched to the cell width and 4/3 of
+   *   the row pitch tall. With alternate rows offset by half a cell this is
+   *   the exact tessellating size: the row pitch stays gridHeight / nRows
+   *   (nothing else in the layout pipeline changes) and each hexagon overlaps
+   *   the neighbouring rows by a sixth of the pitch. In-row neighbours share
+   *   the full vertical edge; diagonal neighbours share a full slanted edge.
+   *
+   * @param {string} shape
+   * @param {number} x
+   * @param {number} y
+   * @param {number} width
+   * @param {number} height
+   * @returns {string}
+   */
+  cellShapePath(shape, x, y, width, height) {
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    if (shape === "circle") {
+      const r2 = Math.min(width, height) / 2;
+      return `M ${cx - r2} ${cy} a ${r2} ${r2} 0 1 0 ${r2 * 2} 0 a ${r2} ${r2} 0 1 0 ${-r2 * 2} 0 Z`;
+    }
+    if (shape === "diamond") {
+      return `M ${cx} ${y} L ${x + width} ${cy} L ${cx} ${y + height} L ${x} ${cy} Z`;
+    }
+    const x2 = x + width;
+    return `M ${cx} ${y - height / 6} L ${x2} ${y + height / 6} L ${x2} ${y + height * 5 / 6} L ${cx} ${y + height * 7 / 6} L ${x} ${y + height * 5 / 6} L ${x} ${y + height / 6} Z`;
+  }
+  /**
+   * Hexagon rows overhang the grid box: a quarter cell horizontally (the
+   * alternating quarter-cell row offsets) and a sixth of the row pitch
+   * vertically (a tessellating hexagon is 4/3 of the pitch tall). The shared
+   * gridRectMask would slice that overhang, so the heatmap group gets its own
+   * clip rect sized to the lattice's true extent. Scoped to this group only:
+   * the grid border, annotations and every other gridRectMask consumer keep
+   * the exact grid box.
+   *
+   * @param {any} elGroup
+   * @param {Graphics} graphics
+   * @param {number} xDivision
+   * @param {number} yDivision
+   */
+  applyHexagonClipPath(elGroup, graphics, xDivision, yDivision) {
+    const w2 = this.w;
+    const pad = this.strokeWidth / 2 + 2;
+    const clipId = `heatmapHexMask${w2.globals.cuid}`;
+    const defs = w2.dom.elDefs.node;
+    const prev = defs.querySelector(`clipPath[id="${clipId}"]`);
+    if (prev && prev.parentNode) {
+      prev.parentNode.removeChild(prev);
+    }
+    const clipPath = BrowserAPIs.createElementNS(SVGNS$2, "clipPath");
+    clipPath.setAttribute("id", clipId);
+    clipPath.appendChild(
+      graphics.drawRect(
+        -xDivision / 4 - pad,
+        -yDivision / 6 - pad,
+        w2.layout.gridWidth + xDivision / 2 + pad * 2,
+        w2.layout.gridHeight + yDivision / 3 + pad * 2,
+        0,
+        "#fff"
+      ).node
+    );
+    defs.appendChild(clipPath);
+    elGroup.attr("clip-path", `url(#${clipId})`);
   }
   /**
    * @param {any} el

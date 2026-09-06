@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.1.0
+ * ApexCharts v7.2.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -685,6 +685,22 @@ let Utils$1 = class Utils {
       });
     }
     return output;
+  }
+  // A per-series shallow copy: the series OBJECTS are copied, their data arrays
+  // are shared. Almost every internal "mutation" of a series' data is a
+  // property REPLACEMENT (`series[i].data = []` on legend collapse,
+  // `series[i] = 0` for non-axis charts), and those cannot reach a copy made
+  // this way because the series object was copied at capture time. The
+  // exception is appendData(), whose push loop grows the shared data array in
+  // place, so a copy taken before it does see the appended points; see the
+  // note above defineLazyInitialSeries(). This is the same cheap shape
+  // `globals.initialSeries` captures, so snapshotting a config stays O(n)
+  // instead of deep-cloning every point.
+  /**
+   * @param {any} series
+   */
+  static copySeriesShallow(series) {
+    return Array.isArray(series) ? series.map((s2) => this.isObject(s2) ? __spreadValues({}, s2) : s2) : series;
   }
   /**
    * @param {any[]} arrToExtend
@@ -3080,6 +3096,14 @@ class Options {
           overlap: true
         },
         heatmap: {
+          // Cell shape. 'circle' and 'diamond' are inscribed in the cell box;
+          // 'hexagon' is a honeycomb tilemap: alternate rows offset by half a
+          // cell so the hexagons tessellate (categorical layout only; a
+          // numeric/datetime x axis falls back to rect). Non-rect shapes
+          // ignore `radius` and always render as SVG (the canvas renderer's
+          // cell store is rect-only, so it declines them like image fills).
+          shape: "rect",
+          // Cell corner radius; applies to the rect shape only.
           radius: 2,
           enableShades: true,
           shadeIntensity: 0.5,
@@ -7595,9 +7619,18 @@ class Globals {
    * Why sharing the data arrays is safe: internal "mutations" of a series'
    * data are property REPLACEMENTS (`series[i].data = []` on legend collapse),
    * which cannot reach the captured copies because each series object was
-   * copied at capture time. The one in-place mutator (appendData's push loop)
-   * re-captures immediately after mutating, so the pending snapshot never
-   * spans the mutation.
+   * copied at capture time.
+   *
+   * The one in-place mutator is appendData(), whose push loop grows the shared
+   * data array. Re-capturing after it does not undo that: the pushed points
+   * are already in the array both snapshots point at, so a snapshot taken
+   * before the append reads back as appended. That is the documented
+   * behaviour of appendData(overwriteInitialSeries = true), and the `false`
+   * case is not honoured for a separate, older reason: Data.parseData()
+   * re-captures initialSeries unconditionally on the re-render appendData
+   * triggers. Detaching would mean copying the data arrays, which is exactly
+   * the per-point cost this snapshot exists to avoid. The same exception
+   * applies to `initialConfig.series`, which is captured with the same shape.
    *
    * @param {Record<string, any>} globals
    */
@@ -7614,9 +7647,7 @@ class Globals {
         return snap;
       },
       set(value) {
-        src = Array.isArray(value) ? value.map(
-          (s2) => s2 && typeof s2 === "object" && !Array.isArray(s2) ? __spreadValues({}, s2) : s2
-        ) : value;
+        src = Utils$1.copySeriesShallow(value);
         snap = null;
         globals._initialSeriesPeek = src;
       }
@@ -7630,7 +7661,12 @@ class Globals {
     const globals = this.globalVars(config);
     this.initGlobalVars(globals);
     this.defineLazyInitialSeries(globals);
-    globals.initialConfig = Utils$1.extend({}, config);
+    const initialConfig = (
+      /** @type {NonNullable<typeof globals.initialConfig>} */
+      Utils$1.extend({}, config)
+    );
+    initialConfig.series = Utils$1.copySeriesShallow(config.series);
+    globals.initialConfig = initialConfig;
     globals.initialSeries = config.series;
     globals.lastXAxis = Utils$1.clone(
       /** @type {NonNullable<typeof globals.initialConfig>} */
@@ -11933,7 +11969,7 @@ function computeMarkCount(w) {
   return total;
 }
 function hasCanvasUnsupportedFeature(w) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const fillType = w.config.fill && w.config.fill.type;
   const isUnsupportedFill = (t2) => t2 === "pattern" || t2 === "image" || t2 === "gradient";
   if (Array.isArray(fillType) ? fillType.some(isUnsupportedFill) : isUnsupportedFill(fillType)) {
@@ -11941,6 +11977,9 @@ function hasCanvasUnsupportedFeature(w) {
   }
   const lineColors = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.line) == null ? void 0 : _b.colors;
   if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
+    return true;
+  }
+  if (w.config.chart.type === "heatmap" && (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.heatmap) == null ? void 0 : _d.shape) || "rect") !== "rect") {
     return true;
   }
   const states = w.config.states || {};
@@ -17914,8 +17953,9 @@ class Series {
     );
     if (heatTreeSeries.length > 0) {
       for (let h2 = 0; h2 < heatTreeSeries.length; h2++) {
+        const base = `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h2}']`;
         const seriesEls = w.dom.baseEl.querySelectorAll(
-          `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h2}'] rect`
+          `${base} rect, ${base} path.apexcharts-heatmap-rect`
         );
         const dArr = [];
         for (let i2 = 0; i2 < seriesEls.length; i2++) {
@@ -19310,6 +19350,21 @@ class Dimensions {
     this.dimGrid.gridPadFortitleSubtitle();
     this.gridPadForBreadcrumb();
     this.dimGrid.gridPadForStackedTotalDataLabels();
+    if (w.config.chart.type === "heatmap" && w.config.plotOptions.heatmap.shape === "hexagon" && !((w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric)) {
+      const cols = gl.dataPoints || 1;
+      const rows = (w.seriesData.series || []).length || 1;
+      const gw = w.layout.gridWidth - this.xPadRight - this.xPadLeft;
+      const gh = w.layout.gridHeight;
+      const strokeW = w.config.stroke.show ? Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width : 0;
+      const mx = strokeW / 2 + 6;
+      const my = strokeW / 2;
+      const px = (gw + 4 * cols * mx) / (4 * cols + 2);
+      const py = (gh + 6 * rows * my) / (6 * rows + 2);
+      this.gridPad.left = Math.max(px, this.gridPad.left);
+      this.gridPad.right = Math.max(px, this.gridPad.right);
+      this.gridPad.top = Math.max(py, this.gridPad.top);
+      this.gridPad.bottom = Math.max(py, this.gridPad.bottom);
+    }
     w.layout.gridHeight = w.layout.gridHeight - this.gridPad.top - this.gridPad.bottom;
     w.layout.gridWidth = w.layout.gridWidth - this.gridPad.left - this.gridPad.right - this.xPadRight - this.xPadLeft;
     const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(
@@ -22814,7 +22869,13 @@ class UpdateHelpers {
           if (overwriteInitialConfig) {
             w.globals.lastXAxis = options2.xaxis ? Utils$1.clone(options2.xaxis) : [];
             w.globals.lastYAxis = options2.yaxis ? Utils$1.clone(options2.yaxis) : [];
-            w.globals.initialConfig = Utils$1.extend({}, w.config);
+            const prevInitialSeries = w.globals.initialConfig && w.globals.initialConfig.series;
+            const initialConfig = (
+              /** @type {NonNullable<typeof w.globals.initialConfig>} */
+              Utils$1.extend({}, w.config)
+            );
+            initialConfig.series = !options2.series && prevInitialSeries ? prevInitialSeries : Utils$1.copySeriesShallow(w.config.series);
+            w.globals.initialConfig = initialConfig;
             w.globals.initialSeries = w.config.series;
           }
           if (options2.series && (w.globals.collapsedSeriesIndices.length > 0 || w.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
@@ -22873,7 +22934,9 @@ class UpdateHelpers {
       this.ctx._writeParsedAxisFlags(parsedState.axisFlags);
       if (overwriteInitialSeries) {
         if (w.globals.initialConfig) {
-          w.globals.initialConfig.series = w.config.series;
+          w.globals.initialConfig.series = Utils$1.copySeriesShallow(
+            w.config.series
+          );
         }
         w.globals.initialSeries = w.config.series;
       }

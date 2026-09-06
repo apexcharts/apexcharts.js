@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v7.1.0
+ * ApexCharts v7.2.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -195,6 +195,8 @@ function seriesEmitter(ctx, graphics) {
   const r = ctx && ctx.renderer;
   return r && r.kind && r.kind !== "svg" ? r : graphics;
 }
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const SVGNS = _core.__apex_math_SVGNS;
 class HeatMap {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -209,6 +211,7 @@ class HeatMap {
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
     this.helpers = new TreemapHelpers(w, ctx);
     this.rectRadius = this.w.config.plotOptions.heatmap.radius;
+    this.shape = this.w.config.plotOptions.heatmap.shape || "rect";
     this.strokeWidth = this.w.config.stroke.show ? this.w.config.stroke.width : 0;
   }
   /**
@@ -218,12 +221,9 @@ class HeatMap {
     var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
-    const emit = seriesEmitter(this.ctx, graphics);
-    const useCanvas = emit !== graphics && typeof emit.drawRectCell === "function";
     const ret = graphics.group({
       class: "apexcharts-heatmap"
     });
-    ret.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
     const xDivision = w.layout.gridWidth / w.globals.dataPoints;
     const yDivision = w.layout.gridHeight / w.seriesData.series.length;
     const isContinuousX = (w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric && this.xRatio > 0;
@@ -231,6 +231,17 @@ class HeatMap {
     if (isContinuousX) {
       const diff = w.globals.minXDiff;
       binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision;
+    }
+    let shape = this.shape;
+    if (isContinuousX && shape === "hexagon") {
+      shape = "rect";
+    }
+    const emit = seriesEmitter(this.ctx, graphics);
+    const useCanvas = shape === "rect" && emit !== graphics && typeof emit.drawRectCell === "function";
+    if (shape === "hexagon") {
+      this.applyHexagonClipPath(ret, graphics, xDivision, yDivision);
+    } else {
+      ret.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
     }
     const cellFillOpacity = Array.isArray(w.config.fill.opacity) ? (_a = w.config.fill.opacity[0]) != null ? _a : 1 : (_b = w.config.fill.opacity) != null ? _b : 1;
     let y1 = 0;
@@ -259,6 +270,8 @@ class HeatMap {
       }
       let x1 = 0;
       const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
+      const visualRow = Math.round(y1 / yDivision);
+      const rowOffset = shape === "hexagon" ? (visualRow % 2 === 0 ? -1 : 1) * xDivision / 4 : 0;
       let j = 0;
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
         if (!isContinuousX && w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
@@ -312,14 +325,27 @@ class HeatMap {
             dataPointIndex: j
           });
         } else {
-          const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius);
-          rect.attr({
-            cx: x1,
+          const isRectCell = shape === "rect";
+          const cell = isRectCell ? graphics.drawRect(x1, y1, cellW, yDivision, radius) : graphics.drawPath({
+            d: this.cellShapePath(
+              shape,
+              x1 + rowOffset,
+              y1,
+              cellW,
+              yDivision
+            ),
+            stroke,
+            strokeWidth: this.strokeWidth,
+            fill: color,
+            fillOpacity: 1
+          });
+          cell.attr({
+            cx: x1 + rowOffset,
             cy: y1
           });
-          rect.node.classList.add("apexcharts-heatmap-rect");
-          elSeries.add(rect);
-          rect.attr({
+          cell.node.classList.add("apexcharts-heatmap-rect");
+          elSeries.add(cell);
+          cell.attr({
             fill: color,
             i,
             index: i,
@@ -329,12 +355,29 @@ class HeatMap {
             stroke,
             color
           });
+          if (!isRectCell) {
+            cell.attr({
+              width: cellW,
+              height: yDivision
+            });
+          }
           if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
             let speed = 1;
             if (!w.globals.resized) {
               speed = w.config.chart.animations.speed;
             }
-            this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i, j);
+            if (isRectCell) {
+              this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i, j);
+            } else {
+              const animations = new Animations(this.w);
+              animations.animatePop(cell, {
+                speed,
+                delay: this.enterStaggerDelay(speed, i, j),
+                onComplete: () => {
+                  animations.animationCompleted(cell);
+                }
+              });
+            }
           }
           if (w.globals.dataChanged) {
             let speed = 1;
@@ -343,7 +386,7 @@ class HeatMap {
               let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
               if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
               this.animateHeatColor(
-                rect,
+                cell,
                 Utils.isColorHex(colorFrom) ? colorFrom : Utils.rgb2hex(colorFrom),
                 Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
                 speed
@@ -360,7 +403,7 @@ class HeatMap {
         });
         const dataLabels = this.helpers.calculateDataLabels({
           text: formattedText,
-          x: x1 + cellW / 2,
+          x: x1 + rowOffset + cellW / 2,
           y: y1 + yDivision / 2,
           i,
           j,
@@ -399,28 +442,8 @@ class HeatMap {
    * @param {number} [col] - data point index (heatmap column)
    */
   animateHeatMap(el, x, y, width, height, speed, row = 0, col = 0) {
-    const w = this.w;
     const animations = new Animations(this.w);
-    const animCfg = w.config.chart.animations;
-    const gradCfg = animCfg.animateGradually;
-    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
-    let delay = 0;
-    if (staggerEnabled) {
-      const seriesCount = (w.seriesData.series || []).length || 1;
-      const pointsCount = w.globals.dataPoints || 1;
-      const maxDiag = seriesCount + pointsCount - 2;
-      const baseDelay = Math.min(
-        gradCfg.delay || 0,
-        speed * 0.5 / Math.max(1, maxDiag)
-      );
-      delay = computeStagger({
-        style: "diagonal",
-        index: col,
-        row,
-        col,
-        baseDelay
-      });
-    }
+    const delay = this.enterStaggerDelay(speed, row, col);
     animations.animateRect(
       el,
       {
@@ -441,6 +464,110 @@ class HeatMap {
       },
       delay
     );
+  }
+  /**
+   * Diagonal-wave stagger for a cell's enter animation: cells animate in
+   * order of (row + col), so the reveal travels from top-left to
+   * bottom-right. Total stagger is capped at ~half the animation speed
+   * regardless of grid size. Shared by the rect geometry tween and the
+   * shaped-cell scale-in so every shape reveals with the same wave.
+   *
+   * @param {number} speed
+   * @param {number} row - series index (heatmap row)
+   * @param {number} col - data point index (heatmap column)
+   */
+  enterStaggerDelay(speed, row, col) {
+    const w = this.w;
+    const gradCfg = w.config.chart.animations.animateGradually;
+    if (!gradCfg || gradCfg.enabled === false) {
+      return 0;
+    }
+    const seriesCount = (w.seriesData.series || []).length || 1;
+    const pointsCount = w.globals.dataPoints || 1;
+    const maxDiag = seriesCount + pointsCount - 2;
+    const baseDelay = Math.min(
+      gradCfg.delay || 0,
+      speed * 0.5 / Math.max(1, maxDiag)
+    );
+    return computeStagger({
+      style: "diagonal",
+      index: col,
+      row,
+      col,
+      baseDelay
+    });
+  }
+  /**
+   * SVG path for a non-rect cell. x/y/width/height describe the cell's own
+   * box (for hexagons, x already includes the row's honeycomb offset).
+   *
+   * - 'circle': inscribed in the cell box, radius = half the shorter side.
+   * - 'diamond': the rhombus joining the box edges' midpoints, so neighbours
+   *   touch at those midpoints.
+   * - 'hexagon': a pointy-top hexagon stretched to the cell width and 4/3 of
+   *   the row pitch tall. With alternate rows offset by half a cell this is
+   *   the exact tessellating size: the row pitch stays gridHeight / nRows
+   *   (nothing else in the layout pipeline changes) and each hexagon overlaps
+   *   the neighbouring rows by a sixth of the pitch. In-row neighbours share
+   *   the full vertical edge; diagonal neighbours share a full slanted edge.
+   *
+   * @param {string} shape
+   * @param {number} x
+   * @param {number} y
+   * @param {number} width
+   * @param {number} height
+   * @returns {string}
+   */
+  cellShapePath(shape, x, y, width, height) {
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    if (shape === "circle") {
+      const r = Math.min(width, height) / 2;
+      return `M ${cx - r} ${cy} a ${r} ${r} 0 1 0 ${r * 2} 0 a ${r} ${r} 0 1 0 ${-r * 2} 0 Z`;
+    }
+    if (shape === "diamond") {
+      return `M ${cx} ${y} L ${x + width} ${cy} L ${cx} ${y + height} L ${x} ${cy} Z`;
+    }
+    const x2 = x + width;
+    return `M ${cx} ${y - height / 6} L ${x2} ${y + height / 6} L ${x2} ${y + height * 5 / 6} L ${cx} ${y + height * 7 / 6} L ${x} ${y + height * 5 / 6} L ${x} ${y + height / 6} Z`;
+  }
+  /**
+   * Hexagon rows overhang the grid box: a quarter cell horizontally (the
+   * alternating quarter-cell row offsets) and a sixth of the row pitch
+   * vertically (a tessellating hexagon is 4/3 of the pitch tall). The shared
+   * gridRectMask would slice that overhang, so the heatmap group gets its own
+   * clip rect sized to the lattice's true extent. Scoped to this group only:
+   * the grid border, annotations and every other gridRectMask consumer keep
+   * the exact grid box.
+   *
+   * @param {any} elGroup
+   * @param {Graphics} graphics
+   * @param {number} xDivision
+   * @param {number} yDivision
+   */
+  applyHexagonClipPath(elGroup, graphics, xDivision, yDivision) {
+    const w = this.w;
+    const pad = this.strokeWidth / 2 + 2;
+    const clipId = `heatmapHexMask${w.globals.cuid}`;
+    const defs = w.dom.elDefs.node;
+    const prev = defs.querySelector(`clipPath[id="${clipId}"]`);
+    if (prev && prev.parentNode) {
+      prev.parentNode.removeChild(prev);
+    }
+    const clipPath = BrowserAPIs.createElementNS(SVGNS, "clipPath");
+    clipPath.setAttribute("id", clipId);
+    clipPath.appendChild(
+      graphics.drawRect(
+        -xDivision / 4 - pad,
+        -yDivision / 6 - pad,
+        w.layout.gridWidth + xDivision / 2 + pad * 2,
+        w.layout.gridHeight + yDivision / 3 + pad * 2,
+        0,
+        "#fff"
+      ).node
+    );
+    defs.appendChild(clipPath);
+    elGroup.attr("clip-path", `url(#${clipId})`);
   }
   /**
    * @param {any} el
