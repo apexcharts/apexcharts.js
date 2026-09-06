@@ -37,6 +37,8 @@ export default class WeaveHost {
     /** @type {any} per-dispatch data snapshot backing api.data reads */
     this._lastData = null
     /** @type {boolean} */ this._updatedWired = false
+    /** @type {Map<string, string[]>|null} plugin name -> series it owns */
+    this._derived = null
 
     this._onUpdated = this._onUpdated.bind(this)
     this._init()
@@ -64,6 +66,9 @@ export default class WeaveHost {
   }
 
   _onUpdated() {
+    // Every parse reassigns globals.initialSeries, so a plugin's claim has to
+    // be re-applied after each one, not only when markDerived() is called.
+    this._repairInitialSeries()
     // draw already ran at the mount/fastUpdate seam; this is post-update work.
     this.dispatch('afterUpdate', { pass: 'update' })
   }
@@ -77,10 +82,16 @@ export default class WeaveHost {
       console.error(`[apexcharts] plugin "${entry.name}" is not registered.`)
       return
     }
-    const v = def.apiVersion != null ? def.apiVersion : 1
-    if (Math.trunc(v) !== WEAVE_API_VERSION) {
+    // Forward-compatible rather than exact-match: every change to the contract
+    // so far has been additive, so a plugin written against v1 runs unchanged
+    // on a v2 host. Requiring equality would have meant that adding one field
+    // silently disabled every plugin already in the wild. Only a plugin that
+    // needs a NEWER host is skipped, which is the case where a field it depends
+    // on really is absent.
+    const v = def.apiVersion != null ? Math.trunc(def.apiVersion) : 1
+    if (!(v >= 1) || v > WEAVE_API_VERSION) {
       console.error(
-        `[apexcharts] plugin "${def.name}" targets Weave API v${v}, host is v${WEAVE_API_VERSION}; skipped.`,
+        `[apexcharts] plugin "${def.name}" targets Weave API v${def.apiVersion}, host is v${WEAVE_API_VERSION}; skipped.`,
       )
       return
     }
@@ -216,19 +227,145 @@ export default class WeaveHost {
     const gl = w.globals
     const series = w.seriesData.series || []
     const seriesX = w.seriesData.seriesX || []
-    return series.map((/** @type {any[]} */ sData, /** @type {number} */ i) => {
+    const cfgSeries = Array.isArray(w.config.series) ? w.config.series : []
+    return series.map((/** @type {any} */ sData, /** @type {number} */ i) => {
+      // A non-axis chart (pie / donut / radialBar) holds ONE NUMBER per entry
+      // rather than a row of values, so treating every entry as an array called
+      // .map on a number and threw. Because dispatch builds this payload up
+      // front, that exception was caught by the per-plugin guard and DISABLED
+      // the plugin: every Weave plugin silently did nothing on a pie, with the
+      // failure attributed to the plugin rather than to the host. Each slice is
+      // presented as a one-point series, which is what it is.
+      const row = Array.isArray(sData) ? sData : [sData]
       const xs = seriesX[i] || []
-      const points = (sData || []).map((/** @type {any} */ y, /** @type {number} */ j) => ({
+      const points = row.map((/** @type {any} */ y, /** @type {number} */ j) => ({
         x: xs[j] != null ? xs[j] : j,
         y,
       }))
+      // v2: the caller's OWN data array, untouched by parsing.
+      //
+      // `points` above is normalised, and its x falls back to the ordinal
+      // position whenever `seriesX` is unpopulated, which happens on some
+      // render paths. That is fine for reading, and wrong as the basis for
+      // WRITING a derived series back: the three accepted shapes (`[1,2]`,
+      // `[{x,y}]`, `[[x,y]]`) are not interchangeable, and handing back the
+      // wrong one parses to all-null and draws nothing without an error. A
+      // plugin that emits a series needs the original shape to copy.
+      const cfg = cfgSeries[i]
+      const raw =
+        cfg && typeof cfg === 'object' && Array.isArray(cfg.data) ? cfg.data : []
       return {
         name: gl.seriesNames ? gl.seriesNames[i] : undefined,
         hidden: (gl.collapsedSeriesIndices || []).includes(i),
         color: gl.colors ? gl.colors[i] : undefined,
         points,
+        raw,
       }
     })
+  }
+
+  /**
+   * Display labels per x position, resolved so they survive every render path.
+   *
+   * `config.xaxis.categories` leads because it is the caller's own input;
+   * `globals.categoryLabels` covers labels that came from string-x data, and
+   * `globals.labels` is the last resort. Both globals are populated after a
+   * mount and empty after an updateSeries(), so a consumer reading either alone
+   * gets real labels on first paint and ordinals afterwards.
+   *
+   * @returns {string[]}
+   */
+  _categories() {
+    const w = this.w
+    const gl = w.globals
+    const cfgCats =
+      w.config.xaxis && Array.isArray(w.config.xaxis.categories)
+        ? w.config.xaxis.categories
+        : []
+    const glCats = Array.isArray(gl.categoryLabels) ? gl.categoryLabels : []
+    const glLabels = Array.isArray(gl.labels) ? gl.labels : []
+    const src = cfgCats.length ? cfgCats : glCats.length ? glCats : glLabels
+
+    const series = w.seriesData.series || []
+    let length = 0
+    for (let i = 0; i < series.length; i++) {
+      const row = series[i]
+      if (Array.isArray(row) && row.length > length) length = row.length
+    }
+    if (!length) length = src.length
+
+    const out = []
+    for (let i = 0; i < length; i++) {
+      const v = src[i]
+      out.push(v === undefined || v === null ? String(i + 1) : String(v))
+    }
+    return out
+  }
+
+  /**
+   * Record the series a plugin owns, and repair the initial-series snapshot.
+   *
+   * `Data.parseData()` assigns `globals.initialSeries` on every parse
+   * unconditionally, so `updateSeries(..., overwriteInitialSeries: false)` does
+   * NOT keep a plugin's computed series out of it. That assignment is
+   * deliberate (it is what keeps resetSeries() correct for the reducer,
+   * histogram, dumbbell, streamgraph, waterfall and treemap raw-series paths),
+   * so the fix is to put the caller's own series back afterwards rather than to
+   * make the assignment conditional.
+   *
+   * Without this, a plugin that adds a computed series poisons resetSeries():
+   * pressing the toolbar's reset hands the user the plugin's output as if it
+   * were their own data, and it survives switching the plugin off.
+   *
+   * @param {string} pluginName
+   * @param {string[]} names
+   */
+  _markDerived(pluginName, names) {
+    if (!this._derived) this._derived = new Map()
+    const list = Array.isArray(names) ? names.map((n) => String(n)) : []
+    if (list.length) {
+      this._derived.set(pluginName, list)
+    } else {
+      this._derived.delete(pluginName)
+    }
+    this._repairInitialSeries()
+  }
+
+  /** All series names currently claimed by plugins. */
+  _derivedNames() {
+    const out = new Set()
+    if (!this._derived) return out
+    for (const list of this._derived.values()) {
+      for (const n of list) out.add(n)
+    }
+    return out
+  }
+
+  _repairInitialSeries() {
+    const drop = this._derivedNames()
+    if (!drop.size) return
+    const w = this.w
+    const series = /** @type {any[]} */ (
+      Array.isArray(w.config.series) ? w.config.series : []
+    )
+    const own = series.filter(
+      (/** @type {any} */ s) => !drop.has(String(s && s.name)),
+    )
+    // Nothing to protect: the chart holds only plugin series, so leaving the
+    // snapshot alone is better than emptying it.
+    if (!own.length) return
+    try {
+      w.globals.initialSeries = own
+      if (
+        w.globals.initialConfig &&
+        Array.isArray(w.globals.initialConfig.series)
+      ) {
+        w.globals.initialConfig.series = own
+      }
+    } catch {
+      // Never worth breaking a render over; the cost is a reset that restores
+      // the plugin's series too.
+    }
   }
 
   // ─── Theme tokens ───────────────────────────────────────────────────────
@@ -353,6 +490,7 @@ export default class WeaveHost {
         this._guard(record, 'destroy', () => record.def.destroy && record.def.destroy(record.api))
       }
       this.active = []
+      this._derived = null
       if (this._updatedWired) {
         this.ctx.removeEventListener &&
           this.ctx.removeEventListener('updated', this._onUpdated)

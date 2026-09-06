@@ -7,8 +7,17 @@
  * @module weave/PluginAPI
  */
 
-/** Weave contract version. Plugins declare `apiVersion`; a mismatch is skipped. */
-export const WEAVE_API_VERSION = 1
+/**
+ * Weave contract version. Plugins declare `apiVersion`; a plugin targeting a
+ * NEWER version than the host is skipped, an older one is served (every change
+ * so far has been additive, so a v1 plugin runs unchanged on a v2 host).
+ *
+ * v2 added, for out-of-tree analysis plugins: `data[].raw` (the caller's own
+ * data array, the only reliable template for emitting a derived series),
+ * `api.info` (chart type / axis kind / horizontal bars), `api.categories`
+ * (resolved display labels) and `api.markDerived()`.
+ */
+export const WEAVE_API_VERSION = 2
 
 /**
  * Public chart methods safe to expose to plugins (each bound to ctx). Excludes
@@ -248,6 +257,74 @@ export function buildPluginAPI(host, record) {
 
     // ── curated actions (bound public methods only; NEVER raw w) ──
     chart: buildBoundPublicMethods(ctx),
+
+    // ── chart shape (v2) ──
+    // What kind of chart this is, for a plugin that has to decide whether it
+    // applies at all. An analysis or derived-series plugin cannot work on every
+    // type, and the alternative to asking is adding a series and letting the
+    // core warn at the user.
+    get info() {
+      return Object.freeze({
+        // The type the caller ASKED for: `requestedType` survives the aliasing
+        // that rewrites e.g. raincloud to violin.
+        type: String(
+          (w.config.chart && (w.config.chart.requestedType || w.config.chart.type)) ||
+            'line',
+        ),
+        // false for pie / donut / radialBar, where `data` is one value per slice.
+        axisChart: w.globals.axisCharts === true,
+        datetimeX: !!(w.config.xaxis && w.config.xaxis.type === 'datetime'),
+        // The core refuses to draw a horizontal bar in a combo, so a plugin must
+        // not add a derived series to one.
+        horizontalBars: !!(
+          w.config.plotOptions &&
+          w.config.plotOptions.bar &&
+          w.config.plotOptions.bar.horizontal
+        ),
+        // Whether the chart prints a value on each point, and which series it
+        // prints them for. A plugin that ADDS a series needs both: there is no
+        // per-series dataLabels flag, so `dataLabels.enabledOnSeries` is the
+        // only way to keep labels off a computed series, and narrowing it
+        // without knowing the caller's own value would silently discard it.
+        dataLabels: Object.freeze({
+          enabled: !!(w.config.dataLabels && w.config.dataLabels.enabled),
+          enabledOnSeries: Array.isArray(
+            w.config.dataLabels && w.config.dataLabels.enabledOnSeries,
+          )
+            ? w.config.dataLabels.enabledOnSeries.slice()
+            : null,
+        }),
+      })
+    },
+
+    // Display labels per x position (v2).
+    //
+    // Resolved config-first on purpose. `globals.categoryLabels` and
+    // `globals.labels` are populated after a mount and EMPTY after an
+    // updateSeries(), so a plugin reading either directly would render real
+    // labels on first paint and ordinals after any update.
+    get categories() {
+      return host._categories()
+    },
+
+    /**
+     * Declare which series on this chart belong to the plugin rather than to
+     * the caller (v2).
+     *
+     * A plugin that adds computed series has to say so, because the core cannot
+     * tell them apart and several behaviours depend on the distinction. Today
+     * the host uses it to keep them out of the initial-series snapshot, so
+     * `resetSeries()` and the toolbar's reset restore the caller's own data
+     * instead of the plugin's output.
+     *
+     * Idempotent; pass an empty array when the plugin's series are gone.
+     *
+     * @param {string[]} names series names the plugin owns
+     */
+    markDerived(names) {
+      host._markDerived(record.def.name, names)
+      return api
+    },
 
     // ── custom events out to the host app ──
     /**
