@@ -25,6 +25,7 @@ const makeHelpers = ({
   horizontal = false,
   stacked = true,
   borderRadius = 10,
+  columnSeries = null,
 }) => {
   const w = {
     config: {
@@ -33,6 +34,7 @@ const makeHelpers = ({
     },
     seriesData: { seriesNames },
     labelData: { seriesGroups },
+    globals: { columnSeries },
   }
   // Helpers' constructor only reads barCtx.w.
   return new Helpers({ w })
@@ -84,6 +86,51 @@ describe('createBorderRadiusArr, which bar rounds which corner', () => {
       const h = makeHelpers({ seriesNames: ['n0', 'n1', 'n2'] })
       const grid = h.createBorderRadiusArr([[-10, -10], [-15, -15], [-12, -12]])
       expect(cornersAt(grid, 0)).toEqual(['top', 'none', 'bottom'])
+    })
+
+    it('is a no-op when every series is a bar (pure-bar stacked chart)', () => {
+      const h = makeHelpers({
+        seriesNames: ['S0', 'S1', 'S2'],
+        columnSeries: { i: [0, 1, 2] },
+      })
+      const grid = h.createBorderRadiusArr([
+        [10, 10],
+        [15, 15],
+        [12, 12],
+      ])
+      expect(cornersAt(grid, 0)).toEqual(['bottom', 'none', 'top'])
+    })
+
+    it('skips a line series sitting inside the stack (#5296)', () => {
+      // Trend is a line series stacked alongside three columns; the bar
+      // renderer never draws it, so it must never claim a corner.
+      const h = makeHelpers({
+        seriesNames: ['Trend', 'ColA', 'ColB', 'ColC'],
+        columnSeries: { i: [1, 2, 3] },
+      })
+      const grid = h.createBorderRadiusArr([
+        [180, 290],
+        [100, 200],
+        [50, 60],
+        [30, 30],
+      ])
+      // Pre-fix this was ['bottom', 'none', 'none', 'top']: Trend's index (0)
+      // was treated as the stack's bottom, leaving ColA square.
+      expect(cornersAt(grid, 0)).toEqual(['none', 'bottom', 'none', 'top'])
+    })
+
+    it('inverts correctly when the line sits at the end of the stack (#5296)', () => {
+      const h = makeHelpers({
+        seriesNames: ['ColA', 'ColB', 'ColC', 'Trend'],
+        columnSeries: { i: [0, 1, 2] },
+      })
+      const grid = h.createBorderRadiusArr([
+        [100, 200],
+        [50, 60],
+        [30, 30],
+        [180, 290],
+      ])
+      expect(cornersAt(grid, 0)).toEqual(['bottom', 'none', 'top', 'none'])
     })
   })
 
@@ -257,6 +304,22 @@ describe('createBorderRadiusArr, which bar rounds which corner', () => {
         seriesGroups: [['a1'], ['nobody']],
       })
       expect(h.getStackedSeriesIndices(1)).toEqual([[0]])
+    })
+
+    it('excludes non-bar series when the combo chart reports which are bars (#5296)', () => {
+      const h = makeHelpers({
+        seriesNames: ['Trend', 'ColA', 'ColB', 'ColC'],
+        columnSeries: { i: [1, 2, 3] },
+      })
+      expect(h.getStackedSeriesIndices(4)).toEqual([[1, 2, 3]])
+    })
+
+    it('returns no buckets, not an empty one, when nothing in the ungrouped stack is a bar', () => {
+      const h = makeHelpers({
+        seriesNames: ['Trend0', 'Trend1'],
+        columnSeries: { i: [] },
+      })
+      expect(h.getStackedSeriesIndices(2)).toEqual([])
     })
   })
 })
