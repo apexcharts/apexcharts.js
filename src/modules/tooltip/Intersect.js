@@ -61,8 +61,18 @@ class Intersect {
 
     if (canvasCells) {
       const seriesBound = opt.elGrid.getBoundingClientRect()
-      const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
-      const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
+      // `opt.elGrid` is THIS chart's grid, so the pointer has to be this
+      // chart's too. In a group the event belongs to whichever sibling was
+      // hovered, and `seriesHover` hands down the pointer already translated
+      // into each member's own space; pairing the raw event with a sibling's
+      // grid puts the hit test a whole chart-width off and every sibling
+      // resolves to "no cell".
+      const clientX =
+        opt.clientX ??
+        (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX)
+      const clientY =
+        opt.clientY ??
+        (e.type === 'touchmove' ? e.touches[0].clientY : e.clientY)
       const hit = renderer.hitTest(
         clientX - seriesBound.left,
         clientY - seriesBound.top,
