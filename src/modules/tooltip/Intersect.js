@@ -208,6 +208,22 @@ class Intersect {
         (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
     }
 
+    // A label wider than the space beside the cell pushes the box out of the
+    // plot area — on a narrow screen it then hangs off the viewport and the
+    // text is unreadable. Clamp it back into the plot area horizontally, the
+    // same way the arrow-mode path above does.
+    const ttWidth = ttCtx.tooltipRect.ttWidth || 0
+    const elGridRect = opt.elGrid
+      ? opt.elGrid.getBoundingClientRect()
+      : null
+    const gridLeft = elGridRect
+      ? elGridRect.left - w.dom.elWrap.getBoundingClientRect().left
+      : w.layout.translateX
+    const gridRight = gridLeft + w.layout.gridWidth
+
+    if (x + ttWidth > gridRight) x = gridRight - ttWidth
+    if (x < gridLeft) x = gridLeft
+
     return {
       x,
       y,
