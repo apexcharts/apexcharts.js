@@ -506,13 +506,26 @@ export default class Helpers {
    * not grouped. Order within a bucket follows series order, which is stacking
    * order.
    *
+   * `w.globals.columnSeries` (when set) is the combo chart's own list of which
+   * series it draws as bars; a line or area series never occupies a stack
+   * segment, so it is filtered out here rather than left to compete for the
+   * outermost slot (#5296).
+   *
    * @param {number} numSeries
    * @returns {number[][]}
    */
   getStackedSeriesIndices(numSeries) {
-    const groups = this.w.labelData.seriesGroups
+    const w = this.w
+    const groups = w.labelData.seriesGroups
+    const barIndices = w.globals?.columnSeries
+      ? new Set(/** @type {any} */ (w.globals.columnSeries).i)
+      : null
+    const isBar = (/** @type {number} */ i) => !barIndices || barIndices.has(i)
+
     if (!groups || groups.length < 2) {
-      return [Array.from({ length: numSeries }, (_, i) => i)]
+      return [
+        Array.from({ length: numSeries }, (_, i) => i).filter(isBar),
+      ]
     }
 
     /** @type {number[][]} */
@@ -520,6 +533,7 @@ export default class Helpers {
     /** @type {number[]} */
     const ungrouped = []
     for (let i = 0; i < numSeries; i++) {
+      if (!isBar(i)) continue
       const g = this.getSeriesGroupIndex(i)
       if (g > -1) buckets[g].push(i)
       else ungrouped.push(i)
