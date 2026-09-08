@@ -182,6 +182,14 @@ export default class WeaveHost {
   /**
    * Build api.scales from the SAME xyRatios the series were drawn with, so
    * plugin pixels align with series pixels by construction.
+   *
+   * The pixels are LAYER-LOCAL: the plugin layer `<g>` lives inside
+   * elGraphical, which already carries translate(translateX, translateY), so
+   * the domain edges map to 0 and gridWidth/gridHeight here, exactly like the
+   * positions the series hand to drawMarker. These scales used to add the
+   * layout translate as well, which shifted everything a plugin drew by
+   * exactly the grid offset; a consumer of the old behaviour can rebase by
+   * subtracting x(domainX[0]) and y(domainY(axis)[1]), which is a no-op now.
    * @param {any} xyRatios
    */
   _setScales(xyRatios) {
@@ -202,12 +210,12 @@ export default class WeaveHost {
     const minY = (axis) => (gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY)
     this._currentScales = {
       /** @param {number} v */
-      x: (v) => L.translateX + (v - gl.minX) / xRatio,
+      x: (v) => (v - gl.minX) / xRatio,
       /**
        * @param {number} v
        * @param {number} [axis]
        */
-      y: (v, axis = 0) => L.translateY + (maxY(axis) - v) / yr(axis),
+      y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
       domainX: [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],

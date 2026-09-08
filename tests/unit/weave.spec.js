@@ -177,7 +177,12 @@ describe('Weave: activation + layers', () => {
     chart.destroy()
   })
 
-  it('api.scales aligns to the grid edges', async () => {
+  it('api.scales is layer-local: the domain edges map to 0 and the grid size', async () => {
+    // The plugin layer <g> sits inside elGraphical, which already carries the
+    // layout translate. These scales used to add the translate AGAIN, so
+    // everything a plugin drew landed shifted by exactly the grid offset;
+    // asserting the edges at 0 and gridWidth pins the coordinate space the
+    // layer actually lives in.
     let captured = null
     const alignProbe = {
       name: 'align',
@@ -193,11 +198,53 @@ describe('Weave: activation + layers', () => {
     await chart.render()
     const L = chart.w.layout
     expect(captured).toBeTruthy()
-    expect(captured.x(captured.domainX[0])).toBeCloseTo(L.translateX, 0)
-    expect(captured.x(captured.domainX[1])).toBeCloseTo(
-      L.translateX + L.gridWidth,
-      0,
-    )
+    expect(captured.x(captured.domainX[0])).toBeCloseTo(0, 6)
+    expect(captured.x(captured.domainX[1])).toBeCloseTo(L.gridWidth, 6)
+    expect(captured.y(captured.domainY(0)[1])).toBeCloseTo(0, 6)
+    expect(captured.y(captured.domainY(0)[0])).toBeCloseTo(L.gridHeight, 6)
+    chart.destroy()
+  })
+
+  it('api.scales projects a datum onto the same pixels the chart drew its marker at', async () => {
+    // The contract behind api.layer: a plugin drawing at scales coordinates
+    // must land ON the data. Markers carry their layer-local position as
+    // cx/cy, so comparing against them proves the alignment end to end rather
+    // than agreeing with the scales' own arithmetic.
+    let captured = null
+    const markerProbe = {
+      name: 'markeralign',
+      apiVersion: 1,
+      setup(api) {
+        api.on('draw', ({ scales }) => {
+          if (scales) captured = scales
+        })
+      },
+    }
+    ApexCharts.registerPlugin(markerProbe)
+    const chart = scatterChart([{ name: 'markeralign' }])
+    await chart.render()
+    expect(captured).toBeTruthy()
+
+    const markers = Array.from(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-marker'),
+    ).map((m) => ({
+      cx: parseFloat(m.getAttribute('cx')),
+      cy: parseFloat(m.getAttribute('cy')),
+    }))
+    expect(markers.length).toBeGreaterThan(0)
+
+    // First and last datum of S1 in scatterChart's fixture.
+    for (const [x, y] of [
+      [0, 1],
+      [8, 17],
+    ]) {
+      const px = captured.x(x)
+      const py = captured.y(y, 0)
+      const hit = markers.some(
+        (m) => Math.abs(m.cx - px) < 0.5 && Math.abs(m.cy - py) < 0.5,
+      )
+      expect(hit).toBe(true)
+    }
     chart.destroy()
   })
 })
