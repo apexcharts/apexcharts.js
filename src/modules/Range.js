@@ -740,7 +740,16 @@ class Range {
         ticks = Math.round(gl.svgWidth / 150)
 
         // no labels provided and total number of dataPoints is less than 30
-        if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 30) {
+        const inferredNumericX =
+          this.w.axisFlags.isXNumeric &&
+          this.w.axisFlags.dataFormatXNumeric &&
+          cnf.xaxis.type !== 'datetime' &&
+          !cnf.xaxis.convertedCatToNumeric &&
+          !gl.isBarHorizontal
+        if (
+          (cnf.xaxis.type === 'numeric' || inferredNumericX) &&
+          gl.dataPoints < 30
+        ) {
           ticks = gl.dataPoints - 1
         }
 

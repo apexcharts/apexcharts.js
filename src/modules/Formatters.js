@@ -107,9 +107,14 @@ class Formatters {
     } else {
       fmt.xLabelFormatter = (/** @type {any} */ val) => {
         if (Utils.isNumber(val)) {
+          const inferredNumericX =
+            w.axisFlags.isXNumeric &&
+            w.axisFlags.dataFormatXNumeric &&
+            w.config.xaxis.type !== 'datetime' &&
+            !w.globals.isBarHorizontal
           if (
             !w.config.xaxis.convertedCatToNumeric &&
-            w.config.xaxis.type === 'numeric'
+            (w.config.xaxis.type === 'numeric' || inferredNumericX)
           ) {
             if (Utils.isNumber(w.config.xaxis.decimalsInFloat)) {
               return val.toFixed(w.config.xaxis.decimalsInFloat)
