@@ -208,15 +208,50 @@ export default class WeaveHost {
     const maxY = (axis) => (gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY)
     /** @param {number} axis */
     const minY = (axis) => (gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY)
+
+    // A chart laid out in BANDS rather than on an x scale: a category bar or
+    // column (stacked included), a rangeBar, a heatmap. The parser never
+    // computes an x range for these, so globals.minX/maxX keep the sentinels
+    // they were seeded with, the ratio form below divides every value down to
+    // the same pixel, and domainX reads as [+MAX_VALUE, -MAX_VALUE]. A plugin
+    // drawing through that got a path of NaN or a line of no length: six
+    // working tools in apex-analyst drew nothing at all on any bar chart, and
+    // their buttons still lit up, because nothing in the facade said no.
+    //
+    // Projected the way Bar's own helper lays the slots out: the plot is cut
+    // into `dataPoints` equal bands and the mark for band j sits at its
+    // centre, so j maps to gridWidth / dataPoints * (j + 0.5). Checked against
+    // the rendered marks of all four types. That index is also what api.data
+    // hands out as the x here, because the snapshot falls back to the position
+    // when seriesX is absent, which it is for exactly these charts.
+    //
+    // The domain is the plot's own edges in band units, half a band either
+    // side, which keeps this facade's contract that domainX[0] maps to 0 and
+    // domainX[1] to gridWidth.
+    //
+    // Not applied to horizontal bars: there x carries the VALUE axis, so a
+    // band index along x would be confidently wrong rather than merely flat.
+    // That transposition is a separate fix, and nothing consumes it today.
+    //
+    // globals.padHorizontal, which Bar adds to the same expression, is
+    // deliberately absent: it is 0 everywhere in this codebase (its only
+    // assignment), and adding it would break the domain contract above rather
+    // than move a mark. If it is ever made live, the two need revisiting
+    // together.
+    const banded =
+      !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0
+    const band = banded ? L.gridWidth / gl.dataPoints : 0
+
     this._currentScales = {
-      /** @param {number} v */
-      x: (v) => (v - gl.minX) / xRatio,
+      x: banded
+        ? (/** @type {number} */ v) => band * (v + 0.5)
+        : (/** @type {number} */ v) => (v - gl.minX) / xRatio,
       /**
        * @param {number} v
        * @param {number} [axis]
        */
       y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
-      domainX: [gl.minX, gl.maxX],
+      domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
       gridWidth: L.gridWidth,

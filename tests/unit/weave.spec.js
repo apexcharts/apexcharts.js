@@ -418,3 +418,98 @@ describe('Weave: dynamic add/remove via updateOptions', () => {
     chart.destroy()
   })
 })
+
+describe('Weave: scales on a chart laid out in bands', () => {
+  /**
+   * Reported against apex-analyst: six drawing tools on a bar chart, six
+   * buttons lit, nothing on the chart. The parser computes no x range for a
+   * category bar, so globals.minX/maxX kept the sentinels they are seeded
+   * with, and the facade divided every value down to the same pixel.
+   *
+   * Asserted against the marks the chart itself drew rather than against the
+   * scales' own arithmetic, which is the only way this means anything: the
+   * old behaviour also "worked" if you only asked it to be self-consistent.
+   */
+  const bandProbe = (name) => {
+    const out = {}
+    ApexCharts.registerPlugin({
+      name,
+      apiVersion: 2,
+      setup(api) {
+        api.on('draw', () => {
+          out.scales = api.scales
+          out.data = api.data
+        })
+      },
+    })
+    return out
+  }
+
+  /** The x of each bar path, which is where the chart really put it. */
+  const barLefts = (chart) =>
+    Array.from(chart.w.dom.baseEl.querySelectorAll('.apexcharts-bar-area')).map(
+      (b) => Number(((b.getAttribute('d') || '').match(/-?\d+\.?\d*/g) || [])[0]),
+    )
+
+  it('places a category bar on its own band rather than on one pixel', async () => {
+    const out = bandProbe('bandprobe')
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 800, height: 300 },
+      series: [{ name: 'A', data: [10, 20, 30, 40, 50, 60] }],
+      xaxis: { categories: ['a', 'b', 'c', 'd', 'e', 'f'] },
+      plugins: [{ name: 'bandprobe' }],
+    })
+    await chart.render()
+
+    const xs = out.data[0].points.map((p) => p.x)
+    expect(xs).toEqual([0, 1, 2, 3, 4, 5])
+
+    // Every band lands somewhere different, which is the whole defect.
+    const px = xs.map((v) => out.scales.x(v))
+    expect(new Set(px).size).toBe(6)
+
+    // And each one lands on the centre of the bar it describes.
+    const lefts = barLefts(chart)
+    const barWidth = chart.w.globals.barWidth
+    px.forEach((p, i) => {
+      expect(Math.abs(p - (lefts[i] + barWidth / 2))).toBeLessThan(0.5)
+    })
+
+    chart.destroy()
+  })
+
+  it('keeps the contract that the domain edges are 0 and gridWidth', async () => {
+    const out = bandProbe('bandedges')
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 800, height: 300 },
+      series: [{ name: 'A', data: [10, 20, 30] }],
+      xaxis: { categories: ['a', 'b', 'c'] },
+      plugins: [{ name: 'bandedges' }],
+    })
+    await chart.render()
+
+    // apex-analyst rebases by subtracting x(domainX[0]), which has to stay the
+    // no-op the layer-local fix made it.
+    const [lo, hi] = out.scales.domainX
+    expect(out.scales.x(lo)).toBeCloseTo(0, 6)
+    expect(out.scales.x(hi)).toBeCloseTo(chart.w.layout.gridWidth, 6)
+    chart.destroy()
+  })
+
+  it('leaves a numeric or datetime x alone', async () => {
+    const out = bandProbe('bandnumeric')
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 800, height: 300 },
+      series: [{ name: 'A', data: [{ x: 1, y: 10 }, { x: 2, y: 20 }, { x: 3, y: 30 }] }],
+      xaxis: { type: 'numeric' },
+      plugins: [{ name: 'bandnumeric' }],
+    })
+    await chart.render()
+
+    // The value itself, not a band index: this path was never broken and the
+    // band projection must not reach it.
+    expect(out.scales.domainX).toEqual([1, 3])
+    expect(out.scales.x(1)).toBeCloseTo(0, 6)
+    chart.destroy()
+  })
+})
