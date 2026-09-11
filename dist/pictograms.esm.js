@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.2.0-rc.2
+ * ApexCharts v7.2.0
  * (c) 2018-2026 ApexCharts
  */
 function definePictogram(meta) {

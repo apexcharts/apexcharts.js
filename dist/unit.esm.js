@@ -5,51 +5,51 @@ var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b2) => {
-  for (var prop in b2 || (b2 = {}))
-    if (__hasOwnProp.call(b2, prop))
-      __defNormalProp(a, prop, b2[prop]);
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
   if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b2)) {
-      if (__propIsEnum.call(b2, prop))
-        __defNormalProp(a, prop, b2[prop]);
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
     }
   return a;
 };
-var __spreadProps = (a, b2) => __defProps(a, __getOwnPropDescs(b2));
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.2.0-rc.2
+ * ApexCharts v7.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-const p = 0.05, m = 0.05, g = 1 / 45;
-function v(e, t, s, i) {
+const L = 0.05, T = 0.05, j = 1 / 45;
+function E(e, t, s, i) {
   const n = { value: e, velocity: 0, target: e, stiffness: t, damping: s };
   return n;
 }
-function b(e, t) {
-  if (t <= 0) return M(e);
+function R(e, t) {
+  if (t <= 0) return O(e);
   let s = t;
   for (; s > 0; ) {
-    const t2 = Math.min(s, g), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
+    const t2 = Math.min(s, j), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
     e.velocity += i * t2, e.value += e.velocity * t2, s -= t2;
   }
-  return !!M(e) && (e.value = e.target, e.velocity = 0, true);
+  return !!O(e) && (e.value = e.target, e.velocity = 0, true);
 }
-function w(e, t) {
+function D(e, t) {
   e.target = t;
 }
-function M(e) {
+function O(e) {
   var _a, _b;
-  const t = (_a = e.restVelocity) != null ? _a : p, s = (_b = e.restDisplacement) != null ? _b : m;
+  const t = (_a = e.restVelocity) != null ? _a : L, s = (_b = e.restDisplacement) != null ? _b : T;
   return Math.abs(e.velocity) < t && Math.abs(e.value - e.target) < s;
 }
-const S = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-function L(e) {
+const $ = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
+function q(e) {
   var _a;
-  return (_a = S[e != null ? e : "crisp"]) != null ? _a : S.crisp;
+  return (_a = $[e != null ? e : "crisp"]) != null ? _a : $.crisp;
 }
 const Graphics = _core.__apex_Graphics;
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
@@ -116,7 +116,7 @@ const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
-function drawOuterLabel(w2, spec) {
+function drawOuterLabel(w, spec) {
   const {
     lines,
     lineHeight,
@@ -129,7 +129,7 @@ function drawOuterLabel(w2, spec) {
     style,
     foreColor
   } = spec;
-  const graphics = new Graphics(w2);
+  const graphics = new Graphics(w);
   const group = graphics.group({
     class: spec.groupClass || "apexcharts-outer-label-group"
   });
@@ -170,8 +170,8 @@ function drawOuterLabel(w2, spec) {
   group.add(elText);
   return group;
 }
-function measureLabelWidth(w2, labels, style = {}) {
-  const graphics = new Graphics(w2);
+function measureLabelWidth(w, labels, style = {}) {
+  const graphics = new Graphics(w);
   const fontSize = style.fontSize || "12px";
   const px = parseFloat(fontSize) || 12;
   let max = 0;
@@ -184,7 +184,7 @@ function measureLabelWidth(w2, labels, style = {}) {
   return max;
 }
 function spaceOutLabels(items, minGap, maxY, minY) {
-  const col = items.slice().sort((a, b2) => a.idealY - b2.idealY);
+  const col = items.slice().sort((a, b) => a.idealY - b.idealY);
   col.forEach((l) => {
     l.labelY = l.idealY;
   });
@@ -226,7 +226,7 @@ const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
 function springParams(preset, speed) {
-  const [stiffness, damping] = L(
+  const [stiffness, damping] = q(
     /** @type {import('apex-commons').SpringPreset|undefined} */
     preset
   );
@@ -238,9 +238,9 @@ class Unit {
    * @param {import('../types/internal').ChartStateW} w
    * @param {import('../types/internal').ChartContext} ctx
    */
-  constructor(w2, ctx) {
+  constructor(w, ctx) {
     this.ctx = ctx;
-    this.w = w2;
+    this.w = w;
     this._lastDotR = 1;
     this._gridTrack = null;
     this._gridDenom = 1;
@@ -253,24 +253,24 @@ class Unit {
    * @returns {any} the chart's root group element
    */
   draw(series) {
-    const w2 = this.w;
-    const graphics = new Graphics(w2, this.ctx);
+    const w = this.w;
+    const graphics = new Graphics(w, this.ctx);
     const ret = graphics.group({ class: "apexcharts-unit" });
-    if (w2.globals.noData || !Array.isArray(series) || series.length === 0) {
+    if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret;
     }
-    const opts = w2.config.plotOptions.unit;
+    const opts = w.config.plotOptions.unit;
     const layout = opts.layout === "packed" ? "packed" : opts.layout === "columns" ? "columns" : opts.layout === "grid" ? "grid" : opts.layout === "scatter" ? "scatter" : opts.layout === "arc" ? "arc" : opts.layout === "custom" ? "custom" : "grouped";
     const transition = opts.transition;
     const flow = transition === "flow";
     const identity = transition === "identity";
     const unitValue = opts.unitValue > 0 ? opts.unitValue : 1;
-    let counts = series.map((v2) => {
-      const n = Math.abs(Utils.parseNumber(v2)) / unitValue;
+    let counts = series.map((v) => {
+      const n = Math.abs(Utils.parseNumber(v)) / unitValue;
       return n > 0 ? Math.max(1, Math.round(n)) : 0;
     });
     counts = this._applyMaxUnits(counts, opts.maxUnits);
-    const total = counts.reduce((a, b2) => a + b2, 0);
+    const total = counts.reduce((a, b) => a + b, 0);
     const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : layout === "arc" ? this._layoutArc(counts, opts) : layout === "custom" ? this._layoutCustom(counts, opts) : this._layoutGrouped(counts, opts);
     const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
     if (gridSplit) this._drawGridTrack(ret, graphics, opts);
@@ -284,15 +284,15 @@ class Unit {
     const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null;
     const nextPrev = /* @__PURE__ */ new Map();
     const animDots = [];
-    const unitData = w2.seriesData.unitData || [];
+    const unitData = w.seriesData.unitData || [];
     const sizeStats = this._bubbleStats(unitData, opts, dotR);
     let gIndex = 0;
     clusters.forEach((cluster) => {
-      const color = w2.globals.colors[cluster.i] || w2.globals.colors[0] || "#008FFB";
+      const color = w.globals.colors[cluster.i] || w.globals.colors[0] || "#008FFB";
       const elSeries = graphics.group({
         class: "apexcharts-series",
         seriesName: Utils.escapeString(
-          w2.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`
+          w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`
         ),
         rel: cluster.i + 1,
         "data:realIndex": cluster.i
@@ -301,12 +301,12 @@ class Unit {
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
       cluster.dots.forEach((d, jj) => {
-        const j = d.j != null ? d.j : jj;
-        const datum = catData ? catData[j] : void 0;
+        const j2 = d.j != null ? d.j : jj;
+        const datum = catData ? catData[j2] : void 0;
         const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
         const rj = d.r != null ? d.r : sizeStats ? this._radiusForValue(this._unitValueOf(datum), sizeStats) : dotR;
         const spec = this._markSpecFor(opts, datum, cluster.i, rj);
-        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec);
+        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j2, spec);
         elSeries.add(el);
         let key;
         if (identity) {
@@ -317,7 +317,7 @@ class Unit {
         } else if (d.slot != null) {
           key = `slot:${d.slot}`;
         } else {
-          key = `${cluster.i}:${j}`;
+          key = `${cluster.i}:${j2}`;
         }
         gIndex++;
         nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, spec });
@@ -327,7 +327,7 @@ class Unit {
           el.node.setAttribute("data-piece-hidden", "1");
         } else if (animate) {
           const from = prev && prev.get(key);
-          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j, burstCount) : burst);
+          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j2, burstCount) : burst);
           const enter = opts.gather && opts.gather.enter || "burst";
           const inPlace = gridSplit || enter === "fade" || enter === "rise";
           const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
@@ -383,7 +383,7 @@ class Unit {
     if (animate && animDots.length) {
       this._runGather(animDots);
     } else {
-      w2.globals.animationEnded = true;
+      w.globals.animationEnded = true;
     }
     return ret;
   }
@@ -395,7 +395,7 @@ class Unit {
    * @returns {number[]}
    */
   _applyMaxUnits(counts, maxUnits) {
-    const total = counts.reduce((a, b2) => a + b2, 0);
+    const total = counts.reduce((a, b) => a + b, 0);
     if (!maxUnits || maxUnits <= 0 || total <= maxUnits) return counts;
     const scale = maxUnits / total;
     console.warn(
@@ -421,10 +421,10 @@ class Unit {
    * @param {any} opts
    */
   _layoutCustom(counts, opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
-    const total = counts.reduce((a, b2) => a + b2, 0);
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
+    const total = counts.reduce((a, b) => a + b, 0);
     const provider = this._resolveLayoutProvider(opts);
     if (!provider) {
       console.warn(
@@ -462,12 +462,12 @@ class Unit {
       return this._layoutGrouped(counts, opts);
     }
     const byId = /* @__PURE__ */ new Map();
-    placed.forEach((p2) => {
-      if (!p2 || !isFinite(p2.x) || !isFinite(p2.y)) return;
-      byId.set(String(p2.id), {
-        x: p2.x,
-        y: p2.y,
-        r: typeof p2.r === "number" && p2.r > 0 ? p2.r : void 0
+    placed.forEach((p) => {
+      if (!p || !isFinite(p.x) || !isFinite(p.y)) return;
+      byId.set(String(p.id), {
+        x: p.x,
+        y: p.y,
+        r: typeof p.r === "number" && p.r > 0 ? p.r : void 0
       });
     });
     const clusters = counts.map((_, i) => ({
@@ -518,22 +518,22 @@ class Unit {
    * @returns {{id:string,index:number,seriesIndex:number,dataPointIndex:number,label:string,value:number|undefined,datum:any,r:number}[]}
    */
   _layoutObjects(counts, dotR) {
-    const w2 = this.w;
-    const unitData = w2.seriesData.unitData || [];
-    const names = w2.seriesData.seriesNames || [];
+    const w = this.w;
+    const unitData = w.seriesData.unitData || [];
+    const names = w.seriesData.seriesNames || [];
     const objects = [];
     let index = 0;
     counts.forEach((n, i) => {
       var _a;
       const catData = unitData[i];
-      for (let j = 0; j < n; j++) {
-        const datum = catData ? catData[j] : void 0;
-        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j}`;
+      for (let j2 = 0; j2 < n; j2++) {
+        const datum = catData ? catData[j2] : void 0;
+        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j2}`;
         objects.push({
           id,
           index,
           seriesIndex: i,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           label: names[i],
           // Normalised at the boundary: internally "no value" is null, but the
           // public object shape uses an absent property.
@@ -573,9 +573,9 @@ class Unit {
    * @param {any} opts
    */
   _layoutGrouped(counts, opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6;
     const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
     const Kv = Math.max(1, visible.length);
@@ -639,11 +639,11 @@ class Unit {
    * @param {any} opts
    */
   _layoutPacked(counts, opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const labelSpace = 6;
-    const total = Math.max(1, counts.reduce((a, b2) => a + b2, 0));
+    const total = Math.max(1, counts.reduce((a, b) => a + b, 0));
     const availR = Math.max(
       4,
       Math.min(gw, gh - labelSpace) / 2 - Math.min(gw, gh) * 0.06
@@ -654,7 +654,7 @@ class Unit {
     const cy = labelSpace + (gh - labelSpace) / 2;
     const order = counts.map((_, i) => i);
     if (opts.sortByGroup !== false) {
-      order.sort((a, b2) => counts[a] - counts[b2]);
+      order.sort((a, b) => counts[a] - counts[b]);
     }
     const clusters = counts.map((_, i) => ({
       i,
@@ -666,7 +666,7 @@ class Unit {
     }));
     let gi = 0;
     order.forEach((catI) => {
-      for (let j = 0; j < counts[catI]; j++) {
+      for (let j2 = 0; j2 < counts[catI]; j2++) {
         const r = step * Math.sqrt(gi + 0.5);
         const theta = gi * GOLDEN_ANGLE;
         clusters[catI].dots.push({
@@ -692,10 +692,10 @@ class Unit {
    * @param {any} opts
    */
   _layoutArc(counts, opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
-    const total = Math.max(1, counts.reduce((a, b3) => a + b3, 0));
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
+    const total = Math.max(1, counts.reduce((a, b2) => a + b2, 0));
     const acfg = opts.arc || {};
     const startDeg = typeof acfg.startAngle === "number" ? acfg.startAngle : -90;
     const endDeg = typeof acfg.endAngle === "number" ? acfg.endAngle : 90;
@@ -708,14 +708,14 @@ class Unit {
     );
     const ux = (a) => Math.sin(a);
     const uy = (a) => -Math.cos(a);
-    const b2 = this._arcBounds(a0, a1);
+    const b = this._arcBounds(a0, a1);
     const pad = Math.min(gw, gh) * 0.04;
-    const boxW = Math.max(1e-6, b2.maxX - b2.minX);
-    const boxH = Math.max(1e-6, b2.maxY - b2.minY);
+    const boxW = Math.max(1e-6, b.maxX - b.minX);
+    const boxH = Math.max(1e-6, b.maxY - b.minY);
     const r1 = Math.max(4, Math.min((gw - 2 * pad) / boxW, (gh - 2 * pad) / boxH));
     const r0 = r1 * innerRatio;
-    const cx = gw / 2 - (b2.minX + b2.maxX) / 2 * r1;
-    const cy = gh / 2 - (b2.minY + b2.maxY) / 2 * r1;
+    const cx = gw / 2 - (b.minX + b.maxX) / 2 * r1;
+    const cy = gh / 2 - (b.minY + b.maxY) / 2 * r1;
     const alloc = this._arcAllocate(total, r0, r1, span, opts);
     this._lastDotR = alloc.dotR;
     const seats = [];
@@ -763,10 +763,10 @@ class Unit {
     const hi = Math.max(a0, a1);
     const xs = [0, ux(a0), ux(a1)];
     const ys = [0, uy(a0), uy(a1)];
-    const q = Math.PI / 2;
-    for (let k = Math.ceil(lo / q); k * q <= hi; k++) {
-      xs.push(ux(k * q));
-      ys.push(uy(k * q));
+    const q2 = Math.PI / 2;
+    for (let k = Math.ceil(lo / q2); k * q2 <= hi; k++) {
+      xs.push(ux(k * q2));
+      ys.push(uy(k * q2));
     }
     return {
       minX: Math.min(...xs),
@@ -789,36 +789,36 @@ class Unit {
     const spacing = opts.spacing > 0 ? opts.spacing : 1.05;
     const absSpan = Math.abs(span) || Math.PI;
     const fixed = this._fixedRadius(opts);
-    const evalR = (R) => {
-      R = Math.max(1, Math.round(R));
+    const evalR = (R2) => {
+      R2 = Math.max(1, Math.round(R2));
       const radii = [];
-      for (let r = 0; r < R; r++) {
-        radii.push(R === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R - 1)));
+      for (let r = 0; r < R2; r++) {
+        radii.push(R2 === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R2 - 1)));
       }
       const weightSum = radii.reduce((a, x) => a + x, 0) || 1;
       const raw = radii.map((rho) => total * rho / weightSum);
       const seatsPerRow = raw.map((x) => Math.floor(x));
       let left = total - seatsPerRow.reduce((a, x) => a + x, 0);
-      raw.map((x, idx) => ({ idx, frac: x - Math.floor(x) })).sort((p2, qq) => qq.frac - p2.frac).forEach((o) => {
+      raw.map((x, idx) => ({ idx, frac: x - Math.floor(x) })).sort((p, qq) => qq.frac - p.frac).forEach((o) => {
         if (left > 0) {
           seatsPerRow[o.idx]++;
           left--;
         }
       });
       while (left > 0) {
-        seatsPerRow[R - 1]++;
+        seatsPerRow[R2 - 1]++;
         left--;
       }
-      const radialPitch = R === 1 ? r1 - r0 || r1 : (r1 - r0) / (R - 1);
+      const radialPitch = R2 === 1 ? r1 - r0 || r1 : (r1 - r0) / (R2 - 1);
       let minArcPitch = Infinity;
-      for (let r = 0; r < R; r++) {
+      for (let r = 0; r < R2; r++) {
         const n = seatsPerRow[r];
         if (n <= 0) continue;
         const arcPitch = radii[r] * absSpan / n;
         if (arcPitch < minArcPitch) minArcPitch = arcPitch;
       }
       const pitch = Math.min(radialPitch, minArcPitch);
-      return { R, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
+      return { R: R2, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
     };
     const arcRows = opts.arc && opts.arc.rows;
     let res;
@@ -830,8 +830,8 @@ class Unit {
     } else {
       const maxR = Math.max(1, Math.min(40, Math.ceil(Math.sqrt(total)) + 6));
       res = evalR(1);
-      for (let R = 2; R <= maxR; R++) {
-        const cand = evalR(R);
+      for (let R2 = 2; R2 <= maxR; R2++) {
+        const cand = evalR(R2);
         if (cand.dotR > res.dotR) res = cand;
       }
     }
@@ -849,9 +849,9 @@ class Unit {
    * @param {any} opts
    */
   _layoutColumns(counts, opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
     const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
     const topPad = labelsOn && !labelsBelow ? 30 : 6;
@@ -906,9 +906,9 @@ class Unit {
       const barH = rows * pitch;
       const left = cx - cols * pitch / 2 + pitch / 2;
       const dots = [];
-      for (let j = 0; j < n; j++) {
-        const rowIdx = Math.floor(j / cols);
-        const colIdx = j % cols;
+      for (let j2 = 0; j2 < n; j2++) {
+        const rowIdx = Math.floor(j2 / cols);
+        const colIdx = j2 % cols;
         dots.push({
           x: left + colIdx * pitch,
           y: bottom - r - rowIdx * pitch
@@ -943,14 +943,14 @@ class Unit {
   _layoutGrid(counts, opts) {
     if (opts.grid && opts.grid.split) return this._layoutGridSplit(counts, opts);
     this._gridTrack = null;
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const gcfg = opts.grid || {};
     const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10));
     const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
     const cells = gcfg.total > 0 ? this._largestRemainder(counts, Math.round(gcfg.total)) : counts.slice();
-    const totalCells = cells.reduce((a, b2) => a + b2, 0);
+    const totalCells = cells.reduce((a, b) => a + b, 0);
     const rows = Math.max(1, Math.ceil(Math.max(1, totalCells) / cols));
     const labelSpace = 6;
     const spacing = opts.spacing > 0 ? opts.spacing : 1;
@@ -980,7 +980,7 @@ class Unit {
     }));
     let k = 0;
     for (let ci = 0; ci < cells.length; ci++) {
-      for (let j = 0; j < cells[ci]; j++) {
+      for (let j2 = 0; j2 < cells[ci]; j2++) {
         const col = k % cols;
         const rowIdx = Math.floor(k / cols);
         clusters[ci].dots.push({
@@ -1008,9 +1008,9 @@ class Unit {
    * @param {number[]} counts @param {any} opts
    */
   _layoutGridSplit(counts, opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const gcfg = opts.grid || {};
     const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10));
     const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
@@ -1065,8 +1065,8 @@ class Unit {
       );
       const dots = [];
       for (let k = 0; k < filled; k++) {
-        const p2 = cellXY(k);
-        dots.push({ x: p2.x, y: p2.y, slot: t * cellsPerTile + k });
+        const p = cellXY(k);
+        dots.push({ x: p.x, y: p.y, slot: t * cellsPerTile + k });
       }
       clusters.push({
         i: ci,
@@ -1097,7 +1097,7 @@ class Unit {
     const r = this._lastDotR;
     const gcfg = opts.grid || {};
     const trackColor = gcfg.trackColor || "rgba(128,128,128,0.14)";
-    const g2 = graphics.group({ class: "apexcharts-unit-track" });
+    const g = graphics.group({ class: "apexcharts-unit-track" });
     track.cells.forEach((c) => {
       let el;
       if (opts.shape === "square") {
@@ -1113,9 +1113,9 @@ class Unit {
         el.node.setAttribute("cy", String(c.y));
       }
       el.node.classList.add("apexcharts-unit-track-cell");
-      g2.add(el);
+      g.add(el);
     });
-    ret.add(g2);
+    ret.add(g);
   }
   /**
    * Scatter / beeswarm layout: position every unit on a real numeric X value
@@ -1129,29 +1129,29 @@ class Unit {
    * @param {any} opts
    */
   _layoutScatter(opts) {
-    const w2 = this.w;
+    const w = this.w;
     const scfg = opts.scatter || {};
     if (scfg.y === "value") return this._layoutScatter2D(opts);
     if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts);
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
-    const unitData = w2.seriesData.unitData || [];
-    const names = w2.seriesData.seriesNames || [];
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
+    const unitData = w.seriesData.unitData || [];
+    const names = w.seriesData.seriesNames || [];
     const valueOf = (d) => this._unitValueOf(d);
     const sizeStats = this._scatterSizeStats(scfg, unitData);
     const catVals = unitData.map(
       (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
     );
-    const isNum = (v2) => v2 != null && isFinite(v2);
+    const isNum = (v) => v != null && isFinite(v);
     const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
     catVals.forEach(
-      (vs) => vs.forEach((v2) => {
-        if (v2 != null && isFinite(v2)) {
-          if (v2 < vmin) vmin = v2;
-          if (v2 > vmax) vmax = v2;
+      (vs) => vs.forEach((v) => {
+        if (v != null && isFinite(v)) {
+          if (v < vmin) vmin = v;
+          if (v > vmax) vmax = v;
         }
       })
     );
@@ -1172,7 +1172,7 @@ class Unit {
     const plotB = gh - bottomGutter;
     const plotW = Math.max(4, plotR - plotL);
     const plotH = Math.max(4, plotB - plotT);
-    const plotX = (v2) => plotL + (v2 - xMin) / xSpan * plotW;
+    const plotX = (v) => plotL + (v - xMin) / xSpan * plotW;
     const laneH = plotH / Kv;
     const laneCy = (slot) => plotT + laneH * (slot + 0.5);
     let r = 0;
@@ -1200,17 +1200,17 @@ class Unit {
       const cy = laneCy(slot);
       lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` });
       const cat = unitData[ci] || [];
-      const pts = cat.map((d, j) => {
-        const v2 = valueOf(d);
-        const p2 = { j, px: plotX(isNum(v2) ? v2 : xMin), y: cy };
-        if (sizeStats) p2.r = this._scatterRadius(d, sizeStats, r);
-        return p2;
+      const pts = cat.map((d, j2) => {
+        const v = valueOf(d);
+        const p = { j: j2, px: plotX(isNum(v) ? v : xMin), y: cy };
+        if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
+        return p;
       });
       if (jitter) {
         const halfLane = Math.max(maxR, laneH / 2 - maxR);
-        pts.forEach((p2, k) => {
+        pts.forEach((p, k) => {
           const t = (k * 9301 + 49297) % 233280 / 233280;
-          p2.y = cy + (t * 2 - 1) * halfLane;
+          p.y = cy + (t * 2 - 1) * halfLane;
         });
       } else {
         this._beeswarm(pts, cy, r, step, maxR);
@@ -1220,7 +1220,7 @@ class Unit {
         cx: (plotL + plotR) / 2,
         cy,
         outerR: laneH / 2,
-        dots: pts.map((p2) => ({ x: p2.px, y: p2.y, r: p2.r }))
+        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r }))
       });
     });
     const ticks = domain.ticks;
@@ -1250,27 +1250,27 @@ class Unit {
    * @param {any} opts
    */
   _layoutScatterVertical(opts) {
-    const w2 = this.w;
+    const w = this.w;
     const scfg = opts.scatter || {};
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
-    const unitData = w2.seriesData.unitData || [];
-    const names = w2.seriesData.seriesNames || [];
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
+    const unitData = w.seriesData.unitData || [];
+    const names = w.seriesData.seriesNames || [];
     const valueOf = (d) => this._unitValueOf(d);
     const sizeStats = this._scatterSizeStats(scfg, unitData);
     const catVals = unitData.map(
       (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
     );
-    const isNum = (v2) => v2 != null && isFinite(v2);
+    const isNum = (v) => v != null && isFinite(v);
     const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
     catVals.forEach(
-      (vs) => vs.forEach((v2) => {
-        if (v2 != null && isFinite(v2)) {
-          if (v2 < vmin) vmin = v2;
-          if (v2 > vmax) vmax = v2;
+      (vs) => vs.forEach((v) => {
+        if (v != null && isFinite(v)) {
+          if (v < vmin) vmin = v;
+          if (v > vmax) vmax = v;
         }
       })
     );
@@ -1291,7 +1291,7 @@ class Unit {
     const plotB = gh - bottomGutter;
     const plotW = Math.max(4, plotR - plotL);
     const plotH = Math.max(4, plotB - plotT);
-    const plotY = (v2) => plotB - (v2 - vMin) / vSpan * plotH;
+    const plotY = (v) => plotB - (v - vMin) / vSpan * plotH;
     const laneW = plotW / Kv;
     const laneCx = (slot) => plotL + laneW * (slot + 0.5);
     let r = 0;
@@ -1319,17 +1319,17 @@ class Unit {
       const cx = laneCx(slot);
       lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
       const cat = unitData[ci] || [];
-      const pts = cat.map((d, j) => {
-        const v2 = valueOf(d);
-        const p2 = { j, py: plotY(isNum(v2) ? v2 : vMin), x: cx };
-        if (sizeStats) p2.r = this._scatterRadius(d, sizeStats, r);
-        return p2;
+      const pts = cat.map((d, j2) => {
+        const v = valueOf(d);
+        const p = { j: j2, py: plotY(isNum(v) ? v : vMin), x: cx };
+        if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
+        return p;
       });
       if (jitter) {
         const halfLane = Math.max(maxR, laneW / 2 - maxR);
-        pts.forEach((p2, k) => {
+        pts.forEach((p, k) => {
           const t = (k * 9301 + 49297) % 233280 / 233280;
-          p2.x = cx + (t * 2 - 1) * halfLane;
+          p.x = cx + (t * 2 - 1) * halfLane;
         });
       } else {
         this._beeswarm(pts, cx, r, step, maxR, true);
@@ -1339,7 +1339,7 @@ class Unit {
         cx,
         cy: (plotT + plotB) / 2,
         outerR: laneW / 2,
-        dots: pts.map((p2) => ({ x: p2.x, y: p2.py, r: p2.r }))
+        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r }))
       });
     });
     const ticks = domain.ticks;
@@ -1371,12 +1371,12 @@ class Unit {
    * @param {any} opts
    */
   _layoutScatter2D(opts) {
-    const w2 = this.w;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const w = this.w;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const scfg = opts.scatter || {};
-    const unitData = w2.seriesData.unitData || [];
-    const isNum = (v2) => typeof v2 === "number" && isFinite(v2);
+    const unitData = w.seriesData.unitData || [];
+    const isNum = (v) => typeof v === "number" && isFinite(v);
     const xOf = (d) => d && typeof d === "object" ? d.x : null;
     const yOf = (d) => d && typeof d === "object" ? d.y != null ? d.y : d.value : null;
     const visible = unitData.map((_, i) => i).filter(
@@ -1430,8 +1430,8 @@ class Unit {
     const plotB = gh - bottomGutter;
     const plotW = Math.max(4, plotR - plotL);
     const plotH = Math.max(4, plotB - plotT);
-    const plotX = (v2) => plotL + (v2 - xMin) / xSpan * plotW;
-    const plotY = (v2) => plotB - (v2 - yMin) / ySpan * plotH;
+    const plotX = (v) => plotL + (v - xMin) / xSpan * plotW;
+    const plotY = (v) => plotB - (v - yMin) / ySpan * plotH;
     const sizeStats = this._scatterSizeStats(scfg, unitData);
     const baseR = this._fixedRadius(opts) || 5;
     this._lastDotR = baseR;
@@ -1461,8 +1461,8 @@ class Unit {
         for (let k = 0; k < n; k++) out.push(lo + span * k / (n - 1));
       } else {
         const sp = spacing || span / Math.max(1, n - 1);
-        for (let v2 = lo; v2 <= hi + sp * 0.5; v2 += sp) {
-          out.push(Math.abs(v2) < sp * 1e-9 ? 0 : v2);
+        for (let v = lo; v <= hi + sp * 0.5; v += sp) {
+          out.push(Math.abs(v) < sp * 1e-9 ? 0 : v);
         }
       }
       return out;
@@ -1566,22 +1566,22 @@ class Unit {
   _beeswarm(pts, center, rFallback, step, maxR, vertical = false) {
     const fk = vertical ? "py" : "px";
     const sk = vertical ? "x" : "y";
-    const order = pts.slice().sort((a, b2) => a[fk] - b2[fk]);
+    const order = pts.slice().sort((a, b) => a[fk] - b[fk]);
     const placed = [];
     const rCap = maxR != null ? maxR : rFallback;
-    order.forEach((p2) => {
-      const pr = p2.r != null ? p2.r : rFallback;
+    order.forEach((p) => {
+      const pr = p.r != null ? p.r : rFallback;
       let chosen = 0;
       for (let k = 0; k < 2e3; k++) {
         const off = k === 0 ? 0 : Math.ceil(k / 2) * step * (k % 2 ? 1 : -1);
         const s = center + off;
         let ok = true;
-        for (let m2 = placed.length - 1; m2 >= 0; m2--) {
-          const q = placed[m2];
-          const df = p2[fk] - q.f;
+        for (let m = placed.length - 1; m >= 0; m--) {
+          const q2 = placed[m];
+          const df = p[fk] - q2.f;
           if (df > pr + rCap) break;
-          const need = pr + q.r;
-          const ds = s - q.s;
+          const need = pr + q2.r;
+          const ds = s - q2.s;
           if (df * df + ds * ds < need * need) {
             ok = false;
             break;
@@ -1592,8 +1592,8 @@ class Unit {
           break;
         }
       }
-      p2[sk] = center + chosen;
-      placed.push({ f: p2[fk], s: p2[sk], r: pr });
+      p[sk] = center + chosen;
+      placed.push({ f: p[fk], s: p[sk], r: pr });
     });
   }
   /**
@@ -1610,8 +1610,8 @@ class Unit {
   _scatterValueDomain(scfg, vmin, vmax, tickAmount) {
     const buildTicks = (min, max, spacing2) => {
       const ticks = [];
-      for (let v2 = min; v2 <= max + spacing2 * 0.5; v2 += spacing2) {
-        ticks.push(Math.abs(v2) < spacing2 * 1e-9 ? 0 : v2);
+      for (let v = min; v <= max + spacing2 * 0.5; v += spacing2) {
+        ticks.push(Math.abs(v) < spacing2 * 1e-9 ? 0 : v);
       }
       return ticks;
     };
@@ -1674,15 +1674,15 @@ class Unit {
    * @param {any} ret @param {Graphics} graphics
    */
   _drawScatterAxes(ret, graphics) {
-    const w2 = this.w;
+    const w = this.w;
     if (!Environment.isBrowser()) return;
     const ax = this._scatterAxis;
     if (!ax) return;
     const NS = "http://www.w3.org/2000/svg";
-    const g2 = graphics.group({ class: "apexcharts-unit-axis" });
-    const gridColor = w2.config.grid && w2.config.grid.borderColor || "rgba(128,128,128,0.18)";
+    const g = graphics.group({ class: "apexcharts-unit-axis" });
+    const gridColor = w.config.grid && w.config.grid.borderColor || "rgba(128,128,128,0.18)";
     const axisColor = "rgba(128,128,128,0.5)";
-    const cfgColors = w2.config.xaxis && w2.config.xaxis.labels && w2.config.xaxis.labels.style && w2.config.xaxis.labels.style.colors;
+    const cfgColors = w.config.xaxis && w.config.xaxis.labels && w.config.xaxis.labels.style && w.config.xaxis.labels.style.colors;
     const configuredLabelColor = Array.isArray(cfgColors) ? cfgColors[0] : cfgColors;
     const labelColor = configuredLabelColor || "rgba(120,130,140,0.9)";
     const line = (x1, y1, x2, y2, stroke) => {
@@ -1693,7 +1693,7 @@ class Unit {
       l.setAttribute("y2", String(y2));
       l.setAttribute("stroke", stroke);
       l.setAttribute("shape-rendering", "crispEdges");
-      g2.node.appendChild(l);
+      g.node.appendChild(l);
     };
     const text = (str, x, y, anchor, fill, size, weight, cls) => {
       const t = BrowserAPIs.createElementNS(NS, "text");
@@ -1703,23 +1703,23 @@ class Unit {
       t.setAttribute("text-anchor", anchor);
       t.setAttribute("dominant-baseline", "middle");
       t.setAttribute("font-size", `${size}px`);
-      t.setAttribute("font-family", w2.config.chart.fontFamily || "inherit");
+      t.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
       t.setAttribute("font-weight", String(weight));
       t.setAttribute("fill", fill);
       t.textContent = str;
-      g2.node.appendChild(t);
+      g.node.appendChild(t);
     };
     if (ax.mode === "2d") {
-      ax.yTicks.forEach((v2) => {
-        const y = ax.plotY(v2);
+      ax.yTicks.forEach((v) => {
+        const y = ax.plotY(v);
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
-        const label = ax.yFormatter ? String(ax.yFormatter(v2)) : this._formatTick(v2);
+        const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v);
         text(label, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
       });
-      ax.xTicks.forEach((v2) => {
-        const x = ax.plotX(v2);
+      ax.xTicks.forEach((v) => {
+        const x = ax.plotX(v);
         if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
-        const label = ax.xFormatter ? String(ax.xFormatter(v2)) : this._formatTick(v2);
+        const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v);
         text(label, x, ax.plotB + 14, "middle", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor);
@@ -1745,21 +1745,21 @@ class Unit {
         yt.setAttribute("y", String(ty));
         yt.setAttribute("text-anchor", "middle");
         yt.setAttribute("font-size", "12px");
-        yt.setAttribute("font-family", w2.config.chart.fontFamily || "inherit");
+        yt.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
         yt.setAttribute("font-weight", "600");
         yt.setAttribute("fill", labelColor);
         yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
         yt.textContent = String(ax.yTitle);
-        g2.node.appendChild(yt);
+        g.node.appendChild(yt);
       }
-      ret.add(g2);
+      ret.add(g);
       return;
     }
     if (ax.orientation === "vertical") {
-      ax.ticks.forEach((v2) => {
-        const y = ax.plotY(v2);
+      ax.ticks.forEach((v) => {
+        const y = ax.plotY(v);
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
-        const label = ax.formatter ? String(ax.formatter(v2)) : this._formatTick(v2);
+        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
         text(label, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor);
@@ -1772,24 +1772,24 @@ class Unit {
         yt.setAttribute("y", String(ty));
         yt.setAttribute("text-anchor", "middle");
         yt.setAttribute("font-size", "12px");
-        yt.setAttribute("font-family", w2.config.chart.fontFamily || "inherit");
+        yt.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
         yt.setAttribute("font-weight", "600");
         yt.setAttribute("fill", labelColor);
         yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
         yt.textContent = String(ax.valueTitle);
-        g2.node.appendChild(yt);
+        g.node.appendChild(yt);
       }
       ax.lanes.forEach((lane) => {
-        const color = configuredLabelColor || w2.globals.colors[lane.i] || w2.globals.colors[0] || "#008FFB";
+        const color = configuredLabelColor || w.globals.colors[lane.i] || w.globals.colors[0] || "#008FFB";
         text(lane.name, lane.cx, ax.plotB + 16, "middle", color, 12, 600, "apexcharts-unit-lane-label");
       });
-      ret.add(g2);
+      ret.add(g);
       return;
     }
-    ax.ticks.forEach((v2, idx) => {
-      const x = ax.plotX(v2);
+    ax.ticks.forEach((v, idx) => {
+      const x = ax.plotX(v);
       if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
-      const label = ax.formatter ? String(ax.formatter(v2)) : this._formatTick(v2);
+      const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
       const anchor = idx === 0 ? "start" : idx === ax.ticks.length - 1 ? "end" : "middle";
       text(label, x, ax.plotB + 14, anchor, labelColor, 11, 400, "apexcharts-unit-tick");
     });
@@ -1808,24 +1808,24 @@ class Unit {
     }
     if (ax.plotL > 12) {
       ax.lanes.forEach((lane) => {
-        const color = configuredLabelColor || w2.globals.colors[lane.i] || w2.globals.colors[0] || "#008FFB";
+        const color = configuredLabelColor || w.globals.colors[lane.i] || w.globals.colors[0] || "#008FFB";
         text(lane.name, ax.plotL - 8, lane.cy, "end", color, 12, 600, "apexcharts-unit-lane-label");
       });
     }
-    ret.add(g2);
+    ret.add(g);
   }
   /**
    * Compact tick-value formatting: integers as-is, otherwise trimmed to a short
    * decimal; large magnitudes get a k/M suffix.
    * @param {number} v @returns {string}
    */
-  _formatTick(v2) {
-    if (!isFinite(v2)) return "";
-    const a = Math.abs(v2);
-    if (a >= 1e6) return `${+(v2 / 1e6).toFixed(1)}M`;
-    if (a >= 1e4) return `${+(v2 / 1e3).toFixed(1)}k`;
-    if (Number.isInteger(v2)) return String(v2);
-    return String(+v2.toFixed(2));
+  _formatTick(v) {
+    if (!isFinite(v)) return "";
+    const a = Math.abs(v);
+    if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`;
+    if (a >= 1e4) return `${+(v / 1e3).toFixed(1)}k`;
+    if (Number.isInteger(v)) return String(v);
+    return String(+v.toFixed(2));
   }
   /**
    * Distribute `total` whole cells across `counts` in proportion to each value,
@@ -1834,13 +1834,13 @@ class Unit {
    * @param {number[]} counts @param {number} total @returns {number[]}
    */
   _largestRemainder(counts, total) {
-    const sum = counts.reduce((a, b2) => a + b2, 0);
+    const sum = counts.reduce((a, b) => a + b, 0);
     if (sum <= 0 || total <= 0) return counts.map(() => 0);
     const exact = counts.map((c) => c / sum * total);
-    const floors = exact.map((v2) => Math.floor(v2));
-    const used = floors.reduce((a, b2) => a + b2, 0);
+    const floors = exact.map((v) => Math.floor(v));
+    const used = floors.reduce((a, b) => a + b, 0);
     const remaining = Math.max(0, total - used);
-    const byFrac = exact.map((v2, i) => ({ i, frac: v2 - Math.floor(v2) })).sort((a, b2) => b2.frac - a.frac);
+    const byFrac = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
     const out = floors.slice();
     for (let n = 0; n < remaining && n < byFrac.length; n++) {
       out[byFrac[n].i]++;
@@ -1897,8 +1897,8 @@ class Unit {
   _unitValueOf(d) {
     if (typeof d === "number") return d;
     if (d && typeof d === "object") {
-      const v2 = d.value != null ? d.value : d.y;
-      return typeof v2 === "number" ? v2 : null;
+      const v = d.value != null ? d.value : d.y;
+      return typeof v === "number" ? v : null;
     }
     return null;
   }
@@ -1910,9 +1910,9 @@ class Unit {
    * @param {{min:number,max:number,minR:number,maxR:number,scale:string}} stats
    * @returns {number}
    */
-  _radiusForValue(v2, stats) {
-    if (v2 == null || !isFinite(v2)) return stats.minR;
-    const t = stats.max > stats.min ? (v2 - stats.min) / (stats.max - stats.min) : 1;
+  _radiusForValue(v, stats) {
+    if (v == null || !isFinite(v)) return stats.minR;
+    const t = stats.max > stats.min ? (v - stats.min) / (stats.max - stats.min) : 1;
     const tc = Math.max(0, Math.min(1, t));
     if (stats.scale === "linear") {
       return stats.minR + tc * (stats.maxR - stats.minR);
@@ -1936,10 +1936,10 @@ class Unit {
     unitData.forEach((cat) => {
       if (!cat) return;
       cat.forEach((d) => {
-        const v2 = this._unitValueOf(d);
-        if (v2 != null && isFinite(v2)) {
-          if (v2 < vmin) vmin = v2;
-          if (v2 > vmax) vmax = v2;
+        const v = this._unitValueOf(d);
+        if (v != null && isFinite(v)) {
+          if (v < vmin) vmin = v;
+          if (v > vmax) vmax = v;
         }
       });
     });
@@ -2173,14 +2173,14 @@ class Unit {
    *   chart-wide shape
    * @returns {any}
    */
-  _drawDot(graphics, opts, dotR, color, i, j, spec) {
-    const w2 = this.w;
-    const strokeW = w2.config.stroke.show ? w2.config.stroke.width : 0;
-    const strokeColor = Array.isArray(w2.globals.stroke.colors) ? w2.globals.stroke.colors[i] || "none" : "none";
-    const fillOpacity = typeof w2.config.fill.opacity === "number" ? w2.config.fill.opacity : 1;
+  _drawDot(graphics, opts, dotR, color, i, j2, spec) {
+    const w = this.w;
+    const strokeW = w.config.stroke.show ? w.config.stroke.width : 0;
+    const strokeColor = Array.isArray(w.globals.stroke.colors) ? w.globals.stroke.colors[i] || "none" : "none";
+    const fillOpacity = typeof w.config.fill.opacity === "number" ? w.config.fill.opacity : 1;
     let el;
     if (spec && spec.pk === PK_GLYPH) {
-      el = w2.dom.Paper.path(spec.d);
+      el = w.dom.Paper.path(spec.d);
       el.node.setAttribute("fill", color);
       if (spec.fillRule === "evenodd") {
         el.node.setAttribute("fill-rule", "evenodd");
@@ -2190,7 +2190,7 @@ class Unit {
     } else if (opts.shape === "image" && opts.image && opts.image.src) {
       const iw = opts.image.width || 20;
       const ih = opts.image.height || 20;
-      el = w2.dom.Paper.image(opts.image.src);
+      el = w.dom.Paper.image(opts.image.src);
       el.node.setAttribute("width", String(iw));
       el.node.setAttribute("height", String(ih));
       el.node.setAttribute("preserveAspectRatio", "xMidYMid meet");
@@ -2213,7 +2213,7 @@ class Unit {
     }
     el.node.classList.add("apexcharts-unit-area");
     el.node.setAttribute("i", String(i));
-    el.node.setAttribute("j", String(j));
+    el.node.setAttribute("j", String(j2));
     return el;
   }
   /**
@@ -2225,11 +2225,11 @@ class Unit {
    * @param {string} color @returns {string}
    */
   _tintFilter(color) {
-    const w2 = this.w;
+    const w = this.w;
     const NS = "http://www.w3.org/2000/svg";
     const safe = String(color).replace(/[^a-zA-Z0-9]/g, "");
-    const id = `apexcharts-unit-tint-${w2.globals.chartID}-${safe}`;
-    const svg = w2.dom.Paper.node;
+    const id = `apexcharts-unit-tint-${w.globals.chartID}-${safe}`;
+    const svg = w.dom.Paper.node;
     if (svg.querySelector(`#${id}`)) return id;
     let defs = svg.querySelector("defs");
     if (!defs) {
@@ -2279,10 +2279,10 @@ class Unit {
       if (isNaN(n)) return null;
       return [n >> 16 & 255, n >> 8 & 255, n & 255];
     }
-    const m2 = s.match(/rgba?\(([^)]+)\)/);
-    if (m2) {
-      const p2 = m2[1].split(",").map((x) => parseFloat(x));
-      if (p2.length >= 3 && p2.every((v2) => !isNaN(v2))) return [p2[0], p2[1], p2[2]];
+    const m = s.match(/rgba?\(([^)]+)\)/);
+    if (m) {
+      const p = m[1].split(",").map((x) => parseFloat(x));
+      if (p.length >= 3 && p.every((v) => !isNaN(v))) return [p[0], p[1], p[2]];
     }
     return null;
   }
@@ -2299,12 +2299,12 @@ class Unit {
    * @returns {boolean}
    */
   _shouldAnimate() {
-    const w2 = this.w;
-    const anim = w2.config.chart.animations;
+    const w = this.w;
+    const anim = w.config.chart.animations;
     if (!Environment.isBrowser()) return false;
     if (!anim || anim.enabled === false) return false;
-    if (w2.globals.shouldAnimate === false) return false;
-    if (w2.globals.resized && !w2.globals.dataChanged) return false;
+    if (w.globals.shouldAnimate === false) return false;
+    if (w.globals.resized && !w.globals.dataChanged) return false;
     if (anim.respectReducedMotion && prefersReducedMotion()) return false;
     return true;
   }
@@ -2335,8 +2335,8 @@ class Unit {
     for (let k = 0; k < dots.length; k++) {
       const d = dots[k];
       const carried = live && !d.isEnter && d.key != null ? live.get(d.key) : null;
-      const sx = carried ? carried.x : v(d.cx0, stiffness, damping);
-      const sy = carried ? carried.y : v(d.cy0, stiffness, damping);
+      const sx = carried ? carried.x : E(d.cx0, stiffness, damping);
+      const sy = carried ? carried.y : E(d.cy0, stiffness, damping);
       if (carried) {
         sx.stiffness = stiffness;
         sy.stiffness = stiffness;
@@ -2370,9 +2370,9 @@ class Unit {
    * @param {UnitAnimDot[]} dots
    */
   _runGather(dots) {
-    const w$1 = this.w;
-    const opts = w$1.config.plotOptions.unit;
-    const speed = Math.max(1, w$1.config.chart.animations.speed || 800);
+    const w = this.w;
+    const opts = w.config.plotOptions.unit;
+    const speed = Math.max(1, w.config.chart.animations.speed || 800);
     const maxDelay = Math.min(speed * 0.6, 450);
     const n = dots.length;
     for (let k = 0; k < n; k++) {
@@ -2420,12 +2420,12 @@ class Unit {
         let cx, cy;
         if (d.sx && d.sy) {
           if (elapsed >= 0 && !d.released) {
-            w(d.sx, d.x);
-            w(d.sy, d.y);
+            D(d.sx, d.x);
+            D(d.sy, d.y);
             d.released = true;
           }
-          const restX = b(d.sx, dt);
-          const restY = b(d.sy, dt);
+          const restX = R(d.sx, dt);
+          const restY = R(d.sy, dt);
           if (!d.released || !restX || !restY) done = false;
           cx = d.sx.value;
           cy = d.sy.value;
@@ -2493,11 +2493,11 @@ class Unit {
    * @param {any} group @param {{x:number,y:number,fill:string,r?:number,spec?:any}[]} exits @param {any} opts
    */
   _runExits(group, exits, opts) {
-    const w2 = this.w;
-    const graphics = new Graphics(w2, this.ctx);
+    const w = this.w;
+    const graphics = new Graphics(w, this.ctx);
     const dotR = this._lastDotR;
-    const cx = w2.layout.gridWidth / 2;
-    const cy = w2.layout.gridHeight / 2;
+    const cx = w.layout.gridWidth / 2;
+    const cy = w.layout.gridHeight / 2;
     const drift = opts.layout === "grid" || opts.layout === "scatter" || opts.layout === "arc" || opts.layout === "custom" ? 0 : 0.35;
     const ghosts = [];
     exits.forEach((slot) => {
@@ -2510,10 +2510,10 @@ class Unit {
       ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec });
     });
     if (!this._shouldAnimate()) {
-      ghosts.forEach((g2) => g2.node.remove());
+      ghosts.forEach((g) => g.node.remove());
       return;
     }
-    const speed = Math.max(1, w2.config.chart.animations.speed || 800);
+    const speed = Math.max(1, w.config.chart.animations.speed || 800);
     if (this.w.globals.unitExitRAF != null) {
       BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF);
       this.w.globals.unitExitRAF = null;
@@ -2527,13 +2527,13 @@ class Unit {
       const t = Math.max(0, Math.min(1, (now - start) / speed));
       const e = easeOutCubic(t);
       for (let k = 0; k < ghosts.length; k++) {
-        const g2 = ghosts[k];
+        const g = ghosts[k];
         if (drift) {
-          const x = g2.x0 + (cx - g2.x0) * e * drift;
-          const y = g2.y0 + (cy - g2.y0) * e * drift;
-          this._place(g2.node, g2.spec, x, y);
+          const x = g.x0 + (cx - g.x0) * e * drift;
+          const y = g.y0 + (cy - g.y0) * e * drift;
+          this._place(g.node, g.spec, x, y);
         }
-        g2.node.style.opacity = String(1 - e);
+        g.node.style.opacity = String(1 - e);
       }
       if (t < 1) {
         this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn);
@@ -2564,11 +2564,11 @@ class Unit {
    * @returns {string[]}
    */
   _outerLabelLines(i, value, total, opts) {
-    const w2 = this.w;
-    const name = w2.seriesData.seriesNames[i] || `series-${i + 1}`;
+    const w = this.w;
+    const name = w.seriesData.seriesNames[i] || `series-${i + 1}`;
     const percent = total > 0 ? value / total * 100 : 0;
     const cfg = opts.clusterLabels;
-    const text = typeof cfg.formatter === "function" ? cfg.formatter(name, { seriesIndex: i, value, percent, w: w2 }) : `${name}
+    const text = typeof cfg.formatter === "function" ? cfg.formatter(name, { seriesIndex: i, value, percent, w }) : `${name}
 ${percent.toFixed(1)}%`;
     return String(text).split("\n");
   }
@@ -2580,23 +2580,23 @@ ${percent.toFixed(1)}%`;
    * @returns {number}
    */
   _outerLabelGutter(counts, opts) {
-    const w2 = this.w;
+    const w = this.w;
     const cfg = opts.clusterLabels;
     const conn = cfg.external.connector || {};
-    const total = counts.reduce((a, b2) => a + b2, 0);
+    const total = counts.reduce((a, b) => a + b, 0);
     const lines = [];
     counts.forEach((c, i) => {
       if (c > 0) lines.push(...this._outerLabelLines(i, c, total, opts));
     });
     if (!lines.length) return 0;
-    const width = measureLabelWidth(w2, lines, {
+    const width = measureLabelWidth(w, lines, {
       fontSize: cfg.fontSize,
-      fontFamily: cfg.fontFamily || w2.config.chart.fontFamily
+      fontFamily: cfg.fontFamily || w.config.chart.fontFamily
     });
     const gap = conn.gap != null ? conn.gap : 8;
     const length = conn.length != null ? conn.length : 22;
     const room = width + gap + length + 8 + Math.abs(parseFloat(cfg.external.offsetX) || 0);
-    return Math.min(room, w2.layout.gridWidth * 0.25);
+    return Math.min(room, w.layout.gridWidth * 0.25);
   }
   /**
    * Plan and draw the outer labels. A band's anchor is one of its own dots - the
@@ -2616,7 +2616,7 @@ ${percent.toFixed(1)}%`;
    *   on screen, so the labels must not wait for anything.
    */
   _drawOuterLabels(ret, clusters, counts, total, opts, gathering) {
-    const w2 = this.w;
+    const w = this.w;
     if (!Environment.isBrowser()) return;
     const cfg = opts.clusterLabels;
     const ext = cfg.external;
@@ -2625,8 +2625,8 @@ ${percent.toFixed(1)}%`;
     const length = conn.length != null ? conn.length : 22;
     const offsetX = parseFloat(ext.offsetX) || 0;
     const offsetY = parseFloat(ext.offsetY) || 0;
-    const gw = w2.layout.gridWidth;
-    const gh = w2.layout.gridHeight;
+    const gw = w.layout.gridWidth;
+    const gh = w.layout.gridHeight;
     const dotR = this._lastDotR;
     const live = clusters.filter((c) => c.dots.length > 0);
     if (!live.length) return;
@@ -2642,7 +2642,7 @@ ${percent.toFixed(1)}%`;
     const fontSize = parseFloat(cfg.fontSize) || 13;
     const lineHeight = Math.round(fontSize * 1.35);
     const items = [];
-    live.slice().sort((a, b2) => a.cy - b2.cy).forEach((c, k) => {
+    live.slice().sort((a, b) => a.cy - b.cy).forEach((c, k) => {
       const lines = this._outerLabelLines(c.i, counts[c.i], total, opts);
       if (!lines.some((l) => l !== "")) return;
       const side = bandedByX ? c.cx >= gw / 2 ? "right" : "left" : k % 2 === 0 ? "right" : "left";
@@ -2670,7 +2670,7 @@ ${percent.toFixed(1)}%`;
       });
     });
     if (!items.length) return;
-    const maxLines = items.reduce((m2, it) => Math.max(m2, it.lines.length), 1);
+    const maxLines = items.reduce((m, it) => Math.max(m, it.lines.length), 1);
     const block = maxLines * lineHeight;
     const half = block / 2;
     ["left", "right"].forEach((side) => {
@@ -2681,18 +2681,18 @@ ${percent.toFixed(1)}%`;
         half
       );
     });
-    const group = new Graphics(w2, this.ctx).group({
+    const group = new Graphics(w, this.ctx).group({
       class: "apexcharts-unit-outer-labels"
     });
     if (gathering) {
-      const speed = Math.max(1, w2.config.chart.animations.speed || 800);
+      const speed = Math.max(1, w.config.chart.animations.speed || 800);
       group.node.classList.add("apexcharts-unit-label-delay");
       group.node.style.animationDelay = `${Math.min(speed * 0.45, 600) / 1e3}s`;
     }
     items.forEach((it) => {
-      const color = w2.globals.colors[it.i] || w2.globals.colors[0] || "#008FFB";
+      const color = w.globals.colors[it.i] || w.globals.colors[0] || "#008FFB";
       group.add(
-        drawOuterLabel(w2, {
+        drawOuterLabel(w, {
           lines: it.lines,
           lineHeight,
           anchor: it.anchor,
@@ -2707,10 +2707,10 @@ ${percent.toFixed(1)}%`;
           },
           style: {
             fontSize: cfg.fontSize,
-            fontFamily: cfg.fontFamily || w2.config.chart.fontFamily,
+            fontFamily: cfg.fontFamily || w.config.chart.fontFamily,
             fontWeight: cfg.fontWeight
           },
-          foreColor: cfg.color || w2.config.chart.foreColor,
+          foreColor: cfg.color || w.config.chart.foreColor,
           groupClass: "apexcharts-unit-outer-label-group",
           textClass: "apexcharts-unit-outer-label",
           connectorClass: "apexcharts-unit-label-connector"
@@ -2730,10 +2730,10 @@ ${percent.toFixed(1)}%`;
    * @param {number} value @param {number} total @param {any} opts @param {string} color
    */
   _drawClusterLabel(elSeries, cluster, value, total, opts, color) {
-    const w2 = this.w;
+    const w = this.w;
     if (!Environment.isBrowser()) return;
     const NS = "http://www.w3.org/2000/svg";
-    const name = w2.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`;
+    const name = w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`;
     const percent = total > 0 ? value / total * 100 : 0;
     const cfg = opts.clusterLabels;
     const fontSize = parseFloat(cfg.fontSize) || 13;
@@ -2743,7 +2743,7 @@ ${percent.toFixed(1)}%`;
         seriesIndex: cluster.i,
         value,
         percent,
-        w: w2
+        w
       });
     } else {
       text = `${name} (${percent.toFixed(1)}%)`;
@@ -2753,19 +2753,19 @@ ${percent.toFixed(1)}%`;
     textEl.setAttribute("class", "apexcharts-unit-label");
     textEl.setAttribute("text-anchor", "middle");
     textEl.setAttribute("font-size", `${fontSize}px`);
-    textEl.setAttribute("font-family", cfg.fontFamily || w2.config.chart.fontFamily || "inherit");
+    textEl.setAttribute("font-family", cfg.fontFamily || w.config.chart.fontFamily || "inherit");
     textEl.setAttribute("font-weight", String(cfg.fontWeight || 600));
     textEl.setAttribute("fill", cfg.color || color);
     const bottom = cfg.position === "bottom";
-    const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
+    const R2 = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
     const estWidth = str.length * fontSize * 0.55;
-    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95;
+    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R2 * 0.95;
     if (curved) {
       const yMid = cluster.cy;
-      const x1 = cluster.cx - R;
-      const x2 = cluster.cx + R;
-      const d = `M ${x1} ${yMid} A ${R} ${R} 0 0 1 ${x2} ${yMid}`;
-      const arcId = `apexcharts-unit-label-${w2.globals.chartID}-${cluster.i}`;
+      const x1 = cluster.cx - R2;
+      const x2 = cluster.cx + R2;
+      const d = `M ${x1} ${yMid} A ${R2} ${R2} 0 0 1 ${x2} ${yMid}`;
+      const arcId = `apexcharts-unit-label-${w.globals.chartID}-${cluster.i}`;
       const pathEl = BrowserAPIs.createElementNS(NS, "path");
       pathEl.setAttribute("id", arcId);
       pathEl.setAttribute("d", d);

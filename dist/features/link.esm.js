@@ -18,292 +18,297 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.2.0-rc.2
+ * ApexCharts v7.2.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-const X = "__apexcharts_crossfilters__";
-function Y(e) {
-  if (!Number.isFinite(e)) return e;
-  const t = Number(e.toPrecision(12));
-  return Object.is(t, -0) ? 0 : t;
+const e = globalThis.console;
+function t(t2, ...s) {
+  e.error(t2, ...s);
 }
-function Z(e) {
-  return "number" == typeof e && Number.isFinite(e);
+const le = "__apexcharts_crossfilters__";
+function oe(e2) {
+  if (!Number.isFinite(e2)) return e2;
+  const t2 = Number(e2.toPrecision(12));
+  return Object.is(t2, -0) ? 0 : t2;
 }
-function J(e) {
-  if ("function" == typeof e) return e;
-  if (e && "object" == typeof e) {
-    if ("string" == typeof e.sum) {
-      const t = e.sum;
-      return (e2) => e2.reduce(((e3, s) => e3 + (Number(s[t]) || 0)), 0);
+function ce(e2) {
+  return "number" == typeof e2 && Number.isFinite(e2);
+}
+function he(e2) {
+  if ("function" == typeof e2) return e2;
+  if (e2 && "object" == typeof e2) {
+    if ("string" == typeof e2.sum) {
+      const t2 = e2.sum;
+      return (e3) => e3.reduce(((e4, s) => e4 + (Number(s[t2]) || 0)), 0);
     }
-    if ("string" == typeof e.avg) {
-      const t = e.avg;
-      return (e2) => e2.length ? e2.reduce(((e3, s) => e3 + (Number(s[t]) || 0)), 0) / e2.length : 0;
+    if ("string" == typeof e2.avg) {
+      const t2 = e2.avg;
+      return (e3) => e3.length ? e3.reduce(((e4, s) => e4 + (Number(s[t2]) || 0)), 0) / e3.length : 0;
     }
-    if ("string" == typeof e.min) {
-      const t = e.min;
-      return (e2) => e2.length ? Math.min(...e2.map(((e3) => Number(e3[t]) || 0))) : 0;
+    if ("string" == typeof e2.min) {
+      const t2 = e2.min;
+      return (e3) => e3.length ? Math.min(...e3.map(((e4) => Number(e4[t2]) || 0))) : 0;
     }
-    if ("string" == typeof e.max) {
-      const t = e.max;
-      return (e2) => e2.length ? Math.max(...e2.map(((e3) => Number(e3[t]) || 0))) : 0;
+    if ("string" == typeof e2.max) {
+      const t2 = e2.max;
+      return (e3) => e3.length ? Math.max(...e3.map(((e4) => Number(e4[t2]) || 0))) : 0;
     }
   }
-  return (e2) => e2.length;
+  return (e3) => e3.length;
 }
-function G(e, t) {
-  return "function" == typeof t ? e.slice().sort(t) : "asc" === t ? e.slice().sort(((e2, t2) => e2 > t2 ? 1 : e2 < t2 ? -1 : 0)) : "desc" === t ? e.slice().sort(((e2, t2) => e2 < t2 ? 1 : e2 > t2 ? -1 : 0)) : e;
+function de(e2, t2) {
+  return "function" == typeof t2 ? e2.slice().sort(t2) : "asc" === t2 ? e2.slice().sort(((e3, t3) => e3 > t3 ? 1 : e3 < t3 ? -1 : 0)) : "desc" === t2 ? e2.slice().sort(((e3, t3) => e3 < t3 ? 1 : e3 > t3 ? -1 : 0)) : e2;
 }
-function ee(e, t) {
-  if (!Z(e)) return -1;
-  const s = t.length - 1;
-  if (e < t[0] || e > t[s]) return -1;
-  if (e === t[s]) return s - 1;
-  for (let i = 0; i < s; i++) if (e >= t[i] && e < t[i + 1]) return i;
+function ue(e2, t2) {
+  if (!ce(e2)) return -1;
+  const s = t2.length - 1;
+  if (e2 < t2[0] || e2 > t2[s]) return -1;
+  if (e2 === t2[s]) return s - 1;
+  for (let i = 0; i < s; i++) if (e2 >= t2[i] && e2 < t2[i + 1]) return i;
   return -1;
 }
-function te(e) {
-  const t = [];
-  for (let s = 0; s < e.length - 1; s++) t.push(Y((e[s] + e[s + 1]) / 2));
-  return t;
+function fe(e2) {
+  const t2 = [];
+  for (let s = 0; s < e2.length - 1; s++) t2.push(oe((e2[s] + e2[s + 1]) / 2));
+  return t2;
 }
-class se {
-  constructor(e, t) {
-    this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = e, this.records = Array.isArray(t) ? t : [];
+class pe {
+  constructor(e2, t2) {
+    this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = e2, this.records = Array.isArray(t2) ? t2 : [];
   }
   static store() {
-    const e = globalThis;
-    return e[X] || (e[X] = /* @__PURE__ */ new Map()), e[X];
+    const e2 = globalThis;
+    return e2[le] || (e2[le] = /* @__PURE__ */ new Map()), e2[le];
   }
-  static getOrCreate(e) {
-    if (!e || "string" != typeof e.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
-    const t = se.store(), s = t.get(e.id);
-    if (s) return e.records && s.setRecords(e.records), s;
-    const i = new se(e.id, e.records);
-    return t.set(e.id, i), i;
+  static getOrCreate(e2) {
+    if (!e2 || "string" != typeof e2.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
+    const t2 = pe.store(), s = t2.get(e2.id);
+    if (s) return e2.records && s.setRecords(e2.records), s;
+    const i = new pe(e2.id, e2.records);
+    return t2.set(e2.id, i), i;
   }
-  static get(e) {
-    return se.store().get(e) || null;
+  static get(e2) {
+    return pe.store().get(e2) || null;
   }
-  setRecords(e) {
-    return this.records = Array.isArray(e) ? e : [], this.dims.forEach(((e2) => this.recomputeDomain(e2))), this.emit("records", this.state()), this.emit("change", this.state()), this;
+  setRecords(e2) {
+    return this.records = Array.isArray(e2) ? e2 : [], this.dims.forEach(((e3) => this.recomputeDomain(e3))), this.emit("records", this.state()), this.emit("change", this.state()), this;
   }
-  registerDimension(e, t) {
-    if (!t || "function" != typeof t.dimension) throw new Error(`crossfilter.registerDimension("${e}") needs a dimension function.`);
-    const s = t.type || (t.bins ? "range" : "category"), i = { accessor: t.dimension, reducer: J(t.reduce), type: s, bins: t.bins, order: t.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
-    return this.dims.set(e, i), this.recomputeDomain(i), null != t.filter && this.setFilterOn(i, t.filter), this;
+  registerDimension(e2, t2) {
+    if (!t2 || "function" != typeof t2.dimension) throw new Error(`crossfilter.registerDimension("${e2}") needs a dimension function.`);
+    const s = t2.type || (t2.bins ? "range" : "category"), i = { accessor: t2.dimension, reducer: he(t2.reduce), type: s, bins: t2.bins, order: t2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+    return this.dims.set(e2, i), this.recomputeDomain(i), null != t2.filter && this.setFilterOn(i, t2.filter), this;
   }
-  hasDimension(e) {
-    return this.dims.has(e);
+  hasDimension(e2) {
+    return this.dims.has(e2);
   }
-  removeDimension(e) {
-    const t = this.dims.get(e), s = !!t && this.hasFilter(t);
-    return this.dims.delete(e), s && this.emit("change", this.state()), this;
+  removeDimension(e2) {
+    const t2 = this.dims.get(e2), s = !!t2 && this.hasFilter(t2);
+    return this.dims.delete(e2), s && this.emit("change", this.state()), this;
   }
-  recomputeDomain(e) {
-    if ("matrix" === e.type) {
-      const t = (function(e2, t2, s) {
+  recomputeDomain(e2) {
+    if ("matrix" === e2.type) {
+      const t2 = (function(e3, t3, s) {
         const i = /* @__PURE__ */ new Set(), n = /* @__PURE__ */ new Set(), r = [], a = [];
-        for (let s2 = 0; s2 < e2.length; s2++) {
-          const l = t2(e2[s2]);
+        for (let s2 = 0; s2 < e3.length; s2++) {
+          const l = t3(e3[s2]);
           if (!l) continue;
           const o = l[0], c = l[1];
           null == o || i.has(o) || (i.add(o), r.push(o)), null == c || n.has(c) || (n.add(c), a.push(c));
         }
-        return { xLabels: G(r, s), yLabels: G(a, s) };
-      })(this.records, e.accessor, e.order);
-      return e.xLabels = t.xLabels, e.yLabels = t.yLabels, void (e.edges = null);
+        return { xLabels: de(r, s), yLabels: de(a, s) };
+      })(this.records, e2.accessor, e2.order);
+      return e2.xLabels = t2.xLabels, e2.yLabels = t2.yLabels, void (e2.edges = null);
     }
-    if ("range" === e.type) return e.edges = (function(e2, t, s) {
+    if ("range" === e2.type) return e2.edges = (function(e3, t2, s) {
       if (s && Array.isArray(s.thresholds) && s.thresholds.length >= 2) {
-        const e3 = Array.from(new Set(s.thresholds.filter(Z))).sort(((e4, t2) => e4 - t2));
-        return e3.length >= 2 ? e3.map(Y) : [0, 1];
+        const e4 = Array.from(new Set(s.thresholds.filter(ce))).sort(((e5, t3) => e5 - t3));
+        return e4.length >= 2 ? e4.map(oe) : [0, 1];
       }
       let i = 1 / 0, n = -1 / 0;
-      for (let s2 = 0; s2 < e2.length; s2++) {
-        const r2 = t(e2[s2]);
-        Z(r2) && (r2 < i && (i = r2), r2 > n && (n = r2));
+      for (let s2 = 0; s2 < e3.length; s2++) {
+        const r2 = t2(e3[s2]);
+        ce(r2) && (r2 < i && (i = r2), r2 > n && (n = r2));
       }
       if (i === 1 / 0) return [0, 1];
       if (i === n) {
-        const e3 = Math.abs(i) > 0 ? Math.abs(i) : 1;
-        return [Y(i), Y(i + e3)];
+        const e4 = Math.abs(i) > 0 ? Math.abs(i) : 1;
+        return [oe(i), oe(i + e4)];
       }
-      if (s && Z(s.width) && s.width > 0) {
-        const e3 = s.width, t2 = Math.floor(i / e3) * e3;
-        let r2 = Math.ceil(n / e3) * e3;
-        r2 <= t2 && (r2 = t2 + e3);
-        const a2 = Math.max(1, Math.round((r2 - t2) / e3)), l2 = new Array(a2 + 1);
-        for (let s2 = 0; s2 <= a2; s2++) l2[s2] = Y(t2 + s2 * e3);
+      if (s && ce(s.width) && s.width > 0) {
+        const e4 = s.width, t3 = Math.floor(i / e4) * e4;
+        let r2 = Math.ceil(n / e4) * e4;
+        r2 <= t3 && (r2 = t3 + e4);
+        const a2 = Math.max(1, Math.round((r2 - t3) / e4)), l2 = new Array(a2 + 1);
+        for (let s2 = 0; s2 <= a2; s2++) l2[s2] = oe(t3 + s2 * e4);
         return l2;
       }
-      const r = s && Z(s.count) && s.count >= 1 ? Math.floor(s.count) : 30, a = (n - i) / r, l = new Array(r + 1);
-      for (let e3 = 0; e3 <= r; e3++) l[e3] = Y(i + e3 * a);
-      return l[r] = Y(n), l;
-    })(this.records, e.accessor, e.bins), void (e.labels = te(e.edges));
-    if (e.labels = (function(e2, t, s) {
+      const r = s && ce(s.count) && s.count >= 1 ? Math.floor(s.count) : 30, a = (n - i) / r, l = new Array(r + 1);
+      for (let e4 = 0; e4 <= r; e4++) l[e4] = oe(i + e4 * a);
+      return l[r] = oe(n), l;
+    })(this.records, e2.accessor, e2.bins), void (e2.labels = fe(e2.edges));
+    if (e2.labels = (function(e3, t2, s) {
       const i = /* @__PURE__ */ new Set(), n = [];
-      for (let s2 = 0; s2 < e2.length; s2++) {
-        const r = t(e2[s2]);
+      for (let s2 = 0; s2 < e3.length; s2++) {
+        const r = t2(e3[s2]);
         null != r && (i.has(r) || (i.add(r), n.push(r)));
       }
-      return G(n, s);
-    })(this.records, e.accessor, e.order), e.edges = null, e.filter instanceof Set) {
-      const t = new Set(e.labels);
-      Array.from(e.filter).forEach(((s) => {
-        t.has(s) || e.filter.delete(s);
+      return de(n, s);
+    })(this.records, e2.accessor, e2.order), e2.edges = null, e2.filter instanceof Set) {
+      const t2 = new Set(e2.labels);
+      Array.from(e2.filter).forEach(((s) => {
+        t2.has(s) || e2.filter.delete(s);
       }));
     }
   }
-  filter(e, t) {
-    const s = this.dims.get(e);
-    return s ? (this.setFilterOn(s, t), this.emit("change", this.state()), this) : this;
+  filter(e2, t2) {
+    const s = this.dims.get(e2);
+    return s ? (this.setFilterOn(s, t2), this.emit("change", this.state()), this) : this;
   }
-  toggleKey(e, t) {
-    const s = this.dims.get(e);
+  toggleKey(e2, t2) {
+    const s = this.dims.get(e2);
     if (!s || "category" !== s.type) return this;
     s.filter instanceof Set || (s.filter = /* @__PURE__ */ new Set());
     const i = s.filter;
-    return i.has(t) ? i.delete(t) : i.add(t), 0 === i.size && (s.filter = null), this.emit("change", this.state()), this;
+    return i.has(t2) ? i.delete(t2) : i.add(t2), 0 === i.size && (s.filter = null), this.emit("change", this.state()), this;
   }
-  setFilterOn(e, t) {
-    if (null == t) return void (e.filter = null);
-    if ("range" === e.type) {
-      if (Array.isArray(t) && 2 === t.length && t.every(Z)) {
-        const [s2, i] = t;
-        e.filter = [Math.min(s2, i), Math.max(s2, i)];
-      } else e.filter = null;
+  setFilterOn(e2, t2) {
+    if (null == t2) return void (e2.filter = null);
+    if ("range" === e2.type) {
+      if (Array.isArray(t2) && 2 === t2.length && t2.every(ce)) {
+        const [s2, i] = t2;
+        e2.filter = [Math.min(s2, i), Math.max(s2, i)];
+      } else e2.filter = null;
       return;
     }
-    const s = new Set(t);
-    e.filter = s.size ? s : null;
+    const s = new Set(t2);
+    e2.filter = s.size ? s : null;
   }
-  clear(e) {
-    const t = this.dims.get(e);
-    return t && (t.filter = null), this.emit("change", this.state()), this;
+  clear(e2) {
+    const t2 = this.dims.get(e2);
+    return t2 && (t2.filter = null), this.emit("change", this.state()), this;
   }
   reset() {
-    return this.dims.forEach(((e) => {
-      e.filter = null;
+    return this.dims.forEach(((e2) => {
+      e2.filter = null;
     })), this.emit("change", this.state()), this;
   }
-  hasFilter(e) {
-    return null != e.filter && (!(e.filter instanceof Set) || e.filter.size > 0);
+  hasFilter(e2) {
+    return null != e2.filter && (!(e2.filter instanceof Set) || e2.filter.size > 0);
   }
-  passes(e, t) {
-    if (!this.hasFilter(e)) return true;
-    const s = e.accessor(t);
-    if (e.filter instanceof Set) return e.filter.has(s);
-    if (!Z(s)) return false;
-    const [i, n] = e.filter;
+  passes(e2, t2) {
+    if (!this.hasFilter(e2)) return true;
+    const s = e2.accessor(t2);
+    if (e2.filter instanceof Set) return e2.filter.has(s);
+    if (!ce(s)) return false;
+    const [i, n] = e2.filter;
     return s >= i && s <= n;
   }
-  filteredRecords(e) {
-    const t = [];
+  filteredRecords(e2) {
+    const t2 = [];
     return this.dims.forEach(((s, i) => {
-      i !== e && this.hasFilter(s) && t.push(s);
-    })), 0 === t.length ? this.records : this.records.filter(((e2) => t.every(((t2) => this.passes(t2, e2)))));
+      i !== e2 && this.hasFilter(s) && t2.push(s);
+    })), 0 === t2.length ? this.records : this.records.filter(((e3) => t2.every(((t3) => this.passes(t3, e3)))));
   }
   filteredRows() {
     return this.filteredRecords(null);
   }
-  aggregateFor(e) {
-    const t = this.dims.get(e);
-    if (!t) return { type: "category", labels: [], values: [], keys: [] };
-    const s = this.filteredRecords(e);
-    if ("matrix" === t.type) {
-      const e2 = new Map(t.xLabels.map(((e3, t2) => [e3, t2]))), i2 = new Map(t.yLabels.map(((e3, t2) => [e3, t2]))), n = t.yLabels.map((() => t.xLabels.map((() => []))));
+  aggregateFor(e2) {
+    const t2 = this.dims.get(e2);
+    if (!t2) return { type: "category", labels: [], values: [], keys: [] };
+    const s = this.filteredRecords(e2);
+    if ("matrix" === t2.type) {
+      const e3 = new Map(t2.xLabels.map(((e4, t3) => [e4, t3]))), i2 = new Map(t2.yLabels.map(((e4, t3) => [e4, t3]))), n = t2.yLabels.map((() => t2.xLabels.map((() => []))));
       for (let r = 0; r < s.length; r++) {
-        const a = t.accessor(s[r]);
+        const a = t2.accessor(s[r]);
         if (!a) continue;
-        const l = e2.get(a[0]), o = i2.get(a[1]);
+        const l = e3.get(a[0]), o = i2.get(a[1]);
         null != l && null != o && n[o][l].push(s[r]);
       }
-      return { type: "matrix", xLabels: t.xLabels.slice(), yLabels: t.yLabels.slice(), matrix: n.map(((e3) => e3.map(((e4) => t.reducer(e4))))) };
+      return { type: "matrix", xLabels: t2.xLabels.slice(), yLabels: t2.yLabels.slice(), matrix: n.map(((e4) => e4.map(((e5) => t2.reducer(e5))))) };
     }
-    if ("range" === t.type) {
-      const e2 = t.edges || [0, 1], i2 = e2.length - 1, n = Array.from({ length: i2 }, (() => []));
+    if ("range" === t2.type) {
+      const e3 = t2.edges || [0, 1], i2 = e3.length - 1, n = Array.from({ length: i2 }, (() => []));
       for (let i3 = 0; i3 < s.length; i3++) {
-        const r = ee(t.accessor(s[i3]), e2);
+        const r = ue(t2.accessor(s[i3]), e3);
         r >= 0 && n[r].push(s[i3]);
       }
-      return { type: "range", labels: te(e2), values: n.map(((e3) => t.reducer(e3))), keys: n.map(((t2, s2) => [e2[s2], e2[s2 + 1]])), edges: e2 };
+      return { type: "range", labels: fe(e3), values: n.map(((e4) => t2.reducer(e4))), keys: n.map(((t3, s2) => [e3[s2], e3[s2 + 1]])), edges: e3 };
     }
     const i = /* @__PURE__ */ new Map();
-    t.labels.forEach(((e2) => i.set(e2, [])));
-    for (let e2 = 0; e2 < s.length; e2++) {
-      const n = i.get(t.accessor(s[e2]));
-      n && n.push(s[e2]);
+    t2.labels.forEach(((e3) => i.set(e3, [])));
+    for (let e3 = 0; e3 < s.length; e3++) {
+      const n = i.get(t2.accessor(s[e3]));
+      n && n.push(s[e3]);
     }
-    return { type: "category", labels: t.labels.slice(), values: t.labels.map(((e2) => t.reducer(i.get(e2) || []))), keys: t.labels.slice() };
+    return { type: "category", labels: t2.labels.slice(), values: t2.labels.map(((e3) => t2.reducer(i.get(e3) || []))), keys: t2.labels.slice() };
   }
   aggregateAll() {
-    const e = {};
-    return this.dims.forEach(((t, s) => {
-      e[s] = this.aggregateFor(s);
-    })), e;
+    const e2 = {};
+    return this.dims.forEach(((t2, s) => {
+      e2[s] = this.aggregateFor(s);
+    })), e2;
   }
   state() {
-    const e = {};
-    return this.dims.forEach(((t, s) => {
-      this.hasFilter(t) && (e[s] = t.filter instanceof Set ? Array.from(t.filter) : t.filter.slice());
-    })), { filters: e, filteredCount: this.filteredRows().length, total: this.records.length };
+    const e2 = {};
+    return this.dims.forEach(((t2, s) => {
+      this.hasFilter(t2) && (e2[s] = t2.filter instanceof Set ? Array.from(t2.filter) : t2.filter.slice());
+    })), { filters: e2, filteredCount: this.filteredRows().length, total: this.records.length };
   }
-  filterOf(e) {
-    const t = this.dims.get(e);
-    return t && this.hasFilter(t) ? t.filter instanceof Set ? new Set(t.filter) : t.filter.slice() : null;
+  filterOf(e2) {
+    const t2 = this.dims.get(e2);
+    return t2 && this.hasFilter(t2) ? t2.filter instanceof Set ? new Set(t2.filter) : t2.filter.slice() : null;
   }
-  on(e, t) {
-    let s = this.listeners.get(e);
-    return s || (s = /* @__PURE__ */ new Set(), this.listeners.set(e, s)), s.add(t), () => this.off(e, t);
+  on(e2, t2) {
+    let s = this.listeners.get(e2);
+    return s || (s = /* @__PURE__ */ new Set(), this.listeners.set(e2, s)), s.add(t2), () => this.off(e2, t2);
   }
-  off(e, t) {
+  off(e2, t2) {
     var s;
-    return null == (s = this.listeners.get(e)) || s.delete(t), this;
+    return null == (s = this.listeners.get(e2)) || s.delete(t2), this;
   }
-  emit(e, t) {
-    var s;
-    null == (s = this.listeners.get(e)) || s.forEach(((e2) => {
+  emit(e2, s) {
+    var i;
+    null == (i = this.listeners.get(e2)) || i.forEach(((i2) => {
       try {
-        e2(t);
-      } catch (e3) {
+        i2(s);
+      } catch (s2) {
+        t(`[Apex] a crossfilter ${e2} listener threw`, s2);
       }
     }));
   }
-  static esc(e) {
-    return String(null == e ? "" : e).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  static esc(e2) {
+    return String(null == e2 ? "" : e2).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  resolveColumns(e) {
-    if (Array.isArray(e) && e.length) return e.map(((e2) => "string" == typeof e2 ? { field: e2, label: e2 } : { field: e2.field, label: e2.label || e2.field, format: e2.format }));
-    const t = this.records[0];
-    return (t ? Object.keys(t) : []).map(((e2) => ({ field: e2, label: e2 })));
+  resolveColumns(e2) {
+    if (Array.isArray(e2) && e2.length) return e2.map(((e3) => "string" == typeof e3 ? { field: e3, label: e3 } : { field: e3.field, label: e3.label || e3.field, format: e3.format }));
+    const t2 = this.records[0];
+    return (t2 ? Object.keys(t2) : []).map(((e3) => ({ field: e3, label: e3 })));
   }
-  tableHTML(e, t, s) {
-    const i = "<thead><tr>" + e.map(((e2) => `<th>${se.esc(e2.label)}</th>`)).join("") + "</tr></thead>", n = "<tbody>" + t.map(((t2) => "<tr>" + e.map(((e2) => {
-      const s2 = t2[e2.field], i2 = e2.format ? e2.format(s2, t2) : s2;
-      return `<td>${se.esc(i2)}</td>`;
+  tableHTML(e2, t2, s) {
+    const i = "<thead><tr>" + e2.map(((e3) => `<th>${pe.esc(e3.label)}</th>`)).join("") + "</tr></thead>", n = "<tbody>" + t2.map(((t3) => "<tr>" + e2.map(((e3) => {
+      const s2 = t3[e3.field], i2 = e3.format ? e3.format(s2, t3) : s2;
+      return `<td>${pe.esc(i2)}</td>`;
     })).join("") + "</tr>")).join("") + "</tbody>";
-    return `<table class="apexcharts-cf-table">${`<caption>${t.length} of ${s} rows</caption>`}${i}${n}</table>`;
+    return `<table class="apexcharts-cf-table">${`<caption>${t2.length} of ${s} rows</caption>`}${i}${n}</table>`;
   }
-  dataTable(e, t) {
-    if (!e) return { refresh() {
+  dataTable(e2, t2) {
+    if (!e2) return { refresh() {
     }, destroy() {
     } };
-    const s = t || {}, i = this.resolveColumns(s.columns), n = s.pageSize || 0, r = s.page || 0, a = () => {
-      const t2 = this.filteredRows(), s2 = n ? t2.slice(r * n, r * n + n) : t2;
-      e.innerHTML = this.tableHTML(i, s2, t2.length);
+    const s = t2 || {}, i = this.resolveColumns(s.columns), n = s.pageSize || 0, r = s.page || 0, a = () => {
+      const t3 = this.filteredRows(), s2 = n ? t3.slice(r * n, r * n + n) : t3;
+      e2.innerHTML = this.tableHTML(i, s2, t3.length);
     };
     a();
     const l = this.on("change", a);
     return { refresh: a, destroy: () => {
-      l(), e.innerHTML = "";
+      l(), e2.innerHTML = "";
     } };
   }
   destroy() {
-    se.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
+    pe.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
   }
 }
 const MARK_SELECTOR = [
@@ -456,7 +461,7 @@ class LinkedViews {
   _cf() {
     const link = this.w.config.chart.link;
     const id = link && (link.id || this.w.config.chart.group);
-    return id ? se.get(id) : null;
+    return id ? pe.get(id) : null;
   }
   _isPie() {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -713,8 +718,8 @@ const AC = (
   /** @type {any} */
   ApexCharts
 );
-AC._crossfilterFactory = (opts) => se.getOrCreate(opts);
-AC._crossfilterGet = (id) => se.get(id);
+AC._crossfilterFactory = (opts) => pe.getOrCreate(opts);
+AC._crossfilterGet = (id) => pe.get(id);
 export {
   default2 as default
 };

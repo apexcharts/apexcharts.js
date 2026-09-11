@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.2.0-rc.2
+ * ApexCharts v7.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -47,8 +47,8 @@ import { default as default2 } from "apexcharts/core";
 const Environment = _core.__apex_Environment_Environment;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
 const e = globalThis.console;
-function t(t2) {
-  e.error(t2);
+function t(t2, ...s2) {
+  e.error(t2, ...s2);
 }
 function s(t2) {
   e.warn(t2);
@@ -160,29 +160,29 @@ const l = class {
       const a2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
       if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
       const o2 = new TextEncoder().encode(this.canonicalPayload(i2.data));
-      let c2 = false;
+      let c = false;
       for (const e3 of this.publicKeysSpki) {
         try {
           const t2 = yield l2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-          c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(i2.signature), o2);
+          c = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(i2.signature), o2);
         } catch (e4) {
-          c2 = false;
+          c = false;
         }
-        if (c2) break;
+        if (c) break;
       }
       if (this.verifying.delete(e2), this.epoch !== a2) return;
-      if (this.verdicts.set(e2, c2), c2) {
+      if (this.verdicts.set(e2, c), c) {
         const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
         return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
       }
-      const h2 = "Invalid license key. The license signature does not verify.", d = { data: i2.data, expired: false, message: h2, signatureVerified: true, valid: false };
-      this.licenseKey === e2 ? this.publish(d) : this.notify(d), t(`[Apex] ${h2}`);
+      const h = "Invalid license key. The license signature does not verify.", d = { data: i2.data, expired: false, message: h, signatureVerified: true, valid: false };
+      this.licenseKey === e2 ? this.publish(d) : this.notify(d), t(`[Apex] ${h}`);
     });
   }
 };
 l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
 let o = l;
-const c = class {
+const A = class {
   static applyStyles(e2) {
     Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
@@ -240,8 +240,8 @@ const c = class {
     })));
   }
 };
-c.WATERMARK_ATTR = "data-apexcharts-watermark", c.WATERMARK_TEXT = "APEXCHARTS", c.ATTR = "data-apexcharts-watermark", c.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, c.managed = /* @__PURE__ */ new Set(), c.subscribed = false;
-let h = c;
+A.WATERMARK_ATTR = "data-apexcharts-watermark", A.WATERMARK_TEXT = "APEXCHARTS", A.ATTR = "data-apexcharts-watermark", A.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, A.managed = /* @__PURE__ */ new Set(), A.subscribed = false;
+let M = A;
 const PRICING_URL = "https://apexcharts.com/pricing";
 let _perspectivesTokenDecoded = false;
 const enforced = /* @__PURE__ */ new Set();
@@ -295,15 +295,15 @@ function licensedForPremium(key) {
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = h.add(elWrap, { manage: false });
+  const node = M.add(elWrap, { manage: false });
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = h.node(elWrap);
+    const n2 = M.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    h.applyStyles(n2);
+    M.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -315,7 +315,7 @@ function addWatermark(ctx, elWrap) {
   reinstateWatermark(ctx, elWrap);
   if (typeof MutationObserver === "undefined" || ctx._wmWrapObserver) return;
   const wrapObs = new MutationObserver(() => {
-    if (!h.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!M.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -331,7 +331,7 @@ function teardownWatermark(ctx, elWrap) {
   }
   ctx._wmObservedNode = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) h.remove(wrap, { manage: false });
+  if (wrap) M.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;

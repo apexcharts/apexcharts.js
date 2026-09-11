@@ -14,8 +14,9 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v7.2.0-rc.2
+ * ApexCharts v7.2.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -32,7 +33,7 @@ function getRegistry() {
 function getPlugin(name) {
   return getRegistry()[name] || null;
 }
-const WEAVE_API_VERSION = 2;
+const WEAVE_API_VERSION = 3;
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
   "updateSeries",
@@ -293,6 +294,43 @@ function buildPluginAPI(host, record) {
       host._markDerived(record.def.name, names);
       return api;
     },
+    /**
+     * Reserve space inside the chart's container for the plugin's own UI (v3).
+     *
+     * A plugin that renders HTML beside the chart (a docked panel, a toolbar of
+     * its own) cannot make room for it. The chart sizes itself from the element
+     * the caller handed it, so a sibling inserted into that element does not
+     * narrow the chart: the chart is drawn at full width underneath. Every
+     * route a plugin has to fix that on its own is worse. Writing `chart.width`
+     * means owning config the caller owns and losing it on their next
+     * `updateOptions`. Positioning the UI absolutely over the chart means
+     * guessing a size it cannot know, and being clipped by any ancestor with
+     * `overflow: hidden`. Narrowing the container means writing to the caller's
+     * own element and changing the page's layout around it.
+     *
+     * So the host does the arithmetic, in the one place that already does it.
+     * The container keeps its size; the chart draws inside what is left.
+     *
+     * Reservations are per plugin and summed, so two plugins each asking for a
+     * right-hand gutter get one each instead of overlapping. Call it again to
+     * change the amount, and pass `null` (or all zeros) to give the space back.
+     * Nothing happens when the box is unchanged, so calling it on every render
+     * with the same numbers is free.
+     *
+     * The total is clamped so the chart keeps at least half the container on
+     * each axis: a plugin may not reduce the chart it is annotating to nothing.
+     * A plugin whose UI needs more room than that should render below the chart
+     * instead, which it can do without asking.
+     *
+     * Changing a reservation re-renders the chart, one task later so that
+     * calling it from inside a draw handler cannot re-enter the render.
+     *
+     * @param {{left?: number, right?: number, top?: number, bottom?: number}|null} [box]
+     */
+    reserve(box) {
+      host._reserve(record.def.name, box);
+      return api;
+    },
     // ── custom events out to the host app ──
     /**
      * Fires as `plugin:<pluginName>:<name>` on the chart's event bus. The
@@ -313,7 +351,7 @@ function buildPluginAPI(host, record) {
   };
   return Object.freeze(api);
 }
-class WeaveHost {
+const _WeaveHost = class _WeaveHost {
   /**
    * @param {import('../../types/internal').ChartStateW} w
    * @param {import('../../types/internal').ChartContext} ctx
@@ -328,6 +366,8 @@ class WeaveHost {
     this._lastData = null;
     this._updatedWired = false;
     this._derived = null;
+    this._reserved = null;
+    this._reserveTimer = null;
     this._onUpdated = this._onUpdated.bind(this);
     this._init();
   }
@@ -442,6 +482,14 @@ class WeaveHost {
   /**
    * Build api.scales from the SAME xyRatios the series were drawn with, so
    * plugin pixels align with series pixels by construction.
+   *
+   * The pixels are LAYER-LOCAL: the plugin layer `<g>` lives inside
+   * elGraphical, which already carries translate(translateX, translateY), so
+   * the domain edges map to 0 and gridWidth/gridHeight here, exactly like the
+   * positions the series hand to drawMarker. These scales used to add the
+   * layout translate as well, which shifted everything a plugin drew by
+   * exactly the grid offset; a consumer of the old behaviour can rebase by
+   * subtracting x(domainX[0]) and y(domainY(axis)[1]), which is a no-op now.
    * @param {any} xyRatios
    */
   _setScales(xyRatios) {
@@ -457,15 +505,16 @@ class WeaveHost {
     const yr = (axis) => yRatio[axis] != null ? yRatio[axis] : yRatio[0];
     const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
     const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
+    const banded = !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0;
+    const band = banded ? L.gridWidth / gl.dataPoints : 0;
     this._currentScales = {
-      /** @param {number} v */
-      x: (v) => L.translateX + (v - gl.minX) / xRatio,
+      x: banded ? (v) => band * (v + 0.5) : (v) => (v - gl.minX) / xRatio,
       /**
        * @param {number} v
        * @param {number} [axis]
        */
-      y: (v, axis = 0) => L.translateY + (maxY(axis) - v) / yr(axis),
-      domainX: [gl.minX, gl.maxX],
+      y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
+      domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
       gridWidth: L.gridWidth,
@@ -560,6 +609,96 @@ class WeaveHost {
       this._derived.delete(pluginName);
     }
     this._repairInitialSeries();
+  }
+  /**
+   * Record a plugin's container reservation and re-render if it changed.
+   *
+   * See `api.reserve` in PluginAPI for why this lives in the host rather than
+   * in the plugin. Reservations are kept here rather than on `globals` on
+   * purpose: the host instance survives updates, so a plugin reserves once
+   * instead of re-reserving on every render, and the whole thing dies with the
+   * chart.
+   *
+   * @param {string} pluginName
+   * @param {{left?: number, right?: number, top?: number, bottom?: number}|null} [box]
+   */
+  _reserve(pluginName, box) {
+    const next = _WeaveHost._normaliseBox(box);
+    const prev = this._reserved ? this._reserved.get(pluginName) : void 0;
+    if (!next) {
+      if (!prev || !this._reserved) return;
+      this._reserved.delete(pluginName);
+    } else {
+      if (prev && prev.left === next.left && prev.right === next.right && prev.top === next.top && prev.bottom === next.bottom) {
+        return;
+      }
+      if (!this._reserved) this._reserved = /* @__PURE__ */ new Map();
+      this._reserved.set(pluginName, next);
+    }
+    this._resizeForReservation();
+  }
+  /**
+   * A box of four non-negative finite pixel counts, or null for "nothing".
+   *
+   * Anything unusable is dropped to 0 rather than throwing: this is called from
+   * out-of-tree code, and a NaN reaching `svgWidth` makes the chart disappear
+   * with no error to trace it back from.
+   *
+   * @param {any} box
+   */
+  static _normaliseBox(box) {
+    if (!box || typeof box !== "object") return null;
+    const px = (v) => Number.isFinite(v) && v > 0 ? Math.round(v) : 0;
+    const out = {
+      left: px(box.left),
+      right: px(box.right),
+      top: px(box.top),
+      bottom: px(box.bottom)
+    };
+    return out.left || out.right || out.top || out.bottom ? out : null;
+  }
+  /**
+   * The space every plugin has reserved, summed. Read by Core on each render.
+   *
+   * Returns the shared zero box when nothing is reserved, which is the case on
+   * effectively every chart, so the common path allocates nothing.
+   */
+  reservedBox() {
+    if (!this._reserved || this._reserved.size === 0) return _WeaveHost.NO_RESERVATION;
+    const out = { left: 0, right: 0, top: 0, bottom: 0 };
+    for (const b of this._reserved.values()) {
+      out.left += b.left;
+      out.right += b.right;
+      out.top += b.top;
+      out.bottom += b.bottom;
+    }
+    return out;
+  }
+  /**
+   * Re-render at the new drawing box.
+   *
+   * Deferred by a task rather than run inline. `reserve()` is normally called
+   * from a click handler in the plugin's own UI, where an inline re-render
+   * would be fine, but nothing stops a `draw` handler from calling it, and
+   * re-entering a render from inside one is how a plugin takes the chart down.
+   * One task later, whatever dispatch was in flight has finished.
+   *
+   * Coalesced, so a plugin toggling several reservations in one turn costs one
+   * render.
+   */
+  _resizeForReservation() {
+    if (this._reserveTimer != null) return;
+    this._reserveTimer = setTimeout(() => {
+      this._reserveTimer = null;
+      const gl = this.w.globals;
+      if (gl.isDestroyed) return;
+      gl.resized = true;
+      gl.dataChanged = false;
+      try {
+        this.ctx.update();
+      } catch (e) {
+      }
+    }, 0);
   }
   /** All series names currently claimed by plugins. */
   _derivedNames() {
@@ -671,6 +810,7 @@ class WeaveHost {
       if (!want) {
         this._guard(r, "destroy", () => r.def.destroy && r.def.destroy(r.api));
         this.active.splice(i, 1);
+        this._reserve(r.def.name, null);
       } else {
         r.options = Object.freeze(__spreadValues({}, want.entry.options || {}));
       }
@@ -693,6 +833,11 @@ class WeaveHost {
       }
       this.active = [];
       this._derived = null;
+      this._reserved = null;
+      if (this._reserveTimer != null) {
+        clearTimeout(this._reserveTimer);
+        this._reserveTimer = null;
+      }
       if (this._updatedWired) {
         this.ctx.removeEventListener && this.ctx.removeEventListener("updated", this._onUpdated);
         this._updatedWired = false;
@@ -700,7 +845,14 @@ class WeaveHost {
     }
     this._layers.clear();
   }
-}
+};
+/**
+ * The answer `reservedBox()` gives when no plugin has reserved anything,
+ * which is every chart that does not run a UI plugin. Frozen and shared so
+ * the common path allocates nothing on a per-render read.
+ */
+__publicField(_WeaveHost, "NO_RESERVATION", Object.freeze({ left: 0, right: 0, top: 0, bottom: 0 }));
+let WeaveHost = _WeaveHost;
 ApexCharts.registerFeatures({ weave: WeaveHost });
 export {
   default2 as default
