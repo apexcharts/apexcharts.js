@@ -177,21 +177,41 @@ export default class Series {
 
   /**
    * Cheap pre-update reset for the data-replacement paths (updateSeries /
-   * appendSeries). Clears the same bookkeeping resetSeries() clears (series
-   * cache, previous paths, collapsed-series state) WITHOUT restoring
-   * config.series from the initialSeries snapshot: the caller is about to
-   * replace the series anyway (parseData assigns config.series = newSeries),
-   * so materializing and cloning the snapshot per update is pure waste (two
-   * O(n) deep clones per streaming tick at 50k points).
+   * appendSeries). Clears the series cache and previous paths WITHOUT
+   * restoring config.series from the initialSeries snapshot: the caller is
+   * about to replace the series anyway (parseData assigns config.series =
+   * newSeries), so materializing and cloning the snapshot per update is pure
+   * waste (two O(n) deep clones per streaming tick at 50k points).
+   *
+   * It used to clear the collapsed-series bookkeeping here as well, which made
+   * updateSeries() disagree with updateOptions({ series }) about a legend
+   * collapse: the options path reconciles hides by name, this one dropped
+   * them, so a viewer's legend click was undone by the next data refresh and
+   * every series came back on a polling dashboard. An axis chart's records are
+   * now kept and reconciled in _updateSeries, the same way and by the same
+   * code. A genuine reset still clears them: that is resetSeries(), which does
+   * its own clearing and is the call that means "put everything back".
+   *
+   * A non-axis chart still clears here, and has to. Its collapses are recorded
+   * per SLICE: the index points into the slice container (which for an
+   * object-form pie or unit chart is series[0].data, not config.series) and
+   * the stored data is one slice's value rather than a series' rows. Nothing
+   * about that reconciles against an incoming series list, and running the
+   * by-name reconcile over it overwrote each record's slice value with a whole
+   * series object, so a legend click could hide a category and never bring it
+   * back. Persisting those across a data update needs its own slice-level
+   * reconcile, which is a separate piece of work.
    */
   prepareDataUpdate() {
     const w = this.w
     this.clearSeriesCache()
     w.globals.previousPaths = []
-    w.globals.collapsedSeries = []
-    w.globals.ancillaryCollapsedSeries = []
-    w.globals.collapsedSeriesIndices = []
-    w.globals.ancillaryCollapsedSeriesIndices = []
+    if (!w.globals.axisCharts) {
+      w.globals.collapsedSeries = []
+      w.globals.ancillaryCollapsedSeries = []
+      w.globals.collapsedSeriesIndices = []
+      w.globals.ancillaryCollapsedSeriesIndices = []
+    }
   }
 
   resetSeries(
@@ -263,11 +283,12 @@ export default class Series {
    * Series display names for the CURRENT `w.config` (post-merge), derived the
    * same way the parser does: an object series' own `name`, else the matching
    * `labels` entry (non-axis / pie / unit), else a generated `series-N`.
+   * @param {any[]} [list] the series to name, defaulting to the live config.
    * @returns {string[]}
    */
-  _deriveSeriesNames() {
+  _deriveSeriesNames(list) {
     const w = this.w
-    const series = w.config.series || []
+    const series = list || w.config.series || []
     const labels = w.config.labels || []
     return series.map((/** @type {any} */ s, /** @type {number} */ i) => {
       if (s && typeof s === 'object' && s.name != null) return String(s.name)
@@ -284,11 +305,20 @@ export default class Series {
    *   - a category the update dropped/regrouped away is un-hidden (it no longer
    *     exists, so it must reappear as part of the new grouping).
    * Records without a stored name (older collapses) fall back to their index.
+   *
+   * @param {any[]} [list] the series being written, defaulting to the live
+   *   `w.config.series`. updateSeries()/appendSeries() pass the INCOMING array
+   *   instead, because the reconcile has to happen before that array is
+   *   parsed: parsing a collapsed row that still carries its values puts them
+   *   back into the axis range, and the chart rescales to fit a series nobody
+   *   can see. Pass a copy, not the caller's own objects: collapsed rows are
+   *   emptied in place at the end of this.
    */
-  reconcileCollapsedByName() {
+  reconcileCollapsedByName(list) {
     const w = this.w
     const gl = w.globals
-    const newNames = this._deriveSeriesNames()
+    const target = list || w.config.series
+    const newNames = this._deriveSeriesNames(target)
 
     /**
      * @param {any[]} records
@@ -301,12 +331,21 @@ export default class Series {
         const j =
           rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index
         // Category gone (regrouped away) -> drop the collapse so it reappears.
-        if (j == null || j < 0 || j >= w.config.series.length) return
-        const s = /** @type {any} */ (w.config.series[j])
+        if (j == null || j < 0 || j >= target.length) return
+        const s = /** @type {any} */ (target[j])
         rec.index = j
         // Refresh the stored data to the NEW value so a later rise restores the
         // current data, not the stale snapshot from when it was first hidden.
-        rec.data = gl.axisCharts ? (s && s.data ? s.data.slice() : []) : s
+        //
+        // An empty incoming row is not new data, it IS the collapsed
+        // representation: resetSeries(shouldResetCollapsed:false) empties the
+        // list before handing it on, and taking that would overwrite the only
+        // copy of the data a later rise has to restore from.
+        if (gl.axisCharts) {
+          if (s && Array.isArray(s.data) && s.data.length) rec.data = s.data.slice()
+        } else {
+          rec.data = s
+        }
         nextRecords.push(rec)
         nextIndices.push(j)
       })
@@ -323,9 +362,9 @@ export default class Series {
 
     gl.allSeriesCollapsed =
       gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length ===
-      w.config.series.length
+      target.length
 
-    this.emptyCollapsedSeries(w.config.series)
+    this.emptyCollapsedSeries(target)
   }
 
   /**

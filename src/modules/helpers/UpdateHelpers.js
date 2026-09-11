@@ -277,6 +277,30 @@ export default class UpdateHelpers {
         w.globals.treemapRawSeries = null
       }
 
+      // Keep legend-hidden (collapsed) series hidden across a data update,
+      // reconciled BY CATEGORY NAME by the same code the options path uses: a
+      // name still present stays hidden at its possibly-new index, one the
+      // update dropped comes back. Without this, updateSeries() disagreed with
+      // updateOptions({ series }) and a viewer's legend click was undone by
+      // the next refresh.
+      //
+      // Before parseData, or the collapsed row's values are parsed into the
+      // axis range and the chart rescales to fit a series nobody can see. On a
+      // COPY, because emptying writes `data: []` into each collapsed row and
+      // these objects belong to the caller.
+      // Axis charts only: a non-axis chart records collapses per slice, which
+      // does not reconcile against a series list at all. See prepareDataUpdate.
+      if (
+        w.globals.axisCharts &&
+        (w.globals.collapsedSeriesIndices.length > 0 ||
+          w.globals.ancillaryCollapsedSeriesIndices.length > 0)
+      ) {
+        newSeries = newSeries.map((/** @type {any} */ s) =>
+          s && typeof s === 'object' ? { ...s } : s,
+        )
+        this.ctx.series.reconcileCollapsedByName(newSeries)
+      }
+
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.
       const parsedState = this.ctx.data.parseData(newSeries)
