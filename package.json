@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "7.2.0-rc.2",
+  "version": "7.2.0",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -85,11 +85,11 @@
       "import": "./dist/boxPlot.esm.js",
       "require": "./dist/boxPlot.common.js"
     },
-  "./histogram": {
-    "types": "./types/apexcharts.d.ts",
-    "import": "./dist/histogram.esm.js",
-    "require": "./dist/histogram.common.js"
-  },
+    "./histogram": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/histogram.esm.js",
+      "require": "./dist/histogram.common.js"
+    },
     "./waterfall": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/waterfall.esm.js",
@@ -247,14 +247,14 @@
       "import": "./dist/features/context-menu.esm.js",
       "require": "./dist/features/context-menu.common.js"
     },
-  "./features/stats": {
-    "import": "./dist/features/stats.esm.js",
-    "require": "./dist/features/stats.common.js"
-  },
-  "./features/raincloud": {
-    "import": "./dist/features/raincloud.esm.js",
-    "require": "./dist/features/raincloud.common.js"
-  },
+    "./features/stats": {
+      "import": "./dist/features/stats.esm.js",
+      "require": "./dist/features/stats.common.js"
+    },
+    "./features/raincloud": {
+      "import": "./dist/features/raincloud.esm.js",
+      "require": "./dist/features/raincloud.common.js"
+    },
     "./features/waterfall": {
       "import": "./dist/features/waterfall.esm.js",
       "require": "./dist/features/waterfall.common.js"
