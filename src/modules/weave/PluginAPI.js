@@ -16,8 +16,16 @@
  * data array, the only reliable template for emitting a derived series),
  * `api.info` (chart type / axis kind / horizontal bars), `api.categories`
  * (resolved display labels) and `api.markDerived()`.
+ *
+ * v3 added `api.reserve()`, for a plugin that renders its own UI inside the
+ * chart's container and needs the chart to make room for it.
+ *
+ * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
+ * cannot work without the new surface: a plugin declaring v3 is SKIPPED
+ * outright on a v2 host, so `apiVersion: 2` plus `typeof api.reserve ===
+ * 'function'` keeps one build working on both.
  */
-export const WEAVE_API_VERSION = 2
+export const WEAVE_API_VERSION = 3
 
 /**
  * Public chart methods safe to expose to plugins (each bound to ctx). Excludes
@@ -323,6 +331,44 @@ export function buildPluginAPI(host, record) {
      */
     markDerived(names) {
       host._markDerived(record.def.name, names)
+      return api
+    },
+
+    /**
+     * Reserve space inside the chart's container for the plugin's own UI (v3).
+     *
+     * A plugin that renders HTML beside the chart (a docked panel, a toolbar of
+     * its own) cannot make room for it. The chart sizes itself from the element
+     * the caller handed it, so a sibling inserted into that element does not
+     * narrow the chart: the chart is drawn at full width underneath. Every
+     * route a plugin has to fix that on its own is worse. Writing `chart.width`
+     * means owning config the caller owns and losing it on their next
+     * `updateOptions`. Positioning the UI absolutely over the chart means
+     * guessing a size it cannot know, and being clipped by any ancestor with
+     * `overflow: hidden`. Narrowing the container means writing to the caller's
+     * own element and changing the page's layout around it.
+     *
+     * So the host does the arithmetic, in the one place that already does it.
+     * The container keeps its size; the chart draws inside what is left.
+     *
+     * Reservations are per plugin and summed, so two plugins each asking for a
+     * right-hand gutter get one each instead of overlapping. Call it again to
+     * change the amount, and pass `null` (or all zeros) to give the space back.
+     * Nothing happens when the box is unchanged, so calling it on every render
+     * with the same numbers is free.
+     *
+     * The total is clamped so the chart keeps at least half the container on
+     * each axis: a plugin may not reduce the chart it is annotating to nothing.
+     * A plugin whose UI needs more room than that should render below the chart
+     * instead, which it can do without asking.
+     *
+     * Changing a reservation re-renders the chart, one task later so that
+     * calling it from inside a draw handler cannot re-enter the render.
+     *
+     * @param {{left?: number, right?: number, top?: number, bottom?: number}|null} [box]
+     */
+    reserve(box) {
+      host._reserve(record.def.name, box)
       return api
     },
 

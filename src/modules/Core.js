@@ -697,6 +697,8 @@ export default class Core {
       gl.svgHeight = gl.axisCharts ? gl.svgWidth / 1.61 : gl.svgWidth / 1.2
     }
 
+    this._applyWeaveReservation(gl)
+
     gl.svgWidth = Math.max(gl.svgWidth, 0)
     gl.svgHeight = Math.max(gl.svgHeight, 0)
 
@@ -738,6 +740,45 @@ export default class Core {
     // Record the container inputs this render was sized from, so a later resize
     // can tell whether it actually changes the drawing box (see getResizeSignature).
     gl.lastResizeSignature = this.getResizeSignature()
+  }
+
+  /**
+   * Take off the space Weave plugins have reserved for their own UI.
+   *
+   * The container keeps the size the caller gave it; only the drawing box
+   * shrinks, so a plugin can dock a panel inside the container without the
+   * chart being drawn underneath it. See `api.reserve` in weave/PluginAPI.
+   *
+   * Applied here, after the height block above, on purpose. An auto height is
+   * derived from the width, so subtracting a right-hand gutter before that
+   * point would make the chart shorter as well as narrower, and everything
+   * below the chart would jump every time a panel opened. Taking it off
+   * afterwards means a side panel narrows the chart and moves nothing else.
+   *
+   * Clamped to half the box on each axis: a plugin may not shrink the chart it
+   * is annotating to nothing, and a UI that needs more room than that should
+   * render below the chart, where it never needed to ask.
+   *
+   * @param {any} gl w.globals
+   */
+  _applyWeaveReservation(gl) {
+    const weave = this.ctx && this.ctx.weave
+    if (!weave || typeof weave.reservedBox !== 'function') return
+
+    const box = weave.reservedBox()
+    const x = box.left + box.right
+    const y = box.top + box.bottom
+    // Nothing reserved is the common case, and it must not touch svgWidth at
+    // all: the value can legitimately be NaN here (a percentage width that
+    // could not be measured, in jsdom), and arithmetic would spread it.
+    if (!x && !y) return
+
+    if (x && Number.isFinite(gl.svgWidth)) {
+      gl.svgWidth -= Math.min(x, gl.svgWidth / 2)
+    }
+    if (y && Number.isFinite(gl.svgHeight)) {
+      gl.svgHeight -= Math.min(y, gl.svgHeight / 2)
+    }
   }
 
   /**

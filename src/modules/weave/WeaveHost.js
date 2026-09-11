@@ -22,6 +22,13 @@ export { WEAVE_API_VERSION }
  */
 export default class WeaveHost {
   /**
+   * The answer `reservedBox()` gives when no plugin has reserved anything,
+   * which is every chart that does not run a UI plugin. Frozen and shared so
+   * the common path allocates nothing on a per-render read.
+   */
+  static NO_RESERVATION = Object.freeze({ left: 0, right: 0, top: 0, bottom: 0 })
+
+  /**
    * @param {import('../../types/internal').ChartStateW} w
    * @param {import('../../types/internal').ChartContext} ctx
    */
@@ -39,6 +46,10 @@ export default class WeaveHost {
     /** @type {boolean} */ this._updatedWired = false
     /** @type {Map<string, string[]>|null} plugin name -> series it owns */
     this._derived = null
+    /** @type {Map<string, {left:number,right:number,top:number,bottom:number}>|null} */
+    this._reserved = null
+    /** @type {any} pending re-render for a changed reservation */
+    this._reserveTimer = null
 
     this._onUpdated = this._onUpdated.bind(this)
     this._init()
@@ -374,6 +385,114 @@ export default class WeaveHost {
     this._repairInitialSeries()
   }
 
+  /**
+   * Record a plugin's container reservation and re-render if it changed.
+   *
+   * See `api.reserve` in PluginAPI for why this lives in the host rather than
+   * in the plugin. Reservations are kept here rather than on `globals` on
+   * purpose: the host instance survives updates, so a plugin reserves once
+   * instead of re-reserving on every render, and the whole thing dies with the
+   * chart.
+   *
+   * @param {string} pluginName
+   * @param {{left?: number, right?: number, top?: number, bottom?: number}|null} [box]
+   */
+  _reserve(pluginName, box) {
+    const next = WeaveHost._normaliseBox(box)
+    const prev = this._reserved ? this._reserved.get(pluginName) : undefined
+
+    if (!next) {
+      if (!prev || !this._reserved) return
+      this._reserved.delete(pluginName)
+    } else {
+      if (
+        prev &&
+        prev.left === next.left &&
+        prev.right === next.right &&
+        prev.top === next.top &&
+        prev.bottom === next.bottom
+      ) {
+        return
+      }
+      if (!this._reserved) this._reserved = new Map()
+      this._reserved.set(pluginName, next)
+    }
+
+    this._resizeForReservation()
+  }
+
+  /**
+   * A box of four non-negative finite pixel counts, or null for "nothing".
+   *
+   * Anything unusable is dropped to 0 rather than throwing: this is called from
+   * out-of-tree code, and a NaN reaching `svgWidth` makes the chart disappear
+   * with no error to trace it back from.
+   *
+   * @param {any} box
+   */
+  static _normaliseBox(box) {
+    if (!box || typeof box !== 'object') return null
+    /** @param {any} v */
+    const px = (v) => (Number.isFinite(v) && v > 0 ? Math.round(v) : 0)
+    const out = {
+      left: px(box.left),
+      right: px(box.right),
+      top: px(box.top),
+      bottom: px(box.bottom),
+    }
+    return out.left || out.right || out.top || out.bottom ? out : null
+  }
+
+  /**
+   * The space every plugin has reserved, summed. Read by Core on each render.
+   *
+   * Returns the shared zero box when nothing is reserved, which is the case on
+   * effectively every chart, so the common path allocates nothing.
+   */
+  reservedBox() {
+    if (!this._reserved || this._reserved.size === 0) return WeaveHost.NO_RESERVATION
+    const out = { left: 0, right: 0, top: 0, bottom: 0 }
+    for (const b of this._reserved.values()) {
+      out.left += b.left
+      out.right += b.right
+      out.top += b.top
+      out.bottom += b.bottom
+    }
+    return out
+  }
+
+  /**
+   * Re-render at the new drawing box.
+   *
+   * Deferred by a task rather than run inline. `reserve()` is normally called
+   * from a click handler in the plugin's own UI, where an inline re-render
+   * would be fine, but nothing stops a `draw` handler from calling it, and
+   * re-entering a render from inside one is how a plugin takes the chart down.
+   * One task later, whatever dispatch was in flight has finished.
+   *
+   * Coalesced, so a plugin toggling several reservations in one turn costs one
+   * render.
+   */
+  _resizeForReservation() {
+    if (this._reserveTimer != null) return
+    this._reserveTimer = setTimeout(() => {
+      this._reserveTimer = null
+      const gl = this.w.globals
+      if (gl.isDestroyed) return
+      // The same two flags the container-resize path sets: this IS a resize,
+      // and no data changed, so the chart rebuilds at the new box rather than
+      // animating as if the series had moved.
+      gl.resized = true
+      gl.dataChanged = false
+      try {
+        this.ctx.update()
+      } catch {
+        // A chart torn down between the reservation and this callback. The
+        // reservation dies with the host, so there is nothing to undo.
+      }
+    }, 0)
+  }
+
   /** All series names currently claimed by plugins. */
   _derivedNames() {
     const out = new Set()
@@ -501,6 +620,9 @@ export default class WeaveHost {
       if (!want) {
         this._guard(r, 'destroy', () => r.def.destroy && r.def.destroy(r.api))
         this.active.splice(i, 1)
+        // A removed plugin's gutter goes back to the chart. Left behind, the
+        // chart would keep drawing around a panel that is no longer there.
+        this._reserve(r.def.name, null)
       } else {
         r.options = Object.freeze({ ...(want.entry.options || {}) })
       }
@@ -534,6 +656,13 @@ export default class WeaveHost {
       }
       this.active = []
       this._derived = null
+      this._reserved = null
+      // Nothing left to re-render for, and firing this after a destroy would
+      // call update() on a torn-down chart.
+      if (this._reserveTimer != null) {
+        clearTimeout(this._reserveTimer)
+        this._reserveTimer = null
+      }
       if (this._updatedWired) {
         this.ctx.removeEventListener &&
           this.ctx.removeEventListener('updated', this._onUpdated)

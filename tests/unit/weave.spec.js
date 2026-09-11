@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
 
@@ -510,6 +510,195 @@ describe('Weave: scales on a chart laid out in bands', () => {
     // band projection must not reach it.
     expect(out.scales.domainX).toEqual([1, 3])
     expect(out.scales.x(1)).toBeCloseTo(0, 6)
+    chart.destroy()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// api.reserve (v3): a plugin asking the chart to make room for its own UI
+// ---------------------------------------------------------------------------
+
+describe('Weave: reserving container space for a plugin UI', () => {
+  // Each probe reads its box from here rather than closing over a constant, so
+  // one registered plugin can cover every case and a test can change the
+  // reservation of a chart that is already on screen.
+  const want = { one: null, two: null }
+  let draws = 0
+
+  const reserver = {
+    name: 'reserver',
+    apiVersion: 2,
+    setup(api) {
+      api.on('draw', () => {
+        draws++
+        api.reserve(want.one)
+      })
+    },
+  }
+
+  const reserver2 = {
+    name: 'reserver2',
+    apiVersion: 2,
+    setup(api) {
+      api.on('draw', () => api.reserve(want.two))
+    },
+  }
+
+  let sawReserve = null
+  const peek = {
+    name: 'peek',
+    apiVersion: 2,
+    setup(api) {
+      sawReserve = typeof api.reserve
+    },
+  }
+
+  beforeAll(() => {
+    ;[reserver, reserver2, peek].forEach((p) => ApexCharts.registerPlugin(p))
+  })
+
+  beforeEach(() => {
+    want.one = null
+    want.two = null
+    draws = 0
+    sawReserve = null
+  })
+
+  /**
+   * reserve() re-renders on a deferred task, so that calling it from inside a
+   * draw handler cannot re-enter the render. Nothing public reports when that
+   * has landed, so wait for the box to move rather than for a fixed tick count.
+   */
+  const settle = async (chart, read, target, tries = 25) => {
+    for (let i = 0; i < tries; i++) {
+      if (read(chart) === target) return true
+      await new Promise((r) => setTimeout(r, 0))
+    }
+    return read(chart)
+  }
+
+  const widthOf = (chart) => chart.w.globals.svgWidth
+  const heightOf = (chart) => chart.w.globals.svgHeight
+
+  const lineChart = (plugins, chartOpts = {}) =>
+    createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 600,
+        height: 400,
+        toolbar: { show: false },
+        ...chartOpts,
+      },
+      legend: { show: false },
+      series: [{ name: 'a', data: [1, 2, 3, 4] }],
+      xaxis: { categories: ['w', 'x', 'y', 'z'] },
+      plugins,
+    })
+
+  it('leaves the drawing box alone when nothing is reserved', () => {
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(widthOf(chart)).toBe(600)
+    expect(heightOf(chart)).toBe(400)
+    expect(chart.weave.reservedBox()).toEqual({ left: 0, right: 0, top: 0, bottom: 0 })
+    chart.destroy()
+  })
+
+  it('narrows the chart by the reserved gutter', async () => {
+    want.one = { right: 160 }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(await settle(chart, widthOf, 440)).toBe(true)
+    chart.destroy()
+  })
+
+  it('does not shorten an auto-height chart when the gutter is horizontal', async () => {
+    // The whole reason the reservation is applied after the auto-height block:
+    // opening a side panel must not move everything below the chart.
+    want.one = { right: 150 }
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 600, toolbar: { show: false } },
+      legend: { show: false },
+      series: [{ name: 'a', data: [1, 2, 3, 4] }],
+      plugins: [{ name: 'reserver' }],
+    })
+    expect(await settle(chart, widthOf, 450)).toBe(true)
+    expect(heightOf(chart)).toBeCloseTo(600 / 1.61, 6)
+    chart.destroy()
+  })
+
+  it('takes a vertical gutter off the height', async () => {
+    want.one = { top: 40, bottom: 60 }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(await settle(chart, heightOf, 300)).toBe(true)
+    expect(widthOf(chart)).toBe(600)
+    chart.destroy()
+  })
+
+  it('sums the reservations of two plugins rather than overlapping them', async () => {
+    want.one = { right: 100 }
+    want.two = { left: 60 }
+    const chart = lineChart([{ name: 'reserver' }, { name: 'reserver2' }])
+    expect(await settle(chart, widthOf, 440)).toBe(true)
+    expect(chart.weave.reservedBox()).toEqual({ left: 60, right: 100, top: 0, bottom: 0 })
+    chart.destroy()
+  })
+
+  it('gives the space back when the reservation is dropped', async () => {
+    want.one = { right: 200 }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(await settle(chart, widthOf, 400)).toBe(true)
+
+    want.one = null
+    chart.weave.active[0].api.reserve(null)
+    expect(await settle(chart, widthOf, 600)).toBe(true)
+    chart.destroy()
+  })
+
+  it('re-renders once for a change and not again for the same box', async () => {
+    // The draw handler reserves the same numbers on every pass. Without the
+    // unchanged-box comparison in _reserve this is an infinite render loop
+    // rather than a failing assertion, so the timeout is the real assertion.
+    want.one = { right: 120 }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(await settle(chart, widthOf, 480)).toBe(true)
+    const settledDraws = draws
+    await new Promise((r) => setTimeout(r, 30))
+    expect(draws).toBe(settledDraws)
+    chart.destroy()
+  })
+
+  it('keeps the chart at half the box however much a plugin asks for', async () => {
+    want.one = { right: 5000 }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(await settle(chart, widthOf, 300)).toBe(true)
+    chart.destroy()
+  })
+
+  it('reserves nothing for values that are not usable pixel counts', () => {
+    // A NaN reaching svgWidth makes the chart vanish with no error to trace it
+    // back from, so unusable numbers are dropped rather than propagated.
+    want.one = { right: NaN, left: -40, top: 'lots', bottom: Infinity }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(widthOf(chart)).toBe(600)
+    expect(chart.weave.reservedBox()).toEqual({ left: 0, right: 0, top: 0, bottom: 0 })
+    chart.destroy()
+  })
+
+  it('hands the gutter back when the plugin is removed from the chart', async () => {
+    want.one = { right: 180 }
+    const chart = lineChart([{ name: 'reserver' }])
+    expect(await settle(chart, widthOf, 420)).toBe(true)
+
+    await chart.updateOptions({ plugins: [] })
+    expect(await settle(chart, widthOf, 600)).toBe(true)
+    chart.destroy()
+  })
+
+  it('is offered to a plugin that declares the older API version', () => {
+    // apex-analyst ships one build against both a v2 and a v3 host, so it
+    // declares v2 (a host at v2 SKIPS a plugin declaring v3 outright) and
+    // feature-detects this method. That only works if v2 plugins are given it.
+    const chart = lineChart([{ name: 'peek' }])
+    expect(sawReserve).toBe('function')
     chart.destroy()
   })
 })
