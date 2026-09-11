@@ -561,32 +561,31 @@ export default class YAxis {
         const yAxisInner = w.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`,
         )
+        // A hidden axis still renders its .apexcharts-yaxis group, so it is part
+        // of the collection above and keeps the rel index aligned, but drawYaxis
+        // returns before adding the texts group — there is nothing to align.
+        if (!yAxisInner) return
+
         const yAxisTexts = Array.from(
           w.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`,
           ),
         )
-        const rect = /** @type {Element} */ (yAxisInner).getBoundingClientRect()
+        const rect = yAxisInner.getBoundingClientRect()
 
         yAxisTexts.forEach((label) => {
           label.setAttribute('text-anchor', yaxe.labels.align)
         })
 
         if (yaxe.labels.align === 'left' && !yaxe.opposite) {
-          ;/** @type {Element} */ (yAxisInner).setAttribute(
-            'transform',
-            `translate(-${rect.width}, 0)`,
-          )
+          yAxisInner.setAttribute('transform', `translate(-${rect.width}, 0)`)
         } else if (yaxe.labels.align === 'center') {
-          ;/** @type {Element} */ (yAxisInner).setAttribute(
+          yAxisInner.setAttribute(
             'transform',
             `translate(${(rect.width / 2) * (!yaxe.opposite ? -1 : 1)}, 0)`,
           )
         } else if (yaxe.labels.align === 'right' && yaxe.opposite) {
-          ;/** @type {Element} */ (yAxisInner).setAttribute(
-            'transform',
-            `translate(${rect.width}, 0)`,
-          )
+          yAxisInner.setAttribute('transform', `translate(${rect.width}, 0)`)
         }
       }
     })
