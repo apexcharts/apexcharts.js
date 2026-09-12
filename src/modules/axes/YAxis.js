@@ -551,19 +551,17 @@ export default class YAxis {
 
   setYAxisTextAlignments() {
     const w = this.w
-    const yaxis = Array.from(
-      w.dom.baseEl.getElementsByClassName('apexcharts-yaxis'),
-    )
 
-    yaxis.forEach((y, index) => {
-      const yaxe = w.config.yaxis[index]
+    // Iterate config, not the DOM collection: Axes.drawAxis skips
+    // ignoreYAxisIndexes entirely, so a collapsed axis makes the DOM
+    // shorter than config.yaxis and a later visible axis would be missed.
+    w.config.yaxis.forEach((yaxe, index) => {
       if (yaxe && !yaxe.floating && yaxe.labels.align !== undefined) {
         const yAxisInner = w.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`,
         )
-        // A hidden axis still renders its .apexcharts-yaxis group, so it is part
-        // of the collection above and keeps the rel index aligned, but drawYaxis
-        // returns before adding the texts group — there is nothing to align.
+        // drawYaxis returns before adding .apexcharts-yaxis-texts-g when the
+        // axis is hidden, so there is nothing to align.
         if (!yAxisInner) return
 
         const yAxisTexts = Array.from(
