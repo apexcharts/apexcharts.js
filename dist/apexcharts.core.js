@@ -42,7 +42,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.2.0
+ * ApexCharts v7.3.0
  * (c) 2018-2026 ApexCharts
  */
 
