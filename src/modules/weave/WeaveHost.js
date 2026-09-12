@@ -50,6 +50,10 @@ export default class WeaveHost {
     this._reserved = null
     /** @type {any} pending re-render for a changed reservation */
     this._reserveTimer = null
+    /** @type {Map<string, Function[]>|null} plugin name -> pointer handlers */
+    this._pointerSubs = null
+    /** @type {Array<[string, Function]>|null} chart listeners to remove on teardown */
+    this._pointerWired = null
 
     this._onUpdated = this._onUpdated.bind(this)
     this._init()
@@ -386,6 +390,143 @@ export default class WeaveHost {
   }
 
   /**
+   * Subscribe a plugin to the data point the viewer is pointing at.
+   *
+   * Wired lazily: a chart whose plugins never ask pays nothing, and the chart
+   * fires these three events whether or not anyone is listening, so there is no
+   * cost to the chart either way.
+   *
+   * The chart's own handler signature is `(e, ctx, {seriesIndex,
+   * dataPointIndex, w})`. `w` stops here: what reaches a plugin is the
+   * normalised payload documented on `api.pointer`.
+   *
+   * @param {string} pluginName
+   * @param {Function} fn
+   * @returns {() => void} unsubscribe
+   */
+  _onPointer(pluginName, fn) {
+    if (typeof fn !== 'function') return () => {}
+    if (!this._pointerSubs) this._pointerSubs = new Map()
+    const list = this._pointerSubs.get(pluginName) || []
+    list.push(fn)
+    this._pointerSubs.set(pluginName, list)
+    this._wirePointer()
+    return () => {
+      const current = this._pointerSubs && this._pointerSubs.get(pluginName)
+      if (!current) return
+      const i = current.indexOf(fn)
+      if (i > -1) current.splice(i, 1)
+    }
+  }
+
+  /** Attach to the chart's own data point events, once. */
+  _wirePointer() {
+    if (this._pointerWired) return
+    if (!this.ctx || typeof this.ctx.addEventListener !== 'function') return
+    /** @type {Array<['enter'|'leave'|'select', string]>} */
+    const map = [
+      ['enter', 'dataPointMouseEnter'],
+      ['leave', 'dataPointMouseLeave'],
+      ['select', 'dataPointSelection'],
+    ]
+    this._pointerWired = []
+    for (const [type, name] of map) {
+      const handler = (/** @type {any} */ _e, /** @type {any} */ _ctx, /** @type {any} */ opts) => {
+        this._emitPointer(type, opts)
+      }
+      this.ctx.addEventListener(name, handler)
+      this._pointerWired.push([name, handler])
+    }
+  }
+
+  /**
+   * Hand one pointer event to every subscribed plugin.
+   *
+   * A handler that throws is contained per plugin, on the same terms as every
+   * other plugin callback here: this runs inside the viewer's own hover, and a
+   * plugin breaking the chart's interaction would be the worst failure mode
+   * this facade has.
+   *
+   * @param {'enter'|'leave'|'select'} type
+   * @param {any} opts
+   */
+  _emitPointer(type, opts) {
+    if (!this._pointerSubs || !this._pointerSubs.size) return
+    const seriesIndex = opts && typeof opts.seriesIndex === 'number' ? opts.seriesIndex : -1
+    const dataPointIndex =
+      opts && typeof opts.dataPointIndex === 'number' ? opts.dataPointIndex : -1
+    // The host's OWN category resolution, the same one `api.categories` reads.
+    // `globals.labels` is the raw slot list and on a category axis it is
+    // [1,2,3,4], so keying a cross-chart selection on it would key on a number
+    // that means something different on every chart. Measured: a chart with
+    // xaxis.categories ['Jan'..'Apr'] reported category 3 rather than 'Mar'.
+    const labels = this._categories() || []
+    const w = this.w
+    const config = (w && w.config && w.config.series) || []
+    const payload = {
+      type,
+      seriesIndex,
+      dataPointIndex,
+      category: dataPointIndex > -1 ? labels[dataPointIndex] : undefined,
+      // A pie/donut carries bare numbers in `series`, so there is no name to
+      // read: undefined rather than a guess, on the same terms as `category`.
+      seriesName: WeaveHost._seriesName(config, seriesIndex),
+      // Only meaningful on a select: the chart hands back its whole selection
+      // set, and what a plugin wants to know is whether THIS point is now in
+      // it, so a second click reads as a deselect rather than another select.
+      selected: type === 'select' ? WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : undefined,
+    }
+    for (const [name, handlers] of this._pointerSubs) {
+      for (const fn of handlers.slice()) {
+        try {
+          fn(payload)
+        } catch (e) {
+          console.warn(
+            '[apexcharts] plugin "' + name + '" threw in a pointer handler',
+            e
+          )
+        }
+      }
+    }
+  }
+
+  /**
+   * The configured name of series `i`, where there is one.
+   *
+   * @param {any[]} config
+   * @param {number} i
+   * @returns {string|undefined}
+   */
+  static _seriesName(config, i) {
+    if (i < 0) return undefined
+    const entry = config[i]
+    if (!entry || typeof entry !== 'object') return undefined
+    return typeof entry.name === 'string' ? entry.name : undefined
+  }
+
+  /**
+   * Whether the chart now counts this point as selected.
+   *
+   * `selectedDataPoints` is an array per series of the indexes selected in it.
+   * Absent on a chart type that does not carry point selection, in which case
+   * the answer is undefined rather than false: "not selected" and "selection
+   * does not apply here" are different, and a plugin keying on it should be
+   * able to tell.
+   *
+   * @param {any} opts
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   * @returns {boolean|undefined}
+   */
+  static _isSelected(opts, seriesIndex, dataPointIndex) {
+    const all = opts && opts.selectedDataPoints
+    if (!Array.isArray(all) || seriesIndex < 0) return undefined
+    const mine = all[seriesIndex]
+    if (!Array.isArray(mine)) return false
+    return mine.indexOf(dataPointIndex) > -1
+  }
+
+  /**
    * Record a plugin's container reservation and re-render if it changed.
    *
    * See `api.reserve` in PluginAPI for why this lives in the host rather than
@@ -657,6 +798,13 @@ export default class WeaveHost {
       this.active = []
       this._derived = null
       this._reserved = null
+      this._pointerSubs = null
+      if (this._pointerWired) {
+        for (const [name, handler] of this._pointerWired) {
+          this.ctx.removeEventListener && this.ctx.removeEventListener(name, handler)
+        }
+        this._pointerWired = null
+      }
       // Nothing left to re-render for, and firing this after a destroy would
       // call update() on a torn-down chart.
       if (this._reserveTimer != null) {

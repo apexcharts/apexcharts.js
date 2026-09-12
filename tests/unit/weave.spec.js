@@ -702,3 +702,166 @@ describe('Weave: reserving container space for a plugin UI', () => {
     chart.destroy()
   })
 })
+
+describe('Weave: telling a plugin what the viewer is pointing at', () => {
+  /** Every payload the plugin was handed, in order. */
+  let seen = []
+  let unsubscribe = null
+  let sawPointer = null
+
+  const watcher = {
+    name: 'pointer-watcher',
+    // Declares v2 and feature-detects, which is the standing rule here: a host
+    // older than the surface skips a plugin that declares it outright.
+    apiVersion: 2,
+    setup(api) {
+      sawPointer = typeof api.pointer
+      if (typeof api.pointer === 'function') {
+        unsubscribe = api.pointer((e) => seen.push(e))
+      }
+    },
+  }
+
+  const thrower = {
+    name: 'pointer-thrower',
+    apiVersion: 2,
+    setup(api) {
+      api.pointer(() => {
+        throw new Error('a plugin handler blew up')
+      })
+    },
+  }
+
+  beforeAll(() => {
+    ;[watcher, thrower].forEach((p) => ApexCharts.registerPlugin(p))
+  })
+
+  beforeEach(() => {
+    seen = []
+    unsubscribe = null
+    sawPointer = null
+  })
+
+  const lineChart = (plugins) =>
+    createChartWithOptions({
+      chart: { type: 'line', width: 600, height: 400, toolbar: { show: false } },
+      legend: { show: false },
+      series: [{ name: 'revenue', data: [1, 2, 3, 4] }],
+      xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr'] },
+      plugins,
+    })
+
+  /** Fire the chart's own event, the way Graphics does when a viewer hovers. */
+  const fire = (chart, name, opts) => {
+    const handlers = chart.w.globals.events[name] || []
+    handlers.forEach((h) => h({}, chart, opts))
+  }
+
+  it('is on the facade, and the host reports the version that added it', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    expect(sawPointer).toBe('function')
+    expect(chart.weave.active[0].api.version).toBe(4)
+    chart.destroy()
+  })
+
+  it('forwards the point the chart resolved, with the category label', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    fire(chart, 'dataPointMouseEnter', { seriesIndex: 0, dataPointIndex: 2 })
+    expect(seen).toEqual([
+      {
+        type: 'enter',
+        seriesIndex: 0,
+        dataPointIndex: 2,
+        category: 'Mar',
+        seriesName: 'revenue',
+        selected: undefined,
+      },
+    ])
+    chart.destroy()
+  })
+
+  it('reports leaving as its own kind of event', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    fire(chart, 'dataPointMouseLeave', { seriesIndex: 0, dataPointIndex: 1 })
+    expect(seen.map((e) => e.type)).toEqual(['leave'])
+    chart.destroy()
+  })
+
+  // A second click on the same point is a deselect, and a plugin keying on the
+  // selection has to be able to tell the two apart.
+  it('says whether a selected point is now in the selection or out of it', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    fire(chart, 'dataPointSelection', {
+      seriesIndex: 0,
+      dataPointIndex: 1,
+      selectedDataPoints: [[1]],
+    })
+    fire(chart, 'dataPointSelection', {
+      seriesIndex: 0,
+      dataPointIndex: 1,
+      selectedDataPoints: [[]],
+    })
+    expect(seen.map((e) => e.selected)).toEqual([true, false])
+    chart.destroy()
+  })
+
+  it('leaves selection undefined where the chart carries none', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    fire(chart, 'dataPointSelection', { seriesIndex: 0, dataPointIndex: 1 })
+    expect(seen[0].selected).toBeUndefined()
+    chart.destroy()
+  })
+
+  // The facade's whole purpose: a plugin never receives `w`.
+  it('hands over no chart internals', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    fire(chart, 'dataPointMouseEnter', { seriesIndex: 0, dataPointIndex: 0, w: chart.w })
+    expect(Object.keys(seen[0]).sort()).toEqual([
+      'category',
+      'dataPointIndex',
+      'selected',
+      'seriesIndex',
+      'seriesName',
+      'type',
+    ])
+    chart.destroy()
+  })
+
+  it('stops delivering once the plugin unsubscribes', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    unsubscribe()
+    fire(chart, 'dataPointMouseEnter', { seriesIndex: 0, dataPointIndex: 0 })
+    expect(seen).toEqual([])
+    chart.destroy()
+  })
+
+  // This runs inside the viewer's own hover. A plugin breaking the chart's
+  // interaction would be the worst failure this facade could have.
+  it('contains a handler that throws, and keeps delivering to the others', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const chart = lineChart([{ name: 'pointer-thrower' }, { name: 'pointer-watcher' }])
+    expect(() =>
+      fire(chart, 'dataPointMouseEnter', { seriesIndex: 0, dataPointIndex: 0 })
+    ).not.toThrow()
+    expect(seen).toHaveLength(1)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+    chart.destroy()
+  })
+
+  it('costs the chart nothing when no plugin asks', () => {
+    const chart = lineChart([])
+    expect(chart.weave._pointerWired).toBeNull()
+    chart.destroy()
+  })
+
+  it('lets go of the chart on destroy', () => {
+    const chart = lineChart([{ name: 'pointer-watcher' }])
+    // Held directly: `chart.weave` is gone by the time destroy returns, so
+    // reading it afterwards tests nothing about the listeners.
+    const host = chart.weave
+    expect(host._pointerWired).not.toBeNull()
+    chart.destroy()
+    expect(host._pointerWired).toBeNull()
+  })
+})

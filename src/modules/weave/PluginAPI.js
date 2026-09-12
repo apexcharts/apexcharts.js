@@ -20,12 +20,17 @@
  * v3 added `api.reserve()`, for a plugin that renders its own UI inside the
  * chart's container and needs the chart to make room for it.
  *
+ * v4 added `api.pointer()`, so a plugin can learn which data point a viewer is
+ * pointing at or has selected. The chart already computed that for its own
+ * tooltip and its `dataPoint*` events; before this a plugin either re-derived
+ * it from raw pixels or did without.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
  * outright on a v2 host, so `apiVersion: 2` plus `typeof api.reserve ===
  * 'function'` keeps one build working on both.
  */
-export const WEAVE_API_VERSION = 3
+export const WEAVE_API_VERSION = 4
 
 /**
  * Public chart methods safe to expose to plugins (each bound to ctx). Excludes
@@ -370,6 +375,37 @@ export function buildPluginAPI(host, record) {
     reserve(box) {
       host._reserve(record.def.name, box)
       return api
+    },
+
+    /**
+     * Subscribe to the data point a viewer is pointing at.
+     *
+     * The chart already knows this: it resolves the series and point under the
+     * pointer for its own tooltip and fires `dataPointMouseEnter`,
+     * `dataPointMouseLeave` and `dataPointSelection` for the caller. This
+     * forwards the same three, so a plugin gets the host's answer rather than
+     * hit-testing the SVG itself and disagreeing with the tooltip.
+     *
+     * The payload is normalised rather than the chart's own argument list,
+     * which passes `w`. A plugin must not receive `w`, and the three things a
+     * plugin actually wants (which series, which point, what the point is
+     * called) are exactly what the chart has already resolved.
+     *
+     * `category` is the resolved display label, the same string `api.categories`
+     * carries, because a plugin coordinating two charts keys on the label
+     * rather than on an index that means something different on each chart.
+     *
+     * Nothing here gives a plugin the ability to intercept or cancel: the
+     * chart's own tooltip, selection state and caller events are unaffected,
+     * and a handler that throws is contained rather than allowed to break the
+     * interaction it was watching.
+     *
+     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined}) => void} fn
+     * @returns {() => void} unsubscribe
+     * @since Weave v4
+     */
+    pointer(fn) {
+      return host._onPointer(record.def.name, fn)
     },
 
     // ── custom events out to the host app ──
