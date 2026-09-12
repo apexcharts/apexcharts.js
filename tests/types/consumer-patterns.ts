@@ -233,7 +233,7 @@ const _po: ApexCharts.ApexPlotOptions = {}
 const _stroke: ApexCharts.ApexStroke = { curve: 'smooth' }
 const _theme: ApexCharts.ApexTheme = { mode: 'dark' }
 const _title: ApexCharts.ApexTitleSubtitle = { text: 'hello' }
-const _tooltip: ApexCharts.ApexTooltip = { enabled: true }
+const _tooltip: ApexCharts.ApexTooltip = { enabled: true, interactive: true }
 const _xaxis: ApexCharts.ApexXAxis = { type: 'datetime' }
 const _series: ApexCharts.ApexAxisChartSeries = [{ name: 'a', data: [1, 2, 3] }]
 void _ann; void _chart; void _dl; void _fill; void _grid; void _legend
