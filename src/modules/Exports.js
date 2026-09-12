@@ -999,7 +999,9 @@ class Exports {
 
     const handleUnequalXValues = () => {
       const categories = new Set()
-      const data = {}
+      // Map stops a plain object category named `__proto__` from writing
+      /** @type {Map<string, string[]>} */
+      const byCategory = new Map()
 
       /**
        * @param {Record<string, any>} s
@@ -1020,13 +1022,13 @@ class Exports {
           } else {
             return
           }
-          if (!(/** @type {Record<string,any>} */ (data)[cat])) {
-            ;/** @type {Record<string,any>} */ (data)[cat] = Array(
-              series.length,
-            ).fill('')
+          const key = String(cat)
+          let values = byCategory.get(key)
+          if (!values) {
+            values = Array(series.length).fill('')
+            byCategory.set(key, values)
           }
-          ;/** @type {Record<string,any>} */ (data)[cat][sI] =
-            getFormattedValue(value)
+          values[sI] = getFormattedValue(value)
           categories.add(cat)
         })
       })
@@ -1040,7 +1042,7 @@ class Exports {
         .forEach((cat) => {
           // Join here: pushing the array would leave rows.join() to stringify
           // it, which always uses a comma between category and values.
-          const values = /** @type {Record<string,any>} */ (data)[cat]
+          const values = /** @type {string[]} */ (byCategory.get(String(cat)))
           rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter))
         })
     }
