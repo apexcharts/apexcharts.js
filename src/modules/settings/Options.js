@@ -832,6 +832,10 @@ export default class Options {
           distributed: false,
           borderRadius: 0,
           borderRadiusApplication: 'around', // [around, end]
+          // Which segments of a stack round. 'all' caps both ends of the
+          // stack (baseline and far end); 'last' caps only the far end, so
+          // the stack sits square on the baseline. Stacked charts only.
+          borderRadiusWhenStacked: 'all', // [all, last]
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
           hideZeroBarsWhenGrouped: false,

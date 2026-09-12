@@ -25,12 +25,15 @@ const makeHelpers = ({
   horizontal = false,
   stacked = true,
   borderRadius = 10,
+  borderRadiusWhenStacked = 'all',
   columnSeries = null,
 }) => {
   const w = {
     config: {
       chart: { type, stacked },
-      plotOptions: { bar: { borderRadius, horizontal } },
+      plotOptions: {
+        bar: { borderRadius, horizontal, borderRadiusWhenStacked },
+      },
     },
     seriesData: { seriesNames },
     labelData: { seriesGroups },
@@ -252,20 +255,29 @@ describe('createBorderRadiusArr, which bar rounds which corner', () => {
       ])
     })
 
-    it('downgrades the baseline cap to "top" for a single-data-point chart', () => {
-      // Long-standing quirk, preserved deliberately: with exactly one data
-      // point the baseline-end cap becomes 'top' and a solo series takes 'top'
-      // rather than 'both'. Note the guard tests `chart.type === 'bar'`, which
-      // is ALSO true of column charts (a column is type 'bar' +
-      // plotOptions.bar.horizontal false), so this fires for single-point
-      // columns too, almost certainly not the original intent, but changing it
-      // would move pixels on existing charts. Pinned here so a future edit is a
-      // visible decision rather than an accident.
-      const h = makeHelpers({ seriesNames: ['S0', 'S1'] })
-      expect(h.createBorderRadiusArr([[10], [15]])).toEqual([['top'], ['top']])
+    it('resolves a single-data-point chart like any other (#4845)', () => {
+      // Pre-fix a one-point chart handed its baseline segment 'top' and a
+      // solo segment 'top' instead of 'both'. On a horizontal 100% stack with
+      // one category that rounded the first segment on its INNER edge, so
+      // the stack showed a pill in the middle and a square outer end.
+      const h = makeHelpers({ seriesNames: ['S0', 'S1'], horizontal: true })
+      expect(h.createBorderRadiusArr([[10], [15]])).toEqual([
+        ['bottom'],
+        ['top'],
+      ])
+
+      const three = makeHelpers({
+        seriesNames: ['A', 'B', 'C'],
+        horizontal: true,
+      })
+      expect(three.createBorderRadiusArr([[1], [3], [3]])).toEqual([
+        ['bottom'],
+        ['none'],
+        ['top'],
+      ])
 
       const solo = makeHelpers({ seriesNames: ['only'] })
-      expect(solo.createBorderRadiusArr([[10]])).toEqual([['top']])
+      expect(solo.createBorderRadiusArr([[10]])).toEqual([['both']])
     })
 
     it('leaves an all-zero data point untouched', () => {
@@ -274,6 +286,68 @@ describe('createBorderRadiusArr, which bar rounds which corner', () => {
         ['none', 'none'],
         ['none', 'none'],
       ])
+    })
+  })
+
+  describe("borderRadiusWhenStacked: 'last' rounds only the far end (#4845)", () => {
+    const last = (opts) =>
+      makeHelpers({ borderRadiusWhenStacked: 'last', ...opts })
+
+    it('leaves the baseline segment of a positive stack square', () => {
+      const h = last({ seriesNames: ['S0', 'S1', 'S2'] })
+      const grid = h.createBorderRadiusArr([
+        [10, 10],
+        [15, 15],
+        [12, 12],
+      ])
+      expect(cornersAt(grid, 0)).toEqual(['none', 'none', 'top'])
+      expect(cornersAt(grid, 1)).toEqual(['none', 'none', 'top'])
+    })
+
+    it('gives a lone positive series only its far end', () => {
+      const h = last({ seriesNames: ['only'] })
+      expect(h.createBorderRadiusArr([[10, 20]])).toEqual([['top', 'top']])
+    })
+
+    it('rounds only the farthest negative, and a lone negative at its far end', () => {
+      const h = last({ seriesNames: ['n0', 'n1', 'n2'] })
+      const grid = h.createBorderRadiusArr([[-10, -10], [-15, 0], [-12, 0]])
+      expect(cornersAt(grid, 0)).toEqual(['none', 'none', 'bottom'])
+      expect(cornersAt(grid, 1)).toEqual(['bottom', 'none', 'none'])
+    })
+
+    it('is identical to "all" when signs are mixed, there is no baseline end to square', () => {
+      const all = makeHelpers({ seriesNames: ['neg', 'pos0', 'pos1'] })
+      const h = last({ seriesNames: ['neg', 'pos0', 'pos1'] })
+      const data = [[-10, -10], [15, 15], [12, 12]]
+      expect(h.createBorderRadiusArr(data)).toEqual(all.createBorderRadiusArr(data))
+      expect(cornersAt(h.createBorderRadiusArr(data), 0)).toEqual(['bottom', 'none', 'top'])
+    })
+
+    it('applies per group', () => {
+      const h = last({
+        seriesNames: ['A-low', 'A-high', 'B-low', 'B-high'],
+        seriesGroups: [
+          ['A-low', 'A-high'],
+          ['B-low', 'B-high'],
+        ],
+      })
+      const grid = h.createBorderRadiusArr([[10, 10], [15, 15], [12, 12], [18, 18]])
+      expect(cornersAt(grid, 0)).toEqual(['none', 'top', 'none', 'top'])
+    })
+
+    it('holds for horizontal bars and a single data point', () => {
+      const h = last({ seriesNames: ['A', 'B', 'C'], horizontal: true })
+      expect(h.createBorderRadiusArr([[1], [3], [3]])).toEqual([
+        ['none'],
+        ['none'],
+        ['top'],
+      ])
+    })
+
+    it('does not change an unstacked chart', () => {
+      const h = last({ seriesNames: ['S0', 'S1'], stacked: false })
+      expect(h.createBorderRadiusArr([[10], [15]])).toEqual([['top'], ['top']])
     })
   })
 
