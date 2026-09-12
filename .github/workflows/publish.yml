@@ -31,8 +31,25 @@ jobs:
             VERSION=$(echo "$MSG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -1)
             echo "triggered=true" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
+            # A prerelease takes a tag naming its own RELEASE LINE:
+            # 7.4.0-rc.1 publishes under `rc-7.4`.
+            #
+            # Deliberately not a floating `next`. A tag naming a position has to
+            # be maintained: the moment a stable ships, `next` points at
+            # something older than `latest` and `npm i apexcharts@next` quietly
+            # installs the wrong thing. Moving it back is a registry write, and
+            # npm's OIDC trusted publishing covers `npm publish` only, so a
+            # workflow that fixed it would need a publish-capable token in a
+            # repo that deliberately holds none. A tag naming a line never goes
+            # stale, because it states a fact rather than a position.
+            #
+            # `npm i apexcharts@next` therefore fails with "No matching
+            # version", which is the honest answer and better than an old one.
+            # Release notes name the exact tag for anyone wanting the rc.
             if echo "$VERSION" | grep -qE '[-]'; then
-              echo "tag=next" >> $GITHUB_OUTPUT
+              LINE=$(echo "$VERSION" | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')
+              echo "tag=rc-$LINE" >> $GITHUB_OUTPUT
+              echo "ℹ️  prerelease $VERSION publishes under 'rc-$LINE'"
             else
               echo "tag=latest" >> $GITHUB_OUTPUT
             fi
