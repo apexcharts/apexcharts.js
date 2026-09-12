@@ -84,6 +84,12 @@ class Formatters {
   setLabelFormatters() {
     const w = this.w
     const fmt = w.formatters
+    const inferredNumericX =
+      w.axisFlags.isXNumeric &&
+      w.axisFlags.dataFormatXNumeric &&
+      w.config.xaxis.type !== 'datetime' &&
+      !w.config.xaxis.convertedCatToNumeric &&
+      !w.globals.isBarHorizontal
 
     fmt.xaxisTooltipFormatter = (/** @type {any} */ val) => {
       return this.defaultGeneralFormatter(val)
@@ -107,15 +113,18 @@ class Formatters {
     } else {
       fmt.xLabelFormatter = (/** @type {any} */ val) => {
         if (Utils.isNumber(val)) {
-          const inferredNumericX =
-            w.axisFlags.isXNumeric &&
-            w.axisFlags.dataFormatXNumeric &&
-            w.config.xaxis.type !== 'datetime' &&
-            !w.globals.isBarHorizontal
           if (
             !w.config.xaxis.convertedCatToNumeric &&
             (w.config.xaxis.type === 'numeric' || inferredNumericX)
           ) {
+            const ticks = w.globals.xAxisScale?.result
+            if (
+              inferredNumericX &&
+              Array.isArray(ticks) &&
+              ticks.every(Number.isInteger)
+            ) {
+              return val.toFixed(0)
+            }
             if (Utils.isNumber(w.config.xaxis.decimalsInFloat)) {
               return val.toFixed(w.config.xaxis.decimalsInFloat)
             } else {
@@ -150,6 +159,12 @@ class Formatters {
 
     if (typeof w.config.tooltip.x.formatter === 'function') {
       fmt.ttKeyFormatter = w.config.tooltip.x.formatter
+    } else if (
+      w.config.xaxis.labels.formatter === undefined &&
+      inferredNumericX
+    ) {
+      fmt.ttKeyFormatter = (/** @type {any} */ val) =>
+        Number.isInteger(val) ? val.toFixed(0) : fmt.xLabelFormatter(val)
     } else {
       fmt.ttKeyFormatter = fmt.xLabelFormatter
     }
