@@ -163,8 +163,11 @@ class Formatters {
       w.config.xaxis.labels.formatter === undefined &&
       inferredNumericX
     ) {
+      const xLabelFormatter = /** @type {(val: any) => any} */ (
+        fmt.xLabelFormatter
+      )
       fmt.ttKeyFormatter = (/** @type {any} */ val) =>
-        Number.isInteger(val) ? val.toFixed(0) : fmt.xLabelFormatter(val)
+        Number.isInteger(val) ? val.toFixed(0) : xLabelFormatter(val)
     } else {
       fmt.ttKeyFormatter = fmt.xLabelFormatter
     }
