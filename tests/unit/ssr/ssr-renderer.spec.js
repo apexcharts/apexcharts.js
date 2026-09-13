@@ -328,5 +328,47 @@ describe('SSRRenderer', () => {
       // One datalabels group per series (not per data point)
       expect(dataLabels.length).toBe(1)
     })
+
+    it('horizontal bar chart: centres each data label on its bar', async () => {
+      const fontSize = 12
+      const svg = await SSRRenderer.renderToString(
+        {
+          chart: {
+            type: 'bar',
+            width: 600,
+            height: 180,
+            animations: { enabled: false },
+          },
+          series: [{ name: 'Count', data: [4, 2] }],
+          xaxis: { categories: ['First', 'Second'] },
+          plotOptions: {
+            bar: { horizontal: true, dataLabels: { position: 'center' } },
+          },
+          dataLabels: { enabled: true, style: { fontSize: `${fontSize}px` } },
+        },
+        { width: 600, height: 180 }
+      )
+
+      const bars = [
+        ...svg.matchAll(
+          /<path d="M [\d.]+ ([\d.]+) L[^>]*barHeight="([\d.]+)"/g
+        ),
+      ].map((m) => parseFloat(m[1]) + parseFloat(m[2]) / 2)
+      const labels = [
+        ...svg.matchAll(
+          /<text x="[\d.]+" y="([\d.]+)"[^>]*apexcharts-datalabel"/g
+        ),
+      ].map((m) => parseFloat(m[1]))
+
+      expect(bars.length).toBe(2)
+      expect(labels.length).toBe(2)
+
+      labels.forEach((baseline, i) => {
+        // `y` on a text element is the alphabetic baseline, so it sits below
+        // the visual centre by roughly a third of the font size.
+        expect(baseline).toBeGreaterThan(bars[i])
+        expect(baseline - bars[i]).toBeLessThan(fontSize / 2)
+      })
+    })
   })
 })

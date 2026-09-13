@@ -189,6 +189,71 @@ describe('SSRDOMShim', () => {
     })
   })
 
+  describe('SSRElement Text Bounds', () => {
+    it('should return an empty box for a non-text element', () => {
+      const element = new SSRElement('rect')
+      element.setAttribute('width', '100')
+
+      expect(element.getBBox()).toEqual({ x: 0, y: 0, width: 0, height: 0 })
+    })
+
+    it('should return an empty box for text with no content', () => {
+      const element = new SSRElement('text')
+      element.setAttribute('font-size', '12px')
+
+      expect(element.getBBox()).toEqual({ x: 0, y: 0, width: 0, height: 0 })
+    })
+
+    it('should estimate the box from the font size and content', () => {
+      const element = new SSRElement('text')
+      element.setAttribute('font-size', '12px')
+      element.textContent = 'Second'
+
+      const box = element.getBBox()
+
+      expect(box.width).toBeCloseTo(39.6, 2)
+      expect(box.height).toBeCloseTo(14.004, 2)
+    })
+
+    it('should measure numeric content', () => {
+      const element = new SSRElement('text')
+      element.setAttribute('font-size', '12px')
+      element.textContent = 4
+
+      expect(element.getBBox().width).toBeCloseTo(6.6, 2)
+    })
+
+    it('should measure the longest line and grow with the line count', () => {
+      const element = new SSRElement('text')
+      element.setAttribute('font-size', '10px')
+      const first = new SSRElement('tspan')
+      first.textContent = 'ab'
+      const second = new SSRElement('tspan')
+      second.textContent = 'abcd'
+      element.appendChild(first)
+      element.appendChild(second)
+
+      const box = element.getBBox()
+
+      expect(box.width).toBeCloseTo(22, 2)
+      expect(box.height).toBeCloseTo(11.67 + 11, 2)
+    })
+
+    it('should place the box from the anchor and the baseline', () => {
+      const element = new SSRElement('text')
+      element.setAttribute('font-size', '12px')
+      element.setAttribute('x', '100')
+      element.setAttribute('y', '50')
+      element.setAttribute('text-anchor', 'middle')
+      element.textContent = 'Second'
+
+      const box = element.getBBox()
+
+      expect(box.x).toBeCloseTo(100 - 39.6 / 2, 2)
+      expect(box.y).toBeCloseTo(50 - 11.004, 2)
+    })
+  })
+
   describe('SSRElement Root Node', () => {
     it('should return self as root when no parent', () => {
       const element = new SSRElement('svg')
