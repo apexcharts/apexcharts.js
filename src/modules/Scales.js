@@ -750,7 +750,7 @@ export default class Scales {
         maxX,
         ticks,
         0,
-        w.config.xaxis.max === undefined ? w.config.xaxis.stepSize : undefined,
+        w.config.xaxis.stepSize,
       )
     }
     return gl.xAxisScale
