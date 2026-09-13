@@ -998,9 +998,8 @@ class Exports {
     }
 
     const handleUnequalXValues = () => {
-      const categories = new Set()
       // Map stops a plain object category named `__proto__` from writing
-      /** @type {Map<string, string[]>} */
+      /** @type {Map<string, {cat: any, values: string[]}>} */
       const byCategory = new Map()
 
       /**
@@ -1023,13 +1022,12 @@ class Exports {
             return
           }
           const key = String(cat)
-          let values = byCategory.get(key)
-          if (!values) {
-            values = Array(series.length).fill('')
-            byCategory.set(key, values)
+          let row = byCategory.get(key)
+          if (!row) {
+            row = { cat, values: Array(series.length).fill('') }
+            byCategory.set(key, row)
           }
-          values[sI] = getFormattedValue(value)
-          categories.add(cat)
+          row.values[sI] = getFormattedValue(value)
         })
       })
 
@@ -1037,12 +1035,14 @@ class Exports {
         rows.push(columns.join(columnDelimiter))
       }
 
-      Array.from(categories)
+      Array.from(byCategory.keys())
         .sort()
-        .forEach((cat) => {
+        .forEach((key) => {
+          const { cat, values } = /** @type {{cat: any, values: string[]}} */ (
+            byCategory.get(key)
+          )
           // Join here: pushing the array would leave rows.join() to stringify
           // it, which always uses a comma between category and values.
-          const values = /** @type {string[]} */ (byCategory.get(String(cat)))
           rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter))
         })
     }
