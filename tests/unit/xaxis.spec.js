@@ -1195,3 +1195,95 @@ describe('x-axis axisTicks configuration', () => {
     expect(w.config.xaxis.axisTicks.color).toBe('#333')
   })
 })
+
+describe('inferred numeric x-axis ticks', () => {
+  it('aligns labels for two complete numeric bar series', () => {
+    const data = Array.from({ length: 12 }, (_, index) => ({
+      x: index + 1,
+      y: index + 1,
+    }))
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 900 },
+      series: [
+        { name: 'A', data },
+        { name: 'B', data: data.map((point) => ({ ...point })) },
+      ],
+    })
+
+    expect(chart.w.globals.xAxisScale.result).toEqual(
+      Array.from({ length: 12 }, (_, index) => index + 1),
+    )
+    expect(
+      Array.from(chart.el.querySelectorAll('.apexcharts-xaxis-label')).map(
+        (label) => Number(label.querySelector('tspan').textContent),
+      ),
+    ).toEqual(Array.from({ length: 12 }, (_, index) => index + 1))
+  })
+
+  it('does not round an irregular scale coordinate to a false integer', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 600 },
+      series: [
+        {
+          data: [1, 2, 10].map((x) => ({ x, y: x })),
+        },
+      ],
+    })
+
+    expect(chart.w.globals.xAxisScale.result).toEqual([1, 5.5, 10])
+    expect(
+      Array.from(chart.el.querySelectorAll('.apexcharts-xaxis-label')).map(
+        (label) => Number(label.querySelector('tspan').textContent),
+      ),
+    ).toEqual([1, 5.5, 10])
+  })
+
+  it('preserves fractional labels when the small-range heuristic is skipped', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 600 },
+      series: [
+        {
+          data: Array.from({ length: 30 }, (_, index) => {
+            const x = 1 + (index * 9) / 29
+            return { x, y: x }
+          }),
+        },
+      ],
+    })
+
+    expect(chart.w.globals.xAxisScale.result).toEqual([
+      1, 3.25, 5.5, 7.75, 10,
+    ])
+    expect(
+      Array.from(chart.el.querySelectorAll('.apexcharts-xaxis-label')).map(
+        (label) => label.querySelector('tspan').textContent,
+      ),
+    ).toEqual(['1.0', '3.3', '5.5', '7.8', '10.0'])
+  })
+
+  it('preserves explicit tickAmount and label formatter precedence', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 900 },
+      series: [
+        {
+          data: Array.from({ length: 12 }, (_, index) => ({
+            x: index + 1,
+            y: index + 1,
+          })),
+        },
+      ],
+      xaxis: {
+        tickAmount: 2,
+        labels: { formatter: (value) => `x=${value}` },
+      },
+    })
+
+    expect(chart.w.globals.xTickAmount).toBe(2)
+    expect(chart.w.globals.xAxisScale.result).toEqual([1, 6.5, 12])
+    expect(
+      Array.from(chart.el.querySelectorAll('.apexcharts-xaxis-label')).map(
+        (label) => label.querySelector('tspan').textContent,
+      ),
+    ).toEqual(['x=1', 'x=6.5', 'x=12'])
+  })
+})

@@ -740,7 +740,34 @@ class Range {
         ticks = Math.round(gl.svgWidth / 150)
 
         // no labels provided and total number of dataPoints is less than 30
-        if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 30) {
+        const inferredNumericX =
+          this.w.axisFlags.isXNumeric &&
+          this.w.axisFlags.dataFormatXNumeric &&
+          cnf.xaxis.type !== 'datetime' &&
+          !cnf.xaxis.convertedCatToNumeric &&
+          !gl.isBarHorizontal
+        const fontSize = parseFloat(cnf.xaxis.labels.style.fontSize) || 12
+        const widestLabelLength = this.w.labelData.labels.reduce(
+          (widest, seriesLabels) =>
+            Array.isArray(seriesLabels)
+              ? seriesLabels.reduce(
+                  (seriesWidest, label) =>
+                    Math.max(seriesWidest, String(label).length),
+                  widest,
+                )
+              : widest,
+          0,
+        )
+        // Range runs before axis text is laid out, so use the conventional
+        // 0.6em average glyph width to reject one-tick-per-point when the
+        // labels cannot plausibly fit in the chart's available width.
+        const allPointLabelsFit =
+          gl.dataPoints * widestLabelLength * fontSize * 0.6 <= gl.svgWidth
+        if (
+          (cnf.xaxis.type === 'numeric' ||
+            (inferredNumericX && allPointLabelsFit)) &&
+          gl.dataPoints < 30
+        ) {
           ticks = gl.dataPoints - 1
         }
 
