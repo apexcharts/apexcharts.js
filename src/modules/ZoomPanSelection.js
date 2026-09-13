@@ -138,6 +138,16 @@ export default class ZoomPanSelection extends Toolbar {
       })
     }
 
+    // Escape: the way back for the viewer who never goes looking for a button.
+    // Bound on the node the gestures are on, which the chart focuses on any
+    // pointer down inside it, so the drag that zoomed also left Escape live.
+    // Bound unconditionally and resolved per event, because the gate reads
+    // config a page can change under a live chart.
+    this.hoverArea.addEventListener('keydown', me.escapeResetEvent.bind(me), {
+      capture: false,
+      passive: true,
+    })
+
     // Momentum: passive:false touch listeners (following the wheel-listener
     // template above) so two-finger pinch and horizontal pan can preventDefault
     // the browser's native page zoom/scroll. Every _updateOptions destroys and
@@ -348,12 +358,16 @@ export default class ZoomPanSelection extends Toolbar {
   /**
    * A wheel or pinch zoom is an incidental gesture: the viewer can land in a
    * zoomed window without meaning to (a page scroll over the chart, a two-finger
-   * swipe), so it is only offered when there is a way back out of it. The only
-   * built-in way back is the toolbar's reset button, hence 'auto' (the default
-   * for both allowMouseWheelZoom and pinch) resolves against that button being
-   * present. A page that builds its own reset control sets the option to true
-   * and gets the gesture with no toolbar. Drag-to-zoom is deliberate, so it is
-   * not gated this way.
+   * swipe), so it is only offered when there is a way back out of it. 'auto'
+   * (the default for both allowMouseWheelZoom and pinch) resolves against a
+   * reset button that is already on screen. A page that builds its own reset
+   * control sets the option to true and gets the gesture with no toolbar.
+   * Drag-to-zoom is deliberate, so it is not gated this way.
+   *
+   * `chart.zoom.resetControl` supplies a reset of its own once a chart IS
+   * zoomed, and deliberately does NOT open this gate. It arrives after the
+   * fact, and what an incidental wheel zoom takes from the viewer first is the
+   * page scroll it swallowed, which no button hands back.
    *
    * @param {boolean|'auto'} setting
    */
@@ -367,6 +381,61 @@ export default class ZoomPanSelection extends Toolbar {
   _wheelZoomEnabled() {
     const { zoom } = this.w.config.chart
     return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom)
+  }
+
+  /**
+   * Put keyboard focus on the chart, where the chart is focusable at all.
+   *
+   * A drag is swallowed by the zoom handlers before the browser can move focus,
+   * so a viewer who has just zoomed by hand leaves nothing focused, and every
+   * key the chart offers is out of reach: Escape to reset (see
+   * {@link ZoomPanSelection#escapeResetEvent}) and the +, - and 0 the keyboard
+   * module already binds. Focusing what they just acted on puts those in reach.
+   *
+   * Pointer-driven focus, which keyboard navigation expects and does not read
+   * as a request to start navigating, and which the stylesheet draws no ring
+   * around (`svg:focus:not(:focus-visible)`).
+   *
+   * Only where the accessibility module has made the SVG focusable, which is
+   * the default: a page that turned keyboard support off is not handed a tab
+   * stop it never asked for, and still has the reset control as its way back.
+   */
+  _focusForKeyboard() {
+    const node = this.w.dom.Paper && this.w.dom.Paper.node
+    if (!node || typeof node.focus !== 'function') return
+    if (node.getAttribute('tabindex') === null) return
+    // Said before the focus lands, or the accessibility module reads it as a
+    // request to start navigating and flashes a tooltip after every zoom.
+    this.ctx.keyboardNavigation?.notePointerFocus?.()
+    try {
+      node.focus({ preventScroll: true })
+    } catch {
+      node.focus()
+    }
+  }
+
+  /**
+   * Escape, on a zoomed chart, puts the range back.
+   *
+   * The quiet half of the same answer the on-demand reset control gives, and
+   * gated on it, so a page that says it supplies its own way back gets neither.
+   *
+   * It defers to keyboard navigation, whose Escape dismisses the tooltip and
+   * which offers `0` for this, so the key means one thing at a time. It does
+   * not stop the event either, so a page listening for Escape still hears it.
+   *
+   * Reachable because a completed drag-zoom puts focus on the chart; see
+   * {@link ZoomPanSelection#_focusForKeyboard}.
+   *
+   * @param {any} e
+   */
+  escapeResetEvent(e) {
+    if (e.key !== 'Escape' && e.key !== 'Esc') return
+    if (!this.w.interact.zoomed) return
+    const nav = this.ctx.keyboardNavigation
+    if (nav && nav.active) return
+    if (!this.resetControlAllowed()) return
+    this.handleZoomReset()
   }
 
   /** Lazily-created, re-render-surviving wheel-gesture state. */
@@ -1071,11 +1140,20 @@ export default class ZoomPanSelection extends Toolbar {
           // fix issue #650
           options.yaxis = yaxis
         }
-        me.ctx.updateHelpers._updateOptions(
+        const applied = me.ctx.updateHelpers._updateOptions(
           options,
           false,
           me.w.config.chart.animations.dynamicAnimation.enabled,
         )
+
+        // After the render, not before it: the update replaces the SVG, and
+        // focus set on the node that is about to be thrown away goes back to
+        // the document body with it. Measured, not theorised.
+        if (applied && typeof applied.then === 'function') {
+          applied.then(() => me._focusForKeyboard())
+        } else {
+          me._focusForKeyboard()
+        }
 
         if (typeof w.config.chart.events.zoomed === 'function') {
           toolbar.zoomCallback(xaxis, yaxis)

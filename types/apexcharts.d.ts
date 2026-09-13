@@ -1878,6 +1878,17 @@ type ApexChart = {
      * @default 'auto'
      */
     pinch?: boolean | 'auto'
+    /**
+     * The way back out of a zoom on a chart whose toolbar is hidden. While the
+     * chart is zoomed and nothing else on screen can reset it, one reset
+     * control is drawn where the toolbar would have been, and it goes when the
+     * range does; `Escape` resets the zoom as well. `'auto'` supplies both only
+     * where there is no reset button already, `true` also forces the control on
+     * where `toolbar.tools.reset` is off, and `false` turns both off for a page
+     * that supplies its own reset. Requires `enabled: true`.
+     * @default 'auto'
+     */
+    resetControl?: boolean | 'auto'
     zoomedArea?: {
       fill?: {
         color?: string

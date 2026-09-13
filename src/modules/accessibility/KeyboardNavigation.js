@@ -148,6 +148,20 @@ export default class KeyboardNavigation {
   }
 
   /**
+   * Note that a pointer gesture is about to move focus into the chart.
+   *
+   * The 100 ms window above catches the browser's own click-to-focus, which
+   * lands immediately. A drag-zoom moves focus deliberately, and only once its
+   * re-render is done (ZoomPanSelection#_focusForKeyboard), which is far
+   * outside that window. Without this it reads as a viewer asking to navigate
+   * by keyboard, which activates nav and flashes a tooltip at the first visible
+   * point after every zoom.
+   */
+  notePointerFocus() {
+    this._lastPointerDownAt = Date.now()
+  }
+
+  /**
    * Called from Events.js keydown handler. Navigation keys are already handled
    * by the direct SVG listener (which can call preventDefault). This entry
    * point is intentionally a no-op — Events.js still fires the public keyDown

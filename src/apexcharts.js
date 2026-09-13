@@ -741,6 +741,15 @@ export default class ApexCharts {
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar?.createToolbar()
+        } else if (
+          !w.globals.allSeriesCollapsed &&
+          me.toolbar?.resetControlDue()
+        ) {
+          // The way out of a zoom on a chart whose page asked for no toolbar.
+          // Drag-to-zoom stays on when the toolbar is hidden, since it is a
+          // deliberate gesture rather than an incidental one, so without this
+          // the viewer lands in a window with nothing on screen that undoes it.
+          me.toolbar.createToolbar({ resetOnly: true })
         }
       }
 

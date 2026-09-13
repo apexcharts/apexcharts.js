@@ -45,10 +45,60 @@ export default class Toolbar {
     /** @type {HTMLElement | null} */ this.elMenu = null
     /** @type {HTMLElement[]} */ this.elMenuItems = []
     /** @type {any} */ this.t = null
+    /**
+     * What the last render drew purely because the chart was zoomed: the whole
+     * toolbar ('wrap'), just the reset control ('control'), or neither. Read by
+     * {@link Toolbar#clearZoomAffordance}, which has to take it down by hand.
+     *
+     * @type {'wrap' | 'control' | null}
+     */
+    this._drawnForZoom = null
   }
 
-  createToolbar() {
+  /**
+   * Whether this chart's built-in ways back out of a zoom are switched on.
+   *
+   * The gate `chart.zoom.resetControl` opens, and the one the Escape shortcut
+   * reads too, so a page that says it supplies its own reset gets neither.
+   * 'auto' means "supply one when nothing else on screen can": a toolbar
+   * showing its reset tool is a way back, and anything else is not.
+   *
+   * @returns {boolean}
+   */
+  resetControlAllowed() {
+    const c = this.w.config.chart
+    if (!c.zoom || !c.zoom.enabled) return false
+    const setting =
+      c.zoom.resetControl === undefined ? 'auto' : c.zoom.resetControl
+    if (setting !== 'auto') return !!setting
+    const onScreen =
+      c.toolbar && c.toolbar.show && c.toolbar.tools && c.toolbar.tools.reset
+    return !onScreen
+  }
+
+  /**
+   * Whether a reset control has to be drawn for the state the chart is in now.
+   *
+   * Only while the chart is actually zoomed, which is the whole idea: the
+   * control appears at the moment the viewer changed the view, where they are
+   * already looking, and goes again when the range does. A page that never
+   * zooms never sees it, so `toolbar: { show: false }` still means an empty
+   * chart for everyone who does not zoom.
+   *
+   * @returns {boolean}
+   */
+  resetControlDue() {
+    return !!this.w.interact.zoomed && this.resetControlAllowed()
+  }
+
+  /**
+   * @param {{ resetOnly?: boolean }} [opts] `resetOnly` draws the on-demand
+   *   reset control and nothing else, for a chart whose page asked for no
+   *   toolbar at all. See {@link Toolbar#resetControlDue}.
+   */
+  createToolbar(opts = {}) {
     const w = this.w
+    const resetOnly = !!opts.resetOnly
 
     const createDiv = () => {
       return BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
@@ -83,6 +133,32 @@ export default class Toolbar {
     this.elCustomIcons = []
 
     this.t = w.config.chart.toolbar.tools
+
+    this._drawnForZoom = null
+
+    if (resetOnly) {
+      // Every control off but the one that undoes the zoom. A copy, because
+      // this is the state of one render and not a change to the page's config.
+      this.t = {
+        zoom: false,
+        zoomin: false,
+        zoomout: false,
+        selection: false,
+        pan: false,
+        measure: false,
+        download: false,
+        customIcons: [],
+        reset: true,
+      }
+      this._drawnForZoom = 'wrap'
+    } else if (!this.t.reset && this.resetControlDue()) {
+      // A toolbar that is shown with its reset tool switched off, on a chart
+      // that is now zoomed: the same dead end, so the same answer. It comes and
+      // goes with the zoom, which does shift the icons beside it; that is the
+      // cost of a config which otherwise offers no way back at all.
+      this.t = { ...this.t, reset: true }
+      this._drawnForZoom = 'control'
+    }
 
     if (Array.isArray(this.t.customIcons)) {
       for (let i = 0; i < this.t.customIcons.length; i++) {
@@ -221,7 +297,19 @@ export default class Toolbar {
       this.elMenuIcon.setAttribute('aria-expanded', 'false')
     }
 
-    this._createHamburgerMenu(elToolbarWrap)
+    // Nothing opens it in a reset-only toolbar, and an export menu is not what
+    // a page that asked for no toolbar is being handed a control for.
+    if (!resetOnly) this._createHamburgerMenu(elToolbarWrap)
+
+    if (resetOnly) {
+      // Just the one binding, rather than the whole set: there is no menu to
+      // open, no mode to toggle, and nothing here reaches for the document.
+      this.elZoomReset?.addEventListener(
+        'click',
+        this.handleZoomReset.bind(this),
+      )
+      return
+    }
 
     if (w.interact.zoomEnabled) {
       this.elZoom.classList.add(this.selectedClass)
@@ -736,6 +824,27 @@ export default class Toolbar {
     }
   }
 
+  /**
+   * Take down whatever the zoom alone put on screen.
+   *
+   * By hand, and not left to the next render, because of the order in
+   * {@link Toolbar#handleZoomReset}: the re-render happens while
+   * `interact.zoomed` is still true, so the control is drawn once more and then
+   * the flag clears with no further pass to notice. Reversing that order would
+   * change what every listener downstream of the update sees, which is a much
+   * larger promise than this control is worth.
+   */
+  clearZoomAffordance() {
+    const drawn = this._drawnForZoom
+    this._drawnForZoom = null
+    if (!drawn || !this.elZoomReset) return
+    const parent = this.elZoomReset.parentNode
+    // 'wrap' means the whole toolbar existed only to carry this one control, so
+    // the page goes back to the bare canvas it asked for.
+    const gone = drawn === 'wrap' ? parent : this.elZoomReset
+    if (gone && gone.parentNode) gone.parentNode.removeChild(gone)
+  }
+
   handleZoomReset() {
     const charts = this.ctx.getSyncedCharts()
 
@@ -784,6 +893,7 @@ export default class Toolbar {
       )
 
       w.interact.zoomed = false
+      ch.ctx.toolbar?.clearZoomAffordance()
     })
   }
 

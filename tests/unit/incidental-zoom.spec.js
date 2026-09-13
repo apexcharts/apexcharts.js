@@ -1,11 +1,15 @@
 import { createChartWithOptions } from './utils/utils.js'
 
 // Wheel and pinch zoom are "incidental" gestures: a page scroll or a two-finger
-// swipe over the chart can zoom it without the viewer ever asking to. The only
-// built-in way back is the toolbar's reset button, so both default to 'auto',
-// which resolves against that button being present. A chart with the toolbar
-// hidden used to swallow the page's wheel and leave the viewer stuck in a window
-// they could not undo.
+// swipe over the chart can zoom it without the viewer ever asking to. Both
+// default to 'auto', which resolves against a reset button already being on
+// screen. A chart with the toolbar hidden used to swallow the page's wheel and
+// leave the viewer stuck in a window they could not undo.
+//
+// `chart.zoom.resetControl` (zoom-reset-control.spec.js) now draws a reset of
+// its own once a chart is zoomed, and these gates are deliberately left as they
+// are: that control arrives after the fact, while what an incidental wheel zoom
+// takes first is the page scroll it swallowed, which no button hands back.
 
 function lineChart(chartOpts = {}) {
   return createChartWithOptions({

@@ -769,6 +769,17 @@ export default class Options {
           // around the pinch centroid (matching the x-only wheel/toolbar zoom),
           // frame-by-frame rather than the 400ms wheel throttle.
           pinch: 'auto',
+          // Drag-to-zoom is deliberate, so it is not gated the way those two
+          // are: it stays on with the toolbar hidden. The reset button that
+          // undoes it does not, which leaves the viewer in a window with no
+          // exit. So while the chart IS zoomed and nothing else on screen can
+          // reset it, one reset control is drawn where the toolbar would have
+          // been, and it goes when the range does. A chart nobody zooms is
+          // untouched. Set false for a page that supplies its own reset (which
+          // also turns off the Escape shortcut), or true to force the control
+          // on whenever the chart is zoomed, even where `toolbar.tools.reset`
+          // is off.
+          resetControl: 'auto',
           zoomedArea: {
             fill: {
               color: '#90CAF9',
