@@ -146,6 +146,20 @@ describe('initialSeries across a re-render', () => {
     expect(chart.w.globals.initialSeries[1].data).toEqual([10, 11, 12])
   })
 
+  it('brings a hidden series back on resetSeries after updateSeries', async () => {
+    const chart = chartWith(SERIES)
+    chart.hideSeries('B')
+    await chart.updateSeries([
+      { name: 'A', data: [7, 8, 9] },
+      { name: 'B', data: [10, 11, 12] },
+    ])
+
+    await chart.resetSeries()
+
+    expect(chart.w.config.series[1].data).toEqual([10, 11, 12])
+    expect(chart.w.globals.collapsedSeriesIndices).toEqual([])
+  })
+
   it('keeps the baseline across an unrelated updateOptions', async () => {
     const chart = chartWith(SERIES)
     chart.hideSeries('B')

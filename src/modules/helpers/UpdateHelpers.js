@@ -278,6 +278,9 @@ export default class UpdateHelpers {
         w.globals.treemapRawSeries = null
       }
 
+      const definedSeries = newSeries
+      let reconciledCollapses = false
+
       // Keep legend-hidden (collapsed) series hidden across a data update,
       // reconciled BY CATEGORY NAME by the same code the options path uses: a
       // name still present stays hidden at its possibly-new index, one the
@@ -300,6 +303,7 @@ export default class UpdateHelpers {
           s && typeof s === 'object' ? { ...s } : s,
         )
         this.ctx.series.reconcileCollapsedByName(newSeries)
+        reconciledCollapses = true
       }
 
       this.ctx.data.resetParsingFlags()
@@ -319,14 +323,22 @@ export default class UpdateHelpers {
         // defined. A copy, never the live array: this site used to assign
         // w.config.series itself, restoring the very alias #5118 came from, so
         // one updateSeries() would undo the capture Globals.init now makes.
-        // initialSeries stays as parseData left it: on the raw-stash and
-        // dataReducer types config.series holds rows this library derived, and
-        // reassigning it here made the baseline the bin counts, the accumulated
-        // pairs or the downsampled window rather than the input (#5283).
+        // Both snapshots come off the array the caller handed in once the
+        // reconcile above has run, since that emptied the collapsed rows and
+        // parseData baselines from what it parses: the baseline would forget
+        // the data of exactly the series the viewer switched off.
+        // _updateOptions gets this for free, it reconciles after capturing.
         if (w.globals.initialConfig) {
           w.globals.initialConfig.series = Utils.copySeriesShallow(
-            w.config.series,
+            reconciledCollapses ? definedSeries : w.config.series,
           )
+        }
+        // With no reconcile, initialSeries stays as parseData left it: on the
+        // raw-stash and dataReducer types config.series holds rows this library
+        // derived, and reassigning it here made the baseline the bin counts,
+        // the accumulated pairs or the downsampled window (#5283).
+        if (reconciledCollapses) {
+          w.globals.initialSeries = definedSeries
         }
       }
 
