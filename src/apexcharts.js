@@ -460,6 +460,21 @@ export default class ApexCharts {
       }
     })
 
+    // Empty data for hidden/collapsed series so they are not rendered
+    if (
+      gl.collapsedSeriesIndices.length > 0 ||
+      gl.ancillaryCollapsedSeriesIndices.length > 0
+    ) {
+      series.forEach((s, si) => {
+        if (
+          gl.collapsedSeriesIndices.indexOf(si) > -1 ||
+          gl.ancillaryCollapsedSeriesIndices.indexOf(si) > -1
+        ) {
+          s.data = []
+        }
+      })
+    }
+
     const combo = CoreUtils.checkComboSeries(series, w.config.chart.type)
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
