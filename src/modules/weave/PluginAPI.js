@@ -25,12 +25,17 @@
  * tooltip and its `dataPoint*` events; before this a plugin either re-derived
  * it from raw pixels or did without.
  *
+ * v5 added `api.info.stroke`, the caller's own `stroke.dashArray`. That option
+ * is indexed by series position, so a plugin that wants its own derived series
+ * dashed must write the whole array; reporting the current value is what lets
+ * it put back what it found instead of flattening the caller's dashed lines.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
  * outright on a v2 host, so `apiVersion: 2` plus `typeof api.reserve ===
  * 'function'` keeps one build working on both.
  */
-export const WEAVE_API_VERSION = 4
+export const WEAVE_API_VERSION = 5
 
 /**
  * Public chart methods safe to expose to plugins (each bound to ctx). Excludes
@@ -306,6 +311,21 @@ export function buildPluginAPI(host, record) {
           )
             ? w.config.dataLabels.enabledOnSeries.slice()
             : null,
+        }),
+        // The caller's own dashing, reported for the same reason and against
+        // the same trap (v5). `stroke.dashArray` is indexed by series position
+        // with no per-series escape hatch, so a plugin that wants ITS OWN
+        // computed series dashed has to write the whole array, and writing one
+        // without knowing what was there discards the caller's dashed lines
+        // with nothing to restore them from.
+        //
+        // A scalar applies to every series and an array is per series. There is
+        // no "unset" to report: the option defaults to 0, and 0 already means
+        // no dashing, so restoring it restores exactly what was there.
+        stroke: Object.freeze({
+          dashArray: Array.isArray(w.config.stroke && w.config.stroke.dashArray)
+            ? w.config.stroke.dashArray.slice()
+            : (w.config.stroke && w.config.stroke.dashArray) || 0,
         }),
       })
     },
