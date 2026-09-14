@@ -2667,6 +2667,12 @@ type ApexPlotOptions = {
     distributed?: boolean
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
+    /**
+     * Which segments of a stack round. 'all' (default) caps both ends of the
+     * stack, the baseline and the far end; 'last' caps only the far end so
+     * the stack sits square on the baseline. Stacked bar/column only.
+     */
+    borderRadiusWhenStacked?: 'all' | 'last';
     hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean

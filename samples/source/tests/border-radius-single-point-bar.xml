@@ -1,0 +1,45 @@
+<title>Border Radius Single Point Bar</title>
+
+<chart>
+<options>
+chart: {
+          type: 'bar',
+          height: 200,
+          stacked: true,
+          stackType: '100%',
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            borderRadius: 10,
+            barHeight: '100%',
+          },
+        },
+        colors: ['#008FFB', '#00E396', '#FEB019'],
+        dataLabels: {
+          enabled: false,
+        },
+        stroke: {
+          width: 1,
+          colors: ['#fff'],
+        },
+        title: {
+          text: 'single-point horizontal stack: outer ends round, inner joins square (#4845)',
+          style: { fontSize: '13px', fontWeight: 500 },
+        },
+        xaxis: {
+          categories: ['Total'],
+        },
+        legend: {
+          position: 'top',
+        }
+</options>
+
+<series>
+[
+          { name: 'A', data: [1] },
+          { name: 'B', data: [3] },
+          { name: 'C', data: [3] },
+        ]
+</series>
+</chart>
