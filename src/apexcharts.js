@@ -1060,13 +1060,24 @@ export default class ApexCharts {
 
     const newSeries = me.w.config.series.slice()
 
+    // A series hidden from the legend is emptied in config.series, and its data
+    // lives on the collapse record that showSeries() restores from. Append to
+    // that record, or the points are dropped when the series is shown again.
+    const gl = me.w.globals
+    const collapsedRecords = gl.axisCharts
+      ? gl.collapsedSeries.concat(gl.ancillaryCollapsedSeries)
+      : []
+
     for (let i = 0; i < newSeries.length; i++) {
       if (newData[i] !== null && typeof newData[i] !== 'undefined') {
         // series entries are always ApexAxisChartSeries objects here
         const srcSerie = /** @type {any} */ (newData[i])
         const dstSerie = /** @type {any} */ (newSeries[i])
+        const record = collapsedRecords.find((c) => c.index === i)
+        const dstData =
+          record && Array.isArray(record.data) ? record.data : dstSerie.data
         for (let j = 0; j < srcSerie.data.length; j++) {
-          dstSerie.data.push(srcSerie.data[j])
+          dstData.push(srcSerie.data[j])
         }
       }
     }
@@ -1075,6 +1086,7 @@ export default class ApexCharts {
     // window (xaxis.range + runway) or beyond maxPoints. Without it a
     // long-running stream grows the series array without limit.
     trimStreamingSeries(newSeries, me.w)
+    trimStreamingSeries(collapsedRecords, me.w)
 
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
