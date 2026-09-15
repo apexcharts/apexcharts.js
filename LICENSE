@@ -2,23 +2,26 @@
 
 ApexCharts is offered under a **dual-license model** to support individuals, startups, and commercial products of all sizes.
 
+One license key works across every Apex product, so a customer of one does not buy a second for another.
+
 ---
 
 ### 🔓 Community License (Free)
 
-For individuals, non-profits, educators, and small businesses with **less than $2 million USD in annual revenue**.
+For individuals, non-profits, educators, and small businesses with **less than \$2 million USD in annual revenue**.
 
-✅ What’s allowed:
+✅ What's allowed:
 
 - Personal, educational, or non-profit use
-- Commercial use by small orgs (< $2M annual revenue)
-- Modifications and redistribution (with attribution)
+- Commercial use by small orgs (under \$2M annual revenue)
+- Modifications, and redistribution of the library itself (with attribution)
 
 🚫 Not allowed:
 
-- Use by companies or entities over $2M/year revenue
+- Use by companies or entities over \$2M/year revenue
 - Use in competing charting products
 - Sublicensing under different terms
+- Embedding in a product or platform used by other people, which needs the OEM License below whatever your revenue
 
 ➡ By using ApexCharts under this license, you confirm that **you qualify as a Small Organization**.
 
@@ -26,10 +29,12 @@ For individuals, non-profits, educators, and small businesses with **less than $
 
 ### 💼 Commercial License (Paid)
 
-The Commercial License applies to all paid SKUs (Pro, Premium, and OEM/Embedded).
+The Commercial License applies to all paid SKUs (Pro, Premium and OEM).
 
 The **Community License** is available at no cost **only** to organizations with **annual revenue under \$2M USD**.
 If your organization earns \$2M USD or more annually, you must purchase one of our paid licenses.
+
+Pro and Premium are priced per developer, and priced on the features you use rather than on your revenue.
 
 ✅ What's included:
 
@@ -55,7 +60,7 @@ Non-Profits are treated like commercial entities:
 or
 
 - Annual operating budget **greater than \$2 million USD**
-- _Commerical license with possible discounts for Community, Pro, Premium and OEM products_
+- _Commercial license with possible discounts for Community, Pro, Premium and OEM products_
 
 ---
 
@@ -70,10 +75,22 @@ Required if you are **embedding ApexCharts into a product or platform used by ot
 
 ✅ What's included:
 
-- Redistribution rights for 1 application or product
+- Redistribution rights for **one application or product**
+- **Unlimited developer seats** on that application, with no separate per-developer license to buy
+- **Every licensed feature**, at the highest tier
 - 12-month subscription with updates & support
 
+Your end users need no license of their own. A second application needs a second OEM license. White-label, resale, and affiliate arrangements are quoted separately.
+
 ✅ OEM **not required** if your app simply renders static charts and users **cannot** configure or interact with them.
+
+---
+
+### ⏳ When a subscription ends
+
+Your license key expires, and **licensed features render with a trial watermark**. You no longer receive updates, new features, or technical support. Work built only from free features is unaffected, and your existing deployment keeps running.
+
+For OEM licenses, continued redistribution requires an active subscription.
 
 ---
 
@@ -81,17 +98,19 @@ Required if you are **embedding ApexCharts into a product or platform used by ot
 
 By installing ApexCharts (e.g., via `npm install apexcharts`), you are agreeing to the applicable license based on your usage:
 
-- Community License (if under $2M revenue)
-- Commercial License (if over $2M revenue)
+- Community License (if under \$2M revenue)
+- Commercial License (if over \$2M revenue)
 - OEM License (if redistributing to third-party users)
 
 ---
 
 ### 🛠 Need a License or Have Questions?
 
-📧 Contact us at [sales@apexcharts.com](mailto:sales@apexcharts.com)  
+📧 Contact us at [sales@apexcharts.com](mailto:sales@apexcharts.com)
 📚 Read full license agreements here: [https://apexcharts.com/license](https://apexcharts.com/license)
 
 ---
+
+Copyright © 2026 ApexCharts. All rights reserved.
 
 Thank you for supporting ApexCharts! Your licensing helps keep it free and open for individuals and small teams.
