@@ -42,7 +42,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.4.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -82,6 +82,11 @@ var __async = (__this, __arguments, generator) => {
       return {};
     }
   }
+  const CHAR_WIDTH_EM = 0.55;
+  const ASCENT_EM = 0.917;
+  const DESCENT_EM = 0.25;
+  const LINE_HEIGHT_EM = 1.1;
+  const DEFAULT_FONT_SIZE = 11;
   class SSRElement {
     /**
      * @param {string} nodeName
@@ -201,6 +206,43 @@ var __async = (__this, __arguments, generator) => {
         x: 0,
         y: 0
       };
+    }
+    getBBox() {
+      if (this.nodeName !== "text" && this.nodeName !== "tspan") {
+        return { x: 0, y: 0, width: 0, height: 0 };
+      }
+      const lines = this._textLines();
+      const longest = lines.reduce((acc, line) => Math.max(acc, line.length), 0);
+      if (!longest) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+      }
+      const fontSize = parseFloat(this.attributes.get("font-size")) || DEFAULT_FONT_SIZE;
+      const width = longest * fontSize * CHAR_WIDTH_EM;
+      const height = fontSize * (ASCENT_EM + DESCENT_EM) + (lines.length - 1) * fontSize * LINE_HEIGHT_EM;
+      const anchor = this.attributes.get("text-anchor");
+      const x = parseFloat(this.attributes.get("x")) || 0;
+      const y = parseFloat(this.attributes.get("y")) || 0;
+      return {
+        x: anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x,
+        y: y - fontSize * ASCENT_EM,
+        width,
+        height
+      };
+    }
+    /**
+     * Text of this element, one entry per rendered line
+     * @returns {string[]}
+     */
+    _textLines() {
+      var _a;
+      const tspans = this.children.filter((child) => child.nodeName === "tspan");
+      if (tspans.length) {
+        return tspans.map((tspan) => {
+          var _a2;
+          return String((_a2 = tspan.textContent) != null ? _a2 : "");
+        });
+      }
+      return [String((_a = this.textContent) != null ? _a : "")];
     }
     getRootNode() {
       let root = this;
@@ -691,15 +733,12 @@ var __async = (__this, __arguments, generator) => {
       return output;
     }
     // A per-series shallow copy: the series OBJECTS are copied, their data arrays
-    // are shared. Almost every internal "mutation" of a series' data is a
-    // property REPLACEMENT (`series[i].data = []` on legend collapse,
-    // `series[i] = 0` for non-axis charts), and those cannot reach a copy made
-    // this way because the series object was copied at capture time. The
-    // exception is appendData(), whose push loop grows the shared data array in
-    // place, so a copy taken before it does see the appended points; see the
-    // note above defineLazyInitialSeries(). This is the same cheap shape
-    // `globals.initialSeries` captures, so snapshotting a config stays O(n)
-    // instead of deep-cloning every point.
+    // are shared. Every internal "mutation" of a series' data is a property
+    // REPLACEMENT (`series[i].data = []` on legend collapse, `series[i] = 0` for
+    // non-axis charts, appendData's concat), and those cannot reach a copy made
+    // this way because the series object was copied at capture time. This is the
+    // same cheap shape `globals.initialSeries` captures, so snapshotting a config
+    // stays O(n) instead of deep-cloning every point.
     /**
      * @param {any} series
      */
@@ -1355,11 +1394,11 @@ var __async = (__this, __arguments, generator) => {
       format = format.replace(/(^|[^\\])yyyy+/g, "$1" + y);
       format = format.replace(/(^|[^\\])yy/g, "$1" + y.toString().substr(2, 2));
       format = format.replace(/(^|[^\\])y/g, "$1" + y);
-      const M2 = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+      const M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
       format = format.replace(/(^|[^\\])MMMM+/g, "$1" + MMMM[0]);
       format = format.replace(/(^|[^\\])MMM/g, "$1" + MMM[0]);
-      format = format.replace(/(^|[^\\])MM/g, "$1" + ii(M2));
-      format = format.replace(/(^|[^\\])M/g, "$1" + M2);
+      format = format.replace(/(^|[^\\])MM/g, "$1" + ii(M));
+      format = format.replace(/(^|[^\\])M/g, "$1" + M);
       const d = utc ? date.getUTCDate() : date.getDate();
       format = format.replace(/(^|[^\\])dddd+/g, "$1" + dddd[0]);
       format = format.replace(/(^|[^\\])ddd/g, "$1" + ddd[0]);
@@ -1401,8 +1440,8 @@ var __async = (__this, __arguments, generator) => {
       const day = (utc ? date.getUTCDay() : date.getDay()) + 1;
       format = format.replace(new RegExp(dddd[0], "g"), dddd[day]);
       format = format.replace(new RegExp(ddd[0], "g"), ddd[day]);
-      format = format.replace(new RegExp(MMMM[0], "g"), MMMM[M2]);
-      format = format.replace(new RegExp(MMM[0], "g"), MMM[M2]);
+      format = format.replace(new RegExp(MMMM[0], "g"), MMMM[M]);
+      format = format.replace(new RegExp(MMM[0], "g"), MMM[M]);
       format = format.replace(/\\(.)/g, "$1");
       return format;
     }
@@ -1870,6 +1909,7 @@ var __async = (__this, __arguments, generator) => {
     setLabelFormatters() {
       const w = this.w;
       const fmt = w.formatters;
+      const inferredNumericX = w.axisFlags.isXNumeric && w.axisFlags.dataFormatXNumeric && w.config.xaxis.type !== "datetime" && !w.config.xaxis.convertedCatToNumeric && !w.globals.isBarHorizontal;
       fmt.xaxisTooltipFormatter = (val) => {
         return this.defaultGeneralFormatter(val);
       };
@@ -1886,8 +1926,13 @@ var __async = (__this, __arguments, generator) => {
         fmt.xLabelFormatter = w.config.xaxis.labels.formatter;
       } else {
         fmt.xLabelFormatter = (val) => {
+          var _a;
           if (Utils$1.isNumber(val)) {
-            if (!w.config.xaxis.convertedCatToNumeric && w.config.xaxis.type === "numeric") {
+            if (!w.config.xaxis.convertedCatToNumeric && (w.config.xaxis.type === "numeric" || inferredNumericX)) {
+              const ticks = (_a = w.globals.xAxisScale) == null ? void 0 : _a.result;
+              if (inferredNumericX && Array.isArray(ticks) && ticks.every(Number.isInteger)) {
+                return val.toFixed(0);
+              }
               if (Utils$1.isNumber(w.config.xaxis.decimalsInFloat)) {
                 return val.toFixed(w.config.xaxis.decimalsInFloat);
               } else {
@@ -1913,6 +1958,12 @@ var __async = (__this, __arguments, generator) => {
       }
       if (typeof w.config.tooltip.x.formatter === "function") {
         fmt.ttKeyFormatter = w.config.tooltip.x.formatter;
+      } else if (w.config.xaxis.labels.formatter === void 0 && inferredNumericX) {
+        const xLabelFormatter = (
+          /** @type {(val: any) => any} */
+          fmt.xLabelFormatter
+        );
+        fmt.ttKeyFormatter = (val) => Number.isInteger(val) ? val.toFixed(0) : xLabelFormatter(val);
       } else {
         fmt.ttKeyFormatter = fmt.xLabelFormatter;
       }
@@ -2771,6 +2822,17 @@ var __async = (__this, __arguments, generator) => {
             // around the pinch centroid (matching the x-only wheel/toolbar zoom),
             // frame-by-frame rather than the 400ms wheel throttle.
             pinch: "auto",
+            // Drag-to-zoom is deliberate, so it is not gated the way those two
+            // are: it stays on with the toolbar hidden. The reset button that
+            // undoes it does not, which leaves the viewer in a window with no
+            // exit. So while the chart IS zoomed and nothing else on screen can
+            // reset it, one reset control is drawn where the toolbar would have
+            // been, and it goes when the range does. A chart nobody zooms is
+            // untouched. Set false for a page that supplies its own reset (which
+            // also turns off the Escape shortcut), or true to force the control
+            // on whenever the chart is zoomed, even where `toolbar.tools.reset`
+            // is off.
+            resetControl: "auto",
             zoomedArea: {
               fill: {
                 color: "#90CAF9",
@@ -2837,6 +2899,11 @@ var __async = (__this, __arguments, generator) => {
             borderRadius: 0,
             borderRadiusApplication: "around",
             // [around, end]
+            // Which segments of a stack round. 'all' caps both ends of the
+            // stack (baseline and far end); 'last' caps only the far end, so
+            // the stack sits square on the baseline. Stacked charts only.
+            borderRadiusWhenStacked: "all",
+            // [all, last]
             rangeBarOverlap: true,
             rangeBarGroupRows: false,
             hideZeroBarsWhenGrouped: false,
@@ -7625,16 +7692,11 @@ var __async = (__this, __arguments, generator) => {
      * which cannot reach the captured copies because each series object was
      * copied at capture time.
      *
-     * The one in-place mutator is appendData(), whose push loop grows the shared
-     * data array. Re-capturing after it does not undo that: the pushed points
-     * are already in the array both snapshots point at, so a snapshot taken
-     * before the append reads back as appended. That is the documented
-     * behaviour of appendData(overwriteInitialSeries = true), and the `false`
-     * case is not honoured for a separate, older reason: Data.parseData()
-     * re-captures initialSeries unconditionally on the re-render appendData
-     * triggers. Detaching would mean copying the data arrays, which is exactly
-     * the per-point cost this snapshot exists to avoid. The same exception
-     * applies to `initialConfig.series`, which is captured with the same shape.
+     * appendData() used to be the exception, growing the shared data array in
+     * place. It now replaces the array instead (`data = data.concat(newData)`):
+     * one array copy per call, against the per-point cost this snapshot exists
+     * to avoid. With that, no internal edit can reach a captured copy. The same
+     * holds for `initialConfig.series`, which is captured with the same shape.
      *
      * @param {Record<string, any>} globals
      */
@@ -8161,9 +8223,9 @@ var __async = (__this, __arguments, generator) => {
       if (w.seriesData.series.length === 0) return total;
       for (let i2 = 0; i2 < w.seriesData.series[w.globals.maxValsInArrayIndex].length; i2++) {
         let t2 = 0;
-        for (let j = 0; j < w.seriesData.series.length; j++) {
-          if (typeof w.seriesData.series[j][i2] !== "undefined" && excludedSeriesIndices.indexOf(j) === -1) {
-            t2 += w.seriesData.series[j][i2];
+        for (let j2 = 0; j2 < w.seriesData.series.length; j2++) {
+          if (typeof w.seriesData.series[j2][i2] !== "undefined" && excludedSeriesIndices.indexOf(j2) === -1) {
+            t2 += w.seriesData.series[j2][i2];
           }
         }
         total.push(t2);
@@ -8409,8 +8471,8 @@ var __async = (__this, __arguments, generator) => {
       w.globals.seriesTotals = w.seriesData.series.map((ser) => {
         let total = 0;
         if (Array.isArray(ser)) {
-          for (let j = 0; j < ser.length; j++) {
-            total += ser[j];
+          for (let j2 = 0; j2 < ser.length; j2++) {
+            total += ser[j2];
           }
         } else {
           total += ser;
@@ -8426,9 +8488,9 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const seriesTotalsXRange = w.seriesData.series.map((ser, index) => {
         let total = 0;
-        for (let j = 0; j < ser.length; j++) {
-          if (w.seriesData.seriesX[index][j] > minX && w.seriesData.seriesX[index][j] < maxX) {
-            total += ser[j];
+        for (let j2 = 0; j2 < ser.length; j2++) {
+          if (w.seriesData.seriesX[index][j2] > minX && w.seriesData.seriesX[index][j2] < maxX) {
+            total += ser[j2];
           }
         }
         return total;
@@ -8446,11 +8508,11 @@ var __async = (__this, __arguments, generator) => {
       w.globals.seriesPercent = w.seriesData.series.map((ser) => {
         const seriesPercent = [];
         if (Array.isArray(ser)) {
-          for (let j = 0; j < ser.length; j++) {
-            const total = w.seriesData.stackedSeriesTotals[j];
+          for (let j2 = 0; j2 < ser.length; j2++) {
+            const total = w.seriesData.stackedSeriesTotals[j2];
             let percent = 0;
             if (total) {
-              percent = 100 * ser[j] / total;
+              percent = 100 * ser[j2] / total;
             }
             seriesPercent.push(percent);
           }
@@ -8825,44 +8887,44 @@ var __async = (__this, __arguments, generator) => {
       if (cmd === "Z") {
         commands.push(["Z"]);
       } else if (cmd === "M" || cmd === "L" || cmd === "T") {
-        for (let j = 0; j < nums.length; j += 2) {
-          commands.push([cmd, nums[j], nums[j + 1]]);
+        for (let j2 = 0; j2 < nums.length; j2 += 2) {
+          commands.push([cmd, nums[j2], nums[j2 + 1]]);
         }
       } else if (cmd === "H") {
-        for (let j = 0; j < nums.length; j++) {
-          commands.push([cmd, nums[j]]);
+        for (let j2 = 0; j2 < nums.length; j2++) {
+          commands.push([cmd, nums[j2]]);
         }
       } else if (cmd === "V") {
-        for (let j = 0; j < nums.length; j++) {
-          commands.push([cmd, nums[j]]);
+        for (let j2 = 0; j2 < nums.length; j2++) {
+          commands.push([cmd, nums[j2]]);
         }
       } else if (cmd === "C") {
-        for (let j = 0; j < nums.length; j += 6) {
+        for (let j2 = 0; j2 < nums.length; j2 += 6) {
           commands.push([
             cmd,
-            nums[j],
-            nums[j + 1],
-            nums[j + 2],
-            nums[j + 3],
-            nums[j + 4],
-            nums[j + 5]
+            nums[j2],
+            nums[j2 + 1],
+            nums[j2 + 2],
+            nums[j2 + 3],
+            nums[j2 + 4],
+            nums[j2 + 5]
           ]);
         }
       } else if (cmd === "S" || cmd === "Q") {
-        for (let j = 0; j < nums.length; j += 4) {
-          commands.push([cmd, nums[j], nums[j + 1], nums[j + 2], nums[j + 3]]);
+        for (let j2 = 0; j2 < nums.length; j2 += 4) {
+          commands.push([cmd, nums[j2], nums[j2 + 1], nums[j2 + 2], nums[j2 + 3]]);
         }
       } else if (cmd === "A") {
-        for (let j = 0; j < nums.length; j += 7) {
+        for (let j2 = 0; j2 < nums.length; j2 += 7) {
           commands.push([
             cmd,
-            nums[j],
-            nums[j + 1],
-            nums[j + 2],
-            nums[j + 3],
-            nums[j + 4],
-            nums[j + 5],
-            nums[j + 6]
+            nums[j2],
+            nums[j2 + 1],
+            nums[j2 + 2],
+            nums[j2 + 3],
+            nums[j2 + 4],
+            nums[j2 + 5],
+            nums[j2 + 6]
           ]);
         }
       }
@@ -8982,11 +9044,11 @@ var __async = (__this, __arguments, generator) => {
     return false;
   }
   function arcToBezier(pos, val) {
-    var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x = val[6], y = val[7], A2 = new Point(pos[0], pos[1]), B = new Point(x, y), primedCoord, lambda, mat, k, c, cSquare, t2, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f, arcSegPoints, angle, sinAngle, cosAngle, pt, i2, il, retVal = [], x1, y1, x2, y2;
-    if (rx === 0 || ry === 0 || A2.x === B.x && A2.y === B.y) {
-      return [["C", A2.x, A2.y, B.x, B.y, B.x, B.y]];
+    var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x = val[6], y = val[7], A = new Point(pos[0], pos[1]), B = new Point(x, y), primedCoord, lambda, mat, k, c, cSquare, t2, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f, arcSegPoints, angle, sinAngle, cosAngle, pt, i2, il, retVal = [], x1, y1, x2, y2;
+    if (rx === 0 || ry === 0 || A.x === B.x && A.y === B.y) {
+      return [["C", A.x, A.y, B.x, B.y, B.x, B.y]];
     }
-    primedCoord = new Point((A2.x - B.x) / 2, (A2.y - B.y) / 2).transform(
+    primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
       // Start with the identity matrix (no args → Matrix defaults a=d=1, others 0).
       // Passing all-zero args here would produce a degenerate zero matrix, since
       // `0 ?? 1` is `0`, not `1` — every subsequent transform then yields (0,0)
@@ -9002,9 +9064,9 @@ var __async = (__this, __arguments, generator) => {
     }
     mat = /** @type {any} */
     new Matrix().rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
-    A2 = A2.transform(mat);
+    A = A.transform(mat);
     B = B.transform(mat);
-    k = [B.x - A2.x, B.y - A2.y];
+    k = [B.x - A.x, B.y - A.y];
     cSquare = k[0] * k[0] + k[1] * k[1];
     c = Math.sqrt(cSquare);
     k[0] /= c;
@@ -9013,8 +9075,8 @@ var __async = (__this, __arguments, generator) => {
     if (largeArcFlag === sweepFlag) {
       t2 *= -1;
     }
-    O = new Point((B.x + A2.x) / 2 + t2 * -k[1], (B.y + A2.y) / 2 + t2 * k[0]);
-    OA = new Point(A2.x - O.x, A2.y - O.y);
+    O = new Point((B.x + A.x) / 2 + t2 * -k[1], (B.y + A.y) / 2 + t2 * k[0]);
+    OA = new Point(A.x - O.x, A.y - O.y);
     OB = new Point(B.x - O.x, B.y - O.y);
     tetaStart = Math.acos(OA.x / Math.sqrt(OA.x * OA.x + OA.y * OA.y));
     if (OA.y < 0) tetaStart *= -1;
@@ -9804,7 +9866,7 @@ var __async = (__this, __arguments, generator) => {
       const {
         el,
         realIndex,
-        j,
+        j: j2,
         fill,
         pathFrom,
         pathTo,
@@ -9825,7 +9887,7 @@ var __async = (__this, __arguments, generator) => {
       me.morphSVG(
         el,
         realIndex,
-        j,
+        j2,
         w.config.chart.type === "line" && !w.globals.comboCharts ? "stroke" : fill,
         pathFrom,
         pathTo,
@@ -9901,7 +9963,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} el            - SVG.js path element
      * @param {{realIndex: number, j?: number, isFill: boolean, isLast: boolean, speed: number, delay: number, mask?: {type: 'rect'|'radial', cx?: number, cy?: number, r?: number}}} params
      */
-    animateDraw(el, { realIndex, j, isFill, isLast, speed, delay, mask: maskShape }) {
+    animateDraw(el, { realIndex, j: j2, isFill, isLast, speed, delay, mask: maskShape }) {
       const w = this.w;
       const me = this;
       const finalize = () => {
@@ -9922,7 +9984,7 @@ var __async = (__this, __arguments, generator) => {
         const radialCx = maskShape && maskShape.cx || 0;
         const radialCy = maskShape && maskShape.cy || 0;
         const targetRadius = (maskShape && maskShape.r || w.layout.gridWidth / 2) + pad;
-        const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j != null ? j : 0}-${isFill ? "f" : "s"}`;
+        const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j2 != null ? j2 : 0}-${isFill ? "f" : "s"}`;
         const mask = BrowserAPIs.createElementNS(SVGNS, "mask");
         mask.setAttribute("id", maskId);
         mask.setAttribute("maskUnits", "userSpaceOnUse");
@@ -10034,7 +10096,7 @@ var __async = (__this, __arguments, generator) => {
      *   pathTo (extra anchors sitting exactly on the final geometry) and snap to
      *   the clean pathTo at the end.
      */
-    morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay, scrollMorph, pathToInterp) {
+    morphSVG(el, realIndex, j2, fill, pathFrom, pathTo, speed, delay, scrollMorph, pathToInterp) {
       var _a, _b;
       const w = this.w;
       if (!pathFrom) {
@@ -10082,9 +10144,9 @@ var __async = (__this, __arguments, generator) => {
         morphAlgo,
         pathToInterp ? pathTo : void 0
       ).after(() => {
-        if (Utils$1.isNumber(j)) {
+        if (Utils$1.isNumber(j2)) {
           const maxSeries = w.seriesData.series[w.globals.maxValsInArrayIndex];
-          if (maxSeries && j === maxSeries.length - 2 && w.globals.shouldAnimate) {
+          if (maxSeries && j2 === maxSeries.length - 2 && w.globals.shouldAnimate) {
             this.animationCompleted(el);
           }
         } else if (fill !== "none" && w.globals.shouldAnimate) {
@@ -10657,7 +10719,7 @@ var __async = (__this, __arguments, generator) => {
      * @return {any} svg.js path object
      **/
     renderPaths({
-      j,
+      j: j2,
       realIndex,
       pathFrom,
       pathTo,
@@ -10752,7 +10814,7 @@ var __async = (__this, __arguments, generator) => {
       });
       const defaultAnimateOpts = {
         el,
-        j,
+        j: j2,
         realIndex,
         pathFrom,
         pathTo,
@@ -10770,7 +10832,7 @@ var __async = (__this, __arguments, generator) => {
           const isLast = w.globals.comboCharts ? true : realIndex === seriesCount - 1;
           anim.animateDraw(el, {
             realIndex,
-            j,
+            j: j2,
             isFill,
             isLast,
             speed: drawSpeed,
@@ -11138,19 +11200,19 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const filters = new Filters(this.w);
       const i2 = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
-      const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
-      if (isNaN(i2) || isNaN(j)) return;
+      const j2 = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
+      if (isNaN(i2) || isNaN(j2)) return;
       if (typeof w.config.chart.events.dataPointMouseEnter === "function") {
         w.config.chart.events.dataPointMouseEnter(e2, this.ctx, {
           seriesIndex: i2,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         });
       }
       Graphics._fireEvent(w, "dataPointMouseEnter", [
         e2,
         this.ctx,
-        { seriesIndex: i2, dataPointIndex: j, w }
+        { seriesIndex: i2, dataPointIndex: j2, w }
       ]);
       if (w.config.states.active.filter.type !== "none") {
         if (path.node.getAttribute("selected") === "true") {
@@ -11174,19 +11236,19 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const filters = new Filters(this.w);
       const i2 = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
-      const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
-      if (isNaN(i2) || isNaN(j)) return;
+      const j2 = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
+      if (isNaN(i2) || isNaN(j2)) return;
       if (typeof w.config.chart.events.dataPointMouseLeave === "function") {
         w.config.chart.events.dataPointMouseLeave(e2, this.ctx, {
           seriesIndex: i2,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         });
       }
       Graphics._fireEvent(w, "dataPointMouseLeave", [
         e2,
         this.ctx,
-        { seriesIndex: i2, dataPointIndex: j, w }
+        { seriesIndex: i2, dataPointIndex: j2, w }
       ]);
       if (w.config.states.active.filter.type !== "none") {
         if (path.node.getAttribute("selected") === "true") {
@@ -11230,11 +11292,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} path @param {any} filters @param {number} i @param {number} j
      * @returns {'true' | 'false'}
      */
-    _togglePointSelection(path, filters, i2, j) {
+    _togglePointSelection(path, filters, i2, j2) {
       const w = this.w;
       if (path.node.getAttribute("selected") === "true") {
         path.node.setAttribute("selected", "false");
-        const index = w.interact.selectedDataPoints[i2].indexOf(j);
+        const index = w.interact.selectedDataPoints[i2].indexOf(j2);
         if (index > -1) {
           w.interact.selectedDataPoints[i2].splice(index, 1);
         }
@@ -11247,7 +11309,7 @@ var __async = (__this, __arguments, generator) => {
       if (typeof w.interact.selectedDataPoints[i2] === "undefined") {
         w.interact.selectedDataPoints[i2] = [];
       }
-      w.interact.selectedDataPoints[i2].push(j);
+      w.interact.selectedDataPoints[i2].push(j2);
       return "true";
     }
     /**
@@ -11291,19 +11353,19 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const filters = new Filters(this.w);
       const i2 = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
-      const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
-      if (isNaN(i2) || isNaN(j)) return;
+      const j2 = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
+      if (isNaN(i2) || isNaN(j2)) return;
       const link = w.config.chart.link;
       const crossfilterClick = !!(link && (typeof link.dimension === "function" || link.enabled));
       if (!crossfilterClick) {
-        const selected = this._togglePointSelection(path, filters, i2, j);
+        const selected = this._togglePointSelection(path, filters, i2, j2);
         this._applyPointSelectionFilter(path, filters, i2, selected);
       }
       if (typeof w.config.chart.events.dataPointSelection === "function") {
         w.config.chart.events.dataPointSelection(e2, this.ctx, {
           selectedDataPoints: w.interact.selectedDataPoints,
           seriesIndex: i2,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         });
       }
@@ -11314,7 +11376,7 @@ var __async = (__this, __arguments, generator) => {
           {
             selectedDataPoints: w.interact.selectedDataPoints,
             seriesIndex: i2,
-            dataPointIndex: j,
+            dataPointIndex: j2,
             w
           }
         ]);
@@ -12066,9 +12128,9 @@ var __async = (__this, __arguments, generator) => {
           /** @type {Record<string, any>} */
           (_e = w.config.series[i2]) == null ? void 0 : _e.data
         );
-        for (let j = 0; j < series[i2].length; j++) {
-          if (series[i2][j] === null) hasNull = true;
-          const d = Array.isArray(data) ? data[j] : null;
+        for (let j2 = 0; j2 < series[i2].length; j2++) {
+          if (series[i2][j2] === null) hasNull = true;
+          const d = Array.isArray(data) ? data[j2] : null;
           if (d && (d.fillColor || d.strokeColor)) {
             perPointStyle = true;
             break;
@@ -12106,7 +12168,7 @@ var __async = (__this, __arguments, generator) => {
     plotChartMarkers({
       pointsPos,
       seriesIndex,
-      j,
+      j: j2,
       pSize,
       alwaysDrawMarker = false,
       isVirtualPoint = false
@@ -12121,13 +12183,13 @@ var __async = (__this, __arguments, generator) => {
       if (Array.isArray(p.x)) {
         for (let q = 0; q < p.x.length; q++) {
           let markerElement;
-          let dataPointIndex = j;
+          let dataPointIndex = j2;
           let invalidMarker = !Utils$1.isNumber(p.y[q]);
-          if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.seriesData.series[i2][j + 1] !== null && !isVirtualPoint) {
+          if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.seriesData.series[i2][j2 + 1] !== null && !isVirtualPoint) {
             invalidMarker = true;
           }
-          if (j === 1 && q === 0) dataPointIndex = 0;
-          if (j === 1 && q === 1) dataPointIndex = 1;
+          if (j2 === 1 && q === 0) dataPointIndex = 0;
+          if (j2 === 1 && q === 1) dataPointIndex = 1;
           let markerClasses = "apexcharts-marker";
           if (Markers.markersAreInert(w)) {
             markerClasses += " no-pointer-events";
@@ -12432,7 +12494,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j
      * @param {Record<string, any>} opts
      */
-    draw(elSeries, j, opts) {
+    draw(elSeries, j2, opts) {
       const w = this.w;
       const graphics = this.graphics;
       const emit = seriesEmitter(this.ctx, graphics);
@@ -12457,10 +12519,10 @@ var __async = (__this, __arguments, generator) => {
       }
       if (Array.isArray(pointsPos.x)) {
         for (let q = 0; q < pointsPos.x.length; q++) {
-          let dataPointIndex = j + 1;
+          let dataPointIndex = j2 + 1;
           let shouldDraw = true;
-          if (j === 0 && q === 0) dataPointIndex = 0;
-          if (j === 0 && q === 1) dataPointIndex = 1;
+          if (j2 === 0 && q === 0) dataPointIndex = 0;
+          if (j2 === 0 && q === 1) dataPointIndex = 1;
           let radius = w.globals.markers.size[realIndex];
           if (zRatio !== Infinity) {
             const bubble = w.config.plotOptions.bubble;
@@ -12488,7 +12550,7 @@ var __async = (__this, __arguments, generator) => {
               radius,
               realIndex,
               dataPointIndex,
-              j
+              j2
             );
             elPointsWrap.add(point);
             if (emit.kind === "canvas") {
@@ -12539,7 +12601,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} dataPointIndex
      * @param {number} j
      */
-    drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
+    drawPoint(x, y, radius, realIndex, dataPointIndex, j2) {
       var _a;
       const w = this.w;
       const i2 = realIndex;
@@ -12592,7 +12654,7 @@ var __async = (__this, __arguments, generator) => {
           dataPointIndex,
           color: markerConfig.pointFillColor,
           patternUnits: "objectBoundingBox",
-          value: w.seriesData.series[realIndex][j]
+          value: w.seriesData.series[realIndex][j2]
         });
         if (ps.fillCacheable === void 0) {
           ps.fillCacheable = ps.canCacheConfig && fill.getFillType(realIndex) === "solid" && typeof markerConfig.pointFillColor === "string" && !!markerConfig.pointFillColor;
@@ -12746,13 +12808,13 @@ var __async = (__this, __arguments, generator) => {
       };
     }
     /** @param {{type: any, pos: any, i: any, j: any, isRangeStart: any, strokeWidth?: any}} opts */
-    drawDataLabel({ type, pos, i: i2, j, isRangeStart, strokeWidth = 2 }) {
+    drawDataLabel({ type, pos, i: i2, j: j2, isRangeStart, strokeWidth = 2 }) {
       const w = this.w;
       const graphics = new Graphics(this.w);
       const dataLabelsConfig = w.config.dataLabels;
       let x = 0;
       let y = 0;
-      let dataPointIndex = j;
+      let dataPointIndex = j2;
       let elDataLabelsWrap = null;
       const seriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i2) !== -1;
       if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
@@ -12762,8 +12824,8 @@ var __async = (__this, __arguments, generator) => {
         class: "apexcharts-data-labels"
       });
       for (let q = 0; q < pos.x.length; q++) {
-        if (j === 1 && q === 0) dataPointIndex = 0;
-        if (j === 1 && q === 1) dataPointIndex = 1;
+        if (j2 === 1 && q === 0) dataPointIndex = 0;
+        if (j2 === 1 && q === 1) dataPointIndex = 1;
         x = pos.x[q] + resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i2, dataPointIndex);
         y = pos.y[q] + resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i2, dataPointIndex) + strokeWidth;
         if (!isNaN(x)) {
@@ -12835,7 +12897,7 @@ var __async = (__this, __arguments, generator) => {
         x,
         y,
         i: i2,
-        j,
+        j: j2,
         text,
         textAnchor,
         fontSize,
@@ -12848,7 +12910,7 @@ var __async = (__this, __arguments, generator) => {
         // some callers (radar) reuse `j` for something other than the data point
         // index, so per-point offsets take these explicit indices when supplied
         seriesIndex = i2,
-        dataPointIndex = j
+        dataPointIndex = j2
       } = opts;
       let dataLabelText = null;
       if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
@@ -12868,7 +12930,7 @@ var __async = (__this, __arguments, generator) => {
           y,
           text,
           i2,
-          j,
+          j2,
           alwaysDrawDataLabel,
           parseInt(
             /** @type {any} */
@@ -12891,14 +12953,14 @@ var __async = (__this, __arguments, generator) => {
       }
       let dataLabelColor = w.globals.dataLabels.style.colors[i2];
       if ((w.config.chart.type === "bar" || w.config.chart.type === "rangeBar") && w.config.plotOptions.bar.distributed || w.config.dataLabels.distributed) {
-        dataLabelColor = w.globals.dataLabels.style.colors[j];
+        dataLabelColor = w.globals.dataLabels.style.colors[j2];
       }
       if (typeof dataLabelColor === "function") {
         dataLabelColor = /** @type {any} */
         dataLabelColor({
           series: w.seriesData.series,
           seriesIndex: i2,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         });
       }
@@ -12921,10 +12983,10 @@ var __async = (__this, __arguments, generator) => {
       let offX = resolvedOffX;
       const offY = resolvedOffY;
       if (w.globals.isSlopeChart) {
-        if (j !== 0) {
+        if (j2 !== 0) {
           offX = resolvedOffX * -2 + 5;
         }
-        if (j !== 0 && j !== /** @type {Record<string,any>} */
+        if (j2 !== 0 && j2 !== /** @type {Record<string,any>} */
         w.config.series[i2].data.length - 1) {
           offX = 0;
         }
@@ -12960,7 +13022,7 @@ var __async = (__this, __arguments, generator) => {
         if (typeof w.globals.lastDrawnDataLabelsIndexes[i2] === "undefined") {
           w.globals.lastDrawnDataLabelsIndexes[i2] = [];
         }
-        w.globals.lastDrawnDataLabelsIndexes[i2].push(j);
+        w.globals.lastDrawnDataLabelsIndexes[i2].push(j2);
       }
       return dataLabelText;
     }
@@ -14867,14 +14929,14 @@ var __async = (__this, __arguments, generator) => {
                     /** @type {Record<string,any>} */
                     cnf.series[si].group === gn
                   ) {
-                    for (let j = 0; j < this.w.seriesData.series[si].length; j++) {
-                      const val = this.w.seriesData.series[si][j];
+                    for (let j2 = 0; j2 < this.w.seriesData.series[si].length; j2++) {
+                      const val = this.w.seriesData.series[si][j2];
                       if (val >= 0) {
-                        posSeries[gni][j] += val;
+                        posSeries[gni][j2] += val;
                       } else {
-                        negSeries[gni][j] += val;
+                        negSeries[gni][j2] += val;
                       }
-                      sumSeries[gni][j] += val;
+                      sumSeries[gni][j2] += val;
                       lowestY = Math.min(lowestY, val);
                       highestY = Math.max(highestY, val);
                     }
@@ -15201,8 +15263,8 @@ var __async = (__this, __arguments, generator) => {
           } else {
             let yDec = gl.yValueDecimal;
             let hasNulls = false;
-            for (let j = firstXIndex; j <= jEnd; j++) {
-              const val = arr[j];
+            for (let j2 = firstXIndex; j2 <= jEnd; j2++) {
+              const val = arr[j2];
               if (val !== null && typeof val === "number" && val === val && val !== Infinity && val !== -Infinity) {
                 if (val > maxY) maxY = val;
                 if (val < lowestY) lowestY = val;
@@ -15241,58 +15303,58 @@ var __async = (__this, __arguments, generator) => {
           }
           continue;
         }
-        for (let j = firstXIndex; j <= lastXIndex && j < this.w.seriesData.series[i2].length; j++) {
-          let val = series[i2][j];
+        for (let j2 = firstXIndex; j2 <= lastXIndex && j2 < this.w.seriesData.series[i2].length; j2++) {
+          let val = series[i2][j2];
           if (val !== null && Utils$1.isNumber(val)) {
-            if (typeof ((_b = seriesMax[i2]) == null ? void 0 : _b[j]) !== "undefined") {
-              maxY = Math.max(maxY, seriesMax[i2][j]);
-              lowestY = Math.min(lowestY, seriesMax[i2][j]);
+            if (typeof ((_b = seriesMax[i2]) == null ? void 0 : _b[j2]) !== "undefined") {
+              maxY = Math.max(maxY, seriesMax[i2][j2]);
+              lowestY = Math.min(lowestY, seriesMax[i2][j2]);
             }
-            if (typeof ((_c = seriesMin[i2]) == null ? void 0 : _c[j]) !== "undefined") {
-              lowestY = Math.min(lowestY, seriesMin[i2][j]);
-              highestY = Math.max(highestY, seriesMin[i2][j]);
+            if (typeof ((_c = seriesMin[i2]) == null ? void 0 : _c[j2]) !== "undefined") {
+              lowestY = Math.min(lowestY, seriesMin[i2][j2]);
+              highestY = Math.max(highestY, seriesMin[i2][j2]);
             }
             switch (seriesType) {
               case "candlestick":
                 {
-                  if (typeof this.w.candleData.seriesCandleC[i2][j] !== "undefined") {
-                    maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i2][j]);
+                  if (typeof this.w.candleData.seriesCandleC[i2][j2] !== "undefined") {
+                    maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i2][j2]);
                     lowestY = Math.min(
                       lowestY,
-                      this.w.candleData.seriesCandleL[i2][j]
+                      this.w.candleData.seriesCandleL[i2][j2]
                     );
                   }
                 }
                 break;
               case "boxPlot":
                 {
-                  if (typeof this.w.candleData.seriesCandleC[i2][j] !== "undefined") {
-                    maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i2][j]);
+                  if (typeof this.w.candleData.seriesCandleC[i2][j2] !== "undefined") {
+                    maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i2][j2]);
                     lowestY = Math.min(
                       lowestY,
-                      this.w.candleData.seriesCandleO[i2][j]
+                      this.w.candleData.seriesCandleO[i2][j2]
                     );
                   }
                 }
                 break;
               case "violin":
                 {
-                  if (typeof ((_d = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _d[j]) !== "undefined") {
-                    maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i2][j]);
+                  if (typeof ((_d = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _d[j2]) !== "undefined") {
+                    maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i2][j2]);
                     lowestY = Math.min(
                       lowestY,
-                      this.w.violinData.seriesViolinMin[i2][j]
+                      this.w.violinData.seriesViolinMin[i2][j2]
                     );
                   }
                 }
                 break;
             }
             if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "violin" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
-              maxY = Math.max(maxY, this.w.seriesData.series[i2][j]);
-              lowestY = Math.min(lowestY, this.w.seriesData.series[i2][j]);
+              maxY = Math.max(maxY, this.w.seriesData.series[i2][j2]);
+              lowestY = Math.min(lowestY, this.w.seriesData.series[i2][j2]);
             }
-            if (this.w.seriesData.seriesGoals[i2] && this.w.seriesData.seriesGoals[i2][j] && Array.isArray(this.w.seriesData.seriesGoals[i2][j])) {
-              this.w.seriesData.seriesGoals[i2][j].forEach(
+            if (this.w.seriesData.seriesGoals[i2] && this.w.seriesData.seriesGoals[i2][j2] && Array.isArray(this.w.seriesData.seriesGoals[i2][j2])) {
+              this.w.seriesData.seriesGoals[i2][j2].forEach(
                 (g) => {
                   maxY = Math.max(maxY, g.value);
                   lowestY = Math.min(lowestY, g.value);
@@ -15300,7 +15362,7 @@ var __async = (__this, __arguments, generator) => {
               );
             }
             if (this.w.config.chart.type === "boxPlot" || seriesType === "boxPlot") {
-              const boxPts = (_f = (_e = this.w.candleData.seriesBoxPoints) == null ? void 0 : _e[i2]) == null ? void 0 : _f[j];
+              const boxPts = (_f = (_e = this.w.candleData.seriesBoxPoints) == null ? void 0 : _e[i2]) == null ? void 0 : _f[j2];
               if (boxPts) {
                 for (let p = 0; p < boxPts.length; p++) {
                   const pv = boxPts[p];
@@ -15319,8 +15381,8 @@ var __async = (__this, __arguments, generator) => {
                 val.toString().split(".")[1].length
               );
             }
-            if (minY > ((_g = seriesMin[i2]) == null ? void 0 : _g[j]) && ((_h = seriesMin[i2]) == null ? void 0 : _h[j]) < 0) {
-              minY = seriesMin[i2][j];
+            if (minY > ((_g = seriesMin[i2]) == null ? void 0 : _g[j2]) && ((_h = seriesMin[i2]) == null ? void 0 : _h[j2]) < 0) {
+              minY = seriesMin[i2][j2];
             }
           } else {
             gl.hasNullValues = true;
@@ -15501,8 +15563,8 @@ var __async = (__this, __arguments, generator) => {
             if (pe.minX < minX) minX = pe.minX;
             continue;
           }
-          for (let j = 0; j < lbls.length; j++) {
-            const v = lbls[j];
+          for (let j2 = 0; j2 < lbls.length; j2++) {
+            const v = lbls[j2];
             if (v !== null && typeof v === "number" && v === v) {
               if (v > maxX) maxX = v;
               if (v < minX) minX = v;
@@ -15531,7 +15593,17 @@ var __async = (__this, __arguments, generator) => {
         let ticks = 10;
         if (cnf.xaxis.tickAmount === void 0) {
           ticks = Math.round(gl.svgWidth / 150);
-          if (cnf.xaxis.type === "numeric" && gl.dataPoints < 30) {
+          const inferredNumericX = this.w.axisFlags.isXNumeric && this.w.axisFlags.dataFormatXNumeric && cnf.xaxis.type !== "datetime" && !cnf.xaxis.convertedCatToNumeric && !gl.isBarHorizontal;
+          const fontSize = parseFloat(cnf.xaxis.labels.style.fontSize) || 12;
+          const widestLabelLength = this.w.labelData.labels.reduce(
+            (widest, seriesLabels) => Array.isArray(seriesLabels) ? seriesLabels.reduce(
+              (seriesWidest, label) => Math.max(seriesWidest, String(label).length),
+              widest
+            ) : widest,
+            0
+          );
+          const allPointLabelsFit = gl.dataPoints * widestLabelLength * fontSize * 0.6 <= gl.svgWidth;
+          if ((cnf.xaxis.type === "numeric" || inferredNumericX && allPointLabelsFit) && gl.dataPoints < 30) {
             ticks = gl.dataPoints - 1;
           }
           if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
@@ -15615,10 +15687,10 @@ var __async = (__this, __arguments, generator) => {
       if (!this.w.axisFlags.isDataXYZ) return;
       for (let i2 = 0; i2 < this.w.seriesData.series.length; i2++) {
         if (typeof this.w.seriesData.seriesZ[i2] !== "undefined") {
-          for (let j = 0; j < this.w.seriesData.seriesZ[i2].length; j++) {
-            if (this.w.seriesData.seriesZ[i2][j] !== null && Utils$1.isNumber(this.w.seriesData.seriesZ[i2][j])) {
-              gl.maxZ = Math.max(gl.maxZ, this.w.seriesData.seriesZ[i2][j]);
-              gl.minZ = Math.min(gl.minZ, this.w.seriesData.seriesZ[i2][j]);
+          for (let j2 = 0; j2 < this.w.seriesData.seriesZ[i2].length; j2++) {
+            if (this.w.seriesData.seriesZ[i2][j2] !== null && Utils$1.isNumber(this.w.seriesData.seriesZ[i2][j2])) {
+              gl.maxZ = Math.max(gl.maxZ, this.w.seriesData.seriesZ[i2][j2]);
+              gl.minZ = Math.min(gl.minZ, this.w.seriesData.seriesZ[i2][j2]);
             }
           }
         }
@@ -15680,8 +15752,8 @@ var __async = (__this, __arguments, generator) => {
             }
             let presorted = true;
             let minDiff = gl.minXDiff;
-            for (let j = 1; j < sX.length; j++) {
-              const d = sX[j] - sX[j - 1];
+            for (let j2 = 1; j2 < sX.length; j2++) {
+              const d = sX[j2] - sX[j2 - 1];
               if (d > 0) {
                 if (d < minDiff) minDiff = d;
               } else if (d < 0) {
@@ -15698,9 +15770,9 @@ var __async = (__this, __arguments, generator) => {
             }
             const seriesX = sX.slice();
             seriesX.sort((a2, b) => a2 - b);
-            seriesX.forEach((s2, j) => {
-              if (j > 0) {
-                const xDiff = s2 - seriesX[j - 1];
+            seriesX.forEach((s2, j2) => {
+              if (j2 > 0) {
+                const xDiff = s2 - seriesX[j2 - 1];
                 if (xDiff > 0) {
                   gl.minXDiff = Math.min(xDiff, gl.minXDiff);
                 }
@@ -15734,19 +15806,19 @@ var __async = (__this, __arguments, generator) => {
           const bounds = windowed ? this._autoScaleXBounds(i2) : null;
           const xs = this.w.seriesData.seriesX[i2];
           const hasX = !!(bounds && xs && xs.length);
-          for (let j = 0; j < this.w.seriesData.series[gl.maxValsInArrayIndex].length; j++) {
-            if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue;
-            if (typeof stackedPoss[group][j] === "undefined") {
-              stackedPoss[group][j] = 0;
-              stackedNegs[group][j] = 0;
+          for (let j2 = 0; j2 < this.w.seriesData.series[gl.maxValsInArrayIndex].length; j2++) {
+            if (hasX && (xs[j2] < bounds.lo || xs[j2] > bounds.hi)) continue;
+            if (typeof stackedPoss[group][j2] === "undefined") {
+              stackedPoss[group][j2] = 0;
+              stackedNegs[group][j2] = 0;
             }
             const stackSeries = this.w.config.chart.stacked && !gl.comboCharts || this.w.config.chart.stacked && gl.comboCharts && (!this.w.config.chart.stackOnlyBar || /** @type {Record<string,any>} */
             ((_b = (_a = this.w.config.series) == null ? void 0 : _a[i2]) == null ? void 0 : _b.type) === "bar" || /** @type {Record<string,any>} */
             ((_d = (_c = this.w.config.series) == null ? void 0 : _c[i2]) == null ? void 0 : _d.type) === "column");
             if (stackSeries) {
-              if (this.w.seriesData.series[i2][j] !== null && Utils$1.isNumber(this.w.seriesData.series[i2][j])) {
-                this.w.seriesData.series[i2][j] > 0 ? stackedPoss[group][j] += parseFloat(String(this.w.seriesData.series[i2][j])) + 1e-4 : stackedNegs[group][j] += parseFloat(
-                  String(this.w.seriesData.series[i2][j])
+              if (this.w.seriesData.series[i2][j2] !== null && Utils$1.isNumber(this.w.seriesData.series[i2][j2])) {
+                this.w.seriesData.series[i2][j2] > 0 ? stackedPoss[group][j2] += parseFloat(String(this.w.seriesData.series[i2][j2])) + 1e-4 : stackedNegs[group][j2] += parseFloat(
+                  String(this.w.seriesData.series[i2][j2])
                 );
               }
             }
@@ -16226,42 +16298,30 @@ var __async = (__this, __arguments, generator) => {
     }
     setYAxisTextAlignments() {
       const w = this.w;
-      const yaxis = Array.from(
-        w.dom.baseEl.getElementsByClassName("apexcharts-yaxis")
-      );
-      yaxis.forEach((y, index) => {
-        const yaxe = w.config.yaxis[index];
+      w.config.yaxis.forEach((yaxe, index) => {
         if (yaxe && !yaxe.floating && yaxe.labels.align !== void 0) {
           const yAxisInner = w.dom.baseEl.querySelector(
             `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
           );
+          if (!yAxisInner) return;
           const yAxisTexts = Array.from(
             w.dom.baseEl.querySelectorAll(
               `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`
             )
           );
-          const rect = (
-            /** @type {Element} */
-            yAxisInner.getBoundingClientRect()
-          );
+          const rect = yAxisInner.getBoundingClientRect();
           yAxisTexts.forEach((label) => {
             label.setAttribute("text-anchor", yaxe.labels.align);
           });
           if (yaxe.labels.align === "left" && !yaxe.opposite) {
-            yAxisInner.setAttribute(
-              "transform",
-              `translate(-${rect.width}, 0)`
-            );
+            yAxisInner.setAttribute("transform", `translate(-${rect.width}, 0)`);
           } else if (yaxe.labels.align === "center") {
             yAxisInner.setAttribute(
               "transform",
               `translate(${rect.width / 2 * (!yaxe.opposite ? -1 : 1)}, 0)`
             );
           } else if (yaxe.labels.align === "right" && yaxe.opposite) {
-            yAxisInner.setAttribute(
-              "transform",
-              `translate(${rect.width}, 0)`
-            );
+            yAxisInner.setAttribute("transform", `translate(${rect.width}, 0)`);
           }
         }
       });
@@ -16699,15 +16759,15 @@ var __async = (__this, __arguments, generator) => {
       w.dom.baseEl.querySelectorAll(".apexcharts-marker").forEach((node) => {
         var _a2, _b2, _c2, _d, _e;
         const ri = parseInt((_a2 = node.getAttribute("index")) != null ? _a2 : "", 10);
-        const j = parseInt(
+        const j2 = parseInt(
           (_c2 = (_b2 = node.getAttribute("j")) != null ? _b2 : node.getAttribute("rel")) != null ? _c2 : "",
           10
         );
         const r2 = parseFloat(
           (_e = (_d = node.getAttribute("r")) != null ? _d : node.getAttribute("default-marker-size")) != null ? _e : ""
         );
-        if (isFinite(ri) && isFinite(j) && isFinite(r2)) {
-          (rPixels[ri] = rPixels[ri] || [])[j] = r2;
+        if (isFinite(ri) && isFinite(j2) && isFinite(r2)) {
+          (rPixels[ri] = rPixels[ri] || [])[j2] = r2;
         }
       });
     }
@@ -16762,29 +16822,29 @@ var __async = (__this, __arguments, generator) => {
     if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
     return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
   }
-  function datumKey(w, realIndex, j) {
+  function datumKey(w, realIndex, j2) {
     var _a, _b, _c, _d;
     if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
       const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-      if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+      if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
     }
-    const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+    const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j2];
     if (lbl != null && String(lbl) !== "") {
       return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
     }
-    return "j:" + j;
+    return "j:" + j2;
   }
-  function frameDatumKey(frame, realIndex, j) {
+  function frameDatumKey(frame, realIndex, j2) {
     var _a, _b;
     if (frame.isXNumeric) {
       const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
-      if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+      if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
     }
-    const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+    const lbl = (_b = frame.labels) == null ? void 0 : _b[j2];
     if (lbl != null && String(lbl) !== "") {
       return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
     }
-    return "j:" + j;
+    return "j:" + j2;
   }
   function joinKeys(oldKeys, newKeys) {
     const oldIndex = /* @__PURE__ */ new Map();
@@ -16830,9 +16890,9 @@ var __async = (__this, __arguments, generator) => {
     if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
     if (!oldY.length || !newY.length) return null;
     const oldKeys = uniquifyKeys(
-      oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
+      oldY.map((_, j2) => frameDatumKey(frame, realIndex, j2))
     );
-    const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+    const newKeys = uniquifyKeys(newY.map((_, j2) => datumKey(w, realIndex, j2)));
     const join = joinKeys(oldKeys, newKeys);
     if (!join.ordered && !allowReorder) return null;
     if (!join.changed && !includeIdentity) return null;
@@ -17374,7 +17434,7 @@ var __async = (__this, __arguments, generator) => {
         }
         if (countUp && old) {
           const realIndex = parseInt(key, 10);
-          const j = parseInt(group.getAttribute("data:dlJ") || "", 10);
+          const j2 = parseInt(group.getAttribute("data:dlJ") || "", 10);
           countUpText(w, {
             el: textEl,
             from: old.val,
@@ -17385,7 +17445,7 @@ var __async = (__this, __arguments, generator) => {
             // of `w` on every frame. Same shape the bar formatter gets.
             fmtOpts: __spreadProps(__spreadValues({}, w), {
               seriesIndex: realIndex,
-              dataPointIndex: isFinite(j) ? j : 0,
+              dataPointIndex: isFinite(j2) ? j2 : 0,
               w
             }),
             duration,
@@ -17672,20 +17732,20 @@ var __async = (__this, __arguments, generator) => {
         const nextRecords = [];
         const nextIndices = [];
         records.forEach((rec) => {
-          const j = rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index;
-          if (j == null || j < 0 || j >= target.length) return;
+          const j2 = rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index;
+          if (j2 == null || j2 < 0 || j2 >= target.length) return;
           const s2 = (
             /** @type {any} */
-            target[j]
+            target[j2]
           );
-          rec.index = j;
+          rec.index = j2;
           if (gl.axisCharts) {
             if (s2 && Array.isArray(s2.data) && s2.data.length) rec.data = s2.data.slice();
           } else {
             rec.data = s2;
           }
           nextRecords.push(rec);
-          nextIndices.push(j);
+          nextIndices.push(j2);
         });
         return { records: nextRecords, indices: nextIndices };
       };
@@ -17953,14 +18013,14 @@ var __async = (__this, __arguments, generator) => {
           ),
           realIndex: seriesEls[i2].getAttribute("data:realIndex")
         };
-        for (let j = 0; j < paths.length; j++) {
-          if (paths[j].hasAttribute("pathTo")) {
-            const d = paths[j].getAttribute("pathTo");
+        for (let j2 = 0; j2 < paths.length; j2++) {
+          if (paths[j2].hasAttribute("pathTo")) {
+            const d = paths[j2].getAttribute("pathTo");
             dArr.paths.push({
               d,
-              key: paths[j].getAttribute("data:pathKey"),
-              fill: paths[j].getAttribute("fill"),
-              flip: paths[j].classList.contains("apexcharts-flip-y") || paths[j].classList.contains("apexcharts-flip-x")
+              key: paths[j2].getAttribute("data:pathKey"),
+              fill: paths[j2].getAttribute("fill"),
+              flip: paths[j2].classList.contains("apexcharts-flip-y") || paths[j2].classList.contains("apexcharts-flip-x")
             });
           }
         }
@@ -18071,7 +18131,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       for (let sl = 0; sl < series.length; sl++) {
         if (series[sl].length === 0) {
-          for (let j = 0; j < series[w.globals.maxValsInArrayIndex].length; j++) {
+          for (let j2 = 0; j2 < series[w.globals.maxValsInArrayIndex].length; j2++) {
             series[sl].push(0);
           }
         }
@@ -19261,8 +19321,8 @@ var __async = (__this, __arguments, generator) => {
       if (!totals.length) return;
       const formatter = totalConfig.formatter || w.config.dataLabels.formatter;
       const labels = totals.map(
-        (val, j) => String(
-          formatter ? formatter(val, __spreadProps(__spreadValues({}, w), { seriesIndex: 0, dataPointIndex: j, w })) : val
+        (val, j2) => String(
+          formatter ? formatter(val, __spreadProps(__spreadValues({}, w), { seriesIndex: 0, dataPointIndex: j2, w })) : val
         )
       );
       const graphics = new Graphics(w);
@@ -20957,7 +21017,7 @@ var __async = (__this, __arguments, generator) => {
     if (opts.keepDatum) node._datum = d;
     if (isObj && Array.isArray(d.children) && d.children.length) {
       node.children = d.children.map(
-        (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
+        (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts)
       );
     } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
       const visited = seenIds || /* @__PURE__ */ new Set();
@@ -20968,7 +21028,7 @@ var __async = (__this, __arguments, generator) => {
           nextSeen.add(d.drilldown);
           const palette = Array.isArray(dd.colors) ? dd.colors : null;
           node.children = dd.data.map(
-            (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
+            (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts)
           );
         }
       }
@@ -20992,7 +21052,7 @@ var __async = (__this, __arguments, generator) => {
         _key: key,
         _seriesIndex: i2,
         children: data.map(
-          (d, j) => toNode(w, d, j, null, key, null, opts)
+          (d, j2) => toNode(w, d, j2, null, key, null, opts)
         )
       };
       return root;
@@ -21016,8 +21076,8 @@ var __async = (__this, __arguments, generator) => {
     for (let i2 = 0; i2 < series.length; i2++) {
       const data = series[i2] && series[i2].data;
       if (!Array.isArray(data)) continue;
-      for (let j = 0; j < data.length; j++) {
-        const d = data[j];
+      for (let j2 = 0; j2 < data.length; j2++) {
+        const d = data[j2];
         if (!d || typeof d !== "object") continue;
         if (Array.isArray(d.children) && d.children.length) return true;
         if (countDrilldown && d.drilldown != null) return true;
@@ -21174,8 +21234,8 @@ var __async = (__this, __arguments, generator) => {
       let xSorted = true;
       let minXDiff = Infinity;
       let prevX = NaN;
-      for (let j = 0; j < n2; j++) {
-        const point = data[j];
+      for (let j2 = 0; j2 < n2; j2++) {
+        const point = data[j2];
         if (!Array.isArray(point) || point.length > 2) return false;
         const x = point[0];
         const y = point[1];
@@ -21223,8 +21283,8 @@ var __async = (__this, __arguments, generator) => {
         } else {
           return false;
         }
-        ys[j] = y;
-        xs[j] = x;
+        ys[j2] = y;
+        xs[j2] = x;
       }
       this.twoDSeries = ys;
       this.twoDSeriesX = xs;
@@ -21259,8 +21319,8 @@ var __async = (__this, __arguments, generator) => {
       if (!isBoxPlot && cnf.xaxis.type !== "datetime" && this._fast2DArrayParse(data, i2)) {
         return;
       }
-      for (let j = 0; j < data.length; j++) {
-        const point = data[j];
+      for (let j2 = 0; j2 < data.length; j2++) {
+        const point = data[j2];
         const x = point[0];
         const y = point[1];
         const z = point[2];
@@ -21300,8 +21360,8 @@ var __async = (__this, __arguments, generator) => {
         activeI = this.activeSeriesIndex;
       }
       const activeData = ser[activeI].data;
-      for (let j = 0; j < data.length; j++) {
-        const point = data[j];
+      for (let j2 = 0; j2 < data.length; j2++) {
+        const point = data[j2];
         if (typeof point.y !== "undefined") {
           const val = Array.isArray(point.y) ? Utils$1.parseNumber(point.y[point.y.length - 1]) : Utils$1.parseNumber(point.y);
           this.twoDSeries.push(val);
@@ -21319,8 +21379,8 @@ var __async = (__this, __arguments, generator) => {
           this.w.axisFlags.isDataXYZ = true;
         }
       }
-      for (let j = 0; j < activeData.length; j++) {
-        const point = activeData[j];
+      for (let j2 = 0; j2 < activeData.length; j2++) {
+        const point = activeData[j2];
         const x = point.x;
         const isXString = typeof x === "string";
         const isXArr = Array.isArray(x);
@@ -21427,12 +21487,12 @@ var __async = (__this, __arguments, generator) => {
       const data = ser[i2].data || [];
       const start = [];
       const end = [];
-      for (let j = 0; j < data.length; j++) {
-        const datum = data[j];
+      for (let j2 = 0; j2 < data.length; j2++) {
+        const datum = data[j2];
         let lo;
         let hi;
         if (typeof yExtent === "function") {
-          let ext = yExtent(datum, j);
+          let ext = yExtent(datum, j2);
           if (!Array.isArray(ext)) ext = [ext];
           const nums = ext.map((v) => Utils$1.parseNumber(v)).filter((v) => v !== null && !isNaN(v));
           lo = nums.length ? Math.min(...nums) : null;
@@ -21499,8 +21559,8 @@ var __async = (__this, __arguments, generator) => {
       const minArr = [];
       const maxArr = [];
       const placeholders = [];
-      for (let j = 0; j < data.length; j++) {
-        const d = data[j];
+      for (let j2 = 0; j2 < data.length; j2++) {
+        const d = data[j2];
         const dens = (_c = (_b = (_a = d == null ? void 0 : d.y) == null ? void 0 : _a.density) != null ? _b : d == null ? void 0 : d[1]) != null ? _c : [];
         const pts = (_f = (_e = (_d = d == null ? void 0 : d.y) == null ? void 0 : _d.points) != null ? _e : d == null ? void 0 : d[2]) != null ? _f : [];
         const summary = this._parseViolinSummary((_h = (_g = d == null ? void 0 : d.y) == null ? void 0 : _g.summary) != null ? _h : d == null ? void 0 : d[3]);
@@ -21592,29 +21652,29 @@ var __async = (__this, __arguments, generator) => {
         }
       });
       if (format === "array") {
-        for (let j = 0; j < ser[i2].data.length; j++) {
-          if (Array.isArray(ser[i2].data[j])) {
-            rangeStart.push(ser[i2].data[j][1][0]);
-            rangeEnd.push(ser[i2].data[j][1][1]);
+        for (let j2 = 0; j2 < ser[i2].data.length; j2++) {
+          if (Array.isArray(ser[i2].data[j2])) {
+            rangeStart.push(ser[i2].data[j2][1][0]);
+            rangeEnd.push(ser[i2].data[j2][1][1]);
           } else {
-            rangeStart.push(ser[i2].data[j]);
-            rangeEnd.push(ser[i2].data[j]);
+            rangeStart.push(ser[i2].data[j2]);
+            rangeEnd.push(ser[i2].data[j2]);
           }
         }
       } else if (format === "xy") {
-        for (let j = 0; j < ser[i2].data.length; j++) {
-          const isDataPoint2D = Array.isArray(ser[i2].data[j].y);
+        for (let j2 = 0; j2 < ser[i2].data.length; j2++) {
+          const isDataPoint2D = Array.isArray(ser[i2].data[j2].y);
           const id = Utils$1.randomId();
-          const x = ser[i2].data[j].x;
+          const x = ser[i2].data[j2].x;
           const y = {
-            y1: isDataPoint2D ? ser[i2].data[j].y[0] : ser[i2].data[j].y,
-            y2: isDataPoint2D ? ser[i2].data[j].y[1] : ser[i2].data[j].y,
+            y1: isDataPoint2D ? ser[i2].data[j2].y[0] : ser[i2].data[j2].y,
+            y2: isDataPoint2D ? ser[i2].data[j2].y[1] : ser[i2].data[j2].y,
             rangeName: id
           };
           const gl = this.w.globals;
           if (!gl.seriesRangeName) gl.seriesRangeName = {};
           if (!gl.seriesRangeName[i2]) gl.seriesRangeName[i2] = {};
-          gl.seriesRangeName[i2][j] = id;
+          gl.seriesRangeName[i2][j2] = id;
           const keyObj = uniqueKeysMap.get(x);
           if (keyObj) {
             keyObj.y.push(y);
@@ -21657,8 +21717,8 @@ var __async = (__this, __arguments, generator) => {
       } else {
         getVals = (d) => Array.isArray(d.y) ? d.y : [];
       }
-      for (let j = 0; j < data.length; j++) {
-        const vals = getVals(data[j]);
+      for (let j2 = 0; j2 < data.length; j2++) {
+        const vals = getVals(data[j2]);
         if (vals && vals.length >= 2) {
           serO.push(vals[0]);
           serH.push(vals[1]);
@@ -21671,8 +21731,8 @@ var __async = (__this, __arguments, generator) => {
             serC.push(vals[3]);
           }
         }
-        const pts = data[j] && /** @type {any} */
-        data[j].points;
+        const pts = data[j2] && /** @type {any} */
+        data[j2].points;
         serPoints.push(Array.isArray(pts) ? pts : []);
       }
       return {
@@ -21720,18 +21780,18 @@ var __async = (__this, __arguments, generator) => {
       });
       this.w.labelData.seriesGroups = buckets;
       const handleDates = () => {
-        for (let j = 0; j < xlabels.length; j++) {
-          if (typeof xlabels[j] === "string") {
-            const isDate = dt.isValidDate(xlabels[j]);
+        for (let j2 = 0; j2 < xlabels.length; j2++) {
+          if (typeof xlabels[j2] === "string") {
+            const isDate = dt.isValidDate(xlabels[j2]);
             if (isDate) {
-              this.twoDSeriesX.push(dt.parseDate(xlabels[j]));
+              this.twoDSeriesX.push(dt.parseDate(xlabels[j2]));
             } else {
               throw new Error(
                 "You have provided invalid Date format. Please provide a valid JavaScript Date"
               );
             }
           } else {
-            this.twoDSeriesX.push(xlabels[j]);
+            this.twoDSeriesX.push(xlabels[j2]);
           }
         }
       };
@@ -22474,8 +22534,11 @@ var __async = (__this, __arguments, generator) => {
     // Segregate user provided data into appropriate vars
     /**
      * @param {any[]} ser
+     * @param {boolean} [overwriteInitialSeries=true] false when the caller hands
+     *   back the series the chart already has (an internal re-render), so the
+     *   baseline resetSeries() restores must not move.
      */
-    parseData(ser) {
+    parseData(ser, overwriteInitialSeries = true) {
       var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       const cnf = w.config;
@@ -22508,7 +22571,8 @@ var __async = (__this, __arguments, generator) => {
         ser = ser.map((s2) => __spreadValues({}, s2));
       }
       cnf.series = ser;
-      if (gl.dataReducerRawSeries && ((_g = cnf.chart.dataReducer) == null ? void 0 : _g.enabled)) {
+      if (!overwriteInitialSeries) ;
+      else if (gl.dataReducerRawSeries && ((_g = cnf.chart.dataReducer) == null ? void 0 : _g.enabled)) {
         const stash = gl.dataReducerRawSeries;
         gl.initialSeries = ser.map((s2, i2) => {
           var _a2, _b2, _c2;
@@ -22727,9 +22791,9 @@ var __async = (__this, __arguments, generator) => {
         let avgX = 0;
         let avgY = 0;
         const avgRangeLen = avgRangeEnd - avgRangeStart;
-        for (let j = avgRangeStart; j < avgRangeEnd; j++) {
-          avgX += getX(data[j]);
-          avgY += getY(data[j]);
+        for (let j2 = avgRangeStart; j2 < avgRangeEnd; j2++) {
+          avgX += getX(data[j2]);
+          avgY += getY(data[j2]);
         }
         avgX /= avgRangeLen;
         avgY /= avgRangeLen;
@@ -22739,13 +22803,13 @@ var __async = (__this, __arguments, generator) => {
         const pointAY = getY(data[a2]);
         let maxArea = -1;
         let maxAreaIdx = rangeStart;
-        for (let j = rangeStart; j < rangeEnd; j++) {
+        for (let j2 = rangeStart; j2 < rangeEnd; j2++) {
           const area = Math.abs(
-            (pointAX - avgX) * (getY(data[j]) - pointAY) - (pointAX - getX(data[j])) * (avgY - pointAY)
+            (pointAX - avgX) * (getY(data[j2]) - pointAY) - (pointAX - getX(data[j2])) * (avgY - pointAY)
           ) * 0.5;
           if (area > maxArea) {
             maxArea = area;
-            maxAreaIdx = j;
+            maxAreaIdx = j2;
           }
         }
         sampled.push(data[maxAreaIdx]);
@@ -22787,8 +22851,8 @@ var __async = (__this, __arguments, generator) => {
         let high = firstY[1];
         let low = firstY[2];
         let close = firstY[3];
-        for (let j = start + 1; j < end; j++) {
-          const y = getY(data[j]);
+        for (let j2 = start + 1; j2 < end; j2++) {
+          const y = getY(data[j2]);
           if (y[1] > high) high = y[1];
           if (y[2] < low) low = y[2];
           close = y[3];
@@ -22828,8 +22892,8 @@ var __async = (__this, __arguments, generator) => {
         if (end <= start) continue;
         let low = Infinity;
         let high = -Infinity;
-        for (let j = start; j < end; j++) {
-          const y = getY(data[j]);
+        for (let j2 = start; j2 < end; j2++) {
+          const y = getY(data[j2]);
           if (y == null) continue;
           for (let k = 0; k < 2; k++) {
             const v = y[k];
@@ -22948,7 +23012,9 @@ var __async = (__this, __arguments, generator) => {
               );
               initialConfig.series = !options2.series && prevInitialSeries ? prevInitialSeries : Utils$1.copySeriesShallow(w.config.series);
               w.globals.initialConfig = initialConfig;
-              w.globals.initialSeries = w.config.series;
+              if (options2.series) {
+                w.globals.initialSeries = w.config.series;
+              }
             }
             if (options2.series && (w.globals.collapsedSeriesIndices.length > 0 || w.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
               ch.series.reconcileCollapsedByName();
@@ -22997,14 +23063,20 @@ var __async = (__this, __arguments, generator) => {
           w.globals.streamgraphRawSeries = null;
           w.globals.treemapRawSeries = null;
         }
+        const definedSeries = newSeries;
+        let reconciledCollapses = false;
         if (w.globals.axisCharts && (w.globals.collapsedSeriesIndices.length > 0 || w.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
           newSeries = newSeries.map(
             (s2) => s2 && typeof s2 === "object" ? __spreadValues({}, s2) : s2
           );
           this.ctx.series.reconcileCollapsedByName(newSeries);
+          reconciledCollapses = true;
         }
         this.ctx.data.resetParsingFlags();
-        const parsedState = this.ctx.data.parseData(newSeries);
+        const parsedState = this.ctx.data.parseData(
+          newSeries,
+          overwriteInitialSeries
+        );
         this.ctx._writeParsedSeriesData(parsedState.seriesData);
         this.ctx._writeParsedRangeData(parsedState.rangeData);
         this.ctx._writeParsedCandleData(parsedState.candleData);
@@ -23013,10 +23085,12 @@ var __async = (__this, __arguments, generator) => {
         if (overwriteInitialSeries) {
           if (w.globals.initialConfig) {
             w.globals.initialConfig.series = Utils$1.copySeriesShallow(
-              w.config.series
+              reconciledCollapses ? definedSeries : w.config.series
             );
           }
-          w.globals.initialSeries = w.config.series;
+          if (reconciledCollapses) {
+            w.globals.initialSeries = definedSeries;
+          }
         }
         if (this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w)) {
           return this.ctx.fastUpdate(animate, prevAxisScaleSig).then(() => {
@@ -23347,11 +23421,11 @@ var __async = (__this, __arguments, generator) => {
           hoverArea.classList.add("hovering-pan");
         }
       }
-      let j = Math.round(hoverX / xDivisor);
+      let j2 = Math.round(hoverX / xDivisor);
       const jHorz = Math.floor(hoverY / yDivisor);
       if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
-        j = Math.ceil(hoverX / xDivisor);
-        j = j - 1;
+        j2 = Math.ceil(hoverX / xDivisor);
+        j2 = j2 - 1;
       }
       let capturedSeries = null;
       let closest = null;
@@ -23377,7 +23451,7 @@ var __async = (__this, __arguments, generator) => {
           seriesYValArr
         );
         capturedSeries = closest.index;
-        j = (_a = closest.j) != null ? _a : 0;
+        j2 = (_a = closest.j) != null ? _a : 0;
         const wasCompacted = seriesXValArr.some(
           (arr, i2) => arr.length !== w.globals.seriesXvalues[i2].length
         );
@@ -23393,19 +23467,19 @@ var __async = (__this, __arguments, generator) => {
               nearest = i2;
             }
           }
-          if (nearest !== null) j = nearest;
+          if (nearest !== null) j2 = nearest;
         }
       }
       w.interact.capturedSeriesIndex = capturedSeries === null ? -1 : capturedSeries;
-      if (!j || j < 1) j = 0;
+      if (!j2 || j2 < 1) j2 = 0;
       if (w.globals.isBarHorizontal) {
         w.interact.capturedDataPointIndex = jHorz;
       } else {
-        w.interact.capturedDataPointIndex = j;
+        w.interact.capturedDataPointIndex = j2;
       }
       return {
         capturedSeries,
-        j: w.globals.isBarHorizontal ? jHorz : j,
+        j: w.globals.isBarHorizontal ? jHorz : j2,
         hoverX,
         hoverY
       };
@@ -23452,11 +23526,11 @@ var __async = (__this, __arguments, generator) => {
           const xArr = Xarrays[i2];
           const yArr = Yarrays[i2];
           const len = Math.min(xArr.length, yArr.length);
-          for (let j = 0; j < len; j++) {
-            const distX = Math.abs(hoverX - xArr[j]);
+          for (let j2 = 0; j2 < len; j2++) {
+            const distX = Math.abs(hoverX - xArr[j2]);
             if (distX < bucketDistX) {
               bucketDistX = distX;
-              closestPointIndex = j;
+              closestPointIndex = j2;
             }
           }
         }
@@ -23478,14 +23552,14 @@ var __async = (__this, __arguments, generator) => {
                 }
                 continue;
               }
-              for (let j = 0; j < len - 1; j++) {
+              for (let j2 = 0; j2 < len - 1; j2++) {
                 const seg = this._distanceToSegment(
                   hoverX,
                   hoverY,
-                  xArr[j],
-                  yArr[j],
-                  xArr[j + 1],
-                  yArr[j + 1]
+                  xArr[j2],
+                  yArr[j2],
+                  xArr[j2 + 1],
+                  yArr[j2 + 1]
                 );
                 if (seg.dist < bestSegDist) {
                   bestSegDist = seg.dist;
@@ -23520,33 +23594,33 @@ var __async = (__this, __arguments, generator) => {
         const yArr = Yarrays[i2];
         const len = Math.min(xArr.length, yArr.length);
         if (isLineArea && len >= 2) {
-          for (let j = 0; j < len - 1; j++) {
+          for (let j2 = 0; j2 < len - 1; j2++) {
             const seg = this._distanceToSegment(
               hoverX,
               hoverY,
-              xArr[j],
-              yArr[j],
-              xArr[j + 1],
-              yArr[j + 1]
+              xArr[j2],
+              yArr[j2],
+              xArr[j2 + 1],
+              yArr[j2 + 1]
             );
             if (seg.dist < closestDist) {
               closestDist = seg.dist;
               closestSeriesIndex = i2;
-              closestPointIndex = seg.t < 0.5 ? j : j + 1;
+              closestPointIndex = seg.t < 0.5 ? j2 : j2 + 1;
             }
           }
           continue;
         }
-        for (let j = 0; j < len; j++) {
-          const xVal = xArr[j];
+        for (let j2 = 0; j2 < len; j2++) {
+          const xVal = xArr[j2];
           const distX = hoverX - xVal;
-          const yVal = yArr[j];
+          const yVal = yArr[j2];
           const distY = hoverY - yVal;
           const dist = Math.sqrt(distX * distX + distY * distY);
           if (dist < closestDist) {
             closestDist = dist;
             closestSeriesIndex = i2;
-            closestPointIndex = j;
+            closestPointIndex = j2;
           }
         }
       }
@@ -23608,7 +23682,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j - the inner index of series (series[i][j])
      * @return {boolean}
      */
-    isXoverlap(j) {
+    isXoverlap(j2) {
       const w = this.w;
       const xSameForAllSeriesJArr = [];
       const seriesX = w.seriesData.seriesX.filter(
@@ -23616,8 +23690,8 @@ var __async = (__this, __arguments, generator) => {
       );
       if (seriesX.length > 0) {
         for (let i2 = 0; i2 < seriesX.length - 1; i2++) {
-          if (typeof seriesX[i2][j] !== "undefined" && typeof seriesX[i2 + 1][j] !== "undefined") {
-            if (seriesX[i2][j] !== seriesX[i2 + 1][j]) {
+          if (typeof seriesX[i2][j2] !== "undefined" && typeof seriesX[i2 + 1][j2] !== "undefined") {
+            if (seriesX[i2][j2] !== seriesX[i2 + 1][j2]) {
               xSameForAllSeriesJArr.push("unEqual");
             }
           }
@@ -23768,20 +23842,20 @@ var __async = (__this, __arguments, generator) => {
       this.tooltipUtil = new Utils(tooltipContext);
     }
     /** @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any }} opts */
-    drawSeriesTexts({ shared = true, ttItems, i: i2 = 0, j = null, y1, y2, e: e2 }) {
+    drawSeriesTexts({ shared = true, ttItems, i: i2 = 0, j: j2 = null, y1, y2, e: e2 }) {
       const w = this.w;
       if (w.config.tooltip.custom !== void 0) {
-        this.handleCustomTooltip({ i: i2, j, y1, y2, w });
+        this.handleCustomTooltip({ i: i2, j: j2, y1, y2, w });
       } else {
         this.toggleActiveInactiveSeries(shared, i2);
       }
       const values = this.getValuesToPrint({
         i: i2,
-        j
+        j: j2
       });
       this.printLabels({
         i: i2,
-        j,
+        j: j2,
         values,
         ttItems,
         shared,
@@ -23794,16 +23868,16 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any}} opts */
-    printLabels({ i: i2, j, values, ttItems, shared, e: e2 }) {
+    printLabels({ i: i2, j: j2, values, ttItems, shared, e: e2 }) {
       const w = this.w;
       const { xVal, zVal, xAxisTTVal } = values;
       const seriesLen = w.seriesData.series.length;
-      const basePColor = j !== null && w.config.plotOptions.bar.distributed ? w.globals.colors[j] : w.globals.colors[i2];
+      const basePColor = j2 !== null && w.config.plotOptions.bar.distributed ? w.globals.colors[j2] : w.globals.colors[i2];
       for (let t2 = 0; t2 < seriesLen; t2++) {
         const tIndex = w.config.tooltip.inverseOrder ? seriesLen - 1 - t2 : t2;
         const row = this.computeSeriesRow({
           i: i2,
-          j,
+          j: j2,
           t: t2,
           tIndex,
           shared,
@@ -23813,7 +23887,7 @@ var __async = (__this, __arguments, generator) => {
         this.DOMHandling({
           i: i2,
           t: tIndex,
-          j,
+          j: j2,
           ttItems,
           values: {
             val: row.val,
@@ -23834,7 +23908,7 @@ var __async = (__this, __arguments, generator) => {
      * printLabels() to keep the outer loop scannable.
      * @param {{i: number, j: any, t: number, tIndex: number, shared: boolean, e: any, basePColor: string}} opts
      */
-    computeSeriesRow({ i: i2, j, tIndex, shared, e: e2, basePColor }) {
+    computeSeriesRow({ i: i2, j: j2, tIndex, shared, e: e2, basePColor }) {
       const w = this.w;
       let f = this.getFormatters(i2);
       let pColor = basePColor;
@@ -23846,19 +23920,19 @@ var __async = (__this, __arguments, generator) => {
       let seriesName = w.config.chart.type === "treemap" ? f.yLbTitleFormatter(
         String(
           /** @type {any} */
-          w.config.series[i2].data[j].x
+          w.config.series[i2].data[j2].x
         ),
         {
           series: w.seriesData.series,
           seriesIndex: i2,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         }
       ) : this.getSeriesName({
         fn: f.yLbTitleFormatter,
         index: i2,
         seriesIndex: i2,
-        j
+        j: j2
       });
       if (w.globals.axisCharts) {
         if (shared) {
@@ -23867,18 +23941,18 @@ var __async = (__this, __arguments, generator) => {
             fn: f.yLbTitleFormatter,
             index: tIndex,
             seriesIndex: i2,
-            j
+            j: j2
           });
           pColor = w.globals.colors[tIndex];
-          val = this.formatYValue(f, tIndex, j);
-          goalVals = this.formatGoalVals(f, tIndex, j);
+          val = this.formatYValue(f, tIndex, j2);
+          goalVals = this.formatGoalVals(f, tIndex, j2);
         } else {
           pColor = this.resolvePatternColor(e2, pColor);
-          val = this.formatYValue(f, i2, j);
-          goalVals = this.formatGoalVals(f, i2, j);
+          val = this.formatYValue(f, i2, j2);
+          goalVals = this.formatGoalVals(f, i2, j2);
         }
       }
-      if (j === null) {
+      if (j2 === null) {
         val = f.yLbFormatter(w.seriesData.series[i2], __spreadProps(__spreadValues({}, w), {
           seriesIndex: i2,
           dataPointIndex: i2
@@ -23893,35 +23967,35 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} index
      * @param {any} j
      */
-    formatYValue(f, index, j) {
+    formatYValue(f, index, j2) {
       var _a, _b, _c, _d;
       const w = this.w;
       const steps = w.waterfallData && w.waterfallData.values;
-      if (steps && steps[index] && steps[index][j] != null) {
-        return f.yLbFormatter(steps[index][j], {
+      if (steps && steps[index] && steps[index][j2] != null) {
+        return f.yLbFormatter(steps[index][j2], {
           series: steps,
           seriesIndex: index,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         });
       }
       if (w.axisFlags.isRangeData) {
-        return f.yLbFormatter((_b = (_a = w.rangeData.seriesRangeStart) == null ? void 0 : _a[index]) == null ? void 0 : _b[j], {
+        return f.yLbFormatter((_b = (_a = w.rangeData.seriesRangeStart) == null ? void 0 : _a[index]) == null ? void 0 : _b[j2], {
           series: w.rangeData.seriesRangeStart,
           seriesIndex: index,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
-        }) + " - " + f.yLbFormatter((_d = (_c = w.rangeData.seriesRangeEnd) == null ? void 0 : _c[index]) == null ? void 0 : _d[j], {
+        }) + " - " + f.yLbFormatter((_d = (_c = w.rangeData.seriesRangeEnd) == null ? void 0 : _c[index]) == null ? void 0 : _d[j2], {
           series: w.rangeData.seriesRangeEnd,
           seriesIndex: index,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         });
       }
-      return f.yLbFormatter(w.seriesData.series[index][j], {
+      return f.yLbFormatter(w.seriesData.series[index][j2], {
         series: w.seriesData.series,
         seriesIndex: index,
-        dataPointIndex: j,
+        dataPointIndex: j2,
         w
       });
     }
@@ -23932,16 +24006,16 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} index
      * @param {any} j
      */
-    formatGoalVals(f, index, j) {
+    formatGoalVals(f, index, j2) {
       var _a;
       const w = this.w;
-      const goals = (_a = w.seriesData.seriesGoals[index]) == null ? void 0 : _a[j];
+      const goals = (_a = w.seriesData.seriesGoals[index]) == null ? void 0 : _a[j2];
       if (!Array.isArray(goals)) return [];
       return goals.map((goal) => ({
         attrs: goal,
         val: f.yLbFormatter(goal.value, {
           seriesIndex: index,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           w
         })
       }));
@@ -24013,17 +24087,17 @@ var __async = (__this, __arguments, generator) => {
       };
     }
     /** @param {{fn: any, index: any, seriesIndex: any, j: any}} opts */
-    getSeriesName({ fn, index, seriesIndex, j }) {
+    getSeriesName({ fn, index, seriesIndex, j: j2 }) {
       const w = this.w;
       return fn(String(w.seriesData.seriesNames[index]), {
         series: w.seriesData.series,
         seriesIndex,
-        dataPointIndex: j,
+        dataPointIndex: j2,
         w
       });
     }
     /** @param {{ t?: any, j?: any, i?: any, ttItems?: any, values?: any, seriesName?: any, shared?: any, pColor?: any }} opts */
-    DOMHandling({ t: t2, j, ttItems, values, seriesName, shared, pColor }) {
+    DOMHandling({ t: t2, j: j2, ttItems, values, seriesName, shared, pColor }) {
       const w = this.w;
       const ttCtx = this.ttCtx;
       const { val, goalVals, xVal, xAxisTTVal, zVal } = values;
@@ -24090,7 +24164,7 @@ var __async = (__this, __arguments, generator) => {
           ttGVal.innerHTML = gVals + `</div>`;
         };
         if (shared) {
-          if (w.seriesData.seriesGoals[t2][j] && Array.isArray(w.seriesData.seriesGoals[t2][j])) {
+          if (w.seriesData.seriesGoals[t2][j2] && Array.isArray(w.seriesData.seriesGoals[t2][j2])) {
             createGoalsHtml();
           } else {
             ttGLabel.innerHTML = "";
@@ -24162,7 +24236,7 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /** @param {{i: any, j: any}} opts */
-    getValuesToPrint({ i: i2, j }) {
+    getValuesToPrint({ i: i2, j: j2 }) {
       var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const filteredSeriesX = w.seriesData.seriesX.map(
@@ -24175,29 +24249,29 @@ var __async = (__this, __arguments, generator) => {
       const customFormatterOpts = {
         series: w.seriesData.series,
         seriesIndex: i2,
-        dataPointIndex: j,
+        dataPointIndex: j2,
         w
       };
       const zFormatter = w.formatters.ttZFormatter;
-      if (j === null) {
+      if (j2 === null) {
         val = w.seriesData.series[i2];
       } else {
         if (w.axisFlags.isXNumeric && w.config.chart.type !== "treemap") {
-          xVal = filteredSeriesX[i2][j];
+          xVal = filteredSeriesX[i2][j2];
           if (filteredSeriesX[i2].length === 0) {
             const firstActiveSeriesIndex = this.tooltipUtil.getFirstActiveXArray(filteredSeriesX);
-            xVal = filteredSeriesX[firstActiveSeriesIndex][j];
+            xVal = filteredSeriesX[firstActiveSeriesIndex][j2];
           }
         } else {
           const dataFormat = new Data(this.w);
           if (dataFormat.isFormatXY()) {
             xVal = typeof /** @type {any} */
-            w.config.series[i2].data[j] !== "undefined" ? (
+            w.config.series[i2].data[j2] !== "undefined" ? (
               /** @type {any} */
-              w.config.series[i2].data[j].x
+              w.config.series[i2].data[j2].x
             ) : "";
           } else {
-            xVal = typeof w.labelData.labels[j] !== "undefined" ? w.labelData.labels[j] : "";
+            xVal = typeof w.labelData.labels[j2] !== "undefined" ? w.labelData.labels[j2] : "";
           }
         }
       }
@@ -24226,7 +24300,7 @@ var __async = (__this, __arguments, generator) => {
         xVal = (_f = (_e = (_d = w.formatters).ttKeyFormatter) == null ? void 0 : _e.call(_d, bufferXVal, customFormatterOpts)) != null ? _f : bufferXVal;
       }
       if (w.seriesData.seriesZ.length > 0 && w.seriesData.seriesZ[i2].length > 0) {
-        zVal = zFormatter == null ? void 0 : zFormatter(w.seriesData.seriesZ[i2][j], w);
+        zVal = zFormatter == null ? void 0 : zFormatter(w.seriesData.seriesZ[i2][j2], w);
       }
       if (typeof w.config.xaxis.tooltip.formatter === "function") {
         xAxisTTVal = (_h = (_g = w.formatters).xaxisTooltipFormatter) == null ? void 0 : _h.call(
@@ -24245,7 +24319,7 @@ var __async = (__this, __arguments, generator) => {
       };
     }
     /** @param {{i: any, j: any, y1: any, y2: any, w: any}} opts */
-    handleCustomTooltip({ i: i2, j, y1, y2, w }) {
+    handleCustomTooltip({ i: i2, j: j2, y1, y2, w }) {
       const tooltipEl = this.ttCtx.getElTooltip();
       let fn = w.config.tooltip.custom;
       if (Array.isArray(fn)) {
@@ -24255,7 +24329,7 @@ var __async = (__this, __arguments, generator) => {
       const customTooltip = fn({
         series: w.seriesData.series,
         seriesIndex: i2,
-        dataPointIndex: j,
+        dataPointIndex: j2,
         y1,
         y2,
         w
@@ -24289,14 +24363,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} cx - point's x position, wherever point's x is, you need to move crosshair
      * @param {number | null} [j]
      */
-    moveXCrosshairs(cx, j = null) {
+    moveXCrosshairs(cx, j2 = null) {
       const ttCtx = this.ttCtx;
       const w = this.w;
       const xcrosshairs = ttCtx.getElXCrosshairs();
       let x = cx - ttCtx.xcrosshairsWidth / 2;
       const tickAmount = w.labelData.labels.slice().length;
-      if (j !== null) {
-        x = w.layout.gridWidth / tickAmount * j;
+      if (j2 !== null) {
+        x = w.layout.gridWidth / tickAmount * j2;
       }
       if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
         xcrosshairs.setAttribute("x", String(x));
@@ -24572,7 +24646,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} i
      * @param {number} j
      */
-    moveMarkers(i2, j) {
+    moveMarkers(i2, j2) {
       var _a;
       const w = this.w;
       const ttCtx = this.ttCtx;
@@ -24581,14 +24655,14 @@ var __async = (__this, __arguments, generator) => {
           ` .apexcharts-series[data\\:realIndex='${i2}'] .apexcharts-marker`
         );
         for (let p = 0; p < allPoints.length; p++) {
-          if (parseInt((_a = allPoints[p].getAttribute("rel")) != null ? _a : "0", 10) === j) {
+          if (parseInt((_a = allPoints[p].getAttribute("rel")) != null ? _a : "0", 10) === j2) {
             ttCtx.marker.resetPointsSize();
-            ttCtx.marker.enlargeCurrentPoint(j, allPoints[p]);
+            ttCtx.marker.enlargeCurrentPoint(j2, allPoints[p]);
           }
         }
       } else {
         ttCtx.marker.resetPointsSize();
-        this.moveDynamicPointOnHover(j, i2);
+        this.moveDynamicPointOnHover(j2, i2);
       }
     }
     // This function is used when you need to show markers/points only on hover -
@@ -24597,7 +24671,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j
      * @param {number} capturedSeries
      */
-    moveDynamicPointOnHover(j, capturedSeries) {
+    moveDynamicPointOnHover(j2, capturedSeries) {
       var _a, _b, _c, _d, _e;
       const w = this.w;
       const ttCtx = this.ttCtx;
@@ -24613,8 +24687,8 @@ var __async = (__this, __arguments, generator) => {
       if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot" || serType === "violin")) {
         return;
       }
-      cx = (_b = (_a = pointsArr[capturedSeries]) == null ? void 0 : _a[j]) == null ? void 0 : _b[0];
-      cy = ((_d = (_c = pointsArr[capturedSeries]) == null ? void 0 : _c[j]) == null ? void 0 : _d[1]) || 0;
+      cx = (_b = (_a = pointsArr[capturedSeries]) == null ? void 0 : _a[j2]) == null ? void 0 : _b[0];
+      cy = ((_d = (_c = pointsArr[capturedSeries]) == null ? void 0 : _c[j2]) == null ? void 0 : _d[1]) || 0;
       const point = w.dom.baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`
       );
@@ -24633,7 +24707,7 @@ var __async = (__this, __arguments, generator) => {
     /**
      * @param {number} j
      */
-    moveDynamicPointsOnHover(j) {
+    moveDynamicPointsOnHover(j2) {
       var _a, _b;
       const ttCtx = this.ttCtx;
       const w = ttCtx.w;
@@ -24650,9 +24724,9 @@ var __async = (__this, __arguments, generator) => {
         "bubble"
       ]);
       const hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(activeSeries);
-      if ((_a = pointsArr[activeSeries]) == null ? void 0 : _a[j]) {
-        cx = pointsArr[activeSeries][j][0];
-        cy = pointsArr[activeSeries][j][1];
+      if ((_a = pointsArr[activeSeries]) == null ? void 0 : _a[j2]) {
+        cx = pointsArr[activeSeries][j2][0];
+        cy = pointsArr[activeSeries][j2][1];
       }
       if (isNaN(cx)) {
         return;
@@ -24667,12 +24741,12 @@ var __async = (__this, __arguments, generator) => {
             }
           }
           if (points[p] && pointArr && pointArr.length) {
-            let pcy = pointsArr[p][j][1];
+            let pcy = pointsArr[p][j2][1];
             let pcy2;
             points[p].setAttribute("cx", cx);
             const shape = (_b = points[p].getAttribute("shape")) != null ? _b : "circle";
             if (w.config.chart.type === "rangeArea" && !w.globals.comboCharts) {
-              const rangeStartIndex = j + w.seriesData.series[p].length;
+              const rangeStartIndex = j2 + w.seriesData.series[p].length;
               pcy2 = pointsArr[p][rangeStartIndex][1];
               const pcyDiff = Math.abs(pcy - pcy2) / 2;
               pcy = pcy - pcyDiff;
@@ -24695,7 +24769,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j
      * @param {number} capturedSeries
      */
-    moveStickyTooltipOverBars(j, capturedSeries) {
+    moveStickyTooltipOverBars(j2, capturedSeries) {
       var _a, _b, _c, _d, _e;
       const w = this.w;
       const ttCtx = this.ttCtx;
@@ -24712,15 +24786,15 @@ var __async = (__this, __arguments, generator) => {
         i2 = series.getActiveConfigSeriesIndex("desc") + 1;
       }
       let jBar = w.dom.baseEl.querySelector(
-        `.apexcharts-bar-series .apexcharts-series[rel='${i2}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i2}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i2}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i2}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i2}'] path[j='${j}']`
+        `.apexcharts-bar-series .apexcharts-series[rel='${i2}'] path[j='${j2}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i2}'] path[j='${j2}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i2}'] path[j='${j2}'], .apexcharts-violin-series .apexcharts-series[rel='${i2}'] path[j='${j2}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i2}'] path[j='${j2}']`
       );
       if (!jBar && typeof capturedSeries === "number") {
         jBar = w.dom.baseEl.querySelector(
-          `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-violin-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
+          `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
+        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
+        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
+        .apexcharts-violin-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
+        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}']`
         );
       }
       let bc = null;
@@ -24729,11 +24803,11 @@ var __async = (__this, __arguments, generator) => {
         w.globals.barCanvasCoords
       );
       if (!jBar && bcc) {
-        bc = typeof capturedSeries === "number" && ((_a = bcc[capturedSeries]) == null ? void 0 : _a[j]) || null;
+        bc = typeof capturedSeries === "number" && ((_a = bcc[capturedSeries]) == null ? void 0 : _a[j2]) || null;
         if (!bc) {
           for (const key in bcc) {
-            if ((_b = bcc[key]) == null ? void 0 : _b[j]) {
-              bc = bcc[key][j];
+            if ((_b = bcc[key]) == null ? void 0 : _b[j2]) {
+              bc = bcc[key][j2];
               break;
             }
           }
@@ -24748,7 +24822,7 @@ var __async = (__this, __arguments, generator) => {
       const isBoxOrCandle = jBar && (jBar.classList.contains("apexcharts-candlestick-area") || jBar.classList.contains("apexcharts-boxPlot-area"));
       if (w.axisFlags.isXNumeric) {
         if (jBar && !isBoxOrCandle) {
-          const center = this._datapointCenterXFromBars(j);
+          const center = this._datapointCenterXFromBars(j2);
           if (center != null) {
             bcx = center;
           } else {
@@ -24761,9 +24835,9 @@ var __async = (__this, __arguments, generator) => {
         }
       } else {
         if (!w.globals.isBarHorizontal && !bc) {
-          bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
+          bcx = ttCtx.xAxisTicksPositions[j2 - 1] + ttCtx.dataPointsDividedWidth / 2;
           if (isNaN(bcx)) {
-            bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2;
+            bcx = ttCtx.xAxisTicksPositions[j2] - ttCtx.dataPointsDividedWidth / 2;
           }
         }
       }
@@ -24783,7 +24857,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (!ttCtx.fixedTooltip) {
         if (w.globals.isBarHorizontal && !w.config.tooltip.followCursor) {
-          const placed = this.placeHorizontalSharedTooltip(j);
+          const placed = this.placeHorizontalSharedTooltip(j2);
           if (placed) return;
         }
         this.moveTooltip(bcx, bcy || w.layout.gridHeight);
@@ -24800,11 +24874,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j
      * @returns {number | null}
      */
-    _datapointCenterXFromBars(j) {
+    _datapointCenterXFromBars(j2) {
       var _a, _b;
       const w = this.w;
       const bars = w.dom.baseEl.querySelectorAll(
-        `.apexcharts-bar-series path[j='${j}'],.apexcharts-rangebar-series path[j='${j}']`
+        `.apexcharts-bar-series path[j='${j2}'],.apexcharts-rangebar-series path[j='${j2}']`
       );
       if (!bars.length) return null;
       let unionLeft = Infinity;
@@ -24833,7 +24907,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j
      * @returns {boolean}
      */
-    placeHorizontalSharedTooltip(j) {
+    placeHorizontalSharedTooltip(j2) {
       var _a, _b;
       const w = this.w;
       const ttCtx = this.ttCtx;
@@ -24843,7 +24917,7 @@ var __async = (__this, __arguments, generator) => {
       if (!elGrid) return false;
       const gridRect = elGrid.getBoundingClientRect();
       const bars = w.dom.baseEl.querySelectorAll(
-        `.apexcharts-bar-series path[j='${j}'],.apexcharts-rangebar-series path[j='${j}'],.apexcharts-boxPlot-series path[j='${j}']`
+        `.apexcharts-bar-series path[j='${j2}'],.apexcharts-rangebar-series path[j='${j2}'],.apexcharts-boxPlot-series path[j='${j2}']`
       );
       if (!bars.length) return false;
       let unionLeft = Infinity;
@@ -25012,12 +25086,12 @@ var __async = (__this, __arguments, generator) => {
     /**
      * @param {number} j
      */
-    enlargePoints(j) {
+    enlargePoints(j2) {
       var _a, _b;
       const w = this.w;
       const me = this;
       const ttCtx = this.ttCtx;
-      const col = j;
+      const col = j2;
       const points = w.dom.baseEl.querySelectorAll(
         ".apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker"
       );
@@ -25132,7 +25206,7 @@ var __async = (__this, __arguments, generator) => {
       const renderer = w.globals.activeRenderer;
       const canvasCells = type === "heatmap" && renderer && renderer.kind === "canvas" && typeof renderer.hitTest === "function";
       const hovered = Utils.hoverTarget(e2);
-      let i2, j, cx, cy, width, height;
+      let i2, j2, cx, cy, width, height;
       if (canvasCells) {
         const seriesBound = opt.elGrid.getBoundingClientRect();
         const clientX = (_a = opt.clientX) != null ? _a : e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
@@ -25145,14 +25219,14 @@ var __async = (__this, __arguments, generator) => {
           return { x, y, noHit: true };
         }
         i2 = hit.seriesIndex;
-        j = hit.dataPointIndex;
+        j2 = hit.dataPointIndex;
         cx = hit.x;
         cy = hit.y;
         width = hit.width;
         height = hit.height;
       } else if (hovered.classList.contains(`apexcharts-${type}-rect`)) {
         i2 = this.getAttr(e2, "i");
-        j = this.getAttr(e2, "j");
+        j2 = this.getAttr(e2, "j");
         cx = this.getAttr(e2, "cx");
         cy = this.getAttr(e2, "cy");
         width = this.getAttr(e2, "width");
@@ -25163,12 +25237,12 @@ var __async = (__this, __arguments, generator) => {
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i: i2,
-        j,
+        j: j2,
         shared: false,
         e: e2
       });
       w.interact.capturedSeriesIndex = i2;
-      w.interact.capturedDataPointIndex = j;
+      w.interact.capturedDataPointIndex = j2;
       ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
       const tooltipEl = ttCtx.getElTooltip();
       if (type === "heatmap" && w.config.tooltip.arrow && !w.config.tooltip.followCursor && tooltipEl) {
@@ -25251,12 +25325,12 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const ttCtx = this.ttCtx;
       let i2;
-      let j;
+      let j2;
       if (Utils.hoverTarget(e2).classList.contains("apexcharts-marker")) {
         const cx = parseInt(opt.paths.getAttribute("cx"), 10);
         const cy = parseInt(opt.paths.getAttribute("cy"), 10);
         const val = parseFloat(opt.paths.getAttribute("val"));
-        j = parseInt(opt.paths.getAttribute("rel"), 10);
+        j2 = parseInt(opt.paths.getAttribute("rel"), 10);
         i2 = parseInt(
           opt.paths.parentNode.parentNode.parentNode.getAttribute("rel"),
           10
@@ -25270,15 +25344,15 @@ var __async = (__this, __arguments, generator) => {
         ttCtx.tooltipLabels.drawSeriesTexts({
           ttItems: opt.ttItems,
           i: i2,
-          j,
+          j: j2,
           shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
           e: e2
         });
         if (e2.type === "mouseup") {
-          ttCtx.markerClick(e2, i2, j);
+          ttCtx.markerClick(e2, i2, j2);
         }
         w.interact.capturedSeriesIndex = i2;
-        w.interact.capturedDataPointIndex = j;
+        w.interact.capturedDataPointIndex = j2;
         const arrowEnabled = !!w.config.tooltip.arrow;
         x = cx;
         if (arrowEnabled) {
@@ -25295,7 +25369,7 @@ var __async = (__this, __arguments, generator) => {
           const seriesBound = elGrid.getBoundingClientRect();
           y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top;
         }
-        ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y);
+        ttCtx.marker.enlargeCurrentPoint(j2, opt.paths, x, y);
       }
       return {
         x,
@@ -25324,9 +25398,9 @@ var __async = (__this, __arguments, generator) => {
         return;
       }
       i2 = barXY.i;
-      const j = barXY.j;
+      const j2 = barXY.j;
       w.interact.capturedSeriesIndex = i2;
-      w.interact.capturedDataPointIndex = j !== null ? j : w.interact.capturedDataPointIndex;
+      w.interact.capturedDataPointIndex = j2 !== null ? j2 : w.interact.capturedDataPointIndex;
       if (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars() || !w.config.tooltip.shared) {
         x = barXY.x;
         y = barXY.y;
@@ -25442,7 +25516,7 @@ var __async = (__this, __arguments, generator) => {
     /** @param {{e: any, opt: any}} opts */
     getBarTooltipXY({ e: e2, opt }) {
       const w = this.w;
-      let j = null;
+      let j2 = null;
       const ttCtx = this.ttCtx;
       let i2 = 0;
       let x = 0;
@@ -25481,7 +25555,7 @@ var __async = (__this, __arguments, generator) => {
           bottom: rectTopInGrid + bh
         };
         const clientX = e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
-        j = parseInt(bar.getAttribute("j"), 10);
+        j2 = parseInt(bar.getAttribute("j"), 10);
         i2 = parseInt(bar.parentNode.getAttribute("rel"), 10) - 1;
         const y1 = bar.getAttribute("data-range-y1");
         const y2 = bar.getAttribute("data-range-y2");
@@ -25506,7 +25580,7 @@ var __async = (__this, __arguments, generator) => {
         ttCtx.tooltipLabels.drawSeriesTexts({
           ttItems: opt.ttItems,
           i: i2,
-          j,
+          j: j2,
           y1: y1 ? parseInt(y1, 10) : null,
           y2: y2 ? parseInt(y2, 10) : null,
           shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
@@ -25539,7 +25613,7 @@ var __async = (__this, __arguments, generator) => {
         barHeight,
         barWidth,
         i: i2,
-        j,
+        j: j2,
         // SVG attribute values — left for any caller that still wants them.
         barCx,
         barCy,
@@ -26500,9 +26574,9 @@ var __async = (__this, __arguments, generator) => {
       const tooltipEl = this.getElTooltip();
       if (!tooltipEl) return;
       const i2 = parseInt(dotEl.getAttribute("i") || "0", 10);
-      const j = parseInt(dotEl.getAttribute("j") || "0", 10);
+      const j2 = parseInt(dotEl.getAttribute("j") || "0", 10);
       if (typeof w.config.tooltip.custom === "function") {
-        this.tooltipLabels.handleCustomTooltip({ i: i2, j, y1: null, y2: null, w });
+        this.tooltipLabels.handleCustomTooltip({ i: i2, j: j2, y1: null, y2: null, w });
         return;
       }
       const seriesName = w.seriesData.seriesNames[i2] || `series-${i2 + 1}`;
@@ -26512,7 +26586,7 @@ var __async = (__this, __arguments, generator) => {
       const unitOpts = w.config.plotOptions.unit || {};
       const unitValue = unitOpts.unitValue > 0 ? unitOpts.unitValue : 1;
       const catData = w.seriesData.unitData && w.seriesData.unitData[i2];
-      const datum = catData ? catData[j] : void 0;
+      const datum = catData ? catData[j2] : void 0;
       const datumObj = datum && typeof datum === "object" ? datum : null;
       const color = datumObj && datumObj.fillColor || w.globals.colors && w.globals.colors[i2] || "#008FFB";
       let body;
@@ -26521,7 +26595,7 @@ var __async = (__this, __arguments, generator) => {
         body = fmt({
           seriesName,
           seriesIndex: i2,
-          dataPointIndex: j,
+          dataPointIndex: j2,
           count,
           value,
           unitValue,
@@ -26532,9 +26606,9 @@ var __async = (__this, __arguments, generator) => {
       } else if (datum !== void 0 && datum !== null) {
         const label = datumObj ? (_c = (_b = (_a = datumObj.name) != null ? _a : datumObj.label) != null ? _b : datumObj.x) != null ? _c : null : null;
         const dVal = datumObj ? (_e = (_d = datumObj.value) != null ? _d : datumObj.y) != null ? _e : null : datum;
-        body = label != null && dVal != null ? `${label}: ${dVal}` : label != null ? String(label) : dVal != null ? String(dVal) : `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
+        body = label != null && dVal != null ? `${label}: ${dVal}` : label != null ? String(label) : dVal != null ? String(dVal) : `#${(j2 + 1).toLocaleString()} of ${count.toLocaleString()}`;
       } else {
-        body = `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
+        body = `#${(j2 + 1).toLocaleString()} of ${count.toLocaleString()}`;
         if (unitValue !== 1) {
           body += ` &middot; ${unitValue.toLocaleString()} per dot`;
         }
@@ -26563,7 +26637,7 @@ var __async = (__this, __arguments, generator) => {
         clientX,
         clientY
       });
-      const j = capj.j;
+      const j2 = capj.j;
       let capturedSeries = capj.capturedSeries;
       if (capturedSeries !== null && w.globals.collapsedSeriesIndices.includes(capturedSeries != null ? capturedSeries : -1))
         capturedSeries = null;
@@ -26573,9 +26647,9 @@ var __async = (__this, __arguments, generator) => {
         return;
       }
       if (capturedSeries !== null) {
-        this.handleStickyCapturedSeries(e2, capturedSeries != null ? capturedSeries : -1, opt, j != null ? j : 0);
+        this.handleStickyCapturedSeries(e2, capturedSeries != null ? capturedSeries : -1, opt, j2 != null ? j2 : 0);
       } else {
-        if (this.tooltipUtil.isXoverlap(j != null ? j : 0) || w.globals.isBarHorizontal) {
+        if (this.tooltipUtil.isXoverlap(j2 != null ? j2 : 0) || w.globals.isBarHorizontal) {
           const firstVisibleSeries = w.seriesData.series.findIndex(
             /**
              * @param {any} s
@@ -26583,7 +26657,7 @@ var __async = (__this, __arguments, generator) => {
              */
             (s2, i2) => !w.globals.collapsedSeriesIndices.includes(i2)
           );
-          this.create(e2, this, firstVisibleSeries, j != null ? j : 0, opt.ttItems);
+          this.create(e2, this, firstVisibleSeries, j2 != null ? j2 : 0, opt.ttItems);
         }
       }
     }
@@ -26593,23 +26667,23 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} opt
      * @param {number} j
      */
-    handleStickyCapturedSeries(e2, capturedSeries, opt, j) {
+    handleStickyCapturedSeries(e2, capturedSeries, opt, j2) {
       const w = this.w;
       if (!this.tConfig.shared) {
-        const ignoreNull = w.seriesData.series[capturedSeries][j] === null;
+        const ignoreNull = w.seriesData.series[capturedSeries][j2] === null;
         if (ignoreNull) {
           this.handleMouseOut(opt);
           return;
         }
       }
-      if (typeof w.seriesData.series[capturedSeries][j] !== "undefined") {
-        if (this.tConfig.shared && this.tooltipUtil.isXoverlap(j) && this.tooltipUtil.isInitialSeriesSameLen()) {
-          this.create(e2, this, capturedSeries, j, opt.ttItems);
+      if (typeof w.seriesData.series[capturedSeries][j2] !== "undefined") {
+        if (this.tConfig.shared && this.tooltipUtil.isXoverlap(j2) && this.tooltipUtil.isInitialSeriesSameLen()) {
+          this.create(e2, this, capturedSeries, j2, opt.ttItems);
         } else {
-          this.create(e2, this, capturedSeries, j, opt.ttItems, false);
+          this.create(e2, this, capturedSeries, j2, opt.ttItems, false);
         }
       } else {
-        if (this.tooltipUtil.isXoverlap(j)) {
+        if (this.tooltipUtil.isXoverlap(j2)) {
           const firstVisibleSeries = w.seriesData.series.findIndex(
             /**
              * @param {any} s
@@ -26617,7 +26691,7 @@ var __async = (__this, __arguments, generator) => {
              */
             (s2, i2) => !w.globals.collapsedSeriesIndices.includes(i2)
           );
-          this.create(e2, this, firstVisibleSeries, j, opt.ttItems);
+          this.create(e2, this, firstVisibleSeries, j2, opt.ttItems);
         }
       }
     }
@@ -26725,12 +26799,12 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} ttItems
      * @param {boolean | null} shared
      */
-    create(e2, context, capturedSeries, j, ttItems, shared = null) {
+    create(e2, context, capturedSeries, j2, ttItems, shared = null) {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u;
       const w = this.w;
       const ttCtx = context;
       if (e2.type === "mouseup") {
-        this.markerClick(e2, capturedSeries, j);
+        this.markerClick(e2, capturedSeries, j2);
       }
       if (shared === null) shared = this.tConfig.shared;
       const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries);
@@ -26741,9 +26815,9 @@ var __async = (__this, __arguments, generator) => {
       const bars = this.tooltipUtil.getElBars();
       const handlePoints = () => {
         if (w.globals.markers.largestSize > 0 && !canvasMode && !w.globals.markers.batched) {
-          ttCtx.marker.enlargePoints(j);
+          ttCtx.marker.enlargePoints(j2);
         } else {
-          ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
+          ttCtx.tooltipPosition.moveDynamicPointsOnHover(j2);
         }
       };
       if (w.config.legend.tooltipHoverFormatter) {
@@ -26764,7 +26838,7 @@ var __async = (__this, __arguments, generator) => {
           );
           const text = legendFormatter(legendName, {
             seriesIndex: shared ? lsIndex : capturedSeries,
-            dataPointIndex: j,
+            dataPointIndex: j2,
             w
           });
           if (!shared) {
@@ -26784,11 +26858,11 @@ var __async = (__this, __arguments, generator) => {
       const commonSeriesTextsParams = __spreadValues(__spreadValues({
         ttItems,
         i: capturedSeries,
-        j
-      }, ((_i = (_h = (_g = (_f = _rangeData.seriesRange) == null ? void 0 : _f[capturedSeries]) == null ? void 0 : _g[j]) == null ? void 0 : _h.y[0]) == null ? void 0 : _i.y1) !== void 0 && {
-        y1: (_m = (_l = (_k = (_j = _rangeData.seriesRange) == null ? void 0 : _j[capturedSeries]) == null ? void 0 : _k[j]) == null ? void 0 : _l.y[0]) == null ? void 0 : _m.y1
-      }), ((_q = (_p = (_o = (_n = _rangeData.seriesRange) == null ? void 0 : _n[capturedSeries]) == null ? void 0 : _o[j]) == null ? void 0 : _p.y[0]) == null ? void 0 : _q.y2) !== void 0 && {
-        y2: (_u = (_t = (_s = (_r = _rangeData.seriesRange) == null ? void 0 : _r[capturedSeries]) == null ? void 0 : _s[j]) == null ? void 0 : _t.y[0]) == null ? void 0 : _u.y2
+        j: j2
+      }, ((_i = (_h = (_g = (_f = _rangeData.seriesRange) == null ? void 0 : _f[capturedSeries]) == null ? void 0 : _g[j2]) == null ? void 0 : _h.y[0]) == null ? void 0 : _i.y1) !== void 0 && {
+        y1: (_m = (_l = (_k = (_j = _rangeData.seriesRange) == null ? void 0 : _j[capturedSeries]) == null ? void 0 : _k[j2]) == null ? void 0 : _l.y[0]) == null ? void 0 : _m.y1
+      }), ((_q = (_p = (_o = (_n = _rangeData.seriesRange) == null ? void 0 : _n[capturedSeries]) == null ? void 0 : _o[j2]) == null ? void 0 : _p.y[0]) == null ? void 0 : _q.y2) !== void 0 && {
+        y2: (_u = (_t = (_s = (_r = _rangeData.seriesRange) == null ? void 0 : _r[capturedSeries]) == null ? void 0 : _s[j2]) == null ? void 0 : _t.y[0]) == null ? void 0 : _u.y2
       });
       if (shared) {
         ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues({}, commonSeriesTextsParams), {
@@ -26798,7 +26872,7 @@ var __async = (__this, __arguments, generator) => {
           handlePoints();
         } else if (this.tooltipUtil.hasBars()) {
           if (canvasMode) {
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
           }
           this.barSeriesHeight = this.tooltipUtil.getBarsHeight(
             /** @type {any[]} */
@@ -26806,13 +26880,13 @@ var __async = (__this, __arguments, generator) => {
           );
           if (this.barSeriesHeight > 0) {
             const graphics = new Graphics(this.w, this.ctx);
-            const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`);
+            const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j2}']`);
             this.deactivateHoverFilter();
             const points = ttCtx.tooltipUtil.getAllMarkers(true);
             if (points.length && !this.barSeriesHeight) {
               handlePoints();
             }
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
             for (let b = 0; b < paths.length; b++) {
               graphics.pathMouseEnter(
                 /** @type {any} */
@@ -26828,12 +26902,12 @@ var __async = (__this, __arguments, generator) => {
           shared: false
         }, commonSeriesTextsParams));
         if (this.tooltipUtil.hasBars()) {
-          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
+          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
         }
         if (hasMarkers) {
-          ttCtx.tooltipPosition.moveMarkers(capturedSeries, j);
+          ttCtx.tooltipPosition.moveMarkers(capturedSeries, j2);
         } else if (dynamicPoints) {
-          ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries);
+          ttCtx.tooltipPosition.moveDynamicPointOnHover(j2, capturedSeries);
         }
       }
     }
@@ -28646,14 +28720,14 @@ var __async = (__this, __arguments, generator) => {
           const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
           return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
         }
-        const h = "Invalid license key. The license signature does not verify.", d = { data: i2.data, expired: false, message: h, signatureVerified: true, valid: false };
-        this.licenseKey === e2 ? this.publish(d) : this.notify(d), t(`[Apex] ${h}`);
+        const u = "Invalid license key. The license signature does not verify.", h = { data: i2.data, expired: false, message: u, signatureVerified: true, valid: false };
+        this.licenseKey === e2 ? this.publish(h) : this.notify(h), t(`[Apex] ${u}`);
       });
     }
   };
   l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
   let o = l;
-  const A = class {
+  const j = class {
     static applyStyles(e2) {
       Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
     }
@@ -28711,8 +28785,8 @@ var __async = (__this, __arguments, generator) => {
       })));
     }
   };
-  A.WATERMARK_ATTR = "data-apexcharts-watermark", A.WATERMARK_TEXT = "APEXCHARTS", A.ATTR = "data-apexcharts-watermark", A.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, A.managed = /* @__PURE__ */ new Set(), A.subscribed = false;
-  let M = A;
+  j.WATERMARK_ATTR = "data-apexcharts-watermark", j.WATERMARK_TEXT = "APEXCHARTS", j.ATTR = "data-apexcharts-watermark", j.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, j.managed = /* @__PURE__ */ new Set(), j.subscribed = false;
+  let C = j;
   const PRICING_URL = "https://apexcharts.com/pricing";
   let _perspectivesTokenDecoded = false;
   const enforced = /* @__PURE__ */ new Set();
@@ -28765,15 +28839,15 @@ var __async = (__this, __arguments, generator) => {
     return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
   }
   function reinstateWatermark(ctx, elWrap) {
-    const node = M.add(elWrap, { manage: false });
+    const node = C.add(elWrap, { manage: false });
     if (!node || typeof MutationObserver === "undefined") return;
     if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
     if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
     const nodeObs = new MutationObserver(() => {
-      const n2 = M.node(elWrap);
+      const n2 = C.node(elWrap);
       if (!n2) return;
       nodeObs.disconnect();
-      M.applyStyles(n2);
+      C.applyStyles(n2);
       nodeObs.takeRecords();
       nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
     });
@@ -28785,7 +28859,7 @@ var __async = (__this, __arguments, generator) => {
     reinstateWatermark(ctx, elWrap);
     if (typeof MutationObserver === "undefined" || ctx._wmWrapObserver) return;
     const wrapObs = new MutationObserver(() => {
-      if (!M.node(elWrap)) reinstateWatermark(ctx, elWrap);
+      if (!C.node(elWrap)) reinstateWatermark(ctx, elWrap);
     });
     wrapObs.observe(elWrap, { childList: true });
     ctx._wmWrapObserver = wrapObs;
@@ -28801,7 +28875,7 @@ var __async = (__this, __arguments, generator) => {
     }
     ctx._wmObservedNode = null;
     const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-    if (wrap) M.remove(wrap, { manage: false });
+    if (wrap) C.remove(wrap, { manage: false });
   }
   function notifyTrial(ctx, key, features) {
     if (ctx._premiumLicenseNotified) return;
@@ -29178,8 +29252,9 @@ var __async = (__this, __arguments, generator) => {
     /**
      * @param {any[]} ser
      * @param {object} opts
+     * @param {boolean} [overwriteInitialSeries=true]
      */
-    create(ser, opts) {
+    create(ser, opts, overwriteInitialSeries = true) {
       var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       if (!this.core) {
@@ -29226,7 +29301,7 @@ var __async = (__this, __arguments, generator) => {
       if (Environment.isBrowser()) {
         this.events.setupEventHandlers();
       }
-      const parsedState = this.data.parseData(series);
+      const parsedState = this.data.parseData(series, overwriteInitialSeries);
       this._writeParsedSeriesData(parsedState.seriesData);
       this._writeParsedRangeData(parsedState.rangeData);
       this._writeParsedCandleData(parsedState.candleData);
@@ -29293,7 +29368,7 @@ var __async = (__this, __arguments, generator) => {
       const me = this;
       const w = me.w;
       return new Promise((resolve, reject) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
         if (me.el === null) {
           return reject(
             new Error("Not enough data to display or target element not found")
@@ -29391,9 +29466,11 @@ var __async = (__this, __arguments, generator) => {
           }
           if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
             (_k = me.toolbar) == null ? void 0 : _k.createToolbar();
+          } else if (!w.globals.allSeriesCollapsed && ((_l = me.toolbar) == null ? void 0 : _l.resetControlDue())) {
+            me.toolbar.createToolbar({ resetOnly: true });
           }
         }
-        (_l = me.weave) == null ? void 0 : _l.dispatch("draw", {
+        (_m = me.weave) == null ? void 0 : _m.dispatch("draw", {
           pass: "full",
           xyRatios: graphData == null ? void 0 : graphData.xyRatios
         });
@@ -29582,6 +29659,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
      */
     appendData(newData, overwriteInitialSeries = true) {
+      var _a;
       const me = this;
       me.data.resetParsingFlags();
       me.w.globals.dataChanged = true;
@@ -29596,14 +29674,13 @@ var __async = (__this, __arguments, generator) => {
             newData[i2]
           );
           if (src && Array.isArray(src.data) && Array.isArray(derivedRaw[i2].data)) {
-            for (let j = 0; j < src.data.length; j++) {
-              derivedRaw[i2].data.push(src.data[j]);
-            }
+            derivedRaw[i2].data = derivedRaw[i2].data.concat(src.data);
           }
         }
-        return this.update();
+        return this.update(void 0, overwriteInitialSeries);
       }
       const newSeries = me.w.config.series.slice();
+      const reducerRaw = me.w.globals.dataReducerRawSeries;
       for (let i2 = 0; i2 < newSeries.length; i2++) {
         if (newData[i2] !== null && typeof newData[i2] !== "undefined") {
           const srcSerie = (
@@ -29614,17 +29691,15 @@ var __async = (__this, __arguments, generator) => {
             /** @type {any} */
             newSeries[i2]
           );
-          for (let j = 0; j < srcSerie.data.length; j++) {
-            dstSerie.data.push(srcSerie.data[j]);
+          dstSerie.data = dstSerie.data.concat(srcSerie.data);
+          if (reducerRaw && Array.isArray((_a = reducerRaw[i2]) == null ? void 0 : _a.data)) {
+            reducerRaw[i2].data = reducerRaw[i2].data.concat(srcSerie.data);
           }
         }
       }
       trimStreamingSeries(newSeries, me.w);
       me.w.config.series = newSeries;
-      if (overwriteInitialSeries) {
-        me.w.globals.initialSeries = me.w.config.series;
-      }
-      return this.update();
+      return this.update(void 0, overwriteInitialSeries);
     }
     /**
      * True when an options object carries enough series data that a
@@ -29646,15 +29721,22 @@ var __async = (__this, __arguments, generator) => {
     }
     /**
      * @param {object} [options]
+     * @param {boolean} [overwriteInitialSeries=false] true only when the caller
+     *   redefined the series before triggering this re-render, so the parse it
+     *   runs is the one that captures the new baseline.
      */
-    update(options2) {
+    update(options2, overwriteInitialSeries = false) {
       return new Promise((resolve, reject) => {
         if (options2 && this.lastUpdateOptions && !_ApexCharts._optionsTooBigToCompare(options2) && Utils$1.stringifyForCompare(this.lastUpdateOptions) === Utils$1.stringifyForCompare(options2)) {
           return resolve(this);
         }
         this.lastUpdateOptions = options2 && !_ApexCharts._optionsTooBigToCompare(options2) ? Utils$1.clone(options2) : null;
         new Destroy(this.ctx).clear({ isUpdating: true });
-        const graphData = this.create(this.w.config.series, options2 != null ? options2 : {});
+        const graphData = this.create(
+          this.w.config.series,
+          options2 != null ? options2 : {},
+          overwriteInitialSeries
+        );
         if (!graphData) return resolve(this);
         this.mount(graphData).then(() => {
           var _a;

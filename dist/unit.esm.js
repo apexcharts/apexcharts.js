@@ -18,38 +18,38 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-const L = 0.05, T = 0.05, j = 1 / 45;
-function E(e, t, s, i) {
+const D = 0.05, K = 0.05, O = 1 / 45;
+function $(e, t, s, i) {
   const n = { value: e, velocity: 0, target: e, stiffness: t, damping: s };
   return n;
 }
-function R(e, t) {
-  if (t <= 0) return O(e);
+function q(e, t) {
+  if (t <= 0) return W(e);
   let s = t;
   for (; s > 0; ) {
-    const t2 = Math.min(s, j), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
+    const t2 = Math.min(s, O), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
     e.velocity += i * t2, e.value += e.velocity * t2, s -= t2;
   }
-  return !!O(e) && (e.value = e.target, e.velocity = 0, true);
+  return !!W(e) && (e.value = e.target, e.velocity = 0, true);
 }
-function D(e, t) {
+function _(e, t) {
   e.target = t;
 }
-function O(e) {
+function W(e) {
   var _a, _b;
-  const t = (_a = e.restVelocity) != null ? _a : L, s = (_b = e.restDisplacement) != null ? _b : T;
+  const t = (_a = e.restVelocity) != null ? _a : D, s = (_b = e.restDisplacement) != null ? _b : K;
   return Math.abs(e.velocity) < t && Math.abs(e.value - e.target) < s;
 }
-const $ = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-function q(e) {
+const V = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
+function z(e) {
   var _a;
-  return (_a = $[e != null ? e : "crisp"]) != null ? _a : $.crisp;
+  return (_a = V[e != null ? e : "crisp"]) != null ? _a : V.crisp;
 }
 const Graphics = _core.__apex_Graphics;
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
@@ -226,7 +226,7 @@ const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
 function springParams(preset, speed) {
-  const [stiffness, damping] = q(
+  const [stiffness, damping] = z(
     /** @type {import('apex-commons').SpringPreset|undefined} */
     preset
   );
@@ -301,12 +301,12 @@ class Unit {
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
       cluster.dots.forEach((d, jj) => {
-        const j2 = d.j != null ? d.j : jj;
-        const datum = catData ? catData[j2] : void 0;
+        const j = d.j != null ? d.j : jj;
+        const datum = catData ? catData[j] : void 0;
         const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
         const rj = d.r != null ? d.r : sizeStats ? this._radiusForValue(this._unitValueOf(datum), sizeStats) : dotR;
         const spec = this._markSpecFor(opts, datum, cluster.i, rj);
-        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j2, spec);
+        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec);
         elSeries.add(el);
         let key;
         if (identity) {
@@ -317,7 +317,7 @@ class Unit {
         } else if (d.slot != null) {
           key = `slot:${d.slot}`;
         } else {
-          key = `${cluster.i}:${j2}`;
+          key = `${cluster.i}:${j}`;
         }
         gIndex++;
         nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, spec });
@@ -327,7 +327,7 @@ class Unit {
           el.node.setAttribute("data-piece-hidden", "1");
         } else if (animate) {
           const from = prev && prev.get(key);
-          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j2, burstCount) : burst);
+          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j, burstCount) : burst);
           const enter = opts.gather && opts.gather.enter || "burst";
           const inPlace = gridSplit || enter === "fade" || enter === "rise";
           const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
@@ -470,7 +470,7 @@ class Unit {
         r: typeof p.r === "number" && p.r > 0 ? p.r : void 0
       });
     });
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx: gw / 2,
       cy: gh / 2,
@@ -526,14 +526,14 @@ class Unit {
     counts.forEach((n, i) => {
       var _a;
       const catData = unitData[i];
-      for (let j2 = 0; j2 < n; j2++) {
-        const datum = catData ? catData[j2] : void 0;
-        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j2}`;
+      for (let j = 0; j < n; j++) {
+        const datum = catData ? catData[j] : void 0;
+        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j}`;
         objects.push({
           id,
           index,
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           label: names[i],
           // Normalised at the boundary: internally "no value" is null, but the
           // public object shape uses an absent property.
@@ -577,7 +577,7 @@ class Unit {
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
     const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6;
-    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+    const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i, s) => slotOf[i] = s);
@@ -592,7 +592,7 @@ class Unit {
     const cy = labelSpace + availH / 2;
     const outerRs = counts.map((n) => step * Math.sqrt(Math.max(1, n)) + dotR);
     const cellCentre = (i) => slotOf[i] >= 0 ? cellW * (slotOf[i] + 0.5) : gw / 2;
-    let centers = counts.map((_, i) => cellCentre(i));
+    let centers = counts.map((_2, i) => cellCentre(i));
     const visOuter = visible.map((i) => outerRs[i]);
     let overlap = false;
     for (let s = 1; s < Kv; s++) {
@@ -617,10 +617,10 @@ class Unit {
       } else {
         const lo = visOuter[0];
         const hi = gw - visOuter[Kv - 1];
-        visCenters = visOuter.map((_, s) => lo + (hi - lo) * s / (Kv - 1));
+        visCenters = visOuter.map((_2, s) => lo + (hi - lo) * s / (Kv - 1));
       }
       centers = counts.map(
-        (_, i) => slotOf[i] >= 0 ? visCenters[slotOf[i]] : gw / 2
+        (_2, i) => slotOf[i] >= 0 ? visCenters[slotOf[i]] : gw / 2
       );
     }
     return counts.map((n, i) => ({
@@ -652,11 +652,11 @@ class Unit {
     this._lastDotR = this._dotRadiusFromStep(step, opts);
     const cx = gw / 2;
     const cy = labelSpace + (gh - labelSpace) / 2;
-    const order = counts.map((_, i) => i);
+    const order = counts.map((_2, i) => i);
     if (opts.sortByGroup !== false) {
       order.sort((a, b) => counts[a] - counts[b]);
     }
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx,
       cy,
@@ -666,7 +666,7 @@ class Unit {
     }));
     let gi = 0;
     order.forEach((catI) => {
-      for (let j2 = 0; j2 < counts[catI]; j2++) {
+      for (let j = 0; j < counts[catI]; j++) {
         const r = step * Math.sqrt(gi + 0.5);
         const theta = gi * GOLDEN_ANGLE;
         clusters[catI].dots.push({
@@ -728,7 +728,7 @@ class Unit {
       }
     }
     seats.sort((s1, s2) => s1.a - s2.a);
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx,
       cy,
@@ -789,11 +789,11 @@ class Unit {
     const spacing = opts.spacing > 0 ? opts.spacing : 1.05;
     const absSpan = Math.abs(span) || Math.PI;
     const fixed = this._fixedRadius(opts);
-    const evalR = (R2) => {
-      R2 = Math.max(1, Math.round(R2));
+    const evalR = (R) => {
+      R = Math.max(1, Math.round(R));
       const radii = [];
-      for (let r = 0; r < R2; r++) {
-        radii.push(R2 === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R2 - 1)));
+      for (let r = 0; r < R; r++) {
+        radii.push(R === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R - 1)));
       }
       const weightSum = radii.reduce((a, x) => a + x, 0) || 1;
       const raw = radii.map((rho) => total * rho / weightSum);
@@ -806,19 +806,19 @@ class Unit {
         }
       });
       while (left > 0) {
-        seatsPerRow[R2 - 1]++;
+        seatsPerRow[R - 1]++;
         left--;
       }
-      const radialPitch = R2 === 1 ? r1 - r0 || r1 : (r1 - r0) / (R2 - 1);
+      const radialPitch = R === 1 ? r1 - r0 || r1 : (r1 - r0) / (R - 1);
       let minArcPitch = Infinity;
-      for (let r = 0; r < R2; r++) {
+      for (let r = 0; r < R; r++) {
         const n = seatsPerRow[r];
         if (n <= 0) continue;
         const arcPitch = radii[r] * absSpan / n;
         if (arcPitch < minArcPitch) minArcPitch = arcPitch;
       }
       const pitch = Math.min(radialPitch, minArcPitch);
-      return { R: R2, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
+      return { R, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
     };
     const arcRows = opts.arc && opts.arc.rows;
     let res;
@@ -830,8 +830,8 @@ class Unit {
     } else {
       const maxR = Math.max(1, Math.min(40, Math.ceil(Math.sqrt(total)) + 6));
       res = evalR(1);
-      for (let R2 = 2; R2 <= maxR; R2++) {
-        const cand = evalR(R2);
+      for (let R = 2; R <= maxR; R++) {
+        const cand = evalR(R);
         if (cand.dotR > res.dotR) res = cand;
       }
     }
@@ -855,7 +855,7 @@ class Unit {
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
     const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
     const topPad = labelsOn && !labelsBelow ? 30 : 6;
-    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+    const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i, s) => slotOf[i] = s);
@@ -906,9 +906,9 @@ class Unit {
       const barH = rows * pitch;
       const left = cx - cols * pitch / 2 + pitch / 2;
       const dots = [];
-      for (let j2 = 0; j2 < n; j2++) {
-        const rowIdx = Math.floor(j2 / cols);
-        const colIdx = j2 % cols;
+      for (let j = 0; j < n; j++) {
+        const rowIdx = Math.floor(j / cols);
+        const colIdx = j % cols;
         dots.push({
           x: left + colIdx * pitch,
           y: bottom - r - rowIdx * pitch
@@ -970,7 +970,7 @@ class Unit {
     const originX = (gw - blockW) / 2 + pitch / 2;
     const topY = labelSpace + (availH - blockH) / 2;
     const rowY = (rowIdx) => fillFrom === "bottom" ? topY + blockH - pitch / 2 - rowIdx * pitch : topY + pitch / 2 + rowIdx * pitch;
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx: gw / 2,
       cy: labelSpace + availH / 2,
@@ -980,7 +980,7 @@ class Unit {
     }));
     let k = 0;
     for (let ci = 0; ci < cells.length; ci++) {
-      for (let j2 = 0; j2 < cells[ci]; j2++) {
+      for (let j = 0; j < cells[ci]; j++) {
         const col = k % cols;
         const rowIdx = Math.floor(k / cols);
         clusters[ci].dots.push({
@@ -1016,14 +1016,14 @@ class Unit {
     const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
     const cellsPerTile = Math.max(1, Math.round(gcfg.total > 0 ? gcfg.total : 100));
     const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
-    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
-    const K = Math.max(1, visible.length);
+    const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
+    const K2 = Math.max(1, visible.length);
     const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts);
     const tileCols = Math.max(
       1,
-      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K)))
+      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K2)))
     );
-    const tileRows = Math.max(1, Math.ceil(K / tileCols));
+    const tileRows = Math.max(1, Math.ceil(K2 / tileCols));
     const labelsOn = !(opts.clusterLabels && opts.clusterLabels.show === false);
     const labelsBelow = labelsOn && opts.clusterLabels && opts.clusterLabels.position === "bottom";
     const topBand = labelsOn && !labelsBelow ? 22 : 4;
@@ -1143,7 +1143,7 @@ class Unit {
       (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
     );
     const isNum = (v) => v != null && isFinite(v);
-    const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum));
+    const visible = catVals.map((_2, i) => i).filter((i) => catVals[i].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
@@ -1200,9 +1200,9 @@ class Unit {
       const cy = laneCy(slot);
       lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` });
       const cat = unitData[ci] || [];
-      const pts = cat.map((d, j2) => {
+      const pts = cat.map((d, j) => {
         const v = valueOf(d);
-        const p = { j: j2, px: plotX(isNum(v) ? v : xMin), y: cy };
+        const p = { j, px: plotX(isNum(v) ? v : xMin), y: cy };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
         return p;
       });
@@ -1262,7 +1262,7 @@ class Unit {
       (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
     );
     const isNum = (v) => v != null && isFinite(v);
-    const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum));
+    const visible = catVals.map((_2, i) => i).filter((i) => catVals[i].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
@@ -1319,9 +1319,9 @@ class Unit {
       const cx = laneCx(slot);
       lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
       const cat = unitData[ci] || [];
-      const pts = cat.map((d, j2) => {
+      const pts = cat.map((d, j) => {
         const v = valueOf(d);
-        const p = { j: j2, py: plotY(isNum(v) ? v : vMin), x: cx };
+        const p = { j, py: plotY(isNum(v) ? v : vMin), x: cx };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
         return p;
       });
@@ -1379,7 +1379,7 @@ class Unit {
     const isNum = (v) => typeof v === "number" && isFinite(v);
     const xOf = (d) => d && typeof d === "object" ? d.x : null;
     const yOf = (d) => d && typeof d === "object" ? d.y != null ? d.y : d.value : null;
-    const visible = unitData.map((_, i) => i).filter(
+    const visible = unitData.map((_2, i) => i).filter(
       (i) => (unitData[i] || []).some((d) => isNum(xOf(d)) && isNum(yOf(d)))
     );
     let xmn = Infinity;
@@ -1517,10 +1517,10 @@ class Unit {
     let zmax = -Infinity;
     unitData.forEach(
       (cat) => (cat || []).forEach((d) => {
-        const z = d && typeof d === "object" ? d[field] : null;
-        if (typeof z === "number" && isFinite(z)) {
-          if (z < zmin) zmin = z;
-          if (z > zmax) zmax = z;
+        const z2 = d && typeof d === "object" ? d[field] : null;
+        if (typeof z2 === "number" && isFinite(z2)) {
+          if (z2 < zmin) zmin = z2;
+          if (z2 > zmax) zmax = z2;
         }
       })
     );
@@ -1537,9 +1537,9 @@ class Unit {
    */
   _scatterRadius(d, st, fallback) {
     if (!st) return fallback;
-    const z = d && typeof d === "object" ? d[st.field] : null;
-    if (typeof z !== "number" || !isFinite(z)) return st.rMin;
-    const t = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
+    const z2 = d && typeof d === "object" ? d[st.field] : null;
+    if (typeof z2 !== "number" || !isFinite(z2)) return st.rMin;
+    const t = st.zmax > st.zmin ? (z2 - st.zmin) / (st.zmax - st.zmin) : 1;
     const tc = Math.max(0, Math.min(1, t));
     const aMin = st.rMin * st.rMin;
     const aMax = st.rMax * st.rMax;
@@ -2173,7 +2173,7 @@ class Unit {
    *   chart-wide shape
    * @returns {any}
    */
-  _drawDot(graphics, opts, dotR, color, i, j2, spec) {
+  _drawDot(graphics, opts, dotR, color, i, j, spec) {
     const w = this.w;
     const strokeW = w.config.stroke.show ? w.config.stroke.width : 0;
     const strokeColor = Array.isArray(w.globals.stroke.colors) ? w.globals.stroke.colors[i] || "none" : "none";
@@ -2213,7 +2213,7 @@ class Unit {
     }
     el.node.classList.add("apexcharts-unit-area");
     el.node.setAttribute("i", String(i));
-    el.node.setAttribute("j", String(j2));
+    el.node.setAttribute("j", String(j));
     return el;
   }
   /**
@@ -2335,8 +2335,8 @@ class Unit {
     for (let k = 0; k < dots.length; k++) {
       const d = dots[k];
       const carried = live && !d.isEnter && d.key != null ? live.get(d.key) : null;
-      const sx = carried ? carried.x : E(d.cx0, stiffness, damping);
-      const sy = carried ? carried.y : E(d.cy0, stiffness, damping);
+      const sx = carried ? carried.x : $(d.cx0, stiffness, damping);
+      const sy = carried ? carried.y : $(d.cy0, stiffness, damping);
       if (carried) {
         sx.stiffness = stiffness;
         sy.stiffness = stiffness;
@@ -2420,12 +2420,12 @@ class Unit {
         let cx, cy;
         if (d.sx && d.sy) {
           if (elapsed >= 0 && !d.released) {
-            D(d.sx, d.x);
-            D(d.sy, d.y);
+            _(d.sx, d.x);
+            _(d.sy, d.y);
             d.released = true;
           }
-          const restX = R(d.sx, dt);
-          const restY = R(d.sy, dt);
+          const restX = q(d.sx, dt);
+          const restY = q(d.sy, dt);
           if (!d.released || !restX || !restY) done = false;
           cx = d.sx.value;
           cy = d.sy.value;
@@ -2757,14 +2757,14 @@ ${percent.toFixed(1)}%`;
     textEl.setAttribute("font-weight", String(cfg.fontWeight || 600));
     textEl.setAttribute("fill", cfg.color || color);
     const bottom = cfg.position === "bottom";
-    const R2 = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
+    const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
     const estWidth = str.length * fontSize * 0.55;
-    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R2 * 0.95;
+    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95;
     if (curved) {
       const yMid = cluster.cy;
-      const x1 = cluster.cx - R2;
-      const x2 = cluster.cx + R2;
-      const d = `M ${x1} ${yMid} A ${R2} ${R2} 0 0 1 ${x2} ${yMid}`;
+      const x1 = cluster.cx - R;
+      const x2 = cluster.cx + R;
+      const d = `M ${x1} ${yMid} A ${R} ${R} 0 0 1 ${x2} ${yMid}`;
       const arcId = `apexcharts-unit-label-${w.globals.chartID}-${cluster.i}`;
       const pathEl = BrowserAPIs.createElementNS(NS, "path");
       pathEl.setAttribute("id", arcId);
