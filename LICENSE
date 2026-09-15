@@ -8,17 +8,17 @@ One license key works across every Apex product, so a customer of one does not b
 
 ### 🔓 Community License (Free)
 
-For individuals, non-profits, educators, and small businesses with **less than \$2 million USD in annual revenue**.
+For individuals, non-profits, educators, and small businesses with **less than $2 million USD in annual revenue**.
 
 ✅ What's allowed:
 
 - Personal, educational, or non-profit use
-- Commercial use by small orgs (under \$2M annual revenue)
+- Commercial use by small orgs (under $2M annual revenue)
 - Modifications, and redistribution of the library itself (with attribution)
 
 🚫 Not allowed:
 
-- Use by companies or entities over \$2M/year revenue
+- Use by companies or entities over $2M/year revenue
 - Use in competing charting products
 - Sublicensing under different terms
 - Embedding in a product or platform used by other people, which needs the OEM License below whatever your revenue
@@ -31,8 +31,8 @@ For individuals, non-profits, educators, and small businesses with **less than \
 
 The Commercial License applies to all paid SKUs (Pro, Premium and OEM).
 
-The **Community License** is available at no cost **only** to organizations with **annual revenue under \$2M USD**.
-If your organization earns \$2M USD or more annually, you must purchase one of our paid licenses.
+The **Community License** is available at no cost **only** to organizations with **annual revenue under $2M USD**.
+If your organization earns $2M USD or more annually, you must purchase one of our paid licenses.
 
 Pro and Premium are priced per developer, and priced on the features you use rather than on your revenue.
 
@@ -54,12 +54,12 @@ Pro and Premium are priced per developer, and priced on the features you use rat
 
 Non-Profits are treated like commercial entities:
 
-- Annual operating budget **less than \$2 million USD**
+- Annual operating budget **less than $2 million USD**
 - _Eligible for Community licenses_
 
 or
 
-- Annual operating budget **greater than \$2 million USD**
+- Annual operating budget **greater than $2 million USD**
 - _Commercial license with possible discounts for Community, Pro, Premium and OEM products_
 
 ---
@@ -98,8 +98,8 @@ For OEM licenses, continued redistribution requires an active subscription.
 
 By installing ApexCharts (e.g., via `npm install apexcharts`), you are agreeing to the applicable license based on your usage:
 
-- Community License (if under \$2M revenue)
-- Commercial License (if over \$2M revenue)
+- Community License (if under $2M revenue)
+- Commercial License (if over $2M revenue)
 - OEM License (if redistributing to third-party users)
 
 ---
