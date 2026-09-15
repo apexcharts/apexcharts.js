@@ -2205,10 +2205,10 @@ anymatch@^3.0.3, anymatch@^3.1.3:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
-apex-commons@^0.7.0:
-  version "0.7.0"
-  resolved "https://registry.npmjs.org/apex-commons/-/apex-commons-0.7.0.tgz#728e1c0d75e282219b0bcf7a9787ea90a2c39bd2"
-  integrity sha512-cGspw4G0FV/hULrJy75Du301lFGSkMWph4c5B+/YX4CBImG8WFWRUZ5dTFKYcoK5Q8/Ax2jHAKWVVRzNZOWH7g==
+apex-commons@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.npmjs.org/apex-commons/-/apex-commons-0.8.0.tgz#4c69fc30940fedf5ddf854a7750ba5dc15c8f552"
+  integrity sha512-HaE6U0G4rkKP0SDhEHXB8f/OTzlS4k5h8eERIZ82G5ysvTZwGEVI43PV4HcumgLlSjyKmYUFE7RUjbbJrB89Wg==
 
 append-transform@^2.0.0:
   version "2.0.0"
