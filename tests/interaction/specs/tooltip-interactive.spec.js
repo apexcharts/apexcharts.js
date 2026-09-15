@@ -2,10 +2,10 @@ import { test, expect } from '../fixtures/base.js'
 
 const umdPath = 'dist/apexcharts.js'
 
-async function mount(page, interactive) {
+async function mount(page, interactive, followCursor = false) {
   await page.setContent('<div id="chart" style="width: 640px"></div>')
   await page.addScriptTag({ path: umdPath })
-  await page.evaluate((isInteractive) => {
+  await page.evaluate(([isInteractive, shouldFollowCursor]) => {
     window.linkClicks = 0
     window.chart = new window.ApexCharts(document.querySelector('#chart'), {
       chart: {
@@ -21,6 +21,7 @@ async function mount(page, interactive) {
       ],
       tooltip: {
         interactive: isInteractive,
+        followCursor: shouldFollowCursor,
         custom: () => '<a id="tooltip-link" href="#details">Details</a>',
       },
     })
@@ -32,7 +33,7 @@ async function mount(page, interactive) {
         }
       })
     })
-  }, interactive)
+  }, [interactive, followCursor])
   await page.waitForFunction(
     () => window.chart.w.globals.animationEnded === true,
     { timeout: 10_000 },
@@ -77,5 +78,19 @@ test.describe('tooltip.interactive', () => {
 
     await expect(tooltip).not.toHaveClass(/apexcharts-tooltip-interactive/)
     await expect(tooltip).toHaveCSS('pointer-events', 'none')
+  })
+
+  test('ignores followCursor so custom tooltip controls remain reachable', async ({ page }) => {
+    await mount(page, true, true)
+
+    await page.locator('.apexcharts-rangebar-area').hover()
+    const tooltip = page.locator('.apexcharts-tooltip')
+    const link = page.locator('#tooltip-link')
+
+    await expect(tooltip).toHaveClass(/apexcharts-active/)
+    await link.hover()
+    await expect(tooltip).toHaveClass(/apexcharts-active/)
+    await link.click()
+    await expect.poll(() => page.evaluate(() => window.linkClicks)).toBe(1)
   })
 })

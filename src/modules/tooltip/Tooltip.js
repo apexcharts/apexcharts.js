@@ -104,6 +104,13 @@ export default class Tooltip {
     this.tooltipRect = { x: 0, y: 0, ttWidth: 0, ttHeight: 0 }
   }
 
+  // A cursor-trailing tooltip moves away before the pointer can enter it.
+  // `interactive` is intended for custom tooltip controls, so it takes
+  // precedence while enabled without changing the user's configured value.
+  isFollowCursor() {
+    return this.tConfig.followCursor && !this.tConfig.interactive
+  }
+
   setupDimensionCache() {
     const w = this.w
     const tooltipEl = this.getElTooltip()
@@ -312,7 +319,7 @@ export default class Tooltip {
       w.config.chart.type !== 'heatmap'
     const shouldDrawArrow =
       this.tConfig.arrow &&
-      !this.tConfig.followCursor &&
+      !this.isFollowCursor() &&
       !this.tConfig.fixed.enabled &&
       !isSharedMulti &&
       !this.tConfig.fillSeriesColor &&
