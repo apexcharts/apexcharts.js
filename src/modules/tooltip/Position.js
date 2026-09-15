@@ -296,7 +296,7 @@ export default class Position {
       x = -20
     }
 
-    if (w.config.tooltip.followCursor) {
+    if (ttCtx.isFollowCursor()) {
       const elGrid = ttCtx.getElGrid()
       if (!elGrid) return null
       const seriesBound = elGrid.getBoundingClientRect()
@@ -717,7 +717,7 @@ export default class Position {
     }
 
     if (!w.globals.isBarHorizontal) {
-      if (w.config.tooltip.followCursor) {
+      if (ttCtx.isFollowCursor()) {
         bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
       } else {
         if (bcy + ttCtx.tooltipRect.ttHeight + 15 > w.layout.gridHeight) {
@@ -739,7 +739,7 @@ export default class Position {
       // left/right placement put it at the bar's value-end, which reads as
       // "tooltip goes to the right"). Computed from the union rect of every
       // bar with `[j='${j}']` across visible series.
-      if (w.globals.isBarHorizontal && !w.config.tooltip.followCursor) {
+      if (w.globals.isBarHorizontal && !ttCtx.isFollowCursor()) {
         const placed = this.placeHorizontalSharedTooltip(j)
         if (placed) return
       }
