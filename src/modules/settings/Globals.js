@@ -554,16 +554,11 @@ export default class Globals {
    * which cannot reach the captured copies because each series object was
    * copied at capture time.
    *
-   * The one in-place mutator is appendData(), whose push loop grows the shared
-   * data array. Re-capturing after it does not undo that: the pushed points
-   * are already in the array both snapshots point at, so a snapshot taken
-   * before the append reads back as appended. That is the documented
-   * behaviour of appendData(overwriteInitialSeries = true), and the `false`
-   * case is not honoured for a separate, older reason: Data.parseData()
-   * re-captures initialSeries unconditionally on the re-render appendData
-   * triggers. Detaching would mean copying the data arrays, which is exactly
-   * the per-point cost this snapshot exists to avoid. The same exception
-   * applies to `initialConfig.series`, which is captured with the same shape.
+   * appendData() used to be the exception, growing the shared data array in
+   * place. It now replaces the array instead (`data = data.concat(newData)`):
+   * one array copy per call, against the per-point cost this snapshot exists
+   * to avoid. With that, no internal edit can reach a captured copy. The same
+   * holds for `initialConfig.series`, which is captured with the same shape.
    *
    * @param {Record<string, any>} globals
    */

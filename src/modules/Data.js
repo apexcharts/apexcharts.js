@@ -1919,8 +1919,11 @@ export default class Data {
   // Segregate user provided data into appropriate vars
   /**
    * @param {any[]} ser
+   * @param {boolean} [overwriteInitialSeries=true] false when the caller hands
+   *   back the series the chart already has (an internal re-render), so the
+   *   baseline resetSeries() restores must not move.
    */
-  parseData(ser) {
+  parseData(ser, overwriteInitialSeries = true) {
     const w = this.w
     const cnf = w.config
     const gl = w.globals
@@ -1993,7 +1996,10 @@ export default class Data {
     // Re-cloning from cnf.series each parse would corrupt initialSeries and
     // break resetZoom (it would only restore one zoom step). Instead, snapshot
     // from the raw stash so initialSeries always represents the true input.
-    if (gl.dataReducerRawSeries && cnf.chart.dataReducer?.enabled) {
+    if (!overwriteInitialSeries) {
+      // An internal re-render replays the series the chart already has, so the
+      // baseline it was given stays put (#5283).
+    } else if (gl.dataReducerRawSeries && cnf.chart.dataReducer?.enabled) {
       const stash = gl.dataReducerRawSeries
       gl.initialSeries = ser.map((s, i) => ({
         ...s,
