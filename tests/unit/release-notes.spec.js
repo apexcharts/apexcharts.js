@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { heading, creditFor, section, tidy, firstParagraph } from '../../build/release-notes.mjs'
+import { heading, creditFor, section, tidy, unwrap } from '../../build/release-notes.mjs'
 
 /** A commit in the shape the generator parses them into. */
 const commit = (over = {}) => ({
@@ -107,61 +107,48 @@ describe('a code sample carried in a commit body', () => {
 })
 
 /*
- * Housekeeping summarises where the sections above it explain.
+ * Undoing the hard wrapping, which is what a commit body arrives with.
  *
- * A build script or a dependency move gets a line, not a heading and five
- * paragraphs of reasoning: this section sits under the features, and letting it
- * run to full bodies buries them under the part nobody opened the release to
- * read. Which is what the first generated release did, before anyone saw it.
+ * GitHub renders a release body with hard line breaks ON, unlike ordinary
+ * Markdown, so a body wrapped at 72 characters for the terminal comes out as a
+ * narrow ragged column with a break after every line. 7.5.1 shipped looking
+ * exactly like that.
  */
-describe('the housekeeping section', () => {
-  const chores = [
-    commit({
-      hash: '9'.repeat(40),
-      type: 'chore',
-      title: 'move the pin',
-      body: 'Commons moves to ^0.8.0.\n\nA caret on a 0.x pins the minor, so\nevery build resolved an older one.',
-    }),
-  ]
-  const terse = () => section(chores, ['chore'], '🧹 Housekeeping', {}, undefined, true)
-
-  it('gives each entry a bullet and its opening paragraph', () => {
-    expect(terse()).toContain('- Commons moves to ^0.8.0.')
+describe('unwrapping a commit body', () => {
+  it('joins the lines of a paragraph into one', () => {
+    expect(unwrap('one line\nand its continuation')).toBe('one line and its continuation')
   })
 
-  it('leaves out the reasoning that belongs in the log', () => {
-    expect(terse()).not.toContain('A caret on a 0.x')
+  it('keeps the break between two paragraphs', () => {
+    expect(unwrap('first para\nwrapped\n\nsecond para')).toBe('first para wrapped\n\nsecond para')
   })
 
-  it('uses no headings, so it cannot outrank the sections above it', () => {
-    expect(terse()).not.toContain('###')
+  // A line break in code IS the code. This is the same fence rule `tidy` has,
+  // and getting it wrong here would reformat an example into one long line.
+  it('leaves a fenced block exactly as written', () => {
+    const md = 'Prose\nwrapped.\n\n```js\nconst a = 1\nconst b = 2\n```'
+    expect(unwrap(md)).toBe('Prose wrapped.\n\n```js\nconst a = 1\nconst b = 2\n```')
   })
 
-  it('falls back to the subject where a chore has no body', () => {
-    const bare = [commit({ hash: '8'.repeat(40), type: 'chore', title: 'bump a dep', body: '' })]
-    expect(section(bare, ['chore'], '🧹 Housekeeping', {}, undefined, true)).toContain('- Bump a dep')
+  // A list means something by where its lines end: joined, it becomes one
+  // sentence with stray hyphens through the middle of it.
+  it('leaves a list alone', () => {
+    const md = '- first item\n- second item'
+    expect(unwrap(md)).toBe(md)
   })
 
-  // The features above are the opposite case and keep their full bodies: the
-  // whole point of assembling notes from commits is that the reasoning travels
-  // with the change.
-  it('does not make features terse', () => {
-    const feat = [commit({ hash: '7'.repeat(40), type: 'feat', title: 'add a thing', body: 'What.\n\nWhy, at length.' })]
-    const out = section(feat, ['feat'], '✨ New', {}, undefined)
-    expect(out).toContain('### Add a thing')
-    expect(out).toContain('Why, at length.')
-  })
-})
-
-describe('unwrapping a paragraph', () => {
-  // Commit bodies are hard-wrapped at about 72 characters. A bullet is one
-  // line, so the wrapping has to come out or the list renders ragged.
-  it('joins the lines a commit body wrapped', () => {
-    expect(firstParagraph('one line\nand its continuation\n\nnext para')).toBe('one line and its continuation')
+  it('leaves a table, a quote and an indented block alone', () => {
+    for (const md of ['| a | b |\n|---|---|', '> quoted line\n> and more', '    indented code\n    second line']) {
+      expect(unwrap(md)).toBe(md)
+    }
   })
 
-  it('is empty for a body that has none', () => {
-    expect(firstParagraph('')).toBe('')
+  it('unwraps the prose around a fence in the same body', () => {
+    const md = 'Before\nwrapped.\n\n```js\nx()\n```\n\nAfter\nwrapped.'
+    const out = unwrap(md)
+    expect(out).toContain('Before wrapped.')
+    expect(out).toContain('After wrapped.')
+    expect(out).toContain('```js\nx()\n```')
   })
 })
 
