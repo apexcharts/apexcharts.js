@@ -1,6 +1,7 @@
 // @ts-check
 import { getPlugin } from './PluginRegistry'
 import { buildPluginAPI, makeLayerHandle, WEAVE_API_VERSION } from './PluginAPI'
+import { releaseOwner } from './Claims'
 
 export { WEAVE_API_VERSION }
 
@@ -185,6 +186,11 @@ export default class WeaveHost {
       record.failures = (record.failures || 0) + 1
       if (record.failures >= 3) {
         record.disabled = true
+        // Its claims go with it. A disabled plugin has stopped running, so a
+        // claim it left behind would go on answering for an option nobody is
+        // maintaining, which is the permanent-leak case claims exist to rule
+        // out (see weave/Claims).
+        releaseOwner(this.w, record.def.name)
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`,
         )
@@ -795,6 +801,7 @@ export default class WeaveHost {
       for (const record of this.active) {
         this._guard(record, 'destroy', () => record.def.destroy && record.def.destroy(record.api))
       }
+      for (const record of this.active) releaseOwner(this.w, record.def.name)
       this.active = []
       this._derived = null
       this._reserved = null

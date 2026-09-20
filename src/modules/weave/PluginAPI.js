@@ -1,4 +1,6 @@
 // @ts-check
+import { addClaim, normaliseEntries, releaseClaim } from './Claims'
+
 /**
  * The frozen facade handed to each Weave plugin. Plugins NEVER receive raw `w`,
  * internal module instances, or the `__apex_*` internals: only this stable,
@@ -395,6 +397,50 @@ export function buildPluginAPI(host, record) {
     reserve(box) {
       host._reserve(record.def.name, box)
       return api
+    },
+
+    /**
+     * Set a positional option for your own series, without writing the
+     * caller's config.
+     *
+     * Some options are indexed by series position with no per-series escape
+     * hatch, so setting one for a single series has always meant writing the
+     * array that covers all of them, then putting the caller's value back. A
+     * claim says what this plugin wants instead, and the host answers with it
+     * where the option is READ. Nothing is written, so releasing is a deletion
+     * rather than a restore, and a caller's own `updateOptions` composes with
+     * the claim instead of being reverted by it.
+     *
+     *     const claim = api.claim('stroke.dashArray', [
+     *       { series: 'Revenue (forecast)', value: 6 },
+     *     ])
+     *     claim.release()
+     *
+     * Name the series rather than its position where you can: a name is
+     * resolved each time the option is read, so the claim follows the series
+     * through the caller adding, removing or reordering others.
+     *
+     * Claimable options are an allowlist (see `CLAIMABLE`). An option that is
+     * not on it returns null rather than throwing, so a plugin written against
+     * a newer host degrades. Every claim is released on teardown, on destroy,
+     * and if the host disables this plugin after repeated failures.
+     *
+     * @param {string} option
+     * @param {Array<{series: string|number, value: any}>} entries
+     * @returns {{release: () => void, update: (entries: Array<{series: string|number, value: any}>) => void}|null}
+     * @since Weave v6
+     */
+    claim(option, entries) {
+      const claim = addClaim(w, record.def.name, option, entries)
+      if (!claim) return null
+      return Object.freeze({
+        release() {
+          releaseClaim(w, claim)
+        },
+        update(next) {
+          claim.entries = normaliseEntries(option, next)
+        },
+      })
     },
 
     /**

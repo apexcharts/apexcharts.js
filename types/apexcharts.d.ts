@@ -850,6 +850,39 @@ interface ApexPluginAPI {
    */
   emit(name: string, detail?: any): void
   readonly el: Element
+  /**
+   * Set a positional option for your own series without writing the caller's
+   * config.
+   *
+   * Options like `stroke.dashArray` are indexed by series position with no
+   * per-series alternative, so setting one for a single series has meant
+   * writing the whole array and restoring the caller's afterwards. A claim is
+   * resolved where the option is READ instead: nothing is written, releasing is
+   * a deletion rather than a restore, and a caller's own `updateOptions`
+   * composes with the claim instead of being reverted by it.
+   *
+   * Name the series rather than its position where you can: the name is
+   * resolved each time the option is read, so the claim follows that series
+   * when others are added, removed or reordered.
+   *
+   * Returns null for an option that is not claimable, so a plugin written
+   * against a newer host degrades instead of throwing. Every claim is released
+   * on teardown, on destroy, and if the host disables the plugin.
+   *
+   * @since Weave v6
+   */
+  claim(
+    option: 'stroke.dashArray' | 'dataLabels.enabledOnSeries' | (string & {}),
+    entries: Array<{ series: string | number; value: any }>
+  ): ApexPluginClaim | null
+}
+
+/** A live claim over one positional option. @since Weave v6 */
+interface ApexPluginClaim {
+  /** Drop the claim. Idempotent. */
+  release(): void
+  /** Replace this claim's entries, keeping its place in the resolution order. */
+  update(entries: Array<{ series: string | number; value: any }>): void
 }
 
 interface ApexPlugin {
