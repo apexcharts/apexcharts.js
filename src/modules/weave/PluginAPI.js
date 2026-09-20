@@ -33,12 +33,51 @@ import { collectDrawn } from './Drawn'
  * dashed must write the whole array; reporting the current value is what lets
  * it put back what it found instead of flattening the caller's dashed lines.
  *
+ * v6 also added `api.info.title` (the name the page already gave this chart, so
+ * a readout naming several charts has something better than a container id) and
+ * `modifiers` on the pointer payload (so a gesture can be shift-click).
+ *
+ * v6 added three larger pieces, each closing a class rather than one incident.
+ * `api.capabilities` / `api.can()` replace the typeof-sniffing below with
+ * something a plugin can ask. `api.claim()` generalises what v5 only reported,
+ * so a plugin sets a positional option for ITS OWN series and the host resolves
+ * it where the option is read, writing nothing. `api.drawn()` / `api.declare()`
+ * publish what is on the chart, including other features' output, which is the
+ * question a layers panel and an export summary both ask. See
+ * `plans/26-weave-capabilities.md`.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
- * outright on a v2 host, so `apiVersion: 2` plus `typeof api.reserve ===
- * 'function'` keeps one build working on both.
+ * outright on a v2 host, so `apiVersion: 2` plus a capability check keeps one
+ * build working on both.
  */
-export const WEAVE_API_VERSION = 5
+export const WEAVE_API_VERSION = 6
+
+/**
+ * What this host can do, for plugins that must run against older ones too.
+ *
+ * The version integer cannot answer this. A plugin declaring a version newer
+ * than the host is skipped outright, so a plugin supporting several hosts
+ * declares the LOWEST version it can run on and then has to discover anything
+ * above that. Until now it did so by sniffing the facade for function members.
+ *
+ * Named for the capability rather than the version that introduced it, and
+ * permanent once published: removing a name is a breaking change on the same
+ * terms as removing a member.
+ *
+ * `scales` is deliberately absent. It is null for non-axis charts, which is a
+ * property of the chart rather than of the host, and advertising it here would
+ * tell a plugin on a pie chart that projection is available.
+ */
+export const WEAVE_CAPABILITIES = Object.freeze([
+  'layer',
+  'derived',
+  'reserve',
+  'pointer',
+  'stroke-info',
+  'claim',
+  'drawn',
+])
 
 /**
  * Public chart methods safe to expose to plugins (each bound to ctx). Excludes
@@ -548,5 +587,37 @@ export function buildPluginAPI(host, record) {
     },
   }
 
+  // Probed off the facade that was actually built rather than copied from the
+  // constant, so a member that is ever made conditional drops out instead of
+  // being advertised and then missing.
+  //
+  // An ARRAY rather than a Set, because a frozen Set is not actually read-only:
+  // Object.freeze does not touch internal slots, so `add()` and `delete()` keep
+  // working and one plugin could edit what every later one is told. The Set
+  // stays in the closure and `can()` is the lookup.
+  const probes = /** @type {Record<string, (a: any) => boolean>} */ (WIRED)
+  const granted = WEAVE_CAPABILITIES.filter((name) => probes[name](api))
+  const grantedSet = new Set(granted)
+  const extras = /** @type {any} */ (api)
+  extras.capabilities = Object.freeze(granted)
+  /** Whether this host supports a named capability. @since Weave v6 */
+  extras.can = (/** @type {string} */ name) => grantedSet.has(name)
+
   return Object.freeze(api)
+}
+
+/**
+ * How each capability name is confirmed present. One entry per member of
+ * {@link WEAVE_CAPABILITIES}; a name with no probe would always be advertised,
+ * which is the failure this table exists to prevent.
+ */
+const WIRED = {
+  layer: (/** @type {any} */ a) => typeof a.layer === 'function',
+  derived: (/** @type {any} */ a) => typeof a.markDerived === 'function',
+  reserve: (/** @type {any} */ a) => typeof a.reserve === 'function',
+  pointer: (/** @type {any} */ a) => typeof a.pointer === 'function',
+  'stroke-info': (/** @type {any} */ a) => !!(a.info && a.info.stroke),
+  claim: (/** @type {any} */ a) => typeof a.claim === 'function',
+  drawn: (/** @type {any} */ a) =>
+    typeof a.drawn === 'function' && typeof a.declare === 'function',
 }

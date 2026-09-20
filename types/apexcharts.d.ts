@@ -851,6 +851,16 @@ interface ApexPluginAPI {
   emit(name: string, detail?: any): void
   readonly el: Element
   /**
+   * What this host supports, for a plugin that has to run against older ones
+   * too. A plugin targeting several hosts declares the lowest `apiVersion` it
+   * can run on (a newer one is skipped outright) and asks this for the rest.
+   *
+   * @since Weave v6
+   */
+  can(name: string): boolean
+  /** The same list, for logging and support. Frozen. @since Weave v6 */
+  readonly capabilities: readonly string[]
+  /**
    * Set a positional option for your own series without writing the caller's
    * config.
    *

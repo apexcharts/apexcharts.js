@@ -204,4 +204,17 @@ describe('the list itself', () => {
       expect(item.owner.length).toBeGreaterThan(0)
     }
   })
+
+  it('is reported by the capability set', () => {
+    let can = null
+    ApexCharts.registerPlugin({
+      name: 'asks',
+      apiVersion: 2,
+      setup(api) {
+        can = api.can('drawn')
+      },
+    })
+    chartWith([{ name: 'asks' }])
+    expect(can).toBe(true)
+  })
 })
