@@ -53,6 +53,8 @@ export default class WeaveHost {
     this._reserveTimer = null
     /** @type {Map<string, Function[]>|null} plugin name -> pointer handlers */
     this._pointerSubs = null
+    /** @type {Map<string, any[]>|null} plugin name -> what it says it drew */
+    this._declared = null
     /** @type {Array<[string, Function]>|null} chart listeners to remove on teardown */
     this._pointerWired = null
 
@@ -736,6 +738,39 @@ export default class WeaveHost {
       Array.prototype.forEach.call(groups, (/** @type {any} */ n) => n.remove())
     }
     this._layers.clear()
+    // Declarations go with the drawing they describe. A plugin repaints its
+    // overlays from state on every draw, and it declares them the same way, so
+    // an inventory can never outlive what it is an inventory OF.
+    this._declared = null
+  }
+
+  /**
+   * Record one thing a plugin has drawn, for `api.drawn()`.
+   *
+   * Replaced by id rather than appended, so a plugin declaring the same overlay
+   * on every draw (which is the pattern this expects) produces one entry.
+   *
+   * @param {string} name plugin
+   * @param {{id: string, label?: string, visible?: boolean}} item
+   */
+  _declare(name, item) {
+    if (!item || typeof item.id !== 'string' || !item.id) {
+      console.warn(
+        `[apexcharts] plugin "${name}" declared something with no id; ignored.`,
+      )
+      return
+    }
+    if (!this._declared) this._declared = new Map()
+    const mine = this._declared.get(name) || []
+    const entry = {
+      id: item.id,
+      label: item.label ? String(item.label) : item.id,
+      visible: item.visible !== false,
+    }
+    const at = mine.findIndex((/** @type {any} */ d) => d.id === entry.id)
+    if (at > -1) mine[at] = entry
+    else mine.push(entry)
+    this._declared.set(name, mine)
   }
 
   // ─── Config-change reconciliation ───────────────────────────────────────
@@ -806,6 +841,7 @@ export default class WeaveHost {
       this._derived = null
       this._reserved = null
       this._pointerSubs = null
+      this._declared = null
       if (this._pointerWired) {
         for (const [name, handler] of this._pointerWired) {
           this.ctx.removeEventListener && this.ctx.removeEventListener(name, handler)

@@ -875,6 +875,38 @@ interface ApexPluginAPI {
     option: 'stroke.dashArray' | 'dataLabels.enabledOnSeries' | (string & {}),
     entries: Array<{ series: string | number; value: any }>
   ): ApexPluginClaim | null
+  /**
+   * Everything drawn on this chart, including other features' output: the
+   * series, the caller's annotations (ink strokes among them), and whatever
+   * plugins have declared.
+   *
+   * Read only. Every entry names its `owner`, because the list is only as
+   * complete as the features that opted in, and a reader should be able to say
+   * what it covers rather than assume it is exhaustive.
+   *
+   * @since Weave v6
+   */
+  drawn(): ReadonlyArray<ApexDrawnItem>
+  /**
+   * Say what this plugin has drawn, so it appears in `drawn()`. Declare from
+   * your draw handler: declarations are cleared with the layers at the start of
+   * every draw, so an inventory cannot outlive what it describes.
+   *
+   * @since Weave v6
+   */
+  declare(item: { id: string; label?: string; visible?: boolean }): ApexPluginAPI
+}
+
+/** One thing drawn on a chart. @since Weave v6 */
+interface ApexDrawnItem {
+  /** Stable within this chart, opaque to readers. */
+  readonly id: string
+  readonly kind: 'series' | 'annotation' | 'overlay'
+  /** A human name where one exists. */
+  readonly label: string
+  /** 'core', or the plugin that put it there. */
+  readonly owner: string
+  readonly visible: boolean
 }
 
 /** A live claim over one positional option. @since Weave v6 */
