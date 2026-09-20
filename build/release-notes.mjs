@@ -128,9 +128,40 @@ export function tidy(md) {
     .join('')
 }
 
-export function section(commits, types, title, authors, releasedBy) {
+/**
+ * The first paragraph of a body, for the sections that summarise rather than
+ * explain.
+ *
+ * Commit bodies here open by saying what changed and then spend several
+ * paragraphs on why, which is right for the log and for a feature's section in
+ * the notes. It is not right for housekeeping, where a reader wants to know
+ * what moved and not to read the reasoning behind a build script.
+ */
+export function firstParagraph(body) {
+  const para = body.trim().split(/\n\s*\n/)[0] ?? ''
+  return para.replace(/\s*\n\s*/g, ' ').trim()
+}
+
+/**
+ * One section of the notes.
+ *
+ * `terse` renders bullets of one paragraph each instead of a heading and the
+ * whole body. Housekeeping uses it: those entries are build scripts, licence
+ * text and dependency moves, and a full body each buries the features above
+ * them under reasoning nobody reading a release came for.
+ */
+export function section(commits, types, title, authors, releasedBy, terse = false) {
   const mine = commits.filter((c) => types.includes(c.type))
   if (!mine.length) return ''
+
+  if (terse) {
+    const bullets = mine.map((c) => {
+      const text = firstParagraph(c.body) || heading(c.title)
+      return `- ${text}${creditFor(c, authors, releasedBy).replace(/^\n\n/, ' ')}`
+    })
+    return `## ${title}\n\n${bullets.join('\n')}\n\n`
+  }
+
   const blocks = mine.map(
     (c) =>
       `### ${heading(c.title)}\n\n${c.body || '_No detail was written on this commit._'}` +
@@ -193,7 +224,7 @@ function main() {
     '',
     section(commits, ['feat'], '✨ New', authors, releasedBy),
     section(commits, ['fix'], '🐛 Fixes', authors, releasedBy),
-    section(commits, ['chore', 'docs', 'build', 'refactor', 'test'], '🧹 Housekeeping', authors, releasedBy),
+    section(commits, ['chore', 'docs', 'build', 'refactor', 'test'], '🧹 Housekeeping', authors, releasedBy, true),
   ].join('\n')
 
   process.stdout.write(tidy(out).trimEnd() + '\n')

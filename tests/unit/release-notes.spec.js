@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { heading, creditFor, section, tidy } from '../../build/release-notes.mjs'
+import { heading, creditFor, section, tidy, firstParagraph } from '../../build/release-notes.mjs'
 
 /** A commit in the shape the generator parses them into. */
 const commit = (over = {}) => ({
@@ -103,6 +103,65 @@ describe('a code sample carried in a commit body', () => {
     expect(out.match(/```js/g)).toHaveLength(2)
     expect(out).toContain('const a = 1\n\n\nconst b = 2')
     expect(out).toContain('```\n\nAnd:\n\n```js')
+  })
+})
+
+/*
+ * Housekeeping summarises where the sections above it explain.
+ *
+ * A build script or a dependency move gets a line, not a heading and five
+ * paragraphs of reasoning: this section sits under the features, and letting it
+ * run to full bodies buries them under the part nobody opened the release to
+ * read. Which is what the first generated release did, before anyone saw it.
+ */
+describe('the housekeeping section', () => {
+  const chores = [
+    commit({
+      hash: '9'.repeat(40),
+      type: 'chore',
+      title: 'move the pin',
+      body: 'Commons moves to ^0.8.0.\n\nA caret on a 0.x pins the minor, so\nevery build resolved an older one.',
+    }),
+  ]
+  const terse = () => section(chores, ['chore'], '🧹 Housekeeping', {}, undefined, true)
+
+  it('gives each entry a bullet and its opening paragraph', () => {
+    expect(terse()).toContain('- Commons moves to ^0.8.0.')
+  })
+
+  it('leaves out the reasoning that belongs in the log', () => {
+    expect(terse()).not.toContain('A caret on a 0.x')
+  })
+
+  it('uses no headings, so it cannot outrank the sections above it', () => {
+    expect(terse()).not.toContain('###')
+  })
+
+  it('falls back to the subject where a chore has no body', () => {
+    const bare = [commit({ hash: '8'.repeat(40), type: 'chore', title: 'bump a dep', body: '' })]
+    expect(section(bare, ['chore'], '🧹 Housekeeping', {}, undefined, true)).toContain('- Bump a dep')
+  })
+
+  // The features above are the opposite case and keep their full bodies: the
+  // whole point of assembling notes from commits is that the reasoning travels
+  // with the change.
+  it('does not make features terse', () => {
+    const feat = [commit({ hash: '7'.repeat(40), type: 'feat', title: 'add a thing', body: 'What.\n\nWhy, at length.' })]
+    const out = section(feat, ['feat'], '✨ New', {}, undefined)
+    expect(out).toContain('### Add a thing')
+    expect(out).toContain('Why, at length.')
+  })
+})
+
+describe('unwrapping a paragraph', () => {
+  // Commit bodies are hard-wrapped at about 72 characters. A bullet is one
+  // line, so the wrapping has to come out or the list renders ragged.
+  it('joins the lines a commit body wrapped', () => {
+    expect(firstParagraph('one line\nand its continuation\n\nnext para')).toBe('one line and its continuation')
+  })
+
+  it('is empty for a body that has none', () => {
+    expect(firstParagraph('')).toBe('')
   })
 })
 
