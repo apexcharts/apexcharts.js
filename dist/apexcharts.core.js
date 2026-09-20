@@ -42,7 +42,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.4.0
+ * ApexCharts v7.5.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -10381,6 +10381,26 @@ var __async = (__this, __arguments, generator) => {
       });
     }
   }
+  function indexOfSeries(w, series) {
+    if (typeof series === "number") return series;
+    const list = w.config && w.config.series || [];
+    for (let i2 = 0; i2 < list.length; i2++) {
+      if (list[i2] && list[i2].name === series) return i2;
+    }
+    return -1;
+  }
+  function resolveClaimed(w, option, seriesIndex, fallback) {
+    if (!w || !w.weaveClaims) return fallback;
+    const list = w.weaveClaims.byOption.get(option);
+    if (!list || !list.length) return fallback;
+    let resolved = fallback;
+    for (const claim of list) {
+      for (const entry of claim.entries) {
+        if (indexOfSeries(w, entry.series) === seriesIndex) resolved = entry.value;
+      }
+    }
+    return resolved;
+  }
   class Graphics {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -10778,6 +10798,12 @@ var __async = (__this, __arguments, generator) => {
       } else {
         strokeDashArray = w.config.stroke.dashArray;
       }
+      strokeDashArray = resolveClaimed(
+        w,
+        "stroke.dashArray",
+        realIndex,
+        strokeDashArray
+      );
       const el = this.drawPath({
         d,
         stroke,
@@ -12913,10 +12939,14 @@ var __async = (__this, __arguments, generator) => {
         dataPointIndex = j2
       } = opts;
       let dataLabelText = null;
-      if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
-        if (w.config.dataLabels.enabledOnSeries.indexOf(i2) < 0) {
-          return dataLabelText;
-        }
+      const labelsOn = resolveClaimed(
+        w,
+        "dataLabels.enabledOnSeries",
+        i2,
+        Array.isArray(w.config.dataLabels.enabledOnSeries) ? w.config.dataLabels.enabledOnSeries.indexOf(i2) >= 0 : true
+      );
+      if (!labelsOn) {
+        return dataLabelText;
       }
       let correctedLabels = {
         x,
