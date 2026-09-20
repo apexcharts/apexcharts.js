@@ -16,16 +16,28 @@ import ApexCharts from '../../src/entries/full.js'
 let seen = null
 /** Set by a test: what the drawer plugin declares on each draw. */
 let declaring = []
+/** The reader's facade, for asking again between draws. */
+let readerApi = null
 
 const reader = {
   name: 'reader',
   apiVersion: 2,
   setup(api) {
+    readerApi = api
     api.on('draw', () => {
       seen = api.drawn()
     })
   },
 }
+
+/**
+ * Ask again, without a redraw.
+ *
+ * The list is a projection of live state rather than a snapshot, so a test
+ * about something changing BETWEEN draws has to re-ask rather than read what
+ * the last draw captured.
+ */
+const reread = () => readerApi.drawn()
 
 const drawer = {
   name: 'drawer',
@@ -183,6 +195,68 @@ describe('what a plugin declares', () => {
     declaring = [{ label: 'Nameless' }]
     chartWith([{ name: 'drawer' }, { name: 'reader' }])
     expect(seen.filter((i) => i.kind === 'overlay')).toHaveLength(0)
+  })
+
+  /*
+   * Clearing at the start of each draw is not enough on its own, and the first
+   * plugin to consume this found out the hard way.
+   *
+   * A plugin that repaints on an INTERACTION rather than on a chart render is
+   * the normal case for an overlay: switching one off empties the layer and
+   * never reaches a draw hook. The declaration made for the previous paint
+   * would then go on being reported for something no longer on screen, and the
+   * inventory would be confidently wrong rather than merely incomplete.
+   *
+   * Emptying the layer is the plugin saying, in the only way the API gives it,
+   * that it is drawing nothing.
+   */
+  it('goes when the plugin empties its layer, without waiting for a redraw', () => {
+    let handle = null
+    ApexCharts.registerPlugin({
+      name: 'clearer',
+      apiVersion: 2,
+      setup(api) {
+        api.on('draw', () => {
+          handle = api.layer()
+          handle.line({ x1: 0, y1: 0, x2: 10, y2: 10, stroke: '#000' })
+          api.declare({ id: 'mark', label: 'A mark' })
+        })
+      },
+    })
+
+    chartWith([{ name: 'clearer' }, { name: 'reader' }])
+    expect(seen.filter((i) => i.kind === 'overlay')).toHaveLength(1)
+
+    // What a plugin does when the viewer switches its overlay off.
+    handle.clear()
+    expect(reread().filter((i) => i.kind === 'overlay')).toHaveLength(0)
+  })
+
+  // Scoped to the plugin that cleared. Another plugin's inventory is none of
+  // its business, and a clear that wiped the list would let one plugin erase
+  // everyone's work from the readout.
+  it('drops only the clearing plugins own declarations', () => {
+    let mine = null
+    ApexCharts.registerPlugin({
+      name: 'selfish',
+      apiVersion: 2,
+      setup(api) {
+        api.on('draw', () => {
+          mine = api.layer()
+          mine.line({ x1: 0, y1: 0, x2: 5, y2: 5, stroke: '#000' })
+          api.declare({ id: 'mine', label: 'Mine' })
+        })
+      },
+    })
+
+    declaring = [{ id: 'trend', label: 'Trend line' }]
+    chartWith([{ name: 'drawer' }, { name: 'selfish' }, { name: 'reader' }])
+    expect(seen.filter((i) => i.kind === 'overlay')).toHaveLength(2)
+
+    mine.clear()
+    const left = reread().filter((i) => i.kind === 'overlay')
+    expect(left).toHaveLength(1)
+    expect(left[0].owner).toBe('drawer')
   })
 })
 

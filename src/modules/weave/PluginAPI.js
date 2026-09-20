@@ -125,8 +125,10 @@ function buildBoundPublicMethods(ctx) {
  *
  * @param {any} g       svg.js group element (the plugin layer)
  * @param {any} graphics ctx.graphics
+ * @param {() => void} [onClear] run when the plugin empties the layer, so the
+ *   host can drop what that plugin declared it drew (v6)
  */
-export function makeLayerHandle(g, graphics) {
+export function makeLayerHandle(g, graphics, onClear) {
   /** @param {any} el */
   const add = (el) => {
     if (el) g.add(el)
@@ -224,6 +226,15 @@ export function makeLayerHandle(g, graphics) {
     clear() {
       const node = g.node
       while (node.firstChild) node.removeChild(node.firstChild)
+      // What the plugin declared it drew goes with the drawing (v6).
+      //
+      // Clearing at the start of each draw is not enough on its own. A plugin
+      // that repaints its overlays on an interaction rather than on a chart
+      // render (switching one off, say) clears its layer and never reaches a
+      // draw hook, so a declaration made for the previous paint would go on
+      // being reported for something no longer on screen. The plugin has just
+      // said, in the only way it can, that it is drawing nothing.
+      if (onClear) onClear()
       return handle
     },
   }

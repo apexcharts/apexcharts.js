@@ -752,7 +752,20 @@ export default class WeaveHost {
       g.node.setAttribute('aria-hidden', 'true')
       this._layers.set(name, g)
     }
-    return makeLayerHandle(g, this.ctx.graphics)
+    return makeLayerHandle(g, this.ctx.graphics, () => this._undeclare(name))
+  }
+
+  /**
+   * Forget what one plugin declared it drew.
+   *
+   * Called when that plugin empties its layer, which is it saying it is drawing
+   * nothing. Scoped to the one plugin: another's declarations are none of its
+   * business, and its own next draw declares again.
+   *
+   * @param {string} name plugin
+   */
+  _undeclare(name) {
+    if (this._declared) this._declared.delete(name)
   }
 
   /**
