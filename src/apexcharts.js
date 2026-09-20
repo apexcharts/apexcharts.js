@@ -449,6 +449,12 @@ export default class ApexCharts {
     }
 
     let series = ser
+    // Which series the `hidden: true` flag collapses. getSeriesAfterCollapsing
+    // empties their data, and it runs BEFORE the parse below, so the baseline
+    // that parse captures describes them as empty -- see the repair that
+    // follows parseData().
+    /** @type {number[]} */
+    const hiddenAtInit = []
     /**
      * @param {Record<string, any>} s
      * @param {number} realIndex
@@ -458,6 +464,7 @@ export default class ApexCharts {
         series = this.legend.legendHelpers.getSeriesAfterCollapsing({
           realIndex,
         })
+        hiddenAtInit.push(realIndex)
       }
     })
 
@@ -490,6 +497,37 @@ export default class ApexCharts {
     this._writeParsedCandleData(parsedState.candleData)
     this._writeParsedLabelData(parsedState.labelData)
     this._writeParsedAxisFlags(parsedState.axisFlags)
+
+    // `hidden: true` collapsed those series above, so what parseData just
+    // snapshotted as the baseline holds `data: []` for every one of them --
+    // and nothing refreshes it afterwards, because the legend's own updates
+    // pass `overwriteInitialSeries: false` so that an internal re-render keeps
+    // the baseline it was given (#5283). Put the caller's own data back for
+    // exactly those rows, which leaves the raw-stash baselines (histogram,
+    // dumbbell, streamgraph, waterfall, treemap, dataReducer) as parseData
+    // wrote them. Only ever a repair: a row whose input is itself empty is
+    // left alone, so a re-entry carrying the already-collapsed series cannot
+    // turn a good baseline into an empty one.
+    //
+    // Leaving it costs two things. resetSeries() clones this baseline, so a
+    // series declared hidden comes back from a reset EMPTY and its data is
+    // gone for the life of the chart. And Tooltip's isInitialSeriesSameLen()
+    // skips collapsed rows but measures the rest, so the moment the viewer
+    // un-hides one from the legend its length of 0 is compared against its
+    // siblings', the check fails, and every shared tooltip on the chart
+    // silently drops to the single series nearest the cursor.
+    if (overwriteInitialSeries && hiddenAtInit.length) {
+      const baseline = /** @type {any[]} */ (gl._initialSeriesPeek || [])
+      gl.initialSeries = baseline.map((/** @type {any} */ s, i) =>
+        hiddenAtInit.indexOf(i) > -1 &&
+        Utils.isObject(s) &&
+        ser[i] &&
+        ser[i].data &&
+        ser[i].data.length
+          ? { ...s, data: ser[i].data }
+          : s,
+      )
+    }
 
     // Strata: choose the active series renderer now that mark count is known.
     this.rendererController?.resolve()
