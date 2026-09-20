@@ -778,6 +778,8 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
         category: 'Mar',
         seriesName: 'revenue',
         selected: undefined,
+        // No DOM event behind a fired one, so no key was held (v6).
+        modifiers: { shift: false, ctrl: false, alt: false, meta: false },
       },
     ])
     chart.destroy()
@@ -822,6 +824,7 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
     expect(Object.keys(seen[0]).sort()).toEqual([
       'category',
       'dataPointIndex',
+      'modifiers',
       'selected',
       'seriesIndex',
       'seriesName',

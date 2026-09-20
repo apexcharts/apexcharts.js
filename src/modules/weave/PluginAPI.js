@@ -330,6 +330,16 @@ export function buildPluginAPI(host, record) {
             ? w.config.stroke.dashArray.slice()
             : (w.config.stroke && w.config.stroke.dashArray) || 0,
         }),
+        // What the chart calls itself, where the caller titled it (v6).
+        //
+        // For a plugin that has to NAME this chart to somebody: a page-level
+        // readout listing several charts otherwise has only the container's id
+        // to head each row with, which is a string written for a stylesheet.
+        // The title is the name the page already chose and put on screen.
+        //
+        // Empty string rather than undefined for an untitled chart, so a
+        // caller can use it directly in a template; falsy either way.
+        title: String((w.config.title && w.config.title.text) || ''),
       })
     },
 
@@ -505,7 +515,12 @@ export function buildPluginAPI(host, record) {
      * and a handler that throws is contained rather than allowed to break the
      * interaction it was watching.
      *
-     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined}) => void} fn
+     * `modifiers` (v6) reports the keys held during the interaction, for the
+     * gestures that need them: shift-click to add to a selection is the one
+     * page-level coordination wants. All four are false when the interaction
+     * came from somewhere with no DOM event, such as the keyboard.
+     *
+     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined, modifiers: {shift: boolean, ctrl: boolean, alt: boolean, meta: boolean}}) => void} fn
      * @returns {() => void} unsubscribe
      * @since Weave v4
      */

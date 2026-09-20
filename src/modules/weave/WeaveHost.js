@@ -439,8 +439,11 @@ export default class WeaveHost {
     ]
     this._pointerWired = []
     for (const [type, name] of map) {
-      const handler = (/** @type {any} */ _e, /** @type {any} */ _ctx, /** @type {any} */ opts) => {
-        this._emitPointer(type, opts)
+      // The DOM event is carried through rather than dropped: it is the only
+      // place the modifier keys exist, and a gesture like shift-click to add to
+      // a selection cannot be expressed without them. See `_emitPointer`.
+      const handler = (/** @type {any} */ e, /** @type {any} */ _ctx, /** @type {any} */ opts) => {
+        this._emitPointer(type, opts, e)
       }
       this.ctx.addEventListener(name, handler)
       this._pointerWired.push([name, handler])
@@ -457,8 +460,9 @@ export default class WeaveHost {
    *
    * @param {'enter'|'leave'|'select'} type
    * @param {any} opts
+   * @param {any} [e] the DOM event, where the interaction came from one
    */
-  _emitPointer(type, opts) {
+  _emitPointer(type, opts, e) {
     if (!this._pointerSubs || !this._pointerSubs.size) return
     const seriesIndex = opts && typeof opts.seriesIndex === 'number' ? opts.seriesIndex : -1
     const dataPointIndex =
@@ -483,6 +487,14 @@ export default class WeaveHost {
       // set, and what a plugin wants to know is whether THIS point is now in
       // it, so a second click reads as a deselect rather than another select.
       selected: type === 'select' ? WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : undefined,
+      // The modifier keys held during the interaction (v6), for the gestures
+      // that need them: shift-click to add to a selection is the one page mode
+      // wants, and a plugin cannot invent it from anything else here.
+      //
+      // All false when the interaction came from somewhere with no DOM event
+      // (the keyboard, a programmatic selection), which is the honest answer:
+      // no key was held.
+      modifiers: WeaveHost._modifiers(e),
     }
     for (const [name, handlers] of this._pointerSubs) {
       for (const fn of handlers.slice()) {
@@ -532,6 +544,24 @@ export default class WeaveHost {
     const mine = all[seriesIndex]
     if (!Array.isArray(mine)) return false
     return mine.indexOf(dataPointIndex) > -1
+  }
+
+  /**
+   * Which modifier keys were held, read off the DOM event.
+   *
+   * Always the same four booleans, never undefined and never a partial object:
+   * a plugin writes `if (e.modifiers.shift)` without a guard, and a shape that
+   * sometimes lacks a key is how that becomes a crash inside a viewer's click.
+   *
+   * @param {any} e
+   */
+  static _modifiers(e) {
+    return Object.freeze({
+      shift: !!(e && e.shiftKey),
+      ctrl: !!(e && e.ctrlKey),
+      alt: !!(e && e.altKey),
+      meta: !!(e && e.metaKey),
+    })
   }
 
   /**
