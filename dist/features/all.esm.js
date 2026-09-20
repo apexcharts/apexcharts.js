@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.5.0
+ * ApexCharts v7.5.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -9660,7 +9660,7 @@ function buildBoundPublicMethods(ctx) {
   });
   return Object.freeze(out);
 }
-function makeLayerHandle(g, graphics) {
+function makeLayerHandle(g, graphics, onClear) {
   const add = (el) => {
     if (el) g.add(el);
     return el;
@@ -9757,6 +9757,7 @@ function makeLayerHandle(g, graphics) {
     clear() {
       const node = g.node;
       while (node.firstChild) node.removeChild(node.firstChild);
+      if (onClear) onClear();
       return handle;
     }
   };
@@ -10683,7 +10684,19 @@ const _WeaveHost = class _WeaveHost {
       g.node.setAttribute("aria-hidden", "true");
       this._layers.set(name, g);
     }
-    return makeLayerHandle(g, this.ctx.graphics);
+    return makeLayerHandle(g, this.ctx.graphics, () => this._undeclare(name));
+  }
+  /**
+   * Forget what one plugin declared it drew.
+   *
+   * Called when that plugin empties its layer, which is it saying it is drawing
+   * nothing. Scoped to the one plugin: another's declarations are none of its
+   * business, and its own next draw declares again.
+   *
+   * @param {string} name plugin
+   */
+  _undeclare(name) {
+    if (this._declared) this._declared.delete(name);
   }
   /**
    * Remove all plugin layers. Run at the start of every `draw` because
