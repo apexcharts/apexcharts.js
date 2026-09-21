@@ -75,9 +75,23 @@ export default class Core {
       'http://www.w3.org/1999/xhtml',
       'div',
     )
+    // respectReducedMotion:false has to reach the stylesheet as well as the JS
+    // policy in Animations.applyAnimationPolicy, or the option only half works:
+    // the tweens come back while everything CSS-driven stays flattened by the
+    // reduced-motion block in apexcharts.css. That block is scoped
+    // :not(.apexcharts-ignore-reduced-motion), so this class is the opt-out.
+    //
+    // Set here rather than tracked separately because elWrap is rebuilt on
+    // every render, so an updateOptions that flips the flag is picked up with
+    // no extra bookkeeping.
+    const ignoreReducedMotion =
+      cnf.chart.animations?.respectReducedMotion === false
+
     Graphics.setAttrs(this.w.dom.elWrap, {
       id: gl.chartClass.substring(1),
-      class: `apexcharts-canvas ${gl.chartClass.substring(1)}`,
+      class:
+        `apexcharts-canvas ${gl.chartClass.substring(1)}` +
+        (ignoreReducedMotion ? ' apexcharts-ignore-reduced-motion' : ''),
     })
     this.el.appendChild(this.w.dom.elWrap)
 

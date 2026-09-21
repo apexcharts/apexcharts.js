@@ -436,9 +436,12 @@ export default class Options {
             enabled: true,
             speed: 600,
           },
-          // Honor the OS-level prefers-reduced-motion setting. When true (default)
-          // and the user has the accessibility preference enabled, all initial-mount
-          // animations are skipped and the chart renders instantly.
+          // Honor the OS-level prefers-reduced-motion setting. When true
+          // (default) and the preference is on, applyAnimationPolicy forces off
+          // BOTH `enabled` and `dynamicAnimation.enabled`, so neither the
+          // initial mount nor a data update animates. Setting it false also
+          // puts `apexcharts-ignore-reduced-motion` on the canvas, which is how
+          // the stylesheet's reduced-motion rules know to stand down too.
           respectReducedMotion: true,
           // Above this many data points, per-element morph + stagger (which
           // spins up one JS-driven animation timeline per path — three chained

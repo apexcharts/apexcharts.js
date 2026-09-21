@@ -1246,6 +1246,14 @@ class Pie {
       animate && w.config.chart.animations.enabled ? SLICE_OFFSET_TRANSITION : ''
 
     this.getSliceMovers(i).forEach((node) => {
+      // One class across the whole moving set, not just the arc: the slice's
+      // labels, any external label group and the hover band all slide with it.
+      // Styling the slide from a page used to mean knowing that list and
+      // writing a selector per member, and missing one (the labels are the easy
+      // one to miss) left it behind mid-slide. `.apexcharts-slice-mover` is the
+      // single hook for "moves when this slice moves".
+      node.classList.add('apexcharts-slice-mover')
+
       // The `transform` presentation attribute maps onto the CSS transform
       // property, so a CSS transition on it animates the slide wherever SVG
       // CSS transforms are supported, and degrades to an instant move (the old
@@ -1320,6 +1328,13 @@ class Pie {
       i,
       this.isSliceOut(i) ? this.getExpandOffset() : 0,
     )
+    //
+    // Dropping the class matters as much as clearing the inline transition:
+    // this is ONE node re-plotted per slice, so `apexcharts-slice-mover` left
+    // over from the last slice it slid with would let a page rule on that hook
+    // transition the jump, and clearing an inline property cannot cancel a
+    // stylesheet. offsetSlice re-adds it whenever the band is a mover again.
+    this.elHoverOutlinePath.node.classList.remove('apexcharts-slice-mover')
     this.elHoverOutlinePath.node.style.transition = ''
     this.elHoverOutlinePath.node.setAttribute('transform', `translate(${dx} ${dy})`)
     this.hoverOutlineIndex = i

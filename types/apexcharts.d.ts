@@ -2063,8 +2063,15 @@ type ApexChart = {
     }
     /**
      * When true (default), honors the OS-level prefers-reduced-motion media
-     * query — all initial-mount animations are skipped and the chart renders
-     * instantly. Set to false to override (e.g. for QA / demo screens).
+     * query: BOTH `animations.enabled` and `animations.dynamicAnimation.enabled`
+     * are forced off while it matches, so neither the initial mount nor a data
+     * update animates and the chart renders instantly.
+     *
+     * Set to false to animate regardless (a kiosk display, a screen-recording
+     * rig, a QA harness). Since 7.5.2 that also opts the chart out of the
+     * stylesheet's reduced-motion rules, via an `apexcharts-ignore-reduced-motion`
+     * class on the canvas; before then the flag reached only the JS tweens and
+     * CSS-driven motion stayed flattened.
      */
     respectReducedMotion?: boolean
     /**
