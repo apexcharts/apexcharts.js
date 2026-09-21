@@ -474,6 +474,11 @@ export default class Globals {
 
       // ── Animation control ─────────────────────────────────────────────────────
       shouldAnimate: true,
+      // Set by Animations.applyAnimationPolicy while prefers-reduced-motion is
+      // forcing animations off, holding the config values it overwrote so the
+      // same function can put them back if the OS preference is lifted. Null
+      // whenever the policy is not engaged.
+      reducedMotionLatch: null,
       previousPaths: [], // paths from previous render — source for enter animation
       // polarArea's last-drawn sector angles. Its angles are count-based, not
       // value-based, so a data-change animation cannot reconstruct them from

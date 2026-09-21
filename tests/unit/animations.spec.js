@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createChart, createChartWithOptions } from './utils/utils.js'
 
 function getAnimations(chart) {
@@ -324,5 +324,126 @@ describe('Animations — animatePathsGradually() delayFactor', () => {
       undefined,
       undefined
     )
+  })
+})
+
+describe('Animations — applyAnimationPolicy() reduced-motion latch', () => {
+  // The module caches its MediaQueryList on first use, so hand matchMedia a
+  // single object whose `matches` the test flips. Caching then works in our
+  // favour: every later read sees the flip, exactly like a real OS toggle.
+  const mql = { matches: false }
+  let applyAnimationPolicy
+
+  beforeEach(async () => {
+    mql.matches = false
+    vi.stubGlobal('matchMedia', () => mql)
+    window.matchMedia = () => mql
+    vi.resetModules()
+    ;({ applyAnimationPolicy } = await import('../../src/modules/Animations.js'))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const makeW = (animations = {}) => ({
+    config: {
+      chart: {
+        animations: {
+          enabled: true,
+          respectReducedMotion: true,
+          dynamicAnimation: { enabled: true },
+          ...animations,
+        },
+      },
+    },
+    globals: { reducedMotionLatch: null },
+  })
+
+  it('disables both animation switches while the OS preference is on', () => {
+    const w = makeW()
+    mql.matches = true
+    applyAnimationPolicy(w)
+
+    const anim = w.config.chart.animations
+    expect(anim.enabled).toBe(false)
+    expect(anim.dynamicAnimation.enabled).toBe(false)
+    expect(w.globals.reducedMotionLatch).toEqual({
+      enabled: true,
+      dynamicEnabled: true,
+    })
+  })
+
+  it('restores both switches when the OS preference is turned back off', () => {
+    const w = makeW()
+    mql.matches = true
+    applyAnimationPolicy(w)
+
+    mql.matches = false
+    applyAnimationPolicy(w)
+
+    const anim = w.config.chart.animations
+    expect(anim.enabled).toBe(true)
+    expect(anim.dynamicAnimation.enabled).toBe(true)
+    expect(w.globals.reducedMotionLatch).toBe(null)
+  })
+
+  // The regression this guards: w.config is the object every updateOptions()
+  // merges onto, so a `false` written by the policy survives each merge. Before
+  // the latch, that made the disable permanent for the life of the chart.
+  it('survives the updateOptions merge and still restores afterwards', () => {
+    const w = makeW()
+    mql.matches = true
+    applyAnimationPolicy(w)
+
+    // Three renders' worth of merges that never mention `animations`.
+    for (let i = 0; i < 3; i++) {
+      applyAnimationPolicy(w)
+      expect(w.config.chart.animations.enabled).toBe(false)
+    }
+
+    mql.matches = false
+    applyAnimationPolicy(w)
+    expect(w.config.chart.animations.enabled).toBe(true)
+    expect(w.config.chart.animations.dynamicAnimation.enabled).toBe(true)
+  })
+
+  it('leaves the config alone when respectReducedMotion is false', () => {
+    const w = makeW({ respectReducedMotion: false })
+    mql.matches = true
+    applyAnimationPolicy(w)
+
+    expect(w.config.chart.animations.enabled).toBe(true)
+    expect(w.config.chart.animations.dynamicAnimation.enabled).toBe(true)
+    expect(w.globals.reducedMotionLatch).toBe(null)
+  })
+
+  it('does not resurrect animations the user had disabled themselves', () => {
+    const w = makeW({ enabled: false, dynamicAnimation: { enabled: false } })
+    mql.matches = true
+    applyAnimationPolicy(w)
+
+    mql.matches = false
+    applyAnimationPolicy(w)
+
+    expect(w.config.chart.animations.enabled).toBe(false)
+    expect(w.config.chart.animations.dynamicAnimation.enabled).toBe(false)
+  })
+
+  it('re-stashes a value the user changes while the latch is engaged', () => {
+    const w = makeW()
+    mql.matches = true
+    applyAnimationPolicy(w)
+
+    // updateOptions({ chart: { animations: { enabled: true } } }) merged in
+    // while reduced motion is still on: the policy forces it back off for this
+    // render, but must remember it for when the preference is lifted.
+    w.config.chart.animations.enabled = true
+    applyAnimationPolicy(w)
+    expect(w.config.chart.animations.enabled).toBe(false)
+
+    mql.matches = false
+    applyAnimationPolicy(w)
+    expect(w.config.chart.animations.enabled).toBe(true)
   })
 })
