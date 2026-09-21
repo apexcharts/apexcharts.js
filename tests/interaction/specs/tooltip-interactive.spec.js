@@ -40,6 +40,33 @@ async function mount(page, interactive, followCursor = false) {
   )
 }
 
+async function mountGrouped(page) {
+  await page.setContent(
+    '<div id="left" style="display:inline-block;width:320px"></div><div id="right" style="display:inline-block;width:320px"></div>',
+  )
+  await page.addScriptTag({ path: umdPath })
+  await page.evaluate(() => {
+    const options = {
+      chart: {
+        group: 'interactive-tooltip-group',
+        type: 'line',
+        height: 240,
+        animations: { enabled: false },
+      },
+      series: [{ name: 'Values', data: [10, 20, 15] }],
+      tooltip: { interactive: true },
+    }
+    window.groupedCharts = ['left', 'right'].map((id) =>
+      new window.ApexCharts(document.querySelector(`#${id}`), options),
+    )
+    return Promise.all(window.groupedCharts.map((chart) => chart.render()))
+  })
+  await page.waitForFunction(
+    () => window.groupedCharts.every((chart) => chart.w.globals.animationEnded),
+    { timeout: 10_000 },
+  )
+}
+
 test.describe('tooltip.interactive', () => {
   test('custom tooltip content can be hovered and clicked', async ({ page }) => {
     await mount(page, true)
@@ -92,5 +119,19 @@ test.describe('tooltip.interactive', () => {
     await expect(tooltip).toHaveClass(/apexcharts-active/)
     await link.click()
     await expect.poll(() => page.evaluate(() => window.linkClicks)).toBe(1)
+  })
+
+  test('hides synchronized grouped tooltips after mouseout', async ({ page }) => {
+    await mountGrouped(page)
+
+    await page.locator('#left .apexcharts-series path').first().hover()
+    await expect(page.locator('#left .apexcharts-tooltip')).toHaveClass(/apexcharts-active/)
+    await expect(page.locator('#right .apexcharts-tooltip')).toHaveClass(/apexcharts-active/)
+
+    await page.mouse.move(700, 300)
+    await page.waitForTimeout(500)
+
+    await expect(page.locator('#left .apexcharts-tooltip')).not.toHaveClass(/apexcharts-active/)
+    await expect(page.locator('#right .apexcharts-tooltip')).not.toHaveClass(/apexcharts-active/)
   })
 })

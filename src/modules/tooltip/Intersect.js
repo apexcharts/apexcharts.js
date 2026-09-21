@@ -121,7 +121,7 @@ class Intersect {
     if (
       type === 'heatmap' &&
       w.config.tooltip.arrow &&
-      !ttCtx.isFollowCursor() &&
+      !TooltipUtils.isFollowCursor(w) &&
       tooltipEl
     ) {
       const elGridRect = opt.elGrid.getBoundingClientRect()
@@ -196,7 +196,7 @@ class Intersect {
     if (x > w.layout.gridWidth / 2) {
       x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
     }
-    if (ttCtx.isFollowCursor()) {
+    if (TooltipUtils.isFollowCursor(w)) {
       const seriesBound = w.dom.elWrap.getBoundingClientRect()
       x =
         (w.interact.clientX ?? 0) -
@@ -292,7 +292,7 @@ class Intersect {
         }
       }
 
-      if (ttCtx.isFollowCursor()) {
+      if (TooltipUtils.isFollowCursor(w)) {
         const elGrid = ttCtx.getElGrid()
         if (!elGrid) return { x, y }
         const seriesBound = elGrid.getBoundingClientRect()
@@ -366,7 +366,7 @@ class Intersect {
       x = 0
     }
 
-    if (ttCtx.isFollowCursor()) {
+    if (TooltipUtils.isFollowCursor(w)) {
       const elGrid = ttCtx.getElGrid()
       if (!elGrid) return
     }
@@ -661,7 +661,7 @@ class Intersect {
         e,
       })
 
-      if (ttCtx.isFollowCursor()) {
+      if (TooltipUtils.isFollowCursor(w)) {
         if (w.globals.isBarHorizontal) {
           x = clientX - seriesBound.left + 15
           y = handleYForBars()
