@@ -1752,16 +1752,16 @@ export default class Defaults {
       return val
     }
 
-    if (opts.chart.type === 'bar') {
-      opts.dataLabels.formatter = percent
-      return opts
-    }
-
-    // Combo: only the series drawn as bars are part of the 100% total, and
-    // only their labels are handed the percentage (BarDataLabels reads
-    // w.globals.seriesPercent). A line or area label still gets its raw
-    // value, so it keeps the plain default formatter rather than a '%'.
-    const plain = new Options().init().dataLabels.formatter
+    // Only the series drawn as bars are part of the 100% total, and only
+    // their labels are handed the percentage (BarDataLabels reads
+    // w.globals.seriesPercent). Any other series (a line mixed into a combo,
+    // whichever type the chart is declared as) still gets its raw value, so
+    // it keeps the plain default rather than a '%'. In a pure bar chart
+    // columnSeries.i covers every series, so nothing changes there.
+    // The plain default is the same as Options' `dataLabels.formatter`,
+    // inlined rather than building a full Options tree for one function.
+    /** @param {any} val */
+    const plain = (val) => (val !== null ? val : '')
     /**
      * @param {any} val
      * @param {{ seriesIndex?: number, w?: any }} [ctx]

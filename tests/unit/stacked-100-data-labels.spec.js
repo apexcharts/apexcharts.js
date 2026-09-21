@@ -112,6 +112,27 @@ describe('100% stacked combo with data labels on (#2429)', () => {
     expect(labelsBySeries()).toEqual({ ColA: A_PCT, ColB: B_PCT })
   })
 
+  it('labels the line with its raw value when the chart is typed bar', async () => {
+    // Same combo, declared `bar` with a `line` series mixed in. The bare
+    // percent formatter used to apply to every series here, so the line's
+    // raw values read as `180%` / `290%`.
+    await render([...columns(), line()], {
+      chart: {
+        type: 'bar',
+        width: 700,
+        height: 400,
+        stacked: true,
+        stackType: '100%',
+        animations: { enabled: false },
+      },
+    })
+    expect(labelsBySeries()).toEqual({
+      ColA: A_PCT,
+      ColB: B_PCT,
+      Trend: TREND_RAW,
+    })
+  })
+
   it('leaves a user formatter alone for every series', async () => {
     await render([line(), ...columns()], {
       dataLabels: {
