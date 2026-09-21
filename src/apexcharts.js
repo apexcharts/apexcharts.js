@@ -336,8 +336,15 @@ export default class ApexCharts {
               // We are in Shadow DOM, add to shadow root
               rootNode.prepend(css)
             } else if (this.w.config.chart.injectStyleSheet !== false) {
-              // Add to <head> of element's document
-              doc.head.appendChild(css)
+              // Prepended, not appended, so the page's own stylesheet wins.
+              // This sheet is injected when the FIRST chart renders, which is
+              // long after the page's <link>s have parsed, so appending put it
+              // last in the cascade: an author rule at equal specificity lost
+              // on document order alone, wherever they put it, and the only way
+              // through was to out-specify us (repeating a class). Prepending
+              // makes us the weakest author styles, which is what a library's
+              // defaults should be, and matches the Shadow DOM branch above.
+              doc.head.prepend(css)
             }
           }
         }

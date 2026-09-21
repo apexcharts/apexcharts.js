@@ -8,14 +8,6 @@
   }
 }
 
-@keyframes resizeanim {
-
-  0%,
-  to {
-    opacity: 0
-  }
-}
-
 .apexcharts-canvas {
   position: relative;
   direction: ltr !important;
@@ -1291,38 +1283,6 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-radar-series .apexcharts-yaxis {
   pointer-events: none;
-}
-
-.resize-triggers {
-  animation: 1ms resizeanim;
-  visibility: hidden;
-  opacity: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden
-}
-
-.contract-trigger:before,
-.resize-triggers,
-.resize-triggers>div {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0
-}
-
-.resize-triggers>div {
-  height: 100%;
-  width: 100%;
-  background: #eee;
-  overflow: auto
-}
-
-.contract-trigger:before {
-  overflow: hidden;
-  width: 200%;
-  height: 200%
 }
 
 .apexcharts-bar-goals-markers {

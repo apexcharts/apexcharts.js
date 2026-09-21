@@ -204,4 +204,47 @@ test.describe('Reduced motion', () => {
     expect(spinner.duration).not.toBe(FLAT)
     expect(spinner.iterations).toBe('infinite')
   })
+
+  test('the injected stylesheet is prepended, so page CSS can win', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('pie', 'simple-pie')
+
+    const r = await page.evaluate(async () => {
+      // Drop the sheet the sample's own chart already injected, so that the
+      // next render re-runs the injection with the page's rule ALREADY in
+      // head. Without this the library sheet is present before the rule is
+      // added and wins (or loses) on an order the injection never chose, which
+      // is what made an earlier version of this test pass either way.
+      document.getElementById('apexcharts-css').remove()
+
+      // A page rule at EXACTLY the library's specificity, no !important.
+      const style = document.createElement('style')
+      style.textContent = '.apexcharts-tooltip { z-index: 99; }'
+      document.head.appendChild(style)
+
+      const el = document.createElement('div')
+      el.style.cssText = 'width:420px;height:320px'
+      document.body.appendChild(el)
+      const chart = new ApexCharts(el, {
+        chart: { type: 'line', height: 320 },
+        series: [{ data: [1, 2, 3] }],
+      })
+      await chart.render()
+
+      const head = [...document.head.children]
+      const libSheet = document.getElementById('apexcharts-css')
+      return {
+        libraryIsFirst: head.indexOf(libSheet) < head.indexOf(style),
+        // Library default for .apexcharts-tooltip is z-index: 12.
+        tooltipZIndex: getComputedStyle(
+          el.querySelector('.apexcharts-tooltip'),
+        ).zIndex,
+      }
+    })
+
+    expect(r.libraryIsFirst).toBe(true)
+    expect(r.tooltipZIndex).toBe('99')
+  })
 })
