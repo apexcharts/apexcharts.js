@@ -85,6 +85,29 @@ describe('baseline of a series declared hidden in the config', () => {
     expect(chart.w.globals.initialSeries[1].data).toEqual(B)
   })
 
+  it('keeps the whole series in the baseline across an appendData', async () => {
+    // appendData() is the one re-entry that also overwrites the baseline. It
+    // concatenates onto the LIVE row, which the collapse emptied, so what it
+    // hands create() is only the points just appended -- sourcing the repair
+    // from there would shrink the baseline to those. The collapse record is
+    // what still holds the series.
+    const chart = chartWith({ hidden: true })
+
+    await chart.appendData([{ data: [7] }, { data: [8] }])
+
+    expect(chart.w.globals.initialSeries[0].data).toEqual([...A, 7])
+    expect(chart.w.globals.initialSeries[1].data).toEqual(B)
+  })
+
+  it('does not alias the collapse record into the baseline', () => {
+    const chart = chartWith({ hidden: true })
+    const record = chart.w.globals.collapsedSeries.find((c) => c.index === 1)
+
+    record.data.push(99)
+
+    expect(chart.w.globals._initialSeriesPeek[1].data).toEqual(B)
+  })
+
   it('keeps the raw-stash baseline a derived chart type parses', () => {
     // A histogram's parsed series is the BINNED view, so parseData baselines
     // it from the raw observations instead. The repair must restore that row

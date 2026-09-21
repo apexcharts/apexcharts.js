@@ -502,12 +502,23 @@ export default class ApexCharts {
     // snapshotted as the baseline holds `data: []` for every one of them --
     // and nothing refreshes it afterwards, because the legend's own updates
     // pass `overwriteInitialSeries: false` so that an internal re-render keeps
-    // the baseline it was given (#5283). Put the caller's own data back for
-    // exactly those rows, which leaves the raw-stash baselines (histogram,
-    // dumbbell, streamgraph, waterfall, treemap, dataReducer) as parseData
-    // wrote them. Only ever a repair: a row whose input is itself empty is
-    // left alone, so a re-entry carrying the already-collapsed series cannot
-    // turn a good baseline into an empty one.
+    // the baseline it was given (#5283). Put their data back for exactly those
+    // rows, which leaves the raw-stash baselines (histogram, dumbbell,
+    // streamgraph, waterfall, treemap, dataReducer) as parseData wrote them.
+    //
+    // The data comes from the collapse record rather than from `ser`, because
+    // the two agree only on the first pass. `hidden` stays on the config row,
+    // so this repair fires again on any re-entry that also asks to overwrite
+    // the baseline -- and on the one that does, appendData(), `ser[i].data` is
+    // the collapsed row concatenated with the new points, i.e. just the points
+    // that were appended. The record still holds the series. Reading it keeps
+    // the baseline whole there, and composes with #5310, which appends into
+    // that same record.
+    //
+    // Only ever a repair: a record with no data, or none at all, leaves the
+    // row as parseData wrote it, so this cannot turn a good baseline into an
+    // empty one. A non-axis collapse records one slice's VALUE instead of a
+    // series' rows, and the Array check leaves those alone.
     //
     // Leaving it costs two things. resetSeries() clones this baseline, so a
     // series declared hidden comes back from a reset EMPTY and its data is
@@ -518,15 +529,16 @@ export default class ApexCharts {
     // silently drops to the single series nearest the cursor.
     if (overwriteInitialSeries && hiddenAtInit.length) {
       const baseline = /** @type {any[]} */ (gl._initialSeriesPeek || [])
-      gl.initialSeries = baseline.map((/** @type {any} */ s, i) =>
-        hiddenAtInit.indexOf(i) > -1 &&
-        Utils.isObject(s) &&
-        ser[i] &&
-        ser[i].data &&
-        ser[i].data.length
-          ? { ...s, data: ser[i].data }
-          : s,
+      const records = /** @type {any[]} */ (gl.collapsedSeries).concat(
+        gl.ancillaryCollapsedSeries,
       )
+      gl.initialSeries = baseline.map((/** @type {any} */ s, i) => {
+        if (hiddenAtInit.indexOf(i) === -1 || !Utils.isObject(s)) return s
+        const rec = records.find((/** @type {any} */ c) => c.index === i)
+        return rec && Array.isArray(rec.data) && rec.data.length
+          ? { ...s, data: rec.data.slice() }
+          : s
+      })
     }
 
     // Strata: choose the active series renderer now that mark count is known.
