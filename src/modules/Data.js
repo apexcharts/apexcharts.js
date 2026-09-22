@@ -18,6 +18,26 @@ import {
  */
 const RAW_SAMPLE_FEATURES = { histogram: 'stats', raincloud: 'raincloud' }
 
+/**
+ * Total of the values under a datum, for a partition branch that omits its own.
+ *
+ * Private to this module on purpose: `Data.js` is a shared module, so a named
+ * export here resolves to undefined inside the split bundles and only a full
+ * build catches it (see build/shared-modules.mjs).
+ *
+ * @param {any} d
+ * @returns {number}
+ */
+function subtreeTotal(d) {
+  if (!d || typeof d !== 'object') return Utils.parseNumber(d) || 0
+  if (d.y !== undefined) return Utils.parseNumber(d.y) || 0
+  if (!Array.isArray(d.children)) return 0
+  return d.children.reduce(
+    (/** @type {number} */ s, /** @type {any} */ c) => s + subtreeTotal(c),
+    0,
+  )
+}
+
 export default class Data {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -1210,6 +1230,19 @@ export default class Data {
           if (dataPoint.x !== undefined && dataPoint.y !== undefined) {
             labels.push(String(dataPoint.x))
             values.push(Utils.parseNumber(dataPoint.y))
+          } else if (
+            dataPoint.x !== undefined &&
+            Array.isArray(dataPoint.children)
+          ) {
+            // A partition chart (sunburst, icicle) may leave a branch's own
+            // value out and let it be the sum of its children. The hierarchy
+            // resolver does exactly that in `fillValues`, but that runs long
+            // after this parse, and dropping the datum here left the chart with
+            // an EMPTY series, which makes the renderer bail before it ever
+            // builds the tree: a blank chart and a warning about pie data.
+            // So roll the subtree up now, which is the same number.
+            labels.push(String(dataPoint.x))
+            values.push(subtreeTotal(dataPoint))
           } else {
             console.warn(
               'ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:',
