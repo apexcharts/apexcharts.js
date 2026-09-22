@@ -4036,6 +4036,13 @@ type ApexPlotOptions = {
     tint?: number
     /** Click a cell to zoom into its branch (breadcrumb to go back). Default true. */
     zoomOnClick?: boolean
+    /**
+     * What a zoom changes, the partition equivalent of `chart.zoom.type`.
+     * 'value' (default) rescales the value axis only, so the branch stretches
+     * to fill the width and every level stays where it was. 'both' also
+     * re-bands the depth axis, promoting the branch to the top level.
+     */
+    zoomType?: 'value' | 'both'
     dataLabels?: {
       show?: boolean
       /** Hide the label on any cell shorter than this (px) along the reading direction. */

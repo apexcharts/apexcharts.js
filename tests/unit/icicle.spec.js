@@ -90,11 +90,22 @@ function clippedNames() {
     .map((el) => el.getAttribute('data:name'))
 }
 
+/** Click the cell standing for a node, by name. */
+function clickCell(name) {
+  const el = [...document.querySelectorAll('.apexcharts-icicle-cell')].find(
+    (c) => c.getAttribute('data:name') === name,
+  )
+  el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+}
+
 /** Every rendered cell's box, keyed by the node name it carries. */
 function cellsByName() {
   /** @type {Record<string, {x:number,y:number,w:number,h:number}>} */
   const out = {}
   document.querySelectorAll('.apexcharts-icicle-cell').forEach((el) => {
+    // A node dropped by a zoom keeps its element, collapsed and hidden, so the
+    // next layout can animate it back. Only what is on screen counts here.
+    if (el.style.display === 'none') return
     out[el.getAttribute('data:name')] = {
       x: parseFloat(el.getAttribute('x')),
       y: parseFloat(el.getAttribute('y')),
@@ -103,6 +114,32 @@ function cellsByName() {
     }
   })
   return out
+}
+
+/**
+ * Three levels, so a zoom into the middle one has somewhere to come from and
+ * somewhere to go. Zooming into a ROOT cannot tell the two zoom types apart:
+ * it is already the top band, so neither moves it.
+ */
+function deepOptions(icicle = {}) {
+  return icicleOptions({
+    icicle: { spacing: 0, ...icicle },
+    rest: {
+      series: [
+        {
+          data: [
+            {
+              x: 'root',
+              children: [
+                { x: 'mid', children: [{ x: 'leaf', y: 10 }] },
+                { x: 'other', y: 40 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  })
 }
 
 function icicleOptions(extra = {}) {
@@ -626,6 +663,60 @@ describe('icicle chart', () => {
     // The wide cell keeps both; the narrow one keeps the name, not 'Op…: 60'.
     expect(texts).toContain('Engineering: 1000')
     expect(texts).toContain('Ops')
+    chart.destroy()
+  })
+
+  it("zoomType 'value' stretches the branch and leaves every level where it was", () => {
+    const chart = createChartWithOptions(deepOptions())
+    const before = cellsByName()
+    clickCell('mid')
+    const after = cellsByName()
+
+    // The branch fills the value axis...
+    expect(after.mid.x).toBeCloseTo(0, 1)
+    expect(after.mid.w).toBeCloseTo(chart.w.layout.gridWidth, 0)
+    expect(after.mid.w).toBeGreaterThan(before.mid.w)
+    // ...and has NOT moved a pixel along the depth axis. That is the whole
+    // difference from a re-layout: the reader's bearings survive the zoom.
+    expect(after.mid.y).toBeCloseTo(before.mid.y, 3)
+    expect(after.mid.h).toBeCloseTo(before.mid.h, 3)
+    expect(after.leaf.y).toBeCloseTo(before.leaf.y, 3)
+    expect(after.leaf.h).toBeCloseTo(before.leaf.h, 3)
+    // Its child stretches with it, still tiling it exactly.
+    expect(after.leaf.x).toBeCloseTo(0, 1)
+    expect(after.leaf.w).toBeCloseTo(after.mid.w, 1)
+    chart.destroy()
+  })
+
+  it("zoomType 'value' keeps the ancestors on screen as context", () => {
+    const chart = createChartWithOptions(deepOptions())
+    const before = cellsByName()
+    clickCell('mid')
+    const after = cellsByName()
+
+    // The ancestor is still there, at its own depth, clamped to the plot.
+    expect(after.root).toBeDefined()
+    expect(after.root.y).toBeCloseTo(before.root.y, 3)
+    expect(after.root.x).toBeCloseTo(0, 1)
+    expect(after.root.w).toBeCloseTo(chart.w.layout.gridWidth, 0)
+    // Everything outside the branch lands off the plot and is dropped.
+    expect(after.other).toBeUndefined()
+    chart.destroy()
+  })
+
+  it("zoomType 'both' promotes the branch to the top level instead", () => {
+    const chart = createChartWithOptions(deepOptions({ zoomType: 'both' }))
+    const before = cellsByName()
+    clickCell('mid')
+    const after = cellsByName()
+
+    expect(after.mid.w).toBeCloseTo(chart.w.layout.gridWidth, 0)
+    // Here the levels DO move: the branch becomes the top band, its child
+    // rises behind it, and the ancestor leaves the chart entirely.
+    expect(after.mid.y).toBeCloseTo(0, 1)
+    expect(after.mid.y).toBeLessThan(before.mid.y)
+    expect(after.leaf.y).toBeLessThan(before.leaf.y)
+    expect(after.root).toBeUndefined()
     chart.destroy()
   })
 

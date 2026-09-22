@@ -2111,9 +2111,18 @@ export default class Options {
           // the separating, which is what lets the eye follow a branch down.
           // Per-depth shading instead reads as nested boxes, i.e. a treemap.
           tint: 0,
-          // Click a cell to zoom into that branch (its subtree fills the chart;
-          // a breadcrumb walks back). Set false to disable.
+          // Click a cell to zoom into that branch (a breadcrumb walks back).
+          // Set false to disable.
           zoomOnClick: true,
+          // What a zoom actually changes, the partition equivalent of
+          // chart.zoom.type. 'value' (default) rescales the VALUE axis only:
+          // the branch stretches to fill the width and every level stays
+          // exactly where it was, so the reader keeps their bearings and the
+          // ancestors stay on screen as context. 'both' also re-bands the DEPTH
+          // axis, promoting the branch to the top level so its subtree fills
+          // the whole plot, which uses the space better and moves everything.
+          // Not named 'x'/'y': `direction` swaps which screen axis is which.
+          zoomType: 'value',
           dataLabels: {
             show: true,
             // Hide the label on any cell shorter than this (px) along the

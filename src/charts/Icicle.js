@@ -233,19 +233,41 @@ export default class IcicleChart {
    * @param {any} focus
    */
   _relayout(focus) {
+    const extent = this._valueExtent()
     const maxDepth = this.cfg.maxDepth
-    this._focusMaxDepth = placeTree({
-      roots: this._roots,
-      nodesAll: this._nodesAll,
-      focus,
-      t0: 0,
-      t1: this._valueExtent(),
-      // `maxDepth` counts LEVELS from the focus; the walk wants a depth index.
-      cap:
-        typeof maxDepth === 'number' && maxDepth > 0
-          ? maxDepth - 1
-          : undefined,
-    })
+    // `maxDepth` counts LEVELS; the walk wants a depth index.
+    const capLevels =
+      typeof maxDepth === 'number' && maxDepth > 0 ? maxDepth : 0
+
+    if (focus && this.cfg.zoomType !== 'both') {
+      // Value-axis zoom. Lay the WHOLE tree out, so every node keeps its real
+      // depth, then rescale the value axis until the focused branch fills it.
+      // No level moves: the reader keeps their bearings and the ancestors stay
+      // on screen above the branch as context.
+      //
+      // A cap still has to follow the focus down, or zooming into a branch
+      // marked as having more below it would stretch the branch and reveal
+      // nothing, which is the one promise that mark makes.
+      const focusDepth = focusChain(focus).length - 1
+      this._focusMaxDepth = placeTree({
+        roots: this._roots,
+        nodesAll: this._nodesAll,
+        focus: null,
+        t0: 0,
+        t1: extent,
+        cap: capLevels ? capLevels - 1 + focusDepth : undefined,
+      })
+      this._stretchTo(focus, extent)
+    } else {
+      this._focusMaxDepth = placeTree({
+        roots: this._roots,
+        nodesAll: this._nodesAll,
+        focus,
+        t0: 0,
+        t1: extent,
+        cap: capLevels ? capLevels - 1 : undefined,
+      })
+    }
 
     // Depth bands. `levelSize` is read against the whole depth axis, so a fixed
     // band keeps its thickness as the reader zooms instead of growing to fill.
@@ -267,6 +289,41 @@ export default class IcicleChart {
       if (!n._show) return
       n._d0 = scale.near(n._vDepth)
       n._d1 = farEdge(n, scale, this._focusMaxDepth, this.cfg.leaf, used)
+    })
+  }
+
+  /**
+   * Rescale the value axis so the focused branch fills it.
+   *
+   * This is the whole of a value-axis zoom: one affine map applied to extents
+   * that are already laid out, with the depth axis untouched. The branch's
+   * ancestors stretch past both edges and are clamped to the plot, which is
+   * what makes them read as full-width context bands above the focus.
+   *
+   * Everything outside the branch lands outside the plot, so it is dropped
+   * here rather than drawn off-screen: after the map the focus occupies the
+   * entire extent, so a sibling cannot partly survive.
+   *
+   * @param {any} focus
+   * @param {number} extent
+   */
+  _stretchTo(focus, extent) {
+    const span = focus._t1 - focus._t0
+    if (!(span > 0)) return
+    const scale = extent / span
+    const from = focus._t0
+    const eps = 0.01
+
+    this._nodesAll.forEach((n) => {
+      if (!n._show) return
+      const t0 = (n._t0 - from) * scale
+      const t1 = (n._t1 - from) * scale
+      if (t1 <= eps || t0 >= extent - eps) {
+        n._show = false
+        return
+      }
+      n._t0 = Math.max(0, t0)
+      n._t1 = Math.min(extent, t1)
     })
   }
 

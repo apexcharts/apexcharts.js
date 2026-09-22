@@ -169,6 +169,12 @@ test.describe('icicle', () => {
     expect(after.Platform.x).toBeCloseTo(0, 0)
     // Its siblings are gone from the view.
     expect(after.Design).toBeUndefined()
+    // The default zoom rescales the VALUE axis only, so the branch stretches
+    // and its band does not move. The ancestor stays above it as context.
+    expect(after.Platform.y).toBeCloseTo(before.Platform.y, 1)
+    expect(after.Platform.h).toBeCloseTo(before.Platform.h, 1)
+    expect(after.Engineering).toBeDefined()
+    expect(after.Engineering.y).toBeCloseTo(before.Engineering.y, 1)
 
     const crumbs = await breadcrumbText(page)
     expect(crumbs).toContain('Platform')
