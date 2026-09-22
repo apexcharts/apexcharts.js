@@ -118,7 +118,11 @@
           type: 'icicle',
           height: 460,
         },
-        colors: ['#E8998D', '#E5B769', '#71C5B4', '#7EA8D4', '#C9A9D4'],
+        // The library's own palette, lightened: a turned label sits INSIDE its cell
+        // on every level, so the fills have to stay light enough to read dark text
+        // against, all the way down. The fifth is a steel blue rather than the
+        // palette's violet, which goes muddy once it is tinted this far.
+        colors: ['#7CC6F0', '#6FD7C1', '#FFC46B', '#F09BA0', '#9AAEC8'],
         title: {
           text: 'Bundle size by source folder',
           align: 'left',
