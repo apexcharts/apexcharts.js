@@ -374,11 +374,15 @@ export default class IcicleChart {
   _applyLayout(mode) {
     const w = this.w
     const anims = w.config.chart.animations
+    // A zoom is a response to a click, so it runs on the interaction clock
+    // (`dynamicAnimation.speed`) like an update, NOT on `animations.speed`,
+    // which paces the first render. Reading the intro's clock made a click take
+    // 800ms by default, which feels like lag rather than motion.
     const dur = !anims.enabled
       ? 0
       : mode === 'none'
         ? 0
-        : mode === 'update'
+        : mode === 'update' || mode === 'zoom'
           ? anims.dynamicAnimation.speed || 350
           : anims.speed || 500
 

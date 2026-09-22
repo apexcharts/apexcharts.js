@@ -366,6 +366,54 @@ test.describe('icicle', () => {
     expect(settled.Engineering.w).toBeGreaterThan(1)
   })
 
+  test('a zoom runs on the interaction clock, not the first-render one', async ({
+    page,
+  }) => {
+    // The two clocks are set far apart so the assertion cannot pass by luck:
+    // a zoom reading `animations.speed` would still be moving at 400ms.
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.addScriptTag({ path: addonPath })
+    await page.evaluate((o) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
+      window.chart.render()
+    }, {
+      ...baseOptions(),
+      chart: {
+        type: 'icicle',
+        width: 760,
+        height: 420,
+        animations: {
+          enabled: true,
+          speed: 3000,
+          dynamicAnimation: { enabled: true, speed: 150 },
+        },
+      },
+    })
+    await page.waitForSelector('.apexcharts-icicle-cell')
+    // Let the (deliberately slow) intro finish before timing the zoom.
+    await page.waitForTimeout(3400)
+
+    const width = () =>
+      page.evaluate(
+        () =>
+          +Array.from(document.querySelectorAll('.apexcharts-icicle-cell'))
+            .find((c) => c.getAttribute('data:name') === 'Platform')
+            .getAttribute('width'),
+      )
+
+    const before = await width()
+    await clickCell(page, 'Platform')
+    await page.waitForTimeout(400)
+    const settled = await width()
+    await page.waitForTimeout(600)
+    const later = await width()
+
+    expect(settled).toBeGreaterThan(before)
+    // Still moving at 400ms would mean it took the 3000ms clock.
+    expect(Math.abs(later - settled)).toBeLessThan(1)
+  })
+
   test('the drilldown config renders as one icicle, with no drilldown feature', async ({
     page,
   }) => {
