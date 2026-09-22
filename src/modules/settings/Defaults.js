@@ -1727,8 +1727,6 @@ export default class Defaults {
    */
   stacked100(opts) {
     opts.dataLabels = opts.dataLabels || {}
-    opts.dataLabels.formatter = opts.dataLabels.formatter || undefined
-    const existingDataLabelFormatter = opts.dataLabels.formatter
 
     /**
      * @param {ApexYAxis} yaxe
@@ -1739,20 +1737,39 @@ export default class Defaults {
       opts.yaxis[index].max = 100
     })
 
-    const isBar = opts.chart.type === 'bar'
+    // A formatter the user set wins in every chart type. Nothing is written
+    // back otherwise: an own `formatter: undefined` on the user config used to
+    // be copied over the Options default by Utils.extend, so any 100% stacked
+    // chart that is not typed `bar` (a combo, an area) had NO formatter at all
+    // and threw the moment data labels were switched on (#2429).
+    if (opts.dataLabels.formatter) return opts
 
-    if (isBar) {
-      opts.dataLabels.formatter =
-        existingDataLabelFormatter ||
-        /**
-         * @param {any} val
-         */
-        function (val) {
-          if (typeof val === 'number') {
-            return val ? val.toFixed(0) + '%' : val
-          }
-          return val
-        }
+    /** @param {any} val */
+    const percent = (val) => {
+      if (typeof val === 'number') {
+        return val ? val.toFixed(0) + '%' : val
+      }
+      return val
+    }
+
+    // Only the series drawn as bars are part of the 100% total, and only
+    // their labels are handed the percentage (BarDataLabels reads
+    // w.globals.seriesPercent). Any other series (a line mixed into a combo,
+    // whichever type the chart is declared as) still gets its raw value, so
+    // it keeps the plain default rather than a '%'. In a pure bar chart
+    // columnSeries.i covers every series, so nothing changes there.
+    // The plain default is the same as Options' `dataLabels.formatter`,
+    // inlined rather than building a full Options tree for one function.
+    /** @param {any} val */
+    const plain = (val) => (val !== null ? val : '')
+    /**
+     * @param {any} val
+     * @param {{ seriesIndex?: number, w?: any }} [ctx]
+     */
+    opts.dataLabels.formatter = (val, ctx) => {
+      const barIndices = ctx?.w?.globals?.columnSeries?.i
+      if (barIndices?.includes(ctx?.seriesIndex)) return percent(val)
+      return plain(val)
     }
     return opts
   }
