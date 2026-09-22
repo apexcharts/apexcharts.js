@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Icicle with Vertical Labels</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 900px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/icicle.js"></script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div id="chart">
+      <apexchart type="icicle" height="460" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;icicle&quot; height=&quot;460&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              data: [
+                {
+                  x: 'src',
+                  children: [
+                    {
+                      x: 'charts',
+                      children: [
+                        {
+                          x: 'bar',
+                          children: [
+                            { x: 'stacked', y: 42 },
+                            { x: 'range', y: 28 },
+                            { x: 'radius', y: 16 },
+                          ],
+                        },
+                        {
+                          x: 'line',
+                          children: [
+                            { x: 'area', y: 34 },
+                            { x: 'paths', y: 22 },
+                          ],
+                        },
+                        {
+                          x: 'pie',
+                          children: [
+                            { x: 'arcs', y: 26 },
+                            { x: 'donut', y: 18 },
+                          ],
+                        },
+                        { x: 'common', y: 30 },
+                      ],
+                    },
+                    {
+                      x: 'modules',
+                      children: [
+                        {
+                          x: 'axes',
+                          children: [
+                            { x: 'xaxis', y: 30 },
+                            { x: 'yaxis', y: 28 },
+                            { x: 'grid', y: 20 },
+                          ],
+                        },
+                        {
+                          x: 'tooltip',
+                          children: [
+                            { x: 'labels', y: 24 },
+                            { x: 'utils', y: 14 },
+                          ],
+                        },
+                        { x: 'legend', y: 26 },
+                        { x: 'anim', y: 34 },
+                      ],
+                    },
+                    {
+                      x: 'utils',
+                      children: [
+                        { x: 'dates', y: 22 },
+                        { x: 'colors', y: 16 },
+                        { x: 'dom', y: 14 },
+                      ],
+                    },
+                    {
+                      x: 'svg',
+                      children: [
+                        { x: 'paths', y: 20 },
+                        { x: 'math', y: 12 },
+                      ],
+                    },
+                    { x: 'assets', y: 24 },
+                  ],
+                },
+              ],
+            },
+          ],
+          chartOptions: {
+            chart: {
+              type: 'icicle',
+              height: 460,
+            },
+            colors: ['#E8998D', '#E5B769', '#71C5B4', '#7EA8D4', '#C9A9D4'],
+            title: {
+              text: 'Bundle size by source folder',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Every label turned a quarter turn, which suits short names and a deep tree.',
+              align: 'left',
+            },
+            plotOptions: {
+              icicle: {
+                // Turn EVERY label, rather than only the ones that would be clipped flat.
+                // A turned label reads across the band thickness, so this suits short
+                // names: with long ones, 'auto' keeps more of them on screen.
+                dataLabels: {
+                  rotate: 'always',
+                  minSizeToShow: 14,
+                  style: {
+                    fontSize: '11px',
+                    colors: ['#44403C'],
+                  },
+                },
+              },
+            },
+            stroke: {
+              width: 1,
+              colors: ['#fff'],
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>
