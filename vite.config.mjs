@@ -39,6 +39,7 @@ export const SUB_ENTRIES = {
   heatmap: resolve(__dirname, 'src/entries/heatmap.js'),
   treemap: resolve(__dirname, 'src/entries/treemap.js'),
   sunburst: resolve(__dirname, 'src/entries/sunburst.js'),
+  icicle: resolve(__dirname, 'src/entries/icicle.js'),
   unit: resolve(__dirname, 'src/entries/unit.js'),
   'unit-shapes': resolve(__dirname, 'src/unit-shapes/index.js'),
   pictograms: resolve(__dirname, 'src/pictograms/index.js'),
@@ -233,6 +234,13 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/entries/sunburst.js'),
     global: 'ApexSunburst',
     out: 'sunburst.js',
+    shared: true,
+  },
+  // Opt-in type: absent from the full bundle, so this IS the script-tag route.
+  'icicle': {
+    file: resolve(__dirname, 'src/entries/icicle.js'),
+    global: 'ApexIcicle',
+    out: 'icicle.js',
     shared: true,
   },
   'unit': {

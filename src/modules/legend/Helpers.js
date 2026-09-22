@@ -209,7 +209,8 @@ export default class Helpers {
       (type === 'pie' ||
         type === 'donut' ||
         type === 'polarArea' ||
-        type === 'sunburst') &&
+        type === 'sunburst' ||
+        type === 'icicle') &&
       series.length === 1 &&
       series[0] &&
       typeof series[0] === 'object' &&

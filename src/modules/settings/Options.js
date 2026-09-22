@@ -2065,6 +2065,80 @@ export default class Options {
             connectorColors: '#e8e8e8',
           },
         },
+        icicle: {
+          // Icicle (cartesian partition). One band per hierarchy level, each
+          // child cell nested inside its parent's extent along the value axis.
+          // Opt-in: `import ApexCharts from 'apexcharts/icicle'`.
+          //
+          // Which way the tree grows from the root. 'down' (default) puts the
+          // root band on top; 'up' puts it at the bottom and is the flame-graph
+          // orientation; 'right'/'left' grow sideways.
+          direction: 'down',
+          // Thickness of one depth band. 'equal' divides the depth axis by the
+          // deepest visible level; a number is px; a '%' string is a share of
+          // the depth axis. A fixed size keeps its thickness through a zoom.
+          levelSize: 'equal',
+          // How many levels to draw, counting the focused one. 'auto' (default)
+          // draws the whole tree: labels already hide themselves once a band is
+          // thinner than a line of text, so a deep tree degrades to an honest
+          // dense shape rather than to nonsense. Set a number for very deep
+          // trees (a call stack, say) to keep the top levels readable; branches
+          // cut that way are marked, and clicking one zooms in to reveal them.
+          maxDepth: 'auto',
+          // Gap between adjacent cells and corner rounding, both px, same
+          // semantics as plotOptions.pie.spacing / .borderRadius.
+          spacing: 1,
+          borderRadius: 0,
+          // How a branch that bottoms out before the deepest level is drawn.
+          // 'stop' (default) ends the leaf at its own band and leaves the
+          // deeper bands empty, so the white space below a branch shows how
+          // deep it goes: that stepped silhouette is what makes an icicle
+          // readable as a hierarchy. 'extend' stretches the leaf to the far
+          // edge instead, which fills the plot and reads like a treemap.
+          leaf: 'stop',
+          // Partition of a parent's extent among its children: 'normalize'
+          // splits by each child's share of its siblings (safe for any data);
+          // 'strict' expects children to sum to the parent's value.
+          partition: 'normalize',
+          // Sibling order within a parent. 'none' keeps data order, 'value' is
+          // descending by size, 'name' is alphabetical — the flame-graph
+          // convention, which holds a frame in the same place across profiles
+          // so two runs can be compared by eye.
+          sort: 'none',
+          // Each depth level is tinted this much lighter than its parent
+          // (0 = keep the parent colour, 1 = white). A per-node `color` wins.
+          // Default 0: a branch carries ONE hue at every depth and the gaps do
+          // the separating, which is what lets the eye follow a branch down.
+          // Per-depth shading instead reads as nested boxes, i.e. a treemap.
+          tint: 0,
+          // Click a cell to zoom into that branch (its subtree fills the chart;
+          // a breadcrumb walks back). Set false to disable.
+          zoomOnClick: true,
+          dataLabels: {
+            show: true,
+            // Hide the label on any cell shorter than this (px) along the
+            // reading direction, so narrow cells do not overflow.
+            minSizeToShow: 30,
+            // 'left' | 'center' | 'right', along the reading direction. Centred
+            // by default so a band reads as one unit; a flame graph usually
+            // wants 'left', because a reader scans the left edge of the stack.
+            align: 'center',
+            // 'auto' (default) turns the label a quarter turn on a cell taller
+            // than it is wide, which is where a flat label would be clipped by
+            // the band while the value axis has room to spare. 'always' turns
+            // every label for a uniform look, but note that a turned label
+            // reads across the BAND THICKNESS, so it suits short names and
+            // costs labels on wide shallow bands. 'never' keeps them all flat.
+            rotate: 'auto',
+            showValue: false,
+            style: {
+              fontSize: '12px',
+              fontFamily: undefined,
+              fontWeight: 400,
+              colors: undefined,
+            },
+          },
+        },
         sunburst: {
           // Sunburst / nested pie-donut (hierarchical radial). Rings go from the
           // centre hole outward, one per hierarchy level; each child arc is

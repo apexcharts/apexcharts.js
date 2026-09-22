@@ -1,0 +1,73 @@
+<title>Icicle</title>
+
+<style>
+#chart {
+  max-width: 760px;
+  margin: 35px auto;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/icicle.js"></script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  type: 'icicle',
+  height: 420,
+},
+colors: ['#0EA5E9', '#14B8A6', '#F59E0B'],
+title: {
+  text: 'Storage used, by department and team',
+  align: 'left'
+},
+subtitle: {
+  text: 'Click a band to zoom into that branch',
+  align: 'left'
+},
+plotOptions: {
+  icicle: {
+    borderRadius: 3,
+    spacing: 2,
+    dataLabels: {
+      showValue: true
+    }
+  }
+},
+stroke: {
+  width: 1,
+  colors: ['#fff']
+}
+</options>
+
+<series>
+[{
+  data: [
+    { x: 'All storage', children: [
+      { x: 'Engineering', children: [
+        { x: 'Platform', children: [
+          { x: 'Build', y: 210 },
+          { x: 'Runtime', y: 160 },
+          { x: 'Tooling', y: 70 }
+        ]},
+        { x: 'Product', children: [
+          { x: 'Web', y: 180 },
+          { x: 'Mobile', y: 120 }
+        ]},
+        { x: 'Data', y: 140 }
+      ]},
+      { x: 'Design', children: [
+        { x: 'Research', y: 60 },
+        { x: 'Brand', y: 45 },
+        { x: 'Systems', y: 35 }
+      ]},
+      { x: 'Operations', children: [
+        { x: 'Support', y: 90 },
+        { x: 'Finance', y: 40 }
+      ]}
+    ]}
+  ]
+}]
+</series>
+</chart>

@@ -221,6 +221,15 @@ export default class Dimensions {
       // the same place, so it needs the same band.
     }
 
+    // An icicle fills its plot edge to edge for the same reason, so its
+    // click-to-zoom breadcrumb gets real space rather than somewhere to float.
+    if (w.config.chart.type === 'icicle') {
+      if (w.config.plotOptions?.icicle?.zoomOnClick === false) return
+      if (breadcrumbConfig(w).show === false) return
+      this.gridPad.top += BREADCRUMB_HEIGHT + 4
+      return
+    }
+
     // As an overlay with nothing reserved, the drilldown strip was pushed below
     // the title and came to rest on the top gridline and the first y-axis label.
     // A pie or donut keeps floating instead: its corners are empty, which is
@@ -429,7 +438,10 @@ export default class Dimensions {
     // Unit (dot-cluster) charts fill the whole plot area - a row of clusters or
     // one packed blob - rather than the square a pie/radialBar needs. Reserve
     // legend space on the correct edge and take the rest.
-    if (cnf.chart.type === 'unit') {
+    // An icicle fills the plot rect edge to edge exactly as a unit chart does,
+    // and must NOT take the centred-square path below: a square would strand
+    // its bands in the middle of a wide box.
+    if (cnf.chart.type === 'unit' || cnf.chart.type === 'icicle') {
       const legendVisible = cnf.legend.show && !cnf.legend.floating
       const pos = cnf.legend.position
       let top = 0

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Flame Graph</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/icicle.js"></script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            data: [
+              {
+                x: 'main',
+                children: [
+                  {
+                    x: 'http.serve',
+                    children: [
+                      { x: 'router.match', y: 120 },
+                      {
+                        x: 'handler.report',
+                        children: [
+                          {
+                            x: 'db.query',
+                            children: [
+                              { x: 'net.read', y: 640 },
+                              { x: 'row.scan', y: 310 },
+                            ],
+                          },
+                          {
+                            x: 'json.encode',
+                            children: [
+                              { x: 'reflect.walk', y: 280 },
+                              { x: 'buf.grow', y: 90 },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        x: 'handler.upload',
+                        children: [
+                          { x: 'io.copy', y: 420 },
+                          { x: 'hash.sum', y: 180 },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    x: 'runtime.gc',
+                    children: [
+                      { x: 'mark', y: 520 },
+                      { x: 'sweep', y: 140 },
+                    ],
+                  },
+                  { x: 'sched.idle', y: 1080 },
+                ],
+              },
+            ],
+          },
+        ],
+        chart: {
+          type: 'icicle',
+          height: 320,
+        },
+        // Warm hues, the flame-graph convention: the colour carries no meaning, it is
+        // there to separate neighbouring branches of the call tree.
+        colors: ['#EF4444', '#F97316', '#F59E0B', '#EAB308'],
+        legend: {
+          show: false,
+        },
+        title: {
+          text: 'CPU profile: 4,100 samples',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Width is share of samples, height is stack depth. Click a frame to zoom.',
+          align: 'left',
+        },
+        plotOptions: {
+          icicle: {
+            // Root at the bottom, stacks growing upward.
+            direction: 'up',
+            // Alphabetical siblings hold a frame in the same place across profiles, so
+            // two runs of the same program can be compared by eye. Ordering by size
+            // would move every frame and lose exactly that.
+            sort: 'name',
+            spacing: 1,
+            dataLabels: {
+              // Left, not the centred default: a profiler reader scans the left edge
+              // of the stack, where a frame lines up with the one that called it.
+              align: 'left',
+              minSizeToShow: 44,
+              style: {
+                fontSize: '11px',
+              },
+            },
+          },
+        },
+        stroke: {
+          width: 1,
+          colors: ['#fff'],
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

@@ -155,6 +155,11 @@
       "import": "./dist/sunburst.esm.js",
       "require": "./dist/sunburst.common.js"
     },
+    "./icicle": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/icicle.esm.js",
+      "require": "./dist/icicle.common.js"
+    },
     "./unit": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/unit.esm.js",

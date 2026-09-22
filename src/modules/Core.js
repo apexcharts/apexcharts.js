@@ -261,6 +261,7 @@ export default class Core {
           'radar',
           'unit',
           'sunburst',
+          'icicle',
         ].includes(seriesType)
       ) {
         nonComboType = seriesType
@@ -623,6 +624,11 @@ export default class Core {
         case 'sunburst': {
           const sunburst = new (getChartClass('sunburst'))(ctx.w, ctx)
           elGraph = sunburst.draw(this.w.seriesData.series)
+          break
+        }
+        case 'icicle': {
+          const icicle = new (getChartClass('icicle'))(ctx.w, ctx)
+          elGraph = icicle.draw(this.w.seriesData.series)
           break
         }
         case 'pie':

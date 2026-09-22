@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Icicle from Drilldown Config</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 760px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/icicle.js"></script>
+  <script>
+    // An icicle reads the SAME `series` + `drilldown.series` config a drilldown
+    // chart uses, so an existing drilldown chart becomes an icicle by flipping
+    // `chart.type`. It reads that config as plain data: the drilldown feature
+    // itself is never loaded here.
+    var channelColors = ['#0EA5E9', '#14B8A6', '#F59E0B']
+    var searchColors = ['#0369A1', '#0284C7', '#38BDF8']
+    var socialColors = ['#0F766E', '#14B8A6', '#5EEAD4']
+  </script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            data: [
+              { x: 'Search', y: 790, drilldown: 'search' },
+              { x: 'Social', y: 360, drilldown: 'social' },
+              { x: 'Direct', y: 240 },
+            ],
+          },
+        ],
+        chart: {
+          type: 'icicle',
+          height: 380,
+        },
+        colors: channelColors,
+        // A legend is off by default (every cell is labelled already), but this tree
+        // has several roots, so the palette lines up with it exactly.
+        legend: {
+          show: true,
+          position: 'bottom',
+        },
+        title: {
+          text: 'Signups by acquisition channel',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'The same series + drilldown.series config as a drilldown chart, shown whole.',
+          align: 'left',
+        },
+        plotOptions: {
+          icicle: {
+            direction: 'right',
+            borderRadius: 2,
+          },
+        },
+        stroke: {
+          width: 1,
+          colors: ['#fff'],
+        },
+        drilldown: {
+          series: [
+            {
+              id: 'search',
+              name: 'Search',
+              colors: searchColors,
+              data: [
+                { x: 'Organic', y: 420 },
+                { x: 'Paid', y: 260 },
+                { x: 'Brand', y: 110 },
+              ],
+            },
+            {
+              id: 'social',
+              name: 'Social',
+              colors: socialColors,
+              data: [
+                { x: 'Video', y: 180 },
+                { x: 'Posts', y: 120 },
+                { x: 'Communities', y: 60 },
+              ],
+            },
+          ],
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

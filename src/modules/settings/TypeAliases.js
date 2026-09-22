@@ -19,6 +19,22 @@
  * @module modules/settings/TypeAliases
  */
 
+/**
+ * Chart types that are real and opt-in: core knows the name and dispatches it,
+ * but no bundle registers the class until the user imports the type's entry
+ * point. Nothing else reserves these names, and the name has to be reserved
+ * anyway.
+ *
+ * `registerSeriesType`'s built-in check asks whether a class is REGISTERED,
+ * which for an opt-in type is false on the default bundle. So a custom type
+ * could take the name, and core's dispatch would then hand it to the renderer
+ * pathway of the built-in instead of the custom one, which is the same silent
+ * failure the alias list above was introduced to stop.
+ *
+ * @type {string[]}
+ */
+export const RESERVED_TYPES = ['icicle']
+
 /** @type {Record<string, string>} */
 export const TYPE_ALIASES = {
   funnel: 'bar',

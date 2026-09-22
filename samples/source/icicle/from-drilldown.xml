@@ -1,0 +1,86 @@
+<title>Icicle from Drilldown Config</title>
+
+<style>
+#chart {
+  max-width: 760px;
+  margin: 35px auto;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/icicle.js"></script>
+<script>
+// An icicle reads the SAME `series` + `drilldown.series` config a drilldown
+// chart uses, so an existing drilldown chart becomes an icicle by flipping
+// `chart.type`. It reads that config as plain data: the drilldown feature
+// itself is never loaded here.
+var channelColors = ['#0EA5E9', '#14B8A6', '#F59E0B']
+var searchColors = ['#0369A1', '#0284C7', '#38BDF8']
+var socialColors = ['#0F766E', '#14B8A6', '#5EEAD4']
+</script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  type: 'icicle',
+  height: 380,
+},
+colors: channelColors,
+// A legend is off by default (every cell is labelled already), but this tree
+// has several roots, so the palette lines up with it exactly.
+legend: {
+  show: true,
+  position: 'bottom',
+},
+title: {
+  text: 'Signups by acquisition channel',
+  align: 'left',
+},
+subtitle: {
+  text: 'The same series + drilldown.series config as a drilldown chart, shown whole.',
+  align: 'left',
+},
+plotOptions: {
+  icicle: {
+    direction: 'right',
+    borderRadius: 2,
+  },
+},
+stroke: {
+  width: 1,
+  colors: ['#fff'],
+},
+drilldown: {
+  series: [{
+    id: 'search',
+    name: 'Search',
+    colors: searchColors,
+    data: [
+      { x: 'Organic', y: 420 },
+      { x: 'Paid', y: 260 },
+      { x: 'Brand', y: 110 },
+    ],
+  }, {
+    id: 'social',
+    name: 'Social',
+    colors: socialColors,
+    data: [
+      { x: 'Video', y: 180 },
+      { x: 'Posts', y: 120 },
+      { x: 'Communities', y: 60 },
+    ],
+  }],
+}
+</options>
+
+<series>
+[{
+  data: [
+    { x: 'Search', y: 790, drilldown: 'search' },
+    { x: 'Social', y: 360, drilldown: 'social' },
+    { x: 'Direct', y: 240 },
+  ]
+}]
+</series>
+</chart>

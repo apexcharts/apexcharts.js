@@ -96,6 +96,14 @@ function externalUrls(externals) {
 }
 
 /**
+ * Chart types the default bundle does not register, so a demo loads their own
+ * script. Listed explicitly rather than inferred: most `dist/*.js` files are
+ * types the full bundle already has, and printing an import for one of those
+ * would suggest an opt-in that does not exist.
+ */
+const OPT_IN_TYPE_BUNDLES = new Set(['icicle'])
+
+/**
  * Inside displayed js/jsx/vue code, an external dep becomes either the import a
  * bundler user actually needs, or a plain-url comment when there is no such
  * import. Never embed the raw tag here: a literal closing script tag inside an
@@ -116,9 +124,16 @@ function externalsAsComments(externals) {
   return externalUrls(externals)
     .map((url) => {
       const feature = url.match(/(?:^|\/)dist\/(features\/[\w-]+)\.js$/)
-      return feature
-        ? `import 'apexcharts/${feature[1]}'`
-        : `// This demo also loads: ${url}`
+      if (feature) return `import 'apexcharts/${feature[1]}'`
+      // An opt-in chart TYPE is the same story one level up: the script tag is
+      // the only way into a page without a bundler, and the entry registers
+      // itself on import into a registry that is global, so a bare side-effect
+      // import is all a bundler user needs for the wrapper to find the type.
+      const type = url.match(/(?:^|\/)dist\/([\w-]+)\.js$/)
+      if (type && OPT_IN_TYPE_BUNDLES.has(type[1])) {
+        return `import 'apexcharts/${type[1]}'`
+      }
+      return `// This demo also loads: ${url}`
     })
     .join('\n')
 }

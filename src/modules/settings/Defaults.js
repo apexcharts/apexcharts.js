@@ -359,6 +359,7 @@ export default class Defaults {
       'treemap',
       'unit',
       'sunburst',
+      'icicle',
       'pie',
       'polarArea',
       'donut',
@@ -2011,6 +2012,43 @@ export default class Defaults {
       },
       legend: {
         show: true,
+        position: 'bottom',
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
+      },
+    }
+  }
+
+  icicle() {
+    return {
+      chart: {
+        toolbar: {
+          show: false,
+        },
+      },
+      dataLabels: {
+        style: {
+          colors: ['#fff'],
+        },
+      },
+      stroke: {
+        colors: ['#fff'],
+      },
+      fill: {
+        opacity: 1,
+      },
+      // Off by default: every cell carries its own label, so a legend repeats
+      // what the chart already says. It also only lines up with the colours
+      // when the tree has several roots, because the palette is applied to the
+      // shallowest level that branches. A multi-root icicle can turn it on.
+      legend: {
+        show: false,
         position: 'bottom',
       },
       grid: {

@@ -1,0 +1,23 @@
+{
+  "title": "Icicle",
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/icicle.js"
+  ],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [\n        {\n          x: 'All storage',\n          children: [\n            {\n              x: 'Engineering',\n              children: [\n                {\n                  x: 'Platform',\n                  children: [\n                    { x: 'Build', y: 210 },\n                    { x: 'Runtime', y: 160 },\n                    { x: 'Tooling', y: 70 },\n                  ],\n                },\n                {\n                  x: 'Product',\n                  children: [\n                    { x: 'Web', y: 180 },\n                    { x: 'Mobile', y: 120 },\n                  ],\n                },\n                { x: 'Data', y: 140 },\n              ],\n            },\n            {\n              x: 'Design',\n              children: [\n                { x: 'Research', y: 60 },\n                { x: 'Brand', y: 45 },\n                { x: 'Systems', y: 35 },\n              ],\n            },\n            {\n              x: 'Operations',\n              children: [\n                { x: 'Support', y: 90 },\n                { x: 'Finance', y: 40 },\n              ],\n            },\n          ],\n        },\n      ],\n    },\n  ],\n  chart: {\n    type: 'icicle',\n    height: 420,\n  },\n  colors: ['#0EA5E9', '#14B8A6', '#F59E0B'],\n  title: {\n    text: 'Storage used, by department and team',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'Click a band to zoom into that branch',\n    align: 'left',\n  },\n  plotOptions: {\n    icicle: {\n      borderRadius: 3,\n      spacing: 2,\n      dataLabels: {\n        showValue: true,\n      },\n    },\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Icicle</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/icicle.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 760px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

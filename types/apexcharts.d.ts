@@ -836,6 +836,62 @@ interface ApexPluginAPI {
   layer(opts?: { z?: 'front' | 'behind'; className?: string }): ApexPluginLayer
   readonly scales: ApexPluginScales | null
   readonly data: ApexPluginSeries[]
+  /**
+   * What kind of chart this is, for a plugin deciding whether it applies here
+   * at all. The alternative to asking is adding a series and letting the core
+   * warn at the user.
+   *
+   * @since Weave v2 (`title` since v6)
+   */
+  readonly info: ApexPluginChartInfo
+  /**
+   * Declare which series on this chart are the plugin's rather than the
+   * caller's.
+   *
+   * The core cannot tell them apart, and several behaviours depend on the
+   * distinction: today the host keeps them out of the initial-series snapshot,
+   * so `resetSeries()` and the toolbar's reset give the caller their own data
+   * back rather than the plugin's output. It is also what puts the plugin's
+   * name on those series in `drawn()`, so a reader can be told whose they are.
+   *
+   * Idempotent. Pass an empty array when the plugin's series are gone.
+   *
+   * @since Weave v2
+   */
+  markDerived(names: string[]): ApexPluginAPI
+  /**
+   * Reserve space inside the chart's container for the plugin's own UI.
+   *
+   * A plugin that renders beside the chart cannot make room for itself: the
+   * chart sizes from the element the caller handed it, so a sibling inserted
+   * there does not narrow it. The host does the arithmetic instead. The
+   * container keeps its size and the chart draws inside what is left.
+   *
+   * Reservations are per plugin and summed, so two plugins each asking for a
+   * right-hand gutter get one each. Call again to change the amount, and pass
+   * `null` (or all zeros) to give the space back; an unchanged box does
+   * nothing, so calling this on every render is free. The total is clamped so
+   * the chart keeps at least half the container on each axis.
+   *
+   * @since Weave v3
+   */
+  reserve(box?: { left?: number; right?: number; top?: number; bottom?: number } | null): ApexPluginAPI
+  /**
+   * Subscribe to the data point a viewer is pointing at.
+   *
+   * The chart has already resolved this for its own tooltip, so this forwards
+   * the host's answer rather than leaving a plugin to hit-test the SVG and
+   * disagree with it. Nothing here can intercept or cancel: the tooltip,
+   * selection state and the caller's own events are unaffected.
+   *
+   * `category` is the resolved display label rather than an index, because a
+   * plugin coordinating two charts keys on the label; an index means something
+   * different on each chart.
+   *
+   * @returns unsubscribe
+   * @since Weave v4 (`modifiers` since v6)
+   */
+  pointer(fn: (e: ApexPluginPointerEvent) => void): () => void
   theme: {
     readonly mode: string
     readonly foreColor: string
@@ -905,6 +961,77 @@ interface ApexPluginAPI {
    * @since Weave v6
    */
   declare(item: { id: string; label?: string; visible?: boolean }): ApexPluginAPI
+}
+
+/** The shape of the chart a plugin is attached to. @since Weave v2 */
+interface ApexPluginChartInfo {
+  /**
+   * The type the caller ASKED for, which survives the aliasing that rewrites
+   * e.g. raincloud to violin.
+   */
+  readonly type: string
+  /** False for pie, donut and radialBar, where `data` is one value per slice. */
+  readonly axisChart: boolean
+  readonly datetimeX: boolean
+  /**
+   * The core refuses to draw a horizontal bar in a combo, so a plugin must not
+   * add a derived series to one.
+   */
+  readonly horizontalBars: boolean
+  /**
+   * Whether the chart prints a value on each point, and which series it prints
+   * them for. A plugin that ADDS a series needs both: there is no per-series
+   * `dataLabels` flag, so `enabledOnSeries` is the only way to keep labels off
+   * a computed series, and narrowing it without knowing the caller's own value
+   * would silently discard it.
+   */
+  readonly dataLabels: {
+    readonly enabled: boolean
+    /** Null when the caller set no list. */
+    readonly enabledOnSeries: number[] | null
+  }
+  readonly stroke: {
+    /**
+     * The caller's own dashing. A scalar applies to every series, an array is
+     * per series, and 0 means none, so there is no "unset" to report.
+     */
+    readonly dashArray: number | number[]
+  }
+  /**
+   * What the chart calls itself, where the caller titled it. For a plugin that
+   * has to NAME this chart to somebody: a page-level readout otherwise has only
+   * the container's id, which is a string written for a stylesheet.
+   *
+   * Empty string rather than undefined for an untitled chart, so it can be used
+   * directly in a template.
+   *
+   * @since Weave v6
+   */
+  readonly title: string
+}
+
+/** A viewer pointing at a data point. @since Weave v4 */
+interface ApexPluginPointerEvent {
+  readonly type: 'enter' | 'leave' | 'select'
+  readonly seriesIndex: number
+  readonly dataPointIndex: number
+  /** The resolved display label, the same string `api.categories` carries. */
+  readonly category: string | undefined
+  readonly seriesName: string | undefined
+  readonly selected: boolean | undefined
+  /**
+   * The keys held during the interaction, for the gestures that need them.
+   * All four are false when the interaction came from somewhere with no DOM
+   * event, such as the keyboard.
+   *
+   * @since Weave v6
+   */
+  readonly modifiers: {
+    readonly shift: boolean
+    readonly ctrl: boolean
+    readonly alt: boolean
+    readonly meta: boolean
+  }
 }
 
 /** One thing drawn on a chart. @since Weave v6 */
@@ -1504,6 +1631,7 @@ type ApexChart = {
   | 'unit'
   | 'waffle'
   | 'sunburst'
+  | 'icicle'
   | 'funnel'
   | 'pyramid'
   | 'gauge'
@@ -3857,6 +3985,77 @@ type ApexPlotOptions = {
       strokeWidth?: number;
       connectorColors?: string | string[];
     };
+  }
+  /**
+   * Icicle (cartesian partition). One band per hierarchy level, each child cell
+   * nested inside its parent's extent along the value axis: the sunburst's
+   * layout in cartesian coordinates. Accepts a native `children` hierarchy or an
+   * existing `drilldown` config (adapter).
+   *
+   * Opt-in: `import ApexCharts from 'apexcharts/icicle'`, or load
+   * `dist/icicle.js` after the core script.
+   */
+  icicle?: {
+    /**
+     * Which way the tree grows from the root. 'down' (default) puts the root
+     * band on top; 'up' puts it at the bottom, the flame-graph orientation;
+     * 'right'/'left' grow sideways.
+     */
+    direction?: 'down' | 'up' | 'right' | 'left'
+    /**
+     * Thickness of one depth band: 'equal' divides the depth axis by the
+     * deepest visible level, a number is px, a '%' string is a share of the
+     * depth axis.
+     */
+    levelSize?: 'equal' | number | string
+    /**
+     * How many levels to draw, counting the focused one. 'auto' (default) draws
+     * the whole tree. A number keeps the top levels readable on a very deep
+     * tree; branches cut that way are marked and zoom in to reveal.
+     */
+    maxDepth?: 'auto' | number
+    /** Gap between adjacent cells (px), same semantics as pie spacing. */
+    spacing?: number
+    /** Corner rounding of each cell (px), same semantics as pie borderRadius. */
+    borderRadius?: number
+    /**
+     * A branch that bottoms out early ends at its own band ('stop', default,
+     * leaving the white space that shows how deep each branch goes) or
+     * stretches to the far edge ('extend').
+     */
+    leaf?: 'extend' | 'stop'
+    /** Partition of a parent's extent among its children. */
+    partition?: 'normalize' | 'strict'
+    /**
+     * Sibling order within a parent. 'name' is the flame-graph convention: it
+     * holds a frame in the same place across profiles, so two runs of the same
+     * program can be compared by eye.
+     */
+    sort?: 'none' | 'value' | 'name'
+    /** Per-depth lightening of the parent colour (0 = same, 1 = white). */
+    tint?: number
+    /** Click a cell to zoom into its branch (breadcrumb to go back). Default true. */
+    zoomOnClick?: boolean
+    dataLabels?: {
+      show?: boolean
+      /** Hide the label on any cell shorter than this (px) along the reading direction. */
+      minSizeToShow?: number
+      /** Along the reading direction. Default 'center'; a flame graph wants 'left'. */
+      align?: 'left' | 'center' | 'right'
+      /**
+       * 'auto' (default) turns the label a quarter turn on a cell taller than
+       * it is wide; 'always' turns every label (a turned label reads across the
+       * band thickness, so it suits short names); 'never' keeps them flat.
+       */
+      rotate?: 'auto' | 'always' | 'never'
+      showValue?: boolean
+      style?: {
+        fontSize?: string
+        fontFamily?: string
+        fontWeight?: string | number
+        colors?: string[]
+      }
+    }
   }
   /**
    * Sunburst / nested pie-donut (hierarchical radial). Rings go from the centre

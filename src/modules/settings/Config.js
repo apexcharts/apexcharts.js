@@ -256,7 +256,8 @@ export default class Config {
       chartType === 'radialBar' ||
       chartType === 'heatmap' ||
       chartType === 'unit' ||
-      chartType === 'sunburst'
+      chartType === 'sunburst' ||
+      chartType === 'icicle'
 
     const notNumericXAxis =
       opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
