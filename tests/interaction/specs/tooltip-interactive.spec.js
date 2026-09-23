@@ -57,7 +57,13 @@ async function mountGrouped(page) {
       tooltip: { interactive: true },
     }
     window.groupedCharts = ['left', 'right'].map((id) =>
-      new window.ApexCharts(document.querySelector(`#${id}`), options),
+      new window.ApexCharts(document.querySelector(`#${id}`), {
+        ...options,
+        // A distinct chart.id registers each instance in
+        // Apex._chartInstances; without it getGroupedCharts() finds no
+        // siblings and the tooltip sync never runs.
+        chart: { ...options.chart, id },
+      }),
     )
     return Promise.all(window.groupedCharts.map((chart) => chart.render()))
   })
@@ -124,7 +130,11 @@ test.describe('tooltip.interactive', () => {
   test('hides synchronized grouped tooltips after mouseout', async ({ page }) => {
     await mountGrouped(page)
 
-    await page.locator('#left .apexcharts-series path').first().hover()
+    // Line-series paths are pointer-events:none (hover is delegated to the
+    // plot), so move the real mouse over the grid — the pattern the rest of
+    // this suite uses to raise a line chart's tooltip.
+    const grid = await page.locator('#left .apexcharts-grid').boundingBox()
+    await page.mouse.move(grid.x + grid.width * 0.5, grid.y + grid.height * 0.5)
     await expect(page.locator('#left .apexcharts-tooltip')).toHaveClass(/apexcharts-active/)
     await expect(page.locator('#right .apexcharts-tooltip')).toHaveClass(/apexcharts-active/)
 
