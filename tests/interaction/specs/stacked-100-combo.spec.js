@@ -15,13 +15,13 @@
  * Order is the whole defect, so both are covered: with the line last the chart
  * always rendered, and that case is the control.
  *
- * NOTE: these charts deliberately leave `dataLabels.enabled` alone. Turning
- * labels ON in a 100% stacked COMBO hits a separate, older defect:
- * `Defaults.stacked100` only installs the percentage formatter when
- * `chart.type === 'bar'`, and a combo's type is `line`, so the formatter stays
- * undefined and `drawCalculatedDataLabels` calls it anyway. That is not what
- * this spec guards, and it needs a decision about what a combo's labels should
- * read before it can be fixed.
+ * The order cases leave `dataLabels.enabled` at its default so they guard the
+ * lookup alone. Turning labels ON used to be its own, older crash:
+ * `Defaults.stacked100` installed the percentage formatter only for
+ * `chart.type === 'bar'` and wrote `formatter: undefined` over the default for
+ * everything else, so a combo (typed `line`) had no formatter at all. The last
+ * case covers that: bar labels read a percentage of the BAR total, the line's
+ * labels read its raw value.
  */
 
 import { test, expect } from '../fixtures/base.js'
@@ -38,9 +38,9 @@ const EXPECTED_BARS = COLUMN_COUNT * CATEGORIES.length
  * Build a 100% stacked combo with the line at either end of the series array.
  * A render failure is captured rather than thrown so the assertion can name it.
  */
-async function renderCombo(page, { lineFirst }) {
+async function renderCombo(page, { lineFirst, dataLabels = false }) {
   return page.evaluate(
-    async ({ lineFirst, categories, a, b, trend }) => {
+    async ({ lineFirst, dataLabels, categories, a, b, trend }) => {
       window.chart.destroy()
       document.body.innerHTML = '<div id="pct" style="width:700px"></div>'
 
@@ -62,6 +62,7 @@ async function renderCombo(page, { lineFirst }) {
           },
           stroke: { width: lineFirst ? [3, 0, 0] : [0, 0, 3] },
           xaxis: { categories },
+          ...(dataLabels ? { dataLabels: { enabled: true } } : {}),
         })
         window.chart = chart
         await chart.render()
@@ -70,7 +71,14 @@ async function renderCombo(page, { lineFirst }) {
         return String((e && e.message) || e)
       }
     },
-    { lineFirst, categories: CATEGORIES, a: COL_A, b: COL_B, trend: TREND },
+    {
+      lineFirst,
+      dataLabels,
+      categories: CATEGORIES,
+      a: COL_A,
+      b: COL_B,
+      trend: TREND,
+    },
   )
 }
 
@@ -111,3 +119,31 @@ for (const lineFirst of [true, false]) {
     })
   })
 }
+
+test.describe('100% stacked combo with data labels on', () => {
+  test('bars read a share of the bar total, the line reads its value', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('mixed', 'line-column')
+
+    const error = await renderCombo(page, { lineFirst: true, dataLabels: true })
+    expect(error, 'render threw').toBeNull()
+
+    const labels = await page.evaluate(() => {
+      const out = {}
+      for (const group of document.querySelectorAll('#pct .apexcharts-datalabels')) {
+        const realIndex = group.getAttribute('data:realIndex')
+        out[window.chart.w.config.series[realIndex].name] = [
+          ...group.querySelectorAll('.apexcharts-datalabel'),
+        ].map((t) => t.textContent)
+      }
+      return out
+    })
+
+    // ColA / (ColA + ColB): the line is not a slice of the 100% total.
+    expect(labels.ColA).toEqual(['67%', '77%', '81%', '83%'])
+    expect(labels.ColB).toEqual(['33%', '23%', '19%', '17%'])
+    expect(labels.Trend).toEqual(TREND.map(String))
+  })
+})

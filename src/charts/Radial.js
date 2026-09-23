@@ -5,6 +5,7 @@ import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Filters from '../modules/Filters'
 import Series from '../modules/Series'
+import { resolveClaimed } from '../modules/weave/Claims'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { Environment } from '../utils/Environment'
 
@@ -416,9 +417,17 @@ class Radial extends Pie {
 
       const angle = endAngle - startAngle
 
-      const dashArray = Array.isArray(w.config.stroke.dashArray)
-        ? w.config.stroke.dashArray[i]
-        : w.config.stroke.dashArray
+      // Claim-aware, on the same terms as the cartesian path in Graphics: a
+      // plugin may have claimed this track's dash, and the caller's config is
+      // left exactly as they wrote it. See weave/Claims.
+      const dashArray = resolveClaimed(
+        w,
+        'stroke.dashArray',
+        i,
+        Array.isArray(w.config.stroke.dashArray)
+          ? w.config.stroke.dashArray[i]
+          : w.config.stroke.dashArray,
+      )
 
       const morphFrom = morphActive
         ? this.ctx.morphTypeChange.getInitialPathFor(i, 0)

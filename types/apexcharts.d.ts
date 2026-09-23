@@ -850,6 +850,81 @@ interface ApexPluginAPI {
    */
   emit(name: string, detail?: any): void
   readonly el: Element
+  /**
+   * What this host supports, for a plugin that has to run against older ones
+   * too. A plugin targeting several hosts declares the lowest `apiVersion` it
+   * can run on (a newer one is skipped outright) and asks this for the rest.
+   *
+   * @since Weave v6
+   */
+  can(name: string): boolean
+  /** The same list, for logging and support. Frozen. @since Weave v6 */
+  readonly capabilities: readonly string[]
+  /**
+   * Set a positional option for your own series without writing the caller's
+   * config.
+   *
+   * Options like `stroke.dashArray` are indexed by series position with no
+   * per-series alternative, so setting one for a single series has meant
+   * writing the whole array and restoring the caller's afterwards. A claim is
+   * resolved where the option is READ instead: nothing is written, releasing is
+   * a deletion rather than a restore, and a caller's own `updateOptions`
+   * composes with the claim instead of being reverted by it.
+   *
+   * Name the series rather than its position where you can: the name is
+   * resolved each time the option is read, so the claim follows that series
+   * when others are added, removed or reordered.
+   *
+   * Returns null for an option that is not claimable, so a plugin written
+   * against a newer host degrades instead of throwing. Every claim is released
+   * on teardown, on destroy, and if the host disables the plugin.
+   *
+   * @since Weave v6
+   */
+  claim(
+    option: 'stroke.dashArray' | 'dataLabels.enabledOnSeries' | (string & {}),
+    entries: Array<{ series: string | number; value: any }>
+  ): ApexPluginClaim | null
+  /**
+   * Everything drawn on this chart, including other features' output: the
+   * series, the caller's annotations (ink strokes among them), and whatever
+   * plugins have declared.
+   *
+   * Read only. Every entry names its `owner`, because the list is only as
+   * complete as the features that opted in, and a reader should be able to say
+   * what it covers rather than assume it is exhaustive.
+   *
+   * @since Weave v6
+   */
+  drawn(): ReadonlyArray<ApexDrawnItem>
+  /**
+   * Say what this plugin has drawn, so it appears in `drawn()`. Declare from
+   * your draw handler: declarations are cleared with the layers at the start of
+   * every draw, so an inventory cannot outlive what it describes.
+   *
+   * @since Weave v6
+   */
+  declare(item: { id: string; label?: string; visible?: boolean }): ApexPluginAPI
+}
+
+/** One thing drawn on a chart. @since Weave v6 */
+interface ApexDrawnItem {
+  /** Stable within this chart, opaque to readers. */
+  readonly id: string
+  readonly kind: 'series' | 'annotation' | 'overlay'
+  /** A human name where one exists. */
+  readonly label: string
+  /** 'core', or the plugin that put it there. */
+  readonly owner: string
+  readonly visible: boolean
+}
+
+/** A live claim over one positional option. @since Weave v6 */
+interface ApexPluginClaim {
+  /** Drop the claim. Idempotent. */
+  release(): void
+  /** Replace this claim's entries, keeping its place in the resolution order. */
+  update(entries: Array<{ series: string | number; value: any }>): void
 }
 
 interface ApexPlugin {
@@ -1878,6 +1953,17 @@ type ApexChart = {
      * @default 'auto'
      */
     pinch?: boolean | 'auto'
+    /**
+     * The way back out of a zoom on a chart whose toolbar is hidden. While the
+     * chart is zoomed and nothing else on screen can reset it, one reset
+     * control is drawn where the toolbar would have been, and it goes when the
+     * range does; `Escape` resets the zoom as well. `'auto'` supplies both only
+     * where there is no reset button already, `true` also forces the control on
+     * where `toolbar.tools.reset` is off, and `false` turns both off for a page
+     * that supplies its own reset. Requires `enabled: true`.
+     * @default 'auto'
+     */
+    resetControl?: boolean | 'auto'
     zoomedArea?: {
       fill?: {
         color?: string
@@ -2656,6 +2742,12 @@ type ApexPlotOptions = {
     distributed?: boolean
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
+    /**
+     * Which segments of a stack round. 'all' (default) caps both ends of the
+     * stack, the baseline and the far end; 'last' caps only the far end so
+     * the stack sits square on the baseline. Stacked bar/column only.
+     */
+    borderRadiusWhenStacked?: 'all' | 'last';
     hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean

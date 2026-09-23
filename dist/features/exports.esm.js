@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.5.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -771,8 +771,7 @@ class Exports {
       }
     };
     const handleUnequalXValues = () => {
-      const categories = /* @__PURE__ */ new Set();
-      const data = {};
+      const byCategory = /* @__PURE__ */ new Map();
       series.forEach((s, sI) => {
         s == null ? void 0 : s.data.forEach((dataItem) => {
           let cat, value;
@@ -785,23 +784,22 @@ class Exports {
           } else {
             return;
           }
-          if (!/** @type {Record<string,any>} */
-          data[cat]) {
-            data[cat] = Array(
-              series.length
-            ).fill("");
+          const key = String(cat);
+          let row = byCategory.get(key);
+          if (!row) {
+            row = { cat, values: Array(series.length).fill("") };
+            byCategory.set(key, row);
           }
-          data[cat][sI] = getFormattedValue(value);
-          categories.add(cat);
+          row.values[sI] = getFormattedValue(value);
         });
       });
       if (columns.length) {
         rows.push(columns.join(columnDelimiter));
       }
-      Array.from(categories).sort().forEach((cat) => {
-        const values = (
-          /** @type {Record<string,any>} */
-          data[cat]
+      Array.from(byCategory.keys()).sort().forEach((key) => {
+        const { cat, values } = (
+          /** @type {{cat: any, values: string[]}} */
+          byCategory.get(key)
         );
         rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
       });

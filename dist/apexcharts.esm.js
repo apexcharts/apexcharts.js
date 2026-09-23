@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.5.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -984,8 +984,7 @@ class Exports {
       }
     };
     const handleUnequalXValues = () => {
-      const categories = /* @__PURE__ */ new Set();
-      const data = {};
+      const byCategory = /* @__PURE__ */ new Map();
       series.forEach((s, sI) => {
         s == null ? void 0 : s.data.forEach((dataItem) => {
           let cat, value;
@@ -998,23 +997,22 @@ class Exports {
           } else {
             return;
           }
-          if (!/** @type {Record<string,any>} */
-          data[cat]) {
-            data[cat] = Array(
-              series.length
-            ).fill("");
+          const key = String(cat);
+          let row = byCategory.get(key);
+          if (!row) {
+            row = { cat, values: Array(series.length).fill("") };
+            byCategory.set(key, row);
           }
-          data[cat][sI] = getFormattedValue(value);
-          categories.add(cat);
+          row.values[sI] = getFormattedValue(value);
         });
       });
       if (columns.length) {
         rows.push(columns.join(columnDelimiter));
       }
-      Array.from(categories).sort().forEach((cat) => {
-        const values = (
-          /** @type {Record<string,any>} */
-          data[cat]
+      Array.from(byCategory.keys()).sort().forEach((key) => {
+        const { cat, values } = (
+          /** @type {{cat: any, values: string[]}} */
+          byCategory.get(key)
         );
         rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
       });
@@ -1451,21 +1449,21 @@ function normalizeHex(c) {
   const asHex = Utils.rgb2hex(c);
   return asHex || "#000000";
 }
-function colorValueOf(w, i, j2) {
+function colorValueOf(w, i, j) {
   const series = (
     /** @type {any} */
     w.config.series[i]
   );
-  const datum = series && Array.isArray(series.data) ? series.data[j2] : null;
-  return colorValueOfDatum(w, datum, i, j2);
+  const datum = series && Array.isArray(series.data) ? series.data[j] : null;
+  return colorValueOfDatum(w, datum, i, j);
 }
-function colorValueOfDatum(w, datum, i, j2) {
+function colorValueOfDatum(w, datum, i, j) {
   var _a, _b, _c;
   if (!datum || typeof datum !== "object") return null;
   const accessor = (_c = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.treemap) == null ? void 0 : _b.colorScale) == null ? void 0 : _c.colorValue;
   let raw;
   if (typeof accessor === "function") {
-    raw = accessor(datum, { seriesIndex: i, dataPointIndex: j2, w });
+    raw = accessor(datum, { seriesIndex: i, dataPointIndex: j, w });
   } else if (typeof accessor === "string") {
     raw = datum[accessor];
   } else {
@@ -1521,8 +1519,8 @@ function buildContinuousScale(w) {
   for (let i = 0; i < series.length; i++) {
     const data = series[i] && series[i].data;
     if (!Array.isArray(data)) continue;
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const v = colorValueOfDatum(w, data[j2], i, j2);
+    for (let j = 0; j < data.length; j++) {
+      const v = colorValueOfDatum(w, data[j], i, j);
       if (v == null) continue;
       found = true;
       if (v < dataMin) dataMin = v;
@@ -2030,7 +2028,7 @@ class HeatmapGradientLegend {
         "dataPointMouseLeave",
         this._onCellLeave
       );
-    } catch (_) {
+    } catch (_2) {
     }
   }
   /** Wire mousemove/mouseout on each per-band hit-region (ranges mode). */
@@ -2092,14 +2090,14 @@ class HeatmapGradientLegend {
     const opts = args[args.length - 1];
     if (!opts || typeof opts !== "object") return;
     const i = opts.seriesIndex;
-    const j2 = opts.dataPointIndex;
-    if (typeof i !== "number" || typeof j2 !== "number") return;
+    const j = opts.dataPointIndex;
+    if (typeof i !== "number" || typeof j !== "number") return;
     if (!HeatmapGradientLegend.supports(w)) return;
     let val;
     if (this._continuous) {
-      val = colorValueOf(w, i, j2);
+      val = colorValueOf(w, i, j);
     } else {
-      val = (_c = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i]) == null ? void 0 : _c[j2];
+      val = (_c = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i]) == null ? void 0 : _c[j];
     }
     if (val == null || Number.isNaN(val)) return;
     this._positionArrow(val);
@@ -2232,8 +2230,8 @@ class HeatmapGradientLegend {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (!row) continue;
-      for (let j2 = 0; j2 < row.length; j2++) {
-        const v = row[j2];
+      for (let j = 0; j < row.length; j++) {
+        const v = row[j];
         if (v == null || Number.isNaN(v)) continue;
         if (v < dataMin) dataMin = v;
         if (v > dataMax) dataMax = v;
@@ -2449,7 +2447,7 @@ class Legend {
     const isLegendInversed = w.config.legend.inverseOrder;
     const legendGroups = [];
     if (w.labelData.seriesGroups.length > 1 && w.config.legend.clusterGroupedSeries) {
-      w.labelData.seriesGroups.forEach((_, gi) => {
+      w.labelData.seriesGroups.forEach((_2, gi) => {
         legendGroups[gi] = BrowserAPIs.createElement("div");
         legendGroups[gi].classList.add(
           "apexcharts-legend-group",
@@ -2774,10 +2772,49 @@ class Toolbar {
     this.elMenu = null;
     this.elMenuItems = [];
     this.t = null;
+    this._drawnForZoom = null;
   }
-  createToolbar() {
-    var _a, _b;
+  /**
+   * Whether this chart's built-in ways back out of a zoom are switched on.
+   *
+   * The gate `chart.zoom.resetControl` opens, and the one the Escape shortcut
+   * reads too, so a page that says it supplies its own reset gets neither.
+   * 'auto' means "supply one when nothing else on screen can": a toolbar
+   * showing its reset tool is a way back, and anything else is not.
+   *
+   * @returns {boolean}
+   */
+  resetControlAllowed() {
+    const c = this.w.config.chart;
+    if (!c.zoom || !c.zoom.enabled) return false;
+    const setting = c.zoom.resetControl === void 0 ? "auto" : c.zoom.resetControl;
+    if (setting !== "auto") return !!setting;
+    const onScreen = c.toolbar && c.toolbar.show && c.toolbar.tools && c.toolbar.tools.reset;
+    return !onScreen;
+  }
+  /**
+   * Whether a reset control has to be drawn for the state the chart is in now.
+   *
+   * Only while the chart is actually zoomed, which is the whole idea: the
+   * control appears at the moment the viewer changed the view, where they are
+   * already looking, and goes again when the range does. A page that never
+   * zooms never sees it, so `toolbar: { show: false }` still means an empty
+   * chart for everyone who does not zoom.
+   *
+   * @returns {boolean}
+   */
+  resetControlDue() {
+    return !!this.w.interact.zoomed && this.resetControlAllowed();
+  }
+  /**
+   * @param {{ resetOnly?: boolean }} [opts] `resetOnly` draws the on-demand
+   *   reset control and nothing else, for a chart whose page asked for no
+   *   toolbar at all. See {@link Toolbar#resetControlDue}.
+   */
+  createToolbar(opts = {}) {
+    var _a, _b, _c;
     const w = this.w;
+    const resetOnly = !!opts.resetOnly;
     const createDiv = () => {
       return BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
     };
@@ -2805,6 +2842,24 @@ class Toolbar {
     this.elMenu = createDiv();
     this.elCustomIcons = [];
     this.t = w.config.chart.toolbar.tools;
+    this._drawnForZoom = null;
+    if (resetOnly) {
+      this.t = {
+        zoom: false,
+        zoomin: false,
+        zoomout: false,
+        selection: false,
+        pan: false,
+        measure: false,
+        download: false,
+        customIcons: [],
+        reset: true
+      };
+      this._drawnForZoom = "wrap";
+    } else if (!this.t.reset && this.resetControlDue()) {
+      this.t = __spreadProps(__spreadValues({}, this.t), { reset: true });
+      this._drawnForZoom = "control";
+    }
     if (Array.isArray(this.t.customIcons)) {
       for (let i = 0; i < this.t.customIcons.length; i++) {
         this.elCustomIcons.push(createBtn());
@@ -2827,16 +2882,16 @@ class Toolbar {
     };
     appendZoomControl("zoomIn", this.elZoomIn, icoZoomIn);
     appendZoomControl("zoomOut", this.elZoomOut, icoZoomOut);
-    const zoomSelectionCtrls = (z) => {
-      if (this.t[z] && w.config.chart[z].enabled) {
+    const zoomSelectionCtrls = (z2) => {
+      if (this.t[z2] && w.config.chart[z2].enabled) {
         toolbarControls.push({
-          el: z === "zoom" ? this.elZoom : this.elSelection,
-          icon: typeof this.t[z] === "string" ? this.t[z] : z === "zoom" ? icoZoom : icoSelect,
+          el: z2 === "zoom" ? this.elZoom : this.elSelection,
+          icon: typeof this.t[z2] === "string" ? this.t[z2] : z2 === "zoom" ? icoZoom : icoSelect,
           title: (
             /** @type {any} */
-            this.localeValues[z === "zoom" ? "selectionZoom" : "selection"]
+            this.localeValues[z2 === "zoom" ? "selectionZoom" : "selection"]
           ),
-          class: `apexcharts-${z}-icon`
+          class: `apexcharts-${z2}-icon`
         });
       }
     };
@@ -2915,7 +2970,14 @@ class Toolbar {
       this.elMenuIcon.setAttribute("aria-haspopup", "true");
       this.elMenuIcon.setAttribute("aria-expanded", "false");
     }
-    this._createHamburgerMenu(elToolbarWrap);
+    if (!resetOnly) this._createHamburgerMenu(elToolbarWrap);
+    if (resetOnly) {
+      (_a = this.elZoomReset) == null ? void 0 : _a.addEventListener(
+        "click",
+        this.handleZoomReset.bind(this)
+      );
+      return;
+    }
     if (w.interact.zoomEnabled) {
       this.elZoom.classList.add(this.selectedClass);
     } else if (w.interact.panEnabled) {
@@ -2924,7 +2986,7 @@ class Toolbar {
       this.elSelection.classList.add(this.selectedClass);
     } else if (w.interact.measureEnabled && this.elMeasure) {
       this.elMeasure.classList.add(this.selectedClass);
-      (_b = (_a = this.ctx.measure) == null ? void 0 : _a.startMeasure) == null ? void 0 : _b.call(_a);
+      (_c = (_b = this.ctx.measure) == null ? void 0 : _b.startMeasure) == null ? void 0 : _c.call(_b);
     }
     this.addToolbarEventListeners();
   }
@@ -3330,9 +3392,28 @@ class Toolbar {
         break;
     }
   }
+  /**
+   * Take down whatever the zoom alone put on screen.
+   *
+   * By hand, and not left to the next render, because of the order in
+   * {@link Toolbar#handleZoomReset}: the re-render happens while
+   * `interact.zoomed` is still true, so the control is drawn once more and then
+   * the flag clears with no further pass to notice. Reversing that order would
+   * change what every listener downstream of the update sees, which is a much
+   * larger promise than this control is worth.
+   */
+  clearZoomAffordance() {
+    const drawn = this._drawnForZoom;
+    this._drawnForZoom = null;
+    if (!drawn || !this.elZoomReset) return;
+    const parent = this.elZoomReset.parentNode;
+    const gone = drawn === "wrap" ? parent : this.elZoomReset;
+    if (gone && gone.parentNode) gone.parentNode.removeChild(gone);
+  }
   handleZoomReset() {
     const charts = this.ctx.getSyncedCharts();
     charts.forEach((ch) => {
+      var _a;
       const w = ch.w;
       if (!w.interact.zoomed) return;
       w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min;
@@ -3358,6 +3439,7 @@ class Toolbar {
         w.config.chart.animations.dynamicAnimation.enabled
       );
       w.interact.zoomed = false;
+      (_a = ch.ctx.toolbar) == null ? void 0 : _a.clearZoomAffordance();
     });
   }
   destroy() {
@@ -3505,6 +3587,10 @@ class ZoomPanSelection extends Toolbar {
         passive: false
       });
     }
+    this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
+      capture: false,
+      passive: true
+    });
     if (this._momentumEnabled()) {
       ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
         (event) => {
@@ -3637,12 +3723,16 @@ class ZoomPanSelection extends Toolbar {
   /**
    * A wheel or pinch zoom is an incidental gesture: the viewer can land in a
    * zoomed window without meaning to (a page scroll over the chart, a two-finger
-   * swipe), so it is only offered when there is a way back out of it. The only
-   * built-in way back is the toolbar's reset button, hence 'auto' (the default
-   * for both allowMouseWheelZoom and pinch) resolves against that button being
-   * present. A page that builds its own reset control sets the option to true
-   * and gets the gesture with no toolbar. Drag-to-zoom is deliberate, so it is
-   * not gated this way.
+   * swipe), so it is only offered when there is a way back out of it. 'auto'
+   * (the default for both allowMouseWheelZoom and pinch) resolves against a
+   * reset button that is already on screen. A page that builds its own reset
+   * control sets the option to true and gets the gesture with no toolbar.
+   * Drag-to-zoom is deliberate, so it is not gated this way.
+   *
+   * `chart.zoom.resetControl` supplies a reset of its own once a chart IS
+   * zoomed, and deliberately does NOT open this gate. It arrives after the
+   * fact, and what an incidental wheel zoom takes from the viewer first is the
+   * page scroll it swallowed, which no button hands back.
    *
    * @param {boolean|'auto'} setting
    */
@@ -3656,6 +3746,58 @@ class ZoomPanSelection extends Toolbar {
   _wheelZoomEnabled() {
     const { zoom } = this.w.config.chart;
     return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom);
+  }
+  /**
+   * Put keyboard focus on the chart, where the chart is focusable at all.
+   *
+   * A drag is swallowed by the zoom handlers before the browser can move focus,
+   * so a viewer who has just zoomed by hand leaves nothing focused, and every
+   * key the chart offers is out of reach: Escape to reset (see
+   * {@link ZoomPanSelection#escapeResetEvent}) and the +, - and 0 the keyboard
+   * module already binds. Focusing what they just acted on puts those in reach.
+   *
+   * Pointer-driven focus, which keyboard navigation expects and does not read
+   * as a request to start navigating, and which the stylesheet draws no ring
+   * around (`svg:focus:not(:focus-visible)`).
+   *
+   * Only where the accessibility module has made the SVG focusable, which is
+   * the default: a page that turned keyboard support off is not handed a tab
+   * stop it never asked for, and still has the reset control as its way back.
+   */
+  _focusForKeyboard() {
+    var _a, _b;
+    const node = this.w.dom.Paper && this.w.dom.Paper.node;
+    if (!node || typeof node.focus !== "function") return;
+    if (node.getAttribute("tabindex") === null) return;
+    (_b = (_a = this.ctx.keyboardNavigation) == null ? void 0 : _a.notePointerFocus) == null ? void 0 : _b.call(_a);
+    try {
+      node.focus({ preventScroll: true });
+    } catch (e) {
+      node.focus();
+    }
+  }
+  /**
+   * Escape, on a zoomed chart, puts the range back.
+   *
+   * The quiet half of the same answer the on-demand reset control gives, and
+   * gated on it, so a page that says it supplies its own way back gets neither.
+   *
+   * It defers to keyboard navigation, whose Escape dismisses the tooltip and
+   * which offers `0` for this, so the key means one thing at a time. It does
+   * not stop the event either, so a page listening for Escape still hears it.
+   *
+   * Reachable because a completed drag-zoom puts focus on the chart; see
+   * {@link ZoomPanSelection#_focusForKeyboard}.
+   *
+   * @param {any} e
+   */
+  escapeResetEvent(e) {
+    if (e.key !== "Escape" && e.key !== "Esc") return;
+    if (!this.w.interact.zoomed) return;
+    const nav = this.ctx.keyboardNavigation;
+    if (nav && nav.active) return;
+    if (!this.resetControlAllowed()) return;
+    this.handleZoomReset();
   }
   /** Lazily-created, re-render-surviving wheel-gesture state. */
   _wheel() {
@@ -4139,11 +4281,16 @@ class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           options.yaxis = yaxis;
         }
-        me.ctx.updateHelpers._updateOptions(
+        const applied = me.ctx.updateHelpers._updateOptions(
           options,
           false,
           me.w.config.chart.animations.dynamicAnimation.enabled
         );
+        if (applied && typeof applied.then === "function") {
+          applied.then(() => me._focusForKeyboard());
+        } else {
+          me._focusForKeyboard();
+        }
         if (typeof w.config.chart.events.zoomed === "function") {
           toolbar.zoomCallback(xaxis, yaxis);
         }
@@ -5897,6 +6044,19 @@ class KeyboardNavigation {
     this._lastPointerDownAt = Date.now();
   }
   /**
+   * Note that a pointer gesture is about to move focus into the chart.
+   *
+   * The 100 ms window above catches the browser's own click-to-focus, which
+   * lands immediately. A drag-zoom moves focus deliberately, and only once its
+   * re-render is done (ZoomPanSelection#_focusForKeyboard), which is far
+   * outside that window. Without this it reads as a viewer asking to navigate
+   * by keyboard, which activates nav and flashes a tooltip at the first visible
+   * point after every zoom.
+   */
+  notePointerFocus() {
+    this._lastPointerDownAt = Date.now();
+  }
+  /**
    * Called from Events.js keydown handler. Navigation keys are already handled
    * by the direct SVG listener (which can call preventDefault). This entry
    * point is intentionally a no-op — Events.js still fires the public keyDown
@@ -6048,8 +6208,8 @@ class KeyboardNavigation {
     if (dSeries !== 0) {
       const ttCtx = this.w.globals.tooltip;
       if (ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
-        const j2 = this.dataPointIndex;
-        const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j2) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
+        const j = this.dataPointIndex;
+        const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
         if (isActuallyShared) return;
       }
       const total = this._getSeriesCount();
@@ -6115,16 +6275,16 @@ class KeyboardNavigation {
   }
   // ─── Display ──────────────────────────────────────────────────────────────
   _showCurrentPoint() {
-    const { seriesIndex: i, dataPointIndex: j2 } = this;
+    const { seriesIndex: i, dataPointIndex: j } = this;
     const w = this.w;
     const ttCtx = w.globals.tooltip;
     if (!ttCtx || !ttCtx.ttItems) return;
     w.interact.capturedSeriesIndex = i;
-    w.interact.capturedDataPointIndex = j2;
-    this._applyFocusClass(i, j2);
+    w.interact.capturedDataPointIndex = j;
+    this._applyFocusClass(i, j);
     this._showTooltip(
       i,
-      j2,
+      j,
       /** @type {any} */
       ttCtx
     );
@@ -6159,7 +6319,7 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showTooltip(i, j2, ttCtx) {
+  _showTooltip(i, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
     const tooltipEl = ttCtx.getElTooltip();
@@ -6171,22 +6331,22 @@ class KeyboardNavigation {
       ttWidth: cachedDims.ttWidth || 0,
       ttHeight: cachedDims.ttHeight || 0
     };
-    this._setSyntheticEvent(i, j2, ttCtx);
+    this._setSyntheticEvent(i, j, ttCtx);
     w.dom.baseEl.classList.add("apexcharts-tooltip-active");
     tooltipEl.classList.add("apexcharts-active");
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
       tooltipEl.removeAttribute("aria-hidden");
     }
     if (type === "pie" || type === "donut" || type === "polarArea") {
-      this._showTooltipNonAxis(i, j2, ttCtx, tooltipEl);
+      this._showTooltipNonAxis(i, j, ttCtx, tooltipEl);
     } else if (type === "radialBar") {
-      this._showTooltipRadialBar(i, j2, ttCtx, tooltipEl);
+      this._showTooltipRadialBar(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
-      this._showTooltipHeatTree(i, j2, ttCtx, tooltipEl, type);
+      this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
     } else if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar") {
-      this._showTooltipBar(i, j2, ttCtx);
+      this._showTooltipBar(i, j, ttCtx);
     } else {
-      this._showTooltipAxisLine(i, j2, ttCtx);
+      this._showTooltipAxisLine(i, j, ttCtx);
     }
   }
   /**
@@ -6202,18 +6362,18 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _setSyntheticEvent(i, j2, ttCtx) {
+  _setSyntheticEvent(i, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
     let clientX = 0;
     let clientY = 0;
-    const el = this._getFocusableElement(i, j2);
+    const el = this._getFocusableElement(i, j);
     if (el) {
       const rect = el.getBoundingClientRect();
       clientX = rect.left + rect.width / 2;
       clientY = rect.top + rect.height / 2;
-    } else if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j2]) {
-      const pt = w.globals.pointsArray[i][j2];
+    } else if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j]) {
+      const pt = w.globals.pointsArray[i][j];
       const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
       if (elGrid) {
         const gridRect = elGrid.getBoundingClientRect();
@@ -6229,8 +6389,8 @@ class KeyboardNavigation {
       }
     }
     if (type === "line" || type === "area" || type === "rangeArea" || type === "scatter" || type === "bubble" || type === "radar") {
-      if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j2]) {
-        const pt = w.globals.pointsArray[i][j2];
+      if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j]) {
+        const pt = w.globals.pointsArray[i][j];
         const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
         if (elGrid) {
           const gridRect = elGrid.getBoundingClientRect();
@@ -6247,24 +6407,24 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showTooltipBar(i, j2, ttCtx) {
+  _showTooltipBar(i, j, ttCtx) {
     var _a, _b, _c, _d;
     const w = this.w;
-    const shared = ttCtx.tConfig.shared && (ttCtx.tooltipUtil.isXoverlap(j2) || w.globals.isBarHorizontal) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
+    const shared = ttCtx.tConfig.shared && (ttCtx.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
     const rangeData = (
       /** @type {any} */
-      (_d = (_c = (_b = (_a = w.rangeData.seriesRange) == null ? void 0 : _a[i]) == null ? void 0 : _b[j2]) == null ? void 0 : _c.y) == null ? void 0 : _d[0]
+      (_d = (_c = (_b = (_a = w.rangeData.seriesRange) == null ? void 0 : _a[i]) == null ? void 0 : _b[j]) == null ? void 0 : _c.y) == null ? void 0 : _d[0]
     );
     ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues(__spreadValues({
       ttItems: ttCtx.ttItems,
       i,
-      j: j2
+      j
     }, (rangeData == null ? void 0 : rangeData.y1) !== void 0 && { y1: rangeData.y1 }), (rangeData == null ? void 0 : rangeData.y2) !== void 0 && { y2: rangeData.y2 }), {
       shared
     }));
     const parent = `.apexcharts-series[data\\:realIndex='${i}']`;
     const elPath = w.dom.Paper.findOne(
-      `${parent} path[j='${j2}'], ${parent} circle[j='${j2}'], ${parent} rect[j='${j2}']`
+      `${parent} path[j='${j}'], ${parent} circle[j='${j}'], ${parent} rect[j='${j}']`
     );
     if (elPath) {
       this._leaveHoveredBar();
@@ -6296,7 +6456,7 @@ class KeyboardNavigation {
         }
       }
     } else {
-      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, i);
+      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i);
     }
   }
   /**
@@ -6305,31 +6465,31 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showTooltipAxisLine(i, j2, ttCtx) {
+  _showTooltipAxisLine(i, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
     const sharedConfigured = ttCtx.tConfig.shared;
-    const shared = sharedConfigured && ttCtx.tooltipUtil.isXoverlap(j2) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
+    const shared = sharedConfigured && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i,
-      j: j2,
+      j,
       shared
     });
     const isScatterLike = type === "scatter" || type === "bubble";
     const hasVisibleMarkers = w.globals.markers.largestSize > 0 && !w.globals.markers.batched;
     if (isScatterLike) {
-      this._showScatterBubblePoint(i, j2, ttCtx);
+      this._showScatterBubblePoint(i, j, ttCtx);
     } else if (hasVisibleMarkers) {
       if (shared) {
-        ttCtx.marker.enlargePoints(j2);
+        ttCtx.marker.enlargePoints(j);
       } else {
-        ttCtx.tooltipPosition.moveDynamicPointOnHover(j2, i);
+        ttCtx.tooltipPosition.moveDynamicPointOnHover(j, i);
       }
     } else if (shared) {
-      ttCtx.tooltipPosition.moveDynamicPointsOnHover(j2);
+      ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
     } else {
-      ttCtx.tooltipPosition.moveDynamicPointOnHover(j2, i);
+      ttCtx.tooltipPosition.moveDynamicPointOnHover(j, i);
     }
   }
   /**
@@ -6344,7 +6504,7 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showScatterBubblePoint(i, j2, ttCtx) {
+  _showScatterBubblePoint(i, j, ttCtx) {
     const baseEl = this.w.dom.baseEl;
     if (this._enlargedScatterMarker) {
       ttCtx.marker.oldPointSize(this._enlargedScatterMarker);
@@ -6354,9 +6514,9 @@ class KeyboardNavigation {
       `.apexcharts-series[data\\:realIndex='${i}']`
     );
     if (!seriesEl) return;
-    const markerEl = seriesEl.querySelector(`.apexcharts-marker[rel='${j2}']`);
+    const markerEl = seriesEl.querySelector(`.apexcharts-marker[rel='${j}']`);
     if (!markerEl) return;
-    ttCtx.marker.enlargeCurrentPoint(j2, markerEl);
+    ttCtx.marker.enlargeCurrentPoint(j, markerEl);
     this._enlargedScatterMarker = markerEl;
   }
   /**
@@ -6366,17 +6526,17 @@ class KeyboardNavigation {
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @param {HTMLElement} tooltipEl
    */
-  _showTooltipNonAxis(i, j2, ttCtx, tooltipEl) {
+  _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
     const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
-      i: j2,
+      i: j,
       shared: false
     });
     const tooltipBound = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
-    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j2}']`);
+    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     const anchor = ttCtx.getSliceAnchor(sliceEl);
     if (anchor) {
       tooltipEl.style.left = anchor.x - ttWidth / 2 + "px";
@@ -6434,20 +6594,20 @@ class KeyboardNavigation {
    * @param {HTMLElement} tooltipEl
    * @param {string} type
    */
-  _showTooltipHeatTree(i, j2, ttCtx, tooltipEl, type) {
+  _showTooltipHeatTree(i, j, ttCtx, tooltipEl, type) {
     var _a, _b;
     const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i,
-      j: j2,
+      j,
       shared: false
     });
     const tooltipRect = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipRect.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipRect.height || ttCtx.tooltipRect.ttHeight || 0;
     const rectClass = type === "heatmap" ? "apexcharts-heatmap-rect" : "apexcharts-treemap-rect";
-    const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i}'][j='${j2}']`);
+    const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i}'][j='${j}']`);
     if (cell) {
       const wrapRect = w.dom.elWrap.getBoundingClientRect();
       const cellRect = cell.getBoundingClientRect();
@@ -6472,13 +6632,13 @@ class KeyboardNavigation {
    * @param {number} i
    * @param {number} j
    */
-  _applyFocusClass(i, j2) {
+  _applyFocusClass(i, j) {
     this._removeFocusClass();
-    const el = this._getFocusableElement(i, j2) || this._getBatchedFocusEl(i);
+    const el = this._getFocusableElement(i, j) || this._getBatchedFocusEl(i);
     if (el) {
       el.classList.add("apexcharts-keyboard-focused");
       el.setAttribute("role", "img");
-      const label = this._buildPointLabel(i, j2);
+      const label = this._buildPointLabel(i, j);
       if (label) el.setAttribute("aria-label", label);
       this._focusedEl = el;
     }
@@ -6514,15 +6674,15 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {string}
    */
-  _buildPointLabel(i, j2) {
+  _buildPointLabel(i, j) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     const type = w.config.chart.type;
     const seriesNames = w.seriesData.seriesNames || [];
     const series = w.seriesData.series || [];
     if (type === "pie" || type === "donut" || type === "polarArea") {
-      const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j2]) != null ? _b : "";
-      const value = Array.isArray(series) ? series[j2] : "";
+      const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j]) != null ? _b : "";
+      const value = Array.isArray(series) ? series[j] : "";
       return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
     }
     if (type === "radialBar") {
@@ -6532,14 +6692,14 @@ class KeyboardNavigation {
     }
     const seriesName = seriesNames[i] || `Series ${i + 1}`;
     const row = Array.isArray(series[i]) ? series[i] : [];
-    const rawValue = row[j2];
+    const rawValue = row[j];
     let formattedValue = rawValue == null ? "" : String(rawValue);
     const yFormatter = (_d = (_c = w.formatters) == null ? void 0 : _c.yLabelFormatters) == null ? void 0 : _d[i];
     if (typeof yFormatter === "function") {
       try {
         formattedValue = yFormatter(rawValue, {
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
       } catch (e) {
@@ -6548,20 +6708,20 @@ class KeyboardNavigation {
     let category = "";
     const categoryLabels = (_e = w.labelData) == null ? void 0 : _e.categoryLabels;
     const seriesX = (_g = (_f = w.seriesData) == null ? void 0 : _f.seriesX) == null ? void 0 : _g[i];
-    if (Array.isArray(categoryLabels) && categoryLabels[j2] != null) {
-      category = String(categoryLabels[j2]);
-    } else if (Array.isArray(seriesX) && seriesX[j2] != null) {
+    if (Array.isArray(categoryLabels) && categoryLabels[j] != null) {
+      category = String(categoryLabels[j]);
+    } else if (Array.isArray(seriesX) && seriesX[j] != null) {
       const xFormatter = (_h = w.formatters) == null ? void 0 : _h.xLabelFormatter;
       if (typeof xFormatter === "function") {
         try {
           category = String(
-            xFormatter(seriesX[j2], { seriesIndex: i, dataPointIndex: j2, w })
+            xFormatter(seriesX[j], { seriesIndex: i, dataPointIndex: j, w })
           );
         } catch (e) {
-          category = String(seriesX[j2]);
+          category = String(seriesX[j]);
         }
       } else {
-        category = String(seriesX[j2]);
+        category = String(seriesX[j]);
       }
     }
     return category ? `${seriesName}: ${formattedValue}, ${category}` : `${seriesName}: ${formattedValue}`;
@@ -6577,21 +6737,21 @@ class KeyboardNavigation {
    * @param {number} i
    * @param {number} j
    */
-  _getFocusableElement(i, j2) {
+  _getFocusableElement(i, j) {
     const w = this.w;
     const type = w.config.chart.type;
     const baseEl = w.dom.baseEl;
     if (type === "pie" || type === "donut" || type === "polarArea") {
-      return baseEl.querySelector(`.apexcharts-pie-area[j='${j2}']`);
+      return baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     }
     if (type === "heatmap") {
       return baseEl.querySelector(
-        `.apexcharts-heatmap-rect[i='${i}'][j='${j2}']`
+        `.apexcharts-heatmap-rect[i='${i}'][j='${j}']`
       );
     }
     if (type === "treemap") {
       return baseEl.querySelector(
-        `.apexcharts-treemap-rect[i='${i}'][j='${j2}']`
+        `.apexcharts-treemap-rect[i='${i}'][j='${j}']`
       );
     }
     if (type === "radialBar") {
@@ -6601,11 +6761,11 @@ class KeyboardNavigation {
     }
     if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar") {
       return baseEl.querySelector(
-        `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j2}']`
+        `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`
       );
     }
     const marker = baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker[rel='${j2}']`
+      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker[rel='${j}']`
     );
     return marker || null;
   }
@@ -7118,8 +7278,8 @@ class MorphTypeChange {
           (Array.isArray(newSeries) ? newSeries : []).forEach(
             (s, seriesIdx) => {
               const data = s && Array.isArray(s.data) ? s.data : [];
-              for (let j2 = 0; j2 < data.length; j2++) {
-                keyOrder.push(`${seriesIdx}:${j2}`);
+              for (let j = 0; j < data.length; j++) {
+                keyOrder.push(`${seriesIdx}:${j}`);
               }
             }
           );
@@ -7302,8 +7462,8 @@ class MorphTypeChange {
    * @param {number|string} j
    * @returns {boolean}
    */
-  claimsTargetMark(realIndex, j2) {
-    return !!(this._snapshot && this._snapshot.pieceIn && this._snapshot.mapping.has(`${realIndex}:${j2}`));
+  claimsTargetMark(realIndex, j) {
+    return !!(this._snapshot && this._snapshot.pieceIn && this._snapshot.mapping.has(`${realIndex}:${j}`));
   }
   /**
    * Create the overlay group the pieces are driven in. It lives INSIDE the
@@ -7767,10 +7927,10 @@ class MorphTypeChange {
         const d = p.getAttribute("pathTo") || p.getAttribute("d");
         if (!d || !d.trim()) return;
         const jAttr = parseInt((_a3 = p.getAttribute("j")) != null ? _a3 : "", 10);
-        const j2 = isNaN(jAttr) ? order++ : jAttr;
+        const j = isNaN(jAttr) ? order++ : jAttr;
         const box = this._pathBBox(d);
         if (!box) return;
-        const key = `${realIndex}:${j2}`;
+        const key = `${realIndex}:${j}`;
         const prev = out.get(key);
         if (prev) {
           prev.els.push(p);
@@ -7783,7 +7943,7 @@ class MorphTypeChange {
         } else {
           out.set(key, {
             realIndex,
-            j: j2,
+            j,
             bbox: {
               x: box.minX,
               y: box.minY,
@@ -7825,12 +7985,12 @@ class MorphTypeChange {
           10
         );
         const paths = seriesNode.querySelectorAll("path[pathTo]");
-        paths.forEach((p, j2) => {
+        paths.forEach((p, j) => {
           const d = p.getAttribute("pathTo") || p.getAttribute("d");
           if (!d) return;
           captured.push({
             realIndex,
-            j: j2,
+            j,
             d,
             fill: p.getAttribute("fill")
           });
@@ -7840,16 +8000,16 @@ class MorphTypeChange {
       const byMark = /* @__PURE__ */ new Map();
       baseEl.querySelectorAll(`.apexcharts-${fromType}-area`).forEach((p) => {
         var _a2, _b;
-        const j2 = parseInt((_a2 = p.getAttribute("j")) != null ? _a2 : "", 10);
-        if (isNaN(j2)) return;
+        const j = parseInt((_a2 = p.getAttribute("j")) != null ? _a2 : "", 10);
+        if (isNaN(j)) return;
         const d = p.getAttribute("pathTo") || p.getAttribute("d");
         if (!d || !d.trim()) return;
         const group = typeof p.closest === "function" ? p.closest(".apexcharts-series") : null;
         const realIndex = parseInt((_b = group == null ? void 0 : group.getAttribute("data:realIndex")) != null ? _b : "0", 10) || 0;
-        const key = `${realIndex}:${j2}`;
+        const key = `${realIndex}:${j}`;
         const prev = byMark.get(key);
         if (prev) prev.d += ` ${d}`;
-        else byMark.set(key, { realIndex, j: j2, d, fill: p.getAttribute("fill") });
+        else byMark.set(key, { realIndex, j, d, fill: p.getAttribute("fill") });
       });
       Array.from(byMark.values()).sort((a, b) => a.realIndex - b.realIndex || a.j - b.j).forEach((m) => captured.push(m));
     } else if (fam === "partition") {
@@ -8170,8 +8330,8 @@ class MorphTypeChange {
       const series = Array.isArray(newSeries) ? newSeries : [];
       series.forEach((s, seriesIdx) => {
         const data = s && Array.isArray(s.data) ? s.data : [];
-        for (let j2 = 0; j2 < data.length; j2++) {
-          positions.push({ realIndex: seriesIdx, j: j2 });
+        for (let j = 0; j < data.length; j++) {
+          positions.push({ realIndex: seriesIdx, j });
         }
       });
       flat.forEach((c, i) => {
@@ -8192,9 +8352,9 @@ class MorphTypeChange {
    * @param {number|string} j
    * @returns {string | null}
    */
-  getInitialPathFor(realIndex, j2) {
+  getInitialPathFor(realIndex, j) {
     if (!this._snapshot) return null;
-    const entry = this._snapshot.mapping.get(`${realIndex}:${j2}`);
+    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
     if (!entry) return null;
     const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
     const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
@@ -8311,13 +8471,13 @@ class MorphTypeChange {
    * @param {number} n - objects in the cluster
    * @returns {{ x: number, y: number } | null}
    */
-  getInitialSlotFor(i, j2, n) {
+  getInitialSlotFor(i, j, n) {
     const box = this.getInitialBBoxFor(i);
     if (!box) return null;
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
-    if (!(n > 1) || !(j2 >= 0)) return { x: cx, y: cy };
-    const t = (Math.min(j2, n - 1) + 0.5) / n;
+    if (!(n > 1) || !(j >= 0)) return { x: cx, y: cy };
+    const t = (Math.min(j, n - 1) + 0.5) / n;
     if (box.height >= box.width) {
       return { x: cx, y: box.y + box.height * (1 - t) };
     }
@@ -8389,9 +8549,9 @@ class MorphTypeChange {
    * @param {number} j
    * @returns {string | null}
    */
-  getInitialFillFor(realIndex, j2) {
+  getInitialFillFor(realIndex, j) {
     if (!this._snapshot) return null;
-    const entry = this._snapshot.mapping.get(`${realIndex}:${j2}`);
+    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
     return entry ? entry.fill : null;
   }
   /** @returns {number} */
@@ -9411,9 +9571,9 @@ class Drilldown {
     series.forEach((s, i) => {
       const data = s && Array.isArray(s.data) ? s.data : null;
       if (!data) return;
-      data.forEach((point, j2) => {
+      data.forEach((point, j) => {
         if (!point || typeof point !== "object" || point.drilldown == null) return;
-        const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j2}"]`);
+        const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j}"]`);
         if (!nodes.length) unreachable++;
         nodes.forEach((node) => {
           if (this._isClickThroughMark(node)) {
@@ -9499,16 +9659,16 @@ class Drilldown {
       return void 0;
     }
     const i = w.interact.capturedSeriesIndex;
-    const j2 = w.interact.capturedDataPointIndex;
-    if (i == null || j2 == null || i < 0 || j2 < 0) return void 0;
+    const j = w.interact.capturedDataPointIndex;
+    if (i == null || j == null || i < 0 || j < 0) return void 0;
     if (!this._isPointBasedSeries(w.config.series[i])) return void 0;
-    const point = this._pointAt(i, j2);
+    const point = this._pointAt(i, j);
     if (!point || typeof point !== "object" || point.drilldown == null) {
       return void 0;
     }
     return this.drillDown(point.drilldown, point, {
       seriesIndex: i,
-      dataPointIndex: j2
+      dataPointIndex: j
     });
   }
   /**
@@ -9553,9 +9713,9 @@ class Drilldown {
       if (!this._seriesNeedsDrillMarker(i, s)) return;
       const data = s && Array.isArray(s.data) ? s.data : null;
       if (!data) return;
-      data.forEach((point, j2) => {
+      data.forEach((point, j) => {
         if (!point || typeof point !== "object" || point.drilldown == null) return;
-        const entry = { seriesIndex: i, dataPointIndex: j2, [DRILL_MARKER]: true };
+        const entry = { seriesIndex: i, dataPointIndex: j, [DRILL_MARKER]: true };
         if (mk.size !== void 0) entry.size = mk.size;
         if (mk.shape !== void 0) entry.shape = mk.shape;
         if (mk.fillColor !== void 0) entry.fillColor = mk.fillColor;
@@ -9603,7 +9763,182 @@ function getRegistry() {
 function getPlugin(name) {
   return getRegistry()[name] || null;
 }
-const WEAVE_API_VERSION = 4;
+const CLAIMABLE = Object.freeze({
+  "stroke.dashArray": Object.freeze({ type: "number" }),
+  "dataLabels.enabledOnSeries": Object.freeze({ type: "boolean" })
+});
+function store(w) {
+  if (!w.weaveClaims) w.weaveClaims = { byOption: /* @__PURE__ */ new Map() };
+  return w.weaveClaims;
+}
+function claimsFor(w, option) {
+  const s = store(w);
+  if (!s.byOption.has(option)) s.byOption.set(option, []);
+  return s.byOption.get(option);
+}
+function normaliseEntries(option, entries) {
+  const spec = (
+    /** @type {Record<string, {type: string}>} */
+    CLAIMABLE[option]
+  );
+  const out = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (!entry || typeof entry.series !== "string" && typeof entry.series !== "number") {
+      console.warn(
+        `[apexcharts] claim on "${option}": each entry needs a series name or index.`
+      );
+      continue;
+    }
+    if (typeof entry.value !== spec.type) {
+      console.warn(
+        `[apexcharts] claim on "${option}": expected a ${spec.type} for series ${String(
+          entry.series
+        )}, got ${typeof entry.value}.`
+      );
+      continue;
+    }
+    out.push({ series: entry.series, value: entry.value });
+  }
+  return out;
+}
+function addClaim(w, owner, option, entries) {
+  if (!Object.prototype.hasOwnProperty.call(CLAIMABLE, option)) {
+    console.warn(
+      `[apexcharts] "${option}" is not a claimable option. Claimable: ${Object.keys(
+        CLAIMABLE
+      ).join(", ")}.`
+    );
+    return null;
+  }
+  const record = { owner, option, entries: normaliseEntries(option, entries) };
+  claimsFor(w, option).push(record);
+  return record;
+}
+function releaseClaim(w, record) {
+  if (!w.weaveClaims || !record) return;
+  const list = w.weaveClaims.byOption.get(record.option);
+  if (!list) return;
+  const at = list.indexOf(record);
+  if (at > -1) list.splice(at, 1);
+}
+function releaseOwner(w, owner) {
+  if (!w.weaveClaims) return;
+  for (const [option, list] of w.weaveClaims.byOption) {
+    const kept = list.filter((c) => c.owner !== owner);
+    if (kept.length !== list.length) w.weaveClaims.byOption.set(option, kept);
+  }
+}
+function indexOfSeries(w, series) {
+  if (typeof series === "number") return series;
+  const list = w.config && w.config.series || [];
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] && list[i].name === series) return i;
+  }
+  return -1;
+}
+function resolveClaimed(w, option, seriesIndex, fallback) {
+  if (!w || !w.weaveClaims) return fallback;
+  const list = w.weaveClaims.byOption.get(option);
+  if (!list || !list.length) return fallback;
+  let resolved = fallback;
+  for (const claim of list) {
+    for (const entry of claim.entries) {
+      if (indexOfSeries(w, entry.series) === seriesIndex) resolved = entry.value;
+    }
+  }
+  return resolved;
+}
+const ANNOTATION_TYPES = ["xaxis", "yaxis", "points", "texts", "images"];
+function seriesVisible(w, index) {
+  const gl = w.globals;
+  return (gl.collapsedSeriesIndices || []).indexOf(index) < 0 && (gl.ancillaryCollapsedSeriesIndices || []).indexOf(index) < 0;
+}
+function seriesItems(w, host) {
+  const derived = host && host._derived;
+  const ownerOf = (name) => {
+    if (!derived) return "core";
+    for (const [plugin, names] of derived) {
+      if (names.indexOf(name) > -1) return plugin;
+    }
+    return "core";
+  };
+  return (w.config.series || []).map((s, i) => {
+    const label = s && s.name ? String(s.name) : `Series ${i + 1}`;
+    return {
+      id: `series:${i}`,
+      kind: (
+        /** @type {const} */
+        "series"
+      ),
+      label,
+      owner: ownerOf(label),
+      visible: seriesVisible(w, i)
+    };
+  });
+}
+function annotationItems(w) {
+  const config = w.config.annotations || {};
+  const out = [];
+  for (const type of ANNOTATION_TYPES) {
+    const list = Array.isArray(config[type]) ? config[type] : [];
+    list.forEach((anno, i) => {
+      if (!anno) return;
+      out.push({
+        // An annotation carries an id only when someone gave it one, so the
+        // synthesised form is what most config-declared annotations get. It is
+        // stable for as long as the list is, which is what a reader needs.
+        id: anno.id ? String(anno.id) : `annotation:${type}:${i}`,
+        kind: (
+          /** @type {const} */
+          "annotation"
+        ),
+        label: labelOfAnnotation(anno, type, i),
+        owner: anno.owner ? String(anno.owner) : "core",
+        // An annotation is drawn whenever it is in the config: there is no
+        // hidden state for one, unlike a series.
+        visible: true
+      });
+    });
+  }
+  return out;
+}
+function labelOfAnnotation(anno, type, i) {
+  const text = anno.label && anno.label.text;
+  if (text) return String(text);
+  if (anno.text) return String(anno.text);
+  if (anno.id) return String(anno.id);
+  return `${type} annotation ${i + 1}`;
+}
+function collectDrawn(w, host) {
+  const declared = [];
+  if (host && host._declared) {
+    for (const [plugin, items] of host._declared) {
+      for (const item of items) {
+        declared.push({
+          id: `overlay:${plugin}:${item.id}`,
+          kind: (
+            /** @type {const} */
+            "overlay"
+          ),
+          label: item.label,
+          owner: plugin,
+          visible: item.visible !== false
+        });
+      }
+    }
+  }
+  return [...seriesItems(w, host), ...annotationItems(w), ...declared];
+}
+const WEAVE_API_VERSION = 6;
+const WEAVE_CAPABILITIES = Object.freeze([
+  "layer",
+  "derived",
+  "reserve",
+  "pointer",
+  "stroke-info",
+  "claim",
+  "drawn"
+]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
   "updateSeries",
@@ -9630,7 +9965,7 @@ function buildBoundPublicMethods(ctx) {
   });
   return Object.freeze(out);
 }
-function makeLayerHandle(g, graphics) {
+function makeLayerHandle(g, graphics, onClear) {
   const add = (el) => {
     if (el) g.add(el);
     return el;
@@ -9727,6 +10062,7 @@ function makeLayerHandle(g, graphics) {
     clear() {
       const node = g.node;
       while (node.firstChild) node.removeChild(node.firstChild);
+      if (onClear) onClear();
       return handle;
     }
   };
@@ -9834,7 +10170,30 @@ function buildPluginAPI(host, record) {
           enabledOnSeries: Array.isArray(
             w.config.dataLabels && w.config.dataLabels.enabledOnSeries
           ) ? w.config.dataLabels.enabledOnSeries.slice() : null
-        })
+        }),
+        // The caller's own dashing, reported for the same reason and against
+        // the same trap (v5). `stroke.dashArray` is indexed by series position
+        // with no per-series escape hatch, so a plugin that wants ITS OWN
+        // computed series dashed has to write the whole array, and writing one
+        // without knowing what was there discards the caller's dashed lines
+        // with nothing to restore them from.
+        //
+        // A scalar applies to every series and an array is per series. There is
+        // no "unset" to report: the option defaults to 0, and 0 already means
+        // no dashing, so restoring it restores exactly what was there.
+        stroke: Object.freeze({
+          dashArray: Array.isArray(w.config.stroke && w.config.stroke.dashArray) ? w.config.stroke.dashArray.slice() : w.config.stroke && w.config.stroke.dashArray || 0
+        }),
+        // What the chart calls itself, where the caller titled it (v6).
+        //
+        // For a plugin that has to NAME this chart to somebody: a page-level
+        // readout listing several charts otherwise has only the container's id
+        // to head each row with, which is a string written for a stylesheet.
+        // The title is the name the page already chose and put on screen.
+        //
+        // Empty string rather than undefined for an untitled chart, so a
+        // caller can use it directly in a template; falsy either way.
+        title: String(w.config.title && w.config.title.text || "")
       });
     },
     // Display labels per x position (v2).
@@ -9902,6 +10261,85 @@ function buildPluginAPI(host, record) {
       return api;
     },
     /**
+     * Set a positional option for your own series, without writing the
+     * caller's config.
+     *
+     * Some options are indexed by series position with no per-series escape
+     * hatch, so setting one for a single series has always meant writing the
+     * array that covers all of them, then putting the caller's value back. A
+     * claim says what this plugin wants instead, and the host answers with it
+     * where the option is READ. Nothing is written, so releasing is a deletion
+     * rather than a restore, and a caller's own `updateOptions` composes with
+     * the claim instead of being reverted by it.
+     *
+     *     const claim = api.claim('stroke.dashArray', [
+     *       { series: 'Revenue (forecast)', value: 6 },
+     *     ])
+     *     claim.release()
+     *
+     * Name the series rather than its position where you can: a name is
+     * resolved each time the option is read, so the claim follows the series
+     * through the caller adding, removing or reordering others.
+     *
+     * Claimable options are an allowlist (see `CLAIMABLE`). An option that is
+     * not on it returns null rather than throwing, so a plugin written against
+     * a newer host degrades. Every claim is released on teardown, on destroy,
+     * and if the host disables this plugin after repeated failures.
+     *
+     * @param {string} option
+     * @param {Array<{series: string|number, value: any}>} entries
+     * @returns {{release: () => void, update: (entries: Array<{series: string|number, value: any}>) => void}|null}
+     * @since Weave v6
+     */
+    claim(option, entries) {
+      const claim = addClaim(w, record.def.name, option, entries);
+      if (!claim) return null;
+      return Object.freeze({
+        release() {
+          releaseClaim(w, claim);
+        },
+        update(next) {
+          claim.entries = normaliseEntries(option, next);
+        }
+      });
+    },
+    /**
+     * Everything drawn on this chart, including what other features drew.
+     *
+     * The chart's series, the caller's annotations (ink strokes among them,
+     * since an ink stroke is an annotation), and whatever plugins have
+     * declared. Each entry names its `owner`, because the list is only as
+     * complete as the features that opted into it: a reader can say what it
+     * covers instead of assuming it is everything.
+     *
+     * Read only. Removing or hiding another feature's output is a much larger
+     * promise than this platform makes, and is deliberately not here.
+     *
+     * Rebuilt per call: it is a projection of live state, and a remembered
+     * inventory is a list of what WAS drawn.
+     *
+     * @returns {ReadonlyArray<{id: string, kind: 'series'|'annotation'|'overlay', label: string, owner: string, visible: boolean}>}
+     * @since Weave v6
+     */
+    drawn() {
+      return Object.freeze(collectDrawn(w, host).map((i) => Object.freeze(i)));
+    },
+    /**
+     * Say what this plugin has drawn, so it appears in `api.drawn()`.
+     *
+     * Declare from your draw handler, on the same terms as the drawing itself:
+     * declarations are cleared with the layers at the start of every draw, so
+     * an inventory cannot outlive what it describes. Declaring the same id
+     * twice replaces it rather than adding a second row.
+     *
+     * @param {{id: string, label?: string, visible?: boolean}} item
+     * @since Weave v6
+     */
+    declare(item) {
+      host._declare(record.def.name, item);
+      return api;
+    },
+    /**
      * Subscribe to the data point a viewer is pointing at.
      *
      * The chart already knows this: it resolves the series and point under the
@@ -9924,7 +10362,12 @@ function buildPluginAPI(host, record) {
      * and a handler that throws is contained rather than allowed to break the
      * interaction it was watching.
      *
-     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined}) => void} fn
+     * `modifiers` (v6) reports the keys held during the interaction, for the
+     * gestures that need them: shift-click to add to a selection is the one
+     * page-level coordination wants. All four are false when the interaction
+     * came from somewhere with no DOM event, such as the keyboard.
+     *
+     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined, modifiers: {shift: boolean, ctrl: boolean, alt: boolean, meta: boolean}}) => void} fn
      * @returns {() => void} unsubscribe
      * @since Weave v4
      */
@@ -9949,8 +10392,29 @@ function buildPluginAPI(host, record) {
       return w.dom.baseEl;
     }
   };
+  const probes = (
+    /** @type {Record<string, (a: any) => boolean>} */
+    WIRED
+  );
+  const granted = WEAVE_CAPABILITIES.filter((name) => probes[name](api));
+  const grantedSet = new Set(granted);
+  const extras = (
+    /** @type {any} */
+    api
+  );
+  extras.capabilities = Object.freeze(granted);
+  extras.can = (name) => grantedSet.has(name);
   return Object.freeze(api);
 }
+const WIRED = {
+  layer: (a) => typeof a.layer === "function",
+  derived: (a) => typeof a.markDerived === "function",
+  reserve: (a) => typeof a.reserve === "function",
+  pointer: (a) => typeof a.pointer === "function",
+  "stroke-info": (a) => !!(a.info && a.info.stroke),
+  claim: (a) => typeof a.claim === "function",
+  drawn: (a) => typeof a.drawn === "function" && typeof a.declare === "function"
+};
 const _WeaveHost = class _WeaveHost {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -9969,6 +10433,7 @@ const _WeaveHost = class _WeaveHost {
     this._reserved = null;
     this._reserveTimer = null;
     this._pointerSubs = null;
+    this._declared = null;
     this._pointerWired = null;
     this._onUpdated = this._onUpdated.bind(this);
     this._init();
@@ -10074,6 +10539,7 @@ const _WeaveHost = class _WeaveHost {
       record.failures = (record.failures || 0) + 1;
       if (record.failures >= 3) {
         record.disabled = true;
+        releaseOwner(this.w, record.def.name);
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`
         );
@@ -10097,7 +10563,7 @@ const _WeaveHost = class _WeaveHost {
   _setScales(xyRatios) {
     const w = this.w;
     const gl = w.globals;
-    const L2 = w.layout;
+    const L = w.layout;
     if (!xyRatios || !gl.axisCharts) {
       this._currentScales = null;
       return;
@@ -10108,7 +10574,7 @@ const _WeaveHost = class _WeaveHost {
     const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
     const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
     const banded = !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0;
-    const band = banded ? L2.gridWidth / gl.dataPoints : 0;
+    const band = banded ? L.gridWidth / gl.dataPoints : 0;
     this._currentScales = {
       x: banded ? (v) => band * (v + 0.5) : (v) => (v - gl.minX) / xRatio,
       /**
@@ -10119,8 +10585,8 @@ const _WeaveHost = class _WeaveHost {
       domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
-      gridWidth: L2.gridWidth,
-      gridHeight: L2.gridHeight,
+      gridWidth: L.gridWidth,
+      gridHeight: L.gridHeight,
       ratios: xyRatios
     };
   }
@@ -10137,8 +10603,8 @@ const _WeaveHost = class _WeaveHost {
     return series.map((sData, i) => {
       const row = Array.isArray(sData) ? sData : [sData];
       const xs = seriesX[i] || [];
-      const points = row.map((y, j2) => ({
-        x: xs[j2] != null ? xs[j2] : j2,
+      const points = row.map((y, j) => ({
+        x: xs[j] != null ? xs[j] : j,
         y
       }));
       const cfg = cfgSeries[i];
@@ -10253,8 +10719,8 @@ const _WeaveHost = class _WeaveHost {
     ];
     this._pointerWired = [];
     for (const [type, name] of map) {
-      const handler = (_e, _ctx, opts) => {
-        this._emitPointer(type, opts);
+      const handler = (e, _ctx, opts) => {
+        this._emitPointer(type, opts, e);
       };
       this.ctx.addEventListener(name, handler);
       this._pointerWired.push([name, handler]);
@@ -10270,8 +10736,9 @@ const _WeaveHost = class _WeaveHost {
    *
    * @param {'enter'|'leave'|'select'} type
    * @param {any} opts
+   * @param {any} [e] the DOM event, where the interaction came from one
    */
-  _emitPointer(type, opts) {
+  _emitPointer(type, opts, e) {
     if (!this._pointerSubs || !this._pointerSubs.size) return;
     const seriesIndex = opts && typeof opts.seriesIndex === "number" ? opts.seriesIndex : -1;
     const dataPointIndex = opts && typeof opts.dataPointIndex === "number" ? opts.dataPointIndex : -1;
@@ -10289,16 +10756,24 @@ const _WeaveHost = class _WeaveHost {
       // Only meaningful on a select: the chart hands back its whole selection
       // set, and what a plugin wants to know is whether THIS point is now in
       // it, so a second click reads as a deselect rather than another select.
-      selected: type === "select" ? _WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : void 0
+      selected: type === "select" ? _WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : void 0,
+      // The modifier keys held during the interaction (v6), for the gestures
+      // that need them: shift-click to add to a selection is the one page mode
+      // wants, and a plugin cannot invent it from anything else here.
+      //
+      // All false when the interaction came from somewhere with no DOM event
+      // (the keyboard, a programmatic selection), which is the honest answer:
+      // no key was held.
+      modifiers: _WeaveHost._modifiers(e)
     };
     for (const [name, handlers] of this._pointerSubs) {
       for (const fn of handlers.slice()) {
         try {
           fn(payload);
-        } catch (e) {
+        } catch (e2) {
           console.warn(
             '[apexcharts] plugin "' + name + '" threw in a pointer handler',
-            e
+            e2
           );
         }
       }
@@ -10337,6 +10812,23 @@ const _WeaveHost = class _WeaveHost {
     const mine = all[seriesIndex];
     if (!Array.isArray(mine)) return false;
     return mine.indexOf(dataPointIndex) > -1;
+  }
+  /**
+   * Which modifier keys were held, read off the DOM event.
+   *
+   * Always the same four booleans, never undefined and never a partial object:
+   * a plugin writes `if (e.modifiers.shift)` without a guard, and a shape that
+   * sometimes lacks a key is how that becomes a crash inside a viewer's click.
+   *
+   * @param {any} e
+   */
+  static _modifiers(e) {
+    return Object.freeze({
+      shift: !!(e && e.shiftKey),
+      ctrl: !!(e && e.ctrlKey),
+      alt: !!(e && e.altKey),
+      meta: !!(e && e.metaKey)
+    });
   }
   /**
    * Record a plugin's container reservation and re-render if it changed.
@@ -10485,19 +10977,31 @@ const _WeaveHost = class _WeaveHost {
    * @param {string} name
    * @param {{ z?: 'front'|'behind', className?: string }} opts
    */
-  _layer(name, { z = "front", className = "" } = {}) {
+  _layer(name, { z: z2 = "front", className = "" } = {}) {
     let g = this._layers.get(name);
     if (!g) {
       g = this.ctx.graphics.group({
         class: `apexcharts-plugin-${name} ${className}`.trim()
       });
       const parent = this.w.dom.elGraphical.node;
-      if (z === "behind") parent.insertBefore(g.node, parent.firstChild);
+      if (z2 === "behind") parent.insertBefore(g.node, parent.firstChild);
       else parent.appendChild(g.node);
       g.node.setAttribute("aria-hidden", "true");
       this._layers.set(name, g);
     }
-    return makeLayerHandle(g, this.ctx.graphics);
+    return makeLayerHandle(g, this.ctx.graphics, () => this._undeclare(name));
+  }
+  /**
+   * Forget what one plugin declared it drew.
+   *
+   * Called when that plugin empties its layer, which is it saying it is drawing
+   * nothing. Scoped to the one plugin: another's declarations are none of its
+   * business, and its own next draw declares again.
+   *
+   * @param {string} name plugin
+   */
+  _undeclare(name) {
+    if (this._declared) this._declared.delete(name);
   }
   /**
    * Remove all plugin layers. Run at the start of every `draw` because
@@ -10512,6 +11016,35 @@ const _WeaveHost = class _WeaveHost {
       Array.prototype.forEach.call(groups, (n) => n.remove());
     }
     this._layers.clear();
+    this._declared = null;
+  }
+  /**
+   * Record one thing a plugin has drawn, for `api.drawn()`.
+   *
+   * Replaced by id rather than appended, so a plugin declaring the same overlay
+   * on every draw (which is the pattern this expects) produces one entry.
+   *
+   * @param {string} name plugin
+   * @param {{id: string, label?: string, visible?: boolean}} item
+   */
+  _declare(name, item) {
+    if (!item || typeof item.id !== "string" || !item.id) {
+      console.warn(
+        `[apexcharts] plugin "${name}" declared something with no id; ignored.`
+      );
+      return;
+    }
+    if (!this._declared) this._declared = /* @__PURE__ */ new Map();
+    const mine = this._declared.get(name) || [];
+    const entry = {
+      id: item.id,
+      label: item.label ? String(item.label) : item.id,
+      visible: item.visible !== false
+    };
+    const at = mine.findIndex((d) => d.id === entry.id);
+    if (at > -1) mine[at] = entry;
+    else mine.push(entry);
+    this._declared.set(name, mine);
   }
   // ─── Config-change reconciliation ───────────────────────────────────────
   /**
@@ -10559,10 +11092,12 @@ const _WeaveHost = class _WeaveHost {
       for (const record of this.active) {
         this._guard(record, "destroy", () => record.def.destroy && record.def.destroy(record.api));
       }
+      for (const record of this.active) releaseOwner(this.w, record.def.name);
       this.active = [];
       this._derived = null;
       this._reserved = null;
       this._pointerSubs = null;
+      this._declared = null;
       if (this._pointerWired) {
         for (const [name, handler] of this._pointerWired) {
           this.ctx.removeEventListener && this.ctx.removeEventListener(name, handler);
@@ -10641,22 +11176,22 @@ function makeCustomSeriesClass(name, def) {
         if (typeof w.globals.pointsArray[realIndex] === "undefined") {
           w.globals.pointsArray[realIndex] = [];
         }
-        for (let j2 = 0; j2 < yvals.length; j2++) {
-          const yVal = yvals[j2];
+        for (let j = 0; j < yvals.length; j++) {
+          const yVal = yvals[j];
           if (yVal === null || typeof yVal === "undefined") continue;
-          const xVal = xvals[j2];
-          const xPx = scales.xAt(j2, xVal);
+          const xVal = xvals[j];
+          const xPx = scales.xAt(j, xVal);
           const yPx = scales.y(yVal);
-          const api = this._api(emit, elSeries, realIndex, j2);
+          const api = this._api(emit, elSeries, realIndex, j);
           try {
             def.renderItem({
-              datum: rawData[j2],
+              datum: rawData[j],
               x: xPx,
               y: yPx,
               scales,
               api,
               seriesIndex: realIndex,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               color
             });
           } catch (e) {
@@ -10668,9 +11203,9 @@ function makeCustomSeriesClass(name, def) {
               this._warned = true;
             }
           }
-          w.globals.seriesXvalues[realIndex][j2] = xPx;
-          w.globals.seriesYvalues[realIndex][j2] = yPx;
-          w.globals.pointsArray[realIndex][j2] = [xPx, yPx];
+          w.globals.seriesXvalues[realIndex][j] = xPx;
+          w.globals.seriesYvalues[realIndex][j] = yPx;
+          w.globals.pointsArray[realIndex][j] = [xPx, yPx];
         }
         graphics.setupEventDelegation(elSeries, ".apexcharts-marks-mark");
         ret.add(elSeries);
@@ -10729,12 +11264,12 @@ function makeCustomSeriesClass(name, def) {
      * events are coordinate-based).
      * @param {any} emit @param {any} elSeries @param {number} realIndex @param {number} j
      */
-    _api(emit, elSeries, realIndex, j2) {
+    _api(emit, elSeries, realIndex, j) {
       const tag = (el) => {
         if (el) {
           try {
             el.node.setAttribute("index", String(realIndex));
-            el.node.setAttribute("j", String(j2));
+            el.node.setAttribute("j", String(j));
             el.node.classList.add("apexcharts-marks-mark");
           } catch (e) {
           }
@@ -11147,12 +11682,12 @@ function fiveNumberSummary(values, opts = {}) {
     const hiFence = q3 + 1.5 * iqr;
     let i = 0;
     while (i < sorted.length && sorted[i] < loFence) i++;
-    let j2 = sorted.length - 1;
-    while (j2 >= 0 && sorted[j2] > hiFence) j2--;
-    if (i <= j2) {
+    let j = sorted.length - 1;
+    while (j >= 0 && sorted[j] > hiFence) j--;
+    if (i <= j) {
       lo = sorted[i];
-      hi = sorted[j2];
-      outliers = sorted.slice(0, i).concat(sorted.slice(j2 + 1));
+      hi = sorted[j];
+      outliers = sorted.slice(0, i).concat(sorted.slice(j + 1));
     }
   }
   return { summary: [lo, q1, median, q3, hi], outliers, iqr };
@@ -11190,8 +11725,8 @@ function kernelDensity(values, opts = {}) {
     const x = lo + g * step;
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const z = (x - sorted[i]) / h;
-      sum += Math.exp(-0.5 * z * z);
+      const z2 = (x - sorted[i]) / h;
+      sum += Math.exp(-0.5 * z2 * z2);
     }
     density.push([x, sum * norm]);
   }
@@ -11448,8 +11983,8 @@ function pointsRowSource(pick) {
       if (collapsed.indexOf(i) !== -1) return;
       if (!Array.isArray(byCat)) return;
       const seriesName = w.seriesData && ((_a2 = w.seriesData.seriesNames) == null ? void 0 : _a2[i]);
-      byCat.forEach((pts, j2) => {
-        const label = labels[j2] != null ? String(labels[j2]) : `#${j2 + 1}`;
+      byCat.forEach((pts, j) => {
+        const label = labels[j] != null ? String(labels[j]) : `#${j + 1}`;
         clusters.push({
           name: perSeries.length > 1 && seriesName ? `${seriesName} ${label}` : label,
           realIndex: i,
@@ -11512,9 +12047,9 @@ class Waterfall {
     for (let i = 0; i < geo.length; i++) {
       const bars = geo[i];
       if (!Array.isArray(bars)) continue;
-      for (let j2 = 0; j2 < bars.length - 1; j2++) {
-        const a = bars[j2];
-        const b = bars[j2 + 1];
+      for (let j = 0; j < bars.length - 1; j++) {
+        const a = bars[j];
+        const b = bars[j + 1];
         if (!a || !b) continue;
         const gap = b.slotStart - a.slotEnd;
         if (!(gap > 0.5)) continue;
@@ -11574,8 +12109,8 @@ class Waterfall {
     w.globals.delayedElements.push({ el: group.node, holdUntilComplete: true });
   }
 }
-function readDatum$2(d, j2, categories) {
-  const fallbackX = categories && categories[j2] !== void 0 ? categories[j2] : j2 + 1;
+function readDatum$2(d, j, categories) {
+  const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
   if (d == null) {
     return {
       x: fallbackX,
@@ -11606,8 +12141,8 @@ function readDatum$2(d, j2, categories) {
   return { x: fallbackX, y: d, isSubtotal: false, isTotal: false, rest: {} };
 }
 function isPrecomputed(data) {
-  for (let j2 = 0; j2 < data.length; j2++) {
-    const d = data[j2];
+  for (let j = 0; j < data.length; j++) {
+    const d = data[j];
     const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
     if (Array.isArray(y) && y.length === 2) return true;
   }
@@ -11625,10 +12160,10 @@ function accumulate(data, categories, colors) {
   const kinds = [];
   let running = 0;
   let cut = 0;
-  for (let j2 = 0; j2 < data.length; j2++) {
+  for (let j = 0; j < data.length; j++) {
     const { x, y, isSubtotal, isTotal, rest } = readDatum$2(
-      data[j2],
-      j2,
+      data[j],
+      j,
       categories
     );
     let start;
@@ -11723,8 +12258,8 @@ function waterfallTransform(ser, w) {
 }
 registerSeriesTransform("waterfall", waterfallTransform);
 _core__default.registerFeatures({ waterfall: Waterfall });
-function readDatum$1(d, j2, categories) {
-  const fallbackX = categories && categories[j2] !== void 0 ? categories[j2] : j2 + 1;
+function readDatum$1(d, j, categories) {
+  const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
   if (d == null) return { x: fallbackX, y: null, rest: {} };
   if (Array.isArray(d)) {
     return { x: d[0] !== void 0 ? d[0] : fallbackX, y: d[1], rest: {} };
@@ -11735,8 +12270,8 @@ function readDatum$1(d, j2, categories) {
   return { x: fallbackX, y: d, rest: {} };
 }
 function isPairShaped$1(data) {
-  for (let j2 = 0; j2 < data.length; j2++) {
-    const d = data[j2];
+  for (let j = 0; j < data.length; j++) {
+    const d = data[j];
     const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
     if (Array.isArray(y) && y.length === 2) return true;
   }
@@ -11751,8 +12286,8 @@ function joinOnX$1(raw, categories) {
   for (let i = 0; i < raw.length; i++) {
     const data = Array.isArray((_a = raw[i]) == null ? void 0 : _a.data) ? raw[i].data : [];
     const map = /* @__PURE__ */ new Map();
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const { x, y, rest } = readDatum$1(data[j2], j2, categories);
+    for (let j = 0; j < data.length; j++) {
+      const { x, y, rest } = readDatum$1(data[j], j, categories);
       const key = x instanceof Date ? x.getTime() : x;
       if (!seen.has(key)) {
         seen.set(key, xs.length);
@@ -11804,10 +12339,10 @@ function dumbbellTransform(ser, w) {
     if (collapsed.indexOf(k) === -1) visible.push(k);
   }
   const data = [];
-  for (let j2 = 0; j2 < xs.length; j2++) {
+  for (let j = 0; j < xs.length; j++) {
     const rowValues = [];
     for (let k = 0; k < raw.length; k++) {
-      const v = byX[k].has(j2) ? byX[k].get(j2) : null;
+      const v = byX[k].has(j) ? byX[k].get(j) : null;
       rowValues.push(
         v === null || v === void 0 || !isFinite(v) ? null : v
       );
@@ -11832,11 +12367,11 @@ function dumbbellTransform(ser, w) {
     }
     if (lo === null || hi === null) {
       order.push(null);
-      data.push(__spreadProps(__spreadValues({}, rows[j2]), { x: xs[j2], y: null }));
+      data.push(__spreadProps(__spreadValues({}, rows[j]), { x: xs[j], y: null }));
       continue;
     }
     order.push([kLo, kHi]);
-    data.push(__spreadProps(__spreadValues({}, rows[j2]), { x: xs[j2], y: [lo, hi] }));
+    data.push(__spreadProps(__spreadValues({}, rows[j]), { x: xs[j], y: [lo, hi] }));
   }
   w.dumbbellData = {
     form: "series",
@@ -11849,7 +12384,7 @@ function dumbbellTransform(ser, w) {
     values,
     order,
     carrier: visible.length ? visible[0] : 0,
-    hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+    hidden: raw.map((_2, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
   };
   const carrier = w.dumbbellData.carrier;
   return raw.map((s, k) => __spreadProps(__spreadValues({}, s), {
@@ -11998,9 +12533,9 @@ class StreamLabels {
     if (!Array.isArray(xPx) || xPx.length < m || m === 0) return null;
     const thickness = new Array(m);
     let peakT = 0;
-    for (let j2 = 0; j2 < m; j2++) {
-      const t = Math.abs(this._yPx(hi[j2]) - this._yPx(lo[j2]));
-      thickness[j2] = t;
+    for (let j = 0; j < m; j++) {
+      const t = Math.abs(this._yPx(hi[j]) - this._yPx(lo[j]));
+      thickness[j] = t;
       if (t > peakT) peakT = t;
     }
     if (peakT <= 0) return null;
@@ -12061,11 +12596,11 @@ class StreamLabels {
       for (const cx of centres) {
         let anchor = run.l;
         let bestDx = Infinity;
-        for (let j2 = run.l; j2 <= run.r; j2++) {
-          const dx = Math.abs(Number(xPx[j2]) - cx);
+        for (let j = run.l; j <= run.r; j++) {
+          const dx = Math.abs(Number(xPx[j]) - cx);
           if (dx < bestDx) {
             bestDx = dx;
-            anchor = j2;
+            anchor = j;
           }
         }
         candidates.push({
@@ -12091,20 +12626,20 @@ class StreamLabels {
    */
   _runs(thickness, needed, m) {
     const runs = [];
-    let j2 = 0;
-    while (j2 < m) {
-      if (thickness[j2] < needed) {
-        j2++;
+    let j = 0;
+    while (j < m) {
+      if (thickness[j] < needed) {
+        j++;
         continue;
       }
-      let end = j2;
-      let maxT = thickness[j2];
+      let end = j;
+      let maxT = thickness[j];
       while (end + 1 < m && thickness[end + 1] >= needed) {
         end++;
         if (thickness[end] > maxT) maxT = thickness[end];
       }
-      runs.push({ l: j2, r: end, maxT });
-      j2 = end + 1;
+      runs.push({ l: j, r: end, maxT });
+      j = end + 1;
     }
     return runs.sort((a, b) => b.maxT - a.maxT);
   }
@@ -12278,26 +12813,26 @@ class StreamLabels {
     const xs = w.globals.seriesXvalues[d.order[0]];
     if (!Array.isArray(xs) || !xs.length) return -1;
     const captured = w.interact ? w.interact.capturedDataPointIndex : -1;
-    let j2 = -1;
+    let j = -1;
     if (captured >= 0 && captured < xs.length) {
-      j2 = captured;
+      j = captured;
     } else {
       let best = Infinity;
       for (let i = 0; i < xs.length; i++) {
         const dx = Math.abs(Number(xs[i]) - px);
         if (dx < best) {
           best = dx;
-          j2 = i;
+          j = i;
         }
       }
     }
-    if (j2 < 0) return -1;
+    if (j < 0) return -1;
     let nearest = -1;
     let gap = Infinity;
     for (let i = 0; i < d.order.length; i++) {
       const k = d.order[i];
-      const a = this._yPx(d.highs[k][j2]);
-      const b = this._yPx(d.lows[k][j2]);
+      const a = this._yPx(d.highs[k][j]);
+      const b = this._yPx(d.lows[k][j]);
       const top = Math.min(a, b);
       const bottom = Math.max(a, b);
       if (py >= top && py <= bottom) return k;
@@ -12418,8 +12953,8 @@ class StreamLabels {
 }
 const OFFSETS = ["wiggle", "silhouette", "zero", "expand"];
 const ORDERS = ["inside-out", "inverse", "none"];
-function readDatum(d, j2, categories) {
-  const fallbackX = categories && categories[j2] !== void 0 ? categories[j2] : j2 + 1;
+function readDatum(d, j, categories) {
+  const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
   if (d == null) return { x: fallbackX, y: null, rest: {} };
   if (Array.isArray(d)) {
     return { x: d[0] !== void 0 ? d[0] : fallbackX, y: d[1], rest: {} };
@@ -12430,8 +12965,8 @@ function readDatum(d, j2, categories) {
   return { x: fallbackX, y: d, rest: {} };
 }
 function isPairShaped(data) {
-  for (let j2 = 0; j2 < data.length; j2++) {
-    const d = data[j2];
+  for (let j = 0; j < data.length; j++) {
+    const d = data[j];
     const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
     if (Array.isArray(y) && y.length === 2) return true;
   }
@@ -12446,8 +12981,8 @@ function joinOnX(raw, categories) {
   for (let k = 0; k < raw.length; k++) {
     const data = Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
     const grid = /* @__PURE__ */ new Map();
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const { x, y, rest } = readDatum(data[j2], j2, categories);
+    for (let j = 0; j < data.length; j++) {
+      const { x, y, rest } = readDatum(data[j], j, categories);
       const key = x instanceof Date ? x.getTime() : x;
       if (!seen.has(key)) {
         seen.set(key, xs.length);
@@ -12466,19 +13001,19 @@ function joinOnX(raw, categories) {
 }
 function sortColumns(xs) {
   const idx = [];
-  for (let j2 = 0; j2 < xs.length; j2++) {
-    const x = xs[j2] instanceof Date ? xs[j2].getTime() : xs[j2];
+  for (let j = 0; j < xs.length; j++) {
+    const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
     if (typeof x !== "number" || !isFinite(x)) return null;
-    idx.push(j2);
+    idx.push(j);
   }
-  const keyed = idx.map((j2) => ({
-    j: j2,
-    v: xs[j2] instanceof Date ? xs[j2].getTime() : xs[j2]
+  const keyed = idx.map((j) => ({
+    j,
+    v: xs[j] instanceof Date ? xs[j].getTime() : xs[j]
   }));
   keyed.sort((a, b) => a.v - b.v);
   const perm = keyed.map((e) => e.j);
-  for (let j2 = 0; j2 < perm.length; j2++) {
-    if (perm[j2] !== j2) return perm;
+  for (let j = 0; j < perm.length; j++) {
+    if (perm[j] !== j) return perm;
   }
   return null;
 }
@@ -12493,11 +13028,11 @@ function orderBands(mode, visible, values) {
     let sum = 0;
     let best = -Infinity;
     let bestJ = 0;
-    for (let j2 = 0; j2 < v.length; j2++) {
-      sum += v[j2];
-      if (v[j2] > best) {
-        best = v[j2];
-        bestJ = j2;
+    for (let j = 0; j < v.length; j++) {
+      sum += v[j];
+      if (v[j] > best) {
+        best = v[j];
+        bestJ = j;
       }
     }
     sums[k] = sum;
@@ -12525,30 +13060,30 @@ function baselineFor(mode, order, stack, m) {
   if (m === 0 || order.length === 0) return base;
   if (mode === "zero" || mode === "expand") return base;
   if (mode === "silhouette") {
-    for (let j2 = 0; j2 < m; j2++) {
+    for (let j = 0; j < m; j++) {
       let total = 0;
-      for (let i = 0; i < order.length; i++) total += stack[order[i]][j2];
-      base[j2] = -total / 2;
+      for (let i = 0; i < order.length; i++) total += stack[order[i]][j];
+      base[j] = -total / 2;
     }
     return base;
   }
   let y = 0;
-  for (let j2 = 1; j2 < m; j2++) {
+  for (let j = 1; j < m; j++) {
     let s1 = 0;
     let s2 = 0;
     for (let i = 0; i < order.length; i++) {
       const vi = stack[order[i]];
-      const now = vi[j2];
-      let moved = (now - vi[j2 - 1]) / 2;
+      const now = vi[j];
+      let moved = (now - vi[j - 1]) / 2;
       for (let k = 0; k < i; k++) {
         const vk = stack[order[k]];
-        moved += vk[j2] - vk[j2 - 1];
+        moved += vk[j] - vk[j - 1];
       }
       s1 += now;
       s2 += moved * now;
     }
     if (s1) y -= s2 / s1;
-    base[j2] = y;
+    base[j] = y;
   }
   return base;
 }
@@ -12576,22 +13111,22 @@ function streamgraphTransform(ser, w) {
   const collapsed = gl.collapsedSeriesIndices || [];
   const { xs, rows, grids } = joinOnX(raw, categories);
   const perm = sortColumns(xs);
-  const columns = perm ? perm.map((j2) => xs[j2]) : xs;
-  const columnRows = perm ? perm.map((j2) => rows[j2]) : rows;
+  const columns = perm ? perm.map((j) => xs[j]) : xs;
+  const columnRows = perm ? perm.map((j) => rows[j]) : rows;
   const m = columns.length;
   let sawNegative = false;
   const values = [];
   for (let k = 0; k < raw.length; k++) {
     const row = new Array(m);
-    for (let j2 = 0; j2 < m; j2++) {
-      const src = grids[k].get(perm ? perm[j2] : j2);
+    for (let j = 0; j < m; j++) {
+      const src = grids[k].get(perm ? perm[j] : j);
       let v = src === void 0 || src === null ? 0 : Number(src);
       if (!isFinite(v)) v = 0;
       if (v < 0) {
         sawNegative = true;
         v = 0;
       }
-      row[j2] = v;
+      row[j] = v;
     }
     values.push(row);
   }
@@ -12608,11 +13143,11 @@ function streamgraphTransform(ser, w) {
   let stack = values;
   if (offset === "expand") {
     stack = values.map((row) => row.slice());
-    for (let j2 = 0; j2 < m; j2++) {
+    for (let j = 0; j < m; j++) {
       let total = 0;
-      for (let i = 0; i < visible.length; i++) total += stack[visible[i]][j2];
+      for (let i = 0; i < visible.length; i++) total += stack[visible[i]][j];
       if (total) {
-        for (let i = 0; i < visible.length; i++) stack[visible[i]][j2] /= total;
+        for (let i = 0; i < visible.length; i++) stack[visible[i]][j] /= total;
       }
     }
   }
@@ -12624,8 +13159,8 @@ function streamgraphTransform(ser, w) {
     lows[bandOrder[i]] = new Array(m);
     highs[bandOrder[i]] = new Array(m);
   }
-  for (let j2 = 0; j2 < m; j2++) {
-    let acc = base[j2];
+  for (let j = 0; j < m; j++) {
+    let acc = base[j];
     for (let i = 0; i < bandOrder.length; i++) {
       const k = bandOrder[i];
       const bandLo = (
@@ -12636,9 +13171,9 @@ function streamgraphTransform(ser, w) {
         /** @type {number[]} */
         highs[k]
       );
-      bandLo[j2] = acc;
-      acc += stack[k][j2];
-      bandHi[j2] = acc;
+      bandLo[j] = acc;
+      acc += stack[k][j];
+      bandHi[j] = acc;
     }
   }
   w.streamgraphData = {
@@ -12654,15 +13189,15 @@ function streamgraphTransform(ser, w) {
     highs,
     order: bandOrder,
     offset,
-    hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+    hidden: raw.map((_2, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
   };
   return raw.map((s, k) => {
     const lo = lows[k];
     const hi = highs[k];
     if (!lo || !hi) return __spreadProps(__spreadValues({}, s), { data: [] });
     const data = new Array(m);
-    for (let j2 = 0; j2 < m; j2++) {
-      data[j2] = __spreadProps(__spreadValues({}, columnRows[j2]), { x: columns[j2], y: [lo[j2], hi[j2]] });
+    for (let j = 0; j < m; j++) {
+      data[j] = __spreadProps(__spreadValues({}, columnRows[j]), { x: columns[j], y: [lo[j], hi[j]] });
     }
     return __spreadProps(__spreadValues({}, s), { data });
   });
@@ -12909,29 +13444,29 @@ function lengthTransitionEnabled(w) {
   if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
   return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
 }
-function datumKey(w, realIndex, j2) {
+function datumKey(w, realIndex, j) {
   var _a, _b, _c, _d;
   if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
     const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j2];
+  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }
-  return "j:" + j2;
+  return "j:" + j;
 }
-function frameDatumKey(frame, realIndex, j2) {
+function frameDatumKey(frame, realIndex, j) {
   var _a, _b;
   if (frame.isXNumeric) {
     const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
-    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = (_b = frame.labels) == null ? void 0 : _b[j2];
+  const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }
-  return "j:" + j2;
+  return "j:" + j;
 }
 function joinKeys(oldKeys, newKeys) {
   const oldIndex = /* @__PURE__ */ new Map();
@@ -12977,9 +13512,9 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
   if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
   if (!oldY.length || !newY.length) return null;
   const oldKeys = uniquifyKeys(
-    oldY.map((_, j2) => frameDatumKey(frame, realIndex, j2))
+    oldY.map((_2, j) => frameDatumKey(frame, realIndex, j))
   );
-  const newKeys = uniquifyKeys(newY.map((_, j2) => datumKey(w, realIndex, j2)));
+  const newKeys = uniquifyKeys(newY.map((_2, j) => datumKey(w, realIndex, j)));
   const join = joinKeys(oldKeys, newKeys);
   if (!join.ordered && !allowReorder) return null;
   if (!join.changed && !includeIdentity) return null;
@@ -13023,13 +13558,13 @@ function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
   elPointsMain.node.classList.remove("apexcharts-element-hidden");
   markers.forEach((node) => {
     var _a2, _b2, _c2, _d2, _e, _f, _g, _h, _i;
-    const j2 = parseInt(
+    const j = parseInt(
       (_b2 = (_a2 = node.getAttribute("j")) != null ? _a2 : node.getAttribute("rel")) != null ? _b2 : "",
       10
     );
-    if (!isFinite(j2) || j2 < 0 || j2 >= sj.join.toOld.length) return;
-    const oldJ = sj.join.toOld[j2];
-    const to = newXP[j2] != null && newYP[j2] != null ? [newXP[j2], newYP[j2]] : null;
+    if (!isFinite(j) || j < 0 || j >= sj.join.toOld.length) return;
+    const oldJ = sj.join.toOld[j];
+    const to = newXP[j] != null && newYP[j] != null ? [newXP[j], newYP[j]] : null;
     if (oldJ === -1 || !to) {
       const style = (
         /** @type {any} */
@@ -13169,7 +13704,7 @@ function renderBarExitGhosts({
           origin = Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y) ? "center bottom" : "center top";
         }
       }
-    } catch (_) {
+    } catch (_2) {
     }
     const style = node.style;
     style.transformBox = "fill-box";
@@ -13219,7 +13754,7 @@ class BarDataLabels {
       y1,
       y2,
       i,
-      j: j2,
+      j,
       realIndex,
       columnGroupIndex,
       barHeight,
@@ -13231,7 +13766,7 @@ class BarDataLabels {
     const w = this.w;
     const graphics = new Graphics(this.barCtx.w);
     const steps = w.waterfallData && w.waterfallData.values;
-    const waterfallStep = steps && steps[realIndex] && steps[realIndex][j2] != null ? steps[realIndex][j2] : null;
+    const waterfallStep = steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
     const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
     let bcx;
     let bcy;
@@ -13265,24 +13800,24 @@ class BarDataLabels {
       dataLabelsConfig.offsetX,
       w,
       realIndex,
-      j2
+      j
     );
     const offY = resolveDataLabelOffset(
       dataLabelsConfig.offsetY,
       w,
       realIndex,
-      j2
+      j
     );
     let textRects = {
       width: 0,
       height: 0
     };
     if (w.config.dataLabels.enabled) {
-      const yLabel = waterfallStep !== null ? waterfallStep : w.seriesData.series[realIndex][j2];
+      const yLabel = waterfallStep !== null ? waterfallStep : w.seriesData.series[realIndex][j];
       textRects = graphics.getTextRects(
         w.config.dataLabels.formatter ? w.config.dataLabels.formatter(yLabel, __spreadProps(__spreadValues({}, w), {
           seriesIndex: realIndex,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         })) : w.formatters.yLabelFormatters[0](yLabel),
         parseFloat(dataLabelsConfig.style.fontSize).toString(),
@@ -13296,7 +13831,7 @@ class BarDataLabels {
       x,
       y,
       i,
-      j: j2,
+      j,
       realIndex,
       columnGroupIndex,
       bcx,
@@ -13319,7 +13854,7 @@ class BarDataLabels {
       dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
     }
     if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
-      const box = (_b = (_a = w.waterfallData.geometry) == null ? void 0 : _a[realIndex]) == null ? void 0 : _b[j2];
+      const box = (_b = (_a = w.waterfallData.geometry) == null ? void 0 : _a[realIndex]) == null ? void 0 : _b[j];
       if (box && box.horizontal) {
         dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
       }
@@ -13335,10 +13870,10 @@ class BarDataLabels {
         // bar position while `realIndex` counts every series. A line
         // ahead of a column pushed `realIndex` past the end and the
         // label read a value off `undefined` (#2429).
-        w.globals.seriesPercent[realIndex][j2]
-      ) : w.seriesData.series[realIndex][j2],
+        w.globals.seriesPercent[realIndex][j]
+      ) : w.seriesData.series[realIndex][j],
       i: realIndex,
-      j: j2,
+      j,
       barWidth,
       barHeight,
       textRects,
@@ -13351,10 +13886,10 @@ class BarDataLabels {
         barWidth,
         barHeight,
         realIndex,
-        j: j2,
+        j,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
-        val: this.getStackedTotalDataLabel({ realIndex, j: j2 }),
-        rawVal: this.getStackedTotalValue({ realIndex, j: j2 }),
+        val: this.getStackedTotalDataLabel({ realIndex, j }),
+        rawVal: this.getStackedTotalValue({ realIndex, j }),
         dataLabelsConfig,
         barTotalDataLabelsConfig
       });
@@ -13407,20 +13942,20 @@ class BarDataLabels {
    * from its previous number and re-run the formatter itself each frame.
    * @param {{realIndex: any, j: any}} opts
    */
-  getStackedTotalValue({ realIndex, j: j2 }) {
+  getStackedTotalValue({ realIndex, j }) {
     const w = this.w;
     const ctx = this.getTotalGroupContext(realIndex);
     const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
-    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j2] : this.barCtx.stackedSeriesTotals[j2];
+    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
   }
   /** @param {{realIndex: any, j: any}} opts */
-  getStackedTotalDataLabel({ realIndex, j: j2 }) {
+  getStackedTotalDataLabel({ realIndex, j }) {
     const w = this.w;
-    let val = this.getStackedTotalValue({ realIndex, j: j2 });
+    let val = this.getStackedTotalValue({ realIndex, j });
     if (this.totalFormatter) {
       val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
         seriesIndex: realIndex,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       }));
     }
@@ -13433,7 +13968,7 @@ class BarDataLabels {
     const w = this.w;
     let {
       i,
-      j: j2,
+      j,
       realIndex,
       y,
       bcx,
@@ -13457,7 +13992,7 @@ class BarDataLabels {
     const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
     const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
       i,
-      j: j2
+      j
     });
     bcx = bcx - strokeWidth / 2;
     const dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints;
@@ -13477,7 +14012,7 @@ class BarDataLabels {
       const offsetDLX = 2;
       dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
     }
-    const valIsNegative = w.seriesData.series[i][j2] < 0;
+    const valIsNegative = w.seriesData.series[i][j] < 0;
     let newY = y;
     if (this.barCtx.isReversed) {
       newY = y + (valIsNegative ? barHeight : -barHeight);
@@ -13537,9 +14072,9 @@ class BarDataLabels {
       (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevY.forEach(
         (arr) => {
           if (valIsNegative) {
-            lowestPrevY = Math.max(arr[j2], lowestPrevY);
+            lowestPrevY = Math.max(arr[j], lowestPrevY);
           } else {
-            lowestPrevY = Math.min(arr[j2], lowestPrevY);
+            lowestPrevY = Math.min(arr[j], lowestPrevY);
           }
         }
       );
@@ -13548,7 +14083,7 @@ class BarDataLabels {
       const ADDITIONAL_OFFY = 18;
       const graphics = new Graphics(this.barCtx.w);
       const totalLabeltextRects = graphics.getTextRects(
-        this.getStackedTotalDataLabel({ realIndex, j: j2 }),
+        this.getStackedTotalDataLabel({ realIndex, j }),
         dataLabelsConfig.fontSize
       );
       if (valIsNegative) {
@@ -13585,7 +14120,7 @@ class BarDataLabels {
     let {
       x,
       i,
-      j: j2,
+      j,
       realIndex,
       bcy,
       barHeight,
@@ -13602,7 +14137,7 @@ class BarDataLabels {
     const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints;
     const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
       i,
-      j: j2
+      j
     });
     barWidth = Math.abs(barWidth);
     let dataLabelsY;
@@ -13618,7 +14153,7 @@ class BarDataLabels {
     let totalDataLabelsX;
     let totalDataLabelsY;
     let totalDataLabelsAnchor = "start";
-    const valIsNegative = w.seriesData.series[i][j2] < 0;
+    const valIsNegative = w.seriesData.series[i][j] < 0;
     let newX = x;
     if (this.barCtx.isReversed) {
       newX = x + (valIsNegative ? -barWidth : barWidth);
@@ -13659,9 +14194,9 @@ class BarDataLabels {
       (_a2 = this.barCtx[sg.join(",")]) == null ? void 0 : _a2.prevX.forEach(
         (arr) => {
           if (valIsNegative) {
-            lowestPrevX = Math.min(arr[j2], lowestPrevX);
+            lowestPrevX = Math.min(arr[j], lowestPrevX);
           } else {
-            lowestPrevX = Math.max(arr[j2], lowestPrevX);
+            lowestPrevX = Math.max(arr[j], lowestPrevX);
           }
         }
       );
@@ -13669,7 +14204,7 @@ class BarDataLabels {
     if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const graphics = new Graphics(this.barCtx.w);
       const totalLabeltextRects = graphics.getTextRects(
-        this.getStackedTotalDataLabel({ realIndex, j: j2 }),
+        this.getStackedTotalDataLabel({ realIndex, j }),
         dataLabelsConfig.fontSize
       );
       if (valIsNegative) {
@@ -13721,7 +14256,7 @@ class BarDataLabels {
     val,
     i,
     // = realIndex
-    j: j2,
+    j,
     textRects,
     barHeight,
     barWidth,
@@ -13739,7 +14274,7 @@ class BarDataLabels {
     const isSeriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1;
     const isSeriesCollapsing = (w.globals.collapsingSeriesIndices || []).indexOf(i) > -1;
     if (isSeriesCollapsing) {
-      const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(`${i}::${datumKey(w, i, j2)}`);
+      const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(`${i}::${datumKey(w, i, j)}`);
       if (prev && isFinite(prev.val)) val = prev.val;
     }
     if (dataLabelsConfig.enabled && (!isSeriesCollapsed || isSeriesCollapsing)) {
@@ -13751,9 +14286,9 @@ class BarDataLabels {
       if (((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled)) {
         elDataLabelsWrap.node.setAttribute(
           "data:dlKey",
-          `${i}::${datumKey(w, i, j2)}`
+          `${i}::${datumKey(w, i, j)}`
         );
-        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j2));
+        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j));
         if (typeof val === "number" && isFinite(val)) {
           elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
         }
@@ -13762,14 +14297,14 @@ class BarDataLabels {
       if (typeof val !== "undefined") {
         text = formatter(val, __spreadProps(__spreadValues({}, w), {
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         }));
       }
       if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
         text = "";
       }
-      const valIsNegative = w.seriesData.series[i][j2] < 0;
+      const valIsNegative = w.seriesData.series[i][j] < 0;
       const position = w.config.plotOptions.bar.dataLabels.position;
       if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
         if (position === "top") {
@@ -13822,7 +14357,7 @@ class BarDataLabels {
         y,
         text,
         i,
-        j: j2,
+        j,
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,
         alwaysDrawDataLabel: true,
@@ -13838,7 +14373,7 @@ class BarDataLabels {
     val,
     rawVal,
     realIndex,
-    j: j2,
+    j,
     textAnchor,
     barTotalDataLabelsConfig
   }) {
@@ -13866,7 +14401,7 @@ class BarDataLabels {
         const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex);
         totalDataLabelText.node.setAttribute(
           "data:dlTotalKey",
-          `${groupIndex}::${datumKey(this.w, realIndex, j2)}`
+          `${groupIndex}::${datumKey(this.w, realIndex, j)}`
         );
         totalDataLabelText.node.setAttribute(
           "data:dlTotalSeries",
@@ -13910,8 +14445,8 @@ let Helpers$1 = class Helpers3 {
         this.barCtx.totalItems += series[sl].length;
       }
       if (w.axisFlags.isXNumeric) {
-        for (let j2 = 0; j2 < series[sl].length; j2++) {
-          if (w.seriesData.seriesX[sl][j2] > w.globals.minX && w.seriesData.seriesX[sl][j2] < w.globals.maxX) {
+        for (let j = 0; j < series[sl].length; j++) {
+          if (w.seriesData.seriesX[sl][j] > w.globals.minX && w.seriesData.seriesX[sl][j] < w.globals.maxX) {
             this.barCtx.visibleItems++;
           }
         }
@@ -13926,7 +14461,7 @@ let Helpers$1 = class Helpers3 {
           /**
            * @param {any} _
            */
-          brArr.map((_) => "none")
+          brArr.map((_2) => "none")
         )
       );
     }
@@ -14140,24 +14675,24 @@ let Helpers$1 = class Helpers3 {
    * @param {number} j
    * @param {number} realIndex
    */
-  getPathFillColor(series, i, j2, realIndex) {
+  getPathFillColor(series, i, j, realIndex) {
     var _a;
     const w = this.w;
     const fill = new Fill(this.barCtx.w);
     let fillColor = null;
-    const seriesNumber = this.barCtx.barOptions.distributed ? j2 : i;
+    const seriesNumber = this.barCtx.barOptions.distributed ? j : i;
     let useRangeColor = false;
     if (this.barCtx.barOptions.colors.ranges.length > 0) {
       const colorRange = this.barCtx.barOptions.colors.ranges;
       colorRange.map((range) => {
-        if (series[i][j2] >= range.from && series[i][j2] <= range.to) {
+        if (series[i][j] >= range.from && series[i][j] <= range.to) {
           fillColor = range.color;
           useRangeColor = true;
         }
       });
     }
-    const connectorFill = this.getDumbbellConnectorFill(i, j2);
-    const datumFill = connectorFill || ((_a = w.config.series[i].data[j2]) == null ? void 0 : _a.fill);
+    const connectorFill = this.getDumbbellConnectorFill(i, j);
+    const datumFill = connectorFill || ((_a = w.config.series[i].data[j]) == null ? void 0 : _a.fill);
     const connector = this.barCtx.barOptions.isDumbbell ? w.config.plotOptions.bar.dumbbell.connector : null;
     let connectorOpacity;
     if (connector && connector.color) {
@@ -14166,10 +14701,10 @@ let Helpers$1 = class Helpers3 {
     }
     const pathFill = fill.fillPath({
       seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       color: fillColor,
       opacity: connectorOpacity,
-      value: series[i][j2],
+      value: series[i][j],
       fillConfig: datumFill,
       fillType: (datumFill == null ? void 0 : datumFill.type) ? datumFill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
     });
@@ -14194,14 +14729,14 @@ let Helpers$1 = class Helpers3 {
    * @param {number} i @param {number} j
    * @returns {Record<string, any>|null}
    */
-  getDumbbellConnectorFill(i, j2) {
+  getDumbbellConnectorFill(i, j) {
     const w = this.w;
     if (!this.barCtx.barOptions.isDumbbell) return null;
     const dumbbell = w.dumbbellData;
     if (!dumbbell || dumbbell.form !== "series") return null;
     const connector = w.config.plotOptions.bar.dumbbell.connector;
     if (connector.color) return null;
-    const order = dumbbell.order[j2];
+    const order = dumbbell.order[j];
     if (!order) return null;
     const from = w.globals.colors[order[0]];
     const to = w.globals.colors[order[1]];
@@ -14229,10 +14764,10 @@ let Helpers$1 = class Helpers3 {
    * @param {number} j
    * @param {number} realIndex
    */
-  getStrokeWidth(i, j2, realIndex) {
+  getStrokeWidth(i, j, realIndex) {
     let strokeWidth = 0;
     const w = this.w;
-    if (typeof this.barCtx.series[i][j2] === "undefined" || this.barCtx.series[i][j2] === null || w.config.chart.type === "bar" && !this.barCtx.series[i][j2]) {
+    if (typeof this.barCtx.series[i][j] === "undefined" || this.barCtx.series[i][j] === null || w.config.chart.type === "bar" && !this.barCtx.series[i][j]) {
       this.barCtx.isNullValue = true;
     } else {
       this.barCtx.isNullValue = false;
@@ -14267,7 +14802,7 @@ let Helpers$1 = class Helpers3 {
     ) : null;
     const isBar = (i) => !barIndices || barIndices.has(i);
     if (!groups || groups.length < 2) {
-      const bucket = Array.from({ length: numSeries }, (_, i) => i).filter(isBar);
+      const bucket = Array.from({ length: numSeries }, (_2, i) => i).filter(isBar);
       return bucket.length ? [bucket] : [];
     }
     const buckets = Array.from({ length: groups.length }, () => []);
@@ -14298,6 +14833,14 @@ let Helpers$1 = class Helpers3 {
    * second at the top, and nothing else touched. Stacked totals already resolve
    * per group (see drawsStackedTotal, #4173); corners never got the same fix.
    *
+   * plotOptions.bar.borderRadiusWhenStacked picks which ends round: 'all'
+   * caps both the baseline and the far end, 'last' only the far end (#4845).
+   *
+   * A single-data-point chart used to hand its baseline segment 'top' (and a
+   * solo segment 'top' instead of 'both'), which on a horizontal stack rounded
+   * the first segment on its INNER edge and left a pill in the middle of the
+   * bar (#4845). One data point is resolved like any other now.
+   *
    * @param {any[]} series
    * @returns {string[][]}
    */
@@ -14312,46 +14855,48 @@ let Helpers$1 = class Helpers3 {
       () => Array(numColumns).fill(alwaysApplyRadius ? "top" : "none")
     );
     if (alwaysApplyRadius) return output;
-    const isSoloHorizontal = this.w.config.chart.type === "bar" && numColumns === 1;
-    const soloCorner = isSoloHorizontal ? "top" : "both";
-    const baseCorner = isSoloHorizontal ? "top" : "bottom";
+    const lastOnly = w.config.plotOptions.bar.borderRadiusWhenStacked === "last";
+    const soloPositive = lastOnly ? "top" : "both";
+    const soloNegative = lastOnly ? "bottom" : "both";
+    const positiveBase = lastOnly ? "none" : "bottom";
+    const negativeBase = lastOnly ? "none" : "top";
     for (const stack of this.getStackedSeriesIndices(numSeries)) {
-      for (let j2 = 0; j2 < numColumns; j2++) {
+      for (let j = 0; j < numColumns; j++) {
         const positiveIndices = [];
         const negativeIndices = [];
         for (const i of stack) {
-          const value = series[i][j2];
+          const value = series[i][j];
           if (value > 0) positiveIndices.push(i);
           else if (value < 0) negativeIndices.push(i);
         }
         if (positiveIndices.length > 0 && negativeIndices.length === 0) {
           if (positiveIndices.length === 1) {
-            output[positiveIndices[0]][j2] = soloCorner;
+            output[positiveIndices[0]][j] = soloPositive;
           } else {
             const first = positiveIndices[0];
             const last = positiveIndices[positiveIndices.length - 1];
             for (const i of positiveIndices) {
-              output[i][j2] = i === first ? baseCorner : i === last ? "top" : "none";
+              output[i][j] = i === first ? positiveBase : i === last ? "top" : "none";
             }
           }
         } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
           if (negativeIndices.length === 1) {
-            output[negativeIndices[0]][j2] = "both";
+            output[negativeIndices[0]][j] = soloNegative;
           } else {
-            const highest = Math.max(...negativeIndices);
-            const lowest = Math.min(...negativeIndices);
+            const nearest = Math.min(...negativeIndices);
+            const farthest = Math.max(...negativeIndices);
             for (const i of negativeIndices) {
-              output[i][j2] = i === highest ? "bottom" : i === lowest ? "top" : "none";
+              output[i][j] = i === nearest ? negativeBase : i === farthest ? "bottom" : "none";
             }
           }
         } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
           const lastPositive = positiveIndices[positiveIndices.length - 1];
           for (const i of positiveIndices) {
-            output[i][j2] = i === lastPositive ? "top" : "none";
+            output[i][j] = i === lastPositive ? "top" : "none";
           }
           const highestNegative = Math.max(...negativeIndices);
           for (const i of negativeIndices) {
-            output[i][j2] = i === highestNegative ? "bottom" : "none";
+            output[i][j] = i === highestNegative ? "bottom" : "none";
           }
         }
       }
@@ -14359,16 +14904,16 @@ let Helpers$1 = class Helpers3 {
     return output;
   }
   /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
-  barBackground({ j: j2, i, x1, x2, y1, y2, elSeries }) {
+  barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w;
     const graphics = new Graphics(this.barCtx.w);
     const sr = new Series(this.barCtx.w);
     const activeSeriesIndex = sr.getActiveConfigSeriesIndex();
     if (this.barCtx.barOptions.colors.backgroundBarColors.length > 0 && activeSeriesIndex === i) {
-      if (j2 >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        j2 %= this.barCtx.barOptions.colors.backgroundBarColors.length;
+      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
+        j %= this.barCtx.barOptions.colors.backgroundBarColors.length;
       }
-      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j2];
+      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j];
       const rect = graphics.drawRect(
         typeof x1 !== "undefined" ? x1 : 0,
         typeof y1 !== "undefined" ? y1 : 0,
@@ -14394,7 +14939,7 @@ let Helpers$1 = class Helpers3 {
     seriesGroup,
     realIndex,
     i,
-    j: j2,
+    j,
     w
   }) {
     var _a, _b, _c;
@@ -14403,21 +14948,21 @@ let Helpers$1 = class Helpers3 {
     if (!strokeWidth) strokeWidth = 0;
     let bW = barWidth;
     let bXP = barXPosition;
-    if ((_a = w.config.series[realIndex].data[j2]) == null ? void 0 : _a.columnWidthOffset) {
-      bXP = barXPosition - w.config.series[realIndex].data[j2].columnWidthOffset / 2;
-      bW = barWidth + w.config.series[realIndex].data[j2].columnWidthOffset;
+    if ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.columnWidthOffset) {
+      bXP = barXPosition - w.config.series[realIndex].data[j].columnWidthOffset / 2;
+      bW = barWidth + w.config.series[realIndex].data[j].columnWidthOffset;
     }
     const strokeCenter = strokeWidth / 2;
     const x1 = bXP + strokeCenter;
     const x2 = bXP + bW - strokeCenter;
-    const direction = (series[i][j2] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
+    const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
     y1 += 1e-3 - strokeCenter * direction;
     y2 += 1e-3 + strokeCenter * direction;
     const sl = graphics.line(x2, y1);
-    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j2] === "both" ? " Z" : " z";
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
     const squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
     let pathTo = squarePathTo;
-    if (this.arrBorderRadius[realIndex][j2] !== "none") {
+    if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
@@ -14426,12 +14971,12 @@ let Helpers$1 = class Helpers3 {
     let pathFrom = null;
     const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo, squarePathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
@@ -14441,7 +14986,7 @@ let Helpers$1 = class Helpers3 {
       _ctx = this.barCtx[seriesGroup];
       _ctx.yArrj.push(y2 - strokeCenter * direction);
       _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth * direction));
-      _ctx.yArrjVal.push(this.barCtx.series[i][j2]);
+      _ctx.yArrjVal.push(this.barCtx.series[i][j]);
     }
     return {
       pathTo,
@@ -14473,7 +15018,7 @@ let Helpers$1 = class Helpers3 {
     barHeight,
     series,
     i,
-    j: j2,
+    j,
     realIndex,
     strokeWidth,
     w
@@ -14482,15 +15027,15 @@ let Helpers$1 = class Helpers3 {
     const graphics = new Graphics(this.barCtx.w);
     const center = w.layout.gridWidth / 2;
     const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
-    const topHalf = halfWidthFor(series[i][j2]);
+    const topHalf = halfWidthFor(series[i][j]);
     const lastIdx = series[i].length - 1;
-    const isLast = j2 === lastIdx;
+    const isLast = j === lastIdx;
     const lastShape = w.config.plotOptions.funnel.lastShape === "taper" ? "taper" : "flat";
     let bottomHalf;
     if (isLast) {
       bottomHalf = lastShape === "taper" ? 0 : topHalf;
     } else {
-      bottomHalf = halfWidthFor(series[i][j2 + 1]);
+      bottomHalf = halfWidthFor(series[i][j + 1]);
     }
     const strokeCenter = strokeWidth / 2;
     const y1 = barYPosition + strokeCenter;
@@ -14503,12 +15048,12 @@ let Helpers$1 = class Helpers3 {
     let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
@@ -14554,9 +15099,9 @@ let Helpers$1 = class Helpers3 {
     const halfWidth = gridWidth / 2;
     let cumulative = 0;
     const layout = [];
-    for (let j2 = 0; j2 < values.length; j2++) {
+    for (let j = 0; j < values.length; j++) {
       const topRatio = cumulative / total;
-      cumulative += values[j2];
+      cumulative += values[j];
       const bottomRatio = cumulative / total;
       const topY = topRatio * gridHeight;
       const bottomY = bottomRatio * gridHeight;
@@ -14582,7 +15127,7 @@ let Helpers$1 = class Helpers3 {
     topHalf,
     bottomHalf,
     realIndex,
-    j: j2,
+    j,
     strokeWidth,
     w
   }) {
@@ -14600,12 +15145,12 @@ let Helpers$1 = class Helpers3 {
     let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
@@ -14630,7 +15175,7 @@ let Helpers$1 = class Helpers3 {
     seriesGroup,
     realIndex,
     i,
-    j: j2,
+    j,
     w
   }) {
     var _a, _b, _c;
@@ -14639,23 +15184,23 @@ let Helpers$1 = class Helpers3 {
     if (!strokeWidth) strokeWidth = 0;
     let bYP = barYPosition;
     let bH = barHeight;
-    if ((_a = w.config.series[realIndex].data[j2]) == null ? void 0 : _a.barHeightOffset) {
-      bYP = barYPosition - w.config.series[realIndex].data[j2].barHeightOffset / 2;
-      bH = barHeight + w.config.series[realIndex].data[j2].barHeightOffset;
+    if ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.barHeightOffset) {
+      bYP = barYPosition - w.config.series[realIndex].data[j].barHeightOffset / 2;
+      bH = barHeight + w.config.series[realIndex].data[j].barHeightOffset;
     }
     const strokeCenter = strokeWidth / 2;
     const y1 = bYP + strokeCenter;
     const y2 = bYP + bH - strokeCenter;
-    const direction = (series[i][j2] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
+    const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
     x1 += 1e-3 + strokeCenter * direction;
     x2 += 1e-3 - strokeCenter * direction;
     const isFunnel = this.barCtx.isFunnel;
     const fromX = isFunnel ? (x1 + x2) / 2 : x1;
     const sl = graphics.line(x1, y2);
-    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j2] === "both" ? " Z" : " z";
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
     const squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
     let pathTo = squarePathTo;
-    if (this.arrBorderRadius[realIndex][j2] !== "none") {
+    if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
@@ -14664,12 +15209,12 @@ let Helpers$1 = class Helpers3 {
     let pathFrom = null;
     const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo, squarePathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
@@ -14680,7 +15225,7 @@ let Helpers$1 = class Helpers3 {
       _ctx = this.barCtx[seriesGroup];
       _ctx.xArrj.push(x2 + strokeCenter * direction);
       _ctx.xArrjF.push(Math.abs(x1 - x2 - strokeWidth * direction));
-      _ctx.xArrjVal.push(this.barCtx.series[i][j2]);
+      _ctx.xArrjVal.push(this.barCtx.series[i][j]);
     }
     return {
       pathTo,
@@ -14721,7 +15266,7 @@ let Helpers$1 = class Helpers3 {
    * @param {number} j
    * @param {number} translationsIndex
    */
-  getGoalValues(type, zeroW, zeroH, i, j2, translationsIndex) {
+  getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
     const w = this.w;
     const goals = [];
     const pushGoal = (value, attrs) => {
@@ -14730,13 +15275,13 @@ let Helpers$1 = class Helpers3 {
         attrs
       });
     };
-    if (w.seriesData.seriesGoals[i] && w.seriesData.seriesGoals[i][j2] && Array.isArray(w.seriesData.seriesGoals[i][j2])) {
-      w.seriesData.seriesGoals[i][j2].forEach((goal) => {
+    if (w.seriesData.seriesGoals[i] && w.seriesData.seriesGoals[i][j] && Array.isArray(w.seriesData.seriesGoals[i][j])) {
+      w.seriesData.seriesGoals[i][j].forEach((goal) => {
         pushGoal(goal.value, goal);
       });
     }
     if (this.barCtx.barOptions.isDumbbell) {
-      const ends = this.getDumbbellEnds(i, j2);
+      const ends = this.getDumbbellEnds(i, j);
       if (ends.length) {
         const commonAttrs = {
           strokeHeight: type === "x" ? 0 : w.globals.markers.size[i],
@@ -14755,7 +15300,7 @@ let Helpers$1 = class Helpers3 {
           const attrs = __spreadProps(__spreadValues({}, commonAttrs), { strokeColor: end.color });
           if (labelsCnf.enabled && (e === lo || e === hi)) {
             attrs.label = {
-              text: this.getDumbbellLabelText(end.value, i, j2, end.index),
+              text: this.getDumbbellLabelText(end.value, i, j, end.index),
               color: labelsCnf.colorFromMarker ? end.color : Array.isArray(labelsCnf.style.colors) ? labelsCnf.style.colors[end.index] || labelsCnf.style.colors[0] : labelsCnf.style.colors,
               // Away from the connector: the low end reads to its left (below,
               // on a column), the high end to its right. A lone endpoint has no
@@ -14785,12 +15330,12 @@ let Helpers$1 = class Helpers3 {
    * @param {number} i @param {number} j
    * @returns {Array<{ value: number, color: string, index: number }>}
    */
-  getDumbbellEnds(i, j2) {
+  getDumbbellEnds(i, j) {
     const w = this.w;
     const ends = [];
     const dumbbell = w.dumbbellData;
     if (dumbbell && dumbbell.form === "series") {
-      const values = dumbbell.values[j2] || [];
+      const values = dumbbell.values[j] || [];
       for (let k = 0; k < values.length; k++) {
         const v = values[k];
         if (v === null || dumbbell.hidden.indexOf(k) !== -1) continue;
@@ -14802,8 +15347,8 @@ let Helpers$1 = class Helpers3 {
     const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w.globals.colors;
     const pick = (n) => Array.isArray(colors[i]) ? colors[i][n] : colors[i];
     return [
-      { value: w.rangeData.seriesRangeStart[i][j2], color: pick(0), index: 0 },
-      { value: w.rangeData.seriesRangeEnd[i][j2], color: pick(1), index: 1 }
+      { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
+      { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 }
     ];
   }
   /**
@@ -14817,20 +15362,20 @@ let Helpers$1 = class Helpers3 {
    * @param {number} value @param {number} i @param {number} j @param {number} k
    * @returns {string}
    */
-  getDumbbellLabelText(value, i, j2, k) {
+  getDumbbellLabelText(value, i, j, k) {
     const w = this.w;
     const cnf = w.config.plotOptions.bar.dumbbell.dataLabels;
     if (typeof cnf.formatter === "function") {
       return cnf.formatter(value, {
         seriesIndex: i,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         endpointIndex: k,
         w
       });
     }
     const axisFormatter = this.barCtx.isHorizontal ? w.formatters.xLabelFormatter : w.formatters.yLabelFormatters[0];
     if (typeof axisFormatter === "function") {
-      return axisFormatter(value, j2, w);
+      return axisFormatter(value, j, w);
     }
     return String(value);
   }
@@ -14954,14 +15499,14 @@ let Helpers$1 = class Helpers3 {
     });
   }
   /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
-  drawBarShadow({ prevPaths, currPaths, color, realIndex, j: j2 }) {
+  drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
     const w = this.w;
     const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths;
     const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths;
     const prevY2 = prevY1 + currPaths.barHeight;
     const graphics = new Graphics(this.barCtx.w);
     const utils = new Utils();
-    const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j2] === "both" ? " Z" : " z");
+    const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
     return graphics.drawPath({
       d: shadowPath,
       fill: utils.shadeColor(0.5, Utils.rgb2hex(color)),
@@ -14972,14 +15517,14 @@ let Helpers$1 = class Helpers3 {
     });
   }
   /** @param {{i: any, j: any}} opts */
-  getZeroValueEncounters({ i, j: j2 }) {
+  getZeroValueEncounters({ i, j }) {
     var _a;
     const w = this.w;
     let nonZeroColumns = 0;
     let zeroEncounters = 0;
-    const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
+    const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_2, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
     seriesIndices.forEach((_si) => {
-      const val = w.globals.seriesPercent[_si][j2];
+      const val = w.globals.seriesPercent[_si][j];
       if (val) {
         nonZeroColumns++;
       }
@@ -15190,8 +15735,8 @@ class Bar {
         el: elBarShadows.node
       });
       elBarShadows.node.classList.add("apexcharts-element-hidden");
-      for (let j2 = 0; j2 < series[i].length; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex);
+      for (let j = 0; j < series[i].length; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
           /** @type {any} */
           null
@@ -15199,7 +15744,7 @@ class Bar {
         const pathsParams = {
           indexes: {
             i,
-            j: j2,
+            j,
             realIndex,
             translationsIndex,
             bc
@@ -15215,28 +15760,28 @@ class Bar {
             zeroW,
             yDivision
           }));
-          barWidth = this.series[i][j2] / this.invertedYRatio;
+          barWidth = this.series[i][j] / this.invertedYRatio;
         } else {
           paths = this.drawColumnPaths(__spreadProps(__spreadValues({}, pathsParams), {
             xDivision,
             barWidth,
             zeroH
           }));
-          barHeight = this.series[i][j2] / this.yRatio[translationsIndex];
+          barHeight = this.series[i][j] / this.yRatio[translationsIndex];
         }
         const pathFill = this.barHelpers.getPathFillColor(
           series,
           i,
-          j2,
+          j,
           realIndex
         );
-        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_b = w.config.plotOptions.funnel) == null ? void 0 : _b.shape) !== "trapezoid" && this.pathArr.length && j2 > 0) {
+        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_b = w.config.plotOptions.funnel) == null ? void 0 : _b.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
             color: typeof pathFill.color === "string" && ((_c = pathFill.color) == null ? void 0 : _c.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
             realIndex,
-            j: j2
+            j
           });
           elBarShadows.add(barShadow);
           if (w.config.chart.dropShadow.enabled) {
@@ -15258,7 +15803,7 @@ class Bar {
         }
         y = paths.y;
         x = paths.x;
-        if (j2 > 0) {
+        if (j > 0) {
           xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
         }
         yArrj.push(y);
@@ -15266,7 +15811,7 @@ class Bar {
           realIndex,
           pathFill: pathFill.color
         }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
-          j: j2,
+          j,
           i,
           columnGroupIndex,
           pathFrom: paths.pathFrom,
@@ -15289,8 +15834,8 @@ class Bar {
       w.globals.seriesYvalues[realIndex] = yArrj;
       if (w.globals.previousPaths.length > 0) {
         const newKeys = [];
-        for (let j2 = 0; j2 < series[i].length; j2++) {
-          newKeys.push(datumKey(w, realIndex, j2));
+        for (let j = 0; j < series[i].length; j++) {
+          newKeys.push(datumKey(w, realIndex, j));
         }
         renderBarExitGhosts({
           w,
@@ -15310,7 +15855,7 @@ class Bar {
     realIndex,
     pathFill,
     lineFill,
-    j: j2,
+    j,
     i,
     columnGroupIndex,
     pathFrom,
@@ -15357,8 +15902,8 @@ class Bar {
           if (!c) c = "";
           if (typeof c === "function") {
             return c({
-              value: w.seriesData.series[i2][j2],
-              dataPointIndex: j2,
+              value: w.seriesData.series[i2][j],
+              dataPointIndex: j,
               w
             });
           }
@@ -15366,7 +15911,7 @@ class Bar {
         return c;
       };
       const checkAvailableColor = typeof w.globals.stroke.colors[realIndex] === "function" ? fetchColor(realIndex) : w.globals.stroke.colors[realIndex];
-      lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j2] : checkAvailableColor;
+      lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : checkAvailableColor;
     }
     const animCfg = w.config.chart.animations;
     const gradCfg = animCfg.animateGradually;
@@ -15382,7 +15927,7 @@ class Bar {
       );
       delayMs = computeStagger({
         style: "sequential",
-        index: j2,
+        index: j,
         baseDelay: baseDelayMs
       });
       if (w.config.chart.stacked && !w.globals.dataChanged) {
@@ -15400,7 +15945,7 @@ class Bar {
         y1,
         y2,
         i,
-        j: j2,
+        j,
         series,
         realIndex,
         columnGroupIndex,
@@ -15429,11 +15974,11 @@ class Bar {
     }
     if (
       /** @type {Record<string,any>} */
-      w.config.series[i].data[j2] && /** @type {Record<string,any>} */
-      w.config.series[i].data[j2].strokeColor
+      w.config.series[i].data[j] && /** @type {Record<string,any>} */
+      w.config.series[i].data[j].strokeColor
     ) {
       lineFill = /** @type {Record<string,any>} */
-      w.config.series[i].data[j2].strokeColor;
+      w.config.series[i].data[j].strokeColor;
     }
     if (this.isNullValue && w.globals.collapsingSeriesIndices.indexOf(realIndex) === -1) {
       pathFill = "none";
@@ -15441,7 +15986,7 @@ class Bar {
     if (!skipDrawing) {
       const morphActive = ((_g = this.ctx.morphTypeChange) == null ? void 0 : _g.isActive()) === true;
       const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
-      const pieceClaimed = morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j2);
+      const pieceClaimed = morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j);
       if (pieceClaimed) {
         pathFrom = pathTo;
         delay = 0;
@@ -15450,7 +15995,7 @@ class Bar {
         /** @type {any} */
         emit.renderPaths({
           i,
-          j: j2,
+          j,
           realIndex,
           pathFrom,
           pathTo,
@@ -15477,7 +16022,7 @@ class Bar {
       }
       const forecast = w.config.forecastDataPoints;
       if (forecast.count > 0) {
-        if (j2 >= w.globals.dataPoints - forecast.count) {
+        if (j >= w.globals.dataPoints - forecast.count) {
           renderedPath.node.setAttribute("stroke-dasharray", forecast.dashArray);
           renderedPath.node.setAttribute("stroke-width", forecast.strokeWidth);
           renderedPath.node.setAttribute("fill-opacity", forecast.fillOpacity);
@@ -15488,25 +16033,25 @@ class Bar {
         renderedPath.attr("data-range-y2", y2);
       }
       const filters = new Filters(this.w);
-      filters.setSelectionFilter(renderedPath, realIndex, j2);
+      filters.setSelectionFilter(renderedPath, realIndex, j);
       elSeries.add(renderedPath);
       renderedPath.attr({
         cy: dataLabelsObj.dataLabelsPos.bcy,
         cx: dataLabelsObj.dataLabelsPos.bcx,
-        j: j2,
-        val: w.seriesData.series[i][j2],
+        j,
+        val: w.seriesData.series[i][j],
         barHeight,
         barWidth,
         // Datum identity for the next update's keyed join (see
         // LengthTransition): survivors match by key, not array position.
-        "data:pathKey": datumKey(w, realIndex, j2)
+        "data:pathKey": datumKey(w, realIndex, j)
       });
       if (emit.kind === "canvas") {
         if (!w.globals.barCanvasCoords) w.globals.barCanvasCoords = {};
         if (!w.globals.barCanvasCoords[realIndex]) {
           w.globals.barCanvasCoords[realIndex] = {};
         }
-        w.globals.barCanvasCoords[realIndex][j2] = {
+        w.globals.barCanvasCoords[realIndex][j] = {
           cx: dataLabelsObj.dataLabelsPos.bcx,
           cy: dataLabelsObj.dataLabelsPos.bcy,
           barWidth
@@ -15541,14 +16086,14 @@ class Bar {
   }) {
     const w = this.w;
     const i = indexes.i;
-    const j2 = indexes.j;
+    const j = indexes.j;
     let barYPosition;
     if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[i][j2] - w.globals.minX) / this.invertedXRatio - barHeight;
+      y = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.invertedXRatio - barHeight;
       barYPosition = y + barHeight * this.visibleI;
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j: j2 });
+        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
         if (nonZeroColumns > 0) {
           barHeight = this.seriesLen * barHeight / nonZeroColumns;
         }
@@ -15559,7 +16104,7 @@ class Bar {
       }
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
-    const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j2] : null;
+    const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null;
     const usePyramid = !!pyramidSeg;
     if (pyramidSeg) {
       barYPosition = pyramidSeg.y;
@@ -15570,13 +16115,13 @@ class Bar {
       /** @type {any} */
       (this.barHelpers.getXForValue(
         /** @type {any} */
-        this.series[i][j2],
+        this.series[i][j],
         _zeroW
       ) - _zeroW) / 2;
     }
     x = this.barHelpers.getXForValue(
       /** @type {any} */
-      this.series[i][j2],
+      this.series[i][j],
       zeroW != null ? zeroW : 0
     );
     let paths;
@@ -15588,7 +16133,7 @@ class Bar {
         topHalf: pyramidSeg.topHalf,
         bottomHalf: pyramidSeg.bottomHalf,
         realIndex: indexes.realIndex,
-        j: j2,
+        j,
         strokeWidth,
         w
       });
@@ -15602,7 +16147,7 @@ class Bar {
           this.series
         ),
         i,
-        j: j2,
+        j,
         realIndex: indexes.realIndex,
         strokeWidth,
         w
@@ -15619,7 +16164,7 @@ class Bar {
         series: this.series,
         realIndex: indexes.realIndex,
         i,
-        j: j2,
+        j,
         w
       });
     }
@@ -15634,7 +16179,7 @@ class Bar {
       y = barYPosition;
     }
     this.barHelpers.barBackground({
-      j: j2,
+      j,
       i,
       y1: barYPosition - barHeight * this.visibleI,
       y2: barHeight * this.seriesLen,
@@ -15652,7 +16197,7 @@ class Bar {
         /** @type {any} */
         null,
         indexes.realIndex,
-        j2,
+        j,
         0
       ),
       barYPosition,
@@ -15674,13 +16219,13 @@ class Bar {
     const realIndex = indexes.realIndex;
     const translationsIndex = indexes.translationsIndex;
     const i = indexes.i;
-    const j2 = indexes.j;
+    const j = indexes.j;
     const bc = indexes.bc;
     let barXPosition;
     if (w.axisFlags.isXNumeric) {
       const xForNumericX = this.getBarXForNumericXAxis({
         x,
-        j: j2,
+        j,
         realIndex,
         barWidth
       });
@@ -15688,7 +16233,7 @@ class Bar {
       barXPosition = xForNumericX.barXPosition;
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j: j2 });
+        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
         if (nonZeroColumns > 0) {
           barWidth = this.seriesLen * barWidth / nonZeroColumns;
         }
@@ -15700,7 +16245,7 @@ class Bar {
     }
     y = this.barHelpers.getYForValue(
       /** @type {any} */
-      this.series[i][j2],
+      this.series[i][j],
       zeroH,
       translationsIndex
     );
@@ -15716,7 +16261,7 @@ class Bar {
         series: this.series,
         realIndex,
         i,
-        j: j2,
+        j,
         w
       })
     );
@@ -15725,7 +16270,7 @@ class Bar {
     }
     this.barHelpers.barBackground({
       bc,
-      j: j2,
+      j,
       i,
       x1: barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
       x2: barWidth * this.seriesLen + strokeWidth / 2,
@@ -15742,7 +16287,7 @@ class Bar {
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition,
@@ -15750,14 +16295,14 @@ class Bar {
     };
   }
   /** @param {{x: any, barWidth: any, realIndex: any, j: any}} opts */
-  getBarXForNumericXAxis({ x, barWidth, realIndex, j: j2 }) {
+  getBarXForNumericXAxis({ x, barWidth, realIndex, j }) {
     const w = this.w;
     let sxI = realIndex;
     if (!w.seriesData.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex;
     }
-    if (Utils.isNumber(w.seriesData.seriesX[sxI][j2])) {
-      x = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j2]) - barWidth * this.seriesLen / 2;
+    if (Utils.isNumber(w.seriesData.seriesX[sxI][j])) {
+      x = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) - barWidth * this.seriesLen / 2;
     }
     return {
       barXPosition: x + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
@@ -15833,8 +16378,8 @@ class Bar {
       } else {
         const keyed = this._prevKeyedPaths(realIndex);
         if (keyed) {
-          for (let j2 = 0; j2 < dataLen; j2++) {
-            if (!keyed.has(datumKey(w, realIndex, j2))) {
+          for (let j = 0; j < dataLen; j++) {
+            if (!keyed.has(datumKey(w, realIndex, j))) {
               result = true;
               break;
             }
@@ -15888,7 +16433,7 @@ class Bar {
    *   bar gaining a corner can travel square and round only on arrival.
    * @returns {string | null}
    **/
-  getPreviousPath(realIndex, j2, pathTo, squarePathTo) {
+  getPreviousPath(realIndex, j, pathTo, squarePathTo) {
     const w = this.w;
     this._pathToInterp = null;
     const record = this._prevRecord(realIndex);
@@ -15899,14 +16444,14 @@ class Bar {
     let isNewDatum = false;
     const keyed = this._prevKeyedPaths(realIndex);
     if (keyed) {
-      const prev = keyed.get(datumKey(w, realIndex, j2));
+      const prev = keyed.get(datumKey(w, realIndex, j));
       if (prev) {
         oldD = prev.d;
       } else {
         isNewDatum = true;
       }
-    } else if (typeof record.paths[j2] !== "undefined") {
-      oldD = record.paths[j2].d;
+    } else if (typeof record.paths[j] !== "undefined") {
+      oldD = record.paths[j].d;
     } else {
       isNewDatum = true;
     }
@@ -16026,12 +16571,12 @@ class Bar {
    * @param {number} j
    * @returns {boolean | null} null when there is no previous record to consult
    */
-  getPreviousFlip(realIndex, j2) {
+  getPreviousFlip(realIndex, j) {
     const w = this.w;
     const record = this._prevRecord(realIndex);
     if (!record) return null;
     const keyed = this._prevKeyedPaths(realIndex);
-    const prev = keyed ? keyed.get(datumKey(w, realIndex, j2)) : record.paths[j2];
+    const prev = keyed ? keyed.get(datumKey(w, realIndex, j)) : record.paths[j];
     return prev ? !!prev.flip : null;
   }
   /**
@@ -16064,7 +16609,7 @@ class BarStacked extends Bar {
       series = w.globals.comboCharts ? (
         /** @type {any} */
         seriesIndex.map(
-          (_) => w.globals.seriesPercent[_]
+          (_2) => w.globals.seriesPercent[_2]
         )
       ) : w.globals.seriesPercent.slice();
     }
@@ -16152,10 +16697,10 @@ class BarStacked extends Bar {
         this.groupCtx.prevY[0] = this.groupCtx.prevY[0].map(() => zeroH);
         this.groupCtx.prevYF[0] = this.groupCtx.prevYF[0].map(() => 0);
       }
-      for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex);
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         const commonPathOpts = {
-          indexes: { i, j: j2, realIndex, translationsIndex, bc },
+          indexes: { i, j, realIndex, translationsIndex, bc },
           strokeWidth,
           x,
           y,
@@ -16173,14 +16718,14 @@ class BarStacked extends Bar {
             barHeight,
             yDivision
           }));
-          barWidth = this.series[i][j2] / this.invertedYRatio;
+          barWidth = this.series[i][j] / this.invertedYRatio;
         } else {
           paths = this.drawStackedColumnPaths(__spreadProps(__spreadValues({}, commonPathOpts), {
             xDivision,
             barWidth,
             zeroH
           }));
-          barHeight = this.series[i][j2] / this.yRatio[translationsIndex];
+          barHeight = this.series[i][j] / this.yRatio[translationsIndex];
         }
         const barGoalLine = this.barHelpers.drawGoalLine({
           barXPosition: paths.barXPosition,
@@ -16200,13 +16745,13 @@ class BarStacked extends Bar {
         const pathFill = this.barHelpers.getPathFillColor(
           series,
           i,
-          j2,
+          j,
           realIndex
         );
         let classes = "";
         const flipClass = w.globals.isBarHorizontal ? "apexcharts-flip-x" : "apexcharts-flip-y";
-        const wantsFlip = this.barHelpers.arrBorderRadius[realIndex][j2] === "bottom" && w.seriesData.series[realIndex][j2] > 0 || this.barHelpers.arrBorderRadius[realIndex][j2] === "top" && w.seriesData.series[realIndex][j2] < 0;
-        const heldFlip = holdMirror && !wantsFlip && this.getPreviousFlip(realIndex, j2);
+        const wantsFlip = this.barHelpers.arrBorderRadius[realIndex][j] === "bottom" && w.seriesData.series[realIndex][j] > 0 || this.barHelpers.arrBorderRadius[realIndex][j] === "top" && w.seriesData.series[realIndex][j] < 0;
+        const heldFlip = holdMirror && !wantsFlip && this.getPreviousFlip(realIndex, j);
         if (wantsFlip || heldFlip) {
           classes = flipClass;
         }
@@ -16218,7 +16763,7 @@ class BarStacked extends Bar {
           realIndex,
           pathFill: pathFill.color
         }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
-          j: j2,
+          j,
           i,
           columnGroupIndex,
           pathFrom: paths.pathFrom,
@@ -16346,22 +16891,22 @@ class BarStacked extends Bar {
     const barYPosition = y + columnGroupIndex * barHeight;
     let barXPosition;
     const i = indexes.i;
-    const j2 = indexes.j;
+    const j = indexes.j;
     const realIndex = indexes.realIndex;
     const translationsIndex = indexes.translationsIndex;
     let prevBarW = 0;
     for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
-      prevBarW = prevBarW + this.groupCtx.prevXF[k][j2];
+      prevBarW = prevBarW + this.groupCtx.prevXF[k][j];
     }
     const gsi = this.groupCtx.prevX.length;
     if (gsi > 0) {
       let bXP = zeroW;
-      if (this.groupCtx.prevXVal[gsi - 1][j2] < 0) {
+      if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
         bXP = /** @type {any} */
-        ((_a = this.series[i]) == null ? void 0 : _a[j2]) >= 0 ? this.groupCtx.prevX[gsi - 1][j2] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j2];
-      } else if (this.groupCtx.prevXVal[gsi - 1][j2] >= 0) {
+        ((_a = this.series[i]) == null ? void 0 : _a[j]) >= 0 ? this.groupCtx.prevX[gsi - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j];
+      } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
         bXP = /** @type {any} */
-        ((_b = this.series[i]) == null ? void 0 : _b[j2]) >= 0 ? this.groupCtx.prevX[gsi - 1][j2] : this.groupCtx.prevX[gsi - 1][j2] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
+        ((_b = this.series[i]) == null ? void 0 : _b[j]) >= 0 ? this.groupCtx.prevX[gsi - 1][j] : this.groupCtx.prevX[gsi - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
       }
       barXPosition = bXP;
     } else {
@@ -16369,14 +16914,14 @@ class BarStacked extends Bar {
     }
     if (
       /** @type {any} */
-      ((_c = this.series[i]) == null ? void 0 : _c[j2]) === null
+      ((_c = this.series[i]) == null ? void 0 : _c[j]) === null
     ) {
       x = barXPosition;
     } else {
       x = barXPosition + /** @type {any} */
-      ((_d = this.series[i]) == null ? void 0 : _d[j2]) / this.invertedYRatio - (this.isReversed ? (
+      ((_d = this.series[i]) == null ? void 0 : _d[j]) / this.invertedYRatio - (this.isReversed ? (
         /** @type {any} */
-        ((_e = this.series[i]) == null ? void 0 : _e[j2]) / this.invertedYRatio
+        ((_e = this.series[i]) == null ? void 0 : _e[j]) / this.invertedYRatio
       ) : 0) * 2;
     }
     const paths = this.barHelpers.getBarpaths({
@@ -16390,11 +16935,11 @@ class BarStacked extends Bar {
       realIndex: indexes.realIndex,
       seriesGroup,
       i,
-      j: j2,
+      j,
       w
     });
     this.barHelpers.barBackground({
-      j: j2,
+      j,
       i,
       y1: barYPosition,
       y2: barHeight,
@@ -16410,7 +16955,7 @@ class BarStacked extends Bar {
         /** @type {any} */
         null,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition,
@@ -16434,12 +16979,12 @@ class BarStacked extends Bar {
     var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const w = this.w;
     const i = indexes.i;
-    const j2 = indexes.j;
+    const j = indexes.j;
     const bc = indexes.bc;
     const realIndex = indexes.realIndex;
     const translationsIndex = indexes.translationsIndex;
     if (w.axisFlags.isXNumeric) {
-      let seriesVal = w.seriesData.seriesX[realIndex][j2];
+      let seriesVal = w.seriesData.seriesX[realIndex][j];
       if (!seriesVal) seriesVal = 0;
       x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2 * w.globals.barGroups.length;
     }
@@ -16447,29 +16992,29 @@ class BarStacked extends Bar {
     let barYPosition;
     let prevBarH = 0;
     for (let k = 0; k < this.groupCtx.prevYF.length; k++) {
-      prevBarH = prevBarH + (!isNaN(this.groupCtx.prevYF[k][j2]) ? this.groupCtx.prevYF[k][j2] : 0);
+      prevBarH = prevBarH + (!isNaN(this.groupCtx.prevYF[k][j]) ? this.groupCtx.prevYF[k][j] : 0);
     }
     const gsi = this.groupCtx.prevY.length;
-    if (gsi > 0 && !w.axisFlags.isXNumeric || gsi > 0 && w.axisFlags.isXNumeric && w.seriesData.seriesX[realIndex - 1][j2] === w.seriesData.seriesX[realIndex][j2]) {
+    if (gsi > 0 && !w.axisFlags.isXNumeric || gsi > 0 && w.axisFlags.isXNumeric && w.seriesData.seriesX[realIndex - 1][j] === w.seriesData.seriesX[realIndex][j]) {
       let bYP;
       let prevYValue;
       const p = Math.min(this.yRatio.length + 1, realIndex + 1);
       if (this.groupCtx.prevY[gsi - 1] !== void 0 && this.groupCtx.prevY[gsi - 1].length) {
         for (let ii = 1; ii < p; ii++) {
-          if (!isNaN((_a = this.groupCtx.prevY[gsi - ii]) == null ? void 0 : _a[j2])) {
-            prevYValue = this.groupCtx.prevY[gsi - ii][j2];
+          if (!isNaN((_a = this.groupCtx.prevY[gsi - ii]) == null ? void 0 : _a[j])) {
+            prevYValue = this.groupCtx.prevY[gsi - ii][j];
             break;
           }
         }
       }
       for (let ii = 1; ii < p; ii++) {
-        if (((_b = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _b[j2]) < 0) {
+        if (((_b = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _b[j]) < 0) {
           bYP = /** @type {any} */
-          ((_c = this.series[i]) == null ? void 0 : _c[j2]) >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
+          ((_c = this.series[i]) == null ? void 0 : _c[j]) >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
           break;
-        } else if (((_d = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _d[j2]) >= 0) {
+        } else if (((_d = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _d[j]) >= 0) {
           bYP = /** @type {any} */
-          ((_e = this.series[i]) == null ? void 0 : _e[j2]) >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
+          ((_e = this.series[i]) == null ? void 0 : _e[j]) >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
           break;
         }
       }
@@ -16491,12 +17036,12 @@ class BarStacked extends Bar {
     }
     if (
       /** @type {any} */
-      (_g = this.series[i]) == null ? void 0 : _g[j2]
+      (_g = this.series[i]) == null ? void 0 : _g[j]
     ) {
       y = barYPosition - /** @type {any} */
-      ((_h = this.series[i]) == null ? void 0 : _h[j2]) / this.yRatio[translationsIndex] + (this.isReversed ? (
+      ((_h = this.series[i]) == null ? void 0 : _h[j]) / this.yRatio[translationsIndex] + (this.isReversed ? (
         /** @type {any} */
-        ((_i = this.series[i]) == null ? void 0 : _i[j2]) / this.yRatio[translationsIndex]
+        ((_i = this.series[i]) == null ? void 0 : _i[j]) / this.yRatio[translationsIndex]
       ) : 0) * 2;
     } else {
       y = barYPosition;
@@ -16513,12 +17058,12 @@ class BarStacked extends Bar {
       seriesGroup,
       realIndex: indexes.realIndex,
       i,
-      j: j2,
+      j,
       w
     });
     this.barHelpers.barBackground({
       bc,
-      j: j2,
+      j,
       i,
       x1: barXPosition,
       x2: barWidth,
@@ -16533,7 +17078,7 @@ class BarStacked extends Bar {
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         0
       ),
       barXPosition,
@@ -16632,8 +17177,8 @@ function renderJitter({
   if (willAnimateIn) {
     w.globals.delayedElements.push({ el: elPointsWrap.node });
   }
-  pointsByCat.forEach(({ groups, j: j2 }) => {
-    const catColor = distributed ? w.globals.colors[j2] : w.globals.colors[realIndex];
+  pointsByCat.forEach(({ groups, j }) => {
+    const catColor = distributed ? w.globals.colors[j] : w.globals.colors[realIndex];
     const fc = options.fillColor;
     const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45) : fc || darkenColor(catColor, 0.45);
     groups.forEach((g) => {
@@ -16646,7 +17191,7 @@ function renderJitter({
         classes: pointClass
       });
       elPoints.attr("data:realIndex", realIndex);
-      elPoints.attr("j", j2);
+      elPoints.attr("j", j);
       elPoints.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
       elPoints.node.style.pointerEvents = "none";
       elPointsWrap.add(elPoints);
@@ -16765,8 +17310,8 @@ class BoxCandleStick extends Bar {
       const pointsByCat = [];
       const gridW = w.layout.gridWidth;
       const cullBuffer = barWidth != null ? barWidth : 0;
-      for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex);
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
           /** @type {any} */
           null
@@ -16774,7 +17319,7 @@ class BoxCandleStick extends Bar {
         const pathsParams = {
           indexes: {
             i,
-            j: j2,
+            j,
             realIndex,
             translationsIndex
           },
@@ -16799,7 +17344,7 @@ class BoxCandleStick extends Bar {
         }
         y = paths.y;
         x = paths.x;
-        if (j2 > 0) {
+        if (j > 0) {
           xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
         }
         yArrj.push(y);
@@ -16822,15 +17367,15 @@ class BoxCandleStick extends Bar {
             const lineFill = !this.isBoxPlot && this.candlestickOptions.wick.useFillColor ? paths.color[pi] : w.globals.stroke.colors[i];
             const pathFill = fill.fillPath({
               seriesNumber: realIndex,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               color: paths.color[pi],
-              value: series[i][j2]
+              value: series[i][j]
             });
             this.renderSeries({
               realIndex,
               pathFill,
               lineFill,
-              j: j2,
+              j,
               i,
               pathFrom: paths.pathFrom,
               pathTo,
@@ -16850,7 +17395,7 @@ class BoxCandleStick extends Bar {
           }
         );
         if (boxPointsOpts && boxPointsOpts.show !== false) {
-          const pts = (_a = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _a[j2];
+          const pts = (_a = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _a[j];
           if (pts && pts.length) {
             const logVal = (v) => (
               /** @type {any} */
@@ -16863,30 +17408,30 @@ class BoxCandleStick extends Bar {
             if (this.isHorizontal) {
               const yRatio = this.invertedYRatio;
               const bh = barHeight != null ? barHeight : 0;
-              const z = zeroW != null ? zeroW : 0;
+              const z2 = zeroW != null ? zeroW : 0;
               center = paths.barYPosition + bh / 2;
               halfExtent = bh / 2;
-              alongFn = (v) => z + logVal(v) / yRatio;
+              alongFn = (v) => z2 + logVal(v) / yRatio;
             } else {
               const yRatio = this.yRatio[translationsIndex];
               const bw = barWidth != null ? barWidth : 0;
-              const z = zeroH != null ? zeroH : 0;
+              const z2 = zeroH != null ? zeroH : 0;
               center = paths.barXPosition + bw / 2;
               halfExtent = bw / 2;
-              alongFn = (v) => z - logVal(v) / yRatio;
+              alongFn = (v) => z2 - logVal(v) / yRatio;
             }
             const groups = buildJitterGroups({
               w,
               points: pts,
               seedA: realIndex,
-              seedB: j2,
+              seedB: j,
               center,
               halfExtent,
               alongFn,
               isHorizontal: this.isHorizontal,
               options: boxPointsOpts
             });
-            if (groups.length) pointsByCat.push({ groups, j: j2 });
+            if (groups.length) pointsByCat.push({ groups, j });
           }
         }
       }
@@ -16923,7 +17468,7 @@ class BoxCandleStick extends Bar {
     const w = this.w;
     const graphics = new Graphics(this.w);
     const i = indexes.i;
-    const j2 = indexes.j;
+    const j = indexes.j;
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
     const realIndex = indexes.realIndex;
@@ -16931,7 +17476,7 @@ class BoxCandleStick extends Bar {
     const colorPos = getColor(candleColors.upward);
     const colorNeg = getColor(candleColors.downward);
     const yRatio = this.yRatio[indexes.translationsIndex];
-    const ohlc = this.getOHLCValue(realIndex, j2);
+    const ohlc = this.getOHLCValue(realIndex, j);
     let l1 = zeroH;
     let l2 = zeroH;
     let color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg];
@@ -16942,12 +17487,12 @@ class BoxCandleStick extends Bar {
     let y2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
     if (w.axisFlags.isXNumeric) {
-      x = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+      x = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
     }
     const barXPosition = x + barWidth * this.visibleI;
     if (typeof /** @type {any} */
-    ((_a = this.series[i]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i]) == null ? void 0 : _b[j2]) === null) {
+    ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
+    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
       y1 = zeroH;
       y2 = zeroH;
     } else {
@@ -16987,11 +17532,11 @@ class BoxCandleStick extends Bar {
       ];
     }
     let pathFrom = null;
-    const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j2);
+    const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo[0]);
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(barXPosition + barWidth / 2, y1) + graphics.move(barXPosition, y1);
@@ -17010,7 +17555,7 @@ class BoxCandleStick extends Bar {
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         indexes.translationsIndex
       ),
       barXPosition,
@@ -17030,13 +17575,13 @@ class BoxCandleStick extends Bar {
     const w = this.w;
     const graphics = new Graphics(this.w);
     const i = indexes.i;
-    const j2 = indexes.j;
+    const j = indexes.j;
     const realIndex = indexes.realIndex;
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
     const yRatio = this.invertedYRatio;
-    const ohlc = this.getOHLCValue(realIndex, j2);
+    const ohlc = this.getOHLCValue(realIndex, j);
     let color = ohlc.o < ohlc.c ? [getColor(candleColors.upward)] : [getColor(candleColors.downward)];
     if (this.isBoxPlot) {
       color = [getColor(boxColors.lower), getColor(boxColors.upper)];
@@ -17047,12 +17592,12 @@ class BoxCandleStick extends Bar {
     let x2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
     if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
+      y = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
     }
     const barYPosition = y + barHeight * this.visibleI;
     if (typeof /** @type {any} */
-    ((_a = this.series[i]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i]) == null ? void 0 : _b[j2]) === null) {
+    ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
+    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
       x1 = zeroW;
       x2 = zeroW;
     } else {
@@ -17067,11 +17612,11 @@ class BoxCandleStick extends Bar {
       graphics.move(m, barYPosition) + graphics.line(m, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight - barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition) + graphics.line(m, barYPosition) + "z"
     ];
     let pathFrom = null;
-    const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j2);
+    const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo[0]);
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
@@ -17090,7 +17635,7 @@ class BoxCandleStick extends Bar {
         /** @type {any} */
         null,
         realIndex,
-        j2,
+        j,
         0
       ),
       barYPosition,
@@ -17101,12 +17646,12 @@ class BoxCandleStick extends Bar {
    * @param {number} i
    * @param {number} j
    */
-  getOHLCValue(i, j2) {
+  getOHLCValue(i, j) {
     const w = this.w;
     const coreUtils = this.coreUtils;
-    const getCandleVal = (arr) => arr[i] && arr[i][j2] != null ? (
+    const getCandleVal = (arr) => arr[i] && arr[i][j] != null ? (
       /** @type {any} */
-      coreUtils.getLogValAtSeriesIndex(arr[i][j2], i)
+      coreUtils.getLogValAtSeriesIndex(arr[i][j], i)
     ) : 0;
     const h = getCandleVal(w.candleData.seriesCandleH);
     const o = getCandleVal(w.candleData.seriesCandleO);
@@ -17318,16 +17863,16 @@ class Violin extends Bar {
         });
       }
       const pointsByViolin = [];
-      for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex);
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         const paths = this.isHorizontal ? this.drawHorizontalViolin({
-          indexes: { i, j: j2, realIndex, translationsIndex },
+          indexes: { i, j, realIndex, translationsIndex },
           y,
           yDivision,
           barHeight,
           zeroW
         }) : this.drawVerticalViolin({
-          indexes: { i, j: j2, realIndex, translationsIndex },
+          indexes: { i, j, realIndex, translationsIndex },
           x,
           xDivision,
           barWidth,
@@ -17335,13 +17880,13 @@ class Violin extends Bar {
         });
         x = paths.x;
         y = paths.y;
-        if (j2 > 0) {
+        if (j > 0) {
           xArrj.push(paths.center);
         }
         yArrj.push(paths.alongRepresentative);
         const pointGroups = this.buildPointsSubPath({
           realIndex,
-          j: j2,
+          j,
           center: paths.center,
           halfExtent: paths.halfExtent,
           alongFn: paths.alongFn,
@@ -17352,19 +17897,19 @@ class Violin extends Bar {
           rainCenter: paths.rainCenter,
           rainHalfPx: paths.rainHalfPx
         });
-        if (pointGroups.length) pointsByViolin.push({ groups: pointGroups, j: j2 });
+        if (pointGroups.length) pointsByViolin.push({ groups: pointGroups, j });
         const pathFill = fill.fillPath({
           // distributed → color per category (data point) instead of per series
-          seriesNumber: this.distributed ? j2 : realIndex,
-          dataPointIndex: j2,
-          color: this.distributed ? w.globals.colors[j2] : void 0,
-          value: series[i][j2]
+          seriesNumber: this.distributed ? j : realIndex,
+          dataPointIndex: j,
+          color: this.distributed ? w.globals.colors[j] : void 0,
+          value: series[i][j]
         });
         this.renderSeries({
           realIndex,
           pathFill,
           lineFill: w.globals.stroke.colors[realIndex],
-          j: j2,
+          j,
           i,
           pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
@@ -17381,7 +17926,7 @@ class Violin extends Bar {
           type: "violin"
         });
         const bodyEl = elSeries.node.querySelector(
-          `path.apexcharts-violin-area[j='${j2}']`
+          `path.apexcharts-violin-area[j='${j}']`
         );
         if (bodyEl && isFinite(paths.alongRepresentative)) {
           bodyEl.setAttribute(
@@ -17396,7 +17941,7 @@ class Violin extends Bar {
               realIndex,
               pathFill: bp.filled ? this.boxOptions.fillColor || pathFill : "none",
               lineFill: w.globals.stroke.colors[realIndex],
-              j: j2,
+              j,
               i,
               pathFrom: bp.pathFrom,
               pathTo: bp.pathTo,
@@ -17437,15 +17982,15 @@ class Violin extends Bar {
   drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
-    const { realIndex, j: j2, translationsIndex } = indexes;
+    const { realIndex, j, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex];
     if (w.axisFlags.isXNumeric) {
-      x = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+      x = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
     }
     const barXPosition = x + barWidth * this.visibleI;
     const center = barXPosition + barWidth / 2;
     const halfExtent = barWidth / 2;
-    const density = this.getDensity(realIndex, j2);
+    const density = this.getDensity(realIndex, j);
     const maxWeight = this.effectiveMaxWeight(density);
     const alongFn = (v) => zeroH - this.logVal(v, realIndex) / yRatio;
     const lanes = resolveLanes({
@@ -17467,11 +18012,11 @@ class Violin extends Bar {
       sideSign: this.cloudSign
     });
     let pathFrom = null;
-    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j2);
+    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -17504,28 +18049,28 @@ class Violin extends Bar {
       rainHalfPx: lanes.rainHalfPx,
       boxPaths: this.buildBoxSubPaths({
         realIndex,
-        j: j2,
+        j,
         boxCenter: center + lanes.boxCenterOff,
         boxHalfPx: lanes.boxHalfPx,
         alongFn,
         vertical: true
       }),
-      alongRepresentative: alongFn((_g = this.series[indexes.i][j2]) != null ? _g : 0)
+      alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
     };
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
   drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
-    const { realIndex, j: j2 } = indexes;
+    const { realIndex, j } = indexes;
     const yRatio = this.invertedYRatio;
     if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
+      y = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
     }
     const barYPosition = y + barHeight * this.visibleI;
     const center = barYPosition + barHeight / 2;
     const halfExtent = barHeight / 2;
-    const density = this.getDensity(realIndex, j2);
+    const density = this.getDensity(realIndex, j);
     const maxWeight = this.effectiveMaxWeight(density);
     const alongFn = (v) => zeroW + this.logVal(v, realIndex) / yRatio;
     const lanes = resolveLanes({
@@ -17547,11 +18092,11 @@ class Violin extends Bar {
       sideSign: this.cloudSign
     });
     let pathFrom = null;
-    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j2);
+    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -17584,13 +18129,13 @@ class Violin extends Bar {
       rainHalfPx: lanes.rainHalfPx,
       boxPaths: this.buildBoxSubPaths({
         realIndex,
-        j: j2,
+        j,
         boxCenter: center + lanes.boxCenterOff,
         boxHalfPx: lanes.boxHalfPx,
         alongFn,
         vertical: false
       }),
-      alongRepresentative: alongFn((_g = this.series[indexes.i][j2]) != null ? _g : 0)
+      alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
     };
   }
   /**
@@ -17599,15 +18144,15 @@ class Violin extends Bar {
    * @param {number} realIndex
    * @param {number} j
    */
-  getDensity(realIndex, j2) {
+  getDensity(realIndex, j) {
     var _a;
     const w = this.w;
-    const d = (_a = w.violinData.seriesViolinDensity[realIndex]) == null ? void 0 : _a[j2];
+    const d = (_a = w.violinData.seriesViolinDensity[realIndex]) == null ? void 0 : _a[j];
     if (!d || !d.values.length) {
       return { nodes: [], maxWeight: 0 };
     }
     const order = d.values.map(
-      (_, k) => k
+      (_2, k) => k
     );
     order.sort(
       (a, b) => d.values[a] - d.values[b]
@@ -17697,11 +18242,11 @@ class Violin extends Bar {
    * @param {{realIndex:number, j:number, boxCenter:number, boxHalfPx:number, alongFn:(v:number)=>number, vertical:boolean}} opts
    * @returns {{pathTo:string, pathFrom:string, filled:boolean}[] | null}
    */
-  buildBoxSubPaths({ realIndex, j: j2, boxCenter, boxHalfPx, alongFn, vertical }) {
+  buildBoxSubPaths({ realIndex, j, boxCenter, boxHalfPx, alongFn, vertical }) {
     var _a, _b;
     const w = this.w;
     if (!this.boxShown || boxHalfPx <= 0) return null;
-    const summary = (_a = w.violinData.seriesViolinSummary[realIndex]) == null ? void 0 : _a[j2];
+    const summary = (_a = w.violinData.seriesViolinSummary[realIndex]) == null ? void 0 : _a[j];
     if (!summary) return null;
     const capHalf = boxHalfPx * Math.min(1, Math.max(0, (_b = this.boxOptions.capWidth) != null ? _b : 0.5));
     const [lo, q1, med, q3, hi] = summary.map((v) => alongFn(v));
@@ -17726,7 +18271,7 @@ class Violin extends Bar {
     const fromFor = (pathTo, collapsedFrom) => {
       let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPreviousPath(realIndex, j2, pathTo);
+        pathFrom = this.getPreviousPath(realIndex, j, pathTo);
       }
       return pathFrom == null ? collapsedFrom : pathFrom;
     };
@@ -17798,7 +18343,7 @@ class Violin extends Bar {
    */
   buildPointsSubPath({
     realIndex,
-    j: j2,
+    j,
     center,
     halfExtent,
     alongFn,
@@ -17815,9 +18360,9 @@ class Violin extends Bar {
     const scatterHalf = offsetLane ? rainHalfPx : this.cloudSign !== 0 ? cloudMaxPx : halfExtent;
     return buildJitterGroups({
       w: this.w,
-      points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j2],
+      points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j],
       seedA: realIndex,
-      seedB: j2,
+      seedB: j,
       center: scatterCenter,
       halfExtent: scatterHalf,
       alongFn,
@@ -17958,11 +18503,11 @@ class TreemapHelpers {
    * @param {number} j
    * @param {any} negRange
    */
-  getShadeColor(chartType, i, j2, negRange) {
+  getShadeColor(chartType, i, j, negRange) {
     const w = this.w;
     let colorShadePercent = 1;
     const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
-    const colorProps = this.determineColor(chartType, i, j2);
+    const colorProps = this.determineColor(chartType, i, j);
     if (
       /** @type {any} */
       w.globals.hasNegs || negRange
@@ -18013,13 +18558,13 @@ class TreemapHelpers {
    * @param {number} i
    * @param {number} j
    */
-  determineColor(chartType, i, j2) {
+  determineColor(chartType, i, j) {
     const w = this.w;
-    const val = w.seriesData.series[i][j2];
+    const val = w.seriesData.series[i][j];
     const chartOpts = w.config.plotOptions[chartType];
-    let seriesNumber = chartOpts.colorScale.inverse ? j2 : i;
+    let seriesNumber = chartOpts.colorScale.inverse ? j : i;
     if (chartOpts.distributed && w.config.chart.type === "treemap") {
-      seriesNumber = j2;
+      seriesNumber = j;
     }
     let color = w.globals.colors[seriesNumber];
     let foreColor = null;
@@ -18069,7 +18614,7 @@ class TreemapHelpers {
     };
   }
   /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any, series?: any }} opts */
-  calculateDataLabels({ text, x, y, i, j: j2, colorProps, fontSize }) {
+  calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
     const w = this.w;
     const dataLabelsConfig = w.config.dataLabels;
     const graphics = new Graphics(this.w);
@@ -18079,8 +18624,8 @@ class TreemapHelpers {
       elDataLabelsWrap = graphics.group({
         class: "apexcharts-data-labels"
       });
-      const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j2);
-      const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j2);
+      const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j);
+      const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j);
       const dataLabelsX = x + offX;
       const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
       dataLabels.plotDataLabelsText({
@@ -18088,7 +18633,7 @@ class TreemapHelpers {
         y: dataLabelsY,
         text,
         i,
-        j: j2,
+        j,
         color: colorProps.foreColor,
         parent: elDataLabelsWrap,
         fontSize,
@@ -18173,20 +18718,20 @@ class HeatMap {
       const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
       const visualRow = Math.round(y1 / yDivision);
       const rowOffset = shape === "hexagon" ? (visualRow % 2 === 0 ? -1 : 1) * xDivision / 4 : 0;
-      let j2 = 0;
+      let j = 0;
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
         if (!isContinuousX && w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
-          if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i][j2]) {
+          if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i][j]) {
             x1 = x1 + xDivision;
             continue;
           }
         }
-        if (j2 >= heatSeries[i].length) break;
+        if (j >= heatSeries[i].length) break;
         const cellW = isContinuousX ? binPx : xDivision;
         if (isContinuousX) {
-          const xVal = w.seriesData.seriesX[i] ? w.seriesData.seriesX[i][j2] : null;
+          const xVal = w.seriesData.seriesX[i] ? w.seriesData.seriesX[i][j] : null;
           if (xVal == null || xVal !== xVal) {
-            j2++;
+            j++;
             continue;
           }
           x1 = (xVal - w.globals.minX) / this.xRatio - binPx / 2;
@@ -18194,7 +18739,7 @@ class HeatMap {
         const heatColor = this.helpers.getShadeColor(
           w.config.chart.type,
           i,
-          j2,
+          j,
           this.negRange
         );
         let color = heatColor.color;
@@ -18203,7 +18748,7 @@ class HeatMap {
           const fill = new Fill(this.w);
           color = fill.fillPath({
             seriesNumber: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             opacity: (
               /** @type {any} */
               w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100
@@ -18223,7 +18768,7 @@ class HeatMap {
             strokeWidth: this.strokeWidth,
             radius,
             seriesIndex: i,
-            dataPointIndex: j2
+            dataPointIndex: j
           });
         } else {
           const isRectCell = shape === "rect";
@@ -18250,8 +18795,8 @@ class HeatMap {
             fill: color,
             i,
             index: i,
-            j: j2,
-            val: series[i][j2],
+            j,
+            val: series[i][j],
             "stroke-width": this.strokeWidth,
             stroke,
             color
@@ -18268,12 +18813,12 @@ class HeatMap {
               speed = w.config.chart.animations.speed;
             }
             if (isRectCell) {
-              this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i, j2);
+              this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i, j);
             } else {
               const animations = new Animations(this.w);
               animations.animatePop(cell, {
                 speed,
-                delay: this.enterStaggerDelay(speed, i, j2),
+                delay: this.enterStaggerDelay(speed, i, j),
                 onComplete: () => {
                   animations.animationCompleted(cell);
                 }
@@ -18284,7 +18829,7 @@ class HeatMap {
             let speed = 1;
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed;
-              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j2] && w.globals.previousPaths[i][j2].color;
+              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
               if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
               this.animateHeatColor(
                 cell,
@@ -18296,10 +18841,10 @@ class HeatMap {
           }
         }
         const formatter = w.config.dataLabels.formatter;
-        const formattedText = formatter(w.seriesData.series[i][j2], {
-          value: w.seriesData.series[i][j2],
+        const formattedText = formatter(w.seriesData.series[i][j], {
+          value: w.seriesData.series[i][j],
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
         const dataLabels = this.helpers.calculateDataLabels({
@@ -18307,7 +18852,7 @@ class HeatMap {
           x: x1 + rowOffset + cellW / 2,
           y: y1 + yDivision / 2,
           i,
-          j: j2,
+          j,
           colorProps: heatColorProps,
           series: heatSeries
         });
@@ -18315,7 +18860,7 @@ class HeatMap {
           elSeries.add(dataLabels);
         }
         if (!isContinuousX) x1 = x1 + xDivision;
-        j2++;
+        j++;
       }
       y1 = y1 + yDivision;
       ret.add(elSeries);
@@ -18509,7 +19054,7 @@ class Helpers4 {
     return series;
   }
   /** @param {{series: any, realIndex: any, x: any, y: any, i: any, j: any, prevY: any}} opts */
-  calculatePoints({ series, realIndex, x, y, i, j: j2, prevY }) {
+  calculatePoints({ series, realIndex, x, y, i, j, prevY }) {
     const w = this.w;
     const ptX = [];
     const ptY = [];
@@ -18517,7 +19062,7 @@ class Helpers4 {
     if (w.axisFlags.isXNumeric) {
       xPT1st = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.lineCtx.xRatio + w.config.markers.offsetX;
     }
-    if (j2 === 0) {
+    if (j === 0) {
       ptX.push(xPT1st);
       ptY.push(
         Utils.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null
@@ -18525,7 +19070,7 @@ class Helpers4 {
     }
     ptX.push(x + w.config.markers.offsetX);
     ptY.push(
-      Utils.isNumber(series[i][j2 + 1]) ? y + w.config.markers.offsetY : null
+      Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
     );
     return {
       x: ptX,
@@ -19123,10 +19668,10 @@ class Line {
     if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
       return;
     }
-    for (let j2 = 0; j2 < yArrj.length; j2++) {
-      const key = this._stackKey(realIndex, j2);
+    for (let j = 0; j < yArrj.length; j++) {
+      const key = this._stackKey(realIndex, j);
       if (key === void 0 || key === null) continue;
-      const y = yArrj[j2];
+      const y = yArrj[j];
       if (!Utils.isNumber(y)) continue;
       this.prevSeriesYByX.set(key, y);
     }
@@ -19373,12 +19918,12 @@ class Line {
       });
       if (fast) return fast;
     }
-    for (let j2 = 0; j2 < iterations; j2++) {
+    for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
-      const isNull = typeof series[i][j2 + 1] === "undefined" || series[i][j2 + 1] === null;
+      const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
       if (w.axisFlags.isXNumeric) {
-        let sX = w.seriesData.seriesX[realIndex][j2 + 1];
-        if (typeof w.seriesData.seriesX[realIndex][j2 + 1] === "undefined") {
+        let sX = w.seriesData.seriesX[realIndex][j + 1];
+        if (typeof w.seriesData.seriesX[realIndex][j + 1] === "undefined") {
           sX = w.seriesData.seriesX[realIndex][iterations - 1];
         }
         x = (sX - w.globals.minX) / this.xRatio;
@@ -19401,7 +19946,7 @@ class Line {
           if (pIdx < 0) {
             lineYPosition = this.zeroY;
           } else {
-            const top = this.stackTopAt(realIndex, j2 + 1);
+            const top = this.stackTopAt(realIndex, j + 1);
             lineYPosition = top === void 0 ? this.zeroY : top;
           }
         } else {
@@ -19413,19 +19958,19 @@ class Line {
       if (isNull) {
         y = getY(minY, lineYPosition);
       } else {
-        y = getY(series[i][j2 + 1], lineYPosition);
+        y = getY(series[i][j + 1], lineYPosition);
         if (type === "rangeArea") {
-          y2 = getY(seriesRangeEnd[i][j2 + 1], lineYPosition);
+          y2 = getY(seriesRangeEnd[i][j + 1], lineYPosition);
         }
       }
       let xj = x;
       let yj = y;
       if (jitterPx) {
-        const seed = realIndex * 100003 + (j2 + 1);
+        const seed = realIndex * 100003 + (j + 1);
         if (jitterPx.x) xj = x + (hash01(seed * 7919 + 13) - 0.5) * 2 * jitterPx.x;
         if (jitterPx.y) yj = y + (hash01(seed * 6271 + 97) - 0.5) * 2 * jitterPx.y;
       }
-      xArrj.push(series[i][j2 + 1] === null ? null : xj);
+      xArrj.push(series[i][j + 1] === null ? null : xj);
       if (isNull && (w.config.stroke.curve === "smooth" || w.config.stroke.curve === "monotoneCubic")) {
         yArrj.push(null);
         y2Arrj.push(null);
@@ -19439,14 +19984,14 @@ class Line {
         y: yj,
         realIndex,
         i,
-        j: j2,
+        j,
         prevY
       });
       const calculatedPaths = this._createPaths({
         type,
         series,
         i,
-        j: j2,
+        j,
         x,
         y,
         y2,
@@ -19476,12 +20021,12 @@ class Line {
         pathFromLine += graphics.line(x, this.areaBottomY);
         pathFromArea += graphics.line(x, this.areaBottomY);
       }
-      this.handleNullDataPoints(series, pointsPos, i, j2, realIndex);
+      this.handleNullDataPoints(series, pointsPos, i, j, realIndex);
       this._handleMarkersAndLabels({
         type,
         pointsPos,
         i,
-        j: j2,
+        j,
         realIndex,
         isRangeStart
       });
@@ -19498,7 +20043,7 @@ class Line {
     };
   }
   /** @param {{type: any, pointsPos: any, isRangeStart: any, i: any, j: any, realIndex: any}} opts */
-  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j: j2, realIndex }) {
+  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
     const w = this.w;
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
@@ -19509,14 +20054,14 @@ class Line {
       const elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
         seriesIndex: realIndex,
-        j: j2 + 1
+        j: j + 1
       });
       if (elPointsWrap !== null && elPointsWrap !== this._elLastPointsWrap) {
         this.elPointsMain.add(elPointsWrap);
         this._elLastPointsWrap = elPointsWrap;
       }
     } else {
-      this.scatter.draw(this.elSeries, j2, {
+      this.scatter.draw(this.elSeries, j, {
         realIndex,
         pointsPos,
         zRatio: this.zRatio,
@@ -19528,7 +20073,7 @@ class Line {
       isRangeStart,
       pos: pointsPos,
       i: realIndex,
-      j: j2 + 1
+      j: j + 1
     });
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels);
@@ -19641,26 +20186,26 @@ class Line {
     let xv = x;
     let xj = pX;
     let yj = pY;
-    for (let j2 = 0; j2 < iterations; j2++) {
+    for (let j = 0; j < iterations; j++) {
       if (sx) {
-        xj = (sx[j2 + 1] - minX) / xRatio;
+        xj = (sx[j + 1] - minX) / xRatio;
       } else {
         xv = xv + xDivision;
         xj = xv;
       }
-      const v = s[j2 + 1];
+      const v = s[j + 1];
       yj = zeroY - v / yR + (isReversed ? v / yR : 0) * 2;
       xArrj.push(xj);
       yArrj.push(yj);
       y2Arrj.push(y);
       pts.push([xj + offX, yj + offY]);
       if (buildStrings) {
-        parts[j2 + 1] = " L " + xj + " " + yj;
-        if (fromParts) fromParts[j2] = " L " + xj + " " + bottomY;
+        parts[j + 1] = " L " + xj + " " + yj;
+        if (fromParts) fromParts[j] = " L " + xj + " " + bottomY;
       }
       if (nxs && nys) {
-        nxs[j2 + 1] = xj;
-        nys[j2 + 1] = yj;
+        nxs[j + 1] = xj;
+        nys[j + 1] = yj;
       }
     }
     let linePath = "";
@@ -19696,7 +20241,7 @@ class Line {
     type,
     series,
     i,
-    j: j2,
+    j,
     x,
     y,
     xArrj,
@@ -19722,15 +20267,15 @@ class Line {
       case "monotoneCubic": {
         const yAj = isRangeStart ? yArrj : y2Arrj;
         const getSmoothInputs = (xArr, yArr) => {
-          return xArr.map((_, i2) => {
-            return [_, yArr[i2]];
-          }).filter((_) => _[1] !== null);
+          return xArr.map((_2, i2) => {
+            return [_2, yArr[i2]];
+          }).filter((_2) => _2[1] !== null);
         };
         const getSegmentLengths = (yArr) => {
           const segLens = [];
           let count = 0;
-          yArr.forEach((_) => {
-            if (_ !== null) {
+          yArr.forEach((_2) => {
+            if (_2 !== null) {
               count++;
             } else if (count > 0) {
               segLens.push(count);
@@ -19752,13 +20297,13 @@ class Line {
         };
         switch (pathState) {
           case 0:
-            if (yAj[j2 + 1] === null) {
+            if (yAj[j + 1] === null) {
               break;
             }
             pathState = 1;
           // falls through
           case 1:
-            if (!(rangeArea ? xArrj.length === series[i].length : j2 === series[i].length - 2)) {
+            if (!(rangeArea ? xArrj.length === series[i].length : j === series[i].length - 2)) {
               break;
             }
           // falls through
@@ -19777,11 +20322,11 @@ class Line {
             }
             let segmentCount = 0;
             let smoothInputsIndex = 0;
-            getSegments(_yAj, points).forEach((_) => {
+            getSegments(_yAj, points).forEach((_2) => {
               segmentCount++;
-              const svgPoints = svgPath(_);
+              const svgPoints = svgPath(_2);
               const _start = smoothInputsIndex;
-              smoothInputsIndex += _.length;
+              smoothInputsIndex += _2.length;
               const _end = smoothInputsIndex - 1;
               if (isLowerRangeAreaPath) {
                 linePath = graphics.move(
@@ -19824,25 +20369,25 @@ class Line {
       }
       case "smooth": {
         const length = (x - pX) * 0.35;
-        if (series[i][j2] === null) {
+        if (series[i][j] === null) {
           pathState = 0;
         } else {
           switch (pathState) {
             case 0:
               segmentStartX = pX;
               if (isLowerRangeAreaPath) {
-                linePath = graphics.move(pX, y2Arrj[j2]) + graphics.line(pX, pY);
+                linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
               } else {
                 linePath = graphics.move(pX, pY);
               }
               areaPath = graphics.move(pX, pY);
-              if (series[i][j2 + 1] === null || typeof series[i][j2 + 1] === "undefined") {
+              if (series[i][j + 1] === null || typeof series[i][j + 1] === "undefined") {
                 linePaths.push(linePath);
                 areaPaths.push(areaPath);
                 break;
               }
               pathState = 1;
-              if (j2 < series[i].length - 2) {
+              if (j < series[i].length - 2) {
                 const p = graphics.curve(pX + length, pY, x - length, y, x, y);
                 linePath += p;
                 areaPath += p;
@@ -19850,7 +20395,7 @@ class Line {
               }
             // falls through
             case 1:
-              if (series[i][j2 + 1] === null) {
+              if (series[i][j + 1] === null) {
                 if (isLowerRangeAreaPath) {
                   linePath += graphics.line(pX, y2);
                 } else {
@@ -19864,7 +20409,7 @@ class Line {
                 const p = graphics.curve(pX + length, pY, x - length, y, x, y);
                 linePath += p;
                 areaPath += p;
-                if (j2 >= series[i].length - 2) {
+                if (j >= series[i].length - 2) {
                   if (isLowerRangeAreaPath) {
                     linePath += graphics.curve(x, y, x, y, x, y2) + graphics.move(x, y2);
                   }
@@ -19897,25 +20442,25 @@ class Line {
           }
           return path;
         };
-        if (series[i][j2] === null) {
+        if (series[i][j] === null) {
           pathState = 0;
         } else {
           switch (pathState) {
             case 0:
               segmentStartX = pX;
               if (isLowerRangeAreaPath) {
-                linePath = graphics.move(pX, y2Arrj[j2]) + graphics.line(pX, pY);
+                linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
               } else {
                 linePath = graphics.move(pX, pY);
               }
               areaPath = graphics.move(pX, pY);
-              if (series[i][j2 + 1] === null || typeof series[i][j2 + 1] === "undefined") {
+              if (series[i][j + 1] === null || typeof series[i][j + 1] === "undefined") {
                 linePaths.push(linePath);
                 areaPaths.push(areaPath);
                 break;
               }
               pathState = 1;
-              if (j2 < series[i].length - 2) {
+              if (j < series[i].length - 2) {
                 const p = pathToPoint(curve, x, y);
                 linePath += p;
                 areaPath += p;
@@ -19923,7 +20468,7 @@ class Line {
               }
             // falls through
             case 1:
-              if (series[i][j2 + 1] === null) {
+              if (series[i][j + 1] === null) {
                 if (isLowerRangeAreaPath) {
                   linePath += graphics.line(pX, y2);
                 } else {
@@ -19937,7 +20482,7 @@ class Line {
                 const p = pathToPoint(curve, x, y);
                 linePath += p;
                 areaPath += p;
-                if (j2 >= series[i].length - 2) {
+                if (j >= series[i].length - 2) {
                   if (isLowerRangeAreaPath) {
                     linePath += graphics.line(x, y2);
                   }
@@ -19973,9 +20518,9 @@ class Line {
    * @param {number} j
    * @param {number} realIndex
    */
-  handleNullDataPoints(series, pointsPos, i, j2, realIndex) {
+  handleNullDataPoints(series, pointsPos, i, j, realIndex) {
     const w = this.w;
-    if (series[i][j2] === null && w.config.markers.showNullDataPoints || series[i].length === 1) {
+    if (series[i][j] === null && w.config.markers.showNullDataPoints || series[i].length === 1) {
       let pSize = this.strokeWidth - w.config.markers.strokeWidth / 2;
       if (!(pSize > 0)) {
         pSize = 0;
@@ -19983,7 +20528,7 @@ class Line {
       const elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
         seriesIndex: realIndex,
-        j: j2 + 1,
+        j: j + 1,
         pSize,
         alwaysDrawMarker: true
       });
@@ -20399,7 +20944,7 @@ class Pie {
     const w = this.w;
     const helpers = new CircularChartsHelpers(w);
     const lineSets = (w.seriesData.seriesNames || []).map(
-      (_, i) => this.getExternalLabelLines(i)
+      (_2, i) => this.getExternalLabelLines(i)
     );
     const maxLabelWidth = helpers.getMaxLabelWidth(lineSets.flat(), {
       fontSize: this.externalLabelStyle.fontSize,
@@ -21730,15 +22275,15 @@ class Radar {
       this.dataRadiusOfPercent[i] = [];
       this.dataRadius[i] = [];
       this.angleArr[i] = [];
-      s.forEach((dv, j2) => {
+      s.forEach((dv, j) => {
         const range = Math.abs(this.maxValue - this.minValue);
         dv = dv - this.minValue;
         if (this.isLog) {
           dv = this.coreUtils.getLogVal(this.logBase, dv, 0);
         }
-        this.dataRadiusOfPercent[i][j2] = dv / range;
-        this.dataRadius[i][j2] = this.dataRadiusOfPercent[i][j2] * this.size;
-        this.angleArr[i][j2] = j2 * this.disAngle;
+        this.dataRadiusOfPercent[i][j] = dv / range;
+        this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size;
+        this.angleArr[i][j] = j * this.disAngle;
       });
       dataPointsPos = this.getDataPointsPos(
         this.dataRadius[i],
@@ -21808,12 +22353,12 @@ class Radar {
         }
         elSeries.add(renderedAreaPath);
       }
-      s.forEach((sj, j2) => {
+      s.forEach((sj, j) => {
         const markers = new Markers(this.w, this.ctx);
         const opts = markers.getMarkerConfig({
           cssClass: "apexcharts-marker",
           seriesIndex: i,
-          dataPointIndex: j2
+          dataPointIndex: j
         });
         if (!opts.pSize) {
           opts.pSize = RADAR_HIT_AREA_SIZE;
@@ -21822,12 +22367,12 @@ class Radar {
           opts.pointStrokeWidth = 0;
         }
         const point = this.graphics.drawMarker(
-          dataPointsPos[j2].x,
-          dataPointsPos[j2].y,
+          dataPointsPos[j].x,
+          dataPointsPos[j].y,
           opts
         );
-        point.attr("rel", j2);
-        point.attr("j", j2);
+        point.attr("rel", j);
+        point.attr("j", j);
         point.attr("index", i);
         point.node.setAttribute("default-marker-size", opts.pSize);
         const elPointsWrap = this.graphics.group({
@@ -21840,14 +22385,14 @@ class Radar {
         elSeries.add(elPointsMain);
         const dataLabelsConfig = w.config.dataLabels;
         if (dataLabelsConfig.enabled) {
-          const text = dataLabelsConfig.formatter(w.seriesData.series[i][j2], {
+          const text = dataLabelsConfig.formatter(w.seriesData.series[i][j], {
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           dataLabels.plotDataLabelsText({
-            x: dataPointsPos[j2].x,
-            y: dataPointsPos[j2].y,
+            x: dataPointsPos[j].x,
+            y: dataPointsPos[j].y,
             text,
             textAnchor: "middle",
             i,
@@ -21855,7 +22400,7 @@ class Radar {
             // `j` above is the series index (kept for the color lookup), so
             // pass the real data point index for per-point offsets
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             parent: elDataPointsMain,
             offsetCorrection: false,
             dataLabelsConfig: __spreadValues({}, dataLabelsConfig)
@@ -22076,10 +22621,10 @@ class Radar {
     dataRadiusArr = dataRadiusArr || [];
     angleArr = angleArr || [];
     const dataPointsPosArray = [];
-    for (let j2 = 0; j2 < dataPointsLen; j2++) {
+    for (let j = 0; j < dataPointsLen; j++) {
       const curPointPos = {};
-      curPointPos.x = dataRadiusArr[j2] * Math.sin(angleArr[j2]);
-      curPointPos.y = -dataRadiusArr[j2] * Math.cos(angleArr[j2]);
+      curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j]);
+      curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j]);
       dataPointsPosArray.push(curPointPos);
     }
     return dataPointsPosArray;
@@ -22383,7 +22928,12 @@ class Radial extends Pie {
         prevEndAngle = prevEndAngle - 0.01;
       }
       const angle = endAngle - startAngle;
-      const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
+      const dashArray = resolveClaimed(
+        w,
+        "stroke.dashArray",
+        i,
+        Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray
+      );
       const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
       const morphFromType = morphActive ? this.ctx.morphTypeChange.getFromType() : null;
       const morphFromFilled = !!morphFrom && (morphFromType === "bar" || morphFromType === "funnel" || morphFromType === "pyramid" || morphFromType === "pie" || morphFromType === "donut" || morphFromType === "polarArea");
@@ -22939,10 +23489,10 @@ class RangeBar extends Bar {
       const elGoalsMarkers = graphics.group({
         class: "apexcharts-rangebar-goals-markers"
       });
-      for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex);
-        const y1 = this.seriesRangeStart[i][j2];
-        const y2 = this.seriesRangeEnd[i][j2];
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
+        const y1 = this.seriesRangeStart[i][j];
+        const y2 = this.seriesRangeEnd[i][j];
         let paths = (
           /** @type {any} */
           null
@@ -22955,7 +23505,7 @@ class RangeBar extends Bar {
           seriesLen = 1;
         }
         if (typeof /** @type {Record<string,any>} */
-        ((_e = w.config.series[i].data) == null ? void 0 : _e[j2]) === "undefined") {
+        ((_e = w.config.series[i].data) == null ? void 0 : _e[j]) === "undefined") {
           break;
         }
         if (this.isHorizontal) {
@@ -22964,11 +23514,11 @@ class RangeBar extends Bar {
           const srty = (yDivision - barHeight * seriesLen) / 2;
           if (
             /** @type {Record<string,any>} */
-            (_g = (_f = w.config.series[i].data) == null ? void 0 : _f[j2]) == null ? void 0 : _g.x
+            (_g = (_f = w.config.series[i].data) == null ? void 0 : _f[j]) == null ? void 0 : _g.x
           ) {
             const positions = this.detectOverlappingBars({
               i,
-              j: j2,
+              j,
               barYPosition,
               srty,
               barHeight,
@@ -22979,7 +23529,7 @@ class RangeBar extends Bar {
             barYPosition = positions.barYPosition;
           }
           paths = this.drawRangeBarPaths(__spreadValues({
-            indexes: { i, j: j2, realIndex },
+            indexes: { i, j, realIndex },
             barHeight,
             barYPosition,
             zeroW,
@@ -22990,18 +23540,18 @@ class RangeBar extends Bar {
           barWidth = paths.barWidth;
         } else {
           if (w.axisFlags.isXNumeric) {
-            x = (w.seriesData.seriesX[i][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+            x = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
           }
           barXPosition = x + barWidth * /** @type {any} */
           this.visibleI;
           const srtx = (xDivision - barWidth * seriesLen) / 2;
           if (
             /** @type {Record<string,any>} */
-            (_i = (_h = w.config.series[i].data) == null ? void 0 : _h[j2]) == null ? void 0 : _i.x
+            (_i = (_h = w.config.series[i].data) == null ? void 0 : _h[j]) == null ? void 0 : _i.x
           ) {
             const positions = this.detectOverlappingBars({
               i,
-              j: j2,
+              j,
               barXPosition,
               srtx,
               barWidth,
@@ -23012,7 +23562,7 @@ class RangeBar extends Bar {
             barXPosition = positions.barXPosition;
           }
           paths = this.drawRangeColumnPaths(__spreadValues({
-            indexes: { i, j: j2, realIndex, translationsIndex },
+            indexes: { i, j, realIndex, translationsIndex },
             barWidth,
             barXPosition,
             zeroH,
@@ -23036,14 +23586,14 @@ class RangeBar extends Bar {
         const pathFill = this.barHelpers.getPathFillColor(
           series,
           i,
-          j2,
+          j,
           realIndex
         );
         this.renderSeries({
           realIndex,
           pathFill: pathFill.color,
           lineFill: pathFill.useRangeColor ? pathFill.color : w.globals.stroke.colors[realIndex],
-          j: j2,
+          j,
           i,
           x,
           y,
@@ -23072,7 +23622,7 @@ class RangeBar extends Bar {
   /** @param {{ i?: any, j?: any, barYPosition?: any, barXPosition?: any, srty?: any, srtx?: any, barHeight?: any, barWidth?: any, yDivision?: any, xDivision?: any, initPositions?: any }} opts */
   detectOverlappingBars({
     i,
-    j: j2,
+    j,
     barYPosition,
     barXPosition,
     srty,
@@ -23086,13 +23636,13 @@ class RangeBar extends Bar {
     var _a, _b, _c, _d;
     const w = this.w;
     let overlaps = [];
-    const rangeName = (_b = (_a = w.globals.seriesRangeName) == null ? void 0 : _a[i]) == null ? void 0 : _b[j2];
+    const rangeName = (_b = (_a = w.globals.seriesRangeName) == null ? void 0 : _a[i]) == null ? void 0 : _b[j];
     const x = (
       /** @type {Record<string,any>} */
-      (_d = (_c = w.config.series[i].data) == null ? void 0 : _c[j2]) == null ? void 0 : _d.x
+      (_d = (_c = w.config.series[i].data) == null ? void 0 : _c[j]) == null ? void 0 : _d.x
     );
     const labelX = Array.isArray(x) ? x.join(" ") : x;
-    const rowIndex = w.labelData.labels.map((_) => Array.isArray(_) ? _.join(" ") : _).indexOf(labelX);
+    const rowIndex = w.labelData.labels.map((_2) => Array.isArray(_2) ? _2.join(" ") : _2).indexOf(labelX);
     const overlappedIndex = w.rangeData.seriesRange[i].findIndex(
       (tx) => {
         var _a2;
@@ -23152,14 +23702,14 @@ class RangeBar extends Bar {
   }) {
     var _a, _b;
     const w = this.w;
-    const { i, j: j2, realIndex, translationsIndex } = indexes;
+    const { i, j, realIndex, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex];
-    const range = this.getRangeValue(realIndex, j2);
+    const range = this.getRangeValue(realIndex, j);
     let y1 = Math.min(range.start, range.end);
     let y2 = Math.max(range.start, range.end);
     const hasValue = !(typeof /** @type {any} */
-    ((_a = this.series[i]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i]) == null ? void 0 : _b[j2]) === null);
+    ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
+    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null);
     if (!hasValue) {
       y1 = zeroH;
     } else {
@@ -23176,13 +23726,13 @@ class RangeBar extends Bar {
       series: this.seriesRangeEnd,
       realIndex,
       i: realIndex,
-      j: j2,
+      j,
       w
     });
     if (hasValue) {
       const box = paths.drawnBox;
       const endIsUpper = range.end >= range.start;
-      this.recordColumnGeometry(realIndex, j2, {
+      this.recordColumnGeometry(realIndex, j, {
         slotStart: box.x1,
         slotEnd: box.x2,
         // `drawnBox.y1` is the lower VALUE's edge, so which of the two is the
@@ -23197,7 +23747,7 @@ class RangeBar extends Bar {
     } else {
       const xForNumericXAxis = this.getBarXForNumericXAxis({
         x,
-        j: j2,
+        j,
         realIndex,
         barWidth
       });
@@ -23216,7 +23766,7 @@ class RangeBar extends Bar {
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition
@@ -23247,10 +23797,10 @@ class RangeBar extends Bar {
     zeroW
   }) {
     const w = this.w;
-    const { realIndex, j: j2 } = indexes;
+    const { realIndex, j } = indexes;
     const x1 = this.preventBarOverflow(zeroW + y1 / this.invertedYRatio);
     const x2 = this.preventBarOverflow(zeroW + y2 / this.invertedYRatio);
-    const range = this.getRangeValue(realIndex, j2);
+    const range = this.getRangeValue(realIndex, j);
     const barWidth = Math.abs(x2 - x1);
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
@@ -23261,12 +23811,12 @@ class RangeBar extends Bar {
       series: this.seriesRangeEnd,
       i: realIndex,
       realIndex,
-      j: j2,
+      j,
       w
     });
     if (range.start != null && range.end != null) {
       const box = paths.drawnBox;
-      this.recordColumnGeometry(realIndex, j2, {
+      this.recordColumnGeometry(realIndex, j, {
         slotStart: box.y1,
         slotEnd: box.y2,
         levelStart: box.x1,
@@ -23288,7 +23838,7 @@ class RangeBar extends Bar {
         /** @type {any} */
         null,
         realIndex,
-        j2,
+        j,
         0
       ),
       y
@@ -23312,22 +23862,22 @@ class RangeBar extends Bar {
    * @param {number} j
    * @param {{slotStart: number, slotEnd: number, levelStart: number, levelEnd: number, horizontal: boolean}} rec
    */
-  recordColumnGeometry(realIndex, j2, rec) {
+  recordColumnGeometry(realIndex, j, rec) {
     const sink = this.w.waterfallData && this.w.waterfallData.geometry;
     if (!sink) return;
     if (!isFinite(rec.slotStart) || !isFinite(rec.levelEnd)) return;
     if (!sink[realIndex]) sink[realIndex] = [];
-    sink[realIndex][j2] = rec;
+    sink[realIndex][j] = rec;
   }
   /**
    * @param {number} i
    * @param {number} j
    */
-  getRangeValue(i, j2) {
+  getRangeValue(i, j) {
     const w = this.w;
     return {
-      start: w.rangeData.seriesRangeStart[i][j2],
-      end: w.rangeData.seriesRangeEnd[i][j2]
+      start: w.rangeData.seriesRangeStart[i][j],
+      end: w.rangeData.seriesRangeEnd[i][j]
     };
   }
 }
@@ -23429,8 +23979,8 @@ function generate(data, width, height) {
   for (let i = 0; i < n; i++) {
     let s = 0;
     const series = data[i];
-    for (let j2 = 0; j2 < series.length; j2++) {
-      s += series[j2];
+    for (let j = 0; j < series.length; j++) {
+      s += series[j];
     }
     sums[i] = s;
   }
@@ -23550,7 +24100,7 @@ function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}
   if (opts.keepDatum) node._datum = d;
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
-      (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts)
+      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
     );
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
@@ -23561,7 +24111,7 @@ function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}
         nextSeen.add(d.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts)
+          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
         );
       }
     }
@@ -23597,7 +24147,7 @@ function buildSeriesRoots(w, series, opts = {}) {
       _key: key,
       _seriesIndex: i,
       children: data.map(
-        (d, j2) => toNode(w, d, j2, null, key, null, opts)
+        (d, j) => toNode(w, d, j, null, key, null, opts)
       )
     };
     return root;
@@ -23791,7 +24341,7 @@ class TreemapChart {
       node.forEach((leaf, k) => {
         const r = leaf.rect;
         if (!r) return;
-        const j2 = leaf._di;
+        const j = leaf._di;
         const x1 = r[0];
         const y1 = r[1];
         const x2 = r[2];
@@ -23800,12 +24350,12 @@ class TreemapChart {
         bounds.yMin = Math.min(bounds.yMin, y1);
         bounds.xMax = Math.max(bounds.xMax, x2);
         bounds.yMax = Math.max(bounds.yMax, y2);
-        const colorProps = this._leafColor(i, j2);
+        const colorProps = this._leafColor(i, j);
         const color = colorProps.color;
         const pathFill = fill.fillPath({
           color,
           seriesNumber: i,
-          dataPointIndex: j2
+          dataPointIndex: j
         });
         const morphFrom = morphActive ? this._morphSourceForLeaf(leaf) : null;
         const elRect = morphFrom ? graphics.drawPath({
@@ -23830,7 +24380,7 @@ class TreemapChart {
           cy: y1,
           index: i,
           i,
-          j: j2,
+          j,
           width: x2 - x1,
           height: y2 - y1,
           fill: pathFill
@@ -23856,7 +24406,7 @@ class TreemapChart {
             this._tilePath(x1, y1, x2, y2),
             this.ctx.morphTypeChange.getSpeed(),
             i,
-            j2
+            j
           );
         } else if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           let speed = 1;
@@ -23878,10 +24428,10 @@ class TreemapChart {
           if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
             speed = this.dynamicAnim.speed;
             if (w.globals.previousPaths[i] && /** @type {Record<string,any>} */
-            w.globals.previousPaths[i][j2] && /** @type {Record<string,any>} */
-            w.globals.previousPaths[i][j2].rect) {
+            w.globals.previousPaths[i][j] && /** @type {Record<string,any>} */
+            w.globals.previousPaths[i][j].rect) {
               fromRect = /** @type {Record<string,any>} */
-              w.globals.previousPaths[i][j2].rect;
+              w.globals.previousPaths[i][j].rect;
             }
             this.animateTreemap(elRect, fromRect, toRect, speed);
           }
@@ -23892,10 +24442,10 @@ class TreemapChart {
         }
         let dataLabels = null;
         if (w.config.dataLabels.enabled && this._labelCanShow(fontSize, x2 - x1, y2 - y1)) {
-          let formattedText = w.config.dataLabels.formatter(this.labels[i][j2], {
-            value: w.seriesData.series[i][j2],
+          let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
+            value: w.seriesData.series[i][j],
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           if (w.config.plotOptions.treemap.dataLabels.format === "truncate") {
@@ -23908,13 +24458,13 @@ class TreemapChart {
               y2
             );
           }
-          if (w.seriesData.series[i][j2]) {
+          if (w.seriesData.series[i][j]) {
             dataLabels = this.helpers.calculateDataLabels({
               text: formattedText,
               x: (x1 + x2) / 2,
               y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
               i,
-              j: j2,
+              j,
               colorProps,
               fontSize,
               series
@@ -24116,10 +24666,10 @@ class TreemapChart {
    * @param {number} j
    * @returns {any}
    */
-  _leafColor(i, j2) {
+  _leafColor(i, j) {
     const w = this.w;
     if (this.scale) {
-      const cv = colorValueOf(w, i, j2);
+      const cv = colorValueOf(w, i, j);
       if (cv != null) {
         const color = this.scale.at(cv);
         return {
@@ -24136,7 +24686,7 @@ class TreemapChart {
     return this.helpers.getShadeColor(
       w.config.chart.type,
       i,
-      j2,
+      j,
       this.negRange
     );
   }
@@ -24427,8 +24977,8 @@ class TreemapChart {
    */
   _zoomEnabled() {
     const w = this.w;
-    const z = w.config.plotOptions.treemap.zoom;
-    if (!z || !z.enabled || !this.showParents) return false;
+    const z2 = w.config.plotOptions.treemap.zoom;
+    if (!z2 || !z2.enabled || !this.showParents) return false;
     const dd = w.config.drilldown;
     if (dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
       if (!this._warnedZoomConflict) {
@@ -24520,8 +25070,8 @@ class TreemapChart {
   }
   /** The breadcrumb config: a treemap-local override on the shared block. */
   _breadcrumbCfg() {
-    const z = this.w.config.plotOptions.treemap.zoom;
-    return breadcrumbConfig(this.w, z && z.breadcrumb);
+    const z2 = this.w.config.plotOptions.treemap.zoom;
+    return breadcrumbConfig(this.w, z2 && z2.breadcrumb);
   }
   /**
    * Breadcrumb back out of a zoom. Markup, config and accessible semantics are
@@ -24720,7 +25270,7 @@ class TreemapChart {
     if (typeof fmt === "function") {
       try {
         return String(fmt(v, { seriesIndex: 0, dataPointIndex: 0, w }));
-      } catch (_) {
+      } catch (_2) {
       }
     }
     return String(v);
@@ -24924,9 +25474,9 @@ class TreemapChart {
    * @param {number} i
    * @param {number} j
    */
-  _morphTile(el, fromD, toD, speed, i, j2) {
+  _morphTile(el, fromD, toD, speed, i, j) {
     const animations = new Animations(this.w, this.ctx);
-    animations.morphSVG(el, i, j2, "none", fromD, toD, speed, 0);
+    animations.morphSVG(el, i, j, "none", fromD, toD, speed, 0);
   }
   /**
    * @param {any} el
@@ -24949,32 +25499,32 @@ class TreemapChart {
     );
   }
 }
-const L = 0.05, T = 0.05, j = 1 / 45;
-function E(e, t, s, i) {
+const D = 0.05, K = 0.05, O = 1 / 45;
+function $(e, t, s, i) {
   const n = { value: e, velocity: 0, target: e, stiffness: t, damping: s };
   return n;
 }
-function R(e, t) {
-  if (t <= 0) return O(e);
+function q(e, t) {
+  if (t <= 0) return W(e);
   let s = t;
   for (; s > 0; ) {
-    const t2 = Math.min(s, j), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
+    const t2 = Math.min(s, O), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
     e.velocity += i * t2, e.value += e.velocity * t2, s -= t2;
   }
-  return !!O(e) && (e.value = e.target, e.velocity = 0, true);
+  return !!W(e) && (e.value = e.target, e.velocity = 0, true);
 }
-function D(e, t) {
+function _(e, t) {
   e.target = t;
 }
-function O(e) {
+function W(e) {
   var _a, _b;
-  const t = (_a = e.restVelocity) != null ? _a : L, s = (_b = e.restDisplacement) != null ? _b : T;
+  const t = (_a = e.restVelocity) != null ? _a : D, s = (_b = e.restDisplacement) != null ? _b : K;
   return Math.abs(e.velocity) < t && Math.abs(e.value - e.target) < s;
 }
-const $ = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-function q(e) {
+const V = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
+function z(e) {
   var _a;
-  return (_a = $[e != null ? e : "crisp"]) != null ? _a : $.crisp;
+  return (_a = V[e != null ? e : "crisp"]) != null ? _a : V.crisp;
 }
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
 if (!/** @type {any} */
@@ -25052,7 +25602,7 @@ const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
 function springParams(preset, speed) {
-  const [stiffness, damping] = q(
+  const [stiffness, damping] = z(
     /** @type {import('apex-commons').SpringPreset|undefined} */
     preset
   );
@@ -25127,12 +25677,12 @@ class Unit {
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
       cluster.dots.forEach((d, jj) => {
-        const j2 = d.j != null ? d.j : jj;
-        const datum = catData ? catData[j2] : void 0;
+        const j = d.j != null ? d.j : jj;
+        const datum = catData ? catData[j] : void 0;
         const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
         const rj = d.r != null ? d.r : sizeStats ? this._radiusForValue(this._unitValueOf(datum), sizeStats) : dotR;
         const spec = this._markSpecFor(opts, datum, cluster.i, rj);
-        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j2, spec);
+        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec);
         elSeries.add(el);
         let key;
         if (identity) {
@@ -25143,7 +25693,7 @@ class Unit {
         } else if (d.slot != null) {
           key = `slot:${d.slot}`;
         } else {
-          key = `${cluster.i}:${j2}`;
+          key = `${cluster.i}:${j}`;
         }
         gIndex++;
         nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, spec });
@@ -25153,7 +25703,7 @@ class Unit {
           el.node.setAttribute("data-piece-hidden", "1");
         } else if (animate) {
           const from = prev && prev.get(key);
-          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j2, burstCount) : burst);
+          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j, burstCount) : burst);
           const enter = opts.gather && opts.gather.enter || "burst";
           const inPlace = gridSplit || enter === "fade" || enter === "rise";
           const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
@@ -25296,7 +25846,7 @@ class Unit {
         r: typeof p.r === "number" && p.r > 0 ? p.r : void 0
       });
     });
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx: gw / 2,
       cy: gh / 2,
@@ -25352,14 +25902,14 @@ class Unit {
     counts.forEach((n, i) => {
       var _a;
       const catData = unitData[i];
-      for (let j2 = 0; j2 < n; j2++) {
-        const datum = catData ? catData[j2] : void 0;
-        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j2}`;
+      for (let j = 0; j < n; j++) {
+        const datum = catData ? catData[j] : void 0;
+        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j}`;
         objects.push({
           id,
           index,
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           label: names[i],
           // Normalised at the boundary: internally "no value" is null, but the
           // public object shape uses an absent property.
@@ -25403,7 +25953,7 @@ class Unit {
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
     const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6;
-    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+    const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i, s) => slotOf[i] = s);
@@ -25418,7 +25968,7 @@ class Unit {
     const cy = labelSpace + availH / 2;
     const outerRs = counts.map((n) => step * Math.sqrt(Math.max(1, n)) + dotR);
     const cellCentre = (i) => slotOf[i] >= 0 ? cellW * (slotOf[i] + 0.5) : gw / 2;
-    let centers = counts.map((_, i) => cellCentre(i));
+    let centers = counts.map((_2, i) => cellCentre(i));
     const visOuter = visible.map((i) => outerRs[i]);
     let overlap = false;
     for (let s = 1; s < Kv; s++) {
@@ -25443,10 +25993,10 @@ class Unit {
       } else {
         const lo = visOuter[0];
         const hi = gw - visOuter[Kv - 1];
-        visCenters = visOuter.map((_, s) => lo + (hi - lo) * s / (Kv - 1));
+        visCenters = visOuter.map((_2, s) => lo + (hi - lo) * s / (Kv - 1));
       }
       centers = counts.map(
-        (_, i) => slotOf[i] >= 0 ? visCenters[slotOf[i]] : gw / 2
+        (_2, i) => slotOf[i] >= 0 ? visCenters[slotOf[i]] : gw / 2
       );
     }
     return counts.map((n, i) => ({
@@ -25478,11 +26028,11 @@ class Unit {
     this._lastDotR = this._dotRadiusFromStep(step, opts);
     const cx = gw / 2;
     const cy = labelSpace + (gh - labelSpace) / 2;
-    const order = counts.map((_, i) => i);
+    const order = counts.map((_2, i) => i);
     if (opts.sortByGroup !== false) {
       order.sort((a, b) => counts[a] - counts[b]);
     }
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx,
       cy,
@@ -25492,7 +26042,7 @@ class Unit {
     }));
     let gi = 0;
     order.forEach((catI) => {
-      for (let j2 = 0; j2 < counts[catI]; j2++) {
+      for (let j = 0; j < counts[catI]; j++) {
         const r = step * Math.sqrt(gi + 0.5);
         const theta = gi * GOLDEN_ANGLE;
         clusters[catI].dots.push({
@@ -25554,7 +26104,7 @@ class Unit {
       }
     }
     seats.sort((s1, s2) => s1.a - s2.a);
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx,
       cy,
@@ -25615,11 +26165,11 @@ class Unit {
     const spacing = opts.spacing > 0 ? opts.spacing : 1.05;
     const absSpan = Math.abs(span) || Math.PI;
     const fixed = this._fixedRadius(opts);
-    const evalR = (R2) => {
-      R2 = Math.max(1, Math.round(R2));
+    const evalR = (R) => {
+      R = Math.max(1, Math.round(R));
       const radii = [];
-      for (let r = 0; r < R2; r++) {
-        radii.push(R2 === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R2 - 1)));
+      for (let r = 0; r < R; r++) {
+        radii.push(R === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R - 1)));
       }
       const weightSum = radii.reduce((a, x) => a + x, 0) || 1;
       const raw = radii.map((rho) => total * rho / weightSum);
@@ -25632,19 +26182,19 @@ class Unit {
         }
       });
       while (left > 0) {
-        seatsPerRow[R2 - 1]++;
+        seatsPerRow[R - 1]++;
         left--;
       }
-      const radialPitch = R2 === 1 ? r1 - r0 || r1 : (r1 - r0) / (R2 - 1);
+      const radialPitch = R === 1 ? r1 - r0 || r1 : (r1 - r0) / (R - 1);
       let minArcPitch = Infinity;
-      for (let r = 0; r < R2; r++) {
+      for (let r = 0; r < R; r++) {
         const n = seatsPerRow[r];
         if (n <= 0) continue;
         const arcPitch = radii[r] * absSpan / n;
         if (arcPitch < minArcPitch) minArcPitch = arcPitch;
       }
       const pitch = Math.min(radialPitch, minArcPitch);
-      return { R: R2, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
+      return { R, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
     };
     const arcRows = opts.arc && opts.arc.rows;
     let res;
@@ -25656,8 +26206,8 @@ class Unit {
     } else {
       const maxR = Math.max(1, Math.min(40, Math.ceil(Math.sqrt(total)) + 6));
       res = evalR(1);
-      for (let R2 = 2; R2 <= maxR; R2++) {
-        const cand = evalR(R2);
+      for (let R = 2; R <= maxR; R++) {
+        const cand = evalR(R);
         if (cand.dotR > res.dotR) res = cand;
       }
     }
@@ -25681,7 +26231,7 @@ class Unit {
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
     const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
     const topPad = labelsOn && !labelsBelow ? 30 : 6;
-    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+    const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i, s) => slotOf[i] = s);
@@ -25732,9 +26282,9 @@ class Unit {
       const barH = rows * pitch;
       const left = cx - cols * pitch / 2 + pitch / 2;
       const dots = [];
-      for (let j2 = 0; j2 < n; j2++) {
-        const rowIdx = Math.floor(j2 / cols);
-        const colIdx = j2 % cols;
+      for (let j = 0; j < n; j++) {
+        const rowIdx = Math.floor(j / cols);
+        const colIdx = j % cols;
         dots.push({
           x: left + colIdx * pitch,
           y: bottom - r - rowIdx * pitch
@@ -25796,7 +26346,7 @@ class Unit {
     const originX = (gw - blockW) / 2 + pitch / 2;
     const topY = labelSpace + (availH - blockH) / 2;
     const rowY = (rowIdx) => fillFrom === "bottom" ? topY + blockH - pitch / 2 - rowIdx * pitch : topY + pitch / 2 + rowIdx * pitch;
-    const clusters = counts.map((_, i) => ({
+    const clusters = counts.map((_2, i) => ({
       i,
       cx: gw / 2,
       cy: labelSpace + availH / 2,
@@ -25806,7 +26356,7 @@ class Unit {
     }));
     let k = 0;
     for (let ci = 0; ci < cells.length; ci++) {
-      for (let j2 = 0; j2 < cells[ci]; j2++) {
+      for (let j = 0; j < cells[ci]; j++) {
         const col = k % cols;
         const rowIdx = Math.floor(k / cols);
         clusters[ci].dots.push({
@@ -25842,14 +26392,14 @@ class Unit {
     const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
     const cellsPerTile = Math.max(1, Math.round(gcfg.total > 0 ? gcfg.total : 100));
     const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
-    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
-    const K = Math.max(1, visible.length);
+    const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
+    const K2 = Math.max(1, visible.length);
     const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts);
     const tileCols = Math.max(
       1,
-      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K)))
+      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K2)))
     );
-    const tileRows = Math.max(1, Math.ceil(K / tileCols));
+    const tileRows = Math.max(1, Math.ceil(K2 / tileCols));
     const labelsOn = !(opts.clusterLabels && opts.clusterLabels.show === false);
     const labelsBelow = labelsOn && opts.clusterLabels && opts.clusterLabels.position === "bottom";
     const topBand = labelsOn && !labelsBelow ? 22 : 4;
@@ -25969,7 +26519,7 @@ class Unit {
       (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
     );
     const isNum = (v) => v != null && isFinite(v);
-    const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum));
+    const visible = catVals.map((_2, i) => i).filter((i) => catVals[i].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
@@ -26026,9 +26576,9 @@ class Unit {
       const cy = laneCy(slot);
       lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` });
       const cat = unitData[ci] || [];
-      const pts = cat.map((d, j2) => {
+      const pts = cat.map((d, j) => {
         const v = valueOf(d);
-        const p = { j: j2, px: plotX(isNum(v) ? v : xMin), y: cy };
+        const p = { j, px: plotX(isNum(v) ? v : xMin), y: cy };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
         return p;
       });
@@ -26088,7 +26638,7 @@ class Unit {
       (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
     );
     const isNum = (v) => v != null && isFinite(v);
-    const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum));
+    const visible = catVals.map((_2, i) => i).filter((i) => catVals[i].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
@@ -26145,9 +26695,9 @@ class Unit {
       const cx = laneCx(slot);
       lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
       const cat = unitData[ci] || [];
-      const pts = cat.map((d, j2) => {
+      const pts = cat.map((d, j) => {
         const v = valueOf(d);
-        const p = { j: j2, py: plotY(isNum(v) ? v : vMin), x: cx };
+        const p = { j, py: plotY(isNum(v) ? v : vMin), x: cx };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
         return p;
       });
@@ -26205,7 +26755,7 @@ class Unit {
     const isNum = (v) => typeof v === "number" && isFinite(v);
     const xOf = (d) => d && typeof d === "object" ? d.x : null;
     const yOf = (d) => d && typeof d === "object" ? d.y != null ? d.y : d.value : null;
-    const visible = unitData.map((_, i) => i).filter(
+    const visible = unitData.map((_2, i) => i).filter(
       (i) => (unitData[i] || []).some((d) => isNum(xOf(d)) && isNum(yOf(d)))
     );
     let xmn = Infinity;
@@ -26343,10 +26893,10 @@ class Unit {
     let zmax = -Infinity;
     unitData.forEach(
       (cat) => (cat || []).forEach((d) => {
-        const z = d && typeof d === "object" ? d[field] : null;
-        if (typeof z === "number" && isFinite(z)) {
-          if (z < zmin) zmin = z;
-          if (z > zmax) zmax = z;
+        const z2 = d && typeof d === "object" ? d[field] : null;
+        if (typeof z2 === "number" && isFinite(z2)) {
+          if (z2 < zmin) zmin = z2;
+          if (z2 > zmax) zmax = z2;
         }
       })
     );
@@ -26363,9 +26913,9 @@ class Unit {
    */
   _scatterRadius(d, st, fallback) {
     if (!st) return fallback;
-    const z = d && typeof d === "object" ? d[st.field] : null;
-    if (typeof z !== "number" || !isFinite(z)) return st.rMin;
-    const t = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
+    const z2 = d && typeof d === "object" ? d[st.field] : null;
+    if (typeof z2 !== "number" || !isFinite(z2)) return st.rMin;
+    const t = st.zmax > st.zmin ? (z2 - st.zmin) / (st.zmax - st.zmin) : 1;
     const tc = Math.max(0, Math.min(1, t));
     const aMin = st.rMin * st.rMin;
     const aMax = st.rMax * st.rMax;
@@ -26999,7 +27549,7 @@ class Unit {
    *   chart-wide shape
    * @returns {any}
    */
-  _drawDot(graphics, opts, dotR, color, i, j2, spec) {
+  _drawDot(graphics, opts, dotR, color, i, j, spec) {
     const w = this.w;
     const strokeW = w.config.stroke.show ? w.config.stroke.width : 0;
     const strokeColor = Array.isArray(w.globals.stroke.colors) ? w.globals.stroke.colors[i] || "none" : "none";
@@ -27039,7 +27589,7 @@ class Unit {
     }
     el.node.classList.add("apexcharts-unit-area");
     el.node.setAttribute("i", String(i));
-    el.node.setAttribute("j", String(j2));
+    el.node.setAttribute("j", String(j));
     return el;
   }
   /**
@@ -27161,8 +27711,8 @@ class Unit {
     for (let k = 0; k < dots.length; k++) {
       const d = dots[k];
       const carried = live && !d.isEnter && d.key != null ? live.get(d.key) : null;
-      const sx = carried ? carried.x : E(d.cx0, stiffness, damping);
-      const sy = carried ? carried.y : E(d.cy0, stiffness, damping);
+      const sx = carried ? carried.x : $(d.cx0, stiffness, damping);
+      const sy = carried ? carried.y : $(d.cy0, stiffness, damping);
       if (carried) {
         sx.stiffness = stiffness;
         sy.stiffness = stiffness;
@@ -27246,12 +27796,12 @@ class Unit {
         let cx, cy;
         if (d.sx && d.sy) {
           if (elapsed >= 0 && !d.released) {
-            D(d.sx, d.x);
-            D(d.sy, d.y);
+            _(d.sx, d.x);
+            _(d.sy, d.y);
             d.released = true;
           }
-          const restX = R(d.sx, dt);
-          const restY = R(d.sy, dt);
+          const restX = q(d.sx, dt);
+          const restY = q(d.sy, dt);
           if (!d.released || !restX || !restY) done = false;
           cx = d.sx.value;
           cy = d.sy.value;
@@ -27583,14 +28133,14 @@ ${percent.toFixed(1)}%`;
     textEl.setAttribute("font-weight", String(cfg.fontWeight || 600));
     textEl.setAttribute("fill", cfg.color || color);
     const bottom = cfg.position === "bottom";
-    const R2 = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
+    const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
     const estWidth = str.length * fontSize * 0.55;
-    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R2 * 0.95;
+    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95;
     if (curved) {
       const yMid = cluster.cy;
-      const x1 = cluster.cx - R2;
-      const x2 = cluster.cx + R2;
-      const d = `M ${x1} ${yMid} A ${R2} ${R2} 0 0 1 ${x2} ${yMid}`;
+      const x1 = cluster.cx - R;
+      const x2 = cluster.cx + R;
+      const d = `M ${x1} ${yMid} A ${R} ${R} 0 0 1 ${x2} ${yMid}`;
       const arcId = `apexcharts-unit-label-${w.globals.chartID}-${cluster.i}`;
       const pathEl = BrowserAPIs.createElementNS(NS, "path");
       pathEl.setAttribute("id", arcId);

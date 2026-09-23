@@ -757,10 +757,13 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
     handlers.forEach((h) => h({}, chart, opts))
   }
 
-  it('is on the facade, and the host reports the version that added it', () => {
+  // At least the version that added it, not exactly: the host reports where it
+  // has got to, so pinning the number here turns every later addition to the
+  // facade into a failure of the pointer suite.
+  it('is on the facade, on a host new enough to have it', () => {
     const chart = lineChart([{ name: 'pointer-watcher' }])
     expect(sawPointer).toBe('function')
-    expect(chart.weave.active[0].api.version).toBe(4)
+    expect(chart.weave.active[0].api.version).toBeGreaterThanOrEqual(4)
     chart.destroy()
   })
 
@@ -775,6 +778,8 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
         category: 'Mar',
         seriesName: 'revenue',
         selected: undefined,
+        // No DOM event behind a fired one, so no key was held (v6).
+        modifiers: { shift: false, ctrl: false, alt: false, meta: false },
       },
     ])
     chart.destroy()
@@ -819,6 +824,7 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
     expect(Object.keys(seen[0]).sort()).toEqual([
       'category',
       'dataPointIndex',
+      'modifiers',
       'selected',
       'seriesIndex',
       'seriesName',
@@ -863,5 +869,75 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
     expect(host._pointerWired).not.toBeNull()
     chart.destroy()
     expect(host._pointerWired).toBeNull()
+  })
+})
+
+describe('Weave: reporting the caller\'s own stroke dashing', () => {
+  /*
+   * `stroke.dashArray` is indexed by series position and has no per-series
+   * escape hatch, so a plugin that wants its OWN derived series dashed has to
+   * write the whole array. Without knowing what was there it would flatten the
+   * caller's dashed lines and have nothing to restore them from, which is the
+   * same trap `dataLabels.enabledOnSeries` is reported against.
+   */
+  let seen
+  const reader = {
+    name: 'stroke-reader',
+    apiVersion: 2,
+    setup(api) {
+      seen = api.info.stroke
+    },
+  }
+
+  // A block body, not a concise one: registerPlugin returns the class for
+  // chaining, and a beforeAll that RETURNS something hands vitest a teardown
+  // to call, which then fails with "cannot be invoked without 'new'".
+  beforeAll(() => {
+    ApexCharts.registerPlugin(reader)
+  })
+  beforeEach(() => {
+    seen = undefined
+  })
+
+  const chartWith = (stroke) =>
+    createChartWithOptions({
+      chart: { type: 'line', width: 600, height: 400, toolbar: { show: false } },
+      legend: { show: false },
+      series: [
+        { name: 'a', data: [1, 2, 3] },
+        { name: 'b', data: [3, 2, 1] },
+      ],
+      ...(stroke ? { stroke } : {}),
+      plugins: [{ name: 'stroke-reader' }],
+    })
+
+  it('reports an array the caller set, per series', () => {
+    const chart = chartWith({ dashArray: [0, 6] })
+    expect(seen.dashArray).toEqual([0, 6])
+    chart.destroy()
+  })
+
+  it('reports a scalar as the scalar it is, since it covers every series', () => {
+    const chart = chartWith({ dashArray: 4 })
+    expect(seen.dashArray).toBe(4)
+    chart.destroy()
+  })
+
+  // There is no "unset" to report and none is needed: the option defaults to
+  // 0, and 0 already means no dashing, so a plugin that restores what it was
+  // told restores exactly what the caller had.
+  it('reports the 0 that means no dashing where the caller set none', () => {
+    const chart = chartWith(null)
+    expect(seen.dashArray).toBe(0)
+    chart.destroy()
+  })
+
+  // A copy, not the live array: a plugin must not be able to restyle the chart
+  // by mutating what it was told, and `info` is rebuilt per read.
+  it('hands over a copy the plugin cannot write back through', () => {
+    const chart = chartWith({ dashArray: [0, 6] })
+    seen.dashArray.push(99)
+    expect(chart.w.config.stroke.dashArray).toEqual([0, 6])
+    chart.destroy()
   })
 })

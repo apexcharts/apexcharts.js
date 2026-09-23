@@ -400,8 +400,9 @@ export default class ApexCharts {
   /**
    * @param {any[]} ser
    * @param {object} opts
+   * @param {boolean} [overwriteInitialSeries=true]
    */
-  create(ser, opts) {
+  create(ser, opts, overwriteInitialSeries = true) {
     const w = this.w
 
     // Core modules are preserved across updates (Destroy.clear skips them when
@@ -448,6 +449,12 @@ export default class ApexCharts {
     }
 
     let series = ser
+    // Which series the `hidden: true` flag collapses. getSeriesAfterCollapsing
+    // empties their data, and it runs BEFORE the parse below, so the baseline
+    // that parse captures describes them as empty -- see the repair that
+    // follows parseData().
+    /** @type {number[]} */
+    const hiddenAtInit = []
     /**
      * @param {Record<string, any>} s
      * @param {number} realIndex
@@ -457,6 +464,7 @@ export default class ApexCharts {
         series = this.legend.legendHelpers.getSeriesAfterCollapsing({
           realIndex,
         })
+        hiddenAtInit.push(realIndex)
       }
     })
 
@@ -483,12 +491,55 @@ export default class ApexCharts {
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
     // Phase 1: return value is captured; named writers are stubs (mutations already wrote to gl).
     // Phase 2: writers will route each slice to its dedicated w.* namespace.
-    const parsedState = this.data.parseData(series)
+    const parsedState = this.data.parseData(series, overwriteInitialSeries)
     this._writeParsedSeriesData(parsedState.seriesData)
     this._writeParsedRangeData(parsedState.rangeData)
     this._writeParsedCandleData(parsedState.candleData)
     this._writeParsedLabelData(parsedState.labelData)
     this._writeParsedAxisFlags(parsedState.axisFlags)
+
+    // `hidden: true` collapsed those series above, so what parseData just
+    // snapshotted as the baseline holds `data: []` for every one of them --
+    // and nothing refreshes it afterwards, because the legend's own updates
+    // pass `overwriteInitialSeries: false` so that an internal re-render keeps
+    // the baseline it was given (#5283). Put their data back for exactly those
+    // rows, which leaves the raw-stash baselines (histogram, dumbbell,
+    // streamgraph, waterfall, treemap, dataReducer) as parseData wrote them.
+    //
+    // The data comes from the collapse record rather than from `ser`, because
+    // the two agree only on the first pass. `hidden` stays on the config row,
+    // so this repair fires again on any re-entry that also asks to overwrite
+    // the baseline -- and on the one that does, appendData(), `ser[i].data` is
+    // the collapsed row concatenated with the new points, i.e. just the points
+    // that were appended. The record still holds the series. Reading it keeps
+    // the baseline whole there, and composes with #5310, which appends into
+    // that same record.
+    //
+    // Only ever a repair: a record with no data, or none at all, leaves the
+    // row as parseData wrote it, so this cannot turn a good baseline into an
+    // empty one. A non-axis collapse records one slice's VALUE instead of a
+    // series' rows, and the Array check leaves those alone.
+    //
+    // Leaving it costs two things. resetSeries() clones this baseline, so a
+    // series declared hidden comes back from a reset EMPTY and its data is
+    // gone for the life of the chart. And Tooltip's isInitialSeriesSameLen()
+    // skips collapsed rows but measures the rest, so the moment the viewer
+    // un-hides one from the legend its length of 0 is compared against its
+    // siblings', the check fails, and every shared tooltip on the chart
+    // silently drops to the single series nearest the cursor.
+    if (overwriteInitialSeries && hiddenAtInit.length) {
+      const baseline = /** @type {any[]} */ (gl._initialSeriesPeek || [])
+      const records = /** @type {any[]} */ (gl.collapsedSeries).concat(
+        gl.ancillaryCollapsedSeries,
+      )
+      gl.initialSeries = baseline.map((/** @type {any} */ s, i) => {
+        if (hiddenAtInit.indexOf(i) === -1 || !Utils.isObject(s)) return s
+        const rec = records.find((/** @type {any} */ c) => c.index === i)
+        return rec && Array.isArray(rec.data) && rec.data.length
+          ? { ...s, data: rec.data.slice() }
+          : s
+      })
+    }
 
     // Strata: choose the active series renderer now that mark count is known.
     this.rendererController?.resolve()
@@ -741,6 +792,15 @@ export default class ApexCharts {
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar?.createToolbar()
+        } else if (
+          !w.globals.allSeriesCollapsed &&
+          me.toolbar?.resetControlDue()
+        ) {
+          // The way out of a zoom on a chart whose page asked for no toolbar.
+          // Drag-to-zoom stays on when the toolbar is hidden, since it is a
+          // deliberate gesture rather than an incidental one, so without this
+          // the viewer lands in a window with nothing on screen that undoes it.
+          me.toolbar.createToolbar({ resetOnly: true })
         }
       }
 
@@ -1041,23 +1101,30 @@ export default class ApexCharts {
           Array.isArray(src.data) &&
           Array.isArray(derivedRaw[i].data)
         ) {
-          for (let j = 0; j < src.data.length; j++) {
-            derivedRaw[i].data.push(src.data[j])
-          }
+          derivedRaw[i].data = derivedRaw[i].data.concat(src.data)
         }
       }
-      return this.update()
+      return this.update(undefined, overwriteInitialSeries)
     }
 
     const newSeries = me.w.config.series.slice()
+    // chart.dataReducer: config.series is the downsampled window, but the stash
+    // is what every later parse re-reduces from, so the new points have to land
+    // in both. Below the reducer's threshold no reduction runs and config.series
+    // is the one that draws; above it the stash is.
+    const reducerRaw = me.w.globals.dataReducerRawSeries
 
     for (let i = 0; i < newSeries.length; i++) {
       if (newData[i] !== null && typeof newData[i] !== 'undefined') {
         // series entries are always ApexAxisChartSeries objects here
         const srcSerie = /** @type {any} */ (newData[i])
         const dstSerie = /** @type {any} */ (newSeries[i])
-        for (let j = 0; j < srcSerie.data.length; j++) {
-          dstSerie.data.push(srcSerie.data[j])
+        // Replace the array rather than push into it: the snapshots share this
+        // array, and growing it in place is the one internal mutation they
+        // cannot be shielded from.
+        dstSerie.data = dstSerie.data.concat(srcSerie.data)
+        if (reducerRaw && Array.isArray(reducerRaw[i]?.data)) {
+          reducerRaw[i].data = reducerRaw[i].data.concat(srcSerie.data)
         }
       }
     }
@@ -1068,12 +1135,8 @@ export default class ApexCharts {
     trimStreamingSeries(newSeries, me.w)
 
     me.w.config.series = newSeries
-    if (overwriteInitialSeries) {
-      // lazy snapshot: deep clone deferred to first read
-      me.w.globals.initialSeries = me.w.config.series
-    }
 
-    return this.update()
+    return this.update(undefined, overwriteInitialSeries)
   }
 
   /**
@@ -1097,8 +1160,11 @@ export default class ApexCharts {
 
   /**
    * @param {object} [options]
+   * @param {boolean} [overwriteInitialSeries=false] true only when the caller
+   *   redefined the series before triggering this re-render, so the parse it
+   *   runs is the one that captures the new baseline.
    */
-  update(options) {
+  update(options, overwriteInitialSeries = false) {
     return new Promise((resolve, reject) => {
       // The identical-options skip only pays off for small configs: comparing
       // and cloning megabytes of series data costs more per update than the
@@ -1125,7 +1191,15 @@ export default class ApexCharts {
 
       new Destroy(this.ctx).clear({ isUpdating: true })
 
-      const graphData = this.create(this.w.config.series, options ?? {})
+      // A re-render replays w.config.series, which carries whatever the last
+      // legend collapse or appendData did to it. An internal re-render must not
+      // move the baseline resetSeries() restores; only a caller that redefined
+      // the series asks this parse to capture it (#5283).
+      const graphData = this.create(
+        this.w.config.series,
+        options ?? {},
+        overwriteInitialSeries,
+      )
       if (!graphData) return resolve(this)
       this.mount(graphData)
         .then(() => {

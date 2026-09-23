@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.5.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -175,14 +175,14 @@ const l = class {
         const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
         return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
       }
-      const h = "Invalid license key. The license signature does not verify.", d = { data: i2.data, expired: false, message: h, signatureVerified: true, valid: false };
-      this.licenseKey === e2 ? this.publish(d) : this.notify(d), t(`[Apex] ${h}`);
+      const u = "Invalid license key. The license signature does not verify.", h = { data: i2.data, expired: false, message: u, signatureVerified: true, valid: false };
+      this.licenseKey === e2 ? this.publish(h) : this.notify(h), t(`[Apex] ${u}`);
     });
   }
 };
 l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
 let o = l;
-const A = class {
+const j = class {
   static applyStyles(e2) {
     Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
@@ -240,8 +240,8 @@ const A = class {
     })));
   }
 };
-A.WATERMARK_ATTR = "data-apexcharts-watermark", A.WATERMARK_TEXT = "APEXCHARTS", A.ATTR = "data-apexcharts-watermark", A.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, A.managed = /* @__PURE__ */ new Set(), A.subscribed = false;
-let M = A;
+j.WATERMARK_ATTR = "data-apexcharts-watermark", j.WATERMARK_TEXT = "APEXCHARTS", j.ATTR = "data-apexcharts-watermark", j.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, j.managed = /* @__PURE__ */ new Set(), j.subscribed = false;
+let C = j;
 const PRICING_URL = "https://apexcharts.com/pricing";
 let _perspectivesTokenDecoded = false;
 const enforced = /* @__PURE__ */ new Set();
@@ -295,15 +295,15 @@ function licensedForPremium(key) {
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = M.add(elWrap, { manage: false });
+  const node = C.add(elWrap, { manage: false });
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = M.node(elWrap);
+    const n2 = C.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    M.applyStyles(n2);
+    C.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -315,7 +315,7 @@ function addWatermark(ctx, elWrap) {
   reinstateWatermark(ctx, elWrap);
   if (typeof MutationObserver === "undefined" || ctx._wmWrapObserver) return;
   const wrapObs = new MutationObserver(() => {
-    if (!M.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!C.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -331,7 +331,7 @@ function teardownWatermark(ctx, elWrap) {
   }
   ctx._wmObservedNode = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) M.remove(wrap, { manage: false });
+  if (wrap) C.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.5.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1672,6 +1672,26 @@ class Pie {
   }
 }
 const Series = _core.__apex_Series;
+function indexOfSeries(w, series) {
+  if (typeof series === "number") return series;
+  const list = w.config && w.config.series || [];
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] && list[i].name === series) return i;
+  }
+  return -1;
+}
+function resolveClaimed(w, option, seriesIndex, fallback) {
+  if (!w || !w.weaveClaims) return fallback;
+  const list = w.weaveClaims.byOption.get(option);
+  if (!list || !list.length) return fallback;
+  let resolved = fallback;
+  for (const claim of list) {
+    for (const entry of claim.entries) {
+      if (indexOfSeries(w, entry.series) === seriesIndex) resolved = entry.value;
+    }
+  }
+  return resolved;
+}
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 class Radial extends Pie {
   /**
@@ -1971,7 +1991,12 @@ class Radial extends Pie {
         prevEndAngle = prevEndAngle - 0.01;
       }
       const angle = endAngle - startAngle;
-      const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
+      const dashArray = resolveClaimed(
+        w,
+        "stroke.dashArray",
+        i,
+        Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray
+      );
       const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
       const morphFromType = morphActive ? this.ctx.morphTypeChange.getFromType() : null;
       const morphFromFilled = !!morphFrom && (morphFromType === "bar" || morphFromType === "funnel" || morphFromType === "pyramid" || morphFromType === "pie" || morphFromType === "donut" || morphFromType === "polarArea");

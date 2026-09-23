@@ -572,6 +572,13 @@ export interface ChartGlobals
   // callbacks check this and bail so they can't touch a torn-down chart's DOM.
   isDestroyed: boolean
   shouldAnimate: boolean
+  // Pre-policy chart.animations values held while prefers-reduced-motion is
+  // forcing animations off, so Animations.applyAnimationPolicy can restore them
+  // if the OS preference is lifted. Null whenever the policy is not engaged.
+  reducedMotionLatch: {
+    enabled: boolean
+    dynamicEnabled: boolean | undefined
+  } | null
   previousPaths: any[]
   // polarArea's last-drawn sector angles: count-based, so a data-change
   // animation cannot reconstruct them from previousPaths (previous VALUES)
@@ -802,7 +809,7 @@ export interface ChartContext {
   eventList: string[]
 
   // Public methods on the ApexCharts instance
-  update(options?: any): Promise<any>
+  update(options?: any, overwriteInitialSeries?: boolean): Promise<any>
   getSyncedCharts(): any[]
   getGroupedCharts(): any[]
   fastUpdate(animate?: boolean, prevAxisScaleSig?: string): Promise<any>

@@ -79,6 +79,20 @@ describe('initialConfig with a hidden series', () => {
     expect(chart.w.globals.initialConfig.series[1].data).toEqual([10, 11, 12])
   })
 
+  it('keeps a collapsed series intact when updateSeries redefines the series', async () => {
+    const chart = chartWith(SERIES)
+    chart.hideSeries('B')
+
+    await chart.updateSeries([
+      { name: 'A', data: [7, 8, 9] },
+      { name: 'B', data: [10, 11, 12] },
+    ])
+
+    // Same rule as above on the other public path, which empties the collapsed
+    // rows before parsing them and so has to snapshot what it was handed.
+    expect(chart.w.globals.initialConfig.series[1].data).toEqual([10, 11, 12])
+  })
+
   it('captures initialConfig.series in the same shape as initialSeries', () => {
     const chart = chartWith(SERIES)
     const { globals, config } = chart.w

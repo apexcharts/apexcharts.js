@@ -1,6 +1,7 @@
 // @ts-check
 import { getPlugin } from './PluginRegistry'
 import { buildPluginAPI, makeLayerHandle, WEAVE_API_VERSION } from './PluginAPI'
+import { releaseOwner } from './Claims'
 
 export { WEAVE_API_VERSION }
 
@@ -52,6 +53,8 @@ export default class WeaveHost {
     this._reserveTimer = null
     /** @type {Map<string, Function[]>|null} plugin name -> pointer handlers */
     this._pointerSubs = null
+    /** @type {Map<string, any[]>|null} plugin name -> what it says it drew */
+    this._declared = null
     /** @type {Array<[string, Function]>|null} chart listeners to remove on teardown */
     this._pointerWired = null
 
@@ -185,6 +188,11 @@ export default class WeaveHost {
       record.failures = (record.failures || 0) + 1
       if (record.failures >= 3) {
         record.disabled = true
+        // Its claims go with it. A disabled plugin has stopped running, so a
+        // claim it left behind would go on answering for an option nobody is
+        // maintaining, which is the permanent-leak case claims exist to rule
+        // out (see weave/Claims).
+        releaseOwner(this.w, record.def.name)
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`,
         )
@@ -431,8 +439,11 @@ export default class WeaveHost {
     ]
     this._pointerWired = []
     for (const [type, name] of map) {
-      const handler = (/** @type {any} */ _e, /** @type {any} */ _ctx, /** @type {any} */ opts) => {
-        this._emitPointer(type, opts)
+      // The DOM event is carried through rather than dropped: it is the only
+      // place the modifier keys exist, and a gesture like shift-click to add to
+      // a selection cannot be expressed without them. See `_emitPointer`.
+      const handler = (/** @type {any} */ e, /** @type {any} */ _ctx, /** @type {any} */ opts) => {
+        this._emitPointer(type, opts, e)
       }
       this.ctx.addEventListener(name, handler)
       this._pointerWired.push([name, handler])
@@ -449,8 +460,9 @@ export default class WeaveHost {
    *
    * @param {'enter'|'leave'|'select'} type
    * @param {any} opts
+   * @param {any} [e] the DOM event, where the interaction came from one
    */
-  _emitPointer(type, opts) {
+  _emitPointer(type, opts, e) {
     if (!this._pointerSubs || !this._pointerSubs.size) return
     const seriesIndex = opts && typeof opts.seriesIndex === 'number' ? opts.seriesIndex : -1
     const dataPointIndex =
@@ -475,6 +487,14 @@ export default class WeaveHost {
       // set, and what a plugin wants to know is whether THIS point is now in
       // it, so a second click reads as a deselect rather than another select.
       selected: type === 'select' ? WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : undefined,
+      // The modifier keys held during the interaction (v6), for the gestures
+      // that need them: shift-click to add to a selection is the one page mode
+      // wants, and a plugin cannot invent it from anything else here.
+      //
+      // All false when the interaction came from somewhere with no DOM event
+      // (the keyboard, a programmatic selection), which is the honest answer:
+      // no key was held.
+      modifiers: WeaveHost._modifiers(e),
     }
     for (const [name, handlers] of this._pointerSubs) {
       for (const fn of handlers.slice()) {
@@ -524,6 +544,24 @@ export default class WeaveHost {
     const mine = all[seriesIndex]
     if (!Array.isArray(mine)) return false
     return mine.indexOf(dataPointIndex) > -1
+  }
+
+  /**
+   * Which modifier keys were held, read off the DOM event.
+   *
+   * Always the same four booleans, never undefined and never a partial object:
+   * a plugin writes `if (e.modifiers.shift)` without a guard, and a shape that
+   * sometimes lacks a key is how that becomes a crash inside a viewer's click.
+   *
+   * @param {any} e
+   */
+  static _modifiers(e) {
+    return Object.freeze({
+      shift: !!(e && e.shiftKey),
+      ctrl: !!(e && e.ctrlKey),
+      alt: !!(e && e.altKey),
+      meta: !!(e && e.metaKey),
+    })
   }
 
   /**
@@ -714,7 +752,20 @@ export default class WeaveHost {
       g.node.setAttribute('aria-hidden', 'true')
       this._layers.set(name, g)
     }
-    return makeLayerHandle(g, this.ctx.graphics)
+    return makeLayerHandle(g, this.ctx.graphics, () => this._undeclare(name))
+  }
+
+  /**
+   * Forget what one plugin declared it drew.
+   *
+   * Called when that plugin empties its layer, which is it saying it is drawing
+   * nothing. Scoped to the one plugin: another's declarations are none of its
+   * business, and its own next draw declares again.
+   *
+   * @param {string} name plugin
+   */
+  _undeclare(name) {
+    if (this._declared) this._declared.delete(name)
   }
 
   /**
@@ -730,6 +781,39 @@ export default class WeaveHost {
       Array.prototype.forEach.call(groups, (/** @type {any} */ n) => n.remove())
     }
     this._layers.clear()
+    // Declarations go with the drawing they describe. A plugin repaints its
+    // overlays from state on every draw, and it declares them the same way, so
+    // an inventory can never outlive what it is an inventory OF.
+    this._declared = null
+  }
+
+  /**
+   * Record one thing a plugin has drawn, for `api.drawn()`.
+   *
+   * Replaced by id rather than appended, so a plugin declaring the same overlay
+   * on every draw (which is the pattern this expects) produces one entry.
+   *
+   * @param {string} name plugin
+   * @param {{id: string, label?: string, visible?: boolean}} item
+   */
+  _declare(name, item) {
+    if (!item || typeof item.id !== 'string' || !item.id) {
+      console.warn(
+        `[apexcharts] plugin "${name}" declared something with no id; ignored.`,
+      )
+      return
+    }
+    if (!this._declared) this._declared = new Map()
+    const mine = this._declared.get(name) || []
+    const entry = {
+      id: item.id,
+      label: item.label ? String(item.label) : item.id,
+      visible: item.visible !== false,
+    }
+    const at = mine.findIndex((/** @type {any} */ d) => d.id === entry.id)
+    if (at > -1) mine[at] = entry
+    else mine.push(entry)
+    this._declared.set(name, mine)
   }
 
   // ─── Config-change reconciliation ───────────────────────────────────────
@@ -795,10 +879,12 @@ export default class WeaveHost {
       for (const record of this.active) {
         this._guard(record, 'destroy', () => record.def.destroy && record.def.destroy(record.api))
       }
+      for (const record of this.active) releaseOwner(this.w, record.def.name)
       this.active = []
       this._derived = null
       this._reserved = null
       this._pointerSubs = null
+      this._declared = null
       if (this._pointerWired) {
         for (const [name, handler] of this._pointerWired) {
           this.ctx.removeEventListener && this.ctx.removeEventListener(name, handler)

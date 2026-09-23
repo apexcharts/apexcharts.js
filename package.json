@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "7.3.0",
+  "version": "7.5.1",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -322,7 +322,7 @@
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "dependencies": {
-    "apex-commons": "^0.7.0"
+    "apex-commons": "^0.8.0"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

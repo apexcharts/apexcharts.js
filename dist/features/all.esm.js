@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.3.0
+ * ApexCharts v7.5.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -810,8 +810,7 @@ class Exports {
       }
     };
     const handleUnequalXValues = () => {
-      const categories = /* @__PURE__ */ new Set();
-      const data = {};
+      const byCategory = /* @__PURE__ */ new Map();
       series.forEach((s, sI) => {
         s == null ? void 0 : s.data.forEach((dataItem) => {
           let cat, value;
@@ -824,23 +823,22 @@ class Exports {
           } else {
             return;
           }
-          if (!/** @type {Record<string,any>} */
-          data[cat]) {
-            data[cat] = Array(
-              series.length
-            ).fill("");
+          const key = String(cat);
+          let row = byCategory.get(key);
+          if (!row) {
+            row = { cat, values: Array(series.length).fill("") };
+            byCategory.set(key, row);
           }
-          data[cat][sI] = getFormattedValue(value);
-          categories.add(cat);
+          row.values[sI] = getFormattedValue(value);
         });
       });
       if (columns.length) {
         rows.push(columns.join(columnDelimiter));
       }
-      Array.from(categories).sort().forEach((cat) => {
-        const values = (
-          /** @type {Record<string,any>} */
-          data[cat]
+      Array.from(byCategory.keys()).sort().forEach((key) => {
+        const { cat, values } = (
+          /** @type {{cat: any, values: string[]}} */
+          byCategory.get(key)
         );
         rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
       });
@@ -2600,10 +2598,49 @@ class Toolbar {
     this.elMenu = null;
     this.elMenuItems = [];
     this.t = null;
+    this._drawnForZoom = null;
   }
-  createToolbar() {
-    var _a, _b;
+  /**
+   * Whether this chart's built-in ways back out of a zoom are switched on.
+   *
+   * The gate `chart.zoom.resetControl` opens, and the one the Escape shortcut
+   * reads too, so a page that says it supplies its own reset gets neither.
+   * 'auto' means "supply one when nothing else on screen can": a toolbar
+   * showing its reset tool is a way back, and anything else is not.
+   *
+   * @returns {boolean}
+   */
+  resetControlAllowed() {
+    const c = this.w.config.chart;
+    if (!c.zoom || !c.zoom.enabled) return false;
+    const setting = c.zoom.resetControl === void 0 ? "auto" : c.zoom.resetControl;
+    if (setting !== "auto") return !!setting;
+    const onScreen = c.toolbar && c.toolbar.show && c.toolbar.tools && c.toolbar.tools.reset;
+    return !onScreen;
+  }
+  /**
+   * Whether a reset control has to be drawn for the state the chart is in now.
+   *
+   * Only while the chart is actually zoomed, which is the whole idea: the
+   * control appears at the moment the viewer changed the view, where they are
+   * already looking, and goes again when the range does. A page that never
+   * zooms never sees it, so `toolbar: { show: false }` still means an empty
+   * chart for everyone who does not zoom.
+   *
+   * @returns {boolean}
+   */
+  resetControlDue() {
+    return !!this.w.interact.zoomed && this.resetControlAllowed();
+  }
+  /**
+   * @param {{ resetOnly?: boolean }} [opts] `resetOnly` draws the on-demand
+   *   reset control and nothing else, for a chart whose page asked for no
+   *   toolbar at all. See {@link Toolbar#resetControlDue}.
+   */
+  createToolbar(opts = {}) {
+    var _a, _b, _c;
     const w = this.w;
+    const resetOnly = !!opts.resetOnly;
     const createDiv = () => {
       return BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
     };
@@ -2631,6 +2668,24 @@ class Toolbar {
     this.elMenu = createDiv();
     this.elCustomIcons = [];
     this.t = w.config.chart.toolbar.tools;
+    this._drawnForZoom = null;
+    if (resetOnly) {
+      this.t = {
+        zoom: false,
+        zoomin: false,
+        zoomout: false,
+        selection: false,
+        pan: false,
+        measure: false,
+        download: false,
+        customIcons: [],
+        reset: true
+      };
+      this._drawnForZoom = "wrap";
+    } else if (!this.t.reset && this.resetControlDue()) {
+      this.t = __spreadProps(__spreadValues({}, this.t), { reset: true });
+      this._drawnForZoom = "control";
+    }
     if (Array.isArray(this.t.customIcons)) {
       for (let i = 0; i < this.t.customIcons.length; i++) {
         this.elCustomIcons.push(createBtn());
@@ -2741,7 +2796,14 @@ class Toolbar {
       this.elMenuIcon.setAttribute("aria-haspopup", "true");
       this.elMenuIcon.setAttribute("aria-expanded", "false");
     }
-    this._createHamburgerMenu(elToolbarWrap);
+    if (!resetOnly) this._createHamburgerMenu(elToolbarWrap);
+    if (resetOnly) {
+      (_a = this.elZoomReset) == null ? void 0 : _a.addEventListener(
+        "click",
+        this.handleZoomReset.bind(this)
+      );
+      return;
+    }
     if (w.interact.zoomEnabled) {
       this.elZoom.classList.add(this.selectedClass);
     } else if (w.interact.panEnabled) {
@@ -2750,7 +2812,7 @@ class Toolbar {
       this.elSelection.classList.add(this.selectedClass);
     } else if (w.interact.measureEnabled && this.elMeasure) {
       this.elMeasure.classList.add(this.selectedClass);
-      (_b = (_a = this.ctx.measure) == null ? void 0 : _a.startMeasure) == null ? void 0 : _b.call(_a);
+      (_c = (_b = this.ctx.measure) == null ? void 0 : _b.startMeasure) == null ? void 0 : _c.call(_b);
     }
     this.addToolbarEventListeners();
   }
@@ -3156,9 +3218,28 @@ class Toolbar {
         break;
     }
   }
+  /**
+   * Take down whatever the zoom alone put on screen.
+   *
+   * By hand, and not left to the next render, because of the order in
+   * {@link Toolbar#handleZoomReset}: the re-render happens while
+   * `interact.zoomed` is still true, so the control is drawn once more and then
+   * the flag clears with no further pass to notice. Reversing that order would
+   * change what every listener downstream of the update sees, which is a much
+   * larger promise than this control is worth.
+   */
+  clearZoomAffordance() {
+    const drawn = this._drawnForZoom;
+    this._drawnForZoom = null;
+    if (!drawn || !this.elZoomReset) return;
+    const parent = this.elZoomReset.parentNode;
+    const gone = drawn === "wrap" ? parent : this.elZoomReset;
+    if (gone && gone.parentNode) gone.parentNode.removeChild(gone);
+  }
   handleZoomReset() {
     const charts = this.ctx.getSyncedCharts();
     charts.forEach((ch) => {
+      var _a;
       const w = ch.w;
       if (!w.interact.zoomed) return;
       w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min;
@@ -3184,6 +3265,7 @@ class Toolbar {
         w.config.chart.animations.dynamicAnimation.enabled
       );
       w.interact.zoomed = false;
+      (_a = ch.ctx.toolbar) == null ? void 0 : _a.clearZoomAffordance();
     });
   }
   destroy() {
@@ -3332,6 +3414,10 @@ class ZoomPanSelection extends Toolbar {
         passive: false
       });
     }
+    this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
+      capture: false,
+      passive: true
+    });
     if (this._momentumEnabled()) {
       ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
         (event) => {
@@ -3464,12 +3550,16 @@ class ZoomPanSelection extends Toolbar {
   /**
    * A wheel or pinch zoom is an incidental gesture: the viewer can land in a
    * zoomed window without meaning to (a page scroll over the chart, a two-finger
-   * swipe), so it is only offered when there is a way back out of it. The only
-   * built-in way back is the toolbar's reset button, hence 'auto' (the default
-   * for both allowMouseWheelZoom and pinch) resolves against that button being
-   * present. A page that builds its own reset control sets the option to true
-   * and gets the gesture with no toolbar. Drag-to-zoom is deliberate, so it is
-   * not gated this way.
+   * swipe), so it is only offered when there is a way back out of it. 'auto'
+   * (the default for both allowMouseWheelZoom and pinch) resolves against a
+   * reset button that is already on screen. A page that builds its own reset
+   * control sets the option to true and gets the gesture with no toolbar.
+   * Drag-to-zoom is deliberate, so it is not gated this way.
+   *
+   * `chart.zoom.resetControl` supplies a reset of its own once a chart IS
+   * zoomed, and deliberately does NOT open this gate. It arrives after the
+   * fact, and what an incidental wheel zoom takes from the viewer first is the
+   * page scroll it swallowed, which no button hands back.
    *
    * @param {boolean|'auto'} setting
    */
@@ -3483,6 +3573,58 @@ class ZoomPanSelection extends Toolbar {
   _wheelZoomEnabled() {
     const { zoom } = this.w.config.chart;
     return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom);
+  }
+  /**
+   * Put keyboard focus on the chart, where the chart is focusable at all.
+   *
+   * A drag is swallowed by the zoom handlers before the browser can move focus,
+   * so a viewer who has just zoomed by hand leaves nothing focused, and every
+   * key the chart offers is out of reach: Escape to reset (see
+   * {@link ZoomPanSelection#escapeResetEvent}) and the +, - and 0 the keyboard
+   * module already binds. Focusing what they just acted on puts those in reach.
+   *
+   * Pointer-driven focus, which keyboard navigation expects and does not read
+   * as a request to start navigating, and which the stylesheet draws no ring
+   * around (`svg:focus:not(:focus-visible)`).
+   *
+   * Only where the accessibility module has made the SVG focusable, which is
+   * the default: a page that turned keyboard support off is not handed a tab
+   * stop it never asked for, and still has the reset control as its way back.
+   */
+  _focusForKeyboard() {
+    var _a, _b;
+    const node = this.w.dom.Paper && this.w.dom.Paper.node;
+    if (!node || typeof node.focus !== "function") return;
+    if (node.getAttribute("tabindex") === null) return;
+    (_b = (_a = this.ctx.keyboardNavigation) == null ? void 0 : _a.notePointerFocus) == null ? void 0 : _b.call(_a);
+    try {
+      node.focus({ preventScroll: true });
+    } catch (e) {
+      node.focus();
+    }
+  }
+  /**
+   * Escape, on a zoomed chart, puts the range back.
+   *
+   * The quiet half of the same answer the on-demand reset control gives, and
+   * gated on it, so a page that says it supplies its own way back gets neither.
+   *
+   * It defers to keyboard navigation, whose Escape dismisses the tooltip and
+   * which offers `0` for this, so the key means one thing at a time. It does
+   * not stop the event either, so a page listening for Escape still hears it.
+   *
+   * Reachable because a completed drag-zoom puts focus on the chart; see
+   * {@link ZoomPanSelection#_focusForKeyboard}.
+   *
+   * @param {any} e
+   */
+  escapeResetEvent(e) {
+    if (e.key !== "Escape" && e.key !== "Esc") return;
+    if (!this.w.interact.zoomed) return;
+    const nav = this.ctx.keyboardNavigation;
+    if (nav && nav.active) return;
+    if (!this.resetControlAllowed()) return;
+    this.handleZoomReset();
   }
   /** Lazily-created, re-render-surviving wheel-gesture state. */
   _wheel() {
@@ -3966,11 +4108,16 @@ class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           options.yaxis = yaxis;
         }
-        me.ctx.updateHelpers._updateOptions(
+        const applied = me.ctx.updateHelpers._updateOptions(
           options,
           false,
           me.w.config.chart.animations.dynamicAnimation.enabled
         );
+        if (applied && typeof applied.then === "function") {
+          applied.then(() => me._focusForKeyboard());
+        } else {
+          me._focusForKeyboard();
+        }
         if (typeof w.config.chart.events.zoomed === "function") {
           toolbar.zoomCallback(xaxis, yaxis);
         }
@@ -5724,6 +5871,19 @@ class KeyboardNavigation {
   // pointer activity) from mouse-driven focus (pointer event within the
   // last 100 ms). Stays a no-op for keyboard users.
   _onPointerDown() {
+    this._lastPointerDownAt = Date.now();
+  }
+  /**
+   * Note that a pointer gesture is about to move focus into the chart.
+   *
+   * The 100 ms window above catches the browser's own click-to-focus, which
+   * lands immediately. A drag-zoom moves focus deliberately, and only once its
+   * re-render is done (ZoomPanSelection#_focusForKeyboard), which is far
+   * outside that window. Without this it reads as a viewer asking to navigate
+   * by keyboard, which activates nav and flashes a tooltip at the first visible
+   * point after every zoom.
+   */
+  notePointerFocus() {
     this._lastPointerDownAt = Date.now();
   }
   /**
@@ -9318,7 +9478,162 @@ function getRegistry() {
 function getPlugin(name) {
   return getRegistry()[name] || null;
 }
-const WEAVE_API_VERSION = 4;
+const CLAIMABLE = Object.freeze({
+  "stroke.dashArray": Object.freeze({ type: "number" }),
+  "dataLabels.enabledOnSeries": Object.freeze({ type: "boolean" })
+});
+function store(w) {
+  if (!w.weaveClaims) w.weaveClaims = { byOption: /* @__PURE__ */ new Map() };
+  return w.weaveClaims;
+}
+function claimsFor(w, option) {
+  const s = store(w);
+  if (!s.byOption.has(option)) s.byOption.set(option, []);
+  return s.byOption.get(option);
+}
+function normaliseEntries(option, entries) {
+  const spec = (
+    /** @type {Record<string, {type: string}>} */
+    CLAIMABLE[option]
+  );
+  const out = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (!entry || typeof entry.series !== "string" && typeof entry.series !== "number") {
+      console.warn(
+        `[apexcharts] claim on "${option}": each entry needs a series name or index.`
+      );
+      continue;
+    }
+    if (typeof entry.value !== spec.type) {
+      console.warn(
+        `[apexcharts] claim on "${option}": expected a ${spec.type} for series ${String(
+          entry.series
+        )}, got ${typeof entry.value}.`
+      );
+      continue;
+    }
+    out.push({ series: entry.series, value: entry.value });
+  }
+  return out;
+}
+function addClaim(w, owner, option, entries) {
+  if (!Object.prototype.hasOwnProperty.call(CLAIMABLE, option)) {
+    console.warn(
+      `[apexcharts] "${option}" is not a claimable option. Claimable: ${Object.keys(
+        CLAIMABLE
+      ).join(", ")}.`
+    );
+    return null;
+  }
+  const record = { owner, option, entries: normaliseEntries(option, entries) };
+  claimsFor(w, option).push(record);
+  return record;
+}
+function releaseClaim(w, record) {
+  if (!w.weaveClaims || !record) return;
+  const list = w.weaveClaims.byOption.get(record.option);
+  if (!list) return;
+  const at = list.indexOf(record);
+  if (at > -1) list.splice(at, 1);
+}
+function releaseOwner(w, owner) {
+  if (!w.weaveClaims) return;
+  for (const [option, list] of w.weaveClaims.byOption) {
+    const kept = list.filter((c) => c.owner !== owner);
+    if (kept.length !== list.length) w.weaveClaims.byOption.set(option, kept);
+  }
+}
+const ANNOTATION_TYPES = ["xaxis", "yaxis", "points", "texts", "images"];
+function seriesVisible(w, index) {
+  const gl = w.globals;
+  return (gl.collapsedSeriesIndices || []).indexOf(index) < 0 && (gl.ancillaryCollapsedSeriesIndices || []).indexOf(index) < 0;
+}
+function seriesItems(w, host) {
+  const derived = host && host._derived;
+  const ownerOf = (name) => {
+    if (!derived) return "core";
+    for (const [plugin, names] of derived) {
+      if (names.indexOf(name) > -1) return plugin;
+    }
+    return "core";
+  };
+  return (w.config.series || []).map((s, i) => {
+    const label = s && s.name ? String(s.name) : `Series ${i + 1}`;
+    return {
+      id: `series:${i}`,
+      kind: (
+        /** @type {const} */
+        "series"
+      ),
+      label,
+      owner: ownerOf(label),
+      visible: seriesVisible(w, i)
+    };
+  });
+}
+function annotationItems(w) {
+  const config = w.config.annotations || {};
+  const out = [];
+  for (const type of ANNOTATION_TYPES) {
+    const list = Array.isArray(config[type]) ? config[type] : [];
+    list.forEach((anno, i) => {
+      if (!anno) return;
+      out.push({
+        // An annotation carries an id only when someone gave it one, so the
+        // synthesised form is what most config-declared annotations get. It is
+        // stable for as long as the list is, which is what a reader needs.
+        id: anno.id ? String(anno.id) : `annotation:${type}:${i}`,
+        kind: (
+          /** @type {const} */
+          "annotation"
+        ),
+        label: labelOfAnnotation(anno, type, i),
+        owner: anno.owner ? String(anno.owner) : "core",
+        // An annotation is drawn whenever it is in the config: there is no
+        // hidden state for one, unlike a series.
+        visible: true
+      });
+    });
+  }
+  return out;
+}
+function labelOfAnnotation(anno, type, i) {
+  const text = anno.label && anno.label.text;
+  if (text) return String(text);
+  if (anno.text) return String(anno.text);
+  if (anno.id) return String(anno.id);
+  return `${type} annotation ${i + 1}`;
+}
+function collectDrawn(w, host) {
+  const declared = [];
+  if (host && host._declared) {
+    for (const [plugin, items] of host._declared) {
+      for (const item of items) {
+        declared.push({
+          id: `overlay:${plugin}:${item.id}`,
+          kind: (
+            /** @type {const} */
+            "overlay"
+          ),
+          label: item.label,
+          owner: plugin,
+          visible: item.visible !== false
+        });
+      }
+    }
+  }
+  return [...seriesItems(w, host), ...annotationItems(w), ...declared];
+}
+const WEAVE_API_VERSION = 6;
+const WEAVE_CAPABILITIES = Object.freeze([
+  "layer",
+  "derived",
+  "reserve",
+  "pointer",
+  "stroke-info",
+  "claim",
+  "drawn"
+]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
   "updateSeries",
@@ -9345,7 +9660,7 @@ function buildBoundPublicMethods(ctx) {
   });
   return Object.freeze(out);
 }
-function makeLayerHandle(g, graphics) {
+function makeLayerHandle(g, graphics, onClear) {
   const add = (el) => {
     if (el) g.add(el);
     return el;
@@ -9442,6 +9757,7 @@ function makeLayerHandle(g, graphics) {
     clear() {
       const node = g.node;
       while (node.firstChild) node.removeChild(node.firstChild);
+      if (onClear) onClear();
       return handle;
     }
   };
@@ -9549,7 +9865,30 @@ function buildPluginAPI(host, record) {
           enabledOnSeries: Array.isArray(
             w.config.dataLabels && w.config.dataLabels.enabledOnSeries
           ) ? w.config.dataLabels.enabledOnSeries.slice() : null
-        })
+        }),
+        // The caller's own dashing, reported for the same reason and against
+        // the same trap (v5). `stroke.dashArray` is indexed by series position
+        // with no per-series escape hatch, so a plugin that wants ITS OWN
+        // computed series dashed has to write the whole array, and writing one
+        // without knowing what was there discards the caller's dashed lines
+        // with nothing to restore them from.
+        //
+        // A scalar applies to every series and an array is per series. There is
+        // no "unset" to report: the option defaults to 0, and 0 already means
+        // no dashing, so restoring it restores exactly what was there.
+        stroke: Object.freeze({
+          dashArray: Array.isArray(w.config.stroke && w.config.stroke.dashArray) ? w.config.stroke.dashArray.slice() : w.config.stroke && w.config.stroke.dashArray || 0
+        }),
+        // What the chart calls itself, where the caller titled it (v6).
+        //
+        // For a plugin that has to NAME this chart to somebody: a page-level
+        // readout listing several charts otherwise has only the container's id
+        // to head each row with, which is a string written for a stylesheet.
+        // The title is the name the page already chose and put on screen.
+        //
+        // Empty string rather than undefined for an untitled chart, so a
+        // caller can use it directly in a template; falsy either way.
+        title: String(w.config.title && w.config.title.text || "")
       });
     },
     // Display labels per x position (v2).
@@ -9617,6 +9956,85 @@ function buildPluginAPI(host, record) {
       return api;
     },
     /**
+     * Set a positional option for your own series, without writing the
+     * caller's config.
+     *
+     * Some options are indexed by series position with no per-series escape
+     * hatch, so setting one for a single series has always meant writing the
+     * array that covers all of them, then putting the caller's value back. A
+     * claim says what this plugin wants instead, and the host answers with it
+     * where the option is READ. Nothing is written, so releasing is a deletion
+     * rather than a restore, and a caller's own `updateOptions` composes with
+     * the claim instead of being reverted by it.
+     *
+     *     const claim = api.claim('stroke.dashArray', [
+     *       { series: 'Revenue (forecast)', value: 6 },
+     *     ])
+     *     claim.release()
+     *
+     * Name the series rather than its position where you can: a name is
+     * resolved each time the option is read, so the claim follows the series
+     * through the caller adding, removing or reordering others.
+     *
+     * Claimable options are an allowlist (see `CLAIMABLE`). An option that is
+     * not on it returns null rather than throwing, so a plugin written against
+     * a newer host degrades. Every claim is released on teardown, on destroy,
+     * and if the host disables this plugin after repeated failures.
+     *
+     * @param {string} option
+     * @param {Array<{series: string|number, value: any}>} entries
+     * @returns {{release: () => void, update: (entries: Array<{series: string|number, value: any}>) => void}|null}
+     * @since Weave v6
+     */
+    claim(option, entries) {
+      const claim = addClaim(w, record.def.name, option, entries);
+      if (!claim) return null;
+      return Object.freeze({
+        release() {
+          releaseClaim(w, claim);
+        },
+        update(next) {
+          claim.entries = normaliseEntries(option, next);
+        }
+      });
+    },
+    /**
+     * Everything drawn on this chart, including what other features drew.
+     *
+     * The chart's series, the caller's annotations (ink strokes among them,
+     * since an ink stroke is an annotation), and whatever plugins have
+     * declared. Each entry names its `owner`, because the list is only as
+     * complete as the features that opted into it: a reader can say what it
+     * covers instead of assuming it is everything.
+     *
+     * Read only. Removing or hiding another feature's output is a much larger
+     * promise than this platform makes, and is deliberately not here.
+     *
+     * Rebuilt per call: it is a projection of live state, and a remembered
+     * inventory is a list of what WAS drawn.
+     *
+     * @returns {ReadonlyArray<{id: string, kind: 'series'|'annotation'|'overlay', label: string, owner: string, visible: boolean}>}
+     * @since Weave v6
+     */
+    drawn() {
+      return Object.freeze(collectDrawn(w, host).map((i) => Object.freeze(i)));
+    },
+    /**
+     * Say what this plugin has drawn, so it appears in `api.drawn()`.
+     *
+     * Declare from your draw handler, on the same terms as the drawing itself:
+     * declarations are cleared with the layers at the start of every draw, so
+     * an inventory cannot outlive what it describes. Declaring the same id
+     * twice replaces it rather than adding a second row.
+     *
+     * @param {{id: string, label?: string, visible?: boolean}} item
+     * @since Weave v6
+     */
+    declare(item) {
+      host._declare(record.def.name, item);
+      return api;
+    },
+    /**
      * Subscribe to the data point a viewer is pointing at.
      *
      * The chart already knows this: it resolves the series and point under the
@@ -9639,7 +10057,12 @@ function buildPluginAPI(host, record) {
      * and a handler that throws is contained rather than allowed to break the
      * interaction it was watching.
      *
-     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined}) => void} fn
+     * `modifiers` (v6) reports the keys held during the interaction, for the
+     * gestures that need them: shift-click to add to a selection is the one
+     * page-level coordination wants. All four are false when the interaction
+     * came from somewhere with no DOM event, such as the keyboard.
+     *
+     * @param {(e: {type: 'enter'|'leave'|'select', seriesIndex: number, dataPointIndex: number, category: string|undefined, seriesName: string|undefined, selected: boolean|undefined, modifiers: {shift: boolean, ctrl: boolean, alt: boolean, meta: boolean}}) => void} fn
      * @returns {() => void} unsubscribe
      * @since Weave v4
      */
@@ -9664,8 +10087,29 @@ function buildPluginAPI(host, record) {
       return w.dom.baseEl;
     }
   };
+  const probes = (
+    /** @type {Record<string, (a: any) => boolean>} */
+    WIRED
+  );
+  const granted = WEAVE_CAPABILITIES.filter((name) => probes[name](api));
+  const grantedSet = new Set(granted);
+  const extras = (
+    /** @type {any} */
+    api
+  );
+  extras.capabilities = Object.freeze(granted);
+  extras.can = (name) => grantedSet.has(name);
   return Object.freeze(api);
 }
+const WIRED = {
+  layer: (a) => typeof a.layer === "function",
+  derived: (a) => typeof a.markDerived === "function",
+  reserve: (a) => typeof a.reserve === "function",
+  pointer: (a) => typeof a.pointer === "function",
+  "stroke-info": (a) => !!(a.info && a.info.stroke),
+  claim: (a) => typeof a.claim === "function",
+  drawn: (a) => typeof a.drawn === "function" && typeof a.declare === "function"
+};
 const _WeaveHost = class _WeaveHost {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -9684,6 +10128,7 @@ const _WeaveHost = class _WeaveHost {
     this._reserved = null;
     this._reserveTimer = null;
     this._pointerSubs = null;
+    this._declared = null;
     this._pointerWired = null;
     this._onUpdated = this._onUpdated.bind(this);
     this._init();
@@ -9789,6 +10234,7 @@ const _WeaveHost = class _WeaveHost {
       record.failures = (record.failures || 0) + 1;
       if (record.failures >= 3) {
         record.disabled = true;
+        releaseOwner(this.w, record.def.name);
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`
         );
@@ -9968,8 +10414,8 @@ const _WeaveHost = class _WeaveHost {
     ];
     this._pointerWired = [];
     for (const [type, name] of map) {
-      const handler = (_e, _ctx, opts) => {
-        this._emitPointer(type, opts);
+      const handler = (e, _ctx, opts) => {
+        this._emitPointer(type, opts, e);
       };
       this.ctx.addEventListener(name, handler);
       this._pointerWired.push([name, handler]);
@@ -9985,8 +10431,9 @@ const _WeaveHost = class _WeaveHost {
    *
    * @param {'enter'|'leave'|'select'} type
    * @param {any} opts
+   * @param {any} [e] the DOM event, where the interaction came from one
    */
-  _emitPointer(type, opts) {
+  _emitPointer(type, opts, e) {
     if (!this._pointerSubs || !this._pointerSubs.size) return;
     const seriesIndex = opts && typeof opts.seriesIndex === "number" ? opts.seriesIndex : -1;
     const dataPointIndex = opts && typeof opts.dataPointIndex === "number" ? opts.dataPointIndex : -1;
@@ -10004,16 +10451,24 @@ const _WeaveHost = class _WeaveHost {
       // Only meaningful on a select: the chart hands back its whole selection
       // set, and what a plugin wants to know is whether THIS point is now in
       // it, so a second click reads as a deselect rather than another select.
-      selected: type === "select" ? _WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : void 0
+      selected: type === "select" ? _WeaveHost._isSelected(opts, seriesIndex, dataPointIndex) : void 0,
+      // The modifier keys held during the interaction (v6), for the gestures
+      // that need them: shift-click to add to a selection is the one page mode
+      // wants, and a plugin cannot invent it from anything else here.
+      //
+      // All false when the interaction came from somewhere with no DOM event
+      // (the keyboard, a programmatic selection), which is the honest answer:
+      // no key was held.
+      modifiers: _WeaveHost._modifiers(e)
     };
     for (const [name, handlers] of this._pointerSubs) {
       for (const fn of handlers.slice()) {
         try {
           fn(payload);
-        } catch (e) {
+        } catch (e2) {
           console.warn(
             '[apexcharts] plugin "' + name + '" threw in a pointer handler',
-            e
+            e2
           );
         }
       }
@@ -10052,6 +10507,23 @@ const _WeaveHost = class _WeaveHost {
     const mine = all[seriesIndex];
     if (!Array.isArray(mine)) return false;
     return mine.indexOf(dataPointIndex) > -1;
+  }
+  /**
+   * Which modifier keys were held, read off the DOM event.
+   *
+   * Always the same four booleans, never undefined and never a partial object:
+   * a plugin writes `if (e.modifiers.shift)` without a guard, and a shape that
+   * sometimes lacks a key is how that becomes a crash inside a viewer's click.
+   *
+   * @param {any} e
+   */
+  static _modifiers(e) {
+    return Object.freeze({
+      shift: !!(e && e.shiftKey),
+      ctrl: !!(e && e.ctrlKey),
+      alt: !!(e && e.altKey),
+      meta: !!(e && e.metaKey)
+    });
   }
   /**
    * Record a plugin's container reservation and re-render if it changed.
@@ -10212,7 +10684,19 @@ const _WeaveHost = class _WeaveHost {
       g.node.setAttribute("aria-hidden", "true");
       this._layers.set(name, g);
     }
-    return makeLayerHandle(g, this.ctx.graphics);
+    return makeLayerHandle(g, this.ctx.graphics, () => this._undeclare(name));
+  }
+  /**
+   * Forget what one plugin declared it drew.
+   *
+   * Called when that plugin empties its layer, which is it saying it is drawing
+   * nothing. Scoped to the one plugin: another's declarations are none of its
+   * business, and its own next draw declares again.
+   *
+   * @param {string} name plugin
+   */
+  _undeclare(name) {
+    if (this._declared) this._declared.delete(name);
   }
   /**
    * Remove all plugin layers. Run at the start of every `draw` because
@@ -10227,6 +10711,35 @@ const _WeaveHost = class _WeaveHost {
       Array.prototype.forEach.call(groups, (n) => n.remove());
     }
     this._layers.clear();
+    this._declared = null;
+  }
+  /**
+   * Record one thing a plugin has drawn, for `api.drawn()`.
+   *
+   * Replaced by id rather than appended, so a plugin declaring the same overlay
+   * on every draw (which is the pattern this expects) produces one entry.
+   *
+   * @param {string} name plugin
+   * @param {{id: string, label?: string, visible?: boolean}} item
+   */
+  _declare(name, item) {
+    if (!item || typeof item.id !== "string" || !item.id) {
+      console.warn(
+        `[apexcharts] plugin "${name}" declared something with no id; ignored.`
+      );
+      return;
+    }
+    if (!this._declared) this._declared = /* @__PURE__ */ new Map();
+    const mine = this._declared.get(name) || [];
+    const entry = {
+      id: item.id,
+      label: item.label ? String(item.label) : item.id,
+      visible: item.visible !== false
+    };
+    const at = mine.findIndex((d) => d.id === entry.id);
+    if (at > -1) mine[at] = entry;
+    else mine.push(entry);
+    this._declared.set(name, mine);
   }
   // ─── Config-change reconciliation ───────────────────────────────────────
   /**
@@ -10274,10 +10787,12 @@ const _WeaveHost = class _WeaveHost {
       for (const record of this.active) {
         this._guard(record, "destroy", () => record.def.destroy && record.def.destroy(record.api));
       }
+      for (const record of this.active) releaseOwner(this.w, record.def.name);
       this.active = [];
       this._derived = null;
       this._reserved = null;
       this._pointerSubs = null;
+      this._declared = null;
       if (this._pointerWired) {
         for (const [name, handler] of this._pointerWired) {
           this.ctx.removeEventListener && this.ctx.removeEventListener(name, handler);

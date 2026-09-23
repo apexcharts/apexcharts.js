@@ -551,42 +551,39 @@ export default class YAxis {
 
   setYAxisTextAlignments() {
     const w = this.w
-    const yaxis = Array.from(
-      w.dom.baseEl.getElementsByClassName('apexcharts-yaxis'),
-    )
 
-    yaxis.forEach((y, index) => {
-      const yaxe = w.config.yaxis[index]
+    // Iterate config, not the DOM collection: Axes.drawAxis skips
+    // ignoreYAxisIndexes entirely, so a collapsed axis makes the DOM
+    // shorter than config.yaxis and a later visible axis would be missed.
+    w.config.yaxis.forEach((yaxe, index) => {
       if (yaxe && !yaxe.floating && yaxe.labels.align !== undefined) {
         const yAxisInner = w.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`,
         )
+        // drawYaxis returns before adding .apexcharts-yaxis-texts-g when the
+        // axis is hidden, so there is nothing to align.
+        if (!yAxisInner) return
+
         const yAxisTexts = Array.from(
           w.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`,
           ),
         )
-        const rect = /** @type {Element} */ (yAxisInner).getBoundingClientRect()
+        const rect = yAxisInner.getBoundingClientRect()
 
         yAxisTexts.forEach((label) => {
           label.setAttribute('text-anchor', yaxe.labels.align)
         })
 
         if (yaxe.labels.align === 'left' && !yaxe.opposite) {
-          ;/** @type {Element} */ (yAxisInner).setAttribute(
-            'transform',
-            `translate(-${rect.width}, 0)`,
-          )
+          yAxisInner.setAttribute('transform', `translate(-${rect.width}, 0)`)
         } else if (yaxe.labels.align === 'center') {
-          ;/** @type {Element} */ (yAxisInner).setAttribute(
+          yAxisInner.setAttribute(
             'transform',
             `translate(${(rect.width / 2) * (!yaxe.opposite ? -1 : 1)}, 0)`,
           )
         } else if (yaxe.labels.align === 'right' && yaxe.opposite) {
-          ;/** @type {Element} */ (yAxisInner).setAttribute(
-            'transform',
-            `translate(${rect.width}, 0)`,
-          )
+          yAxisInner.setAttribute('transform', `translate(${rect.width}, 0)`)
         }
       }
     })

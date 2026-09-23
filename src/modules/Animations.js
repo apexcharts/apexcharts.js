@@ -140,6 +140,20 @@ export function applyProgressiveReveal(el, x, w) {
  * `chart.animations.respectReducedMotion` is true, disable both initial-mount
  * and data-change animations so the chart renders instantly.
  *
+ * The disable is a REVERSIBLE latch. `w.config` is the merged config that every
+ * update merges *onto* (`w.config = Utils.extend(w.config, options)` in
+ * UpdateHelpers._updateOptions), so writing `enabled = false` straight into it
+ * used to be permanent: a viewer who turned the OS preference back off
+ * mid-session kept a chart that never animated again, because nothing ever put
+ * the original value back. The pre-policy values are stashed in globals and
+ * restored the moment the query stops matching.
+ *
+ * Known corner: an explicit `animations.enabled: false` arriving via
+ * updateOptions() *while* the latch is engaged is indistinguishable from the
+ * false we wrote ourselves, so lifting the OS preference restores the older
+ * value instead. Reaching it takes an OS toggle mid-session, and the
+ * alternative is threading user intent through every config merge site.
+ *
  * Must be called once, after config finalization (Base.init) and before the
  * first render. Idempotent; safe to call again after a config update.
  *
@@ -148,9 +162,34 @@ export function applyProgressiveReveal(el, x, w) {
 export function applyAnimationPolicy(w) {
   const anim = w.config.chart.animations
   if (!anim) return
+  const dyn = anim.dynamicAnimation
+  const gl = w.globals
+
   if (anim.respectReducedMotion !== false && prefersReducedMotion()) {
+    if (!gl.reducedMotionLatch) {
+      gl.reducedMotionLatch = {
+        enabled: anim.enabled,
+        dynamicEnabled: dyn ? dyn.enabled : undefined,
+      }
+    } else {
+      // Latch already engaged, so anything that is no longer `false` was put
+      // there by the user since the last render — re-stash it, or lifting the
+      // OS preference would restore a value they have already replaced.
+      if (anim.enabled !== false) {
+        gl.reducedMotionLatch.enabled = anim.enabled
+      }
+      if (dyn && dyn.enabled !== false) {
+        gl.reducedMotionLatch.dynamicEnabled = dyn.enabled
+      }
+    }
     anim.enabled = false
-    if (anim.dynamicAnimation) anim.dynamicAnimation.enabled = false
+    if (dyn) dyn.enabled = false
+  } else if (gl.reducedMotionLatch) {
+    anim.enabled = gl.reducedMotionLatch.enabled
+    if (dyn && gl.reducedMotionLatch.dynamicEnabled !== undefined) {
+      dyn.enabled = gl.reducedMotionLatch.dynamicEnabled
+    }
+    gl.reducedMotionLatch = null
   }
   // Cadence (#6) P1: resolve chart.animations.easing (name | cubic-bezier array
   // | fn) and set it as the runner's default for the generic tweens. Defaults

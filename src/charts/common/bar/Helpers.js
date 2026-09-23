@@ -560,6 +560,14 @@ export default class Helpers {
    * second at the top, and nothing else touched. Stacked totals already resolve
    * per group (see drawsStackedTotal, #4173); corners never got the same fix.
    *
+   * plotOptions.bar.borderRadiusWhenStacked picks which ends round: 'all'
+   * caps both the baseline and the far end, 'last' only the far end (#4845).
+   *
+   * A single-data-point chart used to hand its baseline segment 'top' (and a
+   * solo segment 'top' instead of 'both'), which on a horizontal stack rounded
+   * the first segment on its INNER edge and left a pill in the middle of the
+   * bar (#4845). One data point is resolved like any other now.
+   *
    * @param {any[]} series
    * @returns {string[][]}
    */
@@ -577,12 +585,17 @@ export default class Helpers {
 
     if (alwaysApplyRadius) return output
 
-    // A lone horizontal bar in a single-category chart keeps 'top' where a
-    // column would take the full 'both'. Preserved from the original.
-    const isSoloHorizontal =
-      this.w.config.chart.type === 'bar' && numColumns === 1
-    const soloCorner = isSoloHorizontal ? 'top' : 'both'
-    const baseCorner = isSoloHorizontal ? 'top' : 'bottom'
+    // 'last' rounds only the far end of a stack and leaves the baseline end
+    // square (#4845); 'all' caps both ends. Corner names are screen-side:
+    // for a positive segment the far end is 'top', for a negative one it is
+    // 'bottom', so a lone positive drops from 'both' to 'top' and a lone
+    // negative from 'both' to 'bottom'.
+    const lastOnly =
+      w.config.plotOptions.bar.borderRadiusWhenStacked === 'last'
+    const soloPositive = lastOnly ? 'top' : 'both'
+    const soloNegative = lastOnly ? 'bottom' : 'both'
+    const positiveBase = lastOnly ? 'none' : 'bottom'
+    const negativeBase = lastOnly ? 'none' : 'top'
 
     for (const stack of this.getStackedSeriesIndices(numSeries)) {
       for (let j = 0; j < numColumns; j++) {
@@ -599,24 +612,30 @@ export default class Helpers {
 
         if (positiveIndices.length > 0 && negativeIndices.length === 0) {
           if (positiveIndices.length === 1) {
-            output[positiveIndices[0]][j] = soloCorner
+            output[positiveIndices[0]][j] = soloPositive
           } else {
             const first = positiveIndices[0]
             const last = positiveIndices[positiveIndices.length - 1]
             for (const i of positiveIndices) {
               output[i][j] =
-                i === first ? baseCorner : i === last ? 'top' : 'none'
+                i === first ? positiveBase : i === last ? 'top' : 'none'
             }
           }
         } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
           if (negativeIndices.length === 1) {
-            output[negativeIndices[0]][j] = 'both'
+            output[negativeIndices[0]][j] = soloNegative
           } else {
-            const highest = Math.max(...negativeIndices) // closest to the axis
-            const lowest = Math.min(...negativeIndices) // farthest from it
+            // Negatives stack away from the axis in series order, so the
+            // first is at the baseline and the last is the far end.
+            const nearest = Math.min(...negativeIndices)
+            const farthest = Math.max(...negativeIndices)
             for (const i of negativeIndices) {
               output[i][j] =
-                i === highest ? 'bottom' : i === lowest ? 'top' : 'none'
+                i === nearest
+                  ? negativeBase
+                  : i === farthest
+                    ? 'bottom'
+                    : 'none'
             }
           }
         } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {

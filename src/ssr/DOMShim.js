@@ -4,6 +4,14 @@
  * Provides just enough SVG element emulation to create chart structure without full DOM
  */
 
+// Approximate sans-serif metrics, in em, used to estimate SVG text bounds when
+// no font engine is available to measure the glyphs.
+const CHAR_WIDTH_EM = 0.55
+const ASCENT_EM = 0.917
+const DESCENT_EM = 0.25
+const LINE_HEIGHT_EM = 1.1
+const DEFAULT_FONT_SIZE = 11
+
 /**
  * Mock SVG element for SSR environment
  */
@@ -146,6 +154,48 @@ class SSRElement {
       x: 0,
       y: 0,
     }
+  }
+
+  getBBox() {
+    if (this.nodeName !== 'text' && this.nodeName !== 'tspan') {
+      return { x: 0, y: 0, width: 0, height: 0 }
+    }
+
+    const lines = this._textLines()
+    const longest = lines.reduce((acc, line) => Math.max(acc, line.length), 0)
+    if (!longest) {
+      return { x: 0, y: 0, width: 0, height: 0 }
+    }
+
+    const fontSize =
+      parseFloat(this.attributes.get('font-size')) || DEFAULT_FONT_SIZE
+    const width = longest * fontSize * CHAR_WIDTH_EM
+    const height =
+      fontSize * (ASCENT_EM + DESCENT_EM) +
+      (lines.length - 1) * fontSize * LINE_HEIGHT_EM
+
+    const anchor = this.attributes.get('text-anchor')
+    const x = parseFloat(this.attributes.get('x')) || 0
+    const y = parseFloat(this.attributes.get('y')) || 0
+
+    return {
+      x: anchor === 'middle' ? x - width / 2 : anchor === 'end' ? x - width : x,
+      y: y - fontSize * ASCENT_EM,
+      width,
+      height,
+    }
+  }
+
+  /**
+   * Text of this element, one entry per rendered line
+   * @returns {string[]}
+   */
+  _textLines() {
+    const tspans = this.children.filter((child) => child.nodeName === 'tspan')
+    if (tspans.length) {
+      return tspans.map((tspan) => String(tspan.textContent ?? ''))
+    }
+    return [String(this.textContent ?? '')]
   }
 
   getRootNode() {

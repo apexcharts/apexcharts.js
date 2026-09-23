@@ -2,6 +2,7 @@
 import Animations from './Animations'
 import Filters from './Filters'
 import Utils from '../utils/Utils'
+import { resolveClaimed } from './weave/Claims'
 
 /**
  * ApexCharts Graphics Class for all drawing operations.
@@ -609,6 +610,15 @@ class Graphics {
     } else {
       strokeDashArray = w.config.stroke.dashArray
     }
+    // A plugin may have claimed this series' dash. Resolved here rather than
+    // written into the config above, so the caller's own dashing is untouched
+    // and there is nothing to restore when the claim goes. See weave/Claims.
+    strokeDashArray = resolveClaimed(
+      w,
+      'stroke.dashArray',
+      realIndex,
+      strokeDashArray,
+    )
 
     const el = this.drawPath({
       d,

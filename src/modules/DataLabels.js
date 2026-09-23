@@ -4,6 +4,7 @@ import Graphics from './Graphics'
 import Filters from './Filters'
 import { applyProgressiveReveal } from './Animations'
 import { resolveDataLabelOffset } from './helpers/DataLabelOffset'
+import { resolveClaimed } from './weave/Claims'
 
 /**
  * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
@@ -247,10 +248,19 @@ class DataLabels {
     } = opts
 
     let dataLabelText = null
-    if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
-      if (w.config.dataLabels.enabledOnSeries.indexOf(i) < 0) {
-        return dataLabelText
-      }
+    // The caller's answer for this series, then the plugin's if one claimed it.
+    // A claim is a boolean rather than a restatement of the caller's list
+    // shape, because "does THIS series print labels" is the question here.
+    const labelsOn = resolveClaimed(
+      w,
+      'dataLabels.enabledOnSeries',
+      i,
+      Array.isArray(w.config.dataLabels.enabledOnSeries)
+        ? w.config.dataLabels.enabledOnSeries.indexOf(i) >= 0
+        : true,
+    )
+    if (!labelsOn) {
+      return dataLabelText
     }
 
     let correctedLabels = {

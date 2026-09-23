@@ -7,12 +7,21 @@ on:
 
 permissions:
   id-token: write
+  # Pushing the tag and creating the release. This job already holds npm
+  # publishing rights and only runs on a push to main, so it is maintainer
+  # gated either way, but it is worth knowing the write is here.
+  contents: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Full history, not a shallow clone: the notes are assembled from every
+      # commit since the previous tag, and the previous tag has to be present
+      # to be found at all.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Check commit message for release trigger
         id: check
@@ -93,3 +102,57 @@ jobs:
 
       - run: npm publish --provenance --tag ${{ steps.check.outputs.tag }}
         if: steps.check.outputs.triggered == 'true'
+
+      # Everything below is after the publish on purpose. npm is the thing
+      # people install; a tag and a release that describe a version nobody can
+      # install would be worse than arriving a minute late.
+      #
+      # Each step is idempotent, so a re-run against a version already tagged
+      # or released is a no-op rather than a failure. Prereleases are skipped:
+      # an rc is published under its own dist-tag and is deliberately not a
+      # release anyone is pointed at.
+      - name: Tag the release
+        if: steps.check.outputs.triggered == 'true' && steps.check.outputs.tag == 'latest'
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "ℹ️  $TAG already exists, leaving it alone"
+            exit 0
+          fi
+          # Lightweight, matching every tag in this repo's history.
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "✅ tagged $TAG"
+
+      - name: Write the release notes
+        if: steps.check.outputs.triggered == 'true' && steps.check.outputs.tag == 'latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "ℹ️  release $TAG already exists, leaving it alone"
+            exit 0
+          fi
+
+          PREV=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          if [ -z "$PREV" ]; then
+            echo "⚠️  no previous tag found, so there is no range to describe; skipping"
+            exit 0
+          fi
+
+          # Commit authors by their GitHub handle, which git does not know.
+          # One call. Losing it costs the credits, never the release.
+          gh api "repos/${GITHUB_REPOSITORY}/compare/${PREV}...${TAG}" \
+            --jq '[.commits[] | {key: .sha, value: (.author.login // "")}] | from_entries' \
+            > /tmp/authors.json || echo '{}' > /tmp/authors.json
+
+          node build/release-notes.mjs "$PREV" "$TAG" /tmp/authors.json > /tmp/notes.md
+          gh release create "$TAG" \
+            --title "💎 Version $VERSION" \
+            --notes-file /tmp/notes.md \
+            --latest
+          echo "✅ released $TAG, covering $PREV..$TAG"
