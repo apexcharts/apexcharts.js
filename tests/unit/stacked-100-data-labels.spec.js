@@ -171,3 +171,62 @@ describe('100% stacked area with data labels on', () => {
     })
   })
 })
+
+// gridPadForStackedTotalDataLabels measures the stacked-total label during
+// plotCoords(), BEFORE plotChartType builds globals.columnSeries. The
+// formatter must be safe at that early read: measuring the plain string
+// ("5700") while the label is drawn as a percent ("5700%") under-reserves
+// xPadRight by the "%" and lets the total slip past the SVG viewport on a
+// horizontal 100% stack (#3579). These tests null columnSeries to recreate
+// exactly that pre-classification state; without a config-based fallback
+// they fail straight from src, no dist rebuild involved.
+describe('100% stacked formatter before columnSeries exists (#3579)', () => {
+  it('reads a percent for a pure bar chart while columnSeries is missing', async () => {
+    await render(columns(), {
+      chart: {
+        type: 'bar',
+        width: 700,
+        height: 400,
+        stacked: true,
+        stackType: '100%',
+        animations: { enabled: false },
+      },
+    })
+    chart.w.globals.columnSeries = null
+    const fmt = chart.w.config.dataLabels.formatter
+    expect(fmt(150, { w: chart.w, seriesIndex: 0 })).toBe('150%')
+    expect(fmt(150, { w: chart.w, seriesIndex: 1 })).toBe('150%')
+  })
+
+  it('reads a percent for a combo while columnSeries is missing', async () => {
+    // The measure call passes seriesIndex 0 whatever the stack holds — here
+    // the line — so even a non-bar index must read as a percent this early:
+    // the reserve has to cover the drawn bar total, the widest label.
+    await render([line(), ...columns()])
+    chart.w.globals.columnSeries = null
+    const fmt = chart.w.config.dataLabels.formatter
+    expect(fmt(180, { w: chart.w, seriesIndex: 0 })).toBe('180%')
+  })
+
+  it('keeps the plain value for a chart with no bars at all', async () => {
+    await render(
+      [
+        { name: 'North', data: [31, 40, 28, 51] },
+        { name: 'South', data: [11, 32, 45, 32] },
+      ],
+      {
+        chart: {
+          type: 'area',
+          width: 700,
+          height: 400,
+          stacked: true,
+          stackType: '100%',
+          animations: { enabled: false },
+        },
+      },
+    )
+    // columnSeries stays null for a pure area chart even after render.
+    const fmt = chart.w.config.dataLabels.formatter
+    expect(fmt(31, { w: chart.w, seriesIndex: 0 })).toBe(31)
+  })
+})
