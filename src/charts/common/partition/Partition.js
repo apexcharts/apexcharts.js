@@ -233,20 +233,30 @@ export function focusChain(focus) {
  *
  * Clicking the current focus zooms out one level. A leaf is never a meaningful
  * target (its subtree is itself, so the chart would show one full band), so a
- * click on one focuses its parent branch instead.
+ * click on one resolves to its parent branch instead. A tree with a single
+ * root is the same case one level up: that root already owns the whole value
+ * axis, so focusing it would draw exactly what is on screen, and it resolves to
+ * the whole tree, which is the view the reader is already looking at.
+ *
+ * Then whatever the walk lands on, a resolved focus equal to the current one
+ * means the click cannot change the picture. Saying so (`changed: false`) is
+ * what stops the caller re-running a layout and raising a breadcrumb for a view
+ * the reader never left.
  *
  * @param {any} node  the clicked node
  * @param {any} current  the current focus, null at the root
+ * @param {any[]} [roots]  the tree's roots; without them a lone root is treated
+ *   as a focusable branch like any other
  * @returns {{ changed: boolean, focus: any }}
  */
-export function resolveFocus(node, current) {
-  const next = node === current ? node._parent || null : node
+export function resolveFocus(node, current, roots) {
+  let next = node === current ? node._parent || null : node
+  if (next && !(next.children && next.children.length)) {
+    next = next._parent || null
+  }
+  if (roots && roots.length === 1 && next === roots[0]) next = null
   if (next === current) return { changed: false, focus: current }
-  const focus =
-    next && !(next.children && next.children.length)
-      ? next._parent || null
-      : next
-  return { changed: true, focus }
+  return { changed: true, focus: next }
 }
 
 /**

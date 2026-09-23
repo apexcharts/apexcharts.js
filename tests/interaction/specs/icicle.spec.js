@@ -108,6 +108,14 @@ const clickCell = (page, name) =>
     el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   }, name)
 
+const cursorOf = (page, name) =>
+  page.evaluate((nm) => {
+    const el = Array.from(
+      document.querySelectorAll('.apexcharts-icicle-cell'),
+    ).find((c) => c.getAttribute('data:name') === nm)
+    return el.style.cursor
+  }, name)
+
 test.describe('icicle', () => {
   test('the add-on registers the type on a page that already has the full bundle', async ({
     page,
@@ -213,6 +221,36 @@ test.describe('icicle', () => {
       })
     })
     expect(overlap).toBe(false)
+  })
+
+  test('a click with nowhere to zoom does nothing, and the cursor says so first', async ({
+    page,
+  }) => {
+    // One root, which is the ordinary shape for this chart: it already owns
+    // the whole value axis, so there is no view for a click on it to move to.
+    const opts = baseOptions()
+    opts.series = [{ data: [{ x: 'All code', children: TREE[0].data }] }]
+    await renderChart(page, opts)
+
+    expect(await cursorOf(page, 'All code')).toBe('default')
+    // A leaf resolves to its parent branch, which here is that same root.
+    expect(await cursorOf(page, 'Design')).toBe('default')
+    expect(await cursorOf(page, 'Platform')).toBe('pointer')
+
+    const before = await boxes(page)
+    await clickCell(page, 'All code')
+    await page.waitForTimeout(120)
+    expect(await boxes(page)).toEqual(before)
+    expect(await breadcrumbText(page)).toBe(null)
+
+    // The branches under it still zoom, and the trail leaves the root out
+    // rather than repeating the crumb that already stands for it.
+    await clickCell(page, 'Platform')
+    await page.waitForTimeout(120)
+    const crumbs = await breadcrumbText(page)
+    expect(crumbs).toContain('Platform')
+    expect(crumbs).toContain('Engineering')
+    expect(crumbs).not.toContain('All code')
   })
 
   test('a label appears only where its cell has room for it', async ({

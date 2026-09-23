@@ -401,6 +401,7 @@ export default class IcicleChart {
         if (!node._el) node._el = this._createCellEl(node)
         // Per-layout, not per-element: a zoom changes which branches are cut.
         node._el.node.setAttribute('data:clipped', String(!!node._clipped))
+        this._setCursor(node)
 
         if (mode === 'intro' && dur > 0) {
           this._wipeCell(node, to, dur, gen)
@@ -479,7 +480,6 @@ export default class IcicleChart {
     this._tooltip.attach(el, node)
     if (Environment.isBrowser() && this.cfg.zoomOnClick !== false) {
       el.addEventListener('click', () => this._zoomTo(node))
-      el.style.cursor = 'pointer'
     }
     this._cellsG.add(rect)
     return rect
@@ -791,13 +791,29 @@ export default class IcicleChart {
   // ----------------------------------------------------------------- zoom
 
   /**
+   * A cell offers the pointer only while clicking it would change the view.
+   * A leaf under the current focus, or the single root of a one-root tree,
+   * resolves to the focus the reader is already on, and a pointer there
+   * promises a zoom that cannot happen. Asked on every layout, because a zoom
+   * changes the answer for every cell.
+   * @param {any} node
+   */
+  _setCursor(node) {
+    if (!Environment.isBrowser() || this.cfg.zoomOnClick === false) return
+    node._el.node.style.cursor = resolveFocus(node, this._focus, this._roots)
+      .changed
+      ? 'pointer'
+      : 'default'
+  }
+
+  /**
    * Focus a node (zoom in), or zoom out one level when the current focus is
    * clicked.
    * @param {any} node
    */
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return
-    const next = resolveFocus(node, this._focus)
+    const next = resolveFocus(node, this._focus, this._roots)
     if (!next.changed) return
     this._focus = next.focus
     this._relayout(this._focus)
@@ -819,7 +835,12 @@ export default class IcicleChart {
     }
 
     const cfg = breadcrumbConfig(this.w)
-    const crumbs = [{ label: 'All', data: null }].concat(
+    // The strip always opens with a crumb for the whole tree. With one root
+    // that crumb IS the root, so listing the root again would put the same view
+    // in the trail twice, and the second copy would be dead. Several roots have
+    // no shared name, so the tree keeps a crumb of its own ahead of them.
+    const soleRoot = this._roots.length === 1 ? this._roots[0] : null
+    const crumbs = (soleRoot ? [] : [{ label: 'All', data: null }]).concat(
       focusChain(this._focus).map((n) => ({ label: n.name, data: n })),
     )
 
@@ -829,7 +850,7 @@ export default class IcicleChart {
       config: cfg,
       compact: true,
       onNavigate: (/** @type {number} */ i, /** @type {any} */ crumb) => {
-        this._focus = crumb.data
+        this._focus = crumb.data === soleRoot ? null : crumb.data
         this._relayout(this._focus)
         this._applyLayout('zoom')
         this._renderBreadcrumb()

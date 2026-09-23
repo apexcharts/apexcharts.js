@@ -90,12 +90,23 @@ function clippedNames() {
     .map((el) => el.getAttribute('data:name'))
 }
 
-/** Click the cell standing for a node, by name. */
-function clickCell(name) {
-  const el = [...document.querySelectorAll('.apexcharts-icicle-cell')].find(
+/** The cell standing for a node, by name. */
+function cellNamed(name) {
+  return [...document.querySelectorAll('.apexcharts-icicle-cell')].find(
     (c) => c.getAttribute('data:name') === name,
   )
-  el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+}
+
+/** Click the cell standing for a node, by name. */
+function clickCell(name) {
+  cellNamed(name).dispatchEvent(
+    new window.MouseEvent('click', { bubbles: true }),
+  )
+}
+
+/** The cursor a cell is advertising, by node name. */
+function cursorOf(name) {
+  return cellNamed(name).style.cursor
 }
 
 /** Every rendered cell's box, keyed by the node name it carries. */
@@ -344,11 +355,11 @@ describe('focus helpers', () => {
     placeTree({ roots, nodesAll: flatten(roots), focus: null, t0: 0, t1: 10 })
     const a = roots[0]
 
-    const inward = resolveFocus(a, null)
+    const inward = resolveFocus(a, null, roots)
     expect(inward.changed).toBe(true)
     expect(inward.focus).toBe(a)
 
-    const outward = resolveFocus(a, a)
+    const outward = resolveFocus(a, a, roots)
     expect(outward.changed).toBe(true)
     expect(outward.focus).toBe(null)
   })
@@ -357,7 +368,49 @@ describe('focus helpers', () => {
     const roots = filled()
     placeTree({ roots, nodesAll: flatten(roots), focus: null, t0: 0, t1: 10 })
     const leaf = roots[0].children[0]
-    expect(resolveFocus(leaf, null).focus).toBe(roots[0])
+    expect(resolveFocus(leaf, null, roots).focus).toBe(roots[0])
+  })
+
+  it('never focuses the only root, which already fills the chart', () => {
+    const roots = [
+      node('Only', 100, [node('A', 60, [node('A1', 60)]), node('B', 40)]),
+    ]
+    placeTree({ roots, nodesAll: flatten(roots), focus: null, t0: 0, t1: 10 })
+    const only = roots[0]
+
+    // Focusing it would draw exactly what is on screen, so the click is
+    // refused outright rather than answered with the view we are already on.
+    expect(resolveFocus(only, null, roots)).toEqual({
+      changed: false,
+      focus: null,
+    })
+    // Same for a leaf hanging off it, which resolves to that same root.
+    expect(resolveFocus(only.children[1], null, roots)).toEqual({
+      changed: false,
+      focus: null,
+    })
+
+    // A branch under it is still a target, and stepping back out of that one
+    // lands on the whole tree, never on the root as a focus of its own.
+    expect(resolveFocus(only.children[0], null, roots).focus).toBe(
+      only.children[0],
+    )
+    expect(resolveFocus(only.children[0], only.children[0], roots)).toEqual({
+      changed: true,
+      focus: null,
+    })
+  })
+
+  it('refuses a click whose focus is the one already held', () => {
+    const roots = filled()
+    placeTree({ roots, nodesAll: flatten(roots), focus: null, t0: 0, t1: 10 })
+    // A leaf inside the focused branch resolves back to that branch: no zoom
+    // to run, so no layout pass and no re-drawn breadcrumb either.
+    const a = roots[0]
+    expect(resolveFocus(a.children[0], a, roots)).toEqual({
+      changed: false,
+      focus: a,
+    })
   })
 
   it('builds the root -> focus chain for the breadcrumb', () => {
@@ -717,6 +770,58 @@ describe('icicle chart', () => {
     expect(after.mid.y).toBeLessThan(before.mid.y)
     expect(after.leaf.y).toBeLessThan(before.leaf.y)
     expect(after.root).toBeUndefined()
+    chart.destroy()
+  })
+
+  it('refuses a click that has nowhere to zoom to', () => {
+    const chart = createChartWithOptions(deepOptions())
+    const before = cellsByName()
+
+    // The lone root already owns the whole value axis, and the leaf beside it
+    // resolves to that same root, so neither click has anywhere to go. Nothing
+    // moves, and no breadcrumb rises for a view the reader never left.
+    clickCell('root')
+    expect(cellsByName()).toEqual(before)
+    expect(document.querySelector('.apexcharts-breadcrumb')).toBe(null)
+
+    clickCell('other')
+    expect(cellsByName()).toEqual(before)
+    expect(document.querySelector('.apexcharts-breadcrumb')).toBe(null)
+    chart.destroy()
+  })
+
+  it('offers the pointer only on a cell a click would act on', () => {
+    const chart = createChartWithOptions(deepOptions())
+    expect(cursorOf('mid')).toBe('pointer')
+    expect(cursorOf('root')).toBe('default')
+    expect(cursorOf('other')).toBe('default')
+
+    // Re-read on every layout, because a zoom changes the answer: the branch
+    // now zooms back out, its ancestor returns to the whole tree, and the
+    // child inside it resolves to the focus we are already on.
+    clickCell('mid')
+    expect(cursorOf('mid')).toBe('pointer')
+    expect(cursorOf('root')).toBe('pointer')
+    expect(cursorOf('leaf')).toBe('default')
+    chart.destroy()
+  })
+
+  it('keeps the only root out of the breadcrumb, where it would be dead', () => {
+    const chart = createChartWithOptions(deepOptions())
+    clickCell('mid')
+    const nav = document.querySelector('.apexcharts-breadcrumb')
+    // The trail's opening crumb already stands for the whole tree, which with
+    // one root is that root: a 'root' crumb between them would show the same
+    // view as the crumb before it.
+    expect(
+      [...nav.querySelectorAll('.apexcharts-breadcrumb-item')].map(
+        (b) => b.textContent,
+      ),
+    ).toEqual(['←All', 'mid'])
+
+    nav.querySelector('button').click()
+    expect(document.querySelector('.apexcharts-breadcrumb')).toBe(null)
+    expect(cellsByName().other).toBeDefined()
     chart.destroy()
   })
 
