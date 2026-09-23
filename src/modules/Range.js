@@ -534,10 +534,11 @@ class Range {
     // if the numbers are too big, reduce the range
     // for eg, if number is between 100000-110000, putting 0 as the lowest
     // value is not so good idea. So change the gl.minY for
-    // line/area/scatter/candlesticks/boxPlot/vertical rangebar
+    // line/area/rangeArea/scatter/candlesticks/boxPlot/vertical rangebar
     if (
       cnf.chart.type === 'line' ||
       cnf.chart.type === 'area' ||
+      cnf.chart.type === 'rangeArea' ||
       cnf.chart.type === 'scatter' ||
       cnf.chart.type === 'candlestick' ||
       cnf.chart.type === 'boxPlot' ||
