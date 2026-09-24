@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.5.1
+ * ApexCharts v7.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1142,6 +1142,7 @@ class Pie {
     const transform = `translate(${dx} ${dy})`;
     const transition = animate && w.config.chart.animations.enabled ? SLICE_OFFSET_TRANSITION : "";
     this.getSliceMovers(i).forEach((node) => {
+      node.classList.add("apexcharts-slice-mover");
       node.style.transition = transition;
       node.setAttribute("transform", transform);
     });
@@ -1200,6 +1201,7 @@ class Pie {
       i,
       this.isSliceOut(i) ? this.getExpandOffset() : 0
     );
+    this.elHoverOutlinePath.node.classList.remove("apexcharts-slice-mover");
     this.elHoverOutlinePath.node.style.transition = "";
     this.elHoverOutlinePath.node.setAttribute("transform", `translate(${dx} ${dy})`);
     this.hoverOutlineIndex = i;

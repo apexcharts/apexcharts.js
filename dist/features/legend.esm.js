@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.5.1
+ * ApexCharts v7.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -199,7 +199,7 @@ class Helpers {
    */
   _nonAxisSliceContainer(series) {
     const type = this.w.config.chart.type;
-    if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
+    if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst" || type === "icicle") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
       return series[0].data;
     }
     return series;

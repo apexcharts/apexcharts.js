@@ -8,14 +8,6 @@
   }
 }
 
-@keyframes resizeanim {
-
-  0%,
-  to {
-    opacity: 0
-  }
-}
-
 .apexcharts-canvas {
   position: relative;
   direction: ltr !important;
@@ -47,11 +39,19 @@
   border: 0;
 }
 
-/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */
+/* Respect OS-level reduced-motion preference (WCAG 2.3.3).
+ *
+ * Scoped with :not() so chart.animations.respectReducedMotion:false opts a
+ * chart out of the CSS policy as well as the JS one (Core.setupElements puts
+ * the class on the canvas). Without the scope the flag only half worked: it
+ * turned the JS tweens back on but could not reach a stylesheet, so everything
+ * CSS-driven, the pie slice-offset slide, the drilldown spinner, the tooltip
+ * and crosshair fades, stayed frozen with no way out short of out-specifying
+ * an !important rule from the page. */
 @media (prefers-reduced-motion: reduce) {
-  .apexcharts-canvas *,
-  .apexcharts-canvas *::before,
-  .apexcharts-canvas *::after {
+  .apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,
+  .apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *::before,
+  .apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -429,6 +429,9 @@ rect.legend-mouseover-inactive,
 .apexcharts-tooltip.apexcharts-active {
   opacity: 1;
   transition: opacity .12s ease
+}
+.apexcharts-tooltip.apexcharts-tooltip-interactive {
+  pointer-events: auto;
 }
 .apexcharts-tooltip.apexcharts-active[data-positioned="true"] {
   transition: opacity .12s ease, left .16s ease-out, top .16s ease-out
@@ -1285,38 +1288,6 @@ rect.legend-mouseover-inactive,
   pointer-events: none;
 }
 
-.resize-triggers {
-  animation: 1ms resizeanim;
-  visibility: hidden;
-  opacity: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden
-}
-
-.contract-trigger:before,
-.resize-triggers,
-.resize-triggers>div {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0
-}
-
-.resize-triggers>div {
-  height: 100%;
-  width: 100%;
-  background: #eee;
-  overflow: auto
-}
-
-.contract-trigger:before {
-  overflow: hidden;
-  width: 200%;
-  height: 200%
-}
-
 .apexcharts-bar-goals-markers {
   pointer-events: none
 }
@@ -1426,8 +1397,16 @@ rect.legend-mouseover-inactive,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .apexcharts-drilldown-loading-spinner {
-    animation: apexcharts-drilldown-pulse 1.4s ease-in-out infinite
+  /* Swap the spin for a pulse: opacity only, nothing moves, which is what
+   * 2.3.3 asks for while still showing the drill is working.
+   *
+   * Scoped and !important because the blanket rule at the top of this file
+   * would otherwise flatten this fallback too (0.01ms, one iteration), leaving
+   * a drill with no loading indication at all: the rule was written but never
+   * actually ran. It has to beat that rule on both specificity and origin. */
+  .apexcharts-canvas:not(.apexcharts-ignore-reduced-motion)
+    .apexcharts-drilldown-loading-spinner {
+    animation: apexcharts-drilldown-pulse 1.4s ease-in-out infinite !important
   }
 
   @keyframes apexcharts-drilldown-pulse {

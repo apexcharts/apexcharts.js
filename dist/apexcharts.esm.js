@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.5.1
+ * ApexCharts v7.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1256,7 +1256,7 @@ let Helpers$3 = class Helpers {
    */
   _nonAxisSliceContainer(series) {
     const type = this.w.config.chart.type;
-    if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
+    if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst" || type === "icicle") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
       return series[0].data;
     }
     return series;
@@ -21668,6 +21668,7 @@ class Pie {
     const transform = `translate(${dx} ${dy})`;
     const transition = animate && w.config.chart.animations.enabled ? SLICE_OFFSET_TRANSITION : "";
     this.getSliceMovers(i).forEach((node) => {
+      node.classList.add("apexcharts-slice-mover");
       node.style.transition = transition;
       node.setAttribute("transform", transform);
     });
@@ -21726,6 +21727,7 @@ class Pie {
       i,
       this.isSliceOut(i) ? this.getExpandOffset() : 0
     );
+    this.elHoverOutlinePath.node.classList.remove("apexcharts-slice-mover");
     this.elHoverOutlinePath.node.style.transition = "";
     this.elHoverOutlinePath.node.setAttribute("transform", `translate(${dx} ${dy})`);
     this.hoverOutlineIndex = i;
@@ -28163,6 +28165,208 @@ ${percent.toFixed(1)}%`;
     elSeries.node.appendChild(textEl);
   }
 }
+function placeSubtree(node, vDepth, t0, t1, parent, state) {
+  node._show = true;
+  node._vDepth = vDepth;
+  node._t0 = t0;
+  node._t1 = t1;
+  node._parent = parent;
+  node._leaf = !(node.children && node.children.length);
+  node._clipped = !node._leaf && state.cap != null && vDepth >= state.cap;
+  if (vDepth > state.maxDepth) state.maxDepth = vDepth;
+  if (node._leaf || node._clipped) return;
+  const total = node.children.reduce(
+    (s, c) => s + Math.max(0, c.value),
+    0
+  );
+  const denom = total || 1;
+  let t = t0;
+  for (let i = 0; i < node.children.length; i++) {
+    const c = node.children[i];
+    const span = (t1 - t0) * Math.max(0, c.value) / denom;
+    placeSubtree(c, vDepth + 1, t, t + span, node, state);
+    t += span;
+  }
+}
+function placeTree({ roots, nodesAll, focus, t0, t1, cap }) {
+  for (let i = 0; i < nodesAll.length; i++) nodesAll[i]._show = false;
+  const state = { maxDepth: 0, cap };
+  if (focus) {
+    placeSubtree(focus, 0, t0, t1, focus._parent, state);
+    return state.maxDepth;
+  }
+  const total = roots.reduce(
+    (s, r) => s + Math.max(0, r.value),
+    0
+  );
+  const denom = total || 1;
+  let t = t0;
+  for (let i = 0; i < roots.length; i++) {
+    const span = (t1 - t0) * Math.max(0, roots[i].value) / denom;
+    placeSubtree(roots[i], 0, t, t + span, null, state);
+    t += span;
+  }
+  return state.maxDepth;
+}
+function bandScale({ maxDepth, near, far, gap = 0 }) {
+  const count = maxDepth + 1;
+  const band = (far - near) / count;
+  const g = count > 1 ? gap : 0;
+  return {
+    near: (vDepth) => near + vDepth * band + (vDepth > 0 ? g / 2 : 0),
+    far: (vDepth) => near + (vDepth + 1) * band - g / 2
+  };
+}
+function farEdge(node, scale, maxDepth, leafMode, edge) {
+  return node._leaf && leafMode === "extend" && node._vDepth < maxDepth ? edge : scale.far(node._vDepth);
+}
+function validateStrict(roots, { type, remedy }) {
+  let warned = false;
+  const walk = (node) => {
+    if (node.children && node.children.length) {
+      const sum = node.children.reduce(
+        (s, c) => s + Math.max(0, c.value || 0),
+        0
+      );
+      if (!warned && node.value != null && Math.abs(sum - node.value) > 0.5) {
+        console.warn(
+          `ApexCharts ${type}: partition 'strict' but "${node.name}" (${node.value}) != sum of its children (${sum}). ${remedy}`
+        );
+        warned = true;
+      }
+      node.children.forEach(walk);
+    }
+  };
+  roots.forEach(walk);
+}
+function focusChain(focus) {
+  const chain = [];
+  let n = focus;
+  while (n) {
+    chain.unshift(n);
+    n = n._parent;
+  }
+  return chain;
+}
+function resolveFocus(node, current, roots) {
+  let next = node === current ? node._parent || null : node;
+  if (next && !(next.children && next.children.length)) {
+    next = next._parent || null;
+  }
+  if (next === current) return { changed: false, focus: current };
+  return { changed: true, focus: next };
+}
+function parseSize(size, max, fallbackRatio = 0) {
+  if (typeof size === "number") return size;
+  const s = String(size).trim();
+  if (s.endsWith("%")) return parseFloat(s) / 100 * max;
+  const n = parseFloat(s);
+  return isNaN(n) ? fallbackRatio * max : n;
+}
+function lighten(color, amount) {
+  if (typeof color !== "string" || color[0] !== "#") return color;
+  let hex = color.slice(1);
+  if (hex.length === 3) {
+    hex = hex.split("").map((c) => c + c).join("");
+  }
+  if (hex.length !== 6) return color;
+  const num = parseInt(hex, 16);
+  if (isNaN(num)) return color;
+  let rC = num >> 16 & 255;
+  let gC = num >> 8 & 255;
+  let bC = num & 255;
+  rC = Math.round(rC + (255 - rC) * amount);
+  gC = Math.round(gC + (255 - gC) * amount);
+  bC = Math.round(bC + (255 - bC) * amount);
+  return "#" + ((1 << 24) + (rC << 16) + (gC << 8) + bC).toString(16).slice(1);
+}
+function colorPass(node, color, tint, out) {
+  node._color = node.color || color;
+  out.push(node);
+  if (node.children) {
+    for (let i = 0; i < node.children.length; i++) {
+      const c = node.children[i];
+      colorPass(c, c.color || lighten(node._color, tint), tint, out);
+    }
+  }
+}
+class NodeTooltip {
+  /**
+   * @param {any} w
+   */
+  constructor(w) {
+    this.w = w;
+    this.total = 1;
+    this._el = null;
+  }
+  /** @returns {any} */
+  _tip() {
+    if (!this._el) {
+      this._el = this.w.dom.baseEl.querySelector(".apexcharts-tooltip");
+    }
+    return this._el;
+  }
+  /**
+   * @param {any} el  the DOM node for one mark
+   * @param {any} node  the tree node it stands for
+   */
+  attach(el, node) {
+    if (!this.w.config.tooltip.enabled || !Environment.isBrowser()) return;
+    el.addEventListener(
+      "mouseenter",
+      (e) => this.show(e, node)
+    );
+    el.addEventListener(
+      "mousemove",
+      (e) => this.position(e)
+    );
+    el.addEventListener("mouseleave", () => this.hide());
+  }
+  /**
+   * @param {MouseEvent} e
+   * @param {any} node
+   */
+  show(e, node) {
+    const t = this._tip();
+    if (!t) return;
+    const w = this.w;
+    const pctTotal = (node.value / this.total * 100).toFixed(1);
+    const parentVal = node._parent ? node._parent.value : this.total;
+    const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
+    const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
+    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    t.classList.add("apexcharts-active");
+    t.style.opacity = "1";
+    this.position(e);
+  }
+  /**
+   * Position beside the cursor, flipping to the opposite side when the box
+   * would overflow the chart wrap, and clamping inside it either way.
+   * @param {MouseEvent} e
+   */
+  position(e) {
+    const t = this._tip();
+    if (!t) return;
+    const rect = this.w.dom.elWrap.getBoundingClientRect();
+    const tw = t.offsetWidth;
+    const th = t.offsetHeight;
+    const pad = 12;
+    let x = e.clientX - rect.left + pad;
+    if (x + tw > rect.width) x = e.clientX - rect.left - tw - pad;
+    x = Math.max(0, Math.min(x, rect.width - tw));
+    let y = e.clientY - rect.top + pad;
+    if (y + th > rect.height) y = e.clientY - rect.top - th - pad;
+    y = Math.max(0, Math.min(y, rect.height - th));
+    t.style.left = x + "px";
+    t.style.top = y + "px";
+  }
+  hide() {
+    const t = this._tip();
+    if (!t) return;
+    t.classList.remove("apexcharts-active");
+    t.style.opacity = "0";
+  }
+}
 const D2R = Math.PI / 180;
 const R2D = 180 / Math.PI;
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -28194,7 +28398,7 @@ class SunburstChart {
     this._nodesAll = [];
     this._innerR = () => 0;
     this._outerR = () => 0;
-    this._tooltipEl = null;
+    this._tooltip = new NodeTooltip(w);
     this._lblSeq = 0;
     this._morphLeafIndex = 0;
     this._graphics = null;
@@ -28228,6 +28432,7 @@ class SunburstChart {
       this._colorPass(r, r.color || colors[i % colors.length] || "#008FFB");
     });
     this.total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1;
+    this._tooltip.total = this.total;
     this._ringsG = graphics.group({ class: "apexcharts-sunburst-rings" });
     this._labelsG = graphics.group({ class: "apexcharts-sunburst-labels" });
     g.add(this._ringsG);
@@ -28272,38 +28477,20 @@ class SunburstChart {
    */
   _validateStrict() {
     if (this.cfg.partition !== "strict") return;
-    let warned = false;
-    const walk = (node) => {
-      if (node.children && node.children.length) {
-        const sum = node.children.reduce(
-          (s, c) => s + Math.max(0, c.value || 0),
-          0
-        );
-        if (!warned && node.value != null && Math.abs(sum - node.value) > 0.5) {
-          console.warn(
-            `ApexCharts sunburst: partition 'strict' but "${node.name}" (${node.value}) != sum of its children (${sum}). Angles are normalized to fill the wedge.`
-          );
-          warned = true;
-        }
-        node.children.forEach(walk);
-      }
-    };
-    this._roots.forEach(walk);
+    validateStrict(this._roots, {
+      type: "sunburst",
+      remedy: "Angles are normalized to fill the wedge."
+    });
   }
   /**
    * Assign a colour to every node (explicit `color` wins, else the parent's
    * colour tinted lighter). Done once so zoom preserves colours.
+   * Shared with the icicle - see charts/common/partition/Tint.
    * @param {any} node
    * @param {string} color
    */
   _colorPass(node, color) {
-    node._color = node.color || color;
-    this._nodesAll.push(node);
-    if (node.children) {
-      node.children.forEach(
-        (c) => this._colorPass(c, c.color || this._lighten(node._color, this.cfg.tint))
-      );
-    }
+    colorPass(node, color, this.cfg.tint, this._nodesAll);
   }
   // ---------------------------------------------------------------- layout
   /**
@@ -28311,60 +28498,33 @@ class SunburstChart {
    * @param {any} focus
    */
   _relayout(focus) {
-    this._nodesAll.forEach((n) => {
-      n._show = false;
+    this._focusMaxDepth = placeTree({
+      roots: this._roots,
+      nodesAll: this._nodesAll,
+      focus,
+      t0: this.startAngle,
+      t1: this.endAngle
     });
-    this._focusMaxDepth = 0;
-    if (!focus) {
-      const total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1;
-      let a = this.startAngle;
-      this._roots.forEach((r) => {
-        const span = (this.endAngle - this.startAngle) * Math.max(0, r.value) / total;
-        this._placeVis(r, 0, a, a + span, null);
-        a += span;
-      });
-    } else {
-      this._placeVis(focus, 0, this.startAngle, this.endAngle, focus._parent);
-    }
-    const hole = this._parseSize(this.cfg.innerSize, this.maxRadius);
-    const ringCount = this._focusMaxDepth + 1;
-    const band = (this.maxRadius - hole) / ringCount;
-    const radialGap = ringCount > 1 ? 1 : 0;
-    this._innerR = (vd) => hole + vd * band + (vd > 0 ? radialGap / 2 : 0);
-    this._outerR = (vd) => hole + (vd + 1) * band - radialGap / 2;
+    const hole = parseSize(this.cfg.innerSize, this.maxRadius, 0.15);
+    const scale = bandScale({
+      maxDepth: this._focusMaxDepth,
+      near: hole,
+      far: this.maxRadius,
+      gap: 1
+    });
+    this._innerR = scale.near;
+    this._outerR = scale.far;
     this._nodesAll.forEach((n) => {
       if (!n._show) return;
-      n._iR = this._innerR(n._vDepth);
-      n._oR = n._leaf && this.cfg.leaf === "extend" && n._vDepth < this._focusMaxDepth ? this.maxRadius : this._outerR(n._vDepth);
+      n._iR = scale.near(n._vDepth);
+      n._oR = farEdge(
+        n,
+        scale,
+        this._focusMaxDepth,
+        this.cfg.leaf,
+        this.maxRadius
+      );
     });
-  }
-  /**
-   * @param {any} node
-   * @param {number} vDepth
-   * @param {number} a0
-   * @param {number} a1
-   * @param {any} parent
-   */
-  _placeVis(node, vDepth, a0, a1, parent) {
-    node._show = true;
-    node._vDepth = vDepth;
-    node._a0 = a0;
-    node._a1 = a1;
-    node._parent = parent;
-    node._leaf = !(node.children && node.children.length);
-    if (vDepth > this._focusMaxDepth) this._focusMaxDepth = vDepth;
-    if (!node._leaf) {
-      const total = node.children.reduce(
-        (s, c) => s + Math.max(0, c.value),
-        0
-      ) || 1;
-      let a = a0;
-      node.children.forEach((c) => {
-        const span = (a1 - a0) * Math.max(0, c.value) / total;
-        this._placeVis(c, vDepth + 1, a, a + span, node);
-        a += span;
-      });
-    }
   }
   // --------------------------------------------------------------- render
   /**
@@ -28397,8 +28557,8 @@ class SunburstChart {
     this._nodesAll.forEach((node) => {
       if (node._show) {
         const target = {
-          a0: node._a0,
-          a1: node._a1,
+          a0: node._t0,
+          a1: node._t1,
           iR: node._iR,
           oR: node._oR
         };
@@ -28431,7 +28591,7 @@ class SunburstChart {
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n) => {
       if (n._show) {
-        geoms.set(n._key, { a0: n._a0, a1: n._a1, iR: n._iR, oR: n._oR });
+        geoms.set(n._key, { a0: n._t0, a1: n._t1, iR: n._iR, oR: n._oR });
       }
     });
     this.ctx._sunburstPrevGeoms = geoms;
@@ -28564,7 +28724,7 @@ class SunburstChart {
       "data:leaf",
       String(!(node.children && node.children.length))
     );
-    this._attachTooltip(el, node);
+    this._tooltip.attach(el, node);
     if (Environment.isBrowser()) {
       el.addEventListener("click", () => this._zoomTo(node));
       el.style.cursor = "pointer";
@@ -28628,7 +28788,7 @@ class SunburstChart {
     if (!this.cfg.dataLabels.show) return;
     this._nodesAll.forEach((node) => {
       if (!node._show) return;
-      if (node._a1 - node._a0 < this.cfg.dataLabels.minAngleToShow) return;
+      if (node._t1 - node._t0 < this.cfg.dataLabels.minAngleToShow) return;
       this._renderCurvedLabel(node);
     });
     if (dur > 0) {
@@ -28648,11 +28808,11 @@ class SunburstChart {
     const style = this.cfg.dataLabels.style;
     const w = this.w;
     const r = (node._iR + node._oR) / 2;
-    const mid = (node._a0 + node._a1) / 2;
+    const mid = (node._t0 + node._t1) / 2;
     const flip = mid > 90 && mid < 270;
-    const padDeg = Math.min(r > 0 ? 4 / r * R2D : 0, (node._a1 - node._a0) / 2);
-    const from = flip ? node._a1 - padDeg : node._a0 + padDeg;
-    const to = flip ? node._a0 + padDeg : node._a1 - padDeg;
+    const padDeg = Math.min(r > 0 ? 4 / r * R2D : 0, (node._t1 - node._t0) / 2);
+    const from = flip ? node._t1 - padDeg : node._t0 + padDeg;
+    const to = flip ? node._t0 + padDeg : node._t1 - padDeg;
     const p1 = this._ptAt(r, from);
     const p2 = this._ptAt(r, to);
     const largeArc = Math.abs(to - from) > 180 ? 1 : 0;
@@ -28680,7 +28840,7 @@ class SunburstChart {
     tp.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + id);
     tp.setAttribute("startOffset", "50%");
     tp.setAttribute("text-anchor", "middle");
-    tp.textContent = this._truncate(node.name, r, node._a1 - node._a0, style.fontSize);
+    tp.textContent = this._truncate(node.name, r, node._t1 - node._t0, style.fontSize);
     text.appendChild(tp);
     this._labelsG.node.appendChild(guide);
     this._labelsG.node.appendChild(text);
@@ -28709,22 +28869,16 @@ class SunburstChart {
    */
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return;
-    const nextFocus = node === this._focus ? node._parent || null : node;
-    if (nextFocus === this._focus) return;
-    this._focus = nextFocus && !(nextFocus.children && nextFocus.children.length) ? nextFocus._parent || null : nextFocus;
+    const next = resolveFocus(node, this._focus);
+    if (!next.changed) return;
+    this._focus = next.focus;
     this._relayout(this._focus);
     this._applyLayout("zoom");
     this._renderBreadcrumb();
   }
   /** Root -> focus chain of nodes. */
   _focusChain() {
-    const chain = [];
-    let n = this._focus;
-    while (n) {
-      chain.unshift(n);
-      n = n._parent;
-    }
-    return chain;
+    return focusChain(this._focus);
   }
   /**
    * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
@@ -28847,110 +29001,6 @@ class SunburstChart {
       return sharpDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, spanDeg });
     }
     return roundedDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, r, spanDeg });
-  }
-  // ------------------------------------------------------------- tooltip
-  /** @returns {any} */
-  _tip() {
-    if (!this._tooltipEl) {
-      this._tooltipEl = this.w.dom.baseEl.querySelector(".apexcharts-tooltip");
-    }
-    return this._tooltipEl;
-  }
-  /**
-   * @param {any} el
-   * @param {any} node
-   */
-  _attachTooltip(el, node) {
-    if (!this.w.config.tooltip.enabled || !Environment.isBrowser()) return;
-    el.addEventListener(
-      "mouseenter",
-      (e) => this._showTooltip(e, node)
-    );
-    el.addEventListener(
-      "mousemove",
-      (e) => this._positionTooltip(e)
-    );
-    el.addEventListener("mouseleave", () => this._hideTooltip());
-  }
-  /**
-   * @param {MouseEvent} e
-   * @param {any} node
-   */
-  _showTooltip(e, node) {
-    const t = this._tip();
-    if (!t) return;
-    const w = this.w;
-    const pctTotal = (node.value / this.total * 100).toFixed(1);
-    const parentVal = node._parent ? node._parent.value : this.total;
-    const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
-    t.classList.add("apexcharts-active");
-    t.style.opacity = "1";
-    this._positionTooltip(e);
-  }
-  /**
-   * Position beside the cursor, flipping to the opposite side when the box
-   * would overflow the chart wrap, and clamping inside it either way.
-   * @param {MouseEvent} e
-   */
-  _positionTooltip(e) {
-    const t = this._tip();
-    if (!t) return;
-    const rect = this.w.dom.elWrap.getBoundingClientRect();
-    const tw = t.offsetWidth;
-    const th = t.offsetHeight;
-    const pad = 12;
-    let x = e.clientX - rect.left + pad;
-    if (x + tw > rect.width) x = e.clientX - rect.left - tw - pad;
-    x = Math.max(0, Math.min(x, rect.width - tw));
-    let y = e.clientY - rect.top + pad;
-    if (y + th > rect.height) y = e.clientY - rect.top - th - pad;
-    y = Math.max(0, Math.min(y, rect.height - th));
-    t.style.left = x + "px";
-    t.style.top = y + "px";
-  }
-  _hideTooltip() {
-    const t = this._tip();
-    if (!t) return;
-    t.classList.remove("apexcharts-active");
-    t.style.opacity = "0";
-  }
-  // --------------------------------------------------------------- utils
-  /**
-   * @param {string|number} size
-   * @param {number} max
-   * @returns {number}
-   */
-  _parseSize(size, max) {
-    if (typeof size === "number") return size;
-    const s = String(size).trim();
-    if (s.endsWith("%")) return parseFloat(s) / 100 * max;
-    const n = parseFloat(s);
-    return isNaN(n) ? 0.15 * max : n;
-  }
-  /**
-   * Blend a hex colour toward white by `amount` (0..1). Non-hex returned as-is.
-   * @param {string} color
-   * @param {number} amount
-   * @returns {string}
-   */
-  _lighten(color, amount) {
-    if (typeof color !== "string" || color[0] !== "#") return color;
-    let hex = color.slice(1);
-    if (hex.length === 3) {
-      hex = hex.split("").map((c) => c + c).join("");
-    }
-    if (hex.length !== 6) return color;
-    const num = parseInt(hex, 16);
-    if (isNaN(num)) return color;
-    let rC = num >> 16 & 255;
-    let gC = num >> 8 & 255;
-    let bC = num & 255;
-    rC = Math.round(rC + (255 - rC) * amount);
-    gC = Math.round(gC + (255 - gC) * amount);
-    bC = Math.round(bC + (255 - bC) * amount);
-    return "#" + ((1 << 24) + (rC << 16) + (gC << 8) + bC).toString(16).slice(1);
   }
 }
 _core__default.use({
