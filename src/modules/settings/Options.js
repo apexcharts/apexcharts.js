@@ -2581,6 +2581,9 @@ export default class Options {
         followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
         intersect: false, // when enabled, tooltip will only show when user directly hovers over point
         inverseOrder: false,
+        // Keeps custom tooltip content clickable; when enabled, it overrides
+        // followCursor because a cursor-trailing tooltip cannot be entered.
+        interactive: false,
         arrow: true,
         // One tight line instead of a card: the x label sits inline before
         // the value, the marker goes, the padding and font shrink. For panels

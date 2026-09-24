@@ -11,6 +11,8 @@ import XAxis from './../axes/XAxis'
 import Utils from './Utils'
 import { isCustom } from '../ChartFactory'
 
+const INTERACTIVE_TOOLTIP_HIDE_DELAY = 150
+
 /**
  * ApexCharts Core Tooltip Class to handle the tooltip generation.
  *
@@ -90,6 +92,8 @@ export default class Tooltip {
     this.seriesBound = null
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     this.seriesHoverTimeout = undefined
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    this.interactiveHideTimeout = undefined
     /** @type {number} */
     this.clientX = 0
     /** @type {number} */
@@ -231,6 +235,28 @@ export default class Tooltip {
       'div',
     )
     tooltipEl.classList.add('apexcharts-tooltip')
+    if (this.tConfig.interactive) {
+      tooltipEl.classList.add('apexcharts-tooltip-interactive')
+      tooltipEl.addEventListener(
+        'mouseenter',
+        () => clearTimeout(this.interactiveHideTimeout),
+        { passive: true },
+      )
+      tooltipEl.addEventListener(
+        'mouseleave',
+        () => {
+          clearTimeout(this.interactiveHideTimeout)
+          this.handleMouseOut({ tooltipEl })
+          if (w.config.chart.group) {
+            this.ctx.getGroupedCharts().forEach((ch) => {
+              const el = this.getElTooltip(ch)
+              if (el) ch.w.globals.tooltip.handleMouseOut({ tooltipEl: el })
+            })
+          }
+        },
+        { passive: true },
+      )
+    }
     if (w.config.tooltip.cssClass) {
       tooltipEl.classList.add(w.config.tooltip.cssClass)
     }
@@ -292,7 +318,7 @@ export default class Tooltip {
       w.config.chart.type !== 'heatmap'
     const shouldDrawArrow =
       this.tConfig.arrow &&
-      !this.tConfig.followCursor &&
+      !Utils.isFollowCursor(this.w) &&
       !this.tConfig.fixed.enabled &&
       !isSharedMulti &&
       !this.tConfig.fillSeriesColor &&
@@ -694,6 +720,19 @@ export default class Tooltip {
    */
   /** @param {Record<string, any>} opt @param {any} e */
   onSeriesHover(opt, e) {
+    if (this.tConfig.interactive) {
+      clearTimeout(this.interactiveHideTimeout)
+      if (e.type === 'mouseout') {
+        // Give the pointer time to cross the small gap between the data point
+        // and tooltip. Entering the tooltip cancels this deferred close.
+        clearTimeout(this.seriesHoverTimeout)
+        this.interactiveHideTimeout = setTimeout(() => {
+          if (!this.w.globals.isDestroyed) this.seriesHover(opt, e)
+        }, INTERACTIVE_TOOLTIP_HIDE_DELAY)
+        return
+      }
+    }
+
     // Note down the element under the pointer NOW, while the event is still
     // propagating. The draw below can be deferred past the end of dispatch, and
     // by then a chart inside a shadow root reports the host element as the

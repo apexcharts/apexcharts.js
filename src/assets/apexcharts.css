@@ -430,6 +430,9 @@ rect.legend-mouseover-inactive,
   opacity: 1;
   transition: opacity .12s ease
 }
+.apexcharts-tooltip.apexcharts-tooltip-interactive {
+  pointer-events: auto;
+}
 .apexcharts-tooltip.apexcharts-active[data-positioned="true"] {
   transition: opacity .12s ease, left .16s ease-out, top .16s ease-out
 }

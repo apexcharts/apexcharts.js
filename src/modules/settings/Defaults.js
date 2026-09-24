@@ -1763,13 +1763,31 @@ export default class Defaults {
     // inlined rather than building a full Options tree for one function.
     /** @param {any} val */
     const plain = (val) => (val !== null ? val : '')
+
+    // columnSeries is only built by plotChartType, which runs AFTER
+    // Dimensions has already measured the stacked-total label
+    // (gridPadForStackedTotalDataLabels, during plotCoords). Classified
+    // from config — as CoreUtils.getPercentSeries does — so the formatter
+    // is safe however early it is read: without this the reserve measured
+    // the plain string ("5700") while the drawn label read "5700%",
+    // under-reserving by the "%" and pushing the total label past the SVG
+    // viewport on a horizontal 100% stack (#3579).
+    const chartType = opts.chart.type
+    const isBarSeries = (/** @type {any} */ s) =>
+      s.type
+        ? s.type === 'bar' || s.type === 'column'
+        : chartType === 'bar' || chartType === 'column'
+    const hasBars = (opts.series || []).some(isBarSeries)
     /**
      * @param {any} val
      * @param {{ seriesIndex?: number, w?: any }} [ctx]
      */
     opts.dataLabels.formatter = (val, ctx) => {
       const barIndices = ctx?.w?.globals?.columnSeries?.i
-      if (barIndices?.includes(ctx?.seriesIndex)) return percent(val)
+      const isBarLabel = barIndices
+        ? barIndices.includes(ctx?.seriesIndex)
+        : hasBars
+      if (isBarLabel) return percent(val)
       return plain(val)
     }
     return opts
