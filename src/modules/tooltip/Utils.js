@@ -11,6 +11,20 @@ import Graphics from '../Graphics'
 
 export default class Utils {
   /**
+   * Interactive custom tooltip content must remain reachable, so it takes
+   * precedence over cursor-following placement without changing the user's
+   * configured `followCursor` value.
+   *
+   * Kept independent of a Tooltip instance because Position and Intersect are
+   * also used with lightweight contexts that only provide `w`.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   */
+  static isFollowCursor(w) {
+    return w.config.tooltip.followCursor && !w.config.tooltip.interactive
+  }
+
+  /**
    * @param {import('./Tooltip').default} tooltipContext
    */
   constructor(tooltipContext) {

@@ -4289,9 +4289,17 @@ type ApexTooltip = {
   enabled?: boolean
   enabledOnSeries?: undefined | number[]
   shared?: boolean
+  /** Ignored while `interactive` is enabled. */
   followCursor?: boolean
   intersect?: boolean
   inverseOrder?: boolean
+  /**
+   * Keep the tooltip visible while it is hovered, allowing users to interact
+   * with links, buttons, and other controls returned by `custom`. When
+   * enabled, `followCursor` is ignored so the pointer can reach that content.
+   * @default false
+   */
+  interactive?: boolean
   arrow?: boolean
   /**
    * One tight line instead of a card: the x label sits inline before the
