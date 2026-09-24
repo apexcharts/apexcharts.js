@@ -144,4 +144,38 @@ test.describe('tooltip.interactive', () => {
     await expect(page.locator('#left .apexcharts-tooltip')).not.toHaveClass(/apexcharts-active/)
     await expect(page.locator('#right .apexcharts-tooltip')).not.toHaveClass(/apexcharts-active/)
   })
+
+  test('hides synchronized grouped tooltips after leaving the tooltip', async ({
+    page,
+  }) => {
+    await mountGrouped(page)
+
+    const grid = await page.locator('#left .apexcharts-grid').boundingBox()
+    await page.mouse.move(grid.x + grid.width * 0.5, grid.y + grid.height * 0.5)
+    await expect(page.locator('#left .apexcharts-tooltip')).toHaveClass(
+      /apexcharts-active/,
+    )
+    await expect(page.locator('#right .apexcharts-tooltip')).toHaveClass(
+      /apexcharts-active/,
+    )
+
+    // Enter the tooltip itself (the path this feature exists for), then leave
+    // it outward. The tooltip's own mouseleave must fan out to the group,
+    // otherwise the sibling stays stuck.
+    await page.locator('#left .apexcharts-tooltip').hover()
+    await expect(page.locator('#left .apexcharts-tooltip')).toHaveClass(
+      /apexcharts-active/,
+    )
+    await expect(page.locator('#right .apexcharts-tooltip')).toHaveClass(
+      /apexcharts-active/,
+    )
+
+    await page.mouse.move(700, 300)
+    await expect(page.locator('#left .apexcharts-tooltip')).not.toHaveClass(
+      /apexcharts-active/,
+    )
+    await expect(page.locator('#right .apexcharts-tooltip')).not.toHaveClass(
+      /apexcharts-active/,
+    )
+  })
 })

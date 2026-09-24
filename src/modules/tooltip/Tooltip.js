@@ -247,6 +247,12 @@ export default class Tooltip {
         () => {
           clearTimeout(this.interactiveHideTimeout)
           this.handleMouseOut({ tooltipEl })
+          if (w.config.chart.group) {
+            this.ctx.getGroupedCharts().forEach((ch) => {
+              const el = this.getElTooltip(ch)
+              if (el) ch.w.globals.tooltip.handleMouseOut({ tooltipEl: el })
+            })
+          }
         },
         { passive: true },
       )
