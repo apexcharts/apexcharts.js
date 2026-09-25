@@ -136,6 +136,11 @@ export default class Events {
             (e.type === 'mouseup' && e.which === 1) ||
             e.type === 'touchend'
           ) {
+            // Skip click event if the mouseup was part of a drag (zoom/pan selection)
+            if (w.interact.wasDragged) {
+              w.interact.wasDragged = false
+              return
+            }
             if (typeof w.config.chart.events.click === 'function') {
               w.config.chart.events.click(e, me, opts)
             }
