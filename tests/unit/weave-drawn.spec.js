@@ -11,6 +11,9 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
+// Ink is tree-shakeable and absent from the full entry, so the two attribution
+// tests below would otherwise assert against a chart with no ink at all.
+import '../../src/features/ink.js'
 
 /** What the reader plugin saw on the last draw. */
 let seen = null
@@ -146,6 +149,57 @@ describe('other features, which is the point', () => {
     })
     const point = seen.find((i) => i.label === 'Spike')
     expect(point.id).toBe('annotation:points:0')
+  })
+
+  /*
+   * A note a VIEWER drew, against one the caller configured.
+   *
+   * This is the case the owner column exists for and the one it got wrong
+   * until now: ink strokes ARE annotations, so they arrive through the
+   * annotation contributor, which defaults every row to `core`. That reported
+   * a note somebody drew on the chart as the caller's own config, which is a
+   * readout answering "which of this is mine" with a wrong answer.
+   */
+  it('attributes a note this chart authored rather than the caller', () => {
+    const chart = chartWith([{ name: 'reader' }], {
+      chart: { ink: { enabled: true } },
+      annotations: { yaxis: [{ y: 5, label: { text: 'Target' } }] },
+    })
+    chart.ctx.ink.createAt(1, 2, { text: 'Drawn here' })
+
+    const byLabel = (t) => reread().find((i) => i.label === t)
+    expect(byLabel('Drawn here').owner).toBe('ink')
+    // And the caller's own annotation is untouched by that, which is the half
+    // that makes the first assertion mean anything.
+    expect(byLabel('Target').owner).toBe('core')
+  })
+
+  /*
+   * The trap, asserted rather than trusted to a comment.
+   *
+   * `_attach()` makes the CALLER's annotations draggable and gives any without
+   * an id an `apexcharts-ink-*` one. So the id is not evidence of authorship,
+   * and an implementation that attributed by prefix match would pass every
+   * other test here while taking authorship away from the person who wrote it.
+   */
+  it('does not claim a caller annotation carrying an ink-shaped id', () => {
+    chartWith([{ name: 'reader' }], {
+      chart: { ink: { enabled: true } },
+      annotations: {
+        points: [
+          {
+            x: 'a',
+            y: 1,
+            // Exactly what `_attach()` stamps on a caller annotation it makes
+            // draggable, written literally so the assertion does not depend on
+            // that path running: the point is that this id proves nothing.
+            id: 'apexcharts-ink-point-0-abc123',
+            label: { text: 'Mine' },
+          },
+        ],
+      },
+    })
+    expect(reread().find((i) => i.label === 'Mine').owner).toBe('core')
   })
 
   it('keeps an id its author chose', () => {

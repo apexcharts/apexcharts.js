@@ -38,6 +38,24 @@ import Options from '../settings/Options'
  */
 
 const DRAG_CLASS = 'apexcharts-ink-draggable'
+
+/**
+ * What `api.drawn()` reports as the owner of a note this layer authored.
+ *
+ * The inventory defaults an annotation to `core`, which means the caller put it
+ * in their config. A note a VIEWER drew has a different provenance, and a
+ * readout that credited it to the caller would answer "which of this is mine"
+ * with a wrong answer, which is worse than declining to answer.
+ *
+ * **Authored by, not draggable by**, and that distinction is the trap here.
+ * `_attach()` walks the CALLER's annotations to make them draggable, assigning
+ * an `apexcharts-ink-*` id to any that lack one, so the id is not evidence of
+ * authorship: attributing by prefix match would take authorship away from the
+ * person who wrote it. Only the two places this layer CREATES an annotation
+ * set this.
+ */
+const OWNER = 'ink'
+
 const TYPES = ['point', 'xaxis', 'yaxis']
 const EDGE_PX = 8
 // A press that travels no further than this is a click (select), not a drag.
@@ -558,6 +576,7 @@ export default class InkLayer {
       x,
       y,
       id,
+      owner: OWNER,
       draggable: true,
       label: { text: opts.text || 'Note' },
     })
@@ -596,6 +615,7 @@ export default class InkLayer {
     /** @type {any} */
     const over = {
       id,
+      owner: OWNER,
       draggable: true,
       strokeDashArray: opts.strokeDashArray != null ? opts.strokeDashArray : 4,
       label: { text: opts.text || '' },
