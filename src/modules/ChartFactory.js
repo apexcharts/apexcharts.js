@@ -16,6 +16,8 @@
  * @module ChartFactory
  */
 
+import { RESERVED_TYPES } from './settings/TypeAliases'
+
 const REGISTRY_KEY = '__apexcharts_registry__'
 // Marks (#11): names registered via registerSeriesType, so dispatch + the
 // canvas-promotion heuristic can tell a custom series from a built-in without
@@ -96,11 +98,24 @@ export function register(typeMap) {
 export function getChartClass(type) {
   const Cls = getRegistry()[type]
   if (!Cls) {
+    // "Load the full bundle instead" is the usual escape hatch, and for an
+    // OPT-IN type it is not one: those ship only as their own sub-entry, so a
+    // reader who follows that advice fetches a megabyte and meets this same
+    // error again. RESERVED_TYPES is exactly that set, reserved BECAUSE the
+    // default bundle does not carry the class.
+    //
+    // The script-tag line no longer names apexcharts.core.js specifically. A
+    // sub-entry registers onto whichever shared class is already present, so
+    // it works after the full bundle too, which is what our own samples do.
+    const optIn = RESERVED_TYPES.includes(type)
     throw new Error(
       `ApexCharts: chart type "${type}" is not registered. ` +
         `Bundler: import 'apexcharts/${type}'. ` +
-        `Script tag: add <script src=".../dist/${type}.js"> after ` +
-        `apexcharts.core.js, or load the full apexcharts.js instead.`,
+        `Script tag: add <script src=".../dist/${type}.js"> after the ApexCharts script` +
+        (optIn
+          ? `. This type is opt-in and is NOT in the full apexcharts.js, ` +
+            `so loading that bundle instead will not register it.`
+          : `, or load the full apexcharts.js instead.`),
     )
   }
   return Cls
