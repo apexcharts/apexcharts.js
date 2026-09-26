@@ -13,7 +13,14 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { heading, creditFor, section, tidy, unwrap } from '../../build/release-notes.mjs'
+import {
+  heading,
+  creditFor,
+  section,
+  tidy,
+  unwrap,
+  stripTrailers,
+} from '../../build/release-notes.mjs'
 
 /** A commit in the shape the generator parses them into. */
 const commit = (over = {}) => ({
@@ -173,14 +180,97 @@ describe('grouping commits into sections', () => {
     expect(section(commits, ['refactor'], '🧹 Housekeeping', {}, undefined)).toBe('')
   })
 
-  it('says so rather than printing a blank section for a body-less commit', () => {
+  // 7.6.0 published three headings with `_No detail was written on this
+  // commit._` under them, one of them over "fix: address comments". A heading
+  // is a promise of detail, so a commit that has none does not get one.
+  it('collapses a body-less commit to a line instead of an empty heading', () => {
     const out = section(commits, ['chore'], '🧹 Housekeeping', {}, undefined)
-    expect(out).toContain('### Bump a dep')
-    expect(out).toContain('_No detail was written on this commit._')
+    expect(out).not.toContain('### Bump a dep')
+    expect(out).not.toContain('No detail was written')
+    expect(out).toContain('**Also:**')
+    expect(out).toContain('- Bump a dep')
+  })
+
+  it('still credits the author of a body-less commit, inline', () => {
+    const authors = { ['3'.repeat(40)]: 'octocat' }
+    const out = section(commits, ['chore'], '🧹 Housekeeping', authors, undefined)
+    expect(out).toContain('- Bump a dep (@octocat)')
+  })
+
+  it('keeps described commits as headings above the collapsed ones', () => {
+    const mixed = [
+      commit({ hash: '4'.repeat(40), type: 'fix', title: 'told', body: 'The reason.' }),
+      commit({ hash: '5'.repeat(40), type: 'fix', title: 'untold', body: '' }),
+    ]
+    const out = section(mixed, ['fix'], '🐛 Fixes', {}, undefined)
+    expect(out).toContain('### Told')
+    expect(out.indexOf('### Told')).toBeLessThan(out.indexOf('**Also:**'))
+    expect(out).toContain('- Untold')
+  })
+
+  // A body whose only content was a trailer is a body-less commit.
+  it('treats a body of nothing but trailers as no body at all', () => {
+    const trailerOnly = [
+      commit({
+        hash: '6'.repeat(40),
+        type: 'fix',
+        title: 'quiet one',
+        body: 'Co-Authored-By: Someone <nobody@example.com>',
+      }),
+    ]
+    const out = section(trailerOnly, ['fix'], '🐛 Fixes', {}, undefined)
+    expect(out).not.toContain('Co-Authored-By')
+    expect(out).toContain('- Quiet one')
+  })
+
+  it('strips a trailer from a commit that does have prose', () => {
+    const withTrailer = [
+      commit({
+        hash: '7'.repeat(40),
+        type: 'fix',
+        title: 'real one',
+        body: 'Why it broke.\n\nCo-Authored-By: Someone <nobody@example.com>',
+      }),
+    ]
+    const out = section(withTrailer, ['fix'], '🐛 Fixes', {}, undefined)
+    expect(out).toContain('### Real one')
+    expect(out).toContain('Why it broke.')
+    expect(out).not.toContain('Co-Authored-By')
   })
 
   it('keeps commits in the order they landed', () => {
     const out = section(commits, ['feat', 'fix'], '✨ New', {}, undefined)
     expect(out.indexOf('Add a thing')).toBeLessThan(out.indexOf('Stop a crash'))
+  })
+})
+
+// 7.6.0 published two `Co-Authored-By:` lines as prose in the middle of its
+// notes. The people a trailer names are credited from the compare API instead.
+describe('stripping the trailers off a commit body', () => {
+  it('drops a trailing person trailer', () => {
+    expect(stripTrailers('Prose.\n\nCo-Authored-By: A <a@b.c>')).toBe('Prose.')
+  })
+
+  it('drops a run of them', () => {
+    const body = 'Prose.\n\nSigned-off-by: A <a@b.c>\nReviewed-by: B <b@b.c>'
+    expect(stripTrailers(body)).toBe('Prose.')
+  })
+
+  it('keeps Closes and Fixes, which a reader follows', () => {
+    expect(stripTrailers('Prose.\n\nCloses #4999')).toBe('Prose.\n\nCloses #4999')
+  })
+
+  it('leaves prose that merely contains a colon alone', () => {
+    const body = 'Note: the axis is hidden here.\n\nAnd then this.'
+    expect(stripTrailers(body)).toBe(body)
+  })
+
+  it('only strips from the end, never mid-body', () => {
+    const body = 'Co-Authored-By: A <a@b.c>\n\nThis paragraph is the real body.'
+    expect(stripTrailers(body)).toBe(body)
+  })
+
+  it('returns an empty string for a body that is only a trailer', () => {
+    expect(stripTrailers('Co-Authored-By: A <a@b.c>')).toBe('')
   })
 })

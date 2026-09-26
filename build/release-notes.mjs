@@ -34,6 +34,12 @@
  * blank line unless the commit is made with `--cleanup=verbatim`. Single blank
  * lines are untouched, which is all a short example needs.
  *
+ * The other side of "the bodies ARE the notes" is that a body is written for a
+ * reader of the release, not for the reviewer of the pull request. Suite counts,
+ * `eslint clean`, and how many pre-existing type errors main has are evidence
+ * that the change is sound, which belongs in the PR; published under a heading
+ * a month later it is noise, and the numbers are stale by then anyway.
+ *
  * Usage: node build/release-notes.mjs <previousTag> <ref> [authors.json]
  *   node build/release-notes.mjs v7.4.0 v7.5.0
  *   node build/release-notes.mjs v7.4.0 HEAD /tmp/authors.json
@@ -97,6 +103,35 @@ function commitsIn(range) {
 export const heading = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /**
+ * Git trailers that name a person rather than say anything.
+ *
+ * A body is published verbatim, so a `Co-Authored-By:` line arrives in the
+ * notes as a line of prose, which is how 7.6.0 shipped two of them. The people
+ * a trailer names are credited from the compare API instead, by the handle they
+ * are reachable at. `Closes` and `Fixes` deliberately stay: an issue number is
+ * something a reader follows.
+ */
+const PERSON_TRAILER =
+  /^(?:co-authored-by|signed-off-by|reviewed-by|acked-by|tested-by|helped-by|reported-by|suggested-by)\s*:/i
+
+/**
+ * Drop the person-naming trailers from the end of a commit body.
+ *
+ * Only from the end, and only whole lines. A trailer block is the last thing in
+ * a message, and something shaped like `Note: ...` mid-paragraph is prose that
+ * happens to contain a colon.
+ */
+export function stripTrailers(body) {
+  const lines = body.split('\n')
+  while (lines.length) {
+    const last = lines[lines.length - 1].trim()
+    if (last === '' || PERSON_TRAILER.test(last)) lines.pop()
+    else break
+  }
+  return lines.join('\n').trim()
+}
+
+/**
  * Whose work to name.
  *
  * Only people who are not whoever cut the release: a maintainer thanking
@@ -104,11 +139,16 @@ export const heading = (s) => s.charAt(0).toUpperCase() + s.slice(1)
  * something. Bots are never credited. A commit body that already says "thanks"
  * is left alone, because someone wrote that deliberately.
  */
-export function creditFor(commit, authors, releasedBy) {
+export function creditHandle(commit, authors, releasedBy) {
   const login = authors[commit.hash]
   if (!login || login.endsWith('[bot]') || login === releasedBy) return ''
   if (/thanks @/i.test(commit.body)) return ''
-  return `\n\nThanks @${login}.`
+  return login
+}
+
+export function creditFor(commit, authors, releasedBy) {
+  const login = creditHandle(commit, authors, releasedBy)
+  return login ? `\n\nThanks @${login}.` : ''
 }
 
 /**
@@ -164,14 +204,43 @@ export function unwrap(md) {
     .join('')
 }
 
+/**
+ * A commit with no body has nothing to tell a reader.
+ *
+ * It used to get a heading of its own with an apology underneath, which is how
+ * 7.6.0 published three `_No detail was written on this commit._` entries and
+ * gave "fix: address comments" a heading in the fixes list. A heading is a
+ * promise of detail; keeping it and admitting there is none reads as broken
+ * rather than honest.
+ *
+ * So these collapse to one line each at the end of their section. Nothing is
+ * hidden, since a real fix whose author simply forgot a body is indistinguishable
+ * from a follow-up with nothing to say, and dropping either would lose a change
+ * the reader might be looking for. `main` warns about them separately, which is
+ * the signal that a body should have been written before the release was cut.
+ */
 export function section(commits, types, title, authors, releasedBy) {
   const mine = commits.filter((c) => types.includes(c.type))
   if (!mine.length) return ''
-  const blocks = mine.map(
+
+  const described = []
+  const bare = []
+  for (const c of mine) (stripTrailers(c.body) ? described : bare).push(c)
+
+  const blocks = described.map(
     (c) =>
-      `### ${heading(c.title)}\n\n${unwrap(c.body) || '_No detail was written on this commit._'}` +
+      `### ${heading(c.title)}\n\n${unwrap(stripTrailers(c.body))}` +
       creditFor(c, authors, releasedBy)
   )
+
+  if (bare.length) {
+    const items = bare.map((c) => {
+      const who = creditHandle(c, authors, releasedBy)
+      return `- ${heading(c.title)}${who ? ` (@${who})` : ''}`
+    })
+    blocks.push(`**Also:**\n\n${items.join('\n')}`)
+  }
+
   return `## ${title}\n\n${blocks.join('\n\n')}\n\n`
 }
 
@@ -234,6 +303,21 @@ function main() {
     section(commits, ['feat'], '✨ New', authors, releasedBy),
     section(commits, ['fix'], '🐛 Fixes', authors, releasedBy),
   ].join('\n')
+
+  // Say which commits arrived with nothing to publish. They still appear, as a
+  // line each, but a `feat` or `fix` a reader might be looking for deserves a
+  // paragraph and the time to write one is before the release commit. Preview
+  // any range with `node build/release-notes.mjs <prev-tag> HEAD` to see this
+  // while it can still be fixed.
+  const bare = commits.filter(
+    (c) => ['feat', 'fix'].includes(c.type) && !stripTrailers(c.body)
+  )
+  if (bare.length) {
+    console.error(
+      `[release-notes] ${bare.length} commit${bare.length > 1 ? 's' : ''} with no body, listed without detail:`
+    )
+    for (const c of bare) console.error(`  ${c.hash.slice(0, 9)} ${c.type}: ${c.title}`)
+  }
 
   process.stdout.write(tidy(out).trimEnd() + '\n')
 }
