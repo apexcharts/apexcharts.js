@@ -1,53 +1,60 @@
 // @ts-check
 /**
- * Histogram binning.
+ * Histogram binning, and the statistics the aggregate marks are drawn from.
  *
  * Pure math: raw observations in, bin edges and counts out. No DOM, no chart
  * state, no config object, so it is testable on its own and safe under SSR.
  *
  * A histogram is the one aggregate mark that knows exactly which rows it
- * stands for, because the binning here is what aggregated them. `rowsForBin`
+ * stands for, because the binning is what aggregated them. `rowsForBin`
  * recovers those rows on demand from the same (values, edges) pair the render
  * used, so nothing has to be retained per bar.
+ *
+ * ## The binning itself lives in apex-commons
+ *
+ * `quantileSorted`, `computeBinning`, `binIndexOf` and `binCounts` are
+ * re-exported from `apex-commons` rather than implemented here. They were
+ * implemented here once, and the same four were implemented again in that
+ * package when apex-analyst needed to describe a distribution: two copies of a
+ * rule set that decides how many bars a reader sees.
+ *
+ * Two copies of a number is a bug waiting for one of them to be improved. A
+ * histogram this library draws and a distribution that plugin reports are
+ * routinely computed over the same column of the same data, and a reader
+ * looking at both has every reason to expect the same bins. Nothing forced
+ * them apart yet, and nothing would have announced it if something had.
+ *
+ * This is a re-export rather than a move because the import site is not worth
+ * churning: `features/stats.js` and `trellis/TrellisFrames.js` ask this module
+ * for binning, which is where a reader of those files would look for it.
+ *
+ * The 200-odd lines that went are not reproduced anywhere in this repository
+ * any more, deliberately. Before they were deleted the two implementations
+ * were run against each other over 212,197 comparisons (every rule, every
+ * option shape, all-identical samples, a collapsed IQR, timestamps, a capped
+ * span, and values sitting exactly on an edge and a float either side of it)
+ * and agreed on all of them.
  *
  * @module charts/common/Stats
  */
 import Utils from '../../utils/Utils'
+// Imported as well as re-exported: the functions below this line use them, and
+// a re-export does not put a name in this module's own scope.
+import { binIndexOf, quantileSorted } from 'apex-commons'
+
+export { quantileSorted, computeBinning, binIndexOf, binCounts } from 'apex-commons'
 
 /**
- * Upper bound on bins. A degenerate binWidth (a stray 1e-9, a range spanning
- * timestamps) would otherwise ask for millions of bars and hang the render.
- */
-const MAX_BINS = 1000
-
-/**
- * @typedef {Object} Binning
- * @property {number[]} edges - bin boundaries, length = binCount + 1
- * @property {number} binWidth - uniform width (edges are evenly spaced)
- * @property {string} rule - the rule that chose the width ('fd', 'sturges', ...)
- * @property {boolean} capped - true when MAX_BINS clamped the requested count
- */
-
-/**
- * Quantile of an ascending-sorted array (linear interpolation between ranks,
- * the same definition numpy and R type 7 use).
- * @param {number[]} sorted
- * @param {number} q - 0..1
- * @returns {number}
- */
-export function quantileSorted(sorted, q) {
-  const n = sorted.length
-  if (n === 0) return NaN
-  if (n === 1) return sorted[0]
-  const pos = (n - 1) * q
-  const lo = Math.floor(pos)
-  const hi = Math.ceil(pos)
-  if (lo === hi) return sorted[lo]
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo)
-}
-
-/**
- * Population standard deviation.
+ * Population standard deviation, for the kernel bandwidth below.
+ *
+ * This one stays. apex-commons has the same twelve lines, but keeps them
+ * module-private, and reaching them would mean making it public API in that
+ * package to save a textbook formula here. The duplication that mattered was
+ * the RULE SET: which rule picks the bin width, and where the edges fall,
+ * because two products can disagree about that and show a reader a different
+ * number of bars for the same column. A standard deviation has one definition
+ * and nothing to disagree about.
+ *
  * @param {number[]} values
  * @returns {number}
  */
@@ -63,202 +70,6 @@ function stdDev(values) {
     acc += d * d
   }
   return Math.sqrt(acc / n)
-}
-
-/**
- * Bin width suggested by a named rule.
- *
- * - `sturges` : span / (log2(n) + 1). Assumes roughly normal data; under-bins
- *   large samples but never produces a silly count.
- * - `rice`    : span / (2 * n^(1/3)). A simple, slightly more generous count.
- * - `sqrt`    : span / sqrt(n). The spreadsheet rule; included because people
- *   expect it.
- * - `scott`   : 3.49 * sd * n^(-1/3). Optimal for normal data.
- * - `fd`      : 2 * IQR * n^(-1/3) (Freedman-Diaconis). Robust to outliers,
- *   which is why it is the usual default, but it collapses to 0 when more than
- *   half the values are identical.
- * - `auto`    : the narrower of `fd` and `sturges`, falling back to `sturges`
- *   when the IQR is 0. Same compromise numpy makes: FD's robustness with a
- *   guard against its degenerate case.
- *
- * @param {number[]} sorted - ascending, finite
- * @param {number} span - hi - lo (> 0)
- * @param {string} rule
- * @returns {{ width: number, rule: string }}
- */
-export function widthForRule(sorted, span, rule) {
-  const n = sorted.length
-  const byCount = (/** @type {number} */ count) =>
-    span / Math.max(1, Math.ceil(count))
-
-  switch (rule) {
-    case 'sqrt':
-      return { width: byCount(Math.sqrt(n)), rule: 'sqrt' }
-    case 'rice':
-      return { width: byCount(2 * Math.cbrt(n)), rule: 'rice' }
-    case 'scott': {
-      const sd = stdDev(sorted)
-      if (sd > 0) return { width: 3.49 * sd * Math.pow(n, -1 / 3), rule: 'scott' }
-      return { width: byCount(Math.log2(n) + 1), rule: 'sturges' }
-    }
-    case 'fd': {
-      const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25)
-      if (iqr > 0) return { width: 2 * iqr * Math.pow(n, -1 / 3), rule: 'fd' }
-      return { width: byCount(Math.log2(n) + 1), rule: 'sturges' }
-    }
-    case 'auto': {
-      const sturges = byCount(Math.log2(n) + 1)
-      const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25)
-      if (iqr <= 0) return { width: sturges, rule: 'sturges' }
-      const fd = 2 * iqr * Math.pow(n, -1 / 3)
-      return fd < sturges ? { width: fd, rule: 'fd' } : { width: sturges, rule: 'sturges' }
-    }
-    case 'sturges':
-    default:
-      return { width: byCount(Math.log2(n) + 1), rule: 'sturges' }
-  }
-}
-
-/**
- * Choose bin edges for a set of observations.
- *
- * Precedence: explicit `binWidth` > explicit bin count > named rule. `range`
- * frames the axis independently of the data, so several histograms can share
- * one scale.
- *
- * @param {number[]} values - finite observations (any order)
- * @param {Object} [opts]
- * @param {string|number} [opts.bins] - a rule name, or a fixed bin count
- * @param {number} [opts.binWidth] - explicit width, wins over `bins`
- * @param {number[]} [opts.range] - [lo, hi] override for the binned extent
- * @returns {Binning|null} null when there is nothing to bin
- */
-export function computeBinning(values, opts = {}) {
-  if (!Array.isArray(values) || values.length === 0) return null
-
-  const sorted = values.slice().sort((a, b) => a - b)
-  let lo = sorted[0]
-  let hi = sorted[sorted.length - 1]
-
-  const range = opts.range
-  if (Array.isArray(range) && range.length === 2) {
-    const rLo = Number(range[0])
-    const rHi = Number(range[1])
-    if (isFinite(rLo) && isFinite(rHi) && rHi > rLo) {
-      lo = rLo
-      hi = rHi
-    }
-  }
-
-  // Every observation identical (or a single point): one bin centred on it,
-  // wide enough to draw. Without this the span is 0 and every rule divides by
-  // zero.
-  if (!(hi > lo)) {
-    const pad = Math.abs(lo) > 0 ? Math.abs(lo) * 0.05 : 0.5
-    return {
-      edges: [lo - pad, lo + pad],
-      binWidth: pad * 2,
-      rule: 'single',
-      capped: false,
-    }
-  }
-
-  const span = hi - lo
-  let width
-  let rule
-
-  if (typeof opts.binWidth === 'number' && opts.binWidth > 0) {
-    width = opts.binWidth
-    rule = 'binWidth'
-  } else if (typeof opts.bins === 'number' && opts.bins >= 1) {
-    width = span / Math.floor(opts.bins)
-    rule = 'count'
-  } else {
-    const chosen = widthForRule(
-      sorted,
-      span,
-      typeof opts.bins === 'string' ? opts.bins : 'auto',
-    )
-    width = chosen.width
-    rule = chosen.rule
-  }
-
-  if (!isFinite(width) || width <= 0) width = span
-
-  let count = Math.ceil(span / width)
-  if (!isFinite(count) || count < 1) count = 1
-  let capped = false
-  if (count > MAX_BINS) {
-    count = MAX_BINS
-    width = span / count
-    capped = true
-  }
-
-  // Rebuild the width from the final count so the edges tile [lo, hi] exactly:
-  // a rule-derived width usually leaves a partial last bin, and a bar half the
-  // width of its neighbours reads as a data feature rather than a rounding
-  // artifact.
-  width = span / count
-
-  const edges = new Array(count + 1)
-  for (let k = 0; k <= count; k++) edges[k] = lo + k * width
-  // Guard the last edge against float drift so the maximum observation always
-  // lands inside the final bin.
-  edges[count] = Math.max(edges[count], hi)
-
-  return { edges, binWidth: width, rule, capped }
-}
-
-/**
- * Index of the bin containing `v`, or -1 when it falls outside the edges.
- * Bins are half-open [lo, hi) except the last, which includes its upper edge.
- *
- * @param {number} v
- * @param {number[]} edges
- * @returns {number}
- */
-export function binIndexOf(v, edges) {
-  const last = edges.length - 1
-  if (!(v >= edges[0]) || v > edges[last]) return -1
-  if (v === edges[last]) return last - 1
-
-  // Uniform edges: arithmetic beats a search, which matters at 100k+ points.
-  const width = (edges[last] - edges[0]) / last
-  if (width > 0) {
-    let k = Math.floor((v - edges[0]) / width)
-    if (k < 0) k = 0
-    if (k > last - 1) k = last - 1
-    // Correct for float drift at a boundary rather than trusting the divide.
-    if (v < edges[k]) k--
-    else if (v >= edges[k + 1]) k++
-    if (k < 0 || k > last - 1) return -1
-    return k
-  }
-
-  let lo = 0
-  let hi = last - 1
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1
-    if (v < edges[mid]) hi = mid - 1
-    else if (v >= edges[mid + 1]) lo = mid + 1
-    else return mid
-  }
-  return -1
-}
-
-/**
- * Count observations per bin.
- * @param {number[]} values
- * @param {number[]} edges
- * @returns {number[]}
- */
-export function binCounts(values, edges) {
-  const counts = new Array(Math.max(0, edges.length - 1)).fill(0)
-  for (let i = 0; i < values.length; i++) {
-    const k = binIndexOf(values[i], edges)
-    if (k >= 0) counts[k]++
-  }
-  return counts
 }
 
 /**

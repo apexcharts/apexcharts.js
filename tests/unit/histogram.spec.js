@@ -11,7 +11,6 @@ import {
   normalizeCounts,
   quantileSorted,
   rowsForBin,
-  widthForRule,
 } from '../../src/charts/common/Stats'
 
 // `chart.type: 'histogram'` takes raw observations and bins them into one
@@ -119,29 +118,8 @@ describe('Binning — rules', () => {
     expect(quantileSorted([7], 0.9)).toBe(7)
   })
 
-  test('fd falls back to sturges when the IQR is 0', () => {
-    // 90% identical values: IQR collapses, FD width would be 0
-    const values = new Array(100).fill(5).concat([1, 9])
-    const sorted = values.slice().sort((a, b) => a - b)
-    const r = widthForRule(sorted, 8, 'fd')
-    expect(r.rule).toBe('sturges')
-    expect(r.width).toBeGreaterThan(0)
-  })
 
-  test('auto picks the narrower of fd and sturges', () => {
-    const values = sample(1000)
-    const sorted = values.slice().sort((a, b) => a - b)
-    const span = sorted[sorted.length - 1] - sorted[0]
-    const auto = widthForRule(sorted, span, 'auto')
-    const fd = widthForRule(sorted, span, 'fd')
-    const sturges = widthForRule(sorted, span, 'sturges')
-    expect(auto.width).toBeCloseTo(Math.min(fd.width, sturges.width), 10)
-  })
 
-  test('scott falls back to sturges on zero variance', () => {
-    const sorted = new Array(50).fill(3)
-    expect(widthForRule(sorted, 1, 'scott').rule).toBe('sturges')
-  })
 
   test('more data means more bins under every rule', () => {
     for (const rule of ['auto', 'fd', 'sturges', 'scott', 'rice', 'sqrt']) {
