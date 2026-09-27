@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.6.0
+ * ApexCharts v7.6.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -20257,8 +20257,9 @@ function register(typeMap) {
 function getChartClass(type) {
   const Cls = getRegistry$1()[type];
   if (!Cls) {
+    const optIn = RESERVED_TYPES.includes(type);
     throw new Error(
-      `ApexCharts: chart type "${type}" is not registered. Bundler: import 'apexcharts/${type}'. Script tag: add <script src=".../dist/${type}.js"> after apexcharts.core.js, or load the full apexcharts.js instead.`
+      `ApexCharts: chart type "${type}" is not registered. Bundler: import 'apexcharts/${type}'. Script tag: add <script src=".../dist/${type}.js"> after the ApexCharts script` + (optIn ? `. This type is opt-in and is NOT in the full apexcharts.js, so loading that bundle instead will not register it.` : `, or load the full apexcharts.js instead.`)
     );
   }
   return Cls;
