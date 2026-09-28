@@ -1,0 +1,56 @@
+{
+  "name": "eu",
+  "options": {
+    "months": [
+      "Urtarrila",
+      "Otsaila",
+      "Martxoa",
+      "Apirila",
+      "Maiatza",
+      "Ekaina",
+      "Uztaila",
+      "Abuztua",
+      "Iraila",
+      "Urria",
+      "Azaroa",
+      "Abendua"
+    ],
+    "shortMonths": [
+      "Urt",
+      "Ots",
+      "Mar",
+      "Api",
+      "Mai",
+      "Eka",
+      "Uzt",
+      "Abu",
+      "Ira",
+      "Urr",
+      "Aza",
+      "Abe"
+    ],
+    "days": [
+      "Igandea",
+      "Astelehena",
+      "Asteartea",
+      "Asteazkena",
+      "Osteguna",
+      "Ostirala",
+      "Larunbata"
+    ],
+    "shortDays": ["Ig", "Al", "Ar", "Az", "Og", "Or", "Lr"],
+    "toolbar": {
+      "exportToSVG": "Deskargatu SVG",
+      "exportToPNG": "Deskargatu PNG",
+      "exportToCSV": "Deskargatu CSV",
+      "menu": "Menua",
+      "selection": "Hautapena",
+      "selectionZoom": "Hautapen-zooma",
+      "zoomIn": "Handiagotu",
+      "zoomOut": "Txikiagotu",
+      "pan": "Desplazatu",
+      "reset": "Berrezarri zooma",
+      "measure": "Neurtu"
+    }
+  }
+}
