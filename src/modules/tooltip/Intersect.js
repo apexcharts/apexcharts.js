@@ -190,39 +190,55 @@ class Intersect {
 
     // Legacy placement (treemap, arrow disabled, or follow-cursor): tooltip
     // sits beside the cell, vertically centered on it.
-    x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
-    y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
+    const ttWidth = ttCtx.tooltipRect.ttWidth || 0
+    const ttHeight = ttCtx.tooltipRect.ttHeight || 0
 
-    if (x > w.layout.gridWidth / 2) {
-      x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
+    // `cx`/`cy` are grid-local, but the tooltip is absolutely positioned inside
+    // elWrap, so the grid's own offset has to be added back. Without it the box
+    // drifts left by the width of the y-axis and up by everything above the
+    // plot area.
+    const elWrapRect = w.dom.elWrap.getBoundingClientRect()
+    const elGridRect = opt.elGrid ? opt.elGrid.getBoundingClientRect() : null
+    const gridLeft = elGridRect
+      ? elGridRect.left - elWrapRect.left
+      : w.layout.translateX
+    const gridTop = w.layout.translateY
+    const gridRight = gridLeft + w.layout.gridWidth
+    const gridBottom = gridTop + w.layout.gridHeight
+
+    // Centering on the cell is `center - ttHeight / 2`; the two height terms
+    // used to be swapped, which on a tall tile (a treemap fills the plot area
+    // with them) threw the box half a tile ABOVE the cell and clean off the top
+    // of the page when the chart sat near it.
+    let cellX = cx + width + ttWidth / 2
+    const cellY = cy + height / 2 - ttHeight / 2
+
+    if (cellX > w.layout.gridWidth / 2) {
+      cellX = cx + width - ttWidth / 2
     }
+
+    x = gridLeft + cellX
+    y = gridTop + cellY
+
     if (TooltipUtils.isFollowCursor(w)) {
-      const seriesBound = w.dom.elWrap.getBoundingClientRect()
       x =
         (w.interact.clientX ?? 0) -
-        seriesBound.left -
-        (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
+        elWrapRect.left -
+        (cellX > w.layout.gridWidth / 2 ? ttWidth : 0)
       y =
         (w.interact.clientY ?? 0) -
-        seriesBound.top -
-        (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
+        elWrapRect.top -
+        (cellY > w.layout.gridHeight / 2 ? ttHeight : 0)
     }
 
     // A label wider than the space beside the cell pushes the box out of the
     // plot area — on a narrow screen it then hangs off the viewport and the
-    // text is unreadable. Clamp it back into the plot area horizontally, the
-    // same way the arrow-mode path above does.
-    const ttWidth = ttCtx.tooltipRect.ttWidth || 0
-    const elGridRect = opt.elGrid
-      ? opt.elGrid.getBoundingClientRect()
-      : null
-    const gridLeft = elGridRect
-      ? elGridRect.left - w.dom.elWrap.getBoundingClientRect().left
-      : w.layout.translateX
-    const gridRight = gridLeft + w.layout.gridWidth
-
+    // text is unreadable. Clamp it back into the plot area, the same way the
+    // arrow-mode path above does.
     if (x + ttWidth > gridRight) x = gridRight - ttWidth
     if (x < gridLeft) x = gridLeft
+    if (y + ttHeight > gridBottom) y = gridBottom - ttHeight
+    if (y < gridTop) y = gridTop
 
     return {
       x,
