@@ -12,6 +12,7 @@ import Utils from './utils/Utils'
 import { getThemePalettes } from './utils/ThemePalettes.js'
 import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
+import AxesUtils from './modules/axes/AxesUtils'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
@@ -744,6 +745,10 @@ export default class ApexCharts {
         })
       }
 
+      // Shortening a label is the last thing done to it, so only now is it
+      // known which labels still need their full text on hover.
+      AxesUtils.pruneRedundantLabelTitles(w.dom.baseEl)
+
       me.annotations?.drawAxesAnnotations()
 
       if (!w.globals.noData) {
@@ -1403,6 +1408,7 @@ export default class ApexCharts {
           }
         })
       }
+      AxesUtils.pruneRedundantLabelTitles(w.dom.baseEl)
 
       return true
     } catch (e) {

@@ -318,4 +318,45 @@ export default class AxesUtils {
       }
     }
   }
+
+  /**
+   * Drop the `<title>` from every axis label that is already drawn in full.
+   *
+   * That `<title>` exists for one case (#2281): the label had to be shortened
+   * to fit, so the only way back to the full text is a hover. On a label that
+   * fits, it is an exact copy of what is already on screen, and a browser
+   * raises a native tooltip over it that repeats the visible text and cannot
+   * be turned off (#5318). It also takes over the `<text>`'s accessible name,
+   * which the text content would otherwise supply by itself.
+   *
+   * Labels are shortened in a later pass over the rendered DOM, not where the
+   * `<title>` is attached, so this can only run once every axis is drawn and
+   * corrected.
+   *
+   * @param {Element | null | undefined} baseEl
+   */
+  static pruneRedundantLabelTitles(baseEl) {
+    if (!baseEl) return
+
+    const labels = baseEl.querySelectorAll(
+      '.apexcharts-xaxis-label, .apexcharts-xaxis-group-label, .apexcharts-yaxis-label',
+    )
+
+    labels.forEach((label) => {
+      const title = label.querySelector('title')
+      if (!title) return
+
+      // A multiline label is one tspan per line and its title joins the lines
+      // with a space, so read the drawn text back the same way.
+      const drawn = Array.prototype.filter
+        .call(label.childNodes, (/** @type {Node} */ node) => node !== title)
+        .map((/** @type {Node} */ node) => (node.textContent ?? '').trim())
+        .filter((/** @type {string} */ part) => part !== '')
+        .join(' ')
+
+      if (drawn === (title.textContent ?? '').trim()) {
+        title.remove()
+      }
+    })
+  }
 }
