@@ -338,7 +338,6 @@ class Intersect {
     let x = 0
     let y = 0
     let i = 0
-    let strokeWidth
     const barXY = this.getBarTooltipXY({
       e,
       opt,
@@ -360,15 +359,10 @@ class Intersect {
     ) {
       x = barXY.x
       y = barXY.y
-      strokeWidth = Array.isArray(w.config.stroke.width)
-        ? w.config.stroke.width[i]
-        : w.config.stroke.width
+      // Keep the pre-clamp x: the crosshair/x-axis-tooltip anchor below wants
+      // the bar's own coordinate, not the one nudged to keep the tooltip box
+      // inside the grid.
       bx = x
-    } else {
-      if (!w.globals.comboCharts && !w.config.tooltip.shared) {
-        // todo: re-check this condition as it's always 0
-        bx = bx / 2
-      }
     }
 
     // y is NaN, make it touch the bottom of grid area
@@ -397,11 +391,23 @@ class Intersect {
     }
 
     if (!w.config.tooltip.shared) {
-      if (w.globals.comboBarCount > 0) {
-        ttCtx.tooltipPosition.moveXCrosshairs(bx + strokeWidth / 2)
-      } else {
-        ttCtx.tooltipPosition.moveXCrosshairs(bx)
-      }
+      // The band has to sit centred on the column as it is PAINTED. Deriving
+      // that centre from the `cx`/`barWidth` attributes does not survive a
+      // stroke: the path is inset by half the stroke on each side, so `cx`
+      // moves left by strokeWidth/2 and the rendered width loses a whole
+      // strokeWidth — together they drag the band a full stroke width off the
+      // bar, and the bar's right edge falls outside it. (The `comboBarCount`
+      // branch that used to live here added back half of that, for combo
+      // charts only.) `barAnchorXInGrid` is the rect-derived centre, which is
+      // stroke independent because a stroke grows the bar symmetrically, so
+      // use it and let moveXCrosshairs subtract half the band width.
+      // Horizontal bar-likes draw no x crosshair; they only feed the x-axis
+      // tooltip, which wants the bar's END, i.e. the already-computed `x`.
+      const crosshairX =
+        !w.globals.isBarHorizontal && barXY.barAnchorXInGrid !== null
+          ? barXY.barAnchorXInGrid
+          : bx
+      ttCtx.tooltipPosition.moveXCrosshairs(crosshairX)
     }
 
     if (
