@@ -615,6 +615,30 @@ describe('Updates', () => {
     expect(JSON.stringify(chart.w.rangeData.seriesRangeEnd)).toBe(before)
   })
 
+  test('updateOptions({ series }) accumulates the NEW deltas', async () => {
+    // The raw-delta stash is what stops a re-render re-accumulating pairs, but
+    // it also outlives the input it was taken from. updateOptions({ series })
+    // redefines that input just as updateSeries() does, so the stash has to be
+    // dropped or the chart keeps redrawing the rows it was first given.
+    const chart = wfChart()
+    expect(chart.w.rangeData.seriesRangeEnd[0].length).toBe(CASHFLOW.length)
+
+    await chart.updateOptions({
+      series: [
+        {
+          name: 'Cash flow',
+          data: [
+            { x: 'a', y: 50 },
+            { x: 'b', y: 25 },
+          ],
+        },
+      ],
+    })
+
+    expect(chart.w.rangeData.seriesRangeStart[0]).toEqual([0, 50])
+    expect(chart.w.rangeData.seriesRangeEnd[0]).toEqual([50, 75])
+  })
+
   test('updateSeries accumulates the new deltas from scratch', async () => {
     const chart = wfChart()
     await chart.updateSeries([
