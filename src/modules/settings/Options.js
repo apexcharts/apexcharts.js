@@ -373,9 +373,13 @@ export default class Options {
         tooltip: 'panel',
         zoom: 'sync', // 'sync' (drag/wheel zoom moves every panel) | 'none'
         // Panel promotion: clicking a cell's header expands that panel to
-        // the grid's full width, with an "All panels" breadcrumb back
-        // (also chart.promotePanel(key) / chart.restorePanels()).
-        promote: true,
+        // the grid's full width, with an "All panels" breadcrumb back.
+        // OFF by default: a trellis embedded in a page is usually read, not
+        // driven, and taking over the grid on a stray header click is a large
+        // surprise for an interaction nobody asked for. Opt in with
+        // `promote: true`, or drive it from
+        // chart.promotePanel(key) / chart.restorePanels() without it.
+        promote: false,
         // Pie/donut/polarArea only: scale each panel's radius so its AREA is
         // proportional to the panel's total (equal-size pies cannot encode
         // magnitude, which is the honest objection to a pie trellis).

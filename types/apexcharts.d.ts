@@ -1532,8 +1532,10 @@ type ApexTrellis = {
   zoom?: 'sync' | 'none'
   /**
    * Clicking a cell's header expands that panel to the grid's full width,
-   * with an "All panels" breadcrumb back (default true). Also available as
-   * chart.promotePanel(key) / chart.restorePanels().
+   * with an "All panels" breadcrumb back. Default false: an embedded trellis
+   * is usually read rather than driven, so headers are inert unless you ask
+   * for the interaction. `chart.promotePanel(key)` / `chart.restorePanels()`
+   * work either way.
    */
   promote?: boolean
   /**

@@ -153,7 +153,9 @@ describe('panel promotion', () => {
   })
 
   it('a header click promotes; clicking the promoted header restores', async () => {
-    const { chart, el } = await renderTrellis()
+    const { chart, el } = await renderTrellis({
+      trellis: { promote: true },
+    })
     const header = el.querySelectorAll('.apexcharts-trellis-header')[2]
     expect(header.classList.contains('apexcharts-trellis-header-clickable')).toBe(true)
     header.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -165,15 +167,33 @@ describe('panel promotion', () => {
     chart.destroy()
   })
 
-  it('promote: false leaves headers inert', async () => {
-    const { chart, el } = await renderTrellis({
-      trellis: { promote: false },
-    })
-    const header = el.querySelector('.apexcharts-trellis-header')
-    expect(header.classList.contains('apexcharts-trellis-header-clickable')).toBe(false)
-    header.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await new Promise((r) => setTimeout(r, 0))
-    expect(chart.trellis._promotedKey).toBeNull()
+  // The default. An embedded trellis is read, not driven, so taking over the
+  // whole grid on a stray header click is a surprise nobody asked for.
+  it('headers are inert unless promote is asked for', async () => {
+    for (const trellis of [undefined, { promote: false }]) {
+      const { chart, el } = await renderTrellis(trellis ? { trellis } : {})
+      const header = el.querySelector('.apexcharts-trellis-header')
+      expect(
+        header.classList.contains('apexcharts-trellis-header-clickable'),
+      ).toBe(false)
+      header.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await new Promise((r) => setTimeout(r, 0))
+      expect(chart.trellis._promotedKey).toBeNull()
+      chart.destroy()
+    }
+  })
+
+  // The API is independent of the click affordance: a page that wants
+  // promotion from its own button never has to turn the headers on.
+  it('promotePanel works with the default (inert) headers', async () => {
+    const { chart, el } = await renderTrellis()
+    await chart.promotePanel('South')
+    expect(chart.trellis._promotedKey).toBe('South')
+    expect(
+      el.querySelectorAll('.apexcharts-trellis-cell')[1].classList.contains(
+        'apexcharts-trellis-cell-promoted',
+      ),
+    ).toBe(true)
     chart.destroy()
   })
 
