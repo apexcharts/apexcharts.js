@@ -155,9 +155,9 @@
     simply unmounts them) and a breadcrumb restores the grid. Clicking the
     promoted header again also restores. The same flow is scriptable:
     &lt;code&gt;chart.promotePanel(&#39;checkout&#39;)&lt;/code&gt; and
-    &lt;code&gt;chart.restorePanels()&lt;/code&gt;. Set &lt;code&gt;trellis.promote:
-    false&lt;/code&gt; to make headers inert. Trellis is a premium feature; without
-    a license it renders with a trial watermark.
+    &lt;code&gt;chart.restorePanels()&lt;/code&gt;. Headers are inert unless you set
+    &lt;code&gt;trellis.promote: true&lt;/code&gt;, as this demo does. Trellis is a
+    premium feature; without a license it renders with a trial watermark.
   &lt;/div&gt;
 &lt;/div&gt;</div>
 
@@ -178,6 +178,7 @@
               minPanelWidth: 250,
               panelHeight: 140,
               gap: 12,
+              promote: true,
             },
             colors: ['#0891B2'],
             stroke: {
@@ -231,10 +232,9 @@
                 simply unmounts them) and a breadcrumb restores the grid. Clicking the
                 promoted header again also restores. The same flow is scriptable:
                 <code>chart.promotePanel('checkout')</code> and
-                <code>chart.restorePanels()</code>. Set{' '}
-                <code>trellis.promote: false</code> to make headers inert. Trellis is
-                a premium feature; without a license it renders with a trial
-                watermark.
+                <code>chart.restorePanels()</code>. Headers are inert unless you set
+                <code>trellis.promote: true</code>, as this demo does. Trellis is a
+                premium feature; without a license it renders with a trial watermark.
               </div>
             </div>
             <div id="html-dist"></div>

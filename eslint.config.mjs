@@ -16,6 +16,9 @@ export default [
       'node_modules/**',
       'nbproject/**',
       'docs/**',
+      // Gitignored scratch: repro pages, drivers, and vendored old releases
+      // pulled in for before/after comparison. Not ours to lint.
+      'issues/**',
       '*.config.js',
       '*.config.mjs',
       'jest.config.js',

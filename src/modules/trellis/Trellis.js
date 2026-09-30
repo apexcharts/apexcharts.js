@@ -78,6 +78,36 @@ const PANEL_PAD_RECLAIM_BOTTOM = 7
 const PANEL_PAD_RECLAIM_BOTTOM_DATETIME = 2
 
 /**
+ * Top-level options that change how a panel PAINTS and nothing else: not the
+ * split, not a shared domain, not the grid geometry, not the shared chrome.
+ * An update touching only these is pushed straight to the live panels, so a
+ * recolour no longer destroys and rebuilds every chart in the grid (which
+ * threw away hover state, focus and any in-panel zoom with it).
+ *
+ * `colors` is in the set even though the trellis owns the series→colour map,
+ * because that map is resolved by a pure function this path re-runs.
+ * Everything absent from this list — `trellis`, `series`, `chart`, the axes,
+ * `theme`, `plotOptions`, `title`, `legend`, `responsive` — still rebuilds,
+ * because each of those can move the split, the shared scales, the layout or
+ * the chrome, and a half-applied structural change is worse than a rebuild.
+ *
+ * @type {string[]}
+ */
+const PANEL_ONLY_OPTIONS = [
+  'annotations',
+  'colors',
+  'dataLabels',
+  'fill',
+  'forecastDataPoints',
+  'grid',
+  'markers',
+  'noData',
+  'states',
+  'stroke',
+  'tooltip',
+]
+
+/**
  * Panel height (px) below which panels default to `tooltip.compact`. A normal
  * card runs ~45px for one row and ~110px for three, so on a panel this short
  * it covers the line it is captioning. Set `tooltip.compact` yourself (either
@@ -231,9 +261,17 @@ export default class Trellis {
     this.elGrid = null
     this._mounted = false
     this._rendering = false
+    /** @type {Promise<void>|null} the in-flight render, for whenSettled() */
+    this._renderPromise = null
     /** rAF handle for the coalesced relayout */
     this._raf = 0
     this._lastWidth = 0
+    /** Last laid-out host height, so a HEIGHT-only resize still refits. */
+    this._lastHeight = 0
+    /** Measured height of the shared chrome (title / toolbar / legend). */
+    this._chromeH = 0
+    /** Whether the too-tall-for-its-host warning has been emitted once. */
+    this._overflowWarned = false
     this._resizeHandler = this._onContainerResize.bind(this)
     this.autoScaleYaxis = false
     /** @type {HTMLElement|null} */
@@ -304,6 +342,22 @@ export default class Trellis {
       return { ...this.cfg, columns: this.split.colKeys.length }
     }
     return this.cfg
+  }
+
+  /**
+   * The stacking facts the shared-scale resolver needs. A stacked panel is as
+   * tall as its tallest PILE, so the shared y domain has to come from the
+   * stack totals; without this every panel got a domain sized by the largest
+   * single value and the taller stacks drew straight off the top of the plot.
+   * @returns {{ stacked: boolean, stackType: string|undefined, stackOnlyBar: boolean }}
+   */
+  _stackingHost() {
+    const chart = this.w.config.chart || {}
+    return {
+      stacked: !!chart.stacked,
+      stackType: chart.stackType,
+      stackOnlyBar: !!chart.stackOnlyBar,
+    }
   }
 
   /**
@@ -381,11 +435,54 @@ export default class Trellis {
   }
 
   /**
+   * Fire a trellis event through BOTH channels, the way every other chart
+   * event reaches its caller: the `chart.events.<name>` config callback and
+   * the `addEventListener` registry. `Events.fireEvent` only walks the
+   * registry, so the four trellis events used to be invisible to anyone who
+   * wired them up the ordinary way, in `chart.events`.
+   *
+   * Argument order matches what the registry has always been handed
+   * (`ctx` first, then the payload), so existing listeners are unaffected.
+   *
+   * @param {string} name
+   * @param {Record<string, any>} payload
+   */
+  _fire(name, payload) {
+    const cb = this.w.config.chart?.events?.[name]
+    if (typeof cb === 'function') cb(this.ctx, payload)
+    this.ctx.events.fireEvent(name, [this.ctx, payload])
+  }
+
+  /**
    * Render the whole trellis into the host element. Called by the host's
    * render() INSTEAD of the normal create()/mount() pipeline.
+   *
+   * The returned promise is also kept as `_renderPromise` so the host's
+   * update seams can WAIT for an in-flight mount instead of racing it (an
+   * update that arrived mid-mount used to fall through to the single-chart
+   * pipeline and draw a stray plain chart beside the grid).
+   *
    * @returns {Promise<void>}
    */
-  async render() {
+  render() {
+    const p = this._render()
+    this._renderPromise = p
+    return p
+  }
+
+  /**
+   * Resolves when nothing is mounting. Safe to call at any time: it is the
+   * in-flight render's own promise, or an already-resolved one.
+   * @returns {Promise<void>}
+   */
+  whenSettled() {
+    return this._rendering && this._renderPromise
+      ? this._renderPromise.catch(() => {})
+      : Promise.resolve()
+  }
+
+  /** @returns {Promise<void>} */
+  async _render() {
     const w = this.w
     if (this._mounted || this._rendering) return
     if (!Environment.isBrowser()) {
@@ -417,7 +514,9 @@ export default class Trellis {
       }
 
       // 1. Split (union x alignment included, 22a D5).
-      const split = splitSeries(inputSeries, this.cfg)
+      const split = splitSeries(inputSeries, this.cfg, {
+        chartType: w.config.chart.type,
+      })
       this.split = split
       split.warnings.forEach((msg) => console.warn(`ApexCharts: ${msg}`))
       if (!split.panels.length) return
@@ -482,6 +581,7 @@ export default class Trellis {
         chartType: w.config.chart.type,
         userColors: this.ctx.opts && this.ctx.opts.colors,
         yExtentOverride: this._frames.yExtentOverride,
+        ...this._stackingHost(),
       })
 
       // 2.5 Renderer policy (P2): one uniform grid-level decision.
@@ -496,11 +596,14 @@ export default class Trellis {
       this._buildSkeleton()
       const width = this._containerWidth()
       this._lastWidth = width
+      this._lastHeight = this._hostHeight() || 0
+      this._chromeH = 0
       this.layout = TrellisLayout.compute({
         panelCount: split.panels.length,
         containerWidth: width,
         cfg: this._layoutCfg(),
         hostHeight: this._hostHeight(),
+        chromeHeight: this._chromeH,
       })
       this._applyGridStyle()
       this._buildCells()
@@ -533,10 +636,11 @@ export default class Trellis {
           )
           panel.chart = chart
           await chart.render()
-          this.ctx.events.fireEvent('panelMounted', [
-            this.ctx,
-            { key: panel.key, index: panel.index, chart },
-          ])
+          this._fire('panelMounted', {
+            key: panel.key,
+            index: panel.index,
+            chart,
+          })
         }
 
         // 5. Independent-y gutter pass: one measured minWidth, pushed to all,
@@ -559,6 +663,13 @@ export default class Trellis {
         this.gridTooltip.wire(/** @type {HTMLElement} */ (this.elGrid), wrap)
       }
 
+      this._mounted = true
+
+      // 6.5 The first layout ran before the chrome existed, so it sized the
+      //     panels against the whole host. Now that the title / toolbar /
+      //     legend are measurable, give back the height they take.
+      this._refitForChrome()
+
       // 7. One ResizeObserver for the whole grid; panels have both
       //    redrawOn*Resize flags off, so this is the only relayout owner.
       addResizeListener(
@@ -566,16 +677,12 @@ export default class Trellis {
         this._resizeHandler,
       )
 
-      this._mounted = true
       // The host never runs its own render pipeline, so nothing else would
       // ever flip its animationEnded flag; screenshot/e2e harnesses key on
       // it. Eager grids are done here; virtualized grids flip it when the
       // mount drain goes idle (TrellisVirtual).
       if (!useVirtual) w.globals.animationEnded = true
-      this.ctx.events.fireEvent('trellisMounted', [
-        this.ctx,
-        { panels: this.getPanels() },
-      ])
+      this._fire('trellisMounted', { panels: this.getPanels() })
     } finally {
       this._rendering = false
     }
@@ -588,13 +695,62 @@ export default class Trellis {
     return rect.width || el.clientWidth || 800
   }
 
-  /** Explicit numeric host height, if the user set one. */
+  /**
+   * The height the trellis has to lay out in, in px, or undefined when the
+   * host has not asked for one (then the grid sizes itself by aspect ratio).
+   *
+   * A PERCENTAGE height is a percentage of the container's parent, the same
+   * contract `Core.setSVGDimensions` gives a standalone chart. Running it
+   * through a bare `parseFloat` instead read `'100%'` as 100 PIXELS, so a
+   * full-height trellis laid itself out for a 100px box and every panel came
+   * out at the minimum-height floor.
+   *
+   * @returns {number|undefined}
+   */
   _hostHeight() {
     const h = this.w.config.chart && this.w.config.chart.height
-    const n = typeof h === 'string' ? parseFloat(h) : h
-    return typeof n === 'number' && isFinite(n) && n > 0 && String(h) !== 'auto'
-      ? n
-      : undefined
+    if (h === undefined || h === null || h === '' || h === 'auto') {
+      return undefined
+    }
+    const str = String(h).trim()
+
+    if (str.endsWith('%')) {
+      const pct = parseFloat(str)
+      if (!isFinite(pct) || pct <= 0) return undefined
+      // The parent, not the host: the host is what the grid is drawn INTO, so
+      // measuring it would feed the grid's own height back into the layout.
+      const parent = /** @type {any} */ (this.ctx.el)?.parentNode
+      if (!parent || typeof parent.getBoundingClientRect !== 'function') {
+        return undefined
+      }
+      const box = parent.getBoundingClientRect().height || parent.clientHeight
+      const resolved = ((box || 0) * pct) / 100
+      return resolved > 0 ? resolved : undefined
+    }
+
+    const n = parseFloat(str)
+    return isFinite(n) && n > 0 ? n : undefined
+  }
+
+  /**
+   * Height taken by the shared chrome — the title above, the toolbar band, the
+   * legend below — i.e. everything inside the wrapper that is not the grid.
+   * Measured rather than modelled: the pieces are optional, wrap at narrow
+   * widths, and a heatmap's gradient legend is a different height again.
+   *
+   * Zero before the chrome exists (the first layout runs before it is built);
+   * `_refitForChrome` runs one more layout once it does.
+   *
+   * @returns {number}
+   */
+  _chromeHeight() {
+    const wrap = this.elWrap
+    const grid = this.elGrid
+    if (!wrap || !grid || typeof wrap.getBoundingClientRect !== 'function') {
+      return 0
+    }
+    const h = wrap.getBoundingClientRect().height - grid.getBoundingClientRect().height
+    return isFinite(h) && h > 0 ? h : 0
   }
 
   _buildSkeleton() {
@@ -609,6 +765,16 @@ export default class Trellis {
     }
     wrap.id = `apexcharts-trellis${this.w.globals.chartID}`
     wrap.setAttribute('data-tooltip-mode', this.cfg.tooltip || 'panel')
+
+    // The trellis chrome is HTML, not SVG, so it cannot inherit the ink colour
+    // the panels' axis labels get from `chart.foreColor`. Publishing that one
+    // resolved value as a custom property is what makes panel headers, strip
+    // labels, the shared legend and the toolbar follow `theme.mode` (and an
+    // explicit `chart.foreColor`) instead of sitting at a hard-coded grey on a
+    // dark page. The CSS reads it UNDER `--apx-fore`, so a page-level design
+    // token still wins, exactly as it does for the rest of the chrome.
+    const foreColor = this.w.config.chart?.foreColor
+    if (foreColor) wrap.style.setProperty('--apx-trellis-fore', foreColor)
 
     const chromeTop = BrowserAPIs.createElement('div')
     chromeTop.className = 'apexcharts-trellis-chrome'
@@ -1061,6 +1227,41 @@ export default class Trellis {
     }
   }
 
+  /**
+   * Re-run the layout now that the shared chrome is measurable, so the panels
+   * get the host height MINUS the title / toolbar / legend rather than all of
+   * it. Only matters when the host gave a height at all — an aspect-ratio grid
+   * is sized by its width and grows downward as much as it likes.
+   */
+  _refitForChrome() {
+    const hostH = this._hostHeight()
+    if (!hostH) return
+    const chromeH = this._chromeHeight()
+    if (chromeH <= 0 || Math.round(chromeH) === Math.round(this._chromeH)) {
+      this._warnIfOverflowing()
+      return
+    }
+    this._chromeH = chromeH
+    this._relayout(this._containerWidth())
+  }
+
+  /**
+   * Say so, once, when the minimum-panel-height floor has made the grid taller
+   * than the box it was given. Silently overflowing is the thing that gets
+   * reported as a bug; the floor itself is deliberate (panels below it are
+   * unreadable), so the useful answer is which knob to turn.
+   */
+  _warnIfOverflowing() {
+    const ly = this.layout
+    if (!ly || !ly.overflowH || this._overflowWarned) return
+    this._overflowWarned = true
+    console.warn(
+      `ApexCharts: trellis needs ${Math.round(ly.gridH + this._chromeH)}px but its container gives ${Math.round(this._hostHeight() || 0)}px; ` +
+        `${ly.rows} rows cannot go below the ${ly.panelH}px panel floor. ` +
+        'Raise the container, use fewer panels (trellis.limit) or more columns (trellis.columns), or lower trellis.minPanelHeight.',
+    )
+  }
+
   /** rAF-coalesced container resize -> single trellis-owned relayout. */
   _onContainerResize() {
     if (!this._mounted) return
@@ -1068,8 +1269,18 @@ export default class Trellis {
     this._raf = requestAnimationFrame(() => {
       this._raf = 0
       const width = this._containerWidth()
-      if (Math.round(width) === Math.round(this._lastWidth)) return
+      const height = this._hostHeight() || 0
+      // A height-only resize is a real relayout: with a percentage height the
+      // panels are sized FROM the container, so returning early on an
+      // unchanged width left every panel at its old height forever.
+      if (
+        Math.round(width) === Math.round(this._lastWidth) &&
+        Math.round(height) === Math.round(this._lastHeight)
+      ) {
+        return
+      }
       this._lastWidth = width
+      this._lastHeight = height
       if (this._promotedKey) {
         // While promoted the grid layout is suspended; the promoted panel
         // just re-measures its new width.
@@ -1134,10 +1345,7 @@ export default class Trellis {
         .updateOptions({ chart: { height: promotedH } }, false, false, false)
         .catch(() => {})
     }
-    this.ctx.events.fireEvent('panelPromoted', [
-      this.ctx,
-      { key: panel.key, chart: panel.chart },
-    ])
+    this._fire('panelPromoted', { key: panel.key, chart: panel.chart })
   }
 
   /** Restore the grid from a promotion. @returns {Promise<void>} */
@@ -1166,10 +1374,7 @@ export default class Trellis {
     this._lastWidth = 0
     this._relayout(this._containerWidth())
     this._lastWidth = this._containerWidth()
-    this.ctx.events.fireEvent('panelRestored', [
-      this.ctx,
-      { key: panel ? panel.key : null },
-    ])
+    this._fire('panelRestored', { key: panel ? panel.key : null })
   }
 
   /**
@@ -1187,8 +1392,10 @@ export default class Trellis {
       containerWidth: width,
       cfg: this._layoutCfg(),
       hostHeight: this._hostHeight(),
+      chromeHeight: this._chromeH,
     })
     this._applyGridStyle()
+    this._warnIfOverflowing()
     const ly = this.layout
     this.panels.forEach((p, i) => {
       if (p.cellEl) this._applyCellMutes(p.cellEl, ly.cells[i])
@@ -1203,6 +1410,72 @@ export default class Trellis {
     // The observer's one-row look-ahead margin tracks the panel height, and
     // a recolumn changes which cells intersect; re-observing reconciles both.
     if (this._virtualActive) this.virtual.refresh()
+  }
+
+  /**
+   * Can this option change reach the panels without rebuilding the grid?
+   *
+   * Every top-level key has to be one that only affects how a panel paints
+   * (`PANEL_ONLY_OPTIONS`), and the grid has to be in its ordinary state: a
+   * promoted panel carries a height the shared layout does not know about, so
+   * re-pushing the layout's height would silently un-promote it.
+   *
+   * @param {Record<string, any>|undefined} options
+   * @returns {boolean}
+   */
+  canApplyInPlace(options) {
+    if (!this._mounted || this._promotedKey) return false
+    if (!options || typeof options !== 'object') return false
+    const keys = Object.keys(options)
+    if (!keys.length) return false
+    return keys.every((k) => PANEL_ONLY_OPTIONS.includes(k))
+  }
+
+  /**
+   * Re-derive each live panel's options from the host's (already merged)
+   * config and push them, leaving the grid, the panels and their state alone.
+   *
+   * Re-assembling rather than forwarding the caller's patch is deliberate: the
+   * panel options are composed (scoped annotations, the shared colour map, the
+   * compact-tooltip rule, the padding reclaim), and forwarding a raw patch
+   * would drop whichever of those the patch happens to overlap.
+   *
+   * @param {boolean} [animate]
+   * @returns {Promise<void>}
+   */
+  async applyPanelOptions(animate = true) {
+    const split = this.split
+    if (!split) return
+
+    // `colors` feeds the series→colour map, so re-resolve it first. Pure and
+    // cheap: no DOM, no panels touched.
+    const scalesCfg =
+      this._yMode() !== (this.cfg.scales?.y || 'shared')
+        ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y: this._yMode() } }
+        : this.cfg
+    this.scales = TrellisScales.resolve(split, scalesCfg, {
+      chartType: this.w.config.chart.type,
+      userColors: this.ctx.opts && this.ctx.opts.colors,
+      yExtentOverride: this._frames ? this._frames.yExtentOverride : null,
+      ...this._stackingHost(),
+    })
+
+    await Promise.all(
+      this.panels.map((p) => {
+        if (!p.chart) return Promise.resolve()
+        const opts = this._assemblePanelOptions(p.index)
+        // The data did not change, and neither did the geometry: pushing them
+        // again would re-run the whole parse for a recolour.
+        delete opts.series
+        if (opts.chart) delete opts.chart.height
+        return p.chart
+          .updateOptions(opts, false, animate, false, false)
+          .catch(() => {})
+      }),
+    )
+
+    // The shared legend paints its markers from the colour map.
+    this.chrome.refreshLegendColors?.()
   }
 
   /**
@@ -1226,7 +1499,9 @@ export default class Trellis {
     if (this.ctx.opts) this.ctx.opts.series = newSeries
     if (!this._mounted) return this.ctx.render()
 
-    const nextSplit = splitSeries(newSeries || [], this.cfg)
+    const nextSplit = splitSeries(newSeries || [], this.cfg, {
+      chartType: w.config.chart.type,
+    })
     const sameKeys =
       nextSplit.panels.length === this.panels.length &&
       nextSplit.panels.every((p, i) => p.key === this.panels[i].key)
@@ -1254,6 +1529,7 @@ export default class Trellis {
       chartType: w.config.chart.type,
       userColors: this.ctx.opts && this.ctx.opts.colors,
       yExtentOverride: this._frames.yExtentOverride,
+      ...this._stackingHost(),
     })
     const scales = this.scales
     const frames = this._frames

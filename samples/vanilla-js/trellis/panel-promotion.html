@@ -145,9 +145,9 @@
           simply unmounts them) and a breadcrumb restores the grid. Clicking the
           promoted header again also restores. The same flow is scriptable:
           <code>chart.promotePanel('checkout')</code> and
-          <code>chart.restorePanels()</code>. Set <code>trellis.promote:
-          false</code> to make headers inert. Trellis is a premium feature; without
-          a license it renders with a trial watermark.
+          <code>chart.restorePanels()</code>. Headers are inert unless you set
+          <code>trellis.promote: true</code>, as this demo does. Trellis is a
+          premium feature; without a license it renders with a trial watermark.
         </div>
       </div>
 
@@ -166,6 +166,7 @@
           minPanelWidth: 250,
           panelHeight: 140,
           gap: 12,
+          promote: true,
         },
         colors: ['#0891B2'],
         stroke: {

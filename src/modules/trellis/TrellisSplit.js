@@ -189,12 +189,39 @@ function collectUnion(contributing, warnings) {
 }
 
 /**
+ * Chart types whose marks are POINTS, not slots.
+ *
+ * Union alignment exists so that ragged panels of bars / lines still satisfy
+ * the pixel-alignment invariant (bar width and category positions derive from
+ * the panel's own point count) and so the group's index-matched tooltip sync
+ * captions the same x everywhere. A point cloud has neither property: x is a
+ * position on a continuous axis, nothing is indexed by slot, and two marks may
+ * legitimately share an x. Aligning one therefore did real damage — it dropped
+ * every duplicate x with a warning, and it padded each panel out to the union
+ * of EVERY panel's x values, so `dataPointIndex` in an event named a position
+ * in that union rather than in the panel's own data.
+ *
+ * @type {string[]}
+ */
+export const POINT_MARK_TYPES = ['scatter', 'bubble']
+
+/**
+ * Whether a chart type's panels should be re-emitted against the union x list.
+ * @param {string|undefined} chartType
+ * @returns {boolean}
+ */
+export function alignsToUnionX(chartType) {
+  return !POINT_MARK_TYPES.includes(chartType || '')
+}
+
+/**
  * Build the aligner: re-emits one series against the union x list, recording
  * trellis-wide series names first-seen.
  * @param {ReturnType<typeof collectUnion>} u
  * @param {string[]} warnings mutated
+ * @param {boolean} [alignToUnion] false leaves each panel's own points alone
  */
-function makeAligner(u, warnings) {
+function makeAligner(u, warnings, alignToUnion = true) {
   /** @type {string[]} */
   const seriesNames = []
   const nameSeen = new Set()
@@ -212,6 +239,12 @@ function makeAligner(u, warnings) {
     }
     /** @type {any} */
     const out = { ...s, name }
+    if (!alignToUnion) {
+      // Point marks: the panel keeps its own points, in its own order, at
+      // their own indices. The shared x DOMAIN still comes from the union.
+      out.data = Array.isArray(s.data) ? s.data.slice() : []
+      return out
+    }
     if (form === 'plain' || form === 'empty') {
       // Positional data: pad the tail with nulls to the longest plain series
       // (or to the union length when keyed series define the frame).
@@ -294,12 +327,15 @@ export function placeholderSeries(splitResult, opts = {}) {
  *
  * @param {any[]} series the host config series
  * @param {{ by?: string|Function, row?: string|Function, column?: string|Function, order?: any, limit?: number }} cfg
+ * @param {{ chartType?: string }} [host] the chart type decides whether panels
+ *   are re-emitted against the union x list (see `alignsToUnionX`)
  * @returns {TrellisSplitResult}
  */
-export function split(series, cfg = {}) {
+export function split(series, cfg = {}, host = {}) {
   /** @type {string[]} */
   const warnings = []
   const list = Array.isArray(series) ? series : []
+  const alignToUnion = alignsToUnionX(host.chartType)
 
   if (cfg.row || cfg.column) {
     if (cfg.by) {
@@ -307,7 +343,7 @@ export function split(series, cfg = {}) {
         'trellis: `by` is ignored when `row`/`column` are set (they are mutually exclusive)',
       )
     }
-    return split2d(list, cfg, warnings)
+    return split2d(list, cfg, warnings, alignToUnion)
   }
 
   const by = cfg.by || 'facet'
@@ -347,7 +383,7 @@ export function split(series, cfg = {}) {
     .reduce((/** @type {any[]} */ acc, k) => acc.concat(byKey.get(k) || []), [])
     .concat(repeated)
   const u = collectUnion(contributing, warnings)
-  const { align, seriesNames } = makeAligner(u, warnings)
+  const { align, seriesNames } = makeAligner(u, warnings, alignToUnion)
 
   const panels = keys.map((key) => {
     const own = (byKey.get(key) || []).map(align)
@@ -401,9 +437,10 @@ function emptyResult(warnings) {
  * @param {any[]} list
  * @param {{ row?: string|Function, column?: string|Function, order?: any, limit?: number }} cfg
  * @param {string[]} warnings
+ * @param {boolean} [alignToUnion]
  * @returns {TrellisSplitResult}
  */
-function split2d(list, cfg, warnings) {
+function split2d(list, cfg, warnings, alignToUnion = true) {
   const rowBy = cfg.row
   const colBy = cfg.column
 
@@ -476,7 +513,7 @@ function split2d(list, cfg, warnings) {
 
   // Everything renders somewhere, so everything feeds the union.
   const u = collectUnion(list, warnings)
-  const { align, seriesNames } = makeAligner(u, warnings)
+  const { align, seriesNames } = makeAligner(u, warnings, alignToUnion)
 
   /** @type {TrellisSlice[]} */
   const panels = []

@@ -331,10 +331,12 @@ export default class TrellisVirtual {
       }
     }
 
-    t.ctx.events.fireEvent('panelMounted', [
-      t.ctx,
-      { key: panel.key, index: panel.index, chart, remounted: !!stash },
-    ])
+    t._fire('panelMounted', {
+      key: panel.key,
+      index: panel.index,
+      chart,
+      remounted: !!stash,
+    })
   }
 
   /** @param {any} panel */

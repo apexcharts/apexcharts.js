@@ -929,11 +929,29 @@ export default class ApexCharts {
     // Trellis (#22): an option change on a live trellis host is structural
     // (it can move the split, the scales, the layout or any panel option), so
     // it merges into the host's config and re-renders the whole grid.
-    if (this.trellis && this.trellis._mounted) {
+    //
+    // `_rendering` counts as much as `_mounted`: an update that lands while
+    // the first render is still mounting panels used to miss this branch and
+    // fall through to the single-chart pipeline, which drew a plain chart
+    // beside the half-built grid and left it there. Merge now, rebuild once
+    // the in-flight mount has settled.
+    if (this.trellis && (this.trellis._mounted || this.trellis._rendering)) {
+      const inPlace = this.trellis.canApplyInPlace(options)
       this.opts = Utils.extend(this.opts || {}, options || {})
       this.w.config = Utils.extend(w.config, options || {})
-      this.trellis.teardown()
-      return this.render()
+      const settled = this.trellis._rendering
+        ? this.trellis.whenSettled()
+        : Promise.resolve()
+      return settled.then(() => {
+        // A change that only affects how a panel PAINTS goes to the live
+        // panels. Rebuilding for every option, however small, threw away
+        // hover state, keyboard focus and each panel's own zoom.
+        if (inPlace && this.trellis.canApplyInPlace(options)) {
+          return this.trellis.applyPanelOptions(animate).then(() => this)
+        }
+        this.trellis.teardown()
+        return this.render()
+      })
     }
 
     // when called externally, clear some global variables
@@ -1034,7 +1052,13 @@ export default class ApexCharts {
     }
     // Trellis (#22): the host re-splits and fans the new slices out to its
     // panels (same key set: in-place panel updates; changed key set: a full
-    // trellis re-render).
+    // trellis re-render). As in updateOptions, an in-flight mount counts:
+    // falling through here drew a stray single chart beside the grid.
+    if (this.trellis && this.trellis._rendering) {
+      return this.trellis
+        .whenSettled()
+        .then(() => this.trellis.updateSeries(newSeries, animate))
+    }
     if (this.trellis && this.trellis._mounted) {
       return this.trellis.updateSeries(newSeries, animate)
     }

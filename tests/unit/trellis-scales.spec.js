@@ -3,6 +3,7 @@ import {
   niceBounds,
   yExtent,
   yExtentInWindow,
+  stackedYExtent,
   resolve,
 } from '../../src/modules/trellis/TrellisScales'
 import { split } from '../../src/modules/trellis/TrellisSplit'
@@ -159,5 +160,81 @@ describe('TrellisScales.resolve', () => {
       { userColors: ['#111111', '#222222'] },
     )
     expect(r.colorOf('Rev')).toBe('#111111')
+  })
+})
+
+describe('TrellisScales: a stacked trellis shares the STACK domain', () => {
+  // East piles 40 + 40 = 80 at Q1 while no single value tops 45. A shared
+  // scale built from single values clips exactly the panel the shared scale
+  // exists to make comparable.
+  const stacked = [
+    { name: 'A', k: 'East', data: [{ x: 'Q1', y: 40 }, { x: 'Q2', y: 45 }] },
+    { name: 'B', k: 'East', data: [{ x: 'Q1', y: 40 }, { x: 'Q2', y: 35 }] },
+    { name: 'A', k: 'West', data: [{ x: 'Q1', y: 20 }, { x: 'Q2', y: 25 }] },
+    { name: 'B', k: 'West', data: [{ x: 'Q1', y: 15 }, { x: 'Q2', y: 10 }] },
+  ]
+  const mkSplit = (series) => split(series, { by: 'k' })
+
+  it('stackedYExtent measures the piles, not the values', () => {
+    const s = mkSplit(stacked)
+    expect(yExtent(s.panels, s.xForm)).toEqual({ min: 10, max: 45 })
+    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: 0, max: 80 })
+  })
+
+  it('positive and negative runs accumulate away from the baseline separately', () => {
+    const s = mkSplit([
+      { name: 'A', k: 'p', data: [{ x: 1, y: 30 }] },
+      { name: 'B', k: 'p', data: [{ x: 1, y: 20 }] },
+      { name: 'C', k: 'p', data: [{ x: 1, y: -15 }] },
+      { name: 'D', k: 'p', data: [{ x: 1, y: -25 }] },
+    ])
+    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: -40, max: 50 })
+  })
+
+  it('groups pile separately, the way the core groups them', () => {
+    const s = mkSplit([
+      { name: 'A', k: 'p', group: 'g1', data: [{ x: 1, y: 30 }] },
+      { name: 'B', k: 'p', group: 'g1', data: [{ x: 1, y: 20 }] },
+      { name: 'C', k: 'p', group: 'g2', data: [{ x: 1, y: 40 }] },
+    ])
+    // 50, not 90: g1 and g2 are two piles side by side.
+    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: 0, max: 50 })
+  })
+
+  it('stackOnlyBar keeps a reference line out of the pile but on the axis', () => {
+    const s = mkSplit([
+      { name: 'A', k: 'p', data: [{ x: 1, y: 30 }] },
+      { name: 'B', k: 'p', data: [{ x: 1, y: 20 }] },
+      { name: 'Target', k: 'p', type: 'line', data: [{ x: 1, y: 70 }] },
+    ])
+    expect(stackedYExtent(s.panels, s.xForm, { stackOnlyBar: true })).toEqual({
+      min: 0,
+      max: 70,
+    })
+    // Without the flag everything stacks: 30 + 20 + 70.
+    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: 0, max: 120 })
+  })
+
+  it('resolve uses the stack totals when the chart is stacked', () => {
+    const plain = resolve(mkSplit(stacked), {}, { chartType: 'bar' })
+    // Sized by the largest single value: East's 80-tall stack draws off the top.
+    expect(plain.y.max).toBeLessThan(80)
+
+    const piled = resolve(
+      mkSplit(stacked),
+      {},
+      { chartType: 'bar', stacked: true },
+    )
+    expect(piled.y.max).toBeGreaterThanOrEqual(80)
+  })
+
+  it("'100%' is left alone: the core renormalizes every stack to 0..100 itself", () => {
+    const a = resolve(mkSplit(stacked), {}, { chartType: 'bar' })
+    const b = resolve(
+      mkSplit(stacked),
+      {},
+      { chartType: 'bar', stacked: true, stackType: '100%' },
+    )
+    expect(b.y).toEqual(a.y)
   })
 })

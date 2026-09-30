@@ -711,7 +711,8 @@ test.describe('trellis virtualization (P2)', () => {
  *   - one scope-free annotation declaration projects into EVERY panel through
  *     each panel's own scale (positions differ under independent y).
  *   - dataURI() returns one PNG of the whole grid.
- *   - a header click promotes the panel to full grid width; the breadcrumb
+ *   - with `promote: true`, a header click promotes the panel to full grid
+ *     width; the breadcrumb
  *     restores.
  */
 test.describe('trellis P3 (one chart)', () => {
@@ -862,7 +863,9 @@ test.describe('trellis P3 (one chart)', () => {
   test('header click promotes the panel full-width; breadcrumb restores', async ({
     page,
   }) => {
-    const errors = await mountTrellis(page, GRID6())
+    // Headers are inert by default (an embedded trellis is read, not driven);
+    // the click affordance is what `promote: true` buys.
+    const errors = await mountTrellis(page, GRID6(`, promote: true`))
     const gridW = await page.evaluate(
       () =>
         document

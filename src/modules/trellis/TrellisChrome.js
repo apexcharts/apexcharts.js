@@ -246,6 +246,25 @@ export default class TrellisChrome {
   }
 
   /**
+   * Repaint the shared legend's markers from the current colour map, without
+   * rebuilding the legend (which would drop the collapsed state a viewer has
+   * toggled). Used by the in-place option update, where `colors` may have
+   * moved but nothing structural has.
+   */
+  refreshLegendColors() {
+    const t = this.trellis
+    const legend = this.elLegend
+    const scales = t.scales
+    if (!legend || !scales) return
+    const items = legend.querySelectorAll('.apexcharts-trellis-legend-item')
+    items.forEach((/** @type {any} */ item) => {
+      const name = item.querySelector('.apexcharts-legend-text')?.textContent
+      const marker = item.querySelector('.apexcharts-legend-marker')
+      if (name && marker) marker.style.background = scales.colorOf(name)
+    })
+  }
+
+  /**
    * One shared gradient strip for a heatmap grid (P5). Every panel carries
    * the same pushed colorScale min/max (TrellisFrames), so any ONE mounted
    * panel's strip is THE grid's scale; it draws detached into a trellis-owned

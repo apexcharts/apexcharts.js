@@ -6,6 +6,31 @@ import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import PerformanceCache from '../../utils/PerformanceCache'
 
+/**
+ * Drop every stash of RAW series input a series transform accumulates from.
+ *
+ * The transforms that derive their rows (the zoom-aware downsampler, the
+ * histogram's observations, the waterfall's deltas, the dumbbell's measures,
+ * the streamgraph's values, the treemap's levels) keep the caller's input in a
+ * stash, because `Data.parseData` writes what they return back to
+ * `config.series`: re-running against the derived rows would bin, accumulate or
+ * stack a level deeper on every render. The flip side is that a stash outlives
+ * the input it was taken from, so whenever a caller REDEFINES the series it has
+ * to go, or the transform keeps rebuilding the first dataset forever.
+ *
+ * One list, called from both update paths, so the two cannot drift apart.
+ *
+ * @param {any} w
+ */
+function clearRawSeriesStashes(w) {
+  w.globals.dataReducerRawSeries = null
+  w.globals.histogramRawSeries = null
+  w.globals.waterfallRawSeries = null
+  w.globals.dumbbellRawSeries = null
+  w.globals.streamgraphRawSeries = null
+  w.globals.treemapRawSeries = null
+}
+
 export default class UpdateHelpers {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -142,6 +167,21 @@ export default class UpdateHelpers {
             delete options.yaxis
           }
 
+          // updateOptions({ series }) redefines the INPUT just as updateSeries()
+          // does, so the raw stashes have to go with it — otherwise a waterfall
+          // keeps re-accumulating the deltas it was first given and silently
+          // ignores every later series (same for histogram, dumbbell,
+          // streamgraph and treemap, which stash the same way).
+          //
+          // `overwriteInitialConfig` draws the line `_updateSeries` draws with
+          // `overwriteInitialSeries`: the public API sets it, while the
+          // library's own replays (a Rewind restore, a trellis panel sync, a
+          // storyboard beat) pass false and hand back DERIVED rows. Clearing on
+          // those would feed the accumulated pairs back in as deltas.
+          if (overwriteInitialConfig && Array.isArray(options.series)) {
+            clearRawSeriesStashes(w)
+          }
+
           w.config = Utils.extend(w.config, options)
 
           // Type defaults are applied once, by Config.init, and this path
@@ -270,12 +310,7 @@ export default class UpdateHelpers {
       // level deeper. `Data.parseData` already draws this same line for each of
       // these when it decides what initialSeries means.
       if (overwriteInitialSeries) {
-        w.globals.dataReducerRawSeries = null
-        w.globals.histogramRawSeries = null
-        w.globals.waterfallRawSeries = null
-        w.globals.dumbbellRawSeries = null
-        w.globals.streamgraphRawSeries = null
-        w.globals.treemapRawSeries = null
+        clearRawSeriesStashes(w)
       }
 
       const definedSeries = newSeries
