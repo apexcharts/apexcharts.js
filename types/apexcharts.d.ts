@@ -1462,6 +1462,13 @@ type ApexTrellis = {
   aspectRatio?: number
   /** Explicit panel height in px; wins over aspectRatio and chart.height. */
   panelHeight?: number
+  /**
+   * Floor for a height-derived panel, px. Default 80. Below this a panel
+   * stops being readable, so a grid that cannot fit its container overflows
+   * (and warns) rather than shrink past it. Lower it when fitting a short
+   * container matters more than panel legibility.
+   */
+  minPanelHeight?: number
   /** Panel order. Default 'first-seen'. */
   order?:
     | 'first-seen'

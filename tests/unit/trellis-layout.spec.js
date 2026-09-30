@@ -142,3 +142,74 @@ describe('TrellisLayout.compute', () => {
     ).toBe(0)
   })
 })
+
+describe('TrellisLayout.compute: the shared chrome and the panel floor', () => {
+  const base = { minPanelWidth: 220, gap: 12 }
+
+  it('subtracts the chrome height, so the grid fits the host instead of overflowing it', () => {
+    // 4 panels, 2 cols, 2 rows in a 400px host with 60px of shared chrome
+    // (title + legend). Available for panels: 400 - 60 - 2*22 - 12 = 284.
+    const ly = compute({
+      panelCount: 4,
+      containerWidth: 700,
+      cfg: base,
+      hostHeight: 400,
+      chromeHeight: 60,
+    })
+    expect(ly.rows).toBe(2)
+    expect(ly.panelH).toBe(142)
+    expect(ly.gridH).toBe(2 * (142 + 22) + 12)
+    expect(ly.gridH + 60).toBeLessThanOrEqual(400)
+    expect(ly.overflowH).toBe(0)
+  })
+
+  it('omitting the chrome height is what used to overflow by exactly that much', () => {
+    const withChrome = compute({
+      panelCount: 4,
+      containerWidth: 700,
+      cfg: base,
+      hostHeight: 400,
+      chromeHeight: 60,
+    })
+    const without = compute({
+      panelCount: 4,
+      containerWidth: 700,
+      cfg: base,
+      hostHeight: 400,
+    })
+    expect(without.gridH - withChrome.gridH).toBe(60)
+  })
+
+  it('reports the overflow the panel floor forces rather than absorbing it', () => {
+    // 6 panels, 2 cols, 3 rows in 300px: the floor wins and the grid is taller
+    // than the host. Silently overflowing is what gets reported as a bug.
+    const ly = compute({
+      panelCount: 6,
+      containerWidth: 500,
+      cfg: { ...base, columns: 2 },
+      hostHeight: 300,
+      chromeHeight: 24,
+    })
+    expect(ly.panelH).toBe(80)
+    expect(ly.overflowH).toBe(ly.gridH + 24 - 300)
+    expect(ly.overflowH).toBeGreaterThan(0)
+  })
+
+  it('minPanelHeight lets a short host fit', () => {
+    const ly = compute({
+      panelCount: 6,
+      containerWidth: 500,
+      cfg: { ...base, columns: 2, minPanelHeight: 40 },
+      hostHeight: 300,
+      chromeHeight: 24,
+    })
+    expect(ly.panelH).toBeLessThan(80)
+    expect(ly.overflowH).toBe(0)
+  })
+
+  it('an aspect-ratio grid has no host to overflow', () => {
+    const ly = compute({ panelCount: 4, containerWidth: 700, cfg: base })
+    expect(ly.overflowH).toBe(0)
+    expect(ly.gridH).toBeGreaterThan(0)
+  })
+})

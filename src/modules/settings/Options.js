@@ -318,6 +318,11 @@ export default class Options {
         gap: 12, // px between cells
         aspectRatio: 1.6, // panel w:h when no explicit height governs
         panelHeight: undefined, // px; wins over aspectRatio/chart.height
+        // Floor for a height-derived panel. Below ~80px a panel stops being
+        // readable and Dimensions starts producing degenerate plot boxes, so
+        // a grid that cannot fit its host overflows rather than shrink past
+        // this. Lower it when fitting a short container matters more.
+        minPanelHeight: 80, // px
         order: 'first-seen', // | 'asc' | 'desc' | string[] | comparator
         limit: undefined, // render only the first N panels (warns)
         // Virtualization: 'auto' mounts only the panels intersecting the

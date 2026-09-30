@@ -1443,13 +1443,13 @@ rect.legend-mouseover-inactive,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
 .apexcharts-trellis-title {
   font-size: 14px;
   font-weight: 700;
   padding: 2px 0 6px;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
 /* Edge-label policy: a muted cell hides its axis-label INK, never the label
    SPACE — every panel keeps the identical plot rectangle, and flipping the
@@ -1473,7 +1473,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis-strip {
   font-size: 12px;
   font-weight: 600;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1502,7 +1502,7 @@ rect.legend-mouseover-inactive,
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
   opacity: 0.45;
   pointer-events: none;
 }
@@ -1519,7 +1519,7 @@ rect.legend-mouseover-inactive,
    shift; the skeleton itself is a quiet tinted block. Deliberately not
    animated: a shimmering grid of 200 placeholders is noise. */
 .apexcharts-trellis-panel.apexcharts-trellis-skeleton {
-  background: var(--apx-fore, #373d3f);
+  background: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
   opacity: 0.05;
   border-radius: 4px;
 }
@@ -1547,7 +1547,7 @@ rect.legend-mouseover-inactive,
   opacity: 0;
   transition: opacity 0.1s ease;
   background: var(--apx-bg, #fff);
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
   border: 1px solid rgba(120, 120, 120, 0.25);
   border-radius: 5px;
   box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
@@ -1624,7 +1624,7 @@ rect.legend-mouseover-inactive,
   gap: 6px;
   font-size: 12px;
   padding: 2px 0 6px;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
 .apexcharts-trellis-breadcrumb-back {
   border: none;
@@ -1669,7 +1669,7 @@ rect.legend-mouseover-inactive,
   padding: 5px 8px;
   border-radius: 3px;
   cursor: pointer;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
 .apexcharts-trellis-menu-item:hover {
   background: rgba(120, 120, 120, 0.12);
@@ -1692,7 +1692,7 @@ rect.legend-mouseover-inactive,
   line-height: 0;
 }
 .apexcharts-trellis-tool:hover {
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
 .apexcharts-trellis-tool.apexcharts-selected {
   color: var(--apx-accent, #008ffb);
@@ -1719,7 +1719,7 @@ rect.legend-mouseover-inactive,
 }
 .apexcharts-trellis-legend-item .apexcharts-legend-text {
   font-size: 12px;
-  color: var(--apx-fore, #373d3f);
+  color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
 .apexcharts-trellis-legend-item.apexcharts-inactive-legend {
   opacity: 0.45;

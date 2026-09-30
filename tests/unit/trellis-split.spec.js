@@ -191,3 +191,75 @@ describe('TrellisSplit.split', () => {
     expect(res.panels[1].seriesNames).toEqual(['Rev'])
   })
 })
+
+describe('TrellisSplit: point marks keep their own points', () => {
+  // Union alignment is for slot marks (bars, lines): it is what makes ragged
+  // panels pixel-align and what makes the index-matched tooltip sync caption
+  // the same x everywhere. A scatter has neither property, and aligning one
+  // dropped duplicate x values and re-indexed every event.
+  const cloud = [
+    {
+      name: 'S',
+      k: 'P1',
+      data: [{ x: 1, y: 10 }, { x: 2, y: 12 }, { x: 2, y: 20 }],
+    },
+    { name: 'S', k: 'P2', data: [{ x: 5, y: 30 }, { x: 6, y: 31 }] },
+  ]
+
+  it('scatter keeps duplicate x values instead of dropping them with a warning', () => {
+    const res = split(cloud, { by: 'k' }, { chartType: 'scatter' })
+    expect(res.panels[0].series[0].data).toEqual([
+      { x: 1, y: 10 },
+      { x: 2, y: 12 },
+      { x: 2, y: 20 },
+    ])
+    expect(res.warnings.filter((w) => /duplicate x/.test(w))).toHaveLength(0)
+  })
+
+  it("scatter indices are positions in the panel's OWN data, not in the union", () => {
+    const res = split(cloud, { by: 'k' }, { chartType: 'scatter' })
+    // P2's first point is its own first point, not union index 2.
+    expect(res.panels[1].series[0].data[0]).toEqual({ x: 5, y: 30 })
+    expect(res.panels[1].series[0].data).toHaveLength(2)
+  })
+
+  it('the shared x DOMAIN still spans every panel', () => {
+    const res = split(cloud, { by: 'k' }, { chartType: 'scatter' })
+    expect(res.unionX).toEqual([1, 2, 5, 6])
+    expect(res.xIsNumeric).toBe(true)
+  })
+
+  it('bubble is a point cloud too', () => {
+    const res = split(cloud, { by: 'k' }, { chartType: 'bubble' })
+    expect(res.panels[0].series[0].data).toHaveLength(3)
+  })
+
+  it('a slot type still aligns to the union, nulls and all', () => {
+    const res = split(cloud, { by: 'k' }, { chartType: 'line' })
+    expect(res.panels[1].series[0].data).toEqual([
+      { x: 1, y: null },
+      { x: 2, y: null },
+      { x: 5, y: 30 },
+      { x: 6, y: 31 },
+    ])
+    expect(res.warnings.some((w) => /duplicate x/.test(w))).toBe(true)
+  })
+
+  it('no chart type means align (the pre-existing default)', () => {
+    const res = split(cloud, { by: 'k' })
+    expect(res.panels[0].series[0].data).toHaveLength(4)
+  })
+
+  it('a 2-D scatter grid is unaligned too', () => {
+    const res = split(
+      [
+        { name: 'S', r: 'r1', c: 'c1', data: [{ x: 1, y: 1 }, { x: 1, y: 9 }] },
+        { name: 'S', r: 'r1', c: 'c2', data: [{ x: 4, y: 2 }] },
+      ],
+      { row: 'r', column: 'c' },
+      { chartType: 'scatter' },
+    )
+    expect(res.panels[0].series[0].data).toHaveLength(2)
+    expect(res.panels[1].series[0].data).toHaveLength(1)
+  })
+})

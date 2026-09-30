@@ -31,7 +31,18 @@
  * @property {number} headerH
  * @property {number} gap
  * @property {TrellisCell[]} cells
+ * @property {number} gridH the grid's total height (panels + headers + gaps)
+ * @property {number} overflowH px by which `gridH` + chrome exceeds the host,
+ *   after the minimum-panel-height floor; 0 when it fits or the host height
+ *   is unknown
  */
+
+/**
+ * Panel height below which a panel is unreadable and `Dimensions` starts
+ * producing degenerate plot rectangles. The default floor; callers may lower
+ * it through `trellis.minPanelHeight` when a small host matters more.
+ */
+export const DEFAULT_MIN_PANEL_HEIGHT = 80
 
 /**
  * Which grid row is the BOTTOM of column `c`. With a ragged last row the
@@ -69,21 +80,34 @@ export function resolveColumns(containerWidth, panelCount, cfg = {}) {
 /**
  * Compute the grid.
  *
+ * `chromeHeight` is the vertical space the grid does NOT get: the shared
+ * title, the toolbar band and the shared legend all live in the trellis
+ * wrapper alongside the grid. Subtracting it is what stops a full-height
+ * trellis laying its panels out for the whole host and then overflowing it by
+ * exactly the height of its own chrome.
+ *
  * @param {{
  *   panelCount: number,
  *   containerWidth: number,
  *   cfg: {
  *     columns?: number|'auto', minPanelWidth?: number, gap?: number,
- *     aspectRatio?: number, panelHeight?: number,
+ *     aspectRatio?: number, panelHeight?: number, minPanelHeight?: number,
  *     header?: { show?: boolean },
  *     axes?: { labels?: 'edges'|'all'|'none' },
  *     scales?: { x?: string, y?: string },
  *   },
  *   hostHeight?: number,
+ *   chromeHeight?: number,
  * }} input
  * @returns {TrellisLayoutResult}
  */
-export function compute({ panelCount, containerWidth, cfg, hostHeight }) {
+export function compute({
+  panelCount,
+  containerWidth,
+  cfg,
+  hostHeight,
+  chromeHeight,
+}) {
   const gap = cfg.gap ?? 12
   const cols = resolveColumns(containerWidth, panelCount, cfg)
   const rows = Math.max(1, Math.ceil(panelCount / cols))
@@ -91,17 +115,34 @@ export function compute({ panelCount, containerWidth, cfg, hostHeight }) {
   const headerShown = !cfg.header || cfg.header.show !== false
   const headerH = headerShown ? 22 : 0
 
+  // Everything the grid itself cannot use: the header band above each row, the
+  // gaps between rows, and the shared chrome outside the grid.
+  const chromeH = Math.max(0, chromeHeight || 0)
+  const nonPanelH = rows * headerH + gap * (rows - 1) + chromeH
+  const availableH =
+    typeof hostHeight === 'number' && hostHeight > 0 ? hostHeight : 0
+
   const panelW = Math.max(0, (containerWidth - gap * (cols - 1)) / cols)
   let panelH
   if (typeof cfg.panelHeight === 'number' && cfg.panelHeight > 0) {
     panelH = cfg.panelHeight
-  } else if (typeof hostHeight === 'number' && hostHeight > 0) {
-    panelH = (hostHeight - rows * headerH - gap * (rows - 1)) / rows
+  } else if (availableH > 0) {
+    panelH = (availableH - nonPanelH) / rows
   } else {
     panelH = panelW / (cfg.aspectRatio ?? 1.6)
   }
-  // A panel below this is unreadable and Dimensions gets degenerate.
-  panelH = Math.max(80, Math.round(panelH))
+  const minPanelH =
+    typeof cfg.minPanelHeight === 'number' && cfg.minPanelHeight > 0
+      ? cfg.minPanelHeight
+      : DEFAULT_MIN_PANEL_HEIGHT
+  panelH = Math.max(minPanelH, Math.round(panelH))
+
+  const gridH = rows * (panelH + headerH) + gap * (rows - 1)
+  // What the floor (or an explicit panelHeight) costs the host. Reported
+  // rather than silently absorbed, so the orchestrator can say WHY a grid is
+  // taller than the box it was given.
+  const overflowH =
+    availableH > 0 ? Math.max(0, gridH + chromeH - availableH) : 0
 
   const labelsMode = (cfg.axes && cfg.axes.labels) || 'edges'
   const scales = cfg.scales || {}
@@ -138,5 +179,5 @@ export function compute({ panelCount, containerWidth, cfg, hostHeight }) {
     return { i, r, c, showXLabels, showYLabels }
   })
 
-  return { cols, rows, panelW, panelH, headerH, gap, cells }
+  return { cols, rows, panelW, panelH, headerH, gap, cells, gridH, overflowH }
 }
