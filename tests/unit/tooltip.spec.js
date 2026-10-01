@@ -1410,3 +1410,93 @@ describe('Tooltip integration (chart rendering)', () => {
     expect(groups.length).toBe(2)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Tooltip config after updateOptions
+// ---------------------------------------------------------------------------
+
+// The module is built once per chart and outlives every update, while
+// `updateOptions` replaces `w.config.tooltip` with a merged object. It used to
+// capture that object at construction, so every later tooltip option was
+// accepted and silently dropped. The visible one: toggling `theme.mode` to
+// dark at runtime turned the axes dark and left the tooltip white.
+describe('Tooltip config follows updateOptions', () => {
+  const mount = (tooltip, extra = {}) =>
+    createChartWithOptions({
+      chart: { type: 'bar' },
+      series: [
+        { name: 'A', data: [10, 20, 30] },
+        { name: 'B', data: [15, 25, 35] },
+      ],
+      xaxis: { categories: ['x', 'y', 'z'] },
+      tooltip,
+      ...extra,
+    })
+
+  const themeClass = (chart) => {
+    const el = chart.el.querySelector('.apexcharts-tooltip')
+    if (el.classList.contains('apexcharts-theme-dark')) return 'dark'
+    if (el.classList.contains('apexcharts-theme-light')) return 'light'
+    return 'none'
+  }
+
+  it('reads the live config, not the one the chart was born with', async () => {
+    const chart = mount({ shared: false, intersect: false })
+    expect(chart.tooltip.tConfig).toBe(chart.w.config.tooltip)
+
+    await chart.updateOptions({ tooltip: { shared: true, intersect: false } })
+    // The identity matters: every `this.tConfig.*` and `ttCtx.tConfig.*` read
+    // in the module and its sub-modules resolves through this one reference.
+    expect(chart.tooltip.tConfig).toBe(chart.w.config.tooltip)
+    expect(chart.tooltip.tConfig.shared).toBe(true)
+    chart.destroy()
+  })
+
+  it('a runtime theme toggle reaches the tooltip, not just the axes', async () => {
+    const chart = mount({}, { theme: { mode: 'light' } })
+    expect(themeClass(chart)).toBe('light')
+
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expect(themeClass(chart)).toBe('dark')
+
+    // And back, so this is a live read rather than a one-way latch.
+    await chart.updateOptions({ theme: { mode: 'light' } })
+    expect(themeClass(chart)).toBe('light')
+    chart.destroy()
+  })
+
+  it('an updated chart matches one built with the same options', async () => {
+    const target = { shared: true, intersect: false, x: { show: false } }
+
+    const born = mount(target)
+    const updated = mount({ shared: false, intersect: true, x: { show: true } })
+    await updated.updateOptions({ tooltip: target })
+
+    const read = (c) => ({
+      shared: c.tooltip.tConfig.shared,
+      xShow: c.tooltip.tConfig.x.show,
+      showOnIntersect: c.tooltip.showOnIntersect,
+      showTooltipTitle: c.tooltip.showTooltipTitle,
+      fixedTooltip: c.tooltip.fixedTooltip,
+    })
+    expect(read(updated)).toEqual(read(born))
+    born.destroy()
+    updated.destroy()
+  })
+
+  it('the flags derived from it are re-derived too, not just the object', async () => {
+    const chart = mount({ shared: false, intersect: true })
+    expect(chart.tooltip.showOnIntersect).toBe(true)
+
+    await chart.updateOptions({ tooltip: { shared: false, intersect: false } })
+    expect(chart.tooltip.showOnIntersect).toBe(false)
+
+    // `fixed.enabled` and `x.show` ride the same path.
+    await chart.updateOptions({
+      tooltip: { fixed: { enabled: true }, x: { show: false } },
+    })
+    expect(chart.tooltip.fixedTooltip).toBe(true)
+    expect(chart.tooltip.showTooltipTitle).toBe(false)
+    chart.destroy()
+  })
+})

@@ -28,8 +28,6 @@ export default class Tooltip {
     this.w = w
     this.ctx = ctx // needed: getGroupedCharts, getSyncedCharts, fireEvent, XAxis instantiation
 
-    this.tConfig = w.config.tooltip
-
     this.tooltipUtil = new Utils(this)
     this.tooltipLabels = new Labels(this)
     this.tooltipPosition = new Position(this)
@@ -108,6 +106,23 @@ export default class Tooltip {
     this.barSeriesHeight = 0
     /** @type {{ x: number, y: number, ttWidth: number, ttHeight: number }} */
     this.tooltipRect = { x: 0, y: 0, ttWidth: 0, ttHeight: 0 }
+  }
+
+  /**
+   * The live tooltip config.
+   *
+   * Deliberately not captured at construction. This module is built once per
+   * chart and outlives every update, while `updateOptions` REPLACES
+   * `w.config.tooltip` with a merged object, so a held reference freezes the
+   * tooltip on the options the chart was born with. That is how a runtime
+   * theme toggle left a dark chart carrying a white tooltip (the axes read
+   * the live config, the tooltip did not), and how a later `shared`,
+   * `intersect` or `x.show` was accepted and silently dropped.
+   *
+   * The sub-modules read it back through `ttCtx.tConfig`, so they follow.
+   */
+  get tConfig() {
+    return this.w.config.tooltip
   }
 
   setupDimensionCache() {
@@ -213,6 +228,14 @@ export default class Tooltip {
   drawTooltip(xyRatios) {
     const w = this.w
     this.xyRatios = xyRatios
+    // Re-derive what the constructor seeded. These are read off the config
+    // once and then carried, and every update hands us a new config, so a
+    // render is the moment to take them again. `showOnIntersect` in
+    // particular is forced true further down for some chart shapes, which
+    // only makes sense starting from what the user currently asks for.
+    this.showOnIntersect = this.tConfig.intersect
+    this.showTooltipTitle = this.tConfig.x.show
+    this.fixedTooltip = this.tConfig.fixed.enabled
     this.isXAxisTooltipEnabled =
       w.config.xaxis.tooltip.enabled && w.globals.axisCharts
     /**
