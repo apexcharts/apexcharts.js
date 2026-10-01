@@ -34,12 +34,12 @@ var __async = (__this, __arguments, generator) => {
         reject(e);
       }
     };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
 /*!
- * ApexCharts v7.6.1
+ * ApexCharts v7.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1316,19 +1316,19 @@ function resolveStops(cfg, min, max, midpoint) {
   if (midpoint != null && n >= 3) {
     const mid = Math.floor((n - 1) / 2);
     const out = [];
-    for (let k = 0; k <= mid; k++) {
-      out.push({ value: lerp(min, midpoint, k / mid), color: colors[k] });
+    for (let k2 = 0; k2 <= mid; k2++) {
+      out.push({ value: lerp(min, midpoint, k2 / mid), color: colors[k2] });
     }
-    for (let k = mid + 1; k < n; k++) {
+    for (let k2 = mid + 1; k2 < n; k2++) {
       out.push({
-        value: lerp(midpoint, max, (k - mid) / (n - 1 - mid)),
-        color: colors[k]
+        value: lerp(midpoint, max, (k2 - mid) / (n - 1 - mid)),
+        color: colors[k2]
       });
     }
     return out;
   }
-  return colors.map((c, k) => ({
-    value: lerp(min, max, k / (n - 1)),
+  return colors.map((c, k2) => ({
+    value: lerp(min, max, k2 / (n - 1)),
     color: c
   }));
 }
@@ -1387,10 +1387,10 @@ function buildContinuousScale(w) {
     if (v <= stops[0].value) return stops[0].color;
     const last = stops[stops.length - 1];
     if (v >= last.value) return last.color;
-    for (let k = 1; k < stops.length; k++) {
-      const hi = stops[k];
+    for (let k2 = 1; k2 < stops.length; k2++) {
+      const hi = stops[k2];
       if (v <= hi.value) {
-        const lo = stops[k - 1];
+        const lo = stops[k2 - 1];
         const span2 = hi.value - lo.value;
         const t = span2 === 0 ? 0 : (v - lo.value) / span2;
         return mixColors(lo.color, hi.color, t);
@@ -1561,9 +1561,9 @@ class HeatmapGradientLegend {
       const labelFontSize = ((_d = cfg.labelStyle) == null ? void 0 : _d.fontSize) || "11px";
       const labelFontFamily = ((_e = cfg.labelStyle) == null ? void 0 : _e.fontFamily) || w.config.chart.fontFamily;
       const fmt = this._getFormatter();
-      const makeLabel = (text, x, y, anchor) => {
+      const makeLabel = (text, x2, y, anchor) => {
         const t = BrowserAPIs.createElementNS(SVG_NS, "text");
-        t.setAttribute("x", String(x));
+        t.setAttribute("x", String(x2));
         t.setAttribute("y", String(y));
         t.setAttribute("text-anchor", anchor);
         t.setAttribute("dominant-baseline", "middle");
@@ -1726,11 +1726,11 @@ class HeatmapGradientLegend {
       }
     } else {
       const availableWidth = chartWidth - svgWidth - edgePad * 2;
-      let x;
-      if (align === "start") x = edgePad;
-      else if (align === "end") x = edgePad + Math.max(0, availableWidth);
-      else x = edgePad + Math.max(0, availableWidth) / 2;
-      elLegendWrap.style.left = x + userOffsetX + "px";
+      let x2;
+      if (align === "start") x2 = edgePad;
+      else if (align === "end") x2 = edgePad + Math.max(0, availableWidth);
+      else x2 = edgePad + Math.max(0, availableWidth) / 2;
+      elLegendWrap.style.left = x2 + userOffsetX + "px";
       if (position === "top") {
         elLegendWrap.style.top = edgePad + userOffsetY + "px";
       } else {
@@ -2416,7 +2416,7 @@ class Legend {
       w.dom.elLegendWrap
     );
     const legendHeight = elLegendWrap.clientHeight;
-    let x = 0;
+    let x2 = 0;
     let y = 0;
     if (w.config.legend.position === "bottom") {
       y = w.globals.svgHeight - Math.min(legendHeight, w.globals.svgHeight / 2) - 5;
@@ -2427,9 +2427,9 @@ class Legend {
       y = (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
     }
     elLegendWrap.style.position = "absolute";
-    x = x + offsetX + w.config.legend.offsetX;
+    x2 = x2 + offsetX + w.config.legend.offsetX;
     y = y + offsetY + w.config.legend.offsetY;
-    elLegendWrap.style.left = x + "px";
+    elLegendWrap.style.left = x2 + "px";
     elLegendWrap.style.top = y + "px";
     if (w.config.legend.position === "right") {
       elLegendWrap.style.left = "auto";
@@ -3764,14 +3764,14 @@ class ZoomPanSelection extends Toolbar {
         }));
       } else {
         if (w.config.chart.selection.xaxis.min !== void 0 && w.config.chart.selection.xaxis.max !== void 0) {
-          let x = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.min);
-          let width = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.max) - x;
+          let x2 = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.min);
+          let width = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.max) - x2;
           if (w.axisFlags.isRangeBar) {
-            x = (w.config.chart.selection.xaxis.min - w.globals.yAxisScale[0].niceMin) / xyRatios.invertedYRatio;
+            x2 = (w.config.chart.selection.xaxis.min - w.globals.yAxisScale[0].niceMin) / xyRatios.invertedYRatio;
             width = (w.config.chart.selection.xaxis.max - w.config.chart.selection.xaxis.min) / xyRatios.invertedYRatio;
           }
           const selectionRect = {
-            x,
+            x: x2,
             y: 0,
             width,
             height: w.layout.gridHeight,
@@ -3795,7 +3795,7 @@ class ZoomPanSelection extends Toolbar {
     }
   }
   /** @param {{x: any, y: any, width: any, height: any, translateX: any, translateY: any}} opts */
-  drawSelectionRect({ x, y, width, height, translateX = 0, translateY = 0 }) {
+  drawSelectionRect({ x: x2, y, width, height, translateX = 0, translateY = 0 }) {
     const w = this.w;
     const zoomRect = this.zoomRect;
     const selectionRect = this.selectionRect;
@@ -3806,7 +3806,7 @@ class ZoomPanSelection extends Toolbar {
       if (w.interact.zoomEnabled && this.dragged) {
         if (width < 0) width = 1;
         zoomRect.attr({
-          x,
+          x: x2,
           y,
           width,
           height,
@@ -3820,7 +3820,7 @@ class ZoomPanSelection extends Toolbar {
       }
       if (w.interact.selectionEnabled) {
         selectionRect.attr({
-          x,
+          x: x2,
           y,
           width: width > 0 ? width : 0,
           height: height > 0 ? height : 0,
@@ -3852,12 +3852,12 @@ class ZoomPanSelection extends Toolbar {
     if (!rect || !rect.node) return;
     const maxPx = this.w.layout.gridWidth;
     if (!(maxPx > PLOT_ORIGIN_PX)) return;
-    const x = parseFloat(rect.node.getAttribute("x")) || 0;
+    const x2 = parseFloat(rect.node.getAttribute("x")) || 0;
     const width = parseFloat(rect.node.getAttribute("width")) || 0;
     const clamp = (px) => Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx);
-    const left = clamp(x);
-    const right = clamp(x + width);
-    if (left === x && right === x + width) return;
+    const left = clamp(x2);
+    const right = clamp(x2 + width);
+    if (left === x2 && right === x2 + width) return;
     rect.attr({ x: left, width: right - left });
     if (rect._updateSelectPositions) rect._updateSelectPositions();
   }
@@ -3948,20 +3948,20 @@ class ZoomPanSelection extends Toolbar {
       /** @type {any} */
       this.constraints
     );
-    let { x, y } = box;
-    if (x < constraints.x) {
-      x = constraints.x;
+    let { x: x2, y } = box;
+    if (x2 < constraints.x) {
+      x2 = constraints.x;
     }
     if (y < constraints.y) {
       y = constraints.y;
     }
     if (box.x2 > constraints.x2) {
-      x = constraints.x2 - box.w;
+      x2 = constraints.x2 - box.w;
     }
     if (box.y2 > constraints.y2) {
       y = constraints.y2 - box.h;
     }
-    handler.move(x, y);
+    handler.move(x2, y);
     const selRect = this.selectionRect;
     let timerInterval = 0;
     if (type === "resizing") {
@@ -4404,9 +4404,9 @@ class ZoomPanSelection extends Toolbar {
     this.ctx.events.fireEvent("scrolled", args);
   }
   /** @param {number} x @param {number} t */
-  _pushSample(x, t) {
+  _pushSample(x2, t) {
     const s = this._m().samples;
-    s.push({ x, t });
+    s.push({ x: x2, t });
     while (s.length > 6) s.shift();
   }
   /**
@@ -4667,8 +4667,8 @@ class Helpers2 {
           "y",
           String(parseFloat((_b = xAnno.getAttribute("y")) != null ? _b : "0") + yOffset)
         );
-        const { x, y } = this.annoCtx.graphics.rotateAroundCenter(xAnno);
-        xAnno.setAttribute("transform", `rotate(-90 ${x} ${y})`);
+        const { x: x2, y } = this.annoCtx.graphics.rotateAroundCenter(xAnno);
+        xAnno.setAttribute("transform", `rotate(-90 ${x2} ${y})`);
       }
     }
   }
@@ -4869,26 +4869,26 @@ class Helpers2 {
    */
   getX1X2(type, anno) {
     const w = this.w;
-    const x = type === "x1" ? anno.x : anno.x2;
+    const x2 = type === "x1" ? anno.x : anno.x2;
     const min = this.annoCtx.invertAxis ? w.globals.minY : w.globals.minX;
     const max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX;
     const range = this.annoCtx.invertAxis ? w.globals.yRange[0] : w.globals.xRange;
     let clipped = false;
-    const isPx = typeof x === "string" && x.includes("px");
-    const isEdgeMarker = (x === void 0 || x === null) && anno.marker;
+    const isPx = typeof x2 === "string" && x2.includes("px");
+    const isEdgeMarker = (x2 === void 0 || x2 === null) && anno.marker;
     if (!isPx && !isEdgeMarker && !this.hasXDomain()) {
       return { x: 0, clipped: true };
     }
-    let xP = this.annoCtx.inversedReversedAxis ? (max - x) / (range / w.layout.gridWidth) : (x - min) / (range / w.layout.gridWidth);
+    let xP = this.annoCtx.inversedReversedAxis ? (max - x2) / (range / w.layout.gridWidth) : (x2 - min) / (range / w.layout.gridWidth);
     if ((w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !this.annoCtx.invertAxis && !w.axisFlags.dataFormatXNumeric) {
       if (!w.config.chart.sparkline.enabled) {
-        xP = this.getStringX(x);
+        xP = this.getStringX(x2);
       }
     }
-    if (typeof x === "string" && x.includes("px")) {
-      xP = parseFloat(x);
+    if (typeof x2 === "string" && x2.includes("px")) {
+      xP = parseFloat(x2);
     }
-    if ((x === void 0 || x === null) && anno.marker) {
+    if ((x2 === void 0 || x2 === null) && anno.marker) {
       xP = w.layout.gridWidth;
     }
     if (anno.seriesIndex !== void 0 && w.globals.barWidth && !this.annoCtx.invertAxis) {
@@ -4910,19 +4910,19 @@ class Helpers2 {
   /**
    * @param {number} x
    */
-  getStringX(x) {
+  getStringX(x2) {
     var _a;
     const w = this.w;
-    let rX = x;
+    let rX = x2;
     if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
-      const strX = String(x);
-      x = w.labelData.categoryLabels.findIndex(
+      const strX = String(x2);
+      x2 = w.labelData.categoryLabels.findIndex(
         (l) => String(l) === strX
       ) + 1;
     }
     const catIndex = w.labelData.labels.map(
       (item) => Array.isArray(item) ? item.join(" ") : item
-    ).indexOf(x);
+    ).indexOf(x2);
     const xLabel = w.dom.baseEl.querySelector(
       `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`
     );
@@ -5217,12 +5217,12 @@ class PointAnnotations {
       return;
     }
     const resultX = this.helpers.getX1X2("x1", anno);
-    const x = resultX.x;
+    const x2 = resultX.x;
     const clipX = resultX.clipped;
     const resultY = this.helpers.getY1Y2("y1", anno);
     const y = resultY.yP;
     const clipY = resultY.clipped;
-    if (!Utils.isNumber(x)) return;
+    if (!Utils.isNumber(x2)) return;
     if (!(clipY || clipX)) {
       const optsPoints = {
         pSize: anno.marker.size,
@@ -5234,17 +5234,17 @@ class PointAnnotations {
         class: `apexcharts-point-annotation-marker ${anno.marker.cssClass} ${anno.id ? anno.id : ""}`
       };
       let point = this.annoCtx.graphics.drawMarker(
-        x + anno.marker.offsetX,
+        x2 + anno.marker.offsetX,
         y + anno.marker.offsetY,
         optsPoints
       );
       parent.appendChild(point.node);
       const tooltipTargets = [point.node];
-      applyProgressiveReveal(point, x, w);
+      applyProgressiveReveal(point, x2, w);
       const text = anno.label.text ? anno.label.text : "";
       const labelX = this.getConstrainedLabelX(
         text,
-        x + anno.label.offsetX,
+        x2 + anno.label.offsetX,
         anno.label
       );
       const elText = this.annoCtx.graphics.drawText({
@@ -5262,13 +5262,13 @@ class PointAnnotations {
         rel: index
       });
       parent.appendChild(elText.node);
-      applyProgressiveReveal(elText, x, w);
+      applyProgressiveReveal(elText, x2, w);
       if (anno.customSVG.SVG) {
         const g = this.annoCtx.graphics.group({
           class: "apexcharts-point-annotations-custom-svg " + anno.customSVG.cssClass
         });
         g.attr({
-          transform: `translate(${x + anno.customSVG.offsetX}, ${y + anno.customSVG.offsetY})`
+          transform: `translate(${x2 + anno.customSVG.offsetX}, ${y + anno.customSVG.offsetY})`
         });
         g.node.innerHTML = anno.customSVG.SVG;
         parent.appendChild(g.node);
@@ -5278,7 +5278,7 @@ class PointAnnotations {
         const imgWidth = anno.image.width ? anno.image.width : 20;
         const imgHeight = anno.image.height ? anno.image.height : 20;
         point = this.annoCtx.addImage({
-          x: x + anno.image.offsetX - imgWidth / 2,
+          x: x2 + anno.image.offsetX - imgWidth / 2,
           y: y + anno.image.offsetY - imgHeight / 2,
           width: imgWidth,
           height: imgHeight,
@@ -5333,9 +5333,9 @@ class PointAnnotations {
    * @param {Record<string, any>} label `anno.label`
    * @returns {number}
    */
-  getConstrainedLabelX(text, x, label) {
+  getConstrainedLabelX(text, x2, label) {
     const w = this.w;
-    if (!text) return x;
+    if (!text) return x2;
     const { width: labelWidth } = this.annoCtx.graphics.getTextRects(
       text,
       label.style.fontSize,
@@ -5348,27 +5348,27 @@ class PointAnnotations {
     let rightEdge;
     switch (label.textAnchor) {
       case "start":
-        leftEdge = x;
-        rightEdge = x + labelWidth;
+        leftEdge = x2;
+        rightEdge = x2 + labelWidth;
         break;
       case "end":
-        leftEdge = x - labelWidth;
-        rightEdge = x;
+        leftEdge = x2 - labelWidth;
+        rightEdge = x2;
         break;
       default:
-        leftEdge = x - labelWidth / 2;
-        rightEdge = x + labelWidth / 2;
+        leftEdge = x2 - labelWidth / 2;
+        rightEdge = x2 + labelWidth / 2;
     }
     const padding = label.style.padding || {};
     leftEdge -= padding.left || 0;
     rightEdge += padding.right || 0;
     if (leftEdge < 0) {
-      return x - leftEdge;
+      return x2 - leftEdge;
     }
     if (rightEdge > w.layout.gridWidth) {
-      return x - (rightEdge - w.layout.gridWidth);
+      return x2 - (rightEdge - w.layout.gridWidth);
     }
-    return x;
+    return x2;
   }
   /**
    * Lazily create (once per chart) and return the shared HTML element used to
@@ -5557,7 +5557,7 @@ class Annotations {
    */
   addText(params) {
     const {
-      x,
+      x: x2,
       y,
       text,
       textAnchor,
@@ -5579,7 +5579,7 @@ class Annotations {
     } = params;
     const w = this.w;
     const elText = this.graphics.drawText({
-      x,
+      x: x2,
       y,
       text,
       textAnchor: textAnchor || "start",
@@ -5617,14 +5617,14 @@ class Annotations {
     const w = this.w;
     const {
       path,
-      x = 0,
+      x: x2 = 0,
       y = 0,
       width = 20,
       height = 20,
       appendTo = ".apexcharts-svg"
     } = params;
     const img = w.dom.Paper.image(path);
-    img.size(width, height).move(x, y);
+    img.size(width, height).move(x2, y);
     const parent = w.dom.baseEl.querySelector(appendTo);
     if (parent) {
       parent.appendChild(img.node);
@@ -6274,14 +6274,14 @@ class KeyboardNavigation {
         const ttWidth = ttCtx.tooltipRect.ttWidth || 0;
         const ttHeight = ttCtx.tooltipRect.ttHeight || 0;
         const y = barCy + bh / 2 - ttHeight / 2;
-        let x = barCx + bw;
+        let x2 = barCx + bw;
         const baselineX = ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null ? ttCtx.xyRatios.baseLineInvertedY : wrapRect.width / 2;
         if (barCx < baselineX) {
-          x = barCx - ttWidth;
+          x2 = barCx - ttWidth;
         }
         const tooltipEl = ttCtx.getElTooltip();
         if (tooltipEl) {
-          tooltipEl.style.left = x + "px";
+          tooltipEl.style.left = x2 + "px";
           tooltipEl.style.top = y + "px";
         }
       }
@@ -6410,9 +6410,9 @@ class KeyboardNavigation {
         ringRadius,
         midAngle
       );
-      const x = centroid.x + (w.layout.translateX || 0);
+      const x2 = centroid.x + (w.layout.translateX || 0);
       const y = centroid.y + (w.layout.translateY || 0);
-      tooltipEl.style.left = x - ttWidth / 2 + "px";
+      tooltipEl.style.left = x2 - ttWidth / 2 + "px";
       tooltipEl.style.top = y - ttHeight - 10 + "px";
     }
   }
@@ -6448,12 +6448,12 @@ class KeyboardNavigation {
       const cx = parseFloat((_a = cell.getAttribute("cx")) != null ? _a : "");
       const cellWidthAttr = parseFloat((_b = cell.getAttribute("width")) != null ? _b : "");
       ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2);
-      let x = cellCx + cellWidth + ttWidth / 2;
+      let x2 = cellCx + cellWidth + ttWidth / 2;
       const y = cellCy + cellHeight / 2 - ttHeight / 2;
       if (cellCx + cellWidth > w.layout.gridWidth / 2) {
-        x = cellCx - ttWidth / 2;
+        x2 = cellCx - ttWidth / 2;
       }
-      tooltipEl.style.left = x + "px";
+      tooltipEl.style.left = x2 + "px";
       tooltipEl.style.top = y + "px";
     }
   }
@@ -6717,9 +6717,9 @@ class KeyboardNavigation {
     if (!w.interact.zoomed) return true;
     const seriesX = w.seriesData.seriesX && w.seriesData.seriesX[si];
     if (!seriesX) return true;
-    const x = seriesX[di];
-    if (x === void 0) return true;
-    return x >= gl.minX && x <= gl.maxX;
+    const x2 = seriesX[di];
+    if (x2 === void 0) return true;
+    return x2 >= gl.minX && x2 <= gl.maxX;
   }
   /**
    * Push a short status message to the visually-hidden aria-live region so
@@ -6821,8 +6821,8 @@ function gridDivideShape(bbox, count, intervalsAt) {
     const share = exact.map((v) => Math.floor(v));
     let used = share.reduce((a, b) => a + b, 0);
     const byFrac = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
-    for (let k = 0; used < cols; k++, used++) {
-      share[byFrac[k % byFrac.length].i]++;
+    for (let k2 = 0; used < cols; k2++, used++) {
+      share[byFrac[k2 % byFrac.length].i]++;
     }
     for (let s = 0; s < spans.length; s++) {
       const n = share[s];
@@ -6839,8 +6839,8 @@ function gridDivideShape(bbox, count, intervalsAt) {
   }
   return cells;
 }
-function hilbertIndex(x, y, minX, minY, maxX, maxY) {
-  let ix = maxX === minX ? 0 : Math.round(32767 * ((x - minX) / (maxX - minX)));
+function hilbertIndex(x2, y, minX, minY, maxX, maxY) {
+  let ix = maxX === minX ? 0 : Math.round(32767 * ((x2 - minX) / (maxX - minX)));
   let iy = maxY === minY ? 0 : Math.round(32767 * ((y - minY) / (maxY - minY)));
   let d = 0;
   for (let s = 32768; s >= 1; s /= 2) {
@@ -6865,16 +6865,16 @@ function sortByHilbert(items, getXY) {
   let maxX = -Infinity;
   let maxY = -Infinity;
   const pts = items.map((it) => {
-    const [x, y] = getXY(it);
-    if (x < minX) minX = x;
-    if (x > maxX) maxX = x;
+    const [x2, y] = getXY(it);
+    if (x2 < minX) minX = x2;
+    if (x2 > maxX) maxX = x2;
     if (y < minY) minY = y;
     if (y > maxY) maxY = y;
-    return [x, y];
+    return [x2, y];
   });
-  return items.map((item, k) => ({
+  return items.map((item, k2) => ({
     item,
-    d: hilbertIndex(pts[k][0], pts[k][1], minX, minY, maxX, maxY)
+    d: hilbertIndex(pts[k2][0], pts[k2][1], minX, minY, maxX, maxY)
   })).sort((a, b) => a.d - b.d).map((e) => e.item);
 }
 function parseColor(str) {
@@ -6943,8 +6943,8 @@ function runPieceTween({ pieces, duration, onPieceDone, onAllDone }) {
     if (cancelled) return;
     const elapsed = Date.now() - start;
     let live = false;
-    for (let k = 0; k < pieces.length; k++) {
-      const p = pieces[k];
+    for (let k2 = 0; k2 < pieces.length; k2++) {
+      const p = pieces[k2];
       if (
         /** @type {any} */
         p._done
@@ -7397,8 +7397,8 @@ class MorphTypeChange {
       return null;
     }
     const pt = svg.createSVGPoint();
-    const hit = (x, y) => {
-      pt.x = x;
+    const hit = (x2, y) => {
+      pt.x = x2;
       pt.y = y;
       const p = (
         /** @type {any} */
@@ -7490,27 +7490,27 @@ class MorphTypeChange {
       const i = parseInt((_a2 = dot.getAttribute("i")) != null ? _a2 : "", 10);
       if (isNaN(i)) return;
       const cxAttr = dot.getAttribute("cx");
-      let x;
+      let x2;
       let y;
       let r = 3;
       if (cxAttr != null) {
-        x = parseFloat(cxAttr);
+        x2 = parseFloat(cxAttr);
         y = parseFloat((_b = dot.getAttribute("cy")) != null ? _b : "");
         r = parseFloat((_c = dot.getAttribute("r")) != null ? _c : "3") || 3;
       } else {
         const wAttr = parseFloat((_d = dot.getAttribute("width")) != null ? _d : "0") || 0;
         const hAttr = parseFloat((_e = dot.getAttribute("height")) != null ? _e : "0") || 0;
-        x = parseFloat((_f = dot.getAttribute("x")) != null ? _f : "") + wAttr / 2;
+        x2 = parseFloat((_f = dot.getAttribute("x")) != null ? _f : "") + wAttr / 2;
         y = parseFloat((_g = dot.getAttribute("y")) != null ? _g : "") + hAttr / 2;
         r = Math.max(wAttr, hAttr) / 2 || 3;
       }
-      if (!isFinite(x) || !isFinite(y)) return;
+      if (!isFinite(x2) || !isFinite(y)) return;
       let list = byCluster.get(i);
       if (!list) {
         list = [];
         byCluster.set(i, list);
       }
-      list.push({ el: dot, x, y, r, fill: dot.getAttribute("fill") });
+      list.push({ el: dot, x: x2, y, r, fill: dot.getAttribute("fill") });
       total++;
     });
     if (total === 0 || total > PIECE_BUDGET) return this._revealPieceHidden();
@@ -7548,9 +7548,9 @@ class MorphTypeChange {
         c.y + c.height / 2
       ]);
       const ordered = sortByHilbert(dots, (d) => [d.x, d.y]);
-      for (let k = 0; k < ordered.length; k++) {
-        const cell = cells[k];
-        const dot = ordered[k];
+      for (let k2 = 0; k2 < ordered.length; k2++) {
+        const cell = cells[k2];
+        const dot = ordered[k2];
         const el = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
         el.setAttribute("data-i", String(i));
         el.setAttribute("x", String(cell.x));
@@ -7610,12 +7610,12 @@ class MorphTypeChange {
     const pieces = [];
     const targetFam = familyOf(snap.toType);
     const shapedTarget = targetFam === "summary" || targetFam === "radial";
-    for (let k = 0; k < clusterIdx.length; k++) {
+    for (let k2 = 0; k2 < clusterIdx.length; k2++) {
       const dots = (
         /** @type {any[]} */
-        snap.sourceDots.get(clusterIdx[k])
+        snap.sourceDots.get(clusterIdx[k2])
       );
-      const key = snap.keyOrder[k];
+      const key = snap.keyOrder[k2];
       const target = key ? targets.get(key) : null;
       if (!target || !dots || !dots.length) {
         if (target) {
@@ -7698,8 +7698,8 @@ class MorphTypeChange {
     const speed = this.getSpeed();
     const stagger = Math.min(PIECE_STAGGER_MAX, speed * 0.35);
     const flight = Math.max(180, speed - stagger);
-    for (let k = 0; k < pieces.length; k++) {
-      pieces[k].delay = pieces.length > 1 ? k / (pieces.length - 1) * stagger : 0;
+    for (let k2 = 0; k2 < pieces.length; k2++) {
+      pieces[k2].delay = pieces.length > 1 ? k2 / (pieces.length - 1) * stagger : 0;
     }
     this._pieceCancel = runPieceTween({
       pieces,
@@ -7847,12 +7847,12 @@ class MorphTypeChange {
       if (fromType === "treemap") {
         const rectPath = (el) => {
           var _a2, _b, _c, _d;
-          const x = parseFloat((_a2 = el.getAttribute("x")) != null ? _a2 : "");
+          const x2 = parseFloat((_a2 = el.getAttribute("x")) != null ? _a2 : "");
           const y = parseFloat((_b = el.getAttribute("y")) != null ? _b : "");
           const width = parseFloat((_c = el.getAttribute("width")) != null ? _c : "");
           const height = parseFloat((_d = el.getAttribute("height")) != null ? _d : "");
-          if (![x, y, width, height].every((v) => isFinite(v))) return null;
-          return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
+          if (![x2, y, width, height].every((v) => isFinite(v))) return null;
+          return `M ${x2} ${y} L ${x2 + width} ${y} L ${x2 + width} ${y + height} L ${x2} ${y + height} Z`;
         };
         const tiles = baseEl.querySelectorAll(".apexcharts-treemap-rect");
         tiles.forEach((t) => {
@@ -7910,40 +7910,40 @@ class MorphTypeChange {
         const i = parseInt((_a2 = dot.getAttribute("i")) != null ? _a2 : "", 10);
         if (isNaN(i)) return;
         const cxAttr = dot.getAttribute("cx");
-        let x;
+        let x2;
         let y;
         let r = 3;
         if (cxAttr != null) {
-          x = parseFloat(cxAttr);
+          x2 = parseFloat(cxAttr);
           y = parseFloat((_b = dot.getAttribute("cy")) != null ? _b : "");
           r = parseFloat((_c = dot.getAttribute("r")) != null ? _c : "3") || 3;
         } else {
           const wAttr = parseFloat((_d = dot.getAttribute("width")) != null ? _d : "0") || 0;
           const hAttr = parseFloat((_e = dot.getAttribute("height")) != null ? _e : "0") || 0;
-          x = parseFloat((_f = dot.getAttribute("x")) != null ? _f : "") + wAttr / 2;
+          x2 = parseFloat((_f = dot.getAttribute("x")) != null ? _f : "") + wAttr / 2;
           y = parseFloat((_g = dot.getAttribute("y")) != null ? _g : "") + hAttr / 2;
           r = Math.max(wAttr, hAttr) / 2 || 3;
         }
-        if (!isFinite(x) || !isFinite(y)) return;
+        if (!isFinite(x2) || !isFinite(y)) return;
         let list = unitDots.get(i);
         if (!list) {
           list = [];
           unitDots.set(i, list);
         }
-        list.push({ x, y, r, fill: dot.getAttribute("fill") });
+        list.push({ x: x2, y, r, fill: dot.getAttribute("fill") });
         const box = boxes.get(i);
         if (!box) {
           boxes.set(i, {
-            minX: x,
+            minX: x2,
             minY: y,
-            maxX: x,
+            maxX: x2,
             maxY: y,
             fill: dot.getAttribute("fill")
           });
           return;
         }
-        if (x < box.minX) box.minX = x;
-        if (x > box.maxX) box.maxX = x;
+        if (x2 < box.minX) box.minX = x2;
+        if (x2 > box.maxX) box.maxX = x2;
         if (y < box.minY) box.minY = y;
         if (y > box.maxY) box.maxY = y;
       });
@@ -8051,8 +8051,8 @@ class MorphTypeChange {
       const dy = py - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist === 0) return { x: centerX, y: centerY };
-      const k = newR / dist;
-      return { x: centerX + dx * k, y: centerY + dy * k };
+      const k2 = newR / dist;
+      return { x: centerX + dx * k2, y: centerY + dy * k2 };
     };
     const o1 = proj(x1, y1, rOuter);
     const o2 = proj(x2, y2, rOuter);
@@ -8255,8 +8255,8 @@ class MorphTypeChange {
    * @param {number} k
    * @returns {string | null}
    */
-  getInitialPathAt(k) {
-    return this.getInitialPathFor(k, 0);
+  getInitialPathAt(k2) {
+    return this.getInitialPathFor(k2, 0);
   }
   /**
    * The captured shape for a branch identity (charts/common/Hierarchy.morphKey),
@@ -8276,8 +8276,8 @@ class MorphTypeChange {
   /** True when the active snapshot can pair by branch key. */
   hasKeyedMarks() {
     if (!this._snapshot) return false;
-    for (const k of this._snapshot.mapping.keys()) {
-      if (typeof k === "string" && k.startsWith("key:")) return true;
+    for (const k2 of this._snapshot.mapping.keys()) {
+      if (typeof k2 === "string" && k2.startsWith("key:")) return true;
     }
     return false;
   }
@@ -8360,13 +8360,13 @@ class MorphTypeChange {
         else if (cmd === "V") pairs = [[(minX + maxX) / 2 || c[1], c[1]]];
         else if (cmd === "A") pairs = [[c[6], c[7]]];
         else {
-          for (let k = 1; k + 1 < c.length; k += 2) pairs.push([c[k], c[k + 1]]);
+          for (let k2 = 1; k2 + 1 < c.length; k2 += 2) pairs.push([c[k2], c[k2 + 1]]);
         }
-        pairs.forEach(([x, y]) => {
-          if (!isFinite(x) || !isFinite(y)) return;
+        pairs.forEach(([x2, y]) => {
+          if (!isFinite(x2) || !isFinite(y)) return;
           seen = true;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
+          if (x2 < minX) minX = x2;
+          if (x2 > maxX) maxX = x2;
           if (y < minY) minY = y;
           if (y > maxY) maxY = y;
         });
@@ -9701,7 +9701,7 @@ function makeLayerHandle(g, graphics, onClear) {
     /** @param {any} opts */
     rect(opts = {}) {
       const {
-        x = 0,
+        x: x2 = 0,
         y = 0,
         w = 0,
         h = 0,
@@ -9712,7 +9712,7 @@ function makeLayerHandle(g, graphics, onClear) {
       } = opts;
       return add(
         graphics.drawRect(
-          x,
+          x2,
           y,
           w,
           h,
@@ -9734,7 +9734,7 @@ function makeLayerHandle(g, graphics, onClear) {
     /** @param {any} opts */
     text(opts = {}) {
       const {
-        x = 0,
+        x: x2 = 0,
         y = 0,
         text = "",
         color,
@@ -9744,7 +9744,7 @@ function makeLayerHandle(g, graphics, onClear) {
       } = opts;
       return add(
         graphics.drawText({
-          x,
+          x: x2,
           y,
           text,
           textAnchor: anchor,
@@ -10258,7 +10258,7 @@ const _WeaveHost = class _WeaveHost {
   _setScales(xyRatios) {
     const w = this.w;
     const gl = w.globals;
-    const L = w.layout;
+    const L2 = w.layout;
     if (!xyRatios || !gl.axisCharts) {
       this._currentScales = null;
       return;
@@ -10269,7 +10269,7 @@ const _WeaveHost = class _WeaveHost {
     const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
     const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
     const banded = !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0;
-    const band = banded ? L.gridWidth / gl.dataPoints : 0;
+    const band = banded ? L2.gridWidth / gl.dataPoints : 0;
     this._currentScales = {
       x: banded ? (v) => band * (v + 0.5) : (v) => (v - gl.minX) / xRatio,
       /**
@@ -10280,8 +10280,8 @@ const _WeaveHost = class _WeaveHost {
       domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
-      gridWidth: L.gridWidth,
-      gridHeight: L.gridHeight,
+      gridWidth: L2.gridWidth,
+      gridHeight: L2.gridHeight,
       ratios: xyRatios
     };
   }
@@ -10934,17 +10934,17 @@ function makeCustomSeriesClass(name, def) {
       const n = nPts || gl.dataPoints || 1;
       const bandW = n > 0 ? gridWidth / n : gridWidth;
       const tickOn = cnf.xaxis.tickPlacement === "on";
-      const x = (v) => xRatio ? (v - gl.minX) / xRatio : gridWidth / 2;
+      const x2 = (v) => xRatio ? (v - gl.minX) / xRatio : gridWidth / 2;
       const y = (v) => (maxY - v) / yr;
       const xAt = (index, v) => {
-        if (!catMode) return x(v);
+        if (!catMode) return x2(v);
         if (tickOn && n > 1) return index / (n - 1) * gridWidth;
         return (index + 0.5) * bandW;
       };
       const step = gl.minXDiff || 1;
       const band = catMode ? bandW : xRatio ? step / xRatio : gridWidth;
       return {
-        x,
+        x: x2,
         xAt,
         y,
         gridWidth,
@@ -11210,16 +11210,108 @@ function registerRowSource(name, fn) {
   }
   getSources()[name] = fn;
 }
-const MAX_BINS = 1e3;
-function quantileSorted(sorted, q) {
-  const n = sorted.length;
-  if (n === 0) return NaN;
-  if (n === 1) return sorted[0];
-  const pos = (n - 1) * q;
-  const lo = Math.floor(pos);
-  const hi = Math.ceil(pos);
-  if (lo === hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+const M = 1e3;
+function A(e, t) {
+  const s = e.length;
+  if (0 === s) return NaN;
+  if (1 === s) return e[0];
+  const i = (s - 1) * t, n = Math.floor(i), r = Math.ceil(i);
+  return n === r ? e[n] : e[n] + (e[r] - e[n]) * (i - n);
+}
+function x(e, t, s) {
+  const i = e.length, n = (e2) => t / Math.max(1, Math.ceil(e2)), r = () => n(Math.log2(i) + 1);
+  switch (s) {
+    case "sqrt":
+      return { width: n(Math.sqrt(i)), rule: "sqrt" };
+    case "rice":
+      return { width: n(2 * Math.cbrt(i)), rule: "rice" };
+    case "scott": {
+      const t2 = (function(e2) {
+        const t3 = e2.length;
+        if (t3 < 2) return 0;
+        let s2 = 0;
+        for (let i3 = 0; i3 < t3; i3++) s2 += e2[i3];
+        const i2 = s2 / t3;
+        let n2 = 0;
+        for (let s3 = 0; s3 < t3; s3++) {
+          const t4 = e2[s3] - i2;
+          n2 += t4 * t4;
+        }
+        return Math.sqrt(n2 / t3);
+      })(e);
+      return t2 > 0 ? { width: 3.49 * t2 * Math.pow(i, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
+    }
+    case "fd": {
+      const t2 = A(e, 0.75) - A(e, 0.25);
+      return t2 > 0 ? { width: 2 * t2 * Math.pow(i, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
+    }
+    case "auto": {
+      const t2 = r(), s2 = A(e, 0.75) - A(e, 0.25);
+      if (s2 <= 0) return { width: t2, rule: "sturges" };
+      const n2 = 2 * s2 * Math.pow(i, -1 / 3);
+      return n2 < t2 ? { width: n2, rule: "fd" } : { width: t2, rule: "sturges" };
+    }
+    default:
+      return { width: r(), rule: "sturges" };
+  }
+}
+function S(e, t = {}) {
+  if (!Array.isArray(e) || 0 === e.length) return null;
+  const s = e.slice().sort(((e2, t2) => e2 - t2));
+  let i = s[0], n = s[s.length - 1];
+  const r = t.range;
+  if (Array.isArray(r) && 2 === r.length) {
+    const e2 = Number(r[0]), t2 = Number(r[1]);
+    Number.isFinite(e2) && Number.isFinite(t2) && t2 > e2 && (i = e2, n = t2);
+  }
+  if (!(n > i)) {
+    const e2 = Math.abs(i) > 0 ? 0.05 * Math.abs(i) : 0.5;
+    return { edges: [i - e2, i + e2], binWidth: 2 * e2, rule: "single", capped: false };
+  }
+  const a = n - i;
+  let l, o;
+  if ("number" == typeof t.binWidth && t.binWidth > 0) l = t.binWidth, o = "binWidth";
+  else if ("number" == typeof t.bins && t.bins >= 1) l = a / Math.floor(t.bins), o = "count";
+  else {
+    const e2 = x(s, a, "string" == typeof t.bins ? t.bins : "auto");
+    l = e2.width, o = e2.rule;
+  }
+  (!Number.isFinite(l) || l <= 0) && (l = a);
+  let c = Math.ceil(a / l);
+  (!Number.isFinite(c) || c < 1) && (c = 1);
+  let u = false;
+  c > M && (c = M, u = true), l = a / c;
+  const h = new Array(c + 1);
+  for (let e2 = 0; e2 <= c; e2++) h[e2] = i + e2 * l;
+  return h[c] = Math.max(h[c], n), { edges: h, binWidth: l, rule: o, capped: u };
+}
+function k(e, t) {
+  const s = t.length - 1;
+  if (!(e >= t[0]) || e > t[s]) return -1;
+  if (e === t[s]) return s - 1;
+  const i = (t[s] - t[0]) / s;
+  if (i > 0) {
+    let n2 = Math.floor((e - t[0]) / i);
+    return n2 < 0 && (n2 = 0), n2 > s - 1 && (n2 = s - 1), e < t[n2] ? n2-- : e >= t[n2 + 1] && n2++, n2 < 0 || n2 > s - 1 ? -1 : n2;
+  }
+  let n = 0, r = s - 1;
+  for (; n <= r; ) {
+    const s2 = n + r >> 1;
+    if (e < t[s2]) r = s2 - 1;
+    else {
+      if (!(e >= t[s2 + 1])) return s2;
+      n = s2 + 1;
+    }
+  }
+  return -1;
+}
+function L(e, t) {
+  const s = new Array(Math.max(0, t.length - 1)).fill(0);
+  for (let i = 0; i < e.length; i++) {
+    const n = k(e[i], t);
+    n >= 0 && s[n]++;
+  }
+  return s;
 }
 function stdDev(values) {
   const n = values.length;
@@ -11234,140 +11326,22 @@ function stdDev(values) {
   }
   return Math.sqrt(acc / n);
 }
-function widthForRule(sorted, span, rule) {
-  const n = sorted.length;
-  const byCount = (count) => span / Math.max(1, Math.ceil(count));
-  switch (rule) {
-    case "sqrt":
-      return { width: byCount(Math.sqrt(n)), rule: "sqrt" };
-    case "rice":
-      return { width: byCount(2 * Math.cbrt(n)), rule: "rice" };
-    case "scott": {
-      const sd = stdDev(sorted);
-      if (sd > 0) return { width: 3.49 * sd * Math.pow(n, -1 / 3), rule: "scott" };
-      return { width: byCount(Math.log2(n) + 1), rule: "sturges" };
-    }
-    case "fd": {
-      const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
-      if (iqr > 0) return { width: 2 * iqr * Math.pow(n, -1 / 3), rule: "fd" };
-      return { width: byCount(Math.log2(n) + 1), rule: "sturges" };
-    }
-    case "auto": {
-      const sturges = byCount(Math.log2(n) + 1);
-      const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
-      if (iqr <= 0) return { width: sturges, rule: "sturges" };
-      const fd = 2 * iqr * Math.pow(n, -1 / 3);
-      return fd < sturges ? { width: fd, rule: "fd" } : { width: sturges, rule: "sturges" };
-    }
-    case "sturges":
-    default:
-      return { width: byCount(Math.log2(n) + 1), rule: "sturges" };
-  }
-}
-function computeBinning(values, opts = {}) {
-  if (!Array.isArray(values) || values.length === 0) return null;
-  const sorted = values.slice().sort((a, b) => a - b);
-  let lo = sorted[0];
-  let hi = sorted[sorted.length - 1];
-  const range = opts.range;
-  if (Array.isArray(range) && range.length === 2) {
-    const rLo = Number(range[0]);
-    const rHi = Number(range[1]);
-    if (isFinite(rLo) && isFinite(rHi) && rHi > rLo) {
-      lo = rLo;
-      hi = rHi;
-    }
-  }
-  if (!(hi > lo)) {
-    const pad = Math.abs(lo) > 0 ? Math.abs(lo) * 0.05 : 0.5;
-    return {
-      edges: [lo - pad, lo + pad],
-      binWidth: pad * 2,
-      rule: "single",
-      capped: false
-    };
-  }
-  const span = hi - lo;
-  let width;
-  let rule;
-  if (typeof opts.binWidth === "number" && opts.binWidth > 0) {
-    width = opts.binWidth;
-    rule = "binWidth";
-  } else if (typeof opts.bins === "number" && opts.bins >= 1) {
-    width = span / Math.floor(opts.bins);
-    rule = "count";
-  } else {
-    const chosen = widthForRule(
-      sorted,
-      span,
-      typeof opts.bins === "string" ? opts.bins : "auto"
-    );
-    width = chosen.width;
-    rule = chosen.rule;
-  }
-  if (!isFinite(width) || width <= 0) width = span;
-  let count = Math.ceil(span / width);
-  if (!isFinite(count) || count < 1) count = 1;
-  let capped = false;
-  if (count > MAX_BINS) {
-    count = MAX_BINS;
-    width = span / count;
-    capped = true;
-  }
-  width = span / count;
-  const edges = new Array(count + 1);
-  for (let k = 0; k <= count; k++) edges[k] = lo + k * width;
-  edges[count] = Math.max(edges[count], hi);
-  return { edges, binWidth: width, rule, capped };
-}
-function binIndexOf(v, edges) {
-  const last = edges.length - 1;
-  if (!(v >= edges[0]) || v > edges[last]) return -1;
-  if (v === edges[last]) return last - 1;
-  const width = (edges[last] - edges[0]) / last;
-  if (width > 0) {
-    let k = Math.floor((v - edges[0]) / width);
-    if (k < 0) k = 0;
-    if (k > last - 1) k = last - 1;
-    if (v < edges[k]) k--;
-    else if (v >= edges[k + 1]) k++;
-    if (k < 0 || k > last - 1) return -1;
-    return k;
-  }
-  let lo = 0;
-  let hi = last - 1;
-  while (lo <= hi) {
-    const mid = lo + hi >> 1;
-    if (v < edges[mid]) hi = mid - 1;
-    else if (v >= edges[mid + 1]) lo = mid + 1;
-    else return mid;
-  }
-  return -1;
-}
-function binCounts(values, edges) {
-  const counts = new Array(Math.max(0, edges.length - 1)).fill(0);
-  for (let i = 0; i < values.length; i++) {
-    const k = binIndexOf(values[i], edges);
-    if (k >= 0) counts[k]++;
-  }
-  return counts;
-}
 function rowsByBin(values, edges) {
   const n = Math.max(0, edges.length - 1);
   const buckets = new Array(n);
-  for (let k = 0; k < n; k++) buckets[k] = [];
+  for (let k2 = 0; k2 < n; k2++) buckets[k2] = [];
   for (let i = 0; i < values.length; i++) {
-    const k = binIndexOf(values[i], edges);
-    if (k >= 0) buckets[k].push(values[i]);
+    const k$1 = k(values[i], edges);
+    if (k$1 >= 0) buckets[k$1].push(values[i]);
   }
   return buckets;
 }
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = quantileSorted(sorted, 0.25);
-  const median = quantileSorted(sorted, 0.5);
-  const q3 = quantileSorted(sorted, 0.75);
+  const q1 = A(sorted, 0.25);
+  const median = A(sorted, 0.5);
+  const q3 = A(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -11394,7 +11368,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
+    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -11417,13 +11391,13 @@ function kernelDensity(values, opts = {}) {
   const norm = 1 / (n * h * Math.sqrt(2 * Math.PI));
   const density = [];
   for (let g = 0; g < steps; g++) {
-    const x = lo + g * step;
+    const x2 = lo + g * step;
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const z = (x - sorted[i]) / h;
+      const z = (x2 - sorted[i]) / h;
       sum += Math.exp(-0.5 * z * z);
     }
-    density.push([x, sum * norm]);
+    density.push([x2, sum * norm]);
   }
   return { density, bandwidth: h };
 }
@@ -11493,7 +11467,7 @@ function histogramTransform(ser, w) {
   } else {
     for (const vals of perSeries) all = all.concat(vals);
   }
-  const binning = computeBinning(all, {
+  const binning = S(all, {
     bins: hcfg.bins,
     binWidth: hcfg.binWidth,
     range: hcfg.range
@@ -11510,7 +11484,7 @@ function histogramTransform(ser, w) {
   }
   const { edges, binWidth } = binning;
   const counts = perSeries.map(
-    (vals) => binCounts(vals, edges)
+    (vals) => L(vals, edges)
   );
   w.histogramData = {
     edges,
@@ -11528,8 +11502,8 @@ function histogramTransform(ser, w) {
       binWidth
     });
     const data = [];
-    for (let k = 0; k < ys.length; k++) {
-      data.push({ x: (edges[k] + edges[k + 1]) / 2, y: ys[k] });
+    for (let k2 = 0; k2 < ys.length; k2++) {
+      data.push({ x: (edges[k2] + edges[k2 + 1]) / 2, y: ys[k2] });
     }
     return __spreadProps(__spreadValues({}, s), { data });
   });
@@ -11648,8 +11622,8 @@ function histogramRows(w, opts) {
     if (collapsed.indexOf(i) !== -1) return;
     const buckets = rowsByBin(histogramValues(s && s.data), edges);
     const seriesName = w.seriesData && ((_a = w.seriesData.seriesNames) == null ? void 0 : _a[i]) || (s == null ? void 0 : s.name);
-    buckets.forEach((rows, k) => {
-      const range = `${formatEdge(edges[k])}-${formatEdge(edges[k + 1])}`;
+    buckets.forEach((rows, k2) => {
+      const range = `${formatEdge(edges[k2])}-${formatEdge(edges[k2 + 1])}`;
       clusters.push({
         // Only qualify by series when there is more than one to tell apart.
         name: raw.length > 1 && seriesName ? `${seriesName} ${range}` : range,
@@ -11856,7 +11830,7 @@ function accumulate(data, categories, colors) {
   let running = 0;
   let cut = 0;
   for (let j = 0; j < data.length; j++) {
-    const { x, y, isSubtotal, isTotal, rest } = readDatum$2(
+    const { x: x2, y, isSubtotal, isTotal, rest } = readDatum$2(
       data[j],
       j,
       categories
@@ -11872,7 +11846,7 @@ function accumulate(data, categories, colors) {
     } else {
       const delta = Utils.parseNumber(y);
       if (delta === null || !isFinite(delta)) {
-        rows.push(__spreadProps(__spreadValues({}, rest), { x, y: null }));
+        rows.push(__spreadProps(__spreadValues({}, rest), { x: x2, y: null }));
         values.push(null);
         cumulative.push(running);
         kinds.push(null);
@@ -11885,7 +11859,7 @@ function accumulate(data, categories, colors) {
     }
     const fill = fillFor(rest, kind, colors);
     rows.push(__spreadValues(__spreadProps(__spreadValues({}, rest), {
-      x,
+      x: x2,
       y: [start, end]
     }), fill ? { fillColor: fill } : {}));
     values.push(end - start);
@@ -11982,11 +11956,11 @@ function joinOnX$1(raw, categories) {
     const data = Array.isArray((_a = raw[i]) == null ? void 0 : _a.data) ? raw[i].data : [];
     const map = /* @__PURE__ */ new Map();
     for (let j = 0; j < data.length; j++) {
-      const { x, y, rest } = readDatum$1(data[j], j, categories);
-      const key = x instanceof Date ? x.getTime() : x;
+      const { x: x2, y, rest } = readDatum$1(data[j], j, categories);
+      const key = x2 instanceof Date ? x2.getTime() : x2;
       if (!seen.has(key)) {
         seen.set(key, xs.length);
-        xs.push(x);
+        xs.push(x2);
         rows.push(__spreadValues({}, rest));
       }
       const rowIndex = (
@@ -12030,14 +12004,14 @@ function dumbbellTransform(ser, w) {
   const values = [];
   const order = [];
   const visible = [];
-  for (let k = 0; k < raw.length; k++) {
-    if (collapsed.indexOf(k) === -1) visible.push(k);
+  for (let k2 = 0; k2 < raw.length; k2++) {
+    if (collapsed.indexOf(k2) === -1) visible.push(k2);
   }
   const data = [];
   for (let j = 0; j < xs.length; j++) {
     const rowValues = [];
-    for (let k = 0; k < raw.length; k++) {
-      const v = byX[k].has(j) ? byX[k].get(j) : null;
+    for (let k2 = 0; k2 < raw.length; k2++) {
+      const v = byX[k2].has(j) ? byX[k2].get(j) : null;
       rowValues.push(
         v === null || v === void 0 || !isFinite(v) ? null : v
       );
@@ -12048,16 +12022,16 @@ function dumbbellTransform(ser, w) {
     let kLo = -1;
     let kHi = -1;
     for (let vi = 0; vi < visible.length; vi++) {
-      const k = visible[vi];
-      const v = rowValues[k];
+      const k2 = visible[vi];
+      const v = rowValues[k2];
       if (v === null) continue;
       if (lo === null || v < lo) {
         lo = v;
-        kLo = k;
+        kLo = k2;
       }
       if (hi === null || v > hi) {
         hi = v;
-        kHi = k;
+        kHi = k2;
       }
     }
     if (lo === null || hi === null) {
@@ -12071,22 +12045,22 @@ function dumbbellTransform(ser, w) {
   w.dumbbellData = {
     form: "series",
     names: raw.map(
-      (s, k) => {
+      (s, k2) => {
         var _a2;
-        return (_a2 = s == null ? void 0 : s.name) != null ? _a2 : `Series ${k + 1}`;
+        return (_a2 = s == null ? void 0 : s.name) != null ? _a2 : `Series ${k2 + 1}`;
       }
     ),
     values,
     order,
     carrier: visible.length ? visible[0] : 0,
-    hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+    hidden: raw.map((_, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
   };
   const carrier = w.dumbbellData.carrier;
-  return raw.map((s, k) => __spreadProps(__spreadValues({}, s), {
+  return raw.map((s, k2) => __spreadProps(__spreadValues({}, s), {
     // Every endpoint stays a series so the legend keeps its name, its colour
     // and its click. Only one of them carries the merged rows: drawing the
     // same rows N times would stack N identical connectors.
-    data: k === carrier && visible.length ? data : []
+    data: k2 === carrier && visible.length ? data : []
   }));
 }
 registerSeriesTransform("dumbbell", dumbbellTransform);
@@ -12160,8 +12134,8 @@ class StreamLabels {
     const minWidth = cfg.minWidth == null ? 24 : cfg.minWidth;
     const placed = [];
     for (let i = 0; i < data.order.length; i++) {
-      const k = data.order[i];
-      const label = this._placeLabel(k, {
+      const k2 = data.order[i];
+      const label = this._placeLabel(k2, {
         fontSize,
         fontFamily,
         fontWeight,
@@ -12172,7 +12146,7 @@ class StreamLabels {
     }
     let drawn = 0;
     for (const label of this._deconflict(placed)) {
-      const k = label.k;
+      const k2 = label.k;
       const el = graphics.drawText({
         x: label.x,
         y: label.y,
@@ -12184,10 +12158,10 @@ class StreamLabels {
         fontSize: label.fontSize,
         fontFamily,
         fontWeight,
-        foreColor: ((_g = (_f = cfg.style) == null ? void 0 : _f.colors) == null ? void 0 : _g[k]) || label.color,
+        foreColor: ((_g = (_f = cfg.style) == null ? void 0 : _f.colors) == null ? void 0 : _g[k2]) || label.color,
         cssClass: "apexcharts-streamgraph-label"
       });
-      el.node.setAttribute("data:realIndex", String(k));
+      el.node.setAttribute("data:realIndex", String(k2));
       group.add(el);
       drawn++;
     }
@@ -12217,13 +12191,13 @@ class StreamLabels {
    * @param {{fontSize: string, fontFamily: string, fontWeight: any, minWidth: number, graphics: any}} opts
    * @returns {{k: number, weight: number, candidates: any[]}|null}
    */
-  _placeLabel(k, { fontSize, fontFamily, fontWeight, minWidth, graphics }) {
+  _placeLabel(k2, { fontSize, fontFamily, fontWeight, minWidth, graphics }) {
     const w = this.w;
     const data = w.streamgraphData;
-    const lo = data.lows[k];
-    const hi = data.highs[k];
+    const lo = data.lows[k2];
+    const hi = data.highs[k2];
     if (!lo || !hi) return null;
-    const xPx = w.globals.seriesXvalues[k];
+    const xPx = w.globals.seriesXvalues[k2];
     const m = lo.length;
     if (!Array.isArray(xPx) || xPx.length < m || m === 0) return null;
     const thickness = new Array(m);
@@ -12235,7 +12209,7 @@ class StreamLabels {
     }
     if (peakT <= 0) return null;
     const size = this._resolveFontSize(fontSize, peakT);
-    const name = String(data.names[k]);
+    const name = String(data.names[k2]);
     let px = size;
     let rect = graphics.getTextRects(
       name,
@@ -12302,7 +12276,7 @@ class StreamLabels {
           x: cx,
           y: (this._yPx(lo[anchor]) + this._yPx(hi[anchor])) / 2,
           text,
-          color: this._contrastOn(k),
+          color: this._contrastOn(k2),
           fontSize: `${px}px`,
           width: drawnWidth,
           height: rect.height
@@ -12310,7 +12284,7 @@ class StreamLabels {
       }
       if (candidates.length >= 6) break;
     }
-    return candidates.length ? { k, weight: peakT, candidates } : null;
+    return candidates.length ? { k: k2, weight: peakT, candidates } : null;
   }
   /**
    * The contiguous stretches where the band clears `needed`, thickest first.
@@ -12436,10 +12410,10 @@ class StreamLabels {
    * @param {number} k
    * @returns {string}
    */
-  _contrastOn(k) {
+  _contrastOn(k2) {
     var _a;
     const w = this.w;
-    const fill = (_a = w.globals.colors) == null ? void 0 : _a[k];
+    const fill = (_a = w.globals.colors) == null ? void 0 : _a[k2];
     const rgb = typeof fill === "string" ? Utils.parseHex(fill) : null;
     if (!rgb) return w.config.chart.foreColor;
     return Utils.relativeLuminance(rgb) > 0.45 ? "#000000" : "#ffffff";
@@ -12525,16 +12499,16 @@ class StreamLabels {
     let nearest = -1;
     let gap = Infinity;
     for (let i = 0; i < d.order.length; i++) {
-      const k = d.order[i];
-      const a = this._yPx(d.highs[k][j]);
-      const b = this._yPx(d.lows[k][j]);
+      const k2 = d.order[i];
+      const a = this._yPx(d.highs[k2][j]);
+      const b = this._yPx(d.lows[k2][j]);
       const top = Math.min(a, b);
       const bottom = Math.max(a, b);
-      if (py >= top && py <= bottom) return k;
+      if (py >= top && py <= bottom) return k2;
       const dist = py < top ? top - py : py - bottom;
       if (dist < gap) {
         gap = dist;
-        nearest = k;
+        nearest = k2;
       }
     }
     return nearest;
@@ -12560,17 +12534,17 @@ class StreamLabels {
    *
    * @param {number} k
    */
-  _dim(k) {
+  _dim(k2) {
     const w = this.w;
-    if (k === this._hovered) return;
-    this._hovered = k;
+    if (k2 === this._hovered) return;
+    this._hovered = k2;
     const cfg = this._hoverCfg();
     const dimmed = cfg.opacity == null ? 0.35 : cfg.opacity;
     const bands = w.dom.baseEl.querySelectorAll(".apexcharts-series");
     const labels = w.dom.baseEl.querySelectorAll(
       ".apexcharts-streamgraph-label"
     );
-    const focused = (el, index) => k < 0 || index === k;
+    const focused = (el, index) => k2 < 0 || index === k2;
     for (let i = 0; i < bands.length; i++) {
       const el = (
         /** @type {any} */
@@ -12673,15 +12647,15 @@ function joinOnX(raw, categories) {
   const rows = [];
   const seen = /* @__PURE__ */ new Map();
   const grids = [];
-  for (let k = 0; k < raw.length; k++) {
-    const data = Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
+  for (let k2 = 0; k2 < raw.length; k2++) {
+    const data = Array.isArray((_a = raw[k2]) == null ? void 0 : _a.data) ? raw[k2].data : [];
     const grid = /* @__PURE__ */ new Map();
     for (let j = 0; j < data.length; j++) {
-      const { x, y, rest } = readDatum(data[j], j, categories);
-      const key = x instanceof Date ? x.getTime() : x;
+      const { x: x2, y, rest } = readDatum(data[j], j, categories);
+      const key = x2 instanceof Date ? x2.getTime() : x2;
       if (!seen.has(key)) {
         seen.set(key, xs.length);
-        xs.push(x);
+        xs.push(x2);
         rows.push(__spreadValues({}, rest));
       }
       grid.set(
@@ -12697,8 +12671,8 @@ function joinOnX(raw, categories) {
 function sortColumns(xs) {
   const idx = [];
   for (let j = 0; j < xs.length; j++) {
-    const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
-    if (typeof x !== "number" || !isFinite(x)) return null;
+    const x2 = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
+    if (typeof x2 !== "number" || !isFinite(x2)) return null;
     idx.push(j);
   }
   const keyed = idx.map((j) => ({
@@ -12718,8 +12692,8 @@ function orderBands(mode, visible, values) {
   const sums = {};
   const peaks = {};
   for (let i = 0; i < visible.length; i++) {
-    const k = visible[i];
-    const v = values[k];
+    const k2 = visible[i];
+    const v = values[k2];
     let sum = 0;
     let best = -Infinity;
     let bestJ = 0;
@@ -12730,8 +12704,8 @@ function orderBands(mode, visible, values) {
         bestJ = j;
       }
     }
-    sums[k] = sum;
-    peaks[k] = bestJ;
+    sums[k2] = sum;
+    peaks[k2] = bestJ;
   }
   const byPeak = visible.slice().sort((a, b) => peaks[a] - peaks[b] || a - b);
   let top = 0;
@@ -12739,13 +12713,13 @@ function orderBands(mode, visible, values) {
   const tops = [];
   const bottoms = [];
   for (let i = 0; i < byPeak.length; i++) {
-    const k = byPeak[i];
+    const k2 = byPeak[i];
     if (top < bottom) {
-      top += sums[k];
-      tops.push(k);
+      top += sums[k2];
+      tops.push(k2);
     } else {
-      bottom += sums[k];
-      bottoms.push(k);
+      bottom += sums[k2];
+      bottoms.push(k2);
     }
   }
   return bottoms.reverse().concat(tops);
@@ -12770,8 +12744,8 @@ function baselineFor(mode, order, stack, m) {
       const vi = stack[order[i]];
       const now = vi[j];
       let moved = (now - vi[j - 1]) / 2;
-      for (let k = 0; k < i; k++) {
-        const vk = stack[order[k]];
+      for (let k2 = 0; k2 < i; k2++) {
+        const vk = stack[order[k2]];
         moved += vk[j] - vk[j - 1];
       }
       s1 += now;
@@ -12811,10 +12785,10 @@ function streamgraphTransform(ser, w) {
   const m = columns.length;
   let sawNegative = false;
   const values = [];
-  for (let k = 0; k < raw.length; k++) {
+  for (let k2 = 0; k2 < raw.length; k2++) {
     const row = new Array(m);
     for (let j = 0; j < m; j++) {
-      const src = grids[k].get(perm ? perm[j] : j);
+      const src = grids[k2].get(perm ? perm[j] : j);
       let v = src === void 0 || src === null ? 0 : Number(src);
       if (!isFinite(v)) v = 0;
       if (v < 0) {
@@ -12832,8 +12806,8 @@ function streamgraphTransform(ser, w) {
     );
   }
   const visible = [];
-  for (let k = 0; k < raw.length; k++) {
-    if (collapsed.indexOf(k) === -1) visible.push(k);
+  for (let k2 = 0; k2 < raw.length; k2++) {
+    if (collapsed.indexOf(k2) === -1) visible.push(k2);
   }
   let stack = values;
   if (offset === "expand") {
@@ -12857,25 +12831,25 @@ function streamgraphTransform(ser, w) {
   for (let j = 0; j < m; j++) {
     let acc = base[j];
     for (let i = 0; i < bandOrder.length; i++) {
-      const k = bandOrder[i];
+      const k2 = bandOrder[i];
       const bandLo = (
         /** @type {number[]} */
-        lows[k]
+        lows[k2]
       );
       const bandHi = (
         /** @type {number[]} */
-        highs[k]
+        highs[k2]
       );
       bandLo[j] = acc;
-      acc += stack[k][j];
+      acc += stack[k2][j];
       bandHi[j] = acc;
     }
   }
   w.streamgraphData = {
     names: raw.map(
-      (s, k) => {
+      (s, k2) => {
         var _a2;
-        return (_a2 = s == null ? void 0 : s.name) != null ? _a2 : `Series ${k + 1}`;
+        return (_a2 = s == null ? void 0 : s.name) != null ? _a2 : `Series ${k2 + 1}`;
       }
     ),
     xs: columns,
@@ -12884,11 +12858,11 @@ function streamgraphTransform(ser, w) {
     highs,
     order: bandOrder,
     offset,
-    hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
+    hidden: raw.map((_, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
   };
-  return raw.map((s, k) => {
-    const lo = lows[k];
-    const hi = highs[k];
+  return raw.map((s, k2) => {
+    const lo = lows[k2];
+    const hi = highs[k2];
     if (!lo || !hi) return __spreadProps(__spreadValues({}, s), { data: [] });
     const data = new Array(m);
     for (let j = 0; j < m; j++) {

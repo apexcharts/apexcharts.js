@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.6.1
+ * ApexCharts v7.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -75,16 +75,108 @@ function registerRowSource(name, fn) {
   }
   getSources()[name] = fn;
 }
-const MAX_BINS = 1e3;
-function quantileSorted(sorted, q) {
-  const n = sorted.length;
-  if (n === 0) return NaN;
-  if (n === 1) return sorted[0];
-  const pos = (n - 1) * q;
-  const lo = Math.floor(pos);
-  const hi = Math.ceil(pos);
-  if (lo === hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+const M = 1e3;
+function A(e, t) {
+  const s = e.length;
+  if (0 === s) return NaN;
+  if (1 === s) return e[0];
+  const i = (s - 1) * t, n = Math.floor(i), r = Math.ceil(i);
+  return n === r ? e[n] : e[n] + (e[r] - e[n]) * (i - n);
+}
+function x(e, t, s) {
+  const i = e.length, n = (e2) => t / Math.max(1, Math.ceil(e2)), r = () => n(Math.log2(i) + 1);
+  switch (s) {
+    case "sqrt":
+      return { width: n(Math.sqrt(i)), rule: "sqrt" };
+    case "rice":
+      return { width: n(2 * Math.cbrt(i)), rule: "rice" };
+    case "scott": {
+      const t2 = (function(e2) {
+        const t3 = e2.length;
+        if (t3 < 2) return 0;
+        let s2 = 0;
+        for (let i3 = 0; i3 < t3; i3++) s2 += e2[i3];
+        const i2 = s2 / t3;
+        let n2 = 0;
+        for (let s3 = 0; s3 < t3; s3++) {
+          const t4 = e2[s3] - i2;
+          n2 += t4 * t4;
+        }
+        return Math.sqrt(n2 / t3);
+      })(e);
+      return t2 > 0 ? { width: 3.49 * t2 * Math.pow(i, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
+    }
+    case "fd": {
+      const t2 = A(e, 0.75) - A(e, 0.25);
+      return t2 > 0 ? { width: 2 * t2 * Math.pow(i, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
+    }
+    case "auto": {
+      const t2 = r(), s2 = A(e, 0.75) - A(e, 0.25);
+      if (s2 <= 0) return { width: t2, rule: "sturges" };
+      const n2 = 2 * s2 * Math.pow(i, -1 / 3);
+      return n2 < t2 ? { width: n2, rule: "fd" } : { width: t2, rule: "sturges" };
+    }
+    default:
+      return { width: r(), rule: "sturges" };
+  }
+}
+function S(e, t = {}) {
+  if (!Array.isArray(e) || 0 === e.length) return null;
+  const s = e.slice().sort(((e2, t2) => e2 - t2));
+  let i = s[0], n = s[s.length - 1];
+  const r = t.range;
+  if (Array.isArray(r) && 2 === r.length) {
+    const e2 = Number(r[0]), t2 = Number(r[1]);
+    Number.isFinite(e2) && Number.isFinite(t2) && t2 > e2 && (i = e2, n = t2);
+  }
+  if (!(n > i)) {
+    const e2 = Math.abs(i) > 0 ? 0.05 * Math.abs(i) : 0.5;
+    return { edges: [i - e2, i + e2], binWidth: 2 * e2, rule: "single", capped: false };
+  }
+  const a = n - i;
+  let l, o;
+  if ("number" == typeof t.binWidth && t.binWidth > 0) l = t.binWidth, o = "binWidth";
+  else if ("number" == typeof t.bins && t.bins >= 1) l = a / Math.floor(t.bins), o = "count";
+  else {
+    const e2 = x(s, a, "string" == typeof t.bins ? t.bins : "auto");
+    l = e2.width, o = e2.rule;
+  }
+  (!Number.isFinite(l) || l <= 0) && (l = a);
+  let c = Math.ceil(a / l);
+  (!Number.isFinite(c) || c < 1) && (c = 1);
+  let u = false;
+  c > M && (c = M, u = true), l = a / c;
+  const h = new Array(c + 1);
+  for (let e2 = 0; e2 <= c; e2++) h[e2] = i + e2 * l;
+  return h[c] = Math.max(h[c], n), { edges: h, binWidth: l, rule: o, capped: u };
+}
+function k(e, t) {
+  const s = t.length - 1;
+  if (!(e >= t[0]) || e > t[s]) return -1;
+  if (e === t[s]) return s - 1;
+  const i = (t[s] - t[0]) / s;
+  if (i > 0) {
+    let n2 = Math.floor((e - t[0]) / i);
+    return n2 < 0 && (n2 = 0), n2 > s - 1 && (n2 = s - 1), e < t[n2] ? n2-- : e >= t[n2 + 1] && n2++, n2 < 0 || n2 > s - 1 ? -1 : n2;
+  }
+  let n = 0, r = s - 1;
+  for (; n <= r; ) {
+    const s2 = n + r >> 1;
+    if (e < t[s2]) r = s2 - 1;
+    else {
+      if (!(e >= t[s2 + 1])) return s2;
+      n = s2 + 1;
+    }
+  }
+  return -1;
+}
+function L(e, t) {
+  const s = new Array(Math.max(0, t.length - 1)).fill(0);
+  for (let i = 0; i < e.length; i++) {
+    const n = k(e[i], t);
+    n >= 0 && s[n]++;
+  }
+  return s;
 }
 function stdDev(values) {
   const n = values.length;
@@ -99,140 +191,22 @@ function stdDev(values) {
   }
   return Math.sqrt(acc / n);
 }
-function widthForRule(sorted, span, rule) {
-  const n = sorted.length;
-  const byCount = (count) => span / Math.max(1, Math.ceil(count));
-  switch (rule) {
-    case "sqrt":
-      return { width: byCount(Math.sqrt(n)), rule: "sqrt" };
-    case "rice":
-      return { width: byCount(2 * Math.cbrt(n)), rule: "rice" };
-    case "scott": {
-      const sd = stdDev(sorted);
-      if (sd > 0) return { width: 3.49 * sd * Math.pow(n, -1 / 3), rule: "scott" };
-      return { width: byCount(Math.log2(n) + 1), rule: "sturges" };
-    }
-    case "fd": {
-      const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
-      if (iqr > 0) return { width: 2 * iqr * Math.pow(n, -1 / 3), rule: "fd" };
-      return { width: byCount(Math.log2(n) + 1), rule: "sturges" };
-    }
-    case "auto": {
-      const sturges = byCount(Math.log2(n) + 1);
-      const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
-      if (iqr <= 0) return { width: sturges, rule: "sturges" };
-      const fd = 2 * iqr * Math.pow(n, -1 / 3);
-      return fd < sturges ? { width: fd, rule: "fd" } : { width: sturges, rule: "sturges" };
-    }
-    case "sturges":
-    default:
-      return { width: byCount(Math.log2(n) + 1), rule: "sturges" };
-  }
-}
-function computeBinning(values, opts = {}) {
-  if (!Array.isArray(values) || values.length === 0) return null;
-  const sorted = values.slice().sort((a, b) => a - b);
-  let lo = sorted[0];
-  let hi = sorted[sorted.length - 1];
-  const range = opts.range;
-  if (Array.isArray(range) && range.length === 2) {
-    const rLo = Number(range[0]);
-    const rHi = Number(range[1]);
-    if (isFinite(rLo) && isFinite(rHi) && rHi > rLo) {
-      lo = rLo;
-      hi = rHi;
-    }
-  }
-  if (!(hi > lo)) {
-    const pad = Math.abs(lo) > 0 ? Math.abs(lo) * 0.05 : 0.5;
-    return {
-      edges: [lo - pad, lo + pad],
-      binWidth: pad * 2,
-      rule: "single",
-      capped: false
-    };
-  }
-  const span = hi - lo;
-  let width;
-  let rule;
-  if (typeof opts.binWidth === "number" && opts.binWidth > 0) {
-    width = opts.binWidth;
-    rule = "binWidth";
-  } else if (typeof opts.bins === "number" && opts.bins >= 1) {
-    width = span / Math.floor(opts.bins);
-    rule = "count";
-  } else {
-    const chosen = widthForRule(
-      sorted,
-      span,
-      typeof opts.bins === "string" ? opts.bins : "auto"
-    );
-    width = chosen.width;
-    rule = chosen.rule;
-  }
-  if (!isFinite(width) || width <= 0) width = span;
-  let count = Math.ceil(span / width);
-  if (!isFinite(count) || count < 1) count = 1;
-  let capped = false;
-  if (count > MAX_BINS) {
-    count = MAX_BINS;
-    width = span / count;
-    capped = true;
-  }
-  width = span / count;
-  const edges = new Array(count + 1);
-  for (let k = 0; k <= count; k++) edges[k] = lo + k * width;
-  edges[count] = Math.max(edges[count], hi);
-  return { edges, binWidth: width, rule, capped };
-}
-function binIndexOf(v, edges) {
-  const last = edges.length - 1;
-  if (!(v >= edges[0]) || v > edges[last]) return -1;
-  if (v === edges[last]) return last - 1;
-  const width = (edges[last] - edges[0]) / last;
-  if (width > 0) {
-    let k = Math.floor((v - edges[0]) / width);
-    if (k < 0) k = 0;
-    if (k > last - 1) k = last - 1;
-    if (v < edges[k]) k--;
-    else if (v >= edges[k + 1]) k++;
-    if (k < 0 || k > last - 1) return -1;
-    return k;
-  }
-  let lo = 0;
-  let hi = last - 1;
-  while (lo <= hi) {
-    const mid = lo + hi >> 1;
-    if (v < edges[mid]) hi = mid - 1;
-    else if (v >= edges[mid + 1]) lo = mid + 1;
-    else return mid;
-  }
-  return -1;
-}
-function binCounts(values, edges) {
-  const counts = new Array(Math.max(0, edges.length - 1)).fill(0);
-  for (let i = 0; i < values.length; i++) {
-    const k = binIndexOf(values[i], edges);
-    if (k >= 0) counts[k]++;
-  }
-  return counts;
-}
 function rowsByBin(values, edges) {
   const n = Math.max(0, edges.length - 1);
   const buckets = new Array(n);
-  for (let k = 0; k < n; k++) buckets[k] = [];
+  for (let k2 = 0; k2 < n; k2++) buckets[k2] = [];
   for (let i = 0; i < values.length; i++) {
-    const k = binIndexOf(values[i], edges);
-    if (k >= 0) buckets[k].push(values[i]);
+    const k$1 = k(values[i], edges);
+    if (k$1 >= 0) buckets[k$1].push(values[i]);
   }
   return buckets;
 }
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = quantileSorted(sorted, 0.25);
-  const median = quantileSorted(sorted, 0.5);
-  const q3 = quantileSorted(sorted, 0.75);
+  const q1 = A(sorted, 0.25);
+  const median = A(sorted, 0.5);
+  const q3 = A(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -259,7 +233,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
+    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -282,13 +256,13 @@ function kernelDensity(values, opts = {}) {
   const norm = 1 / (n * h * Math.sqrt(2 * Math.PI));
   const density = [];
   for (let g = 0; g < steps; g++) {
-    const x = lo + g * step;
+    const x2 = lo + g * step;
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const z = (x - sorted[i]) / h;
+      const z = (x2 - sorted[i]) / h;
       sum += Math.exp(-0.5 * z * z);
     }
-    density.push([x, sum * norm]);
+    density.push([x2, sum * norm]);
   }
   return { density, bandwidth: h };
 }
@@ -358,7 +332,7 @@ function histogramTransform(ser, w) {
   } else {
     for (const vals of perSeries) all = all.concat(vals);
   }
-  const binning = computeBinning(all, {
+  const binning = S(all, {
     bins: hcfg.bins,
     binWidth: hcfg.binWidth,
     range: hcfg.range
@@ -375,7 +349,7 @@ function histogramTransform(ser, w) {
   }
   const { edges, binWidth } = binning;
   const counts = perSeries.map(
-    (vals) => binCounts(vals, edges)
+    (vals) => L(vals, edges)
   );
   w.histogramData = {
     edges,
@@ -393,8 +367,8 @@ function histogramTransform(ser, w) {
       binWidth
     });
     const data = [];
-    for (let k = 0; k < ys.length; k++) {
-      data.push({ x: (edges[k] + edges[k + 1]) / 2, y: ys[k] });
+    for (let k2 = 0; k2 < ys.length; k2++) {
+      data.push({ x: (edges[k2] + edges[k2 + 1]) / 2, y: ys[k2] });
     }
     return __spreadProps(__spreadValues({}, s), { data });
   });
@@ -513,8 +487,8 @@ function histogramRows(w, opts) {
     if (collapsed.indexOf(i) !== -1) return;
     const buckets = rowsByBin(histogramValues(s && s.data), edges);
     const seriesName = w.seriesData && ((_a = w.seriesData.seriesNames) == null ? void 0 : _a[i]) || (s == null ? void 0 : s.name);
-    buckets.forEach((rows, k) => {
-      const range = `${formatEdge(edges[k])}-${formatEdge(edges[k + 1])}`;
+    buckets.forEach((rows, k2) => {
+      const range = `${formatEdge(edges[k2])}-${formatEdge(edges[k2 + 1])}`;
       clusters.push({
         // Only qualify by series when there is more than one to tell apart.
         name: raw.length > 1 && seriesName ? `${seriesName} ${range}` : range,

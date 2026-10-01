@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.6.1
+ * ApexCharts v7.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -45,15 +45,12 @@ function registerSeriesTransform(name, fn) {
   getTransforms()[name] = fn;
 }
 const Utils = _core.__apex_Utils;
-function quantileSorted(sorted, q) {
-  const n = sorted.length;
-  if (n === 0) return NaN;
-  if (n === 1) return sorted[0];
-  const pos = (n - 1) * q;
-  const lo = Math.floor(pos);
-  const hi = Math.ceil(pos);
-  if (lo === hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+function A(e, t) {
+  const s = e.length;
+  if (0 === s) return NaN;
+  if (1 === s) return e[0];
+  const i = (s - 1) * t, n = Math.floor(i), r = Math.ceil(i);
+  return n === r ? e[n] : e[n] + (e[r] - e[n]) * (i - n);
 }
 function stdDev(values) {
   const n = values.length;
@@ -71,9 +68,9 @@ function stdDev(values) {
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = quantileSorted(sorted, 0.25);
-  const median = quantileSorted(sorted, 0.5);
-  const q3 = quantileSorted(sorted, 0.75);
+  const q1 = A(sorted, 0.25);
+  const median = A(sorted, 0.5);
+  const q3 = A(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -100,7 +97,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
+    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
