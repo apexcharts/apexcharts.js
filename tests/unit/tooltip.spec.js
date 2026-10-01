@@ -770,6 +770,23 @@ describe('Tooltip.handleStickyTooltip', () => {
     expect(runBound(-121, 120).handleMouseOut).toHaveBeenCalled()
     expect(runBound(621, 120).handleMouseOut).toHaveBeenCalled()
   })
+
+  // A plot box rarely lands on whole pixels: a 1194.29px grid starting at x.36
+  // reports hoverX = -0.36 for the leftmost column of pixels INSIDE it, which
+  // is where a line chart's first marker sits. Bounding at a bare 0 hid the
+  // tooltip on the point being pointed at; it only ever looked right because
+  // the caller used to re-activate the tooltip it had just hidden.
+  it('counts a fraction of a pixel past the edge as still on the plot', () => {
+    expect(runBound(-0.36, 0).create).toHaveBeenCalled()
+    expect(runBound(-0.99, 0).create).toHaveBeenCalled()
+    expect(runBound(500.36, 0).create).toHaveBeenCalled()
+    // A whole pixel out is out, which is the bound the two tests above pin.
+    expect(runBound(-1, 0).handleMouseOut).toHaveBeenCalled()
+    expect(runBound(501, 0).handleMouseOut).toHaveBeenCalled()
+    // Same slack at the far side of the bar pad.
+    expect(runBound(-120.5, 120).create).toHaveBeenCalled()
+    expect(runBound(-121, 120).handleMouseOut).toHaveBeenCalled()
+  })
 })
 
 // ---------------------------------------------------------------------------

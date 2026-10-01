@@ -39,6 +39,12 @@ export default class Tooltip {
     this.showOnIntersect = this.tConfig.intersect
     this.showTooltipTitle = this.tConfig.x.show
     this.fixedTooltip = this.tConfig.fixed.enabled
+    /**
+     * Set by handleMouseOut, read by axisChartsTooltips: did something in this
+     * pass decide there is nothing to show? See the comment at its use.
+     * @type {boolean}
+     */
+    this.tooltipHidden = false
     /** @type {HTMLElement | null} */
     this.xaxisTooltip = null
     /** @type {HTMLElement | null} */
@@ -1026,6 +1032,17 @@ export default class Tooltip {
         _yc.classList.add('apexcharts-active')
       }
 
+      // The handlers below can decide there is nothing under the pointer and
+      // hide the tooltip: off the plot horizontally, or on a null datum. That
+      // decision used to be undone a few lines later, where this branch ends by
+      // activating the tooltip unconditionally, and an activated tooltip that
+      // was never positioned keeps whatever geometry it last had. So it came
+      // back in the margin still captioning the previous column, or, if nothing
+      // had been shown yet, as an empty 2px box pinned at the chart's top-left.
+      // The vertical guard at the top of this method returns for exactly this
+      // reason; these paths could not, because they hide from inside a helper.
+      this.tooltipHidden = false
+
       if (
         !isCellChart &&
         ((isStickyTooltip && !this.showOnIntersect) || syncedCharts.length > 1)
@@ -1077,6 +1094,10 @@ export default class Tooltip {
           }
         }
       }
+
+      // Hidden above: leave it hidden. The axis tooltips go with it, which
+      // handleMouseOut has already seen to.
+      if (this.tooltipHidden) return
 
       if (this.yaxisTooltips && this.yaxisTooltips.length) {
         for (let yt = 0; yt < w.config.yaxis.length; yt++) {
@@ -1381,8 +1402,17 @@ export default class Tooltip {
     // sit at 0 and `gridWidth`, so half of `barPadForNumericAxis` hangs outside
     // the plot on each side. Hovering that half still has to resolve a tooltip,
     // so widen the bound by the pad rather than clipping at the plot box.
+    //
+    // A WHOLE pixel beyond that is out; a fraction of one is still on the
+    // edge. A grid rarely lands on a whole pixel (1194.29 wide, origin at
+    // .36), so its leftmost column of pixels measures a hair NEGATIVE, and
+    // that is exactly where a line chart's first marker sits: a bare `< 0`
+    // hid the tooltip on the point being pointed at.
     const edgePad = w.globals.barPadForNumericAxis || 0
-    if (capj.hoverX < -edgePad || capj.hoverX > w.layout.gridWidth + edgePad) {
+    if (
+      capj.hoverX <= -edgePad - 1 ||
+      capj.hoverX >= w.layout.gridWidth + edgePad + 1
+    ) {
       this.handleMouseOut(opt)
       return
     }
@@ -1464,6 +1494,8 @@ export default class Tooltip {
    */
   handleMouseOut(opt) {
     const w = this.w
+
+    this.tooltipHidden = true
 
     const xcrosshairs = this.getElXCrosshairs()
     w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
