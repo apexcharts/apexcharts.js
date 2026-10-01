@@ -1412,6 +1412,11 @@ declare namespace ApexCharts {
  * pixel-aligned plot rectangles, the color-by-series-name map, the headers,
  * one legend, one toolbar and the responsive column count. Series WITHOUT the
  * facet key repeat in every panel (reference series).
+ *
+ * To turn a trellis back into a single chart, pass `trellis: null` (or
+ * `trellis: { by: null }`) to updateOptions. Leaving the key OUT of the options
+ * keeps the grid: updateOptions merges, so an absent key never resets its
+ * option, here or anywhere else.
  */
 type ApexTrellis = {
   /**
