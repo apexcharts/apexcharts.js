@@ -292,10 +292,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding conventions, and PR gui
 
 ## License
 
-ApexCharts uses a **revenue-based license**:
+ApexCharts uses a **$2M threshold license**:
 
-- **Free** for individuals, and organizations with **under $2M USD in annual gross revenue**, including commercial and internal use. No registration required.
-- **Commercial license required** for organizations at or above $2M USD annual gross revenue.
+- **Free** for individuals, and organizations with **under $2M USD in annual revenue, operating budget, funding, or equivalent financial resources**, including commercial and internal use. No registration required.
+- **Commercial license required** once you, your parent company, affiliates, or any entity under common control reach $2M USD or more on any of those measures.
 
 Full terms: [apexcharts.com/license](https://apexcharts.com/license)
 
