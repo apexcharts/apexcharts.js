@@ -88,12 +88,17 @@ export default class Tooltip {
     this.dataPointsDividedWidth = 0
     /** @type {HTMLElement | null} */
     this.tooltipTitle = null
+    // Resolved lazily and revalidated with baseEl.contains(); see _resolveEl.
+    /** @type {any} */
+    this._elTooltipCache = null
+    /** @type {any} */
+    this._elXCrosshairsCache = null
+    /** @type {any} */
+    this._elGridCache = null
     /** @type {NodeListOf<Element> | null} */
     this.legendLabels = null
     /** @type {any} */
     this.ttItems = null
-    /** @type {DOMRect | null} */
-    this.seriesBound = null
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     this.seriesHoverTimeout = undefined
     /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -131,8 +136,14 @@ export default class Tooltip {
 
     if (!tooltipEl) return
 
-    // Initial dimension cache
-    this.updateDimensionCache()
+    // No initial measurement on purpose. Reading the rect here forced a
+    // synchronous layout of the chart that was just (re)built, on every render
+    // AND every update, to measure a tooltip that is still empty and hidden --
+    // a size superseded the moment any content is written into it. It is not
+    // needed either: `getCachedDimensions()` measures live when the cache is
+    // missing or older than a second, and every consumer of it runs at
+    // interaction time, by which point the ResizeObserver below has normally
+    // filled the cache anyway.
 
     // Setup ResizeObserver for automatic dimension updates
     if (typeof ResizeObserver !== 'undefined' && !w.globals.resizeObserver) {
@@ -198,9 +209,43 @@ export default class Tooltip {
    * @param {{ w: import('../../types/internal').ChartStateW }} [ctx]
    * @returns {HTMLElement | null}
    */
+  /**
+   * Resolve a chart-level element, keeping the node between calls.
+   *
+   * Hover paths ask for these several times per frame and every lookup is a
+   * `querySelector` across the entire chart DOM, which a CPU profile of a
+   * 700-series chart showed dominating hover time. Validity is checked with
+   * `baseEl.contains()` — a short walk up the ancestors, not a tree scan.
+   *
+   * That check is what respects `fastUpdate`: `drawTooltip` DETACHES the
+   * existing tooltip before building a replacement (see its comment on the
+   * fastUpdate path), so a rebuilt element leaves the cached node outside
+   * `baseEl`, the check fails, and the selector runs again. A full re-render
+   * replaces `baseEl`'s subtree with the same consequence.
+   *
+   * @param {any} ctx      owner of the cache slot (a Tooltip, or another chart)
+   * @param {string} key   cache property on that owner
+   * @param {string} selector
+   * @returns {any}
+   */
+  _resolveEl(ctx, key, selector) {
+    const baseEl = ctx.w?.dom?.baseEl
+    if (!baseEl) return null
+
+    const cached = ctx[key]
+    if (cached && baseEl.contains(cached)) return cached
+
+    const el = baseEl.querySelector(selector)
+    ctx[key] = el
+    return el
+  }
+
+  /**
+   * @param {any} [ctx] another chart's context, for grouped tooltips
+   * @returns {HTMLElement | null}
+   */
   getElTooltip(ctx) {
     if (!ctx) ctx = this
-    if (!ctx.w.dom.baseEl) return null
 
     // :not() is required: the point-annotation hover tooltip shares the
     // .apexcharts-tooltip class for styling and, once created, can precede
@@ -208,18 +253,24 @@ export default class Tooltip {
     // tooltip on fastUpdate). Without the guard this would return the
     // annotation tooltip and hijack the series-tooltip machinery.
     return /** @type {HTMLElement | null} */ (
-      ctx.w.dom.baseEl.querySelector(
+      this._resolveEl(
+        ctx,
+        '_elTooltipCache',
         '.apexcharts-tooltip:not(.apexcharts-annotation-tooltip)',
       )
     )
   }
 
   getElXCrosshairs() {
-    return this.w.dom.baseEl.querySelector('.apexcharts-xcrosshairs')
+    return this._resolveEl(
+      this,
+      '_elXCrosshairsCache',
+      '.apexcharts-xcrosshairs',
+    )
   }
 
   getElGrid() {
-    return this.w.dom.baseEl.querySelector('.apexcharts-grid')
+    return this._resolveEl(this, '_elGridCache', '.apexcharts-grid')
   }
 
   /**
@@ -424,13 +475,22 @@ export default class Tooltip {
       tooltipEl.appendChild(this.tooltipTitle)
     }
 
-    let ttItemsCnt = w.seriesData.series.length // whether shared or not, default is shared
-    if ((w.globals.xyCharts || w.globals.comboCharts) && this.tConfig.shared) {
-      if (!this.showOnIntersect) {
-        ttItemsCnt = w.seriesData.series.length
-      } else {
-        ttItemsCnt = 1
-      }
+    // A row per series is only ever DISPLAYED by a shared tooltip: every
+    // non-shared path activates exactly one group (see
+    // Labels.toggleActiveInactiveSeries) and writes the hovered series' values
+    // into it. Allocating per-series rows for those built ~9.8k DOM nodes on a
+    // 700-series chart for a tooltip that shows one line, and left
+    // printLabels() rewriting all of them on every hover.
+    //
+    // Non-cartesian types still index their row by series index, so they keep
+    // the old allocation; Labels reads the count back rather than re-deriving
+    // the condition.
+    let ttItemsCnt = w.seriesData.series.length
+    if (w.globals.xyCharts || w.globals.comboCharts) {
+      ttItemsCnt =
+        this.tConfig.shared && !this.showOnIntersect
+          ? w.seriesData.series.length
+          : 1
     }
 
     this.legendLabels = w.dom.baseEl.querySelectorAll('.apexcharts-legend-text')
@@ -499,6 +559,13 @@ export default class Tooltip {
       gYZ.style.fontFamily =
         this.tConfig.style.fontFamily || w.config.chart.fontFamily
       gYZ.style.fontSize = this.tConfig.style.fontSize
+
+      // Keep the nodes a hover has to write into. Labels.DOMHandling used to
+      // re-`querySelector` all of them on every mousemove, which on a shared
+      // tooltip is 4-6 scoped lookups per series per frame: a CPU profile of a
+      // 700-series chart spent 38% of hover time inside querySelector alone.
+      /** @type {Record<string, any>} */
+      const refs = { marker: point, text: gYZ }
       ;['y', 'goals', 'z'].forEach((g) => {
         const gValText = BrowserAPIs.createElementNS(
           'http://www.w3.org/1999/xhtml',
@@ -520,10 +587,14 @@ export default class Tooltip {
         txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
         gValText.appendChild(txtValue)
 
+        refs[`${g}Label`] = txtLabel
+        refs[`${g}Value`] = txtValue
+
         gYZ.appendChild(gValText)
       })
 
       gTxt.appendChild(gYZ)
+      ;/** @type {any} */ (gTxt).ttRefs = refs
 
       tooltipEl.appendChild(gTxt)
 
@@ -570,9 +641,13 @@ export default class Tooltip {
     const hoverArea = w.dom.Paper.node
 
     const elGrid = this.getElGrid()
-    if (elGrid) {
-      this.seriesBound = elGrid.getBoundingClientRect()
-    }
+
+    // No grid rect is measured here on purpose. Every consumer takes its own
+    // `elGrid.getBoundingClientRect()` at the point of use, because the value
+    // is viewport-relative and goes stale on scroll, so a rect cached at render
+    // time could not be trusted anyway. Measuring it here only forced a
+    // synchronous layout of the chart that was just rebuilt: a profile of 30
+    // updateSeries calls put 20% of all update time in this one dead read.
 
     /** @type {any[]} */
     const tooltipY = []
@@ -947,9 +1022,9 @@ export default class Tooltip {
 
     // Every hit-test below is measured against the grid, so without one there
     // is nothing to hover. `drawSeriesTooltip` already treats a missing grid as
-    // normal (it skips caching `seriesBound`), and a pointer event can still
-    // arrive with the grid gone: a cross-type morph tears down the axis chrome
-    // while the listeners bound to the old plot are still live.
+    // normal, and a pointer event can still arrive with the grid gone: a
+    // cross-type morph tears down the axis chrome while the listeners bound to
+    // the old plot are still live.
     if (!opt.elGrid) return
 
     const seriesBound = opt.elGrid.getBoundingClientRect()

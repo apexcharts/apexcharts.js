@@ -67,6 +67,10 @@ export default class Marker {
     this.ttCtx = tooltipContext
     this.ctx = tooltipContext.ctx
     this.tooltipPosition = new Position(tooltipContext)
+    // Markers this module has resized up, so a hover only has to put back the
+    // ones it actually touched. See enlargePoints().
+    /** @type {Set<any>} */
+    this.enlargedPoints = new Set()
   }
 
   drawDynamicPoints() {
@@ -177,14 +181,33 @@ export default class Marker {
 
     const col = j
 
+    // Put back only the markers we previously grew, then ask the DOM for just
+    // this column's markers. The old shape of this walked EVERY marker in the
+    // chart on every mousemove and recomputed the path of each one that did
+    // not match, so hover cost scaled with (series x points) rather than with
+    // the column being hovered. `drawDynamicPoints()` (the only source of
+    // markers without a `rel`) runs solely when markers are zero-sized or
+    // batched, which is exactly when this method is not the one called, so
+    // selecting on `rel` cannot miss a node this used to touch.
+    this.resetEnlargedPoints()
+
     const points = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker',
+      `.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker[rel="${col}"]`,
     )
 
     let newSize = w.config.markers.hover.size
 
+    // Position the crosshair and the tooltip ONCE, after the loop. Doing it
+    // per marker was redundant (each call overwrote the last, so only the final
+    // marker's coords survived) and far from free: moveXCrosshairs and
+    // moveTooltip each resolve their element through a chart-wide
+    // `baseEl.querySelector`, one of them with a `:not()`. At 700 markers in a
+    // column that was ~1,400 whole-document queries per mousemove, which a CPU
+    // profile put at ~37% of all hover time.
+    let lastCx = null
+    let lastCy = null
+
     for (let p = 0; p < points.length; p++) {
-      const rel = points[p].getAttribute('rel')
       const index = points[p].getAttribute('index')
 
       if (newSize === undefined) {
@@ -193,25 +216,39 @@ export default class Marker {
           w.config.markers.hover.sizeOffset
       }
 
-      if (col === parseInt(rel ?? '0', 10)) {
-        me.newPointSize(col, points[p])
+      me.newPointSize(col, points[p])
 
-        const cx = points[p].getAttribute('cx') ?? '0'
-        const cy = points[p].getAttribute('cy') ?? '0'
-
-        me.tooltipPosition.moveXCrosshairs(parseFloat(cx))
-
-        if (!ttCtx.fixedTooltip) {
-          me.tooltipPosition.moveTooltip(
-            parseFloat(cx),
-            parseFloat(cy),
-            newSize,
-          )
-        }
-      } else {
-        me.oldPointSize(points[p])
-      }
+      lastCx = points[p].getAttribute('cx') ?? '0'
+      lastCy = points[p].getAttribute('cy') ?? '0'
     }
+
+    if (lastCx === null) return
+
+    me.tooltipPosition.moveXCrosshairs(parseFloat(lastCx))
+
+    if (!ttCtx.fixedTooltip) {
+      me.tooltipPosition.moveTooltip(
+        parseFloat(lastCx),
+        parseFloat(/** @type {string} */ (lastCy)),
+        newSize,
+      )
+    }
+  }
+
+  /**
+   * Restore every marker this module grew back to its default size. Cheap
+   * because it only visits the handful of nodes actually enlarged, where the
+   * old code re-pathed every marker in the chart.
+   */
+  resetEnlargedPoints() {
+    if (this.enlargedPoints.size === 0) return
+
+    // Snapshot first: oldPointSize() removes each entry as it restores it.
+    const points = Array.from(this.enlargedPoints)
+    for (let i = 0; i < points.length; i++) {
+      this.oldPointSize(points[i])
+    }
+    this.enlargedPoints.clear()
   }
 
   /**
@@ -242,6 +279,10 @@ export default class Marker {
 
       const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, newSize)
       point.setAttribute('d', path)
+      // Remember it so the next hover can put back just this one. Registering
+      // here rather than in enlargePoints() also covers enlargeCurrentPoint()
+      // and the keyboard-navigation callers.
+      this.enlargedPoints.add(point)
       return newSize
     }
 
@@ -255,10 +296,14 @@ export default class Marker {
     const size = parseFloat(point.getAttribute('default-marker-size'))
     const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, size)
     point.setAttribute('d', path)
+    this.enlargedPoints.delete(point)
   }
 
   resetPointsSize() {
     const w = this.w
+
+    // This is the chart-wide sweep, so nothing is left enlarged afterwards.
+    this.enlargedPoints.clear()
 
     const points = w.dom.baseEl.querySelectorAll(
       '.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker',

@@ -459,8 +459,17 @@ export default class Position {
       )
       for (let p = 0; p < allPoints.length; p++) {
         if (parseInt(allPoints[p].getAttribute('rel') ?? '0', 10) === j) {
-          ttCtx.marker.resetPointsSize()
+          // Put back only what we previously grew. resetPointsSize() re-paths
+          // EVERY marker in the chart, which on this (non-shared) path ran per
+          // hover and made it cost more than the shared tooltip it is usually
+          // reached for to avoid. Everything that enlarges a marker goes
+          // through Marker.newPointSize, so the tracked set is complete; the
+          // zero-size `M0,0` branch resetPointsSize also handles only applies
+          // to dynamic points, which exist solely when largestSize is 0 or
+          // markers are batched — neither of which reaches this branch.
+          ttCtx.marker.resetEnlargedPoints()
           ttCtx.marker.enlargeCurrentPoint(j, allPoints[p])
+          break
         }
       }
     } else {
