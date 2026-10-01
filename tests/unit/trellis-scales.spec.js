@@ -228,13 +228,48 @@ describe('TrellisScales: a stacked trellis shares the STACK domain', () => {
     expect(piled.y.max).toBeGreaterThanOrEqual(80)
   })
 
-  it("'100%' is left alone: the core renormalizes every stack to 0..100 itself", () => {
-    const a = resolve(mkSplit(stacked), {}, { chartType: 'bar' })
-    const b = resolve(
+  // Reported from the field: a '100%' trellis drew 0..100 on the first render
+  // and dropped to the raw value range on the first update. The shared scale
+  // used to be left to the core, which only rewrites the bounds when it reads
+  // a config carrying `chart.stackType` — true of the initial options, never
+  // of a panel update, which carries only what changed.
+  it("'100%' draws percentages, so its domain is 0..100 whatever the data", () => {
+    const pct = resolve(
       mkSplit(stacked),
       {},
       { chartType: 'bar', stacked: true, stackType: '100%' },
     )
-    expect(b.y).toEqual(a.y)
+    expect(pct.y.min).toBe(0)
+    expect(pct.y.max).toBe(100)
+
+    // Data an order of magnitude bigger lands on the same axis: it is the
+    // normalization that fixes the domain, not the numbers.
+    const big = resolve(
+      mkSplit(
+        stacked.map((s) => ({
+          ...s,
+          data: s.data.map((d) => ({ ...d, y: d.y * 100 })),
+        })),
+      ),
+      {},
+      { chartType: 'bar', stacked: true, stackType: '100%' },
+    )
+    expect(big.y).toEqual(pct.y)
+  })
+
+  it("'100%' fixes the per-row and per-column domains too", () => {
+    for (const y of ['independent-row', 'independent-column']) {
+      const r = resolve(
+        mkSplit(stacked),
+        { scales: { y } },
+        { chartType: 'bar', stacked: true, stackType: '100%' },
+      )
+      const groups = [...(r.rowY || r.colY).values()]
+      expect(groups.length).toBeGreaterThan(0)
+      groups.forEach((g) => {
+        expect(g.min).toBe(0)
+        expect(g.max).toBe(100)
+      })
+    }
   })
 })

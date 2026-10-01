@@ -288,3 +288,76 @@ describe('the HTML chrome follows the theme', () => {
     chart.destroy()
   })
 })
+
+// Reported from the field (2026-10-01, with a repro page): a '100%' stacked
+// trellis reads 0..100 on the first render and falls back to the raw value
+// range as soon as anything updates it.
+describe("stackType: '100%' holds its percentage domain across updates", () => {
+  const STACKED = [
+    { name: 'A', region: 'East', data: [40, 50] },
+    { name: 'B', region: 'East', data: [40, 30] },
+    { name: 'A', region: 'West', data: [20, 30] },
+    { name: 'B', region: 'West', data: [10, 20] },
+  ]
+  const percentHost = {
+    options: {
+      chart: {
+        type: 'bar',
+        height: 400,
+        stacked: true,
+        stackType: '100%',
+        animations: { enabled: false },
+      },
+      series: STACKED,
+      xaxis: { categories: ['Q1', 'Q2'] },
+    },
+  }
+  const domains = (chart) =>
+    chart.getPanels().map((p) => {
+      const y = Array.isArray(p.chart.w.config.yaxis)
+        ? p.chart.w.config.yaxis[0]
+        : p.chart.w.config.yaxis
+      return [y.min, y.max]
+    })
+
+  it('every panel starts at 0..100 and stays there through updateSeries', async () => {
+    const { chart } = mount(percentHost)
+    await chart.render()
+    expect(domains(chart)).toEqual([
+      [0, 100],
+      [0, 100],
+    ])
+
+    // The reported trigger: the same data pushed again.
+    await chart.updateSeries(STACKED)
+    expect(domains(chart)).toEqual([
+      [0, 100],
+      [0, 100],
+    ])
+
+    // And through an in-place option update, which re-resolves the scales.
+    await chart.updateOptions({ colors: ['#ff0000', '#00ff00'] })
+    expect(domains(chart)).toEqual([
+      [0, 100],
+      [0, 100],
+    ])
+    chart.destroy()
+  })
+
+  it('the same data WITHOUT 100% keeps measuring the piles', async () => {
+    const { chart } = mount({
+      options: {
+        ...percentHost.options,
+        chart: { ...percentHost.options.chart, stackType: undefined },
+      },
+    })
+    await chart.render()
+    // East piles to 80, so the shared domain has to clear 80 (and must not be
+    // the 100 the percentage path would hand back regardless of the data).
+    domains(chart).forEach(([min, max]) => {
+      expect(min).toBe(0)
+      expect(max).toBeGreaterThanOrEqual(80)
+    })
+    chart.destroy()
+  })
+})

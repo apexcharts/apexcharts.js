@@ -321,17 +321,24 @@ export function resolve(splitResult, cfg = {}, host = {}) {
 
   // A stacked panel is as tall as its tallest PILE, so a shared scale built
   // from single values clips the very panels it exists to make comparable.
-  // '100%' is exempt: the core renormalizes every stack to 0..100 itself, so
-  // the panels already share that domain and pushing anything else would only
-  // fight it.
-  const stacked = !!host.stacked && host.stackType !== '100%'
+  //
+  // '100%' draws percentages, so its domain is 0..100 whatever the numbers are.
+  // Deriving it from the data instead, on the grounds that the core normalizes
+  // the axis anyway, held only for the FIRST render: the core rewrites the
+  // bounds when it reads a config carrying `chart.stackType`, and a panel
+  // update carries only what changed, never the stacking. So every panel
+  // started at 0..100 and dropped to the raw value range on the first update.
+  const percent = !!host.stacked && host.stackType === '100%'
+  const stacked = !!host.stacked && !percent
   /** @param {import('./TrellisSplit').TrellisSlice[]} group */
   const extentOf = (group) =>
-    stacked
-      ? stackedYExtent(group, splitResult.xForm, {
-          stackOnlyBar: host.stackOnlyBar,
-        })
-      : yExtent(group, splitResult.xForm)
+    percent
+      ? { min: 0, max: 100 }
+      : stacked
+        ? stackedYExtent(group, splitResult.xForm, {
+            stackOnlyBar: host.stackOnlyBar,
+          })
+        : yExtent(group, splitResult.xForm)
 
   /** @type {{ min: number, max: number, tickAmount: number } | null} */
   let y = null
