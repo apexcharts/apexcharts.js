@@ -270,10 +270,53 @@ export default class Data {
         this.twoDSeriesX.push(x)
       }
 
-      if (typeof z !== 'undefined') {
-        this.threeDSeries.push(z)
-        this.w.axisFlags.isDataXYZ = true
-      }
+      this.pushZ(z, j)
+    }
+  }
+
+  /**
+   * Record one point's `z`, the third dimension a bubble sizes itself by and
+   * the tooltip reports as "Size".
+   *
+   * Two rules, both of which used to be broken (#5323):
+   *
+   * 1. The slot is positional. `seriesZ[i][j]` is read by data-point index, so
+   *    a point WITHOUT `z` still owns its slot. Otherwise a series where only
+   *    some points carry `z` reports the previous point's value for every
+   *    point after the first gap. Nothing is allocated for a series that
+   *    carries no `z` at all: the backfill only runs once the first `z` shows
+   *    up, so an ordinary line chart pays nothing.
+   *
+   * 2. Only a MEASURABLE value makes the chart three-dimensional. `z: NaN`,
+   *    `z: ''` and `z: null` are the shapes a missing value arrives in from a
+   *    database or a CSV, and they used to set `isDataXYZ` just by being
+   *    present, which grew a stray "Size:" row on charts that have no third
+   *    dimension. A numeric string goes the other way and is coerced, the way
+   *    `y` already is, so `z: '99'` sizes a bubble instead of sitting in
+   *    `seriesZ` as a string that `Range.setZRange` then skips. Anything else
+   *    is stored as given, since a custom `tooltip.z.formatter` may still want
+   *    it; it just cannot be what declares the chart 3-D.
+   *
+   * @param {any} z the point's raw `z`, or undefined when it has none
+   * @param {number} j the point's index within the series
+   */
+  pushZ(z, j) {
+    if (typeof z === 'undefined') {
+      // Only hold the slot for a series already carrying z (rule 1).
+      if (this.threeDSeries.length) this.threeDSeries.push(null)
+      return
+    }
+
+    const num = typeof z === 'string' && z.trim() !== '' ? Number(z) : z
+    // The same test Range.setZRange applies, so a value that counts as the
+    // third dimension here is one the z extent can actually be built from.
+    const measurable = Utils.isNumber(num)
+
+    while (this.threeDSeries.length < j) this.threeDSeries.push(null)
+    this.threeDSeries.push(measurable ? num : z)
+
+    if (measurable) {
+      this.w.axisFlags.isDataXYZ = true
     }
   }
 
@@ -314,10 +357,7 @@ export default class Data {
         this.seriesGoals[i].push(null)
       }
 
-      if (typeof point.z !== 'undefined') {
-        this.threeDSeries.push(point.z)
-        this.w.axisFlags.isDataXYZ = true
-      }
+      this.pushZ(point.z, j)
     }
 
     // get seriesX

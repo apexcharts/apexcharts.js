@@ -727,6 +727,67 @@ class Utils {
     return Number(n) === n && n % 1 !== 0
   }
 
+  /**
+   * Edit distance, capped: how many single-character insertions, deletions or
+   * substitutions turn `a` into `b`. Only ever asked "is this within `max`?",
+   * so it abandons a row the moment every cell in it has passed the budget,
+   * which keeps a near-miss check over a few dozen names free.
+   *
+   * @param {string} a
+   * @param {string} b
+   * @param {number} max
+   * @returns {number} the distance, or `max + 1` once it is known to exceed it
+   */
+  static editDistance(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j)
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i]
+      let best = i
+      for (let j = 1; j <= b.length; j++) {
+        row[j] = Math.min(
+          prev[j] + 1,
+          row[j - 1] + 1,
+          prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        )
+        if (row[j] < best) best = row[j]
+      }
+      if (best > max) return max + 1
+      prev = row
+    }
+    return prev[b.length]
+  }
+
+  /**
+   * The name in `candidates` closest to `name`, or '' when nothing is close
+   * enough to be worth putting in front of a reader. Case and surrounding
+   * whitespace are ignored, so `Line ` finds `line`.
+   *
+   * Used to turn "that option does not exist" into "did you mean this one",
+   * which is the difference between a message that reports a problem and one
+   * that ends it.
+   *
+   * @param {string} name
+   * @param {string[]} candidates
+   * @returns {string}
+   */
+  static nearestName(name, candidates) {
+    const needle = String(name).trim().toLowerCase()
+    // A short name has no room to carry a typo and still be a different word,
+    // so the budget scales with it: 1 for <= 4 characters, 2 above.
+    const max = needle.length > 4 ? 2 : 1
+    let best = ''
+    let bestDist = max + 1
+    candidates.forEach((candidate) => {
+      const d = Utils.editDistance(needle, candidate.toLowerCase(), max)
+      if (d < bestDist) {
+        bestDist = d
+        best = candidate
+      }
+    })
+    return bestDist <= max ? best : ''
+  }
+
   static isMsEdge() {
     if (Environment.isSSR()) return false
 

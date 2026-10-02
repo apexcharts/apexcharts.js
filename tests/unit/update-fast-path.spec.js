@@ -241,7 +241,10 @@ describe('fused parse extrema (2D-array fast lane)', () => {
     const chart = mk(data)
     expect(chart.w.seriesData._parsedExtrema[0]).toBeUndefined()
     expect(chart.w.seriesData.series[0]).toEqual([5, 9, 2])
-    expect(chart.w.seriesData.seriesZ[0]).toEqual([4])
+    // seriesZ is read by data-point index, so the points without a z keep
+    // their slots. Without them the lone z would report against point 0
+    // (#5323).
+    expect(chart.w.seriesData.seriesZ[0]).toEqual([null, 4, null])
     expect(chart.w.globals.maxY).toBeGreaterThanOrEqual(9)
     chart.destroy()
   })

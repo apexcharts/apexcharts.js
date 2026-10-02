@@ -1138,11 +1138,21 @@ interface ApexSeriesTypeDef {
 
 declare namespace ApexCharts {
   export interface ChartState {
+    /**
+     * The merged options: library defaults, then `window.Apex`, then what was
+     * passed in, with the chart-type defaults and any alias rewrite applied.
+     * Every branch is still optional here, as it is on the way in, so read it
+     * with `?.`: this reports what the chart was configured with, not a
+     * promise that a given leaf was resolved to a value.
+     */
+    config: ApexOptions
     // Series data — computed/parsed form used for rendering
     series: number[][] | any[]
-    seriesNames: string[]
+    /** Numeric where the series were named with numbers. */
+    seriesNames: (string | number)[]
     colors: string[]
-    labels: string[]
+    /** Numeric on a numeric or datetime axis, where labels are tick values. */
+    labels: (string | number)[]
     seriesTotals: number[]
     seriesPercent: number[][]
     seriesXvalues: number[][]
@@ -1623,6 +1633,8 @@ type ApexChart = {
   | 'line'
   | 'area'
   | 'bar'
+  /** A synonym for `'bar'`; rewritten to it on the way in. */
+  | 'column'
   | 'pie'
   | 'donut'
   | 'radialBar'
@@ -2348,7 +2360,12 @@ type ApexHierarchyNode = {
 }
 
 type ApexAxisChartSeries = {
- name?: string
+ /**
+  * The series' display name. A number is accepted (and kept as one): it
+  * renders, legends, and reaches the `seriesName` attribute like any other
+  * name, so a year or an id needs no `String()` on the way in.
+  */
+ name?: string | number
  type?: string
  color?: string
  group?: string
@@ -4545,7 +4562,11 @@ type ApexTooltipY = {
   title?: {
     formatter?(seriesName: string, opts?: ApexFormatterOpts): string
   }
-  formatter?(val: number, opts?: ApexFormatterOpts): string
+  /**
+   * `val` is `null` wherever the series has a gap, so guard before reaching
+   * for a number method: `(val) => val?.toFixed(2) ?? 'n/a'`.
+   */
+  formatter?(val: number | null, opts?: ApexFormatterOpts): string
 }
 
 /**
@@ -4691,8 +4712,16 @@ type ApexXAxis = {
   tickPlacement?: string
   tickAmount?: number | 'dataPoints'
   stepSize?: number
-  min?: number
-  max?: number
+  /**
+   * The window's lower bound. A `datetime` axis takes a timestamp, a date
+   * string or a `Date`: the same forms a point's `x` takes, parsed the same
+   * way. Any other axis takes a number (a numeric string converts). A value
+   * that cannot be read as a number is reported on the console and ignored,
+   * leaving the axis to scale to the data.
+   */
+  min?: number | string | Date
+  /** The window's upper bound; see `min` for the forms it accepts. */
+  max?: number | string | Date
   range?: number
   floating?: boolean
   decimalsInFloat?: number
@@ -4761,8 +4790,14 @@ type ApexYAxis = {
   stepSize?: number
   forceNiceScale?: boolean
   alignZero?: boolean
-  min?: number | ((min: number) => number)
-  max?: number | ((max: number) => number)
+  /**
+   * The axis floor. A numeric string converts; a function is called with the
+   * extent computed from the data. A value that cannot be read as a number is
+   * reported on the console and ignored, leaving the axis automatic.
+   */
+  min?: number | string | ((min: number) => number)
+  /** The axis ceiling; see `min` for the forms it accepts. */
+  max?: number | string | ((max: number) => number)
   floating?: boolean
   decimalsInFloat?: number
   labels?: {

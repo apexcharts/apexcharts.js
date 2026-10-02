@@ -1,8 +1,10 @@
 // @ts-check
 import Defaults from './Defaults'
-import { TYPE_ALIASES } from './TypeAliases'
+import { TYPE_ALIASES, BUILTIN_TYPES } from './TypeAliases'
 import Utils from './../../utils/Utils'
+import DateTime from './../../utils/DateTime'
 import Options from './Options'
+import { isCustom } from '../ChartFactory'
 import { Environment } from '../../utils/Environment.js'
 
 /**
@@ -11,6 +13,13 @@ import { Environment } from '../../utils/Environment.js'
  * @module Config
  **/
 export default class Config {
+  /**
+   * The top-level option names, cached from the first Options.init(). See
+   * warnUnknownOptionKeys.
+   * @type {string[] | null}
+   */
+  static _knownOptionKeys = null
+
   /**
    * @param {Record<string, any>} opts
    */
@@ -24,12 +33,29 @@ export default class Config {
     const options = new Options()
     const defaults = new Defaults(opts)
 
+    // `''`, `null` and `undefined` all mean "did not choose", and the library
+    // already reads them as `line` in a dozen places. Writing it down once,
+    // here, keeps Core.setupElements from classing such a chart as non-axis
+    // and then dispatching to a renderer it never built (#5325). Construction
+    // only: on an update, a type the payload does not mention must be left
+    // alone rather than reset to line.
+    if (opts && opts.chart && !opts.chart.type) {
+      opts.chart.type = 'line'
+    }
+
     // First-class chart-type aliases: 'funnel' / 'pyramid' / 'gauge' are
     // promoted names for existing renderers (bar with isFunnel, radialBar).
     // Preserve the requested type for discoverability, then normalize
     // chart.type to the base renderer so all internal chart.type checks
     // continue to work unchanged.
     opts = this.normalizeAliasedChartType(opts)
+
+    if (!responsiveOverride) {
+      // Only on the way in from the user. A responsive breakpoint re-runs
+      // init() with options this library built, so there is nothing to tell
+      // anyone about and the warning would repeat on every resize.
+      Config.warnUnknownOptionKeys(this.opts)
+    }
 
     this.chartType = opts.chart.type
 
@@ -101,6 +127,10 @@ export default class Config {
     // get the merged config and extend with user defined config
     config = Utils.extend(mergedWithDefaultConfig, opts)
 
+    // Axis bounds reach the scale code as numbers, whatever shape they arrived
+    // in. Done after the merge so window.Apex's bounds are covered too.
+    Config.normalizeAxisBounds(config)
+
     // some features are not supported. those mismatches should be handled
     config = this.handleUserInputErrors(config)
 
@@ -120,6 +150,21 @@ export default class Config {
    */
   normalizeAliasedChartType(opts) {
     if (!opts || !opts.chart) return opts
+
+    // An updateOptions payload need not restate the type; only validate the
+    // one that is actually being set.
+    if (opts.chart.type !== undefined) {
+      Config.assertKnownChartType(opts.chart.type)
+    }
+
+    if (opts.chart.type === 'column') {
+      // A plain synonym for the vertical bar, not a form of its own: nothing
+      // downstream has to know the user spelled it this way, so unlike the
+      // aliases below it records no `requestedType`.
+      opts.chart.type = 'bar'
+      return opts
+    }
+
     const requested = opts.chart.type
     // One list, in Defaults, so the names that normalize here are the same ones
     // registerSeriesType refuses to let a custom type take.
@@ -230,6 +275,11 @@ export default class Config {
       // supplies the statistics and Defaults.raincloud() flips the layout
       // presets (kept out of here so each stays user-overridable).
       opts.chart.type = 'violin'
+    } else {
+      // An alias listed in TYPE_ALIASES but with no branch above wants nothing
+      // beyond the rewrite. Without this it would keep a type name no renderer
+      // answers to, which is the crash this whole function exists to prevent.
+      opts.chart.type = TYPE_ALIASES[requested]
     }
     return opts
   }
@@ -501,6 +551,205 @@ export default class Config {
         config.yaxis[0].reversed = false
       }
     }
+
+    return config
+  }
+
+  /**
+   * Reject a `chart.type` no renderer answers to, at the point the config is
+   * read rather than deep inside drawing.
+   *
+   * An unknown type used to survive all the way to `Core.plotChartType`, where
+   * the fallthrough asked a renderer that was never built to draw, and the
+   * reader got `Cannot read properties of null (reading 'draw')` out of a
+   * rejected `render()` promise: no mention of `chart.type`, no mention of the
+   * value, and a stack pointing at internals (#5325). Three of the four ways
+   * to get this wrong (a different capitalisation, a trailing space, a name
+   * from another library) are a one-word fix once the message says so.
+   *
+   * @param {string} type
+   */
+  static assertKnownChartType(type) {
+    if (typeof type !== 'string') {
+      throw new Error(
+        `ApexCharts: chart.type must be a string, got ${typeof type}.`,
+      )
+    }
+    // A type registered through ApexCharts.registerSeriesType is as real as a
+    // built-in; the registry is the only place that knows about it.
+    if (
+      BUILTIN_TYPES.includes(type) ||
+      TYPE_ALIASES[type] !== undefined ||
+      isCustom(type)
+    ) {
+      return
+    }
+
+    const known = BUILTIN_TYPES.concat(Object.keys(TYPE_ALIASES))
+    const nearest = Utils.nearestName(type, known)
+    throw new Error(
+      `ApexCharts: unknown chart.type "${type}".` +
+        (nearest ? ` Did you mean "${nearest}"?` : '') +
+        ` Known types: ${known.sort().join(', ')}.`,
+    )
+  }
+
+  /**
+   * Report top-level option keys ApexCharts does not read.
+   *
+   * The merge that builds the config copies whatever it is handed, so an
+   * invented key, or a typo of a real one, lands in `w.config` looking exactly
+   * as accepted as a real option and is then never read by anything. The
+   * reporter of #5326 shipped `zaxis: { title: { text } }` for a long time
+   * believing it labelled something.
+   *
+   * The known set is `Options.init()`'s own keys, so it cannot drift from what
+   * the library actually supports. A warning, not a throw: an unknown key has
+   * never stopped a chart rendering, and someone stashing their own metadata
+   * on the options object should not have their page broken by an upgrade.
+   *
+   * @param {Record<string, any>} opts the options as the user supplied them
+   */
+  static warnUnknownOptionKeys(opts) {
+    if (!opts || typeof opts !== 'object') return
+
+    // Built once. Options.init() allocates the whole default config, which is
+    // far too much to pay per chart for a list of 26 key names, and the names
+    // cannot change within a page's lifetime.
+    if (!Config._knownOptionKeys) {
+      Config._knownOptionKeys = Object.keys(new Options().init())
+    }
+    const known = Config._knownOptionKeys
+
+    const unknown = Object.keys(opts).filter((key) => !known.includes(key))
+    if (!unknown.length) return
+
+    const described = unknown.map((key) => {
+      const nearest = Utils.nearestName(key, known)
+      return nearest ? `${key} (did you mean "${nearest}"?)` : key
+    })
+    console.warn(
+      `ApexCharts: unrecognized top-level option${unknown.length > 1 ? 's' : ''}: ` +
+        `${described.join(', ')}. ` +
+        `${unknown.length > 1 ? 'They are' : 'It is'} kept in the config but never read.`,
+    )
+  }
+
+  /**
+   * One bound (`min` or `max`) on one axis, as a number, whatever shape the
+   * user wrote it in.
+   *
+   * `x` values accept a date string and a `Date` and a timestamp, so the
+   * bounds that frame them should too; they used to be dropped in silence
+   * unless they were already numbers (#5327). A numeric string was worse than
+   * dropped: it passed the `!== undefined` test and then failed the
+   * `typeof === 'number'` one, leaving the axis half-assigned and collapsed to
+   * `0 … tickAmount` with the series drawn off-chart (#5328).
+   *
+   * @param {any} value the configured bound
+   * @param {boolean} isDatetime whether this axis measures time
+   * @param {boolean|undefined} datetimeUTC xaxis.labels.datetimeUTC
+   * @param {string} where the option path, for the warning
+   * @returns {number|undefined} a number, or undefined to leave the bound unset
+   */
+  static _coerceAxisBound(value, isDatetime, datetimeUTC, where) {
+    if (value === undefined || value === null) return undefined
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : Config._rejectBound(value, where)
+    }
+
+    if (isDatetime) {
+      // The same parse a point's `x` goes through, so a bound and a data value
+      // written the same way land on the same timestamp, including the UTC
+      // handling, which is the whole reason not to call Date.parse here.
+      const dt = new DateTime(
+        /** @type {any} */ ({ config: { xaxis: { labels: { datetimeUTC } } } }),
+      )
+      const parsed = dt.parseDate(value)
+      return Number.isFinite(parsed) ? parsed : Config._rejectBound(value, where)
+    }
+
+    // A non-time axis measures numbers, so only a numeric string converts. A
+    // Date here is a config mistake (the axis is not a datetime one) and is
+    // reported rather than silently turned into an epoch.
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+    return Config._rejectBound(value, where)
+  }
+
+  /**
+   * @param {any} value
+   * @param {string} where
+   * @returns {undefined}
+   */
+  static _rejectBound(value, where) {
+    console.warn(
+      `ApexCharts: ${where} cannot be read as a number. ` +
+        `got ${typeof value === 'string' ? `"${value}"` : String(value)}. ` +
+        `The bound is ignored and the axis scales to the data.`,
+    )
+    return undefined
+  }
+
+  /**
+   * Put every axis bound into the one shape the scale code reads: a number.
+   *
+   * Runs on the merged config, so every later reader (Range, Toolbar,
+   * ZoomPanSelection, the data window slicer) sees a number or nothing. Their
+   * own `typeof === 'number'` guards stay: a bound can also be written
+   * straight onto `w.config` by a zoom, a brush or a linked view, and those
+   * paths do not come back through here.
+   *
+   * Idempotent, because the update path runs it again on options that may
+   * already have been through it.
+   *
+   * @param {Record<string, any>} config a full config, or an updateOptions
+   *   payload that carries only some of it
+   * @param {{xaxisType?: string, datetimeUTC?: boolean}} [inherited] what the
+   *   chart already has, for a payload that does not restate it
+   * @returns {Record<string, any>} the same object, mutated
+   */
+  static normalizeAxisBounds(config, inherited = {}) {
+    if (!config || typeof config !== 'object') return config
+
+    const xaxis = config.xaxis
+    if (xaxis) {
+      const isDatetime = (xaxis.type ?? inherited.xaxisType) === 'datetime'
+      const datetimeUTC = xaxis.labels?.datetimeUTC ?? inherited.datetimeUTC
+      ;['min', 'max'].forEach((bound) => {
+        if (xaxis[bound] === undefined) return
+        xaxis[bound] = Config._coerceAxisBound(
+          xaxis[bound],
+          isDatetime,
+          datetimeUTC,
+          `xaxis.${bound}`,
+        )
+      })
+    }
+
+    const yaxes = Array.isArray(config.yaxis)
+      ? config.yaxis
+      : config.yaxis
+        ? [config.yaxis]
+        : []
+    yaxes.forEach((yaxe, index) => {
+      if (!yaxe) return
+      ;['min', 'max'].forEach((bound) => {
+        // A y bound may legitimately be a function (`min: (min) => min - 10`),
+        // which Range calls with the computed extent.
+        if (yaxe[bound] === undefined || typeof yaxe[bound] === 'function') {
+          return
+        }
+        yaxe[bound] = Config._coerceAxisBound(
+          yaxe[bound],
+          false,
+          undefined,
+          `yaxis${yaxes.length > 1 ? `[${index}]` : ''}.${bound}`,
+        )
+      })
+    })
 
     return config
   }

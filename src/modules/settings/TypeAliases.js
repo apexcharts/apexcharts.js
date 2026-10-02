@@ -46,4 +46,87 @@ export const TYPE_ALIASES = {
   dumbbell: 'rangeBar',
   streamgraph: 'rangeArea',
   raincloud: 'violin',
+  // `column` is the name half the world uses for a vertical bar chart, and the
+  // combo path has always accepted it on `series[].type`. On `chart.type` it
+  // used to fall through every dispatch and die inside the renderer (#5325),
+  // so it is spelled out here as what it has always meant.
+  column: 'bar',
 }
+
+/**
+ * The built-in types, partitioned the three ways the library actually asks
+ * about them. They are split here rather than listed three times because the
+ * copies used to disagree, and that disagreement is what #5325 was: `banana`
+ * was absent from Core's axis-chart list, so `setupElements` classed the chart
+ * as non-axis and built no renderers, while `plotChartType`'s dispatch fell
+ * through to `line.draw()` on the `null` that left behind. A type can now only
+ * be added by choosing which partition it belongs to, and every consumer
+ * follows.
+ *
+ * `XY_TYPES` draw marks in series space against an x and a y scale, and are
+ * the only ones that can be mixed in a combo chart.
+ */
+export const XY_TYPES = [
+  'line',
+  'area',
+  'bar',
+  'rangeBar',
+  'rangeArea',
+  'candlestick',
+  'boxPlot',
+  'violin',
+  'scatter',
+  'bubble',
+]
+
+/**
+ * Types that need the axis/grid/scale pipeline but own the whole plot: they
+ * take part in no combo, and a chart is one of them or it is not.
+ */
+export const AXIS_ONLY_TYPES = ['radar', 'heatmap', 'treemap']
+
+/**
+ * Types with no cartesian axes at all: a slice, a ring, a lattice, a
+ * hierarchy. Like AXIS_ONLY_TYPES they own the whole plot.
+ */
+export const NON_AXIS_TYPES = [
+  'pie',
+  'donut',
+  'polarArea',
+  'radialBar',
+  'unit',
+  'sunburst',
+  'icicle',
+]
+
+/**
+ * Every type name that has a renderer of its own: what `chart.type` may be
+ * once the aliases above have been resolved. Together with TYPE_ALIASES and
+ * the names `registerSeriesType` has taken, this is the whole set of values
+ * `chart.type` can hold, which is what `Config.assertKnownChartType` rejects
+ * against and what `Defaults.forType` dispatches on, so every name here must
+ * also be a method on Defaults.
+ *
+ * @type {string[]}
+ */
+export const BUILTIN_TYPES = [
+  ...XY_TYPES,
+  ...AXIS_ONLY_TYPES,
+  ...NON_AXIS_TYPES,
+]
+
+/**
+ * The types that render through the axis/grid/scale pipeline: everything
+ * except the non-axis forms.
+ *
+ * @type {string[]}
+ */
+export const AXIS_TYPES = [...XY_TYPES, ...AXIS_ONLY_TYPES]
+
+/**
+ * The types that cannot share a chart with another type. Core warns when one
+ * of these turns up alongside anything else.
+ *
+ * @type {string[]}
+ */
+export const SOLO_TYPES = [...AXIS_ONLY_TYPES, ...NON_AXIS_TYPES]

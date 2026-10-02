@@ -152,6 +152,16 @@ export default class UpdateHelpers {
             }
           }
           ch.config.normalizeAliasedChartType(options)
+          // Axis bounds are coerced on the PAYLOAD, not on the merged config,
+          // because `lastXAxis` / `lastYAxis` are snapshotted from it below and
+          // revertDefaultAxisMinMax writes those straight back into w.config.
+          // Coercing after the merge would leave the snapshot holding the
+          // original Date or string, and the next revert would undo the work.
+          // The incoming axis type wins; absent, the chart's current one does.
+          Config.normalizeAxisBounds(options, {
+            xaxisType: w.config.xaxis.type,
+            datetimeUTC: w.config.xaxis.labels.datetimeUTC,
+          })
           options = CoreUtils.extendArrayProps(ch.config, options, w)
 
           // fixes #914, #623

@@ -2466,6 +2466,9 @@ export default class ApexCharts {
     const gl = w.globals
 
     return {
+      // The merged options this chart is running on (defaults < window.Apex <
+      // user), so a reader does not have to go through the internal `w`.
+      config: w.config,
       // Series data — computed/parsed form used for rendering
       series: w.seriesData.series,
       seriesNames: w.seriesData.seriesNames,

@@ -563,36 +563,56 @@ class Range {
      * @param {ApexYAxis} yaxe
      * @param {number} index
      */
-    cnf.yaxis.forEach((yaxe, index) => {
-      // override all min/max values by user defined values (y axis)
-      if (yaxe.max !== undefined) {
-        if (typeof yaxe.max === 'number') {
-          gl.maxYArr[index] = yaxe.max
-        } else if (typeof yaxe.max === 'function') {
-          // fixes apexcharts.js/issues/2098
-          gl.maxYArr[index] = yaxe.max(
-            gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY,
-          )
-        }
+    /**
+     * One configured bound as a number, or undefined when there is nothing
+     * usable to override the computed extent with.
+     *
+     * A bound may be a number or a function of the computed extent (#2098).
+     * Anything else was already dropped by Config.normalizeAxisBounds, and a
+     * function is free to return nothing at all.
+     *
+     * @param {any} bound the configured `min` or `max`
+     * @param {number} computed what the data alone says this extent is
+     * @returns {number|undefined}
+     */
+    const resolveBound = (bound, computed) => {
+      if (typeof bound === 'number') return bound
+      if (typeof bound !== 'function') return undefined
+      const resolved = bound(computed)
+      return Utils.isNumber(resolved) ? resolved : undefined
+    }
 
-        // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
-        gl.maxY = gl.maxYArr[index]
+    cnf.yaxis.forEach((yaxe, index) => {
+      // Override the computed extent with the user's bound, but ONLY when
+      // resolveBound found one.
+      //
+      // Publishing to `gl.maxY`/`gl.minY` used to sit outside the type test,
+      // so a bound that was neither a number nor a function (a numeric string,
+      // say) reached it having set nothing: on a single-axis chart
+      // `gl.minYArr[0]` is still undefined at this point, and copying that
+      // into `gl.minY` collapsed the axis to the `0 … tickAmount` scale a
+      // chart with no data gets, drawing the series off the plot (#5328).
+      const max = resolveBound(
+        yaxe.max,
+        gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY,
+      )
+      if (max !== undefined) {
+        gl.maxYArr[index] = max
+        // gl.maxY is for single y-axis charts; ignored in multi-yaxis
+        gl.maxY = max
       }
-      if (yaxe.min !== undefined) {
-        if (typeof yaxe.min === 'number') {
-          gl.minYArr[index] = yaxe.min
-        } else if (typeof yaxe.min === 'function') {
-          // fixes apexcharts.js/issues/2098
-          gl.minYArr[index] = yaxe.min(
-            gl.isMultipleYAxis
-              ? gl.minYArr[index] === Number.MIN_VALUE
-                ? 0
-                : gl.minYArr[index]
-              : gl.minY,
-          )
-        }
-        // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
-        gl.minY = gl.minYArr[index]
+
+      const min = resolveBound(
+        yaxe.min,
+        gl.isMultipleYAxis
+          ? gl.minYArr[index] === Number.MIN_VALUE
+            ? 0
+            : gl.minYArr[index]
+          : gl.minY,
+      )
+      if (min !== undefined) {
+        gl.minYArr[index] = min
+        gl.minY = min
       }
     })
 

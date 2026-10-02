@@ -10,6 +10,12 @@ import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { SVGNS } from '../svg/math'
 import { getChartClass, isCustom } from './ChartFactory'
+import {
+  XY_TYPES,
+  AXIS_TYPES,
+  BUILTIN_TYPES,
+  SOLO_TYPES,
+} from './settings/TypeAliases'
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
@@ -33,36 +39,14 @@ export default class Core {
     const { globals: gl, config: cnf } = this.w
 
     const ct = cnf.chart.type
-    const xyChartsArrTypes = [
-      'line',
-      'area',
-      'bar',
-      'rangeBar',
-      'rangeArea',
-      'candlestick',
-      'boxPlot',
-      'violin',
-      'scatter',
-      'bubble',
-    ]
-
-    const axisChartsArrTypes = [
-      ...xyChartsArrTypes,
-      'radar',
-      'heatmap',
-      'treemap',
-    ]
 
     // Marks (#11): a registered custom series type used as the chart type is an
     // xy/axis chart (it draws in series space and needs the axis/grid/scale
-    // pipeline). Non-axis built-ins (pie/radialBar/...) are never custom here.
-    const isCustomType =
-      !axisChartsArrTypes.includes(ct) &&
-      !['pie', 'donut', 'polarArea', 'radialBar'].includes(ct) &&
-      isCustom(ct)
+    // pipeline). A built-in name is never custom, whatever the registry says.
+    const isCustomType = !BUILTIN_TYPES.includes(ct) && isCustom(ct)
 
-    gl.axisCharts = axisChartsArrTypes.includes(ct) || isCustomType
-    gl.xyCharts = xyChartsArrTypes.includes(ct) || isCustomType
+    gl.axisCharts = AXIS_TYPES.includes(ct) || isCustomType
+    gl.xyCharts = XY_TYPES.includes(ct) || isCustomType
 
     gl.isBarHorizontal =
       ['bar', 'rangeBar', 'boxPlot', 'violin'].includes(ct) &&
@@ -250,20 +234,7 @@ export default class Core {
         st_[seriesType].i.push(st)
 
         if (seriesType === 'bar') w.globals.columnSeries = seriesTypes.bar
-      } else if (
-        [
-          'heatmap',
-          'treemap',
-          'pie',
-          'donut',
-          'polarArea',
-          'radialBar',
-          'radar',
-          'unit',
-          'sunburst',
-          'icicle',
-        ].includes(seriesType)
-      ) {
+      } else if (SOLO_TYPES.includes(seriesType)) {
         nonComboType = seriesType
       } else if (isCustom(seriesType)) {
         // Marks (#11): a registered custom series type.
@@ -651,8 +622,20 @@ export default class Core {
             // Marks (#11): a registered custom series type as the chart type.
             const cs = new (getChartClass(type))(ctx.w, ctx, xyRatios)
             elGraph = cs.draw(this.w.seriesData.series, type)
-          } else {
+          } else if (line) {
             elGraph = line.draw(this.w.seriesData.series)
+          } else {
+            // Unreachable: Config.assertKnownChartType rejects a type with no
+            // renderer before a chart is ever built, and every name it lets
+            // through has a case above or is custom. Guarded anyway because
+            // the unguarded version of this line is what #5325 actually threw
+            // (`line` is null whenever setupElements decided the chart was
+            // not an xy one, and "fall back to a line" cannot be done with a
+            // renderer that was never instantiated). Fail with the option name
+            // rather than with a property access on null.
+            throw new Error(
+              `ApexCharts: no renderer for chart.type "${type}".`,
+            )
           }
       }
     }

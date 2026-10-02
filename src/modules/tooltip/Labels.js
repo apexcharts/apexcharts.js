@@ -164,7 +164,15 @@ export default class Labels {
     // pie / donut (non-axis charts)
     if (j === null) {
       val = f.yLbFormatter(w.seriesData.series[i], {
+        // The spread is the long-standing shape here and stays, so anything
+        // already reading opts.config / opts.globals on a pie keeps working.
+        // `w` is added alongside it because every other chart type passes the
+        // state under that key, and a formatter written against the documented
+        // opts (`opts.w.config...`) used to get undefined on a pie alone
+        // (#5324). Same for `series`.
         ...w,
+        w,
+        series: w.seriesData.series,
         seriesIndex: i,
         dataPointIndex: i,
       })
@@ -622,8 +630,18 @@ export default class Labels {
         bufferXVal
     }
 
-    if (w.seriesData.seriesZ.length > 0 && w.seriesData.seriesZ[i].length > 0) {
-      zVal = zFormatter?.(w.seriesData.seriesZ[i][j], w)
+    // The "Size" row belongs to a chart that HAS a third dimension. Asking
+    // seriesZ whether it is non-empty is not the same question (#5323): a
+    // series can hold z slots that are all null (placeholders keeping the
+    // index aligned, or a column of nulls a database handed over), and a
+    // custom tooltip.z.formatter would then print a size for a chart that has
+    // no sizes. isDataXYZ is set only by a value the z scale can measure.
+    if (
+      w.axisFlags.isDataXYZ &&
+      w.seriesData.seriesZ.length > 0 &&
+      w.seriesData.seriesZ[i]?.length > 0
+    ) {
+      zVal = zFormatter?.(w.seriesData.seriesZ[i][j] ?? null, w)
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {

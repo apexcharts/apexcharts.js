@@ -3,7 +3,7 @@ import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 import Formatters from '../Formatters'
 import Options from './Options'
-import { TYPE_ALIASES } from './TypeAliases'
+import { TYPE_ALIASES, BUILTIN_TYPES } from './TypeAliases'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -344,28 +344,8 @@ export default class Defaults {
    */
   static forType(opts) {
     const defaults = new Defaults(opts)
-    const chartTypes = [
-      'line',
-      'area',
-      'bar',
-      'candlestick',
-      'boxPlot',
-      'violin',
-      'rangeBar',
-      'rangeArea',
-      'bubble',
-      'scatter',
-      'heatmap',
-      'treemap',
-      'unit',
-      'sunburst',
-      'icicle',
-      'pie',
-      'polarArea',
-      'donut',
-      'radar',
-      'radialBar',
-    ]
+    // Every name here is also a method on this class; see BUILTIN_TYPES.
+    const chartTypes = BUILTIN_TYPES
     const requestedType = opts.chart.requestedType
     let chartDefaults
 
@@ -1860,9 +1840,18 @@ export default class Defaults {
        * @param {any} val
        */
       opts.xaxis.labels.formatter = function (val) {
-        return Utils.isNumber(val)
-          ? defaultFormatter(labels[Math.floor(val) - 1])
-          : defaultFormatter(val)
+        if (!Utils.isNumber(val)) return defaultFormatter(val)
+
+        // The converted axis is numeric, so its scale can put a tick where no
+        // category sits: past the last one, before the first, or between two
+        // after a zoom. There is nothing to format there, so the slot stays
+        // blank. Handing the user's formatter the `undefined` that
+        // out-of-range indexing produces is what made a formatter declared
+        // (value: string | number) throw on a plain category chart (#5324);
+        // and the built-in formatter already turned that undefined into '' one
+        // step later, so the rendered axis is unchanged.
+        const label = labels[Math.floor(val) - 1]
+        return label === undefined ? '' : defaultFormatter(label)
       }
     }
 

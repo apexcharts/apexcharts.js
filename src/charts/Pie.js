@@ -770,6 +770,13 @@ class Pie {
           if (formatter !== undefined) {
             text = formatter(w.globals.seriesPercent[i][0], {
               seriesIndex: i,
+              // A pie slice IS the data point, so its index is the series
+              // index. Every other type passes dataPointIndex and the
+              // documented opts says it is always there, so leaving it out
+              // here made the documented formatter throw on a pie alone
+              // (#5324).
+              dataPointIndex: i,
+              series: w.seriesData.series,
               w,
             })
           }

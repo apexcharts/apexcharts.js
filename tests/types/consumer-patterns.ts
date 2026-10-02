@@ -379,3 +379,61 @@ ApexChartsClass.registerPlugin({
 // A definition is registered; `plugins` in options activates one by name.
 const _activate: ApexCharts.ApexOptions = {plugins: [{name: 'demo', order: 10}]}
 void _activate
+
+// ---------------------------------------------------------------------------
+// Declarations that used to disagree with the runtime (#5324, #5327, #5328)
+// ---------------------------------------------------------------------------
+
+// series[].name takes a number: the chart renders, legends and attributes it.
+const numericSeriesName: ApexCharts.ApexAxisChartSeries = [
+  { name: 2024, data: [1, 2, 3] },
+]
+void numericSeriesName
+
+// tooltip.y.formatter is handed null wherever a series has a gap, so the
+// guard the runtime demands is one the compiler now insists on too.
+const gapTooltip: ApexCharts.ApexOptions = {
+  chart: { type: 'line' },
+  series: [{ name: 'revenue', data: [1, null, 3] }],
+  tooltip: { y: { formatter: (val) => val?.toFixed(2) ?? 'n/a' } },
+}
+void gapTooltip
+
+// getState() reports the merged config, and labels/seriesNames are numeric
+// wherever the chart was given numbers.
+declare const stateChart: ApexCharts
+const strokeWidth = stateChart.getState().config.stroke?.width
+const firstLabel: string | number = stateChart.getState().labels[0]
+const firstName: string | number = stateChart.getState().seriesNames[0]
+void strokeWidth; void firstLabel; void firstName
+
+// A pie's dataLabels / tooltip formatter gets the same opts as every other
+// chart type, so reading w and dataPointIndex off it compiles AND works.
+const pieFormatters: ApexCharts.ApexOptions = {
+  chart: { type: 'pie' },
+  labels: ['a', 'b'],
+  series: [30, 70],
+  dataLabels: {
+    formatter: (val, opts) => `${opts!.dataPointIndex.toFixed(0)}: ${val}`,
+  },
+  tooltip: {
+    y: { formatter: (val, opts) => `${opts!.w.config.chart!.type}: ${val}` },
+  },
+}
+void pieFormatters
+
+// Axis bounds in the forms a point's x already accepts.
+const datetimeBounds: ApexCharts.ApexOptions = {
+  chart: { type: 'line' },
+  xaxis: { type: 'datetime', min: '2021-12-28', max: new Date('2022-01-04') },
+}
+const numericBounds: ApexCharts.ApexOptions = {
+  chart: { type: 'line' },
+  xaxis: { min: 0, max: 10 },
+  yaxis: { min: '50', max: (max) => max + 10 },
+}
+void datetimeBounds; void numericBounds
+
+// 'column' is a spelling of 'bar'.
+const columnChart: ApexCharts.ApexOptions = { chart: { type: 'column' } }
+void columnChart
