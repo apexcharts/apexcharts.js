@@ -463,34 +463,69 @@ class DataLabels {
       '.apexcharts-datalabels text',
     )
 
+    // Measure every label first, then mutate. `getBBox()` forces a synchronous
+    // layout, and inserting the background rect invalidates it again, so doing
+    // both in one loop relaid the SVG out once per label. That is the whole
+    // render cost on a label-dense chart (the same trap documented for treemap
+    // labels on `plotOptions.treemap.dataLabels.minFontSize`): measuring 7k
+    // labels this way costs seconds, batched it costs milliseconds.
+    /** @type {{el: Element, coords: {x: number, y: number, width: number, height: number}, fill: string | null}[]} */
+    const measured = []
     for (let i = 0; i < elDataLabels.length; i++) {
       const el = elDataLabels[i]
-      const coords = /** @type {SVGGraphicsElement} */ (el).getBBox()
-      let elRect = null
+      const bbox = /** @type {SVGGraphicsElement} */ (el).getBBox()
 
-      if (coords.width && coords.height) {
-        elRect = this.addBackgroundToDataLabel(el, coords)
+      if (bbox.width && bbox.height) {
+        measured.push({
+          el,
+          // copied out of the live SVGRect so nothing below can disturb it
+          coords: {
+            x: bbox.x,
+            y: bbox.y,
+            width: bbox.width,
+            height: bbox.height,
+          },
+          // captured before the write pass overwrites the text's own fill
+          fill: el.getAttribute('fill'),
+        })
       }
-      if (elRect) {
-        el.parentNode?.insertBefore(elRect.node, el)
-        const background =
-          w.config.dataLabels.background.backgroundColor ||
-          el.getAttribute('fill')
+    }
 
-        const shouldAnim =
-          w.config.chart.animations.enabled &&
-          !w.globals.resized &&
-          !w.globals.dataChanged
+    const bCnf = w.config.dataLabels.background
 
-        if (shouldAnim) {
-          elRect.animate().attr({ fill: background })
-        } else {
-          elRect.attr({ fill: background })
-        }
-        el.setAttribute('fill', w.config.dataLabels.background.foreColor)
+    // Above chart.animations.largeDatasetThreshold, reveal the backgrounds
+    // without per-element animation. Each rect would otherwise get its own JS
+    // tween AND its own rAF polling chain (applyProgressiveReveal), so a chart
+    // with thousands of labels runs thousands of those at once and spends the
+    // whole reveal janking. Same bail-out Graphics.renderPaths takes when the
+    // path count crosses this threshold; set it to 0 to always animate.
+    const largeThreshold = w.config.chart.animations.largeDatasetThreshold ?? 0
+    const bulkReveal = largeThreshold > 0 && measured.length > largeThreshold
 
-        // Mirror the text's progressive reveal onto the background pill so
-        // the rect doesn't pop in before the line draw reaches it.
+    const shouldAnim =
+      w.config.chart.animations.enabled &&
+      !w.globals.resized &&
+      !w.globals.dataChanged &&
+      !bulkReveal
+
+    for (let i = 0; i < measured.length; i++) {
+      const { el, coords, fill } = measured[i]
+      const elRect = this.addBackgroundToDataLabel(el, coords)
+      if (!elRect) continue
+
+      el.parentNode?.insertBefore(elRect.node, el)
+      const background = bCnf.backgroundColor || fill
+
+      if (shouldAnim) {
+        elRect.animate().attr({ fill: background })
+      } else {
+        elRect.attr({ fill: background })
+      }
+      el.setAttribute('fill', bCnf.foreColor)
+
+      // Mirror the text's progressive reveal onto the background pill so
+      // the rect doesn't pop in before the line draw reaches it.
+      if (!bulkReveal) {
         const cxAttr = el.getAttribute('cx')
         if (cxAttr !== null) {
           applyProgressiveReveal(elRect, parseFloat(cxAttr), w)
