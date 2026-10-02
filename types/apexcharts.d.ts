@@ -4447,6 +4447,41 @@ type ApexDataLabels = {
   textAnchor?: 'start' | 'middle' | 'end'
   distributed?: boolean
   /**
+   * Nudge data labels apart when they land on each other, across series as
+   * well as within one. On by default; set `false` to place every label
+   * strictly at its own mark, overlapping or not.
+   *
+   * Labels separate along the value axis, so a horizontal bar's labels move
+   * left/right and everything else moves up/down. A pair that cannot be
+   * separated within `maxShift` is left overlapping unless `hide` is set.
+   *
+   * This matters most on multi-axis charts, where the two axes are scaled
+   * independently and so two labels can share a pixel row no matter how far
+   * apart their values are, and on dense bar/waterfall charts whose labels are
+   * wider than their bars.
+   *
+   * Rotated labels (`plotOptions.bar.dataLabels.orientation: 'vertical'`) are
+   * avoided but never moved, and radial types (pie, donut, polarArea,
+   * radialBar, radar) are left to their own label placement.
+   */
+  avoidOverlap?:
+    | boolean
+    | {
+        /** Clear space left between two separated labels, in px. Default 2. */
+        gap?: number
+        /**
+         * How far a label may travel from its own mark. Defaults to roughly
+         * the label's own size along the axis it is separated on.
+         */
+        maxShift?: number
+        /**
+         * Drop a label that still collides once both it and its neighbour have
+         * spent their budget, later-drawn first. Default `false`: an
+         * unseparated overlap is left alone rather than a value removed.
+         */
+        hide?: boolean
+      }
+  /**
    * Horizontal offset of the label. Pass a function to vary the offset per
    * data point, e.g. to separate labels that would otherwise overlap.
    * The function must be pure, as it may be called more than once per label.

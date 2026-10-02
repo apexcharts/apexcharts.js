@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dual Axis with Currency Labels</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Booked',
+            type: 'column',
+            data: [51020, 13850, 11630, 23820, 59530],
+          },
+          {
+            name: 'Invoiced',
+            type: 'line',
+            data: [51020, 13850, 11630, 23820, 59530],
+          },
+        ],
+        chart: {
+          type: 'line',
+          height: 420,
+        },
+        title: {
+          text: 'Booked vs invoiced',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Two independently scaled axes can land both labels on the same row; dataLabels.avoidOverlap keeps them legible',
+          align: 'left',
+        },
+        colors: ['#8bc34a', '#ef5350'],
+        stroke: {
+          width: [0, 2],
+        },
+        fill: {
+          opacity: [0.35, 1],
+        },
+        markers: {
+          size: [0, 4],
+        },
+        dataLabels: {
+          enabled: true,
+          background: {
+            enabled: true,
+            borderWidth: 0,
+          },
+          formatter: function (val) {
+            return (
+              '$' +
+              (val / 1000).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }) +
+              'K'
+            )
+          },
+        },
+        xaxis: {
+          categories: ['May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026', 'Sep 2026'],
+        },
+        yaxis: [
+          {
+            seriesName: 'Booked',
+            title: {
+              text: 'Booked',
+            },
+            labels: {
+              formatter: function (val) {
+                return '$' + (val / 1000).toFixed(0) + 'K'
+              },
+            },
+          },
+          {
+            seriesName: 'Invoiced',
+            opposite: true,
+            title: {
+              text: 'Invoiced',
+            },
+            labels: {
+              formatter: function (val) {
+                return '$' + (val / 1000).toFixed(0) + 'K'
+              },
+            },
+          },
+        ],
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

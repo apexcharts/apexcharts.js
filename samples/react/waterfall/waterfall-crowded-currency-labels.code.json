@@ -1,0 +1,16 @@
+{
+  "title": "Waterfall with Crowded Currency Labels",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Revenue',\n        data: [\n          {\n            x: '2023-Q3',\n            y: 168500000,\n          },\n          {\n            x: '2023-Q4',\n            y: 489400000,\n          },\n          {\n            x: '2024-Q1',\n            y: 1900000000,\n          },\n          {\n            x: '2024-Q2',\n            y: -811500000,\n          },\n          {\n            x: '2024-Q3',\n            y: 389500000,\n          },\n          {\n            x: '2024-Q4',\n            y: -703000000,\n          },\n          {\n            x: '2025-Q1',\n            y: 358000000,\n          },\n          {\n            x: '2025-Q2',\n            y: 138300000,\n          },\n          {\n            x: '2025-Q3',\n            y: -312700000,\n          },\n          {\n            x: '2025-Q4',\n            y: -346800000,\n          },\n          {\n            x: '2026-Q1',\n            y: 390300000,\n          },\n          {\n            x: '2026-Q2',\n            y: 109700000,\n          },\n          {\n            x: '2026-Q3',\n            y: -8400000,\n          },\n          {\n            x: '2026-Q4',\n            y: 14600000,\n          },\n          {\n            x: 'Latest',\n            isTotal: true,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'waterfall',\n        height: 440,\n      },\n      title: {\n        text: 'What moved revenue, quarter by quarter',\n        align: 'left',\n      },\n      subtitle: {\n        text: 'Currency labels are wider than the quarters they sit on. dataLabels.avoidOverlap spaces them apart.',\n        align: 'left',\n      },\n      colors: ['#26a69a', '#ef5350', '#42a5f5'],\n      dataLabels: {\n        style: {\n          fontSize: '11px',\n        },\n        formatter: function (val) {\n          var abs = Math.abs(val)\n          var sign = val < 0 ? '-' : '+'\n          if (abs >= 1000000000)\n            return sign + '$' + (abs / 1000000000).toFixed(2) + 'B'\n          return sign + '$' + (abs / 1000000).toFixed(1) + 'M'\n        },\n      },\n      xaxis: {\n        labels: {\n          rotate: -45,\n          rotateAlways: true,\n        },\n      },\n      yaxis: {\n        labels: {\n          formatter: function (val) {\n            return '$' + (val / 1000000000).toFixed(1) + 'B'\n          },\n        },\n      },\n      tooltip: {\n        y: {\n          formatter: function (val) {\n            return (val > 0 ? '+' : '') + '$' + val.toLocaleString('en-US')\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"waterfall\"\n          height={440}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 760px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

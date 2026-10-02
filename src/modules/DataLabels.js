@@ -4,6 +4,7 @@ import Graphics from './Graphics'
 import Filters from './Filters'
 import { applyProgressiveReveal } from './Animations'
 import { resolveDataLabelOffset } from './helpers/DataLabelOffset'
+import { resolveLabelOverlaps } from './helpers/DataLabelOverlap'
 import { resolveClaimed } from './weave/Claims'
 
 /**
@@ -11,6 +12,10 @@ import { resolveClaimed } from './weave/Claims'
  *
  * @module DataLabels
  **/
+
+// Types that place labels around a centre rather than along a value axis. See
+// DataLabels.avoidOverlaps.
+const RADIAL_TYPES = ['radar', 'pie', 'donut', 'polarArea', 'radialBar']
 
 class DataLabels {
   /**
@@ -452,6 +457,177 @@ class DataLabels {
     }
 
     return elRect
+  }
+
+  /**
+   * Separate data labels that landed on top of each other, across series.
+   *
+   * Runs after every series has drawn and before `dataLabelsBackground()`, for
+   * two reasons: the shift has to be applied to the text before a pill is cut
+   * around it, and only at this point does every label exist to be compared.
+   * `dataLabelsCorrection` cannot do this job - it runs while a single series
+   * is being plotted, so the labels it would collide with have not been drawn.
+   *
+   * On by default; `dataLabels.avoidOverlap: false` restores strict placement.
+   * The pass is a no-op on a chart whose labels already clear each other, so
+   * what it costs such a chart is the one measuring loop below.
+   */
+  avoidOverlaps() {
+    const w = this.w
+    const cfg = w.config.dataLabels.avoidOverlap
+    if (!cfg) return
+    // Radial layouts place a label by angle, around a centre. Pushing one
+    // "down" is arbitrary there, and on a radar the labels ring a small
+    // polygon, so the pass runs out of budget and starts hiding them instead.
+    // Pie/donut/polarArea already run their own de-overlap (Pie.placeExternal
+    // Labels) and do not use this class on their labels anyway.
+    if (RADIAL_TYPES.indexOf(w.config.chart.type) !== -1) return
+
+    const opts = typeof cfg === 'object' ? cfg : {}
+    const bCnf = w.config.dataLabels.background
+
+    const nodes = w.dom.baseEl.querySelectorAll(
+      '.apexcharts-datalabels text.apexcharts-datalabel',
+    )
+    if (nodes.length < 2) return
+
+    // Measure what is actually RENDERED, not the local box. `getBBox()` is
+    // taken before the element's own transform, so a bar label under
+    // `plotOptions.bar.dataLabels.orientation: 'vertical'` measures 29x14 while
+    // it occupies 14x29 on screen - the pass would compare the wrong rectangle
+    // entirely. getBoundingClientRect() is post-transform, so it is the box the
+    // viewer sees. Falls back to getBBox under SSR, where the DOM shim
+    // estimates text extents but returns an empty client rect.
+    //
+    // Same measure-then-mutate shape as dataLabelsBackground below, and for the
+    // same reason: all the reads first, so a write cannot force a relayout in
+    // the middle of measuring.
+    /** @type {{el: SVGGraphicsElement, scaleY: number, box: import('./helpers/DataLabelOverlap').LabelBox}[]} */
+    const measured = []
+    for (let i = 0; i < nodes.length; i++) {
+      const el = /** @type {SVGGraphicsElement} */ (nodes[i])
+      const rect = el.getBoundingClientRect()
+      const ctm = el.getScreenCTM?.()
+      const screen = rect.width > 0 && rect.height > 0
+      const box = screen ? rect : el.getBBox()
+      if (!box.width || !box.height) continue
+
+      // A rotated or skewed label cannot be moved by its `y` attribute: that
+      // runs along its own rotated axis. It still has to be avoided, so it
+      // goes in as an obstacle. b/c are the off-diagonal terms of the matrix,
+      // zero exactly when the element is axis-aligned.
+      const rotated = !!ctm && (Math.abs(ctm.b) > 1e-6 || Math.abs(ctm.c) > 1e-6)
+      // Screen px per user unit, to turn the resolved shift back into the
+      // units the `y` attribute is written in.
+      const scaleY = screen && ctm && ctm.d ? Math.abs(ctm.d) : 1
+      const scaleX = screen && ctm && ctm.a ? Math.abs(ctm.a) : 1
+
+      // A label with a background occupies its pill, not its glyphs, so the
+      // pass has to compare the pills or it leaves them touching.
+      const padH = (bCnf.enabled ? bCnf.padding : 0) * scaleX
+      const padV = (bCnf.enabled ? bCnf.padding / 2 : 0) * scaleY
+      measured.push({
+        el,
+        scaleY,
+        box: {
+          x: (screen ? rect.left : box.x) - padH,
+          y: (screen ? rect.top : box.y) - padV / 2,
+          width: box.width + padH * 2,
+          height: box.height + padV,
+          order: measured.length,
+          fixed: rotated,
+        },
+      })
+    }
+    if (measured.length < 2) return
+
+    // Separate along the VALUE axis, never the category axis. On a column
+    // chart that is vertical; on a horizontal bar the two swap, and nudging a
+    // label up or down there would walk it into the neighbouring category's
+    // row - the same objection that rules out sideways moves on a column
+    // chart. The resolver is one-dimensional, so a horizontal bar transposes
+    // its boxes going in and writes the result to `x` instead of `y`.
+    const horizontal = !!w.config.plotOptions?.bar?.horizontal
+    const boxes = measured.map(({ box }) =>
+      horizontal
+        ? {
+            x: box.y,
+            y: box.x,
+            width: box.height,
+            height: box.width,
+            order: box.order,
+            fixed: box.fixed,
+          }
+        : box,
+    )
+
+    // Bounds come from the grid, in the space the boxes were measured in.
+    const gridEl = w.dom.baseEl.querySelector('.apexcharts-grid')
+    const gridRect = gridEl?.getBoundingClientRect()
+    const useScreen = !!gridRect && gridRect.height > 0
+    // The label's own extent along the axis it is being separated on.
+    const extent = boxes[0].height
+    const unit = measured[0].scaleY
+
+    const lo = useScreen
+      ? horizontal
+        ? gridRect.left
+        : gridRect.top
+      : 0
+    const hi = useScreen
+      ? horizontal
+        ? gridRect.right
+        : gridRect.bottom
+      : horizontal
+        ? w.layout.gridWidth
+        : w.layout.gridHeight
+
+    const resolved = resolveLabelOverlaps(boxes, {
+      gap: (opts.gap ?? 2) * unit,
+      // Default budget is roughly one label's own extent in each direction:
+      // far enough to clear a coincident twin, near enough that the label is
+      // still unmistakably its mark's.
+      maxShift: opts.maxShift ? opts.maxShift * unit : Math.max(extent, 14),
+      // The plot itself, with no slack: past this edge the label is clipped,
+      // so pushing one out there trades an overlap for a truncated value. A
+      // label that already starts outside (the one above a bar that reaches
+      // the top of the grid) keeps its place - resolveLabelOverlaps treats
+      // these as a restriction on movement, never as a push.
+      minY: lo,
+      maxY: hi,
+      // Dropping a label is opt-in. This pass is on by default, and a default
+      // that silently deletes a value is worse than the overlap it set out to
+      // fix: on a crowded horizontal bar it removed eight of eighteen labels.
+      // Off, a pair that cannot be separated is simply left as it is today.
+      hide: opts.hide === true,
+    })
+
+    const attr = horizontal ? 'x' : 'y'
+    const centreAttr = horizontal ? 'cx' : 'cy'
+
+    for (let i = 0; i < measured.length; i++) {
+      const { el, scaleY } = measured[i]
+      const { dy, hidden } = resolved[i]
+
+      if (hidden) {
+        el.style.display = 'none'
+        el.classList.add('apexcharts-datalabel-hidden')
+        continue
+      }
+      if (!dy) continue
+
+      const delta = dy / scaleY
+      const v = parseFloat(el.getAttribute(attr) || '0')
+      el.setAttribute(attr, (v + delta).toString())
+      // `cx`/`cy` are the pre-offset anchor the progressive reveal and the
+      // update transition both read, so the one on the moved axis has to
+      // travel with the text or a label would ride back to its colliding
+      // position on the next update.
+      const c = el.getAttribute(centreAttr)
+      if (c !== null) {
+        el.setAttribute(centreAttr, (parseFloat(c) + delta).toString())
+      }
+    }
   }
 
   dataLabelsBackground() {

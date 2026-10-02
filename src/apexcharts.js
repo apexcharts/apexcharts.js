@@ -617,6 +617,7 @@ export default class ApexCharts {
 
     const dataLabels = new DataLabels(this.w, this)
     dataLabels.bringForward()
+    dataLabels.avoidOverlaps()
     if (w.config.dataLabels.background.enabled) {
       dataLabels.dataLabelsBackground()
     }
@@ -1609,6 +1610,7 @@ export default class ApexCharts {
         // Bring data labels forward and apply backgrounds if configured.
         const dataLabels = new DataLabels(w, this)
         dataLabels.bringForward()
+        dataLabels.avoidOverlaps()
         if (w.config.dataLabels.background.enabled) {
           dataLabels.dataLabelsBackground()
         }

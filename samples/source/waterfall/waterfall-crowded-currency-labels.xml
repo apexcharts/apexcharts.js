@@ -1,0 +1,109 @@
+<title>Waterfall with Crowded Currency Labels</title>
+
+<style>
+#chart {
+  max-width: 760px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  type: 'waterfall',
+  height: 440
+},
+title: {
+  text: 'What moved revenue, quarter by quarter',
+  align: 'left'
+},
+subtitle: {
+  text: 'Currency labels are wider than the quarters they sit on. dataLabels.avoidOverlap spaces them apart.',
+  align: 'left'
+},
+colors: ['#26a69a', '#ef5350', '#42a5f5'],
+dataLabels: {
+  style: {
+    fontSize: '11px'
+  },
+  formatter: function (val) {
+    var abs = Math.abs(val)
+    var sign = val < 0 ? '-' : '+'
+    if (abs >= 1000000000) return sign + '$' + (abs / 1000000000).toFixed(2) + 'B'
+    return sign + '$' + (abs / 1000000).toFixed(1) + 'M'
+  }
+},
+xaxis: {
+  labels: {
+    rotate: -45,
+    rotateAlways: true
+  }
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return '$' + (val / 1000000000).toFixed(1) + 'B'
+    }
+  }
+},
+tooltip: {
+  y: {
+    formatter: function (val) {
+      return (val > 0 ? '+' : '') + '$' + val.toLocaleString('en-US')
+    }
+  }
+}
+</options>
+
+<series>
+[{
+  name: 'Revenue',
+  data: [{
+    x: '2023-Q3',
+    y: 168500000
+  }, {
+    x: '2023-Q4',
+    y: 489400000
+  }, {
+    x: '2024-Q1',
+    y: 1900000000
+  }, {
+    x: '2024-Q2',
+    y: -811500000
+  }, {
+    x: '2024-Q3',
+    y: 389500000
+  }, {
+    x: '2024-Q4',
+    y: -703000000
+  }, {
+    x: '2025-Q1',
+    y: 358000000
+  }, {
+    x: '2025-Q2',
+    y: 138300000
+  }, {
+    x: '2025-Q3',
+    y: -312700000
+  }, {
+    x: '2025-Q4',
+    y: -346800000
+  }, {
+    x: '2026-Q1',
+    y: 390300000
+  }, {
+    x: '2026-Q2',
+    y: 109700000
+  }, {
+    x: '2026-Q3',
+    y: -8400000
+  }, {
+    x: '2026-Q4',
+    y: 14600000
+  }, {
+    x: 'Latest',
+    isTotal: true
+  }]
+}]
+</series>
+</chart>

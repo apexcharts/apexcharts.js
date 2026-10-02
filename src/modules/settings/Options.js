@@ -2226,6 +2226,24 @@ export default class Options {
         },
         textAnchor: 'middle',
         distributed: false,
+        // Nudge data labels apart when they land on each other, across series
+        // as well as within one. ON by default: a label sitting on top of
+        // another one is never what the chart meant to say, and the pass is a
+        // no-op on a chart whose labels already clear each other, so the cost
+        // of leaving it on is one measuring pass. Set false for the old
+        // behaviour, or an object to override:
+        //   gap       clear space left between two separated labels (px)
+        //   maxShift  how far a label may travel from its own mark; defaults
+        //             to about one label's own size along that axis
+        //   hide      drop a label that still collides after both have spent
+        //             their budget, later-drawn first. Off by default: this
+        //             pass runs on every chart, and silently deleting a value
+        //             is worse than the overlap it set out to fix.
+        // Labels separate along the VALUE axis, so a horizontal bar's move
+        // left/right and everything else moves up/down. Rotated labels are
+        // avoided but never moved, and radial types (pie, radar, ...) are left
+        // to their own placement.
+        avoidOverlap: true,
         offsetX: 0,
         offsetY: 0,
         style: {
