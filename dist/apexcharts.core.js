@@ -42,7 +42,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.7.0
+ * ApexCharts v7.8.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -4314,6 +4314,24 @@ var __async = (__this, __arguments, generator) => {
           },
           textAnchor: "middle",
           distributed: false,
+          // Nudge data labels apart when they land on each other, across series
+          // as well as within one. ON by default: a label sitting on top of
+          // another one is never what the chart meant to say, and the pass is a
+          // no-op on a chart whose labels already clear each other, so the cost
+          // of leaving it on is one measuring pass. Set false for the old
+          // behaviour, or an object to override:
+          //   gap       clear space left between two separated labels (px)
+          //   maxShift  how far a label may travel from its own mark; defaults
+          //             to about one label's own size along that axis
+          //   hide      drop a label that still collides after both have spent
+          //             their budget, later-drawn first. Off by default: this
+          //             pass runs on every chart, and silently deleting a value
+          //             is worse than the overlap it set out to fix.
+          // Labels separate along the VALUE axis, so a horizontal bar's move
+          // left/right and everything else moves up/down. Rotated labels are
+          // avoided but never moved, and radial types (pie, radar, ...) are left
+          // to their own placement.
+          avoidOverlap: true,
           offsetX: 0,
           offsetY: 0,
           style: {
@@ -5538,6 +5556,7 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     waterfall() {
+      var _a;
       const range = this.rangeBar();
       return __spreadProps(__spreadValues({}, range), {
         chart: {
@@ -5580,18 +5599,28 @@ var __async = (__this, __arguments, generator) => {
           // `end - start`, which is the delta for a step bar and the sum for a
           // subtotal / total bar.
           enabled: true,
-          // Small steps are normal in a waterfall, and a label wider or taller
-          // than its bar gets placed OUTSIDE it. The range column's white label
-          // is then white text on the chart background, so the two smallest steps
-          // of a P&L bridge simply vanished. A pale chip with dark ink reads
-          // wherever the label lands: over a green, red or blue bar, or off it.
+          // No chip behind the label. A waterfall is usually a dense row of
+          // steps, and a chip per label is a second rectangle competing with the
+          // bar it names.
           background: {
-            enabled: true,
-            backgroundColor: "#fff",
-            foreColor: "#373d3f",
-            borderColor: "#e3e8ee",
-            opacity: 0.92
-          }
+            enabled: false
+          },
+          style: __spreadProps(__spreadValues(
+            {},
+            /** @type {any} */
+            (_a = range.dataLabels) == null ? void 0 : _a.style
+          ), {
+            // Small steps are normal in a waterfall, and a label wider or taller
+            // than its bar gets placed OUTSIDE it. The range column's white ink
+            // is then white text on the chart background, so the two smallest
+            // steps of a P&L bridge simply vanished. Following `chart.foreColor`
+            // instead keeps the label readable off the bar in either theme, and
+            // legible enough over an increase/decrease/total bar.
+            colors: [
+              /** @param {any} opts */
+              (opts) => opts.w.config.chart.foreColor
+            ]
+          })
         }),
         legend: {
           // A waterfall is one series, so the legend would show a single swatch
@@ -12937,6 +12966,98 @@ var __async = (__this, __arguments, generator) => {
     });
     return Number.isFinite(resolved) ? resolved : 0;
   };
+  function overlapY(a2, aShift, b, bShift) {
+    const aTop = a2.y + aShift;
+    const bTop = b.y + bShift;
+    return Math.min(aTop + a2.height, bTop + b.height) - Math.max(aTop, bTop);
+  }
+  function overlapX(a2, b) {
+    return Math.min(a2.x + a2.width, b.x + b.width) - Math.max(a2.x, b.x);
+  }
+  function resolveLabelOverlaps(boxes, opts) {
+    var _a;
+    const n2 = boxes.length;
+    const result = new Array(n2);
+    for (let i2 = 0; i2 < n2; i2++) result[i2] = { dy: 0, hidden: false };
+    if (n2 < 2) return result;
+    const { gap, maxShift, minY, maxY } = opts;
+    const iterations = (_a = opts.iterations) != null ? _a : 6;
+    const idx = boxes.map((_, i2) => i2).sort((a2, b) => boxes[a2].x - boxes[b].x);
+    const clampShift = (i2, d) => {
+      const b = boxes[i2];
+      if (b.fixed) return result[i2].dy;
+      const out = Math.max(-maxShift, Math.min(maxShift, d));
+      const canGoUp = Math.min(0, minY - b.y);
+      const canGoDown = Math.max(0, maxY - (b.y + b.height));
+      return Math.max(canGoUp, Math.min(canGoDown, out));
+    };
+    for (let pass = 0; pass < iterations; pass++) {
+      let moved = false;
+      for (let p = 0; p < idx.length; p++) {
+        const i2 = idx[p];
+        const a2 = boxes[i2];
+        if (result[i2].hidden) continue;
+        for (let q = p + 1; q < idx.length; q++) {
+          const j2 = idx[q];
+          const b = boxes[j2];
+          if (result[j2].hidden) continue;
+          if (b.x >= a2.x + a2.width) break;
+          if (overlapX(a2, b) <= 0) continue;
+          const oy = overlapY(a2, result[i2].dy, b, result[j2].dy);
+          if (oy <= -gap) continue;
+          const need = oy + gap;
+          const aCy = a2.y + result[i2].dy + a2.height / 2;
+          const bCy = b.y + result[j2].dy + b.height / 2;
+          const aUp = aCy === bCy ? a2.order <= b.order : aCy < bCy;
+          const upIdx = aUp ? i2 : j2;
+          const downIdx = aUp ? j2 : i2;
+          const wantUp = clampShift(upIdx, result[upIdx].dy - need / 2);
+          const wantDown = clampShift(downIdx, result[downIdx].dy + need / 2);
+          const gotUp = result[upIdx].dy - wantUp;
+          const gotDown = wantDown - result[downIdx].dy;
+          const shortfall = need - (gotUp + gotDown);
+          let finalUp = wantUp;
+          let finalDown = wantDown;
+          if (shortfall > 0.01) {
+            finalDown = clampShift(downIdx, wantDown + shortfall);
+            const stillShort = need - (gotUp + (finalDown - result[downIdx].dy));
+            if (stillShort > 0.01) {
+              finalUp = clampShift(upIdx, wantUp - stillShort);
+            }
+          }
+          if (finalUp !== result[upIdx].dy || finalDown !== result[downIdx].dy) {
+            result[upIdx].dy = finalUp;
+            result[downIdx].dy = finalDown;
+            moved = true;
+          }
+        }
+      }
+      if (!moved) break;
+    }
+    if (!opts.hide) return result;
+    for (let p = 0; p < idx.length; p++) {
+      const i2 = idx[p];
+      if (result[i2].hidden) continue;
+      const a2 = boxes[i2];
+      for (let q = p + 1; q < idx.length; q++) {
+        const j2 = idx[q];
+        if (result[j2].hidden) continue;
+        const b = boxes[j2];
+        if (b.x >= a2.x + a2.width) break;
+        if (overlapX(a2, b) <= 0) continue;
+        if (overlapY(a2, result[i2].dy, b, result[j2].dy) > 0) {
+          const first = a2.order <= b.order ? j2 : i2;
+          const second = first === i2 ? j2 : i2;
+          const loser = !boxes[first].fixed ? first : !boxes[second].fixed ? second : -1;
+          if (loser === -1) continue;
+          result[loser].hidden = true;
+          if (loser === i2) break;
+        }
+      }
+    }
+    return result;
+  }
+  const RADIAL_TYPES = ["radar", "pie", "donut", "polarArea", "radialBar"];
   class DataLabels {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -13259,33 +13380,164 @@ var __async = (__this, __arguments, generator) => {
       }
       return elRect;
     }
+    /**
+     * Separate data labels that landed on top of each other, across series.
+     *
+     * Runs after every series has drawn and before `dataLabelsBackground()`, for
+     * two reasons: the shift has to be applied to the text before a pill is cut
+     * around it, and only at this point does every label exist to be compared.
+     * `dataLabelsCorrection` cannot do this job - it runs while a single series
+     * is being plotted, so the labels it would collide with have not been drawn.
+     *
+     * On by default; `dataLabels.avoidOverlap: false` restores strict placement.
+     * The pass is a no-op on a chart whose labels already clear each other, so
+     * what it costs such a chart is the one measuring loop below.
+     */
+    avoidOverlaps() {
+      var _a, _b, _c, _d;
+      const w = this.w;
+      const cfg = w.config.dataLabels.avoidOverlap;
+      if (!cfg) return;
+      if (RADIAL_TYPES.indexOf(w.config.chart.type) !== -1) return;
+      const opts = typeof cfg === "object" ? cfg : {};
+      const bCnf = w.config.dataLabels.background;
+      const nodes = w.dom.baseEl.querySelectorAll(
+        ".apexcharts-datalabels text.apexcharts-datalabel"
+      );
+      if (nodes.length < 2) return;
+      const measured = [];
+      for (let i2 = 0; i2 < nodes.length; i2++) {
+        const el = (
+          /** @type {SVGGraphicsElement} */
+          nodes[i2]
+        );
+        const rect = el.getBoundingClientRect();
+        const ctm = (_a = el.getScreenCTM) == null ? void 0 : _a.call(el);
+        const screen2 = rect.width > 0 && rect.height > 0;
+        const box = screen2 ? rect : el.getBBox();
+        if (!box.width || !box.height) continue;
+        const rotated = !!ctm && (Math.abs(ctm.b) > 1e-6 || Math.abs(ctm.c) > 1e-6);
+        const scaleY = screen2 && ctm && ctm.d ? Math.abs(ctm.d) : 1;
+        const scaleX = screen2 && ctm && ctm.a ? Math.abs(ctm.a) : 1;
+        const padH = (bCnf.enabled ? bCnf.padding : 0) * scaleX;
+        const padV = (bCnf.enabled ? bCnf.padding / 2 : 0) * scaleY;
+        measured.push({
+          el,
+          scaleY,
+          box: {
+            x: (screen2 ? rect.left : box.x) - padH,
+            y: (screen2 ? rect.top : box.y) - padV / 2,
+            width: box.width + padH * 2,
+            height: box.height + padV,
+            order: measured.length,
+            fixed: rotated
+          }
+        });
+      }
+      if (measured.length < 2) return;
+      const horizontal = !!((_c = (_b = w.config.plotOptions) == null ? void 0 : _b.bar) == null ? void 0 : _c.horizontal);
+      const boxes = measured.map(
+        ({ box }) => horizontal ? {
+          x: box.y,
+          y: box.x,
+          width: box.height,
+          height: box.width,
+          order: box.order,
+          fixed: box.fixed
+        } : box
+      );
+      const gridEl = w.dom.baseEl.querySelector(".apexcharts-grid");
+      const gridRect = gridEl == null ? void 0 : gridEl.getBoundingClientRect();
+      const useScreen = !!gridRect && gridRect.height > 0;
+      const extent = boxes[0].height;
+      const unit = measured[0].scaleY;
+      const lo = useScreen ? horizontal ? gridRect.left : gridRect.top : 0;
+      const hi = useScreen ? horizontal ? gridRect.right : gridRect.bottom : horizontal ? w.layout.gridWidth : w.layout.gridHeight;
+      const resolved = resolveLabelOverlaps(boxes, {
+        gap: ((_d = opts.gap) != null ? _d : 2) * unit,
+        // Default budget is roughly one label's own extent in each direction:
+        // far enough to clear a coincident twin, near enough that the label is
+        // still unmistakably its mark's.
+        maxShift: opts.maxShift ? opts.maxShift * unit : Math.max(extent, 14),
+        // The plot itself, with no slack: past this edge the label is clipped,
+        // so pushing one out there trades an overlap for a truncated value. A
+        // label that already starts outside (the one above a bar that reaches
+        // the top of the grid) keeps its place - resolveLabelOverlaps treats
+        // these as a restriction on movement, never as a push.
+        minY: lo,
+        maxY: hi,
+        // Dropping a label is opt-in. This pass is on by default, and a default
+        // that silently deletes a value is worse than the overlap it set out to
+        // fix: on a crowded horizontal bar it removed eight of eighteen labels.
+        // Off, a pair that cannot be separated is simply left as it is today.
+        hide: opts.hide === true
+      });
+      const attr = horizontal ? "x" : "y";
+      const centreAttr = horizontal ? "cx" : "cy";
+      for (let i2 = 0; i2 < measured.length; i2++) {
+        const { el, scaleY } = measured[i2];
+        const { dy, hidden } = resolved[i2];
+        if (hidden) {
+          el.style.display = "none";
+          el.classList.add("apexcharts-datalabel-hidden");
+          continue;
+        }
+        if (!dy) continue;
+        const delta = dy / scaleY;
+        const v = parseFloat(el.getAttribute(attr) || "0");
+        el.setAttribute(attr, (v + delta).toString());
+        const c = el.getAttribute(centreAttr);
+        if (c !== null) {
+          el.setAttribute(centreAttr, (parseFloat(c) + delta).toString());
+        }
+      }
+    }
     dataLabelsBackground() {
-      var _a;
+      var _a, _b;
       const w = this.w;
       if (w.config.chart.type === "bubble") return;
       const elDataLabels = w.dom.baseEl.querySelectorAll(
         ".apexcharts-datalabels text"
       );
+      const measured = [];
       for (let i2 = 0; i2 < elDataLabels.length; i2++) {
         const el = elDataLabels[i2];
-        const coords = (
+        const bbox = (
           /** @type {SVGGraphicsElement} */
           el.getBBox()
         );
-        let elRect = null;
-        if (coords.width && coords.height) {
-          elRect = this.addBackgroundToDataLabel(el, coords);
+        if (bbox.width && bbox.height) {
+          measured.push({
+            el,
+            // copied out of the live SVGRect so nothing below can disturb it
+            coords: {
+              x: bbox.x,
+              y: bbox.y,
+              width: bbox.width,
+              height: bbox.height
+            },
+            // captured before the write pass overwrites the text's own fill
+            fill: el.getAttribute("fill")
+          });
         }
-        if (elRect) {
-          (_a = el.parentNode) == null ? void 0 : _a.insertBefore(elRect.node, el);
-          const background = w.config.dataLabels.background.backgroundColor || el.getAttribute("fill");
-          const shouldAnim = w.config.chart.animations.enabled && !w.globals.resized && !w.globals.dataChanged;
-          if (shouldAnim) {
-            elRect.animate().attr({ fill: background });
-          } else {
-            elRect.attr({ fill: background });
-          }
-          el.setAttribute("fill", w.config.dataLabels.background.foreColor);
+      }
+      const bCnf = w.config.dataLabels.background;
+      const largeThreshold = (_a = w.config.chart.animations.largeDatasetThreshold) != null ? _a : 0;
+      const bulkReveal = largeThreshold > 0 && measured.length > largeThreshold;
+      const shouldAnim = w.config.chart.animations.enabled && !w.globals.resized && !w.globals.dataChanged && !bulkReveal;
+      for (let i2 = 0; i2 < measured.length; i2++) {
+        const { el, coords, fill } = measured[i2];
+        const elRect = this.addBackgroundToDataLabel(el, coords);
+        if (!elRect) continue;
+        (_b = el.parentNode) == null ? void 0 : _b.insertBefore(elRect.node, el);
+        const background = bCnf.backgroundColor || fill;
+        if (shouldAnim) {
+          elRect.animate().attr({ fill: background });
+        } else {
+          elRect.attr({ fill: background });
+        }
+        el.setAttribute("fill", bCnf.foreColor);
+        if (!bulkReveal) {
           const cxAttr = el.getAttribute("cx");
           if (cxAttr !== null) {
             applyProgressiveReveal(elRect, parseFloat(cxAttr), w);
@@ -24147,8 +24399,9 @@ var __async = (__this, __arguments, generator) => {
       });
       const tooltipEl = this.ttCtx.getElTooltip();
       if (tooltipEl) {
-        this.ttCtx.tooltipRect.ttWidth = tooltipEl.getBoundingClientRect().width;
-        this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height;
+        const rect = tooltipEl.getBoundingClientRect();
+        this.ttCtx.tooltipRect.ttWidth = rect.width;
+        this.ttCtx.tooltipRect.ttHeight = rect.height;
       }
     }
     /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any}} opts */
@@ -24157,8 +24410,10 @@ var __async = (__this, __arguments, generator) => {
       const { xVal, zVal, xAxisTTVal } = values;
       const seriesLen = w.seriesData.series.length;
       const basePColor = j2 !== null && w.config.plotOptions.bar.distributed ? w.globals.colors[j2] : w.globals.colors[i2];
-      for (let t2 = 0; t2 < seriesLen; t2++) {
-        const tIndex = w.config.tooltip.inverseOrder ? seriesLen - 1 - t2 : t2;
+      const singleRow = (ttItems == null ? void 0 : ttItems.length) === 1;
+      const iterations = singleRow ? 1 : seriesLen;
+      for (let t2 = 0; t2 < iterations; t2++) {
+        const tIndex = singleRow ? 0 : w.config.tooltip.inverseOrder ? seriesLen - 1 - t2 : t2;
         const row = this.computeSeriesRow({
           i: i2,
           j: j2,
@@ -24380,12 +24635,35 @@ var __async = (__this, __arguments, generator) => {
         w
       });
     }
+    /**
+     * The nodes a hover writes into, captured when the row was built in
+     * Tooltip.createTTElements. Rows that did not come from there (or from an
+     * older build) are queried once and then cached the same way, so no hover
+     * repeats the lookups.
+     * @param {any} row
+     */
+    rowRefs(row) {
+      if (!row.ttRefs) {
+        row.ttRefs = {
+          marker: row.querySelector(".apexcharts-tooltip-marker"),
+          text: row.querySelector(".apexcharts-tooltip-text"),
+          yLabel: row.querySelector(".apexcharts-tooltip-text-y-label"),
+          yValue: row.querySelector(".apexcharts-tooltip-text-y-value"),
+          goalsLabel: row.querySelector(".apexcharts-tooltip-text-goals-label"),
+          goalsValue: row.querySelector(".apexcharts-tooltip-text-goals-value"),
+          zLabel: row.querySelector(".apexcharts-tooltip-text-z-label"),
+          zValue: row.querySelector(".apexcharts-tooltip-text-z-value")
+        };
+      }
+      return row.ttRefs;
+    }
     /** @param {{ t?: any, j?: any, i?: any, ttItems?: any, values?: any, seriesName?: any, shared?: any, pColor?: any }} opts */
     DOMHandling({ t: t2, j: j2, ttItems, values, seriesName, shared, pColor }) {
       const w = this.w;
       const ttCtx = this.ttCtx;
       const { val, goalVals, xVal, xAxisTTVal, zVal } = values;
       if (!ttItems || !ttItems[t2]) return;
+      const refs = this.rowRefs(ttItems[t2]);
       let ttItemsChildren = null;
       ttItemsChildren = ttItems[t2].children;
       if (w.config.tooltip.fillSeriesColor) {
@@ -24407,13 +24685,11 @@ var __async = (__this, __arguments, generator) => {
           ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== "" ? xAxisTTVal : xVal;
         }
       }
-      const ttYLabel = ttItems[t2].querySelector(
-        ".apexcharts-tooltip-text-y-label"
-      );
+      const ttYLabel = refs.yLabel;
       if (ttYLabel) {
         ttYLabel.innerHTML = seriesName ? seriesName : "";
       }
-      const ttYVal = ttItems[t2].querySelector(".apexcharts-tooltip-text-y-value");
+      const ttYVal = refs.yValue;
       if (ttYVal) {
         ttYVal.innerHTML = typeof val !== "undefined" ? val : "";
       }
@@ -24430,12 +24706,8 @@ var __async = (__this, __arguments, generator) => {
       if (!w.config.tooltip.marker.show) {
         ttItemsChildren[0].style.display = "none";
       }
-      const ttGLabel = ttItems[t2].querySelector(
-        ".apexcharts-tooltip-text-goals-label"
-      );
-      const ttGVal = ttItems[t2].querySelector(
-        ".apexcharts-tooltip-text-goals-value"
-      );
+      const ttGLabel = refs.goalsLabel;
+      const ttGVal = refs.goalsValue;
       if (goalVals.length && w.seriesData.seriesGoals[t2]) {
         const createGoalsHtml = () => {
           let gLabels = "<div>";
@@ -24462,21 +24734,15 @@ var __async = (__this, __arguments, generator) => {
         ttGVal.innerHTML = "";
       }
       if (zVal !== null) {
-        const ttZLabel = ttItems[t2].querySelector(
-          ".apexcharts-tooltip-text-z-label"
-        );
+        const ttZLabel = refs.zLabel;
         ttZLabel.innerHTML = w.config.tooltip.z.title;
-        const ttZVal = ttItems[t2].querySelector(
-          ".apexcharts-tooltip-text-z-value"
-        );
+        const ttZVal = refs.zValue;
         ttZVal.innerHTML = typeof zVal !== "undefined" ? zVal : "";
       }
       if (shared && ttItemsChildren[0]) {
         if (w.config.tooltip.hideEmptySeries) {
-          const ttItemMarker = ttItems[t2].querySelector(
-            ".apexcharts-tooltip-marker"
-          );
-          const ttItemText = ttItems[t2].querySelector(".apexcharts-tooltip-text");
+          const ttItemMarker = refs.marker;
+          const ttItemText = refs.text;
           if (parseFloat(val) == 0) {
             ttItemMarker.style.display = "none";
             ttItemText.style.display = "none";
@@ -24501,13 +24767,15 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} i
      */
     toggleActiveInactiveSeries(shared, i2) {
+      var _a;
       const w = this.w;
       if (shared) {
         this.tooltipUtil.toggleAllTooltipSeriesGroups("enable");
       } else {
         this.tooltipUtil.toggleAllTooltipSeriesGroups("disable");
+        const rowIndex = ((_a = this.ttCtx.ttItems) == null ? void 0 : _a.length) === 1 ? 0 : i2;
         const firstTooltipSeriesGroup = w.dom.baseEl.querySelector(
-          `.apexcharts-tooltip-series-group-${i2}`
+          `.apexcharts-tooltip-series-group-${rowIndex}`
         );
         if (firstTooltipSeriesGroup) {
           const ftsGroup = (
@@ -24940,8 +25208,9 @@ var __async = (__this, __arguments, generator) => {
         );
         for (let p = 0; p < allPoints.length; p++) {
           if (parseInt((_a = allPoints[p].getAttribute("rel")) != null ? _a : "0", 10) === j2) {
-            ttCtx.marker.resetPointsSize();
+            ttCtx.marker.resetEnlargedPoints();
             ttCtx.marker.enlargeCurrentPoint(j2, allPoints[p]);
+            break;
           }
         }
       } else {
@@ -25299,6 +25568,7 @@ var __async = (__this, __arguments, generator) => {
       this.ttCtx = tooltipContext;
       this.ctx = tooltipContext.ctx;
       this.tooltipPosition = new Position(tooltipContext);
+      this.enlargedPoints = /* @__PURE__ */ new Set();
     }
     drawDynamicPoints() {
       const w = this.w;
@@ -25376,12 +25646,14 @@ var __async = (__this, __arguments, generator) => {
       const me = this;
       const ttCtx = this.ttCtx;
       const col = j2;
+      this.resetEnlargedPoints();
       const points = w.dom.baseEl.querySelectorAll(
-        ".apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker"
+        `.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker[rel="${col}"]`
       );
       let newSize = w.config.markers.hover.size;
+      let lastCx = null;
+      let lastCy = null;
       for (let p = 0; p < points.length; p++) {
-        const rel = points[p].getAttribute("rel");
         const index = points[p].getAttribute("index");
         if (newSize === void 0) {
           newSize = w.globals.markers.size[
@@ -25389,22 +25661,35 @@ var __async = (__this, __arguments, generator) => {
             index
           ] + w.config.markers.hover.sizeOffset;
         }
-        if (col === parseInt(rel != null ? rel : "0", 10)) {
-          me.newPointSize(col, points[p]);
-          const cx = (_a = points[p].getAttribute("cx")) != null ? _a : "0";
-          const cy = (_b = points[p].getAttribute("cy")) != null ? _b : "0";
-          me.tooltipPosition.moveXCrosshairs(parseFloat(cx));
-          if (!ttCtx.fixedTooltip) {
-            me.tooltipPosition.moveTooltip(
-              parseFloat(cx),
-              parseFloat(cy),
-              newSize
-            );
-          }
-        } else {
-          me.oldPointSize(points[p]);
-        }
+        me.newPointSize(col, points[p]);
+        lastCx = (_a = points[p].getAttribute("cx")) != null ? _a : "0";
+        lastCy = (_b = points[p].getAttribute("cy")) != null ? _b : "0";
       }
+      if (lastCx === null) return;
+      me.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
+      if (!ttCtx.fixedTooltip) {
+        me.tooltipPosition.moveTooltip(
+          parseFloat(lastCx),
+          parseFloat(
+            /** @type {string} */
+            lastCy
+          ),
+          newSize
+        );
+      }
+    }
+    /**
+     * Restore every marker this module grew back to its default size. Cheap
+     * because it only visits the handful of nodes actually enlarged, where the
+     * old code re-pathed every marker in the chart.
+     */
+    resetEnlargedPoints() {
+      if (this.enlargedPoints.size === 0) return;
+      const points = Array.from(this.enlargedPoints);
+      for (let i2 = 0; i2 < points.length; i2++) {
+        this.oldPointSize(points[i2]);
+      }
+      this.enlargedPoints.clear();
     }
     /**
      * Resizes the hovered marker to its hover size and returns the size applied,
@@ -25428,6 +25713,7 @@ var __async = (__this, __arguments, generator) => {
         }
         const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, newSize);
         point.setAttribute("d", path);
+        this.enlargedPoints.add(point);
         return newSize;
       }
       return void 0;
@@ -25439,10 +25725,12 @@ var __async = (__this, __arguments, generator) => {
       const size = parseFloat(point.getAttribute("default-marker-size"));
       const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, size);
       point.setAttribute("d", path);
+      this.enlargedPoints.delete(point);
     }
     resetPointsSize() {
       var _a;
       const w = this.w;
+      this.enlargedPoints.clear();
       const points = w.dom.baseEl.querySelectorAll(
         ".apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker"
       );
@@ -26114,9 +26402,11 @@ var __async = (__this, __arguments, generator) => {
       this.dataPointsDividedHeight = 0;
       this.dataPointsDividedWidth = 0;
       this.tooltipTitle = null;
+      this._elTooltipCache = null;
+      this._elXCrosshairsCache = null;
+      this._elGridCache = null;
       this.legendLabels = null;
       this.ttItems = null;
-      this.seriesBound = null;
       this.seriesHoverTimeout = void 0;
       this.interactiveHideTimeout = void 0;
       this.clientX = 0;
@@ -26144,7 +26434,6 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const tooltipEl = this.getElTooltip();
       if (!tooltipEl) return;
-      this.updateDimensionCache();
       if (typeof ResizeObserver !== "undefined" && !w.globals.resizeObserver) {
         w.globals.resizeObserver = new ResizeObserver(() => {
           if (!this.dimensionUpdateScheduled) {
@@ -26199,21 +26488,59 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ w: import('../../types/internal').ChartStateW }} [ctx]
      * @returns {HTMLElement | null}
      */
+    /**
+     * Resolve a chart-level element, keeping the node between calls.
+     *
+     * Hover paths ask for these several times per frame and every lookup is a
+     * `querySelector` across the entire chart DOM, which a CPU profile of a
+     * 700-series chart showed dominating hover time. Validity is checked with
+     * `baseEl.contains()` — a short walk up the ancestors, not a tree scan.
+     *
+     * That check is what respects `fastUpdate`: `drawTooltip` DETACHES the
+     * existing tooltip before building a replacement (see its comment on the
+     * fastUpdate path), so a rebuilt element leaves the cached node outside
+     * `baseEl`, the check fails, and the selector runs again. A full re-render
+     * replaces `baseEl`'s subtree with the same consequence.
+     *
+     * @param {any} ctx      owner of the cache slot (a Tooltip, or another chart)
+     * @param {string} key   cache property on that owner
+     * @param {string} selector
+     * @returns {any}
+     */
+    _resolveEl(ctx, key, selector) {
+      var _a, _b;
+      const baseEl = (_b = (_a = ctx.w) == null ? void 0 : _a.dom) == null ? void 0 : _b.baseEl;
+      if (!baseEl) return null;
+      const cached = ctx[key];
+      if (cached && baseEl.contains(cached)) return cached;
+      const el = baseEl.querySelector(selector);
+      ctx[key] = el;
+      return el;
+    }
+    /**
+     * @param {any} [ctx] another chart's context, for grouped tooltips
+     * @returns {HTMLElement | null}
+     */
     getElTooltip(ctx) {
       if (!ctx) ctx = this;
-      if (!ctx.w.dom.baseEl) return null;
       return (
         /** @type {HTMLElement | null} */
-        ctx.w.dom.baseEl.querySelector(
+        this._resolveEl(
+          ctx,
+          "_elTooltipCache",
           ".apexcharts-tooltip:not(.apexcharts-annotation-tooltip)"
         )
       );
     }
     getElXCrosshairs() {
-      return this.w.dom.baseEl.querySelector(".apexcharts-xcrosshairs");
+      return this._resolveEl(
+        this,
+        "_elXCrosshairsCache",
+        ".apexcharts-xcrosshairs"
+      );
     }
     getElGrid() {
-      return this.w.dom.baseEl.querySelector(".apexcharts-grid");
+      return this._resolveEl(this, "_elGridCache", ".apexcharts-grid");
     }
     /**
      * @param {import('../../types/internal').XYRatios} xyRatios
@@ -26330,12 +26657,8 @@ var __async = (__this, __arguments, generator) => {
         tooltipEl.appendChild(this.tooltipTitle);
       }
       let ttItemsCnt = w.seriesData.series.length;
-      if ((w.globals.xyCharts || w.globals.comboCharts) && this.tConfig.shared) {
-        if (!this.showOnIntersect) {
-          ttItemsCnt = w.seriesData.series.length;
-        } else {
-          ttItemsCnt = 1;
-        }
+      if (w.globals.xyCharts || w.globals.comboCharts) {
+        ttItemsCnt = this.tConfig.shared && !this.showOnIntersect ? w.seriesData.series.length : 1;
       }
       this.legendLabels = w.dom.baseEl.querySelectorAll(".apexcharts-legend-text");
       this.ttItems = this.createTTElements(ttItemsCnt);
@@ -26387,6 +26710,7 @@ var __async = (__this, __arguments, generator) => {
         gYZ.classList.add("apexcharts-tooltip-text");
         gYZ.style.fontFamily = this.tConfig.style.fontFamily || w.config.chart.fontFamily;
         gYZ.style.fontSize = this.tConfig.style.fontSize;
+        const refs = { marker: point, text: gYZ };
         ["y", "goals", "z"].forEach((g) => {
           const gValText = BrowserAPIs.createElementNS(
             "http://www.w3.org/1999/xhtml",
@@ -26405,9 +26729,12 @@ var __async = (__this, __arguments, generator) => {
           );
           txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`);
           gValText.appendChild(txtValue);
+          refs[`${g}Label`] = txtLabel;
+          refs[`${g}Value`] = txtValue;
           gYZ.appendChild(gValText);
         });
         gTxt.appendChild(gYZ);
+        gTxt.ttRefs = refs;
         tooltipEl.appendChild(gTxt);
         ttItems.push(gTxt);
       }
@@ -26423,9 +26750,6 @@ var __async = (__this, __arguments, generator) => {
       const isPolarMarkerChart = chartWithmarkers && !w.globals.xyCharts;
       const hoverArea = w.dom.Paper.node;
       const elGrid = this.getElGrid();
-      if (elGrid) {
-        this.seriesBound = elGrid.getBoundingClientRect();
-      }
       const tooltipY = [];
       const tooltipX = [];
       const seriesHoverParams = {
@@ -29696,6 +30020,7 @@ var __async = (__this, __arguments, generator) => {
       const elGraph = this.core.plotChartType(series, xyRatios);
       const dataLabels = new DataLabels(this.w, this);
       dataLabels.bringForward();
+      dataLabels.avoidOverlaps();
       if (w.config.dataLabels.background.enabled) {
         dataLabels.dataLabelsBackground();
       }
@@ -30365,6 +30690,7 @@ var __async = (__this, __arguments, generator) => {
           }
           const dataLabels = new DataLabels(w, this);
           dataLabels.bringForward();
+          dataLabels.avoidOverlaps();
           if (w.config.dataLabels.background.enabled) {
             dataLabels.dataLabelsBackground();
           }
