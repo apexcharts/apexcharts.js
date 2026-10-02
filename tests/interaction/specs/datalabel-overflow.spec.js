@@ -44,17 +44,23 @@ const test = base.extend({
   boot: async ({ page, consoleErrors }, use) => {
     page.on('pageerror', (err) => consoleErrors.push(err.message))
 
-    const boot = async (options) => {
+    const boot = async (options, width = 500) => {
       await page.goto('about:blank')
       await page.setContent(
-        '<div id="chart" style="width:500px;height:360px"></div>',
+        `<div id="chart" style="width:${width}px;height:360px"></div>`,
       )
       await page.addScriptTag({ path: distPath })
       await page.evaluate(async (opts) => {
         // The formatter has to be built here: functions do not survive
-        // Playwright's serialization of the options object.
-        opts.dataLabels.formatter = (val, o) =>
-          `${o.w.globals.labels[o.dataPointIndex]}:  ${val}`
+        // Playwright's serialization of the options object. `__fmt` picks
+        // which one, since the crop cases below want a long value rather than
+        // the category-name one the clamp cases are built around.
+        const fmt = opts.__fmt
+        delete opts.__fmt
+        opts.dataLabels.formatter =
+          fmt === 'long-value'
+            ? (val) => `$${val},000,000.00`
+            : (val, o) => `${o.w.globals.labels[o.dataPointIndex]}:  ${val}`
         window.chart = new ApexCharts(document.querySelector('#chart'), opts)
         await window.chart.render()
       }, options)
@@ -234,5 +240,120 @@ test.describe('the specific defects', () => {
     const labels = await readLabels(page)
     expect(labels).toHaveLength(CATEGORIES.length)
     expect(escapees(labels)).toEqual([])
+  })
+})
+
+/**
+ * The LAST data label must not run off the right of the canvas (#5036), and
+ * must not be un-centred when it had room to stay put.
+ *
+ * The guard that does this lived in `plotDataLabelsText` and got both
+ * directions wrong:
+ *
+ *  1. It tested the `textAnchor` LOCAL, which only the line/area path passes.
+ *     The bar path leaves it undefined and lets the `||` fallback at the
+ *     drawText call pick the configured value, so the guard was unreachable
+ *     for bar and column: a narrow column chart clipped its last label clean
+ *     off the canvas with nothing to catch it.
+ *
+ *  2. It tested `x === w.layout.gridWidth` rather than whether the label
+ *     actually overflows. A line's last point sits exactly on the plot's
+ *     right edge, so the two look equivalent, but a label may legitimately
+ *     sit in the margin beside the plot, and only the canvas edge crops it.
+ *     On a dual-axis chart, where that margin holds the second axis, it
+ *     un-centred a label with ~140px to spare.
+ *
+ * Both halves are measured here: the bar must survive widths that used to
+ * clip it, and a label with room must keep its anchor.
+ */
+
+const lastLabelOptions = (type) => ({
+  chart: { type, height: 320, animations: { enabled: false } },
+  series: [{ name: 'S', data: [30, 41, 35, 51] }],
+  xaxis: { categories: ['A', 'B', 'C', 'D'] },
+  // Long enough that the last label needs more room than its own slot.
+  __fmt: 'long-value',
+  dataLabels: { enabled: true, avoidOverlap: false },
+  yaxis: { labels: { show: false } },
+  legend: { show: false },
+  tooltip: { enabled: false },
+})
+
+/** The last drawn label, with how far it escapes the canvas. */
+const readLastLabel = (page) =>
+  page.evaluate(() => {
+    const svg = document.querySelector('.apexcharts-svg').getBoundingClientRect()
+    const ls = [...document.querySelectorAll('.apexcharts-datalabel')].filter(
+      (t) => (t.textContent || '').trim() !== '',
+    )
+    const last = ls[ls.length - 1]
+    if (!last) return null
+    const r = last.getBoundingClientRect()
+    return {
+      text: last.textContent.trim(),
+      anchor: last.getAttribute('text-anchor'),
+      overRight: +(r.right - svg.right).toFixed(2),
+    }
+  })
+
+test.describe('the last data label is kept on the canvas', () => {
+  // 280 and 240 are the widths at which a column's last label used to run
+  // off the canvas by 0.7px and 5.7px respectively.
+  for (const width of [420, 360, 320, 280, 240]) {
+    for (const type of ['bar', 'line']) {
+      test(`${type} at ${width}px keeps its last label on the canvas`, async ({
+        boot,
+        page,
+      }) => {
+        await boot(lastLabelOptions(type), width)
+        const last = await readLastLabel(page)
+        expect(last, 'no label drawn at all').not.toBeNull()
+        expect(
+          last.overRight,
+          `"${last.text}" escapes ${last.overRight}px past the canvas`,
+        ).toBeLessThanOrEqual(0.5)
+      })
+    }
+  }
+
+  test('a label with room to spare keeps its anchor', async ({
+    boot,
+    page,
+  }) => {
+    // The reported case: a dual-axis chart, whose right margin holds the
+    // second axis, so the last point sits well inside the canvas. Every
+    // label should stay centred on its own mark.
+    await boot(
+      {
+        chart: { type: 'line', height: 360, animations: { enabled: false } },
+        series: [
+          { name: 'Booked', type: 'column', data: [51, 13, 11, 23, 59] },
+          { name: 'Invoiced', type: 'line', data: [51, 13, 11, 23, 59] },
+        ],
+        xaxis: { categories: ['May', 'Jun', 'Jul', 'Aug', 'Sep'] },
+        yaxis: [
+          { seriesName: 'Booked' },
+          { seriesName: 'Invoiced', opposite: true },
+        ],
+        stroke: { width: [0, 2] },
+        markers: { size: [0, 4] },
+        __fmt: 'long-value',
+        dataLabels: { enabled: true, avoidOverlap: false },
+        legend: { show: false },
+        tooltip: { enabled: false },
+      },
+      650,
+    )
+
+    const anchors = await page.evaluate(() =>
+      [...document.querySelectorAll('.apexcharts-datalabel')]
+        .filter((t) => (t.textContent || '').trim() !== '')
+        .map((t) => t.getAttribute('text-anchor')),
+    )
+    expect(anchors).toHaveLength(10)
+    // Not one of them is flipped: the old coordinate test flipped the line
+    // series' last label and left the column's alone, so the two labels for
+    // the same category disagreed by half a label width.
+    expect([...new Set(anchors)]).toEqual(['middle'])
   })
 })

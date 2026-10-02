@@ -195,7 +195,7 @@ test.describe('dataLabels.avoidOverlap on a dual-axis combo chart', () => {
   const deltas = [0, 0.002, 0.005, 0.01, 0.04, 0.15, -0.01, -0.05]
 
   for (const delta of deltas) {
-    test(`line series offset ${delta * 100}% — no label overlaps`, async ({
+    test(`line series offset ${delta * 100}%: no label overlaps`, async ({
       boot,
       page,
     }) => {
@@ -451,5 +451,143 @@ test.describe('avoidOverlap never deletes a value by default', () => {
     const after = await readLabels(page)
     expect(after.length).toBeLessThan(15)
     expect(collisions(after)).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// avoidOverlap vs the options that change where a label sits and which way it
+// faces. The pass measures `getBoundingClientRect()` of the rendered text, so
+// it accounts for all of these by construction rather than by special-casing
+// any of them. But "works by construction" is exactly the kind of claim that
+// quietly stops being true, so each one is exercised with labels that really
+// do collide. The earlier audit only ever proved the no-op case for them.
+// ---------------------------------------------------------------------------
+
+/** A column + line pair a hair apart, so their labels land on each other. */
+const optionMatrixOptions = ({ anchor, position, orientation, avoidOverlap }) => {
+  const opts = {
+    chart: { type: 'line', height: 430, animations: { enabled: false } },
+    series: [
+      { name: 'S1', type: 'column', data: [30, 41, 35, 51, 49, 62] },
+      { name: 'S2', type: 'line', data: [31, 40, 36, 50, 50, 61] },
+    ],
+    xaxis: { categories: ['A', 'B', 'C', 'D', 'E', 'F'] },
+    plotOptions: { bar: { dataLabels: {}, columnWidth: '70%' } },
+    dataLabels: {
+      enabled: true,
+      ...(avoidOverlap === undefined ? {} : { avoidOverlap }),
+    },
+    legend: { show: false },
+    tooltip: { enabled: false },
+  }
+  if (anchor) opts.dataLabels.textAnchor = anchor
+  if (position) opts.plotOptions.bar.dataLabels.position = position
+  if (orientation) opts.plotOptions.bar.dataLabels.orientation = orientation
+  return opts
+}
+
+/** Labels plus whether each is rotated, judged off its own screen matrix. */
+const readWithRotation = (page) =>
+  page.evaluate(() => {
+    return [...document.querySelectorAll('text.apexcharts-datalabel')]
+      .filter((t) => (t.textContent || '').trim() !== '')
+      .filter((t) => getComputedStyle(t).display !== 'none')
+      .map((t) => {
+        const r = t.getBoundingClientRect()
+        const bb = t.getBBox()
+        const m = t.getScreenCTM()
+        return {
+          text: t.textContent.trim(),
+          x: r.left,
+          y: r.top,
+          w: r.width,
+          h: r.height,
+          bbw: bb.width,
+          // b and c are the off-diagonal terms: zero exactly when the element
+          // is axis-aligned.
+          rotated: !!m && (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6),
+        }
+      })
+  })
+
+test.describe('avoidOverlap respects anchor, position and orientation', () => {
+  for (const [name, cfg] of [
+    ['textAnchor: start', { anchor: 'start' }],
+    ['textAnchor: end', { anchor: 'end' }],
+    ['bar dataLabels position: top', { position: 'top' }],
+    ['bar dataLabels orientation: vertical', { orientation: 'vertical' }],
+  ]) {
+    test(`${name}: collisions still resolve and no label is lost`, async ({
+      boot,
+      page,
+    }) => {
+      await boot(optionMatrixOptions({ ...cfg, avoidOverlap: false }))
+      const before = await readWithRotation(page)
+      expect(
+        collisions(before).length,
+        'the case must actually collide, or the test is vacuous',
+      ).toBeGreaterThan(0)
+
+      await boot(optionMatrixOptions({ ...cfg, avoidOverlap: true }))
+      const after = await readWithRotation(page)
+
+      expect(after).toHaveLength(before.length)
+      expect(collisions(after)).toEqual([])
+    })
+  }
+
+  test('a rotated label is avoided but never moved', async ({ boot, page }) => {
+    // `orientation: 'vertical'` rotates the column labels. Their offset runs
+    // along their own rotated axis, so moving one would slide it sideways on
+    // screen. They are obstacles: the line's labels go around them.
+    await boot(
+      optionMatrixOptions({ orientation: 'vertical', avoidOverlap: false }),
+    )
+    const before = await readWithRotation(page)
+    await boot(
+      optionMatrixOptions({ orientation: 'vertical', avoidOverlap: true }),
+    )
+    const after = await readWithRotation(page)
+
+    const rotated = before.filter((l) => l.rotated)
+    expect(rotated.length, 'no rotated labels to test').toBeGreaterThan(0)
+
+    let movers = 0
+    for (let i = 0; i < before.length; i++) {
+      const moved =
+        Math.abs(after[i].x - before[i].x) > 0.5 ||
+        Math.abs(after[i].y - before[i].y) > 0.5
+      if (before[i].rotated) {
+        expect(moved, `rotated "${before[i].text}" was moved`).toBe(false)
+      } else if (moved) {
+        movers++
+      }
+    }
+    expect(movers, 'nothing moved to clear the rotated labels').toBeGreaterThan(0)
+    expect(collisions(after)).toEqual([])
+  })
+
+  test('a rotated label is measured as rendered, not as getBBox reports it', async ({
+    boot,
+    page,
+  }) => {
+    // This is why the pass measures the client rect. getBBox is taken before
+    // the element's own transform, so a vertical label reports ~29x14 while
+    // it occupies ~14x29 on screen; comparing those boxes would test the
+    // wrong rectangle entirely.
+    await boot(optionMatrixOptions({ orientation: 'vertical' }))
+    const labels = await readWithRotation(page)
+    const rotated = labels.filter((l) => l.rotated)
+    const upright = labels.filter((l) => !l.rotated)
+
+    expect(rotated.length).toBeGreaterThan(0)
+    for (const l of rotated) {
+      expect(Math.abs(l.w - l.bbw)).toBeGreaterThan(1.5)
+    }
+    // ...and for everything else the two agree, so the swap is the transform
+    // and not a measurement quirk.
+    for (const l of upright) {
+      expect(Math.abs(l.w - l.bbw)).toBeLessThanOrEqual(1.5)
+    }
   })
 })

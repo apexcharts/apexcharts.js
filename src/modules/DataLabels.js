@@ -375,10 +375,42 @@ class DataLabels {
     }
 
     if (correctedLabels.drawnextLabel) {
-      if (textAnchor === 'middle') {
-        if (x === w.layout.gridWidth) {
-          // last label - might get cropped
-          // fixes https://github.com/apexcharts/apexcharts.js/issues/5036
+      // Stop a label running off the right of the canvas (#5036). Two things
+      // this has to get right, and the original shape of it got both wrong in
+      // opposite directions.
+      //
+      // It must test the anchor the text will RENDER with. The bar path never
+      // passes `textAnchor` and relies on the `||` fallback at the drawText
+      // call below, so a test against the local variable alone was
+      // unreachable for bar/column: a column chart narrow enough to crowd its
+      // last label clipped it clean off the canvas with nothing to catch it.
+      //
+      // And it must test whether the label actually overflows. The old test
+      // was `x === w.layout.gridWidth`, which looks equivalent because a
+      // line's last point sits exactly on the plot's right edge - but a label
+      // may legitimately sit in the margin beside the plot, and only the
+      // canvas edge really crops it. On a dual-axis chart, where that margin
+      // holds the second axis, it un-centred a label with 140px to spare.
+      const renderedAnchor = textAnchor || dataLabelsConfig.textAnchor
+      if (renderedAnchor === 'middle' || renderedAnchor === 'start') {
+        const measured =
+          correctedLabels.textRects ||
+          /** @type {any} */ (graphics).getTextRects(
+            text,
+            fontSize || dataLabelsConfig.style.fontSize,
+            dataLabelsConfig.style.fontFamily,
+            '',
+            true,
+            // Measuring a 600-weight label at 'regular' under-reports it, and
+            // an overflow test is only as good as the width it is given.
+            dataLabelsConfig.style.fontWeight,
+          )
+        const overhang =
+          renderedAnchor === 'middle' ? measured.width / 2 : measured.width
+        // `x` is in the inner (plot-origin) space, so the canvas edge sits at
+        // the chart width less the plot's own left offset.
+        const canvasRight = w.globals.svgWidth - w.layout.translateX
+        if (x + offX + overhang > canvasRight) {
           textAnchor = 'end'
         }
       }
