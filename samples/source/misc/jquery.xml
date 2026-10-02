@@ -35,10 +35,12 @@ xaxis: {
 </chart>
 
 <vanilla-js-script>
-$.getJSON('http://my-json-server.typicode.com/apexcharts/apexcharts.js/yearly', function(response) {
+// Served straight off this repository's own db.json, so the demo does not
+// depend on a third-party fake-API staying alive.
+$.getJSON('https://cdn.jsdelivr.net/gh/apexcharts/apexcharts.js@main/db.json', function(response) {
   chart.updateSeries([{
     name: 'Sales',
-    data: response
+    data: response.yearly
   }])
 });
 </vanilla-js-script>
