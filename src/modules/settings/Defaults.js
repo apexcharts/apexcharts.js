@@ -787,17 +787,24 @@ export default class Defaults {
         // `end - start`, which is the delta for a step bar and the sum for a
         // subtotal / total bar.
         enabled: true,
-        // Small steps are normal in a waterfall, and a label wider or taller
-        // than its bar gets placed OUTSIDE it. The range column's white label
-        // is then white text on the chart background, so the two smallest steps
-        // of a P&L bridge simply vanished. A pale chip with dark ink reads
-        // wherever the label lands: over a green, red or blue bar, or off it.
+        // No chip behind the label. A waterfall is usually a dense row of
+        // steps, and a chip per label is a second rectangle competing with the
+        // bar it names.
         background: {
-          enabled: true,
-          backgroundColor: '#fff',
-          foreColor: '#373d3f',
-          borderColor: '#e3e8ee',
-          opacity: 0.92,
+          enabled: false,
+        },
+        style: {
+          .../** @type {any} */ (range).dataLabels?.style,
+          // Small steps are normal in a waterfall, and a label wider or taller
+          // than its bar gets placed OUTSIDE it. The range column's white ink
+          // is then white text on the chart background, so the two smallest
+          // steps of a P&L bridge simply vanished. Following `chart.foreColor`
+          // instead keeps the label readable off the bar in either theme, and
+          // legible enough over an increase/decrease/total bar.
+          colors: [
+            /** @param {any} opts */
+            (opts) => opts.w.config.chart.foreColor,
+          ],
         },
       },
       legend: {

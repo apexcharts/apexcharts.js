@@ -4462,7 +4462,12 @@ type ApexDataLabels = {
     fontSize?: string
     fontFamily?: string
     fontWeight?: string | number
-    colors?: string[]
+    /**
+     * One colour per series (per data point when `distributed` is set). An
+     * entry may be a function, resolved per label, which is how a colour can
+     * follow the theme or the value it is printing.
+     */
+    colors?: (string | ((opts: ApexFormatterOpts) => string))[]
   }
   background?: {
     enabled?: boolean
