@@ -96,6 +96,45 @@ test.describe('Data labels reflow with the marks (bar/column, on by default)', (
     expect(positions).toBeGreaterThanOrEqual(RIDE)
   })
 
+  test('the labels stay visible while they ride an updateSeries() (#5332)', async ({
+    page,
+    loadChart,
+  }) => {
+    // Not stacked: BarStacked never hid its labels, Bar did.
+    await loadChart('column', 'column-with-data-labels')
+    await waitForStillChart(page)
+
+    // Position alone cannot catch this: the label group was born
+    // `apexcharts-element-hidden` and still moved, at opacity 0, through the
+    // whole morph. Sample what a viewer sees instead.
+    await page.evaluate(() => {
+      window.__vis = { frames: 0, hidden: 0 }
+      const tick = () => {
+        const groups = document.querySelectorAll('.apexcharts-datalabels')
+        if (groups.length) {
+          window.__vis.frames++
+          for (const g of groups) {
+            if (getComputedStyle(g).opacity === '0') {
+              window.__vis.hidden++
+              break
+            }
+          }
+        }
+        window.__visRaf = requestAnimationFrame(tick)
+      }
+      tick()
+    })
+    await bumpValues(page)
+    await page.waitForTimeout(1500)
+    const vis = await page.evaluate(() => {
+      cancelAnimationFrame(window.__visRaf)
+      return window.__vis
+    })
+
+    expect(vis.frames).toBeGreaterThan(20)
+    expect(vis.hidden).toBe(0)
+  })
+
   test('the stacked total rides on its own delta, not the segment it sits above', async ({
     page,
     loadChart,

@@ -232,18 +232,32 @@ class Bar {
         'data:realIndex': realIndex,
       })
 
-      w.globals.delayedElements.push({
-        el: elDataLabelsWrap.node,
-        // On a layout-changing update the labels must stay hidden through the
-        // reflow morph (the updateOptions flow otherwise reveals them at
-        // frame 0, where they float over sliding bars). When dataLabels.animate
-        // is on the labels instead RIDE the morph (see DataLabelTransition), so
-        // keep them visible: holding would hide the very motion we want to show.
-        holdUntilComplete:
-          !w.config.dataLabels.animate?.enabled &&
-          this.isLengthTransition(realIndex),
-      })
-      elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
+      // On a data-change update with label motion on, the labels RIDE the bar
+      // morph (see DataLabelTransition), so they are drawn visible from the
+      // first frame. Only the updateOptions flow used to get that, by way of
+      // its early reveal; updateSeries() waited for animationCompleted and
+      // hid the labels for the whole morph, which flashed them on a chart
+      // updated every second (#5332).
+      //
+      // The exception is a layout-changing update with nothing riding: the
+      // labels then stay hidden through the reflow morph, or they float over
+      // sliding bars. A count-up alone does not move them, so it does not
+      // lift that hold.
+      const dlCfg = w.config.dataLabels
+      const holdUntilComplete =
+        !dlCfg.animate?.enabled && this.isLengthTransition(realIndex)
+      const labelsRide =
+        w.globals.dataChanged &&
+        !holdUntilComplete &&
+        !!(dlCfg.animate?.enabled || dlCfg.countUp?.enabled)
+
+      if (!labelsRide) {
+        w.globals.delayedElements.push({
+          el: elDataLabelsWrap.node,
+          holdUntilComplete,
+        })
+        elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
+      }
 
       const elGoalsMarkers = graphics.group({
         class: 'apexcharts-bar-goals-markers',
