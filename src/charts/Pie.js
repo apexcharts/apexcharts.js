@@ -352,19 +352,29 @@ class Pie {
         }
 
         // The radius is the value channel, so it must animate from where it
-        // was, like a pie slice's angle does. Reconstruct the previous sizes
-        // from the previous values on the same scale rule the draw uses.
-        let prevMaxY = 0
-        for (let k = 0; k < prevValues.length; k++) {
-          prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]))
+        // was, like a pie slice's angle does. Use the radii the previous draw
+        // actually used. Rebuilding them from the previous values divided by
+        // the raw max, but with the default grid.position 'back' the grid is
+        // drawn first and rounds maxY up to a nice max (44 -> 50), so every
+        // slice started ~14% too big and jumped on the first frame of any
+        // update, a legend toggle included. The rebuild stays as the fallback
+        // for when the stash cannot line up.
+        const sizeStash = w.globals.prevPolarSizes
+        if (Array.isArray(sizeStash) && sizeStash.length === prevValues.length) {
+          this.prevSliceSizes = sizeStash.slice()
+        } else {
+          let prevMaxY = 0
+          for (let k = 0; k < prevValues.length; k++) {
+            prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]))
+          }
+          if (w.config.yaxis[0].max) {
+            prevMaxY = w.config.yaxis[0].max
+          }
+          this.prevSliceSizes = prevValues.map(
+            (/** @type {number} */ v) =>
+              (w.globals.radialSize * Utils.negToZero(v)) / (prevMaxY || 1),
+          )
         }
-        if (w.config.yaxis[0].max) {
-          prevMaxY = w.config.yaxis[0].max
-        }
-        this.prevSliceSizes = prevValues.map(
-          (/** @type {number} */ v) =>
-            (w.globals.radialSize * Utils.negToZero(v)) / (prevMaxY || 1),
-        )
       } else {
         let prevTotal = 0
         for (let k = 0; k < w.globals.previousPaths.length; k++) {
@@ -387,6 +397,7 @@ class Pie {
     if (this.chartType === 'polarArea') {
       // The stash the NEXT data-change animation will start from.
       w.globals.prevPolarAngles = sectorAngleArr.slice()
+      w.globals.prevPolarSizes = this.sliceSizes.slice()
     }
 
     // on small chart size after few count of resizes browser window donutSize can be negative
@@ -655,6 +666,11 @@ class Pie {
         }
       }
 
+      // A legend-hidden slice closes to nothing and is then cleared (see
+      // animateArc): at zero angle its outline still strokes a line along
+      // the seam, in its own colour when `stroke.colors` is per slice.
+      const collapsed = (w.globals.collapsedSeriesIndices || []).includes(i)
+
       // Animation code starts
       let dur = 0
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -710,6 +726,7 @@ class Pie {
           animBeginArr: this.animBeginArr,
           shouldSetPrevPaths: true,
           dur: w.config.chart.animations.dynamicAnimation.speed,
+          collapsed,
         })
       } else {
         this.animatePaths(elPath, {
@@ -720,6 +737,7 @@ class Pie {
           totalItems: sectorAngleArr.length - 1,
           animBeginArr: this.animBeginArr,
           dur,
+          collapsed,
         })
       }
       // animation code ends
@@ -1086,6 +1104,8 @@ class Pie {
               })
             }
 
+            if (opts.collapsed) el.attr({ d: '' })
+
             if (opts.i === w.config.series.length - 1) {
               animations.animationCompleted(el)
             }
@@ -1133,7 +1153,7 @@ class Pie {
       el.node.setAttribute('data:pathOrig', path)
 
       el.attr({
-        d: path,
+        d: opts.collapsed ? '' : path,
         'stroke-width': me.strokeWidth,
       })
     }

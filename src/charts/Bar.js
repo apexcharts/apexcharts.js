@@ -417,7 +417,7 @@ class Bar {
     return ret
   }
 
-  /** @param {{ realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any }} opts */
+  /** @param {{ realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
   renderSeries({
     realIndex,
     pathFill,
@@ -444,6 +444,7 @@ class Bar {
     visibleSeries,
     type,
     classes,
+    fadeReveal = false,
   }) {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
@@ -591,6 +592,9 @@ class Bar {
       }
     }
 
+    // Drawn only to slide out of view (see _wasOnScreen): removed once the
+    // update has landed, so nothing is left lying off-screen.
+    let leaving = false
     if (!w.globals.isBarHorizontal) {
       if (
         dataLabelsObj.dataLabelsPos.dataLabelsX +
@@ -600,7 +604,8 @@ class Bar {
           Math.max(barWidth, w.globals.barPadForNumericAxis) >
           w.layout.gridWidth
       ) {
-        skipDrawing = true
+        if (this._wasOnScreen(realIndex, j)) leaving = true
+        else skipDrawing = true
       }
     }
 
@@ -670,10 +675,12 @@ class Bar {
           className: `apexcharts-${type}-area${classes ? ` ${classes}` : ''}`,
           chartType: type,
           bindEventsOnPaths: false,
+          fadeReveal,
         })
       )
 
       renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
+      if (leaving) renderedPath.node.classList.add('apexcharts-leaving')
 
       // Cross-type morph, objects -> mark: the piece layer flies the outgoing
       // dots here and tiles this mark with them, so the mark holds hidden
@@ -1038,6 +1045,26 @@ class Bar {
       barXPosition: x + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
       x,
     }
+  }
+
+  /**
+   * Whether datum j of this series was drawn in the previous render and this
+   * render morphs from it (an animated, keyed data change).
+   *
+   * Off-screen marks are not drawn, for speed. But a mark that WAS on screen
+   * before an animated update has to be drawn this once, so it can morph to
+   * its new off-screen place and slide out under the clip: on a zoom-in the
+   * bars or candles leaving the view used to vanish on frame 0 while the rest
+   * were still moving. The extra marks are bounded by what was visible
+   * before, and large datasets skip the morph for the bulk fade anyway.
+   * @param {number} realIndex
+   * @param {number} j
+   * @returns {boolean}
+   */
+  _wasOnScreen(realIndex, j) {
+    if (!lengthTransitionEnabled(this.w)) return false
+    const keyed = this._prevKeyedPaths(realIndex)
+    return !!keyed && keyed.has(datumKey(this.w, realIndex, j))
   }
 
   /**
@@ -1406,14 +1433,19 @@ class Bar {
 
   /**
    * Count SVG path commands (M, L, C, Q, Z, etc.). Used to detect whether
-   * two paths can be morphed safely — SVG.js requires matching command counts.
+   * two paths can be morphed safely: the morph needs matching command counts.
    *
    * @param {string} d
    * @returns {number}
    */
   static pathCommandCount(d) {
     if (!d) return 0
-    const matches = d.match(/[A-Za-z]/g)
+    // The command letters only. Any letter would also count the exponent of
+    // a number in scientific notation: a coordinate that should be 0 can come
+    // out of float arithmetic as -1.7763568394002505e-15 (the middle candle
+    // of a group whose datum sits on the plot's left edge), and that one path
+    // read as a corner flip and snapped instead of morphing.
+    const matches = d.match(/[MmLlHhVvCcSsQqTtAaZz]/g)
     return matches ? matches.length : 0
   }
 }

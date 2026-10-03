@@ -143,6 +143,115 @@ export default class Series {
   }
 
   /**
+   * Once a legend-hidden series has finished leaving, leave nothing behind.
+   * (Also removes marks that only slid out of view, see Bar._wasOnScreen.)
+   *
+   * A hidden series is drawn to its exit target so that hiding animates (a
+   * line flattens onto the baseline, a stacked layer onto its neighbour, a
+   * radar into its center, points shrink away). At rest that shape used to
+   * stay in the DOM, unpainted only through the stylesheet's `opacity: 0`:
+   * it still lay there, and an export (which cannot rely on the stylesheet)
+   * drew it. So once the exit is over its geometry is cleared: every path's
+   * `d` is emptied and exit-only ghosts are removed.
+   *
+   * `pathTo` is kept. It is what the next render reads as this series'
+   * previous shape (getPreviousPaths), so showing the series again still
+   * rises from its exit target instead of popping in.
+   *
+   * Runs after every render, not only the one that hid the series: a chart
+   * re-rendered while the series is hidden (a resize, a data update) morphs
+   * the hidden shape again, invisibly, and that morph must finish first.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {any} graphs the renderer output: one element or an array
+   */
+  static settleCollapsedShapes(w, graphs) {
+    const roots = (Array.isArray(graphs) ? graphs : [graphs])
+      .map((g) => (g && g.node ? g.node : g))
+      .filter((n) => n && typeof n.querySelectorAll === 'function')
+    /** @type {Element[]} */
+    const groups = []
+    // Marks drawn only so they could slide out of view (Bar._wasOnScreen): a
+    // zoom-in's outer bars and candles, which end their morph off-screen.
+    /** @type {Element[]} */
+    const leaving = []
+    roots.forEach((r) => {
+      r.querySelectorAll('.apexcharts-series-collapsed').forEach(
+        (/** @type {Element} */ g) => groups.push(g),
+      )
+      r.querySelectorAll('.apexcharts-leaving').forEach(
+        (/** @type {Element} */ el) => leaving.push(el),
+      )
+    })
+    if (!groups.length && !leaving.length) return
+
+    /** @param {Element} g */
+    const clearGroup = (g) => {
+      if (w.globals.isDestroyed) return
+      g.classList.remove('apexcharts-series-collapsing')
+      g.querySelectorAll('.apexcharts-marker-exit, .apexcharts-bar-ghost').forEach(
+        (/** @type {Element} */ el) => el.remove(),
+      )
+      g.querySelectorAll('path').forEach((/** @type {Element} */ p) => {
+        p.setAttribute('d', '')
+      })
+    }
+    const clearLeaving = () => {
+      if (w.globals.isDestroyed) return
+      leaving.forEach((el) => el.remove())
+    }
+
+    const anim = w.config.chart.animations
+    const animating =
+      Environment.isBrowser() &&
+      anim.enabled &&
+      w.globals.shouldAnimate !== false &&
+      (!w.globals.dataChanged || anim.dynamicAnimation.enabled)
+    if (!animating) {
+      clearLeaving()
+      groups.forEach(clearGroup)
+      return
+    }
+
+    // A series whose exit reports its tweens (path morphs, marker exits) is
+    // cleared the moment the last one lands: a line flattened onto the
+    // baseline must vanish as it arrives, not lie there until a timer that
+    // allows for the slowest staggered bar row runs out.
+    const tweens = w.globals.morphBatch?.series
+    /** @type {Element[]} */
+    const timed = []
+    groups.forEach((g) => {
+      const ri = g.getAttribute('data:realIndex')
+      const s = ri === null ? null : tweens?.get(Number(ri))
+      if (!s || s.pending <= 0) {
+        timed.push(g)
+        return
+      }
+      const before = s.onDone
+      s.onDone = () => {
+        before?.()
+        clearGroup(g)
+      }
+    })
+
+    // Everything else (exits drawn some other way, marks that slid out of
+    // view) waits as long as the -collapsing class does: long enough for the
+    // last mark of any exit, or of an invisible re-render morph, to land.
+    const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
+    setTimeout(() => {
+      clearLeaving()
+      timed.forEach(clearGroup)
+    }, hold)
+  }
+
+  /**
+   * Instance entry point for the render pipeline; see the static.
+   * @param {any} graphs
+   */
+  settleCollapsedShapes(graphs) {
+    Series.settleCollapsedShapes(this.w, graphs)
+  }
+
+  /**
    * @param {string} seriesName
    */
   toggleSeries(seriesName) {
@@ -734,6 +843,8 @@ export default class Series {
       )
     }
 
+    // boxPlot shares the candlestick renderer, which now morphs each box from
+    // its previous shape, so its paths are captured too.
     const chartTypes = [
       'line',
       'area',
@@ -741,6 +852,7 @@ export default class Series {
       'rangebar',
       'rangeArea',
       'candlestick',
+      'boxPlot',
       'radar',
     ]
     chartTypes.forEach((type) => {
@@ -756,12 +868,15 @@ export default class Series {
 
     if (heatTreeSeries.length > 0) {
       for (let h = 0; h < heatTreeSeries.length; h++) {
-        // Non-rect heatmap cell shapes render as <path> but still carry the
-        // heatmap-rect class; the capture must see them too or a data update
-        // loses its color-from and tweens in from transparent.
+        // The cells/tiles by their class, rect or path alike: non-rect heatmap
+        // cell shapes render as <path> (and without them a data update loses
+        // its color-from and tweens in from transparent). Not every rect in
+        // the group: a nested treemap draws its parents and headers ahead of
+        // the tiles, so by position each tile started from a parent's shape,
+        // and the series title plate came along too.
         const base = `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h}']`
         const seriesEls = w.dom.baseEl.querySelectorAll(
-          `${base} rect, ${base} path.apexcharts-heatmap-rect`,
+          `${base} .apexcharts-${w.config.chart.type}-rect`,
         )
 
         const dArr = []

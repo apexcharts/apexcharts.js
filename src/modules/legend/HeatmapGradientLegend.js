@@ -579,9 +579,23 @@ export default class HeatmapGradientLegend {
     if (!wrap || !strip || !grid || !this._geom) return
 
     const s = strip.getBoundingClientRect()
-    const gr = grid.getBoundingClientRect()
+    const box = grid.getBoundingClientRect()
     // Not laid out yet (e.g. detached / zero-size) — nothing reliable to do.
-    if (!s.width || !s.height || !gr.width || !gr.height) return
+    if (!s.width || !s.height || !box.width || !box.height) return
+    // While the plot eases to a new layout (LayoutTransition) the grid is
+    // still on its way: measure against where it is going, or the nudge is
+    // off by the remaining distance and stays that way.
+    const gr = { left: box.left, right: box.right, top: box.top, bottom: box.bottom }
+    const lt = w.globals.layoutTween
+    if (lt) {
+      const l = w.layout
+      const dx = (l.translateX ?? 0) - lt.rect.x
+      const dy = (l.translateY ?? 0) - lt.rect.y
+      gr.left += dx
+      gr.top += dy
+      gr.right += dx + (l.gridWidth - lt.rect.w)
+      gr.bottom += dy + (l.gridHeight - lt.rect.h)
+    }
 
     const MIN_GAP = 16
     const { isVertical, position } = this._geom

@@ -256,6 +256,8 @@ describe('Bar chart', () => {
       expect(Bar.pathCommandCount('M 0 0 L 1 1')).toBe(2)
       expect(Bar.pathCommandCount('M 0 0 L 1 1 L 2 2 L 3 3 Z')).toBe(5)
       expect(Bar.pathCommandCount('M 0 0 q 5 5 10 0 l 5 5 z')).toBe(4)
+      // The exponent of a number in scientific notation is not a command.
+      expect(Bar.pathCommandCount('M -1.7763568394002505e-15 0 L 1e-7 1')).toBe(2)
       expect(Bar.pathCommandCount('')).toBe(0)
       expect(Bar.pathCommandCount(null)).toBe(0)
     })

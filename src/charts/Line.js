@@ -19,6 +19,8 @@ import {
   reconcileSeriesPaths,
   seriesJoin,
   tweenSeriesMarkers,
+  growRisingMarkers,
+  shrinkCollapsingMarkers,
 } from '../modules/animations/LengthTransition'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
@@ -78,6 +80,8 @@ class Line {
     /** @type {any} */ this.elDataLabelsWrap = null
     /** @type {any} last marker wrap appended to elPointsMain (identity guard) */
     this._elLastPointsWrap = null
+    /** @type {boolean} drawing a hidden series' flat shape: no markers/labels */
+    this._shapeOnly = false
   }
 
   /**
@@ -117,6 +121,25 @@ class Line {
         ? /** @type {any} */ (seriesIndex)[i]
         : i
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0
+
+      // A series hidden from the legend is drawn flat on the baseline instead
+      // of not at all, so hiding it flattens it down and showing it again rises
+      // back up (stacked charts get the same from their zero padding). Copies,
+      // never the parsed rows: `series` can be w.seriesData.series itself.
+      const flat = this._collapsedBaselineRow(series, i, realIndex)
+      // The flat row is the series' SHAPE only: no markers, no data labels.
+      // A hidden series has no points to show, and drawing them anyway cost a
+      // full marker pass per hidden series (a 1200-point series emitted a
+      // second, invisible marker batch).
+      this._shapeOnly = !!flat
+      if (flat) {
+        series = series.slice()
+        series[i] = flat
+        if (type === 'rangeArea' && seriesRangeEnd) {
+          seriesRangeEnd = seriesRangeEnd.slice()
+          seriesRangeEnd[i] = flat
+        }
+      }
 
       this._initSerieVariables(series, i, realIndex)
 
@@ -259,7 +282,12 @@ class Line {
             rangePaths.linePaths[s + segments] + paths.linePaths[s]
         }
         paths.linePaths.splice(segments)
-        paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
+        const prevBand =
+          paths.linePaths.length === 1
+            ? this.lineHelpers.previousRangeAreaPath(realIndex)
+            : null
+        paths.pathFromLine =
+          prevBand ?? rangePaths.pathFromLine + paths.pathFromLine
       } else if (!/z\s*$/i.test(paths.pathFromArea)) {
         // Close the initial-mount baseline pathFrom. A pathFrom taken from a
         // captured previous render already ends with `z`; appending another
@@ -303,6 +331,54 @@ class Line {
     }
 
     return ret
+  }
+
+  /**
+   * The row to draw for a legend-hidden series on an unstacked chart: every
+   * point on the baseline, or null to draw the series as it is.
+   *
+   * A hidden series arrives with no data. Drawn as nothing, its paths had no
+   * target to tween to, so it vanished on the click and reappeared fully
+   * formed on the next one. Drawn flat on the baseline, the exit is the
+   * series flattening down (the same "value goes to zero" a stacked layer or a
+   * bar already shows), and the re-entry rises from where it went. The
+   * series-collapsed class keeps it unpainted at rest.
+   *
+   * The baseline is 0 when 0 is on the axis, else the axis edge nearest to it,
+   * so a 900..1000 line flattens onto the bottom of the plot rather than
+   * dropping out of view. Only the drawing changes: the data, the y range and
+   * the tooltip all still see an empty series.
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} realIndex
+   * @returns {number[] | null}
+   */
+  _collapsedBaselineRow(series, i, realIndex) {
+    const w = this.w
+    const gl = w.globals
+    // Points have no line to flatten: they shrink in place instead
+    // (LengthTransition.shrinkCollapsingMarkers).
+    if (w.config.chart.stacked || this.pointsChart) return null
+    if (!Array.isArray(series[i]) || series[i].length !== 0) return null
+    if (
+      gl.collapsedSeriesIndices.indexOf(realIndex) === -1 &&
+      gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) === -1
+    ) {
+      return null
+    }
+    const n = w.axisFlags.isXNumeric
+      ? (w.seriesData.seriesX[realIndex] || []).length
+      : gl.dataPoints
+    if (!n) return null
+
+    const lo = Utils.isNumber(gl.minYArr[realIndex])
+      ? gl.minYArr[realIndex]
+      : gl.minY
+    const hi = Utils.isNumber(gl.maxYArr[realIndex])
+      ? gl.maxYArr[realIndex]
+      : gl.maxY
+    const base = Math.min(Math.max(0, lo), hi)
+    return new Array(n).fill(Utils.isNumber(base) ? base : 0)
   }
 
   /**
@@ -648,6 +724,22 @@ class Line {
         realIndex,
         speed: w.config.chart.animations.dynamicAnimation.speed,
       })
+      // Legend toggles: the series' points grow back in place when it is
+      // shown, and shrink away in place when it is hidden.
+      growRisingMarkers(w, {
+        elPointsMain: this.elPointsMain,
+        realIndex,
+        speed: w.config.chart.animations.dynamicAnimation.speed,
+      })
+      if (!(w.seriesData.series[realIndex] || []).length) {
+        shrinkCollapsingMarkers(w, {
+          elPointsMain: this.elPointsMain,
+          realIndex,
+          speed: w.config.chart.animations.dynamicAnimation.speed,
+          drawPoint: (x, y, r, j) =>
+            this.scatter.drawPoint(x, y, r, realIndex, j, j),
+        })
+      }
     }
 
     const defaultRenderedPathOptions = {
@@ -1087,16 +1179,18 @@ class Line {
         pathFromArea += graphics.line(x, this.areaBottomY)
       }
 
-      this.handleNullDataPoints(series, pointsPos, i, j, realIndex)
+      if (!this._shapeOnly) {
+        this.handleNullDataPoints(series, pointsPos, i, j, realIndex)
 
-      this._handleMarkersAndLabels({
-        type,
-        pointsPos,
-        i,
-        j,
-        realIndex,
-        isRangeStart,
-      })
+        this._handleMarkersAndLabels({
+          type,
+          pointsPos,
+          i,
+          j,
+          realIndex,
+          isRangeStart,
+        })
+      }
     }
 
     return {

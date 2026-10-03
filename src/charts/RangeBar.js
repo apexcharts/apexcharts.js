@@ -3,6 +3,10 @@ import Bar from './Bar'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
+import {
+  datumKey,
+  renderBarExitGhosts,
+} from '../modules/animations/LengthTransition'
 
 /**
  * ApexCharts RangeBar Class responsible for drawing Range/Timeline Bars.
@@ -230,6 +234,26 @@ class RangeBar extends Bar {
           elGoalsMarkers,
           visibleSeries: this.visibleI,
           type: 'rangebar',
+        })
+      }
+
+      // Exit ghosts, as Bar.draw renders them: previous bars whose datum keys
+      // are gone shrink to their start edge under the survivors. RangeBar
+      // overrides draw() and never made this call, so a series hidden from the
+      // legend (no datums left) dropped every bar on the click.
+      if (w.globals.previousPaths.length > 0) {
+        const data = /** @type {Record<string,any>} */ (w.config.series[i]).data || []
+        const newKeys = []
+        for (let j = 0; j < data.length; j++) {
+          newKeys.push(datumKey(w, realIndex, j))
+        }
+        renderBarExitGhosts({
+          w,
+          elSeries,
+          record: this._prevRecord(realIndex),
+          newKeys,
+          isHorizontal: this.isHorizontal,
+          speed: w.config.chart.animations.dynamicAnimation.speed,
         })
       }
 

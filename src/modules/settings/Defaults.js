@@ -947,13 +947,10 @@ export default class Defaults {
 
   boxPlot() {
     return {
-      chart: {
-        animations: {
-          dynamicAnimation: {
-            enabled: false,
-          },
-        },
-      },
+      // No dynamicAnimation override any more: box plot updates used to be
+      // switched off here (2021), since nothing captured a box's previous shape
+      // and every update snapped. Boxes now morph from their own previous
+      // shape, keyed by datum, like candlesticks and bars.
       stroke: {
         width: 1,
         colors: ['#24292e'],

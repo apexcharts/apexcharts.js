@@ -73,6 +73,67 @@ describe('data-only update fast path', () => {
     chart.destroy()
   })
 
+  it('renamed categories at the same count take the full render and show the new names', async () => {
+    // The axis-scale signature only knows the value scale, so { x: 'United
+    // Kingdom' } for { x: 'UK' } used to pass as a data-only update: the fast
+    // path kept the old axis and the layout sized for it.
+    const data = (names) => names.map((x, i) => ({ x, y: [40, 55, 30, 47][i] }))
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 700, height: 300 },
+      plotOptions: { bar: { horizontal: true } },
+      series: [{ name: 'A', data: data(['UK', 'US', 'FR', 'DE']) }],
+    })
+    await chart.updateSeries([
+      { name: 'A', data: data(['United Kingdom', 'United States', 'France', 'Germany']) },
+    ])
+    expect(chart._updateStats.full).toBe(1)
+    expect(chart._updateStats.fast + chart._updateStats.fastWithAxes).toBe(0)
+    expect(chart.w.labelData.labels).toEqual(['United Kingdom', 'United States', 'France', 'Germany'])
+    chart.destroy()
+  })
+
+  it('renamed categories on a line chart (converted axis) show the new names', async () => {
+    // line/area/scatter with string x convert the axis to numeric: the names
+    // live in categoryLabels there, and labels hold indexes.
+    const data = (names) => names.map((x, i) => ({ x, y: [40, 55, 30][i] }))
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 700, height: 300 },
+      series: [{ name: 'A', data: data(['UK', 'US', 'FR']) }],
+    })
+    await chart.updateSeries([{ name: 'A', data: data(['United Kingdom', 'United States', 'France']) }])
+    expect(chart._updateStats.full).toBe(1)
+    expect(chart.w.labelData.categoryLabels).toEqual(['United Kingdom', 'United States', 'France'])
+    chart.destroy()
+  })
+
+  it('numeric x on the default axis type keeps the fast path', async () => {
+    // The render rewrites labelData.labels into tick values on these charts,
+    // so a signature over labels never matched and every update went full.
+    for (const type of ['scatter', 'area', 'line']) {
+      const pts = (k) => Array.from({ length: 50 }, (_, i) => ({ x: i, y: 10 + ((i * 7 + k) % 13) }))
+      const chart = createChartWithOptions({
+        chart: { type, width: 700, height: 300 },
+        series: [{ name: 'A', data: pts(0) }],
+      })
+      await chart.updateSeries([{ name: 'A', data: pts(3) }])
+      await chart.updateSeries([{ name: 'A', data: pts(5) }])
+      expect(chart._updateStats.full, type).toBe(0)
+      chart.destroy()
+    }
+  })
+
+  it('same categories with new values still take the fast path', async () => {
+    const data = (ys) => ['Jan', 'Feb', 'Mar', 'Apr'].map((x, i) => ({ x, y: ys[i] }))
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 700, height: 300 },
+      series: [{ name: 'A', data: data([40, 55, 30, 47]) }],
+    })
+    await chart.updateSeries([{ name: 'A', data: data([42, 51, 33, 45]) }])
+    expect(chart._updateStats.full).toBe(0)
+    expect(chart._updateStats.fast + chart._updateStats.fastWithAxes).toBe(1)
+    chart.destroy()
+  })
+
   it('structural changes (data length) still take the full render', async () => {
     const chart = createChartWithOptions(lineOpts(walk(100)))
     await chart.updateSeries([{ name: 'v', data: walk(150, 7) }])

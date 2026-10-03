@@ -7,6 +7,7 @@ import Filters from '../modules/Filters'
 import Utils from '../utils/Utils'
 import Helpers from './common/circle/Helpers'
 import CoreUtils from '../modules/CoreUtils'
+import Series from '../modules/Series'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -138,9 +139,31 @@ class Radar {
         'data:realIndex': i,
       })
 
+      // A legend-hidden series keeps its shape in the DOM (unpainted at rest
+      // via -collapsed), and stays painted for its exit via -collapsing.
+      Series.addCollapsedClassToSeries(this.w, elSeries, i)
+
       this.dataRadiusOfPercent[i] = []
       this.dataRadius[i] = []
       this.angleArr[i] = []
+
+      // A hidden series arrives with no data and used to draw a single stray
+      // point, so it vanished on the click and popped back fully formed. Its
+      // shape is every value at zero instead, collapsed into the center: the
+      // radar's baseline. Hiding then shrinks the polygon into the center and
+      // showing it grows back out. Only the shape: markers and labels below
+      // still iterate the real (empty) row, so nothing is drawn or hoverable.
+      const collapsed =
+        s.length === 0 &&
+        (w.globals.collapsedSeriesIndices.indexOf(i) > -1 ||
+          w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) > -1)
+      if (collapsed) {
+        for (let j = 0; j < w.globals.dataPoints; j++) {
+          this.dataRadiusOfPercent[i][j] = 0
+          this.dataRadius[i][j] = 0
+          this.angleArr[i][j] = j * this.disAngle
+        }
+      }
 
       /**
        * @param {number} dv

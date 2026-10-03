@@ -6,6 +6,11 @@ import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import { buildJitterGroups, renderJitter } from './common/Jitter'
+import {
+  datumKey,
+  lengthTransitionEnabled,
+  renderBarExitGhosts,
+} from '../modules/animations/LengthTransition'
 
 /**
  * ApexCharts BoxCandleStick Class responsible for drawing both Stacked Columns and Bars.
@@ -14,6 +19,77 @@ import { buildJitterGroups, renderJitter } from './common/Jitter'
  **/
 
 class BoxCandleStick extends Bar {
+  /**
+   * The previous shape of one half of a box, or null.
+   *
+   * A box plot draws each datum as TWO paths, the box either side of the
+   * median, and both carry the datum's key. The keyed lookup the bar renderer
+   * uses (one path per key) would hand both halves the same previous path,
+   * so the upper box would morph out of the lower one. Halves are captured in
+   * draw order, so the n-th path under a key is half n. Candlesticks draw one
+   * path per datum and take the plain keyed lookup.
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {number} pi which half, in draw order
+   * @returns {string | null}
+   */
+  /**
+   * Whether this update keeps too little of the series' identity to morph.
+   *
+   * Candles morph from their own previous shape, matched by datum key. That
+   * is right when most of what was on screen is still there afterwards: a
+   * value update, a legend toggle, a zoom over plain data (zooming out keeps
+   * every candle that was shown). It is wrong when the candles themselves are
+   * replaced: a data reducer re-aggregates on every zoom, and on the
+   * large-dataset sample a zoom-in kept 30 of 250 candles, so the morph was
+   * ~220 exit ghosts shrinking while ~220 new candles grew, the heavy "goes
+   * here and there" motion the fade was introduced to avoid. Below half of
+   * the previously drawn candles surviving, the series fades instead.
+   * @param {number} realIndex
+   * @param {any[]} row this series' parsed values
+   * @returns {boolean}
+   */
+  _identityLost(realIndex, row) {
+    if (!lengthTransitionEnabled(this.w)) return false
+    const keyed = this._prevKeyedPaths(realIndex)
+    if (!keyed || keyed.size === 0 || !row || row.length === 0) return false
+    let survivors = 0
+    for (let j = 0; j < row.length; j++) {
+      if (keyed.has(datumKey(this.w, realIndex, j))) survivors++
+    }
+    return survivors / keyed.size < 0.5
+  }
+
+  /**
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {number} pi
+   * @returns {string | null}
+   */
+  _prevBoxHalf(realIndex, j, pi) {
+    if (!this.isBoxPlot) return null
+    if (!this._prevHalves) {
+      /** @type {Record<number, Map<string, string[]> | null>} */
+      this._prevHalves = {}
+    }
+    let map = this._prevHalves[realIndex]
+    if (map === undefined) {
+      map = null
+      const record = this._prevRecord(realIndex)
+      if (record && record.paths.every((/** @type {any} */ p) => p.key != null)) {
+        map = new Map()
+        for (const p of record.paths) {
+          const list = map.get(p.key) || []
+          list.push(p.d)
+          map.set(p.key, list)
+        }
+      }
+      this._prevHalves[realIndex] = map
+    }
+    const halves = map && map.get(datumKey(this.w, realIndex, j))
+    return halves && halves.length === 2 ? halves[pi] : null
+  }
+
   /**
    * @param {any[]} series
    * @param {string} ctype
@@ -125,9 +201,29 @@ class BoxCandleStick extends Bar {
       // arrays below stay filled for every j and tooltip/crosshair index-mapping
       // stays correct for the culled bars.
       const gridW = w.layout.gridWidth
-      const cullBuffer = barWidth ?? 0
+      // As far as the bar clip reaches past the plot: a group of several
+      // series hangs into the numeric-axis pad by up to half the group, and
+      // a box there is on screen.
+      const cullBuffer = Math.max(
+        barWidth ?? 0,
+        w.globals.barPadForNumericAxis || 0,
+      )
 
-      for (let j = 0; j < w.globals.dataPoints; j++) {
+      // A series with no data at all (hidden from the legend) draws nothing.
+      // The loop below would otherwise draw one mark per data point from
+      // missing values: a candle flat on the baseline, and a box whose median
+      // is the raw 0 rather than a pixel y, so it spanned the whole plot. Those
+      // marks were invisible at rest, but they were the shape a re-shown
+      // series morphed out of (a full-height spike on frame 0). Hidden, the
+      // series leaves through the exit ghosts below; shown again, each mark
+      // grows from its own line, as it does on mount.
+      const dataPoints = series[i].length === 0 ? 0 : w.globals.dataPoints
+
+      // Morph when the update keeps the candles' identity, fade when it does
+      // not (see _identityLost).
+      const fadeReveal = this._identityLost(realIndex, series[i])
+
+      for (let j = 0; j < dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let paths = /** @type {any} */ (null)
@@ -214,7 +310,8 @@ class BoxCandleStick extends Bar {
               lineFill,
               j,
               i,
-              pathFrom: paths.pathFrom,
+              pathFrom: this._prevBoxHalf(realIndex, j, pi) ?? paths.pathFrom,
+              fadeReveal,
               pathTo,
               strokeWidth,
               elSeries,
@@ -294,6 +391,27 @@ class BoxCandleStick extends Bar {
       w.globals.seriesXvalues[realIndex] = xArrj
       w.globals.seriesYvalues[realIndex] = yArrj
 
+      // Exit ghosts, as Bar.draw renders them: candles/boxes whose datum is
+      // gone (a series hidden from the legend, rows removed) shrink away under
+      // the survivors instead of vanishing. Keyed by every datum the series
+      // still has, culled ones included: a candle only scrolled off-screen
+      // has not left, it is just not drawn.
+      // (Not when the series fades: the fade replaces the whole set at once.)
+      if (w.globals.previousPaths.length > 0 && !fadeReveal) {
+        const newKeys = []
+        for (let j = 0; j < series[i].length; j++) {
+          newKeys.push(datumKey(w, realIndex, j))
+        }
+        renderBarExitGhosts({
+          w,
+          elSeries,
+          record: this._prevRecord(realIndex),
+          newKeys,
+          isHorizontal: this.isHorizontal,
+          speed: w.config.chart.animations.dynamicAnimation.speed,
+        })
+      }
+
       ret.add(elSeries)
     }
 
@@ -345,13 +463,18 @@ class BoxCandleStick extends Bar {
     let y2 = Math.max(ohlc.o, ohlc.c)
     let m = ohlc.m
 
+    // On a numeric x axis the GROUP of candles/boxes at an x is centered on
+    // it, the same mapping grouped columns use. Offsetting by one bar width
+    // instead centered only the first series: with three series the last one
+    // ran past the right edge of the plot, half clipped, and its final candle
+    // fell outside the cull bounds and was not drawn at all. One series is
+    // unchanged (barWidth * seriesLen / 2 is barWidth / 2).
+    let barXPosition = x + barWidth * this.visibleI
     if (w.axisFlags.isXNumeric) {
-      x =
-        (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio -
-        barWidth / 2
+      const pos = this.getBarXForNumericXAxis({ x, barWidth, realIndex, j })
+      x = pos.x
+      barXPosition = pos.barXPosition
     }
-
-    const barXPosition = x + barWidth * this.visibleI
 
     if (
       typeof /** @type {any} */ (this.series)[i]?.[j] === 'undefined' ||
@@ -373,10 +496,18 @@ class BoxCandleStick extends Bar {
     // string concatenation + DOM work is avoided. x advances exactly as the
     // normal return path would (category axis accumulates xDivision; numeric
     // recomputes from seriesX next iteration so its returned x is moot).
+    //
+    // Except a candle that was on screen before an animated update: it is
+    // drawn so it can morph to its new, off-screen place and slide out under
+    // the clip (a zoom-in pushing the outer candles away). Culled outright it
+    // vanished on frame 0 while the rest were still moving. The extra marks
+    // are bounded by what was visible before, and large datasets skip the
+    // morph for the bulk fade anyway.
     if (
       cullBounds &&
       (barXPosition + barWidth < cullBounds.lo ||
-        barXPosition > cullBounds.hi)
+        barXPosition > cullBounds.hi) &&
+      !this._wasOnScreen(realIndex, j)
     ) {
       return {
         pathTo: null,

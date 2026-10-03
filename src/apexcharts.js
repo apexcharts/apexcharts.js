@@ -697,6 +697,8 @@ export default class ApexCharts {
       } else {
         w.dom.elGraphical.add(graphData.elGraph)
       }
+      // Hidden series: clear their resting shape once their exit is over.
+      this.series.settleCollapsedShapes(graphData.elGraph)
 
       if (w.config.grid.position === 'front') {
         if (elgrid) {
@@ -1111,6 +1113,11 @@ export default class ApexCharts {
 
     me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
+    // appendData takes no `animate`: it animates per the config. The flag is
+    // sticky, so without this an earlier unanimated update (a pan, a wheel
+    // zoom, a brush moving its target, updateSeries(data, false)) silently
+    // switched off the animation of every append after it.
+    me.w.globals.shouldAnimate = true
     // previous paths feed the update morph; with animations off nothing
     // consumes them, and the capture is O(n) (stream-frame + DOM walk)
     if (me.w.config.chart.animations.enabled) {
@@ -1247,7 +1254,11 @@ export default class ApexCharts {
           // Variable-length update: slide surviving tick labels/gridlines to
           // their new positions and fade in the new ones, on the same clock
           // as the series morph (no-op otherwise; consumes prevChromeFrame).
-          applyAxisTransition(this.w)
+          // A moved plot area eases too, except under a cross-type morph,
+          // which offsets its own start shapes by the move.
+          applyAxisTransition(this.w, {
+            layout: !this.morphTypeChange?.isActive(),
+          })
 
           // Ride data labels to their new slot (and, opt-in, count their value
           // up) on the same clock as the morph. No-op when nothing moved or no
@@ -1499,6 +1510,8 @@ export default class ApexCharts {
         gl2.cachedSelectors = {}
         gl2.disableZoomIn = false
         gl2.disableZoomOut = false
+        gl2.fadeRevealEls = []
+        gl2.morphBatch = { pending: 0, onDone: null, series: new Map() }
 
         // Recompute axis min/max and scale ranges from new data.
         if (gl.axisCharts) {
@@ -1606,6 +1619,7 @@ export default class ApexCharts {
             w.dom.elGraphical.add(g)
           })
         }
+        this.series.settleCollapsedShapes(graphs)
 
         // Bring data labels forward and apply backgrounds if configured.
         const dataLabels = new DataLabels(w, this)

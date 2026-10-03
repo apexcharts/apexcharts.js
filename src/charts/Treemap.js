@@ -5,6 +5,7 @@ import Animations from '../modules/Animations'
 import Fill from '../modules/Fill'
 import Helpers from './common/treemap/Helpers'
 import Filters from '../modules/Filters'
+import Series from '../modules/Series'
 
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
@@ -94,11 +95,15 @@ export default class TreemapChart {
     this.negRange = this.helpers.checkColorRange()
 
     w.config.series.forEach((/** @type {any} */ s, /** @type {any} */ i) => {
+      // Every series gets its row, an empty one included. A series declared
+      // `hidden: true` arrives here with no data, and allocating the row only
+      // inside the loop below left a hole in `labels` that _averageLabelSize
+      // then recursed into, so the draw threw and the chart rendered blank.
+      if (!Array.isArray(this.labels[i])) this.labels[i] = []
       /**
        * @param {number} l
        */
       s.data.forEach((/** @type {any} */ l) => {
-        if (!Array.isArray(this.labels[i])) this.labels[i] = []
         this.labels[i].push(l.x)
       })
     })
@@ -169,6 +174,10 @@ export default class TreemapChart {
         rel: i + 1,
         'data:realIndex': i,
       })
+      // Marks a hidden series the way every other type does, which is what
+      // showSeries() looks for: without it, showing a series hidden through
+      // the API found nothing hidden and did nothing.
+      Series.addCollapsedClassToSeries(this.w, elSeries, i)
 
       // Set up event delegation once per series group instead of per-cell listeners
       graphics.setupEventDelegation(elSeries, '.apexcharts-treemap-rect')
@@ -189,6 +198,9 @@ export default class TreemapChart {
         xMax: -Infinity,
         yMax: -Infinity,
       }
+      // The same corner over the tiles' previous layout, when a data change
+      // tweens them from it: the series title starts there and rides along.
+      const fromBounds = { xMin: Infinity, yMin: Infinity }
 
       // Parents first, so a container and its header sit under the tiles they
       // contain (a treemap has no z-index; paint order is the only ordering).
@@ -249,10 +261,15 @@ export default class TreemapChart {
         const x2 = r[2]
         const y2 = r[3]
 
-        bounds.xMin = Math.min(bounds.xMin, x1)
-        bounds.yMin = Math.min(bounds.yMin, y1)
-        bounds.xMax = Math.max(bounds.xMax, x2)
-        bounds.yMax = Math.max(bounds.yMax, y2)
+        // Only a tile with area places the series title. A hidden series lays
+        // out as one zero-size tile, which used to anchor a stray title plate
+        // on top of its neighbour's.
+        if (x2 > x1 && y2 > y1) {
+          bounds.xMin = Math.min(bounds.xMin, x1)
+          bounds.yMin = Math.min(bounds.yMin, y1)
+          bounds.xMax = Math.max(bounds.xMax, x2)
+          bounds.yMax = Math.max(bounds.yMax, y2)
+        }
 
         const colorProps = this._leafColor(i, j)
         const color = colorProps.color
@@ -337,19 +354,25 @@ export default class TreemapChart {
           w.config.chart.animations.enabled &&
           !w.globals.dataChanged
         ) {
-          let speed = 1
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed
+          if (w.globals.resized) {
+            // A re-render that does not animate (a resize, a redraw with
+            // animate false) draws the tiles at rest, and only marks the
+            // animation over, as the other types do: completing it here
+            // would call animationEnd in the middle of the draw. Growing them
+            // in over 1ms instead put that 1ms behind each tile's cascade
+            // delay, so they popped in one after another.
+            w.globals.animationEnded = true
+          } else {
+            this.animateTreemap(
+              elRect,
+              fromRect,
+              toRect,
+              w.config.chart.animations.speed,
+              // Ranked by draw order, not by data index: the cascade is
+              // about what is on screen.
+              cascadeDelays[k] || 0,
+            )
           }
-          this.animateTreemap(
-            elRect,
-            fromRect,
-            toRect,
-            speed,
-            // Ranked by draw order, not by data index — the cascade is about
-            // what is on screen.
-            cascadeDelays[k] || 0,
-          )
         }
         if (w.globals.dataChanged) {
           let speed = 1
@@ -367,6 +390,10 @@ export default class TreemapChart {
               fromRect = /** @type {Record<string,any>} */ (
                 w.globals.previousPaths[i]
               )[j].rect
+              if (fromRect.width > 0 && fromRect.height > 0) {
+                fromBounds.xMin = Math.min(fromBounds.xMin, fromRect.x)
+                fromBounds.yMin = Math.min(fromBounds.yMin, fromRect.y)
+              }
             }
 
             this.animateTreemap(elRect, fromRect, toRect, speed)
@@ -490,9 +517,11 @@ export default class TreemapChart {
             borderColor,
           )
 
+          const textX = labelX + padding.left
+          const textY = labelY + padding.top + (textSize?.height ?? 0) * 0.75
           const elLabelText = graphics.drawText({
-            x: labelX + padding.left,
-            y: labelY + padding.top + (textSize?.height ?? 0) * 0.75,
+            x: textX,
+            y: textY,
             text: sName,
             fontSize: style.fontSize,
             fontFamily: style.fontFamily,
@@ -500,6 +529,27 @@ export default class TreemapChart {
             foreColor: textColor,
             cssClass: style.cssClass || '',
           })
+
+          // A data change eases the tiles from their previous layout. Drawn
+          // straight at its new corner, the title would sit over a neighbour's
+          // tiles until they caught up, so it eases from its old corner too.
+          const dx = fromBounds.xMin - bounds.xMin
+          const dy = fromBounds.yMin - bounds.yMin
+          if (Number.isFinite(dx) && Number.isFinite(dy) && (dx || dy)) {
+            const speed = this.dynamicAnim.speed
+            this.animateTreemap(
+              elLabelRect,
+              { x: labelX + dx, y: labelY + dy },
+              { x: labelX, y: labelY },
+              speed,
+            )
+            this.animateTreemap(
+              elLabelText,
+              { x: textX + dx, y: textY + dy },
+              { x: textX, y: textY },
+              speed,
+            )
+          }
 
           elSeries.add(elLabelRect)
           elSeries.add(elLabelText)

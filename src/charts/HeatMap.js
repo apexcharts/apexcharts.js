@@ -6,6 +6,10 @@ import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import Helpers from './common/treemap/Helpers'
 import Filters from '../modules/Filters'
+import {
+  lengthTransitionEnabled,
+  morphEasing,
+} from '../modules/animations/LengthTransition'
 import { seriesEmitter } from '../renderers/Renderer'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { SVGNS } from '../svg/math'
@@ -296,11 +300,16 @@ export default class HeatMap {
           }
 
           if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-            let speed = 1
-            if (!w.globals.resized) {
-              speed = w.config.chart.animations.speed
-            }
-            if (isRectCell) {
+            const speed = w.config.chart.animations.speed
+            if (w.globals.resized) {
+              // A re-render that does not animate (a resize, a redraw with
+              // animate false) draws the cells at rest, and only marks the
+              // animation over, as the other types do: completing it here
+              // would call animationEnd in the middle of the draw. Growing
+              // them in over 1ms instead put that 1ms behind the stagger's
+              // timers, so every cell but the first sat collapsed for a frame.
+              w.globals.animationEnded = true
+            } else if (isRectCell) {
               this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i, j)
             } else {
               // A <path> has no x/y/width/height to tween, so shaped cells
@@ -322,12 +331,25 @@ export default class HeatMap {
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed
 
-              let colorFrom =
-                w.globals.previousPaths[i] &&
-                w.globals.previousPaths[i][j] &&
-                w.globals.previousPaths[i][j].color
+              const prev =
+                w.globals.previousPaths[i] && w.globals.previousPaths[i][j]
+              let colorFrom = prev && prev.color
 
               if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 0)'
+
+              // A rect cell also eases from the box it had. An update that
+              // resizes the plot (a title, wider labels, another row) moves
+              // every cell, and on the same gate LayoutTransition eases the
+              // plot around them, so a cell drawn at its new box on the first
+              // frame jumped while the plot slid.
+              const box = prev && prev.rect
+              const boxFrom =
+                isRectCell &&
+                box &&
+                lengthTransitionEnabled(w) &&
+                [box.x, box.y, box.width, box.height].every(Number.isFinite)
+                  ? box
+                  : null
 
               this.animateHeatColor(
                 cell,
@@ -336,6 +358,10 @@ export default class HeatMap {
                   : Utils.rgb2hex(colorFrom),
                 Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
                 speed,
+                boxFrom && {
+                  from: boxFrom,
+                  to: { x: x1, y: y1, width: cellW, height: yDivision },
+                },
               )
             }
           }
@@ -561,14 +587,22 @@ export default class HeatMap {
    * @param {string} colorFrom
    * @param {string} colorTo
    * @param {number} speed
+   * @param {{from: Record<string, number>, to: Record<string, number>} | null} [box]
+   *   the cell's previous box and its new one, when it eases between them
    */
-  animateHeatColor(el, colorFrom, colorTo, speed) {
-    el.attr({
-      fill: colorFrom,
-    })
+  animateHeatColor(el, colorFrom, colorTo, speed, box = null) {
+    const runner = el
+      .attr({
+        fill: colorFrom,
+        ...box?.from,
+      })
       .animate(speed)
       .attr({
         fill: colorTo,
+        ...box?.to,
       })
+    // On the layout tween's easing, so the cells keep step with the plot and
+    // the y-axis labels when dynamicAnimation.easing is set.
+    if (box) runner.ease(morphEasing(this.w))
   }
 }

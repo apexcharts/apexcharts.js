@@ -31,6 +31,27 @@ function clearRawSeriesStashes(w) {
   w.globals.treemapRawSeries = null
 }
 
+/**
+ * The category names on a category axis, as one comparable string, or null
+ * when the x axis is numeric (its ticks come from the value domain, which the
+ * axis-scale signature already compares).
+ *
+ * A converted axis (line, area, scatter and bubble with no xaxis.type) keeps
+ * its names in `categoryLabels`, and the render rewrites `labels` into tick
+ * values, so signing `labels` there never matched: every update lost the fast
+ * path, and a rename still went unseen.
+ *
+ * @param {any} w
+ * @returns {string | null}
+ */
+function categorySignature(w) {
+  if (w.config.xaxis.convertedCatToNumeric) {
+    return JSON.stringify(w.labelData.categoryLabels ?? [])
+  }
+  if (w.axisFlags.isXNumeric) return null
+  return JSON.stringify(w.labelData.labels ?? [])
+}
+
 export default class UpdateHelpers {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -81,6 +102,16 @@ export default class UpdateHelpers {
           if (animate && w.config.chart.animations.enabled) {
             ch.series.getPreviousPaths()
           }
+        } else {
+          // From scratch: render as the chart did when it mounted (or, with
+          // animate=false, simply at rest). Both flags outlive the update
+          // that set them, so after any earlier update a redraw used to morph
+          // from the paths THAT update captured: shapes two updates old,
+          // jumped to on the first frame. `resized` is what keeps the mount
+          // animation from replaying when the caller asked for none.
+          w.globals.resized = !animate
+          w.globals.dataChanged = false
+          w.globals.previousPaths = []
         }
 
         // Cross-type morph capture (opt-in via the 'morph' feature). Runs
@@ -299,6 +330,19 @@ export default class UpdateHelpers {
         this.ctx.series.getPreviousPaths()
       }
 
+      // The category names on screen. The fast path keeps the axis DOM and the
+      // layout, and the axis-scale signature above only knows the value scale,
+      // so new names at the same count ({ x: 'United Kingdom' } for 'UK') used
+      // to leave the old names on the axis, in room sized for them.
+      const prevCategorySig = categorySignature(w)
+
+      // The numeric-axis bar pad the layout on screen was built with: the plot
+      // is inset by it on both sides so edge columns, candles and boxes have
+      // room. parseData resets it with the other per-render values and only
+      // Dimensions sets it again, which the fast path skips on a numeric (not
+      // datetime) x axis, so it is put back for the fast path below.
+      const prevBarPad = w.globals.barPadForNumericAxis
+
       // Capture previous series count and per-series data lengths BEFORE
       // parsing (parseData overwrites w.seriesData.series)
       const prevSeriesCount = w.config.series.length
@@ -390,7 +434,14 @@ export default class UpdateHelpers {
       // Use the fast path when the series structure is compatible:
       // same series count, same data lengths, same chart type, axis chart,
       // no series collapse in progress.
-      if (this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w)) {
+      if (
+        this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w) &&
+        categorySignature(w) === prevCategorySig
+      ) {
+        // Left at 0, a mark standing in the inset read as off-screen to
+        // Bar.renderSeries and was not drawn (or drawn leaving, then removed),
+        // and the tooltip, crosshair and gridlines lost their edge pad.
+        w.globals.barPadForNumericAxis = prevBarPad
         return this.ctx
           .fastUpdate(animate, prevAxisScaleSig)
           .then(() => {

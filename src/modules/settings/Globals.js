@@ -122,6 +122,12 @@ export default class Globals {
     // Guards the single rAF that reveals a large-dataset bulk render (see
     // Animations.revealBulk). Re-armed each render so updates fade in too.
     gl.bulkRevealScheduled = false
+    // This render's faded paths, and the morphs it started: a fade sharing
+    // the render with morphs reveals only its own paths and completes the
+    // animation when the last morph lands (see Animations.revealBulk). The
+    // per-series counts let a hidden series vanish when its own exit lands.
+    gl.fadeRevealEls = []
+    gl.morphBatch = { pending: 0, onDone: null, series: new Map() }
 
     // ── Caches (ephemeral — cleared so stale DOM refs/measurements don't persist) ──
     gl.resizeTimer = null
@@ -485,6 +491,10 @@ export default class Globals {
       // previousPaths (the previous VALUES) the way pie does; Pie.draw stashes
       // the real ones here each render.
       prevPolarAngles: null,
+      // ...and its last-drawn slice radii. The radius scale depends on whether
+      // the polar grid was drawn before the slices (it rounds maxY to a nice
+      // max) or after, so rebuilding them from previous values got it wrong.
+      prevPolarSizes: null,
       // Streaming scroll: previous frame's parsed rows + pixel positions,
       // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
       // only while a data-change morph renders. See StreamScroll.
@@ -496,6 +506,12 @@ export default class Globals {
       // captured alongside prevStreamFrame; consumed once by AxisTransition
       // after a variable-length re-render mounts.
       prevChromeFrame: null,
+      // The plot-layout tween in flight (LayoutTransition), if any: its
+      // in-flight rect is where the next update's layout change starts from.
+      layoutTween: null,
+      // The chrome tweens AxisTransition has running (each entry lands its
+      // tween), so the next update can land them before reading the chrome.
+      chromeTweens: null,
 
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,

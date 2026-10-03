@@ -584,6 +584,9 @@ export interface ChartGlobals
   // animation cannot reconstruct them from previousPaths (previous VALUES)
   // the way pie does. Stashed by Pie.draw each polarArea render.
   prevPolarAngles: number[] | null
+  // ...and its last-drawn slice radii, for the same reason: their scale
+  // depends on draw order (see Pie.draw), so they are stashed, not rebuilt.
+  prevPolarSizes: number[] | null
   // Streaming scroll (StreamScroll) + variable-length transitions
   // (LengthTransition/PathReconcile): previous frame's parsed rows, pixel
   // positions, and datum-key sources, captured by Series.getPreviousPaths()
@@ -624,7 +627,22 @@ export interface ChartGlobals
     hGrid: number[]
     xScale: { min: number; max: number; width: number } | null
     yAnchors: { min: number; max: number; pLo: number; pHi: number } | null
+    layout?: {
+      rect: { x: number; y: number; w: number; h: number }
+      shifts: Record<string, [number, number]>
+      ends: Record<string, number[]>
+    }
   } | null
+  // The plot-layout tween in flight (LayoutTransition), if any. Its in-flight
+  // rect is where the next update's layout change starts from.
+  layoutTween: {
+    graphical: Element
+    rect: { x: number; y: number; w: number; h: number }
+    done: boolean
+    finish(): void
+  } | null
+  // The chrome tweens AxisTransition has running; each entry lands its tween.
+  chromeTweens: Set<() => void> | null
   // Bar/column data-label snapshot (per-datum pixel position + raw value),
   // captured alongside prevStreamFrame and consumed once by
   // DataLabelTransition after a data-change re-render mounts. Keyed by
@@ -636,6 +654,17 @@ export interface ChartGlobals
   // Guards the single rAF that reveals a large-dataset bulk render
   // (see Animations.revealBulk). Re-armed each render so updates fade in too.
   bulkRevealScheduled: boolean
+  // This render's faded paths (Animations.revealBulk), and the morphs it
+  // started: a fade sharing the render with morphs reveals only its own paths
+  // and completes the animation when the last morph lands. `series` counts
+  // the same per series (morphs and marker exits), so a legend-hidden series
+  // is cleared the moment its own exit lands.
+  fadeRevealEls: Element[]
+  morphBatch: {
+    pending: number
+    onDone: (() => void) | null
+    series: Map<number, { pending: number; onDone: (() => void) | null }>
+  }
 
   // ── Data format flags ─────────────────────────────────────────────────────
   columnSeries: object | null

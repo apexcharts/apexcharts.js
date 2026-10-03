@@ -558,7 +558,9 @@ class Radial extends Pie {
         dur = w.config.chart.animations.speed
       }
 
-      if (w.globals.dataChanged) {
+      // Pie's gate: a data change animates only while dynamicAnimation (and
+      // animations as a whole) is on, or turning it off changed nothing here.
+      if (this.dynamicAnim && w.globals.dataChanged) {
         dur = w.config.chart.animations.dynamicAnimation.speed
       }
       this.animDur = dur / (opts.series.length * 1.2) + this.animDur
@@ -912,7 +914,7 @@ class Radial extends Pie {
     const shouldAnimate =
       Environment.isBrowser() &&
       w.globals.shouldAnimate &&
-      (isInitialMount || w.globals.dataChanged)
+      (isInitialMount || (this.dynamicAnim && w.globals.dataChanged))
 
     if (shouldAnimate && fromAngle !== targetAngle) {
       // Ease-out-back on initial mount (spring-loaded settle); plain ease-out

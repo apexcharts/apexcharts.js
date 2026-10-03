@@ -15,111 +15,31 @@
  *      the top/bottom of its stack) could not be morphed and snapped straight
  *      to its final slot while the rest of the stack was still sliding.
  *
- * These tests sample the geometry every animation frame and assert the seams,
- * which is the only way to see any of it.
+ * Every frame is stepped on virtual time and measured by the seamGap probe,
+ * and checked against the shared animation rules (helpers/frames.js).
  */
 
-import { test, expect } from '../fixtures/base.js'
-
-/**
- * Wait until no bar has moved between two polls.
- *
- * `animationEnded` flips as soon as one series' morph reports done, but the
- * mount animation staggers bars against each other, so the later columns of a
- * stacked chart are still rising for a while after that. Starting to sample
- * seams then would measure the build-up cascade, which is meant to look
- * staggered, instead of the transition under test.
- */
-async function waitForStillChart(page) {
-  await page.waitForFunction(
-    () => {
-      const sig = [...document.querySelectorAll('.apexcharts-bar-area')]
-        .map((p) => p.getAttribute('d'))
-        .join('|')
-      const still = window.__lastSig === sig
-      window.__lastSig = sig
-      return still
-    },
-    null,
-    { timeout: 10_000, polling: 250 },
-  )
-}
-
-/**
- * Watch every frame of the next transition and return the widest gap ever seen
- * between two painted neighbours in any stack.
- *
- * A segment that is transparent (collapsed) or unpainted counts as a hole of
- * its own size, which is exactly the defect we are guarding against: the layer
- * is still occupying the stack but showing the page background.
- */
-async function worstSeamGap(page, { horizontal = false, durationMs = 2000 } = {}) {
-  await page.evaluate((horizontal) => {
-    window.__worstGap = 0
-    const tick = () => {
-      const groups = [...document.querySelectorAll('.apexcharts-series')]
-      const bars = groups[0]
-        ? groups[0].querySelectorAll('.apexcharts-bar-area').length
-        : 0
-      for (let j = 0; j < bars; j++) {
-        const segs = groups.map((g) => {
-          const p = g.querySelector(`.apexcharts-bar-area[j="${j}"]`)
-          if (!p) return null
-          const b = p.getBBox()
-          return {
-            painted:
-              window.getComputedStyle(g).opacity !== '0' &&
-              p.getAttribute('fill') !== 'none',
-            x: b.x,
-            y: b.y,
-            w: b.width,
-            h: b.height,
-          }
-        })
-        for (let i = 0; i < segs.length - 1; i++) {
-          const lower = segs[i]
-          const upper = segs[i + 1]
-          if (!lower || !upper) continue
-          // Columns stack upward (lower.y is the seam), bars stack rightward.
-          const gap = horizontal
-            ? upper.x - (lower.x + lower.w)
-            : lower.y - (upper.y + upper.h)
-          const bothPainted = lower.painted && upper.painted
-          const hole = bothPainted
-            ? gap
-            : gap +
-              (horizontal
-                ? lower.painted
-                  ? upper.w
-                  : lower.w
-                : lower.painted
-                  ? upper.h
-                  : lower.h)
-          if (Math.abs(hole) > Math.abs(window.__worstGap)) {
-            window.__worstGap = hole
-          }
-        }
-      }
-      window.__rafId = requestAnimationFrame(tick)
-    }
-    tick()
-  }, horizontal)
-
-  return async () => {
-    await page.waitForTimeout(durationMs)
-    const worst = await page.evaluate(() => {
-      cancelAnimationFrame(window.__rafId)
-      return Math.abs(window.__worstGap)
-    })
-    return worst
-  }
-}
+import { test, expect } from '@playwright/test'
+import {
+  loadSample,
+  recordTransition,
+  checkAll,
+  settles,
+  expectNoViolations,
+  probes,
+} from '../helpers/frames.js'
+import { advance } from '../helpers/virtual-time.js'
 
 // stacked-column draws a 1px-free stack, so any gap is a real tear. The
 // horizontal sample sets stroke.width 1 with white dividers, so its seams sit
 // one pixel apart by design.
 const COLUMN_TOLERANCE = 1.5
 const BAR_TOLERANCE = 2.5
+
+const legend = (page, index) => () => page.locator('.apexcharts-legend-series').nth(index).click()
+const seriesName = (page, index) =>
+  page.locator('.apexcharts-legend-series').nth(index).getAttribute('seriesName')
+const worst = (rec) => Math.max(...rec.probes)
 
 test.describe('Stacked column, seams stay closed through a legend toggle', () => {
   // Every layer, because only the outermost ones flip their rounded corners
@@ -131,78 +51,76 @@ test.describe('Stacked column, seams stay closed through a legend toggle', () =>
     [2, 'Laptops'],
     [3, 'Wearables'],
   ]) {
-    test(`hiding ${name} never opens a gap in the stack`, async ({
-      page,
-      loadChart,
-    }) => {
-      await loadChart('column', 'stacked-column')
-      await waitForStillChart(page)
+    test(`hiding ${name} never opens a gap in the stack`, async ({ page }) => {
+      const errors = await loadSample(page, 'column', 'stacked-column')
+      const rec = await recordTransition(page, legend(page, index), { probe: probes.seamGap })
 
-      const settle = await worstSeamGap(page)
-      await page.locator('.apexcharts-legend-series').nth(index).click()
-      expect(await settle()).toBeLessThan(COLUMN_TOLERANCE)
+      expect(worst(rec)).toBeLessThan(COLUMN_TOLERANCE)
+      expectNoViolations(checkAll(rec), `hide ${name}`)
+      expectNoViolations(
+        await settles(page, rec, { hidden: [await seriesName(page, index)] }),
+        `hide ${name} at rest`,
+      )
+      expect(errors).toEqual([])
     })
 
-    test(`showing ${name} again never opens a gap in the stack`, async ({
-      page,
-      loadChart,
-    }) => {
-      await loadChart('column', 'stacked-column')
-      await waitForStillChart(page)
+    test(`showing ${name} again never opens a gap in the stack`, async ({ page }) => {
+      const errors = await loadSample(page, 'column', 'stacked-column')
+      await legend(page, index)()
+      await advance(page, 4000)
+      const rec = await recordTransition(page, legend(page, index), { probe: probes.seamGap })
 
-      await page.locator('.apexcharts-legend-series').nth(index).click()
-      await waitForStillChart(page)
-
-      const settle = await worstSeamGap(page)
-      await page.locator('.apexcharts-legend-series').nth(index).click()
-      expect(await settle()).toBeLessThan(COLUMN_TOLERANCE)
+      expect(worst(rec)).toBeLessThan(COLUMN_TOLERANCE)
+      expectNoViolations(checkAll(rec), `show ${name}`)
+      expectNoViolations(await settles(page, rec), `show ${name} at rest`)
+      expect(errors).toEqual([])
     })
   }
 })
 
 test.describe('Stacked bar (horizontal), seams stay closed through a legend toggle', () => {
-  test('hiding a middle series never opens a gap in the stack', async ({
-    page,
-    loadChart,
-  }) => {
-    await loadChart('bar', 'stacked-bar')
-    await waitForStillChart(page)
+  for (const [index, label] of [
+    [1, 'a middle'],
+    [4, 'the last'],
+  ]) {
+    test(`hiding ${label} series never opens a gap in the stack`, async ({ page }) => {
+      const errors = await loadSample(page, 'bar', 'stacked-bar')
+      const rec = await recordTransition(page, legend(page, index), {
+        probe: probes.seamGap,
+        probeArg: true,
+      })
 
-    const settle = await worstSeamGap(page, { horizontal: true })
-    await page.locator('.apexcharts-legend-series').nth(1).click()
-    expect(await settle()).toBeLessThan(BAR_TOLERANCE)
-  })
-
-  test('hiding the last series never opens a gap in the stack', async ({
-    page,
-    loadChart,
-  }) => {
-    await loadChart('bar', 'stacked-bar')
-    await waitForStillChart(page)
-
-    const settle = await worstSeamGap(page, { horizontal: true })
-    await page.locator('.apexcharts-legend-series').nth(4).click()
-    expect(await settle()).toBeLessThan(BAR_TOLERANCE)
-  })
+      expect(worst(rec)).toBeLessThan(BAR_TOLERANCE)
+      expectNoViolations(checkAll(rec), `hide ${label}`)
+      expectNoViolations(
+        await settles(page, rec, { hidden: [await seriesName(page, index)] }),
+        `hide ${label} at rest`,
+      )
+      expect(errors).toEqual([])
+    })
+  }
 })
 
 test.describe('Stacked column, seams stay closed through a value update', () => {
-  test('updateSeries moves every layer on one clock', async ({
-    page,
-    loadChart,
-  }) => {
-    await loadChart('column', 'stacked-column')
-    await waitForStillChart(page)
-
-    const settle = await worstSeamGap(page)
-    await page.evaluate(() =>
-      window.chart.updateSeries(
-        window.chart.w.config.series.map((s, i) => ({
-          name: s.name,
-          data: s.data.map((v) => Math.max(3, Math.round(v * (i === 0 ? 0.5 : 1.6)))),
-        })),
-      ),
+  test('updateSeries moves every layer on one clock', async ({ page }) => {
+    const errors = await loadSample(page, 'column', 'stacked-column')
+    const scale = (series) =>
+      series.map((s, i) => ({
+        name: s.name,
+        data: s.data.map((v) => Math.max(3, Math.round(v * (i === 0 ? 0.5 : 1.6)))),
+      }))
+    const rec = await recordTransition(
+      page,
+      () => page.evaluate((src) => window.chart.updateSeries((0, eval)(`(${src})`)(window.chart.w.config.series)), scale.toString()),
+      { probe: probes.seamGap },
     )
-    expect(await settle()).toBeLessThan(COLUMN_TOLERANCE)
+
+    expect(worst(rec)).toBeLessThan(COLUMN_TOLERANCE)
+    expectNoViolations(checkAll(rec), 'updateSeries')
+    expectNoViolations(
+      await settles(page, rec, { transform: `(o) => ({ series: (${scale})(o.series) })` }),
+      'updateSeries at rest',
+    )
+    expect(errors).toEqual([])
   })
 })

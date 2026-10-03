@@ -106,6 +106,33 @@ export default class Helpers {
     }
   }
 
+  /**
+   * The range-area band this series drew last render, or null.
+   *
+   * checkPreviousPaths only knows line and area, so a range area never found
+   * its previous shape: every update, a legend toggle included, started all of
+   * its bands from the baseline and re-grew them. A range area draws its band
+   * as one closed path from two halves (Line.draw joins the lower and upper
+   * pathFrom), so this returns the whole captured band to morph from, in place
+   * of that join. Only a single-path band qualifies: a null splits it into one
+   * path per segment, and those keep the baseline entry.
+   * @param {number} realIndex
+   * @returns {string | null}
+   */
+  previousRangeAreaPath(realIndex) {
+    for (const gpp of this.w.globals.previousPaths) {
+      if (
+        gpp.type === 'rangeArea' &&
+        parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10) &&
+        gpp.paths.length === 1 &&
+        gpp.paths[0].d
+      ) {
+        return gpp.paths[0].d
+      }
+    }
+    return null
+  }
+
   /** @param {{i: any, realIndex: any, series: any, prevY: any, lineYPosition: any, translationsIndex: any}} opts */
   determineFirstPrevY({
     i,

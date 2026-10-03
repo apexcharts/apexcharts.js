@@ -65,11 +65,17 @@ describe('bar data labels across a data-change update (#5332)', () => {
     expect(hiddenCount(chart)).toBe(0)
   })
 
-  it('with label motion off, the labels still wait for the bars', async () => {
+  it('with label motion off and nothing animating, the labels are shown', async () => {
+    // jsdom renders with animations off, so this update does not animate and
+    // there is no morph for the labels to wait for. They used to stay hidden
+    // for good here, and in a browser the same happened with animations off
+    // or under prefers-reduced-motion. That labels with motion off DO wait for
+    // a running morph is checked in a real browser, in
+    // tests/interaction/specs/datalabel-update-visibility.spec.js.
     const chart = barChart({ animate: { enabled: false } })
     await chart.updateSeries([{ name: 'p95', data: next }])
 
-    // control: the old behaviour is kept where nothing rides
-    expect(hiddenCount(chart)).toBe(labelGroups(chart).length)
+    expect(labelGroups(chart).length).toBeGreaterThan(0)
+    expect(hiddenCount(chart)).toBe(0)
   })
 })

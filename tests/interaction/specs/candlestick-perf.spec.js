@@ -123,20 +123,23 @@ test.describe('Candlestick — large-dataset perf', () => {
     expect(stats.animationEnded).toBe(true)
   })
 
-  test('updates reveal via opacity fade, not the index-based morph', async ({
+  test('a re-aggregating zoom fades: the candles are not the same candles', async ({
     page,
     loadChart,
   }) => {
     await loadChart(CHART, FIXTURE)
 
     // The sample renders ~targetPoints (250) candles, well below the bulk
-    // threshold — yet candlestick/boxPlot data-change updates must still take
-    // the subtle fade path (render in place + opacity fade) rather than the
-    // per-path morph that slides candles around on zoom.
+    // threshold, so an update would normally MORPH each candle from its own
+    // previous shape (matched by datum key). But the data reducer
+    // re-aggregates on every zoom: zooming in kept ~30 of 250 candles, and a
+    // morph would be ~220 shrinking exit ghosts against ~220 growing new
+    // candles. An update that keeps under half the candles on screen fades
+    // instead (BoxCandleStick._identityLost). Plain-data zooms, where the
+    // candles survive, morph: see candle-box-transitions.spec.js.
     const stats = await page.evaluate(async () => {
       const w = window.chart.w
       const raw = w.globals.dataReducerRawSeries[0].data
-      w.globals.animationEnded = false
       // Animated data-change (zoom to a sub-window).
       await window.chart.updateOptions(
         { xaxis: { min: raw[400].x, max: raw[700].x } },
@@ -150,23 +153,25 @@ test.describe('Candlestick — large-dataset perf', () => {
       const paths = [
         ...document.querySelectorAll('.apexcharts-candlestick-area'),
       ]
-      const faded = paths.filter(
-        (p) =>
-          p.classList.contains('apexcharts-hidden-element-shown') ||
-          p.classList.contains('apexcharts-element-hidden'),
-      ).length
       return {
         dataPoints: w.globals.dataPoints,
         threshold: w.config.chart.animations.largeDatasetThreshold,
         total: paths.length,
-        faded,
+        faded: paths.filter(
+          (p) =>
+            p.classList.contains('apexcharts-hidden-element-shown') ||
+            p.classList.contains('apexcharts-element-hidden'),
+        ).length,
+        ghosts: document.querySelectorAll('.apexcharts-bar-ghost').length,
       }
     })
 
-    // Below the bulk threshold, but the fade reveal still drove every candle.
+    // Below the bulk threshold, yet every candle took the fade, with no exit
+    // ghosts shrinking underneath it.
     expect(stats.dataPoints).toBeLessThan(stats.threshold)
     expect(stats.total).toBeGreaterThan(0)
     expect(stats.faded).toBe(stats.total)
+    expect(stats.ghosts).toBe(0)
   })
 
   test('rescales the y-axis to the zoomed window (autoScaleYaxis)', async ({

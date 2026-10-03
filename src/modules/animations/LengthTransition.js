@@ -31,6 +31,7 @@
  */
 
 import Graphics from '../Graphics'
+import Animations from '../Animations'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs'
 import { Environment } from '../../utils/Environment'
 import { resolveEasing } from './Easing'
@@ -359,6 +360,110 @@ export function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
     })
   })
   return true
+}
+
+/**
+ * Scale `node` about its own center: `s` 1 is its natural size, 0 a point.
+ * @param {Element} node
+ * @param {number} cx
+ * @param {number} cy
+ * @param {number} s
+ */
+function scaleAbout(node, cx, cy, s) {
+  node.setAttribute('transform', `translate(${cx * (1 - s)}, ${cy * (1 - s)}) scale(${s})`)
+}
+
+/**
+ * A point series (scatter, bubble) shown again from the legend: grow every
+ * marker out of its own center.
+ *
+ * The marker ride above needs the series' previous datums to join against, and
+ * a legend-hidden series has none, so a re-shown series used to pop in fully
+ * formed. Points have no line to rise from a baseline, so the "value comes
+ * back" entry for a point is its size: each grows from nothing in place.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {{ elPointsMain: any, realIndex: number, speed: number }} opts
+ * @returns {boolean} whether the grow was started
+ */
+export function growRisingMarkers(w, { elPointsMain, realIndex, speed }) {
+  if (!elPointsMain?.node || !lengthTransitionEnabled(w)) return false
+  if ((w.globals.risingSeries || []).indexOf(realIndex) === -1) return false
+  const markers = elPointsMain.node.querySelectorAll('.apexcharts-marker')
+  if (!markers.length) return false
+  const ease = morphEasing(w)
+  elPointsMain.node.classList.remove('apexcharts-element-hidden')
+  markers.forEach((/** @type {any} */ node) => {
+    const b = node.getBBox()
+    const cx = b.x + b.width / 2
+    const cy = b.y + b.height / 2
+    scaleAbout(node, cx, cy, 0)
+    rafTween(
+      w,
+      Math.max(1, speed || 1),
+      ease,
+      (eased) => scaleAbout(node, cx, cy, eased),
+      () => node.removeAttribute('transform'),
+    )
+  })
+  return true
+}
+
+/**
+ * A point series (scatter, bubble) hidden from the legend: redraw its points
+ * where they last were and shrink each to nothing in place.
+ *
+ * A hidden series is re-rendered with no data, so it used to draw no points at
+ * all and vanish on the click. The previous frame still holds where its points
+ * were and how big (StreamScroll.captureStreamFrame), which is all an exit
+ * needs; `drawPoint` paints them with the series' own marker style. They live
+ * in the series group, whose `-collapsing` class keeps it painted for exactly
+ * the length of the exit.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {{ elPointsMain: any, realIndex: number, speed: number,
+ *   drawPoint: (x: number, y: number, r: number, j: number) => any }} opts
+ * @returns {boolean} whether any exit was drawn
+ */
+export function shrinkCollapsingMarkers(w, { elPointsMain, realIndex, speed, drawPoint }) {
+  if (!elPointsMain?.node || !lengthTransitionEnabled(w)) return false
+  if ((w.globals.collapsingSeriesIndices || []).indexOf(realIndex) === -1) return false
+  const frame = w.globals.prevStreamFrame
+  const xs = frame?.xPixels?.[realIndex]
+  const ys = frame?.yPixels?.[realIndex]
+  if (!Array.isArray(xs) || !Array.isArray(ys)) return false
+  const rs = frame?.rPixels?.[realIndex] || []
+  const fallbackR = w.globals.markers.size[realIndex] || 0
+
+  const ease = morphEasing(w)
+  let drawn = false
+  for (let j = 0; j < xs.length; j++) {
+    const x = xs[j]
+    const y = ys[j]
+    if (x == null || y == null || !isFinite(x) || !isFinite(y)) continue
+    const r = isFinite(rs[j]) ? rs[j] : fallbackR
+    if (!(r > 0)) continue
+    const el = drawPoint(x, y, r, j)
+    if (!el?.node) continue
+    elPointsMain.add(el)
+    const node = el.node
+    node.classList.add('apexcharts-marker-exit')
+    // The series is cleared when its last tween lands, these included.
+    const landed = Animations.trackSeriesTween(w, realIndex)
+    rafTween(
+      w,
+      Math.max(1, speed || 1),
+      ease,
+      (eased) => scaleAbout(node, x, y, 1 - eased),
+      () => {
+        scaleAbout(node, x, y, 0)
+        landed()
+      },
+    )
+    drawn = true
+  }
+  if (drawn) elPointsMain.node.classList.remove('apexcharts-element-hidden')
+  return drawn
 }
 
 /**
