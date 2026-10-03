@@ -232,6 +232,25 @@ export default class Data {
     const cnf = this.w.config
     const data = ser[i].data
 
+    // A legend-collapsed series arrives here as `data: []`, and a stacked chart
+    // then pads its y with zeros (Series.setNullSeriesToZeroValues). Without
+    // x values to go with them every point lands at x = NaN, the stack lookup
+    // (Line._stackKey keys by x value) misses, and the keyed morph join reads
+    // every datum as an exit plus an enter. The hidden layer then tweens into
+    // the plot's bottom-left corner instead of flattening onto the series
+    // below it. Borrow the active series' x, as handleFormatXY has done for
+    // the {x, y} format since #368, so both formats exit the same way.
+    if (data.length === 0 && this._isCollapsedIndex(i)) {
+      const activeData = ser[this.activeSeriesIndex]?.data || []
+      for (let j = 0; j < activeData.length; j++) {
+        const x = Array.isArray(activeData[j]) ? activeData[j][0] : undefined
+        this.twoDSeriesX.push(
+          cnf.xaxis.type === 'datetime' ? new Date(x).getTime() : x,
+        )
+      }
+      return
+    }
+
     const isBoxPlot =
       cnf.chart.type === 'boxPlot' ||
       /** @type {any} */ (cnf.series[i]).type === 'boxPlot'
@@ -321,6 +340,20 @@ export default class Data {
   }
 
   /**
+   * Hidden through the legend, either outright or as an ancillary series whose
+   * y axis stays drawn (`yaxis.showAlways`). Both empty the series' data.
+   * @param {number} i
+   * @returns {boolean}
+   */
+  _isCollapsedIndex(i) {
+    const gl = this.w.globals
+    return (
+      gl.collapsedSeriesIndices.indexOf(i) > -1 ||
+      gl.ancillaryCollapsedSeriesIndices.indexOf(i) > -1
+    )
+  }
+
+  /**
    * @param {any[]} ser
    * @param {number} i
    */
@@ -331,7 +364,7 @@ export default class Data {
     const data = ser[i].data
 
     let activeI = i
-    if (gl.collapsedSeriesIndices.indexOf(i) > -1) {
+    if (this._isCollapsedIndex(i)) {
       // fix #368
       activeI = this.activeSeriesIndex
     }
