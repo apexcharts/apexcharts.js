@@ -143,6 +143,9 @@ export default class UpdateHelpers {
         }
 
         if (options && typeof options === 'object') {
+          // `tooltip: undefined` in a payload means "not given", as it does
+          // on a new chart (see Config.dropEmptyOptions).
+          options = Config.dropEmptyOptions(options)
           ch.config = new Config(options)
           // Collapse user-facing chart-type aliases (funnel / pyramid → bar
           // with isFunnel; gauge → radialBar). On the initial render this
@@ -583,9 +586,27 @@ export default class UpdateHelpers {
       w.config.xaxis.categories = options.xaxis.categories
     }
 
+    // A category axis drawn as numbers keeps its names only in its label
+    // formatter. Converting a payload that names no categories rebuilt that
+    // formatter without them and wrote `categories: []` over the chart's, so
+    // any xaxis update (a bound, a label style, `xaxis: {}`) turned the
+    // names into 1, 2, 3 and dropped the user's formatter with them.
     if (w.config.xaxis.convertedCatToNumeric) {
-      const defaults = new Defaults(options)
-      options = defaults.convertCatToNumericXaxis(options, this.ctx)
+      const x = options.xaxis
+      if ('categories' in x || 'labels' in options) {
+        // New names, or an explicit empty list to clear them.
+        options = new Defaults(options).convertCatToNumericXaxis(options)
+      } else if (x.labels?.formatter) {
+        // A new formatter over the names the chart already has.
+        const names = /** @type {any} */ (w.config.xaxis.labels.formatter)
+          ?.categoryNames
+        options = new Defaults(options).convertCatToNumericXaxis(
+          options,
+          names,
+        )
+      }
+      // Otherwise the payload says nothing about the labels, and the
+      // converted formatter already in the config stands.
     }
     return options
   }

@@ -1803,7 +1803,7 @@ export default class Defaults {
 
   /**
    * @param {Record<string, any>} opts
-   * @param {any} cats
+   * @param {any[]} [cats] the category names, when they are not in `opts`
    */
   convertCatToNumericXaxis(opts, cats) {
     opts.xaxis.type = 'numeric'
@@ -1833,10 +1833,9 @@ export default class Defaults {
     }
 
     if (labels && labels.length) {
-      /**
-       * @param {any} val
-       */
-      opts.xaxis.labels.formatter = function (val) {
+      const names = labels
+      /** @type {any} */
+      const format = function (/** @type {any} */ val) {
         if (!Utils.isNumber(val)) return defaultFormatter(val)
 
         // The converted axis is numeric, so its scale can put a tick where no
@@ -1847,9 +1846,14 @@ export default class Defaults {
         // (value: string | number) throw on a plain category chart (#5324);
         // and the built-in formatter already turned that undefined into '' one
         // step later, so the rendered axis is unchanged.
-        const label = labels[Math.floor(val) - 1]
+        const label = names[Math.floor(val) - 1]
         return label === undefined ? '' : defaultFormatter(label)
       }
+      // Once converted, this formatter is the only place the names live
+      // (`categories` is emptied below). An update that brings a new
+      // formatter but no categories reads them back from here.
+      format.categoryNames = names
+      opts.xaxis.labels.formatter = format
     }
 
     opts.xaxis.categories = []

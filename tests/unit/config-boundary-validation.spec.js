@@ -497,3 +497,96 @@ describe('#5328: a numeric string bound does not collapse the axis', () => {
     )
   })
 })
+
+describe('an option given as undefined or null reads as not given', () => {
+  // Framework wrappers pass optional props straight through, so a chart is
+  // routinely built from `{ stroke: props.stroke }` with the prop unset. The
+  // merge used to copy the undefined over the whole stroke section, and the
+  // first read of `stroke.colors` threw: every type, at any depth.
+  const SECTIONS = [
+    'stroke',
+    'dataLabels',
+    'legend',
+    'tooltip',
+    'fill',
+    'grid',
+    'markers',
+    'plotOptions',
+    'title',
+    'theme',
+    'annotations',
+    'responsive',
+    'chart.animations',
+    'chart.toolbar',
+    'chart.events',
+    'xaxis.labels',
+    'yaxis.labels',
+    'legend.markers',
+    'dataLabels.style',
+  ]
+  const base = (type) =>
+    type === 'pie'
+      ? { chart: { type }, series: [44, 33, 23], labels: ['A', 'B', 'C'] }
+      : { chart: { type }, series: [{ name: 'A', data: [3, 5, 2] }], xaxis: { categories: ['x', 'y', 'z'] } }
+  /** `{ a: { b: value } }` for the path 'a.b'. */
+  const at = (path, value) =>
+    path
+      .split('.')
+      .reverse()
+      .reduce((inner, key) => ({ [key]: inner }), value)
+  /** Merge one level deep, so `chart.toolbar` keeps the base's chart.type. */
+  const withAt = (o, path, value) => {
+    const [head, ...rest] = path.split('.')
+    return { ...o, [head]: rest.length ? { ...(o[head] || {}), ...at(rest.join('.'), value) } : value }
+  }
+
+  describe.each(['line', 'bar', 'pie'])('%s', (type) => {
+    it.each(SECTIONS.flatMap((p) => [[p, undefined], [p, null]]))(
+      '%s: %s renders, and updates',
+      async (path, value) => {
+        document.body.innerHTML = '<div id="chart" />'
+        const chart = new ApexCharts(document.querySelector('#chart'), withAt(base(type), path, value))
+        await chart.render()
+        await chart.updateOptions(at(path, value))
+        chart.destroy()
+      },
+    )
+  })
+
+  it('keeps the defaults on a new chart', async () => {
+    const plain = await render(base('line'))
+    const given = await render({ ...base('line'), stroke: undefined, tooltip: null })
+    expect(given.w.config.stroke).toEqual(plain.w.config.stroke)
+    expect(given.w.config.tooltip.enabled).toBe(true)
+  })
+
+  it('keeps the current settings on an update', async () => {
+    const chart = await render({ ...base('line'), tooltip: { enabled: false } })
+    await chart.updateOptions({ tooltip: undefined })
+    expect(chart.w.config.tooltip.enabled).toBe(false)
+  })
+
+  it('empties a list', async () => {
+    const chart = await render({
+      ...base('line'),
+      annotations: { points: [{ x: 'y', y: 5, label: { text: 'peak' } }] },
+    })
+    await chart.updateOptions({ annotations: { points: undefined }, responsive: null })
+    expect(chart.w.config.annotations.points).toEqual([])
+    expect(chart.w.config.responsive).toEqual([])
+  })
+
+  it('still resets a bound, and still falls back to the theme colours', async () => {
+    const chart = await render({ ...base('line'), yaxis: { min: 0 }, colors: ['#e53935'] })
+    await chart.updateOptions({ yaxis: { min: undefined }, colors: undefined })
+    expect(chart.w.config.yaxis[0].min).toBeUndefined()
+    expect(chart.w.config.colors).toBeUndefined()
+  })
+
+  it("never modifies the caller's options", async () => {
+    const opts = { ...base('line'), stroke: undefined, xaxis: { categories: ['x', 'y', 'z'], labels: null } }
+    await render(opts)
+    expect('stroke' in opts).toBe(true)
+    expect(opts.xaxis.labels).toBeNull()
+  })
+})

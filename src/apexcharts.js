@@ -4,6 +4,7 @@ import CoreUtils from './modules/CoreUtils'
 import DataLabels from './modules/DataLabels'
 import PerformanceCache from './utils/PerformanceCache'
 import Defaults from './modules/settings/Defaults'
+import Config from './modules/settings/Config'
 import { RESERVED_TYPES, TYPE_ALIASES } from './modules/settings/TypeAliases'
 import Grid from './modules/axes/Grid'
 import Markers from './modules/Markers'
@@ -440,7 +441,7 @@ export default class ApexCharts {
     // @ts-ignore — convertedCatToNumeric is an internal property set by Defaults
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(w.config)
-      defaults.convertCatToNumericXaxis(w.config, this.ctx)
+      defaults.convertCatToNumericXaxis(w.config)
     }
 
     this.core.setupElements()
@@ -928,6 +929,8 @@ export default class ApexCharts {
       options = { ...options }
       delete options.series
     }
+    // `tooltip: undefined` means "not given" (see Config.dropEmptyOptions).
+    options = Config.dropEmptyOptions(options)
 
     // Trellis (#22): an option change on a live trellis host is structural
     // (it can move the split, the scales, the layout or any panel option), so

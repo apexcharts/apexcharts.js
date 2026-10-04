@@ -20,6 +20,9 @@ export default class Config {
    */
   static _knownOptionKeys = null
 
+  /** @type {Record<string, any> | null} */
+  static _defaults = null
+
   /**
    * @param {Record<string, any>} opts
    */
@@ -29,7 +32,7 @@ export default class Config {
 
   /** @param {{responsiveOverride: any}} opts */
   init({ responsiveOverride }) {
-    let opts = this.opts
+    let opts = Config.dropEmptyOptions(this.opts)
     const options = new Options()
     const defaults = new Defaults(opts)
 
@@ -595,6 +598,74 @@ export default class Config {
   }
 
   /**
+   * The default options tree, built once (see warnUnknownOptionKeys).
+   * @returns {Record<string, any>}
+   */
+  static _defaultsTree() {
+    if (!Config._defaults) Config._defaults = new Options().init()
+    return Config._defaults
+  }
+
+  /**
+   * Read an option given as `undefined` or `null` as not given, where the
+   * library expects a group of settings or a list.
+   *
+   * The merge copies what it is handed, so `stroke: undefined` replaced the
+   * whole stroke section and the first read of `stroke.colors` threw: every
+   * chart type, at any depth (`chart.animations`, `xaxis.labels`), and from
+   * `updateOptions` too. Framework wrappers hand these over routinely by
+   * passing optional props straight through.
+   *
+   * - Where the default is a section (a plain object), the key is dropped, as
+   *   if it were absent: the defaults stand on a new chart, the current
+   *   settings on an update.
+   * - Where the default is a list, it becomes an empty one, which is what an
+   *   empty `xaxis.categories` already did.
+   * - Anything else is left alone: `xaxis: { min: undefined }` must still
+   *   reset a bound, and `colors: undefined` must still fall back to the
+   *   theme.
+   *
+   * Lists of settings (`yaxis`, annotation lists) are walked entry by entry.
+   * Copy on write: the caller's objects are never modified.
+   *
+   * @param {any} opts the options, or an updateOptions payload
+   * @param {any} [defaults] the matching part of the default tree
+   * @returns {any}
+   */
+  static dropEmptyOptions(opts, defaults = Config._defaultsTree()) {
+    if (!Utils.isObject(opts) || !Utils.isObject(defaults)) return opts
+    /** @type {Record<string, any>} */
+    let out = opts
+    const write = (/** @type {string} */ key, /** @type {any} */ value) => {
+      if (out === opts) out = { ...opts }
+      if (value === undefined) delete out[key]
+      else out[key] = value
+    }
+    for (const key of Object.keys(opts)) {
+      const v = opts[key]
+      const d = defaults[key]
+      if (v == null) {
+        if (Utils.isObject(d)) write(key, undefined)
+        else if (Array.isArray(d)) write(key, [])
+        continue
+      }
+      // A list of sections: `yaxis` (its default is a single section) and
+      // the annotation lists (their default holds one template entry).
+      const entry = Array.isArray(d) ? d[0] : d
+      if (Array.isArray(v) && Utils.isObject(entry)) {
+        const walked = v.map((item) => Config.dropEmptyOptions(item, entry))
+        if (walked.some((item, i) => item !== v[i])) write(key, walked)
+        continue
+      }
+      if (Utils.isObject(v) && Utils.isObject(d)) {
+        const walked = Config.dropEmptyOptions(v, d)
+        if (walked !== v) write(key, walked)
+      }
+    }
+    return out
+  }
+
+  /**
    * Report top-level option keys ApexCharts does not read.
    *
    * The merge that builds the config copies whatever it is handed, so an
@@ -617,7 +688,7 @@ export default class Config {
     // far too much to pay per chart for a list of 26 key names, and the names
     // cannot change within a page's lifetime.
     if (!Config._knownOptionKeys) {
-      Config._knownOptionKeys = Object.keys(new Options().init())
+      Config._knownOptionKeys = Object.keys(Config._defaultsTree())
     }
     const known = Config._knownOptionKeys
 
