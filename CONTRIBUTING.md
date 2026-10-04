@@ -155,6 +155,19 @@ npm run e2e:update
 
 This way, when later working on a feature or fix, `npm run test` command will detect only screenshots affected by changes done. Please avoid sending locally generated screenshots in PR, by excluding `tests/e2e/snapshots` folder from commit.
 
+### Animations
+
+A screenshot, or any check made once the chart has settled, cannot see an animation. A bug that lives only in the frames in between (a series that slides into a corner on its way out, labels that vanish while their bars are still shrinking, a plot that jumps 6px on the first frame) passes every such check. So animations are tested frame by frame, in `tests/interaction` (`npm run interaction`).
+
+**Every change that adds or changes an animation must be covered by an animation matrix, with its start and end stated.** This includes changes to the shared machinery (the path morph, delayed elements, the collapse classes, label and layout transitions), since a change made for one chart type changes every other.
+
+1. **Add the action to a matrix.** A legend show/hide goes in `specs/legend-toggle-matrix.spec.js`; data updates, `updateOptions`, zoom and resize go in `specs/update-transition-matrix.spec.js`. A new chart type is a new `CASES` entry in both; a new kind of update is a new `OPS` entry. Every case then runs the general rules on every frame: no NaN, no frame-0 jump, no flash, the plot does not shift, and the end state matches a fresh render of the target options.
+2. **State where things go.** The general rules cannot know where a mark is meant to end up. Declare it: `exit: 'baseline'` or `exit: 'shrink'` for a legend toggle, or a new rule in `helpers/frames.js` when no existing one says it. A new rule must come with a test in `specs/animation-harness.spec.js` that plants the defect and proves the rule catches it.
+3. **Pin real defects, never silence them.** If a rule fails because of a defect you are not fixing in this change, add it to that case's `known` list with a comment naming the defect. Known entries are asserted to *still* fail, so fixing the defect turns the test red until its entry is deleted.
+4. **Use the virtual clock.** Tests run on `helpers/virtual-time.js` (`mountChart`, `loadSample`, `recordTransition`, `advance`). Do not use `page.waitForTimeout` or Playwright's `page.clock`: real time drops frames under load, and `page.clock` is too slow for a chart's per-frame callbacks.
+
+To tell a regression from a defect that has already shipped, run any spec against another build: `APEX_BUNDLE=path/to/apexcharts.js npm run interaction -- <spec>`. `git show <release-commit>:dist/apexcharts.js > released.js` gives you the released bundle.
+
 ## Send your changes back to us! :revolving_hearts:
 
 We'd love for you to contribute your changes back to `apexcharts.js`! To do that, it would be great if you could commit your changes to a separate feature branch and open a Pull Request for those changes.

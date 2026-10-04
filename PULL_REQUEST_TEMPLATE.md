@@ -20,5 +20,6 @@ Please delete options that are not relevant.
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] If this adds or changes an animation, its action is in an animation matrix with its start and end stated (see CONTRIBUTING.md, Animations)
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] My branch is up to date with any changes from the main branch
