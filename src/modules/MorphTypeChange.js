@@ -112,8 +112,10 @@ export default class MorphTypeChange {
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx
-    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number }, pieceOut?: boolean, pieceIn?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
+    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number, scale?: number, shiftX?: number, shiftY?: number }, pieceOut?: boolean, pieceIn?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
     this._snapshot = null
+    // Whether the render the snapshot was captured for has mounted.
+    this._shown = false
     // A detached copy of the outgoing marks, kept alive across the teardown so
     // marks with no successor can still exit. Null whenever none is in flight.
     /** @type {any} */
@@ -223,6 +225,7 @@ export default class MorphTypeChange {
    */
   captureBeforeDestroy({ fromType, toType, newSeries }) {
     this._snapshot = null
+    this._shown = false
     // A second type change while the previous exit is still in flight: drop it
     // now rather than leave two dead charts stacked over the live one.
     this._removeGhost()
@@ -255,13 +258,30 @@ export default class MorphTypeChange {
     // visible position jump at t=0 (e.g. bar reserves yaxis space → its
     // translateX differs from radialBar's). At capture time, this.w still
     // reflects the outgoing chart's layout.
+    // An update still easing the old chart (LayoutTransition moving the plot,
+    // CircleTransition re-centring and scaling a circle) has it somewhere its
+    // rest layout does not say: the marks start from where they are on
+    // screen, so the in-flight plot origin, and the circle's in-flight map
+    // (q -> scale * q + shift, in plot space) over the captured shapes.
+    const gl = this.w.globals
+    const graphical = this.w.dom.elGraphical?.node
+    const plot =
+      gl.layoutTween && !gl.layoutTween.done && gl.layoutTween.graphical === graphical
+        ? gl.layoutTween.rect
+        : null
+    const ct = gl.circleTween
+    const circle = ct && !ct.done && graphical?.contains(ct.node) ? ct : null
+    const scale = circle ? circle.circle.r / circle.target.r : 1
     this._snapshot = {
       fromType,
       toType,
       mapping,
       oldLayout: {
-        translateX: this.w.layout.translateX || 0,
-        translateY: this.w.layout.translateY || 0,
+        translateX: plot ? plot.x : this.w.layout.translateX || 0,
+        translateY: plot ? plot.y : this.w.layout.translateY || 0,
+        scale,
+        shiftX: circle ? circle.circle.cx - scale * circle.target.cx : 0,
+        shiftY: circle ? circle.circle.cy - scale * circle.target.cy : 0,
       },
     }
 
@@ -937,8 +957,7 @@ export default class MorphTypeChange {
 
     // Old-chart dot coordinates shift into the new chart's local space the
     // same way every captured path does (see getInitialPathFor).
-    const dx = snap.oldLayout.translateX - (this.w.layout.translateX || 0)
-    const dy = snap.oldLayout.translateY - (this.w.layout.translateY || 0)
+    const { dx, dy } = this._oldToNew()
 
     const clusterIdx = Array.from(snap.sourceDots.keys()).sort((a, b) => a - b)
 
@@ -1716,15 +1735,30 @@ export default class MorphTypeChange {
     // captured coords are in the OLD elGraphical's translate space, but the
     // new chart's elGraphical has its own translateX/Y (different e.g. when
     // bar reserves yaxis space and radialBar doesn't). Without this offset
-    // the morphFrom would render at the new chart's translate — producing a
+    // the morphFrom would render at the new chart's translate, producing a
     // visible position jump at t=0. The morph engine then interpolates the
     // shifted morphFrom toward the new-space target, so both the shape and
     // the position transition as one continuous tween.
-    const dx =
-      this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0)
-    const dy =
-      this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0)
-    return dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy)
+    const { k, dx, dy } = this._oldToNew()
+    return k === 1 && dx === 0 && dy === 0
+      ? entry.d
+      : this._translatePathD(entry.d, dx, dy, k)
+  }
+
+  /**
+   * The map from the captured marks' space to the new chart's plot space:
+   * scaled by `k`, then shifted by (dx, dy). The shift is the plot-origin
+   * move; `k` and the rest of the shift are a circle still being re-centred
+   * and scaled when the morph began (see captureBeforeDestroy).
+   * @returns {{k: number, dx: number, dy: number}}
+   */
+  _oldToNew() {
+    const o = /** @type {NonNullable<typeof this._snapshot>} */ (this._snapshot).oldLayout
+    return {
+      k: o.scale ?? 1,
+      dx: o.translateX + (o.shiftX ?? 0) - (this.w.layout.translateX || 0),
+      dy: o.translateY + (o.shiftY ?? 0) - (this.w.layout.translateY || 0),
+    }
   }
 
   /**
@@ -1738,29 +1772,32 @@ export default class MorphTypeChange {
    * @param {string} d
    * @param {number} dx
    * @param {number} dy
+   * @param {number} [k] scale every coordinate (and arc radius) by this first
    * @returns {string}
    */
-  _translatePathD(d, dx, dy) {
-    if (dx === 0 && dy === 0) return d
+  _translatePathD(d, dx, dy, k = 1) {
+    if (dx === 0 && dy === 0 && k === 1) return d
     const commands = parsePath(d)
+    const x = (/** @type {number} */ v) => v * k + dx
+    const y = (/** @type {number} */ v) => v * k + dy
     return commands
       .map(/** @param {any[]} c */ (c) => {
         const cmd = c[0]
         if (cmd === 'Z') return 'Z'
         if (cmd === 'M' || cmd === 'L' || cmd === 'T') {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy}`
+          return `${cmd} ${x(c[1])} ${y(c[2])}`
         }
-        if (cmd === 'H') return `${cmd} ${c[1] + dx}`
-        if (cmd === 'V') return `${cmd} ${c[1] + dy}`
+        if (cmd === 'H') return `${cmd} ${x(c[1])}`
+        if (cmd === 'V') return `${cmd} ${y(c[1])}`
         if (cmd === 'C') {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy} ${c[5] + dx} ${c[6] + dy}`
+          return `${cmd} ${x(c[1])} ${y(c[2])} ${x(c[3])} ${y(c[4])} ${x(c[5])} ${y(c[6])}`
         }
         if (cmd === 'S' || cmd === 'Q') {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy}`
+          return `${cmd} ${x(c[1])} ${y(c[2])} ${x(c[3])} ${y(c[4])}`
         }
         if (cmd === 'A') {
-          // rx, ry, rotation, large-arc, sweep stay; only the final (x, y) shifts
-          return `${cmd} ${c[1]} ${c[2]} ${c[3]} ${c[4]} ${c[5]} ${c[6] + dx} ${c[7] + dy}`
+          // rotation, large-arc and sweep stay; the radii scale, the end point maps
+          return `${cmd} ${c[1] * k} ${c[2] * k} ${c[3]} ${c[4]} ${c[5]} ${x(c[6])} ${y(c[7])}`
         }
         return c.join(' ')
       })
@@ -1873,16 +1910,13 @@ export default class MorphTypeChange {
     if (!entry) return null
     const box = this._pathBBox(entry.d)
     if (!box) return null
-    // Same OLD -> NEW translate shift getInitialPathFor applies (see there).
-    const dx =
-      this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0)
-    const dy =
-      this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0)
+    // Same OLD -> NEW map getInitialPathFor applies (see there).
+    const { k, dx, dy } = this._oldToNew()
     return {
-      x: box.minX + dx,
-      y: box.minY + dy,
-      width: box.maxX - box.minX,
-      height: box.maxY - box.minY,
+      x: box.minX * k + dx,
+      y: box.minY * k + dy,
+      width: (box.maxX - box.minX) * k,
+      height: (box.maxY - box.minY) * k,
     }
   }
 
@@ -1954,6 +1988,9 @@ export default class MorphTypeChange {
    */
   applyChromeFade() {
     if (!this._snapshot || !Environment.isBrowser()) return
+    // The render this morph was captured for is on the page now: any later
+    // render starts from what it finds there (see retire).
+    this._shown = true
     /** @type {any} */
     const baseEl = this.w.globals.dom?.baseEl
     if (!baseEl) return
@@ -1994,11 +2031,28 @@ export default class MorphTypeChange {
         })
     })
 
-    setTimeout(() => this.cleanup(), speed + 100)
+    // Not a newer morph's: one started meanwhile cleans up after itself.
+    const snap = this._snapshot
+    setTimeout(() => {
+      if (!this._snapshot || this._snapshot === snap) this.cleanup()
+    }, speed + 100)
+  }
+
+  /**
+   * A render after the one a morph was captured for (an update while the
+   * morph is still finishing, or just after) must not start its marks from
+   * the old chart's shapes again: it starts from the screen, as any update
+   * does. The morph's ghost and pieces go with it, as the new render
+   * replaces what they were leaving over. A no-op until that render has
+   * mounted, so a second update in the same tick still morphs.
+   */
+  retire() {
+    if (this._snapshot && this._shown) this.cleanup()
   }
 
   cleanup() {
     this._snapshot = null
+    this._shown = false
     this._removeGhost()
     // Belt and braces for the piece layer: normally it has already finished
     // and detached itself, but a throttled tab can leave it mid-flight, and

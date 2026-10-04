@@ -333,36 +333,55 @@ export default class HeatMap {
 
               const prev =
                 w.globals.previousPaths[i] && w.globals.previousPaths[i][j]
-              let colorFrom = prev && prev.color
+              const colorTo = Utils.isColorHex(color)
+                ? color
+                : Utils.rgb2hex(color)
 
-              if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 0)'
+              if (!prev?.color) {
+                // A cell this update adds (a longer series, another row) has
+                // no colour or box to come from. It used to start at full size
+                // from a transparent white that the hex conversion turned
+                // opaque, so it flashed white, glaring on a dark theme. It
+                // grows in from its own centre in its own colour instead, the
+                // way the mount draws every cell.
+                if (isRectCell) {
+                  const cx = x1 + cellW / 2
+                  const cy = y1 + yDivision / 2
+                  this.animateHeatColor(cell, colorTo, colorTo, speed, {
+                    from: { x: cx, y: cy, width: 0, height: 0 },
+                    to: { x: x1, y: y1, width: cellW, height: yDivision },
+                  })
+                } else {
+                  new Animations(this.w).animatePop(cell, { speed })
+                }
+              } else {
+                // A rect cell also eases from the box it had. An update that
+                // resizes the plot (a title, wider labels, another row) moves
+                // every cell, and on the same gate LayoutTransition eases the
+                // plot around them, so a cell drawn at its new box on the
+                // first frame jumped while the plot slid.
+                const box = prev.rect
+                const boxFrom =
+                  isRectCell &&
+                  box &&
+                  lengthTransitionEnabled(w) &&
+                  [box.x, box.y, box.width, box.height].every(Number.isFinite)
+                    ? box
+                    : null
 
-              // A rect cell also eases from the box it had. An update that
-              // resizes the plot (a title, wider labels, another row) moves
-              // every cell, and on the same gate LayoutTransition eases the
-              // plot around them, so a cell drawn at its new box on the first
-              // frame jumped while the plot slid.
-              const box = prev && prev.rect
-              const boxFrom =
-                isRectCell &&
-                box &&
-                lengthTransitionEnabled(w) &&
-                [box.x, box.y, box.width, box.height].every(Number.isFinite)
-                  ? box
-                  : null
-
-              this.animateHeatColor(
-                cell,
-                Utils.isColorHex(colorFrom)
-                  ? colorFrom
-                  : Utils.rgb2hex(colorFrom),
-                Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
-                speed,
-                boxFrom && {
-                  from: boxFrom,
-                  to: { x: x1, y: y1, width: cellW, height: yDivision },
-                },
-              )
+                this.animateHeatColor(
+                  cell,
+                  Utils.isColorHex(prev.color)
+                    ? prev.color
+                    : Utils.rgb2hex(prev.color),
+                  colorTo,
+                  speed,
+                  boxFrom && {
+                    from: boxFrom,
+                    to: { x: x1, y: y1, width: cellW, height: yDivision },
+                  },
+                )
+              }
             }
           }
         }

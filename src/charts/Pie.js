@@ -258,6 +258,16 @@ class Pie {
 
     if (w.globals.noData) return elPie
 
+    // Where the circle lands on screen, for CircleTransition: the series and
+    // labels are drawn around (centerX, centerY) inside a customScale'd group.
+    const scaleSize = w.config.plotOptions.pie.customScale
+    w.globals.circleGeometry = {
+      node: elPie.node,
+      cx: this.translateX + scaleSize * this.centerX,
+      cy: this.translateY + scaleSize * this.centerY,
+      r: scaleSize * w.globals.radialSize,
+    }
+
     let total = 0
     for (let k = 0; k < series.length; k++) {
       // CALCULATE THE TOTAL
@@ -358,10 +368,14 @@ class Pie {
         // drawn first and rounds maxY up to a nice max (44 -> 50), so every
         // slice started ~14% too big and jumped on the first frame of any
         // update, a legend toggle included. The rebuild stays as the fallback
-        // for when the stash cannot line up.
+        // for when the stash cannot line up. The stash holds fractions of the
+        // radius: when the chrome resized the circle, the start radii have to
+        // be in THIS render's pixels, as CircleTransition scales the whole
+        // circle back to its old size on the first frame (old pixels would
+        // count that scale twice).
         const sizeStash = w.globals.prevPolarSizes
         if (Array.isArray(sizeStash) && sizeStash.length === prevValues.length) {
-          this.prevSliceSizes = sizeStash.slice()
+          this.prevSliceSizes = sizeStash.map((f) => f * w.globals.radialSize)
         } else {
           let prevMaxY = 0
           for (let k = 0; k < prevValues.length; k++) {
@@ -397,7 +411,10 @@ class Pie {
     if (this.chartType === 'polarArea') {
       // The stash the NEXT data-change animation will start from.
       w.globals.prevPolarAngles = sectorAngleArr.slice()
-      w.globals.prevPolarSizes = this.sliceSizes.slice()
+      const radius = w.globals.radialSize || 1
+      w.globals.prevPolarSizes = this.sliceSizes.map(
+        (/** @type {number} */ s) => s / radius,
+      )
     }
 
     // on small chart size after few count of resizes browser window donutSize can be negative
@@ -802,6 +819,9 @@ class Pie {
 
           const elPieLabelWrap = graphics.group({
             class: `apexcharts-datalabels`,
+            // Which slice it labels, so a later render pairs it with its own
+            // slice's label (CircleTransition), whatever slices draw none.
+            'data:slice': i,
           })
           const elPieLabel = graphics.drawText({
             x: xPos,
@@ -916,6 +936,7 @@ class Pie {
         // Ride along when the slice slides out: the connector is anchored on
         // the rim, so moving both by the same vector keeps it attached.
         this.externalLabelGroups[lbl.i] = group.node
+        group.node.setAttribute('data:slice', String(lbl.i))
 
         g.add(group)
       })

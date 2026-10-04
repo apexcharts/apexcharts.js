@@ -105,6 +105,10 @@ export default class Globals {
     gl.rotateXLabels = false // true when x-axis labels are angled
     gl.overlappingXLabels = false // true when x labels overlap and must be hidden
     gl.radialSize = 0 // computed radius for radial/polar charts
+    // Where a circle chart (pie, donut, polarArea, radialBar, radar) drew its
+    // circle this render: set by the renderer, read by CircleTransition.
+    // Reset here so a render that draws no circle leaves none behind.
+    gl.circleGeometry = null
     // Note: formatter properties (xLabelFormatter, yLabelFormatters, etc.) live on
     // w.formatters — not on gl. See Base.js for backward-compat shims.
 
@@ -491,14 +495,28 @@ export default class Globals {
       // previousPaths (the previous VALUES) the way pie does; Pie.draw stashes
       // the real ones here each render.
       prevPolarAngles: null,
-      // ...and its last-drawn slice radii. The radius scale depends on whether
-      // the polar grid was drawn before the slices (it rounds maxY to a nice
-      // max) or after, so rebuilding them from previous values got it wrong.
+      // ...and its last-drawn slice radii, as fractions of radialSize. The
+      // radius scale depends on whether the polar grid was drawn before the
+      // slices (it rounds maxY to a nice max) or after, so rebuilding them from
+      // previous values got it wrong.
       prevPolarSizes: null,
       // Streaming scroll: previous frame's parsed rows + pixel positions,
       // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
       // only while a data-change morph renders. See StreamScroll.
       prevStreamFrame: null,
+      // A hidden series' labels to carry out, and a shown one's to bring in
+      // (DataLabelTransition.captureExitLabels / playExitLabels).
+      exitLabels: null,
+      riseLabels: null,
+      prevTreemapParents: null,
+      // The last capture of what is on screen (Series.getPreviousPaths), kept
+      // until the next frame is painted so a second update in the same tick
+      // starts from it too.
+      pendingCapture: null,
+      // A treemap click-to-zoom on its way to the next render (the branch
+      // focused before and after), and the outgoing picture it carries off.
+      treemapZoom: null,
+      prevTreemapView: null,
       // Set for the duration of one render when a streaming scroll is driving
       // it; see captureStreamFrame / detectStreamScroll.
       streamScrolled: false,
@@ -512,6 +530,13 @@ export default class Globals {
       // The chrome tweens AxisTransition has running (each entry lands its
       // tween), so the next update can land them before reading the chrome.
       chromeTweens: null,
+      // A circle chart's circle (and, without axes, its plot rect) captured
+      // before an update's teardown; consumed once by CircleTransition after
+      // the new render mounts.
+      prevCircleFrame: null,
+      // The circle tween in flight (CircleTransition), if any: its in-flight
+      // circle is where the next update's move starts from.
+      circleTween: null,
 
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,

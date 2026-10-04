@@ -77,6 +77,14 @@ class Radial extends Pie {
     if (!w.config.chart.sparkline.enabled) {
       size = size - w.config.stroke.width - w.config.chart.dropShadow.blur
     }
+    // Where the rings land on screen, for CircleTransition (the outermost
+    // ring's radius stands for the circle).
+    w.globals.circleGeometry = {
+      node: ret.node,
+      cx: centerX,
+      cy: centerY,
+      r: size,
+    }
     const colorArr = w.globals.fill.colors
 
     const rb = w.config.plotOptions.radialBar

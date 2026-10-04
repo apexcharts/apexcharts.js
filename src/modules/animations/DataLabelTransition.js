@@ -135,6 +135,274 @@ export function captureDataLabels(w) {
 }
 
 /**
+ * Snapshot the data labels of the series the legend is hiding in this update.
+ * Called from Series.getPreviousPaths(), before the teardown.
+ *
+ * A hidden series draws no labels, so on the click they used to vanish while
+ * its marks were still on their way out: every type but a stacked column,
+ * which draws its collapsing labels itself. These are clones of what was on
+ * screen, with the old pixel position of each label's point, for
+ * playExitLabels to carry out with the marks.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ */
+export function captureExitLabels(w) {
+  const gl = w.globals
+  gl.exitLabels = null
+  gl.riseLabels = null
+  const hiding = gl.collapsingSeriesIndices || []
+  const rising = gl.risingSeries || []
+  if (!hiding.length && !rising.length) return
+  if (!gl.axisCharts || !Environment.isBrowser()) return
+  if (!lengthTransitionEnabled(w)) return
+  const root = w.dom.baseEl
+  if (!Utils.elementExists(root)) return
+  const frame = gl.prevStreamFrame
+  /** @type {any[]} */
+  const out = []
+  // A series coming back rises from where its hidden shape lay (the
+  // baseline, or the series below it): the points' pixels of that shape.
+  /** @type {Map<number, {oldX: Array<number | null>, oldY: Array<number | null>}>} */
+  const rise = new Map()
+  rising.forEach((ri) => {
+    const g = root.querySelector(`.apexcharts-series[data\\:realIndex="${ri}"]`)
+    if (!g || !g.classList.contains('apexcharts-series-collapsed')) return
+    const oldX = frame?.xPixels?.[ri]
+    const oldY = frame?.yPixels?.[ri]
+    if (Array.isArray(oldX) && Array.isArray(oldY) && oldX.length) {
+      rise.set(ri, { oldX: oldX.slice(), oldY: oldY.slice() })
+    }
+  })
+  gl.riseLabels = rise.size ? rise : null
+  try {
+    hiding.forEach((ri) => {
+      root
+        .querySelectorAll(
+          `.apexcharts-datalabels[data\\:realIndex="${ri}"] .apexcharts-data-labels`,
+        )
+        .forEach((group) => {
+          if (!group.querySelector(DL_TEXT_SEL)) return
+          out.push({
+            realIndex: ri,
+            node: /** @type {Element} */ (group.cloneNode(true)),
+            key: group.getAttribute('data:dlKey'),
+            oldX: (frame?.xPixels?.[ri] || []).slice(),
+            oldY: (frame?.yPixels?.[ri] || []).slice(),
+          })
+        })
+    })
+  } catch (_) {
+    gl.exitLabels = null
+    return
+  }
+  gl.exitLabels = out.length ? out : null
+}
+
+/**
+ * A pixel position, or NaN for a point with none (a null in the series).
+ * Plain subtraction would read null as 0 and ride the label off the chart.
+ * @param {any} v
+ */
+const px = (v) => (typeof v === 'number' ? v : NaN)
+
+/** Index of the value in `xs` nearest to `x`, or -1. */
+function nearestIndex(/** @type {Array<number | null>} */ xs, /** @type {number} */ x) {
+  let best = -1
+  let dist = Infinity
+  for (let k = 0; k < xs.length; k++) {
+    const v = xs[k]
+    if (v == null) continue
+    const d = Math.abs(v - x)
+    if (d < dist) {
+      dist = d
+      best = k
+    }
+  }
+  return best
+}
+
+/**
+ * Bring the labels of a series the legend is showing in with its line: each
+ * starts where its point lay while hidden and rides to where the point
+ * rises to, fading in, on the morph clock. They used to sit at their final
+ * spot from the first frame while the line was still coming up to them.
+ * Line and area labels only: a bar's label already fades in with its bar
+ * (applyDataLabelTransition).
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {Map<number, {oldX: Array<number | null>, oldY: Array<number | null>}>} rises
+ */
+function riseLabels(w, rises) {
+  const gl = w.globals
+  const root = w.dom.baseEl
+  if (!Utils.elementExists(root)) return
+  const speed = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1)
+  const ease = morphEasing(w)
+  try {
+    rises.forEach(({ oldX, oldY }, ri) => {
+      const newX = gl.seriesXvalues?.[ri] || []
+      const newY = gl.seriesYvalues?.[ri] || []
+      root
+        .querySelectorAll(
+          `.apexcharts-datalabels[data\\:realIndex="${ri}"] .apexcharts-data-labels:not([data\\:dlKey]) ${DL_TEXT_SEL}`,
+        )
+        .forEach((text) => {
+          const j = nearestIndex(newX, parseFloat(text.getAttribute('cx') || ''))
+          const dx = px(oldX[j]) - px(newX[j])
+          const dy = px(oldY[j]) - px(newY[j])
+          if (j < 0 || !isFinite(dx) || !isFinite(dy)) return
+          const prev = text.previousElementSibling
+          const els =
+            prev && prev.tagName.toLowerCase() === 'rect' ? [prev, text] : [text]
+          const bases = els.map((el) => el.getAttribute('transform') || '')
+          const place = (/** @type {number} */ eased) =>
+            els.forEach((el, k) => {
+              const t = 1 - eased
+              el.setAttribute(
+                'transform',
+                `translate(${dx * t} ${dy * t}) ${bases[k]}`.trim(),
+              )
+              el.setAttribute('opacity', String(eased))
+            })
+          place(0)
+          rafTween(w, speed, ease, place, () =>
+            els.forEach((el, k) => {
+              if (bases[k]) el.setAttribute('transform', bases[k])
+              else el.removeAttribute('transform')
+              el.removeAttribute('opacity')
+            }),
+          )
+        })
+    })
+  } catch (_) {
+    // Label polish must never break a render.
+  }
+}
+
+/**
+ * Carry the captured labels of a hidden series out with its marks, then
+ * remove them. Runs after the render, next to applyDataLabelTransition.
+ *
+ * - A bar's label rides its exit ghost: its anchor scales toward the edge
+ *   the ghost shrinks to, on the ghost's own easing, and fades with it.
+ * - A line or area label rides its own point, from where the point was to
+ *   where the exit puts it (the baseline, or the series below), on the morph
+ *   clock, fading as it goes.
+ * - Anything else fades where it stands.
+ *
+ * Kept outside the series groups (and without the `apexcharts-datalabels`
+ * class the label passes look for), and removed when done, so an export
+ * never draws them.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ */
+export function playExitLabels(w) {
+  const gl = w.globals
+  const labels = gl.exitLabels
+  const rises = gl.riseLabels
+  gl.exitLabels = null
+  gl.riseLabels = null
+  if (!Environment.isBrowser()) return
+  if (rises) riseLabels(w, rises)
+  if (!labels) return
+  const graphical = w.dom.elGraphical?.node
+  if (!graphical) return
+  const root = w.dom.baseEl
+
+  const wrap = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  wrap.setAttribute('class', 'apexcharts-label-exit')
+  wrap.setAttribute('pointer-events', 'none')
+  graphical.appendChild(wrap)
+
+  const speed = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1)
+  const morphEase = morphEasing(w)
+  /** @param {number} t */
+  const ghostEase = (t) => 1 - Math.pow(1 - t, 3)
+  const isHorizontal = !!w.globals.isBarHorizontal
+  let pending = 0
+  const done = () => {
+    if (--pending <= 0) wrap.remove()
+  }
+
+  try {
+    labels.forEach(({ realIndex, node, key, oldX, oldY }) => {
+      // A renderer that drew its own collapsing labels (stacked columns)
+      // already carries this series out.
+      if (
+        root.querySelector(
+          `.apexcharts-datalabels[data\\:realIndex="${realIndex}"] .apexcharts-data-labels`,
+        )
+      ) {
+        return
+      }
+      wrap.appendChild(node)
+      /** Each label with the background pill drawn just before it. */
+      const parts = [...node.querySelectorAll(DL_TEXT_SEL)].map((text) => {
+        const prev = text.previousElementSibling
+        return prev && prev.tagName.toLowerCase() === 'rect' ? [prev, text] : [text]
+      })
+      /** @type {Array<{els: Element[], dx: number, dy: number}>} */
+      const moves = []
+      let ease = morphEase
+
+      const ghost = key
+        ? root.querySelector(`.apexcharts-bar-ghost[data\\:ghostKey="${key}"]`)
+        : null
+      const edge = parseFloat(ghost?.getAttribute('data:ghostEdge') ?? '')
+      if (ghost && isFinite(edge)) {
+        ease = ghostEase
+        parts.forEach((els) => {
+          const text = els[els.length - 1]
+          const c = parseFloat(text.getAttribute(isHorizontal ? 'cx' : 'cy') || '')
+          if (!isFinite(c)) return
+          const d = edge - c
+          moves.push({ els, dx: isHorizontal ? d : 0, dy: isHorizontal ? 0 : d })
+        })
+      } else if (!key) {
+        const newX = gl.seriesXvalues?.[realIndex] || []
+        const newY = gl.seriesYvalues?.[realIndex] || []
+        parts.forEach((els) => {
+          const text = els[els.length - 1]
+          const j = nearestIndex(oldX, parseFloat(text.getAttribute('cx') || ''))
+          const dx = px(newX[j]) - px(oldX[j])
+          const dy = px(newY[j]) - px(oldY[j])
+          if (j < 0 || !isFinite(dx) || !isFinite(dy)) return
+          moves.push({ els, dx, dy })
+        })
+      }
+
+      /** @type {Array<{el: Element, base: string}>} */
+      const bases = moves.flatMap(({ els }) =>
+        els.map((el) => ({ el, base: el.getAttribute('transform') || '' })),
+      )
+      pending++
+      rafTween(
+        w,
+        speed,
+        ease,
+        (eased) => {
+          node.setAttribute('opacity', String(1 - eased))
+          let k = 0
+          moves.forEach(({ els, dx, dy }) => {
+            els.forEach((el) => {
+              const { base } = bases[k++]
+              el.setAttribute(
+                'transform',
+                `translate(${dx * eased} ${dy * eased}) ${base}`.trim(),
+              )
+            })
+          })
+        },
+        done,
+      )
+    })
+  } catch (_) {
+    // Label polish must never break a render.
+  }
+  if (!pending) wrap.remove()
+}
+
+/**
  * @param {import('../../types/internal').ChartStateW} w
  * @param {Element} node
  * @param {number} duration
@@ -192,10 +460,14 @@ function rideTo(w, { el, oldCx, oldCy, duration, ease, delay = 0 }) {
       },
     )
 
+  // Pinned at its previous spot now, not on the tween's first frame: an
+  // update made inside a requestAnimationFrame callback paints before that
+  // frame comes round, and the label would show at its new slot over the bar
+  // still sitting at its old one.
+  el.setAttribute('transform', `translate(${dx} ${dy}) ${base}`.trim())
   if (delay > 0) {
     // Its bar starts this much later (the per-bar stagger), so hold the label
     // at its previous spot until then; the pair then move on one clock.
-    el.setAttribute('transform', `translate(${dx} ${dy}) ${base}`.trim())
     setTimeout(() => {
       if (w.globals.isDestroyed) return
       start()
@@ -245,9 +517,10 @@ function countUpText(w, { el, from, to, formatter, fmtOpts, duration, ease, dela
       },
     )
 
+  // The old value now, for the same reason the ride pins its start.
+  writeLabel(el, format(from))
   if (delay > 0) {
     // Same hold as the position ride: show the old value until the bar moves.
-    writeLabel(el, format(from))
     setTimeout(() => {
       if (w.globals.isDestroyed) return
       start()

@@ -347,7 +347,8 @@ export default class Animations {
    */
   /** @param {any} el @param {any} from @param {any} to @param {any} speed @param {any} fn @param {number} [delay] */
   animateRect(el, from, to, speed, fn, delay = 0) {
-    el.attr(from)
+    return el
+      .attr(from)
       .animate(speed, delay)
       .attr(to)
       .after(() => fn())

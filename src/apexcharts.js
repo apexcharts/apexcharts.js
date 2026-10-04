@@ -41,7 +41,11 @@ import {
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
 import { applyAxisTransition } from './modules/animations/AxisTransition'
-import { applyDataLabelTransition } from './modules/animations/DataLabelTransition'
+import { applyCircleTransition } from './modules/animations/CircleTransition'
+import {
+  applyDataLabelTransition,
+  playExitLabels,
+} from './modules/animations/DataLabelTransition'
 import {
   registerPlugin as registerPluginImpl,
   unregisterPlugin as unregisterPluginImpl,
@@ -1236,6 +1240,10 @@ export default class ApexCharts {
           ? Utils.clone(options)
           : null
 
+      // A type-change morph that has already been shown is over for this
+      // render: it starts from the screen, not from the old chart's shapes.
+      this.morphTypeChange?.retire()
+
       new Destroy(this.ctx).clear({ isUpdating: true })
 
       // A re-render replays w.config.series, which carries whatever the last
@@ -1262,11 +1270,18 @@ export default class ApexCharts {
           applyAxisTransition(this.w, {
             layout: !this.morphTypeChange?.isActive(),
           })
+          // A circle chart the chrome re-centred or resized (a title, the
+          // legend) eases to its new centre and radius on the same clock, with
+          // the plot rect when it has no axes. Same cross-type morph rule.
+          applyCircleTransition(this.w, {
+            layout: !this.morphTypeChange?.isActive(),
+          })
 
           // Ride data labels to their new slot (and, opt-in, count their value
           // up) on the same clock as the morph. No-op when nothing moved or no
           // frame was captured this update.
           applyDataLabelTransition(this.w)
+          playExitLabels(this.w)
 
           if (typeof this.w.config.chart.events.updated === 'function') {
             this.w.config.chart.events.updated(this, this.w)
@@ -1477,6 +1492,8 @@ export default class ApexCharts {
       try {
         const w = this.w
         const gl = w.globals
+        // As in update(): a morph already shown is over for this render.
+        this.morphTypeChange?.retire()
 
         gl.shouldAnimate = animate
         gl.dataChanged = true
@@ -1661,6 +1678,7 @@ export default class ApexCharts {
         // scroll itself.
         if (!gl.streamScrolled) applyAxisTransition(w)
         applyDataLabelTransition(w)
+        playExitLabels(w)
 
         // Reattach tooltip event listeners to new series elements.
         if (Environment.isBrowser() && w.config.tooltip.enabled && !gl.noData) {

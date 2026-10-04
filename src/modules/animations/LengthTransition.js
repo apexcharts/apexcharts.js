@@ -638,6 +638,23 @@ export function renderBarExitGhosts({
     style.transformBox = 'fill-box'
     style.transformOrigin = origin
 
+    // Its datum and the edge it shrinks toward, so the bar's data label can
+    // ride the same exit (DataLabelTransition.playExitLabels).
+    node.setAttribute('data:ghostKey', `${record.realIndex}::${p.key}`)
+    try {
+      const bb = node.getBBox()
+      const edge = isHorizontal
+        ? origin.startsWith('left')
+          ? bb.x
+          : bb.x + bb.width
+        : origin.endsWith('bottom')
+          ? bb.y + bb.height
+          : bb.y
+      if (isFinite(edge)) node.setAttribute('data:ghostEdge', String(edge))
+    } catch (_) {
+      // No box, no ride: the label fades where it stands.
+    }
+
     const duration = Math.max(1, speed || 1)
     const startAt = performance.now()
     /** @param {number} now */

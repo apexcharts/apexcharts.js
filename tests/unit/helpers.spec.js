@@ -746,11 +746,19 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
     expect(w.globals.collapsedSeriesIndices.length).toBe(0)
   })
 
-  it('adds the risen realIndex to risingSeries', () => {
-    const { w, lgCtx } = makeLgCtxFull({
+  it('names the risen realIndex in risingSeries for the render that shows it, then clears it', async () => {
+    const { w, lgCtx, updateHelperStub } = makeLgCtxFull({
       collapsedSeries: [{ index: 0, data: [1], type: 'line' }],
       collapsedSeriesIndices: [0],
       risingSeries: [],
+    })
+    /** @type {any} */
+    let during = null
+    /** @type {any} */
+    let settle = null
+    updateHelperStub._updateSeries.mockImplementation(() => {
+      during = [...w.globals.risingSeries]
+      return new Promise((r) => (settle = r))
     })
     const helpers = new LegendHelpers(lgCtx)
 
@@ -760,7 +768,12 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
       0,
     )
 
+    expect(during).toContain(0)
     expect(w.globals.risingSeries).toContain(0)
+    // Left set, every later update treated the series as rising again.
+    settle()
+    await Promise.resolve()
+    expect(w.globals.risingSeries).toEqual([])
   })
 
   it('calls _updateSeries when a series is risen', () => {

@@ -28,15 +28,7 @@
  *
  * KNOWN lists, per case and operation, the rules that currently fail because
  * of a real defect, asserted to STILL fail (as in the legend matrix): fixing
- * one turns the test red until its entry is deleted. Open defects (both
- * shipped in 7.8.0):
- *
- *   CIRCLE RESIZE  a circular chart (pie, donut, polarArea, radialBar, radar)
- *                  that the chrome around it resizes (a title, the legend)
- *                  jumps to its new centre and radius on frame 0: only its
- *                  angles and values tween
- *   PARENTS SNAP   see 'treemap, nested'
- *   HEATMAP ENTER  see 'heatmap'
+ * one turns the test red until its entry is deleted. No defect is open.
  */
 
 import { test, expect } from '@playwright/test'
@@ -96,6 +88,12 @@ const CASES = {
     o: base({ chart: { type: 'line' } }),
     series: (s, n) => byName({ n, f: (c, i) => ({ x: CATS[i], y: v(c, i, s) }) }),
     append: true,
+  },
+  // Markers only: with no path, the markers ARE the marks, and nothing but
+  // the line's own reveal ever showed them after an update.
+  'line, markers only': {
+    o: base({ chart: { type: 'line' }, stroke: { show: false }, markers: { size: 5 } }),
+    series: (s, n) => byName({ n, f: (c, i) => ({ x: CATS[i], y: v(c, i, s) }) }),
   },
   'line, datetime': {
     o: base({ chart: { type: 'line' }, xaxis: { type: 'datetime' } }),
@@ -202,16 +200,11 @@ const CASES = {
     // A new value is a new colour, which the recorder does not measure: the
     // cells stay put, so `animates` cannot see a values update.
     colorOnly: true,
-    // HEATMAP ENTER: a cell a longer update adds appears at full size, its
-    // colour fading in from white (its transparent start goes through
-    // rgb2hex, which drops the alpha): a white flash on a dark background.
-    known: { longer: { noJump: /entered at frame 0 already .* \(apexcharts-heatmap-rect\)/ } },
   },
   radar: {
     o: base({ chart: { type: 'radar' }, xaxis: { categories: CATS.slice(0, N) } }),
     series: (s, n) => byName({ n, f: (c, i) => v(c, i, s) }),
     fixedLength: true,
-    known: { 'options, title': ['noJump'] }, // CIRCLE RESIZE
   },
   treemap: {
     o: base({ chart: { type: 'treemap' } }),
@@ -232,42 +225,30 @@ const CASES = {
         })),
       })),
     fixedLength: true,
-    // PARENTS SNAP: the tiles tween from their old boxes, but the parent
-    // containers and their headers are drawn at their new boxes on frame 0
-    // (they have no previous-shape capture of their own). Shipped in 7.8.0.
-    known: {
-      values: { noJump: /treemap-parent/ },
-      'values, after updateOptions': { noJump: /treemap-parent/ },
-      'options, title': { noJump: /treemap-parent/ },
-    },
   },
   pie: {
     o: base({ chart: { type: 'pie' }, labels: NAMES }),
     series: (s) => NAMES.map((_, c) => v(c, 0, s)),
     nonAxis: true,
     fixedLength: true,
-    known: { 'options, title': ['noJump', 'noLayoutShift', 'chromeSteady'] }, // CIRCLE RESIZE
   },
   donut: {
     o: base({ chart: { type: 'donut' }, labels: NAMES }),
     series: (s) => NAMES.map((_, c) => v(c, 0, s)),
     nonAxis: true,
     fixedLength: true,
-    known: { 'options, title': ['noJump', 'noLayoutShift', 'chromeSteady'] }, // CIRCLE RESIZE
   },
   polarArea: {
     o: base({ chart: { type: 'polarArea' }, labels: NAMES }),
     series: (s) => NAMES.map((_, c) => v(c, 0, s)),
     nonAxis: true,
     fixedLength: true,
-    known: { 'options, title': ['noJump', 'noLayoutShift', 'chromeSteady'] }, // CIRCLE RESIZE
   },
   radialBar: {
     o: base({ chart: { type: 'radialBar' }, labels: NAMES }),
     series: (s) => NAMES.map((_, c) => 30 + v(c, 0, s) / 2),
     nonAxis: true,
     fixedLength: true,
-    known: { 'options, title': ['noJump', 'noLayoutShift', 'chromeSteady'] }, // CIRCLE RESIZE
   },
 }
 
@@ -313,6 +294,50 @@ const OPS = {
     act: (page) => page.evaluate((t) => window.chart.updateOptions({ title: t }), TITLE),
     rules: ['finite', 'noJump', 'noFlash', 'noLayoutShift', 'chromeSteady', 'settles'],
     target: () => `() => ({ title: ${JSON.stringify(TITLE)} })`,
+  },
+  // Two updates from one handler, neither awaited (a wrapper whose options
+  // and series both changed): the first one's render never reaches the
+  // screen, so both have to start from what was painted before them.
+  'options and values, same tick': {
+    act: (page, c) =>
+      page.evaluate(
+        ([t, s]) => {
+          window.chart.updateOptions({ title: t })
+          window.chart.updateSeries(s)
+        },
+        [TITLE, c.series(1, N)],
+      ),
+    rules: ['finite', 'noJump', 'noFlash', 'noLayoutShift', 'chromeSteady', 'settles'],
+    target: (c) => `() => ({ title: ${JSON.stringify(TITLE)}, series: ${JSON.stringify(c.series(1, N))} })`,
+  },
+  // The second one after awaiting the first: the first has applied its
+  // transitions by then (and used up what it captured), but still nothing has
+  // been painted, so the second starts from the same screen.
+  'options then values, awaited': {
+    act: (page, c) =>
+      page.evaluate(
+        async ([t, s]) => {
+          await window.chart.updateOptions({ title: t })
+          window.chart.updateSeries(s)
+        },
+        [TITLE, c.series(1, N)],
+      ),
+    rules: ['finite', 'noJump', 'noFlash', 'noLayoutShift', 'chromeSteady', 'settles'],
+    target: (c) => `() => ({ title: ${JSON.stringify(TITLE)}, series: ${JSON.stringify(c.series(1, N))} })`,
+  },
+  // Two value updates in one tick (two messages from a feed): the second
+  // starts from the values on screen, not the first's, which never showed.
+  'values twice, same tick': {
+    act: (page, c) =>
+      page.evaluate(
+        ([a, b]) => {
+          window.chart.updateSeries(a)
+          window.chart.updateSeries(b)
+        },
+        [c.series(2, N), c.series(1, N)],
+      ),
+    rules: ['finite', 'noJump', 'noFlash', 'noLayoutShift', 'chromeSteady', 'settles'],
+    target: (c) => seriesIs(c.series(1, N)),
   },
   'options, redraw after an update': {
     applies: (c) => !c.nonAxis,

@@ -42,7 +42,7 @@ import { installVirtualTime, advance, recordFrames } from './virtual-time.js'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 // APEX_BUNDLE runs the same tests against another build (e.g. a release's
 // dist, to tell a regression from a defect that already shipped).
-export const BUNDLE = process.env.APEX_BUNDLE || resolve(ROOT, 'dist/apexcharts.js')
+export const BUNDLE = process.env.APEX_BUNDLE ? resolve(process.env.APEX_BUNDLE) : resolve(ROOT, 'dist/apexcharts.js')
 
 /** Default geometric tolerance, px. Covers curve sampling and rounding. */
 export const TOL = 1.5

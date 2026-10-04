@@ -4,7 +4,12 @@ import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { captureStreamFrame } from './animations/StreamScroll'
 import { captureAxisChrome } from './animations/AxisTransition'
-import { captureDataLabels } from './animations/DataLabelTransition'
+import { captureCircle } from './animations/CircleTransition'
+import { pendingUntilPaint } from './animations/LayoutTransition'
+import {
+  captureDataLabels,
+  captureExitLabels,
+} from './animations/DataLabelTransition'
 
 /**
  * ApexCharts Series Class for interaction with the Series of the chart.
@@ -76,7 +81,15 @@ export default class Series {
     const targetElement = this.getSeriesByName(seriesName)
     const el = /** @type {Element} */ (targetElement)
     const realIndex = parseInt(el.getAttribute('data:realIndex') ?? '0', 10)
-    const isHidden = el.classList.contains('apexcharts-series-collapsed')
+    // The collapse is recorded per index for every type; the class only on
+    // the types that draw a series group for it. A pie, donut or polarArea
+    // slice never carries it, so asking the class alone called a hidden slice
+    // visible, and a second toggleSeries() hid it again instead of showing it.
+    const gl = this.w.globals
+    const isHidden =
+      el.classList.contains('apexcharts-series-collapsed') ||
+      gl.collapsedSeriesIndices.includes(realIndex) ||
+      gl.ancillaryCollapsedSeriesIndices.includes(realIndex)
 
     return { isHidden, realIndex }
   }
@@ -140,6 +153,56 @@ export default class Series {
       if (w.globals.isDestroyed) return
       elSeries.node.classList.remove('apexcharts-series-collapsing')
     }, hold)
+  }
+
+  /**
+   * Everything a capture of the screen writes (getPreviousPaths), plus the
+   * polar stash the renderer leaves for the next render: what a second update
+   * in the same frame is handed again.
+   */
+  /** A counter keeping the ids of copied zoom defs apart. */
+  static ghostDefs = 0
+
+  static HELD = [
+    'previousPaths',
+    'prevStreamFrame',
+    'prevChromeFrame',
+    'prevCircleFrame',
+    'prevDataLabels',
+    'exitLabels',
+    'riseLabels',
+    'prevTreemapParents',
+    'prevTreemapView',
+    'prevPolarAngles',
+    'prevPolarSizes',
+  ]
+
+  /**
+   * What a treemap tile's label shows: its text, its size, and whether it is
+   * turned to fit. Two renders that agree on this draw the same label, so it
+   * can ride from one to the other; when they differ the two cross-fade.
+   * Empty for a label that shows nothing.
+   * @param {Element} el the label's group
+   * @returns {string}
+   */
+  static treemapLabelLook(el) {
+    const t = el.querySelector('text')
+    const text = (t?.textContent || '').trim()
+    if (!t || !text) return ''
+    const turned = /rotate\(/.test(
+      `${el.getAttribute('transform') || ''} ${t.getAttribute('transform') || ''}`,
+    )
+    return `${text}|${t.getAttribute('font-size')}|${turned}`
+  }
+
+  /**
+   * How a treemap container's header text reads, the same way: its text and
+   * its size (a zoom moves a container to another depth, which sets both).
+   * @param {Element | null | undefined} el the header's text
+   * @returns {string}
+   */
+  static treemapHeaderLook(el) {
+    return el ? `${el.textContent}|${el.getAttribute('font-size')}` : ''
   }
 
   /**
@@ -758,6 +821,28 @@ export default class Series {
   }
 
   getPreviousPaths() {
+    const gl = /** @type {Record<string, any>} */ (this.w.globals)
+    // Two updates in one frame (an updateOptions and an updateSeries from the
+    // same handler, or the second after awaiting the first): the first one's
+    // render never reached the screen, so it is not what this capture should
+    // start from. The first capture still is, so all of it is handed to this
+    // update too (see LayoutTransition.pendingUntilPaint): the first update
+    // has consumed its frames by now, and updateSeries clears the paths
+    // before it captures. The polar stash is what the first render wrote.
+    const held = gl.pendingCapture
+    if (held?.pending) {
+      Series.HELD.forEach((k) => {
+        gl[k] = held[k]
+      })
+      return
+    }
+    this.capturePreviousPaths()
+    gl.pendingCapture = Environment.isBrowser()
+      ? pendingUntilPaint(Object.fromEntries(Series.HELD.map((k) => [k, gl[k]])))
+      : null
+  }
+
+  capturePreviousPaths() {
     const w = this.w
 
     // Streaming scroll: snapshot the outgoing frame's parsed rows + pixel
@@ -770,10 +855,17 @@ export default class Series {
     // reflowing marks. See AxisTransition.
     captureAxisChrome(w)
 
+    // Circle snapshot (pie, donut, polarArea, radialBar, radar): its centre
+    // and radius, so a circle the chrome re-centres or resizes eases there
+    // instead of jumping. See CircleTransition.
+    captureCircle(w)
+
     // Data-label snapshot (opt-in): position + value of bar/column labels, so
     // a data-change update can ride labels to their new slot and count their
     // value up. See DataLabelTransition. No-op unless the feature is on.
     captureDataLabels(w)
+    // The labels of a series the legend is hiding, to carry out with it.
+    captureExitLabels(w)
 
     // Non-axis charts (pie/donut/radialBar) overwrite previousPaths with the
     // raw series values at the end anyway — skip the DOM captures entirely.
@@ -880,6 +972,21 @@ export default class Series {
         )
 
         const dArr = []
+        // What each tile's label showed, so a label the next render adds (or
+        // draws differently) fades in rather than appearing at full strength
+        // over a tile still growing.
+        /** @type {Map<string | null, string>} */
+        const labelled = new Map()
+        /** @type {Set<string | null>} */
+        const fading = new Set()
+        w.dom.baseEl
+          .querySelectorAll(`${base} .apexcharts-data-labels[data\\:key]`)
+          .forEach((/** @type {Element} */ el) => {
+            labelled.set(el.getAttribute('data:key'), Series.treemapLabelLook(el))
+            if (parseFloat(el.getAttribute('opacity') ?? '1') < 0.999) {
+              fading.add(el.getAttribute('data:key'))
+            }
+          })
 
         for (let i = 0; i < seriesEls.length; i++) {
           /**
@@ -894,12 +1001,114 @@ export default class Series {
             width: parseFloat(getAttr('width') ?? '0'),
             height: parseFloat(getAttr('height') ?? '0'),
           }
-          dArr.push({
+          const entry = {
             rect,
             color: seriesEls[i].getAttribute('color'),
-          })
+            fill: seriesEls[i].getAttribute('fill'),
+            label: labelled.get(getAttr('data:key')) ?? '',
+            // Still fading in (a move was under way): its successor fades in
+            // too, rather than appearing at full strength.
+            labelFading: fading.has(getAttr('data:key')),
+          }
+          // Read back by data index (previousPaths[i][j]), so stored by it.
+          // In DOM order, a zoomed treemap (which draws only the branch's
+          // leaves) started every tile from another tile's box.
+          const j = parseInt(getAttr('j') ?? '', 10)
+          if (Number.isFinite(j) && j >= 0) dArr[j] = entry
+          else dArr.push(entry)
         }
         w.globals.previousPaths.push(dArr)
+      }
+    }
+
+    // A nested treemap's parent containers, by series and branch, so they ease from
+    // their old boxes with the tiles inside them (Treemap._drawParent).
+    /** @type {NonNullable<import('../types/internal').ChartStateW['globals']['prevTreemapParents']>} */
+    const parents = new Map()
+    if (w.config.chart.type === 'treemap') {
+      w.dom.baseEl
+        .querySelectorAll('.apexcharts-treemap-parent-rect[data\\:key]')
+        .forEach((/** @type {Element} */ el) => {
+          const box = ['x', 'y', 'width', 'height'].map((a) =>
+            parseFloat(el.getAttribute(a) ?? ''),
+          )
+          // Branch keys repeat from one series to the next (each has its own
+          // root and its own "/0:G1"), so the series is part of the key.
+          const ri = el
+            .closest('.apexcharts-series')
+            ?.getAttribute('data:realIndex')
+          // Its header strip too: a zoom changes a container's depth, and
+          // with it the strip's height and colours.
+          const head = el.parentElement?.querySelector(
+            '.apexcharts-treemap-parent-header',
+          )
+          const hb = head
+            ? ['x', 'y', 'width', 'height'].map((a) =>
+                parseFloat(head.getAttribute(a) ?? ''),
+              )
+            : null
+          if (box.every(Number.isFinite) && ri != null) {
+            parents.set(`${ri}|${el.getAttribute('data:key') ?? ''}`, {
+              x: box[0],
+              y: box[1],
+              width: box[2],
+              height: box[3],
+              fill: el.getAttribute('fill'),
+              header:
+                head && hb && hb.every(Number.isFinite)
+                  ? {
+                      x: hb[0],
+                      y: hb[1],
+                      width: hb[2],
+                      height: hb[3],
+                      fill: head.getAttribute('fill'),
+                      look: Series.treemapHeaderLook(
+                        el.parentElement?.querySelector(
+                          '.apexcharts-treemap-parent-label',
+                        ),
+                      ),
+                    }
+                  : null,
+            })
+          }
+        })
+    }
+    w.globals.prevTreemapParents = parents.size ? parents : null
+
+    // A click-to-zoom also needs what the new view will leave out: the whole
+    // outgoing picture, for Treemap to carry off the plot, including what an
+    // earlier zoom still moving is carrying off. Its gradients, patterns and
+    // filters live in the old render's defs, which go with it: copied too,
+    // under ids of their own, so nothing the new render defines is shadowed.
+    w.globals.prevTreemapView = null
+    if (w.config.chart.type === 'treemap' && w.globals.treemapZoom) {
+      const view = w.dom.baseEl.querySelector('.apexcharts-treemap')
+      if (view) {
+        const copy = /** @type {Element} */ (view.cloneNode(true))
+        const tag = `zoom${++Series.ghostDefs}`
+        /** @type {Map<string, Element>} */
+        const defs = new Map()
+        copy.querySelectorAll('[fill^="url("], [stroke^="url("], [filter^="url("]').forEach((el) => {
+          ;['fill', 'stroke', 'filter'].forEach((a) => {
+            const m = /^url\(#([^)]+)\)$/.exec(el.getAttribute(a) || '')
+            if (!m) return
+            if (!defs.has(m[1])) {
+              const src = w.dom.baseEl.querySelector(`[id="${m[1]}"]`)
+              if (!src) return
+              const c = /** @type {Element} */ (src.cloneNode(true))
+              c.setAttribute('id', `${m[1]}-${tag}`)
+              defs.set(m[1], c)
+            }
+            el.setAttribute(a, `url(#${m[1]}-${tag})`)
+          })
+        })
+        if (defs.size) {
+          const holder = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+          holder.setAttribute('class', 'apexcharts-treemap-ghost-defs')
+          defs.forEach((c) => holder.appendChild(c))
+          copy.appendChild(holder)
+        }
+        w.globals.prevTreemapView = copy
       }
     }
   }

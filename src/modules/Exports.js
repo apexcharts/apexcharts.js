@@ -556,6 +556,13 @@ class Exports {
       const width = w.globals.svgWidth * scale
       const height = w.globals.svgHeight * scale
 
+      // A plot or circle still easing to a new layout (LayoutTransition,
+      // CircleTransition) lands first: the export is of the chart as laid
+      // out, not of a frame on the way. Exporting right after an update
+      // resolves (add a title, then export) is exactly its first frame.
+      w.globals.layoutTween?.finish()
+      w.globals.circleTween?.finish()
+
       const clonedNode = /** @type {HTMLElement} */ (
         w.dom.elWrap.cloneNode(true)
       )

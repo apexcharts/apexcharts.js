@@ -28,7 +28,11 @@
 
 import { Environment } from '../../utils/Environment'
 import Utils from '../../utils/Utils'
-import { captureLayout, transitionLayout } from './LayoutTransition'
+import {
+  captureLayout,
+  pendingUntilPaint,
+  transitionLayout,
+} from './LayoutTransition'
 import {
   lengthTransitionEnabled,
   morphEasing,
@@ -172,13 +176,16 @@ function composeYMap(o, n) {
  */
 export function captureAxisChrome(w) {
   const gl = w.globals
+  // An update earlier in this same tick already captured what is on screen;
+  // its render never got there (see pendingUntilPaint).
+  if (gl.prevChromeFrame?.pending) return
   gl.prevChromeFrame = null
   if (!gl.axisCharts || !Environment.isBrowser()) return
   const root = w.dom.baseEl
   if (!Utils.elementExists(root)) return
   try {
     const yLabels = grabLabels(root, Y_LABELS_SEL, 'y')
-    gl.prevChromeFrame = {
+    gl.prevChromeFrame = pendingUntilPaint({
       xLabels: grabLabels(root, X_LABELS_SEL, 'x'),
       yLabels,
       vGrid: grabLines(root, V_GRID_SEL, 'x1'),
@@ -193,7 +200,7 @@ export function captureAxisChrome(w) {
       // needing more or less room) eases instead of jumping. See
       // LayoutTransition.
       layout: captureLayout(w),
-    }
+    })
   } catch (_) {
     gl.prevChromeFrame = null
   }
@@ -540,7 +547,9 @@ export function applyAxisTransition(w, { layout = true } = {}) {
   const gl = w.globals
   const chrome = gl.prevChromeFrame
   gl.prevChromeFrame = null
-  if (!chrome || !gl.axisCharts || !Environment.isBrowser()) return
+  // Not pending any more: a frame was painted since it was captured, so it
+  // is not what is on screen (its own update never consumed it).
+  if (!chrome?.pending || !gl.axisCharts || !Environment.isBrowser()) return
   if (!lengthTransitionEnabled(w)) return
   // Any animated data-change render qualifies, including identity joins
   // (zoom re-projections, same-length value updates) and pure reorders (a

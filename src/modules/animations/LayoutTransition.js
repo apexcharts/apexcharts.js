@@ -61,6 +61,60 @@ function currentPlotRect(w) {
 }
 
 /**
+ * A captured picture of the screen (the axis chrome, a circle) stays the
+ * truth until the next frame is painted, and only until then.
+ *
+ * Two updates in one tick (an updateOptions and an updateSeries from the
+ * same handler) each capture before rendering, but the first one's render
+ * never reaches the screen: the second capture would read it, the first
+ * update's tween would ease between two identical layouts, and the second
+ * would find nothing, so everything jumped. While the first capture is still
+ * pending the second one keeps it. And once a frame has been painted, a
+ * capture nobody consumed (its update was skipped as identical) no longer
+ * describes the screen, so it is not replayed by some later render.
+ *
+ * @template {object} T
+ * @param {T} frame
+ * @returns {T & {pending: boolean}}
+ */
+export function pendingUntilPaint(frame) {
+  const held = /** @type {T & {pending: boolean}} */ ({ ...frame, pending: true })
+  BrowserAPIs.requestAnimationFrame(() => {
+    held.pending = false
+  })
+  return held
+}
+
+// Hit-testing, zoom, selection and keyboard focus all map pointer positions
+// through the FINAL layout. Hovering mid-flight is harmless (a tooltip a few px
+// off for a moment), but a gesture that acts on a position lands the tween
+// first.
+const GESTURES = ['pointerdown', 'touchstart', 'wheel', 'keydown']
+
+/**
+ * Land a plot tween (`finish`) on the first gesture inside the chart that acts
+ * on a position. Not one on the legend or toolbar: a quick second legend click
+ * must start from where the plot is, not from a snap. Shared with
+ * CircleTransition, so one gesture lands both tweens of an update.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {() => void} finish
+ * @returns {() => void} removes the listeners
+ */
+export function landOnGesture(w, finish) {
+  const wrap = w.dom.elWrap
+  const land = (/** @type {Event} */ e) => {
+    const t = /** @type {Element | null} */ (e.target)
+    if (t?.closest?.('.apexcharts-legend, .apexcharts-toolbar, .apexcharts-menu')) {
+      return
+    }
+    finish()
+  }
+  GESTURES.forEach((t) => wrap?.addEventListener(t, land, true))
+  return () => GESTURES.forEach((t) => wrap?.removeEventListener(t, land, true))
+}
+
+/**
  * Numeric attributes of an element, or undefined unless all are numbers.
  *
  * @param {Element | null | undefined} el
@@ -89,8 +143,9 @@ function lineGroup(line) {
  * labels' width, not the plot rect), and the extents that also carry a
  * padding of their own (gridline ends, bands, clip rects and the x axis line
  * reach past the plot by half a bar on a numeric axis, which changes with the
- * bar count). Called from captureAxisChrome, i.e. before the DOM is torn down
- * for the incoming update.
+ * bar count). Called from captureAxisChrome (captureCircle for the circle
+ * charts without axes), i.e. before the DOM is torn down for the incoming
+ * update.
  *
  * @param {import('../../types/internal').ChartStateW} w
  * @returns {{rect: PlotRect, shifts: Record<string, [number, number]>, ends: Record<string, number[]>}}
@@ -137,7 +192,8 @@ export function captureLayout(w) {
 /**
  * Ease the plot from the captured rect to the one just rendered. A no-op when
  * nothing moved. Called by applyAxisTransition, after the tick transitions,
- * with the set of nodes those already drive.
+ * with the set of nodes those already drive, and by applyCircleTransition for
+ * the circle charts that have no axes (pie, donut, polarArea, radialBar).
  *
  * @param {import('../../types/internal').ChartStateW} w
  * @param {{rect: PlotRect, shifts: Record<string, [number, number]>, ends?: Record<string, number[]>} | null | undefined} from
@@ -316,6 +372,9 @@ export function transitionLayout(w, from, { driven, duration, ease }) {
     if (bottom) drive(tick, ['y1', 'y2'], (v, R) => v + dH(R))
   })
   graphical.querySelectorAll('.apexcharts-xaxis').forEach((/** @type {Element} */ g) => {
+    // A radar's category labels sit around its circle, not on the plot's
+    // edge: they ride the circle's own transform (CircleTransition).
+    if (g.closest('.apexcharts-radar-series')) return
     if (bottom) nudge(g, (R) => [0, dH(R)])
     g.querySelectorAll(':scope > line').forEach((/** @type {Element} */ line) =>
       easeFrom(line, ['x1', 'x2'], ends.xline, sx),
@@ -358,22 +417,8 @@ export function transitionLayout(w, from, { driven, duration, ease }) {
 
   const lerp = (/** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ e) =>
     a + (b - a) * e
-  // Hit-testing, zoom, selection and keyboard focus all map pointer
-  // positions through the FINAL layout. Hovering mid-flight is harmless (a
-  // tooltip a few px off for a moment), but a gesture that acts on a position
-  // lands the tween first. Not one on the legend or toolbar: a quick second
-  // legend click must start from where the plot is, not from a snap.
-  const wrap = w.dom.elWrap
-  const GESTURES = ['pointerdown', 'touchstart', 'wheel', 'keydown']
-  const land = (/** @type {Event} */ e) => {
-    const t = /** @type {Element | null} */ (e.target)
-    if (t?.closest?.('.apexcharts-legend, .apexcharts-toolbar, .apexcharts-menu')) {
-      return
-    }
-    token.finish()
-  }
-  const unlisten = () =>
-    GESTURES.forEach((t) => wrap?.removeEventListener(t, land, true))
+  // A gesture that acts on a position lands the tween first (landOnGesture).
+  let unlisten = () => {}
 
   const token = {
     graphical,
@@ -400,7 +445,7 @@ export function transitionLayout(w, from, { driven, duration, ease }) {
   }
 
   gl.layoutTween = token
-  GESTURES.forEach((t) => wrap?.addEventListener(t, land, true))
+  unlisten = landOnGesture(w, () => token.finish())
   paint(0)
   const startAt = performance.now()
   /** @param {number} now */

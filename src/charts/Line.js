@@ -700,11 +700,24 @@ class Line {
       // Animated update: ride the markers along the morph instead of hiding
       // them (survivors translate, enters fade). Applies to zooms and value
       // updates too (identity joins), not just length changes.
-      tweenSeriesMarkers(w, {
+      const riding = tweenSeriesMarkers(w, {
         elPointsMain: this.elPointsMain,
         realIndex,
         speed: w.config.chart.animations.dynamicAnimation.speed,
       })
+      // A line drawn without a stroke has no path, and the path's morph (or,
+      // when nothing animates, Graphics.renderPaths) is what reveals the
+      // markers held above. With no path nothing ever did: after any update
+      // that did not ride them, every marker stayed hidden. There is no line
+      // to wait for, so they show now.
+      if (
+        !riding &&
+        type === 'line' &&
+        !w.config.stroke.show &&
+        (w.globals.dataChanged || w.globals.resized)
+      ) {
+        this.elPointsMain.node.classList.remove('apexcharts-element-hidden')
+      }
       // On a LAYOUT change additionally hide the data labels until the morph
       // settles so they never float off the line.
       if (seriesJoin(w, realIndex) && this.elDataLabelsWrap?.node) {

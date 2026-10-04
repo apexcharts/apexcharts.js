@@ -411,10 +411,23 @@ export default class Helpers {
 
       series = this._getSeriesBasedOnCollapsedState(series)
 
-      this.lgCtx.updateSeries(
+      const updated = this.lgCtx.updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled,
       )
+      // `risingSeries` describes the render that shows the series, not the
+      // chart from then on. Left set, every later update treated the series
+      // as rising again: a scatter's points shrank to nothing and regrew on
+      // each data refresh, and updateSeries never took its fast path until
+      // the next legend click.
+      const settled = () => {
+        w.globals.risingSeries = []
+      }
+      if (updated && typeof updated.then === 'function') {
+        updated.then(settled, settled)
+      } else {
+        settled()
+      }
     }
   }
 

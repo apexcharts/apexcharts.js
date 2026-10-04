@@ -559,6 +559,13 @@ export interface ChartGlobals
   barPadForNumericAxis: number
   padHorizontal: number
   radialSize: number
+  /**
+   * Where a circle chart (pie, donut, polarArea, radialBar, radar) drew its
+   * circle this render: its root group, the visual centre in plot-local
+   * coordinates and the visual radius (after customScale and offsets). Set by
+   * the renderer, reset every render, read by CircleTransition.
+   */
+  circleGeometry: { node: Element; cx: number; cy: number; r: number } | null
   /** vertical band (px) reserved above/below a pie for outer name labels */
   pieExternalLabelMarginY: number
   barHeight: number
@@ -586,6 +593,8 @@ export interface ChartGlobals
   prevPolarAngles: number[] | null
   // ...and its last-drawn slice radii, for the same reason: their scale
   // depends on draw order (see Pie.draw), so they are stashed, not rebuilt.
+  // As fractions of radialSize, so a circle the chrome resized starts its
+  // slices at the new radius (CircleTransition scales the rest).
   prevPolarSizes: number[] | null
   // Streaming scroll (StreamScroll) + variable-length transitions
   // (LengthTransition/PathReconcile): previous frame's parsed rows, pixel
@@ -632,6 +641,8 @@ export interface ChartGlobals
       shifts: Record<string, [number, number]>
       ends: Record<string, number[]>
     }
+    // Until the next frame is painted (LayoutTransition.pendingUntilPaint).
+    pending: boolean
   } | null
   // The plot-layout tween in flight (LayoutTransition), if any. Its in-flight
   // rect is where the next update's layout change starts from.
@@ -643,6 +654,39 @@ export interface ChartGlobals
   } | null
   // The chrome tweens AxisTransition has running; each entry lands its tween.
   chromeTweens: Set<() => void> | null
+  // A circle chart's outgoing circle, captured before an update's teardown
+  // (CircleTransition.captureCircle) and consumed once after it mounts.
+  // `circle` is what was on screen (in flight, mid-tween), `rendered` where
+  // that render drew it; `layout` the plot rect of a chart without axes.
+  prevCircleFrame: {
+    type: string
+    circle: { cx: number; cy: number; r: number }
+    rendered: { cx: number; cy: number; r: number }
+    // The plot origin the circle is measured from.
+    origin: { x: number; y: number }
+    // What the circle drew, in its svg's space, and that svg's size.
+    drawn: { l: number; t: number; r: number; b: number; W: number; H: number } | null
+    layout: {
+      rect: { x: number; y: number; w: number; h: number }
+      shifts: Record<string, [number, number]>
+      ends: Record<string, number[]>
+    } | null
+    // Each text inside the circle by `${class}#${ordinal}`: its middle in
+    // plot space and its scale there.
+    texts: Map<string, { x: number; y: number; k: number; o: number }>
+    // Until the next frame is painted (LayoutTransition.pendingUntilPaint).
+    pending: boolean
+  } | null
+  // The circle tween in flight (CircleTransition), if any. Its in-flight
+  // circle is where the next update's move starts from.
+  circleTween: {
+    node: Element
+    circle: { cx: number; cy: number; r: number }
+    // Where it is going: the render's own circle.
+    target: { cx: number; cy: number; r: number }
+    done: boolean
+    finish(): void
+  } | null
   // Bar/column data-label snapshot (per-datum pixel position + raw value),
   // captured alongside prevStreamFrame and consumed once by
   // DataLabelTransition after a data-change re-render mounts. Keyed by
@@ -651,6 +695,50 @@ export interface ChartGlobals
     string,
     { cx: number; cy: number; val: number }
   > | null
+  // Clones of the labels of a series the legend is hiding, with the old pixel
+  // positions of their points; consumed once by playExitLabels.
+  exitLabels: Array<{
+    realIndex: number
+    node: Element
+    key: string | null
+    oldX: Array<number | null>
+    oldY: Array<number | null>
+  }> | null
+  // A series the legend is showing: its points' pixels while it lay hidden,
+  // where its labels rise from (playExitLabels).
+  riseLabels: Map<
+    number,
+    { oldX: Array<number | null>; oldY: Array<number | null> }
+  > | null
+  // A nested treemap's parent container boxes by `${realIndex}|${branch key}`, captured with
+  // previousPaths, so the containers ease with their tiles on an update.
+  prevTreemapParents: Map<
+    string,
+    {
+      x: number
+      y: number
+      width: number
+      height: number
+      fill?: string | null
+      header?: {
+        x: number
+        y: number
+        width: number
+        height: number
+        fill: string | null
+        look: string
+      } | null
+    }
+  > | null
+  // The last capture of what is on screen (Series.getPreviousPaths), until
+  // the next frame is painted: a second update in the same tick reuses it.
+  pendingCapture: (Record<string, any> & { pending: boolean }) | null
+  // A treemap click-to-zoom on its way to the next render: the branch keys
+  // focused before and after (null = the whole tree). Consumed by the draw.
+  treemapZoom: { from: string | null; to: string | null } | null
+  // The outgoing treemap picture, captured for a zoom: what the new view
+  // leaves out rides off the plot from it.
+  prevTreemapView: Element | null
   // Guards the single rAF that reveals a large-dataset bulk render
   // (see Animations.revealBulk). Re-armed each render so updates fade in too.
   bulkRevealScheduled: boolean
