@@ -373,7 +373,7 @@
   "bugs": {
     "url": "https://github.com/apexcharts/apexcharts.js/issues"
   },
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://apexcharts.com",
   "sideEffects": [
     "*.css",
