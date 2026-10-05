@@ -1042,12 +1042,16 @@ class Exports {
         rows.push(columns.join(columnDelimiter))
       }
 
-      Array.from(byCategory.keys())
-        .sort()
-        .forEach((key) => {
-          const { cat, values } = /** @type {{cat: any, values: string[]}} */ (
-            byCategory.get(key)
-          )
+      Array.from(byCategory.values())
+        .sort((a, b) => {
+          // Numbers and Dates by value (as text 10 sorts before 9), then strings
+          const aText = typeof a.cat === 'string'
+          const bText = typeof b.cat === 'string'
+          if (aText !== bText) return aText ? 1 : -1
+          if (!aText) return a.cat - b.cat
+          return a.cat < b.cat ? -1 : 1
+        })
+        .forEach(({ cat, values }) => {
           // Join here: pushing the array would leave rows.join() to stringify
           // it, which always uses a comma between category and values.
           rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter))

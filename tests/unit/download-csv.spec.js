@@ -549,5 +549,25 @@ describe('Export Csv', () => {
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(csv.match(/Sun Jan 02 2000/g)).toHaveLength(1)
     expect(csv).toContain('Sun Jan 02 2000,2,3')
+    expect(csv).toContain(
+      'Sat Jan 01 2000,1,\nSun Jan 02 2000,2,3\nMon Jan 03 2000,,4',
+    )
+  })
+
+  it('export csv from unequal series orders numeric categories by value', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'scatter' },
+      series: [
+        { name: 'series1', data: [[2, 1], [10, 2]] },
+        { name: 'series2', data: [[9, 3]] },
+      ],
+    })
+    const exports = new Exports(chart.ctx.w, chart.ctx)
+    let csv = ''
+    vi.spyOn(Exports.prototype, 'triggerDownload').mockImplementation((data) => {
+      csv = decodeURIComponent(data)
+    })
+    exports.exportToCSV(chart.w.config.series, 'fileName')
+    expect(csv).toContain('category,series1,series2\n2,1,\n9,,3\n10,2,')
   })
 })
