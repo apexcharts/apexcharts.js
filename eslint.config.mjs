@@ -21,7 +21,6 @@ export default [
       'issues/**',
       '*.config.js',
       '*.config.mjs',
-      'jest.config.js',
     ],
   },
 

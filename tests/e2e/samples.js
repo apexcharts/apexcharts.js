@@ -477,24 +477,3 @@ if (['update', 'test', 'test:ci'].includes(commandInput)) {
       }
     })
 }
-
-// chartVisualTest('bubble', 'simple-bubble', true, async (page) => {
-//   const paths = await page.$('.apexcharts-bubble-series')
-
-//   const attrCX = await paths.$$eval('circle', (nodes) =>
-//     nodes.map((n) => n.getAttribute('cx'))
-//   )
-
-//   attrCX.forEach((cx) => {
-//     expect(cx).toEqual(expect.not.stringContaining('NaN'))
-//   })
-
-//   // BUG: not for every chart
-//   const attrCY = await paths.$$eval('circle', (nodes) =>
-//     nodes.map((n) => n.getAttribute('cy'))
-//   )
-
-//   attrCY.forEach((cy) => {
-//     expect(cy).toEqual(expect.not.stringContaining('NaN'))
-//   })
-// })
