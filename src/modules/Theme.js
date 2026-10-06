@@ -472,17 +472,11 @@ export default class Theme {
     options.tooltip = options.tooltip || {}
     const mode = options.theme.mode
     const palette =
-      mode === 'dark'
-        ? 'palette4'
-        : mode === 'light'
-          ? 'palette1'
-          : options.theme.palette || 'palette1'
+      options.theme.palette ||
+      (mode === 'dark' ? 'palette4' : 'palette1')
     const foreColor =
-      mode === 'dark'
-        ? '#f6f7f8'
-        : mode === 'light'
-          ? '#373d3f'
-          : options.chart.foreColor || '#373d3f'
+      options.chart.foreColor ||
+      (mode === 'dark' ? '#f6f7f8' : '#373d3f')
 
     options.tooltip.theme = mode || 'light'
     options.chart.foreColor = foreColor
