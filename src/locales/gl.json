@@ -51,11 +51,11 @@
       "exportToSVG": "Descargar SVG",
       "exportToPNG": "Descargar PNG",
       "exportToCSV": "Descargar CSV",
-      "menu": "Menu",
+      "menu": "Menú",
       "selection": "Seleccionar",
       "selectionZoom": "Seleccionar Zoom",
       "zoomIn": "Aumentar",
-      "zoomOut": "Disminuír",
+      "zoomOut": "Diminuír",
       "pan": "Navegación",
       "reset": "Reiniciar Zoom",
       "measure": "Medir"
