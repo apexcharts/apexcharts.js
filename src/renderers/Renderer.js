@@ -33,6 +33,7 @@
  * @property {(opts: any) => any} drawText     Series-attached text only (axis/label text stays SVG).
  * @property {(feature: string) => boolean} supports
  * @property {(px: number, py: number) => ({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number}|null)} hitTest
+ * @property {(seriesIndex: number, dataPointIndex: number) => ({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,radius:number}|null)} [findCell] A painted cell's plot-local box by identity (keyboard focus on canvas heatmap cells); optional.
  * @property {(target: any, style: any) => void} restyle
  * @property {() => ({dataURL:string,x:number,y:number,w:number,h:number}|null)} toBitmap
  * @property {() => void} destroy

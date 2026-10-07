@@ -198,22 +198,20 @@ var optionsLine = {
         const newData2 = chartCtx.w.config.series[1].data.slice()
         newData2.shift()
 
-        // check animation end event for just 1 series to avoid multiple updates
-        if (opts.el.node.getAttribute('index') === '0') {
-          window.setTimeout(function () {
-            chartCtx.updateOptions({
-              series: [{
-                data: newData1
-              }, {
-                data: newData2
-              }],
-              subtitle: {
-                text: parseInt(getRandom() * Math.random()).toString(),
-              }
-            }, false, false)
-          }, 300)
-        }
-
+        // animationEnd fires once per animation, not once per series, so
+        // there is no need to filter on the element that finished it
+        window.setTimeout(function () {
+          chartCtx.updateOptions({
+            series: [{
+              data: newData1
+            }, {
+              data: newData2
+            }],
+            subtitle: {
+              text: parseInt(getRandom() * Math.random()).toString(),
+            }
+          }, false, false)
+        }, 300)
       }
     },
     toolbar: {

@@ -7,6 +7,7 @@
  **/
 
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import TooltipUtils from './Utils'
 
 class AxesTooltip {
   /**
@@ -196,7 +197,10 @@ class AxesTooltip {
       const lbFormatter = w.formatters.yLabelFormatters[index]
       const elGrid = ttCtx.getElGrid()
       if (!elGrid) return
-      const seriesBound = elGrid.getBoundingClientRect()
+      // From the plot's top, where the y scale starts: the grid group's box
+      // starts a pixel lower, which drew the crosshair a pixel above the
+      // pointer.
+      const seriesBound = TooltipUtils.plotRect(w)
 
       // We can use the index of any series referenced by the Yaxis
       // because they will all return the same value.

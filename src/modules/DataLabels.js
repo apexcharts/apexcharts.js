@@ -24,7 +24,9 @@ class DataLabels {
    */
   constructor(w, ctx = null) {
     this.w = w
-    this.ctx = ctx // only used for new Scatter(w, ctx) in bubble chart path
+    // The chart instance: handed to dataLabels.formatter as `opts.ctx`, and
+    // to new Scatter(w, ctx) in the bubble chart path.
+    this.ctx = ctx
   }
 
   // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
@@ -170,7 +172,11 @@ class DataLabels {
          * @param {any} v
          */
         const getText = (v) => {
+          // `ctx` is the chart instance. Formatters written against earlier
+          // releases read `opts.ctx.w`, so it stays in the opts next to `w`
+          // instead of throwing on the first label drawn.
           return w.config.dataLabels.formatter(v, {
+            ctx: this.ctx,
             seriesIndex: i,
             dataPointIndex,
             w,

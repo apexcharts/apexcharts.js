@@ -238,6 +238,18 @@ export function computeStagger(opts) {
 }
 
 /**
+ * The chart instance behind each chart state `w`, recorded by the first
+ * Animations built with one (the chart-level instance InitCtxVariables makes
+ * in the chart constructor). Most renderers build their Animations from `w`
+ * alone, and whichever of them finishes the mount animation is the one that
+ * fires `chart.events.animationEnd`, so without this lookup a line, pie or
+ * heatmap chart would hand the user `undefined` where the chart belongs.
+ * A WeakMap keeps `w` free of a reference back to the chart.
+ * @type {WeakMap<object, import('../types/internal').ChartContext>}
+ */
+const chartByState = new WeakMap()
+
+/**
  * ApexCharts Animation Class.
  *
  * @module Animations
@@ -251,6 +263,7 @@ export default class Animations {
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // kept for animationEnd user callback: chart.events.animationEnd(ctx, …)
+    if (ctx && w && !chartByState.has(w)) chartByState.set(w, ctx)
   }
 
   /**
@@ -485,7 +498,10 @@ export default class Animations {
     this.showDelayedElements()
 
     if (typeof w.config.chart.events.animationEnd === 'function') {
-      w.config.chart.events.animationEnd(this.ctx, { el, w })
+      w.config.chart.events.animationEnd(this.ctx || chartByState.get(w), {
+        el,
+        w,
+      })
     }
   }
 

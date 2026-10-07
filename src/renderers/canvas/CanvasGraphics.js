@@ -867,6 +867,10 @@ export default class CanvasGraphics {
     cmd.fill = opts.fill
     cmd.lineCap = opts.strokeLinecap
     cmd.si = opts.realIndex
+    // Data point identity. Only a mark that stands for one point (a bar-like:
+    // Bar.renderSeries) passes `j`; a line or area path stands for the whole
+    // series and records none. hitTest resolves a hovered mark by it.
+    if (typeof opts.j === 'number') cmd.dj = opts.j
     // Mirror the SVG renderPaths side effect so downstream "wait for animation"
     // logic doesn't stall (canvas P2 paints the final frame directly).
     this.w.globals.animationEnded = true

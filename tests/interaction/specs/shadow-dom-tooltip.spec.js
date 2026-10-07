@@ -122,9 +122,12 @@ async function mover(page) {
 async function settledHover(page, move, to) {
   await move({ x: 5, y: 5 })
   await page.waitForTimeout(160)
-  await move(to)
-  await page.waitForTimeout(200)
+  // Enter 1px off `to`, then settle exactly on it, so the pointer ends where
+  // the raced hover's does: a tooltip that follows the cursor (treemap) moves
+  // with that last pixel.
   await move({ x: to.x + 1, y: to.y })
+  await page.waitForTimeout(200)
+  await move(to)
   await page.waitForTimeout(200)
   return readTooltip(page)
 }

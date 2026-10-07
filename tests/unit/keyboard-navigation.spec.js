@@ -241,6 +241,62 @@ describe('KeyboardNavigation', () => {
       expect(kn.seriesIndex).toBe(0)
     })
 
+    // A heatmap or treemap tooltip is one cell's whatever tooltip.shared says
+    // (and it defaults to true); the shared check used to keep keyboard users
+    // on the first row.
+    const cellSeries = [
+      { name: 'A', data: [{ x: 'a', y: 1 }, { x: 'b', y: 2 }] },
+      { name: 'B', data: [{ x: 'a', y: 3 }, { x: 'b', y: 4 }] },
+      { name: 'C', data: [{ x: 'a', y: 5 }, { x: 'b', y: 6 }] },
+    ]
+
+    it('should move up a heatmap row on ArrowUp: series 0 is the bottom row', () => {
+      const chart = chartWithKeyNav({
+        type: 'heatmap',
+        shared: true,
+        series: cellSeries,
+      })
+      const kn = chart.ctx.keyboardNavigation
+      focusSvg(chart)
+      fireKey(chart, 'ArrowUp')
+      fireKey(chart, 'ArrowUp')
+      expect(kn.seriesIndex).toBe(2)
+      fireKey(chart, 'ArrowDown')
+      expect(kn.seriesIndex).toBe(1)
+    })
+
+    it('should move down a heatmap row on ArrowDown when the y axis is reversed', () => {
+      // reversed, series 0 is the top row
+      const chart = chartWithKeyNav({
+        type: 'heatmap',
+        shared: true,
+        series: cellSeries,
+        extra: { yaxis: { reversed: true } },
+      })
+      const kn = chart.ctx.keyboardNavigation
+      focusSvg(chart)
+      fireKey(chart, 'ArrowDown')
+      fireKey(chart, 'ArrowDown')
+      expect(kn.seriesIndex).toBe(2)
+      fireKey(chart, 'ArrowUp')
+      expect(kn.seriesIndex).toBe(1)
+    })
+
+    it('should step through treemap series in order with tooltip.shared on', () => {
+      const chart = chartWithKeyNav({
+        type: 'treemap',
+        shared: true,
+        series: cellSeries,
+      })
+      const kn = chart.ctx.keyboardNavigation
+      focusSvg(chart)
+      fireKey(chart, 'ArrowDown')
+      fireKey(chart, 'ArrowDown')
+      expect(kn.seriesIndex).toBe(2)
+      fireKey(chart, 'ArrowUp')
+      expect(kn.seriesIndex).toBe(1)
+    })
+
     it('should skip collapsed series when navigating with ArrowDown', () => {
       const chart = chartWithKeyNav({
         shared: false,
@@ -474,6 +530,72 @@ describe('KeyboardNavigation', () => {
         new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
       )
       expect(kn.dataPointIndex).toBe(1)
+    })
+
+    // A horizontal bar's box goes where the pointer puts it: a tooltip that
+    // is not intersect-only takes the pointer's sticky path, which captions
+    // the whole row at the index; an intersect one with an arrow goes around
+    // the focused bar alone. A fixed one stays in its corner either way.
+    function horizontalBars({ shared, fixed = false }) {
+      const chart = chartWithKeyNav({
+        type: 'bar',
+        shared,
+        tooltip: {
+          intersect: !shared,
+          ...(fixed && { fixed: { enabled: true } }),
+        },
+        series: [
+          { name: 'A', data: [10, 20, 30] },
+          { name: 'B', data: [15, 25, 35] },
+        ],
+        extra: { plotOptions: { bar: { horizontal: true } } },
+      })
+      const ttCtx = chart.ctx.w.globals.tooltip
+      const kn = chart.ctx.keyboardNavigation
+      const row = vi
+        .spyOn(ttCtx.tooltipPosition, 'placeHorizontalSharedTooltip')
+        .mockReturnValue(true)
+      const around = vi.spyOn(ttCtx.tooltipPosition, 'placeAroundBar')
+      // jsdom matches no escaped `data\:realIndex` selector, so hand the
+      // branch the focused bar's box directly
+      vi.spyOn(kn, '_focusedBarInWrap').mockReturnValue({
+        top: 40,
+        bottom: 60,
+        left: 50,
+        right: 150,
+      })
+      return { kn, ttCtx, row, around }
+    }
+
+    it('places a sticky horizontal bar box around the row, as the pointer does', () => {
+      const { kn, ttCtx, row, around } = horizontalBars({ shared: true })
+      kn._showTooltipBar(1, 2, ttCtx)
+      expect(row).toHaveBeenCalledWith(2)
+      expect(around).not.toHaveBeenCalled()
+    })
+
+    it('places an intersect horizontal bar box around the focused bar alone', () => {
+      const { kn, ttCtx, row, around } = horizontalBars({ shared: false })
+      kn._showTooltipBar(1, 2, ttCtx)
+      expect(row).not.toHaveBeenCalled()
+      expect(around).toHaveBeenCalledTimes(1)
+      const [bar, , j, i] = around.mock.calls[0]
+      expect(bar).toEqual({ top: 40, bottom: 60, left: 50, right: 150 })
+      expect([j, i]).toEqual([2, 1])
+    })
+
+    it('leaves a fixed box in its corner, as the pointer does', () => {
+      for (const shared of [true, false]) {
+        const { kn, ttCtx, row, around } = horizontalBars({
+          shared,
+          fixed: true,
+        })
+        const corner = vi.spyOn(ttCtx, 'drawFixedTooltipRect')
+        kn._showTooltip(1, 2, ttCtx)
+        expect(row).not.toHaveBeenCalled()
+        expect(around).not.toHaveBeenCalled()
+        expect(corner).toHaveBeenCalled()
+      }
     })
   })
 

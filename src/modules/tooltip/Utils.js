@@ -25,6 +25,111 @@ export default class Utils {
   }
 
   /**
+   * The pointer for this event, in client px, as this chart sees it: in a
+   * group `seriesHover` hands each member the pointer already mapped into its
+   * own space (`opt.clientX/Y`), and the raw event only belongs to the
+   * hovered chart. Read it from the event rather than `w.interact`, which a
+   * listener on the chart's root fills in only after this event has passed
+   * the series it is hovering.
+   *
+   * @param {any} e
+   * @param {{ clientX?: number, clientY?: number }} [opt]
+   * @returns {{ x: number, y: number }}
+   */
+  static eventPointer(e, opt = {}) {
+    const touch = e?.type?.startsWith('touch') ? e.touches?.[0] : null
+    return {
+      x: opt.clientX ?? (touch ? touch.clientX : e?.clientX) ?? 0,
+      y: opt.clientY ?? (touch ? touch.clientY : e?.clientY) ?? 0,
+    }
+  }
+
+  /**
+   * The plot area on screen, in client px: its corner is where the plot's
+   * group is translated to (translateX, translateY into the svg), and it is
+   * gridWidth by gridHeight. The same origin `AxisMapping.screenXToPlotPx`
+   * measures from, scaled by any CSS zoom on the chart's container.
+   *
+   * Never the `.apexcharts-grid` group's box: a group measures to the union
+   * of what it happens to draw. The plot's outline starts a pixel down
+   * (`Grid.drawGridArea`), so unless gridlines or row bands reach the top
+   * edge the box starts a pixel below the plot, and on a numeric-x bar chart
+   * the horizontal gridlines run `barPadForNumericAxis` out past both sides.
+   *
+   * `zoom` is that scale (screen px per plot px): a distance measured on
+   * screen from this corner is divided by it to land in plot px, the space
+   * the series are laid out and painted in.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
+   */
+  static plotRect(w) {
+    const svg =
+      w.dom.Paper?.node || w.dom.baseEl?.querySelector('.apexcharts-svg')
+    const box = (svg || w.dom.elWrap).getBoundingClientRect()
+    const zoom =
+      (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1
+    return {
+      left: box.left + w.layout.translateX * zoom,
+      top: box.top + w.layout.translateY * zoom,
+      width: w.layout.gridWidth * zoom,
+      height: w.layout.gridHeight * zoom,
+      zoom,
+    }
+  }
+
+  /**
+   * The plot's corner in elWrap px, the space the tooltip's `style.left/top`
+   * are written in: `plotRect` less elWrap's own corner, both measured. A
+   * rect measured against `plotRect` goes back into elWrap px through this,
+   * never through (translateX, translateY): those leave out whatever moves
+   * the whole svg inside elWrap, `chart.offsetX/offsetY` among them (Core
+   * translates the root svg by them), and the box landed that far off its
+   * mark.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number }}
+   */
+  static plotInWrap(w) {
+    const plot = Utils.plotRect(w)
+    const wrap = w.dom.elWrap.getBoundingClientRect()
+    return { left: plot.left - wrap.left, top: plot.top - wrap.top }
+  }
+
+  /**
+   * Does the chart draw any violin? A violin chart, or a violin series mixed
+   * into a chart of another type (violin is an xy type, so combos take it).
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {boolean}
+   */
+  static hasViolinSeries(w) {
+    return (
+      w.config.chart.type === 'violin' ||
+      (w.config.series || []).some(
+        (/** @type {any} */ s) => s && s.type === 'violin',
+      )
+    )
+  }
+
+  /**
+   * Is this a chart whose violins are painted to canvas, so hovered through
+   * one listener on the whole plot and found by the renderer's hit test
+   * (Intersect.getViolinMark)?
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {boolean}
+   */
+  static isCanvasViolinChart(w) {
+    const renderer = w.globals.activeRenderer
+    return (
+      renderer?.kind === 'canvas' &&
+      typeof renderer.hitTest === 'function' &&
+      Utils.hasViolinSeries(w)
+    )
+  }
+
+  /**
    * @param {import('./Tooltip').default} tooltipContext
    */
   constructor(tooltipContext) {
@@ -64,12 +169,12 @@ export default class Utils {
    ** When hovering over series, you need to capture which series is being hovered on.
    ** This function will return both capturedseries index as well as inner index of that series
    * @memberof Utils
-   * @param {{ hoverArea: any, elGrid: any, clientX: any, clientY: any, context?: any }} opts
+   * @param {{ hoverArea: any, clientX: any, clientY: any, context?: any }} opts
    */
-  getNearestValues({ hoverArea, elGrid, clientX, clientY }) {
+  getNearestValues({ hoverArea, clientX, clientY }) {
     const w = this.w
 
-    const seriesBound = elGrid.getBoundingClientRect()
+    const seriesBound = Utils.plotRect(w)
     const hoverWidth = w.layout.gridWidth
     const hoverHeight = seriesBound.height
 

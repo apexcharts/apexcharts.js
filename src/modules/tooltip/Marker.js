@@ -3,6 +3,7 @@ import Graphics from '../Graphics'
 import Position from './Position'
 import Markers from '../../modules/Markers'
 import Utils from '../../utils/Utils'
+import TooltipUtils from './Utils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { SVGNS } from '../../svg/math'
 
@@ -66,7 +67,11 @@ export default class Marker {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
     this.ctx = tooltipContext.ctx
-    this.tooltipPosition = new Position(tooltipContext)
+    // The tooltip's own instance, not a second one: Position keeps per-hover
+    // state (whether the box left the plot, the page's clipping ancestors)
+    // that the Tooltip reads back when the pointer moves on.
+    this.tooltipPosition =
+      tooltipContext.tooltipPosition ?? new Position(tooltipContext)
     // Markers this module has resized up, so a hover only has to put back the
     // ones it actually touched. See enlargePoints().
     /** @type {Set<any>} */
@@ -149,6 +154,11 @@ export default class Marker {
 
     let cx = point.getAttribute('cx')
     let cy = point.getAttribute('cy')
+    // The marker itself, before `cy` is swapped for a caller's box y below:
+    // on a short plot the box sits right above it.
+    let mark = this.tooltipPosition.isShortPlot()
+      ? this.markExtent(point, cy, appliedSize)
+      : null
 
     if (x !== null && y !== null) {
       cx = x
@@ -162,12 +172,16 @@ export default class Marker {
       if (w.config.chart.type === 'radar') {
         const elGrid = this.ttCtx.getElGrid()
         if (!elGrid) return
-        const seriesBound = elGrid.getBoundingClientRect()
+        const seriesBound = TooltipUtils.plotRect(w)
 
         cx = this.ttCtx.e.clientX - seriesBound.left
+        if (this.tooltipPosition.isShortPlot()) {
+          const py = this.ttCtx.e.clientY - seriesBound.top
+          mark = { top: py, bottom: py }
+        }
       }
 
-      this.tooltipPosition.moveTooltip(cx, cy, appliedSize)
+      this.tooltipPosition.moveTooltip(cx, cy, appliedSize, mark)
     }
   }
 
@@ -206,6 +220,11 @@ export default class Marker {
     // profile put at ~37% of all hover time.
     let lastCx = null
     let lastCy = null
+    // The column's vertical extent, for a short plot's box to sit above all
+    // of it. Taken from the markers themselves: with SVG markers drawn,
+    // `pointsArray` (what columnExtent reads) is never filled.
+    let colTop = Infinity
+    let colBottom = -Infinity
 
     for (let p = 0; p < points.length; p++) {
       const index = points[p].getAttribute('index')
@@ -220,6 +239,11 @@ export default class Marker {
 
       lastCx = points[p].getAttribute('cx') ?? '0'
       lastCy = points[p].getAttribute('cy') ?? '0'
+      const y = parseFloat(lastCy)
+      if (Number.isFinite(y)) {
+        if (y < colTop) colTop = y
+        if (y > colBottom) colBottom = y
+      }
     }
 
     if (lastCx === null) return
@@ -227,12 +251,73 @@ export default class Marker {
     me.tooltipPosition.moveXCrosshairs(parseFloat(lastCx))
 
     if (!ttCtx.fixedTooltip) {
+      // On a short plot the box sits above the whole column, not just the
+      // last series' marker, and above any bars a combo chart has there.
       me.tooltipPosition.moveTooltip(
         parseFloat(lastCx),
         parseFloat(/** @type {string} */ (lastCy)),
         newSize,
+        me.tooltipPosition.isShortPlot()
+          ? me.columnMark(col, colTop, colBottom, newSize)
+          : null,
       )
     }
+  }
+
+  /**
+   * Grid-local extent of a shared column on a short plot: the enlarged
+   * markers' span padded by their hover size, joined with the bars at the
+   * same index when the chart has some.
+   *
+   * @param {number} j
+   * @param {number} top  highest marker centre (smallest y)
+   * @param {number} bottom  lowest marker centre
+   * @param {number} size  hover size
+   * @returns {{ top: number, bottom: number } | null}
+   */
+  columnMark(j, top, bottom, size) {
+    const pad = Number.isFinite(size) ? size : 0
+    /** @type {{ top: number, bottom: number } | null} */
+    let mark = Number.isFinite(top)
+      ? { top: top - pad, bottom: bottom + pad }
+      : null
+    if (this.w.globals.comboCharts && this.ttCtx.tooltipUtil.hasBars()) {
+      const bars = this.tooltipPosition._barsExtentInGrid(j)
+      if (bars) {
+        mark = mark
+          ? {
+              top: Math.min(mark.top, bars.top),
+              bottom: Math.max(mark.bottom, bars.bottom),
+            }
+          : bars
+      }
+    }
+    return mark
+  }
+
+  /**
+   * Grid-local vertical extent of an enlarged marker. A bubble's radius is its
+   * own, so it is measured; other markers are `size` around their centre.
+   * Radar markers sit in a group of their own, so their centre is not in grid
+   * px: the radar branch uses the pointer instead, as it does for x.
+   *
+   * @param {Element} point
+   * @param {string | null} cy
+   * @param {number | undefined} size
+   * @returns {{ top: number, bottom: number } | null}
+   */
+  markExtent(point, cy, size) {
+    const w = this.w
+    if (w.config.chart.type === 'radar') return null
+    if (w.config.chart.type === 'bubble') {
+      const box = /** @type {SVGGraphicsElement} */ (point).getBBox?.()
+      if (box && box.height > 0) {
+        return { top: box.y, bottom: box.y + box.height }
+      }
+    }
+    const c = parseFloat(String(cy))
+    const r = Number.isFinite(size) ? /** @type {number} */ (size) : 0
+    return Number.isFinite(c) ? { top: c - r, bottom: c + r } : null
   }
 
   /**

@@ -58,6 +58,16 @@ type ApexFormatterOpts = {
 }
 
 /**
+ * Opts object passed to `dataLabels.formatter`. The labels drawn at a point
+ * (line, area, rangeArea, scatter, bubble, radar) also get `ctx`, the chart
+ * instance.
+ */
+type ApexDataLabelsFormatterOpts = ApexFormatterOpts & {
+  /** The chart instance, on the labels drawn at a point. */
+  ctx?: ApexCharts
+}
+
+/**
  * Opts object passed to legend.formatter and legend.tooltipHoverFormatter.
  */
 type ApexLegendFormatterOpts = {
@@ -80,6 +90,8 @@ type ApexColorFormatterOpts = {
  * matrix; `y1`/`y2` are populated for range-bar / range-area tooltips.
  */
 type ApexTooltipCustomOpts = {
+  /** The chart instance the tooltip belongs to. */
+  ctx?: ApexCharts
   series: number[][]
   seriesIndex: number
   dataPointIndex: number
@@ -1396,6 +1408,7 @@ declare namespace ApexCharts {
   export type { ApexChartContext }
   export type { ApexChartEventOpts }
   export type { ApexFormatterOpts }
+  export type { ApexDataLabelsFormatterOpts }
   export type { ApexLegendFormatterOpts }
   export type { ApexColorFormatterOpts }
   export type { ApexTooltipCustomOpts }
@@ -4550,7 +4563,7 @@ type ApexDataLabels = {
   countUp?: {
     enabled?: boolean
   }
-  formatter?(val: string | number | number[], opts?: ApexFormatterOpts): string | number | (string | number)[]
+  formatter?(val: string | number | number[], opts?: ApexDataLabelsFormatterOpts): string | number | (string | number)[]
 }
 
 type ApexResponsive = {

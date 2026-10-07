@@ -376,7 +376,9 @@ class Radar {
         const dataLabelsConfig = w.config.dataLabels
 
         if (dataLabelsConfig.enabled) {
+          // `ctx` as on the other charts labelled at a point (DataLabels)
           const text = dataLabelsConfig.formatter(w.seriesData.series[i][j], {
+            ctx: this.ctx,
             seriesIndex: i,
             dataPointIndex: j,
             w,

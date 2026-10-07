@@ -796,8 +796,26 @@ describe('Tooltip.handleStickyTooltip', () => {
 describe('Tooltip.axisChartsTooltips', () => {
   function runHover(elGrid, clientY) {
     const handleMouseOut = vi.fn()
+    // The plot: x 0..500, y 100..300.
+    const elWrap = document.createElement('div')
+    elWrap.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 500,
+      height: 400,
+    })
     const self = {
-      w: { interact: {} },
+      w: {
+        interact: {},
+        globals: {},
+        layout: {
+          translateX: 0,
+          translateY: 100,
+          gridWidth: 500,
+          gridHeight: 200,
+        },
+        dom: { elWrap },
+      },
       handleMouseOut,
     }
     const opt = { elGrid, ttItems: [] }
@@ -1365,6 +1383,42 @@ describe('Tooltip integration (chart rendering)', () => {
     // The tooltip element should be rendered
     const tooltip = chart.el.querySelector('.apexcharts-tooltip')
     expect(tooltip).not.toBeNull()
+  })
+
+  // Custom tooltips written against earlier releases read the chart off
+  // `opts.ctx`, the timeline demo among them (`opts.ctx.w`). It went missing
+  // when the tooltip modules stopped holding the chart, and every hover threw.
+  it('hands tooltip.custom the chart instance as opts.ctx', () => {
+    const custom = vi.fn((opts) => {
+      const w = opts.ctx.w
+      const name = w.config.series[opts.seriesIndex].name
+      return `<div class="custom-tt">${name} ${opts.y1}-${opts.y2}</div>`
+    })
+    const chart = createChartWithOptions({
+      chart: { type: 'rangeBar' },
+      plotOptions: { bar: { horizontal: true, rangeBarGroupRows: true } },
+      series: [
+        { name: 'Washington', data: [{ x: 'President', y: [1789, 1797] }] },
+        { name: 'Adams', data: [{ x: 'President', y: [1797, 1801] }] },
+      ],
+      tooltip: { custom },
+    })
+
+    chart.tooltip.tooltipLabels.handleCustomTooltip({
+      i: 1,
+      j: 0,
+      y1: 1797,
+      y2: 1801,
+      w: chart.w,
+    })
+
+    expect(custom).toHaveBeenCalledOnce()
+    const opts = custom.mock.calls[0][0]
+    expect(opts.ctx).toBe(chart)
+    expect(opts.w).toBe(chart.w)
+    expect(
+      chart.el.querySelector('.apexcharts-tooltip .custom-tt').textContent,
+    ).toBe('Adams 1797-1801')
   })
 
   it('renders correct number of groups for multi-series chart', () => {

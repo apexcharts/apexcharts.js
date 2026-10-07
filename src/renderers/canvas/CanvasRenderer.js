@@ -1,6 +1,7 @@
 // @ts-check
 import CanvasGraphics from './CanvasGraphics'
 import CanvasCompositor from './CanvasCompositor'
+import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 /**
  * Strata (#2) P2: the Canvas `Renderer`. Records series marks into a display
@@ -22,8 +23,11 @@ import CanvasCompositor from './CanvasCompositor'
  * export composites the series bitmap (Exports.inlineCanvasLayers). Per-point
  * dataPointSelection-visual and keyboard traversal are intentionally SVG-only:
  * they are low value on the dense data canvas targets, and the data-table
- * fallback is the proper accessibility answer there. Animation is not yet
- * bridged, so a render paints the final frame directly.
+ * fallback is the proper accessibility answer there. Heatmap cells are the
+ * exception for the keyboard: a heatmap reads cell by cell, so focus resolves
+ * its cell through findCell and gets the tooltip and outline an SVG cell
+ * does (KeyboardNavigation). Animation is not yet bridged, so a render paints
+ * the final frame directly.
  *
  * Implements the `Renderer` interface (see ../Renderer.js).
  *
@@ -41,6 +45,8 @@ export default class CanvasRenderer {
     this.kind = 'canvas'
     this._g = new CanvasGraphics(w)
     this._compositor = new CanvasCompositor(w)
+    /** @type {any} scratch context for hit-testing marks, made on first use */
+    this._hitCtx = undefined
   }
 
   // ── lifecycle ──
@@ -141,9 +147,9 @@ export default class CanvasRenderer {
 
   // ── interaction ──
   // Line/area/bar/scatter tooltips resolve via coordinate lookup (pointsArray),
-  // so those need no per-mark query. Heatmap cells, however, are hovered by
-  // point (the SVG path hit-tests the <rect> under the cursor); with cells on
-  // canvas there is no node, so hitTest resolves the columnar rect store.
+  // so those need no per-mark query. Heatmap cells and violins, however, are
+  // hovered by point (the SVG path hit-tests the node under the cursor); with
+  // them on canvas there is no node, so hitTest resolves the recorded marks.
   /**
    * Find the cell under a plot-local point (0,0 = plot origin, the same space
    * as the recorded cell geometry). Reverse scan so a later-painted cell wins
@@ -151,14 +157,17 @@ export default class CanvasRenderer {
    * frame even at 100k cells (~100k integer compares). Returns the cell's
    * series/dataPoint index plus its geometry for tooltip positioning, or null
    * when the point is off every cell.
+   *
+   * With no cell there, a bar-like mark (a recorded path standing for one
+   * data point, such as a violin body) is looked for instead; that hit comes
+   * back without geometry.
    * @param {number} px
    * @param {number} py
-   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number})|null}
+   * @returns {({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number})|null}
    */
   hitTest(px, py) {
     const g = this._g
     const n = g.rectCount ? g.rectCount() : 0
-    if (!n) return null
     const rx = g._crx
     const ry = g._cry
     const rw = g._crw
@@ -178,7 +187,86 @@ export default class CanvasRenderer {
         }
       }
     }
+    return this._hitTestMarks(px, py)
+  }
+
+  /**
+   * The bar-like mark whose fill covers a plot-local point. Tested against
+   * the painted shape, the way a hovered SVG path is, so the empty corners of
+   * a violin's bounding box are not part of it. Bar-likes record in series
+   * order, which is also their paint order, so a reverse scan finds the
+   * topmost. Its box is not known here, so none is returned.
+   * @param {number} px
+   * @param {number} py
+   * @returns {({seriesIndex:number,dataPointIndex:number})|null}
+   */
+  _hitTestMarks(px, py) {
+    const list = this._g.displayList()
+    for (let k = list.length - 1; k >= 0; k--) {
+      const cmd = list[k]
+      if (cmd.tag !== 'path' || cmd.dj == null || !cmd.d) continue
+      if (!cmd.fill || cmd.fill === 'none') continue
+      const ctx = this._hitContext()
+      if (!ctx) return null
+      if (!cmd.path2d) {
+        try {
+          cmd.path2d = new Path2D(cmd.d)
+        } catch (e) {
+          continue
+        }
+      }
+      const rule = cmd.fillRule === 'evenodd' ? 'evenodd' : 'nonzero'
+      if (ctx.isPointInPath(cmd.path2d, px, py, rule)) {
+        return { seriesIndex: cmd.si, dataPointIndex: cmd.dj }
+      }
+    }
     return null
+  }
+
+  /**
+   * Find a cell by identity rather than by point: keyboard focus knows the
+   * series and data point it is on, and needs the box the cell was painted in
+   * (plot-local, as hitTest returns it) to place the tooltip and draw a focus
+   * outline. `radius` is the cells' shared corner radius. Null when no cell
+   * was recorded for that pair.
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,radius:number})|null}
+   */
+  findCell(seriesIndex, dataPointIndex) {
+    const g = this._g
+    const n = g.rectCount ? g.rectCount() : 0
+    const si = g._crsi
+    const di = g._crdi
+    for (let k = n - 1; k >= 0; k--) {
+      if (si[k] === seriesIndex && di[k] === dataPointIndex) {
+        return {
+          seriesIndex,
+          dataPointIndex,
+          x: g._crx[k],
+          y: g._cry[k],
+          width: g._crw[k],
+          height: g._crh[k],
+          radius: g._cellRadius || 0,
+        }
+      }
+    }
+    return null
+  }
+
+  /**
+   * A detached 2D context kept for isPointInPath. The painting context
+   * carries the device-pixel and margin transform, which the point would
+   * have to be pushed through first; this one stays at identity, so plot
+   * px go in as they are.
+   * @returns {any}
+   */
+  _hitContext() {
+    if (this._hitCtx === undefined) {
+      const canvas = /** @type {any} */ (BrowserAPIs.createElement('canvas'))
+      this._hitCtx = (canvas?.getContext && canvas.getContext('2d')) || null
+    }
+    return this._hitCtx
   }
 
   /**
@@ -212,5 +300,6 @@ export default class CanvasRenderer {
 
   destroy() {
     this._compositor.destroy()
+    this._hitCtx = undefined
   }
 }

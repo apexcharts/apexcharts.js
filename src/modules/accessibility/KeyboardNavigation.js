@@ -1,5 +1,6 @@
 // @ts-check
 import Graphics from '../Graphics'
+import TooltipUtils from '../tooltip/Utils'
 import Utils from '../../utils/Utils'
 
 /**
@@ -10,12 +11,13 @@ import Utils from '../../utils/Utils'
  * no new rendering logic is introduced.
  *
  * Key bindings (active when the chart SVG has focus):
- *   ArrowRight / ArrowLeft  — next / previous data point
- *   ArrowUp    / ArrowDown  — next / previous series (skips collapsed)
- *   Home                    — first data point in current series
- *   End                     — last data point in current series
- *   Enter / Space           — fire markerClick event (same as mouse click)
- *   Escape                  — exit keyboard nav, return focus to SVG
+ *   ArrowRight / ArrowLeft:  next / previous data point
+ *   ArrowUp    / ArrowDown:  previous / next series (skips collapsed); on a
+ *                            heatmap, the row above / below
+ *   Home:                    first data point in current series
+ *   End:                     last data point in current series
+ *   Enter / Space:           fire markerClick event (same as mouse click)
+ *   Escape:                  exit keyboard nav, return focus to SVG
  */
 export default class KeyboardNavigation {
   /**
@@ -363,14 +365,26 @@ export default class KeyboardNavigation {
       // so ↑/↓ series switching would show the same content — suppress it.
       // For irregular time series the tooltip falls back to individual mode
       // (isXoverlap returns false), so up/down navigation is meaningful there.
+      // A heatmap or treemap tooltip is always one cell's, whatever
+      // tooltip.shared says (and it defaults to true), so ↑/↓ is the only
+      // way to another row.
       const ttCtx = this.w.globals.tooltip
-      if (ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
+      const type = w.config.chart.type
+      const perCell = type === 'heatmap' || type === 'treemap'
+      if (!perCell && ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
         const j = this.dataPointIndex
         const isActuallyShared =
           ttCtx.tooltipUtil &&
           ttCtx.tooltipUtil.isXoverlap(j) &&
           ttCtx.tooltipUtil.isInitialSeriesSameLen()
         if (isActuallyShared) return
+      }
+
+      // A heatmap draws series 0 as its bottom row (its top row on a reversed
+      // y axis), so ↑/↓ step through the series the way the rows run on
+      // screen.
+      if (type === 'heatmap' && !w.config.yaxis[0]?.reversed) {
+        dSeries = -dSeries
       }
 
       // Move between series (↑/↓)
@@ -484,6 +498,7 @@ export default class KeyboardNavigation {
     this._leaveHoveredBar()
 
     if (!ttCtx) return
+    ttCtx.tooltipPosition?.resetPlacementCache()
 
     // Reset markers
     if (ttCtx.marker) {
@@ -574,6 +589,10 @@ export default class KeyboardNavigation {
       // line, area, scatter, bubble, radar, rangeArea
       this._showTooltipAxisLine(i, j, ttCtx)
     }
+
+    // A fixed tooltip sits in its configured corner whatever is focused, as
+    // it does whatever is hovered (Tooltip.seriesHoverByContext).
+    if (ttCtx.fixedTooltip) ttCtx.drawFixedTooltipRect()
   }
 
   /**
@@ -598,22 +617,32 @@ export default class KeyboardNavigation {
 
     // Try to find the element and use its centre as the synthetic position
     const el = this._getFocusableElement(i, j)
+    // a heatmap painted to canvas has no element, only the box it was painted in
+    const painted = el ? null : this._canvasCell(i, j)
     if (el) {
       const rect = el.getBoundingClientRect()
       clientX = rect.left + rect.width / 2
       clientY = rect.top + rect.height / 2
+    } else if (painted) {
+      // Plot px to screen px from the plot's corner, as the pointer's hit
+      // test maps them back (Intersect.handleHeatTreeTooltip).
+      const plot = TooltipUtils.plotRect(w)
+      clientX = plot.left + (painted.x + painted.width / 2) * plot.zoom
+      clientY = plot.top + (painted.y + painted.height / 2) * plot.zoom
     } else if (
       w.globals.pointsArray &&
       w.globals.pointsArray[i] &&
       w.globals.pointsArray[i][j]
     ) {
-      // Axis-line charts: derive from pointsArray pixel coords
+      // Axis-line charts: derive from pointsArray pixel coords. They are
+      // measured from the plot's corner, as the tooltip measures the pointer
+      // when it reads it back; the grid group's box sits a pixel lower.
       const pt = w.globals.pointsArray[i][j]
       const elGrid = ttCtx.getElGrid && ttCtx.getElGrid()
       if (elGrid) {
-        const gridRect = elGrid.getBoundingClientRect()
-        clientX = gridRect.left + (pt[0] || 0)
-        clientY = gridRect.top + (pt[1] || 0)
+        const plot = TooltipUtils.plotRect(w)
+        clientX = plot.left + (pt[0] || 0) * plot.zoom
+        clientY = plot.top + (pt[1] || 0) * plot.zoom
       }
     } else {
       // Fallback: SVG element centre
@@ -642,9 +671,9 @@ export default class KeyboardNavigation {
         const pt = w.globals.pointsArray[i][j]
         const elGrid = ttCtx.getElGrid && ttCtx.getElGrid()
         if (elGrid) {
-          const gridRect = elGrid.getBoundingClientRect()
-          clientX = gridRect.left + (pt[0] || 0)
-          clientY = gridRect.top + (pt[1] || 0)
+          const plot = TooltipUtils.plotRect(w)
+          clientX = plot.left + (pt[0] || 0) * plot.zoom
+          clientY = plot.top + (pt[1] || 0) * plot.zoom
         }
       }
     }
@@ -697,40 +726,76 @@ export default class KeyboardNavigation {
     }
 
     if (w.globals.isBarHorizontal) {
-      // Horizontal rangeBar / timeline: position tooltip using viewport-relative
-      // coords to avoid grid-space vs wrapper-space confusion.
-      const barDomEl = elPath && elPath.node
-      if (barDomEl) {
-        const wrapRect = w.dom.elWrap.getBoundingClientRect()
-        const barRect = barDomEl.getBoundingClientRect()
-
-        // Bar centre in elWrap-relative coordinates
-        const barCx = barRect.left - wrapRect.left // left edge of bar
-        const barCy = barRect.top - wrapRect.top // top edge of bar
-        const bh = barRect.height
-        const bw = barRect.width
-
+      // A fixed box stays in its corner under the pointer, and `_showTooltip`
+      // puts it there for the keyboard too, so nothing here may move it or
+      // give it a placement.
+      const fixed = ttCtx.fixedTooltip
+      // Where the pointer puts the box: a chart whose tooltip is not
+      // intersect-only takes the sticky path, which captions the whole row
+      // (Position.moveStickyTooltipOverBars).
+      if (
+        !fixed &&
+        !ttCtx.showOnIntersect &&
+        !TooltipUtils.isFollowCursor(w) &&
+        ttCtx.tooltipPosition.placeHorizontalSharedTooltip(j)
+      ) {
+        return
+      }
+      // The focused bar in elWrap px, measured, so no SVG translate has to be
+      // accounted for.
+      const bar = this._focusedBarInWrap(i, j, elPath, ttCtx)
+      const tooltipEl = ttCtx.getElTooltip()
+      if (bar && tooltipEl && !fixed) {
         const ttWidth = ttCtx.tooltipRect.ttWidth || 0
         const ttHeight = ttCtx.tooltipRect.ttHeight || 0
-
-        // Vertically: centre the tooltip on the bar
-        const y = barCy + bh / 2 - ttHeight / 2
-
-        // Horizontally: place tooltip at the bar's right edge (positive values)
-        // or left of bar start for negative bars (same logic as Intersect)
-        let x = barCx + bw
-        const baselineX =
-          ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null
-            ? ttCtx.xyRatios.baseLineInvertedY
-            : wrapRect.width / 2
-        if (barCx < baselineX) {
-          x = barCx - ttWidth
+        const origin = TooltipUtils.plotInWrap(w)
+        const plot = {
+          top: origin.top,
+          bottom: origin.top + w.layout.gridHeight,
+          left: origin.left,
+          right: origin.left + w.layout.gridWidth,
         }
 
-        const tooltipEl = ttCtx.getElTooltip()
-        if (tooltipEl) {
-          tooltipEl.style.left = x + 'px'
-          tooltipEl.style.top = y + 'px'
+        // On a plot too short for the box, directly above (or below) the
+        // bar, as the pointer path does.
+        const stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+          (bar.left + bar.right) / 2,
+          bar.top,
+          bar.bottom,
+        )
+        if (stacked) {
+          ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, stacked)
+        } else if (w.config.tooltip.arrow) {
+          // With an arrow, around the bar as the pointer puts it
+          // (Intersect.handleBarTooltip), so the arrow lands on the focused
+          // bar and the box stays on screen.
+          ttCtx.tooltipPosition.applyTooltipPosition(
+            tooltipEl,
+            ttCtx.tooltipPosition.placeAroundBar(bar, plot, j, i),
+          )
+        } else {
+          // Without one, beside the bar's value end, vertically centred on
+          // it, as the pointer puts it: past the right end of a bar right of
+          // the baseline, past the left end of one left of it.
+          const baseline =
+            ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null
+              ? plot.left + ttCtx.xyRatios.baseLineInvertedY
+              : (plot.left + plot.right) / 2
+          const x =
+            (bar.left + bar.right) / 2 < baseline
+              ? bar.left - ttWidth
+              : bar.right
+          const y = (bar.top + bar.bottom) / 2 - ttHeight / 2
+          // Held inside the plot: a bar reaching the axis maximum pushed the
+          // box out of the chart, over whatever stands beside it on the page.
+          // The start wins when the box is bigger than the plot.
+          tooltipEl.style.left =
+            Math.max(Math.min(x, plot.right - ttWidth), plot.left) + 'px'
+          tooltipEl.style.top =
+            Math.max(Math.min(y, plot.bottom - ttHeight), plot.top) + 'px'
+          // No arrow points anywhere, so no side either: a top/bottom left by
+          // an earlier box would flip its shadow.
+          delete tooltipEl.dataset.placement
         }
       }
     } else {
@@ -738,6 +803,37 @@ export default class KeyboardNavigation {
       ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i)
     }
   }
+  /**
+   * The focused horizontal bar's box in elWrap px, measured. A violin is read
+   * as its whole glyph, as the pointer reads it (Intersect.getViolinMark):
+   * body, box lane and jitter or rain, so the box clears a raincloud's lanes
+   * as well as its cloud. Painted to canvas, its body leaves no path, only
+   * the extent Violin.draw cached. Null when nothing of the bar is drawn.
+   * @param {number} i
+   * @param {number} j
+   * @param {any} elPath  the SVG.js wrapper `_showTooltipBar` found
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @returns {{ top: number, bottom: number, left: number, right: number } | null}
+   */
+  _focusedBarInWrap(i, j, elPath, ttCtx) {
+    const w = this.w
+    const isViolin =
+      w.config.chart.type === 'violin' ||
+      /** @type {any} */ (w.config.series[i])?.type === 'violin'
+    const r =
+      (isViolin && ttCtx.intersect?.violinGlyphRect(i, j)) ||
+      elPath?.node?.getBoundingClientRect() ||
+      null
+    if (!r) return null
+    const wrapRect = w.dom.elWrap.getBoundingClientRect()
+    return {
+      top: r.top - wrapRect.top,
+      bottom: r.bottom - wrapRect.top,
+      left: r.left - wrapRect.left,
+      right: r.right - wrapRect.left,
+    }
+  }
+
   /**
    * line / area / scatter / bubble / radar / rangeArea
    * @param {number} i
@@ -879,8 +975,15 @@ export default class KeyboardNavigation {
     const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`)
     const anchor = ttCtx.getSliceAnchor(sliceEl)
     if (anchor) {
-      tooltipEl.style.left = anchor.x - ttWidth / 2 + 'px'
-      tooltipEl.style.top = anchor.y - ttHeight - 10 + 'px'
+      const pos = ttCtx.tooltipPosition.placeOverAnchor(
+        anchor.x,
+        anchor.y,
+        ttWidth,
+        ttHeight,
+        10,
+      )
+      tooltipEl.style.left = pos.x + 'px'
+      tooltipEl.style.top = pos.y + 'px'
     }
   }
   /**
@@ -934,8 +1037,15 @@ export default class KeyboardNavigation {
       const x = centroid.x + (w.layout.translateX || 0)
       const y = centroid.y + (w.layout.translateY || 0)
 
-      tooltipEl.style.left = x - ttWidth / 2 + 'px'
-      tooltipEl.style.top = y - ttHeight - 10 + 'px'
+      const pos = ttCtx.tooltipPosition.placeOverAnchor(
+        x,
+        y,
+        ttWidth,
+        ttHeight,
+        10,
+      )
+      tooltipEl.style.left = pos.x + 'px'
+      tooltipEl.style.top = pos.y + 'px'
     }
   }
   /**
@@ -965,21 +1075,39 @@ export default class KeyboardNavigation {
       type === 'heatmap' ? 'apexcharts-heatmap-rect' : 'apexcharts-treemap-rect'
 
     const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i}'][j='${j}']`)
-    if (cell) {
+    // A heatmap painted to canvas has no node per cell; the renderer kept the
+    // box it painted the cell in.
+    const painted = cell ? null : this._canvasCell(i, j)
+    if (cell || painted) {
       // Use viewport-relative rects so we don't need to worry about SVG
       // translate offsets (cx/cy on these elements are in grid-space).
       const wrapRect = w.dom.elWrap.getBoundingClientRect()
-      const cellRect = cell.getBoundingClientRect()
 
-      const cellCx = cellRect.left - wrapRect.left
-      const cellCy = cellRect.top - wrapRect.top
-      const cellWidth = cellRect.width
-      const cellHeight = cellRect.height
+      let cellCx = 0
+      let cellCy = 0
+      let cellWidth = 0
+      let cellHeight = 0
+      if (cell) {
+        const cellRect = cell.getBoundingClientRect()
+        cellCx = cellRect.left - wrapRect.left
+        cellCy = cellRect.top - wrapRect.top
+        cellWidth = cellRect.width
+        cellHeight = cellRect.height
 
-      // Move crosshair to horizontal centre of cell
-      const cx = parseFloat(cell.getAttribute('cx') ?? '')
-      const cellWidthAttr = parseFloat(cell.getAttribute('width') ?? '')
-      ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2)
+        // Move crosshair to horizontal centre of cell
+        const cx = parseFloat(cell.getAttribute('cx') ?? '')
+        const cellWidthAttr = parseFloat(cell.getAttribute('width') ?? '')
+        ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2)
+      } else if (painted) {
+        // Plot-local, so offset by the plot's corner the way the pointer
+        // path does for the same cell.
+        const plot = TooltipUtils.plotInWrap(w)
+        cellCx = plot.left + painted.x
+        cellCy = plot.top + painted.y
+        cellWidth = painted.width
+        cellHeight = painted.height
+        ttCtx.tooltipPosition.moveXCrosshairs(painted.x + painted.width / 2)
+      }
 
       // Position tooltip to the right of the cell, vertically centred;
       // flip left if it would overflow the right half of the grid.
@@ -990,9 +1118,78 @@ export default class KeyboardNavigation {
         x = cellCx - ttWidth / 2
       }
 
+      // On a plot too short for the box, directly above (or below) the
+      // cell, as the pointer path does.
+      const wasStacked = ttCtx.tooltipPosition.shortPlotPlacement
+      const stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+        cellCx + cellWidth / 2,
+        cellCy,
+        cellCy + cellHeight,
+      )
+      if (stacked) {
+        ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, stacked)
+        return
+      }
+
+      // A heatmap box with an arrow goes where the pointer puts it, so the
+      // arrow lands on the focused cell rather than wherever the last
+      // placement left it.
+      if (
+        type === 'heatmap' &&
+        w.config.tooltip.arrow &&
+        !TooltipUtils.isFollowCursor(w)
+      ) {
+        const { left: plotLeft, top: plotTop } = TooltipUtils.plotInWrap(w)
+        ttCtx.tooltipPosition.applyTooltipPosition(
+          tooltipEl,
+          ttCtx.tooltipPosition.placeAroundCell(
+            {
+              top: cellCy,
+              bottom: cellCy + cellHeight,
+              left: cellCx,
+              right: cellCx + cellWidth,
+            },
+            {
+              top: plotTop,
+              bottom: plotTop + w.layout.gridHeight,
+              left: plotLeft,
+              right: plotLeft + w.layout.gridWidth,
+            },
+            { el: cell, ttWidth, ttHeight },
+          ),
+        )
+        return
+      }
+
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
+      // Back beside the cell: drop the top/bottom the last box left.
+      if (wasStacked) delete tooltipEl.dataset.placement
     }
+  }
+
+  /**
+   * The box a heatmap cell was painted in when the canvas renderer drew the
+   * cells, plot-local. Null for every other chart, and for a heatmap whose
+   * cells are SVG nodes (the SVG renderer, or a cell shape canvas leaves to
+   * SVG), which are found by their attributes instead.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ x: number, y: number, width: number, height: number, radius: number } | null}
+   */
+  _canvasCell(i, j) {
+    if (this.w.config.chart.type !== 'heatmap') return null
+    // ctx.renderer, not its mirror on globals: a data-only update resets the
+    // globals and leaves the mirror empty while the canvas stays in use.
+    const renderer = this.ctx.renderer
+    if (
+      !renderer ||
+      renderer.kind !== 'canvas' ||
+      typeof renderer.findCell !== 'function'
+    ) {
+      return null
+    }
+    return renderer.findCell(i, j)
   }
 
   // ─── Focus class management ───────────────────────────────────────────────
@@ -1004,7 +1201,10 @@ export default class KeyboardNavigation {
   _applyFocusClass(i, j) {
     this._removeFocusClass()
 
-    const el = this._getFocusableElement(i, j) || this._getBatchedFocusEl(i)
+    const el =
+      this._getFocusableElement(i, j) ||
+      this._getBatchedFocusEl(i) ||
+      this._drawCanvasFocusRing(i, j)
     if (el) {
       el.classList.add('apexcharts-keyboard-focused')
       // WCAG 4.1.2 Name, Role, Value: give the focused data point an
@@ -1034,11 +1234,52 @@ export default class KeyboardNavigation {
     )
   }
 
+  /**
+   * A heatmap painted to canvas has no node per cell to carry the focus
+   * stroke and the accessible name, so an outline of the focused cell stands
+   * in for it. It goes in the row's own series group, over the canvas, where
+   * an SVG cell would sit: plot-local, clipped to the plot as the cells are,
+   * and swept away with the group by an update, as an SVG cell's focus
+   * stroke is. Otherwise it lives as long as the focus does
+   * (`_removeFocusClass`).
+   * @param {number} i
+   * @param {number} j
+   * @returns {Element | null}
+   */
+  _drawCanvasFocusRing(i, j) {
+    const cell = this._canvasCell(i, j)
+    if (!cell) return null
+    const host = this.w.dom.baseEl.querySelector(
+      `.apexcharts-heatmap .apexcharts-series[rel='${i + 1}']`,
+    )
+    if (!host) return null
+    const ring = new Graphics(this.w, this.ctx).drawRect(
+      cell.x,
+      cell.y,
+      cell.width,
+      cell.height,
+      cell.radius,
+      'none',
+    )
+    ring.node.classList.add('apexcharts-keyboard-focus-ring')
+    ring.attr({ i, j })
+    // First in the group, so the row's data labels stay readable on top of
+    // the outline as they do over an SVG cell's.
+    host.insertBefore(ring.node, host.firstChild)
+    return ring.node
+  }
+
   _removeFocusClass() {
     if (this._focusedEl) {
       this._focusedEl.classList.remove('apexcharts-keyboard-focused')
       this._focusedEl.removeAttribute('role')
       this._focusedEl.removeAttribute('aria-label')
+      // A canvas cell's outline was drawn for this focus alone.
+      if (
+        this._focusedEl.classList.contains('apexcharts-keyboard-focus-ring')
+      ) {
+        this._focusedEl.remove()
+      }
       this._focusedEl = null
     }
   }

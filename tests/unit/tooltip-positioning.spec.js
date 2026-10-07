@@ -9,6 +9,8 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import TooltipPosition from '../../src/modules/tooltip/Position.js'
+import TooltipUtils from '../../src/modules/tooltip/Utils.js'
+import Intersect from '../../src/modules/tooltip/Intersect.js'
 import { renderMarkerSVG } from '../../src/modules/tooltip/Marker.js'
 import { createChartWithOptions } from './utils/utils.js'
 
@@ -750,5 +752,393 @@ describe('Tooltip element DOM contract', () => {
     expect(marker).not.toBeNull()
     // The new Marker.renderMarkerSVG output is inserted as innerHTML.
     expect(marker.innerHTML).toContain('<svg')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tooltip anchoring: the pointer comes from the event, a point at y = 0 is a
+// position, and `tooltip.arrow: false` hides the arrow without moving the box
+// ---------------------------------------------------------------------------
+
+describe('Tooltip anchoring', () => {
+  const SVG_NS = 'http://www.w3.org/2000/svg'
+
+  /** An SVG element with its attributes set. */
+  function svgEl(tag, attrs = {}) {
+    const el = document.createElementNS(SVG_NS, tag)
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v))
+    return el
+  }
+
+  describe('Position.computeTooltipPosition: arrow: false uses the arrow-mode vertical rule', () => {
+    /** y for the same point with the arrow on and off. */
+    function bothModes(cy, size = 4, layout = {}) {
+      const ys = {}
+      for (const arrow of [true, false]) {
+        const { ttCtx, w } = makeCtx()
+        Object.assign(w.layout, layout)
+        w.config.tooltip.arrow = arrow
+        ys[arrow ? 'on' : 'off'] = new TooltipPosition(
+          ttCtx,
+        ).computeTooltipPosition(50, cy, size)
+      }
+      return ys
+    }
+
+    // grid 300 tall at translateY 20 (elWrap 20..320), box 50 tall
+    it.each([
+      ['mid-plot', 100, 120 - 25 + 2],
+      ['just under the top edge', 30, 50 - 25 + 2],
+      ['on the top edge (clamped to the plot top)', 0, 20],
+      ['above the plot (clamped to the plot top)', -100, 20],
+      ['on the bottom edge (clamped to the plot bottom)', 300, 270],
+      ['below the plot (clamped to the plot bottom)', 500, 270],
+    ])('%s: the same y as arrow mode', (_, cy, expected) => {
+      const { on, off } = bothModes(cy)
+      expect(off.y).toBe(on.y)
+      expect(off.y).toBe(expected)
+    })
+
+    it('centres the box on the point in elWrap px, translateY included', () => {
+      // Without translateY the box rode up by whatever sits above the plot
+      // (title, subtitle, a top legend): the old no-arrow rule put its TOP
+      // edge at the grid-px cy.
+      const bare = bothModes(100, 1, { translateY: 20 }).off
+      const titled = bothModes(100, 1, { translateY: 80 }).off
+      expect(titled.y - bare.y).toBe(60)
+      // box centre = point centre, elWrap px
+      expect(bare.y + 50 / 2).toBe(100 + 20 + 1 / 2)
+      expect(titled.y + 50 / 2).toBe(100 + 80 + 1 / 2)
+    })
+
+    it('clamps to the plot in elWrap px, translateY included', () => {
+      const top = bothModes(-50, 4, { translateY: 80 })
+      expect(top.off.y).toBe(80)
+      expect(top.off.y).toBe(top.on.y)
+      const bottom = bothModes(400, 4, { translateY: 80 })
+      expect(bottom.off.y).toBe(80 + 300 - 50)
+      expect(bottom.off.y).toBe(bottom.on.y)
+    })
+
+    it('still draws no arrow', () => {
+      const { on, off } = bothModes(100)
+      expect(on.arrowY).not.toBeNull()
+      expect(off.arrowY).toBeNull()
+    })
+
+    it('the keyboard-focus nudge clears the point in elWrap px in both modes', () => {
+      for (const arrow of [true, false]) {
+        const { ttCtx, w } = makeCtx()
+        w.config.tooltip.arrow = arrow
+        w.config.chart.accessibility = {
+          enabled: true,
+          keyboard: { navigation: { enabled: true } },
+        }
+        const focused = document.createElement('div')
+        focused.classList.add('apexcharts-keyboard-focused')
+        w.dom.baseEl.appendChild(focused)
+
+        const r = new TooltipPosition(ttCtx).computeTooltipPosition(50, 100, 1)
+        // point at elWrap 120, margin 1 + 12: the box ends 13px above it
+        expect(r.y).toBe(120 - 50 - 13)
+      }
+    })
+  })
+
+  describe('Position.moveDynamicPointsOnHover (shared, markers size 0)', () => {
+    function sharedCtx(pointsArray) {
+      const { w, ttCtx } = makeCtx()
+      w.globals.pointsArray = pointsArray
+      w.globals.comboCharts = false
+      w.config.chart.type = 'line'
+      w.config.series = pointsArray.map(() => ({ data: [1, 2] }))
+      w.seriesData = { series: pointsArray.map(() => [1, 2]) }
+      ttCtx.tooltipUtil = {
+        getHoverMarkerSize: () => 4,
+        getAllMarkers: () => [],
+      }
+      const pos = new TooltipPosition(ttCtx)
+      vi.spyOn(pos, 'moveXCrosshairs').mockImplementation(() => {})
+      const move = vi.spyOn(pos, 'moveTooltip').mockImplementation(() => {})
+      return { w, pos, move }
+    }
+
+    it('a point on the plot top (y = 0) anchors the box at 0, not at the plot bottom', () => {
+      const { pos, move } = sharedCtx([
+        [
+          [30, 120],
+          [80, 0],
+        ],
+        [
+          [30, 200],
+          [80, 150],
+        ],
+      ])
+      pos.moveDynamicPointsOnHover(1)
+      expect(move).toHaveBeenCalledTimes(1)
+      expect(move.mock.calls[0][0]).toBe(80)
+      expect(move.mock.calls[0][1]).toBe(0)
+    })
+
+    it('a null point falls back to the plot bottom', () => {
+      const { pos, move } = sharedCtx([
+        [
+          [30, 120],
+          [80, null],
+        ],
+      ])
+      pos.moveDynamicPointsOnHover(1)
+      expect(move.mock.calls[0][0]).toBe(80)
+      expect(move.mock.calls[0][1]).toBe(300)
+    })
+
+    it('a missing point falls back to the plot bottom', () => {
+      const { pos, move } = sharedCtx([[[30, 120]]])
+      pos.moveDynamicPointsOnHover(1)
+      expect(move.mock.calls[0][1]).toBe(300)
+    })
+
+    it('an ordinary point anchors the box on itself', () => {
+      const { pos, move } = sharedCtx([
+        [
+          [30, 120],
+          [80, 45],
+        ],
+      ])
+      pos.moveDynamicPointsOnHover(1)
+      expect(move.mock.calls[0][1]).toBe(45)
+    })
+  })
+
+  describe('Position.moveDynamicPointOnHover (shared: false, intersect: false)', () => {
+    function singleCtx(pointsArray) {
+      const { w, ttCtx } = makeCtx()
+      w.globals.pointsArray = pointsArray
+      w.config.series = pointsArray.map(() => ({ data: [1, 2] }))
+      ttCtx.tooltipUtil = { getHoverMarkerSize: () => 4 }
+
+      // The hover dot every series keeps for markers.size 0. jsdom's selector
+      // engine does not match the `data:realIndex` attribute the lookup keys
+      // on, so the lookup is answered directly.
+      const dot = svgEl('path', { shape: 'circle' })
+      const realQuery = w.dom.baseEl.querySelector.bind(w.dom.baseEl)
+      w.dom.baseEl.querySelector = vi.fn((sel) =>
+        sel.includes("[data\\:realIndex='0'] .apexcharts-series-markers path")
+          ? dot
+          : realQuery(sel),
+      )
+
+      const pos = new TooltipPosition(ttCtx)
+      vi.spyOn(pos, 'moveXCrosshairs').mockImplementation(() => {})
+      const move = vi.spyOn(pos, 'moveTooltip').mockImplementation(() => {})
+      return { pos, move, dot }
+    }
+
+    it('draws the hover dot for a point at y = 0 (the plot top)', () => {
+      const { pos, move, dot } = singleCtx([
+        [
+          [30, 120],
+          [80, 0],
+        ],
+      ])
+      pos.moveDynamicPointOnHover(1, 0)
+      expect(dot.getAttribute('d')).toBeTruthy()
+      expect(move.mock.calls[0][0]).toBe(80)
+      expect(move.mock.calls[0][1]).toBe(0)
+    })
+
+    it('draws the hover dot for a point on the plot bottom edge', () => {
+      const { pos, dot } = singleCtx([[[80, 300]]])
+      pos.moveDynamicPointOnHover(0, 0)
+      expect(dot.getAttribute('d')).toBeTruthy()
+    })
+
+    it('draws nothing for a null point, which still falls back to y 0', () => {
+      const { pos, move, dot } = singleCtx([
+        [
+          [30, 120],
+          [80, null],
+        ],
+      ])
+      pos.moveDynamicPointOnHover(1, 0)
+      expect(dot.getAttribute('d')).toBeFalsy()
+      expect(move.mock.calls[0][1]).toBe(0)
+    })
+
+    it('draws nothing for a point outside the plot', () => {
+      const { pos, dot } = singleCtx([[[80, -5]]])
+      pos.moveDynamicPointOnHover(0, 0)
+      expect(dot.getAttribute('d')).toBeFalsy()
+    })
+  })
+
+  describe('Position.moveStickyTooltipOverBars (shared columns)', () => {
+    function barsCtx() {
+      const { w, ttCtx } = makeCtx()
+      w.seriesData = {
+        series: [
+          [1, 2],
+          [1, 2],
+        ],
+      }
+      w.config.chart.stacked = false
+      ttCtx.xAxisTicksPositions = [0, 100, 200]
+      ttCtx.dataPointsDividedWidth = 100
+      const pos = new TooltipPosition(ttCtx)
+      vi.spyOn(pos, 'moveXCrosshairs').mockImplementation(() => {})
+      const move = vi.spyOn(pos, 'moveTooltip').mockImplementation(() => {})
+      return { w, pos, move }
+    }
+
+    it('a bar reaching the plot top (cy 0) anchors the box at 0', () => {
+      const { w, pos, move } = barsCtx()
+      const group = svgEl('g', { class: 'apexcharts-bar-series' })
+      const series = svgEl('g', { class: 'apexcharts-series', rel: 1 })
+      series.appendChild(svgEl('path', { j: 1, cx: 150, cy: 0, barWidth: 10 }))
+      group.appendChild(series)
+      w.dom.baseEl.appendChild(group)
+
+      pos.moveStickyTooltipOverBars(1, 0)
+      expect(move.mock.calls[0][1]).toBe(0)
+    })
+
+    it('a canvas bar reaching the plot top anchors the box at 0', () => {
+      const { w, pos, move } = barsCtx()
+      w.globals.barCanvasCoords = { 0: { 1: { cx: 120, cy: 0, barWidth: 20 } } }
+
+      pos.moveStickyTooltipOverBars(1, 0)
+      expect(move.mock.calls[0][0]).toBe(120)
+      expect(move.mock.calls[0][1]).toBe(0)
+    })
+
+    it('no bar at j falls back to the plot bottom', () => {
+      const { pos, move } = barsCtx()
+      pos.moveStickyTooltipOverBars(1, 0)
+      expect(move.mock.calls[0][1]).toBe(300)
+    })
+  })
+
+  describe('TooltipUtils.eventPointer', () => {
+    it('opt.clientX/Y win over the event (a group maps the pointer per member)', () => {
+      const e = { type: 'mousemove', clientX: 1, clientY: 2 }
+      expect(
+        TooltipUtils.eventPointer(e, { clientX: 10, clientY: 20 }),
+      ).toEqual({ x: 10, y: 20 })
+    })
+
+    it('an opt coordinate of 0 still wins (it is a position, not a gap)', () => {
+      const e = { type: 'mousemove', clientX: 50, clientY: 60 }
+      expect(TooltipUtils.eventPointer(e, { clientX: 0, clientY: 0 })).toEqual({
+        x: 0,
+        y: 0,
+      })
+    })
+
+    it('fills each axis on its own: opt where given, the event otherwise', () => {
+      const e = { type: 'mousemove', clientX: 50, clientY: 60 }
+      expect(TooltipUtils.eventPointer(e, { clientX: 5 })).toEqual({
+        x: 5,
+        y: 60,
+      })
+    })
+
+    it('reads a mouse event', () => {
+      const e = new MouseEvent('mousemove', { clientX: 37, clientY: 41 })
+      expect(TooltipUtils.eventPointer(e)).toEqual({ x: 37, y: 41 })
+      expect(TooltipUtils.eventPointer(e, {})).toEqual({ x: 37, y: 41 })
+    })
+
+    it('reads touches[0] of a touch event', () => {
+      for (const type of ['touchmove', 'touchstart']) {
+        const e = {
+          type,
+          touches: [
+            { clientX: 7, clientY: 8 },
+            { clientX: 70, clientY: 80 },
+          ],
+        }
+        expect(TooltipUtils.eventPointer(e)).toEqual({ x: 7, y: 8 })
+      }
+    })
+
+    it('falls back to 0 for whatever is missing', () => {
+      expect(TooltipUtils.eventPointer({ type: 'mousemove' })).toEqual({
+        x: 0,
+        y: 0,
+      })
+      expect(
+        TooltipUtils.eventPointer({ type: 'touchmove', touches: [] }),
+      ).toEqual({ x: 0, y: 0 })
+      expect(TooltipUtils.eventPointer(undefined)).toEqual({ x: 0, y: 0 })
+      expect(TooltipUtils.eventPointer(null, undefined)).toEqual({ x: 0, y: 0 })
+    })
+  })
+
+  describe('Intersect.handleMarkerTooltip', () => {
+    function markerCtx({ arrow, val }) {
+      const { w, ttCtx } = makeCtx()
+      w.config.tooltip.arrow = arrow
+      w.config.chart.type = 'scatter'
+      w.config.plotOptions = { bar: { rangeBarGroupRows: false } }
+      w.interact = {}
+
+      // series > markers wrap > markers > marker, as Markers.js draws them
+      const series = svgEl('g', {
+        class: 'apexcharts-series',
+        rel: 1,
+        'data:realIndex': 0,
+      })
+      const wrap = svgEl('g', { class: 'apexcharts-series-markers-wrap' })
+      const markers = svgEl('g', { class: 'apexcharts-series-markers' })
+      const marker = svgEl('path', {
+        class: 'apexcharts-marker',
+        cx: 140,
+        cy: 120,
+        rel: 3,
+        val,
+      })
+      markers.appendChild(marker)
+      wrap.appendChild(markers)
+      series.appendChild(wrap)
+      w.dom.baseEl.appendChild(series)
+
+      ttCtx.intersect = true
+      ttCtx.showOnIntersect = true
+      ttCtx.tooltipLabels = { drawSeriesTexts: vi.fn() }
+      ttCtx.marker = { enlargeCurrentPoint: vi.fn() }
+
+      const intersect = new Intersect(ttCtx)
+      const run = () =>
+        intersect.handleMarkerTooltip({
+          e: { type: 'mousemove', target: marker },
+          opt: { paths: marker, ttItems: [] },
+          x: 0,
+          y: 0,
+        })
+      return { w, ttCtx, marker, run }
+    }
+
+    // The old no-arrow branch handed over cy + translateY - 1.4 x the box
+    // height (120 + 20 - 70 = 70 here), which put the box well above the
+    // marker, and for a negative value the raw cy: either way not where arrow
+    // mode puts it.
+    it.each([
+      ['arrow: false, positive value', false, 5],
+      ['arrow: false, negative value', false, -5],
+      ['arrow: true, positive value', true, 5],
+      ['arrow: true, negative value', true, -5],
+    ])('%s: the marker centre in grid px', (_, arrow, val) => {
+      const { ttCtx, marker, run, w } = markerCtx({ arrow, val })
+      const out = run()
+      expect(ttCtx.marker.enlargeCurrentPoint).toHaveBeenCalledWith(
+        3,
+        marker,
+        140,
+        120,
+      )
+      expect(out).toEqual({ x: 140, y: 120 })
+      expect(w.interact.capturedSeriesIndex).toBe(0)
+      expect(w.interact.capturedDataPointIndex).toBe(3)
+    })
   })
 })

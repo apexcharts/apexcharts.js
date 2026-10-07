@@ -1,7 +1,7 @@
 // @ts-check
 import Utils from '../../utils/Utils'
 import TooltipUtils from './Utils'
-import { ARROW_TIP_OVERHANG } from './constants'
+import { ARROW_TIP_OVERHANG, POINTER_CLEARANCE_BELOW } from './constants'
 
 /**
  * ApexCharts Tooltip.Intersect Class.
@@ -60,22 +60,22 @@ class Intersect {
     let i, j, cx, cy, width, height
 
     if (canvasCells) {
-      const seriesBound = opt.elGrid.getBoundingClientRect()
-      // `opt.elGrid` is THIS chart's grid, so the pointer has to be this
-      // chart's too. In a group the event belongs to whichever sibling was
-      // hovered, and `seriesHover` hands down the pointer already translated
-      // into each member's own space; pairing the raw event with a sibling's
-      // grid puts the hit test a whole chart-width off and every sibling
-      // resolves to "no cell".
-      const clientX =
-        opt.clientX ??
-        (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX)
-      const clientY =
-        opt.clientY ??
-        (e.type === 'touchmove' ? e.touches[0].clientY : e.clientY)
+      // From the plot's own corner, where the cells start: the grid group's
+      // box sits a pixel lower, which hit-tested the top pixel row of every
+      // cell as the row above it.
+      const seriesBound = TooltipUtils.plotRect(w)
+      // This is THIS chart's plot, so the pointer has to be this chart's too.
+      // In a group the event belongs to whichever sibling was hovered, and
+      // `seriesHover` hands down the pointer already translated into each
+      // member's own space; pairing the raw event with a sibling's plot puts
+      // the hit test a whole chart-width off and every sibling resolves to
+      // "no cell".
+      const pointer = TooltipUtils.eventPointer(e, opt)
+      // Screen px back to plot px, the space the cells were painted in: a
+      // CSS zoom or scale on the chart stretches the one into the other.
       const hit = renderer.hitTest(
-        clientX - seriesBound.left,
-        clientY - seriesBound.top,
+        (pointer.x - seriesBound.left) / seriesBound.zoom,
+        (pointer.y - seriesBound.top) / seriesBound.zoom,
       )
       if (!hit) {
         // off every cell: tell the caller to hide rather than pin a stale cell
@@ -113,8 +113,9 @@ class Intersect {
 
     // Heatmap (arrow mode, not follow-cursor): place the tooltip centered
     // ABOVE the hovered cell with a downward arrow, flipping BELOW when there
-    // is no room above — the same treatment horizontal bars get. The cell rect
-    // is resolved in grid-local coords for both the SVG (<rect>) and canvas
+    // is no room above, and BESIDE it when there is room on neither (a middle
+    // row of a heatmap not much taller than the box). The cell rect is
+    // resolved in grid-local coords for both the SVG (<rect>) and canvas
     // (hitTest) paths, then converted to the elWrap coords the tooltip lives
     // in. Treemap keeps the legacy beside-the-cell placement below.
     const tooltipEl = ttCtx.getElTooltip()
@@ -124,68 +125,78 @@ class Intersect {
       !TooltipUtils.isFollowCursor(w) &&
       tooltipEl
     ) {
-      const elGridRect = opt.elGrid.getBoundingClientRect()
+      const plot = TooltipUtils.plotRect(w)
       const elWrapRect = w.dom.elWrap.getBoundingClientRect()
-      const gridOffsetXInElWrap = elGridRect.left - elWrapRect.left
+      // The plot's corner in elWrap px, measured on both axes (see
+      // TooltipUtils.plotInWrap): translateY leaves out chart.offsetY.
+      const gridOffsetXInElWrap = plot.left - elWrapRect.left
+      const gridOffsetYInElWrap = plot.top - elWrapRect.top
 
       // Cell rect in grid-local coords: the canvas hitTest already returns it;
       // for SVG read the rendered <rect> (robust under any group transform).
       let clLeft, clTop, clRight, clBottom
+      /** @type {Element | null} */
+      let own = null
       if (canvasCells) {
         clLeft = cx
         clTop = cy
         clRight = cx + width
         clBottom = cy + height
       } else {
-        const r = hovered.getBoundingClientRect()
-        clLeft = r.left - elGridRect.left
-        clTop = r.top - elGridRect.top
-        clRight = r.right - elGridRect.left
-        clBottom = r.bottom - elGridRect.top
+        // In a group the hovered <rect> belongs to the sibling under the
+        // pointer, so a member measures its own cell at the same i/j.
+        const node = w.dom.baseEl.contains(hovered)
+          ? hovered
+          : w.dom.baseEl.querySelector(
+              `.apexcharts-heatmap-rect[i='${i}'][j='${j}']`,
+            ) || hovered
+        own = node
+        const r = node.getBoundingClientRect()
+        // From the plot's own corner, as the canvas cells are: the grid
+        // group's box starts a pixel below it, which left the arrow tip a
+        // pixel short of the cell with the box above it and a pixel inside it
+        // with the box below.
+        clLeft = r.left - plot.left
+        clTop = r.top - plot.top
+        clRight = r.right - plot.left
+        clBottom = r.bottom - plot.top
       }
 
-      const ttW = ttCtx.tooltipRect.ttWidth || 0
-      const ttH = ttCtx.tooltipRect.ttHeight || 0
-
       const cellCenterXInElWrap = (clLeft + clRight) / 2 + gridOffsetXInElWrap
-      const cellTopInElWrap = clTop + w.layout.translateY
-      const cellBottomInElWrap = clBottom + w.layout.translateY
+      const cellTopInElWrap = clTop + gridOffsetYInElWrap
+      const cellBottomInElWrap = clBottom + gridOffsetYInElWrap
 
-      const gridTop = w.layout.translateY
-      const gridBottom = w.layout.translateY + w.layout.gridHeight
+      const gridTop = gridOffsetYInElWrap
+      const gridBottom = gridOffsetYInElWrap + w.layout.gridHeight
       const gridLeft = gridOffsetXInElWrap
       const gridRight = gridOffsetXInElWrap + w.layout.gridWidth
 
-      /** @type {'top'|'bottom'} */
-      let placement = 'top'
-      let finalY = cellTopInElWrap - ttH - ARROW_TIP_OVERHANG
-      if (finalY < gridTop) {
-        const belowTop = cellBottomInElWrap + ARROW_TIP_OVERHANG
-        if (belowTop + ttH <= gridBottom) {
-          placement = 'bottom'
-          finalY = belowTop
-        } else {
-          // Neither above nor below fits fully; keep above, clamped in-grid.
-          finalY = gridTop
-        }
+      // A plot too short for the box (a one-row heatmap strip): directly
+      // above (or below) the cell wherever the page has room, out of the plot
+      // if need be, rather than clamped over the cells.
+      const stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+        cellCenterXInElWrap,
+        cellTopInElWrap,
+        cellBottomInElWrap,
+      )
+      if (stacked) {
+        ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, stacked)
+        return { x: stacked.x, y: stacked.y, positioned: true }
       }
 
-      let finalX = cellCenterXInElWrap - ttW / 2
-      if (finalX < gridLeft) finalX = gridLeft
-      if (finalX + ttW > gridRight) finalX = gridRight - ttW
+      const pos = ttCtx.tooltipPosition.placeAroundCell(
+        {
+          top: cellTopInElWrap,
+          bottom: cellBottomInElWrap,
+          left: clLeft + gridOffsetXInElWrap,
+          right: clRight + gridOffsetXInElWrap,
+        },
+        { top: gridTop, bottom: gridBottom, left: gridLeft, right: gridRight },
+        { el: own },
+      )
+      ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, pos)
 
-      // Arrow X in tooltip-local coords, clamped away from the rounded corners.
-      const arrowX = Math.max(10, Math.min(ttW - 10, cellCenterXInElWrap - finalX))
-
-      ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
-        x: finalX,
-        y: finalY,
-        placement,
-        arrowY: null,
-        arrowX,
-      })
-
-      return { x: finalX, y: finalY, positioned: true }
+      return { x: pos.x, y: pos.y, positioned: true }
     }
 
     // Legacy placement (treemap, arrow disabled, or follow-cursor): tooltip
@@ -198,11 +209,7 @@ class Intersect {
     // drifts left by the width of the y-axis and up by everything above the
     // plot area.
     const elWrapRect = w.dom.elWrap.getBoundingClientRect()
-    const elGridRect = opt.elGrid ? opt.elGrid.getBoundingClientRect() : null
-    const gridLeft = elGridRect
-      ? elGridRect.left - elWrapRect.left
-      : w.layout.translateX
-    const gridTop = w.layout.translateY
+    const { left: gridLeft, top: gridTop } = TooltipUtils.plotInWrap(w)
     const gridRight = gridLeft + w.layout.gridWidth
     const gridBottom = gridTop + w.layout.gridHeight
 
@@ -220,15 +227,48 @@ class Intersect {
     x = gridLeft + cellX
     y = gridTop + cellY
 
-    if (TooltipUtils.isFollowCursor(w)) {
+    // This chart's own pointer for this event: `w.interact` lags it by one
+    // event (its listener sits on the chart's root and runs after this one),
+    // and in a group belongs to the hovered sibling, not this member.
+    const followsPointer = TooltipUtils.isFollowCursor(w)
+    const pointer = TooltipUtils.eventPointer(e, opt)
+
+    if (followsPointer) {
       x =
-        (w.interact.clientX ?? 0) -
+        pointer.x -
         elWrapRect.left -
         (cellX > w.layout.gridWidth / 2 ? ttWidth : 0)
       y =
-        (w.interact.clientY ?? 0) -
+        pointer.y -
         elWrapRect.top -
         (cellY > w.layout.gridHeight / 2 ? ttHeight : 0)
+    }
+
+    // Too short a plot for the box beside the cell: directly above (or
+    // below) the cell instead, or the pointer when the box follows it.
+    let stacked = null
+    if (followsPointer) {
+      const py = pointer.y - elWrapRect.top
+      stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+        pointer.x - elWrapRect.left,
+        py,
+        py,
+        { gapBelow: POINTER_CLEARANCE_BELOW },
+      )
+    } else {
+      stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+        gridLeft + cx + width / 2,
+        gridTop + cy,
+        gridTop + cy + height,
+      )
+    }
+    if (stacked) {
+      return {
+        x: stacked.x,
+        y: stacked.y,
+        placement: stacked.placement,
+        arrowX: stacked.arrowX,
+      }
     }
 
     // A label wider than the space beside the cell pushes the box out of the
@@ -260,7 +300,6 @@ class Intersect {
     if (TooltipUtils.hoverTarget(e).classList.contains('apexcharts-marker')) {
       const cx = parseInt(opt.paths.getAttribute('cx'), 10)
       const cy = parseInt(opt.paths.getAttribute('cy'), 10)
-      const val = parseFloat(opt.paths.getAttribute('val'))
 
       j = parseInt(opt.paths.getAttribute('rel'), 10)
       i =
@@ -291,27 +330,18 @@ class Intersect {
       w.interact.capturedSeriesIndex = i
       w.interact.capturedDataPointIndex = j
 
-      const arrowEnabled = !!w.config.tooltip.arrow
-
+      // computeTooltipPosition centres the box beside (cx, cy), cy in grid
+      // px, with the arrow or without it. The no-arrow mode used to pre-shift
+      // y to put the box above the bubble instead (and, for a negative value,
+      // left cy without the translateY that shift had added), so turning the
+      // arrow off moved the box as well as hiding the arrow.
       x = cx
-      if (arrowEnabled) {
-        // Arrow mode handles its own centering on (cx, cy) in
-        // computeTooltipPosition (cy assumed to be in grid-local coords).
-        // Don't apply the legacy "above the bubble" pre-shift, which
-        // would otherwise be re-translated downstream → double-translateY
-        // bug placing the arrow nowhere near the bubble.
-        y = cy
-      } else {
-        y = cy + w.layout.translateY - ttCtx.tooltipRect.ttHeight * 1.4
-        if (val < 0) {
-          y = cy
-        }
-      }
+      y = cy
 
       if (TooltipUtils.isFollowCursor(w)) {
         const elGrid = ttCtx.getElGrid()
         if (!elGrid) return { x, y }
-        const seriesBound = elGrid.getBoundingClientRect()
+        const seriesBound = TooltipUtils.plotRect(w)
         y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
       }
 
@@ -342,12 +372,52 @@ class Intersect {
       e,
       opt,
     })
+    if (barXY.noHit) {
+      // A canvas violin chart with the pointer on no violin: hide, don't pin
+      // one. Its listener is the whole plot, so leaving a violin is one more
+      // move, never the mouseout that gives an interactive box the time to be
+      // reached (Tooltip.onSeriesHover). It gets the same grace here, started
+      // by the first move off the violin and left to run by the ones after;
+      // entering the box or another violin calls it off.
+      if (
+        ttCtx.tConfig.interactive &&
+        tooltipEl?.classList.contains('apexcharts-active')
+      ) {
+        if (ttCtx.offMarkHideTimeout === undefined) {
+          const pointer = TooltipUtils.eventPointer(e, opt)
+          ttCtx.offMarkHideTimeout = setTimeout(
+            () => {
+              ttCtx.offMarkHideTimeout = undefined
+              if (!w.globals.isDestroyed) ttCtx.handleMouseOut(opt)
+            },
+            ttCtx.interactiveHideDelay(pointer.x, pointer.y),
+          )
+        }
+        return
+      }
+      ttCtx.handleMouseOut(opt)
+      return
+    }
+    ttCtx.cancelOffMarkHide?.()
     if (barXY.j === null && barXY.barHeight === 0 && barXY.barWidth === 0) {
       return // bar was not hovered and didn't receive correct coords
     }
 
     i = barXY.i
     const j = barXY.j
+
+    // A violin the hit test found came through the plot-wide listener, which
+    // names no series for axisChartsTooltips to check against
+    // `enabledOnSeries`; the hit test does, so it is checked here.
+    if (
+      barXY.byHitTest &&
+      Array.isArray(ttCtx.tConfig.enabledOnSeries) &&
+      !w.config.tooltip.shared &&
+      ttCtx.tConfig.enabledOnSeries.indexOf(i) < 0
+    ) {
+      ttCtx.handleMouseOut(opt)
+      return
+    }
 
     w.interact.capturedSeriesIndex = i
     w.interact.capturedDataPointIndex =
@@ -403,9 +473,14 @@ class Intersect {
       // use it and let moveXCrosshairs subtract half the band width.
       // Horizontal bar-likes draw no x crosshair; they only feed the x-axis
       // tooltip, which wants the bar's END, i.e. the already-computed `x`.
+      // The centre is measured on screen from the plot's corner
+      // (getBarTooltipXY), so it holds where marks straddle the plot's edges
+      // too (a box plot, a violin, a candlestick). The band is drawn in plot
+      // px, which a CSS zoom or scale on the chart stretches away from screen
+      // px, hence the division (AxisMapping.screenXToPlotPx does the same).
       const crosshairX =
         !w.globals.isBarHorizontal && barXY.barAnchorXInGrid !== null
-          ? barXY.barAnchorXInGrid
+          ? barXY.barAnchorXInGrid / TooltipUtils.plotRect(w).zoom
           : bx
       ttCtx.tooltipPosition.moveXCrosshairs(crosshairX)
     }
@@ -415,27 +490,26 @@ class Intersect {
       (!w.config.tooltip.shared ||
         (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
-      y = y + w.layout.translateY - ttCtx.tooltipRect.ttHeight / 2
-
       if (tooltipEl) {
         const ttW = ttCtx.tooltipRect.ttWidth || 0
         const ttH = ttCtx.tooltipRect.ttHeight || 0
         const arrowEnabled = !!w.config.tooltip.arrow
         const { barAnchorXInGrid, barAnchorYInGrid, barRectInGrid } = barXY
 
-        // Convert from grid-local (elGrid-relative) coords into elWrap-local
-        // coords using the LIVE rect offset between elWrap and elGrid, not
-        // `w.layout.translateX`. translateX is the SVG group's internal
-        // translate which only matches the elWrap→elGrid offset for charts
-        // where the SVG starts flush at elWrap.left; for layouts with a
-        // right-side legend or other padding above the SVG, the two values
-        // can differ by tens of pixels — enough to misalign the tooltip by a
-        // full column.
-        const elGridRect = ttCtx.getElGrid()?.getBoundingClientRect()
-        const elWrapRect = w.dom.elWrap.getBoundingClientRect()
-        const gridOffsetXInElWrap = elGridRect
-          ? elGridRect.left - elWrapRect.left
-          : w.layout.translateX
+        // Convert from grid-local (plot-origin) coords into elWrap-local
+        // coords using the LIVE offset between elWrap and the plot, measured
+        // through the svg on both axes (TooltipUtils.plotInWrap) rather than
+        // assumed to be `w.layout.translateX/Y`: those are only right while
+        // the svg starts flush at elWrap's corner, and chart.offsetX/offsetY
+        // move it.
+        const { left: gridOffsetXInElWrap, top: gridOffsetYInElWrap } =
+          TooltipUtils.plotInWrap(w)
+        const plotInElWrap = {
+          top: gridOffsetYInElWrap,
+          bottom: gridOffsetYInElWrap + w.layout.gridHeight,
+          left: gridOffsetXInElWrap,
+          right: gridOffsetXInElWrap + w.layout.gridWidth,
+        }
 
         /** @type {'left'|'right'|'top'|'bottom' | undefined} */
         let placement
@@ -444,56 +518,36 @@ class Intersect {
         /** @type {number | null} */
         let arrowX = null
         let finalX = x + gridOffsetXInElWrap
-        let finalY = y
+        let finalY = y + gridOffsetYInElWrap - ttH / 2
+
+        // The hovered bar's painted rect, in elWrap px.
+        const barInElWrap = barRectInGrid && {
+          top: barRectInGrid.top + gridOffsetYInElWrap,
+          bottom: barRectInGrid.bottom + gridOffsetYInElWrap,
+          left: barRectInGrid.left + gridOffsetXInElWrap,
+          right: barRectInGrid.right + gridOffsetXInElWrap,
+        }
 
         // For horizontal-orientation bar-likes (horizontal bar, range bar
-        // timeline, boxPlot, funnel, pyramid — all flagged via
+        // timeline, boxPlot, funnel, pyramid, all flagged via
         // `isBarHorizontal` after Config normalization), place the tooltip
-        // ABOVE the bar with a downward arrow. Flip to BELOW when there's
-        // no space above the bar.
-        if (
-          arrowEnabled &&
-          w.globals.isBarHorizontal &&
-          barRectInGrid != null
-        ) {
-          const gridTop = w.layout.translateY
-          const gridBottom = w.layout.translateY + w.layout.gridHeight
-          const gridLeft = gridOffsetXInElWrap
-          const gridRight = gridOffsetXInElWrap + w.layout.gridWidth
-
-          const barCenterXInElWrap =
-            (barRectInGrid.left + barRectInGrid.right) / 2 +
-            gridOffsetXInElWrap
-          const barTopInElWrap = barRectInGrid.top + w.layout.translateY
-          const barBottomInElWrap = barRectInGrid.bottom + w.layout.translateY
-
-          // Default: tooltip above bar, arrow tip at bar's top edge.
-          let proposedTop = barTopInElWrap - ttH - ARROW_TIP_OVERHANG
-          placement = 'top'
-
-          // Flip below when no space above.
-          if (proposedTop < gridTop) {
-            const belowTop = barBottomInElWrap + ARROW_TIP_OVERHANG
-            // Only flip if "below" actually fits. Otherwise stay above
-            // (best of two bad options — at least the arrow points
-            // toward the bar from the top).
-            if (belowTop + ttH <= gridBottom) {
-              placement = 'bottom'
-              proposedTop = belowTop
-            }
-          }
-          finalY = proposedTop
-
-          // Horizontally center on the bar; clamp to grid bounds.
-          finalX = barCenterXInElWrap - ttW / 2
-          if (finalX < gridLeft) finalX = gridLeft
-          if (finalX + ttW > gridRight) finalX = gridRight - ttW
-
-          // Arrow X in tooltip-local coords, clamped away from corners.
-          arrowX = Math.max(
-            10,
-            Math.min(ttW - 10, barCenterXInElWrap - finalX),
+        // ABOVE the bar with a downward arrow, BELOW it when there's no
+        // space above, then above or below out of the plot where the page has
+        // room, and only then BESIDE it, past its value end. Staying above
+        // the bar regardless ran it past the plot's top and, near the top of
+        // the page, off the screen.
+        if (arrowEnabled && w.globals.isBarHorizontal && barInElWrap) {
+          const pos = ttCtx.tooltipPosition.placeAroundBar(
+            barInElWrap,
+            plotInElWrap,
+            j ?? 0,
+            i,
           )
+          placement = pos.placement
+          finalX = pos.x
+          finalY = pos.y
+          arrowX = pos.arrowX
+          arrowY = pos.arrowY
         } else if (
           arrowEnabled &&
           barAnchorXInGrid != null &&
@@ -511,52 +565,119 @@ class Intersect {
             (barRectInGrid?.left ?? barAnchorXInGrid) + gridOffsetXInElWrap
           const barRightInElWrap =
             (barRectInGrid?.right ?? barAnchorXInGrid) + gridOffsetXInElWrap
-          if (barCenterXInElWrap < gridCenterXInElWrap) {
-            placement = 'right'
-            finalX = barRightInElWrap + ARROW_TIP_OVERHANG
+          const rightX = barRightInElWrap + ARROW_TIP_OVERHANG
+          const leftX = barLeftInElWrap - ttW - ARROW_TIP_OVERHANG
+          // Half a pixel of slack: a mark centred on the plot's middle
+          // measures a hair either side of it depending on the renderer.
+          /** @type {Array<'left'|'right'>} */
+          const sides =
+            barCenterXInElWrap < gridCenterXInElWrap - 0.5
+              ? ['right', 'left']
+              : ['left', 'right']
+          // The side facing the plot's middle, as long as the box stays on
+          // the chart's own part of the page. On a plot narrower than about
+          // two boxes (a phone) it may not, on either side: it ran under a
+          // chart standing beside this one, or off the screen.
+          const fits = this._fitsBesideColumn(ttW)
+          const side = sides.find((s) => fits(s === 'right' ? rightX : leftX))
+
+          if (side || !barInElWrap) {
+            placement = side ?? sides[0]
+            finalX = placement === 'right' ? rightX : leftX
+
+            // Center the tooltip vertically on the hovered bar's middle
+            // (rect-derived, not the cy attribute which is offset for
+            // numeric/datetime xaxis). Makes it unambiguous which segment
+            // the tooltip refers to in stacked / grouped column charts.
+            // Clamp to grid bounds so a short top/bottom segment doesn't
+            // push the tooltip outside the chart.
+            if (barInElWrap) {
+              const barCenterYInElWrap =
+                (barInElWrap.top + barInElWrap.bottom) / 2
+              finalY = barCenterYInElWrap - ttH / 2
+              if (finalY < plotInElWrap.top) finalY = plotInElWrap.top
+              if (finalY + ttH > plotInElWrap.bottom) {
+                finalY = plotInElWrap.bottom - ttH
+              }
+
+              // Arrow Y in tooltip-local coords: point at the bar's actual
+              // vertical center even when finalY was clamped at the grid
+              // edge.
+              if (ttH > 0) {
+                arrowY = Math.max(
+                  10,
+                  Math.min(ttH - 10, barCenterYInElWrap - finalY),
+                )
+              }
+            }
           } else {
-            placement = 'left'
-            finalX = barLeftInElWrap - ttW - ARROW_TIP_OVERHANG
-          }
-
-          // Center the tooltip vertically on the hovered bar's middle
-          // (rect-derived, not the cy attribute which is offset for
-          // numeric/datetime xaxis). Makes it unambiguous which segment
-          // the tooltip refers to in stacked / grouped column charts.
-          // Clamp to grid bounds so a short top/bottom segment doesn't
-          // push the tooltip outside the chart.
-          if (barRectInGrid) {
-            const barCenterYInElWrap =
-              (barRectInGrid.top + barRectInGrid.bottom) / 2 +
-              w.layout.translateY
-            finalY = barCenterYInElWrap - ttH / 2
-            const gridTop = w.layout.translateY
-            const gridBottom = w.layout.translateY + w.layout.gridHeight
-            if (finalY < gridTop) finalY = gridTop
-            if (finalY + ttH > gridBottom) finalY = gridBottom - ttH
-          }
-
-          // Arrow Y in tooltip-local coords: point at the bar's actual
-          // vertical center even when finalY was clamped at the grid edge.
-          if (ttH > 0 && barRectInGrid) {
-            const barCenterYInElWrap =
-              (barRectInGrid.top + barRectInGrid.bottom) / 2 +
-              w.layout.translateY
-            arrowY = Math.max(
-              10,
-              Math.min(ttH - 10, barCenterYInElWrap - finalY),
+            // Beside it nowhere: above the column (below it with no room
+            // above), over this chart's own plot.
+            const pos = ttCtx.tooltipPosition.placeOverColumn(
+              barInElWrap,
+              plotInElWrap,
             )
+            placement = pos.placement
+            finalX = pos.x
+            finalY = pos.y
+            arrowX = pos.arrowX
+            arrowY = pos.arrowY
           }
         }
 
-        ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
-          x: finalX,
-          y: finalY,
-          placement,
-          arrowY,
-          arrowX,
-        })
+        // A plot too short for the box (a bar sparkline): directly above the
+        // bar (or below it), arrow on the bar's centre. Without a painted
+        // rect to measure, the whole plot stands in for the bar.
+        const anchorXInGrid = barRectInGrid
+          ? (barRectInGrid.left + barRectInGrid.right) / 2
+          : (barAnchorXInGrid ?? bx)
+        const wasStacked = ttCtx.tooltipPosition.shortPlotPlacement
+        const stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+          anchorXInGrid + gridOffsetXInElWrap,
+          barInElWrap ? barInElWrap.top : plotInElWrap.top,
+          barInElWrap ? barInElWrap.bottom : plotInElWrap.bottom,
+        )
+
+        // The no-arrow branch writes no placement of its own, so the
+        // top/bottom a short-plot placement left would otherwise stick to the
+        // box (and flip its shadow) once it is back beside the bar.
+        if (!stacked && placement === undefined && wasStacked) {
+          delete tooltipEl.dataset.placement
+        }
+
+        ttCtx.tooltipPosition.applyTooltipPosition(
+          tooltipEl,
+          stacked || {
+            x: finalX,
+            y: finalY,
+            placement,
+            arrowY,
+            arrowX,
+          },
+        )
       }
+    }
+  }
+
+  /**
+   * Does a box `ttWidth` wide starting at elWrap-local `x` stay on the
+   * chart's own part of the page: inside elWrap sideways, and inside the
+   * visible room? The room is measured on the first call that gets that far.
+   * @param {number} ttWidth
+   * @returns {(x: number) => boolean}
+   */
+  _fitsBesideColumn(ttWidth) {
+    const wrap = this.w.dom.elWrap.getBoundingClientRect()
+    // Not laid out (no browser): nothing to measure against.
+    const wrapRight = wrap.width > 0 ? wrap.width : Infinity
+    /** @type {import('./placement').Box | null | undefined} */
+    let room
+    return (x) => {
+      if (x < 0 || x + ttWidth > wrapRight) return false
+      if (room === undefined) {
+        room = this.ttCtx.tooltipPosition.getVisibleRoom?.() ?? null
+      }
+      return !room || (x >= room.left && x + ttWidth <= room.right)
     }
   }
 
@@ -591,26 +712,39 @@ class Intersect {
     const hovered = TooltipUtils.hoverTarget(e)
     const cl = hovered.classList
 
+    // A violin is read off its whole glyph rather than the hovered path, and
+    // on canvas there is no path under the pointer at all.
+    const violin = this.getViolinMark(e, opt)
+    const noHit = !!violin?.noHit
+
     if (
+      (violin && !noHit) ||
       cl.contains('apexcharts-bar-area') ||
       cl.contains('apexcharts-candlestick-area') ||
       cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
       const bar = hovered
-      const barRect = bar.getBoundingClientRect()
+      const barRect = violin ? violin.rect : bar.getBoundingClientRect()
 
-      const seriesBound = opt.elGrid.getBoundingClientRect()
+      // Grid-local means from the plot's corner, the space `cx`, the
+      // crosshair and the gridWidth/gridHeight clamps are in. The grid
+      // group's box starts a pixel below it (the arrow stood that far off the
+      // bar) and, on a numeric x axis, `barPadForNumericAxis` left of it (the
+      // crosshair landed about a bar's width to the right of the bar).
+      const seriesBound = TooltipUtils.plotRect(w)
 
       const bh = barRect.height
       barHeight = barRect.height
       const bw = barRect.width
 
-      const cx = parseInt(bar.getAttribute('cx'), 10)
-      const cy = parseInt(bar.getAttribute('cy'), 10)
+      const cx = violin ? violin.cx : parseInt(bar.getAttribute('cx'), 10)
+      const cy = violin ? violin.cy : parseInt(bar.getAttribute('cy'), 10)
       barCx = cx
       barCy = cy
-      barWidth = parseFloat(bar.getAttribute('barWidth'))
+      barWidth = violin
+        ? violin.barWidth
+        : parseFloat(bar.getAttribute('barWidth'))
 
       // Rect-derived bar geometry in grid-local coords (always correct
       // regardless of nested SVG transforms above the bar element).
@@ -638,13 +772,15 @@ class Intersect {
       }
       const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
 
-      j = parseInt(bar.getAttribute('j'), 10)
-      i = parseInt(bar.parentNode.getAttribute('rel'), 10) - 1
+      j = violin ? violin.j : parseInt(bar.getAttribute('j'), 10)
+      i = violin
+        ? violin.i
+        : parseInt(bar.parentNode.getAttribute('rel'), 10) - 1
 
-      const y1 = bar.getAttribute('data-range-y1')
-      const y2 = bar.getAttribute('data-range-y2')
+      const y1 = violin ? null : bar.getAttribute('data-range-y1')
+      const y2 = violin ? null : bar.getAttribute('data-range-y2')
 
-      if (w.globals.comboCharts) {
+      if (w.globals.comboCharts && !violin) {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'), 10)
       }
 
@@ -723,7 +859,148 @@ class Intersect {
       // Full rendered bar rect (grid-local). Used for top/bottom
       // placement and flip-on-overflow detection.
       barRectInGrid,
+      // A canvas violin chart hovered off every violin.
+      noHit,
+      // A canvas violin, found by the hit test rather than a hovered node.
+      byHitTest: !!violin?.byHitTest,
     }
+  }
+
+  /**
+   * The violin a hover is over, read as one glyph: body, box lane and jitter
+   * together, so the tooltip beside it never covers a raincloud's box or
+   * rain lane. On canvas the bodies and boxes are painted, so the violin is
+   * found by coordinate (renderer.hitTest) and their extent comes from the
+   * coords Violin.draw cached for them; the jitter is SVG either way.
+   *
+   * Null when this is no violin hover, `{ noHit: true }` when a canvas
+   * violin chart is hovered off every violin.
+   * @param {any} e
+   * @param {any} opt
+   * @returns {any}
+   */
+  getViolinMark(e, opt) {
+    const w = this.w
+
+    let i
+    let j
+    /** @type {any} */
+    let seriesEl = null
+    /** @type {any} */
+    let cached = null
+    const renderer = w.globals.activeRenderer
+    // Gated on violins being drawn at all, not on chart.type: a violin series
+    // can sit in a combo of another type.
+    const canvas = TooltipUtils.isCanvasViolinChart(w)
+    if (canvas) {
+      // The plot origin on screen, which the recorded marks are relative to.
+      // Not the `.apexcharts-grid` box: a violin's grid lines reach half a
+      // slot past the plot on either side. The marks are in plot px, so the
+      // pointer goes into plot px for the hit test, through any CSS zoom or
+      // scale on the chart.
+      const plot = TooltipUtils.plotRect(w)
+      const pointer = TooltipUtils.eventPointer(e, opt)
+      const hit = renderer.hitTest(
+        (pointer.x - plot.left) / plot.zoom,
+        (pointer.y - plot.top) / plot.zoom,
+      )
+      cached = hit
+        ? w.globals.barCanvasCoords?.[hit.seriesIndex]?.[hit.dataPointIndex]
+        : null
+      if (!cached?.bounds) return { noHit: true }
+      i = hit.seriesIndex
+      j = hit.dataPointIndex
+    } else {
+      const hovered = TooltipUtils.hoverTarget(e)
+      if (!hovered?.classList?.contains('apexcharts-violin-area')) return null
+      seriesEl = hovered.parentNode
+      j = parseInt(hovered.getAttribute('j'), 10)
+      i = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
+    }
+
+    const rect = this.violinGlyphRect(i, j, seriesEl)
+    if (!rect) return null
+
+    // Violin.draw renders the body before its box paths, so the first
+    // `.apexcharts-violin-area` at j is the body, which carries the cx/cy the
+    // tooltip anchors to (a box path keeps the placeholder bar's).
+    const body = canvas
+      ? null
+      : seriesEl?.querySelector(`.apexcharts-violin-area[j='${j}']`)
+    const attr = (/** @type {string} */ name) =>
+      cached ? cached[name] : parseFloat(body?.getAttribute(name) ?? '')
+
+    return {
+      i,
+      j,
+      rect: {
+        ...rect,
+        width: rect.right - rect.left,
+        height: rect.bottom - rect.top,
+      },
+      cx: cached?.bodyCx ?? attr('cx'),
+      cy: attr('cy'),
+      barWidth: attr('barWidth'),
+      // Found by the renderer's hit test, not by a hovered node.
+      byHitTest: canvas,
+    }
+  }
+
+  /**
+   * The screen rect of everything violin `j` of series `i` draws: body, box
+   * lane and jitter (a raincloud's rain). Painted to canvas, the body and box
+   * leave only the extent Violin.draw cached for them (plot px); the jitter
+   * is SVG either way. Null when nothing of it is drawn.
+   * @param {number} i  realIndex
+   * @param {number} j
+   * @param {Element | null} [seriesEl]  the series group, when the caller has it
+   * @returns {{ left: number, top: number, right: number, bottom: number } | null}
+   */
+  violinGlyphRect(i, j, seriesEl = null) {
+    const w = this.w
+    let left = Infinity
+    let top = Infinity
+    let right = -Infinity
+    let bottom = -Infinity
+    /**
+     * @param {number} l @param {number} t @param {number} r @param {number} b
+     */
+    const grow = (l, t, r, b) => {
+      left = Math.min(left, l)
+      top = Math.min(top, t)
+      right = Math.max(right, r)
+      bottom = Math.max(bottom, b)
+    }
+
+    const b = TooltipUtils.isCanvasViolinChart(w)
+      ? /** @type {any} */ (w.globals).barCanvasCoords?.[i]?.[j]?.bounds
+      : null
+    if (b) {
+      const plot = TooltipUtils.plotRect(w)
+      grow(
+        plot.left + b.left * plot.zoom,
+        plot.top + b.top * plot.zoom,
+        plot.left + b.right * plot.zoom,
+        plot.top + b.bottom * plot.zoom,
+      )
+    }
+
+    const group =
+      seriesEl ||
+      w.dom.baseEl.querySelector(
+        `.apexcharts-violin-series .apexcharts-series[data\\:realIndex='${i}']`,
+      )
+    const marks = group
+      ? group.querySelectorAll(
+          `.apexcharts-violin-area[j='${j}'], .apexcharts-violin-points[j='${j}']`,
+        )
+      : []
+    for (let k = 0; k < marks.length; k++) {
+      const r = marks[k].getBoundingClientRect()
+      if (r.width === 0 && r.height === 0) continue
+      grow(r.left, r.top, r.right, r.bottom)
+    }
+    return isFinite(left) ? { left, top, right, bottom } : null
   }
 }
 

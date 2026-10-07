@@ -674,7 +674,11 @@ export default class Labels {
     }
     if (typeof fn !== 'function') return
 
+    // `ctx` is the chart instance. Custom tooltips written against earlier
+    // releases (the timeline demo among them) read `opts.ctx.w`, so it stays
+    // in the opts next to `w` instead of throwing on every hover.
     const customTooltip = fn({
+      ctx: this.ttCtx.ctx,
       series: w.seriesData.series,
       seriesIndex: i,
       dataPointIndex: j,

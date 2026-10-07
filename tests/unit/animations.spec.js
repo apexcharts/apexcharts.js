@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createChart, createChartWithOptions } from './utils/utils.js'
+import Animations from '../../src/modules/Animations.js'
 
 function getAnimations(chart) {
   return chart.animations
@@ -115,6 +116,49 @@ describe('Animations — animationCompleted()', () => {
     animations.animationCompleted(makeEl())
 
     expect(animationEnd).not.toHaveBeenCalled()
+  })
+
+  // Line, area, pie, heatmap and most other renderers build their Animations
+  // from `w` alone, and whichever of them finishes the mount animation is the
+  // one that fires the event. It used to hand the user `undefined` where the
+  // chart belongs, so the realtime dashboard threw on `chartCtx.w`.
+  it('hands animationEnd the chart from an Animations built without one', () => {
+    const animationEnd = vi.fn()
+    const chart = createChartWithOptions({
+      chart: { type: 'line', events: { animationEnd } },
+      series: [{ data: [1, 2, 3] }],
+    })
+    const w = chart.w
+    w.globals.animationEnded = false
+    w.globals.delayedElements = []
+
+    new Animations(w).animationCompleted(makeEl())
+
+    expect(animationEnd).toHaveBeenCalledOnce()
+    expect(animationEnd.mock.calls[0][0]).toBe(chart)
+  })
+
+  it('resolves each chart to itself when there are several', () => {
+    const endA = vi.fn()
+    const endB = vi.fn()
+    const chartA = createChartWithOptions({
+      chart: { type: 'pie', events: { animationEnd: endA } },
+      series: [1, 2, 3],
+    })
+    const chartB = createChartWithOptions({
+      chart: { type: 'heatmap', events: { animationEnd: endB } },
+      series: [{ name: 'r', data: [{ x: 'a', y: 1 }] }],
+    })
+    for (const c of [chartA, chartB]) {
+      c.w.globals.animationEnded = false
+      c.w.globals.delayedElements = []
+    }
+
+    new Animations(chartB.w).animationCompleted(makeEl())
+    new Animations(chartA.w).animationCompleted(makeEl())
+
+    expect(endA.mock.calls[0][0]).toBe(chartA)
+    expect(endB.mock.calls[0][0]).toBe(chartB)
   })
 })
 

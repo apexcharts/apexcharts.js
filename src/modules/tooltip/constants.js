@@ -21,3 +21,23 @@ export const ARROW_TIP_OVERHANG = 7
  * clearly short of it to stay both visible and clickable.
  */
 export const POINT_TIP_GAP = 0
+
+/**
+ * How tall the tooltip may get, as a share of the plot's height, before it is
+ * placed above (or below) the hovered mark instead of beside it. Beside the
+ * point, a box this tall covers almost the whole plot height across its own
+ * width, which on a sparkline is most of the chart.
+ *
+ * Measured across the demos, full-size charts with a tall shared tooltip top
+ * out at 0.75 (a 380px chart with a five-row card) and short charts start at
+ * 0.80 (a 160px dashboard sparkline); the cut sits in that gap. Sparklines and
+ * strips 100px or so tall run from 0.9 to well past 1.
+ */
+export const SHORT_PLOT_RATIO = 0.78
+
+/**
+ * Space between the pointer's hotspot and a tooltip placed below it. The
+ * cursor graphic hangs about 20px below the hotspot and would cover the box's
+ * first line otherwise; above the pointer there is nothing to clear.
+ */
+export const POINTER_CLEARANCE_BELOW = 24
