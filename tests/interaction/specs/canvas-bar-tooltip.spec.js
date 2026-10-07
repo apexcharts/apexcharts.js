@@ -192,6 +192,9 @@ test.describe('Canvas bar-likes: intersect tooltip', () => {
       5,
       OHLC,
     ],
+    // Candles beside a line: classed as the line's area on SVG, they showed
+    // no tooltip there, while the canvas hit test found them.
+    ['candlestick', 'candlestick-line', '.apexcharts-candlestick-area', 10],
     ['column', 'basic-column', '.apexcharts-bar-area', 2],
     ['bar', 'grouped-bar', '.apexcharts-bar-area', 2],
     ['timelines', 'simple', '.apexcharts-rangebar-area', 1],

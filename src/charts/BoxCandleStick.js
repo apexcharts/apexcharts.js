@@ -119,11 +119,13 @@ class BoxCandleStick extends Bar {
       class: `apexcharts-${type}-series apexcharts-plot-series`,
     })
 
-    for (let i = 0; i < series.length; i++) {
-      this.isBoxPlot =
-        w.config.chart.type === 'boxPlot' ||
-        /** @type {Record<string,any>} */ (w.config.series[i]).type === 'boxPlot'
+    // Every series drawn here has this type: a combo hands each type its own
+    // series. In a combo the chart's type can be another series' (the line's,
+    // beside candles), and `i` counts only this type's series, not the
+    // config's: reading either drew a candle as a box, or a box as a candle.
+    this.isBoxPlot = type === 'boxPlot'
 
+    for (let i = 0; i < series.length; i++) {
       /** @type {any} */
       let x
       /** @type {any} */
@@ -292,10 +294,12 @@ class BoxCandleStick extends Bar {
          */
         paths.pathTo.forEach(
           (/** @type {any} */ pathTo, /** @type {any} */ pi) => {
+            // The series' own stroke colour: `i` counts this type's series
+            // only, so beside a line it named the line's.
             const lineFill =
               !this.isBoxPlot && this.candlestickOptions.wick.useFillColor
                 ? paths.color[pi]
-                : w.globals.stroke.colors[i]
+                : w.globals.stroke.colors[realIndex]
 
             const pathFill = fill.fillPath({
               seriesNumber: realIndex,
@@ -324,7 +328,11 @@ class BoxCandleStick extends Bar {
               elDataLabelsWrap,
               elGoalsMarkers,
               visibleSeries: this.visibleI,
-              type: w.config.chart.type,
+              // The marks' class (`apexcharts-${type}-area`), which the
+              // tooltip, the keyboard and the focus style know them by. The
+              // chart's type classed the candles of a candle + line combo as
+              // a line's area, which no intersect tooltip looked for.
+              type,
             })
           },
         )

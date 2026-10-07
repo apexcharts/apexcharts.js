@@ -315,7 +315,9 @@ const SHARED_GROUP = {
 /**
  * Transient handle for a columnar marker. Holds only (graphics, index); the only
  * paint-relevant mutation the emit sites make is `attr('fill', ...)` (scatter
- * per-point fill). Everything else no-ops. Not retained past the emit site.
+ * per-point fill), and the only identity one is `attr('rel', ...)`, the data
+ * point a hit test reports. Everything else no-ops. Not retained past the
+ * emit site.
  */
 class CanvasMarkerRef {
   /**
@@ -338,9 +340,11 @@ class CanvasMarkerRef {
   attr(a, v) {
     if (typeof a === 'string') {
       if (a === 'fill' && v !== undefined) this._g._setMarkerFill(this._i, v)
+      else if (a === 'rel' && v !== undefined) this._g._mdi[this._i] = v
       return v === undefined ? null : this
     }
     if (a && a.fill !== undefined) this._g._setMarkerFill(this._i, a.fill)
+    if (a && a.rel !== undefined) this._g._mdi[this._i] = a.rel
     return this
   }
   /** @param {any} _c */
@@ -564,6 +568,8 @@ export default class CanvasGraphics {
     this._mstyle = new Int32Array(16)
     /** @type {Int32Array} series (realIndex) per marker, for per-series restyle */
     this._msi = new Int32Array(16)
+    /** @type {Int32Array} dataPointIndex per marker (hit-test), -1 if none */
+    this._mdi = new Int32Array(16)
     this._mn = 0
     this._mcap = 16
     // Columnar rect-cell store (heatmap cells; dense same-shape rects). Same
@@ -719,6 +725,7 @@ export default class CanvasGraphics {
     this._mshape = new Int16Array(cap)
     this._mstyle = new Int32Array(cap)
     this._msi = new Int32Array(cap)
+    this._mdi = new Int32Array(cap)
   }
 
   /** Grow the marker columns (rare: capacity estimate was low). */
@@ -742,6 +749,9 @@ export default class CanvasGraphics {
     const nsi = new Int32Array(cap)
     nsi.set(this._msi)
     this._msi = nsi
+    const ndi = new Int32Array(cap)
+    ndi.set(this._mdi)
+    this._mdi = ndi
     this._mcap = cap
   }
 
@@ -953,6 +963,9 @@ export default class CanvasGraphics {
     // repaint markers without recomputing geometry. Both marker emitters pass
     // realIndex as opts.seriesIndex (Markers.getMarkerConfig, Scatter.drawPoint).
     this._msi[i] = opts.seriesIndex == null ? -1 : opts.seriesIndex
+    // The data point is not in the marker config; both emitters name it
+    // through `attr('rel', ...)` right after, which CanvasMarkerRef records.
+    this._mdi[i] = -1
     return new CanvasMarkerRef(this, i)
   }
 

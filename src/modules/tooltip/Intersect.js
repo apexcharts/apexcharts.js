@@ -355,6 +355,119 @@ class Intersect {
   }
 
   /**
+   * The marker a hover is over on a chart that paints its markers to
+   * canvas, found by coordinate (renderer.hitTestMarker) as the SVG marker
+   * node under the pointer would name it, with its centre in grid px (the
+   * `cx`/`cy` that node carries). Null when the pointer is on none, or the
+   * markers are not painted.
+   * @param {any} e
+   * @param {any} opt
+   * @returns {{ i: number, j: number, cx: number, cy: number, size: number } | null}
+   */
+  getPaintedMarker(e, opt) {
+    const w = this.w
+    // A hover that already names its painted mark (keyboard focus on a
+    // bar-like) is about that mark, whatever marker shares its spot.
+    if (!TooltipUtils.isCanvasMarkerChart(w) || e?.apexPaintedHit) return null
+    const plot = TooltipUtils.plotRect(w)
+    const pointer = TooltipUtils.eventPointer(e, opt)
+    const hit = w.globals.activeRenderer.hitTestMarker(
+      (pointer.x - plot.left) / plot.zoom,
+      (pointer.y - plot.top) / plot.zoom,
+    )
+    if (!hit) return null
+    return {
+      i: hit.seriesIndex,
+      j: hit.dataPointIndex,
+      cx: hit.x,
+      cy: hit.y,
+      size: hit.size,
+    }
+  }
+
+  /**
+   * handleMarkerTooltip for a marker painted to canvas (getPaintedMarker):
+   * the same series row, events and position, with the hover dot drawn over
+   * the painted marker in place of the enlarged node.
+   * @param {{e: any, opt: any, marker: { i: number, j: number, cx: number, cy: number, size: number }}} opts
+   */
+  handlePaintedMarkerTooltip({ e, opt, marker }) {
+    const w = this.w
+    const ttCtx = this.ttCtx
+    const { i, j } = marker
+
+    // The plot-wide listener names no series for axisChartsTooltips to check
+    // against `enabledOnSeries`; the hit test does, so it is checked here.
+    if (
+      Array.isArray(ttCtx.tConfig.enabledOnSeries) &&
+      ttCtx.tConfig.enabledOnSeries.indexOf(i) < 0
+    ) {
+      this.leavePaintedMark(e, opt)
+      return
+    }
+    ttCtx.cancelOffMarkHide?.()
+
+    ttCtx.tooltipLabels.drawSeriesTexts({
+      ttItems: opt.ttItems,
+      i,
+      j,
+      shared: false,
+      e,
+    })
+
+    if (e.type === 'mouseup') {
+      ttCtx.markerClick(e, i, j)
+    }
+
+    w.interact.capturedSeriesIndex = i
+    w.interact.capturedDataPointIndex = j
+
+    // The box goes where it goes for the marker node, which is read back
+    // from its attributes with parseInt.
+    const x = Math.trunc(marker.cx)
+    let y = Math.trunc(marker.cy)
+    if (TooltipUtils.isFollowCursor(w)) {
+      const seriesBound = TooltipUtils.plotRect(w)
+      y = e.clientY + w.layout.translateY - seriesBound.top
+    }
+    ttCtx.marker.enlargePaintedPoint(marker, x, y)
+  }
+
+  /**
+   * The pointer moved off every painted mark of a chart hovered through one
+   * listener on the whole plot (canvas bar-likes or markers): hide, don't
+   * pin one. Leaving a mark there is one more move, never the mouseout that
+   * gives an interactive box the time to be reached (Tooltip.onSeriesHover).
+   * It gets the same grace here, started by the first move off the mark and
+   * left to run by the ones after; entering the box or another mark calls
+   * it off.
+   * @param {any} e
+   * @param {any} opt
+   */
+  leavePaintedMark(e, opt) {
+    const w = this.w
+    const ttCtx = this.ttCtx
+    const tooltipEl = ttCtx.getElTooltip()
+    if (
+      ttCtx.tConfig.interactive &&
+      tooltipEl?.classList.contains('apexcharts-active')
+    ) {
+      if (ttCtx.offMarkHideTimeout === undefined) {
+        const pointer = TooltipUtils.eventPointer(e, opt)
+        ttCtx.offMarkHideTimeout = setTimeout(
+          () => {
+            ttCtx.offMarkHideTimeout = undefined
+            if (!w.globals.isDestroyed) ttCtx.handleMouseOut(opt)
+          },
+          ttCtx.interactiveHideDelay(pointer.x, pointer.y),
+        )
+      }
+      return
+    }
+    ttCtx.handleMouseOut(opt)
+  }
+
+  /**
    * handle tooltips for bar/column charts
    */
   /** @param {{e: any, opt: any}} opts */
@@ -373,29 +486,7 @@ class Intersect {
       opt,
     })
     if (barXY.noHit) {
-      // A canvas bar chart with the pointer on no mark: hide, don't pin one.
-      // Its listener is the whole plot, so leaving a mark is one more move,
-      // never the mouseout that gives an interactive box the time to be
-      // reached (Tooltip.onSeriesHover). It gets the same grace here, started
-      // by the first move off the mark and left to run by the ones after;
-      // entering the box or another mark calls it off.
-      if (
-        ttCtx.tConfig.interactive &&
-        tooltipEl?.classList.contains('apexcharts-active')
-      ) {
-        if (ttCtx.offMarkHideTimeout === undefined) {
-          const pointer = TooltipUtils.eventPointer(e, opt)
-          ttCtx.offMarkHideTimeout = setTimeout(
-            () => {
-              ttCtx.offMarkHideTimeout = undefined
-              if (!w.globals.isDestroyed) ttCtx.handleMouseOut(opt)
-            },
-            ttCtx.interactiveHideDelay(pointer.x, pointer.y),
-          )
-        }
-        return
-      }
-      ttCtx.handleMouseOut(opt)
+      this.leavePaintedMark(e, opt)
       return
     }
     ttCtx.cancelOffMarkHide?.()

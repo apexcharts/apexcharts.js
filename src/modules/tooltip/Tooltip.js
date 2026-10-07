@@ -736,6 +736,15 @@ export default class Tooltip {
       // series in a combo of another type needs it as much as a bar chart.
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if (
+      chartWithmarkers &&
+      this.showOnIntersect &&
+      Utils.isCanvasMarkerChart(w)
+    ) {
+      // Canvas markers, one at a time: painted, so there is no marker node
+      // to hover. Hover the whole plot and resolve the marker by coordinate
+      // (Intersect.getPaintedMarker -> renderer.hitTestMarker).
+      this.addPathsEventListeners([hoverArea], seriesHoverParams)
+    } else if (
       (commonBar && !w.globals.comboCharts) ||
       (chartWithmarkers && this.showOnIntersect) ||
       isPolarMarkerChart
@@ -1211,7 +1220,10 @@ export default class Tooltip {
         } else {
           // Nothing under the pointer names a series (an unnamed one threw),
           // so the highlight goes, as when a bar is left.
-          series.toggleSeriesOnHover({ type: 'mouseout' }, parent)
+          series.toggleSeriesOnHover(
+            /** @type {any} */ ({ type: 'mouseout' }),
+            parent,
+          )
         }
       }
     }
@@ -1334,7 +1346,7 @@ export default class Tooltip {
       !(
         opt.paths === opt.hoverArea &&
         this.showOnIntersect &&
-        Utils.isCanvasBarChart(w)
+        (Utils.isCanvasBarChart(w) || Utils.isCanvasMarkerChart(w))
       )
     ) {
       const index = parseInt(opt.paths.getAttribute('index'), 10)
@@ -1435,34 +1447,26 @@ export default class Tooltip {
           x = markerXY.x
           y = markerXY.y
 
-          if (!markerXY.positioned) {
-            // Legacy beside-the-cell placement writes style directly. Arrow-mode
-            // heatmaps have already positioned via applyTooltipPosition (which
-            // also sets the arrow and data-placement), so don't overwrite it.
-            tooltipEl.style.left = x + 'px'
-            tooltipEl.style.top = y + 'px'
-            // Only set when the box left a short plot (top/bottom); beside the
-            // cell this path has never written one, and must not leave one
-            // behind. (A treemap without followCursor draws an arrow here.)
-            if (markerXY.placement) {
-              tooltipEl.dataset.placement = markerXY.placement
-              tooltipEl.style.setProperty(
-                '--apx-tt-arrow-x',
-                markerXY.arrowX + 'px',
-              )
-            } else if (tooltipEl.dataset.placement) {
-              delete tooltipEl.dataset.placement
-            }
-          }
+          this.placeCellTooltip(tooltipEl, markerXY)
         } else {
-          if (this.tooltipUtil.hasBars()) {
-            this.intersect.handleBarTooltip({
+          // A marker under the pointer is what is hovered, whatever the
+          // chart's first series is: a scatter of outliers over box plots,
+          // or line markers over columns, are drawn over the bar-likes.
+          // Painted to canvas it has no node, so the renderer finds it, and
+          // first, as markers paint last there.
+          const paintedMarker = this.intersect.getPaintedMarker(e, opt)
+          if (paintedMarker) {
+            this.intersect.handlePaintedMarkerTooltip({
               e,
               opt,
+              marker: paintedMarker,
             })
-          }
-
-          if (this.tooltipUtil.hasMarkers(0)) {
+          } else if (
+            Utils.hoverTarget(e)?.classList?.contains('apexcharts-marker') &&
+            // a marker of a data point, not a series' hover dot, which
+            // names none
+            Utils.hoverTarget(e).hasAttribute('rel')
+          ) {
             // intersect - line/area/scatter/bubble
             this.intersect.handleMarkerTooltip({
               e,
@@ -1470,6 +1474,17 @@ export default class Tooltip {
               x,
               y,
             })
+          } else if (this.tooltipUtil.hasBars()) {
+            this.intersect.handleBarTooltip({
+              e,
+              opt,
+            })
+          } else if (
+            opt.paths === opt.hoverArea &&
+            Utils.isCanvasMarkerChart(w)
+          ) {
+            // A canvas marker chart hovered off every marker.
+            this.intersect.leavePaintedMark(e, opt)
           }
         }
       }
@@ -1760,6 +1775,31 @@ export default class Tooltip {
     const rect = tooltipEl.getBoundingClientRect()
     this.tooltipRect.ttWidth = rect.width
     this.tooltipRect.ttHeight = rect.height
+  }
+
+  /**
+   * Put the box where Intersect.handleHeatTreeTooltip placed it for a
+   * heatmap or treemap cell. Shared by the pointer and by keyboard focus on
+   * a box that follows the pointer (KeyboardNavigation._hoverFocusedCell).
+   * @param {HTMLElement} tooltipEl
+   * @param {{ x: number, y: number, positioned?: boolean, placement?: string, arrowX?: number }} markerXY
+   */
+  placeCellTooltip(tooltipEl, markerXY) {
+    // Legacy beside-the-cell placement writes style directly. Arrow-mode
+    // heatmaps have already positioned via applyTooltipPosition (which
+    // also sets the arrow and data-placement), so don't overwrite it.
+    if (markerXY.positioned) return
+    tooltipEl.style.left = markerXY.x + 'px'
+    tooltipEl.style.top = markerXY.y + 'px'
+    // Only set when the box left a short plot (top/bottom); beside the
+    // cell this path has never written one, and must not leave one
+    // behind. (A treemap without followCursor draws an arrow here.)
+    if (markerXY.placement) {
+      tooltipEl.dataset.placement = markerXY.placement
+      tooltipEl.style.setProperty('--apx-tt-arrow-x', markerXY.arrowX + 'px')
+    } else if (tooltipEl.dataset.placement) {
+      delete tooltipEl.dataset.placement
+    }
   }
 
   /**

@@ -3,6 +3,7 @@ import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
 import Globals from '../modules/settings/Globals'
 import Graphics from './Graphics'
+import Animations from './Animations'
 import Range from './Range'
 import Utils from '../utils/Utils'
 import TimeScale from './TimeScale'
@@ -302,6 +303,13 @@ export default class Core {
     )
 
     if (canvasMode) {
+      // The canvas paints the final frame in this pass, so no series
+      // animation runs whose end would reveal the SVG chrome held back for
+      // it: goal markers (a box plot's outlier dots among them), bar data
+      // labels and bar shadows wait in delayedElements, hidden for good.
+      // They show now, as they do on SVG when nothing animates.
+      new Animations(w).showDelayedElements()
+
       // Paint the recorded series display list into a <foreignObject><canvas>
       // and wrap it with the real SVG chrome groups (data labels etc.) the
       // draw() built. Canvas sits at the back of the wrap (behind the chrome);

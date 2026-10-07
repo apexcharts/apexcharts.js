@@ -549,12 +549,20 @@ class Graphics {
     // Draw-mode (initial mount only): line/area/rangeArea/radar render at
     // final path and reveal via stroke-dashoffset or a mask-rect width
     // animation. Default-on whenever `chart.animations.enabled` is true.
+    // Whole class names: a prefix let any `apexcharts-line-*` class in (the
+    // candles of a 'line' combo were once `apexcharts-line-area`), and those
+    // marks were drawn in place of growing like every other bar-like.
     const isDrawableSeries =
       typeof className === 'string' &&
-      (className.indexOf('apexcharts-line') > -1 ||
-        className.indexOf('apexcharts-area') > -1 ||
-        className.indexOf('apexcharts-rangeArea') > -1 ||
-        className.indexOf('apexcharts-radar') > -1)
+      className
+        .split(' ')
+        .some(
+          (c) =>
+            c === 'apexcharts-line' ||
+            c === 'apexcharts-area' ||
+            c === 'apexcharts-rangeArea' ||
+            c === 'apexcharts-radar',
+        )
     const useDrawMode = !!(
       initialAnim &&
       !w.globals.resized &&

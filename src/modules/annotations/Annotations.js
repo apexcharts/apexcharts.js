@@ -78,7 +78,16 @@ export default class Annotations {
       const skipGroupHide = [progressiveAnnos, false, progressiveAnnos]
       for (let i = 0; i < 3; i++) {
         w.dom.elGraphical.add(annoArray[i])
-        if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+        // Hidden only while the series still animate in. Once that is over
+        // (animations off for this render, or a canvas series layer, which
+        // paints its final frame at once) the reveal has already run, so a
+        // group hidden now would stay hidden.
+        if (
+          initialAnim &&
+          !w.globals.resized &&
+          !w.globals.dataChanged &&
+          !w.globals.animationEnded
+        ) {
           // fixes apexcharts/apexcharts.js#685
           if (
             w.config.chart.type !== 'scatter' &&

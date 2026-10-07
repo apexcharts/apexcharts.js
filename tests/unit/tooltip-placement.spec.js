@@ -5203,6 +5203,7 @@ describe('the plot origin, not the grid group box', () => {
         _getFocusableElement: () => null,
         _canvasCell: () => null,
         _canvasMark: () => null,
+        _isBarLikeSeries: () => false,
       },
       0,
       1,

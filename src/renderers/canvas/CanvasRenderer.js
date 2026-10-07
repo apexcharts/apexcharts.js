@@ -146,11 +146,11 @@ export default class CanvasRenderer {
   }
 
   // ── interaction ──
-  // Line/area/scatter tooltips, and every shared one, resolve via coordinate
-  // lookup (pointsArray), so those need no per-mark query. Heatmap cells and
-  // the bar-likes of an intersect tooltip, however, are hovered by point (the
-  // SVG path hit-tests the node under the cursor); with them on canvas there
-  // is no node, so hitTest resolves the recorded marks.
+  // Shared tooltips resolve via coordinate lookup (pointsArray), so those
+  // need no per-mark query. Heatmap cells, and the bar-likes and markers of
+  // an intersect tooltip, however, are hovered by point (the SVG path
+  // hit-tests the node under the cursor); with them on canvas there is no
+  // node, so hitTest and hitTestMarker resolve the recorded marks.
   /**
    * Find the cell under a plot-local point (0,0 = plot origin, the same space
    * as the recorded cell geometry). Reverse scan so a later-painted cell wins
@@ -263,6 +263,91 @@ export default class CanvasRenderer {
   }
 
   /**
+   * The marker painted over a plot-local point, for a tooltip that shows on
+   * the hovered point (intersect): on SVG the marker node under the pointer
+   * names it, and on canvas there is none. Markers paint after every other
+   * mark (CanvasCompositor.paint) in record order, so a reverse scan finds
+   * the topmost, which is the one an SVG pointer would land on where a
+   * scatter overlays bars. Tested against the painted shape, fill and
+   * stroke, and only inside the marker clip they are painted through, as a
+   * clipped-away SVG marker takes no pointer. Null when no sized marker of
+   * a known data point is there.
+   * @param {number} px
+   * @param {number} py
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,size:number})|null}
+   */
+  hitTestMarker(px, py) {
+    const g = this._g
+    const n = g.markerCount()
+    if (!n) return null
+    const clip = this._compositor.clipRect('marker')
+    if (
+      clip &&
+      (px < clip.x ||
+        px > clip.x + clip.width ||
+        py < clip.y ||
+        py > clip.y + clip.height)
+    ) {
+      return null
+    }
+    for (let k = n - 1; k >= 0; k--) {
+      const size = g._msize[k]
+      const x = g._mx[k]
+      const y = g._my[k]
+      const j = g._mdi[k]
+      if (!(size > 0) || y !== y || j < 0) continue
+      const style = g.markerStyle(k)
+      const stroked =
+        !!style?.stroke && style.stroke !== 'none' && style.strokeWidth > 0
+      const halfStroke = stroked ? style.strokeWidth / 2 : 0
+      // Every shape stays within about its size of the centre (a star
+      // grows 15% past it), so anything further is off this marker.
+      const reach = size * 1.2 + halfStroke
+      const dx = px - x
+      const dy = py - y
+      if (dx < -reach || dx > reach || dy < -reach || dy > reach) continue
+      let hit
+      if (g._mshape[k] === 0) {
+        hit = dx * dx + dy * dy <= (size + halfStroke) * (size + halfStroke)
+      } else {
+        hit = this._hitsMarkerShape(k, dx, dy, size, style, stroked)
+      }
+      if (hit) {
+        return { seriesIndex: g._msi[k], dataPointIndex: j, x, y, size }
+      }
+    }
+    return null
+  }
+
+  /**
+   * Whether a point, relative to a non-circle marker's centre, is on its
+   * painted shape: the same unit geometry the compositor paints it with.
+   * @param {number} k  marker index
+   * @param {number} dx
+   * @param {number} dy
+   * @param {number} size
+   * @param {any} style
+   * @param {boolean} stroked
+   * @returns {boolean}
+   */
+  _hitsMarkerShape(k, dx, dy, size, style, stroked) {
+    const ctx = this._hitContext()
+    if (!ctx) return false
+    let path
+    try {
+      path = new Path2D(this._g.markerPath(0, 0, this._g._mshape[k], size))
+    } catch (e) {
+      return false
+    }
+    const filled = !!style?.fill && style.fill !== 'none'
+    if (filled && ctx.isPointInPath(path, dx, dy)) return true
+    if (!stroked) return false
+    ctx.lineWidth = style.strokeWidth
+    ctx.lineCap = 'butt'
+    return ctx.isPointInStroke(path, dx, dy)
+  }
+
+  /**
    * Find a bar-like mark by identity rather than by point: keyboard focus
    * knows the series and data point it is on. The first path recorded for
    * the pair, as the first `path[j]` of the series is on SVG (a box plot's
@@ -282,6 +367,30 @@ export default class CanvasRenderer {
       const box = markBox(cmd)
       if (!box) continue
       return { seriesIndex, dataPointIndex, ...box, d: cmd.d }
+    }
+    return null
+  }
+
+  /**
+   * Find a marker by identity rather than by point (hitTestMarker): keyboard
+   * focus knows the series and data point it is on. The topmost one painted
+   * for the pair, as the hit test reports it, and only one the hit test
+   * could report: sized, at a known y. With the shape it was painted in, as
+   * a `d`, so a focus outline can trace it. Null when none was painted.
+   * @param {number} seriesIndex  realIndex
+   * @param {number} dataPointIndex
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,size:number,d:string})|null}
+   */
+  findMarker(seriesIndex, dataPointIndex) {
+    const g = this._g
+    for (let k = g.markerCount() - 1; k >= 0; k--) {
+      if (g._msi[k] !== seriesIndex || g._mdi[k] !== dataPointIndex) continue
+      const size = g._msize[k]
+      const y = g._my[k]
+      if (!(size > 0) || y !== y) continue
+      const x = g._mx[k]
+      const d = g.markerPath(x, y, g._mshape[k], size)
+      return { seriesIndex, dataPointIndex, x, y, size, d }
     }
     return null
   }

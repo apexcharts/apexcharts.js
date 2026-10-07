@@ -223,3 +223,107 @@ describe('KeyboardNavigation on a canvas heatmap', () => {
     ).not.toBeNull()
   })
 })
+
+/**
+ * Keyboard focus on markers painted to canvas. With no marker node, a scatter
+ * with an intersect tooltip opened the box in the chart's corner and outlined
+ * nothing. The renderer keeps each marker's centre and data point, so focus
+ * hands the pointer's own handler the marker its hit test would have found.
+ */
+describe('KeyboardNavigation on canvas markers', () => {
+  function canvasScatter({ renderer = 'canvas', intersect = true } = {}) {
+    return createChartWithOptions({
+      chart: {
+        type: 'scatter',
+        width: 480,
+        height: 320,
+        renderer,
+        accessibility: {
+          enabled: true,
+          keyboard: { enabled: true, navigation: { enabled: true } },
+        },
+      },
+      series: [
+        {
+          name: 'S',
+          data: [
+            [1, 4],
+            [2, 9],
+            [3, 6],
+          ],
+        },
+      ],
+      tooltip: { shared: false, intersect },
+    })
+  }
+
+  it('finds a painted marker by series and data point', () => {
+    const chart = canvasScatter()
+    const r = chart.ctx.renderer
+    expect(r.kind).toBe('canvas')
+    const m = r.findMarker(0, 1)
+    expect(m).toMatchObject({ seriesIndex: 0, dataPointIndex: 1 })
+    // where the hit test reports it
+    expect(r.hitTestMarker(m.x, m.y)).toMatchObject({
+      seriesIndex: 0,
+      dataPointIndex: 1,
+    })
+    expect(m.d).toMatch(/^M/)
+    expect(r.findMarker(0, 7)).toBeNull()
+  })
+
+  it("places the box through the pointer's handler for the focused marker", () => {
+    const chart = canvasScatter()
+    const ttCtx = chart.w.globals.tooltip
+    const hover = vi.spyOn(ttCtx.intersect, 'handlePaintedMarkerTooltip')
+    focusSvg(chart)
+    fireKey(chart, 'ArrowRight')
+    const kn = chart.ctx.keyboardNavigation
+    const m = chart.ctx.renderer.findMarker(kn.seriesIndex, kn.dataPointIndex)
+    expect(hover).toHaveBeenCalled()
+    const { marker } = hover.mock.calls.at(-1)[0]
+    expect(marker).toEqual({
+      i: kn.seriesIndex,
+      j: kn.dataPointIndex,
+      cx: m.x,
+      cy: m.y,
+      size: m.size,
+    })
+    const tooltipEl = ttCtx.getElTooltip()
+    expect(tooltipEl.style.left).not.toBe('')
+    expect(tooltipEl.style.top).not.toBe('')
+  })
+
+  it('leaves a canvas marker the pointer does not hover one at a time to the dynamic point', () => {
+    const chart = canvasScatter({ intersect: false })
+    const ttCtx = chart.w.globals.tooltip
+    const hover = vi.spyOn(ttCtx.intersect, 'handlePaintedMarkerTooltip')
+    const dynamic = vi.spyOn(ttCtx.tooltipPosition, 'moveDynamicPointOnHover')
+    focusSvg(chart)
+    fireKey(chart, 'ArrowRight')
+    expect(hover).not.toHaveBeenCalled()
+    expect(dynamic).toHaveBeenCalled()
+  })
+
+  it('outlines the focused marker in its series group, and names it', () => {
+    const chart = canvasScatter()
+    focusSvg(chart)
+    fireKey(chart, 'ArrowRight')
+    const kn = chart.ctx.keyboardNavigation
+    const m = chart.ctx.renderer.findMarker(kn.seriesIndex, kn.dataPointIndex)
+    const rings = chart.el.querySelectorAll('.apexcharts-keyboard-focus-ring')
+    expect(rings.length).toBe(1)
+    const ring = rings[0]
+    expect(ring.getAttribute('d')).toBe(m.d)
+    expect(ring.getAttribute('fill')).toBe('none')
+    expect(ring.getAttribute('clip-path')).toContain('gridRectMarkerMask')
+    expect(
+      ring.closest('.apexcharts-series')?.getAttribute('data:realIndex'),
+    ).toBe('0')
+    expect(ring.getAttribute('aria-label')).toContain('S:')
+    blurSvg(chart)
+    expect(
+      chart.el.querySelectorAll('.apexcharts-keyboard-focus-ring').length,
+    ).toBe(0)
+  })
+})

@@ -226,8 +226,22 @@ describe('KeyboardNavigation', () => {
       const chart = chartWithKeyNav({
         shared: true,
         series: [
-          { name: 'A', data: [{ x: 100, y: 10 }, { x: 200, y: 20 }, { x: 300, y: 30 }] },
-          { name: 'B', data: [{ x: 150, y: 5 },  { x: 250, y: 15 }, { x: 350, y: 25 }] },
+          {
+            name: 'A',
+            data: [
+              { x: 100, y: 10 },
+              { x: 200, y: 20 },
+              { x: 300, y: 30 },
+            ],
+          },
+          {
+            name: 'B',
+            data: [
+              { x: 150, y: 5 },
+              { x: 250, y: 15 },
+              { x: 350, y: 25 },
+            ],
+          },
         ],
         extra: { xaxis: { type: 'numeric' } },
       })
@@ -245,9 +259,27 @@ describe('KeyboardNavigation', () => {
     // (and it defaults to true); the shared check used to keep keyboard users
     // on the first row.
     const cellSeries = [
-      { name: 'A', data: [{ x: 'a', y: 1 }, { x: 'b', y: 2 }] },
-      { name: 'B', data: [{ x: 'a', y: 3 }, { x: 'b', y: 4 }] },
-      { name: 'C', data: [{ x: 'a', y: 5 }, { x: 'b', y: 6 }] },
+      {
+        name: 'A',
+        data: [
+          { x: 'a', y: 1 },
+          { x: 'b', y: 2 },
+        ],
+      },
+      {
+        name: 'B',
+        data: [
+          { x: 'a', y: 3 },
+          { x: 'b', y: 4 },
+        ],
+      },
+      {
+        name: 'C',
+        data: [
+          { x: 'a', y: 5 },
+          { x: 'b', y: 6 },
+        ],
+      },
     ]
 
     it('should move up a heatmap row on ArrowUp: series 0 is the bottom row', () => {
@@ -600,6 +632,185 @@ describe('KeyboardNavigation', () => {
   })
 
   // =========================================================================
+  // A box that follows the pointer: keyboard focus rests the pointer on the
+  // focused mark's centre
+  // =========================================================================
+  describe('tooltip.followCursor', () => {
+    it("moves the chart's own pointer onto the focused mark", () => {
+      const chart = chartWithKeyNav({
+        type: 'bar',
+        shared: false,
+        tooltip: { followCursor: true },
+        series: [{ name: 'A', data: [10, 20, 30] }],
+      })
+      const ttCtx = chart.ctx.w.globals.tooltip
+      const kn = chart.ctx.keyboardNavigation
+      // jsdom lays nothing out, so the focused mark gets a box of its own
+      const mark = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'path',
+      )
+      mark.getBoundingClientRect = () =>
+        /** @type {any} */ ({ left: 100, top: 50, width: 20, height: 10 })
+      vi.spyOn(kn, '_getFocusableElement').mockReturnValue(mark)
+      // Where an earlier hover left the pointer. The box reads this before
+      // the event, so a keyboard focus that left it there put the box at the
+      // mouse, or at 0, 0 (the chart's corner) before any hover at all.
+      ttCtx.clientX = 700
+      ttCtx.clientY = 300
+      kn._setSyntheticEvent(0, 1, ttCtx)
+      expect([ttCtx.clientX, ttCtx.clientY]).toEqual([110, 55])
+      expect([ttCtx.e.clientX, ttCtx.e.clientY]).toEqual([110, 55])
+    })
+
+    function treemap(followCursor) {
+      const chart = chartWithKeyNav({
+        type: 'treemap',
+        shared: false,
+        tooltip: { followCursor },
+        series: [
+          {
+            data: [
+              { x: 'a', y: 10 },
+              { x: 'b', y: 20 },
+            ],
+          },
+        ],
+      })
+      const ttCtx = chart.ctx.w.globals.tooltip
+      const kn = chart.ctx.keyboardNavigation
+      const tooltipEl = ttCtx.getElTooltip()
+      const w = chart.ctx.w
+      const hover = vi
+        .spyOn(ttCtx.intersect, 'handleHeatTreeTooltip')
+        .mockImplementation(({ e }) => {
+          const cell = e.apexHoverTarget
+          w.interact.capturedSeriesIndex = Number(cell.getAttribute('i'))
+          w.interact.capturedDataPointIndex = Number(cell.getAttribute('j'))
+          return { x: 37, y: 41 }
+        })
+      return { kn, ttCtx, tooltipEl, hover }
+    }
+
+    it('places a treemap box by the pointer resting on the focused cell', () => {
+      const { kn, ttCtx, tooltipEl, hover } = treemap(true)
+      kn._showTooltipHeatTree(0, 1, ttCtx, tooltipEl, 'treemap')
+      expect(hover).toHaveBeenCalledTimes(1)
+      const { e } = hover.mock.calls[0][0]
+      // the focused cell, named as a hover names the node under it
+      expect(e.apexHoverTarget.getAttribute('j')).toBe('1')
+      expect([tooltipEl.style.left, tooltipEl.style.top]).toEqual([
+        '37px',
+        '41px',
+      ])
+    })
+
+    it('leaves a treemap box that does not follow the pointer beside the cell', () => {
+      const { kn, ttCtx, tooltipEl, hover } = treemap(false)
+      kn._showTooltipHeatTree(0, 1, ttCtx, tooltipEl, 'treemap')
+      expect(hover).not.toHaveBeenCalled()
+    })
+
+    it('places a radar box through the focused marker, as the pointer does', () => {
+      const chart = chartWithKeyNav({
+        type: 'radar',
+        shared: false,
+        series: [{ name: 'A', data: [10, 20, 30, 40] }],
+      })
+      const ttCtx = chart.ctx.w.globals.tooltip
+      const kn = chart.ctx.keyboardNavigation
+      const marker = vi
+        .spyOn(kn, '_showScatterBubblePoint')
+        .mockImplementation(() => true)
+      const dynamic = vi.spyOn(ttCtx.tooltipPosition, 'moveDynamicPointOnHover')
+      kn._showTooltipAxisLine(0, 2, ttCtx)
+      expect(marker).toHaveBeenCalledWith(0, 2, ttCtx)
+      // a radar keeps no pointsArray, so this path had nothing to place by
+      expect(dynamic).not.toHaveBeenCalled()
+    })
+  })
+
+  // =========================================================================
+  // Combo charts and line markers: placed the way the pointer places them
+  // =========================================================================
+  describe('combo bars and line markers', () => {
+    // A column series beside a line, as in column/stacked-column-with-line
+    // and mixed/line-column.
+    function lineColumn(tooltip) {
+      return chartWithKeyNav({
+        type: 'line',
+        shared: false,
+        tooltip,
+        series: [
+          { name: 'Cols', type: 'column', data: [10, 20, 30, 40] },
+          { name: 'Line', type: 'line', data: [15, 25, 35, 45] },
+        ],
+      })
+    }
+
+    // jsdom lays nothing out and draws no line markers, so these check where
+    // focus is sent; the interaction spec keyboard-follow-cursor checks where
+    // the box lands.
+    it("sends a combo's column to the bar path, and the line beside it to the line path", () => {
+      const chart = lineColumn({ intersect: true })
+      const kn = chart.ctx.keyboardNavigation
+      const ttCtx = chart.ctx.w.globals.tooltip
+      expect(kn._isBarLikeSeries(0)).toBe(true)
+      expect(kn._isBarLikeSeries(1)).toBe(false)
+      const bar = vi.spyOn(kn, '_showTooltipBar').mockImplementation(() => {})
+      const line = vi
+        .spyOn(kn, '_showTooltipAxisLine')
+        .mockImplementation(() => {})
+      kn._showTooltip(0, 2, ttCtx)
+      expect(bar).toHaveBeenCalledWith(0, 2, ttCtx)
+      expect(line).not.toHaveBeenCalled()
+      kn._showTooltip(1, 2, ttCtx)
+      expect(line).toHaveBeenCalledWith(1, 2, ttCtx)
+      expect(bar).toHaveBeenCalledTimes(1)
+    })
+
+    it("places an intersect focus on a combo's column as the pointer on it does", () => {
+      const chart = lineColumn({ intersect: true })
+      const kn = chart.ctx.keyboardNavigation
+      const ttCtx = chart.ctx.w.globals.tooltip
+      // a combo without a shared tooltip is hovered one mark at a time
+      expect(ttCtx.showOnIntersect).toBe(true)
+      const mark = vi
+        .spyOn(kn, '_hoverFocusedMark')
+        .mockImplementation(() => {})
+      const dynamic = vi.spyOn(ttCtx.tooltipPosition, 'moveDynamicPointOnHover')
+      kn._showTooltip(0, 1, ttCtx)
+      expect(mark).toHaveBeenCalledTimes(1)
+      expect(mark.mock.calls[0].slice(0, 2)).toEqual([0, 1])
+      // the line path's dynamic point, which a column has none of
+      expect(dynamic).not.toHaveBeenCalled()
+    })
+
+    it('places a line marker of a one-series caption by that marker', () => {
+      const chart = chartWithKeyNav({
+        type: 'line',
+        shared: false,
+        extra: { markers: { size: 6 } },
+      })
+      const kn = chart.ctx.keyboardNavigation
+      const ttCtx = chart.ctx.w.globals.tooltip
+      const marker = vi
+        .spyOn(kn, '_showScatterBubblePoint')
+        .mockImplementation(() => true)
+      const dynamic = vi.spyOn(ttCtx.tooltipPosition, 'moveDynamicPointOnHover')
+      kn._showTooltipAxisLine(1, 2, ttCtx)
+      expect(marker).toHaveBeenCalledWith(1, 2, ttCtx)
+      // pointsArray is empty with markers drawn, so the dynamic point had
+      // nothing to place the box by
+      expect(dynamic).not.toHaveBeenCalled()
+      // with no marker node for the point, the dynamic point stands in
+      marker.mockImplementation(() => false)
+      kn._showTooltipAxisLine(1, 3, ttCtx)
+      expect(dynamic).toHaveBeenCalledWith(3, 1)
+    })
+  })
+
+  // =========================================================================
   // Scatter chart — _getSeriesCount / _getDataPointCount
   // =========================================================================
   describe('scatter chart navigation helpers', () => {
@@ -712,8 +923,22 @@ describe('KeyboardNavigation', () => {
       const chart = chartWithKeyNav({
         shared: true,
         series: [
-          { name: 'A', data: [{ x: 100, y: 10 }, { x: 200, y: 20 }, { x: 300, y: 30 }] },
-          { name: 'B', data: [{ x: 150, y: 5 },  { x: 250, y: 15 }, { x: 350, y: 25 }] },
+          {
+            name: 'A',
+            data: [
+              { x: 100, y: 10 },
+              { x: 200, y: 20 },
+              { x: 300, y: 30 },
+            ],
+          },
+          {
+            name: 'B',
+            data: [
+              { x: 150, y: 5 },
+              { x: 250, y: 15 },
+              { x: 350, y: 25 },
+            ],
+          },
         ],
         extra: { xaxis: { type: 'numeric' } },
       })
@@ -721,11 +946,15 @@ describe('KeyboardNavigation', () => {
       const ttCtx = chart.ctx.w.globals.tooltip
       if (!ttCtx) return // tooltip feature not registered in this env
 
-      const spy = vi.spyOn(ttCtx.tooltipLabels, 'drawSeriesTexts').mockImplementation(() => {})
+      const spy = vi
+        .spyOn(ttCtx.tooltipLabels, 'drawSeriesTexts')
+        .mockImplementation(() => {})
       focusSvg(chart)
       // At j=0: seriesX[0][0]=100 vs seriesX[1][0]=150 → isXoverlap(0)=false → shared=false
       kn._showTooltipAxisLine(0, 0, ttCtx)
-      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ shared: false }))
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ shared: false }),
+      )
       spy.mockRestore()
     })
 
@@ -733,8 +962,20 @@ describe('KeyboardNavigation', () => {
       const chart = chartWithKeyNav({
         shared: true,
         series: [
-          { name: 'A', data: [{ x: 100, y: 10 }, { x: 200, y: 20 }] },
-          { name: 'B', data: [{ x: 100, y: 5 },  { x: 200, y: 15 }] },
+          {
+            name: 'A',
+            data: [
+              { x: 100, y: 10 },
+              { x: 200, y: 20 },
+            ],
+          },
+          {
+            name: 'B',
+            data: [
+              { x: 100, y: 5 },
+              { x: 200, y: 15 },
+            ],
+          },
         ],
         extra: { xaxis: { type: 'numeric' } },
       })
@@ -742,11 +983,15 @@ describe('KeyboardNavigation', () => {
       const ttCtx = chart.ctx.w.globals.tooltip
       if (!ttCtx) return
 
-      const spy = vi.spyOn(ttCtx.tooltipLabels, 'drawSeriesTexts').mockImplementation(() => {})
+      const spy = vi
+        .spyOn(ttCtx.tooltipLabels, 'drawSeriesTexts')
+        .mockImplementation(() => {})
       focusSvg(chart)
       // At j=0: seriesX[0][0]=100 vs seriesX[1][0]=100 → isXoverlap(0)=true, same length → shared=true
       kn._showTooltipAxisLine(0, 0, ttCtx)
-      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ shared: true }))
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ shared: true }),
+      )
       spy.mockRestore()
     })
   })

@@ -111,7 +111,12 @@ export default class Marker {
         let PointClasses = `apexcharts-marker w${(Math.random() + 1)
           .toString(36)
           .substring(4)}`
-        if (Markers.markersAreInert(w)) {
+        // Over painted markers the dot is drawn on the one hovered
+        // (enlargePaintedPoint), and taking the pointer from the canvas
+        // under it ends that hover: the box closed on a resting pointer, and
+        // the rim past the painted marker read as a marker node with no data
+        // point.
+        if (Markers.markersAreInert(w) || TooltipUtils.isCanvasMarkerChart(w)) {
           PointClasses += ' no-pointer-events'
         }
 
@@ -182,6 +187,60 @@ export default class Marker {
       }
 
       this.tooltipPosition.moveTooltip(cx, cy, appliedSize, mark)
+    }
+  }
+
+  /**
+   * The hovered marker when it is painted to canvas, which leaves no node to
+   * enlarge (enlargeCurrentPoint). The series' hover dot (drawDynamicPoints)
+   * is drawn over it at the size an enlarged marker gets, and the crosshair
+   * and the box go to (x, y) as they go for an enlarged marker.
+   *
+   * @param {{ i: number, cx: number, cy: number, size: number }} marker
+   *   its series (realIndex), centre in grid px and painted size
+   * @param {number} x
+   * @param {number} y
+   */
+  enlargePaintedPoint(marker, x, y) {
+    const w = this.w
+    this.resetPointsSize()
+
+    // A bubble's radius is its value, so enlargeCurrentPoint leaves an SVG
+    // bubble as it is and clears only `markers.hover.size`; a painted one is
+    // left as it is too, with no dot drawn over it.
+    const isBubble = w.config.chart.type === 'bubble'
+    let hoverSize = w.config.markers.hover.size
+    if (hoverSize === undefined && !isBubble) {
+      hoverSize = marker.size + w.config.markers.hover.sizeOffset
+    }
+    if (hoverSize !== undefined) hoverSize = Math.max(0, hoverSize)
+    // What a short plot's box sits clear of: the dot, or the bubble itself.
+    const reach = isBubble ? marker.size : (hoverSize ?? 0)
+
+    const point = isBubble
+      ? null
+      : w.dom.baseEl.querySelector(
+          `.apexcharts-series[data\\:realIndex='${marker.i}'] .apexcharts-series-markers path`,
+        )
+    if (point) {
+      const shape = point.getAttribute('shape') ?? 'circle'
+      point.setAttribute(
+        'd',
+        new Graphics(w).getMarkerPath(marker.cx, marker.cy, shape, hoverSize),
+      )
+    }
+
+    this.tooltipPosition.moveXCrosshairs(x)
+
+    if (!this.ttCtx.fixedTooltip) {
+      this.tooltipPosition.moveTooltip(
+        x,
+        y,
+        hoverSize,
+        this.tooltipPosition.isShortPlot()
+          ? { top: marker.cy - reach, bottom: marker.cy + reach }
+          : null,
+      )
     }
   }
 

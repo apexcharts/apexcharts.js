@@ -251,9 +251,7 @@ export default class Data {
       return
     }
 
-    const isBoxPlot =
-      cnf.chart.type === 'boxPlot' ||
-      /** @type {any} */ (cnf.series[i]).type === 'boxPlot'
+    const isBoxPlot = this._isBoxPlotSeries(i)
 
     if (
       !isBoxPlot &&
@@ -782,15 +780,26 @@ export default class Data {
   }
 
   /**
+   * Is series `i` read as a box plot (o, q1, median, q3, c) rather than as
+   * candles (o, h, l, c)? A box or candle series is read as its own type, as
+   * BoxCandleStick draws it, so a candlestick series in a 'boxPlot' chart is
+   * read as candles. Any other series goes by the chart's type, as before.
+   * @param {number} i
+   * @returns {boolean}
+   */
+  _isBoxPlotSeries(i) {
+    const own = /** @type {any} */ (this.w.config.series[i])?.type
+    if (own === 'boxPlot' || own === 'candlestick') return own === 'boxPlot'
+    return this.w.config.chart.type === 'boxPlot'
+  }
+
+  /**
    * @param {string} format
    * @param {any[]} ser
    * @param {number} i
    */
   handleCandleStickBoxDataFormat(format, ser, i) {
-    const w = this.w
-    const isBoxPlot =
-      w.config.chart.type === 'boxPlot' ||
-      /** @type {Record<string,any>} */ (w.config.series[i]).type === 'boxPlot'
+    const isBoxPlot = this._isBoxPlotSeries(i)
 
     const serO = []
     const serH = []

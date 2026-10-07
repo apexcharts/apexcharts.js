@@ -177,6 +177,24 @@ export default class Utils {
   }
 
   /**
+   * Is this an xy chart whose markers are painted to canvas, so an intersect
+   * tooltip finds the hovered one by the renderer's hit test
+   * (Intersect.getPaintedMarker) rather than by a marker node under the
+   * pointer? Cell charts (a heatmap) have no markers to find.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {boolean}
+   */
+  static isCanvasMarkerChart(w) {
+    const renderer = w.globals.activeRenderer
+    return (
+      renderer?.kind === 'canvas' &&
+      typeof renderer.hitTestMarker === 'function' &&
+      !!w.globals.xyCharts
+    )
+  }
+
+  /**
    * @param {import('./Tooltip').default} tooltipContext
    */
   constructor(tooltipContext) {
