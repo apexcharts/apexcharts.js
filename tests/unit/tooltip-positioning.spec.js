@@ -1007,8 +1007,20 @@ describe('Tooltip anchoring', () => {
       w.globals.barCanvasCoords = { 0: { 1: { cx: 120, cy: 0, barWidth: 20 } } }
 
       pos.moveStickyTooltipOverBars(1, 0)
-      expect(move.mock.calls[0][0]).toBe(120)
+      // across from the middle of the category, from the ticks, as on SVG
+      expect(move.mock.calls[0][0]).toBe(50)
       expect(move.mock.calls[0][1]).toBe(0)
+    })
+
+    it('a canvas bar past the last tick is placed by its own cached centre', () => {
+      const { w, pos, move } = barsCtx()
+      w.globals.barCanvasCoords = {
+        0: { 4: { cx: 420, cy: 30, barWidth: 20 } },
+      }
+
+      pos.moveStickyTooltipOverBars(4, 0)
+      expect(move.mock.calls[0][0]).toBe(420)
+      expect(move.mock.calls[0][1]).toBe(30)
     })
 
     it('no bar at j falls back to the plot bottom', () => {

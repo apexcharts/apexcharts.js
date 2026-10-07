@@ -1,6 +1,7 @@
 // @ts-check
 import Utils from '../../utils/Utils'
 import Options from '../settings/Options'
+import TooltipUtils from '../tooltip/Utils'
 
 /**
  * Ink Layer (#7): direct-manipulation annotation authoring.
@@ -647,9 +648,20 @@ export default class InkLayer {
    */
   _pixelToData(clientX, clientY) {
     const w = this.w
-    const gridEl = w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-grid')
-    if (!gridEl) return null
-    const g = gridEl.getBoundingClientRect()
+    // A chart with no x/y axes (a pie, a donut, a radial bar) has no data
+    // point under a click to drop a note on.
+    if (
+      !w.globals.axisCharts ||
+      !w.dom.baseEl ||
+      !w.dom.baseEl.querySelector('.apexcharts-svg')
+    ) {
+      return null
+    }
+    // The plot's own rect, not the `.apexcharts-grid` box: that starts a pixel
+    // below the plot, and on a numeric-x bar chart its gridlines run
+    // barPadForNumericAxis past both sides, so a note dropped there landed
+    // that far from the click.
+    const g = TooltipUtils.plotRect(w)
     if (!g.width || !g.height) return null
     const fx = (clientX - g.left) / g.width
     const fy = (clientY - g.top) / g.height

@@ -725,17 +725,42 @@ class Bar {
 
       // Strata (#2): canvas paints the bar/candle to a bitmap, so there is no
       // path node for the tooltip positioner to read cx/cy/barWidth off. Cache
-      // the same values here (keyed by realIndex + j); moveStickyTooltipOverBars
-      // falls back to this when the DOM node is absent.
+      // the same values here (keyed by realIndex + j); the tooltip and the
+      // keyboard read this when the DOM node is absent. `type` is what the
+      // node's class would say (`apexcharts-${type}-area`), the range ends
+      // what its data-range attributes would, and `bounds` the extent painted
+      // for the datum, in plot px: a box plot paints two paths per datum and
+      // a violin adds its box lane to its body, so it grows over each one.
       if (emit.kind === 'canvas') {
         if (!w.globals.barCanvasCoords) w.globals.barCanvasCoords = {}
         if (!w.globals.barCanvasCoords[realIndex]) {
           w.globals.barCanvasCoords[realIndex] = {}
         }
+        const prev = w.globals.barCanvasCoords[realIndex][j]
+        let bounds = prev?.bounds || null
+        const box = renderedPath.bbox()
+        if (box.width > 0 || box.height > 0) {
+          bounds = {
+            left: Math.min(bounds ? bounds.left : Infinity, box.x),
+            top: Math.min(bounds ? bounds.top : Infinity, box.y),
+            right: Math.max(
+              bounds ? bounds.right : -Infinity,
+              box.x + box.width,
+            ),
+            bottom: Math.max(
+              bounds ? bounds.bottom : -Infinity,
+              box.y + box.height,
+            ),
+          }
+        }
         w.globals.barCanvasCoords[realIndex][j] = {
           cx: dataLabelsObj.dataLabelsPos.bcx,
           cy: dataLabelsObj.dataLabelsPos.bcy,
           barWidth,
+          type,
+          ...(typeof y1 !== 'undefined' &&
+            typeof y2 !== 'undefined' && { rangeY1: y1, rangeY2: y2 }),
+          bounds,
         }
       }
 

@@ -542,6 +542,7 @@ class DataLabels {
     // the middle of measuring.
     /** @type {{el: SVGGraphicsElement, scaleY: number, box: import('./helpers/DataLabelOverlap').LabelBox}[]} */
     const measured = []
+    let onScreen = false
     for (let i = 0; i < nodes.length; i++) {
       const el = /** @type {SVGGraphicsElement} */ (nodes[i])
       const rect = el.getBoundingClientRect()
@@ -549,6 +550,7 @@ class DataLabels {
       const screen = rect.width > 0 && rect.height > 0
       const box = screen ? rect : el.getBBox()
       if (!box.width || !box.height) continue
+      if (screen) onScreen = true
 
       // A rotated or skewed label cannot be moved by its `y` attribute: that
       // runs along its own rotated axis. It still has to be avoided, so it
@@ -599,23 +601,26 @@ class DataLabels {
         : box,
     )
 
-    // Bounds come from the grid, in the space the boxes were measured in.
-    const gridEl = w.dom.baseEl.querySelector('.apexcharts-grid')
-    const gridRect = gridEl?.getBoundingClientRect()
-    const useScreen = !!gridRect && gridRect.height > 0
+    // Bounds are the plot's edges, in the space the boxes were measured in:
+    // its local 0..gridWidth/gridHeight carried to the screen by the matrix
+    // of the plot group, the matrix the labels are drawn under whether or not
+    // the plot has been translated into place yet. Not the `.apexcharts-grid`
+    // box: on a chart's first render this pass runs before the grid is drawn,
+    // and the local bounds it then fell back to were compared against screen
+    // boxes, so how far a label could be pushed (out of the plot, even)
+    // depended on where the chart sat on the page. Once there is a grid, its
+    // box starts a pixel below the plot.
+    const m = onScreen ? w.dom.elGraphical?.node?.getScreenCTM?.() : null
+    const useScreen = !!m && m.a > 0 && m.d > 0
     // The label's own extent along the axis it is being separated on.
     const extent = boxes[0].height
     const unit = measured[0].scaleY
 
-    const lo = useScreen
-      ? horizontal
-        ? gridRect.left
-        : gridRect.top
-      : 0
+    const lo = useScreen ? (horizontal ? m.e : m.f) : 0
     const hi = useScreen
       ? horizontal
-        ? gridRect.right
-        : gridRect.bottom
+        ? m.e + w.layout.gridWidth * m.a
+        : m.f + w.layout.gridHeight * m.d
       : horizontal
         ? w.layout.gridWidth
         : w.layout.gridHeight

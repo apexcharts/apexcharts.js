@@ -121,11 +121,58 @@ export default class Utils {
    * @returns {boolean}
    */
   static isCanvasViolinChart(w) {
+    return Utils.isCanvasBarChart(w) && Utils.hasViolinSeries(w)
+  }
+
+  /**
+   * Is `type` drawn as a bar-like mark: a bar or column, a range bar (a
+   * timeline, a dumbbell, a waterfall), a candlestick, a box plot or a
+   * violin?
+   *
+   * @param {any} type  a chart or series type
+   * @returns {boolean}
+   */
+  static isBarLikeType(type) {
+    return (
+      type === 'bar' ||
+      type === 'column' ||
+      type === 'rangeBar' ||
+      type === 'candlestick' ||
+      type === 'boxPlot' ||
+      type === 'violin'
+    )
+  }
+
+  /**
+   * Does the chart draw any bar-like mark (isBarLikeType)? As the chart
+   * type, or as a series mixed into a combo.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {boolean}
+   */
+  static hasBarLikeSeries(w) {
+    return (
+      Utils.isBarLikeType(w.config.chart.type) ||
+      (w.config.series || []).some(
+        (/** @type {any} */ s) => s && Utils.isBarLikeType(s.type),
+      )
+    )
+  }
+
+  /**
+   * Is this a chart whose bar-likes are painted to canvas, so hovered
+   * through one listener on the whole plot and found by the renderer's hit
+   * test (Intersect.getPaintedMark) rather than by a node under the pointer?
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {boolean}
+   */
+  static isCanvasBarChart(w) {
     const renderer = w.globals.activeRenderer
     return (
       renderer?.kind === 'canvas' &&
       typeof renderer.hitTest === 'function' &&
-      Utils.hasViolinSeries(w)
+      Utils.hasBarLikeSeries(w)
     )
   }
 

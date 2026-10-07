@@ -3,6 +3,7 @@ import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
 import AxisMapping from './AxisMapping'
+import TooltipUtils from './tooltip/Utils'
 import { Box } from '../svg/index'
 
 // Wheel-zoom feel: scrolling this many deltaY pixels doubles (or halves) the
@@ -257,11 +258,10 @@ export default class ZoomPanSelection extends Toolbar {
           : e.clientY
 
     if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
-      const gridRectDim = this._gridRect()
-      if (!gridRectDim) return
+      if (!this._hasPlot()) return
 
       this.startX = this._screenXToPlotPx(this.clientX)
-      this.startY = this.clientY - gridRectDim.top
+      this.startY = this._screenYToPlotPx(this.clientY)
 
       this.dragged = false
       this.w.interact.mousedown = true
@@ -306,13 +306,11 @@ export default class ZoomPanSelection extends Toolbar {
   /** @param {{ zoomtype?: any, isResized?: any }} opts */
   handleMouseUp({ zoomtype, isResized }) {
     const w = this.w
-    // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-    const gridRectDim = this._gridRect()
 
-    if (gridRectDim && (this.w.interact.mousedown || isResized)) {
+    if (this._hasPlot() && (this.w.interact.mousedown || isResized)) {
       // user released the drag, now do all the calculations
       this.endX = this._screenXToPlotPx(this.clientX)
-      this.endY = this.clientY - gridRectDim.top
+      this.endY = this._screenYToPlotPx(this.clientY)
       this.dragX = Math.abs(this.endX - this.startX)
       this.dragY = Math.abs(this.endY - this.startY)
 
@@ -490,13 +488,13 @@ export default class ZoomPanSelection extends Toolbar {
     st.factor = 1
     if (scale === 1 || w.globals.isDestroyed) return
 
-    const gridRectDim = this._gridRect()
-    if (!gridRectDim || !gridRectDim.width) return
+    const gridWidth = w.layout.gridWidth
+    if (!this._hasPlot() || !gridWidth) return
 
     const { min, max } = this._currentXWindow()
     const range = max - min
     const mouseX = Math.min(
-      Math.max((st.clientX - gridRectDim.left) / gridRectDim.width, 0),
+      Math.max(this._screenXToPlotPx(st.clientX) / gridWidth, 0),
       1,
     )
 
@@ -791,16 +789,18 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     const me = context
 
-    const gridRectDim = this._gridRect()
-    if (!gridRectDim) return
+    if (!this._hasPlot()) return
 
-    const startX = me.startX - 1
+    // The rect's corner is the pixel the drag started on, in both axes. (x
+    // used to start a pixel left of it: an offset that once came paired with
+    // a matching one on the width, and outlived it.)
+    const startX = me.startX
     const startY = me.startY
     let inversedX = false
     let inversedY = false
 
     const left = this._screenXToPlotPx(me.clientX)
-    const top = me.clientY - gridRectDim.top
+    const top = this._screenYToPlotPx(me.clientY)
 
     let selectionWidth = left - startX
     let selectionHeight = top - startY
@@ -963,8 +963,7 @@ export default class ZoomPanSelection extends Toolbar {
       return
     }
 
-    const gridRectDim = this._gridRect()
-    if (!gridRectDim) return
+    if (!this._hasPlot()) return
     const selectionRect = this.selectionRect.node.getBoundingClientRect()
     const xyRatios = this.xyRatios
 
@@ -984,10 +983,11 @@ export default class ZoomPanSelection extends Toolbar {
 
       minY =
         w.globals.yAxisScale[0].niceMin +
-        (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0]
+        (w.layout.gridHeight - this._screenYToPlotPx(selectionRect.bottom)) *
+          xyRatios.yRatio[0]
       maxY =
         w.globals.yAxisScale[0].niceMax -
-        (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
+        this._screenYToPlotPx(selectionRect.top) * xyRatios.yRatio[0]
     } else {
       // rangeBars use y for datetime
       minX =
@@ -1030,15 +1030,14 @@ export default class ZoomPanSelection extends Toolbar {
     const selRect = w.interact.zoomEnabled
       ? me.zoomRect.node.getBoundingClientRect()
       : me.selectionRect.node.getBoundingClientRect()
-    const gridRectDim = me._gridRect()
-    if (!gridRectDim) return
+    if (!me._hasPlot()) return
 
-    // Local coords: x in the plot-origin space (shared with bar placement via
-    // AxisMapping), y still relative to the grid box top (no vertical padding).
+    // Local coords in the plot-origin space, x shared with bar placement via
+    // AxisMapping.
     const localStartX = this._screenXToPlotPx(selRect.left)
     const localEndX = this._screenXToPlotPx(selRect.right)
-    const localStartY = selRect.top - gridRectDim.top
-    const localEndY = selRect.bottom - gridRectDim.top
+    const localStartY = this._screenYToPlotPx(selRect.top)
+    const localEndY = this._screenYToPlotPx(selRect.bottom)
 
     // Convert those local coords to actual data values
     let xLowestValue, xHighestValue
@@ -1386,15 +1385,26 @@ export default class ZoomPanSelection extends Toolbar {
       : { min: w.globals.minX, max: w.globals.maxX }
   }
 
-  /** Live grid rect from the current DOM. Never cache the grid node on the
-   * instance: a full render replaces this whole instance, but the fast update
-   * path (fastUpdate/_fastAxisChromeRefresh) keeps the instance while swapping
-   * the grid node, and a cached node would go stale (detached nodes report an
-   * all-zero bounding rect, silently corrupting selection geometry). */
-  _gridRect() {
+  /** Is there a chart on screen to measure the pointer against? */
+  _hasPlot() {
     const baseEl = this.w.dom.baseEl
-    const grid = baseEl && baseEl.querySelector('.apexcharts-grid')
-    return grid ? grid.getBoundingClientRect() : null
+    return !!(baseEl && baseEl.querySelector('.apexcharts-svg'))
+  }
+
+  /**
+   * Convert an absolute (client) y pixel to the plot-origin coordinate space,
+   * the y twin of {@link _screenXToPlotPx}. Measured per event from the svg
+   * (TooltipUtils.plotRect), never from the `.apexcharts-grid` box: unless
+   * gridlines reach the plot's top edge that box starts a pixel below it, so
+   * a drag rect stood a pixel above the pointer and the zoomed y range came
+   * back two pixels high. Dividing by the CSS zoom keeps a chart inside a
+   * zoomed container from reading screen pixels as plot pixels.
+   * @param {number} screenY
+   * @returns {number}
+   */
+  _screenYToPlotPx(screenY) {
+    const plot = TooltipUtils.plotRect(this.w)
+    return (screenY - plot.top) / plot.zoom
   }
 
   /**
@@ -1530,14 +1540,13 @@ export default class ZoomPanSelection extends Toolbar {
 
     if (type === 'touchstart') {
       this._cancelInertia()
-      const gridRectDim = this._gridRect()
-      if (!gridRectDim) return
+      if (!this._hasPlot()) return
 
       if (e.touches.length >= 2 && this._pinchEnabled()) {
         e.preventDefault()
         m.busy = true
         m.panState = null
-        this._beginPinch(e, gridRectDim)
+        this._beginPinch(e)
       } else if (
         e.touches.length === 1 &&
         this._panInertiaEnabled() &&
@@ -1548,13 +1557,19 @@ export default class ZoomPanSelection extends Toolbar {
         const t = e.touches[0]
         const win = this._currentXWindow()
         const gw = w.layout.gridWidth || 1
+        // The finger moves in screen px, the plot is gridWidth chart px wide:
+        // inside a CSS-zoomed container they differ by the zoom, and read as
+        // one the content ran that factor ahead of (or behind) the finger.
+        const zoom = TooltipUtils.plotRect(w).zoom
         m.panState = {
           startX: t.clientX,
           startY: t.clientY,
           axis: null, // decided on first move (rails)
           minX0: win.min,
           maxX0: win.max,
-          ratio0: (win.max - win.min) / gw,
+          zoom,
+          // data per screen px
+          ratio0: (win.max - win.min) / gw / zoom,
         }
         m.samples = [{ x: t.clientX, t: e.timeStamp }]
       }
@@ -1588,17 +1603,23 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
-  /** @param {any} e @param {DOMRect} gridRectDim */
-  _beginPinch(e, gridRectDim) {
+  /**
+   * The centroid is taken in plot px through the shared AxisMapping, the
+   * space `gridWidth` and the x window are in. It used to be the grid box's
+   * left edge less barPadForNumericAxis, which only lands on the plot's left
+   * edge while the gridlines happen to reach exactly barPad past it (with
+   * `grid.show: false` they do not, and the anchor slid a bar's width), and
+   * stayed in screen px, so a chart in a CSS-zoomed container drifted under
+   * the fingers.
+   * @param {any} e
+   */
+  _beginPinch(e) {
     const w = this.w
     const t0 = e.touches[0]
     const t1 = e.touches[1]
     const dist =
       Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1
-    const cx =
-      (t0.clientX + t1.clientX) / 2 -
-      gridRectDim.left -
-      w.globals.barPadForNumericAxis
+    const cx = this._screenXToPlotPx((t0.clientX + t1.clientX) / 2)
     const { min, max } = this._currentXWindow()
     this._m().pinch = {
       d0: dist,
@@ -1613,18 +1634,13 @@ export default class ZoomPanSelection extends Toolbar {
   _movePinch(e) {
     const w = this.w
     const p = this._m().pinch
-    if (!p) return
-    const gridRectDim = this._gridRect()
-    if (!gridRectDim) return
+    if (!p || !this._hasPlot()) return
 
     const t0 = e.touches[0]
     const t1 = e.touches[1]
     const dist =
       Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1
-    const cx =
-      (t0.clientX + t1.clientX) / 2 -
-      gridRectDim.left -
-      w.globals.barPadForNumericAxis
+    const cx = this._screenXToPlotPx((t0.clientX + t1.clientX) / 2)
 
     const range0 = p.maxX0 - p.minX0
     // fingers spread => dist > d0 => scale < 1 => window shrinks (zoom in)
@@ -1725,7 +1741,8 @@ export default class ZoomPanSelection extends Toolbar {
       this._panInertiaEnabled() &&
       Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY
     ) {
-      this._startInertia(vel)
+      // the glide runs in plot px, the finger's release speed is screen px
+      this._startInertia(vel / s.zoom)
     } else {
       m.busy = false
       this._fireScrolled()
@@ -1737,7 +1754,7 @@ export default class ZoomPanSelection extends Toolbar {
    * `friction` each frame and shift the window, stopping at the data edge
    * (clamp, not elastic overshoot). The loop is w-driven, so it keeps running
    * across the re-renders each frame triggers and stops only on a real destroy.
-   * @param {number} vel0 px/ms, sign is the finger direction
+   * @param {number} vel0 plot px/ms, sign is the finger direction
    */
   _startInertia(vel0) {
     const w = this.w

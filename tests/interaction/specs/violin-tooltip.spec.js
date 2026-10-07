@@ -279,9 +279,9 @@ test.describe('Violin: grouped violins on canvas', () => {
     })
   }`
 
-  async function render(page, { renderer, horizontal, tooltip }) {
+  async function render(page, { renderer, horizontal, tooltip, hide = null }) {
     await page.evaluate(
-      async ({ renderer, horizontal, tooltip, GEN }) => {
+      async ({ renderer, horizontal, tooltip, hide, GEN }) => {
         const gen = eval(GEN)
         if (window.chart) window.chart.destroy()
         window.chart = new window.ApexCharts(document.querySelector('#stage'), {
@@ -316,8 +316,9 @@ test.describe('Violin: grouped violins on canvas', () => {
           tooltip,
         })
         await window.chart.render()
+        if (hide) window.chart.hideSeries(hide)
       },
-      { renderer, horizontal, tooltip, GEN },
+      { renderer, horizontal, tooltip, hide, GEN },
     )
     await page.waitForTimeout(250)
     return page.evaluate(() => window.chart.w.globals.activeRenderer?.kind)
@@ -376,6 +377,57 @@ test.describe('Violin: grouped violins on canvas', () => {
         }
       })
     }
+  }
+
+  // With one series hidden the shared tooltip goes to the middle of the
+  // violins still drawn, which is the one left. SVG read the middle off the
+  // cx of the series its query picked, counting the hidden one, so the band
+  // stood on the left or right edge of the violin; canvas, which skipped the
+  // hidden series, put it on the violin. Both now take the visible ones.
+  for (const hide of ['S1', 'S2']) {
+    test(`vertical, shared, ${hide} hidden: canvas matches the SVG chart, the band on the violin left`, async ({
+      page,
+    }) => {
+      await page.setContent(
+        '<!doctype html><body style="margin:0"><div id="stage" style="width:760px;margin:20px auto"></div></body>',
+      )
+      await page.addScriptTag({
+        path: resolve(rootDir, 'dist', 'apexcharts.js'),
+      })
+      await loadCanvasFeature(page)
+
+      const opts = { horizontal: false, tooltip: {}, hide }
+      expect(await render(page, { ...opts, renderer: 'svg' })).toBe('svg')
+      // The violin left at j = 1: symmetric without its points, so its
+      // centre line runs through the middle of its box.
+      const body = await page.evaluate(() => {
+        const r = document
+          .querySelector(
+            ".apexcharts-violin-series .apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-violin-area[j='1']",
+          )
+          .getBoundingClientRect()
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+      })
+
+      await page.mouse.move(2, 2)
+      await hover(page, body)
+      const svg = await readTooltip(page)
+      expect(svg.active).toBe(true)
+      expect(svg.dataPointIndex).toBe(1)
+      expect(Math.abs(svg.bandCentre - body.x), 'SVG band').toBeLessThanOrEqual(
+        1.5,
+      )
+
+      expect(await render(page, { ...opts, renderer: 'canvas' })).toBe('canvas')
+      await page.mouse.move(2, 2)
+      await hover(page, body)
+      const canvas = await readTooltip(page)
+      await expectSameSpot(canvas, svg)
+      expect(
+        Math.abs(canvas.bandCentre - svg.bandCentre),
+        'the band',
+      ).toBeLessThanOrEqual(TOLERANCE_PX)
+    })
   }
 })
 

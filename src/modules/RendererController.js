@@ -82,6 +82,23 @@ export default class RendererController {
      * @type {Record<string, any>}
      */
     this._instances = {}
+    this.w.globals.activeRenderer = this.active
+  }
+
+  /**
+   * Make `renderer` the active one everywhere it is read: here, on ctx, and
+   * mirrored on globals so w-only modules (tooltip hit tests, Series
+   * hover/legend restyle) can reach it without threading ctx. The mirror is
+   * persistent state (see Globals.globalVars), so it holds until the next
+   * resolve() or teardown(), across any number of data-only updates.
+   * @param {import('../renderers/Renderer').RendererKind} kind
+   * @param {any} renderer
+   */
+  _activate(kind, renderer) {
+    this.active = renderer
+    this._activeKind = kind
+    this.ctx.renderer = renderer
+    this.w.globals.activeRenderer = renderer
   }
 
   /**
@@ -121,12 +138,7 @@ export default class RendererController {
         if (!this._instances[desired]) {
           this._instances[desired] = factory(this.w, this.ctx)
         }
-        this.active = this._instances[desired]
-        this._activeKind = desired
-        this.ctx.renderer = this.active
-        // Mirror on globals so w-only modules (Series hover/legend restyle)
-        // can reach the active renderer without threading ctx.
-        this.w.globals.activeRenderer = this.active
+        this._activate(desired, this._instances[desired])
         return this._activeKind
       }
       // The backend was requested/auto-selected but its feature isn't bundled.
@@ -149,11 +161,22 @@ export default class RendererController {
       )
     }
 
-    this.active = this.svg
-    this._activeKind = 'svg'
-    this.ctx.renderer = this.active
-    this.w.globals.activeRenderer = this.active
+    this._activate('svg', this.svg)
     return this._activeKind
+  }
+
+  /**
+   * The kind resolve() would select right now: the desired kind when its
+   * backend is registered, SVG otherwise. Pure (no instance, no warning), so
+   * the data-only fast update can ask whether a full render would switch
+   * backends before it repaints into the one on screen.
+   * @returns {import('../renderers/Renderer').RendererKind}
+   */
+  pendingKind() {
+    const desired = this._desiredKind()
+    return desired === 'svg' || getRendererRegistry().has(desired)
+      ? desired
+      : 'svg'
   }
 
   /** @returns {import('../renderers/Renderer').RendererKind} */
@@ -170,5 +193,8 @@ export default class RendererController {
     this._instances = {}
     this.active = this.svg
     this._activeKind = 'svg'
+    // The mirror outlives renders, so drop it with the instances: a reader
+    // reaching a destroyed chart must not hit-test a torn-down canvas.
+    this.w.globals.activeRenderer = null
   }
 }

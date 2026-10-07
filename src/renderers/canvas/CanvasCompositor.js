@@ -2,6 +2,7 @@
 import SVGElement from '../../svg/SVGElement'
 import { SVGNS } from '../../svg/math'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import Grid from '../../modules/axes/Grid'
 
 /**
  * Strata (#2) P2: CanvasCompositor: owns the `<foreignObject><canvas>` series
@@ -11,8 +12,13 @@ import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
  * `elGraphical`, so it inherits the plot-position transform
  * (`translate(translateX, translateY)`, `Core.shiftGraphPosition`) plus the
  * Paper offset. Series `d`-strings are elGraphical-local (0-based at the plot
- * origin), so the canvas only needs DPR scaling: no extra translate. A small
- * margin around the plot rect keeps edge markers from being clipped.
+ * origin), so the canvas only needs DPR scaling: no extra translate. The
+ * canvas reaches past the plot rect on every side, a small margin so edge
+ * markers are not clipped, and as far as the SVG chart's plot clips reach
+ * (Grid.maskRects): on a numeric x axis the bar clip runs a whole
+ * `barPadForNumericAxis` out, where the outer half of an edge column, candle,
+ * box or violin is drawn. Each mark is then painted through the clip its SVG
+ * node would carry, so the two renderers show the same region.
  *
  * @module renderers/canvas/CanvasCompositor
  */
@@ -32,7 +38,15 @@ export default class CanvasCompositor {
     this._canvas = null
     /** @type {any} */
     this._c2d = null
-    this._margin = 0
+    // How far the canvas reaches past each side of the plot, in plot px: the
+    // plot origin sits this far in from the canvas corner.
+    this._pad = { left: 0, top: 0, right: 0, bottom: 0 }
+    // The plot clips marks are painted through (Grid.maskRects), by kind.
+    /** @type {Record<string, {x:number,y:number,width:number,height:number}>|null} */
+    this._clips = null
+    // The clip rect applied to the context right now, null for none.
+    /** @type {{x:number,y:number,width:number,height:number}|null} */
+    this._clipRect = null
     this._dpr = 1
     // Per-series dim spec for restyle (hover / legend). null = no dimming.
     /** @type {{active:number, opacity:number}|null} */
@@ -68,12 +82,27 @@ export default class CanvasCompositor {
     return si === d.active ? 1 : d.opacity == null ? 0.2 : d.opacity
   }
 
+  /**
+   * The plot size, the plot clips (the rects the SVG chart clips its marks
+   * to) and how far the canvas has to reach past each side of the plot: the
+   * edge-marker margin, or further wherever a clip reaches further.
+   */
   _plotDims() {
     const gw = Math.max(0, Math.ceil(this.w.layout.gridWidth || 0))
     const gh = Math.max(0, Math.ceil(this.w.layout.gridHeight || 0))
     const largest = this.w.globals.markers?.largestSize || 0
     const margin = Math.ceil(largest + 8)
-    return { gw, gh, margin }
+    const clips = Grid.maskRects(this.w)
+    const pad = { left: margin, top: margin, right: margin, bottom: margin }
+    /** @param {number} v */
+    const reach = (v) => (Number.isFinite(v) ? Math.ceil(v) : 0)
+    Object.values(clips).forEach((r) => {
+      pad.left = Math.max(pad.left, reach(-r.x))
+      pad.top = Math.max(pad.top, reach(-r.y))
+      pad.right = Math.max(pad.right, reach(r.x + r.width - gw))
+      pad.bottom = Math.max(pad.bottom, reach(r.y + r.height - gh))
+    })
+    return { gw, gh, pad, clips }
   }
 
   /**
@@ -84,15 +113,16 @@ export default class CanvasCompositor {
   createHost() {
     const win = BrowserAPIs.getWindow()
     this._dpr = Math.min(DPR_CAP, (win && win.devicePixelRatio) || 1)
-    const { gw, gh, margin } = this._plotDims()
-    this._margin = margin
+    const { gw, gh, pad, clips } = this._plotDims()
+    this._pad = pad
+    this._clips = clips
 
-    const w = gw + margin * 2
-    const h = gh + margin * 2
+    const w = gw + pad.left + pad.right
+    const h = gh + pad.top + pad.bottom
 
     const fo = BrowserAPIs.createElementNS(SVGNS, 'foreignObject')
-    fo.setAttribute('x', String(-margin))
-    fo.setAttribute('y', String(-margin))
+    fo.setAttribute('x', String(-pad.left))
+    fo.setAttribute('y', String(-pad.top))
     fo.setAttribute('width', String(w))
     fo.setAttribute('height', String(h))
     fo.setAttribute('class', 'apexcharts-canvas-series')
@@ -117,6 +147,55 @@ export default class CanvasCompositor {
 
   getHost() {
     return this._host
+  }
+
+  /**
+   * The rect a plot clip covers, in plot px, or null when there is none to
+   * apply (no clip named, or no host made yet).
+   * @param {string|null|undefined} kind 'grid' | 'bar' | 'marker'
+   * @returns {{x:number,y:number,width:number,height:number}|null}
+   */
+  clipRect(kind) {
+    const r = kind && this._clips ? this._clips[kind] : null
+    return r &&
+      Number.isFinite(r.x) &&
+      Number.isFinite(r.y) &&
+      Number.isFinite(r.width) &&
+      Number.isFinite(r.height)
+      ? r
+      : null
+  }
+
+  /**
+   * Paint through a plot clip from here on, as the SVG mark would be
+   * clipped; null paints unclipped. Consecutive marks under the same clip
+   * share one save/clip, so a run of bars costs one clip, not one each.
+   * @param {any} ctx
+   * @param {string|null|undefined} kind
+   */
+  _clipTo(ctx, kind) {
+    const r = this.clipRect(kind)
+    if (r === this._clipRect) return
+    if (this._clipRect) ctx.restore()
+    this._clipRect = r
+    if (r) {
+      // On whole device pixels, rounded outward. A clip edge that cuts a
+      // pixel switches the rasterizer to a masked path for everything drawn
+      // under it, which shifts the anti-aliasing of marks nowhere near the
+      // edge; on pixel edges it is a plain rect, and painting is unchanged.
+      const dpr = this._dpr
+      const { left, top } = this._pad
+      const x0 = Math.floor((left + r.x) * dpr)
+      const y0 = Math.floor((top + r.y) * dpr)
+      const x1 = Math.ceil((left + r.x + r.width) * dpr)
+      const y1 = Math.ceil((top + r.y + r.height) * dpr)
+      ctx.save()
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.beginPath()
+      ctx.rect(x0, y0, x1 - x0, y1 - y0)
+      ctx.clip()
+      ctx.setTransform(dpr, 0, 0, dpr, left * dpr, top * dpr)
+    }
   }
 
   clear() {
@@ -161,10 +240,11 @@ export default class CanvasCompositor {
     this._syncDpr()
     this.clear()
     const dpr = this._dpr
-    const m = this._margin
-    // Grid-local (0,0) → device (m*dpr) so it lands at the foreignObject's
-    // plot origin (which is inset by the margin).
-    ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr)
+    const { left, top } = this._pad
+    // Grid-local (0,0) → device (pad*dpr) so it lands at the foreignObject's
+    // plot origin (which is inset by the pad).
+    ctx.setTransform(dpr, 0, 0, dpr, left * dpr, top * dpr)
+    this._clipRect = null
 
     // ── object commands (paths / rects / lines / text), z-ordered ──
     if (list.length) {
@@ -180,13 +260,19 @@ export default class CanvasCompositor {
       for (let i = 0; i < ordered.length; i++) {
         const c = ordered[i]
         this._alpha = this._dim ? this._seriesAlpha(c.si) : 1
+        this._clipTo(ctx, c.clip)
         this._paintOne(ctx, c)
       }
+      this._clipTo(ctx, null)
     }
 
     // ── columnar rect cells (heatmap), then columnar markers on top ──
     this._paintRects(ctx, shim)
+    // Every marker the canvas records sits in a group clipped to the marker
+    // clip on SVG (Markers.plotChartMarkers, Scatter.draw).
+    this._clipTo(ctx, 'marker')
     this._paintMarkers(ctx, shim)
+    this._clipTo(ctx, null)
     this._alpha = 1
   }
 
@@ -390,7 +476,8 @@ export default class CanvasCompositor {
         // to each marker via setTransform. No per-marker d-string build, no
         // per-marker Path2D allocation.
         const dpr = this._dpr
-        const m = this._margin
+        const ox = this._pad.left
+        const oy = this._pad.top
         let j = i
         while (j < n && mshape[j] === shapeId && mstyle[j] === styleId) {
           const y = my[j]
@@ -398,7 +485,14 @@ export default class CanvasCompositor {
           if (y === y && size > 0) {
             const p = this._unitPath(shim, shapeId, size)
             if (p) {
-              ctx.setTransform(dpr, 0, 0, dpr, (m + mx[j]) * dpr, (m + y) * dpr)
+              ctx.setTransform(
+                dpr,
+                0,
+                0,
+                dpr,
+                (ox + mx[j]) * dpr,
+                (oy + y) * dpr,
+              )
               // fill and stroke opacities are applied per op (matching the
               // previous per-marker _fillStrokePath behavior exactly)
               const f = dimming ? this._seriesAlpha(shim.markerSeries(j)) : 1
@@ -415,7 +509,7 @@ export default class CanvasCompositor {
           j++
         }
         // restore the grid-local base transform
-        ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr)
+        ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr)
         ctx.globalAlpha = 1
         i = j
       }
@@ -605,6 +699,8 @@ export default class CanvasCompositor {
     this._host = null
     this._canvas = null
     this._c2d = null
+    this._clips = null
+    this._clipRect = null
     this._unitPaths.clear()
   }
 }

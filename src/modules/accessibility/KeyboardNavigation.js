@@ -617,15 +617,17 @@ export default class KeyboardNavigation {
 
     // Try to find the element and use its centre as the synthetic position
     const el = this._getFocusableElement(i, j)
-    // a heatmap painted to canvas has no element, only the box it was painted in
-    const painted = el ? null : this._canvasCell(i, j)
+    // a heatmap cell or a bar-like painted to canvas has no element, only the
+    // box it was painted in
+    const painted = el ? null : this._canvasCell(i, j) || this._canvasMark(i, j)
     if (el) {
       const rect = el.getBoundingClientRect()
       clientX = rect.left + rect.width / 2
       clientY = rect.top + rect.height / 2
     } else if (painted) {
       // Plot px to screen px from the plot's corner, as the pointer's hit
-      // test maps them back (Intersect.handleHeatTreeTooltip).
+      // test maps them back (Intersect.handleHeatTreeTooltip,
+      // Intersect.getPaintedMark).
       const plot = TooltipUtils.plotRect(w)
       clientX = plot.left + (painted.x + painted.width / 2) * plot.zoom
       clientY = plot.top + (painted.y + painted.height / 2) * plot.zoom
@@ -713,10 +715,15 @@ export default class KeyboardNavigation {
     // Use Paper.findOne() to get the SVG.js wrapper (same as toggleDataPointSelection
     // in UpdateHelpers.js) — querySelector returns a plain DOM node which lacks the
     // .node property that pathMouseEnter requires.
+    // A bar painted to canvas has no node to take it, and whatever node of
+    // the series still carries this `j` (a box plot's or a violin's jitter)
+    // is not the bar.
     const parent = `.apexcharts-series[data\\:realIndex='${i}']`
-    const elPath = w.dom.Paper.findOne(
-      `${parent} path[j='${j}'], ${parent} circle[j='${j}'], ${parent} rect[j='${j}']`,
-    )
+    const elPath = this._canvasMark(i, j)
+      ? null
+      : w.dom.Paper.findOne(
+          `${parent} path[j='${j}'], ${parent} circle[j='${j}'], ${parent} rect[j='${j}']`,
+        )
     if (elPath) {
       // Leave the previous bar before entering the new one
       this._leaveHoveredBar()
@@ -798,17 +805,94 @@ export default class KeyboardNavigation {
           delete tooltipEl.dataset.placement
         }
       }
+    } else if (this._pointerHoversOneMark(ttCtx)) {
+      // Vertical, one mark at a time (an intersect tooltip): where the
+      // pointer on the focused mark puts the box, beside it, or over it on a
+      // plot too short for that.
+      this._hoverFocusedMark(i, j, elPath, ttCtx)
     } else {
-      // Vertical bar / column / candlestick / boxPlot
+      // Vertical bar / column / candlestick / boxPlot, the sticky box
       ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i)
     }
   }
+
+  /**
+   * Does the pointer caption a vertical bar-like one mark at a time, through
+   * Intersect.handleBarTooltip, rather than through the sticky path? As
+   * Tooltip.axisChartsTooltips decides: an intersect tooltip, unless the
+   * chart is synced to a group, whose members all take the sticky path.
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @returns {boolean}
+   */
+  _pointerHoversOneMark(ttCtx) {
+    if (!ttCtx.showOnIntersect) return false
+    const w = this.w
+    return !(
+      w.config.chart.group &&
+      typeof this.ctx.getSyncedCharts === 'function' &&
+      this.ctx.getSyncedCharts().length > 1
+    )
+  }
+
+  /**
+   * Place the box for the focused vertical bar-like the way a pointer on it
+   * does, by handing the pointer's own placement (Intersect.handleBarTooltip)
+   * the synthetic pointer on the mark (`_setSyntheticEvent`) with the mark
+   * named, as a real hover names the node under it (TooltipUtils.hoverTarget)
+   * or, painted to canvas, the mark the renderer's hit test found: nothing
+   * else under that point (a neighbouring mark, a jitter dot) is taken for
+   * it. With nothing of the mark drawn, the sticky box stands in.
+   * @param {number} i
+   * @param {number} j
+   * @param {any} elPath  the SVG.js wrapper `_showTooltipBar` found
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
+  _hoverFocusedMark(i, j, elPath, ttCtx) {
+    const w = this.w
+    const painted = this._canvasMark(i, j)
+    // the node a pointer hovers the mark through, whose class handleBarTooltip
+    // reads it by
+    const node =
+      !painted &&
+      elPath?.node &&
+      [
+        'apexcharts-bar-area',
+        'apexcharts-candlestick-area',
+        'apexcharts-boxPlot-area',
+        'apexcharts-rangebar-area',
+        'apexcharts-violin-area',
+      ].some((c) => elPath.node.classList.contains(c))
+        ? elPath.node
+        : null
+    if (!painted && !node) {
+      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i)
+      return
+    }
+    const svg = w.dom.Paper.node
+    ttCtx.intersect.handleBarTooltip({
+      e: {
+        ...ttCtx.e,
+        type: 'mousemove',
+        target: node || svg,
+        apexHoverTarget: node || svg,
+        apexPaintedHit: painted,
+      },
+      opt: {
+        paths: node || svg,
+        hoverArea: svg,
+        elGrid: ttCtx.getElGrid(),
+        tooltipEl: ttCtx.getElTooltip(),
+        ttItems: ttCtx.ttItems,
+      },
+    })
+  }
+
   /**
    * The focused horizontal bar's box in elWrap px, measured. A violin is read
    * as its whole glyph, as the pointer reads it (Intersect.getViolinMark):
    * body, box lane and jitter or rain, so the box clears a raincloud's lanes
-   * as well as its cloud. Painted to canvas, its body leaves no path, only
-   * the extent Violin.draw cached. Null when nothing of the bar is drawn.
+   * as well as its cloud. Painted to canvas, a bar leaves no path, only the
+   * box it was painted in. Null when nothing of the bar is drawn.
    * @param {number} i
    * @param {number} j
    * @param {any} elPath  the SVG.js wrapper `_showTooltipBar` found
@@ -823,7 +907,7 @@ export default class KeyboardNavigation {
     const r =
       (isViolin && ttCtx.intersect?.violinGlyphRect(i, j)) ||
       elPath?.node?.getBoundingClientRect() ||
-      null
+      this._canvasMarkRect(i, j)
     if (!r) return null
     const wrapRect = w.dom.elWrap.getBoundingClientRect()
     return {
@@ -1179,8 +1263,8 @@ export default class KeyboardNavigation {
    */
   _canvasCell(i, j) {
     if (this.w.config.chart.type !== 'heatmap') return null
-    // ctx.renderer, not its mirror on globals: a data-only update resets the
-    // globals and leaves the mirror empty while the canvas stays in use.
+    // ctx.renderer itself: this module holds ctx, so it has no need of the
+    // mirror on globals that the w-only modules read.
     const renderer = this.ctx.renderer
     if (
       !renderer ||
@@ -1190,6 +1274,60 @@ export default class KeyboardNavigation {
       return null
     }
     return renderer.findCell(i, j)
+  }
+
+  /**
+   * The bar-like mark (a bar, a candle, a box plot, a violin body) the
+   * canvas renderer painted for this point, plot-local, with the path it
+   * painted (CanvasRenderer.findMark): the first one, as the first `path[j]`
+   * is on SVG. Null for every other chart, and when the marks are SVG nodes.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ x: number, y: number, width: number, height: number, d: string } | null}
+   */
+  _canvasMark(i, j) {
+    const type = this.w.config.chart.type
+    if (
+      type !== 'bar' &&
+      type !== 'candlestick' &&
+      type !== 'boxPlot' &&
+      type !== 'violin' &&
+      type !== 'rangeBar'
+    ) {
+      return null
+    }
+    // ctx.renderer, as for the cells (_canvasCell).
+    const renderer = this.ctx.renderer
+    if (
+      !renderer ||
+      renderer.kind !== 'canvas' ||
+      typeof renderer.findMark !== 'function'
+    ) {
+      return null
+    }
+    return renderer.findMark(i, j)
+  }
+
+  /**
+   * Where `_canvasMark` puts the painted mark on screen, as a hovered SVG
+   * path's getBoundingClientRect() would: from the plot's corner, through
+   * any CSS zoom on the chart. Null when nothing was painted for the point.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ left: number, top: number, right: number, bottom: number } | null}
+   */
+  _canvasMarkRect(i, j) {
+    const mark = this._canvasMark(i, j)
+    if (!mark) return null
+    const plot = TooltipUtils.plotRect(this.w)
+    const left = plot.left + mark.x * plot.zoom
+    const top = plot.top + mark.y * plot.zoom
+    return {
+      left,
+      top,
+      right: left + mark.width * plot.zoom,
+      bottom: top + mark.height * plot.zoom,
+    }
   }
 
   // ─── Focus class management ───────────────────────────────────────────────
@@ -1235,20 +1373,21 @@ export default class KeyboardNavigation {
   }
 
   /**
-   * A heatmap painted to canvas has no node per cell to carry the focus
-   * stroke and the accessible name, so an outline of the focused cell stands
-   * in for it. It goes in the row's own series group, over the canvas, where
-   * an SVG cell would sit: plot-local, clipped to the plot as the cells are,
-   * and swept away with the group by an update, as an SVG cell's focus
-   * stroke is. Otherwise it lives as long as the focus does
-   * (`_removeFocusClass`).
+   * A heatmap or a bar-like painted to canvas has no node per cell or mark to
+   * carry the focus stroke and the accessible name, so an outline of the
+   * focused one stands in for it. It goes in the series' own group, over the
+   * canvas, where the SVG node would sit: plot-local, clipped to the plot as
+   * the painted marks are, and swept away with the group by an update, as an
+   * SVG node's focus stroke is. Otherwise it lives as long as the focus does
+   * (`_removeFocusClass`). Being there, it is also what the tooltip keeps
+   * clear of (Position.computeTooltipPosition), as it does a focused node.
    * @param {number} i
    * @param {number} j
    * @returns {Element | null}
    */
   _drawCanvasFocusRing(i, j) {
     const cell = this._canvasCell(i, j)
-    if (!cell) return null
+    if (!cell) return this._drawCanvasMarkFocusRing(i, j)
     const host = this.w.dom.baseEl.querySelector(
       `.apexcharts-heatmap .apexcharts-series[rel='${i + 1}']`,
     )
@@ -1265,6 +1404,36 @@ export default class KeyboardNavigation {
     ring.attr({ i, j })
     // First in the group, so the row's data labels stay readable on top of
     // the outline as they do over an SVG cell's.
+    host.insertBefore(ring.node, host.firstChild)
+    return ring.node
+  }
+
+  /**
+   * The outline for a bar-like painted to canvas (`_drawCanvasFocusRing`):
+   * the very path that was painted, so it traces the bar, the candle and its
+   * wicks, or the box and its whisker the way the focus stroke traces an SVG
+   * one, under the same clip. It carries no `j`, so nothing that looks for
+   * the series' marks by index takes it for one.
+   * @param {number} i
+   * @param {number} j
+   * @returns {Element | null}
+   */
+  _drawCanvasMarkFocusRing(i, j) {
+    const mark = this._canvasMark(i, j)
+    if (!mark) return null
+    const w = this.w
+    // The series' own group, by realIndex (`rel` counts within a type's
+    // groups, which a combo has several of).
+    const host = Array.from(
+      w.dom.baseEl.querySelectorAll('.apexcharts-series'),
+    ).find((g) => g.getAttribute('data:realIndex') === String(i))
+    if (!host) return null
+    const ring = new Graphics(w, this.ctx).drawPath({
+      d: mark.d,
+      fill: 'none',
+      classes: 'apexcharts-keyboard-focus-ring',
+    })
+    ring.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
     host.insertBefore(ring.node, host.firstChild)
     return ring.node
   }
@@ -1405,6 +1574,10 @@ export default class KeyboardNavigation {
       type === 'violin' ||
       type === 'rangeBar'
     ) {
+      // Painted to canvas, the mark has no node (an outline stands in for
+      // it, _drawCanvasFocusRing), and a jitter path that still carries its
+      // `j` in the series is no stand-in for it.
+      if (this._canvasMark(i, j)) return null
       return baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`,
       )

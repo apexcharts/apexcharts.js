@@ -359,6 +359,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-bar-area.apexcharts-keyboard-focused,
 .apexcharts-candlestick-area.apexcharts-keyboard-focused,
 .apexcharts-boxPlot-area.apexcharts-keyboard-focused,
+.apexcharts-violin-area.apexcharts-keyboard-focused,
 .apexcharts-rangebar-area.apexcharts-keyboard-focused,
 .apexcharts-pie-area.apexcharts-keyboard-focused,
 .apexcharts-heatmap-rect.apexcharts-keyboard-focused,
@@ -369,8 +370,8 @@ rect.legend-mouseover-inactive,
   stroke-opacity: 1;
 }
 
-/* A heatmap painted to canvas has no node per cell, so keyboard focus draws
-   this outline over the focused cell instead. */
+/* A heatmap or a bar-like painted to canvas has no node per cell or mark, so
+   keyboard focus draws this outline over the focused one instead. */
 .apexcharts-keyboard-focus-ring {
   fill: none;
   pointer-events: none;

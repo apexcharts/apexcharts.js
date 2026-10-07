@@ -139,7 +139,6 @@ export default class Globals {
     gl.delayedElements = []
     gl.pointsArray = []
     gl.barCanvasCoords = null // Strata (#2): per-render bar/candle center cache (canvas tooltip position)
-    gl.activeRenderer = null // Strata (#2): active renderer handle for w-only modules (Series restyle); set by RendererController.resolve()
     gl.dataLabelsRects = []
     gl.lastDrawnDataLabelsIndexes = [] // tracks which data labels were drawn per series to prevent collisions
     gl.textRectsCache = new Map()
@@ -561,6 +560,14 @@ export default class Globals {
       // ── Instances (created once, replaced only on full re-init) ──────────────
       tooltip: null,
       resizeObserver: null,
+      // Strata (#2): the series renderer on screen, mirrored from
+      // RendererController (its only writer) so w-only modules (tooltip hit
+      // tests, Series restyle) can reach it without threading ctx. It lives
+      // as long as the controller does, not one render: the data-only fast
+      // update reparses (which runs initGlobalVars) but keeps the renderer
+      // and never resolves again, so a per-render copy read null after the
+      // first updateSeries() and every canvas hover path went with it.
+      activeRenderer: null,
 
       // ── Locale (loaded once; changes only via setLocale()) ───────────────────
       locale: {},

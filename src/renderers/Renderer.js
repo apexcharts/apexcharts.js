@@ -34,6 +34,7 @@
  * @property {(feature: string) => boolean} supports
  * @property {(px: number, py: number) => ({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number}|null)} hitTest
  * @property {(seriesIndex: number, dataPointIndex: number) => ({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,radius:number}|null)} [findCell] A painted cell's plot-local box by identity (keyboard focus on canvas heatmap cells); optional.
+ * @property {(seriesIndex: number, dataPointIndex: number) => ({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,d:string}|null)} [findMark] A painted bar-like mark's plot-local box and path by identity (keyboard focus on canvas bar-likes); optional.
  * @property {(target: any, style: any) => void} restyle
  * @property {() => ({dataURL:string,x:number,y:number,w:number,h:number}|null)} toBitmap
  * @property {() => void} destroy

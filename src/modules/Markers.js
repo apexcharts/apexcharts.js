@@ -245,8 +245,17 @@ export default class Markers {
         if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
           // Strata (#2): in canvas mode markers paint to a bitmap and expose no
           // cx/cy nodes, so mirror the markers-off pointsArray cache here to
-          // feed the tooltip/crosshair position path.
-          if (emit.kind === 'canvas') {
+          // feed the tooltip/crosshair position path. Only at a point the
+          // series draws a marker at: the point the null handling parks off
+          // the plot (isVirtualPoint) and a null point's marker
+          // (showNullDataPoints) come through here as well, and with the
+          // series' markers off the SVG chart caches neither, its pushes
+          // below holding one entry per point. Written by index here, they
+          // put every later push one index on, and the box missed its point.
+          if (
+            emit.kind === 'canvas' &&
+            (shouldMarkerDraw || hasDiscreteMarkers)
+          ) {
             if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') {
               w.globals.pointsArray[seriesIndex] = []
             }

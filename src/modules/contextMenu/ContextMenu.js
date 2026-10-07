@@ -1,6 +1,7 @@
 // @ts-check
 import { Environment } from '../../utils/Environment.js'
 import Utils from '../../utils/Utils.js'
+import TooltipUtils from '../tooltip/Utils.js'
 
 /**
  * Radial Actions (#chrome): a right-click / long-press context menu anchored to
@@ -99,16 +100,27 @@ export default class ContextMenu {
   }
 
   /**
-   * Client pixel -> data {x,y} via the grid client-rect fraction (scale
-   * independent). Null when the grid is not measurable.
+   * Client pixel -> data {x,y} via the plot's client-rect fraction (scale
+   * independent). Null when the plot is not measurable, and on a chart with
+   * no x/y axes (a pie, a donut, a radial bar), where a click has no data
+   * point to name and the items that act on one leave it alone. The plot's
+   * own rect, not the `.apexcharts-grid` box: that starts a pixel below the
+   * plot, and on a numeric-x bar chart its gridlines run
+   * barPadForNumericAxis past both sides, so "Add note here" landed that far
+   * from the click.
    * @param {number} cx @param {number} cy
    * @returns {{x:number,y:number}|null}
    */
   _clientToData(cx, cy) {
     const w = this.w
-    const grid = w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-grid')
-    if (!grid) return null
-    const r = grid.getBoundingClientRect()
+    if (
+      !w.globals.axisCharts ||
+      !w.dom.baseEl ||
+      !w.dom.baseEl.querySelector('.apexcharts-svg')
+    ) {
+      return null
+    }
+    const r = TooltipUtils.plotRect(w)
     if (!r.width || !r.height) return null
     const clamp = (/** @type {number} */ v) => (v < 0 ? 0 : v > 1 ? 1 : v)
     const fx = clamp((cx - r.left) / r.width)
@@ -297,9 +309,13 @@ export default class ContextMenu {
     this.menu = menu
 
     // Position relative to the wrapper, clamped so it opens away from edges.
+    // The pointer is in screen px and `style.left/top` in the wrapper's own
+    // px, which differ by the CSS zoom of any container the chart sits in;
+    // left as screen px, the menu opened that factor further from the click.
     const wrapRect = elWrap.getBoundingClientRect()
-    let left = clientX - wrapRect.left
-    let top = clientY - wrapRect.top
+    const zoom = TooltipUtils.plotRect(w).zoom
+    let left = (clientX - wrapRect.left) / zoom
+    let top = (clientY - wrapRect.top) / zoom
     const mw = menu.offsetWidth
     const mh = menu.offsetHeight
     const maxLeft = Math.max(0, elWrap.clientWidth - mw)

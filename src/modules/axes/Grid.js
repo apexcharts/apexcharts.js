@@ -79,14 +79,70 @@ class Grid {
     return null
   }
 
-  createGridMask() {
-    const w = this.w
+  /**
+   * The rects of the three plot clips, in plot px (0,0 is the plot's corner):
+   * `grid` for lines and areas, `bar` for bar-like marks, which on a numeric
+   * x axis reaches `barPadForNumericAxis` past each side so the half of an
+   * edge column, candle, box or violin that hangs outside the plot stays
+   * drawn, and `marker` for markers. The canvas renderer paints through the
+   * same rects, so it shows what the SVG chart shows.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @returns {Record<'grid' | 'bar' | 'marker', { x: number, y: number, width: number, height: number }>}
+   */
+  static maskRects(w) {
     const gl = w.globals
-    const graphics = new Graphics(this.w)
 
     const strokeSize = Array.isArray(w.config.stroke.width)
       ? Math.max(...w.config.stroke.width)
       : w.config.stroke.width
+
+    const hasBar =
+      ['bar', 'rangeBar', 'candlestick', 'boxPlot', 'violin'].includes(
+        w.config.chart.type,
+      ) || gl.comboBarCount > 0
+
+    let barWidthLeft = 0
+    let barWidthRight = 0
+    if (hasBar && w.axisFlags.isXNumeric && !gl.isBarHorizontal) {
+      barWidthLeft = Math.max(w.layout.gridPad.left, gl.barPadForNumericAxis)
+      barWidthRight = Math.max(w.layout.gridPad.right, gl.barPadForNumericAxis)
+    }
+
+    const markerSize = gl.markers.largestSize
+
+    return {
+      grid: {
+        x: -strokeSize / 2 - 2,
+        y: -strokeSize / 2 - 2,
+        width: w.layout.gridWidth + strokeSize + 4,
+        height: w.layout.gridHeight + strokeSize + 4,
+      },
+      bar: {
+        x: -strokeSize / 2 - barWidthLeft - 2,
+        y: -strokeSize / 2 - 2,
+        width:
+          w.layout.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
+        height: w.layout.gridHeight + strokeSize + 4,
+      },
+      marker: {
+        x: Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize),
+        y: -markerSize,
+        width:
+          w.layout.gridWidth +
+          Math.max(
+            strokeSize + barWidthRight + barWidthLeft + 4,
+            markerSize * 2,
+          ),
+        height: w.layout.gridHeight + markerSize * 2,
+      },
+    }
+  }
+
+  createGridMask() {
+    const w = this.w
+    const gl = w.globals
+    const graphics = new Graphics(this.w)
 
     /**
      * @param {string} id
@@ -103,47 +159,16 @@ class Grid {
     w.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
     w.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
 
-    const hasBar =
-      ['bar', 'rangeBar', 'candlestick', 'boxPlot', 'violin'].includes(
-        w.config.chart.type,
-      ) || w.globals.comboBarCount > 0
+    const rects = Grid.maskRects(w)
+    /**
+     * @param {{ x: number, y: number, width: number, height: number }} r
+     */
+    const drawClipRect = (r) =>
+      graphics.drawRect(r.x, r.y, r.width, r.height, 0, '#fff')
 
-    let barWidthLeft = 0
-    let barWidthRight = 0
-    if (hasBar && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
-      barWidthLeft = Math.max(w.layout.gridPad.left, gl.barPadForNumericAxis)
-      barWidthRight = Math.max(w.layout.gridPad.right, gl.barPadForNumericAxis)
-    }
-
-    w.dom.elGridRect = graphics.drawRect(
-      -strokeSize / 2 - 2,
-      -strokeSize / 2 - 2,
-      w.layout.gridWidth + strokeSize + 4,
-      w.layout.gridHeight + strokeSize + 4,
-      0,
-      '#fff',
-    )
-
-    w.dom.elGridRectBar = graphics.drawRect(
-      -strokeSize / 2 - barWidthLeft - 2,
-      -strokeSize / 2 - 2,
-      w.layout.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
-      w.layout.gridHeight + strokeSize + 4,
-      0,
-      '#fff',
-    )
-
-    const markerSize = w.globals.markers.largestSize
-
-    w.dom.elGridRectMarker = graphics.drawRect(
-      Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize),
-      -markerSize,
-      w.layout.gridWidth +
-        Math.max(strokeSize + barWidthRight + barWidthLeft + 4, markerSize * 2),
-      w.layout.gridHeight + markerSize * 2,
-      0,
-      '#fff',
-    )
+    w.dom.elGridRect = drawClipRect(rects.grid)
+    w.dom.elGridRectBar = drawClipRect(rects.bar)
+    w.dom.elGridRectMarker = drawClipRect(rects.marker)
 
     w.dom.elGridRectMask.appendChild(w.dom.elGridRect.node)
     w.dom.elGridRectBarMask.appendChild(w.dom.elGridRectBar.node)

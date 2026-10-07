@@ -1,5 +1,5 @@
 // @ts-check
-import CanvasGraphics from './CanvasGraphics'
+import CanvasGraphics, { markBox } from './CanvasGraphics'
 import CanvasCompositor from './CanvasCompositor'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
@@ -23,11 +23,11 @@ import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
  * export composites the series bitmap (Exports.inlineCanvasLayers). Per-point
  * dataPointSelection-visual and keyboard traversal are intentionally SVG-only:
  * they are low value on the dense data canvas targets, and the data-table
- * fallback is the proper accessibility answer there. Heatmap cells are the
- * exception for the keyboard: a heatmap reads cell by cell, so focus resolves
- * its cell through findCell and gets the tooltip and outline an SVG cell
- * does (KeyboardNavigation). Animation is not yet bridged, so a render paints
- * the final frame directly.
+ * fallback is the proper accessibility answer there. Heatmap cells and
+ * bar-like marks are the exception for the keyboard: they read one at a time,
+ * so focus resolves its cell through findCell, or its mark through findMark,
+ * and gets the tooltip and outline an SVG node does (KeyboardNavigation).
+ * Animation is not yet bridged, so a render paints the final frame directly.
  *
  * Implements the `Renderer` interface (see ../Renderer.js).
  *
@@ -146,10 +146,11 @@ export default class CanvasRenderer {
   }
 
   // ── interaction ──
-  // Line/area/bar/scatter tooltips resolve via coordinate lookup (pointsArray),
-  // so those need no per-mark query. Heatmap cells and violins, however, are
-  // hovered by point (the SVG path hit-tests the node under the cursor); with
-  // them on canvas there is no node, so hitTest resolves the recorded marks.
+  // Line/area/scatter tooltips, and every shared one, resolve via coordinate
+  // lookup (pointsArray), so those need no per-mark query. Heatmap cells and
+  // the bar-likes of an intersect tooltip, however, are hovered by point (the
+  // SVG path hit-tests the node under the cursor); with them on canvas there
+  // is no node, so hitTest resolves the recorded marks.
   /**
    * Find the cell under a plot-local point (0,0 = plot origin, the same space
    * as the recorded cell geometry). Reverse scan so a later-painted cell wins
@@ -159,8 +160,8 @@ export default class CanvasRenderer {
    * when the point is off every cell.
    *
    * With no cell there, a bar-like mark (a recorded path standing for one
-   * data point, such as a violin body) is looked for instead; that hit comes
-   * back without geometry.
+   * data point: a bar, a candle, half a box plot, a violin body) is looked
+   * for instead, with the box of the path that was hit.
    * @param {number} px
    * @param {number} py
    * @returns {({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number})|null}
@@ -191,21 +192,53 @@ export default class CanvasRenderer {
   }
 
   /**
-   * The bar-like mark whose fill covers a plot-local point. Tested against
-   * the painted shape, the way a hovered SVG path is, so the empty corners of
-   * a violin's bounding box are not part of it. Bar-likes record in series
-   * order, which is also their paint order, so a reverse scan finds the
-   * topmost. Its box is not known here, so none is returned.
+   * The bar-like mark painted over a plot-local point. Tested against the
+   * painted shape, the way a hovered SVG path is: its fill, and its stroke
+   * wherever one is painted, so the empty corners of a violin's bounding box
+   * are not part of it while a candle's wick and a box plot's whiskers, which
+   * are stroke alone, are; and none of the part its clip cuts off (a
+   * clipped-away part of an SVG path takes no pointer either). Bar-likes
+   * record in series order, which is also their paint order, so a reverse
+   * scan finds the topmost. The box comes back with it: the one that path
+   * spans, as the hovered SVG path measures.
    * @param {number} px
    * @param {number} py
-   * @returns {({seriesIndex:number,dataPointIndex:number})|null}
+   * @returns {({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number})|null}
    */
   _hitTestMarks(px, py) {
     const list = this._g.displayList()
     for (let k = list.length - 1; k >= 0; k--) {
       const cmd = list[k]
       if (cmd.tag !== 'path' || cmd.dj == null || !cmd.d) continue
-      if (!cmd.fill || cmd.fill === 'none') continue
+      const filled = !!cmd.fill && cmd.fill !== 'none'
+      const stroked =
+        !!cmd.stroke && cmd.stroke !== 'none' && cmd.strokeWidth > 0
+      if (!filled && !stroked) continue
+      const clip = this._compositor.clipRect(cmd.clip)
+      if (
+        clip &&
+        (px < clip.x ||
+          px > clip.x + clip.width ||
+          py < clip.y ||
+          py > clip.y + clip.height)
+      ) {
+        continue
+      }
+      // Off the path's box, and past anything its stroke can reach out of
+      // it (a mitred corner reaches furthest, at the default limit of 10
+      // half widths), the point is off the mark: a dense chart only builds
+      // a Path2D for the few marks near the pointer.
+      const box = markBox(cmd)
+      if (!box) continue
+      const reach = stroked ? cmd.strokeWidth * 5 : 0
+      if (
+        px < box.x - reach ||
+        px > box.x + box.width + reach ||
+        py < box.y - reach ||
+        py > box.y + box.height + reach
+      ) {
+        continue
+      }
       const ctx = this._hitContext()
       if (!ctx) return null
       if (!cmd.path2d) {
@@ -216,9 +249,39 @@ export default class CanvasRenderer {
         }
       }
       const rule = cmd.fillRule === 'evenodd' ? 'evenodd' : 'nonzero'
-      if (ctx.isPointInPath(cmd.path2d, px, py, rule)) {
-        return { seriesIndex: cmd.si, dataPointIndex: cmd.dj }
+      let hit = filled && ctx.isPointInPath(cmd.path2d, px, py, rule)
+      if (!hit && stroked) {
+        ctx.lineWidth = cmd.strokeWidth
+        ctx.lineCap = cmd.lineCap || 'butt'
+        hit = ctx.isPointInStroke(cmd.path2d, px, py)
       }
+      if (hit) {
+        return { seriesIndex: cmd.si, dataPointIndex: cmd.dj, ...box }
+      }
+    }
+    return null
+  }
+
+  /**
+   * Find a bar-like mark by identity rather than by point: keyboard focus
+   * knows the series and data point it is on. The first path recorded for
+   * the pair, as the first `path[j]` of the series is on SVG (a box plot's
+   * lower half, a violin's body), with the box it spans and its `d`, so a
+   * focus outline can trace the painted shape. Null when nothing was painted
+   * for that pair.
+   * @param {number} seriesIndex  realIndex
+   * @param {number} dataPointIndex
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,d:string})|null}
+   */
+  findMark(seriesIndex, dataPointIndex) {
+    const list = this._g.displayList()
+    for (let k = 0; k < list.length; k++) {
+      const cmd = list[k]
+      if (cmd.tag !== 'path' || !cmd.d) continue
+      if (cmd.si !== seriesIndex || cmd.dj !== dataPointIndex) continue
+      const box = markBox(cmd)
+      if (!box) continue
+      return { seriesIndex, dataPointIndex, ...box, d: cmd.d }
     }
     return null
   }
@@ -256,7 +319,7 @@ export default class CanvasRenderer {
 
   /**
    * A detached 2D context kept for isPointInPath. The painting context
-   * carries the device-pixel and margin transform, which the point would
+   * carries the device-pixel and pad transform, which the point would
    * have to be pushed through first; this one stays at identity, so plot
    * px go in as they are.
    * @returns {any}
@@ -288,13 +351,13 @@ export default class CanvasRenderer {
     if (!url) return null
     const gl = this.w.globals
     const cfg = this.w.config.chart
-    const margin = this._compositor._margin
+    const pad = this._compositor._pad
     return {
       dataURL: url,
-      x: (gl.translateX || 0) + (cfg.offsetX || 0) - margin,
-      y: (gl.translateY || 0) + (cfg.offsetY || 0) - margin,
-      w: (this.w.layout.gridWidth || 0) + margin * 2,
-      h: (this.w.layout.gridHeight || 0) + margin * 2,
+      x: (gl.translateX || 0) + (cfg.offsetX || 0) - pad.left,
+      y: (gl.translateY || 0) + (cfg.offsetY || 0) - pad.top,
+      w: (this.w.layout.gridWidth || 0) + pad.left + pad.right,
+      h: (this.w.layout.gridHeight || 0) + pad.top + pad.bottom,
     }
   }
 

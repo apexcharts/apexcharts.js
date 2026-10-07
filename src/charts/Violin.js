@@ -234,6 +234,11 @@ class Violin extends Bar {
             `${paths.alongRepresentative}`,
           )
         }
+        // The body's centre line across the category axis, which its cx (the
+        // placeholder bar's label anchor) is not. The shared tooltip goes
+        // halfway between the outermost visible violins' centre lines, as it
+        // does off the coords cached for a canvas violin below.
+        if (bodyEl) bodyEl.setAttribute('data:center', `${paths.center}`)
 
         // Box lane (raincloud "umbrella" / violin box overlay): sibling paths
         // with the same `j`, rendered AFTER the cx/cy re-anchor above so the
@@ -269,30 +274,23 @@ class Violin extends Bar {
 
         // On canvas the body is painted, so there is no path to re-anchor and
         // no rect to measure. The tooltip reads the coords Bar.renderSeries
-        // cached for the mark instead, so re-anchor those, and keep the
-        // painted extent beside them for a tooltip placed beside the violin
-        // (intersect). Done after the box lane: each of its renderSeries
-        // calls writes the entry afresh.
+        // cached for the mark instead (with the extent painted for body and
+        // box lane), so re-anchor those. Done after the box lane: each of its
+        // renderSeries calls writes the entry afresh.
         const canvasCoords =
           !bodyEl && w.globals.barCanvasCoords?.[realIndex]?.[j]
-        if (canvasCoords) {
-          if (isFinite(paths.alongRepresentative)) {
-            if (this.isHorizontal) {
-              canvasCoords.cx = paths.alongRepresentative
-            } else {
-              // The shared tooltip reads a cached cx as the rendered centre
-              // (for an SVG body, whose cx is not, the axis ticks stand in).
-              // The intersect one reads the body's own cx, as it would off
-              // the SVG path, so that one is kept aside.
-              canvasCoords.bodyCx = canvasCoords.cx
-              canvasCoords.cx = paths.center
-              canvasCoords.cy = paths.alongRepresentative
-            }
+        if (canvasCoords && isFinite(paths.alongRepresentative)) {
+          if (this.isHorizontal) {
+            canvasCoords.cx = paths.alongRepresentative
+          } else {
+            // The SVG body keeps the placeholder bar's cx, which is what the
+            // tooltip reads off it, so that one is kept aside; the violin's
+            // own centre line stands in for it where the axis ticks give no
+            // centre.
+            canvasCoords.bodyCx = canvasCoords.cx
+            canvasCoords.cx = paths.center
+            canvasCoords.cy = paths.alongRepresentative
           }
-          canvasCoords.bounds = pathBounds([
-            paths.pathTo,
-            ...(paths.boxPaths || []).map((bp) => bp.pathTo),
-          ])
         }
       }
 
@@ -880,34 +878,6 @@ function swapPairs(arr) {
     out.push(arr[k + 1], arr[k])
   }
   return out
-}
-
-/**
- * Bounding box of paths built in this file, in plot px. They hold absolute
- * M/L/C/S commands only, so their numbers come in x,y pairs. A spline's
- * control points could widen the box, but a monotone spline's never leave
- * the span of the nodes they join.
- * @param {string[]} ds
- * @returns {{left:number, top:number, right:number, bottom:number} | null}
- */
-function pathBounds(ds) {
-  let left = Infinity
-  let top = Infinity
-  let right = -Infinity
-  let bottom = -Infinity
-  for (const d of ds) {
-    const nums = (d || '').match(/-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi) || []
-    for (let k = 0; k + 1 < nums.length; k += 2) {
-      const x = Number(nums[k])
-      const y = Number(nums[k + 1])
-      if (!isFinite(x) || !isFinite(y)) continue
-      left = Math.min(left, x)
-      right = Math.max(right, x)
-      top = Math.min(top, y)
-      bottom = Math.max(bottom, y)
-    }
-  }
-  return isFinite(left) ? { left, top, right, bottom } : null
 }
 
 /**

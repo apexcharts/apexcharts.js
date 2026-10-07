@@ -1094,13 +1094,22 @@ export default class Position {
       const series = new Series(this.w)
       i = series.getActiveConfigSeriesIndex('desc') + 1
     }
+    // Strata (#2): marks painted to canvas leave no path, and whatever a
+    // series group still holds with this `j` is an SVG overlay, a box plot's
+    // or a violin's jitter, whose missing cx/cy pinned the box to the
+    // origin. The coords cached at draw time (Bar.renderSeries) stand in for
+    // the path's attributes instead, and from here on are read the way they
+    // are. Only a canvas pass caches them, so their presence is what says
+    // the marks were painted.
+    const painted = !!(/** @type {any} */ (w.globals).barCanvasCoords)
     // A violin's mark is its body (`.apexcharts-violin-area`), never the
-    // jitter path that shares its `j`: on canvas the jitter is the only path
-    // left in the group, and its missing cx/cy pinned the box to the origin.
-    let jBar = w.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i}'] path.apexcharts-violin-area[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`,
-    )
-    if (!jBar && typeof capturedSeries === 'number') {
+    // jitter path that shares its `j`.
+    let jBar = painted
+      ? null
+      : w.dom.baseEl.querySelector(
+          `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i}'] path.apexcharts-violin-area[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`,
+        )
+    if (!jBar && !painted && typeof capturedSeries === 'number') {
       // Try with captured series index
       jBar = w.dom.baseEl.querySelector(
         `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
@@ -1110,52 +1119,16 @@ export default class Position {
         .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`,
       )
     }
-
-    // Strata (#2): canvas has no bar/candle path node, so fall back to the
-    // center coords cached at draw time (Bar.renderSeries): otherwise the
-    // tooltip would anchor to the origin. Keyed by realIndex: try the captured
-    // series first, then any series that has a bar at j.
-    let bc = null
-    /** @type {number | null} */
-    let violinCx = null
-    const bcc = /** @type {any} */ (w.globals).barCanvasCoords
-    if (!jBar && bcc) {
-      bc =
-        (typeof capturedSeries === 'number' && bcc[capturedSeries]?.[j]) || null
-      if (!bc) {
-        for (const key in bcc) {
-          if (bcc[key]?.[j]) {
-            bc = bcc[key][j]
-            break
-          }
-        }
-      }
-      // Violins painted to canvas keep their painted extent (Violin.draw), so
-      // they are read the way the query above reads the SVG bodies: down from
-      // the series it picks (rel = i), not the hovered one, and across from
-      // the middle of the category, halfway between the centre lines of the
-      // outermost violins at j, where the SVG chart's axis ticks put it. The
-      // hovered violin alone sits off that middle in a grouped chart, and a
-      // raincloud's extent does too: its half-violin hangs to one side.
-      if (bc?.bounds) {
-        const relSeries = w.dom.baseEl.querySelector(
-          `.apexcharts-violin-series .apexcharts-series[rel='${i}']`,
-        )
-        const relIndex = parseInt(
-          relSeries?.getAttribute('data:realIndex') ?? '',
-          10,
-        )
-        const picked = bcc[relIndex]?.[j]
-        if (picked?.bounds) bc = picked
-        const across = this._canvasViolinsAt(j)
-        if (across && !w.globals.isBarHorizontal) violinCx = across.cx
-      }
-    }
+    const bc = painted ? this._paintedBarFor(i, j, capturedSeries) : null
 
     const hasBar = !!jBar || !!bc
+    // A violin body painted to canvas keeps the cx its SVG path would carry
+    // aside (Violin.draw), its own centre line in place of it.
     let bcx = jBar
       ? parseFloat(jBar.getAttribute('cx') ?? '0')
-      : (violinCx ?? (bc ? bc.cx : 0))
+      : bc
+        ? (bc.bodyCx ?? bc.cx)
+        : 0
     let bcy = jBar ? parseFloat(jBar.getAttribute('cy') ?? '0') : bc ? bc.cy : 0
     const bw = jBar
       ? parseFloat(jBar.getAttribute('barWidth') ?? '0')
@@ -1167,11 +1140,26 @@ export default class Position {
     if (!elGrid) return
     const seriesBound = TooltipUtils.plotRect(w)
 
-    const isBoxOrCandle =
-      jBar &&
-      (jBar.classList.contains('apexcharts-candlestick-area') ||
-        jBar.classList.contains('apexcharts-boxPlot-area'))
-    if (w.axisFlags.isXNumeric) {
+    // What the path's class says, `apexcharts-${type}-area`.
+    const isBoxOrCandle = jBar
+      ? jBar.classList.contains('apexcharts-candlestick-area') ||
+        jBar.classList.contains('apexcharts-boxPlot-area')
+      : bc?.type === 'candlestick' || bc?.type === 'boxPlot'
+    const isViolin = jBar
+      ? jBar.classList.contains('apexcharts-violin-area')
+      : bc?.type === 'violin'
+    // A vertical violin on a numeric x axis goes to the middle of the
+    // visible violins at j. The bar math below reads it off the cx of the
+    // series the query picked, which lands there only while every series is
+    // drawn: it counts hidden series too, so with one hidden the band sat on
+    // a violin's edge, or on the first violin of three.
+    const violinMiddle =
+      isViolin && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal
+        ? this._violinsMiddleAt(j)
+        : null
+    if (violinMiddle != null) {
+      bcx = violinMiddle
+    } else if (w.axisFlags.isXNumeric) {
       // The `cx` attribute on bars is set in bar/DataLabels.js using
       // `x + barWidth * (visibleSeries + 1)` (numeric path) which does NOT
       // correspond to the bar's rendered center — especially for stacked
@@ -1180,7 +1168,7 @@ export default class Position {
       // legacy `bcx - bw/2` adjustment is a partial fix that only worked
       // for odd-count series. Use the bar's rendered DOM rect instead so
       // the data-point center is correct regardless of stack/group layout.
-      if (jBar && !isBoxOrCandle) {
+      if (hasBar && !isBoxOrCandle) {
         const center = this._datapointCenterXFromBars(j)
         if (center != null) {
           bcx = center
@@ -1192,22 +1180,23 @@ export default class Position {
       }
 
       if (
-        jBar && // fixes apexcharts.js#2354
+        hasBar && // fixes apexcharts.js#2354
         isBoxOrCandle
       ) {
         bcx = bcx - bw / 2
       }
-    } else {
-      // Canvas cache (bc) already holds the rendered center; the tick-position
-      // math is both unnecessary and unreliable at canvas densities (sparse
-      // xAxisTicksPositions -> NaN), so keep bc.cx when present.
-      if (!w.globals.isBarHorizontal && !bc) {
-        bcx =
-          ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
-        if (isNaN(bcx)) {
-          bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2
-        }
-      }
+    } else if (!w.globals.isBarHorizontal) {
+      // The middle of the category, from the axis ticks: `cx` is no centre
+      // for every mark (a box plot's or a candle's is off by half its width,
+      // a grouped bar's is its own, not the group's).
+      const tickCx =
+        ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
+      bcx = isNaN(tickCx)
+        ? ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2
+        : tickCx
+      // Marks painted to canvas can be denser than the ticks, which then run
+      // out (NaN); their cached centre is the rendered one, so it stands in.
+      if (isNaN(bcx) && bc) bcx = bc.cx
     }
 
     if (!w.globals.isBarHorizontal) {
@@ -1240,8 +1229,8 @@ export default class Position {
       }
       // On a short plot the box sits above the bars at `j`, all of them: `bcy`
       // has been clamped to the plot's bottom by now and says nothing about
-      // where they are. Bars painted to a canvas leave no rects, so the whole
-      // plot stands in for them.
+      // where they are. With nothing at `j` to measure, neither a rect nor a
+      // painted extent, the whole plot stands in for them.
       const mark = this.isShortPlot()
         ? (this._barsExtentInGrid(j) ?? { top: 0, bottom: w.layout.gridHeight })
         : null
@@ -1258,38 +1247,123 @@ export default class Position {
   }
 
   /**
-   * Every visible violin at index `j` painted to canvas, from what
-   * Violin.draw caches for each (`barCanvasCoords`), in plot px: the extent
-   * of them all, and `cx`, halfway between the outermost centre lines (a
-   * vertical violin's cached `cx`). Null when none was painted.
+   * The coords cached for the bar-like mark at index `j` painted to canvas
+   * (Bar.renderSeries), found the way `moveStickyTooltipOverBars` finds the
+   * SVG path: down from the series group at `rel` (the first in document
+   * order across the bar-like types that has a mark at `j`), else the
+   * captured series. Painted marks leave the groups in place, only empty.
+   * Failing both, any series with a mark at `j`. Null when nothing was
+   * painted.
+   * @param {number} rel
    * @param {number} j
-   * @returns {{ left: number, top: number, right: number, bottom: number, cx: number } | null}
+   * @param {number} capturedSeries  realIndex
+   * @returns {any}
    */
-  _canvasViolinsAt(j) {
+  _paintedBarFor(rel, j, capturedSeries) {
     const w = this.w
     const bcc = /** @type {any} */ (w.globals).barCanvasCoords
     if (!bcc) return null
-    const collapsed = w.globals.collapsedSeriesIndices || []
+    const groups = w.dom.baseEl.querySelectorAll(
+      ['bar', 'candlestick', 'boxPlot', 'violin', 'rangebar']
+        .map((t) => `.apexcharts-${t}-series .apexcharts-series[rel='${rel}']`)
+        .join(', '),
+    )
+    for (let g = 0; g < groups.length; g++) {
+      const realIndex = groups[g].getAttribute('data:realIndex')
+      if (realIndex !== null && bcc[realIndex]?.[j]) return bcc[realIndex][j]
+    }
+    if (typeof capturedSeries === 'number' && bcc[capturedSeries]?.[j]) {
+      return bcc[capturedSeries][j]
+    }
+    for (const key in bcc) {
+      if (bcc[key]?.[j]) return bcc[key][j]
+    }
+    return null
+  }
+
+  /**
+   * The extent of every bar-like mark at index `j` painted to canvas, from
+   * what Bar.renderSeries caches for each, in plot px: the canvas half of
+   * the SVG queries over `path[j]`, which find nothing painted. Only marks
+   * drawn as one of `types` (the `apexcharts-${type}-area` they would be
+   * classed), and none of a hidden series, whose paths those queries skip.
+   * Null when none was painted.
+   * @param {number} j
+   * @param {string[]} types
+   * @returns {{ left: number, top: number, right: number, bottom: number } | null}
+   */
+  _paintedAt(j, types) {
+    const w = this.w
+    const bcc = /** @type {any} */ (w.globals).barCanvasCoords
+    if (!bcc) return null
+    const hidden = this._hiddenSeries()
     let left = Infinity
     let top = Infinity
     let right = -Infinity
     let bottom = -Infinity
-    let first = Infinity
-    let last = -Infinity
     for (const key in bcc) {
       const c = bcc[key]?.[j]
       const b = c?.bounds
-      if (!b || collapsed.includes(Number(key))) continue
+      if (!b || !types.includes(c.type) || hidden.includes(Number(key))) {
+        continue
+      }
       left = Math.min(left, b.left)
       top = Math.min(top, b.top)
       right = Math.max(right, b.right)
       bottom = Math.max(bottom, b.bottom)
-      first = Math.min(first, c.cx)
-      last = Math.max(last, c.cx)
     }
-    return Number.isFinite(left)
-      ? { left, top, right, bottom, cx: (first + last) / 2 }
-      : null
+    return Number.isFinite(left) ? { left, top, right, bottom } : null
+  }
+
+  /**
+   * The realIndex of every series hidden from the legend, whose painted marks
+   * the canvas lookups skip as the SVG queries skip a collapsed group.
+   * @returns {number[]}
+   */
+  _hiddenSeries() {
+    const gl = this.w.globals
+    return [
+      ...(gl.collapsedSeriesIndices || []),
+      ...(gl.ancillaryCollapsedSeriesIndices || []),
+    ]
+  }
+
+  /**
+   * Halfway between the centre lines of the outermost visible violins at
+   * index `j`, in plot px: the middle of the category's group, where the
+   * shared tooltip and its band go on a vertical violin chart. Hidden series
+   * draw nothing there, so they do not count, on either renderer: a canvas
+   * violin's centre comes from the coords Violin.draw caches, an SVG body's
+   * from the centre line it stamps on the body. Null with no violin at `j`.
+   * @param {number} j
+   * @returns {number | null}
+   */
+  _violinsMiddleAt(j) {
+    const w = this.w
+    let first = Infinity
+    let last = -Infinity
+    /** @param {number} centre */
+    const take = (centre) => {
+      if (!Number.isFinite(centre)) return
+      first = Math.min(first, centre)
+      last = Math.max(last, centre)
+    }
+    const bcc = /** @type {any} */ (w.globals).barCanvasCoords
+    if (bcc) {
+      const hidden = this._hiddenSeries()
+      for (const key in bcc) {
+        const c = bcc[key]?.[j]
+        if (c?.type === 'violin' && !hidden.includes(Number(key))) take(c.cx)
+      }
+    } else {
+      const bodies = w.dom.baseEl.querySelectorAll(
+        `.apexcharts-violin-series .apexcharts-series:not(.apexcharts-series-collapsed) path.apexcharts-violin-area[j='${j}']`,
+      )
+      for (let k = 0; k < bodies.length; k++) {
+        take(parseFloat(bodies[k].getAttribute('data:center') ?? ''))
+      }
+    }
+    return Number.isFinite(first) ? (first + last) / 2 : null
   }
 
   /**
@@ -1311,9 +1385,22 @@ export default class Position {
         `.apexcharts-boxPlot-series path[j='${j}'],` +
         `.apexcharts-violin-series path[j='${j}']`,
     )
-    if (!marks.length) return null
+    // Marks painted to canvas leave no path, only their extent.
+    const painted = this._paintedAt(j, [
+      'bar',
+      'rangebar',
+      'candlestick',
+      'boxPlot',
+      'violin',
+    ])
+    if (!marks.length && !painted) return null
     let top = Infinity
     let bottom = -Infinity
+    if (painted) {
+      const plot = TooltipUtils.plotRect(w)
+      top = plot.top + painted.top * plot.zoom
+      bottom = plot.top + painted.bottom * plot.zoom
+    }
     for (let k = 0; k < marks.length; k++) {
       const mark = marks[k]
       const parent = /** @type {Element|null} */ (mark.parentNode)
@@ -1346,10 +1433,17 @@ export default class Position {
       `.apexcharts-bar-series path[j='${j}'],` +
         `.apexcharts-rangebar-series path[j='${j}']`,
     )
-    if (!bars.length) return null
+    // Bars painted to canvas leave no path, only their extent.
+    const painted = this._paintedAt(j, ['bar', 'rangebar'])
+    if (!bars.length && !painted) return null
 
     let unionLeft = Infinity
     let unionRight = -Infinity
+    if (painted) {
+      const plot = TooltipUtils.plotRect(w)
+      unionLeft = plot.left + painted.left * plot.zoom
+      unionRight = plot.left + painted.right * plot.zoom
+    }
     for (const bar of bars) {
       const parent = /** @type {Element|null} */ (bar.parentNode)
       if (parent?.classList?.contains?.('apexcharts-series-collapsed')) continue
@@ -1393,8 +1487,9 @@ export default class Position {
         `.apexcharts-violin-series path.apexcharts-violin-area[j='${j}'],` +
         `.apexcharts-violin-series path.apexcharts-violin-points[j='${j}']`,
     )
-    // Violin bodies painted to canvas leave no path, only their extent.
-    const painted = this._canvasViolinsAt(j)
+    // Marks painted to canvas leave no path, only their extent (a violin's
+    // jitter or rain stays SVG, and is found above).
+    const painted = this._paintedAt(j, ['bar', 'rangebar', 'boxPlot', 'violin'])
     if (!bars.length && !painted) return false
 
     let unionLeft = Infinity

@@ -48,6 +48,21 @@ const STYLE_KEYS = {
 const NEVER = Symbol('never')
 
 /**
+ * The plot clip a `clip-path` value names, as the canvas paints it: one of
+ * the three Grid.createGridMask defines (Grid.maskRects), or null for no
+ * clip. Undefined for any other clip, such as a line's forecast masks, which
+ * the canvas does not paint through, so the mark keeps the clip it had.
+ * @param {any} value
+ * @returns {'grid'|'bar'|'marker'|null|undefined}
+ */
+function plotClip(value) {
+  if (value == null || value === 'none') return null
+  const m = /^url\(#gridRect(Bar|Marker)?Mask/.exec(String(value))
+  if (!m) return undefined
+  return m[1] === 'Bar' ? 'bar' : m[1] === 'Marker' ? 'marker' : 'grid'
+}
+
+/**
  * Marker shape → small int id (keeps the columnar shape array unboxed).
  * @type {Record<string, number>}
  */
@@ -74,6 +89,120 @@ const SHAPE_NAME = [
   'plus',
   'line',
 ]
+
+/**
+ * The box a path's `d` spans, in the space it was written in (plot px for a
+ * recorded mark): the extent of its end and control points. A curve never
+ * leaves the hull of its control points, and the marks recorded here keep
+ * their handles on the box anyway (a bar's rounded corner bends around the
+ * corner it replaces, a violin's monotone spline stays between its nodes),
+ * so this is the box the SVG path measures to. An arc counts its end points.
+ * Null when the path draws nothing.
+ * @param {string} d
+ * @returns {{ x: number, y: number, width: number, height: number } | null}
+ */
+export function pathBox(d) {
+  const tokens =
+    typeof d === 'string'
+      ? d.match(/[a-df-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi)
+      : null
+  if (!tokens) return null
+  let left = Infinity
+  let top = Infinity
+  let right = -Infinity
+  let bottom = -Infinity
+  // the current point, and where the subpath started (Z returns there)
+  let px = 0
+  let py = 0
+  let sx = 0
+  let sy = 0
+  let cmd = ''
+  let k = 0
+  const num = () => Number(tokens[k++])
+  /** @param {number} x @param {number} y */
+  const take = (x, y) => {
+    if (!isFinite(x) || !isFinite(y)) return
+    left = Math.min(left, x)
+    top = Math.min(top, y)
+    right = Math.max(right, x)
+    bottom = Math.max(bottom, y)
+  }
+  /** @param {number} pairs  the last one is the new current point */
+  const points = (pairs) => {
+    const rel = cmd === cmd.toLowerCase()
+    let x = px
+    let y = py
+    for (let p = 0; p < pairs; p++) {
+      x = num() + (rel ? px : 0)
+      y = num() + (rel ? py : 0)
+      take(x, y)
+    }
+    px = x
+    py = y
+  }
+  while (k < tokens.length) {
+    if (/^[a-z]$/i.test(tokens[k])) {
+      cmd = tokens[k++]
+      if (cmd === 'Z' || cmd === 'z') {
+        px = sx
+        py = sy
+      }
+      continue
+    }
+    const rel = cmd === cmd.toLowerCase()
+    switch (cmd.toUpperCase()) {
+      case 'M':
+        points(1)
+        sx = px
+        sy = py
+        // further pairs after a move are lines
+        cmd = rel ? 'l' : 'L'
+        break
+      case 'L':
+      case 'T':
+        points(1)
+        break
+      case 'H':
+        px = num() + (rel ? px : 0)
+        take(px, py)
+        break
+      case 'V':
+        py = num() + (rel ? py : 0)
+        take(px, py)
+        break
+      case 'S':
+      case 'Q':
+        points(2)
+        break
+      case 'C':
+        points(3)
+        break
+      case 'A':
+        k += 5
+        points(1)
+        break
+      default:
+        // numbers before any command: nothing to place them by
+        k++
+    }
+  }
+  return isFinite(left)
+    ? { x: left, y: top, width: right - left, height: bottom - top }
+    : null
+}
+
+/**
+ * A recorded path's box (see pathBox), worked out once per `d`.
+ * @param {any} cmd
+ * @returns {{ x: number, y: number, width: number, height: number } | null}
+ */
+export function markBox(cmd) {
+  if (cmd.boxOf !== cmd.d) {
+    cmd.box = pathBox(cmd.d)
+    cmd.boxOf = cmd.d
+  }
+  return cmd.box
+}
 
 /**
  * A chainable no-op animation runner so `el.animate().attr().after()` chains on
@@ -312,7 +441,7 @@ class CanvasMark {
       addEventListener() {},
       removeEventListener() {},
       appendChild() {},
-      getBBox: () => ({ x: 0, y: 0, width: 0, height: 0 }),
+      getBBox: () => self.bbox(),
     }
   }
   /**
@@ -322,6 +451,11 @@ class CanvasMark {
   _applyAttr(k, v) {
     const cmd = this._cmd
     if (!cmd) return
+    if (k === 'clip-path') {
+      const clip = plotClip(v)
+      if (clip !== undefined) cmd.clip = clip
+      return
+    }
     const sk = STYLE_KEYS[k]
     if (sk !== undefined) cmd[sk] = v
   }
@@ -390,8 +524,15 @@ class CanvasMark {
   removeClass(_c) {
     return this
   }
+  /**
+   * The box a recorded path spans, as an SVG path's getBBox() measures it;
+   * an empty box for anything else.
+   * @returns {{ x: number, y: number, width: number, height: number }}
+   */
   bbox() {
-    return { x: 0, y: 0, width: 0, height: 0 }
+    const cmd = this._cmd
+    const box = cmd && cmd.tag === 'path' ? markBox(cmd) : null
+    return box ? { ...box } : { x: 0, y: 0, width: 0, height: 0 }
   }
   animate() {
     return NOOP_RUNNER
@@ -769,6 +910,9 @@ export default class CanvasGraphics {
       fillOpacity: undefined,
       strokeOpacity: undefined,
       fillRule: undefined,
+      // The plot clip it is painted through ('grid' | 'bar' | 'marker'),
+      // null for none: whatever `clip-path` the SVG mark would carry.
+      clip: null,
     }
     this._list.push(cmd)
     return cmd
@@ -871,6 +1015,15 @@ export default class CanvasGraphics {
     // Bar.renderSeries) passes `j`; a line or area path stands for the whole
     // series and records none. hitTest resolves a hovered mark by it.
     if (typeof opts.j === 'number') cmd.dj = opts.j
+    // The clip Graphics.renderPaths gives the SVG path. A caller that sets
+    // its own afterwards (Bar.renderSeries) replaces it, as on SVG.
+    if (opts.shouldClipToGrid !== false) {
+      const gl = this.w.globals
+      cmd.clip =
+        (opts.chartType === 'bar' && !gl.isBarHorizontal) || gl.comboCharts
+          ? 'bar'
+          : 'grid'
+    }
     // Mirror the SVG renderPaths side effect so downstream "wait for animation"
     // logic doesn't stall (canvas P2 paints the final frame directly).
     this.w.globals.animationEnded = true

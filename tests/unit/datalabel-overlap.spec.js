@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { resolveLabelOverlaps } from '../../src/modules/helpers/DataLabelOverlap.js'
+import DataLabels from '../../src/modules/DataLabels.js'
 
 // The geometry half of cross-series data-label de-overlap. The DOM half
 // (measure, move, hide) is covered by tests/interaction/datalabel-overlap.spec.js,
@@ -191,5 +192,66 @@ describe('resolveLabelOverlaps', () => {
     const second = resolveLabelOverlaps(settled, OPTS)
     expect(second.map((r) => r.dy)).toEqual([0, 0])
     expect(second.some((r) => r.hidden)).toBe(false)
+  })
+})
+
+// The bounds avoidOverlaps hands the resolver are the plot's edges, in the
+// screen space the label boxes are measured in. On a chart's first render
+// the pass runs before the grid is drawn and before the plot group is moved
+// into place, so the edges come from that group's own screen matrix, not from
+// the `.apexcharts-grid` box (absent then, and a pixel short of the plot top
+// once it exists).
+describe('DataLabels.avoidOverlaps keeps labels inside the plot', () => {
+  const SVGNS = 'http://www.w3.org/2000/svg'
+  const PLOT = { left: 40, top: 400, width: 300, height: 200 }
+
+  /** Two coincident 12px labels whose top is 5px under the plot's top. */
+  function mountLabels() {
+    const baseEl = document.createElement('div')
+    const svg = document.createElementNS(SVGNS, 'svg')
+    const plotGroup = document.createElementNS(SVGNS, 'g')
+    const labels = document.createElementNS(SVGNS, 'g')
+    labels.setAttribute('class', 'apexcharts-datalabels')
+    svg.appendChild(plotGroup)
+    svg.appendChild(labels)
+    baseEl.appendChild(svg)
+    const matrix = (e, f) => ({ a: 1, b: 0, c: 0, d: 1, e, f })
+    const texts = [0, 1].map(() => {
+      const t = document.createElementNS(SVGNS, 'text')
+      t.setAttribute('class', 'apexcharts-datalabel')
+      t.setAttribute('y', '17')
+      t.getBoundingClientRect = () => ({
+        left: PLOT.left + 100,
+        top: PLOT.top + 5,
+        width: 30,
+        height: 12,
+        right: PLOT.left + 130,
+        bottom: PLOT.top + 17,
+      })
+      t.getScreenCTM = () => matrix(PLOT.left, PLOT.top)
+      labels.appendChild(t)
+      return t
+    })
+    // the plot group's corner is the plot's corner on screen
+    plotGroup.getScreenCTM = () => matrix(PLOT.left, PLOT.top)
+    const w = {
+      config: {
+        chart: { type: 'line' },
+        dataLabels: { avoidOverlap: true, background: { enabled: false } },
+        plotOptions: {},
+      },
+      dom: { baseEl, elGraphical: { node: plotGroup } },
+      layout: { gridWidth: PLOT.width, gridHeight: PLOT.height },
+    }
+    return { w, texts }
+  }
+
+  it('stops the upper label at the plot top and gives the rest to the lower one', () => {
+    const { w, texts } = mountLabels()
+    new DataLabels(w).avoidOverlaps()
+    const moved = texts.map((t) => parseFloat(t.getAttribute('y')) - 17)
+    // 14px to separate (12 + the 2px gap): 5 up to the plot top, 9 down
+    expect(moved[0]).toBeCloseTo(-5, 5)
+    expect(moved[1]).toBeCloseTo(9, 5)
   })
 })

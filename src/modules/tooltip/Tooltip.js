@@ -114,6 +114,12 @@ export default class Tooltip {
     this.legendLabels = null
     /** @type {any} */
     this.ttItems = null
+    /**
+     * The hover listeners addSVGEvents put on the svg itself (`hoverArea`),
+     * kept so the next call can take them off: see detachHoverAreaListeners.
+     * @type {Array<{ el: Element, ev: string, handler: (e: any) => void }>}
+     */
+    this.hoverAreaListeners = []
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     this.seriesHoverTimeout = undefined
     /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -633,6 +639,7 @@ export default class Tooltip {
   addSVGEvents() {
     const w = this.w
     const type = w.config.chart.type
+    this.detachHoverAreaListeners()
     const tooltipEl = this.getElTooltip()
     if (!tooltipEl) return
 
@@ -721,12 +728,12 @@ export default class Tooltip {
 
     if (validSharedChartTypes) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
-    } else if (Utils.isCanvasViolinChart(w)) {
-      // Canvas violin, one at a time: the bodies are painted, so there is no
-      // path to hover. Hover the whole plot and resolve the violin by
-      // coordinate (Intersect.getViolinMark -> renderer.hitTest), as a canvas
-      // heatmap does its cells. A violin series in a combo of another type
-      // needs it as much as a violin chart does.
+    } else if (Utils.isCanvasBarChart(w)) {
+      // Canvas bar-likes, one at a time: bars, candles, boxes and violins are
+      // painted, so there is no path to hover. Hover the whole plot and
+      // resolve the mark by coordinate (Intersect.getPaintedMark ->
+      // renderer.hitTest), as a canvas heatmap does its cells. A bar-like
+      // series in a combo of another type needs it as much as a bar chart.
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if (
       (commonBar && !w.globals.comboCharts) ||
@@ -898,13 +905,32 @@ export default class Tooltip {
       ]
 
       events.map((ev) => {
-        return paths[p].addEventListener(
-          ev,
-          self.onSeriesHover.bind(self, extendedOpts),
-          { capture: false, passive: true },
-        )
+        const handler = self.onSeriesHover.bind(self, extendedOpts)
+        if (paths[p] === opts.hoverArea) {
+          self.hoverAreaListeners.push({ el: paths[p], ev, handler })
+        }
+        return paths[p].addEventListener(ev, handler, {
+          capture: false,
+          passive: true,
+        })
       })
     }
+  }
+
+  /**
+   * Take off the hover listeners the last addSVGEvents put on the svg. Every
+   * other target is a mark or series group that a render draws anew, so its
+   * listeners go with it; the svg survives the data-only fast update, which
+   * calls addSVGEvents again. Left on, each update stacked another set there,
+   * each holding the tooltip element that update replaced: every pointer
+   * move ran them all, the oldest drawing into its detached box first while
+   * the live box waited out the hover throttle.
+   */
+  detachHoverAreaListeners() {
+    for (const { el, ev, handler } of this.hoverAreaListeners) {
+      el.removeEventListener(ev, handler)
+    }
+    this.hoverAreaListeners = []
   }
 
   /*
@@ -1001,6 +1027,43 @@ export default class Tooltip {
     }
 
     if (chartGroups.length) {
+      // A canvas bar chart with an intersect tooltip hovers its painted marks
+      // through one listener on the whole plot, so a move off every mark is
+      // a move like any other. Alone, the hit test in handleBarTooltip hides
+      // the box there; in a group every member takes the sticky path, which
+      // never asks, so the hovered chart asks here. Off every mark the group
+      // closes, as when an SVG mark is left (its mouseout), and on one the
+      // members are told its series, which no node under the pointer names.
+      const painted = this.groupPaintedMark(opt, e)
+      if (painted?.noHit && this.showOnIntersect) {
+        const at = Utils.eventPointer(e, opt)
+        const out = {
+          type: 'mouseout',
+          target: e.target,
+          clientX: at.x,
+          clientY: at.y,
+        }
+        if (
+          this.tConfig.interactive &&
+          opt.tooltipEl?.classList.contains('apexcharts-active')
+        ) {
+          // The grace a mouseout gets to reach an interactive box
+          // (onSeriesHover), started by the first move off the mark and left
+          // to run by the ones after; the box or another mark calls it off.
+          if (this.offMarkHideTimeout === undefined) {
+            this.offMarkHideTimeout = setTimeout(
+              () => {
+                this.offMarkHideTimeout = undefined
+                if (!this.w.globals.isDestroyed) this.seriesHover(opt, out)
+              },
+              this.interactiveHideDelay(at.x, at.y),
+            )
+          }
+          return
+        }
+        e = out
+      }
+
       // Plot to plot: every member measures the pointer from its own plot's
       // corner (`Utils.plotRect`), so that is what the pointer is mapped
       // between, not the grid groups' boxes, whose offsets from their plots
@@ -1037,6 +1100,12 @@ export default class Tooltip {
           ttItems: ch.w.globals.tooltip.ttItems,
           clientX,
           clientY,
+          // the realIndex of the painted mark hovered, null off every one
+          paintedSeries: painted
+            ? painted.noHit
+              ? null
+              : painted.i
+            : undefined,
         }
 
         // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
@@ -1060,6 +1129,33 @@ export default class Tooltip {
         e,
       })
     }
+  }
+
+  /**
+   * The painted mark a pointer move over a canvas bar chart's plot is on,
+   * when its tooltip is synced to a group (seriesHover), in any tooltip mode:
+   * the members need its series to highlight, which no node under the
+   * pointer names. Only an intersect tooltip closes off every mark. Null for
+   * any other hover. Being on one calls off a close `offMarkHideTimeout` has
+   * pending, as handleBarTooltip does.
+   * @param {Record<string, any>} opt
+   * @param {any} e
+   * @returns {any}
+   */
+  groupPaintedMark(opt, e) {
+    if (
+      e.type !== 'mousemove' &&
+      e.type !== 'touchmove' &&
+      e.type !== 'mouseup'
+    ) {
+      return null
+    }
+    if (opt.paths !== opt.hoverArea || !Utils.isCanvasBarChart(this.w)) {
+      return null
+    }
+    const mark = this.intersect.getPaintedMark(e, opt)
+    if (!mark.noHit) this.cancelOffMarkHide()
+    return mark
   }
 
   /** @param {{chartCtx: any, ttCtx: any, opt: any, e: any}} opts */
@@ -1087,7 +1183,36 @@ export default class Tooltip {
     ) {
       if (this.tConfig.onDatasetHover.highlightDataSeries) {
         const series = new Series(chartCtx.w)
-        series.toggleSeriesOnHover(e, Utils.hoverTarget(e)?.parentNode)
+        const parent = Utils.hoverTarget(e)?.parentNode
+        if (
+          (opt.paths === opt.hoverArea && Utils.isCanvasBarChart(w)) ||
+          (opt.paintedSeries !== undefined && !parent?.getAttribute?.('rel'))
+        ) {
+          // Painted marks have no node, so what is under the pointer says
+          // nothing of the series (its parent has no `rel`, and an unnamed
+          // series threw); the hit test says which one it is, the hovered
+          // chart's own when a synced group passes it on (seriesHover), as
+          // an SVG mark passes on its series group. Off every mark, the
+          // highlight goes, as it does when an SVG bar is left.
+          let i = opt.paintedSeries
+          if (i === undefined) {
+            const mark = ttCtx.intersect.getPaintedMark(e, opt)
+            i = mark.noHit ? null : mark.i
+          }
+          const group =
+            i == null
+              ? null
+              : Array.from(
+                  w.dom.baseEl.querySelectorAll('.apexcharts-series'),
+                ).find((g) => g.getAttribute('data:realIndex') === String(i))
+          series.toggleSeriesOnHover(group ? e : { type: 'mouseout' }, group)
+        } else if (parent?.getAttribute?.('rel')) {
+          series.toggleSeriesOnHover(e, parent)
+        } else {
+          // Nothing under the pointer names a series (an unnamed one threw),
+          // so the highlight goes, as when a bar is left.
+          series.toggleSeriesOnHover({ type: 'mouseout' }, parent)
+        }
       }
     }
 
@@ -1203,9 +1328,14 @@ export default class Tooltip {
     if (
       Array.isArray(this.tConfig.enabledOnSeries) &&
       !w.config.tooltip.shared &&
-      // The plot-wide listener of a canvas violin chart names no series; the
-      // hit test does, and Intersect.handleBarTooltip checks that one.
-      !(opt.paths === opt.hoverArea && Utils.isCanvasViolinChart(w))
+      // The plot-wide listener a canvas bar chart hovers its marks through
+      // (one at a time) names no series; the hit test does, and
+      // Intersect.handleBarTooltip checks that one.
+      !(
+        opt.paths === opt.hoverArea &&
+        this.showOnIntersect &&
+        Utils.isCanvasBarChart(w)
+      )
     ) {
       const index = parseInt(opt.paths.getAttribute('index'), 10)
       if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
@@ -1872,6 +2002,18 @@ export default class Tooltip {
     // reads the canvas coord cache); only non-bar canvas series (line/area/
     // scatter markers) route through the pointsArray positioners here.
     const canvasNonBar = canvasMode && !this.tooltipUtil.hasBars()
+    // A line, area or scatter series beside the bars of a combo is painted
+    // too, so when it is the one captured there is no marker node for
+    // hasMarkers to find, where on SVG its marker is enlarged and the box
+    // goes to its point. It takes the pointsArray positioners as well; only
+    // a captured bar-like stays with the bars.
+    const canvasPointSeries =
+      canvasMode &&
+      !canvasNonBar &&
+      !Utils.isBarLikeType(
+        /** @type {any} */ (w.config.series[capturedSeries])?.type ??
+          w.config.chart.type,
+      )
     // Marks (#11): custom series paint their own marks (no .apexcharts-marker
     // nodes to enlarge/position), but they populate w.globals.pointsArray just
     // like canvas does. So when a custom-series chart has no markers and no
@@ -1882,7 +2024,7 @@ export default class Tooltip {
       !hasMarkers &&
       !this.tooltipUtil.hasBars() &&
       this._hasCustomSeries()
-    const dynamicPoints = canvasNonBar || marksMode
+    const dynamicPoints = canvasNonBar || canvasPointSeries || marksMode
 
     const bars = this.tooltipUtil.getElBars()
 

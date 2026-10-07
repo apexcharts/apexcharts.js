@@ -3113,12 +3113,41 @@ describe('Position: the marks the dynamic-point and sticky-bar paths measure', (
     expect(tooltipEl.style.top).toBe(10 + 20 - GAP - 50 + 'px')
   })
 
-  it('moveStickyTooltipOverBars: canvas bars (no rects) stand in the whole plot', () => {
+  it('moveStickyTooltipOverBars: canvas bars with nothing to measure stand in the whole plot', () => {
     const { pos, move, w } = barsCtx()
     w.globals.barCanvasCoords = { 0: { 1: { cx: 120, cy: 15, barWidth: 20 } } }
 
     pos.moveStickyTooltipOverBars(1, 0)
-    expect(move).toHaveBeenCalledWith(120, 40, null, { top: 0, bottom: 40 })
+    // across from the category ticks (0 + 100 / 2), as an SVG bar is
+    expect(move).toHaveBeenCalledWith(50, 40, null, { top: 0, bottom: 40 })
+  })
+
+  it('moveStickyTooltipOverBars: canvas bars on a short plot, by their painted extent', () => {
+    const { pos, move, w } = barsCtx()
+    // painted at grid 12..40 and 25..40, measured from the plot corner
+    w.globals.barCanvasCoords = {
+      0: {
+        1: {
+          cx: 120,
+          cy: 15,
+          barWidth: 20,
+          type: 'bar',
+          bounds: { left: 40, top: 12, right: 60, bottom: 40 },
+        },
+      },
+      1: {
+        1: {
+          cx: 140,
+          cy: 25,
+          barWidth: 20,
+          type: 'bar',
+          bounds: { left: 62, top: 25, right: 82, bottom: 40 },
+        },
+      },
+    }
+
+    pos.moveStickyTooltipOverBars(1, 0)
+    expect(move).toHaveBeenCalledWith(50, 40, null, { top: 12, bottom: 40 })
   })
 
   it('moveStickyTooltipOverBars: no mark on a tall plot', () => {
@@ -4315,6 +4344,8 @@ describe('KeyboardNavigation: a focused horizontal bar', () => {
         ctx: { w },
         _leaveHoveredBar: vi.fn(),
         _focusedBarInWrap: KeyboardNavigation.prototype._focusedBarInWrap,
+        _canvasMark: () => null,
+        _canvasMarkRect: () => null,
       },
       0,
       0,
@@ -5167,7 +5198,12 @@ describe('the plot origin, not the grid group box', () => {
     ]
 
     KeyboardNavigation.prototype._setSyntheticEvent.call(
-      { w, _getFocusableElement: () => null, _canvasCell: () => null },
+      {
+        w,
+        _getFocusableElement: () => null,
+        _canvasCell: () => null,
+        _canvasMark: () => null,
+      },
       0,
       1,
       ttCtx,

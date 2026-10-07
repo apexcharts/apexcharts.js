@@ -480,6 +480,7 @@ export default class UpdateHelpers {
    * - No series currently collapsing (collapsed series changes visible data range)
    * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
    * - Not currently zoomed (zoomed charts have altered x-labels that need recalculation)
+   * - The series renderer a full render would select is the one on screen
    * @param {any[]} newSeries
    * @param {number} prevSeriesCount
    * @param {number[]} prevDataLengths
@@ -502,6 +503,13 @@ export default class UpdateHelpers {
     if (w.globals.risingSeries.length > 0) return false
     if (w.globals.comboCharts) return false
     if (w.interact.zoomed) return false
+    // The fast path repaints into the series renderer already on screen and
+    // keeps the tooltip's listeners, both chosen for that backend. When a
+    // full render would now pick another one ('auto' crossing its threshold,
+    // or a backend registered since the chart drew), only that render swaps
+    // the series layer and rewires the hover for it.
+    const rc = this.ctx.rendererController
+    if (rc && rc.pendingKind() !== rc.getActiveKind()) return false
     return true
   }
 

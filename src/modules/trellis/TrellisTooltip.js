@@ -24,6 +24,7 @@
  */
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import AxisMapping from '../AxisMapping'
+import TooltipUtils from '../tooltip/Utils'
 
 /** Card offset from the pointer, px. */
 const CURSOR_PAD = 14
@@ -94,16 +95,21 @@ export default class TrellisTooltip {
     const hoverX = AxisMapping.screenXToPlotPx(w, clientX)
     const edgePad = w.globals.barPadForNumericAxis || 0
     if (hoverX < -edgePad || hoverX > gridWidth + edgePad) return -1
-    // Vertical bound: the panel's own grid box.
-    const gridEl =
-      w.dom && w.dom.elGridRect
-        ? w.dom.elGridRect
-        : chart.el && chart.el.querySelector
-          ? chart.el.querySelector('.apexcharts-grid')
-          : null
-    if (gridEl && gridEl.getBoundingClientRect) {
-      const r = gridEl.getBoundingClientRect()
-      if (r.height && (clientY < r.top || clientY > r.bottom)) return -1
+    // Vertical bound: the panel's own plot. This used to measure
+    // `w.dom.elGridRect`, the library's element wrapper around a clip-path
+    // rect, which has no getBoundingClientRect: the bound never ran, and the
+    // card answered for a pointer over the panel's axis labels and header
+    // too. (The grid group's box would not do either: it starts a pixel below
+    // the plot.)
+    const baseEl = w.dom && w.dom.baseEl
+    if (baseEl && baseEl.querySelector('.apexcharts-svg')) {
+      const plot = TooltipUtils.plotRect(w)
+      if (
+        plot.height &&
+        (clientY < plot.top || clientY > plot.top + plot.height)
+      ) {
+        return -1
+      }
     }
     const barish = BAR_FAMILY.indexOf(w.config.chart.type) !== -1
     let j
@@ -237,14 +243,20 @@ export default class TrellisTooltip {
     card.innerHTML = html
     card.classList.add('apexcharts-trellis-tooltip-active')
 
-    // Position near the cursor, clamped inside the wrap.
+    // Position near the cursor, clamped inside the wrap. The pointer and the
+    // wrap's rect are in screen px and `style.left/top` in the wrap's own px,
+    // which differ by the CSS zoom of any container the chart sits in; left
+    // as screen px, the card stood that factor further from the pointer.
     const wrapRect = elWrap.getBoundingClientRect()
-    let x = e.clientX - wrapRect.left + CURSOR_PAD
-    let y = e.clientY - wrapRect.top + CURSOR_PAD
+    const zoom = TooltipUtils.plotRect(hovered.chart.w).zoom
+    let x = (e.clientX - wrapRect.left) / zoom + CURSOR_PAD
+    let y = (e.clientY - wrapRect.top) / zoom + CURSOR_PAD
     const cw = card.offsetWidth
     const ch = card.offsetHeight
-    if (x + cw > wrapRect.width - 4) x = Math.max(4, x - cw - CURSOR_PAD * 2)
-    if (y + ch > wrapRect.height - 4) y = Math.max(4, y - ch - CURSOR_PAD * 2)
+    const wrapWidth = wrapRect.width / zoom
+    const wrapHeight = wrapRect.height / zoom
+    if (x + cw > wrapWidth - 4) x = Math.max(4, x - cw - CURSOR_PAD * 2)
+    if (y + ch > wrapHeight - 4) y = Math.max(4, y - ch - CURSOR_PAD * 2)
     card.style.left = `${Math.round(x)}px`
     card.style.top = `${Math.round(y)}px`
   }

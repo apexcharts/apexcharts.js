@@ -4,6 +4,7 @@ import Series from '../Series'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
 import { buildContinuousScale, colorValueOf } from '../../charts/common/treemap/ColorScale'
+import TooltipUtils from '../tooltip/Utils'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -575,33 +576,36 @@ export default class HeatmapGradientLegend {
     const w = this.w
     const wrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
     const strip = this.svgEl && this.svgEl.querySelector('rect')
-    const grid = w.dom.baseEl.querySelector('.apexcharts-grid')
-    if (!wrap || !strip || !grid || !this._geom) return
+    if (!wrap || !strip || !this._geom) return
+    if (!w.dom.baseEl || !w.dom.baseEl.querySelector('.apexcharts-svg')) return
 
     const s = strip.getBoundingClientRect()
-    const box = grid.getBoundingClientRect()
-    // Not laid out yet (e.g. detached / zero-size) — nothing reliable to do.
-    if (!s.width || !s.height || !box.width || !box.height) return
-    // While the plot eases to a new layout (LayoutTransition) the grid is
-    // still on its way: measure against where it is going, or the nudge is
-    // off by the remaining distance and stays that way.
-    const gr = { left: box.left, right: box.right, top: box.top, bottom: box.bottom }
-    const lt = w.globals.layoutTween
-    if (lt) {
-      const l = w.layout
-      const dx = (l.translateX ?? 0) - lt.rect.x
-      const dy = (l.translateY ?? 0) - lt.rect.y
-      gr.left += dx
-      gr.top += dy
-      gr.right += dx + (l.gridWidth - lt.rect.w)
-      gr.bottom += dy + (l.gridHeight - lt.rect.h)
+    // The plot's rect from the svg and the rendered layout, not the
+    // `.apexcharts-grid` box, which starts a pixel below the plot. It is also
+    // where the plot is going rather than where it is: while the plot eases
+    // to a new layout (LayoutTransition) the grid is still on its way, and a
+    // nudge measured against it would be off by the remaining distance.
+    const plot = TooltipUtils.plotRect(w)
+    // Not laid out yet (e.g. detached / zero-size): nothing reliable to do.
+    if (!s.width || !s.height || !plot.width || !plot.height) return
+    const gr = {
+      left: plot.left,
+      right: plot.left + plot.width,
+      top: plot.top,
+      bottom: plot.top + plot.height,
     }
 
+    // The gap is held in the chart's own px, the units the wrap's style is
+    // written in. Measured on screen, a chart in a CSS-zoomed container read
+    // its gap that factor too wide (or narrow) and moved the strip by screen
+    // px, landing short of the gap it meant to keep.
+    const zoom = plot.zoom
     const MIN_GAP = 16
     const { isVertical, position } = this._geom
 
     if (isVertical) {
-      const gap = position === 'left' ? gr.left - s.right : s.left - gr.right
+      const gap =
+        (position === 'left' ? gr.left - s.right : s.left - gr.right) / zoom
       if (gap < MIN_GAP) {
         const curLeft = parseFloat(wrap.style.left) || 0
         const shift = MIN_GAP - gap
@@ -609,7 +613,8 @@ export default class HeatmapGradientLegend {
           curLeft + (position === 'left' ? -shift : shift) + 'px'
       }
     } else {
-      const gap = position === 'top' ? gr.top - s.bottom : s.top - gr.bottom
+      const gap =
+        (position === 'top' ? gr.top - s.bottom : s.top - gr.bottom) / zoom
       if (gap < MIN_GAP) {
         const curTop = parseFloat(wrap.style.top) || 0
         const shift = MIN_GAP - gap

@@ -1,5 +1,6 @@
 // @ts-check
 import Graphics from '../Graphics'
+import TooltipUtils from '../tooltip/Utils'
 import { Environment } from '../../utils/Environment.js'
 
 /**
@@ -16,7 +17,7 @@ import { Environment } from '../../utils/Environment.js'
  * the plot so ZoomPanSelection's passive svg listeners never see the drag; the
  * pane is removed when disarmed, so zoom/pan/hover are untouched otherwise.
  *
- * Pixel<->data uses the grid client rect fraction (scale-independent) x the
+ * Pixel<->data uses the plot's client rect fraction (scale-independent) x the
  * axis ranges, so it is axis-type-agnostic and round-trips: a point captured at
  * fraction f re-projects to f*gridWidth. The pinned rulers live on the instance
  * (eager module, not recreated on update) and are redrawn on 'mounted'/
@@ -347,9 +348,18 @@ export default class Measure {
     return { cx: t.clientX, cy: t.clientY }
   }
 
-  _gridRect() {
-    const g = this.w.dom.baseEl.querySelector('.apexcharts-grid')
-    return g ? g.getBoundingClientRect() : null
+  /**
+   * The plot's on-screen rect, or null before there is a chart to measure.
+   * Not the `.apexcharts-grid` box: that starts a pixel below the plot, and on
+   * a numeric-x bar chart its gridlines run barPadForNumericAxis past both
+   * sides, so a ruler drawn there landed tens of px off the pointer.
+   */
+  _plotRect() {
+    const w = this.w
+    if (!w.dom.baseEl || !w.dom.baseEl.querySelector('.apexcharts-svg')) {
+      return null
+    }
+    return TooltipUtils.plotRect(w)
   }
 
   /** [min,max] for the primary y-axis, preferring the rendered nice scale. */
@@ -373,12 +383,12 @@ export default class Measure {
    */
   _project(cx, cy) {
     const w = this.w
-    const rect = this._gridRect()
+    const rect = this._plotRect()
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
     const clamp = (/** @type {number} */ v) => (v < 0 ? 0 : v > 1 ? 1 : v)
-    const fx = rect ? clamp((cx - rect.left) / rect.width) : 0
-    const fy = rect ? clamp((cy - rect.top) / rect.height) : 0
+    const fx = rect && rect.width ? clamp((cx - rect.left) / rect.width) : 0
+    const fy = rect && rect.height ? clamp((cy - rect.top) / rect.height) : 0
     const [ymin, ymax] = this._yRange()
     const x = w.globals.minX + fx * (w.globals.maxX - w.globals.minX)
     const y = ymax - fy * (ymax - ymin)

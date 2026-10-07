@@ -373,12 +373,12 @@ class Intersect {
       opt,
     })
     if (barXY.noHit) {
-      // A canvas violin chart with the pointer on no violin: hide, don't pin
-      // one. Its listener is the whole plot, so leaving a violin is one more
-      // move, never the mouseout that gives an interactive box the time to be
+      // A canvas bar chart with the pointer on no mark: hide, don't pin one.
+      // Its listener is the whole plot, so leaving a mark is one more move,
+      // never the mouseout that gives an interactive box the time to be
       // reached (Tooltip.onSeriesHover). It gets the same grace here, started
-      // by the first move off the violin and left to run by the ones after;
-      // entering the box or another violin calls it off.
+      // by the first move off the mark and left to run by the ones after;
+      // entering the box or another mark calls it off.
       if (
         ttCtx.tConfig.interactive &&
         tooltipEl?.classList.contains('apexcharts-active')
@@ -406,7 +406,7 @@ class Intersect {
     i = barXY.i
     const j = barXY.j
 
-    // A violin the hit test found came through the plot-wide listener, which
+    // A mark the hit test found came through the plot-wide listener, which
     // names no series for axisChartsTooltips to check against
     // `enabledOnSeries`; the hit test does, so it is checked here.
     if (
@@ -712,20 +712,24 @@ class Intersect {
     const hovered = TooltipUtils.hoverTarget(e)
     const cl = hovered.classList
 
-    // A violin is read off its whole glyph rather than the hovered path, and
-    // on canvas there is no path under the pointer at all.
-    const violin = this.getViolinMark(e, opt)
-    const noHit = !!violin?.noHit
+    // On canvas there is no path under the pointer at all: the renderer's
+    // hit test finds the mark, and the coords cached for it stand in for the
+    // path's attributes. A violin is read off its whole glyph rather than the
+    // hovered path either way.
+    const mark = TooltipUtils.isCanvasBarChart(w)
+      ? this.getPaintedMark(e, opt)
+      : this.getViolinMark(e, opt)
+    const noHit = !!mark?.noHit
 
     if (
-      (violin && !noHit) ||
+      (mark && !noHit) ||
       cl.contains('apexcharts-bar-area') ||
       cl.contains('apexcharts-candlestick-area') ||
       cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
       const bar = hovered
-      const barRect = violin ? violin.rect : bar.getBoundingClientRect()
+      const barRect = mark ? mark.rect : bar.getBoundingClientRect()
 
       // Grid-local means from the plot's corner, the space `cx`, the
       // crosshair and the gridWidth/gridHeight clamps are in. The grid
@@ -738,13 +742,11 @@ class Intersect {
       barHeight = barRect.height
       const bw = barRect.width
 
-      const cx = violin ? violin.cx : parseInt(bar.getAttribute('cx'), 10)
-      const cy = violin ? violin.cy : parseInt(bar.getAttribute('cy'), 10)
+      const cx = mark ? mark.cx : parseInt(bar.getAttribute('cx'), 10)
+      const cy = mark ? mark.cy : parseInt(bar.getAttribute('cy'), 10)
       barCx = cx
       barCy = cy
-      barWidth = violin
-        ? violin.barWidth
-        : parseFloat(bar.getAttribute('barWidth'))
+      barWidth = mark ? mark.barWidth : parseFloat(bar.getAttribute('barWidth'))
 
       // Rect-derived bar geometry in grid-local coords (always correct
       // regardless of nested SVG transforms above the bar element).
@@ -772,15 +774,13 @@ class Intersect {
       }
       const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
 
-      j = violin ? violin.j : parseInt(bar.getAttribute('j'), 10)
-      i = violin
-        ? violin.i
-        : parseInt(bar.parentNode.getAttribute('rel'), 10) - 1
+      j = mark ? mark.j : parseInt(bar.getAttribute('j'), 10)
+      i = mark ? mark.i : parseInt(bar.parentNode.getAttribute('rel'), 10) - 1
 
-      const y1 = violin ? null : bar.getAttribute('data-range-y1')
-      const y2 = violin ? null : bar.getAttribute('data-range-y2')
+      const y1 = mark ? mark.y1 : bar.getAttribute('data-range-y1')
+      const y2 = mark ? mark.y2 : bar.getAttribute('data-range-y2')
 
-      if (w.globals.comboCharts && !violin) {
+      if (w.globals.comboCharts && !mark) {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'), 10)
       }
 
@@ -813,8 +813,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        y1: y1 ? parseInt(y1, 10) : null,
-        y2: y2 ? parseInt(y2, 10) : null,
+        y1: y1 != null ? parseInt(y1, 10) : null,
+        y2: y2 != null ? parseInt(y2, 10) : null,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
         e,
       })
@@ -859,11 +859,108 @@ class Intersect {
       // Full rendered bar rect (grid-local). Used for top/bottom
       // placement and flip-on-overflow detection.
       barRectInGrid,
-      // A canvas violin chart hovered off every violin.
+      // A canvas bar chart hovered off every mark.
       noHit,
-      // A canvas violin, found by the hit test rather than a hovered node.
-      byHitTest: !!violin?.byHitTest,
+      // A painted mark, found by the hit test rather than a hovered node.
+      // One keyboard focus names (KeyboardNavigation._hoverFocusedMark) is
+      // not: focus hands over an SVG mark's node the same way, and neither
+      // goes through the pointer's `enabledOnSeries` check.
+      byHitTest: !!mark?.byHitTest && !e?.apexPaintedHit,
     }
+  }
+
+  /**
+   * The bar-like mark a hover is over on a chart that paints them to
+   * canvas, found by coordinate (renderer.hitTest), and read the way the SVG
+   * path under the pointer would be: its box is the box of the path that was
+   * hit (one half of a box plot, as the hovered half is on SVG), and the
+   * coords Bar.renderSeries cached for the datum carry what the path's
+   * attributes would. A violin is read as its whole glyph (getViolinMark).
+   *
+   * `{ noHit: true }` when the pointer is on no mark.
+   * @param {any} e
+   * @param {any} opt
+   * @returns {any}
+   */
+  getPaintedMark(e, opt) {
+    const w = this.w
+    const found = this._paintedHit(e, opt)
+    const hit = found?.hit
+    const cached = hit
+      ? w.globals.barCanvasCoords?.[hit.seriesIndex]?.[hit.dataPointIndex]
+      : null
+    if (!found || !hit || !cached) return { noHit: true }
+    const i = hit.seriesIndex
+    const j = hit.dataPointIndex
+    if (cached.type === 'violin') {
+      return this._violinMark(i, j, null, cached) || { noHit: true }
+    }
+
+    const b = cached.bounds
+    const box =
+      hit.width != null
+        ? hit
+        : b && {
+            x: b.left,
+            y: b.top,
+            width: b.right - b.left,
+            height: b.bottom - b.top,
+          }
+    if (!box) return { noHit: true }
+    const { plot } = found
+    const left = plot.left + box.x * plot.zoom
+    const top = plot.top + box.y * plot.zoom
+    const width = box.width * plot.zoom
+    const height = box.height * plot.zoom
+    // Read as the path's attributes would be: written out as strings, and
+    // cx/cy read back with parseInt.
+    const asAttr = (/** @type {any} */ v) => parseInt(String(v), 10)
+    return {
+      i,
+      j,
+      rect: {
+        left,
+        top,
+        right: left + width,
+        bottom: top + height,
+        width,
+        height,
+      },
+      cx: asAttr(cached.cx),
+      cy: asAttr(cached.cy),
+      barWidth: cached.barWidth,
+      y1: cached.rangeY1 ?? null,
+      y2: cached.rangeY2 ?? null,
+      byHitTest: true,
+    }
+  }
+
+  /**
+   * Ask the renderer which painted mark is under the pointer. The marks are
+   * recorded in plot px from the plot's corner on screen, so the pointer is
+   * taken there first, through any CSS zoom or scale on the chart. Not the
+   * `.apexcharts-grid` box: a violin's grid lines reach half a slot past the
+   * plot on either side, and on a numeric x axis a bar chart's run
+   * `barPadForNumericAxis` past it.
+   * @param {any} e
+   * @param {any} opt
+   * @returns {{ hit: any, plot: { left: number, top: number, width: number, height: number, zoom: number } } | null}
+   */
+  _paintedHit(e, opt) {
+    const w = this.w
+    const renderer = w.globals.activeRenderer
+    if (!renderer || typeof renderer.hitTest !== 'function') return null
+    const plot = TooltipUtils.plotRect(w)
+    // A hover that already names its mark (keyboard focus on it,
+    // KeyboardNavigation._hoverFocusedMark) is taken at its word, as an SVG
+    // hover is taken at the node it names (TooltipUtils.hoverTarget).
+    if (e?.apexPaintedHit) return { hit: e.apexPaintedHit, plot }
+    const pointer = TooltipUtils.eventPointer(e, opt)
+    const hit = renderer.hitTest(
+      (pointer.x - plot.left) / plot.zoom,
+      (pointer.y - plot.top) / plot.zoom,
+    )
+    return { hit, plot }
   }
 
   /**
@@ -871,10 +968,11 @@ class Intersect {
    * together, so the tooltip beside it never covers a raincloud's box or
    * rain lane. On canvas the bodies and boxes are painted, so the violin is
    * found by coordinate (renderer.hitTest) and their extent comes from the
-   * coords Violin.draw cached for them; the jitter is SVG either way.
+   * coords cached for them (Bar.renderSeries, re-anchored by Violin.draw);
+   * the jitter is SVG either way.
    *
    * Null when this is no violin hover, `{ noHit: true }` when a canvas
-   * violin chart is hovered off every violin.
+   * violin chart is hovered off every mark.
    * @param {any} e
    * @param {any} opt
    * @returns {any}
@@ -882,49 +980,47 @@ class Intersect {
   getViolinMark(e, opt) {
     const w = this.w
 
-    let i
-    let j
-    /** @type {any} */
-    let seriesEl = null
-    /** @type {any} */
-    let cached = null
-    const renderer = w.globals.activeRenderer
     // Gated on violins being drawn at all, not on chart.type: a violin series
     // can sit in a combo of another type.
-    const canvas = TooltipUtils.isCanvasViolinChart(w)
-    if (canvas) {
-      // The plot origin on screen, which the recorded marks are relative to.
-      // Not the `.apexcharts-grid` box: a violin's grid lines reach half a
-      // slot past the plot on either side. The marks are in plot px, so the
-      // pointer goes into plot px for the hit test, through any CSS zoom or
-      // scale on the chart.
-      const plot = TooltipUtils.plotRect(w)
-      const pointer = TooltipUtils.eventPointer(e, opt)
-      const hit = renderer.hitTest(
-        (pointer.x - plot.left) / plot.zoom,
-        (pointer.y - plot.top) / plot.zoom,
-      )
-      cached = hit
+    if (TooltipUtils.isCanvasViolinChart(w)) {
+      const hit = this._paintedHit(e, opt)?.hit
+      const cached = hit
         ? w.globals.barCanvasCoords?.[hit.seriesIndex]?.[hit.dataPointIndex]
         : null
-      if (!cached?.bounds) return { noHit: true }
-      i = hit.seriesIndex
-      j = hit.dataPointIndex
-    } else {
-      const hovered = TooltipUtils.hoverTarget(e)
-      if (!hovered?.classList?.contains('apexcharts-violin-area')) return null
-      seriesEl = hovered.parentNode
-      j = parseInt(hovered.getAttribute('j'), 10)
-      i = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
+      if (!cached) return { noHit: true }
+      if (cached.type !== 'violin') return null
+      return this._violinMark(hit.seriesIndex, hit.dataPointIndex, null, cached)
     }
 
+    const hovered = TooltipUtils.hoverTarget(e)
+    if (!hovered?.classList?.contains('apexcharts-violin-area')) return null
+    const seriesEl = hovered.parentNode
+    return this._violinMark(
+      parseInt(seriesEl.getAttribute('data:realIndex'), 10),
+      parseInt(hovered.getAttribute('j'), 10),
+      seriesEl,
+      null,
+    )
+  }
+
+  /**
+   * Violin `j` of series `i` read as one glyph (getViolinMark): its rect,
+   * and the coords the tooltip anchors to, off the SVG body or, painted to
+   * canvas, off the coords cached for it. Null when nothing of it is drawn.
+   * @param {number} i  realIndex
+   * @param {number} j
+   * @param {Element | null} seriesEl  the series group, when the caller has it
+   * @param {any} cached  the canvas coords, or null for an SVG violin
+   * @returns {any}
+   */
+  _violinMark(i, j, seriesEl, cached) {
     const rect = this.violinGlyphRect(i, j, seriesEl)
     if (!rect) return null
 
     // Violin.draw renders the body before its box paths, so the first
     // `.apexcharts-violin-area` at j is the body, which carries the cx/cy the
     // tooltip anchors to (a box path keeps the placeholder bar's).
-    const body = canvas
+    const body = cached
       ? null
       : seriesEl?.querySelector(`.apexcharts-violin-area[j='${j}']`)
     const attr = (/** @type {string} */ name) =>
@@ -941,16 +1037,18 @@ class Intersect {
       cx: cached?.bodyCx ?? attr('cx'),
       cy: attr('cy'),
       barWidth: attr('barWidth'),
+      y1: null,
+      y2: null,
       // Found by the renderer's hit test, not by a hovered node.
-      byHitTest: canvas,
+      byHitTest: !!cached,
     }
   }
 
   /**
    * The screen rect of everything violin `j` of series `i` draws: body, box
    * lane and jitter (a raincloud's rain). Painted to canvas, the body and box
-   * leave only the extent Violin.draw cached for them (plot px); the jitter
-   * is SVG either way. Null when nothing of it is drawn.
+   * leave only the extent cached for them (Bar.renderSeries, plot px); the
+   * jitter is SVG either way. Null when nothing of it is drawn.
    * @param {number} i  realIndex
    * @param {number} j
    * @param {Element | null} [seriesEl]  the series group, when the caller has it

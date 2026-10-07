@@ -9,6 +9,7 @@ import {
 } from 'vitest'
 import ApexCharts from '../../src/entries/full.js'
 import CanvasRenderer from '../../src/renderers/canvas/CanvasRenderer'
+import { pathBox } from '../../src/renderers/canvas/CanvasGraphics'
 import RendererController from '../../src/modules/RendererController'
 import Intersect from '../../src/modules/tooltip/Intersect'
 import Tooltip from '../../src/modules/tooltip/Tooltip'
@@ -55,8 +56,9 @@ function violinOptions(extra = {}) {
 }
 
 describe('canvas hitTest: bar-like marks', () => {
-  // jsdom has no Path2D and no 2D context, so stand in for both: a "path" is
-  // the rect its d-string names, and the context tests a point against it.
+  // jsdom has no Path2D and no 2D context, so stand in for both: a path's
+  // fill is the box its d-string spans, and the context tests a point
+  // against that.
   const RealPath2D = globalThis.Path2D
   beforeAll(() => {
     globalThis.Path2D = class {
@@ -80,8 +82,8 @@ describe('canvas hitTest: bar-like marks', () => {
     r.beginSeries()
     r._hitCtx = {
       isPointInPath(path, x, y) {
-        const [l, t, rr, b] = path.d.split(' ').map(Number)
-        return x >= l && x <= rr && y >= t && y <= b
+        const b = pathBox(path.d)
+        return x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height
       },
     }
     return r
@@ -89,27 +91,41 @@ describe('canvas hitTest: bar-like marks', () => {
 
   it('resolves the mark whose fill covers the point', () => {
     const r = renderer()
-    r.renderPaths({ realIndex: 0, j: 0, pathTo: '0 0 10 50', fill: '#a' })
-    r.renderPaths({ realIndex: 0, j: 1, pathTo: '20 0 30 50', fill: '#a' })
-    r.renderPaths({ realIndex: 1, j: 1, pathTo: '35 0 45 50', fill: '#b' })
-    expect(r.hitTest(5, 25)).toEqual({ seriesIndex: 0, dataPointIndex: 0 })
-    expect(r.hitTest(25, 25)).toEqual({ seriesIndex: 0, dataPointIndex: 1 })
-    expect(r.hitTest(40, 25)).toEqual({ seriesIndex: 1, dataPointIndex: 1 })
+    r.renderPaths({ realIndex: 0, j: 0, pathTo: 'M 0 0 L 10 50', fill: '#a' })
+    r.renderPaths({ realIndex: 0, j: 1, pathTo: 'M 20 0 L 30 50', fill: '#a' })
+    r.renderPaths({ realIndex: 1, j: 1, pathTo: 'M 35 0 L 45 50', fill: '#b' })
+    expect(r.hitTest(5, 25)).toMatchObject({
+      seriesIndex: 0,
+      dataPointIndex: 0,
+    })
+    expect(r.hitTest(25, 25)).toMatchObject({
+      seriesIndex: 0,
+      dataPointIndex: 1,
+    })
+    expect(r.hitTest(40, 25)).toMatchObject({
+      seriesIndex: 1,
+      dataPointIndex: 1,
+    })
     expect(r.hitTest(15, 25)).toBe(null)
   })
 
-  it('skips series-wide paths and unfilled ones', () => {
+  it('skips series-wide paths and unpainted ones', () => {
     const r = renderer()
     // a line/area path stands for the whole series: it records no `j`
-    r.renderPaths({ realIndex: 0, pathTo: '0 0 100 100', fill: '#a' })
-    // a whisker is stroke only, so its box is not a hit area
-    r.renderPaths({ realIndex: 0, j: 2, pathTo: '0 0 100 100', fill: 'none' })
+    r.renderPaths({ realIndex: 0, pathTo: 'M 0 0 L 100 100', fill: '#a' })
+    // neither filled nor stroked, so nothing of it is painted to hit
+    r.renderPaths({
+      realIndex: 0,
+      j: 2,
+      pathTo: 'M 0 0 L 100 100',
+      fill: 'none',
+    })
     expect(r.hitTest(50, 50)).toBe(null)
   })
 
   it('a heatmap cell still wins over a mark', () => {
     const r = renderer()
-    r.renderPaths({ realIndex: 0, j: 0, pathTo: '0 0 10 10', fill: '#a' })
+    r.renderPaths({ realIndex: 0, j: 0, pathTo: 'M 0 0 L 10 10', fill: '#a' })
     r.drawRectCell(0, 0, 10, 10, {
       fill: '#b',
       seriesIndex: 3,
@@ -224,10 +240,13 @@ describe('violin on canvas: grouped violins read as the SVG chart reads them', (
     RendererController.unregisterRenderer('canvas')
   })
 
-  /** Two violin series over the same two categories, painted to canvas. */
-  function grouped(horizontal) {
+  /**
+   * Two violin series over the same two categories, painted to canvas, or
+   * drawn as SVG when `renderer` says so.
+   */
+  function grouped(horizontal, renderer = 'canvas') {
     const opts = violinOptions({
-      chart: { renderer: 'canvas' },
+      chart: { renderer },
       plotOptions: { bar: { horizontal } },
     })
     opts.series.push({
@@ -238,7 +257,7 @@ describe('violin on canvas: grouped violins read as the SVG chart reads them', (
       ],
     })
     const chart = createChartWithOptions(opts)
-    expect(chart.w.globals.activeRenderer.kind).toBe('canvas')
+    expect(chart.w.globals.activeRenderer.kind).toBe(renderer)
     return chart
   }
 
@@ -253,26 +272,92 @@ describe('violin on canvas: grouped violins read as the SVG chart reads them', (
     }
   }
 
-  it('vertical: the band on the middle of the category, the box down from the series the SVG query picks', () => {
-    const chart = grouped(false)
-    const w = chart.w
-    const pos = w.globals.tooltip.tooltipPosition
-    const band = vi.spyOn(pos, 'moveXCrosshairs')
-    const move = vi.spyOn(pos, 'moveTooltip').mockImplementation(() => {})
-
-    // hovering series 1: the SVG chart anchors to the category either way
-    pos.moveStickyTooltipOverBars(1, 1)
-
-    // halfway between the two violins' centre lines
-    const bcc = w.globals.barCanvasCoords
-    const middle = (bcc[0][1].cx + bcc[1][1].cx) / 2
-    expect(Math.abs(bcc[0][1].cx - bcc[1][1].cx)).toBeGreaterThan(10)
-    expect(band).toHaveBeenCalledWith(middle)
-    // with two series the SVG query takes rel = 1, series 0
-    expect(move.mock.calls[0][0]).toBe(middle)
-    expect(move.mock.calls[0][1]).toBe(bcc[0][1].cy)
-    chart.destroy()
+  it('vertical: the band and the box where the SVG chart puts them, whichever series is hovered', () => {
+    /** Where the shared box goes over violin 1 with series `s` hovered. */
+    const place = (renderer, s) => {
+      const chart = grouped(false, renderer)
+      const w = chart.w
+      const pos = w.globals.tooltip.tooltipPosition
+      const band = vi.spyOn(pos, 'moveXCrosshairs')
+      const move = vi.spyOn(pos, 'moveTooltip').mockImplementation(() => {})
+      pos.moveStickyTooltipOverBars(1, s)
+      // the two violins' centre lines at j = 1, as each renderer keeps them
+      const centres =
+        renderer === 'canvas'
+          ? [0, 1].map((i) => w.globals.barCanvasCoords[i][1].cx)
+          : [
+              ...w.dom.baseEl.querySelectorAll(
+                ".apexcharts-violin-area[j='1']",
+              ),
+            ].map((el) => parseFloat(el.getAttribute('data:center')))
+      const out = {
+        band: band.mock.calls[0][0],
+        move: move.mock.calls[0],
+        centres,
+      }
+      chart.destroy()
+      return out
+    }
+    for (const s of [0, 1]) {
+      const svg = place('svg', s)
+      const canvas = place('canvas', s)
+      // The band stands halfway between the two violins on both renderers,
+      // not on either one's centre line.
+      for (const r of [svg, canvas]) {
+        expect(r.centres).toHaveLength(2)
+        expect(Math.abs(r.centres[0] - r.centres[1])).toBeGreaterThan(10)
+        expect(r.band).toBeCloseTo((r.centres[0] + r.centres[1]) / 2, 6)
+      }
+      expect(canvas.band).toBeCloseTo(svg.band, 6)
+      expect(canvas.move[0]).toBeCloseTo(svg.move[0], 6)
+      // with two series the SVG query takes rel = 1, series 0, either way
+      expect(canvas.move[1]).toBeCloseTo(svg.move[1], 6)
+    }
   })
+
+  for (const hidden of ['A', 'B']) {
+    it(`vertical, ${hidden} hidden: the band on the violin left, on SVG as on canvas`, () => {
+      // The SVG chart read the middle of the category off the cx of the
+      // series its query picked, which counts the hidden series: the band
+      // stood on an edge of the violin left. It now goes where the canvas
+      // chart puts it, on that violin's centre line.
+      const shown = hidden === 'A' ? 1 : 0
+      const bands = {}
+      const centres = {}
+      for (const renderer of ['svg', 'canvas']) {
+        const chart = grouped(false, renderer)
+        chart.hideSeries(hidden)
+        const w = chart.w
+        expect(w.globals.collapsedSeriesIndices).toEqual([1 - shown])
+        const pos = w.globals.tooltip.tooltipPosition
+        const band = vi.spyOn(pos, 'moveXCrosshairs')
+        vi.spyOn(pos, 'moveTooltip').mockImplementation(() => {})
+
+        pos.moveStickyTooltipOverBars(1, shown)
+
+        bands[renderer] = band.mock.calls[0][0]
+        // (jsdom matches no camelCase attribute selector on SVG nodes, so
+        // the series group is found by reading the attribute)
+        const group = [
+          ...w.dom.baseEl.querySelectorAll(
+            '.apexcharts-violin-series .apexcharts-series',
+          ),
+        ].find((g) => g.getAttribute('data:realIndex') === String(shown))
+        centres[renderer] =
+          renderer === 'canvas'
+            ? w.globals.barCanvasCoords[shown][1].cx
+            : parseFloat(
+                group
+                  .querySelector(".apexcharts-violin-area[j='1']")
+                  .getAttribute('data:center'),
+              )
+        chart.destroy()
+      }
+      expect(bands.svg).toBeCloseTo(bands.canvas, 6)
+      expect(bands.canvas).toBeCloseTo(centres.canvas, 6)
+      expect(centres.svg).toBeCloseTo(centres.canvas, 6)
+    })
+  }
 
   it('horizontal: above or below the row of every violin at j, as an SVG row is', () => {
     const chart = grouped(true)
@@ -331,6 +416,7 @@ describe('violin on canvas: the hit test and the hover around it', () => {
               cx: 50,
               cy: 60,
               barWidth: 20,
+              type: 'violin',
               bounds: { left: 40, top: 10, right: 60, bottom: 110 },
             },
           },

@@ -282,7 +282,13 @@ export default class Core {
     // Series marks emitted during draw() below are recorded, not added to the
     // DOM; they are painted at the end of this method (see the wrap below).
     const canvasMode = ctx.renderer && ctx.renderer.kind === 'canvas'
-    if (canvasMode) ctx.renderer.beginSeries()
+    if (canvasMode) {
+      ctx.renderer.beginSeries()
+      // What Bar.renderSeries caches for the painted marks describes this
+      // pass alone; a mark painted in several paths grows its extent over
+      // the entry, so nothing may be left from an earlier pass.
+      w.globals.barCanvasCoords = null
+    }
 
     const { seriesTypes, customBuckets } = this._classifySeriesByType(ser)
 

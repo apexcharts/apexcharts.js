@@ -766,9 +766,11 @@ export interface ChartGlobals
   dimensionCache: Record<string, { value: any; lastUpdate: number }>
   cachedSelectors: Record<string, NodeList>
   pointsArray: number[][][]
-  // Strata (#2): per-render bar/candle center cache + active renderer handle
-  // (mirrored from ctx.renderer so w-only modules can reach it).
+  // Strata (#2): per-render bar/candle center cache (canvas tooltip position).
   barCanvasCoords: Record<number, Record<number, any>> | null
+  // Strata (#2): the active series renderer, mirrored from ctx.renderer by
+  // RendererController so w-only modules can reach it. Not per-render: it
+  // holds across data-only updates until the next resolve() or teardown().
   activeRenderer: any
   dataLabelsRects: DOMRect[]
   lastDrawnDataLabelsIndexes: number[][]
