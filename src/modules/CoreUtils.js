@@ -371,16 +371,22 @@ class CoreUtils {
    */
   isSeriesNull(index = null) {
     let r = []
-    const series = /** @type {any[]} */ (this.w.config.series)
     if (index === null) {
       // non-plot chart types - pie / donut / circle
+      const series = /** @type {any[]} */ (this.w.config.series)
       r = series.filter((/** @type {any} */ d) => d !== null)
-    } else if (series[index] && Array.isArray(series[index].data)) {
-      // axis charts - supporting multiple series
-      r = series[index].data.filter((/** @type {any} */ d) => d !== null)
     } else {
-      // pie/donut/polarArea/radialBar called per-index from legend loop
-      r = series[index] !== null && series[index] !== undefined ? [series[index]] : []
+      const seriesAtIndex = this.w.seriesData.series[index]
+      if (Array.isArray(seriesAtIndex)) {
+        // axis charts - supporting multiple series
+        r = seriesAtIndex.filter((/** @type {any} */ d) => d !== null)
+      } else {
+        // pie/donut/polarArea/radialBar called per-index from legend loop
+        r =
+          seriesAtIndex !== null && seriesAtIndex !== undefined
+            ? [seriesAtIndex]
+            : []
+      }
     }
 
     return r.length === 0
