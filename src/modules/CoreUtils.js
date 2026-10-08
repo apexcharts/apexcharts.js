@@ -213,8 +213,10 @@ class CoreUtils {
     const seriesYAxisReverseMap = []
     /** @type {any[]} */
     const unassignedSeriesIndices = []
+    // cnf.series, not seriesData.series: the first call (parseDataAxisCharts)
+    // runs before seriesData.series is filled, and its map sets default groups.
     const seriesNameArrayStyle =
-      this.w.seriesData.series.length > cnf.yaxis.length ||
+      cnf.series.length > cnf.yaxis.length ||
       /**
        * @param {ApexYAxis} a
        */
