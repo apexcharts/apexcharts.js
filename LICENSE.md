@@ -122,4 +122,4 @@ By installing ApexCharts (e.g., via `npm install apexcharts`), you are agreeing 
 
 Copyright © 2026 ApexCharts. All rights reserved.
 
-Thank you for supporting ApexCharts! Your licensing helps keep it free and open for individuals and small teams.
+Thank you for supporting ApexCharts! Your licensing keeps the Community License available to individuals and small teams.
