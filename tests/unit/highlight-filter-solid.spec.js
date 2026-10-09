@@ -438,3 +438,171 @@ describe('circles', () => {
     c.destroy()
   })
 })
+
+// The whole's own stroke is centred on its edge, so a part on the whole's
+// exact shape (frame 0 of a first pick, the landing frame of a clear) covers
+// the inner half of it: the stacked demo's 1px white seam vanished on frame 0
+// and came back the frame a clear landed. The part carries that stroke while
+// it sits there, over the whole's own (hidden under it), and eases it out as
+// it leaves the whole's shape (in, as it comes back). At rest a part has none.
+describe("bars: the whole's own stroke rides the part on the whole's shape", () => {
+  const strokeOf = (n) =>
+    ['stroke', 'stroke-width', 'stroke-opacity'].map((a) => n.getAttribute(a))
+  const SO = (n) => parseFloat(n.getAttribute('stroke-opacity'))
+
+  test('a first pick: frame 0 strokes each part as its whole was, then eases it out', async () => {
+    const c = animated(stacked({ series: withParts(null) }))
+    const t = holdTweens(c)
+    await c.updateSeries(withParts(SEARCH))
+    const ps = byAt(barParts(c))
+    const ws = byAt(barWholes(c))
+    expect(ps.size).toBe(6)
+    for (const [k, p] of ps) {
+      expect(strokeOf(p)).toEqual(['#fff', '1', '1'])
+      // the whole's own stroke is under it, and hidden
+      expect(ws.get(k).getAttribute('stroke')).toBe('#fff')
+      expect(SO(ws.get(k))).toBe(0)
+    }
+    t.step(0.5)
+    for (const [k, p] of ps) {
+      expect(SO(p)).toBeCloseTo(0.5, 6)
+      // the whole's outline is coming in
+      expect(ws.get(k).getAttribute('stroke')).toMatch(/^rgba\(/)
+    }
+    t.step(1)
+    for (const p of ps.values()) {
+      // as a part drawn at rest is
+      expect(strokeOf(p)).toEqual(['none', '0', '1'])
+    }
+    c.destroy()
+  })
+
+  test('a clear: the stroke eases in as the part returns, and the whole lands with its own', async () => {
+    const c = animated(stacked())
+    const t = holdTweens(c)
+    await c.updateSeries(withParts(null))
+    const ps = byAt(barParts(c))
+    expect(ps.size).toBe(6)
+    for (const p of ps.values()) {
+      expect(p.getAttribute('stroke')).toBe('#fff')
+      expect(SO(p)).toBe(0)
+    }
+    t.step(0.5)
+    for (const p of ps.values()) expect(SO(p)).toBeCloseTo(0.5, 6)
+    t.step(1)
+    const ws = byAt(barWholes(c))
+    for (const [k, p] of ps) {
+      expect(strokeOf(p)).toEqual(['#fff', '1', '1'])
+      expect(SO(ws.get(k))).toBe(0)
+    }
+    t.land()
+    expect(barParts(c).length).toBe(0)
+    for (const w of barWholes(c)) {
+      expect(w.getAttribute('stroke')).toBe('#fff')
+      expect(SO(w)).toBe(1)
+    }
+    c.destroy()
+  })
+
+  test('a re-pick mid-pick moves the stroke on from the screen', async () => {
+    const c = animated(stacked({ series: withParts(null) }))
+    const t = holdTweens(c)
+    await c.updateSeries(withParts(SEARCH))
+    t.step(0.4)
+    for (const p of barParts(c)) expect(SO(p)).toBeCloseTo(0.6, 6)
+    // a frame paints, so the next capture reads the screen
+    c.w.globals.pendingCapture.pending = false
+    const t2 = holdTweens(c)
+    await c.updateSeries(withParts(SOCIAL))
+    const now = barParts(c).filter((n) => n.isConnected)
+    expect(now.length).toBe(6)
+    for (const p of now) {
+      expect(p.getAttribute('stroke')).toBe('#fff')
+      expect(SO(p)).toBeCloseTo(0.6, 6)
+    }
+    t2.step(0.5)
+    for (const p of now) expect(SO(p)).toBeCloseTo(0.3, 6)
+    t2.step(1)
+    for (const p of now) expect(p.getAttribute('stroke')).toBe('none')
+    c.destroy()
+  })
+
+  test('a re-pick, no animation, a transparent stroke and the canvas never stroke a part', async () => {
+    const c = animated(stacked())
+    const t = holdTweens(c)
+    await c.updateSeries(withParts(SOCIAL))
+    for (const p of barParts(c)) expect(p.getAttribute('stroke')).toBe('none')
+    t.step(0.5)
+    for (const p of barParts(c)) expect(p.getAttribute('stroke')).toBe('none')
+    c.destroy()
+
+    const still = stacked({ series: withParts(null) })
+    await still.updateSeries(withParts(SEARCH))
+    for (const p of barParts(still)) {
+      expect(p.getAttribute('stroke')).toBe('none')
+    }
+    still.destroy()
+
+    const clear = animated(
+      stacked({
+        series: withParts(null),
+        options: { stroke: { show: true, width: 2, colors: ['transparent'] } },
+      }),
+    )
+    holdTweens(clear)
+    await clear.updateSeries(withParts(SEARCH))
+    for (const p of barParts(clear)) {
+      expect(p.getAttribute('stroke')).toBe('none')
+    }
+    clear.destroy()
+
+    const cv = stacked({ chart: { renderer: 'canvas' } })
+    const list = cv.ctx.renderer._g.displayList()
+    const parts = list.filter((x) => x.tag === 'path' && /^rgb\(/.test(x.fill))
+    expect(parts.length).toBe(6)
+    for (const x of parts) expect(x.stroke ?? 'none').toBe('none')
+    cv.destroy()
+  })
+})
+
+// barRect centres the whole's stroke on each end, so a bar thinner than its
+// stroke turns inside out into a stroke-wide sliver past its baseline (a 0, a
+// series the legend hides or brings back). The whole's stroke paints over its
+// own; a part has none, and showed a solid 1px line. A part that thin is the
+// line it collapses to.
+describe('bars: a part of nothing draws nothing', () => {
+  const height = (n, axis = 1) => {
+    const [a, b] = span(n.getAttribute('d'), axis)
+    return b - a
+  }
+
+  test('a zero part, stacked, horizontal 100% and unstacked', () => {
+    const rows = [
+      [0, 22, 23],
+      [24, 0, 28],
+    ]
+    const c = stacked({ series: withParts(rows) })
+    const ps = byAt(barParts(c))
+    expect(height(ps.get('0|0'))).toBeLessThan(1e-6)
+    expect(height(ps.get('1|1'))).toBeLessThan(1e-6)
+    // the rest keep their size, and sit on the part below as before
+    expect(height(ps.get('0|1'))).toBeGreaterThan(5)
+    c.destroy()
+
+    const h = stacked({
+      series: withParts(rows),
+      chart: { stackType: '100%' },
+      options: { plotOptions: { bar: { horizontal: true } } },
+    })
+    expect(height(byAt(barParts(h)).get('0|0'), 0)).toBeLessThan(1e-6)
+    h.destroy()
+
+    const cols = createChartWithOptions({
+      chart: { type: 'bar', width: 600, height: 300 },
+      series: [{ name: 'A', data: [40, 30, 50], highlightData: [0, 45, 10] }],
+      xaxis: { categories: CATS },
+    })
+    expect(height(byAt(barParts(cols)).get('0|0'))).toBeLessThan(1e-6)
+    cols.destroy()
+  })
+})

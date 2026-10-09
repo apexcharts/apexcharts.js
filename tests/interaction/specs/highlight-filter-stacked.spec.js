@@ -1405,3 +1405,159 @@ test.describe('Stacked highlight: parts are solid', () => {
     expect(errors).toEqual([])
   })
 })
+
+/**
+ * Where to read the whole stack's own edges: for every whole with height, a
+ * column of points on the pixel column its left and right edges run through
+ * (the white 1px stroke is centred there), in #chart's own px, kept clear of
+ * its top and bottom (`kind` 'edges'). Or the baseline row under the Desktop
+ * columns, a pixel either side (`kind` 'baseline'). Points under a label are
+ * left out (the labels ride on their own; see the label specs): a test keeps
+ * the points two such reads share. Given points read before, it keeps those
+ * still clear of every label.
+ */
+function probes(kind) {
+  const root = document.querySelector('#chart')
+  const o = root.getBoundingClientRect()
+  const texts = [...root.querySelectorAll('text')].map((t) =>
+    t.getBoundingClientRect(),
+  )
+  const out = []
+  if (Array.isArray(kind)) {
+    // points read before, kept where no label is now
+    for (const p of kind) {
+      const [x, y] = p.split(',').map(Number)
+      add(x + o.left, y + o.top)
+    }
+    return out
+  }
+  function add(x, y) {
+    const free = texts.every(
+      (b) =>
+        x < b.left - 3 || x > b.right + 3 || y < b.top - 3 || y > b.bottom + 3,
+    )
+    if (free) out.push(`${Math.round(x - o.left)},${Math.round(y - o.top)}`)
+  }
+  for (const n of root.querySelectorAll(
+    '.apexcharts-series > .apexcharts-bar-area',
+  )) {
+    const b = n.getBoundingClientRect()
+    if (kind === 'baseline') {
+      if (n.getAttribute('index') !== '0') continue
+      for (let x = b.left + 3; x < b.right - 3; x += 2) {
+        for (const dy of [-1, 0, 1]) add(x, b.bottom + dy)
+      }
+      continue
+    }
+    if (b.height < 12) continue
+    for (let y = b.top + 4; y < b.bottom - 4; y += 3) {
+      add(Math.floor(b.left) + 0.5, y)
+      add(Math.ceil(b.right) - 0.5, y)
+    }
+  }
+  return out
+}
+
+/** The points both reads keep, as [x, y]. */
+const shared = (a, b) =>
+  a.filter((p) => b.includes(p)).map((p) => p.split(',').map(Number))
+
+/** The largest channel difference between two shots at the points. */
+const worstAt = (a, b, pts) => {
+  let worst = 0
+  for (const [x, y] of pts) {
+    const p = pixel(a, x, y)
+    const q = pixel(b, x, y)
+    worst = Math.max(worst, ...p.map((v, k) => Math.abs(v - q[k])))
+  }
+  return worst
+}
+
+test.describe("Stacked highlight: the whole's own stroke, and parts of nothing", () => {
+  const shotOf = async (page) =>
+    PNG.sync.read(await page.locator('#chart').screenshot())
+  // (the trial watermark a premium feature adds is drawn over the plot)
+  const noMark = (page) =>
+    page.addStyleTag({
+      content: '[data-apexcharts-watermark] { display: none !important }',
+    })
+
+  test('a first pick keeps the white seams on frame 0 and a clear lands on them', async ({
+    page,
+  }) => {
+    const errors = await loadStacked(page)
+    await noMark(page)
+    await pick(page, '')
+    await advance(page, 4000)
+    const atPlain = await page.evaluate(probes, 'edges')
+    const plain = await shotOf(page)
+    await pick(page, 'search')
+    const pts = shared(atPlain, await page.evaluate(probes, 'edges'))
+    expect(pts.length).toBeGreaterThan(100)
+    // frame 0 is the chart before the pick, edges included (the part used to
+    // cover the inner half of each white stroke, an 81-level jump)
+    expect(worstAt(plain, await shotOf(page), pts)).toBeLessThanOrEqual(6)
+    await advance(page, 4000)
+
+    // a clear: the last frame with parts is the plain chart, edges included
+    await pick(page, '')
+    let prev = await shotOf(page)
+    let landed = false
+    for (let f = 0; f < 60 && !landed; f++) {
+      await advance(page, 16)
+      const now = await shotOf(page)
+      const left = await page.evaluate(
+        () =>
+          document.querySelectorAll('#chart .apexcharts-bar-highlight-part')
+            .length,
+      )
+      if (!left) {
+        landed = true
+        const at = shared(atPlain, await page.evaluate(probes, 'edges'))
+        expect(at.length).toBeGreaterThan(100)
+        expect(worstAt(prev, now, at), `landing frame ${f}`).toBeLessThanOrEqual(
+          6,
+        )
+        expect(worstAt(plain, now, at)).toBeLessThanOrEqual(2)
+      }
+      prev = now
+    }
+    expect(landed).toBe(true)
+    expect(errors).toEqual([])
+  })
+
+  test('a series the legend hides and shows under a pick leaves no sliver at the baseline', async ({
+    page,
+  }) => {
+    const errors = await loadStacked(page)
+    await noMark(page)
+    await pick(page, 'search')
+    await advance(page, 4000)
+    const atPick = await page.evaluate(probes, 'baseline')
+
+    // hide: the Desktop parts land on the baseline with the wholes, on no
+    // height, and leave with them (a solid 1px line used to lie there until
+    // the series group went)
+    const rec = await recordTransition(
+      page,
+      () => page.evaluate(() => window.chart.hideSeries('Desktop')),
+      { probe: stackState },
+    )
+    // (the collapsed series group keeps them, with no path)
+    const desk = (f) => f.parts.filter((p) => p.i === 0 && p.d)
+    const k = rec.probes.findIndex((f) => desk(f).length === 0)
+    expect(k).toBeGreaterThan(1)
+    // (it was a stroke-wide 1px; it is now on its way to nothing)
+    for (const p of desk(rec.probes[k - 1])) expect(p.box[3]).toBeLessThan(0.5)
+    const hidden = await shotOf(page)
+    const pts = shared(atPick, await page.evaluate(probes, atPick))
+    expect(pts.length).toBeGreaterThan(60)
+
+    // show: frame 0 is the chart as it was (the part used to enter as a
+    // solid 1px line under every column)
+    await page.evaluate(() => window.chart.showSeries('Desktop'))
+    expect(worstAt(hidden, await shotOf(page), pts)).toBeLessThanOrEqual(8)
+    await advance(page, 4000)
+    expect(errors).toEqual([])
+  })
+})

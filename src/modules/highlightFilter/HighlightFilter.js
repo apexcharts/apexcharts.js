@@ -136,7 +136,7 @@ export default class HighlightFilter {
      * the next capture, and starts empty with every render.
      * Lines and areas also keep the area path (`a`) and its node (`m`), a
      * treemap tile its colour (`col`) and its share and colour as drawn.
-     * @type {Map<string, {d: string | null, a?: string | null, f: number, o?: number, base?: string, edge?: boolean, s?: number, flip?: boolean, n?: any, m?: any, c?: boolean, lf?: number, lo?: number, ls?: number, lc?: string, col?: string, run?: boolean, al?: number, la?: number}>} */
+     * @type {Map<string, {d: string | null, a?: string | null, f: number, o?: number, base?: string, edge?: boolean, s?: number, flip?: boolean, n?: any, m?: any, c?: boolean, lf?: number, lo?: number, ls?: number, lc?: string, col?: string, run?: boolean, al?: number, la?: number, k?: number, lk?: number}>} */
     this._targets = new Map()
     /** The renderer drawing now; a new one is a new render. @type {any} */
     this._render = null
@@ -547,8 +547,9 @@ export default class HighlightFilter {
         // A treemap tile's share and colour as drawn (see TreemapPart).
         s: t.ls ?? t.s,
         col: t.lc ?? t.col,
-        // A part's alpha as drawn (see _paintBar).
+        // A part's alpha and carried stroke as drawn (see _paintBar).
         al: t.la ?? t.al,
+        k: t.lk ?? t.k,
         n: null,
         m: null,
         g: null,
@@ -560,7 +561,7 @@ export default class HighlightFilter {
     this._targets = new Map()
   }
 
-  /** @returns {Map<string, {d: string | null, a?: string | null, f: number, o?: number, base?: string, edge?: boolean, s?: number, flip?: boolean, c?: boolean, al?: number}> | undefined} */
+  /** @returns {Map<string, {d: string | null, a?: string | null, f: number, o?: number, base?: string, edge?: boolean, s?: number, flip?: boolean, c?: boolean, al?: number, k?: number}> | undefined} */
   _prev() {
     return /** @type {any} */ (this.w.globals).prevHighlightParts
   }
@@ -857,7 +858,7 @@ export default class HighlightFilter {
     if (bar.isHorizontal) {
       const x1 = o.zeroW
       const x2 = h.getXForValue(pv, o.zeroW)
-      const r = h.barRect({
+      const r = this._rect(h, {
         a: paths.barYPosition,
         len: paths.barHeight,
         v1: x1,
@@ -877,7 +878,7 @@ export default class HighlightFilter {
     }
     const y1 = o.zeroH
     const y2 = h.getYForValue(pv, o.zeroH, translationsIndex)
-    const r = h.barRect({
+    const r = this._rect(h, {
       a: paths.barXPosition,
       len: paths.barWidth,
       v1: y1,
@@ -894,6 +895,33 @@ export default class HighlightFilter {
       overflow: overflows(p, whole),
       label: { y: y2, barHeight: Math.abs(y2 - y1) },
     }
+  }
+
+  /**
+   * A part's rect, from the renderer's builder. That builder centres the
+   * whole's stroke on each end, so a bar thinner than its stroke turns inside
+   * out: a stroke-wide sliver past its baseline (a value of 0, a series the
+   * legend hides or shows). The whole's own stroke paints over it; a part has
+   * none, so the sliver would show as solid colour. A part that thin is drawn
+   * as the line it collapses to, at its middle, which is where the rect it
+   * grows into starts.
+   * @param {any} h the bar helpers
+   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, realIndex: number, j: number, dir: number, horizontal: boolean}} o
+   */
+  _rect(h, o) {
+    const sw = Array.isArray(o.strokeWidth)
+      ? o.strokeWidth[o.realIndex]
+      : o.strokeWidth
+    const c = (sw || 0) / 2
+    const d = o.v2 - o.v1
+    if (Math.abs(d) < 2 * c) {
+      const m = o.v1 + d / 2
+      // (barRect insets each end by the half stroke along `direction`)
+      const s =
+        c * o.dir * (h.barCtx.isReversed ? -1 : 1) * (o.horizontal ? -1 : 1)
+      o = { ...o, v1: m + s, v2: m - s }
+    }
+    return h.barRect(o)
   }
 
   /**
@@ -982,7 +1010,7 @@ export default class HighlightFilter {
     h.arrBorderRadius = br
     let r
     try {
-      r = h.barRect({
+      r = this._rect(h, {
         a: horiz ? paths.barYPosition : paths.barXPosition,
         len: horiz ? w.globals.barHeight : w.globals.barWidth,
         v1,
@@ -1891,6 +1919,41 @@ export default class HighlightFilter {
     const own = ownOpacity(el.node)
     const a0 = start?.cover && animate ? alpha : prev?.d ? (prev.al ?? 1) : 1
     const a1 = lands ? alpha : 1
+    // The whole's own stroke (a page's 1px white seam between stacked
+    // segments, or the series colour bars are stroked in by default) is
+    // centred on its edge, and a part on the whole's exact shape covers the
+    // inner half of it. So while the part starts there (a first pick) or
+    // lands there (a clear) it carries that stroke itself, at full strength
+    // over the whole's own, which is hidden under it: frame 0 and the landing
+    // frame are the whole as drawn. The stroke eases out as the part leaves
+    // the whole's shape (in, as it comes back), on the fade's clock, and a
+    // part at rest has none. `k` is its strength, as `al` is the alpha's.
+    const ow = s.whole || prev?.o ? (cfg.outline?.width ?? 1) : 0
+    const wn = el.node
+    const sc = wn.getAttribute('stroke')
+    const k0 = start?.cover && animate ? 1 : prev?.d ? (prev.k ?? 0) : 0
+    const k1 = lands ? 1 : 0
+    const carry =
+      !!part &&
+      ow > 0 &&
+      (k0 > 0 || k1 > 0) &&
+      parseFloat(wn.getAttribute('stroke-width')) > 0 &&
+      !!sc &&
+      sc !== 'none' &&
+      sc !== 'transparent'
+    const so = ownOpacity(wn, 'stroke-opacity')
+    const SK = ['stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray']
+    /** @type {Record<string, string | null>} */
+    const bare = {}
+    if (carry) {
+      SK.forEach((n) => {
+        bare[n] = part.node.getAttribute(n)
+        part.node.setAttribute(n, wn.getAttribute(n) ?? '')
+      })
+      if (!wn.hasAttribute('stroke-dasharray')) {
+        part.node.removeAttribute('stroke-dasharray')
+      }
+    }
 
     // What this datum draws, for the next update to start from. The fade is
     // state of its own: a datum with no part is still drawn faded. The fade
@@ -1907,6 +1970,7 @@ export default class HighlightFilter {
       n: exit ? part?.node : null,
       c: !active,
       al: a1,
+      k: carry ? k1 : 0,
     }
     this._targets.set(key, rec)
     // (Written only when it is ever below 1: a part solid throughout keeps
@@ -1918,6 +1982,18 @@ export default class HighlightFilter {
       if (part && (own < 1 || a0 < 1 || a1 < 1)) {
         part.node.setAttribute('fill-opacity', String(own * a))
       }
+      if (!carry) return
+      const k = mix(k0, k1, t)
+      rec.lk = k
+      if (k > 0 || t < 1) {
+        part.node.setAttribute('stroke-opacity', String(so * k))
+        // The whole shows its own stroke only on the frames its look has no
+        // outline (the cover and the landing), and the part's is over it.
+        if (!(rec.lo > 0) && k > 0) wn.setAttribute('stroke-opacity', '0')
+      } else {
+        // At rest a part draws no stroke: back as it was emitted.
+        part.attr(bare)
+      }
     }
 
     // Fade the whole. It multiplies with an opacity the bar already carries
@@ -1927,7 +2003,6 @@ export default class HighlightFilter {
     // draws nothing (null or 0) has no outline at rest; one shrinking to
     // nothing (a series the legend hides) keeps it on the way down, fading
     // with the tween.
-    const ow = s.whole || prev?.o ? (cfg.outline?.width ?? 1) : 0
     const end = lands ? COVERED : look(fadeTo)
     this._fade(
       el.node,
@@ -1947,7 +2022,7 @@ export default class HighlightFilter {
           shadow?.setAttribute('fill-opacity', String(mix(sf0, fadeTo, t)))
           strength(t)
         },
-        force: !!part && a0 !== a1,
+        force: !!part && (a0 !== a1 || carry),
         land: lands ? PLAIN : undefined,
         // A retired part leaves on the frame its whole lands.
         done: exit ? () => part?.remove() : undefined,
