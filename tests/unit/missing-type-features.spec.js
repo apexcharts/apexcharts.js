@@ -90,6 +90,15 @@ const CASES = {
   },
 }
 
+// What each type's base renderer draws. A selector the renderer never emits
+// would pass whether or not the series was drawn: streamgraph bands are
+// classed rangeArea, not area.
+const MARKS = {
+  waterfall: '.apexcharts-rangebar-area',
+  dumbbell: '.apexcharts-rangebar-area',
+  streamgraph: '.apexcharts-rangeArea',
+}
+
 const build = (type) =>
   createChartWithOptions(
     structuredClone({
@@ -105,17 +114,17 @@ describe.each(TRANSFORMS)('%s without its feature', (type) => {
     const chart = build(type)
 
     for (const s of chart.w.config.series) expect(s.data).toEqual([])
-    expect(chart.el.querySelectorAll('.apexcharts-rangebar-area').length).toBe(
-      0,
-    )
-    expect(chart.el.querySelectorAll('.apexcharts-area').length).toBe(0)
+    expect(chart.el.querySelectorAll(MARKS[type]).length).toBe(0)
 
     const msgs = warnings(warn).filter((m) =>
       m.includes(`requires the ${type} feature`),
     )
     expect(msgs).toHaveLength(1)
     expect(msgs[0]).toContain(`chart.type '${type}'`)
-    expect(msgs[0]).toContain(`import 'apexcharts/${type}'`)
+    // The page has the renderer (this is the default bundle), so the feature
+    // is the whole fix. The type's own entry would bundle a second renderer.
+    expect(msgs[0]).toContain(`import 'apexcharts/features/${type}'`)
+    expect(msgs[0]).not.toContain(`import 'apexcharts/${type}'`)
     expect(msgs[0]).toContain(`<script src='.../dist/features/${type}.js'>`)
 
     // An update re-parses: still blank, and the chart does not repeat itself.
@@ -130,8 +139,43 @@ describe.each(TRANSFORMS)('%s without its feature', (type) => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const chart = build(type)
     expect(chart.w.config.series.some((s) => s.data.length > 0)).toBe(true)
+    expect(chart.el.querySelectorAll(MARKS[type]).length).toBeGreaterThan(0)
     expect(warnings(warn).some((m) => m.includes('requires the'))).toBe(false)
   })
+})
+
+describe('an alias type on a page without its renderer either', () => {
+  // The lean core: neither the feature nor the renderer it draws on. Here the
+  // type's own entry is the one import that brings both.
+  test.each([
+    ['waterfall', 'rangeBar', 'bar.js'],
+    ['streamgraph', 'rangeArea', 'line.js'],
+  ])(
+    '%s names its own entry, then the renderer file and the feature file',
+    async (type, base, file) => {
+      dropFeatures()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { getChartClass, register, unregister } =
+        await import('../../src/modules/ChartFactory.js')
+      const Renderer = getChartClass(base)
+      unregister(base)
+      try {
+        build(type)
+      } catch {
+        // the renderer lookup throws too; the warning is what is under test
+      } finally {
+        register({ [base]: Renderer })
+      }
+      const msg = warnings(warn).find((m) =>
+        m.includes(`requires the ${type} feature`),
+      )
+      expect(msg).toContain(`import 'apexcharts/${type}'`)
+      expect(msg).toContain(
+        `<script src='.../dist/${file}'> and <script src='.../dist/features/${type}.js'>`,
+      )
+    },
+  )
 })
 
 describe('raincloud without its feature', () => {

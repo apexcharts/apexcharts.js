@@ -18,7 +18,10 @@ import { fileURLToPath } from 'url'
 import ApexCharts from '../../src/entries/full.js'
 import { hasChartClass } from '../../src/modules/ChartFactory'
 import { getSeriesTransform } from '../../src/modules/SeriesTransformRegistry'
-import { BUILTIN_TYPES } from '../../src/modules/settings/TypeAliases'
+import {
+  BUILTIN_TYPES,
+  TYPE_FEATURES,
+} from '../../src/modules/settings/TypeAliases'
 import { catalog as unitShapes } from '../../src/unit-shapes/catalog.js'
 import { catalog as pictograms } from '../../src/pictograms/catalog.js'
 
@@ -37,12 +40,8 @@ describe('the full bundle carries everything', () => {
   })
 
   it('supplies every alias type the transform its feature provides', () => {
-    // Data.js's table of alias types that draw nothing without their feature.
-    const table = /const TYPE_FEATURES = \{([^}]*)\}/.exec(
-      src('src/modules/Data.js'),
-    )
-    expect(table, 'TYPE_FEATURES not found in Data.js').not.toBeNull()
-    const types = [...table[1].matchAll(/(\w+):/g)].map((m) => m[1])
+    // The table of alias types that draw nothing without their feature.
+    const types = Object.keys(TYPE_FEATURES)
     expect(types.length).toBeGreaterThan(0)
     for (const type of types) {
       expect(getSeriesTransform(type), `${type} has no transform`).toBeTruthy()

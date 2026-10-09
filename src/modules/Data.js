@@ -4,36 +4,18 @@ import DateTime from './../utils/DateTime'
 import Series from './Series'
 import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
-import { isCustom, getChartClass } from './ChartFactory'
+import { isCustom, getChartClass, hasChartClass } from './ChartFactory'
 import { getSeriesTransform } from './SeriesTransformRegistry'
 import warnMissingFeature from '../utils/MissingFeature.js'
 import {
   isNestedTreemap,
   resolveTreemapTree,
 } from '../charts/common/treemap/Nested'
-
-/**
- * Alias chart types that cannot draw anything true until the named feature
- * supplies their series transform (type -> feature module under
- * `apexcharts/features/<name>`).
- *
- * Two kinds, one failure. A histogram or raincloud series carries raw
- * observations, so drawn as given it is one mark per observation. A waterfall,
- * dumbbell or streamgraph series carries values its base renderer (rangeBar,
- * rangeArea) would draw WRONG rather than not at all: waterfall heights read as
- * zeros with no connectors, a dumbbell draws twice the rows, a streamgraph's
- * bands come out zero-thick. Each would pass for a chart. Blank plus one warning
- * is the honest answer, and it is safe on both base renderers, updates included.
- *
- * Module-private, like everything in this shared module (see subtreeTotal).
- */
-const TYPE_FEATURES = {
-  histogram: 'stats',
-  raincloud: 'raincloud',
-  waterfall: 'waterfall',
-  dumbbell: 'dumbbell',
-  streamgraph: 'streamgraph',
-}
+import {
+  RENDERER_ENTRIES,
+  TYPE_ALIASES,
+  TYPE_FEATURES,
+} from './settings/TypeAliases'
 
 /**
  * Total of the values under a datum, for a partition branch that omits its own.
@@ -1798,16 +1780,26 @@ export default class Data {
     // parseData runs on every render, and a resize should not spam the console.
     if (!this._warnedMissingTransform) {
       this._warnedMissingTransform = true
-      warnMissingFeature(`chart.type '${name}'`, feature, {
-        // The type's own entry, which is the import its docs give.
-        module: name,
-        // A raincloud also draws through the violin renderer, so a script-tag
-        // page adds that file too, first.
-        scripts:
-          name === 'raincloud'
-            ? ['violin.js', `features/${feature}.js`]
-            : undefined,
-      })
+      // With the renderer on the page (the default bundle has bar and
+      // rangeArea), the feature is all that is missing: the type's own entry
+      // would bring the feature AND a second copy of the renderer, about
+      // 15-20 KB gzipped for a 1-5 KB feature. Only a page without the
+      // renderer (the lean core, or a raincloud without violin) needs the
+      // entry, and its script-tag route adds the renderer's file first.
+      const base = TYPE_ALIASES[name]
+      warnMissingFeature(
+        `chart.type '${name}'`,
+        feature,
+        hasChartClass(base)
+          ? {}
+          : {
+              module: name,
+              scripts: [
+                `${RENDERER_ENTRIES[base] || base}.js`,
+                `features/${feature}.js`,
+              ],
+            },
+      )
     }
     return ser.map((/** @type {any} */ s) => ({ ...s, data: [] }))
   }

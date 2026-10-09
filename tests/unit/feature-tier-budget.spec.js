@@ -69,7 +69,7 @@ const TIER_2 = [
   'drilldown',
   // The 7.1.0 alias types, grandfathered into Tier 1 until 8.0. Each backs a
   // first-class `chart.type` whose base renderer, without the feature, drew
-  // the untransformed series as a WRONG chart; TYPE_FEATURES in Data.js now
+  // the untransformed series as a WRONG chart; TYPE_FEATURES (TypeAliases.js) now
   // makes that a blank chart and one warning that survives minification.
   'waterfall',
   'dumbbell',
@@ -89,8 +89,8 @@ NEW CHART TYPES default to Tier 2 (policy, 2026-08-31): sub-path entry, UMD
 add-on, and a loud failure on the default bundle instead of a silent one. A
 type with a class of its own goes in RESERVED_TYPES (TypeAliases.js), and
 getChartClass names the import; an alias type whose statistics live in a
-feature goes in TYPE_FEATURES (src/modules/Data.js), which warns and renders
-blank. A single type is almost never "useful to a majority of charts"; a quiet
+feature goes in TYPE_FEATURES (TypeAliases.js), and Data.js warns and renders
+it blank. A single type is almost never "useful to a majority of charts"; a quiet
 failure mode is fixed by the warning, not by bundling the type.
 EVERY TIER-2 ITEM fails loudly, through a warning that survives the minified
 build (src/utils/MissingFeature.js, never a bare console.warn).

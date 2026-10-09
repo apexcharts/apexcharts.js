@@ -165,7 +165,7 @@ import ApexCharts from 'apexcharts/full'
 | violin | `apexcharts/violin` | `dist/violin.js` |
 | icicle | `apexcharts/icicle` | `dist/icicle.js` |
 | raincloud | `apexcharts/raincloud` | `dist/violin.js`, then `dist/features/raincloud.js` |
-| waterfall, dumbbell, streamgraph | `apexcharts/waterfall` (and so on) | `dist/features/waterfall.js` (and so on) |
+| waterfall, dumbbell, streamgraph | `apexcharts/features/waterfall` (and so on) | `dist/features/waterfall.js` (and so on) |
 | drilldown | `apexcharts/features/drilldown` | `dist/features/drilldown.js` |
 | trellis, measure, link, ink, storyboard, perspectives, history, context-menu, highlight-filter, renderer-canvas | `apexcharts/features/<name>` | `dist/features/<name>.js` |
 
@@ -186,7 +186,6 @@ import 'apexcharts/bar'
 // import 'apexcharts/sunburst'     // hierarchical rings (opt-in)
 // import 'apexcharts/violin'       // distributions, drawn on 'apexcharts/bar' (opt-in)
 // import 'apexcharts/icicle'       // hierarchical bands (opt-in)
-// import 'apexcharts/waterfall'    // also 'dumbbell', 'streamgraph': each brings its renderer (opt-in)
 
 // Optional features
 import 'apexcharts/features/legend'
@@ -209,6 +208,8 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/renderer-canvas' // canvas series renderer (opt-in)
 // import 'apexcharts/features/trellis'     // small multiples (premium, opt-in)
 // import 'apexcharts/features/highlight-filter' // whole faded, part solid in front (premium, opt-in)
+// import 'apexcharts/features/waterfall'   // also 'dumbbell': on 'apexcharts/bar' (opt-in)
+// import 'apexcharts/features/streamgraph' // on 'apexcharts/line' (opt-in)
 // import 'apexcharts/raincloud'            // raincloud: violin renderer + its statistics, on 'apexcharts/bar' (premium, opt-in)
 ```
 

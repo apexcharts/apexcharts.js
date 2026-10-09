@@ -365,7 +365,12 @@ describe('histogram chart type', () => {
       const chart = histChart({ series: [{ name: 'S', data: sample(50) }] })
       expect(document.querySelectorAll('.apexcharts-bar-area').length).toBe(0)
       expect(chart.w.config.series[0].data).toEqual([])
+      // The bar renderer is here, so the feature is the whole fix:
+      // 'apexcharts/histogram' would bring a second bar renderer with it.
       expect(warn.mock.calls.flat().join(' ')).toContain(
+        "import 'apexcharts/features/stats'",
+      )
+      expect(warn.mock.calls.flat().join(' ')).not.toContain(
         "import 'apexcharts/histogram'",
       )
     } finally {

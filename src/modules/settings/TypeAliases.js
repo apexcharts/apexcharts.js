@@ -54,6 +54,52 @@ export const TYPE_ALIASES = {
 }
 
 /**
+ * Alias chart types that cannot draw anything true until the named feature
+ * supplies their series transform (type -> feature module under
+ * `apexcharts/features/<name>`).
+ *
+ * Two kinds, one failure. A histogram or raincloud series carries raw
+ * observations, so drawn as given it is one mark per observation. A waterfall,
+ * dumbbell or streamgraph series carries values its base renderer (rangeBar,
+ * rangeArea) would draw WRONG rather than not at all: waterfall heights read as
+ * zeros with no connectors, a dumbbell draws twice the rows, a streamgraph's
+ * bands come out zero-thick. Each would pass for a chart. Blank plus one warning
+ * (Data.applySeriesTransform) is the honest answer, and it is safe on both base
+ * renderers, updates included.
+ *
+ * @type {Record<string, string>}
+ */
+export const TYPE_FEATURES = {
+  histogram: 'stats',
+  raincloud: 'raincloud',
+  waterfall: 'waterfall',
+  dumbbell: 'dumbbell',
+  streamgraph: 'streamgraph',
+}
+
+/**
+ * The entry that registers a renderer, where it is not the renderer's own
+ * name: each per-type entry registers a family. The same name is the bundler
+ * import (`apexcharts/<entry>`) and the script-tag file (`dist/<entry>.js`), so
+ * a missing-type message built from it points at something that exists. There
+ * is no `apexcharts/barStacked` and no `dist/rangeBar.js`.
+ *
+ * @type {Record<string, string>}
+ */
+export const RENDERER_ENTRIES = {
+  area: 'line',
+  scatter: 'line',
+  bubble: 'line',
+  rangeArea: 'line',
+  column: 'bar',
+  barStacked: 'bar',
+  rangeBar: 'bar',
+  boxPlot: 'candlestick',
+  donut: 'pie',
+  polarArea: 'pie',
+}
+
+/**
  * The built-in types, partitioned the three ways the library actually asks
  * about them. They are split here rather than listed three times because the
  * copies used to disagree, and that disagreement is what #5325 was: `banana`

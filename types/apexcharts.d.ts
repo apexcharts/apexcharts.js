@@ -1714,11 +1714,11 @@ type ApexChart = {
   | 'polarArea'
   | 'rangeBar'
   | 'rangeArea'
-  /** Not in the default bundle since 8.0: `import 'apexcharts/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
+  /** Not in the default bundle since 8.0: `import 'apexcharts/features/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
   | 'waterfall'
-  /** Not in the default bundle since 8.0: `import 'apexcharts/dumbbell'`, or load `dist/features/dumbbell.js` after the ApexCharts script, or use the full bundle. */
+  /** Not in the default bundle since 8.0: `import 'apexcharts/features/dumbbell'`, or load `dist/features/dumbbell.js` after the ApexCharts script, or use the full bundle. */
   | 'dumbbell'
-  /** Not in the default bundle since 8.0: `import 'apexcharts/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
+  /** Not in the default bundle since 8.0: `import 'apexcharts/features/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
   | 'streamgraph'
   | 'raincloud'
   | 'treemap'
@@ -3368,7 +3368,7 @@ type ApexPlotOptions = {
       gradientLegend?: ApexGradientLegend
     }
   }
-  /** `chart.type: 'waterfall'`. Not in the default bundle since 8.0: `import 'apexcharts/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
+  /** `chart.type: 'waterfall'`. Not in the default bundle since 8.0: `import 'apexcharts/features/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
   waterfall?: {
     /**
      * Semantic fills for the three kinds of bar. A datum's own `fillColor`
@@ -3403,7 +3403,7 @@ type ApexPlotOptions = {
       strokeDashArray?: number
     }
   }
-  /** `chart.type: 'streamgraph'`. Not in the default bundle since 8.0: `import 'apexcharts/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
+  /** `chart.type: 'streamgraph'`. Not in the default bundle since 8.0: `import 'apexcharts/features/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
   streamgraph?: {
     /**
      * Where the baseline goes.

@@ -15,13 +15,15 @@
  *   import 'apexcharts/rangeArea'
  *   import 'apexcharts/features/streamgraph'
  *
- * or simply `import ApexCharts from 'apexcharts/streamgraph'`, which pulls in
- * the line/area renderer and this feature together.
+ * or, on the lean core, `import ApexCharts from 'apexcharts/streamgraph'`,
+ * which pulls in the line/area renderer and this feature together.
  *
- * Not in the default bundle since 8.0: add `import 'apexcharts/streamgraph'`
- * next to `import ApexCharts from 'apexcharts'`. Script tag: load
- * `dist/features/streamgraph.js` after the ApexCharts script, or use the full
- * bundle. Without it, a streamgraph warns once and draws nothing.
+ * Not in the default bundle since 8.0: add
+ * `import 'apexcharts/features/streamgraph'` next to `import ApexCharts from
+ * 'apexcharts'`, which already has the line/area renderer
+ * (`apexcharts/streamgraph` would bundle a second copy of it). Script tag:
+ * load `dist/features/streamgraph.js` after the ApexCharts script, or use the
+ * full bundle. Without it, a streamgraph warns once and draws nothing.
  *
  * @module features/streamgraph
  */
