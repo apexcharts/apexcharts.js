@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import ApexCharts from '../../src/entries/standard.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/violin.js'
 import CanvasRenderer from '../../src/renderers/canvas/CanvasRenderer'
 import CanvasGraphics from '../../src/renderers/canvas/CanvasGraphics'
 import CanvasCompositor from '../../src/renderers/canvas/CanvasCompositor'

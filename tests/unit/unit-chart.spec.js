@@ -10,6 +10,8 @@
 
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/unit.js'
 // perspectives is Tier 2: the shared helper mounts via entries/standard.js, which
 // no longer registers it, so the suite imports the feature itself.
 import '../../src/features/perspectives.js'

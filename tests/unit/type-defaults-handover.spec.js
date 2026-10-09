@@ -17,6 +17,8 @@
 
 import { describe, it, expect } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/violin.js'
 
 const TIERS = [
   { x: 'Express', points: [1.2, 1.4, 1.5, 1.6, 1.8, 1.3, 1.7, 1.5] },

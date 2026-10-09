@@ -10,6 +10,10 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/unit.js'
+import '../../src/entries/sunburst.js'
+import '../../src/entries/violin.js'
 // Trellis is Tier 2: `entries/standard.js` no longer registers it, so the feature
 // has to be imported the same way an application imports it.
 import '../../src/features/trellis.js'

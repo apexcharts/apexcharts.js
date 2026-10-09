@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/features/drilldown.js'
 import Drilldown from '../../src/modules/drilldown/Drilldown.js'
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,8 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/unit.js'
+import '../../src/entries/violin.js'
 import ApexCharts from '../../src/entries/standard.js'
 // measure, link, ink, storyboard, context-menu, history and perspectives are Tier 2 and no longer in `entries/standard.js`. This suite
 // is about license gating, not bundling, so it imports each feature the way

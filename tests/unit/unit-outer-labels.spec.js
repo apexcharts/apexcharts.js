@@ -12,6 +12,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/unit.js'
 import ApexCharts from '../../src/entries/standard.js'
 import { spaceOutLabels } from '../../src/charts/common/OuterLabels.js'
 import { LicenseManager } from 'apex-commons'

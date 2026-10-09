@@ -1,4 +1,6 @@
 import { createChartWithOptions } from './utils/utils.js'
+// Not in the default bundle since 8.0, so imported the way an app would.
+import '../../src/entries/violin.js'
 import { fiveNumberSummary, kernelDensity } from '../../src/charts/common/Stats'
 import {
   registerSeriesTransform,
