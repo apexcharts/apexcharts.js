@@ -16,6 +16,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { RESERVED_TYPES } from '../../src/modules/settings/TypeAliases.js'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -42,8 +43,8 @@ const TIER_1 = [
   // The three 7.1.0 chart types below are GRANDFATHERED (shipped in the
   // default bundle, clawing them back is a breaking change). They are not
   // precedent: since 2026-08-31 a NEW chart type defaults to Tier 2, the
-  // raincloud model, with an entry in Data.js's RAW_SAMPLE_FEATURES map so
-  // the default bundle warns loudly instead of failing silently. See the
+  // raincloud model, with an entry in Data.js's TYPE_FEATURES map so the
+  // default bundle warns loudly instead of failing silently. See the
   // policy in plans/08-distribution-and-plugin-tiers.md.
   //
   // Same reason as `stats`: it backs a first-class `chart.type`, not a garnish.
@@ -93,7 +94,7 @@ Everything else ships as a sub-path entry (bundlers) and a UMD add-on (script
 tag) and is NOT imported by all.js. If you are adding a feature so it "just
 works", document its entry point instead.
 NEW CHART TYPES default to Tier 2 (policy, 2026-08-31): sub-path entry, UMD
-add-on, and an entry in RAW_SAMPLE_FEATURES (src/modules/Data.js) so the
+add-on, and an entry in TYPE_FEATURES (src/modules/Data.js) so the
 default bundle warns and renders blank instead of failing silently. A single
 type is almost never "useful to a majority of charts"; a quiet failure mode
 is fixed by the warning map, not by bundling the type.`
@@ -154,4 +155,77 @@ describe('Tier-1 default-bundle budget', () => {
       ).toBe(true)
     }
   })
+})
+
+/**
+ * The chart types the default entry registers. A type with a class of its own
+ * is either here or opt-in, and an opt-in type is reachable from both channels
+ * and reserved, so its error names the import instead of leaving a blank
+ * chart. Alias types (waterfall, histogram, ...) are not listed: they draw
+ * through one of these, and their own statistics are features above.
+ */
+const STANDARD_TYPES = [
+  'line',
+  'area',
+  'scatter',
+  'bubble',
+  'rangeArea',
+  'bar',
+  'column',
+  'barStacked',
+  'rangeBar',
+  'candlestick',
+  'boxPlot',
+  'violin',
+  'pie',
+  'donut',
+  'polarArea',
+  'radialBar',
+  'radar',
+  'heatmap',
+  'treemap',
+  'sunburst',
+]
+
+/** Class-backed types the default entry does not register (8.0 for unit). */
+const OPT_IN_TYPES = ['icicle', 'unit']
+
+describe('chart types in the default bundle', () => {
+  const source = readFileSync(
+    resolve(rootDir, 'src/entries/standard.js'),
+    'utf8',
+  )
+  const use = /ApexCharts\.use\(\{([\s\S]*?)\}\)/.exec(source)
+  const registered = use
+    ? [...use[1].matchAll(/^\s*(\w+):/gm)].map((m) => m[1])
+    : []
+
+  it('registers exactly the standard types', () => {
+    expect(
+      [...registered].sort(),
+      `src/entries/standard.js registers a different set of chart types than STANDARD_TYPES. A type in the default bundle is paid for by every page that loads it; a new one defaults to opt-in.\n${RULE}`,
+    ).toEqual([...STANDARD_TYPES].sort())
+  })
+
+  it.each(OPT_IN_TYPES)(
+    'opt-in type %s is reachable from both channels, and reserved',
+    (type) => {
+      const pkg = JSON.parse(
+        readFileSync(resolve(rootDir, 'package.json'), 'utf8'),
+      )
+      expect(pkg.exports[`./${type}`], `no './${type}' export`).toBeTruthy()
+
+      const config = readFileSync(resolve(rootDir, 'vite.config.mjs'), 'utf8')
+      const umdBlock = config.slice(config.indexOf('export const UMD_ENTRIES'))
+      const item = new RegExp(`'${type}': \\{([^}]*)\\}`).exec(umdBlock)
+      expect(item, `no UMD_ENTRIES item for '${type}'`).not.toBeNull()
+      expect(item[1]).toContain(`out: '${type}.js'`)
+      expect(item[1]).toContain('shared: true')
+
+      // Without the reservation, a missing opt-in type's error would advise
+      // loading the default bundle, which does not carry it either.
+      expect(RESERVED_TYPES).toContain(type)
+      expect(registered).not.toContain(type)
+    },
+  )
 })

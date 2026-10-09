@@ -217,6 +217,9 @@ declare class ApexCharts {
    * chart.updateOptions({ chart: { type: 'unit' }, series: chart.rowSeries() })
    * ```
    *
+   * The unit type is not in the default bundle since 8.0, so the page needs
+   * `import 'apexcharts/unit'` (or `dist/unit.js`, or the full bundle) first.
+   *
    * With the `morph` feature loaded, each dot then leaves from the part of the
    * mark that was standing for it, and collapsing back is the inverse.
    *
@@ -1710,7 +1713,9 @@ type ApexChart = {
   | 'streamgraph'
   | 'raincloud'
   | 'treemap'
+  /** Not in the default bundle since 8.0: `import 'apexcharts/unit'`, or load `dist/unit.js` after the ApexCharts script, or use the full bundle. */
   | 'unit'
+  /** An alias of `'unit'`, so also not in the default bundle since 8.0: `import 'apexcharts/unit'`, or load `dist/unit.js` after the ApexCharts script, or use the full bundle. */
   | 'waffle'
   | 'sunburst'
   | 'icicle'
@@ -3645,6 +3650,7 @@ type ApexPlotOptions = {
       },
     }
   }
+  /** The unit chart. Not in the default bundle since 8.0: `import 'apexcharts/unit'`, or load `dist/unit.js` after the ApexCharts script, or use the full bundle. */
   unit?: {
     /**
      * 'grouped' (default): each category is its own cluster, laid out in a row.

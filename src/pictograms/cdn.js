@@ -3,6 +3,7 @@
  * The script-tag build of the pictogram collection (`dist/pictograms.js`).
  *
  *     <script src="apexcharts.js"></script>
+ *     <script src="unit.js"></script>
  *     <script src="pictograms.js"></script>
  *     ... plotOptions: { unit: { shape: 'pictogram', pictogram: { mark: 'person' } } }
  *

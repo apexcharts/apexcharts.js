@@ -3,6 +3,7 @@
  * The script-tag build of the shape collection (`dist/unit-shapes.js`).
  *
  *     <script src="apexcharts.js"></script>
+ *     <script src="unit.js"></script>
  *     <script src="unit-shapes.js"></script>
  *     ... plotOptions: { unit: { layout: 'custom', positions: 'heart' } }
  *
