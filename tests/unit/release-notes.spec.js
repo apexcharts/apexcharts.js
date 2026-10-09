@@ -144,6 +144,17 @@ describe('unwrapping a commit body', () => {
     expect(unwrap(md)).toBe(md)
   })
 
+  // The tooltip fix in 7.9.0 wrote "Also fixed:" straight above its items, and
+  // the whole list was joined into that one line.
+  it('keeps a list introduced by a line of prose', () => {
+    const md = 'Also fixed\nalong the way:\n- first item\n  wrapped\n- second item'
+    expect(unwrap(md)).toBe('Also fixed along the way:\n- first item\n  wrapped\n- second item')
+  })
+
+  it('keeps a numbered list introduced by a line of prose', () => {
+    expect(unwrap('Fix:\n1. one\n2. two')).toBe('Fix:\n1. one\n2. two')
+  })
+
   it('leaves a table, a quote and an indented block alone', () => {
     for (const md of ['| a | b |\n|---|---|', '> quoted line\n> and more', '    indented code\n    second line']) {
       expect(unwrap(md)).toBe(md)

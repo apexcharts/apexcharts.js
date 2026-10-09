@@ -178,6 +178,24 @@ export function tidy(md) {
 const STRUCTURAL = /^\s*(?:[-*+]\s|\d+[.)]\s|[|>#]|\s{4})/
 
 /**
+ * A list item starting a line of its own. A body often introduces a list with
+ * a line of prose and no blank line ("Also fixed:" and then the items), and
+ * the block then starts as prose, so STRUCTURAL alone joins the whole list
+ * into that sentence. 7.9.0's tooltip notes came out that way.
+ */
+const LIST_ITEM = /^(?:[-*+]\s|\d+[.)]\s)/
+
+/** Join a prose block into one line, keeping any list that follows its lead-in. */
+function unwrapBlock(block) {
+  if (STRUCTURAL.test(block)) return block
+  const lines = block.split('\n')
+  const at = lines.findIndex((line, i) => i > 0 && LIST_ITEM.test(line))
+  const prose = (at > 0 ? lines.slice(0, at) : lines).join('\n')
+  const joined = prose.replace(/\s*\n\s*/g, ' ').trim()
+  return at > 0 ? `${joined}\n${lines.slice(at).join('\n')}` : joined
+}
+
+/**
  * Undo the hard wrapping in a commit body.
  *
  * Commit messages are wrapped at about 72 characters, because that is what a
@@ -198,7 +216,7 @@ export function unwrap(md) {
       if (i % 2) return part // inside a fence
       return part
         .split(/\n\s*\n/)
-        .map((block) => (STRUCTURAL.test(block) ? block : block.replace(/\s*\n\s*/g, ' ').trim()))
+        .map(unwrapBlock)
         .join('\n\n')
     })
     .join('')
