@@ -48,6 +48,10 @@ export const sharedModules = {
       { default: '__apex_charts_Scatter' },
     [resolve(__dirname, 'src/modules/Animations.js')]:
       { default: '__apex_Animations', named: { computeStagger: '__apex_Animations_computeStagger', applyAnimationPolicy: '__apex_Animations_applyAnimationPolicy', prefersReducedMotion: '__apex_Animations_prefersReducedMotion', applyProgressiveReveal: '__apex_Animations_applyProgressiveReveal' } },
+    // The easing registry is state: an add-on with its own copy would not see
+    // easings registered with ApexCharts.registerEasing.
+    [resolve(__dirname, 'src/modules/animations/Easing.js')]:
+      { named: { easeInOutSine: '__apex_Easing_easeInOutSine', DEFAULT_EASING_NAME: '__apex_Easing_DEFAULT_EASING_NAME', cubicBezier: '__apex_Easing_cubicBezier', registerEasing: '__apex_Easing_registerEasing', resolveEasing: '__apex_Easing_resolveEasing' } },
     [resolve(__dirname, 'src/modules/Base.js')]:
       { default: '__apex_Base' },
     [resolve(__dirname, 'src/modules/ChartFactory.js')]:

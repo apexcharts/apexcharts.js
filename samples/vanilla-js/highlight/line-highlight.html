@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Line Highlight Filter</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 0 0 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .actions span {
+        font-size: 13px;
+        color: #5b6b78;
+        margin-right: 4px;
+      }
+      .actions button {
+        color: #2c3e50;
+        background: #fff;
+        border: 1px solid #cfd8e3;
+        padding: 6px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        color: #fff;
+        background: #0f766e;
+        border-color: #0f766e;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/features/highlight-filter.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Orders per month by store (the wholes), and the orders that came from one
+    // kind of customer (the parts). Picking a customer keeps both stores on the
+    // chart: each line is drawn dashed at its full value, with that customer's
+    // orders solid in the same colour, on the same axis.
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']
+    var STORES = ['Online store', 'Retail']
+    var ORDERS = [
+      [420, 460, 510, 480, 560, 610, 590, 650],
+      [300, 320, 310, 340, 360, 330, 380, 400],
+    ]
+    var CUSTOMERS = {
+      returning: [
+        [250, 270, 300, 290, 340, 370, 360, 400],
+        [210, 220, 215, 240, 250, 230, 260, 280],
+      ],
+      first: [
+        [170, 190, 210, 190, 220, 240, 230, 250],
+        [90, 100, 95, 100, 110, 100, 120, 120],
+      ],
+    }
+
+    function seriesFor(customer) {
+      return STORES.map(function (name, i) {
+        var s = { name: name, data: ORDERS[i] }
+        if (customer) s.highlightData = CUSTOMERS[customer][i]
+        return s
+      })
+    }
+
+    // One call per pick: the parts go in, the chart animates from what is on
+    // screen. Clearing is the same call without them.
+    function pickCustomer(chart, customer) {
+      document.querySelectorAll('[data-customer]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-customer') === customer)
+      })
+      return chart.updateSeries(seriesFor(customer))
+    }
+
+    function wireCustomers(chart) {
+      document.querySelectorAll('[data-customer]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          pickCustomer(chart, b.getAttribute('data-customer'))
+        })
+      })
+    }
+  </script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>Highlight a part of every line</h1>
+        <p>
+          Pick a kind of customer. Each store's orders stay on the chart as a dashed
+          line at their full value, and the orders that customer placed are drawn
+          solid in the same colour. Labels and tooltips state the part; the markers
+          stay on the full line.
+        </p>
+        <div class="actions">
+          <span>Customer</span>
+          <button data-customer="returning" class="active">Returning</button>
+          <button data-customer="first">First order</button>
+          <button data-customer="">All (clear)</button>
+        </div>
+        <div class="chart-wrap"><div id="chart"></div></div>
+      </div>
+
+    <script>
+      var options = {
+        series: seriesFor('returning'),
+        chart: {
+          id: 'orders',
+          type: 'line',
+          height: 380,
+          toolbar: { show: false },
+        },
+        colors: ['#0f766e', '#ea580c'],
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 4, strokeWidth: 0, hover: { size: 6 } },
+        dataLabels: {
+          enabled: true,
+          style: { fontSize: '11px' },
+          background: { enabled: true, borderWidth: 0, opacity: 0.85 },
+        },
+        xaxis: { categories: MONTHS },
+        yaxis: { min: 0, title: { text: 'Orders' } },
+        highlightFilter: { line: { dashArray: 5 } },
+        legend: { position: 'bottom' },
+        tooltip: { shared: true, intersect: false },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      wireCustomers(chart)
+    </script>
+
+    
+  </body>
+</html>

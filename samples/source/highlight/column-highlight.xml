@@ -1,0 +1,196 @@
+<title>Column Highlight Filter</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.actions {
+  margin: 0 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.actions span {
+  font-size: 13px;
+  color: #5b6b78;
+  margin-right: 4px;
+}
+.actions button {
+  color: #2c3e50;
+  background: #fff;
+  border: 1px solid #cfd8e3;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.actions button.active {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/features/highlight-filter.js"></script>
+<script>
+// Shared by the vanilla-js, React and Vue builds.
+//
+// Units sold per year by region (the wholes), and what each sales channel
+// contributed to them (the parts). Picking a channel keeps every year and
+// region on the chart: each column is drawn faded at its full value, with the
+// channel's share solid in front.
+var YEARS = ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022']
+var REGIONS = ['Americas', 'Europe', 'Asia Pacific']
+var UNITS = [
+  [34, 43, 66, 69, 58, 40, 78, 80],
+  [21, 26, 29, 32, 47, 46, 50, 96],
+  [19, 24, 28, 26, 38, 31, 52, 38]
+]
+var CHANNELS = {
+  online: [
+    [26, 29, 50, 48, 37, 26, 55, 40],
+    [14, 17, 21, 20, 23, 34, 38, 70],
+    [12, 18, 22, 20, 26, 21, 38, 19]
+  ],
+  store: [
+    [8, 14, 16, 21, 21, 14, 23, 40],
+    [7, 9, 8, 12, 24, 12, 12, 26],
+    [7, 6, 6, 6, 12, 10, 14, 19]
+  ]
+}
+
+function seriesFor(channel) {
+  return REGIONS.map(function (name, i) {
+    var s = { name: name, data: UNITS[i] }
+    if (channel) s.highlightData = CHANNELS[channel][i]
+    return s
+  })
+}
+
+// One call per pick: the parts go in, the chart animates from what is on
+// screen. Clearing is the same call without them.
+function pickChannel(chart, channel) {
+  document.querySelectorAll('[data-channel]').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-channel') === channel)
+  })
+  return chart.updateSeries(seriesFor(channel))
+}
+
+function wireChannels(chart) {
+  document.querySelectorAll('[data-channel]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      pickChannel(chart, b.getAttribute('data-channel'))
+    })
+  })
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>Highlight a part of every column</h1>
+  <p>
+    Pick a sales channel. Every column stays on the chart at its full value,
+    faded, and the part that channel sold is drawn solid in front of it from
+    the same baseline. Labels and tooltips state the part.
+  </p>
+  <div class="actions">
+    <span>Channel</span>
+    <button data-channel="online" class="active">Online</button>
+    <button data-channel="store">In store</button>
+    <button data-channel="">All (clear)</button>
+  </div>
+  <div class="chart-wrap">{{ charts[0] }}</div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'units',
+  type: 'bar',
+  height: 380,
+  toolbar: { show: false },
+},
+colors: ['#16a34a', '#f59e0b', '#2563eb'],
+plotOptions: {
+  bar: { columnWidth: '78%' },
+},
+dataLabels: { enabled: false },
+stroke: { show: true, width: 1, colors: ['transparent'] },
+xaxis: { categories: YEARS },
+yaxis: { title: { text: 'Units (thousands)' } },
+highlightFilter: { fadeOpacity: 0.2 },
+legend: { position: 'bottom' },
+tooltip: { shared: true, intersect: false },
+</options>
+
+<series>
+seriesFor('online')
+</series>
+</chart>
+
+<vanilla-js-script>
+wireChannels(chart)
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance
+  // by its chart.id. (seriesFor / pickChannel live in the shared head script.)
+  const timer = window.setInterval(() => {
+    const chart = ApexCharts.getChartByID('units')
+    if (!chart) return
+    window.clearInterval(timer)
+    wireChannels(chart)
+  }, 50)
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+channelTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. (seriesFor / pickChannel live in the shared head script.)
+  var me = this
+  me.channelTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('units')
+    if (!chart) return
+    window.clearInterval(me.channelTimer)
+    wireChannels(chart)
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.channelTimer)
+},
+</vue-script>

@@ -159,6 +159,7 @@ export default class InitCtxVariables {
     this.ctx.data = new Data(this.w, {
       resetGlobals: () => this.ctx.core.resetGlobals(),
       isMultipleY: () => this.ctx.core.isMultipleY(),
+      highlight: () => this.ctx.highlightFilter,
     })
     this.ctx.grid = new Grid(this.w, this.ctx)
     this.ctx.graphics = new Graphics(this.w, this.ctx)
@@ -337,6 +338,20 @@ export default class InitCtxVariables {
         if (!this._zoomPanSelection && ZoomPanCtor)
           this._zoomPanSelection = new ZoomPanCtor(w, this)
         return this._zoomPanSelection ?? null
+      },
+      configurable: true,
+    })
+
+    // Highlight filter: resolved on every read until it exists, so a chart
+    // built before `import 'apexcharts/features/highlight-filter'` ran still
+    // picks it up on its next update.
+    Object.defineProperty(ctx, 'highlightFilter', {
+      get() {
+        if (!this._highlightFilter) {
+          const C = reg.get('highlightFilter')
+          if (C) this._highlightFilter = new C(w, this)
+        }
+        return this._highlightFilter ?? null
       },
       configurable: true,
     })

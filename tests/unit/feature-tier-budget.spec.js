@@ -75,6 +75,9 @@ const TIER_2 = [
   'context-menu',
   'history',
   'perspectives',
+  // Premium and dashboard-scoped: draws a part of each value over its faded
+  // whole. Without it, parts are ignored with a one-time warning.
+  'highlight-filter',
   // The first opt-in chart TYPE (premium, like trellis): chart.type
   // 'raincloud' warns and renders blank on the default bundle by design.
   'raincloud',

@@ -392,9 +392,10 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
 
   // A slice pulled out (expandOnClick, a selected point) is parked a fixed
   // px off the centre: scaled with the circle, it would sit nearer or further
-  // out on the first frame.
+  // out on the first frame. So is every path that moves with it (its hover
+  // band, a highlight part); its labels are placed by the text writers above.
   // Selecting or deselecting it during the move (offsetSlice) takes it back.
-  node.querySelectorAll('.apexcharts-pie-area[transform]').forEach((el) => {
+  node.querySelectorAll('.apexcharts-slices path[transform]').forEach((el) => {
     const own = el.getAttribute('transform') || ''
     const m = /^translate\(\s*([-+.\deE]+)[\s,]+([-+.\deE]+)\s*\)$/.exec(own.trim())
     if (!m) return

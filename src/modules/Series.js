@@ -866,6 +866,8 @@ export default class Series {
     captureDataLabels(w)
     // The labels of a series the legend is hiding, to carry out with it.
     captureExitLabels(w)
+    // Highlight filter parts, keyed by datum like the bars they sit on.
+    w.highlightData?.capture()
 
     // Non-axis charts (pie/donut/radialBar) overwrite previousPaths with the
     // raw series values at the end anyway — skip the DOM captures entirely.
@@ -902,7 +904,13 @@ export default class Series {
 
       for (let j = 0; j < paths.length; j++) {
         if (paths[j].hasAttribute('pathTo')) {
-          const d = paths[j].getAttribute('pathTo')
+          // A line or area caught mid-morph moves on from where it is drawn,
+          // not from where that morph was taking it. A legend-hidden one has
+          // had its `d` cleared, and keeps its target.
+          const d =
+            ((type === 'line' || type === 'area') &&
+              paths[j].getAttribute('d')) ||
+            paths[j].getAttribute('pathTo')
           // Datum key + fill stamped by the bar renderer: the key lets the
           // next render match survivors by identity (not position) and detect
           // exited datums; the fill paints their exit ghosts.

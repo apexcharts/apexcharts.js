@@ -114,8 +114,12 @@ class DataLabels {
     }
   }
 
-  /** @param {{type: any, pos: any, i: any, j: any, isRangeStart: any, strokeWidth?: any}} opts */
-  drawDataLabel({ type, pos, i, j, isRangeStart, strokeWidth = 2 }) {
+  /**
+   * `row` stands in for the series' values (the highlight filter labels its
+   * parts through here).
+   * @param {{type: any, pos: any, i: any, j: any, isRangeStart?: any, strokeWidth?: any, row?: any[]}} opts
+   */
+  drawDataLabel({ type, pos, i, j, isRangeStart, strokeWidth = 2, row }) {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
     const w = this.w
@@ -156,7 +160,7 @@ class DataLabels {
         strokeWidth
 
       if (!isNaN(x)) {
-        let val = w.seriesData.series[i][dataPointIndex]
+        let val = (row || w.seriesData.series[i])[dataPointIndex]
 
         if (type === 'rangeArea') {
           if (isRangeStart) {

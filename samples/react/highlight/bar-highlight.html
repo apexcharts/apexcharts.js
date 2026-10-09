@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Bar Highlight Filter with Averages</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 0 0 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .actions span {
+        font-size: 13px;
+        color: #5b6b78;
+        margin-right: 4px;
+      }
+      .actions button {
+        color: #2c3e50;
+        background: #fff;
+        border: 1px solid #cfd8e3;
+        padding: 6px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        color: #fff;
+        background: #0d9488;
+        border-color: #0d9488;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/features/highlight-filter.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+
+    function money(v) {
+      return (v < 0 ? '-$' : '$') + Math.abs(Math.round(v))
+    }
+    //
+    // Average profit per order by store, across all products (the wholes), and the
+    // same average over one product line (the parts). An average over a subset
+    // can be larger than the overall one, or fall on the other side of zero, so
+    // the parts here do both.
+    var STORES = ['Seattle', 'Denver', 'Austin', 'Chicago', 'Boston', 'Miami']
+    var ALL = [42, -18, 31, 24, 12, -9]
+    var LINES = {
+      premium: [
+        { x: 'Seattle', y: 42, highlight: 61 },
+        { x: 'Denver', y: -18, highlight: -4 },
+        { x: 'Austin', y: 31, highlight: 48 },
+        { x: 'Chicago', y: 24, highlight: 19 },
+        { x: 'Boston', y: 12, highlight: 27 },
+        { x: 'Miami', y: -9, highlight: 6 },
+      ],
+      budget: [
+        { x: 'Seattle', y: 42, highlight: 18 },
+        { x: 'Denver', y: -18, highlight: -26 },
+        { x: 'Austin', y: 31, highlight: 12 },
+        { x: 'Chicago', y: 24, highlight: 28 },
+        { x: 'Boston', y: 12, highlight: -3 },
+        { x: 'Miami', y: -9, highlight: -21 },
+      ],
+    }
+
+    function seriesFor(line) {
+      return [
+        {
+          name: 'Avg profit per order',
+          data: line
+            ? LINES[line]
+            : STORES.map(function (s, i) {
+                return { x: s, y: ALL[i] }
+              }),
+        },
+      ]
+    }
+
+    function pickLine(chart, line) {
+      document.querySelectorAll('[data-line]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-line') === line)
+      })
+      return chart.updateSeries(seriesFor(line))
+    }
+
+    function wireLines(chart) {
+      document.querySelectorAll('[data-line]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          pickLine(chart, b.getAttribute('data-line'))
+        })
+      })
+    }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Averages can outgrow the whole&lt;/h1&gt;
+  &lt;p&gt;
+    Each bar is a store&#39;s average profit per order across every product. Pick
+    a product line to draw that line&#39;s own average solid in front. Where it
+    beats the overall average, the axis stretches to fit it and a dashed edge
+    marks where the overall average ends; where it loses money, it is drawn
+    on its own side of zero.
+  &lt;/p&gt;
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span&gt;Product line&lt;/span&gt;
+    &lt;button data-line=&quot;premium&quot; class=&quot;active&quot;&gt;Premium&lt;/button&gt;
+    &lt;button data-line=&quot;budget&quot;&gt;Budget&lt;/button&gt;
+    &lt;button data-line=&quot;&quot;&gt;All (clear)&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;chart-wrap&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={360} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: seriesFor('premium'),
+          options: {
+            chart: {
+              id: 'profit',
+              type: 'bar',
+              height: 360,
+              toolbar: { show: false },
+            },
+            colors: ['#0d9488'],
+            plotOptions: {
+              bar: { horizontal: true, barHeight: '62%', borderRadius: 4 },
+            },
+            dataLabels: {
+              enabled: true,
+              formatter: money,
+            },
+            xaxis: {
+              labels: { formatter: money },
+            },
+            grid: {
+              xaxis: { lines: { show: true } },
+              yaxis: { lines: { show: false } },
+            },
+            tooltip: {
+              y: { formatter: money },
+            },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance
+          // by its chart.id. (seriesFor / pickLine live in the shared head script.)
+          const timer = window.setInterval(() => {
+            const chart = ApexCharts.getChartByID('profit')
+            if (!chart) return
+            window.clearInterval(timer)
+            wireLines(chart)
+          }, 50)
+          return () => window.clearInterval(timer)
+        }, [])
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Averages can outgrow the whole</h1>
+              <p>
+                Each bar is a store's average profit per order across every product.
+                Pick a product line to draw that line's own average solid in front.
+                Where it beats the overall average, the axis stretches to fit it and a
+                dashed edge marks where the overall average ends; where it loses
+                money, it is drawn on its own side of zero.
+              </p>
+              <div class="actions">
+                <span>Product line</span>
+                <button data-line="premium" class="active">
+                  Premium
+                </button>
+                <button data-line="budget">Budget</button>
+                <button data-line="">All (clear)</button>
+              </div>
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="bar"
+                    height={360}
+                  />
+                </div>
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

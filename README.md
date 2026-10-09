@@ -184,6 +184,7 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/context-menu' // right-click context menu (premium, opt-in)
 // import 'apexcharts/features/renderer-canvas' // canvas series renderer (opt-in)
 // import 'apexcharts/features/trellis'     // small multiples (premium, opt-in)
+// import 'apexcharts/features/highlight-filter' // whole faded, part solid in front (premium, opt-in)
 // import 'apexcharts/features/raincloud'   // raincloud chart type statistics (premium, opt-in)
 ```
 

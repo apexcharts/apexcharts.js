@@ -524,6 +524,7 @@ export default class Options {
           brushScrolled: undefined,
           crossFilter: undefined,
           filterChange: undefined,
+          highlightFilterChanged: undefined,
           annotationDragged: undefined,
           annotationEdited: undefined,
           annotationCreated: undefined,
@@ -2328,6 +2329,31 @@ export default class Options {
         fillOpacity: 0.5,
         strokeWidth: undefined,
         dashArray: 4,
+      },
+      // Draws each value faded and a part of it solid in front (the part
+      // comes as `highlight` on a point or `highlightData` on a series, or
+      // in `data`, one per slice or ring, on a circle; a one-value row reads
+      // as that value).
+      // Needs `import 'apexcharts/features/highlight-filter'`.
+      highlightFilter: {
+        enabled: true,
+        data: undefined,
+        fadeOpacity: 0.2,
+        outline: { width: 1, opacity: 1 },
+        enter: 'whole',
+        axis: 'extend',
+        dataLabels: { value: 'part', total: 'part' },
+        tooltip: { show: true, share: false, formatter: undefined },
+        line: { dashArray: 4 },
+        pie: { encoding: 'radius' },
+        // indicator unset: 'arc' on every ring (the whole faded on its
+        // track, the part solid in front from the same start), or 'needle'
+        // where the gauge draws its own needle (plotOptions.radialBar.shape
+        // 'needle'). 'lanes' (opt-in) splits each band in two, the whole
+        // light outside, the part solid inside. Unset needle keys fall back
+        // to plotOptions.radialBar.needle; unset, lanes.opacity (the whole
+        // lane's strength) is 0.45.
+        radialBar: { indicator: undefined, needle: {} },
       },
       grid: {
         show: true,

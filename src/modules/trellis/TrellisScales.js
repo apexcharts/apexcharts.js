@@ -100,6 +100,25 @@ function extendByDatum(d, form, ext) {
 }
 
 /**
+ * A datum's highlight-filter part (drawn solid over its faded whole), or
+ * null: the point's own `highlight` wins over the series' `highlightData`,
+ * as the feature reads them. The split aligns both with the data.
+ * @param {any} s
+ * @param {any} d
+ * @param {number} j
+ * @returns {number | null}
+ */
+function partOf(s, d, j) {
+  const p =
+    d && typeof d === 'object' && !Array.isArray(d) && 'highlight' in d
+      ? d.highlight
+      : Array.isArray(s.highlightData)
+        ? s.highlightData[j]
+        : null
+  return typeof p === 'number' && isFinite(p) ? p : null
+}
+
+/**
  * Decimal places of one number, capped at 4 (exponent notation counts as 4).
  * @param {any} v
  * @returns {number}
@@ -149,14 +168,20 @@ export function maxYDecimals(panels) {
  * The union y extent over every panel's every series.
  * @param {import('./TrellisSplit').TrellisSlice[]} panels
  * @param {'plain'|'paired'|'object'} xForm
+ * @param {boolean} [parts] highlight-filter parts reach the axis too (a part
+ *   can pass its whole, and a shared bound would clip it)
  * @returns {{ min: number, max: number } | null} null when no finite value exists
  */
-export function yExtent(panels, xForm) {
+export function yExtent(panels, xForm, parts = false) {
   const ext = { min: Infinity, max: -Infinity }
   panels.forEach((p) =>
     p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return
-      s.data.forEach((/** @type {any} */ d) => extendByDatum(d, xForm, ext))
+      s.data.forEach((/** @type {any} */ d, /** @type {number} */ j) => {
+        extendByDatum(d, xForm, ext)
+        const v = parts ? partOf(s, d, j) : null
+        if (v !== null) extendByDatum(v, 'plain', ext)
+      })
     }),
   )
   if (!isFinite(ext.min) || !isFinite(ext.max)) return null
@@ -193,9 +218,12 @@ function stacksInto(s, opts) {
  * panel — the split has already re-emitted each panel against the union x
  * list, with explicit nulls.
  *
+ * With `parts`, highlight-filter parts form their own piles beside the
+ * wholes' (the feature stacks parts on parts), each folded the same way.
+ *
  * @param {import('./TrellisSplit').TrellisSlice[]} panels
  * @param {'plain'|'paired'|'object'} xForm
- * @param {{ stackOnlyBar?: boolean }} [opts]
+ * @param {{ stackOnlyBar?: boolean, parts?: boolean }} [opts]
  * @returns {{ min: number, max: number } | null}
  */
 export function stackedYExtent(panels, xForm, opts = {}) {
@@ -226,17 +254,26 @@ export function stackedYExtent(panels, xForm, opts = {}) {
         return
       }
       const key = String(s.group ?? '')
-      const acc = groups.get(key) || { pos: [], neg: [] }
-      groups.set(key, acc)
+      /** @param {string} k */
+      const pile = (k) => {
+        const acc = groups.get(k) || { pos: [], neg: [] }
+        groups.set(k, acc)
+        return acc
+      }
+      const acc = pile(key)
+      const parts = opts.parts ? pile('~' + key) : null
       s.data.forEach((/** @type {any} */ d, /** @type {number} */ j) => {
-        if (acc.pos[j] === undefined) {
-          acc.pos[j] = 0
-          acc.neg[j] = 0
-        }
-        const v = scalarY(d)
-        if (v === null) return
-        if (v > 0) acc.pos[j] += v
-        else acc.neg[j] += v
+        ;[acc, parts].forEach((a, k) => {
+          if (!a) return
+          if (a.pos[j] === undefined) {
+            a.pos[j] = 0
+            a.neg[j] = 0
+          }
+          const v = k ? partOf(s, d, j) : scalarY(d)
+          if (v === null) return
+          if (v > 0) a.pos[j] += v
+          else a.neg[j] += v
+        })
       })
     })
     groups.forEach((acc) => {
@@ -257,19 +294,22 @@ export function stackedYExtent(panels, xForm, opts = {}) {
  * @param {'plain'|'paired'|'object'} xForm
  * @param {number} xMin
  * @param {number} xMax
+ * @param {boolean} [parts] highlight-filter parts in the window count too
  * @returns {{ min: number, max: number } | null}
  */
-export function yExtentInWindow(panels, xForm, xMin, xMax) {
+export function yExtentInWindow(panels, xForm, xMin, xMax, parts = false) {
   const ext = { min: Infinity, max: -Infinity }
   panels.forEach((p) =>
     p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return
-      s.data.forEach((/** @type {any} */ d) => {
+      s.data.forEach((/** @type {any} */ d, /** @type {number} */ j) => {
         if (d === null || d === undefined) return
         const rawX = xForm === 'paired' ? d[0] : xForm === 'object' ? d.x : null
         const x = rawX instanceof Date ? rawX.getTime() : Number(rawX)
         if (!isFinite(x) || x < xMin || x > xMax) return
         extendByDatum(d, xForm, ext)
+        const v = parts ? partOf(s, d, j) : null
+        if (v !== null) extendByDatum(v, 'plain', ext)
       })
     }),
   )
@@ -282,7 +322,7 @@ export function yExtentInWindow(panels, xForm, xMin, xMax) {
  *
  * @param {import('./TrellisSplit').TrellisSplitResult} splitResult
  * @param {{ scales?: { x?: string, y?: string, color?: string }, targetTicks?: number }} cfg
- * @param {{ chartType?: string, userColors?: any[], yExtentOverride?: { min: number, max: number } | null, stacked?: boolean, stackType?: string, stackOnlyBar?: boolean }} host
+ * @param {{ chartType?: string, userColors?: any[], yExtentOverride?: { min: number, max: number } | null, stacked?: boolean, stackType?: string, stackOnlyBar?: boolean, parts?: boolean }} host
  * @returns {{
  *   x: { min: number, max: number } | null,
  *   y: { min: number, max: number, tickAmount: number } | null,
@@ -337,8 +377,9 @@ export function resolve(splitResult, cfg = {}, host = {}) {
       : stacked
         ? stackedYExtent(group, splitResult.xForm, {
             stackOnlyBar: host.stackOnlyBar,
+            parts: host.parts,
           })
-        : yExtent(group, splitResult.xForm)
+        : yExtent(group, splitResult.xForm, host.parts)
 
   /** @type {{ min: number, max: number, tickAmount: number } | null} */
   let y = null

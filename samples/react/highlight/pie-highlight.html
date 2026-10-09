@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Pie Highlight Filter</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .actions {
+        margin: 0 0 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .actions span {
+        font-size: 13px;
+        color: #5b6b78;
+        margin-right: 4px;
+      }
+      .actions button {
+        color: #2c3e50;
+        background: #fff;
+        border: 1px solid #cfd8e3;
+        padding: 6px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        color: #fff;
+        background: #0284c7;
+        border-color: #0284c7;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 28px 0 6px;
+      }
+      h2 small {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #0284c7;
+        margin-bottom: 2px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+      .card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        min-width: 0;
+      }
+      /* Each chart fills its card up to 340px, centred, and shrinks with it on a
+             phone. */
+      .card > div {
+        max-width: 340px;
+        margin: 0 auto;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/features/highlight-filter.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Every channel's figure is the whole and one device's is the part. A pick
+    // is an ordinary update of highlightFilter.data, one value per slice; null
+    // clears it.
+    var CHANNELS = ['Organic', 'Paid search', 'Social', 'Email', 'Referral']
+
+    // Sums: a channel's sessions and orders are its devices' added up, so a
+    // device's part always fits inside the channel's slice.
+    var SESSIONS = [4200, 2600, 1900, 1100, 700]
+    var SESSIONS_BY_DEVICE = {
+      mobile: [2500, 1300, 1500, 400, 300],
+      desktop: [1400, 1100, 300, 600, 330],
+      tablet: [300, 200, 100, 100, 70],
+    }
+    var ORDERS = [300, 240, 160, 180, 120]
+    var ORDERS_BY_DEVICE = {
+      mobile: [140, 100, 100, 60, 45],
+      desktop: [130, 120, 45, 100, 60],
+      tablet: [30, 20, 15, 20, 15],
+    }
+
+    // Averages: a channel's average order value is its devices' revenue over
+    // their orders, so a device that spends more per order sits above it.
+    var ORDER_VALUE = [66, 85, 49, 76, 95]
+    var ORDER_VALUE_BY_DEVICE = {
+      mobile: [52, 70, 41, 60, 76],
+      desktop: [81, 98, 66, 84, 109],
+      tablet: [70, 85, 55, 80, 95],
+    }
+
+    function pickDevice(device) {
+      document.querySelectorAll('[data-device]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-device') === device)
+      })
+      // A pick is an ordinary update; null clears it.
+      ApexCharts.getChartByID('sessions').updateOptions({
+        highlightFilter: { data: device ? SESSIONS_BY_DEVICE[device] : null },
+      })
+      ApexCharts.getChartByID('orders').updateOptions({
+        highlightFilter: { data: device ? ORDERS_BY_DEVICE[device] : null },
+      })
+      ApexCharts.getChartByID('order-value').updateOptions({
+        highlightFilter: { data: device ? ORDER_VALUE_BY_DEVICE[device] : null },
+      })
+    }
+
+    function wireDevices() {
+      document.querySelectorAll('[data-device]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          pickDevice(b.getAttribute('data-device'))
+        })
+      })
+    }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Which device brings the traffic, and the bigger orders?&lt;/h1&gt;
+  &lt;p&gt;
+    Pick a device. Each channel stays faded and the device&#39;s share is drawn
+    solid in front.
+  &lt;/p&gt;
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span&gt;Device&lt;/span&gt;
+    &lt;button data-device=&quot;mobile&quot; class=&quot;active&quot;&gt;Mobile&lt;/button&gt;
+    &lt;button data-device=&quot;desktop&quot;&gt;Desktop&lt;/button&gt;
+    &lt;button data-device=&quot;tablet&quot;&gt;Tablet&lt;/button&gt;
+    &lt;button data-device=&quot;&quot;&gt;All (clear)&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;h2&gt;&lt;small&gt;Sums&lt;/small&gt;The device is a share of the channel&lt;/h2&gt;
+  &lt;p&gt;
+    A channel&#39;s sessions and orders are its devices&#39; added up, so the solid
+    part always fits inside its slice.
+  &lt;/p&gt;
+  &lt;div class=&quot;grid&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; height={360} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;chart2&quot;&gt;
+  &lt;ReactApexChart options={state.options1} series={state.series1} type=&quot;polarArea&quot; height={360} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;h2&gt;&lt;small&gt;Averages&lt;/small&gt;A device can spend more than its channel&lt;/h2&gt;
+  &lt;p&gt;
+    An average is not a sum, so a device can sit above its channel. Pick
+    Desktop: each solid slice runs past the channel&#39;s value, marked by a
+    dashed line.
+  &lt;/p&gt;
+  &lt;div class=&quot;grid&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;chart3&quot;&gt;
+  &lt;ReactApexChart options={state.options2} series={state.series2} type=&quot;polarArea&quot; height={360} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: SESSIONS,
+          options: {
+            chart: {
+              id: 'sessions',
+              type: 'donut',
+              height: 360,
+              toolbar: { show: false },
+            },
+            labels: CHANNELS,
+            colors: ['#0284c7', '#0f766e', '#f59e0b', '#e11d48', '#64748b'],
+            plotOptions: {
+              pie: {
+                donut: {
+                  size: '58%',
+                  labels: {
+                    show: true,
+                    value: {
+                      formatter: function (v) {
+                        return Number(v).toLocaleString()
+                      },
+                    },
+                    total: {
+                      show: true,
+                      label: 'Sessions',
+                      formatter: function (w) {
+                        return w.globals.seriesTotals
+                          .reduce(function (a, b) {
+                            return a + b
+                          }, 0)
+                          .toLocaleString()
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            // No slice borders: the faded tints alone keep the slices apart.
+            stroke: { width: 0 },
+            dataLabels: { enabled: true },
+            legend: { position: 'bottom' },
+            title: { text: 'Sessions by channel', style: { fontSize: '13px' } },
+            tooltip: {
+              y: {
+                formatter: function (v) {
+                  return Number(v).toLocaleString()
+                },
+              },
+            },
+            highlightFilter: { data: SESSIONS_BY_DEVICE.mobile },
+          },
+
+          series1: ORDERS,
+          options1: {
+            chart: {
+              id: 'orders',
+              type: 'polarArea',
+              height: 360,
+              toolbar: { show: false },
+            },
+            labels: CHANNELS,
+            colors: ['#0284c7', '#0f766e', '#f59e0b', '#e11d48', '#64748b'],
+            fill: { opacity: 0.85 },
+            stroke: { width: 0 },
+            legend: { position: 'bottom' },
+            title: { text: 'Orders by channel', style: { fontSize: '13px' } },
+            highlightFilter: { data: ORDERS_BY_DEVICE.mobile },
+          },
+
+          series2: ORDER_VALUE,
+          options2: {
+            chart: {
+              id: 'order-value',
+              type: 'polarArea',
+              height: 360,
+              toolbar: { show: false },
+            },
+            labels: CHANNELS,
+            colors: ['#0284c7', '#0f766e', '#f59e0b', '#e11d48', '#64748b'],
+            fill: { opacity: 0.85 },
+            stroke: { width: 0 },
+            yaxis: {
+              labels: {
+                formatter: function (v) {
+                  return '$' + v
+                },
+              },
+            },
+            legend: { position: 'bottom' },
+            title: {
+              text: 'Average order value by channel',
+              style: { fontSize: '13px' },
+            },
+            tooltip: {
+              y: {
+                formatter: function (v) {
+                  return '$' + v
+                },
+              },
+            },
+            highlightFilter: { data: ORDER_VALUE_BY_DEVICE.mobile },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrappers own the renders, so reach the live
+          // instances by their chart.id. (pickDevice lives in the shared head script.)
+          const timer = window.setInterval(() => {
+            if (
+              !ApexCharts.getChartByID('sessions') ||
+              !ApexCharts.getChartByID('orders') ||
+              !ApexCharts.getChartByID('order-value')
+            )
+              return
+            window.clearInterval(timer)
+            wireDevices()
+          }, 50)
+          return () => window.clearInterval(timer)
+        }, [])
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Which device brings the traffic, and the bigger orders?</h1>
+              <p>
+                Pick a device. Each channel stays faded and the device's share is
+                drawn solid in front.
+              </p>
+              <div class="actions">
+                <span>Device</span>
+                <button data-device="mobile" class="active">
+                  Mobile
+                </button>
+                <button data-device="desktop">Desktop</button>
+                <button data-device="tablet">Tablet</button>
+                <button data-device="">All (clear)</button>
+              </div>
+
+              <h2>
+                <small>Sums</small>The device is a share of the channel
+              </h2>
+              <p>
+                A channel's sessions and orders are its devices' added up, so the
+                solid part always fits inside its slice.
+              </p>
+              <div class="grid">
+                <div class="card">
+                  <div id="chart">
+                    <ReactApexChart
+                      options={state.options}
+                      series={state.series}
+                      type="donut"
+                      height={360}
+                    />
+                  </div>
+                </div>
+                <div class="card">
+                  <div id="chart2">
+                    <ReactApexChart
+                      options={state.options1}
+                      series={state.series1}
+                      type="polarArea"
+                      height={360}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <h2>
+                <small>Averages</small>A device can spend more than its channel
+              </h2>
+              <p>
+                An average is not a sum, so a device can sit above its channel. Pick
+                Desktop: each solid slice runs past the channel's value, marked by a
+                dashed line.
+              </p>
+              <div class="grid">
+                <div class="card">
+                  <div id="chart3">
+                    <ReactApexChart
+                      options={state.options2}
+                      series={state.series2}
+                      type="polarArea"
+                      height={360}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

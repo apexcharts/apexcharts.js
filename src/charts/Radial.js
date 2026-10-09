@@ -93,6 +93,35 @@ class Radial extends Pie {
       hasBands && rb.bandsStyle && rb.bandsStyle.hideTrackWhenPresent
     const isNeedleShape = rb.shape === 'needle'
 
+    const dl = this.radialDataLabels
+    if (dl.value.offsetY == null) {
+      // A gauge leaves its reading's offset unset (see Defaults.gauge): on
+      // the needle shape the reading sits below where the needle reaches at
+      // either end of the dial, so the two never cross. Placed as drawn, so
+      // it follows a shape changed by an update.
+      const n = this.needlePath(
+        { size, centerX, centerY, series },
+        rb.needle || {},
+      )
+      this.donutDataLabels = this.radialDataLabels = {
+        ...dl,
+        value: {
+          ...dl.value,
+          offsetY: isNeedleShape
+            ? n.cy -
+              centerY +
+              Math.max(
+                n.baseW / 2,
+                Utils.polarToCartesian(0, 0, n.length, this.startAngle).y,
+                Utils.polarToCartesian(0, 0, n.length, this.endAngle).y,
+              ) +
+              parseFloat(dl.value.fontSize) +
+              4
+            : 8,
+        },
+      }
+    }
+
     if (rb.track.show && !hideTrack) {
       const elTracks = this.drawTracks({
         size,
@@ -279,6 +308,8 @@ class Radial extends Pie {
    */
   drawArcs(opts) {
     const w = this.w
+    // Highlight filter (opt-in): before the centre labels and the rings.
+    this.ctx.highlightFilter?.pie(this)
     // size, donutSize, centerX, centerY, colorArr, lineColorArr, sectorAngleArr, series
 
     const graphics = new Graphics(this.w)
@@ -385,42 +416,12 @@ class Radial extends Pie {
       const startAngle = this.startAngle
       let prevStartAngle
 
-      // Map raw value → [0, 1] fraction of the sweep, using the configured
-      // min/max domain. Defaults (min: 0, max: 100) preserve the historical
-      // percentage behavior; custom domains (e.g. min: 0, max: 240 for a
-      // speedometer) make the filled arc honor the same domain as the
-      // needle, ticks, and threshold bands.
-      const rb = w.config.plotOptions.radialBar
-      const domainMin = typeof rb.min === 'number' ? rb.min : 0
-      const domainMax = typeof rb.max === 'number' ? rb.max : 100
-      const domainSpan = domainMax === domainMin ? 1 : domainMax - domainMin
-      /** @param {number} v */
-      const valueToFraction = (v) => {
-        const clamped = Math.min(Math.max(v, domainMin), domainMax)
-        return Math.max(0, (clamped - domainMin) / domainSpan)
-      }
-      const dataValue = valueToFraction(Utils.negToZero(opts.series[i]))
-
-      let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle
+      const endAngle = this._arcEnd(opts.series[i])
 
       let prevEndAngle
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle
-        prevEndAngle =
-          Math.round(
-            this.totalAngle *
-              valueToFraction(Utils.negToZero(w.globals.previousPaths[i])),
-          ) + prevStartAngle
-      }
-
-      const currFullAngle = Math.abs(endAngle) + Math.abs(startAngle)
-      if (currFullAngle > 360) {
-        endAngle = endAngle - 0.01
-      }
-
-      const prevFullAngle = Math.abs(prevEndAngle) + Math.abs(prevStartAngle)
-      if (prevFullAngle > 360) {
-        prevEndAngle = prevEndAngle - 0.01
+        prevEndAngle = this._arcEnd(w.globals.previousPaths[i])
       }
 
       const angle = endAngle - startAngle
@@ -567,8 +568,14 @@ class Radial extends Pie {
       }
 
       // Pie's gate: a data change animates only while dynamicAnimation (and
-      // animations as a whole) is on, or turning it off changed nothing here.
-      if (this.dynamicAnim && w.globals.dataChanged) {
+      // animations as a whole) is on, or turning it off changed nothing here,
+      // and only when the update asked to (an unanimated update captured no
+      // previous values to move from).
+      if (
+        this.dynamicAnim &&
+        w.globals.dataChanged &&
+        w.globals.shouldAnimate
+      ) {
         dur = w.config.chart.animations.dynamicAnimation.speed
       }
       this.animDur = dur / (opts.series.length * 1.2) + this.animDur
@@ -643,6 +650,30 @@ class Radial extends Pie {
       elHollow,
       dataLabels,
     }
+  }
+
+  /**
+   * Where a ring's value arc ends for value `v`, in whole degrees: the value
+   * as a fraction of the configured min/max domain (clamped, negatives read
+   * as 0). Defaults (min: 0, max: 100) preserve the historical percentage
+   * behavior; custom domains (e.g. min: 0, max: 240 for a speedometer) make
+   * the filled arc honor the same domain as the needle, ticks, and threshold
+   * bands. An arc that would close on itself stops just short.
+   *
+   * @param {any} v
+   * @returns {number}
+   */
+  _arcEnd(v) {
+    const rb = this.w.config.plotOptions.radialBar
+    const min = typeof rb.min === 'number' ? rb.min : 0
+    const max = typeof rb.max === 'number' ? rb.max : 100
+    const f = Math.max(
+      0,
+      (Math.min(Math.max(Utils.negToZero(v), min), max) - min) /
+        (max === min ? 1 : max - min),
+    )
+    const end = Math.round(this.totalAngle * f) + this.startAngle
+    return Math.abs(end) + Math.abs(this.startAngle) > 360 ? end - 0.01 : end
   }
 
   /**
@@ -868,32 +899,8 @@ class Radial extends Pie {
     const g = graphics.group({ class: 'apexcharts-gauge-needle' })
     if (!opts.series || opts.series.length === 0) return g
 
-    const strokeWidth = this.getStrokeWidth(opts)
-    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin
-    const length =
-      typeof cfg.length === 'string' && cfg.length.endsWith('%')
-        ? (arcRadius * parseInt(cfg.length, 10)) / 100
-        : Number(cfg.length || arcRadius * 0.85)
-
-    const baseW = cfg.baseWidth ?? 4
-    const tipW = cfg.tipWidth ?? 1
     const color = cfg.color || '#333'
-
-    // Build the needle as a tapered shape with a rounded (semi-circular)
-    // base. The base center sits at (centerX, centerY + needle.offsetY);
-    // needle points straight up at angle 0 in our polar system. We rotate
-    // the wrapping <g> to position it around the (offset) base point.
-    const cx = opts.centerX
-    const needleOffsetY = Number(cfg.offsetY ?? 0)
-    const cy = opts.centerY + needleOffsetY
-    // Path: right base → semicircular arc clockwise around the base (bulges
-    // below the baseline, giving a rounded "anchor" look) → left base → up
-    // to left tip → across to right tip → close.
-    const path =
-      `M ${cx + baseW / 2} ${cy} ` +
-      `A ${baseW / 2} ${baseW / 2} 0 0 1 ${cx - baseW / 2} ${cy} ` +
-      `L ${cx - tipW / 2} ${cy - length} ` +
-      `L ${cx + tipW / 2} ${cy - length} Z`
+    const { path, cx, cy } = this.needlePath(opts, cfg)
 
     const elNeedle = graphics.drawPath({
       d: path,
@@ -908,8 +915,6 @@ class Radial extends Pie {
     const value = Number(opts.series[0])
     const targetAngle = this._angleAtValue(value)
 
-    const isInitialMount =
-      this.initialAnim && !w.globals.dataChanged && !w.globals.resized
     // Cache the previous angle on the chart instance so updateSeries can
     // tween from it. First update after mount tweens from `startAngle`.
     const ctx = /** @type {any} */ (this.ctx)
@@ -919,32 +924,13 @@ class Radial extends Pie {
         : this.startAngle
     ctx._lastNeedleAngle = targetAngle
 
-    const shouldAnimate =
-      Environment.isBrowser() &&
-      w.globals.shouldAnimate &&
-      (isInitialMount || (this.dynamicAnim && w.globals.dataChanged))
+    const motion = this.needleMotion()
 
-    if (shouldAnimate && fromAngle !== targetAngle) {
-      // Ease-out-back on initial mount (spring-loaded settle); plain ease-out
-      // on data updates (no overshoot — feels mechanical/instrument-like).
+    if (motion && fromAngle !== targetAngle) {
+      const { speed, ease } = motion
       const node = g.node
       node.setAttribute('transform-origin', `${cx} ${cy}`)
       node.setAttribute('transform', `rotate(${fromAngle})`)
-
-      const speed =
-        (cfg.animation?.duration && Number(cfg.animation.duration)) ||
-        (cfg.animationSpeed && Number(cfg.animationSpeed)) ||
-        w.config.chart.animations.dynamicAnimation?.speed ||
-        w.config.chart.animations.speed ||
-        800
-      const c1 = 1.70158
-      const c3 = c1 + 1
-      /** @param {number} t */
-      const easeOutBack = (t) =>
-        1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
-      /** @param {number} t */
-      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
-      const ease = isInitialMount ? easeOutBack : easeOutCubic
 
       // A previous render's needle tween may still be scheduled; cancel it so
       // we don't animate the old (now detached) needle alongside this one on a
@@ -980,6 +966,79 @@ class Radial extends Pie {
     }
 
     return g
+  }
+
+  /**
+   * The needle as a tapered shape with a rounded (semi-circular) base,
+   * pointing straight up (angle 0 in our polar system) from its base centre
+   * (`cx`, `cy`): (centerX, centerY + cfg.offsetY). Rotate it around that
+   * point to aim it.
+   *
+   * @param {Record<string, any>} opts the gauge's size, centre and series
+   * @param {Record<string, any>} cfg length, baseWidth, tipWidth, offsetY
+   * @returns {{path: string, cx: number, cy: number, length: number, baseW: number}}
+   */
+  needlePath(opts, cfg) {
+    const strokeWidth = this.getStrokeWidth(opts)
+    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin
+    const length =
+      typeof cfg.length === 'string' && cfg.length.endsWith('%')
+        ? (arcRadius * parseInt(cfg.length, 10)) / 100
+        : Number(cfg.length || arcRadius * 0.85)
+
+    const baseW = cfg.baseWidth ?? 4
+    const tipW = cfg.tipWidth ?? 1
+
+    const cx = opts.centerX
+    const cy = opts.centerY + Number(cfg.offsetY ?? 0)
+    // Path: right base → semicircular arc clockwise around the base (bulges
+    // below the baseline, giving a rounded "anchor" look) → left base → up
+    // to left tip → across to right tip → close.
+    const path =
+      `M ${cx + baseW / 2} ${cy} ` +
+      `A ${baseW / 2} ${baseW / 2} 0 0 1 ${cx - baseW / 2} ${cy} ` +
+      `L ${cx - tipW / 2} ${cy - length} ` +
+      `L ${cx + tipW / 2} ${cy - length} Z`
+    return { path, cx, cy, length, baseW }
+  }
+
+  /**
+   * How the needle moves this render: its speed and curve, or null when it
+   * lands at once. Ease-out-back on initial mount (spring-loaded settle);
+   * plain ease-out on data updates (no overshoot, feels mechanical,
+   * instrument-like).
+   *
+   * @returns {{speed: number, ease: (t: number) => number} | null}
+   */
+  needleMotion() {
+    const w = this.w
+    const cfg = w.config.plotOptions.radialBar.needle || {}
+    const isInitialMount =
+      this.initialAnim && !w.globals.dataChanged && !w.globals.resized
+    if (
+      !(
+        Environment.isBrowser() &&
+        w.globals.shouldAnimate &&
+        (isInitialMount || (this.dynamicAnim && w.globals.dataChanged))
+      )
+    ) {
+      return null
+    }
+    const speed =
+      (cfg.animation?.duration && Number(cfg.animation.duration)) ||
+      (cfg.animationSpeed && Number(cfg.animationSpeed)) ||
+      w.config.chart.animations.dynamicAnimation?.speed ||
+      w.config.chart.animations.speed ||
+      800
+    const c1 = 1.70158
+    const c3 = c1 + 1
+    return {
+      speed,
+      ease: isInitialMount
+        ? (/** @type {number} */ t) =>
+            1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+        : (/** @type {number} */ t) => 1 - Math.pow(1 - t, 3),
+    }
   }
 
   /**

@@ -156,6 +156,13 @@ export default class Base {
       //   carrier     = the series index the merged rows were written to
       //   hidden[]    = endpoint indices collapsed from the legend
       dumbbellData: null,
+      // Highlight filter parts (features/highlight-filter), built each parse:
+      //   active   = a part is present and the option is on
+      //   parts    = parts[i][j], null where a datum has none
+      //   ext      = the parts again when they may stretch the value axis
+      //   capture  = called by Series when it captures the outgoing frame
+      // null when the feature is not loaded.
+      highlightData: null,
       // Streamgraph bands, written by the streamgraph series transform
       // (features/streamgraph) each parse; null for every other chart type.
       //   names[k]     = band k's series name

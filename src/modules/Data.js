@@ -41,11 +41,22 @@ function subtreeTotal(d) {
 export default class Data {
   /**
    * @param {import('../types/internal').ChartStateW} w
+   * @param {{resetGlobals?: () => any, isMultipleY?: () => any, highlight?: () => any}} [hooks]
    */
-  constructor(w, { resetGlobals = () => {}, isMultipleY = () => {} } = {}) {
+  constructor(
+    w,
+    {
+      resetGlobals = () => {},
+      isMultipleY = () => {},
+      highlight = () => null,
+    } = {},
+  ) {
     this.w = w
     this.resetGlobals = resetGlobals
     this.isMultipleY = isMultipleY
+    // The highlight filter feature, or null (see InitCtxVariables).
+    this.highlight = highlight
+    this._warnedHighlight = false
 
     /** @type {any} */
     this.twoDSeries = []
@@ -2215,6 +2226,28 @@ export default class Data {
         this.w.axisFlags.isMultiLineX = true
         break
       }
+    }
+
+    // Highlight filter: the feature reads the parts off the parsed rows. When
+    // it is not loaded, a chart handed parts would otherwise just draw without
+    // them, so say once what is missing. Checked per series, never per point.
+    const hf = this.highlight()
+    if (hf) {
+      hf.parse()
+    } else if (
+      !this._warnedHighlight &&
+      (cnf.highlightFilter?.data ||
+        ser.some(
+          (/** @type {any} */ s) =>
+            s &&
+            (s.highlightData ||
+              (s.data?.[0] && typeof s.data[0] === 'object' && 'highlight' in s.data[0])),
+        ))
+    ) {
+      this._warnedHighlight = true
+      console.warn(
+        "ApexCharts: series carry highlight parts but the highlight filter is not loaded. Add import 'apexcharts/features/highlight-filter' (or load dist/features/highlight-filter.js after apexcharts.js).",
+      )
     }
 
     // Return a snapshot of all parsed state grouped by future w.* slice destinations.

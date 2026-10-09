@@ -189,6 +189,8 @@ export default class TreemapChart {
       },
     )
     this.camera = this._zoomCamera()
+    // Highlight filter (opt-in): this pass's tile painter, or undefined.
+    const hl = this.ctx.highlightFilter?.treemap(this)
 
     // Cross-type morph (sunburst -> treemap) via the optional `morph` feature.
     // Tiles consume the captured marks in draw order, the same order the
@@ -315,7 +317,7 @@ export default class TreemapChart {
         const colorProps = this._leafColor(i, j)
         const color = colorProps.color
 
-        const pathFill = fill.fillPath({
+        let pathFill = fill.fillPath({
           color,
           seriesNumber: i,
           dataPointIndex: j,
@@ -351,6 +353,10 @@ export default class TreemapChart {
                 ? color
                 : w.globals.stroke.colors[i],
             )
+
+        // Highlight filter: the tile's fill with its part's share in it, a
+        // url(), so the plain-colour ease below leaves it to the feature.
+        pathFill = hl?.(elRect, i, j, pathFill, leaf) || pathFill
 
         elRect.attr({
           cx: x1,
@@ -489,6 +495,7 @@ export default class TreemapChart {
             seriesIndex: i,
             dataPointIndex: j,
             w,
+            highlight: leaf.highlight,
           })
           if (w.config.plotOptions.treemap.dataLabels.format === 'truncate') {
             formattedText = this.truncateLabels(

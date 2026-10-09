@@ -52,6 +52,12 @@ type ApexFormatterOpts = {
   dataPointIndex: number
   series?: any[][]
   w: ApexChartContext
+  /**
+   * Highlight filter, on a pie, donut or polarArea slice's label, a treemap
+   * tile's label and a slice's tooltip row: the part, its whole and the
+   * share (see ApexHighlightInfo).
+   */
+  highlight?: ApexHighlightInfo
   // Some formatter call sites spread extra state into the opts object (e.g.
   // the bar total-label formatter spreads `w`), so allow arbitrary reads.
   [key: string]: any
@@ -633,6 +639,33 @@ declare class ApexCharts {
     list(): { id: string; name: string; token: ApexPerspective }[]
     delete(id: string): void
   }
+
+  /**
+   * Highlight filter: each value drawn faded with a part of it solid in
+   * front. Requires the highlight-filter feature, which is NOT in the default
+   * bundle: `import 'apexcharts/features/highlight-filter'`, or add
+   * `dist/features/highlight-filter.js` after apexcharts.js on a script-tag
+   * page. Without it `chart.highlightFilter` is null.
+   */
+  highlightFilter: {
+    /** True when this chart is drawing parts. */
+    isActive(): boolean
+    /** The part at a datum, or null. On a pie, donut or polarArea the slice is the series and `dataPointIndex` is ignored. */
+    valueAt(seriesIndex: number, dataPointIndex?: number): number | null
+    /**
+     * Set the parts and redraw: one row per series (null where a datum has no
+     * part), one value per slice (or ring) on a pie, donut, polarArea,
+     * radialBar or gauge, or a function of the datum. On those a row of one
+     * value reads as that value; a longer row is ignored with a warning.
+     * Resolves when the update is drawn.
+     */
+    set(
+      parts: ApexHighlightParts,
+      opts?: { animate?: boolean; series?: ApexAxisChartSeries },
+    ): Promise<ApexCharts>
+    /** Remove every part and redraw the plain chart. */
+    clear(opts?: { animate?: boolean }): Promise<ApexCharts>
+  } | null
 
   /**
    * Storyboard: scroll-driven chart choreography (scrollytelling). Beats are
@@ -1351,6 +1384,13 @@ declare namespace ApexCharts {
     fill?: ApexFill
     forecastDataPoints?: ApexForecastDataPoints
     grid?: ApexGrid
+    /**
+     * Draw each value faded and a part of it solid in front, from the same
+     * baseline. The part comes with the data: `highlight` on a point or
+     * `highlightData` on a series. Requires
+     * `import 'apexcharts/features/highlight-filter'`.
+     */
+    highlightFilter?: ApexHighlightFilter
     labels?: string[]
     legend?: ApexLegend
     markers?: ApexMarkers
@@ -1387,6 +1427,9 @@ declare namespace ApexCharts {
   export type { ApexDataLabels }
   export type { ApexFill }
   export type { ApexForecastDataPoints }
+  export type { ApexHighlightFilter }
+  export type { ApexHighlightParts }
+  export type { ApexHighlightInfo }
   export type { ApexGrid }
   export type { ApexLegend }
   export type { ApexMarkers }
@@ -1733,6 +1776,8 @@ type ApexChart = {
      * (active filters, filtered/total counts), the source chartID, and the key.
      */
     filterChange?(chart: ApexCharts, options?: { filters: Record<string, any>; filteredCount: number; total: number; sourceChartID?: string; key?: any }): void
+    /** The highlight filter's parts arrived ('enter'), changed ('update') or were removed ('clear'); fires once that render is drawn. */
+    highlightFilterChanged?(chart: ApexCharts, options: { active: boolean; phase: 'enter' | 'update' | 'clear' }): void
     /**
      * Ink Layer (#7): fired after an annotation is dragged or resized. `options`
      * carries the annotation type ('point' | 'xaxis' | 'yaxis'), id/index, and
@@ -2370,6 +2415,27 @@ type ApexHierarchyNode = {
    * `plotOptions.treemap.nested.drilldownAsLevels`).
    */
   drilldown?: string | number
+  /**
+   * Highlight filter (`treemap`): the part of this leaf's value to draw
+   * solid over its faded tile. On a branch it is ignored, with a warning: a
+   * branch adds up its leaves' parts (`node.highlight` in the header and
+   * parent tooltip formatters).
+   */
+  highlight?: number | null
+}
+
+/**
+ * A branch of a nested treemap as the header and parent tooltip formatters
+ * are handed it. With a highlight, `highlight` adds up its leaves' parts
+ * against the branch's total.
+ */
+type ApexTreemapNode = {
+  name: string
+  value: number
+  depth?: number
+  children?: ApexTreemapNode[]
+  highlight?: ApexHighlightInfo
+  [key: string]: any
 }
 
 type ApexAxisChartSeries = {
@@ -2385,6 +2451,13 @@ type ApexAxisChartSeries = {
  hidden?: boolean
  zIndex?: number
  parsing?: ApexParsing;
+ /**
+  * Highlight filter: the part of each value to draw solid over the faded
+  * whole, parallel to `data` (null where a datum has none). A point's own
+  * `highlight` wins. Requires the highlight-filter feature. A nested
+  * treemap ignores it (with a warning): put `highlight` on each leaf.
+  */
+ highlightData?: (number | null)[]
  /**
   * Trellis facet key: which panel this series belongs to. The blessed typed
   * field for `trellis.by: 'facet'`; any other key name works from plain JS,
@@ -2448,6 +2521,11 @@ type ApexAxisChartSeries = {
    }[];
    barHeightOffset?: number;
    columnWidthOffset?: number;
+   /**
+    * Highlight filter: the part of `y` to draw solid over the faded whole.
+    * May be larger than `y` (an average) or of the other sign.
+    */
+   highlight?: number | null;
  }[]
  | [number, number | null][]
  | [number, (number | null)[]][]
@@ -2706,6 +2784,11 @@ type ApexLocale = {
       exportToPNG?: string
       exportToCSV?: string
     }
+    /** The highlight filter add-on's words. */
+    highlightFilter?: {
+      /** Names the part beside the whole on a ring's whole lane (tooltip.formatter). Default 'part'. */
+      part?: string
+    }
   }
 }
 
@@ -2826,7 +2909,7 @@ type ApexTreemapLevel = {
         value: number
         depth: number
         seriesIndex: number
-        node: any
+        node: ApexTreemapNode
         w: any
       },
     ): string
@@ -3513,7 +3596,7 @@ type ApexPlotOptions = {
           leafCount: number
           percentOfParent: number
           percentOfTotal: number
-          node: any
+          node: ApexTreemapNode
           w: any
         }): string
       }
@@ -4005,7 +4088,15 @@ type ApexPlotOptions = {
           fontWeight?: string | number
           color?: string
           offsetY?: number
-          formatter?(val: number | string): string
+          /**
+           * `opts.highlight` is the highlight filter's part, whole and share
+           * of the slice shown (undefined without a highlight).
+           */
+          formatter?(
+            val: number | string,
+            w?: ApexChartContext,
+            opts?: { highlight?: ApexHighlightInfo },
+          ): string
         }
         total?: {
           show?: boolean
@@ -4015,7 +4106,15 @@ type ApexPlotOptions = {
           fontSize?: string
           label?: string
           color?: string
-          formatter?(w: ApexChartContext): string
+          /**
+           * With a highlight, `w.globals.seriesTotals` reads the parts while
+           * this runs (unless `highlightFilter.dataLabels.total` is 'whole'),
+           * and `opts.highlight` sums the parts against the wholes.
+           */
+          formatter?(
+            w: ApexChartContext,
+            opts?: { highlight?: ApexHighlightInfo },
+          ): string
         }
       }
     }
@@ -4291,7 +4390,19 @@ type ApexPlotOptions = {
         fontWeight?: string | number
         color?: string
         offsetY?: number
-        formatter?(val: number): string
+        /**
+         * `opts.highlight` is the highlight filter's part, whole and share
+         * of the ring shown (undefined without a highlight). With
+         * `highlightFilter.radialBar.indicator` 'lanes' it is also called
+         * for the muted line under the value, with the whole and
+         * `opts.lane: 'whole'`; what it returns there is that line, or,
+         * when it returns the same as without the lane, "/ " before it.
+         */
+        formatter?(
+          val: number,
+          w?: ApexChartContext,
+          opts?: { highlight?: ApexHighlightInfo; lane?: 'whole' },
+        ): string
       }
       total?: {
         show?: boolean
@@ -4300,7 +4411,17 @@ type ApexPlotOptions = {
         fontFamily?: string
         fontWeight?: string | number
         fontSize?: string
-        formatter?(w: ApexChartContext): string
+        /**
+         * With a highlight, `w.globals.seriesTotals` reads the parts while
+         * this runs (unless `highlightFilter.dataLabels.total` is 'whole'),
+         * and `opts.highlight` sums the parts against the wholes. In lanes
+         * it is also called for the line under it, with the wholes in
+         * `seriesTotals` and `opts.lane: 'whole'` (see the value's).
+         */
+        formatter?(
+          w: ApexChartContext,
+          opts?: { highlight?: ApexHighlightInfo; lane?: 'whole' },
+        ): string
       }
     }
     barLabels?: {
@@ -4880,6 +5001,146 @@ type ApexForecastDataPoints = {
   strokeWidth?: undefined | number
   dashArray?: number
 }
+
+/**
+ * Highlight filter options. The parts themselves travel with the data.
+ */
+type ApexHighlightFilter = {
+  /** false keeps the parts in the data but draws the chart as usual. */
+  enabled?: boolean
+  /** Opacity of the faded whole. */
+  fadeOpacity?: number
+  /** The thin outline that keeps a faded whole readable; width 0 for none. */
+  outline?: { width?: number; opacity?: number }
+  /**
+   * How a first pick draws its parts: 'whole' starts each part as its whole
+   * and drains (or grows) to the part, 'baseline' rises from the baseline.
+   */
+  enter?: 'whole' | 'baseline'
+  /**
+   * A part outside the value axis: 'extend' stretches the axis to it,
+   * 'clamp' leaves the axis as the wholes set it.
+   */
+  axis?: 'extend' | 'clamp'
+  /**
+   * Pie, donut, polarArea, radialBar and gauge: one part per slice (or
+   * ring), parallel to the slices (null where a slice has none). A
+   * `highlight` on a slice's own point (`{ x, y, highlight }`) wins.
+   * Ignored, with a warning, while its length differs from the slice count.
+   * A row of one value (`[[40], [null]]`) reads as that value; a row of
+   * several is ignored, with a warning.
+   */
+  data?: (number | null)[] | [number | null][] | null
+  /**
+   * Data labels state the part ('part') or the whole ('whole'). `total` is
+   * the stacked total (the sum of the parts at the part stack's edge, or
+   * the whole stack's total) and the donut's centre total.
+   */
+  dataLabels?: { value?: 'part' | 'whole'; total?: 'part' | 'whole' }
+  /**
+   * Each tooltip row reads "part / whole" (the part bold, the whole muted),
+   * with a marker drawn half solid, half faded. `share` appends the part's
+   * share of the whole ("50 / 66 · 76%"). `formatter` returns the row's whole
+   * value text instead, as plain text or HTML. For a tooltip of your own, read
+   * the part in `tooltip.custom` with
+   * `opts.ctx.highlightFilter.valueAt(opts.seriesIndex, opts.dataPointIndex)`.
+   */
+  tooltip?: {
+    show?: boolean
+    share?: boolean
+    /**
+     * On a ring split in lanes, `opts.lane` says which lane is hovered:
+     * 'part' (the inner lane, whose default row reads "part / whole") or
+     * 'whole' (the outer lane, whose default row reads "whole (part p)";
+     * the word comes from the locale's `highlightFilter.part`, 'part' when
+     * the locale has none).
+     */
+    formatter?(
+      part: number | null,
+      whole: number | null,
+      opts: {
+        seriesIndex: number
+        dataPointIndex: number
+        w: any
+        lane?: 'part' | 'whole'
+      },
+    ): string
+  }
+  /**
+   * Line, spline and step line: the whole is drawn dashed (this dash, in
+   * px) at full strength instead of faded, with the part solid over it.
+   */
+  line?: { dashArray?: number }
+  /**
+   * Pie and donut: how a part's share sets its radius, from the centre or
+   * the hole. 'radius' is linear in the radius; 'area' makes the part's area
+   * its share of the slice's. polarArea always follows its own value scale.
+   */
+  pie?: { encoding?: 'radius' | 'area' }
+  /**
+   * radialBar and gauge: 'arc' (the default) draws the part as a solid arc
+   * in front of its whole on the same track, from the same start, the
+   * whole faded; where the part runs past its whole, a short tick
+   * (`apexcharts-highlight-edge`) marks where the whole ends. 'lanes'
+   * (opt-in, made for a part that can exceed its whole, such as an average)
+   * splits each ring's band in two lanes with a small gap, each on a track
+   * of its own and on the dial's own angles: the outer lane is the whole,
+   * light (`lanes.opacity`, 0.45 of its own strength), the inner lane the
+   * part, solid. Each lane is its own hover target (see
+   * `tooltip.formatter`'s `opts.lane`), and the centre adds a smaller muted
+   * line under the value, which states the part: the whole, "/ 78" through
+   * the value formatter (the total's with several rings), which is told
+   * `opts.lane: 'whole'` and may write that line itself. 'needle' points a
+   * second needle at the part (on any gauge shape, the first ring only)
+   * and leaves the ring as it is. Unset, every radialBar and gauge, single
+   * or several rings, gets the arc, except a gauge that draws its own
+   * needle (`plotOptions.radialBar.shape: 'needle'`), which gets the needle
+   * and fades its own needle while a pick is active; rings after the first
+   * always show arcs. A part past `max` is pinned to the end and
+   * carries `apexcharts-highlight-overflow` (in lanes, so does a part past
+   * its whole, which gets no tick). The needle's keys each fall back to
+   * `plotOptions.radialBar.needle`; its colour to the series'. While a pick
+   * is active the tooltip is on (one "part / whole" row per ring) unless
+   * the page set `tooltip.enabled` itself.
+   */
+  radialBar?: {
+    indicator?: 'needle' | 'arc' | 'lanes'
+    /** The whole lane's strength, against its own (default 0.45). */
+    lanes?: { opacity?: number }
+    needle?: {
+      color?: string
+      length?: string | number
+      baseWidth?: number
+      tipWidth?: number
+      offsetY?: number
+    }
+  }
+}
+
+/**
+ * What a formatter is told about a highlight part. `share` is part / whole,
+ * never clamped; `overflow` is true past the whole and 'sign' when the part
+ * and its whole disagree in sign.
+ */
+type ApexHighlightInfo = {
+  value: number | null
+  total: number | null
+  share: number | null
+  overflow: boolean | 'sign'
+}
+
+type ApexHighlightParts =
+  | (number | null)[][]
+  | (number | null)[]
+  | ((ctx: {
+      seriesIndex: number
+      dataPointIndex: number
+      seriesName: string
+      x: any
+      value: number | null
+      datum: any
+      w: any
+    }) => number | null)
 
 /**
  * Plot X and Y grid options

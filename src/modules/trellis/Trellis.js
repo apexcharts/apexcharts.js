@@ -32,6 +32,7 @@ import { Environment } from '../../utils/Environment.js'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { addResizeListener, removeResizeListener } from '../../utils/Resize'
 import RendererController from '../RendererController'
+import InitCtxVariables from '../helpers/InitCtxVariables'
 import {
   computeMarkCount,
   hasCanvasUnsupportedFeature,
@@ -349,14 +350,25 @@ export default class Trellis {
    * tall as its tallest PILE, so the shared y domain has to come from the
    * stack totals; without this every panel got a domain sized by the largest
    * single value and the taller stacks drew straight off the top of the plot.
-   * @returns {{ stacked: boolean, stackType: string|undefined, stackOnlyBar: boolean }}
+   * `parts` says highlight-filter parts reach the axis as well: the feature
+   * is loaded and extends the axis for a type it draws parts on, so a part
+   * past its whole is not clipped by the shared bound.
+   * @returns {{ stacked: boolean, stackType: string|undefined, stackOnlyBar: boolean, parts: boolean }}
    */
   _stackingHost() {
-    const chart = this.w.config.chart || {}
+    const cnf = this.w.config
+    const chart = cnf.chart || {}
+    const hf = /** @type {any} */ (cnf).highlightFilter || {}
     return {
       stacked: !!chart.stacked,
       stackType: chart.stackType,
       stackOnlyBar: !!chart.stackOnlyBar,
+      parts:
+        !!InitCtxVariables._featureRegistry.get('highlightFilter') &&
+        hf.enabled !== false &&
+        hf.axis !== 'clamp' &&
+        ['bar', 'line', 'area'].includes(chart.type) &&
+        !cnf.plotOptions?.bar?.isFunnel,
     }
   }
 

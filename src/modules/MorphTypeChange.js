@@ -1155,7 +1155,7 @@ export default class MorphTypeChange {
           parseInt(group.getAttribute('data:realIndex') ?? '0', 10) || 0
         let order = 0
         group
-          .querySelectorAll('path[pathTo]')
+          .querySelectorAll('path[pathTo]:not(.apexcharts-highlight-part)')
           .forEach((/** @type {any} */ p) => {
             const d = p.getAttribute('pathTo') || p.getAttribute('d')
             if (!d || !d.trim()) return
@@ -1233,7 +1233,10 @@ export default class MorphTypeChange {
           seriesNode.getAttribute('data:realIndex') ?? '0',
           10,
         )
-        const paths = seriesNode.querySelectorAll('path[pathTo]')
+        // Highlight-filter parts ride on their bars; they are not marks.
+        const paths = seriesNode.querySelectorAll(
+          'path[pathTo]:not(.apexcharts-highlight-part)',
+        )
         paths.forEach((/** @type {Element} */ p, /** @type {number} */ j) => {
           const d = p.getAttribute('pathTo') || p.getAttribute('d')
           if (!d) return

@@ -154,6 +154,10 @@ class Bar {
       class: 'apexcharts-bar-series apexcharts-plot-series',
     })
 
+    // Highlight filter (opt-in feature): the part of each value drawn solid
+    // over its faded whole. Null without the feature.
+    const hf = this.ctx.highlightFilter
+
     if (w.config.dataLabels.enabled) {
       // @ts-ignore — totalItems is set dynamically by bar/Helpers.js initializePoints()
       if (this.totalItems > this.barOptions.dataLabels.maxItems) {
@@ -367,6 +371,15 @@ class Bar {
         yArrj.push(y)
 
         this.renderSeries({
+          hl: hf?.bar(this, {
+            i,
+            j,
+            realIndex,
+            translationsIndex,
+            paths,
+            zeroH,
+            zeroW,
+          }),
           realIndex,
           pathFill: pathFill.color,
           ...(pathFill.useRangeColor ? { lineFill: pathFill.color } : {}),
@@ -417,8 +430,9 @@ class Bar {
     return ret
   }
 
-  /** @param {{ realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
+  /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
   renderSeries({
+    hl,
     realIndex,
     pathFill,
     lineFill,
@@ -573,6 +587,7 @@ class Bar {
         barXPosition,
         barYPosition,
         visibleSeries,
+        hl: hl?.label,
       })
     )
 
@@ -616,6 +631,8 @@ class Bar {
       lineFill = /** @type {Record<string,any>} */ (w.config.series[i]).data[j]
         .strokeColor
     }
+
+    const fill = pathFill
 
     // A collapsing series reads as null (its values were zeroed by the legend
     // click), but its marks are mid-exit and still hold the slot they had
@@ -721,6 +738,20 @@ class Bar {
         // Datum identity for the next update's keyed join (see
         // LengthTransition): survivors match by key, not array position.
         'data:pathKey': datumKey(w, realIndex, j),
+      })
+
+      // Highlight filter: fade this whole and draw its part above it (below
+      // the labels, which are appended next).
+      hl?.paint(renderedPath, {
+        delay,
+        delayMs,
+        speed: dataChangeSpeed,
+        fill,
+        elSeries,
+        elBarShadows,
+        labels: dataLabelsObj.dataLabels,
+        pathFrom,
+        pathTo,
       })
 
       // Strata (#2): canvas paints the bar/candle to a bitmap, so there is no
@@ -1255,105 +1286,121 @@ class Bar {
       isNewDatum = true
     }
 
-    if (oldD) {
-      const fromCount = Bar.pathCommandCount(oldD)
-      const toCount = Bar.pathCommandCount(pathTo)
-      if (fromCount === toCount) {
-        return oldD
-      }
-
-      // A corner state flipped without the datum changing. On a stacked chart
-      // that happens constantly: collapse a series and whichever layer inherits
-      // the top (or bottom) of the stack gains rounded corners, while the layer
-      // that left loses them on its way to zero. A rounded rect and a plain one
-      // do not have the same command count, and the morph engine can only
-      // reconcile that by parking phantom commands on the cursor, which is
-      // what drew the mangled, self-intersecting shapes: the leaving bar's
-      // control points crossed over each other and it shrank sideways instead
-      // of down.
-      //
-      // The fix is to stop asking the morph engine to bridge the mismatch and
-      // hand it two paths of the same shape instead. `roundPathCorners` decides
-      // which corners to round from the path's STRUCTURE, not from the radius,
-      // so rounding by ZERO returns a path that is geometrically identical to
-      // its input but carries the extra commands. That gives a padded twin of
-      // whichever side is short, sitting exactly where its original sits.
-      //
-      // It also animates the corner itself for free. Padding the square side by
-      // zero and morphing it against the genuinely rounded side means the
-      // radius grows in (or straightens out) across the tween, instead of
-      // popping on the first or last frame.
-      const graphics = new Graphics(w)
-
-      // A rounded corner is only ever correct on the OUTER edge of a stack.
-      // While a corner is being handed between two layers, the edge it sits on
-      // is an INTERIOR seam, and a corner there cuts two notches that show the
-      // neighbour through them, a rounded corner in the middle of a stack.
-      // That is the odd look; it is not a morphing artifact.
-      //
-      // So the rule is about which layer owns the outer edge for the WHOLE
-      // tween. A layer arriving from (or leaving to) zero extent owns it
-      // throughout and keeps its corner, which simply grows or tucks in with
-      // its own height. A layer that keeps real extent on both sides of the
-      // update is handing the edge over, and must show no corner while it does.
-      // Which side of the update carries the "still has real extent" test
-      // differs by direction, because it is always the OTHER end of the tween
-      // that says whether this layer is the one arriving at / vacating the
-      // edge (it owns it throughout, keeps its corner) or the one handing it
-      // over (its edge goes interior, so the corner must not be drawn).
-      //   gaining  → was it already there before?  (old extent)
-      //   losing   → is it still there after?      (new extent)
-      // Below a pixel there is no corner to see anyway.
-      const extentOf = (/** @type {string} */ d) => {
-        const box = Bar.pathBox(d)
-        return box
-          ? Math.min(box.maxX - box.minX, box.maxY - box.minY)
-          : 0
-      }
-      const handingOver =
-        fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1
-
-      if (fromCount < toCount) {
-        // Gaining a corner. Pad the old rect so the counts match either way.
-        const padded = graphics.roundPathCorners(oldD, 0)
-        if (Bar.pathCommandCount(padded) === toCount) {
-          if (handingOver && squarePathTo) {
-            // Inheriting the edge from a departing neighbour: travel square and
-            // round only on arrival, once that neighbour is gone. The landing
-            // is the final _plotSnap, so the corner appears with the bar
-            // already in place.
-            const squareTarget = graphics.roundPathCorners(squarePathTo, 0)
-            if (Bar.pathCommandCount(squareTarget) === toCount) {
-              this._pathToInterp = squareTarget
-            }
-          }
-          return padded
-        }
-      } else {
-        // Losing a corner. The target cannot be padded in place, so aim the
-        // tween at a padded twin of it and land on the clean path at the end;
-        // the twin is the same geometry, so that final swap is invisible.
-        const padded = graphics.roundPathCorners(pathTo, 0)
-        if (Bar.pathCommandCount(padded) === fromCount) {
-          this._pathToInterp = padded
-          if (handingOver) {
-            // Handing the edge to a neighbour that is arriving underneath: its
-            // edge is interior from frame 0, so the corner has to go now rather
-            // than shrink across the tween. Start from its own box, square.
-            const square = Bar.squareLike(oldD)
-            const squareStart = square
-              ? graphics.roundPathCorners(square, 0)
-              : null
-            if (squareStart && Bar.pathCommandCount(squareStart) === fromCount) {
-              return squareStart
-            }
-          }
-          return oldD
-        }
-      }
-    }
+    if (oldD) return this.cornerMorph(oldD, pathTo, squarePathTo)
     if (isNewDatum && lengthTransitionEnabled(w)) {
       return null
+    }
+    return pathTo
+  }
+
+  /**
+   * Where a bar morphing from `oldD` to `pathTo` starts, when the two may
+   * differ in corner state (see the note inside). When the tween has to aim
+   * at a padded twin of the target, the twin is left in _pathToInterp, which
+   * the caller has cleared; a pair that cannot be reconciled snaps to
+   * `pathTo`. The highlight filter's stacked parts hand their corners over by
+   * the same rule.
+   *
+   * @param {string} oldD
+   * @param {string} pathTo
+   * @param {string} [squarePathTo]
+   * @returns {string}
+   */
+  cornerMorph(oldD, pathTo, squarePathTo) {
+    const fromCount = Bar.pathCommandCount(oldD)
+    const toCount = Bar.pathCommandCount(pathTo)
+    if (fromCount === toCount) {
+      return oldD
+    }
+
+    // A corner state flipped without the datum changing. On a stacked chart
+    // that happens constantly: collapse a series and whichever layer inherits
+    // the top (or bottom) of the stack gains rounded corners, while the layer
+    // that left loses them on its way to zero. A rounded rect and a plain one
+    // do not have the same command count, and the morph engine can only
+    // reconcile that by parking phantom commands on the cursor, which is
+    // what drew the mangled, self-intersecting shapes: the leaving bar's
+    // control points crossed over each other and it shrank sideways instead
+    // of down.
+    //
+    // The fix is to stop asking the morph engine to bridge the mismatch and
+    // hand it two paths of the same shape instead. `roundPathCorners` decides
+    // which corners to round from the path's STRUCTURE, not from the radius,
+    // so rounding by ZERO returns a path that is geometrically identical to
+    // its input but carries the extra commands. That gives a padded twin of
+    // whichever side is short, sitting exactly where its original sits.
+    //
+    // It also animates the corner itself for free. Padding the square side by
+    // zero and morphing it against the genuinely rounded side means the
+    // radius grows in (or straightens out) across the tween, instead of
+    // popping on the first or last frame.
+    const graphics = new Graphics(this.w)
+
+    // A rounded corner is only ever correct on the OUTER edge of a stack.
+    // While a corner is being handed between two layers, the edge it sits on
+    // is an INTERIOR seam, and a corner there cuts two notches that show the
+    // neighbour through them, a rounded corner in the middle of a stack.
+    // That is the odd look; it is not a morphing artifact.
+    //
+    // So the rule is about which layer owns the outer edge for the WHOLE
+    // tween. A layer arriving from (or leaving to) zero extent owns it
+    // throughout and keeps its corner, which simply grows or tucks in with
+    // its own height. A layer that keeps real extent on both sides of the
+    // update is handing the edge over, and must show no corner while it does.
+    // Which side of the update carries the "still has real extent" test
+    // differs by direction, because it is always the OTHER end of the tween
+    // that says whether this layer is the one arriving at / vacating the
+    // edge (it owns it throughout, keeps its corner) or the one handing it
+    // over (its edge goes interior, so the corner must not be drawn).
+    //   gaining  → was it already there before?  (old extent)
+    //   losing   → is it still there after?      (new extent)
+    // Below a pixel there is no corner to see anyway.
+    const extentOf = (/** @type {string} */ d) => {
+      const box = Bar.pathBox(d)
+      return box
+        ? Math.min(box.maxX - box.minX, box.maxY - box.minY)
+        : 0
+    }
+    const handingOver =
+      fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1
+
+    if (fromCount < toCount) {
+      // Gaining a corner. Pad the old rect so the counts match either way.
+      const padded = graphics.roundPathCorners(oldD, 0)
+      if (Bar.pathCommandCount(padded) === toCount) {
+        if (handingOver && squarePathTo) {
+          // Inheriting the edge from a departing neighbour: travel square and
+          // round only on arrival, once that neighbour is gone. The landing
+          // is the final _plotSnap, so the corner appears with the bar
+          // already in place.
+          const squareTarget = graphics.roundPathCorners(squarePathTo, 0)
+          if (Bar.pathCommandCount(squareTarget) === toCount) {
+            this._pathToInterp = squareTarget
+          }
+        }
+        return padded
+      }
+    } else {
+      // Losing a corner. The target cannot be padded in place, so aim the
+      // tween at a padded twin of it and land on the clean path at the end;
+      // the twin is the same geometry, so that final swap is invisible.
+      const padded = graphics.roundPathCorners(pathTo, 0)
+      if (Bar.pathCommandCount(padded) === fromCount) {
+        this._pathToInterp = padded
+        if (handingOver) {
+          // Handing the edge to a neighbour that is arriving underneath: its
+          // edge is interior from frame 0, so the corner has to go now rather
+          // than shrink across the tween. Start from its own box, square.
+          const square = Bar.squareLike(oldD)
+          const squareStart = square
+            ? graphics.roundPathCorners(square, 0)
+            : null
+          if (squareStart && Bar.pathCommandCount(squareStart) === fromCount) {
+            return squareStart
+          }
+        }
+        return oldD
+      }
     }
     return pathTo
   }

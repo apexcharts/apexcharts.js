@@ -687,6 +687,9 @@ export interface ChartGlobals
     done: boolean
     finish(): void
   } | null
+  // Highlight-filter fades in flight (features/highlight-filter); an export
+  // lands them first so it never serialises a half frame.
+  highlightTween?: { finish(): void } | null
   // Bar/column data-label snapshot (per-datum pixel position + raw value),
   // captured alongside prevStreamFrame and consumed once by
   // DataLabelTransition after a data-change re-render mounts. Keyed by
@@ -884,6 +887,13 @@ export interface ChartStateW {
   waterfallData: WaterfallData
   dumbbellData: DumbbellData | null
   streamgraphData: StreamgraphData | null
+  /** Highlight filter parts (features/highlight-filter); null without it. */
+  highlightData: {
+    active: boolean
+    parts: (number | null)[][]
+    ext: (number | null)[][] | null
+    capture(): void
+  } | null
   labelData: LabelData
   axisFlags: AxisFlags
   seriesData: SeriesData
@@ -971,6 +981,7 @@ export interface ChartContext {
   measure: any
   contextMenu: any
   weave: any
+  highlightFilter: any
   renderer: any
   rendererController: any
 

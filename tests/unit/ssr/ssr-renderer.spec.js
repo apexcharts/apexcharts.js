@@ -251,6 +251,218 @@ describe('SSRRenderer', () => {
       expect(svg).toContain('<svg')
     })
 
+    it('renders a highlight-filter part as the final frame', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      const svg = await SSRRenderer.renderToString({
+        series: [{ name: 'Revenue', data: [10, 20, 30], highlightData: [4, 8, 12] }],
+        chart: { type: 'bar' },
+        xaxis: { categories: ['Q1', 'Q2', 'Q3'] },
+      })
+
+      // three parts drawn solid, every whole faded
+      expect(svg.match(/apexcharts-bar-highlight-part/g)?.length).toBe(3)
+      expect(svg).toContain('fill-opacity="0.2"')
+      // the parts are solid: the wholes' ink, landed at full strength
+      const parts = svg.match(/<path[^>]*apexcharts-bar-highlight-part[^>]*>/g)
+      for (const p of parts) {
+        expect(p).toMatch(/fill="rgb\(/)
+        expect(p).toContain('fill-opacity="1"')
+      }
+    })
+
+    it('renders a highlighted donut as the final frame', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      const svg = await SSRRenderer.renderToString({
+        chart: { type: 'donut', width: 400, height: 400 },
+        series: [40, 30, 20, 10],
+        labels: ['North', 'South', 'East', 'West'],
+        dataLabels: { enabled: true },
+        plotOptions: {
+          pie: { donut: { labels: { show: true, total: { show: true } } } },
+        },
+        highlightFilter: { data: [20, 15, 5, null] },
+      })
+      // three parts solid, every slice faded, the centre stating the parts
+      expect(svg.match(/apexcharts-pie-highlight-part/g)?.length).toBe(3)
+      expect(svg.match(/fill-opacity="0.2"/g)?.length).toBe(4)
+      expect(svg).toMatch(/>Total<\/text><text[^>]*>40</)
+      // each label states its part, none is left mid-ride, and the slice
+      // with no part has none
+      for (const l of ['20.0%', '15.0%', '5.0%']) {
+        expect(svg).toMatch(new RegExp(`<text(?![^>]*transform)[^>]*>${l}<`))
+      }
+      expect(svg).not.toContain('>10.0%<')
+    })
+
+    it('renders a highlighted gauge and rings as the final frame', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      // (A radialBar's centre labels do not server-render yet, highlight or
+      // not: Pie.renderInnerDataLabels finds no labels group there.)
+      const plotOptions = { radialBar: { dataLabels: { show: false } } }
+      const gauge = await SSRRenderer.renderToString({
+        chart: { type: 'gauge', width: 400, height: 400 },
+        series: [70],
+        plotOptions,
+        highlightFilter: { data: [40], radialBar: { indicator: 'arc' } },
+      })
+      // an arc gauge splits its arc: the ring faded, the part solid on it
+      expect(gauge.match(/apexcharts-radialbar-highlight-part/g)?.length).toBe(
+        1,
+      )
+      expect(gauge).toContain('stroke-opacity="0.2"')
+      expect(gauge).not.toContain('apexcharts-gauge-needle-highlight')
+      const dial = await SSRRenderer.renderToString({
+        chart: { type: 'gauge', width: 400, height: 400 },
+        series: [70],
+        plotOptions: { radialBar: { ...plotOptions.radialBar, shape: 'needle' } },
+        highlightFilter: { data: [40] },
+      })
+      // a needle gauge: the second needle at the part, landed, and its own
+      // needle faded as the whole
+      expect(dial).toMatch(
+        /class="apexcharts-gauge-needle-highlight"[^>]*transform="rotate\(-27/,
+      )
+      expect(dial).toMatch(/class="apexcharts-gauge-needle"[^>]*opacity="0.2"/)
+      const rings = await SSRRenderer.renderToString({
+        chart: { type: 'radialBar', width: 400, height: 400 },
+        series: [70, 50],
+        plotOptions,
+        highlightFilter: { data: [40, 80] },
+      })
+      // each ring faded, its part solid on it (one past its whole, whose end
+      // a landed tick marks)
+      expect(rings.match(/apexcharts-radialbar-highlight-part/g)?.length).toBe(
+        2,
+      )
+      expect(rings.match(/stroke-opacity="0.2"/g)?.length).toBe(2)
+      expect(rings).toContain('apexcharts-highlight-part')
+      expect(
+        rings.match(
+          /<path[^>]*apexcharts-radialbar-highlight-edge[^>]*stroke-opacity="0.75"|<path[^>]*stroke-opacity="0.75"[^>]*apexcharts-radialbar-highlight-edge/g,
+        )?.length,
+      ).toBe(1)
+    })
+
+    it('renders a single dial split in lanes, its centre included', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      const svg = await SSRRenderer.renderToString({
+        chart: { type: 'gauge', width: 400, height: 400 },
+        series: [70],
+        highlightFilter: { data: [40], radialBar: { indicator: 'lanes' } },
+      })
+      // the ring hidden under its two lanes, landed, and the inner lane's
+      // own track beside the ring's
+      expect(svg.match(/apexcharts-radialbar-highlight-lane/g)?.length).toBe(2)
+      expect(svg).toMatch(
+        /<path[^>]*stroke-opacity="0"[^>]*apexcharts-radialbar-slice-0/,
+      )
+      expect(svg).toMatch(
+        /<path[^>]*stroke-opacity="0.45"[^>]*apexcharts-radialbar-highlight-whole/,
+      )
+      expect(svg).toContain('apexcharts-radialbar-highlight-track')
+      expect(svg).not.toContain('apexcharts-radialbar-highlight-edge')
+      // the centre: the part, and the whole under it, at full strength
+      expect(svg).toMatch(/>40%<\/text>/)
+      expect(svg).toMatch(
+        /<text(?![^>]*opacity="0")[^>]*apexcharts-datalabel-whole[^>]*>\/ 70%<\/text>/,
+      )
+    })
+
+    it('renders a highlighted line and area as the final frame', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      const series = [
+        { name: 'Visits', data: [10, 20, 30], highlightData: [4, 8, 12] },
+      ]
+      const line = await SSRRenderer.renderToString({
+        series,
+        chart: { type: 'line' },
+        dataLabels: { enabled: true },
+        xaxis: { categories: ['Q1', 'Q2', 'Q3'] },
+      })
+      // the whole dashed, the part solid, the labels stating the part
+      expect(line.match(/apexcharts-line-highlight-part/g)?.length).toBe(1)
+      expect(line).toContain('stroke-dasharray="4"')
+      expect(line).toMatch(/>12<\/t/)
+      const area = await SSRRenderer.renderToString({
+        series,
+        chart: { type: 'area' },
+        xaxis: { categories: ['Q1', 'Q2', 'Q3'] },
+      })
+      expect(area.match(/apexcharts-line-highlight-part/g)?.length).toBe(2)
+      expect(area).toContain('fill-opacity="0.2"')
+    })
+
+    it('renders a highlighted stacked column and stacked area as the final frame', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      const series = [
+        { name: 'A', data: [10, 20, 30], highlightData: [4, 8, 12] },
+        { name: 'B', data: [6, 5, 4], highlightData: [3, null, 2] },
+      ]
+      const column = await SSRRenderer.renderToString({
+        series,
+        chart: { type: 'bar', stacked: true },
+        dataLabels: { enabled: true },
+        plotOptions: { bar: { dataLabels: { total: { enabled: true } } } },
+        xaxis: { categories: ['Q1', 'Q2', 'Q3'] },
+      })
+      // a part per non-null datum, every whole segment faded, the segment
+      // labels and the totals stating the parts
+      expect(column.match(/apexcharts-bar-highlight-part/g)?.length).toBe(5)
+      expect(column.match(/fill-opacity="0.2"/g)?.length).toBe(6)
+      expect(column).toMatch(/>12<\/t/)
+      expect(column).toMatch(/>14<\/t/)
+      expect(column).not.toMatch(/>34<\/t/)
+      const area = await SSRRenderer.renderToString({
+        series,
+        chart: { type: 'area', stacked: true },
+        xaxis: { categories: ['Q1', 'Q2', 'Q3'] },
+      })
+      // per series a part fill and a part stroke over the faded whole
+      expect(area.match(/apexcharts-line-highlight-part/g)?.length).toBe(4)
+      expect(area.match(/fill-opacity="0\.\d+"/g)?.length).toBeGreaterThan(1)
+      // no tween ran: nothing is held at a first frame
+      expect(area).not.toContain('fill-opacity="0"')
+      expect(column).not.toContain('fill-opacity="0"')
+    })
+
+    it('renders a highlighted treemap, flat and nested, as the final frame', async () => {
+      await import('../../../src/features/highlight-filter.js')
+      const flat = await SSRRenderer.renderToString({
+        chart: { type: 'treemap', width: 500, height: 300 },
+        series: [
+          {
+            name: 'S',
+            data: [
+              { x: 'A', y: 40, highlight: 10 },
+              { x: 'B', y: 30, highlight: 15 },
+              { x: 'C', y: 20 },
+            ],
+          },
+        ],
+      })
+      // every tile filled by its own gradient at the landed share
+      expect(flat.match(/fill="url\(#SvgjsGradient\d+\)"/g)?.length).toBe(3)
+      expect(flat).toMatch(/<stop offset="0\.25"[^>]*stop-opacity="1"/)
+      expect(flat).toMatch(/<stop offset="0\.25"[^>]*stop-opacity="0\.2"/)
+      expect(flat).toContain('data:hl-share="0.5"')
+      expect(flat).toContain('apexcharts-highlight-tile')
+      const nested = await SSRRenderer.renderToString({
+        chart: { type: 'treemap', width: 500, height: 300 },
+        series: [
+          {
+            name: 'Shop',
+            data: [
+              { x: 'G1', children: [{ x: 'a', y: 40, highlight: 30 }, { x: 'b', y: 20 }] },
+              { x: 'G2', children: [{ x: 'c', y: 30, highlight: 3 }] },
+            ],
+          },
+        ],
+      })
+      expect(nested.match(/fill="url\(#SvgjsGradient\d+\)"/g)?.length).toBe(3)
+      expect(nested).toMatch(/<stop offset="0\.75"[^>]*stop-opacity="0\.2"/)
+      expect(nested).toContain('data:hl-share="0.1"')
+    })
+
     it('renders a pie chart to an SVG string without throwing', async () => {
       const svg = await SSRRenderer.renderToString({
         series: [44, 55, 13],

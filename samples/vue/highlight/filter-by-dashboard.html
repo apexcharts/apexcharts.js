@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Filter By with the Highlight Filter</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 16px;
+      }
+      .card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        min-width: 0;
+      }
+      .readout {
+        font-size: 13px;
+        color: #5b6b78;
+        margin: 0 0 12px;
+        min-height: 18px;
+      }
+      .readout b {
+        color: #2c3e50;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/features/highlight-filter.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Revenue ($k) per product, region and quarter. The left chart sums it per
+    // product; the right one per region and quarter. Clicking a product filters
+    // the right chart BY it without dropping anything: every column keeps its
+    // full revenue, faded, and the product's share is drawn solid in front.
+    var PRODUCTS = ['Laptops', 'Phones', 'Tablets', 'Audio']
+    var REGIONS = ['North', 'South']
+    var QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4']
+    var REVENUE = {
+      Laptops: { North: [42, 38, 45, 61], South: [30, 28, 33, 44] },
+      Phones: { North: [55, 49, 52, 70], South: [48, 51, 47, 66] },
+      Tablets: { North: [18, 15, 17, 26], South: [22, 19, 21, 25] },
+      Audio: { North: [12, 14, 13, 21], South: [9, 11, 10, 16] },
+    }
+
+    function sum(a) {
+      return a.reduce(function (s, v) {
+        return s + v
+      }, 0)
+    }
+    function productTotal(p) {
+      return sum(
+        REGIONS.map(function (r) {
+          return sum(REVENUE[p][r])
+        }),
+      )
+    }
+    function regionQuarters(r, onlyProduct) {
+      return QUARTERS.map(function (q, k) {
+        return sum(
+          PRODUCTS.filter(function (p) {
+            return !onlyProduct || p === onlyProduct
+          }).map(function (p) {
+            return REVENUE[p][r][k]
+          }),
+        )
+      })
+    }
+
+    // The picked product, or null.
+    var picked = null
+
+    function productSeries() {
+      var totals = PRODUCTS.map(productTotal)
+      var s = { name: 'Revenue', data: totals }
+      // On the source chart the pick is the whole of its own column, so it stays
+      // solid while the others fade.
+      if (picked) {
+        s.highlightData = PRODUCTS.map(function (p, j) {
+          return p === picked ? totals[j] : null
+        })
+      }
+      return [s]
+    }
+
+    function quarterSeries() {
+      return REGIONS.map(function (r) {
+        var s = { name: r, data: regionQuarters(r) }
+        if (picked) s.highlightData = regionQuarters(r, picked)
+        return s
+      })
+    }
+
+    function pickProduct(index) {
+      var product = PRODUCTS[index]
+      picked = picked === product ? null : product
+      var readout = document.getElementById('readout')
+      if (readout) {
+        readout.innerHTML = picked
+          ? 'Filtered by <b>' + picked + '</b>. Click it again to clear.'
+          : 'Click a product to filter the quarters by it.'
+      }
+      // Let the click handler unwind before both charts redraw.
+      Promise.resolve().then(function () {
+        ApexCharts.getChartByID('products').updateSeries(productSeries())
+        ApexCharts.getChartByID('quarters').updateSeries(quarterSeries())
+      })
+    }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>Filter by a product, keep the whole picture</h1>
+      <p>
+        Click a product on the left. The quarters on the right keep every
+        region's full revenue, faded, with that product's share solid in front,
+        so you see both how much it sold and how much of the business it is.
+      </p>
+      <div class="readout" id="readout">Click a product to filter the quarters by it.</div>
+      <div class="grid">
+        <div class="card"><div id="chart">
+      <apexchart type="bar" height="320" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+        <div class="card"><div id="chart2">
+      <apexchart type="bar" height="320" :options="chartOptions1" :series="series1"></apexchart>
+    </div></div>
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;Filter by a product, keep the whole picture&lt;/h1&gt;
+        &lt;p&gt;
+          Click a product on the left. The quarters on the right keep every
+          region&#39;s full revenue, faded, with that product&#39;s share solid in front,
+          so you see both how much it sold and how much of the business it is.
+        &lt;/p&gt;
+        &lt;div class=&quot;readout&quot; id=&quot;readout&quot;&gt;Click a product to filter the quarters by it.&lt;/div&gt;
+        &lt;div class=&quot;grid&quot;&gt;
+          &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;320&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;card&quot;&gt;&lt;div id=&quot;chart2&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;320&quot; :options=&quot;chartOptions1&quot; :series=&quot;series1&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: productSeries(),
+          chartOptions: {
+            chart: {
+              id: 'products',
+              type: 'bar',
+              height: 320,
+              toolbar: { show: false },
+              events: {
+                dataPointSelection: function (e, ctx, opts) {
+                  pickProduct(opts.dataPointIndex)
+                },
+              },
+            },
+            colors: ['#0f766e'],
+            plotOptions: {
+              bar: { horizontal: true, barHeight: '64%', borderRadius: 3 },
+            },
+            states: { active: { filter: { type: 'none' } } },
+            dataLabels: { enabled: false },
+            xaxis: {
+              categories: PRODUCTS,
+              tickAmount: 3,
+              labels: {
+                formatter: function (v) {
+                  return '$' + v + 'k'
+                },
+              },
+            },
+            // On the source chart the pick is its own column, so a tooltip row for the
+            // part would only repeat the total.
+            highlightFilter: {
+              tooltip: { show: false },
+              dataLabels: { value: 'whole' },
+            },
+            legend: { show: false },
+            title: { text: 'Revenue by product', style: { fontSize: '13px' } },
+            tooltip: {
+              y: {
+                formatter: function (v) {
+                  return '$' + v + 'k'
+                },
+              },
+            },
+          },
+
+          series1: quarterSeries(),
+          chartOptions1: {
+            chart: {
+              id: 'quarters',
+              type: 'bar',
+              height: 320,
+              toolbar: { show: false },
+            },
+            colors: ['#2563eb', '#f59e0b'],
+            plotOptions: {
+              bar: { columnWidth: '70%', borderRadius: 3 },
+            },
+            dataLabels: { enabled: false },
+            stroke: { show: true, width: 1, colors: ['transparent'] },
+            xaxis: { categories: QUARTERS },
+            yaxis: {
+              labels: {
+                formatter: function (v) {
+                  return '$' + v + 'k'
+                },
+              },
+            },
+            legend: { position: 'bottom' },
+            title: { text: 'Revenue by quarter', style: { fontSize: '13px' } },
+            tooltip: {
+              shared: true,
+              intersect: false,
+              y: {
+                formatter: function (v) {
+                  return '$' + v + 'k'
+                },
+              },
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

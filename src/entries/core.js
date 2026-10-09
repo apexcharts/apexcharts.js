@@ -28,6 +28,13 @@ export {
   prefersReducedMotion as __apex_Animations_prefersReducedMotion,
   applyProgressiveReveal as __apex_Animations_applyProgressiveReveal,
 } from '../modules/Animations.js'
+export {
+  easeInOutSine as __apex_Easing_easeInOutSine,
+  DEFAULT_EASING_NAME as __apex_Easing_DEFAULT_EASING_NAME,
+  cubicBezier as __apex_Easing_cubicBezier,
+  registerEasing as __apex_Easing_registerEasing,
+  resolveEasing as __apex_Easing_resolveEasing,
+} from '../modules/animations/Easing.js'
 export { default as __apex_Base } from '../modules/Base.js'
 export { register as __apex_ChartFactory_register, getChartClass as __apex_ChartFactory_getChartClass, isCustom as __apex_ChartFactory_isCustom } from '../modules/ChartFactory.js'
 export { default as __apex_Core } from '../modules/Core.js'

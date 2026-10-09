@@ -4,11 +4,11 @@
  *
  * Gates these premium features, and ONLY when they are actually IN USE (not
  * merely bundled): storyboard, link (crossfilter/linked views), ink, measure,
- * context-menu, perspectives, history, PLUS the premium chart TYPES: `unit`
- * (dot-cluster / pictogram) and `raincloud`. Everything else (all OTHER chart
- * types, and the free modules weave / renderer-canvas / marks / facet /
- * drilldown / morph / annotations / legend / toolbar / keyboard / exports, and
- * the always-on core) is never gated.
+ * context-menu, perspectives, history, highlight-filter, PLUS the premium
+ * chart TYPES: `unit` (dot-cluster / pictogram) and `raincloud`. Everything
+ * else (all OTHER chart types, and the free modules weave / renderer-canvas /
+ * marks / facet / drilldown / morph / annotations / legend / toolbar /
+ * keyboard / exports, and the always-on core) is never gated.
  *
  * Enforcement is trial-mode: a premium feature without a valid, entitled license
  * keeps working, but the chart shows an "APEXCHARTS" watermark. These features
@@ -143,6 +143,9 @@ export function premiumFeaturesInUse(w, ctx) {
   if (ctx.history && chart.history && chart.history.enabled === true) {
     used.push('history')
   }
+
+  // highlight-filter: in use when this render draws parts.
+  if (ctx._highlightFilter?.isActive()) used.push('highlight-filter')
 
   return used
 }

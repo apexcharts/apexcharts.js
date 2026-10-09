@@ -558,6 +558,9 @@ export default class Drilldown {
     //
     // overwriteInitial* stay false: resetSeries() must still return to the user's
     // original top-level data, not whichever level we drilled to.
+    //
+    // The highlight-filter pick belongs to the page, not to a drill level.
+    this.ctx.highlightFilter?.drillView(view)
     const runUpdate = (anim) =>
       this.ctx.updateOptions(view, false, anim, false, false)
 

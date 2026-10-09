@@ -467,3 +467,42 @@ describe('Series — getBarSeriesIndices()', () => {
     expect(indices).toContain(2)     // column → included
   })
 })
+
+describe('Series: capturePreviousPaths() mid-morph', () => {
+  const options = (type) => ({
+    chart: { type, width: 400, height: 200 },
+    series: [{ name: 'A', data: [3, 8, 5, 9] }],
+    xaxis: { categories: ['a', 'b', 'c', 'd'] },
+  })
+
+  for (const type of ['line', 'area']) {
+    it(`a ${type} records where it is drawn, not where its morph is going`, () => {
+      const chart = createChartWithOptions(options(type))
+      const paths = [
+        ...chart.w.dom.baseEl.querySelectorAll(
+          `.apexcharts-series > .apexcharts-${type}`,
+        ),
+      ]
+      expect(paths.length).toBeGreaterThan(0)
+      // caught mid-morph: what is drawn is not the target yet
+      paths.forEach((p) => p.setAttribute('d', 'M 0 10 L 50 20'))
+      chart.series.capturePreviousPaths()
+      const rec = chart.w.globals.previousPaths.find((r) => r.type === type)
+      expect(rec.paths[0].d).toBe('M 0 10 L 50 20')
+      // a legend-hidden series has had its d cleared: it keeps its target
+      paths.forEach((p) => p.setAttribute('d', ''))
+      chart.series.capturePreviousPaths()
+      const hid = chart.w.globals.previousPaths.find((r) => r.type === type)
+      expect(hid.paths[0].d).toBe(paths[0].getAttribute('pathTo'))
+    })
+  }
+
+  it('a bar keeps recording its target', () => {
+    const chart = createChartWithOptions(options('bar'))
+    const bar = chart.w.dom.baseEl.querySelector('.apexcharts-bar-area')
+    bar.setAttribute('d', 'M 0 10 L 50 20')
+    chart.series.capturePreviousPaths()
+    const rec = chart.w.globals.previousPaths.find((r) => r.type === 'bar')
+    expect(rec.paths[0].d).toBe(bar.getAttribute('pathTo'))
+  })
+})

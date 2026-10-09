@@ -129,7 +129,13 @@ export default class TrellisSync {
     if (!xw || xw.min == null || xw.max == null) return
     if (!t.split || !t.split.xIsNumeric) return
 
-    const ext = yExtentInWindow(t.split.panels, t.split.xForm, xw.min, xw.max)
+    const ext = yExtentInWindow(
+      t.split.panels,
+      t.split.xForm,
+      xw.min,
+      xw.max,
+      t._stackingHost().parts,
+    )
     if (!ext) return
     const y = niceBounds(ext.min, ext.max, cfg.targetTicks || DEFAULT_TARGET_TICKS)
     if (this.currentWindow) {

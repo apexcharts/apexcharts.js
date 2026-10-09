@@ -252,14 +252,25 @@ function makeAligner(u, warnings, alignToUnion = true) {
       const data = Array.isArray(s.data) ? s.data.slice(0, targetLen) : []
       while (data.length < targetLen) data.push(null)
       out.data = data
+      // A parts array parallel to data (highlight filter) follows it.
+      if (Array.isArray(s.highlightData)) {
+        const hd = s.highlightData.slice(0, targetLen)
+        while (hd.length < targetLen) hd.push(null)
+        out.highlightData = hd
+      }
       return out
     }
     /** @type {Map<any, any>} */
     const map = new Map()
-    s.data.forEach((/** @type {any} */ d) => {
+    /** @type {Map<any, any>} */
+    const parts = new Map()
+    const hd = Array.isArray(s.highlightData) ? s.highlightData : null
+    s.data.forEach((/** @type {any} */ d, /** @type {number} */ idx) => {
       const x = xKeyOf(d, form)
-      if (x !== undefined && !map.has(x)) map.set(x, d)
-      else if (x !== undefined && map.has(x)) {
+      if (x !== undefined && !map.has(x)) {
+        map.set(x, d)
+        if (hd) parts.set(x, hd[idx])
+      } else if (x !== undefined && map.has(x)) {
         warnings.push(
           `trellis: duplicate x "${String(x)}" in series "${name}"; keeping the first`,
         )
@@ -268,6 +279,11 @@ function makeAligner(u, warnings, alignToUnion = true) {
     out.data = u.unionX.map((x) =>
       map.has(x) ? map.get(x) : placeholderFor(x, form),
     )
+    if (hd) {
+      out.highlightData = u.unionX.map((x) =>
+        parts.has(x) ? parts.get(x) : null,
+      )
+    }
     return out
   }
 

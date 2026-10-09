@@ -532,6 +532,8 @@ export default class UpdateHelpers {
           ? s.hidden
           : /** @type {any} */ (ser)?.hidden,
       data: s.data ? s.data : /** @type {any} */ (ser)?.data,
+      // Not inherited: a series sent without its part has been cleared.
+      highlightData: s.highlightData,
       zIndex: typeof s.zIndex !== 'undefined' ? s.zIndex : i,
     }
   }

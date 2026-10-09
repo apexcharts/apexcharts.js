@@ -716,7 +716,9 @@ export default class Defaults {
               show: true,
               fontSize: '32px',
               fontWeight: 600,
-              offsetY: 8,
+              // Placed as the gauge is drawn (see Radial.draw): 8, or on the
+              // needle shape below where the needle reaches.
+              offsetY: undefined,
             },
           },
         },

@@ -1,0 +1,382 @@
+<title>Gauge Highlight Filter</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+h2 {
+  font-size: 16px;
+  margin: 28px 0 6px;
+}
+h2 small {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0284c7;
+  margin-bottom: 2px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  max-width: 760px;
+}
+code {
+  font-size: 13px;
+  background: #eef2f6;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.actions {
+  margin: 8px 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.actions span {
+  font-size: 13px;
+  color: #5b6b78;
+  margin-right: 4px;
+}
+.actions button {
+  color: #2c3e50;
+  background: #fff;
+  border: 1px solid #cfd8e3;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.actions button.active {
+  color: #fff;
+  background: #0284c7;
+  border-color: #0284c7;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+}
+@media (max-width: 680px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>
+
+<scripts>
+<script src="../../../dist/features/highlight-filter.js"></script>
+<script>
+// Shared by the vanilla-js, React and Vue builds.
+//
+// The company's figures are the wholes and one region's are the parts. A
+// pick is an ordinary update of highlightFilter.data, one value per ring;
+// null clears it.
+//
+// Sums: the company's figure is the regions added up, so every part fits
+// inside its whole. Orders shipped this month (against a target of 12,000),
+// and each team's progress toward its quarterly goal, split by the region
+// that contributed it (the three regions add up to the team's figure).
+var TARGET = 12000
+var SHIPPED = 9300
+var SHIPPED_BY_REGION = { americas: 4100, europe: 3200, apac: 2000 }
+var TEAMS = ['Sales', 'Support', 'Product']
+var GOALS = [72, 58, 85]
+var GOALS_BY_REGION = {
+  americas: [32, 20, 38],
+  europe: [24, 22, 27],
+  apac: [16, 16, 20]
+}
+
+// Averages: a score or a rate over every region, which one region can beat.
+// Customer satisfaction (split in lanes) and tickets resolved the same day
+// (a second needle).
+var SATISFACTION = 78
+var SATISFACTION_BY_REGION = { americas: 84, europe: 71, apac: 66 }
+var SAME_DAY = 64
+var SAME_DAY_BY_REGION = { americas: 71, europe: 58, apac: 49 }
+
+function pickRegion(region) {
+  document.querySelectorAll('[data-region]').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-region') === region)
+  })
+  ApexCharts.getChartByID('shipped').updateOptions({
+    highlightFilter: { data: region ? [SHIPPED_BY_REGION[region]] : null }
+  })
+  ApexCharts.getChartByID('goals').updateOptions({
+    highlightFilter: { data: region ? GOALS_BY_REGION[region] : null }
+  })
+  ApexCharts.getChartByID('satisfaction').updateOptions({
+    highlightFilter: { data: region ? [SATISFACTION_BY_REGION[region]] : null }
+  })
+  ApexCharts.getChartByID('same-day').updateOptions({
+    highlightFilter: { data: region ? [SAME_DAY_BY_REGION[region]] : null }
+  })
+}
+
+function wireRegions() {
+  document.querySelectorAll('[data-region]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      pickRegion(b.getAttribute('data-region'))
+    })
+  })
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>How does one region compare with the whole company?</h1>
+  <p>
+    Pick a region. The company's figure stays faded and the region's is
+    drawn solid in front. Hover any arc or needle for both values.
+  </p>
+  <div class="actions">
+    <span>Region</span>
+    <button data-region="americas" class="active">Americas</button>
+    <button data-region="europe">Europe</button>
+    <button data-region="apac">Asia Pacific</button>
+    <button data-region="">All (clear)</button>
+  </div>
+
+  <h2><small>Sums</small>The region is a share of the company</h2>
+  <p>
+    The company's figure is the three regions added up, so a region's arc
+    always ends inside it. On the rings, the solid arc is the region's
+    contribution to each team's goal.
+  </p>
+  <div class="grid">
+    <div class="card">{{ charts[0] }}</div>
+    <div class="card">{{ charts[1] }}</div>
+  </div>
+
+  <h2><small>Averages</small>A region can beat the company</h2>
+  <p>
+    A score or a rate is an average, so a region can sit above the company.
+    The satisfaction gauge uses <code>indicator: 'lanes'</code> to draw the
+    two side by side; the needle gauge fades the company's needle.
+  </p>
+  <div class="grid">
+    <div class="card">{{ charts[2] }}</div>
+    <div class="card">{{ charts[3] }}</div>
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'shipped',
+  type: 'gauge',
+  height: 300,
+  toolbar: { show: false },
+},
+labels: ['Orders shipped'],
+colors: ['#0284c7'],
+plotOptions: {
+  radialBar: {
+    // A count on its own domain: 0 to the month's target.
+    min: 0,
+    max: TARGET,
+    dataLabels: {
+      value: {
+        fontSize: '28px',
+        formatter: function (v) {
+          return Number(v).toLocaleString()
+        },
+      },
+    },
+  },
+},
+tooltip: {
+  y: { formatter: function (v) { return Number(v).toLocaleString() } },
+},
+title: { text: 'Orders shipped this month, target 12,000', style: { fontSize: '13px' } },
+highlightFilter: { data: [SHIPPED_BY_REGION.americas] },
+</options>
+
+<series>
+[SHIPPED]
+</series>
+</chart>
+
+<chart>
+<options>
+chart: {
+  id: 'goals',
+  type: 'radialBar',
+  height: 340,
+  toolbar: { show: false },
+},
+labels: TEAMS,
+colors: ['#0284c7', '#f59e0b', '#e11d48'],
+plotOptions: {
+  radialBar: {
+    hollow: { size: '38%' },
+    track: { margin: 4 },
+    dataLabels: {
+      name: { fontSize: '13px' },
+      value: { fontSize: '20px' },
+      total: {
+        show: true,
+        label: 'Average',
+        // While a region is picked the totals read its parts (the default
+        // highlightFilter.dataLabels.total: 'part'), so this averages the
+        // region's contributions; cleared, the teams' progress.
+        formatter: function (w) {
+          var t = w.globals.seriesTotals
+          return Math.round(t.reduce(function (a, b) { return a + b }, 0) / t.length) + '%'
+        },
+      },
+    },
+  },
+},
+legend: { show: true, position: 'bottom' },
+title: { text: 'Quarterly goal reached, by team', style: { fontSize: '13px' } },
+highlightFilter: { data: GOALS_BY_REGION.americas },
+</options>
+
+<series>
+GOALS
+</series>
+</chart>
+
+<chart>
+<options>
+chart: {
+  id: 'satisfaction',
+  type: 'gauge',
+  height: 300,
+  toolbar: { show: false },
+},
+labels: ['Satisfaction'],
+colors: ['#0f766e'],
+plotOptions: {
+  radialBar: {
+    dataLabels: {
+      value: {
+        fontSize: '28px',
+        // The centre reads the region; while one is picked, a second line
+        // under it reads the whole (opts.lane is 'whole' for that line).
+        formatter: function (v, w, opts) {
+          return (opts && opts.lane === 'whole' ? 'company ' : '') + v + '%'
+        },
+      },
+    },
+  },
+},
+title: { text: 'Customer satisfaction', style: { fontSize: '13px' } },
+highlightFilter: {
+  data: [SATISFACTION_BY_REGION.americas],
+  // Made for a part that can pass its whole: two lanes, never overlapping.
+  radialBar: { indicator: 'lanes' },
+},
+</options>
+
+<series>
+[SATISFACTION]
+</series>
+</chart>
+
+<chart>
+<options>
+chart: {
+  id: 'same-day',
+  type: 'gauge',
+  height: 300,
+  toolbar: { show: false },
+},
+labels: ['Same-day resolution'],
+colors: ['#ea580c'],
+plotOptions: {
+  radialBar: {
+    shape: 'needle',
+    needle: { length: '78%' },
+    ticks: {
+      show: true,
+      major: { count: 6, length: 6 },
+      minor: { count: 1, length: 3 },
+      labels: { show: true, fontSize: '10px' },
+    },
+    dataLabels: { value: { fontSize: '22px' } },
+  },
+},
+title: { text: 'Tickets resolved the same day', style: { fontSize: '13px' } },
+highlightFilter: { data: [SAME_DAY_BY_REGION.americas] },
+</options>
+
+<series>
+[SAME_DAY]
+</series>
+</chart>
+
+<vanilla-js-script>
+wireRegions()
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrappers own the renders, so reach the live
+  // instances by their chart.id. (pickRegion lives in the shared head script.)
+  const timer = window.setInterval(() => {
+    if (
+      !ApexCharts.getChartByID('shipped') ||
+      !ApexCharts.getChartByID('goals') ||
+      !ApexCharts.getChartByID('satisfaction') ||
+      !ApexCharts.getChartByID('same-day')
+    ) return
+    window.clearInterval(timer)
+    wireRegions()
+  }, 50)
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+regionTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrappers own the renders, so reach the live instances
+  // by their chart.id. (pickRegion lives in the shared head script.)
+  var me = this
+  me.regionTimer = window.setInterval(function () {
+    if (
+      !ApexCharts.getChartByID('shipped') ||
+      !ApexCharts.getChartByID('goals') ||
+      !ApexCharts.getChartByID('satisfaction') ||
+      !ApexCharts.getChartByID('same-day')
+    ) return
+    window.clearInterval(me.regionTimer)
+    wireRegions()
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.regionTimer)
+},
+</vue-script>

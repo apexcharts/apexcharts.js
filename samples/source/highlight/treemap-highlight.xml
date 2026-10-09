@@ -1,0 +1,234 @@
+<title>Treemap Highlight Filter</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.actions {
+  margin: 0 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.actions span {
+  font-size: 13px;
+  color: #5b6b78;
+  margin-right: 4px;
+}
+.actions button {
+  color: #2c3e50;
+  background: #fff;
+  border: 1px solid #cfd8e3;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.actions button.active {
+  color: #fff;
+  background: #0284c7;
+  border-color: #0284c7;
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/features/highlight-filter.js"></script>
+<script>
+// Shared by the vanilla-js, React and Vue builds.
+//
+// Revenue (in $k) per product, grouped by department and category. Each
+// product also knows how much of it each region sold. Picking a region keeps
+// every tile at its full size, faded, and fills it solid from the bottom up
+// to that region's share of it; the department and category headers add the
+// region's products up.
+function product(name, total, north, south, west) {
+  return { x: name, y: total, region: { north: north, south: south, west: west } }
+}
+var DEPARTMENTS = [
+  {
+    name: 'Apparel',
+    data: [
+      { x: 'Outerwear', children: [product('Jackets', 96, 52, 18, 26), product('Coats', 64, 41, 9, 14)] },
+      { x: 'Basics', children: [product('Tees', 58, 14, 25, 19), product('Socks', 22, 6, 9, 7), product('Hoodies', 40, 21, 8, 11)] },
+    ],
+  },
+  {
+    name: 'Electronics',
+    data: [
+      { x: 'Audio', children: [product('Headphones', 88, 24, 30, 34), product('Speakers', 46, 10, 19, 17)] },
+      { x: 'Wearables', children: [product('Watches', 72, 15, 23, 34), product('Trackers', 30, 6, 13, 11)] },
+    ],
+  },
+  {
+    name: 'Home',
+    data: [
+      { x: 'Kitchen', children: [product('Cookware', 54, 13, 27, 14), product('Knives', 26, 7, 11, 8)] },
+      { x: 'Living', children: [product('Lamps', 36, 9, 16, 11), product('Rugs', 48, 22, 15, 11)] },
+    ],
+  },
+]
+
+function money(v) {
+  return '$' + Math.round(v) + 'k'
+}
+
+function pickRegion(region) {
+  document.querySelectorAll('[data-region]').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-region') === region)
+  })
+  var chart = ApexCharts.getChartByID('revenue')
+  // A pick is an ordinary update; clear() takes every part off again.
+  if (!region) return chart.highlightFilter.clear()
+  chart.highlightFilter.set(function (o) {
+    return o.datum.region[region]
+  })
+}
+
+function wireRegions() {
+  document.querySelectorAll('[data-region]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      pickRegion(b.getAttribute('data-region'))
+    })
+  })
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>Which region sells what?</h1>
+  <p>
+    Pick a region. Every product keeps its tile, faded, and the region's part
+    of it fills the tile solid from the bottom up. The department and category
+    headers add up what the region sold in them. Click a header to zoom in.
+  </p>
+  <div class="actions">
+    <span>Region</span>
+    <button data-region="north" class="active">North</button>
+    <button data-region="south">South</button>
+    <button data-region="west">West</button>
+    <button data-region="">All (clear)</button>
+  </div>
+  <div class="card">{{ charts[0] }}</div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'revenue',
+  type: 'treemap',
+  height: 460,
+  toolbar: { show: false },
+},
+colors: ['#0284c7', '#0f766e', '#d97706'],
+legend: { show: false },
+stroke: { width: 2, colors: ['#fff'] },
+dataLabels: {
+  enabled: true,
+  style: { fontSize: '12px', fontWeight: 600 },
+},
+title: { text: 'Revenue by product, $k', style: { fontSize: '13px' } },
+tooltip: {
+  y: { formatter: money },
+},
+plotOptions: {
+  treemap: {
+    borderRadius: 3,
+    zoom: { enabled: true },
+    parents: {
+      padding: 3,
+      header: {
+        // A header states the region's part of its group against the group.
+        formatter: function (name, o) {
+          var h = o.node.highlight
+          return h && h.value != null
+            ? name + '  ' + money(h.value) + ' / ' + money(h.total)
+            : name + '  ' + money(o.value)
+        },
+      },
+    },
+  },
+},
+highlightFilter: { fadeOpacity: 0.25 },
+</options>
+
+<series>
+DEPARTMENTS.map(function (d) {
+  return {
+    name: d.name,
+    data: d.data.map(function (c) {
+      return {
+        x: c.x,
+        children: c.children.map(function (p) {
+          return Object.assign({}, p, { highlight: p.region.north })
+        }),
+      }
+    }),
+  }
+})
+</series>
+</chart>
+
+<vanilla-js-script>
+wireRegions()
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance
+  // by its chart.id. (pickRegion lives in the shared head script.)
+  const timer = window.setInterval(() => {
+    if (!ApexCharts.getChartByID('revenue')) return
+    window.clearInterval(timer)
+    wireRegions()
+  }, 50)
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+regionTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. (pickRegion lives in the shared head script.)
+  var me = this
+  me.regionTimer = window.setInterval(function () {
+    if (!ApexCharts.getChartByID('revenue')) return
+    window.clearInterval(me.regionTimer)
+    wireRegions()
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.regionTimer)
+},
+</vue-script>

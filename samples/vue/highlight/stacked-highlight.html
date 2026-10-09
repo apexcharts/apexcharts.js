@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Stacked Highlight Filter</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        margin: 0 0 16px;
+      }
+      .actions {
+        margin: 0 0 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .actions span {
+        font-size: 13px;
+        color: #5b6b78;
+        margin-right: 4px;
+      }
+      .actions button {
+        color: #2c3e50;
+        background: #fff;
+        border: 1px solid #cfd8e3;
+        padding: 6px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        color: #fff;
+        background: #2563eb;
+        border-color: #2563eb;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/features/highlight-filter.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Website sessions (thousands) per month by device (the wholes), and what
+    // each traffic source brought in on that device (the parts). Picking a source
+    // keeps every device on both charts: the stacks are drawn faded at their full
+    // size, with the source's own stack solid in front, from the same baseline.
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+    var DEVICES = ['Desktop', 'Mobile']
+    var SESSIONS = [
+      [42, 45, 48, 44, 50, 53],
+      [58, 62, 66, 71, 75, 80],
+    ]
+    var SOURCES = {
+      search: [
+        [20, 22, 23, 21, 24, 25],
+        [24, 26, 28, 30, 31, 33],
+      ],
+      social: [
+        [8, 9, 10, 9, 11, 12],
+        [22, 24, 26, 29, 31, 34],
+      ],
+      email: [
+        [9, 9, 10, 9, 10, 11],
+        [7, 7, 8, 8, 9, 9],
+      ],
+    }
+
+    function seriesFor(source) {
+      return DEVICES.map(function (name, i) {
+        var s = { name: name, data: SESSIONS[i] }
+        if (source) s.highlightData = SOURCES[source][i]
+        return s
+      })
+    }
+
+    // One call per chart and pick: the parts go in, each chart animates from what
+    // is on screen. Clearing is the same call without them.
+    function pickSource(source) {
+      document.querySelectorAll('[data-source]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-source') === source)
+      })
+      return Promise.all(
+        ['sessions', 'shares'].map(function (id) {
+          return ApexCharts.getChartByID(id).updateSeries(seriesFor(source))
+        }),
+      )
+    }
+
+    function wireSources() {
+      document.querySelectorAll('[data-source]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          pickSource(b.getAttribute('data-source'))
+        })
+      })
+    }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>Highlight a part of every stack</h1>
+      <p>
+        Pick a traffic source. Each month's stack keeps its full size, faded, and
+        the sessions that source brought in form their own stack in front of it,
+        device by device. The total above each column states the source's sum;
+        the lower chart shows each device's share of the month.
+      </p>
+      <div class="actions">
+        <span>Source</span>
+        <button data-source="search" class="active">Search</button>
+        <button data-source="social">Social</button>
+        <button data-source="email">Email</button>
+        <button data-source="">All (clear)</button>
+      </div>
+      <div class="chart-wrap"><div id="chart">
+      <apexchart type="bar" height="360" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+      <div class="chart-wrap"><div id="chart2">
+      <apexchart type="bar" height="280" :options="chartOptions1" :series="series1"></apexchart>
+    </div></div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;Highlight a part of every stack&lt;/h1&gt;
+        &lt;p&gt;
+          Pick a traffic source. Each month&#39;s stack keeps its full size, faded, and
+          the sessions that source brought in form their own stack in front of it,
+          device by device. The total above each column states the source&#39;s sum;
+          the lower chart shows each device&#39;s share of the month.
+        &lt;/p&gt;
+        &lt;div class=&quot;actions&quot;&gt;
+          &lt;span&gt;Source&lt;/span&gt;
+          &lt;button data-source=&quot;search&quot; class=&quot;active&quot;&gt;Search&lt;/button&gt;
+          &lt;button data-source=&quot;social&quot;&gt;Social&lt;/button&gt;
+          &lt;button data-source=&quot;email&quot;&gt;Email&lt;/button&gt;
+          &lt;button data-source=&quot;&quot;&gt;All (clear)&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;chart-wrap&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;360&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-wrap&quot;&gt;&lt;div id=&quot;chart2&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;280&quot; :options=&quot;chartOptions1&quot; :series=&quot;series1&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: seriesFor('search'),
+          chartOptions: {
+            chart: {
+              id: 'sessions',
+              type: 'bar',
+              height: 360,
+              stacked: true,
+              toolbar: { show: false },
+            },
+            colors: ['#2563eb', '#16a34a'],
+            plotOptions: {
+              bar: {
+                columnWidth: '56%',
+                borderRadius: 4,
+                borderRadiusWhenStacked: 'last',
+                dataLabels: { total: { enabled: true, style: { fontSize: '12px' } } },
+              },
+            },
+            dataLabels: { enabled: false },
+            stroke: { show: true, width: 1, colors: ['#fff'] },
+            xaxis: { categories: MONTHS },
+            yaxis: { title: { text: 'Sessions (thousands)' } },
+            legend: { position: 'bottom' },
+            tooltip: { shared: true, intersect: false },
+          },
+
+          series1: seriesFor('search'),
+          chartOptions1: {
+            chart: {
+              id: 'shares',
+              type: 'bar',
+              height: 280,
+              stacked: true,
+              stackType: '100%',
+              toolbar: { show: false },
+            },
+            colors: ['#2563eb', '#16a34a'],
+            plotOptions: {
+              bar: { horizontal: true, barHeight: '64%' },
+            },
+            dataLabels: { enabled: true, style: { fontSize: '11px' } },
+            stroke: { show: true, width: 1, colors: ['#fff'] },
+            xaxis: { categories: MONTHS },
+            legend: { show: false },
+            tooltip: { shared: true, intersect: false },
+          },
+
+          sourceTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instances by
+          // their chart.id. (seriesFor / pickSource live in the shared head script.)
+          var me = this
+          me.sourceTimer = window.setInterval(function () {
+            if (
+              !ApexCharts.getChartByID('sessions') ||
+              !ApexCharts.getChartByID('shares')
+            )
+              return
+            window.clearInterval(me.sourceTimer)
+            wireSources()
+          }, 50)
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.sourceTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

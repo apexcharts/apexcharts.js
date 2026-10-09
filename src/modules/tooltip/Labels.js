@@ -367,7 +367,7 @@ export default class Labels {
   }
 
   /** @param {{ t?: any, j?: any, i?: any, ttItems?: any, values?: any, seriesName?: any, shared?: any, pColor?: any }} opts */
-  DOMHandling({ t, j, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ i, t, j, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -436,6 +436,13 @@ export default class Labels {
 
     if (!w.config.tooltip.marker.show) {
       ttItemsChildren[0].style.display = 'none'
+    }
+
+    // Highlight filter: the row states its series' part against the whole.
+    const hf = ttCtx.ctx.highlightFilter
+    if (hf) {
+      const s = shared ? t : i
+      hf.tooltipRow(refs, s, j, this.getFormatters(s))
     }
 
     const ttGLabel = refs.goalsLabel

@@ -76,6 +76,10 @@ export const SUB_ENTRIES = {
   'features/marks': resolve(__dirname, 'src/features/marks.js'),
   'features/facet': resolve(__dirname, 'src/features/facet.js'),
   'features/link': resolve(__dirname, 'src/features/link.js'),
+  'features/highlight-filter': resolve(
+    __dirname,
+    'src/features/highlight-filter.js',
+  ),
   'features/ink': resolve(__dirname, 'src/features/ink.js'),
   'features/measure': resolve(__dirname, 'src/features/measure.js'),
   'features/context-menu': resolve(__dirname, 'src/features/context-menu.js'),
@@ -126,6 +130,12 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/features/link.js'),
     global: 'ApexLink',
     out: 'features/link.js',
+    shared: true,
+  },
+  'features/highlight-filter': {
+    file: resolve(__dirname, 'src/features/highlight-filter.js'),
+    global: 'ApexHighlightFilter',
+    out: 'features/highlight-filter.js',
     shared: true,
   },
   'features/ink': {

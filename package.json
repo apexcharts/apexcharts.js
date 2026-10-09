@@ -240,6 +240,10 @@
       "import": "./dist/features/link.esm.js",
       "require": "./dist/features/link.common.js"
     },
+    "./features/highlight-filter": {
+      "import": "./dist/features/highlight-filter.esm.js",
+      "require": "./dist/features/highlight-filter.common.js"
+    },
     "./features/ink": {
       "import": "./dist/features/ink.esm.js",
       "require": "./dist/features/ink.common.js"

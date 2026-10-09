@@ -562,6 +562,7 @@ class Exports {
       // resolves (add a title, then export) is exactly its first frame.
       w.globals.layoutTween?.finish()
       w.globals.circleTween?.finish()
+      w.globals.highlightTween?.finish()
 
       const clonedNode = /** @type {HTMLElement} */ (
         w.dom.elWrap.cloneNode(true)

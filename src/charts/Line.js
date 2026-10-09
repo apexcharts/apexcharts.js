@@ -92,6 +92,8 @@ class Line {
    */
   draw(series, ctype, seriesIndex, seriesRangeEnd) {
     const w = this.w
+    // Highlight filter (opt-in feature): null without it.
+    const hf = this.ctx.highlightFilter
     const graphics = new Graphics(this.w)
     const type = w.globals.comboCharts ? ctype : w.config.chart.type
     const ret = graphics.group({
@@ -143,160 +145,23 @@ class Line {
 
       this._initSerieVariables(series, i, realIndex)
 
-      const yArrj = [] // hold y values of current iterating series
-      const y2Arrj = [] // holds y2 values in range-area charts
-      const xArrj = [] // hold x values of current iterating series
-
-      let x = w.globals.padHorizontal + this.categoryAxisCorrection
-      const y = 1
-
-      /** @type {any[]} */
-      const linePaths = []
-      /** @type {any[]} */
-      const areaPaths = []
-
       Series.addCollapsedClassToSeries(this.w, this.elSeries, realIndex)
 
-      if (w.axisFlags.isXNumeric && w.seriesData.seriesX.length > 0) {
-        x = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.xRatio
-      }
-
-      xArrj.push(x)
-
-      const pX = x
-      let pY2
-      const prevX = pX
-      let prevY = this.zeroY
-      let prevY2 = this.zeroY
-      const lineYPosition = 0
-
-      // the first value in the current series is not null or undefined
-      const firstPrevY = this.lineHelpers.determineFirstPrevY({
-        i,
-        realIndex,
-        series,
-        prevY,
-        lineYPosition,
-        translationsIndex,
-      })
-      prevY = firstPrevY.prevY
-      if (w.config.stroke.curve === 'monotoneCubic' && series[i][0] === null) {
-        // we have to discard the y position if 1st dataPoint is null as it
-        // causes issues with monotoneCubic path creation
-        yArrj.push(null)
-      } else {
-        yArrj.push(prevY)
-      }
-      const pY = prevY
-
-      // y2 are needed for range-area charts
-      let firstPrevY2
-
-      if (type === 'rangeArea') {
-        firstPrevY2 = this.lineHelpers.determineFirstPrevY({
-          i,
-          realIndex,
-          series: seriesRangeEnd,
-          prevY: prevY2,
-          lineYPosition,
-          translationsIndex,
-        })
-        prevY2 = firstPrevY2.prevY
-        pY2 = prevY2
-        y2Arrj.push(yArrj[0] !== null ? prevY2 : null)
-      }
-
-      const pathsFrom = this._calculatePathsFrom({
+      const paths = this._buildSeriesPaths(
         type,
         series,
         i,
         realIndex,
         translationsIndex,
-        prevX,
-        prevY,
-        prevY2,
-      })
-
-      // RangeArea will resume with these for the upper path creation
-      const rYArrj = [yArrj[0]]
-      const rY2Arrj = [y2Arrj[0]]
-
-      const iteratingOpts = {
-        type,
-        series,
-        realIndex,
-        translationsIndex,
-        i,
-        x,
-        y,
-        pX,
-        pY,
-        pathsFrom,
-        linePaths,
-        areaPaths,
         seriesIndex,
-        lineYPosition,
-        xArrj,
-        yArrj,
-        y2Arrj,
         seriesRangeEnd,
-      }
-
-      const paths = this._iterateOverDataPoints({
-        ...iteratingOpts,
-        iterations: type === 'rangeArea' ? series[i].length - 1 : undefined,
-        isRangeStart: true,
-      })
-
-      if (type === 'rangeArea') {
-        const pathsFrom2 = this._calculatePathsFrom({
-          series: seriesRangeEnd,
-          i,
-          realIndex,
-          prevX,
-          prevY: prevY2,
-        })
-        const rangePaths = this._iterateOverDataPoints({
-          ...iteratingOpts,
-          series: seriesRangeEnd,
-          xArrj: [x],
-          yArrj: rYArrj,
-          y2Arrj: rY2Arrj,
-          pY: pY2,
-          areaPaths: paths.areaPaths,
-          pathsFrom: pathsFrom2,
-          iterations: seriesRangeEnd[i].length - 1,
-          isRangeStart: false,
-        })
-
-        // Path may be segmented by nulls in data.
-        // paths.linePaths should hold (segments * 2) paths (upper and lower)
-        // the first n segments belong to the lower and the last n segments
-        // belong to the upper.
-        // paths.linePaths and rangePaths.linepaths are actually equivalent
-        // but we retain the distinction below for consistency with the
-        // unsegmented paths conditional branch.
-        const segments = paths.linePaths.length / 2
-        for (let s = 0; s < segments; s++) {
-          paths.linePaths[s] =
-            rangePaths.linePaths[s + segments] + paths.linePaths[s]
-        }
-        paths.linePaths.splice(segments)
-        const prevBand =
-          paths.linePaths.length === 1
-            ? this.lineHelpers.previousRangeAreaPath(realIndex)
-            : null
-        paths.pathFromLine =
-          prevBand ?? rangePaths.pathFromLine + paths.pathFromLine
-      } else if (!/z\s*$/i.test(paths.pathFromArea)) {
-        // Close the initial-mount baseline pathFrom. A pathFrom taken from a
-        // captured previous render already ends with `z`; appending another
-        // used to produce a double-z path that broke reconciliation and fed
-        // the morph a malformed command list.
-        paths.pathFromArea += 'z'
-      }
+      )
 
       this._handlePaths({ type, realIndex, i, paths })
+      // Highlight filter (opt-in feature): this series' part, built by
+      // _buildSeriesPaths from the part row and drawn solid over the dashed
+      // or faded whole, before the markers and labels are appended.
+      hf?.line(this, type, series, i, realIndex, translationsIndex, paths)
 
       // Batched markers accumulate across the j loop above and become one path
       // element here, at the end of the series.
@@ -331,6 +196,183 @@ class Line {
     }
 
     return ret
+  }
+
+  /**
+   * One series' line and area paths from its row of values: the start point,
+   * the stacking base, the pathFrom and the per-point walk. The draw loop
+   * calls it for each series; the highlight filter calls it again with the
+   * part row while markers and labels are off (_shapeOnly).
+   * @param {string} type
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} realIndex
+   * @param {number} translationsIndex
+   * @param {any} seriesIndex
+   * @param {any} seriesRangeEnd
+   */
+  _buildSeriesPaths(
+    type,
+    series,
+    i,
+    realIndex,
+    translationsIndex,
+    seriesIndex,
+    seriesRangeEnd,
+  ) {
+    const w = this.w
+    const yArrj = [] // hold y values of current iterating series
+    const y2Arrj = [] // holds y2 values in range-area charts
+    const xArrj = [] // hold x values of current iterating series
+
+    let x = w.globals.padHorizontal + this.categoryAxisCorrection
+    const y = 1
+
+    /** @type {any[]} */
+    const linePaths = []
+    /** @type {any[]} */
+    const areaPaths = []
+
+    if (w.axisFlags.isXNumeric && w.seriesData.seriesX.length > 0) {
+      x = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.xRatio
+    }
+
+    xArrj.push(x)
+
+    const pX = x
+    let pY2
+    const prevX = pX
+    let prevY = this.zeroY
+    let prevY2 = this.zeroY
+    const lineYPosition = 0
+
+    // the first value in the current series is not null or undefined
+    const firstPrevY = this.lineHelpers.determineFirstPrevY({
+      i,
+      realIndex,
+      series,
+      prevY,
+      lineYPosition,
+      translationsIndex,
+    })
+    prevY = firstPrevY.prevY
+    if (w.config.stroke.curve === 'monotoneCubic' && series[i][0] === null) {
+      // we have to discard the y position if 1st dataPoint is null as it
+      // causes issues with monotoneCubic path creation
+      yArrj.push(null)
+    } else {
+      yArrj.push(prevY)
+    }
+    const pY = prevY
+
+    // y2 are needed for range-area charts
+    let firstPrevY2
+
+    if (type === 'rangeArea') {
+      firstPrevY2 = this.lineHelpers.determineFirstPrevY({
+        i,
+        realIndex,
+        series: seriesRangeEnd,
+        prevY: prevY2,
+        lineYPosition,
+        translationsIndex,
+      })
+      prevY2 = firstPrevY2.prevY
+      pY2 = prevY2
+      y2Arrj.push(yArrj[0] !== null ? prevY2 : null)
+    }
+
+    const pathsFrom = this._calculatePathsFrom({
+      type,
+      series,
+      i,
+      realIndex,
+      translationsIndex,
+      prevX,
+      prevY,
+      prevY2,
+    })
+
+    // RangeArea will resume with these for the upper path creation
+    const rYArrj = [yArrj[0]]
+    const rY2Arrj = [y2Arrj[0]]
+
+    const iteratingOpts = {
+      type,
+      series,
+      realIndex,
+      translationsIndex,
+      i,
+      x,
+      y,
+      pX,
+      pY,
+      pathsFrom,
+      linePaths,
+      areaPaths,
+      seriesIndex,
+      lineYPosition,
+      xArrj,
+      yArrj,
+      y2Arrj,
+      seriesRangeEnd,
+    }
+
+    const paths = this._iterateOverDataPoints({
+      ...iteratingOpts,
+      iterations: type === 'rangeArea' ? series[i].length - 1 : undefined,
+      isRangeStart: true,
+    })
+
+    if (type === 'rangeArea') {
+      const pathsFrom2 = this._calculatePathsFrom({
+        series: seriesRangeEnd,
+        i,
+        realIndex,
+        prevX,
+        prevY: prevY2,
+      })
+      const rangePaths = this._iterateOverDataPoints({
+        ...iteratingOpts,
+        series: seriesRangeEnd,
+        xArrj: [x],
+        yArrj: rYArrj,
+        y2Arrj: rY2Arrj,
+        pY: pY2,
+        areaPaths: paths.areaPaths,
+        pathsFrom: pathsFrom2,
+        iterations: seriesRangeEnd[i].length - 1,
+        isRangeStart: false,
+      })
+
+      // Path may be segmented by nulls in data.
+      // paths.linePaths should hold (segments * 2) paths (upper and lower)
+      // the first n segments belong to the lower and the last n segments
+      // belong to the upper.
+      // paths.linePaths and rangePaths.linepaths are actually equivalent
+      // but we retain the distinction below for consistency with the
+      // unsegmented paths conditional branch.
+      const segments = paths.linePaths.length / 2
+      for (let s = 0; s < segments; s++) {
+        paths.linePaths[s] =
+          rangePaths.linePaths[s + segments] + paths.linePaths[s]
+      }
+      paths.linePaths.splice(segments)
+      const prevBand =
+        paths.linePaths.length === 1
+          ? this.lineHelpers.previousRangeAreaPath(realIndex)
+          : null
+      paths.pathFromLine =
+        prevBand ?? rangePaths.pathFromLine + paths.pathFromLine
+    } else if (!/z\s*$/i.test(paths.pathFromArea)) {
+      // Close the initial-mount baseline pathFrom. A pathFrom taken from a
+      // captured previous render already ends with `z`; appending another
+      // used to produce a double-z path that broke reconciliation and fed
+      // the morph a malformed command list.
+      paths.pathFromArea += 'z'
+    }
+
+    return paths
   }
 
   /**
@@ -630,6 +672,10 @@ class Line {
     // stays on `graphics`.
     const emit = seriesEmitter(this.ctx, graphics)
     const fill = new Fill(this.w)
+    // The whole's rendered marks, for the highlight filter to fade or dash
+    // (on the canvas renderer they never reach the DOM).
+    /** @type {any[]} */
+    this.marks = []
 
     // push all current y values array to main PrevY Array
     this.prevSeriesY.push(paths.yArrj)
@@ -821,6 +867,7 @@ class Line {
           fill: pathFill,
         })
         this.elSeries.add(renderedPath)
+        this.marks.push(renderedPath)
       }
     }
 
@@ -872,6 +919,7 @@ class Line {
         }
         const renderedPath = emit.renderPaths(linePathCommonOpts)
         this.elSeries.add(renderedPath)
+        this.marks.push(renderedPath)
         renderedPath.attr('fill-rule', `evenodd`)
 
         if (forecast.count > 0 && type !== 'rangeArea') {

@@ -222,6 +222,20 @@ class Range {
           }
         }
       }
+      // Highlight filter: a part can reach past its whole (an average does) or
+      // sit on the other side of zero, so it stretches the axis too, over the
+      // same window the values are scanned in and on a null whole as well.
+      const hp = this.w.highlightData?.ext?.[i]
+      if (hp) {
+        for (let j = firstXIndex; j <= lastXIndex && j < hp.length; j++) {
+          const v = hp[j]
+          if (v != null) {
+            if (v > maxY) maxY = v
+            if (v < lowestY) lowestY = v
+            if (v < 0 && v < minY) minY = v
+          }
+        }
+      }
       // Fast lane for plain numeric series (line/area/scatter/column with
       // scalar y values): the general loop below pays several function calls
       // and a string conversion PER VALUE (isNumber/noExponents/isFloat/

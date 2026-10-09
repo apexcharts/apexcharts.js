@@ -258,6 +258,8 @@ class Pie {
 
     if (w.globals.noData) return elPie
 
+    this.ctx.highlightFilter?.pie(this)
+
     // Where the circle lands on screen, for CircleTransition: the series and
     // labels are drawn around (centerX, centerY) inside a customScale'd group.
     const scaleSize = w.config.plotOptions.pie.customScale
@@ -1094,8 +1096,9 @@ class Pie {
     const hasPrevSize = typeof opts.prevSize === 'number'
 
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
-      // to avoid flicker when updating, set prev path first and then animate from there
-      if (opts.prevEndAngle) {
+      // to avoid flicker when updating, set prev path first and then animate
+      // from there (an arc that ended at angle 0 too)
+      if (Number.isFinite(opts.prevEndAngle)) {
         path = me.getPiePath({
           me,
           startAngle: opts.prevStartAngle,
