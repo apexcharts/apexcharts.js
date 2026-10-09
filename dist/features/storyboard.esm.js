@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.9.0
+ * ApexCharts v7.9.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -243,10 +243,21 @@ const j = class {
 j.WATERMARK_ATTR = "data-apexcharts-watermark", j.WATERMARK_TEXT = "APEXCHARTS", j.ATTR = "data-apexcharts-watermark", j.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, j.managed = /* @__PURE__ */ new Set(), j.subscribed = false;
 let C = j;
 const PRICING_URL = "https://apexcharts.com/pricing";
-let _perspectivesTokenDecoded = false;
-const enforced = /* @__PURE__ */ new Set();
+const STATE_KEY = "__apexcharts_license_enforcer_v1__";
+if (!/** @type {any} */
+globalThis[STATE_KEY]) {
+  globalThis[STATE_KEY] = {
+    perspectivesTokenDecoded: false,
+    enforced: /* @__PURE__ */ new Set()
+  };
+}
+const state = (
+  /** @type {any} */
+  globalThis[STATE_KEY]
+);
+const enforced = state.enforced;
 function markPerspectivesTokenDecoded() {
-  _perspectivesTokenDecoded = true;
+  state.perspectivesTokenDecoded = true;
   reevaluateLicenseAcrossCharts();
 }
 function premiumFeaturesInUse(w, ctx) {
@@ -270,7 +281,7 @@ function premiumFeaturesInUse(w, ctx) {
   if (ctx.contextMenu && chart.contextMenu && chart.contextMenu.enabled === true) {
     used.push("context-menu");
   }
-  if (ctx.perspectives && (ctx.perspectives._used || _perspectivesTokenDecoded)) {
+  if (ctx.perspectives && (ctx.perspectives._used || state.perspectivesTokenDecoded)) {
     used.push("perspectives");
   }
   if (ctx.history && chart.history && chart.history.enabled === true) {
