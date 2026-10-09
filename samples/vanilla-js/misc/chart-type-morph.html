@@ -887,11 +887,14 @@
       
         <div class="note">
           <p>
-            Morphing is opt-in. Load <code>apexcharts/features/morph</code> and set
-            <code>chart.animations.chartTypeMorph.enabled</code>, or use the full
-            bundle, which this page does. Cards three and four also need
+            Morphing is opt-in. Set
+            <code>chart.animations.chartTypeMorph.enabled</code>: the default bundle,
+            which this page loads, has the morph feature, and a lean-core page adds
+            <code>apexcharts/features/morph</code>. Cards three and four also need
             <code>apexcharts/features/stats</code> for the summaries and for
-            <code>rowSeries()</code>.
+            <code>rowSeries()</code>, which the default bundle has too. The unit,
+            violin and sunburst types are not in it, so this page loads them as
+            their own files.
           </p>
           <p>
             The cards are grouped by the kind of change, not by what is allowed: any

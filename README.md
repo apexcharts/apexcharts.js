@@ -26,7 +26,7 @@
 
 - **18+ chart types**: line, area, bar, column, pie, donut, radar, heatmap, treemap, candlestick, boxplot, funnel, pyramid, gauge and more in the default bundle, with unit (dot / pictogram / waffle / beeswarm), violin, sunburst, icicle, waterfall, dumbbell, streamgraph and raincloud one import away
 - **SSR support** for Next.js, Nuxt, SvelteKit, Astro, and other meta-frameworks: render real SVG on the server, hydrate on the client
-- **Tree-shakable**: import only the chart types and features you need; typical bundles are 30-60% smaller than the full build
+- **Tree-shakable**: import only the chart types and features you need; typical bundles are 30-60% smaller than the default bundle
 - **TypeScript-first**: full type definitions ship with the package, no `@types/*` install needed
 - **Zero runtime dependencies**: no React/Vue/D3 required; works in any framework or vanilla JS
 - **Accessibility**: keyboard navigation and ARIA support built in
