@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.9.1
+ * ApexCharts v8.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 
@@ -2368,7 +2368,7 @@ var __async = (__this, __arguments, generator) => {
         },
         // Weave (#1): public plugin platform. Per-chart activation list:
         // { name, options?, order? }. Requires the Weave host to be bundled
-        // (`import 'apexcharts/features/weave'`, included in the full bundle) and
+        // (`import 'apexcharts/features/weave'`, included in the default bundle) and
         // the plugin registered via ApexCharts.registerPlugin().
         plugins: [],
         // Trellis (#22): small multiples / faceting. Requires the trellis
@@ -5034,7 +5034,7 @@ var __async = (__this, __arguments, generator) => {
       };
     }
   }
-  const RESERVED_TYPES = ["icicle"];
+  const RESERVED_TYPES = ["icicle", "unit", "sunburst", "violin"];
   const TYPE_ALIASES = {
     funnel: "bar",
     pyramid: "bar",
@@ -5050,6 +5050,25 @@ var __async = (__this, __arguments, generator) => {
     // used to fall through every dispatch and die inside the renderer (#5325),
     // so it is spelled out here as what it has always meant.
     column: "bar"
+  };
+  const TYPE_FEATURES = {
+    histogram: "stats",
+    raincloud: "raincloud",
+    waterfall: "waterfall",
+    dumbbell: "dumbbell",
+    streamgraph: "streamgraph"
+  };
+  const RENDERER_ENTRIES = {
+    area: "line",
+    scatter: "line",
+    bubble: "line",
+    rangeArea: "line",
+    column: "bar",
+    barStacked: "bar",
+    rangeBar: "bar",
+    boxPlot: "candlestick",
+    donut: "pie",
+    polarArea: "pie"
   };
   const XY_TYPES = [
     "line",
@@ -7201,18 +7220,25 @@ var __async = (__this, __arguments, generator) => {
   function register(typeMap) {
     Object.assign(getRegistry$1(), typeMap);
   }
-  function getChartClass(type) {
+  function getChartClass(type, requested) {
     const Cls = getRegistry$1()[type];
     if (!Cls) {
+      const family = (t2) => RENDERER_ENTRIES[t2] || t2;
+      const alias = requested && TYPE_ALIASES[requested] && family(TYPE_ALIASES[requested]) === family(type) ? requested : void 0;
+      const name2 = alias || type;
+      const feature = alias ? TYPE_FEATURES[alias] : void 0;
+      const entry = feature ? alias : family(type);
+      const files = feature ? [`${family(type)}.js`, `features/${feature}.js`] : [`${family(type)}.js`];
+      const tags = files.map((f) => `<script src=".../dist/${f}">`).join(" and ");
       const optIn = RESERVED_TYPES.includes(type);
-      const message = `ApexCharts: chart type "${type}" is not registered. Bundler: import 'apexcharts/${type}'. Script tag: add <script src=".../dist/${type}.js"> after the ApexCharts script` + (optIn ? `. This type is opt-in and is NOT in the full apexcharts.js, so loading that bundle instead will not register it.` : `, or load the full apexcharts.js instead.`);
+      const message = `ApexCharts: chart type "${name2}" is not registered` + (name2 !== type ? ` (it draws through "${type}")` : "") + `. Bundler: import 'apexcharts/${entry}'` + (optIn ? ` (or import ApexCharts from 'apexcharts/full')` : "") + `. Script tag: add ${tags} after the ApexCharts script` + (optIn ? `, or load apexcharts.full.min.js instead, which has every type. This type is not in the default apexcharts.min.js.` : `, or load the default apexcharts.min.js instead.`);
       const missing = (
         /** @type {Set<string>} */
         /** @type {any} */
         globalThis[MISSING_KEY]
       );
-      if (!missing.has(type)) {
-        missing.add(type);
+      if (!missing.has(name2)) {
+        missing.add(name2);
         globalThis.console.error(message);
       }
       throw new Error(message);
@@ -10943,11 +10969,20 @@ var __async = (__this, __arguments, generator) => {
      * drill it just triggered, which reads as a glitch rather than as motion.
      * The states.active filter comes back as the click feedback (it is instant,
      * so the re-render lands on top of it rather than fighting it).
+     *
+     * Only while the drilldown feature is loaded. Without it the click is not
+     * navigation (the chart warns about the missing feature instead), so the pie
+     * keeps the pull-out it would have had. Read off the shared feature registry
+     * because `w` is all this has; a registered feature is on every chart.
      * @param {any} w
      */
     static drilldownBlocksSliceOffset(w) {
       var _a;
-      return Filters.isSliceChart(w) && ((_a = w.config.drilldown) == null ? void 0 : _a.enabled) === true;
+      const features = (
+        /** @type {any} */
+        globalThis.__apexcharts_features_v1__
+      );
+      return Filters.isSliceChart(w) && ((_a = w.config.drilldown) == null ? void 0 : _a.enabled) === true && !!(features == null ? void 0 : features.has("drilldown"));
     }
     // create a re-usable filter which can be appended other filter effects and applied to multiple elements
     /**
@@ -22416,15 +22451,27 @@ var __async = (__this, __arguments, generator) => {
       const needsLine = seriesTypes.line.series.length > 0 || seriesTypes.area.series.length > 0 || seriesTypes.scatter.series.length > 0 || seriesTypes.bubble.series.length > 0 || seriesTypes.rangeArea.series.length > 0 || !gl.comboCharts && ["line", "area", "scatter", "bubble", "rangeArea"].includes(
         cnf.chart.type
       );
-      const line = needsLine ? new (getChartClass("line"))(ctx.w, ctx, xyRatios) : null;
+      const line = needsLine ? new (getChartClass("line", cnf.chart.requestedType))(
+        ctx.w,
+        ctx,
+        xyRatios
+      ) : null;
       const needsCandlestick = seriesTypes.candlestick.series.length > 0 || seriesTypes.boxPlot.series.length > 0 || !gl.comboCharts && ["candlestick", "boxPlot"].includes(cnf.chart.type);
       const boxCandlestick = needsCandlestick ? new (getChartClass("candlestick"))(ctx.w, ctx, xyRatios) : null;
       const needsViolin = seriesTypes.violin.series.length > 0 || !gl.comboCharts && cnf.chart.type === "violin";
-      const violin = needsViolin ? new (getChartClass("violin"))(ctx.w, ctx, xyRatios) : null;
+      const violin = needsViolin ? new (getChartClass("violin", cnf.chart.requestedType))(
+        ctx.w,
+        ctx,
+        xyRatios
+      ) : null;
       const needsPie = !gl.comboCharts && ["pie", "donut", "polarArea"].includes(cnf.chart.type);
       ctx.pie = needsPie ? new (getChartClass("pie"))(ctx.w, ctx) : null;
       const needsRangeBar = seriesTypes.rangeBar.series.length > 0 || !gl.comboCharts && cnf.chart.type === "rangeBar";
-      ctx.rangeBar = needsRangeBar ? new (getChartClass("rangeBar"))(ctx.w, ctx, xyRatios) : null;
+      ctx.rangeBar = needsRangeBar ? new (getChartClass("rangeBar", cnf.chart.requestedType))(
+        ctx.w,
+        ctx,
+        xyRatios
+      ) : null;
       return { line, boxCandlestick, violin };
     }
     /**
@@ -22570,14 +22617,17 @@ var __async = (__this, __arguments, generator) => {
             break;
           case "bar":
             if (cnf.chart.stacked) {
-              const barStacked = new (getChartClass("barStacked"))(
+              const barStacked = new (getChartClass(
+                "barStacked",
+                cnf.chart.requestedType
+              ))(ctx.w, ctx, xyRatios);
+              elGraph = barStacked.draw(this.w.seriesData.series);
+            } else {
+              ctx.bar = new (getChartClass("bar", cnf.chart.requestedType))(
                 ctx.w,
                 ctx,
                 xyRatios
               );
-              elGraph = barStacked.draw(this.w.seriesData.series);
-            } else {
-              ctx.bar = new (getChartClass("bar"))(ctx.w, ctx, xyRatios);
               elGraph = ctx.bar.draw(this.w.seriesData.series);
             }
             break;
@@ -22612,12 +22662,18 @@ var __async = (__this, __arguments, generator) => {
             break;
           }
           case "unit": {
-            const unit = new (getChartClass("unit"))(ctx.w, ctx);
+            const unit = new (getChartClass(
+              "unit",
+              this.w.config.chart.requestedType
+            ))(ctx.w, ctx);
             elGraph = unit.draw(this.w.seriesData.series);
             break;
           }
           case "sunburst": {
-            const sunburst = new (getChartClass("sunburst"))(ctx.w, ctx);
+            const sunburst = new (getChartClass(
+              "sunburst",
+              this.w.config.chart.requestedType
+            ))(ctx.w, ctx);
             elGraph = sunburst.draw(this.w.seriesData.series);
             break;
           }
@@ -23088,9 +23144,15 @@ var __async = (__this, __arguments, generator) => {
     return getTransforms()[name2] || null;
   }
   function warnMissingFeature(subject, feature, opts = {}) {
-    const { entry, tail } = opts;
+    const {
+      module: module2 = `features/${feature}`,
+      entry,
+      scripts = [`features/${feature}.js`],
+      tail
+    } = opts;
+    const tags = scripts.map((f) => `<script src='.../dist/${f}'>`).join(" and ");
     globalThis.console.warn(
-      `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/features/${feature}'` + (entry ? ` (or from 'apexcharts/${entry}')` : "") + `. Script tag: add <script src='.../dist/features/${feature}.js'> after apexcharts.js.` + (tail ? ` ${tail}` : "")
+      `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/${module2}'` + (entry ? ` (or from 'apexcharts/${entry}')` : "") + `. Script tag: add ${tags} after the ApexCharts script, or load apexcharts.full.min.js instead.` + (tail ? ` ${tail}` : "")
     );
   }
   function drilldownById(w, id) {
@@ -23242,7 +23304,6 @@ var __async = (__this, __arguments, generator) => {
     }));
     return { roots, leafSeries, maxDepth };
   }
-  const RAW_SAMPLE_FEATURES = { histogram: "stats", raincloud: "raincloud" };
   function subtreeTotal(d) {
     if (!d || typeof d !== "object") return Utils$1.parseNumber(d) || 0;
     if (d.y !== void 0) return Utils$1.parseNumber(d.y) || 0;
@@ -24523,12 +24584,23 @@ var __async = (__this, __arguments, generator) => {
       if (transform) return transform(ser, this.w);
       const feature = (
         /** @type {Record<string,string>} */
-        RAW_SAMPLE_FEATURES[name2]
+        TYPE_FEATURES[name2]
       );
       if (!Array.isArray(ser) || !feature) return ser;
       if (!this._warnedMissingTransform) {
         this._warnedMissingTransform = true;
-        warnMissingFeature(`chart.type '${name2}'`, feature, { entry: name2 });
+        const base = TYPE_ALIASES[name2];
+        warnMissingFeature(
+          `chart.type '${name2}'`,
+          feature,
+          hasChartClass(base) ? {} : {
+            module: name2,
+            scripts: [
+              `${RENDERER_ENTRIES[base] || base}.js`,
+              `features/${feature}.js`
+            ]
+          }
+        );
       }
       return ser.map((s2) => __spreadProps(__spreadValues({}, s2), { data: [] }));
     }
@@ -24833,8 +24905,10 @@ var __async = (__this, __arguments, generator) => {
         }
       ))) {
         this._warnedHighlight = true;
-        console.warn(
-          "ApexCharts: series carry highlight parts but the highlight filter is not loaded. Add import 'apexcharts/features/highlight-filter' (or load dist/features/highlight-filter.js after apexcharts.js)."
+        warnMissingFeature(
+          "Highlight parts (`highlightData`, `highlightFilter.data`)",
+          "highlight-filter",
+          { tail: "Drawing the chart without them." }
         );
       }
       return {
@@ -32987,6 +33061,26 @@ var __async = (__this, __arguments, generator) => {
     });
   }
   o.onChange(reevaluateLicenseAcrossCharts);
+  function unloadedTypeRejection(chartType, series) {
+    const types = [chartType];
+    if (Array.isArray(series)) {
+      for (const s2 of series) {
+        types.push(s2 && typeof s2 === "object" ? s2.type : void 0);
+      }
+    }
+    for (const t2 of types) {
+      if (typeof t2 !== "string") continue;
+      const base = TYPE_ALIASES[t2] || t2;
+      if (RESERVED_TYPES.includes(base) && !hasChartClass(base)) {
+        try {
+          getChartClass(base, t2);
+        } catch (e2) {
+          return Promise.reject(e2);
+        }
+      }
+    }
+    return null;
+  }
   const _ApexCharts = class _ApexCharts {
     /**
      * Creates a new ApexCharts instance.
@@ -33140,7 +33234,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (this._renderPromise) return this._renderPromise;
       const renderPromise = new Promise((resolve, reject) => {
-        var _a2, _b2, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+        var _a2, _b2, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
         if (Utils$1.elementExists(this.el)) {
           if (typeof Apex._chartInstances === "undefined") {
             Apex._chartInstances = [];
@@ -33190,6 +33284,10 @@ var __async = (__this, __arguments, generator) => {
           if (((_l = (_k = this.w.config.chart) == null ? void 0 : _k.history) == null ? void 0 : _l.enabled) && !this.history) {
             warnMissingFeature("`chart.history`", "history");
           }
+          if (((_m = this.w.config.drilldown) == null ? void 0 : _m.enabled) && !/** @type {any} */
+          this.ctx.drilldown) {
+            warnMissingFeature("`drilldown`", "drilldown");
+          }
           if (Environment.isBrowser()) {
             if (!isTrellisHost) {
               window.addEventListener("resize", this.windowResizeHandler);
@@ -33217,7 +33315,7 @@ var __async = (__this, __arguments, generator) => {
               );
               css.id = "apexcharts-css";
               css.textContent = apexCSS;
-              const nonce = ((_m = this.opts.chart) == null ? void 0 : _m.nonce) || this.w.config.chart.nonce;
+              const nonce = ((_n = this.opts.chart) == null ? void 0 : _n.nonce) || this.w.config.chart.nonce;
               if (nonce) {
                 css.setAttribute("nonce", nonce);
               }
@@ -33588,6 +33686,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
      */
     updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = true) {
+      var _a;
       const w = this.w;
       if (options2 && "series" in options2 && !Array.isArray(options2.series)) {
         console.warn(
@@ -33597,6 +33696,11 @@ var __async = (__this, __arguments, generator) => {
         delete options2.series;
       }
       options2 = Config.dropEmptyOptions(options2);
+      const unloaded = unloadedTypeRejection(
+        (_a = options2 == null ? void 0 : options2.chart) == null ? void 0 : _a.type,
+        options2 == null ? void 0 : options2.series
+      );
+      if (unloaded) return unloaded;
       if (this.trellis && (this.trellis._mounted || this.trellis._rendering)) {
         const inPlace = this.trellis.canApplyInPlace(options2);
         this.opts = Utils$1.extend(this.opts || {}, options2 || {});
@@ -33674,6 +33778,8 @@ var __async = (__this, __arguments, generator) => {
         );
         return Promise.resolve(this);
       }
+      const unloaded = unloadedTypeRejection(void 0, newSeries);
+      if (unloaded) return unloaded;
       if (this.trellis && this.trellis._rendering) {
         return this.trellis.whenSettled().then(() => this.trellis.updateSeries(newSeries, animate));
       }
@@ -33698,6 +33804,8 @@ var __async = (__this, __arguments, generator) => {
      * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
      */
     appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
+      const unloaded = unloadedTypeRejection(void 0, [newSerie]);
+      if (unloaded) return unloaded;
       this.data.resetParsingFlags();
       const newSeries = this.w.config.series.slice();
       newSeries.push(
@@ -34284,7 +34392,7 @@ var __async = (__this, __arguments, generator) => {
      * Register a Weave plugin definition (a plain { name, setup } object).
      * Lives in core so plugins can always be registered; they only activate when
      * the Weave host is bundled (`import 'apexcharts/features/weave'`, included in
-     * the full bundle) and listed in a chart's `plugins` config.
+     * the default bundle) and listed in a chart's `plugins` config.
      *
      * @param {{ name: string, apiVersion?: number, setup: Function, destroy?: Function }} def
      * @returns {typeof ApexCharts}
@@ -34320,7 +34428,7 @@ var __async = (__this, __arguments, generator) => {
      * Register a custom series type (Marks #11): a `{ renderItem }` definition
      * that draws primitives (path/line/rect/circle/text) per datum. Requires the
      * Marks feature to be bundled (`import 'apexcharts/features/marks'`, included
-     * in the full bundle); without it this warns and no-ops. Once registered, use
+     * in the default bundle); without it this warns and no-ops. Once registered, use
      * it via `series[].type` or `chart.type`.
      *
      * @param {string} name  the type name, e.g. 'dumbbell'

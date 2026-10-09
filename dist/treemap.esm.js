@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.9.1
+ * ApexCharts v8.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1716,6 +1716,9 @@ class TreemapChart {
    * view one level at a time, zoom reframes a tree that stays whole. Running
    * both would fight over the same click and over the one breadcrumb slot in
    * the wrap, so drilldown wins where it is active and this stands down.
+   * Active means the feature is loaded as well as configured: without it the
+   * click navigates nowhere (the chart warns about the missing feature), so
+   * standing zoom down too would leave the click doing nothing at all.
    * @returns {boolean}
    */
   _zoomEnabled() {
@@ -1723,7 +1726,7 @@ class TreemapChart {
     const z = w.config.plotOptions.treemap.zoom;
     if (!z || !z.enabled || !this.showParents) return false;
     const dd = w.config.drilldown;
-    if (dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
+    if (this.ctx.drilldown && dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
       if (!this._warnedZoomConflict) {
         this._warnedZoomConflict = true;
         console.warn(

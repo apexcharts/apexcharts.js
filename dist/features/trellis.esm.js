@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.9.1
+ * ApexCharts v8.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -50,9 +50,15 @@ const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const addResizeListener = _core.__apex_Resize_addResizeListener;
 const removeResizeListener = _core.__apex_Resize_removeResizeListener;
 function warnMissingFeature(subject, feature, opts = {}) {
-  const { entry, tail } = opts;
+  const {
+    module = `features/${feature}`,
+    entry,
+    scripts = [`features/${feature}.js`],
+    tail
+  } = opts;
+  const tags = scripts.map((f) => `<script src='.../dist/${f}'>`).join(" and ");
   globalThis.console.warn(
-    `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/features/${feature}'` + (entry ? ` (or from 'apexcharts/${entry}')` : "") + `. Script tag: add <script src='.../dist/features/${feature}.js'> after apexcharts.js.` + (tail ? ` ${tail}` : "")
+    `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/${module}'` + (entry ? ` (or from 'apexcharts/${entry}')` : "") + `. Script tag: add ${tags} after the ApexCharts script, or load apexcharts.full.min.js instead.` + (tail ? ` ${tail}` : "")
   );
 }
 class SvgRenderer {

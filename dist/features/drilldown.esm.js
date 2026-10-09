@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.9.1
+ * ApexCharts v8.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -401,13 +401,18 @@ class Drilldown {
     }
     if (!this.rootSnapshot) this.rootSnapshot = this._snapshot();
     const from = this.path[this.path.length - 1];
-    this.stack.push({ id: child.id, name: child.name, restore: this._snapshot() });
+    const level = { id: child.id, name: child.name, restore: this._snapshot() };
+    this.stack.push(level);
     return this._apply(this._viewFromChild(child), "down", {
       from,
       to: child.id,
       point: triggerPoint,
       seriesIndex: meta && meta.seriesIndex,
       dataPointIndex: meta && meta.dataPointIndex
+    }).catch((error) => {
+      if (this.stack[this.stack.length - 1] === level) this.stack.pop();
+      this._fire("drillDownError", { id: child.id, error });
+      throw error;
     });
   }
   /**
