@@ -18,8 +18,12 @@
  * render, wait for the verdict, look at the DOM. The `no-id` case is the one
  * that regressed and the reason this file exists.
  *
+ * It runs twice: on the default bundle with each fixture's add-on loaded the way
+ * an application loads it, and on the full bundle with no add-on at all, which
+ * is also the check that the full bundle carries them.
+ *
  * Usage:
- *   node tests/license/check-license-enforcement.mjs               # dist/apexcharts.esm.js
+ *   node tests/license/check-license-enforcement.mjs                # default + full
  *   node tests/license/check-license-enforcement.mjs <bundle-path>
  *
  * Set APEX_TEST_LICENSE_KEY to additionally assert a real production-signed key
@@ -29,13 +33,27 @@
  */
 
 import { existsSync } from 'fs'
-import { resolve } from 'path'
+import { resolve, basename } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { execFileSync } from 'child_process'
 
 const SELF = fileURLToPath(import.meta.url)
 const WATERMARK = '[data-apexcharts-watermark]'
-const DEFAULT_BUNDLE = 'dist/apexcharts.esm.js'
+const DEFAULT_BUNDLES = ['dist/apexcharts.esm.js', 'dist/full.esm.js']
+
+/**
+ * What each fixture needs on top of the default bundle, as an application
+ * loads it (paths relative to the bundle). Premium types and features ship
+ * outside the default bundle, so every fixture has one. The full bundle is
+ * checked with none of them.
+ */
+const ADDONS = {
+  ink: 'features/ink.esm.js',
+  // The raincloud entry: the violin renderer (not in the default bundle since
+  // 8.0) plus the statistics. features/raincloud alone no longer draws.
+  raincloud: 'raincloud.esm.js',
+  unit: 'unit.esm.js',
+}
 
 const envelope = (payload) =>
   'APEX-' + Buffer.from(JSON.stringify(payload)).toString('base64')
@@ -76,14 +94,23 @@ const CASES = {
   'free-chart': { watermark: false, premium: false, id: false, key: FORGED },
   // The raincloud chart TYPE is premium the way unit is: the type is the
   // product. Driven through the real pairing an application ships (default
-  // bundle + the features/raincloud add-on, which is never bundled), so a
-  // forged key must settle to a watermark on it.
+  // bundle + the raincloud add-on, which is never in it), so a forged key must
+  // settle to a watermark on it.
   'raincloud-forged': {
     watermark: true,
     premium: true,
     id: false,
     key: FORGED,
     fixture: 'raincloud',
+  },
+  // The unit TYPE, the same way: outside the default bundle since 8.0, so the
+  // licence decision for it lives in an add-on's class.
+  'unit-forged': {
+    watermark: true,
+    premium: true,
+    id: false,
+    key: FORGED,
+    fixture: 'unit',
   },
   real: {
     watermark: false,
@@ -176,19 +203,23 @@ async function runCase(bundlePath, caseName) {
     throw new Error(`no ApexCharts constructor exported from ${bundle}`)
   }
 
-  // The fixture below turns on `ink` so the licence decision has something to
-  // act on, and since 7.0 ink is not in the default bundle. Load the add-on the
-  // way an application does. This import is also the check that the pairing
-  // WORKS: both files resolve apexcharts/core to one module, so the feature
-  // registers onto the class this bundle exports. When the default bundle
-  // inlined its own core instead, ink registered into a registry no chart read,
-  // every case came back "no watermark", and this script said so.
-  const addonName = spec.fixture === 'raincloud' ? 'raincloud' : 'ink'
-  const addon = resolve(bundle, '..', 'features', `${addonName}.esm.js`)
-  if (!existsSync(addon)) {
-    throw new Error(`premium feature add-on not found at ${addon} (run: yarn build)`)
+  // Every fixture uses something premium so the licence decision has something
+  // to act on, and none of it is in the default bundle. Load the add-on the way
+  // an application does. This import is also the check that the pairing WORKS:
+  // both files resolve apexcharts/core to one module, so the add-on registers
+  // onto the class this bundle exports. When the default bundle inlined its own
+  // core instead, ink registered into a registry no chart read, every case came
+  // back "no watermark", and this script said so.
+  //
+  // The full bundle gets none: it has to carry them itself.
+  const fixture = spec.fixture ?? 'ink'
+  if (basename(bundle) !== 'full.esm.js') {
+    const addon = resolve(bundle, '..', ADDONS[fixture])
+    if (!existsSync(addon)) {
+      throw new Error(`premium add-on not found at ${addon} (run: yarn build)`)
+    }
+    await import(pathToFileURL(addon).href)
   }
-  await import(pathToFileURL(addon).href)
 
   for (const name of ['SVG', 'Apex']) {
     if (dom.window[name] !== undefined) globalThis[name] = dom.window[name]
@@ -202,7 +233,22 @@ async function runCase(bundlePath, caseName) {
 
   const chart = new ApexCharts(
     container,
-    spec.fixture === 'raincloud'
+    fixture === 'unit'
+      ? {
+          // The premium chart TYPE itself is the licence trigger.
+          chart: {
+            type: 'unit',
+            width: 600,
+            height: 400,
+            animations: { enabled: false },
+            ...(spec.id ? { id: 'enforcement-check' } : {}),
+          },
+          series: [
+            { name: 'A', data: [12] },
+            { name: 'B', data: [8] },
+          ],
+        }
+      : fixture === 'raincloud'
       ? {
           // The premium chart TYPE itself is the licence trigger here; the
           // add-on imported above supplies its statistics transform.
@@ -268,57 +314,65 @@ if (workerIdx !== -1) {
   }
 }
 
-const bundlePath = args.find((a) => !a.startsWith('-')) ?? DEFAULT_BUNDLE
+const given = args.find((a) => !a.startsWith('-'))
+const bundles = given ? [given] : DEFAULT_BUNDLES
 
 let failed = false
-console.log(`Licence enforcement in ${bundlePath}`)
+for (const bundlePath of bundles) {
+  console.log(`Licence enforcement in ${bundlePath}`)
 
-for (const [caseName, spec] of Object.entries(CASES)) {
-  if (spec.requiresEnv && !process.env[spec.requiresEnv]) {
-    console.log(`    ${caseName}: skipped (set ${spec.requiresEnv})`)
-    continue
-  }
+  for (const [caseName, spec] of Object.entries(CASES)) {
+    if (spec.requiresEnv && !process.env[spec.requiresEnv]) {
+      console.log(`    ${caseName}: skipped (set ${spec.requiresEnv})`)
+      continue
+    }
 
-  let out
-  try {
-    out = JSON.parse(
-      execFileSync('node', [SELF, '--worker', bundlePath, caseName], {
-        encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }),
-    )
-  } catch (err) {
-    // A non-zero worker still prints its JSON on stdout.
+    let out
     try {
-      out = JSON.parse(err.stdout || '{}')
-    } catch {
-      out = {
-        error: (err.stderr || err.message || '')
-          .split('\n')
-          .slice(-6)
-          .join(' ')
-          .trim(),
+      // `browser` resolves the package's own name the way a bundler targeting
+      // the browser does. Under Node's default conditions `apexcharts` is the SSR
+      // build, so the full bundle, which builds on `apexcharts`, would be checked
+      // on top of a file no browser app receives.
+      out = JSON.parse(
+        execFileSync(
+          'node',
+          ['--conditions=browser', SELF, '--worker', bundlePath, caseName],
+          { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] },
+        ),
+      )
+    } catch (err) {
+      // A non-zero worker still prints its JSON on stdout.
+      try {
+        out = JSON.parse(err.stdout || '{}')
+      } catch {
+        out = {
+          error: (err.stderr || err.message || '')
+            .split('\n')
+            .slice(-6)
+            .join(' ')
+            .trim(),
+        }
       }
     }
-  }
 
-  if (out.error) {
-    failed = true
-    console.log(`  ✗ ${caseName}: ERRORED — ${out.error}`)
-  } else if (!out.rendered) {
-    failed = true
-    console.log(
-      `  ✗ ${caseName}: FIXTURE DID NOT RENDER (no <svg>), so the result proves nothing`,
-    )
-  } else if (out.settled !== spec.watermark) {
-    failed = true
-    console.log(
-      `  ✗ ${caseName}: watermark ${out.settled} but expected ${spec.watermark} (immediately=${out.immediately})`,
-    )
-  } else {
-    console.log(
-      `  ✓ ${caseName}: ok (immediately=${out.immediately}, settled=${out.settled})`,
-    )
+    if (out.error) {
+      failed = true
+      console.log(`  ✗ ${caseName}: ERRORED — ${out.error}`)
+    } else if (!out.rendered) {
+      failed = true
+      console.log(
+        `  ✗ ${caseName}: FIXTURE DID NOT RENDER (no <svg>), so the result proves nothing`,
+      )
+    } else if (out.settled !== spec.watermark) {
+      failed = true
+      console.log(
+        `  ✗ ${caseName}: watermark ${out.settled} but expected ${spec.watermark} (immediately=${out.immediately})`,
+      )
+    } else {
+      console.log(
+        `  ✓ ${caseName}: ok (immediately=${out.immediately}, settled=${out.settled})`,
+      )
+    }
   }
 }
 
