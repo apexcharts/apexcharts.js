@@ -9,7 +9,10 @@ import {
 } from 'fs'
 import { fileURLToPath } from 'url'
 import terser from '@rollup/plugin-terser'
-import { coreExternalPlugin } from './build/shared-modules.mjs'
+import {
+  coreExternalPlugin,
+  deferUntilCorePlugin,
+} from './build/shared-modules.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -482,18 +485,23 @@ export default defineConfig(({ mode }) => {
               // 'named' would wrap it in a namespace object and
               // `new ApexCharts(...)` would throw "is not a constructor".
               exports: umd.alsoMin ? 'default' : 'named',
-              plugins: isDev
-                ? []
-                : [
-                    terser({
-                      format: {
-                        ascii_only: true,
-                        comments: false,
-                        preamble: banner,
-                      },
-                      compress: { drop_console: false, drop_debugger: true },
-                    }),
-                  ],
+              plugins: [
+                // A shared add-on may run before the ApexCharts script; it
+                // then waits for it (wrapAddon in build/shared-modules.mjs).
+                ...(umd.shared ? [deferUntilCorePlugin(umd.out)] : []),
+                ...(isDev
+                  ? []
+                  : [
+                      terser({
+                        format: {
+                          ascii_only: true,
+                          comments: false,
+                          preamble: banner,
+                        },
+                        compress: { drop_console: false, drop_debugger: true },
+                      }),
+                    ]),
+              ],
             },
           ],
         },

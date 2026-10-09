@@ -233,8 +233,8 @@ A page without a bundler gets the same choice, from three baselines:
 ```
 
 Opt-in types and features work the same way on any of them: load their file
-after whichever bundle the page already has. Order matters: an add-on loaded
-before the ApexCharts script has nothing to register onto.
+after whichever bundle the page already has. One whose tag runs first (8.0 and
+later) waits for the ApexCharts script and registers when it loads.
 
 See the [tree-shaking guide](https://apexcharts.com/docs/tree-shaking/) for the complete list of entry points.
 

@@ -30,6 +30,7 @@
  */
 import ApexCharts from '../apexcharts'
 import * as coreInternals from './core.js'
+import drainPendingAddons from '../utils/PendingAddons.js'
 
 /**
  * The shared-module surface add-ons resolve against. Identical in contract to
@@ -44,5 +45,8 @@ Object.defineProperty(ApexCharts, '__internals', {
   writable: false,
   configurable: false,
 })
+
+// Add-ons whose script tags ran before this one waited for the surface above.
+drainPendingAddons(ApexCharts)
 
 export default ApexCharts

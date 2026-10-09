@@ -38,6 +38,108 @@ export const CORE_EXTERNAL_ID = 'apexcharts/core'
 export const GLOBAL_INTERNALS = 'globalThis.ApexCharts.__internals'
 
 /**
+ * The global queue a script-tag add-on waits in when it runs before the
+ * ApexCharts script. Drained by `src/utils/PendingAddons.js`, which every
+ * baseline runs; the two halves of one contract, like the shim names above.
+ */
+export const PENDING_ADDONS = '__apexcharts_pending_addons__'
+
+/**
+ * Wrap a script-tag add-on so it no longer depends on loading after the
+ * ApexCharts script.
+ *
+ * Every shared import in an add-on reads `globalThis.ApexCharts.__internals`
+ * as the file runs, so one loaded first (a reordered tag, `async`, a tag
+ * manager) died on "Cannot read properties of undefined (reading
+ * '__internals')", which names neither the file nor the fix. Wrapped, it runs
+ * at once when ApexCharts is there and otherwise waits in PENDING_ADDONS
+ * until a baseline loads. At window `load` an add-on still waiting says which
+ * of three things is true, and only what it knows:
+ *
+ * - No ApexCharts yet: a warning that it is still waiting. Not an error, and
+ *   not "the page has none": a lazy loader or a consent gate can inject the
+ *   ApexCharts script after `load`, and the add-on then registers as usual.
+ * - An ApexCharts with no `__internals` (a script before 7.0, or a bundled
+ *   apexcharts/core class put on window): it never will register.
+ * - An ApexCharts with the surface: the add-on runs there, late. A 7.x
+ *   script has no drain, which `__drainsAddons` tells apart, and gets a
+ *   warning that the tag belongs after it.
+ *
+ * (Queued after `load` already fired, a script injected by a loader, it
+ * stays quiet: there is no point at which such a page is done.) Under AMD it
+ * runs at once, handing itself to define() as it always did. Under CommonJS,
+ * or with no page at all (a worker), it throws at once: nothing would ever
+ * drain it.
+ *
+ * Plain ES5 in a string: it runs before anything else in the file and is
+ * minified with it.
+ *
+ * @param {string} code the add-on's UMD output
+ * @param {string} file its path under dist/, for the messages
+ * @returns {string}
+ */
+export function wrapAddon(code, file) {
+  const name = JSON.stringify(`dist/${file}`)
+  const noSurface = `'ApexCharts: ' + ${name} + ' cannot register: the ApexCharts on this page has no add-on surface (a script before 7.0, or a bundled apexcharts/core class). Load apexcharts.min.js, apexcharts.core.min.js or apexcharts.full.min.js.'`
+  return `(function (run) {
+  var g = typeof globalThis !== 'undefined' ? globalThis : self;
+  var A = g.ApexCharts;
+  if (A && A.__internals) return run.call(g);
+  if (A) throw new Error(${noSurface});
+  // A module loader: the UMD hands itself to define() and reads the global
+  // only when required, as it always did, so it must not wait here.
+  if (typeof define === 'function' && define.amd) return run.call(g);
+  if ((typeof exports === 'object' && typeof module !== 'undefined') || typeof window === 'undefined' || typeof document === 'undefined') throw new Error('ApexCharts: ' + ${name} + ' is a script-tag add-on and needs the ApexCharts script on the page. A bundler imports the matching apexcharts/ sub-path instead.');
+  var entry = { file: ${name}, run: run, done: false };
+  var queue = g.${PENDING_ADDONS} || (g.${PENDING_ADDONS} = []);
+  queue.push(entry);
+  if (document.readyState !== 'complete') {
+    window.addEventListener('load', function () {
+      if (entry.done) return;
+      var B = g.ApexCharts;
+      if (!B) {
+        g.console.warn('ApexCharts: ' + ${name} + ' is waiting for the ApexCharts script, which had not loaded when the page finished loading. It registers when an ApexCharts 8.0 or later script loads; if the page has none, add apexcharts.min.js (or apexcharts.core.min.js, or apexcharts.full.min.js).');
+        return;
+      }
+      if (!B.__internals) {
+        g.console.error(${noSurface});
+        return;
+      }
+      entry.done = true;
+      var i = queue.indexOf(entry);
+      if (i !== -1) queue.splice(i, 1);
+      try {
+        run.call(g);
+        // An 8.0 class that reached the global after its own drain ran (an
+        // ES module assigning window.ApexCharts) is not an old script.
+        if (!B.__drainsAddons) g.console.warn('ApexCharts: ' + ${name} + ' loaded before the ApexCharts script, which is older than 8.0 and does not pick up add-ons loaded first, so it registered only when the page finished loading. Put its tag after the ApexCharts script.');
+      } catch (e) {
+        g.console.error('ApexCharts: ' + ${name} + ' could not register with the ApexCharts script on this page: ' + (e && e.message));
+      }
+    });
+  }
+})(function () {
+${code}
+});
+`
+}
+
+/**
+ * Apply `wrapAddon` to a UMD add-on's output. An output plugin listed before
+ * terser, so the wrapper is minified with the add-on.
+ *
+ * @param {string} file the add-on's path under dist/
+ */
+export function deferUntilCorePlugin(file) {
+  return {
+    name: 'apex-defer-until-core',
+    renderChunk(/** @type {string} */ code) {
+      return { code: wrapAddon(code, file), map: null }
+    },
+  }
+}
+
+/**
  * Absolute source path -> shim descriptor.
  *   { default: '__apex_X' }                  -> export default
  *   { named: { Local: '__apex_Local', ... } } -> named re-exports

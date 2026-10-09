@@ -21,6 +21,7 @@ import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
 import Treemap from '../charts/Treemap'
+import drainPendingAddons from '../utils/PendingAddons.js'
 
 ApexCharts.use({
   line: Line,
@@ -71,5 +72,8 @@ if (!Object.prototype.hasOwnProperty.call(ApexCharts, '__internals')) {
     configurable: false,
   })
 }
+
+// Add-ons whose script tags ran before this one waited for the surface above.
+drainPendingAddons(ApexCharts)
 
 export default ApexCharts
