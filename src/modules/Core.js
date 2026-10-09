@@ -382,7 +382,11 @@ export default class Core {
           cnf.chart.type,
         ))
     const line = needsLine
-      ? new (getChartClass('line'))(ctx.w, ctx, xyRatios)
+      ? new (getChartClass('line', cnf.chart.requestedType))(
+          ctx.w,
+          ctx,
+          xyRatios,
+        )
       : null
 
     const needsCandlestick =
@@ -412,7 +416,11 @@ export default class Core {
       seriesTypes.rangeBar.series.length > 0 ||
       (!gl.comboCharts && cnf.chart.type === 'rangeBar')
     ctx.rangeBar = needsRangeBar
-      ? new (getChartClass('rangeBar'))(ctx.w, ctx, xyRatios)
+      ? new (getChartClass('rangeBar', cnf.chart.requestedType))(
+          ctx.w,
+          ctx,
+          xyRatios,
+        )
       : null
 
     return { line, boxCandlestick, violin }
@@ -564,14 +572,17 @@ export default class Core {
           break
         case 'bar':
           if (cnf.chart.stacked) {
-            const barStacked = new (getChartClass('barStacked'))(
+            const barStacked = new (getChartClass(
+              'barStacked',
+              cnf.chart.requestedType,
+            ))(ctx.w, ctx, xyRatios)
+            elGraph = barStacked.draw(this.w.seriesData.series)
+          } else {
+            ctx.bar = new (getChartClass('bar', cnf.chart.requestedType))(
               ctx.w,
               ctx,
               xyRatios,
             )
-            elGraph = barStacked.draw(this.w.seriesData.series)
-          } else {
-            ctx.bar = new (getChartClass('bar'))(ctx.w, ctx, xyRatios)
             elGraph = ctx.bar.draw(this.w.seriesData.series)
           }
           break

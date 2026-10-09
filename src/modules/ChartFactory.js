@@ -16,7 +16,12 @@
  * @module ChartFactory
  */
 
-import { RESERVED_TYPES, TYPE_ALIASES } from './settings/TypeAliases'
+import {
+  RENDERER_ENTRIES,
+  RESERVED_TYPES,
+  TYPE_ALIASES,
+  TYPE_FEATURES,
+} from './settings/TypeAliases'
 
 const REGISTRY_KEY = '__apexcharts_registry__'
 // Marks (#11): names registered via registerSeriesType, so dispatch + the
@@ -110,16 +115,26 @@ export function getChartClass(type, requested) {
     // Say it in the user's terms. A raincloud on a page without the violin
     // renderer used to report "violin", a type nobody on that page asked for,
     // and point at an import that still leaves the raincloud statistics out.
-    // Only an alias that draws through THIS type counts: a combo's series can
-    // need a renderer the chart's own (aliased) type does not.
+    // Only an alias that draws through THIS renderer's entry counts: a combo's
+    // series can need a renderer the chart's own (aliased) type does not.
+    // Compared by entry because Core asks for the family's class: a
+    // streamgraph (rangeArea) is drawn by 'line'.
+    const family = (/** @type {string} */ t) => RENDERER_ENTRIES[t] || t
     const alias =
-      requested && TYPE_ALIASES[requested] === type ? requested : undefined
-    const raincloud = alias === 'raincloud'
+      requested &&
+      TYPE_ALIASES[requested] &&
+      family(TYPE_ALIASES[requested]) === family(type)
+        ? requested
+        : undefined
     const name = alias || type
-    const entry = raincloud ? 'raincloud' : type
-    const files = raincloud
-      ? ['violin.js', 'features/raincloud.js']
-      : [`${type}.js`]
+    // An alias whose statistics live in a feature (a waterfall, a raincloud)
+    // has an entry of its own that brings both; its script-tag route is the
+    // renderer's file, then the feature's.
+    const feature = alias ? TYPE_FEATURES[alias] : undefined
+    const entry = feature ? alias : family(type)
+    const files = feature
+      ? [`${family(type)}.js`, `features/${feature}.js`]
+      : [`${family(type)}.js`]
     const tags = files
       .map((f) => `<script src=".../dist/${f}">`)
       .join(' and ')

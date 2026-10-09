@@ -72,6 +72,41 @@ describe('getChartClass: the unregistered-type error', () => {
     )
   })
 
+  // Core asks for the class of a renderer family member (barStacked, rangeBar)
+  // that has no entry or file of its own: dist/bar.js registers them all.
+  it.each(['barStacked', 'rangeBar'])(
+    'points a missing %s at the bar entry and file, which exist',
+    (type) => {
+      const message = messageFor(type)
+      expect(message).toContain("import 'apexcharts/bar'")
+      expect(message).toContain('<script src=".../dist/bar.js">')
+      expect(message).not.toContain(`dist/${type}.js`)
+      expect(message).not.toContain(`'apexcharts/${type}'`)
+    },
+  )
+
+  it('names a waterfall as a waterfall, with the bar file then its feature', () => {
+    const message = messageFor('rangeBar', 'waterfall')
+    expect(message).toContain(
+      'chart type "waterfall" is not registered (it draws through "rangeBar")',
+    )
+    expect(message).toContain("import 'apexcharts/waterfall'")
+    expect(message).toContain(
+      '<script src=".../dist/bar.js"> and <script src=".../dist/features/waterfall.js">',
+    )
+  })
+
+  it('names a streamgraph although core asks for its renderer as line', () => {
+    const message = messageFor('line', 'streamgraph')
+    expect(message).toContain(
+      'chart type "streamgraph" is not registered (it draws through "line")',
+    )
+    expect(message).toContain("import 'apexcharts/streamgraph'")
+    expect(message).toContain(
+      '<script src=".../dist/line.js"> and <script src=".../dist/features/streamgraph.js">',
+    )
+  })
+
   it('ignores a requested type that does not draw through this one', () => {
     // A funnel chart with a violin series: the funnel is not what is missing.
     const message = messageFor('violin', 'funnel')
