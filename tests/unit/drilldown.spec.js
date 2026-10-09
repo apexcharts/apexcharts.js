@@ -258,6 +258,46 @@ describe('Drilldown — cross-type drill (bar → donut)', () => {
   })
 })
 
+describe('Drilldown: a level of a type the page never loaded', () => {
+  // The update guard refuses an opt-in type before anything moves, so the
+  // chart stays on its level. The drill state has to stay with it: a level
+  // pushed and never shown put a breadcrumb over the root and made drillUp
+  // walk through levels nobody saw.
+  it('stays on the level it was, and fires drillDownError', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const errors = []
+    const chart = makeChart({
+      chart: {
+        events: { drillDownError: (info) => errors.push(info.id) },
+      },
+      drilldown: {
+        enabled: true,
+        series: [
+          {
+            id: '2024-q',
+            name: '2024 parts',
+            chart: { type: 'waffle' },
+            data: [{ x: 'A', y: 1 }],
+          },
+        ],
+      },
+    })
+
+    await expect(chart.drillDown('2024-q')).rejects.toThrow(
+      'chart type "waffle" is not registered',
+    )
+    expect(chart.drilldown.depth).toBe(0)
+    expect(chart.drilldown.path).toEqual(['root'])
+    expect(chart.w.config.chart.type).toBe('bar')
+    expect(errors).toEqual(['2024-q'])
+
+    // A second click does not stack a level on top of the one never shown.
+    await expect(chart.drillDown('2024-q')).rejects.toThrow()
+    expect(chart.drilldown.depth).toBe(0)
+    vi.restoreAllMocks()
+  })
+})
+
 describe('Drilldown — multi-series child level', () => {
   it('drills from a single-series root into a 3-series child and restores it', async () => {
     const chart = makeChart({
