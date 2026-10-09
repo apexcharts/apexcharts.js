@@ -5,9 +5,9 @@ import { gzipSize } from './gzip-size.mjs'
 import { SUB_ENTRIES, UMD_ENTRIES } from '../vite.config.mjs'
 
 // Build all formats in three passes:
-//   Pass 1 — default bundle (apexcharts.esm.js / .common.js / .js / .min.js)
-//   Pass 2 — sub-entries (line/bar/etc. .esm.js / .common.js) one at a time
-//   Pass 3 — script-loadable add-ons and the lean-core and full baselines
+//   Pass 1: default bundle (apexcharts.esm.js / .common.js / .js / .min.js)
+//   Pass 2: sub-entries (line/bar/etc. .esm.js / .common.js) one at a time
+//   Pass 3: script-loadable add-ons and the lean-core and full baselines
 async function buildAll() {
   console.log(chalk.blue('Building ApexCharts...'))
 
