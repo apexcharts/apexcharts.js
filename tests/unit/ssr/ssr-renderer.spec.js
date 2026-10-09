@@ -4,7 +4,7 @@ import { BrowserAPIs } from '../../../src/ssr/BrowserAPIs.js'
 
 // Register all chart types and features as side-effects. SSRRenderer imports the
 // bare ApexCharts class directly, so chart types must be pre-registered here.
-import '../../../src/entries/full.js'
+import '../../../src/entries/standard.js'
 
 describe('SSRRenderer', () => {
   describe('_encodeConfig()', () => {

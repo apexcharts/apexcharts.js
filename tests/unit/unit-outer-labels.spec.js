@@ -12,7 +12,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import { spaceOutLabels } from '../../src/charts/common/OuterLabels.js'
 import { LicenseManager } from 'apex-commons'
 import { installTestSigningKey, signedKey } from './utils/license-keys.js'

@@ -7,7 +7,7 @@ import {
   afterAll,
   afterEach,
 } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import CanvasRenderer from '../../src/renderers/canvas/CanvasRenderer'
 import { pathBox } from '../../src/renderers/canvas/CanvasGraphics'
 import RendererController from '../../src/modules/RendererController'

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // ---------------------------------------------------------------------------
 // Marks (#11): registerSeriesType + the CustomSeries adapter.

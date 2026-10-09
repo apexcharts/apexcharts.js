@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // ---------------------------------------------------------------------------
 // Facet (#13): named themes (ThemeRegistry) + OS-aware theming (OSThemeWatcher).

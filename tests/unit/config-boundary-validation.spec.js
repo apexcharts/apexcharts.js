@@ -8,7 +8,7 @@
  * dropped. These are the six, kept together because the fixes share a seam.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import DateTime from '../../src/utils/DateTime.js'
 import './__mocks__/ResizeObserver.js'
 

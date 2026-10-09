@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // Regression tests for the crash reported in react-apexcharts#602:
 //   "Cannot read properties of undefined (reading 'node')"

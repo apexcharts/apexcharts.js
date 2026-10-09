@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import Graphics from '../../src/modules/Graphics'
-// The canvas renderer is an opt-in feature, not part of `entries/full.js`.
+// The canvas renderer is an opt-in feature, not part of `entries/standard.js`.
 import '../../src/features/renderer-canvas.js'
 
 /**

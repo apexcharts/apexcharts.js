@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import './__mocks__/ResizeObserver.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/trellis.js'
 
 beforeAll(() => {

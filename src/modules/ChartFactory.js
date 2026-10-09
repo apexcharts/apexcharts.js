@@ -10,8 +10,8 @@
  * The registry is populated at module load time by whichever entry point is
  * used:
  *   - Each entry point (src/entries/*.js) calls ApexCharts.use() with the
- *     types it includes; full.js registers all, sub-entries register a subset,
- *     allowing bundlers to tree-shake unused chart classes.
+ *     types it includes; standard.js registers the default set, sub-entries
+ *     a subset, allowing bundlers to tree-shake unused chart classes.
  *
  * @module ChartFactory
  */

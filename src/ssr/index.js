@@ -14,7 +14,7 @@
  *   const chart = ApexCharts.hydrate(element);
  */
 
-import ApexCharts from '../entries/full.js'
+import ApexCharts from '../entries/standard.js'
 import { SSRRenderer } from './SSRRenderer.js'
 import { Hydration } from './Hydration.js'
 

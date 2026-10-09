@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import CanvasRenderer from '../../src/renderers/canvas/CanvasRenderer'
 import CanvasGraphics from '../../src/renderers/canvas/CanvasGraphics'
 import CanvasCompositor from '../../src/renderers/canvas/CanvasCompositor'

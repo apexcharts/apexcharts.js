@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 // Ink is tree-shakeable and absent from the full entry, so the two attribution
 // tests below would otherwise assert against a chart with no ink at all.
 import '../../src/features/ink.js'

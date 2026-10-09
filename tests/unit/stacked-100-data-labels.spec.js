@@ -1,4 +1,4 @@
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // Data labels on a 100% stacked chart that is not typed `bar` (#2429).
 //

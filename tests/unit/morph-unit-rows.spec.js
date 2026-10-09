@@ -7,7 +7,7 @@
  * explode and collapse are inverses.
  */
 
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import MorphTypeChange from '../../src/modules/MorphTypeChange.js'
 
 function stubW() {

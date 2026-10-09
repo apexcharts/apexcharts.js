@@ -7,7 +7,7 @@ import Intersect from '../../src/modules/tooltip/Intersect'
 import TooltipUtils from '../../src/modules/tooltip/Utils'
 import Series from '../../src/modules/Series'
 import { createChartWithOptions } from './utils/utils.js'
-// The canvas renderer is an opt-in feature, not part of `entries/full.js`.
+// The canvas renderer is an opt-in feature, not part of `entries/standard.js`.
 import '../../src/features/renderer-canvas.js'
 
 /**

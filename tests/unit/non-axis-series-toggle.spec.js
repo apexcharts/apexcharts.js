@@ -8,7 +8,7 @@
  * own path.
  */
 import { describe, it, expect } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import './__mocks__/ResizeObserver.js'
 
 async function chart(type) {

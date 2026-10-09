@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 /** What the probe plugin saw. */
 let info = null

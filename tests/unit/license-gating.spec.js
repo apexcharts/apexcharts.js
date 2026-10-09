@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
-// measure, link, ink, storyboard, context-menu, history and perspectives are Tier 2 and no longer in `entries/full.js`. This suite
+import ApexCharts from '../../src/entries/standard.js'
+// measure, link, ink, storyboard, context-menu, history and perspectives are Tier 2 and no longer in `entries/standard.js`. This suite
 // is about license gating, not bundling, so it imports each feature the way
 // an application would and keeps asserting on a chart that HAS the tool.
 import '../../src/features/measure.js'

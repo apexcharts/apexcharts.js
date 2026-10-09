@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const settle = () => sleep(80)

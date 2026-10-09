@@ -1,5 +1,5 @@
 import DateTime from '../../src/utils/DateTime'
-import ApexCharts from '../../src/entries/full'
+import ApexCharts from '../../src/entries/standard'
 
 describe('DateTime', () => {
   let ctx

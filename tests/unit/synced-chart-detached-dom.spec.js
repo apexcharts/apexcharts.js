@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import './__mocks__/ResizeObserver.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 function createSyncedChartPair(groupId) {
   document.body.innerHTML = '<div id="chart-live" /><div id="chart-orphaned" />'

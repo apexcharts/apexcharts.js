@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
-// renderer-canvas is Tier 2 and no longer in `entries/full.js`. The first
+import ApexCharts from '../../src/entries/standard.js'
+// renderer-canvas is Tier 2 and no longer in `entries/standard.js`. The first
 // block below deliberately unregisters it to exercise the fallback path, so
 // the suite still needs it present to begin with.
 import '../../src/features/renderer-canvas.js'

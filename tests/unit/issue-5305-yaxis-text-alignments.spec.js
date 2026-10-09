@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 /**
  * #5305: setYAxisTextAlignments() threw on a hidden y-axis with labels.align,

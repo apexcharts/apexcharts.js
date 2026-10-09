@@ -578,7 +578,7 @@ export default defineConfig(({ mode }) => {
   if (mode === 'full-esm') {
     return {
       build: {
-        lib: { entry: resolve(__dirname, 'src/entries/full.js'), name: 'ApexCharts' },
+        lib: { entry: resolve(__dirname, 'src/entries/standard.js'), name: 'ApexCharts' },
         outDir: 'dist',
         emptyOutDir: false,
         sourcemap: isDev,
@@ -617,7 +617,7 @@ export default defineConfig(({ mode }) => {
   return {
     build: {
       lib: {
-        entry: resolve(__dirname, 'src/entries/full.js'),
+        entry: resolve(__dirname, 'src/entries/standard.js'),
         name: 'ApexCharts',
       },
       outDir: 'dist',

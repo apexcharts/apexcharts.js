@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // Regression test for the draw-animation race reported on react-apexcharts#602:
 //   "Cannot read properties of null (reading 'node')" in runMaskReveal

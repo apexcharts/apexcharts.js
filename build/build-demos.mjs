@@ -21,7 +21,7 @@ const DEMOS = [
   {
     name: 'full-bundle',
     description: 'Full bundle (baseline)',
-    imports: [`import '${root}/src/entries/full.js'`],
+    imports: [`import '${root}/src/entries/standard.js'`],
   },
   {
     name: 'minimal-line',

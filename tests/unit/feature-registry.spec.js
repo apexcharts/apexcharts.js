@@ -12,7 +12,7 @@
 // Import the full entry so all chart types are registered.
 // We selectively manipulate the feature registry (InitCtxVariables._featureRegistry)
 // to test null-safety of optional features — chart types are unaffected.
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import InitCtxVariables from '../../src/modules/helpers/InitCtxVariables.js'
 
 // Individual feature constructors for selective registration.

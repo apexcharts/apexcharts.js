@@ -15,7 +15,7 @@ import { SSRRenderer } from '../../../src/ssr/SSRRenderer.js'
 import { BrowserAPIs } from '../../../src/ssr/BrowserAPIs.js'
 // Register all chart types as side-effects — SSRRenderer imports the bare
 // ApexCharts class, so candlestick must be pre-registered here.
-import '../../../src/entries/full.js'
+import '../../../src/entries/standard.js'
 
 describe('SSR bulk-render (large candlestick) does not throw or freeze at opacity 0', () => {
   let savedWindow, savedDocument, savedNavigator

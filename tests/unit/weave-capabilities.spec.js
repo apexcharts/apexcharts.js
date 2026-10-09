@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import { WEAVE_CAPABILITIES } from '../../src/modules/weave/PluginAPI.js'
 
 /** What the probe was told, captured at setup. */

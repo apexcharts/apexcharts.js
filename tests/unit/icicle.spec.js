@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-// The icicle is opt-in, so the full bundle the shared helper mounts through
+// The icicle is opt-in, so the default bundle the shared helper mounts through
 // does NOT register it. Importing the entry registers the type globally.
 import ApexCharts from '../../src/entries/icicle.js'
 import { createChartWithOptions } from './utils/utils.js'
@@ -511,14 +511,14 @@ describe('icicle chart', () => {
   it('is NOT registered by the default bundle', () => {
     // The type registry is global, so once this file imports the entry the name
     // resolves everywhere. What has to stay true is the BUNDLE composition: the
-    // full entry must not pull the class in, or the opt-in is opt-in in name
+    // default entry must not pull the class in, or the opt-in is opt-in in name
     // only and every user pays for it. Asserted against the source, because
     // that is the thing a one-line import would quietly change.
-    const full = readFileSync(
-      resolve(rootDir, 'src/entries/full.js'),
+    const standard = readFileSync(
+      resolve(rootDir, 'src/entries/standard.js'),
       'utf8',
     )
-    expect(full).not.toMatch(/icicle/i)
+    expect(standard).not.toMatch(/icicle/i)
   })
 
   it('tiles every parent exactly with its children, in all four directions', () => {

@@ -1,5 +1,5 @@
 import '../__mocks__/ResizeObserver.js'
-import ApexCharts from '../../../src/entries/full.js'
+import ApexCharts from '../../../src/entries/standard.js'
 
 export function createChart(type, series, xtype = 'category') {
   document.body.innerHTML = '<div id="chart" />'

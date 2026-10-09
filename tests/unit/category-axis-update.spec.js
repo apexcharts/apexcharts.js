@@ -12,7 +12,7 @@
  * 1, 2, 3 and dropped the user's own formatter.
  */
 import { describe, it, expect } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import './__mocks__/ResizeObserver.js'
 
 const CASES = {

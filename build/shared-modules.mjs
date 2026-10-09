@@ -33,7 +33,7 @@ export const CORE_EXTERNAL_ID = 'apexcharts/core'
 
 /**
  * The global a UMD add-on reads its shared modules from. Attached by
- * `src/entries/full.js`; see the note there before renaming it.
+ * `src/entries/standard.js`; see the note there before renaming it.
  */
 export const GLOBAL_INTERNALS = 'globalThis.ApexCharts.__internals'
 

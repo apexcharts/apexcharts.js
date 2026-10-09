@@ -32,7 +32,7 @@ import * as coreInternals from './core.js'
 
 /**
  * The shared-module surface add-ons resolve against. Identical in contract to
- * the one the full bundle attaches (see `entries/full.js`), so a given
+ * the one the default bundle attaches (see `entries/standard.js`), so a given
  * `dist/features/*.js` layers onto either baseline unchanged.
  *
  * PRIVATE and unversioned: not in the type definitions, not semver-stable.

@@ -1,11 +1,11 @@
 // @ts-check
 /**
- * ApexCharts — full bundle entry point (all chart types).
+ * ApexCharts: the default bundle's entry point (the standard chart types).
  *
  * This is what the default import resolves to:
  *   import ApexCharts from 'apexcharts'
  *
- * Registers every built-in chart type. Use a sub-entry point instead
+ * Registers the standard chart types. Use a sub-entry point instead
  * (e.g. 'apexcharts/line') to ship only the types you need.
  */
 import ApexCharts from '../apexcharts'
@@ -55,7 +55,7 @@ ApexCharts.use({
  * A page without a bundler loads `apexcharts.js` and then, say,
  * `features/trellis.js`. That add-on needs the same Graphics, Utils and Scales
  * the page already has: a second copy would double the payload and, worse, give
- * it class identities the core does not recognise. So the full bundle hangs the
+ * it class identities the core does not recognise. So the default bundle hangs the
  * `__apex_*` modules it already contains off the global, and the UMD add-on
  * build resolves its shared imports here instead of inlining them
  * (`build/shared-modules.mjs`, target 'global').

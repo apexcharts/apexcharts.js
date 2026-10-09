@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
-// The canvas renderer is an opt-in feature, not part of `entries/full.js`.
+// The canvas renderer is an opt-in feature, not part of `entries/standard.js`.
 import '../../src/features/renderer-canvas.js'
 
 /**

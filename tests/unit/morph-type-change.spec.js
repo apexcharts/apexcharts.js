@@ -9,7 +9,7 @@
  *    must keep working unchanged.
  */
 
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 import InitCtxVariables from '../../src/modules/helpers/InitCtxVariables.js'
 import MorphTypeChange from '../../src/modules/MorphTypeChange.js'
 

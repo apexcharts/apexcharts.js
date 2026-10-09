@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import ApexCharts from '../../src/entries/full.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // render() must be idempotent: a second call (deliberate, or a framework
 // double-invoking an effect) must not build a duplicate chart tree in the same
