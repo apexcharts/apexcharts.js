@@ -39,19 +39,15 @@ const TIER_1 = [
   'marks',
   'facet',
   'stats',
-  // The three 7.1.0 chart types below are GRANDFATHERED (shipped in the
-  // default bundle, clawing them back is a breaking change). They are not
+  // The 7.1.0 chart types below are GRANDFATHERED (shipped in the default
+  // bundle) until 8.0 moves them out; waterfall has gone. They are not
   // precedent: since 2026-08-31 a NEW chart type defaults to Tier 2, the
   // raincloud model, with an entry in Data.js's TYPE_FEATURES map so the
   // default bundle warns loudly instead of failing silently. See the
   // policy in plans/08-distribution-and-plugin-tiers.md.
   //
-  // Same reason as `stats`: it backs a first-class `chart.type`, not a garnish.
-  // `chart.type: 'waterfall'` without it is a chart that silently refuses to
-  // draw, which is not a bundle saving anyone asked for.
-  'waterfall',
-  // Same again: `chart.type: 'dumbbell'` without it draws the two measures as
-  // two unrelated grouped bars, which is not a bundle saving either.
+  // `chart.type: 'dumbbell'` without it draws the two measures as two
+  // unrelated grouped bars, which is not a bundle saving anyone asked for.
   'dumbbell',
   // Same again, and the quietest failure of the three: `chart.type:
   // 'streamgraph'` without it routes scalar series into the range-area
@@ -85,6 +81,11 @@ const TIER_2 = [
   // minority of charts navigate a hierarchy, and every page paid 4.5 KB for
   // it. Without it, `drilldown.enabled` warns and the root level draws.
   'drilldown',
+  // The 7.1.0 alias types, grandfathered into Tier 1 until 8.0. Each backs a
+  // first-class `chart.type` whose base renderer, without the feature, drew
+  // the untransformed series as a WRONG chart; TYPE_FEATURES in Data.js now
+  // makes that a blank chart and one warning that survives minification.
+  'waterfall',
 ]
 
 const RULE = `

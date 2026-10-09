@@ -1714,6 +1714,7 @@ type ApexChart = {
   | 'polarArea'
   | 'rangeBar'
   | 'rangeArea'
+  /** Not in the default bundle since 8.0: `import 'apexcharts/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
   | 'waterfall'
   | 'dumbbell'
   | 'streamgraph'
@@ -3365,6 +3366,7 @@ type ApexPlotOptions = {
       gradientLegend?: ApexGradientLegend
     }
   }
+  /** `chart.type: 'waterfall'`. Not in the default bundle since 8.0: `import 'apexcharts/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
   waterfall?: {
     /**
      * Semantic fills for the three kinds of bar. A datum's own `fillColor`

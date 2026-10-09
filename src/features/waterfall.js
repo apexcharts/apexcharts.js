@@ -17,6 +17,11 @@
  * or simply `import ApexCharts from 'apexcharts/waterfall'`, which pulls in the
  * bar renderer and this feature together.
  *
+ * Not in the default bundle since 8.0: add `import 'apexcharts/waterfall'` next
+ * to `import ApexCharts from 'apexcharts'`. Script tag: load
+ * `dist/features/waterfall.js` after the ApexCharts script, or use the full
+ * bundle. Without it, a waterfall chart warns once and draws nothing.
+ *
  * @module features/waterfall
  */
 import ApexCharts from '../apexcharts'
