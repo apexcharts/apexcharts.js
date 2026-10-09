@@ -420,4 +420,34 @@ describe('License gating', () => {
       expect(() => enforceLicense(w, ctx)).not.toThrow()
     })
   })
+
+  // ── one state across module copies ────────────────────────────────────────
+  // A script-tag add-on inlines its own copy of LicenseEnforcer (it is not a
+  // shared module). With module-level state, the perspectives add-on's static
+  // decode() set ITS flag while core read its own, so the premium static API
+  // never watermarked. vi.resetModules() + a dynamic import is that second copy.
+  describe('shared state across module copies', () => {
+    it('a static decode through another copy marks perspectives in use here', async () => {
+      const chart = premiumLineChart()
+      expect(premiumFeaturesInUse(chart.w, chart)).not.toContain('perspectives')
+
+      vi.resetModules()
+      const copy = await import('../../src/modules/license/LicenseEnforcer.js')
+      expect(copy.markPerspectivesTokenDecoded).not.toBe(undefined)
+      expect(copy.premiumFeaturesInUse).not.toBe(premiumFeaturesInUse)
+
+      copy.markPerspectivesTokenDecoded()
+      expect(premiumFeaturesInUse(chart.w, chart)).toContain('perspectives')
+    })
+
+    it('a copy sees the charts this copy is reconciling', async () => {
+      const before = _enforcedCount()
+      premiumLineChart({ measure: { enabled: true } })
+      expect(_enforcedCount()).toBe(before + 1)
+
+      vi.resetModules()
+      const copy = await import('../../src/modules/license/LicenseEnforcer.js')
+      expect(copy._enforcedCount()).toBe(before + 1)
+    })
+  })
 })
