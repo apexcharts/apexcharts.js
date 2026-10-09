@@ -355,6 +355,13 @@ export const UMD_ENTRIES = {
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development'
   const isSSR = mode === 'ssr'
+  // The stylesheets are inlined as strings (cssAsString), and vite only
+  // minifies CSS when `build.minify` is on, which every pass here turns off so
+  // terser stays the one JS minifier. Left alone, apexcharts.min.js carried
+  // the stylesheet with every comment and indent: 6.9 KB gzipped. Minified in
+  // every production pass, so the readable apexcharts.js carries the same
+  // string; dist/apexcharts.css is a separate copy and stays readable.
+  const cssMinify = isDev ? false : 'esbuild'
   // SUB_ENTRY mode: only ESM + CJS, single entry (set by vite-build.mjs via --entry)
   const isSubEntry = mode === 'sub-entry'
   // Derive outDir from entry name — entries like 'features/annotations' go to dist/features/
@@ -391,6 +398,7 @@ export default defineConfig(({ mode }) => {
         // apexcharts.core.js and .core.min.js the same size. Terser below is
         // the single place minification happens, as in the main bundle.
         minify: false,
+        cssMinify,
         target: 'es2015',
         cssCodeSplit: false,
         rollupOptions: {
@@ -456,6 +464,7 @@ export default defineConfig(({ mode }) => {
         emptyOutDir: false,
         sourcemap: false,
         minify: false,
+        cssMinify,
         target: 'es2015',
         cssCodeSplit: false,
         rollupOptions: {
@@ -508,6 +517,7 @@ export default defineConfig(({ mode }) => {
         emptyOutDir: false,
         sourcemap: isDev,
         minify: false,
+        cssMinify,
         target: 'es2015',
         cssCodeSplit: false,
         rollupOptions: {
@@ -573,6 +583,7 @@ export default defineConfig(({ mode }) => {
         emptyOutDir: false,
         sourcemap: isDev,
         minify: false,
+        cssMinify,
         target: 'es2015',
         cssCodeSplit: false,
         rollupOptions: {
@@ -613,6 +624,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: !isDev,
       sourcemap: isDev,
       minify: false,
+      cssMinify,
       target: 'es2015',
       cssCodeSplit: false,
       rollupOptions: {
