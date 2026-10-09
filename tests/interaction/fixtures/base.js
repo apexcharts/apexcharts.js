@@ -14,9 +14,34 @@
 import { test as base, expect } from '@playwright/test'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
+import { readdirSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, '..', '..', '..')
+
+/**
+ * Fail on a sample path whose case differs from the file on disk.
+ *
+ * macOS resolves `boxplot/basic.html` to `boxPlot/basic.html`; the Linux CI
+ * runner does not. So a wrong-case name passes every local run and fails only
+ * in CI, as one did for days on the canvas edge spec. Comparing against the
+ * directory listing makes it fail here too, with the right spelling.
+ */
+function assertExactCase(type, fileName) {
+  const samplesDir = resolve(rootDir, 'samples', 'vanilla-js')
+  const check = (dir, name, what) => {
+    const entries = readdirSync(dir)
+    if (entries.includes(name)) return
+    const near = entries.find((e) => e.toLowerCase() === name.toLowerCase())
+    throw new Error(
+      near
+        ? `loadChart: ${what} "${name}" is spelled "${near}" on disk. The case matters on Linux CI.`
+        : `loadChart: no ${what} "${name}" in ${dir}.`,
+    )
+  }
+  check(samplesDir, type, 'sample directory')
+  check(resolve(samplesDir, type), fileName, 'sample')
+}
 
 export const test = base.extend({
   // Accumulated page-level JS errors for the current test.
@@ -37,6 +62,7 @@ export const test = base.extend({
     page.on('pageerror', (err) => consoleErrors.push(err.message))
 
     const load = async (type, file) => {
+      assertExactCase(type, `${file}.html`)
       const htmlPath = resolve(rootDir, 'samples', 'vanilla-js', type, `${file}.html`)
       await page.goto(`file://${htmlPath}`)
 

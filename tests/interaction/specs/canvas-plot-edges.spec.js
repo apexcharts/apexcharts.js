@@ -185,7 +185,7 @@ test.describe('Canvas renderer: marks hanging past the plot edges', () => {
     // RR's cloud hangs entirely right of the plot (DD's rain is SVG anyway)
     ['raincloud', 'basic-raincloud', ['right']],
     // the first and last boxes
-    ['boxplot', 'basic', ['left', 'right']],
+    ['boxPlot', 'basic', ['left', 'right']],
   ]) {
     test(`${type}/${sample}: the edge marks are drawn as on SVG`, async ({
       page,
