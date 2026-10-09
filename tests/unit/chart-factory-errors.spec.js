@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 // Deliberately NOT importing src/entries/icicle.js. That entry registers the
 // type, which would make the branch under test unreachable from this file.
 import { getChartClass } from '../../src/modules/ChartFactory.js'
@@ -56,6 +56,64 @@ describe('getChartClass: the unregistered-type error', () => {
 
     expect(message).toContain('after the ApexCharts script')
     expect(message).not.toContain('after apexcharts.core.js')
+  })
+
+  describe('saying it, not only throwing it', () => {
+    // render() keeps its own rejection handled, so on a page that does not
+    // await render() the throw reaches nobody. The console line is the only
+    // signal, and it must survive the minified bundle's drop_console, which is
+    // why it goes through globalThis.console.
+    afterEach(() => vi.restoreAllMocks())
+
+    it('logs the same message it throws', () => {
+      const error = vi
+        .spyOn(globalThis.console, 'error')
+        .mockImplementation(() => {})
+      let thrown = ''
+      try {
+        getChartClass('missing-type-logged')
+      } catch (e) {
+        thrown = e.message
+      }
+      expect(error).toHaveBeenCalledTimes(1)
+      expect(error.mock.calls[0][0]).toBe(thrown)
+    })
+
+    it('logs once per type, however many charts ask', () => {
+      const error = vi
+        .spyOn(globalThis.console, 'error')
+        .mockImplementation(() => {})
+      for (let i = 0; i < 3; i++) {
+        expect(() => getChartClass('missing-type-once')).toThrow()
+      }
+      expect(() => getChartClass('missing-type-other')).toThrow()
+      expect(error.mock.calls.map((c) => c[0].match(/"([^"]+)"/)[1])).toEqual([
+        'missing-type-once',
+        'missing-type-other',
+      ])
+    })
+
+    it('reaches the console of a page that never awaits render()', async () => {
+      const error = vi
+        .spyOn(globalThis.console, 'error')
+        .mockImplementation(() => {})
+      // The bare core: no entry imported in this file, so even a built-in
+      // type is unregistered here, which is a lean-core page that forgot it.
+      const { default: ApexCharts } = await import('../../src/apexcharts.js')
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      const chart = new ApexCharts(el, {
+        chart: { type: 'radar' },
+        series: [{ data: [1, 2, 3] }],
+        labels: ['a', 'b', 'c'],
+      })
+      chart.render() // not awaited, as on a theme page
+      await new Promise((r) => setTimeout(r, 50))
+      expect(error.mock.calls.flat().join(' ')).toContain(
+        'chart type "radar" is not registered',
+      )
+      el.remove()
+    })
   })
 
   it('returns the class when the type is registered', () => {

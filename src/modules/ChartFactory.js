@@ -27,8 +27,15 @@ const CUSTOM_KEY = '__apexcharts_custom_types__'
 if (!/** @type {any} */ (globalThis)[REGISTRY_KEY]) {
   ;/** @type {any} */ (globalThis)[REGISTRY_KEY] = {}
 }
+// Types already reported missing, so each is said once per page however many
+// charts ask for it. globalThis-backed like the rest.
+const MISSING_KEY = '__apexcharts_missing_types__'
+
 if (!/** @type {any} */ (globalThis)[CUSTOM_KEY]) {
   ;/** @type {any} */ (globalThis)[CUSTOM_KEY] = new Set()
+}
+if (!(/** @type {any} */ (globalThis)[MISSING_KEY])) {
+  ;/** @type {any} */ (globalThis)[MISSING_KEY] = new Set()
 }
 
 /** @returns {Record<string, new (...args: any[]) => any>} */
@@ -108,15 +115,28 @@ export function getChartClass(type) {
     // sub-entry registers onto whichever shared class is already present, so
     // it works after the full bundle too, which is what our own samples do.
     const optIn = RESERVED_TYPES.includes(type)
-    throw new Error(
+    const message =
       `ApexCharts: chart type "${type}" is not registered. ` +
-        `Bundler: import 'apexcharts/${type}'. ` +
-        `Script tag: add <script src=".../dist/${type}.js"> after the ApexCharts script` +
-        (optIn
-          ? `. This type is opt-in and is NOT in the full apexcharts.js, ` +
-            `so loading that bundle instead will not register it.`
-          : `, or load the full apexcharts.js instead.`),
+      `Bundler: import 'apexcharts/${type}'. ` +
+      `Script tag: add <script src=".../dist/${type}.js"> after the ApexCharts script` +
+      (optIn
+        ? `. This type is opt-in and is NOT in the full apexcharts.js, ` +
+          `so loading that bundle instead will not register it.`
+        : `, or load the full apexcharts.js instead.`)
+    // The throw alone reaches nobody on the commonest path. render() keeps its
+    // own rejection handled, so a page that calls chart.render() without
+    // awaiting it (every sample, every theme) got no console line and no
+    // unhandled rejection, just an empty frame. Say it once per type, through
+    // globalThis.console: the minified bundle's drop_console strips calls on
+    // the bare `console` and leaves this one.
+    const missing = /** @type {Set<string>} */ (
+      /** @type {any} */ (globalThis)[MISSING_KEY]
     )
+    if (!missing.has(type)) {
+      missing.add(type)
+      globalThis.console.error(message)
+    }
+    throw new Error(message)
   }
   return Cls
 }
