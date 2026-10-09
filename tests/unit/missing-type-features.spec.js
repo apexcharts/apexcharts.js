@@ -245,3 +245,32 @@ describe('drilldown without its feature', () => {
     expect(warnings(warn).some((m) => m.includes('zoom is ignored'))).toBe(true)
   })
 })
+
+describe('changing to an opt-in type the page never loaded', () => {
+  // icicle stands in for every RESERVED_TYPES name: the default bundle does
+  // not register it, and this file does not import its entry.
+  const bars = (chart) =>
+    chart.el.querySelectorAll('.apexcharts-bar-area').length
+
+  test('rejects before tearing anything down, and the chart keeps working', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 500, height: 300 },
+      series: [{ name: 'A', data: [1, 2, 3] }],
+    })
+    expect(bars(chart)).toBe(3)
+
+    await expect(
+      chart.updateOptions({
+        chart: { type: 'icicle' },
+        series: [{ data: [{ x: 'a', y: 1 }] }],
+      }),
+    ).rejects.toThrow('chart type "icicle" is not registered')
+
+    expect(chart.w.config.chart.type).toBe('bar')
+    expect(bars(chart)).toBe(3)
+
+    await chart.updateOptions({ series: [{ name: 'A', data: [4, 5, 6, 7] }] })
+    expect(bars(chart)).toBe(4)
+  })
+})

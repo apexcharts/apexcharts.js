@@ -22,6 +22,7 @@ import {
   markCustom,
   isCustom,
   hasChartClass,
+  getChartClass,
   unregister,
 } from './modules/ChartFactory'
 import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
@@ -939,6 +940,24 @@ export default class ApexCharts {
     }
     // `tooltip: undefined` means "not given" (see Config.dropEmptyOptions).
     options = Config.dropEmptyOptions(options)
+
+    // A change to an opt-in type this page never loaded (a morph button to
+    // `unit` on a page without dist/unit.js) used to get as far as tearing the
+    // chart down before the renderer lookup threw, leaving an empty frame
+    // where a working chart had been. Refuse it before anything moves: the
+    // chart stays as it was, and the rejection (logged once per type) names
+    // the import.
+    const nextType = options?.chart?.type
+    if (typeof nextType === 'string') {
+      const base = TYPE_ALIASES[nextType] || nextType
+      if (RESERVED_TYPES.includes(base) && !hasChartClass(base)) {
+        try {
+          getChartClass(base, nextType)
+        } catch (e) {
+          return Promise.reject(e)
+        }
+      }
+    }
 
     // Trellis (#22): an option change on a live trellis host is structural
     // (it can move the split, the scales, the layout or any panel option), so
