@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -341,10 +341,18 @@ class Helpers {
         }
       }
       series = this._getSeriesBasedOnCollapsedState(series);
-      this.lgCtx.updateSeries(
+      const updated = this.lgCtx.updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
       );
+      const settled = () => {
+        w.globals.risingSeries = [];
+      };
+      if (updated && typeof updated.then === "function") {
+        updated.then(settled, settled);
+      } else {
+        settled();
+      }
     }
   }
   /**
@@ -520,6 +528,7 @@ function buildContinuousScale(w) {
   }));
   return { min, max, midpoint, stops, at, legendStops };
 }
+const TooltipUtils = _core.__apex_tooltip_Utils;
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -921,22 +930,29 @@ class HeatmapGradientLegend {
       w.dom.elLegendWrap
     );
     const strip = this.svgEl && this.svgEl.querySelector("rect");
-    const grid = w.dom.baseEl.querySelector(".apexcharts-grid");
-    if (!wrap || !strip || !grid || !this._geom) return;
+    if (!wrap || !strip || !this._geom) return;
+    if (!w.dom.baseEl || !w.dom.baseEl.querySelector(".apexcharts-svg")) return;
     const s = strip.getBoundingClientRect();
-    const gr = grid.getBoundingClientRect();
-    if (!s.width || !s.height || !gr.width || !gr.height) return;
+    const plot = TooltipUtils.plotRect(w);
+    if (!s.width || !s.height || !plot.width || !plot.height) return;
+    const gr = {
+      left: plot.left,
+      right: plot.left + plot.width,
+      top: plot.top,
+      bottom: plot.top + plot.height
+    };
+    const zoom = plot.zoom;
     const MIN_GAP = 16;
     const { isVertical, position } = this._geom;
     if (isVertical) {
-      const gap = position === "left" ? gr.left - s.right : s.left - gr.right;
+      const gap = (position === "left" ? gr.left - s.right : s.left - gr.right) / zoom;
       if (gap < MIN_GAP) {
         const curLeft = parseFloat(wrap.style.left) || 0;
         const shift = MIN_GAP - gap;
         wrap.style.left = curLeft + (position === "left" ? -shift : shift) + "px";
       }
     } else {
-      const gap = position === "top" ? gr.top - s.bottom : s.top - gr.bottom;
+      const gap = (position === "top" ? gr.top - s.bottom : s.top - gr.bottom) / zoom;
       if (gap < MIN_GAP) {
         const curTop = parseFloat(wrap.style.top) || 0;
         const shift = MIN_GAP - gap;

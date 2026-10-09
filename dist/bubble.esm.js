@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -102,6 +102,27 @@ class Helpers {
       pathFromLine,
       pathFromArea
     };
+  }
+  /**
+   * The range-area band this series drew last render, or null.
+   *
+   * checkPreviousPaths only knows line and area, so a range area never found
+   * its previous shape: every update, a legend toggle included, started all of
+   * its bands from the baseline and re-grew them. A range area draws its band
+   * as one closed path from two halves (Line.draw joins the lower and upper
+   * pathFrom), so this returns the whole captured band to morph from, in place
+   * of that join. Only a single-path band qualifies: a null splits it into one
+   * path per segment, and those keep the baseline entry.
+   * @param {number} realIndex
+   * @returns {string | null}
+   */
+  previousRangeAreaPath(realIndex) {
+    for (const gpp of this.w.globals.previousPaths) {
+      if (gpp.type === "rangeArea" && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10) && gpp.paths.length === 1 && gpp.paths[0].d) {
+        return gpp.paths[0].d;
+      }
+    }
+    return null;
   }
   /** @param {{i: any, realIndex: any, series: any, prevY: any, lineYPosition: any, translationsIndex: any}} opts */
   determineFirstPrevY({
@@ -418,88 +439,10 @@ function projectPathToPrevFrame(d, t) {
   }
   return out.join(" ");
 }
+const Animations = _core.__apex_Animations;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const Environment = _core.__apex_Environment_Environment;
-function easeInOutSine(t) {
-  return -Math.cos(t * Math.PI) / 2 + 0.5;
-}
-function cubicBezier(x1, y1, x2, y2) {
-  x1 = Math.min(Math.max(x1, 0), 1);
-  x2 = Math.min(Math.max(x2, 0), 1);
-  const cx = 3 * x1;
-  const bx = 3 * (x2 - x1) - cx;
-  const ax = 1 - cx - bx;
-  const cy = 3 * y1;
-  const by = 3 * (y2 - y1) - cy;
-  const ay = 1 - cy - by;
-  const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
-  const sampleY = (t) => ((ay * t + by) * t + cy) * t;
-  const solveT = (x) => {
-    let lo = 0;
-    let hi = 1;
-    let t = x;
-    if (t < lo) return lo;
-    if (t > hi) return hi;
-    while (lo < hi) {
-      const xt = sampleX(t);
-      if (Math.abs(xt - x) < 1e-4) return t;
-      if (x > xt) lo = t;
-      else hi = t;
-      t = (lo + hi) / 2;
-    }
-    return t;
-  };
-  return (t) => t <= 0 ? 0 : t >= 1 ? 1 : sampleY(solveT(t));
-}
-const REGISTRY = /* @__PURE__ */ new Map();
-const linear = (t) => t;
-REGISTRY.set("linear", linear);
-REGISTRY.set("easeInOutSine", easeInOutSine);
-REGISTRY.set("easeInSine", (t) => 1 - Math.cos(t * Math.PI / 2));
-REGISTRY.set("easeOutSine", (t) => Math.sin(t * Math.PI / 2));
-REGISTRY.set("easeInQuad", (t) => t * t);
-REGISTRY.set("easeOutQuad", (t) => 1 - (1 - t) * (1 - t));
-REGISTRY.set(
-  "easeInOutQuad",
-  (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-);
-REGISTRY.set("easeInCubic", (t) => t * t * t);
-REGISTRY.set("easeOutCubic", (t) => 1 - Math.pow(1 - t, 3));
-REGISTRY.set(
-  "easeInOutCubic",
-  (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-);
-REGISTRY.set("easeOutBack", (t) => {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-});
-REGISTRY.set("easeInOutBack", (t) => {
-  const c1 = 1.70158;
-  const c2 = c1 * 1.525;
-  return t < 0.5 ? Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2) / 2 : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
-});
-function isBezierArray(v) {
-  return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number");
-}
-function resolveEasing(value) {
-  if (typeof value === "function") return guardEasing(value);
-  if (isBezierArray(value))
-    return cubicBezier(value[0], value[1], value[2], value[3]);
-  if (typeof value === "string" && REGISTRY.has(value)) {
-    return guardEasing(
-      /** @type {(t:number)=>number} */
-      REGISTRY.get(value)
-    );
-  }
-  return easeInOutSine;
-}
-function guardEasing(fn) {
-  return (t) => {
-    const y = fn(t);
-    return typeof y === "number" && isFinite(y) ? y : t;
-  };
-}
+const resolveEasing = _core.__apex_Easing_resolveEasing;
 const parsePath = _core.__apex_PathMorphing_parsePath;
 const arrayToPath = _core.__apex_PathMorphing_arrayToPath;
 function buildUnionEntries(join, oldN) {
@@ -822,6 +765,70 @@ function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
   });
   return true;
 }
+function scaleAbout(node, cx, cy, s) {
+  node.setAttribute("transform", `translate(${cx * (1 - s)}, ${cy * (1 - s)}) scale(${s})`);
+}
+function growRisingMarkers(w, { elPointsMain, realIndex, speed }) {
+  if (!(elPointsMain == null ? void 0 : elPointsMain.node) || !lengthTransitionEnabled(w)) return false;
+  if ((w.globals.risingSeries || []).indexOf(realIndex) === -1) return false;
+  const markers = elPointsMain.node.querySelectorAll(".apexcharts-marker");
+  if (!markers.length) return false;
+  const ease = morphEasing(w);
+  elPointsMain.node.classList.remove("apexcharts-element-hidden");
+  markers.forEach((node) => {
+    const b = node.getBBox();
+    const cx = b.x + b.width / 2;
+    const cy = b.y + b.height / 2;
+    scaleAbout(node, cx, cy, 0);
+    rafTween(
+      w,
+      Math.max(1, speed || 1),
+      ease,
+      (eased) => scaleAbout(node, cx, cy, eased),
+      () => node.removeAttribute("transform")
+    );
+  });
+  return true;
+}
+function shrinkCollapsingMarkers(w, { elPointsMain, realIndex, speed, drawPoint }) {
+  var _a, _b, _c;
+  if (!(elPointsMain == null ? void 0 : elPointsMain.node) || !lengthTransitionEnabled(w)) return false;
+  if ((w.globals.collapsingSeriesIndices || []).indexOf(realIndex) === -1) return false;
+  const frame = w.globals.prevStreamFrame;
+  const xs = (_a = frame == null ? void 0 : frame.xPixels) == null ? void 0 : _a[realIndex];
+  const ys = (_b = frame == null ? void 0 : frame.yPixels) == null ? void 0 : _b[realIndex];
+  if (!Array.isArray(xs) || !Array.isArray(ys)) return false;
+  const rs = ((_c = frame == null ? void 0 : frame.rPixels) == null ? void 0 : _c[realIndex]) || [];
+  const fallbackR = w.globals.markers.size[realIndex] || 0;
+  const ease = morphEasing(w);
+  let drawn = false;
+  for (let j = 0; j < xs.length; j++) {
+    const x = xs[j];
+    const y = ys[j];
+    if (x == null || y == null || !isFinite(x) || !isFinite(y)) continue;
+    const r = isFinite(rs[j]) ? rs[j] : fallbackR;
+    if (!(r > 0)) continue;
+    const el = drawPoint(x, y, r, j);
+    if (!(el == null ? void 0 : el.node)) continue;
+    elPointsMain.add(el);
+    const node = el.node;
+    node.classList.add("apexcharts-marker-exit");
+    const landed = Animations.trackSeriesTween(w, realIndex);
+    rafTween(
+      w,
+      Math.max(1, speed || 1),
+      ease,
+      (eased) => scaleAbout(node, x, y, 1 - eased),
+      () => {
+        scaleAbout(node, x, y, 0);
+        landed();
+      }
+    );
+    drawn = true;
+  }
+  if (drawn) elPointsMain.node.classList.remove("apexcharts-element-hidden");
+  return drawn;
+}
 function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
   var _a, _b;
   const sj = seriesJoin(w, realIndex);
@@ -892,6 +899,7 @@ class Line {
     this.elPointsMain = null;
     this.elDataLabelsWrap = null;
     this._elLastPointsWrap = null;
+    this._shapeOnly = false;
   }
   /**
    * @param {any[]} series
@@ -902,6 +910,7 @@ class Line {
   draw(series, ctype, seriesIndex, seriesRangeEnd) {
     var _a;
     const w = this.w;
+    const hf = this.ctx.highlightFilter;
     const graphics = new Graphics(this.w);
     const type = w.globals.comboCharts ? ctype : w.config.chart.type;
     const ret = graphics.group({
@@ -924,119 +933,29 @@ class Line {
         seriesIndex[i]
       ) : i;
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0;
-      this._initSerieVariables(series, i, realIndex);
-      const yArrj = [];
-      const y2Arrj = [];
-      const xArrj = [];
-      let x = w.globals.padHorizontal + this.categoryAxisCorrection;
-      const y = 1;
-      const linePaths = [];
-      const areaPaths = [];
-      Series.addCollapsedClassToSeries(this.w, this.elSeries, realIndex);
-      if (w.axisFlags.isXNumeric && w.seriesData.seriesX.length > 0) {
-        x = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.xRatio;
-      }
-      xArrj.push(x);
-      const pX = x;
-      let pY2;
-      const prevX = pX;
-      let prevY = this.zeroY;
-      let prevY2 = this.zeroY;
-      const lineYPosition = 0;
-      const firstPrevY = this.lineHelpers.determineFirstPrevY({
-        i,
-        realIndex,
-        series,
-        prevY,
-        lineYPosition,
-        translationsIndex
-      });
-      prevY = firstPrevY.prevY;
-      if (w.config.stroke.curve === "monotoneCubic" && series[i][0] === null) {
-        yArrj.push(null);
-      } else {
-        yArrj.push(prevY);
-      }
-      const pY = prevY;
-      let firstPrevY2;
-      if (type === "rangeArea") {
-        firstPrevY2 = this.lineHelpers.determineFirstPrevY({
-          i,
-          realIndex,
-          series: seriesRangeEnd,
-          prevY: prevY2,
-          lineYPosition,
-          translationsIndex
-        });
-        prevY2 = firstPrevY2.prevY;
-        pY2 = prevY2;
-        y2Arrj.push(yArrj[0] !== null ? prevY2 : null);
-      }
-      const pathsFrom = this._calculatePathsFrom({
-        type,
-        series,
-        i,
-        realIndex,
-        translationsIndex,
-        prevX,
-        prevY,
-        prevY2
-      });
-      const rYArrj = [yArrj[0]];
-      const rY2Arrj = [y2Arrj[0]];
-      const iteratingOpts = {
-        type,
-        series,
-        realIndex,
-        translationsIndex,
-        i,
-        x,
-        y,
-        pX,
-        pY,
-        pathsFrom,
-        linePaths,
-        areaPaths,
-        seriesIndex,
-        lineYPosition,
-        xArrj,
-        yArrj,
-        y2Arrj,
-        seriesRangeEnd
-      };
-      const paths = this._iterateOverDataPoints(__spreadProps(__spreadValues({}, iteratingOpts), {
-        iterations: type === "rangeArea" ? series[i].length - 1 : void 0,
-        isRangeStart: true
-      }));
-      if (type === "rangeArea") {
-        const pathsFrom2 = this._calculatePathsFrom({
-          series: seriesRangeEnd,
-          i,
-          realIndex,
-          prevX,
-          prevY: prevY2
-        });
-        const rangePaths = this._iterateOverDataPoints(__spreadProps(__spreadValues({}, iteratingOpts), {
-          series: seriesRangeEnd,
-          xArrj: [x],
-          yArrj: rYArrj,
-          y2Arrj: rY2Arrj,
-          pY: pY2,
-          areaPaths: paths.areaPaths,
-          pathsFrom: pathsFrom2,
-          iterations: seriesRangeEnd[i].length - 1,
-          isRangeStart: false
-        }));
-        const segments = paths.linePaths.length / 2;
-        for (let s = 0; s < segments; s++) {
-          paths.linePaths[s] = rangePaths.linePaths[s + segments] + paths.linePaths[s];
+      const flat = this._collapsedBaselineRow(series, i, realIndex);
+      this._shapeOnly = !!flat;
+      if (flat) {
+        series = series.slice();
+        series[i] = flat;
+        if (type === "rangeArea" && seriesRangeEnd) {
+          seriesRangeEnd = seriesRangeEnd.slice();
+          seriesRangeEnd[i] = flat;
         }
-        paths.linePaths.splice(segments);
-        paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine;
-      } else if (!/z\s*$/i.test(paths.pathFromArea)) {
-        paths.pathFromArea += "z";
       }
+      this._initSerieVariables(series, i, realIndex);
+      Series.addCollapsedClassToSeries(this.w, this.elSeries, realIndex);
+      const paths = this._buildSeriesPaths(
+        type,
+        series,
+        i,
+        realIndex,
+        translationsIndex,
+        seriesIndex,
+        seriesRangeEnd
+      );
       this._handlePaths({ type, realIndex, i, paths });
+      hf == null ? void 0 : hf.line(this, type, series, i, realIndex, translationsIndex, paths);
       this.markers.flushBatch(this.elPointsMain, realIndex);
       this.elSeries.add(this.elPointsMain);
       this.elSeries.add(this.elDataLabelsWrap);
@@ -1058,6 +977,169 @@ class Line {
       }
     }
     return ret;
+  }
+  /**
+   * One series' line and area paths from its row of values: the start point,
+   * the stacking base, the pathFrom and the per-point walk. The draw loop
+   * calls it for each series; the highlight filter calls it again with the
+   * part row while markers and labels are off (_shapeOnly).
+   * @param {string} type
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} realIndex
+   * @param {number} translationsIndex
+   * @param {any} seriesIndex
+   * @param {any} seriesRangeEnd
+   */
+  _buildSeriesPaths(type, series, i, realIndex, translationsIndex, seriesIndex, seriesRangeEnd) {
+    const w = this.w;
+    const yArrj = [];
+    const y2Arrj = [];
+    const xArrj = [];
+    let x = w.globals.padHorizontal + this.categoryAxisCorrection;
+    const y = 1;
+    const linePaths = [];
+    const areaPaths = [];
+    if (w.axisFlags.isXNumeric && w.seriesData.seriesX.length > 0) {
+      x = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.xRatio;
+    }
+    xArrj.push(x);
+    const pX = x;
+    let pY2;
+    const prevX = pX;
+    let prevY = this.zeroY;
+    let prevY2 = this.zeroY;
+    const lineYPosition = 0;
+    const firstPrevY = this.lineHelpers.determineFirstPrevY({
+      i,
+      realIndex,
+      series,
+      prevY,
+      lineYPosition,
+      translationsIndex
+    });
+    prevY = firstPrevY.prevY;
+    if (w.config.stroke.curve === "monotoneCubic" && series[i][0] === null) {
+      yArrj.push(null);
+    } else {
+      yArrj.push(prevY);
+    }
+    const pY = prevY;
+    let firstPrevY2;
+    if (type === "rangeArea") {
+      firstPrevY2 = this.lineHelpers.determineFirstPrevY({
+        i,
+        realIndex,
+        series: seriesRangeEnd,
+        prevY: prevY2,
+        lineYPosition,
+        translationsIndex
+      });
+      prevY2 = firstPrevY2.prevY;
+      pY2 = prevY2;
+      y2Arrj.push(yArrj[0] !== null ? prevY2 : null);
+    }
+    const pathsFrom = this._calculatePathsFrom({
+      type,
+      series,
+      i,
+      realIndex,
+      translationsIndex,
+      prevX,
+      prevY,
+      prevY2
+    });
+    const rYArrj = [yArrj[0]];
+    const rY2Arrj = [y2Arrj[0]];
+    const iteratingOpts = {
+      type,
+      series,
+      realIndex,
+      translationsIndex,
+      i,
+      x,
+      y,
+      pX,
+      pY,
+      pathsFrom,
+      linePaths,
+      areaPaths,
+      seriesIndex,
+      lineYPosition,
+      xArrj,
+      yArrj,
+      y2Arrj,
+      seriesRangeEnd
+    };
+    const paths = this._iterateOverDataPoints(__spreadProps(__spreadValues({}, iteratingOpts), {
+      iterations: type === "rangeArea" ? series[i].length - 1 : void 0,
+      isRangeStart: true
+    }));
+    if (type === "rangeArea") {
+      const pathsFrom2 = this._calculatePathsFrom({
+        series: seriesRangeEnd,
+        i,
+        realIndex,
+        prevX,
+        prevY: prevY2
+      });
+      const rangePaths = this._iterateOverDataPoints(__spreadProps(__spreadValues({}, iteratingOpts), {
+        series: seriesRangeEnd,
+        xArrj: [x],
+        yArrj: rYArrj,
+        y2Arrj: rY2Arrj,
+        pY: pY2,
+        areaPaths: paths.areaPaths,
+        pathsFrom: pathsFrom2,
+        iterations: seriesRangeEnd[i].length - 1,
+        isRangeStart: false
+      }));
+      const segments = paths.linePaths.length / 2;
+      for (let s = 0; s < segments; s++) {
+        paths.linePaths[s] = rangePaths.linePaths[s + segments] + paths.linePaths[s];
+      }
+      paths.linePaths.splice(segments);
+      const prevBand = paths.linePaths.length === 1 ? this.lineHelpers.previousRangeAreaPath(realIndex) : null;
+      paths.pathFromLine = prevBand != null ? prevBand : rangePaths.pathFromLine + paths.pathFromLine;
+    } else if (!/z\s*$/i.test(paths.pathFromArea)) {
+      paths.pathFromArea += "z";
+    }
+    return paths;
+  }
+  /**
+   * The row to draw for a legend-hidden series on an unstacked chart: every
+   * point on the baseline, or null to draw the series as it is.
+   *
+   * A hidden series arrives with no data. Drawn as nothing, its paths had no
+   * target to tween to, so it vanished on the click and reappeared fully
+   * formed on the next one. Drawn flat on the baseline, the exit is the
+   * series flattening down (the same "value goes to zero" a stacked layer or a
+   * bar already shows), and the re-entry rises from where it went. The
+   * series-collapsed class keeps it unpainted at rest.
+   *
+   * The baseline is 0 when 0 is on the axis, else the axis edge nearest to it,
+   * so a 900..1000 line flattens onto the bottom of the plot rather than
+   * dropping out of view. Only the drawing changes: the data, the y range and
+   * the tooltip all still see an empty series.
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} realIndex
+   * @returns {number[] | null}
+   */
+  _collapsedBaselineRow(series, i, realIndex) {
+    const w = this.w;
+    const gl = w.globals;
+    if (w.config.chart.stacked || this.pointsChart) return null;
+    if (!Array.isArray(series[i]) || series[i].length !== 0) return null;
+    if (gl.collapsedSeriesIndices.indexOf(realIndex) === -1 && gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) === -1) {
+      return null;
+    }
+    const n = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex] || []).length : gl.dataPoints;
+    if (!n) return null;
+    const lo = Utils.isNumber(gl.minYArr[realIndex]) ? gl.minYArr[realIndex] : gl.minY;
+    const hi = Utils.isNumber(gl.maxYArr[realIndex]) ? gl.maxYArr[realIndex] : gl.maxY;
+    const base = Math.min(Math.max(0, lo), hi);
+    return new Array(n).fill(Utils.isNumber(base) ? base : 0);
   }
   /**
    * @param {any[]} series
@@ -1246,6 +1328,7 @@ class Line {
     const graphics = new Graphics(this.w);
     const emit = seriesEmitter(this.ctx, graphics);
     const fill = new Fill(this.w);
+    this.marks = [];
     this.prevSeriesY.push(paths.yArrj);
     this._recordStackTops(realIndex, paths.yArrj);
     let streamScroll = null;
@@ -1290,11 +1373,14 @@ class Line {
         el: this.elPointsMain.node,
         index: realIndex
       });
-      tweenSeriesMarkers(w, {
+      const riding = tweenSeriesMarkers(w, {
         elPointsMain: this.elPointsMain,
         realIndex,
         speed: w.config.chart.animations.dynamicAnimation.speed
       });
+      if (!riding && type === "line" && !w.config.stroke.show && (w.globals.dataChanged || w.globals.resized)) {
+        this.elPointsMain.node.classList.remove("apexcharts-element-hidden");
+      }
       if (seriesJoin(w, realIndex) && ((_a = this.elDataLabelsWrap) == null ? void 0 : _a.node)) {
         this.elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
         w.globals.delayedElements.push({
@@ -1308,6 +1394,19 @@ class Line {
         realIndex,
         speed: w.config.chart.animations.dynamicAnimation.speed
       });
+      growRisingMarkers(w, {
+        elPointsMain: this.elPointsMain,
+        realIndex,
+        speed: w.config.chart.animations.dynamicAnimation.speed
+      });
+      if (!(w.seriesData.series[realIndex] || []).length) {
+        shrinkCollapsingMarkers(w, {
+          elPointsMain: this.elPointsMain,
+          realIndex,
+          speed: w.config.chart.animations.dynamicAnimation.speed,
+          drawPoint: (x, y, r, j) => this.scatter.drawPoint(x, y, r, realIndex, j, j)
+        });
+      }
     }
     const defaultRenderedPathOptions = {
       i,
@@ -1342,6 +1441,7 @@ class Line {
           fill: pathFill
         }));
         this.elSeries.add(renderedPath);
+        this.marks.push(renderedPath);
       }
     }
     if (w.config.stroke.show && !this.pointsChart) {
@@ -1384,6 +1484,7 @@ class Line {
         });
         const renderedPath = emit.renderPaths(linePathCommonOpts);
         this.elSeries.add(renderedPath);
+        this.marks.push(renderedPath);
         renderedPath.attr("fill-rule", `evenodd`);
         if (forecast.count > 0 && type !== "rangeArea") {
           const renderedForecastPath = emit.renderPaths(linePathCommonOpts);
@@ -1584,15 +1685,17 @@ class Line {
         pathFromLine += graphics.line(x, this.areaBottomY);
         pathFromArea += graphics.line(x, this.areaBottomY);
       }
-      this.handleNullDataPoints(series, pointsPos, i, j, realIndex);
-      this._handleMarkersAndLabels({
-        type,
-        pointsPos,
-        i,
-        j,
-        realIndex,
-        isRangeStart
-      });
+      if (!this._shapeOnly) {
+        this.handleNullDataPoints(series, pointsPos, i, j, realIndex);
+        this._handleMarkersAndLabels({
+          type,
+          pointsPos,
+          i,
+          j,
+          realIndex,
+          isRangeStart
+        });
+      }
     }
     return {
       yArrj,

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -886,7 +886,7 @@ class Annotations {
       const skipGroupHide = [progressiveAnnos, false, progressiveAnnos];
       for (let i = 0; i < 3; i++) {
         w.dom.elGraphical.add(annoArray[i]);
-        if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+        if (initialAnim && !w.globals.resized && !w.globals.dataChanged && !w.globals.animationEnded) {
           if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1 && !skipGroupHide[i]) {
             annoElArray[i].classList.add("apexcharts-element-hidden");
           }

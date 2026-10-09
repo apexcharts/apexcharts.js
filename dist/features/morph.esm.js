@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -274,6 +274,7 @@ class MorphTypeChange {
     this.w = w;
     this.ctx = ctx;
     this._snapshot = null;
+    this._shown = false;
     this._ghost = null;
     this._pieceLayer = null;
     this._pieceCancel = null;
@@ -335,7 +336,9 @@ class MorphTypeChange {
    * @returns {boolean}
    */
   captureBeforeDestroy({ fromType, toType, newSeries }) {
+    var _a;
     this._snapshot = null;
+    this._shown = false;
     this._removeGhost();
     this._cancelPieces();
     if (!Environment.isBrowser()) return false;
@@ -356,13 +359,22 @@ class MorphTypeChange {
       branches
     );
     if (mapping.size === 0) return false;
+    const gl = this.w.globals;
+    const graphical = (_a = this.w.dom.elGraphical) == null ? void 0 : _a.node;
+    const plot = gl.layoutTween && !gl.layoutTween.done && gl.layoutTween.graphical === graphical ? gl.layoutTween.rect : null;
+    const ct = gl.circleTween;
+    const circle = ct && !ct.done && (graphical == null ? void 0 : graphical.contains(ct.node)) ? ct : null;
+    const scale = circle ? circle.circle.r / circle.target.r : 1;
     this._snapshot = {
       fromType,
       toType,
       mapping,
       oldLayout: {
-        translateX: this.w.layout.translateX || 0,
-        translateY: this.w.layout.translateY || 0
+        translateX: plot ? plot.x : this.w.layout.translateX || 0,
+        translateY: plot ? plot.y : this.w.layout.translateY || 0,
+        scale,
+        shiftX: circle ? circle.circle.cx - scale * circle.target.cx : 0,
+        shiftY: circle ? circle.circle.cy - scale * circle.target.cy : 0
       }
     };
     const ff = familyOf(fromType);
@@ -883,8 +895,7 @@ class MorphTypeChange {
     }
     const targets = this._collectTargetMarks(snap.toType);
     if (!targets.size) return this._revealPieceHidden();
-    const dx = snap.oldLayout.translateX - (this.w.layout.translateX || 0);
-    const dy = snap.oldLayout.translateY - (this.w.layout.translateY || 0);
+    const { dx, dy } = this._oldToNew();
     const clusterIdx = Array.from(snap.sourceDots.keys()).sort((a, b) => a - b);
     const layer = this._makePieceLayer();
     if (!layer) return this._revealPieceHidden();
@@ -1035,7 +1046,7 @@ class MorphTypeChange {
       var _a2;
       const realIndex = parseInt((_a2 = group.getAttribute("data:realIndex")) != null ? _a2 : "0", 10) || 0;
       let order = 0;
-      group.querySelectorAll("path[pathTo]").forEach((p) => {
+      group.querySelectorAll("path[pathTo]:not(.apexcharts-highlight-part)").forEach((p) => {
         var _a3;
         const d = p.getAttribute("pathTo") || p.getAttribute("d");
         if (!d || !d.trim()) return;
@@ -1097,7 +1108,9 @@ class MorphTypeChange {
           (_a2 = seriesNode.getAttribute("data:realIndex")) != null ? _a2 : "0",
           10
         );
-        const paths = seriesNode.querySelectorAll("path[pathTo]");
+        const paths = seriesNode.querySelectorAll(
+          "path[pathTo]:not(.apexcharts-highlight-part)"
+        );
         paths.forEach((p, j) => {
           const d = p.getAttribute("pathTo") || p.getAttribute("d");
           if (!d) return;
@@ -1469,9 +1482,27 @@ class MorphTypeChange {
     if (!this._snapshot) return null;
     const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
     if (!entry) return null;
-    const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
-    const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
-    return dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy);
+    const { k, dx, dy } = this._oldToNew();
+    return k === 1 && dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy, k);
+  }
+  /**
+   * The map from the captured marks' space to the new chart's plot space:
+   * scaled by `k`, then shifted by (dx, dy). The shift is the plot-origin
+   * move; `k` and the rest of the shift are a circle still being re-centred
+   * and scaled when the morph began (see captureBeforeDestroy).
+   * @returns {{k: number, dx: number, dy: number}}
+   */
+  _oldToNew() {
+    var _a, _b, _c;
+    const o = (
+      /** @type {NonNullable<typeof this._snapshot>} */
+      this._snapshot.oldLayout
+    );
+    return {
+      k: (_a = o.scale) != null ? _a : 1,
+      dx: o.translateX + ((_b = o.shiftX) != null ? _b : 0) - (this.w.layout.translateX || 0),
+      dy: o.translateY + ((_c = o.shiftY) != null ? _c : 0) - (this.w.layout.translateY || 0)
+    };
   }
   /**
    * Offset every absolute coordinate in an SVG path `d` by (dx, dy).
@@ -1484,29 +1515,32 @@ class MorphTypeChange {
    * @param {string} d
    * @param {number} dx
    * @param {number} dy
+   * @param {number} [k] scale every coordinate (and arc radius) by this first
    * @returns {string}
    */
-  _translatePathD(d, dx, dy) {
-    if (dx === 0 && dy === 0) return d;
+  _translatePathD(d, dx, dy, k = 1) {
+    if (dx === 0 && dy === 0 && k === 1) return d;
     const commands = parsePath(d);
+    const x = (v) => v * k + dx;
+    const y = (v) => v * k + dy;
     return commands.map(
       /** @param {any[]} c */
       (c) => {
         const cmd = c[0];
         if (cmd === "Z") return "Z";
         if (cmd === "M" || cmd === "L" || cmd === "T") {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy}`;
+          return `${cmd} ${x(c[1])} ${y(c[2])}`;
         }
-        if (cmd === "H") return `${cmd} ${c[1] + dx}`;
-        if (cmd === "V") return `${cmd} ${c[1] + dy}`;
+        if (cmd === "H") return `${cmd} ${x(c[1])}`;
+        if (cmd === "V") return `${cmd} ${y(c[1])}`;
         if (cmd === "C") {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy} ${c[5] + dx} ${c[6] + dy}`;
+          return `${cmd} ${x(c[1])} ${y(c[2])} ${x(c[3])} ${y(c[4])} ${x(c[5])} ${y(c[6])}`;
         }
         if (cmd === "S" || cmd === "Q") {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy}`;
+          return `${cmd} ${x(c[1])} ${y(c[2])} ${x(c[3])} ${y(c[4])}`;
         }
         if (cmd === "A") {
-          return `${cmd} ${c[1]} ${c[2]} ${c[3]} ${c[4]} ${c[5]} ${c[6] + dx} ${c[7] + dy}`;
+          return `${cmd} ${c[1] * k} ${c[2] * k} ${c[3]} ${c[4]} ${c[5]} ${x(c[6])} ${y(c[7])}`;
         }
         return c.join(" ");
       }
@@ -1610,13 +1644,12 @@ class MorphTypeChange {
     if (!entry) return null;
     const box = this._pathBBox(entry.d);
     if (!box) return null;
-    const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
-    const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
+    const { k, dx, dy } = this._oldToNew();
     return {
-      x: box.minX + dx,
-      y: box.minY + dy,
-      width: box.maxX - box.minX,
-      height: box.maxY - box.minY
+      x: box.minX * k + dx,
+      y: box.minY * k + dy,
+      width: (box.maxX - box.minX) * k,
+      height: (box.maxY - box.minY) * k
     };
   }
   /**
@@ -1681,6 +1714,7 @@ class MorphTypeChange {
   applyChromeFade() {
     var _a;
     if (!this._snapshot || !Environment.isBrowser()) return;
+    this._shown = true;
     const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
     if (!baseEl) return;
     if (this._snapshot.pieceOut) this._separatePieces();
@@ -1711,10 +1745,25 @@ class MorphTypeChange {
         }, speed + 80);
       });
     });
-    setTimeout(() => this.cleanup(), speed + 100);
+    const snap = this._snapshot;
+    setTimeout(() => {
+      if (!this._snapshot || this._snapshot === snap) this.cleanup();
+    }, speed + 100);
+  }
+  /**
+   * A render after the one a morph was captured for (an update while the
+   * morph is still finishing, or just after) must not start its marks from
+   * the old chart's shapes again: it starts from the screen, as any update
+   * does. The morph's ghost and pieces go with it, as the new render
+   * replaces what they were leaving over. A no-op until that render has
+   * mounted, so a second update in the same tick still morphs.
+   */
+  retire() {
+    if (this._snapshot && this._shown) this.cleanup();
   }
   cleanup() {
     this._snapshot = null;
+    this._shown = false;
     this._removeGhost();
     this._cancelPieces();
   }

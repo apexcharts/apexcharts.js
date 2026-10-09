@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -250,6 +250,7 @@ function markPerspectivesTokenDecoded() {
   reevaluateLicenseAcrossCharts();
 }
 function premiumFeaturesInUse(w, ctx) {
+  var _a;
   const chart = w && w.config && w.config.chart || {};
   const used = [];
   if (chart.type === "unit") used.push("unit");
@@ -275,6 +276,7 @@ function premiumFeaturesInUse(w, ctx) {
   if (ctx.history && chart.history && chart.history.enabled === true) {
     used.push("history");
   }
+  if ((_a = ctx._highlightFilter) == null ? void 0 : _a.isActive()) used.push("highlight-filter");
   return used;
 }
 function resolveKey(w) {

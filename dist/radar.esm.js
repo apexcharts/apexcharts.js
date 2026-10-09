@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -163,7 +163,15 @@ class CircularChartsHelpers {
   }
 }
 const CoreUtils = _core.__apex_CoreUtils;
+const Series = _core.__apex_Series;
 const RADAR_HIT_AREA_SIZE = 5;
+function scalePath(d, k) {
+  if (!d || k === 1 || !Number.isFinite(k) || /[aA]/.test(d)) return d;
+  return d.replace(
+    /-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi,
+    (n) => String(parseFloat(n) * k)
+  );
+}
 class Radar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -223,6 +231,14 @@ class Radar {
       class: "apexcharts-radar-series apexcharts-plot-series",
       transform: `translate(${translateX || 0}, ${translateY || 0})`
     });
+    w.globals.circleGeometry = {
+      node: ret.node,
+      cx: translateX || 0,
+      cy: translateY || 0,
+      r: this.size
+    };
+    const prevFrame = w.globals.prevCircleFrame;
+    const fromScale = prevFrame && prevFrame.type === "radar" && prevFrame.rendered.r > 0 ? this.size / prevFrame.rendered.r : 1;
     let dataPointsPos = [];
     let elPointsMain = null;
     let elDataPointsMain = null;
@@ -238,9 +254,18 @@ class Radar {
         rel: i + 1,
         "data:realIndex": i
       });
+      Series.addCollapsedClassToSeries(this.w, elSeries, i);
       this.dataRadiusOfPercent[i] = [];
       this.dataRadius[i] = [];
       this.angleArr[i] = [];
+      const collapsed = s.length === 0 && (w.globals.collapsedSeriesIndices.indexOf(i) > -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) > -1);
+      if (collapsed) {
+        for (let j = 0; j < w.globals.dataPoints; j++) {
+          this.dataRadiusOfPercent[i][j] = 0;
+          this.dataRadius[i][j] = 0;
+          this.angleArr[i][j] = j * this.disAngle;
+        }
+      }
       s.forEach((dv, j) => {
         const range = Math.abs(this.maxValue - this.minValue);
         dv = dv - this.minValue;
@@ -284,7 +309,7 @@ class Radar {
       };
       let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPreviousPath(i);
+        pathFrom = scalePath(this.getPreviousPath(i), fromScale);
       }
       for (let p = 0; p < paths.linePathsTo.length; p++) {
         const renderedLinePath = this.graphics.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
@@ -352,6 +377,7 @@ class Radar {
         const dataLabelsConfig = w.config.dataLabels;
         if (dataLabelsConfig.enabled) {
           const text = dataLabelsConfig.formatter(w.seriesData.series[i][j], {
+            ctx: this.ctx,
             seriesIndex: i,
             dataPointIndex: j,
             w
@@ -461,7 +487,7 @@ class Radar {
     });
     const polygonPos = Utils.getPolygonPos(this.size, this.dataPointsLen);
     w.labelData.labels.forEach((label, i) => {
-      const formatter = w.config.xaxis.labels.formatter;
+      const formatter = typeof w.config.xaxis.labels.formatter === "function" ? w.config.xaxis.labels.formatter : (v) => v;
       const dataLabels = new DataLabels(this.w, this.ctx);
       if (polygonPos[i]) {
         const textPos = this.getTextPos(polygonPos[i], this.size);
@@ -571,7 +597,7 @@ class Radar {
     let pathFrom = null;
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       const gpp = w.globals.previousPaths[pp];
-      if (gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
+      if (Array.isArray(gpp == null ? void 0 : gpp.paths) && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
         if (typeof w.globals.previousPaths[pp].paths[0] !== "undefined") {
           pathFrom = w.globals.previousPaths[pp].paths[0].d;
         }

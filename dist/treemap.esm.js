@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -403,6 +403,7 @@ class TreemapHelpers {
   }
 }
 const Filters = _core.__apex_Filters;
+const Series = _core.__apex_Series;
 const Environment = _core.__apex_Environment_Environment;
 function drilldownById(w, id) {
   const dd = w.config.drilldown;
@@ -528,6 +529,22 @@ function getTreemapRoots(w) {
   roots.forEach(fillValues);
   const { maxDepth } = annotate(roots);
   return { roots, maxDepth, nested: false };
+}
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const resolveEasing = _core.__apex_Easing_resolveEasing;
+function rafTween(w, duration, ease, onFrame, onDone) {
+  const startAt = performance.now();
+  const step = (now) => {
+    if (w.globals.isDestroyed) return;
+    const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
+    onFrame(ease(raw), raw);
+    if (raw < 1) {
+      BrowserAPIs.requestAnimationFrame(step);
+    } else if (onDone) {
+      onDone();
+    }
+  };
+  BrowserAPIs.requestAnimationFrame(step);
 }
 const DEFAULT_DIVERGING = ["#cf4d3f", "#8f9499", "#26a75b"];
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -678,7 +695,6 @@ function readableOn(bg) {
   const hex = normalizeHex(bg);
   return Utils.getContrastRatio(hex, "#ffffff") >= Utils.getContrastRatio(hex, "#000000") ? "#ffffff" : "#000000";
 }
-const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const XHTML = "http://www.w3.org/1999/xhtml";
 const BREADCRUMB_HEIGHT = 18;
 function breadcrumbConfig(w, localCfg) {
@@ -797,6 +813,17 @@ function positionBreadcrumb(nav, cfg) {
   }
 }
 const areaOf = (r) => (r[2] - r[0]) * (r[3] - r[1]);
+const isPlainColor = (c) => typeof c === "string" && /^(#|rgb)/i.test(c);
+function withFills(from, to, fillWas, fillNow) {
+  if (isPlainColor(fillWas) && isPlainColor(fillNow) && fillWas !== fillNow) {
+    return [
+      __spreadProps(__spreadValues({}, from), { fill: fillWas }),
+      __spreadProps(__spreadValues({}, to), { fill: fillNow })
+    ];
+  }
+  return [from, to];
+}
+const headerLook = (el) => Series.treemapHeaderLook(el);
 class TreemapChart {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -820,12 +847,13 @@ class TreemapChart {
     this._tooltipEl = null;
     this._tipOwned = false;
     this._morphLeafIndex = 0;
+    this.camera = null;
   }
   /**
    * @param {any[]} series
    */
   draw(series) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
     const fill = new Fill(this.w);
@@ -840,8 +868,8 @@ class TreemapChart {
     });
     this.negRange = this.helpers.checkColorRange();
     w.config.series.forEach((s, i) => {
+      if (!Array.isArray(this.labels[i])) this.labels[i] = [];
       s.data.forEach((l) => {
-        if (!Array.isArray(this.labels[i])) this.labels[i] = [];
         this.labels[i].push(l.x);
       });
     });
@@ -864,7 +892,9 @@ class TreemapChart {
         header: (node, depth, rw, rh) => this.showParents ? this._levelHeader(node, depth, rw, rh) : 0
       }
     );
-    const morphSrc = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange;
+    this.camera = this._zoomCamera();
+    const hl = (_a = this.ctx.highlightFilter) == null ? void 0 : _a.treemap(this);
+    const morphSrc = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange;
     const morphActive = !!morphSrc && typeof morphSrc.isActive === "function" && morphSrc.isActive() && typeof morphSrc.getInitialPathAt === "function";
     this._morphLeafIndex = 0;
     const leavesBySeries = this._leavesBySeries(layoutRoots, w.config.series.length);
@@ -877,6 +907,7 @@ class TreemapChart {
         rel: i + 1,
         "data:realIndex": i
       });
+      Series.addCollapsedClassToSeries(this.w, elSeries, i);
       graphics.setupEventDelegation(elSeries, ".apexcharts-treemap-rect");
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow;
@@ -892,6 +923,7 @@ class TreemapChart {
         xMax: -Infinity,
         yMax: -Infinity
       };
+      const fromBounds = { xMin: Infinity, yMin: Infinity };
       if (this.showParents) {
         (parentsBySeries[i] || []).forEach((p) => {
           this._drawParent(elSeries, p, i);
@@ -922,6 +954,7 @@ class TreemapChart {
         );
       }
       node.forEach((leaf, k) => {
+        var _a3;
         const r = leaf.rect;
         if (!r) return;
         const j = leaf._di;
@@ -929,13 +962,15 @@ class TreemapChart {
         const y1 = r[1];
         const x2 = r[2];
         const y2 = r[3];
-        bounds.xMin = Math.min(bounds.xMin, x1);
-        bounds.yMin = Math.min(bounds.yMin, y1);
-        bounds.xMax = Math.max(bounds.xMax, x2);
-        bounds.yMax = Math.max(bounds.yMax, y2);
+        if (x2 > x1 && y2 > y1) {
+          bounds.xMin = Math.min(bounds.xMin, x1);
+          bounds.yMin = Math.min(bounds.yMin, y1);
+          bounds.xMax = Math.max(bounds.xMax, x2);
+          bounds.yMax = Math.max(bounds.yMax, y2);
+        }
         const colorProps = this._leafColor(i, j);
         const color = colorProps.color;
-        const pathFill = fill.fillPath({
+        let pathFill = fill.fillPath({
           color,
           seriesNumber: i,
           dataPointIndex: j
@@ -958,6 +993,7 @@ class TreemapChart {
           this.strokeWidth,
           w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]
         );
+        pathFill = (hl == null ? void 0 : hl(elRect, i, j, pathFill, leaf)) || pathFill;
         elRect.attr({
           cx: x1,
           cy: y1,
@@ -992,31 +1028,58 @@ class TreemapChart {
             j
           );
         } else if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1;
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed;
+          if (w.globals.resized) {
+            w.globals.animationEnded = true;
+          } else {
+            this.animateTreemap(
+              elRect,
+              fromRect,
+              toRect,
+              w.config.chart.animations.speed,
+              // Ranked by draw order, not by data index: the cascade is
+              // about what is on screen.
+              cascadeDelays[k] || 0
+            );
           }
-          this.animateTreemap(
-            elRect,
-            fromRect,
-            toRect,
-            speed,
-            // Ranked by draw order, not by data index — the cascade is about
-            // what is on screen.
-            cascadeDelays[k] || 0
-          );
         }
+        let tileTween = null;
+        let labelFrom = null;
+        let prevLook = null;
         if (w.globals.dataChanged) {
           let speed = 1;
           if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
             speed = this.dynamicAnim.speed;
-            if (w.globals.previousPaths[i] && /** @type {Record<string,any>} */
-            w.globals.previousPaths[i][j] && /** @type {Record<string,any>} */
-            w.globals.previousPaths[i][j].rect) {
-              fromRect = /** @type {Record<string,any>} */
-              w.globals.previousPaths[i][j].rect;
+            const prev = (
+              /** @type {any} */
+              (_a3 = w.globals.previousPaths[i]) == null ? void 0 : _a3[j]
+            );
+            const to = __spreadValues({}, toRect);
+            if (!(prev == null ? void 0 : prev.rect) && this.camera) {
+              fromRect = this.camera.back(toRect);
+              labelFrom = {
+                x: fromRect.x + fromRect.width / 2,
+                y: fromRect.y + fromRect.height / 2
+              };
             }
-            this.animateTreemap(elRect, fromRect, toRect, speed);
+            if (prev == null ? void 0 : prev.rect) {
+              fromRect = __spreadValues({}, prev.rect);
+              if (fromRect.width > 0 && fromRect.height > 0) {
+                fromBounds.xMin = Math.min(fromBounds.xMin, fromRect.x);
+                fromBounds.yMin = Math.min(fromBounds.yMin, fromRect.y);
+                labelFrom = {
+                  x: fromRect.x + fromRect.width / 2,
+                  y: fromRect.y + fromRect.height / 2
+                };
+                prevLook = typeof prev.label === "string" ? prev.label : null;
+                if (prev.labelFading && this.camera) prevLook = "";
+              }
+              const plain = (c) => typeof c === "string" && /^(#|rgb)/i.test(c);
+              if (plain(prev.fill) && plain(pathFill) && prev.fill !== pathFill) {
+                fromRect.fill = prev.fill;
+                to.fill = pathFill;
+              }
+            }
+            tileTween = this.animateTreemap(elRect, fromRect, to, speed);
           }
         }
         let fontSize = this.getFontSize(r);
@@ -1029,7 +1092,8 @@ class TreemapChart {
             value: w.seriesData.series[i][j],
             seriesIndex: i,
             dataPointIndex: j,
-            w
+            w,
+            highlight: leaf.highlight
           });
           if (w.config.plotOptions.treemap.dataLabels.format === "truncate") {
             formattedText = this.truncateLabels(
@@ -1067,7 +1131,12 @@ class TreemapChart {
         }
         elSeries.add(elRect);
         if (dataLabels !== null) {
+          dataLabels.node.setAttribute("data:key", morphKey(leaf._key));
           elSeries.add(dataLabels);
+          if (tileTween) {
+            const fade = !labelFrom || prevLook === "" || !!this.camera && prevLook !== null && prevLook !== Series.treemapLabelLook(dataLabels.node);
+            this._rideTile(dataLabels.node, labelFrom, x1, y1, x2, y2, tileTween, fade);
+          }
         }
       });
       const seriesTitle = w.config.plotOptions.treemap.seriesTitle;
@@ -1112,9 +1181,11 @@ class TreemapChart {
             borderWidth,
             borderColor
           );
+          const textX = labelX + padding.left;
+          const textY = labelY + padding.top + ((_a2 = textSize == null ? void 0 : textSize.height) != null ? _a2 : 0) * 0.75;
           const elLabelText = graphics.drawText({
-            x: labelX + padding.left,
-            y: labelY + padding.top + ((_a2 = textSize == null ? void 0 : textSize.height) != null ? _a2 : 0) * 0.75,
+            x: textX,
+            y: textY,
             text: sName,
             fontSize: style.fontSize,
             fontFamily: style.fontFamily,
@@ -1122,6 +1193,23 @@ class TreemapChart {
             foreColor: textColor,
             cssClass: style.cssClass || ""
           });
+          const dx = fromBounds.xMin - bounds.xMin;
+          const dy = fromBounds.yMin - bounds.yMin;
+          if (Number.isFinite(dx) && Number.isFinite(dy) && (dx || dy)) {
+            const speed = this.dynamicAnim.speed;
+            this.animateTreemap(
+              elLabelRect,
+              { x: labelX + dx, y: labelY + dy },
+              { x: labelX, y: labelY },
+              speed
+            );
+            this.animateTreemap(
+              elLabelText,
+              { x: textX + dx, y: textY + dy },
+              { x: textX, y: textY },
+              speed
+            );
+          }
           elSeries.add(elLabelRect);
           elSeries.add(elLabelText);
         }
@@ -1129,6 +1217,7 @@ class TreemapChart {
       elSeries.add(elDataLabelWrap);
       ret.add(elSeries);
     });
+    if (this.camera) this._playZoomExit(ret);
     this._renderBreadcrumb();
     return ret;
   }
@@ -1320,7 +1409,7 @@ class TreemapChart {
    * @param {number} i seriesIndex
    */
   _drawParent(elSeries, node, i) {
-    var _a;
+    var _a, _b, _c, _d;
     const r = node.rect;
     if (!r) return;
     const w = this.w;
@@ -1370,6 +1459,43 @@ class TreemapChart {
         depth
       );
     }
+    let prevBox = null;
+    let parentTween = null;
+    let entering = false;
+    const dynamic = w.config.chart.animations.dynamicAnimation;
+    if (!morphFrom && w.globals.dataChanged && dynamic.enabled && w.globals.shouldAnimate) {
+      const speed = dynamic.speed;
+      prevBox = (_b = (_a = w.globals.prevTreemapParents) == null ? void 0 : _a.get(`${i}|${key}`)) != null ? _b : null;
+      if (!prevBox && this.camera) {
+        prevBox = this.camera.back({ x: x1, y: y1, width, height });
+        entering = true;
+        const l = w.layout;
+        if (prevBox.x < l.gridWidth && prevBox.y < l.gridHeight && prevBox.x + prevBox.width > 0 && prevBox.y + prevBox.height > 0) {
+          elGroup.attr({ opacity: 0 }).animate(speed).attr({ opacity: 1 });
+        }
+      }
+      if (prevBox) {
+        parentTween = new Animations(w).animateRect(
+          elRect,
+          ...withFills(
+            {
+              x: prevBox.x,
+              y: prevBox.y,
+              width: prevBox.width,
+              height: prevBox.height
+            },
+            { x: x1, y: y1, width, height },
+            prevBox.fill,
+            elRect.node.getAttribute("fill")
+          ),
+          speed,
+          () => {
+          }
+        );
+      } else {
+        elGroup.attr({ opacity: 0 }).animate(speed).attr({ opacity: 1 });
+      }
+    }
     elGroup.add(elRect);
     const headerHeight = node.headerHeight || 0;
     let headerText = "";
@@ -1388,7 +1514,23 @@ class TreemapChart {
       );
       elHeaderRect.node.classList.add("apexcharts-treemap-parent-header");
       elGroup.add(elHeaderRect);
-      let text = String((_a = node.name) != null ? _a : "");
+      if (prevBox) {
+        const was = prevBox.header;
+        const now = { x: x1, y: y1, width, height: headerHeight };
+        new Animations(w).animateRect(
+          elHeaderRect,
+          ...withFills(
+            was ? { x: was.x, y: was.y, width: was.width, height: was.height } : entering && this.camera ? this.camera.back(now) : { x: prevBox.x, y: prevBox.y, width: prevBox.width, height: 0 },
+            now,
+            was == null ? void 0 : was.fill,
+            elHeaderRect.node.getAttribute("fill")
+          ),
+          w.config.chart.animations.dynamicAnimation.speed,
+          () => {
+          }
+        );
+      }
+      let text = String((_c = node.name) != null ? _c : "");
       if (typeof header.formatter === "function") {
         text = String(
           header.formatter(node.name, {
@@ -1436,6 +1578,24 @@ class TreemapChart {
         });
         elText.node.setAttribute("pointer-events", "none");
         elGroup.add(elText);
+        if (parentTween && prevBox) {
+          const at = (b) => align === "center" ? b.x + b.width / 2 : align === "right" ? b.x + b.width : b.x;
+          const was = {
+            x: at(prevBox) - at({ x: x1, width }) + (x1 + width / 2),
+            y: prevBox.y - y1 + (y1 + height / 2)
+          };
+          const changed = !!this.camera && !entering && ((_d = prevBox.header) == null ? void 0 : _d.look) !== headerLook(elText.node);
+          this._rideTile(
+            elText.node,
+            was,
+            x1,
+            y1,
+            x1 + width,
+            y1 + height,
+            parentTween,
+            changed
+          );
+        }
       }
       this._attachParentEvents(elHeaderRect.node, node, chrome, elRect);
       this._makeParentAccessible(
@@ -1608,9 +1768,7 @@ class TreemapChart {
     const w = this.w;
     if (!node || !node.children || !node.children.length) return;
     const next = w.globals.treemapFocusKey === node._key ? null : node._key;
-    w.globals.treemapFocusKey = next;
-    this._hideParentTooltip();
-    const done = this.ctx.update();
+    const done = this._refocus(next);
     if (!restoreFocus || !done || typeof done.then !== "function") return;
     done.then(() => {
       if (!Environment.isBrowser()) return;
@@ -1632,6 +1790,299 @@ class TreemapChart {
       );
       if (header && header.focus) header.focus();
     });
+  }
+  /**
+   * Re-render focused on another branch (null: the whole tree).
+   *
+   * A zoom is an animated update of the same data, so it renders like one:
+   * the outgoing picture is captured first and the draw eases from it (see
+   * _zoomCamera). It used to re-render with whatever flags the last update
+   * left, which replayed the mount animation (every tile growing from
+   * nothing) or snapped, while the containers, headers and labels jumped.
+   * @param {string | null} next
+   * @returns {any} the update's promise
+   */
+  _refocus(next) {
+    var _a;
+    const w = this.w;
+    const gl = w.globals;
+    const anim = w.config.chart.animations;
+    const animate = !!(anim.enabled && anim.dynamicAnimation.enabled);
+    gl.treemapZoom = animate && Environment.isBrowser() ? { from: (_a = gl.treemapFocusKey) != null ? _a : null, to: next } : null;
+    gl.treemapFocusKey = next;
+    this._hideParentTooltip();
+    gl.shouldAnimate = animate;
+    gl.resized = true;
+    gl.dataChanged = true;
+    if (gl.treemapZoom) this.ctx.series.getPreviousPaths();
+    return this.ctx.update();
+  }
+  /**
+   * A zoom reframes one tree, so it moves like a camera: one map takes the
+   * old view onto the new, set by the branch on the deeper side of the move
+   * (the one being entered, or the one being left), whose box fills the plot
+   * on that side. A tile in both views eases from its own old box; one only
+   * in the new view rides in along the map from outside the plot, and one
+   * only in the old view rides it out (_playZoomExit). Null unless this
+   * render is a zoom's.
+   * @returns {{fwd: (b: Box) => Box, back: (b: Box) => Box} | null}
+   */
+  _zoomCamera() {
+    var _a;
+    const w = this.w;
+    const zoom = w.globals.treemapZoom;
+    w.globals.treemapZoom = null;
+    const old = w.globals.prevTreemapParents;
+    if (!zoom || !old || !w.globals.dataChanged || !w.globals.shouldAnimate) {
+      return null;
+    }
+    const byKey = /* @__PURE__ */ new Map();
+    const index = (n) => {
+      byKey.set(n._key, n);
+      if (n.children) n.children.forEach(index);
+    };
+    this.drawn.forEach(index);
+    const under = (k, above) => {
+      for (let n = byKey.get(k); n; n = n._parent) if (n._key === above) return true;
+      return false;
+    };
+    const { from, to } = zoom;
+    const anchor = to && (from == null || under(to, from)) ? to : from && (to == null || under(from, to)) ? from : null;
+    const node = anchor ? byKey.get(anchor) : null;
+    if (!anchor || !node || !node.rect) return null;
+    let top = node;
+    while (top._parent) top = top._parent;
+    const ri = Math.max(0, this.roots.indexOf(top));
+    const was = (_a = old.get(`${ri}|${morphKey(anchor)}`)) != null ? _a : null;
+    const r = node.rect;
+    const now = { x: r[0], y: r[1], width: r[2] - r[0], height: r[3] - r[1] };
+    if (!was || !(was.width > 0 && was.height > 0 && now.width > 0 && now.height > 0)) {
+      return null;
+    }
+    const o = was;
+    const kx = now.width / o.width;
+    const ky = now.height / o.height;
+    return {
+      fwd: (b) => ({
+        x: now.x + (b.x - o.x) * kx,
+        y: now.y + (b.y - o.y) * ky,
+        width: b.width * kx,
+        height: b.height * ky
+      }),
+      back: (b) => ({
+        x: o.x + (b.x - now.x) / kx,
+        y: o.y + (b.y - now.y) / ky,
+        width: b.width / kx,
+        height: b.height / ky
+      })
+    };
+  }
+  /**
+   * What a zoom leaves out of the new view rides off the plot on the camera
+   * and goes once it is out of sight: the old render's tiles, containers and
+   * labels that the new one does not redraw. A label whose tile stays but no
+   * longer has room for it rides to the tile's new place, fading. The
+   * treemap is clipped to the plot while this plays, since whatever rides in
+   * or out passes outside it.
+   * @param {any} ret
+   */
+  _playZoomExit(ret) {
+    const w = this.w;
+    const camera = this.camera;
+    const view = w.globals.prevTreemapView;
+    w.globals.prevTreemapView = null;
+    if (!camera || !Environment.isBrowser()) return;
+    const root = (
+      /** @type {Element} */
+      ret.node
+    );
+    const graphics = new Graphics(this.w, this.ctx);
+    const KINDS = (
+      /** @type {const} */
+      [
+        ["apexcharts-treemap-rect", "T"],
+        ["apexcharts-treemap-parent-rect", "P"],
+        ["apexcharts-data-labels", "L"]
+      ]
+    );
+    const id = (el) => {
+      var _a;
+      const kind = KINDS.find(([cls]) => el.classList.contains(cls));
+      const ri = (_a = el.closest(".apexcharts-series")) == null ? void 0 : _a.getAttribute("data:realIndex");
+      return kind ? `${kind[1]}${ri}|${el.getAttribute("data:key")}` : "";
+    };
+    const num = (el, a) => {
+      var _a;
+      return parseFloat((_a = el.getAttribute(a)) != null ? _a : "");
+    };
+    const boxOf = (el) => ({
+      x: num(el, "x"),
+      y: num(el, "y"),
+      width: num(el, "width"),
+      height: num(el, "height")
+    });
+    const centre = (b) => ({
+      x: b.x + b.width / 2,
+      y: b.y + b.height / 2
+    });
+    const drawnNow = /* @__PURE__ */ new Map();
+    root.querySelectorAll("[data\\:key]").forEach((el) => {
+      const k = id(el);
+      if (k) drawnNow.set(k, el);
+    });
+    const writers = [];
+    const easeBox = (el, to) => {
+      const from = boxOf(el);
+      if (![from.x, from.y, from.width, from.height].every(Number.isFinite)) {
+        return;
+      }
+      writers.push((e) => {
+        el.setAttribute("x", String(from.x + (to.x - from.x) * e));
+        el.setAttribute("y", String(from.y + (to.y - from.y) * e));
+        el.setAttribute("width", String(from.width + (to.width - from.width) * e));
+        el.setAttribute("height", String(from.height + (to.height - from.height) * e));
+      });
+    };
+    const ride = (el, d, fade = false) => {
+      var _a;
+      const base = el.getAttribute("transform") || "";
+      const o0 = parseFloat((_a = el.getAttribute("opacity")) != null ? _a : "1");
+      const from = Number.isFinite(o0) ? o0 : 1;
+      writers.push((e) => {
+        el.setAttribute("transform", `translate(${d.x * e} ${d.y * e}) ${base}`.trim());
+        if (fade) el.setAttribute("opacity", String(from * (1 - e)));
+      });
+    };
+    const fadingIn = (g) => {
+      var _a;
+      return parseFloat((_a = g.getAttribute("opacity")) != null ? _a : "1") < 0.999;
+    };
+    const retire = (el) => {
+      [el, ...el.querySelectorAll("*")].forEach((n) => {
+        n.removeAttribute("data:key");
+        ["role", "tabindex", "aria-label", "aria-expanded"].forEach(
+          (a) => n.removeAttribute(a)
+        );
+        n.classList.remove(
+          "apexcharts-treemap-rect",
+          "apexcharts-treemap-parent",
+          "apexcharts-treemap-parent-rect",
+          "apexcharts-treemap-parent-header",
+          "apexcharts-treemap-parent-label",
+          "apexcharts-data-labels"
+        );
+      });
+    };
+    const shapes = graphics.group({ class: "apexcharts-treemap-ghosts" }).node;
+    const labels = graphics.group({ class: "apexcharts-treemap-ghosts" }).node;
+    if (view) {
+      const earlier = [...view.querySelectorAll(":scope > .apexcharts-treemap-ghosts")];
+      earlier.forEach((layer, n) => {
+        layer.querySelectorAll("rect").forEach((r) => easeBox(r, camera.fwd(boxOf(r))));
+        layer.querySelectorAll("text").forEach((t) => {
+          const lead = (el) => {
+            const m = /^translate\(\s*([-+.\deE]+)[\s,]+([-+.\deE]+)\s*\)/.exec(
+              ((el == null ? void 0 : el.getAttribute("transform")) || "").trim()
+            );
+            return m ? [parseFloat(m[1]), parseFloat(m[2])] : [0, 0];
+          };
+          const [px, py] = lead(t.parentElement);
+          const [tx, ty] = lead(t);
+          const at = {
+            x: num(t, "x") + px + tx,
+            y: num(t, "y") + py + ty,
+            width: 0,
+            height: 0
+          };
+          if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return;
+          const to = camera.fwd(at);
+          ride(t, { x: to.x - at.x, y: to.y - at.y });
+        });
+        [...layer.childNodes].forEach(
+          (c) => (n === earlier.length - 1 && earlier.length > 1 ? labels : shapes).appendChild(c)
+        );
+        layer.remove();
+      });
+      const oldTiles = /* @__PURE__ */ new Map();
+      view.querySelectorAll(".apexcharts-treemap-rect[data\\:key]").forEach((el) => oldTiles.set(id(el), el));
+      view.querySelectorAll(".apexcharts-data-labels[data\\:key]").forEach((g) => {
+        const k = id(g);
+        const fresh = drawnNow.get(k);
+        if (fresh && !fadingIn(g) && Series.treemapLabelLook(fresh) === Series.treemapLabelLook(g)) {
+          return;
+        }
+        const tile = oldTiles.get(`T${k.slice(1)}`);
+        if (!tile) return;
+        const was = centre(boxOf(tile));
+        const stays = drawnNow.get(`T${k.slice(1)}`);
+        const to = stays ? centre(boxOf(stays)) : centre(camera.fwd(boxOf(tile)));
+        ride(g, { x: to.x - was.x, y: to.y - was.y }, !!stays);
+        retire(g);
+        labels.appendChild(g);
+      });
+      view.querySelectorAll(".apexcharts-treemap-parent").forEach((g) => {
+        var _a;
+        const rect = g.querySelector(".apexcharts-treemap-parent-rect[data\\:key]");
+        if (!rect || rect.tagName.toLowerCase() !== "rect") return;
+        const stays = drawnNow.get(id(rect));
+        if (stays) {
+          const was = g.querySelector(".apexcharts-treemap-parent-label");
+          const now = (_a = stays.parentElement) == null ? void 0 : _a.querySelector(
+            ".apexcharts-treemap-parent-label"
+          );
+          if (was && headerLook(was) !== headerLook(now)) {
+            const ob = boxOf(rect);
+            const nb = boxOf(stays);
+            const anchor = was.getAttribute("text-anchor");
+            const at = (b) => anchor === "middle" ? b.x + b.width / 2 : anchor === "end" ? b.x + b.width : b.x;
+            ride(was, { x: at(nb) - at(ob), y: nb.y - ob.y }, true);
+            retire(was);
+            labels.appendChild(was);
+          }
+          return;
+        }
+        g.querySelectorAll("rect").forEach((r) => easeBox(r, camera.fwd(boxOf(r))));
+        g.querySelectorAll("text").forEach((t) => {
+          const at = { x: num(t, "x"), y: num(t, "y"), width: 0, height: 0 };
+          if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return;
+          const to = camera.fwd(at);
+          ride(t, { x: to.x - at.x, y: to.y - at.y });
+        });
+        const end = camera.fwd(boxOf(rect));
+        const l = w.layout;
+        if (end.x < l.gridWidth && end.y < l.gridHeight && end.x + end.width > 0 && end.y + end.height > 0) {
+          writers.push((e) => g.setAttribute("opacity", String(1 - e)));
+        }
+        retire(g);
+        shapes.appendChild(g);
+      });
+      oldTiles.forEach((el, k) => {
+        if (drawnNow.has(k) || el.tagName.toLowerCase() !== "rect") return;
+        easeBox(el, camera.fwd(boxOf(el)));
+        retire(el);
+        shapes.appendChild(el);
+      });
+      const defs = view.querySelector(":scope > defs.apexcharts-treemap-ghost-defs");
+      if (defs) shapes.insertBefore(defs, shapes.firstChild);
+    }
+    [shapes, labels].forEach((g) => {
+      g.setAttribute("pointer-events", "none");
+      g.setAttribute("aria-hidden", "true");
+    });
+    root.insertBefore(shapes, root.firstChild);
+    root.appendChild(labels);
+    root.setAttribute("clip-path", `url(#gridRectMask${w.globals.cuid})`);
+    rafTween(
+      w,
+      Math.max(1, this.dynamicAnim.speed || 1),
+      resolveEasing(w.config.chart.animations.easing),
+      (e) => writers.forEach((fn) => fn(e)),
+      () => {
+        shapes.remove();
+        labels.remove();
+        root.removeAttribute("clip-path");
+      }
+    );
   }
   /**
    * Outermost drawn group -> focus chain, for the breadcrumb.
@@ -1677,9 +2128,7 @@ class TreemapChart {
         chain.map((n) => ({ label: n.name, data: n }))
       ),
       onNavigate: (_i, crumb) => {
-        w.globals.treemapFocusKey = crumb.data ? crumb.data._key : null;
-        this._hideParentTooltip();
-        this.ctx.update();
+        this._refocus(crumb.data ? crumb.data._key : null);
       }
     });
     if (!nav) return;
@@ -2062,15 +2511,48 @@ class TreemapChart {
     animations.morphSVG(el, i, j, "none", fromD, toD, speed, 0);
   }
   /**
+   * Carry a label (or any mark drawn at its final spot) along a tile tween:
+   * offset from where it was to where it is, eased off on the tween's own
+   * clock. With no `from`, it fades in instead.
+   * @param {Element} node
+   * @param {{x: number, y: number} | null} from the old centre
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   * @param {any} tween the tile's runner
+   * @param {boolean} [fade] fade in on the way (a label the tile did not
+   *   have before)
+   */
+  _rideTile(node, from, x1, y1, x2, y2, tween, fade = !from) {
+    const base = node.getAttribute("transform") || "";
+    const dx = from ? from.x - (x1 + x2) / 2 : 0;
+    const dy = from ? from.y - (y1 + y2) / 2 : 0;
+    const place = (pos) => {
+      if (pos >= 1) {
+        if (base) node.setAttribute("transform", base);
+        else node.removeAttribute("transform");
+        node.removeAttribute("opacity");
+        return;
+      }
+      const t = 1 - pos;
+      node.setAttribute("transform", `translate(${dx * t} ${dy * t}) ${base}`.trim());
+      if (fade) node.setAttribute("opacity", String(pos));
+    };
+    place(0);
+    tween.during(place);
+  }
+  /**
    * @param {any} el
    * @param {Record<string, any>} fromRect
    * @param {Record<string, any>} toRect
    * @param {number} speed
    * @param {number} [delay] - per-tile cascade delay in ms
+   * @returns {any} the tween, which a label can ride (_rideTile)
    */
   animateTreemap(el, fromRect, toRect, speed, delay = 0) {
     const animations = new Animations(this.w);
-    animations.animateRect(
+    return animations.animateRect(
       el,
       fromRect,
       toRect,

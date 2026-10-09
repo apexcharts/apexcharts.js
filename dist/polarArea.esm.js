@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -447,7 +447,7 @@ class Pie {
    * @param {any[]} series
    */
   draw(series) {
-    var _a;
+    var _a, _b;
     const self = this;
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -455,6 +455,14 @@ class Pie {
       class: "apexcharts-pie"
     });
     if (w.globals.noData) return elPie;
+    (_a = this.ctx.highlightFilter) == null ? void 0 : _a.pie(this);
+    const scaleSize = w.config.plotOptions.pie.customScale;
+    w.globals.circleGeometry = {
+      node: elPie.node,
+      cx: this.translateX + scaleSize * this.centerX,
+      cy: this.translateY + scaleSize * this.centerY,
+      r: scaleSize * w.globals.radialSize
+    };
     let total = 0;
     for (let k = 0; k < series.length; k++) {
       total += Utils.negToZero(series[k]);
@@ -494,7 +502,7 @@ class Pie {
         this.sliceSizes.push(w.globals.radialSize);
       }
     }
-    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+    const morphActive = ((_b = this.ctx.morphTypeChange) == null ? void 0 : _b.isActive()) === true;
     if (w.globals.dataChanged && !morphActive) {
       if (this.chartType === "polarArea") {
         const prevValues = w.globals.previousPaths;
@@ -508,16 +516,21 @@ class Pie {
             );
           }
         }
-        let prevMaxY = 0;
-        for (let k = 0; k < prevValues.length; k++) {
-          prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]));
+        const sizeStash = w.globals.prevPolarSizes;
+        if (Array.isArray(sizeStash) && sizeStash.length === prevValues.length) {
+          this.prevSliceSizes = sizeStash.map((f) => f * w.globals.radialSize);
+        } else {
+          let prevMaxY = 0;
+          for (let k = 0; k < prevValues.length; k++) {
+            prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]));
+          }
+          if (w.config.yaxis[0].max) {
+            prevMaxY = w.config.yaxis[0].max;
+          }
+          this.prevSliceSizes = prevValues.map(
+            (v) => w.globals.radialSize * Utils.negToZero(v) / (prevMaxY || 1)
+          );
         }
-        if (w.config.yaxis[0].max) {
-          prevMaxY = w.config.yaxis[0].max;
-        }
-        this.prevSliceSizes = prevValues.map(
-          (v) => w.globals.radialSize * Utils.negToZero(v) / (prevMaxY || 1)
-        );
       } else {
         let prevTotal = 0;
         for (let k = 0; k < w.globals.previousPaths.length; k++) {
@@ -532,6 +545,10 @@ class Pie {
     }
     if (this.chartType === "polarArea") {
       w.globals.prevPolarAngles = sectorAngleArr.slice();
+      const radius = w.globals.radialSize || 1;
+      w.globals.prevPolarSizes = this.sliceSizes.map(
+        (s) => s / radius
+      );
     }
     if (this.donutSize < 0) {
       this.donutSize = 0;
@@ -713,6 +730,7 @@ class Pie {
           elPath.node.setAttribute("data-piece-hidden", "1");
         }
       }
+      const collapsed = (w.globals.collapsedSeriesIndices || []).includes(i);
       let dur = 0;
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         dur = angle / this.fullAngle * w.config.chart.animations.speed;
@@ -751,7 +769,8 @@ class Pie {
           i,
           animBeginArr: this.animBeginArr,
           shouldSetPrevPaths: true,
-          dur: w.config.chart.animations.dynamicAnimation.speed
+          dur: w.config.chart.animations.dynamicAnimation.speed,
+          collapsed
         });
       } else {
         this.animatePaths(elPath, {
@@ -761,7 +780,8 @@ class Pie {
           i,
           totalItems: sectorAngleArr.length - 1,
           animBeginArr: this.animBeginArr,
-          dur
+          dur,
+          collapsed
         });
       }
       if (this.getExpandOffset() > 0) {
@@ -787,12 +807,22 @@ class Pie {
           if (formatter !== void 0) {
             text = formatter(w.globals.seriesPercent[i][0], {
               seriesIndex: i,
+              // A pie slice IS the data point, so its index is the series
+              // index. Every other type passes dataPointIndex and the
+              // documented opts says it is always there, so leaving it out
+              // here made the documented formatter throw on a pie alone
+              // (#5324).
+              dataPointIndex: i,
+              series: w.seriesData.series,
               w
             });
           }
           const foreColor = w.globals.dataLabels.style.colors[i];
           const elPieLabelWrap = graphics.group({
-            class: `apexcharts-datalabels`
+            class: `apexcharts-datalabels`,
+            // Which slice it labels, so a later render pairs it with its own
+            // slice's label (CircleTransition), whatever slices draw none.
+            "data:slice": i
           });
           const elPieLabel = graphics.drawText({
             x: xPos,
@@ -874,6 +904,7 @@ class Pie {
           w.globals.delayedElements.push({ el: group.node });
         }
         this.externalLabelGroups[lbl.i] = group.node;
+        group.node.setAttribute("data:slice", String(lbl.i));
         g.add(group);
       });
     }
@@ -990,7 +1021,7 @@ class Pie {
     const fromAngle = fromStartAngle < toStartAngle ? this.fullAngle + fromStartAngle - toStartAngle : fromStartAngle - toStartAngle;
     const hasPrevSize = typeof opts.prevSize === "number";
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
-      if (opts.prevEndAngle) {
+      if (Number.isFinite(opts.prevEndAngle)) {
         path = me.getPiePath({
           me,
           startAngle: opts.prevStartAngle,
@@ -1011,6 +1042,7 @@ class Pie {
               "stroke-width": me.strokeWidth
             });
           }
+          if (opts.collapsed) el.attr({ d: "" });
           if (opts.i === w.config.series.length - 1) {
             animations.animationCompleted(el);
           }
@@ -1044,7 +1076,7 @@ class Pie {
       }
       el.node.setAttribute("data:pathOrig", path);
       el.attr({
-        d: path,
+        d: opts.collapsed ? "" : path,
         "stroke-width": me.strokeWidth
       });
     }

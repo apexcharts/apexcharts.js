@@ -359,13 +359,22 @@ rect.legend-mouseover-inactive,
 .apexcharts-bar-area.apexcharts-keyboard-focused,
 .apexcharts-candlestick-area.apexcharts-keyboard-focused,
 .apexcharts-boxPlot-area.apexcharts-keyboard-focused,
+.apexcharts-violin-area.apexcharts-keyboard-focused,
 .apexcharts-rangebar-area.apexcharts-keyboard-focused,
 .apexcharts-pie-area.apexcharts-keyboard-focused,
 .apexcharts-heatmap-rect.apexcharts-keyboard-focused,
-.apexcharts-treemap-rect.apexcharts-keyboard-focused {
+.apexcharts-treemap-rect.apexcharts-keyboard-focused,
+.apexcharts-keyboard-focus-ring {
   stroke: var(--apexcharts-focus-color, #008FFB);
   stroke-width: 2;
   stroke-opacity: 1;
+}
+
+/* A heatmap or a bar-like painted to canvas has no node per cell or mark, so
+   keyboard focus draws this outline over the focused one instead. */
+.apexcharts-keyboard-focus-ring {
+  fill: none;
+  pointer-events: none;
 }
 
 .apexcharts-tooltip {
@@ -430,7 +439,9 @@ rect.legend-mouseover-inactive,
   opacity: 1;
   transition: opacity .12s ease
 }
-.apexcharts-tooltip.apexcharts-tooltip-interactive {
+/* Only while shown: a hidden box keeps its last position, which on a short
+ * chart is outside the chart, over whatever the page has there. */
+.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active {
   pointer-events: auto;
 }
 .apexcharts-tooltip.apexcharts-active[data-positioned="true"] {
@@ -532,7 +543,13 @@ rect.legend-mouseover-inactive,
  * (-6px = -1px border - 10px/2), i.e. exactly on the body's border line,
  * so the two borders meet end to end instead of overlapping or gapping.
  * `box-sizing` must be border-box or the bordered sides would grow the
- * square asymmetrically and knock its centre off that line. */
+ * square asymmetrically and knock its centre off that line.
+ *
+ * Along the edge, `--apx-tt-arrow-y` / `--apx-tt-arrow-x` are measured from
+ * the body's outer edge, as every position the script works out is, while
+ * `top` / `left` count from inside its 1px border: hence 6px back, not 5px,
+ * or the arrow stands a pixel past the mark it points at. The 50% default
+ * centres on the padding box, which is the body's centre either way. */
 .apexcharts-tooltip-arrow {
   position: absolute;
   box-sizing: border-box;
@@ -541,7 +558,7 @@ rect.legend-mouseover-inactive,
   background: var(--apx-tt-arrow-bg);
   transform: rotate(45deg);
   pointer-events: none;
-  top: calc(var(--apx-tt-arrow-y, 50%) - 5px)
+  top: calc(var(--apx-tt-arrow-y, calc(50% + 1px)) - 6px)
 }
 
 /* Which two sides face outward depends on the placement. Under
@@ -568,7 +585,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,
 .apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {
   top: auto;
-  left: calc(var(--apx-tt-arrow-x, 50%) - 5px)
+  left: calc(var(--apx-tt-arrow-x, calc(50% + 1px)) - 6px)
 }
 
 .apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {

@@ -1,5 +1,21 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -191,11 +207,29 @@ class TreemapHelpers {
   }
 }
 const Filters = _core.__apex_Filters;
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = _core.__apex_Environment_Environment;
+const resolveEasing = _core.__apex_Easing_resolveEasing;
+function lengthTransitionEnabled(w) {
+  var _a;
+  const anim = w.config.chart.animations;
+  if (!anim || anim.enabled === false) return false;
+  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
+    return false;
+  }
+  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
+  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
+  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
+}
+function morphEasing(w) {
+  var _a, _b;
+  const anim = w.config.chart.animations;
+  return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
+}
 function seriesEmitter(ctx, graphics) {
   const r = ctx && ctx.renderer;
   return r && r.kind && r.kind !== "svg" ? r : graphics;
 }
-const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const SVGNS = _core.__apex_math_SVGNS;
 class HeatMap {
   /**
@@ -362,11 +396,10 @@ class HeatMap {
             });
           }
           if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-            let speed = 1;
-            if (!w.globals.resized) {
-              speed = w.config.chart.animations.speed;
-            }
-            if (isRectCell) {
+            const speed = w.config.chart.animations.speed;
+            if (w.globals.resized) {
+              w.globals.animationEnded = true;
+            } else if (isRectCell) {
               this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i, j);
             } else {
               const animations = new Animations(this.w);
@@ -383,14 +416,33 @@ class HeatMap {
             let speed = 1;
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed;
-              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
-              if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
-              this.animateHeatColor(
-                cell,
-                Utils.isColorHex(colorFrom) ? colorFrom : Utils.rgb2hex(colorFrom),
-                Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
-                speed
-              );
+              const prev = w.globals.previousPaths[i] && w.globals.previousPaths[i][j];
+              const colorTo = Utils.isColorHex(color) ? color : Utils.rgb2hex(color);
+              if (!(prev == null ? void 0 : prev.color)) {
+                if (isRectCell) {
+                  const cx = x1 + cellW / 2;
+                  const cy = y1 + yDivision / 2;
+                  this.animateHeatColor(cell, colorTo, colorTo, speed, {
+                    from: { x: cx, y: cy, width: 0, height: 0 },
+                    to: { x: x1, y: y1, width: cellW, height: yDivision }
+                  });
+                } else {
+                  new Animations(this.w).animatePop(cell, { speed });
+                }
+              } else {
+                const box = prev.rect;
+                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(Number.isFinite) ? box : null;
+                this.animateHeatColor(
+                  cell,
+                  Utils.isColorHex(prev.color) ? prev.color : Utils.rgb2hex(prev.color),
+                  colorTo,
+                  speed,
+                  boxFrom && {
+                    from: boxFrom,
+                    to: { x: x1, y: y1, width: cellW, height: yDivision }
+                  }
+                );
+              }
             }
           }
         }
@@ -574,13 +626,16 @@ class HeatMap {
    * @param {string} colorFrom
    * @param {string} colorTo
    * @param {number} speed
+   * @param {{from: Record<string, number>, to: Record<string, number>} | null} [box]
+   *   the cell's previous box and its new one, when it eases between them
    */
-  animateHeatColor(el, colorFrom, colorTo, speed) {
-    el.attr({
+  animateHeatColor(el, colorFrom, colorTo, speed, box = null) {
+    const runner = el.attr(__spreadValues({
       fill: colorFrom
-    }).animate(speed).attr({
+    }, box == null ? void 0 : box.from)).animate(speed).attr(__spreadValues({
       fill: colorTo
-    });
+    }, box == null ? void 0 : box.to));
+    if (box) runner.ease(morphEasing(this.w));
   }
 }
 _core__default.use({

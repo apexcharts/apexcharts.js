@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -37,6 +37,8 @@ const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
   });
   return Number.isFinite(resolved) ? resolved : 0;
 };
+const Animations = _core.__apex_Animations;
+const computeStagger = _core.__apex_Animations_computeStagger;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const Environment = _core.__apex_Environment_Environment;
 function lengthTransitionEnabled(w) {
@@ -185,6 +187,13 @@ function renderBarExitGhosts({
     const style = node.style;
     style.transformBox = "fill-box";
     style.transformOrigin = origin;
+    node.setAttribute("data:ghostKey", `${record.realIndex}::${p.key}`);
+    try {
+      const bb = node.getBBox();
+      const edge = isHorizontal ? origin.startsWith("left") ? bb.x : bb.x + bb.width : origin.endsWith("bottom") ? bb.y + bb.height : bb.y;
+      if (isFinite(edge)) node.setAttribute("data:ghostEdge", String(edge));
+    } catch (_) {
+    }
     const duration = Math.max(1, speed || 1);
     const startAt = performance.now();
     const step = (now) => {
@@ -223,7 +232,7 @@ class BarDataLabels {
    * @return {object} dataLabels node-element which you can append later
    **/
   handleBarDataLabels(opts) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     const {
       x,
       y,
@@ -237,12 +246,14 @@ class BarDataLabels {
       barWidth,
       barXPosition,
       barYPosition,
-      visibleSeries
+      visibleSeries,
+      hl
     } = opts;
     const w = this.w;
     const graphics = new Graphics(this.barCtx.w);
+    this.hlt = hl == null ? void 0 : hl.total;
     const steps = w.waterfallData && w.waterfallData.values;
-    const waterfallStep = steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
+    const waterfallStep = hl && hl.val != null ? hl.val : steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
     const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
     let bcx;
     let bcy;
@@ -304,16 +315,17 @@ class BarDataLabels {
       );
     }
     const params = {
-      x,
-      y,
+      x: (_a = hl == null ? void 0 : hl.x) != null ? _a : x,
+      y: (_b = hl == null ? void 0 : hl.y) != null ? _b : y,
+      neg: hl && hl.val != null ? hl.val < 0 : void 0,
       i,
       j,
       realIndex,
       columnGroupIndex,
       bcx,
       bcy,
-      barHeight,
-      barWidth,
+      barHeight: (_c = hl == null ? void 0 : hl.barHeight) != null ? _c : barHeight,
+      barWidth: (_d = hl == null ? void 0 : hl.barWidth) != null ? _d : barWidth,
       textRects,
       strokeWidth,
       dataLabelsX,
@@ -330,7 +342,7 @@ class BarDataLabels {
       dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
     }
     if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
-      const box = (_b = (_a = w.waterfallData.geometry) == null ? void 0 : _a[realIndex]) == null ? void 0 : _b[j];
+      const box = (_f = (_e = w.waterfallData.geometry) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[j];
       if (box && box.horizontal) {
         dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
       }
@@ -338,7 +350,11 @@ class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w.config.chart.stackType === "100%" ? (
+      neg: params.neg,
+      // A datum the highlight filter leaves without a part keeps no label. It
+      // is still drawn, blank, as a null value is: the overlap pass indexes
+      // its rects by data point, so a skipped one would misalign the rest.
+      val: (hl == null ? void 0 : hl.hide) ? void 0 : waterfallStep !== null ? waterfallStep : this.barCtx.isRangeBar ? [y1, y2] : w.config.chart.stackType === "100%" ? (
         // Read the percentages globally rather than out of `series`.
         // Under `stackType: '100%'` BarStacked replaces `series` with
         // the percentage rows, and in a combo chart it narrows them to
@@ -350,12 +366,12 @@ class BarDataLabels {
       ) : w.seriesData.series[realIndex][j],
       i: realIndex,
       j,
-      barWidth,
-      barHeight,
+      barWidth: params.barWidth,
+      barHeight: params.barHeight,
       textRects,
       dataLabelsConfig
     });
-    if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled) {
+    if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled && this.hlt !== false) {
       totalDataLabels = this.drawTotalDataLabels({
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
@@ -419,6 +435,7 @@ class BarDataLabels {
    * @param {{realIndex: any, j: any}} opts
    */
   getStackedTotalValue({ realIndex, j }) {
+    if (this.hlt) return this.hlt.val;
     const w = this.w;
     const ctx = this.getTotalGroupContext(realIndex);
     const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
@@ -441,6 +458,7 @@ class BarDataLabels {
    * @param {Record<string, any>} opts
    */
   calculateColumnsDataLabelsPosition(opts) {
+    var _a;
     const w = this.w;
     let {
       i,
@@ -488,7 +506,7 @@ class BarDataLabels {
       const offsetDLX = 2;
       dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
     }
-    const valIsNegative = w.seriesData.series[i][j] < 0;
+    const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[i][j] < 0;
     let newY = y;
     if (this.barCtx.isReversed) {
       newY = y + (valIsNegative ? barHeight : -barHeight);
@@ -544,8 +562,8 @@ class BarDataLabels {
     const totalGroupCtx = this.getTotalGroupContext(realIndex);
     const prevYGroups = totalGroupCtx ? [totalGroupCtx.group] : w.labelData.seriesGroups;
     prevYGroups.forEach((sg) => {
-      var _a;
-      (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevY.forEach(
+      var _a2;
+      (_a2 = this.barCtx[sg.join(",")]) == null ? void 0 : _a2.prevY.forEach(
         (arr) => {
           if (valIsNegative) {
             lowestPrevY = Math.max(arr[j], lowestPrevY);
@@ -555,6 +573,7 @@ class BarDataLabels {
         }
       );
     });
+    if (this.hlt) lowestPrevY = this.hlt.edge;
     if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const ADDITIONAL_OFFY = 18;
       const graphics = new Graphics(this.barCtx.w);
@@ -591,7 +610,7 @@ class BarDataLabels {
    * @param {Record<string, any>} opts
    */
   calculateBarsDataLabelsPosition(opts) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     let {
       x,
@@ -629,7 +648,7 @@ class BarDataLabels {
     let totalDataLabelsX;
     let totalDataLabelsY;
     let totalDataLabelsAnchor = "start";
-    const valIsNegative = w.seriesData.series[i][j] < 0;
+    const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[i][j] < 0;
     let newX = x;
     if (this.barCtx.isReversed) {
       newX = x + (valIsNegative ? -barWidth : barWidth);
@@ -677,6 +696,7 @@ class BarDataLabels {
         }
       );
     });
+    if (this.hlt) lowestPrevX = this.hlt.edge;
     if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const graphics = new Graphics(this.barCtx.w);
       const totalLabeltextRects = graphics.getTextRects(
@@ -725,11 +745,12 @@ class BarDataLabels {
       totalDataLabelsAnchor
     };
   }
-  /** @param {{x: any, y: any, val: any, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
+  /** @param {{x: any, y: any, val: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
   drawCalculatedDataLabels({
     x,
     y,
     val,
+    neg,
     i,
     // = realIndex
     j,
@@ -780,7 +801,7 @@ class BarDataLabels {
       if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
         text = "";
       }
-      const valIsNegative = w.seriesData.series[i][j] < 0;
+      const valIsNegative = neg != null ? neg : w.seriesData.series[i][j] < 0;
       const position = w.config.plotOptions.bar.dataLabels.position;
       if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
         if (position === "top") {
@@ -1406,6 +1427,71 @@ class Helpers {
       rect.node.classList.add("apexcharts-backgroundBar");
     }
   }
+  /**
+   * The rect a column or bar is drawn as: its slot across the category axis
+   * (`a`, `len`) and its two ends on the value axis (`v1` the baseline, `v2`
+   * the value), with the stroke centred on the edges and the configured
+   * corners rounded. getColumnPaths and getBarpaths build their bars here, and
+   * so does the highlight filter's part, which is how a part lines up with its
+   * whole to the sub-pixel.
+   *
+   * `base` is the rect collapsed onto its baseline, padded to the command
+   * count of `pathTo` so the rise morphs cleanly.
+   *
+   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
+   */
+  barRect({ a, len, v1, v2, strokeWidth, realIndex, j, dir, horizontal }) {
+    const w = this.w;
+    const graphics = new Graphics(w);
+    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
+    if (!strokeWidth) strokeWidth = 0;
+    const datum = (
+      /** @type {any} */
+      w.config.series[realIndex].data[j]
+    );
+    const offset = horizontal ? datum == null ? void 0 : datum.barHeightOffset : datum == null ? void 0 : datum.columnWidthOffset;
+    if (offset) {
+      a -= offset / 2;
+      len += offset;
+    }
+    const strokeCenter = strokeWidth / 2;
+    const direction = dir * (this.barCtx.isReversed ? -1 : 1);
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
+    let x1, x2, y1, y2, sl, squarePathTo;
+    if (horizontal) {
+      y1 = a + strokeCenter;
+      y2 = a + len - strokeCenter;
+      x1 = v1 + 1e-3 + strokeCenter * direction;
+      x2 = v2 + 1e-3 - strokeCenter * direction;
+      sl = graphics.line(x1, y2);
+      squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
+    } else {
+      x1 = a + strokeCenter;
+      x2 = a + len - strokeCenter;
+      y1 = v1 + 1e-3 - strokeCenter * direction;
+      y2 = v2 + 1e-3 + strokeCenter * direction;
+      sl = graphics.line(x2, y1);
+      squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
+    }
+    const pathTo = this.arrBorderRadius[realIndex][j] !== "none" ? graphics.roundPathCorners(
+      squarePathTo,
+      w.config.plotOptions.bar.borderRadius
+    ) : squarePathTo;
+    return {
+      x1,
+      x2,
+      y1,
+      y2,
+      sl,
+      closing,
+      squarePathTo,
+      pathTo,
+      base: graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing,
+      strokeWidth,
+      strokeCenter,
+      direction
+    };
+  }
   /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getColumnPaths({
     barWidth,
@@ -1413,7 +1499,6 @@ class Helpers {
     y1,
     y2,
     strokeWidth,
-    isReversed,
     series,
     seriesGroup,
     realIndex,
@@ -1421,34 +1506,22 @@ class Helpers {
     j,
     w
   }) {
-    var _a, _b, _c;
-    const graphics = new Graphics(this.barCtx.w);
-    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
-    if (!strokeWidth) strokeWidth = 0;
-    let bW = barWidth;
-    let bXP = barXPosition;
-    if ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.columnWidthOffset) {
-      bXP = barXPosition - w.config.series[realIndex].data[j].columnWidthOffset / 2;
-      bW = barWidth + w.config.series[realIndex].data[j].columnWidthOffset;
-    }
-    const strokeCenter = strokeWidth / 2;
-    const x1 = bXP + strokeCenter;
-    const x2 = bXP + bW - strokeCenter;
-    const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
-    y1 += 1e-3 - strokeCenter * direction;
-    y2 += 1e-3 + strokeCenter * direction;
-    const sl = graphics.line(x2, y1);
-    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
-    const squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
-    let pathTo = squarePathTo;
-    if (this.arrBorderRadius[realIndex][j] !== "none") {
-      pathTo = graphics.roundPathCorners(
-        pathTo,
-        w.config.plotOptions.bar.borderRadius
-      );
-    }
+    var _a, _b;
+    const r = this.barRect({
+      a: barXPosition,
+      len: barWidth,
+      v1: y1,
+      v2: y2,
+      strokeWidth,
+      realIndex,
+      j,
+      dir: series[i][j] >= 0 ? 1 : -1
+    });
+    const { pathTo, squarePathTo, strokeCenter, direction } = r;
+    y1 = r.y1;
+    y2 = r.y2;
     let pathFrom = null;
-    const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
       j
     );
@@ -1458,13 +1531,13 @@ class Helpers {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
-      pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
+      pathFrom = r.base;
     }
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx;
       _ctx = this.barCtx[seriesGroup];
       _ctx.yArrj.push(y2 - strokeCenter * direction);
-      _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth * direction));
+      _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction));
       _ctx.yArrjVal.push(this.barCtx.series[i][j]);
     }
     return {
@@ -1475,7 +1548,7 @@ class Helpers {
       // bar (the waterfall connectors) reads this rather than recomputing the
       // edges, which is how it stays exact when a stroke width is set.
       // `y1` is the lower value's edge and `y2` the upper one's.
-      drawnBox: { x1, x2, y1, y2 }
+      drawnBox: { x1: r.x1, x2: r.x2, y1, y2 }
     };
   }
   /**
@@ -1649,7 +1722,6 @@ class Helpers {
     x1,
     x2,
     strokeWidth,
-    isReversed,
     series,
     seriesGroup,
     realIndex,
@@ -1657,36 +1729,26 @@ class Helpers {
     j,
     w
   }) {
-    var _a, _b, _c;
+    var _a, _b;
     const graphics = new Graphics(this.barCtx.w);
-    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
-    if (!strokeWidth) strokeWidth = 0;
-    let bYP = barYPosition;
-    let bH = barHeight;
-    if ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.barHeightOffset) {
-      bYP = barYPosition - w.config.series[realIndex].data[j].barHeightOffset / 2;
-      bH = barHeight + w.config.series[realIndex].data[j].barHeightOffset;
-    }
-    const strokeCenter = strokeWidth / 2;
-    const y1 = bYP + strokeCenter;
-    const y2 = bYP + bH - strokeCenter;
-    const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
-    x1 += 1e-3 + strokeCenter * direction;
-    x2 += 1e-3 - strokeCenter * direction;
+    const r = this.barRect({
+      a: barYPosition,
+      len: barHeight,
+      v1: x1,
+      v2: x2,
+      strokeWidth,
+      realIndex,
+      j,
+      dir: series[i][j] >= 0 ? 1 : -1,
+      horizontal: true
+    });
+    const { y1, y2, sl, closing, squarePathTo, pathTo, strokeCenter, direction } = r;
+    x1 = r.x1;
+    x2 = r.x2;
     const isFunnel = this.barCtx.isFunnel;
     const fromX = isFunnel ? (x1 + x2) / 2 : x1;
-    const sl = graphics.line(x1, y2);
-    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
-    const squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
-    let pathTo = squarePathTo;
-    if (this.arrBorderRadius[realIndex][j] !== "none") {
-      pathTo = graphics.roundPathCorners(
-        pathTo,
-        w.config.plotOptions.bar.borderRadius
-      );
-    }
     let pathFrom = null;
-    const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
       j
     );
@@ -1703,7 +1765,7 @@ class Helpers {
       let _ctx = this.barCtx;
       _ctx = this.barCtx[seriesGroup];
       _ctx.xArrj.push(x2 + strokeCenter * direction);
-      _ctx.xArrjF.push(Math.abs(x1 - x2 - strokeWidth * direction));
+      _ctx.xArrjF.push(Math.abs(x1 - x2 - r.strokeWidth * direction));
       _ctx.xArrjVal.push(this.barCtx.series[i][j]);
     }
     return {
@@ -2055,7 +2117,6 @@ class Helpers {
   }
 }
 const Filters = _core.__apex_Filters;
-const computeStagger = _core.__apex_Animations_computeStagger;
 class AxisMapping {
   /**
    * Pixels per data-unit on the x-axis. Derived from `minX..maxX` so it is the
@@ -2178,7 +2239,7 @@ class Bar {
    * @return {Element} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const coreUtils = new CoreUtils(this.w);
@@ -2189,6 +2250,7 @@ class Bar {
     const ret = graphics.group({
       class: "apexcharts-bar-series apexcharts-plot-series"
     });
+    const hf = this.ctx.highlightFilter;
     if (w.config.dataLabels.enabled) {
       if (this.totalItems > this.barOptions.dataLabels.maxItems) {
         console.warn(
@@ -2248,26 +2310,36 @@ class Bar {
         class: "apexcharts-datalabels",
         "data:realIndex": realIndex
       });
-      w.globals.delayedElements.push({
-        el: elDataLabelsWrap.node,
-        // On a layout-changing update the labels must stay hidden through the
-        // reflow morph (the updateOptions flow otherwise reveals them at
-        // frame 0, where they float over sliding bars). When dataLabels.animate
-        // is on the labels instead RIDE the morph (see DataLabelTransition), so
-        // keep them visible: holding would hide the very motion we want to show.
-        holdUntilComplete: !((_a = w.config.dataLabels.animate) == null ? void 0 : _a.enabled) && this.isLengthTransition(realIndex)
-      });
-      elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
+      const dlCfg = w.config.dataLabels;
+      const holdUntilComplete = !((_a = dlCfg.animate) == null ? void 0 : _a.enabled) && this.isLengthTransition(realIndex);
+      const labelsRide = w.globals.dataChanged && !holdUntilComplete && !!(((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled));
+      if (!labelsRide) {
+        w.globals.delayedElements.push({
+          el: elDataLabelsWrap.node,
+          holdUntilComplete
+        });
+        elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
+      }
       const elGoalsMarkers = graphics.group({
         class: "apexcharts-bar-goals-markers"
       });
       const elBarShadows = graphics.group({
         class: "apexcharts-bar-shadows"
       });
-      w.globals.delayedElements.push({
-        el: elBarShadows.node
-      });
-      elBarShadows.node.classList.add("apexcharts-element-hidden");
+      const ctx = (
+        /** @type {any} */
+        this.ctx
+      );
+      const shadowsWas = ctx._barShadows;
+      const shadows = ctx._barShadows = /** @type {any[]} */
+      [];
+      const morphShadows = w.globals.dataChanged && w.globals.shouldAnimate && w.config.chart.animations.dynamicAnimation.enabled && (shadowsWas == null ? void 0 : shadowsWas.length) === series[i].length - 1;
+      if (!morphShadows) {
+        w.globals.delayedElements.push({
+          el: elBarShadows.node
+        });
+        elBarShadows.node.classList.add("apexcharts-element-hidden");
+      }
       for (let j = 0; j < series[i].length; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
@@ -2308,15 +2380,20 @@ class Bar {
           j,
           realIndex
         );
-        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_b = w.config.plotOptions.funnel) == null ? void 0 : _b.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
+        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_d = w.config.plotOptions.funnel) == null ? void 0 : _d.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
-            color: typeof pathFill.color === "string" && ((_c = pathFill.color) == null ? void 0 : _c.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
+            color: typeof pathFill.color === "string" && ((_e = pathFill.color) == null ? void 0 : _e.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
             realIndex,
             j
           });
           elBarShadows.add(barShadow);
+          shadows.push(barShadow);
+          this._shadow = morphShadows && [
+            barShadow,
+            shadowsWas[j - 1].attr("d")
+          ];
           if (w.config.chart.dropShadow.enabled) {
             const filters = new Filters(this.w);
             filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex);
@@ -2341,6 +2418,15 @@ class Bar {
         }
         yArrj.push(y);
         this.renderSeries(__spreadProps(__spreadValues({
+          hl: hf == null ? void 0 : hf.bar(this, {
+            i,
+            j,
+            realIndex,
+            translationsIndex,
+            paths,
+            zeroH,
+            zeroW
+          }),
           realIndex,
           pathFill: pathFill.color
         }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
@@ -2383,8 +2469,9 @@ class Bar {
     }
     return ret;
   }
-  /** @param {{ realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any }} opts */
+  /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
   renderSeries({
+    hl,
     realIndex,
     pathFill,
     lineFill,
@@ -2413,7 +2500,8 @@ class Bar {
     elBarShadows,
     visibleSeries,
     type,
-    classes
+    classes,
+    fadeReveal = false
   }) {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
@@ -2486,7 +2574,8 @@ class Bar {
         barWidth,
         barXPosition,
         barYPosition,
-        visibleSeries
+        visibleSeries,
+        hl: hl == null ? void 0 : hl.label
       })
     );
     if (delayMs > 0) {
@@ -2500,9 +2589,11 @@ class Bar {
         );
       }
     }
+    let leaving = false;
     if (!w.globals.isBarHorizontal) {
       if (dataLabelsObj.dataLabelsPos.dataLabelsX + Math.max(barWidth, w.globals.barPadForNumericAxis) < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - Math.max(barWidth, w.globals.barPadForNumericAxis) > w.layout.gridWidth) {
-        skipDrawing = true;
+        if (this._wasOnScreen(realIndex, j)) leaving = true;
+        else skipDrawing = true;
       }
     }
     if (
@@ -2513,6 +2604,7 @@ class Bar {
       lineFill = /** @type {Record<string,any>} */
       w.config.series[i].data[j].strokeColor;
     }
+    const fill = pathFill;
     if (this.isNullValue && w.globals.collapsingSeriesIndices.indexOf(realIndex) === -1) {
       pathFill = "none";
     }
@@ -2545,10 +2637,24 @@ class Bar {
           // literal "undefined" into every one of their marks' class lists.
           className: `apexcharts-${type}-area${classes ? ` ${classes}` : ""}`,
           chartType: type,
-          bindEventsOnPaths: false
+          bindEventsOnPaths: false,
+          fadeReveal
         })
       );
       renderedPath.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
+      if (leaving) renderedPath.node.classList.add("apexcharts-leaving");
+      const sh = this._shadow;
+      if (sh) {
+        this._shadow = null;
+        new Animations(w, this.ctx).animatePathsGradually({
+          el: sh[0],
+          fill: "none",
+          pathFrom: sh[1],
+          pathTo: sh[0].attr("d"),
+          speed: dataChangeSpeed,
+          delay
+        });
+      }
       if (pieceClaimed) {
         renderedPath.node.setAttribute("opacity", "0");
         renderedPath.node.setAttribute("data-piece-hidden", "1");
@@ -2579,16 +2685,47 @@ class Bar {
         // LengthTransition): survivors match by key, not array position.
         "data:pathKey": datumKey(w, realIndex, j)
       });
+      hl == null ? void 0 : hl.paint(renderedPath, {
+        delay,
+        delayMs,
+        speed: dataChangeSpeed,
+        fill,
+        elSeries,
+        elBarShadows,
+        labels: dataLabelsObj.dataLabels,
+        pathFrom,
+        pathTo
+      });
       if (emit.kind === "canvas") {
         if (!w.globals.barCanvasCoords) w.globals.barCanvasCoords = {};
         if (!w.globals.barCanvasCoords[realIndex]) {
           w.globals.barCanvasCoords[realIndex] = {};
         }
-        w.globals.barCanvasCoords[realIndex][j] = {
+        const prev = w.globals.barCanvasCoords[realIndex][j];
+        let bounds = (prev == null ? void 0 : prev.bounds) || null;
+        const box = renderedPath.bbox();
+        if (box.width > 0 || box.height > 0) {
+          bounds = {
+            left: Math.min(bounds ? bounds.left : Infinity, box.x),
+            top: Math.min(bounds ? bounds.top : Infinity, box.y),
+            right: Math.max(
+              bounds ? bounds.right : -Infinity,
+              box.x + box.width
+            ),
+            bottom: Math.max(
+              bounds ? bounds.bottom : -Infinity,
+              box.y + box.height
+            )
+          };
+        }
+        w.globals.barCanvasCoords[realIndex][j] = __spreadProps(__spreadValues({
           cx: dataLabelsObj.dataLabelsPos.bcx,
           cy: dataLabelsObj.dataLabelsPos.bcy,
-          barWidth
-        };
+          barWidth,
+          type
+        }, typeof y1 !== "undefined" && typeof y2 !== "undefined" && { rangeY1: y1, rangeY2: y2 }), {
+          bounds
+        });
       }
       if (dataLabelsObj.dataLabels !== null) {
         elDataLabelsWrap.add(dataLabelsObj.dataLabels);
@@ -2843,6 +2980,25 @@ class Bar {
     };
   }
   /**
+   * Whether datum j of this series was drawn in the previous render and this
+   * render morphs from it (an animated, keyed data change).
+   *
+   * Off-screen marks are not drawn, for speed. But a mark that WAS on screen
+   * before an animated update has to be drawn this once, so it can morph to
+   * its new off-screen place and slide out under the clip: on a zoom-in the
+   * bars or candles leaving the view used to vanish on frame 0 while the rest
+   * were still moving. The extra marks are bounded by what was visible
+   * before, and large datasets skip the morph for the bulk fade anyway.
+   * @param {number} realIndex
+   * @param {number} j
+   * @returns {boolean}
+   */
+  _wasOnScreen(realIndex, j) {
+    if (!lengthTransitionEnabled(this.w)) return false;
+    const keyed = this._prevKeyedPaths(realIndex);
+    return !!keyed && keyed.has(datumKey(this.w, realIndex, j));
+  }
+  /**
    * The captured previous-render record for a series (last match wins, same
    * as the historical scan order).
    *
@@ -2988,46 +3144,61 @@ class Bar {
     } else {
       isNewDatum = true;
     }
-    if (oldD) {
-      const fromCount = Bar.pathCommandCount(oldD);
-      const toCount = Bar.pathCommandCount(pathTo);
-      if (fromCount === toCount) {
-        return oldD;
-      }
-      const graphics = new Graphics(w);
-      const extentOf = (d) => {
-        const box = Bar.pathBox(d);
-        return box ? Math.min(box.maxX - box.minX, box.maxY - box.minY) : 0;
-      };
-      const handingOver = fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1;
-      if (fromCount < toCount) {
-        const padded = graphics.roundPathCorners(oldD, 0);
-        if (Bar.pathCommandCount(padded) === toCount) {
-          if (handingOver && squarePathTo) {
-            const squareTarget = graphics.roundPathCorners(squarePathTo, 0);
-            if (Bar.pathCommandCount(squareTarget) === toCount) {
-              this._pathToInterp = squareTarget;
-            }
-          }
-          return padded;
-        }
-      } else {
-        const padded = graphics.roundPathCorners(pathTo, 0);
-        if (Bar.pathCommandCount(padded) === fromCount) {
-          this._pathToInterp = padded;
-          if (handingOver) {
-            const square = Bar.squareLike(oldD);
-            const squareStart = square ? graphics.roundPathCorners(square, 0) : null;
-            if (squareStart && Bar.pathCommandCount(squareStart) === fromCount) {
-              return squareStart;
-            }
-          }
-          return oldD;
-        }
-      }
-    }
+    if (oldD) return this.cornerMorph(oldD, pathTo, squarePathTo);
     if (isNewDatum && lengthTransitionEnabled(w)) {
       return null;
+    }
+    return pathTo;
+  }
+  /**
+   * Where a bar morphing from `oldD` to `pathTo` starts, when the two may
+   * differ in corner state (see the note inside). When the tween has to aim
+   * at a padded twin of the target, the twin is left in _pathToInterp, which
+   * the caller has cleared; a pair that cannot be reconciled snaps to
+   * `pathTo`. The highlight filter's stacked parts hand their corners over by
+   * the same rule.
+   *
+   * @param {string} oldD
+   * @param {string} pathTo
+   * @param {string} [squarePathTo]
+   * @returns {string}
+   */
+  cornerMorph(oldD, pathTo, squarePathTo) {
+    const fromCount = Bar.pathCommandCount(oldD);
+    const toCount = Bar.pathCommandCount(pathTo);
+    if (fromCount === toCount) {
+      return oldD;
+    }
+    const graphics = new Graphics(this.w);
+    const extentOf = (d) => {
+      const box = Bar.pathBox(d);
+      return box ? Math.min(box.maxX - box.minX, box.maxY - box.minY) : 0;
+    };
+    const handingOver = fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1;
+    if (fromCount < toCount) {
+      const padded = graphics.roundPathCorners(oldD, 0);
+      if (Bar.pathCommandCount(padded) === toCount) {
+        if (handingOver && squarePathTo) {
+          const squareTarget = graphics.roundPathCorners(squarePathTo, 0);
+          if (Bar.pathCommandCount(squareTarget) === toCount) {
+            this._pathToInterp = squareTarget;
+          }
+        }
+        return padded;
+      }
+    } else {
+      const padded = graphics.roundPathCorners(pathTo, 0);
+      if (Bar.pathCommandCount(padded) === fromCount) {
+        this._pathToInterp = padded;
+        if (handingOver) {
+          const square = Bar.squareLike(oldD);
+          const squareStart = square ? graphics.roundPathCorners(square, 0) : null;
+          if (squareStart && Bar.pathCommandCount(squareStart) === fromCount) {
+            return squareStart;
+          }
+        }
+        return oldD;
+      }
     }
     return pathTo;
   }
@@ -3114,14 +3285,14 @@ class Bar {
   }
   /**
    * Count SVG path commands (M, L, C, Q, Z, etc.). Used to detect whether
-   * two paths can be morphed safely — SVG.js requires matching command counts.
+   * two paths can be morphed safely: the morph needs matching command counts.
    *
    * @param {string} d
    * @returns {number}
    */
   static pathCommandCount(d) {
     if (!d) return 0;
-    const matches = d.match(/[A-Za-z]/g);
+    const matches = d.match(/[MmLlHhVvCcSsQqTtAaZz]/g);
     return matches ? matches.length : 0;
   }
 }
@@ -3268,6 +3439,74 @@ function squareSubPath(px, py, r) {
 }
 class BoxCandleStick extends Bar {
   /**
+   * The previous shape of one half of a box, or null.
+   *
+   * A box plot draws each datum as TWO paths, the box either side of the
+   * median, and both carry the datum's key. The keyed lookup the bar renderer
+   * uses (one path per key) would hand both halves the same previous path,
+   * so the upper box would morph out of the lower one. Halves are captured in
+   * draw order, so the n-th path under a key is half n. Candlesticks draw one
+   * path per datum and take the plain keyed lookup.
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {number} pi which half, in draw order
+   * @returns {string | null}
+   */
+  /**
+   * Whether this update keeps too little of the series' identity to morph.
+   *
+   * Candles morph from their own previous shape, matched by datum key. That
+   * is right when most of what was on screen is still there afterwards: a
+   * value update, a legend toggle, a zoom over plain data (zooming out keeps
+   * every candle that was shown). It is wrong when the candles themselves are
+   * replaced: a data reducer re-aggregates on every zoom, and on the
+   * large-dataset sample a zoom-in kept 30 of 250 candles, so the morph was
+   * ~220 exit ghosts shrinking while ~220 new candles grew, the heavy "goes
+   * here and there" motion the fade was introduced to avoid. Below half of
+   * the previously drawn candles surviving, the series fades instead.
+   * @param {number} realIndex
+   * @param {any[]} row this series' parsed values
+   * @returns {boolean}
+   */
+  _identityLost(realIndex, row) {
+    if (!lengthTransitionEnabled(this.w)) return false;
+    const keyed = this._prevKeyedPaths(realIndex);
+    if (!keyed || keyed.size === 0 || !row || row.length === 0) return false;
+    let survivors = 0;
+    for (let j = 0; j < row.length; j++) {
+      if (keyed.has(datumKey(this.w, realIndex, j))) survivors++;
+    }
+    return survivors / keyed.size < 0.5;
+  }
+  /**
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {number} pi
+   * @returns {string | null}
+   */
+  _prevBoxHalf(realIndex, j, pi) {
+    if (!this.isBoxPlot) return null;
+    if (!this._prevHalves) {
+      this._prevHalves = {};
+    }
+    let map = this._prevHalves[realIndex];
+    if (map === void 0) {
+      map = null;
+      const record = this._prevRecord(realIndex);
+      if (record && record.paths.every((p) => p.key != null)) {
+        map = /* @__PURE__ */ new Map();
+        for (const p of record.paths) {
+          const list = map.get(p.key) || [];
+          list.push(p.d);
+          map.set(p.key, list);
+        }
+      }
+      this._prevHalves[realIndex] = map;
+    }
+    const halves = map && map.get(datumKey(this.w, realIndex, j));
+    return halves && halves.length === 2 ? halves[pi] : null;
+  }
+  /**
    * @param {any[]} series
    * @param {string} ctype
    * @param {number} seriesIndex
@@ -3291,9 +3530,8 @@ class BoxCandleStick extends Bar {
     const ret = graphics.group({
       class: `apexcharts-${type}-series apexcharts-plot-series`
     });
+    this.isBoxPlot = type === "boxPlot";
     for (let i = 0; i < series.length; i++) {
-      this.isBoxPlot = w.config.chart.type === "boxPlot" || /** @type {Record<string,any>} */
-      w.config.series[i].type === "boxPlot";
       let x;
       let y;
       const yArrj = [];
@@ -3347,8 +3585,13 @@ class BoxCandleStick extends Bar {
       const boxPointsOpts = this.isBoxPlot ? this.boxOptions.points : null;
       const pointsByCat = [];
       const gridW = w.layout.gridWidth;
-      const cullBuffer = barWidth != null ? barWidth : 0;
-      for (let j = 0; j < w.globals.dataPoints; j++) {
+      const cullBuffer = Math.max(
+        barWidth != null ? barWidth : 0,
+        w.globals.barPadForNumericAxis || 0
+      );
+      const dataPoints = series[i].length === 0 ? 0 : w.globals.dataPoints;
+      const fadeReveal = this._identityLost(realIndex, series[i]);
+      for (let j = 0; j < dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
           /** @type {any} */
@@ -3402,7 +3645,8 @@ class BoxCandleStick extends Bar {
         }
         paths.pathTo.forEach(
           (pathTo, pi) => {
-            const lineFill = !this.isBoxPlot && this.candlestickOptions.wick.useFillColor ? paths.color[pi] : w.globals.stroke.colors[i];
+            var _a2;
+            const lineFill = !this.isBoxPlot && this.candlestickOptions.wick.useFillColor ? paths.color[pi] : w.globals.stroke.colors[realIndex];
             const pathFill = fill.fillPath({
               seriesNumber: realIndex,
               dataPointIndex: j,
@@ -3415,7 +3659,8 @@ class BoxCandleStick extends Bar {
               lineFill,
               j,
               i,
-              pathFrom: paths.pathFrom,
+              pathFrom: (_a2 = this._prevBoxHalf(realIndex, j, pi)) != null ? _a2 : paths.pathFrom,
+              fadeReveal,
               pathTo,
               strokeWidth,
               elSeries,
@@ -3428,7 +3673,11 @@ class BoxCandleStick extends Bar {
               elDataLabelsWrap,
               elGoalsMarkers,
               visibleSeries: this.visibleI,
-              type: w.config.chart.type
+              // The marks' class (`apexcharts-${type}-area`), which the
+              // tooltip, the keyboard and the focus style know them by. The
+              // chart's type classed the candles of a candle + line combo as
+              // a line's area, which no intersect tooltip looked for.
+              type
             });
           }
         );
@@ -3488,6 +3737,20 @@ class BoxCandleStick extends Bar {
       }
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;
+      if (w.globals.previousPaths.length > 0 && !fadeReveal) {
+        const newKeys = [];
+        for (let j = 0; j < series[i].length; j++) {
+          newKeys.push(datumKey(w, realIndex, j));
+        }
+        renderBarExitGhosts({
+          w,
+          elSeries,
+          record: this._prevRecord(realIndex),
+          newKeys,
+          isHorizontal: this.isHorizontal,
+          speed: w.config.chart.animations.dynamicAnimation.speed
+        });
+      }
       ret.add(elSeries);
     }
     return ret;
@@ -3524,10 +3787,12 @@ class BoxCandleStick extends Bar {
     let y1 = Math.min(ohlc.o, ohlc.c);
     let y2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
+    let barXPosition = x + barWidth * this.visibleI;
     if (w.axisFlags.isXNumeric) {
-      x = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
+      const pos = this.getBarXForNumericXAxis({ x, barWidth, realIndex, j });
+      x = pos.x;
+      barXPosition = pos.barXPosition;
     }
-    const barXPosition = x + barWidth * this.visibleI;
     if (typeof /** @type {any} */
     ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
     ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
@@ -3540,7 +3805,7 @@ class BoxCandleStick extends Bar {
       l2 = zeroH - ohlc.l / yRatio;
       m = zeroH - ohlc.m / yRatio;
     }
-    if (cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi)) {
+    if (cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi) && !this._wasOnScreen(realIndex, j)) {
       return {
         pathTo: null,
         pathFrom: null,

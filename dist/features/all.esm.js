@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -496,6 +496,7 @@ class Exports {
    */
   getSvgString(_scale) {
     return new Promise((resolve) => {
+      var _a, _b, _c;
       const w = this.w;
       let scale = _scale || w.config.chart.toolbar.export.scale || w.config.chart.toolbar.export.width / w.globals.svgWidth;
       if (!scale) {
@@ -503,6 +504,9 @@ class Exports {
       }
       const width = w.globals.svgWidth * scale;
       const height = w.globals.svgHeight * scale;
+      (_a = w.globals.layoutTween) == null ? void 0 : _a.finish();
+      (_b = w.globals.circleTween) == null ? void 0 : _b.finish();
+      (_c = w.globals.highlightTween) == null ? void 0 : _c.finish();
       const clonedNode = (
         /** @type {HTMLElement} */
         w.dom.elWrap.cloneNode(true)
@@ -835,11 +839,13 @@ class Exports {
       if (columns.length) {
         rows.push(columns.join(columnDelimiter));
       }
-      Array.from(byCategory.keys()).sort().forEach((key) => {
-        const { cat, values } = (
-          /** @type {{cat: any, values: string[]}} */
-          byCategory.get(key)
-        );
+      Array.from(byCategory.values()).sort((a, b) => {
+        const aText = typeof a.cat === "string";
+        const bText = typeof b.cat === "string";
+        if (aText !== bText) return aText ? 1 : -1;
+        if (!aText) return a.cat - b.cat;
+        return a.cat < b.cat ? -1 : 1;
+      }).forEach(({ cat, values }) => {
         rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
       });
     };
@@ -1227,10 +1233,18 @@ let Helpers$1 = class Helpers {
         }
       }
       series = this._getSeriesBasedOnCollapsedState(series);
-      this.lgCtx.updateSeries(
+      const updated = this.lgCtx.updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
       );
+      const settled = () => {
+        w.globals.risingSeries = [];
+      };
+      if (updated && typeof updated.then === "function") {
+        updated.then(settled, settled);
+      } else {
+        settled();
+      }
     }
   }
   /**
@@ -1405,6 +1419,7 @@ function buildContinuousScale(w) {
   }));
   return { min, max, midpoint, stops, at, legendStops };
 }
+const TooltipUtils = _core.__apex_tooltip_Utils;
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -1806,22 +1821,29 @@ class HeatmapGradientLegend {
       w.dom.elLegendWrap
     );
     const strip = this.svgEl && this.svgEl.querySelector("rect");
-    const grid = w.dom.baseEl.querySelector(".apexcharts-grid");
-    if (!wrap || !strip || !grid || !this._geom) return;
+    if (!wrap || !strip || !this._geom) return;
+    if (!w.dom.baseEl || !w.dom.baseEl.querySelector(".apexcharts-svg")) return;
     const s = strip.getBoundingClientRect();
-    const gr = grid.getBoundingClientRect();
-    if (!s.width || !s.height || !gr.width || !gr.height) return;
+    const plot = TooltipUtils.plotRect(w);
+    if (!s.width || !s.height || !plot.width || !plot.height) return;
+    const gr = {
+      left: plot.left,
+      right: plot.left + plot.width,
+      top: plot.top,
+      bottom: plot.top + plot.height
+    };
+    const zoom = plot.zoom;
     const MIN_GAP = 16;
     const { isVertical, position } = this._geom;
     if (isVertical) {
-      const gap = position === "left" ? gr.left - s.right : s.left - gr.right;
+      const gap = (position === "left" ? gr.left - s.right : s.left - gr.right) / zoom;
       if (gap < MIN_GAP) {
         const curLeft = parseFloat(wrap.style.left) || 0;
         const shift = MIN_GAP - gap;
         wrap.style.left = curLeft + (position === "left" ? -shift : shift) + "px";
       }
     } else {
-      const gap = position === "top" ? gr.top - s.bottom : s.top - gr.bottom;
+      const gap = (position === "top" ? gr.top - s.bottom : s.top - gr.bottom) / zoom;
       if (gap < MIN_GAP) {
         const curTop = parseFloat(wrap.style.top) || 0;
         const shift = MIN_GAP - gap;
@@ -3475,10 +3497,9 @@ class ZoomPanSelection extends Toolbar {
     this.clientX = e.type === "touchmove" || e.type === "touchstart" ? e.touches[0].clientX : e.type === "touchend" ? e.changedTouches[0].clientX : e.clientX;
     this.clientY = e.type === "touchmove" || e.type === "touchstart" ? e.touches[0].clientY : e.type === "touchend" ? e.changedTouches[0].clientY : e.clientY;
     if (e.type === "mousedown" && e.which === 1 || e.type === "touchstart") {
-      const gridRectDim = this._gridRect();
-      if (!gridRectDim) return;
+      if (!this._hasPlot()) return;
       this.startX = this._screenXToPlotPx(this.clientX);
-      this.startY = this.clientY - gridRectDim.top;
+      this.startY = this._screenYToPlotPx(this.clientY);
       this.dragged = false;
       this.w.interact.mousedown = true;
     }
@@ -3510,10 +3531,9 @@ class ZoomPanSelection extends Toolbar {
   /** @param {{ zoomtype?: any, isResized?: any }} opts */
   handleMouseUp({ zoomtype, isResized }) {
     const w = this.w;
-    const gridRectDim = this._gridRect();
-    if (gridRectDim && (this.w.interact.mousedown || isResized)) {
+    if (this._hasPlot() && (this.w.interact.mousedown || isResized)) {
       this.endX = this._screenXToPlotPx(this.clientX);
-      this.endY = this.clientY - gridRectDim.top;
+      this.endY = this._screenYToPlotPx(this.clientY);
       this.dragX = Math.abs(this.endX - this.startX);
       this.dragY = Math.abs(this.endY - this.startY);
       if (w.interact.zoomEnabled || w.interact.selectionEnabled) {
@@ -3669,12 +3689,12 @@ class ZoomPanSelection extends Toolbar {
     const scale = st.factor;
     st.factor = 1;
     if (scale === 1 || w.globals.isDestroyed) return;
-    const gridRectDim = this._gridRect();
-    if (!gridRectDim || !gridRectDim.width) return;
+    const gridWidth = w.layout.gridWidth;
+    if (!this._hasPlot() || !gridWidth) return;
     const { min, max } = this._currentXWindow();
     const range = max - min;
     const mouseX = Math.min(
-      Math.max((st.clientX - gridRectDim.left) / gridRectDim.width, 0),
+      Math.max(this._screenXToPlotPx(st.clientX) / gridWidth, 0),
       1
     );
     let newRange = range * scale;
@@ -3877,14 +3897,13 @@ class ZoomPanSelection extends Toolbar {
   selectionDrawing({ context, zoomtype }) {
     const w = this.w;
     const me = context;
-    const gridRectDim = this._gridRect();
-    if (!gridRectDim) return;
-    const startX = me.startX - 1;
+    if (!this._hasPlot()) return;
+    const startX = me.startX;
     const startY = me.startY;
     let inversedX = false;
     let inversedY = false;
     const left = this._screenXToPlotPx(me.clientX);
-    const top = me.clientY - gridRectDim.top;
+    const top = this._screenYToPlotPx(me.clientY);
     let selectionWidth = left - startX;
     let selectionHeight = top - startY;
     let selectionRect = {
@@ -4004,8 +4023,7 @@ class ZoomPanSelection extends Toolbar {
     if (typeof w.config.chart.events.selection !== "function" && !linkActive) {
       return;
     }
-    const gridRectDim = this._gridRect();
-    if (!gridRectDim) return;
+    if (!this._hasPlot()) return;
     const selectionRect = this.selectionRect.node.getBoundingClientRect();
     const xyRatios = this.xyRatios;
     let minX, maxX, minY, maxY;
@@ -4015,8 +4033,8 @@ class ZoomPanSelection extends Toolbar {
       if (!w.globals.xAxisScale) return;
       minX = AxisMapping.pxToDataX(w, relLeft);
       maxX = AxisMapping.pxToDataX(w, relRight);
-      minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
-      maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
+      minY = w.globals.yAxisScale[0].niceMin + (w.layout.gridHeight - this._screenYToPlotPx(selectionRect.bottom)) * xyRatios.yRatio[0];
+      maxY = w.globals.yAxisScale[0].niceMax - this._screenYToPlotPx(selectionRect.top) * xyRatios.yRatio[0];
     } else {
       minX = w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio;
       maxX = w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio;
@@ -4043,12 +4061,11 @@ class ZoomPanSelection extends Toolbar {
     const xyRatios = this.xyRatios;
     const toolbar = this.ctx.toolbar;
     const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
-    const gridRectDim = me._gridRect();
-    if (!gridRectDim) return;
+    if (!me._hasPlot()) return;
     const localStartX = this._screenXToPlotPx(selRect.left);
     const localEndX = this._screenXToPlotPx(selRect.right);
-    const localStartY = selRect.top - gridRectDim.top;
-    const localEndY = selRect.bottom - gridRectDim.top;
+    const localStartY = this._screenYToPlotPx(selRect.top);
+    const localEndY = this._screenYToPlotPx(selRect.bottom);
     let xLowestValue, xHighestValue;
     if (!w.axisFlags.isRangeBar) {
       xLowestValue = AxisMapping.pxToDataX(w, localStartX);
@@ -4305,15 +4322,25 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     return w.axisFlags.isRangeBar ? { min: w.globals.minY, max: w.globals.maxY } : { min: w.globals.minX, max: w.globals.maxX };
   }
-  /** Live grid rect from the current DOM. Never cache the grid node on the
-   * instance: a full render replaces this whole instance, but the fast update
-   * path (fastUpdate/_fastAxisChromeRefresh) keeps the instance while swapping
-   * the grid node, and a cached node would go stale (detached nodes report an
-   * all-zero bounding rect, silently corrupting selection geometry). */
-  _gridRect() {
+  /** Is there a chart on screen to measure the pointer against? */
+  _hasPlot() {
     const baseEl = this.w.dom.baseEl;
-    const grid = baseEl && baseEl.querySelector(".apexcharts-grid");
-    return grid ? grid.getBoundingClientRect() : null;
+    return !!(baseEl && baseEl.querySelector(".apexcharts-svg"));
+  }
+  /**
+   * Convert an absolute (client) y pixel to the plot-origin coordinate space,
+   * the y twin of {@link _screenXToPlotPx}. Measured per event from the svg
+   * (TooltipUtils.plotRect), never from the `.apexcharts-grid` box: unless
+   * gridlines reach the plot's top edge that box starts a pixel below it, so
+   * a drag rect stood a pixel above the pointer and the zoomed y range came
+   * back two pixels high. Dividing by the CSS zoom keeps a chart inside a
+   * zoomed container from reading screen pixels as plot pixels.
+   * @param {number} screenY
+   * @returns {number}
+   */
+  _screenYToPlotPx(screenY) {
+    const plot = TooltipUtils.plotRect(this.w);
+    return (screenY - plot.top) / plot.zoom;
   }
   /**
    * Convert an absolute (client) x pixel to the plot-origin coordinate space
@@ -4420,19 +4447,19 @@ class ZoomPanSelection extends Toolbar {
     const type = e.type;
     if (type === "touchstart") {
       this._cancelInertia();
-      const gridRectDim = this._gridRect();
-      if (!gridRectDim) return;
+      if (!this._hasPlot()) return;
       if (e.touches.length >= 2 && this._pinchEnabled()) {
         e.preventDefault();
         m.busy = true;
         m.panState = null;
-        this._beginPinch(e, gridRectDim);
+        this._beginPinch(e);
       } else if (e.touches.length === 1 && this._panInertiaEnabled() && w.interact.panEnabled) {
         m.busy = true;
         m.pinch = null;
         const t = e.touches[0];
         const win = this._currentXWindow();
         const gw = w.layout.gridWidth || 1;
+        const zoom = TooltipUtils.plotRect(w).zoom;
         m.panState = {
           startX: t.clientX,
           startY: t.clientY,
@@ -4440,7 +4467,9 @@ class ZoomPanSelection extends Toolbar {
           // decided on first move (rails)
           minX0: win.min,
           maxX0: win.max,
-          ratio0: (win.max - win.min) / gw
+          zoom,
+          // data per screen px
+          ratio0: (win.max - win.min) / gw / zoom
         };
         m.samples = [{ x: t.clientX, t: e.timeStamp }];
       }
@@ -4468,13 +4497,22 @@ class ZoomPanSelection extends Toolbar {
       }
     }
   }
-  /** @param {any} e @param {DOMRect} gridRectDim */
-  _beginPinch(e, gridRectDim) {
+  /**
+   * The centroid is taken in plot px through the shared AxisMapping, the
+   * space `gridWidth` and the x window are in. It used to be the grid box's
+   * left edge less barPadForNumericAxis, which only lands on the plot's left
+   * edge while the gridlines happen to reach exactly barPad past it (with
+   * `grid.show: false` they do not, and the anchor slid a bar's width), and
+   * stayed in screen px, so a chart in a CSS-zoomed container drifted under
+   * the fingers.
+   * @param {any} e
+   */
+  _beginPinch(e) {
     const w = this.w;
     const t0 = e.touches[0];
     const t1 = e.touches[1];
     const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
-    const cx = (t0.clientX + t1.clientX) / 2 - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const cx = this._screenXToPlotPx((t0.clientX + t1.clientX) / 2);
     const { min, max } = this._currentXWindow();
     this._m().pinch = {
       d0: dist,
@@ -4488,13 +4526,11 @@ class ZoomPanSelection extends Toolbar {
   _movePinch(e) {
     const w = this.w;
     const p = this._m().pinch;
-    if (!p) return;
-    const gridRectDim = this._gridRect();
-    if (!gridRectDim) return;
+    if (!p || !this._hasPlot()) return;
     const t0 = e.touches[0];
     const t1 = e.touches[1];
     const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
-    const cx = (t0.clientX + t1.clientX) / 2 - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const cx = this._screenXToPlotPx((t0.clientX + t1.clientX) / 2);
     const range0 = p.maxX0 - p.minX0;
     const newRange = range0 * (p.d0 / dist);
     const anchorData = p.minX0 + p.cx0 / p.gridWidth * range0;
@@ -4562,7 +4598,7 @@ class ZoomPanSelection extends Toolbar {
     }
     m.samples = [];
     if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY) {
-      this._startInertia(vel);
+      this._startInertia(vel / s.zoom);
     } else {
       m.busy = false;
       this._fireScrolled();
@@ -4573,7 +4609,7 @@ class ZoomPanSelection extends Toolbar {
    * `friction` each frame and shift the window, stopping at the data edge
    * (clamp, not elastic overshoot). The loop is w-driven, so it keeps running
    * across the re-renders each frame triggers and stops only on a real destroy.
-   * @param {number} vel0 px/ms, sign is the finger direction
+   * @param {number} vel0 plot px/ms, sign is the finger direction
    */
   _startInertia(vel0) {
     const w = this.w;
@@ -5506,7 +5542,7 @@ class Annotations {
       const skipGroupHide = [progressiveAnnos, false, progressiveAnnos];
       for (let i = 0; i < 3; i++) {
         w.dom.elGraphical.add(annoArray[i]);
-        if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+        if (initialAnim && !w.globals.resized && !w.globals.dataChanged && !w.globals.animationEnded) {
           if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1 && !skipGroupHide[i]) {
             annoElArray[i].classList.add("apexcharts-element-hidden");
           }
@@ -6033,14 +6069,20 @@ class KeyboardNavigation {
    * @param {number} dPoint
    */
   _move(dSeries, dPoint) {
+    var _a;
     const w = this.w;
     const wrapAround = w.config.chart.accessibility.keyboard.navigation.wrapAround;
     if (dSeries !== 0) {
       const ttCtx = this.w.globals.tooltip;
-      if (ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
+      const type = w.config.chart.type;
+      const perCell = type === "heatmap" || type === "treemap";
+      if (!perCell && ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
         const j = this.dataPointIndex;
         const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
         if (isActuallyShared) return;
+      }
+      if (type === "heatmap" && !((_a = w.config.yaxis[0]) == null ? void 0 : _a.reversed)) {
+        dSeries = -dSeries;
       }
       const total = this._getSeriesCount();
       let si = this.seriesIndex + dSeries;
@@ -6120,6 +6162,7 @@ class KeyboardNavigation {
     );
   }
   _hideFocus() {
+    var _a;
     const w = this.w;
     const ttCtx = (
       /** @type {any} */
@@ -6128,6 +6171,7 @@ class KeyboardNavigation {
     this._removeFocusClass();
     this._leaveHoveredBar();
     if (!ttCtx) return;
+    (_a = ttCtx.tooltipPosition) == null ? void 0 : _a.resetPlacementCache();
     if (ttCtx.marker) {
       ttCtx.marker.resetPointsSize();
     }
@@ -6173,11 +6217,30 @@ class KeyboardNavigation {
       this._showTooltipRadialBar(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
-    } else if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar") {
+    } else if (this._isBarLikeSeries(i)) {
       this._showTooltipBar(i, j, ttCtx);
     } else {
       this._showTooltipAxisLine(i, j, ttCtx);
     }
+    if (ttCtx.fixedTooltip) ttCtx.drawFixedTooltipRect();
+  }
+  /**
+   * Is series `i` drawn as a bar-like mark? Its own type decides in a combo,
+   * as it decides what the pointer hovers there: the columns beside a line,
+   * or the candles of a 'line' chart, are hovered as bars
+   * (Intersect.handleBarTooltip), not as points on a line.
+   * @param {number} i
+   * @returns {boolean}
+   */
+  _isBarLikeSeries(i) {
+    var _a;
+    const w = this.w;
+    const series = (
+      /** @type {any} */
+      w.config.series[i]
+    );
+    const type = w.globals.comboCharts ? (_a = series == null ? void 0 : series.type) != null ? _a : w.config.chart.type : w.config.chart.type;
+    return TooltipUtils.isBarLikeType(type);
   }
   /**
    * Set ttCtx.e to a synthetic mouse-event-like object whose clientX/Y point
@@ -6198,17 +6261,22 @@ class KeyboardNavigation {
     let clientX = 0;
     let clientY = 0;
     const el = this._getFocusableElement(i, j);
+    const painted = el ? null : this._canvasCell(i, j) || this._canvasMark(i, j);
     if (el) {
       const rect = el.getBoundingClientRect();
       clientX = rect.left + rect.width / 2;
       clientY = rect.top + rect.height / 2;
+    } else if (painted) {
+      const plot = TooltipUtils.plotRect(w);
+      clientX = plot.left + (painted.x + painted.width / 2) * plot.zoom;
+      clientY = plot.top + (painted.y + painted.height / 2) * plot.zoom;
     } else if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j]) {
       const pt = w.globals.pointsArray[i][j];
       const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
       if (elGrid) {
-        const gridRect = elGrid.getBoundingClientRect();
-        clientX = gridRect.left + (pt[0] || 0);
-        clientY = gridRect.top + (pt[1] || 0);
+        const plot = TooltipUtils.plotRect(w);
+        clientX = plot.left + (pt[0] || 0) * plot.zoom;
+        clientY = plot.top + (pt[1] || 0) * plot.zoom;
       }
     } else {
       const svgEl = w.dom.Paper && w.dom.Paper.node;
@@ -6218,18 +6286,20 @@ class KeyboardNavigation {
         clientY = svgRect.top + svgRect.height / 2;
       }
     }
-    if (type === "line" || type === "area" || type === "rangeArea" || type === "scatter" || type === "bubble" || type === "radar") {
+    if (!this._isBarLikeSeries(i) && (type === "line" || type === "area" || type === "rangeArea" || type === "scatter" || type === "bubble" || type === "radar")) {
       if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j]) {
         const pt = w.globals.pointsArray[i][j];
         const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
         if (elGrid) {
-          const gridRect = elGrid.getBoundingClientRect();
-          clientX = gridRect.left + (pt[0] || 0);
-          clientY = gridRect.top + (pt[1] || 0);
+          const plot = TooltipUtils.plotRect(w);
+          clientX = plot.left + (pt[0] || 0) * plot.zoom;
+          clientY = plot.top + (pt[1] || 0) * plot.zoom;
         }
       }
     }
     ttCtx.e = { type: "mousemove", clientX, clientY };
+    ttCtx.clientX = clientX;
+    ttCtx.clientY = clientY;
   }
   /**
    * bar / column / candlestick / boxPlot / rangeBar
@@ -6240,6 +6310,10 @@ class KeyboardNavigation {
   _showTooltipBar(i, j, ttCtx) {
     var _a, _b, _c, _d;
     const w = this.w;
+    if (w.globals.comboCharts) {
+      ttCtx.marker.resetPointsSize();
+      this._enlargedScatterMarker = null;
+    }
     const shared = ttCtx.tConfig.shared && (ttCtx.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
     const rangeData = (
       /** @type {any} */
@@ -6253,7 +6327,7 @@ class KeyboardNavigation {
       shared
     }));
     const parent = `.apexcharts-series[data\\:realIndex='${i}']`;
-    const elPath = w.dom.Paper.findOne(
+    const elPath = this._canvasMark(i, j) ? null : w.dom.Paper.findOne(
       `${parent} path[j='${j}'], ${parent} circle[j='${j}'], ${parent} rect[j='${j}']`
     );
     if (elPath) {
@@ -6263,31 +6337,136 @@ class KeyboardNavigation {
       this._hoveredBarEl = elPath;
     }
     if (w.globals.isBarHorizontal) {
-      const barDomEl = elPath && elPath.node;
-      if (barDomEl) {
-        const wrapRect = w.dom.elWrap.getBoundingClientRect();
-        const barRect = barDomEl.getBoundingClientRect();
-        const barCx = barRect.left - wrapRect.left;
-        const barCy = barRect.top - wrapRect.top;
-        const bh = barRect.height;
-        const bw = barRect.width;
+      const fixed = ttCtx.fixedTooltip;
+      if (!fixed && !ttCtx.showOnIntersect && !TooltipUtils.isFollowCursor(w) && ttCtx.tooltipPosition.placeHorizontalSharedTooltip(j)) {
+        return;
+      }
+      const bar = this._focusedBarInWrap(i, j, elPath, ttCtx);
+      const tooltipEl = ttCtx.getElTooltip();
+      if (bar && tooltipEl && !fixed) {
         const ttWidth = ttCtx.tooltipRect.ttWidth || 0;
         const ttHeight = ttCtx.tooltipRect.ttHeight || 0;
-        const y = barCy + bh / 2 - ttHeight / 2;
-        let x2 = barCx + bw;
-        const baselineX = ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null ? ttCtx.xyRatios.baseLineInvertedY : wrapRect.width / 2;
-        if (barCx < baselineX) {
-          x2 = barCx - ttWidth;
-        }
-        const tooltipEl = ttCtx.getElTooltip();
-        if (tooltipEl) {
-          tooltipEl.style.left = x2 + "px";
-          tooltipEl.style.top = y + "px";
+        const origin = TooltipUtils.plotInWrap(w);
+        const plot = {
+          top: origin.top,
+          bottom: origin.top + w.layout.gridHeight,
+          left: origin.left,
+          right: origin.left + w.layout.gridWidth
+        };
+        const stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+          (bar.left + bar.right) / 2,
+          bar.top,
+          bar.bottom
+        );
+        if (stacked) {
+          ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, stacked);
+        } else if (w.config.tooltip.arrow) {
+          ttCtx.tooltipPosition.applyTooltipPosition(
+            tooltipEl,
+            ttCtx.tooltipPosition.placeAroundBar(bar, plot, j, i)
+          );
+        } else {
+          const baseline = ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null ? plot.left + ttCtx.xyRatios.baseLineInvertedY : (plot.left + plot.right) / 2;
+          let x2 = (bar.left + bar.right) / 2 < baseline ? bar.left - ttWidth : bar.right;
+          if (TooltipUtils.isFollowCursor(w)) {
+            const px = (bar.left + bar.right) / 2 - plot.left + 15;
+            x2 = plot.left + (px + ttWidth > w.layout.gridWidth ? px - ttWidth : px);
+          }
+          const y = (bar.top + bar.bottom) / 2 - ttHeight / 2;
+          tooltipEl.style.left = Math.max(Math.min(x2, plot.right - ttWidth), plot.left) + "px";
+          tooltipEl.style.top = Math.max(Math.min(y, plot.bottom - ttHeight), plot.top) + "px";
+          delete tooltipEl.dataset.placement;
         }
       }
+    } else if (this._pointerHoversOneMark(ttCtx)) {
+      this._hoverFocusedMark(i, j, elPath, ttCtx);
     } else {
       ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i);
     }
+  }
+  /**
+   * Does the pointer caption a vertical bar-like one mark at a time, through
+   * Intersect.handleBarTooltip, rather than through the sticky path? As
+   * Tooltip.axisChartsTooltips decides: an intersect tooltip, unless the
+   * chart is synced to a group, whose members all take the sticky path.
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @returns {boolean}
+   */
+  _pointerHoversOneMark(ttCtx) {
+    if (!ttCtx.showOnIntersect) return false;
+    const w = this.w;
+    return !(w.config.chart.group && typeof this.ctx.getSyncedCharts === "function" && this.ctx.getSyncedCharts().length > 1);
+  }
+  /**
+   * Place the box for the focused vertical bar-like the way a pointer on it
+   * does, by handing the pointer's own placement (Intersect.handleBarTooltip)
+   * the synthetic pointer on the mark (`_setSyntheticEvent`) with the mark
+   * named, as a real hover names the node under it (TooltipUtils.hoverTarget)
+   * or, painted to canvas, the mark the renderer's hit test found: nothing
+   * else under that point (a neighbouring mark, a jitter dot) is taken for
+   * it. With nothing of the mark drawn, the sticky box stands in.
+   * @param {number} i
+   * @param {number} j
+   * @param {any} elPath  the SVG.js wrapper `_showTooltipBar` found
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
+  _hoverFocusedMark(i, j, elPath, ttCtx) {
+    const w = this.w;
+    const painted = this._canvasMark(i, j);
+    const node = !painted && (elPath == null ? void 0 : elPath.node) && [
+      "apexcharts-bar-area",
+      "apexcharts-candlestick-area",
+      "apexcharts-boxPlot-area",
+      "apexcharts-rangebar-area",
+      "apexcharts-violin-area"
+    ].some((c) => elPath.node.classList.contains(c)) ? elPath.node : null;
+    if (!painted && !node) {
+      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i);
+      return;
+    }
+    const svg = w.dom.Paper.node;
+    ttCtx.intersect.handleBarTooltip({
+      e: __spreadProps(__spreadValues({}, ttCtx.e), {
+        type: "mousemove",
+        target: node || svg,
+        apexHoverTarget: node || svg,
+        apexPaintedHit: painted
+      }),
+      opt: {
+        paths: node || svg,
+        hoverArea: svg,
+        elGrid: ttCtx.getElGrid(),
+        tooltipEl: ttCtx.getElTooltip(),
+        ttItems: ttCtx.ttItems
+      }
+    });
+  }
+  /**
+   * The focused horizontal bar's box in elWrap px, measured. A violin is read
+   * as its whole glyph, as the pointer reads it (Intersect.getViolinMark):
+   * body, box lane and jitter or rain, so the box clears a raincloud's lanes
+   * as well as its cloud. Painted to canvas, a bar leaves no path, only the
+   * box it was painted in. Null when nothing of the bar is drawn.
+   * @param {number} i
+   * @param {number} j
+   * @param {any} elPath  the SVG.js wrapper `_showTooltipBar` found
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @returns {{ top: number, bottom: number, left: number, right: number } | null}
+   */
+  _focusedBarInWrap(i, j, elPath, ttCtx) {
+    var _a, _b, _c;
+    const w = this.w;
+    const isViolin = w.config.chart.type === "violin" || /** @type {any} */
+    ((_a = w.config.series[i]) == null ? void 0 : _a.type) === "violin";
+    const r = isViolin && ((_b = ttCtx.intersect) == null ? void 0 : _b.violinGlyphRect(i, j)) || ((_c = elPath == null ? void 0 : elPath.node) == null ? void 0 : _c.getBoundingClientRect()) || this._canvasMarkRect(i, j);
+    if (!r) return null;
+    const wrapRect = w.dom.elWrap.getBoundingClientRect();
+    return {
+      top: r.top - wrapRect.top,
+      bottom: r.bottom - wrapRect.top,
+      left: r.left - wrapRect.left,
+      right: r.right - wrapRect.left
+    };
   }
   /**
    * line / area / scatter / bubble / radar / rangeArea
@@ -6296,6 +6475,7 @@ class KeyboardNavigation {
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
   _showTooltipAxisLine(i, j, ttCtx) {
+    var _a;
     const w = this.w;
     const type = w.config.chart.type;
     const sharedConfigured = ttCtx.tConfig.shared;
@@ -6306,21 +6486,58 @@ class KeyboardNavigation {
       j,
       shared
     });
-    const isScatterLike = type === "scatter" || type === "bubble";
-    const hasVisibleMarkers = w.globals.markers.largestSize > 0 && !w.globals.markers.batched;
-    if (isScatterLike) {
-      this._showScatterBubblePoint(i, j, ttCtx);
-    } else if (hasVisibleMarkers) {
-      if (shared) {
-        ttCtx.marker.enlargePoints(j);
-      } else {
+    const isScatterLike = type === "scatter" || type === "bubble" || type === "radar";
+    const hasVisibleMarkers = w.globals.markers.largestSize > 0 && !w.globals.markers.batched && ((_a = this.ctx.renderer) == null ? void 0 : _a.kind) !== "canvas";
+    const painted = this._pointerHoversOneMark(ttCtx) ? this._canvasMarker(i, j) : null;
+    if (painted) {
+      this._hoverPaintedMarker(painted, ttCtx);
+    } else if (isScatterLike || hasVisibleMarkers && !shared) {
+      if (!this._showScatterBubblePoint(i, j, ttCtx)) {
         ttCtx.tooltipPosition.moveDynamicPointOnHover(j, i);
       }
+    } else if (hasVisibleMarkers) {
+      ttCtx.marker.enlargePoints(j);
     } else if (shared) {
       ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
     } else {
       ttCtx.tooltipPosition.moveDynamicPointOnHover(j, i);
     }
+  }
+  /**
+   * The marker the canvas renderer painted for this point
+   * (CanvasRenderer.findMarker), centre in plot px, when the markers are
+   * painted and have no node. Null otherwise.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ seriesIndex: number, dataPointIndex: number, x: number, y: number, size: number, d: string } | null}
+   */
+  _canvasMarker(i, j) {
+    const renderer = this.ctx.renderer;
+    if (!renderer || renderer.kind !== "canvas" || typeof renderer.findMarker !== "function") {
+      return null;
+    }
+    return renderer.findMarker(i, j);
+  }
+  /**
+   * Place the box for a focused marker painted to canvas the way a pointer
+   * on it does: the pointer's handler gets the synthetic pointer on the
+   * marker (`_setSyntheticEvent`) and the marker its hit test would have
+   * found there.
+   * @param {{ seriesIndex: number, dataPointIndex: number, x: number, y: number, size: number }} painted
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
+  _hoverPaintedMarker(painted, ttCtx) {
+    ttCtx.intersect.handlePaintedMarkerTooltip({
+      e: __spreadProps(__spreadValues({}, ttCtx.e), { type: "mousemove" }),
+      opt: { tooltipEl: ttCtx.getElTooltip(), ttItems: ttCtx.ttItems },
+      marker: {
+        i: painted.seriesIndex,
+        j: painted.dataPointIndex,
+        cx: painted.x,
+        cy: painted.y,
+        size: painted.size
+      }
+    });
   }
   /**
    * Scatter / bubble: find the specific marker element for (seriesIndex i,
@@ -6333,6 +6550,7 @@ class KeyboardNavigation {
    * @param {number} i
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @returns {boolean} whether a marker was found and the box placed by it
    */
   _showScatterBubblePoint(i, j, ttCtx) {
     const baseEl = this.w.dom.baseEl;
@@ -6343,11 +6561,12 @@ class KeyboardNavigation {
     const seriesEl = baseEl.querySelector(
       `.apexcharts-series[data\\:realIndex='${i}']`
     );
-    if (!seriesEl) return;
+    if (!seriesEl) return false;
     const markerEl = seriesEl.querySelector(`.apexcharts-marker[rel='${j}']`);
-    if (!markerEl) return;
+    if (!markerEl) return false;
     ttCtx.marker.enlargeCurrentPoint(j, markerEl);
     this._enlargedScatterMarker = markerEl;
+    return true;
   }
   /**
    * pie / donut / polarArea
@@ -6369,8 +6588,15 @@ class KeyboardNavigation {
     const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     const anchor = ttCtx.getSliceAnchor(sliceEl);
     if (anchor) {
-      tooltipEl.style.left = anchor.x - ttWidth / 2 + "px";
-      tooltipEl.style.top = anchor.y - ttHeight - 10 + "px";
+      const pos = ttCtx.tooltipPosition.placeOverAnchor(
+        anchor.x,
+        anchor.y,
+        ttWidth,
+        ttHeight,
+        10
+      );
+      tooltipEl.style.left = pos.x + "px";
+      tooltipEl.style.top = pos.y + "px";
     }
   }
   /**
@@ -6412,8 +6638,15 @@ class KeyboardNavigation {
       );
       const x2 = centroid.x + (w.layout.translateX || 0);
       const y = centroid.y + (w.layout.translateY || 0);
-      tooltipEl.style.left = x2 - ttWidth / 2 + "px";
-      tooltipEl.style.top = y - ttHeight - 10 + "px";
+      const pos = ttCtx.tooltipPosition.placeOverAnchor(
+        x2,
+        y,
+        ttWidth,
+        ttHeight,
+        10
+      );
+      tooltipEl.style.left = pos.x + "px";
+      tooltipEl.style.top = pos.y + "px";
     }
   }
   /**
@@ -6427,6 +6660,9 @@ class KeyboardNavigation {
   _showTooltipHeatTree(i, j, ttCtx, tooltipEl, type) {
     var _a, _b;
     const w = this.w;
+    if (TooltipUtils.isFollowCursor(w) && this._hoverFocusedCell(i, j, ttCtx)) {
+      return;
+    }
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i,
@@ -6438,24 +6674,161 @@ class KeyboardNavigation {
     const ttHeight = tooltipRect.height || ttCtx.tooltipRect.ttHeight || 0;
     const rectClass = type === "heatmap" ? "apexcharts-heatmap-rect" : "apexcharts-treemap-rect";
     const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i}'][j='${j}']`);
-    if (cell) {
+    const painted = cell ? null : this._canvasCell(i, j);
+    if (cell || painted) {
       const wrapRect = w.dom.elWrap.getBoundingClientRect();
-      const cellRect = cell.getBoundingClientRect();
-      const cellCx = cellRect.left - wrapRect.left;
-      const cellCy = cellRect.top - wrapRect.top;
-      const cellWidth = cellRect.width;
-      const cellHeight = cellRect.height;
-      const cx = parseFloat((_a = cell.getAttribute("cx")) != null ? _a : "");
-      const cellWidthAttr = parseFloat((_b = cell.getAttribute("width")) != null ? _b : "");
-      ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2);
+      let cellCx = 0;
+      let cellCy = 0;
+      let cellWidth = 0;
+      let cellHeight = 0;
+      if (cell) {
+        const cellRect = cell.getBoundingClientRect();
+        cellCx = cellRect.left - wrapRect.left;
+        cellCy = cellRect.top - wrapRect.top;
+        cellWidth = cellRect.width;
+        cellHeight = cellRect.height;
+        const cx = parseFloat((_a = cell.getAttribute("cx")) != null ? _a : "");
+        const cellWidthAttr = parseFloat((_b = cell.getAttribute("width")) != null ? _b : "");
+        ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2);
+      } else if (painted) {
+        const plot = TooltipUtils.plotInWrap(w);
+        cellCx = plot.left + painted.x;
+        cellCy = plot.top + painted.y;
+        cellWidth = painted.width;
+        cellHeight = painted.height;
+        ttCtx.tooltipPosition.moveXCrosshairs(painted.x + painted.width / 2);
+      }
       let x2 = cellCx + cellWidth + ttWidth / 2;
       const y = cellCy + cellHeight / 2 - ttHeight / 2;
       if (cellCx + cellWidth > w.layout.gridWidth / 2) {
         x2 = cellCx - ttWidth / 2;
       }
+      const wasStacked = ttCtx.tooltipPosition.shortPlotPlacement;
+      const stacked = ttCtx.tooltipPosition.placeOnShortPlot(
+        cellCx + cellWidth / 2,
+        cellCy,
+        cellCy + cellHeight
+      );
+      if (stacked) {
+        ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, stacked);
+        return;
+      }
+      if (type === "heatmap" && w.config.tooltip.arrow && !TooltipUtils.isFollowCursor(w)) {
+        const { left: plotLeft, top: plotTop } = TooltipUtils.plotInWrap(w);
+        ttCtx.tooltipPosition.applyTooltipPosition(
+          tooltipEl,
+          ttCtx.tooltipPosition.placeAroundCell(
+            {
+              top: cellCy,
+              bottom: cellCy + cellHeight,
+              left: cellCx,
+              right: cellCx + cellWidth
+            },
+            {
+              top: plotTop,
+              bottom: plotTop + w.layout.gridHeight,
+              left: plotLeft,
+              right: plotLeft + w.layout.gridWidth
+            },
+            { el: cell, ttWidth, ttHeight }
+          )
+        );
+        return;
+      }
       tooltipEl.style.left = x2 + "px";
       tooltipEl.style.top = y + "px";
+      if (wasStacked) delete tooltipEl.dataset.placement;
     }
+  }
+  /**
+   * Place the box for the focused heatmap or treemap cell the way a pointer
+   * resting on its centre does (Intersect.handleHeatTreeTooltip). False when
+   * nothing of the cell is drawn, or the pointer's placement found no cell
+   * there, so the caller places it itself.
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @returns {boolean}
+   */
+  _hoverFocusedCell(i, j, ttCtx) {
+    const w = this.w;
+    const type = w.config.chart.type;
+    const tooltipEl = ttCtx.getElTooltip();
+    const cell = w.dom.baseEl.querySelector(
+      `.apexcharts-${type}-rect[i='${i}'][j='${j}']`
+    );
+    if (!tooltipEl || !cell && !this._canvasCell(i, j)) return false;
+    const target = cell || w.dom.Paper.node;
+    w.interact.capturedSeriesIndex = -1;
+    w.interact.capturedDataPointIndex = -1;
+    const placed = ttCtx.intersect.handleHeatTreeTooltip({
+      e: __spreadProps(__spreadValues({}, ttCtx.e), { type: "mousemove", target, apexHoverTarget: target }),
+      opt: { ttItems: ttCtx.ttItems },
+      x: 0,
+      y: 0,
+      type
+    });
+    const found = !placed.noHit && w.interact.capturedSeriesIndex === i && w.interact.capturedDataPointIndex === j;
+    w.interact.capturedSeriesIndex = i;
+    w.interact.capturedDataPointIndex = j;
+    if (!found) return false;
+    ttCtx.placeCellTooltip(tooltipEl, placed);
+    return true;
+  }
+  /**
+   * The box a heatmap cell was painted in when the canvas renderer drew the
+   * cells, plot-local. Null for every other chart, and for a heatmap whose
+   * cells are SVG nodes (the SVG renderer, or a cell shape canvas leaves to
+   * SVG), which are found by their attributes instead.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ x: number, y: number, width: number, height: number, radius: number } | null}
+   */
+  _canvasCell(i, j) {
+    if (this.w.config.chart.type !== "heatmap") return null;
+    const renderer = this.ctx.renderer;
+    if (!renderer || renderer.kind !== "canvas" || typeof renderer.findCell !== "function") {
+      return null;
+    }
+    return renderer.findCell(i, j);
+  }
+  /**
+   * The bar-like mark (a bar, a candle, a box plot, a violin body) the
+   * canvas renderer painted for this point, plot-local, with the path it
+   * painted (CanvasRenderer.findMark): the first one, as the first `path[j]`
+   * is on SVG. Null for every other chart, and when the marks are SVG nodes.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ x: number, y: number, width: number, height: number, d: string } | null}
+   */
+  _canvasMark(i, j) {
+    if (!this._isBarLikeSeries(i)) return null;
+    const renderer = this.ctx.renderer;
+    if (!renderer || renderer.kind !== "canvas" || typeof renderer.findMark !== "function") {
+      return null;
+    }
+    return renderer.findMark(i, j);
+  }
+  /**
+   * Where `_canvasMark` puts the painted mark on screen, as a hovered SVG
+   * path's getBoundingClientRect() would: from the plot's corner, through
+   * any CSS zoom on the chart. Null when nothing was painted for the point.
+   * @param {number} i
+   * @param {number} j
+   * @returns {{ left: number, top: number, right: number, bottom: number } | null}
+   */
+  _canvasMarkRect(i, j) {
+    const mark = this._canvasMark(i, j);
+    if (!mark) return null;
+    const plot = TooltipUtils.plotRect(this.w);
+    const left = plot.left + mark.x * plot.zoom;
+    const top = plot.top + mark.y * plot.zoom;
+    return {
+      left,
+      top,
+      right: left + mark.width * plot.zoom,
+      bottom: top + mark.height * plot.zoom
+    };
   }
   // ─── Focus class management ───────────────────────────────────────────────
   /**
@@ -6464,7 +6837,7 @@ class KeyboardNavigation {
    */
   _applyFocusClass(i, j) {
     this._removeFocusClass();
-    const el = this._getFocusableElement(i, j) || this._getBatchedFocusEl(i);
+    const el = this._getFocusableElement(i, j) || this._getBatchedFocusEl(i) || this._drawCanvasFocusRing(i, j);
     if (el) {
       el.classList.add("apexcharts-keyboard-focused");
       el.setAttribute("role", "img");
@@ -6488,11 +6861,100 @@ class KeyboardNavigation {
       `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-series-markers path`
     );
   }
+  /**
+   * A heatmap or a bar-like painted to canvas has no node per cell or mark to
+   * carry the focus stroke and the accessible name, so an outline of the
+   * focused one stands in for it. It goes in the series' own group, over the
+   * canvas, where the SVG node would sit: plot-local, clipped to the plot as
+   * the painted marks are, and swept away with the group by an update, as an
+   * SVG node's focus stroke is. Otherwise it lives as long as the focus does
+   * (`_removeFocusClass`). Being there, it is also what the tooltip keeps
+   * clear of (Position.computeTooltipPosition), as it does a focused node.
+   * @param {number} i
+   * @param {number} j
+   * @returns {Element | null}
+   */
+  _drawCanvasFocusRing(i, j) {
+    const cell = this._canvasCell(i, j);
+    if (!cell) return this._drawCanvasMarkFocusRing(i, j);
+    const host = this.w.dom.baseEl.querySelector(
+      `.apexcharts-heatmap .apexcharts-series[rel='${i + 1}']`
+    );
+    if (!host) return null;
+    const ring = new Graphics(this.w, this.ctx).drawRect(
+      cell.x,
+      cell.y,
+      cell.width,
+      cell.height,
+      cell.radius,
+      "none"
+    );
+    ring.node.classList.add("apexcharts-keyboard-focus-ring");
+    ring.attr({ i, j });
+    host.insertBefore(ring.node, host.firstChild);
+    return ring.node;
+  }
+  /**
+   * The outline for a bar-like painted to canvas (`_drawCanvasFocusRing`):
+   * the very path that was painted, so it traces the bar, the candle and its
+   * wicks, or the box and its whisker the way the focus stroke traces an SVG
+   * one, under the same clip. It carries no `j`, so nothing that looks for
+   * the series' marks by index takes it for one.
+   * @param {number} i
+   * @param {number} j
+   * @returns {Element | null}
+   */
+  _drawCanvasMarkFocusRing(i, j) {
+    const mark = this._canvasMark(i, j);
+    if (!mark) return this._drawCanvasMarkerFocusRing(i, j);
+    const w = this.w;
+    const host = Array.from(
+      w.dom.baseEl.querySelectorAll(".apexcharts-series")
+    ).find((g) => g.getAttribute("data:realIndex") === String(i));
+    if (!host) return null;
+    const ring = new Graphics(w, this.ctx).drawPath({
+      d: mark.d,
+      fill: "none",
+      classes: "apexcharts-keyboard-focus-ring"
+    });
+    ring.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
+    host.insertBefore(ring.node, host.firstChild);
+    return ring.node;
+  }
+  /**
+   * The outline for a marker painted to canvas (`_drawCanvasFocusRing`): its
+   * painted shape, in the series' own group under the markers' clip, as the
+   * focused SVG marker node would be. Like that node it is what the box
+   * keeps clear of, so the box sits where it does on SVG.
+   * @param {number} i
+   * @param {number} j
+   * @returns {Element | null}
+   */
+  _drawCanvasMarkerFocusRing(i, j) {
+    const marker = this._canvasMarker(i, j);
+    if (!marker) return null;
+    const w = this.w;
+    const host = Array.from(
+      w.dom.baseEl.querySelectorAll(".apexcharts-series")
+    ).find((g) => g.getAttribute("data:realIndex") === String(i));
+    if (!host) return null;
+    const ring = new Graphics(w, this.ctx).drawPath({
+      d: marker.d,
+      fill: "none",
+      classes: "apexcharts-keyboard-focus-ring"
+    });
+    ring.attr("clip-path", `url(#gridRectMarkerMask${w.globals.cuid})`);
+    host.appendChild(ring.node);
+    return ring.node;
+  }
   _removeFocusClass() {
     if (this._focusedEl) {
       this._focusedEl.classList.remove("apexcharts-keyboard-focused");
       this._focusedEl.removeAttribute("role");
       this._focusedEl.removeAttribute("aria-label");
+      if (this._focusedEl.classList.contains("apexcharts-keyboard-focus-ring")) {
+        this._focusedEl.remove();
+      }
       this._focusedEl = null;
     }
   }
@@ -6589,7 +7051,8 @@ class KeyboardNavigation {
         `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
       );
     }
-    if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar") {
+    if (this._isBarLikeSeries(i)) {
+      if (this._canvasMark(i, j)) return null;
       return baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`
       );
@@ -6992,6 +7455,7 @@ class MorphTypeChange {
     this.w = w;
     this.ctx = ctx;
     this._snapshot = null;
+    this._shown = false;
     this._ghost = null;
     this._pieceLayer = null;
     this._pieceCancel = null;
@@ -7053,7 +7517,9 @@ class MorphTypeChange {
    * @returns {boolean}
    */
   captureBeforeDestroy({ fromType, toType, newSeries }) {
+    var _a;
     this._snapshot = null;
+    this._shown = false;
     this._removeGhost();
     this._cancelPieces();
     if (!Environment.isBrowser()) return false;
@@ -7074,13 +7540,22 @@ class MorphTypeChange {
       branches
     );
     if (mapping.size === 0) return false;
+    const gl = this.w.globals;
+    const graphical = (_a = this.w.dom.elGraphical) == null ? void 0 : _a.node;
+    const plot = gl.layoutTween && !gl.layoutTween.done && gl.layoutTween.graphical === graphical ? gl.layoutTween.rect : null;
+    const ct = gl.circleTween;
+    const circle = ct && !ct.done && (graphical == null ? void 0 : graphical.contains(ct.node)) ? ct : null;
+    const scale = circle ? circle.circle.r / circle.target.r : 1;
     this._snapshot = {
       fromType,
       toType,
       mapping,
       oldLayout: {
-        translateX: this.w.layout.translateX || 0,
-        translateY: this.w.layout.translateY || 0
+        translateX: plot ? plot.x : this.w.layout.translateX || 0,
+        translateY: plot ? plot.y : this.w.layout.translateY || 0,
+        scale,
+        shiftX: circle ? circle.circle.cx - scale * circle.target.cx : 0,
+        shiftY: circle ? circle.circle.cy - scale * circle.target.cy : 0
       }
     };
     const ff = familyOf(fromType);
@@ -7601,8 +8076,7 @@ class MorphTypeChange {
     }
     const targets = this._collectTargetMarks(snap.toType);
     if (!targets.size) return this._revealPieceHidden();
-    const dx = snap.oldLayout.translateX - (this.w.layout.translateX || 0);
-    const dy = snap.oldLayout.translateY - (this.w.layout.translateY || 0);
+    const { dx, dy } = this._oldToNew();
     const clusterIdx = Array.from(snap.sourceDots.keys()).sort((a, b) => a - b);
     const layer = this._makePieceLayer();
     if (!layer) return this._revealPieceHidden();
@@ -7753,7 +8227,7 @@ class MorphTypeChange {
       var _a2;
       const realIndex = parseInt((_a2 = group.getAttribute("data:realIndex")) != null ? _a2 : "0", 10) || 0;
       let order = 0;
-      group.querySelectorAll("path[pathTo]").forEach((p) => {
+      group.querySelectorAll("path[pathTo]:not(.apexcharts-highlight-part)").forEach((p) => {
         var _a3;
         const d = p.getAttribute("pathTo") || p.getAttribute("d");
         if (!d || !d.trim()) return;
@@ -7815,7 +8289,9 @@ class MorphTypeChange {
           (_a2 = seriesNode.getAttribute("data:realIndex")) != null ? _a2 : "0",
           10
         );
-        const paths = seriesNode.querySelectorAll("path[pathTo]");
+        const paths = seriesNode.querySelectorAll(
+          "path[pathTo]:not(.apexcharts-highlight-part)"
+        );
         paths.forEach((p, j) => {
           const d = p.getAttribute("pathTo") || p.getAttribute("d");
           if (!d) return;
@@ -8187,9 +8663,27 @@ class MorphTypeChange {
     if (!this._snapshot) return null;
     const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
     if (!entry) return null;
-    const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
-    const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
-    return dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy);
+    const { k: k2, dx, dy } = this._oldToNew();
+    return k2 === 1 && dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy, k2);
+  }
+  /**
+   * The map from the captured marks' space to the new chart's plot space:
+   * scaled by `k`, then shifted by (dx, dy). The shift is the plot-origin
+   * move; `k` and the rest of the shift are a circle still being re-centred
+   * and scaled when the morph began (see captureBeforeDestroy).
+   * @returns {{k: number, dx: number, dy: number}}
+   */
+  _oldToNew() {
+    var _a, _b, _c;
+    const o = (
+      /** @type {NonNullable<typeof this._snapshot>} */
+      this._snapshot.oldLayout
+    );
+    return {
+      k: (_a = o.scale) != null ? _a : 1,
+      dx: o.translateX + ((_b = o.shiftX) != null ? _b : 0) - (this.w.layout.translateX || 0),
+      dy: o.translateY + ((_c = o.shiftY) != null ? _c : 0) - (this.w.layout.translateY || 0)
+    };
   }
   /**
    * Offset every absolute coordinate in an SVG path `d` by (dx, dy).
@@ -8202,29 +8696,32 @@ class MorphTypeChange {
    * @param {string} d
    * @param {number} dx
    * @param {number} dy
+   * @param {number} [k] scale every coordinate (and arc radius) by this first
    * @returns {string}
    */
-  _translatePathD(d, dx, dy) {
-    if (dx === 0 && dy === 0) return d;
+  _translatePathD(d, dx, dy, k2 = 1) {
+    if (dx === 0 && dy === 0 && k2 === 1) return d;
     const commands = parsePath(d);
+    const x2 = (v) => v * k2 + dx;
+    const y = (v) => v * k2 + dy;
     return commands.map(
       /** @param {any[]} c */
       (c) => {
         const cmd = c[0];
         if (cmd === "Z") return "Z";
         if (cmd === "M" || cmd === "L" || cmd === "T") {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy}`;
+          return `${cmd} ${x2(c[1])} ${y(c[2])}`;
         }
-        if (cmd === "H") return `${cmd} ${c[1] + dx}`;
-        if (cmd === "V") return `${cmd} ${c[1] + dy}`;
+        if (cmd === "H") return `${cmd} ${x2(c[1])}`;
+        if (cmd === "V") return `${cmd} ${y(c[1])}`;
         if (cmd === "C") {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy} ${c[5] + dx} ${c[6] + dy}`;
+          return `${cmd} ${x2(c[1])} ${y(c[2])} ${x2(c[3])} ${y(c[4])} ${x2(c[5])} ${y(c[6])}`;
         }
         if (cmd === "S" || cmd === "Q") {
-          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy}`;
+          return `${cmd} ${x2(c[1])} ${y(c[2])} ${x2(c[3])} ${y(c[4])}`;
         }
         if (cmd === "A") {
-          return `${cmd} ${c[1]} ${c[2]} ${c[3]} ${c[4]} ${c[5]} ${c[6] + dx} ${c[7] + dy}`;
+          return `${cmd} ${c[1] * k2} ${c[2] * k2} ${c[3]} ${c[4]} ${c[5]} ${x2(c[6])} ${y(c[7])}`;
         }
         return c.join(" ");
       }
@@ -8328,13 +8825,12 @@ class MorphTypeChange {
     if (!entry) return null;
     const box = this._pathBBox(entry.d);
     if (!box) return null;
-    const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
-    const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
+    const { k: k2, dx, dy } = this._oldToNew();
     return {
-      x: box.minX + dx,
-      y: box.minY + dy,
-      width: box.maxX - box.minX,
-      height: box.maxY - box.minY
+      x: box.minX * k2 + dx,
+      y: box.minY * k2 + dy,
+      width: (box.maxX - box.minX) * k2,
+      height: (box.maxY - box.minY) * k2
     };
   }
   /**
@@ -8399,6 +8895,7 @@ class MorphTypeChange {
   applyChromeFade() {
     var _a;
     if (!this._snapshot || !Environment.isBrowser()) return;
+    this._shown = true;
     const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
     if (!baseEl) return;
     if (this._snapshot.pieceOut) this._separatePieces();
@@ -8429,10 +8926,25 @@ class MorphTypeChange {
         }, speed + 80);
       });
     });
-    setTimeout(() => this.cleanup(), speed + 100);
+    const snap = this._snapshot;
+    setTimeout(() => {
+      if (!this._snapshot || this._snapshot === snap) this.cleanup();
+    }, speed + 100);
+  }
+  /**
+   * A render after the one a morph was captured for (an update while the
+   * morph is still finishing, or just after) must not start its marks from
+   * the old chart's shapes again: it starts from the screen, as any update
+   * does. The morph's ghost and pieces go with it, as the new render
+   * replaces what they were leaving over. A no-op until that render has
+   * mounted, so a second update in the same tick still morphs.
+   */
+  retire() {
+    if (this._snapshot && this._shown) this.cleanup();
   }
   cleanup() {
     this._snapshot = null;
+    this._shown = false;
     this._removeGhost();
     this._cancelPieces();
   }
@@ -9046,6 +9558,7 @@ class Drilldown {
    * @returns {Promise<any>}
    */
   _apply(view, direction, meta) {
+    var _a;
     const w = this.w;
     w.interact.selectedDataPoints = [];
     w.globals.collapsedSeries = [];
@@ -9059,6 +9572,7 @@ class Drilldown {
     });
     const animate = (!w.config.drilldown.animation || w.config.drilldown.animation.enabled !== false) && w.config.chart.animations.enabled !== false;
     if (direction === "down") this._fire("drillDownStart", meta);
+    (_a = this.ctx.highlightFilter) == null ? void 0 : _a.drillView(view);
     const runUpdate = (anim) => this.ctx.updateOptions(view, false, anim, false, false);
     const done = () => {
       this._fire(direction === "down" ? "drillDownEnd" : "drillUp", meta);

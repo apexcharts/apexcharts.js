@@ -1,5 +1,24 @@
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -17,6 +36,12 @@ const STYLE_KEYS = {
   "fill-rule": "fillRule"
 };
 const NEVER = Symbol("never");
+function plotClip(value) {
+  if (value == null || value === "none") return null;
+  const m = /^url\(#gridRect(Bar|Marker)?Mask/.exec(String(value));
+  if (!m) return void 0;
+  return m[1] === "Bar" ? "bar" : m[1] === "Marker" ? "marker" : "grid";
+}
 const SHAPE_ID = {
   circle: 0,
   square: 1,
@@ -40,6 +65,92 @@ const SHAPE_NAME = [
   "plus",
   "line"
 ];
+function pathBox(d) {
+  const tokens = typeof d === "string" ? d.match(/[a-df-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi) : null;
+  if (!tokens) return null;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  let px = 0;
+  let py = 0;
+  let sx = 0;
+  let sy = 0;
+  let cmd = "";
+  let k = 0;
+  const num = () => Number(tokens[k++]);
+  const take = (x, y) => {
+    if (!isFinite(x) || !isFinite(y)) return;
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x);
+    bottom = Math.max(bottom, y);
+  };
+  const points = (pairs) => {
+    const rel = cmd === cmd.toLowerCase();
+    let x = px;
+    let y = py;
+    for (let p = 0; p < pairs; p++) {
+      x = num() + (rel ? px : 0);
+      y = num() + (rel ? py : 0);
+      take(x, y);
+    }
+    px = x;
+    py = y;
+  };
+  while (k < tokens.length) {
+    if (/^[a-z]$/i.test(tokens[k])) {
+      cmd = tokens[k++];
+      if (cmd === "Z" || cmd === "z") {
+        px = sx;
+        py = sy;
+      }
+      continue;
+    }
+    const rel = cmd === cmd.toLowerCase();
+    switch (cmd.toUpperCase()) {
+      case "M":
+        points(1);
+        sx = px;
+        sy = py;
+        cmd = rel ? "l" : "L";
+        break;
+      case "L":
+      case "T":
+        points(1);
+        break;
+      case "H":
+        px = num() + (rel ? px : 0);
+        take(px, py);
+        break;
+      case "V":
+        py = num() + (rel ? py : 0);
+        take(px, py);
+        break;
+      case "S":
+      case "Q":
+        points(2);
+        break;
+      case "C":
+        points(3);
+        break;
+      case "A":
+        k += 5;
+        points(1);
+        break;
+      default:
+        k++;
+    }
+  }
+  return isFinite(left) ? { x: left, y: top, width: right - left, height: bottom - top } : null;
+}
+function markBox(cmd) {
+  if (cmd.boxOf !== cmd.d) {
+    cmd.box = pathBox(cmd.d);
+    cmd.boxOf = cmd.d;
+  }
+  return cmd.box;
+}
 const NOOP_RUNNER = {
   /** @returns {any} */
   attr() {
@@ -168,9 +279,11 @@ class CanvasMarkerRef {
   attr(a, v) {
     if (typeof a === "string") {
       if (a === "fill" && v !== void 0) this._g._setMarkerFill(this._i, v);
+      else if (a === "rel" && v !== void 0) this._g._mdi[this._i] = v;
       return v === void 0 ? null : this;
     }
     if (a && a.fill !== void 0) this._g._setMarkerFill(this._i, a.fill);
+    if (a && a.rel !== void 0) this._g._mdi[this._i] = a.rel;
     return this;
   }
   /** @param {any} _c */
@@ -263,7 +376,7 @@ class CanvasMark {
       },
       appendChild() {
       },
-      getBBox: () => ({ x: 0, y: 0, width: 0, height: 0 })
+      getBBox: () => self.bbox()
     };
   }
   /**
@@ -273,6 +386,11 @@ class CanvasMark {
   _applyAttr(k, v) {
     const cmd = this._cmd;
     if (!cmd) return;
+    if (k === "clip-path") {
+      const clip = plotClip(v);
+      if (clip !== void 0) cmd.clip = clip;
+      return;
+    }
     const sk = STYLE_KEYS[k];
     if (sk !== void 0) cmd[sk] = v;
   }
@@ -341,8 +459,15 @@ class CanvasMark {
   removeClass(_c) {
     return this;
   }
+  /**
+   * The box a recorded path spans, as an SVG path's getBBox() measures it;
+   * an empty box for anything else.
+   * @returns {{ x: number, y: number, width: number, height: number }}
+   */
   bbox() {
-    return { x: 0, y: 0, width: 0, height: 0 };
+    const cmd = this._cmd;
+    const box = cmd && cmd.tag === "path" ? markBox(cmd) : null;
+    return box ? __spreadValues({}, box) : { x: 0, y: 0, width: 0, height: 0 };
   }
   animate() {
     return NOOP_RUNNER;
@@ -360,6 +485,7 @@ class CanvasGraphics {
     this._mshape = new Int16Array(16);
     this._mstyle = new Int32Array(16);
     this._msi = new Int32Array(16);
+    this._mdi = new Int32Array(16);
     this._mn = 0;
     this._mcap = 16;
     this._crx = new Float64Array(16);
@@ -474,6 +600,7 @@ class CanvasGraphics {
     this._mshape = new Int16Array(cap);
     this._mstyle = new Int32Array(cap);
     this._msi = new Int32Array(cap);
+    this._mdi = new Int32Array(cap);
   }
   /** Grow the marker columns (rare: capacity estimate was low). */
   _growMarkers() {
@@ -496,6 +623,9 @@ class CanvasGraphics {
     const nsi = new Int32Array(cap);
     nsi.set(this._msi);
     this._msi = nsi;
+    const ndi = new Int32Array(cap);
+    ndi.set(this._mdi);
+    this._mdi = ndi;
     this._mcap = cap;
   }
   displayList() {
@@ -648,7 +778,10 @@ class CanvasGraphics {
       lineCap: void 0,
       fillOpacity: void 0,
       strokeOpacity: void 0,
-      fillRule: void 0
+      fillRule: void 0,
+      // The plot clip it is painted through ('grid' | 'bar' | 'marker'),
+      // null for none: whatever `clip-path` the SVG mark would carry.
+      clip: null
     };
     this._list.push(cmd);
     return cmd;
@@ -680,6 +813,7 @@ class CanvasGraphics {
     this._mshape[i] = (_a = SHAPE_ID[opts.shape || "circle"]) != null ? _a : 0;
     this._mstyle[i] = styleId;
     this._msi[i] = opts.seriesIndex == null ? -1 : opts.seriesIndex;
+    this._mdi[i] = -1;
     return new CanvasMarkerRef(this, i);
   }
   /**
@@ -726,6 +860,11 @@ class CanvasGraphics {
     cmd.fill = opts.fill;
     cmd.lineCap = opts.strokeLinecap;
     cmd.si = opts.realIndex;
+    if (typeof opts.j === "number") cmd.dj = opts.j;
+    if (opts.shouldClipToGrid !== false) {
+      const gl = this.w.globals;
+      cmd.clip = opts.chartType === "bar" && !gl.isBarHorizontal || gl.comboCharts ? "bar" : "grid";
+    }
     this.w.globals.animationEnded = true;
     return new CanvasMark(cmd);
   }
@@ -821,6 +960,7 @@ class CanvasGraphics {
 const SVGElement = _core.__apex_SVGElement;
 const SVGNS = _core.__apex_math_SVGNS;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Grid = _core.__apex_axes_Grid;
 const TWO_PI = Math.PI * 2;
 const DPR_CAP = 2;
 class CanvasCompositor {
@@ -830,7 +970,9 @@ class CanvasCompositor {
     this._host = null;
     this._canvas = null;
     this._c2d = null;
-    this._margin = 0;
+    this._pad = { left: 0, top: 0, right: 0, bottom: 0 };
+    this._clips = null;
+    this._clipRect = null;
     this._dpr = 1;
     this._dim = null;
     this._alpha = 1;
@@ -853,13 +995,27 @@ class CanvasCompositor {
     if (!d || d.active == null || d.active < 0 || si == null || si < 0) return 1;
     return si === d.active ? 1 : d.opacity == null ? 0.2 : d.opacity;
   }
+  /**
+   * The plot size, the plot clips (the rects the SVG chart clips its marks
+   * to) and how far the canvas has to reach past each side of the plot: the
+   * edge-marker margin, or further wherever a clip reaches further.
+   */
   _plotDims() {
     var _a;
     const gw = Math.max(0, Math.ceil(this.w.layout.gridWidth || 0));
     const gh = Math.max(0, Math.ceil(this.w.layout.gridHeight || 0));
     const largest = ((_a = this.w.globals.markers) == null ? void 0 : _a.largestSize) || 0;
     const margin = Math.ceil(largest + 8);
-    return { gw, gh, margin };
+    const clips = Grid.maskRects(this.w);
+    const pad = { left: margin, top: margin, right: margin, bottom: margin };
+    const reach = (v) => Number.isFinite(v) ? Math.ceil(v) : 0;
+    Object.values(clips).forEach((r) => {
+      pad.left = Math.max(pad.left, reach(-r.x));
+      pad.top = Math.max(pad.top, reach(-r.y));
+      pad.right = Math.max(pad.right, reach(r.x + r.width - gw));
+      pad.bottom = Math.max(pad.bottom, reach(r.y + r.height - gh));
+    });
+    return { gw, gh, pad, clips };
   }
   /**
    * Create (or recreate) the foreignObject + canvas sized to the plot rect and
@@ -869,13 +1025,14 @@ class CanvasCompositor {
   createHost() {
     const win = BrowserAPIs.getWindow();
     this._dpr = Math.min(DPR_CAP, win && win.devicePixelRatio || 1);
-    const { gw, gh, margin } = this._plotDims();
-    this._margin = margin;
-    const w = gw + margin * 2;
-    const h = gh + margin * 2;
+    const { gw, gh, pad, clips } = this._plotDims();
+    this._pad = pad;
+    this._clips = clips;
+    const w = gw + pad.left + pad.right;
+    const h = gh + pad.top + pad.bottom;
     const fo = BrowserAPIs.createElementNS(SVGNS, "foreignObject");
-    fo.setAttribute("x", String(-margin));
-    fo.setAttribute("y", String(-margin));
+    fo.setAttribute("x", String(-pad.left));
+    fo.setAttribute("y", String(-pad.top));
     fo.setAttribute("width", String(w));
     fo.setAttribute("height", String(h));
     fo.setAttribute("class", "apexcharts-canvas-series");
@@ -898,6 +1055,43 @@ class CanvasCompositor {
   }
   getHost() {
     return this._host;
+  }
+  /**
+   * The rect a plot clip covers, in plot px, or null when there is none to
+   * apply (no clip named, or no host made yet).
+   * @param {string|null|undefined} kind 'grid' | 'bar' | 'marker'
+   * @returns {{x:number,y:number,width:number,height:number}|null}
+   */
+  clipRect(kind) {
+    const r = kind && this._clips ? this._clips[kind] : null;
+    return r && Number.isFinite(r.x) && Number.isFinite(r.y) && Number.isFinite(r.width) && Number.isFinite(r.height) ? r : null;
+  }
+  /**
+   * Paint through a plot clip from here on, as the SVG mark would be
+   * clipped; null paints unclipped. Consecutive marks under the same clip
+   * share one save/clip, so a run of bars costs one clip, not one each.
+   * @param {any} ctx
+   * @param {string|null|undefined} kind
+   */
+  _clipTo(ctx, kind) {
+    const r = this.clipRect(kind);
+    if (r === this._clipRect) return;
+    if (this._clipRect) ctx.restore();
+    this._clipRect = r;
+    if (r) {
+      const dpr = this._dpr;
+      const { left, top } = this._pad;
+      const x0 = Math.floor((left + r.x) * dpr);
+      const y0 = Math.floor((top + r.y) * dpr);
+      const x1 = Math.ceil((left + r.x + r.width) * dpr);
+      const y1 = Math.ceil((top + r.y + r.height) * dpr);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.beginPath();
+      ctx.rect(x0, y0, x1 - x0, y1 - y0);
+      ctx.clip();
+      ctx.setTransform(dpr, 0, 0, dpr, left * dpr, top * dpr);
+    }
   }
   clear() {
     if (!this._c2d || !this._canvas) return;
@@ -938,8 +1132,9 @@ class CanvasCompositor {
     this._syncDpr();
     this.clear();
     const dpr = this._dpr;
-    const m = this._margin;
-    ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr);
+    const { left, top } = this._pad;
+    ctx.setTransform(dpr, 0, 0, dpr, left * dpr, top * dpr);
+    this._clipRect = null;
     if (list.length) {
       const ordered = list.length > 1 ? list.map((c, i) => [c, i]).sort(
         (a, b) => a[0].z === b[0].z ? a[1] - b[1] : a[0].z - b[0].z
@@ -947,11 +1142,15 @@ class CanvasCompositor {
       for (let i = 0; i < ordered.length; i++) {
         const c = ordered[i];
         this._alpha = this._dim ? this._seriesAlpha(c.si) : 1;
+        this._clipTo(ctx, c.clip);
         this._paintOne(ctx, c);
       }
+      this._clipTo(ctx, null);
     }
     this._paintRects(ctx, shim);
+    this._clipTo(ctx, "marker");
     this._paintMarkers(ctx, shim);
+    this._clipTo(ctx, null);
     this._alpha = 1;
   }
   /**
@@ -1126,7 +1325,8 @@ class CanvasCompositor {
         i = j;
       } else {
         const dpr = this._dpr;
-        const m = this._margin;
+        const ox = this._pad.left;
+        const oy = this._pad.top;
         let j = i;
         while (j < n && mshape[j] === shapeId && mstyle[j] === styleId) {
           const y = my[j];
@@ -1134,7 +1334,14 @@ class CanvasCompositor {
           if (y === y && size > 0) {
             const p = this._unitPath(shim, shapeId, size);
             if (p) {
-              ctx.setTransform(dpr, 0, 0, dpr, (m + mx[j]) * dpr, (m + y) * dpr);
+              ctx.setTransform(
+                dpr,
+                0,
+                0,
+                dpr,
+                (ox + mx[j]) * dpr,
+                (oy + y) * dpr
+              );
               const f = dimming ? this._seriesAlpha(shim.markerSeries(j)) : 1;
               if (doFill) {
                 ctx.globalAlpha = baseFillA * f;
@@ -1148,7 +1355,7 @@ class CanvasCompositor {
           }
           j++;
         }
-        ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
         ctx.globalAlpha = 1;
         i = j;
       }
@@ -1320,6 +1527,8 @@ class CanvasCompositor {
     this._host = null;
     this._canvas = null;
     this._c2d = null;
+    this._clips = null;
+    this._clipRect = null;
     this._unitPaths.clear();
   }
 }
@@ -1334,6 +1543,7 @@ class CanvasRenderer {
     this.kind = "canvas";
     this._g = new CanvasGraphics(w);
     this._compositor = new CanvasCompositor(w);
+    this._hitCtx = void 0;
   }
   // ── lifecycle ──
   /** Start a fresh series display list for this render pass. */
@@ -1430,10 +1640,11 @@ class CanvasRenderer {
     return feature === "solidFill" || feature === "dashArray";
   }
   // ── interaction ──
-  // Line/area/bar/scatter tooltips resolve via coordinate lookup (pointsArray),
-  // so those need no per-mark query. Heatmap cells, however, are hovered by
-  // point (the SVG path hit-tests the <rect> under the cursor); with cells on
-  // canvas there is no node, so hitTest resolves the columnar rect store.
+  // Shared tooltips resolve via coordinate lookup (pointsArray), so those
+  // need no per-mark query. Heatmap cells, and the bar-likes and markers of
+  // an intersect tooltip, however, are hovered by point (the SVG path
+  // hit-tests the node under the cursor); with them on canvas there is no
+  // node, so hitTest and hitTestMarker resolve the recorded marks.
   /**
    * Find the cell under a plot-local point (0,0 = plot origin, the same space
    * as the recorded cell geometry). Reverse scan so a later-painted cell wins
@@ -1441,14 +1652,17 @@ class CanvasRenderer {
    * frame even at 100k cells (~100k integer compares). Returns the cell's
    * series/dataPoint index plus its geometry for tooltip positioning, or null
    * when the point is off every cell.
+   *
+   * With no cell there, a bar-like mark (a recorded path standing for one
+   * data point: a bar, a candle, half a box plot, a violin body) is looked
+   * for instead, with the box of the path that was hit.
    * @param {number} px
    * @param {number} py
-   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number})|null}
+   * @returns {({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number})|null}
    */
   hitTest(px, py) {
     const g = this._g;
     const n = g.rectCount ? g.rectCount() : 0;
-    if (!n) return null;
     const rx = g._crx;
     const ry = g._cry;
     const rw = g._crw;
@@ -1468,7 +1682,228 @@ class CanvasRenderer {
         };
       }
     }
+    return this._hitTestMarks(px, py);
+  }
+  /**
+   * The bar-like mark painted over a plot-local point. Tested against the
+   * painted shape, the way a hovered SVG path is: its fill, and its stroke
+   * wherever one is painted, so the empty corners of a violin's bounding box
+   * are not part of it while a candle's wick and a box plot's whiskers, which
+   * are stroke alone, are; and none of the part its clip cuts off (a
+   * clipped-away part of an SVG path takes no pointer either). Bar-likes
+   * record in series order, which is also their paint order, so a reverse
+   * scan finds the topmost. The box comes back with it: the one that path
+   * spans, as the hovered SVG path measures.
+   * @param {number} px
+   * @param {number} py
+   * @returns {({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number})|null}
+   */
+  _hitTestMarks(px, py) {
+    const list = this._g.displayList();
+    for (let k = list.length - 1; k >= 0; k--) {
+      const cmd = list[k];
+      if (cmd.tag !== "path" || cmd.dj == null || !cmd.d) continue;
+      const filled = !!cmd.fill && cmd.fill !== "none";
+      const stroked = !!cmd.stroke && cmd.stroke !== "none" && cmd.strokeWidth > 0;
+      if (!filled && !stroked) continue;
+      const clip = this._compositor.clipRect(cmd.clip);
+      if (clip && (px < clip.x || px > clip.x + clip.width || py < clip.y || py > clip.y + clip.height)) {
+        continue;
+      }
+      const box = markBox(cmd);
+      if (!box) continue;
+      const reach = stroked ? cmd.strokeWidth * 5 : 0;
+      if (px < box.x - reach || px > box.x + box.width + reach || py < box.y - reach || py > box.y + box.height + reach) {
+        continue;
+      }
+      const ctx = this._hitContext();
+      if (!ctx) return null;
+      if (!cmd.path2d) {
+        try {
+          cmd.path2d = new Path2D(cmd.d);
+        } catch (e) {
+          continue;
+        }
+      }
+      const rule = cmd.fillRule === "evenodd" ? "evenodd" : "nonzero";
+      let hit = filled && ctx.isPointInPath(cmd.path2d, px, py, rule);
+      if (!hit && stroked) {
+        ctx.lineWidth = cmd.strokeWidth;
+        ctx.lineCap = cmd.lineCap || "butt";
+        hit = ctx.isPointInStroke(cmd.path2d, px, py);
+      }
+      if (hit) {
+        return __spreadValues({ seriesIndex: cmd.si, dataPointIndex: cmd.dj }, box);
+      }
+    }
     return null;
+  }
+  /**
+   * The marker painted over a plot-local point, for a tooltip that shows on
+   * the hovered point (intersect): on SVG the marker node under the pointer
+   * names it, and on canvas there is none. Markers paint after every other
+   * mark (CanvasCompositor.paint) in record order, so a reverse scan finds
+   * the topmost, which is the one an SVG pointer would land on where a
+   * scatter overlays bars. Tested against the painted shape, fill and
+   * stroke, and only inside the marker clip they are painted through, as a
+   * clipped-away SVG marker takes no pointer. Null when no sized marker of
+   * a known data point is there.
+   * @param {number} px
+   * @param {number} py
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,size:number})|null}
+   */
+  hitTestMarker(px, py) {
+    const g = this._g;
+    const n = g.markerCount();
+    if (!n) return null;
+    const clip = this._compositor.clipRect("marker");
+    if (clip && (px < clip.x || px > clip.x + clip.width || py < clip.y || py > clip.y + clip.height)) {
+      return null;
+    }
+    for (let k = n - 1; k >= 0; k--) {
+      const size = g._msize[k];
+      const x = g._mx[k];
+      const y = g._my[k];
+      const j = g._mdi[k];
+      if (!(size > 0) || y !== y || j < 0) continue;
+      const style = g.markerStyle(k);
+      const stroked = !!(style == null ? void 0 : style.stroke) && style.stroke !== "none" && style.strokeWidth > 0;
+      const halfStroke = stroked ? style.strokeWidth / 2 : 0;
+      const reach = size * 1.2 + halfStroke;
+      const dx = px - x;
+      const dy = py - y;
+      if (dx < -reach || dx > reach || dy < -reach || dy > reach) continue;
+      let hit;
+      if (g._mshape[k] === 0) {
+        hit = dx * dx + dy * dy <= (size + halfStroke) * (size + halfStroke);
+      } else {
+        hit = this._hitsMarkerShape(k, dx, dy, size, style, stroked);
+      }
+      if (hit) {
+        return { seriesIndex: g._msi[k], dataPointIndex: j, x, y, size };
+      }
+    }
+    return null;
+  }
+  /**
+   * Whether a point, relative to a non-circle marker's centre, is on its
+   * painted shape: the same unit geometry the compositor paints it with.
+   * @param {number} k  marker index
+   * @param {number} dx
+   * @param {number} dy
+   * @param {number} size
+   * @param {any} style
+   * @param {boolean} stroked
+   * @returns {boolean}
+   */
+  _hitsMarkerShape(k, dx, dy, size, style, stroked) {
+    const ctx = this._hitContext();
+    if (!ctx) return false;
+    let path;
+    try {
+      path = new Path2D(this._g.markerPath(0, 0, this._g._mshape[k], size));
+    } catch (e) {
+      return false;
+    }
+    const filled = !!(style == null ? void 0 : style.fill) && style.fill !== "none";
+    if (filled && ctx.isPointInPath(path, dx, dy)) return true;
+    if (!stroked) return false;
+    ctx.lineWidth = style.strokeWidth;
+    ctx.lineCap = "butt";
+    return ctx.isPointInStroke(path, dx, dy);
+  }
+  /**
+   * Find a bar-like mark by identity rather than by point: keyboard focus
+   * knows the series and data point it is on. The first path recorded for
+   * the pair, as the first `path[j]` of the series is on SVG (a box plot's
+   * lower half, a violin's body), with the box it spans and its `d`, so a
+   * focus outline can trace the painted shape. Null when nothing was painted
+   * for that pair.
+   * @param {number} seriesIndex  realIndex
+   * @param {number} dataPointIndex
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,d:string})|null}
+   */
+  findMark(seriesIndex, dataPointIndex) {
+    const list = this._g.displayList();
+    for (let k = 0; k < list.length; k++) {
+      const cmd = list[k];
+      if (cmd.tag !== "path" || !cmd.d) continue;
+      if (cmd.si !== seriesIndex || cmd.dj !== dataPointIndex) continue;
+      const box = markBox(cmd);
+      if (!box) continue;
+      return __spreadProps(__spreadValues({ seriesIndex, dataPointIndex }, box), { d: cmd.d });
+    }
+    return null;
+  }
+  /**
+   * Find a marker by identity rather than by point (hitTestMarker): keyboard
+   * focus knows the series and data point it is on. The topmost one painted
+   * for the pair, as the hit test reports it, and only one the hit test
+   * could report: sized, at a known y. With the shape it was painted in, as
+   * a `d`, so a focus outline can trace it. Null when none was painted.
+   * @param {number} seriesIndex  realIndex
+   * @param {number} dataPointIndex
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,size:number,d:string})|null}
+   */
+  findMarker(seriesIndex, dataPointIndex) {
+    const g = this._g;
+    for (let k = g.markerCount() - 1; k >= 0; k--) {
+      if (g._msi[k] !== seriesIndex || g._mdi[k] !== dataPointIndex) continue;
+      const size = g._msize[k];
+      const y = g._my[k];
+      if (!(size > 0) || y !== y) continue;
+      const x = g._mx[k];
+      const d = g.markerPath(x, y, g._mshape[k], size);
+      return { seriesIndex, dataPointIndex, x, y, size, d };
+    }
+    return null;
+  }
+  /**
+   * Find a cell by identity rather than by point: keyboard focus knows the
+   * series and data point it is on, and needs the box the cell was painted in
+   * (plot-local, as hitTest returns it) to place the tooltip and draw a focus
+   * outline. `radius` is the cells' shared corner radius. Null when no cell
+   * was recorded for that pair.
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number,radius:number})|null}
+   */
+  findCell(seriesIndex, dataPointIndex) {
+    const g = this._g;
+    const n = g.rectCount ? g.rectCount() : 0;
+    const si = g._crsi;
+    const di = g._crdi;
+    for (let k = n - 1; k >= 0; k--) {
+      if (si[k] === seriesIndex && di[k] === dataPointIndex) {
+        return {
+          seriesIndex,
+          dataPointIndex,
+          x: g._crx[k],
+          y: g._cry[k],
+          width: g._crw[k],
+          height: g._crh[k],
+          radius: g._cellRadius || 0
+        };
+      }
+    }
+    return null;
+  }
+  /**
+   * A detached 2D context kept for isPointInPath. The painting context
+   * carries the device-pixel and pad transform, which the point would
+   * have to be pushed through first; this one stays at identity, so plot
+   * px go in as they are.
+   * @returns {any}
+   */
+  _hitContext() {
+    if (this._hitCtx === void 0) {
+      const canvas = (
+        /** @type {any} */
+        BrowserAPIs.createElement("canvas")
+      );
+      this._hitCtx = (canvas == null ? void 0 : canvas.getContext) && canvas.getContext("2d") || null;
+    }
+    return this._hitCtx;
   }
   /**
    * Repaint the retained series scene with a per-series dim spec (hover /
@@ -1488,17 +1923,18 @@ class CanvasRenderer {
     if (!url) return null;
     const gl = this.w.globals;
     const cfg = this.w.config.chart;
-    const margin = this._compositor._margin;
+    const pad = this._compositor._pad;
     return {
       dataURL: url,
-      x: (gl.translateX || 0) + (cfg.offsetX || 0) - margin,
-      y: (gl.translateY || 0) + (cfg.offsetY || 0) - margin,
-      w: (this.w.layout.gridWidth || 0) + margin * 2,
-      h: (this.w.layout.gridHeight || 0) + margin * 2
+      x: (gl.translateX || 0) + (cfg.offsetX || 0) - pad.left,
+      y: (gl.translateY || 0) + (cfg.offsetY || 0) - pad.top,
+      w: (this.w.layout.gridWidth || 0) + pad.left + pad.right,
+      h: (this.w.layout.gridHeight || 0) + pad.top + pad.bottom
     };
   }
   destroy() {
     this._compositor.destroy();
+    this._hitCtx = void 0;
   }
 }
 _core__default.registerRenderer(

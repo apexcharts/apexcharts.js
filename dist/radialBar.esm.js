@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -447,7 +447,7 @@ class Pie {
    * @param {any[]} series
    */
   draw(series) {
-    var _a;
+    var _a, _b;
     const self = this;
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -455,6 +455,14 @@ class Pie {
       class: "apexcharts-pie"
     });
     if (w.globals.noData) return elPie;
+    (_a = this.ctx.highlightFilter) == null ? void 0 : _a.pie(this);
+    const scaleSize = w.config.plotOptions.pie.customScale;
+    w.globals.circleGeometry = {
+      node: elPie.node,
+      cx: this.translateX + scaleSize * this.centerX,
+      cy: this.translateY + scaleSize * this.centerY,
+      r: scaleSize * w.globals.radialSize
+    };
     let total = 0;
     for (let k = 0; k < series.length; k++) {
       total += Utils.negToZero(series[k]);
@@ -494,7 +502,7 @@ class Pie {
         this.sliceSizes.push(w.globals.radialSize);
       }
     }
-    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+    const morphActive = ((_b = this.ctx.morphTypeChange) == null ? void 0 : _b.isActive()) === true;
     if (w.globals.dataChanged && !morphActive) {
       if (this.chartType === "polarArea") {
         const prevValues = w.globals.previousPaths;
@@ -508,16 +516,21 @@ class Pie {
             );
           }
         }
-        let prevMaxY = 0;
-        for (let k = 0; k < prevValues.length; k++) {
-          prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]));
+        const sizeStash = w.globals.prevPolarSizes;
+        if (Array.isArray(sizeStash) && sizeStash.length === prevValues.length) {
+          this.prevSliceSizes = sizeStash.map((f) => f * w.globals.radialSize);
+        } else {
+          let prevMaxY = 0;
+          for (let k = 0; k < prevValues.length; k++) {
+            prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]));
+          }
+          if (w.config.yaxis[0].max) {
+            prevMaxY = w.config.yaxis[0].max;
+          }
+          this.prevSliceSizes = prevValues.map(
+            (v) => w.globals.radialSize * Utils.negToZero(v) / (prevMaxY || 1)
+          );
         }
-        if (w.config.yaxis[0].max) {
-          prevMaxY = w.config.yaxis[0].max;
-        }
-        this.prevSliceSizes = prevValues.map(
-          (v) => w.globals.radialSize * Utils.negToZero(v) / (prevMaxY || 1)
-        );
       } else {
         let prevTotal = 0;
         for (let k = 0; k < w.globals.previousPaths.length; k++) {
@@ -532,6 +545,10 @@ class Pie {
     }
     if (this.chartType === "polarArea") {
       w.globals.prevPolarAngles = sectorAngleArr.slice();
+      const radius = w.globals.radialSize || 1;
+      w.globals.prevPolarSizes = this.sliceSizes.map(
+        (s) => s / radius
+      );
     }
     if (this.donutSize < 0) {
       this.donutSize = 0;
@@ -713,6 +730,7 @@ class Pie {
           elPath.node.setAttribute("data-piece-hidden", "1");
         }
       }
+      const collapsed = (w.globals.collapsedSeriesIndices || []).includes(i);
       let dur = 0;
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         dur = angle / this.fullAngle * w.config.chart.animations.speed;
@@ -751,7 +769,8 @@ class Pie {
           i,
           animBeginArr: this.animBeginArr,
           shouldSetPrevPaths: true,
-          dur: w.config.chart.animations.dynamicAnimation.speed
+          dur: w.config.chart.animations.dynamicAnimation.speed,
+          collapsed
         });
       } else {
         this.animatePaths(elPath, {
@@ -761,7 +780,8 @@ class Pie {
           i,
           totalItems: sectorAngleArr.length - 1,
           animBeginArr: this.animBeginArr,
-          dur
+          dur,
+          collapsed
         });
       }
       if (this.getExpandOffset() > 0) {
@@ -787,12 +807,22 @@ class Pie {
           if (formatter !== void 0) {
             text = formatter(w.globals.seriesPercent[i][0], {
               seriesIndex: i,
+              // A pie slice IS the data point, so its index is the series
+              // index. Every other type passes dataPointIndex and the
+              // documented opts says it is always there, so leaving it out
+              // here made the documented formatter throw on a pie alone
+              // (#5324).
+              dataPointIndex: i,
+              series: w.seriesData.series,
               w
             });
           }
           const foreColor = w.globals.dataLabels.style.colors[i];
           const elPieLabelWrap = graphics.group({
-            class: `apexcharts-datalabels`
+            class: `apexcharts-datalabels`,
+            // Which slice it labels, so a later render pairs it with its own
+            // slice's label (CircleTransition), whatever slices draw none.
+            "data:slice": i
           });
           const elPieLabel = graphics.drawText({
             x: xPos,
@@ -874,6 +904,7 @@ class Pie {
           w.globals.delayedElements.push({ el: group.node });
         }
         this.externalLabelGroups[lbl.i] = group.node;
+        group.node.setAttribute("data:slice", String(lbl.i));
         g.add(group);
       });
     }
@@ -990,7 +1021,7 @@ class Pie {
     const fromAngle = fromStartAngle < toStartAngle ? this.fullAngle + fromStartAngle - toStartAngle : fromStartAngle - toStartAngle;
     const hasPrevSize = typeof opts.prevSize === "number";
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
-      if (opts.prevEndAngle) {
+      if (Number.isFinite(opts.prevEndAngle)) {
         path = me.getPiePath({
           me,
           startAngle: opts.prevStartAngle,
@@ -1011,6 +1042,7 @@ class Pie {
               "stroke-width": me.strokeWidth
             });
           }
+          if (opts.collapsed) el.attr({ d: "" });
           if (opts.i === w.config.series.length - 1) {
             animations.animationCompleted(el);
           }
@@ -1044,7 +1076,7 @@ class Pie {
       }
       el.node.setAttribute("data:pathOrig", path);
       el.attr({
-        d: path,
+        d: opts.collapsed ? "" : path,
         "stroke-width": me.strokeWidth
       });
     }
@@ -1740,11 +1772,33 @@ class Radial extends Pie {
     if (!w.config.chart.sparkline.enabled) {
       size = size - w.config.stroke.width - w.config.chart.dropShadow.blur;
     }
+    w.globals.circleGeometry = {
+      node: ret.node,
+      cx: centerX,
+      cy: centerY,
+      r: size
+    };
     const colorArr = w.globals.fill.colors;
     const rb = w.config.plotOptions.radialBar;
     const hasBands = Array.isArray(rb.bands) && rb.bands.length > 0;
     const hideTrack = hasBands && rb.bandsStyle && rb.bandsStyle.hideTrackWhenPresent;
     const isNeedleShape = rb.shape === "needle";
+    const dl = this.radialDataLabels;
+    if (dl.value.offsetY == null) {
+      const n = this.needlePath(
+        { size, centerX, centerY, series },
+        rb.needle || {}
+      );
+      this.donutDataLabels = this.radialDataLabels = __spreadProps(__spreadValues({}, dl), {
+        value: __spreadProps(__spreadValues({}, dl.value), {
+          offsetY: isNeedleShape ? n.cy - centerY + Math.max(
+            n.baseW / 2,
+            Utils.polarToCartesian(0, 0, n.length, this.startAngle).y,
+            Utils.polarToCartesian(0, 0, n.length, this.endAngle).y
+          ) + parseFloat(dl.value.fontSize) + 4 : 8
+        })
+      });
+    }
     if (rb.track.show && !hideTrack) {
       const elTracks = this.drawTracks({
         size,
@@ -1893,8 +1947,9 @@ class Radial extends Pie {
    * @param {Record<string, any>} opts
    */
   drawArcs(opts) {
-    var _a;
+    var _a, _b;
     const w = this.w;
+    (_a = this.ctx.highlightFilter) == null ? void 0 : _a.pie(this);
     const graphics = new Graphics(this.w);
     const fill = new Fill(this.w);
     const filters = new Filters(this.w);
@@ -1947,7 +2002,7 @@ class Radial extends Pie {
     if (w.config.plotOptions.radialBar.inverseOrder) {
       reverseLoop = true;
     }
-    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+    const morphActive = ((_b = this.ctx.morphTypeChange) == null ? void 0 : _b.isActive()) === true;
     for (let i = reverseLoop ? opts.series.length - 1 : 0; reverseLoop ? i >= 0 : i < opts.series.length; reverseLoop ? i-- : i++) {
       const elRadialBarArc = graphics.group({
         class: `apexcharts-series apexcharts-radial-series`,
@@ -1967,30 +2022,11 @@ class Radial extends Pie {
       });
       const startAngle = this.startAngle;
       let prevStartAngle;
-      const rb = w.config.plotOptions.radialBar;
-      const domainMin = typeof rb.min === "number" ? rb.min : 0;
-      const domainMax = typeof rb.max === "number" ? rb.max : 100;
-      const domainSpan = domainMax === domainMin ? 1 : domainMax - domainMin;
-      const valueToFraction = (v) => {
-        const clamped = Math.min(Math.max(v, domainMin), domainMax);
-        return Math.max(0, (clamped - domainMin) / domainSpan);
-      };
-      const dataValue = valueToFraction(Utils.negToZero(opts.series[i]));
-      let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle;
+      const endAngle = this._arcEnd(opts.series[i]);
       let prevEndAngle;
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle;
-        prevEndAngle = Math.round(
-          this.totalAngle * valueToFraction(Utils.negToZero(w.globals.previousPaths[i]))
-        ) + prevStartAngle;
-      }
-      const currFullAngle = Math.abs(endAngle) + Math.abs(startAngle);
-      if (currFullAngle > 360) {
-        endAngle = endAngle - 0.01;
-      }
-      const prevFullAngle = Math.abs(prevEndAngle) + Math.abs(prevStartAngle);
-      if (prevFullAngle > 360) {
-        prevEndAngle = prevEndAngle - 0.01;
+        prevEndAngle = this._arcEnd(w.globals.previousPaths[i]);
       }
       const angle = endAngle - startAngle;
       const dashArray = resolveClaimed(
@@ -2084,7 +2120,7 @@ class Radial extends Pie {
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         dur = w.config.chart.animations.speed;
       }
-      if (w.globals.dataChanged) {
+      if (this.dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate) {
         dur = w.config.chart.animations.dynamicAnimation.speed;
       }
       this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
@@ -2142,6 +2178,28 @@ class Radial extends Pie {
       elHollow,
       dataLabels
     };
+  }
+  /**
+   * Where a ring's value arc ends for value `v`, in whole degrees: the value
+   * as a fraction of the configured min/max domain (clamped, negatives read
+   * as 0). Defaults (min: 0, max: 100) preserve the historical percentage
+   * behavior; custom domains (e.g. min: 0, max: 240 for a speedometer) make
+   * the filled arc honor the same domain as the needle, ticks, and threshold
+   * bands. An arc that would close on itself stops just short.
+   *
+   * @param {any} v
+   * @returns {number}
+   */
+  _arcEnd(v) {
+    const rb = this.w.config.plotOptions.radialBar;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const f = Math.max(
+      0,
+      (Math.min(Math.max(Utils.negToZero(v), min), max) - min) / (max === min ? 1 : max - min)
+    );
+    const end = Math.round(this.totalAngle * f) + this.startAngle;
+    return Math.abs(end) + Math.abs(this.startAngle) > 360 ? end - 0.01 : end;
   }
   /**
    * Map a domain value (between `min` and `max`) to the corresponding angle
@@ -2319,23 +2377,14 @@ class Radial extends Pie {
    * @param {Record<string, any>} opts
    */
   drawNeedle(opts) {
-    var _a, _b, _c, _d, _e;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const rb = w.config.plotOptions.radialBar;
     const cfg = rb.needle || {};
     const g = graphics.group({ class: "apexcharts-gauge-needle" });
     if (!opts.series || opts.series.length === 0) return g;
-    const strokeWidth = this.getStrokeWidth(opts);
-    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
-    const length = typeof cfg.length === "string" && cfg.length.endsWith("%") ? arcRadius * parseInt(cfg.length, 10) / 100 : Number(cfg.length || arcRadius * 0.85);
-    const baseW = (_a = cfg.baseWidth) != null ? _a : 4;
-    const tipW = (_b = cfg.tipWidth) != null ? _b : 1;
     const color = cfg.color || "#333";
-    const cx = opts.centerX;
-    const needleOffsetY = Number((_c = cfg.offsetY) != null ? _c : 0);
-    const cy = opts.centerY + needleOffsetY;
-    const path = `M ${cx + baseW / 2} ${cy} A ${baseW / 2} ${baseW / 2} 0 0 1 ${cx - baseW / 2} ${cy} L ${cx - tipW / 2} ${cy - length} L ${cx + tipW / 2} ${cy - length} Z`;
+    const { path, cx, cy } = this.needlePath(opts, cfg);
     const elNeedle = graphics.drawPath({
       d: path,
       stroke: color,
@@ -2346,24 +2395,18 @@ class Radial extends Pie {
     g.add(elNeedle);
     const value = Number(opts.series[0]);
     const targetAngle = this._angleAtValue(value);
-    const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
     const ctx = (
       /** @type {any} */
       this.ctx
     );
     const fromAngle = typeof ctx._lastNeedleAngle === "number" ? ctx._lastNeedleAngle : this.startAngle;
     ctx._lastNeedleAngle = targetAngle;
-    const shouldAnimate = Environment.isBrowser() && w.globals.shouldAnimate && (isInitialMount || w.globals.dataChanged);
-    if (shouldAnimate && fromAngle !== targetAngle) {
+    const motion = this.needleMotion();
+    if (motion && fromAngle !== targetAngle) {
+      const { speed, ease } = motion;
       const node = g.node;
       node.setAttribute("transform-origin", `${cx} ${cy}`);
       node.setAttribute("transform", `rotate(${fromAngle})`);
-      const speed = ((_d = cfg.animation) == null ? void 0 : _d.duration) && Number(cfg.animation.duration) || cfg.animationSpeed && Number(cfg.animationSpeed) || ((_e = w.config.chart.animations.dynamicAnimation) == null ? void 0 : _e.speed) || w.config.chart.animations.speed || 800;
-      const c1 = 1.70158;
-      const c3 = c1 + 1;
-      const easeOutBack = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-      const ease = isInitialMount ? easeOutBack : easeOutCubic;
       if (w.globals.radialNeedleRAF != null) {
         BrowserAPIs.cancelAnimationFrame(w.globals.radialNeedleRAF);
         w.globals.radialNeedleRAF = null;
@@ -2391,6 +2434,52 @@ class Radial extends Pie {
       });
     }
     return g;
+  }
+  /**
+   * The needle as a tapered shape with a rounded (semi-circular) base,
+   * pointing straight up (angle 0 in our polar system) from its base centre
+   * (`cx`, `cy`): (centerX, centerY + cfg.offsetY). Rotate it around that
+   * point to aim it.
+   *
+   * @param {Record<string, any>} opts the gauge's size, centre and series
+   * @param {Record<string, any>} cfg length, baseWidth, tipWidth, offsetY
+   * @returns {{path: string, cx: number, cy: number, length: number, baseW: number}}
+   */
+  needlePath(opts, cfg) {
+    var _a, _b, _c;
+    const strokeWidth = this.getStrokeWidth(opts);
+    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const length = typeof cfg.length === "string" && cfg.length.endsWith("%") ? arcRadius * parseInt(cfg.length, 10) / 100 : Number(cfg.length || arcRadius * 0.85);
+    const baseW = (_a = cfg.baseWidth) != null ? _a : 4;
+    const tipW = (_b = cfg.tipWidth) != null ? _b : 1;
+    const cx = opts.centerX;
+    const cy = opts.centerY + Number((_c = cfg.offsetY) != null ? _c : 0);
+    const path = `M ${cx + baseW / 2} ${cy} A ${baseW / 2} ${baseW / 2} 0 0 1 ${cx - baseW / 2} ${cy} L ${cx - tipW / 2} ${cy - length} L ${cx + tipW / 2} ${cy - length} Z`;
+    return { path, cx, cy, length, baseW };
+  }
+  /**
+   * How the needle moves this render: its speed and curve, or null when it
+   * lands at once. Ease-out-back on initial mount (spring-loaded settle);
+   * plain ease-out on data updates (no overshoot, feels mechanical,
+   * instrument-like).
+   *
+   * @returns {{speed: number, ease: (t: number) => number} | null}
+   */
+  needleMotion() {
+    var _a, _b;
+    const w = this.w;
+    const cfg = w.config.plotOptions.radialBar.needle || {};
+    const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
+    if (!(Environment.isBrowser() && w.globals.shouldAnimate && (isInitialMount || this.dynamicAnim && w.globals.dataChanged))) {
+      return null;
+    }
+    const speed = ((_a = cfg.animation) == null ? void 0 : _a.duration) && Number(cfg.animation.duration) || cfg.animationSpeed && Number(cfg.animationSpeed) || ((_b = w.config.chart.animations.dynamicAnimation) == null ? void 0 : _b.speed) || w.config.chart.animations.speed || 800;
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return {
+      speed,
+      ease: isInitialMount ? (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2) : (t) => 1 - Math.pow(1 - t, 3)
+    };
   }
   /**
    * @param {Record<string, any>} opts

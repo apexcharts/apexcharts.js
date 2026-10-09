@@ -18,13 +18,14 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
+const TooltipUtils = _core.__apex_tooltip_Utils;
 const Environment = _core.__apex_Environment_Environment;
 class Measure {
   /**
@@ -311,9 +312,18 @@ class Measure {
     const t = e.touches && e.touches[0] ? e.touches[0] : e;
     return { cx: t.clientX, cy: t.clientY };
   }
-  _gridRect() {
-    const g = this.w.dom.baseEl.querySelector(".apexcharts-grid");
-    return g ? g.getBoundingClientRect() : null;
+  /**
+   * The plot's on-screen rect, or null before there is a chart to measure.
+   * Not the `.apexcharts-grid` box: that starts a pixel below the plot, and on
+   * a numeric-x bar chart its gridlines run barPadForNumericAxis past both
+   * sides, so a ruler drawn there landed tens of px off the pointer.
+   */
+  _plotRect() {
+    const w = this.w;
+    if (!w.dom.baseEl || !w.dom.baseEl.querySelector(".apexcharts-svg")) {
+      return null;
+    }
+    return TooltipUtils.plotRect(w);
   }
   /** [min,max] for the primary y-axis, preferring the rendered nice scale. */
   _yRange() {
@@ -330,12 +340,12 @@ class Measure {
    */
   _project(cx, cy) {
     const w = this.w;
-    const rect = this._gridRect();
+    const rect = this._plotRect();
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
     const clamp = (v) => v < 0 ? 0 : v > 1 ? 1 : v;
-    const fx = rect ? clamp((cx - rect.left) / rect.width) : 0;
-    const fy = rect ? clamp((cy - rect.top) / rect.height) : 0;
+    const fx = rect && rect.width ? clamp((cx - rect.left) / rect.width) : 0;
+    const fy = rect && rect.height ? clamp((cy - rect.top) / rect.height) : 0;
     const [ymin, ymax] = this._yRange();
     const x = w.globals.minX + fx * (w.globals.maxX - w.globals.minX);
     const y = ymax - fy * (ymax - ymin);

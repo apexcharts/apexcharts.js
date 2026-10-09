@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -655,6 +655,7 @@ class Drilldown {
    * @returns {Promise<any>}
    */
   _apply(view, direction, meta) {
+    var _a;
     const w = this.w;
     w.interact.selectedDataPoints = [];
     w.globals.collapsedSeries = [];
@@ -668,6 +669,7 @@ class Drilldown {
     });
     const animate = (!w.config.drilldown.animation || w.config.drilldown.animation.enabled !== false) && w.config.chart.animations.enabled !== false;
     if (direction === "down") this._fire("drillDownStart", meta);
+    (_a = this.ctx.highlightFilter) == null ? void 0 : _a.drillView(view);
     const runUpdate = (anim) => this.ctx.updateOptions(view, false, anim, false, false);
     const done = () => {
       this._fire(direction === "down" ? "drillDownEnd" : "drillUp", meta);

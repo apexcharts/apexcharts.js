@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v7.8.0
+ * ApexCharts v7.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -215,6 +215,22 @@ class RendererController {
     this.active = this.svg;
     this._activeKind = "svg";
     this._instances = {};
+    this.w.globals.activeRenderer = this.active;
+  }
+  /**
+   * Make `renderer` the active one everywhere it is read: here, on ctx, and
+   * mirrored on globals so w-only modules (tooltip hit tests, Series
+   * hover/legend restyle) can reach it without threading ctx. The mirror is
+   * persistent state (see Globals.globalVars), so it holds until the next
+   * resolve() or teardown(), across any number of data-only updates.
+   * @param {import('../renderers/Renderer').RendererKind} kind
+   * @param {any} renderer
+   */
+  _activate(kind, renderer) {
+    this.active = renderer;
+    this._activeKind = kind;
+    this.ctx.renderer = renderer;
+    this.w.globals.activeRenderer = renderer;
   }
   /**
    * The kind selection WANTS (before availability/fallback). Pure.
@@ -246,10 +262,7 @@ class RendererController {
         if (!this._instances[desired]) {
           this._instances[desired] = factory(this.w, this.ctx);
         }
-        this.active = this._instances[desired];
-        this._activeKind = desired;
-        this.ctx.renderer = this.active;
-        this.w.globals.activeRenderer = this.active;
+        this._activate(desired, this._instances[desired]);
         return this._activeKind;
       }
       if (mode === desired) {
@@ -262,11 +275,19 @@ class RendererController {
         `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
       );
     }
-    this.active = this.svg;
-    this._activeKind = "svg";
-    this.ctx.renderer = this.active;
-    this.w.globals.activeRenderer = this.active;
+    this._activate("svg", this.svg);
     return this._activeKind;
+  }
+  /**
+   * The kind resolve() would select right now: the desired kind when its
+   * backend is registered, SVG otherwise. Pure (no instance, no warning), so
+   * the data-only fast update can ask whether a full render would switch
+   * backends before it repaints into the one on screen.
+   * @returns {import('../renderers/Renderer').RendererKind}
+   */
+  pendingKind() {
+    const desired = this._desiredKind();
+    return desired === "svg" || getRendererRegistry().has(desired) ? desired : "svg";
   }
   /** @returns {import('../renderers/Renderer').RendererKind} */
   getActiveKind() {
@@ -281,8 +302,10 @@ class RendererController {
     this._instances = {};
     this.active = this.svg;
     this._activeKind = "svg";
+    this.w.globals.activeRenderer = null;
   }
 }
+const InitCtxVariables = _core.__apex_helpers_InitCtxVariables;
 function detectForm(data) {
   if (!Array.isArray(data) || data.length === 0) return "empty";
   for (let i = 0; i < data.length; i++) {
@@ -397,13 +420,22 @@ function makeAligner(u, warnings, alignToUnion = true) {
       const data = Array.isArray(s.data) ? s.data.slice(0, targetLen) : [];
       while (data.length < targetLen) data.push(null);
       out.data = data;
+      if (Array.isArray(s.highlightData)) {
+        const hd2 = s.highlightData.slice(0, targetLen);
+        while (hd2.length < targetLen) hd2.push(null);
+        out.highlightData = hd2;
+      }
       return out;
     }
     const map = /* @__PURE__ */ new Map();
-    s.data.forEach((d) => {
+    const parts = /* @__PURE__ */ new Map();
+    const hd = Array.isArray(s.highlightData) ? s.highlightData : null;
+    s.data.forEach((d, idx) => {
       const x2 = xKeyOf(d, form);
-      if (x2 !== void 0 && !map.has(x2)) map.set(x2, d);
-      else if (x2 !== void 0 && map.has(x2)) {
+      if (x2 !== void 0 && !map.has(x2)) {
+        map.set(x2, d);
+        if (hd) parts.set(x2, hd[idx]);
+      } else if (x2 !== void 0 && map.has(x2)) {
         warnings.push(
           `trellis: duplicate x "${String(x2)}" in series "${name}"; keeping the first`
         );
@@ -412,6 +444,11 @@ function makeAligner(u, warnings, alignToUnion = true) {
     out.data = u.unionX.map(
       (x2) => map.has(x2) ? map.get(x2) : placeholderFor(x2, form)
     );
+    if (hd) {
+      out.highlightData = u.unionX.map(
+        (x2) => parts.has(x2) ? parts.get(x2) : null
+      );
+    }
     return out;
   };
   return { align, seriesNames };
@@ -1108,6 +1145,10 @@ function extendByDatum(d, form, ext) {
     if (v > ext.max) ext.max = v;
   }
 }
+function partOf(s, d, j) {
+  const p = d && typeof d === "object" && !Array.isArray(d) && "highlight" in d ? d.highlight : Array.isArray(s.highlightData) ? s.highlightData[j] : null;
+  return typeof p === "number" && isFinite(p) ? p : null;
+}
 function decimalCount(v) {
   if (typeof v !== "number" || !isFinite(v) || v % 1 === 0) return 0;
   const s = String(v);
@@ -1135,12 +1176,16 @@ function maxYDecimals(panels) {
   );
   return max;
 }
-function yExtent(panels, xForm) {
+function yExtent(panels, xForm, parts = false) {
   const ext = { min: Infinity, max: -Infinity };
   panels.forEach(
     (p) => p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return;
-      s.data.forEach((d) => extendByDatum(d, xForm, ext));
+      s.data.forEach((d, j) => {
+        extendByDatum(d, xForm, ext);
+        const v = parts ? partOf(s, d, j) : null;
+        if (v !== null) extendByDatum(v, "plain", ext);
+      });
     })
   );
   if (!isFinite(ext.min) || !isFinite(ext.max)) return null;
@@ -1175,17 +1220,25 @@ function stackedYExtent(panels, xForm, opts = {}) {
         return;
       }
       const key = String((_a = s.group) != null ? _a : "");
-      const acc = groups.get(key) || { pos: [], neg: [] };
-      groups.set(key, acc);
+      const pile = (k2) => {
+        const acc2 = groups.get(k2) || { pos: [], neg: [] };
+        groups.set(k2, acc2);
+        return acc2;
+      };
+      const acc = pile(key);
+      const parts = opts.parts ? pile("~" + key) : null;
       s.data.forEach((d, j) => {
-        if (acc.pos[j] === void 0) {
-          acc.pos[j] = 0;
-          acc.neg[j] = 0;
-        }
-        const v = scalarY(d);
-        if (v === null) return;
-        if (v > 0) acc.pos[j] += v;
-        else acc.neg[j] += v;
+        [acc, parts].forEach((a, k2) => {
+          if (!a) return;
+          if (a.pos[j] === void 0) {
+            a.pos[j] = 0;
+            a.neg[j] = 0;
+          }
+          const v = k2 ? partOf(s, d, j) : scalarY(d);
+          if (v === null) return;
+          if (v > 0) a.pos[j] += v;
+          else a.neg[j] += v;
+        });
       });
     });
     groups.forEach((acc) => {
@@ -1196,17 +1249,19 @@ function stackedYExtent(panels, xForm, opts = {}) {
   if (!isFinite(ext.min) || !isFinite(ext.max)) return null;
   return ext;
 }
-function yExtentInWindow(panels, xForm, xMin, xMax) {
+function yExtentInWindow(panels, xForm, xMin, xMax, parts = false) {
   const ext = { min: Infinity, max: -Infinity };
   panels.forEach(
     (p) => p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return;
-      s.data.forEach((d) => {
+      s.data.forEach((d, j) => {
         if (d === null || d === void 0) return;
         const rawX = xForm === "paired" ? d[0] : xForm === "object" ? d.x : null;
         const x2 = rawX instanceof Date ? rawX.getTime() : Number(rawX);
         if (!isFinite(x2) || x2 < xMin || x2 > xMax) return;
         extendByDatum(d, xForm, ext);
+        const v = parts ? partOf(s, d, j) : null;
+        if (v !== null) extendByDatum(v, "plain", ext);
       });
     })
   );
@@ -1234,8 +1289,9 @@ function resolve(splitResult, cfg = {}, host = {}) {
   const percent = !!host.stacked && host.stackType === "100%";
   const stacked = !!host.stacked && !percent;
   const extentOf = (group) => percent ? { min: 0, max: 100 } : stacked ? stackedYExtent(group, splitResult.xForm, {
-    stackOnlyBar: host.stackOnlyBar
-  }) : yExtent(group, splitResult.xForm);
+    stackOnlyBar: host.stackOnlyBar,
+    parts: host.parts
+  }) : yExtent(group, splitResult.xForm, host.parts);
   let y = null;
   if (yMode === "shared") {
     y = toBounds(host.yExtentOverride || extentOf(splitResult.panels));
@@ -1493,6 +1549,7 @@ function buildContinuousScale(w) {
   }));
   return { min, max, midpoint, stops, at, legendStops };
 }
+const TooltipUtils = _core.__apex_tooltip_Utils;
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -1894,22 +1951,29 @@ class HeatmapGradientLegend {
       w.dom.elLegendWrap
     );
     const strip = this.svgEl && this.svgEl.querySelector("rect");
-    const grid = w.dom.baseEl.querySelector(".apexcharts-grid");
-    if (!wrap || !strip || !grid || !this._geom) return;
+    if (!wrap || !strip || !this._geom) return;
+    if (!w.dom.baseEl || !w.dom.baseEl.querySelector(".apexcharts-svg")) return;
     const s = strip.getBoundingClientRect();
-    const gr = grid.getBoundingClientRect();
-    if (!s.width || !s.height || !gr.width || !gr.height) return;
+    const plot = TooltipUtils.plotRect(w);
+    if (!s.width || !s.height || !plot.width || !plot.height) return;
+    const gr = {
+      left: plot.left,
+      right: plot.left + plot.width,
+      top: plot.top,
+      bottom: plot.top + plot.height
+    };
+    const zoom = plot.zoom;
     const MIN_GAP = 16;
     const { isVertical, position } = this._geom;
     if (isVertical) {
-      const gap = position === "left" ? gr.left - s.right : s.left - gr.right;
+      const gap = (position === "left" ? gr.left - s.right : s.left - gr.right) / zoom;
       if (gap < MIN_GAP) {
         const curLeft = parseFloat(wrap.style.left) || 0;
         const shift = MIN_GAP - gap;
         wrap.style.left = curLeft + (position === "left" ? -shift : shift) + "px";
       }
     } else {
-      const gap = position === "top" ? gr.top - s.bottom : s.top - gr.bottom;
+      const gap = (position === "top" ? gr.top - s.bottom : s.top - gr.bottom) / zoom;
       if (gap < MIN_GAP) {
         const curTop = parseFloat(wrap.style.top) || 0;
         const shift = MIN_GAP - gap;
@@ -2646,7 +2710,13 @@ class TrellisSync {
     const xw = payload && payload.xaxis;
     if (!xw || xw.min == null || xw.max == null) return;
     if (!t.split || !t.split.xIsNumeric) return;
-    const ext = yExtentInWindow(t.split.panels, t.split.xForm, xw.min, xw.max);
+    const ext = yExtentInWindow(
+      t.split.panels,
+      t.split.xForm,
+      xw.min,
+      xw.max,
+      t._stackingHost().parts
+    );
     if (!ext) return;
     const y = niceBounds(ext.min, ext.max, cfg.targetTicks || DEFAULT_TARGET_TICKS);
     if (this.currentWindow) {
@@ -3280,10 +3350,12 @@ class TrellisTooltip {
     const hoverX = AxisMapping.screenXToPlotPx(w, clientX);
     const edgePad = w.globals.barPadForNumericAxis || 0;
     if (hoverX < -edgePad || hoverX > gridWidth + edgePad) return -1;
-    const gridEl = w.dom && w.dom.elGridRect ? w.dom.elGridRect : chart.el && chart.el.querySelector ? chart.el.querySelector(".apexcharts-grid") : null;
-    if (gridEl && gridEl.getBoundingClientRect) {
-      const r = gridEl.getBoundingClientRect();
-      if (r.height && (clientY < r.top || clientY > r.bottom)) return -1;
+    const baseEl = w.dom && w.dom.baseEl;
+    if (baseEl && baseEl.querySelector(".apexcharts-svg")) {
+      const plot = TooltipUtils.plotRect(w);
+      if (plot.height && (clientY < plot.top || clientY > plot.top + plot.height)) {
+        return -1;
+      }
     }
     const barish = BAR_FAMILY.indexOf(w.config.chart.type) !== -1;
     let j;
@@ -3382,12 +3454,15 @@ class TrellisTooltip {
     card.innerHTML = html;
     card.classList.add("apexcharts-trellis-tooltip-active");
     const wrapRect = elWrap.getBoundingClientRect();
-    let x2 = e.clientX - wrapRect.left + CURSOR_PAD;
-    let y = e.clientY - wrapRect.top + CURSOR_PAD;
+    const zoom = TooltipUtils.plotRect(hovered.chart.w).zoom;
+    let x2 = (e.clientX - wrapRect.left) / zoom + CURSOR_PAD;
+    let y = (e.clientY - wrapRect.top) / zoom + CURSOR_PAD;
     const cw = card.offsetWidth;
     const ch = card.offsetHeight;
-    if (x2 + cw > wrapRect.width - 4) x2 = Math.max(4, x2 - cw - CURSOR_PAD * 2);
-    if (y + ch > wrapRect.height - 4) y = Math.max(4, y - ch - CURSOR_PAD * 2);
+    const wrapWidth = wrapRect.width / zoom;
+    const wrapHeight = wrapRect.height / zoom;
+    if (x2 + cw > wrapWidth - 4) x2 = Math.max(4, x2 - cw - CURSOR_PAD * 2);
+    if (y + ch > wrapHeight - 4) y = Math.max(4, y - ch - CURSOR_PAD * 2);
     card.style.left = `${Math.round(x2)}px`;
     card.style.top = `${Math.round(y)}px`;
   }
@@ -3853,14 +3928,24 @@ class Trellis {
    * tall as its tallest PILE, so the shared y domain has to come from the
    * stack totals; without this every panel got a domain sized by the largest
    * single value and the taller stacks drew straight off the top of the plot.
-   * @returns {{ stacked: boolean, stackType: string|undefined, stackOnlyBar: boolean }}
+   * `parts` says highlight-filter parts reach the axis as well: the feature
+   * is loaded and extends the axis for a type it draws parts on, so a part
+   * past its whole is not clipped by the shared bound.
+   * @returns {{ stacked: boolean, stackType: string|undefined, stackOnlyBar: boolean, parts: boolean }}
    */
   _stackingHost() {
-    const chart = this.w.config.chart || {};
+    var _a, _b;
+    const cnf = this.w.config;
+    const chart = cnf.chart || {};
+    const hf = (
+      /** @type {any} */
+      cnf.highlightFilter || {}
+    );
     return {
       stacked: !!chart.stacked,
       stackType: chart.stackType,
-      stackOnlyBar: !!chart.stackOnlyBar
+      stackOnlyBar: !!chart.stackOnlyBar,
+      parts: !!InitCtxVariables._featureRegistry.get("highlightFilter") && hf.enabled !== false && hf.axis !== "clamp" && ["bar", "line", "area"].includes(chart.type) && !((_b = (_a = cnf.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.isFunnel)
     };
   }
   /**
