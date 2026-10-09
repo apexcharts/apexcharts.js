@@ -9,8 +9,8 @@
   "main": "dist/apexcharts.common.js",
   "es2020": "dist/apexcharts.esm.js",
   "module": "dist/apexcharts.esm.js",
-  "unpkg": "dist/apexcharts.js",
-  "jsdelivr": "dist/apexcharts.js",
+  "unpkg": "dist/apexcharts.min.js",
+  "jsdelivr": "dist/apexcharts.min.js",
   "typings": "types/apexcharts.d.ts",
   "exports": {
     ".": {
@@ -34,6 +34,11 @@
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/apexcharts.esm.js",
       "require": "./dist/apexcharts.common.js"
+    },
+    "./full": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/full.esm.js",
+      "require": "./dist/full.common.js"
     },
     "./line": {
       "types": "./types/apexcharts.d.ts",

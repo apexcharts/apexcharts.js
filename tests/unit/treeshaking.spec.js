@@ -100,6 +100,44 @@ describe('import structure', () => {
   })
 })
 
+// ─── 1b. The full bundle ─────────────────────────────────────────────────────
+// Skipped until a build writes it: the unit suite also runs against the
+// committed dist/ of the previous release, which may predate the file.
+// `npm run check:size` fails a build that does not write it.
+
+describe.skipIf(!existsSync(dist('full.esm.js')))('the full bundle', () => {
+  // apexcharts/full builds on the default bundle by importing it, so an app
+  // that imports both (every wrapper imports `apexcharts`) carries one copy.
+  test('full.esm.js takes the default bundle from apexcharts and core from apexcharts/core', () => {
+    const full = read('full.esm.js')
+    expect(full).toContain('from "apexcharts"')
+    expect(full).toContain('from "apexcharts/core"')
+  })
+
+  test.each(['Line', 'Pie', 'HeatMap', 'Radar', 'Legend', 'Toolbar'])(
+    'full.esm.js does not repeat the default bundle\'s class %s',
+    (name) => {
+      expect(countClass(read('full.esm.js'), name)).toBe(0)
+    },
+  )
+
+  // The source class names (Sunburst.js exports class SunburstChart).
+  test.each(['SunburstChart', 'Unit', 'Violin', 'IcicleChart', 'Drilldown', 'Waterfall'])(
+    'full.esm.js carries %s',
+    (name) => {
+      expect(countClass(read('full.esm.js'), name)).toBe(1)
+    },
+  )
+
+  test('apexcharts.full.js is self-contained', () => {
+    const umd = read('apexcharts.full.js')
+    expect(umd).not.toBeNull()
+    expect(umd).not.toContain('require("apexcharts')
+    expect(countClass(umd, 'Line')).toBe(1)
+    expect(countClass(umd, 'SunburstChart')).toBe(1)
+  })
+})
+
 // ─── 2. No class duplication ─────────────────────────────────────────────────
 
 describe('no class duplication between core and sub-entries', () => {

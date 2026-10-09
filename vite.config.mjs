@@ -23,11 +23,15 @@ const banner = `/*!
  * (c) 2018-${year} ApexCharts
  */`
 
-// Sub-entry names and their source files (excludes the full bundle / index).
+// Sub-entry names and their source files (excludes the default bundle).
 // Each value is either a file path string (output goes to dist/) or an object
 // { file, outDir } where outDir is relative to dist/ (e.g. 'features').
 export const SUB_ENTRIES = {
   core: resolve(__dirname, 'src/entries/core.js'),
+  // `apexcharts/full`: the default bundle plus everything outside it. Takes
+  // the default bundle from `apexcharts` rather than inlining it (see
+  // standardExternalPlugin), so it adds only what the default bundle lacks.
+  full: resolve(__dirname, 'src/entries/full.js'),
   // Primary entries
   line: resolve(__dirname, 'src/entries/line.js'),
   bar: resolve(__dirname, 'src/entries/bar.js'),
@@ -110,8 +114,8 @@ export const UMD_ENTRIES = {
     global: 'ApexPictograms',
     out: 'pictograms.js',
   },
-  // Tier-2 features: not in the full bundle, so this is the only way a page
-  // without a bundler can reach them. Built from the SAME entry bundlers
+  // Tier-2 features: not in the default bundle, so this (or the full bundle)
+  // is how a page without a bundler reaches them. Built from the SAME entry bundlers
   // import, because a feature entry already registers itself on load; `shared`
   // makes its core imports resolve off the global instead of inlining core.
   'features/trellis': {
@@ -175,12 +179,22 @@ export const UMD_ENTRIES = {
     shared: true,
   },
   // The lean-core CDN baseline (plan 08's other half). Bundles the chart class
-  // and nothing else, and attaches the same __internals surface the full bundle
-  // does, so every add-on below layers onto either one unchanged.
+  // and nothing else, and attaches the same __internals surface the default
+  // bundle does, so every add-on below layers onto either one unchanged.
   core: {
     file: resolve(__dirname, 'src/entries/core-umd.js'),
     global: 'ApexCharts',
     out: 'apexcharts.core.js',
+    alsoMin: true,
+  },
+  // The everything baseline: the default bundle plus every type, feature and
+  // catalog outside it, self-contained, for a page that would rather load one
+  // file than choose add-ons. Exposes __internals (the default bundle inside it
+  // attaches it), so an add-on still layers onto it.
+  full: {
+    file: resolve(__dirname, 'src/entries/full.js'),
+    global: 'ApexCharts',
+    out: 'apexcharts.full.js',
     alsoMin: true,
   },
   // Chart types, script-loadable. A lean-core page renders nothing until it
@@ -246,7 +260,8 @@ export const UMD_ENTRIES = {
     out: 'sunburst.js',
     shared: true,
   },
-  // Opt-in type: absent from the full bundle, so this IS the script-tag route.
+  // Opt-in type: absent from the default bundle, so this (or the full bundle)
+  // IS the script-tag route.
   'icicle': {
     file: resolve(__dirname, 'src/entries/icicle.js'),
     global: 'ApexIcicle',
@@ -259,7 +274,7 @@ export const UMD_ENTRIES = {
     out: 'unit.js',
     shared: true,
   },
-  // Tier-1 features. In the full bundle already; a lean-core page opts in.
+  // Tier-1 features. In the default bundle already; a lean-core page opts in.
   'features/exports': {
     file: resolve(__dirname, 'src/features/exports.js'),
     global: 'ApexExports',
@@ -352,6 +367,33 @@ export const UMD_ENTRIES = {
   },
 }
 
+const STANDARD_ENTRY = resolve(__dirname, 'src/entries/standard.js')
+
+/**
+ * Resolve the default bundle's entry to the `apexcharts` package itself.
+ *
+ * Used only for the bundler build of `apexcharts/full`, which starts from the
+ * default bundle. Inlined, an app that imports `apexcharts/full` next to
+ * `apexcharts` (every wrapper imports the latter) would carry the default
+ * bundle's chart types and features twice, about 112 KB minified, on top of
+ * the one shared core. As an import it is one copy, and `apexcharts/full`
+ * holds only what the default bundle leaves out.
+ */
+function standardExternalPlugin() {
+  return {
+    name: 'apex-standard-external',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (!importer || !source.startsWith('.')) return null
+      const abs = resolve(dirname(importer), source)
+      const normalized = abs.endsWith('.js') ? abs : abs + '.js'
+      return normalized === STANDARD_ENTRY
+        ? { id: 'apexcharts', external: true }
+        : null
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development'
   const isSSR = mode === 'ssr'
@@ -381,7 +423,7 @@ export default defineConfig(({ mode }) => {
     const umd = UMD_ENTRIES[subEntryName]
     if (!umd) throw new Error(`No UMD_ENTRIES entry for "${subEntryName}"`)
     // A feature add-on is written against core's internals, so its shared
-    // imports resolve off the global the full bundle already put on the page
+    // imports resolve off the global the default bundle already put on the page
     // rather than being inlined a second time. A self-contained add-on
     // (a shape catalog, say) needs none of that and opts out.
     const umdPlugins = umd.shared
@@ -404,9 +446,10 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           external: ['apexcharts'],
           output: [
-            // Add-ons ship minified under their plain name; only the lean
-            // core also emits a readable build, mirroring apexcharts.js /
-            // apexcharts.min.js so the two baselines look alike.
+            // Add-ons ship minified under their plain name; only the
+            // baselines (lean core, full) also emit a readable build,
+            // mirroring apexcharts.js / apexcharts.min.js so all three look
+            // alike.
             ...(umd.alsoMin
               ? [
                   {
@@ -427,7 +470,7 @@ export default defineConfig(({ mode }) => {
                 : umd.out,
               globals: { apexcharts: 'ApexCharts' },
               banner,
-              // The lean core IS the class on the global, like apexcharts.js.
+              // A baseline IS the class on the global, like apexcharts.js.
               // 'named' would wrap it in a namespace object and
               // `new ApexCharts(...)` would throw "is not a constructor".
               exports: umd.alsoMin ? 'default' : 'named',
@@ -496,7 +539,7 @@ export default defineConfig(({ mode }) => {
     }
   }
 
-  // ── Full bundle build (production / development / sub-entry) ──────────────
+  // ── Default bundle build (production / development / sub-entry) ───────────
 
   // Sub-entry build: single entry passed via env var, ESM + CJS only
   if (isSubEntry) {
@@ -506,6 +549,9 @@ export default defineConfig(({ mode }) => {
     // Exception: the 'core' entry itself produces apexcharts/core, so it must
     // bundle src/apexcharts.js rather than referencing it externally.
     const isCoreEntry = subEntryName === 'core'
+    // `apexcharts/full` starts from the default bundle; see
+    // standardExternalPlugin.
+    const isFullEntry = subEntryName === 'full'
 
     return {
       build: {
@@ -557,7 +603,12 @@ export default defineConfig(({ mode }) => {
       define: { 'process.env.NODE_ENV': JSON.stringify('production') },
       plugins: isCoreEntry
         ? [svgInlineLoader(), cssAsString()]
-        : [coreExternalPlugin(), svgInlineLoader(), cssAsString()],
+        : [
+            ...(isFullEntry ? [standardExternalPlugin()] : []),
+            coreExternalPlugin(),
+            svgInlineLoader(),
+            cssAsString(),
+          ],
     }
   }
 
@@ -613,7 +664,7 @@ export default defineConfig(({ mode }) => {
     }
   }
 
-  // ── Main full-bundle build (index entry only, all 4 formats) ─────────────
+  // ── Main default-bundle build (standard entry only, all 4 formats) ───────
   return {
     build: {
       lib: {

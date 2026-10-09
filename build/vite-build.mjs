@@ -4,15 +4,16 @@ import chalk from 'chalk'
 import { gzipSize } from './gzip-size.mjs'
 import { SUB_ENTRIES, UMD_ENTRIES } from '../vite.config.mjs'
 
-// Build all formats in two passes:
-//   Pass 1 — full bundle (apexcharts.esm.js / .common.js / .js / .min.js)
+// Build all formats in three passes:
+//   Pass 1 — default bundle (apexcharts.esm.js / .common.js / .js / .min.js)
 //   Pass 2 — sub-entries (line/bar/etc. .esm.js / .common.js) one at a time
+//   Pass 3 — script-loadable add-ons and the lean-core and full baselines
 async function buildAll() {
   console.log(chalk.blue('Building ApexCharts...'))
 
   try {
-    // ── Pass 1: full bundle ───────────────────────────────────────────────
-    console.log(chalk.cyan('\n📦 Building full bundle (all 4 formats)...'))
+    // ── Pass 1: default bundle ────────────────────────────────────────────
+    console.log(chalk.cyan('\n📦 Building default bundle (all 4 formats)...'))
     await build({ mode: 'production' })
 
     // Re-emit the ESM + CJS halves with apexcharts/core external, so the
@@ -59,6 +60,7 @@ function showBuildStats() {
     { path: 'dist/apexcharts.js', label: 'UMD (debug)' },
     { path: 'dist/apexcharts.min.js', label: 'UMD (minified)' },
     { path: 'dist/apexcharts.core.min.js', label: 'Lean core (minified)' },
+    { path: 'dist/apexcharts.full.min.js', label: 'Full (minified)' },
     { path: 'dist/apexcharts.esm.js', label: 'ESM' },
     { path: 'dist/apexcharts.common.js', label: 'CommonJS' },
   ]

@@ -22,7 +22,7 @@ You will now have a fully functioning local build of this library ready to be us
 
 ### Bundle size
 
-`dist/apexcharts.min.js` and `dist/apexcharts.core.min.js` each have a gzip budget in `build/size-budget.json`, checked on every pull request, every push to `main`, and before every publish. To reproduce the check locally:
+`dist/apexcharts.min.js`, `dist/apexcharts.core.min.js` and `dist/apexcharts.full.min.js` each have a gzip budget in `build/size-budget.json`, checked on every pull request, every push to `main`, and before every publish. The same check fails if the full file is not larger than the default one, or if any script-tag add-on (`dist/features/*.js`, `dist/sunburst.js` and the rest) grows past 40,000 B, which in practice means it has inlined core. To reproduce the check locally:
 
 ```sh
 npm run build && npm run check:size

@@ -3,8 +3,16 @@
  *
  * `dist/apexcharts.min.js` is the file a theme drops in with a script tag and
  * the number the size claim is made from; `dist/apexcharts.core.min.js` is the
- * floor every slim build stands on. Each has a ceiling in
- * `build/size-budget.json`, and this fails the build that crosses it.
+ * floor every slim build stands on; `dist/apexcharts.full.min.js` is the one
+ * with everything. Each has a ceiling in `build/size-budget.json`, and this
+ * fails the build that crosses it.
+ *
+ * Two structural checks ride along, because each catches a build that is
+ * wrong rather than large. The full file must be larger than the default one
+ * (`largerThan`): if it is not, it lost what it exists to carry. And every
+ * script-tag add-on must stay under one ceiling (`addons`): an add-on resolves
+ * core off the page's global, and one that inlines core by mistake is 140 KB
+ * or more where the largest real one is under 30 KB.
  *
  * The list of features in the default bundle is already guarded
  * (`tests/unit/feature-tier-budget.spec.js`), and it was not enough: 7.9.0 grew
@@ -102,6 +110,22 @@ export function integrity(buf, sibling, version) {
   return problems
 }
 
+/**
+ * Failures for the add-on ceiling: every `[file, gzipBytes]` over `ceiling`.
+ * A null size is a file the build did not write.
+ */
+export function addonProblems(sizes, ceiling) {
+  const problems = []
+  for (const [file, size] of sizes) {
+    if (size == null) problems.push(`${file} is missing.`)
+    else if (size > ceiling)
+      problems.push(
+        `${file} is ${n(size)} B gzipped, over the ${n(ceiling)} B add-on ceiling. An add-on that size has almost certainly inlined core: check that its UMD_ENTRIES item has \`shared: true\` and that build/shared-modules.mjs covers what it imports.`,
+      )
+  }
+  return problems
+}
+
 /** The gzip size of `file` as committed at `ref`, or null where it does not exist. */
 function sizeAt(ROOT, ref, file) {
   try {
@@ -127,7 +151,7 @@ function sourceMaps(ROOT, dir) {
   return found
 }
 
-function main() {
+async function main() {
   const ROOT = root()
   const BUDGET = join(ROOT, 'build/size-budget.json')
   const args = process.argv.slice(2)
@@ -222,6 +246,37 @@ function main() {
     }
   }
 
+  for (const [file, entry] of Object.entries(budget.files)) {
+    if (!entry.largerThan) continue
+    const self = rows.find((r) => r.file === file)
+    const other = rows.find((r) => r.file === entry.largerThan)
+    if (self && other && self.size <= other.size) {
+      failures.push(
+        `${file} is ${n(self.size)} B gzipped, no larger than ${entry.largerThan} at ${n(other.size)} B, so it is missing what it exists to carry. Check its entry imports everything outside the default bundle.`,
+      )
+    }
+  }
+
+  if (budget.addons) {
+    // Read off the build config, so a new add-on is covered the day it ships.
+    const { UMD_ENTRIES } = await import('../vite.config.mjs')
+    const sizes = Object.values(UMD_ENTRIES)
+      .filter((e) => e.shared)
+      .map((e) => {
+        const file = `dist/${e.out}`
+        const abs = join(ROOT, file)
+        return [file, existsSync(abs) ? gzipSize(readFileSync(abs)) : null]
+      })
+    failures.push(...addonProblems(sizes, budget.addons.gzip))
+    const largest = sizes
+      .filter(([, s]) => s != null)
+      .sort((a, b) => b[1] - a[1])[0]
+    if (largest)
+      notices.push(
+        `${sizes.length} add-ons are under the ${n(budget.addons.gzip)} B ceiling; the largest is ${largest[0]} at ${n(largest[1])} B.`,
+      )
+  }
+
   const delta = (r) =>
     r.before == null
       ? 'new'
@@ -263,4 +318,9 @@ function main() {
 }
 
 // Only when run as a script, so the unit spec can import the pure helpers.
-if (process.argv[1] && process.argv[1].endsWith('check-size.mjs')) main()
+if (process.argv[1] && process.argv[1].endsWith('check-size.mjs')) {
+  main().catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+}

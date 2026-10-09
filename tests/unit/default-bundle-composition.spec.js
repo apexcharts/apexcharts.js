@@ -99,6 +99,8 @@ describe('default bundle composes with feature add-ons', () => {
       'features/legend.common.js',
       'features/ink.common.js',
       'features/trellis.common.js',
+      // Requires `apexcharts` itself for the default bundle it builds on.
+      'full.common.js',
     ]
 
     for (const f of files) {

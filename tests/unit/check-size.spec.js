@@ -9,7 +9,12 @@
 
 import { describe, it, expect } from 'vitest'
 import { gzipSync } from 'zlib'
-import { roundUp, budgetFor, integrity } from '../../build/check-size.mjs'
+import {
+  roundUp,
+  budgetFor,
+  integrity,
+  addonProblems,
+} from '../../build/check-size.mjs'
 import { gzipSize } from '../../build/gzip-size.mjs'
 
 const SLACK = { pct: 0.01, step: 500 }
@@ -80,5 +85,25 @@ describe('integrity', () => {
     expect(
       integrity(minified('7.9.0', 'a'.repeat(9000)), sibling, '7.9.0').join(),
     ).toMatch(/unminified sibling/)
+  })
+})
+
+describe('addonProblems', () => {
+  it('passes add-ons under the ceiling', () => {
+    expect(addonProblems([['dist/features/ink.js', 12000]], 40000)).toEqual([])
+  })
+
+  it('names an add-on over the ceiling as one that inlined core', () => {
+    // An add-on that inlines core instead of reading it off the page global
+    // is core-sized: the lean core alone is about 156 KB gzipped.
+    const [problem] = addonProblems([['dist/unit.js', 156000]], 40000)
+    expect(problem).toMatch(/dist\/unit\.js is 156,000 B/)
+    expect(problem).toMatch(/inlined core/)
+  })
+
+  it('reports an add-on the build did not write', () => {
+    expect(addonProblems([['dist/sunburst.js', null]], 40000)).toEqual([
+      'dist/sunburst.js is missing.',
+    ])
   })
 })
