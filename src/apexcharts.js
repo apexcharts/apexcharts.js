@@ -1990,10 +1990,11 @@ export default class ApexCharts {
     // the renderer it routes to before dispatch ever reaches the registry, so a
     // custom type registered under one of those names would take the
     // registration and then never be drawn.
-    // An OPT-IN built-in (`icicle`) is rejected on the same grounds again, and
-    // needs its own arm: its class is absent from the default bundle, so the
-    // registration check above would let a custom type take the name and then
-    // core's dispatch would route it to the built-in's renderer.
+    // An OPT-IN built-in (RESERVED_TYPES: `icicle`, `unit`, ...) is rejected on
+    // the same grounds again, and needs its own arm: its class is absent from
+    // the default bundle, so the registration check above would let a custom
+    // type take the name and then core's dispatch would route it to the
+    // built-in's renderer.
     if (
       (hasChartClass(name) && !isCustom(name)) ||
       TYPE_ALIASES[name] ||

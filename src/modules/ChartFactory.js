@@ -16,7 +16,7 @@
  * @module ChartFactory
  */
 
-import { RESERVED_TYPES } from './settings/TypeAliases'
+import { RESERVED_TYPES, TYPE_ALIASES } from './settings/TypeAliases'
 
 const REGISTRY_KEY = '__apexcharts_registry__'
 // Marks (#11): names registered via registerSeriesType, so dispatch + the
@@ -99,30 +99,50 @@ export function register(typeMap) {
  * Look up the constructor for a chart type.
  * Throws a clear error if the type was not registered.
  *
- * @param {string} type
+ * @param {string} type the renderer's type, after alias resolution
+ * @param {string} [requested] what the user wrote, when that was an alias
+ *   (`chart.requestedType`): `waffle` draws as `unit`, `raincloud` as `violin`
  * @returns {new (...args: any[]) => any}
  */
-export function getChartClass(type) {
+export function getChartClass(type, requested) {
   const Cls = getRegistry()[type]
   if (!Cls) {
-    // "Load the full bundle instead" is the usual escape hatch, and for an
-    // OPT-IN type it is not one: those ship only as their own sub-entry, so a
-    // reader who follows that advice fetches a megabyte and meets this same
-    // error again. RESERVED_TYPES is exactly that set, reserved BECAUSE the
-    // default bundle does not carry the class.
+    // Say it in the user's terms. A raincloud on a page without the violin
+    // renderer used to report "violin", a type nobody on that page asked for,
+    // and point at an import that still leaves the raincloud statistics out.
+    // Only an alias that draws through THIS type counts: a combo's series can
+    // need a renderer the chart's own (aliased) type does not.
+    const alias =
+      requested && TYPE_ALIASES[requested] === type ? requested : undefined
+    const raincloud = alias === 'raincloud'
+    const name = alias || type
+    const entry = raincloud ? 'raincloud' : type
+    const files = raincloud
+      ? ['violin.js', 'features/raincloud.js']
+      : [`${type}.js`]
+    const tags = files
+      .map((f) => `<script src=".../dist/${f}">`)
+      .join(' and ')
+    // Two kinds of missing. An OPT-IN type (RESERVED_TYPES) is not in the
+    // default bundle at all, so "load apexcharts.min.js instead" would send the
+    // reader to download a file that meets them with this same error; the
+    // full bundle is the one-file answer. Any other type is in the default
+    // bundle and missing only because the page assembled from the lean core,
+    // so the default bundle is the smaller fix.
     //
-    // The script-tag line no longer names apexcharts.core.js specifically. A
-    // sub-entry registers onto whichever shared class is already present, so
-    // it works after the full bundle too, which is what our own samples do.
+    // The script-tag line names no particular core file: a sub-entry registers
+    // onto whichever shared class is already present, default bundle included.
     const optIn = RESERVED_TYPES.includes(type)
     const message =
-      `ApexCharts: chart type "${type}" is not registered. ` +
-      `Bundler: import 'apexcharts/${type}'. ` +
-      `Script tag: add <script src=".../dist/${type}.js"> after the ApexCharts script` +
+      `ApexCharts: chart type "${name}" is not registered` +
+      (name !== type ? ` (it draws through "${type}")` : '') +
+      `. Bundler: import 'apexcharts/${entry}'` +
+      (optIn ? ` (or import ApexCharts from 'apexcharts/full')` : '') +
+      `. Script tag: add ${tags} after the ApexCharts script` +
       (optIn
-        ? `. This type is opt-in and is NOT in the full apexcharts.js, ` +
-          `so loading that bundle instead will not register it.`
-        : `, or load the full apexcharts.js instead.`)
+        ? `, or load apexcharts.full.min.js instead, which has every type. ` +
+          `This type is not in the default apexcharts.min.js.`
+        : `, or load the default apexcharts.min.js instead.`)
     // The throw alone reaches nobody on the commonest path. render() keeps its
     // own rejection handled, so a page that calls chart.render() without
     // awaiting it (every sample, every theme) got no console line and no
@@ -132,8 +152,8 @@ export function getChartClass(type) {
     const missing = /** @type {Set<string>} */ (
       /** @type {any} */ (globalThis)[MISSING_KEY]
     )
-    if (!missing.has(type)) {
-      missing.add(type)
+    if (!missing.has(name)) {
+      missing.add(name)
       globalThis.console.error(message)
     }
     throw new Error(message)

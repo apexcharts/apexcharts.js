@@ -1,59 +1,89 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-// Deliberately NOT importing src/entries/icicle.js. That entry registers the
-// type, which would make the branch under test unreachable from this file.
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+// Deliberately NOT importing any entry. An entry registers its types, which
+// would make the branch under test unreachable from this file.
 import { getChartClass } from '../../src/modules/ChartFactory.js'
 import { RESERVED_TYPES } from '../../src/modules/settings/TypeAliases.js'
 
-describe('getChartClass: the unregistered-type error', () => {
-  it('does not offer the full bundle for an opt-in type', () => {
-    // The whole point of the fix. "Load the full apexcharts.js instead" is the
-    // usual escape hatch and is wrong for exactly these types, because the
-    // default bundle carries no class for them. A reader who follows it
-    // downloads a megabyte and gets this same error back.
-    for (const type of RESERVED_TYPES) {
-      let message = ''
-      try {
-        getChartClass(type)
-      } catch (e) {
-        message = e.message
-      }
+/** The message getChartClass throws for `type`, or '' if it does not throw. */
+function messageFor(type, requested) {
+  try {
+    getChartClass(type, requested)
+  } catch (e) {
+    return e.message
+  }
+  return ''
+}
 
-      expect(message).toContain(`chart type "${type}" is not registered`)
-      expect(message).toContain(`import 'apexcharts/${type}'`)
-      expect(message).toMatch(/opt-in/)
-      expect(message).toMatch(/NOT in the full apexcharts\.js/)
-      // The regression this file exists for.
-      expect(message).not.toMatch(/load the full apexcharts\.js instead/)
-    }
+// Each type is logged once per page, so a test that reads the console has to
+// start from a page that has not logged it yet.
+beforeEach(() => globalThis.__apexcharts_missing_types__.clear())
+
+describe('getChartClass: the unregistered-type error', () => {
+  it('reserves the types the default bundle does not carry', () => {
+    expect(RESERVED_TYPES).toEqual(
+      expect.arrayContaining(['icicle', 'unit', 'sunburst', 'violin']),
+    )
   })
 
-  it('still offers the full bundle for an ordinary unregistered type', () => {
-    // A type that is in the default bundle but missing here because the caller
-    // assembled from apexcharts/core. For these the old advice is correct and
-    // must survive.
-    let message = ''
-    try {
-      getChartClass('definitely-not-registered')
-    } catch (e) {
-      message = e.message
-    }
+  it.each(RESERVED_TYPES)(
+    'sends a missing %s to its own file or the full bundle, never the default one',
+    (type) => {
+      // Loading apexcharts.min.js instead is the usual escape hatch and is
+      // wrong for exactly these types: the default bundle carries no class for
+      // them, so a reader who follows it meets this same error again.
+      const message = messageFor(type)
+      expect(message).toContain(`chart type "${type}" is not registered`)
+      expect(message).toContain(`import 'apexcharts/${type}'`)
+      expect(message).toContain("import ApexCharts from 'apexcharts/full'")
+      expect(message).toContain(`<script src=".../dist/${type}.js">`)
+      expect(message).toContain('or load apexcharts.full.min.js instead')
+      expect(message).toContain('not in the default apexcharts.min.js')
+      expect(message).not.toMatch(/load the default apexcharts\.min\.js/)
+    },
+  )
 
-    expect(message).toContain('is not registered')
-    expect(message).toContain('load the full apexcharts.js instead')
-    expect(message).not.toMatch(/opt-in/)
+  it('sends an ordinary missing type to the default bundle', () => {
+    // A type the default bundle has, missing only because the page assembled
+    // from the lean core. The default bundle is the smaller fix.
+    const message = messageFor('radar')
+    expect(message).toContain('chart type "radar" is not registered')
+    expect(message).toContain("import 'apexcharts/radar'")
+    expect(message).toContain('or load the default apexcharts.min.js instead')
+    expect(message).not.toContain('apexcharts/full')
+  })
+
+  it('names a waffle as a waffle, and the unit file it needs', () => {
+    const message = messageFor('unit', 'waffle')
+    expect(message).toContain(
+      'chart type "waffle" is not registered (it draws through "unit")',
+    )
+    expect(message).toContain("import 'apexcharts/unit'")
+    expect(message).toContain('<script src=".../dist/unit.js">')
+  })
+
+  it('names a raincloud as a raincloud, with both files it needs, violin first', () => {
+    const message = messageFor('violin', 'raincloud')
+    expect(message).toContain(
+      'chart type "raincloud" is not registered (it draws through "violin")',
+    )
+    expect(message).toContain("import 'apexcharts/raincloud'")
+    expect(message).toContain(
+      '<script src=".../dist/violin.js"> and <script src=".../dist/features/raincloud.js">',
+    )
+  })
+
+  it('ignores a requested type that does not draw through this one', () => {
+    // A funnel chart with a violin series: the funnel is not what is missing.
+    const message = messageFor('violin', 'funnel')
+    expect(message).toContain('chart type "violin" is not registered.')
+    expect(message).not.toContain('funnel')
   })
 
   it('does not tell a script-tag reader the sub-entry only works after core', () => {
     // A sub-entry registers onto whichever shared class is already present, so
-    // it works after the full bundle too, which is what the samples in this
-    // repo actually do. Naming apexcharts.core.js made that look unsupported.
-    let message = ''
-    try {
-      getChartClass('definitely-not-registered')
-    } catch (e) {
-      message = e.message
-    }
-
+    // it works after the default bundle too, which is what the samples in this
+    // repo do. Naming apexcharts.core.js made that look unsupported.
+    const message = messageFor('definitely-not-registered')
     expect(message).toContain('after the ApexCharts script')
     expect(message).not.toContain('after apexcharts.core.js')
   })
@@ -69,17 +99,12 @@ describe('getChartClass: the unregistered-type error', () => {
       const error = vi
         .spyOn(globalThis.console, 'error')
         .mockImplementation(() => {})
-      let thrown = ''
-      try {
-        getChartClass('missing-type-logged')
-      } catch (e) {
-        thrown = e.message
-      }
+      const thrown = messageFor('missing-type-logged')
       expect(error).toHaveBeenCalledTimes(1)
       expect(error.mock.calls[0][0]).toBe(thrown)
     })
 
-    it('logs once per type, however many charts ask', () => {
+    it('logs once per name, however many charts ask', () => {
       const error = vi
         .spyOn(globalThis.console, 'error')
         .mockImplementation(() => {})
@@ -87,9 +112,14 @@ describe('getChartClass: the unregistered-type error', () => {
         expect(() => getChartClass('missing-type-once')).toThrow()
       }
       expect(() => getChartClass('missing-type-other')).toThrow()
+      // A raincloud and a plain violin are different lines to fix.
+      expect(() => getChartClass('violin', 'raincloud')).toThrow()
+      expect(() => getChartClass('violin')).toThrow()
       expect(error.mock.calls.map((c) => c[0].match(/"([^"]+)"/)[1])).toEqual([
         'missing-type-once',
         'missing-type-other',
+        'raincloud',
+        'violin',
       ])
     })
 
@@ -117,10 +147,24 @@ describe('getChartClass: the unregistered-type error', () => {
       )
       el.remove()
     })
-  })
 
-  it('returns the class when the type is registered', () => {
-    expect(typeof getChartClass).toBe('function')
-    expect(RESERVED_TYPES.length).toBeGreaterThan(0)
+    it('names the alias a page asked for when its renderer is missing', async () => {
+      const error = vi
+        .spyOn(globalThis.console, 'error')
+        .mockImplementation(() => {})
+      vi.spyOn(globalThis.console, 'warn').mockImplementation(() => {})
+      const { default: ApexCharts } = await import('../../src/apexcharts.js')
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      const chart = new ApexCharts(el, {
+        chart: { type: 'waffle' },
+        series: [{ name: 'A', data: [40] }],
+      })
+      await chart.render().catch(() => {})
+      expect(error.mock.calls.flat().join(' ')).toContain(
+        'chart type "waffle" is not registered (it draws through "unit")',
+      )
+      el.remove()
+    })
   })
 })

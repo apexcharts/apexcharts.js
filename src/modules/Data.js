@@ -2263,8 +2263,12 @@ export default class Data {
         ))
     ) {
       this._warnedHighlight = true
-      console.warn(
-        "ApexCharts: series carry highlight parts but the highlight filter is not loaded. Add import 'apexcharts/features/highlight-filter' (or load dist/features/highlight-filter.js after apexcharts.js).",
+      // Through the helper, like every missing-feature line: a bare
+      // console.warn is stripped from apexcharts.min.js.
+      warnMissingFeature(
+        'Highlight parts (`highlightData`, `highlightFilter.data`)',
+        'highlight-filter',
+        { tail: 'Drawing the chart without them.' },
       )
     }
 

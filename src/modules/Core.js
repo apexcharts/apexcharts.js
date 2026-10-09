@@ -397,7 +397,11 @@ export default class Core {
       seriesTypes.violin.series.length > 0 ||
       (!gl.comboCharts && cnf.chart.type === 'violin')
     const violin = needsViolin
-      ? new (getChartClass('violin'))(ctx.w, ctx, xyRatios)
+      ? new (getChartClass('violin', cnf.chart.requestedType))(
+          ctx.w,
+          ctx,
+          xyRatios,
+        )
       : null
 
     const needsPie =
@@ -602,12 +606,18 @@ export default class Core {
           break
         }
         case 'unit': {
-          const unit = new (getChartClass('unit'))(ctx.w, ctx)
+          const unit = new (getChartClass(
+            'unit',
+            this.w.config.chart.requestedType,
+          ))(ctx.w, ctx)
           elGraph = unit.draw(this.w.seriesData.series)
           break
         }
         case 'sunburst': {
-          const sunburst = new (getChartClass('sunburst'))(ctx.w, ctx)
+          const sunburst = new (getChartClass(
+            'sunburst',
+            this.w.config.chart.requestedType,
+          ))(ctx.w, ctx)
           elGraph = sunburst.draw(this.w.seriesData.series)
           break
         }

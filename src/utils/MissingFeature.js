@@ -2,7 +2,8 @@
 
 /**
  * The one warning for "this chart asked for a feature this bundle does not
- * contain", naming both ways to add it.
+ * contain", naming the ways to add it: the import, the script-tag file, or the
+ * full bundle, which has every feature.
  *
  * Called through `globalThis.console`, never the bare `console`, and that is
  * the point of this module. `apexcharts.min.js` and the CommonJS builds are
@@ -39,7 +40,8 @@ export default function warnMissingFeature(subject, feature, opts = {}) {
     `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. ` +
       `Bundler: import 'apexcharts/${module}'` +
       (entry ? ` (or from 'apexcharts/${entry}')` : '') +
-      `. Script tag: add ${tags} after apexcharts.js.` +
+      `. Script tag: add ${tags} after the ApexCharts script, ` +
+      `or load apexcharts.full.min.js instead.` +
       (tail ? ` ${tail}` : ''),
   )
 }

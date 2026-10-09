@@ -21,15 +21,16 @@ const BUILD_COMPRESS = { drop_console: true, drop_debugger: true }
 describe('warnMissingFeature', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('names the subject and both ways to add the feature', () => {
+  it('names the subject and every way to add the feature', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     warnMissingFeature('`chart.measure`', 'measure')
     const [msg] = warn.mock.calls[0]
     expect(msg).toContain('`chart.measure` requires the measure feature')
     expect(msg).toContain("import 'apexcharts/features/measure'")
     expect(msg).toContain(
-      "<script src='.../dist/features/measure.js'> after apexcharts.js",
+      "<script src='.../dist/features/measure.js'> after the ApexCharts script",
     )
+    expect(msg).toContain('or load apexcharts.full.min.js instead.')
   })
 
   it('offers a sub-path entry and a closing sentence when given', () => {
@@ -55,7 +56,7 @@ describe('warnMissingFeature', () => {
     expect(msg).toContain("Bundler: import 'apexcharts/raincloud'.")
     expect(msg).toContain(
       "Script tag: add <script src='.../dist/violin.js'> and " +
-        "<script src='.../dist/features/raincloud.js'> after apexcharts.js.",
+        "<script src='.../dist/features/raincloud.js'> after the ApexCharts script",
     )
   })
 

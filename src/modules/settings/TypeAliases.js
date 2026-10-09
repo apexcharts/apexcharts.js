@@ -21,9 +21,9 @@
 
 /**
  * Chart types that are real and opt-in: core knows the name and dispatches it,
- * but no bundle registers the class until the user imports the type's entry
- * point. Nothing else reserves these names, and the name has to be reserved
- * anyway.
+ * but the default bundle does not register the class. The user imports the
+ * type's entry point, loads its script-tag file, or loads the full bundle.
+ * Nothing else reserves these names, and the name has to be reserved anyway.
  *
  * `registerSeriesType`'s built-in check asks whether a class is REGISTERED,
  * which for an opt-in type is false on the default bundle. So a custom type
@@ -33,7 +33,7 @@
  *
  * @type {string[]}
  */
-export const RESERVED_TYPES = ['icicle']
+export const RESERVED_TYPES = ['icicle', 'unit', 'sunburst', 'violin']
 
 /** @type {Record<string, string>} */
 export const TYPE_ALIASES = {
