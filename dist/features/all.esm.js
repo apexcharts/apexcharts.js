@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.0.0-rc.1
+ * ApexCharts v8.0.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -10978,7 +10978,7 @@ function boxPlotTransform(ser, w) {
   if (!Array.isArray(ser)) return ser;
   const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
   return ser.map((s) => {
-    if (!Array.isArray(s == null ? void 0 : s.data)) return s;
+    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "boxPlot") return s;
     let touched = false;
     const data = s.data.map((d) => {
       if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !derivedData.has(d)) {
@@ -11001,7 +11001,7 @@ function violinTransform(ser, w) {
   if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
   return ser.map((s) => {
-    if (!Array.isArray(s == null ? void 0 : s.data)) return s;
+    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "violin") return s;
     let touched = false;
     const data = s.data.map((d) => {
       var _a2;
@@ -11016,7 +11016,10 @@ function violinTransform(ser, w) {
       });
       if (!est) return d;
       touched = true;
-      const next = __spreadProps(__spreadValues({}, d), { y: { density: est.density, points: values } });
+      const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
+      const next = __spreadProps(__spreadValues({}, d), {
+        y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values })
+      });
       derivedData.add(next);
       return next;
     });

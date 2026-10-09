@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.0-rc.1
+ * ApexCharts v8.0.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -24106,6 +24106,31 @@ var __async = (__this, __arguments, generator) => {
     const { maxDepth } = annotate(roots);
     return { roots, maxDepth, nested: false };
   }
+  const RAW_SAMPLE_TYPES = (
+    /** @type {Record<string, boolean>} */
+    {
+      boxPlot: false,
+      violin: true
+    }
+  );
+  function isRawSample(d, name2, flatY) {
+    var _a, _b, _c;
+    if (!d || typeof d !== "object" || Array.isArray(d)) return false;
+    if (name2 === "boxPlot" && Array.isArray(d.y) && d.y.length === 5) {
+      return false;
+    }
+    if (name2 === "violin" && Array.isArray((_a = d.y) == null ? void 0 : _a.density) && d.y.density.length) {
+      return false;
+    }
+    if (name2 === "violin" && Array.isArray((_b = d.y) == null ? void 0 : _b.summary) && d.y.summary.length === 5) {
+      return false;
+    }
+    const raw = Array.isArray(d.points) ? d.points : Array.isArray((_c = d.y) == null ? void 0 : _c.points) ? d.y.points : flatY && Array.isArray(d.y) && typeof d.y[0] === "number" ? d.y : null;
+    return !!raw && raw.some((v) => {
+      const n2 = Utils$1.parseNumber(v);
+      return n2 !== null && isFinite(n2);
+    });
+  }
   function subtreeTotal(d) {
     if (!d || typeof d !== "object") return Utils$1.parseNumber(d) || 0;
     if (d.y !== void 0) return Utils$1.parseNumber(d.y) || 0;
@@ -24136,7 +24161,7 @@ var __async = (__this, __arguments, generator) => {
       this.threeDSeries = [];
       this.twoDSeriesX = [];
       this.seriesGoals = [];
-      this._warnedMissingTransform = false;
+      this._warnedFeatures = /* @__PURE__ */ new Set();
       this.coreUtils = new CoreUtils(this.w);
       this.activeSeriesIndex = 0;
     }
@@ -25384,13 +25409,16 @@ var __async = (__this, __arguments, generator) => {
       }
       const transform = getSeriesTransform(name2);
       if (transform) return transform(ser, this.w);
+      if (Array.isArray(ser) && name2 in RAW_SAMPLE_TYPES) {
+        return this._withoutStats(ser, name2);
+      }
       const feature = (
         /** @type {Record<string,string>} */
         TYPE_FEATURES[name2]
       );
       if (!Array.isArray(ser) || !feature) return ser;
-      if (!this._warnedMissingTransform) {
-        this._warnedMissingTransform = true;
+      if (!this._warnedFeatures.has(feature)) {
+        this._warnedFeatures.add(feature);
         const base = TYPE_ALIASES[name2];
         warnMissingFeature(
           `chart.type '${name2}'`,
@@ -25405,6 +25433,44 @@ var __async = (__this, __arguments, generator) => {
         );
       }
       return ser.map((s2) => __spreadProps(__spreadValues({}, s2), { data: [] }));
+    }
+    /**
+     * A boxPlot or violin on a page without the stats feature. Precomputed input
+     * (a five-number `y`, a density profile) draws as it always has. Raw
+     * observations are what the feature turns into that input, so without it
+     * the renderer got no summary and no density and drew a sliver or nothing,
+     * with no word as to why. That only happens off the default bundle, which
+     * has the feature: the lean core, or a page assembled from type entries.
+     *
+     * Said, not blanked. Unlike a TYPE_FEATURES type, nothing here draws a WRONG
+     * chart, and the series stays as given: parseData writes it back to the
+     * config, so a stats feature that registers later (a deferred import, an
+     * async script tag) finds the observations on the next render.
+     *
+     * Only series that are this type: a combo's other series (a precomputed
+     * boxPlot in a violin chart, a rangeArea's `y: [lo, hi]`) are not samples.
+     *
+     * @param {any[]} ser
+     * @param {string} name 'boxPlot' or 'violin'
+     * @returns {any[]}
+     */
+    _withoutStats(ser, name2) {
+      if (this._warnedFeatures.has("stats")) return ser;
+      const flatY = RAW_SAMPLE_TYPES[name2];
+      const raw = ser.some(
+        (s2) => ((s2 == null ? void 0 : s2.type) || name2) === name2 && Array.isArray(s2 == null ? void 0 : s2.data) && s2.data.some((d) => isRawSample(d, name2, flatY))
+      );
+      if (raw) {
+        this._warnedFeatures.add("stats");
+        warnMissingFeature(
+          `chart.type '${name2}' with raw observations (\`points\`${flatY ? ", or a flat number array as `y`" : ""})`,
+          "stats",
+          {
+            tail: "Precomputed input draws without it; raw series draw nothing until it loads and the chart renders again."
+          }
+        );
+      }
+      return ser;
     }
     /**
      * Nested treemap: resolve a `children` hierarchy into the tree the renderer
@@ -47367,7 +47433,7 @@ var __async = (__this, __arguments, generator) => {
     if (!Array.isArray(ser)) return ser;
     const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
     return ser.map((s2) => {
-      if (!Array.isArray(s2 == null ? void 0 : s2.data)) return s2;
+      if (!Array.isArray(s2 == null ? void 0 : s2.data) || s2.type && s2.type !== "boxPlot") return s2;
       let touched = false;
       const data = s2.data.map((d) => {
         if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !derivedData$1.has(d)) {
@@ -47390,7 +47456,7 @@ var __async = (__this, __arguments, generator) => {
     if (!Array.isArray(ser)) return ser;
     const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
     return ser.map((s2) => {
-      if (!Array.isArray(s2 == null ? void 0 : s2.data)) return s2;
+      if (!Array.isArray(s2 == null ? void 0 : s2.data) || s2.type && s2.type !== "violin") return s2;
       let touched = false;
       const data = s2.data.map((d) => {
         var _a2;
@@ -47405,7 +47471,10 @@ var __async = (__this, __arguments, generator) => {
         });
         if (!est) return d;
         touched = true;
-        const next = __spreadProps(__spreadValues({}, d), { y: { density: est.density, points: values } });
+        const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
+        const next = __spreadProps(__spreadValues({}, d), {
+          y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values })
+        });
         derivedData$1.add(next);
         return next;
       });
@@ -59339,6 +59408,35 @@ var __async = (__this, __arguments, generator) => {
       );
     }
   }
+  function drainPendingAddons(ApexCharts2) {
+    if (!Object.prototype.hasOwnProperty.call(ApexCharts2, "__drainsAddons")) {
+      Object.defineProperty(ApexCharts2, "__drainsAddons", { value: true });
+    }
+    const g = (
+      /** @type {any} */
+      globalThis
+    );
+    const drain = () => {
+      var _a;
+      const queue = g.__apexcharts_pending_addons__;
+      if (!Array.isArray(queue) || !queue.length) return;
+      if (!g.ApexCharts || !g.ApexCharts.__internals) return;
+      const batch = queue.splice(0);
+      for (const entry of batch) entry.done = true;
+      for (const entry of batch) {
+        try {
+          entry.run.call(g);
+        } catch (e2) {
+          g.console.error(
+            `ApexCharts: ${entry.file}, loaded before the ApexCharts script, failed to register: ${/** @type {any} */
+            (_a = e2 == null ? void 0 : e2.message) != null ? _a : e2}`
+          );
+        }
+      }
+    };
+    if (typeof queueMicrotask === "function") queueMicrotask(drain);
+    else Promise.resolve().then(drain);
+  }
   ApexCharts.use({
     line: Line,
     area: Line,
@@ -59367,6 +59465,7 @@ var __async = (__this, __arguments, generator) => {
       configurable: false
     });
   }
+  drainPendingAddons(ApexCharts);
   const BarBase = (
     /** @type {typeof import('./Bar').default} */
     /** @type {unknown} */

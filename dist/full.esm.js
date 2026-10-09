@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.0-rc.1
+ * ApexCharts v8.0.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts$1 from "apexcharts";

@@ -16,7 +16,7 @@ var __spreadValues = (a, b) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.0.0-rc.1
+ * ApexCharts v8.0.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
