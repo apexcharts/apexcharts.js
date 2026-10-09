@@ -259,9 +259,12 @@ async function main() {
 
   if (budget.addons) {
     // Read off the build config, so a new add-on is covered the day it ships.
+    // Every UMD entry but the baselines (`alsoMin`), which have budgets of
+    // their own: filtering on `shared` would skip exactly the add-on this
+    // ceiling is for, the one that lost its `shared: true` and inlined core.
     const { UMD_ENTRIES } = await import('../vite.config.mjs')
     const sizes = Object.values(UMD_ENTRIES)
-      .filter((e) => e.shared)
+      .filter((e) => !e.alsoMin)
       .map((e) => {
         const file = `dist/${e.out}`
         const abs = join(ROOT, file)

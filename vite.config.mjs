@@ -14,7 +14,11 @@ import { coreExternalPlugin } from './build/shared-modules.mjs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
+// Next to this file, not the working directory: build/check-size.mjs imports
+// this config for UMD_ENTRIES and runs from anywhere.
+const pkg = JSON.parse(
+  readFileSync(resolve(__dirname, 'package.json'), 'utf-8'),
+)
 const version = pkg.version
 const year = new Date().getFullYear()
 
