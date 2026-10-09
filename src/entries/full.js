@@ -26,6 +26,7 @@
  * on the same class, and a second non-configurable define throws.
  */
 import ApexCharts from './standard.js'
+import Core from '../apexcharts.js'
 
 // Chart types outside the default bundle.
 import './violin.js'
@@ -64,5 +65,21 @@ registerMarks(pictograms)
 const A = /** @type {any} */ (ApexCharts)
 A.unitShapes = unitShapes
 A.pictograms = pictograms
+
+// Under Node's default conditions `apexcharts` resolves to the self-contained
+// server build, whose class is not the `apexcharts/core` one the features
+// above hang their statics on (`ApexCharts.perspectives`, the crossfilter
+// factory). Chart types and features reach both classes through globalThis
+// registries; plain statics do not, so `ApexCharts.perspectives` was null and
+// `ApexCharts.crossfilter()` said the link feature was missing from the bundle
+// that carries it. Hand the class this entry exports whatever it lacks. With a
+// bundler, and in the script-tag build, the two are one class and this is a
+// no-op.
+const CoreClass = /** @type {any} */ (Core)
+if (CoreClass !== A) {
+  for (const key of Object.getOwnPropertyNames(CoreClass)) {
+    if (A[key] == null && CoreClass[key] != null) A[key] = CoreClass[key]
+  }
+}
 
 export default ApexCharts
