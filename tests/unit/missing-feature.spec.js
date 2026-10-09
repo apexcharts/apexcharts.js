@@ -45,6 +45,20 @@ describe('warnMissingFeature', () => {
     expect(msg.endsWith(' Drawing nothing.')).toBe(true)
   })
 
+  it('takes the import and the script files a chart type documents', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    warnMissingFeature("chart.type 'raincloud'", 'raincloud', {
+      module: 'raincloud',
+      scripts: ['violin.js', 'features/raincloud.js'],
+    })
+    const [msg] = warn.mock.calls[0]
+    expect(msg).toContain("Bundler: import 'apexcharts/raincloud'.")
+    expect(msg).toContain(
+      "Script tag: add <script src='.../dist/violin.js'> and " +
+        "<script src='.../dist/features/raincloud.js'> after apexcharts.js.",
+    )
+  })
+
   it('survives the minifier options the default bundle is built with', async () => {
     const src = readFileSync(
       resolve(__dirname, '../../src/utils/MissingFeature.js'),

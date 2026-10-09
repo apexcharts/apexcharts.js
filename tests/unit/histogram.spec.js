@@ -366,7 +366,7 @@ describe('histogram chart type', () => {
       expect(document.querySelectorAll('.apexcharts-bar-area').length).toBe(0)
       expect(chart.w.config.series[0].data).toEqual([])
       expect(warn.mock.calls.flat().join(' ')).toContain(
-        "apexcharts/features/stats",
+        "import 'apexcharts/histogram'",
       )
     } finally {
       registerSeriesTransform('histogram', histogramTransform)

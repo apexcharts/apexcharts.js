@@ -19,17 +19,27 @@
  *
  * @param {string} subject what the user configured or called, e.g. "`chart.measure`"
  * @param {string} feature the module under `apexcharts/features/`
- * @param {{ entry?: string, tail?: string }} [opts] `entry`: a sub-path entry
- *   that also brings the feature in (`apexcharts/<entry>`); `tail`: one more
+ * @param {{ module?: string, entry?: string, scripts?: string[], tail?: string }} [opts]
+ *   `module`: what a bundler imports, under `apexcharts/` (default
+ *   `features/<feature>`; a chart type names its own entry, which is what its
+ *   docs say to import); `entry`: a sub-path entry that also brings the feature
+ *   in (`apexcharts/<entry>`); `scripts`: the files a script tag adds, in load
+ *   order, under `dist/` (default `features/<feature>.js`); `tail`: one more
  *   sentence, saying what the chart does instead
  */
 export default function warnMissingFeature(subject, feature, opts = {}) {
-  const { entry, tail } = opts
+  const {
+    module = `features/${feature}`,
+    entry,
+    scripts = [`features/${feature}.js`],
+    tail,
+  } = opts
+  const tags = scripts.map((f) => `<script src='.../dist/${f}'>`).join(' and ')
   globalThis.console.warn(
     `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. ` +
-      `Bundler: import 'apexcharts/features/${feature}'` +
+      `Bundler: import 'apexcharts/${module}'` +
       (entry ? ` (or from 'apexcharts/${entry}')` : '') +
-      `. Script tag: add <script src='.../dist/features/${feature}.js'> after apexcharts.js.` +
+      `. Script tag: add ${tags} after apexcharts.js.` +
       (tail ? ` ${tail}` : ''),
   )
 }

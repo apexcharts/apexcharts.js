@@ -1280,6 +1280,9 @@ export default class TreemapChart {
    * view one level at a time, zoom reframes a tree that stays whole. Running
    * both would fight over the same click and over the one breadcrumb slot in
    * the wrap, so drilldown wins where it is active and this stands down.
+   * Active means the feature is loaded as well as configured: without it the
+   * click navigates nowhere (the chart warns about the missing feature), so
+   * standing zoom down too would leave the click doing nothing at all.
    * @returns {boolean}
    */
   _zoomEnabled() {
@@ -1288,7 +1291,13 @@ export default class TreemapChart {
     if (!z || !z.enabled || !this.showParents) return false
 
     const dd = w.config.drilldown
-    if (dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
+    if (
+      this.ctx.drilldown &&
+      dd &&
+      dd.enabled &&
+      Array.isArray(dd.series) &&
+      dd.series.length
+    ) {
       if (!this._warnedZoomConflict) {
         this._warnedZoomConflict = true
         console.warn(

@@ -71,10 +71,20 @@ class Filters {
    * drill it just triggered, which reads as a glitch rather than as motion.
    * The states.active filter comes back as the click feedback (it is instant,
    * so the re-render lands on top of it rather than fighting it).
+   *
+   * Only while the drilldown feature is loaded. Without it the click is not
+   * navigation (the chart warns about the missing feature instead), so the pie
+   * keeps the pull-out it would have had. Read off the shared feature registry
+   * because `w` is all this has; a registered feature is on every chart.
    * @param {any} w
    */
   static drilldownBlocksSliceOffset(w) {
-    return Filters.isSliceChart(w) && w.config.drilldown?.enabled === true
+    const features = /** @type {any} */ (globalThis).__apexcharts_features_v1__
+    return (
+      Filters.isSliceChart(w) &&
+      w.config.drilldown?.enabled === true &&
+      !!features?.has('drilldown')
+    )
   }
 
   // create a re-usable filter which can be appended other filter effects and applied to multiple elements

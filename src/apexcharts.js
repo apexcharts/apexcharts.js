@@ -294,6 +294,16 @@ export default class ApexCharts {
           warnMissingFeature('`chart.history`', 'history')
         }
 
+        // And for drilldown, whose config is top-level `drilldown`. Absent, the
+        // root level draws and a click on a drillable point does nothing, a
+        // chart that looks finished and simply never navigates.
+        if (
+          this.w.config.drilldown?.enabled &&
+          !(/** @type {any} */ (this.ctx).drilldown)
+        ) {
+          warnMissingFeature('`drilldown`', 'drilldown')
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           if (!isTrellisHost) {

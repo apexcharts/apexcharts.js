@@ -13,11 +13,27 @@ import {
 } from '../charts/common/treemap/Nested'
 
 /**
- * Chart types whose series carries raw observations and therefore cannot draw
- * anything until the named opt-in feature supplies the statistic
- * (type → feature module under `apexcharts/features/<name>`).
+ * Alias chart types that cannot draw anything true until the named feature
+ * supplies their series transform (type -> feature module under
+ * `apexcharts/features/<name>`).
+ *
+ * Two kinds, one failure. A histogram or raincloud series carries raw
+ * observations, so drawn as given it is one mark per observation. A waterfall,
+ * dumbbell or streamgraph series carries values its base renderer (rangeBar,
+ * rangeArea) would draw WRONG rather than not at all: waterfall heights read as
+ * zeros with no connectors, a dumbbell draws twice the rows, a streamgraph's
+ * bands come out zero-thick. Each would pass for a chart. Blank plus one warning
+ * is the honest answer, and it is safe on both base renderers, updates included.
+ *
+ * Module-private, like everything in this shared module (see subtreeTotal).
  */
-const RAW_SAMPLE_FEATURES = { histogram: 'stats', raincloud: 'raincloud' }
+const TYPE_FEATURES = {
+  histogram: 'stats',
+  raincloud: 'raincloud',
+  waterfall: 'waterfall',
+  dumbbell: 'dumbbell',
+  streamgraph: 'streamgraph',
+}
 
 /**
  * Total of the values under a datum, for a partition branch that omits its own.
@@ -67,7 +83,7 @@ export default class Data {
     this.twoDSeriesX = []
     /** @type {any} */
     this.seriesGoals = []
-    /** Warn once per chart when a raw-sample type has no registered transform. */
+    /** Warn once per chart when a TYPE_FEATURES type has no registered transform. */
     this._warnedMissingTransform = false
     this.coreUtils = new CoreUtils(this.w)
     /** @type {number} */ this.activeSeriesIndex = 0
@@ -1775,16 +1791,23 @@ export default class Data {
 
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
-    const feature =
-      /** @type {Record<string,string>} */ (RAW_SAMPLE_FEATURES)[name]
+    const feature = /** @type {Record<string,string>} */ (TYPE_FEATURES)[name]
     if (!Array.isArray(ser) || !feature) return ser
-    // Without the feature there is no statistic to compute, and drawing the
-    // raw sample as one mark per observation would be a silent, unusable mess
-    // (a 1800-point sample would render 1800 bars). Warn once per chart:
+    // Without the feature the series is not what the renderer draws (see
+    // TYPE_FEATURES), so draw nothing and say why. Warn once per chart:
     // parseData runs on every render, and a resize should not spam the console.
     if (!this._warnedMissingTransform) {
       this._warnedMissingTransform = true
-      warnMissingFeature(`chart.type '${name}'`, feature, { entry: name })
+      warnMissingFeature(`chart.type '${name}'`, feature, {
+        // The type's own entry, which is the import its docs give.
+        module: name,
+        // A raincloud also draws through the violin renderer, so a script-tag
+        // page adds that file too, first.
+        scripts:
+          name === 'raincloud'
+            ? ['violin.js', `features/${feature}.js`]
+            : undefined,
+      })
     }
     return ser.map((/** @type {any} */ s) => ({ ...s, data: [] }))
   }
