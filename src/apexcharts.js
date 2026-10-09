@@ -54,6 +54,7 @@ import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
+import warnMissingFeature from './utils/MissingFeature.js'
 import { BrowserAPIs } from './ssr/BrowserAPIs.js'
 import { LicenseManager } from 'apex-commons'
 import {
@@ -241,9 +242,9 @@ export default class ApexCharts {
           this.trellis.isActive()
         )
         if (wantsTrellis && !this.trellis) {
-          console.warn(
-            "ApexCharts: `trellis` requires the trellis feature, which is not in the default bundle. Bundler: import 'apexcharts/features/trellis'. Script tag: add <script src='.../dist/features/trellis.js'> after apexcharts.js. Rendering as a single chart.",
-          )
+          warnMissingFeature('`trellis`', 'trellis', {
+            tail: 'Rendering as a single chart.',
+          })
         }
 
         // Same guard for the measure ruler: asking for it without the feature
@@ -252,18 +253,14 @@ export default class ApexCharts {
         // upgrade. Config-driven, so it fires whether or not they ever call
         // startMeasure().
         if (this.w.config.chart?.measure?.enabled && !this.measure) {
-          console.warn(
-            "ApexCharts: `chart.measure` requires the measure feature, which is not in the default bundle. Bundler: import 'apexcharts/features/measure'. Script tag: add <script src='.../dist/features/measure.js'> after apexcharts.js.",
-          )
+          warnMissingFeature('`chart.measure`', 'measure')
         }
 
         // And for linked views. `chart.link` carries the crossfilter dimension
         // config too, so an absent feature means the chart quietly stops
         // participating in its dashboard rather than erroring anywhere.
         if (this.w.config.chart?.link?.enabled && !this.linkedViews) {
-          console.warn(
-            "ApexCharts: `chart.link` requires the link feature, which is not in the default bundle. Bundler: import 'apexcharts/features/link'. Script tag: add <script src='.../dist/features/link.js'> after apexcharts.js.",
-          )
+          warnMissingFeature('`chart.link`', 'link')
         }
 
         // And for the ink layer. Two ways in, so check both: the global switch
@@ -276,8 +273,9 @@ export default class ApexCharts {
             (/** @type {any} */ p) => p && p.draggable,
           )
           if (inkOn || anyDraggable) {
-            console.warn(
-              "ApexCharts: `chart.ink` / `annotations.points[].draggable` requires the ink feature, which is not in the default bundle. Bundler: import 'apexcharts/features/ink'. Script tag: add <script src='.../dist/features/ink.js'> after apexcharts.js.",
+            warnMissingFeature(
+              '`chart.ink` / `annotations.points[].draggable`',
+              'ink',
             )
           }
         }
@@ -286,18 +284,14 @@ export default class ApexCharts {
         // right-click, which looks enough like "nothing happened" that it
         // reads as a broken build rather than a missing import.
         if (this.w.config.chart?.contextMenu?.enabled && !this.contextMenu) {
-          console.warn(
-            "ApexCharts: `chart.contextMenu` requires the context-menu feature, which is not in the default bundle. Bundler: import 'apexcharts/features/context-menu'. Script tag: add <script src='.../dist/features/context-menu.js'> after apexcharts.js.",
-          )
+          warnMissingFeature('`chart.contextMenu`', 'context-menu')
         }
 
         // And for Rewind. Absent, edits still apply and simply cannot be undone
         // — Ctrl-Z does nothing, which users read as a lost keystroke rather
         // than a missing feature.
         if (this.w.config.chart?.history?.enabled && !this.history) {
-          console.warn(
-            "ApexCharts: `chart.history` requires the history feature, which is not in the default bundle. Bundler: import 'apexcharts/features/history'. Script tag: add <script src='.../dist/features/history.js'> after apexcharts.js.",
-          )
+          warnMissingFeature('`chart.history`', 'history')
         }
 
         // add event listeners in browser environment
@@ -1795,9 +1789,7 @@ export default class ApexCharts {
    */
   static trellis(el, options) {
     if (!InitCtxVariables._featureRegistry.get('trellis')) {
-      console.warn(
-        "ApexCharts.trellis requires the trellis feature, which is not in the default bundle. Bundler: import 'apexcharts/features/trellis'. Script tag: add <script src='.../dist/features/trellis.js'> after apexcharts.js.",
-      )
+      warnMissingFeature('ApexCharts.trellis()', 'trellis')
       return null
     }
     const chart = new ApexCharts(el, options)
@@ -2213,9 +2205,7 @@ export default class ApexCharts {
     }
     const factory = /** @type {any} */ (ApexCharts)._crossfilterFactory
     if (!factory) {
-      console.warn(
-        `[apexcharts] ApexCharts.crossfilter(...) requires the link feature, which is not in the default bundle. Bundler: import 'apexcharts/features/link'. Script tag: add <script src='.../dist/features/link.js'> after apexcharts.js.`,
-      )
+      warnMissingFeature('ApexCharts.crossfilter()', 'link')
       return null
     }
     const coordinator = factory(opts)

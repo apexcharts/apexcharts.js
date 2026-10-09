@@ -1,5 +1,6 @@
 // @ts-check
 import { Environment } from '../utils/Environment.js'
+import warnMissingFeature from '../utils/MissingFeature.js'
 import SvgRenderer from '../renderers/svg/SvgRenderer'
 import {
   computeMarkCount,
@@ -143,11 +144,12 @@ export default class RendererController {
       }
       // The backend was requested/auto-selected but its feature isn't bundled.
       if (mode === desired) {
-        console.warn(
-          `[apexcharts] renderer:"${desired}" requested but that renderer is not in ` +
-            `the default bundle. Bundler: import 'apexcharts/features/renderer-${desired}'. ` +
-            `Script tag: add <script src=".../dist/features/renderer-${desired}.js"> after ` +
-            `apexcharts.js. Falling back to SVG.`,
+        warnMissingFeature(
+          `\`chart.renderer: '${desired}'\``,
+          `renderer-${desired}`,
+          {
+            tail: 'Falling back to SVG.',
+          },
         )
       }
     } else if (mode === 'canvas' && hasCanvasUnsupportedFeature(this.w)) {

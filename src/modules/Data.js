@@ -6,6 +6,7 @@ import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
 import { isCustom, getChartClass } from './ChartFactory'
 import { getSeriesTransform } from './SeriesTransformRegistry'
+import warnMissingFeature from '../utils/MissingFeature.js'
 import {
   isNestedTreemap,
   resolveTreemapTree,
@@ -1783,13 +1784,7 @@ export default class Data {
     // parseData runs on every render, and a resize should not spam the console.
     if (!this._warnedMissingTransform) {
       this._warnedMissingTransform = true
-      console.warn(
-        `ApexCharts: chart.type '${name}' requires the ${feature} feature, ` +
-          `which is not in this bundle. Bundler: import ` +
-          `'apexcharts/features/${feature}' (or from 'apexcharts/${name}'). ` +
-          `Script tag: add <script src='.../dist/features/${feature}.js'> ` +
-          `after apexcharts.js.`,
-      )
+      warnMissingFeature(`chart.type '${name}'`, feature, { entry: name })
     }
     return ser.map((/** @type {any} */ s) => ({ ...s, data: [] }))
   }
