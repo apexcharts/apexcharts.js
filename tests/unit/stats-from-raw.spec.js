@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 // Not in the default bundle since 8.0, so imported the way an app would.
 import '../../src/entries/violin.js'
@@ -7,6 +8,11 @@ import {
   unregisterSeriesTransform,
 } from '../../src/modules/SeriesTransformRegistry'
 import { boxPlotTransform, violinTransform } from '../../src/features/stats'
+
+const warnings = (spy) =>
+  spy.mock.calls
+    .map((c) => String(c[0]))
+    .filter((m) => m.includes('requires the stats feature'))
 
 // `apexcharts/features/stats` lets boxPlot and violin take the SAMPLE instead
 // of a precomputed summary or density. Both previously required the caller to
@@ -217,12 +223,84 @@ describe('boxPlot from raw observations', () => {
 
   test('without the feature, precomputed boxPlots still work', () => {
     unregisterSeriesTransform('boxPlot')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
-      const chart = boxChart([{ x: 'G1', y: [10, 20, 40, 50, 70] }])
+      // With jitter points: a five-number y wins, so they are no raw sample.
+      const chart = boxChart([
+        { x: 'G1', y: [10, 20, 40, 50, 70], points: [12, 33, 61] },
+      ])
       expect(boxCount()).toBe(1)
       expect(chart.w.candleData.seriesCandleO[0][0]).toBe(10)
+      expect(warnings(warn)).toEqual([])
     } finally {
       registerSeriesTransform('boxPlot', boxPlotTransform)
+      warn.mockRestore()
+    }
+  })
+
+  // The lean core without the feature: raw observations used to draw nothing
+  // with no word as to why.
+  test('without the feature, raw observations warn once and keep the data', async () => {
+    unregisterSeriesTransform('boxPlot')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const chart = boxChart([{ x: 'G1', points: [1, 2, 3, 4, 5] }])
+      expect(boxCount()).toBe(0)
+      // Not blanked: the observations stay for a feature that loads later.
+      expect(chart.w.config.series[0].data[0].points).toEqual([1, 2, 3, 4, 5])
+      const msgs = warnings(warn)
+      expect(msgs).toHaveLength(1)
+      expect(msgs[0]).toContain("chart.type 'boxPlot' with raw observations")
+      expect(msgs[0]).toContain("import 'apexcharts/features/stats'")
+      expect(msgs[0]).toContain("<script src='.../dist/features/stats.js'>")
+      expect(msgs[0]).toContain('Precomputed input draws without it')
+
+      await chart.updateOptions({ title: { text: 'again' } })
+      await chart.updateSeries([
+        { name: 'A', data: [{ x: 'G2', points: [6, 7, 8, 9, 10] }] },
+      ])
+      expect(warnings(warn)).toHaveLength(1)
+    } finally {
+      registerSeriesTransform('boxPlot', boxPlotTransform)
+      warn.mockRestore()
+    }
+  })
+
+  test('a stats feature that registers later finds the observations', async () => {
+    unregisterSeriesTransform('boxPlot')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    let chart
+    try {
+      chart = boxChart([{ x: 'G1', points: [1, 2, 3, 4, 5] }])
+      expect(boxCount()).toBe(0)
+    } finally {
+      registerSeriesTransform('boxPlot', boxPlotTransform)
+      warn.mockRestore()
+    }
+    await chart.updateOptions({ title: { text: 'stats arrived' } })
+    expect(boxCount()).toBe(1)
+  })
+
+  test('a missing stats feature does not hide a different missing feature', async () => {
+    unregisterSeriesTransform('boxPlot')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const chart = boxChart([{ x: 'G1', points: [1, 2, 3, 4, 5] }])
+      // waterfall is not in the default bundle, which this spec runs on.
+      await chart.updateOptions({
+        chart: { type: 'waterfall' },
+        series: [{ name: 'W', data: [{ x: 'a', y: 3 }] }],
+      })
+      const all = warn.mock.calls.map((c) => String(c[0]))
+      expect(all.some((m) => m.includes('requires the stats feature'))).toBe(
+        true,
+      )
+      expect(
+        all.some((m) => m.includes('requires the waterfall feature')),
+      ).toBe(true)
+    } finally {
+      registerSeriesTransform('boxPlot', boxPlotTransform)
+      warn.mockRestore()
     }
   })
 })
@@ -311,16 +389,134 @@ describe('violin from raw observations', () => {
 
   test('without the feature, precomputed violins still work', () => {
     unregisterSeriesTransform('violin')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
       const density = [
         [1, 0],
         [2, 1],
         [3, 0],
       ]
-      violinChart([{ x: 'G1', y: { density, points: [] } }])
+      // With jitter points: a density wins, so they are no raw sample.
+      violinChart([{ x: 'G1', y: { density, points: [1.5, 2, 2.5] } }])
       expect(document.querySelectorAll('.apexcharts-violin-area').length).toBe(1)
+      expect(warnings(warn)).toEqual([])
     } finally {
       registerSeriesTransform('violin', violinTransform)
+      warn.mockRestore()
     }
+  })
+
+  // Both raw forms a violin accepts: `points`, and a flat number array as y.
+  test.each([
+    ['points', { x: 'G1', points: [1, 2, 2, 3, 3, 3, 4, 4, 5] }],
+    ['a flat y', { x: 'G1', y: [1, 2, 2, 3, 3, 3, 4, 4, 5] }],
+  ])('without the feature, raw observations as %s warn once', (_, datum) => {
+    unregisterSeriesTransform('violin')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      violinChart([datum])
+      const msgs = warnings(warn)
+      expect(msgs).toHaveLength(1)
+      expect(msgs[0]).toContain("chart.type 'violin' with raw observations")
+      expect(msgs[0]).toContain('a flat number array as `y`')
+      expect(msgs[0]).toContain("import 'apexcharts/features/stats'")
+    } finally {
+      registerSeriesTransform('violin', violinTransform)
+      warn.mockRestore()
+    }
+  })
+
+  test('without the feature, a summary with its points is no raw sample', () => {
+    unregisterSeriesTransform('violin')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      violinChart(
+        [{ x: 'G1', y: { points: [1, 2, 3, 4, 5], summary: [1, 2, 3, 4, 5] } }],
+        { violin: { box: { show: true } } },
+      )
+      expect(warnings(warn)).toEqual([])
+    } finally {
+      registerSeriesTransform('violin', violinTransform)
+      warn.mockRestore()
+    }
+  })
+
+  test('with the feature, a summary given with the points is kept', () => {
+    const chart = violinChart(
+      [{ x: 'G1', y: { points: skewed(), summary: [10, 12, 15, 18, 25] } }],
+      { violin: { box: { show: true } } },
+    )
+    expect(chart.w.config.series[0].data[0].y.summary).toEqual([
+      10, 12, 15, 18, 25,
+    ])
+    expect(chart.w.config.series[0].data[0].y.density.length).toBeGreaterThan(0)
+  })
+})
+
+// A combo's other series are not samples of the chart's type. The flat
+// number array a violin accepts as raw observations is exactly what a
+// boxPlot's or a rangeArea's `y` looks like.
+describe('combo series are judged by their own type', () => {
+  const combo = () =>
+    createChartWithOptions({
+      chart: { type: 'violin', width: 600, height: 400 },
+      series: [
+        {
+          name: 'V',
+          type: 'violin',
+          data: [
+            {
+              x: 'G1',
+              y: {
+                density: [
+                  [1, 0.1],
+                  [2, 0.5],
+                  [3, 0.1],
+                ],
+                points: [],
+              },
+            },
+          ],
+        },
+        { name: 'B', type: 'boxPlot', data: [{ x: 'G1', y: [1, 2, 3, 4, 5] }] },
+      ],
+    })
+
+  test('without the feature, a precomputed boxPlot in a violin chart draws with no warning', () => {
+    unregisterSeriesTransform('violin')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const chart = combo()
+      expect(chart.w.config.series[1].data[0].y).toEqual([1, 2, 3, 4, 5])
+      expect(warnings(warn)).toEqual([])
+    } finally {
+      registerSeriesTransform('violin', violinTransform)
+      warn.mockRestore()
+    }
+  })
+
+  test('with the feature, the violin transform leaves the boxPlot series alone', () => {
+    const chart = combo()
+    expect(chart.w.config.series[1].data[0].y).toEqual([1, 2, 3, 4, 5])
+  })
+
+  test('with the feature, the boxPlot transform leaves a violin series alone', () => {
+    const density = [
+      [1, 0.1],
+      [2, 0.5],
+      [3, 0.1],
+    ]
+    const chart = createChartWithOptions({
+      chart: { type: 'boxPlot', width: 600, height: 400 },
+      series: [
+        { name: 'B', type: 'boxPlot', data: [{ x: 'G1', y: [1, 2, 3, 4, 5] }] },
+        {
+          name: 'V',
+          type: 'violin',
+          data: [{ x: 'G1', y: { density, points: [1.5, 2, 2.5] } }],
+        },
+      ],
+    })
+    expect(chart.w.config.series[1].data[0].y.density).toEqual(density)
   })
 })

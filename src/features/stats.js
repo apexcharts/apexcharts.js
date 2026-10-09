@@ -25,8 +25,11 @@
  * the bar renderer and this feature together.
  *
  * Only histogram REQUIRES the feature (there is nothing to draw without the
- * bins). For boxPlot and violin it is purely additive: precomputed input keeps
- * working untouched, with or without this import.
+ * bins). For boxPlot and violin it is additive: precomputed input keeps
+ * working untouched, with or without this import. Raw observations need it:
+ * without it the renderer has nothing to draw for those series, and the chart
+ * warns once (Data._withoutStats) and keeps the data, so a late import works
+ * on the next render. The default bundle has it.
  *
  * The transforms register through SeriesTransformRegistry, so core keeps only
  * a registry lookup and a bundle that never asks for a raw-sample type never
@@ -210,7 +213,9 @@ function boxPlotTransform(ser, w) {
   const whiskers = w.config.plotOptions?.boxPlot?.whiskers || 'minmax'
 
   return ser.map((/** @type {any} */ s) => {
-    if (!Array.isArray(s?.data)) return s
+    // A combo's other series are not samples: a violin series carries its
+    // jitter in `points` too, and would have its density replaced.
+    if (!Array.isArray(s?.data) || (s.type && s.type !== 'boxPlot')) return s
     let touched = false
     const data = s.data.map((/** @type {any} */ d) => {
       // An existing summary wins: this is the documented input shape. Unless we
@@ -252,7 +257,9 @@ function violinTransform(ser, w) {
   const kde = w.config.plotOptions?.violin?.kde || {}
 
   return ser.map((/** @type {any} */ s) => {
-    if (!Array.isArray(s?.data)) return s
+    // A combo's other series are not samples: a boxPlot's or a rangeArea's
+    // `y` is a flat number array too, and was estimated into a density.
+    if (!Array.isArray(s?.data) || (s.type && s.type !== 'violin')) return s
     let touched = false
     const data = s.data.map((/** @type {any} */ d) => {
       if (
@@ -270,7 +277,14 @@ function violinTransform(ser, w) {
       })
       if (!est) return d
       touched = true
-      const next = { ...d, y: { density: est.density, points: values } }
+      // Keep the rest of an object `y`: a summary given with the points still
+      // draws the box lane.
+      const rest =
+        d.y && typeof d.y === 'object' && !Array.isArray(d.y) ? d.y : {}
+      const next = {
+        ...d,
+        y: { ...rest, density: est.density, points: values },
+      }
       derivedData.add(next)
       return next
     })

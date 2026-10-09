@@ -18,6 +18,60 @@ import {
 } from './settings/TypeAliases'
 
 /**
+ * Types whose renderer draws statistics the user may instead leave to the
+ * stats feature, by supplying the raw observations (type -> whether a flat
+ * number array as `y` counts as a sample, which it does where the precomputed
+ * form is an array of PAIRS). Mirrors `observationsOf` in charts/common/Stats,
+ * which core does not import: it comes with the statistics.
+ */
+const RAW_SAMPLE_TYPES = /** @type {Record<string, boolean>} */ ({
+  boxPlot: false,
+  violin: true,
+})
+
+/**
+ * Whether one boxPlot or violin datum carries a raw sample instead of the
+ * precomputed input its renderer draws.
+ *
+ * @param {any} d
+ * @param {string} name
+ * @param {boolean} flatY
+ * @returns {boolean}
+ */
+function isRawSample(d, name, flatY) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return false
+  if (name === 'boxPlot' && Array.isArray(d.y) && d.y.length === 5) {
+    return false
+  }
+  if (name === 'violin' && Array.isArray(d.y?.density) && d.y.density.length) {
+    return false
+  }
+  // A violin datum with its own five-number summary draws its box lane and
+  // its points without the feature; it only lacks a shape it never asked for.
+  if (
+    name === 'violin' &&
+    Array.isArray(d.y?.summary) &&
+    d.y.summary.length === 5
+  ) {
+    return false
+  }
+  const raw = Array.isArray(d.points)
+    ? d.points
+    : Array.isArray(d.y?.points)
+      ? d.y.points
+      : flatY && Array.isArray(d.y) && typeof d.y[0] === 'number'
+        ? d.y
+        : null
+  return (
+    !!raw &&
+    raw.some((/** @type {any} */ v) => {
+      const n = Utils.parseNumber(v)
+      return n !== null && isFinite(n)
+    })
+  )
+}
+
+/**
  * Total of the values under a datum, for a partition branch that omits its own.
  *
  * Private to this module on purpose: `Data.js` is a shared module, so a named
@@ -65,8 +119,12 @@ export default class Data {
     this.twoDSeriesX = []
     /** @type {any} */
     this.seriesGoals = []
-    /** Warn once per chart when a TYPE_FEATURES type has no registered transform. */
-    this._warnedMissingTransform = false
+    /**
+     * Missing features already reported for this chart, so each is said once
+     * however often parseData runs, and one does not hide another.
+     * @type {Set<string>}
+     */
+    this._warnedFeatures = new Set()
     this.coreUtils = new CoreUtils(this.w)
     /** @type {number} */ this.activeSeriesIndex = 0
   }
@@ -1773,13 +1831,16 @@ export default class Data {
 
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
+    if (Array.isArray(ser) && name in RAW_SAMPLE_TYPES) {
+      return this._withoutStats(ser, name)
+    }
     const feature = /** @type {Record<string,string>} */ (TYPE_FEATURES)[name]
     if (!Array.isArray(ser) || !feature) return ser
     // Without the feature the series is not what the renderer draws (see
     // TYPE_FEATURES), so draw nothing and say why. Warn once per chart:
     // parseData runs on every render, and a resize should not spam the console.
-    if (!this._warnedMissingTransform) {
-      this._warnedMissingTransform = true
+    if (!this._warnedFeatures.has(feature)) {
+      this._warnedFeatures.add(feature)
       // With the renderer on the page (the default bundle has bar and
       // rangeArea), the feature is all that is missing: the type's own entry
       // would bring the feature AND a second copy of the renderer, about
@@ -1802,6 +1863,50 @@ export default class Data {
       )
     }
     return ser.map((/** @type {any} */ s) => ({ ...s, data: [] }))
+  }
+
+  /**
+   * A boxPlot or violin on a page without the stats feature. Precomputed input
+   * (a five-number `y`, a density profile) draws as it always has. Raw
+   * observations are what the feature turns into that input, so without it
+   * the renderer got no summary and no density and drew a sliver or nothing,
+   * with no word as to why. That only happens off the default bundle, which
+   * has the feature: the lean core, or a page assembled from type entries.
+   *
+   * Said, not blanked. Unlike a TYPE_FEATURES type, nothing here draws a WRONG
+   * chart, and the series stays as given: parseData writes it back to the
+   * config, so a stats feature that registers later (a deferred import, an
+   * async script tag) finds the observations on the next render.
+   *
+   * Only series that are this type: a combo's other series (a precomputed
+   * boxPlot in a violin chart, a rangeArea's `y: [lo, hi]`) are not samples.
+   *
+   * @param {any[]} ser
+   * @param {string} name 'boxPlot' or 'violin'
+   * @returns {any[]}
+   */
+  _withoutStats(ser, name) {
+    if (this._warnedFeatures.has('stats')) return ser
+    const flatY = RAW_SAMPLE_TYPES[name]
+    const raw = ser.some(
+      (/** @type {any} */ s) =>
+        (s?.type || name) === name &&
+        Array.isArray(s?.data) &&
+        s.data.some((/** @type {any} */ d) => isRawSample(d, name, flatY)),
+    )
+    if (raw) {
+      this._warnedFeatures.add('stats')
+      warnMissingFeature(
+        `chart.type '${name}' with raw observations (\`points\`${
+          flatY ? ', or a flat number array as `y`' : ''
+        })`,
+        'stats',
+        {
+          tail: 'Precomputed input draws without it; raw series draw nothing until it loads and the chart renders again.',
+        },
+      )
+    }
+    return ser
   }
 
   /**

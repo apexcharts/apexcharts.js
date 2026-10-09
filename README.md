@@ -184,7 +184,7 @@ import 'apexcharts/bar'
 // import 'apexcharts/scatter'
 // import 'apexcharts/unit'         // dot / pictogram / waffle / beeswarm (premium, opt-in; 'waffle' aliases this)
 // import 'apexcharts/sunburst'     // hierarchical rings (opt-in)
-// import 'apexcharts/violin'       // distributions, drawn on 'apexcharts/bar' (opt-in)
+// import 'apexcharts/violin'       // distributions, drawn on 'apexcharts/bar' (opt-in); raw observations also need 'apexcharts/features/stats'
 // import 'apexcharts/icicle'       // hierarchical bands (opt-in)
 
 // Optional features
