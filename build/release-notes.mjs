@@ -1,44 +1,25 @@
 /**
  * Assemble a release's notes from the commits it contains.
  *
- * Not a changelog of commit subjects. This repo writes real bodies on its
- * commits, explaining what was wrong before the change and why the fix takes
- * the shape it does, which is the same thing the notes have to say. So the
- * bodies ARE the notes: this groups them under the headings the published
- * releases use, and computes the one part that is a measurement rather than a
- * piece of writing.
+ * A release note answers three questions: what changed, does it affect me, and
+ * how do I upgrade. Readers scan it. So the notes are short: the release
+ * commit's own body as the opening (where the behaviour changes and the
+ * headline feature are explained), then one line per `feat` and `fix`, then the
+ * install command and a link to the full changelog.
+ *
+ * Commit bodies are NOT published. They used to be, under a heading each, and
+ * 7.9.0 came out at 6,200 words that nobody would read. A body explains what
+ * was wrong and why the fix takes its shape, which is what a reader of
+ * `git log` wants, and the changelog link takes anyone who wants that detail
+ * straight to it.
+ *
+ * That makes the commit SUBJECT the published line, so write it for someone
+ * deciding whether the change affects them. Anything a reader must act on (a
+ * changed default, a new throw, an option to restore the old behaviour) goes
+ * in the release commit's body, because a one-line subject cannot carry it.
  *
  * The output is meant to be published as-is. It is not a draft gate: a release
  * nobody remembers to publish is the failure this exists to prevent.
- *
- * Which puts a `feat` commit under an obligation it did not have before. If an
- * addition wants a code sample in the notes, the sample goes in the COMMIT
- * BODY, as an ordinary fenced block:
- *
- *     feat(weave): report the chart title to a plugin
- *
- *     A plugin naming this chart to somebody otherwise has only the
- *     container id, which is a string written for a stylesheet.
- *
- *     ```js
- *     api.info.title // 'Revenue by region', or ''
- *     ```
- *
- * Bodies are passed through verbatim, fences and all, so nothing here has to
- * know about it. The commit is the right place for the example regardless: it
- * is the first thing a reader of `git log -p` wants, and it cannot drift from
- * the change the way a sample written weeks later at release time can.
- *
- * One constraint comes from git rather than from here: its default commit
- * cleanup collapses consecutive blank lines, so a sample cannot carry a double
- * blank line unless the commit is made with `--cleanup=verbatim`. Single blank
- * lines are untouched, which is all a short example needs.
- *
- * The other side of "the bodies ARE the notes" is that a body is written for a
- * reader of the release, not for the reviewer of the pull request. Suite counts,
- * `eslint clean`, and how many pre-existing type errors main has are evidence
- * that the change is sound, which belongs in the PR; published under a heading
- * a month later it is noise, and the numbers are stale by then anyway.
  *
  * Usage: node build/release-notes.mjs <previousTag> <ref> [authors.json]
  *   node build/release-notes.mjs v7.4.0 v7.5.0
@@ -103,52 +84,48 @@ function commitsIn(range) {
 export const heading = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /**
- * Git trailers that name a person rather than say anything.
- *
- * A body is published verbatim, so a `Co-Authored-By:` line arrives in the
- * notes as a line of prose, which is how 7.6.0 shipped two of them. The people
- * a trailer names are credited from the compare API instead, by the handle they
- * are reachable at. `Closes` and `Fixes` deliberately stay: an issue number is
- * something a reader follows.
- */
-const PERSON_TRAILER =
-  /^(?:co-authored-by|signed-off-by|reviewed-by|acked-by|tested-by|helped-by|reported-by|suggested-by)\s*:/i
-
-/**
- * Drop the person-naming trailers from the end of a commit body.
- *
- * Only from the end, and only whole lines. A trailer block is the last thing in
- * a message, and something shaped like `Note: ...` mid-paragraph is prose that
- * happens to contain a colon.
- */
-export function stripTrailers(body) {
-  const lines = body.split('\n')
-  while (lines.length) {
-    const last = lines[lines.length - 1].trim()
-    if (last === '' || PERSON_TRAILER.test(last)) lines.pop()
-    else break
-  }
-  return lines.join('\n').trim()
-}
-
-/**
  * Whose work to name.
  *
  * Only people who are not whoever cut the release: a maintainer thanking
  * themselves in their own notes is noise, and it buries the credits that mean
- * something. Bots are never credited. A commit body that already says "thanks"
- * is left alone, because someone wrote that deliberately.
+ * something. Bots are never credited. A body that thanks someone by handle
+ * names who to credit, since someone wrote that deliberately (usually for a
+ * contributor whose PR was squashed under the maintainer's name), and the
+ * body itself is not published.
  */
 export function creditHandle(commit, authors, releasedBy) {
-  const login = authors[commit.hash]
+  const thanked = /thanks @([\w-]+)/i.exec(commit.body)?.[1]
+  const login = thanked || authors[commit.hash]
   if (!login || login.endsWith('[bot]') || login === releasedBy) return ''
-  if (/thanks @/i.test(commit.body)) return ''
   return login
 }
 
 export function creditFor(commit, authors, releasedBy) {
   const login = creditHandle(commit, authors, releasedBy)
-  return login ? `\n\nThanks @${login}.` : ''
+  return login ? ` Thanks @${login}.` : ''
+}
+
+/**
+ * The issues and pull requests a commit names, for the reader to follow.
+ *
+ * A squash merge puts its PR in the subject, `(#5338)`, and a body says which
+ * issue it closes, `Fixes #3836.`. Both are worth a link; the rest of the body
+ * is not.
+ */
+export function refsOf(commit) {
+  const refs = [...commit.title.matchAll(/\(#(\d+)\)/g)].map((m) => m[1])
+  for (const m of commit.body.matchAll(/\b(?:fix|fixes|fixed|close|closes|closed|resolve|resolves|resolved)\s+#(\d+)/gi)) {
+    refs.push(m[1])
+  }
+  return [...new Set(refs)]
+}
+
+/** One line for one commit: its subject, what it references, who to thank. */
+export function line(commit, authors, releasedBy) {
+  const refs = refsOf(commit)
+  const title = heading(commit.title.replace(/\s*\(#\d+\)/g, '').trim())
+  const ref = refs.length ? ` (${refs.map((r) => `#${r}`).join(', ')})` : ''
+  return `- ${title}${ref}.${creditFor(commit, authors, releasedBy)}`
 }
 
 /**
@@ -222,44 +199,29 @@ export function unwrap(md) {
     .join('')
 }
 
-/**
- * A commit with no body has nothing to tell a reader.
- *
- * It used to get a heading of its own with an apology underneath, which is how
- * 7.6.0 published three `_No detail was written on this commit._` entries and
- * gave "fix: address comments" a heading in the fixes list. A heading is a
- * promise of detail; keeping it and admitting there is none reads as broken
- * rather than honest.
- *
- * So these collapse to one line each at the end of their section. Nothing is
- * hidden, since a real fix whose author simply forgot a body is indistinguishable
- * from a follow-up with nothing to say, and dropping either would lose a change
- * the reader might be looking for. `main` warns about them separately, which is
- * the signal that a body should have been written before the release was cut.
- */
+/** A heading over one line per commit of the given types, in the order they landed. */
 export function section(commits, types, title, authors, releasedBy) {
   const mine = commits.filter((c) => types.includes(c.type))
   if (!mine.length) return ''
+  return `## ${title}\n\n${mine.map((c) => line(c, authors, releasedBy)).join('\n')}\n\n`
+}
 
-  const described = []
-  const bare = []
-  for (const c of mine) (stripTrailers(c.body) ? described : bare).push(c)
-
-  const blocks = described.map(
-    (c) =>
-      `### ${heading(c.title)}\n\n${unwrap(stripTrailers(c.body))}` +
-      creditFor(c, authors, releasedBy)
+/**
+ * One sentence on the default bundle, or nothing.
+ *
+ * Only when it moved by 1% or more. A table of two sizes under every release
+ * told most readers that nothing happened; a sentence when something did is
+ * the part worth reading.
+ */
+export function bundleLine(prevVersion, prevSize, size) {
+  const delta = size - prevSize
+  const pct = (delta / prevSize) * 100
+  if (Math.abs(pct) < 1) return ''
+  const n = (v) => v.toLocaleString('en-US')
+  return (
+    `The default bundle is ${n(size)} B gzipped, ${delta > 0 ? 'up' : 'down'} ` +
+    `${n(Math.abs(delta))} B (${Math.abs(pct).toFixed(1)}%) from ${prevVersion}.`
   )
-
-  if (bare.length) {
-    const items = bare.map((c) => {
-      const who = creditHandle(c, authors, releasedBy)
-      return `- ${heading(c.title)}${who ? ` (@${who})` : ''}`
-    })
-    blocks.push(`**Also:**\n\n${items.join('\n')}`)
-  }
-
-  return `## ${title}\n\n${blocks.join('\n\n')}\n\n`
 }
 
 function main() {
@@ -288,54 +250,32 @@ function main() {
 
   // The lede is the release commit's own opening. That commit already sums the
   // release up for the log, and saying it twice in two voices is how the two
-  // drift apart. Its own listing of the commits is dropped: they are expanded
-  // in full below.
+  // drift apart. Its own listing of the commits is dropped: the sections below
+  // list them, one line each.
   const release = commits.find((c) => c.type === 'release')
   const releasedBy = release ? authors[release.hash] : undefined
   const lede = []
-  for (const line of (release?.body ?? '').split('\n')) {
-    if (/^(Features|Fixes|Dependencies|Bundle|Housekeeping)\s*$/.test(line)) break
-    lede.push(line)
+  for (const text of (release?.body ?? '').split('\n')) {
+    if (/^(Features|Fixes|Dependencies|Bundle|Housekeeping)\s*$/.test(text)) break
+    lede.push(text)
   }
 
-  const prevSize = bundleSize(prev)
-  const size = bundleSize(ref)
-  const n = (v) => v.toLocaleString('en-US')
+  const prevVersion = prev.replace(/^v/, '')
+  const repo = process.env.GITHUB_REPOSITORY || 'apexcharts/apexcharts.js'
 
   const out = [
     unwrap(lede.join('\n')).trim(),
     '',
-    '| | gzip |',
-    '|---|---|',
-    `| ${prev.replace(/^v/, '')} default bundle | ${n(prevSize)} B |`,
-    `| ${version} default bundle | ${n(size)} B |`,
-    '',
-    `Both are \`dist/apexcharts.min.js\` gzipped at the default level, which is the figure \`npm run build\` prints.`,
+    // Features and fixes only. A release note answers "what changed for me",
+    // and a build script, a test or a dependency pin has no answer to that.
+    section(commits, ['feat'], '✨ New', authors, releasedBy),
+    section(commits, ['fix'], '🐛 Fixes', authors, releasedBy),
+    bundleLine(prevVersion, bundleSize(prev), bundleSize(ref)),
     '',
     `Upgrading is \`npm install apexcharts@${version}\`.`,
     '',
-    // Features and fixes only. A release note answers "what changed for me",
-    // and a build script, a test or a dependency pin has no answer to that: it
-    // ran to several paragraphs of internal reasoning underneath the thing the
-    // reader actually opened the release for. The log is where that belongs.
-    section(commits, ['feat'], '✨ New', authors, releasedBy),
-    section(commits, ['fix'], '🐛 Fixes', authors, releasedBy),
+    `Full changelog, with the detail behind each change: https://github.com/${repo}/compare/${prev}...v${version}`,
   ].join('\n')
-
-  // Say which commits arrived with nothing to publish. They still appear, as a
-  // line each, but a `feat` or `fix` a reader might be looking for deserves a
-  // paragraph and the time to write one is before the release commit. Preview
-  // any range with `node build/release-notes.mjs <prev-tag> HEAD` to see this
-  // while it can still be fixed.
-  const bare = commits.filter(
-    (c) => ['feat', 'fix'].includes(c.type) && !stripTrailers(c.body)
-  )
-  if (bare.length) {
-    console.error(
-      `[release-notes] ${bare.length} commit${bare.length > 1 ? 's' : ''} with no body, listed without detail:`
-    )
-    for (const c of bare) console.error(`  ${c.hash.slice(0, 9)} ${c.type}: ${c.title}`)
-  }
 
   process.stdout.write(tidy(out).trimEnd() + '\n')
 }
