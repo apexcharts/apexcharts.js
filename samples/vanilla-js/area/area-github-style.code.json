@@ -12,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Area - Github style</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/github-data.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"wrapper\">\n      <div id=\"chart-months\"></div>\n\n      <h5 class=\"github-style\">\n        <div class=\"userimg\">C</div>\n        <div class=\"userdetails\">\n          <a class=\"username\">coder</a>\n          <span class=\"cmeta\"> <span class=\"commits\"></span> commits </span>\n        </div>\n      </h5>\n\n      <div id=\"chart-years\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Area - Github style</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://apexcharts.com/samples/assets/github-data.js\"></script>\n  </head>\n  <body>\n    <div id=\"wrapper\">\n      <div id=\"chart-months\"></div>\n\n      <h5 class=\"github-style\">\n        <div class=\"userimg\">C</div>\n        <div class=\"userdetails\">\n          <a class=\"username\">coder</a>\n          <span class=\"cmeta\"> <span class=\"commits\"></span> commits </span>\n        </div>\n      </h5>\n\n      <div id=\"chart-years\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

@@ -167,8 +167,12 @@ async function buildVanillaFiles(info, renderedHtml, label) {
     '<head>',
     `<title>${info.title}</title>`,
     '<link href="styles.css" rel="stylesheet" />',
-    ...externals,
+    // The library first. A script-tag add-on (dist/features/*.js, dist/<type>.js)
+    // reads the global ApexCharts the moment it loads and throws without it, so
+    // copied code that listed the add-on first broke on the first line. Data
+    // files and third-party libraries do not care about the order.
     `<script src="${APEXCHARTS_CDN}"></script>`,
+    ...externals,
     '</head>',
     '<body>',
     renderedHtml,
