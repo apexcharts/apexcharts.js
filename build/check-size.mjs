@@ -204,7 +204,15 @@ function main() {
       continue
     }
 
-    const target = budgetFor(size, budget.slack[entry.slack ?? 'default'])
+    const slackName = entry.slack ?? 'default'
+    const slack = budget.slack[slackName]
+    if (!slack) {
+      failures.push(
+        `${file} uses slack "${slackName}", which build/size-budget.json does not define. Add it under "slack".`,
+      )
+      continue
+    }
+    const target = budgetFor(size, slack)
     if (target < entry.gzip) {
       if (ratchet) entry.gzip = rows.at(-1).budget = target
       else
