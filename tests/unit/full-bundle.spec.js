@@ -132,6 +132,25 @@ describe('the full bundle is wired into the build and the package', () => {
     })
   })
 
+  // TypeScript's `node` (node10) resolution, the default for `module:
+  // commonjs`, ignores `exports`. Without typesVersions, `import ApexCharts
+  // from 'apexcharts/full'`, the import the missing-type errors suggest,
+  // failed to type-check there with TS2307.
+  it('maps every typed subpath in typesVersions, for node10 resolution', () => {
+    const pkg = JSON.parse(src('package.json'))
+    const mapped = pkg.typesVersions?.['*'] ?? {}
+    for (const [key, value] of Object.entries(pkg.exports)) {
+      if (key === '.' || !value || typeof value !== 'object' || !value.types)
+        continue
+      expect(
+        mapped[key.slice(2)],
+        `typesVersions has no '${key.slice(2)}'`,
+      ).toEqual([value.types.slice(2)])
+    }
+    // No catch-all: it would also capture apexcharts/dist/* and types/*.
+    expect(mapped['*']).toBeUndefined()
+  })
+
   it('budgets the minified file and requires it to outweigh the default one', () => {
     const budget = JSON.parse(src('build/size-budget.json'))
     const entry = budget.files['dist/apexcharts.full.min.js']
