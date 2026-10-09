@@ -176,7 +176,6 @@ const STANDARD_TYPES = [
   'rangeBar',
   'candlestick',
   'boxPlot',
-  'violin',
   'pie',
   'donut',
   'polarArea',
@@ -186,8 +185,8 @@ const STANDARD_TYPES = [
   'treemap',
 ]
 
-/** Class-backed types the default entry does not register (8.0 for unit, sunburst). */
-const OPT_IN_TYPES = ['icicle', 'unit', 'sunburst']
+/** Class-backed types the default entry does not register (since 8.0: unit, sunburst, violin). */
+const OPT_IN_TYPES = ['icicle', 'unit', 'sunburst', 'violin']
 
 describe('chart types in the default bundle', () => {
   const source = readFileSync(

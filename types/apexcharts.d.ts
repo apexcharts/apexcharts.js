@@ -1702,6 +1702,7 @@ type ApexChart = {
   | 'heatmap'
   | 'candlestick'
   | 'boxPlot'
+  /** Not in the default bundle since 8.0: `import 'apexcharts/violin'`, or load `dist/violin.js` after the ApexCharts script, or use the full bundle. */
   | 'violin'
   | 'histogram'
   | 'radar'
@@ -3161,6 +3162,7 @@ type ApexPlotOptions = {
       }
     }
   }
+  /** The violin chart. Not in the default bundle since 8.0: `import 'apexcharts/violin'`, or load `dist/violin.js` after the ApexCharts script, or use the full bundle. */
   violin?: {
     /**
      * Multiplies the density-derived half-width. 1 maps the density's own

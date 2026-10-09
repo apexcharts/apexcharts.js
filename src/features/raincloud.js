@@ -15,11 +15,13 @@
  * Usage:
  *
  *   import ApexCharts from 'apexcharts'
- *   import 'apexcharts/features/raincloud'
+ *   import 'apexcharts/raincloud'
  *
- * lean-core: `import ApexCharts from 'apexcharts/raincloud'` (pulls in the
- * violin renderer and this feature together). Script tag: load
- * `dist/features/raincloud.js` after whichever bundle the page already has.
+ * `apexcharts/raincloud` pulls in the violin renderer and this feature
+ * together; since 8.0 the default bundle carries neither. A page that already
+ * has the violin type can import just `apexcharts/features/raincloud`. Script
+ * tag: load `dist/violin.js`, then `dist/features/raincloud.js`, after
+ * whichever bundle the page already has, or use the full bundle.
  *
  * This feature is NEVER part of the default bundle. Without it, a raincloud
  * chart warns and renders blank (see Data.applySeriesTransform). Licensing is

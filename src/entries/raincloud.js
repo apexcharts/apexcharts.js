@@ -8,11 +8,11 @@
  *   import ApexCharts from 'apexcharts/raincloud'
  *
  * A raincloud draws through the violin renderer, so this registers violin and
- * the raincloud statistics transform together. The full `apexcharts` bundle
- * does NOT include this feature: on the full bundle, add
- * `import 'apexcharts/features/raincloud'`. On a script-tag page, load
- * `dist/features/raincloud.js` after `dist/apexcharts.js` (or after
- * `dist/apexcharts.core.js` + `dist/violin.js`).
+ * the raincloud statistics transform together. The default `apexcharts`
+ * bundle carries neither since 8.0, so this is the one import to add next to
+ * it. On a script-tag page, load `dist/violin.js` and then
+ * `dist/features/raincloud.js` after the ApexCharts script, or use the full
+ * bundle, which has both.
  */
 import '../features/raincloud'
 
