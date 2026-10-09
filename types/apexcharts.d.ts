@@ -303,19 +303,22 @@ declare class ApexCharts {
 
   /**
    * Drills into the child level referenced by `id` (a `drilldown.series` entry).
-   * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
+   * Requires the Drilldown feature, not in the default bundle since 8.0:
+   * import 'apexcharts/features/drilldown' (or the full bundle).
    */
   drillDown(id: string | number): Promise<ApexCharts>
 
   /**
    * Navigates back one drilldown level.
-   * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
+   * Requires the Drilldown feature, not in the default bundle since 8.0:
+   * import 'apexcharts/features/drilldown' (or the full bundle).
    */
   drillUp(): Promise<ApexCharts>
 
   /**
    * Navigates back to the root drilldown level.
-   * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
+   * Requires the Drilldown feature, not in the default bundle since 8.0:
+   * import 'apexcharts/features/drilldown' (or the full bundle).
    */
   drillToRoot(): Promise<ApexCharts>
 
@@ -323,7 +326,7 @@ declare class ApexCharts {
    * Drops levels cached from `drilldown.onDrillDown`, so the next drill re-runs
    * the resolver. Call it when the data behind an already-drilled chart
    * changes. Omit `id` to clear every level.
-   * Requires the Drilldown feature.
+   * Requires the Drilldown feature, not in the default bundle since 8.0.
    */
   clearDrilldownCache(id?: string | number): ApexCharts
 
@@ -1382,7 +1385,9 @@ declare namespace ApexCharts {
      */
     colors?: Array<string | ((opts: ApexColorFormatterOpts) => string)>
     dataLabels?: ApexDataLabels
-    /** Opt-in drilldown navigation. Requires `import 'apexcharts/features/drilldown'`. */
+    /**
+     * Opt-in drilldown navigation. Not in the default bundle since 8.0: `import 'apexcharts/features/drilldown'`, or load `dist/features/drilldown.js` after the ApexCharts script, or use the full bundle.
+     */
     drilldown?: ApexDrilldown
     fill?: ApexFill
     forecastDataPoints?: ApexForecastDataPoints

@@ -13,8 +13,9 @@
  *
  * Anything else is Tier 2: it ships as a feature module and a sub-path entry,
  * it is reachable from both channels, and it is NOT imported here. See
- * `plans/08-distribution-and-plugin-tiers.md`. The classic seven below predate
- * the budget and are grandfathered; the rule governs new admissions.
+ * `plans/08-distribution-and-plugin-tiers.md`. The classic six below predate
+ * the budget and are grandfathered (there were seven: 8.0 moved drilldown
+ * out); the rule governs new admissions.
  *
  * Adding an import here is a product decision about everyone's bundle. If you
  * are here to make a feature "just work", add its entry point to the docs
@@ -32,7 +33,6 @@ import './toolbar.js'
 import './annotations.js'
 import './keyboard.js'
 import './morph.js'
-import './drilldown.js'
 import './weave.js'
 import './marks.js'
 import './facet.js'

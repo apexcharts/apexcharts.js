@@ -21,7 +21,7 @@ import { RESERVED_TYPES } from '../../src/modules/settings/TypeAliases.js'
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 /**
- * Tier 1: shipped by default. The classic seven predate the budget and are
+ * Tier 1: shipped by default. The classic six predate the budget and are
  * grandfathered (plan 08 line 150); the rest each passed the three-part rule
  * (< ~5 KB gzipped over core, no peer dependency or separate asset, useful to
  * a majority of charts) when admitted.
@@ -34,7 +34,6 @@ const TIER_1 = [
   'annotations',
   'keyboard',
   'morph',
-  'drilldown',
   // Admitted under the budget.
   'weave',
   'marks',
@@ -82,6 +81,10 @@ const TIER_2 = [
   // The first opt-in chart TYPE (premium, like trellis): chart.type
   // 'raincloud' warns and renders blank on the default bundle by design.
   'raincloud',
+  // A grandfathered classic until 8.0, which ended the grandfathering: a
+  // minority of charts navigate a hierarchy, and every page paid 4.5 KB for
+  // it. Without it, `drilldown.enabled` warns and the root level draws.
+  'drilldown',
 ]
 
 const RULE = `
