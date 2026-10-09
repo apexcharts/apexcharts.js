@@ -39,16 +39,13 @@ const TIER_1 = [
   'marks',
   'facet',
   'stats',
-  // The 7.1.0 chart types below are GRANDFATHERED (shipped in the default
-  // bundle) until 8.0 moves them out; waterfall has gone. They are not
-  // precedent: since 2026-08-31 a NEW chart type defaults to Tier 2, the
+  // The 7.1.0 chart type below is GRANDFATHERED (shipped in the default
+  // bundle) until 8.0 moves it out; waterfall and dumbbell have gone. It is
+  // not precedent: since 2026-08-31 a NEW chart type defaults to Tier 2, the
   // raincloud model, with an entry in Data.js's TYPE_FEATURES map so the
   // default bundle warns loudly instead of failing silently. See the
   // policy in plans/08-distribution-and-plugin-tiers.md.
   //
-  // `chart.type: 'dumbbell'` without it draws the two measures as two
-  // unrelated grouped bars, which is not a bundle saving anyone asked for.
-  'dumbbell',
   // Same again, and the quietest failure of the three: `chart.type:
   // 'streamgraph'` without it routes scalar series into the range-area
   // pathway, where every band comes out `[y, y]` — zero thickness. The chart
@@ -86,6 +83,7 @@ const TIER_2 = [
   // the untransformed series as a WRONG chart; TYPE_FEATURES in Data.js now
   // makes that a blank chart and one warning that survives minification.
   'waterfall',
+  'dumbbell',
 ]
 
 const RULE = `

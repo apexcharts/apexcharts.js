@@ -1716,6 +1716,7 @@ type ApexChart = {
   | 'rangeArea'
   /** Not in the default bundle since 8.0: `import 'apexcharts/waterfall'`, or load `dist/features/waterfall.js` after the ApexCharts script, or use the full bundle. */
   | 'waterfall'
+  /** Not in the default bundle since 8.0: `import 'apexcharts/dumbbell'`, or load `dist/features/dumbbell.js` after the ApexCharts script, or use the full bundle. */
   | 'dumbbell'
   | 'streamgraph'
   | 'raincloud'

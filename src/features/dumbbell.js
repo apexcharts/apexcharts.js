@@ -19,6 +19,11 @@
  * or simply `import ApexCharts from 'apexcharts/dumbbell'`, which pulls in the
  * bar renderer and this feature together.
  *
+ * Not in the default bundle since 8.0: add `import 'apexcharts/dumbbell'` next
+ * to `import ApexCharts from 'apexcharts'`. Script tag: load
+ * `dist/features/dumbbell.js` after the ApexCharts script, or use the full
+ * bundle. Without it, a dumbbell chart warns once and draws nothing.
+ *
  * @module features/dumbbell
  */
 import ApexCharts from '../apexcharts'
