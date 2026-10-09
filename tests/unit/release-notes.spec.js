@@ -236,4 +236,32 @@ describe('the bundle size', () => {
   it('says nothing when it barely moved', () => {
     expect(bundleLine('7.8.0', 273832, 274500)).toBe('')
   })
+
+  // 8.0 shrank the default bundle by moving code into the full one; the first
+  // sentence alone would read as that much less code.
+  it('introduces the full bundle the release it first ships', () => {
+    expect(
+      bundleLine('7.9.1', 291763, 262431, { prevSize: null, size: 380201 }),
+    ).toBe(
+      'The default bundle is 262,431 B gzipped, down 29,332 B (10.1%) from 7.9.1. ' +
+        'The new full bundle, apexcharts.full.min.js, has every chart type and feature in one file: 380,201 B.',
+    )
+  })
+
+  it('reports the full bundle only when it moved, like the default one', () => {
+    expect(
+      bundleLine('8.0.0', 262431, 263000, { prevSize: 380201, size: 381000 }),
+    ).toBe('')
+    expect(
+      bundleLine('8.0.0', 262431, 263000, { prevSize: 380201, size: 390000 }),
+    ).toBe('The full bundle is 390,000 B, up 9,799 B (2.6%) from 8.0.0.')
+  })
+
+  it('says nothing about a full bundle that does not exist at either ref', () => {
+    expect(
+      bundleLine('7.8.0', 300000, 290000, { prevSize: null, size: null }),
+    ).toBe(
+      'The default bundle is 290,000 B gzipped, down 10,000 B (3.3%) from 7.8.0.'
+    )
+  })
 })

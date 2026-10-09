@@ -47,11 +47,20 @@ const git = (args, opts = {}) =>
  * the CI budget (`check-size.mjs`), so the number in the notes is one
  * maintainers already recognise.
  */
-function bundleSize(ref) {
-  const buf = execFileSync('git', ['show', `${ref}:dist/apexcharts.min.js`], {
+function bundleSize(ref, file = 'dist/apexcharts.min.js') {
+  const buf = execFileSync('git', ['show', `${ref}:${file}`], {
     maxBuffer: 256 * 1024 * 1024,
   })
   return gzipSize(buf)
+}
+
+/** The full bundle's gzipped size at a ref, or null before it existed (8.0). */
+function fullSize(ref) {
+  try {
+    return bundleSize(ref, 'dist/apexcharts.full.min.js')
+  } catch {
+    return null
+  }
 }
 
 /** One commit, split into the parts the notes need. */
@@ -204,21 +213,45 @@ export function section(commits, types, title, authors, releasedBy) {
 }
 
 /**
- * One sentence on the default bundle, or nothing.
+ * One sentence on the default bundle, or nothing; and one on the full bundle
+ * when it is new or moved.
  *
- * Only when it moved by 1% or more. A table of two sizes under every release
- * told most readers that nothing happened; a sentence when something did is
- * the part worth reading.
+ * Only when a size moved by 1% or more. A table of two sizes under every
+ * release told most readers that nothing happened; a sentence when something
+ * did is the part worth reading.
+ *
+ * The full bundle gets its own sentence because the default one can shrink by
+ * moving code into it. "Down 10%" alone would read as 10% less code, when part
+ * of it is code that now ships in apexcharts.full.min.js instead.
+ *
+ * @param {{ prevSize: number|null, size: number|null }} [full] the full
+ *   bundle's sizes; `prevSize` is null at a ref from before it existed
  */
-export function bundleLine(prevVersion, prevSize, size) {
-  const delta = size - prevSize
-  const pct = (delta / prevSize) * 100
-  if (Math.abs(pct) < 1) return ''
+export function bundleLine(prevVersion, prevSize, size, full) {
   const n = (v) => v.toLocaleString('en-US')
-  return (
-    `The default bundle is ${n(size)} B gzipped, ${delta > 0 ? 'up' : 'down'} ` +
-    `${n(Math.abs(delta))} B (${Math.abs(pct).toFixed(1)}%) from ${prevVersion}.`
-  )
+  const moved = (from, to) => {
+    const delta = to - from
+    const pct = (delta / from) * 100
+    if (Math.abs(pct) < 1) return ''
+    return (
+      `${delta > 0 ? 'up' : 'down'} ${n(Math.abs(delta))} B ` +
+      `(${Math.abs(pct).toFixed(1)}%) from ${prevVersion}`
+    )
+  }
+  const out = []
+  const main = moved(prevSize, size)
+  if (main) out.push(`The default bundle is ${n(size)} B gzipped, ${main}.`)
+  if (full && full.size != null) {
+    if (full.prevSize == null) {
+      out.push(
+        `The new full bundle, apexcharts.full.min.js, has every chart type and feature in one file: ${n(full.size)} B.`,
+      )
+    } else {
+      const f = moved(full.prevSize, full.size)
+      if (f) out.push(`The full bundle is ${n(full.size)} B, ${f}.`)
+    }
+  }
+  return out.join(' ')
 }
 
 function main() {
@@ -267,7 +300,10 @@ function main() {
     // and a build script, a test or a dependency pin has no answer to that.
     section(commits, ['feat'], '✨ New', authors, releasedBy),
     section(commits, ['fix'], '🐛 Fixes', authors, releasedBy),
-    bundleLine(prevVersion, bundleSize(prev), bundleSize(ref)),
+    bundleLine(prevVersion, bundleSize(prev), bundleSize(ref), {
+      prevSize: fullSize(prev),
+      size: fullSize(ref),
+    }),
     '',
     `Upgrading is \`npm install apexcharts@${version}\`.`,
     '',
