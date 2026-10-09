@@ -74,7 +74,7 @@ test.describe('Highlight filter: pick, re-pick, clear', () => {
     expectNoViolations(finite(rec))
     expectNoViolations(
       await settles(page, rec, {
-        transform: () => ({ series: seriesFor('online') }),
+        transform: () => ({ series: window.seriesFor('online') }),
       }),
     )
     expect(errors).toEqual([])
@@ -99,7 +99,7 @@ test.describe('Highlight filter: pick, re-pick, clear', () => {
     }
     expectNoViolations(
       await settles(page, rec, {
-        transform: () => ({ series: seriesFor('store') }),
+        transform: () => ({ series: window.seriesFor('store') }),
       }),
     )
     expect(errors).toEqual([])
@@ -129,7 +129,7 @@ test.describe('Highlight filter: pick, re-pick, clear', () => {
     expect(legend).toEqual(['Americas', 'Europe', 'Asia Pacific'])
     expectNoViolations(
       await settles(page, rec, {
-        transform: () => ({ series: seriesFor('') }),
+        transform: () => ({ series: window.seriesFor('') }),
       }),
     )
     expect(errors).toEqual([])
@@ -225,7 +225,7 @@ test.describe('Highlight filter: datums without a part, datums that leave', () =
     page.evaluate(
       ([v, ch]) =>
         window.chart.updateSeries(
-          seriesFor(ch).map((s, i) =>
+          window.seriesFor(ch).map((s, i) =>
             i === 0
               ? { ...s, highlightData: [v, ...s.highlightData.slice(1)] }
               : s,
@@ -302,8 +302,8 @@ test.describe('Highlight filter: datums without a part, datums that leave', () =
     const dropLast = () =>
       page.evaluate(() =>
         window.chart.updateOptions({
-          xaxis: { categories: YEARS.slice(0, 7) },
-          series: seriesFor('online').map((s) => ({
+          xaxis: { categories: window.YEARS.slice(0, 7) },
+          series: window.seriesFor('online').map((s) => ({
             ...s,
             data: s.data.slice(0, 7),
             highlightData: s.highlightData.slice(0, 7),
