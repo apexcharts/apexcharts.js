@@ -15,7 +15,7 @@
  * the grid shows: unmounted panels compose as their skeleton tint.
  *
  * Requires the exports feature on the panels (`apexcharts/features/exports`,
- * in the full bundle); without it the download tool is omitted.
+ * in the default bundle); without it the download tool is omitted.
  *
  * @module modules/trellis/TrellisExports
  */

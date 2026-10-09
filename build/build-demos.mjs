@@ -19,8 +19,8 @@ const root = resolve(__dirname, '..')
 
 const DEMOS = [
   {
-    name: 'full-bundle',
-    description: 'Full bundle (baseline)',
+    name: 'default-bundle',
+    description: 'Default bundle (baseline)',
     imports: [`import '${root}/src/entries/standard.js'`],
   },
   {
@@ -157,7 +157,7 @@ for (const demo of DEMOS) {
 
 unlinkSync(tmpEntry)
 
-const baseline = results.find((r) => r.name === 'full-bundle')
+const baseline = results.find((r) => r.name === 'default-bundle')
 
 console.log('\n' + '─'.repeat(78))
 console.log(
@@ -168,7 +168,7 @@ console.log('─'.repeat(78))
 for (const r of results) {
   const kb = (r.bytes / 1024).toFixed(1) + ' KB'
   const pct =
-    r.name === 'full-bundle'
+    r.name === 'default-bundle'
       ? '(baseline)'
       : ((r.bytes / baseline.bytes) * 100).toFixed(0) + '%'
   console.log(

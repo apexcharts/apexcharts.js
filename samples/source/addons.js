@@ -11,8 +11,9 @@
  * sample against this list instead.
  *
  * The tags are harmless on a bundle that already has the item (the add-on
- * re-registers onto the same global registry), so samples carry them as soon
- * as an item is scheduled to leave the default bundle, not on the day it does.
+ * re-registers onto the same global registry), so samples can carry them as
+ * soon as an item is scheduled to leave the default bundle, as the 8.0 items
+ * did through 7.9.x.
  */
 
 /** `chart.type` (or a series `type`) -> the add-on files it needs, in load order. */

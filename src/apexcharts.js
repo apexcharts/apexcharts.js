@@ -1939,7 +1939,7 @@ export default class ApexCharts {
    * Register a Weave plugin definition (a plain { name, setup } object).
    * Lives in core so plugins can always be registered; they only activate when
    * the Weave host is bundled (`import 'apexcharts/features/weave'`, included in
-   * the full bundle) and listed in a chart's `plugins` config.
+   * the default bundle) and listed in a chart's `plugins` config.
    *
    * @param {{ name: string, apiVersion?: number, setup: Function, destroy?: Function }} def
    * @returns {typeof ApexCharts}
@@ -1978,7 +1978,7 @@ export default class ApexCharts {
    * Register a custom series type (Marks #11): a `{ renderItem }` definition
    * that draws primitives (path/line/rect/circle/text) per datum. Requires the
    * Marks feature to be bundled (`import 'apexcharts/features/marks'`, included
-   * in the full bundle); without it this warns and no-ops. Once registered, use
+   * in the default bundle); without it this warns and no-ops. Once registered, use
    * it via `series[].type` or `chart.type`.
    *
    * @param {string} name  the type name, e.g. 'dumbbell'

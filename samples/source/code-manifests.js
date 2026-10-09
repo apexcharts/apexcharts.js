@@ -96,8 +96,8 @@ function externalUrls(externals) {
 }
 
 /**
- * Chart types a demo loads as their own script because they are, or are
- * scheduled to be, outside the default bundle. Listed explicitly rather than
+ * Chart types a demo loads as their own script because they are outside the
+ * default bundle. Listed explicitly rather than
  * inferred: most `dist/*.js` files are types the default bundle has, and
  * printing an import for one of those would suggest an opt-in that does not
  * exist. The import is correct either way, since an entry registers onto the

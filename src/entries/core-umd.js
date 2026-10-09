@@ -15,9 +15,10 @@
  * default bundle was what it downloaded, with no way to decline. Plan 08 called
  * that the missing CDN channel; this is the baseline half of it.
  *
- * `apexcharts.js` is unchanged and still batteries-included. This is additive:
- * nobody has to migrate to it, and a page that wants everything should keep
- * loading the full bundle rather than assembling it from parts.
+ * `apexcharts.js` stays the default baseline, and since 8.0 `apexcharts.full.js`
+ * is the one with everything. This is additive: nobody has to migrate to it,
+ * and a page that wants everything should load the full bundle rather than
+ * assemble it from parts.
  *
  * Note this file is NOT smaller than `apexcharts/core` is for a bundler. A
  * bundler drops the `__apex_*` modules an app never imports; a script tag

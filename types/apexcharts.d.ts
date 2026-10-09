@@ -462,7 +462,7 @@ declare class ApexCharts {
   /**
    * Registers a custom series type (Marks #11): a `{ renderItem }` definition
    * that draws primitives per datum. Requires the Marks feature to be bundled
-   * (`import 'apexcharts/features/marks'`, included in the full bundle).
+   * (`import 'apexcharts/features/marks'`, included in the default bundle).
    * Once registered, reference it via `series[].type` or `chart.type`.
    * Re-registering a custom name replaces it; a built-in chart type name is
    * rejected with a console warning (the registry is global, so shadowing a

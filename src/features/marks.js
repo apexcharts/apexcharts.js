@@ -8,7 +8,7 @@ import { makeCustomSeriesClass } from '../charts/CustomSeries'
  * `ApexCharts.registerSeriesType(name, def)` lives in core (always callable),
  * but building the type-class adapter is THIS opt-in feature: importing it sets
  * the adapter factory. Without it, `registerSeriesType` warns and no-ops, so the
- * adapter payload shakes out when unused. Included in the full bundle via
+ * adapter payload shakes out when unused. Included in the default bundle via
  * features/all.js.
  */
 /** @type {any} */ (ApexCharts)._customSeriesFactory = makeCustomSeriesClass

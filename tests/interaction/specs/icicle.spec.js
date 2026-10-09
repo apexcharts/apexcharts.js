@@ -1,7 +1,7 @@
 /**
  * Icicle (cartesian partition) interaction tests.
  *
- * The type is opt-in, so the page loads the full UMD bundle AND the icicle
+ * The type is opt-in, so the page loads the default UMD bundle AND the icicle
  * add-on after it, exactly as a script-tag user has to. That the add-on
  * registers at all is the first thing these tests prove: bundle composition is
  * only ever true against `dist`, never against `src`.
@@ -117,13 +117,13 @@ const cursorOf = (page, name) =>
   }, name)
 
 test.describe('icicle', () => {
-  test('the add-on registers the type on a page that already has the full bundle', async ({
+  test('the add-on registers the type on a page that already has the default bundle', async ({
     page,
   }) => {
     const errors = []
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
-    // The full bundle alone must NOT know the type: that is what opt-in means,
+    // The default bundle alone must NOT know the type: that is what opt-in means,
     // and a throw here naming both routes is the intended failure.
     await page.setContent('<div id="chart"></div>')
     await page.addScriptTag({ path: umdPath })

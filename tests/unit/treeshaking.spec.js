@@ -84,7 +84,7 @@ describe('import structure', () => {
   // add-on registered into a registry no chart read and the app carried core
   // twice. Since nine features now ship outside the default bundle, that
   // pairing is the documented upgrade path and has to share one core.
-  test('full bundle apexcharts.esm.js DOES import from apexcharts/core', () => {
+  test('default bundle apexcharts.esm.js DOES import from apexcharts/core', () => {
     const full = read('apexcharts.esm.js')
     expect(full).not.toBeNull()
     expect(full).toContain('from "apexcharts/core"')

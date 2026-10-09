@@ -20,7 +20,7 @@ import { dirname, resolve } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, '..', '..', '..')
 const umdPath = resolve(rootDir, 'dist', 'apexcharts.js')
-// Trellis is Tier 2: not in the full bundle, so the CDN add-on has to be
+// Trellis is Tier 2: not in the default bundle, so the CDN add-on has to be
 // loaded on top of it exactly as a real script-tag page would. This pair IS
 // the documented setup; loading only the bundle renders a single chart.
 const trellisAddonPath = resolve(rootDir, 'dist', 'features', 'trellis.js')

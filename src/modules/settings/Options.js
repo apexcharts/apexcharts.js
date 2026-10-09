@@ -276,7 +276,7 @@ export default class Options {
       },
       // Weave (#1): public plugin platform. Per-chart activation list:
       // { name, options?, order? }. Requires the Weave host to be bundled
-      // (`import 'apexcharts/features/weave'`, included in the full bundle) and
+      // (`import 'apexcharts/features/weave'`, included in the default bundle) and
       // the plugin registered via ApexCharts.registerPlugin().
       plugins: [],
       // Trellis (#22): small multiples / faceting. Requires the trellis

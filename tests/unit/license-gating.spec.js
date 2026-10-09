@@ -134,7 +134,7 @@ describe('License gating', () => {
     })
 
     it('does NOT flag a bundled-but-not-enabled premium feature', () => {
-      const chart = premiumLineChart() // full bundle: all slots present, none enabled
+      const chart = premiumLineChart() // default bundle + add-ons: all slots present, none enabled
       expect(chart.measure).toBeTruthy() // bundled
       expect(chart.ink).toBeTruthy()
       expect(chart.linkedViews).toBeTruthy()

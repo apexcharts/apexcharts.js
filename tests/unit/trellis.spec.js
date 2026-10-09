@@ -234,7 +234,7 @@ describe('trellis lifecycle', () => {
       series: [{ name: 'A', data: [1, 2, 3] }],
     })
     await chart.render()
-    expect(chart.trellis).toBeTruthy() // module instantiated (full bundle)
+    expect(chart.trellis).toBeTruthy() // module instantiated (feature imported)
     expect(chart.trellis.isActive()).toBe(false)
     expect(chart.getPanels()).toHaveLength(0)
     expect(el.querySelector('.apexcharts-trellis')).toBeNull()

@@ -17,7 +17,7 @@
 import { test, expect } from '../fixtures/base.js'
 
 const umdPath = 'dist/apexcharts.js'
-// Trellis is Tier 2 and ships outside the full bundle; the grouped-panel
+// Trellis is Tier 2 and ships outside the default bundle; the grouped-panel
 // cases below need the add-on layered on top, as a script-tag page would.
 const trellisAddonPath = 'dist/features/trellis.js'
 
