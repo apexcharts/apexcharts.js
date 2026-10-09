@@ -107,8 +107,11 @@ describe('getChartClass: the unregistered-type error', () => {
         series: [{ data: [1, 2, 3] }],
         labels: ['a', 'b', 'c'],
       })
-      chart.render() // not awaited, as on a theme page
-      await new Promise((r) => setTimeout(r, 50))
+      // A theme page calls render() and never looks at the promise. The line
+      // is logged whether or not anyone does; the test waits for the promise
+      // only to know the render has run, rather than guessing a delay that a
+      // slow CI runner could outlast.
+      await chart.render().catch(() => {})
       expect(error.mock.calls.flat().join(' ')).toContain(
         'chart type "radar" is not registered',
       )
