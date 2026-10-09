@@ -5,7 +5,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
-import { computeStagger } from '../modules/Animations'
+import Animations, { computeStagger } from '../modules/Animations'
 import {
   datumKey,
   lengthTransitionEnabled,
@@ -271,10 +271,25 @@ class Bar {
         class: 'apexcharts-bar-shadows',
       })
 
-      w.globals.delayedElements.push({
-        el: elBarShadows.node,
-      })
-      elBarShadows.node.classList.add('apexcharts-element-hidden')
+      // A 3D funnel's connector shadows join stages that morph on an update,
+      // so they morph with them, each from the shadow on screen (see
+      // renderSeries). With none to start from (a mount, a stage added or
+      // gone) they wait, hidden, until the stages land.
+      const ctx = /** @type {any} */ (this.ctx)
+      const shadowsWas = ctx._barShadows
+      const shadows = (ctx._barShadows = /** @type {any[]} */ ([]))
+      const morphShadows =
+        w.globals.dataChanged &&
+        w.globals.shouldAnimate &&
+        w.config.chart.animations.dynamicAnimation.enabled &&
+        shadowsWas?.length === series[i].length - 1
+
+      if (!morphShadows) {
+        w.globals.delayedElements.push({
+          el: elBarShadows.node,
+        })
+        elBarShadows.node.classList.add('apexcharts-element-hidden')
+      }
 
       for (let j = 0; j < series[i].length; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
@@ -339,6 +354,11 @@ class Bar {
           })
 
           elBarShadows.add(barShadow)
+          shadows.push(barShadow)
+          this._shadow = morphShadows && [
+            barShadow,
+            shadowsWas[j - 1].attr('d'),
+          ]
 
           if (w.config.chart.dropShadow.enabled) {
             const filters = new Filters(this.w)
@@ -698,6 +718,20 @@ class Bar {
 
       renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
       if (leaving) renderedPath.node.classList.add('apexcharts-leaving')
+
+      // This stage's funnel shadow, on the stage's clock (see draw).
+      const sh = this._shadow
+      if (sh) {
+        this._shadow = null
+        new Animations(w, this.ctx).animatePathsGradually({
+          el: sh[0],
+          fill: 'none',
+          pathFrom: sh[1],
+          pathTo: sh[0].attr('d'),
+          speed: dataChangeSpeed,
+          delay,
+        })
+      }
 
       // Cross-type morph, objects -> mark: the piece layer flies the outgoing
       // dots here and tiles this mark with them, so the mark holds hidden
