@@ -148,6 +148,49 @@ describe('getChartClass: the unregistered-type error', () => {
       el.remove()
     })
 
+    it('a violin without the bar renderer it draws on names the bar import', async () => {
+      // Violin takes the page's bar renderer as its parent instead of
+      // bundling one, so the lean core without apexcharts/bar fails loudly.
+      const error = vi
+        .spyOn(globalThis.console, 'error')
+        .mockImplementation(() => {})
+      const { register, unregister } =
+        await import('../../src/modules/ChartFactory.js')
+      const { default: Violin } = await import('../../src/charts/Violin.js')
+      const { default: ApexCharts } = await import('../../src/apexcharts.js')
+      register({ violin: Violin })
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      try {
+        const chart = new ApexCharts(el, {
+          chart: { type: 'violin' },
+          series: [
+            {
+              name: 'A',
+              data: [
+                {
+                  x: 'G',
+                  y: [
+                    [1, 0.2],
+                    [2, 0.5],
+                    [3, 0.2],
+                  ],
+                  points: [1, 2, 3],
+                },
+              ],
+            },
+          ],
+        })
+        await chart.render().catch(() => {})
+        const logged = error.mock.calls.flat().join(' ')
+        expect(logged).toContain('chart type "bar" is not registered')
+        expect(logged).toContain("import 'apexcharts/bar'")
+      } finally {
+        unregister('violin')
+        el.remove()
+      }
+    })
+
     it('names the alias a page asked for when its renderer is missing', async () => {
       const error = vi
         .spyOn(globalThis.console, 'error')

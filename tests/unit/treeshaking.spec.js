@@ -114,18 +114,38 @@ describe.skipIf(!existsSync(dist('full.esm.js')))('the full bundle', () => {
     expect(full).toContain('from "apexcharts/core"')
   })
 
-  test.each(['Line', 'Pie', 'HeatMap', 'Radar', 'Legend', 'Toolbar'])(
-    'full.esm.js does not repeat the default bundle\'s class %s',
-    (name) => {
-      expect(countClass(read('full.esm.js'), name)).toBe(0)
-    },
-  )
+  // Bar and BarDataLabels came along with Violin until it stopped importing
+  // its parent (charts/Violin.js): about 16 KB gzipped, twice, in every app
+  // that imported apexcharts/full or apexcharts/violin next to apexcharts.
+  test.each([
+    'Line',
+    'Pie',
+    'HeatMap',
+    'Radar',
+    'Legend',
+    'Toolbar',
+    'Bar',
+    'BarDataLabels',
+  ])('full.esm.js does not repeat the default bundle\'s class %s', (name) => {
+    expect(countClass(read('full.esm.js'), name)).toBe(0)
+  })
 
   // The source class names (Sunburst.js exports class SunburstChart).
   test.each(['SunburstChart', 'Unit', 'Violin', 'IcicleChart', 'Drilldown', 'Waterfall'])(
     'full.esm.js carries %s',
     (name) => {
       expect(countClass(read('full.esm.js'), name)).toBe(1)
+    },
+  )
+
+  // In this block because it needs this release's build: the violin add-on of
+  // earlier releases bundled its parent.
+  test.each(['violin.esm.js', 'raincloud.esm.js'])(
+    '%s draws on the page\'s bar renderer and carries no Bar of its own',
+    (file) => {
+      expect(countClass(read(file), 'Violin')).toBe(1)
+      expect(countClass(read(file), 'Bar')).toBe(0)
+      expect(countClass(read(file), 'BarDataLabels')).toBe(0)
     },
   )
 
@@ -236,8 +256,8 @@ describe('chart-type classes are confined to their own sub-entry', () => {
     { name: 'Radar',         ownEntry: 'radar.esm.js',       absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'heatmap.esm.js'] },
     { name: 'HeatMap',       ownEntry: 'heatmap.esm.js',     absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
     { name: 'BoxCandleStick',ownEntry: 'candlestick.esm.js', absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
-    // Violin extends Bar (like BoxCandleStick), so Bar is legitimately bundled
-    // into violin.esm.js — only the Violin class itself must be confined.
+    // Violin is a bar renderer underneath but takes the page's registered one
+    // as its parent; that violin.esm.js carries no Bar is checked above.
     { name: 'Violin',        ownEntry: 'violin.esm.js',      absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'candlestick.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
   ]
 

@@ -184,7 +184,7 @@ import 'apexcharts/bar'
 // import 'apexcharts/scatter'
 // import 'apexcharts/unit'         // dot / pictogram / waffle / beeswarm (premium, opt-in; 'waffle' aliases this)
 // import 'apexcharts/sunburst'     // hierarchical rings (opt-in)
-// import 'apexcharts/violin'       // distributions (opt-in)
+// import 'apexcharts/violin'       // distributions, drawn on 'apexcharts/bar' (opt-in)
 // import 'apexcharts/icicle'       // hierarchical bands (opt-in)
 // import 'apexcharts/waterfall'    // also 'dumbbell', 'streamgraph': each brings its renderer (opt-in)
 
@@ -209,7 +209,7 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/renderer-canvas' // canvas series renderer (opt-in)
 // import 'apexcharts/features/trellis'     // small multiples (premium, opt-in)
 // import 'apexcharts/features/highlight-filter' // whole faded, part solid in front (premium, opt-in)
-// import 'apexcharts/raincloud'            // raincloud: violin renderer + its statistics (premium, opt-in)
+// import 'apexcharts/raincloud'            // raincloud: violin renderer + its statistics, on 'apexcharts/bar' (premium, opt-in)
 ```
 
 A page without a bundler gets the same choice, from three baselines:

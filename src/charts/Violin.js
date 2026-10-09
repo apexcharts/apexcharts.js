@@ -1,6 +1,6 @@
 // @ts-check
 import CoreUtils from '../modules/CoreUtils'
-import Bar from './Bar'
+import { getChartClass } from '../modules/ChartFactory'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
@@ -28,9 +28,32 @@ import { buildJitterGroups, renderJitter } from './common/Jitter'
  * beyond `plotOptions.violin.points.maxPoints` are stride-thinned, and the
  * jitter offset is a deterministic index hash (no Math.random — SSR-safe).
  *
+ * Violin is a bar renderer underneath, but it does not import one. It is an
+ * opt-in type, added next to a bundle that already has the bar renderer (the
+ * default bundle, or `apexcharts/bar` on the lean core), so an import here
+ * put a second copy of Bar in every app that used it: about 16 KB gzipped,
+ * five times the violin itself. The class starts on an empty placeholder and
+ * takes the page's registered bar renderer as its parent when the first chart
+ * builds one (see adoptBarRenderer); without one, that chart fails with the
+ * registry's error naming the bar import.
+ *
  * @module Violin
  **/
-class Violin extends Bar {
+const BarBase = /** @type {typeof import('./Bar').default} */ (
+  /** @type {unknown} */ (class {})
+)
+
+class Violin extends BarBase {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   * @param {import('../types/internal').XYRatios} xyRatios
+   */
+  constructor(w, ctx, xyRatios) {
+    adoptBarRenderer()
+    super(w, ctx, xyRatios)
+  }
+
   /**
    * @param {any[]} series
    * @param {string} ctype
@@ -864,6 +887,21 @@ class Violin extends Bar {
       realIndex,
     )
   }
+}
+
+/**
+ * Make the registered bar renderer Violin's parent. `super()` and inherited
+ * methods find the parent through the prototype chain when they run, not when
+ * the class was declared, so re-pointing it before the first `super()` is all
+ * it takes. Checked on every construction because a page can register a
+ * different bar renderer later (a lean-core entry loaded after the default
+ * bundle registers its own copy).
+ */
+function adoptBarRenderer() {
+  const Bar = getChartClass('bar')
+  if (Object.getPrototypeOf(Violin) === Bar) return
+  Object.setPrototypeOf(Violin, Bar)
+  Object.setPrototypeOf(Violin.prototype, Bar.prototype)
 }
 
 /**

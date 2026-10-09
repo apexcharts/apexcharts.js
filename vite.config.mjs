@@ -377,7 +377,11 @@ const STANDARD_ENTRY = resolve(__dirname, 'src/entries/standard.js')
  * `apexcharts` (every wrapper imports the latter) would carry the default
  * bundle's chart types and features twice, about 112 KB minified, on top of
  * the one shared core. As an import it is one copy, and `apexcharts/full`
- * holds only what the default bundle leaves out.
+ * holds what the default bundle leaves out, plus the few modules an add-on
+ * inlines because core does not share them (trellis's gradient legend is the
+ * largest, about 8 KB gzipped). An add-on must not import a renderer the
+ * default bundle has: Violin takes the registered bar renderer instead
+ * (src/charts/Violin.js).
  */
 function standardExternalPlugin() {
   return {
