@@ -1717,6 +1717,7 @@ type ApexChart = {
   | 'unit'
   /** An alias of `'unit'`, so also not in the default bundle since 8.0: `import 'apexcharts/unit'`, or load `dist/unit.js` after the ApexCharts script, or use the full bundle. */
   | 'waffle'
+  /** Not in the default bundle since 8.0: `import 'apexcharts/sunburst'`, or load `dist/sunburst.js` after the ApexCharts script, or use the full bundle. */
   | 'sunburst'
   | 'icicle'
   | 'funnel'
@@ -4218,6 +4219,8 @@ type ApexPlotOptions = {
    * hole outward, one per hierarchy level; each child arc is nested inside its
    * parent's angular wedge. Accepts a native `children` hierarchy or an existing
    * `drilldown` config (adapter).
+   *
+   * Not in the default bundle since 8.0: `import 'apexcharts/sunburst'`, or load `dist/sunburst.js` after the ApexCharts script, or use the full bundle.
    */
   sunburst?: {
     offsetX?: number

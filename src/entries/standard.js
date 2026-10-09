@@ -22,7 +22,6 @@ import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
 import Treemap from '../charts/Treemap'
-import Sunburst from '../charts/Sunburst'
 
 ApexCharts.use({
   line: Line,
@@ -44,7 +43,6 @@ ApexCharts.use({
   radar: Radar,
   heatmap: HeatMap,
   treemap: Treemap,
-  sunburst: Sunburst,
 })
 
 /**

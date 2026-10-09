@@ -184,11 +184,10 @@ const STANDARD_TYPES = [
   'radar',
   'heatmap',
   'treemap',
-  'sunburst',
 ]
 
-/** Class-backed types the default entry does not register (8.0 for unit). */
-const OPT_IN_TYPES = ['icicle', 'unit']
+/** Class-backed types the default entry does not register (8.0 for unit, sunburst). */
+const OPT_IN_TYPES = ['icicle', 'unit', 'sunburst']
 
 describe('chart types in the default bundle', () => {
   const source = readFileSync(
