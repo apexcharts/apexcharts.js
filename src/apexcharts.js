@@ -70,6 +70,38 @@ import {
  * @module ApexCharts
  **/
 
+/**
+ * The rejection for an update that names an opt-in type this page never
+ * loaded, or null. Checks `chart.type` and every series' `type`: violin is an
+ * XY type, so a combo can add one without changing the chart's own type, and
+ * that path tore the chart down and left the series stuck in its config, so
+ * every later update failed too.
+ *
+ * @param {unknown} chartType the update's `chart.type`, if any
+ * @param {unknown} series the update's series, if any
+ * @returns {Promise<never> | null}
+ */
+function unloadedTypeRejection(chartType, series) {
+  const types = [chartType]
+  if (Array.isArray(series)) {
+    for (const s of series) {
+      types.push(s && typeof s === 'object' ? s.type : undefined)
+    }
+  }
+  for (const t of types) {
+    if (typeof t !== 'string') continue
+    const base = TYPE_ALIASES[t] || t
+    if (RESERVED_TYPES.includes(base) && !hasChartClass(base)) {
+      try {
+        getChartClass(base, t)
+      } catch (e) {
+        return Promise.reject(e)
+      }
+    }
+  }
+  return null
+}
+
 export default class ApexCharts {
   // Module properties set dynamically by InitCtxVariables.initModules().
   // Declared as typed class fields so @ts-check resolves them throughout the
@@ -947,17 +979,11 @@ export default class ApexCharts {
     // where a working chart had been. Refuse it before anything moves: the
     // chart stays as it was, and the rejection (logged once per type) names
     // the import.
-    const nextType = options?.chart?.type
-    if (typeof nextType === 'string') {
-      const base = TYPE_ALIASES[nextType] || nextType
-      if (RESERVED_TYPES.includes(base) && !hasChartClass(base)) {
-        try {
-          getChartClass(base, nextType)
-        } catch (e) {
-          return Promise.reject(e)
-        }
-      }
-    }
+    const unloaded = unloadedTypeRejection(
+      options?.chart?.type,
+      options?.series,
+    )
+    if (unloaded) return unloaded
 
     // Trellis (#22): an option change on a live trellis host is structural
     // (it can move the split, the scales, the layout or any panel option), so
@@ -1083,6 +1109,10 @@ export default class ApexCharts {
       )
       return Promise.resolve(this)
     }
+    // A combo series of an opt-in type the page never loaded: refused before
+    // anything moves, as in updateOptions.
+    const unloaded = unloadedTypeRejection(undefined, newSeries)
+    if (unloaded) return unloaded
     // Trellis (#22): the host re-splits and fans the new slices out to its
     // panels (same key set: in-place panel updates; changed key set: a full
     // trellis re-render). As in updateOptions, an in-flight mount counts:
@@ -1117,6 +1147,8 @@ export default class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
+    const unloaded = unloadedTypeRejection(undefined, [newSerie])
+    if (unloaded) return unloaded
     this.data.resetParsingFlags()
 
     const newSeries = this.w.config.series.slice()

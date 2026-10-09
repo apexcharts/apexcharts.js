@@ -317,4 +317,56 @@ describe('changing to an opt-in type the page never loaded', () => {
     await chart.updateOptions({ series: [{ name: 'A', data: [4, 5, 6, 7] }] })
     expect(bars(chart)).toBe(4)
   })
+
+  // violin is an XY type, so a combo can add one without changing chart.type.
+  // That path tore the chart down and left the violin series in its config,
+  // so every later update failed too.
+  const VIOLIN = {
+    name: 'V',
+    type: 'violin',
+    data: [
+      {
+        x: 'a',
+        y: [
+          [1, 0.2],
+          [2, 0.5],
+        ],
+        points: [1, 2],
+      },
+    ],
+  }
+  const BOX = {
+    name: 'B',
+    type: 'boxPlot',
+    data: [{ x: 'a', y: [1, 2, 3, 4, 5] }],
+  }
+
+  test.each([
+    ['updateOptions', (c) => c.updateOptions({ series: [BOX, VIOLIN] })],
+    ['updateSeries', (c) => c.updateSeries([BOX, VIOLIN])],
+    ['appendSeries', (c) => c.appendSeries(VIOLIN)],
+  ])(
+    '%s with a violin series rejects before anything moves',
+    async (_, call) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const chart = createChartWithOptions({
+        chart: { type: 'boxPlot', width: 500, height: 300 },
+        series: [structuredClone(BOX)],
+      })
+      const boxes = () =>
+        chart.el.querySelectorAll('.apexcharts-boxPlot-area').length
+      const before = boxes()
+      expect(before).toBeGreaterThan(0)
+
+      await expect(call(chart)).rejects.toThrow(
+        'chart type "violin" is not registered',
+      )
+      expect(chart.w.config.series.map((s) => s.type)).toEqual(['boxPlot'])
+      expect(boxes()).toBe(before)
+
+      // Nothing stuck in the config: an unrelated update still draws.
+      await chart.updateOptions({ title: { text: 'still here' } })
+      expect(boxes()).toBe(before)
+    },
+  )
 })
