@@ -74,6 +74,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A part-to-whole waffle: a 10x10 grid where every square is 1% of the world's
 // electricity, coloured by source. Two illustrative scenarios (a rough "today"

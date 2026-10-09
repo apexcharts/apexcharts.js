@@ -75,6 +75,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script src="../../../dist/unit-shapes.js"></script>
 <script>
 // Every button maps to one plotOptions.unit patch. The shapes come from

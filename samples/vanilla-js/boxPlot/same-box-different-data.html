@@ -121,180 +121,181 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds.
-      //
-      // Three samples of 60 observations that share ONE five-number summary exactly,
-      // and are nothing like each other underneath. That is the whole demo: the boxes
-      // are identical because a box only ever shows five numbers.
-      var N = 60
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Three samples of 60 observations that share ONE five-number summary exactly,
+    // and are nothing like each other underneath. That is the whole demo: the boxes
+    // are identical because a box only ever shows five numbers.
+    var N = 60
 
-      // The five numbers every group shares, and the ranks they are read from.
-      // Quartiles interpolate between ranks (R type 7, which is what the library's
-      // fiveNumberSummary uses): for N = 60 the reads land at (N-1)*q = 14.75, 29.5
-      // and 44.25, so fixing ranks 14+15, 29+30 and 44+45 fixes q1, the median and q3
-      // no matter what sits between them. Ranks 0 and 59 fix the whiskers.
-      //
-      // That also fixes the COUNT in each quarter at 15, which is the real constraint
-      // here: no amount of cleverness can put fewer readings between the median and
-      // q3. The freedom left is WHERE inside each quarter those 15 sit, and that is
-      // enough to make three samples that look nothing alike.
-      var QUARTERS = [
-        { lo: 20, hi: 35 },
-        { lo: 35, hi: 50 },
-        { lo: 50, hi: 65 },
-        { lo: 65, hi: 80 },
-      ]
+    // The five numbers every group shares, and the ranks they are read from.
+    // Quartiles interpolate between ranks (R type 7, which is what the library's
+    // fiveNumberSummary uses): for N = 60 the reads land at (N-1)*q = 14.75, 29.5
+    // and 44.25, so fixing ranks 14+15, 29+30 and 44+45 fixes q1, the median and q3
+    // no matter what sits between them. Ranks 0 and 59 fix the whiskers.
+    //
+    // That also fixes the COUNT in each quarter at 15, which is the real constraint
+    // here: no amount of cleverness can put fewer readings between the median and
+    // q3. The freedom left is WHERE inside each quarter those 15 sit, and that is
+    // enough to make three samples that look nothing alike.
+    var QUARTERS = [
+      { lo: 20, hi: 35 },
+      { lo: 35, hi: 50 },
+      { lo: 50, hi: 65 },
+      { lo: 65, hi: 80 },
+    ]
 
-      // Place 15 readings across one quarter. `pull` decides where they crowd:
-      // 'low' presses them against the bottom of the range, 'high' against the top,
-      // 'even' spreads them out. The ends always land exactly on the quarter's
-      // boundaries, which is what keeps the summary identical.
-      function fillQuarter(q, pull) {
-        var out = []
-        for (var i = 0; i < 15; i++) {
-          var t = i / 14
-          var f =
-            pull === 'low'
-              ? Math.pow(t, 2.6)
-              : pull === 'high'
-                ? 1 - Math.pow(1 - t, 2.6)
-                : t
-          out.push(Math.round((q.lo + (q.hi - q.lo) * f) * 10) / 10)
-        }
-        return out
+    // Place 15 readings across one quarter. `pull` decides where they crowd:
+    // 'low' presses them against the bottom of the range, 'high' against the top,
+    // 'even' spreads them out. The ends always land exactly on the quarter's
+    // boundaries, which is what keeps the summary identical.
+    function fillQuarter(q, pull) {
+      var out = []
+      for (var i = 0; i < 15; i++) {
+        var t = i / 14
+        var f =
+          pull === 'low'
+            ? Math.pow(t, 2.6)
+            : pull === 'high'
+              ? 1 - Math.pow(1 - t, 2.6)
+              : t
+        out.push(Math.round((q.lo + (q.hi - q.lo) * f) * 10) / 10)
       }
+      return out
+    }
 
-      function sampleFrom(pulls) {
-        return QUARTERS.reduce(function (acc, q, k) {
-          return acc.concat(fillQuarter(q, pulls[k]))
-        }, [])
-      }
+    function sampleFrom(pulls) {
+      return QUARTERS.reduce(function (acc, q, k) {
+        return acc.concat(fillQuarter(q, pulls[k]))
+      }, [])
+    }
 
-      // The three groups differ only in the middle two quarters, which is where the
-      // freedom is: the outer quarters spread evenly in every group, so the contrast
-      // is purely about whether the mass sits AWAY from the median or ON it.
-      var SHAPES = [
-        {
-          name: 'Two camps',
-          // Quarters 2 and 3 crowd outwards, hollowing out the centre: one camp
-          // around 35, another around 65, and a conspicuous gap between them.
-          values: sampleFrom(['even', 'low', 'high', 'even']),
-        },
-        {
-          name: 'Perfectly even',
-          // Every reading about as likely as any other.
-          values: sampleFrom(['even', 'even', 'even', 'even']),
-        },
-        {
-          name: 'Bunched in the middle',
-          // The mirror image: quarters 2 and 3 crowd inwards, so almost everything
-          // piles onto the median and the whiskers are reached by stragglers.
-          values: sampleFrom(['even', 'high', 'low', 'even']),
-        },
-      ]
+    // The three groups differ only in the middle two quarters, which is where the
+    // freedom is: the outer quarters spread evenly in every group, so the contrast
+    // is purely about whether the mass sits AWAY from the median or ON it.
+    var SHAPES = [
+      {
+        name: 'Two camps',
+        // Quarters 2 and 3 crowd outwards, hollowing out the centre: one camp
+        // around 35, another around 65, and a conspicuous gap between them.
+        values: sampleFrom(['even', 'low', 'high', 'even']),
+      },
+      {
+        name: 'Perfectly even',
+        // Every reading about as likely as any other.
+        values: sampleFrom(['even', 'even', 'even', 'even']),
+      },
+      {
+        name: 'Bunched in the middle',
+        // The mirror image: quarters 2 and 3 crowd inwards, so almost everything
+        // piles onto the median and the whiskers are reached by stragglers.
+        values: sampleFrom(['even', 'high', 'low', 'even']),
+      },
+    ]
 
-      var BOX_SERIES = [
-        {
-          name: 'Readings',
-          data: SHAPES.map(function (s) {
-            return { x: s.name, points: s.values }
-          }),
-        },
-      ]
+    var BOX_SERIES = [
+      {
+        name: 'Readings',
+        data: SHAPES.map(function (s) {
+          return { x: s.name, points: s.values }
+        }),
+      },
+    ]
 
-      function setActive(exploded) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
-        buttons.forEach(function (b) {
-          b.className =
-            (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
-        })
-      }
+    function setActive(exploded) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+      buttons.forEach(function (b) {
+        b.className =
+          (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
+      })
+    }
 
-      // Read each group's summary back off the chart, so the table shows what the
-      // library actually derived rather than what this page hoped for.
-      function renderSummary(chart) {
-        var el = document.querySelector('#summary')
-        if (!el) return
-        var rows = (chart.w.config.series[0].data || []).map(function (d) {
-          var y = d.y || []
-          return (
-            '<tr><td>' +
-            d.x +
-            '</td>' +
-            y
-              .map(function (v) {
-                return '<td>' + v + '</td>'
-              })
-              .join('') +
-            '</tr>'
-          )
-        })
-        el.innerHTML =
-          '<table><thead><tr><th>Group</th><th>Min</th><th>Q1</th>' +
-          '<th>Median</th><th>Q3</th><th>Max</th></tr></thead><tbody>' +
-          rows.join('') +
-          '</tbody></table>'
-      }
+    // Read each group's summary back off the chart, so the table shows what the
+    // library actually derived rather than what this page hoped for.
+    function renderSummary(chart) {
+      var el = document.querySelector('#summary')
+      if (!el) return
+      var rows = (chart.w.config.series[0].data || []).map(function (d) {
+        var y = d.y || []
+        return (
+          '<tr><td>' +
+          d.x +
+          '</td>' +
+          y
+            .map(function (v) {
+              return '<td>' + v + '</td>'
+            })
+            .join('') +
+          '</tr>'
+        )
+      })
+      el.innerHTML =
+        '<table><thead><tr><th>Group</th><th>Min</th><th>Q1</th>' +
+        '<th>Median</th><th>Q3</th><th>Max</th></tr></thead><tbody>' +
+        rows.join('') +
+        '</tbody></table>'
+    }
 
-      // Wires the two buttons to a live chart. Shared by all three builds.
-      function wireExplode(chart) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+    // Wires the two buttons to a live chart. Shared by all three builds.
+    function wireExplode(chart) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
 
-        buttons.forEach(function (b) {
-          b.addEventListener('click', function () {
-            // The active view's button is a no-op: re-requesting the readings while
-            // already exploded would ask rowSeries() of a unit chart, which has no
-            // rows to hand back.
-            if (b.className === 'on') return
-            var explode = b.getAttribute('data-explode') === 'true'
-            setActive(explode)
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          // The active view's button is a no-op: re-requesting the readings while
+          // already exploded would ask rowSeries() of a unit chart, which has no
+          // rows to hand back.
+          if (b.className === 'on') return
+          var explode = b.getAttribute('data-explode') === 'true'
+          setActive(explode)
 
-            if (explode) {
-              // Nothing about the samples is passed in: the boxes were built from the
-              // observations, so the chart can still hand each box's own readings
-              // back. Every dot leaves from the box it was summarised into.
-              chart.updateOptions({
-                chart: { type: 'unit' },
-                series: chart.rowSeries(),
-                plotOptions: {
-                  unit: {
-                    layout: 'scatter',
-                    unitValue: 1,
-                    size: 4,
-                    scatter: {
-                      y: 'lanes',
-                      spread: 'swarm',
-                      xTitle: 'Reading',
-                      // One decade of margin each side, and ticks every 10 like the
-                      // box view's axis, so the room reads unchanged across the
-                      // morph.
-                      xMin: 10,
-                      xMax: 90,
-                      tickAmount: 9,
-                      // Wide enough for the longest lane name; the gutter clips
-                      // rather than wraps, so this has to clear "Bunched in the
-                      // middle" outright.
-                      laneLabelWidth: 155,
-                    },
+          if (explode) {
+            // Nothing about the samples is passed in: the boxes were built from the
+            // observations, so the chart can still hand each box's own readings
+            // back. Every dot leaves from the box it was summarised into.
+            chart.updateOptions({
+              chart: { type: 'unit' },
+              series: chart.rowSeries(),
+              plotOptions: {
+                unit: {
+                  layout: 'scatter',
+                  unitValue: 1,
+                  size: 4,
+                  scatter: {
+                    y: 'lanes',
+                    spread: 'swarm',
+                    xTitle: 'Reading',
+                    // One decade of margin each side, and ticks every 10 like the
+                    // box view's axis, so the room reads unchanged across the
+                    // morph.
+                    xMin: 10,
+                    xMax: 90,
+                    tickAmount: 9,
+                    // Wide enough for the longest lane name; the gutter clips
+                    // rather than wraps, so this has to clear "Bunched in the
+                    // middle" outright.
+                    laneLabelWidth: 155,
                   },
                 },
-                legend: { show: false },
-              })
-            } else {
-              chart.updateOptions({
-                chart: { type: 'boxPlot' },
-                series: BOX_SERIES,
-                legend: { show: false },
-              })
-            }
-          })
+              },
+              legend: { show: false },
+            })
+          } else {
+            chart.updateOptions({
+              chart: { type: 'boxPlot' },
+              series: BOX_SERIES,
+              legend: { show: false },
+            })
+          }
         })
+      })
 
-        setActive(false)
-        renderSummary(chart)
-      }
-    </script>
+      setActive(false)
+      renderSummary(chart)
+    }
+  </script>
   </head>
 
   <body>

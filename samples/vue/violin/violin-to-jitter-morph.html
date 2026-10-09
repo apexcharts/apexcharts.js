@@ -123,165 +123,167 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds.
-      //
-      // Daily practice minutes for three plans, generated from a seeded RNG so the
-      // page renders identically on every load. Each lane hides something a violin
-      // cannot show: Free has a hard 30-minute cap (a wall of readings the estimate
-      // smooths into a bulge), Pro is the healthy case the violin was made for, and
-      // Trial has so few readings that its confident-looking curve stands on
-      // almost nothing.
-      var seed = 11
-      function rand() {
-        seed = (seed * 16807) % 2147483647
-        return (seed - 1) / 2147483646
+    <script src="../../../dist/unit.js"></script>
+  <script src="../../../dist/violin.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Daily practice minutes for three plans, generated from a seeded RNG so the
+    // page renders identically on every load. Each lane hides something a violin
+    // cannot show: Free has a hard 30-minute cap (a wall of readings the estimate
+    // smooths into a bulge), Pro is the healthy case the violin was made for, and
+    // Trial has so few readings that its confident-looking curve stands on
+    // almost nothing.
+    var seed = 11
+    function rand() {
+      seed = (seed * 16807) % 2147483647
+      return (seed - 1) / 2147483646
+    }
+    function gauss() {
+      var u1 = Math.max(rand(), 1e-9)
+      var u2 = rand()
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+    }
+    function logNormal(n, median, sigma, lo, hi) {
+      var out = []
+      for (var i = 0; i < n; i++) {
+        var v = Math.exp(Math.log(median) + sigma * gauss())
+        out.push(Math.round(Math.min(hi, Math.max(lo, v))))
       }
-      function gauss() {
-        var u1 = Math.max(rand(), 1e-9)
-        var u2 = rand()
-        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-      }
-      function logNormal(n, median, sigma, lo, hi) {
-        var out = []
-        for (var i = 0; i < n; i++) {
-          var v = Math.exp(Math.log(median) + sigma * gauss())
-          out.push(Math.round(Math.min(hi, Math.max(lo, v))))
-        }
-        return out
-      }
+      return out
+    }
 
-      var PLANS = [
-        // The cap: anything the distribution puts past 30 lands ON 30 exactly.
-        { name: 'Free', color: '#12b3a8', values: logNormal(150, 24, 0.5, 3, 30) },
-        { name: 'Pro', color: '#5a67d8', values: logNormal(170, 34, 0.45, 6, 105) },
-        { name: 'Trial', color: '#e8890c', values: logNormal(14, 26, 0.55, 4, 95) },
-      ]
+    var PLANS = [
+      // The cap: anything the distribution puts past 30 lands ON 30 exactly.
+      { name: 'Free', color: '#12b3a8', values: logNormal(150, 24, 0.5, 3, 30) },
+      { name: 'Pro', color: '#5a67d8', values: logNormal(170, 34, 0.45, 6, 105) },
+      { name: 'Trial', color: '#e8890c', values: logNormal(14, 26, 0.55, 4, 95) },
+    ]
 
-      var COLORS = PLANS.map(function (p) {
-        return p.color
+    var COLORS = PLANS.map(function (p) {
+      return p.color
+    })
+
+    var VIOLIN_SERIES = [
+      {
+        name: 'Minutes',
+        data: PLANS.map(function (p) {
+          // Raw observations only: the library runs the density estimate.
+          return { x: p.name, points: p.values }
+        }),
+      },
+    ]
+
+    function setActive(exploded) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+      buttons.forEach(function (b) {
+        b.className =
+          (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
       })
+    }
 
-      var VIOLIN_SERIES = [
-        {
-          name: 'Minutes',
-          data: PLANS.map(function (p) {
-            // Raw observations only: the library runs the density estimate.
-            return { x: p.name, points: p.values }
-          }),
-        },
-      ]
+    function median(values) {
+      var s = values.slice().sort(function (a, b) {
+        return a - b
+      })
+      var m = (s.length - 1) / 2
+      return (s[Math.floor(m)] + s[Math.ceil(m)]) / 2
+    }
 
-      function setActive(exploded) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
-        buttons.forEach(function (b) {
-          b.className =
-            (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
-        })
-      }
+    function renderSummary() {
+      var el = document.querySelector('#summary')
+      if (!el) return
+      var rows = PLANS.map(function (p) {
+        var pinned = p.values.filter(function (v) {
+          return v === 30
+        }).length
+        return (
+          '<tr><td>' +
+          p.name +
+          '</td>' +
+          '<td>' +
+          p.values.length +
+          '</td>' +
+          '<td>' +
+          median(p.values) +
+          ' min</td>' +
+          '<td>' +
+          (p.name === 'Free' ? pinned : '-') +
+          '</td></tr>'
+        )
+      })
+      el.innerHTML =
+        '<table><thead><tr><th>Plan</th><th>Readings</th><th>Median</th>' +
+        '<th>Pinned at the 30 min cap</th></tr></thead><tbody>' +
+        rows.join('') +
+        '</tbody></table>'
+    }
 
-      function median(values) {
-        var s = values.slice().sort(function (a, b) {
-          return a - b
-        })
-        var m = (s.length - 1) / 2
-        return (s[Math.floor(m)] + s[Math.ceil(m)]) / 2
-      }
+    // Wires the two buttons to a live chart. Shared by all three builds.
+    function wireExplode(chart) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
 
-      function renderSummary() {
-        var el = document.querySelector('#summary')
-        if (!el) return
-        var rows = PLANS.map(function (p) {
-          var pinned = p.values.filter(function (v) {
-            return v === 30
-          }).length
-          return (
-            '<tr><td>' +
-            p.name +
-            '</td>' +
-            '<td>' +
-            p.values.length +
-            '</td>' +
-            '<td>' +
-            median(p.values) +
-            ' min</td>' +
-            '<td>' +
-            (p.name === 'Free' ? pinned : '-') +
-            '</td></tr>'
-          )
-        })
-        el.innerHTML =
-          '<table><thead><tr><th>Plan</th><th>Readings</th><th>Median</th>' +
-          '<th>Pinned at the 30 min cap</th></tr></thead><tbody>' +
-          rows.join('') +
-          '</tbody></table>'
-      }
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          // The active view's button is a no-op: re-requesting the readings while
+          // already exploded would ask rowSeries() of a unit chart, which has no
+          // rows to hand back.
+          if (b.className === 'on') return
+          var explode = b.getAttribute('data-explode') === 'true'
+          setActive(explode)
 
-      // Wires the two buttons to a live chart. Shared by all three builds.
-      function wireExplode(chart) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
-
-        buttons.forEach(function (b) {
-          b.addEventListener('click', function () {
-            // The active view's button is a no-op: re-requesting the readings while
-            // already exploded would ask rowSeries() of a unit chart, which has no
-            // rows to hand back.
-            if (b.className === 'on') return
-            var explode = b.getAttribute('data-explode') === 'true'
-            setActive(explode)
-
-            if (explode) {
-              // The violins were estimated from the observations, so the chart can
-              // hand each violin's own readings back: every dot leaves from the
-              // curve it was smoothed into.
-              var rows = chart.rowSeries()
-              // rowSeries() colours by series, and this violin is ONE series split
-              // across three lanes (distributed). Re-key the colour by lane so each
-              // violin's ink keeps its own colour on the way out.
-              rows.forEach(function (cluster, k) {
-                cluster.data.forEach(function (d) {
-                  d.fillColor = COLORS[k]
-                })
+          if (explode) {
+            // The violins were estimated from the observations, so the chart can
+            // hand each violin's own readings back: every dot leaves from the
+            // curve it was smoothed into.
+            var rows = chart.rowSeries()
+            // rowSeries() colours by series, and this violin is ONE series split
+            // across three lanes (distributed). Re-key the colour by lane so each
+            // violin's ink keeps its own colour on the way out.
+            rows.forEach(function (cluster, k) {
+              cluster.data.forEach(function (d) {
+                d.fillColor = COLORS[k]
               })
-              chart.updateOptions({
-                chart: { type: 'unit' },
-                series: rows,
-                plotOptions: {
-                  unit: {
-                    layout: 'scatter',
-                    unitValue: 1,
-                    size: 3.5,
-                    scatter: {
-                      // Value stays on Y, one lane per plan across X, matching the
-                      // violins. The value-axis keys keep their x* names in either
-                      // orientation.
-                      orientation: 'vertical',
-                      spread: 'jitter',
-                      xTitle: 'Minutes per day',
-                      // The same 0..120 window the violin state pins its yaxis to;
-                      // 7 ticks puts a line every 20 minutes, matching its grid.
-                      xMin: 0,
-                      xMax: 120,
-                      tickAmount: 7,
-                    },
+            })
+            chart.updateOptions({
+              chart: { type: 'unit' },
+              series: rows,
+              plotOptions: {
+                unit: {
+                  layout: 'scatter',
+                  unitValue: 1,
+                  size: 3.5,
+                  scatter: {
+                    // Value stays on Y, one lane per plan across X, matching the
+                    // violins. The value-axis keys keep their x* names in either
+                    // orientation.
+                    orientation: 'vertical',
+                    spread: 'jitter',
+                    xTitle: 'Minutes per day',
+                    // The same 0..120 window the violin state pins its yaxis to;
+                    // 7 ticks puts a line every 20 minutes, matching its grid.
+                    xMin: 0,
+                    xMax: 120,
+                    tickAmount: 7,
                   },
                 },
-                legend: { show: false },
-              })
-            } else {
-              chart.updateOptions({
-                chart: { type: 'violin' },
-                series: VIOLIN_SERIES,
-                legend: { show: false },
-              })
-            }
-          })
+              },
+              legend: { show: false },
+            })
+          } else {
+            chart.updateOptions({
+              chart: { type: 'violin' },
+              series: VIOLIN_SERIES,
+              legend: { show: false },
+            })
+          }
         })
+      })
 
-        setActive(false)
-        renderSummary()
-      }
-    </script>
+      setActive(false)
+      renderSummary()
+    }
+  </script>
   </head>
 
   <body>

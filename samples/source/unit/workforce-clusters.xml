@@ -50,6 +50,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // Shared by the vanilla-js, React and Vue builds. Two views of one 480-person
 // company to show off both layouts: the headcount by department (grouped

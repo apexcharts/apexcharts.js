@@ -74,6 +74,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A 2D bubble scatter: each bubble is a city, placed by average income (x) and
 // cost of living (y), sized by a third field and coloured by region. This is

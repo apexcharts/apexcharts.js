@@ -8,6 +8,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/violin.js"></script>
 <script>
 // ── Reproducible synthetic data (seeded PRNG, no network) ──────────────
 function mulberry32(a) {

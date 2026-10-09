@@ -1,6 +1,8 @@
 {
   "title": "Pictogram (Isotype) Unit Chart",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Pictogram (Isotype) Unit Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Pictogram (isotype) unit chart</h1>\n      <p>A pictogram unit chart: each icon stands for 25,000 people.</p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">1 icon = 25,000 people</div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Pictogram (Isotype) Unit Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Pictogram (isotype) unit chart</h1>\n      <p>A pictogram unit chart: each icon stands for 25,000 people.</p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">1 icon = 25,000 people</div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

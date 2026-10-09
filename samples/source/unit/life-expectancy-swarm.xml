@@ -74,6 +74,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A beeswarm: one dot per country, placed on a real life-expectancy axis and
 // laned by region. Unlike a random jitter strip plot, the dots are PACKED with

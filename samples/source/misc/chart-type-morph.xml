@@ -131,6 +131,9 @@ code {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
+<script src="../../../dist/violin.js"></script>
+<script src="../../../dist/sunburst.js"></script>
 <script>
 // Shared by the vanilla-js, React and Vue builds: the data behind all five
 // cards and the wiring for each. Every card holds one live chart and every

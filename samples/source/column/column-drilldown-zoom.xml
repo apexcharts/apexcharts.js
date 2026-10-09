@@ -1,5 +1,9 @@
 <title>Column Drilldown with Trigger-Point Zoom</title>
 
+<scripts>
+<script src="../../../dist/features/drilldown.js"></script>
+</scripts>
+
 <chart>
 <options>
 chart: {

@@ -51,6 +51,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/sunburst.js"></script>
 <script>
 // Shared by the vanilla-js, React and Vue builds.
 //

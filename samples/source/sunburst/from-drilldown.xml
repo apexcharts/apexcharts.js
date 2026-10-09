@@ -8,6 +8,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/sunburst.js"></script>
 <script>
 // A sunburst reads the SAME `series` + `drilldown.series` config a drilldown
 // donut uses, so an existing drilldown chart becomes a sunburst by flipping

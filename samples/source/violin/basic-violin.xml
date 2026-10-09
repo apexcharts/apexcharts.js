@@ -8,6 +8,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/violin.js"></script>
 <script>
 // Build a Gaussian density profile + raw observations for a group.
 // The sample template seeds Math.random, so this renders identically across reloads.

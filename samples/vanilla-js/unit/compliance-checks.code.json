@@ -1,6 +1,7 @@
 {
   "title": "Unit Chart - Checkmark Stroke",
   "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js",
     "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
   ],
   "files": [
@@ -12,7 +13,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Checkmark Stroke</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>4,800 compliance checks, one dot per 6</h1>\n      <p>\n        A checkmark has no interior, only a line and a thickness, so the dots\n        pack a stroked centreline rather than an outline. That is a different\n        region behind the same packer: the shape is three points and a width,\n        instead of both sides of both arms with a mitred corner drawn by hand.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 6 checks</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Checkmark Stroke</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>4,800 compliance checks, one dot per 6</h1>\n      <p>\n        A checkmark has no interior, only a line and a thickness, so the dots\n        pack a stroked centreline rather than an outline. That is a different\n        region behind the same packer: the shape is three points and a width,\n        instead of both sides of both arms with a mitred corner drawn by hand.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 6 checks</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

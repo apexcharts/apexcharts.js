@@ -1,6 +1,8 @@
 {
   "title": "Unit Chart Team Roster (per-unit data)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart Team Roster (per-unit data)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Team roster</h1>\n      <p>One dot per person, grouped by team, each carrying its own data.</p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n        <div class=\"legend-note\">\n          <span\n            ><span class=\"swatch\" style=\"background: #008ffb\"></span\n            >Engineering</span\n          >\n          <span\n            ><span class=\"swatch\" style=\"background: #00b8d9\"></span\n            >Design</span\n          >\n          <span\n            ><span class=\"swatch\" style=\"background: #36b37e\"></span>Sales</span\n          >\n          <span\n            ><span class=\"swatch\" style=\"background: #ffab00\"></span>Team\n            lead</span\n          >\n        </div>\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart Team Roster (per-unit data)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Team roster</h1>\n      <p>One dot per person, grouped by team, each carrying its own data.</p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n        <div class=\"legend-note\">\n          <span\n            ><span class=\"swatch\" style=\"background: #008ffb\"></span\n            >Engineering</span\n          >\n          <span\n            ><span class=\"swatch\" style=\"background: #00b8d9\"></span\n            >Design</span\n          >\n          <span\n            ><span class=\"swatch\" style=\"background: #36b37e\"></span>Sales</span\n          >\n          <span\n            ><span class=\"swatch\" style=\"background: #ffab00\"></span>Team\n            lead</span\n          >\n        </div>\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

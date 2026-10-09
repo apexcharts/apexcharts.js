@@ -91,61 +91,62 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds.
-      //
-      // Levels are FETCHED, not inlined, which is how a real dashboard works: the
-      // root is small, and each child is a request. A fake backend stands in for the
-      // API so the demo is self-contained and deterministic.
-      var BACKEND = {
-        '2023-q': [
-          { x: 'Q1', y: 21 },
-          { x: 'Q2', y: 28 },
-          { x: 'Q3', y: 24 },
-          { x: 'Q4', y: 27 },
-        ],
-        '2024-q': [
-          { x: 'Q1', y: 33 },
-          { x: 'Q2', y: 41 },
-          { x: 'Q3', y: 36 },
-          { x: 'Q4', y: 40 },
-        ],
-        '2025-q': [
-          { x: 'Q1', y: 44 },
-          { x: 'Q2', y: 52 },
-          { x: 'Q3', y: 48 },
-          { x: 'Q4', y: 56 },
-        ],
-      }
+    <script src="../../../dist/features/drilldown.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // Levels are FETCHED, not inlined, which is how a real dashboard works: the
+    // root is small, and each child is a request. A fake backend stands in for the
+    // API so the demo is self-contained and deterministic.
+    var BACKEND = {
+      '2023-q': [
+        { x: 'Q1', y: 21 },
+        { x: 'Q2', y: 28 },
+        { x: 'Q3', y: 24 },
+        { x: 'Q4', y: 27 },
+      ],
+      '2024-q': [
+        { x: 'Q1', y: 33 },
+        { x: 'Q2', y: 41 },
+        { x: 'Q3', y: 36 },
+        { x: 'Q4', y: 40 },
+      ],
+      '2025-q': [
+        { x: 'Q1', y: 44 },
+        { x: 'Q2', y: 52 },
+        { x: 'Q3', y: 48 },
+        { x: 'Q4', y: 56 },
+      ],
+    }
 
-      // Flipped by the checkbox, so the failure path is demonstrable rather than
-      // described. A failed fetch must leave the chart exactly where it was.
-      var failNext = false
+    // Flipped by the checkbox, so the failure path is demonstrable rather than
+    // described. A failed fetch must leave the chart exactly where it was.
+    var failNext = false
 
-      function fakeFetch(id) {
-        return new Promise(function (resolve, reject) {
-          window.setTimeout(function () {
-            if (failNext) {
-              reject(new Error('Request failed (simulated)'))
-              return
-            }
-            var rows = BACKEND[id]
-            if (!rows) {
-              reject(new Error('No level "' + id + '"'))
-              return
-            }
-            resolve({ id: id, name: id.replace('-q', ' by quarter'), data: rows })
-          }, 700)
-        })
-      }
+    function fakeFetch(id) {
+      return new Promise(function (resolve, reject) {
+        window.setTimeout(function () {
+          if (failNext) {
+            reject(new Error('Request failed (simulated)'))
+            return
+          }
+          var rows = BACKEND[id]
+          if (!rows) {
+            reject(new Error('No level "' + id + '"'))
+            return
+          }
+          resolve({ id: id, name: id.replace('-q', ' by quarter'), data: rows })
+        }, 700)
+      })
+    }
 
-      function setStatus(text, isError) {
-        var el = document.querySelector('#status')
-        if (!el) return
-        el.textContent = text || ''
-        el.className = isError ? 'status error' : 'status'
-      }
-    </script>
+    function setStatus(text, isError) {
+      var el = document.querySelector('#status')
+      if (!el) return
+      el.textContent = text || ''
+      el.className = isError ? 'status error' : 'status'
+    }
+  </script>
   </head>
 
   <body>

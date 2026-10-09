@@ -67,6 +67,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/features/drilldown.js"></script>
 <script>
 // Shared by the vanilla-js, React and Vue builds.
 //

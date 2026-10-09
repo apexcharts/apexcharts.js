@@ -101,85 +101,86 @@
       }
     </script>
 
-    <script>
-      // A 2D bubble scatter: each bubble is a city, placed by average income (x) and
-      // cost of living (y), sized by a third field and coloured by region. This is
-      // the unit chart's `layout: 'scatter'` in `y: 'value'` mode (each datum's own x
-      // + y on two numeric axes) with `sizeRange` turning the dots into area-scaled
-      // bubbles.
-      //
-      // The size toggle is the story: by POPULATION the megacities (Tokyo, Delhi,
-      // Shanghai, Sao Paulo) swell; by GDP the money centres (Tokyo, New York, London,
-      // Paris) lead instead. Every bubble tweens its size. Figures are approximate
-      // (public-data style). Shared by the vanilla-js / React / Vue builds.
-      var REGIONS = [
-        { name: 'Americas', color: '#22C55E' },
-        { name: 'Europe', color: '#0EA5E9' },
-        { name: 'Asia', color: '#F59E0B' },
-        { name: 'Oceania', color: '#F43F5E' },
-      ]
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // A 2D bubble scatter: each bubble is a city, placed by average income (x) and
+    // cost of living (y), sized by a third field and coloured by region. This is
+    // the unit chart's `layout: 'scatter'` in `y: 'value'` mode (each datum's own x
+    // + y on two numeric axes) with `sizeRange` turning the dots into area-scaled
+    // bubbles.
+    //
+    // The size toggle is the story: by POPULATION the megacities (Tokyo, Delhi,
+    // Shanghai, Sao Paulo) swell; by GDP the money centres (Tokyo, New York, London,
+    // Paris) lead instead. Every bubble tweens its size. Figures are approximate
+    // (public-data style). Shared by the vanilla-js / React / Vue builds.
+    var REGIONS = [
+      { name: 'Americas', color: '#22C55E' },
+      { name: 'Europe', color: '#0EA5E9' },
+      { name: 'Asia', color: '#F59E0B' },
+      { name: 'Oceania', color: '#F43F5E' },
+    ]
 
-      // [city, avg income (US$/yr), cost of living (index, NYC = 100),
-      //  metro population (millions), metro GDP (US$ billions)]
-      var DATA = {
-        Americas: [
-          ['New York', 55000, 100, 18.9, 2000],
-          ['San Francisco', 62000, 98, 4.7, 650],
-          ['Toronto', 40000, 72, 6.4, 400],
-          ['Sao Paulo', 12000, 40, 22.6, 480],
-          ['Mexico City', 11000, 38, 22.0, 480],
-        ],
-        Europe: [
-          ['Zurich', 72000, 118, 1.4, 340],
-          ['London', 45000, 85, 14.3, 1000],
-          ['Paris', 38000, 80, 11.1, 850],
-          ['Berlin', 36000, 70, 6.1, 180],
-          ['Moscow', 18000, 45, 12.6, 550],
-        ],
-        Asia: [
-          ['Tokyo', 40000, 83, 37.4, 1600],
-          ['Singapore', 55000, 95, 5.9, 470],
-          ['Dubai', 45000, 70, 3.5, 130],
-          ['Hong Kong', 42000, 90, 7.5, 380],
-          ['Seoul', 34000, 78, 26.0, 780],
-          ['Shanghai', 20000, 60, 27.0, 680],
-          ['Mumbai', 8000, 35, 20.7, 310],
-          ['Delhi', 7000, 32, 32.0, 370],
-        ],
-        Oceania: [
-          ['Sydney', 48000, 88, 5.3, 400],
-          ['Melbourne', 44000, 82, 5.0, 250],
-        ],
-      }
+    // [city, avg income (US$/yr), cost of living (index, NYC = 100),
+    //  metro population (millions), metro GDP (US$ billions)]
+    var DATA = {
+      Americas: [
+        ['New York', 55000, 100, 18.9, 2000],
+        ['San Francisco', 62000, 98, 4.7, 650],
+        ['Toronto', 40000, 72, 6.4, 400],
+        ['Sao Paulo', 12000, 40, 22.6, 480],
+        ['Mexico City', 11000, 38, 22.0, 480],
+      ],
+      Europe: [
+        ['Zurich', 72000, 118, 1.4, 340],
+        ['London', 45000, 85, 14.3, 1000],
+        ['Paris', 38000, 80, 11.1, 850],
+        ['Berlin', 36000, 70, 6.1, 180],
+        ['Moscow', 18000, 45, 12.6, 550],
+      ],
+      Asia: [
+        ['Tokyo', 40000, 83, 37.4, 1600],
+        ['Singapore', 55000, 95, 5.9, 470],
+        ['Dubai', 45000, 70, 3.5, 130],
+        ['Hong Kong', 42000, 90, 7.5, 380],
+        ['Seoul', 34000, 78, 26.0, 780],
+        ['Shanghai', 20000, 60, 27.0, 680],
+        ['Mumbai', 8000, 35, 20.7, 310],
+        ['Delhi', 7000, 32, 32.0, 370],
+      ],
+      Oceania: [
+        ['Sydney', 48000, 88, 5.3, 400],
+        ['Melbourne', 44000, 82, 5.0, 250],
+      ],
+    }
 
-      // z = the bubble size field: 'population' (people) or 'gdp' (metro output).
-      function seriesFor(sizeBy) {
-        return REGIONS.map(function (r) {
-          return {
-            name: r.name,
-            data: DATA[r.name].map(function (c) {
-              return {
-                name: c[0],
-                x: c[1],
-                y: c[2],
-                z: sizeBy === 'gdp' ? c[4] : c[3],
-              }
-            }),
-          }
-        })
-      }
+    // z = the bubble size field: 'population' (people) or 'gdp' (metro output).
+    function seriesFor(sizeBy) {
+      return REGIONS.map(function (r) {
+        return {
+          name: r.name,
+          data: DATA[r.name].map(function (c) {
+            return {
+              name: c[0],
+              x: c[1],
+              y: c[2],
+              z: sizeBy === 'gdp' ? c[4] : c[3],
+            }
+          }),
+        }
+      })
+    }
 
-      var VIEWS = {
-        population: {
-          caption:
-            'Sized by population, the megacities swell: Tokyo, Delhi, Shanghai and Sao Paulo dominate, even where incomes are low and living is cheap.',
-        },
-        gdp: {
-          caption:
-            'Sized by economic output, the money centres take over: New York, Tokyo, London and Paris lead, while populous but poorer cities shrink.',
-        },
-      }
-    </script>
+    var VIEWS = {
+      population: {
+        caption:
+          'Sized by population, the megacities swell: Tokyo, Delhi, Shanghai and Sao Paulo dominate, even where incomes are low and living is cheap.',
+      },
+      gdp: {
+        caption:
+          'Sized by economic output, the money centres take over: New York, Tokyo, London and Paris lead, while populous but poorer cities shrink.',
+      },
+    }
+  </script>
   </head>
 
   <body>

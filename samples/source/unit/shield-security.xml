@@ -36,6 +36,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script src="../../../dist/unit-shapes.js"></script>
 </scripts>
 

@@ -73,45 +73,46 @@
       }
     </script>
 
-    <script>
-      // A VERTICAL beeswarm: value runs up the Y axis, each species is a column, and
-      // dots are anti-overlap "swarm" packed so the column's WIDTH reads as density.
-      // One dot per penguin. Figures are an illustrative sample around the real
-      // Palmer Archipelago body-mass distributions (Gentoo run visibly heavier).
-      // Shared by the vanilla-js / React / Vue builds.
-      var SPECIES = [
-        { name: 'Adelie', mean: 3700, sd: 460, n: 44 },
-        { name: 'Chinstrap', mean: 3733, sd: 385, n: 34 },
-        { name: 'Gentoo', mean: 5076, sd: 505, n: 40 },
-      ]
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // A VERTICAL beeswarm: value runs up the Y axis, each species is a column, and
+    // dots are anti-overlap "swarm" packed so the column's WIDTH reads as density.
+    // One dot per penguin. Figures are an illustrative sample around the real
+    // Palmer Archipelago body-mass distributions (Gentoo run visibly heavier).
+    // Shared by the vanilla-js / React / Vue builds.
+    var SPECIES = [
+      { name: 'Adelie', mean: 3700, sd: 460, n: 44 },
+      { name: 'Chinstrap', mean: 3733, sd: 385, n: 34 },
+      { name: 'Gentoo', mean: 5076, sd: 505, n: 40 },
+    ]
 
-      // Deterministic normal-ish sample (Irwin-Hall of 6 uniforms via an LCG): stable
-      // across re-renders and SSR, no Math.random. Rounded to the nearest 25 g.
-      function swarm(mean, sd, n, seed) {
-        var out = []
-        var s = seed >>> 0
-        function u() {
-          s = (s * 1664525 + 1013904223) >>> 0
-          return s / 4294967296
-        }
-        for (var i = 0; i < n; i++) {
-          var g = 0
-          for (var k = 0; k < 6; k++) g += u()
-          var z = (g - 3) / Math.sqrt(0.5)
-          out.push(Math.round((mean + z * sd) / 25) * 25)
-        }
-        return out
+    // Deterministic normal-ish sample (Irwin-Hall of 6 uniforms via an LCG): stable
+    // across re-renders and SSR, no Math.random. Rounded to the nearest 25 g.
+    function swarm(mean, sd, n, seed) {
+      var out = []
+      var s = seed >>> 0
+      function u() {
+        s = (s * 1664525 + 1013904223) >>> 0
+        return s / 4294967296
       }
+      for (var i = 0; i < n; i++) {
+        var g = 0
+        for (var k = 0; k < 6; k++) g += u()
+        var z = (g - 3) / Math.sqrt(0.5)
+        out.push(Math.round((mean + z * sd) / 25) * 25)
+      }
+      return out
+    }
 
-      var swarmSeries = SPECIES.map(function (sp, i) {
-        return {
-          name: sp.name,
-          data: swarm(sp.mean, sp.sd, sp.n, 97 + i * 613).map(function (v, j) {
-            return { name: sp.name + ' ' + (j + 1), value: v }
-          }),
-        }
-      })
-    </script>
+    var swarmSeries = SPECIES.map(function (sp, i) {
+      return {
+        name: sp.name,
+        data: swarm(sp.mean, sp.sd, sp.n, 97 + i * 613).map(function (v, j) {
+          return { name: sp.name + ' ' + (j + 1), value: v }
+        }),
+      }
+    })
+  </script>
   </head>
 
   <body>

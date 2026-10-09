@@ -14,6 +14,8 @@ Optional CSS. If not provided the default style `#chart { max-width: 650px; marg
 
 Optional external scripts or stylesheets.
 
+A chart type or feature that is not in the default bundle is loaded here as its own file, listed first: `<script src="../../../dist/unit.js"></script>` for a type, `<script src="../../../dist/features/drilldown.js"></script>` for a feature. The template loads `apexcharts.js` before this block, and the displayed code puts the library first too, so the add-on always finds it. `samples/source/addons.js` lists which types and features need which file, and `tests/unit/sample-addons.spec.js` fails for a sample that forgets one.
+
 ## &lt;html>
 
 Optional [nunjucks](https://mozilla.github.io/nunjucks/templating.html) template used to generate html template for various framewors. If not provided the default value is `{{ charts[0] }}`, which works for most simple single-chart samples. The template must render with a single root element (for e2e tests to work correctly). This template accepts two variables:

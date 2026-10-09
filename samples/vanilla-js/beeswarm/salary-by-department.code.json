@@ -1,6 +1,8 @@
 {
   "title": "Beeswarm (Horizontal) - Salary by Department",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Beeswarm (Horizontal) - Salary by Department</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>What people earn, by team</h1>\n      <p class=\"lead\">\n        One dot per employee, laned by department, placed on a single pay axis.\n        The swarm packs equal pay side by side, so a wide bulge is a common\n        salary and a lone dot far right is an outlier, the shape of each team's\n        pay is visible at a glance.\n      </p>\n\n      <div class=\"card\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        A horizontal beeswarm is the default\n        <code>plotOptions.unit.scatter</code> with\n        <code>orientation: 'horizontal'</code>: value on X, one category lane\n        per row on Y. Each team carries its own hue, ordered so neighbouring\n        lanes stay easy to tell apart for colour-vision deficiency, and the lane\n        label repeats that colour so identity never rests on hue alone. The unit\n        chart is a premium type, without a license it renders with a trial\n        watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Beeswarm (Horizontal) - Salary by Department</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>What people earn, by team</h1>\n      <p class=\"lead\">\n        One dot per employee, laned by department, placed on a single pay axis.\n        The swarm packs equal pay side by side, so a wide bulge is a common\n        salary and a lone dot far right is an outlier, the shape of each team's\n        pay is visible at a glance.\n      </p>\n\n      <div class=\"card\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        A horizontal beeswarm is the default\n        <code>plotOptions.unit.scatter</code> with\n        <code>orientation: 'horizontal'</code>: value on X, one category lane\n        per row on Y. Each team carries its own hue, ordered so neighbouring\n        lanes stay easy to tell apart for colour-vision deficiency, and the lane\n        label repeats that colour so identity never rests on hue alone. The unit\n        chart is a premium type, without a license it renders with a trial\n        watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

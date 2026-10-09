@@ -8,6 +8,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/drilldown.js"></script>
 <script>
 // Per-level colour palettes. Each breakdown is tinted with shades of its
 // parent slice's hue, so drilling reads as "going deeper into this slice".

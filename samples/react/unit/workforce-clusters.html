@@ -77,43 +77,44 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds. Two views of one 480-person
-      // company to show off both layouts: the headcount by department (grouped
-      // clusters) and the whole company split leadership-vs-staff (packed blob with
-      // the small leadership core nested in the centre). The live control state lives
-      // in each format's own wiring below.
-      var DATASETS = {
-        departments: {
-          values: [200, 120, 90, 70],
-          labels: ['Engineering', 'Sales', 'Operations', 'Design'],
-          colors: ['#008FFB', '#00B8D9', '#36B37E', '#FFAB00'],
-          layout: 'grouped',
-        },
-        seniority: {
-          values: [60, 420],
-          labels: ['Leadership', 'Staff'],
-          colors: ['#FFAB00', '#7B8794'],
-          layout: 'packed',
-        },
-      }
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds. Two views of one 480-person
+    // company to show off both layouts: the headcount by department (grouped
+    // clusters) and the whole company split leadership-vs-staff (packed blob with
+    // the small leadership core nested in the centre). The live control state lives
+    // in each format's own wiring below.
+    var DATASETS = {
+      departments: {
+        values: [200, 120, 90, 70],
+        labels: ['Engineering', 'Sales', 'Operations', 'Design'],
+        colors: ['#008FFB', '#00B8D9', '#36B37E', '#FFAB00'],
+        layout: 'grouped',
+      },
+      seniority: {
+        values: [60, 420],
+        labels: ['Leadership', 'Staff'],
+        colors: ['#FFAB00', '#7B8794'],
+        layout: 'packed',
+      },
+    }
 
-      function randomWorkforce() {
-        var eng = Math.floor(Math.random() * 110) + 150
-        var sales = Math.floor(Math.random() * 70) + 90
-        var ops = Math.floor(Math.random() * 60) + 60
-        var design = Math.floor(Math.random() * 50) + 45
-        return [eng, sales, ops, design]
-      }
+    function randomWorkforce() {
+      var eng = Math.floor(Math.random() * 110) + 150
+      var sales = Math.floor(Math.random() * 70) + 90
+      var ops = Math.floor(Math.random() * 60) + 60
+      var design = Math.floor(Math.random() * 50) + 45
+      return [eng, sales, ops, design]
+    }
 
-      function setActive(id) {
-        document
-          .querySelectorAll('.actions button[data-dataset]')
-          .forEach(function (btn) {
-            btn.classList.toggle('active', btn.getAttribute('data-dataset') === id)
-          })
-      }
-    </script>
+    function setActive(id) {
+      document
+        .querySelectorAll('.actions button[data-dataset]')
+        .forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-dataset') === id)
+        })
+    }
+  </script>
   </head>
 
   <body>

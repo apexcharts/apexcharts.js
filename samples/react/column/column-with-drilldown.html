@@ -34,29 +34,30 @@
       }
     </script>
 
-    <script>
-      // Shared overrides for every drilled-down level: the root is a single-series
-      // chart, but each drill reveals a 3-series (Online / Retail / Wholesale)
-      // grouped column breakdown — so drilling explores more data beneath.
-      var childPlot = {
-        bar: {
-          horizontal: false,
-          distributed: false,
-          columnWidth: '70%',
-          borderRadius: 3,
-          borderRadiusApplication: 'end',
-        },
-      }
-      var childLegend = { show: true, position: 'top' }
+    <script src="../../../dist/features/drilldown.js"></script>
+  <script>
+    // Shared overrides for every drilled-down level: the root is a single-series
+    // chart, but each drill reveals a 3-series (Online / Retail / Wholesale)
+    // grouped column breakdown — so drilling explores more data beneath.
+    var childPlot = {
+      bar: {
+        horizontal: false,
+        distributed: false,
+        columnWidth: '70%',
+        borderRadius: 3,
+        borderRadiusApplication: 'end',
+      },
+    }
+    var childLegend = { show: true, position: 'top' }
 
-      // Each year column is tinted with the base hue of its drilldown palette, so the
-      // drilled breakdown reads as "shades of that year's colour".
-      var yearColors = ['#1565C0', '#2E7D32', '#EF6C00', '#6A1B9A']
-      var bluePalette = ['#1565C0', '#42A5F5', '#90CAF9'] // 2021
-      var greenPalette = ['#2E7D32', '#66BB6A', '#A5D6A7'] // 2022
-      var amberPalette = ['#EF6C00', '#FB8C00', '#FFB74D'] // 2023
-      var purplePalette = ['#6A1B9A', '#AB47BC', '#CE93D8'] // 2024
-    </script>
+    // Each year column is tinted with the base hue of its drilldown palette, so the
+    // drilled breakdown reads as "shades of that year's colour".
+    var yearColors = ['#1565C0', '#2E7D32', '#EF6C00', '#6A1B9A']
+    var bluePalette = ['#1565C0', '#42A5F5', '#90CAF9'] // 2021
+    var greenPalette = ['#2E7D32', '#66BB6A', '#A5D6A7'] // 2022
+    var amberPalette = ['#EF6C00', '#FB8C00', '#FFB74D'] // 2023
+    var purplePalette = ['#6A1B9A', '#AB47BC', '#CE93D8'] // 2024
+  </script>
   </head>
 
   <body>

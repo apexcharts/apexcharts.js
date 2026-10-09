@@ -1,6 +1,8 @@
 {
   "title": "Treemap and Sunburst - Two Views of One Partition",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/sunburst.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Treemap and Sunburst - Two Views of One Partition</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Two views of one partition</h1>\n      <p>\n        A treemap tile and a sunburst arc are both exactly one mark per row, so\n        switching between them is a shape change rather than a redraw: each\n        rectangle unrolls into the arc that holds the same team, and back. Every\n        team keeps its colour, so you can pick one and follow it across. The\n        sunburst adds the level a treemap cannot show, the parent rings, which\n        sweep in behind the leaves.\n      </p>\n\n      <div class=\"actions\">\n        <button data-view=\"treemap\" class=\"on\">Treemap</button>\n        <button data-view=\"sunburst\">Sunburst</button>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Treemap and Sunburst - Two Views of One Partition</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/sunburst.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Two views of one partition</h1>\n      <p>\n        A treemap tile and a sunburst arc are both exactly one mark per row, so\n        switching between them is a shape change rather than a redraw: each\n        rectangle unrolls into the arc that holds the same team, and back. Every\n        team keeps its colour, so you can pick one and follow it across. The\n        sunburst adds the level a treemap cannot show, the parent rings, which\n        sweep in behind the leaves.\n      </p>\n\n      <div class=\"actions\">\n        <button data-view=\"treemap\" class=\"on\">Treemap</button>\n        <button data-view=\"sunburst\">Sunburst</button>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

@@ -29,26 +29,27 @@
       }
     </script>
 
-    <script>
-      // Build a Gaussian density profile + raw observations for a group.
-      // The sample template seeds Math.random, so this renders identically across reloads.
-      function gaussianViolin(mean, sd, n) {
-        var density = []
-        for (var v = mean - 3 * sd; v <= mean + 3 * sd; v += sd / 6) {
-          var z = (v - mean) / sd
-          density.push([Math.round(v * 10) / 10, Math.exp(-0.5 * z * z)])
-        }
-        var points = []
-        for (var k = 0; k < n; k++) {
-          // Box–Muller transform on two uniform samples
-          var u1 = Math.random(),
-            u2 = Math.random()
-          var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-          points.push(mean + g * sd)
-        }
-        return { density: density, points: points }
+    <script src="../../../dist/violin.js"></script>
+  <script>
+    // Build a Gaussian density profile + raw observations for a group.
+    // The sample template seeds Math.random, so this renders identically across reloads.
+    function gaussianViolin(mean, sd, n) {
+      var density = []
+      for (var v = mean - 3 * sd; v <= mean + 3 * sd; v += sd / 6) {
+        var z = (v - mean) / sd
+        density.push([Math.round(v * 10) / 10, Math.exp(-0.5 * z * z)])
       }
-    </script>
+      var points = []
+      for (var k = 0; k < n; k++) {
+        // Box–Muller transform on two uniform samples
+        var u1 = Math.random(),
+          u2 = Math.random()
+        var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+        points.push(mean + g * sd)
+      }
+      return { density: density, points: points }
+    }
+  </script>
   </head>
 
   <body>

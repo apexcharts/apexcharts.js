@@ -36,6 +36,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A person icon, drawn inline as a data URI so the sample is self-contained.
 var PERSON_ICON =

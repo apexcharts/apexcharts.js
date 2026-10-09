@@ -1,6 +1,8 @@
 {
   "title": "Beeswarm (Bubble) - Game Scores by Genre",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Beeswarm (Bubble) - Game Scores by Genre</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Critic scores vs sales, by genre</h1>\n      <p class=\"lead\">\n        One bubble per game, laned by genre on a critic-score axis. Position is\n        the score, bubble area is copies sold, so the crowd-pleasers that also\n        review well sit large and far to the right. Hover any bubble for the\n        title.\n      </p>\n\n      <div class=\"card\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Adding <code>scatter.sizeRange: [min, max]</code> turns the beeswarm\n        dots into area-scaled bubbles, read from each datum's\n        <code>sizeField</code> (here <code>z</code>). The swarm still packs with\n        no overlap, sized for the largest bubble, so a third measure rides on\n        the distribution for free. The unit chart is a premium type, without a\n        license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Beeswarm (Bubble) - Game Scores by Genre</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Critic scores vs sales, by genre</h1>\n      <p class=\"lead\">\n        One bubble per game, laned by genre on a critic-score axis. Position is\n        the score, bubble area is copies sold, so the crowd-pleasers that also\n        review well sit large and far to the right. Hover any bubble for the\n        title.\n      </p>\n\n      <div class=\"card\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Adding <code>scatter.sizeRange: [min, max]</code> turns the beeswarm\n        dots into area-scaled bubbles, read from each datum's\n        <code>sizeField</code> (here <code>z</code>). The swarm still packs with\n        no overlap, sized for the largest bubble, so a third measure rides on\n        the distribution for free. The unit chart is a premium type, without a\n        license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

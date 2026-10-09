@@ -101,116 +101,117 @@
       }
     </script>
 
-    <script>
-      // A beeswarm: one dot per country, placed on a real life-expectancy axis and
-      // laned by region. Unlike a random jitter strip plot, the dots are PACKED with
-      // no overlap, so each lane forms a density silhouette: you read the spread and
-      // the clusters directly, not just an average. This is the unit chart's
-      // `layout: 'scatter'` with `spread: 'swarm'`.
-      //
-      // Figures are approximate life expectancy at birth (years), public-health style
-      // (Gapminder / WHO). Two years toggle via the buttons; every country dot glides
-      // to its new value, so the whole world visibly surges rightward from 1960 to
-      // 2020 and the regions converge. Shared by the vanilla-js / React / Vue builds.
-      var REGIONS = [
-        { name: 'Europe', color: '#0EA5E9' },
-        { name: 'Americas', color: '#22C55E' },
-        { name: 'Asia', color: '#F59E0B' },
-        { name: 'Africa', color: '#E11D48' },
-      ]
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // A beeswarm: one dot per country, placed on a real life-expectancy axis and
+    // laned by region. Unlike a random jitter strip plot, the dots are PACKED with
+    // no overlap, so each lane forms a density silhouette: you read the spread and
+    // the clusters directly, not just an average. This is the unit chart's
+    // `layout: 'scatter'` with `spread: 'swarm'`.
+    //
+    // Figures are approximate life expectancy at birth (years), public-health style
+    // (Gapminder / WHO). Two years toggle via the buttons; every country dot glides
+    // to its new value, so the whole world visibly surges rightward from 1960 to
+    // 2020 and the regions converge. Shared by the vanilla-js / React / Vue builds.
+    var REGIONS = [
+      { name: 'Europe', color: '#0EA5E9' },
+      { name: 'Americas', color: '#22C55E' },
+      { name: 'Asia', color: '#F59E0B' },
+      { name: 'Africa', color: '#E11D48' },
+    ]
 
-      // [country, 1960, 2020]
-      var DATA = {
-        Europe: [
-          ['Norway', 73.6, 83.3],
-          ['Sweden', 73.0, 82.4],
-          ['Switzerland', 71.3, 83.1],
-          ['Netherlands', 73.4, 81.4],
-          ['United Kingdom', 71.1, 80.9],
-          ['France', 70.2, 82.3],
-          ['Germany', 69.3, 81.1],
-          ['Italy', 69.1, 82.7],
-          ['Spain', 69.1, 82.3],
-          ['Greece', 68.2, 81.1],
-          ['Portugal', 62.8, 81.1],
-          ['Poland', 67.7, 76.6],
-          ['Russia', 66.1, 71.3],
-          ['Ukraine', 68.3, 71.6],
-        ],
-        Americas: [
-          ['Canada', 71.1, 81.7],
-          ['United States', 69.8, 78.5],
-          ['Cuba', 64.2, 78.8],
-          ['Costa Rica', 60.0, 80.3],
-          ['Chile', 57.4, 80.2],
-          ['Argentina', 65.2, 76.5],
-          ['Mexico', 57.1, 75.0],
-          ['Colombia', 56.7, 77.3],
-          ['Peru', 49.5, 76.5],
-          ['Brazil', 54.2, 74.0],
-          ['Guatemala', 46.2, 74.3],
-          ['Bolivia', 42.1, 71.5],
-        ],
-        Asia: [
-          ['Japan', 67.7, 84.6],
-          ['Israel', 71.5, 82.9],
-          ['South Korea', 55.4, 83.5],
-          ['China', 43.7, 78.1],
-          ['Thailand', 55.0, 78.7],
-          ['Iran', 45.0, 77.3],
-          ['Turkey', 46.0, 77.7],
-          ['Vietnam', 59.0, 75.4],
-          ['Saudi Arabia', 45.7, 75.1],
-          ['Bangladesh', 45.9, 72.6],
-          ['Indonesia', 48.3, 71.7],
-          ['India', 45.2, 70.9],
-          ['Philippines', 59.0, 71.2],
-          ['Pakistan', 45.3, 67.3],
-        ],
-        Africa: [
-          ['Algeria', 46.1, 76.9],
-          ['Morocco', 48.5, 76.7],
-          ['Egypt', 48.0, 71.8],
-          ['Senegal', 38.2, 67.9],
-          ['Kenya', 46.3, 66.7],
-          ['Ethiopia', 38.4, 66.6],
-          ['Tanzania', 43.8, 65.5],
-          ['South Africa', 52.8, 64.9],
-          ['Ghana', 45.8, 64.1],
-          ['Uganda', 44.0, 63.4],
-          ['Zimbabwe', 54.0, 61.5],
-          ['DR Congo', 41.0, 60.7],
-          ['Nigeria', 37.0, 55.0],
-          ['Rwanda', 42.0, 69.0],
-        ],
-      }
+    // [country, 1960, 2020]
+    var DATA = {
+      Europe: [
+        ['Norway', 73.6, 83.3],
+        ['Sweden', 73.0, 82.4],
+        ['Switzerland', 71.3, 83.1],
+        ['Netherlands', 73.4, 81.4],
+        ['United Kingdom', 71.1, 80.9],
+        ['France', 70.2, 82.3],
+        ['Germany', 69.3, 81.1],
+        ['Italy', 69.1, 82.7],
+        ['Spain', 69.1, 82.3],
+        ['Greece', 68.2, 81.1],
+        ['Portugal', 62.8, 81.1],
+        ['Poland', 67.7, 76.6],
+        ['Russia', 66.1, 71.3],
+        ['Ukraine', 68.3, 71.6],
+      ],
+      Americas: [
+        ['Canada', 71.1, 81.7],
+        ['United States', 69.8, 78.5],
+        ['Cuba', 64.2, 78.8],
+        ['Costa Rica', 60.0, 80.3],
+        ['Chile', 57.4, 80.2],
+        ['Argentina', 65.2, 76.5],
+        ['Mexico', 57.1, 75.0],
+        ['Colombia', 56.7, 77.3],
+        ['Peru', 49.5, 76.5],
+        ['Brazil', 54.2, 74.0],
+        ['Guatemala', 46.2, 74.3],
+        ['Bolivia', 42.1, 71.5],
+      ],
+      Asia: [
+        ['Japan', 67.7, 84.6],
+        ['Israel', 71.5, 82.9],
+        ['South Korea', 55.4, 83.5],
+        ['China', 43.7, 78.1],
+        ['Thailand', 55.0, 78.7],
+        ['Iran', 45.0, 77.3],
+        ['Turkey', 46.0, 77.7],
+        ['Vietnam', 59.0, 75.4],
+        ['Saudi Arabia', 45.7, 75.1],
+        ['Bangladesh', 45.9, 72.6],
+        ['Indonesia', 48.3, 71.7],
+        ['India', 45.2, 70.9],
+        ['Philippines', 59.0, 71.2],
+        ['Pakistan', 45.3, 67.3],
+      ],
+      Africa: [
+        ['Algeria', 46.1, 76.9],
+        ['Morocco', 48.5, 76.7],
+        ['Egypt', 48.0, 71.8],
+        ['Senegal', 38.2, 67.9],
+        ['Kenya', 46.3, 66.7],
+        ['Ethiopia', 38.4, 66.6],
+        ['Tanzania', 43.8, 65.5],
+        ['South Africa', 52.8, 64.9],
+        ['Ghana', 45.8, 64.1],
+        ['Uganda', 44.0, 63.4],
+        ['Zimbabwe', 54.0, 61.5],
+        ['DR Congo', 41.0, 60.7],
+        ['Nigeria', 37.0, 55.0],
+        ['Rwanda', 42.0, 69.0],
+      ],
+    }
 
-      function seriesFor(yearIdx) {
-        return REGIONS.map(function (r) {
-          return {
-            name: r.name,
-            data: DATA[r.name].map(function (row) {
-              return { name: row[0], value: row[yearIdx] }
-            }),
-          }
-        })
-      }
+    function seriesFor(yearIdx) {
+      return REGIONS.map(function (r) {
+        return {
+          name: r.name,
+          data: DATA[r.name].map(function (row) {
+            return { name: row[0], value: row[yearIdx] }
+          }),
+        }
+      })
+    }
 
-      var YEARS = {
-        1960: {
-          label: '1960',
-          caption:
-            'In 1960 the world was starkly split: much of Africa and Asia lived to barely 45, while Europe already reached past 70.',
-          series: seriesFor(1),
-        },
-        2020: {
-          label: '2020',
-          caption:
-            'Sixty years on the swarms have surged right and converged: most of the world now lives past 70, though Africa still trails and spreads the widest.',
-          series: seriesFor(2),
-        },
-      }
-    </script>
+    var YEARS = {
+      1960: {
+        label: '1960',
+        caption:
+          'In 1960 the world was starkly split: much of Africa and Asia lived to barely 45, while Europe already reached past 70.',
+        series: seriesFor(1),
+      },
+      2020: {
+        label: '2020',
+        caption:
+          'Sixty years on the swarms have surged right and converged: most of the world now lives past 70, though Africa still trails and spreads the widest.',
+        series: seriesFor(2),
+      },
+    }
+  </script>
   </head>
 
   <body>

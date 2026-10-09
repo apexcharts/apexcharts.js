@@ -7,6 +7,10 @@
 }
 </style>
 
+<scripts>
+<script src="../../../dist/sunburst.js"></script>
+</scripts>
+
 <chart>
 <options>
 chart: {

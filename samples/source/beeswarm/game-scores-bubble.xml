@@ -49,6 +49,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A BUBBLE beeswarm: one bubble per game, laned by genre on a critic-score axis,
 // with each bubble sized (by area) to its sales. So position reads quality and

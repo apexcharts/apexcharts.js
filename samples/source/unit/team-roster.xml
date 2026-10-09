@@ -46,6 +46,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // Per-unit data: every dot is ONE person, carrying its own name, role and
 // (optionally) colour. The chart groups people by team; team leads get their

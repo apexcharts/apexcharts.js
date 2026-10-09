@@ -74,6 +74,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // One synthetic cohort of 220 startups, each a persistent object with a name,
 // sector, funding stage and the capital it has raised. The demo shows the SAME

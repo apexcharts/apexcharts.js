@@ -61,6 +61,7 @@ button.on {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script src="../../../dist/unit-shapes.js"></script>
 <script src="../../../dist/pictograms.js"></script>
 <script>

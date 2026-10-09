@@ -88,50 +88,51 @@
       }
     </script>
 
-    <script>
-      // Each dot is one seat. Parties sit left to right as contiguous wedges of the
-      // hemicycle; the same 315 seats recolour in place as the result changes, so you
-      // watch the majority form. Shared by the vanilla-js, React and Vue builds.
-      var PARTIES = [
-        'Progressives',
-        'Conservatives',
-        'Greens',
-        'Liberals',
-        'Centre',
-        'Independents',
-      ]
-      var MAJORITY = 158 // of 315 seats
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Each dot is one seat. Parties sit left to right as contiguous wedges of the
+    // hemicycle; the same 315 seats recolour in place as the result changes, so you
+    // watch the majority form. Shared by the vanilla-js, React and Vue builds.
+    var PARTIES = [
+      'Progressives',
+      'Conservatives',
+      'Greens',
+      'Liberals',
+      'Centre',
+      'Independents',
+    ]
+    var MAJORITY = 158 // of 315 seats
 
-      var RESULTS = {
-        2019: [82, 78, 45, 40, 38, 32], // fragmented: no single majority
-        2023: [60, 162, 30, 28, 20, 15], // the Conservatives sweep to a majority
-      }
+    var RESULTS = {
+      2019: [82, 78, 45, 40, 38, 32], // fragmented: no single majority
+      2023: [60, 162, 30, 28, 20, 15], // the Conservatives sweep to a majority
+    }
 
-      // Leading party + whether anyone cleared the majority line, for the readout.
-      function readoutFor(year) {
-        var seats = RESULTS[year]
-        var topIdx = 0
-        for (var i = 1; i < seats.length; i++) {
-          if (seats[i] > seats[topIdx]) topIdx = i
-        }
-        var top = seats[topIdx]
-        var verdict =
-          top >= MAJORITY
-            ? '<b>' +
-              PARTIES[topIdx] +
-              '</b> hold an outright majority (' +
-              top +
-              ' of 315).'
-            : 'No majority: <b>' +
-              PARTIES[topIdx] +
-              '</b> lead with ' +
-              top +
-              ' of 315, short of ' +
-              MAJORITY +
-              '.'
-        return year + ': ' + verdict
+    // Leading party + whether anyone cleared the majority line, for the readout.
+    function readoutFor(year) {
+      var seats = RESULTS[year]
+      var topIdx = 0
+      for (var i = 1; i < seats.length; i++) {
+        if (seats[i] > seats[topIdx]) topIdx = i
       }
-    </script>
+      var top = seats[topIdx]
+      var verdict =
+        top >= MAJORITY
+          ? '<b>' +
+            PARTIES[topIdx] +
+            '</b> hold an outright majority (' +
+            top +
+            ' of 315).'
+          : 'No majority: <b>' +
+            PARTIES[topIdx] +
+            '</b> lead with ' +
+            top +
+            ' of 315, short of ' +
+            MAJORITY +
+            '.'
+      return year + ': ' + verdict
+    }
+  </script>
   </head>
 
   <body>

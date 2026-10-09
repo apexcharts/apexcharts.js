@@ -45,6 +45,7 @@ p {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // Shared by the vanilla-js, React and Vue builds. A synthetic population model:
 // as the minimum age rises, the crowd shrinks and the female share dips. Each

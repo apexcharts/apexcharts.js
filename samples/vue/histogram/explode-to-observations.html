@@ -104,138 +104,139 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds.
-      //
-      // 640 delivery times, seeded so the page is deterministic. The series carries
-      // the RAW OBSERVATIONS: the chart does the binning, which is what lets it hand
-      // them back again later.
-      var DELIVERIES = (function () {
-        var seed = 20260814
-        function rand() {
-          seed = (seed * 16807) % 2147483647
-          return (seed - 1) / 2147483646
-        }
-        var out = []
-        for (var i = 0; i < 640; i++) {
-          var u1 = Math.max(rand(), 1e-9)
-          var u2 = rand()
-          var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-          // Log-normal: a delivery can run very late but never finish early.
-          out.push(Math.round(Math.exp(3.15 + z * 0.42)))
-        }
-        return out
-      })()
-
-      // The histogram's own series, kept so the chart can be put back together.
-      var HISTOGRAM_SERIES = [{ name: 'Deliveries', data: DELIVERIES }]
-
-      // Quick (blue) to punctual (grey-green) to very late (amber, then red).
-      var RAMP = ['#4e8cff', '#59c2b0', '#e8c14a', '#ef7d3a', '#d94040']
-
-      function rampColor(t) {
-        var scaled = Math.max(0, Math.min(1, t)) * (RAMP.length - 1)
-        var i = Math.min(RAMP.length - 2, Math.floor(scaled))
-        var f = scaled - i
-        var a = RAMP[i]
-        var b = RAMP[i + 1]
-        var mix = function (o) {
-          var av = parseInt(a.substr(o, 2), 16)
-          var bv = parseInt(b.substr(o, 2), 16)
-          var v = Math.round(av + (bv - av) * f)
-          return (v < 16 ? '0' : '') + v.toString(16)
-        }
-        return '#' + mix(1) + mix(3) + mix(5)
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // 640 delivery times, seeded so the page is deterministic. The series carries
+    // the RAW OBSERVATIONS: the chart does the binning, which is what lets it hand
+    // them back again later.
+    var DELIVERIES = (function () {
+      var seed = 20260814
+      function rand() {
+        seed = (seed * 16807) % 2147483647
+        return (seed - 1) / 2147483646
       }
-
-      function setReadout(text) {
-        var el = document.querySelector('#readout')
-        if (el) el.innerHTML = text
+      var out = []
+      for (var i = 0; i < 640; i++) {
+        var u1 = Math.max(rand(), 1e-9)
+        var u2 = rand()
+        var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+        // Log-normal: a delivery can run very late but never finish early.
+        out.push(Math.round(Math.exp(3.15 + z * 0.42)))
       }
+      return out
+    })()
 
-      function setActive(exploded) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
-        buttons.forEach(function (b) {
-          b.className =
-            (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
-        })
+    // The histogram's own series, kept so the chart can be put back together.
+    var HISTOGRAM_SERIES = [{ name: 'Deliveries', data: DELIVERIES }]
+
+    // Quick (blue) to punctual (grey-green) to very late (amber, then red).
+    var RAMP = ['#4e8cff', '#59c2b0', '#e8c14a', '#ef7d3a', '#d94040']
+
+    function rampColor(t) {
+      var scaled = Math.max(0, Math.min(1, t)) * (RAMP.length - 1)
+      var i = Math.min(RAMP.length - 2, Math.floor(scaled))
+      var f = scaled - i
+      var a = RAMP[i]
+      var b = RAMP[i + 1]
+      var mix = function (o) {
+        var av = parseInt(a.substr(o, 2), 16)
+        var bv = parseInt(b.substr(o, 2), 16)
+        var v = Math.round(av + (bv - av) * f)
+        return (v < 16 ? '0' : '') + v.toString(16)
       }
+      return '#' + mix(1) + mix(3) + mix(5)
+    }
 
-      // Wires the two buttons to a live chart. Shared by all three builds.
-      function wireExplode(chart) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+    function setReadout(text) {
+      var el = document.querySelector('#readout')
+      if (el) el.innerHTML = text
+    }
 
-        buttons.forEach(function (b) {
-          b.addEventListener('click', function () {
-            // The active view's button is a no-op: re-requesting the readings while
-            // already exploded would ask rowSeries() of a unit chart, which has no
-            // rows to hand back.
-            if (b.className === 'on') return
-            var explode = b.getAttribute('data-explode') === 'true'
-            setActive(explode)
+    function setActive(exploded) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+      buttons.forEach(function (b) {
+        b.className =
+          (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
+      })
+    }
 
-            if (explode) {
-              // The whole point: nothing about the sample is passed in here. The
-              // chart already knows which observations it counted into each bar, so
-              // rowSeries() returns one cluster per bar holding exactly those rows.
-              var rows = chart.rowSeries()
-              var total = rows.reduce(function (n, c) {
-                return n + c.data.length
-              }, 0)
+    // Wires the two buttons to a live chart. Shared by all three builds.
+    function wireExplode(chart) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
 
-              // What comes back is ordinary series data, so it can be decorated.
-              // Colouring each bar's dots by how late that bar was keeps the
-              // distribution readable once the bars are gone: without this the blob
-              // is 640 identical dots and you cannot tell a quick delivery from a
-              // disastrous one.
-              rows.forEach(function (cluster, k) {
-                var color = rampColor(rows.length > 1 ? k / (rows.length - 1) : 0)
-                cluster.data.forEach(function (d) {
-                  d.fillColor = color
-                })
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          // The active view's button is a no-op: re-requesting the readings while
+          // already exploded would ask rowSeries() of a unit chart, which has no
+          // rows to hand back.
+          if (b.className === 'on') return
+          var explode = b.getAttribute('data-explode') === 'true'
+          setActive(explode)
+
+          if (explode) {
+            // The whole point: nothing about the sample is passed in here. The
+            // chart already knows which observations it counted into each bar, so
+            // rowSeries() returns one cluster per bar holding exactly those rows.
+            var rows = chart.rowSeries()
+            var total = rows.reduce(function (n, c) {
+              return n + c.data.length
+            }, 0)
+
+            // What comes back is ordinary series data, so it can be decorated.
+            // Colouring each bar's dots by how late that bar was keeps the
+            // distribution readable once the bars are gone: without this the blob
+            // is 640 identical dots and you cannot tell a quick delivery from a
+            // disastrous one.
+            rows.forEach(function (cluster, k) {
+              var color = rampColor(rows.length > 1 ? k / (rows.length - 1) : 0)
+              cluster.data.forEach(function (d) {
+                d.fillColor = color
               })
-              chart.updateOptions({
-                chart: { type: 'unit' },
-                series: rows,
-                plotOptions: {
-                  unit: {
-                    // NOT 'columns'. That layout would stack each bin's dots back
-                    // into a column the same height and place as the bar they left,
-                    // so the objects would travel a few pixels and the whole thing
-                    // would look like a redraw. 'packed' gathers them into one blob,
-                    // which is a real journey.
-                    layout: 'packed',
-                    unitValue: 1,
-                    size: 3,
-                  },
+            })
+            chart.updateOptions({
+              chart: { type: 'unit' },
+              series: rows,
+              plotOptions: {
+                unit: {
+                  // NOT 'columns'. That layout would stack each bin's dots back
+                  // into a column the same height and place as the bar they left,
+                  // so the objects would travel a few pixels and the whole thing
+                  // would look like a redraw. 'packed' gathers them into one blob,
+                  // which is a real journey.
+                  layout: 'packed',
+                  unitValue: 1,
+                  size: 3,
                 },
-                legend: { show: false },
-              })
-              setReadout(
-                'One dot per delivery: <b>' +
-                  total +
-                  '</b> of them, ' +
-                  'gathered out of <b>' +
-                  rows.length +
-                  '</b> bars.',
-              )
-            } else {
-              chart.updateOptions({
-                chart: { type: 'histogram' },
-                series: HISTOGRAM_SERIES,
-                legend: { show: false },
-              })
-              setReadout(
-                'Every bar is a count of the deliveries that landed in its range.',
-              )
-            }
-          })
+              },
+              legend: { show: false },
+            })
+            setReadout(
+              'One dot per delivery: <b>' +
+                total +
+                '</b> of them, ' +
+                'gathered out of <b>' +
+                rows.length +
+                '</b> bars.',
+            )
+          } else {
+            chart.updateOptions({
+              chart: { type: 'histogram' },
+              series: HISTOGRAM_SERIES,
+              legend: { show: false },
+            })
+            setReadout(
+              'Every bar is a count of the deliveries that landed in its range.',
+            )
+          }
         })
+      })
 
-        setActive(false)
-        setReadout('Every bar is a count of the deliveries that landed in its range.')
-      }
-    </script>
+      setActive(false)
+      setReadout('Every bar is a count of the deliveries that landed in its range.')
+    }
+  </script>
   </head>
 
   <body>

@@ -73,69 +73,70 @@
       }
     </script>
 
-    <script>
-      // Per-unit data: every dot is ONE person, carrying its own name, role and
-      // (optionally) colour. The chart groups people by team; team leads get their
-      // own fillColor so a single dot stands out from its cluster. Hover any dot to
-      // read that individual's details, not the team aggregate. Shared by the
-      // vanilla-js, React and Vue builds.
-      var LEAD = '#FFAB00' // a lead's dot is tinted amber, overriding the team colour
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Per-unit data: every dot is ONE person, carrying its own name, role and
+    // (optionally) colour. The chart groups people by team; team leads get their
+    // own fillColor so a single dot stands out from its cluster. Hover any dot to
+    // read that individual's details, not the team aggregate. Shared by the
+    // vanilla-js, React and Vue builds.
+    var LEAD = '#FFAB00' // a lead's dot is tinted amber, overriding the team colour
 
-      var ROSTER = [
-        {
-          name: 'Engineering',
-          data: [
-            { name: 'Ana Ruiz', role: 'Engineering Lead', fillColor: LEAD },
-            { name: 'Ben Cho', role: 'Staff Engineer' },
-            { name: 'Priya Nair', role: 'Senior Engineer' },
-            { name: 'Marco Silva', role: 'Senior Engineer' },
-            { name: 'Yuki Tanaka', role: 'Engineer' },
-            { name: 'Sam Okoye', role: 'Engineer' },
-            { name: 'Lena Fischer', role: 'Engineer' },
-            { name: 'Diego Torres', role: 'Engineer' },
-            { name: 'Hana Kim', role: 'Junior Engineer' },
-            { name: 'Omar Haddad', role: 'Junior Engineer' },
-          ],
-        },
-        {
-          name: 'Design',
-          data: [
-            { name: 'Noa Levi', role: 'Design Lead', fillColor: LEAD },
-            { name: 'Tom Beck', role: 'Senior Designer' },
-            { name: 'Ivy Chen', role: 'Product Designer' },
-            { name: 'Kofi Mensah', role: 'Product Designer' },
-            { name: 'Sara Nowak', role: 'Designer' },
-            { name: 'Leo Rossi', role: 'Designer' },
-          ],
-        },
-        {
-          name: 'Sales',
-          data: [
-            { name: 'Mara Vidal', role: 'Sales Lead', fillColor: LEAD },
-            { name: 'Jon Park', role: 'Account Executive' },
-            { name: 'Ella Brandt', role: 'Account Executive' },
-            { name: 'Raj Mehta', role: 'Account Executive' },
-            { name: 'Fay Duval', role: 'SDR' },
-            { name: 'Cole Ward', role: 'SDR' },
-            { name: 'Nia Abara', role: 'SDR' },
-            { name: 'Theo Blanc', role: 'SDR' },
-          ],
-        },
-      ]
+    var ROSTER = [
+      {
+        name: 'Engineering',
+        data: [
+          { name: 'Ana Ruiz', role: 'Engineering Lead', fillColor: LEAD },
+          { name: 'Ben Cho', role: 'Staff Engineer' },
+          { name: 'Priya Nair', role: 'Senior Engineer' },
+          { name: 'Marco Silva', role: 'Senior Engineer' },
+          { name: 'Yuki Tanaka', role: 'Engineer' },
+          { name: 'Sam Okoye', role: 'Engineer' },
+          { name: 'Lena Fischer', role: 'Engineer' },
+          { name: 'Diego Torres', role: 'Engineer' },
+          { name: 'Hana Kim', role: 'Junior Engineer' },
+          { name: 'Omar Haddad', role: 'Junior Engineer' },
+        ],
+      },
+      {
+        name: 'Design',
+        data: [
+          { name: 'Noa Levi', role: 'Design Lead', fillColor: LEAD },
+          { name: 'Tom Beck', role: 'Senior Designer' },
+          { name: 'Ivy Chen', role: 'Product Designer' },
+          { name: 'Kofi Mensah', role: 'Product Designer' },
+          { name: 'Sara Nowak', role: 'Designer' },
+          { name: 'Leo Rossi', role: 'Designer' },
+        ],
+      },
+      {
+        name: 'Sales',
+        data: [
+          { name: 'Mara Vidal', role: 'Sales Lead', fillColor: LEAD },
+          { name: 'Jon Park', role: 'Account Executive' },
+          { name: 'Ella Brandt', role: 'Account Executive' },
+          { name: 'Raj Mehta', role: 'Account Executive' },
+          { name: 'Fay Duval', role: 'SDR' },
+          { name: 'Cole Ward', role: 'SDR' },
+          { name: 'Nia Abara', role: 'SDR' },
+          { name: 'Theo Blanc', role: 'SDR' },
+        ],
+      },
+    ]
 
-      // Return the tooltip body for one hovered person: name on top, role beneath.
-      function rosterTooltip(o) {
-        if (!o.datum) return o.seriesName
-        return (
-          '<div style="font-weight:700">' +
-          o.datum.name +
-          '</div>' +
-          '<div style="opacity:0.7">' +
-          o.datum.role +
-          '</div>'
-        )
-      }
-    </script>
+    // Return the tooltip body for one hovered person: name on top, role beneath.
+    function rosterTooltip(o) {
+      if (!o.datum) return o.seriesName
+      return (
+        '<div style="font-weight:700">' +
+        o.datum.name +
+        '</div>' +
+        '<div style="opacity:0.7">' +
+        o.datum.role +
+        '</div>'
+      )
+    }
+  </script>
   </head>
 
   <body>

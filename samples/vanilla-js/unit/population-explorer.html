@@ -67,35 +67,36 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds. A synthetic population model:
-      // as the minimum age rises, the crowd shrinks and the female share dips. Each
-      // dot is one person; colour is gender; the female minority nests in the centre
-      // of the packed blob. Dragging the slider re-buckets the data and the dots
-      // redistribute in place, they do not rebuild from scratch.
-      function countsForAge(minAge) {
-        var frac = (90 - minAge) / 45 // 1 at age 45, 0 at age 90
-        var total = Math.round(180 + 760 * frac)
-        var femaleShare = 0.2 + 0.16 * frac
-        var female = Math.round(total * femaleShare)
-        return { female: female, male: total - female, total: total }
-      }
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds. A synthetic population model:
+    // as the minimum age rises, the crowd shrinks and the female share dips. Each
+    // dot is one person; colour is gender; the female minority nests in the centre
+    // of the packed blob. Dragging the slider re-buckets the data and the dots
+    // redistribute in place, they do not rebuild from scratch.
+    function countsForAge(minAge) {
+      var frac = (90 - minAge) / 45 // 1 at age 45, 0 at age 90
+      var total = Math.round(180 + 760 * frac)
+      var femaleShare = 0.2 + 0.16 * frac
+      var female = Math.round(total * femaleShare)
+      return { female: female, male: total - female, total: total }
+    }
 
-      function readoutText(minAge) {
-        var c = countsForAge(minAge)
-        var pct = ((c.female / c.total) * 100).toFixed(1)
-        return (
-          c.total.toLocaleString() +
-          ' people aged ' +
-          minAge +
-          '+, ' +
-          c.female.toLocaleString() +
-          ' female (' +
-          pct +
-          '%)'
-        )
-      }
-    </script>
+    function readoutText(minAge) {
+      var c = countsForAge(minAge)
+      var pct = ((c.female / c.total) * 100).toFixed(1)
+      return (
+        c.total.toLocaleString() +
+        ' people aged ' +
+        minAge +
+        '+, ' +
+        c.female.toLocaleString() +
+        ' female (' +
+        pct +
+        '%)'
+      )
+    }
+  </script>
   </head>
 
   <body>

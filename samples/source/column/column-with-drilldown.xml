@@ -1,6 +1,7 @@
 <title>Column Chart with Drilldown</title>
 
 <scripts>
+<script src="../../../dist/features/drilldown.js"></script>
 <script>
 // Shared overrides for every drilled-down level: the root is a single-series
 // chart, but each drill reveals a 3-series (Online / Retail / Wholesale)

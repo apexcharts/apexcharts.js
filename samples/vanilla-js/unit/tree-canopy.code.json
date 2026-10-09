@@ -1,6 +1,7 @@
 {
   "title": "Unit Chart - Tree Silhouette",
   "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js",
     "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
   ],
   "files": [
@@ -12,7 +13,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Tree Silhouette</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>41,000 saplings, one dot per 50</h1>\n      <p>\n        A lobed canopy over a flared trunk, packed with dots. The outline is two\n        overlapping subpaths, which the layout unions before it packs, so a\n        canopy with nine bumps and a trunk with roots is one shape rather than a\n        circle balanced on a rectangle.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 50 saplings planted this season</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Tree Silhouette</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>41,000 saplings, one dot per 50</h1>\n      <p>\n        A lobed canopy over a flared trunk, packed with dots. The outline is two\n        overlapping subpaths, which the layout unions before it packs, so a\n        canopy with nine bumps and a trunk with roots is one shape rather than a\n        circle balanced on a rectangle.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 50 saplings planted this season</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

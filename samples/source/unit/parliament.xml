@@ -61,6 +61,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // Each dot is one seat. Parties sit left to right as contiguous wedges of the
 // hemicycle; the same 315 seats recolour in place as the result changes, so you

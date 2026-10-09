@@ -1,6 +1,8 @@
 {
   "title": "Beeswarm (Vertical) - Body Mass by Species",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Beeswarm (Vertical) - Body Mass by Species</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>How much does a penguin weigh?</h1>\n      <p class=\"lead\">\n        One dot per penguin, stacked into a column per species. The swarm packs\n        dots side by side with no overlap, so each column's width is its\n        density, you read the spread and the clusters, not just an average.\n      </p>\n\n      <div class=\"card\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        A vertical beeswarm is <code>plotOptions.unit.scatter</code> with\n        <code>orientation: 'vertical'</code>: the value sits on the Y axis and\n        each category becomes a column across X.\n        <code>spread: 'swarm'</code> packs equal and near-equal values off the\n        centre line so nothing overlaps, turning each column into a density\n        silhouette. The unit chart is a premium type, without a license it\n        renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Beeswarm (Vertical) - Body Mass by Species</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>How much does a penguin weigh?</h1>\n      <p class=\"lead\">\n        One dot per penguin, stacked into a column per species. The swarm packs\n        dots side by side with no overlap, so each column's width is its\n        density, you read the spread and the clusters, not just an average.\n      </p>\n\n      <div class=\"card\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        A vertical beeswarm is <code>plotOptions.unit.scatter</code> with\n        <code>orientation: 'vertical'</code>: the value sits on the Y axis and\n        each category becomes a column across X.\n        <code>spread: 'swarm'</code> packs equal and near-equal values off the\n        centre line so nothing overlaps, turning each column into a density\n        silhouette. The unit chart is a premium type, without a license it\n        renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

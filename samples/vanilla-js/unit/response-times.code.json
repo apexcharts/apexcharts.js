@@ -1,6 +1,7 @@
 {
   "title": "Unit Chart - Pulse Stroke",
   "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js",
     "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
   ],
   "files": [
@@ -12,7 +13,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Pulse Stroke</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>18,000 requests, one dot per 24</h1>\n      <p>\n        A heartbeat trace, read left to right. Every shape hands its dots out in\n        row order by default, which would slice this one horizontally. Asking\n        the shape for a variant ordered by column instead makes the bands run\n        along the trace, so the buckets read fastest to slowest. The original\n        shape is left untouched.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 24 requests</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Pulse Stroke</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>18,000 requests, one dot per 24</h1>\n      <p>\n        A heartbeat trace, read left to right. Every shape hands its dots out in\n        row order by default, which would slice this one horizontally. Asking\n        the shape for a variant ordered by column instead makes the bands run\n        along the trace, so the buckets read fastest to slowest. The original\n        shape is left untouched.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 24 requests</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

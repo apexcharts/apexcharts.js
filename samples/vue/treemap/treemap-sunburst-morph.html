@@ -75,97 +75,98 @@
       }
     </script>
 
-    <script>
-      // Shared by the vanilla-js, React and Vue builds.
-      //
-      // One dataset, two partitions of it. The sunburst reads the hierarchy; the
-      // treemap reads the leaves, which are the level the two views have in common.
-      //
-      // Colour carries the identity across the switch: a team keeps its colour, so
-      // the tile you were looking at is the arc you end up looking at. Each branch
-      // owns a hue and its teams are progressively lighter shades of it.
-      var TREE = [
-        {
-          data: [
-            {
-              x: 'Engineering',
-              y: 88,
-              color: '#008FFB',
-              children: [
-                { x: 'Platform', y: 34, color: '#008FFB' },
-                { x: 'Product', y: 30, color: '#29A1FC' },
-                { x: 'Data', y: 24, color: '#52B3FC' },
-              ],
-            },
-            {
-              x: 'Design',
-              y: 34,
-              color: '#00E396',
-              children: [
-                { x: 'Research', y: 12, color: '#00E396' },
-                { x: 'Brand', y: 10, color: '#29E7A7' },
-                { x: 'Systems', y: 12, color: '#52ECB8' },
-              ],
-            },
-            {
-              x: 'Go to market',
-              y: 52,
-              color: '#FEB019',
-              children: [
-                { x: 'Sales', y: 26, color: '#FEB019' },
-                { x: 'Marketing', y: 15, color: '#FEBD3E' },
-                { x: 'Support', y: 11, color: '#FEC963' },
-              ],
-            },
-          ],
-        },
-      ]
+    <script src="../../../dist/sunburst.js"></script>
+  <script>
+    // Shared by the vanilla-js, React and Vue builds.
+    //
+    // One dataset, two partitions of it. The sunburst reads the hierarchy; the
+    // treemap reads the leaves, which are the level the two views have in common.
+    //
+    // Colour carries the identity across the switch: a team keeps its colour, so
+    // the tile you were looking at is the arc you end up looking at. Each branch
+    // owns a hue and its teams are progressively lighter shades of it.
+    var TREE = [
+      {
+        data: [
+          {
+            x: 'Engineering',
+            y: 88,
+            color: '#008FFB',
+            children: [
+              { x: 'Platform', y: 34, color: '#008FFB' },
+              { x: 'Product', y: 30, color: '#29A1FC' },
+              { x: 'Data', y: 24, color: '#52B3FC' },
+            ],
+          },
+          {
+            x: 'Design',
+            y: 34,
+            color: '#00E396',
+            children: [
+              { x: 'Research', y: 12, color: '#00E396' },
+              { x: 'Brand', y: 10, color: '#29E7A7' },
+              { x: 'Systems', y: 12, color: '#52ECB8' },
+            ],
+          },
+          {
+            x: 'Go to market',
+            y: 52,
+            color: '#FEB019',
+            children: [
+              { x: 'Sales', y: 26, color: '#FEB019' },
+              { x: 'Marketing', y: 15, color: '#FEBD3E' },
+              { x: 'Support', y: 11, color: '#FEC963' },
+            ],
+          },
+        ],
+      },
+    ]
 
-      // The leaves, flattened: a treemap has no hierarchy, so it draws the level the
-      // two charts share. That is also the level the morph pairs up, tile for arc.
-      var LEAVES = [
-        {
-          data: TREE[0].data.reduce(function (acc, parent) {
-            return acc.concat(
-              parent.children.map(function (c) {
-                return { x: c.x, y: c.y }
-              }),
-            )
-          }, []),
-        },
-      ]
+    // The leaves, flattened: a treemap has no hierarchy, so it draws the level the
+    // two charts share. That is also the level the morph pairs up, tile for arc.
+    var LEAVES = [
+      {
+        data: TREE[0].data.reduce(function (acc, parent) {
+          return acc.concat(
+            parent.children.map(function (c) {
+              return { x: c.x, y: c.y }
+            }),
+          )
+        }, []),
+      },
+    ]
 
-      // A sunburst colours per node, so its colours travel with the data above. A
-      // treemap colours from the palette instead, one entry per tile once
-      // `distributed` is on, so hand it the same colours in the same order.
-      var LEAF_COLORS = TREE[0].data.reduce(function (acc, parent) {
-        return acc.concat(
-          parent.children.map(function (c) {
-            return c.color
-          }),
-        )
-      }, [])
+    // A sunburst colours per node, so its colours travel with the data above. A
+    // treemap colours from the palette instead, one entry per tile once
+    // `distributed` is on, so hand it the same colours in the same order.
+    var LEAF_COLORS = TREE[0].data.reduce(function (acc, parent) {
+      return acc.concat(
+        parent.children.map(function (c) {
+          return c.color
+        }),
+      )
+    }, [])
 
-      function wirePartitionToggle(chart) {
-        var buttons = [].slice.call(document.querySelectorAll('[data-view]'))
+    function wirePartitionToggle(chart) {
+      var buttons = [].slice.call(document.querySelectorAll('[data-view]'))
 
-        function apply(view) {
-          buttons.forEach(function (b) {
-            b.className = b.getAttribute('data-view') === view ? 'on' : ''
-          })
-          chart.updateOptions({
-            chart: { type: view === 'sunburst' ? 'sunburst' : 'treemap' },
-            series: view === 'sunburst' ? TREE : LEAVES,
-          })
-        }
-
+      function apply(view) {
         buttons.forEach(function (b) {
-          b.addEventListener('click', function () {
-            apply(b.getAttribute('data-view'))
-          })
+          b.className = b.getAttribute('data-view') === view ? 'on' : ''
+        })
+        chart.updateOptions({
+          chart: { type: view === 'sunburst' ? 'sunburst' : 'treemap' },
+          series: view === 'sunburst' ? TREE : LEAVES,
         })
       }
-    </script>
+
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          apply(b.getAttribute('data-view'))
+        })
+      })
+    }
+  </script>
   </head>
 
   <body>

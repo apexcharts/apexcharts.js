@@ -96,12 +96,14 @@ function externalUrls(externals) {
 }
 
 /**
- * Chart types the default bundle does not register, so a demo loads their own
- * script. Listed explicitly rather than inferred: most `dist/*.js` files are
- * types the full bundle already has, and printing an import for one of those
- * would suggest an opt-in that does not exist.
+ * Chart types a demo loads as their own script because they are, or are
+ * scheduled to be, outside the default bundle. Listed explicitly rather than
+ * inferred: most `dist/*.js` files are types the default bundle has, and
+ * printing an import for one of those would suggest an opt-in that does not
+ * exist. The import is correct either way, since an entry registers onto the
+ * same global registry the default bundle uses.
  */
-const OPT_IN_TYPE_BUNDLES = new Set(['icicle'])
+const OPT_IN_TYPE_BUNDLES = new Set(['icicle', 'unit', 'sunburst', 'violin'])
 
 /**
  * Inside displayed js/jsx/vue code, an external dep becomes either the import a

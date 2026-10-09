@@ -1,5 +1,9 @@
 <title>Dumbbell Chart - Three Measures</title>
 
+<scripts>
+<script src="../../../dist/features/dumbbell.js"></script>
+</scripts>
+
 <chart>
 <options>
 chart: {

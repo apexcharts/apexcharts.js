@@ -1,6 +1,8 @@
 {
   "title": "Unit Chart Parliament (hemicycle seats)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart Parliament (hemicycle seats)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>A parliament, one election apart</h1>\n\n      <div class=\"controls\">\n        <button id=\"btn2019\" class=\"active\" type=\"button\">2019</button>\n        <button id=\"btn2023\" type=\"button\">2023</button>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n        <p class=\"lead\">\n          One dot is one seat. Toggle the year and the same 315 seats recolour\n          in place as the chamber recomposes.\n        </p>\n      </div>\n      <div class=\"readout\" id=\"readout\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart Parliament (hemicycle seats)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>A parliament, one election apart</h1>\n\n      <div class=\"controls\">\n        <button id=\"btn2019\" class=\"active\" type=\"button\">2019</button>\n        <button id=\"btn2023\" type=\"button\">2023</button>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n        <p class=\"lead\">\n          One dot is one seat. Toggle the year and the same 315 seats recolour\n          in place as the chamber recomposes.\n        </p>\n      </div>\n      <div class=\"readout\" id=\"readout\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

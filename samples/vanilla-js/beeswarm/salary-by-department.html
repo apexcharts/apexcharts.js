@@ -73,50 +73,51 @@
       }
     </script>
 
-    <script>
-      // A HORIZONTAL beeswarm: value on the X axis, one lane per department on Y.
-      // Every dot is a person's base pay. Each department gets its own hue (ordered so
-      // adjacent lanes separate well for colour-vision deficiency) and the eye reads
-      // each lane's spread, centre and outliers from the swarm shape.
-      // Figures are an illustrative sample (USD, base salary).
-      // Shared by the vanilla-js / React / Vue builds.
-      var DEPTS = [
-        { name: 'Engineering', mean: 152, sd: 30, n: 34 },
-        { name: 'Data Science', mean: 158, sd: 26, n: 22 },
-        { name: 'Product', mean: 141, sd: 22, n: 18 },
-        { name: 'Design', mean: 118, sd: 20, n: 20 },
-        { name: 'Sales', mean: 112, sd: 34, n: 30 },
-        { name: 'Support', mean: 74, sd: 12, n: 26 },
-      ]
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // A HORIZONTAL beeswarm: value on the X axis, one lane per department on Y.
+    // Every dot is a person's base pay. Each department gets its own hue (ordered so
+    // adjacent lanes separate well for colour-vision deficiency) and the eye reads
+    // each lane's spread, centre and outliers from the swarm shape.
+    // Figures are an illustrative sample (USD, base salary).
+    // Shared by the vanilla-js / React / Vue builds.
+    var DEPTS = [
+      { name: 'Engineering', mean: 152, sd: 30, n: 34 },
+      { name: 'Data Science', mean: 158, sd: 26, n: 22 },
+      { name: 'Product', mean: 141, sd: 22, n: 18 },
+      { name: 'Design', mean: 118, sd: 20, n: 20 },
+      { name: 'Sales', mean: 112, sd: 34, n: 30 },
+      { name: 'Support', mean: 74, sd: 12, n: 26 },
+    ]
 
-      // Deterministic normal-ish sample (Irwin-Hall via an LCG): stable across
-      // re-renders and SSR, no Math.random. Rounded to the nearest $1k, floored so no
-      // dot dips below a plausible wage.
-      function swarm(mean, sd, n, seed) {
-        var out = []
-        var s = seed >>> 0
-        function u() {
-          s = (s * 1664525 + 1013904223) >>> 0
-          return s / 4294967296
-        }
-        for (var i = 0; i < n; i++) {
-          var g = 0
-          for (var k = 0; k < 6; k++) g += u()
-          var z = (g - 3) / Math.sqrt(0.5)
-          out.push(Math.max(48, Math.round(mean + z * sd)))
-        }
-        return out
+    // Deterministic normal-ish sample (Irwin-Hall via an LCG): stable across
+    // re-renders and SSR, no Math.random. Rounded to the nearest $1k, floored so no
+    // dot dips below a plausible wage.
+    function swarm(mean, sd, n, seed) {
+      var out = []
+      var s = seed >>> 0
+      function u() {
+        s = (s * 1664525 + 1013904223) >>> 0
+        return s / 4294967296
       }
+      for (var i = 0; i < n; i++) {
+        var g = 0
+        for (var k = 0; k < 6; k++) g += u()
+        var z = (g - 3) / Math.sqrt(0.5)
+        out.push(Math.max(48, Math.round(mean + z * sd)))
+      }
+      return out
+    }
 
-      var paySeries = DEPTS.map(function (d, i) {
-        return {
-          name: d.name,
-          data: swarm(d.mean, d.sd, d.n, 41 + i * 977).map(function (v, j) {
-            return { name: d.name + ' #' + (j + 1), value: v }
-          }),
-        }
-      })
-    </script>
+    var paySeries = DEPTS.map(function (d, i) {
+      return {
+        name: d.name,
+        data: swarm(d.mean, d.sd, d.n, 41 + i * 977).map(function (v, j) {
+          return { name: d.name + ' #' + (j + 1), value: v }
+        }),
+      }
+    })
+  </script>
   </head>
 
   <body>

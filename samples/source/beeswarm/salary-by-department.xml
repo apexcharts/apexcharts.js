@@ -49,6 +49,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A HORIZONTAL beeswarm: value on the X axis, one lane per department on Y.
 // Every dot is a person's base pay. Each department gets its own hue (ordered so

@@ -1,5 +1,9 @@
 <title>Waterfall Chart</title>
 
+<scripts>
+<script src="../../../dist/features/waterfall.js"></script>
+</scripts>
+
 <chart>
 <options>
 chart: {

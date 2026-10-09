@@ -1,6 +1,7 @@
 <title>HeatMap with Drilldown</title>
 
 <scripts>
+<script src="../../../dist/features/drilldown.js"></script>
 <script>
 // Root grid: regions (rows) x quarters (columns). Every cell carries a drilldown
 // id, so clicking any cell opens that region+quarter broken down into a

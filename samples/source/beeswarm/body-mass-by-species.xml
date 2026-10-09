@@ -49,6 +49,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // A VERTICAL beeswarm: value runs up the Y axis, each species is a column, and
 // dots are anti-overlap "swarm" packed so the column's WIDTH reads as density.

@@ -98,55 +98,56 @@
       }
     </script>
 
-    <script>
-      // Small-multiple waffles: ONE mini-waffle per country, each a 10x10 grid where
-      // every square is 1% of that country's population living in a city. Reading
-      // down the trellis you compare the fill height across countries at a glance;
-      // toggling the year fills each tile cell-by-cell IN PLACE, so you watch the
-      // whole world urbanise between 1980 and 2020.
-      //
-      // This is the unit chart's `grid` layout in `split` mode: `grid.split: true`
-      // draws one tile per category, `grid.total: 100` gives each tile 100 cells and
-      // `grid.max: 100` maps the value straight to filled cells (a value of 92 fills
-      // 92 of 100), so each tile reads as a true percentage. The empty cells show as
-      // a faint `trackColor` backdrop. Figures are World-Bank-style illustrative
-      // urban-population shares. Shared by the vanilla-js/React/Vue builds.
-      var COUNTRIES = [
-        'Japan',
-        'United States',
-        'Germany',
-        'Brazil',
-        'South Korea',
-        'China',
-        'Nigeria',
-        'India',
-        'Kenya',
-      ]
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // Small-multiple waffles: ONE mini-waffle per country, each a 10x10 grid where
+    // every square is 1% of that country's population living in a city. Reading
+    // down the trellis you compare the fill height across countries at a glance;
+    // toggling the year fills each tile cell-by-cell IN PLACE, so you watch the
+    // whole world urbanise between 1980 and 2020.
+    //
+    // This is the unit chart's `grid` layout in `split` mode: `grid.split: true`
+    // draws one tile per category, `grid.total: 100` gives each tile 100 cells and
+    // `grid.max: 100` maps the value straight to filled cells (a value of 92 fills
+    // 92 of 100), so each tile reads as a true percentage. The empty cells show as
+    // a faint `trackColor` backdrop. Figures are World-Bank-style illustrative
+    // urban-population shares. Shared by the vanilla-js/React/Vue builds.
+    var COUNTRIES = [
+      'Japan',
+      'United States',
+      'Germany',
+      'Brazil',
+      'South Korea',
+      'China',
+      'Nigeria',
+      'India',
+      'Kenya',
+    ]
 
-      // One accent for every filled cell: the metric is the same everywhere, so the
-      // eye compares fill height, not colour. The per-tile label carries the country.
-      var ACCENT = '#0EA5E9'
-      var COLORS = COUNTRIES.map(function () {
-        return ACCENT
-      })
+    // One accent for every filled cell: the metric is the same everywhere, so the
+    // eye compares fill height, not colour. The per-tile label carries the country.
+    var ACCENT = '#0EA5E9'
+    var COLORS = COUNTRIES.map(function () {
+      return ACCENT
+    })
 
-      var YEARS = {
-        2020: {
-          label: '2020',
-          caption:
-            'By 2020 most of the world lives in a city. The tiles that were nearly empty in 1980, China and Nigeria among them, have filled in fast.',
-          // urban population, % of total (illustrative, ~2020)
-          values: [92, 83, 77, 87, 81, 61, 52, 35, 28],
-        },
-        1980: {
-          label: '1980',
-          caption:
-            'In 1980 cities were still the exception across much of Asia and Africa: barely a fifth of China lived in one. Each square is one percent of the population.',
-          // urban population, % of total (illustrative, ~1980)
-          values: [76, 74, 73, 66, 57, 19, 22, 23, 16],
-        },
-      }
-    </script>
+    var YEARS = {
+      2020: {
+        label: '2020',
+        caption:
+          'By 2020 most of the world lives in a city. The tiles that were nearly empty in 1980, China and Nigeria among them, have filled in fast.',
+        // urban population, % of total (illustrative, ~2020)
+        values: [92, 83, 77, 87, 81, 61, 52, 35, 28],
+      },
+      1980: {
+        label: '1980',
+        caption:
+          'In 1980 cities were still the exception across much of Asia and Africa: barely a fifth of China lived in one. Each square is one percent of the population.',
+        // urban population, % of total (illustrative, ~1980)
+        values: [76, 74, 73, 66, 57, 19, 22, 23, 16],
+      },
+    }
+  </script>
   </head>
 
   <body>

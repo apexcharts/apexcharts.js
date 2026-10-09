@@ -101,253 +101,254 @@
       }
     </script>
 
-    <script>
-      // One synthetic cohort of 220 startups, each a persistent object with a name,
-      // sector, funding stage and the capital it has raised. The demo shows the SAME
-      // objects in four layouts; with plotOptions.unit.transition:'identity' every dot
-      // is keyed by its company name, so a given startup keeps its colour and GLIDES
-      // to its new place when you switch view instead of being rebuilt. Data is
-      // generated deterministically (seeded), so the demo is stable across reloads.
-      // Company names are fictional. Shared by the vanilla-js/React/Vue builds.
-      function makeRng(seed) {
-        var s = seed >>> 0
-        return function () {
-          s = (Math.imul(s, 1664525) + 1013904223) >>> 0
-          return s / 4294967296
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // One synthetic cohort of 220 startups, each a persistent object with a name,
+    // sector, funding stage and the capital it has raised. The demo shows the SAME
+    // objects in four layouts; with plotOptions.unit.transition:'identity' every dot
+    // is keyed by its company name, so a given startup keeps its colour and GLIDES
+    // to its new place when you switch view instead of being rebuilt. Data is
+    // generated deterministically (seeded), so the demo is stable across reloads.
+    // Company names are fictional. Shared by the vanilla-js/React/Vue builds.
+    function makeRng(seed) {
+      var s = seed >>> 0
+      return function () {
+        s = (Math.imul(s, 1664525) + 1013904223) >>> 0
+        return s / 4294967296
+      }
+    }
+    function pick(rand, items, weights) {
+      var total = 0
+      for (var i = 0; i < weights.length; i++) total += weights[i]
+      var r = rand() * total
+      for (var k = 0; k < items.length; k++) {
+        r -= weights[k]
+        if (r <= 0) return items[k]
+      }
+      return items[items.length - 1]
+    }
+
+    // A pool of fictional names. Combining a base with a suffix gives enough unique
+    // company names for a dense cohort (base x suffix), and the name is the dot's
+    // identity key across every view.
+    var BASE = [
+      'Nimbus',
+      'Cobalt',
+      'Lumen',
+      'Pathwise',
+      'Flowdesk',
+      'Draftly',
+      'Vault',
+      'Ledgr',
+      'Payline',
+      'Northbank',
+      'Kitepay',
+      'Vitalis',
+      'Pulse',
+      'CareLoop',
+      'Mendly',
+      'Orbit',
+      'Quill',
+      'Sable',
+      'Tandem',
+      'Verve',
+      'Wisp',
+      'Zephyr',
+      'Arbor',
+      'Bloomly',
+      'Cinder',
+      'Dune',
+      'Ember',
+      'Forge',
+      'Glint',
+      'Harbor',
+      'Iris',
+      'Juno',
+      'Kelp',
+      'Lark',
+      'Mica',
+      'Nova',
+      'Onyx',
+      'Plume',
+      'Quartz',
+      'Rune',
+      'Slate',
+      'Talon',
+      'Umbra',
+      'Vesper',
+      'Willow',
+      'Yarn',
+      'Zenith',
+      'Ashen',
+    ]
+    var SUFFIX = [
+      '',
+      ' Labs',
+      ' AI',
+      ' Systems',
+      ' Cloud',
+      ' Works',
+      ' Base',
+      ' Go',
+    ]
+
+    var SECTORS = ['AI', 'SaaS', 'Fintech', 'Health', 'Commerce']
+    var SECTOR_COLORS = ['#2563EB', '#06B6D4', '#22C55E', '#EC4899', '#F97316']
+    var SECTOR_W = [13, 11, 10, 8, 7]
+
+    var STAGES = ['Seed', 'Series A', 'Series B', 'Series C+']
+    var STAGE_COLORS = ['#BAE6FD', '#7DD3FC', '#0EA5E9', '#0369A1']
+    var STAGE_W = [0.42, 0.3, 0.18, 0.1]
+    // funding range ($M) per stage: late-stage rounds dwarf early ones
+    var STAGE_FUND = {
+      Seed: [1, 6],
+      'Series A': [8, 28],
+      'Series B': [40, 95],
+      'Series C+': [150, 620],
+    }
+
+    var COUNT = 220
+    var rand = makeRng(20260724)
+    var STARTUPS = []
+    for (var i = 0; i < COUNT; i++) {
+      // base x suffix keeps every generated name unique (COUNT <= BASE * SUFFIX).
+      var nm =
+        BASE[i % BASE.length] + SUFFIX[Math.floor(i / BASE.length) % SUFFIX.length]
+      var sector = pick(rand, SECTORS, SECTOR_W)
+      var stage = pick(rand, STAGES, STAGE_W)
+      var f = STAGE_FUND[stage]
+      STARTUPS.push({
+        name: nm,
+        sector: sector,
+        stage: stage,
+        value: Math.round(f[0] + rand() * (f[1] - f[0])),
+      })
+    }
+
+    // Group the SAME startup objects by a field, in a fixed category order (so the
+    // colour arrays line up). Each datum is a startup: name = identity + tooltip,
+    // value = funding = bubble size.
+    function groupBy(field, order) {
+      return order.map(function (g) {
+        return {
+          name: g,
+          data: STARTUPS.filter(function (s) {
+            return s[field] === g
+          }),
         }
-      }
-      function pick(rand, items, weights) {
-        var total = 0
-        for (var i = 0; i < weights.length; i++) total += weights[i]
-        var r = rand() * total
-        for (var k = 0; k < items.length; k++) {
-          r -= weights[k]
-          if (r <= 0) return items[k]
-        }
-        return items[items.length - 1]
-      }
+      })
+    }
+    var bySector = groupBy('sector', SECTORS)
+    var byStage = groupBy('stage', STAGES)
 
-      // A pool of fictional names. Combining a base with a suffix gives enough unique
-      // company names for a dense cohort (base x suffix), and the name is the dot's
-      // identity key across every view.
-      var BASE = [
-        'Nimbus',
-        'Cobalt',
-        'Lumen',
-        'Pathwise',
-        'Flowdesk',
-        'Draftly',
-        'Vault',
-        'Ledgr',
-        'Payline',
-        'Northbank',
-        'Kitepay',
-        'Vitalis',
-        'Pulse',
-        'CareLoop',
-        'Mendly',
-        'Orbit',
-        'Quill',
-        'Sable',
-        'Tandem',
-        'Verve',
-        'Wisp',
-        'Zephyr',
-        'Arbor',
-        'Bloomly',
-        'Cinder',
-        'Dune',
-        'Ember',
-        'Forge',
-        'Glint',
-        'Harbor',
-        'Iris',
-        'Juno',
-        'Kelp',
-        'Lark',
-        'Mica',
-        'Nova',
-        'Onyx',
-        'Plume',
-        'Quartz',
-        'Rune',
-        'Slate',
-        'Talon',
-        'Umbra',
-        'Vesper',
-        'Willow',
-        'Yarn',
-        'Zenith',
-        'Ashen',
-      ]
-      var SUFFIX = [
-        '',
-        ' Labs',
-        ' AI',
-        ' Systems',
-        ' Cloud',
-        ' Works',
-        ' Base',
-        ' Go',
-      ]
+    // Tooltip body for one hovered startup.
+    function startupTooltip(o) {
+      if (!o.datum) return o.seriesName
+      return (
+        '<div style="font-weight:700">' +
+        o.datum.name +
+        '</div><div style="opacity:0.75">' +
+        o.datum.sector +
+        ' &middot; ' +
+        o.datum.stage +
+        '</div><div style="opacity:0.75">$' +
+        o.datum.value +
+        'M raised</div>'
+      )
+    }
 
-      var SECTORS = ['AI', 'SaaS', 'Fintech', 'Health', 'Commerce']
-      var SECTOR_COLORS = ['#2563EB', '#06B6D4', '#22C55E', '#EC4899', '#F97316']
-      var SECTOR_W = [13, 11, 10, 8, 7]
+    // Category label: name + headcount, e.g. "AI (58)".
+    function countLabel(name, opts) {
+      return name + ' (' + opts.value + ')'
+    }
 
-      var STAGES = ['Seed', 'Series A', 'Series B', 'Series C+']
-      var STAGE_COLORS = ['#BAE6FD', '#7DD3FC', '#0EA5E9', '#0369A1']
-      var STAGE_W = [0.42, 0.3, 0.18, 0.1]
-      // funding range ($M) per stage: late-stage rounds dwarf early ones
-      var STAGE_FUND = {
-        Seed: [1, 6],
-        'Series A': [8, 28],
-        'Series B': [40, 95],
-        'Series C+': [150, 620],
-      }
-
-      var COUNT = 220
-      var rand = makeRng(20260724)
-      var STARTUPS = []
-      for (var i = 0; i < COUNT; i++) {
-        // base x suffix keeps every generated name unique (COUNT <= BASE * SUFFIX).
-        var nm =
-          BASE[i % BASE.length] + SUFFIX[Math.floor(i / BASE.length) % SUFFIX.length]
-        var sector = pick(rand, SECTORS, SECTOR_W)
-        var stage = pick(rand, STAGES, STAGE_W)
-        var f = STAGE_FUND[stage]
-        STARTUPS.push({
-          name: nm,
-          sector: sector,
-          stage: stage,
-          value: Math.round(f[0] + rand() * (f[1] - f[0])),
-        })
-      }
-
-      // Group the SAME startup objects by a field, in a fixed category order (so the
-      // colour arrays line up). Each datum is a startup: name = identity + tooltip,
-      // value = funding = bubble size.
-      function groupBy(field, order) {
-        return order.map(function (g) {
-          return {
-            name: g,
-            data: STARTUPS.filter(function (s) {
-              return s[field] === g
-            }),
-          }
-        })
-      }
-      var bySector = groupBy('sector', SECTORS)
-      var byStage = groupBy('stage', STAGES)
-
-      // Tooltip body for one hovered startup.
-      function startupTooltip(o) {
-        if (!o.datum) return o.seriesName
-        return (
-          '<div style="font-weight:700">' +
-          o.datum.name +
-          '</div><div style="opacity:0.75">' +
-          o.datum.sector +
-          ' &middot; ' +
-          o.datum.stage +
-          '</div><div style="opacity:0.75">$' +
-          o.datum.value +
-          'M raised</div>'
-        )
-      }
-
-      // Category label: name + headcount, e.g. "AI (58)".
-      function countLabel(name, opts) {
-        return name + ' (' + opts.value + ')'
-      }
-
-      // Each view is the SAME 220 startups, re-grouped and re-laid-out. transition
-      // 'identity' keeps every company's dot across the change. Switching view is a
-      // plain chart.updateOptions(view.options) call driven by the buttons below.
-      var VIEWS = [
-        {
-          label: 'The market',
-          caption:
-            '220 startups, one dot each, packed into a single cloud and coloured by sector. The whole cohort at a glance.',
-          options: {
-            series: bySector,
-            colors: SECTOR_COLORS,
-            plotOptions: {
-              unit: {
-                layout: 'packed',
-                transition: 'identity',
-                sortByGroup: true,
-                sizeByValue: { enabled: false },
-                clusterLabels: { show: false },
+    // Each view is the SAME 220 startups, re-grouped and re-laid-out. transition
+    // 'identity' keeps every company's dot across the change. Switching view is a
+    // plain chart.updateOptions(view.options) call driven by the buttons below.
+    var VIEWS = [
+      {
+        label: 'The market',
+        caption:
+          '220 startups, one dot each, packed into a single cloud and coloured by sector. The whole cohort at a glance.',
+        options: {
+          series: bySector,
+          colors: SECTOR_COLORS,
+          plotOptions: {
+            unit: {
+              layout: 'packed',
+              transition: 'identity',
+              sortByGroup: true,
+              sizeByValue: { enabled: false },
+              clusterLabels: { show: false },
+            },
+          },
+        },
+      },
+      {
+        label: 'By sector',
+        caption:
+          'The same dots fan out into their sectors. The clusters show which corners of the market are crowded and which are thin.',
+        options: {
+          series: bySector,
+          colors: SECTOR_COLORS,
+          plotOptions: {
+            unit: {
+              layout: 'grouped',
+              transition: 'identity',
+              sizeByValue: { enabled: false },
+              // curved labels ride the top of each sector cluster
+              clusterLabels: { show: true, position: 'top', formatter: countLabel },
+            },
+          },
+        },
+      },
+      {
+        label: 'By stage',
+        caption:
+          'Regrouped by funding stage. Every company travels to its stage bar and the classic funnel appears: many seed, few late rounds.',
+        options: {
+          series: byStage,
+          colors: STAGE_COLORS,
+          plotOptions: {
+            unit: {
+              layout: 'columns',
+              transition: 'identity',
+              sizeByValue: { enabled: false },
+              // labels sit BELOW each stage bar
+              clusterLabels: {
+                show: true,
+                position: 'bottom',
+                formatter: countLabel,
               },
             },
           },
         },
-        {
-          label: 'By sector',
-          caption:
-            'The same dots fan out into their sectors. The clusters show which corners of the market are crowded and which are thin.',
-          options: {
-            series: bySector,
-            colors: SECTOR_COLORS,
-            plotOptions: {
-              unit: {
-                layout: 'grouped',
-                transition: 'identity',
-                sizeByValue: { enabled: false },
-                // curved labels ride the top of each sector cluster
-                clusterLabels: { show: true, position: 'top', formatter: countLabel },
+      },
+      {
+        label: 'By capital',
+        caption:
+          "Back into one cloud, but now each dot's area is the money it raised: a handful of late-stage bubbles dwarf the crowd of small rounds.",
+        options: {
+          series: bySector,
+          colors: SECTOR_COLORS,
+          plotOptions: {
+            unit: {
+              layout: 'packed',
+              transition: 'identity',
+              sortByGroup: true,
+              clusterLabels: { show: false },
+              sizeByValue: {
+                enabled: true,
+                maxRadius: 4.5,
+                minRadius: 1.4,
+                scale: 'area',
               },
             },
           },
         },
-        {
-          label: 'By stage',
-          caption:
-            'Regrouped by funding stage. Every company travels to its stage bar and the classic funnel appears: many seed, few late rounds.',
-          options: {
-            series: byStage,
-            colors: STAGE_COLORS,
-            plotOptions: {
-              unit: {
-                layout: 'columns',
-                transition: 'identity',
-                sizeByValue: { enabled: false },
-                // labels sit BELOW each stage bar
-                clusterLabels: {
-                  show: true,
-                  position: 'bottom',
-                  formatter: countLabel,
-                },
-              },
-            },
-          },
-        },
-        {
-          label: 'By capital',
-          caption:
-            "Back into one cloud, but now each dot's area is the money it raised: a handful of late-stage bubbles dwarf the crowd of small rounds.",
-          options: {
-            series: bySector,
-            colors: SECTOR_COLORS,
-            plotOptions: {
-              unit: {
-                layout: 'packed',
-                transition: 'identity',
-                sortByGroup: true,
-                clusterLabels: { show: false },
-                sizeByValue: {
-                  enabled: true,
-                  maxRadius: 4.5,
-                  minRadius: 1.4,
-                  scale: 'area',
-                },
-              },
-            },
-          },
-        },
-      ]
-    </script>
+      },
+    ]
+  </script>
   </head>
 
   <body>

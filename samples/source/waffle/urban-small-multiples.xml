@@ -74,6 +74,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/unit.js"></script>
 <script>
 // Small-multiple waffles: ONE mini-waffle per country, each a 10x10 grid where
 // every square is 1% of that country's population living in a city. Reading

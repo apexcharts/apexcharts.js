@@ -1,6 +1,8 @@
 {
   "title": "Unit Chart - Custom Layout (Silhouette)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Custom Layout (Silhouette)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>820 dots, arranged by a layout the chart does not ship</h1>\n      <p>\n        One dot per 10 million people, coloured by drinking water access. The\n        droplet is a custom layout: a plain function that receives every mark\n        and the plot rect and returns positions. Switch views and the same dots\n        re-form, keeping their identity and colour, rather than being rebuilt.\n      </p>\n\n      <div class=\"actions\">\n        <button data-view=\"droplet\">Droplet (custom layout)</button>\n        <button data-view=\"packed\">Packed</button>\n        <button data-view=\"columns\">Columns</button>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">\n        Any silhouette works the same way, which is how a projection can supply\n        the positions later without the chart engine changing.\n      </p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Custom Layout (Silhouette)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>820 dots, arranged by a layout the chart does not ship</h1>\n      <p>\n        One dot per 10 million people, coloured by drinking water access. The\n        droplet is a custom layout: a plain function that receives every mark\n        and the plot rect and returns positions. Switch views and the same dots\n        re-form, keeping their identity and colour, rather than being rebuilt.\n      </p>\n\n      <div class=\"actions\">\n        <button data-view=\"droplet\">Droplet (custom layout)</button>\n        <button data-view=\"packed\">Packed</button>\n        <button data-view=\"columns\">Columns</button>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">\n        Any silhouette works the same way, which is how a projection can supply\n        the positions later without the chart engine changing.\n      </p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

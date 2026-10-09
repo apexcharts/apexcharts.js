@@ -1,6 +1,7 @@
 {
   "title": "Unit Chart - Robot Silhouette",
   "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js",
     "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
   ],
   "files": [
@@ -12,7 +13,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Robot Silhouette</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>9,600 support tickets, one dot per 12</h1>\n      <p>\n        The two eyes are cut out of the head as reverse wound subpaths, which is\n        what makes this a robot rather than a rounded box on a stalk. They are\n        also the first detail to close up: below roughly 220 dots the rows fill\n        them in.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 12 tickets</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart - Robot Silhouette</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>9,600 support tickets, one dot per 12</h1>\n      <p>\n        The two eyes are cut out of the head as reverse wound subpaths, which is\n        what makes this a robot rather than a rounded box on a stalk. They are\n        also the first detail to close up: below roughly 220 dots the rows fill\n        them in.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <p class=\"note\">1 dot = 12 tickets</p>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

@@ -29,17 +29,18 @@
       }
     </script>
 
-    <script>
-      // Per-level colour palettes. Each breakdown is tinted with shades of its
-      // parent slice's hue, so drilling reads as "going deeper into this slice".
-      // Pie/donut drilldown needs object-form data ({ x, y, drilldown }) so each
-      // slice can carry its own child id; flat numeric series can't.
-      var deviceColors = ['#1565C0', '#2E7D32', '#EF6C00'] // Mobile / Desktop / Tablet
-      var mobileOsColors = ['#0D47A1', '#1976D2', '#64B5F6'] // Mobile by OS
-      var iosColors = ['#1565C0', '#42A5F5', '#90CAF9'] // iOS versions
-      var desktopOsColors = ['#1B5E20', '#388E3C', '#66BB6A'] // Desktop by OS
-      var tabletOsColors = ['#E65100', '#FB8C00'] // Tablet by OS
-    </script>
+    <script src="../../../dist/features/drilldown.js"></script>
+  <script>
+    // Per-level colour palettes. Each breakdown is tinted with shades of its
+    // parent slice's hue, so drilling reads as "going deeper into this slice".
+    // Pie/donut drilldown needs object-form data ({ x, y, drilldown }) so each
+    // slice can carry its own child id; flat numeric series can't.
+    var deviceColors = ['#1565C0', '#2E7D32', '#EF6C00'] // Mobile / Desktop / Tablet
+    var mobileOsColors = ['#0D47A1', '#1976D2', '#64B5F6'] // Mobile by OS
+    var iosColors = ['#1565C0', '#42A5F5', '#90CAF9'] // iOS versions
+    var desktopOsColors = ['#1B5E20', '#388E3C', '#66BB6A'] // Desktop by OS
+    var tabletOsColors = ['#E65100', '#FB8C00'] // Tablet by OS
+  </script>
   </head>
 
   <body>

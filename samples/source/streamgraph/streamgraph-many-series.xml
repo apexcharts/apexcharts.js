@@ -1,5 +1,9 @@
 <title>Streamgraph with Many Series</title>
 
+<scripts>
+<script src="../../../dist/features/streamgraph.js"></script>
+</scripts>
+
 <chart>
 <options>
 chart: {

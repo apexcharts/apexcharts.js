@@ -98,42 +98,43 @@
       }
     </script>
 
-    <script>
-      // A part-to-whole waffle: a 10x10 grid where every square is 1% of the world's
-      // electricity, coloured by source. Two illustrative scenarios (a rough "today"
-      // mix and a cleaner projected mix) toggle via the buttons; because the grid
-      // keeps each cell in place and only recolours where the category boundary
-      // moves, you watch the fossil band shrink and the renewables band grow.
-      // `chart.type: 'waffle'` is an alias for the unit chart's grid layout with
-      // square cells; `grid.total: 100` largest-remainder-rounds the values to exactly
-      // 100 cells so the grid always reads as percentages. Shares are illustrative.
-      // Shared by the vanilla-js/React/Vue builds.
-      var SOURCES = ['Coal', 'Gas', 'Hydro', 'Nuclear', 'Wind', 'Solar', 'Other']
-      var SOURCE_COLORS = [
-        '#374151', // Coal
-        '#94A3B8', // Gas
-        '#2563EB', // Hydro
-        '#E11D48', // Nuclear
-        '#0D9488', // Wind
-        '#F59E0B', // Solar
-        '#CBD5E1', // Other
-      ]
+    <script src="../../../dist/unit.js"></script>
+  <script>
+    // A part-to-whole waffle: a 10x10 grid where every square is 1% of the world's
+    // electricity, coloured by source. Two illustrative scenarios (a rough "today"
+    // mix and a cleaner projected mix) toggle via the buttons; because the grid
+    // keeps each cell in place and only recolours where the category boundary
+    // moves, you watch the fossil band shrink and the renewables band grow.
+    // `chart.type: 'waffle'` is an alias for the unit chart's grid layout with
+    // square cells; `grid.total: 100` largest-remainder-rounds the values to exactly
+    // 100 cells so the grid always reads as percentages. Shares are illustrative.
+    // Shared by the vanilla-js/React/Vue builds.
+    var SOURCES = ['Coal', 'Gas', 'Hydro', 'Nuclear', 'Wind', 'Solar', 'Other']
+    var SOURCE_COLORS = [
+      '#374151', // Coal
+      '#94A3B8', // Gas
+      '#2563EB', // Hydro
+      '#E11D48', // Nuclear
+      '#0D9488', // Wind
+      '#F59E0B', // Solar
+      '#CBD5E1', // Other
+    ]
 
-      var SCENARIOS = {
-        today: {
-          label: 'Today',
-          caption:
-            'A rough picture of the mix today: fossil fuels (coal + gas) still fill well over half the grid.',
-          values: [35, 23, 15, 9, 8, 6, 4],
-        },
-        future: {
-          label: '2035 (projected)',
-          caption:
-            'A cleaner projected mix: coal squares recolour to wind and solar as the renewables band grows.',
-          values: [18, 20, 16, 10, 18, 14, 4],
-        },
-      }
-    </script>
+    var SCENARIOS = {
+      today: {
+        label: 'Today',
+        caption:
+          'A rough picture of the mix today: fossil fuels (coal + gas) still fill well over half the grid.',
+        values: [35, 23, 15, 9, 8, 6, 4],
+      },
+      future: {
+        label: '2035 (projected)',
+        caption:
+          'A cleaner projected mix: coal squares recolour to wind and solar as the renewables band grows.',
+        values: [18, 20, 16, 10, 18, 14, 4],
+      },
+    }
+  </script>
   </head>
 
   <body>

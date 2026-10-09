@@ -1,6 +1,8 @@
 {
   "title": "Column Drilldown - Async Levels",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/drilldown.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Column Drilldown - Async Levels</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Drilldown against a real backend</h1>\n      <p>\n        The root shows three years. Each year's quarters are fetched on click,\n        with a spinner while the request is in flight. Levels are cached, so\n        drilling back down a branch you have already visited is instant. Tick\n        \"make the next request fail\" to see that a failed fetch leaves the chart\n        exactly where it was and reports the error, rather than stranding the\n        view.\n      </p>\n\n      <div class=\"actions\">\n        <button id=\"up\">Back</button>\n        <button id=\"clear-cache\">Clear cache</button>\n        <label>\n          <input type=\"checkbox\" id=\"fail\" />\n          Make the next request fail\n        </label>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"status\" id=\"status\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Column Drilldown - Async Levels</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/drilldown.js\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Drilldown against a real backend</h1>\n      <p>\n        The root shows three years. Each year's quarters are fetched on click,\n        with a spinner while the request is in flight. Levels are cached, so\n        drilling back down a branch you have already visited is instant. Tick\n        \"make the next request fail\" to see that a failed fetch leaves the chart\n        exactly where it was and reports the error, rather than stranding the\n        view.\n      </p>\n\n      <div class=\"actions\">\n        <button id=\"up\">Back</button>\n        <button id=\"clear-cache\">Clear cache</button>\n        <label>\n          <input type=\"checkbox\" id=\"fail\" />\n          Make the next request fail\n        </label>\n      </div>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"status\" id=\"status\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

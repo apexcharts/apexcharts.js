@@ -1,6 +1,7 @@
 <title>Treemap with Drilldown</title>
 
 <scripts>
+<script src="../../../dist/features/drilldown.js"></script>
 <script>
 // Per-level colour palettes. Treemap uses distributed colouring (one colour per
 // tile), so a level's palette tints that level's tiles and signals which branch
