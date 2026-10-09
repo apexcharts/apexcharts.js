@@ -63,12 +63,19 @@ ApexCharts.use({
  * PRIVATE and unversioned. It is not in the type definitions, it is not
  * semver-stable, and application code must never read it. Bundler users get the
  * same modules the supported way, as `apexcharts/core` exports.
+ *
+ * Defined once. With core external, two bundles that both inline this entry
+ * (the default bundle and a larger one built on top of it) run this on the same
+ * class, and a second non-configurable define throws "Cannot redefine
+ * property". The first definition already points at the one shared core.
  */
-Object.defineProperty(ApexCharts, '__internals', {
-  value: coreInternals,
-  enumerable: false,
-  writable: false,
-  configurable: false,
-})
+if (!Object.prototype.hasOwnProperty.call(ApexCharts, '__internals')) {
+  Object.defineProperty(ApexCharts, '__internals', {
+    value: coreInternals,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  })
+}
 
 export default ApexCharts
