@@ -53,6 +53,7 @@
  */
 
 import { test as base, expect } from '../fixtures/base.js'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -111,13 +112,18 @@ const test = base.extend({
  * anchor without being clamped. `optsSrc` is eval'ed in the page so
  * formatter functions survive.
  */
-async function mount(page, optsSrc, { width = 600, spacer = 250 } = {}) {
+async function mount(
+  page,
+  optsSrc,
+  { width = 600, spacer = 250, addons = [] } = {},
+) {
   await page.setContent(`<!doctype html>
     <body style="margin:0">
       <div style="height:${spacer}px"></div>
       <div id="stage" style="width:${width}px;margin-left:300px"></div>
     </body>`)
   await page.addScriptTag({ path: BUNDLE })
+  await addAddons(page, ...addons)
   await page.evaluate((src) => {
     const opts = eval(`(${src})`)
     window.chart = new window.ApexCharts(document.querySelector('#stage'), opts)
@@ -1290,6 +1296,8 @@ test.describe('Short plots: tall plots keep their in-plot placement', () => {
           },
         },
       }`,
+      // Not in the default bundle since 8.0.
+      { addons: ['dumbbell'] },
     )
     expect(
       await page.evaluate(() => window.chart.w.globals.isBarHorizontal),

@@ -21,6 +21,7 @@
  */
 
 import { test, expect } from '../fixtures/base.js'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -338,6 +339,8 @@ test.describe('Violin: grouped violins on canvas', () => {
         await page.addScriptTag({
           path: resolve(rootDir, 'dist', 'apexcharts.js'),
         })
+        // Not in the default bundle since 8.0.
+        await addAddons(page, 'violin')
         await loadCanvasFeature(page)
 
         expect(
@@ -394,6 +397,8 @@ test.describe('Violin: grouped violins on canvas', () => {
       await page.addScriptTag({
         path: resolve(rootDir, 'dist', 'apexcharts.js'),
       })
+      // Not in the default bundle since 8.0.
+      await addAddons(page, 'violin')
       await loadCanvasFeature(page)
 
       const opts = { horizontal: false, tooltip: {}, hide }

@@ -17,6 +17,7 @@
  */
 
 import { test, expect } from '../fixtures/base.js'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -469,6 +470,7 @@ test.describe('Canvas violin: intersect tooltip after data updates', () => {
     }) => {
       const errors = collectErrors(page)
       await blankPage(page)
+      await addAddons(page, 'violin')
       await mount(page, {
         chart: {
           type: 'violin',

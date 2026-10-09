@@ -1,19 +1,29 @@
 /**
  * Sunburst (hierarchical radial / nested pie-donut) interaction tests.
  *
- * Self-contained: injects the built UMD bundle (full.js registers `sunburst`)
+ * Self-contained: injects the built UMD bundle and the sunburst add-on after it
  * and creates its own chart, exercising the real render + hover + legend path.
  * Covers P1: rings from a native `children` hierarchy AND from a `drilldown`
  * config (adapter), per-node tooltip, and legend-toggle hiding a whole branch.
  */
 
 import { test, expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, '..', '..', '..')
 const umdPath = resolve(rootDir, 'dist', 'apexcharts.js')
+
+/**
+ * The default bundle and the sunburst add-on, which it has not carried since
+ * 8.0, loaded the way a script-tag page loads them.
+ */
+async function loadBundle(page) {
+  await page.addScriptTag({ path: umdPath })
+  await addAddons(page, 'sunburst')
+}
 
 // 3 roots, 8 mid nodes, 3 deep nodes = 14 arcs total.
 const NATIVE = {
@@ -68,7 +78,7 @@ const DRILLDOWN_FORM = {
 /** @param {import('@playwright/test').Page} page @param {any} opts */
 async function renderChart(page, opts) {
   await page.setContent('<div id="chart"></div>')
-  await page.addScriptTag({ path: umdPath })
+  await loadBundle(page)
   await page.evaluate((o) => {
     window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
     return window.chart.render()
@@ -190,7 +200,7 @@ test.describe('sunburst', () => {
     opts.chart.animations = { enabled: true, speed: 500 }
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((o) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
       return window.chart.render()
@@ -217,7 +227,7 @@ test.describe('sunburst', () => {
     opts.chart.animations = { enabled: true, speed: 900 }
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((o) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
       window.chart.render()
@@ -257,7 +267,7 @@ test.describe('sunburst', () => {
     }
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((o) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
       return window.chart.render()
@@ -361,7 +371,7 @@ test.describe('sunburst', () => {
 
     const geom = async (opts) => {
       await page.setContent('<div id="chart" style="width:520px"></div>')
-      await page.addScriptTag({ path: umdPath })
+      await loadBundle(page)
       await page.evaluate((o) => {
         window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
         return window.chart.render()
@@ -396,7 +406,7 @@ test.describe('sunburst', () => {
     opts.title = { text: 'Website traffic by device and OS', align: 'left' }
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((o) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
       return window.chart.render()

@@ -21,6 +21,7 @@
  */
 
 import { test as base, expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -41,6 +42,8 @@ const test = base.extend({
         `<div id="chart" style="width:${width}px;height:600px"></div>`,
       )
       await page.addScriptTag({ path: distPath })
+      // Not in the default bundle since 8.0.
+      if (options.chart?.type === 'waterfall') await addAddons(page, 'waterfall')
       await page.evaluate(async (opts) => {
         // Functions do not survive Playwright's serialization, so the
         // formatters are rebuilt in the page.

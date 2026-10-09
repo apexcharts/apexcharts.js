@@ -1,19 +1,30 @@
 /**
  * Drilldown interaction tests (real browser).
  *
- * Self-contained: injects the built UMD bundle (which registers the drilldown
- * feature via features/all) and creates its own chart, so this exercises the
+ * Self-contained: injects the built UMD bundle and the drilldown add-on after
+ * it (the default bundle has not carried drilldown since 8.0) and creates its
+ * own chart, so this exercises the
  * real DOM click path — Graphics.pathMouseDown → dataPointSelection → drill —
  * that the jsdom unit tests can only call synthetically.
  */
 
 import { test, expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, '..', '..', '..')
 const umdPath = resolve(rootDir, 'dist', 'apexcharts.js')
+
+/**
+ * The default bundle and the drilldown add-on, which it has not carried since
+ * 8.0, loaded the way a script-tag page loads them.
+ */
+async function loadBundle(page) {
+  await page.addScriptTag({ path: umdPath })
+  await addAddons(page, 'drilldown')
+}
 
 const CHART_OPTIONS = {
   chart: { type: 'bar', height: 360, animations: { enabled: false } },
@@ -59,7 +70,7 @@ async function mountChart(page) {
   page.on('pageerror', (err) => errors.push(err.message))
 
   await page.setContent('<div id="chart"></div>')
-  await page.addScriptTag({ path: umdPath })
+  await loadBundle(page)
   await page.evaluate((opts) => {
     window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
     return window.chart.render()
@@ -193,7 +204,7 @@ test.describe('drilldown — cross-type (bar → donut)', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       // Record each cross-type morph capture + eligibility result.
@@ -273,7 +284,7 @@ test.describe('drilldown — cross-type (bar → donut)', () => {
     }
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -357,7 +368,7 @@ test.describe('drilldown — multi-series child', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -415,7 +426,7 @@ test.describe('drilldown — multi-series child', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -497,7 +508,7 @@ test.describe('drilldown — trigger-point zoom', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -667,7 +678,7 @@ test.describe('drilldown — treemap', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -765,7 +776,7 @@ test.describe('drilldown — heatmap', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -853,7 +864,7 @@ test.describe('drilldown — pie/donut', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -913,7 +924,7 @@ test.describe('drilldown — pie/donut', () => {
     opts.chart.animations = { enabled: false }
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((o) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
       return window.chart.render()
@@ -943,7 +954,7 @@ test.describe('drilldown — pie/donut', () => {
     page.on('pageerror', (err) => errors.push(err.stack || err.message))
 
     await page.setContent('<div id="chart"></div>')
-    await page.addScriptTag({ path: umdPath })
+    await loadBundle(page)
     await page.evaluate((opts) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
       return window.chart.render()
@@ -1041,7 +1052,7 @@ async function mountLineChart(page, optionOverrides = {}) {
   const errors = []
   page.on('pageerror', (err) => errors.push(err.message))
   await page.setContent('<div id="chart"></div>')
-  await page.addScriptTag({ path: umdPath })
+  await loadBundle(page)
   await page.evaluate(
     ({ base, overrides }) => {
       window.chart = new window.ApexCharts(document.querySelector('#chart'), {

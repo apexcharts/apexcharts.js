@@ -14,6 +14,7 @@
 
 import { test } from '../fixtures/base.js'
 import { expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 
 /** A seeded log-normal sample, built in the page. */
 const MAKE_OBS = `(n, mu, sigma) => {
@@ -174,6 +175,7 @@ test.describe('the explode itself', () => {
     loadChart,
   }) => {
     await loadChart('histogram', 'latency-distribution')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mkObs, mkChart]) => {
@@ -276,6 +278,7 @@ test.describe('the explode itself', () => {
     loadChart,
   }) => {
     await loadChart('histogram', 'latency-distribution')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mkObs, mkChart]) => {

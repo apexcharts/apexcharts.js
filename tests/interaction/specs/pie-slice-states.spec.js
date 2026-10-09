@@ -23,6 +23,7 @@
  */
 
 import { test as base, expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -49,6 +50,8 @@ const test = base.extend({
         '<div id="chart" style="width:800px;height:520px"></div>',
       )
       await page.addScriptTag({ path: distPath })
+      // Not in the default bundle since 8.0.
+      if (cfg.drilldown) await addAddons(page, 'drilldown')
       await page.evaluate(async (c) => {
         window.chart = new ApexCharts(document.querySelector('#chart'), {
           chart: {

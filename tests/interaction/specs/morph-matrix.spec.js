@@ -31,6 +31,7 @@
 
 import { test } from '../fixtures/base.js'
 import { expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 
 // ---------------------------------------------------------------------------
 // Fixtures. Plain data only, so the whole config crosses into the page as an
@@ -434,8 +435,11 @@ test.describe('Every offered pair actually moves', () => {
     const to = fixture(row.to, marks)
 
     test(`${row.from} -> ${row.to} (${row.kind})`, async ({ page, loadChart }) => {
-      // Any sample serves as a host for the full bundle; the probe replaces it.
+      // Any sample serves as a host for the default bundle; the probe replaces
+      // it. The matrix reaches types outside the default bundle since 8.0, so
+      // their add-ons load after it, as on a script-tag page.
       await loadChart('bar', 'basic-bar')
+      await addAddons(page, 'unit', 'sunburst', 'violin')
 
       const r = await page.evaluate(DRIVE, {
         kind: row.kind,

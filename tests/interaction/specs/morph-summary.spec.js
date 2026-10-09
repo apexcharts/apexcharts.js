@@ -15,6 +15,7 @@
 
 import { test } from '../fixtures/base.js'
 import { expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 
 const MAKE = `async (type, series, height) => {
   document.body.innerHTML = '<div id="probe" style="width:760px"></div>'
@@ -127,6 +128,7 @@ test.describe('boxPlot -> unit', () => {
     loadChart,
   }) => {
     await loadChart('boxPlot', 'boxplot-from-raw-observations')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mk, samples]) => {
@@ -222,6 +224,7 @@ test.describe('violin -> unit', () => {
     loadChart,
   }) => {
     await loadChart('violin', 'violin-with-jitter')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mk, samples]) => {
@@ -275,6 +278,7 @@ test.describe('collapse: unit -> boxPlot', () => {
     loadChart,
   }) => {
     await loadChart('boxPlot', 'boxplot-from-raw-observations')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mk, samples]) => {
@@ -383,6 +387,7 @@ test.describe('the pieces follow the silhouette, not the bounding box', () => {
     loadChart,
   }) => {
     await loadChart('violin', 'violin-with-jitter')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mk, series, bandSpans]) => {
@@ -421,6 +426,7 @@ test.describe('the pieces follow the silhouette, not the bounding box', () => {
     loadChart,
   }) => {
     await loadChart('violin', 'violin-with-jitter')
+    await addAddons(page, 'unit')
 
     const r = await page.evaluate(
       async ([mk, series, bandSpans]) => {
@@ -562,6 +568,7 @@ test.describe('boxPlot <-> violin', () => {
     loadChart,
   }) => {
     await loadChart('boxPlot', 'boxplot-from-raw-observations')
+    await addAddons(page, 'violin')
     const r = await drive(page, 'boxPlot', 'violin')
 
     expect(r.before.length).toBe(5)

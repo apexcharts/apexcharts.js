@@ -32,6 +32,7 @@ import {
   expectNoViolations,
 } from '../helpers/frames.js'
 import { advance, installVirtualTime } from '../helpers/virtual-time.js'
+import { addAddons } from '../helpers/addons.js'
 
 /**
  * Render `options` on a bare page under virtual time with the highlight
@@ -40,7 +41,7 @@ import { advance, installVirtualTime } from '../helpers/virtual-time.js'
 async function mount(
   page,
   options,
-  { settleMs = 4000, morph = false, canvas = false } = {},
+  { settleMs = 4000, morph = false, canvas = false, addons = [] } = {},
 ) {
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
@@ -56,6 +57,7 @@ async function mount(
       path: BUNDLE.replace(/apexcharts\.js$/, `features/${f}.js`),
     })
   }
+  await addAddons(page, ...addons)
   await page.evaluate((o) => {
     window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
     window.chart.render()
@@ -960,7 +962,8 @@ test.describe('Highlight filter, treemap', () => {
       },
       legend: { show: false },
     }
-    const errors = await mount(page, opts, { morph: true })
+    // Sunburst has not been in the default bundle since 8.0.
+    const errors = await mount(page, opts, { morph: true, addons: ['sunburst'] })
     const rec = await recordTransition(
       page,
       () =>

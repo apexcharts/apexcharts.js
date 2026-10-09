@@ -22,6 +22,7 @@
 
 import { test } from '../fixtures/base.js'
 import { expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 
 /**
  * Build a pie in the page and pull a slice out, returning the computed
@@ -164,6 +165,7 @@ test.describe('Reduced motion', () => {
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await loadChart('pie', 'simple-pie')
+    await addAddons(page, 'drilldown')
 
     const spinner = await page.evaluate(async () => {
       const el = document.createElement('div')

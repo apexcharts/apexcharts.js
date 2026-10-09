@@ -16,6 +16,7 @@
  */
 
 import { test as base, expect } from '@playwright/test'
+import { addAddons } from '../helpers/addons.js'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -50,6 +51,8 @@ const test = base.extend({
         '<div id="chart" style="width:820px;height:400px"></div>',
       )
       await page.addScriptTag({ path: distPath })
+      // Violin has not been in the default bundle since 8.0.
+      if (from === 'violin' || to === 'violin') await addAddons(page, 'violin')
       await page.evaluate(
         async ([type, series]) => {
           window.chart = new ApexCharts(document.querySelector('#chart'), {
