@@ -100,6 +100,14 @@ jobs:
       - run: yarn check:license-enforcement
         if: steps.check.outputs.triggered == 'true'
 
+      # After the build, before the publish: an over-budget bundle cannot ship.
+      # The fix is a commit raising build/size-budget.json that says what the
+      # bytes buy, then the release commit again (npm never saw the version, so
+      # it is free to reuse). `npm run check:size` before the release commit
+      # catches this on the laptop instead.
+      - run: yarn check:size
+        if: steps.check.outputs.triggered == 'true'
+
       - run: npm publish --provenance --tag ${{ steps.check.outputs.tag }}
         if: steps.check.outputs.triggered == 'true'
 

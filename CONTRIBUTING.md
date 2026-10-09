@@ -20,6 +20,16 @@ npm run dev
 
 You will now have a fully functioning local build of this library ready to be used. **Leave the `start` script running**, and continue with a new Terminal/shell window.
 
+### Bundle size
+
+`dist/apexcharts.min.js` and `dist/apexcharts.core.min.js` each have a gzip budget in `build/size-budget.json`, checked on every pull request, every push to `main`, and before every publish. To reproduce the check locally:
+
+```sh
+npm run build && npm run check:size
+```
+
+`npm run dev` writes an unminified development build, so the check refuses to measure it. If your change has to grow a bundle past its budget, raise the number in `build/size-budget.json` in the same pull request and say in the commit body what the bytes buy. Sizes are zlib at its default level in whole bytes, the figure the release notes print; a shell `gzip -9` reads more than a kilobyte smaller and will not agree.
+
 ## Work on a fix or feature
 
 To work on a fix or feature and to preview changes in source code, use samples included, or start a new project with modified Apexcharts as a dependency.

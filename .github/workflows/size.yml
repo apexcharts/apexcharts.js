@@ -1,0 +1,42 @@
+name: Bundle size
+
+# The gzip budget on dist/apexcharts.min.js and dist/apexcharts.core.min.js
+# (build/size-budget.json, enforced by build/check-size.mjs).
+#
+# Its own workflow rather than a step somewhere else: ci.yml's build job is
+# PR-only and runs a Node 20 leg whose zlib output has not been verified to
+# match the release notes, and a size failure inside playwright.yml would skip
+# the interaction suite. On pushes to main too, because work often lands there
+# directly and would otherwise meet no size check until publish.yml.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  size:
+    name: Size budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # One Node, the one publish.yml builds with: the figure has to equal the
+      # one the release notes print.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+      # Default success() gating, deliberately never `!cancelled()`. After a
+      # failed build dist/ still holds the committed previous release, whose
+      # banner matches package.json between releases, so the check would pass
+      # on stale bytes.
+      #
+      # HEAD's committed dist is the last release (dist is only committed by a
+      # `release:` commit), so the comparison column reads "vs last release".
+      - name: Check the gzip budget
+        run: yarn check:size --compare-ref HEAD

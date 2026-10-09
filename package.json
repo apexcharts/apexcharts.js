@@ -315,6 +315,7 @@
     "preunit": "node scripts/check-node.js",
     "unit": "vitest run tests/unit/",
     "check:license-enforcement": "node tests/license/check-license-enforcement.mjs",
+    "check:size": "node build/check-size.mjs",
     "e2e": "node tests/e2e/samples.js test",
     "e2e:update": "node tests/e2e/samples.js update",
     "e2e:ci": "node tests/e2e/samples.js test:ci",

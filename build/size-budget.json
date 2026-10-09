@@ -1,0 +1,19 @@
+{
+  "method": "zlib gzipSync at its default level over the file's raw bytes (build/gzip-size.mjs). Whole bytes, never KB.",
+  "slack": {
+    "default": {
+      "pct": 0.01,
+      "step": 500
+    }
+  },
+  "files": {
+    "dist/apexcharts.min.js": {
+      "gzip": 301500,
+      "minifiedFrom": "dist/apexcharts.js"
+    },
+    "dist/apexcharts.core.min.js": {
+      "gzip": 165000,
+      "minifiedFrom": "dist/apexcharts.core.js"
+    }
+  }
+}

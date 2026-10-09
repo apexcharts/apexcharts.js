@@ -34,7 +34,7 @@
 
 import { execFileSync } from 'child_process'
 import { readFileSync } from 'fs'
-import { gzipSync } from 'zlib'
+import { gzipSize } from './gzip-size.mjs'
 
 const git = (args, opts = {}) =>
   execFileSync('git', args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, ...opts })
@@ -42,19 +42,16 @@ const git = (args, opts = {}) =>
 /**
  * The gzipped size of the default bundle at a ref.
  *
- * zlib at its default level, NOT a shell `gzip`. Three reasons, all learned the
- * hard way: the two disagree by a few hundred bytes; `gzip` output differs
- * between macOS and Linux, so a figure computed on a laptop cannot be
- * reproduced by CI; and `gzip -c file` writes the source filename into the
- * header while piping the same bytes through stdin does not, so even one
- * machine gives two answers. This is also exactly the figure `npm run build`
- * prints, so the number in the notes is one maintainers already recognise.
+ * Measured by `gzip-size.mjs`, which says why it is zlib and not a shell
+ * `gzip`. The same function prints the `npm run build` summary and enforces
+ * the CI budget (`check-size.mjs`), so the number in the notes is one
+ * maintainers already recognise.
  */
 function bundleSize(ref) {
   const buf = execFileSync('git', ['show', `${ref}:dist/apexcharts.min.js`], {
     maxBuffer: 256 * 1024 * 1024,
   })
-  return gzipSync(buf).length
+  return gzipSize(buf)
 }
 
 /** One commit, split into the parts the notes need. */
