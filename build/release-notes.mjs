@@ -244,14 +244,33 @@ export function bundleLine(prevVersion, prevSize, size, full) {
   if (full && full.size != null) {
     if (full.prevSize == null) {
       out.push(
-        `The new full bundle, apexcharts.full.min.js, has every chart type and feature in one file: ${n(full.size)} B.`,
+        `The new full bundle, apexcharts.full.min.js, has every chart type and feature in one file: ${n(full.size)} B gzipped.`,
       )
     } else {
       const f = moved(full.prevSize, full.size)
-      if (f) out.push(`The full bundle is ${n(full.size)} B, ${f}.`)
+      if (f) out.push(`The full bundle is ${n(full.size)} B gzipped, ${f}.`)
     }
   }
   return out.join(' ')
+}
+
+/**
+ * The release commit whose body opens the notes: the one for this version.
+ *
+ * Not simply the first in the range. A stable release's range holds its
+ * release candidates too (they are never tagged, so the previous tag is the
+ * last stable release), and the oldest release commit in it is rc.1's, whose
+ * body says it is a prerelease on another npm tag. When one version has two
+ * release commits (a re-trigger), the first is the one written as the notes.
+ *
+ * @param {{ type: string, title: string }[]} commits oldest first
+ * @param {string} version the version being released
+ */
+export function releaseCommit(commits, version) {
+  const releases = commits.filter((c) => c.type === 'release')
+  return (
+    releases.find((c) => c.title.trim() === version) ?? releases.at(-1)
+  )
 }
 
 function main() {
@@ -282,7 +301,7 @@ function main() {
   // release up for the log, and saying it twice in two voices is how the two
   // drift apart. Its own listing of the commits is dropped: the sections below
   // list them, one line each.
-  const release = commits.find((c) => c.type === 'release')
+  const release = releaseCommit(commits, version)
   const releasedBy = release ? authors[release.hash] : undefined
   const lede = []
   for (const text of (release?.body ?? '').split('\n')) {

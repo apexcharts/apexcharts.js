@@ -20,6 +20,7 @@ import {
   line,
   section,
   bundleLine,
+  releaseCommit,
   tidy,
   unwrap,
 } from '../../build/release-notes.mjs'
@@ -244,7 +245,7 @@ describe('the bundle size', () => {
       bundleLine('7.9.1', 291763, 262431, { prevSize: null, size: 380201 }),
     ).toBe(
       'The default bundle is 262,431 B gzipped, down 29,332 B (10.1%) from 7.9.1. ' +
-        'The new full bundle, apexcharts.full.min.js, has every chart type and feature in one file: 380,201 B.',
+        'The new full bundle, apexcharts.full.min.js, has every chart type and feature in one file: 380,201 B gzipped.',
     )
   })
 
@@ -254,7 +255,9 @@ describe('the bundle size', () => {
     ).toBe('')
     expect(
       bundleLine('8.0.0', 262431, 263000, { prevSize: 380201, size: 390000 }),
-    ).toBe('The full bundle is 390,000 B, up 9,799 B (2.6%) from 8.0.0.')
+    ).toBe(
+      'The full bundle is 390,000 B gzipped, up 9,799 B (2.6%) from 8.0.0.',
+    )
   })
 
   it('says nothing about a full bundle that does not exist at either ref', () => {
@@ -263,5 +266,36 @@ describe('the bundle size', () => {
     ).toBe(
       'The default bundle is 290,000 B gzipped, down 10,000 B (3.3%) from 7.8.0.'
     )
+  })
+})
+
+// The lede is the release commit's body. 7.0.0's range opened with
+// rc.1's ("First release candidate ..."), and 8.0.0's will too: release
+// candidates are never tagged, so the range runs from the last stable tag.
+describe('the release commit the notes open with', () => {
+  const rel = (title, body) =>
+    commit({ type: 'release', title, body, hash: title.padEnd(40, '0') })
+
+  it('takes the one for this version, not the oldest release commit', () => {
+    const commits = [
+      rel('8.0.0-rc.1', 'The first release candidate of 8.0.'),
+      commit(),
+      rel('8.0.0-rc.2', 'The second release candidate.'),
+      rel('8.0.0', 'The default bundle gets smaller.'),
+    ]
+    expect(releaseCommit(commits, '8.0.0').body).toBe(
+      'The default bundle gets smaller.',
+    )
+  })
+
+  it('takes the first of two for one version, the one written as notes', () => {
+    const commits = [rel('7.0.0', 'The notes.'), rel('7.0.0', '')]
+    expect(releaseCommit(commits, '7.0.0').body).toBe('The notes.')
+  })
+
+  it('falls back to the newest release commit when none names the version', () => {
+    const commits = [rel('7.9.0', 'Old.'), rel('7.9.1', 'New.')]
+    expect(releaseCommit(commits, '7.9.2').body).toBe('New.')
+    expect(releaseCommit([commit()], '7.9.2')).toBeUndefined()
   })
 })
