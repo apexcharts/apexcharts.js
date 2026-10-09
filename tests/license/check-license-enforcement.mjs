@@ -284,8 +284,15 @@ async function runCase(bundlePath, caseName) {
   await chart.render()
 
   // Proves the fixture drew something, so "no watermark" means the licence was
-  // accepted rather than the chart never rendering.
-  const rendered = !!container.querySelector('svg')
+  // accepted rather than the chart never rendering. A raincloud without its
+  // statistics still renders an <svg>, over series it blanked (Data.js), and
+  // is flagged premium from its config alone, so for it "drew something"
+  // means the transform ran: otherwise a full bundle that lost
+  // features/raincloud would pass the run that claims it carries it.
+  const rendered =
+    !!container.querySelector('svg') &&
+    (fixture !== 'raincloud' ||
+      chart.w.config.series.some((s) => s.data && s.data.length > 0))
   const immediately = !!container.querySelector(WATERMARK)
 
   // The verdict settles a microtask after importKey/verify, then enforcement
