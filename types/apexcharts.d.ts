@@ -1718,6 +1718,7 @@ type ApexChart = {
   | 'waterfall'
   /** Not in the default bundle since 8.0: `import 'apexcharts/dumbbell'`, or load `dist/features/dumbbell.js` after the ApexCharts script, or use the full bundle. */
   | 'dumbbell'
+  /** Not in the default bundle since 8.0: `import 'apexcharts/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
   | 'streamgraph'
   | 'raincloud'
   | 'treemap'
@@ -3402,6 +3403,7 @@ type ApexPlotOptions = {
       strokeDashArray?: number
     }
   }
+  /** `chart.type: 'streamgraph'`. Not in the default bundle since 8.0: `import 'apexcharts/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
   streamgraph?: {
     /**
      * Where the baseline goes.

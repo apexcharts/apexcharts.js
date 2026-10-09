@@ -22,9 +22,10 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 /**
  * Tier 1: shipped by default. The classic six predate the budget and are
- * grandfathered (plan 08 line 150); the rest each passed the three-part rule
- * (< ~5 KB gzipped over core, no peer dependency or separate asset, useful to
- * a majority of charts) when admitted.
+ * grandfathered (plan 08 line 150; 8.0 ended it for drilldown and the three
+ * 7.1.0 alias types, which are Tier 2 now); the rest each passed the
+ * three-part rule (< ~5 KB gzipped over core, no peer dependency or separate
+ * asset, useful to a majority of charts) when admitted.
  */
 const TIER_1 = [
   // Grandfathered classics: these ARE the batteries.
@@ -39,18 +40,6 @@ const TIER_1 = [
   'marks',
   'facet',
   'stats',
-  // The 7.1.0 chart type below is GRANDFATHERED (shipped in the default
-  // bundle) until 8.0 moves it out; waterfall and dumbbell have gone. It is
-  // not precedent: since 2026-08-31 a NEW chart type defaults to Tier 2, the
-  // raincloud model, with an entry in Data.js's TYPE_FEATURES map so the
-  // default bundle warns loudly instead of failing silently. See the
-  // policy in plans/08-distribution-and-plugin-tiers.md.
-  //
-  // Same again, and the quietest failure of the three: `chart.type:
-  // 'streamgraph'` without it routes scalar series into the range-area
-  // pathway, where every band comes out `[y, y]` — zero thickness. The chart
-  // renders, throws nothing, and shows an empty plot. +1.8 KB gzipped.
-  'streamgraph',
 ]
 
 /**
@@ -84,6 +73,7 @@ const TIER_2 = [
   // makes that a blank chart and one warning that survives minification.
   'waterfall',
   'dumbbell',
+  'streamgraph',
 ]
 
 const RULE = `
@@ -96,10 +86,16 @@ Everything else ships as a sub-path entry (bundlers) and a UMD add-on (script
 tag) and is NOT imported by all.js. If you are adding a feature so it "just
 works", document its entry point instead.
 NEW CHART TYPES default to Tier 2 (policy, 2026-08-31): sub-path entry, UMD
-add-on, and an entry in TYPE_FEATURES (src/modules/Data.js) so the
-default bundle warns and renders blank instead of failing silently. A single
-type is almost never "useful to a majority of charts"; a quiet failure mode
-is fixed by the warning map, not by bundling the type.`
+add-on, and a loud failure on the default bundle instead of a silent one. A
+type with a class of its own goes in RESERVED_TYPES (TypeAliases.js), and
+getChartClass names the import; an alias type whose statistics live in a
+feature goes in TYPE_FEATURES (src/modules/Data.js), which warns and renders
+blank. A single type is almost never "useful to a majority of charts"; a quiet
+failure mode is fixed by the warning, not by bundling the type.
+EVERY TIER-2 ITEM fails loudly, through a warning that survives the minified
+build (src/utils/MissingFeature.js, never a bare console.warn).
+8.0.0 ended grandfathering: drilldown and the 7.1.0 types moved out, so being
+in the default bundle today is not a reason to stay there.`
 
 describe('Tier-1 default-bundle budget', () => {
   const source = readFileSync(
@@ -153,7 +149,7 @@ describe('Tier-1 default-bundle budget', () => {
     for (const name of TIER_2) {
       expect(
         umdBlock.includes(`'features/${name}'`),
-        `Tier-2 feature '${name}' has no UMD_ENTRIES build, so a page without a bundler has NO way to reach it. Taking a feature out of the full bundle without giving the script-tag audience a replacement is a regression, not a saving.`,
+        `Tier-2 feature '${name}' has no UMD_ENTRIES build, so a page without a bundler has NO way to reach it. Taking a feature out of the default bundle without giving the script-tag audience a replacement is a regression, not a saving.`,
       ).toBe(true)
     }
   })

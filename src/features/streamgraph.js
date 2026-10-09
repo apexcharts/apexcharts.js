@@ -18,6 +18,11 @@
  * or simply `import ApexCharts from 'apexcharts/streamgraph'`, which pulls in
  * the line/area renderer and this feature together.
  *
+ * Not in the default bundle since 8.0: add `import 'apexcharts/streamgraph'`
+ * next to `import ApexCharts from 'apexcharts'`. Script tag: load
+ * `dist/features/streamgraph.js` after the ApexCharts script, or use the full
+ * bundle. Without it, a streamgraph warns once and draws nothing.
+ *
  * @module features/streamgraph
  */
 import ApexCharts from '../apexcharts'
