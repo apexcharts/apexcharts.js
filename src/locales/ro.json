@@ -49,7 +49,8 @@
       "zoomIn": "Mărire",
       "zoomOut": "Micșorare",
       "pan": "Panoramare",
-      "reset": "Resetare zoom"
+      "reset": "Resetare zoom",
+      "measure": "Măsurare"
     }
   }
 }
