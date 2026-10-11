@@ -1542,3 +1542,14 @@ describe('Dimensions integration (rendered charts)', () => {
     expect(chart.w.globals.barPadForNumericAxis).toBeGreaterThanOrEqual(0)
   })
 })
+
+describe('opposite y axis label font size', () => {
+  it('keeps translateX finite with a CSS keyword font size', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', height: 300, width: 500 },
+      series: [{ data: [1, 2, 3] }],
+      yaxis: { opposite: true, labels: { style: { fontSize: 'inherit' } } },
+    })
+    expect(Number.isFinite(chart.w.layout.translateX)).toBe(true)
+  })
+})

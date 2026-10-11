@@ -218,7 +218,8 @@ export default class DimGrid {
           w.layout.translateX -=
             yaxisLabelCoords[index].width +
             yTitleCoords[index].width +
-            parseInt(yaxe.labels.style.fontSize, 10) / 1.2 +
+            // `|| 11`: a CSS keyword ('inherit') parses to NaN (#5064)
+            (parseInt(yaxe.labels.style.fontSize, 10) || 11) / 1.2 +
             12
         }
 
