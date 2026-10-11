@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -431,7 +431,9 @@ class HeatMap {
                 }
               } else {
                 const box = prev.rect;
-                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(Number.isFinite) ? box : null;
+                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(
+                  Number.isFinite
+                ) && (Math.abs(box.x - x1) > 0.5 || Math.abs(box.y - y1) > 0.5 || Math.abs(box.width - cellW) > 0.5 || Math.abs(box.height - yDivision) > 0.5) ? box : null;
                 this.animateHeatColor(
                   cell,
                   Utils.isColorHex(prev.color) ? prev.color : Utils.rgb2hex(prev.color),
@@ -446,24 +448,26 @@ class HeatMap {
             }
           }
         }
-        const formatter = w.config.dataLabels.formatter;
-        const formattedText = formatter(w.seriesData.series[i][j], {
-          value: w.seriesData.series[i][j],
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        });
-        const dataLabels = this.helpers.calculateDataLabels({
-          text: formattedText,
-          x: x1 + rowOffset + cellW / 2,
-          y: y1 + yDivision / 2,
-          i,
-          j,
-          colorProps: heatColorProps,
-          series: heatSeries
-        });
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
+        if (w.config.dataLabels.enabled) {
+          const formatter = w.config.dataLabels.formatter;
+          const formattedText = formatter(w.seriesData.series[i][j], {
+            value: w.seriesData.series[i][j],
+            seriesIndex: i,
+            dataPointIndex: j,
+            w
+          });
+          const dataLabels = this.helpers.calculateDataLabels({
+            text: formattedText,
+            x: x1 + rowOffset + cellW / 2,
+            y: y1 + yDivision / 2,
+            i,
+            j,
+            colorProps: heatColorProps,
+            series: heatSeries
+          });
+          if (dataLabels !== null) {
+            elSeries.add(dataLabels);
+          }
         }
         if (!isContinuousX) x1 = x1 + xDivision;
         j++;

@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -95,6 +95,8 @@ const ASCENT_EM = 0.917;
 const DESCENT_EM = 0.25;
 const LINE_HEIGHT_EM = 1.1;
 const DEFAULT_FONT_SIZE = 11;
+const escapeText = (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escapeAttr = (value) => escapeText(value).replace(/"/g, "&quot;");
 class SSRElement {
   /**
    * @param {string} nodeName
@@ -105,7 +107,8 @@ class SSRElement {
     this.namespaceURI = namespaceURI;
     this.attributes = /* @__PURE__ */ new Map();
     this.children = [];
-    this.textContent = "";
+    this._text = "";
+    this._rawHTML = false;
     this.style = {};
     this.classList = new SSRClassList();
     this.parentNode = /** @type {SSRElement | null} */
@@ -189,7 +192,8 @@ class SSRElement {
   }
   cloneNode(deep = false) {
     const clone = new SSRElement(this.nodeName, this.namespaceURI);
-    clone.textContent = this.textContent;
+    clone._text = this._text;
+    clone._rawHTML = this._rawHTML;
     this.attributes.forEach((value, key) => {
       clone.attributes.set(key, value);
     });
@@ -278,21 +282,30 @@ class SSRElement {
   toString() {
     let attrs = "";
     this.attributes.forEach((value, key) => {
-      attrs += ` ${key}="${value}"`;
+      attrs += ` ${key}="${escapeAttr(value)}"`;
     });
-    if (this.children.length === 0 && !this.textContent) {
+    if (this.children.length === 0 && !this._text) {
       return `<${this.nodeName}${attrs}/>`;
     }
+    const text = this._rawHTML ? this._text : escapeText(this._text);
     const childrenStr = this.children.map((c) => c.toString()).join("");
-    return `<${this.nodeName}${attrs}>${this.textContent}${childrenStr}</${this.nodeName}>`;
+    return `<${this.nodeName}${attrs}>${text}${childrenStr}</${this.nodeName}>`;
   }
   // Property getters/setters
+  get textContent() {
+    return this._text;
+  }
+  set textContent(value) {
+    this._text = value;
+    this._rawHTML = false;
+  }
   get innerHTML() {
     return this.children.map((c) => c.toString()).join("");
   }
   set innerHTML(value) {
     this.children = [];
-    this.textContent = value;
+    this._text = value;
+    this._rawHTML = true;
   }
   get outerHTML() {
     return this.toString();
@@ -367,7 +380,7 @@ class SSRDOMShim {
       nodeType: 3,
       textContent: data,
       toString() {
-        return node.textContent;
+        return escapeText(node.textContent);
       }
     };
     return node;
@@ -1357,15 +1370,15 @@ let Utils$1 = class Utils {
    */
   static getPrimeFactors(n2) {
     const factors = [];
-    let divisor = 2;
-    while (n2 >= 2) {
-      if (n2 % divisor == 0) {
+    n2 = Math.round(Math.abs(n2));
+    if (!Number.isFinite(n2)) return factors;
+    for (let divisor = 2; divisor * divisor <= n2; divisor++) {
+      while (n2 % divisor === 0) {
         factors.push(divisor);
         n2 = n2 / divisor;
-      } else {
-        divisor++;
       }
     }
+    if (n2 >= 2) factors.push(n2);
     return factors;
   }
   /**
@@ -1993,7 +2006,7 @@ class Formatters {
       fmt.xLabelFormatter = (val) => {
         var _a;
         if (Utils$1.isNumber(val)) {
-          if (!w.config.xaxis.convertedCatToNumeric && (w.config.xaxis.type === "numeric" || inferredNumericX)) {
+          if (!w.config.xaxis.convertedCatToNumeric && !w.globals.isBarHorizontal && (w.config.xaxis.type === "numeric" || inferredNumericX)) {
             const ticks = (_a = w.globals.xAxisScale) == null ? void 0 : _a.result;
             if (inferredNumericX && Array.isArray(ticks) && ticks.every(Number.isInteger)) {
               return val.toFixed(0);
@@ -5130,6 +5143,9 @@ const TYPE_OWNED_PATHS = [
   // Hover and select feedback, off by design on the types that draw their own.
   "states.hover.filter.type",
   "states.active.filter.type",
+  // How x is read. A histogram's bin midpoints need a numeric axis; a line or
+  // bar given a plain number array has no x values to put on one (#5343).
+  "xaxis.type",
   // Axis chrome that exists to be pointed at.
   "xaxis.crosshairs.width",
   "xaxis.tickPlacement",
@@ -5378,6 +5394,7 @@ class Defaults {
    * @param {Record<string, any>} [options] this update's payload
    */
   static handOverTypeDefaults(config, fromType, options2) {
+    var _a;
     const toType = config.chart.requestedType || config.chart.type;
     if (!fromType || fromType === toType) return;
     const base = new Options().init();
@@ -5394,6 +5411,34 @@ class Defaults {
       if (!isUntouched(readPath(config, path), fromDefault)) continue;
       writePath(config, path, toDefault);
     }
+    const fromY = Defaults.typeYAxisDefaults(fromType);
+    const toY = Defaults.typeYAxisDefaults(toType);
+    const baseY = (
+      /** @type {Record<string, any>} */
+      new Options().yAxis
+    );
+    const askedY = [].concat((_a = options2 == null ? void 0 : options2.yaxis) != null ? _a : []);
+    for (const key of /* @__PURE__ */ new Set([...Object.keys(fromY), ...Object.keys(toY)])) {
+      if (askedY.some((a2) => a2 && a2[key] !== void 0)) continue;
+      const fromDefault = key in fromY ? fromY[key] : baseY[key];
+      const toDefault = key in toY ? toY[key] : baseY[key];
+      for (const axis of config.yaxis || []) {
+        if (axis && axis[key] === fromDefault) axis[key] = toDefault;
+      }
+    }
+  }
+  /**
+   * The y-axis leaves a type chooses for itself. Config writes them into the
+   * options on the way in, because the y-axis is an array a type's defaults
+   * cannot reach, and handOverTypeDefaults reads them back to know which
+   * values were the type's rather than the user's.
+   *
+   * @param {string} type a chart type, or a user-facing alias of one
+   * @returns {Record<string, any>}
+   */
+  static typeYAxisDefaults(type) {
+    if (type === "streamgraph") return { show: false };
+    return {};
   }
   hideYAxis() {
     this.opts.yaxis[0].show = false;
@@ -7364,15 +7409,14 @@ const _Config = class _Config {
     } else if (requested === "streamgraph") {
       opts.chart.stacked = false;
       opts.yaxis = opts.yaxis || {};
-      if (!Array.isArray(opts.yaxis) && opts.yaxis.show == null) {
-        opts.yaxis.show = false;
+      if (!Array.isArray(opts.yaxis)) {
+        const yDefaults = Defaults.typeYAxisDefaults(requested);
+        for (const key of Object.keys(yDefaults)) {
+          if (opts.yaxis[key] == null) opts.yaxis[key] = yDefaults[key];
+        }
       }
       opts.chart.type = "rangeArea";
     } else if (requested === "histogram") {
-      opts.xaxis = opts.xaxis || {};
-      if (opts.xaxis.type == null) {
-        opts.xaxis.type = "numeric";
-      }
       opts.chart.type = "bar";
     } else if (requested === "raincloud") {
       opts.chart.type = "violin";
@@ -7387,12 +7431,13 @@ const _Config = class _Config {
    * @param {Record<string, any>} opts
    */
   checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     const defaults = new Defaults(opts);
     const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
     const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap" || chartType === "unit" || chartType === "sunburst" || chartType === "icicle";
-    const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
-    const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_e = (_d = (_c = opts.plotOptions) == null ? void 0 : _c.scatter) == null ? void 0 : _d.jitter) == null ? void 0 : _e.enabled);
+    const xaxisType = (_d = opts.xaxis.type) != null ? _d : (_c = chartDefaults.xaxis) == null ? void 0 : _c.type;
+    const notNumericXAxis = xaxisType !== "datetime" && xaxisType !== "numeric";
+    const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_g = (_f = (_e = opts.plotOptions) == null ? void 0 : _e.scatter) == null ? void 0 : _f.jitter) == null ? void 0 : _g.enabled);
     const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
     if (!isBarHorizontal && !unsupportedZoom && !isScatterJitter && notNumericXAxis && tickPlacement !== "between") {
       opts = defaults.convertCatToNumeric(opts);
@@ -7870,6 +7915,7 @@ class Globals {
     gl.timescaleLabels = [];
     gl.noLabelsProvided = false;
     gl.isXNumeric = false;
+    gl.dataFormatXNumeric = false;
     gl.skipLastTimelinelabel = false;
     gl.skipFirstTimelinelabel = false;
     gl.isDataXYZ = false;
@@ -8506,6 +8552,13 @@ class Base {
         rule: "",
         capped: false
       },
+      // The samples a series transform derived the drawn rows FROM, per
+      // series: { values, byPoint } where the transform summarised raw
+      // observations (histogram bins, a boxPlot summary or violin density it
+      // computed), null where the rows drawn are the caller's own values.
+      // Cleared at the top of every parse, filled by features/stats, read by
+      // Weave's api.data. null on every chart that has no such transform.
+      seriesObservations: null,
       // Waterfall accumulation — written by the waterfall series transform
       // (features/waterfall) each parse; empty for every other chart type.
       //   values[i][j]     = the bar's signed height (end - start), which is
@@ -13954,7 +14007,11 @@ class DataLabels {
     }
     if (correctedLabels.drawnextLabel) {
       const renderedAnchor = textAnchor || dataLabelsConfig.textAnchor;
-      if (renderedAnchor === "middle" || renderedAnchor === "start") {
+      const canvasRight = w.globals.svgWidth - w.layout.translateX;
+      const fontPx = parseFloat(fontSize || dataLabelsConfig.style.fontSize);
+      const widthBound = String(text).length * fontPx * 1.2;
+      const mayOverflow = !(x2 + offX + widthBound <= canvasRight);
+      if (mayOverflow && (renderedAnchor === "middle" || renderedAnchor === "start")) {
         const measured = correctedLabels.textRects || /** @type {any} */
         graphics.getTextRects(
           text,
@@ -13967,7 +14024,6 @@ class DataLabels {
           dataLabelsConfig.style.fontWeight
         );
         const overhang = renderedAnchor === "middle" ? measured.width / 2 : measured.width;
-        const canvasRight = w.globals.svgWidth - w.layout.translateX;
         if (x2 + offX + overhang > canvasRight) {
           textAnchor = "end";
         }
@@ -14861,8 +14917,13 @@ class XAxis {
     }
     const colHeight = w.layout.gridHeight / labels.length;
     let yPos = -(colHeight / 2.2);
-    const lbFormatter = w.formatters.yLabelFormatters[0];
     const ylabels = w.config.yaxis[0].labels;
+    let lbFormatter = w.formatters.yLabelFormatters[0];
+    if (w.config.xaxis.type === "datetime" && ylabels.formatter === void 0 && !w.axisFlags.isRangeBar) {
+      const dt = new DateTime(w);
+      const format = w.config.xaxis.labels.format || w.config.tooltip.x.format;
+      lbFormatter = (val) => typeof val === "number" ? dt.formatDate(dt.getDate(val), format) : val;
+    }
     if (ylabels.show) {
       for (let i2 = 0; i2 <= labels.length - 1; i2++) {
         let label = typeof labels[i2] === "undefined" ? "" : labels[i2];
@@ -15750,7 +15811,7 @@ class Scales {
         tiks++;
       }
     }
-    if (!gotTickAmount && axisCnf.forceNiceScale && gl.yValueDecimal === 0 && tiks > range) {
+    if (!gotTickAmount && axisCnf.forceNiceScale && gl.yValueDecimal === 0 && Number.isInteger(range) && tiks > range) {
       tiks = range;
       stepSize = Math.round(range / tiks);
     }
@@ -16766,16 +16827,18 @@ class Range {
       if (cnf.xaxis.tickAmount === void 0) {
         ticks = Math.round(gl.svgWidth / 150);
         const inferredNumericX = this.w.axisFlags.isXNumeric && this.w.axisFlags.dataFormatXNumeric && cnf.xaxis.type !== "datetime" && !cnf.xaxis.convertedCatToNumeric && !gl.isBarHorizontal;
-        const fontSize = parseFloat(cnf.xaxis.labels.style.fontSize) || 12;
-        const widestLabelLength = this.w.labelData.labels.reduce(
-          (widest, seriesLabels) => Array.isArray(seriesLabels) ? seriesLabels.reduce(
-            (seriesWidest, label) => Math.max(seriesWidest, String(label).length),
-            widest
-          ) : widest,
-          0
-        );
-        const allPointLabelsFit = gl.dataPoints * widestLabelLength * fontSize * 0.6 <= gl.svgWidth;
-        if ((cnf.xaxis.type === "numeric" || inferredNumericX && allPointLabelsFit) && gl.dataPoints < 30) {
+        const allPointLabelsFit = () => {
+          const fontSize = parseFloat(cnf.xaxis.labels.style.fontSize) || 12;
+          const widestLabelLength = this.w.labelData.labels.reduce(
+            (widest, seriesLabels) => Array.isArray(seriesLabels) ? seriesLabels.reduce(
+              (seriesWidest, label) => Math.max(seriesWidest, String(label).length),
+              widest
+            ) : widest,
+            0
+          );
+          return gl.dataPoints * widestLabelLength * fontSize * 0.6 <= gl.svgWidth;
+        };
+        if (gl.dataPoints < 30 && (cnf.xaxis.type === "numeric" || inferredNumericX && allPointLabelsFit())) {
           ticks = gl.dataPoints - 1;
         }
         if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
@@ -16838,7 +16901,10 @@ class Range {
           this.w.labelData.labels.slice();
         }
       }
-      if (isXNumeric) {
+      if (isXNumeric && gl.isBarHorizontal) {
+        this.w.labelData.labels = /** @type {any} */
+        (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice();
+      } else if (isXNumeric) {
         this.w.labelData.labels = /** @type {any} */
         gl.xAxisScale.result.slice();
       }
@@ -23660,6 +23726,7 @@ class Core {
       }
       return;
     }
+    if (!(w.globals.radialSize > 0)) return;
     const newHeight = Math.ceil(
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY
     );
@@ -23720,7 +23787,7 @@ class Core {
             w.globals.minX,
             w.globals.maxX
           );
-        } else if (w.globals.isBarHorizontal) {
+        } else if (w.axisFlags.isRangeBar) {
           formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minY,
             w.globals.maxY
@@ -25357,6 +25424,7 @@ class Data {
     if (name2 !== "streamgraph" && this.w.streamgraphData) {
       this.w.streamgraphData = null;
     }
+    this.w.seriesObservations = null;
     const transform = getSeriesTransform(name2);
     if (transform) return transform(ser, this.w);
     if (Array.isArray(ser) && name2 in RAW_SAMPLE_TYPES) {
@@ -45335,7 +45403,9 @@ const WEAVE_CAPABILITIES = Object.freeze([
   "pointer",
   "stroke-info",
   "claim",
-  "drawn"
+  "drawn",
+  "observations",
+  "scale-orientation"
 ]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
@@ -45811,7 +45881,14 @@ const WIRED = {
   pointer: (a2) => typeof a2.pointer === "function",
   "stroke-info": (a2) => !!(a2.info && a2.info.stroke),
   claim: (a2) => typeof a2.claim === "function",
-  drawn: (a2) => typeof a2.drawn === "function" && typeof a2.declare === "function"
+  drawn: (a2) => typeof a2.drawn === "function" && typeof a2.declare === "function",
+  // A field on every `data[]` entry rather than a member, and the snapshot
+  // builder writes it unconditionally (null included), so there is nothing on
+  // the facade to probe before the first parse.
+  observations: () => true,
+  // Scales are null until the first draw and on every non-axis chart, so the
+  // facade has nothing to probe; this host builds them oriented on every draw.
+  "scale-orientation": () => true
 };
 const _WeaveHost = class _WeaveHost {
   /**
@@ -45971,18 +46048,46 @@ const _WeaveHost = class _WeaveHost {
     const yr = (axis) => yRatio[axis] != null ? yRatio[axis] : yRatio[0];
     const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
     const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
-    const banded = !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0;
-    const band = banded ? L2.gridWidth / gl.dataPoints : 0;
+    const horizontal = !!gl.isBarHorizontal;
+    const isRangeBar = !!w.axisFlags.isRangeBar;
+    const banded = gl.dataPoints > 0 && (!w.axisFlags.isXNumeric || horizontal);
+    const rowCount = horizontal && isRangeBar ? w.labelData.labels.length : gl.dataPoints;
+    const span = horizontal ? L2.gridHeight : L2.gridWidth;
+    const band = banded && rowCount > 0 ? span / rowCount : 0;
+    const rows = /* @__PURE__ */ new Map();
+    if (banded) {
+      const keys = isRangeBar ? w.labelData.labels : w.axisFlags.isXNumeric ? w.seriesData.seriesX[gl.maxValsInArrayIndex] || [] : [];
+      keys.forEach((k2, j2) => {
+        if (!rows.has(k2)) rows.set(k2, j2);
+      });
+    }
+    const x2 = banded ? (v) => band * ((rows.has(v) ? (
+      /** @type {number} */
+      rows.get(v)
+    ) : v) + 0.5) : (v) => (v - gl.minX) / xRatio;
+    const reversed = (axis) => {
+      const ya = w.config.yaxis[axis] || w.config.yaxis[0];
+      return !!(ya && ya.reversed);
+    };
+    const y = horizontal ? (v, axis = 0) => {
+      const range = Math.abs(maxY(axis) - minY(axis));
+      const px2 = range ? (v - minY(axis)) / range * L2.gridWidth : 0;
+      return reversed(axis) ? L2.gridWidth - px2 : px2;
+    } : (v, axis = 0) => (maxY(axis) - v) / yr(axis);
     this._currentScales = {
-      x: banded ? (v) => band * (v + 0.5) : (v) => (v - gl.minX) / xRatio,
-      /**
-       * @param {number} v
-       * @param {number} [axis]
-       */
-      y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
-      domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
+      x: x2,
+      y,
+      domainX: banded ? [-0.5, rowCount - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
+      transposed: horizontal,
+      /**
+       * A datum's position on screen, whichever way the chart is turned.
+       * @param {any} vx
+       * @param {number} vy
+       * @param {number} [axis]
+       */
+      point: (vx, vy, axis = 0) => horizontal ? { x: y(vy, axis), y: x2(vx) } : { x: x2(vx), y: y(vy, axis) },
       gridWidth: L2.gridWidth,
       gridHeight: L2.gridHeight,
       ratios: xyRatios
@@ -46007,12 +46112,20 @@ const _WeaveHost = class _WeaveHost {
       }));
       const cfg = cfgSeries[i2];
       const raw = cfg && typeof cfg === "object" && Array.isArray(cfg.data) ? cfg.data : [];
+      const obs = w.seriesObservations ? w.seriesObservations[i2] : null;
+      const observations = obs ? {
+        values: obs.values.slice(),
+        byPoint: obs.byPoint.map(
+          (b) => b ? b.slice() : null
+        )
+      } : null;
       return {
         name: gl.seriesNames ? gl.seriesNames[i2] : void 0,
         hidden: (gl.collapsedSeriesIndices || []).includes(i2),
         color: gl.colors ? gl.colors[i2] : void 0,
         points,
-        raw
+        raw,
+        observations
       };
     });
   }
@@ -47040,6 +47153,12 @@ function histogramTransform(ser, w) {
     capped: binning.capped
   };
   const collapsed = gl.collapsedSeriesIndices || [];
+  w.seriesObservations = perSeries.map(
+    (values, i2) => ({
+      values,
+      byPoint: collapsed.indexOf(i2) !== -1 ? [] : rowsByBin(values, edges)
+    })
+  );
   return raw.map((s2, i2) => {
     if (collapsed.indexOf(i2) !== -1) return __spreadProps(__spreadValues({}, s2), { data: [] });
     const ys = normalizeCounts(counts[i2], {
@@ -47059,10 +47178,12 @@ function boxPlotTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
-  return ser.map((s2) => {
+  const observed = [];
+  const out = ser.map((s2, i2) => {
     if (!Array.isArray(s2 == null ? void 0 : s2.data) || s2.type && s2.type !== "boxPlot") return s2;
     let touched = false;
-    const data = s2.data.map((d) => {
+    const byPoint = new Array(s2.data.length).fill(null);
+    const data = s2.data.map((d, j2) => {
       if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !derivedData.has(d)) {
         return d;
       }
@@ -47071,21 +47192,27 @@ function boxPlotTransform(ser, w) {
       const summary = fiveNumberSummary(values, { whiskers });
       if (!summary) return d;
       touched = true;
+      byPoint[j2] = values;
       const next = __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
       derivedData.add(next);
       return next;
     });
+    if (touched) observed[i2] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s2), { data }) : s2;
   });
+  recordObservations(w, observed, ser.length);
+  return out;
 }
 function violinTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
-  return ser.map((s2) => {
+  const observed = [];
+  const out = ser.map((s2, i2) => {
     if (!Array.isArray(s2 == null ? void 0 : s2.data) || s2.type && s2.type !== "violin") return s2;
     let touched = false;
-    const data = s2.data.map((d) => {
+    const byPoint = new Array(s2.data.length).fill(null);
+    const data = s2.data.map((d, j2) => {
       var _a2;
       if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !derivedData.has(d)) {
         return d;
@@ -47098,6 +47225,7 @@ function violinTransform(ser, w) {
       });
       if (!est) return d;
       touched = true;
+      byPoint[j2] = values;
       const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
       const next = __spreadProps(__spreadValues({}, d), {
         y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values })
@@ -47105,8 +47233,28 @@ function violinTransform(ser, w) {
       derivedData.add(next);
       return next;
     });
+    if (touched) observed[i2] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s2), { data }) : s2;
   });
+  recordObservations(w, observed, ser.length);
+  return out;
+}
+function recordObservations(w, observed, count) {
+  if (!observed.length) return;
+  const out = [];
+  for (let i2 = 0; i2 < count; i2++) {
+    const byPoint = observed[i2];
+    if (!byPoint) {
+      out.push(null);
+      continue;
+    }
+    const values = [];
+    for (const sample of byPoint) {
+      if (sample) for (let k2 = 0; k2 < sample.length; k2++) values.push(sample[k2]);
+    }
+    out.push({ values, byPoint });
+  }
+  w.seriesObservations = out;
 }
 const DEFAULT_MAX_ROWS = 3e3;
 function thinClusters(clusters, maxRows) {
@@ -48092,10 +48240,6 @@ let Helpers$1 = class Helpers4 {
     if (this.barCtx.isHorizontal) {
       yDivision = w.layout.gridHeight / dataPoints;
       barHeight = yDivision / seriesLen;
-      if (w.axisFlags.isXNumeric) {
-        yDivision = w.layout.gridHeight / this.barCtx.totalItems;
-        barHeight = yDivision / this.barCtx.seriesLen;
-      }
       barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
       if (String(this.barCtx.barOptions.barHeight).indexOf("%") === -1) {
         barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
@@ -49717,20 +49861,15 @@ class Bar {
     const i2 = indexes.i;
     const j2 = indexes.j;
     let barYPosition;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[i2][j2] - w.globals.minX) / this.invertedXRatio - barHeight;
-      barYPosition = y + barHeight * this.visibleI;
-    } else {
-      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: i2, j: j2 });
-        if (nonZeroColumns > 0) {
-          barHeight = this.seriesLen * barHeight / nonZeroColumns;
-        }
-        barYPosition = y + barHeight * this.visibleI;
-        barYPosition -= barHeight * zeroEncounters;
-      } else {
-        barYPosition = y + barHeight * this.visibleI;
+    if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+      const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: i2, j: j2 });
+      if (nonZeroColumns > 0) {
+        barHeight = this.seriesLen * barHeight / nonZeroColumns;
       }
+      barYPosition = y + barHeight * this.visibleI;
+      barYPosition -= barHeight * zeroEncounters;
+    } else {
+      barYPosition = y + barHeight * this.visibleI;
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
     const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j2] : null;
@@ -49801,7 +49940,7 @@ class Bar {
       zeroW = paths.x1;
       x2 = paths.x;
     }
-    if (!w.axisFlags.isXNumeric && !usePyramid) {
+    if (!usePyramid) {
       y = y + yDivision;
     }
     if (usePyramid) {
@@ -51373,9 +51512,6 @@ class BoxCandleStick extends Bar {
     let x1 = Math.min(ohlc.o, ohlc.c);
     let x2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
-    }
     const barYPosition = y + barHeight * this.visibleI;
     if (typeof /** @type {any} */
     ((_a = this.series[i2]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
@@ -51403,9 +51539,7 @@ class BoxCandleStick extends Bar {
     if (pathFrom == null) {
       pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
     }
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision;
-    }
+    y = y + yDivision;
     return {
       pathTo,
       pathFrom,
@@ -51817,7 +51951,9 @@ class HeatMap {
                 }
               } else {
                 const box = prev.rect;
-                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(Number.isFinite) ? box : null;
+                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(
+                  Number.isFinite
+                ) && (Math.abs(box.x - x1) > 0.5 || Math.abs(box.y - y1) > 0.5 || Math.abs(box.width - cellW) > 0.5 || Math.abs(box.height - yDivision) > 0.5) ? box : null;
                 this.animateHeatColor(
                   cell,
                   Utils$1.isColorHex(prev.color) ? prev.color : Utils$1.rgb2hex(prev.color),
@@ -51832,24 +51968,26 @@ class HeatMap {
             }
           }
         }
-        const formatter = w.config.dataLabels.formatter;
-        const formattedText = formatter(w.seriesData.series[i2][j2], {
-          value: w.seriesData.series[i2][j2],
-          seriesIndex: i2,
-          dataPointIndex: j2,
-          w
-        });
-        const dataLabels = this.helpers.calculateDataLabels({
-          text: formattedText,
-          x: x1 + rowOffset + cellW / 2,
-          y: y1 + yDivision / 2,
-          i: i2,
-          j: j2,
-          colorProps: heatColorProps,
-          series: heatSeries
-        });
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
+        if (w.config.dataLabels.enabled) {
+          const formatter = w.config.dataLabels.formatter;
+          const formattedText = formatter(w.seriesData.series[i2][j2], {
+            value: w.seriesData.series[i2][j2],
+            seriesIndex: i2,
+            dataPointIndex: j2,
+            w
+          });
+          const dataLabels = this.helpers.calculateDataLabels({
+            text: formattedText,
+            x: x1 + rowOffset + cellW / 2,
+            y: y1 + yDivision / 2,
+            i: i2,
+            j: j2,
+            colorProps: heatColorProps,
+            series: heatSeries
+          });
+          if (dataLabels !== null) {
+            elSeries.add(dataLabels);
+          }
         }
         if (!isContinuousX) x1 = x1 + xDivision;
         j2++;
@@ -52713,6 +52851,7 @@ class Line {
    */
   _recordStackTops(realIndex, yArrj) {
     const w = this.w;
+    if (!w.config.chart.stacked) return;
     if (!Array.isArray(yArrj)) return;
     if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
       return;
@@ -55991,11 +56130,8 @@ class Radial extends Pie {
     }
     let dataLabels = null;
     if (this.radialDataLabels.show) {
-      const dataLabelsGroup = w.dom.Paper.findOne(
-        `.apexcharts-datalabels-group`
-      );
       dataLabels = this.renderInnerDataLabels(
-        dataLabelsGroup,
+        this.dataLabelsGroup,
         this.radialDataLabels,
         {
           hollowSize,

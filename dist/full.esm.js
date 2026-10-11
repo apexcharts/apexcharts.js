@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts$1 from "apexcharts";
@@ -627,9 +627,6 @@ class Violin extends BarBase {
     const w = this.w;
     const { realIndex, j: j2 } = indexes;
     const yRatio = this.invertedYRatio;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
-    }
     const barYPosition = y + barHeight * this.visibleI;
     const center = barYPosition + barHeight / 2;
     const halfExtent = barHeight / 2;
@@ -673,9 +670,7 @@ class Violin extends BarBase {
         sideSign: this.cloudSign
       });
     }
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision;
-    }
+    y = y + yDivision;
     return {
       pathTo,
       pathFrom,

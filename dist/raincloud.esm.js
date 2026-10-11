@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -764,9 +764,6 @@ class Violin extends BarBase {
     const w = this.w;
     const { realIndex, j } = indexes;
     const yRatio = this.invertedYRatio;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
-    }
     const barYPosition = y + barHeight * this.visibleI;
     const center = barYPosition + barHeight / 2;
     const halfExtent = barHeight / 2;
@@ -810,9 +807,7 @@ class Violin extends BarBase {
         sideSign: this.cloudSign
       });
     }
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision;
-    }
+    y = y + yDivision;
     return {
       pathTo,
       pathFrom,

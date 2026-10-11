@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1080,10 +1080,6 @@ class Helpers {
     if (this.barCtx.isHorizontal) {
       yDivision = w.layout.gridHeight / dataPoints;
       barHeight = yDivision / seriesLen;
-      if (w.axisFlags.isXNumeric) {
-        yDivision = w.layout.gridHeight / this.barCtx.totalItems;
-        barHeight = yDivision / this.barCtx.seriesLen;
-      }
       barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
       if (String(this.barCtx.barOptions.barHeight).indexOf("%") === -1) {
         barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
@@ -2758,20 +2754,15 @@ class Bar {
     const i = indexes.i;
     const j = indexes.j;
     let barYPosition;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.invertedXRatio - barHeight;
-      barYPosition = y + barHeight * this.visibleI;
-    } else {
-      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
-        if (nonZeroColumns > 0) {
-          barHeight = this.seriesLen * barHeight / nonZeroColumns;
-        }
-        barYPosition = y + barHeight * this.visibleI;
-        barYPosition -= barHeight * zeroEncounters;
-      } else {
-        barYPosition = y + barHeight * this.visibleI;
+    if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+      const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
+      if (nonZeroColumns > 0) {
+        barHeight = this.seriesLen * barHeight / nonZeroColumns;
       }
+      barYPosition = y + barHeight * this.visibleI;
+      barYPosition -= barHeight * zeroEncounters;
+    } else {
+      barYPosition = y + barHeight * this.visibleI;
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
     const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null;
@@ -2842,7 +2833,7 @@ class Bar {
       zeroW = paths.x1;
       x = paths.x;
     }
-    if (!w.axisFlags.isXNumeric && !usePyramid) {
+    if (!usePyramid) {
       y = y + yDivision;
     }
     if (usePyramid) {
@@ -3894,9 +3885,6 @@ class BoxCandleStick extends Bar {
     let x1 = Math.min(ohlc.o, ohlc.c);
     let x2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
-    }
     const barYPosition = y + barHeight * this.visibleI;
     if (typeof /** @type {any} */
     ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
@@ -3924,9 +3912,7 @@ class BoxCandleStick extends Bar {
     if (pathFrom == null) {
       pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
     }
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision;
-    }
+    y = y + yDivision;
     return {
       pathTo,
       pathFrom,

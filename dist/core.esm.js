@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -95,6 +95,8 @@ const ASCENT_EM = 0.917;
 const DESCENT_EM = 0.25;
 const LINE_HEIGHT_EM = 1.1;
 const DEFAULT_FONT_SIZE = 11;
+const escapeText = (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escapeAttr = (value) => escapeText(value).replace(/"/g, "&quot;");
 class SSRElement {
   /**
    * @param {string} nodeName
@@ -105,7 +107,8 @@ class SSRElement {
     this.namespaceURI = namespaceURI;
     this.attributes = /* @__PURE__ */ new Map();
     this.children = [];
-    this.textContent = "";
+    this._text = "";
+    this._rawHTML = false;
     this.style = {};
     this.classList = new SSRClassList();
     this.parentNode = /** @type {SSRElement | null} */
@@ -189,7 +192,8 @@ class SSRElement {
   }
   cloneNode(deep = false) {
     const clone = new SSRElement(this.nodeName, this.namespaceURI);
-    clone.textContent = this.textContent;
+    clone._text = this._text;
+    clone._rawHTML = this._rawHTML;
     this.attributes.forEach((value, key) => {
       clone.attributes.set(key, value);
     });
@@ -278,21 +282,30 @@ class SSRElement {
   toString() {
     let attrs = "";
     this.attributes.forEach((value, key) => {
-      attrs += ` ${key}="${value}"`;
+      attrs += ` ${key}="${escapeAttr(value)}"`;
     });
-    if (this.children.length === 0 && !this.textContent) {
+    if (this.children.length === 0 && !this._text) {
       return `<${this.nodeName}${attrs}/>`;
     }
+    const text = this._rawHTML ? this._text : escapeText(this._text);
     const childrenStr = this.children.map((c) => c.toString()).join("");
-    return `<${this.nodeName}${attrs}>${this.textContent}${childrenStr}</${this.nodeName}>`;
+    return `<${this.nodeName}${attrs}>${text}${childrenStr}</${this.nodeName}>`;
   }
   // Property getters/setters
+  get textContent() {
+    return this._text;
+  }
+  set textContent(value) {
+    this._text = value;
+    this._rawHTML = false;
+  }
   get innerHTML() {
     return this.children.map((c) => c.toString()).join("");
   }
   set innerHTML(value) {
     this.children = [];
-    this.textContent = value;
+    this._text = value;
+    this._rawHTML = true;
   }
   get outerHTML() {
     return this.toString();
@@ -367,7 +380,7 @@ class SSRDOMShim {
       nodeType: 3,
       textContent: data,
       toString() {
-        return node.textContent;
+        return escapeText(node.textContent);
       }
     };
     return node;
@@ -1357,15 +1370,15 @@ let Utils$1 = class Utils {
    */
   static getPrimeFactors(n2) {
     const factors = [];
-    let divisor = 2;
-    while (n2 >= 2) {
-      if (n2 % divisor == 0) {
+    n2 = Math.round(Math.abs(n2));
+    if (!Number.isFinite(n2)) return factors;
+    for (let divisor = 2; divisor * divisor <= n2; divisor++) {
+      while (n2 % divisor === 0) {
         factors.push(divisor);
         n2 = n2 / divisor;
-      } else {
-        divisor++;
       }
     }
+    if (n2 >= 2) factors.push(n2);
     return factors;
   }
   /**
@@ -1993,7 +2006,7 @@ class Formatters {
       fmt.xLabelFormatter = (val) => {
         var _a;
         if (Utils$1.isNumber(val)) {
-          if (!w.config.xaxis.convertedCatToNumeric && (w.config.xaxis.type === "numeric" || inferredNumericX)) {
+          if (!w.config.xaxis.convertedCatToNumeric && !w.globals.isBarHorizontal && (w.config.xaxis.type === "numeric" || inferredNumericX)) {
             const ticks = (_a = w.globals.xAxisScale) == null ? void 0 : _a.result;
             if (inferredNumericX && Array.isArray(ticks) && ticks.every(Number.isInteger)) {
               return val.toFixed(0);
@@ -5130,6 +5143,9 @@ const TYPE_OWNED_PATHS = [
   // Hover and select feedback, off by design on the types that draw their own.
   "states.hover.filter.type",
   "states.active.filter.type",
+  // How x is read. A histogram's bin midpoints need a numeric axis; a line or
+  // bar given a plain number array has no x values to put on one (#5343).
+  "xaxis.type",
   // Axis chrome that exists to be pointed at.
   "xaxis.crosshairs.width",
   "xaxis.tickPlacement",
@@ -5378,6 +5394,7 @@ class Defaults {
    * @param {Record<string, any>} [options] this update's payload
    */
   static handOverTypeDefaults(config, fromType, options2) {
+    var _a;
     const toType = config.chart.requestedType || config.chart.type;
     if (!fromType || fromType === toType) return;
     const base = new Options().init();
@@ -5394,6 +5411,34 @@ class Defaults {
       if (!isUntouched(readPath(config, path), fromDefault)) continue;
       writePath(config, path, toDefault);
     }
+    const fromY = Defaults.typeYAxisDefaults(fromType);
+    const toY = Defaults.typeYAxisDefaults(toType);
+    const baseY = (
+      /** @type {Record<string, any>} */
+      new Options().yAxis
+    );
+    const askedY = [].concat((_a = options2 == null ? void 0 : options2.yaxis) != null ? _a : []);
+    for (const key of /* @__PURE__ */ new Set([...Object.keys(fromY), ...Object.keys(toY)])) {
+      if (askedY.some((a2) => a2 && a2[key] !== void 0)) continue;
+      const fromDefault = key in fromY ? fromY[key] : baseY[key];
+      const toDefault = key in toY ? toY[key] : baseY[key];
+      for (const axis of config.yaxis || []) {
+        if (axis && axis[key] === fromDefault) axis[key] = toDefault;
+      }
+    }
+  }
+  /**
+   * The y-axis leaves a type chooses for itself. Config writes them into the
+   * options on the way in, because the y-axis is an array a type's defaults
+   * cannot reach, and handOverTypeDefaults reads them back to know which
+   * values were the type's rather than the user's.
+   *
+   * @param {string} type a chart type, or a user-facing alias of one
+   * @returns {Record<string, any>}
+   */
+  static typeYAxisDefaults(type) {
+    if (type === "streamgraph") return { show: false };
+    return {};
   }
   hideYAxis() {
     this.opts.yaxis[0].show = false;
@@ -7364,15 +7409,14 @@ const _Config = class _Config {
     } else if (requested === "streamgraph") {
       opts.chart.stacked = false;
       opts.yaxis = opts.yaxis || {};
-      if (!Array.isArray(opts.yaxis) && opts.yaxis.show == null) {
-        opts.yaxis.show = false;
+      if (!Array.isArray(opts.yaxis)) {
+        const yDefaults = Defaults.typeYAxisDefaults(requested);
+        for (const key of Object.keys(yDefaults)) {
+          if (opts.yaxis[key] == null) opts.yaxis[key] = yDefaults[key];
+        }
       }
       opts.chart.type = "rangeArea";
     } else if (requested === "histogram") {
-      opts.xaxis = opts.xaxis || {};
-      if (opts.xaxis.type == null) {
-        opts.xaxis.type = "numeric";
-      }
       opts.chart.type = "bar";
     } else if (requested === "raincloud") {
       opts.chart.type = "violin";
@@ -7387,12 +7431,13 @@ const _Config = class _Config {
    * @param {Record<string, any>} opts
    */
   checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     const defaults = new Defaults(opts);
     const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
     const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap" || chartType === "unit" || chartType === "sunburst" || chartType === "icicle";
-    const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
-    const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_e = (_d = (_c = opts.plotOptions) == null ? void 0 : _c.scatter) == null ? void 0 : _d.jitter) == null ? void 0 : _e.enabled);
+    const xaxisType = (_d = opts.xaxis.type) != null ? _d : (_c = chartDefaults.xaxis) == null ? void 0 : _c.type;
+    const notNumericXAxis = xaxisType !== "datetime" && xaxisType !== "numeric";
+    const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_g = (_f = (_e = opts.plotOptions) == null ? void 0 : _e.scatter) == null ? void 0 : _f.jitter) == null ? void 0 : _g.enabled);
     const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
     if (!isBarHorizontal && !unsupportedZoom && !isScatterJitter && notNumericXAxis && tickPlacement !== "between") {
       opts = defaults.convertCatToNumeric(opts);
@@ -7870,6 +7915,7 @@ class Globals {
     gl.timescaleLabels = [];
     gl.noLabelsProvided = false;
     gl.isXNumeric = false;
+    gl.dataFormatXNumeric = false;
     gl.skipLastTimelinelabel = false;
     gl.skipFirstTimelinelabel = false;
     gl.isDataXYZ = false;
@@ -8506,6 +8552,13 @@ class Base {
         rule: "",
         capped: false
       },
+      // The samples a series transform derived the drawn rows FROM, per
+      // series: { values, byPoint } where the transform summarised raw
+      // observations (histogram bins, a boxPlot summary or violin density it
+      // computed), null where the rows drawn are the caller's own values.
+      // Cleared at the top of every parse, filled by features/stats, read by
+      // Weave's api.data. null on every chart that has no such transform.
+      seriesObservations: null,
       // Waterfall accumulation — written by the waterfall series transform
       // (features/waterfall) each parse; empty for every other chart type.
       //   values[i][j]     = the bar's signed height (end - start), which is
@@ -13889,7 +13942,11 @@ class DataLabels {
     }
     if (correctedLabels.drawnextLabel) {
       const renderedAnchor = textAnchor || dataLabelsConfig.textAnchor;
-      if (renderedAnchor === "middle" || renderedAnchor === "start") {
+      const canvasRight = w.globals.svgWidth - w.layout.translateX;
+      const fontPx = parseFloat(fontSize || dataLabelsConfig.style.fontSize);
+      const widthBound = String(text).length * fontPx * 1.2;
+      const mayOverflow = !(x + offX + widthBound <= canvasRight);
+      if (mayOverflow && (renderedAnchor === "middle" || renderedAnchor === "start")) {
         const measured = correctedLabels.textRects || /** @type {any} */
         graphics.getTextRects(
           text,
@@ -13902,7 +13959,6 @@ class DataLabels {
           dataLabelsConfig.style.fontWeight
         );
         const overhang = renderedAnchor === "middle" ? measured.width / 2 : measured.width;
-        const canvasRight = w.globals.svgWidth - w.layout.translateX;
         if (x + offX + overhang > canvasRight) {
           textAnchor = "end";
         }
@@ -14796,8 +14852,13 @@ class XAxis {
     }
     const colHeight = w.layout.gridHeight / labels.length;
     let yPos = -(colHeight / 2.2);
-    const lbFormatter = w.formatters.yLabelFormatters[0];
     const ylabels = w.config.yaxis[0].labels;
+    let lbFormatter = w.formatters.yLabelFormatters[0];
+    if (w.config.xaxis.type === "datetime" && ylabels.formatter === void 0 && !w.axisFlags.isRangeBar) {
+      const dt = new DateTime(w);
+      const format = w.config.xaxis.labels.format || w.config.tooltip.x.format;
+      lbFormatter = (val) => typeof val === "number" ? dt.formatDate(dt.getDate(val), format) : val;
+    }
     if (ylabels.show) {
       for (let i2 = 0; i2 <= labels.length - 1; i2++) {
         let label = typeof labels[i2] === "undefined" ? "" : labels[i2];
@@ -15685,7 +15746,7 @@ class Scales {
         tiks++;
       }
     }
-    if (!gotTickAmount && axisCnf.forceNiceScale && gl.yValueDecimal === 0 && tiks > range) {
+    if (!gotTickAmount && axisCnf.forceNiceScale && gl.yValueDecimal === 0 && Number.isInteger(range) && tiks > range) {
       tiks = range;
       stepSize = Math.round(range / tiks);
     }
@@ -16701,16 +16762,18 @@ class Range {
       if (cnf.xaxis.tickAmount === void 0) {
         ticks = Math.round(gl.svgWidth / 150);
         const inferredNumericX = this.w.axisFlags.isXNumeric && this.w.axisFlags.dataFormatXNumeric && cnf.xaxis.type !== "datetime" && !cnf.xaxis.convertedCatToNumeric && !gl.isBarHorizontal;
-        const fontSize = parseFloat(cnf.xaxis.labels.style.fontSize) || 12;
-        const widestLabelLength = this.w.labelData.labels.reduce(
-          (widest, seriesLabels) => Array.isArray(seriesLabels) ? seriesLabels.reduce(
-            (seriesWidest, label) => Math.max(seriesWidest, String(label).length),
-            widest
-          ) : widest,
-          0
-        );
-        const allPointLabelsFit = gl.dataPoints * widestLabelLength * fontSize * 0.6 <= gl.svgWidth;
-        if ((cnf.xaxis.type === "numeric" || inferredNumericX && allPointLabelsFit) && gl.dataPoints < 30) {
+        const allPointLabelsFit = () => {
+          const fontSize = parseFloat(cnf.xaxis.labels.style.fontSize) || 12;
+          const widestLabelLength = this.w.labelData.labels.reduce(
+            (widest, seriesLabels) => Array.isArray(seriesLabels) ? seriesLabels.reduce(
+              (seriesWidest, label) => Math.max(seriesWidest, String(label).length),
+              widest
+            ) : widest,
+            0
+          );
+          return gl.dataPoints * widestLabelLength * fontSize * 0.6 <= gl.svgWidth;
+        };
+        if (gl.dataPoints < 30 && (cnf.xaxis.type === "numeric" || inferredNumericX && allPointLabelsFit())) {
           ticks = gl.dataPoints - 1;
         }
         if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
@@ -16773,7 +16836,10 @@ class Range {
           this.w.labelData.labels.slice();
         }
       }
-      if (isXNumeric) {
+      if (isXNumeric && gl.isBarHorizontal) {
+        this.w.labelData.labels = /** @type {any} */
+        (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice();
+      } else if (isXNumeric) {
         this.w.labelData.labels = /** @type {any} */
         gl.xAxisScale.result.slice();
       }
@@ -22941,6 +23007,7 @@ class Core {
       }
       return;
     }
+    if (!(w.globals.radialSize > 0)) return;
     const newHeight = Math.ceil(
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY
     );
@@ -23001,7 +23068,7 @@ class Core {
             w.globals.minX,
             w.globals.maxX
           );
-        } else if (w.globals.isBarHorizontal) {
+        } else if (w.axisFlags.isRangeBar) {
           formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minY,
             w.globals.maxY
@@ -24601,6 +24668,7 @@ class Data {
     if (name2 !== "streamgraph" && this.w.streamgraphData) {
       this.w.streamgraphData = null;
     }
+    this.w.seriesObservations = null;
     const transform = getSeriesTransform(name2);
     if (transform) return transform(ser, this.w);
     if (Array.isArray(ser) && name2 in RAW_SAMPLE_TYPES) {

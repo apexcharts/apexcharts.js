@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -9294,7 +9294,9 @@ const WEAVE_CAPABILITIES = Object.freeze([
   "pointer",
   "stroke-info",
   "claim",
-  "drawn"
+  "drawn",
+  "observations",
+  "scale-orientation"
 ]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
@@ -9770,7 +9772,14 @@ const WIRED = {
   pointer: (a) => typeof a.pointer === "function",
   "stroke-info": (a) => !!(a.info && a.info.stroke),
   claim: (a) => typeof a.claim === "function",
-  drawn: (a) => typeof a.drawn === "function" && typeof a.declare === "function"
+  drawn: (a) => typeof a.drawn === "function" && typeof a.declare === "function",
+  // A field on every `data[]` entry rather than a member, and the snapshot
+  // builder writes it unconditionally (null included), so there is nothing on
+  // the facade to probe before the first parse.
+  observations: () => true,
+  // Scales are null until the first draw and on every non-axis chart, so the
+  // facade has nothing to probe; this host builds them oriented on every draw.
+  "scale-orientation": () => true
 };
 const _WeaveHost = class _WeaveHost {
   /**
@@ -9930,18 +9939,46 @@ const _WeaveHost = class _WeaveHost {
     const yr = (axis) => yRatio[axis] != null ? yRatio[axis] : yRatio[0];
     const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
     const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
-    const banded = !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0;
-    const band = banded ? L2.gridWidth / gl.dataPoints : 0;
+    const horizontal = !!gl.isBarHorizontal;
+    const isRangeBar = !!w.axisFlags.isRangeBar;
+    const banded = gl.dataPoints > 0 && (!w.axisFlags.isXNumeric || horizontal);
+    const rowCount = horizontal && isRangeBar ? w.labelData.labels.length : gl.dataPoints;
+    const span = horizontal ? L2.gridHeight : L2.gridWidth;
+    const band = banded && rowCount > 0 ? span / rowCount : 0;
+    const rows = /* @__PURE__ */ new Map();
+    if (banded) {
+      const keys = isRangeBar ? w.labelData.labels : w.axisFlags.isXNumeric ? w.seriesData.seriesX[gl.maxValsInArrayIndex] || [] : [];
+      keys.forEach((k2, j) => {
+        if (!rows.has(k2)) rows.set(k2, j);
+      });
+    }
+    const x2 = banded ? (v) => band * ((rows.has(v) ? (
+      /** @type {number} */
+      rows.get(v)
+    ) : v) + 0.5) : (v) => (v - gl.minX) / xRatio;
+    const reversed = (axis) => {
+      const ya = w.config.yaxis[axis] || w.config.yaxis[0];
+      return !!(ya && ya.reversed);
+    };
+    const y = horizontal ? (v, axis = 0) => {
+      const range = Math.abs(maxY(axis) - minY(axis));
+      const px = range ? (v - minY(axis)) / range * L2.gridWidth : 0;
+      return reversed(axis) ? L2.gridWidth - px : px;
+    } : (v, axis = 0) => (maxY(axis) - v) / yr(axis);
     this._currentScales = {
-      x: banded ? (v) => band * (v + 0.5) : (v) => (v - gl.minX) / xRatio,
-      /**
-       * @param {number} v
-       * @param {number} [axis]
-       */
-      y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
-      domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
+      x: x2,
+      y,
+      domainX: banded ? [-0.5, rowCount - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
+      transposed: horizontal,
+      /**
+       * A datum's position on screen, whichever way the chart is turned.
+       * @param {any} vx
+       * @param {number} vy
+       * @param {number} [axis]
+       */
+      point: (vx, vy, axis = 0) => horizontal ? { x: y(vy, axis), y: x2(vx) } : { x: x2(vx), y: y(vy, axis) },
       gridWidth: L2.gridWidth,
       gridHeight: L2.gridHeight,
       ratios: xyRatios
@@ -9966,12 +10003,20 @@ const _WeaveHost = class _WeaveHost {
       }));
       const cfg = cfgSeries[i];
       const raw = cfg && typeof cfg === "object" && Array.isArray(cfg.data) ? cfg.data : [];
+      const obs = w.seriesObservations ? w.seriesObservations[i] : null;
+      const observations = obs ? {
+        values: obs.values.slice(),
+        byPoint: obs.byPoint.map(
+          (b) => b ? b.slice() : null
+        )
+      } : null;
       return {
         name: gl.seriesNames ? gl.seriesNames[i] : void 0,
         hidden: (gl.collapsedSeriesIndices || []).includes(i),
         color: gl.colors ? gl.colors[i] : void 0,
         points,
-        raw
+        raw,
+        observations
       };
     });
   }
@@ -11156,6 +11201,12 @@ function histogramTransform(ser, w) {
     capped: binning.capped
   };
   const collapsed = gl.collapsedSeriesIndices || [];
+  w.seriesObservations = perSeries.map(
+    (values, i) => ({
+      values,
+      byPoint: collapsed.indexOf(i) !== -1 ? [] : rowsByBin(values, edges)
+    })
+  );
   return raw.map((s, i) => {
     if (collapsed.indexOf(i) !== -1) return __spreadProps(__spreadValues({}, s), { data: [] });
     const ys = normalizeCounts(counts[i], {
@@ -11175,10 +11226,12 @@ function boxPlotTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
-  return ser.map((s) => {
+  const observed = [];
+  const out = ser.map((s, i) => {
     if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "boxPlot") return s;
     let touched = false;
-    const data = s.data.map((d) => {
+    const byPoint = new Array(s.data.length).fill(null);
+    const data = s.data.map((d, j) => {
       if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !derivedData.has(d)) {
         return d;
       }
@@ -11187,21 +11240,27 @@ function boxPlotTransform(ser, w) {
       const summary = fiveNumberSummary(values, { whiskers });
       if (!summary) return d;
       touched = true;
+      byPoint[j] = values;
       const next = __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
       derivedData.add(next);
       return next;
     });
+    if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
   });
+  recordObservations(w, observed, ser.length);
+  return out;
 }
 function violinTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
-  return ser.map((s) => {
+  const observed = [];
+  const out = ser.map((s, i) => {
     if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "violin") return s;
     let touched = false;
-    const data = s.data.map((d) => {
+    const byPoint = new Array(s.data.length).fill(null);
+    const data = s.data.map((d, j) => {
       var _a2;
       if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !derivedData.has(d)) {
         return d;
@@ -11214,6 +11273,7 @@ function violinTransform(ser, w) {
       });
       if (!est) return d;
       touched = true;
+      byPoint[j] = values;
       const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
       const next = __spreadProps(__spreadValues({}, d), {
         y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values })
@@ -11221,8 +11281,28 @@ function violinTransform(ser, w) {
       derivedData.add(next);
       return next;
     });
+    if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
   });
+  recordObservations(w, observed, ser.length);
+  return out;
+}
+function recordObservations(w, observed, count) {
+  if (!observed.length) return;
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const byPoint = observed[i];
+    if (!byPoint) {
+      out.push(null);
+      continue;
+    }
+    const values = [];
+    for (const sample of byPoint) {
+      if (sample) for (let k2 = 0; k2 < sample.length; k2++) values.push(sample[k2]);
+    }
+    out.push({ values, byPoint });
+  }
+  w.seriesObservations = out;
 }
 const DEFAULT_MAX_ROWS = 3e3;
 function thinClusters(clusters, maxRows) {
@@ -12722,10 +12802,6 @@ let Helpers$1 = class Helpers3 {
     if (this.barCtx.isHorizontal) {
       yDivision = w.layout.gridHeight / dataPoints;
       barHeight = yDivision / seriesLen;
-      if (w.axisFlags.isXNumeric) {
-        yDivision = w.layout.gridHeight / this.barCtx.totalItems;
-        barHeight = yDivision / this.barCtx.seriesLen;
-      }
       barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
       if (String(this.barCtx.barOptions.barHeight).indexOf("%") === -1) {
         barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
@@ -14347,20 +14423,15 @@ class Bar {
     const i = indexes.i;
     const j = indexes.j;
     let barYPosition;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.invertedXRatio - barHeight;
-      barYPosition = y + barHeight * this.visibleI;
-    } else {
-      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
-        if (nonZeroColumns > 0) {
-          barHeight = this.seriesLen * barHeight / nonZeroColumns;
-        }
-        barYPosition = y + barHeight * this.visibleI;
-        barYPosition -= barHeight * zeroEncounters;
-      } else {
-        barYPosition = y + barHeight * this.visibleI;
+    if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+      const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
+      if (nonZeroColumns > 0) {
+        barHeight = this.seriesLen * barHeight / nonZeroColumns;
       }
+      barYPosition = y + barHeight * this.visibleI;
+      barYPosition -= barHeight * zeroEncounters;
+    } else {
+      barYPosition = y + barHeight * this.visibleI;
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
     const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null;
@@ -14431,7 +14502,7 @@ class Bar {
       zeroW = paths.x1;
       x2 = paths.x;
     }
-    if (!w.axisFlags.isXNumeric && !usePyramid) {
+    if (!usePyramid) {
       y = y + yDivision;
     }
     if (usePyramid) {
@@ -16003,9 +16074,6 @@ class BoxCandleStick extends Bar {
     let x1 = Math.min(ohlc.o, ohlc.c);
     let x2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
-    }
     const barYPosition = y + barHeight * this.visibleI;
     if (typeof /** @type {any} */
     ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
@@ -16033,9 +16101,7 @@ class BoxCandleStick extends Bar {
     if (pathFrom == null) {
       pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
     }
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision;
-    }
+    y = y + yDivision;
     return {
       pathTo,
       pathFrom,
@@ -16447,7 +16513,9 @@ class HeatMap {
                 }
               } else {
                 const box = prev.rect;
-                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(Number.isFinite) ? box : null;
+                const boxFrom = isRectCell && box && lengthTransitionEnabled(w) && [box.x, box.y, box.width, box.height].every(
+                  Number.isFinite
+                ) && (Math.abs(box.x - x1) > 0.5 || Math.abs(box.y - y1) > 0.5 || Math.abs(box.width - cellW) > 0.5 || Math.abs(box.height - yDivision) > 0.5) ? box : null;
                 this.animateHeatColor(
                   cell,
                   Utils.isColorHex(prev.color) ? prev.color : Utils.rgb2hex(prev.color),
@@ -16462,24 +16530,26 @@ class HeatMap {
             }
           }
         }
-        const formatter = w.config.dataLabels.formatter;
-        const formattedText = formatter(w.seriesData.series[i][j], {
-          value: w.seriesData.series[i][j],
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        });
-        const dataLabels = this.helpers.calculateDataLabels({
-          text: formattedText,
-          x: x1 + rowOffset + cellW / 2,
-          y: y1 + yDivision / 2,
-          i,
-          j,
-          colorProps: heatColorProps,
-          series: heatSeries
-        });
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
+        if (w.config.dataLabels.enabled) {
+          const formatter = w.config.dataLabels.formatter;
+          const formattedText = formatter(w.seriesData.series[i][j], {
+            value: w.seriesData.series[i][j],
+            seriesIndex: i,
+            dataPointIndex: j,
+            w
+          });
+          const dataLabels = this.helpers.calculateDataLabels({
+            text: formattedText,
+            x: x1 + rowOffset + cellW / 2,
+            y: y1 + yDivision / 2,
+            i,
+            j,
+            colorProps: heatColorProps,
+            series: heatSeries
+          });
+          if (dataLabels !== null) {
+            elSeries.add(dataLabels);
+          }
         }
         if (!isContinuousX) x1 = x1 + xDivision;
         j++;
@@ -17495,6 +17565,7 @@ class Line {
    */
   _recordStackTops(realIndex, yArrj) {
     const w = this.w;
+    if (!w.config.chart.stacked) return;
     if (!Array.isArray(yArrj)) return;
     if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
       return;
@@ -20773,11 +20844,8 @@ class Radial extends Pie {
     }
     let dataLabels = null;
     if (this.radialDataLabels.show) {
-      const dataLabelsGroup = w.dom.Paper.findOne(
-        `.apexcharts-datalabels-group`
-      );
       dataLabels = this.renderInnerDataLabels(
-        dataLabelsGroup,
+        this.dataLabelsGroup,
         this.radialDataLabels,
         {
           hollowSize,

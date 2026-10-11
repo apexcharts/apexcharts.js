@@ -16,7 +16,7 @@ var __spreadValues = (a, b) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -187,7 +187,9 @@ const WEAVE_CAPABILITIES = Object.freeze([
   "pointer",
   "stroke-info",
   "claim",
-  "drawn"
+  "drawn",
+  "observations",
+  "scale-orientation"
 ]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
@@ -663,7 +665,14 @@ const WIRED = {
   pointer: (a) => typeof a.pointer === "function",
   "stroke-info": (a) => !!(a.info && a.info.stroke),
   claim: (a) => typeof a.claim === "function",
-  drawn: (a) => typeof a.drawn === "function" && typeof a.declare === "function"
+  drawn: (a) => typeof a.drawn === "function" && typeof a.declare === "function",
+  // A field on every `data[]` entry rather than a member, and the snapshot
+  // builder writes it unconditionally (null included), so there is nothing on
+  // the facade to probe before the first parse.
+  observations: () => true,
+  // Scales are null until the first draw and on every non-axis chart, so the
+  // facade has nothing to probe; this host builds them oriented on every draw.
+  "scale-orientation": () => true
 };
 const _WeaveHost = class _WeaveHost {
   /**
@@ -823,18 +832,46 @@ const _WeaveHost = class _WeaveHost {
     const yr = (axis) => yRatio[axis] != null ? yRatio[axis] : yRatio[0];
     const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
     const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
-    const banded = !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0;
-    const band = banded ? L.gridWidth / gl.dataPoints : 0;
+    const horizontal = !!gl.isBarHorizontal;
+    const isRangeBar = !!w.axisFlags.isRangeBar;
+    const banded = gl.dataPoints > 0 && (!w.axisFlags.isXNumeric || horizontal);
+    const rowCount = horizontal && isRangeBar ? w.labelData.labels.length : gl.dataPoints;
+    const span = horizontal ? L.gridHeight : L.gridWidth;
+    const band = banded && rowCount > 0 ? span / rowCount : 0;
+    const rows = /* @__PURE__ */ new Map();
+    if (banded) {
+      const keys = isRangeBar ? w.labelData.labels : w.axisFlags.isXNumeric ? w.seriesData.seriesX[gl.maxValsInArrayIndex] || [] : [];
+      keys.forEach((k, j) => {
+        if (!rows.has(k)) rows.set(k, j);
+      });
+    }
+    const x = banded ? (v) => band * ((rows.has(v) ? (
+      /** @type {number} */
+      rows.get(v)
+    ) : v) + 0.5) : (v) => (v - gl.minX) / xRatio;
+    const reversed = (axis) => {
+      const ya = w.config.yaxis[axis] || w.config.yaxis[0];
+      return !!(ya && ya.reversed);
+    };
+    const y = horizontal ? (v, axis = 0) => {
+      const range = Math.abs(maxY(axis) - minY(axis));
+      const px = range ? (v - minY(axis)) / range * L.gridWidth : 0;
+      return reversed(axis) ? L.gridWidth - px : px;
+    } : (v, axis = 0) => (maxY(axis) - v) / yr(axis);
     this._currentScales = {
-      x: banded ? (v) => band * (v + 0.5) : (v) => (v - gl.minX) / xRatio,
-      /**
-       * @param {number} v
-       * @param {number} [axis]
-       */
-      y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
-      domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
+      x,
+      y,
+      domainX: banded ? [-0.5, rowCount - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
+      transposed: horizontal,
+      /**
+       * A datum's position on screen, whichever way the chart is turned.
+       * @param {any} vx
+       * @param {number} vy
+       * @param {number} [axis]
+       */
+      point: (vx, vy, axis = 0) => horizontal ? { x: y(vy, axis), y: x(vx) } : { x: x(vx), y: y(vy, axis) },
       gridWidth: L.gridWidth,
       gridHeight: L.gridHeight,
       ratios: xyRatios
@@ -859,12 +896,20 @@ const _WeaveHost = class _WeaveHost {
       }));
       const cfg = cfgSeries[i];
       const raw = cfg && typeof cfg === "object" && Array.isArray(cfg.data) ? cfg.data : [];
+      const obs = w.seriesObservations ? w.seriesObservations[i] : null;
+      const observations = obs ? {
+        values: obs.values.slice(),
+        byPoint: obs.byPoint.map(
+          (b) => b ? b.slice() : null
+        )
+      } : null;
       return {
         name: gl.seriesNames ? gl.seriesNames[i] : void 0,
         hidden: (gl.collapsedSeriesIndices || []).includes(i),
         color: gl.colors ? gl.colors[i] : void 0,
         points,
-        raw
+        raw,
+        observations
       };
     });
   }

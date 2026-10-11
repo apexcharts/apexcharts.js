@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.0
+ * ApexCharts v8.0.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -359,6 +359,12 @@ function histogramTransform(ser, w) {
     capped: binning.capped
   };
   const collapsed = gl.collapsedSeriesIndices || [];
+  w.seriesObservations = perSeries.map(
+    (values, i) => ({
+      values,
+      byPoint: collapsed.indexOf(i) !== -1 ? [] : rowsByBin(values, edges)
+    })
+  );
   return raw.map((s, i) => {
     if (collapsed.indexOf(i) !== -1) return __spreadProps(__spreadValues({}, s), { data: [] });
     const ys = normalizeCounts(counts[i], {
@@ -378,10 +384,12 @@ function boxPlotTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
-  return ser.map((s) => {
+  const observed = [];
+  const out = ser.map((s, i) => {
     if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "boxPlot") return s;
     let touched = false;
-    const data = s.data.map((d) => {
+    const byPoint = new Array(s.data.length).fill(null);
+    const data = s.data.map((d, j) => {
       if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !derivedData.has(d)) {
         return d;
       }
@@ -390,21 +398,27 @@ function boxPlotTransform(ser, w) {
       const summary = fiveNumberSummary(values, { whiskers });
       if (!summary) return d;
       touched = true;
+      byPoint[j] = values;
       const next = __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
       derivedData.add(next);
       return next;
     });
+    if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
   });
+  recordObservations(w, observed, ser.length);
+  return out;
 }
 function violinTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
-  return ser.map((s) => {
+  const observed = [];
+  const out = ser.map((s, i) => {
     if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "violin") return s;
     let touched = false;
-    const data = s.data.map((d) => {
+    const byPoint = new Array(s.data.length).fill(null);
+    const data = s.data.map((d, j) => {
       var _a2;
       if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !derivedData.has(d)) {
         return d;
@@ -417,6 +431,7 @@ function violinTransform(ser, w) {
       });
       if (!est) return d;
       touched = true;
+      byPoint[j] = values;
       const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
       const next = __spreadProps(__spreadValues({}, d), {
         y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values })
@@ -424,8 +439,28 @@ function violinTransform(ser, w) {
       derivedData.add(next);
       return next;
     });
+    if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
   });
+  recordObservations(w, observed, ser.length);
+  return out;
+}
+function recordObservations(w, observed, count) {
+  if (!observed.length) return;
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const byPoint = observed[i];
+    if (!byPoint) {
+      out.push(null);
+      continue;
+    }
+    const values = [];
+    for (const sample of byPoint) {
+      if (sample) for (let k2 = 0; k2 < sample.length; k2++) values.push(sample[k2]);
+    }
+    out.push({ values, byPoint });
+  }
+  w.seriesObservations = out;
 }
 const DEFAULT_MAX_ROWS = 3e3;
 function thinClusters(clusters, maxRows) {
@@ -1600,10 +1635,6 @@ class Helpers {
     if (this.barCtx.isHorizontal) {
       yDivision = w.layout.gridHeight / dataPoints;
       barHeight = yDivision / seriesLen;
-      if (w.axisFlags.isXNumeric) {
-        yDivision = w.layout.gridHeight / this.barCtx.totalItems;
-        barHeight = yDivision / this.barCtx.seriesLen;
-      }
       barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
       if (String(this.barCtx.barOptions.barHeight).indexOf("%") === -1) {
         barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
@@ -3279,20 +3310,15 @@ class Bar {
     const i = indexes.i;
     const j = indexes.j;
     let barYPosition;
-    if (w.axisFlags.isXNumeric) {
-      y = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.invertedXRatio - barHeight;
-      barYPosition = y + barHeight * this.visibleI;
-    } else {
-      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
-        if (nonZeroColumns > 0) {
-          barHeight = this.seriesLen * barHeight / nonZeroColumns;
-        }
-        barYPosition = y + barHeight * this.visibleI;
-        barYPosition -= barHeight * zeroEncounters;
-      } else {
-        barYPosition = y + barHeight * this.visibleI;
+    if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+      const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
+      if (nonZeroColumns > 0) {
+        barHeight = this.seriesLen * barHeight / nonZeroColumns;
       }
+      barYPosition = y + barHeight * this.visibleI;
+      barYPosition -= barHeight * zeroEncounters;
+    } else {
+      barYPosition = y + barHeight * this.visibleI;
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
     const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null;
@@ -3363,7 +3389,7 @@ class Bar {
       zeroW = paths.x1;
       x2 = paths.x;
     }
-    if (!w.axisFlags.isXNumeric && !usePyramid) {
+    if (!usePyramid) {
       y = y + yDivision;
     }
     if (usePyramid) {
