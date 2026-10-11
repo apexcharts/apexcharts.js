@@ -559,9 +559,15 @@ class Exports {
       // CircleTransition) lands first: the export is of the chart as laid
       // out, not of a frame on the way. Exporting right after an update
       // resolves (add a title, then export) is exactly its first frame.
+      // The axis chrome tweens (AxisTransition) land with them, or the ticks
+      // the layout tween leaves to them stay at their old spots, entering
+      // ticks stay invisible and exit ghosts get cloned in. This is
+      // finishChromeTweens inlined, so the exports add-on does not bundle
+      // AxisTransition.
       w.globals.layoutTween?.finish()
       w.globals.circleTween?.finish()
       w.globals.highlightTween?.finish()
+      ;[...(w.globals.chromeTweens || [])].forEach((finish) => finish())
 
       const clonedNode = /** @type {HTMLElement} */ (
         w.dom.elWrap.cloneNode(true)
