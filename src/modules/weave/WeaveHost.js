@@ -320,12 +320,29 @@ export default class WeaveHost {
       const cfg = cfgSeries[i]
       const raw =
         cfg && typeof cfg === 'object' && Array.isArray(cfg.data) ? cfg.data : []
+      // The sample the rows were computed FROM, where a series transform
+      // summarised raw observations (histogram counts, a boxPlot summary or
+      // violin density computed from `points`). On those charts `points` and
+      // even `raw` are the transform's output, so a mean of them is a mean of
+      // bar heights; null is the signal that the rows ARE the caller's data.
+      // Copied, as `points` is, so a plugin cannot edit what the next render
+      // bins.
+      const obs = w.seriesObservations ? w.seriesObservations[i] : null
+      const observations = obs
+        ? {
+            values: obs.values.slice(),
+            byPoint: obs.byPoint.map((/** @type {number[] | null} */ b) =>
+              b ? b.slice() : null,
+            ),
+          }
+        : null
       return {
         name: gl.seriesNames ? gl.seriesNames[i] : undefined,
         hidden: (gl.collapsedSeriesIndices || []).includes(i),
         color: gl.colors ? gl.colors[i] : undefined,
         points,
         raw,
+        observations,
       }
     })
   }

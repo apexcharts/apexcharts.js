@@ -808,6 +808,19 @@ interface ApexPluginSeries {
   hidden: boolean
   color?: string
   points: { x: any; y: any }[]
+  /**
+   * The raw sample the drawn values were computed from, where a series
+   * transform summarised observations: a histogram's sample (`points` are the
+   * bin counts), or the `points` a boxPlot summary or violin density was
+   * derived from. `values` is the whole series' sample; `byPoint[j]` the
+   * observations behind `points[j]` (null where that datum was precomputed).
+   * null when `points` are the caller's own values.
+   * Detect with `api.can('observations')`.
+   */
+  observations: {
+    values: number[]
+    byPoint: (number[] | null)[]
+  } | null
 }
 
 interface ApexPluginLayer {

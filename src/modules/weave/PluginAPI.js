@@ -46,6 +46,11 @@ import { collectDrawn } from './Drawn'
  * question a layers panel and an export summary both ask. See
  * `plans/26-weave-capabilities.md`.
  *
+ * Since v6, detected as the `observations` capability: `data[].observations`,
+ * the sample a series transform summarised into the rows drawn (`{ values,
+ * byPoint }`, null where the rows are the caller's own values). Without it a
+ * plugin on a histogram could only describe the bars.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
  * outright on a v2 host, so `apiVersion: 2` plus a capability check keeps one
@@ -77,6 +82,7 @@ export const WEAVE_CAPABILITIES = Object.freeze([
   'stroke-info',
   'claim',
   'drawn',
+  'observations',
 ])
 
 /**
@@ -631,4 +637,8 @@ const WIRED = {
   claim: (/** @type {any} */ a) => typeof a.claim === 'function',
   drawn: (/** @type {any} */ a) =>
     typeof a.drawn === 'function' && typeof a.declare === 'function',
+  // A field on every `data[]` entry rather than a member, and the snapshot
+  // builder writes it unconditionally (null included), so there is nothing on
+  // the facade to probe before the first parse.
+  observations: () => true,
 }

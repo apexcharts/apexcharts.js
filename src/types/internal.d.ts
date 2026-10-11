@@ -884,6 +884,11 @@ export interface ChartStateW {
   rangeData: RangeData
   violinData: ViolinData
   histogramData: HistogramData
+  /** Samples a series transform summarised, per series (null where none). */
+  seriesObservations: Array<{
+    values: number[]
+    byPoint: Array<number[] | null>
+  } | null> | null
   waterfallData: WaterfallData
   dumbbellData: DumbbellData | null
   streamgraphData: StreamgraphData | null

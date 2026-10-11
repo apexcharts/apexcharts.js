@@ -157,6 +157,16 @@ function histogramTransform(ser, w) {
   // from the stash and would otherwise undo the collapse that put them there.
   const collapsed = gl.collapsedSeriesIndices || []
 
+  // The rows drawn are counts, so anything a plugin computes from them
+  // describes bar heights. The sample is what it should be reading; byPoint
+  // follows the rows, so a hidden series (no bars) has no bins to split into.
+  w.seriesObservations = perSeries.map(
+    (/** @type {number[]} */ values, /** @type {number} */ i) => ({
+      values,
+      byPoint: collapsed.indexOf(i) !== -1 ? [] : rowsByBin(values, edges),
+    }),
+  )
+
   return raw.map((/** @type {any} */ s, /** @type {number} */ i) => {
     if (collapsed.indexOf(i) !== -1) return { ...s, data: [] }
     const ys = normalizeCounts(counts[i], {
@@ -211,13 +221,17 @@ const derivedData = new WeakSet()
 function boxPlotTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
   const whiskers = w.config.plotOptions?.boxPlot?.whiskers || 'minmax'
+  /** @type {Array<Array<number[] | null>>} */
+  const observed = []
 
-  return ser.map((/** @type {any} */ s) => {
+  const out = ser.map((/** @type {any} */ s, /** @type {number} */ i) => {
     // A combo's other series are not samples: a violin series carries its
     // jitter in `points` too, and would have its density replaced.
     if (!Array.isArray(s?.data) || (s.type && s.type !== 'boxPlot')) return s
     let touched = false
-    const data = s.data.map((/** @type {any} */ d) => {
+    /** @type {Array<number[] | null>} */
+    const byPoint = new Array(s.data.length).fill(null)
+    const data = s.data.map((/** @type {any} */ d, /** @type {number} */ j) => {
       // An existing summary wins: this is the documented input shape. Unless we
       // are the ones who derived it, in which case the options that shaped it
       // may have changed.
@@ -229,12 +243,16 @@ function boxPlotTransform(ser, w) {
       const summary = fiveNumberSummary(values, { whiskers })
       if (!summary) return d
       touched = true
+      byPoint[j] = values
       const next = { ...d, y: summary.summary, points: values }
       derivedData.add(next)
       return next
     })
+    if (touched) observed[i] = byPoint
     return touched ? { ...s, data } : s
   })
+  recordObservations(w, observed, ser.length)
+  return out
 }
 
 /**
@@ -255,13 +273,17 @@ function boxPlotTransform(ser, w) {
 function violinTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
   const kde = w.config.plotOptions?.violin?.kde || {}
+  /** @type {Array<Array<number[] | null>>} */
+  const observed = []
 
-  return ser.map((/** @type {any} */ s) => {
+  const out = ser.map((/** @type {any} */ s, /** @type {number} */ i) => {
     // A combo's other series are not samples: a boxPlot's or a rangeArea's
     // `y` is a flat number array too, and was estimated into a density.
     if (!Array.isArray(s?.data) || (s.type && s.type !== 'violin')) return s
     let touched = false
-    const data = s.data.map((/** @type {any} */ d) => {
+    /** @type {Array<number[] | null>} */
+    const byPoint = new Array(s.data.length).fill(null)
+    const data = s.data.map((/** @type {any} */ d, /** @type {number} */ j) => {
       if (
         Array.isArray(d?.y?.density) &&
         d.y.density.length &&
@@ -277,6 +299,7 @@ function violinTransform(ser, w) {
       })
       if (!est) return d
       touched = true
+      byPoint[j] = values
       // Keep the rest of an object `y`: a summary given with the points still
       // draws the box lane.
       const rest =
@@ -288,8 +311,43 @@ function violinTransform(ser, w) {
       derivedData.add(next)
       return next
     })
+    if (touched) observed[i] = byPoint
     return touched ? { ...s, data } : s
   })
+  recordObservations(w, observed, ser.length)
+  return out
+}
+
+/**
+ * Publish the samples a boxPlot or violin transform summarised, for Weave's
+ * `api.data[].observations`.
+ *
+ * Only a series with at least one datum derived here gets an entry, and only
+ * those datums a sample: a precomputed summary or density is the caller's own
+ * data, and so is every other series in a combo. Nothing derived leaves the
+ * slice null, as parseData cleared it.
+ *
+ * @param {any} w
+ * @param {Array<Array<number[] | null>>} observed - sparse, by series index
+ * @param {number} count - series count
+ */
+function recordObservations(w, observed, count) {
+  if (!observed.length) return
+  const out = []
+  for (let i = 0; i < count; i++) {
+    const byPoint = observed[i]
+    if (!byPoint) {
+      out.push(null)
+      continue
+    }
+    /** @type {number[]} */
+    const values = []
+    for (const sample of byPoint) {
+      if (sample) for (let k = 0; k < sample.length; k++) values.push(sample[k])
+    }
+    out.push({ values, byPoint })
+  }
+  w.seriesObservations = out
 }
 
 /* -------------------------------------------------------------------------- *

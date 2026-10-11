@@ -126,6 +126,13 @@ export default class Base {
         rule: '',
         capped: false,
       },
+      // The samples a series transform derived the drawn rows FROM, per
+      // series: { values, byPoint } where the transform summarised raw
+      // observations (histogram bins, a boxPlot summary or violin density it
+      // computed), null where the rows drawn are the caller's own values.
+      // Cleared at the top of every parse, filled by features/stats, read by
+      // Weave's api.data. null on every chart that has no such transform.
+      seriesObservations: null,
       // Waterfall accumulation — written by the waterfall series transform
       // (features/waterfall) each parse; empty for every other chart type.
       //   values[i][j]     = the bar's signed height (end - start), which is

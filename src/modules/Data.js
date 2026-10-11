@@ -1829,6 +1829,11 @@ export default class Data {
       this.w.streamgraphData = null
     }
 
+    // The samples behind the rows, which only a transform that summarised raw
+    // observations writes. Cleared on every parse rather than when the type
+    // changes: a boxPlot whose data is now precomputed has no sample either.
+    this.w.seriesObservations = null
+
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
     if (Array.isArray(ser) && name in RAW_SAMPLE_TYPES) {
