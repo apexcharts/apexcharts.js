@@ -596,20 +596,15 @@ class DateTime {
           return d.getTime()
         }
         case 'week': {
-          const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
-          const REF_MONDAY_LOCAL = new Date(1970, 0, 5).getTime()
-          d.setMilliseconds(0)
-          d.setSeconds(0)
-          d.setMinutes(0)
-          d.setHours(0)
-          const startOfDay = d.getTime()
-          const weeksSinceRef = Math.ceil(
-            (startOfDay - REF_MONDAY_LOCAL) / MS_PER_WEEK,
-          )
-          const alignedWeeks = Math.ceil(weeksSinceRef / step) * step
-          const aligned = REF_MONDAY_LOCAL + alignedWeeks * MS_PER_WEEK
+          // Count calendar days from Monday 1970-01-05, not elapsed ms: a
+          // fixed-ms stride drifts off midnight by however much the zone's
+          // offset has changed since 1970.
+          const days =
+            Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5 - 4
+          const weeks = Math.ceil(Math.ceil(days / 7) / step) * step
+          const aligned = new Date(1970, 0, 5 + weeks * 7).getTime()
           if (aligned >= timestamp) return aligned
-          return aligned + step * MS_PER_WEEK
+          return new Date(1970, 0, 5 + (weeks + step) * 7).getTime()
         }
         case 'month': {
           const m = d.getMonth()
