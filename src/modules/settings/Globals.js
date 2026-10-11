@@ -69,6 +69,10 @@ export default class Globals {
     // an {x, y} series it kept a later plain-array series from being given
     // index x values, and a line or area drew from an empty seriesX.
     gl.dataFormatXNumeric = false
+    // Raised by the parse only for range data, so a rangeBar -> bar update
+    // kept clipping bars to the old range.
+    gl.isRangeData = false
+    gl.isRangeBar = false
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
     gl.isDataXYZ = false
@@ -113,6 +117,9 @@ export default class Globals {
     // circle this render: set by the renderer, read by CircleTransition.
     // Reset here so a render that draws no circle leaves none behind.
     gl.circleGeometry = null
+    // Only Pie writes this, so a pie with outer labels switched to sunburst
+    // padded its auto height by the old band.
+    gl.pieExternalLabelMarginY = 0
     // Note: formatter properties (xLabelFormatter, yLabelFormatters, etc.) live on
     // w.formatters — not on gl. See Base.js for backward-compat shims.
 
