@@ -273,6 +273,8 @@ export default class ApexCharts {
           })
         }
 
+        // destroy() released the modules; setLocale below needs them
+        if (!this.core) new InitCtxVariables(this).initModules()
         // set the locale here
         this.setLocale(this.w.config.chart.defaultLocale)
         const beforeMount = this.w.config.chart.events.beforeMount
@@ -1147,9 +1149,10 @@ export default class ApexCharts {
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
     // Same contract as updateOptions: a null/non-array series would poison
     // config.series and the initialSeries snapshot. Refuse it, keep the chart.
-    if (!Array.isArray(newSeries)) {
+    // A destroyed chart is refused too (see updateOptions).
+    if (!this.core || !Array.isArray(newSeries)) {
       console.warn(
-        'ApexCharts: updateSeries() ignored the call because the series is not an array.',
+        'ApexCharts: updateSeries() ignored the call: no series array, or a destroyed chart.',
       )
       return Promise.resolve(this)
     }
@@ -1192,16 +1195,11 @@ export default class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
-    const unloaded = unloadedTypeRejection(undefined, [newSerie])
-    if (unloaded) return unloaded
-    this.data.resetParsingFlags()
-
-    const newSeries = this.w.config.series.slice()
-    newSeries.push(/** @type {any} */ (newSerie))
-    this.series.prepareDataUpdate()
-    this.updateHelpers.revertDefaultAxisMinMax()
-    return this.updateHelpers._updateSeries(
-      newSeries,
+    // updateSeries with one more series is exactly this, and it also routes a
+    // trellis host to its panels (re-split and fanned out) and refuses a
+    // destroyed chart; drawing it here put a stray chart beside the grid.
+    return this.updateSeries(
+      [...this.w.config.series, /** @type {any} */ (newSerie)],
       animate,
       overwriteInitialSeries,
     )
@@ -1217,6 +1215,10 @@ export default class ApexCharts {
    */
   appendData(newData, overwriteInitialSeries = true) {
     const me = this
+    const gl = me.w.globals
+
+    // destroyed: see updateOptions
+    if (!me.core) return Promise.resolve(me)
 
     me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
@@ -2463,7 +2465,8 @@ export default class ApexCharts {
    * @param {boolean} [shouldResetZoom=true] - When true, restores the initial zoom level.
    */
   resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
-    this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
+    // null after destroy()
+    this.series && this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
   }
 
   /**
