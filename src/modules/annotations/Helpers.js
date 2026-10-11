@@ -279,9 +279,7 @@ export default class Helpers {
           w.globals.barHeight
 
       if (anno.seriesIndex !== undefined && w.globals.barHeight) {
-        yP -=
-          (w.globals.barHeight / 2) * (w.seriesData.series.length - 1) -
-          w.globals.barHeight * anno.seriesIndex
+        yP += this.barSlotOffset(anno.seriesIndex, w.globals.barHeight)
       }
     } else {
       // An annotation is placed against the scale of whichever series owns its
@@ -393,9 +391,7 @@ export default class Helpers {
       w.globals.barWidth &&
       !this.annoCtx.invertAxis
     ) {
-      xP -=
-        (w.globals.barWidth / 2) * (w.seriesData.series.length - 1) -
-        w.globals.barWidth * anno.seriesIndex
+      xP += this.barSlotOffset(anno.seriesIndex, w.globals.barWidth)
     }
 
     if (typeof xP !== 'number') {
@@ -413,6 +409,34 @@ export default class Helpers {
     }
 
     return { x: xP, clipped }
+  }
+
+  /**
+   * Offset from a category's centre to the bar of series `i` in it. Bars
+   * share the slot only among the series actually laid out side by side:
+   * a stacked chart draws them all in one column, and a hidden series (empty
+   * data) or a non-bar combo series takes no slot.
+   * @param {number} i
+   * @param {number} size bar width, or bar height when horizontal
+   */
+  barSlotOffset(i, size) {
+    const w = this.w
+    if (w.config.chart.stacked) return 0
+    let n = 0
+    let ordinal = 0
+    w.seriesData.series.forEach(
+      (/** @type {any[]} */ s, /** @type {number} */ si) => {
+        const type = /** @type {any} */ (w.config.series[si])?.type
+        if (
+          s.length &&
+          (!w.globals.comboCharts || type === 'bar' || type === 'column')
+        ) {
+          if (si < i) ordinal++
+          n++
+        }
+      },
+    )
+    return size * (ordinal - (n - 1) / 2)
   }
 
   /**
@@ -448,6 +472,13 @@ export default class Helpers {
 
     if (xLabel) {
       rX = parseFloat(xLabel.getAttribute('x') ?? '0')
+    } else if (catIndex > -1) {
+      // No label node to read (xaxis.labels.show: false): place the category
+      // the way XAxis lays its label out.
+      rX = w.axisFlags.isXNumeric
+        ? (x - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth)
+        : w.globals.padHorizontal +
+          ((catIndex + 0.5) * w.layout.gridWidth) / w.globals.dataPoints
     }
 
     return rX
