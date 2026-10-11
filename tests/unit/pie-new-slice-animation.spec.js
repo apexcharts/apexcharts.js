@@ -9,6 +9,12 @@ import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+// Wait for the sweep to complete, generously, so a loaded runner does not
+// fail on timing; then a little longer to catch a second animationEnd.
+const settle = async (done) => {
+  for (let t = 0; t < 2000 && !done(); t += 50) await wait(50)
+  await wait(150)
+}
 
 function mount(series, onEnd) {
   document.body.innerHTML = '<div id="chart"></div>'
@@ -37,10 +43,10 @@ describe('pie slices with no previous angle on a data-change update', () => {
     let ended = 0
     const chart = mount([44, 55, 13], () => ended++)
     await chart.render()
-    await wait(600)
+    await settle(() => ended > 0)
     ended = 0
     await chart.updateSeries([40, 50, 20])
-    await wait(600)
+    await settle(() => ended > 0)
     expect(chart.el.querySelectorAll('.apexcharts-pie-name-label-group').length).toBe(3)
     expect(hiddenLabelGroups(chart)).toBe(0)
     expect(ended).toBe(1)
@@ -51,10 +57,10 @@ describe('pie slices with no previous angle on a data-change update', () => {
     let ended = 0
     const chart = mount([44, 55, 13], () => ended++)
     await chart.render()
-    await wait(600)
+    await settle(() => ended > 0)
     ended = 0
     await chart.updateSeries([44, 55, 13, 20])
-    await wait(600)
+    await settle(() => ended > 0)
     expect(chart.el.querySelectorAll('.apexcharts-pie-name-label-group').length).toBe(4)
     expect(hiddenLabelGroups(chart)).toBe(0)
     expect(ended).toBe(1)
@@ -65,10 +71,10 @@ describe('pie slices with no previous angle on a data-change update', () => {
     let ended = 0
     const chart = mount([], () => ended++)
     await chart.render()
-    await wait(600)
+    await settle(() => ended > 0)
     ended = 0
     await chart.updateSeries([44, 55, 13])
-    await wait(600)
+    await settle(() => ended > 0)
     expect(chart.el.querySelectorAll('.apexcharts-pie-name-label-group').length).toBe(3)
     expect(hiddenLabelGroups(chart)).toBe(0)
     expect(ended).toBe(1)
@@ -79,10 +85,10 @@ describe('pie slices with no previous angle on a data-change update', () => {
     let ended = 0
     const chart = mount([0, 0, 0], () => ended++)
     await chart.render()
-    await wait(600)
+    await settle(() => ended > 0)
     ended = 0
     await chart.updateSeries([44, 55, 13])
-    await wait(600)
+    await settle(() => ended > 0)
     expect(hiddenLabelGroups(chart)).toBe(0)
     expect(ended).toBe(1)
     chart.destroy()
@@ -105,10 +111,10 @@ describe('radialBar rings with no previous value on a data-change update', () =>
       labels: ['A', 'B', 'C'],
     })
     await chart.render()
-    await wait(600)
+    await settle(() => ended > 0)
     ended = 0
     await chart.updateSeries([44, 55, 70])
-    await wait(600)
+    await settle(() => ended > 0)
     expect(chart.el.querySelectorAll('.apexcharts-radialbar-slice-2').length).toBe(1)
     expect(ended).toBe(1)
     chart.destroy()
