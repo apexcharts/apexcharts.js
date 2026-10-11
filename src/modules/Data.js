@@ -29,6 +29,10 @@ const RAW_SAMPLE_TYPES = /** @type {Record<string, boolean>} */ ({
   violin: true,
 })
 
+/** What a null entry in a series' data array parses as: a gap. */
+const NULL_POINT = /** @type {any} */ ({ y: null })
+const NULL_ROW = /** @type {any[]} */ ([undefined, null])
+
 /**
  * Whether one boxPlot or violin datum carries a raw sample instead of the
  * precomputed input its renderer draws.
@@ -330,7 +334,10 @@ export default class Data {
     }
 
     for (let j = 0; j < data.length; j++) {
-      const point = data[j]
+      // A null entry is a gap. Its x is NaN for a datetime axis (as 0 it
+      // would pull the range back to 1970) and undefined otherwise; the x
+      // range skips both.
+      const point = data[j] || NULL_ROW
       const x = point[0]
       const y = point[1]
       const z = point[2]
@@ -438,7 +445,8 @@ export default class Data {
 
     // get series, goals, z
     for (let j = 0; j < data.length; j++) {
-      const point = data[j]
+      // a null entry is a gap, as `{x, y: null}` is
+      const point = data[j] || NULL_POINT
 
       if (typeof point.y !== 'undefined') {
         const val = Array.isArray(point.y)
@@ -462,6 +470,12 @@ export default class Data {
     // get seriesX
     for (let j = 0; j < activeData.length; j++) {
       const point = activeData[j]
+      if (!point) {
+        // No x to read, and none to guess the axis type from. An empty label
+        // keeps a category axis blank there; a numeric x range skips it.
+        this.twoDSeriesX.push('')
+        continue
+      }
       const x = point.x
 
       const isXString = typeof x === 'string'
@@ -1503,7 +1517,7 @@ export default class Data {
             (/** @type {any} */ serie) => {
               const seen = new Map()
               for (const point of serie.data) {
-                if (!seen.has(point.x)) seen.set(point.x, point)
+                if (!seen.has(point?.x)) seen.set(point?.x, point)
               }
               return Array.from(seen.values())
             },
