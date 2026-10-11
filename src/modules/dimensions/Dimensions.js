@@ -70,6 +70,13 @@ export default class Dimensions {
     // being stale, but the breadcrumb band ADDS, and compounded: each render
     // pushed the plot another 22px down and took 22px off its height.
     this.gridPad = { ...w.config.grid.padding }
+    // The same holds for every pad a run derives: their writers only ever
+    // raise them, so a pad one render needed would otherwise stick forever.
+    this.xPadRight = 0
+    this.xPadLeft = 0
+    this.lgWidthForSideLegends = 0
+    this.titleBlockPad = 0
+    this.timescaleLabels = []
 
     this.lgRect = this.dimHelpers.getLegendsRect()
     this.datalabelsCoords = { width: 0, height: 0 }
