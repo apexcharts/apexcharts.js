@@ -712,14 +712,14 @@ export default class Core {
     gl.svgWidth = NaN
     gl.svgHeight = NaN
 
-    let elDim = Utils.getDimensions(this.el)
+    const elDim = Utils.getDimensions(this.el)
     const widthUnit = this._extractDimensionUnit(rawWidth)
 
+    // Sized from the element alone, never its parent: getResizeSignature
+    // records the same measurement, so a hidden (0-wide) chart redraws once
+    // it is shown.
     if (widthUnit === '%') {
       if (Utils.isNumber(elDim[0])) {
-        if (elDim[0].width === 0) {
-          elDim = Utils.getDimensions(this.el.parentNode)
-        }
         gl.svgWidth = (elDim[0] * parseInt(rawWidth, 10)) / 100
       }
     } else if (widthUnit === 'px' || widthUnit === '') {
@@ -842,9 +842,8 @@ export default class Core {
     let h = 0
 
     if (rawWidth.endsWith('%')) {
-      let elDim = Utils.getDimensions(this.el)
-      if (!elDim[0]) elDim = Utils.getDimensions(this.el.parentNode)
-      w = elDim[0] || 0
+      // The element's own width, as setSVGDimensions measures it.
+      w = Utils.getDimensions(this.el)[0] || 0
     }
     if (rawHeight.endsWith('%')) {
       h = Utils.getDimensions(this.el.parentNode)[1] || 0
