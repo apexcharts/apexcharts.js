@@ -4,6 +4,17 @@
  **/
 import en from './../../locales/en.json'
 
+/**
+ * The radialBar centre labels' suffix: a percent sign only on the default
+ * 0..100 domain, since a custom min/max (a speedometer) is not a percentage.
+ *
+ * @param {any} w
+ */
+const radialSuffix = (w) => {
+  const rb = w?.config.plotOptions.radialBar
+  return !rb || (!rb.min && (rb.max ?? 100) === 100) ? '%' : ''
+}
+
 export default class Options {
   constructor() {
     this.yAxis = {
@@ -1883,9 +1894,10 @@ export default class Options {
               offsetY: 16,
               /**
                * @param {any} val
+               * @param {any} w
                */
-              formatter(val) {
-                return val + '%'
+              formatter(val, w) {
+                return val + radialSuffix(w)
               },
             },
             total: {
@@ -1906,7 +1918,7 @@ export default class Options {
                    */
                   w.globals.seriesTotals.reduce((a, b) => a + b, 0) /
                     w.seriesData.series.length +
-                  '%'
+                  radialSuffix(w)
                 )
               },
             },
