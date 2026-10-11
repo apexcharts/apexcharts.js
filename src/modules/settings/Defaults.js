@@ -2481,8 +2481,10 @@ export default class Defaults {
         `<div>${labels[1]}: <span class="value">` +
         h +
         '</span></div>' +
-        (m
-          ? `<div>${labels[2]}: <span class="value">` + m + '</span></div>'
+        // A median of 0 is a median: zero-centred data (residuals, deltas)
+        // lost the row to a truthiness test. Candlesticks name no third row.
+        (labels[2] && m != null && !Number.isNaN(m)
+          ? `<div>${labels[2]}:<span class="value">` + m + '</span></div>'
           : '') +
         `<div>${labels[3]}: <span class="value">` +
         l +
