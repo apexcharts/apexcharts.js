@@ -755,13 +755,11 @@ class Radial extends Pie {
 
     const bandStroke =
       (strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10)) / 100
-    const min = typeof rb.min === 'number' ? rb.min : 0
-    const max = typeof rb.max === 'number' ? rb.max : 100
+    // The gap is in px along the band's own radius.
     const gapDeg =
-      max === min
-        ? 0
-        : (rb.bandsStyle.gap || 0) *
-          ((this.endAngle - this.startAngle) / (max - min))
+      radius > 0
+        ? (Math.abs(rb.bandsStyle.gap || 0) / radius) * (180 / Math.PI)
+        : 0
 
     for (let b = 0; b < bands.length; b++) {
       const band = bands[b]
