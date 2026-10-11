@@ -38,4 +38,13 @@ describe('multi-line x label detection', () => {
     })
     expect(chart.w.axisFlags.isMultiLineX).toBe(false)
   })
+
+  it('stays off for a numeric scatter of [x, y] pairs', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'scatter', width: 500, height: 300 },
+      series: [{ data: [[1.0, 52], [1.2, 49], [2.0, 38]] }],
+      xaxis: { tickAmount: 10 },
+    })
+    expect(chart.w.axisFlags.isMultiLineX).toBe(false)
+  })
 })

@@ -2404,11 +2404,13 @@ export default class Data {
 
     // check for multiline xaxis. A converted category axis keeps its names on
     // the formatter; probing that formatter here would read them through an x
-    // range that is not computed yet, and every probe came back ''.
+    // range that is not computed yet, and every probe came back ''. Any other
+    // axis still goes through the formatter: on xy data the raw labels hold
+    // the series' x values as a nested array, which is not a multi-line label.
     const catLabels =
       (cnf.xaxis.convertedCatToNumeric &&
         /** @type {any} */ (cnf.xaxis.labels.formatter).categoryNames) ||
-      this.w.labelData.labels
+      this.coreUtils.getCategoryLabels(this.w.labelData.labels)
     for (let l = 0; l < catLabels.length; l++) {
       if (Array.isArray(catLabels[l])) {
         this.w.axisFlags.isMultiLineX = true
