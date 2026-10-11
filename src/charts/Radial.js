@@ -1018,29 +1018,31 @@ class Radial extends Pie {
    * How the needle moves this render: its speed and curve, or null when it
    * lands at once. Ease-out-back on initial mount (spring-loaded settle);
    * plain ease-out on data updates (no overshoot, feels mechanical,
-   * instrument-like).
+   * instrument-like). With no `needle.animation.duration` it keeps the value
+   * arc's clock for the phase.
    *
    * @returns {{speed: number, ease: (t: number) => number} | null}
    */
   needleMotion() {
     const w = this.w
     const cfg = w.config.plotOptions.radialBar.needle || {}
+    const anim = w.config.chart.animations
     const isInitialMount =
       this.initialAnim && !w.globals.dataChanged && !w.globals.resized
     if (
       !(
         Environment.isBrowser() &&
         w.globals.shouldAnimate &&
+        cfg.animation?.enabled !== false &&
         (isInitialMount || (this.dynamicAnim && w.globals.dataChanged))
       )
     ) {
       return null
     }
     const speed =
-      (cfg.animation?.duration && Number(cfg.animation.duration)) ||
-      (cfg.animationSpeed && Number(cfg.animationSpeed)) ||
-      w.config.chart.animations.dynamicAnimation?.speed ||
-      w.config.chart.animations.speed ||
+      Number(cfg.animation?.duration) ||
+      Number(cfg.animationSpeed) ||
+      (isInitialMount ? anim.speed : anim.dynamicAnimation?.speed) ||
       800
     const c1 = 1.70158
     const c3 = c1 + 1

@@ -1819,10 +1819,12 @@ export default class Options {
             // behavior. Useful for gauges that want a progress ring plus a
             // pointer indicator.
             showValueArc: false,
+            // `enabled: false` lands the needle at once. `duration` (ms)
+            // defaults to the value arc's speed for the phase (mount or
+            // update), so the needle and the arc arrive together.
             animation: {
               enabled: true,
-              duration: 800,
-              easing: 'ease-out',
+              duration: undefined,
             },
           },
           hollow: {
