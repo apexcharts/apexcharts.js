@@ -352,62 +352,81 @@ class Exports {
   }
 
   /**
-   * Every `@font-face` rule reachable from the document, as `{ family, css }`.
+   * Every `@font-face` rule reachable from the document, as
+   * `{ family, css, base }`, where `base` is the URL the rule's relative
+   * `url()`s resolve against: its stylesheet, not the page.
    *
-   * Same-origin sheets are read through `cssRules`. A cross-origin sheet throws
-   * on that access, so it is re-fetched by href and its `@font-face` blocks are
-   * pulled out of the text: that is the path that matters in practice, since
-   * hosted webfonts (the subject of #3617) are exactly the cross-origin case.
-   * @returns {Promise<Array<{family: string, css: string}>>}
+   * Same-origin sheets are read through `cssRules`, descending into `@import`
+   * and grouping rules (`@media`, `@supports`, `@layer`). A cross-origin sheet
+   * throws on that access, so it is re-fetched by href and its `@font-face`
+   * blocks are pulled out of the text: that is the path that matters in
+   * practice, since hosted webfonts (the subject of #3617) are exactly the
+   * cross-origin case.
+   * @returns {Promise<Array<{family: string, css: string, base: string}>>}
    */
   collectFontFaceRules() {
     if (!Environment.isBrowser()) return Promise.resolve([])
 
-    /** @type {Array<{family: string, css: string}>} */
+    /** @type {Array<{family: string, css: string, base: string}>} */
     const found = []
     /** @type {Array<Promise<void>>} */
     const remote = []
 
-    /** @param {string} cssText */
-    const pushFromText = (cssText) => {
+    /**
+     * @param {string} cssText
+     * @param {string} base
+     */
+    const pushFromText = (cssText, base) => {
       const blocks = cssText.match(/@font-face\s*\{[^}]*\}/gi) || []
       blocks.forEach((css) => {
         const m = css.match(/font-family\s*:\s*([^;}]+)/i)
         if (!m) return
         const family = m[1].trim().replace(/^['"]|['"]$/g, '')
-        found.push({ family: family.toLowerCase(), css })
+        found.push({ family: family.toLowerCase(), css, base })
       })
     }
 
-    const sheets = Array.from(document.styleSheets || [])
-    sheets.forEach((sheet) => {
+    /**
+     * @param {any} rules
+     * @param {string} base
+     */
+    const walkRules = (rules, base) => {
+      Array.from(rules).forEach((/** @type {any} */ rule) => {
+        // CSSFontFaceRule === 5, compared numerically so it also works in
+        // engines that don't expose the CSSRule constant.
+        if (rule.type === 5) {
+          if (rule.cssText) pushFromText(rule.cssText, base)
+        } else if (rule.styleSheet) {
+          walkSheet(rule.styleSheet) // @import
+        } else if (rule.cssRules) {
+          walkRules(rule.cssRules, base) // @media, @supports, @layer
+        }
+      })
+    }
+
+    /** @param {any} sheet */
+    const walkSheet = (sheet) => {
       /** @type {any} */
       let rules = null
       try {
         rules = sheet.cssRules
       } catch (e) {
         // Cross-origin sheet: unreadable here, re-fetch it below.
-        rules = null
       }
 
       if (rules) {
-        Array.from(rules).forEach((/** @type {any} */ rule) => {
-          // CSSFontFaceRule === 5, compared numerically so it also works in
-          // engines that don't expose the CSSRule constant.
-          if (rule.type === 5 && rule.cssText) pushFromText(rule.cssText)
-        })
-        return
-      }
-
-      if (sheet.href) {
+        walkRules(rules, sheet.href || document.baseURI)
+      } else if (sheet.href) {
         remote.push(
           fetch(sheet.href)
             .then((r) => (r.ok ? r.text() : ''))
-            .then(pushFromText)
+            .then((text) => pushFromText(text, sheet.href))
             .catch(() => {}),
         )
       }
-    })
+    }
+
+    Array.from(document.styleSheets || []).forEach(walkSheet)
 
     return Promise.all(remote).then(() => found)
   }
@@ -450,7 +469,7 @@ class Exports {
 
         return Promise.all(
           wanted.map((face) =>
-            this.inlineFontFaceUrls(face.css).catch(() => null),
+            this.inlineFontFaceUrls(face.css, face.base).catch(() => null),
           ),
         )
       })
@@ -472,9 +491,10 @@ class Exports {
    * data URI. Resolves to null if no url could be fetched, so the caller can
    * drop a block that would only reference unreachable files.
    * @param {string} css
+   * @param {string} [base] the URL relative `url()`s resolve against
    * @returns {Promise<string | null>}
    */
-  inlineFontFaceUrls(css) {
+  inlineFontFaceUrls(css, base) {
     const urls = []
     const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi
     let m
@@ -485,7 +505,7 @@ class Exports {
 
     return Promise.all(
       urls.map((url) =>
-        this.fetchAsDataUri(url)
+        this.fetchAsDataUri(base ? new URL(url, base).href : url)
           .then((dataUri) => ({ url, dataUri }))
           .catch(() => ({ url, dataUri: null })),
       ),

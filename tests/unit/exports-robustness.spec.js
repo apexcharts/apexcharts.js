@@ -99,3 +99,57 @@ describe('dataURI always settles', () => {
     expect(download).not.toHaveBeenCalled()
   })
 })
+
+describe('embedFonts finds and resolves @font-face rules like the browser', () => {
+  const face = (family, url) => ({
+    type: 5,
+    cssText: `@font-face { font-family: ${family}; src: url(${url}) }`,
+  })
+
+  it('walks @import and grouping rules and keeps each rule\'s sheet as its base', async () => {
+    const sheets = [
+      {
+        href: 'https://site.example/assets/css/app.css',
+        cssRules: [
+          face('Inter', '../fonts/Inter.woff2'),
+          { type: 4, cssRules: [face('Media', 'media.woff2')] },
+          {
+            type: 3,
+            styleSheet: {
+              href: 'https://fonts.example/css2/family.css',
+              cssRules: [face('Imported', './files/imported.woff2')],
+            },
+          },
+        ],
+      },
+    ]
+    vi.spyOn(document, 'styleSheets', 'get').mockReturnValue(sheets)
+    const chart = lineChart()
+    const exports = new Exports(chart.w, chart.ctx)
+    const found = await exports.collectFontFaceRules()
+    expect(found.map((f) => [f.family, f.base])).toEqual([
+      ['inter', 'https://site.example/assets/css/app.css'],
+      ['media', 'https://site.example/assets/css/app.css'],
+      ['imported', 'https://fonts.example/css2/family.css'],
+    ])
+  })
+
+  it('fetches a relative font url against its stylesheet, not the page', async () => {
+    const chart = lineChart()
+    const exports = new Exports(chart.w, chart.ctx)
+    const fetched = []
+    exports.fetchAsDataUri = (url) => {
+      fetched.push(url)
+      return Promise.resolve('data:font/woff2;base64,AAAA')
+    }
+    const css = '@font-face { font-family: Inter; src: url(../fonts/Inter.woff2) }'
+    const out = await exports.inlineFontFaceUrls(
+      css,
+      'https://site.example/assets/css/app.css',
+    )
+    expect(fetched).toEqual(['https://site.example/assets/fonts/Inter.woff2'])
+    expect(out).toBe(
+      '@font-face { font-family: Inter; src: url(data:font/woff2;base64,AAAA) }',
+    )
+  })
+})
