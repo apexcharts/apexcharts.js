@@ -25,7 +25,6 @@ class Radial extends Pie {
     this.ctx = ctx
     this.w = w
     this.animBeginArr = [0]
-    this.animDur = 0
 
     this.startAngle = w.config.plotOptions.radialBar.startAngle
     this.endAngle = w.config.plotOptions.radialBar.endAngle
@@ -585,8 +584,9 @@ class Radial extends Pie {
       ) {
         dur = w.config.chart.animations.dynamicAnimation.speed
       }
-      this.animDur = dur / (opts.series.length * 1.2) + this.animDur
-      this.animBeginArr.push(this.animDur)
+      // animateArc reads the stagger by series index and completes on the
+      // last index, so ring i starts i steps in, in either loop order.
+      this.animBeginArr[i] = (i * dur) / (opts.series.length * 1.2)
 
       if (morphActive && morphFrom) {
         // Cross-type morph into radialBar ring. The final radialBar is a
@@ -597,6 +597,7 @@ class Radial extends Pie {
         // stroked-arc styling once the morph settles. For other sources
         // (bar's stroked-rect → arc) the existing open-arc target works.
         const morphSpeed = this.ctx.morphTypeChange.getSpeed()
+        const animations = this.ctx.animations
         const actualArcD = this.getPiePath({
           me: this,
           startAngle,
@@ -604,6 +605,8 @@ class Radial extends Pie {
           size: opts.size,
         })
 
+        // As Pie's morph branch: the angle-based path flags completion in
+        // animateArc, so this one must too, or animationEnded stays false.
         if (morphFromFilled) {
           const targetD = this.ctx.morphTypeChange.buildRingSegmentPath(
             opts.centerX,
@@ -626,6 +629,7 @@ class Radial extends Pie {
                   stroke: opts.skipValueArc ? 'transparent' : pathFill,
                   'stroke-width': opts.skipValueArc ? 0 : strokeWidth,
                 })
+                animations.animationCompleted(elPath)
               },
             )
         } else {
@@ -633,6 +637,7 @@ class Radial extends Pie {
             .animate(morphSpeed)
             .plot(actualArcD, 'polygons')
             .attr({ 'stroke-width': strokeWidth })
+            .after(() => animations.animationCompleted(elPath))
         }
       } else {
         this.animatePaths(elPath, {
