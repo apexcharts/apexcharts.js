@@ -11,6 +11,17 @@ import { Environment } from '../../utils/Environment.js'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 /**
+ * @param {Element} el
+ */
+function isLegendItem(el) {
+  return (
+    el.classList.contains('apexcharts-legend-series') ||
+    el.classList.contains('apexcharts-legend-text') ||
+    el.classList.contains('apexcharts-legend-marker')
+  )
+}
+
+/**
  * ApexCharts Legend Class to draw legend.
  *
  * @module Legend
@@ -31,6 +42,24 @@ class Legend {
 
     this.onLegendClick = this.onLegendClick.bind(this)
     this.onLegendHovered = this.onLegendHovered.bind(this)
+    this.onLegendClickEvent = this.onLegendClickEvent.bind(this)
+    this.onLegendPointerDown = this.onLegendPointerDown.bind(this)
+    this.onLegendPointerUp = this.onLegendPointerUp.bind(this)
+
+    /**
+     * The legend item a pointer went down on, kept across re-renders (this
+     * instance outlives the legend DOM). `draw` is the legendDraws count at
+     * pointerdown: a different count at pointerup means the item was rebuilt.
+     * @type {{ rel: string | null, draw: number } | null}
+     */
+    this.legendPress = null
+    this.legendDraws = 0
+    /**
+     * rel of the item whose press pointerup handled, so the click that may
+     * still follow it does not toggle the series back.
+     * @type {string | null}
+     */
+    this.recoveredRel = null
 
     this.isBarsDistributed =
       this.w.config.chart.type === 'bar' &&
@@ -190,6 +219,7 @@ class Legend {
     const me = this
     const w = this.w
     const elLegendWrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
+    this.legendDraws++
 
     const fontFamily = w.config.legend.fontFamily
 
@@ -406,7 +436,14 @@ class Legend {
       }
     }
 
-    w.dom.elWrap.addEventListener('click', me.onLegendClick, true)
+    w.dom.elWrap.addEventListener('click', me.onLegendClickEvent, true)
+
+    // A live update (updateSeries / updateOptions on a timer) can rebuild the
+    // legend between pointerdown and pointerup. The pressed element has then
+    // left the DOM and the browser fires no click, so pointerup handles a
+    // press whose item was rebuilt under the pointer.
+    w.dom.elWrap.addEventListener('pointerdown', me.onLegendPointerDown, true)
+    w.dom.elWrap.addEventListener('pointerup', me.onLegendPointerUp, true)
 
     if (
       w.config.legend.onItemHover.highlightDataSeries &&
@@ -598,6 +635,54 @@ class Legend {
         })
       }
     }
+  }
+
+  /**
+   * @param {PointerEvent} e
+   */
+  onLegendPointerDown(e) {
+    const target = /** @type {Element} */ (e.target)
+    this.recoveredRel = null
+    this.legendPress =
+      e.button === 0 && isLegendItem(target)
+        ? { rel: target.getAttribute('rel'), draw: this.legendDraws }
+        : null
+  }
+
+  /**
+   * @param {PointerEvent} e
+   */
+  onLegendPointerUp(e) {
+    const press = this.legendPress
+    this.legendPress = null
+    const target = /** @type {Element} */ (e.target)
+
+    if (
+      press &&
+      press.draw !== this.legendDraws &&
+      isLegendItem(target) &&
+      target.getAttribute('rel') === press.rel
+    ) {
+      this.recoveredRel = press.rel
+      this.onLegendClick(e)
+    }
+  }
+
+  /**
+   * @param {MouseEvent} e
+   */
+  onLegendClickEvent(e) {
+    // Touch input still sends a click after a press that pointerup handled:
+    // the tap is hit-tested on release. Toggling again would undo it. Only
+    // the browser's own click is dropped; el.click() from code goes through.
+    const rel = this.recoveredRel
+    this.recoveredRel = null
+    const target = /** @type {Element} */ (e.target)
+    if (rel !== null && e.isTrusted && target.getAttribute('rel') === rel) {
+      return
+    }
+
+    this.onLegendClick(e)
   }
 
   /**
