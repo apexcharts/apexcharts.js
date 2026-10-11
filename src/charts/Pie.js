@@ -411,8 +411,12 @@ class Pie {
         }
       }
       // A slice the previous render did not have (the series grew, or it was
-      // empty) grows from a zero-width wedge at the running end.
-      while (this.prevSectorAngleArr.length < series.length) {
+      // empty) grows from a zero-width wedge at the running end. Not on an
+      // update asked not to animate: no previous angles is what snaps it.
+      while (
+        w.globals.shouldAnimate !== false &&
+        this.prevSectorAngleArr.length < series.length
+      ) {
         this.prevSectorAngleArr.push(0)
       }
     }
@@ -1099,9 +1103,14 @@ class Pie {
     // No previous angle (a radialBar ring the last render did not have): grow
     // from nothing. Forcing the static branch here would flag animationEnded
     // mid-render and swallow the sweep's completion.
+    // An update asked not to animate (animate: false) lands at once, as before.
     if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
       fromStartAngle = toStartAngle
       prevAngle = 0
+      if (w.globals.shouldAnimate === false) {
+        prevAngle = angle
+        opts.dur = 0
+      }
     }
 
     let currAngle = angle
