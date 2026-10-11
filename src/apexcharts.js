@@ -104,6 +104,25 @@ function unloadedTypeRejection(chartType, series) {
   return null
 }
 
+/**
+ * Copy at the boundary: the update pipeline normalises its payload in place,
+ * which rewrote the caller's objects and threw on a frozen (store) payload.
+ * A deep copy, except for the series' data arrays, which are kept by
+ * reference: they can be large, and the pipeline only ever replaces them.
+ *
+ * @template T
+ * @param {T} payload
+ * @param {any[]} [series] the series inside `payload`
+ * @returns {T}
+ */
+function copyPayload(payload, series) {
+  const seen = new WeakMap()
+  ;(series || []).forEach(
+    (s) => s && Array.isArray(s.data) && seen.set(s.data, s.data),
+  )
+  return Utils.clone(payload, seen)
+}
+
 export default class ApexCharts {
   // Module properties set dynamically by InitCtxVariables.initModules().
   // Declared as typed class fields so @ts-check resolves them throughout the
@@ -972,6 +991,16 @@ export default class ApexCharts {
   ) {
     const w = this.w
 
+    // The contract is a promise, so a missing payload (a wrapper forwarding a
+    // prop that is not set yet) must not throw synchronously below. Nor must
+    // a destroyed chart, whose modules destroy() released until render().
+    if (!this.core || !Utils.isObject(options)) {
+      console.warn(
+        'ApexCharts: updateOptions() ignored the call: no options object, or a destroyed chart.',
+      )
+      return Promise.resolve(this)
+    }
+
     // A non-array `series` (most commonly a null, e.g. rowSeries() when the
     // current type has no row source) must not reach the merge: it would
     // replace config.series and the initialSeries snapshot, and every later
@@ -984,6 +1013,7 @@ export default class ApexCharts {
       options = { ...options }
       delete options.series
     }
+    options = copyPayload(options, options.series)
     // `tooltip: undefined` means "not given" (see Config.dropEmptyOptions).
     options = Config.dropEmptyOptions(options)
 
@@ -1123,6 +1153,7 @@ export default class ApexCharts {
       )
       return Promise.resolve(this)
     }
+    newSeries = copyPayload(newSeries, newSeries)
     // A combo series of an opt-in type the page never loaded: refused before
     // anything moves, as in updateOptions.
     const unloaded = unloadedTypeRejection(undefined, newSeries)

@@ -356,8 +356,17 @@ describe('parse-state writers do not force lazy state', () => {
     expect(stackedSpy).not.toHaveBeenCalled()
     expect(groupsSpy).not.toHaveBeenCalled()
     expect(percentSpy).not.toHaveBeenCalled()
-    // a data-only update of a plain numeric line must not deep-clone anything
-    expect(cloneSpy).not.toHaveBeenCalled()
+    // a data-only update of a plain numeric line must not deep-clone its data.
+    // (The update boundary copies the caller's series objects through
+    // Utils.clone with each data array pre-seeded as its own copy, so a call
+    // that reaches a data array returns it as is: those calls do not count.)
+    const dataClones = cloneSpy.mock.calls.filter(
+      ([src, seen]) =>
+        Array.isArray(src) &&
+        src.length >= 200 &&
+        !(seen instanceof WeakMap && seen.get(src) === src),
+    )
+    expect(dataClones).toEqual([])
 
     // the lazy fields must still be live accessor properties, not
     // materialized values copied over them
