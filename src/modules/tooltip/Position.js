@@ -466,23 +466,20 @@ export default class Position {
         5 +
         w.config.xaxis.offsetY
 
-      const xaxisTTText = ttCtx.xaxisTooltip.getBoundingClientRect()
-      const xaxisTTTextWidth = xaxisTTText.width
+      // The min-width for this label goes in before the box is measured:
+      // measured first, the box was centred on the previous label's width.
+      if (ttCtx.xaxisTooltipText) {
+        const textRect = new Graphics(this.w).getTextRects(
+          ttCtx.xaxisTooltipText.innerHTML,
+          w.config.xaxis.labels.style.fontSize,
+        )
+        ttCtx.xaxisTooltipText.style.minWidth = textRect.width + 'px'
+      }
 
-      cx = cx - xaxisTTTextWidth / 2
+      cx = cx - ttCtx.xaxisTooltip.getBoundingClientRect().width / 2
 
       if (!isNaN(cx)) {
         cx = cx + w.layout.translateX
-
-        const graphics = new Graphics(this.w)
-        const textRect = graphics.getTextRects(
-          ttCtx.xaxisTooltipText?.innerHTML ?? '',
-          w.config.xaxis.labels.style.fontSize,
-        )
-
-        if (ttCtx.xaxisTooltipText) {
-          ttCtx.xaxisTooltipText.style.minWidth = textRect.width + 'px'
-        }
         ttCtx.xaxisTooltip.style.left = cx + 'px'
         ttCtx.xaxisTooltip.style.top = cy + 'px'
       }
