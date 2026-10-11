@@ -106,6 +106,29 @@ describe('data-only update fast path', () => {
     chart.destroy()
   })
 
+  it('rotated x labels stay rotated when the in-place axis path redraws them', async () => {
+    // parseData resets rotateXLabels and only Dimensions sets it again, which
+    // the fast path skips: the labels came back flat in a band sized for
+    // rotated ones.
+    const categories = Array.from({ length: 40 }, (_, i) => `A long category name ${i}`)
+    const data = Array.from({ length: 40 }, (_, i) => (i % 7) + 1)
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [{ name: 'S', data }],
+      xaxis: { categories },
+    })
+    const firstTransform = () =>
+      document.querySelector('.apexcharts-xaxis-texts-g text')?.getAttribute('transform') ?? ''
+    expect(chart.w.layout.rotateXLabels).toBe(true)
+    expect(firstTransform()).toMatch(/^rotate\(/)
+
+    await chart.updateSeries([{ name: 'S', data: data.map((v) => v * 1000) }])
+    expect(chart._updateStats.fastWithAxes).toBe(1)
+    expect(chart.w.layout.rotateXLabels).toBe(true)
+    expect(firstTransform()).toMatch(/^rotate\(/)
+    chart.destroy()
+  })
+
   it('numeric x on the default axis type keeps the fast path', async () => {
     // The render rewrites labelData.labels into tick values on these charts,
     // so a signature over labels never matched and every update went full.

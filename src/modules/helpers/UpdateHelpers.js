@@ -375,8 +375,11 @@ export default class UpdateHelpers {
       // is inset by it on both sides so edge columns, candles and boxes have
       // room. parseData resets it with the other per-render values and only
       // Dimensions sets it again, which the fast path skips on a numeric (not
-      // datetime) x axis, so it is put back for the fast path below.
+      // datetime) x axis, so it is put back for the fast path below. The x
+      // label rotation is the same kind of layout value: left reset, the
+      // chrome refresh drew the labels flat in a band sized for rotated ones.
       const prevBarPad = w.globals.barPadForNumericAxis
+      const prevRotate = w.layout.rotateXLabels
 
       // Capture previous series count and per-series data lengths BEFORE
       // parsing (parseData overwrites w.seriesData.series)
@@ -478,6 +481,7 @@ export default class UpdateHelpers {
         // Bar.renderSeries and was not drawn (or drawn leaving, then removed),
         // and the tooltip, crosshair and gridlines lost their edge pad.
         w.globals.barPadForNumericAxis = prevBarPad
+        w.layout.rotateXLabels = prevRotate
         return this.ctx
           .fastUpdate(animate, prevAxisScaleSig)
           .then(() => {
