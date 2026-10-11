@@ -3,6 +3,7 @@ import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
 import Data from '../Data'
+import { renderMarkerSVG } from './Marker'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -379,6 +380,9 @@ export default class Labels {
     if (!ttItems || !ttItems[t]) return
 
     const refs = this.rowRefs(ttItems[t])
+    // The series this row speaks for. A non-shared tooltip writes the hovered
+    // series into a single row, so its index says nothing of the series.
+    const s = shared ? t : i
 
     let ttItemsChildren = null
     ttItemsChildren = ttItems[t].children
@@ -424,13 +428,20 @@ export default class Labels {
         w.config.tooltip.marker.fillColors &&
         Array.isArray(w.config.tooltip.marker.fillColors)
       ) {
-        pColor = w.config.tooltip.marker.fillColors[t]
+        pColor = w.config.tooltip.marker.fillColors[s]
       }
 
       if (w.config.tooltip.fillSeriesColor) {
         ttItemsChildren[0].style.backgroundColor = pColor
       } else {
         ttItemsChildren[0].style.color = pColor
+      }
+
+      const shapes = w.config.markers.shape
+      if (Array.isArray(shapes) && refs.shape !== shapes[s]) {
+        refs.shape = shapes[s]
+        ttItemsChildren[0].setAttribute('shape', refs.shape)
+        ttItemsChildren[0].innerHTML = renderMarkerSVG(refs.shape)
       }
     }
 
@@ -441,14 +452,13 @@ export default class Labels {
     // Highlight filter: the row states its series' part against the whole.
     const hf = ttCtx.ctx.highlightFilter
     if (hf) {
-      const s = shared ? t : i
       hf.tooltipRow(refs, s, j, this.getFormatters(s))
     }
 
     const ttGLabel = refs.goalsLabel
     const ttGVal = refs.goalsValue
 
-    if (goalVals.length && w.seriesData.seriesGoals[t]) {
+    if (goalVals.length && w.seriesData.seriesGoals[s]) {
       const createGoalsHtml = () => {
         let gLabels = '<div>'
         let gVals = '<div>'
@@ -516,7 +526,7 @@ export default class Labels {
     } else {
       if (
         Array.isArray(ttCtx.tConfig.enabledOnSeries) &&
-        ttCtx.tConfig.enabledOnSeries.indexOf(t) === -1
+        ttCtx.tConfig.enabledOnSeries.indexOf(s) === -1
       ) {
         ttItemsChildren[0].parentNode.style.display = 'none'
       }

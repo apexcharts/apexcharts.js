@@ -161,3 +161,46 @@ describe('bar hover reset leaves untouched bars alone', () => {
     chart.destroy()
   })
 })
+
+describe('a non-shared tooltip row takes the hovered series config', () => {
+  it('reads enabledOnSeries, marker.fillColors and markers.shape by series', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [
+        { name: 'a', data: [1, 2, 3] },
+        { name: 'b', data: [3, 2, 1] },
+      ],
+      markers: { size: 4, shape: ['circle', 'square'] },
+      tooltip: {
+        shared: false,
+        enabledOnSeries: [1],
+        marker: { fillColors: ['#ff0000', '#00ff00'] },
+      },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    expect(tt.ttItems.length).toBe(1)
+    const row = tt.ttItems[0]
+    const marker = row.querySelector('.apexcharts-tooltip-marker')
+
+    tt.tooltipLabels.drawSeriesTexts({
+      shared: false,
+      ttItems: tt.ttItems,
+      i: 1,
+      j: 0,
+    })
+    expect(row.style.display).not.toBe('none')
+    expect(marker.style.color).toBe('rgb(0, 255, 0)')
+    expect(marker.getAttribute('shape')).toBe('square')
+
+    tt.tooltipLabels.drawSeriesTexts({
+      shared: false,
+      ttItems: tt.ttItems,
+      i: 0,
+      j: 0,
+    })
+    expect(row.style.display).toBe('none')
+    expect(marker.getAttribute('shape')).toBe('circle')
+    chart.destroy()
+  })
+})
