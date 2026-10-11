@@ -12,6 +12,19 @@ const DESCENT_EM = 0.25
 const LINE_HEIGHT_EM = 1.1
 const DEFAULT_FONT_SIZE = 11
 
+// The browser escapes text and attribute values when it serializes a node, so
+// the shim must too: a category label like `Tom & Jerry` would otherwise make
+// the SVG malformed, and `<img onerror=...>` would become live markup in
+// renderToHTML output.
+/** @param {any} value */
+const escapeText = (value) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+/** @param {any} value */
+const escapeAttr = (value) => escapeText(value).replace(/"/g, '&quot;')
+
 /**
  * Mock SVG element for SSR environment
  */
@@ -26,7 +39,10 @@ class SSRElement {
     this.attributes = new Map()
     /** @type {any[]} */
     this.children = []
-    this.textContent = ''
+    this._text = ''
+    // Set when the text arrived through innerHTML: that is markup the library
+    // or the user wrote on purpose (legend markers, icons), emitted as is.
+    this._rawHTML = false
     this.style = {}
     this.classList = new SSRClassList()
     this.parentNode = /** @type {SSRElement | null} */ (null)
@@ -120,7 +136,8 @@ class SSRElement {
 
   cloneNode(deep = false) {
     const clone = new SSRElement(this.nodeName, this.namespaceURI)
-    clone.textContent = this.textContent
+    clone._text = this._text
+    clone._rawHTML = this._rawHTML
 
     // Copy attributes
     this.attributes.forEach((value, key) => {
@@ -229,25 +246,36 @@ class SSRElement {
   toString() {
     let attrs = ''
     this.attributes.forEach((value, key) => {
-      attrs += ` ${key}="${value}"`
+      attrs += ` ${key}="${escapeAttr(value)}"`
     })
 
-    if (this.children.length === 0 && !this.textContent) {
+    if (this.children.length === 0 && !this._text) {
       return `<${this.nodeName}${attrs}/>`
     }
 
+    const text = this._rawHTML ? this._text : escapeText(this._text)
     const childrenStr = this.children.map((c) => c.toString()).join('')
-    return `<${this.nodeName}${attrs}>${this.textContent}${childrenStr}</${this.nodeName}>`
+    return `<${this.nodeName}${attrs}>${text}${childrenStr}</${this.nodeName}>`
   }
 
   // Property getters/setters
+  get textContent() {
+    return this._text
+  }
+
+  set textContent(value) {
+    this._text = value
+    this._rawHTML = false
+  }
+
   get innerHTML() {
     return this.children.map((c) => c.toString()).join('')
   }
 
   set innerHTML(value) {
     this.children = []
-    this.textContent = value
+    this._text = value
+    this._rawHTML = true
   }
 
   get outerHTML() {
@@ -339,7 +367,7 @@ export class SSRDOMShim {
       nodeType: 3,
       textContent: data,
       toString() {
-        return node.textContent
+        return escapeText(node.textContent)
       },
     }
     return node

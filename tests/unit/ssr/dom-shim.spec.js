@@ -336,6 +336,26 @@ describe('SSRDOMShim', () => {
       expect(html).toContain('<rect')
       expect(html).toContain('x="10"')
     })
+
+    it('escapes text and attribute values like a browser serializer', () => {
+      const element = new SSRElement('text')
+      element.setAttribute('aria-label', 'R&D "x" <b>')
+      element.textContent = 'Tom & Jerry <img>'
+      element.appendChild(shim.createTextNode('a < b'))
+
+      expect(element.toString()).toBe(
+        '<text aria-label="R&amp;D &quot;x&quot; &lt;b&gt;">Tom &amp; Jerry &lt;img&gt;a &lt; b</text>',
+      )
+    })
+
+    it('keeps markup set through innerHTML raw, until text replaces it', () => {
+      const element = new SSRElement('div')
+      element.innerHTML = '<span class="m"></span>'
+      expect(element.toString()).toBe('<div><span class="m"></span></div>')
+
+      element.textContent = '<span>'
+      expect(element.toString()).toBe('<div>&lt;span&gt;</div>')
+    })
   })
 
   describe('SSRClassList', () => {
