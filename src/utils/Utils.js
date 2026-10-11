@@ -831,16 +831,18 @@ class Utils {
    */
   static getPrimeFactors(n) {
     const factors = []
-    let divisor = 2
+    // Callers pass tick counts. A fractional count never divides down to 1,
+    // which used to spin this loop forever and freeze the tab.
+    n = Math.round(Math.abs(n))
+    if (!Number.isFinite(n)) return factors
 
-    while (n >= 2) {
-      if (n % divisor == 0) {
+    for (let divisor = 2; divisor * divisor <= n; divisor++) {
+      while (n % divisor === 0) {
         factors.push(divisor)
         n = n / divisor
-      } else {
-        divisor++
       }
     }
+    if (n >= 2) factors.push(n)
     return factors
   }
 

@@ -319,10 +319,13 @@ export default class Scales {
     // range is very low (< 10 or so). Skip this step if gotTickAmount is true
     // because either the user set tickAmount or the chart is multiscale and
     // this axis is not determining the number of grid lines.
+    // A fractional user min or max makes the range fractional even when the
+    // data is all integers; one tick per unit does not apply then.
     if (
       !gotTickAmount &&
       axisCnf.forceNiceScale &&
       gl.yValueDecimal === 0 &&
+      Number.isInteger(range) &&
       tiks > range
     ) {
       tiks = range
