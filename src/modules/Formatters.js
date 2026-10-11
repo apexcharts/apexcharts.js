@@ -238,9 +238,16 @@ class Formatters {
   heatmapLabelFormatters() {
     const w = this.w
     if (w.config.chart.type === 'heatmap') {
-      w.globals.yAxisScale[0].result = /** @type {any} */ (
-        w.seriesData.seriesNames.slice()
-      )
+      // n names need n+1 ticks to sit centred in n rows. Padding here, not in
+      // HeatMap.draw, gives create, the update fast path's axis-scale
+      // signature and its chrome refresh the same scale.
+      const names = w.seriesData.seriesNames.slice()
+      if (w.config.yaxis[0].reversed) {
+        names.unshift('')
+      } else {
+        names.push('')
+      }
+      w.globals.yAxisScale[0].result = /** @type {any} */ (names)
 
       //  get the longest string from the labels array and also apply label formatter to it
       /**

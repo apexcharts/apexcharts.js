@@ -434,17 +434,6 @@ export default class HeatMap {
       ret.add(elSeries)
     }
 
-    // adjust yaxis labels for heatmap
-    const yAxisScale = /** @type {any[]} */ (
-      w.globals.yAxisScale[0].result.slice()
-    )
-    if (w.config.yaxis[0].reversed) {
-      yAxisScale.unshift('')
-    } else {
-      yAxisScale.push('')
-    }
-    w.globals.yAxisScale[0].result = yAxisScale
-
     return ret
   }
 
