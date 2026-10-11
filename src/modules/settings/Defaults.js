@@ -378,8 +378,13 @@ export default class Defaults {
       chartDefaults = defaults.funnel()
     }
 
+    // Laid over the type's own defaults rather than replacing them with a
+    // plain bar's: a stacked histogram kept neither its touching bins nor its
+    // bin-range tooltip.
     if (opts.chart.stacked && opts.chart.type === 'bar') {
-      chartDefaults = defaults.stackedBars()
+      chartDefaults = Utils.extend(chartDefaults, {
+        plotOptions: { bar: { borderRadiusApplication: 'end' } },
+      })
     }
 
     return chartDefaults
@@ -1812,20 +1817,6 @@ export default class Defaults {
       return plain(val)
     }
     return opts
-  }
-
-  stackedBars() {
-    const barDefaults = this.bar()
-    return {
-      ...barDefaults,
-      plotOptions: {
-        ...barDefaults.plotOptions,
-        bar: {
-          ...barDefaults.plotOptions.bar,
-          borderRadiusApplication: 'end',
-        },
-      },
-    }
   }
 
   // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area

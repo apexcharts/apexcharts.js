@@ -21,6 +21,10 @@ import { createChartWithOptions } from './utils/utils.js'
 import '../../src/entries/violin.js'
 import '../../src/entries/histogram.js'
 import '../../src/entries/streamgraph.js'
+import '../../src/entries/raincloud.js'
+import '../../src/entries/dumbbell.js'
+import '../../src/entries/unit.js'
+import '../../src/entries/treemap.js'
 
 const TIERS = [
   { x: 'Express', points: [1.2, 1.4, 1.5, 1.6, 1.8, 1.3, 1.7, 1.5] },
@@ -302,5 +306,16 @@ describe('the axis an alias picks hands over too (#5343)', () => {
     })
     await chart.updateOptions({ chart: { type: 'streamgraph' }, series: BANDS })
     expect(chart.w.config.yaxis[0].show).toBe(false)
+  })
+})
+
+describe('stacking layers over the type defaults', () => {
+  it('a stacked histogram keeps its touching bins', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'histogram', stacked: true },
+      series: [{ name: 'a', data: [1, 2, 2, 3, 3, 3, 4] }],
+    })
+    expect(chart.w.config.plotOptions.bar.columnWidth).toBe('100%')
+    expect(chart.w.config.plotOptions.bar.borderRadiusApplication).toBe('end')
   })
 })
