@@ -211,7 +211,10 @@ describe('Hydration', () => {
       expect(merged.chart.animations.speed).toBe(800)
     })
 
-    it('should re-enable animations by default', () => {
+    // The embedded config is the user's own options: renderToHTML encodes
+    // them before the SSR-only animations/toolbar overrides. An explicit
+    // false there was the user's choice and must survive hydration.
+    it("keeps the user's animations.enabled: false", () => {
       const ssrConfig = {
         series: [{ data: [30, 40, 35] }],
         chart: {
@@ -222,10 +225,10 @@ describe('Hydration', () => {
 
       const merged = Hydration._mergeConfigs(ssrConfig, {})
 
-      expect(merged.chart.animations.enabled).toBe(true)
+      expect(merged.chart.animations.enabled).toBe(false)
     })
 
-    it('should re-enable toolbar by default', () => {
+    it("keeps the user's toolbar.show: false", () => {
       const ssrConfig = {
         series: [{ data: [30, 40, 35] }],
         chart: {
@@ -236,28 +239,22 @@ describe('Hydration', () => {
 
       const merged = Hydration._mergeConfigs(ssrConfig, {})
 
-      expect(merged.chart.toolbar.show).toBe(true)
+      expect(merged.chart.toolbar.show).toBe(false)
     })
 
-    it('should always re-enable animations unless complex override provided', () => {
-      const ssrConfig = {
-        series: [{ data: [30, 40, 35] }],
-        chart: {
-          type: 'bar',
-          animations: { enabled: false },
-        },
-      }
+    it('leaves animations and toolbar to the defaults when unset', () => {
+      const merged = Hydration._mergeConfigs({ chart: { type: 'bar' } }, {})
 
-      const clientOptions = {
-        chart: {
-          animations: { enabled: false },
-        },
-      }
+      expect(merged.chart.animations).toBeUndefined()
+      expect(merged.chart.toolbar).toBeUndefined()
+    })
 
-      const merged = Hydration._mergeConfigs(ssrConfig, clientOptions)
+    it('lets client options turn animations back on', () => {
+      const merged = Hydration._mergeConfigs(
+        { chart: { type: 'bar', animations: { enabled: false } } },
+        { chart: { animations: { enabled: true } } },
+      )
 
-      // Note: Current implementation always re-enables if enabled === false
-      // This is by design to provide better UX on hydration
       expect(merged.chart.animations.enabled).toBe(true)
     })
 
@@ -317,13 +314,10 @@ describe('Hydration', () => {
 
       const merged = Hydration._mergeConfigs(ssrConfig, clientOptions)
 
-      // merged.chart.animations = { speed: 800 } (from clientOptions spread)
-      // The condition checks: animations === undefined (false) OR animations.enabled === false (false, because enabled is undefined)
-      // So the re-enable block doesn't execute
-      // Therefore enabled remains undefined
+      // chart.animations is replaced whole by the client's object.
       expect(merged.chart.animations.enabled).toBeUndefined()
       expect(merged.chart.animations.speed).toBe(800)
-      expect(merged.chart.toolbar.show).toBe(true)
+      expect(merged.chart.toolbar.show).toBe(false)
     })
 
     it('should not mutate original configs', () => {

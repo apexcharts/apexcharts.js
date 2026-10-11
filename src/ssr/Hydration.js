@@ -203,31 +203,12 @@ export class Hydration {
 
     // Special handling for chart object (deep merge)
     if (ssrConfig.chart || clientOptions.chart) {
+      // The embedded config is the caller's own (renderToHTML encodes the
+      // options before the SSR-only animations and toolbar overrides), so an
+      // animations or toolbar setting found here is the user's and stands.
       merged.chart = {
         ...ssrConfig.chart,
         ...clientOptions.chart,
-      }
-
-      // Re-enable animations by default for hydration (unless explicitly disabled)
-      if (
-        merged.chart.animations === undefined ||
-        merged.chart.animations.enabled === false
-      ) {
-        merged.chart.animations = {
-          ...(merged.chart.animations || {}),
-          enabled: true,
-        }
-      }
-
-      // Re-enable toolbar if it was disabled for SSR (unless explicitly set)
-      if (
-        clientOptions.chart?.toolbar === undefined &&
-        ssrConfig.chart?.toolbar?.show === false
-      ) {
-        merged.chart.toolbar = {
-          ...(merged.chart.toolbar || {}),
-          show: true,
-        }
       }
     }
 
