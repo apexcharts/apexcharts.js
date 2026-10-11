@@ -316,6 +316,8 @@ export default class Tooltip {
     this.showOnIntersect = this.tConfig.intersect
     this.showTooltipTitle = this.tConfig.x.show
     this.fixedTooltip = this.tConfig.fixed.enabled
+    // The constructor runs before the bar orientation is known.
+    this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
     this.isXAxisTooltipEnabled =
       w.config.xaxis.tooltip.enabled && w.globals.axisCharts
     /**

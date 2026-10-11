@@ -65,3 +65,32 @@ describe('y-axis tooltip nodes follow a re-render', () => {
     chart.destroy()
   })
 })
+
+describe('isBarShared follows the render', () => {
+  it('is false for horizontal bars', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 400, height: 300 },
+      plotOptions: { bar: { horizontal: true } },
+      series: [{ name: 'a', data: [1, 2, 3] }],
+      tooltip: { shared: true, intersect: false },
+    })
+    await tick()
+    expect(chart.w.globals.isBarHorizontal).toBe(true)
+    expect(chart.w.globals.tooltip.isBarShared).toBe(false)
+    chart.destroy()
+  })
+
+  it('follows tooltip.shared through updateOptions', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 400, height: 300 },
+      series: [{ name: 'a', data: [1, 2, 3] }],
+      tooltip: { shared: false },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    expect(tt.isBarShared).toBe(false)
+    await chart.updateOptions({ tooltip: { shared: true, intersect: false } })
+    expect(chart.w.globals.tooltip.isBarShared).toBe(true)
+    chart.destroy()
+  })
+})
