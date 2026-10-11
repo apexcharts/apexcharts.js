@@ -790,11 +790,14 @@ class Pie {
           !w.globals.dataChanged &&
           this.animDur > 0
         ) {
-          const _this = this
-          const _i = i
-          setTimeout(() => _this.pieClicked(_i, { animate: false }), this.animDur)
+          // A later render or a destroy owns the DOM by the time this fires,
+          // and parks its own slices, so only this render's paper is touched.
+          const paper = w.dom.Paper
+          setTimeout(() => {
+            if (w.dom.Paper === paper) this.setSliceOut(i)
+          }, this.animDur)
         } else {
-          this.pieClicked(i, { animate: false })
+          this.setSliceOut(i)
         }
       }
 
@@ -1221,18 +1224,22 @@ class Pie {
     // Pull in whichever slice is currently out. Only slices actually marked out
     // are touched: an unconditional pass would write a transform onto every
     // slice, and (as it did when this restored `data:pathOrig` instead) fight
-    // with a cross-type morph still animating the paths.
-    const allEls = w.dom.baseEl.getElementsByClassName('apexcharts-pie-area')
-    /**
-     * @param {any} pieSlice
-     */
-    Array.prototype.forEach.call(allEls, (pieSlice) => {
-      const wasOut = pieSlice.getAttribute('data:pieClicked') === 'true'
-      pieSlice.setAttribute('data:pieClicked', 'false')
-      if (wasOut) {
-        this.offsetSlice(parseInt(pieSlice.getAttribute('j'), 10), 0, animate)
-      }
-    })
+    // with a cross-type morph still animating the paths. With multiple
+    // selection every selected slice stays out, as the pull-out is its only
+    // selected cue.
+    if (!w.config.states.active.allowMultipleDataPointsSelection) {
+      const allEls = w.dom.baseEl.getElementsByClassName('apexcharts-pie-area')
+      /**
+       * @param {any} pieSlice
+       */
+      Array.prototype.forEach.call(allEls, (pieSlice) => {
+        const wasOut = pieSlice.getAttribute('data:pieClicked') === 'true'
+        pieSlice.setAttribute('data:pieClicked', 'false')
+        if (wasOut) {
+          this.offsetSlice(parseInt(pieSlice.getAttribute('j'), 10), 0, animate)
+        }
+      })
+    }
     w.interact.capturedDataPointIndex = i
 
     elPath.attr('data:pieClicked', 'true')
@@ -1405,6 +1412,15 @@ class Pie {
     if (this.elHoverOutline) {
       this.elHoverOutline.node.style.opacity = '0'
     }
+  }
+
+  /**
+   * Park a pre-selected slice outside the pie without sliding it. Unlike the
+   * pieClicked toggle this is idempotent, so a second pass leaves it out.
+   * @param {number} i
+   */
+  setSliceOut(i) {
+    if (!this.isSliceOut(i)) this.pieClicked(i, { animate: false })
   }
 
   /** @param {number} i @returns {boolean} */
