@@ -1383,14 +1383,17 @@ export default class ApexCharts {
       }
       if (w.config.chart.sparkline.enabled) return true // no axis chrome at all
 
+      // Annotations added through the API (add*Annotation) never reach
+      // config: they live only in the replay memory, which only mount() runs.
       const a = w.config.annotations
       if (
-        a &&
-        ((a.yaxis && a.yaxis.length) ||
-          (a.xaxis && a.xaxis.length) ||
-          (a.points && a.points.length) ||
-          (a.texts && a.texts.length) ||
-          (a.images && a.images.length))
+        gl.memory.methodsToExec.length ||
+        (a &&
+          ((a.yaxis && a.yaxis.length) ||
+            (a.xaxis && a.xaxis.length) ||
+            (a.points && a.points.length) ||
+            (a.texts && a.texts.length) ||
+            (a.images && a.images.length)))
       ) {
         this._fastAxisBailReason = 'annotations'
         return false
@@ -1549,6 +1552,13 @@ export default class ApexCharts {
         const gl = w.globals
         // As in update(): a morph already shown is over for this render.
         this.morphTypeChange?.retire()
+        // The screen no longer shows the options update() last drew, so its
+        // identical-options skip must not fire on them again.
+        this.lastUpdateOptions = null
+        // Each redraw below mints fresh gradients, filters and patterns into
+        // the kept <defs>; the ones it orphans are swept at the end.
+        const defs = w.dom.elDefs && w.dom.elDefs.node
+        const defsBefore = defs && defs.childElementCount
 
         gl.shouldAnimate = animate
         gl.dataChanged = true
@@ -1672,6 +1682,15 @@ export default class ApexCharts {
           el.parentNode?.removeChild(el),
         )
 
+        // Line.draw appends this render's forecast cutoff to the kept clip
+        // paths; a clip path is the union of its rects, so drop the old ones.
+        // (forecastMask and nonForecastMask, both in the kept <defs>)
+        if (defs) {
+          defs
+            .querySelectorAll('[id*=orecastMask]>*')
+            .forEach((/** @type {Element} */ r) => r.remove())
+        }
+
         // Redraw series paths into the existing graphical container.
         const elGraph = this.core.plotChartType(w.config.series, xyRatios)
 
@@ -1742,6 +1761,22 @@ export default class ApexCharts {
 
         // Weave: main render hook (fast path): rebuild plugin layers.
         this.weave?.dispatch('draw', { pass: 'fast', xyRatios })
+
+        if (defs && defs.childElementCount > defsBefore) {
+          // Every id a `url(#id)` paint or filter reference names (the Set
+          // also collects the other attribute values, which match no id).
+          const used = new Set()
+          this.el
+            .querySelectorAll('[fill^=url],[stroke^=url],[filter^=url]')
+            .forEach((/** @type {Element} */ n) => {
+              for (const a of n.attributes) used.add(a.value.slice(5, -1))
+            })
+          // SVGGradient, SVGPattern and SVGFilter mint `Svgjs*` ids; the
+          // clip paths, masks and cached image patterns are left alone.
+          defs
+            .querySelectorAll('[id^=Svgjs]')
+            .forEach((/** @type {Element} */ d) => used.has(d.id) || d.remove())
+        }
 
         if (typeof w.config.chart.events.updated === 'function') {
           w.config.chart.events.updated(this, w)
