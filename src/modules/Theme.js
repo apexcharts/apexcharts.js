@@ -25,8 +25,8 @@ export default class Theme {
     this.w = w
     this.colors = []
     this.isColorFn = false
-    this.isHeatmapDistributed = this.checkHeatmapDistributed()
-    this.isBarDistributed = this.checkBarDistributed()
+    this.isHeatmapDistributed = false
+    this.isBarDistributed = false
     /** @type {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}} */
     this._tokens = {}
     /** @type {any} */
@@ -61,6 +61,12 @@ export default class Theme {
   setDefaultColors() {
     const w = this.w
     const utils = new Utils()
+
+    // This instance serves every render, so whatever the last config decided
+    // is re-read here rather than cached from construction.
+    this.isColorFn = false
+    this.isHeatmapDistributed = this.checkHeatmapDistributed()
+    this.isBarDistributed = this.checkBarDistributed()
 
     // Facet (#13): resolve a registered named theme (theme.name) and apply its
     // mode / monochrome / accessibility BEFORE the class + mode defaults, but
@@ -344,7 +350,7 @@ export default class Theme {
     const { color, shadeIntensity, shadeTo } = monochrome
     const glsCnt =
       this.isBarDistributed || this.isHeatmapDistributed
-        ? series[0].length * series.length
+        ? this.distributedCount()
         : series.length
     const part = 1 / (glsCnt / shadeIntensity)
     let percent = 0
@@ -374,7 +380,7 @@ export default class Theme {
       ].colors =
         w.config[c].colors === undefined
           ? this.isColorFn
-            ? w.config.colors
+            ? w.config.colors.slice()
             : defaultColors
           : w.config[c].colors.slice()
       this.pushExtraColors(
@@ -435,9 +441,7 @@ export default class Theme {
     }
 
     if (distributed && w.seriesData.series.length) {
-      len =
-        w.seriesData.series[w.globals.maxValsInArrayIndex].length *
-        w.seriesData.series.length
+      len = this.distributedCount()
     }
 
     if (colorSeries.length < len) {
@@ -446,6 +450,18 @@ export default class Theme {
         colorSeries.push(colorSeries[i])
       }
     }
+  }
+
+  /**
+   * How many colours a distributed chart needs: one per point of the longest
+   * series, for every series. 0 for an empty chart.
+   * @returns {number}
+   */
+  distributedCount() {
+    const series = this.w.seriesData.series
+    return series.length
+      ? series[this.w.globals.maxValsInArrayIndex].length * series.length
+      : 0
   }
 
   /**
