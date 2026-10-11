@@ -378,3 +378,45 @@ describe('custom tooltip y1/y2 on a sticky rangeArea', () => {
     expect(got).toEqual([2, 6])
   })
 })
+
+describe('range tooltip values follow the series type', () => {
+  it('prints a line beside a rangeArea as one value', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'rangeArea', width: 400, height: 300 },
+      series: [
+        {
+          name: 'r',
+          type: 'rangeArea',
+          data: [
+            { x: 'a', y: [1, 5] },
+            { x: 'b', y: [2, 6] },
+          ],
+        },
+        {
+          name: 'l',
+          type: 'line',
+          data: [
+            { x: 'a', y: 4 },
+            { x: 'b', y: 3 },
+          ],
+        },
+      ],
+    })
+    await tick()
+    const L = chart.w.globals.tooltip.tooltipLabels
+    expect(L.formatYValue(L.getFormatters(1), 1, 0)).not.toContain(' - ')
+    expect(L.formatYValue(L.getFormatters(0), 0, 0)).toContain(' - ')
+    chart.destroy()
+  })
+
+  it('still prints a plain rangeArea series as a range', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'rangeArea', width: 400, height: 300 },
+      series: [{ name: 'r', data: [{ x: 'a', y: [1, 5] }] }],
+    })
+    await tick()
+    const L = chart.w.globals.tooltip.tooltipLabels
+    expect(L.formatYValue(L.getFormatters(0), 0, 0)).toContain(' - ')
+    chart.destroy()
+  })
+})

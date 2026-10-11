@@ -4,6 +4,8 @@ import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
 import Data from '../Data'
 import { renderMarkerSVG } from './Marker'
+import { isCustom } from '../ChartFactory'
+import { TYPE_ALIASES } from '../settings/TypeAliases'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -207,7 +209,14 @@ export default class Labels {
       })
     }
 
-    if (w.axisFlags.isRangeData) {
+    // A range chart's data pass gives every series a start and an end, a
+    // line or column beside the ranges included, so the series' own type
+    // decides whether it prints as one.
+    const type = w.config.series[index]?.type || w.config.chart.type
+    if (
+      w.axisFlags.isRangeData &&
+      (isCustom(type) || /^range/.test(TYPE_ALIASES[type] || type))
+    ) {
       return (
         f.yLbFormatter(w.rangeData.seriesRangeStart?.[index]?.[j], {
           series: w.rangeData.seriesRangeStart,
