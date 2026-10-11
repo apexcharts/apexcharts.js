@@ -671,13 +671,8 @@ class BoxCandleStick extends Bar {
     let x2 = Math.max(ohlc.o, ohlc.c)
     let m = ohlc.m
 
-    if (w.axisFlags.isXNumeric) {
-      y =
-        (w.seriesData.seriesX[realIndex][j] - w.globals.minX) /
-          this.invertedXRatio -
-        barHeight / 2
-    }
-
+    // One band per row on its side, a date or number x included: see
+    // Bar.drawBarPaths.
     const barYPosition = y + barHeight * this.visibleI
 
     if (
@@ -737,9 +732,7 @@ class BoxCandleStick extends Bar {
         graphics.move(x1, barYPosition)
     }
 
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision
-    }
+    y = y + yDivision
 
     return {
       pathTo,

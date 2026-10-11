@@ -868,24 +868,22 @@ class Bar {
     const j = indexes.j
     let barYPosition
 
-    if (w.axisFlags.isXNumeric) {
-      y =
-        (w.seriesData.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
-        barHeight
-      barYPosition = y + barHeight * this.visibleI
-    } else {
-      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } =
-          this.barHelpers.getZeroValueEncounters({ i, j })
+    // A horizontal bar gives every row a band of the height, a date or number
+    // x included, as the stacked form always has. Placing those by value put
+    // the end rows half outside the plot (there is no vertical counterpart of
+    // barPadForNumericAxis) and off the axis labels, which are drawn one per
+    // band.
+    if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+      const { nonZeroColumns, zeroEncounters } =
+        this.barHelpers.getZeroValueEncounters({ i, j })
 
-        if (nonZeroColumns > 0) {
-          barHeight = (this.seriesLen * barHeight) / nonZeroColumns
-        }
-        barYPosition = y + barHeight * this.visibleI
-        barYPosition -= barHeight * zeroEncounters
-      } else {
-        barYPosition = y + barHeight * this.visibleI
+      if (nonZeroColumns > 0) {
+        barHeight = (this.seriesLen * barHeight) / nonZeroColumns
       }
+      barYPosition = y + barHeight * this.visibleI
+      barYPosition -= barHeight * zeroEncounters
+    } else {
+      barYPosition = y + barHeight * this.visibleI
     }
 
     const useTrapezoid =
@@ -972,7 +970,7 @@ class Bar {
       x = paths.x
     }
 
-    if (!w.axisFlags.isXNumeric && !usePyramid) {
+    if (!usePyramid) {
       y = y + yDivision
     }
 

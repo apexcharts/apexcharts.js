@@ -51,6 +51,12 @@ import { collectDrawn } from './Drawn'
  * byPoint }`, null where the rows are the caller's own values). Without it a
  * plugin on a histogram could only describe the bars.
  *
+ * Since v6, detected as the `scale-orientation` capability: on a horizontal
+ * bar `scales.x` runs down the grid height and `scales.y` across the width,
+ * where older hosts projected both through the upright chart's axes.
+ * `scales.transposed` says which way round they are, and `scales.point(x, y)`
+ * returns a datum's screen position either way.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
  * outright on a v2 host, so `apiVersion: 2` plus a capability check keeps one
@@ -83,6 +89,7 @@ export const WEAVE_CAPABILITIES = Object.freeze([
   'claim',
   'drawn',
   'observations',
+  'scale-orientation',
 ])
 
 /**
@@ -641,4 +648,7 @@ const WIRED = {
   // builder writes it unconditionally (null included), so there is nothing on
   // the facade to probe before the first parse.
   observations: () => true,
+  // Scales are null until the first draw and on every non-axis chart, so the
+  // facade has nothing to probe; this host builds them oriented on every draw.
+  'scale-orientation': () => true,
 }

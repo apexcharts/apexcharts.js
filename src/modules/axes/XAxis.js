@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
+import DateTime from '../../utils/DateTime'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { SVGNS } from '../../svg/math'
 
@@ -411,9 +412,22 @@ export default class XAxis {
     // initial x Position (keep adding column width in the loop)
     let yPos = -(colHeight / 2.2)
 
-    const lbFormatter = w.formatters.yLabelFormatters[0]
-
     const ylabels = w.config.yaxis[0].labels
+
+    // The rows of a datetime chart are labelled with their own timestamps
+    // (see Range), which the y formatter printed as raw milliseconds. Formatted
+    // the way the tooltip formats the same x, unless the caller formats them.
+    let lbFormatter = w.formatters.yLabelFormatters[0]
+    if (
+      w.config.xaxis.type === 'datetime' &&
+      ylabels.formatter === undefined &&
+      !w.axisFlags.isRangeBar
+    ) {
+      const dt = new DateTime(w)
+      const format = w.config.xaxis.labels.format || w.config.tooltip.x.format
+      lbFormatter = (/** @type {any} */ val) =>
+        typeof val === 'number' ? dt.formatDate(dt.getDate(val), format) : val
+    }
 
     if (ylabels.show) {
       for (let i = 0; i <= labels.length - 1; i++) {

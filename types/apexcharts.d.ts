@@ -794,10 +794,23 @@ type ApexPluginHook =
   | 'destroy'
 
 interface ApexPluginScales {
-  x(v: number): number
+  /**
+   * Pixel for a datum's x, as `data[].points[j].x` hands it out (a row index,
+   * a rangeBar row label, a date or a number). Runs down the grid height
+   * when `transposed`.
+   */
+  x(v: any): number
+  /** Pixel for a value. Runs across the grid width when `transposed`. */
   y(v: number, axis?: number): number
   domainX: [number, number]
   domainY(axis?: number): [number, number]
+  /**
+   * True on a horizontal bar, where x is laid out vertically and the value
+   * horizontally. Detect with `api.can('scale-orientation')`.
+   */
+  transposed: boolean
+  /** A datum's position on screen, whichever way the chart is turned. */
+  point(x: any, y: number, axis?: number): { x: number; y: number }
   gridWidth: number
   gridHeight: number
   ratios: any

@@ -888,7 +888,14 @@ class Range {
         }
       }
       // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-      if (isXNumeric) {
+      if (isXNumeric && gl.isBarHorizontal) {
+        // On its side the chart draws one band per row and one label per
+        // band, so each band is labelled with its own row's x. The evenly
+        // spaced ticks put "Jan 03" against the row that holds Jan 04.
+        this.w.labelData.labels = /** @type {any} */ (
+          (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice()
+        )
+      } else if (isXNumeric) {
         this.w.labelData.labels = /** @type {any} */ (
           gl.xAxisScale.result.slice()
         )

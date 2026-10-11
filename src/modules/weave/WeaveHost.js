@@ -244,39 +244,94 @@ export default class WeaveHost {
     // Projected the way Bar's own helper lays the slots out: the plot is cut
     // into `dataPoints` equal bands and the mark for band j sits at its
     // centre, so j maps to gridWidth / dataPoints * (j + 0.5). Checked against
-    // the rendered marks of all four types. That index is also what api.data
-    // hands out as the x here, because the snapshot falls back to the position
-    // when seriesX is absent, which it is for exactly these charts.
+    // the rendered marks of all four types.
     //
     // The domain is the plot's own edges in band units, half a band either
     // side, which keeps this facade's contract that domainX[0] maps to 0 and
-    // domainX[1] to gridWidth.
+    // domainX[1] to the far edge (gridWidth, or gridHeight on its side).
     //
-    // Not applied to horizontal bars: there x carries the VALUE axis, so a
-    // band index along x would be confidently wrong rather than merely flat.
-    // That transposition is a separate fix, and nothing consumes it today.
+    // A scale takes what api.data hands out as x. That is the index for a
+    // category bar, because the snapshot falls back to the position when
+    // seriesX is absent, but it is a rangeBar's row label ('A') and, on a
+    // horizontal bar, the date or number itself, so those are looked up to the
+    // row the chart put them on. Anything else is taken as a row
+    // index, which is what the domain edges are.
     //
     // globals.padHorizontal, which Bar adds to the same expression, is
     // deliberately absent: it is 0 everywhere in this codebase (its only
     // assignment), and adding it would break the domain contract above rather
     // than move a mark. If it is ever made live, the two need revisiting
     // together.
-    const banded =
-      !w.axisFlags.isXNumeric && !gl.isBarHorizontal && gl.dataPoints > 0
-    const band = banded ? L.gridWidth / gl.dataPoints : 0
+    //
+    // A horizontal bar is the same chart turned on its side, and the scales
+    // stay keyed to the DATA: `x` still takes a datum's x and `y` its value,
+    // but x now runs down the grid height and the value across the width.
+    // Building them for the upright chart sent both coordinates through the
+    // wrong axis at once, a transposition rather than an offset (#5341). A
+    // plugin reads `transposed` to know which screen axis a scale lands on,
+    // or calls `point(x, y)` and never needs to.
+    //
+    // The category side follows Bar, which gives every row on its side a band
+    // of the height, a date or number x included. The value side runs from
+    // the left edge, or from the right on a reversed axis.
+    const horizontal = !!gl.isBarHorizontal
+    const isRangeBar = !!w.axisFlags.isRangeBar
+    const banded = gl.dataPoints > 0 && (!w.axisFlags.isXNumeric || horizontal)
+    const rowCount =
+      horizontal && isRangeBar ? w.labelData.labels.length : gl.dataPoints
+    const span = horizontal ? L.gridHeight : L.gridWidth
+    const band = banded && rowCount > 0 ? span / rowCount : 0
+
+    /** @type {Map<any, number>} */
+    const rows = new Map()
+    if (banded) {
+      const keys = isRangeBar
+        ? w.labelData.labels
+        : w.axisFlags.isXNumeric
+          ? w.seriesData.seriesX[gl.maxValsInArrayIndex] || []
+          : []
+      keys.forEach((/** @type {any} */ k, /** @type {number} */ j) => {
+        if (!rows.has(k)) rows.set(k, j)
+      })
+    }
+
+    /** @type {(v: any) => number} */
+    const x = banded
+      ? (v) =>
+          band * ((rows.has(v) ? /** @type {number} */ (rows.get(v)) : v) + 0.5)
+      : (v) => (v - gl.minX) / xRatio
+
+    /** @param {number} axis */
+    const reversed = (axis) => {
+      const ya = w.config.yaxis[axis] || w.config.yaxis[0]
+      return !!(ya && ya.reversed)
+    }
+    /** @type {(v: number, axis?: number) => number} */
+    const y = horizontal
+      ? (v, axis = 0) => {
+          const range = Math.abs(maxY(axis) - minY(axis))
+          const px = range ? ((v - minY(axis)) / range) * L.gridWidth : 0
+          return reversed(axis) ? L.gridWidth - px : px
+        }
+      : (v, axis = 0) => (maxY(axis) - v) / yr(axis)
 
     this._currentScales = {
-      x: banded
-        ? (/** @type {number} */ v) => band * (v + 0.5)
-        : (/** @type {number} */ v) => (v - gl.minX) / xRatio,
-      /**
-       * @param {number} v
-       * @param {number} [axis]
-       */
-      y: (v, axis = 0) => (maxY(axis) - v) / yr(axis),
-      domainX: banded ? [-0.5, gl.dataPoints - 0.5] : [gl.minX, gl.maxX],
+      x,
+      y,
+      domainX: banded ? [-0.5, rowCount - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
+      transposed: horizontal,
+      /**
+       * A datum's position on screen, whichever way the chart is turned.
+       * @param {any} vx
+       * @param {number} vy
+       * @param {number} [axis]
+       */
+      point: (vx, vy, axis = 0) =>
+        horizontal
+          ? { x: y(vy, axis), y: x(vx) }
+          : { x: x(vx), y: y(vy, axis) },
       gridWidth: L.gridWidth,
       gridHeight: L.gridHeight,
       ratios: xyRatios,

@@ -1132,7 +1132,10 @@ export default class Core {
             w.globals.minX,
             w.globals.maxX,
           )
-        } else if (w.globals.isBarHorizontal) {
+        } else if (w.axisFlags.isRangeBar) {
+          // A timeline's VALUE is the time. Any other horizontal chart keeps
+          // its dates on the rows, and a time scale built over its values
+          // (10..40 read as milliseconds) left the value axis without labels.
           formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minY,
             w.globals.maxY,

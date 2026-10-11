@@ -442,13 +442,8 @@ class Violin extends BarBase {
     const { realIndex, j } = indexes
     const yRatio = this.invertedYRatio
 
-    if (w.axisFlags.isXNumeric) {
-      y =
-        (w.seriesData.seriesX[realIndex][j] - w.globals.minX) /
-          this.invertedXRatio -
-        barHeight / 2
-    }
-
+    // One band per row on its side, a date or number x included: see
+    // Bar.drawBarPaths.
     const barYPosition = y + barHeight * this.visibleI
     const center = barYPosition + barHeight / 2
     const halfExtent = barHeight / 2
@@ -503,9 +498,7 @@ class Violin extends BarBase {
       })
     }
 
-    if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision
-    }
+    y = y + yDivision
 
     return {
       pathTo,

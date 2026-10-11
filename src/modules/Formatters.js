@@ -113,8 +113,11 @@ class Formatters {
     } else {
       fmt.xLabelFormatter = (/** @type {any} */ val) => {
         if (Utils.isNumber(val)) {
+          // On a horizontal bar this formats the VALUE axis, so the x range
+          // says nothing about its decimals: the branch below covers it.
           if (
             !w.config.xaxis.convertedCatToNumeric &&
+            !w.globals.isBarHorizontal &&
             (w.config.xaxis.type === 'numeric' || inferredNumericX)
           ) {
             const ticks = w.globals.xAxisScale?.result

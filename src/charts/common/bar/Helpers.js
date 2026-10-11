@@ -212,14 +212,9 @@ export default class Helpers {
     }
 
     if (this.barCtx.isHorizontal) {
-      // height divided into equal parts
+      // height divided into equal parts, one per row whatever the x type
       yDivision = w.layout.gridHeight / dataPoints
       barHeight = yDivision / seriesLen
-
-      if (w.axisFlags.isXNumeric) {
-        yDivision = w.layout.gridHeight / this.barCtx.totalItems
-        barHeight = yDivision / this.barCtx.seriesLen
-      }
 
       barHeight =
         (barHeight * parseInt(this.barCtx.barOptions.barHeight, 10)) / 100
