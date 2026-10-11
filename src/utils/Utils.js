@@ -392,16 +392,14 @@ class Utils {
    * @param {any[]} arr
    */
   static getLargestStringFromArr(arr) {
-    /**
-     * @param {string} a
-     * @param {string} b
-     */
-    return arr.reduce((a, b) => {
-      if (Array.isArray(b)) {
-        b = b.reduce((aa, bb) => (aa.length > bb.length ? aa : bb))
-      }
-      return a.length > b.length ? a : b
-    }, 0)
+    // String() so a numeric label is measured too; a multi-line label
+    // (an array, possibly empty) competes with its longest line.
+    /** @type {(a: any, b: any) => any} */
+    const pick = (a, b) => {
+      if (Array.isArray(b)) b = b.reduce(pick, '')
+      return String(a).length > String(b).length ? a : b
+    }
+    return arr.length ? arr.reduce(pick, '') : 0
   }
 
   /**

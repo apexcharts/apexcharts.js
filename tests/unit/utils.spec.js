@@ -271,6 +271,23 @@ describe('Utils', () => {
       it('should handle empty array', () => {
         expect(Utils.getLargestStringFromArr([])).toBe(0)
       })
+
+      // Numbers have no .length, so the comparison used to keep the LAST
+      // label and the axis was measured from the wrong one.
+      it('finds the longest numeric label, not the last', () => {
+        expect(Utils.getLargestStringFromArr([1, 1000, 20])).toBe(1000)
+        expect(Utils.getLargestStringFromArr(['ab', 12345, 'c'])).toBe(12345)
+      })
+
+      it('handles an empty multi-line label without throwing', () => {
+        expect(Utils.getLargestStringFromArr(['ab', []])).toBe('ab')
+        expect(Utils.getLargestStringFromArr([[], ['xy', 123]])).toBe(123)
+      })
+
+      it('keeps the later of two equally long labels', () => {
+        expect(Utils.getLargestStringFromArr(['ab', 'cd'])).toBe('cd')
+        expect(Utils.getLargestStringFromArr(['', ''])).toBe('')
+      })
     })
   })
 
