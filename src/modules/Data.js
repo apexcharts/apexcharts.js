@@ -2109,10 +2109,12 @@ export default class Data {
     const n = bandLabels.length
     if (!n) return
 
-    // Track which options we auto-assigned so a re-render with a different band
+    // Track the values we auto-assigned so a re-render with a different band
     // set refreshes them, while values the user set explicitly are left alone.
+    // An option is ours only while it still holds the value we wrote: one set
+    // later through updateOptions lands on the same field and is the user's.
     const owned =
-      /** @type {Record<string, boolean>} */ (
+      /** @type {Record<string, any>} */ (
         (xa._scatterBand = xa._scatterBand || {})
       )
 
@@ -2149,28 +2151,22 @@ export default class Data {
         // window narrower than one band: show the band nearest its center
         first = last = clampBand(Math.round((xa.min + xa.max) / 2))
       }
-      xa.min = first - 1
-      xa.max = last + 1
-      xa.tickAmount = last - first + 2
-      owned.min = true
-      owned.max = true
-      owned.tick = true
+      owned.min = xa.min = first - 1
+      owned.max = xa.max = last + 1
+      owned.tick = xa.tickAmount = last - first + 2
     } else {
-      if (xa.min == null || owned.min) {
-        xa.min = -1
-        owned.min = true
+      if (xa.min == null || xa.min === owned.min) {
+        owned.min = xa.min = -1
       }
-      if (xa.max == null || owned.max) {
-        xa.max = n
-        owned.max = true
+      if (xa.max == null || xa.max === owned.max) {
+        owned.max = xa.max = n
       }
       if (
         xa.tickAmount == null ||
         xa.tickAmount === 'dataPoints' ||
-        owned.tick
+        xa.tickAmount === owned.tick
       ) {
-        xa.tickAmount = n + 1
-        owned.tick = true
+        owned.tick = xa.tickAmount = n + 1
       }
     }
 
