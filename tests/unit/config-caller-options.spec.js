@@ -95,3 +95,16 @@ describe('options with no chart section', () => {
     expect(b.w.config.chart.type).toBe('line')
   })
 })
+
+describe('window.Apex.yaxis', () => {
+  it("fills in what the chart leaves unset, and the chart's own wins", () => {
+    window.Apex = { yaxis: { min: 0, tickAmount: 4 } }
+    const chart = new ApexCharts(host('y1'), {
+      chart: { ...LINE },
+      series: [{ data: [10, 20, 30] }],
+      yaxis: { min: 10 },
+    })
+    expect(chart.w.config.yaxis[0].min).toBe(10)
+    expect(chart.w.config.yaxis[0].tickAmount).toBe(4)
+  })
+})

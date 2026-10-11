@@ -377,14 +377,15 @@ export default class Config {
       opts.yaxis = {}
     }
 
-    // extend global yaxis config (only if object is provided / not an array)
+    // extend global yaxis config (only if object is provided / not an array).
+    // The chart's own settings win, as they do for every other section.
     const globalApex = Environment.getApex()
     if (
       opts.yaxis.constructor !== Array &&
       globalApex.yaxis &&
       globalApex.yaxis.constructor !== Array
     ) {
-      opts.yaxis = Utils.extend(opts.yaxis, globalApex.yaxis)
+      opts.yaxis = Utils.extend(globalApex.yaxis, opts.yaxis)
     }
 
     // as we can't extend nested object's array with extend, we need to do it first
