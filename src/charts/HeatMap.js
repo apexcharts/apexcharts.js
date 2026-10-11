@@ -198,8 +198,10 @@ export default class HeatMap {
           }
         }
 
-        // Stop loop if index is out of array length
-        if (j >= heatSeries[i].length) break
+        // Stop loop if index is out of array length. `i` is the series index
+        // in both orders, so bound by series[i]: the reversed heatSeries[i]
+        // is the mirrored row.
+        if (j >= series[i].length) break
 
         // Cell width and left edge: value-based when continuous, else index.
         const cellW = isContinuousX ? binPx : xDivision
