@@ -357,12 +357,10 @@ class Radial extends Pie {
     let dataLabels = null
 
     if (this.radialDataLabels.show) {
-      const dataLabelsGroup = w.dom.Paper.findOne(
-        `.apexcharts-datalabels-group`,
-      )
-
+      // The group this instance created, as Pie.draw does: looking it up on
+      // the Paper finds nothing under the SSR DOM shim.
       dataLabels = this.renderInnerDataLabels(
-        dataLabelsGroup,
+        this.dataLabelsGroup,
         this.radialDataLabels,
         {
           hollowSize,

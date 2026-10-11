@@ -296,8 +296,6 @@ describe('SSRRenderer', () => {
 
     it('renders a highlighted gauge and rings as the final frame', async () => {
       await import('../../../src/features/highlight-filter.js')
-      // (A radialBar's centre labels do not server-render yet, highlight or
-      // not: Pie.renderInnerDataLabels finds no labels group there.)
       const plotOptions = { radialBar: { dataLabels: { show: false } } }
       const gauge = await SSRRenderer.renderToString({
         chart: { type: 'gauge', width: 400, height: 400 },
