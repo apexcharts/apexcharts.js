@@ -61,9 +61,13 @@ export class SSRRenderer {
       // Render the chart
       await chart.render()
 
-      // Extract SVG string
-      // The chart's SVG is in gl.dom.Paper.node
-      const svgString = this._extractSVGString(chart, scale)
+      // A trellis host draws its panels in the browser only, so it has no
+      // SVG here. Emit an empty one of the requested size: the page still
+      // renders, and renderToHTML's hydration draws the panels on the client.
+      const svgString =
+        !chart.w?.dom?.Paper && chart.trellis?.isActive()
+          ? `<svg xmlns="http://www.w3.org/2000/svg" class="apexcharts-svg apexcharts-ssr-placeholder" width="${width * scale}" height="${height * scale}"/>`
+          : this._extractSVGString(chart, scale)
 
       // Clean up
       chart.destroy()
