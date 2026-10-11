@@ -24,6 +24,8 @@ import PerformanceCache from '../../utils/PerformanceCache'
  */
 function clearRawSeriesStashes(w) {
   w.globals.dataReducerRawSeries = null
+  // The raw x bounds pan and zoom clamp to describe that stash.
+  w.globals.dataReducerRawMinX = w.globals.dataReducerRawMaxX = undefined
   w.globals.histogramRawSeries = null
   w.globals.waterfallRawSeries = null
   w.globals.dumbbellRawSeries = null
