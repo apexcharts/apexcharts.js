@@ -52,6 +52,36 @@ function categorySignature(w) {
   return JSON.stringify(w.labelData.labels ?? [])
 }
 
+/**
+ * What the legend shows per series, as one comparable string: the series
+ * meta (name, colour, hidden, type, group) and, under a function
+ * `legend.formatter`, the text it returns for the data parsed at the time.
+ * The fast path keeps the legend DOM, so a change here needs the full render.
+ * Formatted text rather than "has a formatter", or every formatter chart
+ * would lose the fast path. O(series).
+ *
+ * Names and groups are read as parsed, not off the series: the parse names
+ * an unnamed series and puts an ungrouped one in its axis's group, so a raw
+ * series (a resetSeries replay) never matched the parsed one on screen.
+ *
+ * @param {any} w
+ * @returns {string}
+ */
+function legendSignature(w) {
+  const fmt = w.config.legend.formatter
+  const names = w.globals.seriesNames
+  return JSON.stringify([
+    w.labelData.seriesGroups,
+    w.config.series.map((/** @type {any} */ s, /** @type {number} */ i) => [
+      names[i],
+      s?.color,
+      !!s?.hidden,
+      s?.type,
+      typeof fmt === 'function' && fmt(names[i], { seriesIndex: i, w }),
+    ]),
+  ])
+}
+
 export default class UpdateHelpers {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -338,6 +368,8 @@ export default class UpdateHelpers {
       // so new names at the same count ({ x: 'United Kingdom' } for 'UK') used
       // to leave the old names on the axis, in room sized for them.
       const prevCategorySig = categorySignature(w)
+      // The same for the legend, which the fast path does not rebuild either.
+      const prevLegendSig = legendSignature(w)
 
       // The numeric-axis bar pad the layout on screen was built with: the plot
       // is inset by it on both sides so edge columns, candles and boxes have
@@ -439,7 +471,8 @@ export default class UpdateHelpers {
       // no series collapse in progress.
       if (
         this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w) &&
-        categorySignature(w) === prevCategorySig
+        categorySignature(w) === prevCategorySig &&
+        legendSignature(w) === prevLegendSig
       ) {
         // Left at 0, a mark standing in the inset read as off-screen to
         // Bar.renderSeries and was not drawn (or drawn leaving, then removed),
