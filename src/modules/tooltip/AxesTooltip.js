@@ -134,33 +134,17 @@ class AxesTooltip {
 
     // set xcrosshairs width
     const xcrosshairs = ttCtx.getElXCrosshairs()
-    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width, 10)
+    const cfg = w.config.xaxis.crosshairs.width
+    let width = parseInt(cfg, 10)
 
-    if (!w.globals.comboCharts) {
-      if (w.config.xaxis.crosshairs.width === 'tickWidth') {
-        const count = w.labelData.labels.length
-        ttCtx.xcrosshairsWidth = w.layout.gridWidth / count
-      } else if (w.config.xaxis.crosshairs.width === 'barWidth') {
-        const bar = w.dom.baseEl.querySelector('.apexcharts-bar-area')
-        if (bar !== null) {
-          const barWidth = parseFloat(bar.getAttribute('barWidth') ?? '0')
-          ttCtx.xcrosshairsWidth = barWidth
-        } else {
-          ttCtx.xcrosshairsWidth = 1
-        }
-      }
-    } else {
+    if (cfg === 'tickWidth') {
+      width = w.layout.gridWidth / w.labelData.labels.length
+    } else if (cfg === 'barWidth') {
       const bar = w.dom.baseEl.querySelector('.apexcharts-bar-area')
-      if (bar !== null && w.config.xaxis.crosshairs.width === 'barWidth') {
-        const barWidth = parseFloat(bar.getAttribute('barWidth') ?? '0')
-        ttCtx.xcrosshairsWidth = barWidth
-      } else {
-        if (w.config.xaxis.crosshairs.width === 'tickWidth') {
-          const count = w.labelData.labels.length
-          ttCtx.xcrosshairsWidth = w.layout.gridWidth / count
-        }
-      }
+      width = bar ? parseFloat(bar.getAttribute('barWidth') ?? '0') : 1
     }
+    // A keyword with nothing to measure (no labels, no bar) still draws.
+    ttCtx.xcrosshairsWidth = Number.isFinite(width) ? width : 1
 
     if (w.globals.isBarHorizontal) {
       ttCtx.xcrosshairsWidth = 0
@@ -185,9 +169,8 @@ class AxesTooltip {
   /**
    * @param {number} index
    * @param {number} clientY
-   * @param {import('../../types/internal').XYRatios} xyRatios
    */
-  drawYaxisTooltipText(index, clientY, xyRatios) {
+  drawYaxisTooltipText(index, clientY) {
     const ttCtx = this.ttCtx
     const w = this.w
     const gl = w.globals
@@ -205,20 +188,27 @@ class AxesTooltip {
       // We can use the index of any series referenced by the Yaxis
       // because they will all return the same value.
       const seriesIndex = yAxisSeriesArr[0]
-      let translationsIndex = 0
-      if (xyRatios.yRatio.length > 1) {
-        translationsIndex = seriesIndex
+      const yaxis = w.config.yaxis[index]
+      const min = gl.minYArr[seriesIndex]
+      const max = gl.maxYArr[seriesIndex]
+      // Plot px, as the crosshair is drawn in: a screen distance is divided
+      // by the CSS zoom to get there.
+      const hoverY = (clientY - seriesBound.top) / seriesBound.zoom
+      // How far up the axis the pointer is, 0 at min and 1 at max, read
+      // through log space on a logarithmic axis (the inverse of
+      // CoreUtils.getLogVal).
+      const frac = yaxis.reversed
+        ? hoverY / w.layout.gridHeight
+        : 1 - hoverY / w.layout.gridHeight
+      let val = min + frac * (max - min)
+      if (yaxis.logarithmic) {
+        const b = yaxis.logBase
+        const lo = min === 0 ? -1 : Math.log(min) / Math.log(b)
+        const hi = max === 0 ? 0 : Math.log(max) / Math.log(b)
+        val = Math.pow(b, lo + frac * (hi - lo))
       }
-      const hoverY =
-        (clientY - seriesBound.top) * xyRatios.yRatio[translationsIndex]
-      const height = gl.maxYArr[seriesIndex] - gl.minYArr[seriesIndex]
-      let val = gl.minYArr[seriesIndex] + (height - hoverY)
 
-      if (w.config.yaxis[index].reversed) {
-        val = gl.maxYArr[seriesIndex] - (height - hoverY)
-      }
-
-      ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top)
+      ttCtx.tooltipPosition.moveYCrosshairs(hoverY)
       ;/** @type {any} */ (ttCtx.yaxisTooltipText)[index].innerHTML =
         lbFormatter(val)
       ttCtx.tooltipPosition.moveYAxisTooltip(index)

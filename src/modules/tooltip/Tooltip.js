@@ -1509,13 +1509,7 @@ export default class Tooltip {
 
       if (this.yaxisTooltips && this.yaxisTooltips.length) {
         for (let yt = 0; yt < w.config.yaxis.length; yt++) {
-          this.axesTooltip.drawYaxisTooltipText(
-            yt,
-            clientY,
-            /** @type {import('../../types/internal').XYRatios} */ (
-              this.xyRatios
-            ),
-          )
+          this.axesTooltip.drawYaxisTooltipText(yt, clientY)
         }
       }
 
