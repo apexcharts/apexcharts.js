@@ -41,6 +41,7 @@ import ApexCharts from '../apexcharts'
 import Utils from '../utils/Utils'
 import { registerSeriesTransform } from '../modules/SeriesTransformRegistry'
 import { registerRowSource } from '../modules/RowSourceRegistry'
+import { collapsedIndices, stashSeries } from '../modules/helpers/RawStash'
 import {
   binCounts,
   computeBinning,
@@ -101,10 +102,7 @@ function histogramTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
 
   if (!gl.histogramRawSeries) {
-    gl.histogramRawSeries = ser.map((/** @type {any} */ s) => ({
-      ...s,
-      data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
-    }))
+    gl.histogramRawSeries = stashSeries(ser, gl)
   }
   const raw = gl.histogramRawSeries
 
@@ -155,7 +153,7 @@ function histogramTransform(ser, w) {
   // on a legend click would slide every remaining bar sideways. Emitted here
   // rather than left to the caller, because this transform rebuilds the rows
   // from the stash and would otherwise undo the collapse that put them there.
-  const collapsed = gl.collapsedSeriesIndices || []
+  const collapsed = collapsedIndices(gl)
 
   // The rows drawn are counts, so anything a plugin computes from them
   // describes bar heights. The sample is what it should be reading; byPoint
@@ -481,7 +479,7 @@ function histogramRows(w, opts) {
   if (!hd || !Array.isArray(hd.edges) || hd.edges.length < 2) return null
   if (!Array.isArray(raw) || !raw.length) return null
 
-  const collapsed = (gl && gl.collapsedSeriesIndices) || []
+  const collapsed = collapsedIndices(gl)
   const edges = hd.edges
   /** @type {Array<{ name: string, realIndex: number, rows: any[] }>} */
   const clusters = []
@@ -529,7 +527,7 @@ function pointsRowSource(pick) {
     const perSeries = pick(w)
     if (!Array.isArray(perSeries) || !perSeries.length) return null
 
-    const collapsed = (w.globals && w.globals.collapsedSeriesIndices) || []
+    const collapsed = w.globals ? collapsedIndices(w.globals) : []
     // `globals.labels` holds the axis POSITIONS once string categories have
     // been mapped to numbers (a boxPlot of 'Alpha'/'Beta' has labels [1, 2]).
     // The names people gave live on categoryLabels.

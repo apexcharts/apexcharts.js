@@ -28,6 +28,7 @@
  * @module modules/dumbbell/DumbbellData
  */
 import Utils from '../../utils/Utils'
+import { collapsedIndices, stashSeries } from '../helpers/RawStash'
 
 /**
  * One input datum, read into the parts the merge needs.
@@ -146,10 +147,7 @@ export function dumbbellTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
 
   if (!gl.dumbbellRawSeries) {
-    gl.dumbbellRawSeries = ser.map((/** @type {any} */ s) => ({
-      ...s,
-      data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
-    }))
+    gl.dumbbellRawSeries = stashSeries(ser, gl)
   }
   const raw = gl.dumbbellRawSeries
 
@@ -173,7 +171,7 @@ export function dumbbellTransform(ser, w) {
   }
 
   const categories = cnf.xaxis?.categories
-  const collapsed = gl.collapsedSeriesIndices || []
+  const collapsed = collapsedIndices(gl)
   const { xs, rows, byX } = joinOnX(raw, categories)
 
   /** @type {Array<Array<number|null>>} */

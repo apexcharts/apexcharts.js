@@ -28,6 +28,7 @@
  * @module modules/waterfall/WaterfallData
  */
 import Utils from '../../utils/Utils'
+import { collapsedIndices, stashSeries } from '../helpers/RawStash'
 
 /**
  * One input datum, read into the parts the accumulator needs.
@@ -210,16 +211,13 @@ export function waterfallTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
 
   if (!gl.waterfallRawSeries) {
-    gl.waterfallRawSeries = ser.map((/** @type {any} */ s) => ({
-      ...s,
-      data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
-    }))
+    gl.waterfallRawSeries = stashSeries(ser, gl)
   }
   const raw = gl.waterfallRawSeries
 
   const colors = cnf.plotOptions?.waterfall?.colors || {}
   const categories = cnf.xaxis?.categories
-  const collapsed = gl.collapsedSeriesIndices || []
+  const collapsed = collapsedIndices(gl)
 
   /** @type {any[]} */
   const values = []

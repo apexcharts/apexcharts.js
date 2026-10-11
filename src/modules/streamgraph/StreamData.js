@@ -22,6 +22,7 @@
  * @module modules/streamgraph/StreamData
  */
 import Utils from '../../utils/Utils'
+import { collapsedIndices, stashSeries } from '../helpers/RawStash'
 
 /** Baselines. `wiggle` is the classic streamgraph (Byron & Wattenberg, 2008). */
 const OFFSETS = ['wiggle', 'silhouette', 'zero', 'expand']
@@ -293,10 +294,7 @@ export function streamgraphTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
 
   if (!gl.streamgraphRawSeries) {
-    gl.streamgraphRawSeries = ser.map((/** @type {any} */ s) => ({
-      ...s,
-      data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
-    }))
+    gl.streamgraphRawSeries = stashSeries(ser, gl)
   }
   const raw = gl.streamgraphRawSeries
 
@@ -316,7 +314,7 @@ export function streamgraphTransform(ser, w) {
   const order = ORDERS.indexOf(opts.order) !== -1 ? opts.order : 'inside-out'
 
   const categories = cnf.xaxis?.categories
-  const collapsed = gl.collapsedSeriesIndices || []
+  const collapsed = collapsedIndices(gl)
   const { xs, rows, grids } = joinOnX(raw, categories)
 
   const perm = sortColumns(xs)
