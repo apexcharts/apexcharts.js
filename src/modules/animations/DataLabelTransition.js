@@ -77,16 +77,19 @@ export function decimalsOf(n) {
 }
 
 /**
- * Write a string into a data-label text node, honoring a tspan child when the
- * renderer produced one (multi-line), else the plain text content.
+ * Write a value into a data-label text node, honoring its tspan children when
+ * the renderer produced them (multi-line), else the plain text content.
  *
  * @param {Element} textEl
- * @param {string} s
+ * @param {any} s - a formatted value, or an array of lines
  */
 function writeLabel(textEl, s) {
-  const tspan = textEl.querySelector('tspan')
-  if (tspan) tspan.textContent = s
-  else textEl.textContent = s
+  const tspans = textEl.querySelectorAll('tspan')
+  // An array formatter renders one tspan per line; write it the same way.
+  ;[].concat(s).forEach((v, i) => {
+    const t = tspans.length ? tspans[i] : textEl
+    if (t) t.textContent = v
+  })
 }
 
 /**
@@ -485,7 +488,7 @@ function rideTo(w, { el, oldCx, oldCy, duration, ease, delay = 0 }) {
  * @param {import('../../types/internal').ChartStateW} w
  * @param {{el: Element, from: number, to: number, formatter: any, fmtOpts: any, duration: number, ease: (t: number) => number, delay?: number}} opts
  */
-function countUpText(w, { el, from, to, formatter, fmtOpts, duration, ease, delay = 0 }) {
+export function countUpText(w, { el, from, to, formatter, fmtOpts, duration, ease, delay = 0 }) {
   if (!isFinite(from) || !isFinite(to)) return
   if (Math.abs(to - from) <= 1e-9) return
 
@@ -501,8 +504,11 @@ function countUpText(w, { el, from, to, formatter, fmtOpts, duration, ease, dela
         out = rounded
       }
     }
-    return String(out)
+    return out
   }
+  // What the renderer wrote, to land on exactly: re-formatting a rounded
+  // value would end an 8-decimal formatter on `0.98765400`.
+  const final = el.cloneNode(true)
   const start = () =>
     rafTween(
       w,
@@ -512,8 +518,7 @@ function countUpText(w, { el, from, to, formatter, fmtOpts, duration, ease, dela
         writeLabel(el, format(from + (to - from) * eased))
       },
       () => {
-        // Land exactly on the rendered final string.
-        writeLabel(el, format(to))
+        el.replaceChildren(...Array.from(final.childNodes))
       },
     )
 
