@@ -45,7 +45,9 @@ import { collapsedIndices, stashSeries } from '../modules/helpers/RawStash'
 import {
   binCounts,
   computeBinning,
+  derivedStats,
   fiveNumberSummary,
+  isDerived,
   kernelDensity,
   normalizeCounts,
   observationsOf,
@@ -181,22 +183,6 @@ function histogramTransform(ser, w) {
   })
 }
 
-/**
- * The datum objects whose summary / density this feature computed.
- *
- * parseData writes the transform's output back to `config.series`, so the next
- * pass sees a datum that already carries a summary and would leave it alone.
- * That froze the statistic at whatever the first render produced: changing
- * `plotOptions.boxPlot.whiskers` or `plotOptions.violin.kde` through
- * updateOptions re-parsed the data but could never re-derive it.
- *
- * A WeakSet of the objects we created distinguishes "the user precomputed this"
- * from "we computed this last render", without writing a marker into the user's
- * data or retaining anything (the entries die with the datum). Both transforms
- * keep the observations on the datum, so re-deriving needs no stashed copy.
- */
-const derivedData = new WeakSet()
-
 // (observationsOf moved to charts/common/Stats so the raincloud feature can
 // share it without importing this module's registrations.)
 
@@ -210,7 +196,8 @@ const derivedData = new WeakSet()
  * A datum that already carries a 5-number `y` is left exactly as it was, so a
  * 5-number y is never reinterpreted and existing charts cannot change shape.
  * That also makes the transform idempotent: parseData writes the result back to
- * config.series, and a second pass sees a summary and does nothing.
+ * config.series, and a second pass sees a summary and re-derives it only when
+ * it is the one this transform wrote (see derivedStats in charts/common/Stats).
  *
  * @param {any[]} ser
  * @param {any} w
@@ -219,6 +206,7 @@ const derivedData = new WeakSet()
 function boxPlotTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
   const whiskers = w.config.plotOptions?.boxPlot?.whiskers || 'minmax'
+  const derived = derivedStats(w, 'boxPlot')
   /** @type {Array<Array<number[] | null>>} */
   const observed = []
 
@@ -233,7 +221,12 @@ function boxPlotTransform(ser, w) {
       // An existing summary wins: this is the documented input shape. Unless we
       // are the ones who derived it, in which case the options that shaped it
       // may have changed.
-      if (Array.isArray(d?.y) && d.y.length === 5 && !derivedData.has(d)) {
+      const key = i + ':' + j
+      if (
+        Array.isArray(d?.y) &&
+        d.y.length === 5 &&
+        !isDerived(derived, key, d.y)
+      ) {
         return d
       }
       const values = observationsOf(d, false)
@@ -242,9 +235,8 @@ function boxPlotTransform(ser, w) {
       if (!summary) return d
       touched = true
       byPoint[j] = values
-      const next = { ...d, y: summary.summary, points: values }
-      derivedData.add(next)
-      return next
+      derived.set(key, summary.summary)
+      return { ...d, y: summary.summary, points: values }
     })
     if (touched) observed[i] = byPoint
     return touched ? { ...s, data } : s
@@ -271,6 +263,7 @@ function boxPlotTransform(ser, w) {
 function violinTransform(ser, w) {
   if (!Array.isArray(ser)) return ser
   const kde = w.config.plotOptions?.violin?.kde || {}
+  const derived = derivedStats(w, 'violin')
   /** @type {Array<Array<number[] | null>>} */
   const observed = []
 
@@ -282,10 +275,11 @@ function violinTransform(ser, w) {
     /** @type {Array<number[] | null>} */
     const byPoint = new Array(s.data.length).fill(null)
     const data = s.data.map((/** @type {any} */ d, /** @type {number} */ j) => {
+      const key = i + ':' + j
       if (
         Array.isArray(d?.y?.density) &&
         d.y.density.length &&
-        !derivedData.has(d)
+        !isDerived(derived, key, d.y.density)
       ) {
         return d
       }
@@ -302,12 +296,8 @@ function violinTransform(ser, w) {
       // draws the box lane.
       const rest =
         d.y && typeof d.y === 'object' && !Array.isArray(d.y) ? d.y : {}
-      const next = {
-        ...d,
-        y: { ...rest, density: est.density, points: values },
-      }
-      derivedData.add(next)
-      return next
+      derived.set(key, est.density)
+      return { ...d, y: { ...rest, density: est.density, points: values } }
     })
     if (touched) observed[i] = byPoint
     return touched ? { ...s, data } : s

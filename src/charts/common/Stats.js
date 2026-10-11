@@ -301,3 +301,52 @@ export function observationsOf(d, allowFlatY) {
   }
   return out.length ? out : null
 }
+
+/**
+ * The statistics a transform derived on this chart, keyed `series:datum`,
+ * holding the value it wrote. parseData writes a transform's output back to
+ * `config.series`, so the next pass meets a datum that already carries a
+ * summary or density and has to tell its own output (re-derive: the options
+ * that shaped it may have changed) from one the caller supplied (keep). This
+ * is decided by value: legend toggles and resetSeries() feed the series back
+ * through a deep clone, and an identity marker (a WeakSet of the datums) did
+ * not survive it, so the statistic froze after the first legend click.
+ *
+ * @param {any} w
+ * @param {string} kind
+ * @returns {Map<string, any[]>}
+ */
+export function derivedStats(w, kind) {
+  const all = (w.statsDerived ??= {})
+  return (all[kind] ??= new Map())
+}
+
+/**
+ * Whether a statistic still holds exactly the value recorded at `key`: a flat
+ * summary, or a density of `[value, weight]` pairs.
+ *
+ * @param {Map<string, any[]>} derived
+ * @param {string} key
+ * @param {any} value
+ * @returns {boolean}
+ */
+export function isDerived(derived, key, value) {
+  const ours = derived.get(key)
+  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
+    return false
+  }
+  for (let k = 0; k < value.length; k++) {
+    const a = ours[k]
+    const b = value[k]
+    if (a === b) continue
+    if (
+      !Array.isArray(a) ||
+      !Array.isArray(b) ||
+      a[0] !== b[0] ||
+      a[1] !== b[1]
+    ) {
+      return false
+    }
+  }
+  return true
+}

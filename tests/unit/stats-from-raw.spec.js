@@ -204,6 +204,31 @@ describe('boxPlot from raw observations', () => {
     expect(chart.w.candleData.seriesCandleC[0][0]).toBe(minmaxTop)
   })
 
+  test.each([
+    [
+      'a legend toggle',
+      async (c) => {
+        await c.hideSeries('B')
+        await c.showSeries('B')
+      },
+    ],
+    ['resetSeries', (c) => c.resetSeries()],
+  ])('the whisker rule still re-derives after %s', async (_, act) => {
+    // Both paths re-feed the series through a deep clone, so the datums are
+    // new objects that hold the summary this feature wrote.
+    const chart = createChartWithOptions({
+      chart: { type: 'boxPlot', width: 600, height: 400 },
+      series: [
+        { name: 'A', data: [{ x: 'G1', points: skewed() }] },
+        { name: 'B', data: [{ x: 'G1', points: skewed() }] },
+      ],
+    })
+    const minmaxTop = chart.w.candleData.seriesCandleC[0][0]
+    await act(chart)
+    await chart.updateOptions({ plotOptions: { boxPlot: { whiskers: 'tukey' } } })
+    expect(chart.w.candleData.seriesCandleC[0][0]).toBeLessThan(minmaxTop)
+  })
+
   test('a user-supplied summary is still never recomputed on update', async () => {
     const chart = boxChart([
       { x: 'G1', y: [10, 20, 40, 50, 70], points: [1, 2, 3, 999] },
@@ -359,6 +384,15 @@ describe('violin from raw observations', () => {
     const first = chart.w.violinData.seriesViolinDensity[0][0].maxWeight
     await chart.updateOptions({ title: { text: 'again' } })
     expect(chart.w.violinData.seriesViolinDensity[0][0].maxWeight).toBe(first)
+  })
+
+  test('kde.resolution still re-estimates after resetSeries', async () => {
+    const chart = violinChart([{ x: 'G1', points: skewed() }])
+    await chart.resetSeries()
+    await chart.updateOptions({
+      plotOptions: { violin: { kde: { resolution: 24 } } },
+    })
+    expect(chart.w.violinData.seriesViolinDensity[0][0].values.length).toBe(24)
   })
 
   test('changing the bandwidth re-estimates the density', async () => {
