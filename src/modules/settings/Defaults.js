@@ -455,7 +455,12 @@ export default class Defaults {
     }
 
     const toType = config.chart.requestedType || config.chart.type
-    if (!fromType || fromType === toType) return
+    // A histogram picks its overlay presets by series count, which an update
+    // can change without changing the type. Asked as the other count, the
+    // outgoing presets hand over like any type default.
+    const recount =
+      fromType === toType && toType === 'histogram' && options?.series
+    if (!fromType || (fromType === toType && !recount)) return
 
     // Ask each side separately, through a config that names only that type, so
     // neither answer is contaminated by the other's alias flags. Each answer is
@@ -466,11 +471,26 @@ export default class Defaults {
     const base = new Options().init()
     const from = Utils.extend(
       base,
-      Defaults.forType(typeOpts(fromType, config)),
+      Defaults.forType(
+        typeOpts(
+          fromType,
+          recount
+            ? { ...config, series: config.series[1] ? [] : [0, 0] }
+            : config,
+        ),
+      ),
     )
     const to = Utils.extend(base, Defaults.forType(typeOpts(toType, config)))
 
-    for (const path of TYPE_OWNED_PATHS) {
+    for (const path of recount
+      ? [
+          'fill.opacity',
+          'stroke.show',
+          'stroke.width',
+          'stroke.colors',
+          'tooltip.shared',
+        ]
+      : TYPE_OWNED_PATHS) {
       if (options && readPath(options, path) !== undefined) continue
       const fromDefault = readPath(from, path)
       const toDefault = readPath(to, path)

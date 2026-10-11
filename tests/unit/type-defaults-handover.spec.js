@@ -387,6 +387,28 @@ describe('stacking layers over the type defaults', () => {
   })
 })
 
+describe('a histogram re-picks its overlay presets by series count', () => {
+  it('a histogram given a second series overlays like a fresh one', async () => {
+    const A = { name: 'a', data: [1, 2, 2, 3, 3, 3, 4] }
+    const B = { name: 'b', data: [2, 3, 3, 4, 4, 4, 5] }
+    const chart = createChartWithOptions({
+      chart: { type: 'histogram' },
+      series: [A],
+    })
+    await chart.updateOptions({ series: [A, B] })
+    const fresh = createChartWithOptions({
+      chart: { type: 'histogram' },
+      series: [A, B],
+    })
+    expect(chart.w.config.fill.opacity).toBe(fresh.w.config.fill.opacity)
+    expect(chart.w.config.stroke.show).toBe(fresh.w.config.stroke.show)
+    expect(chart.w.config.tooltip.shared).toBe(true)
+    await chart.updateOptions({ series: [A] })
+    expect(chart.w.config.tooltip.shared).toBe(false)
+    expect(chart.w.config.stroke.show).toBe(true)
+  })
+})
+
 describe('a stackType change re-applies the 100% presets', () => {
   const STACK = [
     { name: 'a', data: [1, 2, 3] },
