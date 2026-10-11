@@ -103,6 +103,7 @@ export default class Destroy {
       this.ctx.animations = null
       this.ctx.axes = null
       this.ctx.annotations = null
+      this.ctx.core?.unhookBrush()
       this.ctx.core = null
       this.ctx.data = null
       this.ctx.grid = null

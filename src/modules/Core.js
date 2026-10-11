@@ -1198,17 +1198,16 @@ export default class Core {
         }
         targetChart.w.globals.brushSource = this.ctx
 
-        if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
-          targetChart.w.config.chart.events.zoomed = () =>
-            this.updateSourceChart(targetChart)
-        }
-        if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
-          targetChart.w.config.chart.events.scrolled = () =>
-            /**
-             * @param {any} chart
-             * @param {Event} e
-             */
-            this.updateSourceChart(targetChart)
+        // The injected handlers carry the brush that owns them, so a later
+        // brush replaces a stale one and unhookBrush() removes only its own,
+        // never a user handler.
+        const ev = targetChart.w.config.chart.events
+        for (const k of ['zoomed', 'scrolled']) {
+          if (typeof ev[k] !== 'function' || ev[k].__apexBrush) {
+            ev[k] = Object.assign(() => this.updateSourceChart(targetChart), {
+              __apexBrush: ctx,
+            })
+          }
         }
       })
 
@@ -1235,6 +1234,27 @@ export default class Core {
           )
         })
       }
+    }
+  }
+
+  /**
+   * On a real destroy, take this brush's handlers and brushSource back off its
+   * targets. Left behind, the closure threw on every pan frame of the target.
+   */
+  unhookBrush() {
+    const { ctx, w } = this
+    const brush = w.config.chart.brush
+    if (!brush.enabled) return
+    for (const t of Array.isArray(brush.targets)
+      ? brush.targets
+      : [brush.target]) {
+      const tw = /** @type {any} */ (ctx.constructor).getChartByID(t)?.w
+      if (!tw) continue
+      const ev = tw.config.chart.events
+      for (const k of ['zoomed', 'scrolled']) {
+        if (ev[k]?.__apexBrush === ctx) ev[k] = undefined
+      }
+      if (tw.globals.brushSource === ctx) tw.globals.brushSource = undefined
     }
   }
 
