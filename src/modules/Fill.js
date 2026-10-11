@@ -122,6 +122,7 @@ class Fill {
   getSeriesAxisRange(realIndex) {
     const w = this.w
     const yaxisIndex = w.globals.seriesYAxisReverseMap?.[realIndex] ?? 0
+    const yaxis = w.config.yaxis[yaxisIndex]
 
     return {
       minY: Utils.isNumber(w.globals.minYArr[realIndex])
@@ -130,7 +131,8 @@ class Fill {
       maxY: Utils.isNumber(w.globals.maxYArr[realIndex])
         ? w.globals.maxYArr[realIndex]
         : w.globals.maxY,
-      reversed: !!w.config.yaxis[yaxisIndex]?.reversed,
+      reversed: !!yaxis?.reversed,
+      log: !!yaxis?.logarithmic,
     }
   }
 
@@ -145,7 +147,7 @@ class Fill {
    * data, which is the common case: an explicit yaxis.min/max, a nice scale, or
    * an axis shared with another series.
    *
-   * @param {{ minY: number, maxY: number, reversed?: boolean }} axisRange
+   * @param {{ minY: number, maxY: number, reversed?: boolean, log?: boolean }} axisRange
    * @param {Record<string, any>} multiColorConfig
    */
   computeColorStops(axisRange, multiColorConfig) {
@@ -157,8 +159,16 @@ class Fill {
     const span = maxY - minY
 
     // A flat axis has no interior to split: the series sits wholly on one side
-    // of the threshold.
-    let offset = span === 0 ? (threshold > maxY ? 0 : 100) : ((maxY - threshold) / span) * 100
+    // of the threshold. A logarithmic axis places the threshold the way the
+    // series itself is placed, or the split lands at its linear position.
+    let offset =
+      span === 0
+        ? threshold > maxY
+          ? 0
+          : 100
+        : axisRange.log && minY > 0 && threshold > 0
+          ? 100 - (Math.log(threshold / minY) / Math.log(maxY / minY)) * 100
+          : ((maxY - threshold) / span) * 100
 
     // A reversed axis puts the low values at the top, mirroring the boundary.
     if (axisRange.reversed) {

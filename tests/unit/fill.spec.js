@@ -269,6 +269,20 @@ describe('Fill: plotOptions.line.colors thresholds', () => {
     colorBelowThreshold: '#d62728',
   }
 
+  it('splits a logarithmic axis at the log position of the threshold', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 600, height: 300 },
+      plotOptions: { line: { colors } },
+      yaxis: { logarithmic: true, min: 1, max: 10000 },
+      series: [{ data: [1, 10, 100, 1000, 10000] }],
+    })
+    await chart.render()
+    const stop = document.querySelector('linearGradient stop')
+    // 100 sits halfway up a 1..10000 log axis; a linear mapping put it at 99%
+    expect(parseFloat(stop.getAttribute('offset'))).toBeCloseTo(0.5, 2)
+    chart.destroy()
+  })
+
   it('leaves the columns of a line combo on their plain fill', async () => {
     const chart = createChartWithOptions({
       chart: { type: 'line', width: 600, height: 300 },
