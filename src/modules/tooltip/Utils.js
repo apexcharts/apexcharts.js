@@ -1,6 +1,4 @@
 // @ts-check
-import Utilities from '../../utils/Utils'
-import AxisMapping from '../AxisMapping'
 import Graphics from '../Graphics'
 
 /**
@@ -239,24 +237,31 @@ export default class Utils {
   getNearestValues({ hoverArea, clientX, clientY }) {
     const w = this.w
 
+    // Both coordinates in plot px, the space the series are laid out in:
+    // under CSS zoom a screen distance is divided by the zoom to get there.
     const seriesBound = Utils.plotRect(w)
     const hoverWidth = w.layout.gridWidth
-    const hoverHeight = seriesBound.height
+    const hoverHeight = w.layout.gridHeight
+    const dataPoints = w.globals.dataPoints
 
-    let xDivisor = hoverWidth / (w.globals.dataPoints - 1)
-    const yDivisor = hoverHeight / w.globals.dataPoints
+    let xDivisor = hoverWidth / (dataPoints - 1)
+    const yDivisor = hoverHeight / dataPoints
 
-    const hasBars = this.hasBars()
-
-    if (
-      (w.globals.comboCharts || hasBars) &&
+    // A category axis that puts each point in the middle of its own slot
+    // (bars, combos, and `tickPlacement: 'between'`) resolves the slot under
+    // the pointer, not the nearest of n - 1 gaps.
+    const slotted =
+      (w.globals.comboCharts ||
+        this.hasBars() ||
+        w.config.xaxis.tickPlacement === 'between') &&
       !w.config.xaxis.convertedCatToNumeric
-    ) {
-      xDivisor = hoverWidth / w.globals.dataPoints
+
+    if (slotted) {
+      xDivisor = hoverWidth / dataPoints
     }
 
-    const hoverX = AxisMapping.screenXToPlotPx(w, clientX)
-    const hoverY = clientY - seriesBound.top
+    const hoverX = (clientX - seriesBound.left) / seriesBound.zoom
+    const hoverY = (clientY - seriesBound.top) / seriesBound.zoom
 
     // Edge bars hang `barPadForNumericAxis / 2` outside the plot box, and the
     // zoom/pan cursor should still show there. Same allowance as the tooltip
@@ -281,99 +286,37 @@ export default class Utils {
       }
     }
 
-    let j = Math.round(hoverX / xDivisor)
-    const jHorz = Math.floor(hoverY / yDivisor)
-
-    if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
-      j = Math.ceil(hoverX / xDivisor)
-      j = j - 1
-    }
+    let j = slotted
+      ? Math.ceil(hoverX / xDivisor) - 1
+      : Math.round(hoverX / xDivisor)
+    let jHorz = Math.floor(hoverY / yDivisor)
 
     let capturedSeries = null
-    let closest = null
-
-    /**
-     * @param {number[]} seriesXVal
-     */
-    const seriesXValArr = w.globals.seriesXvalues.map(
-      (/** @type {any} */ seriesXVal) => {
-        /**
-         * @param {number} s
-         */
-        return seriesXVal.filter((/** @type {any} */ s) =>
-          Utilities.isNumber(s),
-        )
-      },
-    )
-    /**
-     * @param {number[]} seriesYVal
-     */
-    const seriesYValArr = w.globals.seriesYvalues.map(
-      (/** @type {any} */ seriesYVal) => {
-        /**
-         * @param {number} s
-         */
-        return seriesYVal.filter((/** @type {any} */ s) =>
-          Utilities.isNumber(s),
-        )
-      },
-    )
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
     if (w.axisFlags.isXNumeric) {
-      closest = this.closestInMultiArray(
+      // The unfiltered arrays go in, so the `j` that comes back is a data
+      // index shared by every series. closestInMultiArray skips any point
+      // whose x or y is not a number; a null used to be filtered out of x
+      // and y separately, which paired them off by one wherever only one of
+      // the two was null (a straight curve writes a floor y for a null).
+      const closest = this.closestInMultiArray(
         hoverX,
         hoverY,
-        seriesXValArr,
-        seriesYValArr,
+        w.globals.seriesXvalues,
+        w.globals.seriesYvalues,
       )
       capturedSeries = closest.index
       j = closest.j ?? 0
-
-      // `seriesXValArr` was compacted by the `.filter` above, so the `j` that
-      // came back counts only non-null points and is NOT the data index.
-      // Re-resolve it against the unfiltered values whenever that filter
-      // dropped anything.
-      //
-      // The test is over EVERY series, not just the captured one: for equal-x
-      // series closestInMultiArray scans them all for the nearest x and keeps
-      // one `j`, deciding `index` separately, so `j` can come from a series
-      // other than `capturedSeries` and carry that series' compaction.
-      //
-      // The condition used to be `w.globals.hasNullValues`, which asks a
-      // different question. `chart.zoom.autoScaleYaxis` makes Range recompute
-      // that flag over the VISIBLE window, so zooming past a series' leading
-      // nulls -- an indicator's warm-up period, say -- cleared it while the
-      // filter still dropped those points. Every hover after that resolved `j`
-      // short by the warm-up length, putting the crosshair that many bars off:
-      // invisible at full extent, and further off the further you zoom in.
-      const wasCompacted = seriesXValArr.some(
-        (/** @type {any[]} */ arr, /** @type {number} */ i) =>
-          arr.length !== w.globals.seriesXvalues[i].length,
-      )
-
-      if (capturedSeries !== null && wasCompacted) {
-        // Nulls are skipped rather than passed to closestInArray, which scores
-        // a null as 0 and so can win against a genuine point when the cursor is
-        // near the plot's left edge.
-        const unfiltered = w.globals.seriesXvalues[capturedSeries]
-        let nearest = null
-        let nearestDiff = Infinity
-        for (let i = 0; i < unfiltered.length; i++) {
-          if (!Utilities.isNumber(unfiltered[i])) continue
-          const diff = Math.abs(hoverX - unfiltered[i])
-          if (diff < nearestDiff) {
-            nearestDiff = diff
-            nearest = i
-          }
-        }
-        if (nearest !== null) j = nearest
-      }
     }
 
     w.interact.capturedSeriesIndex =
       capturedSeries === null ? -1 : capturedSeries
 
+    // The pixel just past the plot's far edge is still in bounds for the
+    // caller, and must not resolve a category beyond the last one.
+    if (j > dataPoints - 1) j = dataPoints - 1
+    if (jHorz > dataPoints - 1) jHorz = dataPoints - 1
     if (!j || j < 1) j = 0
 
     if (w.globals.isBarHorizontal) {
@@ -468,6 +411,15 @@ export default class Utils {
     //     perpendicular distance to each series's line segments so a
     //     click on a line between markers reports that line. Otherwise
     //     we use nearest Y at the chosen bucket.
+    // Every array is indexed by data point and may hold nulls, and a point
+    // counts only when both its x and its y are numbers. Segments join each
+    // drawn point to the previous drawn one, bridging the gap.
+    const isPoint = (
+      /** @type {any[]} */ xArr,
+      /** @type {any[]} */ yArr,
+      /** @type {number} */ j,
+    ) => Number.isFinite(xArr[j]) && Number.isFinite(yArr[j])
+
     if (w.globals.allSeriesHasEqualX) {
       let bucketDistX = Infinity
       for (let i = 0; i < Xarrays.length; i++) {
@@ -476,6 +428,7 @@ export default class Utils {
         const yArr = Yarrays[i]
         const len = Math.min(xArr.length, yArr.length)
         for (let j = 0; j < len; j++) {
+          if (!isPoint(xArr, yArr, j)) continue
           const distX = Math.abs(hoverX - xArr[j])
           if (distX < bucketDistX) {
             bucketDistX = distX
@@ -491,27 +444,33 @@ export default class Utils {
             const xArr = Xarrays[i]
             const yArr = Yarrays[i]
             const len = Math.min(xArr.length, yArr.length)
-            if (len < 2) {
+            let prev = -1
+            let segs = 0
+            for (let j = 0; j < len; j++) {
+              if (!isPoint(xArr, yArr, j)) continue
+              if (prev >= 0) {
+                segs++
+                const seg = this._distanceToSegment(
+                  hoverX,
+                  hoverY,
+                  xArr[prev],
+                  yArr[prev],
+                  xArr[j],
+                  yArr[j],
+                )
+                if (seg.dist < bestSegDist) {
+                  bestSegDist = seg.dist
+                  closestSeriesIndex = i
+                }
+              }
+              prev = j
+            }
+            if (!segs) {
               const yVal = yArr[closestPointIndex]
               if (typeof yVal !== 'number') continue
               const d = Math.abs(hoverY - yVal)
               if (d < bestSegDist) {
                 bestSegDist = d
-                closestSeriesIndex = i
-              }
-              continue
-            }
-            for (let j = 0; j < len - 1; j++) {
-              const seg = this._distanceToSegment(
-                hoverX,
-                hoverY,
-                xArr[j],
-                yArr[j],
-                xArr[j + 1],
-                yArr[j + 1],
-              )
-              if (seg.dist < bestSegDist) {
-                bestSegDist = seg.dist
                 closestSeriesIndex = i
               }
             }
@@ -549,29 +508,37 @@ export default class Utils {
 
       const len = Math.min(xArr.length, yArr.length)
 
-      if (isLineArea && len >= 2) {
-        for (let j = 0; j < len - 1; j++) {
-          const seg = this._distanceToSegment(
-            hoverX,
-            hoverY,
-            xArr[j],
-            yArr[j],
-            xArr[j + 1],
-            yArr[j + 1],
-          )
-          if (seg.dist < closestDist) {
-            closestDist = seg.dist
-            closestSeriesIndex = i
-            // j is used downstream for tooltip content — pick the endpoint
-            // the projection landed closer to so the value shown matches
-            // what the user is pointing at.
-            closestPointIndex = seg.t < 0.5 ? j : j + 1
+      if (isLineArea) {
+        let prev = -1
+        let segs = 0
+        for (let j = 0; j < len; j++) {
+          if (!isPoint(xArr, yArr, j)) continue
+          if (prev >= 0) {
+            segs++
+            const seg = this._distanceToSegment(
+              hoverX,
+              hoverY,
+              xArr[prev],
+              yArr[prev],
+              xArr[j],
+              yArr[j],
+            )
+            if (seg.dist < closestDist) {
+              closestDist = seg.dist
+              closestSeriesIndex = i
+              // j is used downstream for tooltip content — pick the endpoint
+              // the projection landed closer to so the value shown matches
+              // what the user is pointing at.
+              closestPointIndex = seg.t < 0.5 ? prev : j
+            }
           }
+          prev = j
         }
-        continue
+        if (segs) continue
       }
 
       for (let j = 0; j < len; j++) {
+        if (!isPoint(xArr, yArr, j)) continue
         const xVal = xArr[j]
         const distX = hoverX - xVal
         const yVal = yArr[j]
