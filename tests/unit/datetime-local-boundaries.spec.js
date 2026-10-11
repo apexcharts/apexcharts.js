@@ -42,3 +42,12 @@ describe('local week ticks land on Monday midnight', () => {
     expect(t.getTime() - monday).toBeLessThanOrEqual(15 * 864e5)
   })
 })
+
+describe('getDate keeps milliseconds', () => {
+  it.each([true, false])('datetimeUTC %s', (utc) => {
+    const ts = Date.UTC(2024, 0, 2, 3, 4, 5, 678)
+    const d = dt(utc).getDate(ts)
+    expect(d.getTime()).toBe(ts)
+    if (utc) expect(dt(utc).formatDate(d, 'HH:mm:ss.fff')).toBe('03:04:05.678')
+  })
+})

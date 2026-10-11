@@ -50,11 +50,9 @@ class DateTime {
    * @param {any} timestamp
    */
   getDate(timestamp) {
-    const utc = this.w.config.xaxis.labels.datetimeUTC
-
-    return utc
-      ? new Date(new Date(timestamp).toUTCString())
-      : new Date(timestamp)
+    // formatDate reads UTC or local fields itself; a toUTCString round trip
+    // here only dropped the milliseconds.
+    return new Date(timestamp)
   }
 
   /**
