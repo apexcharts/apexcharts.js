@@ -455,6 +455,9 @@ export default class Globals {
       // update it (see Theme.applyTokenChrome). Persistent: a re-render must
       // not forget it.
       tokenSurface: undefined,
+      // The tokens the last render applied to fore and grid, for the same
+      // reason (see Theme.applyTokenChrome).
+      tokenChrome: undefined,
       lastXAxis: [],
       lastYAxis: [],
 

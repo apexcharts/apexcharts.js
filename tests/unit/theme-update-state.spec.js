@@ -137,3 +137,58 @@ describe('Theme: updateOptions with a theme key', () => {
   })
 })
 
+
+describe('Theme: fore and grid tokens stay replaceable', () => {
+  function brandChart(chart = {}) {
+    return createChartWithOptions({
+      chart: { type: 'line', ...chart },
+      series: [{ data: [1, 2, 3] }],
+      theme: { name: 'brand' },
+    })
+  }
+
+  it('a changed token replaces the fore and grid colours it set', async () => {
+    ApexCharts.registerTheme('brand', {
+      tokens: { fore: '#222222', grid: '#cccccc' },
+    })
+    const chart = brandChart()
+    await chart.render()
+    expect(chart.w.config.chart.foreColor).toBe('#222222')
+    expect(chart.w.config.grid.borderColor).toBe('#cccccc')
+
+    ApexCharts.registerTheme('brand', {
+      tokens: { fore: '#444444', grid: '#999999' },
+    })
+    await chart.refreshTokens()
+    expect(chart.w.config.chart.foreColor).toBe('#444444')
+    expect(chart.w.config.grid.borderColor).toBe('#999999')
+    expect(chart.w.config.xaxis.axisBorder.color).toBe('#999999')
+    expect(chart.w.config.yaxis[0].axisTicks.color).toBe('#999999')
+    chart.destroy()
+  })
+
+  it('restores the defaults when the tokens go away', async () => {
+    ApexCharts.registerTheme('brand', {
+      tokens: { fore: '#222222', grid: '#cccccc' },
+    })
+    const chart = brandChart()
+    await chart.render()
+
+    ApexCharts.registerTheme('brand', { palette: ['#1f77b4'] })
+    await chart.refreshTokens()
+    expect(chart.w.config.chart.foreColor).toBe('#373d3f')
+    expect(chart.w.config.grid.borderColor).toBe('#e0e0e0')
+    expect(chart.w.config.xaxis.axisTicks.color).toBe('#e0e0e0')
+    chart.destroy()
+  })
+
+  it('never replaces an explicit foreColor', async () => {
+    ApexCharts.registerTheme('brand', { tokens: { fore: '#222222' } })
+    const chart = brandChart({ foreColor: '#ff0000' })
+    await chart.render()
+    ApexCharts.registerTheme('brand', { tokens: { fore: '#444444' } })
+    await chart.refreshTokens()
+    expect(chart.w.config.chart.foreColor).toBe('#ff0000')
+    chart.destroy()
+  })
+})

@@ -220,46 +220,51 @@ export default class Theme {
   applyTokenChrome(tokens) {
     if (!tokens) return
     const w = this.w
+    const last = w.globals.tokenChrome || {}
+    const dark = w.config.theme.mode === 'dark'
 
-    if (
-      tokens.fore &&
-      (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT ||
-        w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK)
-    ) {
-      // axis labels + legend text funnel to chart.foreColor
-      w.config.chart.foreColor = tokens.fore
-    }
-
-    if (tokens.grid) {
-      if (w.config.grid.borderColor === DEFAULT_AXIS_GRID) {
-        w.config.grid.borderColor = tokens.grid
-      }
-      /** @param {any} axis */
-      const applyAxis = (axis) => {
-        if (!axis) return
-        if (axis.axisBorder && axis.axisBorder.color === DEFAULT_AXIS_GRID) {
-          axis.axisBorder.color = tokens.grid
-        }
-        if (axis.axisTicks && axis.axisTicks.color === DEFAULT_AXIS_GRID) {
-          axis.axisTicks.color = tokens.grid
-        }
-      }
-      applyAxis(w.config.xaxis)
-      if (Array.isArray(w.config.yaxis)) {
-        w.config.yaxis.forEach(applyAxis)
-      } else {
-        applyAxis(w.config.yaxis)
+    // A token value written into config looks like a user value on the next
+    // render, so remember what was written: our own value stays replaceable
+    // by a changed token (refreshTokens(), an OS flip) and falls back to the
+    // default once the token is gone, while an explicit value always wins.
+    /**
+     * @param {any} obj
+     * @param {string} key
+     * @param {'fore' | 'grid'} name
+     * @param {string} def
+     * @param {string} [alt] the other built-in default, also replaceable
+     */
+    const swap = (obj, key, name, def, alt = def) => {
+      const v = obj && obj[key]
+      const token = tokens[name]
+      if (
+        obj &&
+        ((token && (v === def || v === alt)) || (last[name] && v === last[name]))
+      ) {
+        obj[key] = token || def
       }
     }
 
-    // `chart.background` is the odd one out above: fore and grid have non-empty
-    // built-in defaults to compare against, so an explicit value is
-    // recognisable. background defaults to '', so once a token was written into
-    // config it becomes indistinguishable from a user value, and every later
-    // read (an OS light/dark flip, a host app swapping its design system and
-    // calling refreshTokens()) would decline to update it. Remembering what we
-    // wrote keeps our own value replaceable while an explicit background still
-    // wins outright.
+    // axis labels + legend text funnel to chart.foreColor
+    swap(
+      w.config.chart,
+      'foreColor',
+      'fore',
+      dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT,
+      dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK,
+    )
+    const axes = /** @type {any[]} */ ([w.config.xaxis]).concat(w.config.yaxis)
+    swap(w.config.grid, 'borderColor', 'grid', DEFAULT_AXIS_GRID)
+    axes.forEach((axis) => {
+      if (axis) {
+        swap(axis.axisBorder, 'color', 'grid', DEFAULT_AXIS_GRID)
+        swap(axis.axisTicks, 'color', 'grid', DEFAULT_AXIS_GRID)
+      }
+    })
+    w.globals.tokenChrome = tokens
+
+    // `chart.background` defaults to '', so there is no default to compare
+    // against and the paper node has to follow it: handled on its own.
     const appliedSurface = w.globals.tokenSurface
     const currentBg = w.config.chart.background
     const isOurs = !currentBg || currentBg === appliedSurface

@@ -428,6 +428,11 @@ export interface ChartGlobals
    * background and update it. See Theme.applyTokenChrome.
    */
   tokenSurface: string | undefined
+  /**
+   * The `--apx-fore` / `--apx-grid` tokens the last render applied, so a
+   * changed or removed token can replace the value Theme itself wrote.
+   */
+  tokenChrome: { fore?: string; grid?: string } | undefined
   originalSeries: ApexOptions['series'] | null
 
   // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────
