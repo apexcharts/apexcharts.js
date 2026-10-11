@@ -337,13 +337,8 @@ class Intersect {
       // arrow off moved the box as well as hiding the arrow.
       x = cx
       y = cy
-
-      if (TooltipUtils.isFollowCursor(w)) {
-        const elGrid = ttCtx.getElGrid()
-        if (!elGrid) return { x, y }
-        const seriesBound = TooltipUtils.plotRect(w)
-        y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
-      }
+      // A box that follows the cursor is placed from the (touch-aware)
+      // pointer in computeTooltipPosition, so the marker centre is enough.
 
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y)
     }
@@ -424,13 +419,12 @@ class Intersect {
 
     // The box goes where it goes for the marker node, which is read back
     // from its attributes with parseInt.
-    const x = Math.trunc(marker.cx)
-    let y = Math.trunc(marker.cy)
-    if (TooltipUtils.isFollowCursor(w)) {
-      const seriesBound = TooltipUtils.plotRect(w)
-      y = e.clientY + w.layout.translateY - seriesBound.top
-    }
-    ttCtx.marker.enlargePaintedPoint(marker, x, y)
+    // A box that follows the cursor is placed from the pointer there.
+    ttCtx.marker.enlargePaintedPoint(
+      marker,
+      Math.trunc(marker.cx),
+      Math.trunc(marker.cy),
+    )
   }
 
   /**

@@ -1152,5 +1152,32 @@ describe('Tooltip anchoring', () => {
       expect(w.interact.capturedSeriesIndex).toBe(0)
       expect(w.interact.capturedDataPointIndex).toBe(3)
     })
+
+    // A touchmove has no clientY of its own, so reading the box y off the raw
+    // event gave NaN, which computeTooltipPosition refuses: the box never
+    // moved to the finger. It places a followCursor box from the pointer
+    // itself, so the marker centre is all it needs here.
+    it('hands over the marker centre under followCursor on touch', () => {
+      const { ttCtx, marker, w } = markerCtx({ arrow: true, val: 5 })
+      w.config.tooltip.followCursor = true
+      const e = {
+        type: 'touchmove',
+        target: marker,
+        touches: [{ clientX: 190, clientY: 140 }],
+      }
+      ttCtx.e = e
+      new Intersect(ttCtx).handleMarkerTooltip({
+        e,
+        opt: { paths: marker, ttItems: [] },
+        x: 0,
+        y: 0,
+      })
+      expect(ttCtx.marker.enlargeCurrentPoint).toHaveBeenCalledWith(
+        3,
+        marker,
+        140,
+        120,
+      )
+    })
   })
 })
