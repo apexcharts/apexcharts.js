@@ -1,6 +1,5 @@
 // @ts-check
 import AxesUtils from '../modules/axes/AxesUtils'
-import Data from '../modules/Data'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
@@ -14,7 +13,7 @@ class Exports {
    */
   constructor(w, ctx) {
     this.w = w
-    this.ctx = ctx // needed: theme, timeScale (for AxesUtils), passes ctx to Data/Series
+    this.ctx = ctx // needed: theme, timeScale (for AxesUtils), passes ctx to Series
   }
 
   /**
@@ -781,21 +780,29 @@ class Exports {
     lineDelimiter = '\n',
   }) {
     const w = this.w
+    const gl = w.globals
+    const csvCfg = w.config.chart.toolbar.export.csv
 
-    if (!series) series = w.config.series
+    // Streamgraph, waterfall and dumbbell draw rows this library derived
+    // (baseline offsets, running totals, merged endpoints). The raw stash is
+    // the only copy of the values the user gave, so that is what exports.
+    const raw =
+      !series &&
+      (gl.streamgraphRawSeries || gl.waterfallRawSeries || gl.dumbbellRawSeries)
+    if (!series) series = raw || w.config.series
 
-    /** @type {any[]} */
-    let columns = []
+    // A legend-hidden series exports as empty cells, whatever its data format.
+    // A dumbbell's legend lists the endpoint series, not the merged row.
+    const hidden = new Set(
+      raw && raw === gl.dumbbellRawSeries
+        ? w.dumbbellData.hidden
+        : gl.collapsedSeriesIndices,
+    )
+
     const rows = []
-    let result = ''
-    const universalBOM = '\uFEFF'
-    /**
-     * @param {Record<string, any>} s
-     * @param {number} i
-     */
-    const gSeries = w.seriesData.series.map((s, i) => {
-      return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
-    })
+    /** @type {any[][]} */
+    const body = []
+    const isDatetime = w.config.xaxis.type === 'datetime'
 
     // CSV formula-injection guard: a spreadsheet evaluates a cell that begins
     // with = + - @ (or tab / CR) as a formula, so a category/value from
@@ -808,48 +815,36 @@ class Exports {
     const csvSafe = (val) => {
       // Leave null/undefined (empty cells) and numbers untouched; only guard
       // non-numeric string cells so we don't stringify an empty cell to
-      // "undefined" or prefix a negative number.
+      // "undefined" or prefix a negative number, even one given as text.
       if (val == null || Utils.isNumber(val)) return val
       const s = String(val)
-      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+      return /^[=+\-@\t\r]/.test(s) && isNaN(+s) ? `'${s}` : s
     }
 
     /**
      * @param {any} cat
      */
     const getFormattedCategory = (cat) => {
-      if (
-        typeof w.config.chart.toolbar.export.csv.categoryFormatter ===
-        'function'
-      ) {
-        return w.config.chart.toolbar.export.csv.categoryFormatter(cat)
+      if (typeof csvCfg.categoryFormatter === 'function') {
+        return csvCfg.categoryFormatter(cat)
       }
-
-      if (w.config.xaxis.type === 'datetime' && String(cat).length >= 10) {
+      if (cat == null) return ''
+      if (isDatetime && String(cat).length >= 10) {
         return new Date(cat).toDateString()
       }
-      return Utils.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(''))
+      return Utils.isNumber(cat)
+        ? cat
+        : csvSafe(String(cat).split(columnDelimiter).join(''))
     }
 
     /**
      * @param {any} value
      */
     const getFormattedValue = (value) => {
-      return typeof w.config.chart.toolbar.export.csv.valueFormatter ===
-        'function'
-        ? w.config.chart.toolbar.export.csv.valueFormatter(value)
+      return typeof csvCfg.valueFormatter === 'function'
+        ? csvCfg.valueFormatter(value)
         : csvSafe(value)
     }
-
-    const seriesMaxDataLength = Math.max(
-      /**
-       * @param {Record<string, any>} s
-       */
-      ...series.map((/** @type {any} */ s) => {
-        return s.data ? s.data.length : 0
-      }),
-    )
-    const dataFormat = new Data(this.w)
 
     const axesUtils = new AxesUtils(this.w, {
       theme: this.ctx.theme,
@@ -862,7 +857,7 @@ class Exports {
       let cat = ''
 
       // pie / donut/ radial
-      if (!w.globals.axisCharts) {
+      if (!gl.axisCharts) {
         cat = w.config.labels[i]
       } else {
         // xy charts
@@ -872,7 +867,7 @@ class Exports {
           w.config.xaxis.type === 'category' ||
           w.config.xaxis.convertedCatToNumeric
         ) {
-          if (w.globals.isBarHorizontal) {
+          if (gl.isBarHorizontal) {
             const lbFormatter = w.formatters.yLabelFormatters[0]
             const sr = new Series(this.ctx.w)
             const activeSeries = sr.getActiveConfigSeriesIndex()
@@ -893,7 +888,7 @@ class Exports {
         }
 
         // datetime, but labels specified in categories or labels
-        if (w.config.xaxis.type === 'datetime') {
+        if (isDatetime) {
           if (w.config.xaxis.categories.length) {
             cat = w.config.xaxis.categories[i]
           } else if (w.config.labels.length) {
@@ -902,236 +897,151 @@ class Exports {
         }
       }
 
-      // let the caller know the current category is null. this can happen for example
-      // when dealing with line charts having inconsistent time series data
-      if (cat === null) return 'nullvalue'
-
-      if (Array.isArray(cat)) {
-        cat = cat.join(' ')
-      }
-
-      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
+      return Array.isArray(cat) ? cat.join(' ') : cat
     }
 
-    // Fix https://github.com/apexcharts/apexcharts.js/issues/3365
-    const getEmptyDataForCsvColumn = () => {
-      return [...Array(seriesMaxDataLength)].map(() => '')
-    }
-
-    /**
-     * @param {Record<string, any>} s
-     * @param {number} sI
-     */
-    const handleAxisRowsColumns = (s, sI) => {
-      if (columns.length && sI === 0) {
-        // It's the first series.  Go ahead and create the first row with header information.
-        rows.push(columns.join(columnDelimiter))
+    const cd = w.candleData
+    const rd = w.rangeData
+    const vd = w.violinData
+    const multi = series.length > 1
+    // Per series: its header cells and a reader of its cells at data index i.
+    // One table for both, so the header and the rows cannot disagree.
+    const cols = series.map((/** @type {any} */ s, /** @type {number} */ sI) => {
+      const type = raw ? '' : s.type || w.config.chart.type
+      /** @type {Record<string, any[]> | null} */
+      const fields =
+        type === 'candlestick'
+          ? {
+              open: cd.seriesCandleO,
+              high: cd.seriesCandleH,
+              low: cd.seriesCandleL,
+              close: cd.seriesCandleC,
+            }
+          : type === 'boxPlot'
+            ? {
+                minimum: cd.seriesCandleO,
+                q1: cd.seriesCandleH,
+                median: cd.seriesCandleM,
+                q3: cd.seriesCandleL,
+                maximum: cd.seriesCandleC,
+              }
+            : type === 'rangeBar' || type === 'rangeArea'
+              ? { minimum: rd.seriesRangeStart, maximum: rd.seriesRangeEnd }
+              : type === 'violin'
+                ? {
+                    minimum: vd.seriesViolinMin,
+                    maximum: vd.seriesViolinMax,
+                    observations: vd.seriesViolinPoints,
+                  }
+                : null
+      const name =
+        String(s.name || `series-${sI}`)
+          .split(columnDelimiter)
+          .join('') || `series-${sI}`
+      const keys = fields ? Object.keys(fields) : [name]
+      return {
+        head: fields && multi ? keys.map((k) => `${name} ${k}`) : keys,
+        /** @param {number} i */
+        cells: (i) => {
+          const off = hidden.has(sI)
+          if (!fields) {
+            const d = off ? undefined : s.data?.[i]
+            return [
+              getFormattedValue(
+                d && typeof d === 'object' ? (Array.isArray(d) ? d[1] : d.y) : d,
+              ),
+            ]
+          }
+          return Object.values(fields).map((src) => {
+            const v = off ? undefined : src?.[sI]?.[i]
+            // a violin cell counts its observations
+            return getFormattedValue(Array.isArray(v) ? v.length : v)
+          })
+        },
       }
+    })
 
-      if (s.data) {
-        // Use the data we have, or a properly sized empty array. Use a LOCAL,
-        // not `s.data = ...`: reassigning mutates the live series config, so an
-        // empty series kept the placeholder '' points after export.
-        const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn()
-        for (let i = 0; i < rowData.length; i++) {
-          // Reset the columns array so that we can start building columns for this row.
-          columns = []
+    if (!gl.axisCharts) {
+      rows.push(
+        [csvCfg.headerCategory, csvCfg.headerValue].join(columnDelimiter),
+      )
+      series.forEach((/** @type {any} */ _, /** @type {number} */ sI) => {
+        rows.push(
+          [
+            getFormattedCategory(w.labelData.labels[sI]),
+            getFormattedValue(hidden.has(sI) ? '' : w.seriesData.series[sI]),
+          ].join(columnDelimiter),
+        )
+      })
+    } else {
+      rows.push(
+        [csvCfg.headerCategory, ...cols.flatMap((c) => c.head)].join(
+          columnDelimiter,
+        ),
+      )
+      if (
+        !gl.allSeriesHasEqualX &&
+        !w.config.xaxis.categories.length &&
+        !w.config.labels.length
+      ) {
+        // One row per distinct x across the series. A Map stops a plain
+        // object category named `__proto__` from writing.
+        /** @type {Map<string, {cat: any, values: any[][]}>} */
+        const byCategory = new Map()
+        series.forEach((/** @type {any} */ s, /** @type {number} */ sI) => {
+          s?.data?.forEach((/** @type {any} */ d, /** @type {number} */ i) => {
+            // only {x, y} and [x, y] points carry their own x; a null is a gap
+            if (!d || typeof d !== 'object') return
+            const cat = Array.isArray(d) ? d[0] : d.x
+            const key = String(cat)
+            let row = byCategory.get(key)
+            if (!row) {
+              row = { cat, values: cols.map((c) => c.head.map(() => '')) }
+              byCategory.set(key, row)
+            }
+            row.values[sI] = cols[sI].cells(i)
+          })
+        })
 
+        Array.from(byCategory.values())
+          .sort((a, b) => {
+            // Numbers and Dates by value (as text 10 sorts before 9), then strings
+            const aText = typeof a.cat === 'string'
+            const bText = typeof b.cat === 'string'
+            if (aText !== bText) return aText ? 1 : -1
+            if (!aText) return a.cat - b.cat
+            return a.cat < b.cat ? -1 : 1
+          })
+          .forEach(({ cat, values }) => body.push([cat, ...values.flat()]))
+      } else {
+        const len = Math.max(
+          0,
+          ...series.map((/** @type {any} */ s) => s.data?.length || 0),
+        )
+        // One row per category, with every series' cells on it.
+        for (let i = 0; i < len; i++) {
           let cat = getCat(i)
-
-          // current category is null, let's move on to the next one
-          if (cat === 'nullvalue') continue
-
+          // a null category is a gap in inconsistent time series data
+          if (cat === null) continue
           if (!cat) {
-            if (dataFormat.isFormatXY()) {
-              cat = series[sI].data[i].x
-            } else if (dataFormat.isFormat2DArray()) {
-              cat = series[sI].data[i] ? series[sI].data[i][0] : ''
-            }
+            const d = series
+              .map((/** @type {any} */ s) => s.data?.[i])
+              .find((/** @type {any} */ d) => d != null)
+            cat = d == null ? '' : Array.isArray(d) ? d[0] : d.x
           }
-
-          if (sI === 0) {
-            // It's the first series.  Also handle the category.
-            columns.push(getFormattedCategory(cat))
-
-            for (let ci = 0; ci < w.seriesData.series.length; ci++) {
-              const value = dataFormat.isFormatXY()
-                ? series[ci].data[i]?.y
-                : gSeries[ci][i]
-              columns.push(getFormattedValue(value))
-            }
-          }
-
-          if (
-            w.config.chart.type === 'candlestick' ||
-            (s.type && s.type === 'candlestick')
-          ) {
-            columns.pop()
-            columns.push(w.candleData.seriesCandleO[sI][i])
-            columns.push(w.candleData.seriesCandleH[sI][i])
-            columns.push(w.candleData.seriesCandleL[sI][i])
-            columns.push(w.candleData.seriesCandleC[sI][i])
-          }
-
-          if (
-            w.config.chart.type === 'boxPlot' ||
-            (s.type && s.type === 'boxPlot')
-          ) {
-            columns.pop()
-            columns.push(w.candleData.seriesCandleO[sI][i])
-            columns.push(w.candleData.seriesCandleH[sI][i])
-            columns.push(w.candleData.seriesCandleM[sI][i])
-            columns.push(w.candleData.seriesCandleL[sI][i])
-            columns.push(w.candleData.seriesCandleC[sI][i])
-          }
-
-          if (w.config.chart.type === 'rangeBar') {
-            columns.pop()
-            columns.push(w.rangeData.seriesRangeStart[sI][i])
-            columns.push(w.rangeData.seriesRangeEnd[sI][i])
-          }
-
-          if (w.config.chart.type === 'violin' || (s.type && s.type === 'violin')) {
-            columns.pop()
-            columns.push(w.violinData.seriesViolinMin[sI]?.[i])
-            columns.push(w.violinData.seriesViolinMax[sI]?.[i])
-            columns.push(w.violinData.seriesViolinPoints[sI]?.[i]?.length ?? 0)
-          }
-
-          if (columns.length) {
-            rows.push(columns.join(columnDelimiter))
-          }
+          body.push([cat, ...cols.flatMap((c) => c.cells(i))])
         }
       }
     }
 
-    const handleUnequalXValues = () => {
-      // Map stops a plain object category named `__proto__` from writing
-      /** @type {Map<string, {cat: any, values: string[]}>} */
-      const byCategory = new Map()
-
-      /**
-       * @param {Record<string, any>} s
-       * @param {number} sI
-       */
-      series.forEach((/** @type {any} */ s, /** @type {any} */ sI) => {
-        /**
-         * @param {Record<string, any>} dataItem
-         */
-        s?.data.forEach((/** @type {any} */ dataItem) => {
-          let cat, value
-          if (dataFormat.isFormatXY()) {
-            cat = dataItem.x
-            value = dataItem.y
-          } else if (dataFormat.isFormat2DArray()) {
-            cat = dataItem[0]
-            value = dataItem[1]
-          } else {
-            return
-          }
-          const key = String(cat)
-          let row = byCategory.get(key)
-          if (!row) {
-            row = { cat, values: Array(series.length).fill('') }
-            byCategory.set(key, row)
-          }
-          row.values[sI] = getFormattedValue(value)
-        })
-      })
-
-      if (columns.length) {
-        rows.push(columns.join(columnDelimiter))
-      }
-
-      Array.from(byCategory.values())
-        .sort((a, b) => {
-          // Numbers and Dates by value (as text 10 sorts before 9), then strings
-          const aText = typeof a.cat === 'string'
-          const bText = typeof b.cat === 'string'
-          if (aText !== bText) return aText ? 1 : -1
-          if (!aText) return a.cat - b.cat
-          return a.cat < b.cat ? -1 : 1
-        })
-        .forEach(({ cat, values }) => {
-          // Join here: pushing the array would leave rows.join() to stringify
-          // it, which always uses a comma between category and values.
-          rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter))
-        })
-    }
-
-    columns.push(w.config.chart.toolbar.export.csv.headerCategory)
-
-    if (w.config.chart.type === 'boxPlot') {
-      columns.push('minimum')
-      columns.push('q1')
-      columns.push('median')
-      columns.push('q3')
-      columns.push('maximum')
-    } else if (w.config.chart.type === 'candlestick') {
-      columns.push('open')
-      columns.push('high')
-      columns.push('low')
-      columns.push('close')
-    } else if (w.config.chart.type === 'rangeBar') {
-      columns.push('minimum')
-      columns.push('maximum')
-    } else if (w.config.chart.type === 'violin') {
-      columns.push('minimum')
-      columns.push('maximum')
-      columns.push('observations')
-    } else {
-      /**
-       * @param {Record<string, any>} s
-       * @param {number} sI
-       */
-      series.map((/** @type {any} */ s, /** @type {any} */ sI) => {
-        const sname = (s.name ? s.name : `series-${sI}`) + ''
-        if (w.globals.axisCharts) {
-          columns.push(
-            sname.split(columnDelimiter).join('')
-              ? sname.split(columnDelimiter).join('')
-              : `series-${sI}`,
-          )
-        }
-      })
-    }
-
-    if (!w.globals.axisCharts) {
-      columns.push(w.config.chart.toolbar.export.csv.headerValue)
-      rows.push(columns.join(columnDelimiter))
-    }
-
-    if (
-      !w.globals.allSeriesHasEqualX &&
-      w.globals.axisCharts &&
-      !w.config.xaxis.categories.length &&
-      !w.config.labels.length
-    ) {
-      handleUnequalXValues()
-    } else {
-      /**
-       * @param {Record<string, any>} s
-       * @param {number} sI
-       */
-      series.map((/** @type {any} */ s, /** @type {any} */ sI) => {
-        if (w.globals.axisCharts) {
-          handleAxisRowsColumns(s, sI)
-        } else {
-          columns = []
-
-          columns.push(getFormattedCategory(w.labelData.labels[sI]))
-          columns.push(getFormattedValue(gSeries[sI]))
-          rows.push(columns.join(columnDelimiter))
-        }
-      })
-    }
-
-    result += rows.join(lineDelimiter)
+    body.forEach((r) =>
+      rows.push([getFormattedCategory(r[0]), ...r.slice(1)].join(columnDelimiter)),
+    )
 
     this.triggerDownload(
       'data:text/csv; charset=utf-8,' +
-        encodeURIComponent(universalBOM + result),
-      fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
+        encodeURIComponent('﻿' + rows.join(lineDelimiter)),
+      fileName ? fileName : csvCfg.filename,
       '.csv',
     )
   }

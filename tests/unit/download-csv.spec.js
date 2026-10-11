@@ -1,5 +1,8 @@
 import { createChart, createChartWithOptions } from './utils/utils.js'
 import Exports from './../../src/modules/Exports'
+import '../../src/features/streamgraph'
+import '../../src/features/waterfall'
+import '../../src/features/dumbbell'
 
 describe('Export Csv', () => {
   it('export csv from simple pie chart should call triggerDownload with csv encoded file data', () => {
@@ -569,5 +572,201 @@ describe('Export Csv', () => {
     })
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(csv).toContain('category,series1,series2\n2,1,\n9,,3\n10,2,')
+  })
+})
+
+// Builds the CSV text a chart exports, without the BOM.
+function csvOf(options, opts = {}, before) {
+  const chart = createChartWithOptions(options)
+  if (before) before(chart)
+  const exports = new Exports(chart.ctx.w, chart.ctx)
+  let csv = ''
+  exports.triggerDownload = (href) => {
+    csv = decodeURIComponent(href.replace(/^data:text\/csv;\s*charset=utf-8,/, ''))
+      .replace('﻿', '')
+  }
+  exports.exportToCSV(opts)
+  return csv
+}
+
+describe('Export Csv: one row per category for every series shape', () => {
+  it('writes each candlestick series once, with its own named columns', () => {
+    const csv = csvOf({
+      chart: { type: 'candlestick' },
+      series: [
+        { name: 'c1', data: [{ x: 1000, y: [1, 5, 0, 3] }, { x: 2000, y: [2, 6, 1, 4] }] },
+        { name: 'c2', data: [{ x: 1000, y: [11, 15, 10, 13] }, { x: 2000, y: [12, 16, 11, 14] }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,c1 open,c1 high,c1 low,c1 close,c2 open,c2 high,c2 low,c2 close\n' +
+        '1000,1,5,0,3,11,15,10,13\n' +
+        '2000,2,6,1,4,12,16,11,14',
+    )
+  })
+
+  it('keeps the line values of a candlestick and line combo', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      series: [
+        { name: 'candle', type: 'candlestick', data: [{ x: 1000, y: [1, 5, 0, 3] }, { x: 2000, y: [2, 6, 1, 4] }] },
+        { name: 'line', type: 'line', data: [{ x: 1000, y: 2 }, { x: 2000, y: 3 }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,candle open,candle high,candle low,candle close,line\n' +
+        '1000,1,5,0,3,2\n' +
+        '2000,2,6,1,4,3',
+    )
+  })
+
+  it('writes both rangeBar series on the category row', () => {
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      plotOptions: { bar: { horizontal: true } },
+      series: [
+        { name: 'A', data: [{ x: 'Design', y: [1, 5] }, { x: 'Code', y: [3, 7] }] },
+        { name: 'B', data: [{ x: 'Design', y: [2, 6] }, { x: 'Code', y: [4, 8] }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A minimum,A maximum,B minimum,B maximum\n' +
+        'Design,1,5,2,6\n' +
+        'Code,3,7,4,8',
+    )
+  })
+
+  it('splits rangeArea values into numeric low and high cells', () => {
+    const csv = csvOf({
+      chart: { type: 'rangeArea' },
+      series: [
+        { name: 'A', data: [{ x: 'Jan', y: [-1, 5] }, { x: 'Feb', y: [2, 6] }] },
+        { name: 'B', data: [{ x: 'Jan', y: [3, 7] }, { x: 'Feb', y: [4, 8] }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A minimum,A maximum,B minimum,B maximum\n' +
+        'Jan,-1,5,3,7\n' +
+        'Feb,2,6,4,8',
+    )
+  })
+
+  it('exports the values a streamgraph was given, not its baseline offsets', () => {
+    const csv = csvOf({
+      chart: { type: 'streamgraph' },
+      series: [
+        { name: 'A', data: [{ x: 1, y: 10 }, { x: 2, y: 20 }] },
+        { name: 'B', data: [{ x: 1, y: 5 }, { x: 2, y: 6 }] },
+      ],
+    })
+    expect(csv).toBe('category,A,B\n1,10,5\n2,20,6')
+  })
+
+  it('exports the steps a waterfall was given', () => {
+    const csv = csvOf({
+      chart: { type: 'waterfall' },
+      series: [
+        { name: 'W', data: [{ x: 'Start', y: 100 }, { x: 'Q1', y: 20 }, { x: 'Q2', y: -30 }] },
+      ],
+    })
+    expect(csv).toBe('category,W\nStart,100\nQ1,20\nQ2,-30')
+  })
+
+  it('exports one column per dumbbell endpoint series', () => {
+    const csv = csvOf({
+      chart: { type: 'dumbbell' },
+      series: [
+        { name: '2019', data: [{ x: 'a', y: 10 }, { x: 'b', y: 20 }] },
+        { name: '2023', data: [{ x: 'a', y: 15 }, { x: 'b', y: 25 }] },
+      ],
+    })
+    expect(csv).toBe('category,2019,2023\na,10,15\nb,20,25')
+  })
+
+  it('blanks a legend-hidden streamgraph series', () => {
+    const csv = csvOf(
+      {
+        chart: { type: 'streamgraph' },
+        series: [
+          { name: 'A', data: [{ x: 1, y: 10 }, { x: 2, y: 20 }] },
+          { name: 'B', data: [{ x: 1, y: 5 }, { x: 2, y: 6 }] },
+        ],
+      },
+      {},
+      (chart) => chart.toggleSeries('A'),
+    )
+    expect(csv).toBe('category,A,B\n1,,5\n2,,6')
+  })
+})
+
+describe('Export Csv: series source, hidden series and gaps', () => {
+  const twoSeries = () => ({
+    chart: { type: 'line' },
+    xaxis: { categories: ['a', 'b'] },
+    series: [
+      { name: 'A', data: [1, 2] },
+      { name: 'B', data: [3, 4] },
+    ],
+  })
+
+  it('reads the values from a caller-supplied series for array data', () => {
+    const csv = csvOf(twoSeries(), { series: [{ name: 'X', data: [9, 8] }] })
+    expect(csv).toBe('category,X\na,9\nb,8')
+  })
+
+  it('blanks a hidden series the same way for array and {x, y} data', () => {
+    const xy = {
+      chart: { type: 'line' },
+      series: [
+        { name: 'A', data: [{ x: 'a', y: 1 }, { x: 'b', y: 2 }] },
+        { name: 'B', data: [{ x: 'a', y: 3 }, { x: 'b', y: 4 }] },
+      ],
+    }
+    const hide = (chart) => {
+      chart.w.globals.collapsedSeriesIndices = [0]
+    }
+    expect(csvOf(twoSeries(), {}, hide)).toBe('category,A,B\na,,3\nb,,4')
+    expect(csvOf(xy, {}, hide)).toBe('category,A,B\na,,3\nb,,4')
+  })
+
+  it('leaves a negative number given as text unquoted', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { categories: ['a', 'b'] },
+      series: [{ name: 'A', data: ['-5', '=1+1'] }],
+    })
+    expect(csv).toBe("category,A\na,-5\nb,'=1+1")
+  })
+
+  it('does not throw when a datetime axis has fewer categories than points', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'datetime', categories: ['2026-01-01', '2026-01-02'] },
+      series: [{ name: 'A', data: [1, 2, 3, 4] }],
+    })
+    const rows = csv.split('\n')
+    expect(rows).toHaveLength(5)
+    expect(rows.slice(3)).toEqual([',3', ',4'])
+  })
+
+  it('skips a null gap in {x, y} data', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      series: [{ name: 'A', data: [{ x: 'a', y: 1 }, null, { x: 'c', y: 3 }] }],
+    })
+    expect(csv).toContain('a,1')
+    expect(csv).toContain('c,3')
+  })
+
+  it('skips a null gap in {x, y} data on the unequal-x path', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'numeric' },
+      series: [
+        { name: 'A', data: [{ x: 1, y: 1 }, null, { x: 3, y: 3 }] },
+        { name: 'B', data: [{ x: 2, y: 2 }] },
+      ],
+    })
+    expect(csv).toBe('category,A,B\n1,1,\n2,,2\n3,3,')
   })
 })
