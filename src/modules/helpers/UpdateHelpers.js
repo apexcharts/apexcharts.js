@@ -536,6 +536,13 @@ export default class UpdateHelpers {
     if (w.globals.risingSeries.length > 0) return false
     if (w.globals.comboCharts) return false
     if (w.interact.zoomed) return false
+    // The gradient legend keeps the colour extent it was drawn with (its end
+    // labels, stops and hover arrow). O(points), on an opted-in strip only.
+    const strip = /** @type {any} */ (this.ctx.legend)?.heatmapGradientLegend
+    if (strip && strip.constructor.isEnabled(w)) {
+      const { min, max } = strip._computeStops()
+      if (min !== strip._min || max !== strip._max) return false
+    }
     // The fast path repaints into the series renderer already on screen and
     // keeps the tooltip's listeners, both chosen for that backend. When a
     // full render would now pick another one ('auto' crossing its threshold,
