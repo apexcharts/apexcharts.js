@@ -119,8 +119,17 @@ export default class UpdateHelpers {
         this.w.globals.isExecCalled = false
       }
 
-      charts.forEach((ch, chartIndex) => {
+      // Every chart of a group gets its own copy of the payload (and of the
+      // `chart` section the alias handover writes): a sibling deletes
+      // `series` and `yaxis` from it, which used to empty the caller's object.
+      const payload = options
+      const updates = charts.map((ch) => {
         const w = ch.w
+        options = payload
+        if (options && typeof options === 'object') {
+          options = { ...options }
+          if (options.chart) options.chart = { ...options.chart }
+        }
 
         w.globals.shouldAnimate = animate
 
@@ -315,17 +324,14 @@ export default class UpdateHelpers {
           }
         }
 
-        // Reject the public promise if a render fails, rather than leaving it
-        // pending forever (and surfacing only as an UnhandledPromiseRejection).
-        return ch
-          .update(options)
-          .then(() => {
-            if (chartIndex === charts.length - 1) {
-              resolve(ch)
-            }
-          })
-          .catch(reject)
+        return ch.update(options)
       })
+      // Settles once the whole group has, with the chart it was called on.
+      // Reject the public promise if a render fails, rather than leaving it
+      // pending forever (and surfacing only as an UnhandledPromiseRejection).
+      Promise.all(updates)
+        .then(() => resolve(this.ctx))
+        .catch(reject)
     })
   }
 
