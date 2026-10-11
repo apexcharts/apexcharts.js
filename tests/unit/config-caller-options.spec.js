@@ -96,6 +96,18 @@ describe('options with no chart section', () => {
   })
 })
 
+describe('options with no series', () => {
+  it('a logarithmic y-axis chart can start without series', () => {
+    expect(
+      () =>
+        new ApexCharts(host('l1'), {
+          chart: { ...LINE },
+          yaxis: { logarithmic: true },
+        }),
+    ).not.toThrow()
+  })
+})
+
 describe('window.Apex.yaxis', () => {
   it("fills in what the chart leaves unset, and the chart's own wins", () => {
     window.Apex = { yaxis: { min: 0, tickAmount: 4 } }

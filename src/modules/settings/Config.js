@@ -407,10 +407,8 @@ export default class Config {
       }
     })
 
-    let series = opts.series
-    if (w && !series) {
-      series = w.config.series
-    }
+    // No series yet is a chart to be filled by updateSeries later.
+    const series = opts.series || w?.config.series || []
 
     // A logarithmic chart works correctly when each series has a corresponding y-axis
     // If this is not the case, we manually create yaxis for multi-series log chart
