@@ -94,3 +94,70 @@ describe('isBarShared follows the render', () => {
     chart.destroy()
   })
 })
+
+describe('bar hover reset leaves untouched bars alone', () => {
+  const cats = Array.from({ length: 10 }, (_, k) => 'c' + k)
+  const mk = (n) => cats.map((_, k) => k + n)
+
+  it('handleMouseOut does not call dataPointMouseLeave for untouched bars', async () => {
+    const leave = vi.fn()
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'bar',
+        width: 400,
+        height: 300,
+        events: { dataPointMouseLeave: leave },
+      },
+      series: [
+        { name: 'a', data: mk(1) },
+        { name: 'b', data: mk(2) },
+        { name: 'c', data: mk(3) },
+      ],
+      xaxis: { categories: cats },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-bar-area').length,
+    ).toBe(30)
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    expect(leave).toHaveBeenCalledTimes(0)
+    chart.destroy()
+  })
+
+  it('a shared bar tooltip leaves only the column it entered', async () => {
+    const enter = vi.fn()
+    const leave = vi.fn()
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'bar',
+        width: 400,
+        height: 300,
+        events: { dataPointMouseEnter: enter, dataPointMouseLeave: leave },
+      },
+      series: [
+        { name: 'a', data: mk(1) },
+        { name: 'b', data: mk(2) },
+      ],
+      xaxis: { categories: cats },
+      tooltip: { shared: true, intersect: false },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    tt.deactivateHoverFilter()
+    expect(leave).toHaveBeenCalledTimes(0)
+
+    vi.spyOn(tt.tooltipUtil, 'getBarsHeight').mockReturnValue(10)
+    vi.spyOn(tt.tooltipPosition, 'moveStickyTooltipOverBars').mockImplementation(
+      () => {},
+    )
+    tt.create({ type: 'mousemove' }, tt, 0, 3, tt.ttItems)
+    expect(enter).toHaveBeenCalledTimes(2)
+    expect(enter.mock.calls.map((c) => c[2].dataPointIndex)).toEqual([3, 3])
+
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    expect(leave).toHaveBeenCalledTimes(2)
+    expect(leave.mock.calls.map((c) => c[2].dataPointIndex)).toEqual([3, 3])
+    chart.destroy()
+  })
+})

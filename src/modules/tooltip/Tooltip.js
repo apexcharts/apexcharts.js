@@ -68,6 +68,8 @@ export default class Tooltip {
     this.yaxisTooltipText = null
     /** @type {HTMLElement[] | null} */
     this.yaxisTTEls = null
+    /** @type {any} the bars a shared bar tooltip put in their hover state */
+    this.hoverBars = []
     /** @type {number} */
     this.xaxisOffY = 0
     /** @type {number} */
@@ -331,6 +333,7 @@ export default class Tooltip {
     // A full render replaces the y-axis tooltip divs (and may add or drop
     // axes), so the nodes cached from the last one are detached.
     this.yaxisTTEls = null
+    this.hoverBars = []
 
     if (!w.globals.axisCharts) {
       this.showTooltipTitle = false
@@ -1912,17 +1915,20 @@ export default class Tooltip {
     }
   }
 
+  /**
+   * Take the hover state off the bars a shared bar tooltip entered (see
+   * create()), and only those: a bar the pointer itself entered is restored
+   * by its own mouseleave. Sweeping every bar in the chart fired the user's
+   * dataPointMouseLeave once per bar, with no event, on every move.
+   */
   deactivateHoverFilter() {
-    const w = this.w
+    const paths = this.hoverBars
+    if (!paths.length) return
+    this.hoverBars = []
     const graphics = new Graphics(this.w, this.ctx)
 
-    const allPaths = w.dom.Paper.find(`.apexcharts-bar-area`)
-
-    for (let b = 0; b < allPaths.length; b++) {
-      graphics.pathMouseLeave(
-        /** @type {any} */ (allPaths[b]),
-        /** @type {any} */ (undefined),
-      )
+    for (let b = 0; b < paths.length; b++) {
+      graphics.pathMouseLeave(paths[b], /** @type {any} */ (undefined))
     }
   }
 
@@ -2187,6 +2193,7 @@ export default class Tooltip {
               /** @type {any} */ (undefined),
             )
           }
+          this.hoverBars = paths
         }
       }
     } else {
