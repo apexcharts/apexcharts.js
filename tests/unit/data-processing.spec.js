@@ -285,6 +285,39 @@ describe('Data.ohlcAggregate', () => {
     const result = Data.ohlcAggregate(data, 3)
     expect(result[result.length - 1].y[3]).toBe(data[9].y[3])
   })
+
+  it('skips a null candle, and a bucket of gaps stays a gap', () => {
+    const data = [
+      { x: 0, y: null },
+      { x: 1, y: [11, 20, 8, 12] },
+      { x: 2, y: [12, null, 5, 13] },
+      { x: 3, y: null },
+      { x: 4, y: null },
+      { x: 5, y: null },
+    ]
+    const result = Data.ohlcAggregate(data, 2)
+    expect(result[0]).toEqual({ x: 0, y: [11, 20, 5, 13] })
+    expect(result[1]).toEqual({ x: 3, y: null })
+  })
+
+  it('renders a reduced candlestick with holiday gaps', () => {
+    const T0 = Date.UTC(2026, 0, 1)
+    const data = Array.from({ length: 600 }, (_, i) => ({
+      x: T0 + i * 864e5,
+      y: i % 7 === 3 ? null : [i, i + 2, i - 2, i + 1],
+    }))
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'candlestick',
+        animations: { enabled: false },
+        dataReducer: { enabled: true, threshold: 100, targetPoints: 50 },
+      },
+      xaxis: { type: 'datetime' },
+      series: [{ data }],
+    })
+    expect(chart.w.seriesData.series[0].length).toBe(50)
+    expect(chart.w.globals.maxY).toBeGreaterThanOrEqual(600)
+  })
 })
 
 describe('Data.rangeAggregate', () => {

@@ -1075,9 +1075,13 @@ export default class Data {
         // slice rather than corrupted.
         let reduced = windowed
         if (windowed.length > targetPoints) {
-          const sampleY = !Array.isArray(windowed[0])
-            ? windowed[0]?.y
-            : windowed[0]?.[1]
+          // The first point with a y, so a leading gap does not hand OHLC
+          // tuples to LTTB.
+          let sampleY = null
+          for (let k = 0; sampleY == null && k < windowed.length; k++) {
+            const p = windowed[k]
+            sampleY = Array.isArray(p) ? p[1] : p?.y
+          }
           if (Array.isArray(sampleY)) {
             if (sampleY.length === 4) {
               reduced = Data.ohlcAggregate(windowed, targetPoints)
@@ -2642,20 +2646,34 @@ export default class Data {
         i === targetPoints - 1 ? len : Math.floor((i + 1) * bucketSize)
       if (end <= start) continue
 
-      const firstY = getY(data[start])
-      const open = firstY[0]
-      let high = firstY[1]
-      let low = firstY[2]
-      let close = firstY[3]
-
-      for (let j = start + 1; j < end; j++) {
+      // A gap (`y: null`, a holiday) is skipped rather than read, and a null
+      // high or low is not folded in. A bucket of gaps stays a gap.
+      /** @type {any} */
+      let first = null
+      /** @type {any} */
+      let last = null
+      let high = -Infinity
+      let low = Infinity
+      for (let j = start; j < end; j++) {
         const y = getY(data[j])
-        if (y[1] > high) high = y[1]
-        if (y[2] < low) low = y[2]
-        close = y[3]
+        if (!Array.isArray(y)) continue
+        if (!first) first = y
+        last = y
+        if (y[1] != null && y[1] > high) high = y[1]
+        if (y[2] != null && y[2] < low) low = y[2]
       }
 
-      out.push(make(getX(data[start]), [open, high, low, close]))
+      out.push(
+        make(
+          getX(data[start]),
+          first && [
+            first[0],
+            high === -Infinity ? null : high,
+            low === Infinity ? null : low,
+            last[3],
+          ],
+        ),
+      )
     }
 
     return out
