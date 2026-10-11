@@ -206,9 +206,13 @@ class Fill {
 
     this.seriesIndex = this.getSeriesIndex(opts)
 
+    const seriesItem = /** @type {Record<string,any>} */ (w.config.series[this.seriesIndex])
+    // The threshold split is a line option: the columns of a combo, or a bar
+    // chart under a global Apex.plotOptions.line, keep their own fill.
     const drawMultiColorLine =
       cnf.plotOptions.line.colors.colorAboveThreshold &&
-      cnf.plotOptions.line.colors.colorBelowThreshold
+      cnf.plotOptions.line.colors.colorBelowThreshold &&
+      /^(line|area|rangeArea)$/.test(seriesItem?.type || cnf.chart.type)
 
     const fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
@@ -240,7 +244,6 @@ class Fill {
       fillColor = opts.color
     }
 
-    const seriesItem = /** @type {Record<string,any>} */ (w.config.series[this.seriesIndex])
     if (seriesItem?.data?.[opts.dataPointIndex]?.fillColor) {
       fillColor = seriesItem?.data?.[opts.dataPointIndex]?.fillColor
     }

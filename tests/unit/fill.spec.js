@@ -261,3 +261,29 @@ describe('Fill — fillPath() solid fill', () => {
     expect(resultStr).toMatch(/url\(#/)
   })
 })
+
+describe('Fill: plotOptions.line.colors thresholds', () => {
+  const colors = {
+    threshold: 100,
+    colorAboveThreshold: '#2ca02c',
+    colorBelowThreshold: '#d62728',
+  }
+
+  it('leaves the columns of a line combo on their plain fill', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 600, height: 300 },
+      plotOptions: { line: { colors } },
+      series: [
+        { name: 'cols', type: 'column', data: [50, 150, 80] },
+        { name: 'line', type: 'line', data: [60, 120, 90] },
+      ],
+    })
+    await chart.render()
+    const bars = [...document.querySelectorAll('.apexcharts-bar-area')]
+    expect(bars.length).toBe(3)
+    bars.forEach((b) => expect(b.getAttribute('fill')).not.toMatch(/url\(/))
+    const line = document.querySelector('.apexcharts-line')
+    expect(line.getAttribute('stroke')).toMatch(/url\(/)
+    chart.destroy()
+  })
+})
