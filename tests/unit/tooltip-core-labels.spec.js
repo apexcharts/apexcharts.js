@@ -269,3 +269,66 @@ describe('enabledOnSeries on the plot-wide sticky listener', () => {
     chart.destroy()
   })
 })
+
+describe('legend.tooltipHoverFormatter', () => {
+  const legendText = (chart, i) =>
+    chart.w.dom.baseEl.querySelector(`.apexcharts-legend-text[i="${i}"]`)
+
+  it('pie: decoded name, the hovered item under inverseOrder, then reset', async () => {
+    const fmt = vi.fn((name, o) => name + ': ' + o.seriesIndex)
+    const chart = createChartWithOptions({
+      chart: { type: 'pie', width: 400, height: 300 },
+      series: [44, 55, 13],
+      labels: ['North America', 'Europe', 'Asia'],
+      legend: { tooltipHoverFormatter: fmt, inverseOrder: true },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    const slices = chart.w.dom.baseEl.querySelectorAll('.apexcharts-pie-series')
+    const hover = (k, type = 'mousemove') =>
+      tt.nonAxisChartsTooltips({
+        e: { type, target: slices[k], clientX: 10, clientY: 10 },
+        opt: { paths: slices[k], tooltipEl: tt.getElTooltip(), ttItems: tt.ttItems },
+        tooltipRect: { ttWidth: 10, ttHeight: 10 },
+      })
+
+    hover(0)
+    expect(legendText(chart, 0).innerHTML).toBe('North America: 0')
+    expect(legendText(chart, 2).innerHTML).toBe('Asia')
+
+    hover(1)
+    expect(legendText(chart, 0).innerHTML).toBe('North America')
+    expect(legendText(chart, 1).innerHTML).toBe('Europe: 1')
+
+    hover(1, 'mouseout')
+    expect(legendText(chart, 1).innerHTML).toBe('Europe')
+    chart.destroy()
+  })
+
+  it('cartesian: formats the hovered series, or every visible one when shared', async () => {
+    const fmt = vi.fn((name, o) => `${name}=${o.seriesIndex}@${o.dataPointIndex}`)
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [
+        { name: 'a b', data: [1, 2, 3] },
+        { name: 'c', data: [3, 2, 1] },
+      ],
+      legend: { tooltipHoverFormatter: fmt, show: true },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    tt.applyLegendHoverText(1, 2, false)
+    expect(legendText(chart, 0).innerHTML).toBe('a b')
+    expect(legendText(chart, 1).innerHTML).toBe('c=1@2')
+    expect(fmt).toHaveBeenCalledTimes(1)
+
+    tt.applyLegendHoverText(0, 1, true)
+    expect(legendText(chart, 0).innerHTML).toBe('a b=0@1')
+    expect(legendText(chart, 1).innerHTML).toBe('c=1@1')
+
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    expect(legendText(chart, 0).innerHTML).toBe('a b')
+    expect(legendText(chart, 1).innerHTML).toBe('c')
+    chart.destroy()
+  })
+})

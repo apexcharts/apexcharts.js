@@ -1652,34 +1652,45 @@ export default class Tooltip {
       tooltipEl.style.top = pos.y + 'px'
 
       if (w.config.legend.tooltipHoverFormatter) {
-        const legendFormatter = w.config.legend.tooltipHoverFormatter
-
-        const i = rel - 1
-        const legendEl = /** @type {HTMLElement | undefined} */ (
-          this.legendLabels?.[i]
-        )
-        if (!legendEl) return
-        const legendName = legendEl.getAttribute('data:default-text')
-
-        const text = legendFormatter(legendName, {
-          seriesIndex: i,
-          dataPointIndex: i,
-          w,
-        })
-
-        legendEl.innerHTML = text
+        this.applyLegendHoverText(rel - 1, rel - 1, false)
       }
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       tooltipEl.classList.remove('apexcharts-active')
       w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
       if (w.config.legend.tooltipHoverFormatter) {
-        this.legendLabels?.forEach((l) => {
-          const defaultText = l.getAttribute('data:default-text')
-          /** @type {HTMLElement} */ l.innerHTML = decodeURIComponent(
-            defaultText ?? '',
-          )
-        })
+        this.applyLegendHoverText(-1, 0, false)
       }
+    }
+  }
+
+  /**
+   * Run `legend.tooltipHoverFormatter` for a hover: the hovered series'
+   * legend text (every visible series' when shared) goes through the
+   * formatter, and every other item goes back to its own name. Items are
+   * found by their `i`, not their position, which `legend.inverseOrder`
+   * reverses. A series index of -1 matches none, so it only resets.
+   * @param {number} series
+   * @param {number} j
+   * @param {boolean | null} shared
+   */
+  applyLegendHoverText(series, j, shared) {
+    const w = this.w
+    const els = this.legendLabels ?? []
+    for (let k = 0; k < els.length; k++) {
+      const l = /** @type {HTMLElement} */ (els[k])
+      const lsIndex = parseInt(l.getAttribute('i') ?? '', 10)
+      const name = decodeURIComponent(l.getAttribute('data:default-text') ?? '')
+      l.innerHTML = (
+        shared
+          ? w.globals.collapsedSeriesIndices.indexOf(lsIndex) < 0
+          : lsIndex === series
+      )
+        ? w.config.legend.tooltipHoverFormatter(name, {
+            seriesIndex: shared ? lsIndex : series,
+            dataPointIndex: j,
+            w,
+          })
+        : name
     }
   }
 
@@ -1986,12 +1997,7 @@ export default class Tooltip {
     }
 
     if (w.config.legend.tooltipHoverFormatter) {
-      this.legendLabels?.forEach((l) => {
-        const defaultText = l.getAttribute('data:default-text')
-        /** @type {HTMLElement} */ l.innerHTML = decodeURIComponent(
-          defaultText ?? '',
-        )
-      })
+      this.applyLegendHoverText(-1, 0, false)
     }
   }
 
@@ -2111,44 +2117,7 @@ export default class Tooltip {
     }
 
     if (w.config.legend.tooltipHoverFormatter) {
-      const legendFormatter = w.config.legend.tooltipHoverFormatter
-
-      const els = /** @type {HTMLElement[]} */ (
-        Array.from(this.legendLabels ?? [])
-      )
-
-      // reset all legend values first
-      els.forEach((l) => {
-        const legendName = l.getAttribute('data:default-text')
-        l.innerHTML = decodeURIComponent(legendName ?? '')
-      })
-
-      // for irregular time series
-      for (let i = 0; i < els.length; i++) {
-        const l = els[i]
-        const lsIndex = parseInt(l.getAttribute('i') ?? '', 10)
-        const legendName = decodeURIComponent(
-          l.getAttribute('data:default-text') ?? '',
-        )
-
-        const text = legendFormatter(legendName, {
-          seriesIndex: shared ? lsIndex : capturedSeries,
-          dataPointIndex: j,
-          w,
-        })
-
-        if (!shared) {
-          l.innerHTML = lsIndex === capturedSeries ? text : legendName
-          if (capturedSeries === lsIndex) {
-            break
-          }
-        } else {
-          l.innerHTML =
-            w.globals.collapsedSeriesIndices.indexOf(lsIndex) < 0
-              ? text
-              : legendName
-        }
-      }
+      this.applyLegendHoverText(capturedSeries, j, shared)
     }
 
     const _rangeData = /** @type {any} */ (w.rangeData)
