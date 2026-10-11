@@ -29,7 +29,30 @@ export default class Config {
     // the merge below. A page's first chart used to build a second one just
     // for the first two.
     let config = new Options().init()
-    let opts = Config.dropEmptyOptions(this.opts, config)
+
+    // Copy every section this method, or a preset it applies, writes into, so
+    // the caller's object comes back as it went in. Reused for a second chart
+    // it used to carry the first one's dark foreColor, alias rewrites and
+    // defaulted y-axis. The series stay shared. A missing `chart` becomes an
+    // empty one, which the next step reads as a line.
+    let opts = { ...Config.dropEmptyOptions(this.opts, config) }
+    ;[
+      'chart',
+      'xaxis',
+      'yaxis',
+      'theme',
+      'tooltip',
+      'dataLabels',
+      'annotations',
+      'plotOptions',
+    ].forEach((key) => {
+      if (Utils.isObject(opts[key]) || key === 'chart') {
+        opts[key] = { ...opts[key] }
+      }
+    })
+    if (opts.plotOptions) {
+      opts.plotOptions.bar = { ...opts.plotOptions.bar }
+    }
     const defaults = new Defaults(opts)
 
     // `''`, `null` and `undefined` all mean "did not choose", and the library
@@ -38,7 +61,7 @@ export default class Config {
     // and then dispatching to a renderer it never built (#5325). Construction
     // only: on an update, a type the payload does not mention must be left
     // alone rather than reset to line.
-    if (opts && opts.chart && !opts.chart.type) {
+    if (!opts.chart.type) {
       opts.chart.type = 'line'
     }
 
@@ -94,10 +117,11 @@ export default class Config {
       this.checkForDarkTheme(Environment.getApex()) // check global window Apex options
       this.checkForDarkTheme(opts) // check locally passed options
 
-      opts.xaxis = opts.xaxis || Environment.getApex().xaxis || {}
+      // A copy, as the flag below is written into it: taken by reference, the
+      // global's x-axis carried one chart's conversion into every other.
+      opts.xaxis = opts.xaxis || { ...Environment.getApex().xaxis }
 
-      // an important boolean needs to be set here
-      // otherwise all the charts will have this flag set to true window.Apex.xaxis is set globally
+      // A flag left on a reused options object must not convert this chart.
       if (!responsiveOverride) {
         opts.xaxis.convertedCatToNumeric = false
       }
