@@ -1,5 +1,6 @@
 // @ts-check
 import Utils from '../../utils/Utils'
+import Graphics from '../Graphics'
 import TooltipUtils from './Utils'
 import { ARROW_TIP_OVERHANG, POINTER_CLEARANCE_BELOW } from './constants'
 
@@ -18,6 +19,32 @@ class Intersect {
   constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
+    /** @type {number[] | null} the canvas heatmap cell hovered (hoverCell) */
+    this.hotCell = null
+  }
+
+  /**
+   * A canvas heatmap has no cell node to fire dataPointMouseEnter / Leave
+   * from (Graphics.pathMouseEnter), which the gradient legend's arrow and
+   * `chart.events` listen to, so they fire here as the hit cell changes.
+   * No cell (i < 0) is the pointer leaving: Tooltip.handleMouseOut.
+   * @param {any} e
+   * @param {number} [i]
+   * @param {number} [j]
+   */
+  hoverCell(e, i = -1, j = -1) {
+    const w = this.w
+    const prev = this.hotCell
+    if (prev && prev[0] === i && prev[1] === j) return
+    const ctx = this.ttCtx.ctx
+    const fire = (/** @type {string} */ name, /** @type {number[]} */ c) => {
+      const opts = { seriesIndex: c[0], dataPointIndex: c[1], w }
+      w.config.chart.events?.[name]?.(e, ctx, opts)
+      Graphics._fireEvent(w, name, [e, ctx, opts])
+    }
+    if (prev) fire('dataPointMouseLeave', prev)
+    this.hotCell = i < 0 ? null : [i, j]
+    if (this.hotCell) fire('dataPointMouseEnter', this.hotCell)
   }
 
   // a helper function to get an element's attribute value
@@ -77,6 +104,7 @@ class Intersect {
       }
       i = hit.seriesIndex
       j = hit.dataPointIndex
+      this.hoverCell(e, i, j)
       cx = hit.x
       cy = hit.y
       width = hit.width

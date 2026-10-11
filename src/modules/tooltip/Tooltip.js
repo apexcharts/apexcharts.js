@@ -1965,6 +1965,8 @@ export default class Tooltip {
       opt.tooltipEl.setAttribute('aria-hidden', 'true')
     }
     this.deactivateHoverFilter()
+    // A canvas heatmap's dataPointMouseLeave for the cell it was over.
+    this.intersect.hoverCell(null)
     if (w.config.chart.type !== 'bubble') {
       this.marker.resetPointsSize()
     }

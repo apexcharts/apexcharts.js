@@ -2753,6 +2753,7 @@ describe('one Position per tooltip', () => {
       getElXCrosshairs: () => null,
       ycrosshairs: null,
       deactivateHoverFilter: vi.fn(),
+      intersect: { hoverCell: vi.fn() },
       isXAxisTooltipEnabled: false,
       yaxisTooltips: [],
     }
