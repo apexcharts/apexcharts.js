@@ -13,13 +13,6 @@ import { Environment } from '../../utils/Environment.js'
  * @module Config
  **/
 export default class Config {
-  /**
-   * The top-level option names, cached from the first Options.init(). See
-   * warnUnknownOptionKeys.
-   * @type {string[] | null}
-   */
-  static _knownOptionKeys = null
-
   /** @type {Record<string, any> | null} */
   static _defaults = null
 
@@ -32,8 +25,11 @@ export default class Config {
 
   /** @param {{responsiveOverride: any}} opts */
   init({ responsiveOverride }) {
-    let opts = Config.dropEmptyOptions(this.opts)
-    const options = new Options()
+    // One default tree serves the empty-option check, the known-key list and
+    // the merge below. A page's first chart used to build a second one just
+    // for the first two.
+    let config = new Options().init()
+    let opts = Config.dropEmptyOptions(this.opts, config)
     const defaults = new Defaults(opts)
 
     // `''`, `null` and `undefined` all mean "did not choose", and the library
@@ -57,7 +53,7 @@ export default class Config {
       // Only on the way in from the user. A responsive breakpoint re-runs
       // init() with options this library built, so there is nothing to tell
       // anyone about and the warning would repeat on every resize.
-      Config.warnUnknownOptionKeys(this.opts)
+      Config.warnUnknownOptionKeys(this.opts, Object.keys(config))
     }
 
     this.chartType = opts.chart.type
@@ -65,7 +61,6 @@ export default class Config {
     opts = this.extendYAxis(opts)
     opts = this.extendAnnotations(opts)
 
-    let config = options.init()
     let newDefaults = {}
     if (opts && typeof opts === 'object') {
       // Which type's defaults apply. Shared with the update path, which has to
@@ -603,7 +598,8 @@ export default class Config {
   }
 
   /**
-   * The default options tree, built once (see warnUnknownOptionKeys).
+   * The default options tree, built once, on the first update that needs it
+   * (Config.init has a fresh one of its own).
    * @returns {Record<string, any>}
    */
   static _defaultsTree() {
@@ -685,17 +681,11 @@ export default class Config {
    * on the options object should not have their page broken by an upgrade.
    *
    * @param {Record<string, any>} opts the options as the user supplied them
+   * @param {string[]} known the top-level names of a default config tree,
+   *   taken from the one Config.init builds anyway
    */
-  static warnUnknownOptionKeys(opts) {
+  static warnUnknownOptionKeys(opts, known) {
     if (!opts || typeof opts !== 'object') return
-
-    // Built once. Options.init() allocates the whole default config, which is
-    // far too much to pay per chart for a list of 26 key names, and the names
-    // cannot change within a page's lifetime.
-    if (!Config._knownOptionKeys) {
-      Config._knownOptionKeys = Object.keys(Config._defaultsTree())
-    }
-    const known = Config._knownOptionKeys
 
     const unknown = Object.keys(opts).filter((key) => !known.includes(key))
     if (!unknown.length) return
