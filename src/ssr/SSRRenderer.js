@@ -2,7 +2,7 @@
 import ApexCharts from '../apexcharts.js'
 import { BrowserAPIs } from './BrowserAPIs.js'
 import { Environment } from '../utils/Environment.js'
-import { SSRRenderShim } from './RenderShim.js'
+import { SSRRenderShim, querySelectorAll } from './RenderShim.js'
 
 /**
  * SSRRenderer - Server-Side Rendering API for ApexCharts
@@ -153,11 +153,15 @@ ${svgString}
         const index = this.children.indexOf(child)
         if (index > -1) this.children.splice(index, 1)
       },
-      querySelector() {
-        return null
+      // The post-draw passes find what they drew by selector: x-axis label
+      // rotation, annotation label boxes and vertical annotation labels.
+      /** @param {string} selector */
+      querySelector(selector) {
+        return querySelectorAll(this, selector)[0] || null
       },
-      querySelectorAll() {
-        return []
+      /** @param {string} selector */
+      querySelectorAll(selector) {
+        return querySelectorAll(this, selector)
       },
       getElementsByClassName() {
         return []
