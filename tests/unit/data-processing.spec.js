@@ -1,7 +1,7 @@
 import Data from '../../src/modules/Data'
 import ApexCharts from '../../src/entries/standard'
 import seriesxy from './data/seriesxy.js'
-import { createChart } from './utils/utils.js'
+import { createChart, createChartWithOptions } from './utils/utils.js'
 
 describe('Parse Data', () => {
   it('should parse data for cartesian charts', () => {
@@ -368,5 +368,27 @@ describe('Data.rangeAggregate', () => {
     const result = Data.rangeAggregate(data, 2)
     expect(result[0].y).toEqual([null, null])
     expect(result[1].y).toEqual([50, 65])
+  })
+})
+
+describe('a plain array after an {x, y} series', () => {
+  // `dataFormatXNumeric` was never reset between renders, so once a series had
+  // carried its own x values, a later plain-array series was never given index
+  // x values and a line or area drew from an empty seriesX (#5343).
+  it.each(['line', 'area', 'bar'])('%s gets index x values', async (type) => {
+    const chart = createChartWithOptions({
+      chart: { type },
+      series: [
+        {
+          data: [
+            { x: 1, y: 2 },
+            { x: 2, y: 5 },
+          ],
+        },
+      ],
+    })
+    await chart.updateSeries([{ data: [4, 8, 15] }])
+    expect(chart.w.axisFlags.dataFormatXNumeric).toBe(false)
+    expect(chart.w.seriesData.seriesX[0]).toEqual([1, 2, 3])
   })
 })

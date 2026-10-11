@@ -65,6 +65,10 @@ export default class Globals {
 
     // ── Axis bounds & scales (ephemeral — recomputed by Range/Scales each render) ──
     gl.isXNumeric = false
+    // Set by the parse when a series carries its own x values. Left over from
+    // an {x, y} series it kept a later plain-array series from being given
+    // index x values, and a line or area drew from an empty seriesX.
+    gl.dataFormatXNumeric = false
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
     gl.isDataXYZ = false

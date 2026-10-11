@@ -19,6 +19,8 @@ import { describe, it, expect } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 // Not in the default bundle since 8.0, so imported the way an app would.
 import '../../src/entries/violin.js'
+import '../../src/entries/histogram.js'
+import '../../src/entries/streamgraph.js'
 
 const TIERS = [
   { x: 'Express', points: [1.2, 1.4, 1.5, 1.6, 1.8, 1.3, 1.7, 1.5] },
@@ -214,5 +216,91 @@ describe('GUARD the initial render still picks its own defaults', () => {
     })
     expect(chart.w.config.plotOptions.bar.isFunnel).toBe(true)
     expect(chart.w.config.plotOptions.bar.horizontal).toBe(true)
+  })
+})
+
+describe('the axis an alias picks hands over too (#5343)', () => {
+  // A histogram's numeric x-axis and a streamgraph's hidden y-axis used to be
+  // written into the user's options by Config.normalizeAliasedChartType, so
+  // the handover read them as the user's own and kept them. A line or bar
+  // chart then drew a numeric x-axis it had no x values for, and threw.
+  const SAMPLE = [{ name: 'Sample', data: [1, 2, 2, 3, 3, 3, 4, 4, 5, 6] }]
+  const PLAIN = [{ name: 'Sales', data: [4, 8, 15] }]
+  const BANDS = [
+    { name: 'A', data: [4, 8, 15] },
+    { name: 'B', data: [6, 3, 9] },
+  ]
+
+  it.each(['line', 'bar', 'area'])(
+    'a histogram that becomes a %s gets a category x-axis back',
+    async (to) => {
+      const chart = createChartWithOptions({
+        chart: { type: 'histogram' },
+        series: SAMPLE,
+      })
+      expect(chart.w.config.xaxis.type).toBe('numeric')
+      await chart.updateOptions({ chart: { type: to }, series: PLAIN })
+      expect(chart.w.config.xaxis.type).toBe('category')
+      expect(chart.w.globals.series[0]).toEqual([4, 8, 15])
+    },
+  )
+
+  it('a line that becomes a histogram still gets the numeric x-axis', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: PLAIN,
+    })
+    await chart.updateOptions({ chart: { type: 'histogram' }, series: SAMPLE })
+    expect(chart.w.config.xaxis.type).toBe('numeric')
+  })
+
+  it('GUARD an axis type set in the same update wins', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'histogram' },
+      series: SAMPLE,
+    })
+    await chart.updateOptions({
+      chart: { type: 'scatter' },
+      series: [
+        {
+          name: 'S',
+          data: [
+            [1, 2],
+            [3, 4],
+          ],
+        },
+      ],
+      xaxis: { type: 'numeric' },
+    })
+    expect(chart.w.config.xaxis.type).toBe('numeric')
+  })
+
+  it('GUARD a datetime axis set at construction survives', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'histogram' },
+      series: SAMPLE,
+      xaxis: { type: 'datetime' },
+    })
+    await chart.updateOptions({ chart: { type: 'line' }, series: PLAIN })
+    expect(chart.w.config.xaxis.type).toBe('datetime')
+  })
+
+  it('a streamgraph that becomes an area shows its y-axis again', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'streamgraph' },
+      series: BANDS,
+    })
+    expect(chart.w.config.yaxis[0].show).toBe(false)
+    await chart.updateOptions({ chart: { type: 'area' }, series: BANDS })
+    expect(chart.w.config.yaxis[0].show).toBe(true)
+  })
+
+  it('an area that becomes a streamgraph hides its y-axis', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'area' },
+      series: BANDS,
+    })
+    await chart.updateOptions({ chart: { type: 'streamgraph' }, series: BANDS })
+    expect(chart.w.config.yaxis[0].show).toBe(false)
   })
 })

@@ -82,6 +82,9 @@ const TYPE_OWNED_PATHS = [
   // Hover and select feedback, off by design on the types that draw their own.
   'states.hover.filter.type',
   'states.active.filter.type',
+  // How x is read. A histogram's bin midpoints need a numeric axis; a line or
+  // bar given a plain number array has no x values to put on one (#5343).
+  'xaxis.type',
   // Axis chrome that exists to be pointed at.
   'xaxis.crosshairs.width',
   'xaxis.tickPlacement',
@@ -422,6 +425,38 @@ export default class Defaults {
       if (!isUntouched(readPath(config, path), fromDefault)) continue
       writePath(config, path, toDefault)
     }
+
+    // The y-axis is an array by now, one entry per axis, so its type-owned
+    // leaves cannot go through readPath. Same rule, applied to each axis.
+    const fromY = Defaults.typeYAxisDefaults(fromType)
+    const toY = Defaults.typeYAxisDefaults(toType)
+    const baseY = /** @type {Record<string, any>} */ (new Options().yAxis)
+    /** @type {Record<string, any>[]} */
+    const askedY = [].concat(options?.yaxis ?? [])
+    for (const key of new Set([...Object.keys(fromY), ...Object.keys(toY)])) {
+      if (askedY.some((a) => a && a[key] !== undefined)) continue
+      const fromDefault = key in fromY ? fromY[key] : baseY[key]
+      const toDefault = key in toY ? toY[key] : baseY[key]
+      for (const axis of config.yaxis || []) {
+        if (axis && axis[key] === fromDefault) axis[key] = toDefault
+      }
+    }
+  }
+
+  /**
+   * The y-axis leaves a type chooses for itself. Config writes them into the
+   * options on the way in, because the y-axis is an array a type's defaults
+   * cannot reach, and handOverTypeDefaults reads them back to know which
+   * values were the type's rather than the user's.
+   *
+   * @param {string} type a chart type, or a user-facing alias of one
+   * @returns {Record<string, any>}
+   */
+  static typeYAxisDefaults(type) {
+    // A streamgraph has no zero line, so an axis of stacking offsets would be
+    // read as values nobody gave.
+    if (type === 'streamgraph') return { show: false }
+    return {}
   }
 
   hideYAxis() {

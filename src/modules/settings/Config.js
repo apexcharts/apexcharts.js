@@ -253,10 +253,15 @@ export default class Config {
       opts.chart.stacked = false
       // The form has no zero line and no axis to read against, so an axis of
       // stacking offsets would be actively misleading. Set only when the user
-      // has not chosen otherwise.
+      // has not chosen otherwise. Written here because the y-axis is an array
+      // the type defaults cannot reach, so Defaults.typeYAxisDefaults is the
+      // one list and the type handover reads it back.
       opts.yaxis = opts.yaxis || {}
-      if (!Array.isArray(opts.yaxis) && opts.yaxis.show == null) {
-        opts.yaxis.show = false
+      if (!Array.isArray(opts.yaxis)) {
+        const yDefaults = Defaults.typeYAxisDefaults(requested)
+        for (const key of Object.keys(yDefaults)) {
+          if (opts.yaxis[key] == null) opts.yaxis[key] = yDefaults[key]
+        }
       }
       opts.chart.type = 'rangeArea'
     } else if (requested === 'histogram') {
@@ -264,11 +269,9 @@ export default class Config {
       // binned in Data.binHistogramData into one column per bin. The x-axis
       // carries bin midpoints, so it must be numeric rather than categorical
       // (a category axis would space unequal bins evenly and lie about the
-      // distribution). Set only when the user has not chosen otherwise.
-      opts.xaxis = opts.xaxis || {}
-      if (opts.xaxis.type == null) {
-        opts.xaxis.type = 'numeric'
-      }
+      // distribution). That axis comes from Defaults.histogram rather than
+      // being written here: written into opts it reads as the user's choice,
+      // and outlives a later change of type (#5343).
       opts.chart.type = 'bar'
     } else if (requested === 'raincloud') {
       // A raincloud is a violin taken apart: half the density curve (the
@@ -312,8 +315,10 @@ export default class Config {
       chartType === 'sunburst' ||
       chartType === 'icicle'
 
-    const notNumericXAxis =
-      opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
+    // The type's own axis counts as much as the user's: a histogram asks for a
+    // numeric axis through Defaults.histogram, not by writing it into opts.
+    const xaxisType = opts.xaxis.type ?? chartDefaults.xaxis?.type
+    const notNumericXAxis = xaxisType !== 'datetime' && xaxisType !== 'numeric'
 
     // Scatter jitter (strip plots) owns its own numeric band axis in
     // Data.expandScatterJitterData, so the auto category→numeric conversion
