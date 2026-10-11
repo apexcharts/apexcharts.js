@@ -407,11 +407,10 @@ export default class Marker {
     const w = this.w
     let newSize = w.config.markers.hover.size
 
-    const elPoint =
-      rel === 0 ? point.parentNode.firstChild : point.parentNode.lastChild
-
-    if (elPoint.getAttribute('default-marker-size') !== '0') {
-      const index = parseInt(elPoint.getAttribute('index'), 10)
+    // The hovered marker's own size, not a sibling's: a series' markers share
+    // one group, and its first or last one is sized 0 when clipped.
+    if (point.getAttribute('default-marker-size') !== '0') {
+      const index = parseInt(point.getAttribute('index'), 10)
       if (newSize === undefined) {
         newSize =
           w.globals.markers.size[index] + w.config.markers.hover.sizeOffset

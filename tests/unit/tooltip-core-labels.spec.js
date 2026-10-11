@@ -148,9 +148,10 @@ describe('bar hover reset leaves untouched bars alone', () => {
     expect(leave).toHaveBeenCalledTimes(0)
 
     vi.spyOn(tt.tooltipUtil, 'getBarsHeight').mockReturnValue(10)
-    vi.spyOn(tt.tooltipPosition, 'moveStickyTooltipOverBars').mockImplementation(
-      () => {},
-    )
+    vi.spyOn(
+      tt.tooltipPosition,
+      'moveStickyTooltipOverBars',
+    ).mockImplementation(() => {})
     tt.create({ type: 'mousemove' }, tt, 0, 3, tt.ttItems)
     expect(enter).toHaveBeenCalledTimes(2)
     expect(enter.mock.calls.map((c) => c[2].dataPointIndex)).toEqual([3, 3])
@@ -288,7 +289,11 @@ describe('legend.tooltipHoverFormatter', () => {
     const hover = (k, type = 'mousemove') =>
       tt.nonAxisChartsTooltips({
         e: { type, target: slices[k], clientX: 10, clientY: 10 },
-        opt: { paths: slices[k], tooltipEl: tt.getElTooltip(), ttItems: tt.ttItems },
+        opt: {
+          paths: slices[k],
+          tooltipEl: tt.getElTooltip(),
+          ttItems: tt.ttItems,
+        },
         tooltipRect: { ttWidth: 10, ttHeight: 10 },
       })
 
@@ -306,7 +311,9 @@ describe('legend.tooltipHoverFormatter', () => {
   })
 
   it('cartesian: formats the hovered series, or every visible one when shared', async () => {
-    const fmt = vi.fn((name, o) => `${name}=${o.seriesIndex}@${o.dataPointIndex}`)
+    const fmt = vi.fn(
+      (name, o) => `${name}=${o.seriesIndex}@${o.dataPointIndex}`,
+    )
     const chart = createChartWithOptions({
       chart: { type: 'line', width: 400, height: 300 },
       series: [
@@ -358,7 +365,16 @@ describe('custom tooltip y1/y2 on a sticky rangeArea', () => {
 
   it('reads the datum range for 2D-array input', async () => {
     const got = await y1y2(
-      [{ name: 'a', data: [[1, [1, 5]], [2, [2, 6]], [3, [3, 7]]] }],
+      [
+        {
+          name: 'a',
+          data: [
+            [1, [1, 5]],
+            [2, [2, 6]],
+            [3, [3, 7]],
+          ],
+        },
+      ],
       { type: 'numeric' },
     )
     expect(got).toEqual([2, 6])
@@ -512,7 +528,9 @@ describe('non-shared tooltip marker colour', () => {
     await tick()
     const L = chart.w.globals.tooltip.tooltipLabels
     // a line stroke of the hovered series: fill="none"
-    const line = chart.w.dom.baseEl.querySelector('path.apexcharts-line[index="1"]')
+    const line = chart.w.dom.baseEl.querySelector(
+      'path.apexcharts-line[index="1"]',
+    )
     expect(line.getAttribute('fill')).toBe('none')
     expect(pColor(L, line)).toBe('#123456')
     // the plot itself, and another series' mark
@@ -520,6 +538,26 @@ describe('non-shared tooltip marker colour', () => {
     expect(pColor(L, svgEl({ index: '0', fill: '#abcdef' }))).toBe('#123456')
     // the hovered series' own mark keeps its per-point colour
     expect(pColor(L, svgEl({ index: '1', fill: '#abcdef' }))).toBe('#abcdef')
+    chart.destroy()
+  })
+})
+
+describe('marker hover enlargement', () => {
+  it('reads the hovered marker size, not the series last one', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [{ name: 'a', data: [1, 2, 3] }],
+      markers: { size: 4 },
+    })
+    await tick()
+    const marker = chart.w.globals.tooltip.marker
+    const pts = chart.w.dom.baseEl.querySelectorAll('.apexcharts-marker')
+    expect(pts.length).toBe(3)
+    expect(pts[0].parentNode).toBe(pts[2].parentNode)
+    // the last point clipped out of the plot
+    pts[2].setAttribute('default-marker-size', '0')
+    expect(marker.newPointSize(1, pts[0])).toBeGreaterThan(4)
+    expect(marker.newPointSize(1, pts[2])).toBeUndefined()
     chart.destroy()
   })
 })
