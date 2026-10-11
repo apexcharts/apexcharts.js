@@ -52,6 +52,9 @@ export default class Core {
     gl.isBarHorizontal =
       ['bar', 'rangeBar', 'boxPlot', 'violin'].includes(ct) &&
       cnf.plotOptions.bar.horizontal
+    // Per render, so toggling it through updateOptions reaches DataLabels and
+    // Dimensions (it was frozen from the constructor config).
+    gl.isSlopeChart = !!cnf.plotOptions.line.isSlopeChart
 
     gl.chartClass = `.apexcharts${gl.chartID}`
     this.w.dom.baseEl = this.el

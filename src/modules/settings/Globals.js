@@ -445,7 +445,6 @@ export default class Globals {
 
       // ── Chart-type flags (derived from config, set during Core.mount) ─────────
       axisCharts: true, // false for pie/radial/treemap etc.
-      isSlopeChart: config.plotOptions.line.isSlopeChart,
       comboCharts: false, // true when mixing line + column series
 
       // ── Config snapshots (backups for zoom-reset / updateOptions) ────────────

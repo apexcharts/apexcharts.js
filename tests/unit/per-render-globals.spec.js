@@ -153,6 +153,41 @@ describe('per-render flags', () => {
     s.destroy()
   })
 
+  it('toggling plotOptions.line.isSlopeChart reaches the per-render flag', async () => {
+    document.body.innerHTML = '<div id="l"></div>'
+    const l = new ApexCharts(document.querySelector('#l'), {
+      chart: {
+        type: 'line',
+        width: 500,
+        height: 300,
+        animations: { enabled: false },
+      },
+      series: [
+        {
+          name: 'A',
+          data: [
+            { x: 'Jan', y: 4 },
+            { x: 'Feb', y: 6 },
+          ],
+        },
+      ],
+    })
+    await l.render()
+    expect(l.w.globals.isSlopeChart).toBe(false)
+    await l.updateOptions(
+      { plotOptions: { line: { isSlopeChart: true } } },
+      false,
+      false,
+    )
+    expect(l.w.globals.isSlopeChart).toBe(true)
+    await l.updateOptions(
+      { plotOptions: { line: { isSlopeChart: false } } },
+      false,
+      false,
+    )
+    expect(l.w.globals.isSlopeChart).toBe(false)
+    l.destroy()
+  })
 })
 
 describe('debounce timer handles', () => {
