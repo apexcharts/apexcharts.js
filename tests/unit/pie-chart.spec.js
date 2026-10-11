@@ -1,5 +1,6 @@
 import Pie from '../../src/charts/Pie.js'
 import { createChartWithOptions } from './utils/utils.js'
+import ApexCharts from '../../src/entries/standard.js'
 
 // ---------------------------------------------------------------------------
 // Helper: create a rendered pie/donut chart
@@ -182,6 +183,32 @@ describe('Pie chart', () => {
       // The tiny slice label should not be rendered
       const labels = el.querySelectorAll('.apexcharts-pie-label')
       expect(labels.length).toBe(2)
+    })
+
+    it('fades the labels in after the entrance sweep, and only then', async () => {
+      document.body.innerHTML = '<div id="chart"></div>'
+      const chart = new ApexCharts(document.querySelector('#chart'), {
+        chart: { type: 'pie', width: 400, height: 400 },
+        series: [30, 40, 30],
+        labels: ['A', 'B', 'C'],
+        dataLabels: { enabled: true },
+      })
+      await chart.render()
+      const delayed = () =>
+        chart.el.querySelectorAll('.apexcharts-pie-label-delay').length
+      expect(delayed()).toBe(3)
+
+      // A data change rides the labels to their new slices instead.
+      await chart.updateSeries([20, 50, 30])
+      expect(delayed()).toBe(0)
+      chart.destroy()
+    })
+
+    it('shows the labels at once with animations off', () => {
+      const chart = pieChart({ dataLabels: { enabled: true } })
+      expect(
+        chart.el.querySelectorAll('.apexcharts-pie-label-delay').length,
+      ).toBe(0)
     })
   })
 

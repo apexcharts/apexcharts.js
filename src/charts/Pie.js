@@ -853,9 +853,13 @@ class Pie {
           }
 
           elPieLabel.node.classList.add('apexcharts-pie-label')
+          // Fade in once the entrance sweep is done, so a label never sits
+          // over a slice that has not grown in yet. Updates ride the labels
+          // to their new slices instead.
           if (
-            w.config.chart.animations.animate &&
-            w.globals.resized === false
+            this.initialAnim &&
+            !w.globals.resized &&
+            !w.globals.dataChanged
           ) {
             elPieLabel.node.classList.add('apexcharts-pie-label-delay')
             elPieLabel.node.style.animationDelay =
