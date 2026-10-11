@@ -41,17 +41,38 @@ import {
 } from './LengthTransition'
 
 /**
+ * The matching key of each tick label: its y axis (all y axes share one label
+ * list), its text, and which occurrence of that text on that axis it is. A
+ * dual-axis chart's `20` on axis 1 then never pairs with axis 0's `20`, and
+ * repeated categories pair label for label instead of all chasing the first.
+ * The text is textContent, which doubles tspan + title but does so
+ * consistently on both sides.
+ *
+ * @param {Element[]} els
+ * @returns {string[]}
+ */
+export function tickKeys(els) {
+  /** @type {Record<string, number>} */
+  const seen = {}
+  return els.map((el) => {
+    const k = `${(el.closest('.apexcharts-yaxis') || el).getAttribute('rel')}|${el.textContent}`
+    return `${k}#${(seen[k] = (seen[k] || 0) + 1)}`
+  })
+}
+
+/**
  * @param {Element} root
  * @param {string} sel
  * @param {string} posAttr
  * @returns {{text: string, display: string, pos: number, transform: string | null}[]}
  */
 function grabLabels(root, sel, posAttr) {
-  return [...root.querySelectorAll(sel)].map((el) => ({
-    // `text` is the matching KEY (textContent, which doubles tspan + title
-    // but does so consistently on both sides); `display` is the visible
+  const els = [...root.querySelectorAll(sel)]
+  const keys = tickKeys(els)
+  return els.map((el, i) => ({
+    // `text` is the matching KEY (see tickKeys); `display` is the visible
     // string, used when rendering an exit ghost.
-    text: el.textContent || '',
+    text: keys[i],
     display: el.querySelector('tspan')?.textContent ?? el.textContent ?? '',
     pos: parseFloat(el.getAttribute(posAttr) || ''),
     transform: el.getAttribute('transform'),
@@ -315,13 +336,15 @@ function tweenPos(w, node, attrs, from, to, duration, ease) {
  *   ease: (t: number) => number,
  * }} opts
  */
-function spawnGhost(w, { template, display, attrs, from, to, duration, ease }) {
+export function spawnGhost(w, { template, display, attrs, from, to, duration, ease }) {
   const parent = template.parentNode
   if (!parent) return
   const ghost = /** @type {Element} */ (template.cloneNode(true))
   ghost.classList.add('apexcharts-tick-ghost')
   ghost.setAttribute('pointer-events', 'none')
   ghost.removeAttribute('id')
+  // Only unrotated ticks ghost out, but the template may be a rotated one.
+  ghost.removeAttribute('transform')
   if (display !== undefined) {
     const tspan = ghost.querySelector('tspan')
     if (tspan) tspan.textContent = display
@@ -353,7 +376,7 @@ function spawnGhost(w, { template, display, attrs, from, to, duration, ease }) {
 const MAX_GHOSTS = 20
 
 /**
- * Match new tick labels to captured ones by text, tweening matches and
+ * Match new tick labels to captured ones by key (tickKeys), tweening matches and
  * fading in the rest. When a value-space projection exists (numeric/datetime
  * axes), unmatched NEW ticks additionally slide in from where their value
  * sat in the old render, and unmatched OLD ticks ghost out to where their
@@ -391,9 +414,8 @@ function transitionAxis(
   },
 ) {
   const oldByText = new Map()
-  oldLabels.forEach((l, i) => {
-    if (!oldByText.has(l.text)) oldByText.set(l.text, { ...l, i })
-  })
+  oldLabels.forEach((l, i) => oldByText.set(l.text, { ...l, i }))
+  const newKeys = tickKeys(newLabels)
   const matchedOld = new Set()
 
   const newLinesAligned = newLines.length === newLabels.length
@@ -434,7 +456,7 @@ function transitionAxis(
 
   newLabels.forEach((label, i) => {
     const to = parseFloat(label.getAttribute(posAttr) || '')
-    const old = oldByText.get(label.textContent || '')
+    const old = oldByText.get(newKeys[i])
     const line = newLinesAligned ? newLines[i] : null
     if (old) matchedOld.add(old.i)
     const labelTransform = label.getAttribute('transform')
