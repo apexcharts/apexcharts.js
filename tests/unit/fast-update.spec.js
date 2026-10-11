@@ -149,4 +149,34 @@ describe('fastUpdate() — partial updateSeries fast path', () => {
     expect(fastUpdateSpy).not.toHaveBeenCalled()
     expect(updateSpy).toHaveBeenCalledOnce()
   })
+
+  it('keeps the back crosshairs behind the series', async () => {
+    // fastUpdate redraws the crosshairs over series that already exist, and
+    // appending them lifted the column band over the bar it should sit behind.
+    const chart = createChartWithOptions({
+      chart: { type: 'bar' },
+      series: [{ data: [1, 2, 3] }],
+      yaxis: { min: 0, max: 100, crosshairs: { show: true } },
+    })
+    const fastUpdateSpy = vi.spyOn(chart, 'fastUpdate')
+    const kids = () => [...chart.w.dom.elGraphical.node.children]
+    const order = () => {
+      const k = kids()
+      const series = k.findIndex((n) =>
+        n.classList.contains('apexcharts-bar-series'),
+      )
+      return ['apexcharts-xcrosshairs', 'apexcharts-ycrosshairs'].map(
+        (c) => k.findIndex((n) => n.classList.contains(c)) < series,
+      )
+    }
+    await chart.updateSeries([{ data: [1, 2, 3] }])
+    expect(order()).toEqual([true, true])
+
+    await chart.updateSeries([{ data: [10, 20, 30] }])
+    expect(fastUpdateSpy).toHaveBeenCalled()
+    expect(order()).toEqual([true, true])
+    expect(
+      kids().filter((n) => n.classList.contains('apexcharts-xcrosshairs')),
+    ).toHaveLength(1)
+  })
 })

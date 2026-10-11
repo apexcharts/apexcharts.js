@@ -3,6 +3,19 @@ import Graphics from './Graphics'
 import Filters from './Filters'
 import Utils from '../utils/Utils'
 
+/**
+ * Add a crosshair where the one it replaces sat. The fast update path redraws
+ * them over series that already exist, so appending would lift the band
+ * above the marks it belongs behind.
+ * @param {any} w
+ * @param {any} el
+ * @param {Element[]} old
+ */
+const place = (w, el, old) => {
+  w.dom.elGraphical.add(el)
+  old[0]?.before(el.node)
+}
+
 class Crosshairs {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -15,10 +28,13 @@ class Crosshairs {
     const w = this.w
 
     // Idempotent: the fast update path redraws crosshairs without a full
-    // teardown, so drop a previously drawn one instead of accumulating.
-    w.dom.elGraphical.node
-      .querySelectorAll(':scope > .apexcharts-xcrosshairs')
-      .forEach((/** @type {any} */ el) => el.remove())
+    // teardown, so the previously drawn one is replaced (in place) instead of
+    // accumulating.
+    const old = [
+      ...w.dom.elGraphical.node.querySelectorAll(
+        ':scope > .apexcharts-xcrosshairs',
+      ),
+    ]
 
     const graphics = new Graphics(this.w)
     const filters = new Filters(this.w)
@@ -103,19 +119,20 @@ class Crosshairs {
         })
       }
 
-      w.dom.elGraphical.add(xcrosshairs)
+      place(w, xcrosshairs, old)
     }
+    old.forEach((el) => el.remove())
   }
 
   drawYCrosshairs() {
     const w = this.w
 
     // Idempotent (see drawXCrosshairs)
-    w.dom.elGraphical.node
-      .querySelectorAll(
+    const old = [
+      ...w.dom.elGraphical.node.querySelectorAll(
         ':scope > .apexcharts-ycrosshairs, :scope > .apexcharts-ycrosshairs-hidden',
-      )
-      .forEach((/** @type {any} */ el) => el.remove())
+      ),
+    ]
 
     const graphics = new Graphics(this.w)
 
@@ -136,7 +153,7 @@ class Crosshairs {
         class: 'apexcharts-ycrosshairs',
       })
 
-      w.dom.elGraphical.add(ycrosshairs)
+      place(w, ycrosshairs, old)
     }
 
     // draw an invisible crosshair to help in positioning the yaxis tooltip
@@ -153,7 +170,8 @@ class Crosshairs {
       class: 'apexcharts-ycrosshairs-hidden',
     })
 
-    w.dom.elGraphical.add(ycrosshairsHidden)
+    place(w, ycrosshairsHidden, old)
+    old.forEach((el) => el.remove())
   }
 }
 
