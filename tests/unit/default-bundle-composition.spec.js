@@ -111,4 +111,36 @@ describe('default bundle composes with feature add-ons', () => {
       })
     }
   })
+
+  // terser's drop_console removed every bare console.warn from the minified
+  // CommonJS builds, so config validation, data-shape and fallback warnings
+  // were silent in the files `require` loads. Only log, info and debug may
+  // be stripped there. apexcharts.min.js still drops the console for its
+  // size budget, and keeps the missing-feature warning via globalThis.
+  describe('minified builds keep user-facing warnings', () => {
+    const dist = resolve(rootDir, 'dist')
+    const warnings = {
+      'apexcharts.ssr.common.js': ['kept in the config but never read'],
+      'core.common.js': ['cannot be read as a number'],
+      'features/stats.common.js': ['to stay under maxRows'],
+      'apexcharts.min.js': ['feature, which is not in this bundle'],
+    }
+
+    for (const [f, text] of Object.entries(warnings)) {
+      it(`dist/${f}`, () => {
+        const abs = resolve(dist, f)
+        if (!existsSync(abs)) return // dist not built in this checkout
+        expect(readFileSync(abs, 'utf8')).toContain(text[0])
+      })
+    }
+
+    it('vite.config.mjs sets drop_console only for apexcharts.min.js', () => {
+      const config = readFileSync(resolve(rootDir, 'vite.config.mjs'), 'utf8')
+      expect(config.match(/drop_console:\s*true/g)).toHaveLength(1)
+      expect(
+        config.indexOf('drop_console: true') -
+          config.indexOf("entryFileNames: 'apexcharts.min.js'"),
+      ).toBeGreaterThan(0)
+    })
+  })
 })

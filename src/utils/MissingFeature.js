@@ -5,15 +5,13 @@
  * contain", naming the ways to add it: the import, the script-tag file, or the
  * full bundle, which has every feature.
  *
- * Called through `globalThis.console`, never the bare `console`, and that is
- * the point of this module. `apexcharts.min.js` and the CommonJS builds are
- * minified with terser's `drop_console`, which removes every call rooted at
- * the bare `console` identifier and leaves `globalThis.console` alone. Written
- * the ordinary way, every one of these warnings was stripped from the exact
- * file a script tag loads, so a chart that lost a feature on upgrade failed in
- * silence there and warned only in the unminified build nobody ships.
- * `tests/unit/default-bundle-composition.spec.js` checks the built min file
- * still carries the text.
+ * Called through `globalThis.console`. That dates from when `apexcharts.min.js`
+ * and the CommonJS builds were minified with terser's `drop_console`, which
+ * removed every call rooted at the bare `console`, so this warning (and every
+ * other one) was silent in the exact file a script tag loads. The builds now
+ * strip only log, info and debug (`COMPRESS` in vite.config.mjs), and
+ * `tests/unit/default-bundle-composition.spec.js` checks the built files
+ * still carry the warnings.
  *
  * Default export only: modules core imports can end up in the shared-module
  * surface, where a named export resolves to undefined in the split bundles.

@@ -30,6 +30,17 @@ const banner = `/*!
  * (c) 2018-${year} ApexCharts
  */`
 
+// terser `compress` for the minified outputs. No `drop_console`: it deletes
+// console.warn and console.error too, and with them every config validation,
+// data-shape and fallback warning, from the CommonJS files `require` loads.
+// Only stray log/info/debug calls go. apexcharts.min.js is the one exception
+// (see its output below). tests/unit/default-bundle-composition.spec.js
+// checks the built files.
+const COMPRESS = {
+  drop_debugger: true,
+  pure_funcs: ['console.log', 'console.info', 'console.debug'],
+}
+
 // Sub-entry names and their source files (excludes the default bundle).
 // Each value is either a file path string (output goes to dist/) or an object
 // { file, outDir } where outDir is relative to dist/ (e.g. 'features').
@@ -498,7 +509,7 @@ export default defineConfig(({ mode }) => {
                           comments: false,
                           preamble: banner,
                         },
-                        compress: { drop_console: false, drop_debugger: true },
+                        compress: COMPRESS,
                       }),
                     ]),
               ],
@@ -542,7 +553,7 @@ export default defineConfig(({ mode }) => {
               plugins: [
                 terser({
                   format: { ascii_only: true, comments: false, preamble: banner },
-                  compress: { drop_console: true, drop_debugger: true },
+                  compress: COMPRESS,
                 }),
               ],
             },
@@ -608,7 +619,7 @@ export default defineConfig(({ mode }) => {
                 : [
                     terser({
                       format: { ascii_only: true, comments: false, preamble: banner },
-                      compress: { drop_console: true, drop_debugger: true },
+                      compress: COMPRESS,
                     }),
                   ],
             },
@@ -667,7 +678,7 @@ export default defineConfig(({ mode }) => {
                 : [
                     terser({
                       format: { ascii_only: true, comments: false, preamble: banner },
-                      compress: { drop_console: true, drop_debugger: true },
+                      compress: COMPRESS,
                     }),
                   ],
             },
@@ -712,7 +723,7 @@ export default defineConfig(({ mode }) => {
               : [
                   terser({
                     format: { ascii_only: true, comments: false, preamble: banner },
-                    compress: { drop_console: true, drop_debugger: true },
+                    compress: COMPRESS,
                   }),
                 ],
           },
@@ -736,7 +747,12 @@ export default defineConfig(({ mode }) => {
               : [
                   terser({
                     format: { ascii_only: true, comments: false, preamble: banner },
-                    compress: { drop_console: true, drop_debugger: true },
+                    // The one exception to COMPRESS: keeping every warning
+                    // costs this file about 2.8 KB gzipped, over its budget.
+                    // The missing-feature warning survives through
+                    // globalThis.console (src/utils/MissingFeature.js), and
+                    // apexcharts.js carries the rest.
+                    compress: { ...COMPRESS, drop_console: true },
                   }),
                 ],
           },
