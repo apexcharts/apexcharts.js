@@ -1265,16 +1265,22 @@ export default class ApexCharts {
     // is what every later parse re-reduces from, so the new points have to land
     // in both. Below the reducer's threshold no reduction runs and config.series
     // is the one that draws; above it the stash is.
-    const reducerRaw = me.w.globals.dataReducerRawSeries
+    const reducerRaw = gl.dataReducerRawSeries
+    // A legend-hidden series keeps its real rows in its collapse record and an
+    // emptied config row; showing it restores the record, so appends go there.
+    const records = [...gl.collapsedSeries, ...gl.ancillaryCollapsedSeries]
 
     for (let i = 0; i < newSeries.length; i++) {
       if (newData[i] !== null && typeof newData[i] !== 'undefined') {
         // series entries are always ApexAxisChartSeries objects here
         const srcSerie = /** @type {any} */ (newData[i])
-        const dstSerie = /** @type {any} */ (newSeries[i])
+        const rec = records.find((r) => r.index === i)
         // Replace the array rather than push into it: the snapshots share this
         // array, and growing it in place is the one internal mutation they
         // cannot be shielded from.
+        const dstSerie = /** @type {any} */ (
+          rec && Array.isArray(rec.data) ? rec : newSeries[i]
+        )
         dstSerie.data = dstSerie.data.concat(srcSerie.data)
         if (reducerRaw && Array.isArray(reducerRaw[i]?.data)) {
           reducerRaw[i].data = reducerRaw[i].data.concat(srcSerie.data)

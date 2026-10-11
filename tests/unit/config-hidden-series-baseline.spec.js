@@ -86,17 +86,63 @@ describe('baseline of a series declared hidden in the config', () => {
   })
 
   it('keeps the whole series in the baseline across an appendData', async () => {
-    // appendData() is the one re-entry that also overwrites the baseline. It
-    // concatenates onto the LIVE row, which the collapse emptied, so what it
-    // hands create() is only the points just appended -- sourcing the repair
-    // from there would shrink the baseline to those. The collapse record is
-    // what still holds the series.
+    // appendData() is the one re-entry that also overwrites the baseline. The
+    // collapse emptied the LIVE row, so the collapse record is what holds the
+    // series, and the points appended to a hidden series land there too.
     const chart = chartWith({ hidden: true })
 
     await chart.appendData([{ data: [7] }, { data: [8] }])
 
     expect(chart.w.globals.initialSeries[0].data).toEqual([...A, 7])
-    expect(chart.w.globals.initialSeries[1].data).toEqual(B)
+    expect(chart.w.globals.initialSeries[1].data).toEqual([...B, 8])
+  })
+
+  it('keeps points appended while a series is hidden from the legend', async () => {
+    // Showing the series restores it from its collapse record, so an append
+    // that went to the emptied config row was lost for good.
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 600, height: 300 },
+      series: [
+        {
+          name: 'A',
+          data: [
+            [1, 10],
+            [2, 20],
+          ],
+        },
+        {
+          name: 'B',
+          data: [
+            [1, 5],
+            [2, 6],
+          ],
+        },
+      ],
+      xaxis: { type: 'numeric' },
+    })
+    await chart.render()
+    const tick = () => new Promise((r) => setTimeout(r, 0))
+
+    chart.toggleSeries('B')
+    await tick()
+    await chart.appendData([{ data: [[3, 30]] }, { data: [[3, 7]] }])
+    chart.toggleSeries('B')
+    await tick()
+
+    const rows = (/** @type {number} */ i) => chart.w.config.series[i].data
+    expect(rows(0)).toEqual([
+      [1, 10],
+      [2, 20],
+      [3, 30],
+    ])
+    expect(rows(1)).toEqual([
+      [1, 5],
+      [2, 6],
+      [3, 7],
+    ])
+    expect(chart.w.seriesData.series[1]).toEqual([5, 6, 7])
+    chart.destroy()
   })
 
   it('does not alias the collapse record into the baseline', () => {
