@@ -1845,6 +1845,9 @@ export default class Defaults {
   convertCatToNumericXaxis(opts, cats) {
     opts.xaxis.type = 'numeric'
     opts.xaxis.labels = opts.xaxis.labels || {}
+    // Every parse converts again, and the formatter in the config is by then
+    // the wrapper an earlier one installed. Wrapping that grew the chain by one
+    // closure per render, so wrap the formatter it wrapped instead.
     opts.xaxis.labels.formatter =
       opts.xaxis.labels.formatter ||
       /**
@@ -1853,8 +1856,8 @@ export default class Defaults {
       function (val) {
         return Utils.isNumber(val) ? Math.floor(val) : val
       }
-
-    const defaultFormatter = opts.xaxis.labels.formatter
+    const current = /** @type {any} */ (opts.xaxis.labels.formatter)
+    const defaultFormatter = current.baseFormatter || current
     let labels =
       opts.xaxis.categories && opts.xaxis.categories.length
         ? opts.xaxis.categories
@@ -1890,6 +1893,7 @@ export default class Defaults {
       // (`categories` is emptied below). An update that brings a new
       // formatter but no categories reads them back from here.
       format.categoryNames = names
+      format.baseFormatter = defaultFormatter
       opts.xaxis.labels.formatter = format
     }
 
