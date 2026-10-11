@@ -16,7 +16,7 @@ var __spreadValues = (a, b) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -37,12 +37,12 @@ const CLAIMABLE = Object.freeze({
   "stroke.dashArray": Object.freeze({ type: "number" }),
   "dataLabels.enabledOnSeries": Object.freeze({ type: "boolean" })
 });
-function store(w) {
+function store$1(w) {
   if (!w.weaveClaims) w.weaveClaims = { byOption: /* @__PURE__ */ new Map() };
   return w.weaveClaims;
 }
 function claimsFor(w, option) {
-  const s = store(w);
+  const s = store$1(w);
   if (!s.byOption.has(option)) s.byOption.set(option, []);
   return s.byOption.get(option);
 }
@@ -179,7 +179,7 @@ function collectDrawn(w, host) {
   }
   return [...seriesItems(w, host), ...annotationItems(w), ...declared];
 }
-const WEAVE_API_VERSION = 6;
+const WEAVE_API_VERSION = 7;
 const WEAVE_CAPABILITIES = Object.freeze([
   "layer",
   "derived",
@@ -189,7 +189,8 @@ const WEAVE_CAPABILITIES = Object.freeze([
   "claim",
   "drawn",
   "observations",
-  "scale-orientation"
+  "scale-orientation",
+  "highlight"
 ]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
@@ -556,6 +557,47 @@ function buildPluginAPI(host, record) {
       });
     },
     /**
+     * Draw a PART of each value, inside the slot that value already occupies.
+     *
+     * The alternative for a plugin with a second number per datum has been
+     * `markDerived()`: add a series. A series is a large thing to put on
+     * someone else's chart. It takes a legend entry, a tooltip row and an
+     * export column, it rescales the value axis to fit, and where the chart is
+     * bars it takes half the width of every bar the caller had. A part takes
+     * none of those: the whole is drawn faded, the part solid in front of it,
+     * same slot, same baseline.
+     *
+     *     const parts = api.highlight([
+     *       { series: 'Revenue', values: [10, 30, 60] },
+     *     ])
+     *     parts?.update([{ series: 'Revenue', values: [10, 30, 90] }])
+     *     parts?.release()
+     *
+     * `values` runs parallel to that series' data, with null where a datum has
+     * no part. Name the series rather than its position where you can: the name
+     * is resolved on every parse, so the parts follow the series through the
+     * caller adding, removing or reordering others.
+     *
+     * NULL means the parts were not taken, and a plugin that gets null must
+     * have something else to do (or nothing). The host says null when the
+     * highlight-filter feature is not loaded on the page, when the chart is not
+     * an axis chart, when the type draws no parts, and when the CALLER is
+     * already showing parts of their own. A plugin cannot fix any of the four,
+     * and three of them can change under it on the next update, so the answer
+     * is checked per call rather than remembered.
+     *
+     * Registering, updating and releasing each re-render the chart, coalesced
+     * to one render per turn. Every registration is released on teardown, on
+     * destroy, and if the host disables this plugin after repeated failures.
+     *
+     * @param {Array<{series: string|number, values: Array<number|null>}>} entries
+     * @returns {{release: () => void, update: (entries: Array<{series: string|number, values: Array<number|null>}>) => void}|null}
+     * @since Weave v7
+     */
+    highlight(entries) {
+      return host._highlight(record.def.name, entries);
+    },
+    /**
      * Everything drawn on this chart, including what other features drew.
      *
      * The chart's series, the caller's annotations (ink strokes among them,
@@ -672,8 +714,65 @@ const WIRED = {
   observations: () => true,
   // Scales are null until the first draw and on every non-axis chart, so the
   // facade has nothing to probe; this host builds them oriented on every draw.
-  "scale-orientation": () => true
+  "scale-orientation": () => true,
+  // The SEAM, not the drawing. Whether parts can actually be drawn depends on
+  // the chart type, on what the caller's data carries, and on whether the page
+  // imported the highlight-filter feature at all, and all three can change
+  // after this is answered. `api.highlight()` returns null for each of them,
+  // which is the answer a plugin can act on; advertising the capability and
+  // then returning null is the same shape as `claim()` on an option this host
+  // does not know.
+  highlight: (a) => typeof a.highlight === "function"
 };
+function store(w) {
+  if (!w.weaveHighlights) w.weaveHighlights = { records: [] };
+  return w.weaveHighlights;
+}
+function normaliseHighlightEntries(entries) {
+  const out = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (!entry || typeof entry.series !== "string" && typeof entry.series !== "number") {
+      console.warn(
+        "[apexcharts] highlight: each entry needs a series name or index."
+      );
+      continue;
+    }
+    if (!Array.isArray(entry.values)) {
+      console.warn(
+        `[apexcharts] highlight: expected an array of values for series ${String(
+          entry.series
+        )}, got ${typeof entry.values}.`
+      );
+      continue;
+    }
+    out.push({
+      series: entry.series,
+      values: entry.values.map(
+        (v) => typeof v === "number" && Number.isFinite(v) ? v : null
+      )
+    });
+  }
+  return out;
+}
+function addHighlight(w, owner, entries) {
+  const normalised = normaliseHighlightEntries(entries);
+  if (!normalised.length) return null;
+  const record = { owner, entries: normalised };
+  store(w).records.push(record);
+  return record;
+}
+function releaseHighlight(w, record) {
+  if (!w || !w.weaveHighlights || !record) return;
+  const list = w.weaveHighlights.records;
+  const at = list.indexOf(record);
+  if (at > -1) list.splice(at, 1);
+}
+function releaseHighlightOwner(w, owner) {
+  if (!w || !w.weaveHighlights) return;
+  const list = w.weaveHighlights.records;
+  const kept = list.filter((r) => r.owner !== owner);
+  if (kept.length !== list.length) w.weaveHighlights.records = kept;
+}
 const _WeaveHost = class _WeaveHost {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -691,6 +790,7 @@ const _WeaveHost = class _WeaveHost {
     this._derived = null;
     this._reserved = null;
     this._reserveTimer = null;
+    this._highlightTimer = null;
     this._pointerSubs = null;
     this._declared = null;
     this._pointerWired = null;
@@ -799,6 +899,7 @@ const _WeaveHost = class _WeaveHost {
       if (record.failures >= 3) {
         record.disabled = true;
         releaseOwner(this.w, record.def.name);
+        releaseHighlightOwner(this.w, record.def.name);
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`
         );
@@ -1215,6 +1316,81 @@ const _WeaveHost = class _WeaveHost {
       }
     }, 0);
   }
+  // ─── Highlight parts ────────────────────────────────────────────────────
+  /**
+   * Register a plugin's highlight parts, or say why not.
+   *
+   * Null is the answer to four different questions, and a plugin treats them
+   * alike because its fallback is the same in all four:
+   *
+   *   1. the highlight filter feature is not loaded on this page. A plugin
+   *      cannot import it for the caller: it is premium and dashboard-scoped,
+   *      and pulling it in would add weight to every chart the plugin runs on.
+   *   2. the chart is not an axis chart. A slice's part is one value per slice
+   *      and is configured per chart rather than per series, so the entry shape
+   *      here does not describe it.
+   *   3. this chart type draws no parts (a combo, a range, a histogram).
+   *   4. the caller is ALREADY showing parts of their own. Two sources of parts
+   *      in one slot leave a viewer unable to tell whose pick they are looking
+   *      at, and the plugin's would be the one they did not ask for.
+   *
+   * Distinguishing them would be a worse API, not a better one: a plugin that
+   * branched on the reason would still do the same thing, and the reason can
+   * change under it on the caller's next update.
+   *
+   * @param {string} owner  plugin name
+   * @param {any} entries  [{ series: name | index, values: (number|null)[] }]
+   * @returns {{release: () => void, update: (entries: any) => void}|null}
+   */
+  _highlight(owner, entries) {
+    const w = this.w;
+    const hf = (
+      /** @type {any} */
+      this.ctx.highlightFilter
+    );
+    if (!hf) return null;
+    if (!w.globals.axisCharts) return null;
+    if (!hf.canDrawParts()) return null;
+    if (hf.callerCarriesParts()) return null;
+    const record = addHighlight(w, owner, entries);
+    if (!record) return null;
+    this._redrawForHighlight();
+    return Object.freeze({
+      release: () => {
+        releaseHighlight(w, record);
+        this._redrawForHighlight();
+      },
+      update: (next) => {
+        record.entries = normaliseHighlightEntries(next);
+        this._redrawForHighlight();
+      }
+    });
+  }
+  /**
+   * Re-render so the parts are parsed, one task later and coalesced.
+   *
+   * One task later for the reason reservations are: the call can come from
+   * inside a dispatch, and re-entering a render from a draw handler is how a
+   * plugin takes the chart down. Coalesced, so a plugin registering parts for
+   * several series in one turn costs one render.
+   *
+   * `dataChanged`, unlike the reservation path: the numbers on screen are
+   * about to change, so the parts should grow and shrink into place rather
+   * than appear as if the chart had been resized.
+   */
+  _redrawForHighlight() {
+    if (this._highlightTimer != null) return;
+    this._highlightTimer = setTimeout(() => {
+      this._highlightTimer = null;
+      const gl = this.w.globals;
+      if (gl.isDestroyed) return;
+      gl.dataChanged = true;
+      try {
+        this.ctx.update();
+      } catch (e) {
+      }
+    }, 0);
+  }
   /** All series names currently claimed by plugins. */
   _derivedNames() {
     const out = /* @__PURE__ */ new Set();
@@ -1387,7 +1563,10 @@ const _WeaveHost = class _WeaveHost {
       for (const record of this.active) {
         this._guard(record, "destroy", () => record.def.destroy && record.def.destroy(record.api));
       }
-      for (const record of this.active) releaseOwner(this.w, record.def.name);
+      for (const record of this.active) {
+        releaseOwner(this.w, record.def.name);
+        releaseHighlightOwner(this.w, record.def.name);
+      }
       this.active = [];
       this._derived = null;
       this._reserved = null;
@@ -1402,6 +1581,10 @@ const _WeaveHost = class _WeaveHost {
       if (this._reserveTimer != null) {
         clearTimeout(this._reserveTimer);
         this._reserveTimer = null;
+      }
+      if (this._highlightTimer != null) {
+        clearTimeout(this._highlightTimer);
+        this._highlightTimer = null;
       }
       if (this._updatedWired) {
         this.ctx.removeEventListener && this.ctx.removeEventListener("updated", this._onUpdated);

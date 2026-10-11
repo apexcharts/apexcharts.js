@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -205,7 +205,7 @@ class Helpers {
       );
       yP = xLabel ? parseFloat((_a = xLabel.getAttribute("y")) != null ? _a : "0") : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
       if (anno.seriesIndex !== void 0 && w.globals.barHeight) {
-        yP -= w.globals.barHeight / 2 * (w.seriesData.series.length - 1) - w.globals.barHeight * anno.seriesIndex;
+        yP += this.barSlotOffset(anno.seriesIndex, w.globals.barHeight);
       }
     } else {
       if (!w.config.yaxis[anno.yAxisIndex]) {
@@ -270,7 +270,7 @@ class Helpers {
       xP = w.layout.gridWidth;
     }
     if (anno.seriesIndex !== void 0 && w.globals.barWidth && !this.annoCtx.invertAxis) {
-      xP -= w.globals.barWidth / 2 * (w.seriesData.series.length - 1) - w.globals.barWidth * anno.seriesIndex;
+      xP += this.barSlotOffset(anno.seriesIndex, w.globals.barWidth);
     }
     if (typeof xP !== "number") {
       xP = 0;
@@ -284,6 +284,34 @@ class Helpers {
       clipped = true;
     }
     return { x: xP, clipped };
+  }
+  /**
+   * Offset from a category's centre to the bar of series `i` in it. Bars
+   * share the slot only among the series actually laid out side by side:
+   * a stacked chart draws them all in one column, and a hidden series (empty
+   * data) or a non-bar combo series takes no slot.
+   * @param {number} i
+   * @param {number} size bar width, or bar height when horizontal
+   */
+  barSlotOffset(i, size) {
+    const w = this.w;
+    if (w.config.chart.stacked) return 0;
+    let n = 0;
+    let ordinal = 0;
+    w.seriesData.series.forEach(
+      (s, si) => {
+        var _a;
+        const type = (
+          /** @type {any} */
+          (_a = w.config.series[si]) == null ? void 0 : _a.type
+        );
+        if (s.length && (!w.globals.comboCharts || type === "bar" || type === "column")) {
+          if (si < i) ordinal++;
+          n++;
+        }
+      }
+    );
+    return size * (ordinal - (n - 1) / 2);
   }
   /**
    * @param {number} x
@@ -306,6 +334,8 @@ class Helpers {
     );
     if (xLabel) {
       rX = parseFloat((_a = xLabel.getAttribute("x")) != null ? _a : "0");
+    } else if (catIndex > -1) {
+      rX = w.axisFlags.isXNumeric ? (x - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth) : w.globals.padHorizontal + (catIndex + 0.5) * w.layout.gridWidth / w.globals.dataPoints;
     }
     return rX;
   }
@@ -958,6 +988,8 @@ class Annotations {
       paddingTop = 2
     } = params;
     const w = this.w;
+    const parent = w.dom.baseEl.querySelector(appendTo);
+    if (!parent) return;
     const elText = this.graphics.drawText({
       x,
       y,
@@ -967,12 +999,9 @@ class Annotations {
       fontWeight: fontWeight || "regular",
       fontFamily: fontFamily || w.config.chart.fontFamily,
       foreColor: foreColor || w.config.chart.foreColor,
-      cssClass: "apexcharts-text " + cssClass ? cssClass : ""
+      cssClass: cssClass || ""
     });
-    const parent = w.dom.baseEl.querySelector(appendTo);
-    if (parent) {
-      parent.appendChild(elText.node);
-    }
+    parent.appendChild(elText.node);
     const textRect = elText.bbox();
     if (text) {
       const elRect = this.graphics.drawRect(
@@ -1068,10 +1097,11 @@ class Annotations {
     type,
     contextMethod
   }) {
+    var _a;
     const me = context;
     const w = me.w;
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`);
-    const index = parent.childNodes.length + 1;
+    const index = (((_a = w.config.annotations[type === "point" ? "points" : type]) == null ? void 0 : _a.length) || 0) + parent.childNodes.length;
     const options = new Options();
     const axesAnno = Object.assign(
       {},
@@ -1153,11 +1183,9 @@ class Annotations {
     this._removeAnnotationTooltip(w);
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`);
     if (annos) {
-      w.globals.memory.methodsToExec.map((m, i) => {
-        if (m.id === id) {
-          w.globals.memory.methodsToExec.splice(i, 1);
-        }
-      });
+      w.globals.memory.methodsToExec = w.globals.memory.methodsToExec.filter(
+        (m) => m.id !== id
+      );
       Object.keys(w.config.annotations).forEach((key) => {
         const annotationArray = w.config.annotations[key];
         if (Array.isArray(annotationArray)) {

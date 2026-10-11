@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -26,7 +26,6 @@ import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
 const AxesUtils = _core.__apex_axes_AxesUtils;
-const Data = _core.__apex_Data;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
@@ -324,48 +323,58 @@ class Exports {
     return families;
   }
   /**
-   * Every `@font-face` rule reachable from the document, as `{ family, css }`.
+   * Every `@font-face` rule reachable from the document, as
+   * `{ family, css, base }`, where `base` is the URL the rule's relative
+   * `url()`s resolve against: its stylesheet, not the page.
    *
-   * Same-origin sheets are read through `cssRules`. A cross-origin sheet throws
-   * on that access, so it is re-fetched by href and its `@font-face` blocks are
-   * pulled out of the text: that is the path that matters in practice, since
-   * hosted webfonts (the subject of #3617) are exactly the cross-origin case.
-   * @returns {Promise<Array<{family: string, css: string}>>}
+   * Same-origin sheets are read through `cssRules`, descending into `@import`
+   * and grouping rules (`@media`, `@supports`, `@layer`). A cross-origin sheet
+   * throws on that access, so it is re-fetched by href and its `@font-face`
+   * blocks are pulled out of the text: that is the path that matters in
+   * practice, since hosted webfonts (the subject of #3617) are exactly the
+   * cross-origin case.
+   * @returns {Promise<Array<{family: string, css: string, base: string}>>}
    */
   collectFontFaceRules() {
     if (!Environment.isBrowser()) return Promise.resolve([]);
     const found = [];
     const remote = [];
-    const pushFromText = (cssText) => {
+    const pushFromText = (cssText, base) => {
       const blocks = cssText.match(/@font-face\s*\{[^}]*\}/gi) || [];
       blocks.forEach((css) => {
         const m = css.match(/font-family\s*:\s*([^;}]+)/i);
         if (!m) return;
         const family = m[1].trim().replace(/^['"]|['"]$/g, "");
-        found.push({ family: family.toLowerCase(), css });
+        found.push({ family: family.toLowerCase(), css, base });
       });
     };
-    const sheets = Array.from(document.styleSheets || []);
-    sheets.forEach((sheet) => {
+    const walkRules = (rules, base) => {
+      Array.from(rules).forEach((rule) => {
+        if (rule.type === 5) {
+          if (rule.cssText) pushFromText(rule.cssText, base);
+        } else if (rule.styleSheet) {
+          walkSheet(rule.styleSheet);
+        } else if (rule.cssRules) {
+          walkRules(rule.cssRules, base);
+        }
+      });
+    };
+    const walkSheet = (sheet) => {
       let rules = null;
       try {
         rules = sheet.cssRules;
       } catch (e) {
-        rules = null;
       }
       if (rules) {
-        Array.from(rules).forEach((rule) => {
-          if (rule.type === 5 && rule.cssText) pushFromText(rule.cssText);
-        });
-        return;
-      }
-      if (sheet.href) {
+        walkRules(rules, sheet.href || document.baseURI);
+      } else if (sheet.href) {
         remote.push(
-          fetch(sheet.href).then((r) => r.ok ? r.text() : "").then(pushFromText).catch(() => {
+          fetch(sheet.href).then((r) => r.ok ? r.text() : "").then((text) => pushFromText(text, sheet.href)).catch(() => {
           })
         );
       }
-    });
+    };
+    Array.from(document.styleSheets || []).forEach(walkSheet);
     return Promise.all(remote).then(() => found);
   }
   /**
@@ -398,7 +407,7 @@ class Exports {
       if (!wanted.length) return Promise.resolve([]);
       return Promise.all(
         wanted.map(
-          (face) => this.inlineFontFaceUrls(face.css).catch(() => null)
+          (face) => this.inlineFontFaceUrls(face.css, face.base).catch(() => null)
         )
       );
     }).then((cssBlocks) => {
@@ -415,9 +424,10 @@ class Exports {
    * data URI. Resolves to null if no url could be fetched, so the caller can
    * drop a block that would only reference unreachable files.
    * @param {string} css
+   * @param {string} [base] the URL relative `url()`s resolve against
    * @returns {Promise<string | null>}
    */
-  inlineFontFaceUrls(css) {
+  inlineFontFaceUrls(css, base) {
     const urls = [];
     const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
     let m;
@@ -427,7 +437,7 @@ class Exports {
     if (!urls.length) return Promise.resolve(css.includes("data:") ? css : null);
     return Promise.all(
       urls.map(
-        (url) => this.fetchAsDataUri(url).then((dataUri) => ({ url, dataUri })).catch(() => ({ url, dataUri: null }))
+        (url) => this.fetchAsDataUri(base ? new URL(url, base).href : url).then((dataUri) => ({ url, dataUri })).catch(() => ({ url, dataUri: null }))
       )
     ).then((results) => {
       let out = css;
@@ -488,6 +498,7 @@ class Exports {
       (_a = w.globals.layoutTween) == null ? void 0 : _a.finish();
       (_b = w.globals.circleTween) == null ? void 0 : _b.finish();
       (_c = w.globals.highlightTween) == null ? void 0 : _c.finish();
+      [...w.globals.chromeTweens || []].forEach((finish) => finish());
       const clonedNode = (
         /** @type {HTMLElement} */
         w.dom.elWrap.cloneNode(true)
@@ -594,19 +605,26 @@ class Exports {
     });
   }
   /**
+   * Resolves `{ imgURI: '' }` when the PNG cannot be made (no 2d context for
+   * a canvas that size, an SVG the browser will not decode, a tainted
+   * canvas), so a caller is never left waiting.
    * @param {Record<string, any> | undefined} options
    */
   dataURI(options) {
     if (Environment.isSSR()) return Promise.resolve({ imgURI: "" });
     return new Promise((resolve) => {
       const w = this.w;
+      const fail = () => {
+        console.warn("ApexCharts: the PNG export could not be rendered");
+        resolve({ imgURI: "" });
+      };
       const scale = options ? options.scale || options.width / w.globals.svgWidth : 1;
       const canvas = document.createElement("canvas");
       canvas.width = w.globals.svgWidth * scale;
       canvas.height = parseInt(w.dom.elWrap.style.height, 10) * scale;
       const canvasBg = this.resolveExportBackground();
       const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      if (!ctx) return fail();
       ctx.fillStyle = canvasBg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       this.getSvgString(scale).then((svgData) => {
@@ -614,18 +632,23 @@ class Exports {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-          const edgeCanvas = canvas;
-          if (edgeCanvas.msToBlob) {
-            const blob = edgeCanvas.msToBlob();
-            resolve({ blob });
-          } else {
-            const imgURI = canvas.toDataURL("image/png");
-            resolve({ imgURI });
+          try {
+            ctx.drawImage(img, 0, 0);
+            const edgeCanvas = canvas;
+            if (edgeCanvas.msToBlob) {
+              const blob = edgeCanvas.msToBlob();
+              resolve({ blob });
+            } else {
+              const imgURI = canvas.toDataURL("image/png");
+              resolve({ imgURI });
+            }
+          } catch (e) {
+            fail();
           }
         };
+        img.onerror = fail;
         img.src = svgUrl;
-      });
+      }).catch(fail);
     });
   }
   exportToSVG() {
@@ -644,7 +667,7 @@ class Exports {
     this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + ".png");
-      } else {
+      } else if (imgURI) {
         this.triggerDownload(
           imgURI,
           this.w.config.chart.toolbar.export.png.filename,
@@ -661,48 +684,54 @@ class Exports {
     lineDelimiter = "\n"
   }) {
     const w = this.w;
-    if (!series) series = w.config.series;
-    let columns = [];
+    const gl = w.globals;
+    const csvCfg = w.config.chart.toolbar.export.csv;
+    const raw = !series && (gl.streamgraphRawSeries || gl.waterfallRawSeries || gl.dumbbellRawSeries);
+    if (!series) series = raw || w.config.series;
+    const hidden = new Set(
+      raw && raw === gl.dumbbellRawSeries ? w.dumbbellData.hidden : gl.collapsedSeriesIndices
+    );
     const rows = [];
-    let result = "";
-    const universalBOM = "\uFEFF";
-    const gSeries = w.seriesData.series.map((s, i) => {
-      return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
-    });
+    const body = [];
+    const isDatetime = w.config.xaxis.type === "datetime";
+    const utc = w.config.xaxis.labels.datetimeUTC;
     const csvSafe = (val) => {
       if (val == null || Utils.isNumber(val)) return val;
       const s = String(val);
-      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+      return /^[=+\-@\t\r]/.test(s) && isNaN(+s) ? `'${s}` : s;
     };
-    const getFormattedCategory = (cat) => {
-      if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === "function") {
-        return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
+    const isDateCat = (cat) => isDatetime && String(cat).length >= 10 && !isNaN(new Date(cat).getTime());
+    const datetimeText = (cat, withTime2) => {
+      const d = new Date(cat);
+      if (!utc) d.setTime(d.getTime() - d.getTimezoneOffset() * 6e4);
+      if (withTime2) {
+        return d.toISOString().slice(0, 23).replace("T", " ").replace(".000", "");
       }
-      if (w.config.xaxis.type === "datetime" && String(cat).length >= 10) {
-        return new Date(cat).toDateString();
+      const [day, date, month, year] = d.toUTCString().split(" ");
+      return `${day.slice(0, 3)} ${month} ${date} ${year}`;
+    };
+    const getFormattedCategory = (cat, withTime2) => {
+      if (typeof csvCfg.categoryFormatter === "function") {
+        return csvCfg.categoryFormatter(cat);
       }
-      return Utils.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(""));
+      if (cat == null) return "";
+      if (isDateCat(cat)) return datetimeText(cat, withTime2);
+      return Utils.isNumber(cat) ? cat : csvSafe(String(cat).split(columnDelimiter).join(""));
     };
     const getFormattedValue = (value) => {
-      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : csvSafe(value);
+      return typeof csvCfg.valueFormatter === "function" ? csvCfg.valueFormatter(value) : csvSafe(value);
     };
-    const seriesMaxDataLength = Math.max(
-      ...series.map((s) => {
-        return s.data ? s.data.length : 0;
-      })
-    );
-    const dataFormat = new Data(this.w);
     const axesUtils = new AxesUtils(this.w, {
       theme: this.ctx.theme,
       timeScale: this.ctx.timeScale
     });
     const getCat = (i) => {
       let cat = "";
-      if (!w.globals.axisCharts) {
+      if (!gl.axisCharts) {
         cat = w.config.labels[i];
       } else {
         if (w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) {
-          if (w.globals.isBarHorizontal) {
+          if (gl.isBarHorizontal) {
             const lbFormatter = w.formatters.yLabelFormatters[0];
             const sr = new Series(this.ctx.w);
             const activeSeries = sr.getActiveConfigSeriesIndex();
@@ -720,7 +749,7 @@ class Exports {
             ).text;
           }
         }
-        if (w.config.xaxis.type === "datetime") {
+        if (isDatetime) {
           if (w.config.xaxis.categories.length) {
             cat = w.config.xaxis.categories[i];
           } else if (w.config.labels.length) {
@@ -728,159 +757,129 @@ class Exports {
           }
         }
       }
-      if (cat === null) return "nullvalue";
-      if (Array.isArray(cat)) {
-        cat = cat.join(" ");
-      }
-      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+      return Array.isArray(cat) ? cat.join(" ") : cat;
     };
-    const getEmptyDataForCsvColumn = () => {
-      return [...Array(seriesMaxDataLength)].map(() => "");
-    };
-    const handleAxisRowsColumns = (s, sI) => {
-      var _a, _b, _c, _d, _e, _f;
-      if (columns.length && sI === 0) {
-        rows.push(columns.join(columnDelimiter));
-      }
-      if (s.data) {
-        const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn();
-        for (let i = 0; i < rowData.length; i++) {
-          columns = [];
-          let cat = getCat(i);
-          if (cat === "nullvalue") continue;
-          if (!cat) {
-            if (dataFormat.isFormatXY()) {
-              cat = series[sI].data[i].x;
-            } else if (dataFormat.isFormat2DArray()) {
-              cat = series[sI].data[i] ? series[sI].data[i][0] : "";
-            }
+    const cd = w.candleData;
+    const rd = w.rangeData;
+    const vd = w.violinData;
+    const multi = series.length > 1;
+    const cols = series.map((s, sI) => {
+      const type = raw ? "" : s.type || w.config.chart.type;
+      const fields = type === "candlestick" ? {
+        open: cd.seriesCandleO,
+        high: cd.seriesCandleH,
+        low: cd.seriesCandleL,
+        close: cd.seriesCandleC
+      } : type === "boxPlot" ? {
+        minimum: cd.seriesCandleO,
+        q1: cd.seriesCandleH,
+        median: cd.seriesCandleM,
+        q3: cd.seriesCandleL,
+        maximum: cd.seriesCandleC
+      } : type === "rangeBar" || type === "rangeArea" ? { minimum: rd.seriesRangeStart, maximum: rd.seriesRangeEnd } : type === "violin" ? {
+        minimum: vd.seriesViolinMin,
+        maximum: vd.seriesViolinMax,
+        observations: vd.seriesViolinPoints
+      } : null;
+      const name = String(s.name || `series-${sI}`).split(columnDelimiter).join("") || `series-${sI}`;
+      const keys = fields ? Object.keys(fields) : [name];
+      return {
+        head: fields && multi ? keys.map((k) => `${name} ${k}`) : keys,
+        /** @param {number} i */
+        cells: (i) => {
+          var _a;
+          const off = hidden.has(sI);
+          if (!fields) {
+            const d = off ? void 0 : (_a = s.data) == null ? void 0 : _a[i];
+            return [
+              getFormattedValue(
+                d && typeof d === "object" ? Array.isArray(d) ? d[1] : d.y : d
+              )
+            ];
           }
-          if (sI === 0) {
-            columns.push(getFormattedCategory(cat));
-            for (let ci = 0; ci < w.seriesData.series.length; ci++) {
-              const value = dataFormat.isFormatXY() ? (_a = series[ci].data[i]) == null ? void 0 : _a.y : gSeries[ci][i];
-              columns.push(getFormattedValue(value));
-            }
-          }
-          if (w.config.chart.type === "candlestick" || s.type && s.type === "candlestick") {
-            columns.pop();
-            columns.push(w.candleData.seriesCandleO[sI][i]);
-            columns.push(w.candleData.seriesCandleH[sI][i]);
-            columns.push(w.candleData.seriesCandleL[sI][i]);
-            columns.push(w.candleData.seriesCandleC[sI][i]);
-          }
-          if (w.config.chart.type === "boxPlot" || s.type && s.type === "boxPlot") {
-            columns.pop();
-            columns.push(w.candleData.seriesCandleO[sI][i]);
-            columns.push(w.candleData.seriesCandleH[sI][i]);
-            columns.push(w.candleData.seriesCandleM[sI][i]);
-            columns.push(w.candleData.seriesCandleL[sI][i]);
-            columns.push(w.candleData.seriesCandleC[sI][i]);
-          }
-          if (w.config.chart.type === "rangeBar") {
-            columns.pop();
-            columns.push(w.rangeData.seriesRangeStart[sI][i]);
-            columns.push(w.rangeData.seriesRangeEnd[sI][i]);
-          }
-          if (w.config.chart.type === "violin" || s.type && s.type === "violin") {
-            columns.pop();
-            columns.push((_b = w.violinData.seriesViolinMin[sI]) == null ? void 0 : _b[i]);
-            columns.push((_c = w.violinData.seriesViolinMax[sI]) == null ? void 0 : _c[i]);
-            columns.push((_f = (_e = (_d = w.violinData.seriesViolinPoints[sI]) == null ? void 0 : _d[i]) == null ? void 0 : _e.length) != null ? _f : 0);
-          }
-          if (columns.length) {
-            rows.push(columns.join(columnDelimiter));
-          }
+          return Object.values(fields).map((src) => {
+            var _a2;
+            const v = off ? void 0 : (_a2 = src == null ? void 0 : src[sI]) == null ? void 0 : _a2[i];
+            return getFormattedValue(Array.isArray(v) ? v.length : v);
+          });
         }
-      }
-    };
-    const handleUnequalXValues = () => {
-      const byCategory = /* @__PURE__ */ new Map();
-      series.forEach((s, sI) => {
-        s == null ? void 0 : s.data.forEach((dataItem) => {
-          let cat, value;
-          if (dataFormat.isFormatXY()) {
-            cat = dataItem.x;
-            value = dataItem.y;
-          } else if (dataFormat.isFormat2DArray()) {
-            cat = dataItem[0];
-            value = dataItem[1];
-          } else {
-            return;
-          }
-          const key = String(cat);
-          let row = byCategory.get(key);
-          if (!row) {
-            row = { cat, values: Array(series.length).fill("") };
-            byCategory.set(key, row);
-          }
-          row.values[sI] = getFormattedValue(value);
+      };
+    });
+    if (!gl.axisCharts) {
+      rows.push(
+        [csvCfg.headerCategory, csvCfg.headerValue].join(columnDelimiter)
+      );
+      series.forEach((_, sI) => {
+        rows.push(
+          [
+            getFormattedCategory(w.labelData.labels[sI]),
+            getFormattedValue(hidden.has(sI) ? "" : w.seriesData.series[sI])
+          ].join(columnDelimiter)
+        );
+      });
+    } else {
+      rows.push(
+        [csvCfg.headerCategory, ...cols.flatMap((c) => c.head)].join(
+          columnDelimiter
+        )
+      );
+      if (!gl.allSeriesHasEqualX && !w.config.xaxis.categories.length && !w.config.labels.length) {
+        const byCategory = /* @__PURE__ */ new Map();
+        series.forEach((s, sI) => {
+          var _a;
+          (_a = s == null ? void 0 : s.data) == null ? void 0 : _a.forEach((d, i) => {
+            if (!d || typeof d !== "object") return;
+            const cat = Array.isArray(d) ? d[0] : d.x;
+            const key = String(cat);
+            let row = byCategory.get(key);
+            if (!row) {
+              row = { cat, values: cols.map((c) => c.head.map(() => "")) };
+              byCategory.set(key, row);
+            }
+            row.values[sI] = cols[sI].cells(i);
+          });
         });
-      });
-      if (columns.length) {
-        rows.push(columns.join(columnDelimiter));
+        Array.from(byCategory.values()).sort((a, b) => {
+          const aText = typeof a.cat === "string";
+          const bText = typeof b.cat === "string";
+          if (aText !== bText) return aText ? 1 : -1;
+          if (!aText) return a.cat - b.cat;
+          return a.cat < b.cat ? -1 : 1;
+        }).forEach(({ cat, values }) => body.push([cat, ...values.flat()]));
+      } else {
+        const len = Math.max(
+          0,
+          ...series.map((s) => {
+            var _a;
+            return ((_a = s.data) == null ? void 0 : _a.length) || 0;
+          })
+        );
+        for (let i = 0; i < len; i++) {
+          let cat = getCat(i);
+          if (cat === null) continue;
+          if (!cat) {
+            const d = series.map((s) => {
+              var _a;
+              return (_a = s.data) == null ? void 0 : _a[i];
+            }).find((d2) => d2 != null);
+            cat = d == null ? "" : Array.isArray(d) ? d[0] : d.x;
+          }
+          body.push([cat, ...cols.flatMap((c) => c.cells(i))]);
+        }
       }
-      Array.from(byCategory.values()).sort((a, b) => {
-        const aText = typeof a.cat === "string";
-        const bText = typeof b.cat === "string";
-        if (aText !== bText) return aText ? 1 : -1;
-        if (!aText) return a.cat - b.cat;
-        return a.cat < b.cat ? -1 : 1;
-      }).forEach(({ cat, values }) => {
-        rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
-      });
-    };
-    columns.push(w.config.chart.toolbar.export.csv.headerCategory);
-    if (w.config.chart.type === "boxPlot") {
-      columns.push("minimum");
-      columns.push("q1");
-      columns.push("median");
-      columns.push("q3");
-      columns.push("maximum");
-    } else if (w.config.chart.type === "candlestick") {
-      columns.push("open");
-      columns.push("high");
-      columns.push("low");
-      columns.push("close");
-    } else if (w.config.chart.type === "rangeBar") {
-      columns.push("minimum");
-      columns.push("maximum");
-    } else if (w.config.chart.type === "violin") {
-      columns.push("minimum");
-      columns.push("maximum");
-      columns.push("observations");
-    } else {
-      series.map((s, sI) => {
-        const sname = (s.name ? s.name : `series-${sI}`) + "";
-        if (w.globals.axisCharts) {
-          columns.push(
-            sname.split(columnDelimiter).join("") ? sname.split(columnDelimiter).join("") : `series-${sI}`
-          );
-        }
-      });
     }
-    if (!w.globals.axisCharts) {
-      columns.push(w.config.chart.toolbar.export.csv.headerValue);
-      rows.push(columns.join(columnDelimiter));
-    }
-    if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && !w.config.xaxis.categories.length && !w.config.labels.length) {
-      handleUnequalXValues();
-    } else {
-      series.map((s, sI) => {
-        if (w.globals.axisCharts) {
-          handleAxisRowsColumns(s, sI);
-        } else {
-          columns = [];
-          columns.push(getFormattedCategory(w.labelData.labels[sI]));
-          columns.push(getFormattedValue(gSeries[sI]));
-          rows.push(columns.join(columnDelimiter));
-        }
-      });
-    }
-    result += rows.join(lineDelimiter);
+    const dates = body.map((r) => r[0]).filter(isDateCat);
+    const withTime = new Set(dates.map((c) => datetimeText(c))).size < dates.length;
+    body.forEach(
+      (r) => rows.push(
+        [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(
+          columnDelimiter
+        )
+      )
+    );
     this.triggerDownload(
-      "data:text/csv; charset=utf-8," + encodeURIComponent(universalBOM + result),
-      fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
+      "data:text/csv; charset=utf-8," + encodeURIComponent("\uFEFF" + rows.join(lineDelimiter)),
+      fileName ? fileName : csvCfg.filename,
       ".csv"
     );
   }

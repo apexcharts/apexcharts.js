@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -263,7 +263,15 @@ class HeatMap {
     const isContinuousX = (w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric && this.xRatio > 0;
     let binPx = xDivision;
     if (isContinuousX) {
-      const diff = w.globals.minXDiff;
+      let diff = w.globals.minXDiff;
+      if (!series.some((s) => s.length > 1)) {
+        const xs = w.seriesData.seriesX.map((s) => s && s[0]).filter(Number.isFinite).sort((a, b) => a - b);
+        diff = Infinity;
+        for (let k = 1; k < xs.length; k++) {
+          if (xs[k] > xs[k - 1]) diff = Math.min(diff, xs[k] - xs[k - 1]);
+        }
+        if (diff === Infinity) diff = (w.globals.maxX - w.globals.minX) / 4;
+      }
       binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision;
     }
     let shape = this.shape;
@@ -314,7 +322,7 @@ class HeatMap {
             continue;
           }
         }
-        if (j >= heatSeries[i].length) break;
+        if (j >= series[i].length) break;
         const cellW = isContinuousX ? binPx : xDivision;
         if (isContinuousX) {
           const xVal = w.seriesData.seriesX[i] ? w.seriesData.seriesX[i][j] : null;
@@ -475,16 +483,6 @@ class HeatMap {
       y1 = y1 + yDivision;
       ret.add(elSeries);
     }
-    const yAxisScale = (
-      /** @type {any[]} */
-      w.globals.yAxisScale[0].result.slice()
-    );
-    if (w.config.yaxis[0].reversed) {
-      yAxisScale.unshift("");
-    } else {
-      yAxisScale.push("");
-    }
-    w.globals.yAxisScale[0].result = yAxisScale;
     return ret;
   }
   /**

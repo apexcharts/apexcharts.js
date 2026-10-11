@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -845,7 +845,7 @@ class Drilldown {
    * @param {{ seriesIndex?: number, dataPointIndex?: number }} opts
    */
   _onPointSelect(_event, _ctx, opts) {
-    if (!opts) return void 0;
+    if (!opts || this._retired()) return void 0;
     const point = this._pointAt(opts.seriesIndex, opts.dataPointIndex);
     if (point && typeof point === "object" && point.drilldown != null) {
       return this.drillDown(point.drilldown, point, opts);
@@ -869,8 +869,28 @@ class Drilldown {
     if (!s || !Array.isArray(s.data)) return null;
     return s.data[dataPointIndex] != null ? s.data[dataPointIndex] : null;
   }
+  /**
+   * destroy() drops this instance without a teardown, and the listener
+   * registry it wired into outlives it, so a render() after destroy() wires a
+   * second instance beside it: every click would drill twice. The stale one
+   * ignores every event, and unwires itself once the event that told it is
+   * over (fireEvent walks the live listener list).
+   * @returns {boolean} true when this instance is no longer the chart's
+   */
+  _retired() {
+    if (this.ctx.drilldown === this) return false;
+    Promise.resolve().then(() => {
+      const events = this.ctx.events;
+      if (!events) return;
+      events.removeEventListener("dataPointSelection", this._onPointSelect);
+      events.removeEventListener("mounted", this._afterRender);
+      events.removeEventListener("updated", this._afterRender);
+    });
+    return true;
+  }
   _afterRender() {
     const w = this.w;
+    if (this._retired()) return;
     if (!w.config.drilldown || !w.config.drilldown.enabled) return;
     this._markDrillableTargets();
     this._wirePlotClick();

@@ -17,8 +17,20 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -74,6 +86,25 @@ function registerRowSource(name, fn) {
     return;
   }
   getSources()[name] = fn;
+}
+function collapsedIndices(gl) {
+  return (gl.collapsedSeriesIndices || []).concat(
+    gl.ancillaryCollapsedSeriesIndices || []
+  );
+}
+function stashSeries(ser, gl) {
+  const records = (gl.collapsedSeries || []).concat(
+    gl.ancillaryCollapsedSeries || []
+  );
+  return ser.map((s, i) => {
+    const _a = s || {}, { hidden: _hidden } = _a, rest = __objRest(_a, ["hidden"]);
+    let data = rest.data;
+    if (Array.isArray(data) && !data.length) {
+      const rec = records.find((r) => r.index === i);
+      if (rec && Array.isArray(rec.data)) data = rec.data;
+    }
+    return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
+  });
 }
 const M = 1e3;
 function A(e, t) {
@@ -300,6 +331,26 @@ function observationsOf(d, allowFlatY) {
   }
   return out.length ? out : null;
 }
+function derivedStats(w, kind) {
+  var _a, _b;
+  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
+  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+}
+function isDerived(derived, key, value) {
+  const ours = derived.get(key);
+  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
+    return false;
+  }
+  for (let k2 = 0; k2 < value.length; k2++) {
+    const a = ours[k2];
+    const b = value[k2];
+    if (a === b) continue;
+    if (!Array.isArray(a) || !Array.isArray(b) || a[0] !== b[0] || a[1] !== b[1]) {
+      return false;
+    }
+  }
+  return true;
+}
 function histogramValues(data) {
   const out = [];
   if (!Array.isArray(data)) return out;
@@ -319,9 +370,7 @@ function histogramTransform(ser, w) {
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
   if (!gl.histogramRawSeries) {
-    gl.histogramRawSeries = ser.map((s) => __spreadProps(__spreadValues({}, s), {
-      data: Array.isArray(s == null ? void 0 : s.data) ? s.data.slice() : s == null ? void 0 : s.data
-    }));
+    gl.histogramRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.histogramRawSeries;
   const hcfg = ((_a = cnf.plotOptions) == null ? void 0 : _a.histogram) || {};
@@ -358,7 +407,7 @@ function histogramTransform(ser, w) {
     rule: binning.rule,
     capped: binning.capped
   };
-  const collapsed = gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   w.seriesObservations = perSeries.map(
     (values, i) => ({
       values,
@@ -379,18 +428,19 @@ function histogramTransform(ser, w) {
     return __spreadProps(__spreadValues({}, s), { data });
   });
 }
-const derivedData = /* @__PURE__ */ new WeakSet();
 function boxPlotTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
+  const derived = derivedStats(w, "boxPlot");
   const observed = [];
   const out = ser.map((s, i) => {
     if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "boxPlot") return s;
     let touched = false;
     const byPoint = new Array(s.data.length).fill(null);
     const data = s.data.map((d, j) => {
-      if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !derivedData.has(d)) {
+      const key = i + ":" + j;
+      if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !isDerived(derived, key, d.y)) {
         return d;
       }
       const values = observationsOf(d, false);
@@ -399,9 +449,8 @@ function boxPlotTransform(ser, w) {
       if (!summary) return d;
       touched = true;
       byPoint[j] = values;
-      const next = __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
-      derivedData.add(next);
-      return next;
+      derived.set(key, summary.summary);
+      return __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
     });
     if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
@@ -413,6 +462,7 @@ function violinTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
+  const derived = derivedStats(w, "violin");
   const observed = [];
   const out = ser.map((s, i) => {
     if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "violin") return s;
@@ -420,7 +470,8 @@ function violinTransform(ser, w) {
     const byPoint = new Array(s.data.length).fill(null);
     const data = s.data.map((d, j) => {
       var _a2;
-      if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !derivedData.has(d)) {
+      const key = i + ":" + j;
+      if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !isDerived(derived, key, d.y.density)) {
         return d;
       }
       const values = observationsOf(d, true);
@@ -433,11 +484,8 @@ function violinTransform(ser, w) {
       touched = true;
       byPoint[j] = values;
       const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
-      const next = __spreadProps(__spreadValues({}, d), {
-        y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values })
-      });
-      derivedData.add(next);
-      return next;
+      derived.set(key, est.density);
+      return __spreadProps(__spreadValues({}, d), { y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values }) });
     });
     if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
@@ -517,7 +565,7 @@ function histogramRows(w, opts) {
   const raw = gl && gl.histogramRawSeries;
   if (!hd || !Array.isArray(hd.edges) || hd.edges.length < 2) return null;
   if (!Array.isArray(raw) || !raw.length) return null;
-  const collapsed = gl && gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   const edges = hd.edges;
   const clusters = [];
   raw.forEach((s, i) => {
@@ -547,7 +595,7 @@ function pointsRowSource(pick) {
     var _a;
     const perSeries = pick(w);
     if (!Array.isArray(perSeries) || !perSeries.length) return null;
-    const collapsed = w.globals && w.globals.collapsedSeriesIndices || [];
+    const collapsed = w.globals ? collapsedIndices(w.globals) : [];
     const labels = w.globals && (((_a = w.globals.categoryLabels) == null ? void 0 : _a.length) ? w.globals.categoryLabels : w.globals.labels) || [];
     const clusters = [];
     perSeries.forEach((byCat, i) => {

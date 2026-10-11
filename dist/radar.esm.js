@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -117,10 +117,11 @@ class CircularChartsHelpers {
    * Widest rendered width among the given label strings. Used to reserve
    * horizontal room for outer (name) labels so the pie can shrink to fit them.
    * @param {string[]} labels
-   * @param {{ fontSize?: string, fontFamily?: string }} style
+   * @param {{ fontSize?: string, fontFamily?: string, fontWeight?: string | number }} style
+   *   the weight the labels draw at: bold text is wider
    * @returns {number}
    */
-  getMaxLabelWidth(labels, { fontSize, fontFamily } = {}) {
+  getMaxLabelWidth(labels, { fontSize, fontFamily, fontWeight } = {}) {
     const graphics = new Graphics(this.w);
     let maxWidth = 0;
     labels.forEach((text) => {
@@ -129,7 +130,9 @@ class CircularChartsHelpers {
         `${text}`,
         fontSize || "12px",
         fontFamily,
-        ""
+        "",
+        true,
+        fontWeight
       );
       maxWidth = Math.max(maxWidth, rect.width);
     });

@@ -17,8 +17,20 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -127,6 +139,25 @@ class Waterfall {
   }
 }
 const Utils = _core.__apex_Utils;
+function collapsedIndices(gl) {
+  return (gl.collapsedSeriesIndices || []).concat(
+    gl.ancillaryCollapsedSeriesIndices || []
+  );
+}
+function stashSeries(ser, gl) {
+  const records = (gl.collapsedSeries || []).concat(
+    gl.ancillaryCollapsedSeries || []
+  );
+  return ser.map((s, i) => {
+    const _a = s || {}, { hidden: _hidden } = _a, rest = __objRest(_a, ["hidden"]);
+    let data = rest.data;
+    if (Array.isArray(data) && !data.length) {
+      const rec = records.find((r) => r.index === i);
+      if (rec && Array.isArray(rec.data)) data = rec.data;
+    }
+    return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
+  });
+}
 function readDatum(d, j, categories) {
   const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
   if (d == null) {
@@ -223,14 +254,12 @@ function waterfallTransform(ser, w) {
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
   if (!gl.waterfallRawSeries) {
-    gl.waterfallRawSeries = ser.map((s) => __spreadProps(__spreadValues({}, s), {
-      data: Array.isArray(s == null ? void 0 : s.data) ? s.data.slice() : s == null ? void 0 : s.data
-    }));
+    gl.waterfallRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.waterfallRawSeries;
   const colors = ((_b = (_a = cnf.plotOptions) == null ? void 0 : _a.waterfall) == null ? void 0 : _b.colors) || {};
   const categories = (_c = cnf.xaxis) == null ? void 0 : _c.categories;
-  const collapsed = gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   const values = [];
   const cumulative = [];
   const kinds = [];

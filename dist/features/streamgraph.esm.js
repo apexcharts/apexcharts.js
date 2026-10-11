@@ -17,8 +17,20 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -631,6 +643,25 @@ class StreamLabels {
     w.globals.delayedElements.push({ el: group.node, holdUntilComplete: true });
   }
 }
+function collapsedIndices(gl) {
+  return (gl.collapsedSeriesIndices || []).concat(
+    gl.ancillaryCollapsedSeriesIndices || []
+  );
+}
+function stashSeries(ser, gl) {
+  const records = (gl.collapsedSeries || []).concat(
+    gl.ancillaryCollapsedSeries || []
+  );
+  return ser.map((s, i) => {
+    const _a = s || {}, { hidden: _hidden } = _a, rest = __objRest(_a, ["hidden"]);
+    let data = rest.data;
+    if (Array.isArray(data) && !data.length) {
+      const rec = records.find((r) => r.index === i);
+      if (rec && Array.isArray(rec.data)) data = rec.data;
+    }
+    return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
+  });
+}
 const OFFSETS = ["wiggle", "silhouette", "zero", "expand"];
 const ORDERS = ["inside-out", "inverse", "none"];
 function readDatum(d, j, categories) {
@@ -773,9 +804,7 @@ function streamgraphTransform(ser, w) {
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
   if (!gl.streamgraphRawSeries) {
-    gl.streamgraphRawSeries = ser.map((s) => __spreadProps(__spreadValues({}, s), {
-      data: Array.isArray(s == null ? void 0 : s.data) ? s.data.slice() : s == null ? void 0 : s.data
-    }));
+    gl.streamgraphRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.streamgraphRawSeries;
   if (raw.some(
@@ -788,7 +817,7 @@ function streamgraphTransform(ser, w) {
   const offset = OFFSETS.indexOf(opts.offset) !== -1 ? opts.offset : "wiggle";
   const order = ORDERS.indexOf(opts.order) !== -1 ? opts.order : "inside-out";
   const categories = (_b = cnf.xaxis) == null ? void 0 : _b.categories;
-  const collapsed = gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   const { xs, rows, grids } = joinOnX(raw, categories);
   const perm = sortColumns(xs);
   const columns = perm ? perm.map((j) => xs[j]) : xs;

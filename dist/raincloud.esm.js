@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -136,7 +136,7 @@ function observationsOf(d, allowFlatY) {
   let raw = null;
   if (Array.isArray(d.points)) raw = d.points;
   else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
-  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
+  else if (Array.isArray(d.y) && typeof d.y[0] === "number") {
     raw = d.y;
   }
   if (!raw) return null;
@@ -147,49 +147,67 @@ function observationsOf(d, allowFlatY) {
   }
   return out.length ? out : null;
 }
-const derivedData = /* @__PURE__ */ new WeakSet();
-const derivedSummaryOnly = /* @__PURE__ */ new WeakSet();
+function derivedStats(w, kind) {
+  var _a, _b;
+  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
+  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+}
+function isDerived(derived, key, value) {
+  const ours = derived.get(key);
+  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
+    return false;
+  }
+  for (let k = 0; k < value.length; k++) {
+    const a = ours[k];
+    const b = value[k];
+    if (a === b) continue;
+    if (!Array.isArray(a) || !Array.isArray(b) || a[0] !== b[0] || a[1] !== b[1]) {
+      return false;
+    }
+  }
+  return true;
+}
 function raincloudTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const violinCfg = ((_a = w.config.plotOptions) == null ? void 0 : _a.violin) || {};
   const kde = violinCfg.kde || {};
   const whiskers = ((_b = violinCfg.box) == null ? void 0 : _b.whiskers) || "minmax";
-  return ser.map((s) => {
-    if (!Array.isArray(s == null ? void 0 : s.data)) return s;
+  const ourDensity = derivedStats(w, "raincloudDensity");
+  const ourSummary = derivedStats(w, "raincloudSummary");
+  return ser.map((s, i) => {
+    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "raincloud" && s.type !== "violin") {
+      return s;
+    }
     let touched = false;
-    const data = s.data.map((d) => {
-      var _a2, _b2;
-      const hasDensity = Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length > 0;
-      const hasSummary = Array.isArray((_b2 = d == null ? void 0 : d.y) == null ? void 0 : _b2.summary) && d.y.summary.length === 5;
-      if (hasDensity && !derivedData.has(d)) {
-        if (hasSummary && !derivedSummaryOnly.has(d)) return d;
-        const values2 = observationsOf(d, false);
-        if (!values2) return d;
-        const summary2 = fiveNumberSummary(values2, { whiskers });
-        if (!summary2) return d;
-        touched = true;
-        const next2 = __spreadProps(__spreadValues({}, d), { y: __spreadProps(__spreadValues({}, d.y), { summary: summary2.summary }) });
-        derivedSummaryOnly.add(next2);
-        return next2;
-      }
-      const values = observationsOf(d, true);
+    const data = s.data.map((d, j) => {
+      const key = i + ":" + j;
+      const y = (d == null ? void 0 : d.y) && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
+      const needDensity = !Array.isArray(y.density) || !y.density.length || isDerived(ourDensity, key, y.density);
+      const needSummary = !Array.isArray(y.summary) || y.summary.length !== 5 || isDerived(ourSummary, key, y.summary);
+      if (!needDensity && !needSummary) return d;
+      const values = observationsOf(d);
       if (!values) return d;
-      const est = kernelDensity(values, {
-        bandwidth: kde.bandwidth,
-        resolution: kde.resolution
-      });
-      if (!est) return d;
-      const summary = fiveNumberSummary(values, { whiskers });
+      const out = __spreadValues({}, y);
+      if (needDensity) {
+        const est = kernelDensity(values, {
+          bandwidth: kde.bandwidth,
+          resolution: kde.resolution
+        });
+        if (!est) return d;
+        out.density = est.density;
+        out.points = values;
+        ourDensity.set(key, est.density);
+      }
+      if (needSummary) {
+        const est = fiveNumberSummary(values, { whiskers });
+        if (est) {
+          out.summary = est.summary;
+          ourSummary.set(key, est.summary);
+        }
+      }
       touched = true;
-      const next = __spreadProps(__spreadValues({}, d), {
-        y: __spreadValues({
-          density: est.density,
-          points: values
-        }, summary ? { summary: summary.summary } : {})
-      });
-      derivedData.add(next);
-      return next;
+      return __spreadProps(__spreadValues({}, d), { y: out });
     });
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
   });

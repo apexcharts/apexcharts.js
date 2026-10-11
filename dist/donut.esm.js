@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -104,6 +104,12 @@ function spaceOutLabels(items, minGap, maxY, minY) {
       }
     }
   }
+  if (minY != null && col.length && col[0].labelY < minY) {
+    const shift = minY - col[0].labelY;
+    for (let k = 0; k < col.length; k++) {
+      col[k].labelY += shift;
+    }
+  }
 }
 class CircularChartsHelpers {
   /**
@@ -138,10 +144,11 @@ class CircularChartsHelpers {
    * Widest rendered width among the given label strings. Used to reserve
    * horizontal room for outer (name) labels so the pie can shrink to fit them.
    * @param {string[]} labels
-   * @param {{ fontSize?: string, fontFamily?: string }} style
+   * @param {{ fontSize?: string, fontFamily?: string, fontWeight?: string | number }} style
+   *   the weight the labels draw at: bold text is wider
    * @returns {number}
    */
-  getMaxLabelWidth(labels, { fontSize, fontFamily } = {}) {
+  getMaxLabelWidth(labels, { fontSize, fontFamily, fontWeight } = {}) {
     const graphics = new Graphics(this.w);
     let maxWidth = 0;
     labels.forEach((text) => {
@@ -150,7 +157,9 @@ class CircularChartsHelpers {
         `${text}`,
         fontSize || "12px",
         fontFamily,
-        ""
+        "",
+        true,
+        fontWeight
       );
       maxWidth = Math.max(maxWidth, rect.width);
     });
@@ -420,10 +429,10 @@ class Pie {
     const lineSets = (w.seriesData.seriesNames || []).map(
       (_, i) => this.getExternalLabelLines(i)
     );
-    const maxLabelWidth = helpers.getMaxLabelWidth(lineSets.flat(), {
-      fontSize: this.externalLabelStyle.fontSize,
-      fontFamily: this.externalLabelStyle.fontFamily
-    });
+    const maxLabelWidth = helpers.getMaxLabelWidth(
+      lineSets.flat(),
+      this.externalLabelStyle
+    );
     this.externalLabelMaxLines = lineSets.reduce((m, s) => Math.max(m, s.length), 1);
     this.externalLabelLineH = Math.round(
       (parseFloat(this.externalLabelStyle.fontSize) || 12) * 1.35
@@ -496,7 +505,7 @@ class Pie {
       if (this.chartType === "polarArea") {
         sectorAngleArr[i] = collapsedIdx.indexOf(i) > -1 ? 0 : this.fullAngle / polarVisible;
         this.sliceSizes.push(
-          w.globals.radialSize * series[i] / (this.maxY || 1)
+          w.globals.radialSize * Utils.negToZero(series[i]) / (this.maxY || 1)
         );
       } else {
         this.sliceSizes.push(w.globals.radialSize);
@@ -536,11 +545,14 @@ class Pie {
         for (let k = 0; k < w.globals.previousPaths.length; k++) {
           prevTotal += Utils.negToZero(w.globals.previousPaths[k]);
         }
-        let previousAngle;
         for (let i = 0; i < w.globals.previousPaths.length; i++) {
-          previousAngle = this.fullAngle * Utils.negToZero(w.globals.previousPaths[i]) / prevTotal;
-          this.prevSectorAngleArr.push(previousAngle);
+          this.prevSectorAngleArr.push(
+            prevTotal ? this.fullAngle * Utils.negToZero(w.globals.previousPaths[i]) / prevTotal : 0
+          );
         }
+      }
+      while (w.globals.shouldAnimate !== false && this.prevSectorAngleArr.length < series.length) {
+        this.prevSectorAngleArr.push(0);
       }
     }
     if (this.chartType === "polarArea") {
@@ -791,11 +803,12 @@ class Pie {
       }
       if (typeof w.interact.selectedDataPoints[0] !== "undefined" && w.interact.selectedDataPoints[0].indexOf(i) > -1) {
         if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0) {
-          const _this = this;
-          const _i = i;
-          setTimeout(() => _this.pieClicked(_i, { animate: false }), this.animDur);
+          const paper = w.dom.Paper;
+          setTimeout(() => {
+            if (w.dom.Paper === paper) this.setSliceOut(i);
+          }, this.animDur);
         } else {
-          this.pieClicked(i, { animate: false });
+          this.setSliceOut(i);
         }
       }
       if (w.config.dataLabels.enabled) {
@@ -917,13 +930,17 @@ class Pie {
    */
   placeExternalLabels() {
     const w = this.w;
-    const lineHeight = this.externalLabelMaxLines * this.externalLabelLineH + 2;
-    const maxY = this.centerY + w.globals.radialSize + w.globals.pieExternalLabelMarginY;
+    const blockH = this.externalLabelMaxLines * this.externalLabelLineH;
+    const band = w.globals.radialSize + w.globals.pieExternalLabelMarginY;
+    const maxY = this.centerY + band;
+    const minY = this.centerY - band + blockH / 2;
     ["left", "right"].forEach((side) => {
+      const col = this.externalLabels.filter((l) => l.side === side);
       spaceOutLabels(
-        this.externalLabels.filter((l) => l.side === side),
-        lineHeight,
-        maxY
+        col,
+        Math.min(blockH + 2, (maxY - minY) / Math.max(1, col.length - 1)),
+        maxY,
+        minY
       );
     });
   }
@@ -1013,8 +1030,11 @@ class Pie {
     let path;
     if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
       fromStartAngle = toStartAngle;
-      prevAngle = angle;
-      opts.dur = 0;
+      prevAngle = 0;
+      if (w.globals.shouldAnimate === false) {
+        prevAngle = angle;
+        opts.dur = 0;
+      }
     }
     let currAngle = angle;
     let startAngle = toStartAngle;
@@ -1107,14 +1127,16 @@ class Pie {
       this.offsetSlice(i, 0, animate);
       return;
     }
-    const allEls = w.dom.baseEl.getElementsByClassName("apexcharts-pie-area");
-    Array.prototype.forEach.call(allEls, (pieSlice) => {
-      const wasOut = pieSlice.getAttribute("data:pieClicked") === "true";
-      pieSlice.setAttribute("data:pieClicked", "false");
-      if (wasOut) {
-        this.offsetSlice(parseInt(pieSlice.getAttribute("j"), 10), 0, animate);
-      }
-    });
+    if (!w.config.states.active.allowMultipleDataPointsSelection) {
+      const allEls = w.dom.baseEl.getElementsByClassName("apexcharts-pie-area");
+      Array.prototype.forEach.call(allEls, (pieSlice) => {
+        const wasOut = pieSlice.getAttribute("data:pieClicked") === "true";
+        pieSlice.setAttribute("data:pieClicked", "false");
+        if (wasOut) {
+          this.offsetSlice(parseInt(pieSlice.getAttribute("j"), 10), 0, animate);
+        }
+      });
+    }
     w.interact.capturedDataPointIndex = i;
     elPath.attr("data:pieClicked", "true");
     this.offsetSlice(i, this.getExpandOffset(), animate);
@@ -1244,6 +1266,14 @@ class Pie {
     if (this.elHoverOutline) {
       this.elHoverOutline.node.style.opacity = "0";
     }
+  }
+  /**
+   * Park a pre-selected slice outside the pie without sliding it. Unlike the
+   * pieClicked toggle this is idempotent, so a second pass leaves it out.
+   * @param {number} i
+   */
+  setSliceOut(i) {
+    if (!this.isSliceOut(i)) this.pieClicked(i, { animate: false });
   }
   /** @param {number} i @returns {boolean} */
   isSliceOut(i) {
@@ -1516,7 +1546,8 @@ class Pie {
     dataLabelsGroup.node.innerHTML = "";
     dataLabelsGroup.node.style.opacity = opts.opacity;
     const x = opts.centerX;
-    const y = !this.donutDataLabels.total.label ? opts.centerY - opts.centerY / 6 : opts.centerY;
+    const y = opts.centerY;
+    const nameRow = dataLabelsConfig.name.show && !!this.donutDataLabels.total.label;
     let labelColor, valueColor;
     if (dataLabelsConfig.name.color === void 0) {
       labelColor = w.globals.colors[0];
@@ -1569,7 +1600,7 @@ class Pie {
       dataLabelsGroup.add(elLabel);
     }
     if (dataLabelsConfig.value.show) {
-      const valOffset = dataLabelsConfig.name.show ? parseFloat(dataLabelsConfig.value.offsetY) + 16 : dataLabelsConfig.value.offsetY;
+      const valOffset = nameRow ? parseFloat(dataLabelsConfig.value.offsetY) + 16 : dataLabelsConfig.value.offsetY;
       const elValue = graphics.drawText({
         x,
         y: y + valOffset,
@@ -1659,19 +1690,18 @@ class Pie {
     const graphics = new Graphics(this.w);
     const spokeConfig = w.config.plotOptions.polarArea.spokes;
     if (spokeConfig.strokeWidth === 0) return;
-    const spokes = [];
-    const angleDivision = 360 / w.seriesData.series.length;
-    for (let i = 0; i < w.seriesData.series.length; i++) {
-      spokes.push(
-        Utils.polarToCartesian(
-          this.centerX,
-          this.centerY,
-          w.globals.radialSize,
-          w.config.plotOptions.pie.startAngle + angleDivision * i
-        )
+    const collapsedIdx = w.globals.collapsedSeriesIndices || [];
+    const n = w.seriesData.series.length;
+    const angleDivision = 360 / Math.max(1, n - collapsedIdx.filter((k) => k < n).length);
+    let slot = 0;
+    for (let i = 0; i < n; i++) {
+      if (collapsedIdx.indexOf(i) > -1) continue;
+      const p = Utils.polarToCartesian(
+        this.centerX,
+        this.centerY,
+        w.globals.radialSize,
+        w.config.plotOptions.pie.startAngle + angleDivision * slot++
       );
-    }
-    spokes.forEach((p, i) => {
       const line = graphics.drawLine(
         p.x,
         p.y,
@@ -1680,7 +1710,7 @@ class Pie {
         Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i] : spokeConfig.connectorColors
       );
       parent.add(line);
-    });
+    }
   }
   revertDataLabelsInner() {
     const w = this.w;

@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts$1 from "apexcharts";
@@ -1778,7 +1778,14 @@ function measureLabelWidth(w, labels, style = {}) {
   labels.forEach((text) => {
     if (text == null || text === "") return;
     const str = `${text}`;
-    const measured = graphics.getTextRects(str, fontSize, style.fontFamily, "").width;
+    const measured = graphics.getTextRects(
+      str,
+      fontSize,
+      style.fontFamily,
+      "",
+      true,
+      style.fontWeight
+    ).width;
     max = Math.max(max, measured > 0 ? measured : str.length * px * 0.58);
   });
   return max;
@@ -6322,7 +6329,7 @@ function observationsOf(d, allowFlatY) {
   let raw = null;
   if (Array.isArray(d.points)) raw = d.points;
   else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
-  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
+  else if (Array.isArray(d.y) && typeof d.y[0] === "number") {
     raw = d.y;
   }
   if (!raw) return null;
@@ -6333,49 +6340,67 @@ function observationsOf(d, allowFlatY) {
   }
   return out.length ? out : null;
 }
-const derivedData = /* @__PURE__ */ new WeakSet();
-const derivedSummaryOnly = /* @__PURE__ */ new WeakSet();
+function derivedStats(w, kind) {
+  var _a, _b;
+  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
+  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+}
+function isDerived(derived, key, value) {
+  const ours = derived.get(key);
+  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
+    return false;
+  }
+  for (let k2 = 0; k2 < value.length; k2++) {
+    const a2 = ours[k2];
+    const b = value[k2];
+    if (a2 === b) continue;
+    if (!Array.isArray(a2) || !Array.isArray(b) || a2[0] !== b[0] || a2[1] !== b[1]) {
+      return false;
+    }
+  }
+  return true;
+}
 function raincloudTransform(ser, w) {
   var _a, _b;
   if (!Array.isArray(ser)) return ser;
   const violinCfg = ((_a = w.config.plotOptions) == null ? void 0 : _a.violin) || {};
   const kde = violinCfg.kde || {};
   const whiskers = ((_b = violinCfg.box) == null ? void 0 : _b.whiskers) || "minmax";
-  return ser.map((s2) => {
-    if (!Array.isArray(s2 == null ? void 0 : s2.data)) return s2;
+  const ourDensity = derivedStats(w, "raincloudDensity");
+  const ourSummary = derivedStats(w, "raincloudSummary");
+  return ser.map((s2, i2) => {
+    if (!Array.isArray(s2 == null ? void 0 : s2.data) || s2.type && s2.type !== "raincloud" && s2.type !== "violin") {
+      return s2;
+    }
     let touched = false;
-    const data = s2.data.map((d) => {
-      var _a2, _b2;
-      const hasDensity = Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length > 0;
-      const hasSummary = Array.isArray((_b2 = d == null ? void 0 : d.y) == null ? void 0 : _b2.summary) && d.y.summary.length === 5;
-      if (hasDensity && !derivedData.has(d)) {
-        if (hasSummary && !derivedSummaryOnly.has(d)) return d;
-        const values2 = observationsOf(d, false);
-        if (!values2) return d;
-        const summary2 = fiveNumberSummary(values2, { whiskers });
-        if (!summary2) return d;
-        touched = true;
-        const next2 = __spreadProps(__spreadValues({}, d), { y: __spreadProps(__spreadValues({}, d.y), { summary: summary2.summary }) });
-        derivedSummaryOnly.add(next2);
-        return next2;
-      }
-      const values = observationsOf(d, true);
+    const data = s2.data.map((d, j2) => {
+      const key = i2 + ":" + j2;
+      const y = (d == null ? void 0 : d.y) && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
+      const needDensity = !Array.isArray(y.density) || !y.density.length || isDerived(ourDensity, key, y.density);
+      const needSummary = !Array.isArray(y.summary) || y.summary.length !== 5 || isDerived(ourSummary, key, y.summary);
+      if (!needDensity && !needSummary) return d;
+      const values = observationsOf(d);
       if (!values) return d;
-      const est = kernelDensity(values, {
-        bandwidth: kde.bandwidth,
-        resolution: kde.resolution
-      });
-      if (!est) return d;
-      const summary = fiveNumberSummary(values, { whiskers });
+      const out = __spreadValues({}, y);
+      if (needDensity) {
+        const est = kernelDensity(values, {
+          bandwidth: kde.bandwidth,
+          resolution: kde.resolution
+        });
+        if (!est) return d;
+        out.density = est.density;
+        out.points = values;
+        ourDensity.set(key, est.density);
+      }
+      if (needSummary) {
+        const est = fiveNumberSummary(values, { whiskers });
+        if (est) {
+          out.summary = est.summary;
+          ourSummary.set(key, est.summary);
+        }
+      }
       touched = true;
-      const next = __spreadProps(__spreadValues({}, d), {
-        y: __spreadValues({
-          density: est.density,
-          points: values
-        }, summary ? { summary: summary.summary } : {})
-      });
-      derivedData.add(next);
-      return next;
+      return __spreadProps(__spreadValues({}, d), { y: out });
     });
     return touched ? __spreadProps(__spreadValues({}, s2), { data }) : s2;
   });
@@ -7144,7 +7169,7 @@ class Drilldown {
    * @param {{ seriesIndex?: number, dataPointIndex?: number }} opts
    */
   _onPointSelect(_event, _ctx, opts) {
-    if (!opts) return void 0;
+    if (!opts || this._retired()) return void 0;
     const point = this._pointAt(opts.seriesIndex, opts.dataPointIndex);
     if (point && typeof point === "object" && point.drilldown != null) {
       return this.drillDown(point.drilldown, point, opts);
@@ -7168,8 +7193,28 @@ class Drilldown {
     if (!s2 || !Array.isArray(s2.data)) return null;
     return s2.data[dataPointIndex] != null ? s2.data[dataPointIndex] : null;
   }
+  /**
+   * destroy() drops this instance without a teardown, and the listener
+   * registry it wired into outlives it, so a render() after destroy() wires a
+   * second instance beside it: every click would drill twice. The stale one
+   * ignores every event, and unwires itself once the event that told it is
+   * over (fireEvent walks the live listener list).
+   * @returns {boolean} true when this instance is no longer the chart's
+   */
+  _retired() {
+    if (this.ctx.drilldown === this) return false;
+    Promise.resolve().then(() => {
+      const events = this.ctx.events;
+      if (!events) return;
+      events.removeEventListener("dataPointSelection", this._onPointSelect);
+      events.removeEventListener("mounted", this._afterRender);
+      events.removeEventListener("updated", this._afterRender);
+    });
+    return true;
+  }
   _afterRender() {
     const w = this.w;
+    if (this._retired()) return;
     if (!w.config.drilldown || !w.config.drilldown.enabled) return;
     this._markDrillableTargets();
     this._wirePlotClick();
@@ -7481,6 +7526,25 @@ class Waterfall {
     w.globals.delayedElements.push({ el: group2.node, holdUntilComplete: true });
   }
 }
+function collapsedIndices(gl) {
+  return (gl.collapsedSeriesIndices || []).concat(
+    gl.ancillaryCollapsedSeriesIndices || []
+  );
+}
+function stashSeries(ser, gl) {
+  const records = (gl.collapsedSeries || []).concat(
+    gl.ancillaryCollapsedSeries || []
+  );
+  return ser.map((s2, i2) => {
+    const _a = s2 || {}, { hidden: _hidden } = _a, rest = __objRest(_a, ["hidden"]);
+    let data = rest.data;
+    if (Array.isArray(data) && !data.length) {
+      const rec = records.find((r2) => r2.index === i2);
+      if (rec && Array.isArray(rec.data)) data = rec.data;
+    }
+    return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
+  });
+}
 function readDatum$2(d, j2, categories) {
   const fallbackX = categories && categories[j2] !== void 0 ? categories[j2] : j2 + 1;
   if (d == null) {
@@ -7577,14 +7641,12 @@ function waterfallTransform(ser, w) {
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
   if (!gl.waterfallRawSeries) {
-    gl.waterfallRawSeries = ser.map((s2) => __spreadProps(__spreadValues({}, s2), {
-      data: Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data.slice() : s2 == null ? void 0 : s2.data
-    }));
+    gl.waterfallRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.waterfallRawSeries;
   const colors = ((_b = (_a = cnf.plotOptions) == null ? void 0 : _a.waterfall) == null ? void 0 : _b.colors) || {};
   const categories = (_c = cnf.xaxis) == null ? void 0 : _c.categories;
-  const collapsed = gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   const values = [];
   const cumulative = [];
   const kinds = [];
@@ -7682,9 +7744,7 @@ function dumbbellTransform(ser, w) {
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
   if (!gl.dumbbellRawSeries) {
-    gl.dumbbellRawSeries = ser.map((s2) => __spreadProps(__spreadValues({}, s2), {
-      data: Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data.slice() : s2 == null ? void 0 : s2.data
-    }));
+    gl.dumbbellRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.dumbbellRawSeries;
   const alreadyPaired = raw.some(
@@ -7702,7 +7762,7 @@ function dumbbellTransform(ser, w) {
     return ser;
   }
   const categories = (_a = cnf.xaxis) == null ? void 0 : _a.categories;
-  const collapsed = gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   const { xs, rows, byX } = joinOnX$1(raw, categories);
   const values = [];
   const order = [];
@@ -8513,9 +8573,7 @@ function streamgraphTransform(ser, w) {
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
   if (!gl.streamgraphRawSeries) {
-    gl.streamgraphRawSeries = ser.map((s2) => __spreadProps(__spreadValues({}, s2), {
-      data: Array.isArray(s2 == null ? void 0 : s2.data) ? s2.data.slice() : s2 == null ? void 0 : s2.data
-    }));
+    gl.streamgraphRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.streamgraphRawSeries;
   if (raw.some(
@@ -8528,7 +8586,7 @@ function streamgraphTransform(ser, w) {
   const offset = OFFSETS.indexOf(opts.offset) !== -1 ? opts.offset : "wiggle";
   const order = ORDERS$1.indexOf(opts.order) !== -1 ? opts.order : "inside-out";
   const categories = (_b = cnf.xaxis) == null ? void 0 : _b.categories;
-  const collapsed = gl.collapsedSeriesIndices || [];
+  const collapsed = collapsedIndices(gl);
   const { xs, rows, grids } = joinOnX(raw, categories);
   const perm = sortColumns(xs);
   const columns = perm ? perm.map((j2) => xs[j2]) : xs;
@@ -19568,6 +19626,27 @@ function slicePoints(series) {
 }
 const carries = (d) => isPoint(d) && ("highlight" in d || "highlightData" in d || [d.data, d.children].some((a2) => Array.isArray(a2) && a2.some(carries)));
 const stripPoint = (d) => isPoint(d) && ("highlight" in d || Array.isArray(d.children)) ? stripSeries(d) : d;
+function indexOfSeries(w, series) {
+  if (typeof series === "number") return series;
+  const list = w.config && w.config.series || [];
+  for (let i2 = 0; i2 < list.length; i2++) {
+    if (list[i2] && list[i2].name === series) return i2;
+  }
+  return -1;
+}
+function hasHighlights(w) {
+  return !!(w && w.weaveHighlights && w.weaveHighlights.records.length);
+}
+function resolveHighlightRow(w, seriesIndex) {
+  if (!hasHighlights(w)) return null;
+  let resolved = null;
+  for (const record of w.weaveHighlights.records) {
+    for (const entry of record.entries) {
+      if (indexOfSeries(w, entry.series) === seriesIndex) resolved = entry.values;
+    }
+  }
+  return resolved;
+}
 const PIE = "p:";
 const CIRCLE = ["pie", "donut", "polarArea"];
 function piePass(hf, p) {
@@ -21330,6 +21409,52 @@ class HighlightFilter {
     return !!((_a = this.w.highlightData) == null ? void 0 : _a.active);
   }
   /**
+   * Whether this chart's TYPE draws parts at all, ahead of any data.
+   *
+   * Pulled out of `parse` so the Weave seam can ask the same question before a
+   * plugin registers parts (see `WeaveHost._highlight`). A plugin that is told
+   * no has a fallback to run; a plugin that registered and then found out from
+   * a console warning has already changed the chart.
+   *
+   * Type only. The data-dependent refusals (a stack over several y axes, a
+   * logarithmic one) stay in `parse`, because they can appear and vanish on any
+   * update and a parse is where the chart finds out.
+   */
+  canDrawParts() {
+    const w = this.w;
+    const cnf = w.config;
+    const type = cnf.chart.type;
+    if (!w.globals.axisCharts) {
+      return CIRCLE.indexOf(type) > -1 || type === "radialBar";
+    }
+    return !w.globals.comboCharts && (type === "bar" || type === "line" || type === "area" || type === "treemap") && !w.rangeData.seriesRange.length && // A histogram's rows are bins built from the observations, so a part
+    // per observation has no bar of its own to sit on.
+    cnf.chart.requestedType !== "histogram";
+  }
+  /**
+   * Whether the CALLER is already showing parts of their own.
+   *
+   * Asked by the Weave seam, which refuses a plugin's parts on such a chart:
+   * two sources of parts in one slot would leave a viewer unable to tell whose
+   * pick they were looking at. On the instance rather than in `weave/`, so the
+   * core host can ask without importing this feature.
+   */
+  callerCarriesParts() {
+    const w = this.w;
+    if (!w.globals.axisCharts) {
+      return Array.isArray(this.cfg.data) || slicePoints(
+        /** @type {any[]} */
+        w.config.series || []
+      ).some(
+        (d) => "highlight" in d
+      );
+    }
+    return (
+      /** @type {any[]} */
+      (w.config.series || []).some(seriesHasHighlight)
+    );
+  }
+  /**
    * The part at a datum, or null.
    * @param {number} seriesIndex
    * @param {number} dataPointIndex
@@ -21364,16 +21489,15 @@ class HighlightFilter {
     const type = cnf.chart.type;
     const bars = type === "bar";
     const nested = treeParse(this, type);
+    const plugged = hasHighlights(w);
     let present = false;
     for (let i2 = 0; i2 < series.length; i2++) {
-      if (nested ? carries({ data: (_a = series[i2]) == null ? void 0 : _a.data }) : seriesHasHighlight(series[i2])) {
+      if (nested ? carries({ data: (_a = series[i2]) == null ? void 0 : _a.data }) : seriesHasHighlight(series[i2]) || plugged && !!resolveHighlightRow(w, i2)) {
         present = true;
         break;
       }
     }
-    let supported = w.globals.axisCharts && !w.globals.comboCharts && (bars || type === "line" || type === "area" || type === "treemap") && !w.rangeData.seriesRange.length && // A histogram's rows are bins built from the observations, so a part
-    // per observation has no bar of its own to sit on.
-    cnf.chart.requestedType !== "histogram";
+    let supported = w.globals.axisCharts && this.canDrawParts();
     if (present && !supported) this._unsupported();
     const axes = (
       /** @type {number[][]} */
@@ -21396,13 +21520,18 @@ class HighlightFilter {
     }
     const parts = [];
     let mismatch = false;
+    let pluggedMismatch = false;
     const gl = w.globals;
     for (let i2 = 0; i2 < values.length; i2++) {
       const s2 = series[i2] || {};
       const data = Array.isArray(s2.data) ? s2.data : [];
-      const hd = !nested && Array.isArray(s2.highlightData) ? s2.highlightData : null;
+      const own = !nested && Array.isArray(s2.highlightData);
+      const hd = nested ? null : own ? s2.highlightData : plugged ? resolveHighlightRow(w, i2) : null;
       const collapsed = gl.collapsedSeriesIndices.indexOf(i2) > -1 || gl.ancillaryCollapsedSeriesIndices.indexOf(i2) > -1;
-      if (hd && !collapsed && hd.length !== data.length) mismatch = true;
+      if (hd && !collapsed && hd.length !== data.length) {
+        if (own) mismatch = true;
+        else pluggedMismatch = true;
+      }
       const row = [];
       const n2 = values[i2] ? values[i2].length : 0;
       for (let j2 = 0; j2 < n2; j2++) {
@@ -21415,6 +21544,12 @@ class HighlightFilter {
       this._warn(
         "length",
         "highlightData and data differ in length; the extra entries are ignored and the missing ones read as null."
+      );
+    }
+    if (active && pluggedMismatch) {
+      this._warn(
+        "plugged-length",
+        "a plugin registered highlight parts that do not line up with the series data; the extra entries are ignored and the missing ones read as null."
       );
     }
     const parallel = series.some((s2) => Array.isArray(s2 == null ? void 0 : s2.highlightData));

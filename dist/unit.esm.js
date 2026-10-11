@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -178,7 +178,14 @@ function measureLabelWidth(w, labels, style = {}) {
   labels.forEach((text) => {
     if (text == null || text === "") return;
     const str = `${text}`;
-    const measured = graphics.getTextRects(str, fontSize, style.fontFamily, "").width;
+    const measured = graphics.getTextRects(
+      str,
+      fontSize,
+      style.fontFamily,
+      "",
+      true,
+      style.fontWeight
+    ).width;
     max = Math.max(max, measured > 0 ? measured : str.length * px * 0.58);
   });
   return max;

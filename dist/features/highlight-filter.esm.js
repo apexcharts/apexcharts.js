@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.0.1
+ * ApexCharts v8.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -620,6 +620,27 @@ function slicePoints(series) {
 }
 const carries = (d) => isPoint(d) && ("highlight" in d || "highlightData" in d || [d.data, d.children].some((a) => Array.isArray(a) && a.some(carries)));
 const stripPoint = (d) => isPoint(d) && ("highlight" in d || Array.isArray(d.children)) ? stripSeries(d) : d;
+function indexOfSeries(w, series) {
+  if (typeof series === "number") return series;
+  const list = w.config && w.config.series || [];
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] && list[i].name === series) return i;
+  }
+  return -1;
+}
+function hasHighlights(w) {
+  return !!(w && w.weaveHighlights && w.weaveHighlights.records.length);
+}
+function resolveHighlightRow(w, seriesIndex) {
+  if (!hasHighlights(w)) return null;
+  let resolved = null;
+  for (const record of w.weaveHighlights.records) {
+    for (const entry of record.entries) {
+      if (indexOfSeries(w, entry.series) === seriesIndex) resolved = entry.values;
+    }
+  }
+  return resolved;
+}
 const PIE = "p:";
 const CIRCLE = ["pie", "donut", "polarArea"];
 function piePass(hf, p) {
@@ -2382,6 +2403,52 @@ class HighlightFilter {
     return !!((_a = this.w.highlightData) == null ? void 0 : _a.active);
   }
   /**
+   * Whether this chart's TYPE draws parts at all, ahead of any data.
+   *
+   * Pulled out of `parse` so the Weave seam can ask the same question before a
+   * plugin registers parts (see `WeaveHost._highlight`). A plugin that is told
+   * no has a fallback to run; a plugin that registered and then found out from
+   * a console warning has already changed the chart.
+   *
+   * Type only. The data-dependent refusals (a stack over several y axes, a
+   * logarithmic one) stay in `parse`, because they can appear and vanish on any
+   * update and a parse is where the chart finds out.
+   */
+  canDrawParts() {
+    const w = this.w;
+    const cnf = w.config;
+    const type = cnf.chart.type;
+    if (!w.globals.axisCharts) {
+      return CIRCLE.indexOf(type) > -1 || type === "radialBar";
+    }
+    return !w.globals.comboCharts && (type === "bar" || type === "line" || type === "area" || type === "treemap") && !w.rangeData.seriesRange.length && // A histogram's rows are bins built from the observations, so a part
+    // per observation has no bar of its own to sit on.
+    cnf.chart.requestedType !== "histogram";
+  }
+  /**
+   * Whether the CALLER is already showing parts of their own.
+   *
+   * Asked by the Weave seam, which refuses a plugin's parts on such a chart:
+   * two sources of parts in one slot would leave a viewer unable to tell whose
+   * pick they were looking at. On the instance rather than in `weave/`, so the
+   * core host can ask without importing this feature.
+   */
+  callerCarriesParts() {
+    const w = this.w;
+    if (!w.globals.axisCharts) {
+      return Array.isArray(this.cfg.data) || slicePoints(
+        /** @type {any[]} */
+        w.config.series || []
+      ).some(
+        (d) => "highlight" in d
+      );
+    }
+    return (
+      /** @type {any[]} */
+      (w.config.series || []).some(seriesHasHighlight)
+    );
+  }
+  /**
    * The part at a datum, or null.
    * @param {number} seriesIndex
    * @param {number} dataPointIndex
@@ -2416,16 +2483,15 @@ class HighlightFilter {
     const type = cnf.chart.type;
     const bars = type === "bar";
     const nested = treeParse(this, type);
+    const plugged = hasHighlights(w);
     let present = false;
     for (let i = 0; i < series.length; i++) {
-      if (nested ? carries({ data: (_a = series[i]) == null ? void 0 : _a.data }) : seriesHasHighlight(series[i])) {
+      if (nested ? carries({ data: (_a = series[i]) == null ? void 0 : _a.data }) : seriesHasHighlight(series[i]) || plugged && !!resolveHighlightRow(w, i)) {
         present = true;
         break;
       }
     }
-    let supported = w.globals.axisCharts && !w.globals.comboCharts && (bars || type === "line" || type === "area" || type === "treemap") && !w.rangeData.seriesRange.length && // A histogram's rows are bins built from the observations, so a part
-    // per observation has no bar of its own to sit on.
-    cnf.chart.requestedType !== "histogram";
+    let supported = w.globals.axisCharts && this.canDrawParts();
     if (present && !supported) this._unsupported();
     const axes = (
       /** @type {number[][]} */
@@ -2448,13 +2514,18 @@ class HighlightFilter {
     }
     const parts = [];
     let mismatch = false;
+    let pluggedMismatch = false;
     const gl = w.globals;
     for (let i = 0; i < values.length; i++) {
       const s = series[i] || {};
       const data = Array.isArray(s.data) ? s.data : [];
-      const hd = !nested && Array.isArray(s.highlightData) ? s.highlightData : null;
+      const own = !nested && Array.isArray(s.highlightData);
+      const hd = nested ? null : own ? s.highlightData : plugged ? resolveHighlightRow(w, i) : null;
       const collapsed = gl.collapsedSeriesIndices.indexOf(i) > -1 || gl.ancillaryCollapsedSeriesIndices.indexOf(i) > -1;
-      if (hd && !collapsed && hd.length !== data.length) mismatch = true;
+      if (hd && !collapsed && hd.length !== data.length) {
+        if (own) mismatch = true;
+        else pluggedMismatch = true;
+      }
       const row = [];
       const n = values[i] ? values[i].length : 0;
       for (let j = 0; j < n; j++) {
@@ -2467,6 +2538,12 @@ class HighlightFilter {
       this._warn(
         "length",
         "highlightData and data differ in length; the extra entries are ignored and the missing ones read as null."
+      );
+    }
+    if (active && pluggedMismatch) {
+      this._warn(
+        "plugged-length",
+        "a plugin registered highlight parts that do not line up with the series data; the extra entries are ignored and the missing ones read as null."
       );
     }
     const parallel = series.some((s) => Array.isArray(s == null ? void 0 : s.highlightData));
