@@ -257,7 +257,7 @@ export default class Data {
       if (typeof y === 'number') {
         // same observable semantics as Range's plain-numeric lane:
         // NaN/Infinity count as null values, decimals counted in plain
-        // notation for 1e-6..1e21, legacy noExponents/isFloat for exotics
+        // notation for 1e-6..1e21, decimalPlaces for exponent notation
         if (y === y && y !== Infinity && y !== -Infinity) {
           if (y > maxY) maxY = y
           if (y < lowestY) lowestY = y
@@ -270,10 +270,7 @@ export default class Data {
               const dec = dot === -1 ? 0 : str.length - dot - 1
               if (dec > yDec) yDec = dec
             } else {
-              const nv = Utils.noExponents(y)
-              if (Utils.isFloat(nv)) {
-                yDec = Math.max(yDec, nv.toString().split('.')[1].length)
-              }
+              yDec = Math.max(yDec, Utils.decimalPlaces(y))
             }
           }
         } else {

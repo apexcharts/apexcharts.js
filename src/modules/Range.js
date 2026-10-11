@@ -298,11 +298,8 @@ class Range {
                   const dec = dot === -1 ? 0 : str.length - dot - 1
                   if (dec > yDec) yDec = dec
                 } else {
-                  // exponent notation: use the exact legacy conversion
-                  const nv = Utils.noExponents(val)
-                  if (Utils.isFloat(nv)) {
-                    yDec = Math.max(yDec, nv.toString().split('.')[1].length)
-                  }
+                  // exponent notation: 1.5e-7 still has 8 decimals
+                  yDec = Math.max(yDec, Utils.decimalPlaces(val))
                 }
               }
             } else {
@@ -331,7 +328,7 @@ class Range {
         j <= lastXIndex && j < this.w.seriesData.series[i].length;
         j++
       ) {
-        let val = series[i][j]
+        const val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
           if (typeof seriesMax[i]?.[j] !== 'undefined') {
             maxY = Math.max(maxY, seriesMax[i][j])
@@ -433,11 +430,10 @@ class Range {
           }
           highestY = maxY
 
-          val = Utils.noExponents(val)
           if (Utils.isFloat(val)) {
             gl.yValueDecimal = Math.max(
               gl.yValueDecimal,
-              val.toString().split('.')[1].length,
+              Utils.decimalPlaces(val),
             )
           }
           if (minY > seriesMin[i]?.[j] && seriesMin[i]?.[j] < 0) {

@@ -294,6 +294,17 @@ class Utils {
   }
 
   /**
+   * Fraction digits of a finite number, exponent notation included: 1.5e-7
+   * has 8. Rounding through noExponents would read it as 0.
+   * @param {number} num
+   */
+  static decimalPlaces(num) {
+    const [m, e] = String(num).split('e')
+    const dot = m.indexOf('.')
+    return Math.max(0, (dot < 0 ? 0 : m.length - dot - 1) - (+e || 0))
+  }
+
+  /**
    * @param {any} element
    */
   static elementExists(element) {
