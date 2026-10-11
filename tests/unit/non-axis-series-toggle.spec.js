@@ -41,4 +41,19 @@ describe.each(['pie', 'donut', 'polarArea', 'radialBar'])('%s', (type) => {
     c.showSeries('B')
     expect(c.w.globals.series).toEqual([44, 33, 23])
   })
+
+  // The hide survives updateOptions({ series }) on the chart's own copy: the
+  // merge left config.series as the caller's array, and emptying the hidden
+  // slice wrote 0 into it (and threw on a frozen one).
+  it('updateOptions keeps the slice hidden without touching the caller array', async () => {
+    const c = await chart(type)
+    c.toggleSeries('B')
+    const mine = [40, 30, 20]
+    await c.updateOptions({ series: mine })
+    expect(mine).toEqual([40, 30, 20])
+    expect(c.series.isSeriesHidden('B').isHidden).toBe(true)
+    await expect(
+      c.updateOptions({ series: Object.freeze([41, 31, 21]) }),
+    ).resolves.toBeTruthy()
+  })
 })

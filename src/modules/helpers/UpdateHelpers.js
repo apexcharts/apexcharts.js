@@ -315,11 +315,15 @@ export default class UpdateHelpers {
           // CATEGORY NAME: a beat that keeps the same categories persists the
           // hide (at its possibly-new index), while one that regroups into
           // different categories correctly drops it.
+          // On the chart's own copy: the merge left config.series as the
+          // caller's array, and emptying a hidden slice wrote `0` into it (or
+          // threw on a frozen one). initialSeries keeps the caller's values.
           if (
             options.series &&
             (w.globals.collapsedSeriesIndices.length > 0 ||
               w.globals.ancillaryCollapsedSeriesIndices.length > 0)
           ) {
+            w.config.series = Utils.copySeriesShallow(w.config.series)
             ch.series.reconcileCollapsedByName()
           }
         }
