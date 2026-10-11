@@ -4784,9 +4784,10 @@ type ApexTooltipY = {
   }
   /**
    * `val` is `null` wherever the series has a gap, so guard before reaching
-   * for a number method: `(val) => val?.toFixed(2) ?? 'n/a'`.
+   * for a number method: `(val) => val?.toFixed(2) ?? 'n/a'`. In a shared
+   * tooltip, returning `null` or `undefined` hides that series' row.
    */
-  formatter?(val: number | null, opts?: ApexFormatterOpts): string
+  formatter?(val: number | null, opts?: ApexFormatterOpts): string | null | undefined
 }
 
 /**

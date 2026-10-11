@@ -399,6 +399,19 @@ const gapTooltip: ApexCharts.ApexOptions = {
 }
 void gapTooltip
 
+// A null/undefined return hides the row in a shared tooltip, so passing
+// the gap straight through has to compile (#5344).
+const hideGapRow: ApexCharts.ApexOptions = {
+  tooltip: {
+    shared: true,
+    y: { formatter: (val) => (val == null ? val : `${val} ₽`) },
+  },
+}
+const hideGapRowUndefined: ApexCharts.ApexOptions = {
+  tooltip: { shared: true, y: { formatter: (val) => (val == null ? undefined : `${val}`) } },
+}
+void hideGapRow; void hideGapRowUndefined
+
 // getState() reports the merged config, and labels/seriesNames are numeric
 // wherever the chart was given numbers.
 declare const stateChart: ApexCharts
