@@ -326,6 +326,9 @@ export default class Tooltip {
     })
     /** @type {any} */
     this.allTooltipSeriesGroups = []
+    // A full render replaces the y-axis tooltip divs (and may add or drop
+    // axes), so the nodes cached from the last one are detached.
+    this.yaxisTTEls = null
 
     if (!w.globals.axisCharts) {
       this.showTooltipTitle = false

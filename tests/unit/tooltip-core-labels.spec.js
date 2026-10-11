@@ -18,3 +18,50 @@ describe('tooltip.cssClass', () => {
     chart.destroy()
   })
 })
+
+describe('y-axis tooltip nodes follow a re-render', () => {
+  it('after updateOptions the cached y-axis tooltip nodes are the live ones', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [{ name: 'a', data: [1, 2, 3, 4] }],
+      yaxis: { tooltip: { enabled: true } },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    expect(tt.yaxisTTEls[0].isConnected).toBe(true)
+
+    await chart.updateOptions({ title: { text: 'x' } })
+    expect(chart.w.globals.tooltip).toBe(tt)
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    tt.tooltipPosition.moveYAxisTooltip(0)
+    expect(tt.yaxisTTEls[0].isConnected).toBe(true)
+    chart.destroy()
+  })
+
+  it('adding a y-axis does not make moveYAxisTooltip throw', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [{ name: 'a', data: [1, 2, 3, 4] }],
+      yaxis: { tooltip: { enabled: true } },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    await chart.updateOptions({
+      yaxis: [
+        { tooltip: { enabled: true } },
+        { opposite: true, tooltip: { enabled: true } },
+      ],
+      series: [
+        { name: 'a', data: [1, 2, 3, 4] },
+        { name: 'b', data: [4, 3, 2, 1] },
+      ],
+    })
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-yaxistooltip').length,
+    ).toBe(2)
+    expect(() => tt.tooltipPosition.moveYAxisTooltip(1)).not.toThrow()
+    chart.destroy()
+  })
+})
