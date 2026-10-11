@@ -386,3 +386,46 @@ describe('stacking layers over the type defaults', () => {
     expect(chart.w.config.plotOptions.bar.borderRadiusApplication).toBe('end')
   })
 })
+
+describe('a stackType change re-applies the 100% presets', () => {
+  const STACK = [
+    { name: 'a', data: [1, 2, 3] },
+    { name: 'b', data: [3, 2, 1] },
+  ]
+  const label = (chart) =>
+    chart.w.config.dataLabels.formatter(5, { seriesIndex: 0, w: chart.w })
+
+  it('a 100% stack made a normal one drops the % labels and 0 to 100 axis', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', stacked: true, stackType: '100%' },
+      series: STACK,
+      xaxis: CATS,
+    })
+    expect(label(chart)).toBe('5%')
+    await chart.updateOptions({ chart: { stackType: 'normal' } })
+    expect(label(chart)).toBe(5)
+    expect(chart.w.config.yaxis[0].max).toBeUndefined()
+  })
+
+  it('a normal stack made a 100% one gets the % labels', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', stacked: true },
+      series: STACK,
+      xaxis: CATS,
+    })
+    await chart.updateOptions({ chart: { stackType: '100%' } })
+    expect(label(chart)).toBe('5%')
+  })
+
+  it("GUARD the user's own label formatter survives a stackType change", async () => {
+    const mine = (v) => `v${v}`
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', stacked: true },
+      series: STACK,
+      xaxis: CATS,
+      dataLabels: { formatter: mine },
+    })
+    await chart.updateOptions({ chart: { stackType: '100%' } })
+    expect(chart.w.config.dataLabels.formatter).toBe(mine)
+  })
+})

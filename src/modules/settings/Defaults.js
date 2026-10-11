@@ -22,6 +22,9 @@ import { TYPE_ALIASES, BUILTIN_TYPES } from './TypeAliases'
  */
 const TYPE_OWNED = '_apexOwnedByType'
 
+/** Marks the % label formatter 100% stacking installs (see stacked100). */
+const STACKED_100 = '_apexStacked100'
+
 /**
  * @template {Function} T
  * @param {string[]} types chart types whose data this function can read
@@ -426,6 +429,30 @@ export default class Defaults {
     // Every update can reach a combination construction settles, whether or
     // not it changes the type.
     Defaults.reconcile(config, true)
+
+    // 100% stacking is a mode rather than a type, with presets of its own: the
+    // % formatter and the 0 to 100 axis. A stackType change by update used to
+    // leave them half applied. A formatter in the same update wins.
+    const asked = options?.chart
+    if (
+      asked &&
+      ('stacked' in asked || 'stackType' in asked) &&
+      !options.dataLabels?.formatter
+    ) {
+      const fmt = /** @type {any} */ (config.dataLabels.formatter)
+      const plain = new Options().init().dataLabels.formatter
+      if (config.chart.stacked && config.chart.stackType === '100%') {
+        if (isUntouched(fmt, plain)) {
+          config.dataLabels.formatter = undefined
+          new Defaults(config).stacked100(config)
+        }
+      } else if (fmt?.[STACKED_100]) {
+        config.dataLabels.formatter = plain
+        for (const y of config.yaxis) {
+          if (y.min === 0 && y.max === 100) y.min = y.max = undefined
+        }
+      }
+    }
 
     const toType = config.chart.requestedType || config.chart.type
     if (!fromType || fromType === toType) return
@@ -1905,7 +1932,7 @@ export default class Defaults {
      * @param {any} val
      * @param {{ seriesIndex?: number, w?: any }} [ctx]
      */
-    opts.dataLabels.formatter = (val, ctx) => {
+    const format = (val, ctx) => {
       const barIndices = ctx?.w?.globals?.columnSeries?.i
       const isBarLabel = barIndices
         ? barIndices.includes(ctx?.seriesIndex)
@@ -1913,6 +1940,11 @@ export default class Defaults {
       if (isBarLabel) return percent(val)
       return plain(val)
     }
+    // Marked, so a later stackType change can tell it from the user's.
+    /** @type {any} */
+    const marked = format
+    marked[STACKED_100] = true
+    opts.dataLabels.formatter = marked
     return opts
   }
 
