@@ -508,7 +508,9 @@ export default class Position {
     )
     let cy = w.layout.translateY + ycrosshairsHiddenRectY1
 
-    if (ttCtx.yaxisTTEls) {
+    // No node for this axis (one added since the cache was filled, or an
+    // index past the last axis): nothing to place.
+    if (ttCtx.yaxisTTEls?.[index]) {
       const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
       const yAxisTTHeight = yAxisTTRect.height
       // Center the tooltip horizontally on the actual y-axis labels group
@@ -987,15 +989,19 @@ export default class Position {
         // paints markers to a bitmap): the box still positions off pointsArr
         // below, only the hover-indicator dot update is skipped.
         if (points[p] && pointArr && pointArr.length) {
-          let pcy = pointsArr[p][j][1]
+          // A series shorter than the hovered index has no point there: its
+          // dot is cleared below rather than read off a missing entry.
+          let pcy = pointArr[j]?.[1]
           let pcy2
           points[p].setAttribute('cx', cx)
 
           const shape = points[p].getAttribute('shape') ?? 'circle'
 
           if (w.config.chart.type === 'rangeArea' && !w.globals.comboCharts) {
-            const rangeStartIndex = j + w.seriesData.series[p].length
-            pcy2 = pointsArr[p][rangeStartIndex][1]
+            // Range ends follow the series' own starts, so past its length
+            // `j` names one of its ends and `j + n` nothing at all.
+            const n = w.seriesData.series[p].length
+            pcy2 = j < n ? pointArr[j + n]?.[1] : NaN
             const pcyDiff = Math.abs(pcy - pcy2) / 2
 
             pcy = pcy - pcyDiff
@@ -1053,7 +1059,10 @@ export default class Position {
       }
       const ys = [pointsArr[p]?.[j]?.[1]]
       if (isRange) {
-        ys.push(pointsArr[p]?.[j + (w.seriesData.series[p]?.length ?? 0)]?.[1])
+        // Past the series' own length `j` is one of its range ends.
+        const n = w.seriesData.series[p]?.length ?? 0
+        if (j >= n) continue
+        ys.push(pointsArr[p]?.[j + n]?.[1])
       }
       for (const y of ys) {
         if (
