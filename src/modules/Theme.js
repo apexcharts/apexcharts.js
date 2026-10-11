@@ -484,19 +484,21 @@ export default class Theme {
    * @param {Record<string, any>} options
    */
   updateThemeOptions(options) {
+    const mode = options.theme.mode
+    // Only a mode change re-derives the mode defaults. A palette, monochrome
+    // or name update keeps the tooltip and foreColor the chart already has,
+    // and a value passed in the same call always wins.
+    if (mode === undefined) return options
     options.chart = options.chart || {}
     options.tooltip = options.tooltip || {}
-    const mode = options.theme.mode
-    const palette =
-      options.theme.palette ||
-      (mode === 'dark' ? 'palette4' : 'palette1')
-    const foreColor =
-      options.chart.foreColor ||
-      (mode === 'dark' ? '#f6f7f8' : '#373d3f')
+    const dark = mode === 'dark'
 
-    options.tooltip.theme = mode || 'light'
-    options.chart.foreColor = foreColor
-    options.theme.palette = palette
+    options.tooltip.theme = options.tooltip.theme || mode || 'light'
+    options.chart.foreColor =
+      options.chart.foreColor ||
+      (dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT)
+    options.theme.palette =
+      options.theme.palette || (dark ? 'palette4' : 'palette1')
 
     return options
   }

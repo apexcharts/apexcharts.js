@@ -93,3 +93,47 @@ describe('Theme: monochrome with distributed bars', () => {
   })
 })
 
+describe('Theme: updateOptions with a theme key', () => {
+  it('a palette-only update leaves a dark tooltip dark', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ data: [1, 2, 3] }],
+      theme: { mode: 'dark' },
+    })
+    await chart.render()
+    expect(chart.w.config.tooltip.theme).toBe('dark')
+
+    await chart.updateOptions({ theme: { palette: 'palette2' } })
+    expect(chart.w.config.tooltip.theme).toBe('dark')
+    expect(chart.w.config.chart.foreColor).toBe('#f6f7f8')
+    chart.destroy()
+  })
+
+  it('keeps an explicit tooltip.theme passed with mode', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ data: [1, 2, 3] }],
+    })
+    await chart.render()
+
+    await chart.updateOptions({
+      theme: { mode: 'dark' },
+      tooltip: { theme: 'light' },
+    })
+    expect(chart.w.config.tooltip.theme).toBe('light')
+    chart.destroy()
+  })
+
+  it('a palette-only update keeps a foreColor set by an earlier update', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ data: [1, 2, 3] }],
+    })
+    await chart.render()
+    await chart.updateOptions({ chart: { foreColor: '#112233' } })
+    await chart.updateOptions({ theme: { palette: 'palette3' } })
+    expect(chart.w.config.chart.foreColor).toBe('#112233')
+    chart.destroy()
+  })
+})
+
