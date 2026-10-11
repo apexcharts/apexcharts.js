@@ -1,6 +1,7 @@
 // @ts-check
 import ApexCharts from '../apexcharts.js'
 import { Environment } from '../utils/Environment.js'
+import { SSRRenderer } from './SSRRenderer.js'
 
 /**
  * Hydration - Client-side hydration for server-rendered charts
@@ -178,20 +179,7 @@ export class Hydration {
    */
   static _decodeConfig(encodedConfig) {
     try {
-      let json
-
-      // Try atob (browser standard)
-      if (typeof atob !== 'undefined') {
-        json = atob(encodedConfig)
-      } else if (typeof Buffer !== 'undefined') {
-        // Fallback to Buffer (if polyfilled in browser)
-        json = Buffer.from(encodedConfig, 'base64').toString('utf-8')
-      } else {
-        // Fallback: URL-safe JSON decoding
-        json = decodeURIComponent(encodedConfig)
-      }
-
-      return JSON.parse(json)
+      return SSRRenderer._parseConfig(encodedConfig)
     } catch (error) {
       throw new Error(
         `Failed to decode chart config: ${/** @type {any} */ (error).message}`,

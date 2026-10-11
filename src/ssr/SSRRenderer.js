@@ -277,17 +277,15 @@ ${svgString}
    */
   static _encodeConfig(config) {
     try {
-      const json = JSON.stringify(config)
-
-      // Use Buffer in Node.js, btoa in browser
-      if (typeof Buffer !== 'undefined') {
-        return Buffer.from(json).toString('base64')
-      } else if (typeof btoa !== 'undefined') {
-        return btoa(json)
+      // Base64 of the UTF-8 bytes, the same on the server and in a browser.
+      // btoa takes one char per byte, so the bytes go through a binary
+      // string: a bare btoa(json) throws on anything above U+00FF.
+      const bytes = new TextEncoder().encode(JSON.stringify(config))
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
       }
-
-      // Fallback: URL-safe JSON encoding
-      return encodeURIComponent(json)
+      return btoa(binary)
     } catch (error) {
       throw new Error(
         `Failed to encode config: ${/** @type {any} */ (error).message}`,
@@ -302,23 +300,24 @@ ${svgString}
    */
   static _decodeConfig(encodedConfig) {
     try {
-      let json
-
-      // Try Buffer first (Node.js)
-      if (typeof Buffer !== 'undefined') {
-        json = Buffer.from(encodedConfig, 'base64').toString('utf-8')
-      } else if (typeof atob !== 'undefined') {
-        json = atob(encodedConfig)
-      } else {
-        // Fallback: URL-safe JSON decoding
-        json = decodeURIComponent(encodedConfig)
-      }
-
-      return JSON.parse(json)
+      return this._parseConfig(encodedConfig)
     } catch (error) {
       throw new Error(
         `Failed to decode config: ${/** @type {any} */ (error).message}`,
       )
     }
+  }
+
+  /**
+   * The inverse of _encodeConfig, shared with Hydration: atob yields one char
+   * per byte, which TextDecoder reads back as UTF-8 (a bare atob would turn
+   * "Café" into "CafÃ©").
+   * @param {string} encodedConfig
+   * @returns {any}
+   */
+  static _parseConfig(encodedConfig) {
+    const binary = atob(encodedConfig)
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
   }
 }
