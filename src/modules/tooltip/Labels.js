@@ -209,14 +209,7 @@ export default class Labels {
       })
     }
 
-    // A range chart's data pass gives every series a start and an end, a
-    // line or column beside the ranges included, so the series' own type
-    // decides whether it prints as one.
-    const type = w.config.series[index]?.type || w.config.chart.type
-    if (
-      w.axisFlags.isRangeData &&
-      (isCustom(type) || /^range/.test(TYPE_ALIASES[type] || type))
-    ) {
+    if (this.isRangeSeries(index)) {
       return (
         f.yLbFormatter(w.rangeData.seriesRangeStart?.[index]?.[j], {
           series: w.rangeData.seriesRangeStart,
@@ -239,6 +232,22 @@ export default class Labels {
       dataPointIndex: j,
       w,
     })
+  }
+
+  /**
+   * Whether a series' values are ranges. A range chart's data pass gives
+   * every series a start and an end, a line or column beside the ranges
+   * included, so the series' own type decides.
+   * @param {number} index
+   */
+  isRangeSeries(index) {
+    const w = this.w
+    const type =
+      /** @type {any} */ (w.config.series[index])?.type || w.config.chart.type
+    return (
+      w.axisFlags.isRangeData &&
+      (isCustom(type) || /^range/.test(TYPE_ALIASES[type] || type))
+    )
   }
 
   /**
@@ -509,15 +518,21 @@ export default class Labels {
     if (shared && ttItemsChildren[0]) {
       // hide when no Val or series collapsed
       if (w.config.tooltip.hideEmptySeries) {
-        const ttItemMarker = refs.marker
-        const ttItemText = refs.text
-        if (parseFloat(val) == 0) {
-          ttItemMarker.style.display = 'none'
-          ttItemText.style.display = 'none'
-        } else {
-          ttItemMarker.style.display = 'block'
-          ttItemText.style.display = 'block'
-        }
+        // Decided on the data, not the formatted text: a range starting at 0
+        // or a value rounded to "0.00" is not empty, and "$0" is.
+        const rd = w.rangeData
+        const empty = this.isRangeSeries(t)
+          ? !rd.seriesRangeStart[t]?.[j] && !rd.seriesRangeEnd[t]?.[j]
+          : w.seriesData.series[t]?.[j] === 0
+        refs.text.style.display = empty ? 'none' : ''
+        // Back to the stylesheet's display, and only when the marker shows
+        // at all (marker.show and fillSeriesColor hide it above).
+        refs.marker.style.display =
+          empty ||
+          !w.config.tooltip.marker.show ||
+          w.config.tooltip.fillSeriesColor
+            ? 'none'
+            : ''
       }
       if (
         typeof val === 'undefined' ||

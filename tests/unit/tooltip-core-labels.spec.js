@@ -420,3 +420,66 @@ describe('range tooltip values follow the series type', () => {
     chart.destroy()
   })
 })
+
+describe('tooltip.hideEmptySeries', () => {
+  const draw = async (options, j = 0) => {
+    const chart = createChartWithOptions({
+      chart: { width: 400, height: 300, ...options.chart },
+      ...options,
+      tooltip: {
+        shared: true,
+        intersect: false,
+        hideEmptySeries: true,
+        ...options.tooltip,
+      },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    tt.tooltipLabels.drawSeriesTexts({
+      shared: true,
+      ttItems: tt.ttItems,
+      i: 0,
+      j,
+    })
+    const rows = tt.ttItems.map((r) => ({
+      text: r.querySelector('.apexcharts-tooltip-text').style.display,
+      marker: r.querySelector('.apexcharts-tooltip-marker').style.display,
+    }))
+    chart.destroy()
+    return rows
+  }
+
+  it('decides on the value, not the formatted text', async () => {
+    const rows = await draw({
+      chart: { type: 'line' },
+      series: [
+        { name: 'small', data: [0.001, 2] },
+        { name: 'zero', data: [0, 2] },
+      ],
+      yaxis: { labels: { formatter: (v) => '$' + Number(v).toFixed(2) } },
+    })
+    expect(rows[0]).toEqual({ text: '', marker: '' })
+    expect(rows[1]).toEqual({ text: 'none', marker: 'none' })
+  })
+
+  it('keeps a range that starts at 0', async () => {
+    const rows = await draw({
+      chart: { type: 'rangeArea' },
+      series: [
+        { name: 'r', data: [{ x: 'a', y: [0, 5] }] },
+        { name: 'z', data: [{ x: 'a', y: [0, 0] }] },
+      ],
+    })
+    expect(rows[0].text).toBe('')
+    expect(rows[1].text).toBe('none')
+  })
+
+  it('does not re-show a marker that marker.show hides', async () => {
+    const rows = await draw({
+      chart: { type: 'line' },
+      series: [{ name: 'a', data: [1, 2] }],
+      tooltip: { marker: { show: false } },
+    })
+    expect(rows[0]).toEqual({ text: '', marker: 'none' })
+  })
+})
