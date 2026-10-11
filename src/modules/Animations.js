@@ -66,6 +66,33 @@ export function prefersReducedMotion() {
  */
 
 /**
+ * Whether this render draws its line / area / rangeArea paths with the
+ * pen-stroke effect, the one the progressive reveal follows. Mirrors the
+ * gates of Graphics.renderPaths and animateDraw: a mount render, animations
+ * on, a speed the draw does not skip, and series not painted on canvas.
+ *
+ * @param {import('../types/internal').ChartStateW} w
+ * @returns {boolean}
+ */
+export function drawRevealActive(w) {
+  const gl = w.globals
+  const anim = w.config.chart.animations
+  const type = w.config.chart.type
+  return (
+    Environment.isBrowser() &&
+    !gl.dataChanged &&
+    !gl.resized &&
+    gl.shouldAnimate &&
+    !!anim &&
+    anim.enabled !== false &&
+    !(anim.speed * 2 < 1) &&
+    (type === 'line' || type === 'area' || type === 'rangeArea') &&
+    (gl.activeRenderer || {}).kind !== 'canvas' &&
+    w.layout.gridWidth > 0
+  )
+}
+
+/**
  * Apply the "progressive marker reveal" to an SVG element at grid-x `x`.
  * On initial mount of a line/area/rangeArea chart, each marker (or data label
  * or x-axis/point annotation) snaps in at the moment the line's pen-stroke
@@ -76,6 +103,7 @@ export function prefersReducedMotion() {
  *   - this is a data-update / resize render
  *   - chart.animations.enabled is false
  *   - chart type isn't line/area/rangeArea
+ *   - the pen-stroke draw does not run (speed 0, canvas; drawRevealActive)
  *
  * @param {any} el       - svg.js element (uses el.node.style)
  * @param {number} x     - grid-coordinate x of the element
@@ -83,15 +111,8 @@ export function prefersReducedMotion() {
  * @returns {boolean}    - true if the reveal was applied
  */
 export function applyProgressiveReveal(el, x, w) {
-  if (!Environment.isBrowser()) return false
-  if (w.globals.dataChanged || w.globals.resized) return false
+  if (!drawRevealActive(w)) return false
   const animCfg = w.config.chart.animations
-  if (!animCfg || animCfg.enabled === false) return false
-  const chartType = w.config.chart.type
-  if (chartType !== 'line' && chartType !== 'area' && chartType !== 'rangeArea') {
-    return false
-  }
-  if (!(w.layout.gridWidth > 0)) return false
 
   // Line/area/radar draw mode internally doubles the configured speed (see
   // Graphics.renderPaths). The reveal must use the same effective duration
