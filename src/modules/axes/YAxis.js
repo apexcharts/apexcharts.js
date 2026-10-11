@@ -337,7 +337,7 @@ export default class YAxis {
           text: val,
           textAnchor: 'middle',
           foreColor: Array.isArray(this.xaxisForeColors)
-            ? this.xaxisForeColors[realIndex]
+            ? this.xaxisForeColors[i]
             : this.xaxisForeColors,
           fontSize: this.xaxisFontSize,
           fontFamily: this.axisFontFamily,

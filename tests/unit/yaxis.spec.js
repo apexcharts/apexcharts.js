@@ -696,3 +696,28 @@ describe('yaxis with stepSize', () => {
     expect(yRange.yAxisScale[0].result).toEqual([0, 10, 20, 30, 40, 50])
   })
 })
+
+describe('horizontal bar value axis label colours', () => {
+  it('colours each value label from its own entry', () => {
+    const colors = ['#e00000', '#00a000', '#0000e0', '#888888', '#888888']
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 600, height: 300 },
+      plotOptions: { bar: { horizontal: true } },
+      series: [{ data: [10, 20, 30, 40, 50] }],
+      xaxis: {
+        categories: ['a', 'b', 'c', 'd', 'e'],
+        labels: { style: { colors } },
+      },
+    })
+    const fills = [
+      ...chart.w.dom.baseEl.querySelectorAll('.apexcharts-xaxis-label'),
+    ]
+      .sort(
+        (a, b) =>
+          parseFloat(a.getAttribute('x')) - parseFloat(b.getAttribute('x')),
+      )
+      .map((n) => n.getAttribute('fill'))
+    expect(fills.length).toBeGreaterThan(2)
+    expect(fills.slice(0, 3)).toEqual(colors.slice(0, 3))
+  })
+})
