@@ -595,7 +595,7 @@ describe('Utils', () => {
         expect(result).not.toBe('#ffffff')
       })
 
-      it('routes to shadeRGBColor for rgb() input', () => {
+      it('returns rgb() for rgb() input', () => {
         const utils = new Utils()
         const result = utils.shadeColor(0.5, 'rgb(100,100,100)')
         expect(result).toMatch(/^rgb\(/)
@@ -604,13 +604,13 @@ describe('Utils', () => {
       it('lightening by 0 returns a near-equivalent color', () => {
         const utils = new Utils()
         // shade by 0 → no change for hex
-        const result = utils.shadeHexColor(0, '#ff0000')
+        const result = utils.shadeColor(0, '#ff0000')
         expect(result).toBe('#ff0000')
       })
 
       it('darkens an rgb color (negative percent)', () => {
         const utils = new Utils()
-        const result = utils.shadeRGBColor(-0.5, 'rgb(200,200,200)')
+        const result = utils.shadeColor(-0.5, 'rgb(200,200,200)')
         expect(result).toMatch(/^rgb\(/)
       })
     })

@@ -393,24 +393,37 @@ class Utils {
     }, 0)
   }
 
-  // http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb#answer-12342275
+  /**
+   * A hex colour as rgba(), with the hex's own alpha (#RGBA, #RRGGBBAA)
+   * multiplied into `opacity`. A non-hex input reads as #999999; a hex of a
+   * length no colour has comes back unchanged.
+   * @param {string} hex
+   * @param {number} opacity
+   */
   static hexToRgba(hex = '#999999', opacity = 0.6) {
-    if (hex.substring(0, 1) !== '#') {
-      hex = '#999999'
+    const c = Utils.parseColor(hex[0] === '#' ? hex : '#999999')
+    return c
+      ? 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + opacity * c[3] + ')'
+      : hex
+  }
+
+  /**
+   * [r, g, b, a] of a hex (3, 4, 6 or 8 digits) or rgb()/rgba() colour, the
+   * channels 0 to 255 and the alpha 0 to 1; null for anything else.
+   * @param {string} color
+   * @returns {number[] | null}
+   */
+  static parseColor(color) {
+    const m = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.exec(color)
+    if (m) {
+      let h = m[1]
+      if (h.length < 5) h = h.replace(/./g, '$&$&')
+      return [0, 2, 4, 6].map((i) =>
+        i < h.length ? parseInt(h.substr(i, 2), 16) / (i > 4 ? 255 : 1) : 1,
+      )
     }
-
-    const hexStr = hex.replace('#', '')
-    /** @type {any[]} */
-    const h =
-      hexStr.match(new RegExp('(.{' + hexStr.length / 3 + '})', 'g')) || []
-
-    for (let i = 0; i < h.length; i++) {
-      h[i] = parseInt(h[i].length === 1 ? h[i] + h[i] : h[i], 16)
-    }
-
-    if (typeof opacity !== 'undefined') h.push(opacity)
-
-    return 'rgba(' + h.join(',') + ')'
+    const n = /^rgba?\(/i.test(color) && color.match(/[\d.]+/g)
+    return n ? [+n[0], +n[1], +n[2], n[3] ? +n[3] : 1] : null
   }
 
   /**
@@ -488,62 +501,49 @@ class Utils {
   }
 
   /**
-   * @param {number} percent
-   * @param {string} color
-   */
-  shadeRGBColor(percent, color) {
-    const f = color.split(','),
-      t = percent < 0 ? 0 : 255,
-      p = percent < 0 ? percent * -1 : percent,
-      R = parseInt(f[0].slice(4), 10),
-      G = parseInt(f[1], 10),
-      B = parseInt(f[2], 10)
-    return (
-      'rgb(' +
-      (Math.round((t - R) * p) + R) +
-      ',' +
-      (Math.round((t - G) * p) + G) +
-      ',' +
-      (Math.round((t - B) * p) + B) +
-      ')'
-    )
-  }
-
-  /**
-   * @param {number} percent
-   * @param {string} color
-   */
-  shadeHexColor(percent, color) {
-    const f = parseInt(color.slice(1), 16),
-      t = percent < 0 ? 0 : 255,
-      p = percent < 0 ? percent * -1 : percent,
-      R = f >> 16,
-      G = (f >> 8) & 0x00ff,
-      B = f & 0x0000ff
-    return (
-      '#' +
-      (
-        0x1000000 +
-        (Math.round((t - R) * p) + R) * 0x10000 +
-        (Math.round((t - G) * p) + G) * 0x100 +
-        (Math.round((t - B) * p) + B)
-      )
-        .toString(16)
-        .slice(1)
-    )
-  }
-
-  // beautiful color shading blending code
-  // http://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
-  /**
+   * Blend `color` toward white (p > 0) or black (p < 0) by |p|. Hex in, hex
+   * out (alpha kept); anything else comes back as rgb()/rgba(). A named,
+   * hsl() or var() colour is resolved by the browser first; a colour that
+   * cannot be read is returned unchanged.
    * @param {number} p
    * @param {string} color
    */
   shadeColor(p, color) {
-    if (Utils.isColorHex(color)) {
-      return this.shadeHexColor(p, color)
-    } else {
-      return this.shadeRGBColor(p, color)
+    const c =
+      Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color))
+    if (!c) return color
+    const t = p < 0 ? 0 : 255
+    p = Math.abs(p)
+    for (let i = 0; i < 3; i++) c[i] += Math.round((t - c[i]) * p)
+    const a = /** @type {number} */ (c.pop())
+    return color[0] === '#'
+      ? '#' +
+          c
+            .concat(a < 1 ? Math.round(a * 255) : [])
+            .map((v) => (v | 256).toString(16).slice(1))
+            .join('')
+      : (a < 1 ? 'rgba(' : 'rgb(') + c.concat(a < 1 ? a : []).join(',') + ')'
+  }
+
+  /**
+   * The computed colour of any CSS colour, read from a probe placed inside
+   * `el` (default `document.body`), so a variable scoped to the chart's
+   * container or shadow root resolves the way the chart sees it. Returns the
+   * input under SSR or when the browser rejects it as a colour.
+   * @param {string} color
+   * @param {Element} [el]
+   */
+  static resolveColor(color, el) {
+    if (Environment.isSSR()) return color
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;left:-9999px;visibility:hidden'
+    probe.style.color = color
+    if (!probe.style.color) return color
+    ;(el || document.body).appendChild(probe)
+    try {
+      return window.getComputedStyle(probe).color
+    } finally {
+      probe.remove()
     }
   }
 
@@ -565,29 +565,13 @@ class Utils {
   }
 
   /**
+   * A CSS variable resolved inside `el` (see resolveColor); any other colour
+   * as given.
    * @param {string} color
+   * @param {Element} [el]
    */
-  static getThemeColor(color) {
-    if (!Utils.isCSSVariable(color)) return color
-
-    // CSS variable resolution requires a live DOM — not possible in SSR
-    if (Environment.isSSR()) return color
-
-    const tempElem = document.createElement('div')
-    tempElem.style.cssText = 'position:fixed; left: -9999px; visibility:hidden;'
-    tempElem.style.color = color
-    document.body.appendChild(tempElem)
-
-    let computedColor
-    try {
-      computedColor = window.getComputedStyle(tempElem).color
-    } finally {
-      if (tempElem.parentNode) {
-        tempElem.parentNode.removeChild(tempElem)
-      }
-    }
-
-    return computedColor
+  static getThemeColor(color, el) {
+    return Utils.isCSSVariable(color) ? Utils.resolveColor(color, el) : color
   }
 
   /**
