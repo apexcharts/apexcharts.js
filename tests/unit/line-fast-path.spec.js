@@ -238,3 +238,49 @@ describe('line/area numeric fast path', () => {
     expect(fast).toEqual(slow)
   })
 })
+
+describe('stack tops by x (#4886) cost nothing when the chart is not stacked', () => {
+  // The per-point Map walk is only read back by stacked series. Recording it
+  // for every line chart cost 4.7ms per update at 50k points (7.0 to 8.0).
+  const recordedSizes = () => {
+    const sizes = []
+    const original = Line.prototype._recordStackTops
+    vi.spyOn(Line.prototype, '_recordStackTops').mockImplementation(
+      function (...args) {
+        original.apply(this, args)
+        sizes.push(this.prevSeriesYByX.size)
+      },
+    )
+    return sizes
+  }
+
+  it('records nothing for an unstacked line', () => {
+    const sizes = recordedSizes()
+    const chart = createChartWithOptions({
+      ...baseOpts('line'),
+      series: [
+        { name: 'a', data: walk(200) },
+        { name: 'b', data: walk(200, 7) },
+      ],
+      xaxis: { type: 'numeric' },
+    })
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(sizes.every((s) => s === 0)).toBe(true)
+    chart.destroy()
+  })
+
+  it('still records the running top for a stacked area', () => {
+    const sizes = recordedSizes()
+    const chart = createChartWithOptions({
+      ...baseOpts('area'),
+      chart: { type: 'area', width: 700, height: 350, stacked: true },
+      series: [
+        { name: 'a', data: walk(50) },
+        { name: 'b', data: walk(50, 7) },
+      ],
+      xaxis: { type: 'numeric' },
+    })
+    expect(sizes.at(-1)).toBe(50)
+    chart.destroy()
+  })
+})

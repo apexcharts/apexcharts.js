@@ -642,6 +642,9 @@ class Line {
    */
   _recordStackTops(realIndex, yArrj) {
     const w = this.w
+    // Only stacked series read the map back (stackTopAt), and the walk costs a
+    // Map write per point: 4.7ms per update on a 50k line that is not stacked.
+    if (!w.config.chart.stacked) return
     if (!Array.isArray(yArrj)) return
     if (
       w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 ||

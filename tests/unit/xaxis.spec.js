@@ -259,6 +259,34 @@ describe('User defined X-axis min/max', () => {
   })
 })
 
+describe('one-tick-per-point label width check', () => {
+  // The check stringifies every x value. Its answer only matters under 30
+  // points, and at 100k points the scan cost 2ms per render. A column chart
+  // keeps its numeric x as categories, which is the path that reaches it.
+  const numericColumns = (n) =>
+    createChartWithOptions({
+      chart: { type: 'bar' },
+      series: [
+        { data: Array.from({ length: n }, (_, i) => [i * 2 + 1, i % 7]) },
+      ],
+    })
+  const spyLabelScan = (chart) => vi.spyOn(chart.w.labelData.labels, 'reduce')
+
+  it('measures labels on a short numeric series', () => {
+    const chart = numericColumns(10)
+    const scan = spyLabelScan(chart)
+    new Range(chart.w).setXRange()
+    expect(scan).toHaveBeenCalled()
+  })
+
+  it('skips the scan from 30 points up', () => {
+    const chart = numericColumns(40)
+    const scan = spyLabelScan(chart)
+    new Range(chart.w).setXRange()
+    expect(scan).not.toHaveBeenCalled()
+  })
+})
+
 // ===========================================================================
 // EDGE CASE TESTS
 // ===========================================================================
