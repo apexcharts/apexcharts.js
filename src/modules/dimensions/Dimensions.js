@@ -484,8 +484,10 @@ export default class Dimensions {
     if (!cnf.legend.show || cnf.legend.floating) {
       w.layout.gridHeight = gl.svgHeight
 
-      const maxWidth = w.dom.elWrap.getBoundingClientRect().width
-      w.layout.gridWidth = Math.min(maxWidth, w.layout.gridHeight)
+      // The wrapper was just sized to svgWidth; measuring it forced a layout
+      // and read 0 under the SSR shim (a negative radius). `|| 0` keeps an
+      // unsized (NaN) chart at the 0 the measurement gave it.
+      w.layout.gridWidth = Math.min(gl.svgWidth || 0, w.layout.gridHeight)
 
       w.layout.translateY = offY
       w.layout.translateX = offX + (gl.svgWidth - w.layout.gridWidth) / 2
