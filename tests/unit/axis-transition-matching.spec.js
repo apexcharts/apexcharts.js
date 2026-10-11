@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   tickKeys,
   spawnGhost,
+  landChromeTweens,
+  applyAxisTransition,
 } from '../../src/modules/animations/AxisTransition.js'
 import { BrowserAPIs } from '../../src/ssr/BrowserAPIs.js'
 
@@ -57,5 +59,54 @@ describe('AxisTransition exit ghosts', () => {
     const ghost = root.querySelector('.apexcharts-tick-ghost')
     expect(ghost.textContent).toBe('Jan')
     expect(ghost.hasAttribute('transform')).toBe(false)
+  })
+})
+
+describe('landChromeTweens', () => {
+  it('lands the layout tween and every chrome tween', () => {
+    const order = []
+    const chrome = vi.fn(() => order.push('chrome'))
+    const w = {
+      globals: {
+        layoutTween: { finish: () => order.push('layout') },
+        chromeTweens: new Set([chrome]),
+      },
+    }
+    landChromeTweens(w)
+    expect(order).toEqual(['layout', 'chrome'])
+  })
+
+  it('is a no-op with nothing in flight', () => {
+    expect(() => landChromeTweens({ globals: {} })).not.toThrow()
+  })
+})
+
+describe('applyAxisTransition landing', () => {
+  const inFlight = (prevChromeFrame) => {
+    const layout = vi.fn()
+    const w = {
+      globals: {
+        prevChromeFrame,
+        axisCharts: false,
+        layoutTween: { finish: layout },
+        chromeTweens: new Set(),
+      },
+    }
+    return { w, layout }
+  }
+
+  it('lands earlier tweens even when this update does not ease', () => {
+    // A render that draws its chrome at the final layout (here a gate
+    // closes) must not leave the plot easing underneath it.
+    const { w, layout } = inFlight({ pending: true })
+    applyAxisTransition(w)
+    expect(layout).toHaveBeenCalledOnce()
+  })
+
+  it('leaves the tweens of an update earlier in the same tick running', () => {
+    // That update consumed the frame and has just started its tweens.
+    const { w, layout } = inFlight(null)
+    applyAxisTransition(w)
+    expect(layout).not.toHaveBeenCalled()
   })
 })

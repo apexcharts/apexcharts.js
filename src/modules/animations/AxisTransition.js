@@ -273,6 +273,21 @@ export function finishChromeTweens(w) {
 }
 
 /**
+ * Land the moving plot rect and every chrome tween. For a render that has
+ * already captured the screen: the capture holds the mid-flight picture, so
+ * an update that eases starts from it, and one that does not (animations off,
+ * a streaming scroll) draws its chrome at the final layout, so the plot must
+ * not keep easing under it.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ */
+export function landChromeTweens(w) {
+  const gl = w.globals
+  if (gl.layoutTween) gl.layoutTween.finish()
+  finishChromeTweens(w)
+}
+
+/**
  * @param {import('../../types/internal').ChartStateW} w
  * @param {Element} node
  * @param {number} duration
@@ -569,6 +584,13 @@ export function applyAxisTransition(w, { layout = true } = {}) {
   const gl = w.globals
   const chrome = gl.prevChromeFrame
   gl.prevChromeFrame = null
+  // Tweens an earlier update started land first, whether or not this one
+  // eases: the captured frame already holds where they were, which is where
+  // this update starts from, and what has to be read now is each node's
+  // final value (on the fast path the chrome nodes are the same ones, still
+  // being moved). No frame means an update earlier in this tick consumed it,
+  // and the tweens running are the ones it just started.
+  if (chrome) landChromeTweens(w)
   // Not pending any more: a frame was painted since it was captured, so it
   // is not what is on screen (its own update never consumed it).
   if (!chrome?.pending || !gl.axisCharts || !Environment.isBrowser()) return
@@ -595,12 +617,6 @@ export function applyAxisTransition(w, { layout = true } = {}) {
   const driven = new Set()
 
   try {
-    // Tweens an earlier update started land first. The captured frame
-    // already holds where they were, which is where this update starts from;
-    // what has to be read now is each node's final value. (On the fast path
-    // the chrome nodes are the same ones, still being moved.)
-    finishChromeTweens(w)
-
     const newYLabels = [...root.querySelectorAll(Y_LABELS_SEL)]
     // Value-space projections (null on category/reversed/multi-axis/log,
     // where the transition stays text-match + fade).
