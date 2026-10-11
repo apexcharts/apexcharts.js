@@ -2,6 +2,12 @@
 import { getPlugin } from './PluginRegistry'
 import { buildPluginAPI, makeLayerHandle, WEAVE_API_VERSION } from './PluginAPI'
 import { releaseOwner } from './Claims'
+import {
+  addHighlight,
+  normaliseHighlightEntries,
+  releaseHighlight,
+  releaseHighlightOwner,
+} from './Highlights'
 
 export { WEAVE_API_VERSION }
 
@@ -51,6 +57,8 @@ export default class WeaveHost {
     this._reserved = null
     /** @type {any} pending re-render for a changed reservation */
     this._reserveTimer = null
+    /** @type {any} pending re-render for changed highlight parts */
+    this._highlightTimer = null
     /** @type {Map<string, Function[]>|null} plugin name -> pointer handlers */
     this._pointerSubs = null
     /** @type {Map<string, any[]>|null} plugin name -> what it says it drew */
@@ -193,6 +201,10 @@ export default class WeaveHost {
         // maintaining, which is the permanent-leak case claims exist to rule
         // out (see weave/Claims).
         releaseOwner(this.w, record.def.name)
+        // Its highlight parts go with them, on the same terms and for the
+        // same reason: parts nobody is maintaining would go on being drawn
+        // over the caller's values.
+        releaseHighlightOwner(this.w, record.def.name)
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`,
         )
@@ -744,6 +756,87 @@ export default class WeaveHost {
     }, 0)
   }
 
+  // ─── Highlight parts ────────────────────────────────────────────────────
+
+  /**
+   * Register a plugin's highlight parts, or say why not.
+   *
+   * Null is the answer to four different questions, and a plugin treats them
+   * alike because its fallback is the same in all four:
+   *
+   *   1. the highlight filter feature is not loaded on this page. A plugin
+   *      cannot import it for the caller: it is premium and dashboard-scoped,
+   *      and pulling it in would add weight to every chart the plugin runs on.
+   *   2. the chart is not an axis chart. A slice's part is one value per slice
+   *      and is configured per chart rather than per series, so the entry shape
+   *      here does not describe it.
+   *   3. this chart type draws no parts (a combo, a range, a histogram).
+   *   4. the caller is ALREADY showing parts of their own. Two sources of parts
+   *      in one slot leave a viewer unable to tell whose pick they are looking
+   *      at, and the plugin's would be the one they did not ask for.
+   *
+   * Distinguishing them would be a worse API, not a better one: a plugin that
+   * branched on the reason would still do the same thing, and the reason can
+   * change under it on the caller's next update.
+   *
+   * @param {string} owner  plugin name
+   * @param {any} entries  [{ series: name | index, values: (number|null)[] }]
+   * @returns {{release: () => void, update: (entries: any) => void}|null}
+   */
+  _highlight(owner, entries) {
+    const w = this.w
+    // Null without the feature, so this is also the feature-presence check and
+    // the core never imports the module to ask.
+    const hf = /** @type {any} */ (this.ctx).highlightFilter
+    if (!hf) return null
+    if (!w.globals.axisCharts) return null
+    if (!hf.canDrawParts()) return null
+    if (hf.callerCarriesParts()) return null
+
+    const record = addHighlight(w, owner, entries)
+    if (!record) return null
+    this._redrawForHighlight()
+
+    return Object.freeze({
+      release: () => {
+        releaseHighlight(w, record)
+        this._redrawForHighlight()
+      },
+      update: (/** @type {any} */ next) => {
+        record.entries = normaliseHighlightEntries(next)
+        this._redrawForHighlight()
+      },
+    })
+  }
+
+  /**
+   * Re-render so the parts are parsed, one task later and coalesced.
+   *
+   * One task later for the reason reservations are: the call can come from
+   * inside a dispatch, and re-entering a render from a draw handler is how a
+   * plugin takes the chart down. Coalesced, so a plugin registering parts for
+   * several series in one turn costs one render.
+   *
+   * `dataChanged`, unlike the reservation path: the numbers on screen are
+   * about to change, so the parts should grow and shrink into place rather
+   * than appear as if the chart had been resized.
+   */
+  _redrawForHighlight() {
+    if (this._highlightTimer != null) return
+    this._highlightTimer = setTimeout(() => {
+      this._highlightTimer = null
+      const gl = this.w.globals
+      if (gl.isDestroyed) return
+      gl.dataChanged = true
+      try {
+        this.ctx.update()
+      } catch {
+        // A chart torn down between the registration and this callback. The
+        // registration dies with the host, so there is nothing to undo.
+      }
+    }, 0)
+  }
+
   /** All series names currently claimed by plugins. */
   _derivedNames() {
     const out = new Set()
@@ -951,7 +1044,10 @@ export default class WeaveHost {
       for (const record of this.active) {
         this._guard(record, 'destroy', () => record.def.destroy && record.def.destroy(record.api))
       }
-      for (const record of this.active) releaseOwner(this.w, record.def.name)
+      for (const record of this.active) {
+        releaseOwner(this.w, record.def.name)
+        releaseHighlightOwner(this.w, record.def.name)
+      }
       this.active = []
       this._derived = null
       this._reserved = null
@@ -968,6 +1064,10 @@ export default class WeaveHost {
       if (this._reserveTimer != null) {
         clearTimeout(this._reserveTimer)
         this._reserveTimer = null
+      }
+      if (this._highlightTimer != null) {
+        clearTimeout(this._highlightTimer)
+        this._highlightTimer = null
       }
       if (this._updatedWired) {
         this.ctx.removeEventListener &&

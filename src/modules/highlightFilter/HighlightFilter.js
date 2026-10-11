@@ -61,6 +61,7 @@ import {
   slicePoints,
   solid,
 } from './util'
+import { hasHighlights, resolveHighlightRow } from '../weave/Highlights'
 import { piePass, CIRCLE } from './PiePart'
 import { radialPass, LANE } from './RadialPart'
 import { treemapPass, treeParse, treeSeries } from './TreemapPart'
@@ -215,6 +216,59 @@ export default class HighlightFilter {
   }
 
   /**
+   * Whether this chart's TYPE draws parts at all, ahead of any data.
+   *
+   * Pulled out of `parse` so the Weave seam can ask the same question before a
+   * plugin registers parts (see `WeaveHost._highlight`). A plugin that is told
+   * no has a fallback to run; a plugin that registered and then found out from
+   * a console warning has already changed the chart.
+   *
+   * Type only. The data-dependent refusals (a stack over several y axes, a
+   * logarithmic one) stay in `parse`, because they can appear and vanish on any
+   * update and a parse is where the chart finds out.
+   */
+  canDrawParts() {
+    const w = this.w
+    const cnf = w.config
+    const type = cnf.chart.type
+    if (!w.globals.axisCharts) {
+      return CIRCLE.indexOf(type) > -1 || type === 'radialBar'
+    }
+    return (
+      !w.globals.comboCharts &&
+      (type === 'bar' ||
+        type === 'line' ||
+        type === 'area' ||
+        type === 'treemap') &&
+      !w.rangeData.seriesRange.length &&
+      // A histogram's rows are bins built from the observations, so a part
+      // per observation has no bar of its own to sit on.
+      cnf.chart.requestedType !== 'histogram'
+    )
+  }
+
+  /**
+   * Whether the CALLER is already showing parts of their own.
+   *
+   * Asked by the Weave seam, which refuses a plugin's parts on such a chart:
+   * two sources of parts in one slot would leave a viewer unable to tell whose
+   * pick they were looking at. On the instance rather than in `weave/`, so the
+   * core host can ask without importing this feature.
+   */
+  callerCarriesParts() {
+    const w = this.w
+    if (!w.globals.axisCharts) {
+      return (
+        Array.isArray(this.cfg.data) ||
+        slicePoints(/** @type {any[]} */ (w.config.series || [])).some(
+          (d) => 'highlight' in d,
+        )
+      )
+    }
+    return /** @type {any[]} */ (w.config.series || []).some(seriesHasHighlight)
+  }
+
+  /**
    * The part at a datum, or null.
    * @param {number} seriesIndex
    * @param {number} dataPointIndex
@@ -255,26 +309,25 @@ export default class HighlightFilter {
     // not: it is spread onto the leaves unchanged, sized to the top level.
     const nested = treeParse(this, type)
 
+    // Parts a Weave plugin registered, resolved beside the caller's own. One
+    // property check on a chart with no plugin doing this (see
+    // weave/Highlights), so the common case pays nothing here.
+    const plugged = hasHighlights(w)
+
     let present = false
     for (let i = 0; i < series.length; i++) {
       if (
         nested
           ? carries({ data: series[i]?.data })
-          : seriesHasHighlight(series[i])
+          : seriesHasHighlight(series[i]) ||
+            (plugged && !!resolveHighlightRow(w, i))
       ) {
         present = true
         break
       }
     }
 
-    let supported =
-      w.globals.axisCharts &&
-      !w.globals.comboCharts &&
-      (bars || type === 'line' || type === 'area' || type === 'treemap') &&
-      !w.rangeData.seriesRange.length &&
-      // A histogram's rows are bins built from the observations, so a part
-      // per observation has no bar of its own to sit on.
-      cnf.chart.requestedType !== 'histogram'
+    let supported = w.globals.axisCharts && this.canDrawParts()
     if (present && !supported) this._unsupported()
     // A stack over several y axes has no single extent to stack the parts
     // to, and a log axis stacks the logs of its segments, which a part has no
@@ -307,18 +360,36 @@ export default class HighlightFilter {
     /** @type {(number|null)[][]} */
     const parts = []
     let mismatch = false
+    let pluggedMismatch = false
     const gl = w.globals
     for (let i = 0; i < values.length; i++) {
       const s = series[i] || {}
       const data = Array.isArray(s.data) ? s.data : []
-      const hd =
-        !nested && Array.isArray(s.highlightData) ? s.highlightData : null
+      // The caller's own parallel array wins over a plugin's: a plugin is an
+      // overlay on the chart as configured, and the chart as configured may
+      // already be showing a dashboard's filter. `api.highlight()` refuses
+      // outright on such a chart, so this tie is the race rather than the rule
+      // (see weave/Highlights).
+      const own = !nested && Array.isArray(s.highlightData)
+      const hd = nested
+        ? null
+        : own
+          ? s.highlightData
+          : plugged
+            ? resolveHighlightRow(w, i)
+            : null
       // A legend-hidden series is parsed with its data emptied, which is not
       // a length the page handed in.
       const collapsed =
         gl.collapsedSeriesIndices.indexOf(i) > -1 ||
         gl.ancillaryCollapsedSeriesIndices.indexOf(i) > -1
-      if (hd && !collapsed && hd.length !== data.length) mismatch = true
+      if (hd && !collapsed && hd.length !== data.length) {
+        // Said separately, because the two have different people to tell: a
+        // caller fixes their own array, and nothing a caller does fixes a
+        // plugin's.
+        if (own) mismatch = true
+        else pluggedMismatch = true
+      }
       const row = []
       const n = values[i] ? values[i].length : 0
       for (let j = 0; j < n; j++) {
@@ -333,6 +404,12 @@ export default class HighlightFilter {
       this._warn(
         'length',
         'highlightData and data differ in length; the extra entries are ignored and the missing ones read as null.',
+      )
+    }
+    if (active && pluggedMismatch) {
+      this._warn(
+        'plugged-length',
+        'a plugin registered highlight parts that do not line up with the series data; the extra entries are ignored and the missing ones read as null.',
       )
     }
     // The reducer picks which points are drawn and streaming trims them from

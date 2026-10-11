@@ -57,12 +57,19 @@ import { collectDrawn } from './Drawn'
  * `scales.transposed` says which way round they are, and `scales.point(x, y)`
  * returns a datum's screen position either way.
  *
+ * v7 added `api.highlight()`, detected as the `highlight` capability: a plugin
+ * registers a PART of each value and the host draws it solid inside the slot
+ * the value already occupies, faded behind it. Until now a plugin with a second
+ * number per datum had only `markDerived()`, which adds a series, and a series
+ * costs the caller a legend entry, a tooltip row, an export column and a
+ * rescaled value axis. See `weave/Highlights`.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
  * outright on a v2 host, so `apiVersion: 2` plus a capability check keeps one
  * build working on both.
  */
-export const WEAVE_API_VERSION = 6
+export const WEAVE_API_VERSION = 7
 
 /**
  * What this host can do, for plugins that must run against older ones too.
@@ -90,6 +97,7 @@ export const WEAVE_CAPABILITIES = Object.freeze([
   'drawn',
   'observations',
   'scale-orientation',
+  'highlight',
 ])
 
 /**
@@ -518,6 +526,48 @@ export function buildPluginAPI(host, record) {
     },
 
     /**
+     * Draw a PART of each value, inside the slot that value already occupies.
+     *
+     * The alternative for a plugin with a second number per datum has been
+     * `markDerived()`: add a series. A series is a large thing to put on
+     * someone else's chart. It takes a legend entry, a tooltip row and an
+     * export column, it rescales the value axis to fit, and where the chart is
+     * bars it takes half the width of every bar the caller had. A part takes
+     * none of those: the whole is drawn faded, the part solid in front of it,
+     * same slot, same baseline.
+     *
+     *     const parts = api.highlight([
+     *       { series: 'Revenue', values: [10, 30, 60] },
+     *     ])
+     *     parts?.update([{ series: 'Revenue', values: [10, 30, 90] }])
+     *     parts?.release()
+     *
+     * `values` runs parallel to that series' data, with null where a datum has
+     * no part. Name the series rather than its position where you can: the name
+     * is resolved on every parse, so the parts follow the series through the
+     * caller adding, removing or reordering others.
+     *
+     * NULL means the parts were not taken, and a plugin that gets null must
+     * have something else to do (or nothing). The host says null when the
+     * highlight-filter feature is not loaded on the page, when the chart is not
+     * an axis chart, when the type draws no parts, and when the CALLER is
+     * already showing parts of their own. A plugin cannot fix any of the four,
+     * and three of them can change under it on the next update, so the answer
+     * is checked per call rather than remembered.
+     *
+     * Registering, updating and releasing each re-render the chart, coalesced
+     * to one render per turn. Every registration is released on teardown, on
+     * destroy, and if the host disables this plugin after repeated failures.
+     *
+     * @param {Array<{series: string|number, values: Array<number|null>}>} entries
+     * @returns {{release: () => void, update: (entries: Array<{series: string|number, values: Array<number|null>}>) => void}|null}
+     * @since Weave v7
+     */
+    highlight(entries) {
+      return host._highlight(record.def.name, entries)
+    },
+
+    /**
      * Everything drawn on this chart, including what other features drew.
      *
      * The chart's series, the caller's annotations (ink strokes among them,
@@ -651,4 +701,12 @@ const WIRED = {
   // Scales are null until the first draw and on every non-axis chart, so the
   // facade has nothing to probe; this host builds them oriented on every draw.
   'scale-orientation': () => true,
+  // The SEAM, not the drawing. Whether parts can actually be drawn depends on
+  // the chart type, on what the caller's data carries, and on whether the page
+  // imported the highlight-filter feature at all, and all three can change
+  // after this is answered. `api.highlight()` returns null for each of them,
+  // which is the answer a plugin can act on; advertising the capability and
+  // then returning null is the same shape as `claim()` on an option this host
+  // does not know.
+  highlight: (/** @type {any} */ a) => typeof a.highlight === 'function',
 }

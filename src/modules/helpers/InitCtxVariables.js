@@ -220,6 +220,25 @@ export default class InitCtxVariables {
     const w = this.w
     const ctx = this.ctx
 
+    // Highlight filter: resolved on every read until it exists, so a chart
+    // built before `import 'apexcharts/features/highlight-filter'` ran still
+    // picks it up on its next update.
+    //
+    // Installed BEFORE the eager modules, not with the other lazy getters
+    // below: the Weave host runs every plugin's setup() from its constructor,
+    // and a plugin asking there for highlight parts would read an undefined
+    // property and be told this host cannot draw them.
+    Object.defineProperty(ctx, 'highlightFilter', {
+      get() {
+        if (!this._highlightFilter) {
+          const C = reg.get('highlightFilter')
+          if (C) this._highlightFilter = new C(w, this)
+        }
+        return this._highlightFilter ?? null
+      },
+      configurable: true,
+    })
+
     // — Eager optional modules —
 
     // Exports: ctx.exports (also used directly in apexcharts.js public methods)
@@ -338,20 +357,6 @@ export default class InitCtxVariables {
         if (!this._zoomPanSelection && ZoomPanCtor)
           this._zoomPanSelection = new ZoomPanCtor(w, this)
         return this._zoomPanSelection ?? null
-      },
-      configurable: true,
-    })
-
-    // Highlight filter: resolved on every read until it exists, so a chart
-    // built before `import 'apexcharts/features/highlight-filter'` ran still
-    // picks it up on its next update.
-    Object.defineProperty(ctx, 'highlightFilter', {
-      get() {
-        if (!this._highlightFilter) {
-          const C = reg.get('highlightFilter')
-          if (C) this._highlightFilter = new C(w, this)
-        }
-        return this._highlightFilter ?? null
       },
       configurable: true,
     })

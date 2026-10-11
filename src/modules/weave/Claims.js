@@ -188,9 +188,14 @@ export function releaseOwner(w, owner) {
  * resolves to is read fresh every time the option is. A number is taken as a
  * position, for charts whose series have no names.
  *
+ * Exported for `weave/Highlights`, which resolves the same `{series: name |
+ * index}` shape and must resolve it the same way: a plugin naming "Revenue" in
+ * a claim and in a highlight is naming one series, and two copies of this would
+ * eventually disagree about which.
+ *
  * @param {any} w @param {string|number} series
  */
-function indexOfSeries(w, series) {
+export function indexOfSeries(w, series) {
   if (typeof series === 'number') return series
   const list = (w.config && w.config.series) || []
   for (let i = 0; i < list.length; i++) {

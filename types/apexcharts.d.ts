@@ -1019,6 +1019,29 @@ interface ApexPluginAPI {
     entries: Array<{ series: string | number; value: any }>
   ): ApexPluginClaim | null
   /**
+   * Draw a PART of each value, inside the slot that value already occupies.
+   *
+   * The whole is drawn faded and the part solid in front of it, from the same
+   * baseline. The alternative for a plugin with a second number per datum is
+   * `markDerived()`, which adds a series, and a series costs the caller a
+   * legend entry, a tooltip row, an export column, a rescaled value axis and,
+   * on a bar chart, half the width of every bar they had.
+   *
+   * Null means the parts were not taken, and a plugin that gets null needs
+   * something else to do. The host says null when the highlight-filter feature
+   * is not loaded on the page, when the chart is not an axis chart, when the
+   * type draws no parts, and when the caller is already showing parts of their
+   * own. Check it per call: three of the four can change on the caller's next
+   * update.
+   *
+   * Registering, updating and releasing each re-render the chart, coalesced to
+   * one render per turn. Released on teardown, on destroy, and if the host
+   * disables the plugin.
+   *
+   * @since Weave v7
+   */
+  highlight(entries: ApexPluginHighlightEntry[]): ApexPluginHighlight | null
+  /**
    * Everything drawn on this chart, including other features' output: the
    * series, the caller's annotations (ink strokes among them), and whatever
    * plugins have declared.
@@ -1129,6 +1152,22 @@ interface ApexPluginClaim {
   release(): void
   /** Replace this claim's entries, keeping its place in the resolution order. */
   update(entries: Array<{ series: string | number; value: any }>): void
+}
+
+/** One series' parts, parallel to its data. @since Weave v7 */
+interface ApexPluginHighlightEntry {
+  /** A series NAME (resolved on every parse) or a position. */
+  series: string | number
+  /** Parallel to that series' data; null where a datum has no part. */
+  values: Array<number | null>
+}
+
+/** Live highlight parts a plugin registered. @since Weave v7 */
+interface ApexPluginHighlight {
+  /** Stop drawing these parts and re-render. Idempotent. */
+  release(): void
+  /** Replace the parts, keeping this plugin's place in the resolution order. */
+  update(entries: ApexPluginHighlightEntry[]): void
 }
 
 interface ApexPlugin {
