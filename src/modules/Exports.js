@@ -696,6 +696,9 @@ class Exports {
   }
 
   /**
+   * Resolves `{ imgURI: '' }` when the PNG cannot be made (no 2d context for
+   * a canvas that size, an SVG the browser will not decode, a tainted
+   * canvas), so a caller is never left waiting.
    * @param {Record<string, any> | undefined} options
    */
   dataURI(options) {
@@ -703,6 +706,10 @@ class Exports {
 
     return new Promise((resolve) => {
       const w = this.w
+      const fail = () => {
+        console.warn('ApexCharts: the PNG export could not be rendered')
+        resolve({ imgURI: '' })
+      }
 
       const scale = options
         ? options.scale || options.width / w.globals.svgWidth
@@ -715,34 +722,41 @@ class Exports {
       const canvasBg = this.resolveExportBackground()
 
       const ctx = canvas.getContext('2d')
-      if (!ctx) return
+      if (!ctx) return fail()
       ctx.fillStyle = canvasBg
       // canvas.width/height already include scale; do NOT multiply again, or a
       // scale < 1 export (dataURI({ width: < svgWidth })) fills only scale^2 of
       // the canvas, leaving the background missing on the right/bottom margins.
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      this.getSvgString(scale).then((svgData) => {
-        const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
+      this.getSvgString(scale)
+        .then((svgData) => {
+          const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
 
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0)
+          img.onload = () => {
+            try {
+              ctx.drawImage(img, 0, 0)
 
-          /** @type {any} */ const edgeCanvas = canvas
-          if (edgeCanvas.msToBlob) {
-            // Legacy Microsoft Edge can't navigate to data urls, so return the blob instead
-            const blob = edgeCanvas.msToBlob()
-            resolve({ blob })
-          } else {
-            const imgURI = canvas.toDataURL('image/png')
-            resolve({ imgURI })
+              /** @type {any} */ const edgeCanvas = canvas
+              if (edgeCanvas.msToBlob) {
+                // Legacy Microsoft Edge can't navigate to data urls, so return the blob instead
+                const blob = edgeCanvas.msToBlob()
+                resolve({ blob })
+              } else {
+                const imgURI = canvas.toDataURL('image/png')
+                resolve({ imgURI })
+              }
+            } catch (e) {
+              fail()
+            }
           }
-        }
+          img.onerror = fail
 
-        img.src = svgUrl
-      })
+          img.src = svgUrl
+        })
+        .catch(fail)
     })
   }
 
@@ -768,7 +782,7 @@ class Exports {
       if (blob) {
         // @ts-ignore — msSaveOrOpenBlob is an IE11-only API
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
-      } else {
+      } else if (imgURI) {
         this.triggerDownload(
           imgURI,
           this.w.config.chart.toolbar.export.png.filename,
