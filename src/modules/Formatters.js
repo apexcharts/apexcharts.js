@@ -107,6 +107,10 @@ class Formatters {
       return this.defaultGeneralFormatter(val)
     }
 
+    // Reset with the other slots, or a tooltip.y.formatter removed through
+    // updateOptions keeps formatting the tooltip.
+    fmt.ttVal = undefined
+
     // formatter function will always overwrite format property
     if (w.config.xaxis.labels.formatter !== undefined) {
       fmt.xLabelFormatter = w.config.xaxis.labels.formatter
