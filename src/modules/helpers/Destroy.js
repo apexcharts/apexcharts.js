@@ -22,9 +22,14 @@ export default class Destroy {
     // (e.g. rAF draw-animation callbacks) bails instead of touching cleared
     // DOM. Not set during updates: the chart is rebuilt right after, and
     // initGlobalVars() resets the flag on the re-render anyway.
+    const gl = this.w.globals
     if (!isUpdating) {
-      this.w.globals.isDestroyed = true
+      gl.isDestroyed = true
+      // A pending resize redraw would rebuild the destroyed chart.
+      clearTimeout(gl.resizeTimer ?? undefined)
     }
+    // The selection emit belongs to the rect being torn down.
+    clearTimeout(gl.selectionResizeTimer ?? undefined)
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy()
     }

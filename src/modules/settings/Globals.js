@@ -138,8 +138,8 @@ export default class Globals {
     gl.morphBatch = { pending: 0, onDone: null, series: new Map() }
 
     // ── Caches (ephemeral — cleared so stale DOM refs/measurements don't persist) ──
-    gl.resizeTimer = null
-    gl.selectionResizeTimer = null
+    // resizeTimer / selectionResizeTimer are persistent (see globalVars):
+    // nulling a live handle here left nothing able to cancel it.
     gl.delayedElements = []
     gl.pointsArray = []
     gl.barCanvasCoords = null // Strata (#2): per-render bar/candle center cache (canvas tooltip position)
@@ -413,6 +413,10 @@ export default class Globals {
       radialNeedleRAF: null,
       unitGatherRAF: null,
       unitExitRAF: null,
+      // Debounce handles (container resize, selection-rect emit). Persistent
+      // so a re-render cannot orphan a pending one; Destroy.clear() clears them.
+      resizeTimer: null,
+      selectionResizeTimer: null,
       stroke: { colors: [] },
       dataLabels: { style: { colors: [] } },
       radarPolygons: { fill: { colors: [] } },
