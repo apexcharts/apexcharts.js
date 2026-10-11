@@ -7,6 +7,7 @@ import Defaults from './settings/Defaults'
 import { isCustom, getChartClass, hasChartClass } from './ChartFactory'
 import { getSeriesTransform } from './SeriesTransformRegistry'
 import warnMissingFeature from '../utils/MissingFeature.js'
+import { stashSeries } from './helpers/RawStash'
 import {
   isNestedTreemap,
   resolveTreemapTree,
@@ -1074,8 +1075,11 @@ export default class Data {
       // see progressively higher-resolution detail as they zoom in.
       const dr = cnf.chart.dataReducer
       const rawStash = gl.dataReducerRawSeries?.[i]?.data
+      // A legend-hidden row stays empty: refilling it from the stash parsed
+      // the hidden series again, and it kept scaling the y axis.
       if (
         dr?.enabled &&
+        !this._isCollapsedIndex(i) &&
         this.isMultiFormat() &&
         Array.isArray(rawStash) &&
         rawStash.length > (dr.threshold ?? 500)
@@ -2238,15 +2242,13 @@ export default class Data {
       gl.axisCharts &&
       !gl.dataReducerRawSeries
     ) {
-      gl.dataReducerRawSeries = ser.map((s) => ({
-        data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
-      }))
+      gl.dataReducerRawSeries = stashSeries(ser, gl)
       // Also capture true x-bounds from the raw data so zoom-out/pan clamps
       // don't shrink to the current window's bounds (initialMinX/initialMaxX
       // are recomputed from the downsampled-and-sliced data each parse).
       let rawMinX = Infinity
       let rawMaxX = -Infinity
-      for (const s of ser) {
+      for (const s of gl.dataReducerRawSeries) {
         const d = s?.data
         if (!Array.isArray(d) || d.length === 0) continue
         const isXY = !Array.isArray(d[0])
