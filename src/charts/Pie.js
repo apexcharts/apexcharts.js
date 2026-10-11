@@ -328,9 +328,11 @@ class Pie {
         // Floor the divisor: with grid.position:'front' the maxY reset runs
         // after this loop, so an all-zero series would divide by 0 here and push
         // NaN slice sizes into getPiePath (corrupt arcs). series[i] is 0 in that
-        // case anyway, so a denom of 1 yields a 0-size slice.
+        // case anyway, so a denom of 1 yields a 0-size slice. A negative value
+        // draws nothing, as on pie: a negative radius mirrors the wedge.
         this.sliceSizes.push(
-          (w.globals.radialSize * series[i]) / (this.maxY || 1),
+          (w.globals.radialSize * Utils.negToZero(series[i])) /
+            (this.maxY || 1),
         )
       } else {
         this.sliceSizes.push(w.globals.radialSize)
@@ -1963,21 +1965,21 @@ class Pie {
 
     if (spokeConfig.strokeWidth === 0) return
 
-    const spokes = []
-
-    const angleDivision = 360 / w.seriesData.series.length
-    for (let i = 0; i < w.seriesData.series.length; i++) {
-      spokes.push(
-        Utils.polarToCartesian(
-          this.centerX,
-          this.centerY,
-          w.globals.radialSize,
-          w.config.plotOptions.pie.startAngle + angleDivision * i,
-        ),
+    // One spoke on the leading edge of each VISIBLE slice: a legend-hidden
+    // series gives its slot back (see draw), so the spokes re-divide with it.
+    const collapsedIdx = w.globals.collapsedSeriesIndices || []
+    const n = w.seriesData.series.length
+    const angleDivision =
+      360 / Math.max(1, n - collapsedIdx.filter((k) => k < n).length)
+    let slot = 0
+    for (let i = 0; i < n; i++) {
+      if (collapsedIdx.indexOf(i) > -1) continue
+      const p = Utils.polarToCartesian(
+        this.centerX,
+        this.centerY,
+        w.globals.radialSize,
+        w.config.plotOptions.pie.startAngle + angleDivision * slot++,
       )
-    }
-
-    spokes.forEach((p, i) => {
       const line = graphics.drawLine(
         p.x,
         p.y,
@@ -1989,7 +1991,7 @@ class Pie {
       )
 
       parent.add(line)
-    })
+    }
   }
 
   revertDataLabelsInner() {

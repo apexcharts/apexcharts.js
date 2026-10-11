@@ -176,4 +176,58 @@ describe('Polar Area chart', () => {
       expect(w.config.yaxis[0].max).toBe(100)
     })
   })
+
+  describe('legend-hidden series', () => {
+    // Spoke end points, as angles in degrees clockwise from 12 o'clock.
+    const spokeAngles = (chart) => {
+      const w = chart.w
+      const cx = w.layout.gridWidth / 2
+      const cy = w.layout.gridHeight / 2
+      return [...chart.el.querySelectorAll('.apexcharts-pie line')]
+        .map((l) => {
+          const x = Number(l.getAttribute('x1')) - cx
+          const y = Number(l.getAttribute('y1')) - cy
+          return Math.round(((Math.atan2(x, -y) * 180) / Math.PI + 360) % 360)
+        })
+        .sort((a, b) => a - b)
+    }
+
+    it('draws one spoke per visible slice, on the slice edges', () => {
+      const chart = polarAreaChart({
+        chart: { width: 400, height: 400 },
+        polarArea: { spokes: { strokeWidth: 1 } },
+      })
+      expect(spokeAngles(chart)).toEqual([0, 90, 180, 270])
+
+      chart.hideSeries('B')
+      expect(spokeAngles(chart)).toEqual([0, 120, 240])
+    })
+  })
+
+  describe('negative values', () => {
+    it('draws a negative value as an empty slice, not a mirrored wedge', () => {
+      const chart = polarAreaChart({
+        chart: { width: 400, height: 400 },
+        series: [30, -20, 20, 10],
+      })
+      const w = chart.w
+      const cx = w.layout.gridWidth / 2
+      const cy = w.layout.gridHeight / 2
+      const d = chart.el
+        .querySelector('.apexcharts-polararea-slice-1')
+        .getAttribute('d')
+      // Every point the path visits (M/L targets and arc end points) stays on
+      // the centre for a zero radius; a negative radius throws the arc to the
+      // opposite side of it.
+      const pts = []
+      for (const [, cmd, args] of d.matchAll(/([MLA])([^MLAZ]*)/g)) {
+        const n = args.trim().split(/[\s,]+/).map(Number)
+        pts.push(cmd === 'A' ? n.slice(5, 7) : n.slice(0, 2))
+      }
+      expect(pts.length).toBeGreaterThan(1)
+      const far = pts.filter(([x, y]) => Math.hypot(x - cx, y - cy) > 1)
+      expect(far).toEqual([])
+    })
+  })
 })
+
