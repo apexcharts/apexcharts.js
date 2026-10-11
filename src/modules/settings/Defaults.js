@@ -79,6 +79,14 @@ const TYPE_OWNED_PATHS = [
   'plotOptions.violin.box.show',
   'plotOptions.violin.box.whiskers',
   'plotOptions.violin.points.position',
+  'plotOptions.violin.points.jitter',
+  // What an alias draws its base renderer as: a dumbbell's marked ends, a
+  // waffle's lattice of squares.
+  'plotOptions.bar.isDumbbell',
+  'plotOptions.unit.layout',
+  'plotOptions.unit.shape',
+  // A treemap's tiles are the whole plot, with no grid to read them against.
+  'grid.show',
   // Hover and select feedback, off by design on the types that draw their own.
   'states.hover.filter.type',
   'states.active.filter.type',
@@ -150,7 +158,12 @@ const typeOpts = (type, config) => {
       stacked: config.chart?.stacked,
     },
     plotOptions: {
-      bar: { isFunnel: type === 'funnel' || type === 'pyramid' },
+      bar: {
+        isFunnel: type === 'funnel' || type === 'pyramid',
+        // Orientation belongs to the chart too: a raincloud lays its layers
+        // out by it, so a horizontal one is asked about horizontally.
+        horizontal: config.plotOptions?.bar?.horizontal,
+      },
       histogram: config.plotOptions?.histogram,
     },
     // The histogram's defaults read the series to decide whether overlaid bins
@@ -366,6 +379,10 @@ export default class Defaults {
       chartDefaults = defaults.streamgraph()
     } else if (requestedType === 'raincloud') {
       chartDefaults = defaults.raincloud()
+    } else if (requestedType === 'waffle') {
+      chartDefaults = Utils.extend(defaults.unit(), {
+        plotOptions: { unit: { layout: 'grid', shape: 'square' } },
+      })
     } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
       chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
     } else {
@@ -459,8 +476,8 @@ export default class Defaults {
    */
   static typeYAxisDefaults(type) {
     // A streamgraph has no zero line, so an axis of stacking offsets would be
-    // read as values nobody gave.
-    if (type === 'streamgraph') return { show: false }
+    // read as values nobody gave. A treemap has no value axis at all.
+    if (type === 'streamgraph' || type === 'treemap') return { show: false }
     return {}
   }
 
@@ -1341,6 +1358,9 @@ export default class Defaults {
           // the eye lands on, thick enough to read as a join at a glance.
           barHeight: 6,
           columnWidth: 6,
+          // A default rather than written into the options, so it hands over
+          // with the type: a dumbbell made a range bar stayed a dumbbell.
+          isDumbbell: true,
           dumbbell: {
             dataLabels: {
               // The two values ARE the comparison, so they are written at the
@@ -2027,6 +2047,7 @@ export default class Defaults {
         },
       },
       grid: {
+        show: false,
         padding: {
           left: 0,
           right: 0,

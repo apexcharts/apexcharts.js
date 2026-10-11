@@ -197,16 +197,9 @@ export default class Config {
     if (requested === 'waffle') {
       // `waffle` is an alias for the unit chart's single-grid layout: a
       // part-to-whole lattice of square cells. It renders through the `unit`
-      // pathway, so every `chart.type === 'unit'` check keeps working. Presets
-      // are only applied when the user has not set them, so they stay tweakable.
-      opts.plotOptions = opts.plotOptions || {}
-      opts.plotOptions.unit = opts.plotOptions.unit || {}
-      if (opts.plotOptions.unit.layout == null) {
-        opts.plotOptions.unit.layout = 'grid'
-      }
-      if (opts.plotOptions.unit.shape == null) {
-        opts.plotOptions.unit.shape = 'square'
-      }
+      // pathway, so every `chart.type === 'unit'` check keeps working. The
+      // layout and shape presets are Defaults.waffle's, so they stay tweakable
+      // and hand back to the unit chart's own when the type changes.
       opts.chart.type = 'unit'
     } else if (requested === 'funnel' || requested === 'pyramid') {
       opts.plotOptions = opts.plotOptions || {}
@@ -250,8 +243,9 @@ export default class Config {
       // reads along the row it labels rather than turned on its side under a
       // column. Set `plotOptions.bar.horizontal: false` for the column form.
       opts.plotOptions = opts.plotOptions || {}
+      // `isDumbbell` itself comes from Defaults.dumbbell, so that it hands
+      // over when the type changes.
       opts.plotOptions.bar = opts.plotOptions.bar || {}
-      opts.plotOptions.bar.isDumbbell = true
       if (opts.plotOptions.bar.horizontal == null) {
         opts.plotOptions.bar.horizontal = true
       }

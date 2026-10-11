@@ -309,6 +309,73 @@ describe('the axis an alias picks hands over too (#5343)', () => {
   })
 })
 
+describe('the presets an alias draws its renderer with hand over', () => {
+  it('a dumbbell that becomes a range bar stops drawing marked ends', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'dumbbell' },
+      series: [{ name: 'a', data: [{ x: 'p', y: [1, 5] }] }],
+    })
+    expect(chart.w.config.plotOptions.bar.isDumbbell).toBe(true)
+    await chart.updateOptions({ chart: { type: 'rangeBar' } })
+    expect(chart.w.config.plotOptions.bar.isDumbbell).toBe(false)
+  })
+
+  it('a waffle that becomes a unit chart drops the square lattice', async () => {
+    const UNITS = [
+      { name: 'a', data: [10] },
+      { name: 'b', data: [20] },
+    ]
+    const chart = createChartWithOptions({
+      chart: { type: 'waffle' },
+      series: UNITS,
+    })
+    expect(chart.w.config.plotOptions.unit.layout).toBe('grid')
+    expect(chart.w.config.plotOptions.unit.shape).toBe('square')
+    await chart.updateOptions({ chart: { type: 'unit' } })
+    const fresh = createChartWithOptions({
+      chart: { type: 'unit' },
+      series: UNITS,
+    })
+    expect(chart.w.config.plotOptions.unit.layout).toBe(
+      fresh.w.config.plotOptions.unit.layout,
+    )
+    expect(chart.w.config.plotOptions.unit.shape).toBe(
+      fresh.w.config.plotOptions.unit.shape,
+    )
+  })
+
+  it('a horizontal raincloud that becomes a violin drops its layout', async () => {
+    const obs = [1, 2, 3, 4, 5, 6, 7, 3, 4]
+    const chart = createChartWithOptions({
+      chart: { type: 'raincloud' },
+      plotOptions: { bar: { horizontal: true } },
+      series: [{ name: 'a', data: [{ x: 'a', y: obs }] }],
+    })
+    expect(chart.w.config.plotOptions.violin.side).toBe('top')
+    await chart.updateOptions({ chart: { type: 'violin' } })
+    expect(chart.w.config.plotOptions.violin.side).toBe('both')
+    expect(chart.w.config.plotOptions.violin.points.jitter).toBe(0.5)
+  })
+
+  it('a treemap that becomes a bar gets its grid and y-axis back', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'treemap' },
+      series: [
+        {
+          data: [
+            { x: 'a', y: 1 },
+            { x: 'b', y: 2 },
+          ],
+        },
+      ],
+    })
+    expect(chart.w.config.grid.show).toBe(false)
+    await chart.updateOptions({ chart: { type: 'bar' }, series: BARS })
+    expect(chart.w.config.grid.show).toBe(true)
+    expect(chart.w.config.yaxis[0].show).toBe(true)
+  })
+})
+
 describe('stacking layers over the type defaults', () => {
   it('a stacked histogram keeps its touching bins', () => {
     const chart = createChartWithOptions({
