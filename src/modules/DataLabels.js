@@ -402,7 +402,19 @@ class DataLabels {
       // canvas edge really crops it. On a dual-axis chart, where that margin
       // holds the second axis, it un-centred a label with 140px to spare.
       const renderedAnchor = textAnchor || dataLabelsConfig.textAnchor
-      if (renderedAnchor === 'middle' || renderedAnchor === 'start') {
+      // `x` is in the inner (plot-origin) space, so the canvas edge sits at
+      // the chart width less the plot's own left offset.
+      const canvasRight = w.globals.svgWidth - w.layout.translateX
+      // No glyph is wider than 1.2em, so a label that cannot reach the edge
+      // at that width skips the measure: it is a forced layout per label, and
+      // heatmap cells (always inside the plot) paid it on every update.
+      const fontPx = parseFloat(fontSize || dataLabelsConfig.style.fontSize)
+      const widthBound = String(text).length * fontPx * 1.2
+      const mayOverflow = !(x + offX + widthBound <= canvasRight)
+      if (
+        mayOverflow &&
+        (renderedAnchor === 'middle' || renderedAnchor === 'start')
+      ) {
         const measured =
           correctedLabels.textRects ||
           /** @type {any} */ (graphics).getTextRects(
@@ -417,9 +429,6 @@ class DataLabels {
           )
         const overhang =
           renderedAnchor === 'middle' ? measured.width / 2 : measured.width
-        // `x` is in the inner (plot-origin) space, so the canvas edge sits at
-        // the chart width less the plot's own left offset.
-        const canvasRight = w.globals.svgWidth - w.layout.translateX
         if (x + offX + overhang > canvasRight) {
           textAnchor = 'end'
         }
