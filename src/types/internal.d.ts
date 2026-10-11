@@ -375,6 +375,11 @@ export interface ChartGlobals
   radialNeedleRAF: number | null
   unitGatherRAF: number | null
   unitExitRAF: number | null
+  /** Debounce handles for the container resize and the selection-rect
+   * resize emit. Persistent, so a later render can still cancel a pending
+   * one; Destroy.clear() clears them. */
+  resizeTimer: number | null
+  selectionResizeTimer: number | null
 
   // ── Event registry ────────────────────────────────────────────────────────
   events: {
@@ -479,6 +484,11 @@ export interface ChartGlobals
   // Keys rebuild identically from the same data, so the focus survives the
   // re-render a zoom triggers.
   treemapFocusKey: string | null
+  // The same click-to-zoom focus for icicle and sunburst. Their chart
+  // instances are rebuilt every render, so the key lives here to survive a
+  // resize, legend toggle or live update; cleared when the key disappears.
+  icicleFocusKey?: string | null
+  sunburstFocusKey?: string | null
 
   // ── Collapse state ────────────────────────────────────────────────────────
   allSeriesCollapsed: boolean
@@ -784,8 +794,6 @@ export interface ChartGlobals
     index?: number
     holdUntilComplete?: boolean
   }>
-  resizeTimer: number | null
-  selectionResizeTimer: number | null
   resizeObserver: ResizeObserver | null
 
   // ── Locale ────────────────────────────────────────────────────────────────
