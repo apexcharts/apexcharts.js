@@ -398,15 +398,20 @@ class Pie {
           prevTotal += Utils.negToZero(w.globals.previousPaths[k])
         }
 
-        let previousAngle
-
         for (let i = 0; i < w.globals.previousPaths.length; i++) {
-          // CALCULATE THE PREVIOUS ANGLES
-          previousAngle =
-            (this.fullAngle * Utils.negToZero(w.globals.previousPaths[i])) /
+          // CALCULATE THE PREVIOUS ANGLES (all zero after an all-zero render)
+          this.prevSectorAngleArr.push(
             prevTotal
-          this.prevSectorAngleArr.push(previousAngle)
+              ? (this.fullAngle * Utils.negToZero(w.globals.previousPaths[i])) /
+                  prevTotal
+              : 0,
+          )
         }
+      }
+      // A slice the previous render did not have (the series grew, or it was
+      // empty) grows from a zero-width wedge at the running end.
+      while (this.prevSectorAngleArr.length < series.length) {
+        this.prevSectorAngleArr.push(0)
       }
     }
 
@@ -1078,10 +1083,12 @@ class Pie {
 
     let path
 
+    // No previous angle (a radialBar ring the last render did not have): grow
+    // from nothing. Forcing the static branch here would flag animationEnded
+    // mid-render and swallow the sweep's completion.
     if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
       fromStartAngle = toStartAngle
-      prevAngle = angle
-      opts.dur = 0
+      prevAngle = 0
     }
 
     let currAngle = angle
