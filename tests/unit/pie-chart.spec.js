@@ -1,6 +1,8 @@
 import Pie from '../../src/charts/Pie.js'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/standard.js'
+import Graphics from '../../src/modules/Graphics.js'
+import { measureLabelWidth } from '../../src/charts/common/OuterLabels.js'
 
 // ---------------------------------------------------------------------------
 // Helper: create a rendered pie/donut chart
@@ -344,6 +346,60 @@ describe('Pie chart', () => {
         baseline.w.globals.radialSize
       )
       expect(withLabels.w.globals.pieExternalLabelMarginY).toBeGreaterThan(0)
+    })
+
+    it('reserves the gutter at the weight the labels are drawn at', () => {
+      const spy = vi.spyOn(Graphics.prototype, 'getTextRects')
+      try {
+        const chart = pieChart({
+          chart: { width: 400, height: 400 },
+          series: [60, 40],
+          labels: ['LongCategoryNameHere', 'AnotherLongCategory'],
+          dataLabels: { enabled: false, style: { fontWeight: 600 } },
+          pie: { dataLabels: { external: { show: true } } },
+        })
+        const measured = spy.mock.calls.filter(
+          (c) => c[0] === 'LongCategoryNameHere',
+        )
+        expect(measured.length).toBeGreaterThan(0)
+        measured.forEach((c) => expect(c[5]).toBe(600))
+
+        // The shared outer-label measure forwards the weight too.
+        spy.mockClear()
+        measureLabelWidth(chart.w, ['Bold label'], { fontWeight: 700 })
+        expect(spy.mock.calls[0][5]).toBe(700)
+      } finally {
+        spy.mockRestore()
+      }
+    })
+
+    it('keeps a crowded gutter column inside the chart', () => {
+      // Fifteen two-line labels all crowd the bottom of the right gutter; a
+      // column pulled up as a block used to run off the top of the chart.
+      const small = Array(15).fill(1)
+      const chart = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [470, ...small, 500],
+        labels: ['Big', ...small.map((_, i) => `S${i}`), 'Rest'],
+        pie: {
+          dataLabels: {
+            external: {
+              show: true,
+              formatter: (name, { percent }) => [name, `${Math.round(percent)}%`],
+            },
+          },
+        },
+      })
+      const w = chart.w
+      const top =
+        w.globals.circleGeometry.cy -
+        w.globals.radialSize -
+        w.globals.pieExternalLabelMarginY
+      const ys = [...chart.el.querySelectorAll('.apexcharts-pie-name-label')].map(
+        (t) => Number(t.getAttribute('y')),
+      )
+      expect(ys.length).toBe(17)
+      expect(Math.min(...ys)).toBeGreaterThanOrEqual(top)
     })
   })
 })

@@ -206,10 +206,10 @@ class Pie {
     const lineSets = (w.seriesData.seriesNames || []).map((_, i) =>
       this.getExternalLabelLines(i),
     )
-    const maxLabelWidth = helpers.getMaxLabelWidth(lineSets.flat(), {
-      fontSize: this.externalLabelStyle.fontSize,
-      fontFamily: this.externalLabelStyle.fontFamily,
-    })
+    const maxLabelWidth = helpers.getMaxLabelWidth(
+      lineSets.flat(),
+      this.externalLabelStyle,
+    )
     this.externalLabelMaxLines = lineSets.reduce((m, s) => Math.max(m, s.length), 1)
     this.externalLabelLineH = Math.round(
       (parseFloat(this.externalLabelStyle.fontSize) || 12) * 1.35,
@@ -970,17 +970,21 @@ class Pie {
     const w = this.w
     // Minimum spacing is a full label block (n lines) so multi-line labels
     // (e.g. name + percent) don't overlap their neighbours.
-    const lineHeight = this.externalLabelMaxLines * this.externalLabelLineH + 2
-    const maxY =
-      this.centerY + w.globals.radialSize + w.globals.pieExternalLabelMarginY
+    const blockH = this.externalLabelMaxLines * this.externalLabelLineH
+    const band = w.globals.radialSize + w.globals.pieExternalLabelMarginY
+    const maxY = this.centerY + band
+    // The top of the reserved band is a ceiling: a crowded column pulled up
+    // as a block ran off the chart. A side that cannot fit at full spacing
+    // squeezes its gaps instead.
+    const minY = this.centerY - band + blockH / 2
 
     ;['left', 'right'].forEach((side) => {
-      // No top clamp: the pie is centred in its own chart, so a column pulled
-      // up as a block stays on screen.
+      const col = this.externalLabels.filter((l) => l.side === side)
       spaceOutLabels(
-        this.externalLabels.filter((l) => l.side === side),
-        lineHeight,
+        col,
+        Math.min(blockH + 2, (maxY - minY) / Math.max(1, col.length - 1)),
         maxY,
+        minY,
       )
     })
   }

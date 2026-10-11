@@ -110,7 +110,8 @@ export function drawOuterLabel(w, spec) {
  *
  * @param {import('../../types/internal').ChartStateW} w
  * @param {string[]} labels
- * @param {{ fontSize?: string, fontFamily?: string }} [style]
+ * @param {{ fontSize?: string, fontFamily?: string, fontWeight?: string | number }} [style]
+ *   pass the weight the labels draw at: bold text is wider
  * @returns {number}
  */
 export function measureLabelWidth(w, labels, style = {}) {
@@ -121,7 +122,14 @@ export function measureLabelWidth(w, labels, style = {}) {
   labels.forEach((text) => {
     if (text == null || text === '') return
     const str = `${text}`
-    const measured = graphics.getTextRects(str, fontSize, style.fontFamily, '').width
+    const measured = graphics.getTextRects(
+      str,
+      fontSize,
+      style.fontFamily,
+      '',
+      true,
+      style.fontWeight,
+    ).width
     // 0.58em per character is a reasonable mean for the sans-serif faces charts
     // ship with - close enough to reserve space, never used for placement.
     max = Math.max(max, measured > 0 ? measured : str.length * px * 0.58)
@@ -135,9 +143,8 @@ export function measureLabelWidth(w, labels, style = {}) {
  * block back up. Mutates each item's `labelY` (seeded from `idealY`), which is
  * also where its leader line will terminate.
  *
- * `minY` is optional: pie leaves the top unclamped (a column pulled up as a
- * block stays inside the chart because the pie is centred in it), while a unit
- * silhouette clamps both ends against its plot rect.
+ * `minY` is optional: pie clamps against the top of its reserved label band,
+ * a unit silhouette against its plot rect.
  *
  * @param {{ idealY: number, labelY: number }[]} items one side's labels
  * @param {number} minGap a full label block, so multi-line labels stay clear

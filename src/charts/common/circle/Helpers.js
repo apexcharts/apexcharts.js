@@ -42,10 +42,11 @@ export default class CircularChartsHelpers {
    * Widest rendered width among the given label strings. Used to reserve
    * horizontal room for outer (name) labels so the pie can shrink to fit them.
    * @param {string[]} labels
-   * @param {{ fontSize?: string, fontFamily?: string }} style
+   * @param {{ fontSize?: string, fontFamily?: string, fontWeight?: string | number }} style
+   *   the weight the labels draw at: bold text is wider
    * @returns {number}
    */
-  getMaxLabelWidth(labels, { fontSize, fontFamily } = {}) {
+  getMaxLabelWidth(labels, { fontSize, fontFamily, fontWeight } = {}) {
     const graphics = new Graphics(this.w)
     let maxWidth = 0
     labels.forEach((text) => {
@@ -55,6 +56,8 @@ export default class CircularChartsHelpers {
         fontSize || '12px',
         fontFamily,
         '',
+        true,
+        fontWeight,
       )
       maxWidth = Math.max(maxWidth, rect.width)
     })
