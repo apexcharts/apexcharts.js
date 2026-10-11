@@ -633,11 +633,9 @@ export default class Labels {
       } else {
         const dataFormat = new Data(this.w)
         if (dataFormat.isFormatXY()) {
-          xVal =
-            typeof (/** @type {any} */ (w.config.series[i]).data[j]) !==
-            'undefined'
-              ? /** @type {any} */ (w.config.series[i]).data[j].x
-              : ''
+          // a null entry is a gap in the data, with no x of its own
+          const datum = /** @type {any} */ (w.config.series[i]).data[j]
+          xVal = datum == null ? '' : datum.x
         } else {
           xVal =
             typeof w.labelData.labels[j] !== 'undefined'
