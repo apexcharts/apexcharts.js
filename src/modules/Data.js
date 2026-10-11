@@ -956,6 +956,8 @@ export default class Data {
     // per-parse fused-extrema entries filled by _fast2DArrayParse, consumed
     // by Range.getMinYMaxY (ref+length guarded)
     this.w.seriesData._parsedExtrema = []
+    // Goals are read by point index, so a parse never appends to the last one.
+    this.seriesGoals = []
 
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
