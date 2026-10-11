@@ -204,3 +204,68 @@ describe('a non-shared tooltip row takes the hovered series config', () => {
     chart.destroy()
   })
 })
+
+describe('enabledOnSeries on the plot-wide sticky listener', () => {
+  const mount = async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [
+        { name: 'a', data: [1, 2, 3] },
+        { name: 'b', data: [3, 2, 1] },
+      ],
+      tooltip: { shared: false, intersect: false, enabledOnSeries: [1] },
+    })
+    await tick()
+    return chart
+  }
+
+  it('reaches the sticky handler instead of hiding at once', async () => {
+    const chart = await mount()
+    const tt = chart.w.globals.tooltip
+    const out = vi.spyOn(tt, 'handleMouseOut')
+    const sticky = vi
+      .spyOn(tt, 'handleStickyTooltip')
+      .mockImplementation(() => {})
+    const hoverArea = chart.w.dom.Paper.node
+    // Inside the plot (jsdom measures the svg at the origin).
+    const x = chart.w.layout.translateX + 10
+    const y = chart.w.layout.translateY + 10
+    tt.axisChartsTooltips({
+      e: { type: 'mousemove', clientX: x, clientY: y, target: hoverArea },
+      opt: {
+        paths: hoverArea,
+        hoverArea,
+        elGrid: tt.getElGrid(),
+        tooltipEl: tt.getElTooltip(),
+        ttItems: tt.ttItems,
+        clientX: x,
+        clientY: y,
+      },
+    })
+    expect(out).not.toHaveBeenCalled()
+    expect(sticky).toHaveBeenCalled()
+    chart.destroy()
+  })
+
+  it('hides for a resolved series it excludes, and shows one it includes', async () => {
+    const chart = await mount()
+    const tt = chart.w.globals.tooltip
+    const out = vi.spyOn(tt, 'handleMouseOut')
+    const texts = vi
+      .spyOn(tt.tooltipLabels, 'drawSeriesTexts')
+      .mockImplementation(() => {})
+    vi.spyOn(tt.tooltipPosition, 'moveMarkers').mockImplementation(() => {})
+    vi.spyOn(tt.tooltipPosition, 'moveDynamicPointOnHover').mockImplementation(
+      () => {},
+    )
+
+    tt.create({ type: 'mousemove' }, tt, 0, 1, tt.ttItems)
+    expect(out).toHaveBeenCalledTimes(1)
+    expect(texts).not.toHaveBeenCalled()
+
+    tt.create({ type: 'mousemove' }, tt, 1, 1, tt.ttItems)
+    expect(out).toHaveBeenCalledTimes(1)
+    expect(texts).toHaveBeenCalledTimes(1)
+    chart.destroy()
+  })
+})

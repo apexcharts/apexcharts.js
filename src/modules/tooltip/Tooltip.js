@@ -1361,8 +1361,10 @@ export default class Tooltip {
         (Utils.isCanvasBarChart(w) || Utils.isCanvasMarkerChart(w))
       )
     ) {
+      // The plot-wide listener of a sticky tooltip names no series either;
+      // create() checks the one it resolves.
       const index = parseInt(opt.paths.getAttribute('index'), 10)
-      if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
+      if (!isNaN(index) && this.tConfig.enabledOnSeries.indexOf(index) < 0) {
         this.handleMouseOut(opt)
         return
       }
@@ -2045,6 +2047,16 @@ export default class Tooltip {
     }
 
     if (shared === null) shared = this.tConfig.shared
+
+    if (
+      !this.tConfig.shared &&
+      Array.isArray(this.tConfig.enabledOnSeries) &&
+      this.tConfig.enabledOnSeries.indexOf(capturedSeries) < 0
+    ) {
+      const tooltipEl = this.getElTooltip()
+      if (tooltipEl) this.handleMouseOut({ tooltipEl })
+      return
+    }
 
     const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries)
     // Strata (#2): in canvas mode there are no per-point marker nodes, so the
