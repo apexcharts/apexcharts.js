@@ -1952,14 +1952,18 @@ export default class ApexCharts {
    * Useful for non-framework HTML pages.
    */
   static initOnLoad() {
-    const els = document.querySelectorAll('[data-apexcharts]')
-
-    for (let i = 0; i < els.length; i++) {
-      const el = /** @type {HTMLElement} */ (els[i])
-      const options = JSON.parse(els[i].getAttribute('data-options') ?? '')
-      const apexChart = new ApexCharts(el, options)
-      apexChart.render()
-    }
+    // BrowserAPIs finds nothing under SSR, where `document` does not exist
+    BrowserAPIs.querySelectorAll('[data-apexcharts]').forEach(
+      (/** @type {HTMLElement} */ el) => {
+        // One bad element must not stop the ones after it. (render() keeps its
+        // own rejection handled, and a missing type is reported where found.)
+        try {
+          new ApexCharts(el, JSON.parse(el.getAttribute('data-options'))).render()
+        } catch (e) {
+          console.warn('ApexCharts.initOnLoad():', e)
+        }
+      },
+    )
   }
 
   /**

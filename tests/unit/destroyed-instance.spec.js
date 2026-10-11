@@ -85,3 +85,17 @@ describe('a destroyed instance', () => {
     chart.destroy()
   })
 })
+
+describe('ApexCharts.initOnLoad', () => {
+  it('renders the elements after one with bad data-options', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    document.body.innerHTML =
+      '<div data-apexcharts data-options="{oops"></div>' +
+      `<div id="ok" data-apexcharts data-options='${JSON.stringify(opts())}'></div>`
+    expect(() => ApexCharts.initOnLoad()).not.toThrow()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(document.querySelector('#ok .apexcharts-svg')).not.toBe(null)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+})
