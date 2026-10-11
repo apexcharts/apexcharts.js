@@ -94,6 +94,15 @@ describe('getChartClass: the unregistered-type error', () => {
     expect(message).toContain(
       '<script src=".../dist/bar.js"> and <script src=".../dist/features/waterfall.js">',
     )
+    // the default bundle has the renderer but not the feature, so it is not
+    // the one-file answer
+    expect(message).toContain('or load apexcharts.full.min.js instead')
+    expect(message).not.toContain('load the default apexcharts.min.js')
+  })
+
+  it('still offers the default bundle for a histogram, whose feature it has', () => {
+    const message = messageFor('bar', 'histogram')
+    expect(message).toContain('or load the default apexcharts.min.js instead')
   })
 
   it('names a streamgraph although core asks for its renderer as line', () => {

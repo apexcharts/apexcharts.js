@@ -5,7 +5,7 @@ import DataLabels from './modules/DataLabels'
 import PerformanceCache from './utils/PerformanceCache'
 import Defaults from './modules/settings/Defaults'
 import Config from './modules/settings/Config'
-import { RESERVED_TYPES, TYPE_ALIASES } from './modules/settings/TypeAliases'
+import { BUILTIN_TYPES, TYPE_ALIASES } from './modules/settings/TypeAliases'
 import Grid from './modules/axes/Grid'
 import Markers from './modules/Markers'
 import Range from './modules/Range'
@@ -71,8 +71,8 @@ import {
  **/
 
 /**
- * The rejection for an update that names an opt-in type this page never
- * loaded, or null. Checks `chart.type` and every series' `type`: violin is an
+ * The rejection for an update that names a built-in type this page never
+ * loaded (an opt-in type, or any type on the lean core), or null. Checks `chart.type` and every series' `type`: violin is an
  * XY type, so a combo can add one without changing the chart's own type, and
  * that path tore the chart down and left the series stuck in its config, so
  * every later update failed too.
@@ -91,7 +91,9 @@ function unloadedTypeRejection(chartType, series) {
   for (const t of types) {
     if (typeof t !== 'string') continue
     const base = TYPE_ALIASES[t] || t
-    if (RESERVED_TYPES.includes(base) && !hasChartClass(base)) {
+    // Every built-in name is its own registry key, so this covers the lean
+    // core (no type loaded) as well as the opt-in types.
+    if (BUILTIN_TYPES.includes(base) && !hasChartClass(base)) {
       try {
         getChartClass(base, t)
       } catch (e) {
@@ -2089,15 +2091,15 @@ export default class ApexCharts {
     // the renderer it routes to before dispatch ever reaches the registry, so a
     // custom type registered under one of those names would take the
     // registration and then never be drawn.
-    // An OPT-IN built-in (RESERVED_TYPES: `icicle`, `unit`, ...) is rejected on
-    // the same grounds again, and needs its own arm: its class is absent from
-    // the default bundle, so the registration check above would let a custom
-    // type take the name and then core's dispatch would route it to the
-    // built-in's renderer.
+    // A built-in name whose class is not loaded (an opt-in type on the default
+    // bundle, or any type on the lean core) is rejected on the same grounds
+    // again, and needs its own arm: the registration check above would let a
+    // custom type take the name, and core's dispatch would then route it to
+    // the built-in's renderer.
     if (
       (hasChartClass(name) && !isCustom(name)) ||
       TYPE_ALIASES[name] ||
-      RESERVED_TYPES.includes(name)
+      BUILTIN_TYPES.includes(name)
     ) {
       console.warn(
         `[apexcharts] registerSeriesType("${name}") would override the built-in "${name}" chart type; pick another name.`,

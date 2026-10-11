@@ -145,9 +145,14 @@ export function getChartClass(type, requested) {
     // bundle and missing only because the page assembled from the lean core,
     // so the default bundle is the smaller fix.
     //
+    // An alias whose feature the default bundle leaves out (all but `stats`,
+    // see features/all.js) is opt-in too: its renderer is there, but the
+    // default bundle still cannot draw it.
+    //
     // The script-tag line names no particular core file: a sub-entry registers
     // onto whichever shared class is already present, default bundle included.
-    const optIn = RESERVED_TYPES.includes(type)
+    const optIn =
+      RESERVED_TYPES.includes(type) || (!!feature && feature !== 'stats')
     const message =
       `ApexCharts: chart type "${name}" is not registered` +
       (name !== type ? ` (it draws through "${type}")` : '') +

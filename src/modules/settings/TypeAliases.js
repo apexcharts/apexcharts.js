@@ -23,13 +23,10 @@
  * Chart types that are real and opt-in: core knows the name and dispatches it,
  * but the default bundle does not register the class. The user imports the
  * type's entry point, loads its script-tag file, or loads the full bundle.
- * Nothing else reserves these names, and the name has to be reserved anyway.
  *
- * `registerSeriesType`'s built-in check asks whether a class is REGISTERED,
- * which for an opt-in type is false on the default bundle. So a custom type
- * could take the name, and core's dispatch would then hand it to the renderer
- * pathway of the built-in instead of the custom one, which is the same silent
- * failure the alias list above was introduced to stop.
+ * Reserving the name is BUILTIN_TYPES' job (`registerSeriesType` and the
+ * unloaded-type refusal in apexcharts.js test that list); this one only
+ * decides which advice the missing-type message gives.
  *
  * @type {string[]}
  */
