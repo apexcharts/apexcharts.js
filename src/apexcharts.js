@@ -241,6 +241,9 @@ export default class ApexCharts {
         if (typeof Apex._chartInstances === 'undefined') {
           Apex._chartInstances = []
         }
+        // One entry per instance: a trellis host renders again on every
+        // rebuild, and a failed render can be retried.
+        this._unregister()
         if (this.w.config.chart.id) {
           Apex._chartInstances.push({
             id: this.w.globals.chartID,
@@ -442,9 +445,41 @@ export default class ApexCharts {
     })
     this._renderPromise = renderPromise
     renderPromise.catch(() => {
-      if (this._renderPromise === renderPromise) this._renderPromise = null
+      if (this._renderPromise === renderPromise) {
+        this._renderPromise = null
+        // undo what this render attached, so a retry does not orphan it
+        this._detachHost()
+      }
     })
     return renderPromise
+  }
+
+  /**
+   * Removes this instance from Apex._chartInstances, by identity: two charts
+   * can share an id, and the id in config can change after registration.
+   */
+  _unregister() {
+    const reg = Apex._chartInstances
+    for (let i = reg ? reg.length : 0; i--; ) {
+      if (reg[i].chart === this) reg.splice(i, 1)
+    }
+  }
+
+  /**
+   * Detaches what render() attached to the page: the window and container
+   * resize hooks, the print hooks and the registry entry.
+   */
+  _detachHost() {
+    if (Environment.isBrowser()) {
+      window.removeEventListener('resize', this.windowResizeHandler)
+      removeResizeListener(
+        /** @type {Element} */ (this.el && this.el.parentNode),
+        this.parentResizeHandler,
+      )
+      window.removeEventListener('beforeprint', this.beforePrintHandler)
+      window.removeEventListener('afterprint', this.afterPrintHandler)
+    }
+    this._unregister()
   }
 
   /**
@@ -898,36 +933,13 @@ export default class ApexCharts {
     }
     // allow a fresh render() on this instance after teardown
     this._renderPromise = null
-    // remove event listeners in browser environment
-    if (Environment.isBrowser()) {
-      window.removeEventListener('resize', this.windowResizeHandler)
-      removeResizeListener(
-        /** @type {Element} */ (this.el.parentNode),
-        this.parentResizeHandler,
-      )
-      // cancel any pending resize redraw so a queued update() can't run against
-      // a torn-down chart after destroy(). See react-apexcharts#602.
-      clearTimeout(this.w.globals.resizeTimer ?? undefined)
-      clearTimeout(this._parentResizeWaiter ?? undefined)
-      this._parentResizeWaiter = null
-      window.removeEventListener('beforeprint', this.beforePrintHandler)
-      window.removeEventListener('afterprint', this.afterPrintHandler)
-    }
-    // remove the chart's instance from the global Apex._chartInstances
-    const chartID = this.w.config.chart.id
-    if (chartID && Array.isArray(Apex._chartInstances)) {
-      /**
-       * @param {Record<string, any>} c
-       * @param {number} i
-       */
-      Apex._chartInstances.forEach(
-        (/** @type {any} */ c, /** @type {any} */ i) => {
-          if (c.id === Utils.escapeString(chartID)) {
-            Apex._chartInstances.splice(i, 1)
-          }
-        },
-      )
-    }
+    // remove event listeners and the Apex._chartInstances entry
+    this._detachHost()
+    // cancel any pending resize redraw so a queued update() can't run against
+    // a torn-down chart after destroy(). See react-apexcharts#602.
+    clearTimeout(this.w.globals.resizeTimer ?? undefined)
+    clearTimeout(this._parentResizeWaiter ?? undefined)
+    this._parentResizeWaiter = null
     if (this._keyboardNavigation) {
       this._keyboardNavigation.destroy()
     }
@@ -1927,14 +1939,15 @@ export default class ApexCharts {
   static exec(chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
     if (!chart) return
+    if (chart.publicMethods.indexOf(fn) === -1) return null
 
-    // turn on the global exec flag to indicate this method was called
-    chart.w.globals.isExecCalled = true
-
-    let ret = null
-    if (chart.publicMethods.indexOf(fn) !== -1) {
-      ret = /** @type {any} */ (chart)[fn](...opts)
-    }
+    // turn on the global exec flag to indicate this method was called.
+    // updateOptions reads it synchronously; any other method never does, so
+    // it is cleared on the way out or the next grouped update skips the group.
+    const gl = chart.w.globals
+    gl.isExecCalled = true
+    const ret = /** @type {any} */ (chart)[fn](...opts)
+    gl.isExecCalled = false
     return ret
   }
 

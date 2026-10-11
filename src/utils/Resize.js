@@ -46,6 +46,10 @@ export function addResizeListener(el, fn) {
     ro.observe(el)
   }
 
+  // One observer per callback: a second add (a retried render) would
+  // otherwise orphan the first, which nothing could disconnect again.
+  const old = ros.get(fn)
+  if (old) old.disconnect()
   ros.set(fn, ro)
 }
 
