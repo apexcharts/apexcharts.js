@@ -2,6 +2,7 @@
 import ApexCharts from '../apexcharts.js'
 import { BrowserAPIs } from './BrowserAPIs.js'
 import { Environment } from '../utils/Environment.js'
+import { SSRRenderShim } from './RenderShim.js'
 
 /**
  * SSRRenderer - Server-Side Rendering API for ApexCharts
@@ -29,7 +30,7 @@ export class SSRRenderer {
   static async renderToString(options, ssrOptions = {}) {
     // Initialize BrowserAPIs shim if in SSR
     if (Environment.isSSR()) {
-      BrowserAPIs.init()
+      BrowserAPIs.init(new SSRRenderShim())
     }
 
     const { width = 400, height = 300, scale = 1 } = ssrOptions

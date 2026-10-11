@@ -437,23 +437,6 @@ describe('SSRDOMShim', () => {
       expect(parser.parseFromString).toBeDefined()
     })
 
-    it('should return null for querySelector', () => {
-      expect(shim.querySelector('.test')).toBe(null)
-    })
-
-    it('should return empty array for querySelectorAll', () => {
-      const result = shim.querySelectorAll('.test')
-
-      expect(Array.isArray(result)).toBe(true)
-      expect(result.length).toBe(0)
-    })
-
-    it('should return empty object for getComputedStyle', () => {
-      const styles = shim.getComputedStyle()
-
-      expect(styles).toEqual({})
-    })
-
     it('should return default rect for getBoundingClientRect', () => {
       const rect = shim.getBoundingClientRect()
 

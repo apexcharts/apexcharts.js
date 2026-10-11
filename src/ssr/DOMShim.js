@@ -135,7 +135,12 @@ class SSRElement {
   }
 
   cloneNode(deep = false) {
-    const clone = new SSRElement(this.nodeName, this.namespaceURI)
+    // The constructor, not SSRElement: a clone keeps the subclass the SSR
+    // renderer creates its elements from.
+    const clone = new /** @type {typeof SSRElement} */ (this.constructor)(
+      this.nodeName,
+      this.namespaceURI,
+    )
     clone._text = this._text
     clone._rawHTML = this._rawHTML
 
@@ -341,11 +346,6 @@ class SSRClassList {
  * Main DOM shim class
  */
 export class SSRDOMShim {
-  constructor() {
-    this.SVGNS = 'http://www.w3.org/2000/svg'
-    this.XLINKNS = 'http://www.w3.org/1999/xlink'
-  }
-
   /**
    * Create SVG element with namespace
    * @param {string} namespaceURI - Namespace URI
@@ -371,30 +371,6 @@ export class SSRDOMShim {
       },
     }
     return node
-  }
-
-  /**
-   * Query selector (returns null in SSR)
-   * @returns {null}
-   */
-  querySelector() {
-    return null
-  }
-
-  /**
-   * Query selector all (returns empty array in SSR)
-   * @returns {any[]}
-   */
-  querySelectorAll() {
-    return []
-  }
-
-  /**
-   * Get computed style (returns empty object in SSR)
-   * @returns {object}
-   */
-  getComputedStyle() {
-    return {}
   }
 
   /**

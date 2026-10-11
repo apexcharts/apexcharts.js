@@ -21,10 +21,12 @@ export class BrowserAPIs {
   /**
    * Initialize the SSR shim if in SSR environment
    * Must be called before using other methods
+   * @param {SSRDOMShim} [instance] a fuller shim to draw with from now on
+   *   (renderToString passes its own)
    */
-  static init() {
-    if (Environment.isSSR() && !shim) {
-      shim = new SSRDOMShim()
+  static init(instance) {
+    if (Environment.isSSR() && (instance || !shim)) {
+      shim = instance || new SSRDOMShim()
     }
   }
 
