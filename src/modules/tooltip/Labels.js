@@ -158,7 +158,7 @@ export default class Labels {
         val = this.formatYValue(f, tIndex, j)
         goalVals = this.formatGoalVals(f, tIndex, j)
       } else {
-        pColor = this.resolvePatternColor(e, pColor)
+        pColor = this.resolvePatternColor(e, pColor, i)
         val = this.formatYValue(f, i, j)
         goalVals = this.formatGoalVals(f, i, j)
       }
@@ -277,11 +277,18 @@ export default class Labels {
    * return the raw fill attribute or the fallback.
    * @param {any} e
    * @param {string} fallback
+   * @param {number} i  the hovered series
    */
-  resolvePatternColor(e, fallback) {
+  resolvePatternColor(e, fallback, i) {
     const w = this.w
-    const targetFill = Utils.hoverTarget(e)?.getAttribute?.('fill')
-    if (!targetFill) return fallback
+    const target = Utils.hoverTarget(e)
+    // Only the hovered series' own mark speaks for its colour: a sticky
+    // tooltip's pointer is often over the plot, another series, or a line
+    // stroke whose fill is "none".
+    if (target?.getAttribute?.('index') !== String(i)) return fallback
+    const targetFill = target.getAttribute('fill')
+    if (!targetFill || targetFill === 'none' || targetFill === 'transparent')
+      return fallback
     if (targetFill.indexOf('url') === -1) return targetFill
     if (targetFill.indexOf('Pattern') === -1) return fallback
     const patternEl = w.dom.baseEl.querySelector(

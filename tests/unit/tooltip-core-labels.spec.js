@@ -483,3 +483,43 @@ describe('tooltip.hideEmptySeries', () => {
     expect(rows[0]).toEqual({ text: '', marker: 'none' })
   })
 })
+
+describe('non-shared tooltip marker colour', () => {
+  const svgEl = (attrs) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v))
+    return el
+  }
+  const pColor = (L, target, i = 1) =>
+    L.computeSeriesRow({
+      i,
+      j: 0,
+      tIndex: 0,
+      shared: false,
+      e: { target },
+      basePColor: '#123456',
+    }).pColor
+
+  it('takes the fill of the hovered series own mark only', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [
+        { name: 'a', data: [1, 2, 3] },
+        { name: 'b', data: [3, 2, 1] },
+      ],
+      tooltip: { shared: false, intersect: false },
+    })
+    await tick()
+    const L = chart.w.globals.tooltip.tooltipLabels
+    // a line stroke of the hovered series: fill="none"
+    const line = chart.w.dom.baseEl.querySelector('path.apexcharts-line[index="1"]')
+    expect(line.getAttribute('fill')).toBe('none')
+    expect(pColor(L, line)).toBe('#123456')
+    // the plot itself, and another series' mark
+    expect(pColor(L, chart.w.dom.Paper.node)).toBe('#123456')
+    expect(pColor(L, svgEl({ index: '0', fill: '#abcdef' }))).toBe('#123456')
+    // the hovered series' own mark keeps its per-point colour
+    expect(pColor(L, svgEl({ index: '1', fill: '#abcdef' }))).toBe('#abcdef')
+    chart.destroy()
+  })
+})
