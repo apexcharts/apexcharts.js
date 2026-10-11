@@ -1884,6 +1884,18 @@ export default class Data {
     // changes: a boxPlot whose data is now precomputed has no sample either.
     this.w.seriesObservations = null
 
+    // A combo's raw boxPlot or violin series is summarised under its own type:
+    // the chart type below picks one transform, and with another chart type
+    // the series drew nothing. Each transform skips series of other types.
+    if (Array.isArray(ser)) {
+      for (const t in RAW_SAMPLE_TYPES) {
+        if (t !== name && ser.some((s) => s?.type === t)) {
+          const f = getSeriesTransform(t)
+          ser = f ? f(ser, this.w) : this._withoutStats(ser, t)
+        }
+      }
+    }
+
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
     if (Array.isArray(ser) && name in RAW_SAMPLE_TYPES) {

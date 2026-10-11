@@ -553,4 +553,54 @@ describe('combo series are judged by their own type', () => {
     })
     expect(chart.w.config.series[1].data[0].y.density).toEqual(density)
   })
+
+  // The chart type picks one transform. A raw boxPlot or violin series in a
+  // combo of another type is summarised under its own type.
+  const rawCombo = (type) =>
+    createChartWithOptions({
+      chart: { type: 'line', width: 600, height: 400 },
+      series: [
+        {
+          name: 'S',
+          type,
+          data: [
+            { x: 'G1', points: [10, 12, 15, 30, 31, 44, 50, 52] },
+            { x: 'G2', points: [20, 22, 25, 26, 41, 44] },
+          ],
+        },
+        {
+          name: 'L',
+          type: 'line',
+          data: [
+            { x: 'G1', y: 20 },
+            { x: 'G2', y: 30 },
+          ],
+        },
+      ],
+    })
+
+  test('a raw boxPlot series in a line chart gets its summary', () => {
+    const chart = rawCombo('boxPlot')
+    expect(chart.w.config.series[0].data[0].y).toEqual(
+      fiveNumberSummary([10, 12, 15, 30, 31, 44, 50, 52]).summary,
+    )
+    expect(chart.w.config.series[1].data[0].y).toBe(20)
+  })
+
+  test('a raw violin series in a line chart gets its density', () => {
+    const chart = rawCombo('violin')
+    expect(chart.w.config.series[0].data[0].y.density.length).toBeGreaterThan(0)
+  })
+
+  test('without the feature, a raw boxPlot series in a line chart warns', () => {
+    unregisterSeriesTransform('boxPlot')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      rawCombo('boxPlot')
+      expect(warnings(warn).length).toBe(1)
+    } finally {
+      registerSeriesTransform('boxPlot', boxPlotTransform)
+      warn.mockRestore()
+    }
+  })
 })
