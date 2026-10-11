@@ -267,12 +267,11 @@ export default class UpdateHelpers {
 
           if (overwriteInitialConfig) {
             // we need to forget the lastXAxis and lastYAxis as user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
-            w.globals.lastXAxis = options.xaxis
-              ? Utils.clone(options.xaxis)
-              : []
-            w.globals.lastYAxis = options.yaxis
-              ? Utils.clone(options.yaxis)
-              : []
+            // Only for an axis the payload names: emptying the other one let
+            // the next updateSeries() write `undefined` over its bounds, so an
+            // unrelated updateOptions({ title }) dropped a fixed window.
+            if (options.xaxis) w.globals.lastXAxis = Utils.clone(options.xaxis)
+            if (options.yaxis) w.globals.lastYAxis = Utils.clone(options.yaxis)
 
             // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
             // Two traps here. Utils.extend() copies arrays by reference, so
