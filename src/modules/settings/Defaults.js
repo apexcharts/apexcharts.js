@@ -423,6 +423,10 @@ export default class Defaults {
    * @param {Record<string, any>} [options] this update's payload
    */
   static handOverTypeDefaults(config, fromType, options) {
+    // Every update can reach a combination construction settles, whether or
+    // not it changes the type.
+    Defaults.reconcile(config, true)
+
     const toType = config.chart.requestedType || config.chart.type
     if (!fromType || fromType === toType) return
 
@@ -461,6 +465,79 @@ export default class Defaults {
       const toDefault = key in toY ? toY[key] : baseY[key]
       for (const axis of config.yaxis || []) {
         if (axis && axis[key] === fromDefault) axis[key] = toDefault
+      }
+    }
+  }
+
+  /**
+   * Settle the option combinations the renderers do not support. Runs on a new
+   * chart's config and again after every updateOptions, which reaches the same
+   * combinations. The two it cannot settle throw on a new chart, and only warn
+   * on an update: the config is merged by then, and a throw would leave the
+   * chart half updated.
+   *
+   * @param {Record<string, any>} config the merged config, mutated in place
+   * @param {boolean} [isUpdate]
+   */
+  static reconcile(config, isUpdate) {
+    const refuse = (/** @type {string} */ message) => {
+      if (!isUpdate) throw new Error(message)
+      console.warn(message)
+    }
+    // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
+    if (config.tooltip.shared && config.tooltip.intersect) {
+      refuse(
+        'tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.',
+      )
+    }
+
+    if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
+      // No multiple yaxis for bars
+      if (config.yaxis.length > 1) {
+        refuse(
+          'Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false',
+        )
+      }
+
+      // if yaxis is reversed in horizontal bar chart, you should draw the y-axis on right side
+      if (config.yaxis[0].reversed) {
+        config.yaxis[0].opposite = true
+      }
+
+      config.xaxis.tooltip.enabled = false // no xaxis tooltip for horizontal bar
+      config.yaxis[0].tooltip.enabled = false // no xaxis tooltip for horizontal bar
+      config.chart.zoom.enabled = false // no zooming for horz bars
+    }
+
+    if (config.chart.type === 'bar' || config.chart.type === 'rangeBar') {
+      if (config.tooltip.shared) {
+        if (
+          config.xaxis.crosshairs.width === 'barWidth' &&
+          config.series.length > 1
+        ) {
+          config.xaxis.crosshairs.width = 'tickWidth'
+        }
+      }
+    }
+
+    if (
+      config.chart.type === 'candlestick' ||
+      config.chart.type === 'boxPlot'
+    ) {
+      if (config.yaxis[0].reversed) {
+        console.warn(
+          `Reversed y-axis in ${config.chart.type} chart is not supported.`,
+        )
+        config.yaxis[0].reversed = false
+      }
+      // Only the box plot has a horizontal form. A horizontal candlestick
+      // drew its boxes at garbage positions.
+      if (
+        config.chart.type === 'candlestick' &&
+        config.plotOptions.bar.horizontal
+      ) {
+        console.warn('Horizontal candlestick chart is not supported.')
+        config.plotOptions.bar.horizontal = false
       }
     }
   }

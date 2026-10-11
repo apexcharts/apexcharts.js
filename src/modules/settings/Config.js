@@ -154,7 +154,7 @@ export default class Config {
     Config.normalizeAxisBounds(config)
 
     // some features are not supported. those mismatches should be handled
-    config = this.handleUserInputErrors(config)
+    Defaults.reconcile(config)
 
     return config
   }
@@ -517,62 +517,6 @@ export default class Config {
         opts.theme.palette = 'palette4'
       }
     }
-  }
-
-  /**
-   * @param {any} opts
-   */
-  handleUserInputErrors(opts) {
-    const config = opts
-    // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
-    if (config.tooltip.shared && config.tooltip.intersect) {
-      throw new Error(
-        'tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.',
-      )
-    }
-
-    if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
-      // No multiple yaxis for bars
-      if (config.yaxis.length > 1) {
-        throw new Error(
-          'Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false',
-        )
-      }
-
-      // if yaxis is reversed in horizontal bar chart, you should draw the y-axis on right side
-      if (config.yaxis[0].reversed) {
-        config.yaxis[0].opposite = true
-      }
-
-      config.xaxis.tooltip.enabled = false // no xaxis tooltip for horizontal bar
-      config.yaxis[0].tooltip.enabled = false // no xaxis tooltip for horizontal bar
-      config.chart.zoom.enabled = false // no zooming for horz bars
-    }
-
-    if (config.chart.type === 'bar' || config.chart.type === 'rangeBar') {
-      if (config.tooltip.shared) {
-        if (
-          config.xaxis.crosshairs.width === 'barWidth' &&
-          config.series.length > 1
-        ) {
-          config.xaxis.crosshairs.width = 'tickWidth'
-        }
-      }
-    }
-
-    if (
-      config.chart.type === 'candlestick' ||
-      config.chart.type === 'boxPlot'
-    ) {
-      if (config.yaxis[0].reversed) {
-        console.warn(
-          `Reversed y-axis in ${config.chart.type} chart is not supported.`,
-        )
-        config.yaxis[0].reversed = false
-      }
-    }
-
-    return config
   }
 
   /**

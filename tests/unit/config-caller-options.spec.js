@@ -120,3 +120,52 @@ describe('window.Apex.yaxis', () => {
     expect(chart.w.config.yaxis[0].tickAmount).toBe(4)
   })
 })
+
+describe('unsupported combinations', () => {
+  it('turning a bar horizontal by update turns zoom off, as construction does', async () => {
+    const chart = new ApexCharts(host('z1'), {
+      chart: {
+        type: 'bar',
+        zoom: { enabled: true },
+        animations: { enabled: false },
+      },
+      series: [{ data: [1, 2, 3] }],
+      xaxis: { categories: ['a', 'b', 'c'] },
+    })
+    await chart.render()
+    await chart.updateOptions({ plotOptions: { bar: { horizontal: true } } })
+    expect(chart.w.config.chart.zoom.enabled).toBe(false)
+  })
+
+  it('shared plus intersect throws on a new chart and only warns on an update', async () => {
+    const opts = {
+      chart: { ...LINE },
+      series: [{ data: [1, 2, 3] }],
+    }
+    expect(
+      () =>
+        new ApexCharts(host('t1'), {
+          ...opts,
+          tooltip: { shared: true, intersect: true },
+        }),
+    ).toThrow(/tooltip.shared/)
+    const chart = new ApexCharts(host('t2'), opts)
+    await chart.render()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await chart.updateOptions({ tooltip: { shared: true, intersect: true } })
+    expect(warn.mock.calls.join(' ')).toMatch(/tooltip.shared/)
+    warn.mockRestore()
+  })
+
+  it('a horizontal candlestick is drawn vertical, with a warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const chart = new ApexCharts(host('c1'), {
+      chart: { type: 'candlestick', animations: { enabled: false } },
+      plotOptions: { bar: { horizontal: true } },
+      series: [{ data: [{ x: 1, y: [1, 3, 0, 2] }] }],
+    })
+    expect(chart.w.config.plotOptions.bar.horizontal).toBe(false)
+    expect(warn.mock.calls.join(' ')).toMatch(/candlestick/)
+    warn.mockRestore()
+  })
+})
