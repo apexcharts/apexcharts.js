@@ -1047,6 +1047,11 @@ export default class Core {
       return
     }
 
+    // Only pie and radial publish a radius. A full-circle sunburst, an icicle
+    // or a unit chart lays out inside the height it was given, and fitting it
+    // to a radius of 0 collapsed it to a 15px strip.
+    if (!(w.globals.radialSize > 0)) return
+
     const newHeight = Math.ceil(
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY,
     )
