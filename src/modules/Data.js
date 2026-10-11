@@ -921,6 +921,14 @@ export default class Data {
           serL.push(vals[2])
           serC.push(vals[3])
         }
+      } else {
+        // A gap keeps its slot: these arrays are read by data-point index, so
+        // compacting them drew every later candle with its neighbour's values.
+        serO.push(null)
+        serH.push(null)
+        serM.push(null)
+        serL.push(null)
+        serC.push(null)
       }
       const pts = data[j] && /** @type {any} */ (data[j]).points
       serPoints.push(Array.isArray(pts) ? pts : [])
