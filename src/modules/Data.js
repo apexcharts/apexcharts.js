@@ -29,6 +29,12 @@ const RAW_SAMPLE_TYPES = /** @type {Record<string, boolean>} */ ({
   violin: true,
 })
 
+/**
+ * A timeline row's key: its x, with a multi-line (array) label joined.
+ * @param {any} x
+ */
+const rowKey = (x) => (Array.isArray(x) ? x.join(' ') : x)
+
 /** What a null entry in a series' data array parses as: a gap. */
 const NULL_POINT = /** @type {any} */ ({ y: null })
 const NULL_ROW = /** @type {any[]} */ ([undefined, null])
@@ -797,18 +803,22 @@ export default class Data {
     /** @type {any[]} */
     const uniqueKeys = []
 
-    // unique keys map
+    // unique keys map. A row is keyed by its label as drawn: a multi-line
+    // (array) x is a new array on every datum, so it is keyed by its joined
+    // text, the form RangeBar looks a row up by. `label` keeps the x as given.
     /**
      * @param {Record<string, any>} item
      */
     ser[i].data.forEach((/** @type {any} */ item) => {
-      if (!uniqueKeysMap.has(item.x)) {
+      const key = rowKey(item.x)
+      if (!uniqueKeysMap.has(key)) {
         const keyObj = {
-          x: item.x,
+          x: key,
+          label: item.x,
           overlaps: new Set(),
           y: [],
         }
-        uniqueKeysMap.set(item.x, keyObj)
+        uniqueKeysMap.set(key, keyObj)
         uniqueKeys.push(keyObj)
       }
     })
@@ -844,7 +854,7 @@ export default class Data {
         if (!gl.seriesRangeName[i]) gl.seriesRangeName[i] = {}
         gl.seriesRangeName[i][j] = id
 
-        const keyObj = uniqueKeysMap.get(x)
+        const keyObj = uniqueKeysMap.get(rowKey(x))
         if (keyObj) {
           keyObj.y.push(y)
         }
@@ -1459,16 +1469,19 @@ export default class Data {
       )
 
       if (this.w.rangeData.seriesRange.length) {
-        /**
-         * @param {Array<Record<string, any>>} srt
-         */
-        this.w.rangeData.seriesRange.map((srt) => {
+        // Add the rows only other series name. On a copy: labels[0] is also
+        // seriesX[0], which maps the first series' points to their x.
+        const labels = this.w.labelData.labels.slice()
+        const seen = new Set(labels.map(rowKey))
+        this.w.rangeData.seriesRange.forEach((srt) => {
           srt.forEach((/** @type {any} */ sr) => {
-            if (this.w.labelData.labels.indexOf(sr.x) < 0 && sr.x) {
-              this.w.labelData.labels.push(sr.x)
+            if (sr.x != null && !seen.has(sr.x)) {
+              seen.add(sr.x)
+              labels.push(sr.label)
             }
           })
         })
+        this.w.labelData.labels = labels
         // remove duplicate x-axis labels
         const _labels = this.w.labelData.labels
         if (
