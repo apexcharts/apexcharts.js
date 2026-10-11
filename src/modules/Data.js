@@ -147,8 +147,11 @@ export default class Data {
   // Helper to get the first valid data point from the active series
   getFirstDataPoint() {
     const series = this.w.config.series
-    const sr = new Series(this.w)
-    this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+    // Constant for a parse, so parseDataAxisCharts pins it for its loop, which
+    // asks three or four times per series (O(S^2) on a many-series chart).
+    if (!this._pinActive) {
+      this.activeSeriesIndex = new Series(this.w).getActiveConfigSeriesIndex()
+    }
     const activeItem = /** @type {any} */ (series[this.activeSeriesIndex])
 
     if (
@@ -1054,6 +1057,9 @@ export default class Data {
       }
     }
 
+    this._pinActive = false
+    this.getFirstDataPoint()
+    this._pinActive = true
     for (let i = 0; i < ser.length; i++) {
       this.twoDSeries = []
       this.twoDSeriesX = []
@@ -1217,6 +1223,7 @@ export default class Data {
         this.w.seriesData.seriesColors.push(/** @type {any} */ (undefined))
       }
     }
+    this._pinActive = false
 
     return this.w
   }
