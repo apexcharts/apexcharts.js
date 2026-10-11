@@ -172,9 +172,16 @@ class Radial extends Pie {
         const ticksNode = elTicks.node
         ticksNode.style.opacity = '0'
         ticksNode.style.transition = 'opacity 280ms ease-out'
-        const sweepDur = w.config.chart.animations.speed || 800
+        // The sweep ends with the last ring's stagger plus its run, or with
+        // the needle when that takes longer.
+        const motion = isNeedleShape && this.needleMotion()
+        const sweepDur = Math.max(
+          (this.animBeginArr[series.length - 1] || 0) +
+            w.config.chart.animations.speed,
+          motion ? motion.speed : 0,
+        )
         setTimeout(() => {
-          ticksNode.style.opacity = '1'
+          if (!w.globals.isDestroyed) ticksNode.style.opacity = '1'
         }, sweepDur)
       }
       elSeries.add(elTicks)
@@ -928,15 +935,22 @@ class Radial extends Pie {
     const targetAngle = this._angleAtValue(value)
 
     // Cache the previous angle on the chart instance so updateSeries can
-    // tween from it. First update after mount tweens from `startAngle`.
+    // tween from it. A mount, or a redraw replaying it, sweeps from
+    // `startAngle` like the value arc.
     const ctx = /** @type {any} */ (this.ctx)
+    const motion = this.needleMotion()
     const fromAngle =
-      typeof ctx._lastNeedleAngle === 'number'
+      Number.isFinite(ctx._lastNeedleAngle) && !motion?.mount
         ? ctx._lastNeedleAngle
         : this.startAngle
     ctx._lastNeedleAngle = targetAngle
 
-    const motion = this.needleMotion()
+    // A previous render's needle tween may still be running; stop it on every
+    // path, or it keeps turning the old (now detached) needle.
+    if (w.globals.radialNeedleRAF != null) {
+      BrowserAPIs.cancelAnimationFrame(w.globals.radialNeedleRAF)
+      w.globals.radialNeedleRAF = null
+    }
 
     if (motion && fromAngle !== targetAngle) {
       const { speed, ease } = motion
@@ -944,13 +958,6 @@ class Radial extends Pie {
       node.setAttribute('transform-origin', `${cx} ${cy}`)
       node.setAttribute('transform', `rotate(${fromAngle})`)
 
-      // A previous render's needle tween may still be scheduled; cancel it so
-      // we don't animate the old (now detached) needle alongside this one on a
-      // rapid update.
-      if (w.globals.radialNeedleRAF != null) {
-        BrowserAPIs.cancelAnimationFrame(w.globals.radialNeedleRAF)
-        w.globals.radialNeedleRAF = null
-      }
       const startAt = performance.now()
       /** @param {number} now */
       const step = (now) => {
@@ -1021,7 +1028,7 @@ class Radial extends Pie {
    * instrument-like). With no `needle.animation.duration` it keeps the value
    * arc's clock for the phase.
    *
-   * @returns {{speed: number, ease: (t: number) => number} | null}
+   * @returns {{speed: number, mount: boolean, ease: (t: number) => number} | null}
    */
   needleMotion() {
     const w = this.w
@@ -1048,6 +1055,7 @@ class Radial extends Pie {
     const c3 = c1 + 1
     return {
       speed,
+      mount: isInitialMount,
       ease: isInitialMount
         ? (/** @type {number} */ t) =>
             1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
