@@ -492,7 +492,8 @@ export default class Animations {
    */
   animationCompleted(el) {
     const w = this.w
-    if (w.globals.animationEnded) return
+    // A runner cannot be cancelled, so a morph can land after destroy().
+    if (w.globals.animationEnded || w.globals.isDestroyed) return
 
     w.globals.animationEnded = true
     this.showDelayedElements()
@@ -810,12 +811,16 @@ export default class Animations {
 
         this.showDelayedElements()
 
-        if (batch) {
-          batch.pending--
-          if (batch.pending <= 0 && batch.onDone) {
+        if (batch && --batch.pending <= 0) {
+          if (batch.onDone) {
             const done = batch.onDone
             batch.onDone = null
             done()
+          }
+          // The last morph of this render has landed: the rules above miss
+          // some shapes (one category has no penultimate point).
+          if (batch === w.globals.morphBatch && w.globals.shouldAnimate) {
+            this.animationCompleted(el)
           }
         }
         landed()
