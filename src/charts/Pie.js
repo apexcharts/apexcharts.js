@@ -1787,9 +1787,12 @@ class Pie {
     dataLabelsGroup.node.style.opacity = opts.opacity
 
     const x = opts.centerX
-    const y = !this.donutDataLabels.total.label
-      ? opts.centerY - opts.centerY / 6
-      : opts.centerY
+    const y = opts.centerY
+    // An empty total label blanks the name on every pass (see printInnerLabels),
+    // so its row is dropped and the value takes the centre, as with name.show
+    // false. Lifting by a share of centerY drifted with the container height.
+    const nameRow =
+      dataLabelsConfig.name.show && !!this.donutDataLabels.total.label
 
     let labelColor, valueColor
 
@@ -1852,7 +1855,7 @@ class Pie {
     }
 
     if (dataLabelsConfig.value.show) {
-      const valOffset = dataLabelsConfig.name.show
+      const valOffset = nameRow
         ? parseFloat(dataLabelsConfig.value.offsetY) + 16
         : dataLabelsConfig.value.offsetY
 

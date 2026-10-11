@@ -458,6 +458,23 @@ describe('Donut chart', () => {
         expect(valueLabel).toBeNull()
       }
     })
+
+    it('centres the value by the text, not the container, when total.label is empty', () => {
+      const valueLift = (height) => {
+        const chart = donutChart({
+          chart: { width: 400, height },
+          donut: {
+            labels: { show: true, total: { show: true, label: '' } },
+          },
+        })
+        const value = chart.el.querySelector('.apexcharts-datalabel-value')
+        return Number(value.getAttribute('y')) - chart.w.layout.gridHeight / 2
+      }
+      // The empty name row is dropped, so the value sits at value.offsetY from
+      // the centre in a short card and in a tall one alike.
+      expect(valueLift(400)).toBe(10)
+      expect(valueLift(1200)).toBe(10)
+    })
   })
 })
 
