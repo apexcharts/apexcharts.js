@@ -166,6 +166,37 @@ describe('raincloud — transform', () => {
     expect(minmaxHigh).not.toBe(tukeyHigh)
   })
 
+  test('box.whiskers still re-derives after resetSeries', async () => {
+    const chart = raincloudChart()
+    const tukeyHigh = chart.w.violinData.seriesViolinSummary[0][0][4]
+    await chart.resetSeries()
+    await chart.updateOptions({
+      plotOptions: { violin: { box: { whiskers: 'minmax' } } },
+    })
+    expect(chart.w.violinData.seriesViolinSummary[0][0][4]).toBe(140)
+    expect(tukeyHigh).not.toBe(140)
+  })
+
+  test('a hand-supplied summary is drawn as given; only the density is derived', async () => {
+    const summary = [0, 1, 2, 3, 4]
+    const pts = skewed(30, 7)
+    const chart = raincloudChart({
+      series: [
+        { name: 'A', data: [{ x: 'G1', points: pts, y: { summary, note: 'n' } }] },
+      ],
+    })
+    const vd = chart.w.violinData
+    expect(vd.seriesViolinSummary[0][0]).toEqual(summary)
+    expect(vd.seriesViolinDensity[0][0].values.length).toBeGreaterThan(10)
+    expect(chart.w.config.series[0].data[0].y.note).toBe('n')
+    // and a kde change re-derives the density, never the summary
+    await chart.updateOptions({
+      plotOptions: { violin: { kde: { resolution: 24 } } },
+    })
+    expect(chart.w.violinData.seriesViolinDensity[0][0].values.length).toBe(24)
+    expect(chart.w.violinData.seriesViolinSummary[0][0]).toEqual(summary)
+  })
+
   test('a hand-supplied summary and density pass through untouched', () => {
     const summary = [0, 1, 2, 3, 4]
     const chart = raincloudChart({

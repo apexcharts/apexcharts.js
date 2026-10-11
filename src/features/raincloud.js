@@ -49,27 +49,12 @@
 import ApexCharts from '../apexcharts'
 import { registerSeriesTransform } from '../modules/SeriesTransformRegistry'
 import {
+  derivedStats,
   fiveNumberSummary,
+  isDerived,
   kernelDensity,
   observationsOf,
 } from '../charts/common/Stats'
-
-/**
- * Datum objects whose density AND summary this feature computed. Same
- * contract as the stats feature's WeakSet: parseData writes the transform's
- * output back to `config.series`, so without the marker a second pass would
- * freeze the statistic at whatever the first render produced, and
- * `updateOptions({plotOptions: {violin: {kde | box.whiskers}}})` could never
- * re-derive it. Entries die with the datum.
- */
-const derivedData = new WeakSet()
-
-/**
- * Datum objects where the user precomputed the density and only the SUMMARY
- * is ours. Tracked separately so a re-parse re-derives just the summary and
- * never clobbers the hand-supplied density with a KDE of the points.
- */
-const derivedSummaryOnly = new WeakSet()
 
 /**
  * raincloud transform: derive the density (cloud) and five-number summary
@@ -86,48 +71,61 @@ function raincloudTransform(ser, w) {
   const violinCfg = w.config.plotOptions?.violin || {}
   const kde = violinCfg.kde || {}
   const whiskers = violinCfg.box?.whiskers || 'minmax'
+  // What this transform wrote last pass, per statistic: each is derived or
+  // given on its own, so a kde change never touches a hand-supplied summary
+  // and a whisker change never touches a hand-supplied density.
+  const ourDensity = derivedStats(w, 'raincloudDensity')
+  const ourSummary = derivedStats(w, 'raincloudSummary')
 
-  return ser.map((/** @type {any} */ s) => {
-    if (!Array.isArray(s?.data)) return s
+  return ser.map((/** @type {any} */ s, /** @type {number} */ i) => {
+    // A combo's other series are not samples: a boxPlot's or a rangeArea's
+    // `y` is a flat number array too.
+    if (
+      !Array.isArray(s?.data) ||
+      (s.type && s.type !== 'raincloud' && s.type !== 'violin')
+    ) {
+      return s
+    }
     let touched = false
-    const data = s.data.map((/** @type {any} */ d) => {
-      const hasDensity =
-        Array.isArray(d?.y?.density) && d.y.density.length > 0
-      const hasSummary = Array.isArray(d?.y?.summary) && d.y.summary.length === 5
-
-      // A hand-supplied density is never recomputed: derive at most the
-      // missing summary from the sample (if one is attached).
-      if (hasDensity && !derivedData.has(d)) {
-        if (hasSummary && !derivedSummaryOnly.has(d)) return d
-        const values = observationsOf(d, false)
-        if (!values) return d
-        const summary = fiveNumberSummary(values, { whiskers })
-        if (!summary) return d
-        touched = true
-        const next = { ...d, y: { ...d.y, summary: summary.summary } }
-        derivedSummaryOnly.add(next)
-        return next
-      }
+    const data = s.data.map((/** @type {any} */ d, /** @type {number} */ j) => {
+      const key = i + ':' + j
+      const y =
+        d?.y && typeof d.y === 'object' && !Array.isArray(d.y) ? d.y : {}
+      const needDensity =
+        !Array.isArray(y.density) ||
+        !y.density.length ||
+        isDerived(ourDensity, key, y.density)
+      const needSummary =
+        !Array.isArray(y.summary) ||
+        y.summary.length !== 5 ||
+        isDerived(ourSummary, key, y.summary)
+      if (!needDensity && !needSummary) return d
 
       const values = observationsOf(d, true)
       if (!values) return d
-      const est = kernelDensity(values, {
-        bandwidth: kde.bandwidth,
-        resolution: kde.resolution,
-      })
-      if (!est) return d
-      const summary = fiveNumberSummary(values, { whiskers })
-      touched = true
-      const next = {
-        ...d,
-        y: {
-          density: est.density,
-          points: values,
-          ...(summary ? { summary: summary.summary } : {}),
-        },
+      // The sample rides in `y.points` (the rain) only when the cloud is ours,
+      // as before: beside a hand-supplied density the datum keeps its own.
+      const out = { ...y }
+      if (needDensity) {
+        const est = kernelDensity(values, {
+          bandwidth: kde.bandwidth,
+          resolution: kde.resolution,
+        })
+        // no density, no cloud: leave the datum as it came
+        if (!est) return d
+        out.density = est.density
+        out.points = values
+        ourDensity.set(key, est.density)
       }
-      derivedData.add(next)
-      return next
+      if (needSummary) {
+        const est = fiveNumberSummary(values, { whiskers })
+        if (est) {
+          out.summary = est.summary
+          ourSummary.set(key, est.summary)
+        }
+      }
+      touched = true
+      return { ...d, y: out }
     })
     return touched ? { ...s, data } : s
   })
