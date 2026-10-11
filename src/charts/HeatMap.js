@@ -69,7 +69,22 @@ export default class HeatMap {
       this.xRatio > 0
     let binPx = xDivision
     if (isContinuousX) {
-      const diff = w.globals.minXDiff
+      let diff = w.globals.minXDiff
+      // With no series holding two x values, minXDiff is a 0.5 sentinel (half
+      // a millisecond on a datetime axis). Take the gap between the series'
+      // lone x values instead. A single column has none, and its axis is
+      // padded two units either side, so it takes one unit, as bars do.
+      if (!series.some((/** @type {any[]} */ s) => s.length > 1)) {
+        const xs = w.seriesData.seriesX
+          .map((s) => s && s[0])
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b)
+        diff = Infinity
+        for (let k = 1; k < xs.length; k++) {
+          if (xs[k] > xs[k - 1]) diff = Math.min(diff, xs[k] - xs[k - 1])
+        }
+        if (diff === Infinity) diff = (w.globals.maxX - w.globals.minX) / 4
+      }
       binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision
     }
 
