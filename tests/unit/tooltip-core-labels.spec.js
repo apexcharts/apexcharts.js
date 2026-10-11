@@ -332,3 +332,49 @@ describe('legend.tooltipHoverFormatter', () => {
     chart.destroy()
   })
 })
+
+describe('custom tooltip y1/y2 on a sticky rangeArea', () => {
+  const y1y2 = async (series, xaxis) => {
+    const chart = createChartWithOptions({
+      chart: { type: 'rangeArea', width: 400, height: 300 },
+      series,
+      xaxis,
+      tooltip: { custom: () => '<div></div>' },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    const texts = vi
+      .spyOn(tt.tooltipLabels, 'drawSeriesTexts')
+      .mockImplementation(() => {})
+    vi.spyOn(tt.tooltipPosition, 'moveMarkers').mockImplementation(() => {})
+    vi.spyOn(tt.tooltipPosition, 'moveDynamicPointOnHover').mockImplementation(
+      () => {},
+    )
+    tt.create({ type: 'mousemove' }, tt, 0, 1, tt.ttItems, false)
+    const { y1, y2 } = texts.mock.calls[0][0]
+    chart.destroy()
+    return [y1, y2]
+  }
+
+  it('reads the datum range for 2D-array input', async () => {
+    const got = await y1y2(
+      [{ name: 'a', data: [[1, [1, 5]], [2, [2, 6]], [3, [3, 7]]] }],
+      { type: 'numeric' },
+    )
+    expect(got).toEqual([2, 6])
+  })
+
+  it('reads the datum range when an x repeats', async () => {
+    const got = await y1y2([
+      {
+        name: 'a',
+        data: [
+          { x: 'p', y: [1, 5] },
+          { x: 'p', y: [2, 6] },
+          { x: 'q', y: [3, 7] },
+        ],
+      },
+    ])
+    expect(got).toEqual([2, 6])
+  })
+})

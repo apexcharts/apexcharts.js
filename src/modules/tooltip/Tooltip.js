@@ -2120,19 +2120,17 @@ export default class Tooltip {
       this.applyLegendHoverText(capturedSeries, j, shared)
     }
 
-    const _rangeData = /** @type {any} */ (w.rangeData)
+    // The datum's own range. `seriesRange` is a table per unique x, so its
+    // j-th row is another point's whenever an x repeats, and 2D-array input
+    // leaves it without y1/y2 at all.
+    const y1 = w.rangeData.seriesRangeStart?.[capturedSeries]?.[j]
+    const y2 = w.rangeData.seriesRangeEnd?.[capturedSeries]?.[j]
     const commonSeriesTextsParams = {
       ttItems,
       i: capturedSeries,
       j,
-      ...(_rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1 !==
-        undefined && {
-        y1: _rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1,
-      }),
-      ...(_rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2 !==
-        undefined && {
-        y2: _rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2,
-      }),
+      ...(y1 !== undefined && { y1 }),
+      ...(y2 !== undefined && { y2 }),
     }
     if (shared) {
       ttCtx.tooltipLabels.drawSeriesTexts({
