@@ -84,6 +84,8 @@ function isRawSample(d, name, flatY) {
 
 /**
  * Total of the values under a datum, for a partition branch that omits its own.
+ * Reads the `value` alias and clamps each child at 0, as the hierarchy
+ * resolver's `fillValues` does, so the legend reports what the rings draw.
  *
  * Private to this module on purpose: `Data.js` is a shared module, so a named
  * export here resolves to undefined inside the split bundles and only a full
@@ -94,10 +96,12 @@ function isRawSample(d, name, flatY) {
  */
 function subtreeTotal(d) {
   if (!d || typeof d !== 'object') return Utils.parseNumber(d) || 0
-  if (d.y !== undefined) return Utils.parseNumber(d.y) || 0
+  const v = d.y ?? d.value
+  if (v != null) return Utils.parseNumber(v) || 0
   if (!Array.isArray(d.children)) return 0
   return d.children.reduce(
-    (/** @type {number} */ s, /** @type {any} */ c) => s + subtreeTotal(c),
+    (/** @type {number} */ s, /** @type {any} */ c) =>
+      s + Math.max(0, subtreeTotal(c)),
     0,
   )
 }
@@ -1419,13 +1423,14 @@ export default class Data {
        */
       serie.data.forEach((/** @type {any} */ dataPoint) => {
         if (typeof dataPoint === 'object' && dataPoint !== null) {
-          if (dataPoint.x !== undefined && dataPoint.y !== undefined) {
-            labels.push(String(dataPoint.x))
-            values.push(Utils.parseNumber(dataPoint.y))
-          } else if (
-            dataPoint.x !== undefined &&
-            Array.isArray(dataPoint.children)
-          ) {
+          // `name` and `value` are the hierarchy node's aliases of x and y,
+          // which the partition charts' tree resolver reads too.
+          const x = dataPoint.x !== undefined ? dataPoint.x : dataPoint.name
+          const y = dataPoint.y !== undefined ? dataPoint.y : dataPoint.value
+          if (x !== undefined && y !== undefined) {
+            labels.push(String(x))
+            values.push(Utils.parseNumber(y))
+          } else if (x !== undefined && Array.isArray(dataPoint.children)) {
             // A partition chart (sunburst, icicle) may leave a branch's own
             // value out and let it be the sum of its children. The hierarchy
             // resolver does exactly that in `fillValues`, but that runs long
@@ -1433,7 +1438,7 @@ export default class Data {
             // an EMPTY series, which makes the renderer bail before it ever
             // builds the tree: a blank chart and a warning about pie data.
             // So roll the subtree up now, which is the same number.
-            labels.push(String(dataPoint.x))
+            labels.push(String(x))
             values.push(subtreeTotal(dataPoint))
           } else {
             console.warn(
