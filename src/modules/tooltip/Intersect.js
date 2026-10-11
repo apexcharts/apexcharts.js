@@ -17,13 +17,7 @@ class Intersect {
    */
   constructor(tooltipContext) {
     this.w = tooltipContext.w
-    const w = this.w
     this.ttCtx = tooltipContext
-
-    this.isVerticalGroupedRangeBar =
-      !w.globals.isBarHorizontal &&
-      w.config.chart.type === 'rangeBar' &&
-      w.config.plotOptions.bar.rangeBarGroupRows
   }
 
   // a helper function to get an element's attribute value
@@ -876,7 +870,12 @@ class Intersect {
         if (w.axisFlags.isXNumeric) {
           x = cx - bw / 2
         } else {
-          if (this.isVerticalGroupedRangeBar) {
+          // Read per hover: this instance outlives every updateOptions.
+          if (
+            !w.globals.isBarHorizontal &&
+            w.config.chart.type === 'rangeBar' &&
+            w.config.plotOptions.bar.rangeBarGroupRows
+          ) {
             x = cx + bw / 2
           } else {
             x = cx - ttCtx.dataPointsDividedWidth + bw / 2
@@ -898,8 +897,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        y1: y1 != null ? parseInt(y1, 10) : null,
-        y2: y2 != null ? parseInt(y2, 10) : null,
+        y1: y1 != null ? parseFloat(y1) : null,
+        y2: y2 != null ? parseFloat(y2) : null,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
         e,
       })
