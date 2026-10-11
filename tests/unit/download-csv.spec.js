@@ -304,11 +304,11 @@ describe('Export Csv', () => {
       series: [
         {
           name: 'series1',
-          data: [['2000-01-01T00:00:00.000', 1]],
+          data: [['2000-01-01T00:00:00.000Z', 1]],
         },
         {
           name: 'series2',
-          data: [['2000-01-02T00:00:00.000', 1]],
+          data: [['2000-01-02T00:00:00.000Z', 1]],
         },
       ],
       xaxis: {
@@ -340,7 +340,7 @@ describe('Export Csv', () => {
           name: 'series1',
           data: [
             {
-              x: '2000-01-01T00:00:00.000',
+              x: '2000-01-01T00:00:00.000Z',
               y: 1,
             },
           ],
@@ -349,7 +349,7 @@ describe('Export Csv', () => {
           name: 'series2',
           data: [
             {
-              x: '2000-01-02T00:00:00.000',
+              x: '2000-01-02T00:00:00.000Z',
               y: 1,
             },
           ],
@@ -398,7 +398,7 @@ describe('Export Csv', () => {
       },
       xaxis: {
         type: 'datetime',
-        categories: ['2018-09-19T00:00:00.000', '2018-09-19T01:30:00.000'],
+        categories: ['2018-09-19T00:00:00.000Z', '2018-09-19T01:30:00.000Z'],
       },
       tooltip: {
         x: {
@@ -408,8 +408,8 @@ describe('Export Csv', () => {
     }
     const csvData =
       'category,series1,series2\n' +
-      'Wed Sep 19 2018,31,11\n' +
-      'Wed Sep 19 2018,40,32'
+      '2018-09-19 00:00:00,31,11\n' +
+      '2018-09-19 01:30:00,40,32'
     const chart = createChartWithOptions(options)
     const exports = new Exports(chart.ctx.w, chart.ctx)
     vi.spyOn(Exports.prototype, 'triggerDownload')
@@ -445,7 +445,7 @@ describe('Export Csv', () => {
       },
       xaxis: {
         type: 'datetime',
-        categories: ['2018-09-19T00:00:00.000', '2018-09-19T01:30:00.000'],
+        categories: ['2018-09-19T00:00:00.000Z', '2018-09-19T01:30:00.000Z'],
       },
       tooltip: {
         x: {
@@ -455,8 +455,8 @@ describe('Export Csv', () => {
     }
     const csvData =
       'category,series1,series2\n' +
-      'Wed Sep 19 2018,,11\n' +
-      'Wed Sep 19 2018,,32'
+      '2018-09-19 00:00:00,,11\n' +
+      '2018-09-19 01:30:00,,32'
     const chart = createChartWithOptions(options)
     chart.w.globals.collapsedSeriesIndices = [0]
     const exports = new Exports(chart.ctx.w, chart.ctx)
@@ -480,7 +480,7 @@ describe('Export Csv', () => {
       },
       series: [
         { name: 'series1', data: [{ x: 'toString', y: 1 }] },
-        { name: 'series2', data: [{ x: '2000-01-02T00:00:00.000', y: 2 }] },
+        { name: 'series2', data: [{ x: '2000-01-02T00:00:00.000Z', y: 2 }] },
       ],
     }
     const csvData =
@@ -507,7 +507,7 @@ describe('Export Csv', () => {
       },
       series: [
         { name: 'series1', data: [{ x: '__proto__', y: 1 }] },
-        { name: 'series2', data: [{ x: '2000-01-02T00:00:00.000', y: 2 }] },
+        { name: 'series2', data: [{ x: '2000-01-02T00:00:00.000Z', y: 2 }] },
       ],
     }
     const chart = createChartWithOptions(options)
@@ -530,15 +530,15 @@ describe('Export Csv', () => {
         {
           name: 'series1',
           data: [
-            { x: new Date('2000-01-01T00:00:00.000'), y: 1 },
-            { x: new Date('2000-01-02T00:00:00.000'), y: 2 },
+            { x: new Date('2000-01-01T00:00:00.000Z'), y: 1 },
+            { x: new Date('2000-01-02T00:00:00.000Z'), y: 2 },
           ],
         },
         {
           name: 'series2',
           data: [
-            { x: new Date('2000-01-02T00:00:00.000'), y: 3 },
-            { x: new Date('2000-01-03T00:00:00.000'), y: 4 },
+            { x: new Date('2000-01-02T00:00:00.000Z'), y: 3 },
+            { x: new Date('2000-01-03T00:00:00.000Z'), y: 4 },
           ],
         },
       ],
@@ -768,5 +768,66 @@ describe('Export Csv: series source, hidden series and gaps', () => {
       ],
     })
     expect(csv).toBe('category,A,B\n1,1,\n2,,2\n3,3,')
+  })
+})
+
+describe('Export Csv: datetime categories', () => {
+  it('keeps the time of day when two points share a day', () => {
+    const t0 = Date.UTC(2026, 9, 10, 9)
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'datetime' },
+      series: [
+        { name: 'A', data: [0, 1, 2, 3].map((h) => ({ x: t0 + h * 3600000, y: h })) },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A\n' +
+        '2026-10-10 09:00:00,0\n' +
+        '2026-10-10 10:00:00,1\n' +
+        '2026-10-10 11:00:00,2\n' +
+        '2026-10-10 12:00:00,3',
+    )
+  })
+
+  it('prints the day in UTC when xaxis.labels.datetimeUTC is on', () => {
+    // 23:30 UTC is the next day east of UTC; the axis shows the UTC day.
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'datetime' },
+      series: [
+        {
+          name: 'A',
+          data: [
+            { x: Date.UTC(2026, 0, 1, 23, 30), y: 1 },
+            { x: Date.UTC(2026, 0, 2, 23, 30), y: 2 },
+          ],
+        },
+      ],
+    })
+    expect(csv).toBe('category,A\nThu Jan 01 2026,1\nFri Jan 02 2026,2')
+  })
+
+  it('prints the local day and time when xaxis.labels.datetimeUTC is off', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'datetime', labels: { datetimeUTC: false } },
+      series: [
+        {
+          name: 'A',
+          data: [
+            { x: new Date(2026, 0, 1).getTime(), y: 1 },
+            { x: new Date(2026, 0, 2).getTime(), y: 2 },
+            { x: new Date(2026, 0, 2, 6, 15).getTime(), y: 3 },
+          ],
+        },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A\n' +
+        '2026-01-01 00:00:00,1\n' +
+        '2026-01-02 00:00:00,2\n' +
+        '2026-01-02 06:15:00,3',
+    )
   })
 })

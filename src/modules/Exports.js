@@ -803,6 +803,7 @@ class Exports {
     /** @type {any[][]} */
     const body = []
     const isDatetime = w.config.xaxis.type === 'datetime'
+    const utc = w.config.xaxis.labels.datetimeUTC
 
     // CSV formula-injection guard: a spreadsheet evaluates a cell that begins
     // with = + - @ (or tab / CR) as a formula, so a category/value from
@@ -821,17 +822,37 @@ class Exports {
       return /^[=+\-@\t\r]/.test(s) && isNaN(+s) ? `'${s}` : s
     }
 
+    /** @param {any} cat */
+    const isDateCat = (cat) =>
+      isDatetime && String(cat).length >= 10 && !isNaN(new Date(cat).getTime())
+
+    // A datetime category in the zone the axis shows: the day, or the time as
+    // well when two categories share a day.
     /**
      * @param {any} cat
+     * @param {boolean} [withTime]
      */
-    const getFormattedCategory = (cat) => {
+    const datetimeText = (cat, withTime) => {
+      const d = new Date(cat)
+      // Move local wall time onto the UTC getters, so one path reads both.
+      if (!utc) d.setTime(d.getTime() - d.getTimezoneOffset() * 60000)
+      if (withTime) {
+        return d.toISOString().slice(0, 23).replace('T', ' ').replace('.000', '')
+      }
+      const [day, date, month, year] = d.toUTCString().split(' ')
+      return `${day.slice(0, 3)} ${month} ${date} ${year}`
+    }
+
+    /**
+     * @param {any} cat
+     * @param {boolean} [withTime]
+     */
+    const getFormattedCategory = (cat, withTime) => {
       if (typeof csvCfg.categoryFormatter === 'function') {
         return csvCfg.categoryFormatter(cat)
       }
       if (cat == null) return ''
-      if (isDatetime && String(cat).length >= 10) {
-        return new Date(cat).toDateString()
-      }
+      if (isDateCat(cat)) return datetimeText(cat, withTime)
       return Utils.isNumber(cat)
         ? cat
         : csvSafe(String(cat).split(columnDelimiter).join(''))
@@ -1034,8 +1055,15 @@ class Exports {
       }
     }
 
+    const dates = body.map((r) => r[0]).filter(isDateCat)
+    const withTime =
+      new Set(dates.map((c) => datetimeText(c))).size < dates.length
     body.forEach((r) =>
-      rows.push([getFormattedCategory(r[0]), ...r.slice(1)].join(columnDelimiter)),
+      rows.push(
+        [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(
+          columnDelimiter,
+        ),
+      ),
     )
 
     this.triggerDownload(
