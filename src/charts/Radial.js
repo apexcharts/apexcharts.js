@@ -419,7 +419,9 @@ class Radial extends Pie {
       let prevEndAngle
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle
-        prevEndAngle = this._arcEnd(w.globals.previousPaths[i])
+        // A ring with no previous value stays NaN: animateArc grows it in.
+        const prev = w.globals.previousPaths[i]
+        prevEndAngle = prev === undefined ? NaN : this._arcEnd(prev)
       }
 
       const angle = endAngle - startAngle
@@ -651,45 +653,60 @@ class Radial extends Pie {
   }
 
   /**
-   * Where a ring's value arc ends for value `v`, in whole degrees: the value
-   * as a fraction of the configured min/max domain (clamped, negatives read
-   * as 0). Defaults (min: 0, max: 100) preserve the historical percentage
-   * behavior; custom domains (e.g. min: 0, max: 240 for a speedometer) make
-   * the filled arc honor the same domain as the needle, ticks, and threshold
-   * bands. An arc that would close on itself stops just short.
+   * The gauge's value domain, `[min, max]`, shared by the arc, needle, ticks
+   * and bands. Defaults (0..100) keep the historical percentage scale; a
+   * degenerate domain widens to one unit.
+   *
+   * @returns {number[]}
+   */
+  _domain() {
+    const rb = this.w.config.plotOptions.radialBar
+    const min = typeof rb.min === 'number' ? rb.min : 0
+    const max = typeof rb.max === 'number' ? rb.max : 100
+    return [min, max === min ? min + 1 : max]
+  }
+
+  /**
+   * Where `v` sits in the domain, 0..1: clamped to `[min, max]`, and a
+   * missing or non-numeric value reads as min.
+   *
+   * @param {any} v
+   * @returns {number}
+   */
+  _fraction(v) {
+    const [min, max] = this._domain()
+    const n = Number(v)
+    return Number.isFinite(n)
+      ? (Math.min(Math.max(n, min), max) - min) / (max - min)
+      : 0
+  }
+
+  /**
+   * Where a ring's value arc ends for value `v`, in whole degrees. An arc
+   * that would close on itself stops just short.
    *
    * @param {any} v
    * @returns {number}
    */
   _arcEnd(v) {
-    const rb = this.w.config.plotOptions.radialBar
-    const min = typeof rb.min === 'number' ? rb.min : 0
-    const max = typeof rb.max === 'number' ? rb.max : 100
-    const f = Math.max(
-      0,
-      (Math.min(Math.max(Utils.negToZero(v), min), max) - min) /
-        (max === min ? 1 : max - min),
-    )
-    const end = Math.round(this.totalAngle * f) + this.startAngle
+    const end =
+      Math.round(this.totalAngle * this._fraction(v)) + this.startAngle
     return Math.abs(end) + Math.abs(this.startAngle) > 360 ? end - 0.01 : end
   }
 
   /**
-   * Map a domain value (between `min` and `max`) to the corresponding angle
-   * in the gauge's `startAngle`..`endAngle` range. Values outside the
-   * domain are clamped.
+   * The angle of value `value` on the dial. Like the value arc and the track,
+   * the dial always runs clockwise from `startAngle`, whichever of
+   * startAngle and endAngle is larger.
    *
-   * @param {number} value
+   * @param {any} value
    * @returns {number}
    */
   _angleAtValue(value) {
-    const rb = this.w.config.plotOptions.radialBar
-    const min = typeof rb.min === 'number' ? rb.min : 0
-    const max = typeof rb.max === 'number' ? rb.max : 100
-    const safeMax = max === min ? min + 1 : max
-    const clamped = Math.max(min, Math.min(safeMax, Number(value)))
-    const t = (clamped - min) / (safeMax - min)
-    return this.startAngle + t * (this.endAngle - this.startAngle)
+    return (
+      this.startAngle +
+      this._fraction(value) * Math.abs(this.endAngle - this.startAngle)
+    )
   }
 
   /**
@@ -786,8 +803,7 @@ class Radial extends Pie {
     const strokeWidth = this.getStrokeWidth(opts)
     const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin
 
-    const min = typeof rb.min === 'number' ? rb.min : 0
-    const max = typeof rb.max === 'number' ? rb.max : 100
+    const [min, max] = this._domain()
 
     const majorCount = Math.max(2, ticks.major?.count ?? 11)
     const minorCount = Math.max(0, ticks.minor?.count ?? 0)
