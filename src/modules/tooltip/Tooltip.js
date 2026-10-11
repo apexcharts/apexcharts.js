@@ -370,7 +370,11 @@ export default class Tooltip {
       )
     }
     if (w.config.tooltip.cssClass) {
-      tooltipEl.classList.add(w.config.tooltip.cssClass)
+      // A space-separated list is a valid class attribute, but classList.add
+      // throws on a token with whitespace in it.
+      tooltipEl.classList.add(
+        ...String(w.config.tooltip.cssClass).split(/\s+/).filter(Boolean),
+      )
     }
     tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme || 'light'}`)
 
