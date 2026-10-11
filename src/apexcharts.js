@@ -41,7 +41,10 @@ import {
 } from './modules/RowSourceRegistry'
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
-import { applyAxisTransition } from './modules/animations/AxisTransition'
+import {
+  applyAxisTransition,
+  landChromeTweens,
+} from './modules/animations/AxisTransition'
 import { applyCircleTransition } from './modules/animations/CircleTransition'
 import {
   applyDataLabelTransition,
@@ -1803,7 +1806,10 @@ export default class ApexCharts {
         // second, so sliding every tick label on top of it buys nothing visible
         // and the extra per-frame DOM writes show up as velocity jitter in the
         // scroll itself.
+        // A scroll still lands any earlier plot ease: its chrome is drawn at
+        // the final layout, so the plot must not keep easing under it.
         if (!gl.streamScrolled) applyAxisTransition(w)
+        else landChromeTweens(w)
         applyDataLabelTransition(w)
         playExitLabels(w)
 
