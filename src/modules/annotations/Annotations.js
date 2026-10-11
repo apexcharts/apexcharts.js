@@ -183,6 +183,11 @@ export default class Annotations {
 
     const w = this.w
 
+    // An appendTo that matches nothing in this chart skips the text rather
+    // than throwing out of the render.
+    const parent = w.dom.baseEl.querySelector(appendTo)
+    if (!parent) return
+
     const elText = this.graphics.drawText({
       x,
       y,
@@ -192,13 +197,10 @@ export default class Annotations {
       fontWeight: fontWeight || 'regular',
       fontFamily: fontFamily || w.config.chart.fontFamily,
       foreColor: foreColor || w.config.chart.foreColor,
-      cssClass: 'apexcharts-text ' + cssClass ? cssClass : '',
+      cssClass: cssClass || '',
     })
 
-    const parent = w.dom.baseEl.querySelector(appendTo)
-    if (parent) {
-      parent.appendChild(elText.node)
-    }
+    parent.appendChild(elText.node)
 
     const textRect = elText.bbox()
 
@@ -310,7 +312,12 @@ export default class Annotations {
     const me = context
     const w = me.w
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`)
-    const index = parent.childNodes.length + 1
+    // Config annotations take their array index as rel, and the label is
+    // found again by rel below, so a runtime rel must start past them.
+    // Every drawn annotation adds a child, so later ones stay unique.
+    const index =
+      (w.config.annotations[type === 'point' ? 'points' : type]?.length || 0) +
+      parent.childNodes.length
 
     const options = new Options()
     const axesAnno = Object.assign(
@@ -419,15 +426,11 @@ export default class Annotations {
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`)
 
     if (annos) {
-      /**
-       * @param {Record<string, any>} m
-       * @param {number} i
-       */
-      w.globals.memory.methodsToExec.map((m, i) => {
-        if (m.id === id) {
-          w.globals.memory.methodsToExec.splice(i, 1)
-        }
-      })
+      // filter(), not a forward splice: that skipped every other entry of a
+      // shared id, and the next render replayed the survivors.
+      w.globals.memory.methodsToExec = w.globals.memory.methodsToExec.filter(
+        (m) => m.id !== id,
+      )
 
       Object.keys(w.config.annotations).forEach((key) => {
         const annotationArray = w.config.annotations[key]
