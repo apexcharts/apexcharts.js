@@ -56,18 +56,6 @@ describe('Annotations', () => {
       const annoCtx = new Annotations(chart.w)
       expect(annoCtx.inversedReversedAxis).toBe(true)
     })
-
-    it('should calculate xDivision correctly', () => {
-      chart = createChartWithOptions({
-        chart: { type: 'line' },
-        series: [{ data: [10, 20, 30, 40, 50] }],
-      })
-
-      const annoCtx = new Annotations(chart.w)
-      const { gridWidth, dataPoints } = chart.getState()
-      const expectedXDivision = gridWidth / dataPoints
-      expect(annoCtx.xDivision).toBe(expectedXDivision)
-    })
   })
 
   describe('drawAxesAnnotations', () => {

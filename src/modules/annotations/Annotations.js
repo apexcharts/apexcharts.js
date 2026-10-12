@@ -40,8 +40,6 @@ export default class Annotations {
     if (this.w.globals.isBarHorizontal && this.w.config.yaxis[0].reversed) {
       this.inversedReversedAxis = true
     }
-
-    this.xDivision = this.w.layout.gridWidth / this.w.globals.dataPoints
   }
 
   drawAxesAnnotations() {

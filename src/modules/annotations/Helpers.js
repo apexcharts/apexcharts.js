@@ -188,8 +188,8 @@ export default class Helpers {
 
   /**
    * Does the x position take the category branch of `getX1X2` (a label lookup)
-   * rather than projecting through a numeric domain? Mirrors the conditions
-   * applied there, so the two cannot drift apart.
+   * rather than projecting through a numeric domain? `getX1X2` and
+   * `hasXDomain` both ask this, so the two cannot drift apart.
    *
    * @returns {boolean}
    */
@@ -367,15 +367,8 @@ export default class Helpers {
       ? (max - x) / (range / w.layout.gridWidth)
       : (x - min) / (range / w.layout.gridWidth)
 
-    if (
-      (w.config.xaxis.type === 'category' ||
-        w.config.xaxis.convertedCatToNumeric) &&
-      !this.annoCtx.invertAxis &&
-      !w.axisFlags.dataFormatXNumeric
-    ) {
-      if (!w.config.chart.sparkline.enabled) {
-        xP = this.getStringX(x)
-      }
+    if (this.usesCategoryX()) {
+      xP = this.getStringX(x)
     }
 
     if (typeof x === 'string' && x.includes('px')) {
