@@ -317,12 +317,14 @@ export function trimStreamingSeries(newSeries, w) {
   const maxPoints = cfg.maxPoints
   const range = w.config.xaxis.range
 
+  // A datetime x may come as a Date or a date string, which the parser turns
+  // into a timestamp; reading only numbers left those streams unbounded.
+  const dt = w.config.xaxis.type === 'datetime'
   /** @param {any} p @returns {number | null} */
   const xOf = (p) => {
-    if (p == null) return null
-    if (Array.isArray(p)) return typeof p[0] === 'number' ? p[0] : null
-    if (typeof p === 'object') return typeof p.x === 'number' ? p.x : null
-    return null
+    const x = Array.isArray(p) ? p[0] : p && p.x
+    const v = dt && x != null ? new Date(x).getTime() : x
+    return typeof v === 'number' && v === v ? v : null
   }
 
   newSeries.forEach((s) => {
