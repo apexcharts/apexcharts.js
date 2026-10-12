@@ -3009,7 +3009,11 @@ export default class ApexCharts {
     const w = this.w
     // ?? mirrors the Options default, for a config that dropped the object
     const printWidth = w.config.chart.print?.width ?? 700
-    this._printRestore = { width: w.config.chart.width }
+    // The user's width, not a breakpoint's: restoring the breakpoint's would
+    // hand it to the config the chart returns to once the breakpoint is left.
+    this._printRestore = {
+      width: this.responsive.withoutBreakpoints(w.config).chart.width,
+    }
 
     if (
       typeof printWidth === 'number' &&

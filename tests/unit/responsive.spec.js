@@ -547,3 +547,281 @@ describe('Responsive (integration)', () => {
     expect(svg).toBeTruthy()
   })
 })
+
+// ---------------------------------------------------------------------------
+// #5347: leaving a breakpoint removes its options and nothing else. Every
+// step re-renders a real chart the way the library does: a resize redraw is
+// `update()` with no options, which is the path that regressed in 5.10.4.
+// ---------------------------------------------------------------------------
+
+describe('Responsive breakpoint round trips (#5347)', () => {
+  let chart
+  const originalWidth = window.innerWidth
+
+  afterEach(async () => {
+    if (chart) {
+      chart.destroy()
+      chart = null
+    }
+    document.body.innerHTML = ''
+    setViewportWidth(originalWidth)
+  })
+
+  const resize = async (width) => {
+    setViewportWidth(width)
+    await chart.update()
+  }
+
+  const legendClass = () => {
+    const el = document.querySelector('.apexcharts-legend')
+    const cls = el && [...el.classList].find((c) => c.startsWith('apx-legend-position-'))
+    return cls && cls.replace('apx-legend-position-', '')
+  }
+
+  const donut = (extra = {}) => ({
+    chart: { type: 'donut', ...(extra.chart || {}) },
+    series: [23, 42],
+    labels: ['A', 'B'],
+    legend: { position: 'right' },
+    responsive: [
+      { breakpoint: 1024, options: { legend: { position: 'bottom' } } },
+    ],
+    ...extra,
+  })
+
+  it('A: resizing out of a breakpoint restores the base options', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(donut())
+    expect(chart.w.config.legend.position).toBe('right')
+
+    await resize(800)
+    expect(chart.w.config.legend.position).toBe('bottom')
+    expect(legendClass()).toBe('bottom')
+
+    await resize(1200)
+    expect(chart.w.config.legend.position).toBe('right')
+    expect(legendClass()).toBe('right')
+  })
+
+  it('B: an updateOptions() inside a breakpoint survives leaving it, without the breakpoint', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(donut())
+
+    await resize(800)
+    await chart.updateOptions({ title: { text: 'Narrow' } })
+    expect(chart.w.config.legend.position).toBe('bottom')
+    expect(chart.w.config.title.text).toBe('Narrow')
+    expect(chart.w.globals.initialConfig.legend.position).toBe('right')
+    expect(chart.w.globals.initialConfig.title.text).toBe('Narrow')
+
+    await resize(1200)
+    expect(chart.w.config.legend.position).toBe('right')
+    expect(chart.w.config.title.text).toBe('Narrow')
+  })
+
+  it('C: an updateOptions() outside any breakpoint survives a round trip', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(donut())
+
+    await chart.updateOptions({ title: { text: 'Wide' } })
+    await resize(800)
+    expect(chart.w.config.legend.position).toBe('bottom')
+    await resize(1200)
+    expect(chart.w.config.legend.position).toBe('right')
+    expect(chart.w.config.title.text).toBe('Wide')
+  })
+
+  it('D: crossing a breakpoint through updateOptions() alone applies and removes it', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(
+      donut({
+        chart: {
+          type: 'donut',
+          redrawOnWindowResize: false,
+          redrawOnParentResize: false,
+        },
+      }),
+    )
+
+    setViewportWidth(800)
+    await chart.updateOptions({ title: { text: 'One' } })
+    expect(chart.w.config.legend.position).toBe('bottom')
+
+    setViewportWidth(1200)
+    await chart.updateOptions({ title: { text: 'Two' } })
+    expect(chart.w.config.legend.position).toBe('right')
+    expect(chart.w.config.title.text).toBe('Two')
+  })
+
+  it('D: the same with overwriteInitialConfig off', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(donut())
+
+    setViewportWidth(800)
+    await chart.updateOptions({ title: { text: 'One' } }, false, false, false, false)
+    expect(chart.w.config.legend.position).toBe('bottom')
+
+    setViewportWidth(1200)
+    await chart.updateOptions({ title: { text: 'Two' } }, false, false, false, false)
+    expect(chart.w.config.legend.position).toBe('right')
+    expect(chart.w.config.title.text).toBe('Two')
+  })
+
+  it('E: moving into a larger breakpoint removes what only the smaller one set', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(
+      donut({
+        responsive: [
+          { breakpoint: 1024, options: { legend: { position: 'bottom' } } },
+          { breakpoint: 600, options: { dataLabels: { enabled: false } } },
+        ],
+      }),
+    )
+    expect(chart.w.config.dataLabels.enabled).toBe(true)
+
+    await resize(500)
+    expect(chart.w.config.dataLabels.enabled).toBe(false)
+    expect(chart.w.config.legend.position).toBe('bottom')
+
+    await resize(800)
+    expect(chart.w.config.dataLabels.enabled).toBe(true)
+    expect(chart.w.config.legend.position).toBe('bottom')
+
+    await resize(1200)
+    expect(chart.w.config.dataLabels.enabled).toBe(true)
+    expect(chart.w.config.legend.position).toBe('right')
+  })
+
+  it('a payload on a path the breakpoint sets loses to it while narrow and wins once wide', async () => {
+    setViewportWidth(800)
+    chart = createChartWithOptions(donut())
+    expect(chart.w.config.legend.position).toBe('bottom')
+
+    await chart.updateOptions({ legend: { position: 'left' } })
+    expect(chart.w.config.legend.position).toBe('bottom')
+    expect(chart.w.globals.initialConfig.legend.position).toBe('left')
+
+    await resize(1200)
+    expect(chart.w.config.legend.position).toBe('left')
+  })
+
+  it('updateSeries() data survives a round trip (#2265, #3081)', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions(donut())
+
+    await chart.updateSeries([5, 6, 7])
+    await resize(800)
+    expect(chart.w.config.series).toEqual([5, 6, 7])
+    await chart.updateSeries([8, 9])
+    await resize(1200)
+    expect(chart.w.config.series).toEqual([8, 9])
+    expect(chart.w.config.legend.position).toBe('right')
+  })
+
+  it('does no re-derivation while no breakpoint is or was active (#2056)', async () => {
+    setViewportWidth(1440)
+    chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ name: 'A', data: [10, 20, 30] }],
+      responsive: [
+        { breakpoint: 1024, options: { legend: { position: 'bottom' } } },
+      ],
+    })
+    const spy = vi.spyOn(chart.responsive, 'overrideResponsiveOptions')
+
+    await chart.updateSeries([
+      { name: 'A', data: [40, 50, 60] },
+      { name: 'B', data: [70, 80, 90] },
+    ])
+    await resize(1440)
+
+    expect(spy).not.toHaveBeenCalled()
+    expect(chart.w.config.series.length).toBe(2)
+    spy.mockRestore()
+  })
+
+  it('legend-hidden series stay hidden across a round trip', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [
+        { name: 'A', data: [10, 20, 30] },
+        { name: 'B', data: [40, 50, 60] },
+      ],
+      legend: { position: 'right' },
+      responsive: [
+        { breakpoint: 1024, options: { legend: { position: 'bottom' } } },
+      ],
+    })
+
+    chart.hideSeries('B')
+    await resize(800)
+    await resize(1200)
+
+    expect(chart.w.globals.collapsedSeriesIndices).toEqual([1])
+    expect(chart.w.config.legend.position).toBe('right')
+    expect(chart.w.globals.initialConfig.series[1].data).toEqual([40, 50, 60])
+  })
+
+  it('applies a breakpoint on the first render (#4519)', () => {
+    setViewportWidth(800)
+    chart = createChartWithOptions(donut())
+    expect(chart.w.config.legend.position).toBe('bottom')
+    expect(legendClass()).toBe('bottom')
+  })
+
+  it('responsive yaxis merges per axis and is fully removed on leaving (#5211)', async () => {
+    setViewportWidth(1200)
+    chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ name: 'A', data: [10, 20, 30] }],
+      yaxis: [{ min: 0, max: 100, labels: { show: true } }],
+      responsive: [
+        { breakpoint: 1024, options: { yaxis: [{ labels: { show: false } }] } },
+      ],
+    })
+
+    await resize(800)
+    expect(chart.w.config.yaxis[0].labels.show).toBe(false)
+    expect(chart.w.config.yaxis[0].max).toBe(100)
+
+    await resize(1200)
+    expect(chart.w.config.yaxis[0].labels.show).toBe(true)
+    expect(chart.w.config.yaxis[0].max).toBe(100)
+  })
+
+  it('keeps breakpoint axis options out of initialConfig, which zoom reset reads', async () => {
+    setViewportWidth(800)
+    chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ name: 'A', data: [10, 20, 30] }],
+      xaxis: { labels: { show: true } },
+      yaxis: [{ labels: { show: true } }],
+      responsive: [
+        {
+          breakpoint: 1024,
+          options: {
+            xaxis: { labels: { show: false } },
+            yaxis: [{ labels: { show: false } }],
+          },
+        },
+      ],
+    })
+
+    await chart.updateOptions({ title: { text: 'Narrow' } })
+    const ic = chart.w.globals.initialConfig
+    expect(ic.xaxis.labels.show).toBe(true)
+    expect(ic.yaxis[0].labels.show).toBe(true)
+    expect(chart.w.config.xaxis.labels.show).toBe(false)
+    expect(chart.w.config.yaxis[0].labels.show).toBe(false)
+  })
+
+  it('removing the responsive array while a breakpoint is active restores the base', async () => {
+    setViewportWidth(800)
+    chart = createChartWithOptions(donut())
+    expect(chart.w.config.legend.position).toBe('bottom')
+
+    await chart.updateOptions({ responsive: [] })
+    expect(chart.w.config.legend.position).toBe('right')
+  })
+})

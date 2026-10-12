@@ -337,13 +337,18 @@ export default class History {
     } catch (e) {
       seriesSig = null // cyclic/unserialisable: never share
     }
+    // Without the active breakpoint's options: restoring them through
+    // updateOptions() would make them the user's own (#5347).
+    const config = this.ctx.responsive
+      ? this.ctx.responsive.withoutBreakpoints(w.config)
+      : w.config
     let cloned
     if (prev && seriesSig !== null && prev.seriesSig === seriesSig) {
-      const { series: _series, ...rest } = w.config
+      const { series: _series, ...rest } = config
       cloned = Utils.clone(rest)
       cloned.series = prev.config.series
     } else {
-      cloned = Utils.clone(w.config)
+      cloned = Utils.clone(config)
     }
     return { config: cloned, seriesSig }
   }

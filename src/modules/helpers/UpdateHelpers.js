@@ -270,6 +270,9 @@ export default class UpdateHelpers {
           }
 
           w.config = Utils.extend(w.config, options)
+          // A path an active breakpoint also sets keeps the payload's value
+          // for when the breakpoint is left (#5347).
+          ch.responsive?.absorb(options)
 
           // Type defaults are applied once, by Config.init, and this path
           // skips it — so every leaf the OUTGOING type had chosen for itself
@@ -300,9 +303,17 @@ export default class UpdateHelpers {
             // updateOptions() keeps the one it already had.
             const prevInitialSeries =
               w.globals.initialConfig && w.globals.initialConfig.series
+            // Without the active breakpoint's options: a snapshot taken
+            // inside a breakpoint would otherwise restore them for good, on
+            // a zoom reset or once the breakpoint is left (#5347).
             const initialConfig =
               /** @type {NonNullable<typeof w.globals.initialConfig>} */ (
-                Utils.extend({}, w.config)
+                Utils.extend(
+                  {},
+                  ch.responsive
+                    ? ch.responsive.withoutBreakpoints(w.config)
+                    : w.config,
+                )
               )
             initialConfig.series =
               !options.series && prevInitialSeries
