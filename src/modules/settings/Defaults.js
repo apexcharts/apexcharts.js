@@ -111,6 +111,14 @@ const TYPE_OWNED_PATHS = [
 const floorLabel = (val) => (Utils.isNumber(val) ? Math.floor(val) : val)
 
 /**
+ * The base options with a type's defaults laid over them: what a leaf is when
+ * no mode preset has touched it.
+ * @param {Record<string, any>} config
+ */
+const plainFor = (config) =>
+  Utils.extend(new Options().init(), Defaults.forType(config))
+
+/**
  * Read a dotted path out of a config-shaped object.
  * @param {Record<string, any> | undefined} obj
  * @param {string} path
@@ -534,7 +542,7 @@ export default class Defaults {
     const now = !!config.chart.sparkline?.enabled
     if (now === !!was) return
     const d = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] })
-    const plain = Utils.extend(new Options().init(), Defaults.forType(config))
+    const plain = plainFor(config)
     /**
      * @param {Record<string, any>} preset
      * @param {Record<string, any>} target
@@ -567,6 +575,34 @@ export default class Defaults {
   }
 
   /**
+   * @param {Record<string, any>} config
+   */
+  static isHorizontalBar(config) {
+    return config.chart.type === 'bar' && !!config.plotOptions.bar.horizontal
+  }
+
+  /**
+   * Hand back what reconcile switched off for a horizontal bar (zoom and the
+   * x-axis tooltip; the y-axis one is off by default anyway) when an update
+   * turns it vertical or into another type. Same rule as syncSparkline: a
+   * leaf moves only while it still holds the preset's false, and never when
+   * this update names it.
+   *
+   * @param {Record<string, any>} config the merged w.config, mutated in place
+   * @param {boolean} was whether the chart was a horizontal bar before
+   * @param {Record<string, any>} [options] this update's payload
+   */
+  static syncHorizontal(config, was, options) {
+    if (!was || Defaults.isHorizontalBar(config)) return
+    const plain = plainFor(config)
+    for (const p of ['chart.zoom.enabled', 'xaxis.tooltip.enabled']) {
+      if (readPath(options, p) === undefined && readPath(config, p) === false) {
+        writePath(config, p, readPath(plain, p))
+      }
+    }
+  }
+
+  /**
    * Settle the option combinations the renderers do not support. Runs on a new
    * chart's config and again after every updateOptions, which reaches the same
    * combinations. The two it cannot settle throw on a new chart, and only warn
@@ -588,7 +624,7 @@ export default class Defaults {
       )
     }
 
-    if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
+    if (Defaults.isHorizontalBar(config)) {
       // No multiple yaxis for bars
       if (config.yaxis.length > 1) {
         refuse(
