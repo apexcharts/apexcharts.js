@@ -1177,13 +1177,14 @@ export default class Series {
     let equalLen = true
     const w = this.w
 
-    const filteredSerX = w.seriesData.seriesX
+    // every x must match, not just the first; an empty series has none
+    const sx = w.seriesData.seriesX.filter((x) => x?.length)
 
-    for (let i = 0; i < filteredSerX.length - 1; i++) {
-      if (filteredSerX[i][0] !== filteredSerX[i + 1][0]) {
-        equalLen = false
-        break
-      }
+    for (let i = 1; equalLen && i < sx.length; i++) {
+      const a = sx[0]
+      const b = sx[i]
+      const n = a === b ? 0 : Math.min(a.length, b.length)
+      for (let j = 0; equalLen && j < n; j++) equalLen = a[j] === b[j]
     }
 
     w.globals.allSeriesHasEqualX = equalLen

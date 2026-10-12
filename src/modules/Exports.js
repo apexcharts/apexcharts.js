@@ -1066,12 +1066,13 @@ class Exports {
 
         Array.from(byCategory.values())
           .sort((a, b) => {
-            // Numbers and Dates by value (as text 10 sorts before 9), then strings
+            // Numbers and Dates by value (as text 10 sorts before 9), then
+            // strings: as text on a numeric axis, else in data order
             const aText = typeof a.cat === 'string'
             const bText = typeof b.cat === 'string'
             if (aText !== bText) return aText ? 1 : -1
             if (!aText) return a.cat - b.cat
-            return a.cat < b.cat ? -1 : 1
+            return w.axisFlags.isXNumeric ?(a.cat < b.cat ? -1 : 1) : 0
           })
           .forEach(({ cat, values }) => body.push([cat, ...values.flat()]))
       } else {

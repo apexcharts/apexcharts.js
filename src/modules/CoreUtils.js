@@ -446,7 +446,7 @@ class CoreUtils {
        * @param {Record<string, any>} m
        */
       w.config.markers.discrete.forEach((/** @type {any} */ m) => {
-        size = Math.max(size, m.size)
+        size = Math.max(size, m.size || 0)
       })
     }
 

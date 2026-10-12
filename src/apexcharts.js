@@ -1643,6 +1643,7 @@ export default class ApexCharts {
         // (initGlobalVars) reset them. It also reset the layout values the
         // fast path keeps, and _updateSeries put back the ones it does not
         // recompute (barPadForNumericAxis, rotateXLabels).
+        this.series.hasAllSeriesEqualX()
 
         // Recompute axis min/max and scale ranges from new data.
         if (gl.axisCharts) {
