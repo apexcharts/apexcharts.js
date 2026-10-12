@@ -30,7 +30,14 @@ import TooltipUtils from '../tooltip/Utils'
 const CURSOR_PAD = 14
 
 /** Types whose hover divisor counts bins, not points (tooltip/Utils). */
-const BAR_FAMILY = ['bar', 'column', 'rangeBar', 'candlestick', 'boxPlot']
+const BAR_FAMILY = [
+  'bar',
+  'column',
+  'rangeBar',
+  'candlestick',
+  'boxPlot',
+  'violin',
+]
 
 export default class TrellisTooltip {
   /**
@@ -111,13 +118,16 @@ export default class TrellisTooltip {
         return -1
       }
     }
-    const barish = BAR_FAMILY.indexOf(w.config.chart.type) !== -1
-    let j
-    if (barish && !w.config.xaxis.convertedCatToNumeric) {
-      j = Math.ceil(hoverX / (gridWidth / n)) - 1
-    } else {
-      j = Math.round(hoverX / (gridWidth / Math.max(1, n - 1)))
-    }
+    // Bars and `tickPlacement: 'between'` put each point in the middle of
+    // its own slot, so the slot under the pointer wins, not the nearest of
+    // n - 1 gaps.
+    const slotted =
+      (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 ||
+        w.config.xaxis.tickPlacement === 'between') &&
+      !w.config.xaxis.convertedCatToNumeric
+    const j = slotted
+      ? Math.ceil(hoverX / (gridWidth / n)) - 1
+      : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)))
     return Math.max(0, Math.min(n - 1, j))
   }
 
