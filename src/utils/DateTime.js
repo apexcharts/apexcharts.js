@@ -417,7 +417,7 @@ class DateTime {
           if (aligned === s && d.getMilliseconds() === 0) return timestamp
           d.setMilliseconds(0)
           d.setSeconds(aligned)
-          return d.getTime()
+          break
         }
         case 'minute': {
           const m = d.getMinutes()
@@ -431,7 +431,7 @@ class DateTime {
           d.setMilliseconds(0)
           d.setSeconds(0)
           d.setMinutes(aligned)
-          return d.getTime()
+          break
         }
         case 'hour': {
           const h = d.getHours()
@@ -447,7 +447,7 @@ class DateTime {
           d.setSeconds(0)
           d.setMinutes(0)
           d.setHours(aligned)
-          return d.getTime()
+          break
         }
         case 'day': {
           if (
@@ -512,7 +512,13 @@ class DateTime {
         }
       }
     }
-    return timestamp
+    // Only the local sub-day cases above break out here. In the repeated
+    // DST hour the wall-clock time they set is ambiguous and resolves to its
+    // first pass, an hour early: move it to the offset the input had.
+    const r = d.getTime()
+    const shift =
+      new Date(timestamp).getTimezoneOffset() - d.getTimezoneOffset()
+    return r < timestamp ? r + shift * 6e4 : r
   }
 }
 

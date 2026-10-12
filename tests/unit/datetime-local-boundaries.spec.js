@@ -51,3 +51,28 @@ describe('getDate keeps milliseconds', () => {
     if (utc) expect(dt(utc).formatDate(d, 'HH:mm:ss.fff')).toBe('03:04:05.678')
   })
 })
+
+describe('local sub-day boundaries in the repeated DST hour', () => {
+  // New York fell back at 2025-11-02 02:00 EDT, so 01:00-02:00 ran twice.
+  // 06:00Z is 01:00 EST, the second time round.
+  const H = Date.UTC(2025, 10, 2, 6)
+  it.each([
+    ['hour', H + 30 * 6e4, H],
+    ['minute', H + 30 * 6e4 + 15e3, H + 30 * 6e4],
+    ['second', H + 30 * 6e4 + 15e3 + 500, H + 30 * 6e4 + 15e3],
+  ])('%s stays in the second pass, not an hour back', (unit, ts, want) => {
+    process.env.TZ = 'America/New_York'
+    expect(dt().ceilToBoundary(ts, unit, 1, false)).toBe(want)
+  })
+
+  it('leaves the first pass and the spring gap alone', () => {
+    process.env.TZ = 'America/New_York'
+    // 01:30 EDT, the first pass: floors to 01:00 EDT as before
+    expect(dt().ceilToBoundary(H - 30 * 6e4, 'hour', 1, false)).toBe(H - 36e5)
+    // 2025-03-09 01:30 EST with a 2h step: 02:00 does not exist, 03:00 EDT
+    const t = Date.UTC(2025, 2, 9, 6, 30)
+    expect(dt().ceilToBoundary(t, 'hour', 2, false)).toBe(
+      Date.UTC(2025, 2, 9, 7),
+    )
+  })
+})
