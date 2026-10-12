@@ -514,6 +514,90 @@ describe('Weave: scales on a chart laid out in bands', () => {
   })
 })
 
+describe('Weave: scales on a reversed or logarithmic value axis', () => {
+  /**
+   * The facade promises that plugin pixels align with series pixels. A
+   * reversed axis drew the series top-down while scales.y kept mapping
+   * bottom-up, and a log axis drew through the log transform while scales.y
+   * stayed linear, so every overlay landed mirrored or off-scale.
+   *
+   * Asserted against the line the chart itself drew.
+   */
+  const out = {}
+  beforeAll(() => {
+    ApexCharts.registerPlugin({
+      name: 'yprobe',
+      apiVersion: 2,
+      setup(api) {
+        api.on('draw', () => {
+          out.scales = api.scales
+        })
+      },
+    })
+  })
+
+  const values = [10, 20, 300, 40, 5000, 60]
+
+  /** The y of each vertex of series i's line, as the chart drew it. */
+  const lineYs = (chart, i = 0) => {
+    const path = chart.w.dom.baseEl
+      .querySelectorAll('.apexcharts-series')
+      [i].querySelector('path.apexcharts-line')
+    const nums = (path.getAttribute('d').match(/-?\d+\.?\d*(e-?\d+)?/g) || []).map(Number)
+    return nums.filter((_, k) => k % 2 === 1)
+  }
+
+  const chartWith = (yaxis, series = [{ name: 'A', data: values }]) =>
+    createChartWithOptions({
+      chart: { type: 'line', width: 800, height: 300, animations: { enabled: false } },
+      stroke: { curve: 'straight' },
+      series,
+      xaxis: { categories: ['a', 'b', 'c', 'd', 'e', 'f'] },
+      yaxis,
+      plugins: [{ name: 'yprobe' }],
+    })
+
+  const expectAligned = (chart, i = 0, axis = 0, data = values) => {
+    const drawn = lineYs(chart, i)
+    expect(drawn).toHaveLength(data.length)
+    data.forEach((v, j) => {
+      expect(Math.abs(out.scales.y(v, axis) - drawn[j])).toBeLessThan(0.5)
+    })
+  }
+
+  it('matches the series on a plain axis', () => {
+    const chart = chartWith({})
+    expectAligned(chart)
+    chart.destroy()
+  })
+
+  it('flips with a reversed axis', () => {
+    const chart = chartWith({ reversed: true })
+    expectAligned(chart)
+    chart.destroy()
+  })
+
+  it('maps through the log transform on a logarithmic axis', () => {
+    const chart = chartWith({ logarithmic: true })
+    expectAligned(chart)
+    chart.destroy()
+  })
+
+  it('reads the axis a series is drawn on, on a chart with two', () => {
+    const second = [5, 4, 3, 2, 1, 0]
+    const chart = chartWith(
+      [{ seriesName: 'A' }, { seriesName: 'B', opposite: true, reversed: true }],
+      [
+        { name: 'A', data: values },
+        { name: 'B', data: second },
+      ],
+    )
+    expectAligned(chart, 0, 0)
+    expectAligned(chart, 1, 1, second)
+    chart.destroy()
+  })
+})
+
 // ---------------------------------------------------------------------------
 // api.reserve (v3): a plugin asking the chart to make room for its own UI
 // ---------------------------------------------------------------------------

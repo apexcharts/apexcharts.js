@@ -1,6 +1,7 @@
 // @ts-check
 import { getPlugin } from './PluginRegistry'
 import { buildPluginAPI, makeLayerHandle, WEAVE_API_VERSION } from './PluginAPI'
+import CoreUtils from '../CoreUtils'
 import { releaseOwner } from './Claims'
 import {
   addHighlight,
@@ -313,10 +314,30 @@ export default class WeaveHost {
           band * ((rows.has(v) ? /** @type {number} */ (rows.get(v)) : v) + 0.5)
       : (v) => (v - gl.minX) / xRatio
 
+    // The ranges and ratios above are keyed by SERIES, as the renderers read
+    // them, so the axis config behind index `axis` is the one that series is
+    // drawn against. Reading `yaxis[axis]` directly answered for the wrong
+    // axis whenever series and axes do not line up one to one.
+    /** @param {number} axis */
+    const yaxisOf = (axis) => {
+      const k = gl.seriesYAxisReverseMap && gl.seriesYAxisReverseMap[axis]
+      return w.config.yaxis[k != null ? k : axis] || w.config.yaxis[0]
+    }
     /** @param {number} axis */
     const reversed = (axis) => {
-      const ya = w.config.yaxis[axis] || w.config.yaxis[0]
+      const ya = yaxisOf(axis)
       return !!(ya && ya.reversed)
+    }
+    // A log axis is drawn through the log transform, which puts the axis on
+    // 0..1 (niceMin to niceMax), so one unit is the whole grid height.
+    /** @type {CoreUtils|null} */
+    let coreUtils = null
+    /** @type {(v: number, axis: number) => number|null} */
+    const logFraction = (v, axis) => {
+      const ya = yaxisOf(axis)
+      if (!ya || !ya.logarithmic || gl.invalidLogScale) return null
+      if (!coreUtils) coreUtils = new CoreUtils(w)
+      return coreUtils.getLogVal(ya.logBase, v, axis)
     }
     /** @type {(v: number, axis?: number) => number} */
     const y = horizontal
@@ -325,7 +346,17 @@ export default class WeaveHost {
           const px = range ? ((v - minY(axis)) / range) * L.gridWidth : 0
           return reversed(axis) ? L.gridWidth - px : px
         }
-      : (v, axis = 0) => (maxY(axis) - v) / yr(axis)
+      : (v, axis = 0) => {
+          // Top-down from maxY, or from minY on a reversed axis, which is
+          // where the series' own zeroY puts it.
+          const f = logFraction(v, axis)
+          if (f !== null) {
+            return reversed(axis) ? f * L.gridHeight : (1 - f) * L.gridHeight
+          }
+          return reversed(axis)
+            ? (v - minY(axis)) / yr(axis)
+            : (maxY(axis) - v) / yr(axis)
+        }
 
     this._currentScales = {
       x,
