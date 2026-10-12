@@ -1612,36 +1612,11 @@ export default class ApexCharts {
         // Invalidate per-render selector cache (PerformanceCache uses TTL + render invalidation)
         PerformanceCache.invalidateSelectors(w)
 
-        // Reset only axis bounds and caches — preserve already-parsed series data.
-        // (core.resetGlobals() would wipe w.seriesData.series which was parsed in _updateSeries)
-        const gl2 = w.globals
-        gl2.maxY = -Number.MAX_VALUE
-        gl2.minY = Number.MIN_VALUE
-        gl2.minYArr = []
-        gl2.maxYArr = []
-        gl2.maxX = -Number.MAX_VALUE
-        gl2.minX = Number.MAX_VALUE
-        gl2.initialMaxX = -Number.MAX_VALUE
-        gl2.initialMinX = Number.MAX_VALUE
-        gl2.yAxisScale = []
-        gl2.xAxisScale = null
-        gl2.xAxisTicksPositions = []
-        gl2.xRange = 0
-        gl2.yRange = []
-        gl2.zRange = 0
-        gl2.xTickAmount = 0
-        gl2.multiAxisTickAmount = 0
-        gl2.pointsArray = []
-        gl2.barCanvasCoords = null
-        gl2.dataLabelsRects = []
-        gl2.lastDrawnDataLabelsIndexes = []
-        gl2.textRectsCache = new Map()
-        gl2.domCache = new Map()
-        gl2.cachedSelectors = {}
-        gl2.disableZoomIn = false
-        gl2.disableZoomOut = false
-        gl2.fadeRevealEls = []
-        gl2.morphBatch = { pending: 0, onDone: null, series: new Map() }
+        // The per-render bounds and caches are already fresh: _updateSeries
+        // parsed the new data just before this, and parseData's resetGlobals
+        // (initGlobalVars) reset them. It also reset the layout values the
+        // fast path keeps, and _updateSeries put back the ones it does not
+        // recompute (barPadForNumericAxis, rotateXLabels).
 
         // Recompute axis min/max and scale ranges from new data.
         if (gl.axisCharts) {

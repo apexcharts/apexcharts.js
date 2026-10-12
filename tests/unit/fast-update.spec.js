@@ -2,6 +2,38 @@ import { describe, it, expect, vi } from 'vitest'
 import { createChart, createChartWithOptions } from './utils/utils.js'
 
 describe('fastUpdate() — partial updateSeries fast path', () => {
+  it('enters with the per-render state the parse just reset', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: 400, height: 300 },
+      series: [{ data: [1, 2, 3] }],
+      yaxis: { min: 0, max: 100 },
+      dataLabels: { enabled: true },
+    })
+    const gl = chart.w.globals
+    expect(gl.dataLabelsRects.length).toBeGreaterThan(0)
+    /** @type {any} */
+    let seen = null
+    const fast = chart.fastUpdate.bind(chart)
+    vi.spyOn(chart, 'fastUpdate').mockImplementation((...args) => {
+      seen = {
+        pointsArray: gl.pointsArray.length,
+        dataLabelsRects: gl.dataLabelsRects.length,
+        yAxisScale: gl.yAxisScale.length,
+        maxY: gl.maxY,
+      }
+      return fast(...args)
+    })
+    await chart.updateSeries([{ data: [10, 20, 30] }])
+    expect(seen).toEqual({
+      pointsArray: 0,
+      dataLabelsRects: 0,
+      yAxisScale: 0,
+      maxY: -Number.MAX_VALUE,
+    })
+    expect(gl.maxY).toBe(100)
+    chart.destroy()
+  })
+
   it('updates series data without a full SVG rebuild (stable-domain axis chart)', async () => {
     // A fixed y-axis keeps the rendered scale identical across the update, so
     // the pure fast path applies: series repaint only, no axis/grid rebuild and

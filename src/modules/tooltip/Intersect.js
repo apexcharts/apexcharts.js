@@ -324,18 +324,13 @@ class Intersect {
       const cy = parseInt(opt.paths.getAttribute('cy'), 10)
 
       j = parseInt(opt.paths.getAttribute('rel'), 10)
-      i =
-        parseInt(
-          opt.paths.parentNode.parentNode.parentNode.getAttribute('rel'),
-          10,
-        ) - 1
-
-      if (ttCtx.intersect) {
-        const el = Utils.findAncestor(opt.paths, 'apexcharts-series')
-        if (el) {
-          i = parseInt(el.getAttribute('data:realIndex'), 10)
-        }
-      }
+      const el = Utils.findAncestor(opt.paths, 'apexcharts-series')
+      i = el
+        ? parseInt(el.getAttribute('data:realIndex'), 10)
+        : parseInt(
+            opt.paths.parentNode.parentNode.parentNode.getAttribute('rel'),
+            10,
+          ) - 1
 
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
@@ -556,15 +551,6 @@ class Intersect {
     if (TooltipUtils.isFollowCursor(w)) {
       const elGrid = ttCtx.getElGrid()
       if (!elGrid) return
-    }
-
-    // if tooltip is still null, querySelector
-    // (:not() so we don't grab the point-annotation hover tooltip, which
-    // shares the .apexcharts-tooltip class for styling)
-    if (ttCtx.tooltip === null) {
-      ttCtx.tooltip = w.dom.baseEl.querySelector(
-        '.apexcharts-tooltip:not(.apexcharts-annotation-tooltip)',
-      )
     }
 
     if (!w.config.tooltip.shared) {

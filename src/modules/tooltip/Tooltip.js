@@ -80,8 +80,6 @@ export default class Tooltip {
     this.ycrosshairs = null
     /** @type {Element | null} */
     this.ycrosshairsHidden = null
-    /** @type {Element | null} */
-    this.tooltip = null
     /** @type {any} */
     this.e = null
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
