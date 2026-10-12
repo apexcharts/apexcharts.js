@@ -19,7 +19,7 @@ import {
   unregisterRowSource,
   rowSourceFor,
 } from '../../src/modules/RowSourceRegistry'
-import { binCounts, computeBinning, rowsByBin, rowsForBin } from '../../src/charts/common/Stats'
+import { binCounts, binIndexOf, computeBinning, rowsByBin } from '../../src/charts/common/Stats'
 
 /** A deterministic, mildly skewed sample. */
 function sample(n = 200) {
@@ -50,13 +50,13 @@ function totalRows(rowSeries) {
 }
 
 describe('Stats.rowsByBin', () => {
-  it('agrees with rowsForBin bin for bin', () => {
+  it('agrees with a per-bin filter, bin for bin', () => {
     const values = sample(300)
     const b = computeBinning(values, {})
     const all = rowsByBin(values, b.edges)
     expect(all.length).toBe(b.edges.length - 1)
     for (let k = 0; k < all.length; k++) {
-      expect(all[k]).toEqual(rowsForBin(values, b.edges, k))
+      expect(all[k]).toEqual(values.filter((v) => binIndexOf(v, b.edges) === k))
     }
   })
 

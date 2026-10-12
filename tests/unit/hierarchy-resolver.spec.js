@@ -4,7 +4,6 @@ import {
   buildSeriesRoots,
   fillValues,
   hasNesting,
-  eachNode,
 } from '../../src/charts/common/Hierarchy'
 
 // ---------------------------------------------------------------------------
@@ -254,28 +253,5 @@ describe('Hierarchy — treemap helpers', () => {
     expect(hasNesting([{ data: [{ x: 'a', y: 1, children: [] }] }])).toBe(false)
     expect(hasNesting(undefined)).toBe(false)
     expect(hasNesting([{ data: [1, 2, 3] }])).toBe(false)
-  })
-
-  it('eachNode walks depth-first with depth and parent', () => {
-    const w = mkW({
-      series: [
-        {
-          data: [
-            { x: 'P', children: [{ x: 'c1', y: 1 }, { x: 'c2', y: 2 }] },
-            { x: 'Q', y: 3 },
-          ],
-        },
-      ],
-    })
-    const seen = []
-    eachNode(buildHierarchy(w), (n, depth, parent) =>
-      seen.push([n.name, depth, parent ? parent.name : null]),
-    )
-    expect(seen).toEqual([
-      ['P', 0, null],
-      ['c1', 1, 'P'],
-      ['c2', 1, 'P'],
-      ['Q', 0, null],
-    ])
   })
 })

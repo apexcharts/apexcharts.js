@@ -10,7 +10,7 @@ import {
   computeBinning,
   normalizeCounts,
   quantileSorted,
-  rowsForBin,
+  rowsByBin,
 } from '../../src/charts/common/Stats'
 
 // `chart.type: 'histogram'` takes raw observations and bins them into one
@@ -155,23 +155,16 @@ describe('Binning — normalize and cumulative', () => {
   })
 })
 
-describe('Binning — rowsForBin (the aggregate-to-rows hook)', () => {
+describe('Binning — rowsByBin (the aggregate-to-rows hook)', () => {
   test('recovers exactly the observations behind a bar', () => {
     const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     const b = computeBinning(values, { bins: 2 })
-    const first = rowsForBin(values, b.edges, 0)
-    const second = rowsForBin(values, b.edges, 1)
+    const [first, second] = rowsByBin(values, b.edges)
     expect(first.concat(second).sort((x, y) => x - y)).toEqual(values)
     // and the partition matches what the bar heights claimed
     const counts = binCounts(values, b.edges)
     expect(first.length).toBe(counts[0])
     expect(second.length).toBe(counts[1])
-  })
-
-  test('an out-of-range bin index yields no rows rather than throwing', () => {
-    const b = computeBinning([1, 2, 3], { bins: 2 })
-    expect(rowsForBin([1, 2, 3], b.edges, -1)).toEqual([])
-    expect(rowsForBin([1, 2, 3], b.edges, 99)).toEqual([])
   })
 })
 
@@ -211,8 +204,9 @@ describe('histogram chart type', () => {
     // the observations behind it.
     expect(chart.w.globals.histogramRawSeries[0].data).toEqual(values)
     const { edges, counts } = chart.w.histogramData
+    const rows = rowsByBin(values, edges)
     for (let k = 0; k < counts[0].length; k++) {
-      expect(rowsForBin(values, edges, k).length).toBe(counts[0][k])
+      expect(rows[k].length).toBe(counts[0][k])
     }
   })
 

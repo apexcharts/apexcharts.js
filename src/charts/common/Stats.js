@@ -6,7 +6,7 @@
  * state, no config object, so it is testable on its own and safe under SSR.
  *
  * A histogram is the one aggregate mark that knows exactly which rows it
- * stands for, because the binning is what aggregated them. `rowsForBin`
+ * stands for, because the binning is what aggregated them. `rowsByBin`
  * recovers those rows on demand from the same (values, edges) pair the render
  * used, so nothing has to be retained per bar.
  *
@@ -73,36 +73,14 @@ function stdDev(values) {
 }
 
 /**
- * The observations a given bar aggregates.
+ * Every bar's rows at once, as one bucket per bin in bin order.
  *
  * This is the row source an object/aggregate transition needs: a histogram bar
  * can name its rows exactly, without any of them being retained at render
- * time. Recomputed on demand from the same inputs the binning used.
- *
- * @param {number[]} values
- * @param {number[]} edges
- * @param {number} k - bin index
- * @returns {number[]}
- */
-export function rowsForBin(values, edges, k) {
-  /** @type {number[]} */
-  const out = []
-  if (k < 0 || k >= edges.length - 1) return out
-  for (let i = 0; i < values.length; i++) {
-    if (binIndexOf(values[i], edges) === k) out.push(values[i])
-  }
-  return out
-}
-
-/**
- * Every bar's rows at once, as one bucket per bin in bin order.
- *
- * The same answer `rowsForBin` gives, in a single pass. Asking that function
- * for each bin in turn re-walks the whole sample every time, which is O(n·bins)
- * and turns a 50k-observation, 100-bin explode into five million comparisons on
- * the click. Bins with no observations keep their (empty) slot: the caller maps
- * bucket k onto bar k positionally, so a compacted array would silently shift
- * every bar after the first gap.
+ * time. One pass over the sample, recomputed on demand from the same inputs
+ * the binning used. Bins with no observations keep their (empty) slot: the
+ * caller maps bucket k onto bar k positionally, so a compacted array would
+ * silently shift every bar after the first gap.
  *
  * @param {number[]} values
  * @param {number[]} edges

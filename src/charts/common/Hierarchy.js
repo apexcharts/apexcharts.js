@@ -229,25 +229,3 @@ export function morphKey(key) {
   const i = key.indexOf('/')
   return i === -1 ? '' : key.slice(i)
 }
-
-/**
- * Depth-first walk over a root set. `fn` receives `(node, depth, parent)`.
- * @param {any[]} roots
- * @param {(node: any, depth: number, parent: any) => void} fn
- */
-export function eachNode(roots, fn) {
-  /**
-   * @param {any} node
-   * @param {number} depth
-   * @param {any} parent
-   */
-  const walk = (node, depth, parent) => {
-    fn(node, depth, parent)
-    if (node.children) {
-      for (let i = 0; i < node.children.length; i++) {
-        walk(node.children[i], depth + 1, node)
-      }
-    }
-  }
-  for (let i = 0; i < roots.length; i++) walk(roots[i], 0, null)
-}
