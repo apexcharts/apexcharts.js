@@ -25,7 +25,7 @@ plotOptions: {
     ],
     bandsStyle: {
       strokeWidth: '60%',
-      gap: 2,
+      gap: 9,
     },
     hollow: {
       margin: 0,
