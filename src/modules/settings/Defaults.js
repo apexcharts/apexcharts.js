@@ -105,6 +105,12 @@ const TYPE_OWNED_PATHS = [
 ]
 
 /**
+ * The label formatter a converted category axis gets when the page has none.
+ * @param {any} val
+ */
+const floorLabel = (val) => (Utils.isNumber(val) ? Math.floor(val) : val)
+
+/**
  * Read a dotted path out of a config-shaped object.
  * @param {Record<string, any> | undefined} obj
  * @param {string} path
@@ -1959,14 +1965,89 @@ export default class Defaults {
     return opts
   }
 
-  // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
   /**
+   * Whether a category x axis is drawn as numbers, which removes the edge
+   * spacing a line, area or scatter would otherwise get. Not for the types
+   * that draw names along it (a horizontal bar, a heatmap) or have none.
+   *
+   * @param {string} chartType
    * @param {Record<string, any>} opts
+   * @param {Record<string, any>} chartDefaults
+   * @returns {boolean}
    */
-  convertCatToNumeric(opts) {
-    opts.xaxis.convertedCatToNumeric = true
+  static catToNumeric(chartType, opts, chartDefaults) {
+    const isBarHorizontal =
+      (chartType === 'bar' ||
+        chartType === 'boxPlot' ||
+        chartType === 'violin') &&
+      opts.plotOptions?.bar?.horizontal
 
-    return opts
+    const unsupportedZoom =
+      chartType === 'pie' ||
+      chartType === 'polarArea' ||
+      chartType === 'donut' ||
+      chartType === 'radar' ||
+      chartType === 'radialBar' ||
+      chartType === 'heatmap' ||
+      chartType === 'unit' ||
+      chartType === 'sunburst' ||
+      chartType === 'icicle'
+
+    // The type's own axis counts as much as the user's: a histogram asks for a
+    // numeric axis through Defaults.histogram, not by writing it into opts.
+    const xaxisType = opts.xaxis.type ?? chartDefaults.xaxis?.type
+
+    // Scatter jitter (strip plots) owns its own numeric band axis in
+    // Data.expandScatterJitterData, so the auto category→numeric conversion
+    // (and its default floor-based label formatter) must not run for it.
+    const isScatterJitter =
+      (chartType === 'scatter' || chartType === 'bubble') &&
+      opts.plotOptions?.scatter?.jitter?.enabled
+
+    const tickPlacement =
+      opts.xaxis.tickPlacement || chartDefaults.xaxis?.tickPlacement
+    return (
+      !isBarHorizontal &&
+      !unsupportedZoom &&
+      !isScatterJitter &&
+      xaxisType !== 'datetime' &&
+      xaxisType !== 'numeric' &&
+      tickPlacement !== 'between'
+    )
+  }
+
+  /**
+   * Re-decide the conversion after an update merged into the config: a type
+   * or orientation change can move the chart to the other side of it. When it
+   * turns off, the axis gets back what the conversion took (its names, type,
+   * formatter and tick count); when it turns on, the next render converts.
+   *
+   * @param {Record<string, any>} config the merged w.config, mutated in place
+   * @param {Record<string, any>} [options] this update's payload
+   */
+  static syncCatToNumeric(config, options) {
+    const x = config.xaxis
+    const was = !!x.convertedCatToNumeric
+    // A converted axis reads 'numeric' because the conversion wrote it.
+    let asked = options?.xaxis?.type
+    if (was && asked === 'numeric') asked = undefined
+    const cd = Defaults.forType(config)
+    const now = Defaults.catToNumeric(
+      config.chart.type,
+      { ...config, xaxis: { ...x, type: was ? asked : x.type } },
+      cd,
+    )
+    if (now === was) return
+    x.convertedCatToNumeric = now
+    if (now) return
+    const f = x.labels.formatter
+    const base = f?.baseFormatter || f
+    x.labels.formatter = base === floorLabel ? undefined : base
+    if (f?.categoryNames && !x.categories?.length) x.categories = f.categoryNames
+    x.type = asked || cd.xaxis?.type || 'category'
+    if (x.tickAmount === 'dataPoints' && !options?.xaxis?.tickAmount) {
+      x.tickAmount = undefined
+    }
   }
 
   /**
@@ -1979,14 +2060,7 @@ export default class Defaults {
     // Every parse converts again, and the formatter in the config is by then
     // the wrapper an earlier one installed. Wrapping that grew the chain by one
     // closure per render, so wrap the formatter it wrapped instead.
-    opts.xaxis.labels.formatter =
-      opts.xaxis.labels.formatter ||
-      /**
-       * @param {any} val
-       */
-      function (val) {
-        return Utils.isNumber(val) ? Math.floor(val) : val
-      }
+    opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || floorLabel
     const current = /** @type {any} */ (opts.xaxis.labels.formatter)
     const defaultFormatter = current.baseFormatter || current
     let labels =

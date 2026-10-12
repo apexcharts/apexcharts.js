@@ -236,15 +236,28 @@ describe('the axis an alias picks hands over too (#5343)', () => {
   ]
 
   it.each(['line', 'bar', 'area'])(
-    'a histogram that becomes a %s gets a category x-axis back',
+    'a histogram that becomes a %s gets the x-axis a fresh %s gets',
     async (to) => {
+      const fresh = createChartWithOptions({ chart: { type: to }, series: PLAIN })
+      await new Promise((r) => setTimeout(r, 0))
+      const want = {
+        type: fresh.w.config.xaxis.type,
+        converted: fresh.w.config.xaxis.convertedCatToNumeric,
+      }
+      fresh.destroy()
+
       const chart = createChartWithOptions({
         chart: { type: 'histogram' },
         series: SAMPLE,
       })
       expect(chart.w.config.xaxis.type).toBe('numeric')
       await chart.updateOptions({ chart: { type: to }, series: PLAIN })
-      expect(chart.w.config.xaxis.type).toBe('category')
+      // A category line or area is drawn on a converted numeric axis, a bar
+      // on a category one; never the histogram's own numeric axis.
+      expect({
+        type: chart.w.config.xaxis.type,
+        converted: chart.w.config.xaxis.convertedCatToNumeric,
+      }).toEqual(want)
       expect(chart.w.globals.series[0]).toEqual([4, 8, 15])
     },
   )

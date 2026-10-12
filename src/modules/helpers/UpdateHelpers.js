@@ -275,6 +275,7 @@ export default class UpdateHelpers {
           // snapshot below, so a later resetSeries restores the config the
           // chart actually has rather than the stale one.
           Defaults.handOverTypeDefaults(w.config, fromType, options)
+          Defaults.syncCatToNumeric(w.config, options)
 
           if (overwriteInitialConfig) {
             // we need to forget the lastXAxis and lastYAxis as user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.

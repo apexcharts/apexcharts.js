@@ -126,7 +126,9 @@ export default class Config {
         opts.xaxis.convertedCatToNumeric = false
       }
 
-      opts = this.checkForCatToNumericXAxis(this.chartType, chartDefaults, opts)
+      if (Defaults.catToNumeric(this.chartType, opts, chartDefaults)) {
+        opts.xaxis.convertedCatToNumeric = true
+      }
 
       if (
         opts.chart.sparkline?.enabled ||
@@ -300,59 +302,6 @@ export default class Config {
       // answers to, which is the crash this whole function exists to prevent.
       opts.chart.type = TYPE_ALIASES[requested]
     }
-    return opts
-  }
-
-  /**
-   * @param {string} chartType
-   * @param {Record<string, any>} chartDefaults
-   * @param {Record<string, any>} opts
-   */
-  checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
-    const defaults = new Defaults(opts)
-
-    const isBarHorizontal =
-      (chartType === 'bar' ||
-        chartType === 'boxPlot' ||
-        chartType === 'violin') &&
-      opts.plotOptions?.bar?.horizontal
-
-    const unsupportedZoom =
-      chartType === 'pie' ||
-      chartType === 'polarArea' ||
-      chartType === 'donut' ||
-      chartType === 'radar' ||
-      chartType === 'radialBar' ||
-      chartType === 'heatmap' ||
-      chartType === 'unit' ||
-      chartType === 'sunburst' ||
-      chartType === 'icicle'
-
-    // The type's own axis counts as much as the user's: a histogram asks for a
-    // numeric axis through Defaults.histogram, not by writing it into opts.
-    const xaxisType = opts.xaxis.type ?? chartDefaults.xaxis?.type
-    const notNumericXAxis = xaxisType !== 'datetime' && xaxisType !== 'numeric'
-
-    // Scatter jitter (strip plots) owns its own numeric band axis in
-    // Data.expandScatterJitterData, so the auto category→numeric conversion
-    // (and its default floor-based label formatter) must not run for it.
-    const isScatterJitter =
-      (chartType === 'scatter' || chartType === 'bubble') &&
-      opts.plotOptions?.scatter?.jitter?.enabled
-
-    const tickPlacement = opts.xaxis.tickPlacement
-      ? opts.xaxis.tickPlacement
-      : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
-    if (
-      !isBarHorizontal &&
-      !unsupportedZoom &&
-      !isScatterJitter &&
-      notNumericXAxis &&
-      tickPlacement !== 'between'
-    ) {
-      opts = defaults.convertCatToNumeric(opts)
-    }
-
     return opts
   }
 
