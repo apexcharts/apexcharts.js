@@ -433,7 +433,6 @@ export interface ChartGlobals
    * changed or removed token can replace the value Theme itself wrote.
    */
   tokenChrome: { fore?: string; grid?: string } | undefined
-  originalSeries: ApexOptions['series'] | null
 
   // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────
   // Raw series stash captured on first parse so zoom/pan can re-downsample
@@ -677,8 +676,6 @@ export interface ChartGlobals
     type: string
     circle: { cx: number; cy: number; r: number }
     rendered: { cx: number; cy: number; r: number }
-    // The plot origin the circle is measured from.
-    origin: { x: number; y: number }
     // What the circle drew, in its svg's space, and that svg's size.
     drawn: { l: number; t: number; r: number; b: number; W: number; H: number } | null
     layout: {

@@ -501,7 +501,9 @@ class Graphics {
     className,
     chartType,
     shouldClipToGrid = true,
-    bindEventsOnPaths = true,
+    // The handlers bail on a path without a `j` (a whole-series line or
+    // area), so bind them only for a per-point path.
+    bindEventsOnPaths = typeof j === 'number',
     drawShadow = true,
     drawMask = null,
     scrollMorph = false,

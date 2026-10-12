@@ -103,10 +103,7 @@ export default class TreemapChart {
     this.camera = null
   }
 
-  /**
-   * @param {any[]} series
-   */
-  draw(series) {
+  draw() {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
     const fill = new Fill(this.w)
@@ -116,21 +113,6 @@ export default class TreemapChart {
     })
 
     if (w.globals.noData) return ret
-
-    /** @type {any[]} */
-    const ser = []
-    /**
-     * @param {number[]} s
-     */
-    series.forEach((s) => {
-      /**
-       * @param {number} v
-       */
-      const d = s.map((/** @type {any} */ v) => {
-        return Math.abs(v)
-      })
-      ser.push(d)
-    })
 
     this.negRange = this.helpers.checkColorRange()
 
@@ -516,7 +498,6 @@ export default class TreemapChart {
               j,
               colorProps,
               fontSize,
-              series,
             })
           }
           if (w.config.dataLabels.enabled && dataLabels) {

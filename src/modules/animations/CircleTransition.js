@@ -184,19 +184,16 @@ export function captureCircle(w) {
   if (!geom || !graphical || !Environment.isBrowser()) return
   if (!graphical.contains(geom.node)) return
   try {
-    const plot = captureLayout(w)
     gl.prevCircleFrame = pendingUntilPaint({
       type: w.config.chart.type,
       circle: currentCircle(w, geom),
       // As rendered, without any tween: what the previous render's own
       // pixels (a radar's polygons) were measured against.
       rendered: { cx: geom.cx, cy: geom.cy, r: geom.r },
-      // Where the plot sat, which the circle is measured from.
-      origin: { x: plot.rect.x, y: plot.rect.y },
       // What the circle drew, against the svg it was drawn in.
       drawn: drawnBox(geom.node, graphical),
       // An axis chart's plot rect is captured with its axis chrome.
-      layout: gl.axisCharts ? null : plot,
+      layout: gl.axisCharts ? null : captureLayout(w),
       texts: readTexts(geom.node, graphical),
     })
   } catch (_) {

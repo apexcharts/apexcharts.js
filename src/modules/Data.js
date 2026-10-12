@@ -1354,7 +1354,6 @@ export default class Data {
   resetParsingFlags() {
     const w = this.w
     w.axisFlags.dataWasParsed = false
-    w.globals.originalSeries = null
 
     if (w.config.series) {
       /**
@@ -1626,7 +1625,6 @@ export default class Data {
    */
   parseRawDataIfNeeded(series) {
     const cnf = this.w.config
-    const gl = this.w.globals
     const globalParsing = cnf.parsing
 
     // If data was already parsed, don't parse again
@@ -1637,8 +1635,7 @@ export default class Data {
     // If no global parsing config and no series-level parsing, return as-is.
     // The config default is `parsing: { x: undefined, y: undefined }`, a
     // truthy object, so test the FIELDS, not the object: otherwise every
-    // chart without parsing still walks the series and deep-clones
-    // originalSeries on every single update.
+    // chart without parsing still walks the series on every update.
     const hasGlobalParsing = !!(
       globalParsing &&
       (globalParsing.x || globalParsing.y || globalParsing.z)
@@ -1801,10 +1798,6 @@ export default class Data {
 
     // Mark that data was parsed
     this.w.axisFlags.dataWasParsed = true
-
-    if (!gl.originalSeries) {
-      gl.originalSeries = Utils.clone(series)
-    }
 
     return processedSeries
   }
@@ -2439,62 +2432,6 @@ export default class Data {
         'highlight-filter',
         { tail: 'Drawing the chart without them.' },
       )
-    }
-
-    // Return a snapshot of all parsed state grouped by future w.* slice destinations.
-    // Phase 1: callers use named writer stubs (no-ops — mutations above already wrote to gl).
-    // Phase 2: writers will assign to typed slices instead of gl.*.
-    return {
-      // w.seriesData (future slice)
-      // initialSeries/originalSeries and the stacked totals are deliberately
-      // ABSENT: they already live as lazy accessors on gl / w.seriesData, so
-      // a snapshot field would either force their materialization (a deep
-      // clone plus three O(n) passes per parse that most charts never need)
-      // or, as a delegating getter, recurse into itself when a writer copies
-      // it back onto the object it delegates to.
-      seriesData: {
-        series: this.w.seriesData.series,
-        seriesNames: this.w.seriesData.seriesNames,
-        seriesX: this.w.seriesData.seriesX,
-        seriesZ: this.w.seriesData.seriesZ,
-        seriesColors: this.w.seriesData.seriesColors,
-        seriesGoals: this.w.seriesData.seriesGoals,
-        unitData: this.w.seriesData.unitData,
-        noLabelsProvided: this.w.axisFlags.noLabelsProvided,
-      },
-      // w.rangeData (future slice)
-      rangeData: {
-        seriesRangeStart: this.w.rangeData.seriesRangeStart,
-        seriesRangeEnd: this.w.rangeData.seriesRangeEnd,
-        seriesRange: this.w.rangeData.seriesRange,
-      },
-      // w.candleData (future slice)
-      candleData: {
-        seriesCandleO: this.w.candleData.seriesCandleO,
-        seriesCandleH: this.w.candleData.seriesCandleH,
-        seriesCandleM: this.w.candleData.seriesCandleM,
-        seriesCandleL: this.w.candleData.seriesCandleL,
-        seriesCandleC: this.w.candleData.seriesCandleC,
-        seriesBoxPoints: this.w.candleData.seriesBoxPoints,
-      },
-      // w.labelData (future slice)
-      labelData: {
-        labels: this.w.labelData.labels,
-        categoryLabels: this.w.labelData.categoryLabels,
-      },
-      // w.axisFlags (future slice)
-      axisFlags: {
-        isXNumeric: this.w.axisFlags.isXNumeric,
-        dataFormatXNumeric: this.w.axisFlags.dataFormatXNumeric,
-        isDataXYZ: this.w.axisFlags.isDataXYZ,
-        isRangeData: this.w.axisFlags.isRangeData,
-        isRangeBar: this.w.axisFlags.isRangeBar,
-        isMultiLineX: this.w.axisFlags.isMultiLineX,
-        dataWasParsed: this.w.axisFlags.dataWasParsed,
-        hasXaxisGroups: this.w.labelData.hasXaxisGroups,
-        groups: this.w.labelData.groups,
-        seriesGroups: this.w.labelData.seriesGroups,
-      },
     }
   }
 

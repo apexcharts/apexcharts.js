@@ -435,7 +435,6 @@ export default class HeatMap {
             i,
             j,
             colorProps: heatColorProps,
-            series: heatSeries,
           })
           if (dataLabels !== null) {
             elSeries.add(dataLabels)

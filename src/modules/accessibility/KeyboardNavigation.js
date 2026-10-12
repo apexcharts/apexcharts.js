@@ -38,6 +38,9 @@ export default class KeyboardNavigation {
     // Matches WCAG 1.4.13 technique G194 (dismissible content on focus).
     this._tooltipDismissed = false
 
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    this._announceTimer = undefined
+
     // Previously focused SVG element (for removing the focus class)
     this._focusedEl = null
 
@@ -118,6 +121,8 @@ export default class KeyboardNavigation {
     // skip it and leak the listener on the persistent w.globals.events. The
     // svgEl listeners below die with the removed node, so guarding them is fine.
     this.ctx.events.removeEventListener('legendClick', this._onLegendClick)
+    // Its live region is torn down with the chart's DOM.
+    clearTimeout(this._announceTimer)
 
     if (!svgEl) return
 
@@ -161,18 +166,6 @@ export default class KeyboardNavigation {
    */
   notePointerFocus() {
     this._lastPointerDownAt = Date.now()
-  }
-
-  /**
-   * Called from Events.js keydown handler. Navigation keys are already handled
-   * by the direct SVG listener (which can call preventDefault). This entry
-   * point is intentionally a no-op — Events.js still fires the public keyDown
-   * callback and fireEvent('keydown') independently.
-   * @param {Event} _e
-   */
-  handleKey(_e) {
-    // No-op: navigation is handled by the non-passive SVG keydown listener
-    // added in init(). Keeping this method so Events.js doesn't need changes.
   }
 
   // ─── Focus / blur ─────────────────────────────────────────────────────────
@@ -1929,7 +1922,8 @@ export default class KeyboardNavigation {
     // re-announce. Same string twice in a row otherwise gets coalesced.
     region.textContent = ''
     // Microtask delay so the empty/then-text sequence is observed.
-    setTimeout(() => {
+    clearTimeout(this._announceTimer)
+    this._announceTimer = setTimeout(() => {
       region.textContent = message
     }, 0)
   }

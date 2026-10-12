@@ -445,16 +445,7 @@ export default class UpdateHelpers {
       }
 
       this.ctx.data.resetParsingFlags()
-      // Phase 1: return value captured; writer stubs are no-ops.
-      const parsedState = this.ctx.data.parseData(
-        newSeries,
-        overwriteInitialSeries,
-      )
-      this.ctx._writeParsedSeriesData(parsedState.seriesData)
-      this.ctx._writeParsedRangeData(parsedState.rangeData)
-      this.ctx._writeParsedCandleData(parsedState.candleData)
-      this.ctx._writeParsedLabelData(parsedState.labelData)
-      this.ctx._writeParsedAxisFlags(parsedState.axisFlags)
+      this.ctx.data.parseData(newSeries, overwriteInitialSeries)
 
       if (overwriteInitialSeries) {
         // Refresh the initialConfig snapshot with the series the caller just

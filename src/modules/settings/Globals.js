@@ -33,7 +33,6 @@ export default class Globals {
     gl.seriesXvalues = [] // x positions used by tooltip when x values are unequal
     gl.seriesYvalues = [] // y positions used to identify which series the user hovered
     gl.dataWasParsed = false
-    gl.originalSeries = null
     gl.maxValsInArrayIndex = 0 // index of the series with the most data points
     gl.yValueDecimal = 0 // decimal precision of y values (0 = integers only)
     gl.allSeriesHasEqualX = true // false when series have differing x value sets
@@ -234,7 +233,6 @@ export default class Globals {
       'barGroups',
       'lineGroups',
       'areaGroups',
-      'originalSeries',
       'collapsedSeries',
       'collapsedSeriesIndices',
       'ancillaryCollapsedSeries',

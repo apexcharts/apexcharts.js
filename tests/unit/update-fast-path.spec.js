@@ -382,7 +382,6 @@ describe('parse-state writers do not force lazy state', () => {
     expect(typeof pct.get).toBe('function')
     // the parse snapshot must not smuggle these onto seriesData at all
     expect('initialSeries' in sd).toBe(false)
-    expect('originalSeries' in sd).toBe(false)
 
     // and first REAL reads still materialize correct values
     expect(sd.stackedSeriesTotals.length).toBe(200)

@@ -1507,26 +1507,22 @@ class Pie {
   /**
    * @param {number} prevStartAngle
    * @param {number} prevEndAngle
-   */
-  /**
-   * @param {number} prevStartAngle
-   * @param {number} prevEndAngle
    * @param {number} [prevSize] - polarArea passes its previous slice radius,
    *   so the pre-animation frame sits at the previous VALUE too, not just the
-   *   previous angles.
+   *   previous angles. Without one (pie, donut) there is no previous shape
+   *   to draw: the path starts empty and animateArc sets the first frame.
    */
   getChangedPath(prevStartAngle, prevEndAngle, prevSize) {
-    let path = ''
-    if (this.dynamicAnim && this.w.globals.dataChanged) {
-      path = this.getPiePath({
-        me: this,
-        startAngle: prevStartAngle,
-        angle: prevEndAngle - prevStartAngle,
-        // @ts-ignore — size is set dynamically during draw()
-        size: typeof prevSize === 'number' ? prevSize : this.size,
-      })
-    }
-    return path
+    return this.dynamicAnim &&
+      this.w.globals.dataChanged &&
+      typeof prevSize === 'number'
+      ? this.getPiePath({
+          me: this,
+          startAngle: prevStartAngle,
+          angle: prevEndAngle - prevStartAngle,
+          size: prevSize,
+        })
+      : ''
   }
 
   /**

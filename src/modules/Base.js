@@ -202,8 +202,8 @@ export default class Base {
         dataWasParsed: false,
       },
       // Parsed series data — written by Data.parseData() each render.
-      // Note: initialSeries and originalSeries are intentionally excluded —
-      // they are persistent (survive re-renders) and remain on w.globals.
+      // Note: initialSeries is intentionally excluded: it is persistent
+      // (survives re-renders) and remains on w.globals.
       seriesData: {
         series: [], // main y-values array
         seriesNames: [],

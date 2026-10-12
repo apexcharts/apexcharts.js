@@ -32,8 +32,6 @@ export default class Toolbar {
 
     this.localeValues = this.w.globals.locale.toolbar
 
-    this.minX = w.globals.minX
-    this.maxX = w.globals.maxX
     /** @type {HTMLElement | null} */ this.elZoom = null
     /** @type {HTMLElement | null} */ this.elZoomIn = null
     /** @type {HTMLElement | null} */ this.elZoomOut = null
@@ -510,18 +508,18 @@ export default class Toolbar {
       // Capture the state BEFORE toggleOtherControls resets every tool, so a
       // click on the already-selected tool turns it OFF (leaving no active
       // tool) instead of clearing and immediately re-selecting it.
-      const wasEnabled = !!ch.w.globals[enabledType]
+      const wasEnabled = !!ch.w.interact[enabledType]
 
       tb.toggleOtherControls()
 
       const el = type === 'selection' ? tb.elSelection : tb.elZoom
 
       if (!wasEnabled) {
-        ch.w.globals[enabledType] = true
+        ch.w.interact[enabledType] = true
         el.classList.add(tb.selectedClass)
       }
 
-      el.setAttribute('aria-pressed', String(!!ch.w.globals[enabledType]))
+      el.setAttribute('aria-pressed', String(!!ch.w.interact[enabledType]))
     })
   }
 
@@ -636,7 +634,7 @@ export default class Toolbar {
   /**
    * Read the current x-range from globals at click time.
    * Toolbar instance is kept alive across updates (Phase 8 lazy
-   * instantiation), so cached this.minX/maxX go stale after a zoom.
+   * instantiation), so a range cached on it would go stale after a zoom.
    * @returns {{minX: number, maxX: number}}
    */
   _currentXRange() {
@@ -650,8 +648,6 @@ export default class Toolbar {
   handleZoomIn() {
     const w = this.w
     const { minX, maxX } = this._currentXRange()
-    this.minX = minX
-    this.maxX = maxX
 
     const centerX = (minX + maxX) / 2
     const newMinX = (minX + centerX) / 2
@@ -667,8 +663,6 @@ export default class Toolbar {
   handleZoomOut() {
     const w = this.w
     const { minX, maxX } = this._currentXRange()
-    this.minX = minX
-    this.maxX = maxX
 
     // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
     if (

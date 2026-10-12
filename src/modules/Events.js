@@ -6,7 +6,7 @@ export default class Events {
    */
   constructor(w, ctx) {
     this.w = w
-    this.ctx = ctx // needed: eventList, keyboardNavigation, core.setupBrushHandler, fireEvent args
+    this.ctx = ctx // needed: eventList, core.setupBrushHandler, fireEvent args
 
     this.documentEvent = this.documentEvent.bind(this)
   }
@@ -106,9 +106,6 @@ export default class Events {
               w.config.chart.accessibility.enabled &&
               w.config.chart.accessibility.keyboard.enabled
             ) {
-              if (me.ctx.keyboardNavigation) {
-                me.ctx.keyboardNavigation.handleKey(e)
-              }
               if (typeof w.config.chart.events.keyDown === 'function') {
                 w.config.chart.events.keyDown(e, me, opts)
               }

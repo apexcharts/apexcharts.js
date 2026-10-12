@@ -506,22 +506,9 @@ class Legend {
   }
 
   legendAlignVertical() {
-    const w = this.w
-
-    const lRect = this.legendHelpers.getLegendDimensions()
-
-    const offsetY = 20
-    let offsetX = 0
-
-    if (w.config.legend.position === 'left') {
-      offsetX = 20
-    }
-
-    if (w.config.legend.position === 'right') {
-      offsetX = w.globals.svgWidth - lRect.clww - 10
-    }
-
-    this.setLegendWrapXY(offsetX, offsetY)
+    // A right legend is pinned by `right` (setLegendWrapXY), so only a left
+    // one needs an x offset.
+    this.setLegendWrapXY(this.w.config.legend.position === 'left' ? 20 : 0, 20)
   }
 
   /**

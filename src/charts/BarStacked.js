@@ -22,7 +22,6 @@ class BarStacked extends Bar {
   draw(series, seriesIndex) {
     const w = this.w
     this.graphics = new Graphics(this.w)
-    this.bar = new Bar(this.w, this.ctx, this.xyRatios)
 
     const coreUtils = new CoreUtils(this.w)
     series = coreUtils.getLogSeries(series)

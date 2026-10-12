@@ -600,14 +600,9 @@ export default class ApexCharts {
     }
 
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
-    // Phase 1: return value is captured; named writers are stubs (mutations already wrote to gl).
-    // Phase 2: writers will route each slice to its dedicated w.* namespace.
-    const parsedState = this.data.parseData(series, overwriteInitialSeries)
-    this._writeParsedSeriesData(parsedState.seriesData)
-    this._writeParsedRangeData(parsedState.rangeData)
-    this._writeParsedCandleData(parsedState.candleData)
-    this._writeParsedLabelData(parsedState.labelData)
-    this._writeParsedAxisFlags(parsedState.axisFlags)
+    // parseData writes each parsed slice (w.seriesData, w.labelData, ...)
+    // in place.
+    this.data.parseData(series, overwriteInitialSeries)
 
     // `hidden: true` collapsed those series above, so what parseData just
     // snapshotted as the baseline holds `data: []` for every one of them --
@@ -689,10 +684,6 @@ export default class ApexCharts {
         // as we have minX and maxX values, determine the default DateTimeFormat for time series
         this.formatters.setLabelFormatters()
       }
-      if (this.ctx.toolbar) {
-        this.ctx.toolbar.minX = w.globals.minX
-        this.ctx.toolbar.maxX = w.globals.maxX
-      }
     }
 
     // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
@@ -704,8 +695,6 @@ export default class ApexCharts {
     coreUtils.getLargestMarkerSize()
 
     // We got plottable area here, next task would be to calculate axis areas
-    // Phase 1: return value captured; named writer is a stub (no-op).
-    // Phase 2: writer will route layout slice to w.layout namespace.
     const layoutState = this.dimensions.plotCoords()
     this._writeLayoutCoords(layoutState.layout)
 
@@ -2917,58 +2906,18 @@ export default class ApexCharts {
     return this.ctx.drilldown.clearCache(id)
   }
 
-  // ─── Slice write-back stubs ─────────────────────────────────────────────────
   /**
-   * Copy own DATA properties of a parse-state slice onto a live w.* slice.
-   * Never Object.assign here: several w.* fields (and, historically, snapshot
-   * fields) are lazy accessors, and [[Get]]-ing an accessor while copying
-   * forces its deferred computation (a deep initialSeries clone plus O(n)
-   * stacked-totals passes on every render/update) and can replace the live
-   * accessor with a materialized value for the life of the instance.
-   * @param {any} target
-   * @param {any} slice
-   */
-  static _writeDataProps(target, slice) {
-    for (const key of Object.keys(slice)) {
-      const d = Object.getOwnPropertyDescriptor(slice, key)
-      if (d && 'value' in d) target[key] = d.value
-    }
-  }
-  /**
-   * @param {Partial<import('./types/internal').SeriesData>} slice
-   */
-  _writeParsedSeriesData(slice) {
-    ApexCharts._writeDataProps(this.w.seriesData, slice)
-  }
-  /**
-   * @param {Partial<import('./types/internal').RangeData>} slice
-   */
-  _writeParsedRangeData(slice) {
-    ApexCharts._writeDataProps(this.w.rangeData, slice)
-  }
-  /**
-   * @param {Partial<import('./types/internal').CandleData>} slice
-   */
-  _writeParsedCandleData(slice) {
-    ApexCharts._writeDataProps(this.w.candleData, slice)
-  }
-  /**
-   * @param {Partial<import('./types/internal').LabelData>} slice
-   */
-  _writeParsedLabelData(slice) {
-    ApexCharts._writeDataProps(this.w.labelData, slice)
-  }
-  /**
-   * @param {Partial<import('./types/internal').AxisFlags>} slice
-   */
-  _writeParsedAxisFlags(slice) {
-    ApexCharts._writeDataProps(this.w.axisFlags, slice)
-  }
-  /**
+   * Copy the own DATA properties of plotCoords()'s layout slice onto
+   * w.layout. It is the only writer of `w.layout.gridPad`. Never
+   * Object.assign here: [[Get]]-ing a lazy accessor while copying forces its
+   * deferred computation and can replace the live accessor with a value.
    * @param {Partial<import('./types/internal').LayoutCoords>} slice
    */
   _writeLayoutCoords(slice) {
-    ApexCharts._writeDataProps(this.w.layout, slice)
+    for (const key of Object.keys(slice)) {
+      const d = Object.getOwnPropertyDescriptor(slice, key)
+      if (d && 'value' in d) /** @type {any} */ (this.w.layout)[key] = d.value
+    }
   }
 
   _parentResizeCallback() {

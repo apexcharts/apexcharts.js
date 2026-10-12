@@ -616,7 +616,7 @@ export default class Core {
         }
         case 'treemap': {
           const treemap = new (getChartClass('treemap'))(ctx.w, ctx)
-          elGraph = treemap.draw(this.w.seriesData.series)
+          elGraph = treemap.draw()
           break
         }
         case 'unit': {
@@ -1084,19 +1084,13 @@ export default class Core {
 
     const { globals: gl } = this.w
 
-    const parsingFlags = {
-      dataWasParsed: this.w.axisFlags.dataWasParsed,
-      originalSeries: gl.originalSeries,
-    }
+    const dataWasParsed = this.w.axisFlags.dataWasParsed
 
     globalObj.initGlobalVars(gl)
     gl.seriesXvalues = resetxyValues()
     gl.seriesYvalues = resetxyValues()
 
-    if (parsingFlags.dataWasParsed) {
-      this.w.axisFlags.dataWasParsed = parsingFlags.dataWasParsed
-      gl.originalSeries = parsingFlags.originalSeries
-    }
+    if (dataWasParsed) this.w.axisFlags.dataWasParsed = true
   }
 
   isMultipleY() {
