@@ -2217,6 +2217,51 @@ export default class Data {
     }
   }
 
+  /**
+   * Refuse a series list an axis chart cannot read, naming the entry.
+   *
+   * A flat list of numbers is the shape pie, donut, polarArea and radialBar
+   * take. Handed to an axis chart it reached `setSeriesYAxisMappings`, which
+   * writes a group name onto every series, and the reader got `Cannot create
+   * property 'group' on number '44'`: no mention of `series`, of the chart
+   * type, or of the shape that would have worked. `column` made it easy to
+   * reach, since it sounds like a sibling of the slice charts and is a bar.
+   *
+   * Checked here because every series reaches the renderer through parseData,
+   * from `new ApexCharts`, `updateOptions` and `updateSeries` alike. A null
+   * entry is let through: a series may be bare until loaded in realtime, and
+   * `setSeriesYAxisMappings` already skips one.
+   *
+   * @param {any[]} ser
+   */
+  assertAxisSeriesShape(ser) {
+    if (!this.w.globals.axisCharts || !Array.isArray(ser)) return
+    const at = ser.findIndex(
+      (/** @type {any} */ s) =>
+        s !== null && s !== undefined && typeof s !== 'object',
+    )
+    if (at === -1) return
+
+    const chart = this.w.config.chart
+    // `column` is rewritten to `bar` without a trace (see
+    // Config.normalizeAliasedChartType), so name both rather than tell someone
+    // who wrote `column` about a bar chart they never asked for.
+    const type = chart.requestedType
+      ? chart.requestedType
+      : chart.type === 'bar'
+        ? 'bar or column'
+        : chart.type
+    const value = ser[at]
+    const shown =
+      typeof value === 'string' ? JSON.stringify(value) : String(value)
+    throw new Error(
+      `ApexCharts: a ${type} chart needs each series as an object with its ` +
+        `own data, like series: [{ name: 'Sales', data: [44, 55, 13] }], but ` +
+        `series[${at}] is the ${typeof value} ${shown}. A flat list of ` +
+        `numbers is the form pie, donut, polarArea and radialBar take.`,
+    )
+  }
+
   // Segregate user provided data into appropriate vars
   /**
    * @param {any[]} ser
@@ -2228,6 +2273,8 @@ export default class Data {
     const w = this.w
     const cnf = w.config
     const gl = w.globals
+
+    this.assertAxisSeriesShape(ser)
 
     ser = this.parseRawDataIfNeeded(ser)
 

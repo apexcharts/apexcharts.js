@@ -333,6 +333,80 @@ describe('#5325: an unknown chart.type is named, not crashed on', () => {
   })
 })
 
+// Once 'column' became a synonym for 'bar', a flat list on a column chart
+// stopped mounting as an empty non-axis chart and threw from inside the axis
+// pipeline instead: "Cannot create property 'group' on number '44'".
+describe('a flat list of numbers on an axis chart is named, not crashed on', () => {
+  const FLAT = [44, 55, 13, 43]
+
+  /** The message a render rejected with, or '' if it rendered. */
+  async function messageOf(options) {
+    try {
+      const chart = await render(options)
+      chart.destroy()
+      return ''
+    } catch (e) {
+      return e.message
+    }
+  }
+
+  it('names the option, the entry and the shape that works, on a column chart', async () => {
+    const message = await messageOf({ chart: { type: 'column' }, series: FLAT })
+    expect(message).not.toMatch(/Cannot create property/)
+    expect(message).toMatch(/^ApexCharts: a bar or column chart/)
+    expect(message).toContain('series[0] is the number 44')
+    expect(message).toContain("series: [{ name: 'Sales', data: [44, 55, 13] }]")
+    expect(message).toContain('pie, donut, polarArea and radialBar')
+  })
+
+  it.each(['bar', 'line', 'area', 'scatter'])(
+    'is refused the same way on %s',
+    async (type) => {
+      const message = await messageOf({ chart: { type }, series: FLAT })
+      expect(message).toContain('series[0] is the number 44')
+    },
+  )
+
+  // A promoted alias renders through bar, and the reader wrote the alias.
+  it('names a funnel as a funnel', async () => {
+    const message = await messageOf({ chart: { type: 'funnel' }, series: FLAT })
+    expect(message).toMatch(/^ApexCharts: a funnel chart/)
+  })
+
+  it('points at the first entry that is not an object, and quotes a string', async () => {
+    const message = await messageOf({
+      chart: { type: 'bar' },
+      series: [{ name: 'S', data: [1, 2, 3] }, '55'],
+    })
+    expect(message).toContain('series[1] is the string "55"')
+  })
+
+  it('refuses it on updateSeries too', async () => {
+    const chart = await render({
+      chart: { type: 'bar' },
+      series: [{ name: 'S', data: [1, 2, 3] }],
+    })
+    await expect(chart.updateSeries(FLAT)).rejects.toThrow(
+      /series\[0\] is the number 44/,
+    )
+    chart.destroy()
+  })
+
+  // The shape is right for these, so the check must never reach them.
+  it.each(['pie', 'donut', 'polarArea', 'radialBar'])(
+    'still draws a flat list on %s',
+    async (type) => {
+      const chart = await render({
+        chart: { type },
+        series: FLAT,
+        labels: ['a', 'b', 'c', 'd'],
+      })
+      expect(chart.w.globals.series).toEqual(FLAT)
+      chart.destroy()
+    },
+  )
+})
+
 describe('#5326: unknown top-level option keys are reported', () => {
   it('names every unrecognized key once', async () => {
     const chart = await render({
