@@ -48,12 +48,11 @@ class Legend {
 
     /**
      * The legend item a pointer went down on, kept across re-renders (this
-     * instance outlives the legend DOM). `draw` is the legendDraws count at
-     * pointerdown: a different count at pointerup means the item was rebuilt.
-     * @type {{ rel: string | null, draw: number } | null}
+     * instance outlives the legend DOM). If `el` has left the DOM by
+     * pointerup, a re-render rebuilt the item under the pointer.
+     * @type {{ el: Element, rel: string | null } | null}
      */
     this.legendPress = null
-    this.legendDraws = 0
     /**
      * rel of the item whose press pointerup handled, so the click that may
      * still follow it does not toggle the series back.
@@ -219,7 +218,6 @@ class Legend {
     const me = this
     const w = this.w
     const elLegendWrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
-    this.legendDraws++
 
     const fontFamily = w.config.legend.fontFamily
 
@@ -555,10 +553,7 @@ class Legend {
     const w = this.w
     const target = /** @type {Element} */ (e.target)
 
-    const hoverOverLegend =
-      target.classList.contains('apexcharts-legend-series') ||
-      target.classList.contains('apexcharts-legend-text') ||
-      target.classList.contains('apexcharts-legend-marker')
+    const hoverOverLegend = isLegendItem(target)
 
     if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
       if (
@@ -592,13 +587,7 @@ class Legend {
     const w = this.w
     const target = /** @type {Element} */ (e.target)
 
-    // Check if event target is a legend item
-    const isLegendItem =
-      target.classList.contains('apexcharts-legend-series') ||
-      target.classList.contains('apexcharts-legend-text') ||
-      target.classList.contains('apexcharts-legend-marker')
-
-    if (!isLegendItem) return
+    if (!isLegendItem(target)) return
 
     // Handle Enter or Space key
     if (e.key === 'Enter' || e.key === ' ') {
@@ -632,7 +621,7 @@ class Legend {
     this.recoveredRel = null
     this.legendPress =
       e.button === 0 && isLegendItem(target)
-        ? { rel: target.getAttribute('rel'), draw: this.legendDraws }
+        ? { el: target, rel: target.getAttribute('rel') }
         : null
   }
 
@@ -646,7 +635,7 @@ class Legend {
 
     if (
       press &&
-      press.draw !== this.legendDraws &&
+      !press.el.isConnected &&
       isLegendItem(target) &&
       target.getAttribute('rel') === press.rel
     ) {
@@ -681,11 +670,7 @@ class Legend {
 
     if (w.config.legend.customLegendItems.length) return
 
-    if (
-      target.classList.contains('apexcharts-legend-series') ||
-      target.classList.contains('apexcharts-legend-text') ||
-      target.classList.contains('apexcharts-legend-marker')
-    ) {
+    if (isLegendItem(target)) {
       const seriesCnt = parseInt(target.getAttribute('rel') ?? '0', 10) - 1
       const isHidden = target.getAttribute('data:collapsed') === 'true'
 
