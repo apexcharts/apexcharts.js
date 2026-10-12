@@ -362,6 +362,13 @@ export default class Config {
    */
   extendYAxis(opts, w) {
     const options = new Options()
+    // The type's own axis defaults (a treemap has no value axis) sit under
+    // the user's, here and on an update that pushes a y-axis.
+    const c = opts.chart?.type ? opts.chart : w?.config.chart
+    options.yAxis = Utils.extend(
+      options.yAxis,
+      Defaults.typeYAxisDefaults(c?.requestedType || c?.type),
+    )
 
     if (
       typeof opts.yaxis === 'undefined' ||
