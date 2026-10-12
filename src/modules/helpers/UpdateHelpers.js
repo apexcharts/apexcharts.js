@@ -545,6 +545,9 @@ export default class UpdateHelpers {
     if (w.globals.risingSeries.length > 0) return false
     if (w.globals.comboCharts) return false
     if (w.interact.zoomed) return false
+    // Radar's transitions (the circle, rings and polygons) run on the full
+    // render; fastUpdate redraws none of them.
+    if (w.config.chart.type === 'radar') return false
     // The gradient legend keeps the colour extent it was drawn with (its end
     // labels, stops and hover arrow). O(points), on an opted-in strip only.
     const strip = /** @type {any} */ (this.ctx.legend)?.heatmapGradientLegend
