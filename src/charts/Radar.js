@@ -434,7 +434,10 @@ class Radar {
     const { parent } = opts
     const helpers = new Helpers(this.w)
 
-    const yaxisTexts = w.globals.yAxisScale[0].result.slice().reverse()
+    // Reversed in place on purpose: a radar update mid-flight reads the scale
+    // in this order (circle-resize and update-matrix radar specs jump when it
+    // is copied instead). Find that reader before changing this.
+    const yaxisTexts = w.globals.yAxisScale[0].result.reverse()
     const layers = yaxisTexts.length
 
     const radiusSizes = []
