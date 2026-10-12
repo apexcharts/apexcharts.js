@@ -2765,7 +2765,7 @@ export default class ApexCharts {
         'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
       )
     if (this.trellis && this.trellis._mounted) {
-      return this.trellis.exports.svgString()
+      return this.trellis.exports.svgString(scale)
     }
     return this.ctx.exports.getSvgString(scale)
   }
@@ -2782,7 +2782,7 @@ export default class ApexCharts {
         'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
       )
     if (this.trellis && this.trellis._mounted) {
-      return this.trellis.exports.download('csv')
+      return this.trellis.exports.download('csv', options)
     }
     return this.ctx.exports.exportToCSV(options)
   }

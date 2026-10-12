@@ -176,15 +176,16 @@ export default class TrellisExports {
   /**
    * One SVG of the whole grid: nested per-panel SVGs (fonts already inlined
    * by each panel's own getSvgString) plus text chrome.
+   * @param {number} [scale] output size multiplier; the viewBox stays put
    * @returns {Promise<string>}
    */
-  async svgString() {
+  async svgString(scale = 1) {
     const t = this.trellis
     const size = this._size()
     /** @type {string[]} */
     const parts = []
     parts.push(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${size.w}" height="${size.h}" viewBox="0 0 ${size.w} ${size.h}">`,
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${size.w * scale}" height="${size.h * scale}" viewBox="0 0 ${size.w} ${size.h}">`,
     )
     parts.push(
       `<rect width="${size.w}" height="${size.h}" fill="${this._background()}"/>`,
@@ -226,15 +227,18 @@ export default class TrellisExports {
    * One CSV for the whole grid, wide form: x, facet, then one column per
    * series name. Rows are (panel x union-x), aligned by the split, so ragged
    * panels emit explicit blanks.
+   * @param {{ columnDelimiter?: string, lineDelimiter?: string }} [options]
    * @returns {string}
    */
-  csv() {
+  csv(options = {}) {
     const t = this.trellis
     const split = t.split
     if (!split) return ''
     const w = t.w
     const delimiter =
-      w.config.chart.toolbar?.export?.csv?.columnDelimiter || ','
+      options.columnDelimiter ||
+      w.config.chart.toolbar?.export?.csv?.columnDelimiter ||
+      ','
     const isDatetime = w.config.xaxis && w.config.xaxis.type === 'datetime'
     /** @param {any} v */
     const cell = (v) => {
@@ -271,11 +275,15 @@ export default class TrellisExports {
         lines.push(row.map(cell).join(delimiter))
       })
     })
-    return lines.join('\n')
+    return lines.join(options.lineDelimiter || '\n')
   }
 
-  /** @param {'png'|'svg'|'csv'} kind */
-  async download(kind) {
+  /**
+   * @param {'png'|'svg'|'csv'} kind
+   * @param {{ fileName?: string, columnDelimiter?: string, lineDelimiter?: string }} [options]
+   *   the CSV options exportToCSV takes
+   */
+  async download(kind, options = {}) {
     const t = this.trellis
     const exportCfg = t.w.config.chart.toolbar?.export || {}
     const fallback = String(t.w.globals.chartID || 'trellis')
@@ -289,8 +297,12 @@ export default class TrellisExports {
     } else {
       const uri =
         'data:text/csv;charset=utf-8,' +
-        encodeURIComponent('\ufeff' + this.csv())
-      triggerDownload(uri, (exportCfg.csv && exportCfg.csv.filename) || fallback, '.csv')
+        encodeURIComponent('\ufeff' + this.csv(options))
+      triggerDownload(
+        uri,
+        options.fileName || (exportCfg.csv && exportCfg.csv.filename) || fallback,
+        '.csv',
+      )
     }
   }
 }
