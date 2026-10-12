@@ -432,17 +432,6 @@ class Graphics {
   }
 
   /**
-   * @param {number} x1
-   * @param {number} y1
-   * @param {number} x
-   * @param {number} y
-   */
-  quadraticCurve(x1, y1, x, y) {
-    const curve = ['Q', x1, y1, x, y].join(' ')
-    return curve
-  }
-
-  /**
    * @param {number} rx
    * @param {number} ry
    * @param {number} axisRotation
@@ -1016,7 +1005,8 @@ class Graphics {
         }
       })
     } else {
-      if (maxWidth) {
+      // Plain text is drawn whole, so only a tspan needs the measure.
+      if (maxWidth && !isPlainText) {
         truncatedText = this.getTextBasedOnMaxWidth({
           text,
           ...commonProps,
@@ -1548,7 +1538,9 @@ class Graphics {
    * @param {string} selector
    */
   static _findDelegateTarget(node, boundary, selector) {
-    while (node && node !== boundary && node !== document) {
+    // The walk ends at the boundary or above the document (its parentNode
+    // is null), so it names no browser global.
+    while (node && node !== boundary) {
       if (node.matches && node.matches(selector)) return node
       node = node.parentNode
     }

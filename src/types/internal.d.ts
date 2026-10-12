@@ -970,7 +970,6 @@ export interface ChartContext {
   coreUtils: any
   crosshairs: any
   events: any
-  fill: any
   localization: any
   options: any
   responsive: any
