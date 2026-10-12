@@ -55,7 +55,8 @@ export default class DimGrid {
     }
 
     const barsPresent = hasBar(type) || gl.comboBarCount > 0
-    let xRange = Math.abs(gl.initialMaxX - gl.initialMinX)
+    const span = Math.abs(gl.initialMaxX - gl.initialMinX)
+    let xRange = span
 
     if (
       barsPresent &&
@@ -89,6 +90,16 @@ export default class DimGrid {
       if (barWidth < 1) {
         barWidth = 1
       }
+      // A few bars (three daily ones) made this a whole group of a wide
+      // slot, close to 200px a side of an empty plot. Cap it at an eighth of
+      // the grid; denser charts sit under the cap and keep their margin. Never
+      // under what the edge mark needs to stay whole: half its group, measured
+      // on the grid left once the pad comes off (s slots across the data, a
+      // cw fraction of each): p = (cw / 2) * (g - 2p) / s, plus its stroke.
+      const cw = parseInt(cnf.plotOptions.bar.columnWidth, 10) / 100 || 0
+      const s = gl.minXDiff > 0 ? span / gl.minXDiff : 1
+      const need = ((cw / 2) * gridWidth) / (s + cw) + 4
+      barWidth = Math.min(barWidth, Math.max(need, gridWidth / 8))
 
       gl.barPadForNumericAxis = barWidth
     }

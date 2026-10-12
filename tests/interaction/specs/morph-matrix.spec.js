@@ -482,10 +482,12 @@ test.describe('Every offered pair actually moves', () => {
         ).toBeLessThan(slack)
       } else {
         expect(overhang(r.firstHull, r.beforeHull), 'pieces stay inside the mark').toBeLessThan(2)
+        // 0.65, not more: four cells over a full-width box spend their whisker
+        // rows on the stem, while the hull still spans the caps (0.70 there).
         expect(
           area(r.firstHull) / area(r.beforeHull),
           'pieces fill the mark',
-        ).toBeGreaterThan(0.7)
+        ).toBeGreaterThan(0.65)
       }
 
       // 2. Something keeps moving. A frozen transition reports one signature,
