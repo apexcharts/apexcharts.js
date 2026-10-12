@@ -36,7 +36,13 @@ const makeHelpers = ({
       },
     },
     seriesData: { seriesNames },
-    labelData: { seriesGroups },
+    labelData: {
+      seriesGroups,
+      // Data.js records each series' group index; derive it from the names.
+      seriesGroupIndex: seriesNames.map((n) =>
+        seriesGroups.findIndex((g) => g.includes(n)),
+      ),
+    },
     globals: { columnSeries },
   }
   // Helpers' constructor only reads barCtx.w.

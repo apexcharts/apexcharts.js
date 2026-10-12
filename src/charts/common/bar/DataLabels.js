@@ -274,16 +274,16 @@ export default class BarDataLabels {
   }
 
   /**
-   * The series group `realIndex` belongs to, and that group's own stacking
-   * state, or null when totals are chart-wide (the single-group case).
+   * The series group `realIndex` belongs to, or null when totals are
+   * chart-wide (the single-group case).
    * @param {number} realIndex
-   * @returns {{groupIndex: number, group: string[]} | null}
+   * @returns {{groupIndex: number} | null}
    */
   getTotalGroupContext(realIndex) {
     if (!this.hasMultipleSeriesGroups()) return null
     const groupIndex = this.barCtx.barHelpers.getSeriesGroupIndex(realIndex)
     if (groupIndex < 0) return null
-    return { groupIndex, group: this.w.labelData.seriesGroups[groupIndex] }
+    return { groupIndex }
   }
 
   /**
@@ -312,6 +312,8 @@ export default class BarDataLabels {
   getStackedTotalValue({ realIndex, j }) {
     if (this.hlt) return this.hlt.val
     const w = this.w
+    const top = this.xStackTop(realIndex, j)
+    if (top) return top[3]
 
     // With grouped stacks the total is the sum of this group's series only;
     // `stackedSeriesTotals` sums every series at this data point, which mixed
@@ -321,6 +323,21 @@ export default class BarDataLabels {
     return ctx && byGroups && byGroups[ctx.groupIndex]
       ? byGroups[ctx.groupIndex][j]
       : this.barCtx.stackedSeriesTotals[j]
+  }
+
+  /**
+   * The running stack at this column's x (BarStacked `tops`, columns only) on
+   * a numeric axis, where columns stack by x rather than by index.
+   * @param {number} realIndex @param {number} j
+   */
+  xStackTop(realIndex, j) {
+    const w = this.w
+    return (
+      w.axisFlags.isXNumeric &&
+      /** @type {any} */ (this.barCtx).stacks?.[
+        w.labelData.seriesGroupIndex[realIndex]
+      ]?.tops.get(w.seriesData.seriesX[realIndex][j])
+    )
   }
 
   /** @param {{realIndex: any, j: any}} opts */
@@ -467,25 +484,22 @@ export default class BarDataLabels {
     // across the whole cluster, so a group's total floated above the tallest
     // *other* group's stack instead of its own. See #4173.
     const totalGroupCtx = this.getTotalGroupContext(realIndex)
-    const prevYGroups = totalGroupCtx
-      ? [totalGroupCtx.group]
-      : w.labelData.seriesGroups
-    /**
-     * @param {string[]} sg
-     */
-    prevYGroups.forEach((/** @type {any} */ sg) => {
-      /**
-       * @param {any[]} arr
-       */
-      ;/** @type {any} */ (this.barCtx)[sg.join(',')]?.prevY.forEach(
-        (/** @type {any} */ arr) => {
-          if (valIsNegative) {
-            lowestPrevY = Math.max(arr[j], lowestPrevY)
-          } else {
-            lowestPrevY = Math.min(arr[j], lowestPrevY)
-          }
-        },
-      )
+    const top = this.xStackTop(realIndex, j)
+    const stacks = top ? [] : /** @type {any} */ (this.barCtx).stacks || []
+    if (top) {
+      lowestPrevY = valIsNegative
+        ? Math.max(newY, top[5])
+        : Math.min(newY, top[4])
+    }
+    stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
+      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
+      g.prevY.forEach((/** @type {any} */ arr) => {
+        if (valIsNegative) {
+          lowestPrevY = Math.max(arr[j], lowestPrevY)
+        } else {
+          lowestPrevY = Math.min(arr[j], lowestPrevY)
+        }
+      })
     })
     if (this.hlt) lowestPrevY = this.hlt.edge
 
@@ -663,25 +677,16 @@ export default class BarDataLabels {
     let lowestPrevX = newX
     // This series' own group only — see the matching note in the column path.
     const totalGroupCtx = this.getTotalGroupContext(realIndex)
-    const prevXGroups = totalGroupCtx
-      ? [totalGroupCtx.group]
-      : w.labelData.seriesGroups
-    /**
-     * @param {string[]} sg
-     */
-    prevXGroups.forEach((/** @type {any} */ sg) => {
-      /**
-       * @param {any[]} arr
-       */
-      ;/** @type {any} */ (this.barCtx)[sg.join(',')]?.prevX.forEach(
-        (/** @type {any} */ arr) => {
-          if (valIsNegative) {
-            lowestPrevX = Math.min(arr[j], lowestPrevX)
-          } else {
-            lowestPrevX = Math.max(arr[j], lowestPrevX)
-          }
-        },
-      )
+    const stacks = /** @type {any} */ (this.barCtx).stacks || []
+    stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
+      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
+      g.prevX.forEach((/** @type {any} */ arr) => {
+        if (valIsNegative) {
+          lowestPrevX = Math.min(arr[j], lowestPrevX)
+        } else {
+          lowestPrevX = Math.max(arr[j], lowestPrevX)
+        }
+      })
     })
     if (this.hlt) lowestPrevX = this.hlt.edge
 

@@ -442,35 +442,22 @@ export default class HighlightFilter {
       !(stacked && cnf.chart.stackType === '100%')
 
     // Unstacked, each part reaches its own value. Stacked bars: the parts
-    // form their own diverging stack per series group, restarting where the
-    // renderer restarts its stack. Stacked lines and areas add up every
+    // form their own diverging stack per series group and x, as the renderer
+    // stacks its wholes (_barKey). Stacked lines and areas add up every
     // series in one running sum per x, whatever its sign, as Line stacks
     // its wholes (Line._stackKey: the x value on a numeric axis, else the
     // category).
     /** @type {any} */
     let keyOf = null
     if (stacked && bars) {
-      const names = w.seriesData.seriesNames
-      const group = parts.map((_, i) =>
-        w.labelData.seriesGroups.findIndex(
-          (/** @type {string[]} */ g) => g.indexOf(names[i]) > -1,
-        ),
-      )
       keyOf = (/** @type {number} */ i, /** @type {number} */ j) =>
-        group[i] + '|' + j
+        this._barKey(i, j)
     } else if (stacked) {
       const sx = w.seriesData.seriesX
       keyOf = (/** @type {number} */ i, /** @type {number} */ j) =>
         String(w.axisFlags.isXNumeric ? sx[i]?.[j] : j)
     }
-    const ext = extend
-      ? this._runningExt(
-          parts,
-          keyOf,
-          bars,
-          bars ? (i, j) => this._restarts(i, j) : undefined,
-        )
-      : null
+    const ext = extend ? this._runningExt(parts, keyOf, bars) : null
     this._publish(parts, ext)
   }
 
@@ -1037,9 +1024,9 @@ export default class HighlightFilter {
     }
     const br = /** @type {string[][]} */ (this._br)
 
-    const key = h.getSeriesGroupIndex(realIndex) + '|' + j
+    const key = this._barKey(realIndex, j)
     let c = this._stk.get(key)
-    if (!c || this._restarts(realIndex, j)) {
+    if (!c) {
       c = { p: zero, n: zero, raw: 0, any: false }
       this._stk.set(key, c)
     }
@@ -1126,21 +1113,19 @@ export default class HighlightFilter {
   }
 
   /**
-   * Whether a stacked column starts a fresh stack at this datum: on a numeric
-   * or datetime x axis the renderer stacks a series on the one before it only
-   * where both have the same x at that index (BarStacked
-   * drawStackedColumnPaths), and starts again from the baseline elsewhere.
-   * Horizontal stacks never restart.
-   * @param {number} realIndex @param {number} j
+   * The stack a stacked bar datum joins, as the renderer resolves it
+   * (BarStacked drawStackedColumnPaths): its series group, then its x value
+   * on a numeric or datetime column axis, else its index.
+   * @param {number} i @param {number} j
    */
-  _restarts(realIndex, j) {
+  _barKey(i, j) {
     const w = this.w
-    const sx = w.seriesData.seriesX
     return (
-      !w.config.plotOptions.bar.horizontal &&
-      !!w.axisFlags.isXNumeric &&
-      realIndex > 0 &&
-      sx[realIndex - 1]?.[j] !== sx[realIndex]?.[j]
+      w.labelData.seriesGroupIndex[i] +
+      '|' +
+      (!w.config.plotOptions.bar.horizontal && w.axisFlags.isXNumeric
+        ? w.seriesData.seriesX[i]?.[j]
+        : j)
     )
   }
 
@@ -2396,26 +2381,19 @@ export default class HighlightFilter {
    * and its own, per stack key (`keyOf(i, j)`), in series order; `split`
    * keeps positive and negative parts in separate sums, as diverging bar
    * stacks are drawn. A null part adds nothing and reaches nothing new.
-   * `fresh(i, j)` says a stack starts over at that datum (both signs).
    * @param {(number | null)[][]} parts
    * @param {((i: number, j: number) => string) | null} keyOf
    * @param {boolean} [split]
-   * @param {(i: number, j: number) => boolean} [fresh]
    * @returns {(number | null)[][]}
    */
-  _runningExt(parts, keyOf, split, fresh) {
+  _runningExt(parts, keyOf, split) {
     if (!keyOf) return parts
     /** @type {Map<string, number>} */
     const sums = new Map()
     return parts.map((row, i) =>
       row.map((p, j) => {
-        const k = keyOf(i, j)
-        if (fresh && fresh(i, j)) {
-          sums.delete(k + '+')
-          sums.delete(k + '-')
-        }
         if (p == null) return null
-        const key = k + (split && p < 0 ? '-' : '+')
+        const key = keyOf(i, j) + (split && p < 0 ? '-' : '+')
         const v = (sums.get(key) || 0) + p
         sums.set(key, v)
         return v

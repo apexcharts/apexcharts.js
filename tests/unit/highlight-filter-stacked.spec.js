@@ -164,7 +164,7 @@ describe('stacked: identity with the renderer', () => {
     }
   })
 
-  test('numeric x: a part stack restarts where the renderer restarts', () => {
+  test('numeric x: a part stack resolves by x, as the renderer does', () => {
     const c = stacked({
       xaxis: { type: 'numeric' },
       series: [
@@ -198,12 +198,12 @@ describe('stacked: identity with the renderer', () => {
       samePath(p.getAttribute('pathTo'), wholes.get(k).getAttribute('pathTo'))
     }
     // the feature copies the renderer's rule (BarStacked
-    // drawStackedColumnPaths): B at index 1 has another x than A, C the same
-    // as B
+    // drawStackedColumnPaths): B at index 1 is another x than A there, C the
+    // same as B, and all three share x = 1
     const hf = c.highlightFilter
-    expect(hf._restarts(1, 1)).toBe(true)
-    expect(hf._restarts(2, 1)).toBe(false)
-    expect(hf._restarts(1, 0)).toBe(false)
+    expect(hf._barKey(1, 1)).not.toBe(hf._barKey(0, 1))
+    expect(hf._barKey(2, 1)).toBe(hf._barKey(1, 1))
+    expect(hf._barKey(1, 0)).toBe(hf._barKey(0, 0))
   })
 
   test('a Safari stub rounds no part, as it rounds no whole', async () => {

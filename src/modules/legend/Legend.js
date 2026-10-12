@@ -378,22 +378,11 @@ class Legend {
         }
       }
 
-      if (legendGroups.length) {
-        /**
-         * @param {string[]} group
-         * @param {number} gi
-         */
-        w.labelData.seriesGroups.forEach((group, gi) => {
-          if (
-            group.includes(/** @type {Record<string,any>} */ (w.config.series[i])?.name ?? '')
-          ) {
-            elLegendWrap.appendChild(legendGroups[gi])
-            legendGroups[gi].appendChild(elLegend)
-          }
-        })
-      } else {
-        elLegendWrap.appendChild(elLegend)
-      }
+      // by index: groups may reuse series names, and an unnamed series has
+      // none to match
+      const lg = legendGroups[w.labelData.seriesGroupIndex[i]]
+      if (lg) elLegendWrap.appendChild(lg)
+      ;(lg || elLegendWrap).appendChild(elLegend)
 
       elLegendWrap.classList.add(
         `apexcharts-align-${w.config.legend.horizontalAlign}`,

@@ -263,6 +263,8 @@ export interface LabelData {
   hasXaxisGroups: boolean
   groups: Array<{ title: string; cols: number }>
   seriesGroups: string[][]
+  /** Index into `seriesGroups` of each series, parallel to `config.series` */
+  seriesGroupIndex: number[]
 }
 
 /** Axis / parsing behaviour flags — lives on `w.axisFlags` */

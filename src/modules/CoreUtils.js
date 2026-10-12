@@ -128,34 +128,15 @@ class CoreUtils {
     /** @type {any[]} */
     const total = []
 
-    /**
-     * @param {string[]} sg
-     */
-    w.labelData.seriesGroups.forEach((sg) => {
-      /** @type {any[]} */
-      const includedIndexes = []
-      /**
-       * @param {number} s
-       * @param {number} si
-       */
-      w.config.series.forEach((s, si) => {
-        if (sg.indexOf(w.seriesData.seriesNames[si]) > -1) {
-          includedIndexes.push(si)
-        }
-      })
-
-      const excludedIndices = w.seriesData.series
-        /**
-         * @param {any} _
-         * @param {number} fi
-         */
-        .map((_, fi) => (includedIndexes.indexOf(fi) === -1 ? fi : -1))
-        /**
-         * @param {number} f
-         */
-        .filter((f) => f !== -1)
-
-      total.push(this.getStackedSeriesTotals(excludedIndices))
+    w.labelData.seriesGroups.forEach((_, gi) => {
+      // by index: groups may reuse series names
+      total.push(
+        this.getStackedSeriesTotals(
+          w.seriesData.series
+            .map((_, i) => i)
+            .filter((i) => w.labelData.seriesGroupIndex[i] !== gi),
+        ),
+      )
     })
     return total
   }
@@ -571,15 +552,31 @@ class CoreUtils {
     const stackedTotals = excluded.length
       ? this.getStackedSeriesTotals(excluded)
       : w.seriesData.stackedSeriesTotals
+    // Columns and areas on a numeric axis stack by x, so each point takes its
+    // share of the stack at its own x (horizontal bars stack by index).
+    const sx =
+      w.axisFlags.isXNumeric &&
+      !w.config.plotOptions.bar.horizontal &&
+      w.seriesData.seriesX
+    /** @type {Map<number, number>} */
+    const byX = new Map()
+    if (sx) {
+      w.seriesData.series.forEach((s, i) => {
+        if (excluded.indexOf(i) < 0) {
+          s.forEach((v, j) => byX.set(sx[i][j], (byX.get(sx[i][j]) || 0) + v))
+        }
+      })
+    }
 
     /**
      * @param {any[]} ser
+     * @param {number} i
      */
-    w.globals.seriesPercent = w.seriesData.series.map((ser) => {
+    w.globals.seriesPercent = w.seriesData.series.map((ser, i) => {
       const seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {
-          const total = stackedTotals[j]
+          const total = sx ? byX.get(sx[i][j]) : stackedTotals[j]
           let percent = 0
           if (total) {
             percent = (100 * ser[j]) / total

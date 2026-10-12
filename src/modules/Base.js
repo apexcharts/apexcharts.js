@@ -189,6 +189,7 @@ export default class Base {
         hasXaxisGroups: false,
         groups: [],
         seriesGroups: [],
+        seriesGroupIndex: [],
       },
       // Axis / parsing behaviour flags — written by Data.parseData() each render.
       axisFlags: {

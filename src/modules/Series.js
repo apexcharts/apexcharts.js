@@ -477,8 +477,12 @@ export default class Series {
       /** @type {any[]} */ const nextRecords = []
       /** @type {number[]} */ const nextIndices = []
       records.forEach((rec) => {
+        // Keep the index while it still holds this name: names can repeat
+        // (grouped stacks), and indexOf would find the first of them.
         const j =
-          rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index
+          rec && rec.name != null && newNames[rec.index] !== rec.name
+            ? newNames.indexOf(rec.name)
+            : rec.index
         // Category gone (regrouped away) -> drop the collapse so it reappears.
         if (j == null || j < 0 || j >= target.length) return
         const s = /** @type {any} */ (target[j])
@@ -753,10 +757,10 @@ export default class Series {
     const w = this.w
     const groups = w.labelData.seriesGroups || []
 
-    return groups.map((/** @type {string[]} */ group) => {
+    return groups.map((/** @type {string[]} */ _, /** @type {number} */ gi) => {
       let last = -1
       w.config.series.forEach((/** @type {any} */ s, /** @type {number} */ i) => {
-        if (group.indexOf(w.seriesData.seriesNames[i]) === -1) return
+        if (w.labelData.seriesGroupIndex[i] !== gi) return
 
         if (
           w.globals.comboCharts &&

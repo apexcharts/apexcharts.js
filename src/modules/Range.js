@@ -1088,29 +1088,17 @@ class Range {
     // and get the max out of it
 
     if (!this.w.seriesData.series.length) return
-    let seriesGroups = this.w.labelData.seriesGroups
+    const gIdx = this.w.labelData.seriesGroupIndex
+    // [positive, negative] sums per stack: the series group (by index, groups
+    // may reuse names), then the x value on a numeric axis as stacked columns
+    // and lines draw (#4886), else the ordinal (horizontal bars stack by it).
+    const byX =
+      this.w.axisFlags.isXNumeric && !this.w.config.plotOptions.bar.horizontal
+    /** @type {Map<string, number[]>} */
+    const stacks = new Map()
 
-    if (!seriesGroups.length) {
-      /**
-       * @param {string} name
-       */
-      seriesGroups = [this.w.seriesData.seriesNames.map((name) => name)]
-    }
-    /** @type {Record<string, number[]>} */
-    const stackedPoss = {}
-    /** @type {Record<string, number[]>} */
-    const stackedNegs = {}
-
-    seriesGroups.forEach((/** @type {any} */ group) => {
-      stackedPoss[group] = []
-      stackedNegs[group] = []
-      const indicesOfSeriesInGroup = this.w.config.series
-        .map((/** @type {any} */ serie, /** @type {any} */ si) =>
-          group.indexOf(this.w.seriesData.seriesNames[si]) > -1 ? si : null,
-        )
-        .filter((/** @type {any} */ f) => f !== null)
-
-      indicesOfSeriesInGroup.forEach((/** @type {number} */ i) => {
+    this.w.config.series.forEach(
+      (/** @type {any} */ serie, /** @type {number} */ i) => {
         // autoScaleYaxis: only points inside the zoomed window may raise the
         // stacked total. Summing the whole series here left gl.maxY on the
         // full-data maximum, so zooming a stacked chart moved the x axis and
@@ -1118,6 +1106,12 @@ class Range {
         const bounds = windowed ? this._autoScaleXBounds(i) : null
         const xs = this.w.seriesData.seriesX[i]
         const hasX = !!(bounds && xs && xs.length)
+        const stackSeries =
+          this.w.config.chart.stacked &&
+          (!gl.comboCharts ||
+            !this.w.config.chart.stackOnlyBar ||
+            serie?.type === 'bar' ||
+            serie?.type === 'column')
 
         for (
           let j = 0;
@@ -1125,45 +1119,23 @@ class Range {
           j++
         ) {
           if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue
-          if (typeof stackedPoss[group][j] === 'undefined') {
-            stackedPoss[group][j] = 0
-            stackedNegs[group][j] = 0
-          }
+          const key = (gIdx[i] || 0) + '|' + (byX && xs ? xs[j] : j)
+          let st = stacks.get(key)
+          if (!st) stacks.set(key, (st = [0, 0]))
 
-          const stackSeries =
-            (this.w.config.chart.stacked && !gl.comboCharts) ||
-            (this.w.config.chart.stacked &&
-              gl.comboCharts &&
-              (!this.w.config.chart.stackOnlyBar ||
-                /** @type {Record<string,any>} */ (this.w.config.series?.[i])
-                  ?.type === 'bar' ||
-                /** @type {Record<string,any>} */ (this.w.config.series?.[i])
-                  ?.type === 'column'))
-
-          if (stackSeries) {
-            if (
-              this.w.seriesData.series[i][j] !== null &&
-              Utils.isNumber(this.w.seriesData.series[i][j])
-            ) {
-              this.w.seriesData.series[i][j] > 0
-                ? (stackedPoss[group][j] +=
-                    parseFloat(String(this.w.seriesData.series[i][j])) + 0.0001)
-                : (stackedNegs[group][j] += parseFloat(
-                    String(this.w.seriesData.series[i][j]),
-                  ))
-            }
+          const v = this.w.seriesData.series[i][j]
+          if (stackSeries && v !== null && Utils.isNumber(v)) {
+            v > 0
+              ? (st[0] += parseFloat(String(v)) + 0.0001)
+              : (st[1] += parseFloat(String(v)))
           }
         }
-      })
-    })
+      },
+    )
 
-    Object.entries(stackedPoss).forEach(([key]) => {
-      stackedPoss[key].forEach(
-        (/** @type {any} */ _, /** @type {number} */ stgi) => {
-          gl.maxY = Math.max(gl.maxY, stackedPoss[key][stgi])
-          gl.minY = Math.min(gl.minY, stackedNegs[key][stgi])
-        },
-      )
+    stacks.forEach((st) => {
+      gl.maxY = Math.max(gl.maxY, st[0])
+      gl.minY = Math.min(gl.minY, st[1])
     })
   }
 }

@@ -1050,12 +1050,16 @@ export default class Data {
     const groups = [
       ...new Set(cnf.series.map((/** @type {any} */ s) => s.group)),
     ]
-    cnf.series.forEach((/** @type {any} */ s, i) => {
-      const index = groups.indexOf(s.group)
-      if (!buckets[index]) buckets[index] = []
+    // Membership is recorded by index: groups may reuse series names.
+    this.w.labelData.seriesGroupIndex = cnf.series.map(
+      (/** @type {any} */ s, /** @type {number} */ i) => {
+        const index = groups.indexOf(s.group)
+        if (!buckets[index]) buckets[index] = []
 
-      buckets[index].push(this.w.seriesData.seriesNames[i])
-    })
+        buckets[index].push(this.w.seriesData.seriesNames[i])
+        return index
+      },
+    )
     this.w.labelData.seriesGroups = buckets
 
     const handleDates = () => {

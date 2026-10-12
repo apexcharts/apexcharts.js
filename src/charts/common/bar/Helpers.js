@@ -308,40 +308,30 @@ export default class Helpers {
    * @param {Record<string, any>} ctx
    */
   initializeStackedPrevVars(ctx) {
-    const w = ctx.w
-    /**
-     * @param {Element} group
-     */
-    w.labelData.seriesGroups.forEach((/** @type {any} */ group) => {
-      if (!ctx[group]) ctx[group] = {}
-
-      ctx[group].prevY = []
-      ctx[group].prevX = []
-      ctx[group].prevYF = []
-      ctx[group].prevXF = []
-      ctx[group].prevYVal = []
-      ctx[group].prevXVal = []
-    })
+    // One stack state per series group, by index (groups may reuse names).
+    // `tops` is the running stack top per x, see drawStackedColumnPaths.
+    ctx.stacks = ctx.w.labelData.seriesGroups.map(() => ({
+      prevY: [],
+      prevX: [],
+      prevYF: [],
+      prevXF: [],
+      prevYVal: [],
+      prevXVal: [],
+      tops: new Map(),
+    }))
   }
 
   /**
    * @param {Record<string, any>} ctx
    */
   initializeStackedXYVars(ctx) {
-    const w = ctx.w
-
-    /**
-     * @param {Element} group
-     */
-    w.labelData.seriesGroups.forEach((/** @type {any} */ group) => {
-      if (!ctx[group]) ctx[group] = {}
-
-      ctx[group].xArrj = []
-      ctx[group].xArrjF = []
-      ctx[group].xArrjVal = []
-      ctx[group].yArrj = []
-      ctx[group].yArrjF = []
-      ctx[group].yArrjVal = []
+    ctx.stacks.forEach((/** @type {any} */ g) => {
+      g.xArrj = []
+      g.xArrjF = []
+      g.xArrjVal = []
+      g.yArrj = []
+      g.yArrjF = []
+      g.yArrjVal = []
     })
   }
 
@@ -783,7 +773,7 @@ export default class Helpers {
     }
   }
 
-  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
+  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getColumnPaths({
     barWidth,
     barXPosition,
@@ -791,7 +781,6 @@ export default class Helpers {
     y2,
     strokeWidth,
     series,
-    seriesGroup,
     realIndex,
     i,
     j,
@@ -834,8 +823,7 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
-      let _ctx = this.barCtx
-      _ctx = this.barCtx[seriesGroup]
+      const _ctx = this.barCtx.groupCtx
       _ctx.yArrj.push(y2 - strokeCenter * direction)
       _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction))
       _ctx.yArrjVal.push(this.barCtx.series[i][j])
@@ -1060,7 +1048,7 @@ export default class Helpers {
     }
   }
 
-  /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
+  /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,
     barHeight,
@@ -1068,7 +1056,6 @@ export default class Helpers {
     x2,
     strokeWidth,
     series,
-    seriesGroup,
     realIndex,
     i,
     j,
@@ -1127,8 +1114,7 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
-      let _ctx = this.barCtx
-      _ctx = this.barCtx[seriesGroup]
+      const _ctx = this.barCtx.groupCtx
       _ctx.xArrj.push(x2 + strokeCenter * direction)
       _ctx.xArrjF.push(Math.abs(x1 - x2 - r.strokeWidth * direction))
       _ctx.xArrjVal.push(this.barCtx.series[i][j])
@@ -1577,29 +1563,14 @@ export default class Helpers {
    * @returns {number}
    */
   getSeriesGroupIndex(seriesIndex) {
-    const w = this.w
-    return w.labelData.seriesGroups.findIndex(
-      (/** @type {string[]} */ group) =>
-        group.indexOf(w.seriesData.seriesNames[seriesIndex]) > -1,
-    )
+    return this.w.labelData.seriesGroupIndex[seriesIndex] ?? -1
   }
 
   /**
    * @param {number} seriesIndex
    */
   getGroupIndex(seriesIndex) {
-    const w = this.w
-    // groupIndex is the index of group buckets (group1, group2, ...)
-    /**
-     * @param {Element} group
-     */
-    const groupIndex = w.labelData.seriesGroups.findIndex(
-      (/** @type {any} */ group) =>
-        // w.config.series[i].name may be undefined, so use
-        // w.seriesData.seriesNames[i], which has default names for those
-        // series. w.labelData.seriesGroups[] uses the same default naming.
-        group.indexOf(w.seriesData.seriesNames[seriesIndex]) > -1
-    )
+    const groupIndex = this.getSeriesGroupIndex(seriesIndex)
     // We need the column groups to be indexable as 0,1,2,... for their
     // positioning relative to each other.
     const cGI = this.barCtx.columnGroupIndices
