@@ -1410,6 +1410,12 @@ export default class Data {
    * @param {any[]} labels
    */
   extractPieDataFromSeriesObjects(seriesArray, values, labels) {
+    // A sunburst paints a root in the datum's own `color`, but the legend
+    // draws before the plot and reads `globals.colors`, so hand the colour
+    // over here for Theme to apply, as an axis series' `color` is. Not the
+    // icicle: a lone root is its trunk there and `colors[0]` its first band.
+    const rootColors =
+      this.w.config.chart.type === 'sunburst' && this.w.seriesData.seriesColors
     /**
      * @param {Object} serie
      * @param {number} serieIndex
@@ -1430,6 +1436,9 @@ export default class Data {
           // which the partition charts' tree resolver reads too.
           const x = dataPoint.x !== undefined ? dataPoint.x : dataPoint.name
           const y = dataPoint.y !== undefined ? dataPoint.y : dataPoint.value
+          if (rootColors && x !== undefined) {
+            rootColors[labels.length] = dataPoint.color
+          }
           if (x !== undefined && y !== undefined) {
             labels.push(String(x))
             values.push(Utils.parseNumber(y))
