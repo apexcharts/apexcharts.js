@@ -138,6 +138,50 @@ describe('Theme: updateOptions with a theme key', () => {
 })
 
 
+describe('Theme: switching the named theme', () => {
+  it('drops the mode, monochrome and colorBlindMode the old theme set', async () => {
+    ApexCharts.registerTheme('nightA', {
+      mode: 'dark',
+      monochrome: { enabled: true, color: '#ff0000' },
+      accessibility: { colorBlindMode: 'deuteranopia' },
+    })
+    ApexCharts.registerTheme('dayB', {})
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ data: [1, 2, 3] }],
+      theme: { name: 'nightA' },
+    })
+    await chart.render()
+    expect(chart.w.config.theme.mode).toBe('dark')
+    expect(chart.w.config.theme.monochrome.enabled).toBe(true)
+
+    await chart.updateOptions({ theme: { name: 'dayB' } })
+    const theme = chart.w.config.theme
+    expect(theme.mode).toBeFalsy()
+    expect(theme.monochrome.enabled).toBe(false)
+    expect(theme.accessibility.colorBlindMode).toBeFalsy()
+    expect(chart.w.config.chart.foreColor).toBe('#373d3f')
+    expect(chart.w.dom.elWrap.classList.contains('apexcharts-theme-dark')).toBe(
+      false,
+    )
+    chart.destroy()
+  })
+
+  it('keeps a mode the user set alongside the named theme', async () => {
+    ApexCharts.registerTheme('nightA', { mode: 'dark' })
+    ApexCharts.registerTheme('dayB', {})
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ data: [1, 2, 3] }],
+      theme: { name: 'nightA' },
+    })
+    await chart.render()
+    await chart.updateOptions({ theme: { name: 'dayB', mode: 'dark' } })
+    expect(chart.w.config.theme.mode).toBe('dark')
+    chart.destroy()
+  })
+})
+
 describe('Theme: fore and grid tokens stay replaceable', () => {
   function brandChart(chart = {}) {
     return createChartWithOptions({

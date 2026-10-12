@@ -433,6 +433,14 @@ export interface ChartGlobals
    * changed or removed token can replace the value Theme itself wrote.
    */
   tokenChrome: { fore?: string; grid?: string } | undefined
+  /**
+   * What the named theme wrote into `config.theme` (its mode, colorBlindMode,
+   * and the monochrome object it replaced), so switching to another named
+   * theme can revert it. See Theme._applyNamedThemeMode.
+   */
+  namedThemeApplied:
+    | { mode?: string; accessibility?: string; monochrome?: any }
+    | undefined
 
   // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────
   // Raw series stash captured on first parse so zoom/pan can re-downsample

@@ -456,6 +456,9 @@ export default class Globals {
       // The tokens the last render applied to fore and grid, for the same
       // reason (see Theme.applyTokenChrome).
       tokenChrome: undefined,
+      // What the named theme (theme.name) wrote into config.theme, so a switch
+      // to another named theme can take it back (see Theme._applyNamedThemeMode).
+      namedThemeApplied: undefined,
       lastXAxis: [],
       lastYAxis: [],
 

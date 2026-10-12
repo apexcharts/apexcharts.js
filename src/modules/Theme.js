@@ -137,9 +137,8 @@ export default class Theme {
    * opposite-mode default sentinel, so an explicit user value or a value
    * already normalized by checkForDarkTheme/updateThemeOptions is untouched.
    */
-  _applyModeDefaults() {
+  _applyModeDefaults(mode = this.w.config.theme.mode) {
     const w = this.w
-    const mode = w.config.theme.mode
     if (mode === 'dark') {
       if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK
@@ -166,11 +165,32 @@ export default class Theme {
    * explicit config and `follow:'os'` both win over the named theme.
    */
   _applyNamedThemeMode() {
+    const w = this.w
+    const theme = w.config.theme
+    const prev = w.globals.namedThemeApplied || {}
+    /** @type {{mode?: string, accessibility?: string, monochrome?: any}} */
+    const applied = (w.globals.namedThemeApplied = {})
+    // Take back what the previous named theme wrote, where config still holds
+    // it, so switching themes does not inherit the old one's mode or colours.
+    if (prev.mode && theme.mode === prev.mode) {
+      theme.mode = ''
+      this._applyModeDefaults('light')
+      if (w.config.tooltip) w.config.tooltip.theme = 'light'
+    }
+    if (
+      prev.accessibility &&
+      theme.accessibility?.colorBlindMode === prev.accessibility
+    ) {
+      theme.accessibility.colorBlindMode = ''
+    }
+    if (prev.monochrome && theme.monochrome.enabled) {
+      theme.monochrome = prev.monochrome
+    }
+
     const named = this._namedTheme
     if (!named) return
-    const theme = this.w.config.theme
     if (named.mode && !theme.mode) {
-      theme.mode = named.mode
+      theme.mode = applied.mode = named.mode
     }
     if (
       named.accessibility &&
@@ -178,13 +198,15 @@ export default class Theme {
       !(theme.accessibility && theme.accessibility.colorBlindMode)
     ) {
       theme.accessibility = theme.accessibility || {}
-      theme.accessibility.colorBlindMode = named.accessibility.colorBlindMode
+      theme.accessibility.colorBlindMode = applied.accessibility =
+        named.accessibility.colorBlindMode
     }
     if (
       named.monochrome &&
       named.monochrome.enabled &&
       !theme.monochrome.enabled
     ) {
+      applied.monochrome = theme.monochrome
       theme.monochrome = { ...theme.monochrome, ...named.monochrome }
     }
   }
@@ -490,6 +512,12 @@ export default class Theme {
    */
   updateThemeOptions(options) {
     const mode = options.theme.mode
+    // A key this call passes belongs to the user now, so a later named-theme
+    // switch must not revert it.
+    const applied = this.w.globals.namedThemeApplied
+    for (const k in applied) {
+      if (options.theme[k] !== undefined) delete /** @type {any} */ (applied)[k]
+    }
     // Only a mode change re-derives the mode defaults. A palette, monochrome
     // or name update keeps the tooltip and foreColor the chart already has,
     // and a value passed in the same call always wins.
