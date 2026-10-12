@@ -1962,17 +1962,6 @@ export default class MorphTypeChange {
     return { minX, minY, maxX, maxY }
   }
 
-  /**
-   * @param {number} realIndex
-   * @param {number} j
-   * @returns {string | null}
-   */
-  getInitialFillFor(realIndex, j) {
-    if (!this._snapshot) return null
-    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`)
-    return entry ? entry.fill : null
-  }
-
   /** @returns {number} */
   getSpeed() {
     const animCfg = this.w.config.chart.animations

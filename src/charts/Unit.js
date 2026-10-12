@@ -255,9 +255,7 @@ export default class Unit {
       !!morph &&
       typeof morph.isActive === 'function' &&
       morph.isActive() &&
-      typeof morph.getInitialCenterFor === 'function'
-    const perRowBurst =
-      morphActive && typeof morph.getInitialSlotFor === 'function'
+      typeof morph.getInitialSlotFor === 'function'
     // Piece takeover: the morph engine will cut the outgoing marks into one
     // cell per dot and fly the cells here itself, so the dots render at their
     // final slots, hidden, and are revealed one by one as their piece lands.
@@ -302,11 +300,6 @@ export default class Unit {
         'data:realIndex': cluster.i,
       })
 
-      // Burst origin for this cluster when morphing from a bar/wedge. Falls
-      // back to the captured shape's centre (every dot stacked at one point)
-      // only if the morph feature predates per-row slots.
-      const burst =
-        morphActive && !perRowBurst ? morph.getInitialCenterFor(cluster.i) : null
       const burstCount = cluster.dots.length
       const catData = unitData[cluster.i]
 
@@ -377,9 +370,9 @@ export default class Unit {
           // mount). The first two keep dots opaque; a fresh mount fades them in.
           const anchor =
             from ||
-            (perRowBurst
+            (morphActive
               ? morph.getInitialSlotFor(cluster.i, j, burstCount)
-              : burst)
+              : null)
           // A fresh mount fades in. Where an entering dot comes FROM is
           // `gather.enter`: 'burst' (default) flies out from the cluster
           // centre; 'fade' materialises in place; 'rise' fades in while

@@ -335,7 +335,6 @@ describe('MorphTypeChange.getInitialPathFor', () => {
       oldLayout: { translateX: 0, translateY: 0 },
     }
     expect(morph.getInitialPathFor(0, 0)).toBe('M 0 0 L 1 1')
-    expect(morph.getInitialFillFor(0, 0)).toBe('#f00')
     expect(morph.getInitialPathFor(99, 99)).toBeNull()
   })
 
