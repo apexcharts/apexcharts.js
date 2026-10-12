@@ -12,16 +12,17 @@ function easeInOut(t) {
 }
 
 // Cadence (#6) P1: pluggable easing. The runner tweens attrs, colors, and path
-// morphs against a single eased position. `_defaultEasing` is the module-level
-// easing Animations resolves from `chart.animations.easing` (see
-// setDefaultEasing); an individual runner can override it via `.ease(fn)`.
+// morphs against a single eased position. A runner eases on its own `.ease(fn)`
+// if set, else on its chart's easing (stamped on the chart's root <svg> by
+// Animations), else on `_defaultEasing`, the module-level fallback Animations
+// resolves from `chart.animations.easing` (see setDefaultEasing).
 /** @type {(t:number)=>number} */
 let _defaultEasing = easeInOut
 
 /**
- * Set the process-wide default easing used by all runners that do not set their
- * own via `.ease()`. Matches the pre-existing single-global-easing design; the
- * last render to resolve config wins for concurrent multi-chart cases.
+ * Set the process-wide fallback easing, for runners that neither set their own
+ * via `.ease()` nor sit in a chart whose root <svg> carries one. The last render
+ * to resolve config wins, which is why the per-chart stamp comes first.
  * @param {(t:number)=>number} fn
  */
 export function setDefaultEasing(fn) {
@@ -236,7 +237,9 @@ class SVGAnimationRunner {
       }
 
       const start = performance.now()
-      const easing = this._easing || _defaultEasing
+      // The chart's own easing, stamped on its root <svg> (see Animations).
+      const root = el.node && el.node.ownerSVGElement
+      const easing = this._easing || (root && root.__apexEase) || _defaultEasing
 
       /**
        * @param {number} now

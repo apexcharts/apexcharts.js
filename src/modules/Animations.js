@@ -202,8 +202,11 @@ export function applyAnimationPolicy(w) {
   // Cadence (#6) P1: resolve chart.animations.easing (name | cubic-bezier array
   // | fn) and set it as the runner's default for the generic tweens. Defaults
   // to 'easeInOutSine', which is the runner's historical curve, so unspecified
-  // charts animate exactly as before.
-  setDefaultEasing(resolveEasing(anim.easing))
+  // charts animate exactly as before. Kept per chart too: the default is one
+  // for the whole page, so the last chart rendered would set every curve.
+  const ease = resolveEasing(anim.easing)
+  easeByState.set(w, ease)
+  setDefaultEasing(ease)
 }
 
 /**
@@ -245,6 +248,14 @@ export function computeStagger(opts) {
 const chartByState = new WeakMap()
 
 /**
+ * Each chart's resolved `chart.animations.easing`, set by applyAnimationPolicy
+ * and stamped on the chart's root <svg> by every Animations built once the
+ * paper exists, where the runners read it (SVGAnimation).
+ * @type {WeakMap<object, (t: number) => number>}
+ */
+const easeByState = new WeakMap()
+
+/**
  * ApexCharts Animation Class.
  *
  * @module Animations
@@ -259,6 +270,8 @@ export default class Animations {
     this.w = w
     this.ctx = ctx // kept for animationEnd user callback: chart.events.animationEnd(ctx, …)
     if (ctx && w && !chartByState.has(w)) chartByState.set(w, ctx)
+    const paper = w?.dom?.Paper?.node
+    if (paper) paper.__apexEase = easeByState.get(w)
   }
 
   /**
