@@ -244,3 +244,55 @@ describe('the ghost copy', () => {
     expect(ghost.hasAttribute('id')).toBe(false)
   })
 })
+
+describe('timers and teardown', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function mountable(m) {
+    const wrap = document.createElement('div')
+    m.w.dom.elWrap = wrap
+    return wrap
+  }
+
+  it("leaves the next morph's ghost to finish its own fade", () => {
+    const m = makeMorph()
+    const wrap = mountable(m)
+    const a = document.createElementNS(SVG_NS, 'svg')
+    const b = document.createElementNS(SVG_NS, 'svg')
+
+    m._ghost = a
+    m._mountGhost() // speed 600: fade 330 ms, removal due at 390 ms
+    vi.advanceTimersByTime(200)
+    // A second type change drops ghost A and mounts ghost B.
+    m._removeGhost()
+    m._ghost = b
+    m._mountGhost()
+    vi.advanceTimersByTime(250) // past A's removal time, inside B's fade
+    expect(b.parentNode).toBe(wrap)
+    vi.advanceTimersByTime(400)
+    expect(b.parentNode).toBeNull()
+  })
+
+  it('lets a mounted ghost finish its fade when a later render retires the morph', () => {
+    const m = makeMorph()
+    const wrap = mountable(m)
+    const ghost = document.createElementNS(SVG_NS, 'svg')
+    m._snapshot = { fromType: 'bar', toType: 'unit', mapping: new Map(), oldLayout: { translateX: 0, translateY: 0 } }
+    m._shown = true
+    m._ghost = ghost
+    m._mountGhost()
+    vi.advanceTimersByTime(100)
+    m.retire()
+    expect(m.isActive()).toBe(false)
+    expect(ghost.parentNode).toBe(wrap)
+    vi.advanceTimersByTime(400)
+    expect(ghost.parentNode).toBeNull()
+  })
+})

@@ -129,6 +129,8 @@ export default class MorphTypeChange {
     this._pieceLayer = null
     /** @type {null | (() => void)} */
     this._pieceCancel = null
+    /** @type {any} */
+    this._ghostTimer = undefined
   }
 
   /**
@@ -503,11 +505,14 @@ export default class MorphTypeChange {
       style.transition = `opacity ${fade}ms ease-in`
       style.opacity = '0'
     })
-    setTimeout(() => this._removeGhost(), fade + 60)
+    // Kept so dropping this ghost early also drops its timer, which would
+    // otherwise remove the NEXT morph's ghost mid-fade.
+    this._ghostTimer = setTimeout(() => this._removeGhost(), fade + 60)
   }
 
   /** Detach the ghost if one is mounted. Safe to call at any time. */
   _removeGhost() {
+    clearTimeout(this._ghostTimer)
     const ghost = this._ghost
     this._ghost = null
     if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost)
@@ -2104,18 +2109,21 @@ export default class MorphTypeChange {
    * A render after the one a morph was captured for (an update while the
    * morph is still finishing, or just after) must not start its marks from
    * the old chart's shapes again: it starts from the screen, as any update
-   * does. The morph's ghost and pieces go with it, as the new render
-   * replaces what they were leaving over. A no-op until that render has
-   * mounted, so a second update in the same tick still morphs.
+   * does. The morph's pieces go with it, as the new render replaces what
+   * they were leaving over; a ghost already fading is left to finish its own
+   * fade (its timer removes it) rather than vanish mid-way. A no-op until
+   * that render has mounted, so a second update in the same tick still
+   * morphs.
    */
   retire() {
-    if (this._snapshot && this._shown) this.cleanup()
+    if (this._snapshot && this._shown) this.cleanup(true)
   }
 
-  cleanup() {
+  /** @param {boolean} [keepGhost] leave a mounted ghost to its own timer */
+  cleanup(keepGhost) {
     this._snapshot = null
     this._shown = false
-    this._removeGhost()
+    if (!keepGhost) this._removeGhost()
     // Belt and braces for the piece layer: normally it has already finished
     // and detached itself, but a throttled tab can leave it mid-flight, and
     // nothing hidden may survive the transition.
