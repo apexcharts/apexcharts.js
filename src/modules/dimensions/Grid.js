@@ -202,7 +202,7 @@ export default class DimGrid {
    */
   setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords) {
     const { w } = this
-    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
+    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme })
 
     /**
      * @param {ApexYAxis} yaxe

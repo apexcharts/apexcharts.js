@@ -26,7 +26,6 @@ export default class Dimensions {
     this.w = w
     this.ctx = ctx // needed: new XAxis(w, ctx) for xAxisLabelClick event callback
     this.theme = ctx.theme
-    this.timeScale = ctx.timeScale
     this.lgRect = /** @type {any} */ ({})
     this.yAxisWidth = 0
     this.yAxisWidthLeft = 0
@@ -425,10 +424,7 @@ export default class Dimensions {
     this.dimGrid.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
     // after drawing everything, set the Y axis positions
-    const objyAxis = new YAxis(this.w, {
-      theme: this.theme,
-      timeScale: this.timeScale,
-    })
+    const objyAxis = new YAxis(this.w, { theme: this.theme })
     objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords)
   }
 

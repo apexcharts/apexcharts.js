@@ -25,7 +25,7 @@ export default class DimYAxis {
     /** @type {any[]} */
     const ret = []
     let labelPad = 10
-    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
+    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme })
 
     /**
      * @param {ApexYAxis} yaxe
@@ -185,7 +185,7 @@ export default class DimYAxis {
     let yAxisWidthLeft = 0
     let yAxisWidthRight = 0
     const padding = w.globals.yAxisScale.length > 1 ? 10 : 0
-    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
+    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme })
 
     /**
      * @param {number} index
