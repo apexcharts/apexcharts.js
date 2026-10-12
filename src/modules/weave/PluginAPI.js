@@ -505,7 +505,8 @@ export function buildPluginAPI(host, record) {
      * Claimable options are an allowlist (see `CLAIMABLE`). An option that is
      * not on it returns null rather than throwing, so a plugin written against
      * a newer host degrades. Every claim is released on teardown, on destroy,
-     * and if the host disables this plugin after repeated failures.
+     * when the plugin is removed from `plugins`, and if the host disables this
+     * plugin after repeated failures.
      *
      * @param {string} option
      * @param {Array<{series: string|number, value: any}>} entries
@@ -557,7 +558,8 @@ export function buildPluginAPI(host, record) {
      *
      * Registering, updating and releasing each re-render the chart, coalesced
      * to one render per turn. Every registration is released on teardown, on
-     * destroy, and if the host disables this plugin after repeated failures.
+     * destroy, when the plugin is removed from `plugins`, and if the host
+     * disables this plugin after repeated failures.
      *
      * @param {Array<{series: string|number, values: Array<number|null>}>} entries
      * @returns {{release: () => void, update: (entries: Array<{series: string|number, values: Array<number|null>}>) => void}|null}
@@ -626,7 +628,8 @@ export function buildPluginAPI(host, record) {
      * Nothing here gives a plugin the ability to intercept or cancel: the
      * chart's own tooltip, selection state and caller events are unaffected,
      * and a handler that throws is contained rather than allowed to break the
-     * interaction it was watching.
+     * interaction it was watching. It counts toward the same three failures as
+     * a hook, and a disabled or removed plugin stops being called.
      *
      * `modifiers` (v6) reports the keys held during the interaction, for the
      * gestures that need them: shift-click to add to a selection is the one

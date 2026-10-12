@@ -197,15 +197,12 @@ export default class WeaveHost {
       record.failures = (record.failures || 0) + 1
       if (record.failures >= 3) {
         record.disabled = true
-        // Its claims go with it. A disabled plugin has stopped running, so a
-        // claim it left behind would go on answering for an option nobody is
-        // maintaining, which is the permanent-leak case claims exist to rule
-        // out (see weave/Claims).
-        releaseOwner(this.w, record.def.name)
-        // Its highlight parts go with them, on the same terms and for the
-        // same reason: parts nobody is maintaining would go on being drawn
-        // over the caller's values.
-        releaseHighlightOwner(this.w, record.def.name)
+        // Everything it held goes with it. A disabled plugin has stopped
+        // running, so a claim it left behind would go on answering for an
+        // option nobody is maintaining, which is the permanent-leak case claims
+        // exist to rule out (see weave/Claims), and the same holds for its
+        // parts, its pointer handlers and its gutter.
+        this._forget(record.def.name)
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`,
         )
@@ -609,16 +606,13 @@ export default class WeaveHost {
       // no key was held.
       modifiers: WeaveHost._modifiers(e),
     }
+    // Through `_guard`, so a handler that throws counts toward disabling its
+    // plugin like any other callback, and a disabled plugin hears nothing.
     for (const [name, handlers] of this._pointerSubs) {
+      const record = this.active.find((/** @type {any} */ r) => r.def.name === name)
+      if (!record) continue
       for (const fn of handlers.slice()) {
-        try {
-          fn(payload)
-        } catch (e) {
-          console.warn(
-            '[apexcharts] plugin "' + name + '" threw in a pointer handler',
-            e
-          )
-        }
+        this._guard(record, 'pointer', () => fn(payload))
       }
     }
   }
@@ -1049,9 +1043,7 @@ export default class WeaveHost {
       if (!want) {
         this._guard(r, 'destroy', () => r.def.destroy && r.def.destroy(r.api))
         this.active.splice(i, 1)
-        // A removed plugin's gutter goes back to the chart. Left behind, the
-        // chart would keep drawing around a panel that is no longer there.
-        this._reserve(r.def.name, null)
+        this._forget(r.def.name)
       } else {
         r.options = Object.freeze({ ...(want.entry.options || {}) })
       }
@@ -1070,6 +1062,31 @@ export default class WeaveHost {
   }
 
   /**
+   * Let go of everything one plugin holds on this chart.
+   *
+   * The one exit for all three ways a plugin leaves: removed from `plugins`,
+   * disabled after repeated errors, and torn down with the chart. Each used to
+   * release its own subset, so a removed plugin went on dashing a series and
+   * receiving hovers after its destroy had run, and a disabled one kept its
+   * gutter.
+   *
+   * @param {string} name plugin
+   */
+  _forget(name) {
+    const w = this.w
+    const claims = releaseOwner(w, name)
+    const parts = releaseHighlightOwner(w, name)
+    if (this._pointerSubs) this._pointerSubs.delete(name)
+    if (this._derived) this._derived.delete(name)
+    if (this._declared) this._declared.delete(name)
+    // A gutter going back re-renders on its own; otherwise a released claim
+    // or part needs one, because the render that let go has already drawn it.
+    const gutter = !!(this._reserved && this._reserved.has(name))
+    this._reserve(name, null)
+    if ((claims || parts) && !gutter) this._redrawForHighlight()
+  }
+
+  /**
    * @param {boolean} [isUpdating]
    */
   teardown(isUpdating) {
@@ -1083,10 +1100,8 @@ export default class WeaveHost {
       for (const record of this.active) {
         this._guard(record, 'destroy', () => record.def.destroy && record.def.destroy(record.api))
       }
-      for (const record of this.active) {
-        releaseOwner(this.w, record.def.name)
-        releaseHighlightOwner(this.w, record.def.name)
-      }
+      // Any re-render this schedules is cancelled with the timers below.
+      for (const record of this.active) this._forget(record.def.name)
       this.active = []
       this._derived = null
       this._reserved = null

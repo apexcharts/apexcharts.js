@@ -928,14 +928,14 @@ describe('Weave: telling a plugin what the viewer is pointing at', () => {
   // This runs inside the viewer's own hover. A plugin breaking the chart's
   // interaction would be the worst failure this facade could have.
   it('contains a handler that throws, and keeps delivering to the others', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {})
     const chart = lineChart([{ name: 'pointer-thrower' }, { name: 'pointer-watcher' }])
     expect(() =>
       fire(chart, 'dataPointMouseEnter', { seriesIndex: 0, dataPointIndex: 0 })
     ).not.toThrow()
     expect(seen).toHaveLength(1)
-    expect(warn).toHaveBeenCalled()
-    warn.mockRestore()
+    expect(error).toHaveBeenCalled()
+    error.mockRestore()
     chart.destroy()
   })
 

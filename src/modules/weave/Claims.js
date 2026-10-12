@@ -171,13 +171,19 @@ export function releaseClaim(w, record) {
  *
  * @param {any} w
  * @param {string} owner
+ * @returns {boolean} whether the plugin held anything, so the chart knows to redraw
  */
 export function releaseOwner(w, owner) {
-  if (!w.weaveClaims) return
+  if (!w.weaveClaims) return false
+  let released = false
   for (const [option, list] of w.weaveClaims.byOption) {
     const kept = list.filter((/** @type {ClaimRecord} */ c) => c.owner !== owner)
-    if (kept.length !== list.length) w.weaveClaims.byOption.set(option, kept)
+    if (kept.length !== list.length) {
+      w.weaveClaims.byOption.set(option, kept)
+      released = true
+    }
   }
+  return released
 }
 
 /**

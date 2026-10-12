@@ -173,12 +173,15 @@ export function releaseHighlight(w, record) {
  *
  * @param {any} w
  * @param {string} owner
+ * @returns {boolean} whether the plugin held anything, so the chart knows to redraw
  */
 export function releaseHighlightOwner(w, owner) {
-  if (!w || !w.weaveHighlights) return
+  if (!w || !w.weaveHighlights) return false
   const list = w.weaveHighlights.records
   const kept = list.filter((/** @type {HighlightRecord} */ r) => r.owner !== owner)
-  if (kept.length !== list.length) w.weaveHighlights.records = kept
+  if (kept.length === list.length) return false
+  w.weaveHighlights.records = kept
+  return true
 }
 
 /**

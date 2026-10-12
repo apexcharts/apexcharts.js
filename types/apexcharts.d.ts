@@ -959,7 +959,9 @@ interface ApexPluginAPI {
    * The chart has already resolved this for its own tooltip, so this forwards
    * the host's answer rather than leaving a plugin to hit-test the SVG and
    * disagree with it. Nothing here can intercept or cancel: the tooltip,
-   * selection state and the caller's own events are unaffected.
+   * selection state and the caller's own events are unaffected. A handler that
+   * throws counts toward the plugin's three failures like a hook does, and a
+   * disabled or removed plugin stops being called.
    *
    * `category` is the resolved display label rather than an index, because a
    * plugin coordinating two charts keys on the label; an index means something
@@ -1010,7 +1012,8 @@ interface ApexPluginAPI {
    *
    * Returns null for an option that is not claimable, so a plugin written
    * against a newer host degrades instead of throwing. Every claim is released
-   * on teardown, on destroy, and if the host disables the plugin.
+   * on teardown, on destroy, when the plugin is removed from `plugins`, and if
+   * the host disables the plugin.
    *
    * @since Weave v6
    */
