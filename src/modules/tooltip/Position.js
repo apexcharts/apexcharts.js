@@ -378,20 +378,14 @@ export default class Position {
    * Along with this, this function also calls the xaxisMove function
    * @memberof Position
    * @param {number} cx - point's x position, wherever point's x is, you need to move crosshair
-   * @param {number | null} [j]
    */
-  moveXCrosshairs(cx, j = null) {
+  moveXCrosshairs(cx) {
     const ttCtx = this.ttCtx
     const w = this.w
 
     const xcrosshairs = ttCtx.getElXCrosshairs()
 
     let x = cx - ttCtx.xcrosshairsWidth / 2
-
-    const tickAmount = w.labelData.labels.slice().length
-    if (j !== null) {
-      x = (w.layout.gridWidth / tickAmount) * j
-    }
 
     if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
       xcrosshairs.setAttribute('x', String(x))
@@ -493,11 +487,7 @@ export default class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    if (ttCtx.yaxisTTEls === null) {
-      ttCtx.yaxisTTEls = /** @type {any[]} */ ([
-        ...w.dom.baseEl.querySelectorAll('.apexcharts-yaxistooltip'),
-      ])
-    }
+    const el = ttCtx.getYaxisTTEls()[index]
 
     const ycrosshairsHiddenRectY1 = parseInt(
       ttCtx.ycrosshairsHidden?.getAttribute('y1') ?? '0',
@@ -505,10 +495,10 @@ export default class Position {
     )
     let cy = w.layout.translateY + ycrosshairsHiddenRectY1
 
-    // No node for this axis (one added since the cache was filled, or an
-    // index past the last axis): nothing to place.
-    if (ttCtx.yaxisTTEls?.[index]) {
-      const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
+    // No node for this axis (its tooltip is off, it was added since the
+    // cache was filled, or the index is past the last axis): nothing to place.
+    if (el) {
+      const yAxisTTRect = el.getBoundingClientRect()
       const yAxisTTHeight = yAxisTTRect.height
       // Center the tooltip horizontally on the actual y-axis labels group
       // so it "floats over" the labels instead of sitting on top of the
@@ -547,12 +537,12 @@ export default class Position {
         cy > 0 &&
         cy < w.layout.gridHeight
       ) {
-        ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
-        ttCtx.yaxisTTEls[index].style.top = cy + 'px'
-        ttCtx.yaxisTTEls[index].style.left =
+        el.classList.add('apexcharts-active')
+        el.style.top = cy + 'px'
+        el.style.left =
           cx + w.config.yaxis[index].tooltip.offsetX + 'px'
       } else {
-        ttCtx.yaxisTTEls[index].classList.remove('apexcharts-active')
+        el.classList.remove('apexcharts-active')
       }
     }
   }

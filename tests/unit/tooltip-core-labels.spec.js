@@ -147,12 +147,20 @@ describe('bar hover reset leaves untouched bars alone', () => {
     tt.deactivateHoverFilter()
     expect(leave).toHaveBeenCalledTimes(0)
 
-    vi.spyOn(tt.tooltipUtil, 'getBarsHeight').mockReturnValue(10)
     vi.spyOn(
       tt.tooltipPosition,
       'moveStickyTooltipOverBars',
     ).mockImplementation(() => {})
+    // The move neither forces a layout on the bar groups nor scans markers.
+    const groups = [...tt.tooltipUtil.getElBars()]
+    const bbox = groups.map((g) => {
+      g.getBBox = vi.fn(() => ({ x: 0, y: 0, width: 0, height: 0 }))
+      return g.getBBox
+    })
+    const markers = vi.spyOn(tt.tooltipUtil, 'getAllMarkers')
     tt.create({ type: 'mousemove' }, tt, 0, 3, tt.ttItems)
+    bbox.forEach((s) => expect(s).not.toHaveBeenCalled())
+    expect(markers).not.toHaveBeenCalled()
     expect(enter).toHaveBeenCalledTimes(2)
     expect(enter.mock.calls.map((c) => c[2].dataPointIndex)).toEqual([3, 3])
 

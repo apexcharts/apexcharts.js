@@ -1162,31 +1162,10 @@ describe('Tooltip.Position', () => {
       ttCtx.isXAxisTooltipEnabled = false
 
       const pos = new TooltipPosition(ttCtx)
-      pos.moveXCrosshairs(100, null)
+      pos.moveXCrosshairs(100)
 
       // x = 100 - 10/2 = 95
       expect(xcrosshairs.getAttribute('x')).toBe('95')
-    })
-
-    it('sets crosshair x based on j index when j is provided', () => {
-      const { ttCtx, w } = makeTooltipContext()
-
-      const xcrosshairs = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'line',
-      )
-      ttCtx.getElXCrosshairs = vi.fn(() => xcrosshairs)
-      ttCtx.xcrosshairsWidth = 10
-      w.globals.isBarHorizontal = false
-      w.globals.gridWidth = 300
-      w.globals.gridHeight = 300
-      w.globals.labels = ['A', 'B', 'C'] // tickAmount = 3
-      ttCtx.isXAxisTooltipEnabled = false
-
-      const pos = new TooltipPosition(ttCtx)
-      pos.moveXCrosshairs(0, 1) // j=1 → x = (300/3)*1 = 100
-
-      expect(xcrosshairs.getAttribute('x')).toBe('100')
     })
 
     it('adds apexcharts-active class to crosshair', () => {
@@ -1205,7 +1184,7 @@ describe('Tooltip.Position', () => {
       ttCtx.isXAxisTooltipEnabled = false
 
       const pos = new TooltipPosition(ttCtx)
-      pos.moveXCrosshairs(50, null)
+      pos.moveXCrosshairs(50)
 
       expect(xcrosshairs.classList.contains('apexcharts-active')).toBe(true)
     })
@@ -1226,7 +1205,7 @@ describe('Tooltip.Position', () => {
       ttCtx.isXAxisTooltipEnabled = false
 
       const pos = new TooltipPosition(ttCtx)
-      pos.moveXCrosshairs(100, null)
+      pos.moveXCrosshairs(100)
 
       expect(setSpy).not.toHaveBeenCalled()
     })
@@ -1240,7 +1219,7 @@ describe('Tooltip.Position', () => {
 
       const pos = new TooltipPosition(ttCtx)
       // Should not throw
-      expect(() => pos.moveXCrosshairs(100, null)).not.toThrow()
+      expect(() => pos.moveXCrosshairs(100)).not.toThrow()
     })
   })
 

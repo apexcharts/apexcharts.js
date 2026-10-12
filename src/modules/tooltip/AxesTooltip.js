@@ -79,6 +79,9 @@ class AxesTooltip {
     const ttCtx = this.ttCtx
 
     for (let i = 0; i < w.config.yaxis.length; i++) {
+      // No node for an axis whose tooltip is off (the default): the nodes
+      // are found by axis index (Tooltip.getYaxisTTEls), not DOM order.
+      if (!ttCtx.yaxisTooltips[i]) continue
       const isRight =
         w.config.yaxis[i].opposite || w.config.yaxis[i].crosshairs.opposite
 
@@ -111,8 +114,7 @@ class AxesTooltip {
 
         renderTo.appendChild(ttCtx.yaxisTooltip)
 
-        if (i === 0) ttCtx.yaxisTooltipText = []
-        ;/** @type {any} */ (ttCtx.yaxisTooltipText)[i] =
+        ;/** @type {any} */ (ttCtx.yaxisTooltipText ||= [])[i] =
           BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
         ;/** @type {any} */ (ttCtx.yaxisTooltipText)[i].classList.add(
           'apexcharts-yaxistooltip-text',

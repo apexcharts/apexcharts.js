@@ -674,16 +674,6 @@ export default class Utils {
   }
 
   /**
-   * @param {any[]} allbars
-   */
-  getBarsHeight(allbars) {
-    const bars = [...allbars]
-    const totalHeight = bars.reduce((acc, bar) => acc + bar.getBBox().height, 0)
-
-    return totalHeight
-  }
-
-  /**
    * @param {number} capturedSeries
    */
   getElMarkers(capturedSeries) {

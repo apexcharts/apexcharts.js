@@ -66,7 +66,7 @@ export default class Tooltip {
     this.yaxisTooltip = null
     /** @type {HTMLElement[] | null} */
     this.yaxisTooltipText = null
-    /** @type {HTMLElement[] | null} */
+    /** @type {(HTMLElement | null)[] | null} */
     this.yaxisTTEls = null
     /** @type {any} the bars a shared bar tooltip put in their hover state */
     this.hoverBars = []
@@ -138,8 +138,6 @@ export default class Tooltip {
     this.clientX = 0
     /** @type {number} */
     this.clientY = 0
-    /** @type {number} */
-    this.barSeriesHeight = 0
     /** @type {{ x: number, y: number, ttWidth: number, ttHeight: number }} */
     this.tooltipRect = { x: 0, y: 0, ttWidth: 0, ttHeight: 0 }
   }
@@ -298,6 +296,18 @@ export default class Tooltip {
       '_elXCrosshairsCache',
       '.apexcharts-xcrosshairs',
     )
+  }
+
+  /**
+   * The y-axis tooltip nodes by axis index, null for an axis drawn without
+   * one. Cached until the next full render (drawTooltip clears it).
+   * @returns {(HTMLElement | null)[]}
+   */
+  getYaxisTTEls() {
+    const w = this.w
+    return (this.yaxisTTEls ||= w.config.yaxis.map((_, i) =>
+      w.dom.baseEl.querySelector(`.apexcharts-yaxistooltip-${i}`),
+    ))
   }
 
   getElGrid() {
@@ -1982,14 +1992,9 @@ export default class Tooltip {
       this.xaxisTooltip?.classList.remove('apexcharts-active')
     }
     if (this.yaxisTooltips && this.yaxisTooltips.length) {
-      if (this.yaxisTTEls === null) {
-        this.yaxisTTEls = /** @type {HTMLElement[]} */ ([
-          ...w.dom.baseEl.querySelectorAll('.apexcharts-yaxistooltip'),
-        ])
-      }
-      for (let i = 0; i < this.yaxisTTEls.length; i++) {
-        this.yaxisTTEls[i].classList.remove('apexcharts-active')
-      }
+      this.getYaxisTTEls().forEach((el) =>
+        el?.classList.remove('apexcharts-active'),
+      )
     }
 
     if (w.config.legend.tooltipHoverFormatter) {
@@ -2138,27 +2143,21 @@ export default class Tooltip {
         handlePoints()
       } else if (this.tooltipUtil.hasBars()) {
         if (canvasMode) {
-          // canvas: bars/candles paint to the bitmap, so the barSeriesHeight /
-          // paths / hover-filter machinery below is DOM-only and no-ops here.
-          // Position straight off the cached bar coords (barSeriesHeight then
-          // resolves to 0, so the SVG block is skipped).
+          // canvas: bars/candles paint to the bitmap, so the paths /
+          // hover-filter machinery below is DOM-only. Position straight off
+          // the cached bar coords.
           ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
-        }
-        this.barSeriesHeight = this.tooltipUtil.getBarsHeight(
-          /** @type {any[]} */ ([...bars]),
-        )
-        if (this.barSeriesHeight > 0) {
+        } else if (
+          [...bars].some((/** @type {Element} */ b) => b.querySelector('path'))
+        ) {
+          // Any drawn bar mark. A DOM probe, not a getBBox, so a move does
+          // not force a layout.
           // hover state, activate snap filter
           const graphics = new Graphics(this.w, this.ctx)
           const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`)
 
           // de-activate first
           this.deactivateHoverFilter()
-          const points = ttCtx.tooltipUtil.getAllMarkers(true)
-
-          if (points.length && !this.barSeriesHeight) {
-            handlePoints()
-          }
 
           ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
 
