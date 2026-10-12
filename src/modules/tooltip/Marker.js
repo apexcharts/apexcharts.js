@@ -172,8 +172,8 @@ export default class Marker {
 
     this.tooltipPosition.moveXCrosshairs(cx)
 
-    // @ts-ignore — fixedTooltip is set by Tooltip.js on this.marker instance
-    if (!this.fixedTooltip) {
+    // A fixed tooltip is placed once, in its corner (drawFixedTooltipRect).
+    if (!this.ttCtx.fixedTooltip) {
       if (w.config.chart.type === 'radar') {
         const elGrid = this.ttCtx.getElGrid()
         if (!elGrid) return

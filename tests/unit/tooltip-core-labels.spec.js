@@ -569,3 +569,23 @@ describe('marker hover enlargement', () => {
     chart.destroy()
   })
 })
+
+describe('a fixed tooltip is not first placed at the hovered marker', () => {
+  it('enlargeCurrentPoint skips moveTooltip when tooltip.fixed is on', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 400, height: 300 },
+      series: [{ name: 'a', data: [1, 2, 3] }],
+      markers: { size: 4 },
+      tooltip: { fixed: { enabled: true } },
+    })
+    await tick()
+    const tt = chart.w.globals.tooltip
+    const point = chart.w.dom.baseEl.querySelector('.apexcharts-marker')
+    const move = vi.spyOn(tt.tooltipPosition, 'moveTooltip')
+    const cross = vi.spyOn(tt.tooltipPosition, 'moveXCrosshairs')
+    tt.marker.enlargeCurrentPoint(0, point)
+    expect(cross).toHaveBeenCalled()
+    expect(move).not.toHaveBeenCalled()
+    chart.destroy()
+  })
+})
