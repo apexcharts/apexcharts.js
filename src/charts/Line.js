@@ -241,7 +241,6 @@ class Line {
 
     const pX = x
     let pY2
-    const prevX = pX
     let prevY = this.zeroY
     let prevY2 = this.zeroY
     const lineYPosition = 0
@@ -282,16 +281,7 @@ class Line {
       y2Arrj.push(yArrj[0] !== null ? prevY2 : null)
     }
 
-    const pathsFrom = this._calculatePathsFrom({
-      type,
-      series,
-      i,
-      realIndex,
-      translationsIndex,
-      prevX,
-      prevY,
-      prevY2,
-    })
+    const pathsFrom = this._calculatePathsFrom(realIndex, prevY)
 
     // RangeArea will resume with these for the upper path creation
     const rYArrj = [yArrj[0]]
@@ -325,13 +315,7 @@ class Line {
     })
 
     if (type === 'rangeArea') {
-      const pathsFrom2 = this._calculatePathsFrom({
-        series: seriesRangeEnd,
-        i,
-        realIndex,
-        prevX,
-        prevY: prevY2,
-      })
+      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2)
       const rangePaths = this._iterateOverDataPoints({
         ...iteratingOpts,
         series: seriesRangeEnd,
@@ -527,48 +511,20 @@ class Line {
     this.appendPathFrom = true
   }
 
-  /** @param {{ type?: any, series?: any, i?: any, realIndex?: any, translationsIndex?: any, prevX?: any, prevY?: any, prevY2?: any }} opts */
-  _calculatePathsFrom({
-    type,
-    series,
-    i,
-    realIndex,
-    translationsIndex,
-    prevX,
-    prevY,
-    prevY2,
-  }) {
-    const w = this.w
+  /**
+   * The baseline pathFrom a series grows from on mount, or the previous
+   * render's paths when there are any. `prevY` rides along for the first
+   * point's marker.
+   * @param {number} realIndex
+   * @param {number} prevY
+   */
+  _calculatePathsFrom(realIndex, prevY) {
     const graphics = new Graphics(this.w)
-    let linePath, areaPath, pathFromLine, pathFromArea
-
-    if (series[i][0] === null) {
-      // when the first value itself is null, we need to move the pointer to a location where a null value is not found
-      for (let s = 0; s < series[i].length; s++) {
-        if (series[i][s] !== null) {
-          prevX = this.xDivision * s
-          prevY = this.zeroY - series[i][s] / this.yRatio[translationsIndex]
-          linePath = graphics.move(prevX, prevY)
-          areaPath = graphics.move(prevX, this.areaBottomY)
-          break
-        }
-      }
-    } else {
-      linePath = graphics.move(prevX, prevY)
-
-      if (type === 'rangeArea') {
-        linePath = graphics.move(prevX, prevY2) + graphics.line(prevX, prevY)
-      }
-      areaPath =
-        graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY)
-    }
-
-    pathFromLine =
+    let pathFromLine =
       graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY)
-    pathFromArea =
-      graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY)
+    let pathFromArea = pathFromLine
 
-    if (w.globals.previousPaths.length > 0) {
+    if (this.w.globals.previousPaths.length > 0) {
       const pathFrom = this.lineHelpers.checkPreviousPaths({
         pathFromLine,
         pathFromArea,
@@ -578,14 +534,7 @@ class Line {
       pathFromArea = pathFrom.pathFromArea
     }
 
-    return {
-      prevX,
-      prevY,
-      linePath,
-      areaPath,
-      pathFromLine,
-      pathFromArea,
-    }
+    return { prevY, pathFromLine, pathFromArea }
   }
 
   /**
@@ -981,7 +930,12 @@ class Line {
     const w = this.w
     const graphics = new Graphics(this.w)
     const yRatio = this.yRatio
-    let { prevY, linePath, areaPath, pathFromLine, pathFromArea } = pathsFrom
+    const prevY = pathsFrom.prevY
+    let { pathFromLine, pathFromArea } = pathsFrom
+    /** @type {any} */
+    let linePath
+    /** @type {any} */
+    let areaPath
 
     const minY = Utils.isNumber(w.globals.minYArr[realIndex])
       ? w.globals.minYArr[realIndex]
@@ -1264,8 +1218,6 @@ class Line {
       areaPaths,
       pathFromLine,
       linePaths,
-      linePath,
-      areaPath,
     }
   }
 
@@ -1513,8 +1465,6 @@ class Line {
       areaPaths,
       pathFromLine,
       linePaths,
-      linePath,
-      areaPath,
       numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : undefined,
     }
   }
