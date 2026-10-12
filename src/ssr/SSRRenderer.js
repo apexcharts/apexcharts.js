@@ -3,6 +3,7 @@ import ApexCharts from '../apexcharts.js'
 import { BrowserAPIs } from './BrowserAPIs.js'
 import { Environment } from '../utils/Environment.js'
 import { SSRRenderShim, querySelectorAll } from './RenderShim.js'
+import legendCSS from '../assets/apexcharts-legend.css'
 
 /**
  * SSRRenderer - Server-Side Rendering API for ApexCharts
@@ -12,7 +13,9 @@ import { SSRRenderShim, querySelectorAll } from './RenderShim.js'
  */
 export class SSRRenderer {
   /**
-   * Render chart to SVG string for server-side rendering
+   * Render chart to SVG string for server-side rendering. The legend is an
+   * HTML element beside the SVG, so this standalone SVG has none and its
+   * plot fills the chart; renderToHTML carries the legend.
    *
    * @param {Record<string, any>} options - Chart configuration (same as ApexCharts constructor)
    * @param {{ width?: number, height?: number, scale?: number }} [ssrOptions] - SSR-specific options
@@ -28,9 +31,19 @@ export class SSRRenderer {
    * });
    */
   static async renderToString(options, ssrOptions = {}) {
+    return (await this._render(options, ssrOptions, false)).svg
+  }
+
+  /**
+   * @param {Record<string, any>} options
+   * @param {{ width?: number, height?: number, scale?: number }} ssrOptions
+   * @param {boolean} withLegend whether the HTML legend is emitted too
+   * @returns {Promise<{ svg: string, legend: string }>}
+   */
+  static async _render(options, ssrOptions, withLegend) {
     // Initialize BrowserAPIs shim if in SSR
     if (Environment.isSSR()) {
-      BrowserAPIs.init(new SSRRenderShim())
+      BrowserAPIs.init(new SSRRenderShim({ legend: withLegend }))
     }
 
     const { width = 400, height = 300, scale = 1 } = ssrOptions
@@ -68,11 +81,12 @@ export class SSRRenderer {
         !chart.w?.dom?.Paper && chart.trellis?.isActive()
           ? `<svg xmlns="http://www.w3.org/2000/svg" class="apexcharts-svg apexcharts-ssr-placeholder" width="${width * scale}" height="${height * scale}"/>`
           : this._extractSVGString(chart, scale)
+      const legend = withLegend ? this._extractLegend(chart) : ''
 
       // Clean up
       chart.destroy()
 
-      return svgString
+      return { svg: svgString, legend }
     } catch (error) {
       // Ensure cleanup on error
       chart.destroy()
@@ -99,10 +113,14 @@ export class SSRRenderer {
    * });
    */
   static async renderToHTML(options, ssrOptions = {}) {
-    const { className = '' } = ssrOptions
+    const { className = '', width = 400, height = 300, scale = 1 } = ssrOptions
 
-    // Render to SVG string
-    const svgString = await this.renderToString(options, ssrOptions)
+    // Render to SVG string, with the HTML legend beside it on a box the
+    // legend is positioned in, as the browser's chart wrapper does
+    const { svg, legend } = await this._render(options, ssrOptions, true)
+    const svgString = legend
+      ? `<div style="position:relative;width:${width * scale}px;height:${height * scale}px">${svg}${legend}</div>`
+      : svg
 
     // Encode configuration for client-side hydration
     const dataConfig = this._encodeConfig(options)
@@ -113,6 +131,25 @@ export class SSRRenderer {
     return `<div class="${wrapperClass}" data-apexcharts-hydrate data-apexcharts-config="${dataConfig}">
 ${svgString}
 </div>`
+  }
+
+  /**
+   * The legend is an HTML element beside the SVG (#5168), so only
+   * renderToHTML can carry it: renderToString's standalone SVG has none. Its
+   * stylesheet comes along, since the page may not load the chart's CSS.
+   * @private
+   * @param {any} chart
+   */
+  static _extractLegend(chart) {
+    const w = chart.w
+    const el = w?.dom?.elLegendWrap
+    if (!w.config.legend.show || !el?.children.length) return ''
+    const nonce = w.config.chart.nonce
+    const css =
+      w.config.chart.injectStyleSheet === false
+        ? ''
+        : `<style${nonce ? ` nonce="${String(nonce).replace(/"/g, '&quot;')}"` : ''}>${legendCSS}</style>`
+    return css + el.outerHTML
   }
 
   /**

@@ -582,6 +582,8 @@ declare class ApexCharts {
   /**
    * SSR: render a chart to an SVG string on the server. Available from the
    * `apexcharts/ssr` entry (`import ApexCharts from 'apexcharts/ssr'`).
+   * The legend is HTML beside the SVG, so this standalone SVG has none and
+   * its plot fills the chart; use `renderToHTML` for a chart with its legend.
    */
   static renderToString(
     options: ApexCharts.ApexOptions,
@@ -590,7 +592,8 @@ declare class ApexCharts {
 
   /**
    * SSR: render a chart to hydration-ready HTML (SVG wrapped in the chart
-   * container). Available from the `apexcharts/ssr` entry.
+   * container), with the legend and its stylesheet beside the SVG. Available
+   * from the `apexcharts/ssr` entry.
    */
   static renderToHTML(
     options: ApexCharts.ApexOptions,

@@ -196,19 +196,11 @@ class Legend {
         shape,
       })
 
-      const shapesEls = w.dom.Paper.find(
-        '.apexcharts-legend-marker.apexcharts-marker',
-      )
-      /**
-       * @param {any} shapeEl
-       */
-      shapesEls.forEach((/** @type {any} */ shapeEl) => {
-        if (shapeEl.node.classList.contains('apexcharts-marker-triangle')) {
-          shapeEl.node.style.transform = 'translate(50%, 45%)'
-        } else {
-          shapeEl.node.style.transform = 'translate(50%, 50%)'
-        }
-      })
+      // Centre the shape, drawn about 0,0, in its box. Set on this marker
+      // alone: a lookup through the paper re-styled every earlier one too,
+      // and finds nothing in a server render.
+      marker.node.style.transform =
+        shape === 'triangle' ? 'translate(50%, 45%)' : 'translate(50%, 50%)'
       SVGMarker.add(marker)
     }
     return elMarker

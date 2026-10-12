@@ -125,8 +125,10 @@ const chartHTML = await ApexCharts.renderToHTML({
   xaxis: { categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999] }
 }, { width: 500, height: 300 })
 
-// Returns hydration-ready HTML with embedded SVG
+// Returns hydration-ready HTML with embedded SVG and the legend
 ```
+
+`ApexCharts.renderToString()` returns the bare SVG instead, for images, email or PDF. The legend is HTML beside the chart, so that SVG has no legend.
 
 ```js
 // Client
