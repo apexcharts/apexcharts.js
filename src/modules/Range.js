@@ -571,10 +571,6 @@ class Range {
     }
 
     /**
-     * @param {ApexYAxis} yaxe
-     * @param {number} index
-     */
-    /**
      * One configured bound as a number, or undefined when there is nothing
      * usable to override the computed extent with.
      *
@@ -593,39 +589,26 @@ class Range {
       return Utils.isNumber(resolved) ? resolved : undefined
     }
 
-    cnf.yaxis.forEach((yaxe, index) => {
+    // Multiple axes take their bounds per axis in scaleMultipleYAxes: minYArr
+    // is indexed by series, so writing yaxis[k]'s bound there clobbered
+    // whichever series sits at k, possibly on another axis.
+    const yaxe = cnf.yaxis[0]
+    if (!gl.isMultipleYAxis && yaxe) {
       // Override the computed extent with the user's bound, but ONLY when
       // resolveBound found one.
       //
       // Publishing to `gl.maxY`/`gl.minY` used to sit outside the type test,
       // so a bound that was neither a number nor a function (a numeric string,
-      // say) reached it having set nothing: on a single-axis chart
-      // `gl.minYArr[0]` is still undefined at this point, and copying that
-      // into `gl.minY` collapsed the axis to the `0 … tickAmount` scale a
-      // chart with no data gets, drawing the series off the plot (#5328).
-      const max = resolveBound(
-        yaxe.max,
-        gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY,
-      )
-      if (max !== undefined) {
-        gl.maxYArr[index] = max
-        // gl.maxY is for single y-axis charts; ignored in multi-yaxis
-        gl.maxY = max
-      }
+      // say) reached it having set nothing: `gl.minYArr[0]` is still
+      // undefined at this point, and copying that into `gl.minY` collapsed
+      // the axis to the `0 … tickAmount` scale a chart with no data gets,
+      // drawing the series off the plot (#5328).
+      const max = resolveBound(yaxe.max, gl.maxY)
+      if (max !== undefined) gl.maxYArr[0] = gl.maxY = max
 
-      const min = resolveBound(
-        yaxe.min,
-        gl.isMultipleYAxis
-          ? gl.minYArr[index] === Number.MIN_VALUE
-            ? 0
-            : gl.minYArr[index]
-          : gl.minY,
-      )
-      if (min !== undefined) {
-        gl.minYArr[index] = min
-        gl.minY = min
-      }
-    })
+      const min = resolveBound(yaxe.min, gl.minY)
+      if (min !== undefined) gl.minYArr[0] = gl.minY = min
+    }
 
     // for horizontal bar charts, we need to check xaxis min/max as user may have specified there
     if (gl.isBarHorizontal) {

@@ -106,7 +106,7 @@ class Line {
     this.xRatio = this.xyRatios.xRatio
     this.baseLineY = this.xyRatios.baseLineY
 
-    series = coreUtils.getLogSeries(series)
+    series = coreUtils.getLogSeries(series, /** @type {any} */ (seriesIndex))
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
     // We call draw() for each series group
     this.prevSeriesY = []

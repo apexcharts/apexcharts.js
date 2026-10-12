@@ -705,8 +705,9 @@ class CoreUtils {
 
   /**
    * @param {any[]} series
+   * @param {number[]} [realIndices] a combo subset's global series indices
    */
-  getLogSeries(series) {
+  getLogSeries(series, realIndices) {
     const w = this.w
 
     /**
@@ -714,6 +715,7 @@ class CoreUtils {
      * @param {number} i
      */
     w.globals.seriesLog = series.map((s, i) => {
+      if (realIndices) i = realIndices[i]
       const yAxisIndex = w.globals.seriesYAxisReverseMap[i]
       if (
         w.config.yaxis[yAxisIndex] &&

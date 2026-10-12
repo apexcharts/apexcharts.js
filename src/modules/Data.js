@@ -2187,9 +2187,8 @@ export default class Data {
    * scale. Bands sit at integer positions 0..N-1; the range is padded by a full
    * band on each side (min -1, max N) so jittered dots never clip. Crucially the
    * range bounds and tick count are integers, so the ticks land exactly on the
-   * band centers regardless of how the numeric scale "nices" the step (e.g. the
-   * small-range reduction in Scales._adjustTicksForSmallRange triggered by a
-   * y-axis formatter). Only fills in options the user hasn't set, so explicit
+   * band centers regardless of how the numeric scale "nices" the step. Only
+   * fills in options the user hasn't set, so explicit
    * min/max/tickAmount/formatter still win. The exception is an interactive
    * zoom/pan window (w.interact.zoomed): its fractional bounds are snapped to
    * whole bands so tick labels stay on band centers and edge bands are never

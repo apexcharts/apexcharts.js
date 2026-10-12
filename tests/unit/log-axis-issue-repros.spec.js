@@ -2,7 +2,7 @@ import { createChartWithOptions } from './utils/utils.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reproductions of the open logarithmic-axis issues, built from each report's
-// stated steps. One passes; the other four are pinned with it.fails() so they
+// stated steps. Two pass; the other three are pinned with it.fails() so they
 // flip red the moment they start working, which is the signal to unpin them.
 //
 // Each test asserts against the scale oracle (where a value must land, by
@@ -169,8 +169,8 @@ describe('#2697 log line beside a linear bar series', () => {
 
 describe('#2800 log axis on the second of two axes', () => {
   // "the related area chart is not plotted (seems to be constant to 0)".
-  // The area lands at y = 0, -33543 and -3387861 on a 339px grid.
-  it.fails('KNOWN BROKEN - draws the log area inside the grid', () => {
+  // The area used to land at y = 0, -33543 and -3387861 on a 339px grid.
+  it('draws the log area inside the grid', () => {
     const area = [1, 100, 10000]
     const chart = render({
       chart: { type: 'line' },

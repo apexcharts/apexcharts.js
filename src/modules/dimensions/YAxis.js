@@ -58,13 +58,14 @@ export default class DimYAxis {
          * @param {any} curr
          */
         let val = yS.result.reduce((/** @type {any} */ acc, /** @type {any} */ curr) => {
-          return String(lbFormatter(acc, formatterArgs))?.length >
-            String(lbFormatter(curr, formatterArgs))?.length
+          // `w` third, as the axis renderer passes it
+          return String(lbFormatter(acc, formatterArgs, w))?.length >
+            String(lbFormatter(curr, formatterArgs, w))?.length
             ? acc
             : curr
         }, minV)
 
-        val = lbFormatter(val, formatterArgs)
+        val = lbFormatter(val, formatterArgs, w)
 
         // the second parameter -1 is the index of tick which user can use in the formatter
         let valArr = val
@@ -86,7 +87,7 @@ export default class DimYAxis {
           //  get the longest string from the labels array and also apply label formatter to it
           val = Utils.getLargestStringFromArr(barYaxisLabels)
 
-          val = lbFormatter(val, { seriesIndex: index, dataPointIndex: -1, w })
+          val = lbFormatter(val, { seriesIndex: index, dataPointIndex: -1, w }, w)
           valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
             val,
             barYaxisLabels

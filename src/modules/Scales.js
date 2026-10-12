@@ -426,8 +426,8 @@ export default class Scales {
     }
   }
 
-  /** @param {number} yMin @param {number} yMax @param {number|string} ticks @param {number} index @param {number|undefined} step */
-  linearScale(yMin, yMax, ticks = 10, index = 0, step = undefined) {
+  /** @param {number} yMin @param {number} yMax @param {number|string} ticks @param {number} _index unused, kept for the positional step @param {number|undefined} step */
+  linearScale(yMin, yMax, ticks = 10, _index = 0, step = undefined) {
     const range = Math.abs(yMax - yMin)
     let result = []
 
@@ -440,8 +440,6 @@ export default class Scales {
         niceMax: result[result.length - 1],
       }
     }
-
-    ticks = this._adjustTicksForSmallRange(ticks, index, range)
 
     if (/** @type {any} */ (ticks) === 'dataPoints') {
       ticks = this.w.globals.dataPoints - 1
@@ -640,28 +638,6 @@ export default class Scales {
       niceMin: yMin,
       niceMax: yMax,
     }
-  }
-
-  /**
-   * @param {number | string} ticks
-   * @param {number} index
-   * @param {number} range
-   */
-  _adjustTicksForSmallRange(ticks, index, range) {
-    let newTicks = ticks
-    if (
-      typeof index !== 'undefined' &&
-      this.w.config.yaxis[index].labels.formatter &&
-      this.w.config.yaxis[index].tickAmount === undefined
-    ) {
-      const formattedVal = Number(
-        this.w.config.yaxis[index].labels.formatter(1),
-      )
-      if (Utils.isNumber(formattedVal) && this.w.globals.yValueDecimal === 0) {
-        newTicks = Math.ceil(range)
-      }
-    }
-    return newTicks < ticks ? newTicks : ticks
   }
 
   /**

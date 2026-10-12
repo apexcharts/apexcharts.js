@@ -433,11 +433,11 @@ export default class XAxis {
       for (let i = 0; i <= labels.length - 1; i++) {
         let label = typeof labels[i] === 'undefined' ? '' : labels[i]
 
-        label = lbFormatter(label, {
-          seriesIndex: realIndex,
-          dataPointIndex: i,
+        label = lbFormatter(
+          label,
+          { seriesIndex: realIndex, dataPointIndex: i, w },
           w,
-        })
+        )
 
         const yColors = this.axesUtils.getYAxisForeColor(
           ylabels.style.colors,
