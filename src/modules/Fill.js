@@ -284,10 +284,10 @@ class Fill {
       }
     }
 
-    // Gradients and patterns require resolved color values (not CSS variables)
-    const resolvedFillColor = Utils.isCSSVariable(fillColor)
-      ? Utils.getThemeColor(fillColor)
-      : fillColor
+    // Gradients and patterns require resolved color values (not CSS variables).
+    // Resolve inside the chart, so a variable scoped to its container (or a
+    // shadow root) is found.
+    const resolvedFillColor = Utils.getThemeColor(fillColor, w.dom.elWrap)
 
     if (fillType === 'pattern') {
       patternFill = this.handlePatternFill({

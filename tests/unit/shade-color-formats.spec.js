@@ -125,4 +125,34 @@ describe('getThemeColor resolves a variable where the chart is', () => {
       host.remove()
     }
   })
+
+  it('a gradient fill probes inside the chart element', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'area' },
+      series: [{ data: [1, 2, 3] }],
+      colors: ['var(--chart-accent)'],
+      fill: { type: 'gradient' },
+    })
+    await chart.render()
+    const parents = []
+    const real = window.getComputedStyle
+    const spy = vi
+      .spyOn(window, 'getComputedStyle')
+      .mockImplementation((el, p) => {
+        if (el.style && el.style.color === 'var(--chart-accent)') {
+          parents.push(el.parentNode)
+          return /** @type {any} */ ({ color: 'rgb(1, 2, 3)' })
+        }
+        return real(el, p)
+      })
+    try {
+      await chart.updateOptions({ fill: { type: 'gradient' } })
+      expect(parents.length).toBeGreaterThan(0)
+      const host = document.querySelector('#chart')
+      expect(parents.every((p) => host.contains(p))).toBe(true)
+    } finally {
+      spy.mockRestore()
+      chart.destroy()
+    }
+  })
 })
