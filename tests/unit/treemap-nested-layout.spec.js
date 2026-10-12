@@ -1,7 +1,27 @@
 import { describe, it, expect } from 'vitest'
-import TreemapSquared from '../../src/libs/Treemap-squared'
+import TreemapSquared, { normalize, squarify } from '../../src/libs/Treemap-squared'
 
-const { generate, generateNested } = TreemapSquared
+const { generateNested } = TreemapSquared
+
+/**
+ * The flat two-level layout (series, then the rows inside each series) the
+ * library shipped before generateNested. Kept here as the oracle the nested
+ * recursion must reproduce exactly.
+ */
+function generate(data, width, height) {
+  const sums = data.map((series) => {
+    let s = 0
+    for (let j = 0; j < series.length; j++) s += series[j]
+    return s
+  })
+  const seriesRects = squarify(normalize(sums, width * height), 0, 0, width, height)
+  return data.map((series, i) => {
+    const [rx, ry, x2, y2] = seriesRects[i]
+    const rw = x2 - rx
+    const rh = y2 - ry
+    return squarify(normalize(series, rw * rh), rx, ry, rw, rh)
+  })
+}
 
 /** Wrap a flat series-of-values matrix as the tree it implicitly describes. */
 function asTree(matrix) {

@@ -20,7 +20,7 @@
  * @param {number[]} data
  * @param {number} area
  */
-function normalize(data, area) {
+export function normalize(data, area) {
   let sum = 0
   for (let i = 0; i < data.length; i++) {
     sum += data[i]
@@ -107,7 +107,7 @@ function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, h
  * @param {number} width
  * @param {number} height
  */
-function squarify(data, xoffset, yoffset, width, height) {
+export function squarify(data, xoffset, yoffset, width, height) {
   /** @type {any[]} */
   const coords = []
   const n = data.length
@@ -158,53 +158,13 @@ function squarify(data, xoffset, yoffset, width, height) {
   return coords
 }
 
-/**
- * @param {any[]} data
- * @param {number} width
- * @param {number} height
- */
-function generate(data, width, height) {
-  const n = data.length
-
-  const sums = new Array(n)
-  for (let i = 0; i < n; i++) {
-    let s = 0
-    const series = data[i]
-    for (let j = 0; j < series.length; j++) {
-      s += series[j]
-    }
-    sums[i] = s
-  }
-
-  const seriesRects = squarify(
-    normalize(sums, width * height),
-    0, 0, width, height
-  )
-
-  const results = new Array(n)
-  for (let i = 0; i < n; i++) {
-    const rect = seriesRects[i]
-    const rx = rect[0]
-    const ry = rect[1]
-    const rw = rect[2] - rx
-    const rh = rect[3] - ry
-    results[i] = squarify(
-      normalize(data[i], rw * rh),
-      rx, ry, rw, rh
-    )
-  }
-
-  return results
-}
-
 // ---------------------------------------------------------------------------
 // Nested (arbitrary-depth) layout
 //
-// `generate` above is the two-level special case: series, then the rows inside
-// each series. The same squarify step applied recursively lays out a tree of
-// any depth, and because each level performs exactly the same
-// normalize-then-squarify against its parent's rect, a two-level tree comes out
-// bit-for-bit identical to `generate` (guarded in tests/unit/treemap-nested).
+// The same squarify step applied recursively lays out a tree of any depth.
+// Each level performs exactly the same normalize-then-squarify against its
+// parent's rect, so a two-level tree comes out bit-for-bit identical to the
+// flat series-then-rows layout (guarded in tests/unit/treemap-nested).
 //
 // A parent is drawn as a real container, so before its children are laid out
 // its rect gives up a header strip at the top and an inset on all four sides.
@@ -346,5 +306,5 @@ function generateNested(nodes, width, height, opts = {}) {
   return nodes
 }
 
-export default { generate, generateNested }
+export default { generateNested }
 
