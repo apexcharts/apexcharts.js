@@ -44,23 +44,8 @@ export default class Series {
   clearSeriesCache() {
     const w = this.w
     if (w.globals.cachedSelectors) {
-      delete w.globals.cachedSelectors.allSeriesEls
       delete w.globals.cachedSelectors.highlightSeriesEls
     }
-  }
-
-  getAllSeriesEls() {
-    // cache the result to avoid repeated querySelectorAll
-    const w = this.w
-    const cacheKey = 'allSeriesEls'
-
-    if (!w.globals.cachedSelectors[cacheKey]) {
-      w.globals.cachedSelectors[cacheKey] = /** @type {any} */ (
-        w.dom.baseEl.getElementsByClassName(`apexcharts-series`)
-      )
-    }
-
-    return w.globals.cachedSelectors[cacheKey]
   }
 
   /**
@@ -92,14 +77,6 @@ export default class Series {
       gl.ancillaryCollapsedSeriesIndices.includes(realIndex)
 
     return { isHidden, realIndex }
-  }
-
-  /**
-   * @param {any} elSeries
-   * @param {number} index
-   */
-  addCollapsedClassToSeries(elSeries, index) {
-    Series.addCollapsedClassToSeries(this.w, elSeries, index)
   }
 
   /**
@@ -1196,7 +1173,7 @@ export default class Series {
     let equalLen = true
     const w = this.w
 
-    const filteredSerX = this.filteredSeriesX()
+    const filteredSerX = w.seriesData.seriesX
 
     for (let i = 0; i < filteredSerX.length - 1; i++) {
       if (filteredSerX[i][0] !== filteredSerX[i + 1][0]) {
@@ -1208,18 +1185,5 @@ export default class Series {
     w.globals.allSeriesHasEqualX = equalLen
 
     return equalLen
-  }
-
-  filteredSeriesX() {
-    const w = this.w
-
-    /**
-     * @param {any[]} ser
-     */
-    const filteredSeriesX = w.seriesData.seriesX.map((ser) =>
-      ser.length > 0 ? ser : [],
-    )
-
-    return filteredSeriesX
   }
 }

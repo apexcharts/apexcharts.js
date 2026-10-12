@@ -94,7 +94,7 @@ function createBarInstance(overrides = {}) {
   // Build a minimal ctx that Bar's constructor needs
   const ctx = {
     w,
-    series: { addCollapsedClassToSeries: vi.fn() },
+    series: {},
   }
   ctx.ctx = ctx
 

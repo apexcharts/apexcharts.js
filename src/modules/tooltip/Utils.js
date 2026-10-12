@@ -587,28 +587,6 @@ export default class Utils {
   }
 
   /**
-   * @param {number} val
-   * @param {any[]} arr
-   */
-  closestInArray(val, arr) {
-    const curr = arr[0]
-    let currIndex = null
-    let diff = Math.abs(val - curr)
-
-    for (let i = 0; i < arr.length; i++) {
-      const newdiff = Math.abs(val - arr[i])
-      if (newdiff < diff) {
-        diff = newdiff
-        currIndex = i
-      }
-    }
-
-    return {
-      j: currIndex,
-    }
-  }
-
-  /**
    * When there are multiple series, it is possible to have different x values for each series.
    * But it may be possible in those multiple series, that there is same x value for 2 or more
    * series.

@@ -404,20 +404,18 @@ describe('Series — clearPreviousPaths()', () => {
 })
 
 describe('Series — clearSeriesCache()', () => {
-  it('removes allSeriesEls and highlightSeriesEls keys but leaves other keys intact', () => {
+  it('removes the highlightSeriesEls key but leaves other keys intact', () => {
     const chart = createChart('line', [{ data: [1, 2, 3] }])
     const w = chart.w
     const series = getSeries(chart)
 
     w.globals.cachedSelectors = {
-      allSeriesEls: [document.createElement('div')],
       highlightSeriesEls: [document.createElement('div')],
       other: 'keep-me',
     }
 
     series.clearSeriesCache()
 
-    expect(w.globals.cachedSelectors.allSeriesEls).toBeUndefined()
     expect(w.globals.cachedSelectors.highlightSeriesEls).toBeUndefined()
     expect(w.globals.cachedSelectors.other).toBe('keep-me')
   })

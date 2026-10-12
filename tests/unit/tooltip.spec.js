@@ -363,7 +363,7 @@ describe('Tooltip.Utils', () => {
     })
 
     it('does not let a null out-score a real point at the plot origin', () => {
-      // closestInArray scores a null as 0, so a cursor near x=0 could match a
+      // A null scored as 0, so a cursor near x=0 could match a
       // warm-up slot instead of the nearest drawn point.
       const { ttCtx, elGrid, hoverArea } = makeWarmupCtx(false)
       const res = new TooltipUtils(ttCtx).getNearestValues({
@@ -373,39 +373,6 @@ describe('Tooltip.Utils', () => {
         clientY: 170,
       })
       expect(res.j).toBe(FIRST_VISIBLE)
-    })
-  })
-
-  describe('closestInArray', () => {
-    // closestInArray starts currIndex=null and only updates when newdiff < diff
-    // So the first element is never selected (it sets the baseline diff but not currIndex)
-    // Only strictly closer subsequent elements get assigned to currIndex.
-    it('returns index of element strictly closer than the first', () => {
-      const { ttCtx } = makeTooltipContext()
-      const utils = new TooltipUtils(ttCtx)
-
-      // val=18: diff to 10 = 8, diff to 20 = 2 (strictly less) → j=1
-      expect(utils.closestInArray(18, [10, 20, 30])).toEqual({ j: 1 })
-      // val=28: diff to 10 = 18, diff to 20 = 8 (strictly less) → j=1,
-      //         then diff to 30 = 2 (strictly less) → j=2
-      expect(utils.closestInArray(28, [10, 20, 30])).toEqual({ j: 2 })
-    })
-
-    it('returns null when no element is strictly closer than the first (equal distance)', () => {
-      const { ttCtx } = makeTooltipContext()
-      const utils = new TooltipUtils(ttCtx)
-
-      // val=10: first element IS the closest, but currIndex starts null
-      // and is only updated when newdiff is STRICTLY less — so j stays null
-      const result = utils.closestInArray(10, [10, 20, 30])
-      expect(result.j).toBeNull()
-    })
-
-    it('handles single-element array — returns null (no comparison happens)', () => {
-      const { ttCtx } = makeTooltipContext()
-      const utils = new TooltipUtils(ttCtx)
-
-      expect(utils.closestInArray(999, [42])).toEqual({ j: null })
     })
   })
 
