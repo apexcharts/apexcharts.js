@@ -308,7 +308,11 @@ export default class MorphTypeChange {
       this._snapshot.pieceOut = total > 0 && total <= PIECE_BUDGET
     } else if (
       ff === 'unit' &&
-      (tf === 'bar' || tf === 'summary' || (tf === 'radial' && canShape))
+      (tf === 'bar' ||
+        tf === 'summary' ||
+        // Only slices can be tiled: a radialBar ring is a stroked arc the
+        // target collector does not read, so it keeps the ghost fade.
+        (tf === 'radial' && canShape && !/^(radialBar|gauge)$/.test(toType)))
     ) {
       // objects -> mark. The dots were just captured, so the count is exact.
       let total = 0
@@ -318,29 +322,9 @@ export default class MorphTypeChange {
       if (total > 0 && total <= PIECE_BUDGET) {
         this._snapshot.pieceIn = true
         this._snapshot.sourceDots = unitDots
-        // Flat mark order of the incoming chart, the same derivation
-        // _buildMapping uses, so cluster k pairs with keyOrder[k].
-        /** @type {string[]} */
-        const keyOrder = []
-        if (tf === 'radial') {
-          // A radial series is one flat value per slice, and its marks are
-          // keyed the way the radial capture keys them: slice index, j = 0.
-          ;(Array.isArray(newSeries) ? newSeries : []).forEach(
-            (/** @type {any} */ _v, /** @type {number} */ i) => {
-              keyOrder.push(`${i}:0`)
-            },
-          )
-        } else {
-          ;(Array.isArray(newSeries) ? newSeries : []).forEach(
-            (/** @type {any} */ s, /** @type {number} */ seriesIdx) => {
-              const data = s && Array.isArray(s.data) ? s.data : []
-              for (let j = 0; j < data.length; j++) {
-                keyOrder.push(`${seriesIdx}:${j}`)
-              }
-            },
-          )
-        }
-        this._snapshot.keyOrder = keyOrder
+        // The incoming chart's mark keys, the same ones _buildMapping pairs
+        // with, so cluster i flies to keyOrder[i].
+        this._snapshot.keyOrder = this._targetKeys(tf, newSeries)
       }
     }
 
@@ -975,7 +959,7 @@ export default class MorphTypeChange {
 
     for (let k = 0; k < clusterIdx.length; k++) {
       const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
-      const key = snap.keyOrder[k]
+      const key = snap.keyOrder[clusterIdx[k]]
       const target = key ? targets.get(key) : null
       if (!target || !dots || !dots.length) {
         // A mark with no incoming dots (or dots with no mark) has no pieces;
@@ -1682,6 +1666,11 @@ export default class MorphTypeChange {
       }
     }
 
+    // A unit cluster pairs by its own index: a cluster that drew no dots has
+    // no captured mark, and pairing by rank would shift every later cluster
+    // onto its neighbour's mark.
+    const fromUnit = familyOf(_fromType) === 'unit'
+
     if (tf === 'radial' || tf === 'unit' || tf === 'partition') {
       // pie / donut / polarArea / radialBar iterate i = 0..N-1 with j=0. unit
       // clusters iterate the same way (one cluster per category), reading the
@@ -1689,35 +1678,50 @@ export default class MorphTypeChange {
       // leaves have no (realIndex, j) grid at all and pair up by draw order,
       // which this same index keying gives them (see getInitialPathAt).
       flat.forEach((c, i) => {
-        map.set(`${i}:0`, { d: c.d, fill: c.fill })
+        map.set(`${fromUnit ? c.realIndex : i}:0`, { d: c.d, fill: c.fill })
       })
       return map
     }
 
     if (tf === 'bar' || tf === 'summary') {
-      // Derive the target's iteration positions from newSeries: each
-      // `{ data: number[] }` entry produces (realIndex=seriesIdx, j=k) tuples.
-      // boxPlot and violin iterate the same grid through Bar's renderSeries,
-      // so one branch serves both.
-      /** @type {Array<{ realIndex: number, j: number }>} */
-      const positions = []
-      const series = Array.isArray(newSeries) ? newSeries : []
-      series.forEach((/** @type {any} */ s, /** @type {number} */ seriesIdx) => {
-        const data = s && Array.isArray(s.data) ? s.data : []
-        for (let j = 0; j < data.length; j++) {
-          positions.push({ realIndex: seriesIdx, j })
-        }
-      })
+      const keys = this._targetKeys(tf, newSeries)
       flat.forEach((c, i) => {
-        const pos = positions[i]
-        if (pos) {
-          map.set(`${pos.realIndex}:${pos.j}`, { d: c.d, fill: c.fill })
-        }
+        const key = keys[fromUnit ? c.realIndex : i]
+        if (key) map.set(key, { d: c.d, fill: c.fill })
       })
-      return map
     }
 
     return map
+  }
+
+  /**
+   * The incoming chart's mark keys `${realIndex}:${j}`, in draw order. A
+   * radial chart draws one slice per value, and the single-series object
+   * form `[{ data: [...] }]` expands to one slice per datum. A bar chart
+   * (boxPlot and violin render through it) draws one mark per datum of each
+   * series.
+   *
+   * @param {string|null} tf - the incoming family
+   * @param {any} newSeries
+   * @returns {string[]}
+   */
+  _targetKeys(tf, newSeries) {
+    /** @type {string[]} */
+    const keys = []
+    const series = Array.isArray(newSeries) ? newSeries : []
+    if (tf === 'radial') {
+      const n =
+        series.length === 1 && Array.isArray(series[0]?.data)
+          ? series[0].data.length
+          : series.length
+      for (let i = 0; i < n; i++) keys.push(`${i}:0`)
+    } else {
+      series.forEach((/** @type {any} */ s, /** @type {number} */ si) => {
+        const data = s && Array.isArray(s.data) ? s.data : []
+        for (let j = 0; j < data.length; j++) keys.push(`${si}:${j}`)
+      })
+    }
+    return keys
   }
 
   isActive() {
