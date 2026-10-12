@@ -1684,14 +1684,29 @@ export default class Data {
         return serie
       }
 
-      // Check if data is already in {x, y} format or 2D array format
+      // Check if data is already in {x, y} format or 2D array format. A raw
+      // row may carry `x` or `y` too, so it only counts as parsed when no
+      // mapped field other than x/y/z is on it: `{x, y, value}` with
+      // `y: 'value'` still maps, while a row already parsed (appendData,
+      // updateSeries(w.config.series)) has lost `value` and is left alone.
+      // Once per series, on its first row.
       const firstDataPoint = serie.data[0]
 
       if (
         (typeof firstDataPoint === 'object' &&
           firstDataPoint !== null &&
           (Object.prototype.hasOwnProperty.call(firstDataPoint, 'x') ||
-            Object.prototype.hasOwnProperty.call(firstDataPoint, 'y'))) ||
+            Object.prototype.hasOwnProperty.call(firstDataPoint, 'y')) &&
+          ![effectiveParsing.x, effectiveParsing.y, effectiveParsing.z]
+            .flat()
+            .some(
+              (f) =>
+                f &&
+                f !== 'x' &&
+                f !== 'y' &&
+                f !== 'z' &&
+                this.getNestedValue(firstDataPoint, f) !== undefined,
+            )) ||
         Array.isArray(firstDataPoint)
       ) {
         return serie
