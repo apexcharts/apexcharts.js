@@ -516,10 +516,10 @@ export default class Toolbar {
 
       if (!wasEnabled) {
         ch.w.interact[enabledType] = true
-        el.classList.add(tb.selectedClass)
+        el?.classList.add(tb.selectedClass)
       }
 
-      el.setAttribute('aria-pressed', String(!!ch.w.interact[enabledType]))
+      el?.setAttribute('aria-pressed', String(!!ch.w.interact[enabledType]))
     })
   }
 
@@ -600,10 +600,10 @@ export default class Toolbar {
 
       if (!wasEnabled) {
         ch.w.interact.panEnabled = true
-        tb.elPan.classList.add(tb.selectedClass)
+        tb.elPan?.classList.add(tb.selectedClass)
       }
 
-      tb.elPan.setAttribute('aria-pressed', String(!!ch.w.interact.panEnabled))
+      tb.elPan?.setAttribute('aria-pressed', String(!!ch.w.interact.panEnabled))
     })
   }
 

@@ -310,8 +310,15 @@ export default class KeyboardNavigation {
 
   _canZoom() {
     const w = this.w
+    const r = this.ctx.toolbar?._currentXRange()
+    // The render's zoomability gate, and no sentinel (empty) x range
     return Boolean(
-      w.globals.axisCharts && w.config.chart.zoom && w.config.chart.zoom.enabled,
+      w.globals.axisCharts &&
+      w.config.chart.zoom?.enabled &&
+      (w.axisFlags.isXNumeric ||
+        w.config.xaxis.convertedCatToNumeric ||
+        w.axisFlags.isRangeBar) &&
+      r?.minX < r?.maxX,
     )
   }
 
@@ -327,12 +334,12 @@ export default class KeyboardNavigation {
    * @param {number} direction +1 = right, -1 = left
    */
   _panBy(direction) {
-    const w = this.w
     const toolbar = this.ctx.toolbar
     if (!toolbar) return
 
-    const minX = Number(w.globals.minX)
-    const maxX = Number(w.globals.maxX)
+    const r = toolbar._currentXRange()
+    const minX = Number(r.minX)
+    const maxX = Number(r.maxX)
     if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return
 
     const span = maxX - minX
@@ -382,17 +389,17 @@ export default class KeyboardNavigation {
 
       // Move between series (↑/↓)
       const total = this._getSeriesCount()
-      let si = this.seriesIndex + dSeries
+      let si = this.seriesIndex
 
-      // Skip collapsed series
-      let attempts = 0
-      while (attempts < total) {
-        if (si < 0) si = wrapAround ? total - 1 : 0
-        if (si >= total) si = wrapAround ? 0 : total - 1
-
-        if (!w.globals.collapsedSeriesIndices.includes(si)) break
-        si += dSeries
-        attempts++
+      // Nearest visible series that way; stay put at an edge unless wrapping
+      for (let k = 1; k < total; k++) {
+        let c = si + dSeries * k
+        if (wrapAround) c = (c + total) % total
+        else if (c < 0 || c >= total) break
+        if (!w.globals.collapsedSeriesIndices.includes(c)) {
+          si = c
+          break
+        }
       }
 
       this.seriesIndex = si
