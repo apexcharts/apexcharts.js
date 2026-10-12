@@ -107,7 +107,7 @@ export function radialPass(hf, r) {
   // The renderer's own method, called directly: the wrap is an own property.
   const ap = r.animatePaths
   r.animatePaths = (/** @type {any} */ el, /** @type {any} */ a) => {
-    // Copied first: the call rewrites the last ring's end angle.
+    // Copied first: the call writes to the args (animateArc's dur).
     const c = { ...a }
     ap.call(r, el, a)
     if (a.isTrack) return

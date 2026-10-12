@@ -764,7 +764,6 @@ class Pie {
           endAngle,
           startAngle,
           i,
-          totalItems: sectorAngleArr.length - 1,
           animBeginArr: this.animBeginArr,
           dur,
           collapsed,
@@ -1045,7 +1044,6 @@ class Pie {
    * @param {Record<string, any>} opts
    */
   animatePaths(el, opts) {
-    const w = this.w
     const me = this
 
     let angle =
@@ -1064,16 +1062,6 @@ class Pie {
           ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle
           : opts.prevEndAngle - opts.prevStartAngle
     }
-    if (opts.i === w.config.series.length - 1) {
-      // some adjustments for the last overlapping paths
-      if (angle + toStartAngle > this.fullAngle) {
-        opts.endAngle = opts.endAngle - (angle + toStartAngle)
-      } else if (angle + toStartAngle < this.fullAngle) {
-        opts.endAngle =
-          opts.endAngle + (this.fullAngle - (angle + toStartAngle))
-      }
-    }
-
     if (angle === this.fullAngle) angle = this.fullAngle - 0.01
 
     me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts)

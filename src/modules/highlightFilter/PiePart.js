@@ -70,7 +70,7 @@ export function piePass(hf, p) {
     ap,
   }
   p.animatePaths = (/** @type {any} */ el, /** @type {any} */ a) => {
-    // Copied first: the call rewrites the last slice's end angle.
+    // Copied first: the call writes to the args (animateArc's dur).
     const c = { ...a }
     ap.call(p, el, a)
     // A slice with no angle to come from lands at once (see animateArc).
