@@ -83,6 +83,9 @@ const SUMMARY_FAMILY = new Set(['boxPlot', 'violin'])
 // objects, a source family without piece support, a bailed mount).
 const GHOST_FADE_FRACTION = 0.55
 
+// Suffixes the ids of each ghost copy, so two copies never share one.
+let ghostSeq = 0
+
 // Above this many objects the piece layer stands down and the ghost fade runs
 // instead. Every piece is a live SVG node driven per frame; a unit chart's own
 // gather animation moves this many dots comfortably, and past it the overlay
@@ -419,10 +422,26 @@ export default class MorphTypeChange {
     }
 
     // An id collision would let the live chart resolve a gradient or clip-path
-    // against the dead one's defs, so the copy keeps no ids at all.
+    // against the dead one's defs (or the copy against the live one's), and a
+    // stripped id leaves a gradient fill painting nothing. So every id in the
+    // copy gets a suffix of its own and the copy's references follow it.
     if (typeof clone.querySelectorAll === 'function') {
+      const tag = `-ghost${++ghostSeq}`
+      /** @type {Set<string>} */
+      const ids = new Set()
       clone.querySelectorAll('[id]').forEach((/** @type {any} */ el) => {
-        el.removeAttribute('id')
+        ids.add(el.id)
+        el.id += tag
+      })
+      clone.querySelectorAll('*').forEach((/** @type {any} */ el) => {
+        for (const a of el.attributes) {
+          const v = a.value.replace(
+            /(url\(['"]?#|^#)([^'")\s]+)/g,
+            (/** @type {string} */ m, /** @type {string} */ pre, /** @type {string} */ id) =>
+              ids.has(id) ? pre + id + tag : m,
+          )
+          if (v !== a.value) a.value = v
+        }
       })
     }
     clone.removeAttribute?.('id')

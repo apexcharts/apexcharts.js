@@ -213,3 +213,34 @@ describe('outgoing mark capture', () => {
     radii.forEach((r) => expect([90, 110].some((want) => Math.abs(r - want) < 1e-6)).toBe(true))
   })
 })
+
+describe('the ghost copy', () => {
+  it('renames its ids and points its own references at them', () => {
+    const m = makeMorph()
+    const host = document.createElement('div')
+    host.innerHTML =
+      '<svg id="SvgjsSvg1"><defs>' +
+      '<linearGradient id="SvgjsGradient7"><stop offset="0" stop-color="#ff0000"></stop></linearGradient>' +
+      '<clipPath id="gridRectBarMaskabc"><rect></rect></clipPath></defs>' +
+      '<g class="apexcharts-series"><path fill="url(#SvgjsGradient7)" clip-path="url(#gridRectBarMaskabc)"></path>' +
+      '<path fill="#ff0000" style="filter: url(#elsewhere)"></path>' +
+      '<use href="#gridRectBarMaskabc"></use></g></svg>'
+    m.w.dom.Paper = { node: host.firstChild }
+    m._captureGhost()
+
+    const ghost = m._ghost
+    const ids = [...ghost.querySelectorAll('[id]')].map((el) => el.id)
+    expect(ids).toHaveLength(2)
+    ids.forEach((id) => expect(id).toMatch(/-ghost\d+$/))
+    const [grad, clip] = ids
+    const [painted, plain] = ghost.querySelectorAll('path')
+    expect(painted.getAttribute('fill')).toBe(`url(#${grad})`)
+    expect(painted.getAttribute('clip-path')).toBe(`url(#${clip})`)
+    expect(ghost.querySelector('use').getAttribute('href')).toBe(`#${clip}`)
+    // Colours and references to anything outside the copy are left alone.
+    expect(plain.getAttribute('fill')).toBe('#ff0000')
+    expect(plain.getAttribute('style')).toContain('url(#elsewhere)')
+    // The copy's own id is still dropped, so it can never shadow the live one.
+    expect(ghost.hasAttribute('id')).toBe(false)
+  })
+})
