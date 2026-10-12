@@ -521,6 +521,52 @@ export default class Defaults {
   }
 
   /**
+   * Put on or take off the sparkline preset when an update turns
+   * `chart.sparkline.enabled` on or off; construction is the only other place
+   * it is applied. A leaf moves only while it still holds what the outgoing
+   * mode chose, and never when this update names it.
+   *
+   * @param {Record<string, any>} config the merged w.config, mutated in place
+   * @param {boolean} was whether the sparkline was on before the update
+   * @param {Record<string, any>} [options] this update's payload
+   */
+  static syncSparkline(config, was, options) {
+    const now = !!config.chart.sparkline?.enabled
+    if (now === !!was) return
+    const d = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] })
+    const plain = Utils.extend(new Options().init(), Defaults.forType(config))
+    /**
+     * @param {Record<string, any>} preset
+     * @param {Record<string, any>} target
+     * @param {Record<string, any>} off what the leaves are without the preset
+     * @param {Record<string, any>} [asked]
+     * @param {string} [pre]
+     */
+    const walk = (preset, target, off, asked, pre = '') => {
+      for (const k of Object.keys(preset)) {
+        const p = pre + k
+        if (Utils.isObject(preset[k])) {
+          walk(preset[k], target, off, asked, p + '.')
+        } else if (readPath(asked, p) === undefined) {
+          const on = preset[k]
+          const base = readPath(off, p)
+          if (isUntouched(readPath(target, p), now ? base : on)) {
+            writePath(target, p, now ? on : base)
+          }
+        }
+      }
+    }
+    walk(d.sparkline({}), config, plain, options)
+    const asked = options?.yaxis
+    walk(
+      d.opts.yaxis[0],
+      config.yaxis[0],
+      new Options().yAxis,
+      Array.isArray(asked) ? asked[0] : asked,
+    )
+  }
+
+  /**
    * Settle the option combinations the renderers do not support. Runs on a new
    * chart's config and again after every updateOptions, which reaches the same
    * combinations. The two it cannot settle throw on a new chart, and only warn
