@@ -133,3 +133,44 @@ describe('dataReducer reads date and numeric-string points as numbers', () => {
     expect(win[1].x).toBe(iso(T0 + 50 * DAY))
   })
 })
+
+describe('each series is read in its own data format', () => {
+  const PAIRS = { name: 'pairs', data: [[1, 10], [2, 20], [3, 30]] }
+  const XY = {
+    name: 'xy',
+    data: [
+      { x: 1, y: 5 },
+      { x: 2, y: 6 },
+      { x: 3, y: 7 },
+    ],
+  }
+  const mount = (series) =>
+    createChartWithOptions({
+      chart: { type: 'line' },
+      xaxis: { type: 'numeric' },
+      series,
+    }).w.seriesData
+
+  it('draws an {x, y} series next to a [x, y] one', () => {
+    const sd = mount([PAIRS, XY])
+    expect(sd.series).toEqual([
+      [10, 20, 30],
+      [5, 6, 7],
+    ])
+    expect(sd.seriesX[1]).toEqual([1, 2, 3])
+  })
+
+  it('draws a [x, y] series next to an {x, y} one', () => {
+    const sd = mount([XY, PAIRS])
+    expect(sd.series).toEqual([
+      [5, 6, 7],
+      [10, 20, 30],
+    ])
+    expect(sd.seriesX[1]).toEqual([1, 2, 3])
+  })
+
+  it('reads a series past its leading nulls', () => {
+    const sd = mount([PAIRS, { name: 'gap', data: [null, { x: 2, y: 6 }] }])
+    expect(sd.series[1][1]).toBe(6)
+  })
+})

@@ -173,6 +173,8 @@ export default class Data {
     if (!this._pinActive) {
       this.activeSeriesIndex = new Series(this.w).getActiveConfigSeriesIndex()
     }
+    // Inside the parse loop, the series being parsed answers for itself.
+    if (this._ownPoint != null) return this._ownPoint
     const activeItem = /** @type {any} */ (series[this.activeSeriesIndex])
 
     if (
@@ -1095,6 +1097,16 @@ export default class Data {
         ser[i] = { ...ser[i], data: [] }
       }
 
+      // Classify the series by its own first non-null point: read through
+      // the active series' format, an {x, y} series beside a [x, y] one was
+      // parsed as pairs and drew nothing. An empty (collapsed) row has no
+      // point, so it falls back to the active series. One read per series,
+      // more only over leading nulls.
+      this._ownPoint = null
+      for (let k = 0; this._ownPoint == null && k < ser[i].data.length; k++) {
+        this._ownPoint = ser[i].data[k]
+      }
+
       // Zoom-aware LTTB downsampling — runs before any parsing so all
       // downstream paths benefit. Only applies to multiFormat (XY/{x,y}) data
       // where both x and y are available for triangle-area calculation.
@@ -1242,6 +1254,7 @@ export default class Data {
       }
     }
     this._pinActive = false
+    this._ownPoint = null
 
     return this.w
   }
