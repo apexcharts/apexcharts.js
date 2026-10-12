@@ -1209,6 +1209,19 @@ export default class ApexCharts {
     // destroyed: see updateOptions
     if (!me.core) return Promise.resolve(me)
 
+    // A trellis host: the grown series go through updateSeries, which
+    // re-splits them and hands each panel its slice.
+    const t = me.trellis
+    if (t && (t._mounted || t._rendering)) {
+      return me.updateSeries(
+        me.w.config.series.map((/** @type {any} */ s, i) =>
+          newData[i]
+            ? { ...s, data: s.data.concat(/** @type {any} */ (newData[i]).data) }
+            : s,
+        ),
+      )
+    }
+
     me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
     // appendData takes no `animate`: it animates per the config. The flag is
@@ -1313,6 +1326,16 @@ export default class ApexCharts {
    *   runs is the one that captures the new baseline.
    */
   update(options, overwriteInitialSeries = false) {
+    // A trellis host draws no chart of its own, so every caller here
+    // (refreshTokens, a derived-type append) rebuilds the grid instead of
+    // drawing a stray single chart beside it.
+    const t = this.trellis
+    if (t && (t._mounted || t._rendering)) {
+      return t.whenSettled().then(() => {
+        t.teardown()
+        return this.render()
+      })
+    }
     return new Promise((resolve, reject) => {
       // The identical-options skip only pays off for small configs: comparing
       // and cloning megabytes of series data costs more per update than the
