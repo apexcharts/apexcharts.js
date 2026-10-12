@@ -53,19 +53,6 @@ export function prefersReducedMotion() {
 }
 
 /**
- * @typedef {Object} StaggerOpts
- * @property {'sequential' | 'group' | 'diagonal' | 'centroid' | 'none'} style
- * @property {number} index - 0-based item index in its group
- * @property {number} [total] - total items (for centroid normalization)
- * @property {number} [baseDelay=40] - delay per stagger step in ms
- * @property {number} [row] - for 'diagonal' (heatmap)
- * @property {number} [col] - for 'diagonal'
- * @property {number} [groupIndex] - for 'group'
- * @property {number} [perGroup] - for 'group'
- * @property {number} [centerDistance] - for 'centroid' (0..1 normalized)
- */
-
-/**
  * Whether this render draws its line / area / rangeArea paths with the
  * pen-stroke effect, the one the progressive reveal follows. Mirrors the
  * gates of Graphics.renderPaths and animateDraw: a mount render, animations
@@ -223,13 +210,10 @@ export function applyAnimationPolicy(w) {
  * Compute a per-element delay for staggered initial-mount animations.
  *
  * Recognized options on `opts`:
- *   style:          'sequential' | 'group' | 'diagonal' | 'centroid' | 'none'
- *   index:          0-based item index in its group
- *   baseDelay:      delay per stagger step in ms (default 40)
- *   row, col:       for 'diagonal' (heatmap)
- *   groupIndex,
- *   perGroup:       for 'group'
- *   centerDistance: for 'centroid' (0..1 normalized)
+ *   style:      'sequential' | 'diagonal' | 'none'
+ *   index:      0-based item index in its group
+ *   baseDelay:  delay per stagger step in ms (default 40)
+ *   row, col:   for 'diagonal' (heatmap)
  *
  * @param {any} opts
  * @returns {number} delay in ms
@@ -238,21 +222,11 @@ export function computeStagger(opts) {
   const style = opts.style
   const index = opts.index || 0
   const baseDelay = typeof opts.baseDelay === 'number' ? opts.baseDelay : 40
-  const row = opts.row || 0
-  const col = opts.col || 0
-  const groupIndex = opts.groupIndex || 0
-  const perGroup = opts.perGroup || 1
-  const centerDistance = opts.centerDistance || 0
   switch (style) {
     case 'none':
       return 0
     case 'diagonal':
-      return (row + col) * baseDelay
-    case 'group':
-      return groupIndex * baseDelay + (index % perGroup) * (baseDelay / 4)
-    case 'centroid':
-      return centerDistance * baseDelay * (index + 1)
-    case 'sequential':
+      return ((opts.row || 0) + (opts.col || 0)) * baseDelay
     default:
       return index * baseDelay
   }
@@ -285,37 +259,6 @@ export default class Animations {
     this.w = w
     this.ctx = ctx // kept for animationEnd user callback: chart.events.animationEnd(ctx, …)
     if (ctx && w && !chartByState.has(w)) chartByState.set(w, ctx)
-  }
-
-  /**
-   * @param {any} el
-   * @param {Record<string, any>} from
-   * @param {Record<string, any>} to
-   * @param {object} speed
-   */
-  animateLine(el, from, to, speed) {
-    el.attr(from).animate(speed).attr(to)
-  }
-
-  /*
-   ** Animate radius of a circle element
-   * @param {any} el
-   * @param {number} speed
-   * @param {string} easing
-   * @param {Function} cb
-   */
-  /** @param {any} el @param {any} speed @param {any} easing @param {any} cb */
-  animateMarker(el, speed, easing, cb) {
-    el.attr({
-      opacity: 0,
-    })
-      .animate(speed)
-      .attr({
-        opacity: 1,
-      })
-      .after(() => {
-        cb()
-      })
   }
 
   /**
