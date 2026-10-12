@@ -811,38 +811,11 @@ export default class MorphTypeChange {
 
     // The live dots, grouped by cluster. They exist and are hidden: the unit
     // renderer drew them at their final slots before this ran.
-    /** @type {Map<number, Array<{el:any,x:number,y:number,r:number,fill:string|null}>>} */
-    const byCluster = new Map()
+    const byCluster = this._readUnitDots(baseEl, new Map())
     let total = 0
-    baseEl
-      .querySelectorAll('.apexcharts-unit-area')
-      .forEach((/** @type {any} */ dot) => {
-        const i = parseInt(dot.getAttribute('i') ?? '', 10)
-        if (isNaN(i)) return
-        const cxAttr = dot.getAttribute('cx')
-        let x
-        let y
-        let r = 3
-        if (cxAttr != null) {
-          x = parseFloat(cxAttr)
-          y = parseFloat(dot.getAttribute('cy') ?? '')
-          r = parseFloat(dot.getAttribute('r') ?? '3') || 3
-        } else {
-          const wAttr = parseFloat(dot.getAttribute('width') ?? '0') || 0
-          const hAttr = parseFloat(dot.getAttribute('height') ?? '0') || 0
-          x = parseFloat(dot.getAttribute('x') ?? '') + wAttr / 2
-          y = parseFloat(dot.getAttribute('y') ?? '') + hAttr / 2
-          r = Math.max(wAttr, hAttr) / 2 || 3
-        }
-        if (!isFinite(x) || !isFinite(y)) return
-        let list = byCluster.get(i)
-        if (!list) {
-          list = []
-          byCluster.set(i, list)
-        }
-        list.push({ el: dot, x, y, r, fill: dot.getAttribute('fill') })
-        total++
-      })
+    byCluster.forEach((list) => {
+      total += list.length
+    })
 
     if (total === 0 || total > PIECE_BUDGET) return this._revealPieceHidden()
 
@@ -940,6 +913,34 @@ export default class MorphTypeChange {
       dotEl.removeAttribute('data-piece-hidden')
       if (piece.el.parentNode) piece.el.parentNode.removeChild(piece.el)
     })
+  }
+
+  /**
+   * The unit chart's dots, grouped by cluster index into `into`. Circles
+   * carry cx/cy; square and image dots carry their top-left x/y.
+   *
+   * @param {any} baseEl
+   * @param {Map<number, any[]>} into - each dot as {el, x, y, r, fill}
+   */
+  _readUnitDots(baseEl, into) {
+    baseEl
+      .querySelectorAll('.apexcharts-unit-area')
+      .forEach((/** @type {any} */ dot) => {
+        const i = parseInt(dot.getAttribute('i') ?? '', 10)
+        if (isNaN(i)) return
+        const num = (/** @type {string} */ a) => parseFloat(dot.getAttribute(a))
+        const cx = dot.getAttribute('cx')
+        const w = num('width') || 0
+        const h = num('height') || 0
+        const x = cx != null ? parseFloat(cx) : num('x') + w / 2
+        const y = cx != null ? num('cy') : num('y') + h / 2
+        const r = (cx != null ? num('r') : Math.max(w, h) / 2) || 3
+        if (!isFinite(x) || !isFinite(y)) return
+        let list = into.get(i)
+        if (!list) into.set(i, (list = []))
+        list.push({ el: dot, x, y, r, fill: dot.getAttribute('fill') })
+      })
+    return into
   }
 
   /**
@@ -1382,71 +1383,25 @@ export default class MorphTypeChange {
       // cluster's dots actually sat and synthesise the rect they filled: the
       // incoming mark then grows out of its own dot cloud, which is the mirror
       // of the burst that brought the dots out of it.
-      const dots = baseEl.querySelectorAll('.apexcharts-unit-area')
-      /** @type {Map<number, {minX:number,minY:number,maxX:number,maxY:number,fill:string|null}>} */
-      const boxes = new Map()
-      dots.forEach((/** @type {Element} */ dot) => {
-        const i = parseInt(dot.getAttribute('i') ?? '', 10)
-        if (isNaN(i)) return
-        // Circles carry cx/cy; square / image dots carry their top-left x/y.
-        const cxAttr = dot.getAttribute('cx')
-        let x
-        let y
-        let r = 3
-        if (cxAttr != null) {
-          x = parseFloat(cxAttr)
-          y = parseFloat(dot.getAttribute('cy') ?? '')
-          r = parseFloat(dot.getAttribute('r') ?? '3') || 3
-        } else {
-          const wAttr = parseFloat(dot.getAttribute('width') ?? '0') || 0
-          const hAttr = parseFloat(dot.getAttribute('height') ?? '0') || 0
-          x = parseFloat(dot.getAttribute('x') ?? '') + wAttr / 2
-          y = parseFloat(dot.getAttribute('y') ?? '') + hAttr / 2
-          r = Math.max(wAttr, hAttr) / 2 || 3
-        }
-        if (!isFinite(x) || !isFinite(y)) return
-        // The per-dot record, for the piece layer: when the target can be
-        // tiled, each of these dots flies to its own cell of the incoming mark
-        // instead of vanishing with the teardown.
-        let list = unitDots.get(i)
-        if (!list) {
-          list = []
-          unitDots.set(i, list)
-        }
-        list.push({ x, y, r, fill: dot.getAttribute('fill') })
-        const box = boxes.get(i)
-        if (!box) {
-          boxes.set(i, {
-            minX: x,
-            minY: y,
-            maxX: x,
-            maxY: y,
-            fill: dot.getAttribute('fill'),
-          })
-          return
-        }
-        if (x < box.minX) box.minX = x
-        if (x > box.maxX) box.maxX = x
-        if (y < box.minY) box.minY = y
-        if (y > box.maxY) box.maxY = y
-      })
-
-      Array.from(boxes.keys())
+      this._readUnitDots(baseEl, unitDots)
+      Array.from(unitDots.keys())
         .sort((a, b) => a - b)
         .forEach((i) => {
-          const b = /** @type {any} */ (boxes.get(i))
+          const list = /** @type {any[]} */ (unitDots.get(i))
+          const xs = list.map((d) => d.x)
+          const ys = list.map((d) => d.y)
           // A single-dot cluster has a zero-area box; give it the width of one
           // dot so the incoming mark has something to grow from.
           const pad = 2
-          const x1 = b.minX - pad
-          const y1 = b.minY - pad
-          const x2 = b.maxX + pad
-          const y2 = b.maxY + pad
+          const x1 = Math.min(...xs) - pad
+          const y1 = Math.min(...ys) - pad
+          const x2 = Math.max(...xs) + pad
+          const y2 = Math.max(...ys) + pad
           captured.push({
             realIndex: i,
             j: 0,
             d: `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2} Z`,
-            fill: b.fill,
+            fill: list[0].fill,
           })
         })
     } else if (fam === 'radial') {
@@ -1988,39 +1943,30 @@ export default class MorphTypeChange {
       const n = c.length
       const x = cmd === 'H' ? c[1] : cmd === 'V' ? px : c[n - 2]
       const y = cmd === 'H' ? py : cmd === 'V' ? c[1] : c[n - 1]
-      if (cmd === 'A' && c[1] && c[2]) {
+      if (cmd === 'A') {
         // An arc bulges past its end points: add each axis extreme its sweep
-        // passes (SVG's endpoint-to-centre conversion, rotation 0), or a
-        // half-pie slice would measure zero wide.
-        let rx = Math.abs(c[1])
-        let ry = Math.abs(c[2])
-        const hx = (px - x) / 2
-        const hy = (py - y) / 2
-        const lam = (hx * hx) / (rx * rx) + (hy * hy) / (ry * ry)
-        if (lam > 1) {
-          rx *= Math.sqrt(lam)
-          ry *= Math.sqrt(lam)
-        }
-        const num = rx * rx * ry * ry - rx * rx * hy * hy - ry * ry * hx * hx
-        const den = rx * rx * hy * hy + ry * ry * hx * hx
-        const f =
-          (c[4] === c[5] ? -1 : 1) * Math.sqrt(Math.max(0, num / den) || 0)
-        const ccx = (f * rx * hy) / ry
-        const ccy = (-f * ry * hx) / rx
-        const cx = ccx + (px + x) / 2
-        const cy = ccy + (py + y) / 2
-        const a0 = Math.atan2((hy - ccy) / ry, (hx - ccx) / rx)
-        let sweep = Math.atan2((-hy - ccy) / ry, (-hx - ccx) / rx) - a0
-        if (c[5] && sweep < 0) sweep += 2 * Math.PI
-        else if (!c[5] && sweep > 0) sweep -= 2 * Math.PI
-        for (let q = 0; q < 4; q++) {
-          const a = (q * Math.PI) / 2
-          // How far along the sweep's own direction this extreme lies.
-          const t =
-            (((sweep > 0 ? a - a0 : a0 - a) % (2 * Math.PI)) + 2 * Math.PI) %
-            (2 * Math.PI)
-          if (t <= Math.abs(sweep)) {
-            add(cx + rx * Math.cos(a), cy + ry * Math.sin(a))
+        // passes, or a half-pie slice would measure zero wide. Every arc the
+        // library draws is circular and unrotated, so the centre is SVG's
+        // endpoint-to-centre conversion with rx = ry (a radius too short for
+        // the chord grows to fit, as the spec says).
+        if (c[1]) {
+          const hx = (px - x) / 2
+          const hy = (py - y) / 2
+          const f =
+            (c[4] === c[5] ? -1 : 1) *
+            Math.sqrt(Math.max(0, (c[1] * c[1]) / (hx * hx + hy * hy) - 1))
+          const cx = px - hx + f * hy
+          const cy = py - hy - f * hx
+          const r = Math.hypot(px - cx, py - cy)
+          const a0 = Math.atan2(py - cy, px - cx)
+          const TAU = 2 * Math.PI
+          let sweep = Math.atan2(y - cy, x - cx) - a0
+          if (c[5] && sweep < 0) sweep += TAU
+          else if (!c[5] && sweep > 0) sweep -= TAU
+          for (let a = 0; a < TAU; a += Math.PI / 2) {
+            // How far along the sweep's own direction this extreme lies.
+            const t = ((((sweep > 0 ? a - a0 : a0 - a) % TAU) + TAU) % TAU)
+            if (t <= Math.abs(sweep)) add(cx + r * Math.cos(a), cy + r * Math.sin(a))
           }
         }
       } else if (cmd !== 'H' && cmd !== 'V') {
