@@ -4801,7 +4801,11 @@ type ApexTooltip = {
   enabled?: boolean
   enabledOnSeries?: undefined | number[]
   shared?: boolean
-  /** Ignored while `interactive` is enabled. */
+  /**
+   * Ignored while `interactive` is enabled. On horizontal bar and timeline
+   * charts the tooltip arrow pins the box to the hovered bar, so set
+   * `arrow: false` there to have the box follow the pointer.
+   */
   followCursor?: boolean
   intersect?: boolean
   inverseOrder?: boolean
