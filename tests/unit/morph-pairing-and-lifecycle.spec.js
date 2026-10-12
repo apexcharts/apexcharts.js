@@ -177,3 +177,39 @@ describe('_pathBBox', () => {
     expect(box).toEqual({ minX: 0, minY: -5, maxX: 100, maxY: 40 })
   })
 })
+
+describe('outgoing mark capture', () => {
+  it('starts bars and summary marks from their live shape, not the end of their tween', () => {
+    const m = makeMorph()
+    // Built node by node: the HTML parser would lower-case `pathTo`.
+    const el = (tag, attrs, parent) => {
+      const node = document.createElementNS(SVG_NS, tag)
+      Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v))
+      parent.appendChild(node)
+      return node
+    }
+    const svg = el('svg', {}, m.w.globals.dom.baseEl)
+    const barSeries = el('g', { class: 'apexcharts-series', 'data:realIndex': '0' }, el('g', { class: 'apexcharts-bar-series' }, svg))
+    el('path', { pathTo: 'M 0 100 L 0 0 L 10 0 L 10 100 Z', d: 'M 0 100 L 0 60 L 10 60 L 10 100 Z' }, barSeries)
+    const boxSeries = el('g', { class: 'apexcharts-series', 'data:realIndex': '0' }, svg)
+    el('path', { class: 'apexcharts-boxPlot-area', j: '0', pathTo: 'M 0 0 L 5 5', d: 'M 1 1 L 2 2' }, boxSeries)
+    expect(m._captureFromDOM('bar').marks[0].d).toBe('M 0 100 L 0 60 L 10 60 L 10 100 Z')
+    expect(m._captureFromDOM('boxPlot').marks[0].d).toBe('M 1 1 L 2 2')
+  })
+
+  it('rebuilds radialBar rings around the centre the renderer used', () => {
+    const m = makeMorph()
+    // A tall plot: the rings sit at the band's centre (150, 225), not at
+    // min(w, h) / 2.
+    m.w.globals.circleGeometry = { cx: 150, cy: 225, r: 120 }
+    m.w.globals.dom.baseEl.innerHTML =
+      '<svg><g class="apexcharts-radial-series"><g data:realIndex="0">' +
+      '<path class="apexcharts-radialbar-area" stroke-width="20" d="M 150 125 A 100 100 0 0 1 250 225"></path>' +
+      '</g></g></svg>'
+    const d = m._captureFromDOM('radialBar').marks[0].d
+    const radii = parsePath(d)
+      .filter((c) => c[0] !== 'Z')
+      .map((c) => Math.hypot(c[c.length - 2] - 150, c[c.length - 1] - 225))
+    radii.forEach((r) => expect([90, 110].some((want) => Math.abs(r - want) < 1e-6)).toBe(true))
+  })
+})

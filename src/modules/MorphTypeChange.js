@@ -1222,7 +1222,9 @@ export default class MorphTypeChange {
           'path[pathTo]:not(.apexcharts-highlight-part)',
         )
         paths.forEach((/** @type {Element} */ p, /** @type {number} */ j) => {
-          const d = p.getAttribute('pathTo') || p.getAttribute('d')
+          // The live shape, not where its own tween is heading: a type change
+          // made mid-grow starts from the bar on screen.
+          const d = p.getAttribute('d') || p.getAttribute('pathTo')
           if (!d) return
           captured.push({
             realIndex,
@@ -1258,7 +1260,7 @@ export default class MorphTypeChange {
         .forEach((/** @type {any} */ p) => {
           const j = parseInt(p.getAttribute('j') ?? '', 10)
           if (isNaN(j)) return
-          const d = p.getAttribute('pathTo') || p.getAttribute('d')
+          const d = p.getAttribute('d') || p.getAttribute('pathTo')
           if (!d || !d.trim()) return
           const group =
             typeof p.closest === 'function' ? p.closest('.apexcharts-series') : null
@@ -1433,9 +1435,10 @@ export default class MorphTypeChange {
         // So we transform each captured arc into an equivalent closed
         // donut-segment whose FILLED rendering visually matches the
         // outgoing radialBar's stroked appearance.
-        const centerX = this.w.layout.gridWidth / 2
-        const centerY =
-          Math.min(this.w.layout.gridWidth, this.w.layout.gridHeight) / 2
+        // The centre the rings were drawn around (the band's, see #4875).
+        const cg = this.w.globals.circleGeometry
+        const centerX = cg ? cg.cx : this.w.layout.gridWidth / 2
+        const centerY = cg ? cg.cy : this.w.layout.gridHeight / 2
         const rings = baseEl.querySelectorAll(
           '.apexcharts-radial-series .apexcharts-radialbar-area',
         )
