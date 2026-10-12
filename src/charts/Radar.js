@@ -434,9 +434,11 @@ class Radar {
     const { parent } = opts
     const helpers = new Helpers(this.w)
 
-    // Reversed in place on purpose: a radar update mid-flight reads the scale
-    // in this order (circle-resize and update-matrix radar specs jump when it
-    // is copied instead). Find that reader before changing this.
+    // Reversed in place on purpose: the updateSeries fast path compares the
+    // on-screen scale signature (UpdateHelpers._updateSeries) with the fresh
+    // ascending one (fastUpdate), so this order makes every radar update miss
+    // it and take the full render the radar transitions run on. A copy here
+    // needs radar barred in _canUseFastPath first (radar-update-path.spec).
     const yaxisTexts = w.globals.yAxisScale[0].result.reverse()
     const layers = yaxisTexts.length
 
