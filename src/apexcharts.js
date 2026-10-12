@@ -846,6 +846,7 @@ export default class ApexCharts {
 
       me.annotations?.drawAxesAnnotations()
 
+      let tools
       if (!w.globals.noData) {
         // draw tooltips at the end (browser only — tooltip is DOM-heavy)
         if (
@@ -883,18 +884,18 @@ export default class ApexCharts {
             })
           }
         } else {
-          const tools = w.config.chart.toolbar.tools
-          const toolsArr = [
-            'zoom',
-            'zoomin',
-            'zoomout',
-            'selection',
-            'pan',
-            'reset',
-          ]
-          toolsArr.forEach((t) => {
-            tools[t] = false
-          })
+          // Off for this render only: the page's config keeps its tools, so
+          // a later switch to a zoomable chart shows them again.
+          tools = w.config.chart.toolbar.tools
+          w.config.chart.toolbar.tools = {
+            ...tools,
+            zoom: false,
+            zoomin: false,
+            zoomout: false,
+            selection: false,
+            pan: false,
+            reset: false,
+          }
         }
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
@@ -909,6 +910,7 @@ export default class ApexCharts {
           // the viewer lands in a window with nothing on screen that undoes it.
           me.toolbar.createToolbar({ resetOnly: true })
         }
+        if (tools) w.config.chart.toolbar.tools = tools
       }
 
       // Weave: main render hook: series/grid/axes are live in elGraphical now.
