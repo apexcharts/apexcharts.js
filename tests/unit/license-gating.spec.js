@@ -196,6 +196,24 @@ describe('License gating', () => {
       chart.destroy()
     })
 
+    // A full redraw builds a new elWrap; the removal observer must follow it
+    // instead of staying bound to (and pinning) the first render's wrapper.
+    it('re-injects a removed watermark after a full redraw', async () => {
+      const chart = premiumLineChart({ measure: { enabled: true } })
+      const firstWrap = chart.w.dom.elWrap
+      await chart.updateOptions({ chart: { measure: { enabled: true } } }, true)
+      const wrap = chart.w.dom.elWrap
+      expect(wrap).not.toBe(firstWrap)
+      expect(hasWatermark(chart)).toBe(true)
+      wrap.querySelector(WM).remove()
+      await Promise.resolve()
+      await new Promise((r) => setTimeout(r, 0))
+      expect(hasWatermark(chart)).toBe(true)
+      expect(chart._wmObservedWrap).toBe(wrap)
+      chart.destroy()
+      expect(chart._wmObservedWrap).toBe(null)
+    })
+
     it('warns once (no key) naming the feature + pricing link', () => {
       const chart = premiumLineChart({ measure: { enabled: true } })
       expect(warnSpy).toHaveBeenCalledTimes(1)

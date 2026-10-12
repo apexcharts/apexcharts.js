@@ -261,12 +261,16 @@ function reinstateWatermark(ctx, elWrap) {
  */
 function addWatermark(ctx, elWrap) {
   reinstateWatermark(ctx, elWrap)
-  if (typeof MutationObserver === 'undefined' || ctx._wmWrapObserver) return
+  if (typeof MutationObserver === 'undefined') return
+  // A full render builds a new elWrap: rebind to it and let the old one go.
+  if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return
+  if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect()
   const wrapObs = new MutationObserver(() => {
     if (!Watermark.node(elWrap)) reinstateWatermark(ctx, elWrap)
   })
   wrapObs.observe(elWrap, { childList: true })
   ctx._wmWrapObserver = wrapObs
+  ctx._wmObservedWrap = elWrap
 }
 
 /**
@@ -284,6 +288,7 @@ export function teardownWatermark(ctx, elWrap) {
     ctx._wmNodeObserver = null
   }
   ctx._wmObservedNode = null
+  ctx._wmObservedWrap = null
   const wrap = elWrap || (ctx.w && ctx.w.dom && ctx.w.dom.elWrap)
   if (wrap) Watermark.remove(wrap, { manage: false })
 }
