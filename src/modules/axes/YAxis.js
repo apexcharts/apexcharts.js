@@ -22,8 +22,6 @@ export default class YAxis {
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
     this.axisFontFamily = w.config.xaxis.labels.style.fontFamily
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
-    this.isCategoryBarHorizontal =
-      w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal
     this.xAxisoffX =
       w.config.xaxis.position === 'bottom' ? w.layout.gridHeight : 0
     /** @type {any} */
@@ -291,7 +289,6 @@ export default class YAxis {
     const timescaleLabels = w.labelData.timescaleLabels
 
     if (timescaleLabels.length > 0) {
-      this.xaxisLabels = timescaleLabels.slice()
       labels = timescaleLabels.slice()
       tickAmount = labels.length
     }
@@ -516,8 +513,6 @@ export default class YAxis {
     let xRight = 0
     let leftOffsetX = 18
     let rightOffsetX = 1
-
-    if (w.config.yaxis.length > 1) this.multipleYs = true
 
     /**
      * @param {ApexYAxis} yaxe
