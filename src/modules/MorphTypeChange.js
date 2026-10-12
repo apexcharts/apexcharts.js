@@ -1934,36 +1934,80 @@ export default class MorphTypeChange {
    * @returns {{ minX:number, minY:number, maxX:number, maxY:number } | null}
    */
   _pathBBox(d) {
-    const commands = parsePath(d)
     let minX = Infinity
     let minY = Infinity
     let maxX = -Infinity
     let maxY = -Infinity
-    let seen = false
-    commands.forEach(/** @param {any[]} c */ (c) => {
+    // The current point, and where the open subpath started (Z returns there).
+    let px = 0
+    let py = 0
+    let sx = 0
+    let sy = 0
+    const add = (/** @type {number} */ x, /** @type {number} */ y) => {
+      if (!isFinite(x) || !isFinite(y)) return
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    parsePath(d).forEach(/** @param {any[]} c */ (c) => {
       const cmd = c[0]
-      if (cmd === 'Z') return
-      // Walk the numeric args in (x, y) pairs; for A the final pair is (x, y),
-      // the leading radii/flags are not coordinates, so read from the end.
-      /** @type {Array<[number, number]>} */
-      let pairs = []
-      if (cmd === 'H') pairs = [[c[1], (minY + maxY) / 2 || c[1]]]
-      else if (cmd === 'V') pairs = [[(minX + maxX) / 2 || c[1], c[1]]]
-      else if (cmd === 'A') pairs = [[c[6], c[7]]]
-      else {
-        for (let k = 1; k + 1 < c.length; k += 2) pairs.push([c[k], c[k + 1]])
+      if (cmd === 'Z') {
+        px = sx
+        py = sy
+        return
       }
-      pairs.forEach(([x, y]) => {
-        if (!isFinite(x) || !isFinite(y)) return
-        seen = true
-        if (x < minX) minX = x
-        if (x > maxX) maxX = x
-        if (y < minY) minY = y
-        if (y > maxY) maxY = y
-      })
+      const n = c.length
+      const x = cmd === 'H' ? c[1] : cmd === 'V' ? px : c[n - 2]
+      const y = cmd === 'H' ? py : cmd === 'V' ? c[1] : c[n - 1]
+      if (cmd === 'A' && c[1] && c[2]) {
+        // An arc bulges past its end points: add each axis extreme its sweep
+        // passes (SVG's endpoint-to-centre conversion, rotation 0), or a
+        // half-pie slice would measure zero wide.
+        let rx = Math.abs(c[1])
+        let ry = Math.abs(c[2])
+        const hx = (px - x) / 2
+        const hy = (py - y) / 2
+        const lam = (hx * hx) / (rx * rx) + (hy * hy) / (ry * ry)
+        if (lam > 1) {
+          rx *= Math.sqrt(lam)
+          ry *= Math.sqrt(lam)
+        }
+        const num = rx * rx * ry * ry - rx * rx * hy * hy - ry * ry * hx * hx
+        const den = rx * rx * hy * hy + ry * ry * hx * hx
+        const f =
+          (c[4] === c[5] ? -1 : 1) * Math.sqrt(Math.max(0, num / den) || 0)
+        const ccx = (f * rx * hy) / ry
+        const ccy = (-f * ry * hx) / rx
+        const cx = ccx + (px + x) / 2
+        const cy = ccy + (py + y) / 2
+        const a0 = Math.atan2((hy - ccy) / ry, (hx - ccx) / rx)
+        let sweep = Math.atan2((-hy - ccy) / ry, (-hx - ccx) / rx) - a0
+        if (c[5] && sweep < 0) sweep += 2 * Math.PI
+        else if (!c[5] && sweep > 0) sweep -= 2 * Math.PI
+        for (let q = 0; q < 4; q++) {
+          const a = (q * Math.PI) / 2
+          // How far along the sweep's own direction this extreme lies.
+          const t =
+            (((sweep > 0 ? a - a0 : a0 - a) % (2 * Math.PI)) + 2 * Math.PI) %
+            (2 * Math.PI)
+          if (t <= Math.abs(sweep)) {
+            add(cx + rx * Math.cos(a), cy + ry * Math.sin(a))
+          }
+        }
+      } else if (cmd !== 'H' && cmd !== 'V') {
+        // Control points are included: a superset is fine for a footprint.
+        for (let k = 1; k + 1 < n; k += 2) add(c[k], c[k + 1])
+      }
+      add(x, y)
+      px = x
+      py = y
+      if (cmd === 'M') {
+        sx = x
+        sy = y
+      }
     })
-    if (!seen) return null
-    return { minX, minY, maxX, maxY }
+    return minX > maxX ? null : { minX, minY, maxX, maxY }
   }
 
   /** @returns {number} */

@@ -142,3 +142,38 @@ describe('unit -> mark pairing', () => {
     }
   })
 })
+
+describe('_pathBBox', () => {
+  const m = makeMorph()
+
+  it('includes the bulge of a half-circle wedge', () => {
+    // Top to bottom, clockwise: the arc swings out to x = 300.
+    const box = m._pathBBox('M 200 100 A 100 100 0 0 1 200 300 L 200 200 L 200 100')
+    expect(box.minX).toBeCloseTo(200)
+    expect(box.maxX).toBeCloseTo(300)
+    expect(box.minY).toBeCloseTo(100)
+    expect(box.maxY).toBeCloseTo(300)
+  })
+
+  it('includes the axis extreme a short arc crosses', () => {
+    const s = Math.SQRT1_2 * 100
+    const box = m._pathBBox(`M 200 200 L ${200 + s} ${200 - s} A 100 100 0 0 1 ${200 + s} ${200 + s} Z`)
+    expect(box.maxX).toBeCloseTo(300)
+    expect(box.minY).toBeCloseTo(200 - s)
+    expect(box.maxY).toBeCloseTo(200 + s)
+  })
+
+  it('follows the large-arc and sweep flags round the long way', () => {
+    // Top to right, counter-clockwise, large: via the left and the bottom.
+    const box = m._pathBBox('M 200 100 A 100 100 0 1 0 300 200')
+    expect(box.minX).toBeCloseTo(100)
+    expect(box.maxX).toBeCloseTo(300)
+    expect(box.minY).toBeCloseTo(100)
+    expect(box.maxY).toBeCloseTo(300)
+  })
+
+  it('places H and V at the current point, not a running midpoint', () => {
+    const box = m._pathBBox('M 0 -5 L 10 5 H 100 V 40')
+    expect(box).toEqual({ minX: 0, minY: -5, maxX: 100, maxY: 40 })
+  })
+})
