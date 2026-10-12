@@ -591,7 +591,14 @@ export interface ChartGlobals
    * coordinates and the visual radius (after customScale and offsets). Set by
    * the renderer, reset every render, read by CircleTransition.
    */
-  circleGeometry: { node: Element; cx: number; cy: number; r: number } | null
+  circleGeometry: {
+    node: Element
+    cx: number
+    cy: number
+    r: number
+    /** pie/donut only: [top, bottom] of the swept arc, plot-local */
+    y?: number[] | false
+  } | null
   /** vertical band (px) reserved above/below a pie for outer name labels */
   pieExternalLabelMarginY: number
   barHeight: number

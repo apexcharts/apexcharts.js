@@ -972,9 +972,20 @@ export default class Core {
           if (bottom > arcBottomFromSVGTop) arcBottomFromSVGTop = bottom
         }
       }
-      Array.from(el.children ?? []).forEach((c) =>
-        accumulate(/** @type {Element} */ (c)),
-      )
+      // A pie/donut publishes the extent of its sweep instead (see Pie.draw):
+      // measured, a slice still mid-entrance under-reports, so a semi pie
+      // moved with animations on, and the donut hole's full circle left a
+      // dead band below the flat side.
+      const arcY = w.globals.circleGeometry?.y
+      if (arcY) {
+        arcTopFromSVGTop = w.layout.translateY + arcY[0] - externalLabelMarginY
+        arcBottomFromSVGTop =
+          w.layout.translateY + arcY[1] + externalLabelMarginY
+      } else {
+        Array.from(el.children ?? []).forEach((c) =>
+          accumulate(/** @type {Element} */ (c)),
+        )
+      }
       // Fallback if no measurable children were found.
       if (!Number.isFinite(arcTopFromSVGTop)) arcTopFromSVGTop = 0
       if (!Number.isFinite(arcBottomFromSVGTop)) {

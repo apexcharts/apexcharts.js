@@ -263,11 +263,32 @@ class Pie {
     // Where the circle lands on screen, for CircleTransition: the series and
     // labels are drawn around (centerX, centerY) inside a customScale'd group.
     const scaleSize = w.config.plotOptions.pie.customScale
+    // `y` is the top and bottom of the sweep, which Core fits a partial
+    // pie/donut to (adding the outer label band). Worked out, not measured: a
+    // slice still mid-entrance under-reports, and the donut hole is a full
+    // circle whose far half hangs below a semicircle's flat side. The outer
+    // rim and the inner ring (the centre for a pie) are sampled at every whole
+    // degree of the sweep, within 0.01% of a true extreme. polarArea's rings
+    // are full circles, so it is still measured.
+    const ri = this.chartType === 'donut' ? this.donutSize : 0
+    /** @type {number[]} */
+    const ys = []
+    const s = this.initialAngle
+    const at = (/** @type {number} */ r, /** @type {number} */ a) =>
+      this.translateY +
+      scaleSize * Utils.polarToCartesian(this.centerX, this.centerY, r, a).y
+    for (let a = s; a <= s + this.fullAngle; a++) {
+      ys.push(at(w.globals.radialSize, a), at(ri, a))
+    }
+    // Centre labels sit in the hole, its lower half included (the value
+    // row hangs below a semicircle's flat side), so that half is kept.
+    if (this.donutDataLabels.show) ys.push(at(ri, 180))
     w.globals.circleGeometry = {
       node: elPie.node,
       cx: this.translateX + scaleSize * this.centerX,
       cy: this.translateY + scaleSize * this.centerY,
       r: scaleSize * w.globals.radialSize,
+      y: this.chartType !== 'polarArea' && [Math.min(...ys), Math.max(...ys)],
     }
 
     let total = 0
