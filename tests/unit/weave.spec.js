@@ -777,6 +777,29 @@ describe('Weave: reserving container space for a plugin UI', () => {
     chart.destroy()
   })
 
+  it('contains a re-render for a reservation that rejects', async () => {
+    // update() reports failure by rejecting, which a try/catch around the
+    // call cannot see, so it surfaced as an unhandled rejection from inside
+    // the library with nothing naming what asked for the render.
+    const unhandled = []
+    const onUnhandled = (reason) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const chart = lineChart([{ name: 'reserver' }])
+    chart.update = () => Promise.reject(new Error('render failed'))
+    chart.weave.active[0].api.reserve({ right: 90 })
+    await new Promise((r) => setTimeout(r, 20))
+    process.off('unhandledRejection', onUnhandled)
+    expect(unhandled).toEqual([])
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('plugin reservation'),
+      expect.any(Error),
+    )
+    error.mockRestore()
+    delete chart.update
+    chart.destroy()
+  })
+
   it('is offered to a plugin that declares the older API version', () => {
     // apex-analyst ships one build against both a v2 and a v3 host, so it
     // declares v2 (a host at v2 SKIPS a plugin declaring v3 outright) and

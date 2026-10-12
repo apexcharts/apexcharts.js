@@ -770,13 +770,28 @@ export default class WeaveHost {
       // animating as if the series had moved.
       gl.resized = true
       gl.dataChanged = false
-      try {
-        this.ctx.update()
-      } catch {
-        // A chart torn down between the reservation and this callback. The
-        // reservation dies with the host, so there is nothing to undo.
-      }
+      this._update('a plugin reservation')
     }, 0)
+  }
+
+  /**
+   * Run one of the host's own deferred re-renders, failures contained.
+   *
+   * `update()` reports a failure by rejecting, which a try/catch around the
+   * call never sees, so a rejection surfaced as an unhandled one from inside
+   * the library with nothing saying what asked for the render.
+   *
+   * @param {string} why
+   */
+  _update(why) {
+    try {
+      Promise.resolve(this.ctx.update()).catch((e) =>
+        console.error(`[apexcharts] re-render for ${why} failed:`, e),
+      )
+    } catch {
+      // A chart torn down between the request and this callback. What asked
+      // for the render dies with the host, so there is nothing to undo.
+    }
   }
 
   // ─── Highlight parts ────────────────────────────────────────────────────
@@ -851,12 +866,7 @@ export default class WeaveHost {
       const gl = this.w.globals
       if (gl.isDestroyed) return
       gl.dataChanged = true
-      try {
-        this.ctx.update()
-      } catch {
-        // A chart torn down between the registration and this callback. The
-        // registration dies with the host, so there is nothing to undo.
-      }
+      this._update('plugin highlight parts')
     }, 0)
   }
 
