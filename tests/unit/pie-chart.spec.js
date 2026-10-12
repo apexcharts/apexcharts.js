@@ -185,6 +185,31 @@ describe('Pie chart', () => {
       const labels = el.querySelectorAll('.apexcharts-pie-label')
       expect(labels.length).toBe(2)
     })
+
+    it('fades slice labels in after the entrance sweep, on the opacity attribute', async () => {
+      document.body.innerHTML = '<div id="chart"></div>'
+      const ApexCharts = (await import('../../src/entries/standard.js')).default
+      const chart = new ApexCharts(document.querySelector('#chart'), {
+        chart: { type: 'pie', width: 400, height: 400 },
+        series: [30, 40, 30],
+        labels: ['A', 'B', 'C'],
+        dataLabels: { enabled: true },
+      })
+      await chart.render()
+      const opacities = () =>
+        [...chart.el.querySelectorAll('.apexcharts-pie-label')].map((t) =>
+          t.getAttribute('opacity'),
+        )
+      // Hidden until the sweep lands; the animation runner fades them in.
+      expect(opacities()).toEqual(['0', '0', '0'])
+      // No CSS animation the transitions cannot read.
+      expect(chart.el.querySelector('.apexcharts-pie-label-delay')).toBe(null)
+
+      // A data change rides the labels to their new slices instead.
+      await chart.updateSeries([20, 50, 30])
+      expect(opacities()).not.toContain('0')
+      chart.destroy()
+    })
   })
 
   describe('globals', () => {

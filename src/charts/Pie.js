@@ -856,13 +856,20 @@ class Pie {
           }
 
           elPieLabel.node.classList.add('apexcharts-pie-label')
+          // Fade in once the entrance sweep is done, so a label never sits
+          // over a slice that has not grown in yet. On the opacity attribute
+          // and the animation clock, not a CSS animation: a resize or update
+          // mid-fade reads that attribute and carries the label on from it.
+          // Updates ride the labels to their new slices instead.
           if (
-            w.config.chart.animations.animate &&
-            w.globals.resized === false
+            this.initialAnim &&
+            !w.globals.resized &&
+            !w.globals.dataChanged
           ) {
-            elPieLabel.node.classList.add('apexcharts-pie-label-delay')
-            elPieLabel.node.style.animationDelay =
-              w.config.chart.animations.speed / 940 + 's'
+            elPieLabel.attr({ opacity: 0 })
+            elPieLabel
+              .animate(300, w.config.chart.animations.speed)
+              .attr({ opacity: 1 })
           }
 
           this.sliceLabels.push(elPieLabelWrap)
