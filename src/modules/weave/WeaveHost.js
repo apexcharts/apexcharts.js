@@ -93,8 +93,8 @@ export default class WeaveHost {
   }
 
   _onUpdated() {
-    // Every parse reassigns globals.initialSeries, so a plugin's claim has to
-    // be re-applied after each one, not only when markDerived() is called.
+    // Any update may move globals.initialSeries, so a plugin's claim has to be
+    // re-applied after each one, not only when markDerived() is called.
     this._repairInitialSeries()
     // draw already ran at the mount/fastUpdate seam; this is post-update work.
     this.dispatch('afterUpdate', { pass: 'update' })
@@ -486,13 +486,11 @@ export default class WeaveHost {
   /**
    * Record the series a plugin owns, and repair the initial-series snapshot.
    *
-   * `Data.parseData()` assigns `globals.initialSeries` on every parse
-   * unconditionally, so `updateSeries(..., overwriteInitialSeries: false)` does
-   * NOT keep a plugin's computed series out of it. That assignment is
-   * deliberate (it is what keeps resetSeries() correct for the reducer,
-   * histogram, dumbbell, streamgraph, waterfall and treemap raw-series paths),
-   * so the fix is to put the caller's own series back afterwards rather than to
-   * make the assignment conditional.
+   * A plugin that adds its series with `updateSeries(..., overwriteInitialSeries:
+   * false)` keeps it out of `globals.initialSeries` (#5283), but one that lets
+   * the baseline move, or a caller's later update that does, takes the plugin's
+   * series in with everything else. So the plugin's names are filtered back out
+   * of the baseline after every update rather than trusted to stay out.
    *
    * Without this, a plugin that adds a computed series poisons resetSeries():
    * pressing the toolbar's reset hands the user the plugin's output as if it
@@ -878,27 +876,37 @@ export default class WeaveHost {
     return out
   }
 
+  /**
+   * Take the plugins' series out of the reset baseline.
+   *
+   * Filters the baseline the chart already holds rather than rebuilding it from
+   * `w.config.series`. The live config is not the caller's data: a legend hide
+   * empties the hidden row in place (#5118), and on the raw-stash types it holds
+   * the derived rows the parse keeps out of the baseline on purpose. Rebuilt
+   * from it, a reset brought a hidden series back empty.
+   */
   _repairInitialSeries() {
     const drop = this._derivedNames()
     if (!drop.size) return
-    const w = this.w
-    const series = /** @type {any[]} */ (
-      Array.isArray(w.config.series) ? w.config.series : []
-    )
-    const own = series.filter(
-      (/** @type {any} */ s) => !drop.has(String(s && s.name)),
-    )
-    // Nothing to protect: the chart holds only plugin series, so leaving the
-    // snapshot alone is better than emptying it.
-    if (!own.length) return
+    const gl = this.w.globals
+    /** @param {any} s */
+    const own = (s) => !drop.has(String(s && s.name))
+    // A filter of what is already there, so nothing in it aliases the live
+    // config. Skipped when nothing would change, which is the common update,
+    // and when the result would be empty: a chart holding only plugin series
+    // is better left with its snapshot than with none.
+    /** @param {any} list */
+    const keep = (list) => {
+      if (!Array.isArray(list)) return null
+      const kept = list.filter(own)
+      return kept.length && kept.length !== list.length ? kept : null
+    }
     try {
-      w.globals.initialSeries = own
-      if (
-        w.globals.initialConfig &&
-        Array.isArray(w.globals.initialConfig.series)
-      ) {
-        w.globals.initialConfig.series = own
-      }
+      const base = keep(gl._initialSeriesPeek)
+      if (base) gl.initialSeries = base
+      const ic = gl.initialConfig
+      const config = ic && keep(ic.series)
+      if (config) ic.series = config
     } catch {
       // Never worth breaking a render over; the cost is a reset that restores
       // the plugin's series too.

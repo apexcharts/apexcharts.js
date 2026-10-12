@@ -213,6 +213,40 @@ describe('Weave v2: markDerived', () => {
     chart.destroy()
   })
 
+  it('keeps a legend-hidden series whole across a reset', async () => {
+    // A legend hide empties the hidden row of w.config.series in place, and
+    // the 'updated' repair used to rebuild the baseline from that live config,
+    // so resetSeries() brought the series back with no data at all.
+    ApexCharts.registerPlugin({
+      name: 'v2-derive-hide',
+      setup(api) {
+        api.markDerived(['Trend'])
+      },
+    })
+    const chart = createChartWithOptions({
+      chart: { type: 'line', animations: { enabled: false } },
+      series: [
+        { name: 'A', data: [1, 2, 3] },
+        { name: 'B', data: [4, 5, 6] },
+      ],
+      plugins: [{ name: 'v2-derive-hide' }],
+    })
+    await settle()
+
+    chart.hideSeries('B')
+    await settle()
+    expect(chart.w.config.series[1].data).toEqual([])
+
+    chart.resetSeries()
+    await settle()
+    expect(chart.w.config.series.map((s) => s.data)).toEqual([
+      [1, 2, 3],
+      [4, 5, 6],
+    ])
+    expect(chart.w.globals.initialConfig.series[1].data).toEqual([4, 5, 6])
+    chart.destroy()
+  })
+
   it('releases the claim when passed an empty list', async () => {
     let api = null
     ApexCharts.registerPlugin({
