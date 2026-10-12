@@ -1294,6 +1294,9 @@ export default class ApexCharts {
     // window (xaxis.range + runway) or beyond maxPoints. Without it a
     // long-running stream grows the series array without limit.
     trimStreamingSeries(newSeries, me.w)
+    // The reducer stash is what every parse re-reduces from, so it is bound
+    // too. (The waterfall stash is not: dropping a step shifts every level.)
+    if (reducerRaw) trimStreamingSeries(reducerRaw, me.w)
 
     me.w.config.series = newSeries
 
