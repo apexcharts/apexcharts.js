@@ -1,5 +1,4 @@
 // @ts-check
-import Utils from './Utils'
 
 /**
  * DateTime Class to manipulate datetime values.
@@ -13,11 +12,6 @@ class DateTime {
    */
   constructor(w) {
     this.w = w
-
-    this.months31 = [1, 3, 5, 7, 8, 10, 12]
-    this.months30 = [2, 4, 6, 9, 11]
-
-    this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
   }
 
   /**
@@ -76,15 +70,6 @@ class DateTime {
     let output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
     output = this.getTimeStamp(output)
     return output
-  }
-
-  // This fixes the difference of x-axis labels between chrome/safari
-  // Fixes #1726, #1544, #1485, #1255
-  /**
-   * @param {string} dateStr
-   */
-  parseDateWithTimezone(dateStr) {
-    return Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
@@ -182,120 +167,6 @@ class DateTime {
     format = format.replace(/\\(.)/g, '$1')
 
     return format
-  }
-
-  /**
-   * @param {number} minX
-   * @param {number} maxX
-   */
-  getTimeUnitsfromTimestamp(minX, maxX) {
-    const w = this.w
-
-    if (w.config.xaxis.min !== undefined) {
-      minX = w.config.xaxis.min
-    }
-    if (w.config.xaxis.max !== undefined) {
-      maxX = w.config.xaxis.max
-    }
-
-    const tsMin = this.getDate(minX)
-    const tsMax = this.getDate(maxX)
-
-    const minD = this.formatDate(tsMin, 'yyyy MM dd HH mm ss fff').split(' ')
-    const maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm ss fff').split(' ')
-
-    return {
-      minMillisecond: parseInt(minD[6], 10),
-      maxMillisecond: parseInt(maxD[6], 10),
-      minSecond: parseInt(minD[5], 10),
-      maxSecond: parseInt(maxD[5], 10),
-      minMinute: parseInt(minD[4], 10),
-      maxMinute: parseInt(maxD[4], 10),
-      minHour: parseInt(minD[3], 10),
-      maxHour: parseInt(maxD[3], 10),
-      minDate: parseInt(minD[2], 10),
-      maxDate: parseInt(maxD[2], 10),
-      minMonth: parseInt(minD[1], 10) - 1,
-      maxMonth: parseInt(maxD[1], 10) - 1,
-      minYear: parseInt(minD[0], 10),
-      maxYear: parseInt(maxD[0], 10),
-    }
-  }
-
-  /**
-   * @param {number} year
-   */
-  isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
-  }
-
-  /**
-   * @param {number} month
-   * @param {number} year
-   * @param {number} subtract
-   */
-  calculcateLastDaysOfMonth(month, year, subtract) {
-    const days = this.determineDaysOfMonths(month, year)
-
-    // whatever days we get, subtract the number of days asked
-    return days - subtract
-  }
-
-  /**
-   * @param {number} year
-   */
-  determineDaysOfYear(year) {
-    let days = 365
-
-    if (this.isLeapYear(year)) {
-      days = 366
-    }
-
-    return days
-  }
-
-  /**
-   * @param {number} year
-   * @param {number} month
-   * @param {number} date
-   */
-  determineRemainingDaysOfYear(year, month, date) {
-    let dayOfYear = this.daysCntOfYear[month] + date
-    if (month > 1 && this.isLeapYear(year)) dayOfYear++
-    return dayOfYear
-  }
-
-  /**
-   * @param {number} month
-   * @param {number} year
-   */
-  determineDaysOfMonths(month, year) {
-    let days = 30
-
-    month = Utils.monthMod(month)
-
-    switch (true) {
-      case this.months30.indexOf(month) > -1:
-        if (month === 2) {
-          if (this.isLeapYear(year)) {
-            days = 29
-          } else {
-            days = 28
-          }
-        }
-
-        break
-
-      case this.months31.indexOf(month) > -1:
-        days = 31
-        break
-
-      default:
-        days = 31
-        break
-    }
-
-    return days
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -642,50 +513,6 @@ class DateTime {
       }
     }
     return timestamp
-  }
-
-  /**
-   * Test whether a timestamp falls exactly on a unit boundary (start of year,
-   * start of month, start of day, etc.). Used by the multi-resolution
-   * formatter to upgrade a tick's display unit to a coarser scale.
-   *
-   * @param {number} timestamp
-   * @param {'year'|'month'|'day'|'hour'|'minute'|'second'} unit
-   * @param {boolean} isUTC
-   * @returns {boolean}
-   */
-  isAtBoundary(timestamp, unit, isUTC) {
-    const f = this.getDateFields(timestamp, isUTC)
-    switch (unit) {
-      case 'year':
-        return (
-          f.month === 0 &&
-          f.date === 1 &&
-          f.hour === 0 &&
-          f.minute === 0 &&
-          f.second === 0 &&
-          f.ms === 0
-        )
-      case 'month':
-        return (
-          f.date === 1 &&
-          f.hour === 0 &&
-          f.minute === 0 &&
-          f.second === 0 &&
-          f.ms === 0
-        )
-      case 'day':
-        return (
-          f.hour === 0 && f.minute === 0 && f.second === 0 && f.ms === 0
-        )
-      case 'hour':
-        return f.minute === 0 && f.second === 0 && f.ms === 0
-      case 'minute':
-        return f.second === 0 && f.ms === 0
-      case 'second':
-        return f.ms === 0
-    }
-    return false
   }
 }
 

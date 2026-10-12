@@ -117,33 +117,6 @@ describe('Utils', () => {
       })
     })
 
-    describe('log10', () => {
-      it('should calculate base 10 logarithm', () => {
-        expect(Utils.log10(10)).toBeCloseTo(1)
-        expect(Utils.log10(100)).toBeCloseTo(2)
-        expect(Utils.log10(1000)).toBeCloseTo(3)
-        expect(Utils.log10(1)).toBeCloseTo(0)
-      })
-    })
-
-    describe('roundToBase10', () => {
-      it('should round to nearest power of 10', () => {
-        expect(Utils.roundToBase10(1)).toBe(1)
-        expect(Utils.roundToBase10(15)).toBe(10)
-        expect(Utils.roundToBase10(99)).toBe(10)
-        expect(Utils.roundToBase10(100)).toBe(100)
-        expect(Utils.roundToBase10(567)).toBe(100)
-      })
-    })
-
-    describe('roundToBase', () => {
-      it('should round to nearest power of given base', () => {
-        expect(Utils.roundToBase(15, 10)).toBe(10)
-        expect(Utils.roundToBase(8, 2)).toBe(8) // 2^3 = 8
-        expect(Utils.roundToBase(27, 5)).toBeCloseTo(25, 0) // 5^2 = 25
-      })
-    })
-
     describe('negToZero', () => {
       it('should convert negative numbers to zero', () => {
         expect(Utils.negToZero(-5)).toBe(0)
@@ -184,19 +157,6 @@ describe('Utils', () => {
 
       it('should work with negative numbers', () => {
         expect(Utils.preciseAddition(-0.1, 0.2)).toBe(0.1)
-      })
-    })
-
-    describe('extractNumber', () => {
-      it('should extract numbers from strings', () => {
-        expect(Utils.extractNumber('price: $42.50')).toBe(42.5)
-        expect(Utils.extractNumber('100%')).toBe(100)
-        expect(Utils.extractNumber('item-123')).toBe(123)
-      })
-
-      it('should extract floating point numbers', () => {
-        const result = Utils.extractNumber('12.34px')
-        expect(result).toBeCloseTo(12.34, 2)
       })
     })
 
@@ -568,17 +528,6 @@ describe('Utils', () => {
     })
   })
 
-  describe('Math operations', () => {
-    describe('monthMod', () => {
-      it('should calculate month modulo 12', () => {
-        expect(Utils.monthMod(1)).toBe(1)
-        expect(Utils.monthMod(12)).toBe(0)
-        expect(Utils.monthMod(13)).toBe(1)
-        expect(Utils.monthMod(24)).toBe(0)
-      })
-    })
-  })
-
   describe('Random', () => {
     describe('randomId', () => {
       it('should generate random string', () => {
@@ -653,21 +602,6 @@ describe('Utils', () => {
 
       const result = Utils.findAncestor(child, 'nonexistent-class')
       expect(result).toBeNull()
-    })
-  })
-
-  describe('extractNumber(s)', () => {
-    it('extracts the numeric portion from a string with units', () => {
-      expect(Utils.extractNumber('123px')).toBe(123)
-      expect(Utils.extractNumber('45.6em')).toBe(45.6)
-    })
-
-    it('returns NaN for a non-numeric string', () => {
-      expect(isNaN(Utils.extractNumber('abc'))).toBe(true)
-    })
-
-    it('handles plain numeric strings', () => {
-      expect(Utils.extractNumber('42')).toBe(42)
     })
   })
 

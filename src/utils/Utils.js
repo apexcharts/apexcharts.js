@@ -107,22 +107,13 @@ class Utils {
     return arrToExtend
   }
 
-  // If month counter exceeds 12, it starts again from 1
   /**
-   * @param {number} month
-   */
-  static monthMod(month) {
-    return month % 12
-  }
-
-  /**
-   * clone object with optional shallow copy for performance
+   * Deep clone, preserving shared and circular references.
    * @param {*} source - Source object to clone
    * @param {WeakMap<any, any>} visited - Circular reference tracker
-   * @param {boolean} shallow - If true, performs shallow copy (default: false)
    * @returns {*} Cloned object
    */
-  static clone(source, visited = new WeakMap(), shallow = false) {
+  static clone(source, visited = new WeakMap()) {
     if (source === null || typeof source !== 'object') {
       return source
     }
@@ -135,50 +126,26 @@ class Utils {
     let cloneResult
 
     if (Array.isArray(source)) {
-      if (shallow) {
-        cloneResult = source.slice()
-      } else {
-        cloneResult = []
-        visited.set(source, cloneResult)
-        for (let i = 0; i < source.length; i++) {
-          cloneResult[i] = this.clone(source[i], visited, false)
-        }
+      cloneResult = []
+      visited.set(source, cloneResult)
+      for (let i = 0; i < source.length; i++) {
+        cloneResult[i] = this.clone(source[i], visited)
       }
     } else if (source instanceof Date) {
       cloneResult = new Date(source.getTime())
     } else {
-      if (shallow) {
-        cloneResult = Object.assign({}, source)
-      } else {
-        cloneResult = {}
-        visited.set(source, cloneResult)
-        for (const prop in source) {
-          if (Object.prototype.hasOwnProperty.call(source, prop)) {
-            cloneResult[prop] = this.clone(
-              /** @type {Record<string,any>} */ (source)[prop],
-              visited,
-              false,
-            )
-          }
+      cloneResult = {}
+      visited.set(source, cloneResult)
+      for (const prop in source) {
+        if (Object.prototype.hasOwnProperty.call(source, prop)) {
+          cloneResult[prop] = this.clone(
+            /** @type {Record<string,any>} */ (source)[prop],
+            visited,
+          )
         }
       }
     }
     return cloneResult
-  }
-
-  /**
-   * Shallow clone for performance when deep clone isn't needed
-   * @param {*} source - Source to clone
-   * @returns {*} Shallow cloned object
-   */
-  static shallowClone(source) {
-    if (source === null || typeof source !== 'object') {
-      return source
-    }
-    if (Array.isArray(source)) {
-      return source.slice()
-    }
-    return Object.assign({}, source)
   }
 
   /**
@@ -239,28 +206,6 @@ class Utils {
     }
 
     return true
-  }
-
-  /**
-   * @param {number} x
-   */
-  static log10(x) {
-    return Math.log(x) / Math.LN10
-  }
-
-  /**
-   * @param {number} x
-   */
-  static roundToBase10(x) {
-    return Math.pow(10, Math.floor(Math.log10(x)))
-  }
-
-  /**
-   * @param {number} x
-   * @param {number} base
-   */
-  static roundToBase(x, base) {
-    return Math.pow(base, Math.floor(Math.log(x) / Math.log(base)))
   }
 
   /**
@@ -657,13 +602,6 @@ class Utils {
     }
     arr.splice(new_index, 0, arr.splice(old_index, 1)[0])
     return arr
-  }
-
-  /**
-   * @param {string} s
-   */
-  static extractNumber(s) {
-    return parseFloat(s.replace(/[^\d.]*/g, ''))
   }
 
   /**
