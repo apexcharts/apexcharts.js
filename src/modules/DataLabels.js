@@ -17,6 +17,18 @@ import { resolveClaimed } from './weave/Claims'
 // DataLabels.avoidOverlaps.
 const RADIAL_TYPES = ['radar', 'pie', 'donut', 'polarArea', 'radialBar']
 
+/**
+ * Whether series `i` is drawn with the pen the progressive reveal follows. In
+ * a line chart a column (or scatter) series is not, so its labels show with
+ * the series instead of waiting for a pen that never reaches them.
+ * @param {any} w
+ * @param {any} i
+ */
+function penDrawn(w, i) {
+  const t = w.config.series[i]?.type
+  return !t || t === 'line' || t === 'area' || t === 'rangeArea'
+}
+
 class DataLabels {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -461,7 +473,7 @@ class DataLabels {
 
       // Progressive reveal: data labels fade in alongside their markers as the
       // line's pen-stroke reaches them. Uses the corrected x (post-offset).
-      applyProgressiveReveal(dataLabelText, x, w)
+      if (penDrawn(w, i)) applyProgressiveReveal(dataLabelText, x, w)
 
       if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
         w.globals.lastDrawnDataLabelsIndexes[i] = []
@@ -759,7 +771,11 @@ class DataLabels {
       // the rect doesn't pop in before the line draw reaches it.
       if (!bulkReveal) {
         const cxAttr = el.getAttribute('cx')
-        if (cxAttr !== null) {
+        const wrap = el.closest && el.closest('.apexcharts-datalabels')
+        if (
+          cxAttr !== null &&
+          penDrawn(w, wrap && wrap.getAttribute('data:realIndex'))
+        ) {
           applyProgressiveReveal(elRect, parseFloat(cxAttr), w)
         }
       }
