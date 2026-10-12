@@ -434,7 +434,7 @@ class Radar {
     const { parent } = opts
     const helpers = new Helpers(this.w)
 
-    const yaxisTexts = w.globals.yAxisScale[0].result.reverse()
+    const yaxisTexts = w.globals.yAxisScale[0].result.slice().reverse()
     const layers = yaxisTexts.length
 
     const radiusSizes = []

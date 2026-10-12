@@ -633,7 +633,7 @@ class CoreUtils {
 
     xRatio = gl.xRange / this.w.layout.gridWidth
 
-    invertedYRatio = /** @type {any} */ (gl.yRange) / this.w.layout.gridWidth
+    invertedYRatio = gl.yRange[0] / this.w.layout.gridWidth
     invertedXRatio = gl.xRange / this.w.layout.gridHeight
     zRatio = (gl.zRange / this.w.layout.gridHeight) * 16
 
