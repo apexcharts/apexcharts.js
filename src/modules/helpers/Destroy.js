@@ -27,11 +27,12 @@ export default class Destroy {
       gl.isDestroyed = true
       // A pending resize redraw would rebuild the destroyed chart.
       clearTimeout(gl.resizeTimer ?? undefined)
+      // The gauge ticks waiting to fade in. Destroy only: an update keeps the
+      // fade the mount scheduled, or a live gauge's ticks never show.
+      clearTimeout(gl.radialTickTimer ?? undefined)
     }
     // The selection emit belongs to the rect being torn down.
     clearTimeout(gl.selectionResizeTimer ?? undefined)
-    // So do the gauge ticks waiting to fade in.
-    clearTimeout(gl.radialTickTimer ?? undefined)
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy()
     }
