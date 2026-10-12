@@ -139,7 +139,7 @@ export default class Scales {
     // the raw range out a little to match the prospective new range.
     let magMsd = Math.ceil(niceStep / magPow)
     // See utils/Constants.js for info on what NICE_SCALE_ALLOWED_MAG_MSD does
-    magMsd = NICE_SCALE_ALLOWED_MAG_MSD[gl.yValueDecimal === 0 ? 0 : 1][magMsd]
+    magMsd = NICE_SCALE_ALLOWED_MAG_MSD[0][magMsd]
     niceStep = magMsd * magPow
 
     // Initial stepSize
@@ -463,10 +463,7 @@ export default class Scales {
       const multiplier = Math.pow(10, precision)
       step = Math.round((step + Number.EPSILON) * multiplier) / multiplier
     }
-    let tickCount = ticks === Number.MAX_VALUE ? 5 : ticksNum
-    if (ticks === Number.MAX_VALUE) {
-      step = 1
-    }
+    let tickCount = ticksNum
 
     let v = yMin
 
@@ -777,7 +774,6 @@ export default class Scales {
 
     // Compute min..max for each yaxis
     gl.allSeriesCollapsed = true
-    gl.barGroups = []
     /**
      * @param {number[]} axisSeries
      * @param {number} ai
@@ -800,7 +796,6 @@ export default class Scales {
         let lowestY = minY
         let highestY = maxY
         let seriesType
-        let seriesGroupName
         if (cnf.chart.stacked) {
           // Series' on this axis with the same group name will be stacked.
           // Sum series in each group separately
@@ -828,11 +823,6 @@ export default class Scales {
             // For bar and column charts we need to keep positive and negative
             // values separate, for each group separately.
             const si = axisSeries[i]
-            if (/** @type {Record<string,any>} */ (cnf.series[si]).group) {
-              seriesGroupName = /** @type {Record<string,any>} */ (cnf.series[si]).group
-            } else {
-              seriesGroupName = 'axis-'.concat(ai.toString())
-            }
             const collapsed = !(
               gl.collapsedSeriesIndices.indexOf(si) < 0 &&
               gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0
@@ -861,9 +851,6 @@ export default class Scales {
                   }
                 }
               })
-            }
-            if (seriesType === 'bar' || seriesType === 'column') {
-              gl.barGroups.push(seriesGroupName)
             }
           }
           if (!seriesType) {
@@ -917,12 +904,6 @@ export default class Scales {
             maxY = cnf.yaxis[ai].max
           }
         }
-        /**
-         * @param {any} v
-         * @param {number} i
-         * @param {any[]} a
-         */
-        gl.barGroups = gl.barGroups.filter((v, i, a) => a.indexOf(v) === i)
 
         // Determine whether this axis joins the zero-alignment group. User-set
         // min/max win over alignment (silent override would violate intent),

@@ -12,23 +12,22 @@
  */
 export const LINE_HEIGHT_RATIO = 1.618
 
+const MAG_MSD_ROW = [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10]
+
 /**
  * Allowed "magMsd" multipliers for niceScale tick generation.
  *
- * Two rows:
- *   [0] — used when the data series contains only integers
- *   [1] — used when the data series contains at least one float
+ * Two rows, one for integer data and one for data with a float, kept as a
+ * pair for the `w.globals.niceScaleAllowedMagMsd` surface. They hold the same
+ * values, so niceScale reads row 0 whatever the data.
  *
- * Each row has 11 values (indices 0–10). Each entry ideally satisfies
+ * Each row has 11 values (indices 0-10). Each entry ideally satisfies
  * `10 % entry === 0` to avoid ugly tick labels, and `entry >= index`
  * to prevent data-point clipping.
  *
  * @type {number[][]}
  */
-export const NICE_SCALE_ALLOWED_MAG_MSD = [
-  [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10],
-  [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10],
-]
+export const NICE_SCALE_ALLOWED_MAG_MSD = [MAG_MSD_ROW, MAG_MSD_ROW]
 
 /**
  * Default tick counts indexed by `Math.round(maxTicks / 2)`.
