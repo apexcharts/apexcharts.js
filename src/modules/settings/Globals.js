@@ -418,6 +418,10 @@ export default class Globals {
       radialNeedleRAF: null,
       unitGatherRAF: null,
       unitExitRAF: null,
+      // The gauge needle's last angle (the next tween starts there) and its
+      // tick fade-in timer, which Destroy.clear() clears.
+      radialNeedleAngle: undefined,
+      radialTickTimer: null,
       // Debounce handles (container resize, selection-rect emit). Persistent
       // so a re-render cannot orphan a pending one; Destroy.clear() clears them.
       resizeTimer: null,

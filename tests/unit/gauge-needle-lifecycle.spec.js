@@ -2,7 +2,7 @@
 // reading cannot poison the next tween, a redraw replays the mount sweep, a
 // render that lands at once stops the previous tween, and the ticks wait for
 // the real end of the sweep.
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
 
@@ -98,5 +98,28 @@ describe('gauge tick fade-in', () => {
     chart.destroy()
     await wait(200)
     expect(ticks.style.opacity).toBe('0')
+  })
+  it('keeps its timer in globals so destroy() clears it', async () => {
+    const chart = mount([70], {
+      animations: { speed: 60 },
+      radialBar: { ticks: { show: true } },
+    })
+    await chart.render()
+    const timer = chart.w.globals.radialTickTimer
+    expect(timer).toBeTruthy()
+    const spy = vi.spyOn(globalThis, 'clearTimeout')
+    chart.destroy()
+    expect(spy).toHaveBeenCalledWith(timer)
+    spy.mockRestore()
+  })
+})
+
+describe('gauge needle angle cache', () => {
+  it('lives in globals, not on the chart instance', async () => {
+    const chart = mount([70], { animations: { enabled: false } })
+    await chart.render()
+    expect(chart._lastNeedleAngle).toBeUndefined()
+    expect(chart.w.globals.radialNeedleAngle).toBe(needleAngle(chart))
+    chart.destroy()
   })
 })

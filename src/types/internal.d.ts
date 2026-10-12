@@ -375,6 +375,10 @@ export interface ChartGlobals
   radialNeedleRAF: number | null
   unitGatherRAF: number | null
   unitExitRAF: number | null
+  /** The gauge needle's last angle, where the next needle tween starts. */
+  radialNeedleAngle: number | undefined
+  /** The gauge tick fade-in timer; Destroy.clear() clears it. */
+  radialTickTimer: ReturnType<typeof setTimeout> | null
   /** Debounce handles for the container resize and the selection-rect
    * resize emit. Persistent, so a later render can still cancel a pending
    * one; Destroy.clear() clears them. */

@@ -179,7 +179,8 @@ class Radial extends Pie {
             w.config.chart.animations.speed,
           motion ? motion.speed : 0,
         )
-        setTimeout(() => {
+        // Held in globals so the next render or destroy() can clear it.
+        w.globals.radialTickTimer = setTimeout(() => {
           if (!w.globals.isDestroyed) ticksNode.style.opacity = '1'
         }, sweepDur)
       }
@@ -937,16 +938,16 @@ class Radial extends Pie {
     const value = Number(opts.series[0])
     const targetAngle = this._angleAtValue(value)
 
-    // Cache the previous angle on the chart instance so updateSeries can
-    // tween from it. A mount, or a redraw replaying it, sweeps from
-    // `startAngle` like the value arc.
-    const ctx = /** @type {any} */ (this.ctx)
+    // Cache the previous angle in globals (it survives re-renders) so
+    // updateSeries can tween from it. A mount, or a redraw replaying it,
+    // sweeps from `startAngle` like the value arc.
+    const gl = w.globals
     const motion = this.needleMotion()
     const fromAngle =
-      Number.isFinite(ctx._lastNeedleAngle) && !motion?.mount
-        ? ctx._lastNeedleAngle
+      Number.isFinite(gl.radialNeedleAngle) && !motion?.mount
+        ? /** @type {number} */ (gl.radialNeedleAngle)
         : this.startAngle
-    ctx._lastNeedleAngle = targetAngle
+    gl.radialNeedleAngle = targetAngle
 
     // A previous render's needle tween may still be running; stop it on every
     // path, or it keeps turning the old (now detached) needle.

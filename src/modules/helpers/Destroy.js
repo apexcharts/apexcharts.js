@@ -30,6 +30,8 @@ export default class Destroy {
     }
     // The selection emit belongs to the rect being torn down.
     clearTimeout(gl.selectionResizeTimer ?? undefined)
+    // So do the gauge ticks waiting to fade in.
+    clearTimeout(gl.radialTickTimer ?? undefined)
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy()
     }
