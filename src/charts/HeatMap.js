@@ -15,6 +15,35 @@ import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { SVGNS } from '../svg/math'
 
 /**
+ * The x span, in axis units, of one cell of a numeric or datetime heatmap,
+ * which centres each cell on its own x. 0 when there is no usable gap.
+ * Reads `minXDiff`, so it needs Range._getMinXDiff to have run.
+ *
+ * @param {import('../types/internal').ChartStateW} w
+ * @returns {number}
+ */
+function cellSpan(w) {
+  const gl = w.globals
+  let diff = gl.minXDiff
+  // With no series holding two x values, minXDiff is a 0.5 sentinel (half
+  // a millisecond on a datetime axis). Take the gap between the series'
+  // lone x values instead. A single column has none, and its axis is
+  // padded two units either side, so it takes one unit, as bars do.
+  if (!w.seriesData.series.some((s) => s.length > 1)) {
+    const xs = w.seriesData.seriesX
+      .map((s) => s && s[0])
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b)
+    diff = Infinity
+    for (let k = 1; k < xs.length; k++) {
+      if (xs[k] > xs[k - 1]) diff = Math.min(diff, xs[k] - xs[k - 1])
+    }
+    if (diff === Infinity) diff = (gl.maxX - gl.minX) / 4
+  }
+  return Number.isFinite(diff) && diff > 0 ? diff : 0
+}
+
+/**
  * ApexCharts HeatMap Class.
  * @module HeatMap
  **/
@@ -43,6 +72,42 @@ export default class HeatMap {
   }
 
   /**
+   * Called by Range.setXRange, off the prototype, before it builds the x
+   * scale. A numeric or datetime heatmap centres each cell on its x, so an
+   * axis ending at the first and last x left the outer half of both edge
+   * columns outside the plot, where gridRectMask clipped it. Reach half a
+   * cell past the data unless the user pinned the axis. The zoom
+   * clamps (initialMinX/MaxX) always take the padded extent, so zooming all
+   * the way out lands on the same view.
+   *
+   * @param {any} range the Range instance
+   */
+  padXRange(range) {
+    const { w } = range
+    const gl = w.globals
+    const x = w.config.xaxis
+    // (a heatmap never converts categories to numbers: it does not zoom)
+    if (
+      (x.type === 'numeric' || x.type === 'datetime') &&
+      gl.initialMinX < gl.initialMaxX
+    ) {
+      range._getMinXDiff()
+      const half = cellSpan(w) / 2
+      gl.initialMinX -= half
+      gl.initialMaxX += half
+      if (x.min == null && x.max == null && x.range == null) {
+        gl.minX -= half
+        gl.maxX += half
+        // One tick per point puts a label on each cell centre, which cannot
+        // span the padded axis evenly: take one per cell edge instead.
+        if (!x.tickAmount && gl.xTickAmount === gl.dataPoints - 1) {
+          gl.xTickAmount = gl.dataPoints
+        }
+      }
+    }
+  }
+
+  /**
    * @param {any[]} series
    */
   draw(series) {
@@ -67,25 +132,12 @@ export default class HeatMap {
         w.config.xaxis.type === 'datetime') &&
       w.axisFlags.isXNumeric &&
       this.xRatio > 0
+    // The x axis already reaches half a cell past the first and last x
+    // (padXRange), so the edge columns sit inside the plot.
     let binPx = xDivision
     if (isContinuousX) {
-      let diff = w.globals.minXDiff
-      // With no series holding two x values, minXDiff is a 0.5 sentinel (half
-      // a millisecond on a datetime axis). Take the gap between the series'
-      // lone x values instead. A single column has none, and its axis is
-      // padded two units either side, so it takes one unit, as bars do.
-      if (!series.some((/** @type {any[]} */ s) => s.length > 1)) {
-        const xs = w.seriesData.seriesX
-          .map((s) => s && s[0])
-          .filter(Number.isFinite)
-          .sort((a, b) => a - b)
-        diff = Infinity
-        for (let k = 1; k < xs.length; k++) {
-          if (xs[k] > xs[k - 1]) diff = Math.min(diff, xs[k] - xs[k - 1])
-        }
-        if (diff === Infinity) diff = (w.globals.maxX - w.globals.minX) / 4
-      }
-      binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision
+      const span = cellSpan(w)
+      if (span) binPx = span / this.xRatio
     }
 
     // Cell shape. 'hexagon' is a layout, not just a path: it only tessellates

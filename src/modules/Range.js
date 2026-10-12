@@ -2,6 +2,7 @@
 import Utils from '../utils/Utils'
 import DateTime from '../utils/DateTime'
 import Scales from './Scales'
+import { getChartClass } from './ChartFactory'
 
 /**
  * Range is used to generates values between min and max.
@@ -838,6 +839,11 @@ class Range {
       // if range is provided, adjust the new minX
       if (cnf.xaxis.range !== undefined) {
         gl.minX = gl.maxX - cnf.xaxis.range
+      }
+
+      // a numeric or datetime heatmap reaches half a cell past its data
+      if (cnf.chart.type === 'heatmap') {
+        getChartClass('heatmap').prototype.padXRange?.(this)
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
