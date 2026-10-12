@@ -106,6 +106,27 @@ function subtreeTotal(d) {
   )
 }
 
+/**
+ * A point's x or y as a number for the data reducer's math: an ISO string or
+ * Date x to its epoch, a numeric-string y to its value. Without it an ISO x
+ * made every LTTB triangle NaN (each bucket kept its first point, so spikes
+ * vanished), a string x never matched the zoom window, and a string y was
+ * concatenated. A number returns on the first test, so numeric data pays one
+ * typeof per read. Module-private for the reason given on subtreeTotal.
+ *
+ * @param {any} v
+ * @returns {number}
+ */
+function toNum(v) {
+  return typeof v === 'number'
+    ? v
+    : v instanceof Date
+      ? v.getTime()
+      : typeof v === 'string' && isNaN(/** @type {any} */ (v))
+        ? Date.parse(v)
+        : +v
+}
+
 export default class Data {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -2337,10 +2358,10 @@ export default class Data {
         const d = s?.data
         if (!Array.isArray(d) || d.length === 0) continue
         const isXY = !Array.isArray(d[0])
-        const firstX = isXY ? d[0]?.x : d[0]?.[0]
-        const lastX = isXY ? d[d.length - 1]?.x : d[d.length - 1]?.[0]
-        if (typeof firstX === 'number') rawMinX = Math.min(rawMinX, firstX)
-        if (typeof lastX === 'number') rawMaxX = Math.max(rawMaxX, lastX)
+        const firstX = toNum(isXY ? d[0]?.x : d[0]?.[0])
+        const lastX = toNum(isXY ? d[d.length - 1]?.x : d[d.length - 1]?.[0])
+        if (firstX === firstX) rawMinX = Math.min(rawMinX, firstX)
+        if (lastX === lastX) rawMaxX = Math.max(rawMaxX, lastX)
       }
       if (rawMinX !== Infinity) {
         gl.dataReducerRawMinX = rawMinX
@@ -2558,8 +2579,8 @@ export default class Data {
     if (len === 0) return data
     const isXY = !Array.isArray(data[0])
     const getX = isXY
-      ? (/** @type {any} */ p) => p.x
-      : (/** @type {any} */ p) => p[0]
+      ? (/** @type {any} */ p) => toNum(p.x)
+      : (/** @type {any} */ p) => toNum(p[0])
 
     let lo = 0
     if (xmin != null) {
@@ -2608,11 +2629,11 @@ export default class Data {
      */
     const isXY = !Array.isArray(data[0])
     const getX = isXY
-      ? (/** @type {any} */ p) => p.x
-      : (/** @type {any} */ p) => p[0]
+      ? (/** @type {any} */ p) => toNum(p.x)
+      : (/** @type {any} */ p) => toNum(p[0])
     const getY = isXY
-      ? (/** @type {any} */ p) => p.y
-      : (/** @type {any} */ p) => p[1]
+      ? (/** @type {any} */ p) => toNum(p.y)
+      : (/** @type {any} */ p) => toNum(p[1])
 
     const sampled = []
     // Always include the first point.
