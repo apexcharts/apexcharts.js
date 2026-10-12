@@ -18,24 +18,25 @@ import ApexCharts from '../apexcharts'
 import Perspectives from '../modules/perspectives/Perspectives'
 import { markPerspectivesTokenDecoded } from '../modules/license/LicenseEnforcer'
 
-ApexCharts.registerFeatures({ perspectives: Perspectives })
-
-// Static, pure helpers: attached from the feature file so core stays free of
-// the Perspectives module (keeps it tree-shakeable). Present once the feature
-// is imported: `import 'apexcharts/features/perspectives'`. Decoding a token
-// via the static API is premium perspectives usage (there is no chart to tag),
-// so it marks a process-global "in use" signal that re-evaluates live charts.
-ApexCharts.perspectives = {
-  /** @param {string} str */
-  decode: (str) => {
-    markPerspectivesTokenDecoded()
-    return Perspectives.decode(str)
-  },
-  /** @param {string} [href] */
-  fromURL: (href) => {
-    markPerspectivesTokenDecoded()
-    return Perspectives.fromURL(href)
-  },
-}
+// Static, pure helpers, read by core's `ApexCharts.perspectives` getter from
+// the globalThis-backed registry so every copy of the class sees them, while
+// core stays free of the Perspectives module. Decoding a token via the static
+// API is premium perspectives usage (there is no chart to tag), so it marks a
+// process-global "in use" signal that re-evaluates live charts.
+ApexCharts.registerFeatures({
+  perspectives: Perspectives,
+  perspectivesStatics: /** @type {any} */ ({
+    /** @param {string} str */
+    decode: (str) => {
+      markPerspectivesTokenDecoded()
+      return Perspectives.decode(str)
+    },
+    /** @param {string} [href] */
+    fromURL: (href) => {
+      markPerspectivesTokenDecoded()
+      return Perspectives.fromURL(href)
+    },
+  }),
+})
 
 export default ApexCharts

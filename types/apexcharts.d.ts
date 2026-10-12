@@ -574,7 +574,7 @@ declare class ApexCharts {
    * Static, pure Perspectives helpers. Available once the feature is imported:
    * `import 'apexcharts/features/perspectives'`.
    */
-  static perspectives: {
+  static readonly perspectives: {
     decode(str: string): ApexPerspective | null
     fromURL(href?: string): ApexPerspective | null
   }

@@ -188,13 +188,16 @@ export default class ApexCharts {
   /** @type {any} */ rendererController
 
   /**
-   * Static Perspectives helpers (decode/fromURL), populated by the perspectives
-   * feature when imported (`import 'apexcharts/features/perspectives'`); null
-   * otherwise. Declared here as a placeholder so core stays free of the
-   * Perspectives module while the assignment in the feature file type-checks.
-   * @type {any}
+   * Static Perspectives helpers (decode/fromURL), registered by the
+   * perspectives feature when imported
+   * (`import 'apexcharts/features/perspectives'`); null otherwise. Read from
+   * the globalThis-backed registry so core stays free of the Perspectives
+   * module and every copy of the class sees them.
+   * @returns {any}
    */
-  static perspectives = null
+  static get perspectives() {
+    return InitCtxVariables._featureRegistry.get('perspectivesStatics') || null
+  }
 
   /**
    * Creates a new ApexCharts instance.
@@ -2351,12 +2354,14 @@ export default class ApexCharts {
     if (!opts || typeof opts.id !== 'string') {
       throw new Error('ApexCharts.crossfilter requires an { id } string.')
     }
-    const factory = /** @type {any} */ (ApexCharts)._crossfilterFactory
-    if (!factory) {
+    const engine = /** @type {any} */ (
+      InitCtxVariables._featureRegistry.get('crossfilter')
+    )
+    if (!engine) {
       warnMissingFeature('ApexCharts.crossfilter()', 'link')
       return null
     }
-    const coordinator = factory(opts)
+    const coordinator = engine.getOrCreate(opts)
     // Using the crossfilter engine is premium "link" usage; re-evaluate live
     // charts so any that consume this coordinator pick up the trial watermark.
     reevaluateLicenseAcrossCharts()
@@ -2370,8 +2375,10 @@ export default class ApexCharts {
    * @returns {any}
    */
   static getCrossfilter(id) {
-    const get = /** @type {any} */ (ApexCharts)._crossfilterGet
-    return get ? get(id) : null
+    const engine = /** @type {any} */ (
+      InitCtxVariables._featureRegistry.get('crossfilter')
+    )
+    return engine ? engine.get(id) : null
   }
 
   /**

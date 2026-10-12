@@ -14,15 +14,14 @@ import Crossfilter from '../modules/link/Crossfilter'
 // AFTER apexcharts.js.
 //
 // P1: per-chart linked-highlighting module (opt-in via chart.link.enabled).
-ApexCharts.registerFeatures({ linkedViews: LinkedViews })
-
-// Phase 2: install the crossfilter engine factory so ApexCharts.crossfilter(...)
-// (declared in core, always callable) resolves the real coordinator. Without
-// this feature the core static warns and no-ops, so the engine tree-shakes out.
-const AC = /** @type {any} */ (ApexCharts)
-/** @param {{id:string, records?:any[]}} opts */
-AC._crossfilterFactory = (opts) => Crossfilter.getOrCreate(opts)
-/** @param {string} id */
-AC._crossfilterGet = (id) => Crossfilter.get(id)
+// Phase 2: the crossfilter engine, which ApexCharts.crossfilter(...) (declared
+// in core, always callable) resolves through the globalThis-backed registry,
+// so it reaches every copy of the class (Node's server build is a second one).
+// Without this feature the core static warns and no-ops, so the engine
+// tree-shakes out.
+ApexCharts.registerFeatures({
+  linkedViews: LinkedViews,
+  crossfilter: /** @type {any} */ (Crossfilter),
+})
 
 export default ApexCharts
