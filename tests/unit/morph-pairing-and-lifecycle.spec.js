@@ -101,8 +101,9 @@ describe('unit -> mark pairing', () => {
     const svg = document.createElementNS(SVG_NS, 'svg')
     const target = (j) => {
       const p = document.createElementNS(SVG_NS, 'path')
+      p.setAttribute('pathTo', `M ${j * 60} 0 L ${j * 60 + 40} 80`)
       svg.appendChild(p)
-      return { realIndex: 0, j, bbox: { x: j * 60, y: 0, width: 40, height: 80 }, fill: '#555555', els: [p] }
+      return { realIndex: 0, fill: '#555555', els: [p] }
     }
     m._collectTargetMarks = () =>
       new Map([

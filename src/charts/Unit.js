@@ -272,6 +272,28 @@ export default class Unit {
     // and fly out from the centre + fade in. Ignored during a cross-type morph
     // (the previous chart was not a unit chart).
     const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null
+    // An update that cut a piece takeover short (the morph's retire hands its
+    // piece layer over): a dot whose piece was still flying starts where that
+    // piece is, at its size and colour, not at the slot it never reached.
+    const pieces = this.ctx && this.ctx._unitPieces
+    if (pieces) {
+      this.ctx._unitPieces = null
+      if (prev) {
+        pieces.querySelectorAll('rect').forEach((/** @type {any} */ el) => {
+          const key = el.getAttribute('data-key')
+          const from = prev.get(key)
+          const n = (/** @type {string} */ a) => +el.getAttribute(a)
+          if (!from) return
+          prev.set(key, {
+            ...from,
+            x: n('x') + n('width') / 2,
+            y: n('y') + n('height') / 2,
+            r: Math.min(n('width'), n('height')) / 2,
+            fill: el.getAttribute('fill'),
+          })
+        })
+      }
+    }
     /** @type {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} */
     const nextPrev = new Map()
     /** @type {UnitAnimDot[]} */
@@ -363,6 +385,9 @@ export default class Unit {
           this._place(el.node, spec, d.x, d.y)
           el.node.setAttribute('opacity', '0')
           el.node.setAttribute('data-piece-hidden', '1')
+          // An update before its piece lands keys the piece's on-screen place
+          // by this, so the next render's dot starts there (see retire).
+          el.node.setAttribute('data-key', key)
         } else if (animate) {
           const from = prev && prev.get(key)
           // Priority: previous slot (keyed update) -> the part of the outgoing

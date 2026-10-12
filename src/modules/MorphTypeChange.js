@@ -97,6 +97,15 @@ const PIECE_BUDGET = 1500
 // one still lands within the configured speed.
 const PIECE_STAGGER_MAX = 300
 
+/**
+ * Show a mark or dot a piece takeover held hidden.
+ * @param {any} el
+ */
+const reveal = (el) => {
+  el.removeAttribute('opacity')
+  el.removeAttribute('data-piece-hidden')
+}
+
 /** @param {string} type */
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return 'bar'
@@ -115,7 +124,7 @@ export default class MorphTypeChange {
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx
-    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number, scale?: number, shiftX?: number, shiftY?: number }, pieceOut?: boolean, pieceIn?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
+    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number, scale?: number, shiftX?: number, shiftY?: number }, pieceOut?: boolean, pieceIn?: boolean, resume?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
     this._snapshot = null
     // Whether the render the snapshot was captured for has mounted.
     this._shown = false
@@ -417,7 +426,7 @@ export default class MorphTypeChange {
     if (typeof clone.querySelectorAll === 'function') {
       drop.forEach((sel) => {
         clone.querySelectorAll(sel).forEach((/** @type {any} */ el) => {
-          if (el.parentNode) el.parentNode.removeChild(el)
+          el.remove()
         })
       })
     }
@@ -514,7 +523,7 @@ export default class MorphTypeChange {
     clearTimeout(this._ghostTimer)
     const ghost = this._ghost
     this._ghost = null
-    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost)
+    ghost?.remove()
   }
 
   /* ------------------------------------------------------------------ *
@@ -608,12 +617,7 @@ export default class MorphTypeChange {
     /** @type {any} */
     const baseEl = this.w.globals.dom?.baseEl
     if (!baseEl || typeof baseEl.querySelectorAll !== 'function') return
-    baseEl.querySelectorAll('[data-piece-hidden]').forEach(
-      (/** @type {any} */ el) => {
-        el.removeAttribute('opacity')
-        el.removeAttribute('data-piece-hidden')
-      },
-    )
+    baseEl.querySelectorAll('[data-piece-hidden]').forEach(reveal)
   }
 
   /** Stop the piece run, drop the overlay, and reveal anything still hidden. */
@@ -624,7 +628,7 @@ export default class MorphTypeChange {
     }
     const layer = this._pieceLayer
     this._pieceLayer = null
-    if (layer && layer.parentNode) layer.parentNode.removeChild(layer)
+    layer?.remove()
     this._revealPieceHidden()
   }
 
@@ -791,7 +795,7 @@ export default class MorphTypeChange {
     return {
       intervalsAt,
       dispose: () => {
-        if (probe.parentNode) probe.parentNode.removeChild(probe)
+        probe.remove()
       },
     }
   }
@@ -842,10 +846,7 @@ export default class MorphTypeChange {
         if (!box || !entry) {
           // No outgoing mark stood for this cluster (an entering series): the
           // dots have nothing to come out of, so just show them.
-          dots.forEach((d) => {
-            d.el.removeAttribute('opacity')
-            d.el.removeAttribute('data-piece-hidden')
-          })
+          dots.forEach((d) => reveal(d.el))
           return
         }
 
@@ -876,8 +877,10 @@ export default class MorphTypeChange {
           const cell = cells[k]
           const dot = ordered[k]
           const el = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
-          // Which cluster this piece serves; diagnostics and tests key on it.
+          // Which cluster and dot this piece serves; retire and tests key on
+          // them.
           el.setAttribute('data-i', String(i))
+          el.setAttribute('data-key', dot.el.getAttribute('data-key'))
           el.setAttribute('x', String(cell.x))
           el.setAttribute('y', String(cell.y))
           el.setAttribute('width', String(cell.width))
@@ -908,10 +911,8 @@ export default class MorphTypeChange {
     this._runPieces(pieces, (piece) => {
       // The dot appears exactly where its piece just was, then the piece goes:
       // a swap, not a fade.
-      const dotEl = piece.meta.dotEl
-      dotEl.removeAttribute('opacity')
-      dotEl.removeAttribute('data-piece-hidden')
-      if (piece.el.parentNode) piece.el.parentNode.removeChild(piece.el)
+      reveal(piece.meta.dotEl)
+      piece.el.remove()
     })
   }
 
@@ -984,44 +985,30 @@ export default class MorphTypeChange {
     for (let k = 0; k < clusterIdx.length; k++) {
       const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
       const key = snap.keyOrder[clusterIdx[k]]
-      const target = key ? targets.get(key) : null
-      if (!target || !dots || !dots.length) {
+      const target = /** @type {any} */ (key ? targets.get(key) : null)
+      // The mark's final geometry, straight off its (hidden) elements. A
+      // boxPlot is more than one path per mark, so it is measured and probed
+      // as one; a radial mark carries the final path the renderer stamped,
+      // since its live `d` is still wherever its own animation left it.
+      const d = target && this._markD(target)
+      const b = d && this._pathBBox(d)
+      if (!b || !dots || !dots.length) {
         // A mark with no incoming dots (or dots with no mark) has no pieces;
         // whatever was hidden for it must still show.
-        if (target) {
-          target.els.forEach((/** @type {any} */ el) => {
-            el.removeAttribute('opacity')
-            el.removeAttribute('data-piece-hidden')
-          })
-        }
+        if (target) target.els.forEach(reveal)
         continue
       }
+      const bbox = { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY }
 
       const markFill =
         target.fill && target.fill.indexOf('url(') !== 0
           ? target.fill
           : this.w.globals.colors?.[target.realIndex] || dots[0].fill
 
-      let prober = null
-      if (shapedTarget) {
-        // The mark's final geometry, straight off its (hidden) elements. A
-        // boxPlot is more than one path per mark, so probe them as one; a
-        // radial mark carries the final path the renderer stamped, since its
-        // live `d` is still wherever its own animation left it.
-        const d =
-          target.d ||
-          target.els
-            .map(
-              (/** @type {any} */ p) =>
-                p.getAttribute('pathTo') || p.getAttribute('d'),
-            )
-            .filter(Boolean)
-            .join(' ')
-        if (d) prober = this._makeExtentProber(d, target.bbox, layer)
-      }
+      const prober = shapedTarget ? this._makeExtentProber(d, bbox, layer) : null
       const divided = prober
-        ? gridDivideShape(target.bbox, dots.length, prober.intervalsAt)
-        : gridDivideRect(target.bbox, dots.length)
+        ? gridDivideShape(bbox, dots.length, prober.intervalsAt)
+        : gridDivideRect(bbox, dots.length)
       if (prober) prober.dispose()
 
       const cells = sortByHilbert(divided, (c) => [
@@ -1031,9 +1018,14 @@ export default class MorphTypeChange {
       const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
 
       // Landed-piece bookkeeping: the mark reveals when ALL of its pieces are
-      // down, and its tiles leave together, so the mosaic holds until the
-      // moment it becomes the solid mark.
-      const markState = { remaining: ordered.length, els: target.els, tiles: /** @type {any[]} */ ([]) }
+      // down, and its tiles (grouped, so retire can measure the mosaic) leave
+      // together, so the mosaic holds until the moment it becomes the solid
+      // mark.
+      const markState = {
+        remaining: ordered.length,
+        els: target.els,
+        g: layer.appendChild(doc.createElementNS('http://www.w3.org/2000/svg', 'g')),
+      }
 
       for (let m = 0; m < ordered.length; m++) {
         const dot = ordered[m]
@@ -1049,8 +1041,7 @@ export default class MorphTypeChange {
         el.setAttribute('height', String(dot.r * 2))
         el.setAttribute('rx', String(dot.r))
         el.setAttribute('fill', String(dot.fill || markFill))
-        layer.appendChild(el)
-        markState.tiles.push(el)
+        markState.g.appendChild(el)
         pieces.push({
           el,
           from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
@@ -1069,15 +1060,29 @@ export default class MorphTypeChange {
       const state = piece.meta.markState
       state.remaining--
       if (state.remaining === 0) {
-        state.els.forEach((/** @type {any} */ el) => {
-          el.removeAttribute('opacity')
-          el.removeAttribute('data-piece-hidden')
-        })
-        state.tiles.forEach((/** @type {any} */ t) => {
-          if (t.parentNode) t.parentNode.removeChild(t)
-        })
+        state.els.forEach(reveal)
+        state.g.remove()
       }
     })
+  }
+
+  /**
+   * A collected target mark's final geometry as one path: the radial `d` it
+   * carries, else every path that makes it up, joined.
+   * @param {{ d?: string, els: any[] }} target
+   * @returns {string}
+   */
+  _markD(target) {
+    return (
+      target.d ||
+      target.els
+        .map(
+          (/** @type {any} */ p) =>
+            p.getAttribute('pathTo') || p.getAttribute('d'),
+        )
+        .filter(Boolean)
+        .join(' ')
+    )
   }
 
   /**
@@ -1110,12 +1115,12 @@ export default class MorphTypeChange {
 
   /**
    * The incoming chart's marks, read live: every `path[pathTo]` grouped into
-   * one mark per (realIndex, j), with the union bbox of its final geometry.
-   * Bar marks are one path each; summary marks (boxPlot, violin) may be
-   * several, walked exactly like the capture branch walks the outgoing ones.
+   * one mark per (realIndex, j); _markD reads its final geometry. Bar marks
+   * are one path each; summary marks (boxPlot, violin) may be several,
+   * walked exactly like the capture branch walks the outgoing ones.
    *
    * @param {string} toType
-   * @returns {Map<string, { realIndex: number, j: number, bbox: {x:number,y:number,width:number,height:number}, fill: string|null, els: any[], d?: string }>}
+   * @returns {Map<string, { realIndex: number, fill: string|null, els: any[], d?: string }>}
    */
   _collectTargetMarks(toType) {
     /** @type {any} */
@@ -1134,22 +1139,9 @@ export default class MorphTypeChange {
         .querySelectorAll('.apexcharts-pie-series .apexcharts-pie-area')
         .forEach((/** @type {any} */ p, /** @type {number} */ i) => {
           const d = p.getAttribute('data:pathFinal') || p.getAttribute('d')
-          if (!d || !d.trim()) return
-          const box = this._pathBBox(d)
-          if (!box) return
-          out.set(`${i}:0`, {
-            realIndex: i,
-            j: 0,
-            d,
-            bbox: {
-              x: box.minX,
-              y: box.minY,
-              width: box.maxX - box.minX,
-              height: box.maxY - box.minY,
-            },
-            fill: p.getAttribute('fill'),
-            els: [p],
-          })
+          if (d && d.trim()) {
+            out.set(`${i}:0`, { realIndex: i, d, fill: p.getAttribute('fill'), els: [p] })
+          }
         })
       return out
     }
@@ -1173,36 +1165,10 @@ export default class MorphTypeChange {
             // draw order, which is the same order the mapping was keyed in.
             const jAttr = parseInt(p.getAttribute('j') ?? '', 10)
             const j = isNaN(jAttr) ? order++ : jAttr
-            const box = this._pathBBox(d)
-            if (!box) return
             const key = `${realIndex}:${j}`
             const prev = out.get(key)
-            if (prev) {
-              prev.els.push(p)
-              prev.bbox = {
-                x: Math.min(prev.bbox.x, box.minX),
-                y: Math.min(prev.bbox.y, box.minY),
-                width:
-                  Math.max(prev.bbox.x + prev.bbox.width, box.maxX) -
-                  Math.min(prev.bbox.x, box.minX),
-                height:
-                  Math.max(prev.bbox.y + prev.bbox.height, box.maxY) -
-                  Math.min(prev.bbox.y, box.minY),
-              }
-            } else {
-              out.set(key, {
-                realIndex,
-                j,
-                bbox: {
-                  x: box.minX,
-                  y: box.minY,
-                  width: box.maxX - box.minX,
-                  height: box.maxY - box.minY,
-                },
-                fill: p.getAttribute('fill'),
-                els: [p],
-              })
-            }
+            if (prev) prev.els.push(p)
+            else out.set(key, { realIndex, fill: p.getAttribute('fill'), els: [p] })
           })
       })
 
@@ -2007,7 +1973,9 @@ export default class MorphTypeChange {
     this._shown = true
     /** @type {any} */
     const baseEl = this.w.globals.dom?.baseEl
-    if (!baseEl) return
+    // A mosaic handed on by retire is an update, not a type change: its
+    // chrome stays put and there is nothing outgoing left to show.
+    if (!baseEl || this._snapshot.resume) return
 
     // The incoming chart exists now, so the outgoing marks captured before
     // the teardown finally have something to leave over. Pieces when the pair
@@ -2050,13 +2018,54 @@ export default class MorphTypeChange {
    * morph is still finishing, or just after) must not start its marks from
    * the old chart's shapes again: it starts from the screen, as any update
    * does. The morph's pieces go with it, as the new render replaces what
-   * they were leaving over; a ghost already fading is left to finish its own
-   * fade (its timer removes it) rather than vanish mid-way. A no-op until
-   * that render has mounted, so a second update in the same tick still
-   * morphs.
+   * they were leaving over, but where they are is handed on first: a piece
+   * flying to a dot becomes that dot's previous slot, so the unit chart's
+   * own keyed update carries it on, and the tiles of a mosaic still
+   * assembling become its mark's start shape, their bounding box, through
+   * the morph's snapshot, kept for that one render. A ghost already fading
+   * is left to finish its own fade (its timer removes it) rather than vanish
+   * mid-way. A no-op until that render has mounted, so a second update in
+   * the same tick still morphs.
    */
   retire() {
-    if (this._snapshot && this._shown) this.cleanup(true)
+    const snap = this._snapshot
+    if (!snap || !this._shown) return
+    const layer = this._pieceLayer
+    // Pieces flying to dots: the unit chart reads them off itself.
+    this.ctx._unitPieces = snap.pieceOut && layer
+    // Mosaics still assembling (a mark's tiles share a group), each measured
+    // as one box.
+    /** @type {Map<string, any>} */
+    const mapping = new Map()
+    layer?.querySelectorAll('g').forEach((/** @type {any} */ g) => {
+      const r = g.firstChild && g.getBBox()
+      if (r) {
+        mapping.set(g.firstChild.getAttribute('data-key'), {
+          d: `M${r.x} ${r.y}H${r.x + r.width}V${r.y + r.height}H${r.x}Z`,
+        })
+      }
+    })
+    this.cleanup(true)
+    if (!mapping.size) return
+    // Every other mark starts as itself, so all of them move on one clock,
+    // and none from the capture of the still hidden marks (a boxPlot prefers
+    // that capture to its start shape).
+    this._collectTargetMarks(snap.toType).forEach((t, k) => {
+      if (!mapping.has(k)) mapping.set(k, { d: this._markD(t) })
+    })
+    this.w.globals.previousPaths = []
+    // Kept for the next render, in this layout's plot space. Over once that
+    // render is on screen (the fast update path never calls
+    // applyChromeFade), and cleared by the morph's own timer.
+    this._snapshot = Object.assign(snap, {
+      mapping,
+      pieceIn: false,
+      resume: true,
+      oldLayout: { ...this.w.layout },
+    })
+    BrowserAPIs.requestAnimationFrame(() => {
+      if (this._snapshot === snap) this._shown = true
+    })
   }
 
   /** @param {boolean} [keepGhost] leave a mounted ghost to its own timer */
