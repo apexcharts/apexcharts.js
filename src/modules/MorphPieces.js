@@ -354,9 +354,11 @@ function easeInOutCubic(t) {
  * @param {number} opts.duration - per-piece flight time, ms
  * @param {(piece: Piece) => void} [opts.onPieceDone] - fired once per piece at t=1
  * @param {() => void} [opts.onAllDone]
+ * @param {() => boolean} [opts.alive] - false once the chart is gone: the
+ *   run stops on that frame without writing or completing
  * @returns {() => void} cancel
  */
-export function runPieceTween({ pieces, duration, onPieceDone, onAllDone }) {
+export function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive }) {
   let cancelled = false
   const start = Date.now()
   const dur = Math.max(1, duration)
@@ -376,7 +378,7 @@ export function runPieceTween({ pieces, duration, onPieceDone, onAllDone }) {
   }
 
   const frame = () => {
-    if (cancelled) return
+    if (cancelled || (alive && !alive())) return
     const elapsed = Date.now() - start
     let live = false
     for (let k = 0; k < pieces.length; k++) {

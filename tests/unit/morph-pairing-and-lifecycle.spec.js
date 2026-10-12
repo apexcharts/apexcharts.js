@@ -295,4 +295,56 @@ describe('timers and teardown', () => {
     vi.advanceTimersByTime(400)
     expect(ghost.parentNode).toBeNull()
   })
+
+  it('stops driving the pieces and skips the late cleanup once the chart is destroyed', () => {
+    const m = makeMorph()
+    m._snapshot = { fromType: 'bar', toType: 'unit', mapping: new Map(), oldLayout: { translateX: 0, translateY: 0 } }
+    const el = document.createElementNS(SVG_NS, 'rect')
+    m._runPieces(
+      [
+        {
+          el,
+          from: { x: 0, y: 0, width: 10, height: 10, rx: 0 },
+          to: { x: 100, y: 0, width: 10, height: 10, rx: 5 },
+          fill: null,
+          delay: 0,
+        },
+      ],
+      () => {},
+    )
+    m.applyChromeFade()
+    const cleanup = vi.spyOn(m, 'cleanup')
+
+    vi.advanceTimersByTime(100)
+    const x = el.getAttribute('x')
+    expect(Number(x)).toBeGreaterThan(0)
+
+    m.w.globals.isDestroyed = true
+    vi.advanceTimersByTime(1000)
+    expect(el.getAttribute('x')).toBe(x)
+    expect(cleanup).not.toHaveBeenCalled()
+  })
+
+  it('fades the grid once, on one frame and one timer', () => {
+    const m = makeMorph()
+    const base = m.w.globals.dom.baseEl
+    base.innerHTML =
+      '<svg><g class="apexcharts-grid"><g class="apexcharts-gridlines-horizontal"></g>' +
+      '<g class="apexcharts-gridlines-vertical"></g></g>' +
+      '<g class="apexcharts-xaxis"></g><g class="apexcharts-yaxis"></g></svg>'
+    m._snapshot = { fromType: 'bar', toType: 'pie', mapping: new Map(), oldLayout: { translateX: 0, translateY: 0 } }
+    const raf = vi.spyOn(window, 'requestAnimationFrame')
+    const timeout = vi.spyOn(globalThis, 'setTimeout')
+    m.applyChromeFade()
+
+    expect(base.querySelector('.apexcharts-grid').style.opacity).toBe('0')
+    expect(base.querySelector('.apexcharts-gridlines-horizontal').style.opacity).toBe('')
+    expect(raf).toHaveBeenCalledTimes(1)
+    // One timer clears the chrome styles, one ends the morph.
+    expect(timeout).toHaveBeenCalledTimes(2)
+    vi.advanceTimersByTime(16)
+    expect(base.querySelector('.apexcharts-xaxis').style.opacity).toBe('1')
+    vi.advanceTimersByTime(700)
+    expect(base.querySelector('.apexcharts-xaxis').style.opacity).toBe('')
+  })
 })

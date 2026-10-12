@@ -403,9 +403,8 @@ export default class MorphTypeChange {
     const drop = [
       '.apexcharts-xaxis',
       '.apexcharts-yaxis',
+      // (the gridlines go with it)
       '.apexcharts-grid',
-      '.apexcharts-gridlines-horizontal',
-      '.apexcharts-gridlines-vertical',
       '.apexcharts-legend',
       '.apexcharts-title-text',
       '.apexcharts-subtitle-text',
@@ -1099,6 +1098,8 @@ export default class MorphTypeChange {
       pieces,
       duration: flight,
       onPieceDone,
+      // destroy() mid-flight: stop writing to the detached pieces.
+      alive: () => !this.w.globals.isDestroyed,
       onAllDone: () => {
         this._pieceCancel = null
         this._cancelPieces()
@@ -2071,37 +2072,30 @@ export default class MorphTypeChange {
     else this._mountGhost()
 
     const speed = this.getSpeed()
-    const chromeSelectors = [
-      '.apexcharts-xaxis',
-      '.apexcharts-yaxis',
-      '.apexcharts-grid',
-      '.apexcharts-gridlines-horizontal',
-      '.apexcharts-gridlines-vertical',
-      '.apexcharts-legend',
-      '.apexcharts-title-text',
-      '.apexcharts-subtitle-text',
-    ]
-    chromeSelectors.forEach((sel) => {
-      baseEl
-        .querySelectorAll(sel)
-        .forEach((/** @type {any} */ el) => {
-          if (!el.style) return
-          el.style.opacity = '0'
-          el.style.transition = `opacity ${speed}ms ease-out`
-          BrowserAPIs.requestAnimationFrame(() => {
-            el.style.opacity = '1'
-          })
-          setTimeout(() => {
-            el.style.transition = ''
-            el.style.opacity = ''
-          }, speed + 80)
-        })
-    })
+    // The grid group carries its gridlines, so they are not listed again: a
+    // nested fade multiplies, and the grid would trail the axes.
+    /** @type {any[]} */
+    const chrome = Array.from(
+      baseEl.querySelectorAll(
+        '.apexcharts-xaxis,.apexcharts-yaxis,.apexcharts-grid,.apexcharts-legend,.apexcharts-title-text,.apexcharts-subtitle-text',
+      ),
+    ).filter((/** @type {any} */ el) => el.style)
+    /** @param {string} opacity @param {string} [transition] */
+    const set = (opacity, transition) =>
+      chrome.forEach((el) => {
+        el.style.opacity = opacity
+        if (transition != null) el.style.transition = transition
+      })
+    set('0', `opacity ${speed}ms ease-out`)
+    // One frame and one timer for the whole set; a destroyed chart skips both.
+    const dead = () => this.w.globals.isDestroyed
+    BrowserAPIs.requestAnimationFrame(() => dead() || set('1'))
+    setTimeout(() => dead() || set('', ''), speed + 80)
 
     // Not a newer morph's: one started meanwhile cleans up after itself.
     const snap = this._snapshot
     setTimeout(() => {
-      if (!this._snapshot || this._snapshot === snap) this.cleanup()
+      if (!dead() && (!this._snapshot || this._snapshot === snap)) this.cleanup()
     }, speed + 100)
   }
 
