@@ -97,7 +97,9 @@ const test = base.extend({
         return {
           dayPx: unitPx === null ? null : +unitPx.toFixed(2),
           gridWidth: Math.round(w.layout.gridWidth),
-          widths: [...new Set(rects.map((r) => r.w))],
+          // To 0.1 px: a fractional edge pad leaves sub-pixel float noise
+          // (77.11 against 77.1), which is one width on screen.
+          widths: [...new Set(rects.map((r) => +r.w.toFixed(1)))],
           maxWidth: rects.length ? Math.max(...rects.map((r) => r.w)) : 0,
           overlap: +overlap.toFixed(2),
           count: rects.length,
