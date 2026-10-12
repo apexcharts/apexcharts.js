@@ -13,6 +13,35 @@ export default class DimGrid {
   }
 
   /**
+   * The x span of one bar slot, as the bar Helpers' `barSlotXSpan()`
+   * resolves it for the bars themselves (#4885): the smallest gap once every
+   * series is merged onto one axis, since `minXDiff` only sees gaps inside
+   * a series. With no usable x at all it falls back to `minXDiff`, sentinel
+   * included, as this pad always did.
+   *
+   * @returns {number} the span, or something not above 0 for none
+   */
+  barSlotXSpan() {
+    const sx = this.w.seriesData?.seriesX || []
+    // one series is walked as is; several are merged (sorted runs are cheap)
+    const xs =
+      sx.length > 1
+        ? sx
+            .flat()
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b)
+        : sx[0] || []
+    let prev = NaN
+    let slot = Infinity
+    for (const v of xs) {
+      if (!Number.isFinite(v)) continue
+      if (v - prev > 0 && v - prev < slot) slot = v - prev
+      prev = v
+    }
+    return slot < Infinity ? slot : this.w.globals.minXDiff
+  }
+
+  /**
    * @param {number} gridWidth
    */
   gridPadForColumnsInNumericAxis(gridWidth) {
@@ -55,7 +84,7 @@ export default class DimGrid {
     }
 
     const barsPresent = hasBar(type) || gl.comboBarCount > 0
-    let xRange = Math.abs(gl.initialMaxX - gl.initialMinX)
+    const xRange = Math.abs(gl.initialMaxX - gl.initialMinX)
 
     if (
       barsPresent &&
@@ -64,33 +93,27 @@ export default class DimGrid {
       seriesLen > 0 &&
       xRange !== 0
     ) {
-      if (xRange <= 3) {
-        xRange = gl.dataPoints
-      }
-
-      const xRatio = xRange / gridWidth
-      let xDivision =
-        gl.minXDiff && gl.minXDiff / xRatio > 0 ? gl.minXDiff / xRatio : 0
-
-      if (xDivision > gridWidth / 2) {
-        xDivision /= 2
-      }
-      // Here, barWidth is assumed to be the width occupied by a group of bars.
-      // There will be one bar in the group for each series plotted.
-      // Note: This version of the following math is different to that over in
-      // Helpers.js. Don't assume they should be the same. Over there,
-      // xDivision is computed differently and it's used on different charts.
-      // They were the same, but the solution to
-      // https://github.com/apexcharts/apexcharts.js/issues/4178
-      // was to remove the division by seriesLen.
-      barWidth =
-        (xDivision * parseInt(cnf.plotOptions.bar.columnWidth, 10)) / 100
-
-      if (barWidth < 1) {
-        barWidth = 1
-      }
-
-      gl.barPadForNumericAxis = barWidth
+      // The first and last slots are centred on the first and last x, so
+      // half of each sits past the plot. Reserve that half: the edge columns
+      // keep the margin a category axis gives them. The slot is measured on
+      // the grid left once the pad comes off, g - 2p, so with n = xRange /
+      // slot slots:  p = (g - 2p) / 2n  =>  p = g / (2n + 2)
+      // A columnWidth over 100% spans k slots and needs k half slots; a px
+      // columnWidth is a fixed group of seriesLen bars, half of which must
+      // fit. The pad was a whole group measured before it came off, and from
+      // within-series gaps, up to 3x this. The data range, not the zoomed
+      // one, so zooming never resizes the plot.
+      const colWidth = cnf.plotOptions.bar.columnWidth
+      const cw = parseInt(colWidth, 10) || 0
+      const pct = /%/.test(colWidth)
+      const k = pct ? Math.max(1, cw / 100) : 1
+      const slot = this.barSlotXSpan()
+      const n = slot > 0 ? xRange / slot : gl.dataPoints || 1
+      barWidth = gl.barPadForNumericAxis = Math.max(
+        1,
+        (gridWidth * k) / (2 * n + 2 * k),
+        pct ? 0 : (cw * seriesLen) / 2,
+      )
     }
 
     return barWidth
