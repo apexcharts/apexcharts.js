@@ -27,13 +27,11 @@ const STACKED_100 = '_apexStacked100'
 
 /**
  * @template {Function} T
- * @param {string[]} types chart types whose data this function can read
  * @param {T} fn
  * @returns {T}
  */
-const ownedBy = (types, fn) => {
-  const marked = /** @type {any} */ (fn)
-  marked[TYPE_OWNED] = types
+const typeOwned = (fn) => {
+  /** @type {any} */ (fn)[TYPE_OWNED] = true
   return fn
 }
 
@@ -189,7 +187,7 @@ const typeOpts = (type, config) => {
  */
 const isUntouched = (current, fromDefault) => {
   if (typeof current === 'function') {
-    if (Array.isArray(/** @type {any} */ (current)[TYPE_OWNED])) return true
+    if (/** @type {any} */ (current)[TYPE_OWNED]) return true
     // Unmarked, so it is either the user's or one of the plain formatters
     // Options rebuilds on every read. Those are never `===` across two reads,
     // so the only thing left to compare is the source itself.
@@ -1100,8 +1098,7 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: ownedBy(
-          ['candlestick'],
+        custom: typeOwned(
           (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
             return this._getBoxTooltip(
               w,
@@ -1143,8 +1140,7 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: ownedBy(
-          ['boxPlot'],
+        custom: typeOwned(
           (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
             return this._getBoxTooltip(
               w,
@@ -1195,8 +1191,7 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: ownedBy(
-          ['violin'],
+        custom: typeOwned(
           (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
             return this._getViolinTooltip(w, seriesIndex, dataPointIndex)
           },
@@ -1246,8 +1241,7 @@ export default class Defaults {
       },
       tooltip: {
         ...base.tooltip,
-        custom: ownedBy(
-          ['raincloud'],
+        custom: typeOwned(
           (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
             return this._getRaincloudTooltip(w, seriesIndex, dataPointIndex)
           },
@@ -1348,8 +1342,7 @@ export default class Defaults {
       tooltip: {
         shared: false,
         followCursor: true,
-        custom: ownedBy(
-          ['rangeBar'],
+        custom: typeOwned(
           /** @param {Record<string, any>} opts */
           (opts) => {
             if (
@@ -1516,7 +1509,7 @@ export default class Defaults {
         shared: false,
         intersect: true,
         followCursor: false,
-        custom: ownedBy(['rangeBar'], handleDumbbellTooltip),
+        custom: typeOwned(handleDumbbellTooltip),
       },
     }
   }
@@ -1621,8 +1614,7 @@ export default class Defaults {
         intersect: false,
         shared: true,
         followCursor: true,
-        custom: ownedBy(
-          ['rangeArea'],
+        custom: typeOwned(
           /** @param {Record<string, any>} opts */
           (opts) => handleRangeAreaTooltip(opts),
         ),
@@ -1836,8 +1828,7 @@ export default class Defaults {
         intersect: false,
         shared: false,
         followCursor: true,
-        custom: ownedBy(
-          ['streamgraph'],
+        custom: typeOwned(
           /** @param {Record<string, any>} opts */
           (opts) => handleStreamTooltip(opts),
         ),
