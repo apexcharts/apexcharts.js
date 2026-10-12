@@ -131,9 +131,9 @@ export default class Helpers {
 
   /**
    * Smallest positive gap between neighbouring x values once every series is
-   * merged onto one axis. A k-way merge over the series arrays, which are
-   * already sorted in every ordinary case; an unsorted one can only make the
-   * answer smaller, i.e. the bars narrower, never overlapping.
+   * merged onto one axis. A k-way merge over the series arrays, which needs
+   * each one ascending: a non-ascending array (newest-first data) is merged
+   * from a sorted copy, or every gap would read as one huge slot.
    *
    * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
    * them would widen every bar the moment someone hid the tightest-spaced
@@ -149,7 +149,13 @@ export default class Helpers {
     const arrays = []
     for (let i = 0; i < seriesX.length; i++) {
       const xs = seriesX[i]
-      if (Array.isArray(xs) && xs.length > 0) arrays.push(xs)
+      if (Array.isArray(xs) && xs.length > 0) {
+        arrays.push(
+          xs.some((v, n) => v < xs[n - 1])
+            ? xs.filter((v) => v === +v).sort((a, b) => a - b)
+            : xs,
+        )
+      }
     }
     if (!arrays.length) return 0
 

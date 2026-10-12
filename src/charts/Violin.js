@@ -124,13 +124,7 @@ class Violin extends BarBase {
         this.visibleI = this.visibleI + 1
       }
 
-      let translationsIndex = 0
-      if (this.yRatio.length > 1) {
-        this.yaxisIndex = /** @type {any} */ (
-          w.globals.seriesYAxisReverseMap[realIndex]
-        )[0]
-        translationsIndex = realIndex
-      }
+      const translationsIndex = this.setSeriesAxis(realIndex)
 
       const initPositions = this.barHelpers.initialPositions(realIndex)
       const {

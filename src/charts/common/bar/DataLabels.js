@@ -124,20 +124,45 @@ export default class BarDataLabels {
       j,
     )
 
+    // A datum the highlight filter leaves without a part keeps no label. It
+    // is still drawn, blank, as a null value is: the overlap pass indexes
+    // its rects by data point, so a skipped one would misalign the rest.
+    // Use realIndex (the full-config series index), not the local loop index
+    // `i` which is the compacted bar-subset index in a combo chart.
+    const val = hl?.hide
+      ? undefined
+      : waterfallStep !== null
+        ? waterfallStep
+        : // only RangeBar passes a range, vertical or horizontal
+          y2 !== undefined
+          ? [y1, y2]
+          : w.config.chart.stackType === '100%'
+            ? // Read the percentages globally rather than out of `series`.
+              // Under `stackType: '100%'` BarStacked replaces `series` with
+              // the percentage rows, and in a combo chart it narrows them to
+              // just the series it draws as bars, so `series` is indexed by
+              // bar position while `realIndex` counts every series. A line
+              // ahead of a column pushed `realIndex` past the end and the
+              // label read a value off `undefined` (#2429).
+              w.globals.seriesPercent[realIndex][j]
+            : w.seriesData.series[realIndex][j]
+
+    let text
     let textRects = {
       width: 0,
       height: 0,
     }
-    if (w.config.dataLabels.enabled) {
-      // Use realIndex (the full-config series index), not the local loop index
-      // `i` which is the compacted bar-subset index in a combo chart. Otherwise
-      // the label is measured/formatted from a different series than the value
-      // actually drawn (drawCalculatedDataLabels below uses realIndex).
-      const yLabel =
-        waterfallStep !== null
-          ? waterfallStep
-          : w.seriesData.series[realIndex][j]
-
+    if (dataLabelsConfig.enabled) {
+      // Format once and measure the exact string that is drawn.
+      text =
+        val === undefined
+          ? ''
+          : dataLabelsConfig.formatter(val, {
+              ...w,
+              seriesIndex: realIndex,
+              dataPointIndex: j,
+              w,
+            })
       // Measure in the SAME font the label will be drawn in. Data labels
       // default to fontWeight 600, and the default measurement is taken at
       // 'regular', which under-reports the width by 3-7% on these strings. That
@@ -145,14 +170,7 @@ export default class BarDataLabels {
       // `textRects.width`, so an under-measured label is clamped to a position
       // that still runs off the chart.
       textRects = graphics.getTextRects(
-        w.config.dataLabels.formatter
-          ? w.config.dataLabels.formatter(yLabel, {
-              ...w,
-              seriesIndex: realIndex,
-              dataPointIndex: j,
-              w,
-            })
-          : w.formatters.yLabelFormatters[0](yLabel),
+        text,
         parseFloat(dataLabelsConfig.style.fontSize).toString(),
         dataLabelsConfig.style.fontFamily,
         undefined,
@@ -210,25 +228,8 @@ export default class BarDataLabels {
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
       neg: params.neg,
-      // A datum the highlight filter leaves without a part keeps no label. It
-      // is still drawn, blank, as a null value is: the overlap pass indexes
-      // its rects by data point, so a skipped one would misalign the rest.
-      val: hl?.hide
-        ? undefined
-        : waterfallStep !== null
-          ? waterfallStep
-          : this.barCtx.isRangeBar
-            ? [y1, y2]
-            : w.config.chart.stackType === '100%'
-              ? // Read the percentages globally rather than out of `series`.
-                // Under `stackType: '100%'` BarStacked replaces `series` with
-                // the percentage rows, and in a combo chart it narrows them to
-                // just the series it draws as bars, so `series` is indexed by
-                // bar position while `realIndex` counts every series. A line
-                // ahead of a column pushed `realIndex` past the end and the
-                // label read a value off `undefined` (#2429).
-                w.globals.seriesPercent[realIndex][j]
-              : w.seriesData.series[realIndex][j],
+      val,
+      text,
       i: realIndex,
       j,
       barWidth: params.barWidth,
@@ -784,11 +785,12 @@ export default class BarDataLabels {
     }
   }
 
-  /** @param {{x: any, y: any, val: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
+  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
   drawCalculatedDataLabels({
     x,
     y,
     val,
+    text,
     neg,
     i, // = realIndex
     j,
@@ -821,7 +823,10 @@ export default class BarDataLabels {
       // though the bar on screen is still at its old height. Label it with what
       // it was until it has finished shrinking away.
       const prev = w.globals.prevDataLabels?.get(`${i}::${datumKey(w, i, j)}`)
-      if (prev && isFinite(prev.val)) val = prev.val
+      if (prev && isFinite(prev.val)) {
+        val = prev.val
+        text = undefined
+      }
     }
 
     if (dataLabelsConfig.enabled && (!isSeriesCollapsed || isSeriesCollapsing)) {
@@ -845,8 +850,9 @@ export default class BarDataLabels {
         }
       }
 
-      let text = ''
-      if (typeof val !== 'undefined') {
+      if (val === undefined) {
+        text = ''
+      } else if (text === undefined) {
         text = formatter(val, {
           ...w,
           seriesIndex: i,

@@ -133,6 +133,21 @@ class Bar {
     this.barHelpers = new BarHelpers(this)
   }
 
+  /**
+   * Point the per-series axis state at this series' y axis. Every bar-family
+   * renderer calls it before initialPositions, which reads the baseline by
+   * this.translationsIndex.
+   * @param {number} realIndex
+   * @return {number} translationsIndex
+   */
+  setSeriesAxis(realIndex) {
+    if (this.yRatio.length > 1) {
+      this.yaxisIndex = this.w.globals.seriesYAxisReverseMap[realIndex]
+      this.translationsIndex = realIndex
+    }
+    return this.translationsIndex
+  }
+
   /** primary draw method which is called on bar object
    * @memberof Bar
    * @param {any[]} series - user supplied series values
@@ -193,11 +208,7 @@ class Bar {
         this.visibleI = this.visibleI + 1
       }
 
-      if (this.yRatio.length > 1) {
-        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
-        this.translationsIndex = realIndex
-      }
-      const translationsIndex = this.translationsIndex
+      const translationsIndex = this.setSeriesAxis(realIndex)
 
       this.isReversed =
         w.config.yaxis[this.yaxisIndex] &&

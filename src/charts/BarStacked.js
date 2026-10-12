@@ -72,13 +72,7 @@ class BarStacked extends Bar {
       const xArrValues = []
       const yArrValues = []
 
-      let translationsIndex = 0
-      if (this.yRatio.length > 1) {
-        this.yaxisIndex = /** @type {any} */ (
-          w.globals.seriesYAxisReverseMap[realIndex]
-        )[0]
-        translationsIndex = realIndex
-      }
+      const translationsIndex = this.setSeriesAxis(realIndex)
 
       this.isReversed =
         w.config.yaxis[this.yaxisIndex] &&
