@@ -91,8 +91,6 @@ export default class TreemapChart {
     /** @type {number|null} */ this._total = null
     /** @type {number|null} */ this._avgLabelSize = null
     /** @type {any} */ this._tooltipEl = null
-    /** Whether the parent tooltip currently owns the shared tooltip element. */
-    this._tipOwned = false
     /** How many leaves have taken a captured shape by draw order this render. */
     /** @type {number} */ this._morphLeafIndex = 0
     /**
@@ -1808,8 +1806,8 @@ export default class TreemapChart {
   /**
    * A parent is not a row in the series matrix, so the shared tooltip - which
    * addresses everything by (seriesIndex, dataPointIndex) - has nothing to look
-   * up. It writes into the same tooltip element instead, so the aggregate looks
-   * like every other tooltip in the chart.
+   * up. It writes into a sibling with the same classes instead, so the
+   * aggregate looks like every other tooltip without touching the shared one.
    * @param {MouseEvent} e
    * @param {any} node
    */
@@ -1865,17 +1863,25 @@ export default class TreemapChart {
 
     t.innerHTML = html
     t.classList.add('apexcharts-active')
-    t.style.opacity = '1'
-    this._tipOwned = true
+    t.removeAttribute('aria-hidden')
     this._positionTooltip(e)
   }
 
   /** @returns {any} */
   _tip() {
-    if (!this._tooltipEl) {
-      this._tooltipEl = this.w.dom.baseEl.querySelector('.apexcharts-tooltip')
+    const wrap = this.w.dom.elWrap
+    let t = this._tooltipEl
+    if (!t?.isConnected) {
+      t = wrap.querySelector('.apexcharts-treemap-tooltip')
+      const core = !t && wrap.querySelector('.apexcharts-tooltip')
+      if (core) {
+        t = core.cloneNode(false)
+        t.classList.add('apexcharts-treemap-tooltip')
+        wrap.appendChild(t)
+      }
+      this._tooltipEl = t
     }
-    return this._tooltipEl
+    return t
   }
 
   /**
@@ -1885,7 +1891,7 @@ export default class TreemapChart {
    */
   _positionTooltip(e) {
     const t = this._tip()
-    if (!t || !this._tipOwned) return
+    if (!t) return
     const rect = this.w.dom.elWrap.getBoundingClientRect()
     const tw = t.offsetWidth
     const th = t.offsetHeight
@@ -1904,14 +1910,9 @@ export default class TreemapChart {
   }
 
   _hideParentTooltip() {
-    const t = this._tip()
-    // Only hide what this renderer put there. Moving from a parent's gutter
-    // onto one of its tiles fires the leave here after the shared tooltip has
-    // already taken the element over for the tile.
-    if (!t || !this._tipOwned) return
-    this._tipOwned = false
-    t.classList.remove('apexcharts-active')
-    t.style.opacity = '0'
+    const t = this._tooltipEl
+    t?.classList.remove('apexcharts-active')
+    t?.setAttribute('aria-hidden', 'true')
   }
 
   /**
@@ -2024,46 +2025,11 @@ export default class TreemapChart {
   _averageLabelSize() {
     if (this._avgLabelSize != null) return this._avgLabelSize
 
-    // total length of labels (i.e [["Italy"],["Spain", "Greece"]] -> 16)
-    /**
-     * @param {any[]} arr
-     */
-    function totalLabelLength(arr) {
-      let i,
-        total = 0
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += totalLabelLength(arr[i])
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += arr[i].length
-        }
-      }
-      return total
-    }
-
-    // count of labels (i.e [["Italy"],["Spain", "Greece"]] -> 3)
-    /**
-     * @param {any[]} arr
-     */
-    function countLabels(arr) {
-      let i,
-        total = 0
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += countLabels(arr[i])
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += 1
-        }
-      }
-      return total
-    }
-
-    this._avgLabelSize =
-      totalLabelLength(this.labels) / countLabels(this.labels)
+    // labels is [series][tile]; a multi-line label counts as its joined text
+    const all = this.labels.flat()
+    let total = 0
+    for (const x of all) total += String(x ?? '').length
+    this._avgLabelSize = total / (all.length || 1)
     return this._avgLabelSize
   }
 

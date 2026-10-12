@@ -923,7 +923,7 @@ test.describe('Highlight filter, treemap', () => {
     const row = await page.evaluate(
       () =>
         document.querySelector(
-          '.apexcharts-tooltip .apexcharts-tooltip-text-y-value',
+          '.apexcharts-treemap-tooltip .apexcharts-tooltip-text-y-value',
         )?.textContent,
     )
     expect(row).toBe('$134k / $280k')
