@@ -1045,16 +1045,21 @@ class Exports {
         !w.config.xaxis.categories.length &&
         !w.config.labels.length
       ) {
-        // One row per distinct x across the series. A Map stops a plain
-        // object category named `__proto__` from writing.
+        // The nth point at an x in each series shares that x's nth row. A Map
+        // stops a plain object category named `__proto__` from writing.
         /** @type {Map<string, {cat: any, values: any[][]}>} */
         const byCategory = new Map()
         series.forEach((/** @type {any} */ s, /** @type {number} */ sI) => {
+          /** @type {Map<string, number>} */
+          const seen = new Map()
           s?.data?.forEach((/** @type {any} */ d, /** @type {number} */ i) => {
             // only {x, y} and [x, y] points carry their own x; a null is a gap
             if (!d || typeof d !== 'object') return
             const cat = Array.isArray(d) ? d[0] : d.x
-            const key = String(cat)
+            const x = String(cat)
+            const n = seen.get(x) || 0
+            seen.set(x, n + 1)
+            const key = `${n}:${x}`
             let row = byCategory.get(key)
             if (!row) {
               row = { cat, values: cols.map((c) => c.head.map(() => '')) }
