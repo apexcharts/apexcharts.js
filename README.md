@@ -61,9 +61,9 @@ npm install apexcharts
 Or from a CDN, pinned to a release:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.1.0/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.2.0/dist/apexcharts.min.js"></script>
 <!-- or the same file from cdnjs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/8.1.0/apexcharts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/8.2.0/apexcharts.min.js"></script>
 ```
 
 A pinned page keeps working when a new major changes what the default bundle holds. The unversioned `https://cdn.jsdelivr.net/npm/apexcharts` always serves the newest release, the next major included.
@@ -228,14 +228,14 @@ A page without a bundler gets the same choice, from three baselines:
 | `apexcharts.core.min.js` | The chart class alone: add each chart type and feature you use as its own file. |
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.1.0/dist/apexcharts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.1.0/dist/sunburst.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.2.0/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.2.0/dist/sunburst.js"></script>
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.1.0/dist/apexcharts.core.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.1.0/dist/line.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.1.0/dist/features/legend.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.2.0/dist/apexcharts.core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.2.0/dist/line.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.2.0/dist/features/legend.js"></script>
 ```
 
 Opt-in types and features work the same way on any of them: load their file
