@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -466,11 +466,20 @@ class Pie {
     if (w.globals.noData) return elPie;
     (_a = this.ctx.highlightFilter) == null ? void 0 : _a.pie(this);
     const scaleSize = w.config.plotOptions.pie.customScale;
+    const ri = this.chartType === "donut" ? this.donutSize : 0;
+    const ys = [];
+    const s = this.initialAngle;
+    const at = (r, a) => this.translateY + scaleSize * Utils.polarToCartesian(this.centerX, this.centerY, r, a).y;
+    for (let a = s; a <= s + this.fullAngle; a++) {
+      ys.push(at(w.globals.radialSize, a), at(ri, a));
+    }
+    if (this.donutDataLabels.show) ys.push(at(ri, 180));
     w.globals.circleGeometry = {
       node: elPie.node,
       cx: this.translateX + scaleSize * this.centerX,
       cy: this.translateY + scaleSize * this.centerY,
-      r: scaleSize * w.globals.radialSize
+      r: scaleSize * w.globals.radialSize,
+      y: this.chartType !== "polarArea" && [Math.min(...ys), Math.max(...ys)]
     };
     let total = 0;
     for (let k = 0; k < series.length; k++) {
@@ -559,7 +568,7 @@ class Pie {
       w.globals.prevPolarAngles = sectorAngleArr.slice();
       const radius = w.globals.radialSize || 1;
       w.globals.prevPolarSizes = this.sliceSizes.map(
-        (s) => s / radius
+        (s2) => s2 / radius
       );
     }
     if (this.donutSize < 0) {
@@ -575,8 +584,8 @@ class Pie {
       elSeries.add(circle);
     }
     const elG = self.drawArcs(sectorAngleArr, series);
-    this.sliceLabels.forEach((s) => {
-      elG.add(s);
+    this.sliceLabels.forEach((s2) => {
+      elG.add(s2);
     });
     elSeries.attr({
       transform: `translate(${this.translateX}, ${this.translateY}) scale(${w.config.plotOptions.pie.customScale})`
@@ -790,7 +799,6 @@ class Pie {
           endAngle,
           startAngle,
           i,
-          totalItems: sectorAngleArr.length - 1,
           animBeginArr: this.animBeginArr,
           dur,
           collapsed
@@ -853,9 +861,9 @@ class Pie {
             filters.dropShadow(elPieLabel, textShadow);
           }
           elPieLabel.node.classList.add("apexcharts-pie-label");
-          if (w.config.chart.animations.animate && w.globals.resized === false) {
-            elPieLabel.node.classList.add("apexcharts-pie-label-delay");
-            elPieLabel.node.style.animationDelay = w.config.chart.animations.speed / 940 + "s";
+          if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+            elPieLabel.attr({ opacity: 0 });
+            elPieLabel.animate(300, w.config.chart.animations.speed).attr({ opacity: 1 });
           }
           this.sliceLabels.push(elPieLabelWrap);
           this.sliceLabelGroups[i] = elPieLabelWrap.node;
@@ -994,7 +1002,6 @@ class Pie {
    * @param {Record<string, any>} opts
    */
   animatePaths(el, opts) {
-    const w = this.w;
     const me = this;
     let angle = opts.endAngle < opts.startAngle ? this.fullAngle + opts.endAngle - opts.startAngle : opts.endAngle - opts.startAngle;
     let prevAngle = angle;
@@ -1003,13 +1010,6 @@ class Pie {
     if (opts.prevStartAngle !== void 0 && opts.prevEndAngle !== void 0) {
       fromStartAngle = opts.prevEndAngle;
       prevAngle = opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle;
-    }
-    if (opts.i === w.config.series.length - 1) {
-      if (angle + toStartAngle > this.fullAngle) {
-        opts.endAngle = opts.endAngle - (angle + toStartAngle);
-      } else if (angle + toStartAngle < this.fullAngle) {
-        opts.endAngle = opts.endAngle + (this.fullAngle - (angle + toStartAngle));
-      }
     }
     if (angle === this.fullAngle) angle = this.fullAngle - 0.01;
     me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
@@ -1329,26 +1329,18 @@ class Pie {
   /**
    * @param {number} prevStartAngle
    * @param {number} prevEndAngle
-   */
-  /**
-   * @param {number} prevStartAngle
-   * @param {number} prevEndAngle
    * @param {number} [prevSize] - polarArea passes its previous slice radius,
    *   so the pre-animation frame sits at the previous VALUE too, not just the
-   *   previous angles.
+   *   previous angles. Without one (pie, donut) there is no previous shape
+   *   to draw: the path starts empty and animateArc sets the first frame.
    */
   getChangedPath(prevStartAngle, prevEndAngle, prevSize) {
-    let path = "";
-    if (this.dynamicAnim && this.w.globals.dataChanged) {
-      path = this.getPiePath({
-        me: this,
-        startAngle: prevStartAngle,
-        angle: prevEndAngle - prevStartAngle,
-        // @ts-ignore — size is set dynamically during draw()
-        size: typeof prevSize === "number" ? prevSize : this.size
-      });
-    }
-    return path;
+    return this.dynamicAnim && this.w.globals.dataChanged && typeof prevSize === "number" ? this.getPiePath({
+      me: this,
+      startAngle: prevStartAngle,
+      angle: prevEndAngle - prevStartAngle,
+      size: prevSize
+    }) : "";
   }
   /**
    * The angular extent a slice is actually drawn over: the raw start / span
@@ -1876,7 +1868,7 @@ class Radial extends Pie {
           (this.animBeginArr[series.length - 1] || 0) + w.config.chart.animations.speed,
           motion ? motion.speed : 0
         );
-        setTimeout(() => {
+        w.globals.radialTickTimer = setTimeout(() => {
           if (!w.globals.isDestroyed) ticksNode.style.opacity = "1";
         }, sweepDur);
       }
@@ -1968,7 +1960,6 @@ class Radial extends Pie {
         startAngle,
         size: opts.size,
         i,
-        totalItems: 2,
         animBeginArr: 0,
         dur: 0,
         isTrack: true
@@ -2198,7 +2189,6 @@ class Radial extends Pie {
           prevStartAngle,
           size: opts.size,
           i,
-          totalItems: 2,
           animBeginArr: this.animBeginArr,
           dur,
           shouldSetPrevPaths: true
@@ -2432,13 +2422,13 @@ class Radial extends Pie {
     g.add(elNeedle);
     const value = Number(opts.series[0]);
     const targetAngle = this._angleAtValue(value);
-    const ctx = (
-      /** @type {any} */
-      this.ctx
-    );
+    const gl = w.globals;
     const motion = this.needleMotion();
-    const fromAngle = Number.isFinite(ctx._lastNeedleAngle) && !(motion == null ? void 0 : motion.mount) ? ctx._lastNeedleAngle : this.startAngle;
-    ctx._lastNeedleAngle = targetAngle;
+    const fromAngle = Number.isFinite(gl.radialNeedleAngle) && !(motion == null ? void 0 : motion.mount) ? (
+      /** @type {number} */
+      gl.radialNeedleAngle
+    ) : this.startAngle;
+    gl.radialNeedleAngle = targetAngle;
     if (w.globals.radialNeedleRAF != null) {
       BrowserAPIs.cancelAnimationFrame(w.globals.radialNeedleRAF);
       w.globals.radialNeedleRAF = null;

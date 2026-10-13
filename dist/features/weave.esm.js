@@ -16,10 +16,11 @@ var __spreadValues = (a, b) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
-import ApexCharts from "apexcharts/core";
+import * as ApexCharts from "apexcharts/core";
+import ApexCharts__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const REGISTRY_KEY = "__apexcharts_plugins__";
 function getRegistry() {
@@ -92,11 +93,16 @@ function releaseClaim(w, record) {
   if (at > -1) list.splice(at, 1);
 }
 function releaseOwner(w, owner) {
-  if (!w.weaveClaims) return;
+  if (!w.weaveClaims) return false;
+  let released = false;
   for (const [option, list] of w.weaveClaims.byOption) {
     const kept = list.filter((c) => c.owner !== owner);
-    if (kept.length !== list.length) w.weaveClaims.byOption.set(option, kept);
+    if (kept.length !== list.length) {
+      w.weaveClaims.byOption.set(option, kept);
+      released = true;
+    }
   }
+  return released;
 }
 const ANNOTATION_TYPES = ["xaxis", "yaxis", "points", "texts", "images"];
 function seriesVisible(w, index) {
@@ -537,7 +543,8 @@ function buildPluginAPI(host, record) {
      * Claimable options are an allowlist (see `CLAIMABLE`). An option that is
      * not on it returns null rather than throwing, so a plugin written against
      * a newer host degrades. Every claim is released on teardown, on destroy,
-     * and if the host disables this plugin after repeated failures.
+     * when the plugin is removed from `plugins`, and if the host disables this
+     * plugin after repeated failures.
      *
      * @param {string} option
      * @param {Array<{series: string|number, value: any}>} entries
@@ -588,7 +595,8 @@ function buildPluginAPI(host, record) {
      *
      * Registering, updating and releasing each re-render the chart, coalesced
      * to one render per turn. Every registration is released on teardown, on
-     * destroy, and if the host disables this plugin after repeated failures.
+     * destroy, when the plugin is removed from `plugins`, and if the host
+     * disables this plugin after repeated failures.
      *
      * @param {Array<{series: string|number, values: Array<number|null>}>} entries
      * @returns {{release: () => void, update: (entries: Array<{series: string|number, values: Array<number|null>}>) => void}|null}
@@ -654,7 +662,8 @@ function buildPluginAPI(host, record) {
      * Nothing here gives a plugin the ability to intercept or cancel: the
      * chart's own tooltip, selection state and caller events are unaffected,
      * and a handler that throws is contained rather than allowed to break the
-     * interaction it was watching.
+     * interaction it was watching. It counts toward the same three failures as
+     * a hook, and a disabled or removed plugin stops being called.
      *
      * `modifiers` (v6) reports the keys held during the interaction, for the
      * gestures that need them: shift-click to add to a selection is the one
@@ -724,6 +733,7 @@ const WIRED = {
   // does not know.
   highlight: (a) => typeof a.highlight === "function"
 };
+const CoreUtils = ApexCharts.__apex_CoreUtils;
 function store(w) {
   if (!w.weaveHighlights) w.weaveHighlights = { records: [] };
   return w.weaveHighlights;
@@ -768,10 +778,12 @@ function releaseHighlight(w, record) {
   if (at > -1) list.splice(at, 1);
 }
 function releaseHighlightOwner(w, owner) {
-  if (!w || !w.weaveHighlights) return;
+  if (!w || !w.weaveHighlights) return false;
   const list = w.weaveHighlights.records;
   const kept = list.filter((r) => r.owner !== owner);
-  if (kept.length !== list.length) w.weaveHighlights.records = kept;
+  if (kept.length === list.length) return false;
+  w.weaveHighlights.records = kept;
+  return true;
 }
 const _WeaveHost = class _WeaveHost {
   /**
@@ -898,8 +910,7 @@ const _WeaveHost = class _WeaveHost {
       record.failures = (record.failures || 0) + 1;
       if (record.failures >= 3) {
         record.disabled = true;
-        releaseOwner(this.w, record.def.name);
-        releaseHighlightOwner(this.w, record.def.name);
+        this._forget(record.def.name);
         console.error(
           `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`
         );
@@ -950,15 +961,32 @@ const _WeaveHost = class _WeaveHost {
       /** @type {number} */
       rows.get(v)
     ) : v) + 0.5) : (v) => (v - gl.minX) / xRatio;
+    const yaxisOf = (axis) => {
+      const k = gl.seriesYAxisReverseMap && gl.seriesYAxisReverseMap[axis];
+      return w.config.yaxis[k != null ? k : axis] || w.config.yaxis[0];
+    };
     const reversed = (axis) => {
-      const ya = w.config.yaxis[axis] || w.config.yaxis[0];
+      const ya = yaxisOf(axis);
       return !!(ya && ya.reversed);
+    };
+    let coreUtils = null;
+    const logFraction = (v, axis) => {
+      const ya = yaxisOf(axis);
+      if (!ya || !ya.logarithmic || gl.invalidLogScale) return null;
+      if (!coreUtils) coreUtils = new CoreUtils(w);
+      return coreUtils.getLogVal(ya.logBase, v, axis);
     };
     const y = horizontal ? (v, axis = 0) => {
       const range = Math.abs(maxY(axis) - minY(axis));
       const px = range ? (v - minY(axis)) / range * L.gridWidth : 0;
       return reversed(axis) ? L.gridWidth - px : px;
-    } : (v, axis = 0) => (maxY(axis) - v) / yr(axis);
+    } : (v, axis = 0) => {
+      const f = logFraction(v, axis);
+      if (f !== null) {
+        return reversed(axis) ? f * L.gridHeight : (1 - f) * L.gridHeight;
+      }
+      return reversed(axis) ? (v - minY(axis)) / yr(axis) : (maxY(axis) - v) / yr(axis);
+    };
     this._currentScales = {
       x,
       y,
@@ -1049,13 +1077,11 @@ const _WeaveHost = class _WeaveHost {
   /**
    * Record the series a plugin owns, and repair the initial-series snapshot.
    *
-   * `Data.parseData()` assigns `globals.initialSeries` on every parse
-   * unconditionally, so `updateSeries(..., overwriteInitialSeries: false)` does
-   * NOT keep a plugin's computed series out of it. That assignment is
-   * deliberate (it is what keeps resetSeries() correct for the reducer,
-   * histogram, dumbbell, streamgraph, waterfall and treemap raw-series paths),
-   * so the fix is to put the caller's own series back afterwards rather than to
-   * make the assignment conditional.
+   * A plugin that adds its series with `updateSeries(..., overwriteInitialSeries:
+   * false)` keeps it out of `globals.initialSeries` (#5283), but one that lets
+   * the baseline move, or a caller's later update that does, takes the plugin's
+   * series in with everything else. So the plugin's names are filtered back out
+   * of the baseline after every update rather than trusted to stay out.
    *
    * Without this, a plugin that adds a computed series poisons resetSeries():
    * pressing the toolbar's reset hands the user the plugin's output as if it
@@ -1163,15 +1189,10 @@ const _WeaveHost = class _WeaveHost {
       modifiers: _WeaveHost._modifiers(e)
     };
     for (const [name, handlers] of this._pointerSubs) {
+      const record = this.active.find((r) => r.def.name === name);
+      if (!record) continue;
       for (const fn of handlers.slice()) {
-        try {
-          fn(payload);
-        } catch (e2) {
-          console.warn(
-            '[apexcharts] plugin "' + name + '" threw in a pointer handler',
-            e2
-          );
-        }
+        this._guard(record, "pointer", () => fn(payload));
       }
     }
   }
@@ -1310,11 +1331,25 @@ const _WeaveHost = class _WeaveHost {
       if (gl.isDestroyed) return;
       gl.resized = true;
       gl.dataChanged = false;
-      try {
-        this.ctx.update();
-      } catch (e) {
-      }
+      this._update("a plugin reservation");
     }, 0);
+  }
+  /**
+   * Run one of the host's own deferred re-renders, failures contained.
+   *
+   * `update()` reports a failure by rejecting, which a try/catch around the
+   * call never sees, so a rejection surfaced as an unhandled one from inside
+   * the library with nothing saying what asked for the render.
+   *
+   * @param {string} why
+   */
+  _update(why) {
+    try {
+      Promise.resolve(this.ctx.update()).catch(
+        (e) => console.error(`[apexcharts] re-render for ${why} failed:`, e)
+      );
+    } catch (e) {
+    }
   }
   // ─── Highlight parts ────────────────────────────────────────────────────
   /**
@@ -1385,10 +1420,7 @@ const _WeaveHost = class _WeaveHost {
       const gl = this.w.globals;
       if (gl.isDestroyed) return;
       gl.dataChanged = true;
-      try {
-        this.ctx.update();
-      } catch (e) {
-      }
+      this._update("plugin highlight parts");
     }, 0);
   }
   /** All series names currently claimed by plugins. */
@@ -1400,23 +1432,31 @@ const _WeaveHost = class _WeaveHost {
     }
     return out;
   }
+  /**
+   * Take the plugins' series out of the reset baseline.
+   *
+   * Filters the baseline the chart already holds rather than rebuilding it from
+   * `w.config.series`. The live config is not the caller's data: a legend hide
+   * empties the hidden row in place (#5118), and on the raw-stash types it holds
+   * the derived rows the parse keeps out of the baseline on purpose. Rebuilt
+   * from it, a reset brought a hidden series back empty.
+   */
   _repairInitialSeries() {
     const drop = this._derivedNames();
     if (!drop.size) return;
-    const w = this.w;
-    const series = (
-      /** @type {any[]} */
-      Array.isArray(w.config.series) ? w.config.series : []
-    );
-    const own = series.filter(
-      (s) => !drop.has(String(s && s.name))
-    );
-    if (!own.length) return;
+    const gl = this.w.globals;
+    const own = (s) => !drop.has(String(s && s.name));
+    const keep = (list) => {
+      if (!Array.isArray(list)) return null;
+      const kept = list.filter(own);
+      return kept.length && kept.length !== list.length ? kept : null;
+    };
     try {
-      w.globals.initialSeries = own;
-      if (w.globals.initialConfig && Array.isArray(w.globals.initialConfig.series)) {
-        w.globals.initialConfig.series = own;
-      }
+      const base = keep(gl._initialSeriesPeek);
+      if (base) gl.initialSeries = base;
+      const ic = gl.initialConfig;
+      const config = ic && keep(ic.series);
+      if (config) ic.series = config;
     } catch (e) {
     }
   }
@@ -1542,7 +1582,7 @@ const _WeaveHost = class _WeaveHost {
       if (!want) {
         this._guard(r, "destroy", () => r.def.destroy && r.def.destroy(r.api));
         this.active.splice(i, 1);
-        this._reserve(r.def.name, null);
+        this._forget(r.def.name);
       } else {
         r.options = Object.freeze(__spreadValues({}, want.entry.options || {}));
       }
@@ -1555,6 +1595,28 @@ const _WeaveHost = class _WeaveHost {
     toAdd.sort((a, b) => a.order - b.order).forEach((v) => this._activate(v.entry));
   }
   /**
+   * Let go of everything one plugin holds on this chart.
+   *
+   * The one exit for all three ways a plugin leaves: removed from `plugins`,
+   * disabled after repeated errors, and torn down with the chart. Each used to
+   * release its own subset, so a removed plugin went on dashing a series and
+   * receiving hovers after its destroy had run, and a disabled one kept its
+   * gutter.
+   *
+   * @param {string} name plugin
+   */
+  _forget(name) {
+    const w = this.w;
+    const claims = releaseOwner(w, name);
+    const parts = releaseHighlightOwner(w, name);
+    if (this._pointerSubs) this._pointerSubs.delete(name);
+    if (this._derived) this._derived.delete(name);
+    if (this._declared) this._declared.delete(name);
+    const gutter = !!(this._reserved && this._reserved.has(name));
+    this._reserve(name, null);
+    if ((claims || parts) && !gutter) this._redrawForHighlight();
+  }
+  /**
    * @param {boolean} [isUpdating]
    */
   teardown(isUpdating) {
@@ -1563,10 +1625,7 @@ const _WeaveHost = class _WeaveHost {
       for (const record of this.active) {
         this._guard(record, "destroy", () => record.def.destroy && record.def.destroy(record.api));
       }
-      for (const record of this.active) {
-        releaseOwner(this.w, record.def.name);
-        releaseHighlightOwner(this.w, record.def.name);
-      }
+      for (const record of this.active) this._forget(record.def.name);
       this.active = [];
       this._derived = null;
       this._reserved = null;
@@ -1601,7 +1660,7 @@ const _WeaveHost = class _WeaveHost {
  */
 __publicField(_WeaveHost, "NO_RESERVATION", Object.freeze({ left: 0, right: 0, top: 0, bottom: 0 }));
 let WeaveHost = _WeaveHost;
-ApexCharts.registerFeatures({ weave: WeaveHost });
+ApexCharts__default.registerFeatures({ weave: WeaveHost });
 export {
   default2 as default
 };

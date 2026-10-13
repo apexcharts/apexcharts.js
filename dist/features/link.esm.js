@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -713,13 +713,13 @@ class LinkedViews {
     }
   }
 }
-ApexCharts.registerFeatures({ linkedViews: LinkedViews });
-const AC = (
-  /** @type {any} */
-  ApexCharts
-);
-AC._crossfilterFactory = (opts) => Me.getOrCreate(opts);
-AC._crossfilterGet = (id) => Me.get(id);
+ApexCharts.registerFeatures({
+  linkedViews: LinkedViews,
+  crossfilter: (
+    /** @type {any} */
+    Me
+  )
+});
 export {
   default2 as default
 };

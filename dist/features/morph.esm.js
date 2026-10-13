@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -205,7 +205,7 @@ function makeColorLerp(from, to) {
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
-function runPieceTween({ pieces, duration, onPieceDone, onAllDone }) {
+function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive }) {
   let cancelled = false;
   const start = Date.now();
   const dur = Math.max(1, duration);
@@ -222,7 +222,7 @@ function runPieceTween({ pieces, duration, onPieceDone, onAllDone }) {
     else if (e >= 1 && p.fillEnd) el.setAttribute("fill", p.fillEnd);
   };
   const frame = () => {
-    if (cancelled) return;
+    if (cancelled || alive && !alive()) return;
     const elapsed = Date.now() - start;
     let live = false;
     for (let k = 0; k < pieces.length; k++) {
@@ -255,8 +255,13 @@ const UNIT_FAMILY = /* @__PURE__ */ new Set(["unit", "waffle"]);
 const PARTITION_FAMILY = /* @__PURE__ */ new Set(["treemap", "sunburst"]);
 const SUMMARY_FAMILY = /* @__PURE__ */ new Set(["boxPlot", "violin"]);
 const GHOST_FADE_FRACTION = 0.55;
+let ghostSeq = 0;
 const PIECE_BUDGET = 1500;
 const PIECE_STAGGER_MAX = 300;
+const reveal = (el) => {
+  el.removeAttribute("opacity");
+  el.removeAttribute("data-piece-hidden");
+};
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return "bar";
   if (RADIAL_FAMILY.has(type)) return "radial";
@@ -278,6 +283,7 @@ class MorphTypeChange {
     this._ghost = null;
     this._pieceLayer = null;
     this._pieceCancel = null;
+    this._ghostTimer = void 0;
   }
   /**
    * @param {string} fromType
@@ -384,7 +390,9 @@ class MorphTypeChange {
     if (tf === "unit" && pieceFamilies) {
       const total = this._countUnitSeries(newSeries);
       this._snapshot.pieceOut = total > 0 && total <= PIECE_BUDGET;
-    } else if (ff === "unit" && (tf === "bar" || tf === "summary" || tf === "radial" && canShape)) {
+    } else if (ff === "unit" && (tf === "bar" || tf === "summary" || // Only slices can be tiled: a radialBar ring is a stroked arc the
+    // target collector does not read, so it keeps the ghost fade.
+    tf === "radial" && canShape && !/^(radialBar|gauge)$/.test(toType))) {
       let total = 0;
       unitDots.forEach((list) => {
         total += list.length;
@@ -392,24 +400,7 @@ class MorphTypeChange {
       if (total > 0 && total <= PIECE_BUDGET) {
         this._snapshot.pieceIn = true;
         this._snapshot.sourceDots = unitDots;
-        const keyOrder = [];
-        if (tf === "radial") {
-          (Array.isArray(newSeries) ? newSeries : []).forEach(
-            (_v, i) => {
-              keyOrder.push(`${i}:0`);
-            }
-          );
-        } else {
-          (Array.isArray(newSeries) ? newSeries : []).forEach(
-            (s, seriesIdx) => {
-              const data = s && Array.isArray(s.data) ? s.data : [];
-              for (let j = 0; j < data.length; j++) {
-                keyOrder.push(`${seriesIdx}:${j}`);
-              }
-            }
-          );
-        }
-        this._snapshot.keyOrder = keyOrder;
+        this._snapshot.keyOrder = this._targetKeys(tf, newSeries);
       }
     }
     if (this._needsGhost(fromType, toType) && !this._snapshot.pieceOut && !this._snapshot.pieceIn) {
@@ -463,9 +454,8 @@ class MorphTypeChange {
     const drop = [
       ".apexcharts-xaxis",
       ".apexcharts-yaxis",
+      // (the gridlines go with it)
       ".apexcharts-grid",
-      ".apexcharts-gridlines-horizontal",
-      ".apexcharts-gridlines-vertical",
       ".apexcharts-legend",
       ".apexcharts-title-text",
       ".apexcharts-subtitle-text",
@@ -478,13 +468,25 @@ class MorphTypeChange {
     if (typeof clone.querySelectorAll === "function") {
       drop.forEach((sel) => {
         clone.querySelectorAll(sel).forEach((el) => {
-          if (el.parentNode) el.parentNode.removeChild(el);
+          el.remove();
         });
       });
     }
     if (typeof clone.querySelectorAll === "function") {
+      const tag = `-ghost${++ghostSeq}`;
+      const ids = /* @__PURE__ */ new Set();
       clone.querySelectorAll("[id]").forEach((el) => {
-        el.removeAttribute("id");
+        ids.add(el.id);
+        el.id += tag;
+      });
+      clone.querySelectorAll("*").forEach((el) => {
+        for (const a of el.attributes) {
+          const v = a.value.replace(
+            /(url\(['"]?#|^#)([^'")\s]+)/g,
+            (m, pre, id) => ids.has(id) ? pre + id + tag : m
+          );
+          if (v !== a.value) a.value = v;
+        }
       });
     }
     (_b = clone.removeAttribute) == null ? void 0 : _b.call(clone, "id");
@@ -534,13 +536,14 @@ class MorphTypeChange {
       style.transition = `opacity ${fade}ms ease-in`;
       style.opacity = "0";
     });
-    setTimeout(() => this._removeGhost(), fade + 60);
+    this._ghostTimer = setTimeout(() => this._removeGhost(), fade + 60);
   }
   /** Detach the ghost if one is mounted. Safe to call at any time. */
   _removeGhost() {
+    clearTimeout(this._ghostTimer);
     const ghost = this._ghost;
     this._ghost = null;
-    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    ghost == null ? void 0 : ghost.remove();
   }
   /* ------------------------------------------------------------------ *
    * The piece layer (see MorphPieces for the geometry).
@@ -620,12 +623,7 @@ class MorphTypeChange {
     var _a;
     const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
     if (!baseEl || typeof baseEl.querySelectorAll !== "function") return;
-    baseEl.querySelectorAll("[data-piece-hidden]").forEach(
-      (el) => {
-        el.removeAttribute("opacity");
-        el.removeAttribute("data-piece-hidden");
-      }
-    );
+    baseEl.querySelectorAll("[data-piece-hidden]").forEach(reveal);
   }
   /** Stop the piece run, drop the overlay, and reveal anything still hidden. */
   _cancelPieces() {
@@ -635,7 +633,7 @@ class MorphTypeChange {
     }
     const layer = this._pieceLayer;
     this._pieceLayer = null;
-    if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
+    layer == null ? void 0 : layer.remove();
     this._revealPieceHidden();
   }
   /**
@@ -761,7 +759,7 @@ class MorphTypeChange {
     return {
       intervalsAt,
       dispose: () => {
-        if (probe.parentNode) probe.parentNode.removeChild(probe);
+        probe.remove();
       }
     };
   }
@@ -777,35 +775,10 @@ class MorphTypeChange {
     const snap = this._snapshot;
     const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
     if (!snap || !baseEl) return this._revealPieceHidden();
-    const byCluster = /* @__PURE__ */ new Map();
+    const byCluster = this._readUnitDots(baseEl, /* @__PURE__ */ new Map());
     let total = 0;
-    baseEl.querySelectorAll(".apexcharts-unit-area").forEach((dot) => {
-      var _a2, _b, _c, _d, _e, _f, _g;
-      const i = parseInt((_a2 = dot.getAttribute("i")) != null ? _a2 : "", 10);
-      if (isNaN(i)) return;
-      const cxAttr = dot.getAttribute("cx");
-      let x;
-      let y;
-      let r = 3;
-      if (cxAttr != null) {
-        x = parseFloat(cxAttr);
-        y = parseFloat((_b = dot.getAttribute("cy")) != null ? _b : "");
-        r = parseFloat((_c = dot.getAttribute("r")) != null ? _c : "3") || 3;
-      } else {
-        const wAttr = parseFloat((_d = dot.getAttribute("width")) != null ? _d : "0") || 0;
-        const hAttr = parseFloat((_e = dot.getAttribute("height")) != null ? _e : "0") || 0;
-        x = parseFloat((_f = dot.getAttribute("x")) != null ? _f : "") + wAttr / 2;
-        y = parseFloat((_g = dot.getAttribute("y")) != null ? _g : "") + hAttr / 2;
-        r = Math.max(wAttr, hAttr) / 2 || 3;
-      }
-      if (!isFinite(x) || !isFinite(y)) return;
-      let list = byCluster.get(i);
-      if (!list) {
-        list = [];
-        byCluster.set(i, list);
-      }
-      list.push({ el: dot, x, y, r, fill: dot.getAttribute("fill") });
-      total++;
+    byCluster.forEach((list) => {
+      total += list.length;
     });
     if (total === 0 || total > PIECE_BUDGET) return this._revealPieceHidden();
     const layer = this._makePieceLayer();
@@ -823,10 +796,7 @@ class MorphTypeChange {
       const box = this.getInitialBBoxFor(i);
       const entry = snap.mapping.get(`${i}:0`);
       if (!box || !entry) {
-        dots.forEach((d) => {
-          d.el.removeAttribute("opacity");
-          d.el.removeAttribute("data-piece-hidden");
-        });
+        dots.forEach((d) => reveal(d.el));
         return;
       }
       const markFill = entry.fill && entry.fill.indexOf("url(") !== 0 ? entry.fill : ((_a2 = this.w.globals.colors) == null ? void 0 : _a2[i]) || dots[0].fill;
@@ -847,6 +817,7 @@ class MorphTypeChange {
         const dot = ordered[k];
         const el = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
         el.setAttribute("data-i", String(i));
+        el.setAttribute("data-key", dot.el.getAttribute("data-key"));
         el.setAttribute("x", String(cell.x));
         el.setAttribute("y", String(cell.y));
         el.setAttribute("width", String(cell.width));
@@ -873,11 +844,35 @@ class MorphTypeChange {
     });
     if (!pieces.length) return this._cancelPieces();
     this._runPieces(pieces, (piece) => {
-      const dotEl = piece.meta.dotEl;
-      dotEl.removeAttribute("opacity");
-      dotEl.removeAttribute("data-piece-hidden");
-      if (piece.el.parentNode) piece.el.parentNode.removeChild(piece.el);
+      reveal(piece.meta.dotEl);
+      piece.el.remove();
     });
+  }
+  /**
+   * The unit chart's dots, grouped by cluster index into `into`. Circles
+   * carry cx/cy; square and image dots carry their top-left x/y.
+   *
+   * @param {any} baseEl
+   * @param {Map<number, any[]>} into - each dot as {el, x, y, r, fill}
+   */
+  _readUnitDots(baseEl, into) {
+    baseEl.querySelectorAll(".apexcharts-unit-area").forEach((dot) => {
+      var _a;
+      const i = parseInt((_a = dot.getAttribute("i")) != null ? _a : "", 10);
+      if (isNaN(i)) return;
+      const num = (a) => parseFloat(dot.getAttribute(a));
+      const cx = dot.getAttribute("cx");
+      const w = num("width") || 0;
+      const h = num("height") || 0;
+      const x = cx != null ? parseFloat(cx) : num("x") + w / 2;
+      const y = cx != null ? num("cy") : num("y") + h / 2;
+      const r = (cx != null ? num("r") : Math.max(w, h) / 2) || 3;
+      if (!isFinite(x) || !isFinite(y)) return;
+      let list = into.get(i);
+      if (!list) into.set(i, list = []);
+      list.push({ el: dot, x, y, r, fill: dot.getAttribute("fill") });
+    });
+    return into;
   }
   /**
    * objects -> mark. Each captured outgoing dot flies to one cell of the
@@ -908,36 +903,32 @@ class MorphTypeChange {
         /** @type {any[]} */
         snap.sourceDots.get(clusterIdx[k])
       );
-      const key = snap.keyOrder[k];
-      const target = key ? targets.get(key) : null;
-      if (!target || !dots || !dots.length) {
-        if (target) {
-          target.els.forEach((el) => {
-            el.removeAttribute("opacity");
-            el.removeAttribute("data-piece-hidden");
-          });
-        }
+      const key = snap.keyOrder[clusterIdx[k]];
+      const target = (
+        /** @type {any} */
+        key ? targets.get(key) : null
+      );
+      const d = target && this._markD(target);
+      const b = d && this._pathBBox(d);
+      if (!b || !dots || !dots.length) {
+        if (target) target.els.forEach(reveal);
         continue;
       }
+      const bbox = { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY };
       const markFill = target.fill && target.fill.indexOf("url(") !== 0 ? target.fill : ((_b = this.w.globals.colors) == null ? void 0 : _b[target.realIndex]) || dots[0].fill;
-      let prober = null;
-      if (shapedTarget) {
-        const d = target.d || target.els.map(
-          (p) => p.getAttribute("pathTo") || p.getAttribute("d")
-        ).filter(Boolean).join(" ");
-        if (d) prober = this._makeExtentProber(d, target.bbox, layer);
-      }
-      const divided = prober ? gridDivideShape(target.bbox, dots.length, prober.intervalsAt) : gridDivideRect(target.bbox, dots.length);
+      const prober = shapedTarget ? this._makeExtentProber(d, bbox, layer) : null;
+      const divided = prober ? gridDivideShape(bbox, dots.length, prober.intervalsAt) : gridDivideRect(bbox, dots.length);
       if (prober) prober.dispose();
       const cells = sortByHilbert(divided, (c) => [
         c.x + c.width / 2,
         c.y + c.height / 2
       ]);
-      const ordered = sortByHilbert(dots, (d) => [d.x, d.y]);
-      const markState = { remaining: ordered.length, els: target.els, tiles: (
-        /** @type {any[]} */
-        []
-      ) };
+      const ordered = sortByHilbert(dots, (d2) => [d2.x, d2.y]);
+      const markState = {
+        remaining: ordered.length,
+        els: target.els,
+        g: layer.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "g"))
+      };
       for (let m = 0; m < ordered.length; m++) {
         const dot = ordered[m];
         const cell = cells[m];
@@ -951,8 +942,7 @@ class MorphTypeChange {
         el.setAttribute("height", String(dot.r * 2));
         el.setAttribute("rx", String(dot.r));
         el.setAttribute("fill", String(dot.fill || markFill));
-        layer.appendChild(el);
-        markState.tiles.push(el);
+        markState.g.appendChild(el);
         pieces.push({
           el,
           from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
@@ -969,15 +959,21 @@ class MorphTypeChange {
       const state = piece.meta.markState;
       state.remaining--;
       if (state.remaining === 0) {
-        state.els.forEach((el) => {
-          el.removeAttribute("opacity");
-          el.removeAttribute("data-piece-hidden");
-        });
-        state.tiles.forEach((t) => {
-          if (t.parentNode) t.parentNode.removeChild(t);
-        });
+        state.els.forEach(reveal);
+        state.g.remove();
       }
     });
+  }
+  /**
+   * A collected target mark's final geometry as one path: the radial `d` it
+   * carries, else every path that makes it up, joined.
+   * @param {{ d?: string, els: any[] }} target
+   * @returns {string}
+   */
+  _markD(target) {
+    return target.d || target.els.map(
+      (p) => p.getAttribute("pathTo") || p.getAttribute("d")
+    ).filter(Boolean).join(" ");
   }
   /**
    * Stagger and start a piece run. Delays sweep the (already spatially
@@ -998,6 +994,8 @@ class MorphTypeChange {
       pieces,
       duration: flight,
       onPieceDone,
+      // destroy() mid-flight: stop writing to the detached pieces.
+      alive: () => !this.w.globals.isDestroyed,
       onAllDone: () => {
         this._pieceCancel = null;
         this._cancelPieces();
@@ -1006,12 +1004,12 @@ class MorphTypeChange {
   }
   /**
    * The incoming chart's marks, read live: every `path[pathTo]` grouped into
-   * one mark per (realIndex, j), with the union bbox of its final geometry.
-   * Bar marks are one path each; summary marks (boxPlot, violin) may be
-   * several, walked exactly like the capture branch walks the outgoing ones.
+   * one mark per (realIndex, j); _markD reads its final geometry. Bar marks
+   * are one path each; summary marks (boxPlot, violin) may be several,
+   * walked exactly like the capture branch walks the outgoing ones.
    *
    * @param {string} toType
-   * @returns {Map<string, { realIndex: number, j: number, bbox: {x:number,y:number,width:number,height:number}, fill: string|null, els: any[], d?: string }>}
+   * @returns {Map<string, { realIndex: number, fill: string|null, els: any[], d?: string }>}
    */
   _collectTargetMarks(toType) {
     var _a;
@@ -1022,22 +1020,9 @@ class MorphTypeChange {
     if (fam === "radial") {
       baseEl.querySelectorAll(".apexcharts-pie-series .apexcharts-pie-area").forEach((p, i) => {
         const d = p.getAttribute("data:pathFinal") || p.getAttribute("d");
-        if (!d || !d.trim()) return;
-        const box = this._pathBBox(d);
-        if (!box) return;
-        out.set(`${i}:0`, {
-          realIndex: i,
-          j: 0,
-          d,
-          bbox: {
-            x: box.minX,
-            y: box.minY,
-            width: box.maxX - box.minX,
-            height: box.maxY - box.minY
-          },
-          fill: p.getAttribute("fill"),
-          els: [p]
-        });
+        if (d && d.trim()) {
+          out.set(`${i}:0`, { realIndex: i, d, fill: p.getAttribute("fill"), els: [p] });
+        }
       });
       return out;
     }
@@ -1052,32 +1037,10 @@ class MorphTypeChange {
         if (!d || !d.trim()) return;
         const jAttr = parseInt((_a3 = p.getAttribute("j")) != null ? _a3 : "", 10);
         const j = isNaN(jAttr) ? order++ : jAttr;
-        const box = this._pathBBox(d);
-        if (!box) return;
         const key = `${realIndex}:${j}`;
         const prev = out.get(key);
-        if (prev) {
-          prev.els.push(p);
-          prev.bbox = {
-            x: Math.min(prev.bbox.x, box.minX),
-            y: Math.min(prev.bbox.y, box.minY),
-            width: Math.max(prev.bbox.x + prev.bbox.width, box.maxX) - Math.min(prev.bbox.x, box.minX),
-            height: Math.max(prev.bbox.y + prev.bbox.height, box.maxY) - Math.min(prev.bbox.y, box.minY)
-          };
-        } else {
-          out.set(key, {
-            realIndex,
-            j,
-            bbox: {
-              x: box.minX,
-              y: box.minY,
-              width: box.maxX - box.minX,
-              height: box.maxY - box.minY
-            },
-            fill: p.getAttribute("fill"),
-            els: [p]
-          });
-        }
+        if (prev) prev.els.push(p);
+        else out.set(key, { realIndex, fill: p.getAttribute("fill"), els: [p] });
       });
     });
     return out;
@@ -1112,7 +1075,7 @@ class MorphTypeChange {
           "path[pathTo]:not(.apexcharts-highlight-part)"
         );
         paths.forEach((p, j) => {
-          const d = p.getAttribute("pathTo") || p.getAttribute("d");
+          const d = p.getAttribute("d") || p.getAttribute("pathTo");
           if (!d) return;
           captured.push({
             realIndex,
@@ -1128,7 +1091,7 @@ class MorphTypeChange {
         var _a2, _b;
         const j = parseInt((_a2 = p.getAttribute("j")) != null ? _a2 : "", 10);
         if (isNaN(j)) return;
-        const d = p.getAttribute("pathTo") || p.getAttribute("d");
+        const d = p.getAttribute("d") || p.getAttribute("pathTo");
         if (!d || !d.trim()) return;
         const group = typeof p.closest === "function" ? p.closest(".apexcharts-series") : null;
         const realIndex = parseInt((_b = group == null ? void 0 : group.getAttribute("data:realIndex")) != null ? _b : "0", 10) || 0;
@@ -1198,71 +1161,31 @@ class MorphTypeChange {
         });
       }
     } else if (fam === "unit") {
-      const dots = baseEl.querySelectorAll(".apexcharts-unit-area");
-      const boxes = /* @__PURE__ */ new Map();
-      dots.forEach((dot) => {
-        var _a2, _b, _c, _d, _e, _f, _g;
-        const i = parseInt((_a2 = dot.getAttribute("i")) != null ? _a2 : "", 10);
-        if (isNaN(i)) return;
-        const cxAttr = dot.getAttribute("cx");
-        let x;
-        let y;
-        let r = 3;
-        if (cxAttr != null) {
-          x = parseFloat(cxAttr);
-          y = parseFloat((_b = dot.getAttribute("cy")) != null ? _b : "");
-          r = parseFloat((_c = dot.getAttribute("r")) != null ? _c : "3") || 3;
-        } else {
-          const wAttr = parseFloat((_d = dot.getAttribute("width")) != null ? _d : "0") || 0;
-          const hAttr = parseFloat((_e = dot.getAttribute("height")) != null ? _e : "0") || 0;
-          x = parseFloat((_f = dot.getAttribute("x")) != null ? _f : "") + wAttr / 2;
-          y = parseFloat((_g = dot.getAttribute("y")) != null ? _g : "") + hAttr / 2;
-          r = Math.max(wAttr, hAttr) / 2 || 3;
-        }
-        if (!isFinite(x) || !isFinite(y)) return;
-        let list = unitDots.get(i);
-        if (!list) {
-          list = [];
-          unitDots.set(i, list);
-        }
-        list.push({ x, y, r, fill: dot.getAttribute("fill") });
-        const box = boxes.get(i);
-        if (!box) {
-          boxes.set(i, {
-            minX: x,
-            minY: y,
-            maxX: x,
-            maxY: y,
-            fill: dot.getAttribute("fill")
-          });
-          return;
-        }
-        if (x < box.minX) box.minX = x;
-        if (x > box.maxX) box.maxX = x;
-        if (y < box.minY) box.minY = y;
-        if (y > box.maxY) box.maxY = y;
-      });
-      Array.from(boxes.keys()).sort((a, b) => a - b).forEach((i) => {
-        const b = (
-          /** @type {any} */
-          boxes.get(i)
+      this._readUnitDots(baseEl, unitDots);
+      Array.from(unitDots.keys()).sort((a, b) => a - b).forEach((i) => {
+        const list = (
+          /** @type {any[]} */
+          unitDots.get(i)
         );
+        const xs = list.map((d) => d.x);
+        const ys = list.map((d) => d.y);
         const pad = 2;
-        const x1 = b.minX - pad;
-        const y1 = b.minY - pad;
-        const x2 = b.maxX + pad;
-        const y2 = b.maxY + pad;
+        const x1 = Math.min(...xs) - pad;
+        const y1 = Math.min(...ys) - pad;
+        const x2 = Math.max(...xs) + pad;
+        const y2 = Math.max(...ys) + pad;
         captured.push({
           realIndex: i,
           j: 0,
           d: `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2} Z`,
-          fill: b.fill
+          fill: list[0].fill
         });
       });
     } else if (fam === "radial") {
       if (fromType === "radialBar" || fromType === "gauge") {
-        const centerX = this.w.layout.gridWidth / 2;
-        const centerY = Math.min(this.w.layout.gridWidth, this.w.layout.gridHeight) / 2;
+        const cg = this.w.globals.circleGeometry;
+        const centerX = cg ? cg.cx : this.w.layout.gridWidth / 2;
+        const centerY = cg ? cg.cy : this.w.layout.gridHeight / 2;
         const rings = baseEl.querySelectorAll(
           ".apexcharts-radial-series .apexcharts-radialbar-area"
         );
@@ -1445,30 +1368,47 @@ class MorphTypeChange {
         });
       }
     }
+    const fromUnit = familyOf(_fromType) === "unit";
     if (tf === "radial" || tf === "unit" || tf === "partition") {
       flat.forEach((c, i) => {
-        map.set(`${i}:0`, { d: c.d, fill: c.fill });
+        map.set(`${fromUnit ? c.realIndex : i}:0`, { d: c.d, fill: c.fill });
       });
       return map;
     }
     if (tf === "bar" || tf === "summary") {
-      const positions = [];
-      const series = Array.isArray(newSeries) ? newSeries : [];
-      series.forEach((s, seriesIdx) => {
-        const data = s && Array.isArray(s.data) ? s.data : [];
-        for (let j = 0; j < data.length; j++) {
-          positions.push({ realIndex: seriesIdx, j });
-        }
-      });
+      const keys = this._targetKeys(tf, newSeries);
       flat.forEach((c, i) => {
-        const pos = positions[i];
-        if (pos) {
-          map.set(`${pos.realIndex}:${pos.j}`, { d: c.d, fill: c.fill });
-        }
+        const key = keys[fromUnit ? c.realIndex : i];
+        if (key) map.set(key, { d: c.d, fill: c.fill });
       });
-      return map;
     }
     return map;
+  }
+  /**
+   * The incoming chart's mark keys `${realIndex}:${j}`, in draw order. A
+   * radial chart draws one slice per value, and the single-series object
+   * form `[{ data: [...] }]` expands to one slice per datum. A bar chart
+   * (boxPlot and violin render through it) draws one mark per datum of each
+   * series.
+   *
+   * @param {string|null} tf - the incoming family
+   * @param {any} newSeries
+   * @returns {string[]}
+   */
+  _targetKeys(tf, newSeries) {
+    var _a;
+    const keys = [];
+    const series = Array.isArray(newSeries) ? newSeries : [];
+    if (tf === "radial") {
+      const n = series.length === 1 && Array.isArray((_a = series[0]) == null ? void 0 : _a.data) ? series[0].data.length : series.length;
+      for (let i = 0; i < n; i++) keys.push(`${i}:0`);
+    } else {
+      series.forEach((s, si) => {
+        const data = s && Array.isArray(s.data) ? s.data : [];
+        for (let j = 0; j < data.length; j++) keys.push(`${si}:${j}`);
+      });
+    }
+    return keys;
   }
   isActive() {
     return this._snapshot !== null;
@@ -1659,46 +1599,64 @@ class MorphTypeChange {
    * @returns {{ minX:number, minY:number, maxX:number, maxY:number } | null}
    */
   _pathBBox(d) {
-    const commands = parsePath(d);
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    let seen = false;
-    commands.forEach(
+    let px = 0;
+    let py = 0;
+    let sx = 0;
+    let sy = 0;
+    const add = (x, y) => {
+      if (!isFinite(x) || !isFinite(y)) return;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    };
+    parsePath(d).forEach(
       /** @param {any[]} c */
       (c) => {
         const cmd = c[0];
-        if (cmd === "Z") return;
-        let pairs = [];
-        if (cmd === "H") pairs = [[c[1], (minY + maxY) / 2 || c[1]]];
-        else if (cmd === "V") pairs = [[(minX + maxX) / 2 || c[1], c[1]]];
-        else if (cmd === "A") pairs = [[c[6], c[7]]];
-        else {
-          for (let k = 1; k + 1 < c.length; k += 2) pairs.push([c[k], c[k + 1]]);
+        if (cmd === "Z") {
+          px = sx;
+          py = sy;
+          return;
         }
-        pairs.forEach(([x, y]) => {
-          if (!isFinite(x) || !isFinite(y)) return;
-          seen = true;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        });
+        const n = c.length;
+        const x = cmd === "H" ? c[1] : cmd === "V" ? px : c[n - 2];
+        const y = cmd === "H" ? py : cmd === "V" ? c[1] : c[n - 1];
+        if (cmd === "A") {
+          if (c[1]) {
+            const hx = (px - x) / 2;
+            const hy = (py - y) / 2;
+            const f = (c[4] === c[5] ? -1 : 1) * Math.sqrt(Math.max(0, c[1] * c[1] / (hx * hx + hy * hy) - 1));
+            const cx = px - hx + f * hy;
+            const cy = py - hy - f * hx;
+            const r = Math.hypot(px - cx, py - cy);
+            const a0 = Math.atan2(py - cy, px - cx);
+            const TAU = 2 * Math.PI;
+            let sweep = Math.atan2(y - cy, x - cx) - a0;
+            if (c[5] && sweep < 0) sweep += TAU;
+            else if (!c[5] && sweep > 0) sweep -= TAU;
+            for (let a = 0; a < TAU; a += Math.PI / 2) {
+              const t = ((sweep > 0 ? a - a0 : a0 - a) % TAU + TAU) % TAU;
+              if (t <= Math.abs(sweep)) add(cx + r * Math.cos(a), cy + r * Math.sin(a));
+            }
+          }
+        } else if (cmd !== "H" && cmd !== "V") {
+          for (let k = 1; k + 1 < n; k += 2) add(c[k], c[k + 1]);
+        }
+        add(x, y);
+        px = x;
+        py = y;
+        if (cmd === "M") {
+          sx = x;
+          sy = y;
+        }
       }
     );
-    if (!seen) return null;
-    return { minX, minY, maxX, maxY };
-  }
-  /**
-   * @param {number} realIndex
-   * @param {number} j
-   * @returns {string | null}
-   */
-  getInitialFillFor(realIndex, j) {
-    if (!this._snapshot) return null;
-    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
-    return entry ? entry.fill : null;
+    return minX > maxX ? null : { minX, minY, maxX, maxY };
   }
   /** @returns {number} */
   getSpeed() {
@@ -1716,55 +1674,78 @@ class MorphTypeChange {
     if (!this._snapshot || !Environment.isBrowser()) return;
     this._shown = true;
     const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
-    if (!baseEl) return;
+    if (!baseEl || this._snapshot.resume) return;
     if (this._snapshot.pieceOut) this._separatePieces();
     else if (this._snapshot.pieceIn) this._combinePieces();
     else this._mountGhost();
     const speed = this.getSpeed();
-    const chromeSelectors = [
-      ".apexcharts-xaxis",
-      ".apexcharts-yaxis",
-      ".apexcharts-grid",
-      ".apexcharts-gridlines-horizontal",
-      ".apexcharts-gridlines-vertical",
-      ".apexcharts-legend",
-      ".apexcharts-title-text",
-      ".apexcharts-subtitle-text"
-    ];
-    chromeSelectors.forEach((sel) => {
-      baseEl.querySelectorAll(sel).forEach((el) => {
-        if (!el.style) return;
-        el.style.opacity = "0";
-        el.style.transition = `opacity ${speed}ms ease-out`;
-        BrowserAPIs.requestAnimationFrame(() => {
-          el.style.opacity = "1";
-        });
-        setTimeout(() => {
-          el.style.transition = "";
-          el.style.opacity = "";
-        }, speed + 80);
-      });
+    const chrome = Array.from(
+      baseEl.querySelectorAll(
+        ".apexcharts-xaxis,.apexcharts-yaxis,.apexcharts-grid,.apexcharts-legend,.apexcharts-title-text,.apexcharts-subtitle-text"
+      )
+    ).filter((el) => el.style);
+    const set = (opacity, transition) => chrome.forEach((el) => {
+      el.style.opacity = opacity;
+      if (transition != null) el.style.transition = transition;
     });
+    set("0", `opacity ${speed}ms ease-out`);
+    const dead = () => this.w.globals.isDestroyed;
+    BrowserAPIs.requestAnimationFrame(() => dead() || set("1"));
+    setTimeout(() => dead() || set("", ""), speed + 80);
     const snap = this._snapshot;
     setTimeout(() => {
-      if (!this._snapshot || this._snapshot === snap) this.cleanup();
+      if (!dead() && (!this._snapshot || this._snapshot === snap)) this.cleanup();
     }, speed + 100);
   }
   /**
    * A render after the one a morph was captured for (an update while the
    * morph is still finishing, or just after) must not start its marks from
    * the old chart's shapes again: it starts from the screen, as any update
-   * does. The morph's ghost and pieces go with it, as the new render
-   * replaces what they were leaving over. A no-op until that render has
-   * mounted, so a second update in the same tick still morphs.
+   * does. The morph's pieces go with it, as the new render replaces what
+   * they were leaving over, but where they are is handed on first: a piece
+   * flying to a dot becomes that dot's previous slot, so the unit chart's
+   * own keyed update carries it on, and the tiles of a mosaic still
+   * assembling become its mark's start shape, their bounding box, through
+   * the morph's snapshot, kept for that one render. A ghost already fading
+   * is left to finish its own fade (its timer removes it) rather than vanish
+   * mid-way. A no-op until that render has mounted, so a second update in
+   * the same tick still morphs.
    */
   retire() {
-    if (this._snapshot && this._shown) this.cleanup();
+    const snap = this._snapshot;
+    if (!snap || !this._shown) return;
+    const layer = this._pieceLayer;
+    this.ctx._unitPieces = snap.pieceOut && layer;
+    const mapping = /* @__PURE__ */ new Map();
+    layer == null ? void 0 : layer.querySelectorAll("g").forEach((g) => {
+      const r = g.firstChild && g.getBBox();
+      if (r) {
+        mapping.set(g.firstChild.getAttribute("data-key"), {
+          d: `M${r.x} ${r.y}H${r.x + r.width}V${r.y + r.height}H${r.x}Z`
+        });
+      }
+    });
+    this.cleanup(true);
+    if (!mapping.size) return;
+    this._collectTargetMarks(snap.toType).forEach((t, k) => {
+      if (!mapping.has(k)) mapping.set(k, { d: this._markD(t) });
+    });
+    this.w.globals.previousPaths = [];
+    this._snapshot = Object.assign(snap, {
+      mapping,
+      pieceIn: false,
+      resume: true,
+      oldLayout: __spreadValues({}, this.w.layout)
+    });
+    BrowserAPIs.requestAnimationFrame(() => {
+      if (this._snapshot === snap) this._shown = true;
+    });
   }
-  cleanup() {
+  /** @param {boolean} [keepGhost] leave a mounted ghost to its own timer */
+  cleanup(keepGhost) {
     this._snapshot = null;
     this._shown = false;
-    this._removeGhost();
+    if (!keepGhost) this._removeGhost();
     this._cancelPieces();
   }
 }

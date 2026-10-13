@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -39,6 +39,7 @@ class KeyboardNavigation {
     this.dataPointIndex = 0;
     this.active = false;
     this._tooltipDismissed = false;
+    this._announceTimer = void 0;
     this._focusedEl = null;
     this._hoveredBarEl = null;
     this._enlargedScatterMarker = null;
@@ -79,6 +80,7 @@ class KeyboardNavigation {
     const w = this.w;
     const svgEl = w.dom.Paper && w.dom.Paper.node;
     this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
+    clearTimeout(this._announceTimer);
     if (!svgEl) return;
     svgEl.removeEventListener("focus", this._onFocus);
     svgEl.removeEventListener("blur", this._onBlur);
@@ -121,15 +123,6 @@ class KeyboardNavigation {
    */
   notePointerFocus() {
     this._lastPointerDownAt = Date.now();
-  }
-  /**
-   * Called from Events.js keydown handler. Navigation keys are already handled
-   * by the direct SVG listener (which can call preventDefault). This entry
-   * point is intentionally a no-op — Events.js still fires the public keyDown
-   * callback and fireEvent('keydown') independently.
-   * @param {Event} _e
-   */
-  handleKey(_e) {
   }
   // ─── Focus / blur ─────────────────────────────────────────────────────────
   _onFocus() {
@@ -239,9 +232,11 @@ class KeyboardNavigation {
   }
   // ─── Zoom / pan (keyboard alternatives for drag gestures) ─────────────────
   _canZoom() {
+    var _a, _b;
     const w = this.w;
+    const r = (_a = this.ctx.toolbar) == null ? void 0 : _a._currentXRange();
     return Boolean(
-      w.globals.axisCharts && w.config.chart.zoom && w.config.chart.zoom.enabled
+      w.globals.axisCharts && ((_b = w.config.chart.zoom) == null ? void 0 : _b.enabled) && (w.axisFlags.isXNumeric || w.config.xaxis.convertedCatToNumeric || w.axisFlags.isRangeBar) && (r == null ? void 0 : r.minX) < (r == null ? void 0 : r.maxX)
     );
   }
   _canPan() {
@@ -252,11 +247,11 @@ class KeyboardNavigation {
    * @param {number} direction +1 = right, -1 = left
    */
   _panBy(direction) {
-    const w = this.w;
     const toolbar = this.ctx.toolbar;
     if (!toolbar) return;
-    const minX = Number(w.globals.minX);
-    const maxX = Number(w.globals.maxX);
+    const r = toolbar._currentXRange();
+    const minX = Number(r.minX);
+    const maxX = Number(r.maxX);
     if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return;
     const span = maxX - minX;
     const step = span * 0.1 * direction;
@@ -285,14 +280,15 @@ class KeyboardNavigation {
         dSeries = -dSeries;
       }
       const total = this._getSeriesCount();
-      let si = this.seriesIndex + dSeries;
-      let attempts = 0;
-      while (attempts < total) {
-        if (si < 0) si = wrapAround ? total - 1 : 0;
-        if (si >= total) si = wrapAround ? 0 : total - 1;
-        if (!w.globals.collapsedSeriesIndices.includes(si)) break;
-        si += dSeries;
-        attempts++;
+      let si = this.seriesIndex;
+      for (let k = 1; k < total; k++) {
+        let c = si + dSeries * k;
+        if (wrapAround) c = (c + total) % total;
+        else if (c < 0 || c >= total) break;
+        if (!w.globals.collapsedSeriesIndices.includes(c)) {
+          si = c;
+          break;
+        }
       }
       this.seriesIndex = si;
       const dpCount = this._getDataPointCount(si);
@@ -1399,7 +1395,8 @@ class KeyboardNavigation {
     const region = baseEl.querySelector(".apexcharts-sr-status");
     if (!region) return;
     region.textContent = "";
-    setTimeout(() => {
+    clearTimeout(this._announceTimer);
+    this._announceTimer = setTimeout(() => {
       region.textContent = message;
     }, 0);
   }

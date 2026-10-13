@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -176,7 +176,7 @@ class TreemapHelpers {
       percent
     };
   }
-  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any, series?: any }} opts */
+  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any }} opts */
   calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
     const w = this.w;
     const dataLabelsConfig = w.config.dataLabels;
@@ -231,6 +231,19 @@ function seriesEmitter(ctx, graphics) {
   return r && r.kind && r.kind !== "svg" ? r : graphics;
 }
 const SVGNS = _core.__apex_math_SVGNS;
+function cellSpan(w) {
+  const gl = w.globals;
+  let diff = gl.minXDiff;
+  if (!w.seriesData.series.some((s) => s.length > 1)) {
+    const xs = w.seriesData.seriesX.map((s) => s && s[0]).filter(Number.isFinite).sort((a, b) => a - b);
+    diff = Infinity;
+    for (let k = 1; k < xs.length; k++) {
+      if (xs[k] > xs[k - 1]) diff = Math.min(diff, xs[k] - xs[k - 1]);
+    }
+    if (diff === Infinity) diff = (gl.maxX - gl.minX) / 4;
+  }
+  return Number.isFinite(diff) && diff > 0 ? diff : 0;
+}
 class HeatMap {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -249,6 +262,35 @@ class HeatMap {
     this.strokeWidth = this.w.config.stroke.show ? this.w.config.stroke.width : 0;
   }
   /**
+   * Called by Range.setXRange, off the prototype, before it builds the x
+   * scale. A numeric or datetime heatmap centres each cell on its x, so an
+   * axis ending at the first and last x left the outer half of both edge
+   * columns outside the plot, where gridRectMask clipped it. Reach half a
+   * cell past the data unless the user pinned the axis. The zoom
+   * clamps (initialMinX/MaxX) always take the padded extent, so zooming all
+   * the way out lands on the same view.
+   *
+   * @param {any} range the Range instance
+   */
+  padXRange(range) {
+    const { w } = range;
+    const gl = w.globals;
+    const x = w.config.xaxis;
+    if ((x.type === "numeric" || x.type === "datetime") && gl.initialMinX < gl.initialMaxX) {
+      range._getMinXDiff();
+      const half = cellSpan(w) / 2;
+      gl.initialMinX -= half;
+      gl.initialMaxX += half;
+      if (x.min == null && x.max == null && x.range == null) {
+        gl.minX -= half;
+        gl.maxX += half;
+        if (!x.tickAmount && gl.xTickAmount === gl.dataPoints - 1) {
+          gl.xTickAmount = gl.dataPoints;
+        }
+      }
+    }
+  }
+  /**
    * @param {any[]} series
    */
   draw(series) {
@@ -263,16 +305,8 @@ class HeatMap {
     const isContinuousX = (w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric && this.xRatio > 0;
     let binPx = xDivision;
     if (isContinuousX) {
-      let diff = w.globals.minXDiff;
-      if (!series.some((s) => s.length > 1)) {
-        const xs = w.seriesData.seriesX.map((s) => s && s[0]).filter(Number.isFinite).sort((a, b) => a - b);
-        diff = Infinity;
-        for (let k = 1; k < xs.length; k++) {
-          if (xs[k] > xs[k - 1]) diff = Math.min(diff, xs[k] - xs[k - 1]);
-        }
-        if (diff === Infinity) diff = (w.globals.maxX - w.globals.minX) / 4;
-      }
-      binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision;
+      const span = cellSpan(w);
+      if (span) binPx = span / this.xRatio;
     }
     let shape = this.shape;
     if (isContinuousX && shape === "hexagon") {
@@ -470,8 +504,7 @@ class HeatMap {
             y: y1 + yDivision / 2,
             i,
             j,
-            colorProps: heatColorProps,
-            series: heatSeries
+            colorProps: heatColorProps
           });
           if (dataLabels !== null) {
             elSeries.add(dataLabels);

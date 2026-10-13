@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -2562,13 +2562,7 @@ class HighlightFilter {
     const extend = active && cfg.axis !== "clamp" && type !== "treemap" && !cnf.plotOptions.bar.isFunnel && !(stacked && cnf.chart.stackType === "100%");
     let keyOf = null;
     if (stacked && bars) {
-      const names = w.seriesData.seriesNames;
-      const group = parts.map(
-        (_, i) => w.labelData.seriesGroups.findIndex(
-          (g) => g.indexOf(names[i]) > -1
-        )
-      );
-      keyOf = (i, j) => group[i] + "|" + j;
+      keyOf = (i, j) => this._barKey(i, j);
     } else if (stacked) {
       const sx = w.seriesData.seriesX;
       keyOf = (i, j) => {
@@ -2576,12 +2570,7 @@ class HighlightFilter {
         return String(w.axisFlags.isXNumeric ? (_a2 = sx[i]) == null ? void 0 : _a2[j] : j);
       };
     }
-    const ext = extend ? this._runningExt(
-      parts,
-      keyOf,
-      bars,
-      bars ? (i, j) => this._restarts(i, j) : void 0
-    ) : null;
+    const ext = extend ? this._runningExt(parts, keyOf, bars) : null;
     this._publish(parts, ext);
   }
   /** Warn once that this chart type draws no parts. */
@@ -3072,9 +3061,9 @@ class HighlightFilter {
       /** @type {string[][]} */
       this._br
     );
-    const key = h.getSeriesGroupIndex(realIndex) + "|" + j;
+    const key = this._barKey(realIndex, j);
     let c = this._stk.get(key);
-    if (!c || this._restarts(realIndex, j)) {
+    if (!c) {
       c = { p: zero, n: zero, raw: 0, any: false };
       this._stk.set(key, c);
     }
@@ -3144,18 +3133,15 @@ class HighlightFilter {
     };
   }
   /**
-   * Whether a stacked column starts a fresh stack at this datum: on a numeric
-   * or datetime x axis the renderer stacks a series on the one before it only
-   * where both have the same x at that index (BarStacked
-   * drawStackedColumnPaths), and starts again from the baseline elsewhere.
-   * Horizontal stacks never restart.
-   * @param {number} realIndex @param {number} j
+   * The stack a stacked bar datum joins, as the renderer resolves it
+   * (BarStacked drawStackedColumnPaths): its series group, then its x value
+   * on a numeric or datetime column axis, else its index.
+   * @param {number} i @param {number} j
    */
-  _restarts(realIndex, j) {
-    var _a, _b;
+  _barKey(i, j) {
+    var _a;
     const w = this.w;
-    const sx = w.seriesData.seriesX;
-    return !w.config.plotOptions.bar.horizontal && !!w.axisFlags.isXNumeric && realIndex > 0 && ((_a = sx[realIndex - 1]) == null ? void 0 : _a[j]) !== ((_b = sx[realIndex]) == null ? void 0 : _b[j]);
+    return w.labelData.seriesGroupIndex[i] + "|" + (!w.config.plotOptions.bar.horizontal && w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i]) == null ? void 0 : _a[j] : j);
   }
   /**
    * Line.draw, once per series right after its whole has been rendered and
@@ -4158,25 +4144,18 @@ class HighlightFilter {
    * and its own, per stack key (`keyOf(i, j)`), in series order; `split`
    * keeps positive and negative parts in separate sums, as diverging bar
    * stacks are drawn. A null part adds nothing and reaches nothing new.
-   * `fresh(i, j)` says a stack starts over at that datum (both signs).
    * @param {(number | null)[][]} parts
    * @param {((i: number, j: number) => string) | null} keyOf
    * @param {boolean} [split]
-   * @param {(i: number, j: number) => boolean} [fresh]
    * @returns {(number | null)[][]}
    */
-  _runningExt(parts, keyOf, split, fresh) {
+  _runningExt(parts, keyOf, split) {
     if (!keyOf) return parts;
     const sums = /* @__PURE__ */ new Map();
     return parts.map(
       (row, i) => row.map((p, j) => {
-        const k = keyOf(i, j);
-        if (fresh && fresh(i, j)) {
-          sums.delete(k + "+");
-          sums.delete(k + "-");
-        }
         if (p == null) return null;
-        const key = k + (split && p < 0 ? "-" : "+");
+        const key = keyOf(i, j) + (split && p < 0 ? "-" : "+");
         const v = (sums.get(key) || 0) + p;
         sums.set(key, v);
         return v;

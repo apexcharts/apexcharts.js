@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -329,12 +329,7 @@ class Violin extends BarBase {
       if (series[i].length > 0) {
         this.visibleI = this.visibleI + 1;
       }
-      let translationsIndex = 0;
-      if (this.yRatio.length > 1) {
-        this.yaxisIndex = /** @type {any} */
-        w.globals.seriesYAxisReverseMap[realIndex][0];
-        translationsIndex = realIndex;
-      }
+      const translationsIndex = this.setSeriesAxis(realIndex);
       const initPositions = this.barHelpers.initialPositions(realIndex);
       const {
         y: initY,

@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -326,12 +326,15 @@ function reinstateWatermark(ctx, elWrap) {
 }
 function addWatermark(ctx, elWrap) {
   reinstateWatermark(ctx, elWrap);
-  if (typeof MutationObserver === "undefined" || ctx._wmWrapObserver) return;
+  if (typeof MutationObserver === "undefined") return;
+  if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
+  if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
   const wrapObs = new MutationObserver(() => {
     if (!C.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
+  ctx._wmObservedWrap = elWrap;
 }
 function teardownWatermark(ctx, elWrap) {
   if (ctx._wmWrapObserver) {
@@ -343,6 +346,7 @@ function teardownWatermark(ctx, elWrap) {
     ctx._wmNodeObserver = null;
   }
   ctx._wmObservedNode = null;
+  ctx._wmObservedWrap = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
   if (wrap) C.remove(wrap, { manage: false });
 }
@@ -1042,19 +1046,24 @@ class Perspectives {
     }
   }
 }
-_core__default.registerFeatures({ perspectives: Perspectives });
-_core__default.perspectives = {
-  /** @param {string} str */
-  decode: (str) => {
-    markPerspectivesTokenDecoded();
-    return Perspectives.decode(str);
-  },
-  /** @param {string} [href] */
-  fromURL: (href) => {
-    markPerspectivesTokenDecoded();
-    return Perspectives.fromURL(href);
-  }
-};
+_core__default.registerFeatures({
+  perspectives: Perspectives,
+  perspectivesStatics: (
+    /** @type {any} */
+    {
+      /** @param {string} str */
+      decode: (str) => {
+        markPerspectivesTokenDecoded();
+        return Perspectives.decode(str);
+      },
+      /** @param {string} [href] */
+      fromURL: (href) => {
+        markPerspectivesTokenDecoded();
+        return Perspectives.fromURL(href);
+      }
+    }
+  )
+});
 _core__default.registerFeatures({ storyboard: Storyboard });
 export {
   default2 as default

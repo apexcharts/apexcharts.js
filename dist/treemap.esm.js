@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -116,41 +116,6 @@ function squarify(data, xoffset, yoffset, width, height) {
   }
   return coords;
 }
-function generate(data, width, height) {
-  const n = data.length;
-  const sums = new Array(n);
-  for (let i = 0; i < n; i++) {
-    let s = 0;
-    const series = data[i];
-    for (let j = 0; j < series.length; j++) {
-      s += series[j];
-    }
-    sums[i] = s;
-  }
-  const seriesRects = squarify(
-    normalize(sums, width * height),
-    0,
-    0,
-    width,
-    height
-  );
-  const results = new Array(n);
-  for (let i = 0; i < n; i++) {
-    const rect = seriesRects[i];
-    const rx = rect[0];
-    const ry = rect[1];
-    const rw = rect[2] - rx;
-    const rh = rect[3] - ry;
-    results[i] = squarify(
-      normalize(data[i], rw * rh),
-      rx,
-      ry,
-      rw,
-      rh
-    );
-  }
-  return results;
-}
 function computeArea(node) {
   const kids = node.children;
   if (kids && kids.length) {
@@ -218,7 +183,7 @@ function generateNested(nodes, width, height, opts = {}) {
   layoutLevel(nodes, 0, 0, width, height, 0, padding, header);
   return nodes;
 }
-const TreemapSquared = { generate, generateNested };
+const TreemapSquared = { generateNested };
 const Graphics = _core.__apex_Graphics;
 const Animations = _core.__apex_Animations;
 const Fill = _core.__apex_Fill;
@@ -372,7 +337,7 @@ class TreemapHelpers {
       percent
     };
   }
-  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any, series?: any }} opts */
+  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any }} opts */
   calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
     const w = this.w;
     const dataLabelsConfig = w.config.dataLabels;
@@ -845,14 +810,10 @@ class TreemapChart {
     this._total = null;
     this._avgLabelSize = null;
     this._tooltipEl = null;
-    this._tipOwned = false;
     this._morphLeafIndex = 0;
     this.camera = null;
   }
-  /**
-   * @param {any[]} series
-   */
-  draw(series) {
+  draw() {
     var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
@@ -861,11 +822,6 @@ class TreemapChart {
       class: "apexcharts-treemap"
     });
     if (w.globals.noData) return ret;
-    series.forEach((s) => {
-      s.map((v) => {
-        return Math.abs(v);
-      });
-    });
     this.negRange = this.helpers.checkColorRange();
     w.config.series.forEach((s, i) => {
       if (!Array.isArray(this.labels[i])) this.labels[i] = [];
@@ -1113,8 +1069,7 @@ class TreemapChart {
               i,
               j,
               colorProps,
-              fontSize,
-              series
+              fontSize
             });
           }
           if (w.config.dataLabels.enabled && dataLabels) {
@@ -2170,8 +2125,8 @@ class TreemapChart {
   /**
    * A parent is not a row in the series matrix, so the shared tooltip - which
    * addresses everything by (seriesIndex, dataPointIndex) - has nothing to look
-   * up. It writes into the same tooltip element instead, so the aggregate looks
-   * like every other tooltip in the chart.
+   * up. It writes into a sibling with the same classes instead, so the
+   * aggregate looks like every other tooltip without touching the shared one.
    * @param {MouseEvent} e
    * @param {any} node
    */
@@ -2209,16 +2164,24 @@ class TreemapChart {
     }
     t.innerHTML = html;
     t.classList.add("apexcharts-active");
-    t.style.opacity = "1";
-    this._tipOwned = true;
+    t.removeAttribute("aria-hidden");
     this._positionTooltip(e);
   }
   /** @returns {any} */
   _tip() {
-    if (!this._tooltipEl) {
-      this._tooltipEl = this.w.dom.baseEl.querySelector(".apexcharts-tooltip");
+    const wrap = this.w.dom.elWrap;
+    let t = this._tooltipEl;
+    if (!(t == null ? void 0 : t.isConnected)) {
+      t = wrap.querySelector(".apexcharts-treemap-tooltip");
+      const core = !t && wrap.querySelector(".apexcharts-tooltip");
+      if (core) {
+        t = core.cloneNode(false);
+        t.classList.add("apexcharts-treemap-tooltip");
+        wrap.appendChild(t);
+      }
+      this._tooltipEl = t;
     }
-    return this._tooltipEl;
+    return t;
   }
   /**
    * Position beside the cursor, flipping to the opposite side when the box
@@ -2227,7 +2190,7 @@ class TreemapChart {
    */
   _positionTooltip(e) {
     const t = this._tip();
-    if (!t || !this._tipOwned) return;
+    if (!t) return;
     const rect = this.w.dom.elWrap.getBoundingClientRect();
     const tw = t.offsetWidth;
     const th = t.offsetHeight;
@@ -2242,11 +2205,9 @@ class TreemapChart {
     t.style.top = y + "px";
   }
   _hideParentTooltip() {
-    const t = this._tip();
-    if (!t || !this._tipOwned) return;
-    this._tipOwned = false;
-    t.classList.remove("apexcharts-active");
-    t.style.opacity = "0";
+    const t = this._tooltipEl;
+    t == null ? void 0 : t.classList.remove("apexcharts-active");
+    t == null ? void 0 : t.setAttribute("aria-hidden", "true");
   }
   /**
    * The whole tree's area, zoomed in or not: "% of total" has to mean the same
@@ -2347,33 +2308,10 @@ class TreemapChart {
    */
   _averageLabelSize() {
     if (this._avgLabelSize != null) return this._avgLabelSize;
-    function totalLabelLength(arr) {
-      let i, total = 0;
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += totalLabelLength(arr[i]);
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += arr[i].length;
-        }
-      }
-      return total;
-    }
-    function countLabels(arr) {
-      let i, total = 0;
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += countLabels(arr[i]);
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += 1;
-        }
-      }
-      return total;
-    }
-    this._avgLabelSize = totalLabelLength(this.labels) / countLabels(this.labels);
+    const all = this.labels.flat();
+    let total = 0;
+    for (const x of all) total += String(x != null ? x : "").length;
+    this._avgLabelSize = total / (all.length || 1);
     return this._avgLabelSize;
   }
   // This calculates a font-size based upon

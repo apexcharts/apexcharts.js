@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -285,10 +285,27 @@ class Unit {
     const dotR = this._lastDotR;
     const animate = this._shouldAnimate();
     const morph = this.ctx && this.ctx.morphTypeChange;
-    const morphActive = animate && !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialCenterFor === "function";
-    const perRowBurst = morphActive && typeof morph.getInitialSlotFor === "function";
+    const morphActive = animate && !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialSlotFor === "function";
     const pieceTakeover = morphActive && typeof morph.usesPieceTakeover === "function" && morph.usesPieceTakeover();
     const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null;
+    const pieces = this.ctx && this.ctx._unitPieces;
+    if (pieces) {
+      this.ctx._unitPieces = null;
+      if (prev) {
+        pieces.querySelectorAll("rect").forEach((el) => {
+          const key = el.getAttribute("data-key");
+          const from = prev.get(key);
+          const n = (a) => +el.getAttribute(a);
+          if (!from) return;
+          prev.set(key, __spreadProps(__spreadValues({}, from), {
+            x: n("x") + n("width") / 2,
+            y: n("y") + n("height") / 2,
+            r: Math.min(n("width"), n("height")) / 2,
+            fill: el.getAttribute("fill")
+          }));
+        });
+      }
+    }
     const nextPrev = /* @__PURE__ */ new Map();
     const animDots = [];
     const unitData = w.seriesData.unitData || [];
@@ -304,7 +321,6 @@ class Unit {
         rel: cluster.i + 1,
         "data:realIndex": cluster.i
       });
-      const burst = morphActive && !perRowBurst ? morph.getInitialCenterFor(cluster.i) : null;
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
       cluster.dots.forEach((d, jj) => {
@@ -332,9 +348,10 @@ class Unit {
           this._place(el.node, spec, d.x, d.y);
           el.node.setAttribute("opacity", "0");
           el.node.setAttribute("data-piece-hidden", "1");
+          el.node.setAttribute("data-key", key);
         } else if (animate) {
           const from = prev && prev.get(key);
-          const anchor = from || (perRowBurst ? morph.getInitialSlotFor(cluster.i, j, burstCount) : burst);
+          const anchor = from || (morphActive ? morph.getInitialSlotFor(cluster.i, j, burstCount) : null);
           const enter = opts.gather && opts.gather.enter || "burst";
           const inPlace = gridSplit || enter === "fade" || enter === "rise";
           const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;

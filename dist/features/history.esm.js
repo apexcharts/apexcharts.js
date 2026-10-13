@@ -14,7 +14,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -373,13 +373,14 @@ class History {
     } catch (e) {
       seriesSig = null;
     }
+    const config = this.ctx.responsive ? this.ctx.responsive.withoutBreakpoints(w.config) : w.config;
     let cloned;
     if (prev && seriesSig !== null && prev.seriesSig === seriesSig) {
-      const _a = w.config, { series: _series } = _a, rest = __objRest(_a, ["series"]);
+      const _a = config, { series: _series } = _a, rest = __objRest(_a, ["series"]);
       cloned = Utils.clone(rest);
       cloned.series = prev.config.series;
     } else {
-      cloned = Utils.clone(w.config);
+      cloned = Utils.clone(config);
     }
     return { config: cloned, seriesSig };
   }

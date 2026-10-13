@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -844,7 +844,7 @@ class Exports {
           const bText = typeof b.cat === "string";
           if (aText !== bText) return aText ? 1 : -1;
           if (!aText) return a.cat - b.cat;
-          return a.cat < b.cat ? -1 : 1;
+          return w.axisFlags.isXNumeric ? a.cat < b.cat ? -1 : 1 : 0;
         }).forEach(({ cat, values }) => body.push([cat, ...values.flat()]));
       } else {
         const len = Math.max(
@@ -917,8 +917,6 @@ class Toolbar {
     this.ev = this.w.config.chart.events;
     this.selectedClass = "apexcharts-selected";
     this.localeValues = this.w.globals.locale.toolbar;
-    this.minX = w.globals.minX;
-    this.maxX = w.globals.maxX;
     this.elZoom = null;
     this.elZoomIn = null;
     this.elZoomOut = null;
@@ -1298,14 +1296,14 @@ class Toolbar {
     charts.forEach((ch) => {
       const tb = ch.ctx.toolbar;
       const enabledType = type === "selection" ? "selectionEnabled" : "zoomEnabled";
-      const wasEnabled = !!ch.w.globals[enabledType];
+      const wasEnabled = !!ch.w.interact[enabledType];
       tb.toggleOtherControls();
       const el = type === "selection" ? tb.elSelection : tb.elZoom;
       if (!wasEnabled) {
-        ch.w.globals[enabledType] = true;
-        el.classList.add(tb.selectedClass);
+        ch.w.interact[enabledType] = true;
+        el == null ? void 0 : el.classList.add(tb.selectedClass);
       }
-      el.setAttribute("aria-pressed", String(!!ch.w.globals[enabledType]));
+      el == null ? void 0 : el.setAttribute("aria-pressed", String(!!ch.w.interact[enabledType]));
     });
   }
   /**
@@ -1363,14 +1361,15 @@ class Toolbar {
   togglePanning() {
     const charts = this.ctx.getSyncedCharts();
     charts.forEach((ch) => {
+      var _a, _b;
       const tb = ch.ctx.toolbar;
       const wasEnabled = !!ch.w.interact.panEnabled;
       tb.toggleOtherControls();
       if (!wasEnabled) {
         ch.w.interact.panEnabled = true;
-        tb.elPan.classList.add(tb.selectedClass);
+        (_a = tb.elPan) == null ? void 0 : _a.classList.add(tb.selectedClass);
       }
-      tb.elPan.setAttribute("aria-pressed", String(!!ch.w.interact.panEnabled));
+      (_b = tb.elPan) == null ? void 0 : _b.setAttribute("aria-pressed", String(!!ch.w.interact.panEnabled));
     });
   }
   toggleOtherControls() {
@@ -1395,7 +1394,7 @@ class Toolbar {
   /**
    * Read the current x-range from globals at click time.
    * Toolbar instance is kept alive across updates (Phase 8 lazy
-   * instantiation), so cached this.minX/maxX go stale after a zoom.
+   * instantiation), so a range cached on it would go stale after a zoom.
    * @returns {{minX: number, maxX: number}}
    */
   _currentXRange() {
@@ -1408,8 +1407,6 @@ class Toolbar {
   handleZoomIn() {
     const w = this.w;
     const { minX, maxX } = this._currentXRange();
-    this.minX = minX;
-    this.maxX = maxX;
     const centerX = (minX + maxX) / 2;
     const newMinX = (minX + centerX) / 2;
     const newMaxX = (maxX + centerX) / 2;
@@ -1421,8 +1418,6 @@ class Toolbar {
   handleZoomOut() {
     const w = this.w;
     const { minX, maxX } = this._currentXRange();
-    this.minX = minX;
-    this.maxX = maxX;
     if (w.config.xaxis.type === "datetime" && new Date(minX).getUTCFullYear() < 1e3) {
       return;
     }

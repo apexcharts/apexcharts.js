@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -921,7 +921,11 @@ class Line {
     this.zRatio = this.xyRatios.zRatio;
     this.xRatio = this.xyRatios.xRatio;
     this.baseLineY = this.xyRatios.baseLineY;
-    series = coreUtils.getLogSeries(series);
+    series = coreUtils.getLogSeries(
+      series,
+      /** @type {any} */
+      seriesIndex
+    );
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
     this.prevSeriesY = [];
     this.prevSeriesYByX = /* @__PURE__ */ new Map();
@@ -1006,7 +1010,6 @@ class Line {
     xArrj.push(x);
     const pX = x;
     let pY2;
-    const prevX = pX;
     let prevY = this.zeroY;
     let prevY2 = this.zeroY;
     const lineYPosition = 0;
@@ -1039,16 +1042,7 @@ class Line {
       pY2 = prevY2;
       y2Arrj.push(yArrj[0] !== null ? prevY2 : null);
     }
-    const pathsFrom = this._calculatePathsFrom({
-      type,
-      series,
-      i,
-      realIndex,
-      translationsIndex,
-      prevX,
-      prevY,
-      prevY2
-    });
+    const pathsFrom = this._calculatePathsFrom(realIndex, prevY);
     const rYArrj = [yArrj[0]];
     const rY2Arrj = [y2Arrj[0]];
     const iteratingOpts = {
@@ -1076,13 +1070,7 @@ class Line {
       isRangeStart: true
     }));
     if (type === "rangeArea") {
-      const pathsFrom2 = this._calculatePathsFrom({
-        series: seriesRangeEnd,
-        i,
-        realIndex,
-        prevX,
-        prevY: prevY2
-      });
+      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2);
       const rangePaths = this._iterateOverDataPoints(__spreadProps(__spreadValues({}, iteratingOpts), {
         series: seriesRangeEnd,
         xArrj: [x],
@@ -1206,40 +1194,18 @@ class Line {
     });
     this.appendPathFrom = true;
   }
-  /** @param {{ type?: any, series?: any, i?: any, realIndex?: any, translationsIndex?: any, prevX?: any, prevY?: any, prevY2?: any }} opts */
-  _calculatePathsFrom({
-    type,
-    series,
-    i,
-    realIndex,
-    translationsIndex,
-    prevX,
-    prevY,
-    prevY2
-  }) {
-    const w = this.w;
+  /**
+   * The baseline pathFrom a series grows from on mount, or the previous
+   * render's paths when there are any. `prevY` rides along for the first
+   * point's marker.
+   * @param {number} realIndex
+   * @param {number} prevY
+   */
+  _calculatePathsFrom(realIndex, prevY) {
     const graphics = new Graphics(this.w);
-    let linePath, areaPath, pathFromLine, pathFromArea;
-    if (series[i][0] === null) {
-      for (let s = 0; s < series[i].length; s++) {
-        if (series[i][s] !== null) {
-          prevX = this.xDivision * s;
-          prevY = this.zeroY - series[i][s] / this.yRatio[translationsIndex];
-          linePath = graphics.move(prevX, prevY);
-          areaPath = graphics.move(prevX, this.areaBottomY);
-          break;
-        }
-      }
-    } else {
-      linePath = graphics.move(prevX, prevY);
-      if (type === "rangeArea") {
-        linePath = graphics.move(prevX, prevY2) + graphics.line(prevX, prevY);
-      }
-      areaPath = graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY);
-    }
-    pathFromLine = graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY);
-    pathFromArea = graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY);
-    if (w.globals.previousPaths.length > 0) {
+    let pathFromLine = graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY);
+    let pathFromArea = pathFromLine;
+    if (this.w.globals.previousPaths.length > 0) {
       const pathFrom = this.lineHelpers.checkPreviousPaths({
         pathFromLine,
         pathFromArea,
@@ -1248,14 +1214,7 @@ class Line {
       pathFromLine = pathFrom.pathFromLine;
       pathFromArea = pathFrom.pathFromArea;
     }
-    return {
-      prevX,
-      prevY,
-      linePath,
-      areaPath,
-      pathFromLine,
-      pathFromArea
-    };
+    return { prevY, pathFromLine, pathFromArea };
   }
   /**
    * The identity a stacked baseline is looked up by.
@@ -1538,7 +1497,10 @@ class Line {
     const w = this.w;
     const graphics = new Graphics(this.w);
     const yRatio = this.yRatio;
-    let { prevY, linePath, areaPath, pathFromLine, pathFromArea } = pathsFrom;
+    const prevY = pathsFrom.prevY;
+    let { pathFromLine, pathFromArea } = pathsFrom;
+    let linePath;
+    let areaPath;
     const minY = Utils.isNumber(w.globals.minYArr[realIndex]) ? w.globals.minYArr[realIndex] : w.globals.minY;
     if (!iterations) {
       iterations = w.globals.dataPoints > 1 ? w.globals.dataPoints - 1 : w.globals.dataPoints;
@@ -1704,9 +1666,7 @@ class Line {
       pathFromArea,
       areaPaths,
       pathFromLine,
-      linePaths,
-      linePath,
-      areaPath
+      linePaths
     };
   }
   /** @param {{type: any, pointsPos: any, isRangeStart: any, i: any, j: any, realIndex: any}} opts */
@@ -1898,8 +1858,6 @@ class Line {
       areaPaths,
       pathFromLine,
       linePaths,
-      linePath,
-      areaPath,
       numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : void 0
     };
   }

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -425,7 +425,7 @@ class Radar {
     const w = this.w;
     const { parent } = opts;
     const helpers = new CircularChartsHelpers(this.w);
-    const yaxisTexts = w.globals.yAxisScale[0].result.reverse();
+    const yaxisTexts = w.globals.yAxisScale[0].result.slice().reverse();
     const layers = yaxisTexts.length;
     const radiusSizes = [];
     const layerDis = this.size / (layers - 1);

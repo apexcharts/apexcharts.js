@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -824,7 +824,7 @@ class Exports {
           const bText = typeof b.cat === "string";
           if (aText !== bText) return aText ? 1 : -1;
           if (!aText) return a.cat - b.cat;
-          return a.cat < b.cat ? -1 : 1;
+          return w.axisFlags.isXNumeric ? a.cat < b.cat ? -1 : 1 : 0;
         }).forEach(({ cat, values }) => body.push([cat, ...values.flat()]));
       } else {
         const len = Math.max(

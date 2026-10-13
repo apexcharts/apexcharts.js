@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1263,6 +1263,9 @@ class HeatmapGradientLegend {
   }
 }
 const Markers = _core.__apex_Markers;
+function isLegendItem(el) {
+  return el.classList.contains("apexcharts-legend-series") || el.classList.contains("apexcharts-legend-text") || el.classList.contains("apexcharts-legend-marker");
+}
 class Legend {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -1274,6 +1277,11 @@ class Legend {
     this.updateSeries = (...a) => ctx.updateHelpers._updateSeries(...a);
     this.onLegendClick = this.onLegendClick.bind(this);
     this.onLegendHovered = this.onLegendHovered.bind(this);
+    this.onLegendClickEvent = this.onLegendClickEvent.bind(this);
+    this.onLegendPointerDown = this.onLegendPointerDown.bind(this);
+    this.onLegendPointerUp = this.onLegendPointerUp.bind(this);
+    this.legendPress = null;
+    this.recoveredRel = null;
     this.isBarsDistributed = this.w.config.chart.type === "bar" && this.w.config.plotOptions.bar.distributed && this.w.config.series.length === 1;
     this.legendHelpers = new Helpers(this);
   }
@@ -1363,16 +1371,7 @@ class Legend {
         pointFillColor: Array.isArray(fillcolor) ? fillcolor[i] : markerConfig.pointFillColor,
         shape
       }));
-      const shapesEls = w.dom.Paper.find(
-        ".apexcharts-legend-marker.apexcharts-marker"
-      );
-      shapesEls.forEach((shapeEl) => {
-        if (shapeEl.node.classList.contains("apexcharts-marker-triangle")) {
-          shapeEl.node.style.transform = "translate(50%, 45%)";
-        } else {
-          shapeEl.node.style.transform = "translate(50%, 50%)";
-        }
-      });
+      marker.node.style.transform = shape === "triangle" ? "translate(50%, 45%)" : "translate(50%, 50%)";
       SVGMarker.add(marker);
     }
     return elMarker;
@@ -1487,20 +1486,9 @@ class Legend {
           elLegend.classList.add("apexcharts-hidden-null-series");
         }
       }
-      if (legendGroups.length) {
-        w.labelData.seriesGroups.forEach((group, gi) => {
-          var _a2, _b;
-          if (group.includes(
-            /** @type {Record<string,any>} */
-            (_b = (_a2 = w.config.series[i]) == null ? void 0 : _a2.name) != null ? _b : ""
-          )) {
-            elLegendWrap.appendChild(legendGroups[gi]);
-            legendGroups[gi].appendChild(elLegend);
-          }
-        });
-      } else {
-        elLegendWrap.appendChild(elLegend);
-      }
+      const lg = legendGroups[w.labelData.seriesGroupIndex[i]];
+      if (lg) elLegendWrap.appendChild(lg);
+      (lg || elLegendWrap).appendChild(elLegend);
       elLegendWrap.classList.add(
         `apexcharts-align-${w.config.legend.horizontalAlign}`
       );
@@ -1523,7 +1511,9 @@ class Legend {
         elLegend.classList.add("apexcharts-no-click");
       }
     }
-    w.dom.elWrap.addEventListener("click", me.onLegendClick, true);
+    w.dom.elWrap.addEventListener("click", me.onLegendClickEvent, true);
+    w.dom.elWrap.addEventListener("pointerdown", me.onLegendPointerDown, true);
+    w.dom.elWrap.addEventListener("pointerup", me.onLegendPointerUp, true);
     if (w.config.legend.onItemHover.highlightDataSeries && w.config.legend.customLegendItems.length === 0) {
       w.dom.elWrap.addEventListener("mousemove", me.onLegendHovered, true);
       w.dom.elWrap.addEventListener("mouseout", me.onLegendHovered, true);
@@ -1594,17 +1584,7 @@ class Legend {
     this.setLegendWrapXY(offsetX, offsetY);
   }
   legendAlignVertical() {
-    const w = this.w;
-    const lRect = this.legendHelpers.getLegendDimensions();
-    const offsetY = 20;
-    let offsetX = 0;
-    if (w.config.legend.position === "left") {
-      offsetX = 20;
-    }
-    if (w.config.legend.position === "right") {
-      offsetX = w.globals.svgWidth - lRect.clww - 10;
-    }
-    this.setLegendWrapXY(offsetX, offsetY);
+    this.setLegendWrapXY(this.w.config.legend.position === "left" ? 20 : 0, 20);
   }
   /**
    * @param {MouseEvent} e
@@ -1616,7 +1596,7 @@ class Legend {
       /** @type {Element} */
       e.target
     );
-    const hoverOverLegend = target.classList.contains("apexcharts-legend-series") || target.classList.contains("apexcharts-legend-text") || target.classList.contains("apexcharts-legend-marker");
+    const hoverOverLegend = isLegendItem(target);
     if (w.config.chart.type !== "heatmap" && !this.isBarsDistributed) {
       if (!target.classList.contains("apexcharts-inactive-legend") && hoverOverLegend) {
         const series = new Series(this.ctx.w);
@@ -1645,8 +1625,7 @@ class Legend {
       /** @type {Element} */
       e.target
     );
-    const isLegendItem = target.classList.contains("apexcharts-legend-series") || target.classList.contains("apexcharts-legend-text") || target.classList.contains("apexcharts-legend-marker");
-    if (!isLegendItem) return;
+    if (!isLegendItem(target)) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       const rel = target.getAttribute("rel");
@@ -1662,6 +1641,47 @@ class Legend {
     }
   }
   /**
+   * @param {PointerEvent} e
+   */
+  onLegendPointerDown(e) {
+    const target = (
+      /** @type {Element} */
+      e.target
+    );
+    this.recoveredRel = null;
+    this.legendPress = e.button === 0 && isLegendItem(target) ? { el: target, rel: target.getAttribute("rel") } : null;
+  }
+  /**
+   * @param {PointerEvent} e
+   */
+  onLegendPointerUp(e) {
+    const press = this.legendPress;
+    this.legendPress = null;
+    const target = (
+      /** @type {Element} */
+      e.target
+    );
+    if (press && !press.el.isConnected && isLegendItem(target) && target.getAttribute("rel") === press.rel) {
+      this.recoveredRel = press.rel;
+      this.onLegendClick(e);
+    }
+  }
+  /**
+   * @param {MouseEvent} e
+   */
+  onLegendClickEvent(e) {
+    const rel = this.recoveredRel;
+    this.recoveredRel = null;
+    const target = (
+      /** @type {Element} */
+      e.target
+    );
+    if (rel !== null && e.isTrusted && target.getAttribute("rel") === rel) {
+      return;
+    }
+    this.onLegendClick(e);
+  }
+  /**
    * @param {Event} e
    */
   onLegendClick(e) {
@@ -1672,7 +1692,7 @@ class Legend {
       e.target
     );
     if (w.config.legend.customLegendItems.length) return;
-    if (target.classList.contains("apexcharts-legend-series") || target.classList.contains("apexcharts-legend-text") || target.classList.contains("apexcharts-legend-marker")) {
+    if (isLegendItem(target)) {
       const seriesCnt = parseInt((_a = target.getAttribute("rel")) != null ? _a : "0", 10) - 1;
       const isHidden = target.getAttribute("data:collapsed") === "true";
       const legendClick = this.w.config.chart.events.legendClick;

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -146,8 +146,8 @@ class Helpers {
   }
   /**
    * Does the x position take the category branch of `getX1X2` (a label lookup)
-   * rather than projecting through a numeric domain? Mirrors the conditions
-   * applied there, so the two cannot drift apart.
+   * rather than projecting through a numeric domain? `getX1X2` and
+   * `hasXDomain` both ask this, so the two cannot drift apart.
    *
    * @returns {boolean}
    */
@@ -258,10 +258,8 @@ class Helpers {
       return { x: 0, clipped: true };
     }
     let xP = this.annoCtx.inversedReversedAxis ? (max - x) / (range / w.layout.gridWidth) : (x - min) / (range / w.layout.gridWidth);
-    if ((w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !this.annoCtx.invertAxis && !w.axisFlags.dataFormatXNumeric) {
-      if (!w.config.chart.sparkline.enabled) {
-        xP = this.getStringX(x);
-      }
+    if (this.usesCategoryX()) {
+      xP = this.getStringX(x);
     }
     if (typeof x === "string" && x.includes("px")) {
       xP = parseFloat(x);
@@ -897,7 +895,6 @@ class Annotations {
     if (this.w.globals.isBarHorizontal && this.w.config.yaxis[0].reversed) {
       this.inversedReversedAxis = true;
     }
-    this.xDivision = this.w.layout.gridWidth / this.w.globals.dataPoints;
   }
   drawAxesAnnotations() {
     const w = this.w;

@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.1.0
+ * ApexCharts v8.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -3308,7 +3308,14 @@ class AxisMapping {
   }
 }
 const CURSOR_PAD = 14;
-const BAR_FAMILY = ["bar", "column", "rangeBar", "candlestick", "boxPlot"];
+const BAR_FAMILY = [
+  "bar",
+  "column",
+  "rangeBar",
+  "candlestick",
+  "boxPlot",
+  "violin"
+];
 class TrellisTooltip {
   /**
    * @param {import('./Trellis').default} trellis
@@ -3373,13 +3380,8 @@ class TrellisTooltip {
         return -1;
       }
     }
-    const barish = BAR_FAMILY.indexOf(w.config.chart.type) !== -1;
-    let j;
-    if (barish && !w.config.xaxis.convertedCatToNumeric) {
-      j = Math.ceil(hoverX / (gridWidth / n)) - 1;
-    } else {
-      j = Math.round(hoverX / (gridWidth / Math.max(1, n - 1)));
-    }
+    const slotted = (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
+    const j = slotted ? Math.ceil(hoverX / (gridWidth / n)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)));
     return Math.max(0, Math.min(n - 1, j));
   }
   /**
@@ -3653,15 +3655,16 @@ class TrellisExports {
   /**
    * One SVG of the whole grid: nested per-panel SVGs (fonts already inlined
    * by each panel's own getSvgString) plus text chrome.
+   * @param {number} [scale] output size multiplier; the viewBox stays put
    * @returns {Promise<string>}
    */
-  svgString() {
+  svgString(scale = 1) {
     return __async(this, null, function* () {
       const t = this.trellis;
       const size = this._size();
       const parts = [];
       parts.push(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${size.w}" height="${size.h}" viewBox="0 0 ${size.w} ${size.h}">`
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${size.w * scale}" height="${size.h * scale}" viewBox="0 0 ${size.w} ${size.h}">`
       );
       parts.push(
         `<rect width="${size.w}" height="${size.h}" fill="${this._background()}"/>`
@@ -3701,15 +3704,16 @@ class TrellisExports {
    * One CSV for the whole grid, wide form: x, facet, then one column per
    * series name. Rows are (panel x union-x), aligned by the split, so ragged
    * panels emit explicit blanks.
+   * @param {{ columnDelimiter?: string, lineDelimiter?: string }} [options]
    * @returns {string}
    */
-  csv() {
+  csv(options = {}) {
     var _a, _b, _c;
     const t = this.trellis;
     const split2 = t.split;
     if (!split2) return "";
     const w = t.w;
-    const delimiter = ((_c = (_b = (_a = w.config.chart.toolbar) == null ? void 0 : _a.export) == null ? void 0 : _b.csv) == null ? void 0 : _c.columnDelimiter) || ",";
+    const delimiter = options.columnDelimiter || ((_c = (_b = (_a = w.config.chart.toolbar) == null ? void 0 : _a.export) == null ? void 0 : _b.csv) == null ? void 0 : _c.columnDelimiter) || ",";
     const isDatetime = w.config.xaxis && w.config.xaxis.type === "datetime";
     const cell = (v) => {
       if (v === null || v === void 0) return "";
@@ -3739,11 +3743,15 @@ class TrellisExports {
         lines.push(row.map(cell).join(delimiter));
       });
     });
-    return lines.join("\n");
+    return lines.join(options.lineDelimiter || "\n");
   }
-  /** @param {'png'|'svg'|'csv'} kind */
-  download(kind) {
-    return __async(this, null, function* () {
+  /**
+   * @param {'png'|'svg'|'csv'} kind
+   * @param {{ fileName?: string, columnDelimiter?: string, lineDelimiter?: string }} [options]
+   *   the CSV options exportToCSV takes
+   */
+  download(_0) {
+    return __async(this, arguments, function* (kind, options = {}) {
       var _a;
       const t = this.trellis;
       const exportCfg = ((_a = t.w.config.chart.toolbar) == null ? void 0 : _a.export) || {};
@@ -3756,8 +3764,12 @@ class TrellisExports {
         const uri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
         triggerDownload(uri, exportCfg.svg && exportCfg.svg.filename || fallback, ".svg");
       } else {
-        const uri = "data:text/csv;charset=utf-8," + encodeURIComponent("\uFEFF" + this.csv());
-        triggerDownload(uri, exportCfg.csv && exportCfg.csv.filename || fallback, ".csv");
+        const uri = "data:text/csv;charset=utf-8," + encodeURIComponent("\uFEFF" + this.csv(options));
+        triggerDownload(
+          uri,
+          options.fileName || exportCfg.csv && exportCfg.csv.filename || fallback,
+          ".csv"
+        );
       }
     });
   }
