@@ -297,7 +297,10 @@ async function buildVueFiles(info, renderedHtml, label) {
     vueDataEntries(info),
     `}`,
     `},`,
-    info.vue_script ? `${info.vue_script},` : '',
+    // Verbatim, as template.html inserts it: a <vue-script> section carries
+    // its own separators (most end in a comma), so adding one here wrote
+    // `},,` into the displayed App.vue of every sample that had one.
+    info.vue_script || '',
     `}`,
     `</script>`,
     '',
