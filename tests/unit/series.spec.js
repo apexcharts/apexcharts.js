@@ -8,7 +8,12 @@ function getSeries(chart) {
 
 describe('Series — emptyCollapsedSeries()', () => {
   it('empties an axis series (object) by clearing its data array', () => {
-    const s = new Series({ globals: { collapsedSeriesIndices: [0] } })
+    const s = new Series({
+      globals: {
+        collapsedSeriesIndices: [0],
+        ancillaryCollapsedSeriesIndices: [],
+      },
+    })
     expect(
       s.emptyCollapsedSeries([
         { name: 'A', data: [1, 2] },
@@ -22,7 +27,12 @@ describe('Series — emptyCollapsedSeries()', () => {
     // `series[i].data = []` which threw "Cannot create property 'data' on number",
     // freezing an in-flight update (e.g. a storyboard beat) once a legend toggle
     // had collapsed a series.
-    const s = new Series({ globals: { collapsedSeriesIndices: [1] } })
+    const s = new Series({
+      globals: {
+        collapsedSeriesIndices: [1],
+        ancillaryCollapsedSeriesIndices: [],
+      },
+    })
     expect(() => s.emptyCollapsedSeries([276, 266, 3])).not.toThrow()
     expect(s.emptyCollapsedSeries([276, 266, 3])).toEqual([276, 0, 3])
   })
@@ -30,7 +40,12 @@ describe('Series — emptyCollapsedSeries()', () => {
   it('passes a non-array through untouched instead of crashing (regression)', () => {
     // Regression: a chart poisoned by a null series update reached this with
     // null and crashed reading `.length`, stranding every later update.
-    const s = new Series({ globals: { collapsedSeriesIndices: [0] } })
+    const s = new Series({
+      globals: {
+        collapsedSeriesIndices: [0],
+        ancillaryCollapsedSeriesIndices: [],
+      },
+    })
     expect(() => s.emptyCollapsedSeries(null)).not.toThrow()
     expect(s.emptyCollapsedSeries(null)).toBe(null)
   })

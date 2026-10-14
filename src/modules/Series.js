@@ -63,8 +63,9 @@ export default class Series {
    * @param {string} seriesName
    */
   isSeriesHidden(seriesName) {
-    const targetElement = this.getSeriesByName(seriesName)
-    const el = /** @type {Element} */ (targetElement)
+    const el = this.getSeriesByName(seriesName)
+    // An unknown name (or a type that draws no series group) is a no-op.
+    if (!el) return { isHidden: false, realIndex: -1 }
     const realIndex = parseInt(el.getAttribute('data:realIndex') ?? '0', 10)
     // The collapse is recorded per index for every type; the class only on
     // the types that draw a series group for it. A pie, donut or polarArea
@@ -295,11 +296,11 @@ export default class Series {
    * @param {string} seriesName
    */
   toggleSeries(seriesName) {
-    const isSeriesHidden = this.isSeriesHidden(seriesName)
+    const { isHidden, realIndex } = this.isSeriesHidden(seriesName)
 
-    this._toggleDataSeries?.(isSeriesHidden.realIndex, isSeriesHidden.isHidden)
+    if (realIndex > -1) this._toggleDataSeries?.(realIndex, isHidden)
 
-    return isSeriesHidden.isHidden
+    return isHidden
   }
 
   /**
@@ -319,7 +320,7 @@ export default class Series {
   hideSeries(seriesName) {
     const isSeriesHidden = this.isSeriesHidden(seriesName)
 
-    if (!isSeriesHidden.isHidden) {
+    if (!isSeriesHidden.isHidden && isSeriesHidden.realIndex > -1) {
       this._toggleDataSeries?.(isSeriesHidden.realIndex, false)
     }
   }
@@ -409,10 +410,14 @@ export default class Series {
    * @param {any[]} series
    */
   emptyCollapsedSeries(series) {
-    const w = this.w
+    const gl = this.w.globals
     if (!Array.isArray(series)) return series
     for (let i = 0; i < series.length; i++) {
-      if (w.globals.collapsedSeriesIndices.indexOf(i) > -1) {
+      // A series hidden on a showAlways y axis sits on the ancillary list.
+      if (
+        gl.collapsedSeriesIndices.includes(i) ||
+        gl.ancillaryCollapsedSeriesIndices.includes(i)
+      ) {
         // Axis charts carry {name, data}; non-axis charts (pie / donut / unit)
         // carry a bare numeric value. Empty each in its own shape: setting
         // `.data` on a number throws ("Cannot create property 'data' on number"),
