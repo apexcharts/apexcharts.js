@@ -1102,8 +1102,9 @@ class Exports {
     }
 
     const dates = body.map((r) => r[0]).filter(isDateCat)
+    const stamps = new Set(dates.map((c) => +new Date(c)))
     const withTime =
-      new Set(dates.map((c) => datetimeText(c))).size < dates.length
+      new Set([...stamps].map((t) => datetimeText(t))).size < stamps.size
     body.forEach((r) =>
       rows.push(
         [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(

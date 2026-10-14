@@ -801,6 +801,31 @@ describe('Export Csv: datetime categories', () => {
     )
   })
 
+  it('prints the day alone when a series repeats a datetime x', () => {
+    const csv = csvOf({
+      chart: { type: 'scatter' },
+      xaxis: { type: 'datetime' },
+      series: [
+        {
+          name: 'A',
+          data: [
+            [Date.UTC(2022, 0, 1), 1],
+            [Date.UTC(2022, 0, 1), 2],
+            [Date.UTC(2022, 0, 2), 3],
+          ],
+        },
+        { name: 'B', data: [[Date.UTC(2022, 0, 3), 5]] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A,B\n' +
+        'Sat Jan 01 2022,1,\n' +
+        'Sat Jan 01 2022,2,\n' +
+        'Sun Jan 02 2022,3,\n' +
+        'Mon Jan 03 2022,,5',
+    )
+  })
+
   it('prints the day in UTC when xaxis.labels.datetimeUTC is on', () => {
     // 23:30 UTC is the next day east of UTC; the axis shows the UTC day.
     const csv = csvOf({
