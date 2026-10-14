@@ -1,7 +1,6 @@
 // @ts-check
 import Graphics from '../Graphics'
 import TooltipUtils from '../tooltip/Utils'
-import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts KeyboardNavigation
@@ -273,14 +272,12 @@ export default class KeyboardNavigation {
         break
       case 'Home':
         e.preventDefault()
-        this.dataPointIndex = 0
-        this._skipNullForward()
+        this._seek(0, 1)
         this._showCurrentPoint()
         break
       case 'End':
         e.preventDefault()
-        this.dataPointIndex = this._getDataPointCount(this.seriesIndex) - 1
-        this._skipNullBackward()
+        this._seek(this._getDataPointCount(this.seriesIndex) - 1, -1)
         this._showCurrentPoint()
         break
       case 'Enter':
@@ -377,13 +374,15 @@ export default class KeyboardNavigation {
       // so ↑/↓ series switching would show the same content — suppress it.
       // For irregular time series the tooltip falls back to individual mode
       // (isXoverlap returns false), so up/down navigation is meaningful there.
-      // A heatmap or treemap tooltip is always one cell's, whatever
-      // tooltip.shared says (and it defaults to true), so ↑/↓ is the only
-      // way to another row.
+      // A heatmap or treemap tooltip is always one cell's and a radialBar's
+      // one ring's, whatever tooltip.shared says (and it defaults to true), so
+      // ↑/↓ is the only way to another row. Without a tooltip nothing shows
+      // the other series either.
       const ttCtx = this.w.globals.tooltip
       const type = w.config.chart.type
-      const perCell = type === 'heatmap' || type === 'treemap'
-      if (!perCell && ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
+      const perCell =
+        type === 'heatmap' || type === 'treemap' || type === 'radialBar'
+      if (!perCell && ttCtx?.ttItems && ttCtx.tConfig.shared) {
         const j = this.dataPointIndex
         const isActuallyShared =
           ttCtx.tooltipUtil &&
@@ -425,20 +424,7 @@ export default class KeyboardNavigation {
 
     if (dPoint !== 0) {
       // Move between data points (←/→)
-      const dpCount = this._getDataPointCount(this.seriesIndex)
-      let di = this.dataPointIndex + dPoint
-
-      if (di < 0) di = wrapAround ? dpCount - 1 : 0
-      if (di >= dpCount) di = wrapAround ? 0 : dpCount - 1
-
-      this.dataPointIndex = di
-
-      // Skip null values
-      if (dPoint > 0) {
-        this._skipNullForward()
-      } else {
-        this._skipNullBackward()
-      }
+      this._seek(this.dataPointIndex + dPoint, dPoint)
 
       // If the chart is zoomed, skip data points outside the visible range
       if (!this._isDataPointVisible(this.seriesIndex, this.dataPointIndex)) {
@@ -449,40 +435,26 @@ export default class KeyboardNavigation {
     this._showCurrentPoint()
   }
 
-  /** Advance dataPointIndex forward past any nulls */
-  _skipNullForward() {
+  /**
+   * Land on the first non-null point from `di` going `dir`. Past an edge it
+   * wraps only with wrapAround; when no point lies ahead the cursor stays.
+   * @param {number} di
+   * @param {number} dir
+   */
+  _seek(di, dir) {
     const w = this.w
-    const si = this.seriesIndex
-    const dpCount = this._getDataPointCount(si)
-    let di = this.dataPointIndex
-    let attempts = 0
-
-    // Non-axis charts (pie, etc.) have flat numeric series — no nulls to skip
-    if (!Array.isArray(w.seriesData.series[si])) return
-
-    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-      di = (di + 1) % dpCount
-      attempts++
+    const row = w.seriesData.series[this.seriesIndex]
+    const n = this._getDataPointCount(this.seriesIndex)
+    for (let k = 0; k < n; k++, di += dir) {
+      if (w.config.chart.accessibility.keyboard.navigation.wrapAround) {
+        di = (di + n) % n
+      } else if (di < 0 || di >= n) return
+      // Non-axis charts (pie, radialBar) have flat values, no nulls
+      if (!Array.isArray(row) || row[di] !== null) {
+        this.dataPointIndex = di
+        return
+      }
     }
-    this.dataPointIndex = di
-  }
-
-  /** Retreat dataPointIndex backward past any nulls */
-  _skipNullBackward() {
-    const w = this.w
-    const si = this.seriesIndex
-    const dpCount = this._getDataPointCount(si)
-    let di = this.dataPointIndex
-    let attempts = 0
-
-    // Non-axis charts (pie, etc.) have flat numeric series — no nulls to skip
-    if (!Array.isArray(w.seriesData.series[si])) return
-
-    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-      di = (di - 1 + dpCount) % dpCount
-      attempts++
-    }
-    this.dataPointIndex = di
   }
 
   // ─── Display ──────────────────────────────────────────────────────────────
@@ -585,10 +557,13 @@ export default class KeyboardNavigation {
       tooltipEl.removeAttribute('aria-hidden')
     }
 
-    if (type === 'pie' || type === 'donut' || type === 'polarArea') {
+    if (
+      type === 'pie' ||
+      type === 'donut' ||
+      type === 'polarArea' ||
+      type === 'radialBar'
+    ) {
       this._showTooltipNonAxis(i, j, ttCtx, tooltipEl)
-    } else if (type === 'radialBar') {
-      this._showTooltipRadialBar(i, j, ttCtx, tooltipEl)
     } else if (type === 'heatmap' || type === 'treemap') {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type)
     } else if (this._isBarLikeSeries(i)) {
@@ -1144,19 +1119,17 @@ export default class KeyboardNavigation {
   }
 
   /**
-   * pie / donut / polarArea
+   * pie / donut / polarArea (a slice per point, i is 0) and radialBar (a ring
+   * per series, j is 0)
    * @param {number} i
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @param {HTMLElement} tooltipEl
    */
   _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
-    const w = this.w
-
-    // For pie-like charts the series index IS the data point / slice index
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
-      i: j,
+      i: i + j,
       shared: false,
     })
 
@@ -1165,78 +1138,13 @@ export default class KeyboardNavigation {
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0
 
-    // Anchor on the arc centroid, through the same helper the mouse path uses
-    // so keyboard and pointer land a slice's tooltip in the same place. The
-    // path element carries j='${j}' (0-indexed); data:cx/cy are set on the
-    // path directly, not on the parent group.
-    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`)
-    const anchor = ttCtx.getSliceAnchor(sliceEl)
+    // Anchor on the arc's stamped centre (data:cx/cy), through the same helper
+    // the mouse path uses so keyboard and pointer land in the same place.
+    const anchor = ttCtx.getSliceAnchor(this._getFocusableElement(i, j))
     if (anchor) {
       const pos = ttCtx.tooltipPosition.placeOverAnchor(
         anchor.x,
         anchor.y,
-        ttWidth,
-        ttHeight,
-        10,
-      )
-      tooltipEl.style.left = pos.x + 'px'
-      tooltipEl.style.top = pos.y + 'px'
-    }
-  }
-  /**
-   * radialBar — one ring per series, single value each
-   * @param {number} i
-   * @param {any} _j
-   * @param {import('../tooltip/Tooltip').default} ttCtx
-   * @param {HTMLElement} tooltipEl
-   */
-  _showTooltipRadialBar(i, _j, ttCtx, tooltipEl) {
-    const w = this.w
-
-    ttCtx.tooltipLabels.drawSeriesTexts({
-      ttItems: ttCtx.ttItems,
-      i,
-      shared: false,
-    })
-
-    const { ttWidth = 0, ttHeight = 0 } = ttCtx.getCachedDimensions()
-
-    // Each radial series is a ring; find the path and use its data:angle to
-    // compute the centroid at the midpoint of the arc.
-    const arcEl = w.dom.baseEl.querySelector(
-      `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`,
-    )
-    if (arcEl) {
-      const angle = parseFloat(arcEl.getAttribute('data:angle') ?? '') || 0
-      // Radial bars start from the top (initialAngle) and sweep clockwise
-      const initialAngle = w.config.plotOptions.radialBar.startAngle || 0
-      const midAngle = initialAngle + angle / 2
-
-      const centerX = w.layout.gridWidth / 2
-      const centerY = w.layout.gridHeight / 2
-      const radialSize =
-        w.globals.radialSize ||
-        Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2
-
-      // Use the outer radius for this particular ring (series i)
-      const seriesCount = w.seriesData.series.length
-      const trackSize = radialSize / Math.max(seriesCount, 1)
-      const outerRadius = radialSize - i * trackSize
-      const innerRadius = outerRadius - trackSize
-      const ringRadius = (outerRadius + innerRadius) / 2
-
-      const centroid = Utils.polarToCartesian(
-        centerX,
-        centerY,
-        ringRadius,
-        midAngle,
-      )
-      const x = centroid.x + (w.layout.translateX || 0)
-      const y = centroid.y + (w.layout.translateY || 0)
-
-      const pos = ttCtx.tooltipPosition.placeOverAnchor(
-        x,
-        y,
         ttWidth,
         ttHeight,
         10,
@@ -1737,9 +1645,7 @@ export default class KeyboardNavigation {
     }
 
     if (type === 'radialBar') {
-      return baseEl.querySelector(
-        `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`,
-      )
+      return baseEl.querySelector(`.apexcharts-radialbar-slice-${i}`)
     }
 
     if (this._isBarLikeSeries(i)) {
@@ -1816,8 +1722,9 @@ export default class KeyboardNavigation {
     if (type === 'pie' || type === 'donut' || type === 'polarArea') {
       return w.seriesData.series.length
     }
-    const series = w.seriesData.series
-    return series[si] && Array.isArray(series[si]) ? series[si].length : 0
+    // A radialBar ring is a series of one value
+    const s = w.seriesData.series[si]
+    return Array.isArray(s) ? s.length : 1
   }
 
   _clampCursor() {
