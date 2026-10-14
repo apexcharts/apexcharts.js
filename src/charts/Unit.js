@@ -146,13 +146,15 @@ function springParams(preset, speed) {
  * @property {number} cy0 start y
  * @property {number} delay stagger delay (ms) before this dot starts moving
  * @property {boolean} isEnter true when the dot has no previous slot
+ * @property {boolean} [pair] launches with the next dot (a waffle track cell
+ *   and the cell on it)
  * @property {any} spec this mark's placement/draw spec (see Unit#_place). The
  *   frame loop switches on `spec.pk` rather than on a chart-wide shape, which
  *   is what lets one population mix circles and pictograms.
  * @property {string} [key] identity key, used to carry live spring state
  *   across a gather that was interrupted by a re-render
- * @property {number} [r0]
- * @property {number} [r1]
+ * @property {number} r0 size (radius) it starts at
+ * @property {number} r1 size (radius) it lands at
  * @property {string} [fill0]
  * @property {string} [fill1]
  * @property {number[]|null} [_c0]
@@ -193,6 +195,11 @@ export default class Unit {
     const graphics = new Graphics(w, this.ctx)
 
     const ret = graphics.group({ class: 'apexcharts-unit' })
+    // The previous render's loops animate nodes this render just replaced,
+    // whether or not this one animates.
+    BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0)
+    BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0)
+    w.globals.unitGatherRAF = w.globals.unitExitRAF = null
     if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret
     }
@@ -262,9 +269,6 @@ export default class Unit {
                   ? this._layoutCustom(counts, opts)
                   : this._layoutGrouped(counts, opts)
 
-    // Small-multiple waffles paint a faint track backdrop (the "of N" cells)
-    // behind every tile's filled dots, and carry a per-tile label.
-    if (gridSplit) this._drawGridTrack(ret, graphics, opts)
     // Scatter (beeswarm) paints its value X axis + category lanes behind the dots.
     if (layout === 'scatter') this._drawScatterAxes(ret, graphics)
 
@@ -340,7 +344,67 @@ export default class Unit {
     // mode so a dot is identified by its global order, not its category slot.
     let gIndex = 0
     const seen = new Map()
-    clusters.forEach((cluster) => {
+
+    // Small-multiple waffles paint a faint track backdrop (the "of N" cells)
+    // behind every tile's filled dots, and carry a per-tile label. Each track
+    // cell is keyed by its physical slot like the filled cell on it and rides
+    // the same transition, so a re-tiled waffle moves its backdrop with its
+    // cells; it is queued just before that cell and launches with it.
+    const track = (gridSplit && this._gridTrack && this._gridTrack.cells) || []
+    const trackG = graphics.group({ class: 'apexcharts-unit-track' })
+    if (track.length) ret.add(trackG)
+    const trackFill = (opts.grid && opts.grid.trackColor) || 'rgba(128,128,128,0.14)'
+    const trackSpec = this._baseSpec({ shape: opts.shape === 'square' && 'square' }, dotR)
+    const perTile = track.length / Math.max(1, clusters.length)
+    const live = this.ctx && this.ctx._unitSprings
+    // Glide a track cell or tile label with its tile's cells, from where it was
+    // (or fading in), queued at `at`. One resting on its slot (no move, no
+    // spring still in flight) stays put.
+    /**
+     * @param {any} node @param {any} spec @param {number} x @param {number} y
+     * @param {string} key @param {number} r @param {number} at @param {boolean} pair
+     */
+    const glide = (node, spec, x, y, key, r, at, pair) => {
+      const from = prev && prev.get(key)
+      const s = live && live.get(key)
+      const still =
+        from &&
+        from.x === x &&
+        from.y === y &&
+        from.r === r &&
+        (!s || (s.x.value === x && s.y.value === y))
+      nextPrev.set(key, { x, y, fill: trackFill, r, spec })
+      if (prev && animate && !pieceTakeover && !still) {
+        const cx0 = from ? from.x : x
+        const cy0 = from ? from.y : y
+        node.style.opacity = from ? '1' : '0'
+        this._place(node, spec, cx0, cy0)
+        animDots.splice(at, 0, {
+          node,
+          spec,
+          x,
+          y,
+          cx0,
+          cy0,
+          key,
+          r0: from && from.r != null ? from.r : r,
+          r1: r,
+          delay: 0,
+          isEnter: !from,
+          pair,
+        })
+      } else {
+        this._place(node, spec, x, y)
+      }
+    }
+    const ride = (/** @type {number} */ k, /** @type {boolean} */ pair) => {
+      const el = this._drawDot(graphics, opts, dotR, trackFill, -1, 0, trackSpec)
+      el.node.classList.add('apexcharts-unit-track-cell')
+      trackG.add(el)
+      glide(el.node, trackSpec, track[k].x, track[k].y, 'trk:' + k, dotR, animDots.length, pair)
+    }
+
+    clusters.forEach((cluster, ci) => {
       const color = w.globals.colors[cluster.i] || w.globals.colors[0] || '#008FFB'
       const elSeries = graphics.group({
         class: 'apexcharts-series',
@@ -354,7 +418,9 @@ export default class Unit {
       const burstCount = cluster.dots.length
       const catData = unitData[cluster.i]
 
+      const at = animDots.length
       cluster.dots.forEach((d, jj) => {
+        if (track.length) ride(ci * perTile + jj, true)
         // The mark's own dataPointIndex where the layout carried one (a custom
         // provider may omit marks, which would otherwise shift every later
         // datum by one), else its position in the cluster.
@@ -436,9 +502,12 @@ export default class Unit {
           // from a centre).
           const enter = (opts.gather && opts.gather.enter) || 'burst'
           const inPlace = gridSplit || enter === 'fade' || enter === 'rise'
-          const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx
-          const cy0 = anchor
-            ? anchor.y
+          // A waffle cell filling in starts on its track cell, wherever that
+          // was, so the two travel together.
+          const start = anchor || (gridSplit && prev && prev.get('trk:' + d.slot))
+          const cx0 = start ? start.x : inPlace ? d.x : cluster.cx
+          const cy0 = start
+            ? start.y
             : enter === 'rise' && !gridSplit
               ? d.y + 14
               : inPlace
@@ -472,6 +541,8 @@ export default class Unit {
           this._place(el.node, spec, d.x, d.y)
         }
       })
+      // The tile's unfilled track cells.
+      for (let k = cluster.dots.length; k < perTile; k++) ride(ci * perTile + k, false)
 
       // Per-cluster label: a curved arc over a 'grouped' blob, a straight label
       // by a 'columns' bar, or a straight per-tile label on a small-multiple
@@ -487,7 +558,14 @@ export default class Unit {
         counts[cluster.i] > 0
       ) {
         const labelTotal = gridSplit ? this._gridDenom : total
-        this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color)
+        const t = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color)
+        // A tile label rides with its cells (kept out of the exit ghosts).
+        if (t && gridSplit) {
+          const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 }
+          const lx = +(t.getAttribute('x') || 0)
+          const ly = +(t.getAttribute('y') || 0)
+          glide(t, spec, lx, ly, 'lbl:' + cluster.i, 0, at, animDots.length > at)
+        }
       }
 
       ret.add(elSeries)
@@ -1345,7 +1423,7 @@ export default class Unit {
    * value over a denominator (`grid.max`, else the largest count so the leader
    * fills its tile and every other tile stays proportionally full - no empty
    * tiles for arbitrary data). The unfilled cells are drawn as a faint TRACK
-   * backdrop (see _drawGridTrack) so each tile reads as a part-to-whole "of N".
+   * backdrop (drawn by draw()) so each tile reads as a part-to-whole "of N".
    * Only VISIBLE (non-zero) categories claim a tile, so a legend hide drops the
    * tile and the rest re-flow. Each filled cell is keyed by a physical
    * `tile*cells + localCell` slot, so a value change grows/shrinks a tile's fill
@@ -1459,41 +1537,6 @@ export default class Unit {
     this._gridDenom = denom
     this._gridTrack = { cells: track }
     return clusters
-  }
-
-  /**
-   * Draw the faint "track" backdrop for the small-multiple grid: every cell of
-   * every tile's full lattice, so the filled (coloured) cells drawn on top read
-   * as a fraction of the whole. Static (redrawn each render, never animated);
-   * painted BEHIND the series groups. `grid.trackColor` overrides the default
-   * theme-neutral grey.
-   * @param {any} ret @param {Graphics} graphics @param {any} opts
-   */
-  _drawGridTrack(ret, graphics, opts) {
-    const track = this._gridTrack
-    if (!track || !track.cells || !track.cells.length) return
-    const r = this._lastDotR
-    const gcfg = opts.grid || {}
-    const trackColor = gcfg.trackColor || 'rgba(128,128,128,0.14)'
-    const g = graphics.group({ class: 'apexcharts-unit-track' })
-    track.cells.forEach((c) => {
-      let el
-      if (opts.shape === 'square') {
-        const side = r * 2
-        el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, trackColor, 1, 0, 'none')
-        el.node.setAttribute('fill', trackColor)
-        el.node.setAttribute('x', String(c.x - r))
-        el.node.setAttribute('y', String(c.y - r))
-      } else {
-        el = graphics.drawCircle(r, { fill: trackColor, 'stroke-width': 0, stroke: 'none' })
-        el.node.setAttribute('fill', trackColor)
-        el.node.setAttribute('cx', String(c.x))
-        el.node.setAttribute('cy', String(c.y))
-      }
-      el.node.classList.add('apexcharts-unit-track-cell')
-      g.add(el)
-    })
-    ret.add(g)
   }
 
   /**
@@ -2606,22 +2649,40 @@ export default class Unit {
    *
    * @param {SVGElement} node @param {UnitMarkSpec} spec
    * @param {number} x @param {number} y
+   * @param {number} [k] scale against the spec's size, while a size tweens
    */
-  _place(node, spec, x, y) {
+  _place(node, spec, x, y, k = 1) {
     // One typedef covers all three kinds, so every per-kind field is optional
     // on it. The `pk` switch is what makes them present.
     const s = /** @type {any} */ (spec)
     if (s.pk === PK_GLYPH) {
       node.setAttribute(
         'transform',
-        'translate(' + (x - s.ox) + ',' + (y - s.oy) + s.tail,
+        'translate(' +
+          (x - s.ox * k) +
+          ',' +
+          (y - s.oy * k) +
+          (k === 1 ? s.tail : ') scale(' + s.s * k + ')'),
       )
     } else if (s.pk === PK_CORNER) {
-      node.setAttribute('x', String(x - s.hx))
-      node.setAttribute('y', String(y - s.hy))
+      node.setAttribute('x', String(x - s.hx * k))
+      node.setAttribute('y', String(y - s.hy * k))
     } else {
       node.setAttribute('cx', String(x))
       node.setAttribute('cy', String(y))
+    }
+  }
+
+  /**
+   * Size one mark at `k` times its spec's size (a glyph scales in `_place`).
+   * @param {SVGElement} node @param {UnitMarkSpec} spec @param {number} k
+   */
+  _size(node, spec, k) {
+    const s = /** @type {any} */ (spec)
+    if (s.pk === PK_CIRCLE) node.setAttribute('r', String(s.r * k))
+    else if (s.pk === PK_CORNER) {
+      node.setAttribute('width', String(2 * s.hx * k))
+      node.setAttribute('height', String(2 * s.hy * k))
     }
   }
 
@@ -2992,6 +3053,15 @@ export default class Unit {
   }
 
   /**
+   * True once a loop's node no longer belongs to this chart's live SVG.
+   * @param {Element} node @returns {boolean}
+   */
+  _stale(node) {
+    const P = this.w.dom.Paper
+    return !!this.w.globals.isDestroyed || !P || !P.node.contains(node)
+  }
+
+  /**
    * One rAF loop that tweens every dot from its start (cx0/cy0 - either the
    * cluster centre on first mount / for entering dots, or its previous slot on
    * an update) to its target slot, staggered by index. Entering dots fade in;
@@ -3022,8 +3092,12 @@ export default class Unit {
     // quickly. Dots animate outward roughly centre-first.
     const maxDelay = Math.min(speed * 0.6, 450)
     const n = dots.length
-    for (let k = 0; k < n; k++) {
-      dots[k].delay = n > 1 ? (k / (n - 1)) * maxDelay : 0
+    for (let k = n; k--; ) {
+      dots[k].delay = dots[k].pair
+        ? dots[k + 1].delay
+        : n > 1
+          ? (k / (n - 1)) * maxDelay
+          : 0
     }
 
     const gcfg = opts.gather || {}
@@ -3041,15 +3115,13 @@ export default class Unit {
     // the positions, so switching motion at runtime cannot resurrect them.
     else if (this.ctx) this.ctx._unitSprings = null
 
-    // Seed the starting radius for size-changing circles so they grow from the
-    // previous size instead of flashing at the new one for a frame. (The old
-    // "seed initial corner" pass that stood here is gone: it rewrote exactly
-    // what draw()'s _placeDot had already written, and what _seedSprings
-    // rewrites again for a carried spring.)
+    // Seed the starting size of size-changing marks so they grow from the
+    // previous size instead of flashing at the new one for a frame.
     for (let k = 0; k < n; k++) {
       const d = dots[k]
-      if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-        d.node.setAttribute('r', String(d.r0))
+      if (d.r0 !== d.r1) {
+        this._size(d.node, d.spec, d.r0 / d.r1)
+        this._place(d.node, d.spec, d.cx0, d.cy0, d.r0 / d.r1)
       }
     }
 
@@ -3077,23 +3149,16 @@ export default class Unit {
           ? easeInOutCubic
           : easeOutCubic
 
-    // Cancel a gather loop still running from a previous render before starting
-    // a new one, so we don't keep animating the old (detached) dots on a rapid
-    // update.
-    if (this.w.globals.unitGatherRAF != null) {
-      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitGatherRAF)
-      this.w.globals.unitGatherRAF = null
-    }
+    // draw() already cancelled the previous render's loop.
     const start = performance.now()
     let last = start
     /** @param {number} now */
     const stepFn = (now) => {
-      // Bail if the chart was destroyed mid-gather (route change / re-render):
-      // the dots are detached and setAttribute on them is wasted work. Matches
-      // Animations.animatePop.
-      if (this.w.globals.isDestroyed) {
+      // Bail once the chart is destroyed or another chart type rendered in its
+      // place (no unit draw cancelled this loop). A detached container is not
+      // a bail: the loop must still settle every dot.
+      if (this._stale(dots[0].node)) {
         this.w.globals.unitGatherRAF = null
-        this.w.globals.animationEnded = true
         return
       }
       const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1000))
@@ -3125,7 +3190,13 @@ export default class Unit {
           cx = d.cx0 + (d.x - d.cx0) * e
           cy = d.cy0 + (d.y - d.cy0) * e
         }
-        this._place(d.node, d.spec, cx, cy)
+        // Grow/shrink marks whose size changed (bubble sizing, a re-fit).
+        let sk = 1
+        if (d.r0 !== d.r1) {
+          sk = (d.r0 + (d.r1 - d.r0) * ec) / d.r1
+          this._size(d.node, d.spec, sk)
+        }
+        this._place(d.node, d.spec, cx, cy, sk)
         // Entering dots fade in over the first stretch; moving dots stay solid.
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5))
         // Cross-fade the fill for dots that changed group colour.
@@ -3135,30 +3206,17 @@ export default class Unit {
           const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec)
           d.node.setAttribute('fill', `rgb(${cr},${cg},${cb})`)
         }
-        // Grow/shrink circles whose radius changed (bubble sizing).
-        if (
-          d.spec.pk === PK_CIRCLE &&
-          d.r0 != null &&
-          d.r1 != null &&
-          d.r0 !== d.r1
-        ) {
-          d.node.setAttribute('r', String(d.r0 + (d.r1 - d.r0) * ec))
-        }
         if (t < 1) done = false
       }
       if (done) {
         for (let k = 0; k < n; k++) {
           const d = dots[k]
           d.node.style.opacity = ''
-          // Settle on the exact target colour + radius (undo rounding drift).
+          // Settle on the exact target colour + size (undo rounding drift).
           if (d._c1 && d.fill1) d.node.setAttribute('fill', d.fill1)
-          if (
-            d.spec.pk === PK_CIRCLE &&
-            d.r0 != null &&
-            d.r1 != null &&
-            d.r0 !== d.r1
-          ) {
-            d.node.setAttribute('r', String(d.r1))
+          if (d.r0 !== d.r1) {
+            this._size(d.node, d.spec, 1)
+            this._place(d.node, d.spec, d.x, d.y)
           }
         }
         this.w.globals.unitGatherRAF = null
@@ -3188,7 +3246,8 @@ export default class Unit {
     /** @type {{x:number,y:number,fill:string,r?:number,spec?:any}[]} */
     const exits = []
     for (const [key, slot] of prev) {
-      if (!nextPrev.has(key)) {
+      // A tile label ('lbl:') has no mark to leave as a ghost.
+      if (!nextPrev.has(key) && key[0] !== 'l') {
         exits.push(slot)
         if (exits.length >= cap) break
       }
@@ -3244,18 +3303,12 @@ export default class Unit {
     }
 
     const speed = Math.max(1, w.config.chart.animations.speed || 800)
-    // Cancel an exit loop still running from a previous render before starting a
-    // new one, so stale ghosts don't keep fading on a rapid update.
-    if (this.w.globals.unitExitRAF != null) {
-      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF)
-      this.w.globals.unitExitRAF = null
-    }
     const start = performance.now()
 
     /** @param {number} now */
     const stepFn = (now) => {
-      // Bail if the chart was destroyed mid-exit (the ghost group is detached).
-      if (this.w.globals.isDestroyed) {
+      // Bail once the chart is destroyed or replaced (see _runGather).
+      if (this._stale(group.node)) {
         this.w.globals.unitExitRAF = null
         return
       }
@@ -3519,6 +3572,7 @@ export default class Unit {
    * the blob in either direction.
    * @param {any} elSeries @param {{ i:number, cx:number, cy:number, outerR:number, flat?:boolean }} cluster
    * @param {number} value @param {number} total @param {any} opts @param {string} color
+   * @returns {SVGElement|undefined}
    */
   _drawClusterLabel(elSeries, cluster, value, total, opts, color) {
     const w = this.w
@@ -3604,5 +3658,6 @@ export default class Unit {
     }
 
     elSeries.node.appendChild(textEl)
+    return /** @type {any} */ (textEl)
   }
 }

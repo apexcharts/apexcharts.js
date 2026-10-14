@@ -446,6 +446,10 @@ export default class Core {
     const { config: cnf, globals: gl } = w
     const { line, boxCandlestick, violin } = renderers
 
+    // A unit chart tweens from the slots of the last render; once another type
+    // has drawn over them they are not on screen to tween from.
+    if (cnf.chart.type !== 'unit') ctx._unitPrevDots = null
+
     let elGraph = []
 
     if (gl.comboCharts) {
