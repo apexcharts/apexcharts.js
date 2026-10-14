@@ -621,11 +621,9 @@ class CoreUtils {
       zRatio = 1
     }
 
-    if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-      // Negative numbers present in series
-      const _hasNegsGl = /** @type {any} */ (gl)
-      _hasNegsGl.hasNegs = true
-    }
+    // Negative numbers present in series; reassigned so an update clears it
+    const _hasNegsGl = /** @type {any} */ (gl)
+    _hasNegsGl.hasNegs = gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0
 
     // Check we have a map as series may still to be added/updated.
     if (w.globals.seriesYAxisReverseMap.length > 0) {
