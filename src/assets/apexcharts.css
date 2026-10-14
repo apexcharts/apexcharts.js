@@ -1040,6 +1040,41 @@ rect.legend-mouseover-inactive,
   cursor: move
 }
 
+.apexcharts-wheel-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.apexcharts-wheel-hint-visible {
+  opacity: 1;
+}
+
+.apexcharts-wheel-hint span {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+  background: rgba(28, 28, 31, 0.82);
+}
+
+.apexcharts-theme-dark .apexcharts-wheel-hint span {
+  color: #1c1c1f;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apexcharts-wheel-hint {
+    transition: none;
+  }
+}
+
 .apexcharts-menu-icon,
 .apexcharts-measure-icon,
 .apexcharts-pan-icon,

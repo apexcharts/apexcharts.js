@@ -117,10 +117,12 @@ test.describe('Scatter jitter band axis under zoom', () => {
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
     })
     await page.mouse.move(grid.x, grid.y)
+    await page.keyboard.down('Control') // the default wheel is cooperative
     await page.mouse.wheel(0, -120) // in
     await page.waitForTimeout(600)
     await page.mouse.wheel(0, 120) // out
     await page.waitForTimeout(600)
+    await page.keyboard.up('Control')
 
     const result = await page.evaluate(() => ({
       minX: window.chart.w.globals.minX,

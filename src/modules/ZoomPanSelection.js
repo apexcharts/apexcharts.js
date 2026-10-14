@@ -5,6 +5,7 @@ import Toolbar from './Toolbar'
 import AxisMapping from './AxisMapping'
 import TooltipUtils from './tooltip/Utils'
 import { Box } from '../svg/index'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 // Wheel-zoom feel: scrolling this many deltaY pixels doubles (or halves) the
 // visible x-window. 240px is about two discrete wheel notches per 2x zoom
@@ -381,6 +382,67 @@ export default class ZoomPanSelection extends Toolbar {
     return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom)
   }
 
+  /** An explicit `true` zooms on every wheel; 'auto' needs Ctrl/Cmd. */
+  _wheelZoomGreedy() {
+    return this.w.config.chart.zoom.allowMouseWheelZoom === true
+  }
+
+  /**
+   * Tell a viewer whose bare wheel just scrolled past the chart how to zoom it.
+   * Shown over the chart while the scroll goes on and faded out shortly after
+   * it stops. Only for a mostly vertical wheel: a sideways trackpad swipe is
+   * not someone reaching for zoom.
+   *
+   * The node lives in elWrap and the timer on w.interact, since a re-render can
+   * replace both this instance and the wrapper's contents while it is up.
+   *
+   * @param {any} e
+   */
+  _showWheelHint(e) {
+    const w = this.w
+    if (w.config.chart.zoom.wheelHint === false) return
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+    const wrap = w.dom.elWrap
+    if (!wrap) return
+
+    let el = wrap.querySelector('.apexcharts-wheel-hint')
+    if (!el) {
+      const win = BrowserAPIs.getWindow()
+      const nav = win && win.navigator
+      const mac = !!nav && /Mac|iPhone|iPad/.test(nav.platform || nav.userAgent)
+      const text = (w.globals.locale.toolbar.wheelZoomHint || '').replace(
+        '{key}',
+        mac ? '⌘' : 'Ctrl',
+      )
+      el = BrowserAPIs.createElement('div')
+      el.className = 'apexcharts-wheel-hint'
+      el.setAttribute('aria-hidden', 'true')
+      const label = BrowserAPIs.createElement('span')
+      label.textContent = text
+      label.style.fontFamily = w.config.chart.fontFamily
+      el.appendChild(label)
+      wrap.appendChild(el)
+      // lay the hidden state out before showing it, so it fades in
+      void (/** @type {HTMLElement} */ (el).offsetWidth)
+    }
+    el.classList.add('apexcharts-wheel-hint-visible')
+
+    const it = w.interact
+    if (it.wheelHintTimer) clearTimeout(it.wheelHintTimer)
+    it.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200)
+  }
+
+  _hideWheelHint() {
+    const w = this.w
+    const it = w.interact
+    if (it.wheelHintTimer) {
+      clearTimeout(it.wheelHintTimer)
+      it.wheelHintTimer = null
+    }
+    const el = w.dom.elWrap?.querySelector('.apexcharts-wheel-hint')
+    if (el) el.classList.remove('apexcharts-wheel-hint-visible')
+  }
+
   /**
    * Put keyboard focus on the chart, where the chart is focusable at all.
    *
@@ -454,9 +516,27 @@ export default class ZoomPanSelection extends Toolbar {
    * @param {any} e
    */
   mouseWheelEvent(e) {
-    e.preventDefault()
-
     const st = this._wheel()
+
+    // Cooperative wheel ('auto'): a bare wheel belongs to the page, so a
+    // dashboard of charts scrolls past them instead of zooming each one it
+    // crosses. Ctrl/Cmd + wheel zooms, and so does a trackpad pinch, which
+    // browsers deliver as a wheel event with ctrlKey set. Once a zoom gesture
+    // is under way it keeps the wheel until it settles, so a trackpad's
+    // momentum tail after the key comes up does not spill into a page scroll.
+    // An explicit `true` keeps the greedy wheel (every scroll zooms).
+    if (
+      !this._wheelZoomGreedy() &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      st.endTimer == null
+    ) {
+      this._showWheelHint(e)
+      return
+    }
+
+    e.preventDefault()
+    this._hideWheelHint()
 
     // normalize the delta to pixels (deltaMode 1 = lines, 2 = pages)
     let dy = e.deltaY

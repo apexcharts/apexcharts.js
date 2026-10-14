@@ -2236,13 +2236,21 @@ type ApexChart = {
     type?: 'x' | 'y' | 'xy'
     autoScaleYaxis?: boolean
     /**
-     * Cursor-anchored zoom on mouse wheel / trackpad. `'auto'` enables it only
-     * when the toolbar's reset button is present, so an unintended scroll-zoom
-     * is always undoable; `true` forces it on even with the toolbar hidden.
-     * Requires `enabled: true`.
+     * Cursor-anchored zoom on mouse wheel / trackpad. `'auto'` is cooperative:
+     * a bare wheel scrolls the page, and Ctrl/Cmd + wheel (or a trackpad
+     * pinch) zooms. It is offered only when the toolbar's reset button is
+     * present, so a zoom is always undoable. `true` zooms on every wheel, even
+     * with the toolbar hidden. Requires `enabled: true`.
      * @default 'auto'
      */
     allowMouseWheelZoom?: boolean | 'auto'
+    /**
+     * With the cooperative `'auto'` wheel, a bare scroll over the chart
+     * briefly shows how to zoom it. The text is the locale's
+     * `toolbar.wheelZoomHint`, where `{key}` becomes Ctrl or ⌘.
+     * @default true
+     */
+    wheelHint?: boolean
     /**
      * Momentum: enable two-finger pinch-zoom on touch devices. Zooms the x-axis
      * around the pinch centroid, frame-by-frame. `'auto'` enables it only when
@@ -2869,6 +2877,8 @@ type ApexLocale = {
       exportToSVG?: string
       exportToPNG?: string
       exportToCSV?: string
+      /** The cooperative wheel's hint; `{key}` becomes Ctrl or ⌘. Default 'Use {key} + scroll to zoom'. */
+      wheelZoomHint?: string
     }
     /** The highlight filter add-on's words. */
     highlightFilter?: {

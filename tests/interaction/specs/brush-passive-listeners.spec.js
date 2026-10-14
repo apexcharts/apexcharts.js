@@ -188,11 +188,17 @@ test.describe('Brush selection fires no passive-listener intervention (#3533)', 
   }) => {
     await brush()
 
-    for (const sel of ['#chart2', '#chart1']) {
-      const b = await page.locator(sel).boundingBox()
-      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
-      await page.mouse.wheel(0, -180)
-      await page.waitForTimeout(180)
+    // with and without Ctrl: the cooperative wheel's page-scroll path and its
+    // zoom path (the one that calls preventDefault)
+    for (const ctrl of [false, true]) {
+      if (ctrl) await page.keyboard.down('Control')
+      for (const sel of ['#chart2', '#chart1']) {
+        const b = await page.locator(sel).boundingBox()
+        await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
+        await page.mouse.wheel(0, -180)
+        await page.waitForTimeout(180)
+      }
+      if (ctrl) await page.keyboard.up('Control')
     }
 
     expect(interventions(messages)).toEqual([])

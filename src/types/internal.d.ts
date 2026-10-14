@@ -110,6 +110,8 @@ export interface InteractState {
     rafId: number | null
     endTimer: any
   }
+  // Cooperative wheel: fade-out timer for the "Ctrl + scroll to zoom" hint.
+  wheelHintTimer?: any
 }
 
 /** Label formatter functions — lives on `w.formatters` */

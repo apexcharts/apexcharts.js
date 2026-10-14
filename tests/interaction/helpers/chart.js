@@ -193,15 +193,17 @@ export async function dragOnChart(page, from, to, steps = 5) {
 }
 
 /**
- * Dispatch a wheel event on the chart SVG.
+ * Dispatch a wheel event on the chart SVG. Ctrl is held by default, since the
+ * default ('auto') wheel is cooperative and leaves a bare wheel to the page.
  *
  * @param {import('@playwright/test').Page} page
  * @param {{ x: number, y: number }} pos — SVG-relative position of mouse
  * @param {number} deltaY — negative = zoom in, positive = zoom out
+ * @param {{ ctrlKey?: boolean }} [opts]
  */
-export async function wheelOnChart(page, pos, deltaY) {
+export async function wheelOnChart(page, pos, deltaY, { ctrlKey = true } = {}) {
   await page.evaluate(
-    ({ pos, deltaY }) => {
+    ({ pos, deltaY, ctrlKey }) => {
       const svg = document.querySelector('.apexcharts-svg')
       const rect = svg.getBoundingClientRect()
       svg.dispatchEvent(
@@ -211,10 +213,11 @@ export async function wheelOnChart(page, pos, deltaY) {
           clientX: rect.left + pos.x,
           clientY: rect.top + pos.y,
           deltaY,
+          ctrlKey,
         }),
       )
     },
-    { pos, deltaY },
+    { pos, deltaY, ctrlKey },
   )
   await page.waitForTimeout(300)
 }

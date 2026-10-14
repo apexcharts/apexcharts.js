@@ -355,6 +355,7 @@ test.describe('Zoom and selection are measured from the plot corner', () => {
               clientX: cx,
               clientY: cy,
               deltaY: -120,
+              ctrlKey: true,
             }),
           )
         },

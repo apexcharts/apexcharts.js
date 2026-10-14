@@ -70,6 +70,30 @@ describe("incidental zoom gestures — 'auto' follows the reset affordance", () 
     expect(gestures(chart)).toEqual({ wheel: false, pinch: false })
   })
 
+  test("'auto' is the cooperative wheel; only an explicit true is greedy", () => {
+    expect(lineChart().zoomPanSelection._wheelZoomGreedy()).toBe(false)
+    expect(lineChart().w.config.chart.zoom.wheelHint).toBe(true)
+    expect(
+      lineChart({ zoom: { allowMouseWheelZoom: true } }).zoomPanSelection
+        ._wheelZoomGreedy(),
+    ).toBe(true)
+  })
+
+  test('the hint text comes from the locale, with a fallback for old locales', () => {
+    expect(lineChart().w.globals.locale.toolbar.wheelZoomHint).toBe(
+      'Use {key} + scroll to zoom',
+    )
+    // a locale written before the key existed falls back to English
+    const chart = lineChart({
+      locales: [{ name: 'xx', options: { toolbar: { reset: 'R' } } }],
+      defaultLocale: 'xx',
+    })
+    expect(chart.w.globals.locale.toolbar.reset).toBe('R')
+    expect(chart.w.globals.locale.toolbar.wheelZoomHint).toBe(
+      'Use {key} + scroll to zoom',
+    )
+  })
+
   test('zoom.enabled: false withholds both however they are set', () => {
     const chart = lineChart({
       zoom: { enabled: false, allowMouseWheelZoom: true, pinch: true },

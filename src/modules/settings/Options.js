@@ -788,7 +788,14 @@ export default class Options {
           // asked for and nobody can undo is a trap. Set either to true to
           // force the gesture on regardless (for a page that supplies its own
           // reset control), or false to turn it off outright.
+          //
+          // The 'auto' wheel is also cooperative: a bare wheel scrolls the
+          // page, and Ctrl/Cmd + wheel (or a trackpad pinch) zooms, so a page
+          // of charts scrolls past them. `true` zooms on every wheel.
           allowMouseWheelZoom: 'auto',
+          // With the cooperative wheel, a bare scroll over the chart briefly
+          // shows how to zoom it ("Use Ctrl + scroll to zoom").
+          wheelHint: true,
           // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
           // around the pinch centroid (matching the x-only wheel/toolbar zoom),
           // frame-by-frame rather than the 400ms wheel throttle.
