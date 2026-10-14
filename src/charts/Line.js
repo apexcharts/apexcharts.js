@@ -111,6 +111,25 @@ class Line {
     // We call draw() for each series group
     this.prevSeriesY = []
     this.prevSeriesYByX = new Map()
+    // Ragged stacked x: the sorted union of the shown series' x, so each edge
+    // can pass through the stack at an x it lacks (see _iterateOverDataPoints)
+    /** @type {any[] | null} */
+    this._stackXs = null
+    if (w.config.chart.stacked && w.axisFlags.isXNumeric) {
+      const xs = series
+        .map((_, i) =>
+          w.globals.comboCharts ? /** @type {any} */ (seriesIndex)[i] : i,
+        )
+        .filter((ri) => !this._hidden(ri))
+        .map((ri) => w.seriesData.seriesX[ri] || [])
+      if (
+        xs.some(
+          (a) => a.length !== xs[0].length || a.some((v, k) => v !== xs[0][k]),
+        )
+      ) {
+        this._stackXs = [...new Set(xs.flat())].sort((a, b) => a - b)
+      }
+    }
 
     // push all series in an array, so we can draw in reverse order
     // (for stacked charts)
@@ -385,12 +404,7 @@ class Line {
     // (LengthTransition.shrinkCollapsingMarkers).
     if (w.config.chart.stacked || this.pointsChart) return null
     if (!Array.isArray(series[i]) || series[i].length !== 0) return null
-    if (
-      gl.collapsedSeriesIndices.indexOf(realIndex) === -1 &&
-      gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) === -1
-    ) {
-      return null
-    }
+    if (!this._hidden(realIndex)) return null
     const n = w.axisFlags.isXNumeric
       ? (w.seriesData.seriesX[realIndex] || []).length
       : gl.dataPoints
@@ -572,6 +586,15 @@ class Line {
     return this.prevSeriesYByX.get(key)
   }
 
+  /** @param {number} ri */
+  _hidden(ri) {
+    const g = this.w.globals
+    return (
+      g.collapsedSeriesIndices.indexOf(ri) > -1 ||
+      g.ancillaryCollapsedSeriesIndices.indexOf(ri) > -1
+    )
+  }
+
   /**
    * Fold a drawn series into the running stack top, so the next series can find
    * its baseline by x (#4886).
@@ -599,12 +622,7 @@ class Line {
     // Map write per point: 4.7ms per update on a 50k line that is not stacked.
     if (!w.config.chart.stacked) return
     if (!Array.isArray(yArrj)) return
-    if (
-      w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 ||
-      w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1
-    ) {
-      return
-    }
+    if (this._hidden(realIndex)) return
 
     for (let j = 0; j < yArrj.length; j++) {
       const key = this._stackKey(realIndex, j)
@@ -1027,6 +1045,15 @@ class Line {
       if (fast) return fast
     }
 
+    // Between two of its points a ragged stacked series contributes 0 at any
+    // x it lacks, so its edge passes through the stack top there (the axis
+    // when nothing below has that x), or the layers cross. midsAt[j] holds
+    // those vertices before point j.
+    const ks = stackSeries ? this._stackXs : null
+    let kp = 0
+    /** @type {any[][]} */
+    const midsAt = []
+
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break
 
@@ -1034,12 +1061,24 @@ class Line {
         typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
 
       if (w.axisFlags.isXNumeric) {
-        let sX = w.seriesData.seriesX[realIndex][j + 1]
-        if (typeof w.seriesData.seriesX[realIndex][j + 1] === 'undefined') {
+        const sxs = w.seriesData.seriesX[realIndex]
+        let sX = sxs[j + 1]
+        if (typeof sX === 'undefined') {
           /* fix #374 */
-          sX = w.seriesData.seriesX[realIndex][iterations - 1]
+          sX = sxs[iterations - 1]
         }
         x = (sX - w.globals.minX) / this.xRatio
+        if (ks) {
+          const m = []
+          while (ks[kp] <= sxs[j]) kp++
+          while (ks[kp] < sX) {
+            m.push([
+              (ks[kp] - w.globals.minX) / this.xRatio,
+              this.prevSeriesYByX.get(ks[kp++]) ?? this.zeroY,
+            ])
+          }
+          if (m.length) midsAt[j + 1] = m
+        }
       } else {
         x = x + this.xDivision
       }
@@ -1087,12 +1126,7 @@ class Line {
           const prevIndex = (pi) => {
             for (let pii = pi; pii >= 0; pii--) {
               const ri = seriesIndex?.[pii] ?? pii
-              if (
-                w.globals.collapsedSeriesIndices.indexOf(ri) === -1 &&
-                w.globals.ancillaryCollapsedSeriesIndices.indexOf(ri) === -1
-              ) {
-                return pii
-              }
+              if (!this._hidden(ri)) return pii
             }
             return -1
           }
@@ -1172,6 +1206,7 @@ class Line {
         j,
         x,
         y,
+        midsAt,
         y2,
         xArrj,
         yArrj,
@@ -1478,7 +1513,7 @@ class Line {
     }
   }
 
-  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
+  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, midsAt: any[][], xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
   _createPaths({
     type,
     series,
@@ -1486,6 +1521,7 @@ class Line {
     j,
     x,
     y,
+    midsAt,
     xArrj,
     yArrj,
     y2,
@@ -1505,6 +1541,15 @@ class Line {
     const areaBottomY = this.areaBottomY
     const rangeArea = type === 'rangeArea'
     const isLowerRangeAreaPath = type === 'rangeArea' && isRangeStart
+    const mids = midsAt[j + 1]
+    // one segment per vertex, through any stack tops in between
+    /** @param {(...p: number[]) => string} f */
+    const via = (f) =>
+      mids
+        ? [...mids, [x, y]]
+            .map(([bx, by], k, a) => f(...(k ? a[k - 1] : [pX, pY]), bx, by))
+            .join('')
+        : f(pX, pY, x, y)
 
     switch (curve) {
       case 'monotoneCubic': {
@@ -1586,8 +1631,20 @@ class Line {
           case 2: {
             // Interpolate the full series with nulls excluded then extract the
             // null delimited segments with interpolated points included.
-            const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse()
-            const _yAj = isRangeStart ? yAj : yAj.slice().reverse()
+            let _xAj = isRangeStart ? xArrj : xArrj.slice().reverse()
+            let _yAj = isRangeStart ? yAj : yAj.slice().reverse()
+            if (midsAt.length && !rangeArea) {
+              // fit through the stack tops between points too (see via)
+              /** @type {any[]} */ const P = []
+              _xAj.forEach((/** @type {any} */ v, /** @type {number} */ k) => {
+                if (_yAj[k] !== null && _yAj[k - 1] != null && midsAt[k]) {
+                  P.push(...midsAt[k])
+                }
+                P.push([v, _yAj[k]])
+              })
+              _xAj = P.map((p) => p[0])
+              _yAj = P.map((p) => p[1])
+            }
 
             const smoothInputs = getSmoothInputs(_xAj, _yAj)
             const points =
@@ -1673,7 +1730,16 @@ class Line {
         break
       }
       case 'smooth': {
-        const length = (x - pX) * 0.35
+        /**
+         * @param {number} ax
+         * @param {number} ay
+         * @param {number} bx
+         * @param {number} by
+         */
+        const toPoint = (ax, ay, bx, by) => {
+          const l = (bx - ax) * 0.35
+          return graphics.curve(ax + l, ay, bx - l, by, bx, by)
+        }
         if (series[i][j] === null) {
           pathState = 0
         } else {
@@ -1701,7 +1767,7 @@ class Line {
               }
               pathState = 1
               if (j < series[i].length - 2) {
-                const p = graphics.curve(pX + length, pY, x - length, y, x, y)
+                const p = via(toPoint)
                 linePath += p
                 areaPath += p
                 break
@@ -1724,7 +1790,7 @@ class Line {
                 areaPaths.push(areaPath)
                 pathState = -1
               } else {
-                const p = graphics.curve(pX + length, pY, x - length, y, x, y)
+                const p = via(toPoint)
                 linePath += p
                 areaPath += p
                 if (j >= series[i].length - 2) {
@@ -1753,11 +1819,12 @@ class Line {
       }
       default: {
         /**
-         * @param {string} curve
+         * @param {number} _ax
+         * @param {number} _ay
          * @param {number} x
          * @param {number} y
          */
-        const pathToPoint = (curve, x, y) => {
+        const pathToPoint = (_ax, _ay, x, y) => {
           /** @type {string} */ let path = ''
           switch (curve) {
             case 'stepline':
@@ -1799,7 +1866,7 @@ class Line {
               }
               pathState = 1
               if (j < series[i].length - 2) {
-                const p = pathToPoint(curve, x, y)
+                const p = via(pathToPoint)
                 linePath += p
                 areaPath += p
                 break
@@ -1822,7 +1889,7 @@ class Line {
                 areaPaths.push(areaPath)
                 pathState = -1
               } else {
-                const p = pathToPoint(curve, x, y)
+                const p = via(pathToPoint)
                 linePath += p
                 areaPath += p
                 if (j >= series[i].length - 2) {

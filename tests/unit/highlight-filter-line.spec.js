@@ -412,13 +412,16 @@ describe('stacked area', () => {
     })
     const yRatio = c.w.globals.yRange[0] / c.w.layout.gridHeight
     const zero = c.w.layout.gridHeight
-    const tops = points(partsOf(c, 1)[1].getAttribute('pathTo')).map(
-      (p) => p[1],
-    )
-    // B at d0 and d3 stands on A's 5; at d2, where A has no point, on nothing
-    expect(tops[0]).toBeCloseTo(zero - 7 / yRatio, 1)
-    expect(tops[1]).toBeCloseTo(zero - 2 / yRatio, 1)
-    expect(tops[2]).toBeCloseTo(zero - 7 / yRatio, 1)
+    const tops = (ri) =>
+      points(partsOf(c, ri)[1].getAttribute('pathTo')).map((p) => p[1])
+    // The padded-with-zeros shape: B at d0 and d3 stands on A's 5; at d2,
+    // where A has no point, on nothing, and A's edge dips to the axis there
+    // too. Between d0 and d2 B's edge passes through A's top at d1, where B
+    // has no point and so adds nothing.
+    const sums = (ri, v) =>
+      expect(tops(ri).map((y) => +((zero - y) * yRatio).toFixed(1))).toEqual(v)
+    sums(0, [5, 5, 0, 5])
+    sums(1, [7, 5, 2, 7])
     c.destroy()
   })
 })
