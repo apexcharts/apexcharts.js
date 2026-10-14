@@ -131,6 +131,10 @@ export default class IcicleChart {
     this._roots = buildHierarchy(this.w)
     if (!this._roots.length) return g
     this._roots.forEach((r) => fillValues(r))
+    // Colour before sorting, so a branch keeps its authored palette slot (the
+    // one its legend marker shows) whatever `sort` does to its position.
+    this._nodesAll = []
+    this._colorNodes()
     sortTree(this._roots, this.cfg.sort)
     if (this.cfg.partition === 'strict') {
       validateStrict(this._roots, {
@@ -139,8 +143,6 @@ export default class IcicleChart {
       })
     }
 
-    this._nodesAll = []
-    this._colorNodes()
     this.total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1
     this._tooltip.total = this.total
 
@@ -194,7 +196,7 @@ export default class IcicleChart {
     while (
       level.length === 1 &&
       level[0].children &&
-      level[0].children.length > 1
+      level[0].children.length
     ) {
       trunk.push(level[0])
       level = level[0].children
