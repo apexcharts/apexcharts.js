@@ -74,6 +74,11 @@ class Legend {
     const gl = w.globals
     const cnf = w.config
 
+    // Tear down any previous gradient legend every render, so hiding the
+    // legend does not leave its listeners and repositioning behind.
+    this.heatmapGradientLegend?.destroy()
+    this.heatmapGradientLegend = null
+
     // Recompute each render: the Legend instance is reused across updates, so a
     // value cached in the constructor would go stale when updateOptions changes
     // the type / distributed flag / series count (e.g. a distributed single-series
@@ -104,12 +109,6 @@ class Legend {
       const elLegendWrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
       while (elLegendWrap.firstChild) {
         elLegendWrap.removeChild(elLegendWrap.firstChild)
-      }
-
-      // Tear down any previous gradient-legend listeners before re-rendering.
-      if (this.heatmapGradientLegend) {
-        this.heatmapGradientLegend.destroy()
-        this.heatmapGradientLegend = null
       }
 
       if (HeatmapGradientLegend.isEnabled(w)) {

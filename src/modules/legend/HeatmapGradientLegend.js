@@ -48,6 +48,8 @@ export default class HeatmapGradientLegend {
     this._max = 0
     /** @type {any} */
     this._geom = null
+    /** @type {any} */
+    this._grad = null
     /** @type {any[]} */
     this._bandHitEls = []
     /** @type {number} Currently highlighted band index (-1 = none). */
@@ -58,6 +60,8 @@ export default class HeatmapGradientLegend {
      * @type {HTMLElement|null}
      */
     this._targetEl = null
+    /** @type {(() => any[])|null} detached mode: every panel's w */
+    this.panelsW = null
     this._onCellEnter = this._onCellEnter.bind(this)
     this._onCellLeave = this._onCellLeave.bind(this)
     this._onBandEnter = this._onBandEnter.bind(this)
@@ -217,15 +221,8 @@ export default class HeatmapGradientLegend {
       linearGrad.setAttribute('y2', '0')
     }
 
-    const { min, max, stops, bands } = this._computeStops()
-    this._min = min
-    this._max = max
-    stops.forEach((s) => {
-      const stopEl = BrowserAPIs.createElementNS(SVG_NS, 'stop')
-      stopEl.setAttribute('offset', `${(s.percent * 100).toFixed(2)}%`)
-      stopEl.setAttribute('stop-color', s.color)
-      linearGrad.appendChild(stopEl)
-    })
+    this._grad = linearGrad
+    const { min, max, bands } = this._paintStops()
     defs.appendChild(linearGrad)
     svg.appendChild(defs)
 
@@ -498,6 +495,9 @@ export default class HeatmapGradientLegend {
    * Honors `legend.offsetX/offsetY` for user nudging. Safe to call repeatedly.
    */
   repositionToPlot() {
+    // The cells' y extent and hasNegs exist only now (draw runs before
+    // coreCalculations), so shade the strip again against them.
+    if (this._grad) this._paintStops()
     if (!Environment.isBrowser()) return
     // Detached mode (trellis): the host slot owns layout entirely.
     if (this._targetEl) return
@@ -672,7 +672,7 @@ export default class HeatmapGradientLegend {
     if (idx < 0 || idx === this._activeBandIndex) return
     this._activeBandIndex = idx
     this.ctx?.events?.fireEvent?.('legendHover', [this.ctx, idx, w])
-    new Series(w).highlightRangeInSeries(idx, 'highlight')
+    this._highlightRange(idx, 'highlight')
   }
 
   /** Leaving a band clears the highlight. */
@@ -680,7 +680,18 @@ export default class HeatmapGradientLegend {
     if (this._activeBandIndex < 0) return
     const idx = this._activeBandIndex
     this._activeBandIndex = -1
-    new Series(this.w).highlightRangeInSeries(idx, 'reset')
+    this._highlightRange(idx, 'reset')
+  }
+
+  /**
+   * A shared trellis strip sets `panelsW` so a band reaches every panel.
+   * @param {number} idx
+   * @param {'highlight'|'reset'} action
+   */
+  _highlightRange(idx, action) {
+    ;(this.panelsW?.() || [this.w]).forEach((/** @type {any} */ w) =>
+      new Series(w).highlightRangeInSeries(idx, action),
+    )
   }
 
   _attachHoverListeners() {
@@ -702,11 +713,12 @@ export default class HeatmapGradientLegend {
    * @param {...any} args
    */
   _onCellEnter(...args) {
-    const w = this.w
     if (!this.arrowEl) return
     // The opts object is the last argument.
     const opts = args[args.length - 1]
     if (!opts || typeof opts !== 'object') return
+    // the hovered chart: a shared trellis strip hears every panel
+    const w = opts.w || this.w
     const i = opts.seriesIndex
     const j = opts.dataPointIndex
     if (typeof i !== 'number' || typeof j !== 'number') return
@@ -845,6 +857,22 @@ export default class HeatmapGradientLegend {
     return polygon
   }
 
+  /** (Re)write the strip's stops; returns `_computeStops()`. */
+  _paintStops() {
+    const r = this._computeStops()
+    const grad = this._grad
+    this._min = r.min
+    this._max = r.max
+    grad.innerHTML = ''
+    r.stops.forEach((s) => {
+      const stopEl = BrowserAPIs.createElementNS(SVG_NS, 'stop')
+      stopEl.setAttribute('offset', `${(s.percent * 100).toFixed(2)}%`)
+      stopEl.setAttribute('stop-color', s.color)
+      grad.appendChild(stopEl)
+    })
+    return r
+  }
+
   /**
    * Build gradient stops + return effective min/max.
    * - If `colorScale.ranges` is set, stops are placed at each range boundary
@@ -898,7 +926,9 @@ export default class HeatmapGradientLegend {
     // one-sided = the historical expand-not-clamp semantics.
     let min = dataMin
     let max = dataMax
-    if (typeof cs.min !== 'undefined' && typeof cs.max !== 'undefined' && cs.max > cs.min) {
+    const csWindow =
+      typeof cs.min !== 'undefined' && typeof cs.max !== 'undefined' && cs.max > cs.min
+    if (csWindow) {
       min = cs.min
       max = cs.max
     } else {
@@ -956,45 +986,46 @@ export default class HeatmapGradientLegend {
       // is the documented behavior).
       const baseColor = w.globals.colors[0] || '#008FFB'
       const utils = new Utils()
-      const plot = w.config.plotOptions[w.config.chart.type] || {}
+      const type = w.config.chart.type
+      const plot = w.config.plotOptions[type] || {}
       const shadeIntensity = plot.shadeIntensity ?? 0.5
-      const hasNegs = /** @type {any} */ (w.globals).hasNegs
+      const g = /** @type {any} */ (w.globals)
+      const hasNegs = g.hasNegs
+      // A non-distributed heatmap's cells shade against the niced y extent
+      // and clamp into it (determineColor); use it once coreCalculations ran.
+      // A one-sided colorScale.max past maxY is ignored there, so cap at maxY.
+      const yExt =
+        type === 'heatmap' && !plot.distributed && !csWindow && g.maxY >= g.minY
+      const hi = yExt ? g.maxY : max
+      const total =
+        Math.abs(hi) + Math.abs(yExt ? (cs.min < g.minY ? cs.min : g.minY) : min)
+      const k = shadeIntensity * 1.25
       const n = Math.max(2, cfg.stops || 16)
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1) // 0..1
-        // Map t to the shade percent the cell at that t would receive.
+        // Map t to the shade fraction the cell at that t would receive.
         // determineColor computes percent = 100*val/(|min|+|max|), so the cell
-        // sitting at value v = min + t*(max-min) gets percent_v.
-        const v = min + t * (max - min)
-        const total = Math.abs(max) + Math.abs(min)
-        const percent_v = total === 0 ? 0 : (100 * v) / total
-        let colorShadePercent
-        if (hasNegs) {
-          if (plot.reverseNegativeShade) {
-            colorShadePercent =
-              percent_v < 0
-                ? (percent_v / 100) * (shadeIntensity * 1.25)
-                : (1 - percent_v / 100) * (shadeIntensity * 1.25)
-          } else {
-            colorShadePercent =
-              percent_v <= 0
-                ? 1 - (1 + percent_v / 100) * shadeIntensity
-                : (1 - percent_v / 100) * shadeIntensity
-          }
-        } else {
-          colorShadePercent = 1 - percent_v / 100
-        }
-        // Clamp to a reasonable range to avoid color blowout.
-        if (colorShadePercent > 1) colorShadePercent = 1
-        if (colorShadePercent < -1) colorShadePercent = -1
+        // sitting at value v = min + t*(max-min) gets p = v / total.
+        const p =
+          total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total
+        // Clamp to a reasonable range to avoid color blowout. Treemap tiles
+        // scale the plain shade too (getShadeColor).
+        const c = Math.max(
+          -1,
+          Math.min(
+            1,
+            hasNegs
+              ? plot.reverseNegativeShade
+                ? (p < 0 ? p : 1 - p) * k
+                : p <= 0
+                  ? 1 - (1 + p) * shadeIntensity
+                  : (1 - p) * shadeIntensity
+              : (1 - p) * (type === 'treemap' ? k : 1),
+          ),
+        )
 
         const shaded = plot.enableShades
-          ? utils.shadeColor(
-              w.config.theme.mode === 'dark'
-                ? colorShadePercent * -1
-                : colorShadePercent,
-              baseColor,
-            )
+          ? utils.shadeColor(w.config.theme.mode === 'dark' ? -c : c, baseColor)
           : baseColor
         stops.push({ percent: t, color: shaded })
       }
