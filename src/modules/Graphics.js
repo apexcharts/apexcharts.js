@@ -1235,7 +1235,12 @@ class Graphics {
     if (w.config.states.hover.filter.type !== 'none') {
       if (!w.interact.isTouchDevice) {
         const hoverFilter = w.config.states.hover.filter
-        filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
+        filters.applyFilter(
+          path,
+          Filters.isSliceChart(w) ? j : i,
+          hoverFilter.type,
+          hoverFilter.value,
+        )
       }
     }
   }
@@ -1276,35 +1281,29 @@ class Graphics {
     if (Filters.hoverOutlineOwnsHoverState(w)) return
 
     if (w.config.states.hover.filter.type !== 'none') {
-      filters.getDefaultFilter(path, i)
+      filters.getDefaultFilter(path, Filters.isSliceChart(w) ? j : i)
     }
   }
 
   /**
    * Clear every selected data point (single-select mode): reset the selection
-   * array and restore the default filter on all series path/circle/rect nodes.
-   * NOTE: preserves the original behavior of passing the clicked series index
-   * `i` to getDefaultFilter for every element (not each element's own index).
-   * @param {any} filters @param {number} i
+   * array and restore the default filter on each selected node, with its own
+   * series index (dropShadow.enabledOnSeries is per series; a pie slice's
+   * shadow is per slice, j).
+   * @param {any} filters
    */
-  _clearAllDataPointSelections(filters, i) {
+  _clearAllDataPointSelections(filters) {
     const w = this.w
     w.interact.selectedDataPoints = []
-    const elPaths = w.dom.Paper.find(
-      '.apexcharts-series path:not(.apexcharts-decoration-element)',
-    )
-    const elCircles = w.dom.Paper.find(
-      '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)',
-    )
-    /** @param {any[]} els */
-    const deSelect = (els) => {
-      Array.prototype.forEach.call(els, (/** @type {any} */ el) => {
+    w.dom.Paper.find('.apexcharts-series [selected="true"]').forEach(
+      (/** @type {any} */ el) => {
         el.node.setAttribute('selected', 'false')
-        filters.getDefaultFilter(el, i)
-      })
-    }
-    deSelect(elPaths)
-    deSelect(elCircles)
+        filters.getDefaultFilter(
+          el,
+          +el.node.getAttribute(Filters.isSliceChart(w) ? 'j' : 'index'),
+        )
+      },
+    )
   }
 
   /**
@@ -1330,7 +1329,7 @@ class Graphics {
       !w.config.states.active.allowMultipleDataPointsSelection &&
       w.interact.selectedDataPoints.length > 0
     ) {
-      this._clearAllDataPointSelections(filters, i)
+      this._clearAllDataPointSelections(filters)
     }
 
     path.node.setAttribute('selected', 'true')
@@ -1359,11 +1358,11 @@ class Graphics {
 
     if (selected === 'true') {
       const activeFilter = w.config.states.active.filter
-      if (activeFilter !== 'none') {
+      if (activeFilter.type !== 'none') {
         filters.applyFilter(path, i, activeFilter.type, activeFilter.value)
       } else {
         // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
-        if (w.config.states.hover.filter !== 'none') {
+        if (w.config.states.hover.filter.type !== 'none') {
           if (!w.interact.isTouchDevice) {
             const hoverFilter = w.config.states.hover.filter
             filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
@@ -1413,7 +1412,12 @@ class Graphics {
 
     if (!crossfilterClick) {
       const selected = this._togglePointSelection(path, filters, i, j)
-      this._applyPointSelectionFilter(path, filters, i, selected)
+      this._applyPointSelectionFilter(
+        path,
+        filters,
+        Filters.isSliceChart(w) ? j : i,
+        selected,
+      )
     }
 
     if (typeof w.config.chart.events.dataPointSelection === 'function') {
