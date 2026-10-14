@@ -2609,22 +2609,26 @@ export default class ApexCharts {
    * Returns the highest y value in the specified series.
    *
    * @param {number} [seriesIndex=0]
-   * @returns {number}
+   * @returns {number | undefined}
    */
   getHighestValueInSeries(seriesIndex = 0) {
-    const range = new Range(this.w)
-    return range.getMinYMaxY(seriesIndex).highestY
+    return (
+      this.w.seriesData.series[seriesIndex] &&
+      new Range(this.w).getMinYMaxY(seriesIndex).highestY
+    )
   }
 
   /**
    * Returns the lowest y value in the specified series.
    *
    * @param {number} [seriesIndex=0]
-   * @returns {number}
+   * @returns {number | undefined}
    */
   getLowestValueInSeries(seriesIndex = 0) {
-    const range = new Range(this.w)
-    return range.getMinYMaxY(seriesIndex).lowestY
+    return (
+      this.w.seriesData.series[seriesIndex] &&
+      new Range(this.w).getMinYMaxY(seriesIndex).lowestY
+    )
   }
 
   /**

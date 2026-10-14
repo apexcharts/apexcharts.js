@@ -1109,9 +1109,7 @@ class Range {
 
           const v = this.w.seriesData.series[i][j]
           if (stackSeries && v !== null && Utils.isNumber(v)) {
-            v > 0
-              ? (st[0] += parseFloat(String(v)) + 0.0001)
-              : (st[1] += parseFloat(String(v)))
+            v > 0 ? (st[0] += v * 1.000001) : (st[1] += +v)
           }
         }
       },

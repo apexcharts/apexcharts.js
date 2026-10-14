@@ -336,11 +336,11 @@ declare class ApexCharts {
   /** Returns the sum of all data points whose x value falls within [minX, maxX]. */
   getSeriesTotalXRange(minX: number, maxX: number): number[]
 
-  /** Returns the highest y value in the specified series. */
-  getHighestValueInSeries(seriesIndex?: number): number
+  /** Returns the highest y value in the specified series, or undefined for an index with no series. */
+  getHighestValueInSeries(seriesIndex?: number): number | undefined
 
-  /** Returns the lowest y value in the specified series. */
-  getLowestValueInSeries(seriesIndex?: number): number
+  /** Returns the lowest y value in the specified series, or undefined for an index with no series. */
+  getLowestValueInSeries(seriesIndex?: number): number | undefined
 
   /** Returns the sum of each series (totals used for percentage calculations). */
   getSeriesTotal(): number[]
