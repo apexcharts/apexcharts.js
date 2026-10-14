@@ -661,8 +661,10 @@ export default class Series {
    */
   highlightRangeInSeries(rangeIndex, action) {
     const w = this.w
+    // a treemap's gradient legend draws range bands too
+    const t = w.config.chart.type === 'treemap' ? 'treemap' : 'heatmap'
     const allHeatMapElements = w.dom.baseEl.getElementsByClassName(
-      'apexcharts-heatmap-rect',
+      `apexcharts-${t}-rect`,
     )
 
     /**
@@ -682,17 +684,24 @@ export default class Series {
       return
     }
 
-    const ranges = w.config.plotOptions.heatmap.colorScale.ranges
+    const ranges = w.config.plotOptions[t].colorScale.ranges
     const range = ranges && ranges[rangeIndex]
     if (!range) return
 
     toggleAllInactive('add')
     for (let i = 0; i < allHeatMapElements.length; i++) {
-      const val = Number(allHeatMapElements[i].getAttribute('val'))
+      const el = allHeatMapElements[i]
+      // treemap tiles carry no val; they are coloured by series[i][j]
+      const val = Number(
+        el.getAttribute('val') ??
+          w.seriesData.series[/** @type {any} */ (el.getAttribute('i'))]?.[
+            /** @type {any} */ (el.getAttribute('j'))
+          ],
+      )
       // Match the inclusive bounds used by determineColor (treemap/Helpers.js)
       // so the same cells that were colored by this range get highlighted.
       if (val >= range.from && val <= range.to) {
-        allHeatMapElements[i].classList.remove(this.legendInactiveClass)
+        el.classList.remove(this.legendInactiveClass)
       }
     }
   }

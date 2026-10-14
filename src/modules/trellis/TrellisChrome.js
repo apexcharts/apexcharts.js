@@ -299,6 +299,9 @@ export default class TrellisChrome {
     const legend = new HeatmapGradientLegend(chart.w, chart.ctx)
     legend.draw(slot)
     this.gradientLegend = legend
+    // a band highlights its range in every mounted panel
+    legend.panelsW = () =>
+      t.panels.filter((p) => p.chart).map((p) => /** @type {any} */ (p.chart).w)
 
     // The instance's own hover wiring only hears ITS panel; mirror the same
     // handlers onto every other mounted panel so the arrow follows the
