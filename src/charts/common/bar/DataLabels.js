@@ -341,6 +341,22 @@ export default class BarDataLabels {
     )
   }
 
+  /**
+   * The stacked total's text box, measured in the total's own font.
+   * @param {number} realIndex @param {number} j
+   */
+  totalRects(realIndex, j) {
+    const s = this.barCtx.barOptions.dataLabels.total.style
+    return new Graphics(this.w).getTextRects(
+      this.getStackedTotalDataLabel({ realIndex, j }),
+      s.fontSize,
+      s.fontFamily,
+      undefined,
+      true,
+      s.fontWeight,
+    )
+  }
+
   /** @param {{realIndex: any, j: any}} opts */
   getStackedTotalDataLabel({ realIndex, j }) {
     const w = this.w
@@ -373,7 +389,6 @@ export default class BarDataLabels {
       textRects,
       dataLabelsX,
       dataLabelsY,
-      dataLabelsConfig,
       barDataLabelsConfig,
       barTotalDataLabelsConfig,
       strokeWidth,
@@ -504,28 +519,17 @@ export default class BarDataLabels {
     if (this.hlt) lowestPrevY = this.hlt.edge
 
     if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const ADDITIONAL_OFFY = 18
-
-      const graphics = new Graphics(this.barCtx.w)
-      const totalLabeltextRects = graphics.getTextRects(
-        this.getStackedTotalDataLabel({ realIndex, j }),
-        dataLabelsConfig.fontSize,
-      )
+      // The baseline sits clear of the stack end by a share of the text
+      // height, so a large total neither sinks into its own stack nor floats
+      // off it (a fixed 18px suited 11px text only).
+      const h = this.totalRects(realIndex, j).height
 
       if (valIsNegative) {
         totalDataLabelsY =
-          lowestPrevY -
-          totalLabeltextRects.height / 2 -
-          offY -
-          barTotalDataLabelsConfig.offsetY +
-          ADDITIONAL_OFFY
+          lowestPrevY + h * 0.77 - offY - barTotalDataLabelsConfig.offsetY
       } else {
         totalDataLabelsY =
-          lowestPrevY +
-          totalLabeltextRects.height +
-          offY +
-          barTotalDataLabelsConfig.offsetY -
-          ADDITIONAL_OFFY
+          lowestPrevY - h * 0.3 + offY + barTotalDataLabelsConfig.offsetY
       }
 
       // width divided into equal parts
@@ -690,11 +694,7 @@ export default class BarDataLabels {
     if (this.hlt) lowestPrevX = this.hlt.edge
 
     if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const graphics = new Graphics(this.barCtx.w)
-      const totalLabeltextRects = graphics.getTextRects(
-        this.getStackedTotalDataLabel({ realIndex, j }),
-        dataLabelsConfig.fontSize,
-      )
+      const totalLabeltextRects = this.totalRects(realIndex, j)
       if (valIsNegative) {
         totalDataLabelsX =
           lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX
@@ -863,34 +863,26 @@ export default class BarDataLabels {
         text = ''
       }
 
-      const valIsNegative = neg ?? w.seriesData.series[i][j] < 0
-      const position = w.config.plotOptions.bar.dataLabels.position
+      // A vertical label's anchor is resolved per label. Writing it into the
+      // shared config re-anchored every later label, line labels included.
+      let anchor = dataLabelsConfig.textAnchor
       if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
-        if (position === 'top') {
-          if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
-          else dataLabelsConfig.textAnchor = 'start'
-        }
-        if (position === 'center') {
-          dataLabelsConfig.textAnchor = 'middle'
-        }
-        if (position === 'bottom') {
-          if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
-          else dataLabelsConfig.textAnchor = 'start'
-        }
+        anchor =
+          w.config.plotOptions.bar.dataLabels.position === 'center'
+            ? 'middle'
+            : (neg ?? w.seriesData.series[i][j] < 0)
+              ? 'end'
+              : 'start'
       }
 
+      // hide the datalabel if it cannot fit into the rect (measured in the
+      // drawn font, weight included)
       if (
         this.barCtx.isRangeBar &&
-        this.barCtx.barOptions.dataLabels.hideOverflowingLabels
+        this.barCtx.barOptions.dataLabels.hideOverflowingLabels &&
+        barWidth < textRects.width
       ) {
-        // hide the datalabel if it cannot fit into the rect
-        const txRect = graphics.getTextRects(
-          text,
-          parseFloat(dataLabelsConfig.style.fontSize).toString(),
-        )
-        if (barWidth < txRect.width) {
-          text = ''
-        }
+        text = ''
       }
 
       if (
@@ -916,14 +908,13 @@ export default class BarDataLabels {
 
       const modifiedDataLabelsConfig = {
         ...dataLabelsConfig,
+        textAnchor: anchor,
       }
-      if (this.barCtx.isHorizontal) {
-        if (val < 0) {
-          if (dataLabelsConfig.textAnchor === 'start') {
-            modifiedDataLabelsConfig.textAnchor = 'end'
-          } else if (dataLabelsConfig.textAnchor === 'end') {
-            modifiedDataLabelsConfig.textAnchor = 'start'
-          }
+      if (this.barCtx.isHorizontal && val < 0) {
+        if (anchor === 'start') {
+          modifiedDataLabelsConfig.textAnchor = 'end'
+        } else if (anchor === 'end') {
+          modifiedDataLabelsConfig.textAnchor = 'start'
         }
       }
 
