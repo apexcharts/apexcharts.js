@@ -57,15 +57,13 @@ describe('legend group order, hidden item hover, destroy in legendClick', () => 
   })
 
   it('survives a legendClick handler that destroys the chart', () => {
-    let chart
-    chart = twoLines({ legendClick: () => chart.destroy() })
+    const chart = twoLines({ legendClick: () => chart.destroy() })
     const item = chart.el.querySelector('.apexcharts-legend-series[rel="1"]')
     expect(() => chart.legend.onLegendClick({ target: item })).not.toThrow()
   })
 
   it('skips the keyboard focus restore once the chart is destroyed', async () => {
-    let chart
-    chart = twoLines({
+    const chart = twoLines({
       legendClick: () => Promise.resolve().then(() => chart.destroy()),
     })
     const frames = []
