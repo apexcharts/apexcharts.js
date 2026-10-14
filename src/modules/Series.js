@@ -896,6 +896,13 @@ export default class Series {
             ((type === 'line' || type === 'area') &&
               paths[j].getAttribute('d')) ||
             paths[j].getAttribute('pathTo')
+          // A violin's box lane shares its body's datum key: ride on the
+          // body's entry so the keyed join stays one path per datum.
+          if (paths[j].classList.contains('apexcharts-raincloud-box')) {
+            const body = dArr.paths[dArr.paths.length - 1]
+            if (body) (body.box ||= []).push(d)
+            continue
+          }
           // Datum key + fill stamped by the bar renderer: the key lets the
           // next render match survivors by identity (not position) and detect
           // exited datums; the fill paints their exit ghosts.
@@ -939,6 +946,7 @@ export default class Series {
       'candlestick',
       'boxPlot',
       'radar',
+      'violin',
     ]
     chartTypes.forEach((type) => {
       const paths = getPaths(type)

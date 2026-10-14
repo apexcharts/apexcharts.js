@@ -4,6 +4,7 @@ import { getChartClass } from '../modules/ChartFactory'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
+import { datumKey } from '../modules/animations/LengthTransition'
 import Utils from '../utils/Utils'
 import { spline, svgPath } from '../libs/monotone-cubic'
 import { buildJitterGroups, renderJitter } from './common/Jitter'
@@ -383,9 +384,7 @@ class Violin extends BarBase {
     if (morphFrom) {
       pathFrom = morphFrom
     } else if (w.globals.previousPaths.length > 0) {
-      // Keyed survivor → morph; shape-changed → snap; entering → null
-      // (falls through to the collapsed-centerline enter below).
-      pathFrom = this.getPreviousPath(realIndex, j, pathTo)
+      pathFrom = this._prevBody(realIndex, j, pathTo)
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -475,9 +474,7 @@ class Violin extends BarBase {
     if (morphFrom) {
       pathFrom = morphFrom
     } else if (w.globals.previousPaths.length > 0) {
-      // Keyed survivor → morph; shape-changed → snap; entering → null
-      // (falls through to the collapsed-centerline enter below).
-      pathFrom = this.getPreviousPath(realIndex, j, pathTo)
+      pathFrom = this._prevBody(realIndex, j, pathTo)
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -632,6 +629,25 @@ class Violin extends BarBase {
   }
 
   /**
+   * The survivor's previous body when it can morph to `pathTo`, else null so
+   * the violin regrows from its centreline (a changed density node count
+   * cannot tween, and bar corner reconciliation does not apply here).
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {string} pathTo
+   * @returns {string | null}
+   */
+  _prevBody(realIndex, j, pathTo) {
+    const d = this._prevKeyedPaths(realIndex)?.get(
+      datumKey(this.w, realIndex, j),
+    )?.d
+    return d && Violin.pathCommandCount(d) === Violin.pathCommandCount(pathTo)
+      ? d
+      : null
+  }
+
+  /**
    * Build the five-number box sub-paths for one category — the raincloud
    * "umbrella", or a violin box overlay. Two sub-paths so each can carry its
    * own fill: the whisker stems + caps (stroke only) and the q1-q3 rect with
@@ -698,26 +714,23 @@ class Violin extends BarBase {
     const full = build(capHalf, boxHalfPx)
     const collapsed = build(0, 0)
 
-    /** @param {string} pathTo @param {string} collapsedFrom */
-    const fromFor = (pathTo, collapsedFrom) => {
-      let pathFrom = null
-      if (w.globals.previousPaths.length > 0) {
-        // Keyed survivor → morph; shape-changed → snap; entering → null.
-        // (No morphTypeChange here: the body path claims the morph target.)
-        pathFrom = this.getPreviousPath(realIndex, j, pathTo)
-      }
-      return pathFrom == null ? collapsedFrom : pathFrom
-    }
+    // The box lane rides on its body's captured entry (see
+    // Series.capturePreviousPaths), matched by datum key like the body. An
+    // entering box grows out of the collapsed lane.
+    const keyed = w.globals.previousPaths.length
+      ? this._prevKeyedPaths(realIndex)
+      : null
+    const prevBox = keyed?.get(datumKey(w, realIndex, j))?.box || []
 
     return [
       {
         pathTo: full.whiskers,
-        pathFrom: fromFor(full.whiskers, collapsed.whiskers),
+        pathFrom: prevBox[0] || collapsed.whiskers,
         filled: false,
       },
       {
         pathTo: full.box,
-        pathFrom: fromFor(full.box, collapsed.box),
+        pathFrom: prevBox[1] || collapsed.box,
         filled: true,
       },
     ]
