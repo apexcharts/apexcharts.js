@@ -2,6 +2,7 @@
 import Graphics from '../../../modules/Graphics'
 import Series from '../../../modules/Series'
 import Fill from '../../../modules/Fill'
+import CoreUtils from '../../../modules/CoreUtils'
 import Utils from '../../../utils/Utils'
 
 /**
@@ -575,7 +576,8 @@ export default class Helpers {
       !this.w.config.chart.stacked || w.config.plotOptions.bar.borderRadius <= 0
 
     const numSeries = series.length
-    const numColumns = series[0]?.length | 0
+    // the longest series: a short first one left later points unassigned
+    const numColumns = Math.max(0, ...series.map((s) => s?.length | 0))
     const output = Array.from({ length: numSeries }, () =>
       Array(numColumns).fill(alwaysApplyRadius ? 'top' : 'none')
     )
@@ -835,10 +837,13 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
+      // A point past the end of a short series is undefined, which reads as
+      // neither sign, so the layer above restarted at the axis. It stacks as
+      // a null, as the padded series would.
       const _ctx = this.barCtx.groupCtx
       _ctx.yArrj.push(y2 - strokeCenter * direction)
       _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction))
-      _ctx.yArrjVal.push(this.barCtx.series[i][j])
+      _ctx.yArrjVal.push(this.barCtx.series[i][j] ?? null)
     }
 
     return {
@@ -1129,7 +1134,7 @@ export default class Helpers {
       const _ctx = this.barCtx.groupCtx
       _ctx.xArrj.push(x2 + strokeCenter * direction)
       _ctx.xArrjF.push(Math.abs(x1 - x2 - r.strokeWidth * direction))
-      _ctx.xArrjVal.push(this.barCtx.series[i][j])
+      _ctx.xArrjVal.push(this.barCtx.series[i][j] ?? null)
     }
     return {
       pathTo,
@@ -1193,6 +1198,10 @@ export default class Helpers {
      * @param {Record<string, any>} attrs
      */
     const pushGoal = (value, attrs) => {
+      // the bars are drawn in log space on a logarithmic axis, so is the goal
+      if (!w.globals.invalidLogScale) {
+        value = new CoreUtils(w).getLogValAtSeriesIndex(value, i)
+      }
       goals.push({
         [type]:
           type === 'x'

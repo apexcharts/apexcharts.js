@@ -287,7 +287,7 @@ class BarStacked extends Bar {
       ret.add(elSeries)
     }
 
-    if (heldMirrors) this.settleHeldMirrors()
+    if (heldMirrors) this.settleHeldMirrors(ret)
 
     return ret
   }
@@ -311,8 +311,12 @@ class BarStacked extends Bar {
    * 'bottom' → 'top', where the endpoint really is rounded at the other end;
    * everywhere else the mirror is an exact identity on the settled shape, so
    * removing it changes nothing on screen.
+   *
+   * The marks are collected now, not when the timer fires: a query then also
+   * stripped the mirrors a LATER update was still holding mid-tween.
+   * @param {any} [ret] this draw's series group (default: the whole chart)
    */
-  settleHeldMirrors() {
+  settleHeldMirrors(ret) {
     const w = this.w
     if (!Environment.isBrowser()) return
 
@@ -320,18 +324,18 @@ class BarStacked extends Bar {
     // Matches the collapsing-series hold: morphSVG applies the stagger delay
     // twice, so the real tail runs past dynamicAnimation.speed on its own.
     const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
+    const held = (ret ? ret.node : w.dom.baseEl).querySelectorAll(
+      '.apexcharts-flip-held',
+    )
 
     setTimeout(() => {
-      if (w.globals.isDestroyed || !Utils.elementExists(w.dom.baseEl)) return
-      w.dom.baseEl
-        .querySelectorAll('.apexcharts-flip-held')
-        .forEach((/** @type {Element} */ el) => {
-          el.classList.remove(
-            'apexcharts-flip-held',
-            'apexcharts-flip-y',
-            'apexcharts-flip-x',
-          )
-        })
+      held.forEach((/** @type {Element} */ el) => {
+        el.classList.remove(
+          'apexcharts-flip-held',
+          'apexcharts-flip-y',
+          'apexcharts-flip-x',
+        )
+      })
     }, hold)
   }
 
@@ -455,6 +459,8 @@ class BarStacked extends Bar {
     const j = indexes.j
     const realIndex = indexes.realIndex
     const translationsIndex = indexes.translationsIndex
+    // past the end of a short series reads as null, as a padded one would
+    const v = /** @type {any} */ (this.series)[i]?.[j] ?? null
 
     let prevBarW = 0
     for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
@@ -471,14 +477,14 @@ class BarStacked extends Bar {
 
       if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
         bXP =
-          /** @type {any} */ (this.series)[i]?.[j] >= 0
+          v >= 0
             ? this.groupCtx.prevX[gsi - 1][j] +
               prevBarW -
               (this.isReversed ? prevBarW : 0) * 2
             : this.groupCtx.prevX[gsi - 1][j]
       } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
         bXP =
-          /** @type {any} */ (this.series)[i]?.[j] >= 0
+          v >= 0
             ? this.groupCtx.prevX[gsi - 1][j]
             : this.groupCtx.prevX[gsi - 1][j] -
               prevBarW +
@@ -491,17 +497,9 @@ class BarStacked extends Bar {
       barXPosition = zeroW
     }
 
-    if (/** @type {any} */ (this.series)[i]?.[j] === null) {
-      x = barXPosition
-    } else {
-      x =
-        barXPosition +
-        /** @type {any} */ (this.series)[i]?.[j] / this.invertedYRatio -
-        (this.isReversed
-          ? /** @type {any} */ (this.series)[i]?.[j] / this.invertedYRatio
-          : 0) *
-          2
-    }
+    x =
+      barXPosition +
+      (v / this.invertedYRatio) * (this.isReversed ? -1 : 1)
 
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
@@ -562,6 +560,7 @@ class BarStacked extends Bar {
     const bc = indexes.bc
     const realIndex = indexes.realIndex
     const translationsIndex = indexes.translationsIndex
+    const v = /** @type {any} */ (this.series)[i]?.[j] ?? null
 
     if (w.axisFlags.isXNumeric) {
       let seriesVal = w.seriesData.seriesX[realIndex][j]
@@ -590,12 +589,12 @@ class BarStacked extends Bar {
       let bYP
       if (prevVal < 0) {
         bYP =
-          /** @type {any} */ (this.series)[i]?.[j] >= 0
+          v >= 0
             ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
             : prevYValue
       } else if (prevVal >= 0) {
         bYP =
-          /** @type {any} */ (this.series)[i]?.[j] >= 0
+          v >= 0
             ? prevYValue
             : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
       }
@@ -622,20 +621,10 @@ class BarStacked extends Bar {
       barYPosition = zeroH
     }
 
-    if (/** @type {any} */ (this.series)[i]?.[j]) {
-      y =
-        barYPosition -
-        /** @type {any} */ (this.series)[i]?.[j] /
-          this.yRatio[translationsIndex] +
-        (this.isReversed
-          ? /** @type {any} */ (this.series)[i]?.[j] /
-            this.yRatio[translationsIndex]
-          : 0) *
-          2
-    } else {
-      // fixes #3610
-      y = barYPosition
-    }
+    // a null stays on its layer below (#3610)
+    y =
+      barYPosition -
+      (v / this.yRatio[translationsIndex]) * (this.isReversed ? -1 : 1)
 
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
@@ -643,7 +632,9 @@ class BarStacked extends Bar {
       y1: barYPosition,
       y2: y,
       yRatio: this.yRatio[translationsIndex],
-      strokeWidth: this.strokeWidth,
+      // the series' width even for an empty segment, so a hidden layer keeps
+      // its place, but no inset at all when no stroke is drawn
+      strokeWidth: w.config.stroke.show ? this.strokeWidth : 0,
       isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,
@@ -682,7 +673,7 @@ class BarStacked extends Bar {
         zeroH,
         realIndex,
         j,
-        0,
+        translationsIndex,
       ),
       barXPosition,
       x: w.axisFlags.isXNumeric ? x : x + xDivision,
