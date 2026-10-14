@@ -117,11 +117,10 @@ class Line {
     const allSeries = []
 
     for (let i = 0; i < series.length; i++) {
-      series = this.lineHelpers.sameValueSeriesFix(i, series)
-
       const realIndex = w.globals.comboCharts
         ? /** @type {any} */ (seriesIndex)[i]
         : i
+      series = this.lineHelpers.sameValueSeriesFix(i, series, realIndex)
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0
 
       // A series hidden from the legend is drawn flat on the baseline instead
@@ -588,8 +587,13 @@ class Line {
    * correct if that representation ever changes.
    * @param {number} realIndex
    * @param {any[]} yArrj
+   * @param {any[]} [row] the drawn row, if not the series' own (a part)
    */
-  _recordStackTops(realIndex, yArrj) {
+  _recordStackTops(
+    realIndex,
+    yArrj,
+    row = this.w.seriesData.series[realIndex],
+  ) {
     const w = this.w
     // Only stacked series read the map back (stackTopAt), and the walk costs a
     // Map write per point: 4.7ms per update on a 50k line that is not stacked.
@@ -608,9 +612,10 @@ class Line {
       // A null y is a gap in this series, not a new top: leave whatever the
       // series below contributed. The ordinal path used to hand the null
       // straight to the next series as its baseline, where it coerced to 0 and
-      // put that point at the top of the plot.
+      // put that point at the top of the plot. Decided from the datum: the
+      // straight and step curves park a null at getY(minY), a real number.
       const y = yArrj[j]
-      if (!Utils.isNumber(y)) continue
+      if (!Utils.isNumber(y) || row?.[j] == null) continue
       this.prevSeriesYByX.set(key, y)
     }
   }
@@ -665,10 +670,14 @@ class Line {
 
     const forecast = w.config.forecastDataPoints
     if (forecast.count > 0 && type !== 'rangeArea') {
-      const forecastCutoff =
-        w.globals.seriesXvalues[realIndex][
-          w.globals.seriesXvalues[realIndex].length - forecast.count - 1
-        ]
+      // From the axis, not seriesXvalues: that holds null for a null value,
+      // which put the cutoff at 0 and dashed the whole series.
+      const ci = paths.xArrj.length - forecast.count - 1
+      const forecastCutoff = w.axisFlags.isXNumeric
+        ? (w.seriesData.seriesX[realIndex][ci] - w.globals.minX) / this.xRatio
+        : w.globals.padHorizontal +
+          this.categoryAxisCorrection +
+          ci * this.xDivision
       const elForecastMask = graphics.drawRect(
         forecastCutoff,
         0,

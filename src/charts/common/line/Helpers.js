@@ -1,5 +1,4 @@
 // @ts-check
-import CoreUtils from '../../../modules/CoreUtils'
 import Utils from '../../../utils/Utils'
 
 export default class Helpers {
@@ -12,26 +11,24 @@ export default class Helpers {
   }
 
   /**
-   * @param {number} i
+   * @param {number} i index into `series`, the rows this draw call renders
    * @param {any[]} series
+   * @param {number} realIndex index into the config / fill options
    */
-  sameValueSeriesFix(i, series) {
+  sameValueSeriesFix(i, series, realIndex) {
     const w = this.w
+    const s = series[i]
 
+    // applied only to LINE chart
+    // a small adjustment to allow gradient line to draw correctly for all same values
+    /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
     if (
-      w.config.fill.type === 'gradient' ||
-      w.config.fill.type[i] === 'gradient'
+      (w.config.fill.type === 'gradient' ||
+        w.config.fill.type[realIndex] === 'gradient') &&
+      s.every((/** @type {any} */ v) => v === s[0])
     ) {
-      const coreUtils = new CoreUtils(this.lineCtx.w)
-
-      // applied only to LINE chart
-      // a small adjustment to allow gradient line to draw correctly for all same values
-      /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
-      if (coreUtils.seriesHaveSameValues(i)) {
-        const gSeries = series[i].slice()
-        gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 0.000001
-        series[i] = gSeries
-      }
+      series[i] = s.slice()
+      series[i][s.length - 1] += 0.000001
     }
     return series
   }

@@ -1233,7 +1233,7 @@ export default class HighlightFilter {
         ? this._lineBase(ln, type, series, i, realIndex, ti, has ? raw : null)
         : null
     if (pp && w.config.chart.stacked) {
-      this._swap(ln, () => ln._recordStackTops(realIndex, pp.yArrj))
+      this._swap(ln, () => ln._recordStackTops(realIndex, pp.yArrj, pp.S[i]))
       this._stkPrev.push(pp.yArrj)
     }
     if (exit) {

@@ -363,6 +363,26 @@ describe('stacked area', () => {
     plain.destroy()
   })
 
+  test('a null part adds nothing to the part stack below a negative axis', () => {
+    // A straight curve parks a null at the axis minimum; the part above must
+    // stand on the parts below, exactly as if the null part were 0.
+    const run = (hl) => {
+      const c = chart({
+        chart: { type: 'area', stacked: true },
+        series: [
+          { name: 'A', data: [-20, 10, 10, 10], highlightData: [-10, 5, 5, 5] },
+          { name: 'B', data: [5, 5, 5, 5], highlightData: hl },
+          { name: 'C', data: [5, 5, 5, 6], highlightData: [3, 3, 3, 3] },
+        ],
+        options: { stroke: { curve: 'straight' } },
+      })
+      const d = partsOf(c, 2)[1].getAttribute('pathTo')
+      c.destroy()
+      return d
+    }
+    expect(run([2, null, 2, 2])).toBe(run([2, 0, 2, 2]))
+  })
+
   test('parts stack by x on ragged datetime series (#4886)', () => {
     const d = (k) => 1e12 + k * 864e5
     const c = chart({
