@@ -42,6 +42,18 @@ import { hash01 } from './common/Jitter'
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 
 /**
+ * Suffix a repeated id ("a", "a#2", ...) so every unit sharing it keeps a key of
+ * its own.
+ * @param {Map<string, number>} seen
+ * @param {string} id
+ */
+const uniqueId = (seen, id) => {
+  const n = (seen.get(id) || 0) + 1
+  seen.set(id, n)
+  return n > 1 ? id + '#' + n : id
+}
+
+/**
  * A finite number from a number or numeric string, else null.
  * @param {any} v
  * @returns {number|null}
@@ -327,6 +339,7 @@ export default class Unit {
     // Running index across ALL dots of ALL clusters, used as the key in 'flow'
     // mode so a dot is identified by its global order, not its category slot.
     let gIndex = 0
+    const seen = new Map()
     clusters.forEach((cluster) => {
       const color = w.globals.colors[cluster.i] || w.globals.colors[0] || '#008FFB'
       const elSeries = graphics.group({
@@ -373,14 +386,15 @@ export default class Unit {
         let key
         if (identity) {
           // Needs an explicit id/name; a bare primitive is not a stable identity
-          // (duplicates would collide), so those fall back to global order.
+          // (duplicates would collide), so those fall back to global order. A
+          // repeated id/name is suffixed so its holders never share one slot.
           const id =
             datum && typeof datum === 'object'
               ? datum.id != null
                 ? datum.id
                 : datum.name
               : undefined
-          key = id != null ? `id:${id}` : `g:${gIndex}`
+          key = id != null ? `id:${uniqueId(seen, String(id))}` : `g:${gIndex}`
         } else if (flow) {
           key = String(gIndex)
         } else if (d.slot != null) {
@@ -696,7 +710,8 @@ export default class Unit {
    *
    * `id` is the datum's own id/name where the per-unit object form supplies
    * one, so a provider can address a specific unit ("Texas", "employee 41")
-   * rather than a positional slot. It falls back to `"<category>:<index>"`.
+   * rather than a positional slot. It falls back to `"<category>:<index>"`, and
+   * a repeated one is suffixed (`"Alex#2"`).
    *
    * @param {number[]} counts
    * @param {number} dotR the radius the engine would use, so a provider that
@@ -709,15 +724,19 @@ export default class Unit {
     const names = w.seriesData.seriesNames || []
     /** @type {{id:string,index:number,seriesIndex:number,dataPointIndex:number,label:string,value:number|undefined,datum:any,r:number}[]} */
     const objects = []
+    const seen = new Map()
     let index = 0
     counts.forEach((n, i) => {
       const catData = unitData[i]
       for (let j = 0; j < n; j++) {
         const datum = catData ? catData[j] : undefined
-        const id =
+        // A repeated id/name is suffixed ("Alex#2") so each mark is placed.
+        const id = uniqueId(
+          seen,
           datum && typeof datum === 'object' && (datum.id != null || datum.name != null)
             ? String(datum.id != null ? datum.id : datum.name)
-            : `${i}:${j}`
+            : `${i}:${j}`,
+        )
         objects.push({
           id,
           index,

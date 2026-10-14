@@ -3791,7 +3791,8 @@ type ApexPlotOptions = {
      * recolours) across a regroup - the circles-to-bars transition.
      * 'identity': keyed by each datum's `id`/`name`, so a SPECIFIC unit migrates
      * across any regroup or relayout keeping its colour and size. Requires the
-     * per-unit object form with unique ids/names.
+     * per-unit object form with unique ids/names (a repeated one is tracked by
+     * its order of appearance).
      */
     transition?: 'group' | 'flow' | 'identity'
     /**
@@ -5344,7 +5345,8 @@ interface ApexUnitObject {
    * Stable identity. The datum's own `id`/`name` when the per-unit object form
    * supplies one, so a provider can address a specific unit ("Texas",
    * "employee 41") rather than a positional slot; otherwise
-   * `"<seriesIndex>:<dataPointIndex>"`.
+   * `"<seriesIndex>:<dataPointIndex>"`. A repeated one is suffixed by its
+   * order of appearance (`"Alex#2"`).
    */
   id: string
   /** Global draw order across every category. */
