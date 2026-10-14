@@ -27,7 +27,7 @@ class BarStacked extends Bar {
     series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.barHelpers.initVariables(series)
+    this.barHelpers.initVariables(series, seriesIndex)
 
     if (w.config.chart.stackType === '100%') {
       series = w.globals.comboCharts

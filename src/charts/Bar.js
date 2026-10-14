@@ -163,7 +163,7 @@ class Bar {
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.barHelpers.initVariables(series)
+    this.barHelpers.initVariables(series, seriesIndex)
 
     const ret = graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series',
@@ -655,13 +655,8 @@ class Bar {
       }
     }
 
-    if (
-      /** @type {Record<string,any>} */ (w.config.series[i]).data[j] &&
-      /** @type {Record<string,any>} */ (w.config.series[i]).data[j].strokeColor
-    ) {
-      lineFill = /** @type {Record<string,any>} */ (w.config.series[i]).data[j]
-        .strokeColor
-    }
+    const datum = /** @type {any} */ (w.config.series[realIndex]).data[j]
+    if (datum && datum.strokeColor) lineFill = datum.strokeColor
 
     const fill = pathFill
 
@@ -777,7 +772,7 @@ class Bar {
         cy: dataLabelsObj.dataLabelsPos.bcy,
         cx: dataLabelsObj.dataLabelsPos.bcx,
         j,
-        val: w.seriesData.series[i][j],
+        val: w.seriesData.series[realIndex][j],
         barHeight,
         barWidth,
         // Datum identity for the next update's keyed join (see
@@ -886,7 +881,10 @@ class Bar {
     // band.
     if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
       const { nonZeroColumns, zeroEncounters } =
-        this.barHelpers.getZeroValueEncounters({ i, j })
+        this.barHelpers.getZeroValueEncounters({
+          i: indexes.realIndex,
+          j,
+        })
 
       if (nonZeroColumns > 0) {
         barHeight = (this.seriesLen * barHeight) / nonZeroColumns
@@ -1054,7 +1052,7 @@ class Bar {
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
         const { nonZeroColumns, zeroEncounters } =
-          this.barHelpers.getZeroValueEncounters({ i, j })
+          this.barHelpers.getZeroValueEncounters({ i: realIndex, j })
 
         if (nonZeroColumns > 0) {
           barWidth = (this.seriesLen * barWidth) / nonZeroColumns

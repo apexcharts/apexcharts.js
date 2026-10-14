@@ -94,7 +94,7 @@ class Violin extends BarBase {
     this.series = series
     this.yRatio = this.coreUtils.getLogYRatios(this.yRatio)
 
-    this.barHelpers.initVariables(series)
+    this.barHelpers.initVariables(series, seriesIndex)
 
     const ret = graphics.group({
       class: 'apexcharts-violin-series apexcharts-plot-series',

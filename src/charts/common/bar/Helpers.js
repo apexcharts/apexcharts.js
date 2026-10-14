@@ -33,9 +33,11 @@ export default class Helpers {
 
   /**
    * @param {any[]} series
+   * @param {number[]} [seriesIndex] a combo's real indices of `series`
    */
-  initVariables(series) {
+  initVariables(series, seriesIndex) {
     const w = this.w
+    this.seriesIndex = seriesIndex
     this.barCtx.series = series
     this.barCtx.totalItems = 0
     this.barCtx.seriesLen = 0
@@ -138,17 +140,21 @@ export default class Helpers {
    * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
    * them would widen every bar the moment someone hid the tightest-spaced
    * series from the legend, so bar geometry would depend on legend state.
+   * In a combo only this renderer's own series count: a line's x values say
+   * nothing about how wide a column may be.
    *
    * @returns {number}
    */
   _unionMinXGap() {
     const w = this.w
     const seriesX = w.seriesData.seriesX || []
+    const own = this.seriesIndex
 
     /** @type {any[][]} */
     const arrays = []
     for (let i = 0; i < seriesX.length; i++) {
       const xs = seriesX[i]
+      if (own && own.indexOf(i) < 0) continue
       if (Array.isArray(xs) && xs.length > 0) {
         arrays.push(
           xs.some((v, n) => v < xs[n - 1])
@@ -374,7 +380,7 @@ export default class Helpers {
     // fill for this bar alone, so each row gets its own gradient rather than
     // one chart-wide one pointing whichever way the first row happened to go.
     const connectorFill = this.getDumbbellConnectorFill(i, j)
-    const datumFill = connectorFill || w.config.series[i].data[j]?.fill
+    const datumFill = connectorFill || w.config.series[realIndex].data[j]?.fill
 
     // A named connector colour is a plain join instead of that gradient. Its
     // opacity rides with it and is NOT applied otherwise, so a range bar drawn

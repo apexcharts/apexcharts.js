@@ -364,7 +364,6 @@ export default class BarDataLabels {
   calculateColumnsDataLabelsPosition(opts) {
     const w = this.w
     let {
-      i,
       j,
       realIndex,
       y,
@@ -392,7 +391,7 @@ export default class BarDataLabels {
       w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
 
     const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i,
+      i: realIndex,
       j,
     })
 
@@ -423,7 +422,7 @@ export default class BarDataLabels {
         dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX
     }
 
-    const valIsNegative = opts.neg ?? w.seriesData.series[i][j] < 0
+    const valIsNegative = opts.neg ?? w.seriesData.series[realIndex][j] < 0
 
     let newY = y
     if (this.barCtx.isReversed) {
@@ -575,7 +574,6 @@ export default class BarDataLabels {
     const w = this.w
     let {
       x,
-      i,
       j,
       realIndex,
       bcy,
@@ -593,7 +591,7 @@ export default class BarDataLabels {
 
     const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints
     const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i,
+      i: realIndex,
       j,
     })
 
@@ -632,7 +630,7 @@ export default class BarDataLabels {
     let totalDataLabelsY
     let totalDataLabelsAnchor = 'start'
 
-    const valIsNegative = opts.neg ?? w.seriesData.series[i][j] < 0
+    const valIsNegative = opts.neg ?? w.seriesData.series[realIndex][j] < 0
 
     let newX = x
     if (this.barCtx.isReversed) {

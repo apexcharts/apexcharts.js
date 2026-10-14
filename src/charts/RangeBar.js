@@ -29,7 +29,7 @@ class RangeBar extends Bar {
     this.seriesRangeStart = w.rangeData.seriesRangeStart
     this.seriesRangeEnd = w.rangeData.seriesRangeEnd
 
-    this.barHelpers.initVariables(series)
+    this.barHelpers.initVariables(series, seriesIndex)
 
     const ret = graphics.group({
       class: 'apexcharts-rangebar-series apexcharts-plot-series',
