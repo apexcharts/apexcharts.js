@@ -206,7 +206,8 @@ class Radar {
        */
       s.forEach((/** @type {any} */ dv, /** @type {any} */ j) => {
         const range = Math.abs(this.maxValue - this.minValue)
-        dv = dv - this.minValue
+        // below yaxis.min sits at the centre, not on the opposite spoke
+        dv = Math.max(0, dv - this.minValue)
 
         if (this.isLog) {
           dv = this.coreUtils.getLogVal(this.logBase, dv, 0)
@@ -514,6 +515,7 @@ class Radar {
     const w = this.w
 
     const xaxisLabelsConfig = w.config.xaxis.labels
+    const lc = xaxisLabelsConfig.style.colors
     const elXAxisWrap = this.graphics.group({
       class: 'apexcharts-xaxis',
     })
@@ -551,11 +553,7 @@ class Radar {
           j: i,
           parent: elXAxisWrap,
           className: 'apexcharts-xaxis-label',
-          color:
-            Array.isArray(xaxisLabelsConfig.style.colors) &&
-            xaxisLabelsConfig.style.colors[i]
-              ? xaxisLabelsConfig.style.colors[i]
-              : '#a8a8a8',
+          color: (Array.isArray(lc) ? lc[i] : lc) || '#a8a8a8',
           dataLabelsConfig: {
             textAnchor: textPos.textAnchor,
             dropShadow: { enabled: false },
