@@ -716,10 +716,7 @@ export default class Series {
             return (
               chartTypes.length === 0 ||
               (chartTypes.length &&
-                chartTypes.indexOf(
-                  /** @type {Record<string,any>} */ (w.config.series[index])
-                    .type,
-                ) > -1)
+                chartTypes.indexOf(s.type || w.config.chart.type) > -1)
             )
           }
           return true
@@ -770,7 +767,7 @@ export default class Series {
         if (
           w.globals.comboCharts &&
           chartTypes.length &&
-          chartTypes.indexOf(s.type) === -1
+          chartTypes.indexOf(s.type || w.config.chart.type) === -1
         ) {
           return
         }
@@ -791,7 +788,9 @@ export default class Series {
     if (w.globals.comboCharts) {
       return this.w.config.series
         .map((/** @type {any} */ s, /** @type {number} */ i) => {
-          return s.type === 'bar' || s.type === 'column' ? i : -1
+          // An untyped series draws as chart.type.
+          const t = s.type || w.config.chart.type
+          return t === 'bar' || t === 'column' ? i : -1
         })
         .filter((/** @type {number} */ i) => {
           return i !== -1
