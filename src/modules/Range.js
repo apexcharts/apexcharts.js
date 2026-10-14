@@ -796,9 +796,10 @@ class Range {
           ticks = gl.dataPoints - 1
         }
       } else if (cnf.xaxis.tickAmount === 'dataPoints') {
-        if (this.w.seriesData.series.length > 1) {
-          ticks = this.w.seriesData.series[gl.maxValsInArrayIndex].length - 1
-        }
+        ticks = Math.max(
+          1,
+          (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length - 1,
+        )
         if (this.w.axisFlags.isXNumeric) {
           const diff = Math.round(gl.maxX - gl.minX)
           if (diff < 30) {

@@ -732,15 +732,25 @@ export default class Scales {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
-      const ticks = gl.xTickAmount
+      const x = w.config.xaxis
+      // a fixed max or a streaming range window wins over the step
+      let step = (x.max ?? x.range) === undefined ? x.stepSize : undefined
+      // A step fixes the tick count and the axis ends on the last step. One
+      // too fine to draw keeps the default count instead.
+      const fit = step > 0 && !gl.isBarHorizontal && x.type !== 'datetime'
+      if (fit) {
+        const n = Math.ceil((maxX - minX) / step - 1e-9)
+        n > 1e3 ? (step = undefined) : (gl.xTickAmount = n)
+      }
 
-      gl.xAxisScale = this.linearScale(
-        minX,
-        maxX,
-        ticks,
-        0,
-        w.config.xaxis.max === undefined ? w.config.xaxis.stepSize : undefined,
-      )
+      let s = this.linearScale(minX, maxX, gl.xTickAmount, 0, step)
+      if (fit && step) {
+        // linearScale rounds the step, so it can fall short of the data
+        while (s.niceMax < maxX)
+          s = this.linearScale(minX, maxX, ++gl.xTickAmount, 0, step)
+        gl.maxX = s.niceMax
+      }
+      gl.xAxisScale = s
     }
     return gl.xAxisScale
   }
