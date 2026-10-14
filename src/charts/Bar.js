@@ -703,7 +703,7 @@ class Bar {
           pathTo,
           stroke: lineFill,
           strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
+          strokeLinecap: w.config.stroke.lineCap,
           fill: pathFill,
           pathToInterp,
           animationDelay: delay,

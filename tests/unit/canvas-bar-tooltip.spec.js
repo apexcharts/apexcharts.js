@@ -98,7 +98,10 @@ describe('pathBox: the box a recorded path spans', () => {
 
 describe('a recorded mark measures like an SVG path', () => {
   it('bbox() is the box its path spans, and follows a new path', () => {
-    const g = new CanvasGraphics({ config: { series: [] }, globals: {} })
+    const g = new CanvasGraphics({
+      config: { series: [], stroke: {} },
+      globals: {},
+    })
     g.reset()
     const mark = g.renderPaths({ realIndex: 0, j: 0, pathTo: 'M 5 5 L 15 25' })
     expect(mark.bbox()).toEqual({ x: 5, y: 5, width: 10, height: 20 })
@@ -153,7 +156,7 @@ describe('canvas hitTest and findMark on bar-like marks', () => {
 
   function renderer() {
     const w = {
-      config: { series: [{ data: new Array(4) }] },
+      config: { series: [{ data: new Array(4) }], stroke: {} },
       layout: { gridWidth: 100, gridHeight: 100 },
       globals: {},
     }

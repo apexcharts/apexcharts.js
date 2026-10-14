@@ -842,7 +842,7 @@ class Line {
           scrollMorph: !!streamScroll,
           stroke: 'none',
           strokeWidth: 0,
-          strokeLineCap: null,
+          strokeLinecap: null,
           fill: pathFill,
         })
         this.elSeries.add(renderedPath)
@@ -893,7 +893,7 @@ class Line {
           scrollMorph: !!streamScroll,
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
+          strokeLinecap: w.config.stroke.lineCap,
           fill: type === 'rangeArea' ? pathFill : 'none',
         }
         const renderedPath = emit.renderPaths(linePathCommonOpts)

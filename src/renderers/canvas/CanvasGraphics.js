@@ -1023,6 +1023,7 @@ export default class CanvasGraphics {
     cmd.strokeWidth = opts.strokeWidth
     cmd.fill = opts.fill
     cmd.lineCap = opts.strokeLinecap
+    cmd.strokeDash = this._g.seriesDash(opts.realIndex)
     cmd.si = opts.realIndex
     // Data point identity. Only a mark that stands for one point (a bar-like:
     // Bar.renderSeries) passes `j`; a line or area path stands for the whole

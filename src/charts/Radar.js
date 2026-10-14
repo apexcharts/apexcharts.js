@@ -254,7 +254,7 @@ class Radar {
         shouldClipToGrid: false,
         bindEventsOnPaths: false,
         stroke: w.globals.stroke.colors[i],
-        strokeLineCap: w.config.stroke.lineCap,
+        strokeLinecap: w.config.stroke.lineCap,
       }
 
       let pathFrom = null

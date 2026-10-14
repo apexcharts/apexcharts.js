@@ -458,6 +458,23 @@ class Graphics {
   }
 
   /**
+   * stroke.dashArray of a series, shared with the canvas renderer. A plugin
+   * may have claimed it: resolved here rather than written into the config,
+   * so the caller's own dashing is untouched and there is nothing to restore
+   * when the claim goes. See weave/Claims.
+   * @param {number} realIndex
+   */
+  seriesDash(realIndex) {
+    const d = this.w.config.stroke.dashArray
+    return resolveClaimed(
+      this.w,
+      'stroke.dashArray',
+      realIndex,
+      Array.isArray(d) ? d[realIndex] : d,
+    )
+  }
+
+  /**
    * @memberof Graphics
    * @param {Record<string, any>} opts
    *  i = series's index
@@ -610,23 +627,6 @@ class Graphics {
       }
     }
 
-    const strokeDashArrayOpt = w.config.stroke.dashArray
-    let strokeDashArray = 0
-    if (Array.isArray(strokeDashArrayOpt)) {
-      strokeDashArray = strokeDashArrayOpt[realIndex]
-    } else {
-      strokeDashArray = w.config.stroke.dashArray
-    }
-    // A plugin may have claimed this series' dash. Resolved here rather than
-    // written into the config above, so the caller's own dashing is untouched
-    // and there is nothing to restore when the claim goes. See weave/Claims.
-    strokeDashArray = resolveClaimed(
-      w,
-      'stroke.dashArray',
-      realIndex,
-      strokeDashArray,
-    )
-
     const el = this.drawPath({
       d,
       stroke,
@@ -635,7 +635,7 @@ class Graphics {
       fillOpacity: 1,
       classes: className,
       strokeLinecap,
-      strokeDashArray,
+      strokeDashArray: this.seriesDash(realIndex),
     })
 
     el.attr('index', realIndex)

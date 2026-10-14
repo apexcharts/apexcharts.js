@@ -122,7 +122,7 @@ describe('canvas marks record the clip their SVG node would carry', () => {
   /** @param {Record<string, any>} [globals] */
   function graphics(globals = {}) {
     return new CanvasGraphics({
-      config: { series: [] },
+      config: { series: [], stroke: {} },
       globals,
       layout: { gridWidth: 100, gridHeight: 100 },
     })
@@ -314,7 +314,7 @@ describe('canvas hitTest: a mark is hit only where its clip lets it show', () =>
 
   it('the part a clip cuts off takes no hover, as off a clipped SVG path', () => {
     const w = {
-      config: { series: [{ data: new Array(2) }] },
+      config: { series: [{ data: new Array(2) }], stroke: {} },
       layout: { gridWidth: 100, gridHeight: 100 },
       globals: {},
     }

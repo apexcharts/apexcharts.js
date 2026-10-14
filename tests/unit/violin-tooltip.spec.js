@@ -76,7 +76,7 @@ describe('canvas hitTest: bar-like marks', () => {
 
   function renderer() {
     const w = {
-      config: { series: [{ data: new Array(4) }] },
+      config: { series: [{ data: new Array(4) }], stroke: {} },
       layout: { gridWidth: 100, gridHeight: 100 },
       globals: {},
     }
