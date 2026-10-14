@@ -276,6 +276,7 @@ export default class StreamLabels {
               maxWidth: span,
               fontSize: `${px}px`,
               fontFamily,
+              fontWeight,
             })
       if (!text || text === '...') continue
       const drawnWidth =

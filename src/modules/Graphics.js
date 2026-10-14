@@ -935,13 +935,21 @@ class Graphics {
     return g
   }
 
-  /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any }} opts */
-  getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
-    const tRects = this.getTextRects(text, fontSize, fontFamily, '')
-    const wordWidth = tRects.width / text.length
-    const wordsBasedOnWidth = Math.floor(maxWidth / wordWidth)
+  /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any, fontWeight?: any }} opts */
+  getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily, fontWeight }) {
+    const tRects = this.getTextRects(
+      text,
+      fontSize,
+      fontFamily,
+      '',
+      true,
+      fontWeight,
+    )
+    // Characters that fit, less the ellipsis. Below zero not even '...'
+    // fits (and a negative slice end would keep nearly the whole text).
+    const n = Math.floor(maxWidth / (tRects.width / text.length)) - 3
     if (maxWidth < tRects.width) {
-      return text.slice(0, wordsBasedOnWidth - 3) + '...'
+      return n < 0 ? '' : text.slice(0, n) + '...'
     }
     return text
   }
@@ -984,6 +992,7 @@ class Graphics {
       maxWidth,
       fontSize,
       fontFamily,
+      fontWeight,
     }
     let elText
     if (Array.isArray(text)) {
