@@ -406,7 +406,7 @@ export default class Theme {
         c
       ].colors =
         w.config[c].colors === undefined
-          ? this.isColorFn
+          ? this.isColorFn && w.config.colors
             ? w.config.colors.slice()
             : defaultColors
           : w.config[c].colors.slice()
