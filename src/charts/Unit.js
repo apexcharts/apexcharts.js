@@ -967,12 +967,23 @@ export default class Unit {
     const pad = Math.min(gw, gh) * 0.04
     const boxW = Math.max(1e-6, b.maxX - b.minX)
     const boxH = Math.max(1e-6, b.maxY - b.minY)
-    const r1 = Math.max(4, Math.min((gw - 2 * pad) / boxW, (gh - 2 * pad) / boxH))
-    const r0 = r1 * innerRatio
+    const fit = (/** @type {number} */ inset) =>
+      Math.max(4, Math.min((gw - 2 * pad - inset) / boxW, (gh - 2 * pad - inset) / boxH))
+    // The box bounds seat CENTRES, so inset the fit by the seat size. Seats
+    // shrink with the radius: bisect for the largest radius its own seats fit.
+    const seat = (/** @type {number} */ r) =>
+      fit(2 * this._arcAllocate(total, r * innerRatio, r, span, opts).dotR)
+    let hi = fit(0)
+    let r1 = seat(hi)
+    for (let k = 0; k < 6; k++) {
+      const m = (r1 + hi) / 2
+      if (m <= seat(m)) r1 = m
+      else hi = m
+    }
     const cx = gw / 2 - ((b.minX + b.maxX) / 2) * r1
     const cy = gh / 2 - ((b.minY + b.maxY) / 2) * r1
 
-    const alloc = this._arcAllocate(total, r0, r1, span, opts)
+    const alloc = this._arcAllocate(total, r1 * innerRatio, r1, span, opts)
     this._lastDotR = alloc.dotR
 
     // Every seat position, then sorted by angle so category-ordered assignment
@@ -3332,6 +3343,7 @@ export default class Unit {
     const width = measureLabelWidth(w, lines, {
       fontSize: cfg.fontSize,
       fontFamily: cfg.fontFamily || w.config.chart.fontFamily,
+      fontWeight: cfg.fontWeight,
     })
     const gap = conn.gap != null ? conn.gap : 8
     const length = conn.length != null ? conn.length : 22
