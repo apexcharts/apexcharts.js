@@ -634,42 +634,38 @@ class Range {
     gl.barGroups = []
     gl.lineGroups = []
     gl.areaGroups = []
-    /**
-     * @param {Record<string, any>} s
-     */
-    cnf.series.forEach((s) => {
-      const _s = /** @type {any} */ (s)
-      const type = _s.type || cnf.chart.type
-      switch (type) {
+    cnf.series.forEach((s, i) => {
+      const g = this.w.labelData.seriesGroupIndex[i]
+      switch (/** @type {any} */ (s).type || cnf.chart.type) {
         case 'bar':
         case 'column':
-          gl.barGroups.push(_s.group)
+          gl.barGroups.push(g)
           break
         case 'line':
-          gl.lineGroups.push(_s.group)
+          gl.lineGroups.push(g)
           break
         case 'area':
-          gl.areaGroups.push(_s.group)
+          gl.areaGroups.push(g)
           break
       }
     })
     // Uniquify the group names in each stackable chart type.
     /**
-     * @param {string} v
+     * @param {number} v
      * @param {number} i
-     * @param {string[]} a
+     * @param {number[]} a
      */
     gl.barGroups = gl.barGroups.filter((v, i, a) => a.indexOf(v) === i)
     /**
-     * @param {string} v
+     * @param {number} v
      * @param {number} i
-     * @param {string[]} a
+     * @param {number[]} a
      */
     gl.lineGroups = gl.lineGroups.filter((v, i, a) => a.indexOf(v) === i)
     /**
-     * @param {string} v
+     * @param {number} v
      * @param {number} i
-     * @param {string[]} a
+     * @param {number[]} a
      */
     gl.areaGroups = gl.areaGroups.filter((v, i, a) => a.indexOf(v) === i)
 

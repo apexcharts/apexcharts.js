@@ -571,9 +571,9 @@ export interface ChartGlobals
   seriesYvalues: number[][]
   seriesYAxisMap: number[][]
   seriesYAxisReverseMap: number[]
-  barGroups: string[]
-  lineGroups: string[]
-  areaGroups: string[]
+  barGroups: number[]
+  lineGroups: number[]
+  areaGroups: number[]
   hasSeriesGroups: boolean
 
   // ── Layout extras (ephemeral) ─────────────────────────────────────────────

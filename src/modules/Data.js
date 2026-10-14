@@ -1038,22 +1038,21 @@ export default class Data {
     })
 
     this.coreUtils.setSeriesYAxisMappings()
-    // At this point, every series that didn't have a user defined group name
-    // has been given a name according to the yaxis the series is referenced by.
-    // This fits the existing behaviour where all series associated with an axis
-    // are defacto presented as a single group. It is now formalised.
+    // A series with no user defined group is grouped by the yaxis that
+    // references it, so all series of an axis form one group. The name is
+    // derived here, never written back onto the caller's series objects.
+    const rev = this.w.globals.seriesYAxisReverseMap
+    const keys = cnf.series.map(
+      (/** @type {any} */ s, /** @type {number} */ i) =>
+        s.group ?? 'apexcharts-axis-' + rev[i],
+    )
     /** @type {any[]} */
     const buckets = []
-    /**
-     * @param {Record<string, any>} s
-     */
-    const groups = [
-      ...new Set(cnf.series.map((/** @type {any} */ s) => s.group)),
-    ]
+    const groups = [...new Set(keys)]
     // Membership is recorded by index: groups may reuse series names.
-    this.w.labelData.seriesGroupIndex = cnf.series.map(
-      (/** @type {any} */ s, /** @type {number} */ i) => {
-        const index = groups.indexOf(s.group)
+    this.w.labelData.seriesGroupIndex = keys.map(
+      (/** @type {any} */ k, /** @type {number} */ i) => {
+        const index = groups.indexOf(k)
         if (!buckets[index]) buckets[index] = []
 
         buckets[index].push(this.w.seriesData.seriesNames[i])

@@ -325,28 +325,6 @@ class CoreUtils {
     // for multi axis charts.
     gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
     gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x)
-    // Set default series group names
-    /**
-     * @param {Record<string, any>} axisSeries
-     * @param {number} ai
-     */
-    gl.seriesYAxisMap.forEach((axisSeries, ai) => {
-      /**
-       * @param {number} si
-       */
-      axisSeries.forEach((si) => {
-        // series may be bare until loaded in realtime
-        if (
-          /** @type {any} */ (cnf.series[si]) &&
-          /** @type {any} */ (cnf.series[si]).group === undefined
-        ) {
-          // A series with no group defined will be named after the axis that
-          // referenced it and thus form a group automatically.
-          const _series = /** @type {any} */ (cnf.series[si])
-          _series.group = 'apexcharts-axis-'.concat(ai.toString())
-        }
-      })
-    })
   }
 
   /**
@@ -558,12 +536,17 @@ class CoreUtils {
       w.axisFlags.isXNumeric &&
       !w.config.plotOptions.bar.horizontal &&
       w.seriesData.seriesX
-    /** @type {Map<number, number>} */
+    // Each series group is its own stack, so it normalises to its own total.
+    const gi = w.labelData.seriesGroupIndex
+    const byKey = sx || w.labelData.seriesGroups.length > 1
+    /** @param {number} i @param {number} j */
+    const key = (i, j) => gi[i] + ' ' + (sx ? sx[i][j] : j)
+    /** @type {Map<string, number>} */
     const byX = new Map()
-    if (sx) {
+    if (byKey) {
       w.seriesData.series.forEach((s, i) => {
         if (excluded.indexOf(i) < 0) {
-          s.forEach((v, j) => byX.set(sx[i][j], (byX.get(sx[i][j]) || 0) + v))
+          s.forEach((v, j) => byX.set(key(i, j), (byX.get(key(i, j)) || 0) + v))
         }
       })
     }
@@ -576,7 +559,7 @@ class CoreUtils {
       const seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {
-          const total = sx ? byX.get(sx[i][j]) : stackedTotals[j]
+          const total = byKey ? byX.get(key(i, j)) : stackedTotals[j]
           let percent = 0
           if (total) {
             percent = (100 * ser[j]) / total
@@ -860,7 +843,7 @@ class CoreUtils {
   // other series of the same type on the same axis.
   /**
    * @param {Record<string, any>} typeSeries
-   * @param {string[]} typeGroups
+   * @param {number[]} typeGroups
    * @param {string} type
    * @param {string} chartClass
    */
@@ -871,7 +854,7 @@ class CoreUtils {
     if (typeSeries.series.length > 0) {
       // draw each group separately
       /**
-       * @param {string} gn
+       * @param {number} gn
        */
       typeGroups.forEach((/** @type {any} */ gn) => {
         /** @type {any[]} */
@@ -883,9 +866,7 @@ class CoreUtils {
          * @param {number} ii
          */
         typeSeries.i.forEach((/** @type {any} */ i, /** @type {any} */ ii) => {
-          if (
-            /** @type {Record<string,any>} */ (w.config.series[i]).group === gn
-          ) {
+          if (w.labelData.seriesGroupIndex[i] === gn) {
             gs.push(typeSeries.series[ii])
             gi.push(i)
           }

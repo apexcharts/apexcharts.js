@@ -50,10 +50,12 @@ describe('issue 3836: string seriesName with more series than yaxes', () => {
     expect(seriesYAxisMap).toEqual([[0], [2, 1]])
     expect(seriesYAxisReverseMap).toEqual([0, 1, 1])
     expect(maxYArr[0]).toBeLessThan(maxYArr[1])
+    // grouped by axis in w state, not written onto the config series
+    expect(chart.w.labelData.seriesGroupIndex).toEqual([0, 1, 1])
     expect(chart.w.config.series.map((s) => s.group)).toEqual([
-      'apexcharts-axis-0',
-      'apexcharts-axis-1',
-      'apexcharts-axis-1',
+      undefined,
+      undefined,
+      undefined,
     ])
     chart.destroy()
   })
