@@ -4001,7 +4001,11 @@ type ApexPlotOptions = {
     borderRadius?: number
     /** 1 dot represents this many units of value (waffle scaling). */
     unitValue?: number
-    /** Safety cap on total dots; counts scale down proportionally above it. */
+    /**
+     * Safety cap on total dots; counts scale down proportionally above it (a
+     * scatter keeps an even sample of each category). A split grid draws a
+     * fixed number of cells per tile and is not capped.
+     */
     maxUnits?: number
     /** Packed layout: order categories smallest-first (minority centred). */
     sortByGroup?: boolean

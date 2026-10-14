@@ -12,6 +12,7 @@ import {
   measureLabelWidth,
   spaceOutLabels,
 } from './common/OuterLabels'
+import { hash01 } from './common/Jitter'
 
 /**
  * ApexCharts Unit Class - dot-cluster / pictogram ("unit") chart.
@@ -39,6 +40,16 @@ import {
  **/
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
+
+/**
+ * A finite number from a number or numeric string, else null.
+ * @param {any} v
+ * @returns {number|null}
+ */
+const toNum = (v) => {
+  if (typeof v === 'string') v = parseFloat(v)
+  return typeof v === 'number' && isFinite(v) ? v : null
+}
 
 /** @param {number} t */
 function easeOutCubic(t) {
@@ -207,14 +218,20 @@ export default class Unit {
     const identity = transition === 'identity'
     const unitValue = opts.unitValue > 0 ? opts.unitValue : 1
 
+    // Small-multiple waffles fill a fixed cell budget per tile from the raw
+    // value, so they are neither rounded nor capped.
+    const gridSplit = layout === 'grid' && !!(opts.grid && opts.grid.split)
     // value -> dot count. A non-zero value always yields at least one dot so a
     // tiny category (e.g. 3 of 545) never vanishes entirely.
     let counts = series.map((v) => {
       const n = Math.abs(Utils.parseNumber(v)) / unitValue
-      return n > 0 ? Math.max(1, Math.round(n)) : 0
+      return gridSplit ? n : n > 0 ? Math.max(1, Math.round(n)) : 0
     })
 
-    counts = this._applyMaxUnits(counts, opts.maxUnits)
+    // A scatter caps its own datums (see _layoutScatter).
+    if (!gridSplit && layout !== 'scatter') {
+      counts = this._applyMaxUnits(counts, opts.maxUnits)
+    }
 
     const total = counts.reduce((a, b) => a + b, 0)
     /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,slot?:number,r?:number,j?:number}[] }[]} */
@@ -235,7 +252,6 @@ export default class Unit {
 
     // Small-multiple waffles paint a faint track backdrop (the "of N" cells)
     // behind every tile's filled dots, and carry a per-tile label.
-    const gridSplit = layout === 'grid' && !!(opts.grid && opts.grid.split)
     if (gridSplit) this._drawGridTrack(ret, graphics, opts)
     // Scatter (beeswarm) paints its value X axis + category lanes behind the dots.
     if (layout === 'scatter') this._drawScatterAxes(ret, graphics)
@@ -524,11 +540,16 @@ export default class Unit {
     const total = counts.reduce((a, b) => a + b, 0)
     if (!maxUnits || maxUnits <= 0 || total <= maxUnits) return counts
     const scale = maxUnits / total
-    console.warn(
-      `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); ` +
-        `counts were scaled down proportionally. Raise plotOptions.unit.maxUnits ` +
-        `or use plotOptions.unit.unitValue to represent more units per dot.`,
-    )
+    // Once per chart, not on every update of a live chart.
+    const ctx = this.ctx || {}
+    if (!ctx._unitCapWarned) {
+      ctx._unitCapWarned = true
+      console.warn(
+        `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); ` +
+          `counts were scaled down proportionally. Raise plotOptions.unit.maxUnits ` +
+          `or use plotOptions.unit.unitValue to represent more units per dot.`,
+      )
+    }
     return counts.map((c) => (c > 0 ? Math.max(1, Math.round(c * scale)) : 0))
   }
 
@@ -1319,7 +1340,7 @@ export default class Unit {
     // Value -> filled-cell denominator. Default = the largest count (leader
     // fills its tile, the rest proportional); `grid.max` pins an explicit whole
     // (e.g. 100 so a value of 35 fills 35 of 100 cells - a percentage waffle).
-    const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts)
+    const denom = gcfg.max > 0 ? gcfg.max : Math.max(...counts) || 1
 
     // Arrange the tiles in a near-square grid unless grid.tileColumns pins it.
     const tileCols = Math.max(
@@ -1459,13 +1480,19 @@ export default class Unit {
   _layoutScatter(opts) {
     const w = this.w
     const scfg = opts.scatter || {}
+    const unitData = w.seriesData.unitData || []
+    // maxUnits keeps an evenly spaced sample of each category, one dot per datum.
+    const lens = unitData.map((c) => (c ? c.length : 0))
+    const caps = this._applyMaxUnits(lens, opts.maxUnits)
+    /** @param {number} ci @param {number} j */
+    const keep = (ci, j) =>
+      Math.floor(((j + 1) * caps[ci]) / lens[ci]) > Math.floor((j * caps[ci]) / lens[ci])
     // 2D value-value scatter: each datum's own x AND y on two numeric axes.
-    if (scfg.y === 'value') return this._layoutScatter2D(opts)
+    if (scfg.y === 'value') return this._layoutScatter2D(opts, keep)
     // Vertical beeswarm: value on the Y axis, category lanes as X columns.
-    if (scfg.orientation === 'vertical') return this._layoutScatterVertical(opts)
+    if (scfg.orientation === 'vertical') return this._layoutScatterVertical(opts, keep)
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
-    const unitData = w.seriesData.unitData || []
     const names = w.seriesData.seriesNames || []
     const valueOf = (/** @type {any} */ d) => this._unitValueOf(d)
     // Optional bubble sizing (by a separate `sizeField`): a bubble beeswarm.
@@ -1554,37 +1581,37 @@ export default class Unit {
     visible.forEach((ci, slot) => {
       const cy = laneCy(slot)
       lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` })
-      const cat = unitData[ci] || []
       // Points keep their original datum index j so draw() can still resolve
-      // unitData[i][j] for per-unit colour + tooltip. A non-numeric datum is
-      // pinned to the axis start (defensive; scatter expects numeric values).
+      // unitData[i][j] for per-unit colour + tooltip. A datum with no numeric
+      // value has no place on the axis and is not drawn.
       // With bubble sizing each point carries its own radius `r` (used by the
       // pack + read back by draw()); otherwise the shared radius applies.
-      const pts = cat.map((d, j) => {
+      /** @type {{j:number,px:number,y:number,r?:number}[]} */
+      const pts = []
+      ;(unitData[ci] || []).forEach((/** @type {any} */ d, /** @type {number} */ j) => {
         const v = valueOf(d)
+        if (!isNum(v) || !keep(ci, j)) return
         /** @type {{j:number,px:number,y:number,r?:number}} */
-        const p = { j, px: plotX(isNum(v) ? v : xMin), y: cy }
+        const p = { j, px: plotX(v), y: cy }
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r)
-        return p
+        pts.push(p)
       })
       if (jitter) {
-        // Deterministic pseudo-jitter by index (no Math.random - keeps SSR +
-        // re-render stable): spread within the lane band.
+        // Deterministic pseudo-jitter (no Math.random - keeps SSR + re-render
+        // stable): spread within the lane band.
         const halfLane = Math.max(maxR, laneH / 2 - maxR)
-        pts.forEach((p, k) => {
-          const t = ((k * 9301 + 49297) % 233280) / 233280 // LCG in [0,1)
-          p.y = cy + (t * 2 - 1) * halfLane
+        pts.forEach((p) => {
+          p.y = cy + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane
         })
       } else {
         this._beeswarm(pts, cy, r, step, maxR)
       }
-      // draw() indexes cluster.dots[j] against unitData[i][j], so keep j order.
       clusters.push({
         i: ci,
         cx: (plotL + plotR) / 2,
         cy,
         outerR: laneH / 2,
-        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r })),
+        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r, j: p.j })),
       })
     })
 
@@ -1615,9 +1642,9 @@ export default class Unit {
    * dots horizontally off each column's centre line. The value-axis config keys
    * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
    * axis (now Y), so flipping `orientation` keeps the same value settings.
-   * @param {any} opts
+   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
    */
-  _layoutScatterVertical(opts) {
+  _layoutScatterVertical(opts, keep) {
     const w = this.w
     const scfg = opts.scatter || {}
     const gw = w.layout.gridWidth
@@ -1705,19 +1732,20 @@ export default class Unit {
     visible.forEach((ci, slot) => {
       const cx = laneCx(slot)
       lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` })
-      const cat = unitData[ci] || []
-      const pts = cat.map((d, j) => {
+      /** @type {{j:number,py:number,x:number,r?:number}[]} */
+      const pts = []
+      ;(unitData[ci] || []).forEach((/** @type {any} */ d, /** @type {number} */ j) => {
         const v = valueOf(d)
+        if (!isNum(v) || !keep(ci, j)) return
         /** @type {{j:number,py:number,x:number,r?:number}} */
-        const p = { j, py: plotY(isNum(v) ? v : vMin), x: cx }
+        const p = { j, py: plotY(v), x: cx }
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r)
-        return p
+        pts.push(p)
       })
       if (jitter) {
         const halfLane = Math.max(maxR, laneW / 2 - maxR)
-        pts.forEach((p, k) => {
-          const t = ((k * 9301 + 49297) % 233280) / 233280 // LCG in [0,1)
-          p.x = cx + (t * 2 - 1) * halfLane
+        pts.forEach((p) => {
+          p.x = cx + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane
         })
       } else {
         this._beeswarm(pts, cx, r, step, maxR, true)
@@ -1727,7 +1755,7 @@ export default class Unit {
         cx,
         cy: (plotT + plotB) / 2,
         outerR: laneW / 2,
-        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r })),
+        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r, j: p.j })),
       })
     })
 
@@ -1760,19 +1788,20 @@ export default class Unit {
    * per category). With `scatter.sizeRange` set, each dot is a BUBBLE scaled (by
    * area) from its `sizeField` (default 'z'). Needs the object form with numeric
    * `x` + `y`.
-   * @param {any} opts
+   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
    */
-  _layoutScatter2D(opts) {
+  _layoutScatter2D(opts, keep) {
     const w = this.w
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
     const scfg = opts.scatter || {}
     const unitData = w.seriesData.unitData || []
-    const isNum = (/** @type {any} */ v) => typeof v === 'number' && isFinite(v)
+    /** @param {any} v @returns {v is number} */
+    const isNum = (v) => v != null
     const xOf = (/** @type {any} */ d) =>
-      d && typeof d === 'object' ? d.x : null
+      d && typeof d === 'object' ? toNum(d.x) : null
     const yOf = (/** @type {any} */ d) =>
-      d && typeof d === 'object' ? (d.y != null ? d.y : d.value) : null
+      d && typeof d === 'object' ? toNum(d.y != null ? d.y : d.value) : null
 
     // A category is visible if it has at least one point with numeric x AND y.
     const visible = unitData
@@ -1844,15 +1873,19 @@ export default class Unit {
     /** @type {{ i:number, cx:number, cy:number, outerR:number, dots:{x:number,y:number,r?:number}[] }[]} */
     const clusters = []
     visible.forEach((ci) => {
-      const cat = unitData[ci] || []
-      const dots = cat.map((d) => {
+      /** @type {{x:number,y:number,r?:number,j:number}[]} */
+      const dots = []
+      ;(unitData[ci] || []).forEach((/** @type {any} */ d, /** @type {number} */ j) => {
         const x = xOf(d)
         const y = yOf(d)
-        return {
-          x: plotX(isNum(x) ? x : xMin),
-          y: plotY(isNum(y) ? y : yMin),
+        // A point with no numeric x or y has no place on the plane.
+        if (x == null || y == null || !keep(ci, j)) return
+        dots.push({
+          x: plotX(x),
+          y: plotY(y),
           r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : undefined,
-        }
+          j,
+        })
       })
       clusters.push({
         i: ci,
@@ -2390,17 +2423,12 @@ export default class Unit {
   }
 
   /**
-   * This datum's numeric value for sizing / tooltip: the number itself, or an
-   * object's `value` / `y`. Null when there is no usable number.
+   * This datum's numeric value for sizing / tooltip: the number (or numeric
+   * string) itself, or an object's `value` / `y`. Null when there is none.
    * @param {any} d @returns {number | null}
    */
   _unitValueOf(d) {
-    if (typeof d === 'number') return d
-    if (d && typeof d === 'object') {
-      const v = d.value != null ? d.value : d.y
-      return typeof v === 'number' ? v : null
-    }
-    return null
+    return toNum(d && typeof d === 'object' ? (d.value != null ? d.value : d.y) : d)
   }
 
   /**
