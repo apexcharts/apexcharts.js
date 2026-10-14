@@ -118,6 +118,12 @@ class DataLabels {
       drawnextLabel = true
     }
 
+    // Record the drawn RECT's index, not the point's: a rangeArea series
+    // records two rects per point (its start labels, then its end labels).
+    if (drawnextLabel) {
+      ;(w.globals.lastDrawnDataLabelsIndexes[i] ||= []).push(len + 1)
+    }
+
     return {
       x,
       y,
@@ -474,12 +480,6 @@ class DataLabels {
       // Progressive reveal: data labels fade in alongside their markers as the
       // line's pen-stroke reaches them. Uses the corrected x (post-offset).
       if (penDrawn(w, i)) applyProgressiveReveal(dataLabelText, x, w)
-
-      if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
-        w.globals.lastDrawnDataLabelsIndexes[i] = []
-      }
-
-      w.globals.lastDrawnDataLabelsIndexes[i].push(j)
     }
 
     return dataLabelText

@@ -143,8 +143,10 @@ export default class Markers {
   setGlobalMarkerSize() {
     const w = this.w
 
+    // A copy: the padding below must not grow (or throw on a frozen) caller
+    // array.
     w.globals.markers.size = Array.isArray(w.config.markers.size)
-      ? w.config.markers.size
+      ? w.config.markers.size.slice()
       : [w.config.markers.size]
 
     if (w.globals.markers.size.length > 0) {
