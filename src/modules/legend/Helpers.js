@@ -55,6 +55,8 @@ export default class Helpers {
    */
   toggleDataSeries(seriesCnt, isHidden) {
     const w = this.w
+    // a legendClick handler may have destroyed the chart
+    if (!w.dom.baseEl) return
     if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
       w.globals.resized = true // we don't want initial animations again
 

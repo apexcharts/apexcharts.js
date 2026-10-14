@@ -381,7 +381,8 @@ class Legend {
       // by index: groups may reuse series names, and an unnamed series has
       // none to match
       const lg = legendGroups[w.labelData.seriesGroupIndex[i]]
-      if (lg) elLegendWrap.appendChild(lg)
+      // once: re-appending moves the group, reordering interleaved groups
+      if (lg && !lg.parentNode) elLegendWrap.appendChild(lg)
       ;(lg || elLegendWrap).appendChild(elLegend)
 
       elLegendWrap.classList.add(
@@ -537,10 +538,8 @@ class Legend {
     const hoverOverLegend = isLegendItem(target)
 
     if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
-      if (
-        !target.classList.contains('apexcharts-inactive-legend') &&
-        hoverOverLegend
-      ) {
+      // closest: the text span of a hidden item carries no inactive class
+      if (hoverOverLegend && !target.closest('.apexcharts-inactive-legend')) {
         const series = new Series(this.ctx.w)
         series.toggleSeriesOnHover(e, target)
       }
@@ -585,7 +584,8 @@ class Legend {
       // can keep toggling without having to re-tab to the legend.
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
-          const restored = w.dom.baseEl.querySelector(
+          // the chart may have been destroyed before this frame
+          const restored = w.dom.baseEl?.querySelector(
             `.apexcharts-legend-series[rel="${rel}"]`,
           )
           if (restored) /** @type {HTMLElement} */ (restored).focus()
