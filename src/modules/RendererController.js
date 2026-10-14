@@ -143,7 +143,9 @@ export default class RendererController {
         return this._activeKind
       }
       // The backend was requested/auto-selected but its feature isn't bundled.
-      if (mode === desired) {
+      // resolve() runs every render, so say it once per chart.
+      if (mode === desired && !this._warned) {
+        this._warned = 1
         warnMissingFeature(
           `\`chart.renderer: '${desired}'\``,
           `renderer-${desired}`,
@@ -152,10 +154,15 @@ export default class RendererController {
           },
         )
       }
-    } else if (mode === 'canvas' && hasCanvasUnsupportedFeature(this.w)) {
+    } else if (
+      mode === 'canvas' &&
+      !this._warned &&
+      hasCanvasUnsupportedFeature(this.w)
+    ) {
       // Explicit canvas, but a configured feature (gradient/pattern/image fill,
       // or a state color-matrix filter) can't render on canvas yet: 'auto'
-      // declines silently, explicit 'canvas' says why.
+      // declines silently, explicit 'canvas' says why (once).
+      this._warned = 1
       console.warn(
         `[apexcharts] renderer:"canvas" requested but this chart uses a feature the ` +
           `canvas renderer does not render yet (gradient/pattern/image fill or a ` +
@@ -163,6 +170,13 @@ export default class RendererController {
       )
     }
 
+    // Leaving a non-SVG backend frees it (display list, bitmap); the factory
+    // builds a fresh one if the chart crosses back.
+    const prev = this._instances[this._activeKind]
+    if (prev) {
+      prev.destroy()
+      delete this._instances[this._activeKind]
+    }
     this._activate('svg', this.svg)
     return this._activeKind
   }
