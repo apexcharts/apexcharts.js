@@ -1600,6 +1600,43 @@ export default class ZoomPanSelection extends Toolbar {
     this.ctx.events.fireEvent('scrolled', args)
   }
 
+  /**
+   * Pan a zoomed x-window by `fraction` of its width (keyboard Shift+Arrow),
+   * clamped to the data as a drag pan is, and reported as one (`scrolled`).
+   * @param {number} fraction
+   */
+  panBy(fraction) {
+    const w = this.w
+    if (!w.interact.zoomed) return
+    const { min, max } = this._currentXWindow()
+    let d = (max - min) * fraction
+    // a category window moves by whole categories
+    if (w.config.xaxis.convertedCatToNumeric) {
+      d = d > 0 ? Math.ceil(d) : Math.floor(d)
+    }
+    // _clampBounds has none for a rangeBar: stop at the ends of its bars
+    if (w.axisFlags.isRangeBar) {
+      const r = w.rangeData
+      let lo = Infinity
+      let hi = -Infinity
+      r.seriesRangeStart
+        .concat(r.seriesRangeEnd)
+        .flat()
+        .forEach((/** @type {any} */ y) => {
+          if (y != null) {
+            lo = Math.min(lo, y)
+            hi = Math.max(hi, y)
+          }
+        })
+      d =
+        d > 0
+          ? Math.min(d, Math.max(0, hi - max))
+          : Math.max(d, Math.min(0, lo - min))
+      if (!d) return
+    }
+    if (this._applyXRange(min + d, max + d, false)) this._fireScrolled()
+  }
+
   /** @param {number} x @param {number} t */
   _pushSample(x, t) {
     const s = this._m().samples

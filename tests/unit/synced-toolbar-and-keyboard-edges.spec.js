@@ -217,8 +217,10 @@ describe("keyboard '+' follows the render's zoomability", () => {
     expect(zoomed).toHaveLength(1)
   })
 
-  it('pans a horizontal rangeBar timeline', () => {
+  it('pans a zoomed horizontal rangeBar timeline', () => {
     const { chart } = timeline(tasks)
+    press(chart, '+')
+    focus(chart)
     const { minY, maxY } = chart.w.globals
     chart.el
       .querySelector('.apexcharts-svg')

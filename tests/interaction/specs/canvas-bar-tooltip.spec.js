@@ -291,6 +291,8 @@ test.describe('Canvas bar-likes: keyboard focus', () => {
       document.querySelector('.apexcharts-svg').focus()
     })
     await page.waitForTimeout(150)
+    // An update keeps a focused chart's cursor, so start from the first mark
+    await page.keyboard.press('Home')
     for (let k = 0; k < j; k++) {
       await page.keyboard.press('ArrowRight')
       await page.waitForTimeout(60)

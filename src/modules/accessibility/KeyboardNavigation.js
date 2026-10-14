@@ -107,12 +107,27 @@ export default class KeyboardNavigation {
     // keyboard-nav tooltip so it doesn't remain stuck on screen while the chart
     // re-renders with a different set of visible series.
     this.ctx.events.addEventListener('legendClick', this._onLegendClick)
+
+    // An update (a keyboard zoom or pan among them) replaced a focused SVG:
+    // focus this one, with the cursor and a dismissed tooltip as they were
+    // (destroy), unless focus has gone somewhere else since
+    const kept = w.interact.keyNav
+    const doc = svgEl.ownerDocument
+    w.interact.keyNav = null
+    if (kept && (!doc.activeElement || doc.activeElement === doc.body)) {
+      ;[this.seriesIndex, this.dataPointIndex, , this._tooltipDismissed] = kept
+      // Focus alone, without starting nav, if nav was not running
+      if (!kept[2]) this.notePointerFocus()
+      svgEl.focus({ preventScroll: true })
+    }
   }
 
   /**
-   * Removes all event listeners. Called from chart.destroy().
+   * Removes all event listeners. Called from chart.destroy(), and with
+   * `updating` when an update is about to replace the SVG.
+   * @param {boolean} [updating]
    */
-  destroy() {
+  destroy(updating) {
     const w = this.w
     const svgEl = w.dom.Paper && w.dom.Paper.node
 
@@ -126,6 +141,14 @@ export default class KeyboardNavigation {
 
     if (!svgEl) return
 
+    if (updating && svgEl.getRootNode?.().activeElement === svgEl) {
+      w.interact.keyNav = [
+        this.seriesIndex,
+        this.dataPointIndex,
+        this.active,
+        this._tooltipDismissed,
+      ]
+    }
     svgEl.removeEventListener('focus', this._onFocus)
     svgEl.removeEventListener('blur', this._onBlur)
     svgEl.removeEventListener('keydown', this._onKeyDown)
@@ -192,7 +215,8 @@ export default class KeyboardNavigation {
     // If the chart is zoomed, snap the cursor to the first visible data point
     // so the user doesn't start navigating outside the current viewport.
     this._snapToVisibleRange()
-    this._showCurrentPoint()
+    // An update re-focusing a chart whose tooltip was dismissed (init)
+    if (!this._tooltipDismissed) this._showCurrentPoint()
   }
 
   _onBlur() {
@@ -323,28 +347,16 @@ export default class KeyboardNavigation {
   }
 
   _canPan() {
-    // Pan only meaningful once the chart is zoomed in (otherwise full data is
-    // already visible). We still allow it whenever zoom is enabled — the
-    // toolbar's zoomUpdateOptions clamps to data bounds.
-    return this._canZoom()
+    // Unzoomed, the whole domain is in view: there is nothing to pan to
+    return this._canZoom() && this.w.interact.zoomed
   }
 
   /**
-   * Shift the visible x-range by ~10% in the given direction.
+   * Shift the visible x-range by ~10% in the given direction, as a drag pan.
    * @param {number} direction +1 = right, -1 = left
    */
   _panBy(direction) {
-    const toolbar = this.ctx.toolbar
-    if (!toolbar) return
-
-    const r = toolbar._currentXRange()
-    const minX = Number(r.minX)
-    const maxX = Number(r.maxX)
-    if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return
-
-    const span = maxX - minX
-    const step = span * 0.1 * direction
-    toolbar.zoomUpdateOptions(minX + step, maxX + step)
+    this.ctx.zoomPanSelection?.panBy(direction / 10)
     this._announce(direction > 0 ? 'Panned right' : 'Panned left')
   }
 
@@ -480,6 +492,8 @@ export default class KeyboardNavigation {
     const w = this.w
     const ttCtx = w.globals.tooltip
 
+    // Showing a point again undoes an Escape dismissal
+    this._tooltipDismissed = false
     if (!ttCtx || !ttCtx.ttItems) return
 
     // Keep globals consistent with the rest of the system

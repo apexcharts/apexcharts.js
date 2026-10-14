@@ -64,7 +64,7 @@ export default class Destroy {
       // alone leaks the listener + the dead instance on every updateOptions().
       // zoomPanSelection/toolbar were destroyed above; the full-destroy path
       // destroys keyboardNavigation via apexcharts.js before calling clear().
-      this.ctx._keyboardNavigation?.destroy()
+      this.ctx._keyboardNavigation?.destroy(true)
       this.ctx._keyboardNavigation = null
     } else {
       // Full destroy — null everything so GC can collect the instances.

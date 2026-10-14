@@ -112,6 +112,10 @@ export interface InteractState {
   }
   // Cooperative wheel: fade-out timer for the "Ctrl + scroll to zoom" hint.
   wheelHintTimer?: any
+  // Keyboard nav handing focus across an update that replaces the SVG:
+  // [seriesIndex, dataPointIndex, active, tooltipDismissed], set on destroy,
+  // taken on init.
+  keyNav?: [number, number, boolean, boolean] | null
 }
 
 /** Label formatter functions — lives on `w.formatters` */
