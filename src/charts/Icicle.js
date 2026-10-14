@@ -659,7 +659,6 @@ export default class IcicleChart {
    * @param {any} node
    */
   _renderLabel(node) {
-    if (!Environment.isBrowser()) return
     const dl = this.cfg.dataLabels
     const style = dl.style
     const box = this._box(node)
@@ -744,7 +743,6 @@ export default class IcicleChart {
    * @param {any} node
    */
   _renderMoreMark(node) {
-    if (!Environment.isBrowser()) return
     const box = this._box(node)
     const along = this._vertical ? box.w : box.h
     if (along < 18) return
