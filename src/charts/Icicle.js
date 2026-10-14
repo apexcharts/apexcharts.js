@@ -686,7 +686,8 @@ export default class IcicleChart {
     const room = along - 8
     let label = node.name
     if (dl.showValue) {
-      const full = `${node.name}: ${node.value}`
+      // Trimmed like the node tooltip, so a rolled-up 0.1 + 0.2 reads 0.3.
+      const full = `${node.name}: ${+node.value.toPrecision(12)}`
       if (this._fits(full, room, fontPx)) label = full
     }
     const text = this._truncate(label, room, fontPx)

@@ -70,6 +70,13 @@ export class NodeTooltip {
     const groupBg = w.config.tooltip.fillSeriesColor
       ? `background-color:${node._color};`
       : ''
+    // tooltip.y.formatter when given (a node has no dataPointIndex, so it gets
+    // -1 and the node itself), else the value without float noise.
+    const ty = w.config.tooltip.y
+    const fmt = (Array.isArray(ty) ? ty[0] : ty)?.formatter
+    const val = fmt
+      ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node })
+      : +node.value.toPrecision(12)
 
     t.innerHTML =
       `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}">` +
@@ -77,7 +84,7 @@ export class NodeTooltip {
       `<div class="apexcharts-tooltip-text">` +
       `<div class="apexcharts-tooltip-y-group">` +
       `<span class="apexcharts-tooltip-text-y-label">${node.name}: </span>` +
-      `<span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span>` +
+      `<span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span>` +
       `</div></div></div>`
     t.classList.add('apexcharts-active')
     t.style.opacity = '1'
