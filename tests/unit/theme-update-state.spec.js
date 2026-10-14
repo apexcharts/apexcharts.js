@@ -46,6 +46,19 @@ describe('Theme: distribution and colour functions are read per render', () => {
     chart.destroy()
   })
 
+  it('a colour function set only on fill.colors renders', async () => {
+    const fn = ({ value }) => (value > 1 ? '#d62728' : '#2ca02c')
+    const chart = createChartWithOptions({
+      chart: { type: 'bar' },
+      series: [{ data: [1, 2] }],
+      fill: { colors: [fn] },
+    })
+    await chart.render()
+    expect(chart.w.globals.fill.colors[0]).toBe(fn)
+    expect(chart.w.globals.stroke.colors.every(Boolean)).toBe(true)
+    chart.destroy()
+  })
+
   it('plain colours after colour functions resolve from the palette', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const chart = createChartWithOptions({
