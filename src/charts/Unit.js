@@ -2680,7 +2680,8 @@ export default class Unit {
     // grow the cache to one entry per dot; sub-tenth-pixel scale differences
     // are not observable anyway.
     const qr = Math.round(dotR * 10) / 10
-    const key = mark.name + '|' + mark.path.length + '|' + qr
+    // Inline marks are all named 'anonymous', so the outline itself keys.
+    const key = mark.name + mark.path + mark.viewBox + mark.fillRule + qr
     const hit = this._specCache.get(key)
     if (hit) return hit
 
@@ -2741,9 +2742,9 @@ export default class Unit {
    * Draw one dot (circle, square, or image icon) with the category fill +
    * stroke, tagged so the shared non-axis tooltip and hover reuse work.
    * @param {Graphics} graphics @param {any} opts @param {number} dotR
-   * @param {string} color @param {number} i @param {number} j
-   * @param {UnitMarkSpec} [spec] this mark's resolved spec; defaults to the
-   *   chart-wide shape
+   * @param {string} color @param {number} i @param {number} j (i < 0: an exit
+   *   ghost, left untagged so tooltips and morph capture skip it)
+   * @param {UnitMarkSpec} spec this mark's resolved spec
    * @returns {any}
    */
   _drawDot(graphics, opts, dotR, color, i, j, spec) {
@@ -2761,7 +2762,7 @@ export default class Unit {
       typeof w.config.fill.opacity === 'number' ? w.config.fill.opacity : 1
 
     let el
-    if (spec && spec.pk === PK_GLYPH) {
+    if (spec.pk === PK_GLYPH) {
       // A monochrome vector glyph: ONE <path>, filled directly in the mark's
       // colour. No fetch, no decode, and crucially no per-colour <filter> - an
       // feFlood/feComposite pair (what `shape:'image'` needs to match the
@@ -2776,7 +2777,7 @@ export default class Unit {
       // Geometry the morph capture cannot read back off a transform. Written
       // once at creation; never touched in a frame.
       el.node.setAttribute('data:r', String(spec.r))
-    } else if (opts.shape === 'image' && opts.image && opts.image.src) {
+    } else if (spec.pk === PK_CORNER && opts.shape === 'image' && opts.image && opts.image.src) {
       const iw = opts.image.width || 20
       const ih = opts.image.height || 20
       el = w.dom.Paper.image(opts.image.src)
@@ -2790,7 +2791,8 @@ export default class Unit {
       if (opts.image.tint) {
         el.node.setAttribute('filter', `url(#${this._tintFilter(color)})`)
       }
-    } else if (opts.shape === 'square') {
+    } else if (spec.pk === PK_CORNER) {
+      // A square, or the square fallback of an unresolved pictogram.
       const side = dotR * 2
       el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, color, 1, strokeW, strokeColor)
       el.node.setAttribute('fill', color)
@@ -2804,9 +2806,11 @@ export default class Unit {
       el.node.setAttribute('fill', color)
       if (fillOpacity < 1) el.node.setAttribute('fill-opacity', String(fillOpacity))
     }
-    el.node.classList.add('apexcharts-unit-area')
-    el.node.setAttribute('i', String(i))
-    el.node.setAttribute('j', String(j))
+    if (i >= 0) {
+      el.node.classList.add('apexcharts-unit-area')
+      el.node.setAttribute('i', String(i))
+      el.node.setAttribute('j', String(j))
+    }
     return el
   }
 
@@ -2821,10 +2825,14 @@ export default class Unit {
   _tintFilter(color) {
     const w = this.w
     const NS = 'http://www.w3.org/2000/svg'
-    const safe = String(color).replace(/[^a-zA-Z0-9]/g, '')
-    const id = `apexcharts-unit-tint-${w.globals.chartID}-${safe}`
+    // Keyed by the raw colour: a sanitised one let rgb(1,23,4) and
+    // rgb(12,3,4) share a filter.
+    const tints = this._tints || (this._tints = new Map())
+    let id = tints.get(color)
+    if (id) return id
+    id = `apexcharts-unit-tint-${w.globals.chartID}-${tints.size}`
+    tints.set(color, id)
     const svg = w.dom.Paper.node
-    if (svg.querySelector(`#${id}`)) return id
 
     let defs = svg.querySelector('defs')
     if (!defs) {
@@ -3211,7 +3219,7 @@ export default class Unit {
       // slot; without it every pictogram would ghost out as a plain circle.
       const r = slot.r != null ? slot.r : dotR
       const spec = slot.spec || this._baseSpec(opts, r)
-      const el = this._drawDot(graphics, opts, r, slot.fill, 0, 0, spec)
+      const el = this._drawDot(graphics, opts, r, slot.fill, -1, 0, spec)
       el.node.classList.add('apexcharts-unit-exit')
       this._place(el.node, spec, slot.x, slot.y)
       group.add(el)
