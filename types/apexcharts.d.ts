@@ -3929,7 +3929,10 @@ type ApexPlotOptions = {
       sizeField?: string
       /** `[minRadius, maxRadius]` in px: turns dots into area-scaled bubbles. */
       sizeRange?: [number, number]
-      /** Left-gutter width reserved for lane (category) labels (lanes mode). */
+      /**
+       * Left-gutter width reserved for lane (category) labels (lanes mode).
+       * Defaults to the widest label, up to a third of the plot.
+       */
       laneLabelWidth?: number
       /** Draw the faint gridlines. Defaults to true. */
       gridlines?: boolean

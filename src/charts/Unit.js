@@ -1527,14 +1527,22 @@ export default class Unit {
       vmax = 1
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
-    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount)
+    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount)
     const xMin = domain.min
     const xMax = domain.max
     const xSpan = xMax - xMin || 1
 
-    // Plot box: left gutter for lane labels, bottom gutter for the axis.
+    // Plot box: left gutter for lane labels, bottom gutter for the axis. The
+    // gutter fits the widest lane label (drawn 12px / 600), up to a third of
+    // the plot; a label past it is shortened with an ellipsis.
+    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 }
+    const laneName = (/** @type {number} */ i) => names[i] || `series-${i + 1}`
     const laneW =
-      scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? 92 : 8
+      scfg.laneLabelWidth != null
+        ? Math.max(0, scfg.laneLabelWidth)
+        : Kv > 1
+          ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14)
+          : 8
     const bottomGutter = 30 + (scfg.xTitle ? 20 : 0)
     const plotL = laneW
     const plotR = gw - 8
@@ -1580,7 +1588,13 @@ export default class Unit {
 
     visible.forEach((ci, slot) => {
       const cy = laneCy(slot)
-      lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` })
+      let name = laneName(ci)
+      // Only a gutter wide enough to draw labels in (see _drawScatterAxes).
+      const wid = laneW > 12 ? measureLabelWidth(w, [name], font) : 0
+      if (wid > laneW - 14 && wid) {
+        name = name.slice(0, Math.max(1, Math.floor((name.length * (laneW - 14)) / wid) - 1)) + '\u2026'
+      }
+      lanes.push({ i: ci, cy, name })
       // Points keep their original datum index j so draw() can still resolve
       // unitData[i][j] for per-unit colour + tooltip. A datum with no numeric
       // value has no place on the axis and is not drawn.
@@ -1680,7 +1694,7 @@ export default class Unit {
       vmax = 1
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
-    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount)
+    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount)
     const vMin = domain.min
     const vMax = domain.max
     const vSpan = vMax - vMin || 1
@@ -1833,22 +1847,26 @@ export default class Unit {
       ymn = 0
       ymx = 1
     }
-    const xTicksN = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
-    const yTicksN = Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5))
-    const nx = this._niceScale(
-      scfg.xMin != null ? scfg.xMin : xmn,
-      scfg.xMax != null ? scfg.xMax : xmx,
-      xTicksN,
+    // Pinned bounds frame each axis and extend to keep every point inside the
+    // plot, as the 1D beeswarm's value axis does.
+    const dx = this._scatterValueDomain(
+      scfg.xMin,
+      scfg.xMax,
+      xmn,
+      xmx,
+      Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5)),
     )
-    const ny = this._niceScale(
-      scfg.yMin != null ? scfg.yMin : ymn,
-      scfg.yMax != null ? scfg.yMax : ymx,
-      yTicksN,
+    const dy = this._scatterValueDomain(
+      scfg.yMin,
+      scfg.yMax,
+      ymn,
+      ymx,
+      Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5)),
     )
-    const xMin = scfg.xMin != null ? scfg.xMin : nx.min
-    const xMax = scfg.xMax != null ? scfg.xMax : nx.max
-    const yMin = scfg.yMin != null ? scfg.yMin : ny.min
-    const yMax = scfg.yMax != null ? scfg.yMax : ny.max
+    const xMin = dx.min
+    const xMax = dx.max
+    const yMin = dy.min
+    const yMax = dy.max
     const xSpan = xMax - xMin || 1
     const ySpan = yMax - yMin || 1
 
@@ -1896,27 +1914,6 @@ export default class Unit {
       })
     })
 
-    const mkTicks = (
-      /** @type {number} */ lo,
-      /** @type {number} */ hi,
-      /** @type {number} */ span,
-      /** @type {number} */ spacing,
-      /** @type {boolean} */ pinned,
-      /** @type {number} */ n,
-    ) => {
-      /** @type {number[]} */
-      const out = []
-      if (pinned) {
-        for (let k = 0; k < n; k++) out.push(lo + (span * k) / (n - 1))
-      } else {
-        const sp = spacing || span / Math.max(1, n - 1)
-        for (let v = lo; v <= hi + sp * 0.5; v += sp) {
-          out.push(Math.abs(v) < sp * 1e-9 ? 0 : v)
-        }
-      }
-      return out
-    }
-
     this._scatterAxis = {
       mode: '2d',
       plotL,
@@ -1925,22 +1922,8 @@ export default class Unit {
       plotB,
       plotX,
       plotY,
-      xTicks: mkTicks(
-        xMin,
-        xMax,
-        xSpan,
-        nx.spacing,
-        scfg.xMin != null || scfg.xMax != null,
-        xTicksN,
-      ),
-      yTicks: mkTicks(
-        yMin,
-        yMax,
-        ySpan,
-        ny.spacing,
-        scfg.yMin != null || scfg.yMax != null,
-        yTicksN,
-      ),
+      xTicks: dx.ticks,
+      yTicks: dy.ticks,
       xTitle: scfg.xTitle,
       yTitle: scfg.yTitle,
       xFormatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
@@ -2052,36 +2035,47 @@ export default class Unit {
   }
 
   /**
-   * Value-axis domain + ticks for a 1D beeswarm. The domain ALWAYS contains
+   * Value-axis domain + ticks for a scatter axis. The domain ALWAYS contains
    * every datum: a swarm that clips a dot outside the plot box is a bug, so an
-   * explicit `xMin`/`xMax` only FRAMES the axis and is extended by whole
+   * explicit `lo`/`hi` only FRAMES the axis and is extended by whole
    * tick-steps whenever the data would otherwise overflow. Orientation-agnostic:
    * the same value axis is X for a horizontal swarm and Y for a vertical one.
-   * @param {any} scfg scatter config
+   * @param {number|undefined} lo pinned minimum @param {number|undefined} hi
+   *   pinned maximum
    * @param {number} vmin data minimum @param {number} vmax data maximum
    * @param {number} tickAmount desired tick count
    * @returns {{ min:number, max:number, ticks:number[] }}
    */
-  _scatterValueDomain(scfg, vmin, vmax, tickAmount) {
+  _scatterValueDomain(lo, hi, vmin, vmax, tickAmount) {
     /** @param {number} min @param {number} max @param {number} spacing */
     const buildTicks = (min, max, spacing) => {
       /** @type {number[]} */
       const ticks = []
-      for (let v = min; v <= max + spacing * 0.5; v += spacing) {
+      for (let k = 0, v = min; v <= max + spacing * 0.5; v = min + ++k * spacing) {
         ticks.push(Math.abs(v) < spacing * 1e-9 ? 0 : v)
       }
       return ticks
     }
-    if (scfg.xMin != null || scfg.xMax != null) {
-      let min = scfg.xMin != null ? scfg.xMin : vmin
-      let max = scfg.xMax != null ? scfg.xMax : vmax
-      if (!(max > min)) max = min + 1
-      const spacing = (max - min) / Math.max(1, tickAmount - 1)
+    if (lo != null || hi != null) {
+      let min = /** @type {number} */ (lo != null ? lo : hi)
+      let max = /** @type {number} */ (hi != null ? hi : lo)
+      // Both ends pinned: split the span. One end pinned: step from it by a
+      // nice spacing, so the free end lands on a whole step.
+      const spacing =
+        max > min
+          ? (max - min) / Math.max(1, tickAmount - 1)
+          : this._niceScale(Math.min(min, vmin), Math.max(max, vmax), tickAmount).spacing
       // Extend the framed bounds by whole steps so no dot falls outside the
       // plot (keeps the user's tick origin + spacing, just adds ticks).
       if (vmin < min) min -= Math.ceil((min - vmin) / spacing) * spacing
       if (vmax > max) max += Math.ceil((vmax - max) / spacing) * spacing
-      return { min, max, ticks: buildTicks(min, max, spacing) }
+      if (!(max > min)) max = min + spacing
+      if ((max - min) / spacing <= 2 * tickAmount) {
+        return { min, max, ticks: buildTicks(min, max, spacing) }
+      }
+      // A far outlier would add a tick per step: nice-number the whole span.
+      vmin = min
+      vmax = max
     }
     const nice = this._niceScale(vmin, vmax, tickAmount)
     const spacing =
@@ -2201,14 +2195,14 @@ export default class Unit {
       ax.yTicks.forEach((/** @type {number} */ v) => {
         const y = ax.plotY(v)
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor)
-        const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v)
+        const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v, ax.yTicks)
         text(label, ax.plotL - 8, y, 'end', labelColor, 11, 400, 'apexcharts-unit-tick')
       })
       // X gridlines + tick labels.
       ax.xTicks.forEach((/** @type {number} */ v) => {
         const x = ax.plotX(v)
         if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor)
-        const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v)
+        const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v, ax.xTicks)
         text(label, x, ax.plotB + 14, 'middle', labelColor, 11, 400, 'apexcharts-unit-tick')
       })
       // Axis baselines (X along the bottom, Y up the left).
@@ -2253,7 +2247,7 @@ export default class Unit {
       ax.ticks.forEach((/** @type {number} */ v) => {
         const y = ax.plotY(v)
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor)
-        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v)
+        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v, ax.ticks)
         text(label, ax.plotL - 8, y, 'end', labelColor, 11, 400, 'apexcharts-unit-tick')
       })
       // Y axis baseline up the left.
@@ -2294,7 +2288,7 @@ export default class Unit {
     ax.ticks.forEach((/** @type {number} */ v, /** @type {number} */ idx) => {
       const x = ax.plotX(v)
       if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor)
-      const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v)
+      const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v, ax.ticks)
       const anchor =
         idx === 0 ? 'start' : idx === ax.ticks.length - 1 ? 'end' : 'middle'
       text(label, x, ax.plotB + 14, anchor, labelColor, 11, 400, 'apexcharts-unit-tick')
@@ -2331,17 +2325,19 @@ export default class Unit {
   }
 
   /**
-   * Compact tick-value formatting: integers as-is, otherwise trimmed to a short
-   * decimal; large magnitudes get a k/M suffix.
-   * @param {number} v @returns {string}
+   * Compact tick-value formatting: integers as-is, otherwise trimmed to enough
+   * decimals to tell neighbouring ticks apart; large magnitudes get a k/M suffix.
+   * @param {number} v @param {number[]} ticks the axis ticks (their step sets
+   *   the decimals) @returns {string}
    */
-  _formatTick(v) {
+  _formatTick(v, ticks) {
     if (!isFinite(v)) return ''
     const a = Math.abs(v)
     if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`
     if (a >= 1e4) return `${+(v / 1e3).toFixed(1)}k`
     if (Number.isInteger(v)) return String(v)
-    return String(+v.toFixed(2))
+    const step = Math.abs(ticks[1] - ticks[0]) || 1
+    return String(+v.toFixed(Math.min(20, Math.max(2, 1 - Math.floor(Math.log10(step))))))
   }
 
   /**
