@@ -151,7 +151,14 @@ export default class IcicleChart {
     g.add(this._cellsG)
     g.add(this._labelsG)
 
-    this._focus = null
+    // The focus outlives this instance (rebuilt every render) by key, under
+    // resolveFocus's rules: a branch that became a leaf, or the lone root,
+    // is no focus (and _relayout clears the stale key).
+    const fk = w.globals.icicleFocusKey
+    const f = fk && this._nodesAll.find((n) => n._key === fk)
+    const r = this._roots
+    this._focus =
+      f && f.children?.length && !(r.length === 1 && f === r[0]) ? f : null
     this._relayout(this._focus)
 
     // Same gating as the sunburst and the pie family: a wipe intro on first
@@ -235,6 +242,7 @@ export default class IcicleChart {
    * @param {any} focus
    */
   _relayout(focus) {
+    this.w.globals.icicleFocusKey = focus && focus._key
     const extent = this._valueExtent()
     const maxDepth = this.cfg.maxDepth
     // `maxDepth` counts LEVELS; the walk wants a depth index.
@@ -380,13 +388,15 @@ export default class IcicleChart {
     // (`dynamicAnimation.speed`) like an update, NOT on `animations.speed`,
     // which paces the first render. Reading the intro's clock made a click take
     // 800ms by default, which feels like lag rather than motion.
-    const dur = !anims.enabled
-      ? 0
-      : mode === 'none'
+    const dyn = anims.dynamicAnimation
+    const dur =
+      !anims.enabled || mode === 'none'
         ? 0
-        : mode === 'update' || mode === 'zoom'
-          ? anims.dynamicAnimation.speed || 350
-          : anims.speed || 500
+        : mode === 'intro'
+          ? (anims.speed ?? 500)
+          : dyn.enabled
+            ? (dyn.speed ?? 350)
+            : 0
 
     // Supersede any in-flight zoom: stale frames from the previous pass check
     // this and stop.
@@ -417,7 +427,7 @@ export default class IcicleChart {
           // interrupted zoom continues from where it actually is.
           from = node._cur
         } else if (prev && prev.get(node._key)) {
-          from = prev.get(node._key) // survived a data update: tween in place
+          from = prev.get(node._key)() // survived a data update: tween in place
         } else {
           // A new cell grows out of the middle of the slot it is taking.
           from = {
@@ -441,10 +451,12 @@ export default class IcicleChart {
       }
     })
 
-    // Stash what is now on screen so the NEXT data update can tween from it.
+    // Stash what is on screen so the NEXT data update can tween from it: read
+    // live, so an update landing mid-tween starts where the cell actually is.
     const geoms = new Map()
     this._nodesAll.forEach((n) => {
-      if (n._show) geoms.set(n._key, this._box(n))
+      const b = this._box(n)
+      if (n._show) geoms.set(n._key, () => n._cur || b)
     })
     ;/** @type {any} */ (this.ctx)._iciclePrevGeoms = geoms
 
@@ -626,11 +638,14 @@ export default class IcicleChart {
       if (node._clipped) this._renderMoreMark(node)
     })
 
+    // Gen-checked: a superseded zoom's fade must not reveal labels over cells
+    // the newer zoom is still moving.
+    const gen = this._zoomGen
+    labelsG.attr({ opacity: dur > 0 ? 0 : 1 })
     if (dur > 0) {
-      labelsG.attr({ opacity: 0 })
-      labelsG.animate(250, dur).attr({ opacity: 1 })
-    } else {
-      labelsG.attr({ opacity: 1 })
+      labelsG.animate(250, dur).during((/** @type {number} */ p) => {
+        if (this._zoomGen === gen) labelsG.attr({ opacity: p })
+      })
     }
   }
 
