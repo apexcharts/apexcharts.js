@@ -34,7 +34,7 @@ export default class Helpers {
 
   /**
    * @param {any[]} series
-   * @param {number[]} [seriesIndex] a combo's real indices of `series`
+   * @param {any} [seriesIndex] a combo's real indices of `series`
    */
   initVariables(series, seriesIndex) {
     const w = this.w

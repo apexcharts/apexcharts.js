@@ -4,8 +4,8 @@ import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import {
-  datumKey,
   renderBarExitGhosts,
+  seriesKeys,
 } from '../modules/animations/LengthTransition'
 
 /**
@@ -236,16 +236,12 @@ class RangeBar extends Bar {
       // overrides draw() and never made this call, so a series hidden from the
       // legend (no datums left) dropped every bar on the click.
       if (w.globals.previousPaths.length > 0) {
-        const data = /** @type {Record<string,any>} */ (w.config.series[i]).data || []
-        const newKeys = []
-        for (let j = 0; j < data.length; j++) {
-          newKeys.push(datumKey(w, realIndex, j))
-        }
+        const data = /** @type {any} */ (w.config.series[realIndex]).data
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys,
+          newKeys: seriesKeys(w, realIndex, data ? data.length : 0),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed,
         })

@@ -7,7 +7,6 @@ import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import { buildJitterGroups, renderJitter } from './common/Jitter'
 import {
-  datumKey,
   lengthTransitionEnabled,
   renderBarExitGhosts,
 } from '../modules/animations/LengthTransition'
@@ -55,7 +54,7 @@ class BoxCandleStick extends Bar {
     if (!keyed || keyed.size === 0 || !row || row.length === 0) return false
     let survivors = 0
     for (let j = 0; j < row.length; j++) {
-      if (keyed.has(datumKey(this.w, realIndex, j))) survivors++
+      if (keyed.has(this._keys(realIndex)[j])) survivors++
     }
     return survivors / keyed.size < 0.5
   }
@@ -86,7 +85,7 @@ class BoxCandleStick extends Bar {
       }
       this._prevHalves[realIndex] = map
     }
-    const halves = map && map.get(datumKey(this.w, realIndex, j))
+    const halves = map && map.get(this._keys(realIndex)[j])
     return halves && halves.length === 2 ? halves[pi] : null
   }
 
@@ -400,15 +399,11 @@ class BoxCandleStick extends Bar {
       // has not left, it is just not drawn.
       // (Not when the series fades: the fade replaces the whole set at once.)
       if (w.globals.previousPaths.length > 0 && !fadeReveal) {
-        const newKeys = []
-        for (let j = 0; j < series[i].length; j++) {
-          newKeys.push(datumKey(w, realIndex, j))
-        }
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys,
+          newKeys: this._keys(realIndex),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed,
         })

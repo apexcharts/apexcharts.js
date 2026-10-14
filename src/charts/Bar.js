@@ -7,10 +7,10 @@ import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
 import Animations, { computeStagger } from '../modules/Animations'
 import {
-  datumKey,
   lengthTransitionEnabled,
   renderBarExitGhosts,
   seriesJoin,
+  seriesKeys,
 } from '../modules/animations/LengthTransition'
 import Series from '../modules/Series'
 import AxisMapping from '../modules/AxisMapping'
@@ -442,15 +442,11 @@ class Bar {
       // Exit ghosts: previous datums whose keys are gone shrink to their
       // baseline edge and fade under the reflowing survivors.
       if (w.globals.previousPaths.length > 0) {
-        const newKeys = []
-        for (let j = 0; j < series[i].length; j++) {
-          newKeys.push(datumKey(w, realIndex, j))
-        }
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys,
+          newKeys: this._keys(realIndex),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed,
         })
@@ -778,7 +774,7 @@ class Bar {
         barWidth,
         // Datum identity for the next update's keyed join (see
         // LengthTransition): survivors match by key, not array position.
-        'data:pathKey': datumKey(w, realIndex, j),
+        'data:pathKey': this._keys(realIndex)[j],
       })
 
       // Highlight filter: fade this whole and draw its part above it (below
@@ -1163,7 +1159,18 @@ class Bar {
   _wasOnScreen(realIndex, j) {
     if (!lengthTransitionEnabled(this.w)) return false
     const keyed = this._prevKeyedPaths(realIndex)
-    return !!keyed && keyed.has(datumKey(this.w, realIndex, j))
+    return !!keyed && keyed.has(this._keys(realIndex)[j])
+  }
+
+  /**
+   * This render's datum keys for a series (see seriesKeys), as stamped on
+   * each bar and looked up in the previous render's.
+   * @param {number} realIndex
+   * @returns {string[]}
+   */
+  _keys(realIndex) {
+    const c = (/** @type {any} */ (this)._keyCache ||= {})
+    return (c[realIndex] ||= seriesKeys(this.w, realIndex))
   }
 
   /**
@@ -1235,20 +1242,21 @@ class Bar {
     if (lengthTransitionEnabled(w) && w.globals.previousPaths.length > 0) {
       const record = this._prevRecord(realIndex)
       const dataLen = w.seriesData.series[realIndex]?.length ?? 0
+      const keyed = record && this._prevKeyedPaths(realIndex)
       if (!record) {
         result = dataLen > 0 // a brand-new series entering
-      } else if (record.paths.length !== dataLen) {
-        result = true
+      } else if (keyed) {
+        // Off-screen bars are not drawn, so a zoomed series has fewer paths
+        // than points and comparing counts called every value update a
+        // layout change. The datum count comes from the previous frame; a
+        // drawn datum whose key is gone has left.
+        const now = new Set(this._keys(realIndex))
+        result =
+          (w.globals.prevStreamFrame?.seriesY?.[realIndex]?.length ??
+            dataLen) !== dataLen ||
+          [...keyed.keys()].some((k) => !now.has(k))
       } else {
-        const keyed = this._prevKeyedPaths(realIndex)
-        if (keyed) {
-          for (let j = 0; j < dataLen; j++) {
-            if (!keyed.has(datumKey(w, realIndex, j))) {
-              result = true
-              break
-            }
-          }
-        }
+        result = record.paths.length !== dataLen
       }
     }
     this._ltCache[realIndex] = result
@@ -1317,7 +1325,7 @@ class Bar {
     let isNewDatum = false
     const keyed = this._prevKeyedPaths(realIndex)
     if (keyed) {
-      const prev = keyed.get(datumKey(w, realIndex, j))
+      const prev = keyed.get(this._keys(realIndex)[j])
       if (prev) {
         oldD = prev.d
       } else {
@@ -1535,14 +1543,11 @@ class Bar {
    * @returns {boolean | null} null when there is no previous record to consult
    */
   getPreviousFlip(realIndex, j) {
-    const w = this.w
     const record = this._prevRecord(realIndex)
     if (!record) return null
 
     const keyed = this._prevKeyedPaths(realIndex)
-    const prev = keyed
-      ? keyed.get(datumKey(w, realIndex, j))
-      : record.paths[j]
+    const prev = keyed ? keyed.get(this._keys(realIndex)[j]) : record.paths[j]
     return prev ? !!prev.flip : null
   }
 

@@ -171,6 +171,26 @@ function uniquifyKeys(keys) {
 }
 
 /**
+ * Datum keys of a series, unique within it: repeated category labels (or a
+ * timeline's rows) would otherwise share one key, and the keyed bar morph
+ * would hand every duplicate the same previous bar.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {number} realIndex
+ * @param {number} [n] how many datums (default: the parsed series length)
+ * @returns {string[]}
+ */
+export function seriesKeys(
+  w,
+  realIndex,
+  n = w.seriesData.series[realIndex]?.length | 0,
+) {
+  return uniquifyKeys(
+    Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j)),
+  )
+}
+
+/**
  * The keyed join for one series against the captured previous frame, or null
  * when this render is not an animated update for that series (no frame,
  * reordered keys, animations off).
@@ -212,7 +232,7 @@ export function seriesJoin(
   const oldKeys = uniquifyKeys(
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j)),
   )
-  const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)))
+  const newKeys = seriesKeys(w, realIndex)
   const join = joinKeys(oldKeys, newKeys)
   if (!join.ordered && !allowReorder) return null
   if (!join.changed && !includeIdentity) return null

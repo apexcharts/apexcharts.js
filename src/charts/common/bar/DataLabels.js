@@ -2,7 +2,6 @@
 import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
 import { resolveDataLabelOffset } from '../../../modules/helpers/DataLabelOffset'
-import { datumKey } from '../../../modules/animations/LengthTransition'
 
 export default class BarDataLabels {
   /**
@@ -815,12 +814,13 @@ export default class BarDataLabels {
     // way down while every other slice keeps its number.
     const isSeriesCollapsing =
       (w.globals.collapsingSeriesIndices || []).indexOf(i) > -1
+    const dlKey = `${i}::${this.barCtx._keys(i)[j]}`
 
     if (isSeriesCollapsing) {
       // Its series has already been zero-filled, so `val` is 0 (or blank) even
       // though the bar on screen is still at its old height. Label it with what
       // it was until it has finished shrinking away.
-      const prev = w.globals.prevDataLabels?.get(`${i}::${datumKey(w, i, j)}`)
+      const prev = w.globals.prevDataLabels?.get(dlKey)
       if (prev && isFinite(prev.val)) {
         val = prev.val
         text = undefined
@@ -838,10 +838,7 @@ export default class BarDataLabels {
       // frame across a data update. Only scalar (non-range) values count up.
       const dlCfg = w.config.dataLabels
       if (dlCfg.animate?.enabled || dlCfg.countUp?.enabled) {
-        elDataLabelsWrap.node.setAttribute(
-          'data:dlKey',
-          `${i}::${datumKey(w, i, j)}`,
-        )
+        elDataLabelsWrap.node.setAttribute('data:dlKey', dlKey)
         elDataLabelsWrap.node.setAttribute('data:dlJ', String(j))
         if (typeof val === 'number' && isFinite(val)) {
           elDataLabelsWrap.node.setAttribute('data:dlVal', String(val))
@@ -989,7 +986,7 @@ export default class BarDataLabels {
         const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex)
         totalDataLabelText.node.setAttribute(
           'data:dlTotalKey',
-          `${groupIndex}::${datumKey(this.w, realIndex, j)}`,
+          `${groupIndex}::${this.barCtx._keys(realIndex)[j]}`,
         )
         totalDataLabelText.node.setAttribute(
           'data:dlTotalSeries',
