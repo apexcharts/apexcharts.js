@@ -655,6 +655,19 @@ export default class Scales {
       ;/** @type {any} */ (gl).yAxisScale[index] = []
     }
 
+    // Zero, a negative or the MIN_VALUE sentinel has no logarithm. The floor
+    // was the base, clipping smaller values: drop it to the power of the base
+    // at or below the smallest positive value this axis plots.
+    if (y.logarithmic && minY <= Number.MIN_VALUE) {
+      const s = this.w.seriesData.series
+      const map = gl.isMultipleYAxis && gl.seriesYAxisMap[index]
+      const b = y.logBase || 10
+      const m = (map ? map.map((i) => s[i]) : s)
+        .flat()
+        .reduce((a, v) => (v > 0 && (!a || v < a) ? v : a), 0)
+      minY = m && Math.min(b, b ** Math.floor(Math.log(m) / Math.log(b)))
+    }
+
     const range = Math.abs(maxY - minY)
 
     // A log scale is degenerate when the domain spans less than one full
