@@ -10,7 +10,10 @@ import {
 // Frozen copy of the resolver as it existed inside Sunburst.js before the
 // extraction (charts/Sunburst.js:166-253 at ab48f7518). The extraction is only
 // safe if the shared module still produces exactly this, so the reference lives
-// here verbatim rather than being imported.
+// here verbatim rather than being imported. Two deliberate changes since: a
+// key segment counts same-named siblings instead of the sibling index (so an
+// inserted sibling re-keys nothing else), and a null or '' value is missing
+// (rolled up) rather than zero.
 // ---------------------------------------------------------------------------
 function legacyResolver(w) {
   const drilldownById = (id) => {
@@ -19,23 +22,27 @@ function legacyResolver(w) {
     return list.find((s) => s && s.id === id)
   }
 
-  const toNode = (d, i, paletteFromParent, parentKey, seenIds = null) => {
+  const toNode = (d, i, paletteFromParent, parentKey, seenIds, seen) => {
     const isObj = d && typeof d === 'object'
     const name = isObj ? (d.x ?? d.name ?? '') : ''
-    const value = isObj ? Number(d.y ?? d.value) : Number(d)
+    const raw = isObj ? (d.y ?? d.value) : d
+    const value = raw == null || raw === '' ? NaN : Number(raw)
+    const n = String(name).replace(/\//g, '%2F')
+    seen[n] = (seen[n] ?? -1) + 1
     const node = {
       name: String(name),
       value: isNaN(value) ? null : value,
       color: isObj && d.color ? d.color : undefined,
-      _key: `${parentKey}/${i}:${name}`,
+      _key: `${parentKey}/${seen[n]}:${n}`,
     }
+    const kids = {}
     if (paletteFromParent && !node.color) {
       node.color = paletteFromParent[i % paletteFromParent.length]
     }
 
     if (isObj && Array.isArray(d.children) && d.children.length) {
       node.children = d.children.map((c, j) =>
-        toNode(c, j, null, node._key, seenIds),
+        toNode(c, j, null, node._key, seenIds, kids),
       )
     } else if (isObj && d.drilldown != null) {
       const visited = seenIds || new Set()
@@ -46,7 +53,7 @@ function legacyResolver(w) {
           nextSeen.add(d.drilldown)
           const palette = Array.isArray(dd.colors) ? dd.colors : null
           node.children = dd.data.map((c, j) =>
-            toNode(c, j, palette, node._key, nextSeen),
+            toNode(c, j, palette, node._key, nextSeen, kids),
           )
         }
       }
@@ -59,7 +66,8 @@ function legacyResolver(w) {
     const first = cfgSeries && cfgSeries[0]
     const data = first && Array.isArray(first.data) ? first.data : cfgSeries
     if (!Array.isArray(data)) return []
-    return data.map((d, i) => toNode(d, i, null, ''))
+    const seen = {}
+    return data.map((d, i) => toNode(d, i, null, '', null, seen))
   }
 
   const fillValuesLegacy = (node) => {

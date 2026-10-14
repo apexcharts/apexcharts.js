@@ -270,7 +270,7 @@ test.describe('Highlight filter, treemap', () => {
     )
     const before = rec.probeBefore
     expectSameScreen(rec.probes[0], before, 'frame 0')
-    const share = { '0/0:A': 0.25, '0/1:B': 0.7, '0/2:C': 0, '0/3:D': 1 }
+    const share = { '0/0:A': 0.25, '0/0:B': 0.7, '0/0:C': 0, '0/0:D': 1 }
     let moving = 0
     for (const fr of rec.probes) {
       /** one clock: every tile's share and fade, and across tiles */
@@ -754,7 +754,7 @@ test.describe('Highlight filter, treemap', () => {
     }
     expect(placeholder).toBeGreaterThan(0)
     const end = byKey(rec.probes[rec.probes.length - 1])
-    expect(end.has('1/0:C') || end.has('1/1:D')).toBe(false)
+    expect(end.has('1/0:C') || end.has('1/0:D')).toBe(false)
     const back = await recordTransition(
       page,
       () => page.evaluate(() => window.chart.showSeries('Two')),
@@ -762,8 +762,8 @@ test.describe('Highlight filter, treemap', () => {
     )
     const last = byKey(back.probes[back.probes.length - 1])
     expect(near(last.get('1/0:C').s, 0.25)).toBe(true)
-    expect(near(last.get('1/1:D').s, 0.8)).toBe(true)
-    expect(near(last.get('0/1:B').s, 0.5)).toBe(true)
+    expect(near(last.get('1/0:D').s, 0.8)).toBe(true)
+    expect(near(last.get('0/0:B').s, 0.5)).toBe(true)
     expectNoViolations(finite(back))
     expect(errors).toEqual([])
   })

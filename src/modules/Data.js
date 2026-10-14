@@ -97,7 +97,7 @@ function isRawSample(d, name, flatY) {
 function subtreeTotal(d) {
   if (!d || typeof d !== 'object') return Utils.parseNumber(d) || 0
   const v = d.y ?? d.value
-  if (v != null) return Utils.parseNumber(v) || 0
+  if (v != null && v !== '') return Utils.parseNumber(v) || 0
   if (!Array.isArray(d.children)) return 0
   return d.children.reduce(
     (/** @type {number} */ s, /** @type {any} */ c) =>
@@ -1476,19 +1476,19 @@ export default class Data {
           if (rootColors && x !== undefined) {
             rootColors[labels.length] = dataPoint.color
           }
-          if (x !== undefined && y !== undefined) {
-            labels.push(String(x))
-            values.push(Utils.parseNumber(y))
-          } else if (x !== undefined && Array.isArray(dataPoint.children)) {
+          if (x !== undefined && Array.isArray(dataPoint.children)) {
             // A partition chart (sunburst, icicle) may leave a branch's own
-            // value out and let it be the sum of its children. The hierarchy
-            // resolver does exactly that in `fillValues`, but that runs long
-            // after this parse, and dropping the datum here left the chart with
-            // an EMPTY series, which makes the renderer bail before it ever
-            // builds the tree: a blank chart and a warning about pie data.
-            // So roll the subtree up now, which is the same number.
+            // value out (or null / '') and let it be the sum of its children.
+            // The hierarchy resolver does exactly that in `fillValues`, but
+            // that runs long after this parse, and dropping the datum here left
+            // the chart with an EMPTY series, which makes the renderer bail
+            // before it ever builds the tree: a blank chart and a warning about
+            // pie data. So roll the subtree up now, which is the same number.
             labels.push(String(x))
             values.push(subtreeTotal(dataPoint))
+          } else if (x !== undefined && y !== undefined) {
+            labels.push(String(x))
+            values.push(Utils.parseNumber(y))
           } else {
             console.warn(
               'ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:',

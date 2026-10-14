@@ -118,7 +118,7 @@ export function placeTree({ roots, nodesAll, focus, t0, t1, cap }) {
  *
  * Call it once after the values are filled, not inside the placement recursion,
  * which re-runs on every zoom. `_key` is assigned at build time from the
- * authored index, so sorting never changes a node's identity and an update
+ * authored names, so sorting never changes a node's identity and an update
  * still morphs the right shapes.
  *
  * @param {any[]} roots

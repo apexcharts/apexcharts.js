@@ -12,8 +12,9 @@
  *      a nested view does not pull the feature in)
  *
  * A node is `{ name, value, color?, _key, children? }`. `_key` is the node's
- * identity across data updates: the path of names, indexed so same-named
- * siblings stay distinct, which is what update animations match on.
+ * identity across data updates: the path of names, each counted among its
+ * same-named siblings so duplicates stay distinct while an inserted or removed
+ * sibling leaves the others alone. Update animations match on it.
  *
  * `value` is left as authored here; call `fillValues` to roll a missing parent
  * value up from its children.
@@ -39,6 +40,20 @@ export function drilldownById(w, id) {
 }
 
 /**
+ * One key segment: the name ('/' escaped, it is the separator) prefixed by how
+ * many earlier siblings share it.
+ * @param {any} name
+ * @param {Map<string, number>} seen  per sibling list
+ * @returns {string}
+ */
+function segment(name, seen) {
+  const n = String(name).replace(/\//g, '%2F')
+  const o = (seen.get(n) ?? -1) + 1
+  seen.set(n, o)
+  return `${o}:${n}`
+}
+
+/**
  * Resolve one datum (and everything under it) into a node.
  *
  * @param {any} w
@@ -56,6 +71,7 @@ export function drilldownById(w, id) {
  *   The treemap turns this off unless asked: there, a `drilldown` id has always
  *   meant "descend on click" via the drilldown feature, and silently rendering
  *   those levels nested instead would change what existing charts draw.
+ * @param {Map<string, number>} [seen]  names already keyed among the siblings
  * @returns {any}
  */
 export function toNode(
@@ -66,28 +82,30 @@ export function toNode(
   parentKey,
   seenIds = null,
   opts = {},
+  seen = new Map(),
 ) {
   const isObj = d && typeof d === 'object'
   const name = isObj ? (d.x ?? d.name ?? '') : ''
-  const value = isObj ? Number(d.y ?? d.value) : Number(d)
+  // null / '' is a missing value (rolled up by fillValues), not a zero.
+  const raw = isObj ? (d.y ?? d.value) : d
+  const value = raw == null || raw === '' ? NaN : Number(raw)
   /** @type {any} */
   const node = {
     name: String(name),
     value: isNaN(value) ? null : value,
     color: isObj && d.color ? d.color : undefined,
-    // Identity across data updates: the path of names (indexed so same-named
-    // siblings stay distinct). Update animations morph matched keys in place.
-    _key: `${parentKey}/${i}:${name}`,
+    _key: `${parentKey}/${segment(name, seen)}`,
   }
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i % paletteFromParent.length]
   }
   if (opts.keepDatum) node._datum = d
 
+  const kids = new Map()
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
       (/** @type {any} */ c, /** @type {number} */ j) =>
-        toNode(w, c, j, null, node._key, seenIds, opts),
+        toNode(w, c, j, null, node._key, seenIds, opts, kids),
     )
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     // Drilldown ids resolve indirectly, so a self- or mutually-referential id
@@ -102,7 +120,7 @@ export function toNode(
         const palette = Array.isArray(dd.colors) ? dd.colors : null
         node.children = dd.data.map(
           (/** @type {any} */ c, /** @type {number} */ j) =>
-            toNode(w, c, j, palette, node._key, nextSeen, opts),
+            toNode(w, c, j, palette, node._key, nextSeen, opts, kids),
         )
       }
     }
@@ -123,8 +141,9 @@ export function buildHierarchy(w, opts = {}) {
   const first = cfgSeries && cfgSeries[0]
   const data = first && Array.isArray(first.data) ? first.data : cfgSeries
   if (!Array.isArray(data)) return []
+  const seen = new Map()
   return data.map((/** @type {any} */ d, /** @type {number} */ i) =>
-    toNode(w, d, i, null, '', null, opts),
+    toNode(w, d, i, null, '', null, opts, seen),
   )
 }
 
@@ -142,9 +161,11 @@ export function buildHierarchy(w, opts = {}) {
 export function buildSeriesRoots(w, series, opts = {}) {
   const cfgSeries = /** @type {any} */ (series || w.config.series)
   if (!Array.isArray(cfgSeries)) return []
+  const seen = new Map()
   return cfgSeries.map((/** @type {any} */ s, /** @type {number} */ i) => {
     const data = s && Array.isArray(s.data) ? s.data : []
-    const key = `${i}:${s?.name ?? ''}`
+    const key = segment(s?.name ?? '', seen)
+    const kids = new Map()
     /** @type {any} */
     const root = {
       name: String(s?.name ?? ''),
@@ -153,7 +174,7 @@ export function buildSeriesRoots(w, series, opts = {}) {
       _key: key,
       _seriesIndex: i,
       children: data.map((/** @type {any} */ d, /** @type {number} */ j) =>
-        toNode(w, d, j, null, key, null, opts),
+        toNode(w, d, j, null, key, null, opts, kids),
       ),
     }
     return root
