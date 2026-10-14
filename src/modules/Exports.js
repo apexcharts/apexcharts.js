@@ -1077,7 +1077,8 @@ class Exports {
             const bText = typeof b.cat === 'string'
             if (aText !== bText) return aText ? 1 : -1
             if (!aText) return a.cat - b.cat
-            return w.axisFlags.isXNumeric ?(a.cat < b.cat ? -1 : 1) : 0
+            if (!w.axisFlags.isXNumeric) return 0
+            return a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : 0
           })
           .forEach(({ cat, values }) => body.push([cat, ...values.flat()]))
       } else {
