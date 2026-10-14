@@ -1549,11 +1549,11 @@ export default class Helpers {
      * @param {number} _si
      */
     seriesIndices.forEach((/** @type {any} */ _si) => {
-      const val = w.globals.seriesPercent[_si][j]
+      const val = w.seriesData.series[_si][j]
       if (val) {
         nonZeroColumns++
       }
-      if (_si < i && val === 0) {
+      if (_si < i && !val) {
         zeroEncounters++
       }
     })

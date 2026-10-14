@@ -263,6 +263,7 @@ class BarStacked extends Bar {
           series,
           barHeight,
           barWidth,
+          barXPosition: paths.barXPosition,
           elDataLabelsWrap,
           elGoalsMarkers,
           type: 'bar',

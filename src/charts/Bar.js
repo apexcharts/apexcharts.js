@@ -426,6 +426,7 @@ class Bar {
           series,
           barHeight: Math.abs(paths.barHeight ? paths.barHeight : barHeight),
           barWidth: Math.abs(paths.barWidth ? paths.barWidth : barWidth),
+          barXPosition: paths.barXPosition,
           elDataLabelsWrap,
           elGoalsMarkers,
           elBarShadows,
@@ -640,16 +641,16 @@ class Bar {
 
     // Drawn only to slide out of view (see _wasOnScreen): removed once the
     // update has landed, so nothing is left lying off-screen.
+    // Culled on the bar's own centre: the label x carries dataLabels.offsetX,
+    // which dropped the first or last columns even with labels off.
     let leaving = false
     if (!w.globals.isBarHorizontal) {
-      if (
-        dataLabelsObj.dataLabelsPos.dataLabelsX +
-          Math.max(barWidth, w.globals.barPadForNumericAxis) <
-          0 ||
-        dataLabelsObj.dataLabelsPos.dataLabelsX -
-          Math.max(barWidth, w.globals.barPadForNumericAxis) >
-          w.layout.gridWidth
-      ) {
+      const cx =
+        barXPosition === undefined
+          ? dataLabelsObj.dataLabelsPos.dataLabelsX
+          : barXPosition + barWidth / 2
+      const pad = Math.max(barWidth, w.globals.barPadForNumericAxis)
+      if (cx + pad < 0 || cx - pad > w.layout.gridWidth) {
         if (this._wasOnScreen(realIndex, j)) leaving = true
         else skipDrawing = true
       }
@@ -1120,6 +1121,7 @@ class Bar {
   /** @param {{x: any, barWidth: any, realIndex: any, j: any}} opts */
   getBarXForNumericXAxis({ x, barWidth, realIndex, j }) {
     const w = this.w
+    const overlay = isHistogramOverlay(w)
     let sxI = realIndex
     if (!w.seriesData.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex
@@ -1131,15 +1133,15 @@ class Bar {
       // ranges cannot drift apart.
       x =
         AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) -
-        (barWidth * this.seriesLen) / 2
+        (barWidth * (overlay ? 1 : this.seriesLen)) / 2
     }
 
     // Overlaid histogram series all sit on the bin, rather than stepping across
-    // it one series-width at a time. `seriesLen` is already forced to 1 above,
-    // so `barWidth` is the whole bin and stepping would march each series clear
-    // of the last.
+    // it one series-width at a time. `barWidth` is already the whole bin, so
+    // centring on seriesLen bars or stepping would march each series clear of
+    // the last.
     return {
-      barXPosition: x + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
+      barXPosition: x + (overlay ? 0 : barWidth * this.visibleI),
       x,
     }
   }
