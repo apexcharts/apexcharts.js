@@ -16,7 +16,7 @@ import Utils from '../../utils/Utils'
  *                            heatmap, the row above / below
  *   Home:                    first data point in current series
  *   End:                     last data point in current series
- *   Enter / Space:           fire markerClick event (same as mouse click)
+ *   Enter / Space:           select the point and fire markerClick, as a click does
  *   Escape:                  exit keyboard nav, return focus to SVG
  */
 export default class KeyboardNavigation {
@@ -286,7 +286,7 @@ export default class KeyboardNavigation {
       case 'Enter':
       case ' ':
         e.preventDefault()
-        this._fireClick()
+        this._fireClick(e)
         break
       case '+':
       case '=':
@@ -494,13 +494,13 @@ export default class KeyboardNavigation {
 
     // Showing a point again undoes an Escape dismissal
     this._tooltipDismissed = false
-    if (!ttCtx || !ttCtx.ttItems) return
-
     // Keep globals consistent with the rest of the system
     w.interact.capturedSeriesIndex = i
     w.interact.capturedDataPointIndex = j
 
     this._applyFocusClass(i, j)
+    // No tooltip to read out the point, so the live region names it
+    if (!ttCtx?.ttItems) return this._announce(this._buildPointLabel(i, j))
     this._showTooltip(i, j, /** @type {any} */ (ttCtx))
   }
 
@@ -1576,11 +1576,7 @@ export default class KeyboardNavigation {
     const mark = this._canvasMark(i, j)
     if (!mark) return this._drawCanvasMarkerFocusRing(i, j)
     const w = this.w
-    // The series' own group, by realIndex (`rel` counts within a type's
-    // groups, which a combo has several of).
-    const host = Array.from(
-      w.dom.baseEl.querySelectorAll('.apexcharts-series'),
-    ).find((g) => g.getAttribute('data:realIndex') === String(i))
+    const host = this._seriesGroup(i)
     if (!host) return null
     const ring = new Graphics(w, this.ctx).drawPath({
       d: mark.d,
@@ -1605,9 +1601,7 @@ export default class KeyboardNavigation {
     const marker = this._canvasMarker(i, j)
     if (!marker) return null
     const w = this.w
-    const host = Array.from(
-      w.dom.baseEl.querySelectorAll('.apexcharts-series'),
-    ).find((g) => g.getAttribute('data:realIndex') === String(i))
+    const host = this._seriesGroup(i)
     if (!host) return null
     const ring = new Graphics(w, this.ctx).drawPath({
       d: marker.d,
@@ -1753,31 +1747,44 @@ export default class KeyboardNavigation {
       // it, _drawCanvasFocusRing), and a jitter path that still carries its
       // `j` in the series is no stand-in for it.
       if (this._canvasMark(i, j)) return null
-      return baseEl.querySelector(
-        `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`,
-      )
+      return this._seriesGroup(i)?.querySelector(`path[j='${j}']`)
     }
 
     // line / area / scatter / bubble / radar — try marker element
-    const marker = baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker[rel='${j}']`,
-    )
-    return marker || null
+    return this._seriesGroup(i)?.querySelector(`.apexcharts-marker[rel='${j}']`)
+  }
+
+  /**
+   * The series' own group, by realIndex (`rel` counts within a type's groups,
+   * which a combo has several of). Matched in script: not every selector
+   * engine takes the escaped `data\:realIndex` attribute.
+   * @param {number} i
+   * @returns {Element | undefined}
+   */
+  _seriesGroup(i) {
+    return Array.from(
+      this.w.dom.baseEl.querySelectorAll('.apexcharts-series'),
+    ).find((g) => g.getAttribute('data:realIndex') === String(i))
   }
 
   // ─── Click / Enter ────────────────────────────────────────────────────────
 
-  _fireClick() {
-    const w = this.w
-    const ttCtx = w.globals.tooltip
-    if (!ttCtx) return
-
-    const syntheticEvent = {
-      type: 'mouseup',
-      clientX: 0,
-      clientY: 0,
-    }
-    ttCtx.markerClick(syntheticEvent, this.seriesIndex, this.dataPointIndex)
+  /**
+   * What a click on the focused mark does: its mousedown selects it
+   * (dataPointSelection), its mouseup slides a pie slice out and fires
+   * markerClick.
+   * @param {KeyboardEvent} e
+   */
+  _fireClick(e) {
+    const el = /** @type {any} */ (this._focusedEl)?.instance
+    const pie = this.ctx.pie
+    if (el) new Graphics(this.w, this.ctx).pathMouseDown(el, e)
+    if (pie && pie.getExpandOffset() > 0) pie.pieClicked(this.dataPointIndex)
+    this.w.globals.tooltip?.markerClick(
+      e,
+      this.seriesIndex,
+      this.dataPointIndex,
+    )
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
