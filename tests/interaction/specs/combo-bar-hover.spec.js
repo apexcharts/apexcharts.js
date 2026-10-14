@@ -98,3 +98,77 @@ test.describe('Combo chart (bars + line) on converted-numeric xaxis', () => {
     expect(Math.abs(q4.crosshairX - meta.lineXvalues[3])).toBeLessThan(1)
   })
 })
+
+// A shared tooltip speaks for every series at the hovered index, so the
+// line's hover dot and the columns' hover state both follow it whichever
+// series the pointer is nearest. The dot used to move only while the line
+// was nearest, and the columns only while a column was.
+test.describe('Combo chart (columns + line) shared hover', () => {
+  test('line hover dot and column hover state follow the hovered index', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('mixed', 'multiple-yaxes')
+
+    const meta = await page.evaluate(() => {
+      const w = window.chart.w
+      const r = document.querySelector('.apexcharts-svg').getBoundingClientRect()
+      return {
+        left: r.left + w.globals.translateX,
+        top: r.top + w.globals.translateY,
+        gridHeight: w.layout.gridHeight,
+        line: w.globals.pointsArray[2],
+      }
+    })
+
+    const hover = async (j, gridY) => {
+      await page.evaluate(
+        ({ clientX, clientY }) => {
+          document.querySelector('.apexcharts-svg').dispatchEvent(
+            new MouseEvent('mousemove', { bubbles: true, clientX, clientY }),
+          )
+        },
+        { clientX: meta.left + meta.line[j][0], clientY: meta.top + gridY },
+      )
+      await page.waitForTimeout(30)
+      return page.evaluate(() => {
+        const tt = window.chart.ctx.tooltip
+        const dot = document.querySelector(
+          ".apexcharts-series[data\\:realIndex='2'] .apexcharts-series-markers path",
+        )
+        const m = /M\s*([-\d.]+)/.exec(dot?.getAttribute('d') ?? '')
+        return {
+          j: window.chart.w.interact.capturedDataPointIndex,
+          dotX: m ? parseFloat(m[1]) : null,
+          hoverBarsJ: [...(tt.hoverBars ?? [])].map((p) =>
+            Number(p.node.getAttribute('j')),
+          ),
+        }
+      })
+    }
+
+    const dotNear = (state, j) => {
+      // The dot's path starts at its left edge, a radius off its centre.
+      expect(state.dotX).not.toBeNull()
+      expect(Math.abs(state.dotX - meta.line[j][0])).toBeLessThan(15)
+    }
+
+    // On the line's 2023 point: the line is nearest.
+    const onLine = await hover(6, meta.line[6][1])
+    expect(onLine.j).toBe(6)
+    dotNear(onLine, 6)
+    expect(onLine.hoverBarsJ).toEqual([6, 6])
+
+    // Down at the 2021 columns' feet, far below the line: a column is nearest.
+    const onColumns = await hover(4, meta.gridHeight - 5)
+    expect(onColumns.j).toBe(4)
+    dotNear(onColumns, 4)
+    expect(onColumns.hoverBarsJ).toEqual([4, 4])
+
+    // Back onto the line at 2018: the columns' hover state follows too.
+    const back = await hover(1, meta.line[1][1])
+    expect(back.j).toBe(1)
+    dotNear(back, 1)
+    expect(back.hoverBarsJ).toEqual([1, 1])
+  })
+})

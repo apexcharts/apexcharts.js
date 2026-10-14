@@ -2137,14 +2137,28 @@ export default class Tooltip {
         shared: this.showOnIntersect ? false : this.tConfig.shared,
       })
 
-      if (hasMarkers || dynamicPoints) {
+      // A shared tooltip speaks for every series at `j`, so in a combo the
+      // line's hover dots and the columns' hover state both follow it,
+      // whichever series the pointer is nearest. Only the box goes to the
+      // captured series' mark. Gating the bars on the captured series having
+      // no markers left the dots on the last column the line was nearest to.
+      const capturedPoints = hasMarkers || dynamicPoints
+      if (
+        capturedPoints ||
+        (w.globals.comboCharts &&
+          !canvasMode &&
+          this.tooltipUtil.hasVisibleMarkers())
+      ) {
         handlePoints()
-      } else if (this.tooltipUtil.hasBars()) {
+      }
+      if (this.tooltipUtil.hasBars()) {
         if (canvasMode) {
           // canvas: bars/candles paint to the bitmap, so the paths /
           // hover-filter machinery below is DOM-only. Position straight off
           // the cached bar coords.
-          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+          if (!capturedPoints) {
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+          }
         } else if (
           [...bars].some((/** @type {Element} */ b) => b.querySelector('path'))
         ) {
@@ -2157,7 +2171,9 @@ export default class Tooltip {
           // de-activate first
           this.deactivateHoverFilter()
 
-          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+          if (!capturedPoints) {
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+          }
 
           for (let b = 0; b < paths.length; b++) {
             graphics.pathMouseEnter(

@@ -715,6 +715,14 @@ export default class Utils {
   }
 
   /**
+   * Whether any visible series has a marker node, its points' or its hover
+   * dot's.
+   */
+  hasVisibleMarkers() {
+    return this.getAllMarkers(true).some(Boolean)
+  }
+
+  /**
    * @param {any} point
    * @param {number} size
    */
