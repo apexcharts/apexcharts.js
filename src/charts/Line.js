@@ -828,7 +828,7 @@ class Line {
         const renderedPath = emit.renderPaths({
           ...defaultRenderedPathOptions,
           pathFrom: streamScroll
-            ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll)
+            ? projectPathToPrevFrame(areaPathsToDraw[p], streamScroll)
             : (reconcile?.area?.from ?? paths.pathFromArea),
           pathTo: areaPathsToDraw[p],
           pathToNumeric: numericXY
@@ -883,7 +883,7 @@ class Line {
         const linePathCommonOpts = {
           ...defaultRenderedPathOptions,
           pathFrom: streamScroll
-            ? projectPathToPrevFrame(paths.linePaths[p], streamScroll)
+            ? projectPathToPrevFrame(linePathsToDraw[p], streamScroll)
             : (reconcile?.line?.from ?? paths.pathFromLine),
           pathTo: linePathsToDraw[p],
           pathToNumeric: numericXY
