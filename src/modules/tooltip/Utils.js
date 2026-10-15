@@ -337,30 +337,14 @@ export default class Utils {
    * @param {any[]} Xarrays
    */
   getFirstActiveXArray(Xarrays) {
-    const w = this.w
-    let activeIndex = 0
-
-    /**
-     * @param {number[]} xarr
-     * @param {number} index
-     */
-    const firstActiveSeriesIndex = Xarrays.map(
-      (/** @type {any} */ xarr, /** @type {any} */ index) => {
-        return xarr.length > 0 ? index : -1
-      },
+    const gl = this.w.globals
+    const a = Xarrays.findIndex(
+      (/** @type {any} */ xarr, /** @type {number} */ i) =>
+        xarr.length > 0 &&
+        gl.collapsedSeriesIndices.indexOf(i) === -1 &&
+        gl.ancillaryCollapsedSeriesIndices.indexOf(i) === -1,
     )
-
-    for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-      if (
-        firstActiveSeriesIndex[a] !== -1 &&
-        w.globals.collapsedSeriesIndices.indexOf(a) === -1 &&
-        w.globals.ancillaryCollapsedSeriesIndices.indexOf(a) === -1
-      ) {
-        activeIndex = firstActiveSeriesIndex[a]
-        break
-      }
-    }
-    return activeIndex
+    return a < 0 ? 0 : a
   }
 
   /**
@@ -595,34 +579,16 @@ export default class Utils {
    * @return {boolean}
    */
   isXoverlap(j) {
-    const w = this.w
-    const xSameForAllSeriesJArr = []
-
-    /**
-     * @param {number[]} s
-     */
-    const seriesX = w.seriesData.seriesX.filter(
-      (/** @type {any} */ s) => typeof s[0] !== 'undefined',
+    const seriesX = this.w.seriesData.seriesX.filter(
+      (/** @type {any} */ s) => s[0] !== undefined,
     )
 
-    if (seriesX.length > 0) {
-      for (let i = 0; i < seriesX.length - 1; i++) {
-        if (
-          typeof seriesX[i][j] !== 'undefined' &&
-          typeof seriesX[i + 1][j] !== 'undefined'
-        ) {
-          if (seriesX[i][j] !== seriesX[i + 1][j]) {
-            xSameForAllSeriesJArr.push('unEqual')
-          }
-        }
-      }
+    for (let i = 0; i < seriesX.length - 1; i++) {
+      const a = seriesX[i][j]
+      const b = seriesX[i + 1][j]
+      if (a !== undefined && b !== undefined && a !== b) return false
     }
-
-    if (xSameForAllSeriesJArr.length === 0) {
-      return true
-    }
-
-    return false
+    return true
   }
 
   isInitialSeriesSameLen() {
@@ -652,66 +618,59 @@ export default class Utils {
   }
 
   /**
-   * @param {number} capturedSeries
+   * Facts about the drawn chart that only a render changes (has it bars, has
+   * series i markers, its hover dots), so a hover asks the DOM once per
+   * render rather than once or more per move. Kept on the Tooltip, which
+   * Labels' own Utils shares, and dropped by drawTooltip, which every render
+   * and data update with a tooltip runs (without one nothing hovers).
+   * @returns {Record<string, any>}
    */
-  getElMarkers(capturedSeries) {
-    // The selector .apexcharts-series-markers-wrap > * includes marker groups for which the
-    // .apexcharts-series-markers class is not added due to null values or discrete markers
-    if (typeof capturedSeries == 'number') {
-      return this.w.dom.baseEl.querySelectorAll(
-        `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers-wrap > *`,
-      )
-    }
-    return this.w.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers-wrap > *',
-    )
-  }
-
-  getAllMarkers(filterCollapsed = false) {
-    // first get all marker parents. This parent class contains series-index
-    // which helps to sort the markers as they are dynamic
-    let markersWraps = /** @type {any[]} */ ([
-      ...this.w.dom.baseEl.querySelectorAll('.apexcharts-series-markers-wrap'),
-    ])
-
-    if (filterCollapsed) {
-      /**
-       * @param {any} m
-       */
-      markersWraps = markersWraps.filter((/** @type {any} */ m) => {
-        const realIndex = Number(m.getAttribute('data:realIndex'))
-        return this.w.globals.collapsedSeriesIndices.indexOf(realIndex) === -1
-      })
-    }
-
-    /**
-     * @param {any} a
-     * @param {any} b
-     */
-    markersWraps.sort((/** @type {any} */ a, /** @type {any} */ b) => {
-      var indexA = Number(a.getAttribute('data:realIndex'))
-      var indexB = Number(b.getAttribute('data:realIndex'))
-      return indexB < indexA ? 1 : indexB > indexA ? -1 : 0
-    })
-
-    /** @type {any[]} */
-    const markers = []
-    /**
-     * @param {any} m
-     */
-    markersWraps.forEach((/** @type {any} */ m) => {
-      markers.push(m.querySelector('.apexcharts-marker'))
-    })
-
-    return markers
+  facts() {
+    const t = /** @type {any} */ (this.ttCtx)
+    return (t._facts ||= {})
   }
 
   /**
-   * @param {number} capturedSeries
+   * Per marker wrap, in realIndex order: its realIndex, its first marker
+   * (null without one) and, when another node, its first marker-group path.
+   * These are the nodes the
+   * hover dot writers move (Position.moveDynamicPoint(s)OnHover,
+   * Marker.enlargePaintedPoint), so all a hide has to put back besides the
+   * markers it grew.
+   * @returns {any[][]}
    */
-  hasMarkers(capturedSeries) {
-    const markers = this.getElMarkers(capturedSeries)
-    return markers.length > 0
+  markerWraps() {
+    return (this.facts().wraps ??= [
+      ...this.w.dom.baseEl.querySelectorAll('.apexcharts-series-markers-wrap'),
+    ]
+      .map((m) => [
+        Number(m.getAttribute('data:realIndex')),
+        // usually one node twice
+        ...new Set([
+          m.querySelector('.apexcharts-marker'),
+          m.querySelector('.apexcharts-series-markers path'),
+        ]),
+      ])
+      .sort((a, b) => a[0] - b[0]))
+  }
+
+  getAllMarkers(filterCollapsed = false) {
+    const collapsed = this.w.globals.collapsedSeriesIndices
+    // A fresh array: callers splice into it.
+    return this.markerWraps()
+      .filter((m) => !filterCollapsed || collapsed.indexOf(m[0]) < 0)
+      .map((m) => m[1])
+  }
+
+  /**
+   * @param {number} i
+   */
+  hasMarkers(i) {
+    // The `> *` includes marker groups for which the .apexcharts-series-markers
+    // class is not added due to null values or discrete markers
+    return (this.facts()['m' + i] ??= !!this.w.dom.baseEl.querySelector(
+      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-series-markers-wrap > *`,
+    ))
   }
 
   /**
@@ -734,14 +693,13 @@ export default class Utils {
   }
 
   getElBars() {
-    return this.w.dom.baseEl.querySelectorAll(
+    return (this.facts().bars ??= this.w.dom.baseEl.querySelectorAll(
       '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-violin-series, .apexcharts-rangebar-series',
-    )
+    ))
   }
 
   hasBars() {
-    const bars = this.getElBars()
-    return bars.length > 0
+    return this.getElBars().length > 0
   }
 
   /**

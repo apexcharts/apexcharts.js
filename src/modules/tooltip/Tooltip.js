@@ -342,6 +342,11 @@ export default class Tooltip {
     // axes), so the nodes cached from the last one are detached.
     this.yaxisTTEls = null
     this.hoverBars = []
+    // What the last render's hovers learnt about its marks and legend.
+    /** @type {any} */
+    this._facts = null
+    /** @type {string | null} */
+    this.legendKey = null
 
     if (!w.globals.axisCharts) {
       this.showTooltipTitle = false
@@ -1677,6 +1682,11 @@ export default class Tooltip {
    */
   applyLegendHoverText(series, j, shared) {
     const w = this.w
+    // Every move in the same column, and every hide, asks for what is
+    // already written: the next render or data update asks again.
+    const key = `${shared || series},${j}`
+    if (key === this.legendKey) return
+    this.legendKey = key
     const els = this.legendLabels ?? []
     for (let k = 0; k < els.length; k++) {
       const l = /** @type {HTMLElement} */ (els[k])
@@ -1961,6 +1971,9 @@ export default class Tooltip {
     const xcrosshairs = this.getElXCrosshairs()
     w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
 
+    // Did anything show or grow since the last hide? This runs per move
+    // over the axis margins, and per marker left.
+    const shown = opt.tooltipEl.classList.contains('apexcharts-active')
     opt.tooltipEl.classList.remove('apexcharts-active')
     // Clear the first-paint marker so the next show repositions without
     // animating from the now-stale prior coords. Paired with the
@@ -1975,7 +1988,10 @@ export default class Tooltip {
     this.deactivateHoverFilter()
     // A canvas heatmap's dataPointMouseLeave for the cell it was over.
     this.intersect.hoverCell(null)
-    if (w.config.chart.type !== 'bubble') {
+    if (
+      w.config.chart.type !== 'bubble' &&
+      (shown || this.marker.dirty || this.marker.enlargedPoints.size)
+    ) {
       this.marker.resetPointsSize()
     }
     if (xcrosshairs !== null) {
@@ -2098,8 +2114,6 @@ export default class Tooltip {
       this._hasCustomSeries()
     const dynamicPoints = canvasNonBar || canvasPointSeries || marksMode
 
-    const bars = this.tooltipUtil.getElBars()
-
     const handlePoints = () => {
       if (
         w.globals.markers.largestSize > 0 &&
@@ -2160,7 +2174,7 @@ export default class Tooltip {
             ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
           }
         } else if (
-          [...bars].some((/** @type {Element} */ b) => b.querySelector('path'))
+          [...this.tooltipUtil.getElBars()].some((b) => b.querySelector('path'))
         ) {
           // Any drawn bar mark. A DOM probe, not a getBBox, so a move does
           // not force a layout.
@@ -2202,5 +2216,8 @@ export default class Tooltip {
         ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries)
       }
     }
+    // The markers and dots moved above are this hover's: handleMouseOut
+    // puts them back even if the box was never shown.
+    ttCtx.marker.dirty = true
   }
 }
