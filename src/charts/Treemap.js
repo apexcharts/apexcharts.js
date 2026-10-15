@@ -879,7 +879,7 @@ export default class TreemapChart {
     const elGroup = graphics.group({
       class: 'apexcharts-treemap-parent',
       'data:depth': depth,
-      'data:name': Utils.escapeString(node.name),
+      'data:name': node.name,
     })
 
     // Cross-type morph: with branch keys on both sides, a container unrolls
@@ -1032,7 +1032,7 @@ export default class TreemapChart {
       if (typeof header.formatter === 'function') {
         text = String(
           header.formatter(node.name, {
-            value: node.value,
+            value: node._area,
             depth,
             seriesIndex: i,
             node,
@@ -1040,7 +1040,7 @@ export default class TreemapChart {
           }),
         )
       } else if (header.showValue) {
-        text = `${text}  ${this._formatValue(node.value)}`
+        text = `${text}  ${this._formatValue(node._area, node._si)}`
       }
       headerText = text
 
@@ -1158,7 +1158,7 @@ export default class TreemapChart {
     const lead =
       visibleText && String(visibleText).trim()
         ? String(visibleText).replace(/\s+/g, ' ').trim()
-        : `${node.name}, ${this._formatValue(node._area)}`
+        : `${node.name}, ${this._formatValue(node._area, node._si)}`
     return `${lead}, ${n} ${n === 1 ? 'item' : 'items'}, ${pct}% of total`
   }
 
@@ -1817,7 +1817,8 @@ export default class TreemapChart {
     if (!t) return
 
     const total = this._drawnTotal()
-    const parentVal = node._parent ? node._parent._area : total
+    // A zoom lays out only the focus, so the parent may have no _area.
+    const parentVal = node._parent ? this._subtreeArea(node._parent) : total
     const pctTotal = total > 0 ? ((node._area / total) * 100).toFixed(1) : '0.0'
     const pctParent =
       parentVal > 0 ? ((node._area / parentVal) * 100).toFixed(1) : pctTotal
@@ -1847,11 +1848,12 @@ export default class TreemapChart {
         `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}">` +
         `<div class="apexcharts-tooltip-text">` +
         `<div class="apexcharts-tooltip-y-group">` +
-        `<span class="apexcharts-tooltip-text-y-label">${Utils.escapeString(
-          node.name,
-        )}: </span>` +
+        `<span class="apexcharts-tooltip-text-y-label">${String(node.name)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')}: </span>` +
         `<span class="apexcharts-tooltip-text-y-value">${this._formatValue(
           node._area,
+          node._si,
         )}</span>` +
         `</div>` +
         `<div class="apexcharts-tooltip-y-group">` +
@@ -1966,16 +1968,20 @@ export default class TreemapChart {
 
   /**
    * Format an aggregate the way the chart formats its own y values, so a
-   * parent's total reads like the tiles it contains.
+   * parent's total reads like the tiles it contains. A branch is no data
+   * point, so dataPointIndex is -1.
    * @param {number} v
+   * @param {number} [si] the branch's series index
    * @returns {string}
    */
-  _formatValue(v) {
+  _formatValue(v, si) {
     const w = this.w
     const fmt = w.config.tooltip?.y?.formatter || w.config.yaxis?.[0]?.labels?.formatter
     if (typeof fmt === 'function') {
       try {
-        return String(fmt(v, { seriesIndex: 0, dataPointIndex: 0, w }))
+        return String(
+          fmt(v, { seriesIndex: si || 0, dataPointIndex: -1, w }),
+        )
       } catch (_) {
         // A formatter written for leaf rows may expect fields a parent
         // aggregate has no equivalent of; fall through to the plain number.

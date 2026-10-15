@@ -414,10 +414,10 @@ function wrapParentTip(hf, tm) {
     }
     const v = tm._tip()?.querySelector('.apexcharts-tooltip-text-y-value')
     if (!v) return
-    let rest = `/ ${tm._formatValue(h.total)}`
+    let rest = `/ ${tm._formatValue(h.total, node._si)}`
     if (tt.share && h.total) rest += ` · ${Math.round(h.share * 100)}%`
     v.innerHTML =
-      `${tm._formatValue(h.value)} ` +
+      `${tm._formatValue(h.value, node._si)} ` +
       `<span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">${rest}</span>`
   }
 }
