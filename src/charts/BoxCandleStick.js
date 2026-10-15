@@ -5,7 +5,7 @@ import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
-import { buildJitterGroups, renderJitter } from './common/Jitter'
+import { buildJitterGroups, jitterExtent, renderJitter } from './common/Jitter'
 import {
   lengthTransitionEnabled,
   renderBarExitGhosts,
@@ -122,6 +122,7 @@ class BoxCandleStick extends Bar {
     // config's: reading either drew a candle as a box, or a box as a candle.
     this.isBoxPlot = type === 'boxPlot'
     this.isOHLC = !this.isBoxPlot && this.candlestickOptions?.type === 'ohlc'
+    const jx = jitterExtent(w.candleData.seriesBoxPoints, w)
 
     for (let i = 0; i < series.length; i++) {
       /** @type {any} */
@@ -357,8 +358,8 @@ class BoxCandleStick extends Bar {
               alongFn = (/** @type {number} */ v) => z - logVal(v) / yRatio
             }
             const groups = buildJitterGroups({
-              w,
               points: pts,
+              extent: jx,
               seedA: realIndex,
               seedB: j,
               center,

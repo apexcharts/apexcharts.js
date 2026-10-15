@@ -15,6 +15,28 @@ import Utils from '../../utils/Utils'
  **/
 
 /**
+ * The value range of the drawn series' observations, for a colorScale ramp.
+ * Once per draw; stale slots past the series count and non-numbers are skipped.
+ * @param {any[]} pool per-series, per-datum observations
+ * @param {any} w
+ * @returns {number[]}
+ */
+export function jitterExtent(pool, w) {
+  let lo = Infinity
+  let hi = -Infinity
+  pool
+    .slice(0, w.seriesData.series.length)
+    .flat(2)
+    .forEach((v) => {
+      if (v === +v) {
+        if (v < lo) lo = v
+        if (v > hi) hi = v
+      }
+    })
+  return [lo, hi]
+}
+
+/**
  * Build the jitter sub-path groups for ONE category. Returns `[]` when points
  * are hidden/absent. Normally one group (single dot colour); with
  * `options.colorScale` the dots are bucketed by value into shade groups, each
@@ -22,8 +44,8 @@ import Utils from '../../utils/Utils'
  * caller's resolved default colour.
  *
  * @param {{
- *   w: any,
  *   points: number[] | undefined,
+ *   extent: number[],
  *   seedA: number,
  *   seedB: number,
  *   center: number,
@@ -37,8 +59,8 @@ import Utils from '../../utils/Utils'
  * @returns {{fill:string|null, d:string}[]}
  */
 export function buildJitterGroups({
-  w,
   points,
+  extent,
   seedA,
   seedB,
   center,
@@ -67,8 +89,10 @@ export function buildJitterGroups({
   const useScale =
     scale && Array.isArray(scale.colors) && scale.colors.length > 0
   const steps = useScale ? Math.max(2, scale.steps || 24) : 1
-  const sMin = useScale && scale.min != null ? scale.min : w.globals.minY
-  const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY
+  // The ramp spans the observations (jitterExtent) unless colorScale says
+  // otherwise: an axis's nice scale overshoots them, so the ends never showed.
+  const sMin = scale?.min ?? extent[0]
+  const sMax = scale?.max ?? extent[1]
   const span = sMax - sMin || 1
   /** @type {string[]} */
   const buckets = useScale ? new Array(steps).fill('') : ['']
@@ -206,13 +230,14 @@ export function renderJitter({
 /**
  * Darken a colour toward black by `amount` (0 = unchanged, 1 = black),
  * returning an `rgb(...)` string. Falls back to the input when it can't be
- * parsed as hex.
- * @param {string} color hex colour
+ * parsed (hex, rgb()/rgba(), or a named colour the browser resolves).
+ * @param {string} color
  * @param {number} amount 0..1
  * @returns {string}
  */
 export function darkenColor(color, amount) {
-  const rgb = Utils.parseHex(color)
+  const rgb =
+    Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color))
   if (!rgb) return color
   const f = Math.max(0, 1 - amount)
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`

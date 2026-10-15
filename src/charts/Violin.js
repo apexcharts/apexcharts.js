@@ -7,7 +7,7 @@ import Series from '../modules/Series'
 import { datumKey } from '../modules/animations/LengthTransition'
 import Utils from '../utils/Utils'
 import { spline, svgPath } from '../libs/monotone-cubic'
-import { buildJitterGroups, renderJitter } from './common/Jitter'
+import { buildJitterGroups, jitterExtent, renderJitter } from './common/Jitter'
 
 /**
  * ApexCharts Violin Class — draws a density curve per category (the
@@ -68,6 +68,7 @@ class Violin extends BarBase {
 
     this.violinOptions = w.config.plotOptions.violin
     this.pointsOptions = this.violinOptions.points
+    this.jx = jitterExtent(w.violinData.seriesViolinPoints, w)
     this.boxOptions = this.violinOptions.box || {}
     // Cross-axis signs: which side the density is drawn on (0 = symmetric)
     // and which side the jitter lane sits on (0 = centered on the slot).
@@ -826,8 +827,8 @@ class Violin extends BarBase {
         ? cloudMaxPx
         : halfExtent
     return buildJitterGroups({
-      w: this.w,
       points: this.w.violinData.seriesViolinPoints[realIndex]?.[j],
+      extent: /** @type {number[]} */ (this.jx),
       seedA: realIndex,
       seedB: j,
       center: scatterCenter,
