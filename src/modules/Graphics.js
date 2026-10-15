@@ -718,11 +718,16 @@ class Graphics {
       // Skip the immediate reveal when we're fading in via revealBulk — it owns
       // the reveal (a single scheduled rAF), so revealing here would pre-empt it.
       // An update that does not animate has no completion to reveal them at,
-      // so it reveals them now.
+      // so it reveals them now. Only when something was registered since the
+      // last reveal: the list is new each render, and walking it again for
+      // every bar is a no-op that grew as bars x overlays.
+      const de = /** @type {any} */ (w.globals.delayedElements)
       if (
         (w.globals.resized || !w.globals.dataChanged || !shouldAnimate) &&
-        !revealViaFade
+        !revealViaFade &&
+        de.shown !== de.length
       ) {
+        de.shown = de.length
         anim.showDelayedElements()
       }
     }
