@@ -139,10 +139,9 @@ export default class UpdateHelpers {
           w.globals.resized = true
           w.globals.dataChanged = true
 
-          // see _updateSeries: previous paths only feed update morphs
-          if (animate && w.config.chart.animations.enabled) {
-            ch.series.getPreviousPaths()
-          }
+          // A `chart` section can switch the morph on or change the type,
+          // both read after this capture, so it captures as before.
+          ch.updateHelpers.capture(animate, options?.chart)
         } else {
           // From scratch: render as the chart did when it mounted (or, with
           // animate=false, simply at rest). Both flags outlive the update
@@ -358,6 +357,30 @@ export default class UpdateHelpers {
   }
 
   /**
+   * Capture what is on screen for an update to morph from. Previous paths
+   * (and the stream, axis chrome and label frames taken with them) only feed
+   * data-change MORPHS, which need dynamicAnimation; the capture is O(n). An
+   * update that does not capture drops the last one instead: a frame left in
+   * place reads as this update's (a canvas line kept building path strings
+   * for it on every later pan).
+   *
+   * @param {boolean} animate
+   * @param {any} [chart] the payload's `chart` section, if any
+   */
+  capture(animate, chart) {
+    const w = this.w
+    const gl = w.globals
+    const a = w.config.chart.animations
+    if (animate && a.enabled && (a.dynamicAnimation.enabled || chart)) {
+      this.ctx.series.getPreviousPaths()
+    } else {
+      gl.previousPaths = []
+      gl.prevStreamFrame = null
+      gl.streamScrolled = false
+    }
+  }
+
+  /**
    * Private method to update Series.
    *
    * @param {any[]} newSeries - New series which will override the existing
@@ -383,12 +406,7 @@ export default class UpdateHelpers {
 
       PerformanceCache.invalidateSelectors(w)
 
-      // Previous paths (and the stream-frame / axis-chrome snapshots captured
-      // with them) only feed update MORPHS. When animations are globally off
-      // nothing consumes them, and the capture is O(n) per update.
-      if (animate && w.config.chart.animations.enabled) {
-        this.ctx.series.getPreviousPaths()
-      }
+      this.capture(animate)
 
       // The category names on screen. The fast path keeps the axis DOM and the
       // layout, and the axis-scale signature above only knows the value scale,

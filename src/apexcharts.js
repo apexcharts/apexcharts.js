@@ -1235,11 +1235,7 @@ export default class ApexCharts {
     // zoom, a brush moving its target, updateSeries(data, false)) silently
     // switched off the animation of every append after it.
     me.w.globals.shouldAnimate = true
-    // previous paths feed the update morph; with animations off nothing
-    // consumes them, and the capture is O(n) (stream-frame + DOM walk)
-    if (me.w.config.chart.animations.enabled) {
-      me.series.getPreviousPaths()
-    }
+    me.updateHelpers.capture(true)
 
     // Histogram, waterfall and dumbbell: `config.series` holds rows this
     // library derived (binned counts, accumulated [start, end] pairs, merged

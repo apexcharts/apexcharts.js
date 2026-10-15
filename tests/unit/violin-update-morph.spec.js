@@ -8,7 +8,9 @@ import Series from '../../src/modules/Series.js'
 // Every violin update, legend toggle or zoom collapsed each violin to its
 // centreline and grew it again: the outgoing violin paths were never
 // captured, so there was nothing to morph from. A raincloud box lane shares
-// its body's datum key, so it rides on the body's captured entry.
+// its body's datum key, so it rides on the body's captured entry. Violin
+// ships dynamicAnimation off, and an update that will not morph captures
+// nothing, so the morph specs switch it on.
 
 const density = (s) => [
   [0, 0.02],
@@ -59,8 +61,12 @@ describe('violin updates morph from the previous shape', () => {
     expect(rec.paths.length).toBe(2)
   })
 
+  const morphing = { animations: { dynamicAnimation: { enabled: true } } }
+
   it('a survivor starts from the shape it had', async () => {
-    await mount()
+    await mount({
+      chart: { type: 'violin', width: 600, height: 400, ...morphing },
+    })
     const before = [body(0), body(1)].map((p) => p.getAttribute('pathTo'))
     await chart.updateSeries(series(1.6))
     expect(body(0).getAttribute('pathFrom')).toBe(before[0])
@@ -128,7 +134,7 @@ describe('violin updates morph from the previous shape', () => {
       },
     ]
     await mount({
-      chart: { type: 'raincloud', width: 600, height: 400 },
+      chart: { type: 'raincloud', width: 600, height: 400, ...morphing },
       series: rain(3),
     })
     expect(box(0).length).toBe(2)
