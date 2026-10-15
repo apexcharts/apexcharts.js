@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -383,6 +383,7 @@ function colorPass(node, color, tint, out) {
     }
   }
 }
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 class NodeTooltip {
   /**
    * @param {any} w
@@ -427,11 +428,22 @@ class NodeTooltip {
     const pctTotal = (node.value / this.total * 100).toFixed(1);
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
     const ty = w.config.tooltip.y;
     const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
     const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const group = (
+      /** @type {HTMLElement} */
+      t.firstChild
+    );
+    const marker = (
+      /** @type {HTMLElement} */
+      group.firstChild
+    );
+    marker.style.backgroundColor = node._color;
+    if (w.config.tooltip.fillSeriesColor) {
+      group.style.backgroundColor = node._color;
+    }
     t.classList.add("apexcharts-active");
     t.style.opacity = "1";
     this.position(e);
@@ -632,9 +644,14 @@ class IcicleChart {
       gap: 1
     });
     this._nodesAll.forEach((n) => {
+      n._sub = false;
       if (!n._show) return;
       n._d0 = scale.near(n._vDepth);
       n._d1 = farEdge(n, scale, this._focusMaxDepth, this.cfg.leaf, used);
+      if (n._t1 - n._t0 < 0.5) {
+        n._show = false;
+        n._sub = true;
+      }
     });
   }
   /**
@@ -718,11 +735,12 @@ class IcicleChart {
     const dyn = anims.dynamicAnimation;
     const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
     const gen = ++this._zoomGen;
-    const prev = mode === "update" ? (
+    const prev = dur > 0 && mode !== "intro" ? (
       /** @type {any} */
       this.ctx._iciclePrevGeoms
     ) : null;
     this._nodesAll.forEach((node) => {
+      const was = node._cur || prev && prev.get(node._key) && prev.get(node._key)();
       if (node._show) {
         const to = this._box(node);
         if (!node._el) node._el = this._createCellEl(node);
@@ -732,13 +750,9 @@ class IcicleChart {
           this._wipeCell(node, to, dur, gen);
           return;
         }
-        let from;
+        let from = was;
         let isNew = false;
-        if (node._cur) {
-          from = node._cur;
-        } else if (prev && prev.get(node._key)) {
-          from = prev.get(node._key)();
-        } else {
+        if (!from) {
           from = {
             x: to.x + to.w / 2,
             y: to.y + to.h / 2,
@@ -748,6 +762,9 @@ class IcicleChart {
           isNew = true;
         }
         this._animateCell(node, from, to, dur, false, isNew, gen);
+      } else if (node._sub && was && !was.s) {
+        if (!node._el) node._el = this._createCellEl(node);
+        this._animateCell(node, was, this._box(node), dur, true, false, gen);
       } else if (node._el && node._cur) {
         const c = node._cur;
         const collapsed = {
@@ -762,7 +779,8 @@ class IcicleChart {
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n) => {
       const b = this._box(n);
-      if (n._show) geoms.set(n._key, () => n._cur || b);
+      if (n._sub) b.s = 1;
+      if (n._show || n._sub) geoms.set(n._key, () => n._cur || b);
     });
     this.ctx._iciclePrevGeoms = geoms;
     this._renderLabels(dur);
@@ -857,7 +875,7 @@ class IcicleChart {
     }
     el.node.style.display = "";
     const startOp = hide ? Number(el.attr("opacity")) || 1 : fadeIn ? 0 : 1;
-    const endOp = hide ? 0 : 1;
+    const endOp = hide && !node._sub ? 0 : 1;
     el.attr({ opacity: startOp });
     el.animate(dur).during((pos) => {
       if (this._zoomGen !== gen) return;

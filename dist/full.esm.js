@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts$1 from "apexcharts";
@@ -5258,6 +5258,7 @@ function colorPass(node, color, tint, out) {
     }
   }
 }
+const escapeHtml$1 = (s2) => String(s2).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 class NodeTooltip {
   /**
    * @param {any} w
@@ -5302,11 +5303,22 @@ class NodeTooltip {
     const pctTotal = (node.value / this.total * 100).toFixed(1);
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
     const ty = w.config.tooltip.y;
     const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
     const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
-    t2.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    t2.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml$1(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const group2 = (
+      /** @type {HTMLElement} */
+      t2.firstChild
+    );
+    const marker = (
+      /** @type {HTMLElement} */
+      group2.firstChild
+    );
+    marker.style.backgroundColor = node._color;
+    if (w.config.tooltip.fillSeriesColor) {
+      group2.style.backgroundColor = node._color;
+    }
     t2.classList.add("apexcharts-active");
     t2.style.opacity = "1";
     this.position(e2);
@@ -6134,9 +6146,14 @@ class IcicleChart {
       gap: 1
     });
     this._nodesAll.forEach((n2) => {
+      n2._sub = false;
       if (!n2._show) return;
       n2._d0 = scale.near(n2._vDepth);
       n2._d1 = farEdge(n2, scale, this._focusMaxDepth, this.cfg.leaf, used);
+      if (n2._t1 - n2._t0 < 0.5) {
+        n2._show = false;
+        n2._sub = true;
+      }
     });
   }
   /**
@@ -6220,11 +6237,12 @@ class IcicleChart {
     const dyn = anims.dynamicAnimation;
     const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
     const gen = ++this._zoomGen;
-    const prev = mode === "update" ? (
+    const prev = dur > 0 && mode !== "intro" ? (
       /** @type {any} */
       this.ctx._iciclePrevGeoms
     ) : null;
     this._nodesAll.forEach((node) => {
+      const was = node._cur || prev && prev.get(node._key) && prev.get(node._key)();
       if (node._show) {
         const to = this._box(node);
         if (!node._el) node._el = this._createCellEl(node);
@@ -6234,13 +6252,9 @@ class IcicleChart {
           this._wipeCell(node, to, dur, gen);
           return;
         }
-        let from;
+        let from = was;
         let isNew = false;
-        if (node._cur) {
-          from = node._cur;
-        } else if (prev && prev.get(node._key)) {
-          from = prev.get(node._key)();
-        } else {
+        if (!from) {
           from = {
             x: to.x + to.w / 2,
             y: to.y + to.h / 2,
@@ -6250,6 +6264,9 @@ class IcicleChart {
           isNew = true;
         }
         this._animateCell(node, from, to, dur, false, isNew, gen);
+      } else if (node._sub && was && !was.s) {
+        if (!node._el) node._el = this._createCellEl(node);
+        this._animateCell(node, was, this._box(node), dur, true, false, gen);
       } else if (node._el && node._cur) {
         const c = node._cur;
         const collapsed = {
@@ -6264,7 +6281,8 @@ class IcicleChart {
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n2) => {
       const b = this._box(n2);
-      if (n2._show) geoms.set(n2._key, () => n2._cur || b);
+      if (n2._sub) b.s = 1;
+      if (n2._show || n2._sub) geoms.set(n2._key, () => n2._cur || b);
     });
     this.ctx._iciclePrevGeoms = geoms;
     this._renderLabels(dur);
@@ -6359,7 +6377,7 @@ class IcicleChart {
     }
     el.node.style.display = "";
     const startOp = hide ? Number(el.attr("opacity")) || 1 : fadeIn ? 0 : 1;
-    const endOp = hide ? 0 : 1;
+    const endOp = hide && !node._sub ? 0 : 1;
     el.attr({ opacity: startOp });
     el.animate(dur).during((pos) => {
       if (this._zoomGen !== gen) return;
@@ -6738,24 +6756,18 @@ function observationsOf(d, allowFlatY) {
   return out.length ? out : null;
 }
 function derivedStats(w, kind) {
-  var _a, _b;
-  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
-  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+  const all = w.statsDerived || (w.statsDerived = {});
+  return all[kind] || (all[kind] = /* @__PURE__ */ new Map());
+}
+function deriveStat(derived, key, values, opts, fn) {
+  const s2 = JSON.stringify(opts) + values;
+  let hit = derived.get(key);
+  if (!hit || hit.s !== s2) derived.set(key, hit = { s: s2, e: fn(values, opts) });
+  return hit.e;
 }
 function isDerived(derived, key, value) {
-  const ours = derived.get(key);
-  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
-    return false;
-  }
-  for (let k2 = 0; k2 < value.length; k2++) {
-    const a2 = ours[k2];
-    const b = value[k2];
-    if (a2 === b) continue;
-    if (!Array.isArray(a2) || !Array.isArray(b) || a2[0] !== b[0] || a2[1] !== b[1]) {
-      return false;
-    }
-  }
-  return true;
+  const e2 = (derived.get(key) || {}).e;
+  return !!e2 && JSON.stringify(e2.density || e2.summary) === JSON.stringify(value);
 }
 function raincloudTransform(ser, w) {
   var _a, _b;
@@ -6780,21 +6792,26 @@ function raincloudTransform(ser, w) {
       if (!values) return d;
       const out = __spreadValues({}, y);
       if (needDensity) {
-        const est = kernelDensity(values, {
-          bandwidth: kde.bandwidth,
-          resolution: kde.resolution
-        });
+        const est = deriveStat(
+          ourDensity,
+          key,
+          values,
+          { bandwidth: kde.bandwidth, resolution: kde.resolution },
+          kernelDensity
+        );
         if (!est) return d;
         out.density = est.density;
         out.points = values;
-        ourDensity.set(key, est.density);
       }
       if (needSummary) {
-        const est = fiveNumberSummary(values, { whiskers });
-        if (est) {
-          out.summary = est.summary;
-          ourSummary.set(key, est.summary);
-        }
+        const est = deriveStat(
+          ourSummary,
+          key,
+          values,
+          { whiskers },
+          fiveNumberSummary
+        );
+        if (est) out.summary = est.summary;
       }
       touched = true;
       return __spreadProps(__spreadValues({}, d), { y: out });
@@ -8256,22 +8273,55 @@ class AxisMapping {
     return w.globals.minX + px * AxisMapping.xRatio(w);
   }
   /**
-   * Client (screen) x -> pixels from the plot origin. The origin is the svg
-   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
-   * (fact 2 above), so the result does not depend on what the grid happens to
-   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
-   * against the measured one is the CSS zoom of any container the chart sits in.
+   * The plot area on screen, in client px: its corner is where the plot's
+   * group is translated to (translateX, translateY into the svg), and it is
+   * gridWidth by gridHeight. The one screen-to-plot measurement: the tooltip,
+   * zoom, selection and every other pointer reader map through it, so x and y
+   * cannot disagree under CSS zoom.
+   *
+   * Never the `.apexcharts-grid` group's box: a group measures to the union
+   * of what it happens to draw (fact 2 above). The plot's outline starts a
+   * pixel down (`Grid.drawGridArea`), so unless gridlines or row bands reach
+   * the top edge the box starts a pixel below the plot, and on a numeric-x bar
+   * chart the horizontal gridlines run `barPadForNumericAxis` out past both
+   * sides.
+   *
+   * `zoom` is the CSS zoom of any container the chart sits in (screen px per
+   * plot px): the measured svg width over `svgWidth`, the unscaled width it
+   * was drawn at. A distance measured on screen from this corner is divided
+   * by it to land in plot px, the space the series are laid out and painted in.
+   * With nothing mounted to measure, screen px are taken as svg px.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
+   */
+  static plotRect(w) {
+    var _a, _b, _c;
+    const svg = ((_a = w.dom.Paper) == null ? void 0 : _a.node) || ((_b = w.dom.baseEl) == null ? void 0 : _b.querySelector(".apexcharts-svg"));
+    const box = ((_c = svg || w.dom.elWrap) == null ? void 0 : _c.getBoundingClientRect()) || {
+      left: 0,
+      top: 0,
+      width: 0
+    };
+    const zoom = (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1;
+    return {
+      left: box.left + w.layout.translateX * zoom,
+      top: box.top + w.layout.translateY * zoom,
+      width: w.layout.gridWidth * zoom,
+      height: w.layout.gridHeight * zoom,
+      zoom
+    };
+  }
+  /**
+   * Client (screen) x -> pixels from the plot origin of {@link plotRect}.
+   * Pass the rect when the caller has already measured it.
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} screenX
+   * @param {{ left: number, zoom: number }} [plot]
    * @returns {number}
    */
-  static screenXToPlotPx(w, screenX) {
-    const baseEl = w.dom.baseEl;
-    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return screenX - w.layout.translateX;
-    const svgRect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
-    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
+  static screenXToPlotPx(w, screenX, plot = AxisMapping.plotRect(w)) {
+    return (screenX - plot.left) / plot.zoom;
   }
 }
 const VPAD = 3;
@@ -12262,15 +12312,33 @@ class TrellisVirtual {
     this._gutterFloor = 0;
   }
 }
-const CURSOR_PAD = 14;
-const BAR_FAMILY = [
+Object.setPrototypeOf(
+  {
+    funnel: "bar",
+    pyramid: "bar",
+    gauge: "radialBar",
+    waffle: "unit",
+    histogram: "bar",
+    waterfall: "rangeBar",
+    dumbbell: "rangeBar",
+    streamgraph: "rangeArea",
+    raincloud: "violin",
+    // `column` is the name half the world uses for a vertical bar chart, and the
+    // combo path has always accepted it on `series[].type`. On `chart.type` it
+    // used to fall through every dispatch and die inside the renderer (#5325),
+    // so it is spelled out here as what it has always meant.
+    column: "bar"
+  },
+  null
+);
+const BAR_PATHWAY_TYPES = [
   "bar",
-  "column",
   "rangeBar",
   "candlestick",
   "boxPlot",
   "violin"
 ];
+const CURSOR_PAD = 14;
 class TrellisTooltip {
   /**
    * @param {import('./Trellis').default} trellis
@@ -12335,7 +12403,7 @@ class TrellisTooltip {
         return -1;
       }
     }
-    const slotted = (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
+    const slotted = (BAR_PATHWAY_TYPES.includes(w.config.chart.type) || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
     const j2 = slotted ? Math.ceil(hoverX / (gridWidth / n2)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n2 - 1)));
     return Math.max(0, Math.min(n2 - 1, j2));
   }
@@ -16294,6 +16362,7 @@ function licensedForPremium(key) {
 }
 function reinstateWatermark(ctx, elWrap) {
   const node = C.add(elWrap, { manage: false });
+  ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
@@ -16322,6 +16391,8 @@ function addWatermark(ctx, elWrap) {
   ctx._wmObservedWrap = elWrap;
 }
 function teardownWatermark(ctx, elWrap) {
+  if (!ctx._wmPainted) return;
+  ctx._wmPainted = false;
   if (ctx._wmWrapObserver) {
     ctx._wmWrapObserver.disconnect();
     ctx._wmWrapObserver = null;

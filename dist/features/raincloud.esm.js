@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -148,24 +148,18 @@ function observationsOf(d, allowFlatY) {
   return out.length ? out : null;
 }
 function derivedStats(w, kind) {
-  var _a, _b;
-  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
-  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+  const all = w.statsDerived || (w.statsDerived = {});
+  return all[kind] || (all[kind] = /* @__PURE__ */ new Map());
+}
+function deriveStat(derived, key, values, opts, fn) {
+  const s = JSON.stringify(opts) + values;
+  let hit = derived.get(key);
+  if (!hit || hit.s !== s) derived.set(key, hit = { s, e: fn(values, opts) });
+  return hit.e;
 }
 function isDerived(derived, key, value) {
-  const ours = derived.get(key);
-  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
-    return false;
-  }
-  for (let k = 0; k < value.length; k++) {
-    const a = ours[k];
-    const b = value[k];
-    if (a === b) continue;
-    if (!Array.isArray(a) || !Array.isArray(b) || a[0] !== b[0] || a[1] !== b[1]) {
-      return false;
-    }
-  }
-  return true;
+  const e = (derived.get(key) || {}).e;
+  return !!e && JSON.stringify(e.density || e.summary) === JSON.stringify(value);
 }
 function raincloudTransform(ser, w) {
   var _a, _b;
@@ -190,21 +184,26 @@ function raincloudTransform(ser, w) {
       if (!values) return d;
       const out = __spreadValues({}, y);
       if (needDensity) {
-        const est = kernelDensity(values, {
-          bandwidth: kde.bandwidth,
-          resolution: kde.resolution
-        });
+        const est = deriveStat(
+          ourDensity,
+          key,
+          values,
+          { bandwidth: kde.bandwidth, resolution: kde.resolution },
+          kernelDensity
+        );
         if (!est) return d;
         out.density = est.density;
         out.points = values;
-        ourDensity.set(key, est.density);
       }
       if (needSummary) {
-        const est = fiveNumberSummary(values, { whiskers });
-        if (est) {
-          out.summary = est.summary;
-          ourSummary.set(key, est.summary);
-        }
+        const est = deriveStat(
+          ourSummary,
+          key,
+          values,
+          { whiskers },
+          fiveNumberSummary
+        );
+        if (est) out.summary = est.summary;
       }
       touched = true;
       return __spreadProps(__spreadValues({}, d), { y: out });

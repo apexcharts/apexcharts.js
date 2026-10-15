@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -332,6 +332,7 @@ function colorPass(node, color, tint, out) {
     }
   }
 }
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 class NodeTooltip {
   /**
    * @param {any} w
@@ -376,11 +377,22 @@ class NodeTooltip {
     const pctTotal = (node.value / this.total * 100).toFixed(1);
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
     const ty = w.config.tooltip.y;
     const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
     const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const group = (
+      /** @type {HTMLElement} */
+      t.firstChild
+    );
+    const marker = (
+      /** @type {HTMLElement} */
+      group.firstChild
+    );
+    marker.style.backgroundColor = node._color;
+    if (w.config.tooltip.fillSeriesColor) {
+      group.style.backgroundColor = node._color;
+    }
     t.classList.add("apexcharts-active");
     t.style.opacity = "1";
     this.position(e);

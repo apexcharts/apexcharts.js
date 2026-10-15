@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -332,24 +332,18 @@ function observationsOf(d, allowFlatY) {
   return out.length ? out : null;
 }
 function derivedStats(w, kind) {
-  var _a, _b;
-  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
-  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+  const all = w.statsDerived || (w.statsDerived = {});
+  return all[kind] || (all[kind] = /* @__PURE__ */ new Map());
+}
+function deriveStat(derived, key, values, opts, fn) {
+  const s = JSON.stringify(opts) + values;
+  let hit = derived.get(key);
+  if (!hit || hit.s !== s) derived.set(key, hit = { s, e: fn(values, opts) });
+  return hit.e;
 }
 function isDerived(derived, key, value) {
-  const ours = derived.get(key);
-  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
-    return false;
-  }
-  for (let k2 = 0; k2 < value.length; k2++) {
-    const a = ours[k2];
-    const b = value[k2];
-    if (a === b) continue;
-    if (!Array.isArray(a) || !Array.isArray(b) || a[0] !== b[0] || a[1] !== b[1]) {
-      return false;
-    }
-  }
-  return true;
+  const e = (derived.get(key) || {}).e;
+  return !!e && JSON.stringify(e.density || e.summary) === JSON.stringify(value);
 }
 function histogramValues(data) {
   const out = [];
@@ -430,62 +424,61 @@ function histogramTransform(ser, w) {
 }
 function boxPlotTransform(ser, w) {
   var _a, _b;
-  if (!Array.isArray(ser)) return ser;
-  const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
-  const derived = derivedStats(w, "boxPlot");
-  const observed = [];
-  const out = ser.map((s, i) => {
-    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "boxPlot") return s;
-    let touched = false;
-    const byPoint = new Array(s.data.length).fill(null);
-    const data = s.data.map((d, j) => {
-      const key = i + ":" + j;
-      if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !isDerived(derived, key, d.y)) {
-        return d;
-      }
-      const values = observationsOf(d, false);
-      if (!values) return d;
-      const summary = fiveNumberSummary(values, { whiskers });
-      if (!summary) return d;
-      touched = true;
-      byPoint[j] = values;
-      derived.set(key, summary.summary);
-      return __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
-    });
-    if (touched) observed[i] = byPoint;
-    return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
-  });
-  recordObservations(w, observed, ser.length);
-  return out;
+  return sampleTransform(
+    ser,
+    w,
+    "boxPlot",
+    { whiskers: ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax" },
+    fiveNumberSummary,
+    (d) => Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && d.y,
+    (d, est, values) => __spreadProps(__spreadValues({}, d), {
+      y: est.summary,
+      points: values
+    })
+  );
 }
 function violinTransform(ser, w) {
   var _a, _b;
-  if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
-  const derived = derivedStats(w, "violin");
+  return sampleTransform(
+    ser,
+    w,
+    "violin",
+    { bandwidth: kde.bandwidth, resolution: kde.resolution },
+    kernelDensity,
+    (d) => {
+      var _a2;
+      return Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && d.y.density;
+    },
+    (d, est, values) => __spreadProps(__spreadValues({}, d), {
+      // Keep the rest of an object `y`: a summary given with the points still
+      // draws the box lane.
+      y: __spreadProps(__spreadValues({}, d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {}), {
+        density: est.density,
+        points: values
+      })
+    })
+  );
+}
+function sampleTransform(ser, w, type, opts, fn, statOf, write) {
+  if (!Array.isArray(ser)) return ser;
+  const derived = derivedStats(w, type);
   const observed = [];
   const out = ser.map((s, i) => {
-    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "violin") return s;
+    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== type) return s;
     let touched = false;
     const byPoint = new Array(s.data.length).fill(null);
     const data = s.data.map((d, j) => {
-      var _a2;
       const key = i + ":" + j;
-      if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !isDerived(derived, key, d.y.density)) {
-        return d;
-      }
-      const values = observationsOf(d, true);
+      const stat = statOf(d);
+      if (stat && !isDerived(derived, key, stat)) return d;
+      const values = observationsOf(d, type === "violin");
       if (!values) return d;
-      const est = kernelDensity(values, {
-        bandwidth: kde.bandwidth,
-        resolution: kde.resolution
-      });
+      const est = deriveStat(derived, key, values, opts, fn);
       if (!est) return d;
       touched = true;
       byPoint[j] = values;
-      const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
-      derived.set(key, est.density);
-      return __spreadProps(__spreadValues({}, d), { y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values }) });
+      return write(d, est, values);
     });
     if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;

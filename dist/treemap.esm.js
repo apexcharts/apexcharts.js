@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -478,8 +478,7 @@ function getTreemapRoots(w) {
   if (stashed && stashed.length) {
     return {
       roots: stashed,
-      maxDepth: w.globals.treemapMaxDepth || 1,
-      nested: true
+      maxDepth: w.globals.treemapMaxDepth || 1
     };
   }
   const roots = buildSeriesRoots(w, w.config.series, {
@@ -488,7 +487,7 @@ function getTreemapRoots(w) {
   });
   roots.forEach(fillValues);
   const { maxDepth } = annotate(roots);
-  return { roots, maxDepth, nested: false };
+  return { roots, maxDepth };
 }
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const resolveEasing = _core.__apex_Easing_resolveEasing;
@@ -783,6 +782,11 @@ function withFills(from, to, fillWas, fillNow) {
   }
   return [from, to];
 }
+const showsParents = (w) => {
+  var _a;
+  const show = w.config.plotOptions.treemap.parents.show;
+  return show === true || show !== false && !!((_a = w.globals.treemapRoots) == null ? void 0 : _a.length);
+};
 const headerLook = (el) => Series.treemapHeaderLook(el);
 class TreemapChart {
   /**
@@ -798,7 +802,6 @@ class TreemapChart {
     this.labels = [];
     this.roots = [];
     this.drawn = [];
-    this.nested = false;
     this.showParents = false;
     this.scale = null;
     this._levelCache = null;
@@ -825,13 +828,11 @@ class TreemapChart {
       });
     });
     const tree = getTreemapRoots(w);
-    this.nested = tree.nested;
     this.roots = tree.roots;
     this.scale = buildContinuousScale(w);
     const drawn = tree.roots.length === 1 ? tree.roots[0].children || [] : tree.roots;
     this.drawn = drawn;
-    const parentsCfg = w.config.plotOptions.treemap.parents;
-    this.showParents = parentsCfg.show === true || parentsCfg.show !== false && this.nested;
+    this.showParents = showsParents(w);
     const focus = this._resolveFocus(drawn);
     const layoutRoots = focus ? [focus] : drawn;
     TreemapSquared.generateNested(
@@ -1674,25 +1675,35 @@ class TreemapChart {
    * Active means the feature is loaded as well as configured: without it the
    * click navigates nowhere (the chart warns about the missing feature), so
    * standing zoom down too would leave the click doing nothing at all.
-   * @returns {boolean}
+   *
+   * Reads only `w`, so the layout, which runs before this renderer, asks it
+   * through the type registry (`prototype.zoomLive`) and reserves the
+   * breadcrumb band on the same answer: a flat treemap, with no parents to
+   * click, used to keep an empty band. Not a static: one on this class cost
+   * the default bundle about 290 B gzip.
+   * @param {any} w
+   * @param {any} drilldown the chart's drilldown feature, when loaded
+   * @returns {any} the zoom config when live, null when drilldown is what
+   *   stands it down, else false
    */
-  _zoomEnabled() {
+  zoomLive(w, drilldown) {
     var _a;
-    const w = this.w;
     const z = w.config.plotOptions.treemap.zoom;
-    if (!z || !z.enabled || !this.showParents) return false;
+    if (!(z == null ? void 0 : z.enabled) || !showsParents(w)) return false;
     const dd = w.config.drilldown;
+    return drilldown && (dd == null ? void 0 : dd.enabled) && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown) ? null : z;
+  }
+  /** @returns {boolean} */
+  _zoomEnabled() {
     const d = this.ctx.drilldown;
-    if (d && dd && dd.enabled && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown)) {
-      if (!d.zoomWarned) {
-        d.zoomWarned = true;
-        console.warn(
-          "ApexCharts treemap: zoom is ignored while drilldown is active (plotOptions.treemap.zoom vs drilldown series or onDrillDown)."
-        );
-      }
-      return false;
+    const live = this.zoomLive(this.w, d);
+    if (live === null && !d.zoomWarned) {
+      d.zoomWarned = true;
+      console.warn(
+        "ApexCharts treemap: zoom is ignored while drilldown is active (plotOptions.treemap.zoom vs drilldown series or onDrillDown)."
+      );
     }
-    return true;
+    return !!live;
   }
   /**
    * The focused branch for this render, looked up by the key stashed on the
@@ -2101,6 +2112,9 @@ class TreemapChart {
    * that grows the font - where a readable chip over the tiles beats a
    * breadcrumb clipped by the plot.
    *
+   * Breadcrumb.placeInReservedBand does the same plus a y-axis label ceiling
+   * a treemap has no use for, which would cost the default bundle its bytes.
+   *
    * @param {any} nav
    */
   _placeBreadcrumb(nav) {
@@ -2110,11 +2124,12 @@ class TreemapChart {
     const dimHelpers = (_b = (_a = this.ctx) == null ? void 0 : _a.dimensions) == null ? void 0 : _b.dimHelpers;
     const titleArea = dimHelpers ? dimHelpers.getTitleSubtitleCoords("title").height + dimHelpers.getTitleSubtitleCoords("subtitle").height : 0;
     const navH = nav.getBoundingClientRect().height || BREADCRUMB_HEIGHT;
+    const oy = this._breadcrumbCfg().offsetY || 0;
     if (gridTop - titleArea >= navH + 1) {
-      nav.style.top = `${gridTop - navH - 1}px`;
+      nav.style.top = `${gridTop - navH - 1 + oy}px`;
       return;
     }
-    nav.style.top = `${titleArea}px`;
+    nav.style.top = `${titleArea + oy}px`;
     const dark = w.config.theme.mode === "dark";
     nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
     nav.style.borderRadius = "4px";

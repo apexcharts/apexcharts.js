@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -241,7 +241,7 @@ class Helpers {
     var _a, _b;
     const w = this.w;
     const gl = w.globals;
-    const series = Utils.clone(w.config.series);
+    const series = gl.axisCharts ? Utils.copySeriesShallow(w.config.series) : Utils.clone(w.config.series);
     if (gl.axisCharts) {
       const yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]];
       const collapseData = {

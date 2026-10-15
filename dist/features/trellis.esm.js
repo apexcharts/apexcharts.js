@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -3321,33 +3321,84 @@ class AxisMapping {
     return w.globals.minX + px * AxisMapping.xRatio(w);
   }
   /**
-   * Client (screen) x -> pixels from the plot origin. The origin is the svg
-   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
-   * (fact 2 above), so the result does not depend on what the grid happens to
-   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
-   * against the measured one is the CSS zoom of any container the chart sits in.
+   * The plot area on screen, in client px: its corner is where the plot's
+   * group is translated to (translateX, translateY into the svg), and it is
+   * gridWidth by gridHeight. The one screen-to-plot measurement: the tooltip,
+   * zoom, selection and every other pointer reader map through it, so x and y
+   * cannot disagree under CSS zoom.
+   *
+   * Never the `.apexcharts-grid` group's box: a group measures to the union
+   * of what it happens to draw (fact 2 above). The plot's outline starts a
+   * pixel down (`Grid.drawGridArea`), so unless gridlines or row bands reach
+   * the top edge the box starts a pixel below the plot, and on a numeric-x bar
+   * chart the horizontal gridlines run `barPadForNumericAxis` out past both
+   * sides.
+   *
+   * `zoom` is the CSS zoom of any container the chart sits in (screen px per
+   * plot px): the measured svg width over `svgWidth`, the unscaled width it
+   * was drawn at. A distance measured on screen from this corner is divided
+   * by it to land in plot px, the space the series are laid out and painted in.
+   * With nothing mounted to measure, screen px are taken as svg px.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
+   */
+  static plotRect(w) {
+    var _a, _b, _c;
+    const svg = ((_a = w.dom.Paper) == null ? void 0 : _a.node) || ((_b = w.dom.baseEl) == null ? void 0 : _b.querySelector(".apexcharts-svg"));
+    const box = ((_c = svg || w.dom.elWrap) == null ? void 0 : _c.getBoundingClientRect()) || {
+      left: 0,
+      top: 0,
+      width: 0
+    };
+    const zoom = (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1;
+    return {
+      left: box.left + w.layout.translateX * zoom,
+      top: box.top + w.layout.translateY * zoom,
+      width: w.layout.gridWidth * zoom,
+      height: w.layout.gridHeight * zoom,
+      zoom
+    };
+  }
+  /**
+   * Client (screen) x -> pixels from the plot origin of {@link plotRect}.
+   * Pass the rect when the caller has already measured it.
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} screenX
+   * @param {{ left: number, zoom: number }} [plot]
    * @returns {number}
    */
-  static screenXToPlotPx(w, screenX) {
-    const baseEl = w.dom.baseEl;
-    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return screenX - w.layout.translateX;
-    const svgRect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
-    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
+  static screenXToPlotPx(w, screenX, plot = AxisMapping.plotRect(w)) {
+    return (screenX - plot.left) / plot.zoom;
   }
 }
-const CURSOR_PAD = 14;
-const BAR_FAMILY = [
+Object.setPrototypeOf(
+  {
+    funnel: "bar",
+    pyramid: "bar",
+    gauge: "radialBar",
+    waffle: "unit",
+    histogram: "bar",
+    waterfall: "rangeBar",
+    dumbbell: "rangeBar",
+    streamgraph: "rangeArea",
+    raincloud: "violin",
+    // `column` is the name half the world uses for a vertical bar chart, and the
+    // combo path has always accepted it on `series[].type`. On `chart.type` it
+    // used to fall through every dispatch and die inside the renderer (#5325),
+    // so it is spelled out here as what it has always meant.
+    column: "bar"
+  },
+  null
+);
+const BAR_PATHWAY_TYPES = [
   "bar",
-  "column",
   "rangeBar",
   "candlestick",
   "boxPlot",
   "violin"
 ];
+const CURSOR_PAD = 14;
 class TrellisTooltip {
   /**
    * @param {import('./Trellis').default} trellis
@@ -3412,7 +3463,7 @@ class TrellisTooltip {
         return -1;
       }
     }
-    const slotted = (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
+    const slotted = (BAR_PATHWAY_TYPES.includes(w.config.chart.type) || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
     const j = slotted ? Math.ceil(hoverX / (gridWidth / n)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)));
     return Math.max(0, Math.min(n - 1, j));
   }

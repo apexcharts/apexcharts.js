@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.3.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -51,10 +51,16 @@ class Helpers {
     }
   }
   /**
+   * Measure a label's background and draw it. With `deferDraw` it only
+   * measures, and returns the step that draws the rect: annotationsBackground
+   * measures every label before drawing any, since each rect drawn would force
+   * a fresh layout for the next label's reads.
    * @param {any} annoEl
    * @param {Record<string, any>} anno
+   * @param {boolean} [deferDraw]
+   * @returns {any}
    */
-  addBackgroundToAnno(annoEl, anno) {
+  addBackgroundToAnno(annoEl, anno, deferDraw) {
     const w = this.w;
     if (!annoEl || !anno.label.text || !String(anno.label.text).trim()) {
       return null;
@@ -81,58 +87,68 @@ class Helpers {
     const gridTop = elGridRect.top - gridBBox.y * zoom;
     const x1 = (coords.left - gridLeft) / zoom - pleft;
     const y1 = (coords.top - gridTop) / zoom - ptop;
-    const elRect = this.annoCtx.graphics.drawRect(
-      x1,
-      y1,
-      coords.width / zoom + pleft + pright,
-      coords.height / zoom + ptop + pbottom,
-      anno.label.borderRadius,
-      anno.label.style.background,
-      1,
-      anno.label.borderWidth,
-      anno.label.borderColor,
-      0
-    );
-    if (anno.id) {
-      elRect.node.classList.add(anno.id);
-    }
-    return elRect;
+    const draw = () => {
+      const elRect = this.annoCtx.graphics.drawRect(
+        x1,
+        y1,
+        coords.width / zoom + pleft + pright,
+        coords.height / zoom + ptop + pbottom,
+        anno.label.borderRadius,
+        anno.label.style.background,
+        1,
+        anno.label.borderWidth,
+        anno.label.borderColor,
+        0
+      );
+      if (anno.id) {
+        elRect.node.classList.add(anno.id);
+      }
+      return elRect;
+    };
+    return deferDraw ? draw : draw();
   }
   annotationsBackground() {
     const w = this.w;
+    const drawn = [];
     const add = (anno, i, type) => {
-      const annoLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+      const annoLabel = (
+        /** @type {Element} */
+        w.dom.baseEl.querySelector(
+          `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+        )
       );
-      if (annoLabel) {
-        const parent = annoLabel.parentNode;
-        const elRect = this.addBackgroundToAnno(annoLabel, anno);
-        if (elRect) {
-          parent == null ? void 0 : parent.insertBefore(elRect.node, annoLabel);
-          const labelX = annoLabel.getAttribute("x");
-          if (labelX !== null) {
-            applyProgressiveReveal(elRect, parseFloat(labelX), w);
-          }
-          if (anno.label.mouseEnter) {
-            elRect.node.addEventListener(
-              "mouseenter",
-              anno.label.mouseEnter.bind(this, anno)
-            );
-          }
-          if (anno.label.mouseLeave) {
-            elRect.node.addEventListener(
-              "mouseleave",
-              anno.label.mouseLeave.bind(this, anno)
-            );
-          }
-          if (anno.label.click) {
-            elRect.node.addEventListener(
-              "click",
-              anno.label.click.bind(this, anno)
-            );
-          }
+      const draw = this.addBackgroundToAnno(annoLabel, anno, true);
+      if (!draw) return;
+      drawn.push(() => {
+        const elRect = draw();
+        const parent = (
+          /** @type {Node} */
+          annoLabel.parentNode
+        );
+        parent == null ? void 0 : parent.insertBefore(elRect.node, annoLabel);
+        const labelX = annoLabel.getAttribute("x");
+        if (labelX !== null) {
+          applyProgressiveReveal(elRect, parseFloat(labelX), w);
         }
-      }
+        if (anno.label.mouseEnter) {
+          elRect.node.addEventListener(
+            "mouseenter",
+            anno.label.mouseEnter.bind(this, anno)
+          );
+        }
+        if (anno.label.mouseLeave) {
+          elRect.node.addEventListener(
+            "mouseleave",
+            anno.label.mouseLeave.bind(this, anno)
+          );
+        }
+        if (anno.label.click) {
+          elRect.node.addEventListener(
+            "click",
+            anno.label.click.bind(this, anno)
+          );
+        }
+      });
     };
     w.config.annotations.xaxis.forEach(
       (anno, i) => add(anno, i, "xaxis")
@@ -143,6 +159,7 @@ class Helpers {
     w.config.annotations.points.forEach(
       (anno, i) => add(anno, i, "point")
     );
+    drawn.forEach((draw) => draw());
   }
   /**
    * Does the x position take the category branch of `getX1X2` (a label lookup)
