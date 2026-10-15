@@ -33,10 +33,12 @@ import { avoidChromeOverlap } from './common/Breadcrumb'
 import {
   bandScale,
   farEdge,
+  focusByKey,
   focusChain,
   parseSize,
   placeTree,
   resolveFocus,
+  setZoomCursor,
   validateStrict,
 } from './common/partition/Partition'
 import { colorPass } from './common/partition/Tint'
@@ -147,7 +149,12 @@ export default class SunburstChart {
     g.add(this._ringsG)
     g.add(this._labelsG)
 
-    this._focus = null
+    // The focus outlives this instance by key (_relayout clears a stale one).
+    this._focus = focusByKey(
+      w.globals.sunburstFocusKey,
+      this._nodesAll,
+      this._roots,
+    )
     this._relayout(this._focus)
 
     // Same gating as Pie: angular clock-sweep intro on first render, a morph
@@ -158,7 +165,7 @@ export default class SunburstChart {
     let mode = 'none'
     if (anims.enabled) {
       if (w.globals.dataChanged) {
-        if (anims.dynamicAnimation.enabled) mode = 'update'
+        if (w.globals.shouldAnimate !== false) mode = 'update'
       } else if (!w.globals.resized) {
         mode = 'intro'
       }
@@ -221,6 +228,7 @@ export default class SunburstChart {
    * @param {any} focus
    */
   _relayout(focus) {
+    this.w.globals.sunburstFocusKey = focus && focus._key
     // The angular partition. `_t0`/`_t1` come back in degrees because that is
     // the interval handed in; the icicle passes pixels to the same recursion.
     this._focusMaxDepth = placeTree({
@@ -271,13 +279,15 @@ export default class SunburstChart {
   _applyLayout(mode) {
     const w = this.w
     const anims = w.config.chart.animations
-    const dur = !anims.enabled
-      ? 0
-      : mode === 'none'
+    const dyn = anims.dynamicAnimation
+    const dur =
+      !anims.enabled || mode === 'none'
         ? 0
-        : mode === 'update'
-          ? anims.dynamicAnimation.speed || 350
-          : anims.speed || 500
+        : mode === 'intro'
+          ? (anims.speed ?? 500)
+          : dyn.enabled
+            ? (dyn.speed ?? 350)
+            : 0
 
     // Supersede any in-flight zoom: stale frames from the previous pass check
     // this and stop, so a fast re-click can't leave two animations fighting.
@@ -313,6 +323,7 @@ export default class SunburstChart {
           oR: node._oR,
         }
         if (!node._el) node._el = this._createArcEl(node)
+        setZoomCursor(this, node)
 
         // Cross-type morph (treemap -> sunburst): a leaf starts as the tile
         // that stood for the same row and unrolls into its arc. Interior rings
@@ -501,9 +512,8 @@ export default class SunburstChart {
       String(!(node.children && node.children.length)),
     )
     this._tooltip.attach(el, node)
-    if (Environment.isBrowser()) {
+    if (Environment.isBrowser() && this.cfg.zoomOnClick !== false) {
       el.addEventListener('click', () => this._zoomTo(node))
-      el.style.cursor = 'pointer'
     }
     this._ringsG.add(path)
     return path
@@ -579,11 +589,14 @@ export default class SunburstChart {
       this._renderCurvedLabel(node)
     })
 
+    // Gen-checked: a superseded zoom's fade must not reveal labels over arcs
+    // the newer zoom is still moving.
+    const gen = this._zoomGen
+    labelsG.attr({ opacity: dur > 0 ? 0 : 1 })
     if (dur > 0) {
-      labelsG.attr({ opacity: 0 })
-      labelsG.animate(250, dur).attr({ opacity: 1 })
-    } else {
-      labelsG.attr({ opacity: 1 })
+      labelsG.animate(250, dur).during((/** @type {number} */ p) => {
+        if (this._zoomGen === gen) labelsG.attr({ opacity: p })
+      })
     }
   }
 
@@ -667,7 +680,7 @@ export default class SunburstChart {
    */
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return
-    const next = resolveFocus(node, this._focus)
+    const next = resolveFocus(node, this._focus, this._roots)
     if (!next.changed) return
     this._focus = next.focus
     this._relayout(this._focus)

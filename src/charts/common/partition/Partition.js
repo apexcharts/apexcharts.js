@@ -23,6 +23,7 @@
  *
  * @module charts/common/partition/Partition
  */
+import { Environment } from '../../../utils/Environment.js'
 
 /**
  * Place one node and everything under it into `[t0, t1]`.
@@ -257,6 +258,37 @@ export function resolveFocus(node, current, roots) {
   if (roots && roots.length === 1 && next === roots[0]) next = null
   if (next === current) return { changed: false, focus: current }
   return { changed: true, focus: next }
+}
+
+/**
+ * The focus a re-render restores from its stored key (the chart instance is
+ * rebuilt every render), under resolveFocus's rules: a key that no longer
+ * exists, a branch turned leaf or the lone root is no focus.
+ * @param {any} key
+ * @param {any[]} nodesAll
+ * @param {any[]} roots
+ * @returns {any}
+ */
+export function focusByKey(key, nodesAll, roots) {
+  const f = key && nodesAll.find((n) => n._key === key)
+  return f && f.children?.length && !(roots.length === 1 && f === roots[0])
+    ? f
+    : null
+}
+
+/**
+ * A node offers the pointer only while clicking it would change the view: a
+ * leaf under the focus, or the lone root, resolves to the view the reader is
+ * already on. Asked on every layout, because a zoom changes every answer.
+ * @param {any} chart  an icicle or sunburst instance
+ * @param {any} node
+ */
+export function setZoomCursor(chart, node) {
+  if (!Environment.isBrowser() || chart.cfg.zoomOnClick === false) return
+  node._el.node.style.cursor = resolveFocus(node, chart._focus, chart._roots)
+    .changed
+    ? 'pointer'
+    : 'default'
 }
 
 /**

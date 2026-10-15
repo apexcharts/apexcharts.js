@@ -38,10 +38,12 @@ import {
 import {
   bandScale,
   farEdge,
+  focusByKey,
   focusChain,
   parseSize,
   placeTree,
   resolveFocus,
+  setZoomCursor,
   sortTree,
   validateStrict,
 } from './common/partition/Partition'
@@ -151,14 +153,12 @@ export default class IcicleChart {
     g.add(this._cellsG)
     g.add(this._labelsG)
 
-    // The focus outlives this instance (rebuilt every render) by key, under
-    // resolveFocus's rules: a branch that became a leaf, or the lone root,
-    // is no focus (and _relayout clears the stale key).
-    const fk = w.globals.icicleFocusKey
-    const f = fk && this._nodesAll.find((n) => n._key === fk)
-    const r = this._roots
-    this._focus =
-      f && f.children?.length && !(r.length === 1 && f === r[0]) ? f : null
+    // The focus outlives this instance by key (_relayout clears a stale one).
+    this._focus = focusByKey(
+      w.globals.icicleFocusKey,
+      this._nodesAll,
+      this._roots,
+    )
     this._relayout(this._focus)
 
     // Same gating as the sunburst and the pie family: a wipe intro on first
@@ -413,7 +413,7 @@ export default class IcicleChart {
         if (!node._el) node._el = this._createCellEl(node)
         // Per-layout, not per-element: a zoom changes which branches are cut.
         node._el.node.setAttribute('data:clipped', String(!!node._clipped))
-        this._setCursor(node)
+        setZoomCursor(this, node)
 
         if (mode === 'intro' && dur > 0) {
           this._wipeCell(node, to, dur, gen)
@@ -805,22 +805,6 @@ export default class IcicleChart {
   }
 
   // ----------------------------------------------------------------- zoom
-
-  /**
-   * A cell offers the pointer only while clicking it would change the view.
-   * A leaf under the current focus, or the single root of a one-root tree,
-   * resolves to the focus the reader is already on, and a pointer there
-   * promises a zoom that cannot happen. Asked on every layout, because a zoom
-   * changes the answer for every cell.
-   * @param {any} node
-   */
-  _setCursor(node) {
-    if (!Environment.isBrowser() || this.cfg.zoomOnClick === false) return
-    node._el.node.style.cursor = resolveFocus(node, this._focus, this._roots)
-      .changed
-      ? 'pointer'
-      : 'default'
-  }
 
   /**
    * Focus a node (zoom in), or zoom out one level when the current focus is
