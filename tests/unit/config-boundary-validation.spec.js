@@ -249,7 +249,9 @@ describe('#5324: formatters get the opts their declaration promises', () => {
 })
 
 describe('#5325: an unknown chart.type is named, not crashed on', () => {
-  it.each(['banana', 'Line', 'donut ', 'Bar'])(
+  // 'constructor' and 'toString' are keys every plain object inherits: a type
+  // lookup that reads them took the Object function for an alias
+  it.each(['banana', 'Line', 'donut ', 'Bar', 'constructor', 'toString'])(
     'rejects %j with a message naming the option and the value',
     (type) => {
       expect(() =>
