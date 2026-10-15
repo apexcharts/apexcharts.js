@@ -1115,8 +1115,8 @@ export default class HighlightFilter {
 
   /**
    * The stack a stacked bar datum joins, as the renderer resolves it
-   * (BarStacked drawStackedColumnPaths): its series group, then its x value
-   * on a numeric or datetime column axis, else its index.
+   * (BarStacked): its series group, then its x value on a numeric or
+   * datetime axis, else its index.
    * @param {number} i @param {number} j
    */
   _barKey(i, j) {
@@ -1124,9 +1124,7 @@ export default class HighlightFilter {
     return (
       w.labelData.seriesGroupIndex[i] +
       '|' +
-      (!w.config.plotOptions.bar.horizontal && w.axisFlags.isXNumeric
-        ? w.seriesData.seriesX[i]?.[j]
-        : j)
+      (w.axisFlags.isXNumeric ? w.seriesData.seriesX[i]?.[j] : j)
     )
   }
 

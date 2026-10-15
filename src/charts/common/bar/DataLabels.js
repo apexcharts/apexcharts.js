@@ -326,8 +326,8 @@ export default class BarDataLabels {
   }
 
   /**
-   * The running stack at this column's x (BarStacked `tops`, columns only) on
-   * a numeric axis, where columns stack by x rather than by index.
+   * The running stack at this bar's x (BarStacked `tops`) on a numeric axis,
+   * where bars stack by x rather than by index.
    * @param {number} realIndex @param {number} j
    */
   xStackTop(realIndex, j) {
@@ -679,7 +679,13 @@ export default class BarDataLabels {
     let lowestPrevX = newX
     // This series' own group only — see the matching note in the column path.
     const totalGroupCtx = this.getTotalGroupContext(realIndex)
-    const stacks = /** @type {any} */ (this.barCtx).stacks || []
+    const top = this.xStackTop(realIndex, j)
+    const stacks = top ? [] : /** @type {any} */ (this.barCtx).stacks || []
+    if (top) {
+      lowestPrevX = valIsNegative
+        ? Math.min(newX, top[4])
+        : Math.max(newX, top[5])
+    }
     stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
       if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
       g.prevX.forEach((/** @type {any} */ arr) => {

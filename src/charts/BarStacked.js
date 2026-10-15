@@ -160,6 +160,11 @@ class BarStacked extends Bar {
         if (this.isHorizontal) {
           paths = this.drawStackedBarPaths({
             ...commonPathOpts,
+            ...(this.barHelpers.rows && {
+              y:
+                initPositions.y +
+                this.barHelpers.barRow(realIndex, j) * yDivision,
+            }),
             zeroW,
             barHeight,
             yDivision,
@@ -462,38 +467,25 @@ class BarStacked extends Bar {
     // past the end of a short series reads as null, as a padded one would
     const v = /** @type {any} */ (this.series)[i]?.[j] ?? null
 
-    let prevBarW = 0
-    for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
-      prevBarW = prevBarW + this.groupCtx.prevXF[k][j]
-    }
-
-    // Where this series sits in its group's stack. See the note in
-    // drawStackedColumnPaths: the index has to count the series this renderer
-    // has already drawn for the group, which is exactly what prevX holds.
-    const gsi = this.groupCtx.prevX.length
-
-    if (gsi > 0) {
-      let bXP = zeroW
-
-      if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
-        bXP =
-          v >= 0
-            ? this.groupCtx.prevX[gsi - 1][j] +
-              prevBarW -
-              (this.isReversed ? prevBarW : 0) * 2
-            : this.groupCtx.prevX[gsi - 1][j]
-      } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
-        bXP =
-          v >= 0
-            ? this.groupCtx.prevX[gsi - 1][j]
-            : this.groupCtx.prevX[gsi - 1][j] -
-              prevBarW +
-              (this.isReversed ? prevBarW : 0) * 2
-      }
-
-      barXPosition = bXP
+    // The layer below is found by x on a numeric axis, as for columns (see
+    // drawStackedColumnPaths): a series without a row's x leaves that row's
+    // stack as it was.
+    const g = this.groupCtx
+    const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j] : j
+    const top = g.tops.get(key)
+    if (top) {
+      const [prevX, prevVal, prevBarW] = top
+      const flip = (this.isReversed ? prevBarW : 0) * 2
+      barXPosition =
+        prevVal < 0
+          ? v >= 0
+            ? prevX + prevBarW - flip
+            : prevX
+          : v >= 0
+            ? prevX
+            : prevX - prevBarW + flip
     } else {
-      // the first series will not have prevX values
+      // nothing is stacked in this row yet
       barXPosition = zeroW
     }
 
@@ -514,6 +506,8 @@ class BarStacked extends Bar {
       j,
       w,
     })
+
+    this._setTop(key, top, g.xArrj[j], g.xArrjVal[j], g.xArrjF[j], realIndex, j)
 
     this.barHelpers.barBackground({
       j,
@@ -643,17 +637,7 @@ class BarStacked extends Bar {
       w,
     })
 
-    const t = g.yArrj[j]
-    if (!isNaN(t)) {
-      g.tops.set(key, [
-        t,
-        g.yArrjVal[j],
-        (top ? top[2] : 0) + g.yArrjF[j],
-        (top ? top[3] : 0) + (w.seriesData.series[realIndex][j] || 0),
-        top ? Math.min(top[0], top[4]) : 1 / 0,
-        top ? Math.max(top[0], top[5]) : -1 / 0,
-      ])
-    }
+    this._setTop(key, top, g.yArrj[j], g.yArrjVal[j], g.yArrjF[j], realIndex, j)
 
     this.barHelpers.barBackground({
       bc,
@@ -679,6 +663,26 @@ class BarStacked extends Bar {
       x: w.axisFlags.isXNumeric ? x : x + xDivision,
       y,
     }
+  }
+
+  /**
+   * Record the segment just drawn as the top of its stack. Per key it holds
+   * the top and value of the last segment drawn there, the summed lengths and
+   * raw values of every segment so far (the total label's value), and the
+   * extreme tops below that segment (the total label's position).
+   * @param {any} key @param {any} top @param {number} t @param {any} val
+   * @param {number} len @param {number} realIndex @param {number} j
+   */
+  _setTop(key, top, t, val, len, realIndex, j) {
+    if (isNaN(t)) return
+    this.groupCtx.tops.set(key, [
+      t,
+      val,
+      (top ? top[2] : 0) + len,
+      (top ? top[3] : 0) + (this.w.seriesData.series[realIndex][j] || 0),
+      top ? Math.min(top[0], top[4]) : 1 / 0,
+      top ? Math.max(top[0], top[5]) : -1 / 0,
+    ])
   }
 }
 

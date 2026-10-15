@@ -874,9 +874,30 @@ class Range {
         // On its side the chart draws one band per row and one label per
         // band, so each band is labelled with its own row's x. The evenly
         // spaced ticks put "Jan 03" against the row that holds Jan 04.
-        this.w.labelData.labels = /** @type {any} */ (
-          (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice()
-        )
+        // Series that do not share their x values get a band for every x any
+        // of them has, in the longest series' direction, and each bar sits in
+        // its own x's band (bar/Helpers barRow).
+        const rows = (
+          this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []
+        ).slice()
+        const seen = new Set(rows)
+        const n = rows.length
+        if (cnf.chart.type === 'bar') {
+          this.w.seriesData.seriesX.forEach((s) =>
+            s?.forEach((x) => {
+              if (x != null && !seen.has(x)) {
+                seen.add(x)
+                rows.push(x)
+              }
+            }),
+          )
+        }
+        if (rows.length > n) {
+          const dir = rows[0] > rows[n - 1] ? -1 : 1
+          rows.sort((a, b) => (a - b) * dir)
+          gl.dataPoints = rows.length
+        }
+        this.w.labelData.labels = /** @type {any} */ (rows)
       } else if (isXNumeric) {
         this.w.labelData.labels = /** @type {any} */ (
           gl.xAxisScale.result.slice()
@@ -1070,10 +1091,9 @@ class Range {
     if (!this.w.seriesData.series.length) return
     const gIdx = this.w.labelData.seriesGroupIndex
     // [positive, negative] sums per stack: the series group (by index, groups
-    // may reuse names), then the x value on a numeric axis as stacked columns
-    // and lines draw (#4886), else the ordinal (horizontal bars stack by it).
-    const byX =
-      this.w.axisFlags.isXNumeric && !this.w.config.plotOptions.bar.horizontal
+    // may reuse names), then the x value on a numeric axis as stacked bars and
+    // lines draw (#4886), else the ordinal.
+    const byX = this.w.axisFlags.isXNumeric
     /** @type {Map<string, number[]>} */
     const stacks = new Map()
 

@@ -530,12 +530,9 @@ class CoreUtils {
     const stackedTotals = excluded.length
       ? this.getStackedSeriesTotals(excluded)
       : w.seriesData.stackedSeriesTotals
-    // Columns and areas on a numeric axis stack by x, so each point takes its
-    // share of the stack at its own x (horizontal bars stack by index).
-    const sx =
-      w.axisFlags.isXNumeric &&
-      !w.config.plotOptions.bar.horizontal &&
-      w.seriesData.seriesX
+    // Bars and areas on a numeric axis stack by x, so each point takes its
+    // share of the stack at its own x.
+    const sx = w.axisFlags.isXNumeric && w.seriesData.seriesX
     // Each series group is its own stack, so it normalises to its own total.
     const gi = w.labelData.seriesGroupIndex
     const byKey = sx || w.labelData.seriesGroups.length > 1

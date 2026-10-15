@@ -322,6 +322,9 @@ class Bar {
         if (this.isHorizontal) {
           paths = this.drawBarPaths({
             ...pathsParams,
+            ...(this.barHelpers.rows && {
+              y: initY + this.barHelpers.barRow(realIndex, j) * yDivision,
+            }),
             barHeight,
             zeroW,
             yDivision,

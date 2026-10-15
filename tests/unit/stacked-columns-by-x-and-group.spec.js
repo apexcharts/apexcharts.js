@@ -232,8 +232,11 @@ describe('stacked columns on a datetime axis stack by x', () => {
   })
 })
 
-describe('horizontal stacked bars on a numeric axis stack by index', () => {
-  // drawStackedBarPaths stacks by position, so the extent must too.
+describe('horizontal bars on a numeric axis sit and stack in their own x row', () => {
+  // Each row is the band of one x, but a bar was drawn in the row of its
+  // position in its series, so a series missing a year put its values one row
+  // up, on top of another year's stack. Oracle: the same series padded with
+  // nulls, where the position already is the row.
   const horiz = (bData, extra = {}) =>
     stacked(
       [
@@ -246,10 +249,19 @@ describe('horizontal stacked bars on a numeric axis stack by index', () => {
           ],
         },
         { name: 'B', data: bData },
+        {
+          name: 'C',
+          data: [
+            [2019, 4],
+            [2020, 4],
+            [2021, 4],
+          ],
+        },
       ],
       {
         chart: { type: 'bar', stacked: true, width: 600, height: 400 },
         plotOptions: { bar: { horizontal: true } },
+        stroke: { width: 0 },
         ...extra,
       },
     )
@@ -257,20 +269,54 @@ describe('horizontal stacked bars on a numeric axis stack by index', () => {
     [2020, 25],
     [2021, 5],
   ]
-  const byIndex = [
-    [2019, 25],
-    [2020, 5],
+  const padded = [
+    [2019, null],
+    [2020, 25],
+    [2021, 5],
   ]
-
-  it('numeric x', () => {
-    expect(horiz(ragged).w.globals.maxY).toBe(horiz(byIndex).w.globals.maxY)
-  })
-
-  it('datetime x', () => {
-    const dt = { xaxis: { type: 'datetime' } }
-    expect(horiz(ragged, dt).w.globals.maxY).toBe(
-      horiz(byIndex, dt).w.globals.maxY,
+  // Where each of a series' bars starts and ends, by x.
+  const bars = (chart, name) => {
+    const w = chart.w
+    const i = w.seriesData.seriesNames.indexOf(name)
+    const el = chart.el.querySelector(
+      `.apexcharts-series[seriesName="${name}"]`,
     )
+    const out = {}
+    el.querySelectorAll('.apexcharts-bar-area').forEach((p) => {
+      const j = +p.getAttribute('j')
+      const x = w.seriesData.seriesX[i][j]
+      if (x != null && w.seriesData.series[i][j] != null) {
+        // to 0.1 px: the padded series' empty segment adds a sub-pixel sliver
+        out[x] = p
+          .getAttribute('d')
+          .replace(/-?\d+\.?\d*/g, (n) => (Math.round(n * 10) / 10).toString())
+      }
+    })
+    return out
+  }
+
+  for (const [label, extra] of [
+    ['numeric x', {}],
+    ['datetime x', { xaxis: { type: 'datetime' } }],
+  ]) {
+    it(`${label}: stacks and draws as the padded series`, () => {
+      const a = horiz(ragged, extra)
+      const b = horiz(padded, extra)
+      expect(a.w.globals.maxY).toBe(b.w.globals.maxY)
+      for (const name of ['A', 'B', 'C']) {
+        expect(bars(a, name)).toEqual(bars(b, name))
+      }
+    })
+  }
+
+  it('gives an x that only a shorter series has a row of its own', () => {
+    const chart = horiz([[2022, 7]])
+    expect(chart.w.labelData.labels).toEqual([2019, 2020, 2021, 2022])
+    expect(chart.w.globals.dataPoints).toBe(4)
+    // the 2022 bar starts at the axis, in the last row
+    const [d] = Object.values(bars(chart, 'B'))
+    const y = +d.match(/-?[\d.]+/g)[1]
+    expect(y).toBeGreaterThan(chart.w.layout.gridHeight * 0.75)
   })
 })
 

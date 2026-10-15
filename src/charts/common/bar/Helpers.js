@@ -65,6 +65,18 @@ export default class Helpers {
       }
     }
 
+    // A horizontal bar on a numeric axis sits in the band labelled with its
+    // own x (Range.setXRange). Where every series has the bands' x at the
+    // same position, the band is the index, as on a category axis.
+    const labels = w.labelData.labels
+    this.rows =
+      w.globals.isBarHorizontal &&
+      w.axisFlags.isXNumeric &&
+      !this.barCtx.isRangeBar &&
+      w.seriesData.seriesX.some((s) => s?.some((x, j) => x !== labels[j]))
+        ? new Map(labels.map((x, r) => [x, r]))
+        : null
+
     this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series)
 
     if (Utils.isSafari()) {
@@ -201,6 +213,15 @@ export default class Helpers {
     }
 
     return isFinite(min) ? min : 0
+  }
+
+  /**
+   * The band a horizontal bar is drawn in: its x's band when the series do
+   * not line up by index (see initVariables), else its index.
+   * @param {number} realIndex @param {number} j
+   */
+  barRow(realIndex, j) {
+    return this.rows?.get(this.w.seriesData.seriesX[realIndex]?.[j]) ?? j
   }
 
   /**
