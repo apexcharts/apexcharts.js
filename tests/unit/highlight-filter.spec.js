@@ -350,6 +350,20 @@ describe('updates and clearing', () => {
     expect(prevParts.filter((t) => t.d).length).toBe(5)
   })
 
+  test('a repeated category keeps a part of its own', () => {
+    // Jan twice: both parts were keyed by the category alone, so the second
+    // overwrote the first and an update drew one of them from the other's spot
+    const chart = column({
+      series: [{ name: 'A', data: [10, 20, 30], highlightData: [4, 8, 12] }],
+      options: { xaxis: { categories: ['Jan', 'Feb', 'Jan'] } },
+    })
+    chart.series.capturePreviousPaths()
+    const prev = chart.w.globals.prevHighlightParts
+    expect(prev.size).toBe(3)
+    const ds = [...prev.values()].map((t) => t.d)
+    expect(new Set(ds).size).toBe(3)
+  })
+
   test('an update that is not captured leaves only what it drew', async () => {
     const chart = column()
     await chart.highlightFilter.clear({ animate: false })

@@ -31,7 +31,6 @@ import Utils from '../../utils/Utils'
 import { prefersReducedMotion } from '../Animations'
 import DataLabels from '../DataLabels'
 import {
-  datumKey,
   morphEasing,
   reconcileSeriesPaths,
   seriesJoin,
@@ -739,8 +738,10 @@ export default class HighlightFilter {
     // A chart that is not highlighting and was not a frame ago: one check.
     if (!active && !prevMap?.size) return undefined
     const { j, realIndex } = o
-    // datumKey names the category, which every series shares at that x.
-    const key = BAR + `${realIndex}::${datumKey(w, realIndex, j)}`
+    // The bar's own key: the category, which every series shares at that x,
+    // made unique per occurrence so a repeated category keeps its own part
+    // (and matches the exit ghost's name).
+    const key = BAR + `${realIndex}::${bar._keys(realIndex)[j]}`
     this._seen.add(key)
     const prev = prevMap?.get(key)
     const p = active ? hd.parts[realIndex]?.[j] : null
