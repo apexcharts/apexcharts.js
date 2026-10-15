@@ -461,7 +461,7 @@ class Bar {
     return ret
   }
 
-  /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
+  /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean, noLabel?: boolean }} opts */
   renderSeries({
     hl,
     realIndex,
@@ -490,6 +490,7 @@ class Bar {
     type,
     classes,
     fadeReveal = false,
+    noLabel, // a datum's extra paths (box halves, box lane) label nothing
   }) {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
@@ -619,6 +620,7 @@ class Bar {
         barYPosition,
         visibleSeries,
         hl: hl?.label,
+        noLabel,
       })
     )
 

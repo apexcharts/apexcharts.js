@@ -94,6 +94,20 @@ test.describe('Box plot updates morph', () => {
     expect(new Set(rec.frames.map(sig)).size, 'the boxes never moved').toBeGreaterThan(5)
     expect(errors).toEqual([])
   })
+
+  test('a box whose datum turns null shrinks away as a ghost', async ({ page }) => {
+    const errors = await mountChart(page, base('boxPlot', { series: [{ name: 'B', data: boxes() }] }))
+    await page.evaluate((src) => {
+      const data = (0, eval)(`(${src})`)()
+      data[2].y = null
+      window.chart.updateSeries([{ name: 'B', data }])
+    }, String(boxes))
+    await advance(page, 64)
+    expect(await page.evaluate(() => document.querySelectorAll('.apexcharts-bar-ghost').length)).toBeGreaterThan(0)
+    await advance(page, 2000)
+    expect(await page.evaluate(() => document.querySelectorAll('.apexcharts-bar-ghost').length)).toBe(0)
+    expect(errors).toEqual([])
+  })
 })
 
 // The slide-out on zoom lives in the shared bar renderer (Bar._wasOnScreen),

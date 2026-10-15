@@ -104,8 +104,6 @@ class BoxCandleStick extends Bar {
     this.candlestickOptions = this.w.config.plotOptions.candlestick
     this.boxOptions = this.w.config.plotOptions.boxPlot
     this.isHorizontal = w.config.plotOptions.bar.horizontal
-    this.isOHLC =
-      this.candlestickOptions && this.candlestickOptions.type === 'ohlc'
 
     this.coreUtils = new CoreUtils(this.w)
     series = this.coreUtils.getLogSeries(series)
@@ -123,6 +121,7 @@ class BoxCandleStick extends Bar {
     // beside candles), and `i` counts only this type's series, not the
     // config's: reading either drew a candle as a box, or a box as a candle.
     this.isBoxPlot = type === 'boxPlot'
+    this.isOHLC = !this.isBoxPlot && this.candlestickOptions?.type === 'ohlc'
 
     for (let i = 0; i < series.length; i++) {
       /** @type {any} */
@@ -263,7 +262,7 @@ class BoxCandleStick extends Bar {
         yArrj.push(y)
 
         // drawVerticalBoxPaths returns culled:true for off-screen bars (it
-        // skipped the path-string build). Horizontal bars are never culled.
+        // skipped the path-string build), and both do for a null datum.
         if (paths.culled) {
           continue
         }
@@ -309,6 +308,7 @@ class BoxCandleStick extends Bar {
               i,
               pathFrom: this._prevBoxHalf(realIndex, j, pi) ?? paths.pathFrom,
               fadeReveal,
+              noLabel: pi > 0,
               pathTo,
               strokeWidth,
               elSeries,
@@ -396,14 +396,16 @@ class BoxCandleStick extends Bar {
       // gone (a series hidden from the legend, rows removed) shrink away under
       // the survivors instead of vanishing. Keyed by every datum the series
       // still has, culled ones included: a candle only scrolled off-screen
-      // has not left, it is just not drawn.
+      // has not left, it is just not drawn. One turned null has left.
       // (Not when the series fades: the fade replaces the whole set at once.)
       if (w.globals.previousPaths.length > 0 && !fadeReveal) {
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys: this._keys(realIndex),
+          newKeys: this._keys(realIndex).filter(
+            (_, j) => series[i][j] != null,
+          ),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed,
         })
@@ -473,10 +475,9 @@ class BoxCandleStick extends Bar {
       barXPosition = pos.barXPosition
     }
 
-    if (
-      typeof /** @type {any} */ (this.series)[i]?.[j] === 'undefined' ||
-      /** @type {any} */ (this.series)[i]?.[j] === null
-    ) {
+    // a null or missing datum draws nothing, culled like an off-screen one
+    const hole = /** @type {any} */ (this.series)[i]?.[j] == null
+    if (hole) {
       y1 = zeroH
       y2 = zeroH
     } else {
@@ -501,10 +502,11 @@ class BoxCandleStick extends Bar {
     // are bounded by what was visible before, and large datasets skip the
     // morph for the bulk fade anyway.
     if (
-      cullBounds &&
-      (barXPosition + barWidth < cullBounds.lo ||
-        barXPosition > cullBounds.hi) &&
-      !this._wasOnScreen(realIndex, j)
+      hole ||
+      (cullBounds &&
+        (barXPosition + barWidth < cullBounds.lo ||
+          barXPosition > cullBounds.hi) &&
+        !this._wasOnScreen(realIndex, j))
     ) {
       return {
         pathTo: null,
@@ -664,10 +666,8 @@ class BoxCandleStick extends Bar {
     // Bar.drawBarPaths.
     const barYPosition = y + barHeight * this.visibleI
 
-    if (
-      typeof /** @type {any} */ (this.series)[i]?.[j] === 'undefined' ||
-      /** @type {any} */ (this.series)[i]?.[j] === null
-    ) {
+    const hole = /** @type {any} */ (this.series)[i]?.[j] == null
+    if (hole) {
       x1 = zeroW
       x2 = zeroW
     } else {
@@ -738,6 +738,7 @@ class BoxCandleStick extends Bar {
       ),
       barYPosition,
       color,
+      culled: hole,
     }
   }
 

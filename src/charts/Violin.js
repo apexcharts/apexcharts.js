@@ -286,6 +286,7 @@ class Violin extends BarBase {
               visibleSeries: this.visibleI,
               type: 'violin',
               classes: 'apexcharts-raincloud-box',
+              noLabel: true,
             })
           })
         }

@@ -41,6 +41,7 @@ export default class BarDataLabels {
       barYPosition,
       visibleSeries,
       hl,
+      noLabel,
     } = opts
     const w = this.w
     const graphics = new Graphics(this.barCtx.w)
@@ -223,19 +224,21 @@ export default class BarDataLabels {
       }
     }
 
-    dataLabels = this.drawCalculatedDataLabels({
-      x: dataLabelsPos.dataLabelsX,
-      y: dataLabelsPos.dataLabelsY,
-      neg: params.neg,
-      val,
-      text,
-      i: realIndex,
-      j,
-      barWidth: params.barWidth,
-      barHeight: params.barHeight,
-      textRects,
-      dataLabelsConfig,
-    })
+    dataLabels = noLabel
+      ? null
+      : this.drawCalculatedDataLabels({
+          x: dataLabelsPos.dataLabelsX,
+          y: dataLabelsPos.dataLabelsY,
+          neg: params.neg,
+          val,
+          text,
+          i: realIndex,
+          j,
+          barWidth: params.barWidth,
+          barHeight: params.barHeight,
+          textRects,
+          dataLabelsConfig,
+        })
 
     if (
       w.config.chart.stacked &&
