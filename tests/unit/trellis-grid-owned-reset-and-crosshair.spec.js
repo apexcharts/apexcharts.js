@@ -51,12 +51,17 @@ const series = (a, b) => [
   { name: 'Revenue', region: b, data: rows(20) },
 ]
 
-async function mount(trellis = {}) {
+async function mount(trellis = {}, chartExtra = {}) {
   document.body.innerHTML = ''
   const el = document.createElement('div')
   document.body.appendChild(el)
   const chart = new ApexCharts(el, {
-    chart: { type: 'line', height: 400, animations: { enabled: false } },
+    chart: {
+      type: 'line',
+      height: 400,
+      animations: { enabled: false },
+      ...chartExtra,
+    },
     trellis: { by: 'region', virtualize: false, ...trellis },
     series: series('North', 'South'),
     xaxis: { type: 'datetime' },
@@ -104,6 +109,17 @@ describe('trellis: the grid owns reset and the crosshair sweep', () => {
     expect(await zoomPanel(chart)).toBe(1)
     expect(chart.trellis.panels[0].chart.toolbar.resetControlAllowed()).toBe(
       true,
+    )
+    chart.destroy()
+  })
+
+  it("with toolbar 'none' a page that turned the reset off keeps it off", async () => {
+    const chart = await mount(
+      { toolbar: 'none' },
+      { zoom: { resetControl: false } },
+    )
+    expect(chart.trellis.panels[0].chart.toolbar.resetControlAllowed()).toBe(
+      false,
     )
     chart.destroy()
   })
