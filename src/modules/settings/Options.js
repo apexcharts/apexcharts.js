@@ -498,12 +498,6 @@ export default class Options {
         // canvas-capable in v1; chrome stays SVG.
         renderer: 'svg',
         rendererThreshold: 8000,
-        layers: {
-          series: 'auto',
-          grid: 'svg',
-          annotations: 'svg',
-          dataLabels: 'svg',
-        },
         dropShadow: {
           enabled: false,
           enabledOnSeries: undefined,
@@ -846,7 +840,6 @@ export default class Options {
         },
         dataReducer: {
           enabled: false,
-          algorithm: 'lttb',
           targetPoints: 250,
           threshold: 500,
         },

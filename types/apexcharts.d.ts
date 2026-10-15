@@ -2131,6 +2131,7 @@ type ApexChart = {
   /** Strata (#2) series renderer. Requires `import 'apexcharts/features/renderer-canvas'` for non-SVG. */
   renderer?: 'svg' | 'canvas' | 'auto'
   rendererThreshold?: number
+  /** @deprecated Has no effect; removed in 9.0. Use `renderer` instead. */
   layers?: {
     series?: 'svg' | 'canvas' | 'auto'
     grid?: 'svg'
@@ -2406,6 +2407,7 @@ type ApexChart = {
   }
   dataReducer?: {
     enabled?: boolean
+    /** @deprecated Has no effect; removed in 9.0. */
     algorithm?: 'lttb'
     targetPoints?: number
     threshold?: number
