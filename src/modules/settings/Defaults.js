@@ -1374,7 +1374,9 @@ export default class Defaults {
     return {
       chart: {
         animations: {
-          animateGradually: false,
+          animateGradually: {
+            enabled: false,
+          },
         },
       },
       stroke: {
