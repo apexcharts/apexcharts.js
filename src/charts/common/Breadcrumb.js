@@ -191,7 +191,7 @@ export function clearBreadcrumb(w) {
  * @param {any} w
  * @param {{
  *   crumbs: Array<{ label: string, data?: any }>,
- *   onNavigate: (index: number, crumb: any) => void,
+ *   onNavigate: (index: number, crumb: any, e: MouseEvent) => void,
  *   ariaLabel?: string,
  *   config?: any,
  *   compact?: boolean,
@@ -270,7 +270,7 @@ export function renderBreadcrumb(w, opts) {
     text.setAttribute('class', 'apexcharts-breadcrumb-label')
     text.textContent = String(label)
     btn.appendChild(text)
-    btn.addEventListener('click', () => opts.onNavigate(i, crumb))
+    btn.addEventListener('click', (e) => opts.onNavigate(i, crumb, e))
     nav.appendChild(btn)
   })
 

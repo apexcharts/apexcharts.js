@@ -1181,17 +1181,21 @@ export default class TreemapChart {
    * @param {string} [visibleText] the header's rendered text, unclipped
    */
   _makeParentAccessible(el, node, chrome, elRect, visibleText) {
+    const a11y = this.w.config.chart.accessibility
     if (!el || !el.setAttribute) return
-    if (!this._zoomEnabled()) return
+    if (!a11y.enabled || !a11y.keyboard.enabled || !this._zoomEnabled()) return
 
+    // The focused branch's strip zooms back out.
+    const open = this.w.globals.treemapFocusKey === node._key
+    el.tmKey = node._key
     el.setAttribute('role', 'button')
     el.setAttribute('tabindex', '0')
     el.setAttribute(
       'aria-label',
-      `${this._parentLabel(node, visibleText)}. Zoom in`,
+      `${this._parentLabel(node, visibleText)}. Zoom ${open ? 'out' : 'in'}`,
     )
     // The strip is the affordance, and it labels the group it opens.
-    el.setAttribute('aria-expanded', 'false')
+    el.setAttribute('aria-expanded', open)
 
     if (!Environment.isBrowser() || !el.addEventListener) return
 
@@ -1272,20 +1276,21 @@ export default class TreemapChart {
     const z = w.config.plotOptions.treemap.zoom
     if (!z || !z.enabled || !this.showParents) return false
 
+    // An `onDrillDown` resolver drills on every click, so it counts too. The
+    // warned flag lives on the drilldown instance, which outlives a render.
     const dd = w.config.drilldown
+    const d = this.ctx.drilldown
     if (
-      this.ctx.drilldown &&
+      d &&
       dd &&
       dd.enabled &&
-      Array.isArray(dd.series) &&
-      dd.series.length
+      (dd.series?.length || dd.onDrillDown)
     ) {
-      if (!this._warnedZoomConflict) {
-        this._warnedZoomConflict = true
+      if (!d.zoomWarned) {
+        d.zoomWarned = true
         console.warn(
-          'ApexCharts treemap: `plotOptions.treemap.zoom` and the drilldown ' +
-            'feature both navigate the hierarchy, so zoom is ignored here. ' +
-            'Drop `drilldown.series` to zoom a nested treemap instead.',
+          'ApexCharts treemap: zoom is ignored while drilldown is active ' +
+            '(plotOptions.treemap.zoom vs drilldown series or onDrillDown).',
         )
       }
       return false
@@ -1296,8 +1301,8 @@ export default class TreemapChart {
   /**
    * The focused branch for this render, looked up by the key stashed on the
    * last click. Keys are rebuilt identically from the same data, so the focus
-   * survives a re-render; a key that no longer resolves (the data changed under
-   * it) simply falls back to the whole tree.
+   * survives a re-render; a key that no longer resolves, or a branch left with
+   * nothing to draw (the data changed under it), falls back to the whole tree.
    * @param {any[]} drawn
    * @returns {any}
    */
@@ -1317,7 +1322,16 @@ export default class TreemapChart {
     }
     drawn.forEach(walk)
     // Only a branch can be focused; a leaf has nothing to zoom into.
-    return found && found.children && found.children.length ? found : null
+    if (
+      found &&
+      found.children &&
+      found.children.length &&
+      this._subtreeArea(found) > 0
+    ) {
+      return found
+    }
+    this.w.globals.treemapFocusKey = null
+    return null
   }
 
   /**
@@ -1331,30 +1345,7 @@ export default class TreemapChart {
     const w = this.w
     if (!node || !node.children || !node.children.length) return
     const next = w.globals.treemapFocusKey === node._key ? null : node._key
-    const done = this._refocus(next)
-    if (!restoreFocus || !done || typeof done.then !== 'function') return
-    done.then(() => {
-      if (!Environment.isBrowser()) return
-      // The breadcrumb is where you are and how you get back, so it is the
-      // right landing spot after the view changes under you.
-      const crumb = /** @type {any} */ (
-        w.dom.baseEl.querySelector(
-          '.apexcharts-breadcrumb .apexcharts-breadcrumb-item',
-        )
-      )
-      if (crumb && crumb.focus) {
-        crumb.focus()
-        return
-      }
-      // Zoomed all the way back out: no breadcrumb, so return to the strip of
-      // the group that was just closed.
-      const header = /** @type {any} */ (
-        w.dom.baseEl.querySelector(
-          '.apexcharts-treemap-parent-header[tabindex]',
-        )
-      )
-      if (header && header.focus) header.focus()
-    })
+    this._refocus(next, restoreFocus)
   }
 
   /**
@@ -1366,16 +1357,17 @@ export default class TreemapChart {
    * left, which replayed the mount animation (every tile growing from
    * nothing) or snapped, while the containers, headers and labels jumped.
    * @param {string | null} next
-   * @returns {any} the update's promise
+   * @param {boolean} [restoreFocus] see _zoomTo
    */
-  _refocus(next) {
+  _refocus(next, restoreFocus) {
     const w = this.w
     const gl = w.globals
+    const from = gl.treemapFocusKey
     const anim = w.config.chart.animations
     const animate = !!(anim.enabled && anim.dynamicAnimation.enabled)
     gl.treemapZoom =
       animate && Environment.isBrowser()
-        ? { from: gl.treemapFocusKey ?? null, to: next }
+        ? { from: from ?? null, to: next }
         : null
     gl.treemapFocusKey = next
     this._hideParentTooltip()
@@ -1383,7 +1375,27 @@ export default class TreemapChart {
     gl.resized = true
     gl.dataChanged = true
     if (gl.treemapZoom) this.ctx.series.getPreviousPaths()
-    return this.ctx.update()
+    const done = this.ctx.update()
+    if (restoreFocus) {
+      done.then(() => {
+        const b = w.dom.baseEl
+        const heads = /** @type {any[]} */ (
+          Array.from(
+            b.querySelectorAll('.apexcharts-treemap-parent-header[tabindex]'),
+          )
+        )
+        // The breadcrumb is where you are and how you get back, so it is the
+        // right landing spot after the view changes under you. Zoomed all the
+        // way back out there is none: return to the strip of the group that
+        // was just closed.
+        ;(
+          b.querySelector('.apexcharts-breadcrumb-item') ||
+          heads.find((h) => h.tmKey === from) ||
+          heads[0] ||
+          b
+        ).focus()
+      })
+    }
   }
 
   /**
@@ -1759,8 +1771,9 @@ export default class TreemapChart {
       crumbs: [{ label: 'All', data: null }].concat(
         chain.map((/** @type {any} */ n) => ({ label: n.name, data: n })),
       ),
-      onNavigate: (_i, crumb) => {
-        this._refocus(crumb.data ? crumb.data._key : null)
+      // A keyboard click (detail 0) keeps focus in the chart.
+      onNavigate: (_i, crumb, e) => {
+        this._refocus(crumb.data ? crumb.data._key : null, !e.detail)
       },
     })
     if (!nav) return

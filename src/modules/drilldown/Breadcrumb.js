@@ -39,8 +39,11 @@ export default class Breadcrumb {
     const elWrap = w.dom.elWrap
     if (!elWrap) return
 
-    // Remove any stale breadcrumb first (guards against double-render).
-    const existing = elWrap.querySelector('.apexcharts-breadcrumb')
+    // Remove any stale breadcrumb first (guards against double-render), but
+    // only its own: a zoomed treemap's shares the class.
+    const existing = elWrap.querySelector(
+      '.apexcharts-breadcrumb[aria-label^=Drill]',
+    )
     if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing)
     }
