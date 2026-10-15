@@ -131,15 +131,22 @@ export default class SunburstChart {
       (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0)
     if (this.maxRadius < 5) return g
 
-    // Build + colour the hierarchy once (angles/radii are recomputed per zoom).
-    this._roots = this._buildHierarchy()
+    // Build + colour the hierarchy once (angles/radii are recomputed per zoom),
+    // through the helpers shared with the treemap and icicle: a node's explicit
+    // `color` wins, else it takes its parent's tinted lighter.
+    this._roots = buildHierarchy(w)
     if (!this._roots.length) return g
-    this._roots.forEach((r) => this._fillValues(r))
+    this._roots.forEach(fillValues)
     this._validateStrict()
     this._nodesAll = []
     const colors = w.globals.colors || []
     this._roots.forEach((r, i) => {
-      this._colorPass(r, r.color || colors[i % colors.length] || '#008FFB')
+      colorPass(
+        r,
+        r.color || colors[i % colors.length] || '#008FFB',
+        this.cfg.tint,
+        this._nodesAll,
+      )
     })
     this.total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1
     this._tooltip.total = this.total
@@ -179,24 +186,6 @@ export default class SunburstChart {
   // ------------------------------------------------------------------ data
 
   /**
-   * Resolve the config into root nodes `{ name, value, color?, children? }`.
-   * Each datum may carry `children` (native) or `drilldown: '<id>'` (adapter).
-   * Shared with the treemap - see charts/common/Hierarchy.
-   * @returns {any[]}
-   */
-  _buildHierarchy() {
-    return buildHierarchy(this.w)
-  }
-
-  /**
-   * Fill a parent's value from its children when missing.
-   * @param {any} node
-   */
-  _fillValues(node) {
-    fillValues(node)
-  }
-
-  /**
    * With `partition: 'strict'`, warn (once) when a parent's value does not
    * match the sum of its children. The angles are still normalized to fill the
    * wedge (strict rendering is a P3 refinement); this just surfaces the data
@@ -208,17 +197,6 @@ export default class SunburstChart {
       type: 'sunburst',
       remedy: 'Angles are normalized to fill the wedge.',
     })
-  }
-
-  /**
-   * Assign a colour to every node (explicit `color` wins, else the parent's
-   * colour tinted lighter). Done once so zoom preserves colours.
-   * Shared with the icicle - see charts/common/partition/Tint.
-   * @param {any} node
-   * @param {string} color
-   */
-  _colorPass(node, color) {
-    colorPass(node, color, this.cfg.tint, this._nodesAll)
   }
 
   // ---------------------------------------------------------------- layout
@@ -309,10 +287,19 @@ export default class SunburstChart {
     const morphDur = morphActive ? morph.getSpeed() : 0
     this._morphLeafIndex = 0
 
-    // Geometry of the PREVIOUS render (stashed on the persistent chart ctx —
-    // this module is re-instantiated on every data update).
+    // The PREVIOUS render's nodes (stashed on the persistent chart ctx, as
+    // this module is re-instantiated on every data update), read live so an
+    // update landing mid-tween starts where each arc actually is.
     const prev =
       mode === 'update' ? /** @type {any} */ (this.ctx)._sunburstPrevGeoms : null
+    /** @param {any} n */
+    const geo = (n) =>
+      n._cur || { a0: n._t0, a1: n._t1, iR: n._iR, oR: n._oR }
+    /** @param {any} c  the arc pinched to nothing at its mid angle */
+    const pinch = (c) => {
+      const m = (c.a0 + c.a1) / 2
+      return { a0: m, a1: m, iR: c.iR, oR: c.iR }
+    }
 
     this._nodesAll.forEach((node) => {
       if (node._show) {
@@ -336,36 +323,58 @@ export default class SunburstChart {
         } else if ((mode === 'intro' || morphActive) && dur > 0) {
           this._sweepArc(node, target, morphActive ? morphDur : dur, gen)
         } else {
-          let from
-          let isNew = false
-          if (node._cur) {
-            // `_cur` is the arc's LIVE geometry (updated each frame), so an
-            // interrupted zoom continues smoothly from where it actually is.
-            from = node._cur
-          } else if (prev && prev.get(node._key)) {
-            from = prev.get(node._key) // survived a data update: morph in place
-          } else {
-            const mid = (target.a0 + target.a1) / 2 // new arc: unfurl from its slot
-            from = { a0: mid, a1: mid, iR: target.iR, oR: target.iR }
-            isNew = true
-          }
-          // Only genuinely new arcs fade in; arcs morphing from a previous
-          // geometry stay fully opaque while their shape tweens.
-          this._animateArc(node, from, target, dur, false, isNew, gen)
+          const p = prev && prev.get(node._key)
+          // `_cur` is the arc's LIVE geometry (updated each frame), so an
+          // interrupted zoom continues smoothly from where it actually is; a
+          // survivor of a data update morphs in place; a new arc unfurls from
+          // its slot and is the only one that fades in.
+          const from = node._cur || (p ? geo(p) : pinch(target))
+          this._animateArc(node, from, target, dur, false, !node._cur && !p, gen)
         }
       } else if (node._el && node._cur) {
-        const mid = (node._cur.a0 + node._cur.a1) / 2
-        const target = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR }
-        this._animateArc(node, node._cur, target, dur, true, false, gen)
+        this._animateArc(node, node._cur, pinch(node._cur), dur, true, false, gen)
       }
     })
+
+    // An arc the update dropped (or no longer places) collapses out with the
+    // morph, as a hidden one does, instead of vanishing at frame 0. The ghost
+    // joins _nodesAll (never shown), so a zoom or the next update picks it up
+    // mid-collapse like any other arc.
+    if (prev && dur && !morphActive) {
+      const keys = new Set(this._nodesAll.map((n) => n._show && n._key))
+      prev.forEach((/** @type {any} */ p, /** @type {string} */ k) => {
+        if (keys.has(k) || !(p._show || p._cur)) return
+        const el = this._graphics.drawPath({
+          fill: p._color,
+          stroke: this.strokeColor,
+          strokeWidth: this.strokeWidth,
+          classes: 'apexcharts-sunburst-arc',
+        })
+        el.node.setAttribute('data:name', p.name)
+        this._ringsG.add(el.attr({ opacity: p._el.attr('opacity') }))
+        const c = geo(p)
+        const g = { _el: el, _color: p._color, name: p.name, _key: k, _cur: c }
+        this._nodesAll.push(g)
+        this._animateArc(g, c, pinch(c), dur, true, false, gen)
+      })
+    }
+
+    // Over when the last arc lands (a newer layout takes that over), or now
+    // when nothing moves.
+    const end = Math.max(dur, morphDur)
+    if (end) {
+      this._ringsG.animate(end).after(() => {
+        if (this._zoomGen === gen && this._ringsG.node.isConnected)
+          new Animations(w, /** @type {any} */ (this.ctx)).animationCompleted(
+            this._ringsG.node,
+          )
+      })
+    } else w.globals.animationEnded = true
 
     // Stash what is now on screen so the NEXT data update can morph from it.
     const geoms = new Map()
     this._nodesAll.forEach((n) => {
-      if (n._show) {
-        geoms.set(n._key, { a0: n._t0, a1: n._t1, iR: n._iR, oR: n._oR })
-      }
+      if (n._show || n._cur) geoms.set(n._key, n)
     })
     ;/** @type {any} */ (this.ctx)._sunburstPrevGeoms = geoms
 
@@ -491,11 +500,9 @@ export default class SunburstChart {
    */
   _createArcEl(node) {
     const path = this._graphics.drawPath({
-      d: '',
       fill: node._color,
       stroke: this.strokeColor,
       strokeWidth: this.strokeWidth,
-      fillOpacity: 1,
       classes: 'apexcharts-sunburst-arc',
     })
     const el = path.node
@@ -688,11 +695,6 @@ export default class SunburstChart {
     this._renderBreadcrumb()
   }
 
-  /** Root -> focus chain of nodes. */
-  _focusChain() {
-    return focusChain(this._focus)
-  }
-
   /**
    * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
    * CSS classes, but does NOT depend on the drilldown feature).
@@ -715,7 +717,7 @@ export default class SunburstChart {
     nav.style.left = '0px'
 
     const crumbs = [{ name: 'All', node: null }].concat(
-      this._focusChain().map((n) => ({ name: n.name, node: n })),
+      focusChain(this._focus).map((n) => ({ name: n.name, node: n })),
     )
 
     crumbs.forEach((crumb, i) => {
@@ -759,22 +761,10 @@ export default class SunburstChart {
     })
 
     elWrap.appendChild(nav)
-    this._avoidChromeOverlap(nav)
-  }
-
-  /**
-   * The breadcrumb is an absolute overlay at top-left, so it can sit on top of
-   * a left-aligned title (or subtitle). After mounting, push it below any chart
-   * chrome it intersects. (Duplicated from drilldown's Breadcrumb on purpose —
-   * sunburst must not import the drilldown feature.)
-   * @param {any} nav
-   */
-  /**
-   * Shared with the treemap - see charts/common/Breadcrumb.
-   * @param {any} nav
-   */
-  _avoidChromeOverlap(nav) {
-    avoidChromeOverlap(this.w, nav)
+    // The breadcrumb is an absolute overlay at top-left: push it below any
+    // chart chrome it intersects (shared with the treemap, see
+    // charts/common/Breadcrumb).
+    avoidChromeOverlap(w, nav)
   }
 
   // ------------------------------------------------------------ geometry
