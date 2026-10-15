@@ -425,6 +425,8 @@ export default class YAxis {
    */
   yAxisTitleRotate(realIndex, yAxisOpposite) {
     const w = this.w
+    // no title to place: skip the labels measure (a forced layout)
+    if (w.config.yaxis[realIndex].title.text === undefined) return
     const graphics = new Graphics(this.w)
     const elYAxisLabelsWrap = w.dom.baseEl.querySelector(
       `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-texts-g`,

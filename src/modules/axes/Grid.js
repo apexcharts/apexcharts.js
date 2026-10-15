@@ -219,9 +219,23 @@ class Grid {
         }
       }
 
-      const xAxis = new XAxis(this.w, this.ctx)
-      xAxis.drawXaxisTicks(x1, y_2, w.dom.elGraphical)
+      this._drawXTick(x1, y_2)
     }
+  }
+
+  /**
+   * One XAxis per renderGrid draws every tick (each construction copies all
+   * labels), and none is built when ticks are off.
+   * @param {number} x1
+   * @param {number} y2
+   */
+  _drawXTick(x1, y2) {
+    if (!this.w.config.xaxis.axisTicks.show) return
+    ;(this._xTicks ||= new XAxis(this.w, this.ctx)).drawXaxisTicks(
+      x1,
+      y2,
+      this.w.dom.elGraphical,
+    )
   }
 
   /** @param {{i: any, x1: any, y1: any, x2: any, y2: any, xCount: any, parent: any}} opts */
@@ -388,8 +402,7 @@ class Grid {
           })
         }
 
-        const xAxis = new XAxis(this.w, this.ctx)
-        xAxis.drawXaxisTicks(x1, 0, w.dom.elGraphical)
+        this._drawXTick(x1, 0)
         x1 += w.layout.gridWidth / xCount
         x2 = x1
       }
@@ -423,6 +436,8 @@ class Grid {
     const gl = w.globals
     const graphics = new Graphics(this.w)
 
+    /** @type {XAxis | null} */
+    this._xTicks = null
     this.elg = graphics.group({ class: 'apexcharts-grid' })
     this.elgridLinesH = graphics.group({
       class: 'apexcharts-gridlines-horizontal',
