@@ -1,5 +1,5 @@
 // @ts-check
-import Utils from './../utils/Utils'
+import InitCtxVariables from './helpers/InitCtxVariables'
 
 /**
  * Default blend strength for each state filter when `states.*.filter.value`
@@ -90,16 +90,15 @@ class Filters {
    *
    * Only while the drilldown feature is loaded. Without it the click is not
    * navigation (the chart warns about the missing feature instead), so the pie
-   * keeps the pull-out it would have had. Read off the shared feature registry
+   * keeps the pull-out it would have had. Read off the feature registry
    * because `w` is all this has; a registered feature is on every chart.
    * @param {any} w
    */
   static drilldownBlocksSliceOffset(w) {
-    const features = /** @type {any} */ (globalThis).__apexcharts_features_v1__
     return (
       Filters.isSliceChart(w) &&
       w.config.drilldown?.enabled === true &&
-      !!features?.has('drilldown')
+      InitCtxVariables._featureRegistry.has('drilldown')
     )
   }
 
@@ -248,11 +247,6 @@ class Filters {
 
     if (el.unfilter) {
       el.unfilter(true)
-    }
-
-    if (Utils.isMsEdge() && w.config.chart.type === 'radialBar') {
-      // in radialbar charts, dropshadow is clipping actual drawing in IE
-      return el
     }
 
     if (w.config.chart.dropShadow.enabledOnSeries?.length > 0) {

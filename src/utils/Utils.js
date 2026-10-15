@@ -719,20 +719,6 @@ class Utils {
     return bestDist <= max ? best : ''
   }
 
-  static isMsEdge() {
-    if (Environment.isSSR()) return false
-
-    const ua = window.navigator.userAgent
-
-    const edge = ua.indexOf('Edge/')
-    if (edge > 0) {
-      // Edge (IE 12+) => return version number
-      return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10)
-    }
-
-    // other browser
-    return false
-  }
   //
   // Find the Greatest Common Divisor of two numbers
   //
