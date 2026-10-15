@@ -353,6 +353,10 @@ export default class TreemapChart {
         // See Sunburst: the branch identity a cross-type morph pairs on.
         elRect.node.setAttribute('data:key', morphKey(leaf._key))
 
+        // The tile's tween (mount grow or data change), which its label
+        // rides, and the centre the label rides from (null: it fades in).
+        /** @type {any} */
+        let tileTween = null
         let fromRect = {
           x: x1 + (x2 - x1) / 2,
           y: y1 + (y2 - y1) / 2,
@@ -390,7 +394,7 @@ export default class TreemapChart {
             // delay, so they popped in one after another.
             w.globals.animationEnded = true
           } else {
-            this.animateTreemap(
+            tileTween = this.animateTreemap(
               elRect,
               fromRect,
               toRect,
@@ -401,10 +405,6 @@ export default class TreemapChart {
             )
           }
         }
-        // A data change's tile tween, which the tile's label rides, and the
-        // centre the label rides from (null for a tile the update adds).
-        /** @type {any} */
-        let tileTween = null
         /** @type {{x: number, y: number} | null} */
         let labelFrom = null
         // What the tile's label showed before ('' for none, null when not
@@ -516,7 +516,8 @@ export default class TreemapChart {
           dataLabels.node.setAttribute('data:key', morphKey(leaf._key))
           elSeries.add(dataLabels)
           // The label rides its tile from the old centre, on the tile's own
-          // tween; a tile the update adds fades its label in as it grows.
+          // tween; a tile that mounts or the update adds fades its label in
+          // as it grows.
           // It used to sit at its final spot from the first frame, over
           // whatever tile was still there.
           if (tileTween) {
@@ -1053,6 +1054,8 @@ export default class TreemapChart {
         text,
         maxWidth,
         fontSize,
+        fontFamily: chrome.headerFontFamily,
+        fontWeight: chrome.headerFontWeight,
       })
 
       if (clipped) {
@@ -2079,7 +2082,7 @@ export default class TreemapChart {
    */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w)
-    const textRect = graphics.getTextRects(text, String(fontSize))
+    const textRect = this._labelRect(graphics, text, fontSize)
 
     // if the label fits better sideways then rotate it
     if (
@@ -2097,6 +2100,25 @@ export default class TreemapChart {
     }
   }
 
+  /**
+   * A tile label's box, measured at the family and weight it is drawn at
+   * (bold is wider than the default regular).
+   * @param {Graphics} graphics
+   * @param {string} text
+   * @param {string | number} fontSize
+   */
+  _labelRect(graphics, text, fontSize) {
+    const st = this.w.config.dataLabels.style
+    return graphics.getTextRects(
+      text,
+      String(fontSize),
+      st.fontFamily,
+      '',
+      true,
+      st.fontWeight,
+    )
+  }
+
   // This is an alternative label formatting method that uses a
   // consistent font size, and trims the edge of long labels
   /**
@@ -2109,7 +2131,7 @@ export default class TreemapChart {
    */
   truncateLabels(text, fontSize, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w)
-    const textRect = graphics.getTextRects(text, String(fontSize))
+    const textRect = this._labelRect(graphics, text, fontSize)
 
     // Determine max width based on ideal orientation of text
     const labelMaxWidth =
@@ -2118,9 +2140,10 @@ export default class TreemapChart {
         ? y2 - y1
         : x2 - x1
     const truncatedText = graphics.getTextBasedOnMaxWidth({
-      text: text,
+      ...this.w.config.dataLabels.style,
+      text,
       maxWidth: labelMaxWidth,
-      fontSize: fontSize,
+      fontSize,
     })
 
     // Return empty label when text has been trimmed for very small rects

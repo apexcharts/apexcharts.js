@@ -2,7 +2,6 @@
 import Utils from '../../../utils/Utils'
 import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
-import { resolveDataLabelOffset } from '../../../modules/helpers/DataLabelOffset'
 
 export default class TreemapHelpers {
   /**
@@ -209,17 +208,10 @@ export default class TreemapHelpers {
         class: 'apexcharts-data-labels',
       })
 
-      // offsets may be a function evaluated per data point
-      const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j)
-      const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j)
-
-      const dataLabelsX = x + offX
-      const dataLabelsY =
-        y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY
-
+      // plotDataLabelsText applies offsetX/offsetY itself
       dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
+        x,
+        y: y + parseFloat(dataLabelsConfig.style.fontSize) / 3,
         text,
         i,
         j,
