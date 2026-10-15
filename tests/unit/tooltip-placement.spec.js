@@ -3426,11 +3426,15 @@ describe('Position.computeTooltipPosition on a short plot', () => {
     const focused = document.createElement('div')
     focused.className = 'apexcharts-keyboard-focused'
     w.dom.baseEl.appendChild(focused)
+    document.body.appendChild(w.dom.baseEl)
+    // the node KeyboardNavigation outlined
+    ttCtx.ctx._keyboardNavigation = { _focusedEl: focused }
     const pos = new TooltipPosition(ttCtx)
 
     const r = pos.computeTooltipPosition(50, 10, 5)
     expect(r.placement).toBe('top')
     expect(r.y).toBe(aboveY(10))
+    w.dom.baseEl.remove()
   })
 
   it('keeps its usual placement when neither side of the mark is visible', () => {

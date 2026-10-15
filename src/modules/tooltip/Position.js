@@ -28,6 +28,24 @@ import {
 const CLIP_CACHE_TTL = 1000
 
 /**
+ * The bar-like series groups `group` (an attribute test) names, as one
+ * selector, down to the path at `j` when given: a violin's body, never the
+ * jitter that shares its `j`.
+ * @param {string} group
+ * @param {number} [j]
+ */
+const barSel = (group, j) =>
+  ['bar', 'candlestick', 'boxPlot', 'violin', 'rangebar']
+    .map(
+      (t) =>
+        `.apexcharts-${t}-series .apexcharts-series[${group}]` +
+        (j == null
+          ? ''
+          : ` path${t === 'violin' ? '.apexcharts-violin-area' : ''}[j='${j}']`),
+    )
+    .join()
+
+/**
  * ApexCharts Tooltip.Position Class to move the tooltip based on x and y position.
  *
  * @module Tooltip.Position
@@ -53,6 +71,11 @@ export default class Position {
      * @type {{ clippers?: Array<{ node: Element, x: boolean, y: boolean }> | null, at?: number }}
      */
     this.clipCache = { clippers: null, at: 0 }
+    /**
+     * Hover lookups by selector, for one drawTooltip (see `_marks`).
+     * @type {any}
+     */
+    this._memo = null
   }
 
   /**
@@ -505,11 +528,9 @@ export default class Position {
       // grid. Falls back to `translateYAxisX` when the labels group can't
       // be measured (e.g. yaxis.show=false but tooltip still drawn).
       let cx
-      const labelsGroup = /** @type {SVGGElement | null} */ (
-        w.dom.baseEl.querySelector(
-          `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`,
-        )
-      )
+      const labelsGroup = this._marks(
+        `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`,
+      )[0]
       const elWrapRect = w.dom.elWrap.getBoundingClientRect()
       if (labelsGroup) {
         const lr = labelsGroup.getBoundingClientRect()
@@ -733,12 +754,14 @@ export default class Position {
     // WCAG 2.4.11 Focus Not Obscured: when keyboard nav drives the tooltip,
     // make sure the tooltip box doesn't sit on top of the focused data
     // point. If the tooltip's vertical extent overlaps the point, push it
-    // above the point by enough margin to clear the focus stroke.
+    // above the point by enough margin to clear the focus stroke. The focused
+    // node is read off KeyboardNavigation: a query for its class walked the
+    // whole chart on every move, with nothing focused just as with something.
     const a11y = w.config?.chart?.accessibility
     if (
       a11y?.enabled &&
       a11y?.keyboard?.navigation?.enabled &&
-      w.dom?.baseEl?.querySelector?.('.apexcharts-keyboard-focused')
+      this.ttCtx.ctx?._keyboardNavigation?._focusedEl?.isConnected
     ) {
       // Same coord space as `y`: elWrap.
       const refPointY = pointY
@@ -840,23 +863,22 @@ export default class Position {
     // batched markers are one path per series, so there is no per-point node
     // to find by `rel` and enlarge: fall through to the dynamic point
     if (w.globals.markers.size[i] > 0 && !w.globals.markers.batched) {
-      const allPoints = w.dom.baseEl.querySelectorAll(
-        ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`,
+      // The one marker at `j`, found by its rel: reading rel off every marker
+      // of the series was linear in its points on every move.
+      const point = w.dom.baseEl.querySelector(
+        ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker[rel='${j}']`,
       )
-      for (let p = 0; p < allPoints.length; p++) {
-        if (parseInt(allPoints[p].getAttribute('rel') ?? '0', 10) === j) {
-          // Put back only what we previously grew. resetPointsSize() re-paths
-          // EVERY marker in the chart, which on this (non-shared) path ran per
-          // hover and made it cost more than the shared tooltip it is usually
-          // reached for to avoid. Everything that enlarges a marker goes
-          // through Marker.newPointSize, so the tracked set is complete; the
-          // zero-size `M0,0` branch resetPointsSize also handles only applies
-          // to dynamic points, which exist solely when largestSize is 0 or
-          // markers are batched — neither of which reaches this branch.
-          ttCtx.marker.resetEnlargedPoints()
-          ttCtx.marker.enlargeCurrentPoint(j, allPoints[p])
-          break
-        }
+      if (point) {
+        // Put back only what we previously grew. resetPointsSize() re-paths
+        // EVERY marker in the chart, which on this (non-shared) path ran per
+        // hover and made it cost more than the shared tooltip it is usually
+        // reached for to avoid. Everything that enlarges a marker goes
+        // through Marker.newPointSize, so the tracked set is complete; the
+        // zero-size `M0,0` branch resetPointsSize also handles only applies
+        // to dynamic points, which exist solely when largestSize is 0 or
+        // markers are batched, neither of which reaches this branch.
+        ttCtx.marker.resetEnlargedPoints()
+        ttCtx.marker.enlargeCurrentPoint(j, point)
       }
     } else {
       ttCtx.marker.resetPointsSize()
@@ -1100,20 +1122,10 @@ export default class Position {
     const painted = !!(/** @type {any} */ (w.globals).barCanvasCoords)
     // A violin's mark is its body (`.apexcharts-violin-area`), never the
     // jitter path that shares its `j`.
-    let jBar = painted
-      ? null
-      : w.dom.baseEl.querySelector(
-          `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i}'] path.apexcharts-violin-area[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`,
-        )
+    let jBar = painted ? null : this._marks(barSel(`rel='${i}'`, j))[0]
     if (!jBar && !painted && typeof capturedSeries === 'number') {
       // Try with captured series index
-      jBar = w.dom.baseEl.querySelector(
-        `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-violin-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path.apexcharts-violin-area[j='${j}'],
-        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`,
-      )
+      jBar = this._marks(barSel(`data\\:realIndex='${capturedSeries}'`, j))[0]
     }
     const bc = painted ? this._paintedBarFor(i, j, capturedSeries) : null
 
@@ -1243,6 +1255,30 @@ export default class Position {
   }
 
   /**
+   * The nodes `sel` finds, none included, kept until the tooltip is drawn
+   * again (every render and update does that) or one of them leaves the DOM.
+   * A move along one column re-ran the same whole-chart attribute scans on
+   * every mousemove. Rects are still read per move: the marks can be
+   * mid-animation.
+   * @param {string} sel
+   * @returns {Element[]}
+   */
+  _marks(sel) {
+    const gen = this.ttCtx.allTooltipSeriesGroups
+    let m = this._memo
+    if (!m || m.gen !== gen || m.size > 99) {
+      m = this._memo = new Map()
+      m.gen = gen
+    }
+    /** @type {Element[]} */
+    let hit = m.get(sel)
+    if (!hit || hit.some((n) => !n.isConnected)) {
+      m.set(sel, (hit = Array.from(this.w.dom.baseEl.querySelectorAll(sel))))
+    }
+    return hit
+  }
+
+  /**
    * The coords cached for the bar-like mark at index `j` painted to canvas
    * (Bar.renderSeries), found the way `moveStickyTooltipOverBars` finds the
    * SVG path: down from the series group at `rel` (the first in document
@@ -1259,11 +1295,7 @@ export default class Position {
     const w = this.w
     const bcc = /** @type {any} */ (w.globals).barCanvasCoords
     if (!bcc) return null
-    const groups = w.dom.baseEl.querySelectorAll(
-      ['bar', 'candlestick', 'boxPlot', 'violin', 'rangebar']
-        .map((t) => `.apexcharts-${t}-series .apexcharts-series[rel='${rel}']`)
-        .join(', '),
-    )
+    const groups = this._marks(barSel(`rel='${rel}'`))
     for (let g = 0; g < groups.length; g++) {
       const realIndex = groups[g].getAttribute('data:realIndex')
       if (realIndex !== null && bcc[realIndex]?.[j]) return bcc[realIndex][j]
@@ -1352,7 +1384,7 @@ export default class Position {
         if (c?.type === 'violin' && !hidden.includes(Number(key))) take(c.cx)
       }
     } else {
-      const bodies = w.dom.baseEl.querySelectorAll(
+      const bodies = this._marks(
         `.apexcharts-violin-series .apexcharts-series:not(.apexcharts-series-collapsed) path.apexcharts-violin-area[j='${j}']`,
       )
       for (let k = 0; k < bodies.length; k++) {
@@ -1374,7 +1406,7 @@ export default class Position {
    */
   _barsExtentInGrid(j) {
     const w = this.w
-    const marks = w.dom.baseEl.querySelectorAll(
+    const marks = this._marks(
       `.apexcharts-bar-series path[j='${j}'],` +
         `.apexcharts-rangebar-series path[j='${j}'],` +
         `.apexcharts-candlestick-series path[j='${j}'],` +
@@ -1425,7 +1457,7 @@ export default class Position {
    */
   _datapointCenterXFromBars(j) {
     const w = this.w
-    const bars = w.dom.baseEl.querySelectorAll(
+    const bars = this._marks(
       `.apexcharts-bar-series path[j='${j}'],` +
         `.apexcharts-rangebar-series path[j='${j}']`,
     )
@@ -1476,7 +1508,7 @@ export default class Position {
     // config-time, but the selector is harmless), and violin, read as its
     // whole glyph: body, box lane and jitter or rain, so the box clears a
     // raincloud's lanes as well as its cloud.
-    const bars = w.dom.baseEl.querySelectorAll(
+    const bars = this._marks(
       `.apexcharts-bar-series path[j='${j}'],` +
         `.apexcharts-rangebar-series path[j='${j}'],` +
         `.apexcharts-boxPlot-series path[j='${j}'],` +
