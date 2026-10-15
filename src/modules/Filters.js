@@ -179,14 +179,8 @@ class Filters {
         if (shadowAttr.enabled) {
           this.addShadow(add, i, shadowAttr, 'brightness')
         }
+        this._sizeFilter(add.filter.node, shadowAttr)
       })
-
-      if (!shadowAttr.noUserSpaceOnUse) {
-        el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
-      }
-
-      // this scales the filter to a bigger size so that the dropshadow doesn't crops
-      this._scaleFilterSize(el.filterer()?.node)
     }
   }
 
@@ -256,16 +250,15 @@ class Filters {
     }
 
     if (el.filterWith) {
-      el.filterWith((/** @type {any} */ add) => {
-        this.addShadow(add, i, attrs, 'SourceGraphic')
-      })
-
-      if (!attrs.noUserSpaceOnUse) {
-        el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
-      }
-
-      // this scales the filter to a bigger size so that the dropshadow doesn't crops
-      this._scaleFilterSize(el.filterer()?.node)
+      // The marks of a series share one filter per shadow config, rather
+      // than each writing five primitives into the defs.
+      el.filterWith(
+        (/** @type {any} */ add) => {
+          this.addShadow(add, i, attrs, 'SourceGraphic')
+          this._sizeFilter(add.filter.node, attrs)
+        },
+        JSON.stringify(attrs) + i,
+      )
     }
 
     return el
@@ -298,26 +291,23 @@ class Filters {
   }
 
   /**
-   * @param {any} el
+   * Measures the filter in user space (unless the shadow opts out) and
+   * doubles its region, so the shadow is not cropped.
+   * @param {Element} el the <filter>
+   * @param {Record<string, any>} attrs the shadow config
    */
-  _scaleFilterSize(el) {
-    if (!el) return
-    /**
-     * @param {Record<string, any>} attrs
-     */
-    const setAttributes = (attrs) => {
-      for (const key in attrs) {
-        if (Object.prototype.hasOwnProperty.call(attrs, key)) {
-          el.setAttribute(key, attrs[key])
-        }
-      }
+  _sizeFilter(el, attrs) {
+    if (!attrs.noUserSpaceOnUse) {
+      el.setAttribute('filterUnits', 'userSpaceOnUse')
     }
-    setAttributes({
+    for (const [k, v] of Object.entries({
       width: '200%',
       height: '200%',
       x: '-50%',
       y: '-50%',
-    })
+    })) {
+      el.setAttribute(k, v)
+    }
   }
 }
 
