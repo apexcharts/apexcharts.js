@@ -685,7 +685,7 @@ export default class MorphTypeChange {
       !svg ||
       typeof svg.createSVGPoint !== 'function'
     ) {
-      layer.removeChild(probe)
+      probe.remove()
       return null
     }
     const pt = svg.createSVGPoint()
@@ -694,10 +694,8 @@ export default class MorphTypeChange {
       pt.x = x
       pt.y = y
       const p = /** @type {any} */ (probe)
-      return (
-        p.isPointInFill(pt) ||
-        (typeof p.isPointInStroke === 'function' && p.isPointInStroke(pt))
-      )
+      // isPointInStroke shipped with isPointInFill, which was checked above.
+      return p.isPointInFill(pt) || p.isPointInStroke(pt)
     }
 
     // Samples across the minor axis per probe line. Fine enough to catch a
@@ -829,6 +827,10 @@ export default class MorphTypeChange {
     /** @type {import('./MorphPieces').Piece[]} */
     const pieces = []
     const doc = layer.ownerDocument
+    // Cells are staged off the page and land in one write after the loop: a
+    // probe hit-test brings style and layout up to date, so cells written
+    // between two marks' probes would make every later probe pay for them.
+    const staged = doc.createDocumentFragment()
 
     // A bar IS its bounding box, so the plain grid tiles it exactly. A
     // summary mark (violin, boxPlot) is a silhouette inside its box, and
@@ -887,7 +889,7 @@ export default class MorphTypeChange {
           el.setAttribute('height', String(cell.height))
           el.setAttribute('rx', '0')
           el.setAttribute('fill', String(markFill))
-          layer.appendChild(el)
+          staged.appendChild(el)
           pieces.push({
             el,
             from: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
@@ -905,6 +907,7 @@ export default class MorphTypeChange {
           })
         }
       })
+    layer.appendChild(staged)
 
     if (!pieces.length) return this._cancelPieces()
 
@@ -973,6 +976,8 @@ export default class MorphTypeChange {
     const layer = this._makePieceLayer()
     if (!layer) return this._revealPieceHidden()
     const doc = layer.ownerDocument
+    // Staged off the page until every mark is probed, as in _separatePieces.
+    const staged = doc.createDocumentFragment()
 
     /** @type {import('./MorphPieces').Piece[]} */
     const pieces = []
@@ -1024,7 +1029,7 @@ export default class MorphTypeChange {
       const markState = {
         remaining: ordered.length,
         els: target.els,
-        g: layer.appendChild(doc.createElementNS('http://www.w3.org/2000/svg', 'g')),
+        g: staged.appendChild(doc.createElementNS('http://www.w3.org/2000/svg', 'g')),
       }
 
       for (let m = 0; m < ordered.length; m++) {
@@ -1053,6 +1058,7 @@ export default class MorphTypeChange {
         })
       }
     }
+    layer.appendChild(staged)
 
     if (!pieces.length) return this._cancelPieces()
 
