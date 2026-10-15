@@ -47,22 +47,38 @@ class Filters {
   }
 
   /**
+   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
+   * drilldown owns the click, when the offset is not a finite positive number,
+   * and always for polarArea: there the radius encodes the value, so moving a
+   * slice outward would read as a bigger number. The one rule for both the
+   * slide (Pie.getExpandOffset) and sliceOffsetOwnsActiveState, so a slice
+   * that does not move is never also left without its darken.
+   * @param {any} w
+   * @returns {number}
+   */
+  static sliceExpandOffset(w) {
+    const pie = w.config.plotOptions.pie
+    const offset = Number(pie.expandOffset)
+    return pie.expandOnClick &&
+      w.config.chart.type !== 'polarArea' &&
+      Filters.isSliceChart(w) &&
+      !Filters.drilldownBlocksSliceOffset(w) &&
+      Number.isFinite(offset) &&
+      offset > 0
+      ? offset
+      : 0
+  }
+
+  /**
    * True when a pie / donut slice carries the selected state itself, by
    * sliding out of the pie (see Pie.offsetSlice). Moving out of the pie is a
    * strong enough signal on its own, so the states.active darken filter would
-   * only muddy the slice colour on top of it. polarArea is excluded: it never
-   * slides (its radius is the value), so it keeps the filter as its only
-   * click feedback.
+   * only muddy the slice colour on top of it. polarArea never slides, so it
+   * keeps the filter as its only click feedback.
    * @param {any} w
    */
   static sliceOffsetOwnsActiveState(w) {
-    return (
-      Filters.isSliceChart(w) &&
-      w.config.chart.type !== 'polarArea' &&
-      w.config.plotOptions.pie.expandOnClick === true &&
-      w.config.plotOptions.pie.expandOffset > 0 &&
-      !Filters.drilldownBlocksSliceOffset(w)
-    )
+    return Filters.sliceExpandOffset(w) > 0
   }
 
   /**
