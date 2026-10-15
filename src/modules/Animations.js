@@ -38,7 +38,7 @@ function easeOutBack(t) {
  * the chart is destroyed. A job returns true to run again next frame, or a
  * function: its writes, run once every job has done its reads. A job queued
  * during a frame first runs on the next, as its own rAF did.
- * State per chart: `q` the next frame's jobs.
+ * State per chart: `q` the next frame's jobs, `n` the pops in flight.
  * @type {WeakMap<object, any>}
  */
 const loops = new WeakMap()
@@ -50,7 +50,7 @@ const loops = new WeakMap()
  */
 function onFrame(w, job) {
   let s = loops.get(w)
-  if (!s) loops.set(w, (s = { q: [] }))
+  if (!s) loops.set(w, (s = { n: 0, q: [] }))
   // The first job queued for a frame requests it.
   if (s.q.push(job) < 2) {
     BrowserAPIs.requestAnimationFrame((now) => {
@@ -58,9 +58,12 @@ function onFrame(w, job) {
       s.q = []
       // for...of also visits the writes appended mid-loop, after every read.
       for (const j of jobs) {
-        // A destroyed chart drops its queue, checked per job: an
-        // animationEnd handler a job reaches may destroy it.
-        if (w.globals.isDestroyed) break
+        // A destroyed chart drops its queue and its pop count, checked per
+        // job: an animationEnd handler a job reaches may destroy it.
+        if (w.globals.isDestroyed) {
+          s.n = 0
+          break
+        }
         // A throw (a user handler) loses only its own job, as when each
         // element had its own rAF, and is reported once the frame is done.
         try {
@@ -340,10 +343,12 @@ export default class Animations {
     style.transform = 'scale(0)'
     style.opacity = '0'
 
-    // A destroyed chart's loop stops before the pop lands, so onComplete
-    // never fires animationEnd on a torn-down chart (react-apexcharts#602).
+    // Pops land in stagger order, so the animation is over when the LAST one
+    // lands: completion waits for the chart's pop count to drain. A destroyed
+    // chart's loop stops before it, so animationEnd never fires on a
+    // torn-down chart (react-apexcharts#602).
     const startAt = performance.now() + delay
-    onFrame(w, (/** @type {number} */ now) => {
+    const s = onFrame(w, (/** @type {number} */ now) => {
       const t = Math.max(0, Math.min(1, (now - startAt) / speed))
       style.transform = `scale(${easeOutBack(t)})`
       // Fade in over the first half so the back-out overshoot is visible
@@ -354,8 +359,9 @@ export default class Animations {
       style.transformOrigin = ''
       style.transformBox = ''
       style.opacity = ''
-      if (onComplete) onComplete()
+      if (!--s.n && onComplete) onComplete()
     })
+    s.n++
   }
 
   /*

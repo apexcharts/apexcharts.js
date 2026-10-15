@@ -7,8 +7,9 @@ import Animations, {
 // The mount animations (marker / label sweep, scatter pop, pen draw) share
 // one requestAnimationFrame per chart per frame instead of one loop per
 // element, stop when the chart is destroyed, and read every path length
-// before writing any dash pattern. Frames are driven by hand so every count
-// is exact.
+// before writing any dash pattern. A scatter fires animationEnd when its
+// LAST popped marker lands, not its first. Frames are driven by hand so
+// every count is exact.
 
 let queue
 let clock
@@ -142,6 +143,76 @@ describe('scatter pop runs on one frame loop per chart', () => {
     let maxPerFrame = 0
     while (queue.length) maxPerFrame = Math.max(maxPerFrame, frame())
     expect(maxPerFrame).toBe(1)
+  })
+
+  it('completes once, on the frame the last staggered pop lands', () => {
+    const w = makeW()
+    const anim = new Animations(w)
+    const els = []
+    const completedAt = []
+    for (let i = 0; i < 300; i++) {
+      const el = styled()
+      els.push(el)
+      anim.animatePop(el, {
+        speed: 400,
+        delay: i * 2,
+        onComplete: () => {
+          completedAt.push({
+            clock,
+            popping: els.filter((e) => e.node.style.transform !== '').length,
+          })
+        },
+      })
+    }
+    while (queue.length) frame()
+    expect(completedAt.length).toBe(1)
+    // every marker is at rest when the animation is reported over
+    expect(completedAt[0].popping).toBe(0)
+    expect(completedAt[0].clock).toBeGreaterThanOrEqual(299 * 2 + 400)
+  })
+
+  it('does not complete after the chart is destroyed', () => {
+    const w = makeW()
+    const onComplete = vi.fn()
+    new Animations(w).animatePop(styled(), { speed: 400, onComplete })
+    frame()
+    w.globals.isDestroyed = true
+    while (queue.length) frame()
+    expect(onComplete).not.toHaveBeenCalled()
+  })
+
+  it('fires animationEnd only after the last marker has landed', () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    let endedWith = null
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: {
+        type: 'scatter',
+        width: 400,
+        height: 300,
+        animations: { enabled: true, speed: 400 },
+        events: {
+          animationEnd: () => {
+            const markers = [
+              ...document.querySelectorAll('#chart .apexcharts-marker'),
+            ]
+            endedWith = {
+              total: markers.length,
+              popping: markers.filter((m) => m.style.transform !== '').length,
+            }
+          },
+        },
+      },
+      series: [
+        { name: 'a', data: Array.from({ length: 40 }, (_, i) => [i, i % 7]) },
+      ],
+    })
+    chart.render()
+    let guard = 0
+    while (queue.length && guard++ < 1000) frame()
+    expect(endedWith).not.toBe(null)
+    expect(endedWith.total).toBe(40)
+    expect(endedWith.popping).toBe(0)
+    chart.destroy()
   })
 })
 
