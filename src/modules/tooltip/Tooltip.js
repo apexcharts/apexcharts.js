@@ -707,43 +707,11 @@ export default class Tooltip {
     // synchronous layout of the chart that was just rebuilt: a profile of 30
     // updateSeries calls put 20% of all update time in this one dead read.
 
-    /** @type {any[]} */
-    const tooltipY = []
-    /** @type {any[]} */
-    const tooltipX = []
-
     const seriesHoverParams = {
       hoverArea,
       elGrid,
       tooltipEl,
-      tooltipY,
-      tooltipX,
       ttItems: this.ttItems,
-    }
-
-    let points
-
-    if (w.globals.axisCharts) {
-      if (chartWithmarkers) {
-        points = w.dom.baseEl.querySelectorAll(
-          ".apexcharts-series[data\\:longestSeries='true'] .apexcharts-marker",
-        )
-      } else if (commonBar) {
-        points = w.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-violin-area, .apexcharts-series .apexcharts-rangebar-area',
-        )
-      } else if (type === 'heatmap' || type === 'treemap') {
-        points = w.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-heatmap, .apexcharts-series .apexcharts-treemap',
-        )
-      }
-
-      if (points && points.length) {
-        for (let p = 0; p < points.length; p++) {
-          tooltipY.push(points[p].getAttribute('cy'))
-          tooltipX.push(points[p].getAttribute('cx'))
-        }
-      }
     }
 
     const validSharedChartTypes =
@@ -923,8 +891,6 @@ export default class Tooltip {
       const extendedOpts = {
         paths: paths[p],
         tooltipEl: opts.tooltipEl,
-        tooltipY: opts.tooltipY,
-        tooltipX: opts.tooltipX,
         elGrid: opts.elGrid,
         hoverArea: opts.hoverArea,
         ttItems: opts.ttItems,
@@ -1127,8 +1093,6 @@ export default class Tooltip {
         const newOpts = {
           paths: opt.paths,
           tooltipEl,
-          tooltipY: opt.tooltipY,
-          tooltipX: opt.tooltipX,
           elGrid: elGrid || opt.elGrid,
           hoverArea: opt.hoverArea,
           ttItems: ch.w.globals.tooltip.ttItems,
