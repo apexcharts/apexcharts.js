@@ -87,6 +87,7 @@ export default class YAxis {
       lY += parseInt(yaxisFontSize, 10) / 3
 
       let firstLabel = null
+      const drawn = new Set()
       for (let i = tickAmount; i >= 0; i--) {
         const thinned = labelStep > 1 && i % labelStep !== 0
         const val = thinned ? '' : lbFormatter(labels[i], i, w)
@@ -104,20 +105,16 @@ export default class YAxis {
         )
         const foreColor = Array.isArray(yColors) ? yColors[i] : yColors
 
-        const existingYLabels = Array.from(
-          w.dom.baseEl.querySelectorAll(
-            `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-label tspan`,
-          ),
-        ).map((label) => label.textContent)
+        // a repeat leaves the Set's size unchanged; String() so a formatter
+        // returning numbers dedupes like one returning strings
+        const seen = drawn.size
+        const dup = drawn.add(String(val)).size === seen
 
         const label = graphics.drawText({
           x: xPad,
           y: lY,
           text:
-            existingYLabels.includes(val) &&
-            !w.config.yaxis[realIndex].labels.showDuplicates
-              ? ''
-              : val,
+            dup && !w.config.yaxis[realIndex].labels.showDuplicates ? '' : val,
           textAnchor,
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,
