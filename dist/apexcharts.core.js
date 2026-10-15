@@ -7,6 +7,7 @@ var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __pow = Math.pow;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
@@ -54,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -127,6 +128,15 @@ var __async = (__this, __arguments, generator) => {
      */
     setAttribute(name2, value) {
       this.attributes.set(name2, value);
+    }
+    /**
+     * Namespaced attributes serialize by their qualified name.
+     * @param {any} _ns
+     * @param {string} name
+     * @param {any} value
+     */
+    setAttributeNS(_ns, name2, value) {
+      this.setAttribute(name2, value);
     }
     /**
      * @param {string} name
@@ -1925,7 +1935,7 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   const name = "en";
-  const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom", "measure": "Measure" } };
+  const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom", "measure": "Measure", "wheelZoomHint": "Use {key} + scroll to zoom" } };
   const en = {
     name,
     options
@@ -2735,7 +2745,14 @@ var __async = (__this, __arguments, generator) => {
             // asked for and nobody can undo is a trap. Set either to true to
             // force the gesture on regardless (for a page that supplies its own
             // reset control), or false to turn it off outright.
+            //
+            // The 'auto' wheel is also cooperative: a bare wheel scrolls the
+            // page, and Ctrl/Cmd + wheel (or a trackpad pinch) zooms, so a page
+            // of charts scrolls past them. `true` zooms on every wheel.
             allowMouseWheelZoom: "auto",
+            // With the cooperative wheel, a bare scroll over the chart briefly
+            // shows how to zoom it ("Use Ctrl + scroll to zoom").
+            wheelHint: true,
             // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
             // around the pinch centroid (matching the x-only wheel/toolbar zoom),
             // frame-by-frame rather than the 400ms wheel throttle.
@@ -9073,21 +9090,6 @@ var __async = (__this, __arguments, generator) => {
       });
       gl.seriesYAxisMap = axisSeriesMap.map((x) => x);
       gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x);
-      gl.seriesYAxisMap.forEach((axisSeries, ai) => {
-        axisSeries.forEach((si) => {
-          if (
-            /** @type {any} */
-            cnf.series[si] && /** @type {any} */
-            cnf.series[si].group === void 0
-          ) {
-            const _series = (
-              /** @type {any} */
-              cnf.series[si]
-            );
-            _series.group = "apexcharts-axis-".concat(ai.toString());
-          }
-        });
-      });
     }
     /**
      * @param {number | null} [index]
@@ -9221,12 +9223,15 @@ var __async = (__this, __arguments, generator) => {
         (s2, i2) => isBarSeries(s2) ? -1 : i2
       ).filter((i2) => i2 !== -1) : [];
       const stackedTotals = excluded.length ? this.getStackedSeriesTotals(excluded) : w.seriesData.stackedSeriesTotals;
-      const sx = w.axisFlags.isXNumeric && !w.config.plotOptions.bar.horizontal && w.seriesData.seriesX;
+      const sx = w.axisFlags.isXNumeric && w.seriesData.seriesX;
+      const gi = w.labelData.seriesGroupIndex;
+      const byKey = sx || w.labelData.seriesGroups.length > 1;
+      const key = (i2, j2) => gi[i2] + " " + (sx ? sx[i2][j2] : j2);
       const byX = /* @__PURE__ */ new Map();
-      if (sx) {
+      if (byKey) {
         w.seriesData.series.forEach((s2, i2) => {
           if (excluded.indexOf(i2) < 0) {
-            s2.forEach((v, j2) => byX.set(sx[i2][j2], (byX.get(sx[i2][j2]) || 0) + v));
+            s2.forEach((v, j2) => byX.set(key(i2, j2), (byX.get(key(i2, j2)) || 0) + v));
           }
         });
       }
@@ -9234,7 +9239,7 @@ var __async = (__this, __arguments, generator) => {
         const seriesPercent = [];
         if (Array.isArray(ser)) {
           for (let j2 = 0; j2 < ser.length; j2++) {
-            const total = sx ? byX.get(sx[i2][j2]) : stackedTotals[j2];
+            const total = byKey ? byX.get(key(i2, j2)) : stackedTotals[j2];
             let percent = 0;
             if (total) {
               percent = 100 * ser[j2] / total;
@@ -9281,13 +9286,11 @@ var __async = (__this, __arguments, generator) => {
       if (!zRatio) {
         zRatio = 1;
       }
-      if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-        const _hasNegsGl = (
-          /** @type {any} */
-          gl
-        );
-        _hasNegsGl.hasNegs = true;
-      }
+      const _hasNegsGl = (
+        /** @type {any} */
+        gl
+      );
+      _hasNegsGl.hasNegs = gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0;
       if (w.globals.seriesYAxisReverseMap.length > 0) {
         const scaleBaseLineYScale = (y, i2) => {
           const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i2]];
@@ -9444,7 +9447,7 @@ var __async = (__this, __arguments, generator) => {
     // other series of the same type on the same axis.
     /**
      * @param {Record<string, any>} typeSeries
-     * @param {string[]} typeGroups
+     * @param {number[]} typeGroups
      * @param {string} type
      * @param {string} chartClass
      */
@@ -9456,10 +9459,7 @@ var __async = (__this, __arguments, generator) => {
           const gs = [];
           const gi = [];
           typeSeries.i.forEach((i2, ii) => {
-            if (
-              /** @type {Record<string,any>} */
-              w.config.series[i2].group === gn
-            ) {
+            if (w.labelData.seriesGroupIndex[i2] === gn) {
               gs.push(typeSeries.series[ii]);
               gi.push(i2);
             }
@@ -11503,6 +11503,22 @@ var __async = (__this, __arguments, generator) => {
       return arc;
     }
     /**
+     * stroke.dashArray of a series, shared with the canvas renderer. A plugin
+     * may have claimed it: resolved here rather than written into the config,
+     * so the caller's own dashing is untouched and there is nothing to restore
+     * when the claim goes. See weave/Claims.
+     * @param {number} realIndex
+     */
+    seriesDash(realIndex) {
+      const d = this.w.config.stroke.dashArray;
+      return resolveClaimed(
+        this.w,
+        "stroke.dashArray",
+        realIndex,
+        Array.isArray(d) ? d[realIndex] : d
+      );
+    }
+    /**
      * @memberof Graphics
      * @param {Record<string, any>} opts
      *  i = series's index
@@ -11574,19 +11590,6 @@ var __async = (__this, __arguments, generator) => {
           w.globals.animationEnded = true;
         }
       }
-      const strokeDashArrayOpt = w.config.stroke.dashArray;
-      let strokeDashArray = 0;
-      if (Array.isArray(strokeDashArrayOpt)) {
-        strokeDashArray = strokeDashArrayOpt[realIndex];
-      } else {
-        strokeDashArray = w.config.stroke.dashArray;
-      }
-      strokeDashArray = resolveClaimed(
-        w,
-        "stroke.dashArray",
-        realIndex,
-        strokeDashArray
-      );
       const el = this.drawPath({
         d,
         stroke,
@@ -11595,7 +11598,7 @@ var __async = (__this, __arguments, generator) => {
         fillOpacity: 1,
         classes: className,
         strokeLinecap,
-        strokeDashArray
+        strokeDashArray: this.seriesDash(realIndex)
       });
       el.attr("index", realIndex);
       if (shouldClipToGrid) {
@@ -11788,13 +11791,19 @@ var __async = (__this, __arguments, generator) => {
       }
       return g;
     }
-    /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any }} opts */
-    getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
-      const tRects = this.getTextRects(text, fontSize, fontFamily, "");
-      const wordWidth = tRects.width / text.length;
-      const wordsBasedOnWidth = Math.floor(maxWidth / wordWidth);
+    /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any, fontWeight?: any }} opts */
+    getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily, fontWeight }) {
+      const tRects = this.getTextRects(
+        text,
+        fontSize,
+        fontFamily,
+        "",
+        true,
+        fontWeight
+      );
+      const n2 = Math.floor(maxWidth / (tRects.width / text.length)) - 3;
       if (maxWidth < tRects.width) {
-        return text.slice(0, wordsBasedOnWidth - 3) + "...";
+        return n2 < 0 ? "" : text.slice(0, n2) + "...";
       }
       return text;
     }
@@ -11831,7 +11840,8 @@ var __async = (__this, __arguments, generator) => {
       const commonProps = {
         maxWidth,
         fontSize,
-        fontFamily
+        fontFamily,
+        fontWeight
       };
       let elText;
       if (Array.isArray(text)) {
@@ -12032,7 +12042,12 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.states.hover.filter.type !== "none") {
         if (!w.interact.isTouchDevice) {
           const hoverFilter = w.config.states.hover.filter;
-          filters.applyFilter(path, i2, hoverFilter.type, hoverFilter.value);
+          filters.applyFilter(
+            path,
+            Filters.isSliceChart(w) ? j2 : i2,
+            hoverFilter.type,
+            hoverFilter.value
+          );
         }
       }
     }
@@ -12066,33 +12081,28 @@ var __async = (__this, __arguments, generator) => {
       }
       if (Filters.hoverOutlineOwnsHoverState(w)) return;
       if (w.config.states.hover.filter.type !== "none") {
-        filters.getDefaultFilter(path, i2);
+        filters.getDefaultFilter(path, Filters.isSliceChart(w) ? j2 : i2);
       }
     }
     /**
      * Clear every selected data point (single-select mode): reset the selection
-     * array and restore the default filter on all series path/circle/rect nodes.
-     * NOTE: preserves the original behavior of passing the clicked series index
-     * `i` to getDefaultFilter for every element (not each element's own index).
-     * @param {any} filters @param {number} i
+     * array and restore the default filter on each selected node, with its own
+     * series index (dropShadow.enabledOnSeries is per series; a pie slice's
+     * shadow is per slice, j).
+     * @param {any} filters
      */
-    _clearAllDataPointSelections(filters, i2) {
+    _clearAllDataPointSelections(filters) {
       const w = this.w;
       w.interact.selectedDataPoints = [];
-      const elPaths = w.dom.Paper.find(
-        ".apexcharts-series path:not(.apexcharts-decoration-element)"
-      );
-      const elCircles = w.dom.Paper.find(
-        ".apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)"
-      );
-      const deSelect = (els) => {
-        Array.prototype.forEach.call(els, (el) => {
+      w.dom.Paper.find('.apexcharts-series [selected="true"]').forEach(
+        (el) => {
           el.node.setAttribute("selected", "false");
-          filters.getDefaultFilter(el, i2);
-        });
-      };
-      deSelect(elPaths);
-      deSelect(elCircles);
+          filters.getDefaultFilter(
+            el,
+            +el.node.getAttribute(Filters.isSliceChart(w) ? "j" : "index")
+          );
+        }
+      );
     }
     /**
      * Toggle the selected state of a single data point. Mutates
@@ -12112,7 +12122,7 @@ var __async = (__this, __arguments, generator) => {
         return "false";
       }
       if (!w.config.states.active.allowMultipleDataPointsSelection && w.interact.selectedDataPoints.length > 0) {
-        this._clearAllDataPointSelections(filters, i2);
+        this._clearAllDataPointSelections(filters);
       }
       path.node.setAttribute("selected", "true");
       if (typeof w.interact.selectedDataPoints[i2] === "undefined") {
@@ -12132,10 +12142,10 @@ var __async = (__this, __arguments, generator) => {
       if (Filters.sliceOffsetOwnsActiveState(w)) return;
       if (selected === "true") {
         const activeFilter = w.config.states.active.filter;
-        if (activeFilter !== "none") {
+        if (activeFilter.type !== "none") {
           filters.applyFilter(path, i2, activeFilter.type, activeFilter.value);
         } else {
-          if (w.config.states.hover.filter !== "none") {
+          if (w.config.states.hover.filter.type !== "none") {
             if (!w.interact.isTouchDevice) {
               const hoverFilter = w.config.states.hover.filter;
               filters.applyFilter(path, i2, hoverFilter.type, hoverFilter.value);
@@ -12168,7 +12178,12 @@ var __async = (__this, __arguments, generator) => {
       const crossfilterClick = !!(link && (typeof link.dimension === "function" || link.enabled));
       if (!crossfilterClick) {
         const selected = this._togglePointSelection(path, filters, i2, j2);
-        this._applyPointSelectionFilter(path, filters, i2, selected);
+        this._applyPointSelectionFilter(
+          path,
+          filters,
+          Filters.isSliceChart(w) ? j2 : i2,
+          selected
+        );
       }
       if (typeof w.config.chart.events.dataPointSelection === "function") {
         w.config.chart.events.dataPointSelection(e2, this.ctx, {
@@ -12956,7 +12971,7 @@ var __async = (__this, __arguments, generator) => {
     }
     setGlobalMarkerSize() {
       const w = this.w;
-      w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size : [w.config.markers.size];
+      w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size.slice() : [w.config.markers.size];
       if (w.globals.markers.size.length > 0) {
         if (w.globals.markers.size.length < w.seriesData.series.length + 1) {
           for (let i2 = 0; i2 <= w.seriesData.series.length; i2++) {
@@ -13666,6 +13681,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} fontSize
      */
     dataLabelsCorrection(x, y, val, i2, dataPointIndex, alwaysDrawDataLabel, fontSize) {
+      var _a;
       const w = this.w;
       const graphics = new Graphics(this.w);
       let drawnextLabel = false;
@@ -13707,6 +13723,9 @@ var __async = (__this, __arguments, generator) => {
       }
       if (dataPointIndex === 0 || alwaysDrawDataLabel) {
         drawnextLabel = true;
+      }
+      if (drawnextLabel) {
+        ((_a = w.globals.lastDrawnDataLabelsIndexes)[i2] || (_a[i2] = [])).push(len + 1);
       }
       return {
         x,
@@ -13953,10 +13972,6 @@ var __async = (__this, __arguments, generator) => {
         }
         parent.add(dataLabelText);
         if (penDrawn(w, i2)) applyProgressiveReveal(dataLabelText, x, w);
-        if (typeof w.globals.lastDrawnDataLabelsIndexes[i2] === "undefined") {
-          w.globals.lastDrawnDataLabelsIndexes[i2] = [];
-        }
-        w.globals.lastDrawnDataLabelsIndexes[i2].push(j2);
       }
       return dataLabelText;
     }
@@ -15920,6 +15935,13 @@ var __async = (__this, __arguments, generator) => {
       if (typeof gl.yAxisScale[index] === "undefined") {
         gl.yAxisScale[index] = [];
       }
+      if (y.logarithmic && minY <= Number.MIN_VALUE) {
+        const s2 = this.w.seriesData.series;
+        const map = gl.isMultipleYAxis && gl.seriesYAxisMap[index];
+        const b = y.logBase || 10;
+        const m = (map ? map.map((i2) => s2[i2]) : s2).flat().reduce((a2, v) => v > 0 && (!a2 || v < a2) ? v : a2, 0);
+        minY = m && Math.min(b, __pow(b, Math.floor(Math.log(m) / Math.log(b))));
+      }
       const range = Math.abs(maxY - minY);
       const spansABase = y.logarithmic && this._logDomainSpan(minY, maxY, y.logBase) >= 1;
       const validLogScale = y.logarithmic && (spansABase || range > 5);
@@ -15952,19 +15974,26 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} maxX
      */
     setXScale(minX, maxX) {
+      var _a;
       const w = this.w;
       const gl = w.globals;
       if (maxX === -Number.MAX_VALUE || !Utils$1.isNumber(maxX)) {
         gl.xAxisScale = this.linearScale(0, 10, 10);
       } else {
-        const ticks = gl.xTickAmount;
-        gl.xAxisScale = this.linearScale(
-          minX,
-          maxX,
-          ticks,
-          0,
-          w.config.xaxis.max === void 0 ? w.config.xaxis.stepSize : void 0
-        );
+        const x = w.config.xaxis;
+        let step = ((_a = x.max) != null ? _a : x.range) === void 0 ? x.stepSize : void 0;
+        const fit = step > 0 && !gl.isBarHorizontal && x.type !== "datetime";
+        if (fit) {
+          const n2 = Math.ceil((maxX - minX) / step - 1e-9);
+          n2 > 1e3 ? step = void 0 : gl.xTickAmount = n2;
+        }
+        let s2 = this.linearScale(minX, maxX, gl.xTickAmount, 0, step);
+        if (fit && step) {
+          while (s2.niceMax < maxX)
+            s2 = this.linearScale(minX, maxX, ++gl.xTickAmount, 0, step);
+          gl.maxX = s2.niceMax;
+        }
+        gl.xAxisScale = s2;
       }
       return gl.xAxisScale;
     }
@@ -16599,22 +16628,21 @@ var __async = (__this, __arguments, generator) => {
       gl.barGroups = [];
       gl.lineGroups = [];
       gl.areaGroups = [];
-      cnf.series.forEach((s2) => {
-        const _s = (
+      cnf.series.forEach((s2, i2) => {
+        const g = this.w.labelData.seriesGroupIndex[i2];
+        switch (
           /** @type {any} */
-          s2
-        );
-        const type = _s.type || cnf.chart.type;
-        switch (type) {
+          s2.type || cnf.chart.type
+        ) {
           case "bar":
           case "column":
-            gl.barGroups.push(_s.group);
+            gl.barGroups.push(g);
             break;
           case "line":
-            gl.lineGroups.push(_s.group);
+            gl.lineGroups.push(g);
             break;
           case "area":
-            gl.areaGroups.push(_s.group);
+            gl.areaGroups.push(g);
             break;
         }
       });
@@ -16699,9 +16727,10 @@ var __async = (__this, __arguments, generator) => {
             ticks = gl.dataPoints - 1;
           }
         } else if (cnf.xaxis.tickAmount === "dataPoints") {
-          if (this.w.seriesData.series.length > 1) {
-            ticks = this.w.seriesData.series[gl.maxValsInArrayIndex].length - 1;
-          }
+          ticks = Math.max(
+            1,
+            (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length - 1
+          );
           if (this.w.axisFlags.isXNumeric) {
             const diff = Math.round(gl.maxX - gl.minX);
             if (diff < 30) {
@@ -16759,8 +16788,26 @@ var __async = (__this, __arguments, generator) => {
           }
         }
         if (isXNumeric && gl.isBarHorizontal) {
+          const rows = (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice();
+          const seen = new Set(rows);
+          const n2 = rows.length;
+          if (cnf.chart.type === "bar") {
+            this.w.seriesData.seriesX.forEach(
+              (s2) => s2 == null ? void 0 : s2.forEach((x) => {
+                if (x != null && !seen.has(x)) {
+                  seen.add(x);
+                  rows.push(x);
+                }
+              })
+            );
+          }
+          if (rows.length > n2) {
+            const dir = rows[0] > rows[n2 - 1] ? -1 : 1;
+            rows.sort((a2, b) => (a2 - b) * dir);
+            gl.dataPoints = rows.length;
+          }
           this.w.labelData.labels = /** @type {any} */
-          (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice();
+          rows;
         } else if (isXNumeric) {
           this.w.labelData.labels = /** @type {any} */
           gl.xAxisScale.result.slice();
@@ -16885,7 +16932,7 @@ var __async = (__this, __arguments, generator) => {
       const windowed = this._autoScaleYEnabled();
       if (!this.w.seriesData.series.length) return;
       const gIdx = this.w.labelData.seriesGroupIndex;
-      const byX = this.w.axisFlags.isXNumeric && !this.w.config.plotOptions.bar.horizontal;
+      const byX = this.w.axisFlags.isXNumeric;
       const stacks = /* @__PURE__ */ new Map();
       this.w.config.series.forEach(
         (serie, i2) => {
@@ -16900,7 +16947,7 @@ var __async = (__this, __arguments, generator) => {
             if (!st) stacks.set(key, st = [0, 0]);
             const v = this.w.seriesData.series[i2][j2];
             if (stackSeries && v !== null && Utils$1.isNumber(v)) {
-              v > 0 ? st[0] += parseFloat(String(v)) + 1e-4 : st[1] += parseFloat(String(v));
+              v > 0 ? st[0] += v * 1.000001 : st[1] += +v;
             }
           }
         }
@@ -18322,6 +18369,11 @@ var __async = (__this, __arguments, generator) => {
       return count === 0 ? k : `${k}#${count}`;
     });
   }
+  function seriesKeys(w, realIndex, n2 = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
+    return uniquifyKeys(
+      Array.from({ length: n2 }, (_, j2) => datumKey(w, realIndex, j2))
+    );
+  }
   function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
     var _a, _b;
     if (!lengthTransitionEnabled(w)) return null;
@@ -18334,7 +18386,7 @@ var __async = (__this, __arguments, generator) => {
     const oldKeys = uniquifyKeys(
       oldY.map((_, j2) => frameDatumKey(frame, realIndex, j2))
     );
-    const newKeys = uniquifyKeys(newY.map((_, j2) => datumKey(w, realIndex, j2)));
+    const newKeys = seriesKeys(w, realIndex);
     const join = joinKeys(oldKeys, newKeys);
     if (!join.ordered && !allowReorder) return null;
     if (!join.changed && !includeIdentity) return null;
@@ -19510,11 +19562,8 @@ var __async = (__this, __arguments, generator) => {
      */
     isSeriesHidden(seriesName) {
       var _a;
-      const targetElement = this.getSeriesByName(seriesName);
-      const el = (
-        /** @type {Element} */
-        targetElement
-      );
+      const el = this.getSeriesByName(seriesName);
+      if (!el) return { isHidden: false, realIndex: -1 };
       const realIndex = parseInt((_a = el.getAttribute("data:realIndex")) != null ? _a : "0", 10);
       const gl = this.w.globals;
       const isHidden = el.classList.contains("apexcharts-series-collapsed") || gl.collapsedSeriesIndices.includes(realIndex) || gl.ancillaryCollapsedSeriesIndices.includes(realIndex);
@@ -19664,9 +19713,9 @@ var __async = (__this, __arguments, generator) => {
      */
     toggleSeries(seriesName) {
       var _a;
-      const isSeriesHidden = this.isSeriesHidden(seriesName);
-      (_a = this._toggleDataSeries) == null ? void 0 : _a.call(this, isSeriesHidden.realIndex, isSeriesHidden.isHidden);
-      return isSeriesHidden.isHidden;
+      const { isHidden, realIndex } = this.isSeriesHidden(seriesName);
+      if (realIndex > -1) (_a = this._toggleDataSeries) == null ? void 0 : _a.call(this, realIndex, isHidden);
+      return isHidden;
     }
     /**
      * @param {string} seriesName
@@ -19684,7 +19733,7 @@ var __async = (__this, __arguments, generator) => {
     hideSeries(seriesName) {
       var _a;
       const isSeriesHidden = this.isSeriesHidden(seriesName);
-      if (!isSeriesHidden.isHidden) {
+      if (!isSeriesHidden.isHidden && isSeriesHidden.realIndex > -1) {
         (_a = this._toggleDataSeries) == null ? void 0 : _a.call(this, isSeriesHidden.realIndex, false);
       }
     }
@@ -19760,10 +19809,10 @@ var __async = (__this, __arguments, generator) => {
      * @param {any[]} series
      */
     emptyCollapsedSeries(series) {
-      const w = this.w;
+      const gl = this.w.globals;
       if (!Array.isArray(series)) return series;
       for (let i2 = 0; i2 < series.length; i2++) {
-        if (w.globals.collapsedSeriesIndices.indexOf(i2) > -1) {
+        if (gl.collapsedSeriesIndices.includes(i2) || gl.ancillaryCollapsedSeriesIndices.includes(i2)) {
           if (series[i2] && typeof series[i2] === "object") {
             series[i2].data = [];
           } else {
@@ -19969,9 +20018,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {'highlight'|'reset'} action
      */
     highlightRangeInSeries(rangeIndex, action) {
+      var _a, _b;
       const w = this.w;
+      const t2 = w.config.chart.type === "treemap" ? "treemap" : "heatmap";
       const allHeatMapElements = w.dom.baseEl.getElementsByClassName(
-        "apexcharts-heatmap-rect"
+        `apexcharts-${t2}-rect`
       );
       const toggleAllInactive = (op) => {
         for (let i2 = 0; i2 < allHeatMapElements.length; i2++) {
@@ -19988,14 +20039,23 @@ var __async = (__this, __arguments, generator) => {
         toggleAllInactive("remove");
         return;
       }
-      const ranges = w.config.plotOptions.heatmap.colorScale.ranges;
+      const ranges = w.config.plotOptions[t2].colorScale.ranges;
       const range = ranges && ranges[rangeIndex];
       if (!range) return;
       toggleAllInactive("add");
       for (let i2 = 0; i2 < allHeatMapElements.length; i2++) {
-        const val = Number(allHeatMapElements[i2].getAttribute("val"));
+        const el = allHeatMapElements[i2];
+        const val = Number(
+          (_b = el.getAttribute("val")) != null ? _b : (_a = w.seriesData.series[
+            /** @type {any} */
+            el.getAttribute("i")
+          ]) == null ? void 0 : _a[
+            /** @type {any} */
+            el.getAttribute("j")
+          ]
+        );
         if (val >= range.from && val <= range.to) {
-          allHeatMapElements[i2].classList.remove(this.legendInactiveClass);
+          el.classList.remove(this.legendInactiveClass);
         }
       }
     }
@@ -20009,10 +20069,7 @@ var __async = (__this, __arguments, generator) => {
         const activeSeriesIndex = w.config.series.map((s2, index) => {
           const checkChartType = () => {
             if (w.globals.comboCharts) {
-              return chartTypes.length === 0 || chartTypes.length && chartTypes.indexOf(
-                /** @type {Record<string,any>} */
-                w.config.series[index].type
-              ) > -1;
+              return chartTypes.length === 0 || chartTypes.length && chartTypes.indexOf(s2.type || w.config.chart.type) > -1;
             }
             return true;
           };
@@ -20050,7 +20107,7 @@ var __async = (__this, __arguments, generator) => {
         let last = -1;
         w.config.series.forEach((s2, i2) => {
           if (w.labelData.seriesGroupIndex[i2] !== gi) return;
-          if (w.globals.comboCharts && chartTypes.length && chartTypes.indexOf(s2.type) === -1) {
+          if (w.globals.comboCharts && chartTypes.length && chartTypes.indexOf(s2.type || w.config.chart.type) === -1) {
             return;
           }
           const hasData = s2.data && s2.data.length > 0 && w.globals.collapsedSeriesIndices.indexOf(i2) === -1;
@@ -20063,7 +20120,8 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       if (w.globals.comboCharts) {
         return this.w.config.series.map((s2, i2) => {
-          return s2.type === "bar" || s2.type === "column" ? i2 : -1;
+          const t2 = s2.type || w.config.chart.type;
+          return t2 === "bar" || t2 === "column" ? i2 : -1;
         }).filter((i2) => {
           return i2 !== -1;
         });
@@ -20118,6 +20176,11 @@ var __async = (__this, __arguments, generator) => {
         for (let j2 = 0; j2 < paths.length; j2++) {
           if (paths[j2].hasAttribute("pathTo")) {
             const d = (type === "line" || type === "area") && paths[j2].getAttribute("d") || paths[j2].getAttribute("pathTo");
+            if (paths[j2].classList.contains("apexcharts-raincloud-box")) {
+              const body = dArr.paths[dArr.paths.length - 1];
+              if (body) (body.box || (body.box = [])).push(d);
+              continue;
+            }
             dArr.paths.push({
               d,
               key: paths[j2].getAttribute("data:pathKey"),
@@ -20141,7 +20204,8 @@ var __async = (__this, __arguments, generator) => {
         "rangeArea",
         "candlestick",
         "boxPlot",
-        "radar"
+        "radar",
+        "violin"
       ];
       chartTypes.forEach((type) => {
         const paths = getPaths(type);
@@ -20716,7 +20780,7 @@ var __async = (__this, __arguments, generator) => {
     applyColorTypes(colorTypes, defaultColors) {
       const w = this.w;
       colorTypes.forEach((c) => {
-        w.globals[c].colors = w.config[c].colors === void 0 ? this.isColorFn ? w.config.colors.slice() : defaultColors : w.config[c].colors.slice();
+        w.globals[c].colors = w.config[c].colors === void 0 ? this.isColorFn && w.config.colors ? w.config.colors.slice() : defaultColors : w.config[c].colors.slice();
         this.pushExtraColors(
           /** @type {Record<string,any>} */
           w.globals[c].colors
@@ -22565,6 +22629,7 @@ var __async = (__this, __arguments, generator) => {
       const { w, ctx } = this;
       const { config: cnf, globals: gl } = w;
       const { line, boxCandlestick, violin } = renderers;
+      if (cnf.chart.type !== "unit") ctx._unitPrevDots = null;
       let elGraph = [];
       if (gl.comboCharts) {
         const coreUtils = new CoreUtils(this.w);
@@ -23263,26 +23328,33 @@ var __async = (__this, __arguments, generator) => {
     const list = dd && Array.isArray(dd.series) ? dd.series : [];
     return list.find((s2) => s2 && s2.id === id);
   }
-  function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+  function segment(name2, seen) {
+    var _a;
+    const n2 = String(name2).replace(/\//g, "%2F");
+    const o2 = ((_a = seen.get(n2)) != null ? _a : -1) + 1;
+    seen.set(n2, o2);
+    return `${o2}:${n2}`;
+  }
+  function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
     var _a, _b, _c;
     const isObj = d && typeof d === "object";
     const name2 = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-    const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+    const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+    const value = raw == null || raw === "" ? NaN : Number(raw);
     const node = {
       name: String(name2),
       value: isNaN(value) ? null : value,
       color: isObj && d.color ? d.color : void 0,
-      // Identity across data updates: the path of names (indexed so same-named
-      // siblings stay distinct). Update animations morph matched keys in place.
-      _key: `${parentKey}/${i2}:${name2}`
+      _key: `${parentKey}/${segment(name2, seen)}`
     };
     if (paletteFromParent && !node.color) {
       node.color = paletteFromParent[i2 % paletteFromParent.length];
     }
     if (opts.keepDatum) node._datum = d;
+    const kids = /* @__PURE__ */ new Map();
     if (isObj && Array.isArray(d.children) && d.children.length) {
       node.children = d.children.map(
-        (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts)
+        (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts, kids)
       );
     } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
       const visited = seenIds || /* @__PURE__ */ new Set();
@@ -23293,7 +23365,7 @@ var __async = (__this, __arguments, generator) => {
           nextSeen.add(d.drilldown);
           const palette = Array.isArray(dd.colors) ? dd.colors : null;
           node.children = dd.data.map(
-            (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts)
+            (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts, kids)
           );
         }
       }
@@ -23306,10 +23378,12 @@ var __async = (__this, __arguments, generator) => {
       series || w.config.series
     );
     if (!Array.isArray(cfgSeries)) return [];
+    const seen = /* @__PURE__ */ new Map();
     return cfgSeries.map((s2, i2) => {
       var _a, _b;
       const data = s2 && Array.isArray(s2.data) ? s2.data : [];
-      const key = `${i2}:${(_a = s2 == null ? void 0 : s2.name) != null ? _a : ""}`;
+      const key = segment((_a = s2 == null ? void 0 : s2.name) != null ? _a : "", seen);
+      const kids = /* @__PURE__ */ new Map();
       const root = {
         name: String((_b = s2 == null ? void 0 : s2.name) != null ? _b : ""),
         value: null,
@@ -23317,7 +23391,7 @@ var __async = (__this, __arguments, generator) => {
         _key: key,
         _seriesIndex: i2,
         children: data.map(
-          (d, j2) => toNode(w, d, j2, null, key, null, opts)
+          (d, j2) => toNode(w, d, j2, null, key, null, opts, kids)
         )
       };
       return root;
@@ -23445,7 +23519,7 @@ var __async = (__this, __arguments, generator) => {
     var _a;
     if (!d || typeof d !== "object") return Utils$1.parseNumber(d) || 0;
     const v = (_a = d.y) != null ? _a : d.value;
-    if (v != null) return Utils$1.parseNumber(v) || 0;
+    if (v != null && v !== "") return Utils$1.parseNumber(v) || 0;
     if (!Array.isArray(d.children)) return 0;
     return d.children.reduce(
       (s2, c) => s2 + Math.max(0, subtreeTotal(c)),
@@ -24171,13 +24245,18 @@ var __async = (__this, __arguments, generator) => {
         }
       });
       this.coreUtils.setSeriesYAxisMappings();
-      const buckets = [];
-      const groups = [
-        ...new Set(cnf.series.map((s2) => s2.group))
-      ];
-      this.w.labelData.seriesGroupIndex = cnf.series.map(
+      const rev = this.w.globals.seriesYAxisReverseMap;
+      const keys = cnf.series.map(
         (s2, i2) => {
-          const index = groups.indexOf(s2.group);
+          var _a2;
+          return (_a2 = s2.group) != null ? _a2 : "apexcharts-axis-" + rev[i2];
+        }
+      );
+      const buckets = [];
+      const groups = [...new Set(keys)];
+      this.w.labelData.seriesGroupIndex = keys.map(
+        (k, i2) => {
+          const index = groups.indexOf(k);
           if (!buckets[index]) buckets[index] = [];
           buckets[index].push(this.w.seriesData.seriesNames[i2]);
           return index;
@@ -24460,12 +24539,12 @@ var __async = (__this, __arguments, generator) => {
             if (rootColors && x !== void 0) {
               rootColors[labels.length] = dataPoint.color;
             }
-            if (x !== void 0 && y !== void 0) {
-              labels.push(String(x));
-              values.push(Utils$1.parseNumber(y));
-            } else if (x !== void 0 && Array.isArray(dataPoint.children)) {
+            if (x !== void 0 && Array.isArray(dataPoint.children)) {
               labels.push(String(x));
               values.push(subtreeTotal(dataPoint));
+            } else if (x !== void 0 && y !== void 0) {
+              labels.push(String(x));
+              values.push(Utils$1.parseNumber(y));
             } else {
               console.warn(
                 "ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:",
@@ -26403,6 +26482,13 @@ var __async = (__this, __arguments, generator) => {
       return markers.length > 0;
     }
     /**
+     * Whether any visible series has a marker node, its points' or its hover
+     * dot's.
+     */
+    hasVisibleMarkers() {
+      return this.getAllMarkers(true).some(Boolean);
+    }
+    /**
      * @param {any} point
      * @param {number} size
      */
@@ -26848,11 +26934,11 @@ var __async = (__this, __arguments, generator) => {
      */
     placeAroundCell(cell, plot, {
       el = null,
-      ttWidth = ((_a) => (_a = this.ttCtx.tooltipRect) == null ? void 0 : _a.ttWidth)() || 0,
-      ttHeight = ((_b) => (_b = this.ttCtx.tooltipRect) == null ? void 0 : _b.ttHeight)() || 0
+      ttWidth = ((_b) => (_b = this.ttCtx.tooltipRect) == null ? void 0 : _b.ttWidth)() || 0,
+      ttHeight = ((_c) => (_c = this.ttCtx.tooltipRect) == null ? void 0 : _c.ttHeight)() || 0
     } = {}) {
-      var _a2;
-      if (!((_a2 = el == null ? void 0 : el.closest) == null ? void 0 : _a2.call(el, '[clip-path*="heatmapHexMask"]'))) {
+      var _a;
+      if (!((_a = el == null ? void 0 : el.closest) == null ? void 0 : _a.call(el, '[clip-path*="heatmapHexMask"]'))) {
         cell = this._visiblePart(cell, plot);
       }
       return this._placeAround(placeAroundCell, cell, plot, {
@@ -26923,11 +27009,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ ttWidth?: number, ttHeight?: number, side?: 'left'|'right'|null, beside?: boolean }} [opts]
      * @returns {import('./placement').CellPlacement}
      */
-    _placeAround(decide, mark, plot, _e = {}) {
-      var _f = _e, {
-        ttWidth = ((_c) => (_c = this.ttCtx.tooltipRect) == null ? void 0 : _c.ttWidth)() || 0,
-        ttHeight = ((_d) => (_d = this.ttCtx.tooltipRect) == null ? void 0 : _d.ttHeight)() || 0
-      } = _f, rest = __objRest(_f, [
+    _placeAround(decide, mark, plot, _f = {}) {
+      var _g = _f, {
+        ttWidth = ((_d) => (_d = this.ttCtx.tooltipRect) == null ? void 0 : _d.ttWidth)() || 0,
+        ttHeight = ((_e) => (_e = this.ttCtx.tooltipRect) == null ? void 0 : _e.ttHeight)() || 0
+      } = _g, rest = __objRest(_g, [
         "ttWidth",
         "ttHeight"
       ]);
@@ -31111,16 +31197,22 @@ var __async = (__this, __arguments, generator) => {
         ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues({}, commonSeriesTextsParams), {
           shared: this.showOnIntersect ? false : this.tConfig.shared
         }));
-        if (hasMarkers || dynamicPoints) {
+        const capturedPoints = hasMarkers || dynamicPoints;
+        if (capturedPoints || w.globals.comboCharts && !canvasMode && this.tooltipUtil.hasVisibleMarkers()) {
           handlePoints();
-        } else if (this.tooltipUtil.hasBars()) {
+        }
+        if (this.tooltipUtil.hasBars()) {
           if (canvasMode) {
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            if (!capturedPoints) {
+              ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            }
           } else if ([...bars].some((b) => b.querySelector("path"))) {
             const graphics = new Graphics(this.w, this.ctx);
             const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j2}']`);
             this.deactivateHoverFilter();
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            if (!capturedPoints) {
+              ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            }
             for (let b = 0; b < paths.length; b++) {
               graphics.pathMouseEnter(
                 /** @type {any} */
@@ -31321,7 +31413,8 @@ var __async = (__this, __arguments, generator) => {
           this._activate(desired, this._instances[desired]);
           return this._activeKind;
         }
-        if (mode === desired) {
+        if (mode === desired && !this._warned) {
+          this._warned = 1;
           warnMissingFeature(
             `\`chart.renderer: '${desired}'\``,
             `renderer-${desired}`,
@@ -31330,10 +31423,16 @@ var __async = (__this, __arguments, generator) => {
             }
           );
         }
-      } else if (mode === "canvas" && hasCanvasUnsupportedFeature(this.w)) {
+      } else if (mode === "canvas" && !this._warned && hasCanvasUnsupportedFeature(this.w)) {
+        this._warned = 1;
         console.warn(
           `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
         );
+      }
+      const prev = this._instances[this._activeKind];
+      if (prev) {
+        prev.destroy();
+        delete this._instances[this._activeKind];
       }
       this._activate("svg", this.svg);
       return this._activeKind;
@@ -32585,7 +32684,7 @@ var __async = (__this, __arguments, generator) => {
       if (isUpdating) {
         this.ctx._zoomPanSelection = null;
         this.ctx._toolbar = null;
-        (_e = this.ctx._keyboardNavigation) == null ? void 0 : _e.destroy();
+        (_e = this.ctx._keyboardNavigation) == null ? void 0 : _e.destroy(true);
         this.ctx._keyboardNavigation = null;
       } else {
         (_f = this.ctx.perspectives) == null ? void 0 : _f.teardown();
@@ -32871,7 +32970,7 @@ var __async = (__this, __arguments, generator) => {
       ros.delete(fn);
     }
   }
-  const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-pie-label-delay,.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.3s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-unit-label-delay{animation-duration:.5s}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
+  const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-pie-label-delay,.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.3s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-unit-label-delay{animation-duration:.5s}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
   const e = globalThis.console;
   function t(t2, ...s2) {
     e.error(t2, ...s2);
@@ -33817,6 +33916,7 @@ var __async = (__this, __arguments, generator) => {
           if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled && w.config.chart.accessibility.keyboard.navigation.enabled) {
             (_i = me.keyboardNavigation) == null ? void 0 : _i.init();
           }
+          w.interact.keyNav = null;
           if (Environment.isBrowser() && w.globals.axisCharts && (w.axisFlags.isXNumeric || /** @type {Record<string,any>} */
           w.config.xaxis.convertedCatToNumeric || w.axisFlags.isRangeBar)) {
             if (w.config.chart.zoom.enabled || w.config.chart.selection && w.config.chart.selection.enabled || // @ts-ignore — chart.pan is an internal toolbar config property
@@ -35121,21 +35221,19 @@ var __async = (__this, __arguments, generator) => {
      * Returns the highest y value in the specified series.
      *
      * @param {number} [seriesIndex=0]
-     * @returns {number}
+     * @returns {number | undefined}
      */
     getHighestValueInSeries(seriesIndex = 0) {
-      const range = new Range(this.w);
-      return range.getMinYMaxY(seriesIndex).highestY;
+      return this.w.seriesData.series[seriesIndex] && new Range(this.w).getMinYMaxY(seriesIndex).highestY;
     }
     /**
      * Returns the lowest y value in the specified series.
      *
      * @param {number} [seriesIndex=0]
-     * @returns {number}
+     * @returns {number | undefined}
      */
     getLowestValueInSeries(seriesIndex = 0) {
-      const range = new Range(this.w);
-      return range.getMinYMaxY(seriesIndex).lowestY;
+      return this.w.seriesData.series[seriesIndex] && new Range(this.w).getMinYMaxY(seriesIndex).lowestY;
     }
     /**
      * Returns the sum of each series (the totals used for percentage calculations).

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -106,26 +106,33 @@ function drilldownById(w, id) {
   const list = dd && Array.isArray(dd.series) ? dd.series : [];
   return list.find((s) => s && s.id === id);
 }
-function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+function segment(name, seen) {
+  var _a;
+  const n = String(name).replace(/\//g, "%2F");
+  const o = ((_a = seen.get(n)) != null ? _a : -1) + 1;
+  seen.set(n, o);
+  return `${o}:${n}`;
+}
+function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
   var _a, _b, _c;
   const isObj = d && typeof d === "object";
   const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-  const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+  const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+  const value = raw == null || raw === "" ? NaN : Number(raw);
   const node = {
     name: String(name),
     value: isNaN(value) ? null : value,
     color: isObj && d.color ? d.color : void 0,
-    // Identity across data updates: the path of names (indexed so same-named
-    // siblings stay distinct). Update animations morph matched keys in place.
-    _key: `${parentKey}/${i}:${name}`
+    _key: `${parentKey}/${segment(name, seen)}`
   };
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i % paletteFromParent.length];
   }
   if (opts.keepDatum) node._datum = d;
+  const kids = /* @__PURE__ */ new Map();
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
-      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
+      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts, kids)
     );
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
@@ -136,7 +143,7 @@ function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}
         nextSeen.add(d.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
+          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts, kids)
         );
       }
     }
@@ -151,8 +158,9 @@ function buildHierarchy(w, opts = {}) {
   const first = cfgSeries && cfgSeries[0];
   const data = first && Array.isArray(first.data) ? first.data : cfgSeries;
   if (!Array.isArray(data)) return [];
+  const seen = /* @__PURE__ */ new Map();
   return data.map(
-    (d, i) => toNode(w, d, i, null, "", null, opts)
+    (d, i) => toNode(w, d, i, null, "", null, opts, seen)
   );
 }
 function fillValues(node) {
@@ -277,8 +285,18 @@ function resolveFocus(node, current, roots) {
   if (next && !(next.children && next.children.length)) {
     next = next._parent || null;
   }
+  if (roots && roots.length === 1 && next === roots[0]) next = null;
   if (next === current) return { changed: false, focus: current };
   return { changed: true, focus: next };
+}
+function focusByKey(key, nodesAll, roots) {
+  var _a;
+  const f = key && nodesAll.find((n) => n._key === key);
+  return f && ((_a = f.children) == null ? void 0 : _a.length) && !(roots.length === 1 && f === roots[0]) ? f : null;
+}
+function setZoomCursor(chart, node) {
+  if (!Environment.isBrowser() || chart.cfg.zoomOnClick === false) return;
+  node._el.node.style.cursor = resolveFocus(node, chart._focus, chart._roots).changed ? "pointer" : "default";
 }
 function parseSize(size, max, fallbackRatio = 0) {
   if (typeof size === "number") return size;
@@ -351,6 +369,7 @@ class NodeTooltip {
    * @param {any} node
    */
   show(e, node) {
+    var _a;
     const t = this._tip();
     if (!t) return;
     const w = this.w;
@@ -358,7 +377,10 @@ class NodeTooltip {
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
     const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const ty = w.config.tooltip.y;
+    const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
+    const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
+    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
     t.classList.add("apexcharts-active");
     t.style.opacity = "1";
     this.position(e);
@@ -446,14 +468,19 @@ class SunburstChart {
     this.centerY = gh / 2 + (this.cfg.offsetY || 0);
     this.maxRadius = Math.min(gw, gh) / 2.05 - this.strokeWidth - (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0);
     if (this.maxRadius < 5) return g;
-    this._roots = this._buildHierarchy();
+    this._roots = buildHierarchy(w);
     if (!this._roots.length) return g;
-    this._roots.forEach((r) => this._fillValues(r));
+    this._roots.forEach(fillValues);
     this._validateStrict();
     this._nodesAll = [];
     const colors = w.globals.colors || [];
     this._roots.forEach((r, i) => {
-      this._colorPass(r, r.color || colors[i % colors.length] || "#008FFB");
+      colorPass(
+        r,
+        r.color || colors[i % colors.length] || "#008FFB",
+        this.cfg.tint,
+        this._nodesAll
+      );
     });
     this.total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1;
     this._tooltip.total = this.total;
@@ -461,13 +488,17 @@ class SunburstChart {
     this._labelsG = graphics.group({ class: "apexcharts-sunburst-labels" });
     g.add(this._ringsG);
     g.add(this._labelsG);
-    this._focus = null;
+    this._focus = focusByKey(
+      w.globals.sunburstFocusKey,
+      this._nodesAll,
+      this._roots
+    );
     this._relayout(this._focus);
     const anims = w.config.chart.animations;
     let mode = "none";
     if (anims.enabled) {
       if (w.globals.dataChanged) {
-        if (anims.dynamicAnimation.enabled) mode = "update";
+        if (w.globals.shouldAnimate !== false) mode = "update";
       } else if (!w.globals.resized) {
         mode = "intro";
       }
@@ -477,22 +508,6 @@ class SunburstChart {
     return g;
   }
   // ------------------------------------------------------------------ data
-  /**
-   * Resolve the config into root nodes `{ name, value, color?, children? }`.
-   * Each datum may carry `children` (native) or `drilldown: '<id>'` (adapter).
-   * Shared with the treemap - see charts/common/Hierarchy.
-   * @returns {any[]}
-   */
-  _buildHierarchy() {
-    return buildHierarchy(this.w);
-  }
-  /**
-   * Fill a parent's value from its children when missing.
-   * @param {any} node
-   */
-  _fillValues(node) {
-    fillValues(node);
-  }
   /**
    * With `partition: 'strict'`, warn (once) when a parent's value does not
    * match the sum of its children. The angles are still normalized to fill the
@@ -506,22 +521,13 @@ class SunburstChart {
       remedy: "Angles are normalized to fill the wedge."
     });
   }
-  /**
-   * Assign a colour to every node (explicit `color` wins, else the parent's
-   * colour tinted lighter). Done once so zoom preserves colours.
-   * Shared with the icicle - see charts/common/partition/Tint.
-   * @param {any} node
-   * @param {string} color
-   */
-  _colorPass(node, color) {
-    colorPass(node, color, this.cfg.tint, this._nodesAll);
-  }
   // ---------------------------------------------------------------- layout
   /**
    * Recompute visibility + angles + radii for a focus node (null = whole tree).
    * @param {any} focus
    */
   _relayout(focus) {
+    this.w.globals.sunburstFocusKey = focus && focus._key;
     this._focusMaxDepth = placeTree({
       roots: this._roots,
       nodesAll: this._nodesAll,
@@ -562,14 +568,15 @@ class SunburstChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     const anims = w.config.chart.animations;
-    const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+    const dyn = anims.dynamicAnimation;
+    const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
     const gen = ++this._zoomGen;
     const morph = (
       /** @type {any} */
-      (_a = this.ctx) == null ? void 0 : _a.morphTypeChange
+      (_c = this.ctx) == null ? void 0 : _c.morphTypeChange
     );
     const morphActive = !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialPathAt === "function";
     const morphDur = morphActive ? morph.getSpeed() : 0;
@@ -578,6 +585,11 @@ class SunburstChart {
       /** @type {any} */
       this.ctx._sunburstPrevGeoms
     ) : null;
+    const geo = (n) => n._cur || { a0: n._t0, a1: n._t1, iR: n._iR, oR: n._oR };
+    const pinch = (c) => {
+      const m = (c.a0 + c.a1) / 2;
+      return { a0: m, a1: m, iR: c.iR, oR: c.iR };
+    };
     this._nodesAll.forEach((node) => {
       if (node._show) {
         const target = {
@@ -587,36 +599,55 @@ class SunburstChart {
           oR: node._oR
         };
         if (!node._el) node._el = this._createArcEl(node);
+        setZoomCursor(this, node);
         const morphFrom = morphActive ? this._morphSourceFor(node) : null;
         if (morphFrom && morphDur > 0) {
           this._morphArcFrom(node, morphFrom, target, morphDur, gen);
         } else if ((mode === "intro" || morphActive) && dur > 0) {
           this._sweepArc(node, target, morphActive ? morphDur : dur, gen);
         } else {
-          let from;
-          let isNew = false;
-          if (node._cur) {
-            from = node._cur;
-          } else if (prev && prev.get(node._key)) {
-            from = prev.get(node._key);
-          } else {
-            const mid = (target.a0 + target.a1) / 2;
-            from = { a0: mid, a1: mid, iR: target.iR, oR: target.iR };
-            isNew = true;
-          }
-          this._animateArc(node, from, target, dur, false, isNew, gen);
+          const p = prev && prev.get(node._key);
+          const from = node._cur || (p ? geo(p) : pinch(target));
+          this._animateArc(node, from, target, dur, false, !node._cur && !p, gen);
         }
       } else if (node._el && node._cur) {
-        const mid = (node._cur.a0 + node._cur.a1) / 2;
-        const target = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR };
-        this._animateArc(node, node._cur, target, dur, true, false, gen);
+        this._animateArc(node, node._cur, pinch(node._cur), dur, true, false, gen);
       }
     });
+    if (prev && dur && !morphActive) {
+      const keys = new Set(this._nodesAll.map((n) => n._show && n._key));
+      prev.forEach((p, k) => {
+        if (keys.has(k) || !(p._show || p._cur)) return;
+        const el = this._graphics.drawPath({
+          fill: p._color,
+          stroke: this.strokeColor,
+          strokeWidth: this.strokeWidth,
+          classes: "apexcharts-sunburst-arc"
+        });
+        el.node.setAttribute("data:name", p.name);
+        this._ringsG.add(el.attr({ opacity: p._el.attr("opacity") }));
+        const c = geo(p);
+        const g = { _el: el, _color: p._color, name: p.name, _key: k, _cur: c };
+        this._nodesAll.push(g);
+        this._animateArc(g, c, pinch(c), dur, true, false, gen);
+      });
+    }
+    const end = Math.max(dur, morphDur);
+    if (end) {
+      this._ringsG.animate(end).after(() => {
+        if (this._zoomGen === gen && this._ringsG.node.isConnected)
+          new Animations(
+            w,
+            /** @type {any} */
+            this.ctx
+          ).animationCompleted(
+            this._ringsG.node
+          );
+      });
+    } else w.globals.animationEnded = true;
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n) => {
-      if (n._show) {
-        geoms.set(n._key, { a0: n._t0, a1: n._t1, iR: n._iR, oR: n._oR });
-      }
+      if (n._show || n._cur) geoms.set(n._key, n);
     });
     this.ctx._sunburstPrevGeoms = geoms;
     this._renderLabels(dur);
@@ -733,11 +764,9 @@ class SunburstChart {
    */
   _createArcEl(node) {
     const path = this._graphics.drawPath({
-      d: "",
       fill: node._color,
       stroke: this.strokeColor,
       strokeWidth: this.strokeWidth,
-      fillOpacity: 1,
       classes: "apexcharts-sunburst-arc"
     });
     const el = path.node;
@@ -749,9 +778,8 @@ class SunburstChart {
       String(!(node.children && node.children.length))
     );
     this._tooltip.attach(el, node);
-    if (Environment.isBrowser()) {
+    if (Environment.isBrowser() && this.cfg.zoomOnClick !== false) {
       el.addEventListener("click", () => this._zoomTo(node));
-      el.style.cursor = "pointer";
     }
     this._ringsG.add(path);
     return path;
@@ -815,11 +843,12 @@ class SunburstChart {
       if (node._t1 - node._t0 < this.cfg.dataLabels.minAngleToShow) return;
       this._renderCurvedLabel(node);
     });
+    const gen = this._zoomGen;
+    labelsG.attr({ opacity: dur > 0 ? 0 : 1 });
     if (dur > 0) {
-      labelsG.attr({ opacity: 0 });
-      labelsG.animate(250, dur).attr({ opacity: 1 });
-    } else {
-      labelsG.attr({ opacity: 1 });
+      labelsG.animate(250, dur).during((p) => {
+        if (this._zoomGen === gen) labelsG.attr({ opacity: p });
+      });
     }
   }
   /**
@@ -828,11 +857,10 @@ class SunburstChart {
    * @param {any} node
    */
   _renderCurvedLabel(node) {
-    if (!Environment.isBrowser()) return;
     const style = this.cfg.dataLabels.style;
     const w = this.w;
     const r = (node._iR + node._oR) / 2;
-    const mid = (node._t0 + node._t1) / 2;
+    const mid = ((node._t0 + node._t1) / 2 % 360 + 360) % 360;
     const flip = mid > 90 && mid < 270;
     const padDeg = Math.min(r > 0 ? 4 / r * R2D : 0, (node._t1 - node._t0) / 2);
     const from = flip ? node._t1 - padDeg : node._t0 + padDeg;
@@ -893,16 +921,12 @@ class SunburstChart {
    */
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return;
-    const next = resolveFocus(node, this._focus);
+    const next = resolveFocus(node, this._focus, this._roots);
     if (!next.changed) return;
     this._focus = next.focus;
     this._relayout(this._focus);
     this._applyLayout("zoom");
     this._renderBreadcrumb();
-  }
-  /** Root -> focus chain of nodes. */
-  _focusChain() {
-    return focusChain(this._focus);
   }
   /**
    * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
@@ -923,7 +947,7 @@ class SunburstChart {
     nav.style.top = "0px";
     nav.style.left = "0px";
     const crumbs = [{ name: "All", node: null }].concat(
-      this._focusChain().map((n) => ({ name: n.name, node: n }))
+      focusChain(this._focus).map((n) => ({ name: n.name, node: n }))
     );
     crumbs.forEach((crumb, i) => {
       if (i > 0) {
@@ -965,21 +989,7 @@ class SunburstChart {
       }
     });
     elWrap.appendChild(nav);
-    this._avoidChromeOverlap(nav);
-  }
-  /**
-   * The breadcrumb is an absolute overlay at top-left, so it can sit on top of
-   * a left-aligned title (or subtitle). After mounting, push it below any chart
-   * chrome it intersects. (Duplicated from drilldown's Breadcrumb on purpose —
-   * sunburst must not import the drilldown feature.)
-   * @param {any} nav
-   */
-  /**
-   * Shared with the treemap - see charts/common/Breadcrumb.
-   * @param {any} nav
-   */
-  _avoidChromeOverlap(nav) {
-    avoidChromeOverlap(this.w, nav);
+    avoidChromeOverlap(w, nav);
   }
   // ------------------------------------------------------------ geometry
   /**

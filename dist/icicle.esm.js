@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -29,26 +29,33 @@ function drilldownById(w, id) {
   const list = dd && Array.isArray(dd.series) ? dd.series : [];
   return list.find((s) => s && s.id === id);
 }
-function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+function segment(name, seen) {
+  var _a;
+  const n = String(name).replace(/\//g, "%2F");
+  const o = ((_a = seen.get(n)) != null ? _a : -1) + 1;
+  seen.set(n, o);
+  return `${o}:${n}`;
+}
+function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
   var _a, _b, _c;
   const isObj = d && typeof d === "object";
   const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-  const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+  const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+  const value = raw == null || raw === "" ? NaN : Number(raw);
   const node = {
     name: String(name),
     value: isNaN(value) ? null : value,
     color: isObj && d.color ? d.color : void 0,
-    // Identity across data updates: the path of names (indexed so same-named
-    // siblings stay distinct). Update animations morph matched keys in place.
-    _key: `${parentKey}/${i}:${name}`
+    _key: `${parentKey}/${segment(name, seen)}`
   };
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i % paletteFromParent.length];
   }
   if (opts.keepDatum) node._datum = d;
+  const kids = /* @__PURE__ */ new Map();
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
-      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
+      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts, kids)
     );
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
@@ -59,7 +66,7 @@ function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}
         nextSeen.add(d.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
+          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts, kids)
         );
       }
     }
@@ -74,8 +81,9 @@ function buildHierarchy(w, opts = {}) {
   const first = cfgSeries && cfgSeries[0];
   const data = first && Array.isArray(first.data) ? first.data : cfgSeries;
   if (!Array.isArray(data)) return [];
+  const seen = /* @__PURE__ */ new Map();
   return data.map(
-    (d, i) => toNode(w, d, i, null, "", null, opts)
+    (d, i) => toNode(w, d, i, null, "", null, opts, seen)
   );
 }
 function fillValues(node) {
@@ -212,7 +220,7 @@ function renderBreadcrumb(w, opts) {
     text.setAttribute("class", "apexcharts-breadcrumb-label");
     text.textContent = String(label);
     btn.appendChild(text);
-    btn.addEventListener("click", () => opts.onNavigate(i, crumb));
+    btn.addEventListener("click", (e) => opts.onNavigate(i, crumb, e));
     nav.appendChild(btn);
   });
   elWrap.appendChild(nav);
@@ -332,6 +340,15 @@ function resolveFocus(node, current, roots) {
   if (next === current) return { changed: false, focus: current };
   return { changed: true, focus: next };
 }
+function focusByKey(key, nodesAll, roots) {
+  var _a;
+  const f = key && nodesAll.find((n) => n._key === key);
+  return f && ((_a = f.children) == null ? void 0 : _a.length) && !(roots.length === 1 && f === roots[0]) ? f : null;
+}
+function setZoomCursor(chart, node) {
+  if (!Environment.isBrowser() || chart.cfg.zoomOnClick === false) return;
+  node._el.node.style.cursor = resolveFocus(node, chart._focus, chart._roots).changed ? "pointer" : "default";
+}
 function parseSize(size, max, fallbackRatio = 0) {
   if (typeof size === "number") return size;
   const s = String(size).trim();
@@ -403,6 +420,7 @@ class NodeTooltip {
    * @param {any} node
    */
   show(e, node) {
+    var _a;
     const t = this._tip();
     if (!t) return;
     const w = this.w;
@@ -410,7 +428,10 @@ class NodeTooltip {
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
     const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const ty = w.config.tooltip.y;
+    const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
+    const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
+    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
     t.classList.add("apexcharts-active");
     t.style.opacity = "1";
     this.position(e);
@@ -493,6 +514,8 @@ class IcicleChart {
     this._roots = buildHierarchy(this.w);
     if (!this._roots.length) return g;
     this._roots.forEach((r) => fillValues(r));
+    this._nodesAll = [];
+    this._colorNodes();
     sortTree(this._roots, this.cfg.sort);
     if (this.cfg.partition === "strict") {
       validateStrict(this._roots, {
@@ -500,15 +523,17 @@ class IcicleChart {
         remedy: "Extents are normalized to fill the parent."
       });
     }
-    this._nodesAll = [];
-    this._colorNodes();
     this.total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1;
     this._tooltip.total = this.total;
     this._cellsG = graphics.group({ class: "apexcharts-icicle-cells" });
     this._labelsG = graphics.group({ class: "apexcharts-icicle-labels" });
     g.add(this._cellsG);
     g.add(this._labelsG);
-    this._focus = null;
+    this._focus = focusByKey(
+      w.globals.icicleFocusKey,
+      this._nodesAll,
+      this._roots
+    );
     this._relayout(this._focus);
     const anims = w.config.chart.animations;
     let mode = "none";
@@ -539,7 +564,7 @@ class IcicleChart {
     const fallback = colors[0] || "#008FFB";
     let level = this._roots;
     const trunk = [];
-    while (level.length === 1 && level[0].children && level[0].children.length > 1) {
+    while (level.length === 1 && level[0].children && level[0].children.length) {
       trunk.push(level[0]);
       level = level[0].children;
     }
@@ -571,6 +596,7 @@ class IcicleChart {
    * @param {any} focus
    */
   _relayout(focus) {
+    this.w.globals.icicleFocusKey = focus && focus._key;
     const extent = this._valueExtent();
     const maxDepth = this.cfg.maxDepth;
     const capLevels = typeof maxDepth === "number" && maxDepth > 0 ? maxDepth : 0;
@@ -686,9 +712,11 @@ class IcicleChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
+    var _a, _b;
     const w = this.w;
     const anims = w.config.chart.animations;
-    const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" || mode === "zoom" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+    const dyn = anims.dynamicAnimation;
+    const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
     const gen = ++this._zoomGen;
     const prev = mode === "update" ? (
       /** @type {any} */
@@ -699,7 +727,7 @@ class IcicleChart {
         const to = this._box(node);
         if (!node._el) node._el = this._createCellEl(node);
         node._el.node.setAttribute("data:clipped", String(!!node._clipped));
-        this._setCursor(node);
+        setZoomCursor(this, node);
         if (mode === "intro" && dur > 0) {
           this._wipeCell(node, to, dur, gen);
           return;
@@ -709,7 +737,7 @@ class IcicleChart {
         if (node._cur) {
           from = node._cur;
         } else if (prev && prev.get(node._key)) {
-          from = prev.get(node._key);
+          from = prev.get(node._key)();
         } else {
           from = {
             x: to.x + to.w / 2,
@@ -733,7 +761,8 @@ class IcicleChart {
     });
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n) => {
-      if (n._show) geoms.set(n._key, this._box(n));
+      const b = this._box(n);
+      if (n._show) geoms.set(n._key, () => n._cur || b);
     });
     this.ctx._iciclePrevGeoms = geoms;
     this._renderLabels(dur);
@@ -890,11 +919,12 @@ class IcicleChart {
       this._renderLabel(node);
       if (node._clipped) this._renderMoreMark(node);
     });
+    const gen = this._zoomGen;
+    labelsG.attr({ opacity: dur > 0 ? 0 : 1 });
     if (dur > 0) {
-      labelsG.attr({ opacity: 0 });
-      labelsG.animate(250, dur).attr({ opacity: 1 });
-    } else {
-      labelsG.attr({ opacity: 1 });
+      labelsG.animate(250, dur).during((p) => {
+        if (this._zoomGen === gen) labelsG.attr({ opacity: p });
+      });
     }
   }
   /**
@@ -907,7 +937,6 @@ class IcicleChart {
    * @param {any} node
    */
   _renderLabel(node) {
-    if (!Environment.isBrowser()) return;
     const dl = this.cfg.dataLabels;
     const style = dl.style;
     const box = this._box(node);
@@ -920,7 +949,7 @@ class IcicleChart {
     const room = along - 8;
     let label = node.name;
     if (dl.showValue) {
-      const full = `${node.name}: ${node.value}`;
+      const full = `${node.name}: ${+node.value.toPrecision(12)}`;
       if (this._fits(full, room, fontPx)) label = full;
     }
     const text = this._truncate(label, room, fontPx);
@@ -969,7 +998,6 @@ class IcicleChart {
    * @param {any} node
    */
   _renderMoreMark(node) {
-    if (!Environment.isBrowser()) return;
     const box = this._box(node);
     const along = this._vertical ? box.w : box.h;
     if (along < 18) return;
@@ -1020,18 +1048,6 @@ class IcicleChart {
     return name.slice(0, maxChars - 1) + "…";
   }
   // ----------------------------------------------------------------- zoom
-  /**
-   * A cell offers the pointer only while clicking it would change the view.
-   * A leaf under the current focus, or the single root of a one-root tree,
-   * resolves to the focus the reader is already on, and a pointer there
-   * promises a zoom that cannot happen. Asked on every layout, because a zoom
-   * changes the answer for every cell.
-   * @param {any} node
-   */
-  _setCursor(node) {
-    if (!Environment.isBrowser() || this.cfg.zoomOnClick === false) return;
-    node._el.node.style.cursor = resolveFocus(node, this._focus, this._roots).changed ? "pointer" : "default";
-  }
   /**
    * Focus a node (zoom in), or zoom out one level when the current focus is
    * clicked.

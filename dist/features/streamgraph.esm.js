@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -277,7 +277,8 @@ class StreamLabels {
         text: name,
         maxWidth: span,
         fontSize: `${px}px`,
-        fontFamily
+        fontFamily,
+        fontWeight
       });
       if (!text || text === "...") continue;
       const drawnWidth = text === name ? rect.width : rect.width * (text.length / name.length);

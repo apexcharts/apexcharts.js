@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -218,6 +218,18 @@ const getChartClass = _core.__apex_ChartFactory_getChartClass;
 const Fill = _core.__apex_Fill;
 const Graphics = _core.__apex_Graphics;
 const Series = _core.__apex_Series;
+function datumKey(w, realIndex, j) {
+  var _a, _b, _c, _d;
+  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
+    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+  }
+  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j;
+}
 const tangents = (points) => {
   const m = finiteDifferences(points);
   const n = points.length - 1;
@@ -328,9 +340,20 @@ function finiteDifferences(points) {
   m[i] = d;
   return m;
 }
+function jitterExtent(pool, w) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  pool.slice(0, w.seriesData.series.length).flat(2).forEach((v) => {
+    if (v === +v) {
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+  });
+  return [lo, hi];
+}
 function buildJitterGroups({
-  w,
   points,
+  extent,
   seedA,
   seedB,
   center,
@@ -341,6 +364,7 @@ function buildJitterGroups({
   clampAt,
   sideSign
 }) {
+  var _a, _b;
   const opts = options;
   if (!opts || opts.show === false) return [];
   if (!points || !points.length) return [];
@@ -354,8 +378,8 @@ function buildJitterGroups({
   const scale = opts.colorScale;
   const useScale = scale && Array.isArray(scale.colors) && scale.colors.length > 0;
   const steps = useScale ? Math.max(2, scale.steps || 24) : 1;
-  const sMin = useScale && scale.min != null ? scale.min : w.globals.minY;
-  const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY;
+  const sMin = (_a = scale == null ? void 0 : scale.min) != null ? _a : extent[0];
+  const sMax = (_b = scale == null ? void 0 : scale.max) != null ? _b : extent[1];
   const span = sMax - sMin || 1;
   const buckets = useScale ? new Array(steps).fill("") : [""];
   for (let k = 0; k < points.length; k += stride) {
@@ -441,7 +465,7 @@ function renderJitter({
   elSeries.add(elPointsWrap);
 }
 function darkenColor(color, amount) {
-  const rgb = Utils.parseHex(color);
+  const rgb = Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color));
   if (!rgb) return color;
   const f = Math.max(0, 1 - amount);
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
@@ -498,6 +522,7 @@ class Violin extends BarBase {
     const fill = new Fill(this.w);
     this.violinOptions = w.config.plotOptions.violin;
     this.pointsOptions = this.violinOptions.points;
+    this.jx = jitterExtent(w.violinData.seriesViolinPoints, w);
     this.boxOptions = this.violinOptions.box || {};
     this.cloudSign = crossSign(this.violinOptions.side);
     this.rainSign = this.pointsOptions.show === false ? 0 : crossSign(this.pointsOptions.position);
@@ -512,7 +537,7 @@ class Violin extends BarBase {
     series = this.coreUtils.getLogSeries(series);
     this.series = series;
     this.yRatio = this.coreUtils.getLogYRatios(this.yRatio);
-    this.barHelpers.initVariables(series);
+    this.barHelpers.initVariables(series, seriesIndex);
     const ret = graphics.group({
       class: "apexcharts-violin-series apexcharts-plot-series"
     });
@@ -659,7 +684,8 @@ class Violin extends BarBase {
               elDataLabelsWrap,
               visibleSeries: this.visibleI,
               type: "violin",
-              classes: "apexcharts-raincloud-box"
+              classes: "apexcharts-raincloud-box",
+              noLabel: true
             });
           });
         }
@@ -696,11 +722,16 @@ class Violin extends BarBase {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const { realIndex, j, translationsIndex } = indexes;
-    const yRatio = this.yRatio[translationsIndex];
+    const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
+    let barXPosition = x + barWidth * this.visibleI;
     if (w.axisFlags.isXNumeric) {
-      x = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
+      ({ x, barXPosition } = this.getBarXForNumericXAxis({
+        x,
+        barWidth,
+        realIndex,
+        j
+      }));
     }
-    const barXPosition = x + barWidth * this.visibleI;
     const center = barXPosition + barWidth / 2;
     const halfExtent = barWidth / 2;
     const density = this.getDensity(realIndex, j);
@@ -729,7 +760,7 @@ class Violin extends BarBase {
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j, pathTo);
+      pathFrom = this._prevBody(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -768,7 +799,7 @@ class Violin extends BarBase {
         alongFn,
         vertical: true
       }),
-      alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
+      alongRepresentative: alongFn((_g = w.seriesData.series[realIndex][j]) != null ? _g : 0)
     };
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
@@ -776,7 +807,7 @@ class Violin extends BarBase {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const { realIndex, j } = indexes;
-    const yRatio = this.invertedYRatio;
+    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
     const barYPosition = y + barHeight * this.visibleI;
     const center = barYPosition + barHeight / 2;
     const halfExtent = barHeight / 2;
@@ -806,7 +837,7 @@ class Violin extends BarBase {
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j, pathTo);
+      pathFrom = this._prevBody(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -843,7 +874,7 @@ class Violin extends BarBase {
         alongFn,
         vertical: false
       }),
-      alongRepresentative: alongFn((_g = this.series[indexes.i][j]) != null ? _g : 0)
+      alongRepresentative: alongFn((_g = w.seriesData.series[realIndex][j]) != null ? _g : 0)
     };
   }
   /**
@@ -935,6 +966,23 @@ class Violin extends BarBase {
     return this.smoothSegment(rightPts, vertical, false) + this.smoothSegment(leftPts, vertical, true) + "z";
   }
   /**
+   * The survivor's previous body when it can morph to `pathTo`, else null so
+   * the violin regrows from its centreline (a changed density node count
+   * cannot tween, and bar corner reconciliation does not apply here).
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {string} pathTo
+   * @returns {string | null}
+   */
+  _prevBody(realIndex, j, pathTo) {
+    var _a, _b;
+    const d = (_b = (_a = this._prevKeyedPaths(realIndex)) == null ? void 0 : _a.get(
+      datumKey(this.w, realIndex, j)
+    )) == null ? void 0 : _b.d;
+    return d && Violin.pathCommandCount(d) === Violin.pathCommandCount(pathTo) ? d : null;
+  }
+  /**
    * Build the five-number box sub-paths for one category — the raincloud
    * "umbrella", or a violin box overlay. Two sub-paths so each can carry its
    * own fill: the whisker stems + caps (stroke only) and the q1-q3 rect with
@@ -951,7 +999,7 @@ class Violin extends BarBase {
    * @returns {{pathTo:string, pathFrom:string, filled:boolean}[] | null}
    */
   buildBoxSubPaths({ realIndex, j, boxCenter, boxHalfPx, alongFn, vertical }) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     if (!this.boxShown || boxHalfPx <= 0) return null;
     const summary = (_a = w.violinData.seriesViolinSummary[realIndex]) == null ? void 0 : _a[j];
@@ -976,22 +1024,17 @@ class Violin extends BarBase {
     };
     const full = build(capHalf, boxHalfPx);
     const collapsed = build(0, 0);
-    const fromFor = (pathTo, collapsedFrom) => {
-      let pathFrom = null;
-      if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPreviousPath(realIndex, j, pathTo);
-      }
-      return pathFrom == null ? collapsedFrom : pathFrom;
-    };
+    const keyed = w.globals.previousPaths.length ? this._prevKeyedPaths(realIndex) : null;
+    const prevBox = ((_c = keyed == null ? void 0 : keyed.get(datumKey(w, realIndex, j))) == null ? void 0 : _c.box) || [];
     return [
       {
         pathTo: full.whiskers,
-        pathFrom: fromFor(full.whiskers, collapsed.whiskers),
+        pathFrom: prevBox[0] || collapsed.whiskers,
         filled: false
       },
       {
         pathTo: full.box,
-        pathFrom: fromFor(full.box, collapsed.box),
+        pathFrom: prevBox[1] || collapsed.box,
         filled: true
       }
     ];
@@ -1067,8 +1110,11 @@ class Violin extends BarBase {
     const scatterCenter = offsetLane ? rainCenter : this.cloudSign !== 0 ? cloudBase : center;
     const scatterHalf = offsetLane ? rainHalfPx : this.cloudSign !== 0 ? cloudMaxPx : halfExtent;
     return buildJitterGroups({
-      w: this.w,
       points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j],
+      extent: (
+        /** @type {number[]} */
+        this.jx
+      ),
       seedA: realIndex,
       seedB: j,
       center: scatterCenter,

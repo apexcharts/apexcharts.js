@@ -50,7 +50,8 @@
       "zoomOut": "Zoom Out",
       "pan": "Panning",
       "reset": "Reset Zoom",
-      "measure": "Measure"
+      "measure": "Measure",
+      "wheelZoomHint": "Use {key} + scroll to zoom"
     }
   }
 }

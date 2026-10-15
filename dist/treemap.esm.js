@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -189,16 +189,6 @@ const Animations = _core.__apex_Animations;
 const Fill = _core.__apex_Fill;
 const Utils = _core.__apex_Utils;
 const DataLabels = _core.__apex_DataLabels;
-const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
-  if (typeof value !== "function") return value;
-  const resolved = value({
-    series: w.seriesData.series,
-    seriesIndex,
-    dataPointIndex,
-    w
-  });
-  return Number.isFinite(resolved) ? resolved : 0;
-};
 class TreemapHelpers {
   /**
    * @param {import('../../../types/internal').ChartStateW} w
@@ -348,13 +338,9 @@ class TreemapHelpers {
       elDataLabelsWrap = graphics.group({
         class: "apexcharts-data-labels"
       });
-      const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j);
-      const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j);
-      const dataLabelsX = x + offX;
-      const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
       dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
+        x,
+        y: y + parseFloat(dataLabelsConfig.style.fontSize) / 3,
         text,
         i,
         j,
@@ -375,26 +361,33 @@ function drilldownById(w, id) {
   const list = dd && Array.isArray(dd.series) ? dd.series : [];
   return list.find((s) => s && s.id === id);
 }
-function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+function segment(name, seen) {
+  var _a;
+  const n = String(name).replace(/\//g, "%2F");
+  const o = ((_a = seen.get(n)) != null ? _a : -1) + 1;
+  seen.set(n, o);
+  return `${o}:${n}`;
+}
+function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
   var _a, _b, _c;
   const isObj = d && typeof d === "object";
   const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-  const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+  const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+  const value = raw == null || raw === "" ? NaN : Number(raw);
   const node = {
     name: String(name),
     value: isNaN(value) ? null : value,
     color: isObj && d.color ? d.color : void 0,
-    // Identity across data updates: the path of names (indexed so same-named
-    // siblings stay distinct). Update animations morph matched keys in place.
-    _key: `${parentKey}/${i}:${name}`
+    _key: `${parentKey}/${segment(name, seen)}`
   };
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i % paletteFromParent.length];
   }
   if (opts.keepDatum) node._datum = d;
+  const kids = /* @__PURE__ */ new Map();
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
-      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
+      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts, kids)
     );
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
@@ -405,7 +398,7 @@ function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}
         nextSeen.add(d.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
+          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts, kids)
         );
       }
     }
@@ -418,10 +411,12 @@ function buildSeriesRoots(w, series, opts = {}) {
     series || w.config.series
   );
   if (!Array.isArray(cfgSeries)) return [];
+  const seen = /* @__PURE__ */ new Map();
   return cfgSeries.map((s, i) => {
     var _a, _b;
     const data = s && Array.isArray(s.data) ? s.data : [];
-    const key = `${i}:${(_a = s == null ? void 0 : s.name) != null ? _a : ""}`;
+    const key = segment((_a = s == null ? void 0 : s.name) != null ? _a : "", seen);
+    const kids = /* @__PURE__ */ new Map();
     const root = {
       name: String((_b = s == null ? void 0 : s.name) != null ? _b : ""),
       value: null,
@@ -429,7 +424,7 @@ function buildSeriesRoots(w, series, opts = {}) {
       _key: key,
       _seriesIndex: i,
       children: data.map(
-        (d, j) => toNode(w, d, j, null, key, null, opts)
+        (d, j) => toNode(w, d, j, null, key, null, opts, kids)
       )
     };
     return root;
@@ -760,7 +755,7 @@ function renderBreadcrumb(w, opts) {
     text.setAttribute("class", "apexcharts-breadcrumb-label");
     text.textContent = String(label);
     btn.appendChild(text);
-    btn.addEventListener("click", () => opts.onNavigate(i, crumb));
+    btn.addEventListener("click", (e) => opts.onNavigate(i, crumb, e));
     nav.appendChild(btn);
   });
   elWrap.appendChild(nav);
@@ -868,7 +863,7 @@ class TreemapChart {
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow;
         const filters = new Filters(this.w);
-        filters.dropShadow(ret, shadow, i);
+        filters.dropShadow(elSeries, shadow, i);
       }
       const elDataLabelWrap = graphics.group({
         class: "apexcharts-data-labels"
@@ -962,6 +957,7 @@ class TreemapChart {
         });
         elRect.node.classList.add("apexcharts-treemap-rect");
         elRect.node.setAttribute("data:key", morphKey(leaf._key));
+        let tileTween = null;
         let fromRect = {
           x: x1 + (x2 - x1) / 2,
           y: y1 + (y2 - y1) / 2,
@@ -987,7 +983,7 @@ class TreemapChart {
           if (w.globals.resized) {
             w.globals.animationEnded = true;
           } else {
-            this.animateTreemap(
+            tileTween = this.animateTreemap(
               elRect,
               fromRect,
               toRect,
@@ -998,7 +994,6 @@ class TreemapChart {
             );
           }
         }
-        let tileTween = null;
         let labelFrom = null;
         let prevLook = null;
         if (w.globals.dataChanged) {
@@ -1380,7 +1375,7 @@ class TreemapChart {
     const elGroup = graphics.group({
       class: "apexcharts-treemap-parent",
       "data:depth": depth,
-      "data:name": Utils.escapeString(node.name)
+      "data:name": node.name
     });
     const key = morphKey(node._key);
     const morphFrom = this._morphKeyed() ? this.ctx.morphTypeChange.getInitialPathForKey(key) : null;
@@ -1489,7 +1484,7 @@ class TreemapChart {
       if (typeof header.formatter === "function") {
         text = String(
           header.formatter(node.name, {
-            value: node.value,
+            value: node._area,
             depth,
             seriesIndex: i,
             node,
@@ -1497,7 +1492,7 @@ class TreemapChart {
           })
         );
       } else if (header.showValue) {
-        text = `${text}  ${this._formatValue(node.value)}`;
+        text = `${text}  ${this._formatValue(node._area, node._si)}`;
       }
       headerText = text;
       const offsetX = Number(header.offsetX) || 0;
@@ -1508,7 +1503,9 @@ class TreemapChart {
       const clipped = graphics.getTextBasedOnMaxWidth({
         text,
         maxWidth,
-        fontSize
+        fontSize,
+        fontFamily: chrome.headerFontFamily,
+        fontWeight: chrome.headerFontWeight
       });
       if (clipped) {
         let tx = x1 + pad + offsetX;
@@ -1583,7 +1580,7 @@ class TreemapChart {
     const total = this._drawnTotal();
     const pct = total > 0 ? (node._area / total * 100).toFixed(1) : "0";
     const n = this._countLeaves(node);
-    const lead = visibleText && String(visibleText).trim() ? String(visibleText).replace(/\s+/g, " ").trim() : `${node.name}, ${this._formatValue(node._area)}`;
+    const lead = visibleText && String(visibleText).trim() ? String(visibleText).replace(/\s+/g, " ").trim() : `${node.name}, ${this._formatValue(node._area, node._si)}`;
     return `${lead}, ${n} ${n === 1 ? "item" : "items"}, ${pct}% of total`;
   }
   /**
@@ -1602,15 +1599,18 @@ class TreemapChart {
    * @param {string} [visibleText] the header's rendered text, unclipped
    */
   _makeParentAccessible(el, node, chrome, elRect, visibleText) {
+    const a11y = this.w.config.chart.accessibility;
     if (!el || !el.setAttribute) return;
-    if (!this._zoomEnabled()) return;
+    if (!a11y.enabled || !a11y.keyboard.enabled || !this._zoomEnabled()) return;
+    const open = this.w.globals.treemapFocusKey === node._key;
+    el.tmKey = node._key;
     el.setAttribute("role", "button");
     el.setAttribute("tabindex", "0");
     el.setAttribute(
       "aria-label",
-      `${this._parentLabel(node, visibleText)}. Zoom in`
+      `${this._parentLabel(node, visibleText)}. Zoom ${open ? "out" : "in"}`
     );
-    el.setAttribute("aria-expanded", "false");
+    el.setAttribute("aria-expanded", open);
     if (!Environment.isBrowser() || !el.addEventListener) return;
     el.addEventListener("focus", () => {
       elRect.node.setAttribute("stroke", chrome.hoverColor);
@@ -1677,15 +1677,17 @@ class TreemapChart {
    * @returns {boolean}
    */
   _zoomEnabled() {
+    var _a;
     const w = this.w;
     const z = w.config.plotOptions.treemap.zoom;
     if (!z || !z.enabled || !this.showParents) return false;
     const dd = w.config.drilldown;
-    if (this.ctx.drilldown && dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
-      if (!this._warnedZoomConflict) {
-        this._warnedZoomConflict = true;
+    const d = this.ctx.drilldown;
+    if (d && dd && dd.enabled && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown)) {
+      if (!d.zoomWarned) {
+        d.zoomWarned = true;
         console.warn(
-          "ApexCharts treemap: `plotOptions.treemap.zoom` and the drilldown feature both navigate the hierarchy, so zoom is ignored here. Drop `drilldown.series` to zoom a nested treemap instead."
+          "ApexCharts treemap: zoom is ignored while drilldown is active (plotOptions.treemap.zoom vs drilldown series or onDrillDown)."
         );
       }
       return false;
@@ -1695,8 +1697,8 @@ class TreemapChart {
   /**
    * The focused branch for this render, looked up by the key stashed on the
    * last click. Keys are rebuilt identically from the same data, so the focus
-   * survives a re-render; a key that no longer resolves (the data changed under
-   * it) simply falls back to the whole tree.
+   * survives a re-render; a key that no longer resolves, or a branch left with
+   * nothing to draw (the data changed under it), falls back to the whole tree.
    * @param {any[]} drawn
    * @returns {any}
    */
@@ -1713,7 +1715,11 @@ class TreemapChart {
       if (node.children) node.children.forEach(walk);
     };
     drawn.forEach(walk);
-    return found && found.children && found.children.length ? found : null;
+    if (found && found.children && found.children.length && this._subtreeArea(found) > 0) {
+      return found;
+    }
+    this.w.globals.treemapFocusKey = null;
+    return null;
   }
   /**
    * @param {any} node
@@ -1726,28 +1732,7 @@ class TreemapChart {
     const w = this.w;
     if (!node || !node.children || !node.children.length) return;
     const next = w.globals.treemapFocusKey === node._key ? null : node._key;
-    const done = this._refocus(next);
-    if (!restoreFocus || !done || typeof done.then !== "function") return;
-    done.then(() => {
-      if (!Environment.isBrowser()) return;
-      const crumb = (
-        /** @type {any} */
-        w.dom.baseEl.querySelector(
-          ".apexcharts-breadcrumb .apexcharts-breadcrumb-item"
-        )
-      );
-      if (crumb && crumb.focus) {
-        crumb.focus();
-        return;
-      }
-      const header = (
-        /** @type {any} */
-        w.dom.baseEl.querySelector(
-          ".apexcharts-treemap-parent-header[tabindex]"
-        )
-      );
-      if (header && header.focus) header.focus();
-    });
+    this._refocus(next, restoreFocus);
   }
   /**
    * Re-render focused on another branch (null: the whole tree).
@@ -1758,22 +1743,34 @@ class TreemapChart {
    * left, which replayed the mount animation (every tile growing from
    * nothing) or snapped, while the containers, headers and labels jumped.
    * @param {string | null} next
-   * @returns {any} the update's promise
+   * @param {boolean} [restoreFocus] see _zoomTo
    */
-  _refocus(next) {
-    var _a;
+  _refocus(next, restoreFocus) {
     const w = this.w;
     const gl = w.globals;
+    const from = gl.treemapFocusKey;
     const anim = w.config.chart.animations;
     const animate = !!(anim.enabled && anim.dynamicAnimation.enabled);
-    gl.treemapZoom = animate && Environment.isBrowser() ? { from: (_a = gl.treemapFocusKey) != null ? _a : null, to: next } : null;
+    gl.treemapZoom = animate && Environment.isBrowser() ? { from: from != null ? from : null, to: next } : null;
     gl.treemapFocusKey = next;
     this._hideParentTooltip();
     gl.shouldAnimate = animate;
     gl.resized = true;
     gl.dataChanged = true;
     if (gl.treemapZoom) this.ctx.series.getPreviousPaths();
-    return this.ctx.update();
+    const done = this.ctx.update();
+    if (restoreFocus) {
+      done.then(() => {
+        const b = w.dom.baseEl;
+        const heads = (
+          /** @type {any[]} */
+          Array.from(
+            b.querySelectorAll(".apexcharts-treemap-parent-header[tabindex]")
+          )
+        );
+        (b.querySelector(".apexcharts-breadcrumb-item") || heads.find((h) => h.tmKey === from) || heads[0] || b).focus();
+      });
+    }
   }
   /**
    * A zoom reframes one tree, so it moves like a camera: one map takes the
@@ -2085,8 +2082,9 @@ class TreemapChart {
       crumbs: [{ label: "All", data: null }].concat(
         chain.map((n) => ({ label: n.name, data: n }))
       ),
-      onNavigate: (_i, crumb) => {
-        this._refocus(crumb.data ? crumb.data._key : null);
+      // A keyboard click (detail 0) keeps focus in the chart.
+      onNavigate: (_i, crumb, e) => {
+        this._refocus(crumb.data ? crumb.data._key : null, !e.detail);
       }
     });
     if (!nav) return;
@@ -2135,7 +2133,7 @@ class TreemapChart {
     const t = this._tip();
     if (!t) return;
     const total = this._drawnTotal();
-    const parentVal = node._parent ? node._parent._area : total;
+    const parentVal = node._parent ? this._subtreeArea(node._parent) : total;
     const pctTotal = total > 0 ? (node._area / total * 100).toFixed(1) : "0.0";
     const pctParent = parentVal > 0 ? (node._area / parentVal * 100).toFixed(1) : pctTotal;
     const cfg = this.w.config.plotOptions.treemap.parents;
@@ -2156,10 +2154,9 @@ class TreemapChart {
     } else {
       const marker = this._parentChrome(node.depth || 0).headerBg;
       const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${marker};` : "";
-      html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${Utils.escapeString(
-        node.name
-      )}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
-        node._area
+      html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${String(node.name).replace(/&/g, "&amp;").replace(/</g, "&lt;")}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
+        node._area,
+        node._si
       )}</span></div><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${leafCount} items, </span><span class="apexcharts-tooltip-text-y-value">${pctParent}% of parent, ${pctTotal}% of total</span></div></div></div>`;
     }
     t.innerHTML = html;
@@ -2255,17 +2252,21 @@ class TreemapChart {
   }
   /**
    * Format an aggregate the way the chart formats its own y values, so a
-   * parent's total reads like the tiles it contains.
+   * parent's total reads like the tiles it contains. A branch is no data
+   * point, so dataPointIndex is -1.
    * @param {number} v
+   * @param {number} [si] the branch's series index
    * @returns {string}
    */
-  _formatValue(v) {
+  _formatValue(v, si) {
     var _a, _b, _c, _d, _e;
     const w = this.w;
     const fmt = ((_b = (_a = w.config.tooltip) == null ? void 0 : _a.y) == null ? void 0 : _b.formatter) || ((_e = (_d = (_c = w.config.yaxis) == null ? void 0 : _c[0]) == null ? void 0 : _d.labels) == null ? void 0 : _e.formatter);
     if (typeof fmt === "function") {
       try {
-        return String(fmt(v, { seriesIndex: 0, dataPointIndex: 0, w }));
+        return String(
+          fmt(v, { seriesIndex: si || 0, dataPointIndex: -1, w })
+        );
       } catch (_) {
       }
     }
@@ -2346,7 +2347,7 @@ class TreemapChart {
    */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, String(fontSize));
+    const textRect = this._labelRect(graphics, text, fontSize);
     if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
       const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
       elText.node.setAttribute(
@@ -2354,6 +2355,24 @@ class TreemapChart {
         `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y}) translate(${textRect.height / 3})`
       );
     }
+  }
+  /**
+   * A tile label's box, measured at the family and weight it is drawn at
+   * (bold is wider than the default regular).
+   * @param {Graphics} graphics
+   * @param {string} text
+   * @param {string | number} fontSize
+   */
+  _labelRect(graphics, text, fontSize) {
+    const st = this.w.config.dataLabels.style;
+    return graphics.getTextRects(
+      text,
+      String(fontSize),
+      st.fontFamily,
+      "",
+      true,
+      st.fontWeight
+    );
   }
   // This is an alternative label formatting method that uses a
   // consistent font size, and trims the edge of long labels
@@ -2367,13 +2386,13 @@ class TreemapChart {
    */
   truncateLabels(text, fontSize, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, String(fontSize));
+    const textRect = this._labelRect(graphics, text, fontSize);
     const labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
-    const truncatedText = graphics.getTextBasedOnMaxWidth({
+    const truncatedText = graphics.getTextBasedOnMaxWidth(__spreadProps(__spreadValues({}, this.w.config.dataLabels.style), {
       text,
       maxWidth: labelMaxWidth,
       fontSize
-    });
+    }));
     if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
       return "";
     } else {

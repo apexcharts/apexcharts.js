@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1900,6 +1900,63 @@ class ZoomPanSelection extends Toolbar {
     const { zoom } = this.w.config.chart;
     return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom);
   }
+  /** An explicit `true` zooms on every wheel; 'auto' needs Ctrl/Cmd. */
+  _wheelZoomGreedy() {
+    return this.w.config.chart.zoom.allowMouseWheelZoom === true;
+  }
+  /**
+   * Tell a viewer whose bare wheel just scrolled past the chart how to zoom it.
+   * Shown over the chart while the scroll goes on and faded out shortly after
+   * it stops. Only for a mostly vertical wheel: a sideways trackpad swipe is
+   * not someone reaching for zoom.
+   *
+   * The node lives in elWrap and the timer on w.interact, since a re-render can
+   * replace both this instance and the wrapper's contents while it is up.
+   *
+   * @param {any} e
+   */
+  _showWheelHint(e) {
+    const w = this.w;
+    if (w.config.chart.zoom.wheelHint === false) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const wrap = w.dom.elWrap;
+    if (!wrap) return;
+    let el = wrap.querySelector(".apexcharts-wheel-hint");
+    if (!el) {
+      const win = BrowserAPIs.getWindow();
+      const nav = win && win.navigator;
+      const mac = !!nav && /Mac|iPhone|iPad/.test(nav.platform || nav.userAgent);
+      const text = (w.globals.locale.toolbar.wheelZoomHint || "").replace(
+        "{key}",
+        mac ? "⌘" : "Ctrl"
+      );
+      el = BrowserAPIs.createElement("div");
+      el.className = "apexcharts-wheel-hint";
+      el.setAttribute("aria-hidden", "true");
+      const label = BrowserAPIs.createElement("span");
+      label.textContent = text;
+      label.style.fontFamily = w.config.chart.fontFamily;
+      el.appendChild(label);
+      wrap.appendChild(el);
+      void /** @type {HTMLElement} */
+      el.offsetWidth;
+    }
+    el.classList.add("apexcharts-wheel-hint-visible");
+    const it = w.interact;
+    if (it.wheelHintTimer) clearTimeout(it.wheelHintTimer);
+    it.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
+  }
+  _hideWheelHint() {
+    var _a;
+    const w = this.w;
+    const it = w.interact;
+    if (it.wheelHintTimer) {
+      clearTimeout(it.wheelHintTimer);
+      it.wheelHintTimer = null;
+    }
+    const el = (_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-wheel-hint");
+    if (el) el.classList.remove("apexcharts-wheel-hint-visible");
+  }
   /**
    * Put keyboard focus on the chart, where the chart is focusable at all.
    *
@@ -1971,8 +2028,13 @@ class ZoomPanSelection extends Toolbar {
    * @param {any} e
    */
   mouseWheelEvent(e) {
-    e.preventDefault();
     const st = this._wheel();
+    if (!this._wheelZoomGreedy() && !e.ctrlKey && !e.metaKey && st.endTimer == null) {
+      this._showWheelHint(e);
+      return;
+    }
+    e.preventDefault();
+    this._hideWheelHint();
     let dy = e.deltaY;
     if (e.deltaMode === 1) dy *= 33;
     else if (e.deltaMode === 2) dy *= 330;
@@ -2735,6 +2797,34 @@ class ZoomPanSelection extends Toolbar {
     const args = { xaxis: { min, max } };
     w.config.chart.events.scrolled(this.ctx, args);
     this.ctx.events.fireEvent("scrolled", args);
+  }
+  /**
+   * Pan a zoomed x-window by `fraction` of its width (keyboard Shift+Arrow),
+   * clamped to the data as a drag pan is, and reported as one (`scrolled`).
+   * @param {number} fraction
+   */
+  panBy(fraction) {
+    const w = this.w;
+    if (!w.interact.zoomed) return;
+    const { min, max } = this._currentXWindow();
+    let d = (max - min) * fraction;
+    if (w.config.xaxis.convertedCatToNumeric) {
+      d = d > 0 ? Math.ceil(d) : Math.floor(d);
+    }
+    if (w.axisFlags.isRangeBar) {
+      const r = w.rangeData;
+      let lo = Infinity;
+      let hi = -Infinity;
+      r.seriesRangeStart.concat(r.seriesRangeEnd).flat().forEach((y) => {
+        if (y != null) {
+          lo = Math.min(lo, y);
+          hi = Math.max(hi, y);
+        }
+      });
+      d = d > 0 ? Math.min(d, Math.max(0, hi - max)) : Math.max(d, Math.min(0, lo - min));
+      if (!d) return;
+    }
+    if (this._applyXRange(min + d, max + d, false)) this._fireScrolled();
   }
   /** @param {number} x @param {number} t */
   _pushSample(x, t) {

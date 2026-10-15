@@ -7,6 +7,7 @@ var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __pow = Math.pow;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
@@ -54,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -127,6 +128,15 @@ var __async = (__this, __arguments, generator) => {
      */
     setAttribute(name2, value) {
       this.attributes.set(name2, value);
+    }
+    /**
+     * Namespaced attributes serialize by their qualified name.
+     * @param {any} _ns
+     * @param {string} name
+     * @param {any} value
+     */
+    setAttributeNS(_ns, name2, value) {
+      this.setAttribute(name2, value);
     }
     /**
      * @param {string} name
@@ -1925,7 +1935,7 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   const name = "en";
-  const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom", "measure": "Measure" } };
+  const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom", "measure": "Measure", "wheelZoomHint": "Use {key} + scroll to zoom" } };
   const en = {
     name,
     options
@@ -2735,7 +2745,14 @@ var __async = (__this, __arguments, generator) => {
             // asked for and nobody can undo is a trap. Set either to true to
             // force the gesture on regardless (for a page that supplies its own
             // reset control), or false to turn it off outright.
+            //
+            // The 'auto' wheel is also cooperative: a bare wheel scrolls the
+            // page, and Ctrl/Cmd + wheel (or a trackpad pinch) zooms, so a page
+            // of charts scrolls past them. `true` zooms on every wheel.
             allowMouseWheelZoom: "auto",
+            // With the cooperative wheel, a bare scroll over the chart briefly
+            // shows how to zoom it ("Use Ctrl + scroll to zoom").
+            wheelHint: true,
             // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
             // around the pinch centroid (matching the x-only wheel/toolbar zoom),
             // frame-by-frame rather than the 400ms wheel throttle.
@@ -9073,21 +9090,6 @@ var __async = (__this, __arguments, generator) => {
       });
       gl.seriesYAxisMap = axisSeriesMap.map((x2) => x2);
       gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x2) => x2);
-      gl.seriesYAxisMap.forEach((axisSeries, ai) => {
-        axisSeries.forEach((si) => {
-          if (
-            /** @type {any} */
-            cnf.series[si] && /** @type {any} */
-            cnf.series[si].group === void 0
-          ) {
-            const _series = (
-              /** @type {any} */
-              cnf.series[si]
-            );
-            _series.group = "apexcharts-axis-".concat(ai.toString());
-          }
-        });
-      });
     }
     /**
      * @param {number | null} [index]
@@ -9221,12 +9223,15 @@ var __async = (__this, __arguments, generator) => {
         (s2, i2) => isBarSeries(s2) ? -1 : i2
       ).filter((i2) => i2 !== -1) : [];
       const stackedTotals = excluded.length ? this.getStackedSeriesTotals(excluded) : w.seriesData.stackedSeriesTotals;
-      const sx = w.axisFlags.isXNumeric && !w.config.plotOptions.bar.horizontal && w.seriesData.seriesX;
+      const sx = w.axisFlags.isXNumeric && w.seriesData.seriesX;
+      const gi = w.labelData.seriesGroupIndex;
+      const byKey = sx || w.labelData.seriesGroups.length > 1;
+      const key = (i2, j2) => gi[i2] + " " + (sx ? sx[i2][j2] : j2);
       const byX = /* @__PURE__ */ new Map();
-      if (sx) {
+      if (byKey) {
         w.seriesData.series.forEach((s2, i2) => {
           if (excluded.indexOf(i2) < 0) {
-            s2.forEach((v, j2) => byX.set(sx[i2][j2], (byX.get(sx[i2][j2]) || 0) + v));
+            s2.forEach((v, j2) => byX.set(key(i2, j2), (byX.get(key(i2, j2)) || 0) + v));
           }
         });
       }
@@ -9234,7 +9239,7 @@ var __async = (__this, __arguments, generator) => {
         const seriesPercent = [];
         if (Array.isArray(ser)) {
           for (let j2 = 0; j2 < ser.length; j2++) {
-            const total = sx ? byX.get(sx[i2][j2]) : stackedTotals[j2];
+            const total = byKey ? byX.get(key(i2, j2)) : stackedTotals[j2];
             let percent = 0;
             if (total) {
               percent = 100 * ser[j2] / total;
@@ -9281,13 +9286,11 @@ var __async = (__this, __arguments, generator) => {
       if (!zRatio) {
         zRatio = 1;
       }
-      if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-        const _hasNegsGl = (
-          /** @type {any} */
-          gl
-        );
-        _hasNegsGl.hasNegs = true;
-      }
+      const _hasNegsGl = (
+        /** @type {any} */
+        gl
+      );
+      _hasNegsGl.hasNegs = gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0;
       if (w.globals.seriesYAxisReverseMap.length > 0) {
         const scaleBaseLineYScale = (y, i2) => {
           const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i2]];
@@ -9444,7 +9447,7 @@ var __async = (__this, __arguments, generator) => {
     // other series of the same type on the same axis.
     /**
      * @param {Record<string, any>} typeSeries
-     * @param {string[]} typeGroups
+     * @param {number[]} typeGroups
      * @param {string} type
      * @param {string} chartClass
      */
@@ -9456,10 +9459,7 @@ var __async = (__this, __arguments, generator) => {
           const gs = [];
           const gi = [];
           typeSeries.i.forEach((i2, ii) => {
-            if (
-              /** @type {Record<string,any>} */
-              w.config.series[i2].group === gn
-            ) {
+            if (w.labelData.seriesGroupIndex[i2] === gn) {
               gs.push(typeSeries.series[ii]);
               gi.push(i2);
             }
@@ -11573,6 +11573,22 @@ var __async = (__this, __arguments, generator) => {
       return arc;
     }
     /**
+     * stroke.dashArray of a series, shared with the canvas renderer. A plugin
+     * may have claimed it: resolved here rather than written into the config,
+     * so the caller's own dashing is untouched and there is nothing to restore
+     * when the claim goes. See weave/Claims.
+     * @param {number} realIndex
+     */
+    seriesDash(realIndex) {
+      const d = this.w.config.stroke.dashArray;
+      return resolveClaimed(
+        this.w,
+        "stroke.dashArray",
+        realIndex,
+        Array.isArray(d) ? d[realIndex] : d
+      );
+    }
+    /**
      * @memberof Graphics
      * @param {Record<string, any>} opts
      *  i = series's index
@@ -11644,19 +11660,6 @@ var __async = (__this, __arguments, generator) => {
           w.globals.animationEnded = true;
         }
       }
-      const strokeDashArrayOpt = w.config.stroke.dashArray;
-      let strokeDashArray = 0;
-      if (Array.isArray(strokeDashArrayOpt)) {
-        strokeDashArray = strokeDashArrayOpt[realIndex];
-      } else {
-        strokeDashArray = w.config.stroke.dashArray;
-      }
-      strokeDashArray = resolveClaimed(
-        w,
-        "stroke.dashArray",
-        realIndex,
-        strokeDashArray
-      );
       const el = this.drawPath({
         d,
         stroke,
@@ -11665,7 +11668,7 @@ var __async = (__this, __arguments, generator) => {
         fillOpacity: 1,
         classes: className,
         strokeLinecap,
-        strokeDashArray
+        strokeDashArray: this.seriesDash(realIndex)
       });
       el.attr("index", realIndex);
       if (shouldClipToGrid) {
@@ -11858,13 +11861,19 @@ var __async = (__this, __arguments, generator) => {
       }
       return g;
     }
-    /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any }} opts */
-    getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
-      const tRects = this.getTextRects(text, fontSize, fontFamily, "");
-      const wordWidth = tRects.width / text.length;
-      const wordsBasedOnWidth = Math.floor(maxWidth / wordWidth);
+    /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any, fontWeight?: any }} opts */
+    getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily, fontWeight }) {
+      const tRects = this.getTextRects(
+        text,
+        fontSize,
+        fontFamily,
+        "",
+        true,
+        fontWeight
+      );
+      const n2 = Math.floor(maxWidth / (tRects.width / text.length)) - 3;
       if (maxWidth < tRects.width) {
-        return text.slice(0, wordsBasedOnWidth - 3) + "...";
+        return n2 < 0 ? "" : text.slice(0, n2) + "...";
       }
       return text;
     }
@@ -11901,7 +11910,8 @@ var __async = (__this, __arguments, generator) => {
       const commonProps = {
         maxWidth,
         fontSize,
-        fontFamily
+        fontFamily,
+        fontWeight
       };
       let elText;
       if (Array.isArray(text)) {
@@ -12102,7 +12112,12 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.states.hover.filter.type !== "none") {
         if (!w.interact.isTouchDevice) {
           const hoverFilter = w.config.states.hover.filter;
-          filters.applyFilter(path, i2, hoverFilter.type, hoverFilter.value);
+          filters.applyFilter(
+            path,
+            Filters.isSliceChart(w) ? j2 : i2,
+            hoverFilter.type,
+            hoverFilter.value
+          );
         }
       }
     }
@@ -12136,33 +12151,28 @@ var __async = (__this, __arguments, generator) => {
       }
       if (Filters.hoverOutlineOwnsHoverState(w)) return;
       if (w.config.states.hover.filter.type !== "none") {
-        filters.getDefaultFilter(path, i2);
+        filters.getDefaultFilter(path, Filters.isSliceChart(w) ? j2 : i2);
       }
     }
     /**
      * Clear every selected data point (single-select mode): reset the selection
-     * array and restore the default filter on all series path/circle/rect nodes.
-     * NOTE: preserves the original behavior of passing the clicked series index
-     * `i` to getDefaultFilter for every element (not each element's own index).
-     * @param {any} filters @param {number} i
+     * array and restore the default filter on each selected node, with its own
+     * series index (dropShadow.enabledOnSeries is per series; a pie slice's
+     * shadow is per slice, j).
+     * @param {any} filters
      */
-    _clearAllDataPointSelections(filters, i2) {
+    _clearAllDataPointSelections(filters) {
       const w = this.w;
       w.interact.selectedDataPoints = [];
-      const elPaths = w.dom.Paper.find(
-        ".apexcharts-series path:not(.apexcharts-decoration-element)"
-      );
-      const elCircles = w.dom.Paper.find(
-        ".apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)"
-      );
-      const deSelect = (els) => {
-        Array.prototype.forEach.call(els, (el) => {
+      w.dom.Paper.find('.apexcharts-series [selected="true"]').forEach(
+        (el) => {
           el.node.setAttribute("selected", "false");
-          filters.getDefaultFilter(el, i2);
-        });
-      };
-      deSelect(elPaths);
-      deSelect(elCircles);
+          filters.getDefaultFilter(
+            el,
+            +el.node.getAttribute(Filters.isSliceChart(w) ? "j" : "index")
+          );
+        }
+      );
     }
     /**
      * Toggle the selected state of a single data point. Mutates
@@ -12182,7 +12192,7 @@ var __async = (__this, __arguments, generator) => {
         return "false";
       }
       if (!w.config.states.active.allowMultipleDataPointsSelection && w.interact.selectedDataPoints.length > 0) {
-        this._clearAllDataPointSelections(filters, i2);
+        this._clearAllDataPointSelections(filters);
       }
       path.node.setAttribute("selected", "true");
       if (typeof w.interact.selectedDataPoints[i2] === "undefined") {
@@ -12202,10 +12212,10 @@ var __async = (__this, __arguments, generator) => {
       if (Filters.sliceOffsetOwnsActiveState(w)) return;
       if (selected === "true") {
         const activeFilter = w.config.states.active.filter;
-        if (activeFilter !== "none") {
+        if (activeFilter.type !== "none") {
           filters.applyFilter(path, i2, activeFilter.type, activeFilter.value);
         } else {
-          if (w.config.states.hover.filter !== "none") {
+          if (w.config.states.hover.filter.type !== "none") {
             if (!w.interact.isTouchDevice) {
               const hoverFilter = w.config.states.hover.filter;
               filters.applyFilter(path, i2, hoverFilter.type, hoverFilter.value);
@@ -12238,7 +12248,12 @@ var __async = (__this, __arguments, generator) => {
       const crossfilterClick = !!(link && (typeof link.dimension === "function" || link.enabled));
       if (!crossfilterClick) {
         const selected = this._togglePointSelection(path, filters, i2, j2);
-        this._applyPointSelectionFilter(path, filters, i2, selected);
+        this._applyPointSelectionFilter(
+          path,
+          filters,
+          Filters.isSliceChart(w) ? j2 : i2,
+          selected
+        );
       }
       if (typeof w.config.chart.events.dataPointSelection === "function") {
         w.config.chart.events.dataPointSelection(e2, this.ctx, {
@@ -13026,7 +13041,7 @@ var __async = (__this, __arguments, generator) => {
     }
     setGlobalMarkerSize() {
       const w = this.w;
-      w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size : [w.config.markers.size];
+      w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size.slice() : [w.config.markers.size];
       if (w.globals.markers.size.length > 0) {
         if (w.globals.markers.size.length < w.seriesData.series.length + 1) {
           for (let i2 = 0; i2 <= w.seriesData.series.length; i2++) {
@@ -13736,6 +13751,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} fontSize
      */
     dataLabelsCorrection(x2, y, val, i2, dataPointIndex, alwaysDrawDataLabel, fontSize) {
+      var _a;
       const w = this.w;
       const graphics = new Graphics(this.w);
       let drawnextLabel = false;
@@ -13777,6 +13793,9 @@ var __async = (__this, __arguments, generator) => {
       }
       if (dataPointIndex === 0 || alwaysDrawDataLabel) {
         drawnextLabel = true;
+      }
+      if (drawnextLabel) {
+        ((_a = w.globals.lastDrawnDataLabelsIndexes)[i2] || (_a[i2] = [])).push(len + 1);
       }
       return {
         x: x2,
@@ -14023,10 +14042,6 @@ var __async = (__this, __arguments, generator) => {
         }
         parent.add(dataLabelText);
         if (penDrawn(w, i2)) applyProgressiveReveal(dataLabelText, x2, w);
-        if (typeof w.globals.lastDrawnDataLabelsIndexes[i2] === "undefined") {
-          w.globals.lastDrawnDataLabelsIndexes[i2] = [];
-        }
-        w.globals.lastDrawnDataLabelsIndexes[i2].push(j2);
       }
       return dataLabelText;
     }
@@ -15990,6 +16005,13 @@ var __async = (__this, __arguments, generator) => {
       if (typeof gl.yAxisScale[index] === "undefined") {
         gl.yAxisScale[index] = [];
       }
+      if (y.logarithmic && minY <= Number.MIN_VALUE) {
+        const s2 = this.w.seriesData.series;
+        const map = gl.isMultipleYAxis && gl.seriesYAxisMap[index];
+        const b = y.logBase || 10;
+        const m = (map ? map.map((i2) => s2[i2]) : s2).flat().reduce((a2, v) => v > 0 && (!a2 || v < a2) ? v : a2, 0);
+        minY = m && Math.min(b, __pow(b, Math.floor(Math.log(m) / Math.log(b))));
+      }
       const range = Math.abs(maxY - minY);
       const spansABase = y.logarithmic && this._logDomainSpan(minY, maxY, y.logBase) >= 1;
       const validLogScale = y.logarithmic && (spansABase || range > 5);
@@ -16022,19 +16044,26 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} maxX
      */
     setXScale(minX, maxX) {
+      var _a;
       const w = this.w;
       const gl = w.globals;
       if (maxX === -Number.MAX_VALUE || !Utils$1.isNumber(maxX)) {
         gl.xAxisScale = this.linearScale(0, 10, 10);
       } else {
-        const ticks = gl.xTickAmount;
-        gl.xAxisScale = this.linearScale(
-          minX,
-          maxX,
-          ticks,
-          0,
-          w.config.xaxis.max === void 0 ? w.config.xaxis.stepSize : void 0
-        );
+        const x2 = w.config.xaxis;
+        let step = ((_a = x2.max) != null ? _a : x2.range) === void 0 ? x2.stepSize : void 0;
+        const fit = step > 0 && !gl.isBarHorizontal && x2.type !== "datetime";
+        if (fit) {
+          const n2 = Math.ceil((maxX - minX) / step - 1e-9);
+          n2 > 1e3 ? step = void 0 : gl.xTickAmount = n2;
+        }
+        let s2 = this.linearScale(minX, maxX, gl.xTickAmount, 0, step);
+        if (fit && step) {
+          while (s2.niceMax < maxX)
+            s2 = this.linearScale(minX, maxX, ++gl.xTickAmount, 0, step);
+          gl.maxX = s2.niceMax;
+        }
+        gl.xAxisScale = s2;
       }
       return gl.xAxisScale;
     }
@@ -16669,22 +16698,21 @@ var __async = (__this, __arguments, generator) => {
       gl.barGroups = [];
       gl.lineGroups = [];
       gl.areaGroups = [];
-      cnf.series.forEach((s2) => {
-        const _s = (
+      cnf.series.forEach((s2, i2) => {
+        const g = this.w.labelData.seriesGroupIndex[i2];
+        switch (
           /** @type {any} */
-          s2
-        );
-        const type = _s.type || cnf.chart.type;
-        switch (type) {
+          s2.type || cnf.chart.type
+        ) {
           case "bar":
           case "column":
-            gl.barGroups.push(_s.group);
+            gl.barGroups.push(g);
             break;
           case "line":
-            gl.lineGroups.push(_s.group);
+            gl.lineGroups.push(g);
             break;
           case "area":
-            gl.areaGroups.push(_s.group);
+            gl.areaGroups.push(g);
             break;
         }
       });
@@ -16769,9 +16797,10 @@ var __async = (__this, __arguments, generator) => {
             ticks = gl.dataPoints - 1;
           }
         } else if (cnf.xaxis.tickAmount === "dataPoints") {
-          if (this.w.seriesData.series.length > 1) {
-            ticks = this.w.seriesData.series[gl.maxValsInArrayIndex].length - 1;
-          }
+          ticks = Math.max(
+            1,
+            (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length - 1
+          );
           if (this.w.axisFlags.isXNumeric) {
             const diff = Math.round(gl.maxX - gl.minX);
             if (diff < 30) {
@@ -16829,8 +16858,26 @@ var __async = (__this, __arguments, generator) => {
           }
         }
         if (isXNumeric && gl.isBarHorizontal) {
+          const rows = (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice();
+          const seen = new Set(rows);
+          const n2 = rows.length;
+          if (cnf.chart.type === "bar") {
+            this.w.seriesData.seriesX.forEach(
+              (s2) => s2 == null ? void 0 : s2.forEach((x2) => {
+                if (x2 != null && !seen.has(x2)) {
+                  seen.add(x2);
+                  rows.push(x2);
+                }
+              })
+            );
+          }
+          if (rows.length > n2) {
+            const dir = rows[0] > rows[n2 - 1] ? -1 : 1;
+            rows.sort((a2, b) => (a2 - b) * dir);
+            gl.dataPoints = rows.length;
+          }
           this.w.labelData.labels = /** @type {any} */
-          (this.w.seriesData.seriesX[gl.maxValsInArrayIndex] || []).slice();
+          rows;
         } else if (isXNumeric) {
           this.w.labelData.labels = /** @type {any} */
           gl.xAxisScale.result.slice();
@@ -16955,7 +17002,7 @@ var __async = (__this, __arguments, generator) => {
       const windowed = this._autoScaleYEnabled();
       if (!this.w.seriesData.series.length) return;
       const gIdx = this.w.labelData.seriesGroupIndex;
-      const byX = this.w.axisFlags.isXNumeric && !this.w.config.plotOptions.bar.horizontal;
+      const byX = this.w.axisFlags.isXNumeric;
       const stacks = /* @__PURE__ */ new Map();
       this.w.config.series.forEach(
         (serie, i2) => {
@@ -16970,7 +17017,7 @@ var __async = (__this, __arguments, generator) => {
             if (!st) stacks.set(key, st = [0, 0]);
             const v = this.w.seriesData.series[i2][j2];
             if (stackSeries && v !== null && Utils$1.isNumber(v)) {
-              v > 0 ? st[0] += parseFloat(String(v)) + 1e-4 : st[1] += parseFloat(String(v));
+              v > 0 ? st[0] += v * 1.000001 : st[1] += +v;
             }
           }
         }
@@ -18683,6 +18730,11 @@ var __async = (__this, __arguments, generator) => {
       return count === 0 ? k2 : `${k2}#${count}`;
     });
   }
+  function seriesKeys(w, realIndex, n2 = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
+    return uniquifyKeys(
+      Array.from({ length: n2 }, (_, j2) => datumKey(w, realIndex, j2))
+    );
+  }
   function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
     var _a, _b;
     if (!lengthTransitionEnabled(w)) return null;
@@ -18695,7 +18747,7 @@ var __async = (__this, __arguments, generator) => {
     const oldKeys = uniquifyKeys(
       oldY.map((_, j2) => frameDatumKey(frame, realIndex, j2))
     );
-    const newKeys = uniquifyKeys(newY.map((_, j2) => datumKey(w, realIndex, j2)));
+    const newKeys = seriesKeys(w, realIndex);
     const join = joinKeys(oldKeys, newKeys);
     if (!join.ordered && !allowReorder) return null;
     if (!join.changed && !includeIdentity) return null;
@@ -20130,11 +20182,8 @@ var __async = (__this, __arguments, generator) => {
      */
     isSeriesHidden(seriesName) {
       var _a;
-      const targetElement = this.getSeriesByName(seriesName);
-      const el = (
-        /** @type {Element} */
-        targetElement
-      );
+      const el = this.getSeriesByName(seriesName);
+      if (!el) return { isHidden: false, realIndex: -1 };
       const realIndex = parseInt((_a = el.getAttribute("data:realIndex")) != null ? _a : "0", 10);
       const gl = this.w.globals;
       const isHidden = el.classList.contains("apexcharts-series-collapsed") || gl.collapsedSeriesIndices.includes(realIndex) || gl.ancillaryCollapsedSeriesIndices.includes(realIndex);
@@ -20284,9 +20333,9 @@ var __async = (__this, __arguments, generator) => {
      */
     toggleSeries(seriesName) {
       var _a;
-      const isSeriesHidden = this.isSeriesHidden(seriesName);
-      (_a = this._toggleDataSeries) == null ? void 0 : _a.call(this, isSeriesHidden.realIndex, isSeriesHidden.isHidden);
-      return isSeriesHidden.isHidden;
+      const { isHidden, realIndex } = this.isSeriesHidden(seriesName);
+      if (realIndex > -1) (_a = this._toggleDataSeries) == null ? void 0 : _a.call(this, realIndex, isHidden);
+      return isHidden;
     }
     /**
      * @param {string} seriesName
@@ -20304,7 +20353,7 @@ var __async = (__this, __arguments, generator) => {
     hideSeries(seriesName) {
       var _a;
       const isSeriesHidden = this.isSeriesHidden(seriesName);
-      if (!isSeriesHidden.isHidden) {
+      if (!isSeriesHidden.isHidden && isSeriesHidden.realIndex > -1) {
         (_a = this._toggleDataSeries) == null ? void 0 : _a.call(this, isSeriesHidden.realIndex, false);
       }
     }
@@ -20380,10 +20429,10 @@ var __async = (__this, __arguments, generator) => {
      * @param {any[]} series
      */
     emptyCollapsedSeries(series) {
-      const w = this.w;
+      const gl = this.w.globals;
       if (!Array.isArray(series)) return series;
       for (let i2 = 0; i2 < series.length; i2++) {
-        if (w.globals.collapsedSeriesIndices.indexOf(i2) > -1) {
+        if (gl.collapsedSeriesIndices.includes(i2) || gl.ancillaryCollapsedSeriesIndices.includes(i2)) {
           if (series[i2] && typeof series[i2] === "object") {
             series[i2].data = [];
           } else {
@@ -20589,9 +20638,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {'highlight'|'reset'} action
      */
     highlightRangeInSeries(rangeIndex, action) {
+      var _a, _b;
       const w = this.w;
+      const t2 = w.config.chart.type === "treemap" ? "treemap" : "heatmap";
       const allHeatMapElements = w.dom.baseEl.getElementsByClassName(
-        "apexcharts-heatmap-rect"
+        `apexcharts-${t2}-rect`
       );
       const toggleAllInactive = (op) => {
         for (let i2 = 0; i2 < allHeatMapElements.length; i2++) {
@@ -20608,14 +20659,23 @@ var __async = (__this, __arguments, generator) => {
         toggleAllInactive("remove");
         return;
       }
-      const ranges = w.config.plotOptions.heatmap.colorScale.ranges;
+      const ranges = w.config.plotOptions[t2].colorScale.ranges;
       const range = ranges && ranges[rangeIndex];
       if (!range) return;
       toggleAllInactive("add");
       for (let i2 = 0; i2 < allHeatMapElements.length; i2++) {
-        const val = Number(allHeatMapElements[i2].getAttribute("val"));
+        const el = allHeatMapElements[i2];
+        const val = Number(
+          (_b = el.getAttribute("val")) != null ? _b : (_a = w.seriesData.series[
+            /** @type {any} */
+            el.getAttribute("i")
+          ]) == null ? void 0 : _a[
+            /** @type {any} */
+            el.getAttribute("j")
+          ]
+        );
         if (val >= range.from && val <= range.to) {
-          allHeatMapElements[i2].classList.remove(this.legendInactiveClass);
+          el.classList.remove(this.legendInactiveClass);
         }
       }
     }
@@ -20629,10 +20689,7 @@ var __async = (__this, __arguments, generator) => {
         const activeSeriesIndex = w.config.series.map((s2, index) => {
           const checkChartType = () => {
             if (w.globals.comboCharts) {
-              return chartTypes.length === 0 || chartTypes.length && chartTypes.indexOf(
-                /** @type {Record<string,any>} */
-                w.config.series[index].type
-              ) > -1;
+              return chartTypes.length === 0 || chartTypes.length && chartTypes.indexOf(s2.type || w.config.chart.type) > -1;
             }
             return true;
           };
@@ -20670,7 +20727,7 @@ var __async = (__this, __arguments, generator) => {
         let last = -1;
         w.config.series.forEach((s2, i2) => {
           if (w.labelData.seriesGroupIndex[i2] !== gi) return;
-          if (w.globals.comboCharts && chartTypes.length && chartTypes.indexOf(s2.type) === -1) {
+          if (w.globals.comboCharts && chartTypes.length && chartTypes.indexOf(s2.type || w.config.chart.type) === -1) {
             return;
           }
           const hasData = s2.data && s2.data.length > 0 && w.globals.collapsedSeriesIndices.indexOf(i2) === -1;
@@ -20683,7 +20740,8 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       if (w.globals.comboCharts) {
         return this.w.config.series.map((s2, i2) => {
-          return s2.type === "bar" || s2.type === "column" ? i2 : -1;
+          const t2 = s2.type || w.config.chart.type;
+          return t2 === "bar" || t2 === "column" ? i2 : -1;
         }).filter((i2) => {
           return i2 !== -1;
         });
@@ -20738,6 +20796,11 @@ var __async = (__this, __arguments, generator) => {
         for (let j2 = 0; j2 < paths.length; j2++) {
           if (paths[j2].hasAttribute("pathTo")) {
             const d = (type === "line" || type === "area") && paths[j2].getAttribute("d") || paths[j2].getAttribute("pathTo");
+            if (paths[j2].classList.contains("apexcharts-raincloud-box")) {
+              const body = dArr.paths[dArr.paths.length - 1];
+              if (body) (body.box || (body.box = [])).push(d);
+              continue;
+            }
             dArr.paths.push({
               d,
               key: paths[j2].getAttribute("data:pathKey"),
@@ -20761,7 +20824,8 @@ var __async = (__this, __arguments, generator) => {
         "rangeArea",
         "candlestick",
         "boxPlot",
-        "radar"
+        "radar",
+        "violin"
       ];
       chartTypes.forEach((type) => {
         const paths = getPaths(type);
@@ -21336,7 +21400,7 @@ var __async = (__this, __arguments, generator) => {
     applyColorTypes(colorTypes, defaultColors) {
       const w = this.w;
       colorTypes.forEach((c) => {
-        w.globals[c].colors = w.config[c].colors === void 0 ? this.isColorFn ? w.config.colors.slice() : defaultColors : w.config[c].colors.slice();
+        w.globals[c].colors = w.config[c].colors === void 0 ? this.isColorFn && w.config.colors ? w.config.colors.slice() : defaultColors : w.config[c].colors.slice();
         this.pushExtraColors(
           /** @type {Record<string,any>} */
           w.globals[c].colors
@@ -22352,7 +22416,7 @@ var __async = (__this, __arguments, generator) => {
       text.setAttribute("class", "apexcharts-breadcrumb-label");
       text.textContent = String(label);
       btn.appendChild(text);
-      btn.addEventListener("click", () => opts.onNavigate(i2, crumb));
+      btn.addEventListener("click", (e2) => opts.onNavigate(i2, crumb, e2));
       nav.appendChild(btn);
     });
     elWrap.appendChild(nav);
@@ -23289,6 +23353,7 @@ var __async = (__this, __arguments, generator) => {
       const { w, ctx } = this;
       const { config: cnf, globals: gl } = w;
       const { line, boxCandlestick, violin } = renderers;
+      if (cnf.chart.type !== "unit") ctx._unitPrevDots = null;
       let elGraph = [];
       if (gl.comboCharts) {
         const coreUtils = new CoreUtils(this.w);
@@ -24007,26 +24072,33 @@ var __async = (__this, __arguments, generator) => {
     const list = dd && Array.isArray(dd.series) ? dd.series : [];
     return list.find((s2) => s2 && s2.id === id);
   }
-  function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+  function segment(name2, seen) {
+    var _a;
+    const n2 = String(name2).replace(/\//g, "%2F");
+    const o2 = ((_a = seen.get(n2)) != null ? _a : -1) + 1;
+    seen.set(n2, o2);
+    return `${o2}:${n2}`;
+  }
+  function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
     var _a, _b, _c;
     const isObj = d && typeof d === "object";
     const name2 = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-    const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+    const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+    const value = raw == null || raw === "" ? NaN : Number(raw);
     const node = {
       name: String(name2),
       value: isNaN(value) ? null : value,
       color: isObj && d.color ? d.color : void 0,
-      // Identity across data updates: the path of names (indexed so same-named
-      // siblings stay distinct). Update animations morph matched keys in place.
-      _key: `${parentKey}/${i2}:${name2}`
+      _key: `${parentKey}/${segment(name2, seen)}`
     };
     if (paletteFromParent && !node.color) {
       node.color = paletteFromParent[i2 % paletteFromParent.length];
     }
     if (opts.keepDatum) node._datum = d;
+    const kids = /* @__PURE__ */ new Map();
     if (isObj && Array.isArray(d.children) && d.children.length) {
       node.children = d.children.map(
-        (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts)
+        (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts, kids)
       );
     } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
       const visited = seenIds || /* @__PURE__ */ new Set();
@@ -24037,7 +24109,7 @@ var __async = (__this, __arguments, generator) => {
           nextSeen.add(d.drilldown);
           const palette = Array.isArray(dd.colors) ? dd.colors : null;
           node.children = dd.data.map(
-            (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts)
+            (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts, kids)
           );
         }
       }
@@ -24050,10 +24122,12 @@ var __async = (__this, __arguments, generator) => {
       series || w.config.series
     );
     if (!Array.isArray(cfgSeries)) return [];
+    const seen = /* @__PURE__ */ new Map();
     return cfgSeries.map((s2, i2) => {
       var _a, _b;
       const data = s2 && Array.isArray(s2.data) ? s2.data : [];
-      const key = `${i2}:${(_a = s2 == null ? void 0 : s2.name) != null ? _a : ""}`;
+      const key = segment((_a = s2 == null ? void 0 : s2.name) != null ? _a : "", seen);
+      const kids = /* @__PURE__ */ new Map();
       const root = {
         name: String((_b = s2 == null ? void 0 : s2.name) != null ? _b : ""),
         value: null,
@@ -24061,7 +24135,7 @@ var __async = (__this, __arguments, generator) => {
         _key: key,
         _seriesIndex: i2,
         children: data.map(
-          (d, j2) => toNode(w, d, j2, null, key, null, opts)
+          (d, j2) => toNode(w, d, j2, null, key, null, opts, kids)
         )
       };
       return root;
@@ -24211,7 +24285,7 @@ var __async = (__this, __arguments, generator) => {
     var _a;
     if (!d || typeof d !== "object") return Utils$1.parseNumber(d) || 0;
     const v = (_a = d.y) != null ? _a : d.value;
-    if (v != null) return Utils$1.parseNumber(v) || 0;
+    if (v != null && v !== "") return Utils$1.parseNumber(v) || 0;
     if (!Array.isArray(d.children)) return 0;
     return d.children.reduce(
       (s2, c) => s2 + Math.max(0, subtreeTotal(c)),
@@ -24937,13 +25011,18 @@ var __async = (__this, __arguments, generator) => {
         }
       });
       this.coreUtils.setSeriesYAxisMappings();
-      const buckets = [];
-      const groups = [
-        ...new Set(cnf.series.map((s2) => s2.group))
-      ];
-      this.w.labelData.seriesGroupIndex = cnf.series.map(
+      const rev = this.w.globals.seriesYAxisReverseMap;
+      const keys = cnf.series.map(
         (s2, i2) => {
-          const index = groups.indexOf(s2.group);
+          var _a2;
+          return (_a2 = s2.group) != null ? _a2 : "apexcharts-axis-" + rev[i2];
+        }
+      );
+      const buckets = [];
+      const groups = [...new Set(keys)];
+      this.w.labelData.seriesGroupIndex = keys.map(
+        (k2, i2) => {
+          const index = groups.indexOf(k2);
           if (!buckets[index]) buckets[index] = [];
           buckets[index].push(this.w.seriesData.seriesNames[i2]);
           return index;
@@ -25226,12 +25305,12 @@ var __async = (__this, __arguments, generator) => {
             if (rootColors && x2 !== void 0) {
               rootColors[labels.length] = dataPoint.color;
             }
-            if (x2 !== void 0 && y !== void 0) {
-              labels.push(String(x2));
-              values.push(Utils$1.parseNumber(y));
-            } else if (x2 !== void 0 && Array.isArray(dataPoint.children)) {
+            if (x2 !== void 0 && Array.isArray(dataPoint.children)) {
               labels.push(String(x2));
               values.push(subtreeTotal(dataPoint));
+            } else if (x2 !== void 0 && y !== void 0) {
+              labels.push(String(x2));
+              values.push(Utils$1.parseNumber(y));
             } else {
               console.warn(
                 "ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:",
@@ -27169,6 +27248,13 @@ var __async = (__this, __arguments, generator) => {
       return markers.length > 0;
     }
     /**
+     * Whether any visible series has a marker node, its points' or its hover
+     * dot's.
+     */
+    hasVisibleMarkers() {
+      return this.getAllMarkers(true).some(Boolean);
+    }
+    /**
      * @param {any} point
      * @param {number} size
      */
@@ -27614,11 +27700,11 @@ var __async = (__this, __arguments, generator) => {
      */
     placeAroundCell(cell, plot, {
       el = null,
-      ttWidth = ((_a) => (_a = this.ttCtx.tooltipRect) == null ? void 0 : _a.ttWidth)() || 0,
-      ttHeight = ((_b) => (_b = this.ttCtx.tooltipRect) == null ? void 0 : _b.ttHeight)() || 0
+      ttWidth = ((_b) => (_b = this.ttCtx.tooltipRect) == null ? void 0 : _b.ttWidth)() || 0,
+      ttHeight = ((_c) => (_c = this.ttCtx.tooltipRect) == null ? void 0 : _c.ttHeight)() || 0
     } = {}) {
-      var _a2;
-      if (!((_a2 = el == null ? void 0 : el.closest) == null ? void 0 : _a2.call(el, '[clip-path*="heatmapHexMask"]'))) {
+      var _a;
+      if (!((_a = el == null ? void 0 : el.closest) == null ? void 0 : _a.call(el, '[clip-path*="heatmapHexMask"]'))) {
         cell = this._visiblePart(cell, plot);
       }
       return this._placeAround(placeAroundCell, cell, plot, {
@@ -27689,11 +27775,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ ttWidth?: number, ttHeight?: number, side?: 'left'|'right'|null, beside?: boolean }} [opts]
      * @returns {import('./placement').CellPlacement}
      */
-    _placeAround(decide, mark, plot, _e = {}) {
-      var _f = _e, {
-        ttWidth = ((_c) => (_c = this.ttCtx.tooltipRect) == null ? void 0 : _c.ttWidth)() || 0,
-        ttHeight = ((_d) => (_d = this.ttCtx.tooltipRect) == null ? void 0 : _d.ttHeight)() || 0
-      } = _f, rest = __objRest(_f, [
+    _placeAround(decide, mark, plot, _f = {}) {
+      var _g = _f, {
+        ttWidth = ((_d) => (_d = this.ttCtx.tooltipRect) == null ? void 0 : _d.ttWidth)() || 0,
+        ttHeight = ((_e) => (_e = this.ttCtx.tooltipRect) == null ? void 0 : _e.ttHeight)() || 0
+      } = _g, rest = __objRest(_g, [
         "ttWidth",
         "ttHeight"
       ]);
@@ -31877,16 +31963,22 @@ var __async = (__this, __arguments, generator) => {
         ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues({}, commonSeriesTextsParams), {
           shared: this.showOnIntersect ? false : this.tConfig.shared
         }));
-        if (hasMarkers || dynamicPoints) {
+        const capturedPoints = hasMarkers || dynamicPoints;
+        if (capturedPoints || w.globals.comboCharts && !canvasMode && this.tooltipUtil.hasVisibleMarkers()) {
           handlePoints();
-        } else if (this.tooltipUtil.hasBars()) {
+        }
+        if (this.tooltipUtil.hasBars()) {
           if (canvasMode) {
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            if (!capturedPoints) {
+              ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            }
           } else if ([...bars].some((b) => b.querySelector("path"))) {
             const graphics = new Graphics(this.w, this.ctx);
             const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j2}']`);
             this.deactivateHoverFilter();
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            if (!capturedPoints) {
+              ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            }
             for (let b = 0; b < paths.length; b++) {
               graphics.pathMouseEnter(
                 /** @type {any} */
@@ -32087,7 +32179,8 @@ var __async = (__this, __arguments, generator) => {
           this._activate(desired, this._instances[desired]);
           return this._activeKind;
         }
-        if (mode === desired) {
+        if (mode === desired && !this._warned) {
+          this._warned = 1;
           warnMissingFeature(
             `\`chart.renderer: '${desired}'\``,
             `renderer-${desired}`,
@@ -32096,10 +32189,16 @@ var __async = (__this, __arguments, generator) => {
             }
           );
         }
-      } else if (mode === "canvas" && hasCanvasUnsupportedFeature(this.w)) {
+      } else if (mode === "canvas" && !this._warned && hasCanvasUnsupportedFeature(this.w)) {
+        this._warned = 1;
         console.warn(
           `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
         );
+      }
+      const prev = this._instances[this._activeKind];
+      if (prev) {
+        prev.destroy();
+        delete this._instances[this._activeKind];
       }
       this._activate("svg", this.svg);
       return this._activeKind;
@@ -33351,7 +33450,7 @@ var __async = (__this, __arguments, generator) => {
       if (isUpdating) {
         this.ctx._zoomPanSelection = null;
         this.ctx._toolbar = null;
-        (_e = this.ctx._keyboardNavigation) == null ? void 0 : _e.destroy();
+        (_e = this.ctx._keyboardNavigation) == null ? void 0 : _e.destroy(true);
         this.ctx._keyboardNavigation = null;
       } else {
         (_f = this.ctx.perspectives) == null ? void 0 : _f.teardown();
@@ -33640,7 +33739,7 @@ var __async = (__this, __arguments, generator) => {
       ros.delete(fn);
     }
   }
-  const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-pie-label-delay,.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.3s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-unit-label-delay{animation-duration:.5s}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
+  const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-pie-label-delay,.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.3s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-unit-label-delay{animation-duration:.5s}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
   const e = globalThis.console;
   function t(t2, ...s2) {
     e.error(t2, ...s2);
@@ -34689,6 +34788,7 @@ var __async = (__this, __arguments, generator) => {
           if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled && w.config.chart.accessibility.keyboard.navigation.enabled) {
             (_i = me.keyboardNavigation) == null ? void 0 : _i.init();
           }
+          w.interact.keyNav = null;
           if (Environment.isBrowser() && w.globals.axisCharts && (w.axisFlags.isXNumeric || /** @type {Record<string,any>} */
           w.config.xaxis.convertedCatToNumeric || w.axisFlags.isRangeBar)) {
             if (w.config.chart.zoom.enabled || w.config.chart.selection && w.config.chart.selection.enabled || // @ts-ignore — chart.pan is an internal toolbar config property
@@ -35993,21 +36093,19 @@ var __async = (__this, __arguments, generator) => {
      * Returns the highest y value in the specified series.
      *
      * @param {number} [seriesIndex=0]
-     * @returns {number}
+     * @returns {number | undefined}
      */
     getHighestValueInSeries(seriesIndex = 0) {
-      const range = new Range(this.w);
-      return range.getMinYMaxY(seriesIndex).highestY;
+      return this.w.seriesData.series[seriesIndex] && new Range(this.w).getMinYMaxY(seriesIndex).highestY;
     }
     /**
      * Returns the lowest y value in the specified series.
      *
      * @param {number} [seriesIndex=0]
-     * @returns {number}
+     * @returns {number | undefined}
      */
     getLowestValueInSeries(seriesIndex = 0) {
-      const range = new Range(this.w);
-      return range.getMinYMaxY(seriesIndex).lowestY;
+      return this.w.seriesData.series[seriesIndex] && new Range(this.w).getMinYMaxY(seriesIndex).lowestY;
     }
     /**
      * Returns the sum of each series (the totals used for percentage calculations).
@@ -37434,6 +37532,7 @@ var __async = (__this, __arguments, generator) => {
     toggleDataSeries(seriesCnt, isHidden) {
       var _a, _b, _c;
       const w = this.w;
+      if (!w.dom.baseEl) return;
       if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
         w.globals.resized = true;
         let seriesEl = null;
@@ -37903,9 +38002,11 @@ var __async = (__this, __arguments, generator) => {
       this._min = 0;
       this._max = 0;
       this._geom = null;
+      this._grad = null;
       this._bandHitEls = [];
       this._activeBandIndex = -1;
       this._targetEl = null;
+      this.panelsW = null;
       this._onCellEnter = this._onCellEnter.bind(this);
       this._onCellLeave = this._onCellLeave.bind(this);
       this._onBandEnter = this._onBandEnter.bind(this);
@@ -38020,15 +38121,8 @@ var __async = (__this, __arguments, generator) => {
         linearGrad.setAttribute("x2", "1");
         linearGrad.setAttribute("y2", "0");
       }
-      const { min, max, stops, bands } = this._computeStops();
-      this._min = min;
-      this._max = max;
-      stops.forEach((s2) => {
-        const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
-        stopEl.setAttribute("offset", `${(s2.percent * 100).toFixed(2)}%`);
-        stopEl.setAttribute("stop-color", s2.color);
-        linearGrad.appendChild(stopEl);
-      });
+      this._grad = linearGrad;
+      const { min, max, bands } = this._paintStops();
       defs.appendChild(linearGrad);
       svg.appendChild(defs);
       const rect = BrowserAPIs.createElementNS(SVG_NS, "rect");
@@ -38237,6 +38331,7 @@ var __async = (__this, __arguments, generator) => {
      */
     repositionToPlot() {
       var _a, _b;
+      if (this._grad) this._paintStops();
       if (!Environment.isBrowser()) return;
       if (this._targetEl) return;
       const w = this.w;
@@ -38371,14 +38466,25 @@ var __async = (__this, __arguments, generator) => {
       if (idx < 0 || idx === this._activeBandIndex) return;
       this._activeBandIndex = idx;
       (_d = (_c = (_b = this.ctx) == null ? void 0 : _b.events) == null ? void 0 : _c.fireEvent) == null ? void 0 : _d.call(_c, "legendHover", [this.ctx, idx, w]);
-      new Series(w).highlightRangeInSeries(idx, "highlight");
+      this._highlightRange(idx, "highlight");
     }
     /** Leaving a band clears the highlight. */
     _onBandLeave() {
       if (this._activeBandIndex < 0) return;
       const idx = this._activeBandIndex;
       this._activeBandIndex = -1;
-      new Series(this.w).highlightRangeInSeries(idx, "reset");
+      this._highlightRange(idx, "reset");
+    }
+    /**
+     * A shared trellis strip sets `panelsW` so a band reaches every panel.
+     * @param {number} idx
+     * @param {'highlight'|'reset'} action
+     */
+    _highlightRange(idx, action) {
+      var _a;
+      (((_a = this.panelsW) == null ? void 0 : _a.call(this)) || [this.w]).forEach(
+        (w) => new Series(w).highlightRangeInSeries(idx, action)
+      );
     }
     _attachHoverListeners() {
       var _a, _b;
@@ -38400,10 +38506,10 @@ var __async = (__this, __arguments, generator) => {
      */
     _onCellEnter(...args) {
       var _a, _b, _c;
-      const w = this.w;
       if (!this.arrowEl) return;
       const opts = args[args.length - 1];
       if (!opts || typeof opts !== "object") return;
+      const w = opts.w || this.w;
       const i2 = opts.seriesIndex;
       const j2 = opts.dataPointIndex;
       if (typeof i2 !== "number" || typeof j2 !== "number") return;
@@ -38515,6 +38621,21 @@ var __async = (__this, __arguments, generator) => {
       polygon.setAttribute("pointer-events", "none");
       return polygon;
     }
+    /** (Re)write the strip's stops; returns `_computeStops()`. */
+    _paintStops() {
+      const r2 = this._computeStops();
+      const grad = this._grad;
+      this._min = r2.min;
+      this._max = r2.max;
+      grad.innerHTML = "";
+      r2.stops.forEach((s2) => {
+        const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
+        stopEl.setAttribute("offset", `${(s2.percent * 100).toFixed(2)}%`);
+        stopEl.setAttribute("stop-color", s2.color);
+        grad.appendChild(stopEl);
+      });
+      return r2;
+    }
     /**
      * Build gradient stops + return effective min/max.
      * - If `colorScale.ranges` is set, stops are placed at each range boundary
@@ -38556,7 +38677,8 @@ var __async = (__this, __arguments, generator) => {
       if (!Number.isFinite(dataMax)) dataMax = 0;
       let min = dataMin;
       let max = dataMax;
-      if (typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min) {
+      const csWindow = typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min;
+      if (csWindow) {
         min = cs.min;
         max = cs.max;
       } else {
@@ -38587,34 +38709,30 @@ var __async = (__this, __arguments, generator) => {
       } else {
         const baseColor = w.globals.colors[0] || "#008FFB";
         const utils = new Utils$1();
-        const plot = w.config.plotOptions[w.config.chart.type] || {};
+        const type = w.config.chart.type;
+        const plot = w.config.plotOptions[type] || {};
         const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
-        const hasNegs = (
+        const g = (
           /** @type {any} */
-          w.globals.hasNegs
+          w.globals
         );
+        const hasNegs = g.hasNegs;
+        const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
+        const hi = yExt ? g.maxY : max;
+        const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
+        const k2 = shadeIntensity * 1.25;
         const n2 = Math.max(2, cfg.stops || 16);
         for (let s2 = 0; s2 < n2; s2++) {
           const t2 = s2 / (n2 - 1);
-          const v = min + t2 * (max - min);
-          const total = Math.abs(max) + Math.abs(min);
-          const percent_v = total === 0 ? 0 : 100 * v / total;
-          let colorShadePercent;
-          if (hasNegs) {
-            if (plot.reverseNegativeShade) {
-              colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
-            } else {
-              colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
-            }
-          } else {
-            colorShadePercent = 1 - percent_v / 100;
-          }
-          if (colorShadePercent > 1) colorShadePercent = 1;
-          if (colorShadePercent < -1) colorShadePercent = -1;
-          const shaded = plot.enableShades ? utils.shadeColor(
-            w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
-            baseColor
-          ) : baseColor;
+          const p = total === 0 ? 0 : Math.min(min + t2 * (max - min), hi) / total;
+          const c = Math.max(
+            -1,
+            Math.min(
+              1,
+              hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k2 : 1)
+            )
+          );
+          const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
           stops.push({ percent: t2, color: shaded });
         }
       }
@@ -38644,9 +38762,12 @@ var __async = (__this, __arguments, generator) => {
       this.legendHelpers = new Helpers$3(this);
     }
     init() {
+      var _a;
       const w = this.w;
       const gl = w.globals;
       const cnf = w.config;
+      (_a = this.heatmapGradientLegend) == null ? void 0 : _a.destroy();
+      this.heatmapGradientLegend = null;
       this.isBarsDistributed = cnf.chart.type === "bar" && cnf.plotOptions.bar.distributed && cnf.series.length === 1;
       const showLegendAlways = cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1 || this.isBarsDistributed || // Heatmap legends are colorScale-driven (discrete ranges or the
       // gradient strip), not series-driven, so they must render even for a
@@ -38663,10 +38784,6 @@ var __async = (__this, __arguments, generator) => {
         );
         while (elLegendWrap.firstChild) {
           elLegendWrap.removeChild(elLegendWrap.firstChild);
-        }
-        if (this.heatmapGradientLegend) {
-          this.heatmapGradientLegend.destroy();
-          this.heatmapGradientLegend = null;
         }
         if (HeatmapGradientLegend.isEnabled(w)) {
           this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx);
@@ -38845,7 +38962,7 @@ var __async = (__this, __arguments, generator) => {
           }
         }
         const lg = legendGroups[w.labelData.seriesGroupIndex[i2]];
-        if (lg) elLegendWrap.appendChild(lg);
+        if (lg && !lg.parentNode) elLegendWrap.appendChild(lg);
         (lg || elLegendWrap).appendChild(elLegend);
         elLegendWrap.classList.add(
           `apexcharts-align-${w.config.legend.horizontalAlign}`
@@ -38956,7 +39073,7 @@ var __async = (__this, __arguments, generator) => {
       );
       const hoverOverLegend = isLegendItem(target);
       if (w.config.chart.type !== "heatmap" && !this.isBarsDistributed) {
-        if (!target.classList.contains("apexcharts-inactive-legend") && hoverOverLegend) {
+        if (hoverOverLegend && !target.closest(".apexcharts-inactive-legend")) {
           const series = new Series(this.ctx.w);
           series.toggleSeriesOnHover(e2, target);
         }
@@ -38990,7 +39107,8 @@ var __async = (__this, __arguments, generator) => {
         me.onLegendClick(e2);
         if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
           requestAnimationFrame(() => {
-            const restored = w.dom.baseEl.querySelector(
+            var _a;
+            const restored = (_a = w.dom.baseEl) == null ? void 0 : _a.querySelector(
               `.apexcharts-legend-series[rel="${rel}"]`
             );
             if (restored) restored.focus();
@@ -40027,6 +40145,63 @@ var __async = (__this, __arguments, generator) => {
       const { zoom } = this.w.config.chart;
       return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom);
     }
+    /** An explicit `true` zooms on every wheel; 'auto' needs Ctrl/Cmd. */
+    _wheelZoomGreedy() {
+      return this.w.config.chart.zoom.allowMouseWheelZoom === true;
+    }
+    /**
+     * Tell a viewer whose bare wheel just scrolled past the chart how to zoom it.
+     * Shown over the chart while the scroll goes on and faded out shortly after
+     * it stops. Only for a mostly vertical wheel: a sideways trackpad swipe is
+     * not someone reaching for zoom.
+     *
+     * The node lives in elWrap and the timer on w.interact, since a re-render can
+     * replace both this instance and the wrapper's contents while it is up.
+     *
+     * @param {any} e
+     */
+    _showWheelHint(e2) {
+      const w = this.w;
+      if (w.config.chart.zoom.wheelHint === false) return;
+      if (Math.abs(e2.deltaY) <= Math.abs(e2.deltaX)) return;
+      const wrap = w.dom.elWrap;
+      if (!wrap) return;
+      let el = wrap.querySelector(".apexcharts-wheel-hint");
+      if (!el) {
+        const win = BrowserAPIs.getWindow();
+        const nav = win && win.navigator;
+        const mac = !!nav && /Mac|iPhone|iPad/.test(nav.platform || nav.userAgent);
+        const text = (w.globals.locale.toolbar.wheelZoomHint || "").replace(
+          "{key}",
+          mac ? "⌘" : "Ctrl"
+        );
+        el = BrowserAPIs.createElement("div");
+        el.className = "apexcharts-wheel-hint";
+        el.setAttribute("aria-hidden", "true");
+        const label = BrowserAPIs.createElement("span");
+        label.textContent = text;
+        label.style.fontFamily = w.config.chart.fontFamily;
+        el.appendChild(label);
+        wrap.appendChild(el);
+        void /** @type {HTMLElement} */
+        el.offsetWidth;
+      }
+      el.classList.add("apexcharts-wheel-hint-visible");
+      const it = w.interact;
+      if (it.wheelHintTimer) clearTimeout(it.wheelHintTimer);
+      it.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
+    }
+    _hideWheelHint() {
+      var _a;
+      const w = this.w;
+      const it = w.interact;
+      if (it.wheelHintTimer) {
+        clearTimeout(it.wheelHintTimer);
+        it.wheelHintTimer = null;
+      }
+      const el = (_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-wheel-hint");
+      if (el) el.classList.remove("apexcharts-wheel-hint-visible");
+    }
     /**
      * Put keyboard focus on the chart, where the chart is focusable at all.
      *
@@ -40098,8 +40273,13 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} e
      */
     mouseWheelEvent(e2) {
-      e2.preventDefault();
       const st = this._wheel();
+      if (!this._wheelZoomGreedy() && !e2.ctrlKey && !e2.metaKey && st.endTimer == null) {
+        this._showWheelHint(e2);
+        return;
+      }
+      e2.preventDefault();
+      this._hideWheelHint();
       let dy = e2.deltaY;
       if (e2.deltaMode === 1) dy *= 33;
       else if (e2.deltaMode === 2) dy *= 330;
@@ -40862,6 +41042,34 @@ var __async = (__this, __arguments, generator) => {
       const args = { xaxis: { min, max } };
       w.config.chart.events.scrolled(this.ctx, args);
       this.ctx.events.fireEvent("scrolled", args);
+    }
+    /**
+     * Pan a zoomed x-window by `fraction` of its width (keyboard Shift+Arrow),
+     * clamped to the data as a drag pan is, and reported as one (`scrolled`).
+     * @param {number} fraction
+     */
+    panBy(fraction) {
+      const w = this.w;
+      if (!w.interact.zoomed) return;
+      const { min, max } = this._currentXWindow();
+      let d = (max - min) * fraction;
+      if (w.config.xaxis.convertedCatToNumeric) {
+        d = d > 0 ? Math.ceil(d) : Math.floor(d);
+      }
+      if (w.axisFlags.isRangeBar) {
+        const r2 = w.rangeData;
+        let lo = Infinity;
+        let hi = -Infinity;
+        r2.seriesRangeStart.concat(r2.seriesRangeEnd).flat().forEach((y) => {
+          if (y != null) {
+            lo = Math.min(lo, y);
+            hi = Math.max(hi, y);
+          }
+        });
+        d = d > 0 ? Math.min(d, Math.max(0, hi - max)) : Math.max(d, Math.min(0, lo - min));
+        if (!d) return;
+      }
+      if (this._applyXRange(min + d, max + d, false)) this._fireScrolled();
     }
     /** @param {number} x @param {number} t */
     _pushSample(x2, t2) {
@@ -42327,16 +42535,35 @@ var __async = (__this, __arguments, generator) => {
       });
       svgEl.addEventListener("keydown", this._onKeyDown, { passive: false });
       this.ctx.events.addEventListener("legendClick", this._onLegendClick);
+      const kept = w.interact.keyNav;
+      const doc = svgEl.ownerDocument;
+      w.interact.keyNav = null;
+      if (kept && (!doc.activeElement || doc.activeElement === doc.body)) {
+        [this.seriesIndex, this.dataPointIndex, , this._tooltipDismissed] = kept;
+        if (!kept[2]) this.notePointerFocus();
+        svgEl.focus({ preventScroll: true });
+      }
     }
     /**
-     * Removes all event listeners. Called from chart.destroy().
+     * Removes all event listeners. Called from chart.destroy(), and with
+     * `updating` when an update is about to replace the SVG.
+     * @param {boolean} [updating]
      */
-    destroy() {
+    destroy(updating) {
+      var _a;
       const w = this.w;
       const svgEl = w.dom.Paper && w.dom.Paper.node;
       this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
       clearTimeout(this._announceTimer);
       if (!svgEl) return;
+      if (updating && ((_a = svgEl.getRootNode) == null ? void 0 : _a.call(svgEl).activeElement) === svgEl) {
+        w.interact.keyNav = [
+          this.seriesIndex,
+          this.dataPointIndex,
+          this.active,
+          this._tooltipDismissed
+        ];
+      }
       svgEl.removeEventListener("focus", this._onFocus);
       svgEl.removeEventListener("blur", this._onBlur);
       svgEl.removeEventListener("keydown", this._onKeyDown);
@@ -42388,7 +42615,7 @@ var __async = (__this, __arguments, generator) => {
       this.active = true;
       this._clampCursor();
       this._snapToVisibleRange();
-      this._showCurrentPoint();
+      if (!this._tooltipDismissed) this._showCurrentPoint();
     }
     _onBlur() {
       this.active = false;
@@ -42434,20 +42661,18 @@ var __async = (__this, __arguments, generator) => {
           break;
         case "Home":
           e2.preventDefault();
-          this.dataPointIndex = 0;
-          this._skipNullForward();
+          this._seek(0, 1);
           this._showCurrentPoint();
           break;
         case "End":
           e2.preventDefault();
-          this.dataPointIndex = this._getDataPointCount(this.seriesIndex) - 1;
-          this._skipNullBackward();
+          this._seek(this._getDataPointCount(this.seriesIndex) - 1, -1);
           this._showCurrentPoint();
           break;
         case "Enter":
         case " ":
           e2.preventDefault();
-          this._fireClick();
+          this._fireClick(e2);
           break;
         case "+":
         case "=":
@@ -42495,22 +42720,15 @@ var __async = (__this, __arguments, generator) => {
       );
     }
     _canPan() {
-      return this._canZoom();
+      return this._canZoom() && this.w.interact.zoomed;
     }
     /**
-     * Shift the visible x-range by ~10% in the given direction.
+     * Shift the visible x-range by ~10% in the given direction, as a drag pan.
      * @param {number} direction +1 = right, -1 = left
      */
     _panBy(direction) {
-      const toolbar = this.ctx.toolbar;
-      if (!toolbar) return;
-      const r2 = toolbar._currentXRange();
-      const minX = Number(r2.minX);
-      const maxX = Number(r2.maxX);
-      if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return;
-      const span = maxX - minX;
-      const step = span * 0.1 * direction;
-      toolbar.zoomUpdateOptions(minX + step, maxX + step);
+      var _a;
+      (_a = this.ctx.zoomPanSelection) == null ? void 0 : _a.panBy(direction / 10);
       this._announce(direction > 0 ? "Panned right" : "Panned left");
     }
     // ─── Navigation ───────────────────────────────────────────────────────────
@@ -42525,8 +42743,8 @@ var __async = (__this, __arguments, generator) => {
       if (dSeries !== 0) {
         const ttCtx = this.w.globals.tooltip;
         const type = w.config.chart.type;
-        const perCell = type === "heatmap" || type === "treemap";
-        if (!perCell && ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
+        const perCell = type === "heatmap" || type === "treemap" || type === "radialBar";
+        if (!perCell && (ttCtx == null ? void 0 : ttCtx.ttItems) && ttCtx.tConfig.shared) {
           const j2 = this.dataPointIndex;
           const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j2) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
           if (isActuallyShared) return;
@@ -42552,59 +42770,43 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       if (dPoint !== 0) {
-        const dpCount = this._getDataPointCount(this.seriesIndex);
-        let di = this.dataPointIndex + dPoint;
-        if (di < 0) di = wrapAround ? dpCount - 1 : 0;
-        if (di >= dpCount) di = wrapAround ? 0 : dpCount - 1;
-        this.dataPointIndex = di;
-        if (dPoint > 0) {
-          this._skipNullForward();
-        } else {
-          this._skipNullBackward();
-        }
+        this._seek(this.dataPointIndex + dPoint, dPoint);
         if (!this._isDataPointVisible(this.seriesIndex, this.dataPointIndex)) {
           this._snapToVisibleRangeInDirection(dPoint);
         }
       }
       this._showCurrentPoint();
     }
-    /** Advance dataPointIndex forward past any nulls */
-    _skipNullForward() {
+    /**
+     * Land on the first non-null point from `di` going `dir`. Past an edge it
+     * wraps only with wrapAround; when no point lies ahead the cursor stays.
+     * @param {number} di
+     * @param {number} dir
+     */
+    _seek(di, dir) {
       const w = this.w;
-      const si = this.seriesIndex;
-      const dpCount = this._getDataPointCount(si);
-      let di = this.dataPointIndex;
-      let attempts = 0;
-      if (!Array.isArray(w.seriesData.series[si])) return;
-      while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-        di = (di + 1) % dpCount;
-        attempts++;
+      const row = w.seriesData.series[this.seriesIndex];
+      const n2 = this._getDataPointCount(this.seriesIndex);
+      for (let k2 = 0; k2 < n2; k2++, di += dir) {
+        if (w.config.chart.accessibility.keyboard.navigation.wrapAround) {
+          di = (di + n2) % n2;
+        } else if (di < 0 || di >= n2) return;
+        if (!Array.isArray(row) || row[di] !== null) {
+          this.dataPointIndex = di;
+          return;
+        }
       }
-      this.dataPointIndex = di;
-    }
-    /** Retreat dataPointIndex backward past any nulls */
-    _skipNullBackward() {
-      const w = this.w;
-      const si = this.seriesIndex;
-      const dpCount = this._getDataPointCount(si);
-      let di = this.dataPointIndex;
-      let attempts = 0;
-      if (!Array.isArray(w.seriesData.series[si])) return;
-      while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-        di = (di - 1 + dpCount) % dpCount;
-        attempts++;
-      }
-      this.dataPointIndex = di;
     }
     // ─── Display ──────────────────────────────────────────────────────────────
     _showCurrentPoint() {
       const { seriesIndex: i2, dataPointIndex: j2 } = this;
       const w = this.w;
       const ttCtx = w.globals.tooltip;
-      if (!ttCtx || !ttCtx.ttItems) return;
+      this._tooltipDismissed = false;
       w.interact.capturedSeriesIndex = i2;
       w.interact.capturedDataPointIndex = j2;
       this._applyFocusClass(i2, j2);
+      if (!(ttCtx == null ? void 0 : ttCtx.ttItems)) return this._announce(this._buildPointLabel(i2, j2));
       this._showTooltip(
         i2,
         j2,
@@ -42662,10 +42864,8 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
         tooltipEl.removeAttribute("aria-hidden");
       }
-      if (type === "pie" || type === "donut" || type === "polarArea") {
+      if (type === "pie" || type === "donut" || type === "polarArea" || type === "radialBar") {
         this._showTooltipNonAxis(i2, j2, ttCtx, tooltipEl);
-      } else if (type === "radialBar") {
-        this._showTooltipRadialBar(i2, j2, ttCtx, tooltipEl);
       } else if (type === "heatmap" || type === "treemap") {
         this._showTooltipHeatTree(i2, j2, ttCtx, tooltipEl, type);
       } else if (this._isBarLikeSeries(i2)) {
@@ -43020,78 +43220,27 @@ var __async = (__this, __arguments, generator) => {
       return true;
     }
     /**
-     * pie / donut / polarArea
+     * pie / donut / polarArea (a slice per point, i is 0) and radialBar (a ring
+     * per series, j is 0)
      * @param {number} i
      * @param {number} j
      * @param {import('../tooltip/Tooltip').default} ttCtx
      * @param {HTMLElement} tooltipEl
      */
     _showTooltipNonAxis(i2, j2, ttCtx, tooltipEl) {
-      const w = this.w;
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: ttCtx.ttItems,
-        i: j2,
+        i: i2 + j2,
         shared: false
       });
       const tooltipBound = tooltipEl.getBoundingClientRect();
       const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
       const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
-      const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j2}']`);
-      const anchor = ttCtx.getSliceAnchor(sliceEl);
+      const anchor = ttCtx.getSliceAnchor(this._getFocusableElement(i2, j2));
       if (anchor) {
         const pos = ttCtx.tooltipPosition.placeOverAnchor(
           anchor.x,
           anchor.y,
-          ttWidth,
-          ttHeight,
-          10
-        );
-        tooltipEl.style.left = pos.x + "px";
-        tooltipEl.style.top = pos.y + "px";
-      }
-    }
-    /**
-     * radialBar — one ring per series, single value each
-     * @param {number} i
-     * @param {any} _j
-     * @param {import('../tooltip/Tooltip').default} ttCtx
-     * @param {HTMLElement} tooltipEl
-     */
-    _showTooltipRadialBar(i2, _j, ttCtx, tooltipEl) {
-      var _a;
-      const w = this.w;
-      ttCtx.tooltipLabels.drawSeriesTexts({
-        ttItems: ttCtx.ttItems,
-        i: i2,
-        shared: false
-      });
-      const { ttWidth = 0, ttHeight = 0 } = ttCtx.getCachedDimensions();
-      const arcEl = w.dom.baseEl.querySelector(
-        `.apexcharts-radialbar-series[data\\:realIndex='${i2}'] path`
-      );
-      if (arcEl) {
-        const angle = parseFloat((_a = arcEl.getAttribute("data:angle")) != null ? _a : "") || 0;
-        const initialAngle = w.config.plotOptions.radialBar.startAngle || 0;
-        const midAngle = initialAngle + angle / 2;
-        const centerX = w.layout.gridWidth / 2;
-        const centerY = w.layout.gridHeight / 2;
-        const radialSize = w.globals.radialSize || Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2;
-        const seriesCount = w.seriesData.series.length;
-        const trackSize = radialSize / Math.max(seriesCount, 1);
-        const outerRadius = radialSize - i2 * trackSize;
-        const innerRadius = outerRadius - trackSize;
-        const ringRadius = (outerRadius + innerRadius) / 2;
-        const centroid = Utils$1.polarToCartesian(
-          centerX,
-          centerY,
-          ringRadius,
-          midAngle
-        );
-        const x2 = centroid.x + (w.layout.translateX || 0);
-        const y = centroid.y + (w.layout.translateY || 0);
-        const pos = ttCtx.tooltipPosition.placeOverAnchor(
-          x2,
-          y,
           ttWidth,
           ttHeight,
           10
@@ -43359,9 +43508,7 @@ var __async = (__this, __arguments, generator) => {
       const mark = this._canvasMark(i2, j2);
       if (!mark) return this._drawCanvasMarkerFocusRing(i2, j2);
       const w = this.w;
-      const host = Array.from(
-        w.dom.baseEl.querySelectorAll(".apexcharts-series")
-      ).find((g) => g.getAttribute("data:realIndex") === String(i2));
+      const host = this._seriesGroup(i2);
       if (!host) return null;
       const ring = new Graphics(w, this.ctx).drawPath({
         d: mark.d,
@@ -43385,9 +43532,7 @@ var __async = (__this, __arguments, generator) => {
       const marker = this._canvasMarker(i2, j2);
       if (!marker) return null;
       const w = this.w;
-      const host = Array.from(
-        w.dom.baseEl.querySelectorAll(".apexcharts-series")
-      ).find((g) => g.getAttribute("data:realIndex") === String(i2));
+      const host = this._seriesGroup(i2);
       if (!host) return null;
       const ring = new Graphics(w, this.ctx).drawPath({
         d: marker.d,
@@ -43481,6 +43626,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} j
      */
     _getFocusableElement(i2, j2) {
+      var _a, _b;
       const w = this.w;
       const type = w.config.chart.type;
       const baseEl = w.dom.baseEl;
@@ -43498,32 +43644,47 @@ var __async = (__this, __arguments, generator) => {
         );
       }
       if (type === "radialBar") {
-        return baseEl.querySelector(
-          `.apexcharts-radialbar-series[data\\:realIndex='${i2}'] path`
-        );
+        return baseEl.querySelector(`.apexcharts-radialbar-slice-${i2}`);
       }
       if (this._isBarLikeSeries(i2)) {
         if (this._canvasMark(i2, j2)) return null;
-        return baseEl.querySelector(
-          `.apexcharts-series[data\\:realIndex='${i2}'] path[j='${j2}']`
-        );
+        return (_a = this._seriesGroup(i2)) == null ? void 0 : _a.querySelector(`path[j='${j2}']`);
       }
-      const marker = baseEl.querySelector(
-        `.apexcharts-series[data\\:realIndex='${i2}'] .apexcharts-marker[rel='${j2}']`
-      );
-      return marker || null;
+      return (_b = this._seriesGroup(i2)) == null ? void 0 : _b.querySelector(`.apexcharts-marker[rel='${j2}']`);
+    }
+    /**
+     * The series' own group, by realIndex (`rel` counts within a type's groups,
+     * which a combo has several of). Matched in script: not every selector
+     * engine takes the escaped `data\:realIndex` attribute.
+     * @param {number} i
+     * @returns {Element | undefined}
+     */
+    _seriesGroup(i2) {
+      return Array.from(
+        this.w.dom.baseEl.querySelectorAll(".apexcharts-series")
+      ).find((g) => g.getAttribute("data:realIndex") === String(i2));
     }
     // ─── Click / Enter ────────────────────────────────────────────────────────
-    _fireClick() {
-      const w = this.w;
-      const ttCtx = w.globals.tooltip;
-      if (!ttCtx) return;
-      const syntheticEvent = {
-        type: "mouseup",
-        clientX: 0,
-        clientY: 0
-      };
-      ttCtx.markerClick(syntheticEvent, this.seriesIndex, this.dataPointIndex);
+    /**
+     * What a click on the focused mark does: its mousedown selects it
+     * (dataPointSelection), its mouseup slides a pie slice out and fires
+     * markerClick.
+     * @param {KeyboardEvent} e
+     */
+    _fireClick(e2) {
+      var _a, _b;
+      const el = (
+        /** @type {any} */
+        (_a = this._focusedEl) == null ? void 0 : _a.instance
+      );
+      const pie = this.ctx.pie;
+      if (el) new Graphics(this.w, this.ctx).pathMouseDown(el, e2);
+      if (pie && pie.getExpandOffset() > 0) pie.pieClicked(this.dataPointIndex);
+      (_b = this.w.globals.tooltip) == null ? void 0 : _b.markerClick(
+        e2,
+        this.seriesIndex,
+        this.dataPointIndex
+      );
     }
     // ─── Helpers ──────────────────────────────────────────────────────────────
     _isNavEnabled() {
@@ -43547,8 +43708,8 @@ var __async = (__this, __arguments, generator) => {
       if (type === "pie" || type === "donut" || type === "polarArea") {
         return w.seriesData.series.length;
       }
-      const series = w.seriesData.series;
-      return series[si] && Array.isArray(series[si]) ? series[si].length : 0;
+      const s2 = w.seriesData.series[si];
+      return Array.isArray(s2) ? s2.length : 1;
     }
     _clampCursor() {
       const seriesCount = this._getSeriesCount();
@@ -47730,7 +47891,8 @@ var __async = (__this, __arguments, generator) => {
         barXPosition,
         barYPosition,
         visibleSeries,
-        hl
+        hl,
+        noLabel
       } = opts;
       const w = this.w;
       const graphics = new Graphics(this.barCtx.w);
@@ -47844,7 +48006,7 @@ var __async = (__this, __arguments, generator) => {
           dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
         }
       }
-      dataLabels = this.drawCalculatedDataLabels({
+      dataLabels = noLabel ? null : this.drawCalculatedDataLabels({
         x: dataLabelsPos.dataLabelsX,
         y: dataLabelsPos.dataLabelsY,
         neg: params.neg,
@@ -47930,8 +48092,8 @@ var __async = (__this, __arguments, generator) => {
       return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j2] : this.barCtx.stackedSeriesTotals[j2];
     }
     /**
-     * The running stack at this column's x (BarStacked `tops`, columns only) on
-     * a numeric axis, where columns stack by x rather than by index.
+     * The running stack at this bar's x (BarStacked `tops`) on a numeric axis,
+     * where bars stack by x rather than by index.
      * @param {number} realIndex @param {number} j
      */
     xStackTop(realIndex, j2) {
@@ -47939,6 +48101,21 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       return w.axisFlags.isXNumeric && /** @type {any} */
       ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(w.seriesData.seriesX[realIndex][j2]));
+    }
+    /**
+     * The stacked total's text box, measured in the total's own font.
+     * @param {number} realIndex @param {number} j
+     */
+    totalRects(realIndex, j2) {
+      const s2 = this.barCtx.barOptions.dataLabels.total.style;
+      return new Graphics(this.w).getTextRects(
+        this.getStackedTotalDataLabel({ realIndex, j: j2 }),
+        s2.fontSize,
+        s2.fontFamily,
+        void 0,
+        true,
+        s2.fontWeight
+      );
     }
     /** @param {{realIndex: any, j: any}} opts */
     getStackedTotalDataLabel({ realIndex, j: j2 }) {
@@ -47960,7 +48137,6 @@ var __async = (__this, __arguments, generator) => {
       var _a;
       const w = this.w;
       let {
-        i: i2,
         j: j2,
         realIndex,
         y,
@@ -47970,7 +48146,6 @@ var __async = (__this, __arguments, generator) => {
         textRects,
         dataLabelsX,
         dataLabelsY,
-        dataLabelsConfig,
         barDataLabelsConfig,
         barTotalDataLabelsConfig,
         strokeWidth,
@@ -47984,7 +48159,7 @@ var __async = (__this, __arguments, generator) => {
       barHeight = Math.abs(barHeight);
       const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
       const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-        i: i2,
+        i: realIndex,
         j: j2
       });
       bcx = bcx - strokeWidth / 2;
@@ -48005,7 +48180,7 @@ var __async = (__this, __arguments, generator) => {
         const offsetDLX = 2;
         dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
       }
-      const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[i2][j2] < 0;
+      const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[realIndex][j2] < 0;
       let newY = y;
       if (this.barCtx.isReversed) {
         newY = y + (valIsNegative ? barHeight : -barHeight);
@@ -48079,16 +48254,11 @@ var __async = (__this, __arguments, generator) => {
       });
       if (this.hlt) lowestPrevY = this.hlt.edge;
       if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-        const ADDITIONAL_OFFY = 18;
-        const graphics = new Graphics(this.barCtx.w);
-        const totalLabeltextRects = graphics.getTextRects(
-          this.getStackedTotalDataLabel({ realIndex, j: j2 }),
-          dataLabelsConfig.fontSize
-        );
+        const h = this.totalRects(realIndex, j2).height;
         if (valIsNegative) {
-          totalDataLabelsY = lowestPrevY - totalLabeltextRects.height / 2 - offY - barTotalDataLabelsConfig.offsetY + ADDITIONAL_OFFY;
+          totalDataLabelsY = lowestPrevY + h * 0.77 - offY - barTotalDataLabelsConfig.offsetY;
         } else {
-          totalDataLabelsY = lowestPrevY + totalLabeltextRects.height + offY + barTotalDataLabelsConfig.offsetY - ADDITIONAL_OFFY;
+          totalDataLabelsY = lowestPrevY - h * 0.3 + offY + barTotalDataLabelsConfig.offsetY;
         }
         const xDivision = dataPointsDividedWidth;
         totalDataLabelsX = totalDataLabelsBcx + (w.axisFlags.isXNumeric ? -barWidth / 2 : barWidth / 2 - xDivision) + barTotalDataLabelsConfig.offsetX;
@@ -48118,7 +48288,6 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       let {
         x: x2,
-        i: i2,
         j: j2,
         realIndex,
         bcy,
@@ -48135,7 +48304,7 @@ var __async = (__this, __arguments, generator) => {
       } = opts;
       const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints;
       const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-        i: i2,
+        i: realIndex,
         j: j2
       });
       barWidth = Math.abs(barWidth);
@@ -48152,7 +48321,7 @@ var __async = (__this, __arguments, generator) => {
       let totalDataLabelsX;
       let totalDataLabelsY;
       let totalDataLabelsAnchor = "start";
-      const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[i2][j2] < 0;
+      const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[realIndex][j2] < 0;
       let newX = x2;
       if (this.barCtx.isReversed) {
         newX = x2 + (valIsNegative ? -barWidth : barWidth);
@@ -48187,10 +48356,14 @@ var __async = (__this, __arguments, generator) => {
       }
       let lowestPrevX = newX;
       const totalGroupCtx = this.getTotalGroupContext(realIndex);
-      const stacks = (
+      const top = this.xStackTop(realIndex, j2);
+      const stacks = top ? [] : (
         /** @type {any} */
         this.barCtx.stacks || []
       );
+      if (top) {
+        lowestPrevX = valIsNegative ? Math.min(newX, top[4]) : Math.max(newX, top[5]);
+      }
       stacks.forEach((g, gi) => {
         if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
         g.prevX.forEach((arr) => {
@@ -48203,11 +48376,7 @@ var __async = (__this, __arguments, generator) => {
       });
       if (this.hlt) lowestPrevX = this.hlt.edge;
       if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-        const graphics = new Graphics(this.barCtx.w);
-        const totalLabeltextRects = graphics.getTextRects(
-          this.getStackedTotalDataLabel({ realIndex, j: j2 }),
-          dataLabelsConfig.fontSize
-        );
+        const totalLabeltextRects = this.totalRects(realIndex, j2);
         if (valIsNegative) {
           totalDataLabelsX = lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX;
           totalDataLabelsAnchor = "end";
@@ -48276,8 +48445,9 @@ var __async = (__this, __arguments, generator) => {
       let elDataLabelsWrap = null;
       const isSeriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i2) > -1;
       const isSeriesCollapsing = (w.globals.collapsingSeriesIndices || []).indexOf(i2) > -1;
+      const dlKey = `${i2}::${this.barCtx._keys(i2)[j2]}`;
       if (isSeriesCollapsing) {
-        const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(`${i2}::${datumKey(w, i2, j2)}`);
+        const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(dlKey);
         if (prev && isFinite(prev.val)) {
           val = prev.val;
           text = void 0;
@@ -48290,10 +48460,7 @@ var __async = (__this, __arguments, generator) => {
         });
         const dlCfg = w.config.dataLabels;
         if (((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled)) {
-          elDataLabelsWrap.node.setAttribute(
-            "data:dlKey",
-            `${i2}::${datumKey(w, i2, j2)}`
-          );
+          elDataLabelsWrap.node.setAttribute("data:dlKey", dlKey);
           elDataLabelsWrap.node.setAttribute("data:dlJ", String(j2));
           if (typeof val === "number" && isFinite(val)) {
             elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
@@ -48311,29 +48478,12 @@ var __async = (__this, __arguments, generator) => {
         if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
           text = "";
         }
-        const valIsNegative = neg != null ? neg : w.seriesData.series[i2][j2] < 0;
-        const position = w.config.plotOptions.bar.dataLabels.position;
+        let anchor = dataLabelsConfig.textAnchor;
         if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
-          if (position === "top") {
-            if (valIsNegative) dataLabelsConfig.textAnchor = "end";
-            else dataLabelsConfig.textAnchor = "start";
-          }
-          if (position === "center") {
-            dataLabelsConfig.textAnchor = "middle";
-          }
-          if (position === "bottom") {
-            if (valIsNegative) dataLabelsConfig.textAnchor = "end";
-            else dataLabelsConfig.textAnchor = "start";
-          }
+          anchor = w.config.plotOptions.bar.dataLabels.position === "center" ? "middle" : (neg != null ? neg : w.seriesData.series[i2][j2] < 0) ? "end" : "start";
         }
-        if (this.barCtx.isRangeBar && this.barCtx.barOptions.dataLabels.hideOverflowingLabels) {
-          const txRect = graphics.getTextRects(
-            text,
-            parseFloat(dataLabelsConfig.style.fontSize).toString()
-          );
-          if (barWidth < txRect.width) {
-            text = "";
-          }
+        if (this.barCtx.isRangeBar && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && barWidth < textRects.width) {
+          text = "";
         }
         if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && // A collapsing series is measured against its NEW extent, which is
         // already zero, so this would blank a label whose bar is still at full
@@ -48349,14 +48499,14 @@ var __async = (__this, __arguments, generator) => {
             }
           }
         }
-        const modifiedDataLabelsConfig = __spreadValues({}, dataLabelsConfig);
-        if (this.barCtx.isHorizontal) {
-          if (val < 0) {
-            if (dataLabelsConfig.textAnchor === "start") {
-              modifiedDataLabelsConfig.textAnchor = "end";
-            } else if (dataLabelsConfig.textAnchor === "end") {
-              modifiedDataLabelsConfig.textAnchor = "start";
-            }
+        const modifiedDataLabelsConfig = __spreadProps(__spreadValues({}, dataLabelsConfig), {
+          textAnchor: anchor
+        });
+        if (this.barCtx.isHorizontal && val < 0) {
+          if (anchor === "start") {
+            modifiedDataLabelsConfig.textAnchor = "end";
+          } else if (anchor === "end") {
+            modifiedDataLabelsConfig.textAnchor = "start";
           }
         }
         dataLabels.plotDataLabelsText({
@@ -48408,7 +48558,7 @@ var __async = (__this, __arguments, generator) => {
           const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex);
           totalDataLabelText.node.setAttribute(
             "data:dlTotalKey",
-            `${groupIndex}::${datumKey(this.w, realIndex, j2)}`
+            `${groupIndex}::${this.barCtx._keys(realIndex)[j2]}`
           );
           totalDataLabelText.node.setAttribute(
             "data:dlTotalSeries",
@@ -48438,9 +48588,11 @@ var __async = (__this, __arguments, generator) => {
     }
     /**
      * @param {any[]} series
+     * @param {any} [seriesIndex] a combo's real indices of `series`
      */
-    initVariables(series) {
+    initVariables(series, seriesIndex) {
       const w = this.w;
+      this.seriesIndex = seriesIndex;
       this.barCtx.series = series;
       this.barCtx.totalItems = 0;
       this.barCtx.seriesLen = 0;
@@ -48461,6 +48613,8 @@ var __async = (__this, __arguments, generator) => {
           this.barCtx.visibleItems = w.globals.dataPoints;
         }
       }
+      const labels = w.labelData.labels;
+      this.rows = w.globals.isBarHorizontal && w.axisFlags.isXNumeric && !this.barCtx.isRangeBar && w.seriesData.seriesX.some((s2) => s2 == null ? void 0 : s2.some((x2, j2) => x2 !== labels[j2])) ? new Map(labels.map((x2, r2) => [x2, r2])) : null;
       this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series);
       if (Utils$1.isSafari()) {
         this.arrBorderRadius = this.arrBorderRadius.map(
@@ -48525,15 +48679,19 @@ var __async = (__this, __arguments, generator) => {
      * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
      * them would widen every bar the moment someone hid the tightest-spaced
      * series from the legend, so bar geometry would depend on legend state.
+     * In a combo only this renderer's own series count: a line's x values say
+     * nothing about how wide a column may be.
      *
      * @returns {number}
      */
     _unionMinXGap() {
       const w = this.w;
       const seriesX = w.seriesData.seriesX || [];
+      const own = this.seriesIndex;
       const arrays = [];
       for (let i2 = 0; i2 < seriesX.length; i2++) {
         const xs = seriesX[i2];
+        if (own && own.indexOf(i2) < 0) continue;
         if (Array.isArray(xs) && xs.length > 0) {
           arrays.push(
             xs.some((v, n2) => v < xs[n2 - 1]) ? xs.filter((v) => v === +v).sort((a2, b) => a2 - b) : xs
@@ -48573,6 +48731,15 @@ var __async = (__this, __arguments, generator) => {
         prev = next;
       }
       return isFinite(min) ? min : 0;
+    }
+    /**
+     * The band a horizontal bar is drawn in: its x's band when the series do
+     * not line up by index (see initVariables), else its index.
+     * @param {number} realIndex @param {number} j
+     */
+    barRow(realIndex, j2) {
+      var _a, _b, _c;
+      return (_c = (_b = this.rows) == null ? void 0 : _b.get((_a = this.w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j2])) != null ? _c : j2;
     }
     /**
      * @param {number} realIndex
@@ -48696,7 +48863,7 @@ var __async = (__this, __arguments, generator) => {
         });
       }
       const connectorFill = this.getDumbbellConnectorFill(i2, j2);
-      const datumFill = connectorFill || ((_a = w.config.series[i2].data[j2]) == null ? void 0 : _a.fill);
+      const datumFill = connectorFill || ((_a = w.config.series[realIndex].data[j2]) == null ? void 0 : _a.fill);
       const connector = this.barCtx.barOptions.isDumbbell ? w.config.plotOptions.bar.dumbbell.connector : null;
       let connectorOpacity;
       if (connector && connector.color) {
@@ -48849,11 +49016,10 @@ var __async = (__this, __arguments, generator) => {
      * @returns {string[][]}
      */
     createBorderRadiusArr(series) {
-      var _a;
       const w = this.w;
       const alwaysApplyRadius = !this.w.config.chart.stacked || w.config.plotOptions.bar.borderRadius <= 0;
       const numSeries = series.length;
-      const numColumns = ((_a = series[0]) == null ? void 0 : _a.length) | 0;
+      const numColumns = Math.max(0, ...series.map((s2) => (s2 == null ? void 0 : s2.length) | 0));
       const output = Array.from(
         { length: numSeries },
         () => Array(numColumns).fill(alwaysApplyRadius ? "top" : "none")
@@ -49009,7 +49175,7 @@ var __async = (__this, __arguments, generator) => {
       j: j2,
       w
     }) {
-      var _a, _b;
+      var _a, _b, _c;
       const r2 = this.barRect({
         a: barXPosition,
         len: barWidth,
@@ -49040,7 +49206,7 @@ var __async = (__this, __arguments, generator) => {
         const _ctx = this.barCtx.groupCtx;
         _ctx.yArrj.push(y2 - strokeCenter * direction);
         _ctx.yArrjF.push(Math.abs(y1 - y2 + r2.strokeWidth * direction));
-        _ctx.yArrjVal.push(this.barCtx.series[i2][j2]);
+        _ctx.yArrjVal.push((_c = this.barCtx.series[i2][j2]) != null ? _c : null);
       }
       return {
         pathTo,
@@ -49230,7 +49396,7 @@ var __async = (__this, __arguments, generator) => {
       j: j2,
       w
     }) {
-      var _a, _b;
+      var _a, _b, _c;
       const graphics = new Graphics(this.barCtx.w);
       const r2 = this.barRect({
         a: barYPosition,
@@ -49266,7 +49432,7 @@ var __async = (__this, __arguments, generator) => {
         const _ctx = this.barCtx.groupCtx;
         _ctx.xArrj.push(x2 + strokeCenter * direction);
         _ctx.xArrjF.push(Math.abs(x1 - x2 - r2.strokeWidth * direction));
-        _ctx.xArrjVal.push(this.barCtx.series[i2][j2]);
+        _ctx.xArrjVal.push((_c = this.barCtx.series[i2][j2]) != null ? _c : null);
       }
       return {
         pathTo,
@@ -49311,6 +49477,9 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const goals = [];
       const pushGoal = (value, attrs) => {
+        if (!w.globals.invalidLogScale) {
+          value = new CoreUtils(w).getLogValAtSeriesIndex(value, i2);
+        }
         goals.push({
           [type]: type === "x" ? this.getXForValue(value, zeroW, false) : this.getYForValue(value, zeroH, translationsIndex, false),
           attrs
@@ -49565,11 +49734,11 @@ var __async = (__this, __arguments, generator) => {
       let zeroEncounters = 0;
       const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
       seriesIndices.forEach((_si) => {
-        const val = w.globals.seriesPercent[_si][j2];
+        const val = w.seriesData.series[_si][j2];
         if (val) {
           nonZeroColumns++;
         }
-        if (_si < i2 && val === 0) {
+        if (_si < i2 && !val) {
           zeroEncounters++;
         }
       });
@@ -49672,15 +49841,17 @@ var __async = (__this, __arguments, generator) => {
     /**
      * Point the per-series axis state at this series' y axis. Every bar-family
      * renderer calls it before initialPositions, which reads the baseline by
-     * this.translationsIndex.
+     * this.translationsIndex and flips it for a reversed axis.
      * @param {number} realIndex
      * @return {number} translationsIndex
      */
     setSeriesAxis(realIndex) {
+      var _a;
       if (this.yRatio.length > 1) {
         this.yaxisIndex = this.w.globals.seriesYAxisReverseMap[realIndex];
         this.translationsIndex = realIndex;
       }
+      this.isReversed = (_a = this.w.config.yaxis[this.yaxisIndex]) == null ? void 0 : _a.reversed;
       return this.translationsIndex;
     }
     /** primary draw method which is called on bar object
@@ -49697,7 +49868,7 @@ var __async = (__this, __arguments, generator) => {
       series = coreUtils.getLogSeries(series);
       this.series = series;
       this.yRatio = coreUtils.getLogYRatios(this.yRatio);
-      this.barHelpers.initVariables(series);
+      this.barHelpers.initVariables(series, seriesIndex);
       const ret = graphics.group({
         class: "apexcharts-bar-series apexcharts-plot-series"
       });
@@ -49729,7 +49900,6 @@ var __async = (__this, __arguments, generator) => {
           this.visibleI = this.visibleI + 1;
         }
         const translationsIndex = this.setSeriesAxis(realIndex);
-        this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
         if (this.isPyramid) {
           this.pyramidLayout = this.barHelpers.computePyramidLayout(series[i2]);
         }
@@ -49807,7 +49977,9 @@ var __async = (__this, __arguments, generator) => {
             elSeries
           };
           if (this.isHorizontal) {
-            paths = this.drawBarPaths(__spreadProps(__spreadValues({}, pathsParams), {
+            paths = this.drawBarPaths(__spreadProps(__spreadValues(__spreadValues({}, pathsParams), this.barHelpers.rows && {
+              y: initY + this.barHelpers.barRow(realIndex, j2) * yDivision
+            }), {
               barHeight,
               zeroW,
               yDivision
@@ -49889,6 +50061,7 @@ var __async = (__this, __arguments, generator) => {
             series,
             barHeight: Math.abs(paths.barHeight ? paths.barHeight : barHeight),
             barWidth: Math.abs(paths.barWidth ? paths.barWidth : barWidth),
+            barXPosition: paths.barXPosition,
             elDataLabelsWrap,
             elGoalsMarkers,
             elBarShadows,
@@ -49899,15 +50072,11 @@ var __async = (__this, __arguments, generator) => {
         w.globals.seriesXvalues[realIndex] = xArrj;
         w.globals.seriesYvalues[realIndex] = yArrj;
         if (w.globals.previousPaths.length > 0) {
-          const newKeys = [];
-          for (let j2 = 0; j2 < series[i2].length; j2++) {
-            newKeys.push(datumKey(w, realIndex, j2));
-          }
           renderBarExitGhosts({
             w,
             elSeries,
             record: this._prevRecord(realIndex),
-            newKeys,
+            newKeys: this._keys(realIndex),
             isHorizontal: this.isHorizontal,
             speed: w.config.chart.animations.dynamicAnimation.speed
           });
@@ -49916,7 +50085,7 @@ var __async = (__this, __arguments, generator) => {
       }
       return ret;
     }
-    /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
+    /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean, noLabel?: boolean }} opts */
     renderSeries({
       hl,
       realIndex,
@@ -49948,7 +50117,9 @@ var __async = (__this, __arguments, generator) => {
       visibleSeries,
       type,
       classes,
-      fadeReveal = false
+      fadeReveal = false,
+      noLabel
+      // a datum's extra paths (box halves, box lane) label nothing
     }) {
       var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
@@ -50022,7 +50193,8 @@ var __async = (__this, __arguments, generator) => {
           barXPosition,
           barYPosition,
           visibleSeries,
-          hl: hl == null ? void 0 : hl.label
+          hl: hl == null ? void 0 : hl.label,
+          noLabel
         })
       );
       if (delayMs > 0) {
@@ -50038,19 +50210,18 @@ var __async = (__this, __arguments, generator) => {
       }
       let leaving = false;
       if (!w.globals.isBarHorizontal) {
-        if (dataLabelsObj.dataLabelsPos.dataLabelsX + Math.max(barWidth, w.globals.barPadForNumericAxis) < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - Math.max(barWidth, w.globals.barPadForNumericAxis) > w.layout.gridWidth) {
+        const cx = barXPosition === void 0 ? dataLabelsObj.dataLabelsPos.dataLabelsX : barXPosition + barWidth / 2;
+        const pad = Math.max(barWidth, w.globals.barPadForNumericAxis);
+        if (cx + pad < 0 || cx - pad > w.layout.gridWidth) {
           if (this._wasOnScreen(realIndex, j2)) leaving = true;
           else skipDrawing = true;
         }
       }
-      if (
-        /** @type {Record<string,any>} */
-        w.config.series[i2].data[j2] && /** @type {Record<string,any>} */
-        w.config.series[i2].data[j2].strokeColor
-      ) {
-        lineFill = /** @type {Record<string,any>} */
-        w.config.series[i2].data[j2].strokeColor;
-      }
+      const datum = (
+        /** @type {any} */
+        w.config.series[realIndex].data[j2]
+      );
+      if (datum && datum.strokeColor) lineFill = datum.strokeColor;
       const fill = pathFill;
       if (this.isNullValue && w.globals.collapsingSeriesIndices.indexOf(realIndex) === -1) {
         pathFill = "none";
@@ -50073,7 +50244,7 @@ var __async = (__this, __arguments, generator) => {
             pathTo,
             stroke: lineFill,
             strokeWidth,
-            strokeLineCap: w.config.stroke.lineCap,
+            strokeLinecap: w.config.stroke.lineCap,
             fill: pathFill,
             pathToInterp,
             animationDelay: delay,
@@ -50125,12 +50296,12 @@ var __async = (__this, __arguments, generator) => {
           cy: dataLabelsObj.dataLabelsPos.bcy,
           cx: dataLabelsObj.dataLabelsPos.bcx,
           j: j2,
-          val: w.seriesData.series[i2][j2],
+          val: w.seriesData.series[realIndex][j2],
           barHeight,
           barWidth,
           // Datum identity for the next update's keyed join (see
           // LengthTransition): survivors match by key, not array position.
-          "data:pathKey": datumKey(w, realIndex, j2)
+          "data:pathKey": this._keys(realIndex)[j2]
         });
         hl == null ? void 0 : hl.paint(renderedPath, {
           delay,
@@ -50206,7 +50377,10 @@ var __async = (__this, __arguments, generator) => {
       const j2 = indexes.j;
       let barYPosition;
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: i2, j: j2 });
+        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({
+          i: indexes.realIndex,
+          j: j2
+        });
         if (nonZeroColumns > 0) {
           barHeight = this.seriesLen * barHeight / nonZeroColumns;
         }
@@ -50345,7 +50519,7 @@ var __async = (__this, __arguments, generator) => {
         barXPosition = xForNumericX.barXPosition;
       } else {
         if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-          const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: i2, j: j2 });
+          const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: realIndex, j: j2 });
           if (nonZeroColumns > 0) {
             barWidth = this.seriesLen * barWidth / nonZeroColumns;
           }
@@ -50409,15 +50583,16 @@ var __async = (__this, __arguments, generator) => {
     /** @param {{x: any, barWidth: any, realIndex: any, j: any}} opts */
     getBarXForNumericXAxis({ x: x2, barWidth, realIndex, j: j2 }) {
       const w = this.w;
+      const overlay = isHistogramOverlay(w);
       let sxI = realIndex;
       if (!w.seriesData.seriesX[realIndex].length) {
         sxI = w.globals.maxValsInArrayIndex;
       }
       if (Utils$1.isNumber(w.seriesData.seriesX[sxI][j2])) {
-        x2 = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j2]) - barWidth * this.seriesLen / 2;
+        x2 = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j2]) - barWidth * (overlay ? 1 : this.seriesLen) / 2;
       }
       return {
-        barXPosition: x2 + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
+        barXPosition: x2 + (overlay ? 0 : barWidth * this.visibleI),
         x: x2
       };
     }
@@ -50438,7 +50613,20 @@ var __async = (__this, __arguments, generator) => {
     _wasOnScreen(realIndex, j2) {
       if (!lengthTransitionEnabled(this.w)) return false;
       const keyed = this._prevKeyedPaths(realIndex);
-      return !!keyed && keyed.has(datumKey(this.w, realIndex, j2));
+      return !!keyed && keyed.has(this._keys(realIndex)[j2]);
+    }
+    /**
+     * This render's datum keys for a series (see seriesKeys), as stamped on
+     * each bar and looked up in the previous render's.
+     * @param {number} realIndex
+     * @returns {string[]}
+     */
+    _keys(realIndex) {
+      const c = (
+        /** @type {any} */
+        this._keyCache || (this._keyCache = {})
+      );
+      return c[realIndex] || (c[realIndex] = seriesKeys(this.w, realIndex));
     }
     /**
      * The captured previous-render record for a series (last match wins, same
@@ -50494,7 +50682,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {boolean}
      */
     isLengthTransition(realIndex) {
-      var _a, _b;
+      var _a, _b, _c, _d, _e, _f;
       if (!this._ltCache) this._ltCache = {};
       if (this._ltCache[realIndex] !== void 0) return this._ltCache[realIndex];
       const w = this.w;
@@ -50502,20 +50690,14 @@ var __async = (__this, __arguments, generator) => {
       if (lengthTransitionEnabled(w) && w.globals.previousPaths.length > 0) {
         const record = this._prevRecord(realIndex);
         const dataLen = (_b = (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length) != null ? _b : 0;
+        const keyed = record && this._prevKeyedPaths(realIndex);
         if (!record) {
           result = dataLen > 0;
-        } else if (record.paths.length !== dataLen) {
-          result = true;
+        } else if (keyed) {
+          const now = new Set(this._keys(realIndex));
+          result = ((_f = (_e = (_d = (_c = w.globals.prevStreamFrame) == null ? void 0 : _c.seriesY) == null ? void 0 : _d[realIndex]) == null ? void 0 : _e.length) != null ? _f : dataLen) !== dataLen || [...keyed.keys()].some((k2) => !now.has(k2));
         } else {
-          const keyed = this._prevKeyedPaths(realIndex);
-          if (keyed) {
-            for (let j2 = 0; j2 < dataLen; j2++) {
-              if (!keyed.has(datumKey(w, realIndex, j2))) {
-                result = true;
-                break;
-              }
-            }
-          }
+          result = record.paths.length !== dataLen;
         }
       }
       this._ltCache[realIndex] = result;
@@ -50575,7 +50757,7 @@ var __async = (__this, __arguments, generator) => {
       let isNewDatum = false;
       const keyed = this._prevKeyedPaths(realIndex);
       if (keyed) {
-        const prev = keyed.get(datumKey(w, realIndex, j2));
+        const prev = keyed.get(this._keys(realIndex)[j2]);
         if (prev) {
           oldD = prev.d;
         } else {
@@ -50718,11 +50900,10 @@ var __async = (__this, __arguments, generator) => {
      * @returns {boolean | null} null when there is no previous record to consult
      */
     getPreviousFlip(realIndex, j2) {
-      const w = this.w;
       const record = this._prevRecord(realIndex);
       if (!record) return null;
       const keyed = this._prevKeyedPaths(realIndex);
-      const prev = keyed ? keyed.get(datumKey(w, realIndex, j2)) : record.paths[j2];
+      const prev = keyed ? keyed.get(this._keys(realIndex)[j2]) : record.paths[j2];
       return prev ? !!prev.flip : null;
     }
     /**
@@ -50749,7 +50930,7 @@ var __async = (__this, __arguments, generator) => {
       const coreUtils = new CoreUtils(this.w);
       series = coreUtils.getLogSeries(series);
       this.yRatio = coreUtils.getLogYRatios(this.yRatio);
-      this.barHelpers.initVariables(series);
+      this.barHelpers.initVariables(series, seriesIndex);
       if (w.config.chart.stackType === "100%") {
         series = w.globals.comboCharts ? (
           /** @type {any} */
@@ -50780,7 +50961,6 @@ var __async = (__this, __arguments, generator) => {
         const xArrValues = [];
         const yArrValues = [];
         const translationsIndex = this.setSeriesAxis(realIndex);
-        this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
         let elSeries = this.graphics.group({
           class: `apexcharts-series`,
           seriesName: Utils$1.escapeString(w.seriesData.seriesNames[realIndex]),
@@ -50850,7 +51030,9 @@ var __async = (__this, __arguments, generator) => {
             null
           );
           if (this.isHorizontal) {
-            paths = this.drawStackedBarPaths(__spreadProps(__spreadValues({}, commonPathOpts), {
+            paths = this.drawStackedBarPaths(__spreadProps(__spreadValues(__spreadValues({}, commonPathOpts), this.barHelpers.rows && {
+              y: initPositions.y + this.barHelpers.barRow(realIndex, j2) * yDivision
+            }), {
               zeroW,
               barHeight,
               yDivision
@@ -50924,6 +51106,7 @@ var __async = (__this, __arguments, generator) => {
             series,
             barHeight,
             barWidth,
+            barXPosition: paths.barXPosition,
             elDataLabelsWrap,
             elGoalsMarkers,
             type: "bar",
@@ -50941,7 +51124,7 @@ var __async = (__this, __arguments, generator) => {
         this.groupCtx.prevXVal.push(this.groupCtx.xArrjVal);
         ret.add(elSeries);
       }
-      if (heldMirrors) this.settleHeldMirrors();
+      if (heldMirrors) this.settleHeldMirrors(ret);
       return ret;
     }
     /**
@@ -50962,15 +51145,21 @@ var __async = (__this, __arguments, generator) => {
      * 'bottom' → 'top', where the endpoint really is rounded at the other end;
      * everywhere else the mirror is an exact identity on the settled shape, so
      * removing it changes nothing on screen.
+     *
+     * The marks are collected now, not when the timer fires: a query then also
+     * stripped the mirrors a LATER update was still holding mid-tween.
+     * @param {any} [ret] this draw's series group (default: the whole chart)
      */
-    settleHeldMirrors() {
+    settleHeldMirrors(ret) {
       const w = this.w;
       if (!Environment.isBrowser()) return;
       const anim = w.config.chart.animations;
       const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100;
+      const held = (ret ? ret.node : w.dom.baseEl).querySelectorAll(
+        ".apexcharts-flip-held"
+      );
       setTimeout(() => {
-        if (w.globals.isDestroyed || !Utils$1.elementExists(w.dom.baseEl)) return;
-        w.dom.baseEl.querySelectorAll(".apexcharts-flip-held").forEach((el) => {
+        held.forEach((el) => {
           el.classList.remove(
             "apexcharts-flip-held",
             "apexcharts-flip-y",
@@ -51046,7 +51235,7 @@ var __async = (__this, __arguments, generator) => {
       yDivision,
       elSeries
     }) {
-      var _a, _b, _c, _d, _e;
+      var _a, _b;
       const w = this.w;
       const barYPosition = y + columnGroupIndex * barHeight;
       let barXPosition;
@@ -51054,36 +51243,21 @@ var __async = (__this, __arguments, generator) => {
       const j2 = indexes.j;
       const realIndex = indexes.realIndex;
       const translationsIndex = indexes.translationsIndex;
-      let prevBarW = 0;
-      for (let k2 = 0; k2 < this.groupCtx.prevXF.length; k2++) {
-        prevBarW = prevBarW + this.groupCtx.prevXF[k2][j2];
-      }
-      const gsi = this.groupCtx.prevX.length;
-      if (gsi > 0) {
-        let bXP = zeroW;
-        if (this.groupCtx.prevXVal[gsi - 1][j2] < 0) {
-          bXP = /** @type {any} */
-          ((_a = this.series[i2]) == null ? void 0 : _a[j2]) >= 0 ? this.groupCtx.prevX[gsi - 1][j2] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j2];
-        } else if (this.groupCtx.prevXVal[gsi - 1][j2] >= 0) {
-          bXP = /** @type {any} */
-          ((_b = this.series[i2]) == null ? void 0 : _b[j2]) >= 0 ? this.groupCtx.prevX[gsi - 1][j2] : this.groupCtx.prevX[gsi - 1][j2] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
-        }
-        barXPosition = bXP;
+      const v = (
+        /** @type {any} */
+        (_b = (_a = this.series[i2]) == null ? void 0 : _a[j2]) != null ? _b : null
+      );
+      const g = this.groupCtx;
+      const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j2] : j2;
+      const top = g.tops.get(key);
+      if (top) {
+        const [prevX, prevVal, prevBarW] = top;
+        const flip = (this.isReversed ? prevBarW : 0) * 2;
+        barXPosition = prevVal < 0 ? v >= 0 ? prevX + prevBarW - flip : prevX : v >= 0 ? prevX : prevX - prevBarW + flip;
       } else {
         barXPosition = zeroW;
       }
-      if (
-        /** @type {any} */
-        ((_c = this.series[i2]) == null ? void 0 : _c[j2]) === null
-      ) {
-        x2 = barXPosition;
-      } else {
-        x2 = barXPosition + /** @type {any} */
-        ((_d = this.series[i2]) == null ? void 0 : _d[j2]) / this.invertedYRatio - (this.isReversed ? (
-          /** @type {any} */
-          ((_e = this.series[i2]) == null ? void 0 : _e[j2]) / this.invertedYRatio
-        ) : 0) * 2;
-      }
+      x2 = barXPosition + v / this.invertedYRatio * (this.isReversed ? -1 : 1);
       const paths = this.barHelpers.getBarpaths({
         barYPosition,
         barHeight,
@@ -51097,6 +51271,7 @@ var __async = (__this, __arguments, generator) => {
         j: j2,
         w
       });
+      this._setTop(key, top, g.xArrj[j2], g.xArrjVal[j2], g.xArrjF[j2], realIndex, j2);
       this.barHelpers.barBackground({
         j: j2,
         i: i2,
@@ -51134,13 +51309,17 @@ var __async = (__this, __arguments, generator) => {
       columnGroupIndex,
       elSeries
     }) {
-      var _a, _b, _c, _d, _e, _f;
+      var _a, _b, _c;
       const w = this.w;
       const i2 = indexes.i;
       const j2 = indexes.j;
       const bc = indexes.bc;
       const realIndex = indexes.realIndex;
       const translationsIndex = indexes.translationsIndex;
+      const v = (
+        /** @type {any} */
+        (_b = (_a = this.series[i2]) == null ? void 0 : _a[j2]) != null ? _b : null
+      );
       if (w.axisFlags.isXNumeric) {
         let seriesVal = w.seriesData.seriesX[realIndex][j2];
         if (!seriesVal) seriesVal = 0;
@@ -51155,11 +51334,9 @@ var __async = (__this, __arguments, generator) => {
         const [prevYValue, prevVal, prevBarH] = top;
         let bYP;
         if (prevVal < 0) {
-          bYP = /** @type {any} */
-          ((_a = this.series[i2]) == null ? void 0 : _a[j2]) >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
+          bYP = v >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
         } else if (prevVal >= 0) {
-          bYP = /** @type {any} */
-          ((_b = this.series[i2]) == null ? void 0 : _b[j2]) >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
+          bYP = v >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
         }
         if (typeof bYP === "undefined") bYP = w.layout.gridHeight;
         if (((_c = g.prevYF[0]) == null ? void 0 : _c.every((val) => val === 0)) && g.prevYF.slice(1).every(
@@ -51172,25 +51349,16 @@ var __async = (__this, __arguments, generator) => {
       } else {
         barYPosition = zeroH;
       }
-      if (
-        /** @type {any} */
-        (_d = this.series[i2]) == null ? void 0 : _d[j2]
-      ) {
-        y = barYPosition - /** @type {any} */
-        ((_e = this.series[i2]) == null ? void 0 : _e[j2]) / this.yRatio[translationsIndex] + (this.isReversed ? (
-          /** @type {any} */
-          ((_f = this.series[i2]) == null ? void 0 : _f[j2]) / this.yRatio[translationsIndex]
-        ) : 0) * 2;
-      } else {
-        y = barYPosition;
-      }
+      y = barYPosition - v / this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
       const paths = this.barHelpers.getColumnPaths({
         barXPosition,
         barWidth,
         y1: barYPosition,
         y2: y,
         yRatio: this.yRatio[translationsIndex],
-        strokeWidth: this.strokeWidth,
+        // the series' width even for an empty segment, so a hidden layer keeps
+        // its place, but no inset at all when no stroke is drawn
+        strokeWidth: w.config.stroke.show ? this.strokeWidth : 0,
         isReversed: this.isReversed,
         series: this.series,
         realIndex: indexes.realIndex,
@@ -51198,17 +51366,7 @@ var __async = (__this, __arguments, generator) => {
         j: j2,
         w
       });
-      const t2 = g.yArrj[j2];
-      if (!isNaN(t2)) {
-        g.tops.set(key, [
-          t2,
-          g.yArrjVal[j2],
-          (top ? top[2] : 0) + g.yArrjF[j2],
-          (top ? top[3] : 0) + (w.seriesData.series[realIndex][j2] || 0),
-          top ? Math.min(top[0], top[4]) : 1 / 0,
-          top ? Math.max(top[0], top[5]) : -1 / 0
-        ]);
-      }
+      this._setTop(key, top, g.yArrj[j2], g.yArrjVal[j2], g.yArrjF[j2], realIndex, j2);
       this.barHelpers.barBackground({
         bc,
         j: j2,
@@ -51227,17 +51385,47 @@ var __async = (__this, __arguments, generator) => {
           zeroH,
           realIndex,
           j2,
-          0
+          translationsIndex
         ),
         barXPosition,
         x: w.axisFlags.isXNumeric ? x2 : x2 + xDivision,
         y
       };
     }
+    /**
+     * Record the segment just drawn as the top of its stack. Per key it holds
+     * the top and value of the last segment drawn there, the summed lengths and
+     * raw values of every segment so far (the total label's value), and the
+     * extreme tops below that segment (the total label's position).
+     * @param {any} key @param {any} top @param {number} t @param {any} val
+     * @param {number} len @param {number} realIndex @param {number} j
+     */
+    _setTop(key, top, t2, val, len, realIndex, j2) {
+      if (isNaN(t2)) return;
+      this.groupCtx.tops.set(key, [
+        t2,
+        val,
+        (top ? top[2] : 0) + len,
+        (top ? top[3] : 0) + (this.w.seriesData.series[realIndex][j2] || 0),
+        top ? Math.min(top[0], top[4]) : 1 / 0,
+        top ? Math.max(top[0], top[5]) : -1 / 0
+      ]);
+    }
+  }
+  function jitterExtent(pool, w) {
+    let lo = Infinity;
+    let hi = -Infinity;
+    pool.slice(0, w.seriesData.series.length).flat(2).forEach((v) => {
+      if (v === +v) {
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+    });
+    return [lo, hi];
   }
   function buildJitterGroups({
-    w,
     points,
+    extent,
     seedA,
     seedB,
     center,
@@ -51248,6 +51436,7 @@ var __async = (__this, __arguments, generator) => {
     clampAt,
     sideSign
   }) {
+    var _a, _b;
     const opts = options2;
     if (!opts || opts.show === false) return [];
     if (!points || !points.length) return [];
@@ -51261,8 +51450,8 @@ var __async = (__this, __arguments, generator) => {
     const scale = opts.colorScale;
     const useScale = scale && Array.isArray(scale.colors) && scale.colors.length > 0;
     const steps = useScale ? Math.max(2, scale.steps || 24) : 1;
-    const sMin = useScale && scale.min != null ? scale.min : w.globals.minY;
-    const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY;
+    const sMin = (_a = scale == null ? void 0 : scale.min) != null ? _a : extent[0];
+    const sMax = (_b = scale == null ? void 0 : scale.max) != null ? _b : extent[1];
     const span = sMax - sMin || 1;
     const buckets = useScale ? new Array(steps).fill("") : [""];
     for (let k2 = 0; k2 < points.length; k2 += stride) {
@@ -51348,7 +51537,7 @@ var __async = (__this, __arguments, generator) => {
     elSeries.add(elPointsWrap);
   }
   function darkenColor(color, amount) {
-    const rgb = Utils$1.parseHex(color);
+    const rgb = Utils$1.parseColor(color) || Utils$1.parseColor(Utils$1.resolveColor(color));
     if (!rgb) return color;
     const f = Math.max(0, 1 - amount);
     return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
@@ -51413,7 +51602,7 @@ var __async = (__this, __arguments, generator) => {
       if (!keyed || keyed.size === 0 || !row || row.length === 0) return false;
       let survivors = 0;
       for (let j2 = 0; j2 < row.length; j2++) {
-        if (keyed.has(datumKey(this.w, realIndex, j2))) survivors++;
+        if (keyed.has(this._keys(realIndex)[j2])) survivors++;
       }
       return survivors / keyed.size < 0.5;
     }
@@ -51442,7 +51631,7 @@ var __async = (__this, __arguments, generator) => {
         }
         this._prevHalves[realIndex] = map;
       }
-      const halves = map && map.get(datumKey(this.w, realIndex, j2));
+      const halves = map && map.get(this._keys(realIndex)[j2]);
       return halves && halves.length === 2 ? halves[pi] : null;
     }
     /**
@@ -51452,7 +51641,7 @@ var __async = (__this, __arguments, generator) => {
      */
     // @ts-ignore -- BoxCandleStick.draw has an extra ctype param compared to Bar.draw
     draw(series, ctype, seriesIndex) {
-      var _a;
+      var _a, _b;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -51460,16 +51649,17 @@ var __async = (__this, __arguments, generator) => {
       this.candlestickOptions = this.w.config.plotOptions.candlestick;
       this.boxOptions = this.w.config.plotOptions.boxPlot;
       this.isHorizontal = w.config.plotOptions.bar.horizontal;
-      this.isOHLC = this.candlestickOptions && this.candlestickOptions.type === "ohlc";
       this.coreUtils = new CoreUtils(this.w);
       series = this.coreUtils.getLogSeries(series);
       this.series = series;
       this.yRatio = this.coreUtils.getLogYRatios(this.yRatio);
-      this.barHelpers.initVariables(series);
+      this.barHelpers.initVariables(series, seriesIndex);
       const ret = graphics.group({
         class: `apexcharts-${type}-series apexcharts-plot-series`
       });
       this.isBoxPlot = type === "boxPlot";
+      this.isOHLC = !this.isBoxPlot && ((_a = this.candlestickOptions) == null ? void 0 : _a.type) === "ohlc";
+      const jx = jitterExtent(w.candleData.seriesBoxPoints, w);
       for (let i2 = 0; i2 < series.length; i2++) {
         let x2;
         let y;
@@ -51595,6 +51785,7 @@ var __async = (__this, __arguments, generator) => {
                 i: i2,
                 pathFrom: (_a2 = this._prevBoxHalf(realIndex, j2, pi)) != null ? _a2 : paths.pathFrom,
                 fadeReveal,
+                noLabel: pi > 0,
                 pathTo,
                 strokeWidth,
                 elSeries,
@@ -51616,7 +51807,7 @@ var __async = (__this, __arguments, generator) => {
             }
           );
           if (boxPointsOpts && boxPointsOpts.show !== false) {
-            const pts = (_a = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _a[j2];
+            const pts = (_b = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _b[j2];
             if (pts && pts.length) {
               const logVal = (v) => (
                 /** @type {any} */
@@ -51627,14 +51818,14 @@ var __async = (__this, __arguments, generator) => {
               );
               let center, halfExtent, alongFn;
               if (this.isHorizontal) {
-                const yRatio = this.invertedYRatio;
+                const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
                 const bh = barHeight != null ? barHeight : 0;
                 const z = zeroW != null ? zeroW : 0;
                 center = paths.barYPosition + bh / 2;
                 halfExtent = bh / 2;
                 alongFn = (v) => z + logVal(v) / yRatio;
               } else {
-                const yRatio = this.yRatio[translationsIndex];
+                const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
                 const bw = barWidth != null ? barWidth : 0;
                 const z = zeroH != null ? zeroH : 0;
                 center = paths.barXPosition + bw / 2;
@@ -51642,8 +51833,8 @@ var __async = (__this, __arguments, generator) => {
                 alongFn = (v) => z - logVal(v) / yRatio;
               }
               const groups = buildJitterGroups({
-                w,
                 points: pts,
+                extent: jx,
                 seedA: realIndex,
                 seedB: j2,
                 center,
@@ -51672,15 +51863,13 @@ var __async = (__this, __arguments, generator) => {
         w.globals.seriesXvalues[realIndex] = xArrj;
         w.globals.seriesYvalues[realIndex] = yArrj;
         if (w.globals.previousPaths.length > 0 && !fadeReveal) {
-          const newKeys = [];
-          for (let j2 = 0; j2 < series[i2].length; j2++) {
-            newKeys.push(datumKey(w, realIndex, j2));
-          }
           renderBarExitGhosts({
             w,
             elSeries,
             record: this._prevRecord(realIndex),
-            newKeys,
+            newKeys: this._keys(realIndex).filter(
+              (_, j2) => series[i2][j2] != null
+            ),
             isHorizontal: this.isHorizontal,
             speed: w.config.chart.animations.dynamicAnimation.speed
           });
@@ -51699,7 +51888,7 @@ var __async = (__this, __arguments, generator) => {
       strokeWidth,
       cullBounds = null
     }) {
-      var _a, _b, _c, _d;
+      var _a, _b, _c;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const i2 = indexes.i;
@@ -51710,7 +51899,7 @@ var __async = (__this, __arguments, generator) => {
       const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
       const colorPos = getColor(candleColors.upward);
       const colorNeg = getColor(candleColors.downward);
-      const yRatio = this.yRatio[indexes.translationsIndex];
+      const yRatio = this.yRatio[indexes.translationsIndex] * (this.isReversed ? -1 : 1);
       const ohlc = this.getOHLCValue(realIndex, j2);
       let l1 = zeroH;
       let l2 = zeroH;
@@ -51727,9 +51916,11 @@ var __async = (__this, __arguments, generator) => {
         x2 = pos.x;
         barXPosition = pos.barXPosition;
       }
-      if (typeof /** @type {any} */
-      ((_a = this.series[i2]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
-      ((_b = this.series[i2]) == null ? void 0 : _b[j2]) === null) {
+      const hole = (
+        /** @type {any} */
+        ((_a = this.series[i2]) == null ? void 0 : _a[j2]) == null
+      );
+      if (hole) {
         y1 = zeroH;
         y2 = zeroH;
       } else {
@@ -51739,7 +51930,7 @@ var __async = (__this, __arguments, generator) => {
         l2 = zeroH - ohlc.l / yRatio;
         m = zeroH - ohlc.m / yRatio;
       }
-      if (cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi) && !this._wasOnScreen(realIndex, j2)) {
+      if (hole || cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi) && !this._wasOnScreen(realIndex, j2)) {
         return {
           pathTo: null,
           pathFrom: null,
@@ -51769,7 +51960,7 @@ var __async = (__this, __arguments, generator) => {
         ];
       }
       let pathFrom = null;
-      const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j2);
+      const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j2);
       if (morphFrom) {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
@@ -51808,7 +51999,7 @@ var __async = (__this, __arguments, generator) => {
       zeroW,
       strokeWidth
     }) {
-      var _a, _b, _c, _d;
+      var _a, _b, _c;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const i2 = indexes.i;
@@ -51817,7 +52008,7 @@ var __async = (__this, __arguments, generator) => {
       const { colors: candleColors } = w.config.plotOptions.candlestick;
       const { colors: boxColors } = this.boxOptions;
       const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
-      const yRatio = this.invertedYRatio;
+      const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
       const ohlc = this.getOHLCValue(realIndex, j2);
       let color = ohlc.o < ohlc.c ? [getColor(candleColors.upward)] : [getColor(candleColors.downward)];
       if (this.isBoxPlot) {
@@ -51829,9 +52020,11 @@ var __async = (__this, __arguments, generator) => {
       let x2 = Math.max(ohlc.o, ohlc.c);
       let m = ohlc.m;
       const barYPosition = y + barHeight * this.visibleI;
-      if (typeof /** @type {any} */
-      ((_a = this.series[i2]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
-      ((_b = this.series[i2]) == null ? void 0 : _b[j2]) === null) {
+      const hole = (
+        /** @type {any} */
+        ((_a = this.series[i2]) == null ? void 0 : _a[j2]) == null
+      );
+      if (hole) {
         x1 = zeroW;
         x2 = zeroW;
       } else {
@@ -51846,7 +52039,7 @@ var __async = (__this, __arguments, generator) => {
         graphics.move(m, barYPosition) + graphics.line(m, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight - barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition) + graphics.line(m, barYPosition) + "z"
       ];
       let pathFrom = null;
-      const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j2);
+      const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j2);
       if (morphFrom) {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
@@ -51871,7 +52064,8 @@ var __async = (__this, __arguments, generator) => {
           0
         ),
         barYPosition,
-        color
+        color,
+        culled: hole
       };
     }
     /**
@@ -52048,13 +52242,9 @@ var __async = (__this, __arguments, generator) => {
         elDataLabelsWrap = graphics.group({
           class: "apexcharts-data-labels"
         });
-        const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i2, j2);
-        const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i2, j2);
-        const dataLabelsX = x2 + offX;
-        const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
         dataLabels.plotDataLabelsText({
-          x: dataLabelsX,
-          y: dataLabelsY,
+          x: x2,
+          y: y + parseFloat(dataLabelsConfig.style.fontSize) / 3,
           text,
           i: i2,
           j: j2,
@@ -52518,18 +52708,16 @@ var __async = (__this, __arguments, generator) => {
       this.lineCtx = lineCtx;
     }
     /**
-     * @param {number} i
+     * @param {number} i index into `series`, the rows this draw call renders
      * @param {any[]} series
+     * @param {number} realIndex index into the config / fill options
      */
-    sameValueSeriesFix(i2, series) {
+    sameValueSeriesFix(i2, series, realIndex) {
       const w = this.w;
-      if (w.config.fill.type === "gradient" || w.config.fill.type[i2] === "gradient") {
-        const coreUtils = new CoreUtils(this.lineCtx.w);
-        if (coreUtils.seriesHaveSameValues(i2)) {
-          const gSeries = series[i2].slice();
-          gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 1e-6;
-          series[i2] = gSeries;
-        }
+      const s2 = series[i2];
+      if ((w.config.fill.type === "gradient" || w.config.fill.type[realIndex] === "gradient") && s2.every((v) => v === s2[0])) {
+        series[i2] = s2.slice();
+        series[i2][s2.length - 1] += 1e-6;
       }
       return series;
     }
@@ -52818,13 +53006,27 @@ var __async = (__this, __arguments, generator) => {
       this.yRatio = coreUtils.getLogYRatios(this.yRatio);
       this.prevSeriesY = [];
       this.prevSeriesYByX = /* @__PURE__ */ new Map();
+      this._stackXs = null;
+      if (w.config.chart.stacked && w.axisFlags.isXNumeric) {
+        const xs = series.map(
+          (_, i2) => w.globals.comboCharts ? (
+            /** @type {any} */
+            seriesIndex[i2]
+          ) : i2
+        ).filter((ri) => !this._hidden(ri)).map((ri) => w.seriesData.seriesX[ri] || []);
+        if (xs.some(
+          (a2) => a2.length !== xs[0].length || a2.some((v, k2) => v !== xs[0][k2])
+        )) {
+          this._stackXs = [...new Set(xs.flat())].sort((a2, b) => a2 - b);
+        }
+      }
       const allSeries = [];
       for (let i2 = 0; i2 < series.length; i2++) {
-        series = this.lineHelpers.sameValueSeriesFix(i2, series);
         const realIndex = w.globals.comboCharts ? (
           /** @type {any} */
           seriesIndex[i2]
         ) : i2;
+        series = this.lineHelpers.sameValueSeriesFix(i2, series, realIndex);
         const translationsIndex = this.yRatio.length > 1 ? realIndex : 0;
         const flat = this._collapsedBaselineRow(series, i2, realIndex);
         this._shapeOnly = !!flat;
@@ -53008,9 +53210,7 @@ var __async = (__this, __arguments, generator) => {
       const gl = w.globals;
       if (w.config.chart.stacked || this.pointsChart) return null;
       if (!Array.isArray(series[i2]) || series[i2].length !== 0) return null;
-      if (gl.collapsedSeriesIndices.indexOf(realIndex) === -1 && gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) === -1) {
-        return null;
-      }
+      if (!this._hidden(realIndex)) return null;
       const n2 = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex] || []).length : gl.dataPoints;
       if (!n2) return null;
       const lo = Utils$1.isNumber(gl.minYArr[realIndex]) ? gl.minYArr[realIndex] : gl.minY;
@@ -53139,6 +53339,11 @@ var __async = (__this, __arguments, generator) => {
       if (key === void 0 || key === null) return void 0;
       return this.prevSeriesYByX.get(key);
     }
+    /** @param {number} ri */
+    _hidden(ri) {
+      const g = this.w.globals;
+      return g.collapsedSeriesIndices.indexOf(ri) > -1 || g.ancillaryCollapsedSeriesIndices.indexOf(ri) > -1;
+    }
     /**
      * Fold a drawn series into the running stack top, so the next series can find
      * its baseline by x (#4886).
@@ -53154,19 +53359,18 @@ var __async = (__this, __arguments, generator) => {
      * correct if that representation ever changes.
      * @param {number} realIndex
      * @param {any[]} yArrj
+     * @param {any[]} [row] the drawn row, if not the series' own (a part)
      */
-    _recordStackTops(realIndex, yArrj) {
+    _recordStackTops(realIndex, yArrj, row = this.w.seriesData.series[realIndex]) {
       const w = this.w;
       if (!w.config.chart.stacked) return;
       if (!Array.isArray(yArrj)) return;
-      if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
-        return;
-      }
+      if (this._hidden(realIndex)) return;
       for (let j2 = 0; j2 < yArrj.length; j2++) {
         const key = this._stackKey(realIndex, j2);
         if (key === void 0 || key === null) continue;
         const y = yArrj[j2];
-        if (!Utils$1.isNumber(y)) continue;
+        if (!Utils$1.isNumber(y) || (row == null ? void 0 : row[j2]) == null) continue;
         this.prevSeriesYByX.set(key, y);
       }
     }
@@ -53199,7 +53403,8 @@ var __async = (__this, __arguments, generator) => {
       w.globals.seriesYvalues[realIndex] = paths.yArrj;
       const forecast = w.config.forecastDataPoints;
       if (forecast.count > 0 && type !== "rangeArea") {
-        const forecastCutoff = w.globals.seriesXvalues[realIndex][w.globals.seriesXvalues[realIndex].length - forecast.count - 1];
+        const ci = paths.xArrj.length - forecast.count - 1;
+        const forecastCutoff = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex][ci] - w.globals.minX) / this.xRatio : w.globals.padHorizontal + this.categoryAxisCorrection + ci * this.xDivision;
         const elForecastMask = graphics.drawRect(
           forecastCutoff,
           0,
@@ -53286,7 +53491,7 @@ var __async = (__this, __arguments, generator) => {
             scrollMorph: !!streamScroll,
             stroke: "none",
             strokeWidth: 0,
-            strokeLineCap: null,
+            strokeLinecap: null,
             fill: pathFill
           }));
           this.elSeries.add(renderedPath);
@@ -53328,7 +53533,7 @@ var __async = (__this, __arguments, generator) => {
             scrollMorph: !!streamScroll,
             stroke: lineFill,
             strokeWidth: this.strokeWidth,
-            strokeLineCap: w.config.stroke.lineCap,
+            strokeLinecap: w.config.stroke.lineCap,
             fill: type === "rangeArea" ? pathFill : "none"
           });
           const renderedPath = emit.renderPaths(linePathCommonOpts);
@@ -53382,7 +53587,7 @@ var __async = (__this, __arguments, generator) => {
       isRangeStart,
       seriesRangeEnd
     }) {
-      var _a, _b;
+      var _a, _b, _c;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const yRatio = this.yRatio;
@@ -53434,15 +53639,30 @@ var __async = (__this, __arguments, generator) => {
         });
         if (fast) return fast;
       }
+      const ks = stackSeries ? this._stackXs : null;
+      let kp = 0;
+      const midsAt = [];
       for (let j2 = 0; j2 < iterations; j2++) {
         if (series[i2].length === 0) break;
         const isNull = typeof series[i2][j2 + 1] === "undefined" || series[i2][j2 + 1] === null;
         if (w.axisFlags.isXNumeric) {
-          let sX = w.seriesData.seriesX[realIndex][j2 + 1];
-          if (typeof w.seriesData.seriesX[realIndex][j2 + 1] === "undefined") {
-            sX = w.seriesData.seriesX[realIndex][iterations - 1];
+          const sxs = w.seriesData.seriesX[realIndex];
+          let sX = sxs[j2 + 1];
+          if (typeof sX === "undefined") {
+            sX = sxs[iterations - 1];
           }
           x2 = (sX - w.globals.minX) / this.xRatio;
+          if (ks) {
+            const m = [];
+            while (ks[kp] <= sxs[j2]) kp++;
+            while (ks[kp] < sX) {
+              m.push([
+                (ks[kp] - w.globals.minX) / this.xRatio,
+                (_c = this.prevSeriesYByX.get(ks[kp++])) != null ? _c : this.zeroY
+              ]);
+            }
+            if (m.length) midsAt[j2 + 1] = m;
+          }
         } else {
           x2 = x2 + this.xDivision;
         }
@@ -53452,9 +53672,7 @@ var __async = (__this, __arguments, generator) => {
               var _a2;
               for (let pii = pi; pii >= 0; pii--) {
                 const ri = (_a2 = seriesIndex == null ? void 0 : seriesIndex[pii]) != null ? _a2 : pii;
-                if (w.globals.collapsedSeriesIndices.indexOf(ri) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(ri) === -1) {
-                  return pii;
-                }
+                if (!this._hidden(ri)) return pii;
               }
               return -1;
             };
@@ -53510,6 +53728,7 @@ var __async = (__this, __arguments, generator) => {
           j: j2,
           x: x2,
           y,
+          midsAt,
           y2,
           xArrj,
           yArrj,
@@ -53750,7 +53969,7 @@ var __async = (__this, __arguments, generator) => {
         numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : void 0
       };
     }
-    /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
+    /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, midsAt: any[][], xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
     _createPaths({
       type,
       series,
@@ -53758,6 +53977,7 @@ var __async = (__this, __arguments, generator) => {
       j: j2,
       x: x2,
       y,
+      midsAt,
       xArrj,
       yArrj,
       y2,
@@ -53777,6 +53997,8 @@ var __async = (__this, __arguments, generator) => {
       const areaBottomY = this.areaBottomY;
       const rangeArea = type === "rangeArea";
       const isLowerRangeAreaPath = type === "rangeArea" && isRangeStart;
+      const mids = midsAt[j2 + 1];
+      const via = (f) => mids ? [...mids, [x2, y]].map(([bx, by], k2, a2) => f(...k2 ? a2[k2 - 1] : [pX, pY], bx, by)).join("") : f(pX, pY, x2, y);
       switch (curve) {
         case "monotoneCubic": {
           const yAj = isRangeStart ? yArrj : y2Arrj;
@@ -53822,8 +54044,19 @@ var __async = (__this, __arguments, generator) => {
               }
             // falls through
             case 2: {
-              const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
-              const _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+              let _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
+              let _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+              if (midsAt.length && !rangeArea) {
+                const P = [];
+                _xAj.forEach((v, k2) => {
+                  if (_yAj[k2] !== null && _yAj[k2 - 1] != null && midsAt[k2]) {
+                    P.push(...midsAt[k2]);
+                  }
+                  P.push([v, _yAj[k2]]);
+                });
+                _xAj = P.map((p) => p[0]);
+                _yAj = P.map((p) => p[1]);
+              }
               const smoothInputs = getSmoothInputs(_xAj, _yAj);
               const points = smoothInputs.length > 1 ? spline.points(smoothInputs) : smoothInputs;
               let smoothInputsLower = [];
@@ -53882,7 +54115,10 @@ var __async = (__this, __arguments, generator) => {
           break;
         }
         case "smooth": {
-          const length = (x2 - pX) * 0.35;
+          const toPoint = (ax, ay, bx, by) => {
+            const l2 = (bx - ax) * 0.35;
+            return graphics.curve(ax + l2, ay, bx - l2, by, bx, by);
+          };
           if (series[i2][j2] === null) {
             pathState = 0;
           } else {
@@ -53902,7 +54138,7 @@ var __async = (__this, __arguments, generator) => {
                 }
                 pathState = 1;
                 if (j2 < series[i2].length - 2) {
-                  const p = graphics.curve(pX + length, pY, x2 - length, y, x2, y);
+                  const p = via(toPoint);
                   linePath += p;
                   areaPath += p;
                   break;
@@ -53920,7 +54156,7 @@ var __async = (__this, __arguments, generator) => {
                   areaPaths.push(areaPath);
                   pathState = -1;
                 } else {
-                  const p = graphics.curve(pX + length, pY, x2 - length, y, x2, y);
+                  const p = via(toPoint);
                   linePath += p;
                   areaPath += p;
                   if (j2 >= series[i2].length - 2) {
@@ -53941,9 +54177,9 @@ var __async = (__this, __arguments, generator) => {
           break;
         }
         default: {
-          const pathToPoint = (curve2, x3, y3) => {
+          const pathToPoint = (_ax, _ay, x3, y3) => {
             let path = "";
-            switch (curve2) {
+            switch (curve) {
               case "stepline":
                 path = graphics.line(x3, null, "H") + graphics.line(null, y3, "V");
                 break;
@@ -53975,7 +54211,7 @@ var __async = (__this, __arguments, generator) => {
                 }
                 pathState = 1;
                 if (j2 < series[i2].length - 2) {
-                  const p = pathToPoint(curve, x2, y);
+                  const p = via(pathToPoint);
                   linePath += p;
                   areaPath += p;
                   break;
@@ -53993,7 +54229,7 @@ var __async = (__this, __arguments, generator) => {
                   areaPaths.push(areaPath);
                   pathState = -1;
                 } else {
-                  const p = pathToPoint(curve, x2, y);
+                  const p = via(pathToPoint);
                   linePath += p;
                   areaPath += p;
                   if (j2 >= series[i2].length - 2) {
@@ -55852,7 +56088,7 @@ var __async = (__this, __arguments, generator) => {
         }
         s2.forEach((dv, j2) => {
           const range = Math.abs(this.maxValue - this.minValue);
-          dv = dv - this.minValue;
+          dv = Math.max(0, dv - this.minValue);
           if (this.isLog) {
             dv = this.coreUtils.getLogVal(this.logBase, dv, 0);
           }
@@ -55889,7 +56125,7 @@ var __async = (__this, __arguments, generator) => {
           shouldClipToGrid: false,
           bindEventsOnPaths: false,
           stroke: w.globals.stroke.colors[i2],
-          strokeLineCap: w.config.stroke.lineCap
+          strokeLinecap: w.config.stroke.lineCap
         };
         let pathFrom = null;
         if (w.globals.previousPaths.length > 0) {
@@ -56066,6 +56302,7 @@ var __async = (__this, __arguments, generator) => {
     drawXAxisTexts() {
       const w = this.w;
       const xaxisLabelsConfig = w.config.xaxis.labels;
+      const lc = xaxisLabelsConfig.style.colors;
       const elXAxisWrap = this.graphics.group({
         class: "apexcharts-xaxis"
       });
@@ -56089,7 +56326,7 @@ var __async = (__this, __arguments, generator) => {
             j: i2,
             parent: elXAxisWrap,
             className: "apexcharts-xaxis-label",
-            color: Array.isArray(xaxisLabelsConfig.style.colors) && xaxisLabelsConfig.style.colors[i2] ? xaxisLabelsConfig.style.colors[i2] : "#a8a8a8",
+            color: (Array.isArray(lc) ? lc[i2] : lc) || "#a8a8a8",
             dataLabelsConfig: __spreadValues({
               textAnchor: textPos.textAnchor,
               dropShadow: { enabled: false }
@@ -57074,14 +57311,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} seriesIndex
      */
     draw(series, seriesIndex) {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       const graphics = new Graphics(this.w);
       this.rangeBarOptions = this.w.config.plotOptions.rangeBar;
       this.series = series;
       this.seriesRangeStart = w.rangeData.seriesRangeStart;
       this.seriesRangeEnd = w.rangeData.seriesRangeEnd;
-      this.barHelpers.initVariables(series);
+      this.barHelpers.initVariables(series, seriesIndex);
       const ret = graphics.group({
         class: "apexcharts-rangebar-series apexcharts-plot-series"
       });
@@ -57103,6 +57340,9 @@ var __async = (__this, __arguments, generator) => {
           this.visibleI = this.visibleI + 1;
         }
         const translationsIndex = this.setSeriesAxis(realIndex);
+        if (this.isHorizontal && w.labelData.timescaleLabels.length) {
+          this.isReversed = false;
+        }
         const initPositions = this.barHelpers.initialPositions(realIndex);
         const {
           y: initY,
@@ -57112,10 +57352,8 @@ var __async = (__this, __arguments, generator) => {
           zeroH
           // zeroH is the baseline where 0 meets y axis
         } = initPositions;
-        let barWidth = (_a = initPositions.barWidth) != null ? _a : 0;
-        let barHeight = (_b = initPositions.barHeight) != null ? _b : 0;
-        const yDivision = (_c = initPositions.yDivision) != null ? _c : 0;
-        const xDivision = (_d = initPositions.xDivision) != null ? _d : 0;
+        const yDivision = (_a = initPositions.yDivision) != null ? _a : 0;
+        const xDivision = (_b = initPositions.xDivision) != null ? _b : 0;
         y = initY;
         x2 = initX;
         const elDataLabelsWrap = graphics.group({
@@ -57125,10 +57363,16 @@ var __async = (__this, __arguments, generator) => {
         const elGoalsMarkers = graphics.group({
           class: "apexcharts-rangebar-goals-markers"
         });
+        const data = (
+          /** @type {any} */
+          w.config.series[realIndex].data
+        );
         for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
           const strokeWidth = this.barHelpers.getStrokeWidth(i2, j2, realIndex);
-          const y1 = this.seriesRangeStart[i2][j2];
-          const y2 = this.seriesRangeEnd[i2][j2];
+          let barWidth = (_c = initPositions.barWidth) != null ? _c : 0;
+          let barHeight = (_d = initPositions.barHeight) != null ? _d : 0;
+          const y1 = this.seriesRangeStart[realIndex][j2];
+          const y2 = this.seriesRangeEnd[realIndex][j2];
           let paths = (
             /** @type {any} */
             null
@@ -57140,20 +57384,16 @@ var __async = (__this, __arguments, generator) => {
           if (w.config.plotOptions.bar.rangeBarGroupRows) {
             seriesLen = 1;
           }
-          if (typeof /** @type {Record<string,any>} */
-          ((_e = w.config.series[i2].data) == null ? void 0 : _e[j2]) === "undefined") {
+          if (typeof (data == null ? void 0 : data[j2]) === "undefined") {
             break;
           }
           if (this.isHorizontal) {
             barYPosition = y + barHeight * /** @type {any} */
             this.visibleI;
             const srty = (yDivision - barHeight * seriesLen) / 2;
-            if (
-              /** @type {Record<string,any>} */
-              (_g = (_f = w.config.series[i2].data) == null ? void 0 : _f[j2]) == null ? void 0 : _g.x
-            ) {
+            if (((_e = data[j2]) == null ? void 0 : _e.x) != null) {
               const positions = this.detectOverlappingBars({
-                i: i2,
+                i: realIndex,
                 j: j2,
                 barYPosition,
                 srty,
@@ -57176,17 +57416,14 @@ var __async = (__this, __arguments, generator) => {
             barWidth = paths.barWidth;
           } else {
             if (w.axisFlags.isXNumeric) {
-              x2 = (w.seriesData.seriesX[i2][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+              x2 = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
             }
             barXPosition = x2 + barWidth * /** @type {any} */
             this.visibleI;
             const srtx = (xDivision - barWidth * seriesLen) / 2;
-            if (
-              /** @type {Record<string,any>} */
-              (_i = (_h = w.config.series[i2].data) == null ? void 0 : _h[j2]) == null ? void 0 : _i.x
-            ) {
+            if (((_f = data[j2]) == null ? void 0 : _f.x) != null) {
               const positions = this.detectOverlappingBars({
-                i: i2,
+                i: realIndex,
                 j: j2,
                 barXPosition,
                 srtx,
@@ -57205,9 +57442,10 @@ var __async = (__this, __arguments, generator) => {
               xDivision
             }, params));
             barHeight = paths.barHeight;
+            barXPosition = paths.barXPosition;
           }
           const barGoalLine = this.barHelpers.drawGoalLine({
-            barXPosition: paths.barXPosition,
+            barXPosition,
             barYPosition,
             goalX: paths.goalX,
             goalY: paths.goalY,
@@ -57252,19 +57490,11 @@ var __async = (__this, __arguments, generator) => {
           });
         }
         if (w.globals.previousPaths.length > 0) {
-          const data = (
-            /** @type {Record<string,any>} */
-            w.config.series[i2].data || []
-          );
-          const newKeys = [];
-          for (let j2 = 0; j2 < data.length; j2++) {
-            newKeys.push(datumKey(w, realIndex, j2));
-          }
           renderBarExitGhosts({
             w,
             elSeries,
             record: this._prevRecord(realIndex),
-            newKeys,
+            newKeys: this._keys(realIndex),
             isHorizontal: this.isHorizontal,
             speed: w.config.chart.animations.dynamicAnimation.speed
           });
@@ -57316,11 +57546,11 @@ var __async = (__this, __arguments, generator) => {
           );
           if (overlaps.indexOf(rangeName) > -1) {
             barHeight = initPositions.barHeight / overlaps.length;
-            barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+            barYPosition += barHeight * overlaps.indexOf(rangeName);
           }
         }
       } else {
-        if (rowIndex > -1 && !w.labelData.timescaleLabels.length) {
+        if (rowIndex > -1 && !w.axisFlags.isXNumeric) {
           if (w.config.plotOptions.bar.rangeBarGroupRows) {
             barXPosition = srtx + xDivision * rowIndex;
           } else {
@@ -57334,7 +57564,7 @@ var __async = (__this, __arguments, generator) => {
           );
           if (overlaps.indexOf(rangeName) > -1) {
             barWidth = initPositions.barWidth / overlaps.length;
-            barXPosition = barWidth * this.visibleI + xDivision * (100 - parseInt(this.barOptions.barWidth, 10)) / 100 / 2 + barWidth * (this.visibleI + overlaps.indexOf(rangeName)) + xDivision * rowIndex;
+            barXPosition += barWidth * overlaps.indexOf(rangeName);
           }
         }
       }
@@ -57357,7 +57587,7 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b;
       const w = this.w;
       const { i: i2, j: j2, realIndex, translationsIndex } = indexes;
-      const yRatio = this.yRatio[translationsIndex];
+      const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
       const range = this.getRangeValue(realIndex, j2);
       let y1 = Math.min(range.start, range.end);
       let y2 = Math.max(range.start, range.end);
@@ -57365,7 +57595,7 @@ var __async = (__this, __arguments, generator) => {
       ((_a = this.series[i2]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
       ((_b = this.series[i2]) == null ? void 0 : _b[j2]) === null);
       if (!hasValue) {
-        y1 = zeroH;
+        y1 = y2 = zeroH;
       } else {
         y1 = zeroH - y1 / yRatio;
         y2 = zeroH - y2 / yRatio;
@@ -57427,6 +57657,30 @@ var __async = (__this, __arguments, generator) => {
       };
     }
     /**
+     * Timeline datums key by their own row, not by the j-th label: a row can
+     * hold several bars, so labels[j] names some other datum's row.
+     * @param {number} realIndex
+     * @returns {string[]}
+     */
+    _keys(realIndex) {
+      const c = (
+        /** @type {any} */
+        this._keyCache || (this._keyCache = {})
+      );
+      const data = (
+        /** @type {any} */
+        this.w.config.series[realIndex].data
+      );
+      return c[realIndex] || (c[realIndex] = uniquifyKeys(
+        (data || []).map(
+          (d, j2) => {
+            var _a;
+            return "c:" + ((_a = d == null ? void 0 : d.x) != null ? _a : j2);
+          }
+        )
+      ));
+    }
+    /**
      * @param {number} val
      */
     preventBarOverflow(val) {
@@ -57452,8 +57706,9 @@ var __async = (__this, __arguments, generator) => {
     }) {
       const w = this.w;
       const { realIndex, j: j2 } = indexes;
-      const x1 = this.preventBarOverflow(zeroW + y1 / this.invertedYRatio);
-      const x2 = this.preventBarOverflow(zeroW + y2 / this.invertedYRatio);
+      const ratio = this.invertedYRatio * (this.isReversed ? -1 : 1);
+      const x1 = this.preventBarOverflow(zeroW + y1 / ratio);
+      const x2 = this.preventBarOverflow(zeroW + y2 / ratio);
       const range = this.getRangeValue(realIndex, j2);
       const barWidth = Math.abs(x2 - x1);
       const paths = this.barHelpers.getBarpaths({
@@ -57786,7 +58041,7 @@ var __async = (__this, __arguments, generator) => {
         if (w.config.chart.dropShadow.enabled) {
           const shadow = w.config.chart.dropShadow;
           const filters = new Filters(this.w);
-          filters.dropShadow(ret, shadow, i2);
+          filters.dropShadow(elSeries, shadow, i2);
         }
         const elDataLabelWrap = graphics.group({
           class: "apexcharts-data-labels"
@@ -57880,6 +58135,7 @@ var __async = (__this, __arguments, generator) => {
           });
           elRect.node.classList.add("apexcharts-treemap-rect");
           elRect.node.setAttribute("data:key", morphKey(leaf._key));
+          let tileTween = null;
           let fromRect = {
             x: x1 + (x2 - x1) / 2,
             y: y1 + (y2 - y1) / 2,
@@ -57905,7 +58161,7 @@ var __async = (__this, __arguments, generator) => {
             if (w.globals.resized) {
               w.globals.animationEnded = true;
             } else {
-              this.animateTreemap(
+              tileTween = this.animateTreemap(
                 elRect,
                 fromRect,
                 toRect,
@@ -57916,7 +58172,6 @@ var __async = (__this, __arguments, generator) => {
               );
             }
           }
-          let tileTween = null;
           let labelFrom = null;
           let prevLook = null;
           if (w.globals.dataChanged) {
@@ -58298,7 +58553,7 @@ var __async = (__this, __arguments, generator) => {
       const elGroup = graphics.group({
         class: "apexcharts-treemap-parent",
         "data:depth": depth,
-        "data:name": Utils$1.escapeString(node.name)
+        "data:name": node.name
       });
       const key = morphKey(node._key);
       const morphFrom = this._morphKeyed() ? this.ctx.morphTypeChange.getInitialPathForKey(key) : null;
@@ -58407,7 +58662,7 @@ var __async = (__this, __arguments, generator) => {
         if (typeof header.formatter === "function") {
           text = String(
             header.formatter(node.name, {
-              value: node.value,
+              value: node._area,
               depth,
               seriesIndex: i2,
               node,
@@ -58415,7 +58670,7 @@ var __async = (__this, __arguments, generator) => {
             })
           );
         } else if (header.showValue) {
-          text = `${text}  ${this._formatValue(node.value)}`;
+          text = `${text}  ${this._formatValue(node._area, node._si)}`;
         }
         headerText = text;
         const offsetX = Number(header.offsetX) || 0;
@@ -58426,7 +58681,9 @@ var __async = (__this, __arguments, generator) => {
         const clipped = graphics.getTextBasedOnMaxWidth({
           text,
           maxWidth,
-          fontSize
+          fontSize,
+          fontFamily: chrome.headerFontFamily,
+          fontWeight: chrome.headerFontWeight
         });
         if (clipped) {
           let tx = x1 + pad + offsetX;
@@ -58501,7 +58758,7 @@ var __async = (__this, __arguments, generator) => {
       const total = this._drawnTotal();
       const pct = total > 0 ? (node._area / total * 100).toFixed(1) : "0";
       const n2 = this._countLeaves(node);
-      const lead = visibleText && String(visibleText).trim() ? String(visibleText).replace(/\s+/g, " ").trim() : `${node.name}, ${this._formatValue(node._area)}`;
+      const lead = visibleText && String(visibleText).trim() ? String(visibleText).replace(/\s+/g, " ").trim() : `${node.name}, ${this._formatValue(node._area, node._si)}`;
       return `${lead}, ${n2} ${n2 === 1 ? "item" : "items"}, ${pct}% of total`;
     }
     /**
@@ -58520,15 +58777,18 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} [visibleText] the header's rendered text, unclipped
      */
     _makeParentAccessible(el, node, chrome, elRect, visibleText) {
+      const a11y = this.w.config.chart.accessibility;
       if (!el || !el.setAttribute) return;
-      if (!this._zoomEnabled()) return;
+      if (!a11y.enabled || !a11y.keyboard.enabled || !this._zoomEnabled()) return;
+      const open = this.w.globals.treemapFocusKey === node._key;
+      el.tmKey = node._key;
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", "0");
       el.setAttribute(
         "aria-label",
-        `${this._parentLabel(node, visibleText)}. Zoom in`
+        `${this._parentLabel(node, visibleText)}. Zoom ${open ? "out" : "in"}`
       );
-      el.setAttribute("aria-expanded", "false");
+      el.setAttribute("aria-expanded", open);
       if (!Environment.isBrowser() || !el.addEventListener) return;
       el.addEventListener("focus", () => {
         elRect.node.setAttribute("stroke", chrome.hoverColor);
@@ -58595,15 +58855,17 @@ var __async = (__this, __arguments, generator) => {
      * @returns {boolean}
      */
     _zoomEnabled() {
+      var _a;
       const w = this.w;
       const z = w.config.plotOptions.treemap.zoom;
       if (!z || !z.enabled || !this.showParents) return false;
       const dd = w.config.drilldown;
-      if (this.ctx.drilldown && dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
-        if (!this._warnedZoomConflict) {
-          this._warnedZoomConflict = true;
+      const d = this.ctx.drilldown;
+      if (d && dd && dd.enabled && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown)) {
+        if (!d.zoomWarned) {
+          d.zoomWarned = true;
           console.warn(
-            "ApexCharts treemap: `plotOptions.treemap.zoom` and the drilldown feature both navigate the hierarchy, so zoom is ignored here. Drop `drilldown.series` to zoom a nested treemap instead."
+            "ApexCharts treemap: zoom is ignored while drilldown is active (plotOptions.treemap.zoom vs drilldown series or onDrillDown)."
           );
         }
         return false;
@@ -58613,8 +58875,8 @@ var __async = (__this, __arguments, generator) => {
     /**
      * The focused branch for this render, looked up by the key stashed on the
      * last click. Keys are rebuilt identically from the same data, so the focus
-     * survives a re-render; a key that no longer resolves (the data changed under
-     * it) simply falls back to the whole tree.
+     * survives a re-render; a key that no longer resolves, or a branch left with
+     * nothing to draw (the data changed under it), falls back to the whole tree.
      * @param {any[]} drawn
      * @returns {any}
      */
@@ -58631,7 +58893,11 @@ var __async = (__this, __arguments, generator) => {
         if (node.children) node.children.forEach(walk);
       };
       drawn.forEach(walk);
-      return found && found.children && found.children.length ? found : null;
+      if (found && found.children && found.children.length && this._subtreeArea(found) > 0) {
+        return found;
+      }
+      this.w.globals.treemapFocusKey = null;
+      return null;
     }
     /**
      * @param {any} node
@@ -58644,28 +58910,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       if (!node || !node.children || !node.children.length) return;
       const next = w.globals.treemapFocusKey === node._key ? null : node._key;
-      const done = this._refocus(next);
-      if (!restoreFocus || !done || typeof done.then !== "function") return;
-      done.then(() => {
-        if (!Environment.isBrowser()) return;
-        const crumb = (
-          /** @type {any} */
-          w.dom.baseEl.querySelector(
-            ".apexcharts-breadcrumb .apexcharts-breadcrumb-item"
-          )
-        );
-        if (crumb && crumb.focus) {
-          crumb.focus();
-          return;
-        }
-        const header = (
-          /** @type {any} */
-          w.dom.baseEl.querySelector(
-            ".apexcharts-treemap-parent-header[tabindex]"
-          )
-        );
-        if (header && header.focus) header.focus();
-      });
+      this._refocus(next, restoreFocus);
     }
     /**
      * Re-render focused on another branch (null: the whole tree).
@@ -58676,22 +58921,34 @@ var __async = (__this, __arguments, generator) => {
      * left, which replayed the mount animation (every tile growing from
      * nothing) or snapped, while the containers, headers and labels jumped.
      * @param {string | null} next
-     * @returns {any} the update's promise
+     * @param {boolean} [restoreFocus] see _zoomTo
      */
-    _refocus(next) {
-      var _a;
+    _refocus(next, restoreFocus) {
       const w = this.w;
       const gl = w.globals;
+      const from = gl.treemapFocusKey;
       const anim = w.config.chart.animations;
       const animate = !!(anim.enabled && anim.dynamicAnimation.enabled);
-      gl.treemapZoom = animate && Environment.isBrowser() ? { from: (_a = gl.treemapFocusKey) != null ? _a : null, to: next } : null;
+      gl.treemapZoom = animate && Environment.isBrowser() ? { from: from != null ? from : null, to: next } : null;
       gl.treemapFocusKey = next;
       this._hideParentTooltip();
       gl.shouldAnimate = animate;
       gl.resized = true;
       gl.dataChanged = true;
       if (gl.treemapZoom) this.ctx.series.getPreviousPaths();
-      return this.ctx.update();
+      const done = this.ctx.update();
+      if (restoreFocus) {
+        done.then(() => {
+          const b = w.dom.baseEl;
+          const heads = (
+            /** @type {any[]} */
+            Array.from(
+              b.querySelectorAll(".apexcharts-treemap-parent-header[tabindex]")
+            )
+          );
+          (b.querySelector(".apexcharts-breadcrumb-item") || heads.find((h) => h.tmKey === from) || heads[0] || b).focus();
+        });
+      }
     }
     /**
      * A zoom reframes one tree, so it moves like a camera: one map takes the
@@ -59003,8 +59260,9 @@ var __async = (__this, __arguments, generator) => {
         crumbs: [{ label: "All", data: null }].concat(
           chain.map((n2) => ({ label: n2.name, data: n2 }))
         ),
-        onNavigate: (_i, crumb) => {
-          this._refocus(crumb.data ? crumb.data._key : null);
+        // A keyboard click (detail 0) keeps focus in the chart.
+        onNavigate: (_i, crumb, e2) => {
+          this._refocus(crumb.data ? crumb.data._key : null, !e2.detail);
         }
       });
       if (!nav) return;
@@ -59053,7 +59311,7 @@ var __async = (__this, __arguments, generator) => {
       const t2 = this._tip();
       if (!t2) return;
       const total = this._drawnTotal();
-      const parentVal = node._parent ? node._parent._area : total;
+      const parentVal = node._parent ? this._subtreeArea(node._parent) : total;
       const pctTotal = total > 0 ? (node._area / total * 100).toFixed(1) : "0.0";
       const pctParent = parentVal > 0 ? (node._area / parentVal * 100).toFixed(1) : pctTotal;
       const cfg = this.w.config.plotOptions.treemap.parents;
@@ -59074,10 +59332,9 @@ var __async = (__this, __arguments, generator) => {
       } else {
         const marker = this._parentChrome(node.depth || 0).headerBg;
         const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${marker};` : "";
-        html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${Utils$1.escapeString(
-          node.name
-        )}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
-          node._area
+        html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${String(node.name).replace(/&/g, "&amp;").replace(/</g, "&lt;")}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
+          node._area,
+          node._si
         )}</span></div><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${leafCount} items, </span><span class="apexcharts-tooltip-text-y-value">${pctParent}% of parent, ${pctTotal}% of total</span></div></div></div>`;
       }
       t2.innerHTML = html;
@@ -59173,17 +59430,21 @@ var __async = (__this, __arguments, generator) => {
     }
     /**
      * Format an aggregate the way the chart formats its own y values, so a
-     * parent's total reads like the tiles it contains.
+     * parent's total reads like the tiles it contains. A branch is no data
+     * point, so dataPointIndex is -1.
      * @param {number} v
+     * @param {number} [si] the branch's series index
      * @returns {string}
      */
-    _formatValue(v) {
+    _formatValue(v, si) {
       var _a, _b, _c, _d, _e;
       const w = this.w;
       const fmt = ((_b = (_a = w.config.tooltip) == null ? void 0 : _a.y) == null ? void 0 : _b.formatter) || ((_e = (_d = (_c = w.config.yaxis) == null ? void 0 : _c[0]) == null ? void 0 : _d.labels) == null ? void 0 : _e.formatter);
       if (typeof fmt === "function") {
         try {
-          return String(fmt(v, { seriesIndex: 0, dataPointIndex: 0, w }));
+          return String(
+            fmt(v, { seriesIndex: si || 0, dataPointIndex: -1, w })
+          );
         } catch (_) {
         }
       }
@@ -59264,7 +59525,7 @@ var __async = (__this, __arguments, generator) => {
      */
     rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
       const graphics = new Graphics(this.w);
-      const textRect = graphics.getTextRects(text, String(fontSize));
+      const textRect = this._labelRect(graphics, text, fontSize);
       if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
         const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
         elText.node.setAttribute(
@@ -59272,6 +59533,24 @@ var __async = (__this, __arguments, generator) => {
           `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y}) translate(${textRect.height / 3})`
         );
       }
+    }
+    /**
+     * A tile label's box, measured at the family and weight it is drawn at
+     * (bold is wider than the default regular).
+     * @param {Graphics} graphics
+     * @param {string} text
+     * @param {string | number} fontSize
+     */
+    _labelRect(graphics, text, fontSize) {
+      const st = this.w.config.dataLabels.style;
+      return graphics.getTextRects(
+        text,
+        String(fontSize),
+        st.fontFamily,
+        "",
+        true,
+        st.fontWeight
+      );
     }
     // This is an alternative label formatting method that uses a
     // consistent font size, and trims the edge of long labels
@@ -59285,13 +59564,13 @@ var __async = (__this, __arguments, generator) => {
      */
     truncateLabels(text, fontSize, x1, y1, x2, y2) {
       const graphics = new Graphics(this.w);
-      const textRect = graphics.getTextRects(text, String(fontSize));
+      const textRect = this._labelRect(graphics, text, fontSize);
       const labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
-      const truncatedText = graphics.getTextBasedOnMaxWidth({
+      const truncatedText = graphics.getTextBasedOnMaxWidth(__spreadProps(__spreadValues({}, this.w.config.dataLabels.style), {
         text,
         maxWidth: labelMaxWidth,
         fontSize
-      });
+      }));
       if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
         return "";
       } else {

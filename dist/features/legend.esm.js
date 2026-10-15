@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -77,6 +77,7 @@ class Helpers {
   toggleDataSeries(seriesCnt, isHidden) {
     var _a, _b, _c;
     const w = this.w;
+    if (!w.dom.baseEl) return;
     if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
       w.globals.resized = true;
       let seriesEl = null;
@@ -544,9 +545,11 @@ class HeatmapGradientLegend {
     this._min = 0;
     this._max = 0;
     this._geom = null;
+    this._grad = null;
     this._bandHitEls = [];
     this._activeBandIndex = -1;
     this._targetEl = null;
+    this.panelsW = null;
     this._onCellEnter = this._onCellEnter.bind(this);
     this._onCellLeave = this._onCellLeave.bind(this);
     this._onBandEnter = this._onBandEnter.bind(this);
@@ -661,15 +664,8 @@ class HeatmapGradientLegend {
       linearGrad.setAttribute("x2", "1");
       linearGrad.setAttribute("y2", "0");
     }
-    const { min, max, stops, bands } = this._computeStops();
-    this._min = min;
-    this._max = max;
-    stops.forEach((s) => {
-      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
-      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
-      stopEl.setAttribute("stop-color", s.color);
-      linearGrad.appendChild(stopEl);
-    });
+    this._grad = linearGrad;
+    const { min, max, bands } = this._paintStops();
     defs.appendChild(linearGrad);
     svg.appendChild(defs);
     const rect = BrowserAPIs.createElementNS(SVG_NS, "rect");
@@ -878,6 +874,7 @@ class HeatmapGradientLegend {
    */
   repositionToPlot() {
     var _a, _b;
+    if (this._grad) this._paintStops();
     if (!Environment.isBrowser()) return;
     if (this._targetEl) return;
     const w = this.w;
@@ -1012,14 +1009,25 @@ class HeatmapGradientLegend {
     if (idx < 0 || idx === this._activeBandIndex) return;
     this._activeBandIndex = idx;
     (_d = (_c = (_b = this.ctx) == null ? void 0 : _b.events) == null ? void 0 : _c.fireEvent) == null ? void 0 : _d.call(_c, "legendHover", [this.ctx, idx, w]);
-    new Series(w).highlightRangeInSeries(idx, "highlight");
+    this._highlightRange(idx, "highlight");
   }
   /** Leaving a band clears the highlight. */
   _onBandLeave() {
     if (this._activeBandIndex < 0) return;
     const idx = this._activeBandIndex;
     this._activeBandIndex = -1;
-    new Series(this.w).highlightRangeInSeries(idx, "reset");
+    this._highlightRange(idx, "reset");
+  }
+  /**
+   * A shared trellis strip sets `panelsW` so a band reaches every panel.
+   * @param {number} idx
+   * @param {'highlight'|'reset'} action
+   */
+  _highlightRange(idx, action) {
+    var _a;
+    (((_a = this.panelsW) == null ? void 0 : _a.call(this)) || [this.w]).forEach(
+      (w) => new Series(w).highlightRangeInSeries(idx, action)
+    );
   }
   _attachHoverListeners() {
     var _a, _b;
@@ -1041,10 +1049,10 @@ class HeatmapGradientLegend {
    */
   _onCellEnter(...args) {
     var _a, _b, _c;
-    const w = this.w;
     if (!this.arrowEl) return;
     const opts = args[args.length - 1];
     if (!opts || typeof opts !== "object") return;
+    const w = opts.w || this.w;
     const i = opts.seriesIndex;
     const j = opts.dataPointIndex;
     if (typeof i !== "number" || typeof j !== "number") return;
@@ -1156,6 +1164,21 @@ class HeatmapGradientLegend {
     polygon.setAttribute("pointer-events", "none");
     return polygon;
   }
+  /** (Re)write the strip's stops; returns `_computeStops()`. */
+  _paintStops() {
+    const r = this._computeStops();
+    const grad = this._grad;
+    this._min = r.min;
+    this._max = r.max;
+    grad.innerHTML = "";
+    r.stops.forEach((s) => {
+      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
+      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
+      stopEl.setAttribute("stop-color", s.color);
+      grad.appendChild(stopEl);
+    });
+    return r;
+  }
   /**
    * Build gradient stops + return effective min/max.
    * - If `colorScale.ranges` is set, stops are placed at each range boundary
@@ -1197,7 +1220,8 @@ class HeatmapGradientLegend {
     if (!Number.isFinite(dataMax)) dataMax = 0;
     let min = dataMin;
     let max = dataMax;
-    if (typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min) {
+    const csWindow = typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min;
+    if (csWindow) {
       min = cs.min;
       max = cs.max;
     } else {
@@ -1228,34 +1252,30 @@ class HeatmapGradientLegend {
     } else {
       const baseColor = w.globals.colors[0] || "#008FFB";
       const utils = new Utils();
-      const plot = w.config.plotOptions[w.config.chart.type] || {};
+      const type = w.config.chart.type;
+      const plot = w.config.plotOptions[type] || {};
       const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
-      const hasNegs = (
+      const g = (
         /** @type {any} */
-        w.globals.hasNegs
+        w.globals
       );
+      const hasNegs = g.hasNegs;
+      const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
+      const hi = yExt ? g.maxY : max;
+      const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
+      const k = shadeIntensity * 1.25;
       const n = Math.max(2, cfg.stops || 16);
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1);
-        const v = min + t * (max - min);
-        const total = Math.abs(max) + Math.abs(min);
-        const percent_v = total === 0 ? 0 : 100 * v / total;
-        let colorShadePercent;
-        if (hasNegs) {
-          if (plot.reverseNegativeShade) {
-            colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
-          } else {
-            colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
-          }
-        } else {
-          colorShadePercent = 1 - percent_v / 100;
-        }
-        if (colorShadePercent > 1) colorShadePercent = 1;
-        if (colorShadePercent < -1) colorShadePercent = -1;
-        const shaded = plot.enableShades ? utils.shadeColor(
-          w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
-          baseColor
-        ) : baseColor;
+        const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
+        const c = Math.max(
+          -1,
+          Math.min(
+            1,
+            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k : 1)
+          )
+        );
+        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
     }
@@ -1286,9 +1306,12 @@ class Legend {
     this.legendHelpers = new Helpers(this);
   }
   init() {
+    var _a;
     const w = this.w;
     const gl = w.globals;
     const cnf = w.config;
+    (_a = this.heatmapGradientLegend) == null ? void 0 : _a.destroy();
+    this.heatmapGradientLegend = null;
     this.isBarsDistributed = cnf.chart.type === "bar" && cnf.plotOptions.bar.distributed && cnf.series.length === 1;
     const showLegendAlways = cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1 || this.isBarsDistributed || // Heatmap legends are colorScale-driven (discrete ranges or the
     // gradient strip), not series-driven, so they must render even for a
@@ -1305,10 +1328,6 @@ class Legend {
       );
       while (elLegendWrap.firstChild) {
         elLegendWrap.removeChild(elLegendWrap.firstChild);
-      }
-      if (this.heatmapGradientLegend) {
-        this.heatmapGradientLegend.destroy();
-        this.heatmapGradientLegend = null;
       }
       if (HeatmapGradientLegend.isEnabled(w)) {
         this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx);
@@ -1487,7 +1506,7 @@ class Legend {
         }
       }
       const lg = legendGroups[w.labelData.seriesGroupIndex[i]];
-      if (lg) elLegendWrap.appendChild(lg);
+      if (lg && !lg.parentNode) elLegendWrap.appendChild(lg);
       (lg || elLegendWrap).appendChild(elLegend);
       elLegendWrap.classList.add(
         `apexcharts-align-${w.config.legend.horizontalAlign}`
@@ -1598,7 +1617,7 @@ class Legend {
     );
     const hoverOverLegend = isLegendItem(target);
     if (w.config.chart.type !== "heatmap" && !this.isBarsDistributed) {
-      if (!target.classList.contains("apexcharts-inactive-legend") && hoverOverLegend) {
+      if (hoverOverLegend && !target.closest(".apexcharts-inactive-legend")) {
         const series = new Series(this.ctx.w);
         series.toggleSeriesOnHover(e, target);
       }
@@ -1632,7 +1651,8 @@ class Legend {
       me.onLegendClick(e);
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
-          const restored = w.dom.baseEl.querySelector(
+          var _a;
+          const restored = (_a = w.dom.baseEl) == null ? void 0 : _a.querySelector(
             `.apexcharts-legend-series[rel="${rel}"]`
           );
           if (restored) restored.focus();

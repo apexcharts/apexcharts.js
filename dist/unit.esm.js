@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -217,7 +217,22 @@ function spaceOutLabels(items, minGap, maxY, minY) {
     }
   }
 }
+function hash01(n) {
+  let h = (n ^ 2654435769) >>> 0;
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  return ((h ^ h >>> 16) >>> 0) / 4294967296;
+}
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const uniqueId = (seen, id) => {
+  const n = (seen.get(id) || 0) + 1;
+  seen.set(id, n);
+  return n > 1 ? id + "#" + n : id;
+};
+const toNum = (v) => {
+  if (typeof v === "string") v = parseFloat(v);
+  return typeof v === "number" && isFinite(v) ? v : null;
+};
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
@@ -263,6 +278,9 @@ class Unit {
     const w = this.w;
     const graphics = new Graphics(w, this.ctx);
     const ret = graphics.group({ class: "apexcharts-unit" });
+    BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0);
+    BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0);
+    w.globals.unitGatherRAF = w.globals.unitExitRAF = null;
     if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret;
     }
@@ -272,15 +290,16 @@ class Unit {
     const flow = transition === "flow";
     const identity = transition === "identity";
     const unitValue = opts.unitValue > 0 ? opts.unitValue : 1;
+    const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
     let counts = series.map((v) => {
       const n = Math.abs(Utils.parseNumber(v)) / unitValue;
-      return n > 0 ? Math.max(1, Math.round(n)) : 0;
+      return gridSplit ? n : n > 0 ? Math.max(1, Math.round(n)) : 0;
     });
-    counts = this._applyMaxUnits(counts, opts.maxUnits);
+    if (!gridSplit && layout !== "scatter") {
+      counts = this._applyMaxUnits(counts, opts.maxUnits);
+    }
     const total = counts.reduce((a, b) => a + b, 0);
     const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : layout === "arc" ? this._layoutArc(counts, opts) : layout === "custom" ? this._layoutCustom(counts, opts) : this._layoutGrouped(counts, opts);
-    const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
-    if (gridSplit) this._drawGridTrack(ret, graphics, opts);
     if (layout === "scatter") this._drawScatterAxes(ret, graphics);
     const dotR = this._lastDotR;
     const animate = this._shouldAnimate();
@@ -311,7 +330,49 @@ class Unit {
     const unitData = w.seriesData.unitData || [];
     const sizeStats = this._bubbleStats(unitData, opts, dotR);
     let gIndex = 0;
-    clusters.forEach((cluster) => {
+    const seen = /* @__PURE__ */ new Map();
+    const track = gridSplit && this._gridTrack && this._gridTrack.cells || [];
+    const trackG = graphics.group({ class: "apexcharts-unit-track" });
+    if (track.length) ret.add(trackG);
+    const trackFill = opts.grid && opts.grid.trackColor || "rgba(128,128,128,0.14)";
+    const trackSpec = this._baseSpec({ shape: opts.shape === "square" && "square" }, dotR);
+    const perTile = track.length / Math.max(1, clusters.length);
+    const live = this.ctx && this.ctx._unitSprings;
+    const glide = (node, spec, x, y, key, r, at, pair) => {
+      const from = prev && prev.get(key);
+      const s = live && live.get(key);
+      const still = from && from.x === x && from.y === y && from.r === r && (!s || s.x.value === x && s.y.value === y);
+      nextPrev.set(key, { x, y, fill: trackFill, r, spec });
+      if (prev && animate && !pieceTakeover && !still) {
+        const cx0 = from ? from.x : x;
+        const cy0 = from ? from.y : y;
+        node.style.opacity = from ? "1" : "0";
+        this._place(node, spec, cx0, cy0);
+        animDots.splice(at, 0, {
+          node,
+          spec,
+          x,
+          y,
+          cx0,
+          cy0,
+          key,
+          r0: from && from.r != null ? from.r : r,
+          r1: r,
+          delay: 0,
+          isEnter: !from,
+          pair
+        });
+      } else {
+        this._place(node, spec, x, y);
+      }
+    };
+    const ride = (k, pair) => {
+      const el = this._drawDot(graphics, opts, dotR, trackFill, -1, 0, trackSpec);
+      el.node.classList.add("apexcharts-unit-track-cell");
+      trackG.add(el);
+      glide(el.node, trackSpec, track[k].x, track[k].y, "trk:" + k, dotR, animDots.length, pair);
+    };
+    clusters.forEach((cluster, ci) => {
       const color = w.globals.colors[cluster.i] || w.globals.colors[0] || "#008FFB";
       const elSeries = graphics.group({
         class: "apexcharts-series",
@@ -323,7 +384,9 @@ class Unit {
       });
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
+      const at = animDots.length;
       cluster.dots.forEach((d, jj) => {
+        if (track.length) ride(ci * perTile + jj, true);
         const j = d.j != null ? d.j : jj;
         const datum = catData ? catData[j] : void 0;
         const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
@@ -334,7 +397,7 @@ class Unit {
         let key;
         if (identity) {
           const id = datum && typeof datum === "object" ? datum.id != null ? datum.id : datum.name : void 0;
-          key = id != null ? `id:${id}` : `g:${gIndex}`;
+          key = id != null ? `id:${uniqueId(seen, String(id))}` : `g:${gIndex}`;
         } else if (flow) {
           key = String(gIndex);
         } else if (d.slot != null) {
@@ -354,8 +417,9 @@ class Unit {
           const anchor = from || (morphActive ? morph.getInitialSlotFor(cluster.i, j, burstCount) : null);
           const enter = opts.gather && opts.gather.enter || "burst";
           const inPlace = gridSplit || enter === "fade" || enter === "rise";
-          const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
-          const cy0 = anchor ? anchor.y : enter === "rise" && !gridSplit ? d.y + 14 : inPlace ? d.y : cluster.cy;
+          const start = anchor || gridSplit && prev && prev.get("trk:" + d.slot);
+          const cx0 = start ? start.x : inPlace ? d.x : cluster.cx;
+          const cy0 = start ? start.y : enter === "rise" && !gridSplit ? d.y + 14 : inPlace ? d.y : cluster.cy;
           el.node.style.opacity = anchor ? "1" : "0";
           this._place(el.node, spec, cx0, cy0);
           animDots.push({
@@ -385,9 +449,16 @@ class Unit {
           this._place(el.node, spec, d.x, d.y);
         }
       });
+      for (let k = cluster.dots.length; k < perTile; k++) ride(ci * perTile + k, false);
       if ((layout === "grouped" || layout === "columns" || gridSplit) && opts.clusterLabels && opts.clusterLabels.show && counts[cluster.i] > 0) {
         const labelTotal = gridSplit ? this._gridDenom : total;
-        this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
+        const t = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
+        if (t && gridSplit) {
+          const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 };
+          const lx = +(t.getAttribute("x") || 0);
+          const ly = +(t.getAttribute("y") || 0);
+          glide(t, spec, lx, ly, "lbl:" + cluster.i, 0, at, animDots.length > at);
+        }
       }
       ret.add(elSeries);
     });
@@ -422,9 +493,13 @@ class Unit {
     const total = counts.reduce((a, b) => a + b, 0);
     if (!maxUnits || maxUnits <= 0 || total <= maxUnits) return counts;
     const scale = maxUnits / total;
-    console.warn(
-      `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); counts were scaled down proportionally. Raise plotOptions.unit.maxUnits or use plotOptions.unit.unitValue to represent more units per dot.`
-    );
+    const ctx = this.ctx || {};
+    if (!ctx._unitCapWarned) {
+      ctx._unitCapWarned = true;
+      console.warn(
+        `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); counts were scaled down proportionally. Raise plotOptions.unit.maxUnits or use plotOptions.unit.unitValue to represent more units per dot.`
+      );
+    }
     return counts.map((c) => c > 0 ? Math.max(1, Math.round(c * scale)) : 0);
   }
   /**
@@ -534,7 +609,8 @@ class Unit {
    *
    * `id` is the datum's own id/name where the per-unit object form supplies
    * one, so a provider can address a specific unit ("Texas", "employee 41")
-   * rather than a positional slot. It falls back to `"<category>:<index>"`.
+   * rather than a positional slot. It falls back to `"<category>:<index>"`, and
+   * a repeated one is suffixed (`"Alex#2"`).
    *
    * @param {number[]} counts
    * @param {number} dotR the radius the engine would use, so a provider that
@@ -546,13 +622,17 @@ class Unit {
     const unitData = w.seriesData.unitData || [];
     const names = w.seriesData.seriesNames || [];
     const objects = [];
+    const seen = /* @__PURE__ */ new Map();
     let index = 0;
     counts.forEach((n, i) => {
       var _a;
       const catData = unitData[i];
       for (let j = 0; j < n; j++) {
         const datum = catData ? catData[j] : void 0;
-        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j}`;
+        const id = uniqueId(
+          seen,
+          datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i}:${j}`
+        );
         objects.push({
           id,
           index,
@@ -736,11 +816,18 @@ class Unit {
     const pad = Math.min(gw, gh) * 0.04;
     const boxW = Math.max(1e-6, b.maxX - b.minX);
     const boxH = Math.max(1e-6, b.maxY - b.minY);
-    const r1 = Math.max(4, Math.min((gw - 2 * pad) / boxW, (gh - 2 * pad) / boxH));
-    const r0 = r1 * innerRatio;
+    const fit = (inset) => Math.max(4, Math.min((gw - 2 * pad - inset) / boxW, (gh - 2 * pad - inset) / boxH));
+    const seat = (r) => fit(2 * this._arcAllocate(total, r * innerRatio, r, span, opts).dotR);
+    let hi = fit(0);
+    let r1 = seat(hi);
+    for (let k = 0; k < 6; k++) {
+      const m = (r1 + hi) / 2;
+      if (m <= seat(m)) r1 = m;
+      else hi = m;
+    }
     const cx = gw / 2 - (b.minX + b.maxX) / 2 * r1;
     const cy = gh / 2 - (b.minY + b.maxY) / 2 * r1;
-    const alloc = this._arcAllocate(total, r0, r1, span, opts);
+    const alloc = this._arcAllocate(total, r1 * innerRatio, r1, span, opts);
     this._lastDotR = alloc.dotR;
     const seats = [];
     for (let r = 0; r < alloc.R; r++) {
@@ -1024,7 +1111,7 @@ class Unit {
    * value over a denominator (`grid.max`, else the largest count so the leader
    * fills its tile and every other tile stays proportionally full - no empty
    * tiles for arbitrary data). The unfilled cells are drawn as a faint TRACK
-   * backdrop (see _drawGridTrack) so each tile reads as a part-to-whole "of N".
+   * backdrop (drawn by draw()) so each tile reads as a part-to-whole "of N".
    * Only VISIBLE (non-zero) categories claim a tile, so a legend hide drops the
    * tile and the rest re-flow. Each filled cell is keyed by a physical
    * `tile*cells + localCell` slot, so a value change grows/shrinks a tile's fill
@@ -1042,7 +1129,7 @@ class Unit {
     const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
     const visible = counts.map((_2, i) => i).filter((i) => counts[i] > 0);
     const K2 = Math.max(1, visible.length);
-    const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts);
+    const denom = gcfg.max > 0 ? gcfg.max : Math.max(...counts) || 1;
     const tileCols = Math.max(
       1,
       Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K2)))
@@ -1108,40 +1195,6 @@ class Unit {
     return clusters;
   }
   /**
-   * Draw the faint "track" backdrop for the small-multiple grid: every cell of
-   * every tile's full lattice, so the filled (coloured) cells drawn on top read
-   * as a fraction of the whole. Static (redrawn each render, never animated);
-   * painted BEHIND the series groups. `grid.trackColor` overrides the default
-   * theme-neutral grey.
-   * @param {any} ret @param {Graphics} graphics @param {any} opts
-   */
-  _drawGridTrack(ret, graphics, opts) {
-    const track = this._gridTrack;
-    if (!track || !track.cells || !track.cells.length) return;
-    const r = this._lastDotR;
-    const gcfg = opts.grid || {};
-    const trackColor = gcfg.trackColor || "rgba(128,128,128,0.14)";
-    const g = graphics.group({ class: "apexcharts-unit-track" });
-    track.cells.forEach((c) => {
-      let el;
-      if (opts.shape === "square") {
-        const side = r * 2;
-        el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, trackColor, 1, 0, "none");
-        el.node.setAttribute("fill", trackColor);
-        el.node.setAttribute("x", String(c.x - r));
-        el.node.setAttribute("y", String(c.y - r));
-      } else {
-        el = graphics.drawCircle(r, { fill: trackColor, "stroke-width": 0, stroke: "none" });
-        el.node.setAttribute("fill", trackColor);
-        el.node.setAttribute("cx", String(c.x));
-        el.node.setAttribute("cy", String(c.y));
-      }
-      el.node.classList.add("apexcharts-unit-track-cell");
-      g.add(el);
-    });
-    ret.add(g);
-  }
-  /**
    * Scatter / beeswarm layout: position every unit on a real numeric X value
    * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
    * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
@@ -1155,11 +1208,14 @@ class Unit {
   _layoutScatter(opts) {
     const w = this.w;
     const scfg = opts.scatter || {};
-    if (scfg.y === "value") return this._layoutScatter2D(opts);
-    if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts);
+    const unitData = w.seriesData.unitData || [];
+    const lens = unitData.map((c) => c ? c.length : 0);
+    const caps = this._applyMaxUnits(lens, opts.maxUnits);
+    const keep = (ci, j) => Math.floor((j + 1) * caps[ci] / lens[ci]) > Math.floor(j * caps[ci] / lens[ci]);
+    if (scfg.y === "value") return this._layoutScatter2D(opts, keep);
+    if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts, keep);
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
-    const unitData = w.seriesData.unitData || [];
     const names = w.seriesData.seriesNames || [];
     const valueOf = (d) => this._unitValueOf(d);
     const sizeStats = this._scatterSizeStats(scfg, unitData);
@@ -1184,11 +1240,13 @@ class Unit {
       vmax = 1;
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount);
+    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount);
     const xMin = domain.min;
     const xMax = domain.max;
     const xSpan = xMax - xMin || 1;
-    const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? 92 : 8;
+    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 };
+    const laneName = (i) => names[i] || `series-${i + 1}`;
+    const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14) : 8;
     const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
     const plotL = laneW;
     const plotR = gw - 8;
@@ -1222,19 +1280,24 @@ class Unit {
     const maxR = sizeStats ? sizeStats.rMax : r;
     visible.forEach((ci, slot) => {
       const cy = laneCy(slot);
-      lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` });
-      const cat = unitData[ci] || [];
-      const pts = cat.map((d, j) => {
+      let name = laneName(ci);
+      const wid = laneW > 12 ? measureLabelWidth(w, [name], font) : 0;
+      if (wid > laneW - 14 && wid) {
+        name = name.slice(0, Math.max(1, Math.floor(name.length * (laneW - 14) / wid) - 1)) + "…";
+      }
+      lanes.push({ i: ci, cy, name });
+      const pts = [];
+      (unitData[ci] || []).forEach((d, j) => {
         const v = valueOf(d);
-        const p = { j, px: plotX(isNum(v) ? v : xMin), y: cy };
+        if (!isNum(v) || !keep(ci, j)) return;
+        const p = { j, px: plotX(v), y: cy };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
-        return p;
+        pts.push(p);
       });
       if (jitter) {
         const halfLane = Math.max(maxR, laneH / 2 - maxR);
-        pts.forEach((p, k) => {
-          const t = (k * 9301 + 49297) % 233280 / 233280;
-          p.y = cy + (t * 2 - 1) * halfLane;
+        pts.forEach((p) => {
+          p.y = cy + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
         });
       } else {
         this._beeswarm(pts, cy, r, step, maxR);
@@ -1244,7 +1307,7 @@ class Unit {
         cx: (plotL + plotR) / 2,
         cy,
         outerR: laneH / 2,
-        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r }))
+        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r, j: p.j }))
       });
     });
     const ticks = domain.ticks;
@@ -1271,9 +1334,9 @@ class Unit {
    * dots horizontally off each column's centre line. The value-axis config keys
    * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
    * axis (now Y), so flipping `orientation` keeps the same value settings.
-   * @param {any} opts
+   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
    */
-  _layoutScatterVertical(opts) {
+  _layoutScatterVertical(opts, keep) {
     const w = this.w;
     const scfg = opts.scatter || {};
     const gw = w.layout.gridWidth;
@@ -1303,7 +1366,7 @@ class Unit {
       vmax = 1;
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount);
+    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount);
     const vMin = domain.min;
     const vMax = domain.max;
     const vSpan = vMax - vMin || 1;
@@ -1342,18 +1405,18 @@ class Unit {
     visible.forEach((ci, slot) => {
       const cx = laneCx(slot);
       lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
-      const cat = unitData[ci] || [];
-      const pts = cat.map((d, j) => {
+      const pts = [];
+      (unitData[ci] || []).forEach((d, j) => {
         const v = valueOf(d);
-        const p = { j, py: plotY(isNum(v) ? v : vMin), x: cx };
+        if (!isNum(v) || !keep(ci, j)) return;
+        const p = { j, py: plotY(v), x: cx };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
-        return p;
+        pts.push(p);
       });
       if (jitter) {
         const halfLane = Math.max(maxR, laneW / 2 - maxR);
-        pts.forEach((p, k) => {
-          const t = (k * 9301 + 49297) % 233280 / 233280;
-          p.x = cx + (t * 2 - 1) * halfLane;
+        pts.forEach((p) => {
+          p.x = cx + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
         });
       } else {
         this._beeswarm(pts, cx, r, step, maxR, true);
@@ -1363,7 +1426,7 @@ class Unit {
         cx,
         cy: (plotT + plotB) / 2,
         outerR: laneW / 2,
-        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r }))
+        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r, j: p.j }))
       });
     });
     const ticks = domain.ticks;
@@ -1392,17 +1455,17 @@ class Unit {
    * per category). With `scatter.sizeRange` set, each dot is a BUBBLE scaled (by
    * area) from its `sizeField` (default 'z'). Needs the object form with numeric
    * `x` + `y`.
-   * @param {any} opts
+   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
    */
-  _layoutScatter2D(opts) {
+  _layoutScatter2D(opts, keep) {
     const w = this.w;
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
     const scfg = opts.scatter || {};
     const unitData = w.seriesData.unitData || [];
-    const isNum = (v) => typeof v === "number" && isFinite(v);
-    const xOf = (d) => d && typeof d === "object" ? d.x : null;
-    const yOf = (d) => d && typeof d === "object" ? d.y != null ? d.y : d.value : null;
+    const isNum = (v) => v != null;
+    const xOf = (d) => d && typeof d === "object" ? toNum(d.x) : null;
+    const yOf = (d) => d && typeof d === "object" ? toNum(d.y != null ? d.y : d.value) : null;
     const visible = unitData.map((_2, i) => i).filter(
       (i) => (unitData[i] || []).some((d) => isNum(xOf(d)) && isNum(yOf(d)))
     );
@@ -1428,22 +1491,24 @@ class Unit {
       ymn = 0;
       ymx = 1;
     }
-    const xTicksN = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const yTicksN = Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5));
-    const nx = this._niceScale(
-      scfg.xMin != null ? scfg.xMin : xmn,
-      scfg.xMax != null ? scfg.xMax : xmx,
-      xTicksN
+    const dx = this._scatterValueDomain(
+      scfg.xMin,
+      scfg.xMax,
+      xmn,
+      xmx,
+      Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
     );
-    const ny = this._niceScale(
-      scfg.yMin != null ? scfg.yMin : ymn,
-      scfg.yMax != null ? scfg.yMax : ymx,
-      yTicksN
+    const dy = this._scatterValueDomain(
+      scfg.yMin,
+      scfg.yMax,
+      ymn,
+      ymx,
+      Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5))
     );
-    const xMin = scfg.xMin != null ? scfg.xMin : nx.min;
-    const xMax = scfg.xMax != null ? scfg.xMax : nx.max;
-    const yMin = scfg.yMin != null ? scfg.yMin : ny.min;
-    const yMax = scfg.yMax != null ? scfg.yMax : ny.max;
+    const xMin = dx.min;
+    const xMax = dx.max;
+    const yMin = dy.min;
+    const yMax = dy.max;
     const xSpan = xMax - xMin || 1;
     const ySpan = yMax - yMin || 1;
     const leftGutter = 46 + (scfg.yTitle ? 18 : 0);
@@ -1461,15 +1526,17 @@ class Unit {
     this._lastDotR = baseR;
     const clusters = [];
     visible.forEach((ci) => {
-      const cat = unitData[ci] || [];
-      const dots = cat.map((d) => {
+      const dots = [];
+      (unitData[ci] || []).forEach((d, j) => {
         const x = xOf(d);
         const y = yOf(d);
-        return {
-          x: plotX(isNum(x) ? x : xMin),
-          y: plotY(isNum(y) ? y : yMin),
-          r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : void 0
-        };
+        if (x == null || y == null || !keep(ci, j)) return;
+        dots.push({
+          x: plotX(x),
+          y: plotY(y),
+          r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : void 0,
+          j
+        });
       });
       clusters.push({
         i: ci,
@@ -1479,18 +1546,6 @@ class Unit {
         dots
       });
     });
-    const mkTicks = (lo, hi, span, spacing, pinned, n) => {
-      const out = [];
-      if (pinned) {
-        for (let k = 0; k < n; k++) out.push(lo + span * k / (n - 1));
-      } else {
-        const sp = spacing || span / Math.max(1, n - 1);
-        for (let v = lo; v <= hi + sp * 0.5; v += sp) {
-          out.push(Math.abs(v) < sp * 1e-9 ? 0 : v);
-        }
-      }
-      return out;
-    };
     this._scatterAxis = {
       mode: "2d",
       plotL,
@@ -1499,22 +1554,8 @@ class Unit {
       plotB,
       plotX,
       plotY,
-      xTicks: mkTicks(
-        xMin,
-        xMax,
-        xSpan,
-        nx.spacing,
-        scfg.xMin != null || scfg.xMax != null,
-        xTicksN
-      ),
-      yTicks: mkTicks(
-        yMin,
-        yMax,
-        ySpan,
-        ny.spacing,
-        scfg.yMin != null || scfg.yMax != null,
-        yTicksN
-      ),
+      xTicks: dx.ticks,
+      yTicks: dy.ticks,
       xTitle: scfg.xTitle,
       yTitle: scfg.yTitle,
       xFormatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
@@ -1621,32 +1662,43 @@ class Unit {
     });
   }
   /**
-   * Value-axis domain + ticks for a 1D beeswarm. The domain ALWAYS contains
+   * Value-axis domain + ticks for a scatter axis. The domain ALWAYS contains
    * every datum: a swarm that clips a dot outside the plot box is a bug, so an
-   * explicit `xMin`/`xMax` only FRAMES the axis and is extended by whole
+   * explicit `lo`/`hi` only FRAMES the axis and is extended by whole
    * tick-steps whenever the data would otherwise overflow. Orientation-agnostic:
    * the same value axis is X for a horizontal swarm and Y for a vertical one.
-   * @param {any} scfg scatter config
+   * @param {number|undefined} lo pinned minimum @param {number|undefined} hi
+   *   pinned maximum
    * @param {number} vmin data minimum @param {number} vmax data maximum
    * @param {number} tickAmount desired tick count
    * @returns {{ min:number, max:number, ticks:number[] }}
    */
-  _scatterValueDomain(scfg, vmin, vmax, tickAmount) {
+  _scatterValueDomain(lo, hi, vmin, vmax, tickAmount) {
     const buildTicks = (min, max, spacing2) => {
       const ticks = [];
-      for (let v = min; v <= max + spacing2 * 0.5; v += spacing2) {
+      for (let k = 0, v = min; v <= max + spacing2 * 0.5; v = min + ++k * spacing2) {
         ticks.push(Math.abs(v) < spacing2 * 1e-9 ? 0 : v);
       }
       return ticks;
     };
-    if (scfg.xMin != null || scfg.xMax != null) {
-      let min = scfg.xMin != null ? scfg.xMin : vmin;
-      let max = scfg.xMax != null ? scfg.xMax : vmax;
-      if (!(max > min)) max = min + 1;
-      const spacing2 = (max - min) / Math.max(1, tickAmount - 1);
+    if (lo != null || hi != null) {
+      let min = (
+        /** @type {number} */
+        lo != null ? lo : hi
+      );
+      let max = (
+        /** @type {number} */
+        hi != null ? hi : lo
+      );
+      const spacing2 = max > min ? (max - min) / Math.max(1, tickAmount - 1) : this._niceScale(Math.min(min, vmin), Math.max(max, vmax), tickAmount).spacing;
       if (vmin < min) min -= Math.ceil((min - vmin) / spacing2) * spacing2;
       if (vmax > max) max += Math.ceil((vmax - max) / spacing2) * spacing2;
-      return { min, max, ticks: buildTicks(min, max, spacing2) };
+      if (!(max > min)) max = min + spacing2;
+      if ((max - min) / spacing2 <= 2 * tickAmount) {
+        return { min, max, ticks: buildTicks(min, max, spacing2) };
+      }
+      vmin = min;
+      vmax = max;
     }
     const nice = this._niceScale(vmin, vmax, tickAmount);
     const spacing = nice.spacing || (nice.max - nice.min) / Math.max(1, tickAmount - 1);
@@ -1737,13 +1789,13 @@ class Unit {
       ax.yTicks.forEach((v) => {
         const y = ax.plotY(v);
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
-        const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v);
+        const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v, ax.yTicks);
         text(label, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       ax.xTicks.forEach((v) => {
         const x = ax.plotX(v);
         if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
-        const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v);
+        const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v, ax.xTicks);
         text(label, x, ax.plotB + 14, "middle", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor);
@@ -1783,7 +1835,7 @@ class Unit {
       ax.ticks.forEach((v) => {
         const y = ax.plotY(v);
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
-        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
+        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v, ax.ticks);
         text(label, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor);
@@ -1813,7 +1865,7 @@ class Unit {
     ax.ticks.forEach((v, idx) => {
       const x = ax.plotX(v);
       if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
-      const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
+      const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v, ax.ticks);
       const anchor = idx === 0 ? "start" : idx === ax.ticks.length - 1 ? "end" : "middle";
       text(label, x, ax.plotB + 14, anchor, labelColor, 11, 400, "apexcharts-unit-tick");
     });
@@ -1839,17 +1891,19 @@ class Unit {
     ret.add(g);
   }
   /**
-   * Compact tick-value formatting: integers as-is, otherwise trimmed to a short
-   * decimal; large magnitudes get a k/M suffix.
-   * @param {number} v @returns {string}
+   * Compact tick-value formatting: integers as-is, otherwise trimmed to enough
+   * decimals to tell neighbouring ticks apart; large magnitudes get a k/M suffix.
+   * @param {number} v @param {number[]} ticks the axis ticks (their step sets
+   *   the decimals) @returns {string}
    */
-  _formatTick(v) {
+  _formatTick(v, ticks) {
     if (!isFinite(v)) return "";
     const a = Math.abs(v);
     if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`;
     if (a >= 1e4) return `${+(v / 1e3).toFixed(1)}k`;
     if (Number.isInteger(v)) return String(v);
-    return String(+v.toFixed(2));
+    const step = Math.abs(ticks[1] - ticks[0]) || 1;
+    return String(+v.toFixed(Math.min(20, Math.max(2, 1 - Math.floor(Math.log10(step))))));
   }
   /**
    * Distribute `total` whole cells across `counts` in proportion to each value,
@@ -1914,17 +1968,12 @@ class Unit {
     return !!(sbv && sbv.enabled && opts.shape !== "image" && opts.shape !== "square");
   }
   /**
-   * This datum's numeric value for sizing / tooltip: the number itself, or an
-   * object's `value` / `y`. Null when there is no usable number.
+   * This datum's numeric value for sizing / tooltip: the number (or numeric
+   * string) itself, or an object's `value` / `y`. Null when there is none.
    * @param {any} d @returns {number | null}
    */
   _unitValueOf(d) {
-    if (typeof d === "number") return d;
-    if (d && typeof d === "object") {
-      const v = d.value != null ? d.value : d.y;
-      return typeof v === "number" ? v : null;
-    }
-    return null;
+    return toNum(d && typeof d === "object" ? d.value != null ? d.value : d.y : d);
   }
   /**
    * Radius for one bubble given the value stats. Default 'area' scaling makes
@@ -2066,8 +2115,9 @@ class Unit {
    *
    * @param {SVGElement} node @param {UnitMarkSpec} spec
    * @param {number} x @param {number} y
+   * @param {number} [k] scale against the spec's size, while a size tweens
    */
-  _place(node, spec, x, y) {
+  _place(node, spec, x, y, k = 1) {
     const s = (
       /** @type {any} */
       spec
@@ -2075,14 +2125,29 @@ class Unit {
     if (s.pk === PK_GLYPH) {
       node.setAttribute(
         "transform",
-        "translate(" + (x - s.ox) + "," + (y - s.oy) + s.tail
+        "translate(" + (x - s.ox * k) + "," + (y - s.oy * k) + (k === 1 ? s.tail : ") scale(" + s.s * k + ")")
       );
     } else if (s.pk === PK_CORNER) {
-      node.setAttribute("x", String(x - s.hx));
-      node.setAttribute("y", String(y - s.hy));
+      node.setAttribute("x", String(x - s.hx * k));
+      node.setAttribute("y", String(y - s.hy * k));
     } else {
       node.setAttribute("cx", String(x));
       node.setAttribute("cy", String(y));
+    }
+  }
+  /**
+   * Size one mark at `k` times its spec's size (a glyph scales in `_place`).
+   * @param {SVGElement} node @param {UnitMarkSpec} spec @param {number} k
+   */
+  _size(node, spec, k) {
+    const s = (
+      /** @type {any} */
+      spec
+    );
+    if (s.pk === PK_CIRCLE) node.setAttribute("r", String(s.r * k));
+    else if (s.pk === PK_CORNER) {
+      node.setAttribute("width", String(2 * s.hx * k));
+      node.setAttribute("height", String(2 * s.hy * k));
     }
   }
   /**
@@ -2143,7 +2208,7 @@ class Unit {
    */
   _glyphSpec(mark, dotR, pcfg) {
     const qr = Math.round(dotR * 10) / 10;
-    const key = mark.name + "|" + mark.path.length + "|" + qr;
+    const key = mark.name + mark.path + mark.viewBox + mark.fillRule + qr;
     const hit = this._specCache.get(key);
     if (hit) return hit;
     const vb = mark.viewBox || [0, 0, 100, 100];
@@ -2192,9 +2257,9 @@ class Unit {
    * Draw one dot (circle, square, or image icon) with the category fill +
    * stroke, tagged so the shared non-axis tooltip and hover reuse work.
    * @param {Graphics} graphics @param {any} opts @param {number} dotR
-   * @param {string} color @param {number} i @param {number} j
-   * @param {UnitMarkSpec} [spec] this mark's resolved spec; defaults to the
-   *   chart-wide shape
+   * @param {string} color @param {number} i @param {number} j (i < 0: an exit
+   *   ghost, left untagged so tooltips and morph capture skip it)
+   * @param {UnitMarkSpec} spec this mark's resolved spec
    * @returns {any}
    */
   _drawDot(graphics, opts, dotR, color, i, j, spec) {
@@ -2203,7 +2268,7 @@ class Unit {
     const strokeColor = Array.isArray(w.globals.stroke.colors) ? w.globals.stroke.colors[i] || "none" : "none";
     const fillOpacity = typeof w.config.fill.opacity === "number" ? w.config.fill.opacity : 1;
     let el;
-    if (spec && spec.pk === PK_GLYPH) {
+    if (spec.pk === PK_GLYPH) {
       el = w.dom.Paper.path(spec.d);
       el.node.setAttribute("fill", color);
       if (spec.fillRule === "evenodd") {
@@ -2211,7 +2276,7 @@ class Unit {
       }
       if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
       el.node.setAttribute("data:r", String(spec.r));
-    } else if (opts.shape === "image" && opts.image && opts.image.src) {
+    } else if (spec.pk === PK_CORNER && opts.shape === "image" && opts.image && opts.image.src) {
       const iw = opts.image.width || 20;
       const ih = opts.image.height || 20;
       el = w.dom.Paper.image(opts.image.src);
@@ -2221,7 +2286,7 @@ class Unit {
       if (opts.image.tint) {
         el.node.setAttribute("filter", `url(#${this._tintFilter(color)})`);
       }
-    } else if (opts.shape === "square") {
+    } else if (spec.pk === PK_CORNER) {
       const side = dotR * 2;
       el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, color, 1, strokeW, strokeColor);
       el.node.setAttribute("fill", color);
@@ -2235,9 +2300,11 @@ class Unit {
       el.node.setAttribute("fill", color);
       if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
     }
-    el.node.classList.add("apexcharts-unit-area");
-    el.node.setAttribute("i", String(i));
-    el.node.setAttribute("j", String(j));
+    if (i >= 0) {
+      el.node.classList.add("apexcharts-unit-area");
+      el.node.setAttribute("i", String(i));
+      el.node.setAttribute("j", String(j));
+    }
     return el;
   }
   /**
@@ -2251,10 +2318,12 @@ class Unit {
   _tintFilter(color) {
     const w = this.w;
     const NS = "http://www.w3.org/2000/svg";
-    const safe = String(color).replace(/[^a-zA-Z0-9]/g, "");
-    const id = `apexcharts-unit-tint-${w.globals.chartID}-${safe}`;
+    const tints = this._tints || (this._tints = /* @__PURE__ */ new Map());
+    let id = tints.get(color);
+    if (id) return id;
+    id = `apexcharts-unit-tint-${w.globals.chartID}-${tints.size}`;
+    tints.set(color, id);
     const svg = w.dom.Paper.node;
-    if (svg.querySelector(`#${id}`)) return id;
     let defs = svg.querySelector("defs");
     if (!defs) {
       defs = BrowserAPIs.createElementNS(NS, "defs");
@@ -2378,6 +2447,14 @@ class Unit {
     if (this.ctx) this.ctx._unitSprings = springs;
   }
   /**
+   * True once a loop's node no longer belongs to this chart's live SVG.
+   * @param {Element} node @returns {boolean}
+   */
+  _stale(node) {
+    const P = this.w.dom.Paper;
+    return !!this.w.globals.isDestroyed || !P || !P.node.contains(node);
+  }
+  /**
    * One rAF loop that tweens every dot from its start (cx0/cy0 - either the
    * cluster centre on first mount / for entering dots, or its previous slot on
    * an update) to its target slot, staggered by index. Entering dots fade in;
@@ -2399,8 +2476,8 @@ class Unit {
     const speed = Math.max(1, w.config.chart.animations.speed || 800);
     const maxDelay = Math.min(speed * 0.6, 450);
     const n = dots.length;
-    for (let k = 0; k < n; k++) {
-      dots[k].delay = n > 1 ? k / (n - 1) * maxDelay : 0;
+    for (let k = n; k--; ) {
+      dots[k].delay = dots[k].pair ? dots[k + 1].delay : n > 1 ? k / (n - 1) * maxDelay : 0;
     }
     const gcfg = opts.gather || {};
     const motion = gcfg.motion || "auto";
@@ -2409,8 +2486,9 @@ class Unit {
     else if (this.ctx) this.ctx._unitSprings = null;
     for (let k = 0; k < n; k++) {
       const d = dots[k];
-      if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-        d.node.setAttribute("r", String(d.r0));
+      if (d.r0 !== d.r1) {
+        this._size(d.node, d.spec, d.r0 / d.r1);
+        this._place(d.node, d.spec, d.cx0, d.cy0, d.r0 / d.r1);
       }
     }
     for (let k = 0; k < n; k++) {
@@ -2421,16 +2499,11 @@ class Unit {
       }
     }
     const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? easeInOutCubic : easeOutCubic;
-    if (this.w.globals.unitGatherRAF != null) {
-      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitGatherRAF);
-      this.w.globals.unitGatherRAF = null;
-    }
     const start = performance.now();
     let last = start;
     const stepFn = (now) => {
-      if (this.w.globals.isDestroyed) {
+      if (this._stale(dots[0].node)) {
         this.w.globals.unitGatherRAF = null;
-        this.w.globals.animationEnded = true;
         return;
       }
       const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1e3));
@@ -2458,16 +2531,18 @@ class Unit {
           cx = d.cx0 + (d.x - d.cx0) * e;
           cy = d.cy0 + (d.y - d.cy0) * e;
         }
-        this._place(d.node, d.spec, cx, cy);
+        let sk = 1;
+        if (d.r0 !== d.r1) {
+          sk = (d.r0 + (d.r1 - d.r0) * ec) / d.r1;
+          this._size(d.node, d.spec, sk);
+        }
+        this._place(d.node, d.spec, cx, cy, sk);
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5));
         if (d._c0 && d._c1) {
           const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec);
           const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec);
           const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec);
           d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
-        }
-        if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-          d.node.setAttribute("r", String(d.r0 + (d.r1 - d.r0) * ec));
         }
         if (t < 1) done = false;
       }
@@ -2476,8 +2551,9 @@ class Unit {
           const d = dots[k];
           d.node.style.opacity = "";
           if (d._c1 && d.fill1) d.node.setAttribute("fill", d.fill1);
-          if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-            d.node.setAttribute("r", String(d.r1));
+          if (d.r0 !== d.r1) {
+            this._size(d.node, d.spec, 1);
+            this._place(d.node, d.spec, d.x, d.y);
           }
         }
         this.w.globals.unitGatherRAF = null;
@@ -2500,7 +2576,7 @@ class Unit {
     const cap = Math.max(0, opts.maxUnits || 5e3);
     const exits = [];
     for (const [key, slot] of prev) {
-      if (!nextPrev.has(key)) {
+      if (!nextPrev.has(key) && key[0] !== "l") {
         exits.push(slot);
         if (exits.length >= cap) break;
       }
@@ -2527,7 +2603,7 @@ class Unit {
     exits.forEach((slot) => {
       const r = slot.r != null ? slot.r : dotR;
       const spec = slot.spec || this._baseSpec(opts, r);
-      const el = this._drawDot(graphics, opts, r, slot.fill, 0, 0, spec);
+      const el = this._drawDot(graphics, opts, r, slot.fill, -1, 0, spec);
       el.node.classList.add("apexcharts-unit-exit");
       this._place(el.node, spec, slot.x, slot.y);
       group.add(el);
@@ -2538,13 +2614,9 @@ class Unit {
       return;
     }
     const speed = Math.max(1, w.config.chart.animations.speed || 800);
-    if (this.w.globals.unitExitRAF != null) {
-      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF);
-      this.w.globals.unitExitRAF = null;
-    }
     const start = performance.now();
     const stepFn = (now) => {
-      if (this.w.globals.isDestroyed) {
+      if (this._stale(group.node)) {
         this.w.globals.unitExitRAF = null;
         return;
       }
@@ -2615,7 +2687,8 @@ ${percent.toFixed(1)}%`;
     if (!lines.length) return 0;
     const width = measureLabelWidth(w, lines, {
       fontSize: cfg.fontSize,
-      fontFamily: cfg.fontFamily || w.config.chart.fontFamily
+      fontFamily: cfg.fontFamily || w.config.chart.fontFamily,
+      fontWeight: cfg.fontWeight
     });
     const gap = conn.gap != null ? conn.gap : 8;
     const length = conn.length != null ? conn.length : 22;
@@ -2752,6 +2825,7 @@ ${percent.toFixed(1)}%`;
    * the blob in either direction.
    * @param {any} elSeries @param {{ i:number, cx:number, cy:number, outerR:number, flat?:boolean }} cluster
    * @param {number} value @param {number} total @param {any} opts @param {string} color
+   * @returns {SVGElement|undefined}
    */
   _drawClusterLabel(elSeries, cluster, value, total, opts, color) {
     const w = this.w;
@@ -2809,6 +2883,10 @@ ${percent.toFixed(1)}%`;
       textEl.textContent = str;
     }
     elSeries.node.appendChild(textEl);
+    return (
+      /** @type {any} */
+      textEl
+    );
   }
 }
 _core__default.use({

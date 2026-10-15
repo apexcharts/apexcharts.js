@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -26,7 +26,6 @@ import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
 const TooltipUtils = _core.__apex_tooltip_Utils;
-const Utils = _core.__apex_Utils;
 class KeyboardNavigation {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -72,16 +71,35 @@ class KeyboardNavigation {
     });
     svgEl.addEventListener("keydown", this._onKeyDown, { passive: false });
     this.ctx.events.addEventListener("legendClick", this._onLegendClick);
+    const kept = w.interact.keyNav;
+    const doc = svgEl.ownerDocument;
+    w.interact.keyNav = null;
+    if (kept && (!doc.activeElement || doc.activeElement === doc.body)) {
+      [this.seriesIndex, this.dataPointIndex, , this._tooltipDismissed] = kept;
+      if (!kept[2]) this.notePointerFocus();
+      svgEl.focus({ preventScroll: true });
+    }
   }
   /**
-   * Removes all event listeners. Called from chart.destroy().
+   * Removes all event listeners. Called from chart.destroy(), and with
+   * `updating` when an update is about to replace the SVG.
+   * @param {boolean} [updating]
    */
-  destroy() {
+  destroy(updating) {
+    var _a;
     const w = this.w;
     const svgEl = w.dom.Paper && w.dom.Paper.node;
     this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
     clearTimeout(this._announceTimer);
     if (!svgEl) return;
+    if (updating && ((_a = svgEl.getRootNode) == null ? void 0 : _a.call(svgEl).activeElement) === svgEl) {
+      w.interact.keyNav = [
+        this.seriesIndex,
+        this.dataPointIndex,
+        this.active,
+        this._tooltipDismissed
+      ];
+    }
     svgEl.removeEventListener("focus", this._onFocus);
     svgEl.removeEventListener("blur", this._onBlur);
     svgEl.removeEventListener("keydown", this._onKeyDown);
@@ -133,7 +151,7 @@ class KeyboardNavigation {
     this.active = true;
     this._clampCursor();
     this._snapToVisibleRange();
-    this._showCurrentPoint();
+    if (!this._tooltipDismissed) this._showCurrentPoint();
   }
   _onBlur() {
     this.active = false;
@@ -179,20 +197,18 @@ class KeyboardNavigation {
         break;
       case "Home":
         e.preventDefault();
-        this.dataPointIndex = 0;
-        this._skipNullForward();
+        this._seek(0, 1);
         this._showCurrentPoint();
         break;
       case "End":
         e.preventDefault();
-        this.dataPointIndex = this._getDataPointCount(this.seriesIndex) - 1;
-        this._skipNullBackward();
+        this._seek(this._getDataPointCount(this.seriesIndex) - 1, -1);
         this._showCurrentPoint();
         break;
       case "Enter":
       case " ":
         e.preventDefault();
-        this._fireClick();
+        this._fireClick(e);
         break;
       case "+":
       case "=":
@@ -240,22 +256,15 @@ class KeyboardNavigation {
     );
   }
   _canPan() {
-    return this._canZoom();
+    return this._canZoom() && this.w.interact.zoomed;
   }
   /**
-   * Shift the visible x-range by ~10% in the given direction.
+   * Shift the visible x-range by ~10% in the given direction, as a drag pan.
    * @param {number} direction +1 = right, -1 = left
    */
   _panBy(direction) {
-    const toolbar = this.ctx.toolbar;
-    if (!toolbar) return;
-    const r = toolbar._currentXRange();
-    const minX = Number(r.minX);
-    const maxX = Number(r.maxX);
-    if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return;
-    const span = maxX - minX;
-    const step = span * 0.1 * direction;
-    toolbar.zoomUpdateOptions(minX + step, maxX + step);
+    var _a;
+    (_a = this.ctx.zoomPanSelection) == null ? void 0 : _a.panBy(direction / 10);
     this._announce(direction > 0 ? "Panned right" : "Panned left");
   }
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -270,8 +279,8 @@ class KeyboardNavigation {
     if (dSeries !== 0) {
       const ttCtx = this.w.globals.tooltip;
       const type = w.config.chart.type;
-      const perCell = type === "heatmap" || type === "treemap";
-      if (!perCell && ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
+      const perCell = type === "heatmap" || type === "treemap" || type === "radialBar";
+      if (!perCell && (ttCtx == null ? void 0 : ttCtx.ttItems) && ttCtx.tConfig.shared) {
         const j = this.dataPointIndex;
         const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
         if (isActuallyShared) return;
@@ -297,59 +306,43 @@ class KeyboardNavigation {
       }
     }
     if (dPoint !== 0) {
-      const dpCount = this._getDataPointCount(this.seriesIndex);
-      let di = this.dataPointIndex + dPoint;
-      if (di < 0) di = wrapAround ? dpCount - 1 : 0;
-      if (di >= dpCount) di = wrapAround ? 0 : dpCount - 1;
-      this.dataPointIndex = di;
-      if (dPoint > 0) {
-        this._skipNullForward();
-      } else {
-        this._skipNullBackward();
-      }
+      this._seek(this.dataPointIndex + dPoint, dPoint);
       if (!this._isDataPointVisible(this.seriesIndex, this.dataPointIndex)) {
         this._snapToVisibleRangeInDirection(dPoint);
       }
     }
     this._showCurrentPoint();
   }
-  /** Advance dataPointIndex forward past any nulls */
-  _skipNullForward() {
+  /**
+   * Land on the first non-null point from `di` going `dir`. Past an edge it
+   * wraps only with wrapAround; when no point lies ahead the cursor stays.
+   * @param {number} di
+   * @param {number} dir
+   */
+  _seek(di, dir) {
     const w = this.w;
-    const si = this.seriesIndex;
-    const dpCount = this._getDataPointCount(si);
-    let di = this.dataPointIndex;
-    let attempts = 0;
-    if (!Array.isArray(w.seriesData.series[si])) return;
-    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-      di = (di + 1) % dpCount;
-      attempts++;
+    const row = w.seriesData.series[this.seriesIndex];
+    const n = this._getDataPointCount(this.seriesIndex);
+    for (let k = 0; k < n; k++, di += dir) {
+      if (w.config.chart.accessibility.keyboard.navigation.wrapAround) {
+        di = (di + n) % n;
+      } else if (di < 0 || di >= n) return;
+      if (!Array.isArray(row) || row[di] !== null) {
+        this.dataPointIndex = di;
+        return;
+      }
     }
-    this.dataPointIndex = di;
-  }
-  /** Retreat dataPointIndex backward past any nulls */
-  _skipNullBackward() {
-    const w = this.w;
-    const si = this.seriesIndex;
-    const dpCount = this._getDataPointCount(si);
-    let di = this.dataPointIndex;
-    let attempts = 0;
-    if (!Array.isArray(w.seriesData.series[si])) return;
-    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-      di = (di - 1 + dpCount) % dpCount;
-      attempts++;
-    }
-    this.dataPointIndex = di;
   }
   // ─── Display ──────────────────────────────────────────────────────────────
   _showCurrentPoint() {
     const { seriesIndex: i, dataPointIndex: j } = this;
     const w = this.w;
     const ttCtx = w.globals.tooltip;
-    if (!ttCtx || !ttCtx.ttItems) return;
+    this._tooltipDismissed = false;
     w.interact.capturedSeriesIndex = i;
     w.interact.capturedDataPointIndex = j;
     this._applyFocusClass(i, j);
+    if (!(ttCtx == null ? void 0 : ttCtx.ttItems)) return this._announce(this._buildPointLabel(i, j));
     this._showTooltip(
       i,
       j,
@@ -407,10 +400,8 @@ class KeyboardNavigation {
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
       tooltipEl.removeAttribute("aria-hidden");
     }
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (type === "pie" || type === "donut" || type === "polarArea" || type === "radialBar") {
       this._showTooltipNonAxis(i, j, ttCtx, tooltipEl);
-    } else if (type === "radialBar") {
-      this._showTooltipRadialBar(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
     } else if (this._isBarLikeSeries(i)) {
@@ -765,78 +756,27 @@ class KeyboardNavigation {
     return true;
   }
   /**
-   * pie / donut / polarArea
+   * pie / donut / polarArea (a slice per point, i is 0) and radialBar (a ring
+   * per series, j is 0)
    * @param {number} i
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @param {HTMLElement} tooltipEl
    */
   _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
-    const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
-      i: j,
+      i: i + j,
       shared: false
     });
     const tooltipBound = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
-    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
-    const anchor = ttCtx.getSliceAnchor(sliceEl);
+    const anchor = ttCtx.getSliceAnchor(this._getFocusableElement(i, j));
     if (anchor) {
       const pos = ttCtx.tooltipPosition.placeOverAnchor(
         anchor.x,
         anchor.y,
-        ttWidth,
-        ttHeight,
-        10
-      );
-      tooltipEl.style.left = pos.x + "px";
-      tooltipEl.style.top = pos.y + "px";
-    }
-  }
-  /**
-   * radialBar — one ring per series, single value each
-   * @param {number} i
-   * @param {any} _j
-   * @param {import('../tooltip/Tooltip').default} ttCtx
-   * @param {HTMLElement} tooltipEl
-   */
-  _showTooltipRadialBar(i, _j, ttCtx, tooltipEl) {
-    var _a;
-    const w = this.w;
-    ttCtx.tooltipLabels.drawSeriesTexts({
-      ttItems: ttCtx.ttItems,
-      i,
-      shared: false
-    });
-    const { ttWidth = 0, ttHeight = 0 } = ttCtx.getCachedDimensions();
-    const arcEl = w.dom.baseEl.querySelector(
-      `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
-    );
-    if (arcEl) {
-      const angle = parseFloat((_a = arcEl.getAttribute("data:angle")) != null ? _a : "") || 0;
-      const initialAngle = w.config.plotOptions.radialBar.startAngle || 0;
-      const midAngle = initialAngle + angle / 2;
-      const centerX = w.layout.gridWidth / 2;
-      const centerY = w.layout.gridHeight / 2;
-      const radialSize = w.globals.radialSize || Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2;
-      const seriesCount = w.seriesData.series.length;
-      const trackSize = radialSize / Math.max(seriesCount, 1);
-      const outerRadius = radialSize - i * trackSize;
-      const innerRadius = outerRadius - trackSize;
-      const ringRadius = (outerRadius + innerRadius) / 2;
-      const centroid = Utils.polarToCartesian(
-        centerX,
-        centerY,
-        ringRadius,
-        midAngle
-      );
-      const x = centroid.x + (w.layout.translateX || 0);
-      const y = centroid.y + (w.layout.translateY || 0);
-      const pos = ttCtx.tooltipPosition.placeOverAnchor(
-        x,
-        y,
         ttWidth,
         ttHeight,
         10
@@ -1104,9 +1044,7 @@ class KeyboardNavigation {
     const mark = this._canvasMark(i, j);
     if (!mark) return this._drawCanvasMarkerFocusRing(i, j);
     const w = this.w;
-    const host = Array.from(
-      w.dom.baseEl.querySelectorAll(".apexcharts-series")
-    ).find((g) => g.getAttribute("data:realIndex") === String(i));
+    const host = this._seriesGroup(i);
     if (!host) return null;
     const ring = new Graphics(w, this.ctx).drawPath({
       d: mark.d,
@@ -1130,9 +1068,7 @@ class KeyboardNavigation {
     const marker = this._canvasMarker(i, j);
     if (!marker) return null;
     const w = this.w;
-    const host = Array.from(
-      w.dom.baseEl.querySelectorAll(".apexcharts-series")
-    ).find((g) => g.getAttribute("data:realIndex") === String(i));
+    const host = this._seriesGroup(i);
     if (!host) return null;
     const ring = new Graphics(w, this.ctx).drawPath({
       d: marker.d,
@@ -1226,6 +1162,7 @@ class KeyboardNavigation {
    * @param {number} j
    */
   _getFocusableElement(i, j) {
+    var _a, _b;
     const w = this.w;
     const type = w.config.chart.type;
     const baseEl = w.dom.baseEl;
@@ -1243,32 +1180,47 @@ class KeyboardNavigation {
       );
     }
     if (type === "radialBar") {
-      return baseEl.querySelector(
-        `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
-      );
+      return baseEl.querySelector(`.apexcharts-radialbar-slice-${i}`);
     }
     if (this._isBarLikeSeries(i)) {
       if (this._canvasMark(i, j)) return null;
-      return baseEl.querySelector(
-        `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`
-      );
+      return (_a = this._seriesGroup(i)) == null ? void 0 : _a.querySelector(`path[j='${j}']`);
     }
-    const marker = baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker[rel='${j}']`
-    );
-    return marker || null;
+    return (_b = this._seriesGroup(i)) == null ? void 0 : _b.querySelector(`.apexcharts-marker[rel='${j}']`);
+  }
+  /**
+   * The series' own group, by realIndex (`rel` counts within a type's groups,
+   * which a combo has several of). Matched in script: not every selector
+   * engine takes the escaped `data\:realIndex` attribute.
+   * @param {number} i
+   * @returns {Element | undefined}
+   */
+  _seriesGroup(i) {
+    return Array.from(
+      this.w.dom.baseEl.querySelectorAll(".apexcharts-series")
+    ).find((g) => g.getAttribute("data:realIndex") === String(i));
   }
   // ─── Click / Enter ────────────────────────────────────────────────────────
-  _fireClick() {
-    const w = this.w;
-    const ttCtx = w.globals.tooltip;
-    if (!ttCtx) return;
-    const syntheticEvent = {
-      type: "mouseup",
-      clientX: 0,
-      clientY: 0
-    };
-    ttCtx.markerClick(syntheticEvent, this.seriesIndex, this.dataPointIndex);
+  /**
+   * What a click on the focused mark does: its mousedown selects it
+   * (dataPointSelection), its mouseup slides a pie slice out and fires
+   * markerClick.
+   * @param {KeyboardEvent} e
+   */
+  _fireClick(e) {
+    var _a, _b;
+    const el = (
+      /** @type {any} */
+      (_a = this._focusedEl) == null ? void 0 : _a.instance
+    );
+    const pie = this.ctx.pie;
+    if (el) new Graphics(this.w, this.ctx).pathMouseDown(el, e);
+    if (pie && pie.getExpandOffset() > 0) pie.pieClicked(this.dataPointIndex);
+    (_b = this.w.globals.tooltip) == null ? void 0 : _b.markerClick(
+      e,
+      this.seriesIndex,
+      this.dataPointIndex
+    );
   }
   // ─── Helpers ──────────────────────────────────────────────────────────────
   _isNavEnabled() {
@@ -1292,8 +1244,8 @@ class KeyboardNavigation {
     if (type === "pie" || type === "donut" || type === "polarArea") {
       return w.seriesData.series.length;
     }
-    const series = w.seriesData.series;
-    return series[si] && Array.isArray(series[si]) ? series[si].length : 0;
+    const s = w.seriesData.series[si];
+    return Array.isArray(s) ? s.length : 1;
   }
   _clampCursor() {
     const seriesCount = this._getSeriesCount();

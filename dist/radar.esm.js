@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -271,7 +271,7 @@ class Radar {
       }
       s.forEach((dv, j) => {
         const range = Math.abs(this.maxValue - this.minValue);
-        dv = dv - this.minValue;
+        dv = Math.max(0, dv - this.minValue);
         if (this.isLog) {
           dv = this.coreUtils.getLogVal(this.logBase, dv, 0);
         }
@@ -308,7 +308,7 @@ class Radar {
         shouldClipToGrid: false,
         bindEventsOnPaths: false,
         stroke: w.globals.stroke.colors[i],
-        strokeLineCap: w.config.stroke.lineCap
+        strokeLinecap: w.config.stroke.lineCap
       };
       let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
@@ -485,6 +485,7 @@ class Radar {
   drawXAxisTexts() {
     const w = this.w;
     const xaxisLabelsConfig = w.config.xaxis.labels;
+    const lc = xaxisLabelsConfig.style.colors;
     const elXAxisWrap = this.graphics.group({
       class: "apexcharts-xaxis"
     });
@@ -508,7 +509,7 @@ class Radar {
           j: i,
           parent: elXAxisWrap,
           className: "apexcharts-xaxis-label",
-          color: Array.isArray(xaxisLabelsConfig.style.colors) && xaxisLabelsConfig.style.colors[i] ? xaxisLabelsConfig.style.colors[i] : "#a8a8a8",
+          color: (Array.isArray(lc) ? lc[i] : lc) || "#a8a8a8",
           dataLabelsConfig: __spreadValues({
             textAnchor: textPos.textAnchor,
             dropShadow: { enabled: false }

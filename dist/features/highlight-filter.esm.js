@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -255,6 +255,11 @@ function uniquifyKeys(keys) {
     return count === 0 ? k : `${k}#${count}`;
   });
 }
+function seriesKeys(w, realIndex, n = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
+  return uniquifyKeys(
+    Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j))
+  );
+}
 function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
@@ -267,7 +272,7 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
   const oldKeys = uniquifyKeys(
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
-  const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+  const newKeys = seriesKeys(w, realIndex);
   const join = joinKeys(oldKeys, newKeys);
   if (!join.ordered && !allowReorder) return null;
   if (!join.changed && !includeIdentity) return null;
@@ -2284,9 +2289,9 @@ function wrapParentTip(hf, tm) {
     }
     const v = (_c = tm._tip()) == null ? void 0 : _c.querySelector(".apexcharts-tooltip-text-y-value");
     if (!v) return;
-    let rest = `/ ${tm._formatValue(h.total)}`;
+    let rest = `/ ${tm._formatValue(h.total, node._si)}`;
     if (tt.share && h.total) rest += ` · ${Math.round(h.share * 100)}%`;
-    v.innerHTML = `${tm._formatValue(h.value)} <span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">${rest}</span>`;
+    v.innerHTML = `${tm._formatValue(h.value, node._si)} <span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">${rest}</span>`;
   };
 }
 function tone(rec, fore) {
@@ -2824,7 +2829,7 @@ class HighlightFilter {
     const active = hd.active;
     if (!active && !(prevMap == null ? void 0 : prevMap.size)) return void 0;
     const { j, realIndex } = o;
-    const key = BAR + `${realIndex}::${datumKey(w, realIndex, j)}`;
+    const key = BAR + `${realIndex}::${bar._keys(realIndex)[j]}`;
     this._seen.add(key);
     const prev = prevMap == null ? void 0 : prevMap.get(key);
     const p = active ? (_a = hd.parts[realIndex]) == null ? void 0 : _a[j] : null;
@@ -3134,14 +3139,14 @@ class HighlightFilter {
   }
   /**
    * The stack a stacked bar datum joins, as the renderer resolves it
-   * (BarStacked drawStackedColumnPaths): its series group, then its x value
-   * on a numeric or datetime column axis, else its index.
+   * (BarStacked): its series group, then its x value on a numeric or
+   * datetime axis, else its index.
    * @param {number} i @param {number} j
    */
   _barKey(i, j) {
     var _a;
     const w = this.w;
-    return w.labelData.seriesGroupIndex[i] + "|" + (!w.config.plotOptions.bar.horizontal && w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i]) == null ? void 0 : _a[j] : j);
+    return w.labelData.seriesGroupIndex[i] + "|" + (w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i]) == null ? void 0 : _a[j] : j);
   }
   /**
    * Line.draw, once per series right after its whole has been rendered and
@@ -3205,7 +3210,7 @@ class HighlightFilter {
     const exit = !to && !!(prev == null ? void 0 : prev.d) && animate;
     const base = active && animate && (exit || to && !(prev == null ? void 0 : prev.d) && (prev || this.cfg.enter === "baseline")) ? this._lineBase(ln, type, series, i, realIndex, ti, has ? raw : null) : null;
     if (pp && w.config.chart.stacked) {
-      this._swap(ln, () => ln._recordStackTops(realIndex, pp.yArrj));
+      this._swap(ln, () => ln._recordStackTops(realIndex, pp.yArrj, pp.S[i]));
       this._stkPrev.push(pp.yArrj);
     }
     if (exit) {
