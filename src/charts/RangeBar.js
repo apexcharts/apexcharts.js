@@ -5,7 +5,7 @@ import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import {
   renderBarExitGhosts,
-  seriesKeys,
+  uniquifyKeys,
 } from '../modules/animations/LengthTransition'
 
 /**
@@ -66,8 +66,6 @@ class RangeBar extends Bar {
         x: initX,
         zeroH, // zeroH is the baseline where 0 meets y axis
       } = initPositions
-      let barWidth = initPositions.barWidth ?? 0
-      let barHeight = initPositions.barHeight ?? 0
       const yDivision = initPositions.yDivision ?? 0
       const xDivision = initPositions.xDivision ?? 0
 
@@ -84,11 +82,16 @@ class RangeBar extends Bar {
         class: 'apexcharts-rangebar-goals-markers',
       })
 
+      const data = /** @type {any} */ (w.config.series[realIndex]).data
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+        // per datum: an overlap row shrinks only its own bars
+        let barWidth = initPositions.barWidth ?? 0
+        let barHeight = initPositions.barHeight ?? 0
 
-        const y1 = this.seriesRangeStart[i][j]
-        const y2 = this.seriesRangeEnd[i][j]
+        const y1 = this.seriesRangeStart[realIndex][j]
+        const y2 = this.seriesRangeEnd[realIndex][j]
 
         let paths = /** @type {any} */ (null)
         let barXPosition = null
@@ -100,10 +103,7 @@ class RangeBar extends Bar {
           seriesLen = 1
         }
 
-        if (
-          typeof /** @type {Record<string,any>} */ (w.config.series[i]).data?.[j] ===
-          'undefined'
-        ) {
+        if (typeof data?.[j] === 'undefined') {
           // no data exists for further indexes, hence we need to get out the innr loop.
           // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
           break
@@ -114,9 +114,9 @@ class RangeBar extends Bar {
 
           const srty = (yDivision - barHeight * seriesLen) / 2
 
-          if (/** @type {Record<string,any>} */ (w.config.series[i]).data?.[j]?.x) {
+          if (data[j]?.x != null) {
             const positions = this.detectOverlappingBars({
-              i,
+              i: realIndex,
               j,
               barYPosition,
               srty,
@@ -144,7 +144,8 @@ class RangeBar extends Bar {
         } else {
           if (w.axisFlags.isXNumeric) {
             x =
-              (w.seriesData.seriesX[i][j] - w.globals.minX) / this.xRatio -
+              (w.seriesData.seriesX[realIndex][j] - w.globals.minX) /
+                this.xRatio -
               barWidth / 2
           }
 
@@ -152,9 +153,9 @@ class RangeBar extends Bar {
 
           const srtx = (xDivision - barWidth * seriesLen) / 2
 
-          if (/** @type {Record<string,any>} */ (w.config.series[i]).data?.[j]?.x) {
+          if (data[j]?.x != null) {
             const positions = this.detectOverlappingBars({
-              i,
+              i: realIndex,
               j,
               barXPosition,
               srtx,
@@ -177,10 +178,11 @@ class RangeBar extends Bar {
           })
 
           barHeight = paths.barHeight
+          barXPosition = paths.barXPosition
         }
 
         const barGoalLine = this.barHelpers.drawGoalLine({
-          barXPosition: paths.barXPosition,
+          barXPosition,
           barYPosition,
           goalX: paths.goalX,
           goalY: paths.goalY,
@@ -236,12 +238,11 @@ class RangeBar extends Bar {
       // overrides draw() and never made this call, so a series hidden from the
       // legend (no datums left) dropped every bar on the click.
       if (w.globals.previousPaths.length > 0) {
-        const data = /** @type {any} */ (w.config.series[realIndex]).data
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys: seriesKeys(w, realIndex, data ? data.length : 0),
+          newKeys: this._keys(realIndex),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed,
         })
@@ -304,18 +305,11 @@ class RangeBar extends Bar {
 
         if (overlaps.indexOf(rangeName) > -1) {
           barHeight = initPositions.barHeight / overlaps.length
-
-          barYPosition =
-            barHeight * this.visibleI +
-            (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
-              100 /
-              2 +
-            barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
-            yDivision * rowIndex
+          barYPosition += barHeight * overlaps.indexOf(rangeName)
         }
       }
     } else {
-      if (rowIndex > -1 && !w.labelData.timescaleLabels.length) {
+      if (rowIndex > -1 && !w.axisFlags.isXNumeric) {
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           barXPosition = srtx + xDivision * rowIndex
         } else {
@@ -331,14 +325,7 @@ class RangeBar extends Bar {
 
         if (overlaps.indexOf(rangeName) > -1) {
           barWidth = initPositions.barWidth / overlaps.length
-
-          barXPosition =
-            barWidth * this.visibleI +
-            (xDivision * (100 - parseInt(this.barOptions.barWidth, 10))) /
-              100 /
-              2 +
-            barWidth * (this.visibleI + overlaps.indexOf(rangeName)) +
-            xDivision * rowIndex
+          barXPosition += barWidth * overlaps.indexOf(rangeName)
         }
       }
     }
@@ -377,7 +364,7 @@ class RangeBar extends Bar {
     )
 
     if (!hasValue) {
-      y1 = zeroH
+      y1 = y2 = zeroH
     } else {
       y1 = zeroH - y1 / yRatio
       y2 = zeroH - y2 / yRatio
@@ -442,6 +429,22 @@ class RangeBar extends Bar {
       ),
       barXPosition,
     }
+  }
+
+  /**
+   * Timeline datums key by their own row, not by the j-th label: a row can
+   * hold several bars, so labels[j] names some other datum's row.
+   * @param {number} realIndex
+   * @returns {string[]}
+   */
+  _keys(realIndex) {
+    const c = (/** @type {any} */ (this)._keyCache ||= {})
+    const data = /** @type {any} */ (this.w.config.series[realIndex]).data
+    return (c[realIndex] ||= uniquifyKeys(
+      (data || []).map(
+        (/** @type {any} */ d, /** @type {number} */ j) => 'c:' + (d?.x ?? j),
+      ),
+    ))
   }
 
   /**

@@ -160,7 +160,7 @@ export function joinKeys(oldKeys, newKeys) {
  * @param {string[]} keys
  * @returns {string[]}
  */
-function uniquifyKeys(keys) {
+export function uniquifyKeys(keys) {
   /** @type {Map<string, number>} */
   const seen = new Map()
   return keys.map((k) => {
