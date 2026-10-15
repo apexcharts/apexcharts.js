@@ -111,6 +111,17 @@ const TYPE_OWNED_PATHS = [
 const floorLabel = (val) => (Utils.isNumber(val) ? Math.floor(val) : val)
 
 /**
+ * The pie, donut and polarArea label: the share of the whole, as a percentage.
+ * One function for all three, so a pie that becomes a donut hands it over as
+ * the same default. Guarded because a config survives a chart-type change: a
+ * pie that becomes a treemap hands this a category NAME, and a default of ours
+ * must not throw on a value it was never designed for.
+ * @param {any} val
+ */
+const percentLabel = (val) =>
+  typeof val === 'number' ? val.toFixed(1) + '%' : val
+
+/**
  * The base options with a type's defaults laid over them: what a leaf is when
  * no mode preset has touched it.
  * @param {Record<string, any>} config
@@ -380,20 +391,13 @@ export default class Defaults {
     const requestedType = opts.chart.requestedType
     let chartDefaults
 
-    if (requestedType === 'funnel' || requestedType === 'pyramid') {
-      chartDefaults = /** @type {any} */ (defaults)[requestedType]()
-    } else if (requestedType === 'gauge') {
-      chartDefaults = defaults.gauge()
-    } else if (requestedType === 'histogram') {
-      chartDefaults = defaults.histogram()
-    } else if (requestedType === 'waterfall') {
-      chartDefaults = defaults.waterfall()
-    } else if (requestedType === 'dumbbell') {
-      chartDefaults = defaults.dumbbell()
-    } else if (requestedType === 'streamgraph') {
-      chartDefaults = defaults.streamgraph()
-    } else if (requestedType === 'raincloud') {
-      chartDefaults = defaults.raincloud()
+    // Every alias but waffle (and column, a plain bar) has a method of its own.
+    const aliasDefaults =
+      /** @type {any} */ (TYPE_ALIASES)[requestedType] &&
+      /** @type {any} */ (defaults)[requestedType]
+
+    if (aliasDefaults) {
+      chartDefaults = aliasDefaults.call(defaults)
     } else if (requestedType === 'waffle') {
       chartDefaults = Utils.extend(defaults.unit(), {
         plotOptions: { unit: { layout: 'grid', shape: 'square' } },
@@ -2473,16 +2477,7 @@ export default class Defaults {
         },
       },
       dataLabels: {
-        /**
-         * The share of the whole, as a percentage. Guarded because a config
-         * survives a chart-type change: a pie that becomes a treemap hands
-         * this same default a category NAME, and a default of ours must not
-         * throw on a value it was never designed for.
-         * @param {any} val
-         */
-        formatter(val) {
-          return typeof val === 'number' ? val.toFixed(1) + '%' : val
-        },
+        formatter: percentLabel,
         style: {
           colors: ['#fff'],
         },
@@ -2529,16 +2524,7 @@ export default class Defaults {
         },
       },
       dataLabels: {
-        /**
-         * The share of the whole, as a percentage. Guarded because a config
-         * survives a chart-type change: a pie that becomes a treemap hands
-         * this same default a category NAME, and a default of ours must not
-         * throw on a value it was never designed for.
-         * @param {any} val
-         */
-        formatter(val) {
-          return typeof val === 'number' ? val.toFixed(1) + '%' : val
-        },
+        formatter: percentLabel,
         style: {
           colors: ['#fff'],
         },
@@ -2588,16 +2574,7 @@ export default class Defaults {
         },
       },
       dataLabels: {
-        /**
-         * The share of the whole, as a percentage. Guarded because a config
-         * survives a chart-type change: a pie that becomes a treemap hands
-         * this same default a category NAME, and a default of ours must not
-         * throw on a value it was never designed for.
-         * @param {any} val
-         */
-        formatter(val) {
-          return typeof val === 'number' ? val.toFixed(1) + '%' : val
-        },
+        formatter: percentLabel,
         enabled: false,
       },
       stroke: {
