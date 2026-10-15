@@ -373,7 +373,8 @@ export default class Series {
 
     this.clearSeriesCache()
 
-    let series = Utils.clone(w.globals.initialSeries)
+    // From the peek: reading initialSeries deep clones it first.
+    let series = Utils.clone(w.globals._initialSeriesPeek)
     // A chart constructed (or once updated) with an invalid series leaves no
     // usable snapshot; resetting to the live config beats crashing here and
     // stranding the chart mid-update.

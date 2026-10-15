@@ -599,13 +599,13 @@ export default class UpdateHelpers {
   /**
    * @param {any} s
    * @param {number} i
+   * @param {any} ser the baseline row a partial `s` inherits from. No
+   *   fallback to the live config row: a row past the end of the baseline
+   *   is new and inherits nothing.
    */
-  _extendSeries(s, i) {
-    const w = this.w
-    const ser = w.config.series[i]
-
+  _extendSeries(s, i, ser) {
     return {
-      .../** @type {Record<string,any>} */ (w.config.series[i]),
+      .../** @type {Record<string,any>} */ (ser),
       name: s.name ? s.name : /** @type {any} */ (ser)?.name,
       color: s.color ? s.color : /** @type {any} */ (ser)?.color,
       type: s.type ? s.type : /** @type {any} */ (ser)?.type,
