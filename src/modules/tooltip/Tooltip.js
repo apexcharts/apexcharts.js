@@ -84,7 +84,6 @@ export default class Tooltip {
     this.e = null
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
     this.lastHoverTime = Date.now()
-    this.dimensionUpdateScheduled = false
 
     // Properties set in drawTooltip() / create() / event handlers
     /** @type {import('../../types/internal').XYRatios | null} */
@@ -157,79 +156,25 @@ export default class Tooltip {
     return this.w.config.tooltip
   }
 
-  setupDimensionCache() {
-    const w = this.w
-    const tooltipEl = this.getElTooltip()
-
-    if (!tooltipEl) return
-
-    // No initial measurement on purpose. Reading the rect here forced a
-    // synchronous layout of the chart that was just (re)built, on every render
-    // AND every update, to measure a tooltip that is still empty and hidden --
-    // a size superseded the moment any content is written into it. It is not
-    // needed either: `getCachedDimensions()` measures live when the cache is
-    // missing or older than a second, and every consumer of it runs at
-    // interaction time, by which point the ResizeObserver below has normally
-    // filled the cache anyway.
-
-    // Setup ResizeObserver for automatic dimension updates
-    if (typeof ResizeObserver !== 'undefined' && !w.globals.resizeObserver) {
-      w.globals.resizeObserver = new ResizeObserver(() => {
-        if (!this.dimensionUpdateScheduled) {
-          this.dimensionUpdateScheduled = true
-          requestAnimationFrame(() => {
-            this.updateDimensionCache()
-            this.dimensionUpdateScheduled = false
-          })
-        }
-      })
-      w.globals.resizeObserver.observe(tooltipEl)
-    }
-  }
-
-  updateDimensionCache() {
-    const w = this.w
-    const tooltipEl = this.getElTooltip()
-
-    if (!tooltipEl) return
-
-    const rect = tooltipEl.getBoundingClientRect()
-    w.globals.dimensionCache.tooltip = /** @type {any} */ ({
-      width: rect.width,
-      height: rect.height,
-      lastUpdate: Date.now(),
-    })
-  }
-
+  /**
+   * The tooltip's last measured size, measured again once it is a second
+   * old. Only a first guess: Labels measures again once it has written the
+   * rows, before anything is placed off it.
+   * @returns {{ ttWidth: number, ttHeight: number }}
+   */
   getCachedDimensions() {
-    const w = this.w
-
-    // Return cached dimensions if available and fresh (< 1 second old)
-    if (w.globals.dimensionCache.tooltip) {
-      const cache = /** @type {Record<string,any>} */ (
-        w.globals.dimensionCache.tooltip
-      )
-      const age = Date.now() - cache.lastUpdate
-
-      if (age < 1000) {
-        return {
-          ttWidth: cache.width,
-          ttHeight: cache.height,
-        }
-      }
+    const dims = this.w.globals.dimensionCache
+    const tooltipEl = this.getElTooltip()
+    let cache = /** @type {any} */ (dims.tooltip)
+    if (tooltipEl && !(Date.now() - cache?.lastUpdate < 1000)) {
+      const rect = tooltipEl.getBoundingClientRect()
+      cache = dims.tooltip = /** @type {any} */ ({
+        width: rect.width,
+        height: rect.height,
+        lastUpdate: Date.now(),
+      })
     }
-
-    // Fallback to live measurement and update cache
-    this.updateDimensionCache()
-    const cache = /** @type {Record<string,any>} */ (
-      w.globals.dimensionCache.tooltip
-    )
-    return cache
-      ? {
-          ttWidth: cache.width,
-          ttHeight: cache.height,
-        }
-      : { ttWidth: 0, ttHeight: 0 }
+    return { ttWidth: cache?.width || 0, ttHeight: cache?.height || 0 }
   }
 
   /**
@@ -580,7 +525,8 @@ export default class Tooltip {
         let n = 600
         const replay = () => {
           if (h !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return
-          if (!w.globals.animationEnded && n--) requestAnimationFrame(replay)
+          if (!w.globals.animationEnded && n--)
+            BrowserAPIs.requestAnimationFrame(replay)
           else if (tooltipEl.classList.contains('apexcharts-active')) {
             delete tooltipEl.dataset.positioned
             this.seriesHover(h.opt, this.e)
@@ -590,8 +536,6 @@ export default class Tooltip {
         replay()
       } else this.handleMouseOut({ tooltipEl })
     }
-
-    this.setupDimensionCache()
   }
 
   /**
