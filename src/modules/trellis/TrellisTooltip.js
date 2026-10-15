@@ -25,19 +25,10 @@
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import AxisMapping from '../AxisMapping'
 import TooltipUtils from '../tooltip/Utils'
+import { BAR_PATHWAY_TYPES } from '../settings/TypeAliases'
 
 /** Card offset from the pointer, px. */
 const CURSOR_PAD = 14
-
-/** Types whose hover divisor counts bins, not points (tooltip/Utils). */
-const BAR_FAMILY = [
-  'bar',
-  'column',
-  'rangeBar',
-  'candlestick',
-  'boxPlot',
-  'violin',
-]
 
 export default class TrellisTooltip {
   /**
@@ -122,7 +113,7 @@ export default class TrellisTooltip {
     // its own slot, so the slot under the pointer wins, not the nearest of
     // n - 1 gaps.
     const slotted =
-      (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 ||
+      (BAR_PATHWAY_TYPES.includes(w.config.chart.type) ||
         w.config.xaxis.tickPlacement === 'between') &&
       !w.config.xaxis.convertedCatToNumeric
     const j = slotted

@@ -1,5 +1,6 @@
 // @ts-check
 import AxesUtils from '../axes/AxesUtils'
+import { BAR_PATHWAY_TYPES } from '../settings/TypeAliases'
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 
@@ -30,8 +31,7 @@ export default class DimGrid {
     /**
      * @param {string} type
      */
-    const hasBar = (type) =>
-      ['bar', 'rangeBar', 'candlestick', 'boxPlot', 'violin'].includes(type)
+    const hasBar = (type) => BAR_PATHWAY_TYPES.includes(type)
 
     const type = cnf.chart.type
     let barWidth = 0

@@ -4,6 +4,7 @@ import XAxis from './XAxis'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { SVGNS } from '../../svg/math'
+import { BAR_PATHWAY_TYPES } from '../settings/TypeAliases'
 
 /**
  * ApexCharts Grid Class for drawing Cartesian Grid.
@@ -98,9 +99,7 @@ class Grid {
       : w.config.stroke.width
 
     const hasBar =
-      ['bar', 'rangeBar', 'candlestick', 'boxPlot', 'violin'].includes(
-        w.config.chart.type,
-      ) || gl.comboBarCount > 0
+      BAR_PATHWAY_TYPES.includes(w.config.chart.type) || gl.comboBarCount > 0
 
     let barWidthLeft = 0
     let barWidthRight = 0

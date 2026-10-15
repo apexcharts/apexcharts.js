@@ -123,6 +123,19 @@ export const XY_TYPES = [
 ]
 
 /**
+ * The XY types drawn through the bar pathway: one slot per point, so the
+ * hover divisor counts slots, and on a numeric axis the edge marks hang half
+ * a slot outside the plot and need padding and a widened clip.
+ */
+export const BAR_PATHWAY_TYPES = [
+  'bar',
+  'rangeBar',
+  'candlestick',
+  'boxPlot',
+  'violin',
+]
+
+/**
  * Types that need the axis/grid/scale pipeline but own the whole plot: they
  * take part in no combo, and a chart is one of them or it is not.
  */
