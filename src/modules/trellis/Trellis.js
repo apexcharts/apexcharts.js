@@ -1032,8 +1032,11 @@ export default class Trellis {
         // gap is the breathing room here).
         parentHeightOffset: 0,
         toolbar: { show: false },
+        // the shared toolbar owns the one reset (TrellisSync.resetAll); with
+        // toolbar 'none' a panel's own reset is the only way back
         zoom: {
           enabled: this.cfg.zoom !== 'none',
+          resetControl: this.cfg.toolbar == 'none',
         },
         ...(animationsOff ? { animations: { enabled: false } } : {}),
         // Grid-level canvas auto-selection (P2): a uniform explicit backend,

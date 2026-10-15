@@ -310,6 +310,8 @@ export default class TrellisSync {
       })
     }
     const loop = () => {
+      // a teardown (rebuild or destroy) under a resting pointer ends the loop
+      if (elGrid !== this.trellis.elGrid) return (raf = 0)
       apply()
       raf = hoverTarget ? requestAnimationFrame(loop) : 0
     }
