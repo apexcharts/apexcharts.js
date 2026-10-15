@@ -60,6 +60,16 @@ class SSRElement {
   }
 
   /**
+   * Namespaced attributes serialize by their qualified name.
+   * @param {any} _ns
+   * @param {string} name
+   * @param {any} value
+   */
+  setAttributeNS(_ns, name, value) {
+    this.setAttribute(name, value)
+  }
+
+  /**
    * @param {string} name
    */
   getAttribute(name) {

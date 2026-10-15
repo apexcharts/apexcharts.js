@@ -593,11 +593,11 @@ export default class SunburstChart {
    * @param {any} node
    */
   _renderCurvedLabel(node) {
-    if (!Environment.isBrowser()) return
     const style = this.cfg.dataLabels.style
     const w = this.w
     const r = (node._iR + node._oR) / 2
-    const mid = (node._t0 + node._t1) / 2
+    // Normalised, so a negative or past-360 startAngle flips the same half.
+    const mid = ((((node._t0 + node._t1) / 2) % 360) + 360) % 360
     const flip = mid > 90 && mid < 270
 
     // Small angular padding so text does not touch the radial edges.
