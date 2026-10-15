@@ -74,10 +74,6 @@ class BarStacked extends Bar {
 
       const translationsIndex = this.setSeriesAxis(realIndex)
 
-      this.isReversed =
-        w.config.yaxis[this.yaxisIndex] &&
-        w.config.yaxis[this.yaxisIndex].reversed
-
       // el to which series will be drawn
       let elSeries = this.graphics.group({
         class: `apexcharts-series`,

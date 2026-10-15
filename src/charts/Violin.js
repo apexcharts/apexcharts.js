@@ -340,15 +340,18 @@ class Violin extends BarBase {
   drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
     const w = this.w
     const { realIndex, j, translationsIndex } = indexes
-    const yRatio = this.yRatio[translationsIndex]
+    const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1)
 
+    // the group of violins at a numeric x is centred on it, as candles are
+    let barXPosition = x + barWidth * this.visibleI
     if (w.axisFlags.isXNumeric) {
-      x =
-        (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio -
-        barWidth / 2
+      ;({ x, barXPosition } = this.getBarXForNumericXAxis({
+        x,
+        barWidth,
+        realIndex,
+        j,
+      }))
     }
-
-    const barXPosition = x + barWidth * this.visibleI
     const center = barXPosition + barWidth / 2
     const halfExtent = barWidth / 2
 
@@ -426,7 +429,7 @@ class Violin extends BarBase {
         alongFn,
         vertical: true,
       }),
-      alongRepresentative: alongFn(this.series[indexes.i][j] ?? 0),
+      alongRepresentative: alongFn(w.seriesData.series[realIndex][j] ?? 0),
     }
   }
 
@@ -434,7 +437,7 @@ class Violin extends BarBase {
   drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
     const w = this.w
     const { realIndex, j } = indexes
-    const yRatio = this.invertedYRatio
+    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1)
 
     // One band per row on its side, a date or number x included: see
     // Bar.drawBarPaths.
@@ -514,7 +517,7 @@ class Violin extends BarBase {
         alongFn,
         vertical: false,
       }),
-      alongRepresentative: alongFn(this.series[indexes.i][j] ?? 0),
+      alongRepresentative: alongFn(w.seriesData.series[realIndex][j] ?? 0),
     }
   }
 

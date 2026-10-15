@@ -136,7 +136,7 @@ class Bar {
   /**
    * Point the per-series axis state at this series' y axis. Every bar-family
    * renderer calls it before initialPositions, which reads the baseline by
-   * this.translationsIndex.
+   * this.translationsIndex and flips it for a reversed axis.
    * @param {number} realIndex
    * @return {number} translationsIndex
    */
@@ -145,6 +145,7 @@ class Bar {
       this.yaxisIndex = this.w.globals.seriesYAxisReverseMap[realIndex]
       this.translationsIndex = realIndex
     }
+    this.isReversed = this.w.config.yaxis[this.yaxisIndex]?.reversed
     return this.translationsIndex
   }
 
@@ -209,10 +210,6 @@ class Bar {
       }
 
       const translationsIndex = this.setSeriesAxis(realIndex)
-
-      this.isReversed =
-        w.config.yaxis[this.yaxisIndex] &&
-        w.config.yaxis[this.yaxisIndex].reversed
 
       if (this.isPyramid) {
         // Recompute the per-segment trapezoid layout once per series, before

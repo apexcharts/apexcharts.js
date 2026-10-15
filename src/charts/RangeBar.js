@@ -58,6 +58,10 @@ class RangeBar extends Bar {
       }
 
       const translationsIndex = this.setSeriesAxis(realIndex)
+      // a time axis's labels never reverse, so its bars may not either
+      if (this.isHorizontal && w.labelData.timescaleLabels.length) {
+        this.isReversed = false
+      }
 
       const initPositions = this.barHelpers.initialPositions(realIndex)
       const {
@@ -351,7 +355,7 @@ class RangeBar extends Bar {
 
     const { i, j, realIndex, translationsIndex } = indexes
 
-    const yRatio = this.yRatio[translationsIndex]
+    const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1)
 
     const range = this.getRangeValue(realIndex, j)
 
@@ -478,8 +482,9 @@ class RangeBar extends Bar {
 
     const { realIndex, j } = indexes
 
-    const x1 = this.preventBarOverflow(zeroW + y1 / this.invertedYRatio)
-    const x2 = this.preventBarOverflow(zeroW + y2 / this.invertedYRatio)
+    const ratio = this.invertedYRatio * (this.isReversed ? -1 : 1)
+    const x1 = this.preventBarOverflow(zeroW + y1 / ratio)
+    const x2 = this.preventBarOverflow(zeroW + y2 / ratio)
 
     const range = this.getRangeValue(realIndex, j)
 

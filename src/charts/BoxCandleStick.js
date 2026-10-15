@@ -342,14 +342,14 @@ class BoxCandleStick extends Bar {
               )
             let center, halfExtent, alongFn
             if (this.isHorizontal) {
-              const yRatio = this.invertedYRatio
+              const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1)
               const bh = barHeight ?? 0
               const z = zeroW ?? 0
               center = paths.barYPosition + bh / 2
               halfExtent = bh / 2
               alongFn = (/** @type {number} */ v) => z + logVal(v) / yRatio
             } else {
-              const yRatio = this.yRatio[translationsIndex]
+              const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1)
               const bw = barWidth ?? 0
               const z = zeroH ?? 0
               center = paths.barXPosition + bw / 2
@@ -446,7 +446,7 @@ class BoxCandleStick extends Bar {
     const colorPos = getColor(candleColors.upward)
     const colorNeg = getColor(candleColors.downward)
 
-    const yRatio = this.yRatio[indexes.translationsIndex]
+    const yRatio = this.yRatio[indexes.translationsIndex] * (this.isReversed ? -1 : 1)
 
     const ohlc = this.getOHLCValue(realIndex, j)
     let l1 = zeroH
@@ -643,7 +643,7 @@ class BoxCandleStick extends Bar {
     const getColor = (color) =>
       Array.isArray(color) ? color[realIndex] : color
 
-    const yRatio = this.invertedYRatio
+    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1)
     const ohlc = this.getOHLCValue(realIndex, j)
 
     let color =
