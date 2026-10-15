@@ -3,7 +3,7 @@ import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 import Formatters from '../Formatters'
 import Options from './Options'
-import { TYPE_ALIASES, BUILTIN_TYPES } from './TypeAliases'
+import { TYPE_ALIASES, BUILTIN_TYPES, SOLO_TYPES } from './TypeAliases'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -2064,16 +2064,9 @@ export default class Defaults {
         chartType === 'violin') &&
       opts.plotOptions?.bar?.horizontal
 
-    const unsupportedZoom =
-      chartType === 'pie' ||
-      chartType === 'polarArea' ||
-      chartType === 'donut' ||
-      chartType === 'radar' ||
-      chartType === 'radialBar' ||
-      chartType === 'heatmap' ||
-      chartType === 'unit' ||
-      chartType === 'sunburst' ||
-      chartType === 'icicle'
+    // A type that owns its plot has no category axis to space: the registry
+    // list, since a hand-kept copy of it once left treemap out.
+    const unsupportedZoom = SOLO_TYPES.includes(chartType)
 
     // The type's own axis counts as much as the user's: a histogram asks for a
     // numeric axis through Defaults.histogram, not by writing it into opts.
