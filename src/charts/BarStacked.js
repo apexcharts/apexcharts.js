@@ -542,6 +542,7 @@ class BarStacked extends Bar {
     barWidth,
     zeroH,
     columnGroupIndex,
+    strokeWidth,
     elSeries,
   }) {
     const w = this.w
@@ -622,9 +623,11 @@ class BarStacked extends Bar {
       y1: barYPosition,
       y2: y,
       yRatio: this.yRatio[translationsIndex],
-      // the series' width even for an empty segment, so a hidden layer keeps
-      // its place, but no inset at all when no stroke is drawn
-      strokeWidth: w.config.stroke.show ? this.strokeWidth : 0,
+      // Caller passes per-datum strokeWidth from getStrokeWidth (0 for
+      // null/zero values). Using the series-wide stroke here expanded empty
+      // segments by stroke centering even when the rendered stroke-width was
+      // already 0 (#5046).
+      strokeWidth,
       isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,
