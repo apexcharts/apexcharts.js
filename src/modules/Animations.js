@@ -31,6 +31,54 @@ function easeOutBack(t) {
 }
 
 /**
+ * Each chart's mount frame loop: the steppers below (sweep, pop, draw) used
+ * to poll one requestAnimationFrame chain per element, so a line with 2,000
+ * markers and labels ran 4,000 callbacks a frame. They queue jobs here and
+ * share ONE rAF per chart per frame, which stops when the queue drains or
+ * the chart is destroyed. A job returns true to run again next frame, or a
+ * function: its writes, run once every job has done its reads. A job queued
+ * during a frame first runs on the next, as its own rAF did.
+ * State per chart: `q` the next frame's jobs.
+ * @type {WeakMap<object, any>}
+ */
+const loops = new WeakMap()
+
+/**
+ * @param {import('../types/internal').ChartStateW} w
+ * @param {(now: number) => any} job
+ * @returns {any} the chart's loop state
+ */
+function onFrame(w, job) {
+  let s = loops.get(w)
+  if (!s) loops.set(w, (s = { q: [] }))
+  // The first job queued for a frame requests it.
+  if (s.q.push(job) < 2) {
+    BrowserAPIs.requestAnimationFrame((now) => {
+      const jobs = s.q
+      s.q = []
+      // for...of also visits the writes appended mid-loop, after every read.
+      for (const j of jobs) {
+        // A destroyed chart drops its queue, checked per job: an
+        // animationEnd handler a job reaches may destroy it.
+        if (w.globals.isDestroyed) break
+        // A throw (a user handler) loses only its own job, as when each
+        // element had its own rAF, and is reported once the frame is done.
+        try {
+          const r = j(now)
+          if (r === true) onFrame(w, j)
+          else if (r) jobs.push(r)
+        } catch (e) {
+          setTimeout(() => {
+            throw e
+          })
+        }
+      }
+    })
+  }
+  return s
+}
+
+/**
  * Cached reduced-motion query — `matchMedia` evaluation is cheap but the
  * MediaQueryList instance is reused if a chart re-renders.
  * @type {MediaQueryList | null}
@@ -116,29 +164,20 @@ export function applyProgressiveReveal(el, x, w) {
   const easedT = 1 - Math.cbrt(1 - xRatio)
   const revealDelay = easedT * drawSpeed
 
-  const node = el.node
-  const style = node.style
+  const style = el.node.style
   style.opacity = '0'
 
-  // Anchor on the first rAF after render — the same frame `animateDraw` uses
-  // as its t=0. All rAF callbacks scheduled in the current task receive the
-  // same timestamp in the next frame, so reveal and draw share an origin.
-  // Then poll rAFs (not setTimeout) so the snap happens on a frame boundary.
-  /** @type {number | null} */
-  let startAnchor = null
-  /** @param {number} now */
-  const tick = (now) => {
-    if (startAnchor === null) startAnchor = now
-    if (now - startAnchor >= revealDelay) {
-      // Clear the inline opacity rather than forcing '1' — an inline style
-      // would override the element's SVG `opacity` attribute (e.g. an
-      // x-axis range annotation rect with `opacity: 0.4`).
-      style.opacity = ''
-    } else {
-      BrowserAPIs.requestAnimationFrame(tick)
-    }
-  }
-  BrowserAPIs.requestAnimationFrame(tick)
+  // Anchor on the first frame after render, the same frame `animateDraw` uses
+  // as its t=0, so reveal and draw share an origin; snap on frame boundaries.
+  let startAnchor = -1
+  onFrame(w, (/** @type {number} */ now) => {
+    if (startAnchor < 0) startAnchor = now
+    if (now - startAnchor < revealDelay) return true
+    // Clear the inline opacity rather than forcing '1': an inline style
+    // would override the element's SVG `opacity` attribute (e.g. an
+    // x-axis range annotation rect with `opacity: 0.4`).
+    style.opacity = ''
+  })
   return true
 }
 
@@ -301,30 +340,22 @@ export default class Animations {
     style.transform = 'scale(0)'
     style.opacity = '0'
 
+    // A destroyed chart's loop stops before the pop lands, so onComplete
+    // never fires animationEnd on a torn-down chart (react-apexcharts#602).
     const startAt = performance.now() + delay
-    /** @param {number} now */
-    const step = (now) => {
-      // Chart may have been destroyed before this frame ran (React StrictMode
-      // mount/unmount, route change). Bail without rescheduling and without
-      // onComplete, which would fire animationEnd on a torn-down chart. Mirrors
-      // the guard in animateDraw (see react-apexcharts#602).
-      if (w.globals.isDestroyed) return
+    onFrame(w, (/** @type {number} */ now) => {
       const t = Math.max(0, Math.min(1, (now - startAt) / speed))
       style.transform = `scale(${easeOutBack(t)})`
       // Fade in over the first half so the back-out overshoot is visible
       // (rather than blasted in at full opacity from frame 1).
       style.opacity = String(Math.min(1, t * 2))
-      if (t < 1) {
-        BrowserAPIs.requestAnimationFrame(step)
-      } else {
-        style.transform = ''
-        style.transformOrigin = ''
-        style.transformBox = ''
-        style.opacity = ''
-        if (onComplete) onComplete()
-      }
-    }
-    BrowserAPIs.requestAnimationFrame(step)
+      if (t < 1) return true
+      style.transform = ''
+      style.transformOrigin = ''
+      style.transformBox = ''
+      style.opacity = ''
+      if (onComplete) onComplete()
+    })
   }
 
   /*
@@ -423,9 +454,8 @@ export default class Animations {
 
     if (!w.globals.bulkRevealScheduled) {
       w.globals.bulkRevealScheduled = true
-      BrowserAPIs.requestAnimationFrame(() => {
-        // chart may have been destroyed before this frame ran (see animateDraw)
-        if (w.globals.isDestroyed) return
+      // the frame loop skips it on a chart destroyed before it ran
+      onFrame(w, () => {
         w.globals.bulkRevealScheduled = false
         const faded = w.globals.fadeRevealEls
         w.globals.fadeRevealEls = []
@@ -566,9 +596,7 @@ export default class Animations {
       node.setAttribute('mask', `url(#${maskId})`)
 
       const startAt = performance.now() + (delay || 0)
-      /** @param {number} now */
-      const step = (now) => {
-        if (w.globals.isDestroyed) return
+      onFrame(w, (/** @type {number} */ now) => {
         const t = Math.max(0, Math.min(1, (now - startAt) / speed))
         const eased = easeOutCubic(t)
         if (isRadial) {
@@ -576,15 +604,11 @@ export default class Animations {
         } else {
           revealEl.setAttribute('width', String(eased * targetWidth))
         }
-        if (t < 1) {
-          BrowserAPIs.requestAnimationFrame(step)
-        } else {
-          node.removeAttribute('mask')
-          if (mask.parentNode) mask.parentNode.removeChild(mask)
-          finalize()
-        }
-      }
-      BrowserAPIs.requestAnimationFrame(step)
+        if (t < 1) return true
+        node.removeAttribute('mask')
+        if (mask.parentNode) mask.parentNode.removeChild(mask)
+        finalize()
+      })
     }
 
     // Stroke draw via stroke-dashoffset (only safe when no custom dash pattern exists).
@@ -594,58 +618,35 @@ export default class Animations {
       node.setAttribute('stroke-dashoffset', String(len))
 
       const startAt = performance.now() + (delay || 0)
-      /** @param {number} now */
-      const step = (now) => {
-        if (w.globals.isDestroyed) return
+      onFrame(w, (/** @type {number} */ now) => {
         const t = Math.max(0, Math.min(1, (now - startAt) / speed))
         node.setAttribute('stroke-dashoffset', String(len * (1 - easeOutCubic(t))))
-        if (t < 1) {
-          BrowserAPIs.requestAnimationFrame(step)
-        } else {
-          node.removeAttribute('stroke-dasharray')
-          node.removeAttribute('stroke-dashoffset')
-          finalize()
-        }
-      }
-      BrowserAPIs.requestAnimationFrame(step)
+        if (t < 1) return true
+        node.removeAttribute('stroke-dasharray')
+        node.removeAttribute('stroke-dashoffset')
+        finalize()
+      })
     }
 
     // Defer one frame: callers (e.g. Line.js for forecast paths) set stroke-dasharray
-    // *after* renderPaths returns, so a sync check would miss it.
-    BrowserAPIs.requestAnimationFrame(() => {
-      // The chart may have been destroyed before this frame ran (e.g. React
-      // StrictMode mounts, unmounts, then remounts). Its DOM is gone, so bail
-      // before touching it. Fixes "Cannot read properties of null (reading
-      // 'node')" in runMaskReveal. See react-apexcharts#602.
-      if (w.globals.isDestroyed) return
-
-      if (isFill) {
-        runMaskReveal()
-        return
-      }
-
+    // *after* renderPaths returns, so a sync check would miss it. The job only
+    // reads (dash, length) and hands back its writes, which the loop runs
+    // after every path's reads, so N series cost one style and layout flush,
+    // not N. The loop skips it on a destroyed chart, whose DOM is gone
+    // (react-apexcharts#602).
+    onFrame(w, () => {
+      // A stroke with a custom dash pattern keeps it and reveals via the mask
+      // instead of fighting dashoffset.
       const existingDash = node.getAttribute('stroke-dasharray')
-      const hasCustomDash =
-        !!existingDash && existingDash !== '0' && existingDash !== ''
-      if (hasCustomDash) {
-        // Preserve dash pattern; reveal via mask instead of fighting dashoffset.
-        runMaskReveal()
-        return
-      }
+      if (isFill || (existingDash && existingDash !== '0')) return runMaskReveal
 
       let len = 0
       try {
-        if (typeof node.getTotalLength === 'function') {
-          len = node.getTotalLength()
-        }
+        len = node.getTotalLength()
       } catch (_) {
-        len = 0
+        // no geometry to measure: nothing to draw
       }
-      if (!len) {
-        finalize()
-        return
-      }
-      runStrokeDraw(len)
+      return len ? () => runStrokeDraw(len) : finalize
     })
   }
 
