@@ -44,6 +44,8 @@ export default class TrellisChrome {
     this.gradientLegend = null
     /** @type {(() => void)|null} unsubscribe for a deferred gradient build */
     this._gradPending = null
+    /** @type {any} the strip's panel hover wiring (and panelMounted hook) */
+    this._gradWire = null
   }
 
   /**
@@ -304,15 +306,19 @@ export default class TrellisChrome {
       t.panels.filter((p) => p.chart).map((p) => /** @type {any} */ (p.chart).w)
 
     // The instance's own hover wiring only hears ITS panel; mirror the same
-    // handlers onto every other mounted panel so the arrow follows the
-    // cursor anywhere in the grid.
-    t.panels.forEach((p) => {
-      if (!p.chart || p === mounted) return
-      const ev = /** @type {any} */ (p.chart).ctx?.events
-      if (!ev?.addEventListener) return
+    // handlers onto every other panel, mounted now or later, so the arrow
+    // follows the cursor anywhere in the grid. Doubles as the host's
+    // panelMounted listener (ctx, { chart }).
+    /** @type {any} */
+    const wire = (/** @type {any} */ _, /** @type {any} */ p) => {
+      const ev = p.chart !== chart && p.chart?.ctx.events
+      if (!ev) return
       ev.addEventListener('dataPointMouseEnter', legend._onCellEnter)
       ev.addEventListener('dataPointMouseLeave', legend._onCellLeave)
-    })
+    }
+    t.panels.forEach((p) => wire(0, p))
+    t.ctx.events.addEventListener('panelMounted', wire)
+    this._gradWire = wire
   }
 
   /** Tear down the shared gradient strip (P5). */
@@ -322,6 +328,8 @@ export default class TrellisChrome {
       t.ctx.events.removeEventListener?.('panelMounted', this._gradPending)
       this._gradPending = null
     }
+    // the panels' own buses die with them right after (teardown)
+    t.ctx.events.removeEventListener('panelMounted', this._gradWire)
     if (this.gradientLegend) {
       try {
         this.gradientLegend.destroy()
