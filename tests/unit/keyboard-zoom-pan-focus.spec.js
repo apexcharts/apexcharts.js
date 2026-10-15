@@ -225,4 +225,20 @@ describe('the focus hand-over across an update', () => {
     expect(document.activeElement).toBe(input)
     chart.destroy()
   })
+
+  it('does not take focus when nav comes back on after a click on the page', async () => {
+    const chart = await mount()
+    const nav = (enabled) => ({
+      chart: { accessibility: { keyboard: { navigation: { enabled } } } },
+    })
+    svgOf(chart).focus()
+    await chart.updateOptions(nav(false))
+    expect(chart.w.interact.keyNav).toBeFalsy()
+    // the focused SVG was replaced, so focus is on the page body
+
+    await chart.updateOptions(nav(true))
+
+    expect(document.activeElement).toBe(document.body)
+    chart.destroy()
+  })
 })

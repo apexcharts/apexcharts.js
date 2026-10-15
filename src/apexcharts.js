@@ -862,6 +862,9 @@ export default class ApexCharts {
         ) {
           me.keyboardNavigation?.init()
         }
+        // The focus note is for this render only: one that nav was off for
+        // must not pull focus back when a later update turns nav on
+        w.interact.keyNav = null
 
         if (
           Environment.isBrowser() &&
