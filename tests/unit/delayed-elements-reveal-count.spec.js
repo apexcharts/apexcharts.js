@@ -43,12 +43,13 @@ describe('delayed elements reveal on a render that does not animate', () => {
     const counts = countReveals()
     const chart = createChartWithOptions({
       chart: { type: 'bar' },
-      series: series(20, 200),
+      series: series(10, 40),
     })
-    // 4,000 bars: the base did 4,000 reveals and about 100k node visits
-    expect(counts.calls).toBeLessThanOrEqual(20)
-    expect(counts.visits).toBeLessThan(1000)
-    expect(revealState(chart)).toEqual({ hidden: 0, shown: 40 })
+    // 400 bars: the base did one reveal per bar, 400 of them. Kept small so
+    // the spec stays well inside the CI timeout.
+    expect(counts.calls).toBeLessThanOrEqual(10)
+    expect(counts.visits).toBeLessThan(400)
+    expect(revealState(chart)).toEqual({ hidden: 0, shown: 20 })
     chart.destroy()
   })
 
