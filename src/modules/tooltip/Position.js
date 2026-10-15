@@ -841,14 +841,19 @@ export default class Position {
     }
     if (firstPaint) {
       // Force layout so the position above is committed with transitions
-      // disabled; then in a microtask (after the active class is added by
-      // the caller in the same tick) clear the override so subsequent
-      // moves between data points animate smoothly.
+      // disabled; then on the next frame (after the active class is added
+      // by the caller in the same tick) clear the override so subsequent
+      // moves between data points animate smoothly. Where there is no
+      // frame clock (server rendering, a DOM shim without one) it clears
+      // at once.
       void tooltipEl.offsetWidth
       tooltipEl.dataset.positioned = 'true'
-      requestAnimationFrame(() => {
+      const clear = () => {
         tooltipEl.style.transitionProperty = ''
-      })
+      }
+      if (typeof requestAnimationFrame == 'function')
+        requestAnimationFrame(clear)
+      else clear()
     }
   }
 

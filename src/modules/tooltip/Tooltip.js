@@ -519,14 +519,19 @@ export default class Tooltip {
     // later bind or a mouseout drops the wait. Meanwhile the marker ease is
     // off (markers riding the tween would lag under it), and the replay is
     // placed as a first show is, or the new dots glide in from the corner.
+    // Without a frame clock (a DOM shim without one) it shows at once.
     if (keep && tooltipEl.classList.contains('apexcharts-active')) {
       const h = this.hoverAreaListeners[0]
       if (h && /move/.test(this.e?.type) && !w.config.chart.group) {
         let n = 600
         const replay = () => {
           if (h !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return
-          if (!w.globals.animationEnded && n--)
-            BrowserAPIs.requestAnimationFrame(replay)
+          if (
+            !w.globals.animationEnded &&
+            n-- &&
+            typeof requestAnimationFrame == 'function'
+          )
+            requestAnimationFrame(replay)
           else if (tooltipEl.classList.contains('apexcharts-active')) {
             delete tooltipEl.dataset.positioned
             this.seriesHover(h.opt, this.e)
