@@ -2,8 +2,8 @@ import { createChartWithOptions } from './utils/utils.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reproductions of the open logarithmic-axis issues, built from each report's
-// stated steps. Two pass; the other three are pinned with it.fails() so they
-// flip red the moment they start working, which is the signal to unpin them.
+// stated steps. Two (#5035, #2697) are pinned with it.fails() so they flip red
+// the moment they start working, which is the signal to unpin them.
 //
 // Each test asserts against the scale oracle (where a value must land, by
 // definition) rather than a snapshot. See axis-scale-invariants.spec.js.
@@ -198,19 +198,14 @@ describe('#2800 log axis on the second of two axes', () => {
 })
 
 describe('#3395 appending a series to a log chart', () => {
-  // getLogVal(b, d, seriesIndex) reads minYArr[seriesIndex]/maxYArr[seriesIndex],
-  // but those arrays are populated per AXIS. After updateSeries adds a second
-  // series to a single-axis chart they still have length 1, so getLogVal reads
-  // undefined, getBaseLog returns NaN, and the new series transforms to
-  // [NaN, NaN, NaN] - a one-vertex path that draws nothing.
-  it.fails('KNOWN BROKEN - draws a series added by updateSeries', () => {
+  it('draws a series added by updateSeries', async () => {
     const added = [2, 200, 20000]
     const chart = render({
       chart: { type: 'line' },
       series: [{ name: 'A', data: [1, 100, 10000] }],
       yaxis: { logarithmic: true },
     })
-    chart.updateSeries([
+    await chart.updateSeries([
       { name: 'A', data: [1, 100, 10000] },
       { name: 'B', data: added },
     ])
@@ -228,14 +223,14 @@ describe('#3395 appending a series to a log chart', () => {
       expect(ys[1][i]).toBeCloseTo(logPixel(v, niceMin, niceMax, h), 1))
   })
 
-  it('still places the original series correctly after the update', () => {
+  it('still places the original series correctly after the update', async () => {
     const original = [1, 100, 10000]
     const chart = render({
       chart: { type: 'line' },
       series: [{ name: 'A', data: original }],
       yaxis: { logarithmic: true },
     })
-    chart.updateSeries([
+    await chart.updateSeries([
       { name: 'A', data: original },
       { name: 'B', data: [2, 200, 20000] },
     ])

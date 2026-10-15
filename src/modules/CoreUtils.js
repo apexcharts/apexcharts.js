@@ -750,14 +750,15 @@ class CoreUtils {
       return 0 // Should be Number.NEGATIVE_INFINITY
     }
     const w = this.w
+    const boundsIndex = w.globals.isMultipleYAxis ? seriesIndex : 0
     const min_log_val =
-      w.globals.minYArr[seriesIndex] === 0
+      w.globals.minYArr[boundsIndex] === 0
         ? -1 // make sure we dont calculate log of 0
-        : this.getBaseLog(b, w.globals.minYArr[seriesIndex])
+        : this.getBaseLog(b, w.globals.minYArr[boundsIndex])
     const max_log_val =
-      w.globals.maxYArr[seriesIndex] === 0
+      w.globals.maxYArr[boundsIndex] === 0
         ? 0 // make sure we dont calculate log of 0
-        : this.getBaseLog(b, w.globals.maxYArr[seriesIndex])
+        : this.getBaseLog(b, w.globals.maxYArr[boundsIndex])
     const number_of_height_levels = max_log_val - min_log_val
     // Values below 1 used to short-circuit to `d / number_of_height_levels`,
     // returning a raw data value where the caller expects a 0..1 fraction. On a
