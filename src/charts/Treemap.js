@@ -57,6 +57,18 @@ function withFills(from, to, fillWas, fillNow) {
   return [from, to]
 }
 
+/**
+ * Whether the treemap draws parent containers. Opt-out, but only for data
+ * authored with `children`: a flat treemap keeps drawing exactly what it
+ * always drew. Reads the tree Data stashed at parse time, so the layout can
+ * ask before the renderer runs.
+ * @param {any} w
+ */
+const showsParents = (w) => {
+  const show = w.config.plotOptions.treemap.parents.show
+  return show === true || (show !== false && !!w.globals.treemapRoots?.length)
+}
+
 const headerLook = (/** @type {Element | null | undefined} */ el) =>
   Series.treemapHeaderLook(el)
 
@@ -84,7 +96,6 @@ export default class TreemapChart {
     // Nested state, all resolved per draw.
     /** @type {any[]} */ this.roots = []
     /** @type {any[]} */ this.drawn = []
-    /** @type {boolean} */ this.nested = false
     /** @type {boolean} */ this.showParents = false
     /** @type {any} */ this.scale = null
     /** @type {any[]|null} */ this._levelCache = null
@@ -133,7 +144,6 @@ export default class TreemapChart {
     // same recursion the nested case uses; with no padding and no headers that
     // reduces to exactly the two-level squarify it always was.
     const tree = getTreemapRoots(w)
-    this.nested = tree.nested
     this.roots = tree.roots
     this.scale = buildContinuousScale(w)
 
@@ -147,10 +157,7 @@ export default class TreemapChart {
     // Parent containers are opt-out, but only appear at all when the data was
     // authored with `children`. A flat treemap must keep drawing exactly what
     // it always drew, with `seriesTitle` as its only group chrome.
-    const parentsCfg = w.config.plotOptions.treemap.parents
-    this.showParents =
-      parentsCfg.show === true ||
-      (parentsCfg.show !== false && this.nested)
+    this.showParents = showsParents(w)
 
     // Click-to-zoom: everything outside the focused branch is left out of the
     // layout entirely, so the focused group gets the whole canvas.
@@ -1269,33 +1276,40 @@ export default class TreemapChart {
    * Active means the feature is loaded as well as configured: without it the
    * click navigates nowhere (the chart warns about the missing feature), so
    * standing zoom down too would leave the click doing nothing at all.
-   * @returns {boolean}
+   *
+   * Reads only `w`, so the layout, which runs before this renderer, asks it
+   * through the type registry (`prototype.zoomLive`) and reserves the
+   * breadcrumb band on the same answer: a flat treemap, with no parents to
+   * click, used to keep an empty band. Not a static: one on this class cost
+   * the default bundle about 290 B gzip.
+   * @param {any} w
+   * @param {any} drilldown the chart's drilldown feature, when loaded
+   * @returns {any} the zoom config when live, null when drilldown is what
+   *   stands it down, else false
    */
-  _zoomEnabled() {
-    const w = this.w
+  zoomLive(w, drilldown) {
     const z = w.config.plotOptions.treemap.zoom
-    if (!z || !z.enabled || !this.showParents) return false
-
-    // An `onDrillDown` resolver drills on every click, so it counts too. The
-    // warned flag lives on the drilldown instance, which outlives a render.
+    if (!z?.enabled || !showsParents(w)) return false
+    // An `onDrillDown` resolver drills on every click, so it counts too.
     const dd = w.config.drilldown
+    return drilldown && dd?.enabled && (dd.series?.length || dd.onDrillDown)
+      ? null
+      : z
+  }
+
+  /** @returns {boolean} */
+  _zoomEnabled() {
+    // The warned flag lives on the drilldown instance, which outlives a render.
     const d = this.ctx.drilldown
-    if (
-      d &&
-      dd &&
-      dd.enabled &&
-      (dd.series?.length || dd.onDrillDown)
-    ) {
-      if (!d.zoomWarned) {
-        d.zoomWarned = true
-        console.warn(
-          'ApexCharts treemap: zoom is ignored while drilldown is active ' +
-            '(plotOptions.treemap.zoom vs drilldown series or onDrillDown).',
-        )
-      }
-      return false
+    const live = this.zoomLive(this.w, d)
+    if (live === null && !d.zoomWarned) {
+      d.zoomWarned = true
+      console.warn(
+        'ApexCharts treemap: zoom is ignored while drilldown is active ' +
+          '(plotOptions.treemap.zoom vs drilldown series or onDrillDown).',
+      )
     }
-    return true
+    return !!live
   }
 
   /**
