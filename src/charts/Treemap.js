@@ -1806,6 +1806,9 @@ export default class TreemapChart {
    * that grows the font - where a readable chip over the tiles beats a
    * breadcrumb clipped by the plot.
    *
+   * Breadcrumb.placeInReservedBand does the same plus a y-axis label ceiling
+   * a treemap has no use for, which would cost the default bundle its bytes.
+   *
    * @param {any} nav
    */
   _placeBreadcrumb(nav) {
@@ -1818,12 +1821,13 @@ export default class TreemapChart {
       : 0
 
     const navH = nav.getBoundingClientRect().height || BREADCRUMB_HEIGHT
+    const oy = this._breadcrumbCfg().offsetY || 0
     if (gridTop - titleArea >= navH + 1) {
-      nav.style.top = `${gridTop - navH - 1}px`
+      nav.style.top = `${gridTop - navH - 1 + oy}px`
       return
     }
 
-    nav.style.top = `${titleArea}px`
+    nav.style.top = `${titleArea + oy}px`
     const dark = w.config.theme.mode === 'dark'
     nav.style.background = dark
       ? 'rgba(20,24,30,0.82)'
