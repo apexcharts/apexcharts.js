@@ -157,19 +157,28 @@ export default class WeaveHost {
     }
 
     const pass = (extra && extra.pass) || 'full'
+    const host = this
     /** @type {any} */ let data = null
     for (const record of this.active) {
       if (record.disabled) continue
       const fns = record.handlers.get(hook)
       if (!fns || !fns.length) continue
-      if (data === null) {
-        data = this._dataSnapshot()
-        this._lastData = data // cache for api.data reads during/after this pass
-      }
       const payload = {
         api: record.api,
         scales: this._currentScales,
-        data,
+        // Built on first read and shared with api.data for the rest of this
+        // pass: a handler that never reads it costs no snapshot.
+        get data() {
+          return (
+            data ||
+            (data = host._lastData || (host._lastData = host._dataSnapshot()))
+          )
+        },
+        // A handler may still overwrite its own payload.data, as it could
+        // when this was a plain field.
+        set data(v) {
+          Object.defineProperty(this, 'data', { value: v, writable: true })
+        },
         pass,
         hook,
       }
@@ -392,7 +401,7 @@ export default class WeaveHost {
     return series.map((/** @type {any} */ sData, /** @type {number} */ i) => {
       // A non-axis chart (pie / donut / radialBar) holds ONE NUMBER per entry
       // rather than a row of values, so treating every entry as an array called
-      // .map on a number and threw. Because dispatch builds this payload up
+      // .map on a number and threw. Because dispatch built this payload up
       // front, that exception was caught by the per-plugin guard and DISABLED
       // the plugin: every Weave plugin silently did nothing on a pie, with the
       // failure attributed to the plugin rather than to the host. Each slice is
@@ -982,12 +991,9 @@ export default class WeaveHost {
    * groups), so without this, fast-path redraws would duplicate plugin output.
    */
   _resetLayers() {
-    const el = this.w.dom.elGraphical
-    const parent = el && el.node
-    if (parent) {
-      const groups = parent.querySelectorAll('g[class*="apexcharts-plugin-"]')
-      Array.prototype.forEach.call(groups, (/** @type {any} */ n) => n.remove())
-    }
+    // Every plugin group is made by _layer and tracked here, so no sweep of
+    // the plot is needed (and a chart without plugins does no work at all).
+    this._layers.forEach((g) => g.node.remove())
     this._layers.clear()
     // Declarations go with the drawing they describe. A plugin repaints its
     // overlays from state on every draw, and it declares them the same way, so
