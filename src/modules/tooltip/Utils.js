@@ -1,4 +1,5 @@
 // @ts-check
+import AxisMapping from '../AxisMapping'
 import Graphics from '../Graphics'
 
 /**
@@ -43,37 +44,11 @@ export default class Utils {
   }
 
   /**
-   * The plot area on screen, in client px: its corner is where the plot's
-   * group is translated to (translateX, translateY into the svg), and it is
-   * gridWidth by gridHeight. The same origin `AxisMapping.screenXToPlotPx`
-   * measures from, scaled by any CSS zoom on the chart's container.
-   *
-   * Never the `.apexcharts-grid` group's box: a group measures to the union
-   * of what it happens to draw. The plot's outline starts a pixel down
-   * (`Grid.drawGridArea`), so unless gridlines or row bands reach the top
-   * edge the box starts a pixel below the plot, and on a numeric-x bar chart
-   * the horizontal gridlines run `barPadForNumericAxis` out past both sides.
-   *
-   * `zoom` is that scale (screen px per plot px): a distance measured on
-   * screen from this corner is divided by it to land in plot px, the space
-   * the series are laid out and painted in.
-   *
+   * The plot area on screen, in client px: {@link AxisMapping.plotRect}.
    * @param {import('../../types/internal').ChartStateW} w
-   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
    */
   static plotRect(w) {
-    const svg =
-      w.dom.Paper?.node || w.dom.baseEl?.querySelector('.apexcharts-svg')
-    const box = (svg || w.dom.elWrap).getBoundingClientRect()
-    const zoom =
-      (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1
-    return {
-      left: box.left + w.layout.translateX * zoom,
-      top: box.top + w.layout.translateY * zoom,
-      width: w.layout.gridWidth * zoom,
-      height: w.layout.gridHeight * zoom,
-      zoom,
-    }
+    return AxisMapping.plotRect(w)
   }
 
   /**

@@ -1467,8 +1467,8 @@ export default class Position {
 
     let unionLeft = Infinity
     let unionRight = -Infinity
+    const plot = TooltipUtils.plotRect(w)
     if (painted) {
-      const plot = TooltipUtils.plotRect(w)
       unionLeft = plot.left + painted.left * plot.zoom
       unionRight = plot.left + painted.right * plot.zoom
     }
@@ -1484,7 +1484,7 @@ export default class Position {
     // Convert to data-area-local x from the plot origin, the space `cx` and the
     // crosshair are already in. Measuring from the `.apexcharts-grid` element
     // rect instead only works while the grid draws nothing outside its own box.
-    return AxisMapping.screenXToPlotPx(w, (unionLeft + unionRight) / 2)
+    return AxisMapping.screenXToPlotPx(w, (unionLeft + unionRight) / 2, plot)
   }
 
   /**
