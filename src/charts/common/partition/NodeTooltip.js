@@ -16,6 +16,14 @@
  */
 import { Environment } from '../../../utils/Environment.js'
 
+/**
+ * Escape a data string for innerHTML, text or a quoted attribute alike.
+ * @param {any} s
+ * @returns {string}
+ */
+const escapeHtml = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+
 export class NodeTooltip {
   /**
    * @param {any} w
@@ -67,9 +75,10 @@ export class NodeTooltip {
     // With tooltip.fillSeriesColor the container is transparent by design and
     // the series-group is expected to carry the mark's colour as its inline
     // background (like pie). Without it, the themed container provides the bg.
-    const groupBg = w.config.tooltip.fillSeriesColor
-      ? `background-color:${node._color};`
-      : ''
+    // The name is escaped; what a formatter returns stays markup, as in the
+    // core tooltip. The colour can come from data too, so it is set through
+    // style.backgroundColor below, never written into a style attribute where
+    // a ';' would let it add declarations of its own.
     // tooltip.y.formatter when given (a node has no dataPointIndex, so it gets
     // -1 and the node itself), else the value without float noise.
     const ty = w.config.tooltip.y
@@ -79,13 +88,19 @@ export class NodeTooltip {
       : +node.value.toPrecision(12)
 
     t.innerHTML =
-      `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}">` +
-      `<span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span>` +
+      `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex">` +
+      `<span class="apexcharts-tooltip-marker"></span>` +
       `<div class="apexcharts-tooltip-text">` +
       `<div class="apexcharts-tooltip-y-group">` +
-      `<span class="apexcharts-tooltip-text-y-label">${node.name}: </span>` +
+      `<span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span>` +
       `<span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span>` +
       `</div></div></div>`
+    const group = /** @type {HTMLElement} */ (t.firstChild)
+    const marker = /** @type {HTMLElement} */ (group.firstChild)
+    marker.style.backgroundColor = node._color
+    if (w.config.tooltip.fillSeriesColor) {
+      group.style.backgroundColor = node._color
+    }
     t.classList.add('apexcharts-active')
     t.style.opacity = '1'
     this.position(e)

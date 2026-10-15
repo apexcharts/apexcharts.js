@@ -1878,6 +1878,8 @@ export default class TreemapChart {
       const groupBg = w.config.tooltip.fillSeriesColor
         ? `background-color:${marker};`
         : ''
+      // The name sits in element text, where escaping & and < is enough to
+      // keep markup in data inert. What a formatter returns is markup.
       html =
         `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}">` +
         `<div class="apexcharts-tooltip-text">` +

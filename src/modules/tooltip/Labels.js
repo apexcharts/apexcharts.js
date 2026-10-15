@@ -151,23 +151,16 @@ export default class Labels {
     let val
     let goalVals = /** @type {any[]} */ ([])
 
-    const seriesName =
-      w.config.chart.type === 'treemap'
-        ? f.yLbTitleFormatter(
-            String(/** @type {any} */ (w.config.series[i]).data[j].x),
-            {
-              series: w.seriesData.series,
-              seriesIndex: i,
-              dataPointIndex: j,
-              w,
-            },
-          )
-        : this.getSeriesName({
-            fn: f.yLbTitleFormatter,
-            index: own,
-            seriesIndex: i,
-            j,
-          })
+    const seriesName = this.getSeriesName({
+      fn: f.yLbTitleFormatter,
+      index: own,
+      seriesIndex: i,
+      j,
+      leaf:
+        w.config.chart.type === 'treemap'
+          ? String(/** @type {any} */ (w.config.series[i]).data[j].x)
+          : null,
+    })
 
     if (w.globals.axisCharts) {
       if (shared) {
@@ -375,15 +368,22 @@ export default class Labels {
     }
   }
 
-  /** @param {{fn: any, index: any, seriesIndex: any, j: any}} opts */
-  getSeriesName({ fn, index, seriesIndex, j }) {
+  /**
+   * A treemap row is named by its leaf, not its series.
+   * @param {{fn: any, index: any, seriesIndex: any, j: any, leaf?: string | null}} opts
+   */
+  getSeriesName({ fn, index, seriesIndex, j, leaf }) {
     const w = this.w
-    return fn(String(w.seriesData.seriesNames[index]), {
+    const s = fn(leaf ?? String(w.seriesData.seriesNames[index]), {
       series: w.seriesData.series,
       seriesIndex,
       dataPointIndex: j,
       w,
     })
+    // A leaf's name is data and the title is written as HTML. The default
+    // title is the name plus ': ', so that shape gets the name's '<' escaped
+    // (enough in element text); markup a title formatter adds stays markup.
+    return leaf && s === leaf + ': ' ? leaf.replace(/</g, '&lt;') + ': ' : s
   }
 
   /**
