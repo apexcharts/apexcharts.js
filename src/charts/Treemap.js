@@ -208,7 +208,7 @@ export default class TreemapChart {
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
         const filters = new Filters(this.w)
-        filters.dropShadow(ret, shadow, i)
+        filters.dropShadow(elSeries, shadow, i)
       }
 
       const elDataLabelWrap = graphics.group({
