@@ -1045,16 +1045,21 @@ class Exports {
         !w.config.xaxis.categories.length &&
         !w.config.labels.length
       ) {
-        // One row per distinct x across the series. A Map stops a plain
-        // object category named `__proto__` from writing.
+        // The nth point at an x in each series shares that x's nth row. A Map
+        // stops a plain object category named `__proto__` from writing.
         /** @type {Map<string, {cat: any, values: any[][]}>} */
         const byCategory = new Map()
         series.forEach((/** @type {any} */ s, /** @type {number} */ sI) => {
+          /** @type {Map<string, number>} */
+          const seen = new Map()
           s?.data?.forEach((/** @type {any} */ d, /** @type {number} */ i) => {
             // only {x, y} and [x, y] points carry their own x; a null is a gap
             if (!d || typeof d !== 'object') return
             const cat = Array.isArray(d) ? d[0] : d.x
-            const key = String(cat)
+            const x = String(cat)
+            const n = seen.get(x) || 0
+            seen.set(x, n + 1)
+            const key = `${n}:${x}`
             let row = byCategory.get(key)
             if (!row) {
               row = { cat, values: cols.map((c) => c.head.map(() => '')) }
@@ -1072,7 +1077,8 @@ class Exports {
             const bText = typeof b.cat === 'string'
             if (aText !== bText) return aText ? 1 : -1
             if (!aText) return a.cat - b.cat
-            return w.axisFlags.isXNumeric ?(a.cat < b.cat ? -1 : 1) : 0
+            if (!w.axisFlags.isXNumeric) return 0
+            return a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : 0
           })
           .forEach(({ cat, values }) => body.push([cat, ...values.flat()]))
       } else {
@@ -1097,8 +1103,9 @@ class Exports {
     }
 
     const dates = body.map((r) => r[0]).filter(isDateCat)
+    const stamps = new Set(dates.map((c) => +new Date(c)))
     const withTime =
-      new Set(dates.map((c) => datetimeText(c))).size < dates.length
+      new Set([...stamps].map((t) => datetimeText(t))).size < stamps.size
     body.forEach((r) =>
       rows.push(
         [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(
