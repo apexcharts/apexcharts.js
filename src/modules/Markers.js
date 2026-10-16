@@ -308,18 +308,24 @@ export default class Markers {
               // The standard series wrap is identical for every point of a
               // series, so reuse the one created on the series' first point
               // (callers detect the reuse by identity and skip re-appending).
-              // Special wraps (null-value virtual points, discrete markers)
-              // keep their per-call groups.
-              const standardWrap = !alwaysDrawMarker && !hasDiscreteMarkers
+              // A discrete chart shares one class-less wrap per series the
+              // same way, for its isolated-point dots too, so the markers keep
+              // their order. Only the null-value virtual point, and those dots
+              // without discrete markers, keep per-call groups.
+              const reuse =
+                !isVirtualPoint && (hasDiscreteMarkers || !alwaysDrawMarker)
               if (
-                standardWrap &&
+                reuse &&
                 this._seriesWrap &&
                 this._seriesWrapIndex === seriesIndex
               ) {
                 elMarkersWrap = this._seriesWrap
               } else {
                 elMarkersWrap = emit.group({
-                  class: standardWrap ? 'apexcharts-series-markers' : '',
+                  class:
+                    reuse && !hasDiscreteMarkers
+                      ? 'apexcharts-series-markers'
+                      : '',
                 })
                 elMarkersWrap.attr(
                   'clip-path',
@@ -327,7 +333,7 @@ export default class Markers {
                 )
                 // Set up event delegation once on the group
                 this.setupMarkerDelegation(elMarkersWrap)
-                if (standardWrap) {
+                if (reuse) {
                   this._seriesWrap = elMarkersWrap
                   this._seriesWrapIndex = seriesIndex
                 }

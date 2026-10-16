@@ -1,11 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import ApexCharts from '../../src/entries/standard.js'
 import { createChartWithOptions } from './utils/utils.js'
 
 /**
  * `markers.discrete` is resolved through one index per render, not scanned per
  * marker. The scan made a render O(points x entries), quadratic when an entry
- * is generated per point to colour by value.
+ * is generated per point to colour by value. Also: a discrete chart builds
+ * one marker wrap per series, not one group (plus delegation listeners) per
+ * point, with the markers themselves unchanged and in the same order.
  */
 
 const N = 30
@@ -54,6 +56,31 @@ describe('markers.discrete index', () => {
     expect(counter.n).toBeLessThanOrEqual(2 * D)
     expect(Number(markerAt(document, 1, 2).getAttribute('default-marker-size'))).toBe(6)
     expect(Number(markerAt(document, 0, 2).getAttribute('default-marker-size'))).toBe(0)
+    chart.destroy()
+  })
+
+  it('builds one marker group per series, not one per point', () => {
+    const add = vi.spyOn(EventTarget.prototype, 'addEventListener')
+    const chart = createChartWithOptions(opts([{ seriesIndex: 0, dataPointIndex: 3, size: 6 }]))
+    // each marker group gets its own delegated click listener
+    const groupClicks = add.mock.calls.filter(
+      ([type], k) => type === 'click' && add.mock.contexts[k]?.tagName === 'g',
+    ).length
+    add.mockRestore()
+    // 58 at base, one group per point
+    expect(groupClicks).toBe(2)
+
+    const wraps = document.querySelectorAll('.apexcharts-series-markers-wrap')
+    expect(wraps.length).toBe(2)
+    wraps.forEach((wrap) => {
+      // every point still has its node (the tooltip enlarges them), all in
+      // one group and in point order
+      const marks = [...wrap.querySelectorAll('.apexcharts-marker[j]')]
+      expect(new Set(marks.map((m) => m.parentNode)).size).toBe(1)
+      const js = marks.map((m) => Number(m.getAttribute('j')))
+      expect(js.length).toBeGreaterThanOrEqual(N)
+      expect(js).toEqual([...js].sort((a, b) => a - b))
+    })
     chart.destroy()
   })
 
