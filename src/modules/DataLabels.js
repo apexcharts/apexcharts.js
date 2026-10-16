@@ -36,8 +36,7 @@ class DataLabels {
    */
   constructor(w, ctx = null) {
     this.w = w
-    // The chart instance: handed to dataLabels.formatter as `opts.ctx`, and
-    // to new Scatter(w, ctx) in the bubble chart path.
+    // The chart instance: handed to dataLabels.formatter as `opts.ctx`.
     this.ctx = ctx
   }
 
@@ -215,13 +214,9 @@ class DataLabels {
           val = w.seriesData.seriesZ[i][dataPointIndex]
           text = getText(val)
 
-          y = pos.y[q]
-          const scatter = new Scatter(
-            this.w,
-            /** @type {import('../types/internal').ChartContext} */ (this.ctx),
-          )
-          const centerTextInBubbleCoords = scatter.centerTextInBubble(y)
-          y = centerTextInBubbleCoords.y
+          // Static, not inlined: with no reference from here the bundles
+          // move Scatter away from Fill and Graphics and gzip worse.
+          y = Scatter.centerTextInBubble(w, pos.y[q])
         } else {
           if (typeof val !== 'undefined') {
             text = getText(val)

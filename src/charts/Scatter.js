@@ -337,14 +337,12 @@ export default class Scatter {
   }
 
   /**
+   * The y that centres a data label in its bubble. Static, so a label does
+   * not build a Scatter (and its Graphics, Filters, Fill and Markers) for it.
+   * @param {import('../types/internal').ChartStateW} w
    * @param {number} y
    */
-  centerTextInBubble(y) {
-    const w = this.w
-    y = y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4
-
-    return {
-      y,
-    }
+  static centerTextInBubble(w, y) {
+    return y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4
   }
 }
