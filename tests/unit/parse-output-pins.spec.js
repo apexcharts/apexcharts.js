@@ -157,6 +157,22 @@ const cases = {
   },
 }
 
+describe('a datetime outside years 0..9999', () => {
+  it('stays the UTC instant it names under datetimeUTC', () => {
+    // a 25-char ISO cut dropped the Z, so it was read again as local time
+    process.env.TZ = 'America/New_York'
+    const dt = new DateTime({
+      config: { xaxis: { labels: { datetimeUTC: true } } },
+    })
+    expect(dt.parseDate('+010000-01-01T00:00:00.000Z')).toBe(
+      Date.UTC(10000, 0, 1),
+    )
+    expect(dt.parseDate('-000001-01-01T00:00:00.000Z')).toBe(
+      Date.UTC(-1, 0, 1),
+    )
+  })
+})
+
 for (const tz of ['UTC', 'America/New_York']) {
   describe(`parsed output pins, TZ=${tz}`, () => {
     for (const [name, opts] of Object.entries(cases)) {

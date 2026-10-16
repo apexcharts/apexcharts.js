@@ -152,12 +152,12 @@ exports[`parsed output pins, TZ=America/New_York > DateTime.parseDate and isVali
     ],
     [
       "+010000-01-01T00:00:00.000Z",
-      253402318800000,
+      253402300800000,
       true,
     ],
     [
       "-000001-01-01T00:00:00.000Z",
-      -62198737438000,
+      -62198755200000,
       true,
     ],
     [
