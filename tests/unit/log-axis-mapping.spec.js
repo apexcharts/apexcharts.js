@@ -141,6 +141,107 @@ describe('logarithmic bounds use the assigned axis', () => {
     },
   )
 
+  it.each([
+    ['updateSeries', ['A', 'B'], ['B', 'A']],
+    ['updateOptions', ['A', 'B'], ['B', 'A']],
+    ['updateSeries', ['A', 'B', 'C'], ['Z', 'B', 'A']],
+    ['updateSeries', ['A', 'B', 'C'], ['A', 'C', 'B']],
+  ])(
+    'keeps reordered series on the shared axis (%s, %j to %j)',
+    async (method, before, after) => {
+      // #5353: same count, but the series the axes name moved.
+      const rows = { A: [1, 100, 10000], B: [5, 50, 500], C: [3, 300, 3000] }
+      const make = (names) =>
+        names.map((name) => ({ name, data: rows[name] || [2, 20, 200] }))
+      const options = (names) => ({
+        chart: { type: 'line', width: 600, height: 400 },
+        stroke: { curve: 'straight' },
+        series: make(names),
+        yaxis: { logarithmic: true },
+      })
+      const chart = createChartWithOptions(options(before))
+      if (method === 'updateSeries') {
+        await chart.updateSeries(make(after), false)
+      } else {
+        await chart.updateOptions({ series: make(after) }, false, false)
+      }
+      const fresh = createChartWithOptions(options(after))
+      expect(chart.w.globals.seriesYAxisReverseMap).toEqual(
+        Array(after.length).fill(0),
+      )
+      expect(chart.w.globals.yAxisScale[0]).toEqual(
+        fresh.w.globals.yAxisScale[0],
+      )
+      expect(chart.w.globals.seriesLog).toEqual(fresh.w.globals.seriesLog)
+      expectSeriesPositions(chart)
+      chart.destroy()
+      fresh.destroy()
+    },
+  )
+
+  it('keeps the shared axis when resetSeries restores a different order', async () => {
+    const rows = { A: [1, 100, 10000], B: [5, 50, 500], C: [3, 30, 3000000] }
+    const make = (names) => names.map((name) => ({ name, data: rows[name] }))
+    const options = (names) => ({
+      chart: { type: 'line', width: 600, height: 400 },
+      stroke: { curve: 'straight' },
+      series: make(names),
+      yaxis: { logarithmic: true },
+    })
+    const chart = createChartWithOptions(options(['A', 'B', 'C']))
+    // Not overwriting initialSeries, so the reset goes back to A, B, C.
+    await chart.updateSeries(make(['C', 'B', 'A']), false, false)
+    expect(chart.w.globals.seriesYAxisReverseMap).toEqual([0, 0, 0])
+    chart.resetSeries()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const fresh = createChartWithOptions(options(['A', 'B', 'C']))
+    expect(chart.w.config.series.map((s) => s.name)).toEqual(['A', 'B', 'C'])
+    expect(chart.w.globals.seriesYAxisReverseMap).toEqual([0, 0, 0])
+    expect(chart.w.globals.yAxisScale[0]).toEqual(fresh.w.globals.yAxisScale[0])
+    chart.destroy()
+    fresh.destroy()
+  })
+
+  it.each([
+    [['B', 'A']],
+    [['B', 'A', 'C']],
+  ])(
+    'keeps reordered series on the shared axis while a logarithmic breakpoint is active (%j)',
+    async (after) => {
+      const rows = { A: [1, 100, 10000], B: [5, 50, 500], C: [3, 300, 3000] }
+      const make = (names) => names.map((name) => ({ name, data: rows[name] }))
+      const options = (names) => ({
+        chart: { type: 'line', width: 600, height: 400 },
+        stroke: { curve: 'straight' },
+        series: make(names),
+        yaxis: { logarithmic: true },
+        responsive: [
+          {
+            breakpoint: 1000,
+            options: { yaxis: { logarithmic: true, tickAmount: 3 } },
+          },
+        ],
+      })
+      const width = window.innerWidth
+      window.innerWidth = 500
+      try {
+        const chart = createChartWithOptions(options(['A', 'B']))
+        await chart.updateSeries(make(after), false)
+        const fresh = createChartWithOptions(options(after))
+        expect(chart.w.globals.seriesYAxisReverseMap).toEqual(
+          Array(after.length).fill(0),
+        )
+        expect(chart.w.globals.yAxisScale[0]).toEqual(
+          fresh.w.globals.yAxisScale[0],
+        )
+        chart.destroy()
+        fresh.destroy()
+      } finally {
+        window.innerWidth = width
+      }
+    },
+  )
+
   it('keeps series added by updateOptions on the shared axis', async () => {
     const rows = [
       [1, 100, 10000],

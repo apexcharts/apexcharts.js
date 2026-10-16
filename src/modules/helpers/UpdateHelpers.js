@@ -92,6 +92,21 @@ function isNamedOrNotAnObject(s) {
   return !s || typeof s !== 'object' || !!s.name
 }
 
+/**
+ * Where the series called name sits, under the name extendYAxis would give an
+ * unnamed one.
+ * @param {any[]} series
+ * @param {string} name
+ * @returns {number}
+ */
+function seriesIndexOf(series, name) {
+  for (let i = 0; i < series.length; i++) {
+    const s = series[i]
+    if ((s && s.name ? s.name : `series-${i + 1}`) === name) return i
+  }
+  return -1
+}
+
 export default class UpdateHelpers {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -447,14 +462,14 @@ export default class UpdateHelpers {
   sharedLogAxesStale(yaxis, newSeries) {
     if (!this.isSharedLogAxes(yaxis)) return false
     if (newSeries.length !== yaxis.length) return true
-    // Same count: the axes still fit while their seriesName names a series,
-    // under the name extendYAxis would give it.
-    for (let i = 0; i < newSeries.length; i++) {
-      const s = newSeries[i]
-      if ((s && s.name ? s.name : `series-${i + 1}`) === yaxis[0].seriesName)
-        return false
-    }
-    return true
+    // Same count: every series goes to the axis at the index of the series the
+    // axes name (setSeriesYAxisMappings), so they still fit only while that
+    // series stays where it was. A reorder that moves it would leave every
+    // series on a hidden axis with its own scale (#5353). An axis that already
+    // named another series keeps naming it. Where it was comes from the last
+    // mapping, not w.config.series, which resetSeries() replaces first.
+    const at = seriesIndexOf(newSeries, yaxis[0].seriesName)
+    return at === -1 || at !== this.w.globals.seriesYAxisReverseMap[0]
   }
 
   /**
