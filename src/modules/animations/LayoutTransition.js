@@ -128,14 +128,33 @@ function nums(el, attrs) {
 }
 
 /**
- * The group a grid line belongs to, which sets how far it reaches.
+ * The grid's lines, each with the key its captured extent is filed under.
+ * Grid draws a group's gridlines from one extent, so they share their group's
+ * (which sets how far they reach). Any other line has one of its own, filed
+ * by its place in its group: the axis borders drawn among the grid borders
+ * carry their own offset, width and inset, and the grid area's edges reach
+ * only the plot.
  *
- * @param {Element} line
- * @returns {string}
+ * @param {Element} g
+ * @returns {[Element, string][]}
  */
-function lineGroup(line) {
-  const parent = /** @type {Element | null} */ (line.parentNode)
-  return (parent?.getAttribute('class') || '').split(' ')[0]
+function gridLines(g) {
+  /** @type {Record<string, number>} */
+  const seen = {}
+  return [
+    ...g.querySelectorAll(
+      '.apexcharts-grid line:not(.apexcharts-tick-ghost), .apexcharts-grid-borders line',
+    ),
+  ].map((ln) => {
+    const parent = /** @type {Element | null} */ (ln.parentNode)
+    const k = (parent?.getAttribute('class') || '').split(' ')[0]
+    return [
+      ln,
+      ln.classList.contains('apexcharts-gridline')
+        ? k
+        : `${k}#${(seen[k] = (seen[k] || 0) + 1)}`,
+    ]
+  })
 }
 
 /**
@@ -164,12 +183,9 @@ export function captureLayout(w) {
   if (g) {
     // Per group: gridlines and borders reach past the plot by the bar pad,
     // the grid area's own edge line does not.
-    g.querySelectorAll(
-      '.apexcharts-grid line:not(.apexcharts-tick-ghost), .apexcharts-grid-borders line',
-    ).forEach((/** @type {Element} */ ln) => {
+    gridLines(g).forEach(([ln, k]) => {
       const p = nums(ln, ['x1', 'y1', 'x2', 'y2'])
       if (!p) return
-      const k = lineGroup(ln)
       if (!ends[`h:${k}`] && p[1] === p[3]) ends[`h:${k}`] = [p[0], p[2]]
       if (!ends[`v:${k}`] && p[0] === p[2]) ends[`v:${k}`] = [p[1], p[3]]
     })
@@ -342,20 +358,15 @@ export function transitionLayout(w, from, { driven, duration, ease }) {
   // and the rendered ones (they reach past the plot by a padding of their
   // own); its position scales with the plot, unless a tick transition owns it
   // (y of a horizontal line, x of a vertical one).
-  graphical
-    .querySelectorAll(
-      '.apexcharts-grid line:not(.apexcharts-tick-ghost), .apexcharts-grid-borders line',
-    )
-    .forEach((/** @type {Element} */ line) => {
-      const horizontal = line.getAttribute('y1') === line.getAttribute('y2')
-      const vertical = line.getAttribute('x1') === line.getAttribute('x2')
-      const owned = driven.has(line)
-      const k = lineGroup(line)
-      if (horizontal) easeFrom(line, ['x1', 'x2'], ends[`h:${k}`], sx)
-      else if (!owned) drive(line, ['x1', 'x2'], sx)
-      if (vertical) easeFrom(line, ['y1', 'y2'], ends[`v:${k}`], sy)
-      else if (!owned) drive(line, ['y1', 'y2'], sy)
-    })
+  gridLines(graphical).forEach(([line, k]) => {
+    const horizontal = line.getAttribute('y1') === line.getAttribute('y2')
+    const vertical = line.getAttribute('x1') === line.getAttribute('x2')
+    const owned = driven.has(line)
+    if (horizontal) easeFrom(line, ['x1', 'x2'], ends[`h:${k}`], sx)
+    else if (!owned) drive(line, ['x1', 'x2'], sx)
+    if (vertical) easeFrom(line, ['y1', 'y2'], ends[`v:${k}`], sy)
+    else if (!owned) drive(line, ['y1', 'y2'], sy)
+  })
   graphical.querySelectorAll('.apexcharts-grid rect').forEach((/** @type {Element} */ rect) => {
     const row = rect.classList.contains('apexcharts-grid-row')
     const col = rect.classList.contains('apexcharts-grid-column')
