@@ -124,7 +124,7 @@ export default class MorphTypeChange {
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx
-    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number, scale?: number, shiftX?: number, shiftY?: number }, pieceOut?: boolean, pieceIn?: boolean, resume?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
+    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null, box?: ReturnType<MorphTypeChange['_pathBBox']>}>, oldLayout: { translateX: number, translateY: number, scale?: number, shiftX?: number, shiftY?: number }, pieceOut?: boolean, pieceIn?: boolean, resume?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
     this._snapshot = null
     // Whether the render the snapshot was captured for has mounted.
     this._shown = false
@@ -1870,7 +1870,9 @@ export default class MorphTypeChange {
     if (!this._snapshot) return null
     const entry = this._snapshot.mapping.get(`${i}:0`)
     if (!entry) return null
-    const box = this._pathBBox(entry.d)
+    // Measured once per mark: the unit renderer asks for every dot it
+    // releases. Kept on the entry, so a new mapping is measured afresh.
+    const box = (entry.box ||= this._pathBBox(entry.d))
     if (!box) return null
     // Same OLD -> NEW map getInitialPathFor applies (see there).
     const { k, dx, dy } = this._oldToNew()
