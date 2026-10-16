@@ -224,14 +224,14 @@ export function transitionLayout(w, from, { driven, duration, ease }) {
 
   const graphical = w.dom.elGraphical?.node
   if (!from || !from.rect || !graphical) return
-  const l = w.layout
-  /** @type {PlotRect} */
-  const to = {
-    x: l.translateX ?? 0,
-    y: l.translateY ?? 0,
-    w: l.gridWidth,
-    h: l.gridHeight,
-  }
+  // Most updates leave the plot where it was: the same rect, y-axis offsets
+  // and extents, read off the same nodes the capture read (each extent the
+  // walk eases a line or band from, see gridLines). Stop before the walks
+  // below, which would only find that again. Anything short of equal still
+  // takes the walk, which decides as before.
+  if (JSON.stringify(from) === JSON.stringify(captureLayout(w))) return
+  // The rendered rect: no tween is running any more.
+  const to = currentPlotRect(w)
   const r0 = from.rect
   const sane = (/** @type {PlotRect} */ r) =>
     [r.x, r.y, r.w, r.h].every(Number.isFinite) && r.w > 0 && r.h > 0
