@@ -6,6 +6,13 @@ import { applyProgressiveReveal } from './Animations'
 import { seriesEmitter } from '../renderers/Renderer'
 
 /**
+ * A per-series option: the series' entry when given as an array.
+ * @param {any} v
+ * @param {number} i
+ */
+const at = (v, i) => (Array.isArray(v) ? v[i] : v)
+
+/**
  * ApexCharts Markers Class for drawing markers on y values in axes charts.
  *
  * @module Markers
@@ -93,7 +100,7 @@ export default class Markers {
     if (!Markers.markersAreInert(w)) return false
 
     // per-point shapes/sizes/colours, and click targets, need per-point nodes
-    if (m.discrete && m.discrete.length) return false
+    if (m.discrete?.length) return false
     if (m.onClick || m.onDblClick) return false
 
     // toggleDataPointSelection resolves a point by `path[j=...]`, and
@@ -188,8 +195,7 @@ export default class Markers {
     // the active renderer (canvas records them). The wrap group stays SVG.
     const emit = seriesEmitter(this.ctx, graphics)
 
-    const hasDiscreteMarkers =
-      w.config.markers.discrete && w.config.markers.discrete.length
+    const hasDiscreteMarkers = w.config.markers.discrete?.length
 
     if (Array.isArray(p.x)) {
       for (let q = 0; q < p.x.length; q++) {
@@ -274,14 +280,10 @@ export default class Markers {
           })
 
           const _si = /** @type {Record<string,any>} */ (w.config.series[i])
-          if (_si.data[dataPointIndex]) {
-            if (_si.data[dataPointIndex].fillColor) {
-              opts.pointFillColor = _si.data[dataPointIndex].fillColor
-            }
-
-            if (_si.data[dataPointIndex].strokeColor) {
-              opts.pointStrokeColor = _si.data[dataPointIndex].strokeColor
-            }
+          const d = _si.data[dataPointIndex]
+          if (d) {
+            if (d.fillColor) opts.pointFillColor = d.fillColor
+            if (d.strokeColor) opts.pointStrokeColor = d.strokeColor
           }
 
           if (typeof pSize !== 'undefined') {
@@ -513,24 +515,32 @@ export default class Markers {
     // discrete markers is an option where user can specify a particular marker with different shape, size and color
 
     if (dataPointIndex !== null && m.discrete.length) {
-      m.discrete.map((/** @type {any} */ marker) => {
-        if (
-          marker.seriesIndex === seriesIndex &&
-          marker.dataPointIndex === dataPointIndex
-        ) {
-          // Only the fields an entry actually declares override the series
-          // defaults. Assigning unconditionally blanked the rest, so a
-          // `{ seriesIndex, dataPointIndex, size }` entry (resize this one
-          // point, keep its colours) rendered with no fill at all.
-          if (marker.strokeColor !== undefined) {
-            pStyle.pointStrokeColor = marker.strokeColor
-          }
-          if (marker.fillColor !== undefined) {
-            pStyle.pointFillColor = marker.fillColor
-          }
-          if (marker.size !== undefined) pSize = marker.size
-          if (marker.shape !== undefined) pStyle.pointShape = marker.shape
+      // The entries filed by `seriesIndex:dataPointIndex` once per instance,
+      // so styling a marker is one lookup instead of a scan of the whole list
+      // (quadratic when an entry is generated per point). Line and Scatter
+      // get a fresh instance every render, so the index never outlives one.
+      // A point's entries apply in list order: the last to declare a field
+      // wins.
+      let idx = /** @type {Record<string, any[]>} */ (this._discrete)
+      if (!idx) {
+        idx = this._discrete = {}
+        m.discrete.forEach((/** @type {any} */ e) =>
+          (idx[e.seriesIndex + ':' + e.dataPointIndex] ||= []).push(e),
+        )
+      }
+      idx[seriesIndex + ':' + dataPointIndex]?.forEach((marker) => {
+        // Only the fields an entry actually declares override the series
+        // defaults. Assigning unconditionally blanked the rest, so a
+        // `{ seriesIndex, dataPointIndex, size }` entry (resize this one
+        // point, keep its colours) rendered with no fill at all.
+        if (marker.strokeColor !== undefined) {
+          pStyle.pointStrokeColor = marker.strokeColor
         }
+        if (marker.fillColor !== undefined) {
+          pStyle.pointFillColor = marker.fillColor
+        }
+        if (marker.size !== undefined) pSize = marker.size
+        if (marker.shape !== undefined) pStyle.pointShape = marker.shape
       })
     }
 
@@ -538,26 +548,14 @@ export default class Markers {
       pSize: radius === null ? pSize : radius,
       pRadius: radius !== null ? radius : m.radius,
       pointStrokeWidth:
-        strokeWidth !== null
-          ? strokeWidth
-          : Array.isArray(m.strokeWidth)
-            ? m.strokeWidth[seriesIndex]
-            : m.strokeWidth,
+        strokeWidth !== null ? strokeWidth : at(m.strokeWidth, seriesIndex),
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape:
-        pStyle.pointShape ||
-        (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
+      shape: pStyle.pointShape || at(m.shape, seriesIndex),
       class: cssClass,
-      pointStrokeOpacity: Array.isArray(m.strokeOpacity)
-        ? m.strokeOpacity[seriesIndex]
-        : m.strokeOpacity,
-      pointStrokeDashArray: Array.isArray(m.strokeDashArray)
-        ? m.strokeDashArray[seriesIndex]
-        : m.strokeDashArray,
-      pointFillOpacity: Array.isArray(m.fillOpacity)
-        ? m.fillOpacity[seriesIndex]
-        : m.fillOpacity,
+      pointStrokeOpacity: at(m.strokeOpacity, seriesIndex),
+      pointStrokeDashArray: at(m.strokeDashArray, seriesIndex),
+      pointFillOpacity: at(m.fillOpacity, seriesIndex),
       seriesIndex,
     }
   }
@@ -628,14 +626,9 @@ export default class Markers {
     const strokeColors =
       w.config.markers.strokeColor || w.config.markers.strokeColors
 
-    const pointStrokeColor = Array.isArray(strokeColors)
-      ? strokeColors[seriesIndex]
-      : strokeColors
-    const pointFillColor = Array.isArray(colors) ? colors[seriesIndex] : colors
-
     return {
-      pointStrokeColor,
-      pointFillColor,
+      pointStrokeColor: at(strokeColors, seriesIndex),
+      pointFillColor: at(colors, seriesIndex),
     }
   }
 }
