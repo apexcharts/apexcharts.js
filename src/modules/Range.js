@@ -252,10 +252,8 @@ class Range {
         seriesType !== 'violin' &&
         seriesType !== 'rangeArea' &&
         seriesType !== 'rangeBar' &&
-        !(
-          this.w.seriesData.seriesGoals[i] &&
-          this.w.seriesData.seriesGoals[i].length
-        )
+        // Data allocates a series' goals only once one of its points has some
+        !this.w.seriesData.seriesGoals[i]
       if (plainNumeric) {
         const arr = series[i]
         const jEnd = Math.min(lastXIndex, arr.length - 1)

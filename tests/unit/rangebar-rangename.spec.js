@@ -6,6 +6,8 @@ import { createChartWithOptions } from './utils/utils.js'
 // overlap group's Set to stack overlapping bars. This locks the overlap
 // detection + the id->overlaps mapping (fix-neutral, read via `rn` which works
 // before and after the fix) and asserts the config object is not mutated.
+// Overlaps are only detected with rangeBarOverlap off, the one setting
+// RangeBar reads them under.
 
 /** Read a point's range-name id from wherever it currently lives. */
 function rn(w, i, j) {
@@ -18,7 +20,7 @@ function rn(w, i, j) {
 function makeOverlappingRangeBar() {
   return createChartWithOptions({
     chart: { type: 'rangeBar', id: 'rb-' + Math.random().toString(36).slice(2) },
-    plotOptions: { bar: { horizontal: true } },
+    plotOptions: { bar: { horizontal: true, rangeBarOverlap: false } },
     series: [
       {
         name: 'S',

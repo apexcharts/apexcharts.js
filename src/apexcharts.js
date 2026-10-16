@@ -2685,7 +2685,10 @@ export default class ApexCharts {
       seriesCandleC: w.candleData.seriesCandleC,
       seriesRangeStart: w.rangeData.seriesRangeStart,
       seriesRangeEnd: w.rangeData.seriesRangeEnd,
-      seriesGoals: w.seriesData.seriesGoals,
+      // a series without goals has no row internally; keep one per series
+      seriesGoals: w.seriesData.series.map(
+        (_, i) => w.seriesData.seriesGoals[i] || [],
+      ),
     }
   }
 
