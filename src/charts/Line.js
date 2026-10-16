@@ -670,6 +670,12 @@ class Line {
     // over the union of old+new datums so entering points grow out of the old
     // curve, exiting points melt into the new one, and area fills never tear.
     // The runner tweens toward the padded target and snaps to the clean path.
+    // The datum join below serves the path reconcile, the marker ride and the
+    // label hold: built once for this series, on first use (a null one is
+    // only ever the cheap early gates, so it is simply asked again).
+    /** @type {any} */
+    let sj
+    const join = () => sj || (sj = seriesJoin(w, realIndex, true, true))
     let reconcile = null
     if (!streamScroll && (type === 'line' || type === 'area')) {
       reconcile = reconcileSeriesPaths(w, {
@@ -679,6 +685,7 @@ class Line {
         pathFromArea: paths.pathFromArea,
         linePaths: paths.linePaths,
         areaPaths: paths.areaPaths,
+        join,
       })
     }
 
@@ -729,6 +736,7 @@ class Line {
         elPointsMain: this.elPointsMain,
         realIndex,
         speed: w.config.chart.animations.dynamicAnimation.speed,
+        join,
       })
       // A line drawn without a stroke has no path, and the path's morph (or,
       // when nothing animates, Graphics.renderPaths) is what reveals the
@@ -745,7 +753,10 @@ class Line {
       }
       // On a LAYOUT change additionally hide the data labels until the morph
       // settles so they never float off the line.
-      if (seriesJoin(w, realIndex) && this.elDataLabelsWrap?.node) {
+      if (
+        this.elDataLabelsWrap?.node &&
+        seriesJoin(w, realIndex, false, false, join())
+      ) {
         this.elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
         w.globals.delayedElements.push({
           el: this.elDataLabelsWrap.node,
@@ -1054,6 +1065,23 @@ class Line {
     /** @type {any[][]} */
     const midsAt = []
 
+    // Progressive marker reveal handles per-marker opacity timing (synced to
+    // the line draw), so the legacy group-level hide is bypassed on initial
+    // mount. Data updates and resizes still hide the wrap until the morph
+    // lands, as does a batched series, which has no per-marker element to
+    // time (the whole batch appears when the draw completes). Once per
+    // series: the per-point marker loop below would repeat it per point.
+    if (
+      !this._shapeOnly &&
+      !this.pointsChart &&
+      iterations > 0 &&
+      series[i].length &&
+      w.seriesData.series[i].length > 1 &&
+      (w.globals.dataChanged || w.globals.resized || w.globals.markers.batched)
+    ) {
+      this.elPointsMain.node.classList.add('apexcharts-element-hidden')
+    }
+
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break
 
@@ -1247,7 +1275,6 @@ class Line {
         this._handleMarkersAndLabels({
           type,
           pointsPos,
-          i,
           j,
           realIndex,
           isRangeStart,
@@ -1265,25 +1292,11 @@ class Line {
     }
   }
 
-  /** @param {{type: any, pointsPos: any, isRangeStart: any, i: any, j: any, realIndex: any}} opts */
-  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
-    const w = this.w
+  /** @param {{type: any, pointsPos: any, isRangeStart: any, j: any, realIndex: any}} opts */
+  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, j, realIndex }) {
     const dataLabels = new DataLabels(this.w, this.ctx)
 
     if (!this.pointsChart) {
-      // Progressive marker reveal handles per-marker opacity timing (synced
-      // to the line draw), so the legacy group-level hide is bypassed on
-      // initial mount. Data updates and resizes still use the old code path.
-      // A batched series has no per-marker element to time, so it takes the
-      // group-level reveal (the whole batch appears when the draw completes).
-      const useProgressive =
-        !w.globals.dataChanged &&
-        !w.globals.resized &&
-        !w.globals.markers.batched
-      if (!useProgressive && w.seriesData.series[i].length > 1) {
-        this.elPointsMain.node.classList.add('apexcharts-element-hidden')
-      }
-
       const elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
         seriesIndex: realIndex,
