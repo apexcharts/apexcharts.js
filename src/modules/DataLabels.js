@@ -159,9 +159,15 @@ class DataLabels {
       return elDataLabelsWrap
     }
 
-    elDataLabelsWrap = graphics.group({
-      class: 'apexcharts-data-labels',
-    })
+    // The group is made by the first label drawn into it, so a point whose
+    // labels are all thinned out, off for this series or null adds none.
+    const parent = {
+      /** @param {any} el */
+      add: (el) =>
+        (elDataLabelsWrap ||= graphics.group({
+          class: 'apexcharts-data-labels',
+        })).add(el),
+    }
 
     for (let q = 0; q < pos.x.length; q++) {
       // a small hack as we have 2 points for the first val to connect it.
@@ -243,7 +249,7 @@ class DataLabels {
           text,
           i,
           j: dataPointIndex,
-          parent: elDataLabelsWrap,
+          parent,
           offsetCorrection: true,
           dataLabelsConfig: w.config.dataLabels,
           textAnchor,
