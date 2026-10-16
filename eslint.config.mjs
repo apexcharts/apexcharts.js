@@ -19,6 +19,9 @@ export default [
       // Gitignored scratch: repro pages, drivers, and vendored old releases
       // pulled in for before/after comparison. Not ours to lint.
       'issues/**',
+      // Agent worktrees: whole checkouts, built dist included, already linted
+      // where they came from.
+      '.claude/**',
       '*.config.js',
       '*.config.mjs',
     ],
