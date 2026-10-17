@@ -10,6 +10,7 @@ import {
   BREADCRUMB_HEIGHT_FULL,
   breadcrumbConfig,
 } from '../../charts/common/Breadcrumb'
+import { getChartClass } from '../ChartFactory'
 
 /**
  * ApexCharts Dimensions Class for calculating rects of all elements that are drawn and will be drawn.
@@ -207,7 +208,7 @@ export default class Dimensions {
    * to float without covering a tile. Giving it real space is the only way it
    * never overlaps.
    *
-   * Reserved whenever click-to-zoom is enabled, not only while zoomed in: the
+   * Reserved whenever click-to-zoom is live, not only while zoomed in: the
    * strip appears and disappears as the reader navigates, and sizing the plot
    * around its presence would reflow every tile on each zoom.
    */
@@ -216,8 +217,13 @@ export default class Dimensions {
     const isTreemap = w.config.chart.type === 'treemap'
 
     if (isTreemap) {
-      const zoom = w.config.plotOptions?.treemap?.zoom
-      if (zoom && zoom.enabled) {
+      // The renderer's own answer: zoom needs parents to click and stands
+      // down for drilldown, so a flat treemap reserves nothing.
+      const zoom = getChartClass('treemap').prototype.zoomLive?.(
+        w,
+        this.ctx.drilldown,
+      )
+      if (zoom) {
         if (breadcrumbConfig(w, zoom.breadcrumb).show === false) return
         this.gridPad.top += BREADCRUMB_HEIGHT + 4
         return

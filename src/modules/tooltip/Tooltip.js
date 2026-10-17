@@ -84,7 +84,6 @@ export default class Tooltip {
     this.e = null
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
     this.lastHoverTime = Date.now()
-    this.dimensionUpdateScheduled = false
 
     // Properties set in drawTooltip() / create() / event handlers
     /** @type {import('../../types/internal').XYRatios | null} */
@@ -117,7 +116,7 @@ export default class Tooltip {
     /**
      * The hover listeners addSVGEvents put on the svg itself (`hoverArea`),
      * kept so the next call can take them off: see detachHoverAreaListeners.
-     * @type {Array<{ el: Element, ev: string, handler: (e: any) => void }>}
+     * @type {Array<{ el: Element, ev: string, handler: (e: any) => void, opt: any }>}
      */
     this.hoverAreaListeners = []
     /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -157,79 +156,25 @@ export default class Tooltip {
     return this.w.config.tooltip
   }
 
-  setupDimensionCache() {
-    const w = this.w
-    const tooltipEl = this.getElTooltip()
-
-    if (!tooltipEl) return
-
-    // No initial measurement on purpose. Reading the rect here forced a
-    // synchronous layout of the chart that was just (re)built, on every render
-    // AND every update, to measure a tooltip that is still empty and hidden --
-    // a size superseded the moment any content is written into it. It is not
-    // needed either: `getCachedDimensions()` measures live when the cache is
-    // missing or older than a second, and every consumer of it runs at
-    // interaction time, by which point the ResizeObserver below has normally
-    // filled the cache anyway.
-
-    // Setup ResizeObserver for automatic dimension updates
-    if (typeof ResizeObserver !== 'undefined' && !w.globals.resizeObserver) {
-      w.globals.resizeObserver = new ResizeObserver(() => {
-        if (!this.dimensionUpdateScheduled) {
-          this.dimensionUpdateScheduled = true
-          requestAnimationFrame(() => {
-            this.updateDimensionCache()
-            this.dimensionUpdateScheduled = false
-          })
-        }
-      })
-      w.globals.resizeObserver.observe(tooltipEl)
-    }
-  }
-
-  updateDimensionCache() {
-    const w = this.w
-    const tooltipEl = this.getElTooltip()
-
-    if (!tooltipEl) return
-
-    const rect = tooltipEl.getBoundingClientRect()
-    w.globals.dimensionCache.tooltip = /** @type {any} */ ({
-      width: rect.width,
-      height: rect.height,
-      lastUpdate: Date.now(),
-    })
-  }
-
+  /**
+   * The tooltip's last measured size, measured again once it is a second
+   * old. Only a first guess: Labels measures again once it has written the
+   * rows, before anything is placed off it.
+   * @returns {{ ttWidth: number, ttHeight: number }}
+   */
   getCachedDimensions() {
-    const w = this.w
-
-    // Return cached dimensions if available and fresh (< 1 second old)
-    if (w.globals.dimensionCache.tooltip) {
-      const cache = /** @type {Record<string,any>} */ (
-        w.globals.dimensionCache.tooltip
-      )
-      const age = Date.now() - cache.lastUpdate
-
-      if (age < 1000) {
-        return {
-          ttWidth: cache.width,
-          ttHeight: cache.height,
-        }
-      }
+    const dims = this.w.globals.dimensionCache
+    const tooltipEl = this.getElTooltip()
+    let cache = /** @type {any} */ (dims.tooltip)
+    if (tooltipEl && !(Date.now() - cache?.lastUpdate < 1000)) {
+      const rect = tooltipEl.getBoundingClientRect()
+      cache = dims.tooltip = /** @type {any} */ ({
+        width: rect.width,
+        height: rect.height,
+        lastUpdate: Date.now(),
+      })
     }
-
-    // Fallback to live measurement and update cache
-    this.updateDimensionCache()
-    const cache = /** @type {Record<string,any>} */ (
-      w.globals.dimensionCache.tooltip
-    )
-    return cache
-      ? {
-          ttWidth: cache.width,
-          ttHeight: cache.height,
-        }
-      : { ttWidth: 0, ttHeight: 0 }
+    return { ttWidth: cache?.width || 0, ttHeight: cache?.height || 0 }
   }
 
   /**
@@ -244,9 +189,9 @@ export default class Tooltip {
    * 700-series chart showed dominating hover time. Validity is checked with
    * `baseEl.contains()` — a short walk up the ancestors, not a tree scan.
    *
-   * That check is what respects `fastUpdate`: `drawTooltip` DETACHES the
-   * existing tooltip before building a replacement (see its comment on the
-   * fastUpdate path), so a rebuilt element leaves the cached node outside
+   * That check is what respects a rebuild: `drawTooltip` DETACHES the
+   * existing tooltip before building a replacement (a data-only fastUpdate
+   * keeps it), so a rebuilt element leaves the cached node outside
    * `baseEl`, the check fails, and the selector runs again. A full re-render
    * replaces `baseEl`'s subtree with the same consequence.
    *
@@ -342,141 +287,156 @@ export default class Tooltip {
     // axes), so the nodes cached from the last one are detached.
     this.yaxisTTEls = null
     this.hoverBars = []
+    // What the last render's hovers learnt about its marks and legend.
+    /** @type {any} */
+    this._facts = null
+    /** @type {string | null} */
+    this.legendKey = null
 
     if (!w.globals.axisCharts) {
       this.showTooltipTitle = false
     }
 
-    // Remove any existing tooltip element to avoid duplicates on re-draws
-    // (e.g. fastUpdate path calls drawTooltip without full DOM teardown)
-    const existingTooltip = this.getElTooltip()
-    if (existingTooltip?.parentNode) {
-      existingTooltip.parentNode.removeChild(existingTooltip)
-    }
-    this.tooltipTitle = null
-
-    const tooltipEl = BrowserAPIs.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    )
-    tooltipEl.classList.add('apexcharts-tooltip')
-    if (this.tConfig.interactive) {
-      tooltipEl.classList.add('apexcharts-tooltip-interactive')
-      tooltipEl.addEventListener(
-        'mouseenter',
-        () => {
-          clearTimeout(this.interactiveHideTimeout)
-          this.cancelOffMarkHide()
-        },
-        { passive: true },
-      )
-      tooltipEl.addEventListener(
-        'mouseleave',
-        () => {
-          clearTimeout(this.interactiveHideTimeout)
-          this.handleMouseOut({ tooltipEl })
-          if (w.config.chart.group) {
-            this.ctx.getGroupedCharts().forEach((ch) => {
-              const el = this.getElTooltip(ch)
-              if (el) ch.w.globals.tooltip.handleMouseOut({ tooltipEl: el })
-            })
-          }
-        },
-        { passive: true },
-      )
-    }
-    if (w.config.tooltip.cssClass) {
-      // A space-separated list is a valid class attribute, but classList.add
-      // throws on a token with whitespace in it.
-      tooltipEl.classList.add(
-        ...String(w.config.tooltip.cssClass).split(/\s+/).filter(Boolean),
-      )
-    }
-    tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme || 'light'}`)
-
-    // `fillSeriesColor` paints each series-group with its series colour.
-    // Tag the tooltip so the CSS can drop the glass body (transparent bg,
-    // no border, no backdrop-filter) and clip the coloured series-group(s)
-    // to the body's rounded corners — otherwise the colour block sits
-    // inside a glass shell with visible padding/border around it.
-    if (this.tConfig.fillSeriesColor) {
-      tooltipEl.classList.add('apexcharts-tooltip-fill-series')
-    }
-
-    // `compact`: one tight line instead of a card. The x label loses its own
-    // title bar and sits inline before the value, the marker goes, and the
-    // padding and font shrink. Meant for panels a normal card would cover
-    // (small multiples, sparklines, dashboard tiles). With a SINGLE series the
-    // series-name label goes too, because in a one-series panel it repeats
-    // what the panel header already says; with several series the names are
-    // the only thing distinguishing the rows, so they stay.
-    if (this.tConfig.compact) {
-      tooltipEl.classList.add('apexcharts-tooltip-compact')
-      if (w.config.series.length === 1) {
-        tooltipEl.classList.add('apexcharts-tooltip-value-only')
-      }
-    }
-
-    // Optional user-supplied solid background — set on the CSS variable so
-    // the rest of the glass theme (border, shadow) still applies cleanly.
-    // An opaque value also visually disables the backdrop blur.
-    if (this.tConfig.style && this.tConfig.style.background) {
-      tooltipEl.style.setProperty(
-        '--apx-tt-bg',
-        this.tConfig.style.background,
-      )
-    }
-
-    // Arrow connector (default on via `tooltip.arrow`). Positioned by
-    // Position.applyTooltipPosition() via the `--apx-tt-arrow-y` CSS var.
-    // Skip the arrow in these cases:
-    //  - `followCursor`: the cursor IS the anchor; arrow would be redundant.
-    //  - `fixed.enabled`: tooltip is pinned to a chart corner, not a point,
-    //    so an arrow would point nowhere.
-    //  - shared tooltip on a multi-series chart: there's no single point to
-    //    anchor to, so an arrow would mislead. Exceptions: horizontal-bar
-    //    charts (a single row of bars per category — tooltip goes above/below
-    //    the row union) and heatmaps (the hover resolves a single cell —
-    //    tooltip goes above/below that cell). Both keep a meaningful arrow
-    //    target, so they're allowed an arrow despite `shared` being on.
-    //  - non-axis charts (pie/donut/radialBar/polarArea): slices radiate
-    //    from a centre, so there's no single "anchor edge" for the arrow.
-    //  - `fillSeriesColor`: the glass arrow would not match the solid
-    //    series-colour body. Better to drop it than render a colour clash.
-    const isSharedMulti =
-      this.tConfig.shared &&
-      w.config.series.length > 1 &&
-      !w.globals.isBarHorizontal &&
-      w.config.chart.type !== 'heatmap'
-    const shouldDrawArrow =
-      this.tConfig.arrow &&
-      !Utils.isFollowCursor(this.w) &&
-      !this.tConfig.fixed.enabled &&
-      !isSharedMulti &&
-      !this.tConfig.fillSeriesColor &&
-      w.globals.axisCharts
-    if (shouldDrawArrow) {
-      const arrowEl = BrowserAPIs.createElementNS(
+    // A data-only fast update keeps elWrap (a render builds a new one), and
+    // with it this box. Nothing in the box depends on the data, only on the
+    // config, which such an update leaves alone (a hover writes the row
+    // colours), so it is kept, rows and all, and only the hover is bound
+    // again: rebuilding cost a row of nodes and an SVG parse per series per
+    // update, and closed an open tooltip on every update. A custom tooltip
+    // that replaced the rows rebuilds them.
+    /** @type {any} */
+    let tooltipEl = this.getElTooltip()
+    const keep =
+      tooltipEl?.parentNode === w.dom.elWrap &&
+      this.ttItems?.[0]?.parentNode === tooltipEl
+    if (!keep) {
+      // Remove any existing tooltip element to avoid duplicates on re-draws
+      tooltipEl?.remove()
+      this.tooltipTitle = null
+      tooltipEl = BrowserAPIs.createElementNS(
         'http://www.w3.org/1999/xhtml',
         'div',
       )
-      arrowEl.classList.add('apexcharts-tooltip-arrow')
-      tooltipEl.appendChild(arrowEl)
+      tooltipEl.classList.add('apexcharts-tooltip')
+      if (this.tConfig.interactive) {
+        tooltipEl.classList.add('apexcharts-tooltip-interactive')
+        tooltipEl.addEventListener(
+          'mouseenter',
+          () => {
+            clearTimeout(this.interactiveHideTimeout)
+            this.cancelOffMarkHide()
+          },
+          { passive: true },
+        )
+        tooltipEl.addEventListener(
+          'mouseleave',
+          () => {
+            clearTimeout(this.interactiveHideTimeout)
+            this.handleMouseOut({ tooltipEl })
+            if (w.config.chart.group) {
+              this.ctx.getGroupedCharts().forEach((ch) => {
+                const el = this.getElTooltip(ch)
+                if (el) ch.w.globals.tooltip.handleMouseOut({ tooltipEl: el })
+              })
+            }
+          },
+          { passive: true },
+        )
+      }
+      if (w.config.tooltip.cssClass) {
+        // A space-separated list is a valid class attribute, but classList.add
+        // throws on a token with whitespace in it.
+        tooltipEl.classList.add(
+          ...String(w.config.tooltip.cssClass).split(/\s+/).filter(Boolean),
+        )
+      }
+      tooltipEl.classList.add(
+        `apexcharts-theme-${this.tConfig.theme || 'light'}`,
+      )
+
+      // `fillSeriesColor` paints each series-group with its series colour.
+      // Tag the tooltip so the CSS can drop the glass body (transparent bg,
+      // no border, no backdrop-filter) and clip the coloured series-group(s)
+      // to the body's rounded corners; otherwise the colour block sits
+      // inside a glass shell with visible padding/border around it.
+      if (this.tConfig.fillSeriesColor) {
+        tooltipEl.classList.add('apexcharts-tooltip-fill-series')
+      }
+
+      // `compact`: one tight line instead of a card. The x label loses its own
+      // title bar and sits inline before the value, the marker goes, and the
+      // padding and font shrink. Meant for panels a normal card would cover
+      // (small multiples, sparklines, dashboard tiles). With a SINGLE series the
+      // series-name label goes too, because in a one-series panel it repeats
+      // what the panel header already says; with several series the names are
+      // the only thing distinguishing the rows, so they stay.
+      if (this.tConfig.compact) {
+        tooltipEl.classList.add('apexcharts-tooltip-compact')
+        if (w.config.series.length === 1) {
+          tooltipEl.classList.add('apexcharts-tooltip-value-only')
+        }
+      }
+
+      // Optional user-supplied solid background, set on the CSS variable so
+      // the rest of the glass theme (border, shadow) still applies cleanly.
+      // An opaque value also visually disables the backdrop blur.
+      if (this.tConfig.style && this.tConfig.style.background) {
+        tooltipEl.style.setProperty(
+          '--apx-tt-bg',
+          this.tConfig.style.background,
+        )
+      }
+
+      // Arrow connector (default on via `tooltip.arrow`). Positioned by
+      // Position.applyTooltipPosition() via the `--apx-tt-arrow-y` CSS var.
+      // Skip the arrow in these cases:
+      //  - `followCursor`: the cursor IS the anchor; arrow would be redundant.
+      //  - `fixed.enabled`: tooltip is pinned to a chart corner, not a point,
+      //    so an arrow would point nowhere.
+      //  - shared tooltip on a multi-series chart: there's no single point to
+      //    anchor to, so an arrow would mislead. Exceptions: horizontal-bar
+      //    charts (a single row of bars per category: tooltip goes above/below
+      //    the row union) and heatmaps (the hover resolves a single cell:
+      //    tooltip goes above/below that cell). Both keep a meaningful arrow
+      //    target, so they're allowed an arrow despite `shared` being on.
+      //  - non-axis charts (pie/donut/radialBar/polarArea): slices radiate
+      //    from a centre, so there's no single "anchor edge" for the arrow.
+      //  - `fillSeriesColor`: the glass arrow would not match the solid
+      //    series-colour body. Better to drop it than render a colour clash.
+      const isSharedMulti =
+        this.tConfig.shared &&
+        w.config.series.length > 1 &&
+        !w.globals.isBarHorizontal &&
+        w.config.chart.type !== 'heatmap'
+      const shouldDrawArrow =
+        this.tConfig.arrow &&
+        !Utils.isFollowCursor(this.w) &&
+        !this.tConfig.fixed.enabled &&
+        !isSharedMulti &&
+        !this.tConfig.fillSeriesColor &&
+        w.globals.axisCharts
+      if (shouldDrawArrow) {
+        const arrowEl = BrowserAPIs.createElementNS(
+          'http://www.w3.org/1999/xhtml',
+          'div',
+        )
+        arrowEl.classList.add('apexcharts-tooltip-arrow')
+        tooltipEl.appendChild(arrowEl)
+      }
+
+      // accessibility attributes
+      if (
+        w.config.chart.accessibility.enabled &&
+        w.config.chart.accessibility.announcements.enabled
+      ) {
+        tooltipEl.setAttribute('role', 'tooltip')
+        tooltipEl.setAttribute('aria-live', 'polite')
+        tooltipEl.setAttribute('aria-atomic', 'true')
+        tooltipEl.setAttribute('aria-hidden', 'true')
+      }
+
+      w.dom.elWrap.appendChild(tooltipEl)
     }
-
-    // accessibility attributes
-    if (
-      w.config.chart.accessibility.enabled &&
-      w.config.chart.accessibility.announcements.enabled
-    ) {
-      tooltipEl.setAttribute('role', 'tooltip')
-      tooltipEl.setAttribute('aria-live', 'polite')
-      tooltipEl.setAttribute('aria-atomic', 'true')
-      tooltipEl.setAttribute('aria-hidden', 'true')
-    }
-
-    w.dom.elWrap.appendChild(tooltipEl)
-
 
     if (w.globals.axisCharts) {
       this.axesTooltip.drawXaxisTooltip()
@@ -515,18 +475,6 @@ export default class Tooltip {
     this.dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints
     this.dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints
 
-    if (this.showTooltipTitle) {
-      this.tooltipTitle = BrowserAPIs.createElementNS(
-        'http://www.w3.org/1999/xhtml',
-        'div',
-      )
-      this.tooltipTitle.classList.add('apexcharts-tooltip-title')
-      this.tooltipTitle.style.fontFamily =
-        this.tConfig.style.fontFamily || w.config.chart.fontFamily
-      this.tooltipTitle.style.fontSize = this.tConfig.style.fontSize
-      tooltipEl.appendChild(this.tooltipTitle)
-    }
-
     // A row per series is only ever DISPLAYED by a shared tooltip: every
     // non-shared path activates exactly one group (see
     // Labels.toggleActiveInactiveSeries) and writes the hovered series' values
@@ -545,12 +493,54 @@ export default class Tooltip {
           : 1
     }
 
-    this.legendLabels = w.dom.baseEl.querySelectorAll('.apexcharts-legend-text')
+    if (!keep) {
+      if (this.showTooltipTitle) {
+        this.tooltipTitle = BrowserAPIs.createElementNS(
+          'http://www.w3.org/1999/xhtml',
+          'div',
+        )
+        this.tooltipTitle.classList.add('apexcharts-tooltip-title')
+        this.tooltipTitle.style.fontFamily =
+          this.tConfig.style.fontFamily || w.config.chart.fontFamily
+        this.tooltipTitle.style.fontSize = this.tConfig.style.fontSize
+        tooltipEl.appendChild(this.tooltipTitle)
+      }
+      this.ttItems = this.createTTElements(ttItemsCnt)
+    }
 
-    this.ttItems = this.createTTElements(ttItemsCnt)
+    this.legendLabels = w.dom.baseEl.querySelectorAll('.apexcharts-legend-text')
     this.addSVGEvents()
 
-    this.setupDimensionCache()
+    // Kept open across the update: shown again for the new data at the
+    // same pointer where that is all the hover reads (the plot-wide
+    // listener), else closed, its marks having been redrawn under it. The
+    // replay waits for the update's tween to land: a hover dot drawn now
+    // would sit at the new value while the line still eases towards it. A
+    // later bind or a mouseout drops the wait. Meanwhile the marker ease is
+    // off (markers riding the tween would lag under it), and the replay is
+    // placed as a first show is, or the new dots glide in from the corner.
+    // Without a frame clock (a DOM shim without one) it shows at once.
+    if (keep && tooltipEl.classList.contains('apexcharts-active')) {
+      const h = this.hoverAreaListeners[0]
+      if (h && /move/.test(this.e?.type) && !w.config.chart.group) {
+        let n = 600
+        const replay = () => {
+          if (h !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return
+          if (
+            !w.globals.animationEnded &&
+            n-- &&
+            typeof requestAnimationFrame == 'function'
+          )
+            requestAnimationFrame(replay)
+          else if (tooltipEl.classList.contains('apexcharts-active')) {
+            delete tooltipEl.dataset.positioned
+            this.seriesHover(h.opt, this.e)
+          }
+        }
+        w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
+        replay()
+      } else this.handleMouseOut({ tooltipEl })
+    }
   }
 
   /**
@@ -702,43 +692,11 @@ export default class Tooltip {
     // synchronous layout of the chart that was just rebuilt: a profile of 30
     // updateSeries calls put 20% of all update time in this one dead read.
 
-    /** @type {any[]} */
-    const tooltipY = []
-    /** @type {any[]} */
-    const tooltipX = []
-
     const seriesHoverParams = {
       hoverArea,
       elGrid,
       tooltipEl,
-      tooltipY,
-      tooltipX,
       ttItems: this.ttItems,
-    }
-
-    let points
-
-    if (w.globals.axisCharts) {
-      if (chartWithmarkers) {
-        points = w.dom.baseEl.querySelectorAll(
-          ".apexcharts-series[data\\:longestSeries='true'] .apexcharts-marker",
-        )
-      } else if (commonBar) {
-        points = w.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-violin-area, .apexcharts-series .apexcharts-rangebar-area',
-        )
-      } else if (type === 'heatmap' || type === 'treemap') {
-        points = w.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-heatmap, .apexcharts-series .apexcharts-treemap',
-        )
-      }
-
-      if (points && points.length) {
-        for (let p = 0; p < points.length; p++) {
-          tooltipY.push(points[p].getAttribute('cy'))
-          tooltipX.push(points[p].getAttribute('cx'))
-        }
-      }
     }
 
     const validSharedChartTypes =
@@ -918,8 +876,6 @@ export default class Tooltip {
       const extendedOpts = {
         paths: paths[p],
         tooltipEl: opts.tooltipEl,
-        tooltipY: opts.tooltipY,
-        tooltipX: opts.tooltipX,
         elGrid: opts.elGrid,
         hoverArea: opts.hoverArea,
         ttItems: opts.ttItems,
@@ -936,7 +892,12 @@ export default class Tooltip {
       events.map((ev) => {
         const handler = self.onSeriesHover.bind(self, extendedOpts)
         if (paths[p] === opts.hoverArea) {
-          self.hoverAreaListeners.push({ el: paths[p], ev, handler })
+          self.hoverAreaListeners.push({
+            el: paths[p],
+            ev,
+            handler,
+            opt: extendedOpts,
+          })
         }
         return paths[p].addEventListener(ev, handler, {
           capture: false,
@@ -1122,8 +1083,6 @@ export default class Tooltip {
         const newOpts = {
           paths: opt.paths,
           tooltipEl,
-          tooltipY: opt.tooltipY,
-          tooltipX: opt.tooltipX,
           elGrid: elGrid || opt.elGrid,
           hoverArea: opt.hoverArea,
           ttItems: ch.w.globals.tooltip.ttItems,
@@ -1677,6 +1636,11 @@ export default class Tooltip {
    */
   applyLegendHoverText(series, j, shared) {
     const w = this.w
+    // Every move in the same column, and every hide, asks for what is
+    // already written: the next render or data update asks again.
+    const key = `${shared || series},${j}`
+    if (key === this.legendKey) return
+    this.legendKey = key
     const els = this.legendLabels ?? []
     for (let k = 0; k < els.length; k++) {
       const l = /** @type {HTMLElement} */ (els[k])
@@ -1961,6 +1925,9 @@ export default class Tooltip {
     const xcrosshairs = this.getElXCrosshairs()
     w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
 
+    // Did anything show or grow since the last hide? This runs per move
+    // over the axis margins, and per marker left.
+    const shown = opt.tooltipEl.classList.contains('apexcharts-active')
     opt.tooltipEl.classList.remove('apexcharts-active')
     // Clear the first-paint marker so the next show repositions without
     // animating from the now-stale prior coords. Paired with the
@@ -1975,7 +1942,10 @@ export default class Tooltip {
     this.deactivateHoverFilter()
     // A canvas heatmap's dataPointMouseLeave for the cell it was over.
     this.intersect.hoverCell(null)
-    if (w.config.chart.type !== 'bubble') {
+    if (
+      w.config.chart.type !== 'bubble' &&
+      (shown || this.marker.dirty || this.marker.enlargedPoints.size)
+    ) {
       this.marker.resetPointsSize()
     }
     if (xcrosshairs !== null) {
@@ -2098,8 +2068,6 @@ export default class Tooltip {
       this._hasCustomSeries()
     const dynamicPoints = canvasNonBar || canvasPointSeries || marksMode
 
-    const bars = this.tooltipUtil.getElBars()
-
     const handlePoints = () => {
       if (
         w.globals.markers.largestSize > 0 &&
@@ -2160,7 +2128,7 @@ export default class Tooltip {
             ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
           }
         } else if (
-          [...bars].some((/** @type {Element} */ b) => b.querySelector('path'))
+          [...this.tooltipUtil.getElBars()].some((b) => b.querySelector('path'))
         ) {
           // Any drawn bar mark. A DOM probe, not a getBBox, so a move does
           // not force a layout.
@@ -2202,5 +2170,8 @@ export default class Tooltip {
         ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries)
       }
     }
+    // The markers and dots moved above are this hover's: handleMouseOut
+    // puts them back even if the box was never shown.
+    ttCtx.marker.dirty = true
   }
 }

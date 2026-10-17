@@ -45,6 +45,7 @@ import { collapsedIndices, stashSeries } from '../modules/helpers/RawStash'
 import {
   binCounts,
   computeBinning,
+  deriveStat,
   derivedStats,
   fiveNumberSummary,
   isDerived,
@@ -204,45 +205,19 @@ function histogramTransform(ser, w) {
  * @returns {any[]}
  */
 function boxPlotTransform(ser, w) {
-  if (!Array.isArray(ser)) return ser
-  const whiskers = w.config.plotOptions?.boxPlot?.whiskers || 'minmax'
-  const derived = derivedStats(w, 'boxPlot')
-  /** @type {Array<Array<number[] | null>>} */
-  const observed = []
-
-  const out = ser.map((/** @type {any} */ s, /** @type {number} */ i) => {
-    // A combo's other series are not samples: a violin series carries its
-    // jitter in `points` too, and would have its density replaced.
-    if (!Array.isArray(s?.data) || (s.type && s.type !== 'boxPlot')) return s
-    let touched = false
-    /** @type {Array<number[] | null>} */
-    const byPoint = new Array(s.data.length).fill(null)
-    const data = s.data.map((/** @type {any} */ d, /** @type {number} */ j) => {
-      // An existing summary wins: this is the documented input shape. Unless we
-      // are the ones who derived it, in which case the options that shaped it
-      // may have changed.
-      const key = i + ':' + j
-      if (
-        Array.isArray(d?.y) &&
-        d.y.length === 5 &&
-        !isDerived(derived, key, d.y)
-      ) {
-        return d
-      }
-      const values = observationsOf(d, false)
-      if (!values) return d
-      const summary = fiveNumberSummary(values, { whiskers })
-      if (!summary) return d
-      touched = true
-      byPoint[j] = values
-      derived.set(key, summary.summary)
-      return { ...d, y: summary.summary, points: values }
-    })
-    if (touched) observed[i] = byPoint
-    return touched ? { ...s, data } : s
-  })
-  recordObservations(w, observed, ser.length)
-  return out
+  return sampleTransform(
+    ser,
+    w,
+    'boxPlot',
+    { whiskers: w.config.plotOptions?.boxPlot?.whiskers || 'minmax' },
+    fiveNumberSummary,
+    (/** @type {any} */ d) => Array.isArray(d?.y) && d.y.length === 5 && d.y,
+    (/** @type {any} */ d, /** @type {any} */ est, /** @type {number[]} */ values) => ({
+      ...d,
+      y: est.summary,
+      points: values,
+    }),
+  )
 }
 
 /**
@@ -261,43 +236,73 @@ function boxPlotTransform(ser, w) {
  * @returns {any[]}
  */
 function violinTransform(ser, w) {
-  if (!Array.isArray(ser)) return ser
   const kde = w.config.plotOptions?.violin?.kde || {}
-  const derived = derivedStats(w, 'violin')
+  return sampleTransform(
+    ser,
+    w,
+    'violin',
+    { bandwidth: kde.bandwidth, resolution: kde.resolution },
+    kernelDensity,
+    (/** @type {any} */ d) =>
+      Array.isArray(d?.y?.density) && d.y.density.length && d.y.density,
+    (/** @type {any} */ d, /** @type {any} */ est, /** @type {number[]} */ values) => ({
+      ...d,
+      // Keep the rest of an object `y`: a summary given with the points still
+      // draws the box lane.
+      y: {
+        ...(d.y && typeof d.y === 'object' && !Array.isArray(d.y) ? d.y : {}),
+        density: est.density,
+        points: values,
+      },
+    }),
+  )
+}
+
+/**
+ * The shared walk of the boxPlot and violin transforms: every datum of every
+ * series of `type` that carries a sample and no statistic of its own (or the
+ * one this transform wrote last pass) gets `fn(sample, opts)`, written by
+ * `write`.
+ *
+ * A combo's other series are not samples: a violin series carries its jitter
+ * in `points` too, and a boxPlot's or a rangeArea's `y` is a flat number
+ * array, which a violin would estimate into a density.
+ *
+ * @param {any[]} ser
+ * @param {any} w
+ * @param {string} type
+ * @param {any} opts
+ * @param {(values: number[], opts: any) => any} fn
+ * @param {(d: any) => any} statOf - the datum's own statistic, or falsy
+ * @param {(d: any, est: any, values: number[]) => any} write
+ * @returns {any[]}
+ */
+function sampleTransform(ser, w, type, opts, fn, statOf, write) {
+  if (!Array.isArray(ser)) return ser
+  const derived = derivedStats(w, type)
   /** @type {Array<Array<number[] | null>>} */
   const observed = []
 
   const out = ser.map((/** @type {any} */ s, /** @type {number} */ i) => {
-    // A combo's other series are not samples: a boxPlot's or a rangeArea's
-    // `y` is a flat number array too, and was estimated into a density.
-    if (!Array.isArray(s?.data) || (s.type && s.type !== 'violin')) return s
+    if (!Array.isArray(s?.data) || (s.type && s.type !== type)) return s
     let touched = false
     /** @type {Array<number[] | null>} */
     const byPoint = new Array(s.data.length).fill(null)
     const data = s.data.map((/** @type {any} */ d, /** @type {number} */ j) => {
+      // An existing statistic wins: this is the documented input shape. Unless
+      // we are the ones who derived it, in which case the options that shaped
+      // it may have changed.
       const key = i + ':' + j
-      if (
-        Array.isArray(d?.y?.density) &&
-        d.y.density.length &&
-        !isDerived(derived, key, d.y.density)
-      ) {
-        return d
-      }
-      const values = observationsOf(d, true)
+      const stat = statOf(d)
+      if (stat && !isDerived(derived, key, stat)) return d
+      // Only a density-based type reads a flat number `y` as the sample.
+      const values = observationsOf(d, type === 'violin')
       if (!values) return d
-      const est = kernelDensity(values, {
-        bandwidth: kde.bandwidth,
-        resolution: kde.resolution,
-      })
+      const est = deriveStat(derived, key, values, opts, fn)
       if (!est) return d
       touched = true
       byPoint[j] = values
-      // Keep the rest of an object `y`: a summary given with the points still
-      // draws the box lane.
-      const rest =
-        d.y && typeof d.y === 'object' && !Array.isArray(d.y) ? d.y : {}
-      derived.set(key, est.density)
-      return { ...d, y: { ...rest, density: est.density, points: values } }
+      return write(d, est, values)
     })
     if (touched) observed[i] = byPoint
     return touched ? { ...s, data } : s

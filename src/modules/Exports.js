@@ -6,6 +6,25 @@ import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { SVGNS } from '../svg/math'
 
+// Cross-origin font CSS and font files fetched for an export, by url, so
+// every trellis panel and an export soon after reuse them. An entry is
+// dropped a minute after it loads, so font data is not held for the life
+// of the page, and at once when it fails, so the next export retries it.
+/** @type {Record<string, Promise<any>>} */
+const fontFetches = {}
+/**
+ * @param {string} url
+ * @param {(url: string) => Promise<any>} get
+ */
+const fetchFont = (url, get) =>
+  (fontFetches[url] ||= get(url).then(
+    (v) => (setTimeout(() => delete fontFetches[url], 6e4), v),
+    (e) => {
+      delete fontFetches[url]
+      throw e
+    },
+  ))
+
 class Exports {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -418,8 +437,9 @@ class Exports {
         walkRules(rules, sheet.href || document.baseURI)
       } else if (sheet.href) {
         remote.push(
-          fetch(sheet.href)
-            .then((r) => (r.ok ? r.text() : ''))
+          fetchFont(sheet.href, (u) =>
+            fetch(u).then((r) => (r.ok ? r.text() : Promise.reject())),
+          )
             .then((text) => pushFromText(text, sheet.href))
             .catch(() => {}),
         )
@@ -495,6 +515,7 @@ class Exports {
    * @returns {Promise<string | null>}
    */
   inlineFontFaceUrls(css, base) {
+    /** @type {string[]} */
     const urls = []
     const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi
     let m
@@ -504,20 +525,17 @@ class Exports {
     if (!urls.length) return Promise.resolve(css.includes('data:') ? css : null)
 
     return Promise.all(
-      urls.map((url) =>
-        this.fetchAsDataUri(base ? new URL(url, base).href : url)
-          .then((dataUri) => ({ url, dataUri }))
-          .catch(() => ({ url, dataUri: null })),
-      ),
-    ).then((results) => {
+      urls.map((url) => {
+        const href = base ? new URL(url, base).href : url
+        return fetchFont(href, (u) => this.fetchAsDataUri(u)).catch(() => {})
+      }),
+    ).then((dataUris) => {
       let out = css
-      let replaced = 0
-      results.forEach(({ url, dataUri }) => {
-        if (!dataUri) return
-        out = out.split(url).join(dataUri)
-        replaced++
+      urls.forEach((url, i) => {
+        if (dataUris[i]) out = out.split(url).join(dataUris[i])
       })
-      return replaced ? out : null
+      // Every url came out of `css`, so any data uri changes it.
+      return out === css ? null : out
     })
   }
 
@@ -1045,16 +1063,21 @@ class Exports {
         !w.config.xaxis.categories.length &&
         !w.config.labels.length
       ) {
-        // One row per distinct x across the series. A Map stops a plain
-        // object category named `__proto__` from writing.
+        // The nth point at an x in each series shares that x's nth row. A Map
+        // stops a plain object category named `__proto__` from writing.
         /** @type {Map<string, {cat: any, values: any[][]}>} */
         const byCategory = new Map()
         series.forEach((/** @type {any} */ s, /** @type {number} */ sI) => {
+          /** @type {Map<string, number>} */
+          const seen = new Map()
           s?.data?.forEach((/** @type {any} */ d, /** @type {number} */ i) => {
             // only {x, y} and [x, y] points carry their own x; a null is a gap
             if (!d || typeof d !== 'object') return
             const cat = Array.isArray(d) ? d[0] : d.x
-            const key = String(cat)
+            const x = String(cat)
+            const n = seen.get(x) || 0
+            seen.set(x, n + 1)
+            const key = `${n}:${x}`
             let row = byCategory.get(key)
             if (!row) {
               row = { cat, values: cols.map((c) => c.head.map(() => '')) }
@@ -1072,7 +1095,8 @@ class Exports {
             const bText = typeof b.cat === 'string'
             if (aText !== bText) return aText ? 1 : -1
             if (!aText) return a.cat - b.cat
-            return w.axisFlags.isXNumeric ?(a.cat < b.cat ? -1 : 1) : 0
+            if (!w.axisFlags.isXNumeric) return 0
+            return a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : 0
           })
           .forEach(({ cat, values }) => body.push([cat, ...values.flat()]))
       } else {
@@ -1097,8 +1121,9 @@ class Exports {
     }
 
     const dates = body.map((r) => r[0]).filter(isDateCat)
+    const stamps = new Set(dates.map((c) => +new Date(c)))
     const withTime =
-      new Set(dates.map((c) => datetimeText(c))).size < dates.length
+      new Set([...stamps].map((t) => datetimeText(t))).size < stamps.size
     body.forEach((r) =>
       rows.push(
         [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(

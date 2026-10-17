@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1142,17 +1142,11 @@ class Pie {
     this.offsetSlice(i, this.getExpandOffset(), animate);
   }
   /**
-   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
-   * drilldown owns the click, and always for polarArea: there the radius
-   * encodes the value, so moving a slice outward would read as a bigger number.
+   * How far a clicked slice slides out, in px (see Filters.sliceExpandOffset).
    * @returns {number}
    */
   getExpandOffset() {
-    const pie = this.w.config.plotOptions.pie;
-    if (!pie.expandOnClick || this.chartType === "polarArea") return 0;
-    if (Filters.drilldownBlocksSliceOffset(this.w)) return 0;
-    const offset = Number(pie.expandOffset);
-    return Number.isFinite(offset) && offset > 0 ? offset : 0;
+    return Filters.sliceExpandOffset(this.w);
   }
   /**
    * Every node that has to travel with slice `i`: the slice path itself plus
@@ -1749,6 +1743,7 @@ function resolveClaimed(w, option, seriesIndex, fallback) {
   return resolved;
 }
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const resolveEasing = _core.__apex_Easing_resolveEasing;
 class Radial extends Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -2503,12 +2498,10 @@ class Radial extends Pie {
       return null;
     }
     const speed = Number((_b = cfg.animation) == null ? void 0 : _b.duration) || Number(cfg.animationSpeed) || (isInitialMount ? anim.speed : (_c = anim.dynamicAnimation) == null ? void 0 : _c.speed) || 800;
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
     return {
       speed,
       mount: isInitialMount,
-      ease: isInitialMount ? (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2) : (t) => 1 - Math.pow(1 - t, 3)
+      ease: resolveEasing(isInitialMount ? "easeOutBack" : "easeOutCubic")
     };
   }
   /**

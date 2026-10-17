@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -28,16 +28,6 @@ const Fill = _core.__apex_Fill;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const DataLabels = _core.__apex_DataLabels;
-const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
-  if (typeof value !== "function") return value;
-  const resolved = value({
-    series: w.seriesData.series,
-    seriesIndex,
-    dataPointIndex,
-    w
-  });
-  return Number.isFinite(resolved) ? resolved : 0;
-};
 class TreemapHelpers {
   /**
    * @param {import('../../../types/internal').ChartStateW} w
@@ -187,13 +177,9 @@ class TreemapHelpers {
       elDataLabelsWrap = graphics.group({
         class: "apexcharts-data-labels"
       });
-      const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j);
-      const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j);
-      const dataLabelsX = x + offX;
-      const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
       dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
+        x,
+        y: y + parseFloat(dataLabelsConfig.style.fontSize) / 3,
         text,
         i,
         j,

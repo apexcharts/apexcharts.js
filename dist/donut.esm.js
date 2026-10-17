@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1142,17 +1142,11 @@ class Pie {
     this.offsetSlice(i, this.getExpandOffset(), animate);
   }
   /**
-   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
-   * drilldown owns the click, and always for polarArea: there the radius
-   * encodes the value, so moving a slice outward would read as a bigger number.
+   * How far a clicked slice slides out, in px (see Filters.sliceExpandOffset).
    * @returns {number}
    */
   getExpandOffset() {
-    const pie = this.w.config.plotOptions.pie;
-    if (!pie.expandOnClick || this.chartType === "polarArea") return 0;
-    if (Filters.drilldownBlocksSliceOffset(this.w)) return 0;
-    const offset = Number(pie.expandOffset);
-    return Number.isFinite(offset) && offset > 0 ? offset : 0;
+    return Filters.sliceExpandOffset(this.w);
   }
   /**
    * Every node that has to travel with slice `i`: the slice path itself plus

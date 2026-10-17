@@ -1375,6 +1375,10 @@ export default class ZoomPanSelection extends Toolbar {
       }
     }
 
+    // A vertical drag, or one held at the data edge, leaves the window where
+    // it is: no re-render and no `scrolled` for a pan that did not move.
+    if (xLowestValue === minX && xHighestValue === maxX) return
+
     const xaxis = {
       min: xLowestValue,
       max: xHighestValue,

@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts$1 from "apexcharts";
@@ -62,6 +62,285 @@ const getChartClass = ApexCharts.__apex_ChartFactory_getChartClass;
 const Fill = ApexCharts.__apex_Fill;
 const Graphics = ApexCharts.__apex_Graphics;
 const Series = ApexCharts.__apex_Series;
+const Animations = ApexCharts.__apex_Animations;
+const prefersReducedMotion = ApexCharts.__apex_Animations_prefersReducedMotion;
+const BrowserAPIs = ApexCharts.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = ApexCharts.__apex_Environment_Environment;
+const resolveEasing = ApexCharts.__apex_Easing_resolveEasing;
+const parsePath = ApexCharts.__apex_PathMorphing_parsePath;
+const arrayToPath = ApexCharts.__apex_PathMorphing_arrayToPath;
+function buildUnionEntries(join, oldN) {
+  const exitSet = new Set(join.exits);
+  const entries = [];
+  let oi = 0;
+  for (let nj = 0; nj < join.toOld.length; nj++) {
+    const oj = join.toOld[nj];
+    if (oj !== -1) {
+      while (oi < oj) {
+        if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
+        oi++;
+      }
+      entries.push({ oldJ: oj, newJ: nj });
+      oi = oj + 1;
+    } else {
+      entries.push({ oldJ: -1, newJ: nj });
+    }
+  }
+  while (oi < oldN) {
+    if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
+    oi++;
+  }
+  return entries;
+}
+function analyzeSeriesPath(d, expectedAnchors, isArea) {
+  if (!d || typeof d !== "string") return null;
+  const cmds = parsePath(d);
+  if (!cmds.length || cmds[0][0] !== "M") return null;
+  for (let i2 = 1; i2 < cmds.length; i2++) {
+    if (cmds[i2][0] === "M") return null;
+  }
+  let body = cmds;
+  let closing = null;
+  if (isArea) {
+    if (cmds.length < 5) return null;
+    closing = cmds.slice(-3);
+    body = cmds.slice(0, -3);
+    if (closing[2][0] !== "Z") return null;
+    if (closing[1][0] !== "L") return null;
+    if (closing[0][0] !== "L" && closing[0][0] !== "C") return null;
+  } else if (cmds[cmds.length - 1][0] === "Z") {
+    return null;
+  }
+  if (body.length !== expectedAnchors || body.length < 2) return null;
+  const segType = body[1][0];
+  if (segType !== "L" && segType !== "C") return null;
+  for (let i2 = 2; i2 < body.length; i2++) {
+    if (body[i2][0] !== segType) return null;
+  }
+  const anchors = body.map(
+    (c) => c[0] === "C" ? [Number(c[5]), Number(c[6])] : [Number(c[1]), Number(c[2])]
+  );
+  for (const a2 of anchors) {
+    if (!isFinite(a2[0]) || !isFinite(a2[1])) return null;
+  }
+  return { body, closing, segType, anchors };
+}
+function lerpPt(a2, b, t2) {
+  return [a2[0] + (b[0] - a2[0]) * t2, a2[1] + (b[1] - a2[1]) * t2];
+}
+function splitCubic(s2, cmd, t2) {
+  const p0 = s2;
+  const p1 = [cmd[1], cmd[2]];
+  const p2 = [cmd[3], cmd[4]];
+  const p3 = [cmd[5], cmd[6]];
+  const p01 = lerpPt(p0, p1, t2);
+  const p12 = lerpPt(p1, p2, t2);
+  const p23 = lerpPt(p2, p3, t2);
+  const p012 = lerpPt(p01, p12, t2);
+  const p123 = lerpPt(p12, p23, t2);
+  const mid = lerpPt(p012, p123, t2);
+  return {
+    first: ["C", p01[0], p01[1], p012[0], p012[1], mid[0], mid[1]],
+    second: ["C", p123[0], p123[1], p23[0], p23[1], p3[0], p3[1]],
+    mid
+  };
+}
+function splitLine(s2, cmd, t2) {
+  const e2 = [cmd[1], cmd[2]];
+  const mid = lerpPt(s2, e2, t2);
+  return {
+    first: ["L", mid[0], mid[1]],
+    second: ["L", e2[0], e2[1]],
+    mid
+  };
+}
+function expandPath(analysis, ownIdx) {
+  const { body, closing, segType, anchors } = analysis;
+  const n2 = anchors.length;
+  const m = ownIdx.length;
+  const degen = (p) => segType === "C" ? ["C", p[0], p[1], p[0], p[1], p[0], p[1]] : ["L", p[0], p[1]];
+  const out = [["M", anchors[0][0], anchors[0][1]]];
+  let firstOwn = 0;
+  while (firstOwn < m && ownIdx[firstOwn] !== 0) firstOwn++;
+  for (let q2 = 1; q2 <= firstOwn; q2++) out.push(degen(anchors[0]));
+  let entry = firstOwn + 1;
+  for (let s2 = 0; s2 < n2 - 1; s2++) {
+    let interior = 0;
+    while (entry + interior < m && ownIdx[entry + interior] === -1) interior++;
+    const cmd = body[s2 + 1];
+    if (!interior) {
+      out.push(cmd.slice());
+    } else {
+      const totalParts = interior + 1;
+      let start = anchors[s2];
+      let rest = cmd;
+      for (let q2 = 0; q2 < interior; q2++) {
+        const t2 = 1 / (totalParts - q2);
+        const sp = segType === "C" ? splitCubic(start, rest, t2) : splitLine(start, rest, t2);
+        out.push(sp.first);
+        start = sp.mid;
+        rest = sp.second;
+      }
+      out.push(rest);
+    }
+    entry += interior + 1;
+  }
+  while (entry < m) {
+    out.push(degen(anchors[n2 - 1]));
+    entry++;
+  }
+  if (closing) closing.forEach((c) => out.push(c.slice()));
+  return out;
+}
+function reconcilePathPair(fromD, toD, entries, oldN, newN, isArea) {
+  const fromAnalysis = analyzeSeriesPath(fromD, oldN, isArea);
+  if (!fromAnalysis) return null;
+  const toAnalysis = analyzeSeriesPath(toD, newN, isArea);
+  if (!toAnalysis) return null;
+  if (fromAnalysis.segType !== toAnalysis.segType) return null;
+  if ((fromAnalysis.closing || toAnalysis.closing) && (!fromAnalysis.closing || !toAnalysis.closing || fromAnalysis.closing[0][0] !== toAnalysis.closing[0][0])) {
+    return null;
+  }
+  const fromOwn = entries.map((e2) => e2.oldJ);
+  const toOwn = entries.map((e2) => e2.newJ);
+  return {
+    from: arrayToPath(expandPath(fromAnalysis, fromOwn)),
+    toInterp: arrayToPath(expandPath(toAnalysis, toOwn))
+  };
+}
+function lengthTransitionEnabled(w) {
+  var _a;
+  const anim = w.config.chart.animations;
+  if (!anim || anim.enabled === false) return false;
+  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
+    return false;
+  }
+  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
+  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
+  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
+}
+function datumKey(w, realIndex, j2) {
+  var _a, _b, _c, _d;
+  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
+    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
+  }
+  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j2];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j2;
+}
+function frameDatumKey(frame, realIndex, j2) {
+  var _a, _b;
+  if (frame.isXNumeric) {
+    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
+  }
+  const lbl = (_b = frame.labels) == null ? void 0 : _b[j2];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j2;
+}
+function joinKeys(oldKeys, newKeys) {
+  const oldIndex = /* @__PURE__ */ new Map();
+  oldKeys.forEach((k2, i2) => {
+    if (!oldIndex.has(k2)) oldIndex.set(k2, i2);
+  });
+  const toOld = new Array(newKeys.length);
+  const usedOld = /* @__PURE__ */ new Set();
+  let prev = -1;
+  let ordered = true;
+  let identity = oldKeys.length === newKeys.length;
+  newKeys.forEach((k2, i2) => {
+    const oi = oldIndex.has(k2) && !usedOld.has(oldIndex.get(k2)) ? oldIndex.get(k2) : -1;
+    toOld[i2] = oi;
+    if (oi !== -1) {
+      usedOld.add(oi);
+      if (oi < prev) ordered = false;
+      prev = oi;
+    }
+    if (oi !== i2) identity = false;
+  });
+  const exits = [];
+  for (let i2 = 0; i2 < oldKeys.length; i2++) {
+    if (!usedOld.has(i2)) exits.push(i2);
+  }
+  return { toOld, exits, ordered, changed: !identity };
+}
+function uniquifyKeys(keys) {
+  const seen = /* @__PURE__ */ new Map();
+  return keys.map((k2) => {
+    const count = seen.get(k2) || 0;
+    seen.set(k2, count + 1);
+    return count === 0 ? k2 : `${k2}#${count}`;
+  });
+}
+function seriesKeys(w, realIndex, n2 = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
+  return uniquifyKeys(
+    Array.from({ length: n2 }, (_2, j2) => datumKey(w, realIndex, j2))
+  );
+}
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
+  var _a, _b;
+  if (!lengthTransitionEnabled(w)) return null;
+  const frame = w.globals.prevStreamFrame;
+  if (!frame) return null;
+  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+  if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
+  if (!oldY.length || !newY.length) return null;
+  const oldKeys = uniquifyKeys(
+    oldY.map((_2, j2) => frameDatumKey(frame, realIndex, j2))
+  );
+  const newKeys = seriesKeys(w, realIndex);
+  const join = joinKeys(oldKeys, newKeys);
+  if (!join.ordered && !allowReorder) return null;
+  if (!join.changed && !includeIdentity) return null;
+  return { join, oldKeys, newKeys };
+}
+function morphEasing(w) {
+  var _a, _b;
+  const anim = w.config.chart.animations;
+  return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
+}
+function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
+  var _a, _b;
+  const sj = seriesJoin(w, realIndex);
+  if (!sj) return null;
+  const { join, oldKeys, newKeys } = sj;
+  const frame = w.globals.prevStreamFrame;
+  if (!frame) return null;
+  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+  if (oldY.length < 2 || newY.length < 2) return null;
+  if (oldY.some((v) => v === null) || newY.some((v) => v === null)) return null;
+  const entries = buildUnionEntries(join, oldKeys.length);
+  const out = {};
+  if (Array.isArray(linePaths) && linePaths.length === 1 && pathFromLine) {
+    out.line = reconcilePathPair(
+      pathFromLine,
+      linePaths[0],
+      entries,
+      oldKeys.length,
+      newKeys.length,
+      false
+    );
+  }
+  if (type === "area" && Array.isArray(areaPaths) && areaPaths.length === 1 && pathFromArea) {
+    out.area = reconcilePathPair(
+      pathFromArea,
+      areaPaths[0],
+      entries,
+      oldKeys.length,
+      newKeys.length,
+      true
+    );
+  }
+  if (!out.line && !out.area) return null;
+  return out;
+}
 const Utils = ApexCharts.__apex_Utils;
 const tangents = (points) => {
   const m = finiteDifferences(points);
@@ -173,9 +452,20 @@ function finiteDifferences(points) {
   m[i2] = d;
   return m;
 }
+function jitterExtent(pool, w) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  pool.slice(0, w.seriesData.series.length).flat(2).forEach((v) => {
+    if (v === +v) {
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+  });
+  return [lo, hi];
+}
 function buildJitterGroups({
-  w,
   points,
+  extent,
   seedA,
   seedB,
   center,
@@ -186,6 +476,7 @@ function buildJitterGroups({
   clampAt,
   sideSign
 }) {
+  var _a, _b;
   const opts = options;
   if (!opts || opts.show === false) return [];
   if (!points || !points.length) return [];
@@ -199,8 +490,8 @@ function buildJitterGroups({
   const scale = opts.colorScale;
   const useScale = scale && Array.isArray(scale.colors) && scale.colors.length > 0;
   const steps = useScale ? Math.max(2, scale.steps || 24) : 1;
-  const sMin = useScale && scale.min != null ? scale.min : w.globals.minY;
-  const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY;
+  const sMin = (_a = scale == null ? void 0 : scale.min) != null ? _a : extent[0];
+  const sMax = (_b = scale == null ? void 0 : scale.max) != null ? _b : extent[1];
   const span = sMax - sMin || 1;
   const buckets = useScale ? new Array(steps).fill("") : [""];
   for (let k2 = 0; k2 < points.length; k2 += stride) {
@@ -286,7 +577,7 @@ function renderJitter({
   elSeries.add(elPointsWrap);
 }
 function darkenColor(color, amount) {
-  const rgb = Utils.parseHex(color);
+  const rgb = Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color));
   if (!rgb) return color;
   const f = Math.max(0, 1 - amount);
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
@@ -343,6 +634,7 @@ class Violin extends BarBase {
     const fill = new Fill(this.w);
     this.violinOptions = w.config.plotOptions.violin;
     this.pointsOptions = this.violinOptions.points;
+    this.jx = jitterExtent(w.violinData.seriesViolinPoints, w);
     this.boxOptions = this.violinOptions.box || {};
     this.cloudSign = crossSign(this.violinOptions.side);
     this.rainSign = this.pointsOptions.show === false ? 0 : crossSign(this.pointsOptions.position);
@@ -357,7 +649,7 @@ class Violin extends BarBase {
     series = this.coreUtils.getLogSeries(series);
     this.series = series;
     this.yRatio = this.coreUtils.getLogYRatios(this.yRatio);
-    this.barHelpers.initVariables(series);
+    this.barHelpers.initVariables(series, seriesIndex);
     const ret = graphics.group({
       class: "apexcharts-violin-series apexcharts-plot-series"
     });
@@ -504,7 +796,8 @@ class Violin extends BarBase {
               elDataLabelsWrap,
               visibleSeries: this.visibleI,
               type: "violin",
-              classes: "apexcharts-raincloud-box"
+              classes: "apexcharts-raincloud-box",
+              noLabel: true
             });
           });
         }
@@ -541,11 +834,16 @@ class Violin extends BarBase {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const { realIndex, j: j2, translationsIndex } = indexes;
-    const yRatio = this.yRatio[translationsIndex];
+    const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
+    let barXPosition = x2 + barWidth * this.visibleI;
     if (w.axisFlags.isXNumeric) {
-      x2 = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+      ({ x: x2, barXPosition } = this.getBarXForNumericXAxis({
+        x: x2,
+        barWidth,
+        realIndex,
+        j: j2
+      }));
     }
-    const barXPosition = x2 + barWidth * this.visibleI;
     const center = barXPosition + barWidth / 2;
     const halfExtent = barWidth / 2;
     const density = this.getDensity(realIndex, j2);
@@ -574,7 +872,7 @@ class Violin extends BarBase {
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this._prevBody(realIndex, j2, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -613,7 +911,7 @@ class Violin extends BarBase {
         alongFn,
         vertical: true
       }),
-      alongRepresentative: alongFn((_g = this.series[indexes.i][j2]) != null ? _g : 0)
+      alongRepresentative: alongFn((_g = w.seriesData.series[realIndex][j2]) != null ? _g : 0)
     };
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
@@ -621,7 +919,7 @@ class Violin extends BarBase {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const { realIndex, j: j2 } = indexes;
-    const yRatio = this.invertedYRatio;
+    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
     const barYPosition = y + barHeight * this.visibleI;
     const center = barYPosition + barHeight / 2;
     const halfExtent = barHeight / 2;
@@ -651,7 +949,7 @@ class Violin extends BarBase {
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this._prevBody(realIndex, j2, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
@@ -688,7 +986,7 @@ class Violin extends BarBase {
         alongFn,
         vertical: false
       }),
-      alongRepresentative: alongFn((_g = this.series[indexes.i][j2]) != null ? _g : 0)
+      alongRepresentative: alongFn((_g = w.seriesData.series[realIndex][j2]) != null ? _g : 0)
     };
   }
   /**
@@ -780,6 +1078,23 @@ class Violin extends BarBase {
     return this.smoothSegment(rightPts, vertical, false) + this.smoothSegment(leftPts, vertical, true) + "z";
   }
   /**
+   * The survivor's previous body when it can morph to `pathTo`, else null so
+   * the violin regrows from its centreline (a changed density node count
+   * cannot tween, and bar corner reconciliation does not apply here).
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {string} pathTo
+   * @returns {string | null}
+   */
+  _prevBody(realIndex, j2, pathTo) {
+    var _a, _b;
+    const d = (_b = (_a = this._prevKeyedPaths(realIndex)) == null ? void 0 : _a.get(
+      datumKey(this.w, realIndex, j2)
+    )) == null ? void 0 : _b.d;
+    return d && Violin.pathCommandCount(d) === Violin.pathCommandCount(pathTo) ? d : null;
+  }
+  /**
    * Build the five-number box sub-paths for one category — the raincloud
    * "umbrella", or a violin box overlay. Two sub-paths so each can carry its
    * own fill: the whisker stems + caps (stroke only) and the q1-q3 rect with
@@ -796,7 +1111,7 @@ class Violin extends BarBase {
    * @returns {{pathTo:string, pathFrom:string, filled:boolean}[] | null}
    */
   buildBoxSubPaths({ realIndex, j: j2, boxCenter, boxHalfPx, alongFn, vertical }) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     if (!this.boxShown || boxHalfPx <= 0) return null;
     const summary = (_a = w.violinData.seriesViolinSummary[realIndex]) == null ? void 0 : _a[j2];
@@ -821,22 +1136,17 @@ class Violin extends BarBase {
     };
     const full = build2(capHalf, boxHalfPx);
     const collapsed = build2(0, 0);
-    const fromFor = (pathTo, collapsedFrom) => {
-      let pathFrom = null;
-      if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPreviousPath(realIndex, j2, pathTo);
-      }
-      return pathFrom == null ? collapsedFrom : pathFrom;
-    };
+    const keyed = w.globals.previousPaths.length ? this._prevKeyedPaths(realIndex) : null;
+    const prevBox = ((_c = keyed == null ? void 0 : keyed.get(datumKey(w, realIndex, j2))) == null ? void 0 : _c.box) || [];
     return [
       {
         pathTo: full.whiskers,
-        pathFrom: fromFor(full.whiskers, collapsed.whiskers),
+        pathFrom: prevBox[0] || collapsed.whiskers,
         filled: false
       },
       {
         pathTo: full.box,
-        pathFrom: fromFor(full.box, collapsed.box),
+        pathFrom: prevBox[1] || collapsed.box,
         filled: true
       }
     ];
@@ -912,8 +1222,11 @@ class Violin extends BarBase {
     const scatterCenter = offsetLane ? rainCenter : this.cloudSign !== 0 ? cloudBase : center;
     const scatterHalf = offsetLane ? rainHalfPx : this.cloudSign !== 0 ? cloudMaxPx : halfExtent;
     return buildJitterGroups({
-      w: this.w,
       points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j2],
+      extent: (
+        /** @type {number[]} */
+        this.jx
+      ),
       seedA: realIndex,
       seedB: j2,
       center: scatterCenter,
@@ -1707,10 +2020,6 @@ function getUnitMark(name) {
   if (!name) return null;
   return getMarks()[name] || null;
 }
-const Environment = ApexCharts.__apex_Environment_Environment;
-const BrowserAPIs = ApexCharts.__apex_BrowserAPIs_BrowserAPIs;
-const Animations = ApexCharts.__apex_Animations;
-const prefersReducedMotion = ApexCharts.__apex_Animations_prefersReducedMotion;
 function drawOuterLabel(w, spec) {
   const {
     lines,
@@ -1813,6 +2122,15 @@ function spaceOutLabels(items, minGap, maxY, minY) {
   }
 }
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const uniqueId = (seen, id) => {
+  const n2 = (seen.get(id) || 0) + 1;
+  seen.set(id, n2);
+  return n2 > 1 ? id + "#" + n2 : id;
+};
+const toNum = (v) => {
+  if (typeof v === "string") v = parseFloat(v);
+  return typeof v === "number" && isFinite(v) ? v : null;
+};
 function easeOutCubic(t2) {
   return 1 - Math.pow(1 - t2, 3);
 }
@@ -1858,6 +2176,9 @@ class Unit {
     const w = this.w;
     const graphics = new Graphics(w, this.ctx);
     const ret = graphics.group({ class: "apexcharts-unit" });
+    BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0);
+    BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0);
+    w.globals.unitGatherRAF = w.globals.unitExitRAF = null;
     if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret;
     }
@@ -1867,15 +2188,16 @@ class Unit {
     const flow = transition === "flow";
     const identity = transition === "identity";
     const unitValue = opts.unitValue > 0 ? opts.unitValue : 1;
+    const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
     let counts = series.map((v) => {
       const n2 = Math.abs(Utils.parseNumber(v)) / unitValue;
-      return n2 > 0 ? Math.max(1, Math.round(n2)) : 0;
+      return gridSplit ? n2 : n2 > 0 ? Math.max(1, Math.round(n2)) : 0;
     });
-    counts = this._applyMaxUnits(counts, opts.maxUnits);
+    if (!gridSplit && layout !== "scatter") {
+      counts = this._applyMaxUnits(counts, opts.maxUnits);
+    }
     const total = counts.reduce((a2, b) => a2 + b, 0);
     const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : layout === "arc" ? this._layoutArc(counts, opts) : layout === "custom" ? this._layoutCustom(counts, opts) : this._layoutGrouped(counts, opts);
-    const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
-    if (gridSplit) this._drawGridTrack(ret, graphics, opts);
     if (layout === "scatter") this._drawScatterAxes(ret, graphics);
     const dotR = this._lastDotR;
     const animate = this._shouldAnimate();
@@ -1906,7 +2228,49 @@ class Unit {
     const unitData = w.seriesData.unitData || [];
     const sizeStats = this._bubbleStats(unitData, opts, dotR);
     let gIndex = 0;
-    clusters.forEach((cluster) => {
+    const seen = /* @__PURE__ */ new Map();
+    const track = gridSplit && this._gridTrack && this._gridTrack.cells || [];
+    const trackG = graphics.group({ class: "apexcharts-unit-track" });
+    if (track.length) ret.add(trackG);
+    const trackFill = opts.grid && opts.grid.trackColor || "rgba(128,128,128,0.14)";
+    const trackSpec = this._baseSpec({ shape: opts.shape === "square" && "square" }, dotR);
+    const perTile = track.length / Math.max(1, clusters.length);
+    const live = this.ctx && this.ctx._unitSprings;
+    const glide = (node, spec, x2, y, key, r2, at, pair) => {
+      const from = prev && prev.get(key);
+      const s2 = live && live.get(key);
+      const still = from && from.x === x2 && from.y === y && from.r === r2 && (!s2 || s2.x.value === x2 && s2.y.value === y);
+      nextPrev.set(key, { x: x2, y, fill: trackFill, r: r2, spec });
+      if (prev && animate && !pieceTakeover && !still) {
+        const cx0 = from ? from.x : x2;
+        const cy0 = from ? from.y : y;
+        node.style.opacity = from ? "1" : "0";
+        this._place(node, spec, cx0, cy0);
+        animDots.splice(at, 0, {
+          node,
+          spec,
+          x: x2,
+          y,
+          cx0,
+          cy0,
+          key,
+          r0: from && from.r != null ? from.r : r2,
+          r1: r2,
+          delay: 0,
+          isEnter: !from,
+          pair
+        });
+      } else {
+        this._place(node, spec, x2, y);
+      }
+    };
+    const ride2 = (k2, pair) => {
+      const el = this._drawDot(graphics, opts, dotR, trackFill, -1, 0, trackSpec);
+      el.node.classList.add("apexcharts-unit-track-cell");
+      trackG.add(el);
+      glide(el.node, trackSpec, track[k2].x, track[k2].y, "trk:" + k2, dotR, animDots.length, pair);
+    };
+    clusters.forEach((cluster, ci) => {
       const color = w.globals.colors[cluster.i] || w.globals.colors[0] || "#008FFB";
       const elSeries = graphics.group({
         class: "apexcharts-series",
@@ -1918,7 +2282,9 @@ class Unit {
       });
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
+      const at = animDots.length;
       cluster.dots.forEach((d, jj) => {
+        if (track.length) ride2(ci * perTile + jj, true);
         const j2 = d.j != null ? d.j : jj;
         const datum = catData ? catData[j2] : void 0;
         const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
@@ -1929,7 +2295,7 @@ class Unit {
         let key;
         if (identity) {
           const id = datum && typeof datum === "object" ? datum.id != null ? datum.id : datum.name : void 0;
-          key = id != null ? `id:${id}` : `g:${gIndex}`;
+          key = id != null ? `id:${uniqueId(seen, String(id))}` : `g:${gIndex}`;
         } else if (flow) {
           key = String(gIndex);
         } else if (d.slot != null) {
@@ -1949,8 +2315,9 @@ class Unit {
           const anchor = from || (morphActive ? morph.getInitialSlotFor(cluster.i, j2, burstCount) : null);
           const enter = opts.gather && opts.gather.enter || "burst";
           const inPlace = gridSplit || enter === "fade" || enter === "rise";
-          const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
-          const cy0 = anchor ? anchor.y : enter === "rise" && !gridSplit ? d.y + 14 : inPlace ? d.y : cluster.cy;
+          const start = anchor || gridSplit && prev && prev.get("trk:" + d.slot);
+          const cx0 = start ? start.x : inPlace ? d.x : cluster.cx;
+          const cy0 = start ? start.y : enter === "rise" && !gridSplit ? d.y + 14 : inPlace ? d.y : cluster.cy;
           el.node.style.opacity = anchor ? "1" : "0";
           this._place(el.node, spec, cx0, cy0);
           animDots.push({
@@ -1980,9 +2347,16 @@ class Unit {
           this._place(el.node, spec, d.x, d.y);
         }
       });
+      for (let k2 = cluster.dots.length; k2 < perTile; k2++) ride2(ci * perTile + k2, false);
       if ((layout === "grouped" || layout === "columns" || gridSplit) && opts.clusterLabels && opts.clusterLabels.show && counts[cluster.i] > 0) {
         const labelTotal = gridSplit ? this._gridDenom : total;
-        this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
+        const t2 = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
+        if (t2 && gridSplit) {
+          const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 };
+          const lx = +(t2.getAttribute("x") || 0);
+          const ly = +(t2.getAttribute("y") || 0);
+          glide(t2, spec, lx, ly, "lbl:" + cluster.i, 0, at, animDots.length > at);
+        }
       }
       ret.add(elSeries);
     });
@@ -2017,9 +2391,13 @@ class Unit {
     const total = counts.reduce((a2, b) => a2 + b, 0);
     if (!maxUnits || maxUnits <= 0 || total <= maxUnits) return counts;
     const scale = maxUnits / total;
-    console.warn(
-      `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); counts were scaled down proportionally. Raise plotOptions.unit.maxUnits or use plotOptions.unit.unitValue to represent more units per dot.`
-    );
+    const ctx = this.ctx || {};
+    if (!ctx._unitCapWarned) {
+      ctx._unitCapWarned = true;
+      console.warn(
+        `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); counts were scaled down proportionally. Raise plotOptions.unit.maxUnits or use plotOptions.unit.unitValue to represent more units per dot.`
+      );
+    }
     return counts.map((c) => c > 0 ? Math.max(1, Math.round(c * scale)) : 0);
   }
   /**
@@ -2129,7 +2507,8 @@ class Unit {
    *
    * `id` is the datum's own id/name where the per-unit object form supplies
    * one, so a provider can address a specific unit ("Texas", "employee 41")
-   * rather than a positional slot. It falls back to `"<category>:<index>"`.
+   * rather than a positional slot. It falls back to `"<category>:<index>"`, and
+   * a repeated one is suffixed (`"Alex#2"`).
    *
    * @param {number[]} counts
    * @param {number} dotR the radius the engine would use, so a provider that
@@ -2141,13 +2520,17 @@ class Unit {
     const unitData = w.seriesData.unitData || [];
     const names = w.seriesData.seriesNames || [];
     const objects = [];
+    const seen = /* @__PURE__ */ new Map();
     let index = 0;
     counts.forEach((n2, i2) => {
       var _a;
       const catData = unitData[i2];
       for (let j2 = 0; j2 < n2; j2++) {
         const datum = catData ? catData[j2] : void 0;
-        const id = datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i2}:${j2}`;
+        const id = uniqueId(
+          seen,
+          datum && typeof datum === "object" && (datum.id != null || datum.name != null) ? String(datum.id != null ? datum.id : datum.name) : `${i2}:${j2}`
+        );
         objects.push({
           id,
           index,
@@ -2331,11 +2714,18 @@ class Unit {
     const pad = Math.min(gw, gh) * 0.04;
     const boxW = Math.max(1e-6, b.maxX - b.minX);
     const boxH = Math.max(1e-6, b.maxY - b.minY);
-    const r1 = Math.max(4, Math.min((gw - 2 * pad) / boxW, (gh - 2 * pad) / boxH));
-    const r0 = r1 * innerRatio;
+    const fit = (inset) => Math.max(4, Math.min((gw - 2 * pad - inset) / boxW, (gh - 2 * pad - inset) / boxH));
+    const seat = (r2) => fit(2 * this._arcAllocate(total, r2 * innerRatio, r2, span, opts).dotR);
+    let hi = fit(0);
+    let r1 = seat(hi);
+    for (let k2 = 0; k2 < 6; k2++) {
+      const m = (r1 + hi) / 2;
+      if (m <= seat(m)) r1 = m;
+      else hi = m;
+    }
     const cx = gw / 2 - (b.minX + b.maxX) / 2 * r1;
     const cy = gh / 2 - (b.minY + b.maxY) / 2 * r1;
-    const alloc = this._arcAllocate(total, r0, r1, span, opts);
+    const alloc = this._arcAllocate(total, r1 * innerRatio, r1, span, opts);
     this._lastDotR = alloc.dotR;
     const seats = [];
     for (let r2 = 0; r2 < alloc.R; r2++) {
@@ -2619,7 +3009,7 @@ class Unit {
    * value over a denominator (`grid.max`, else the largest count so the leader
    * fills its tile and every other tile stays proportionally full - no empty
    * tiles for arbitrary data). The unfilled cells are drawn as a faint TRACK
-   * backdrop (see _drawGridTrack) so each tile reads as a part-to-whole "of N".
+   * backdrop (drawn by draw()) so each tile reads as a part-to-whole "of N".
    * Only VISIBLE (non-zero) categories claim a tile, so a legend hide drops the
    * tile and the rest re-flow. Each filled cell is keyed by a physical
    * `tile*cells + localCell` slot, so a value change grows/shrinks a tile's fill
@@ -2637,7 +3027,7 @@ class Unit {
     const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
     const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
     const K2 = Math.max(1, visible.length);
-    const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts);
+    const denom = gcfg.max > 0 ? gcfg.max : Math.max(...counts) || 1;
     const tileCols = Math.max(
       1,
       Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K2)))
@@ -2703,40 +3093,6 @@ class Unit {
     return clusters;
   }
   /**
-   * Draw the faint "track" backdrop for the small-multiple grid: every cell of
-   * every tile's full lattice, so the filled (coloured) cells drawn on top read
-   * as a fraction of the whole. Static (redrawn each render, never animated);
-   * painted BEHIND the series groups. `grid.trackColor` overrides the default
-   * theme-neutral grey.
-   * @param {any} ret @param {Graphics} graphics @param {any} opts
-   */
-  _drawGridTrack(ret, graphics, opts) {
-    const track = this._gridTrack;
-    if (!track || !track.cells || !track.cells.length) return;
-    const r2 = this._lastDotR;
-    const gcfg = opts.grid || {};
-    const trackColor = gcfg.trackColor || "rgba(128,128,128,0.14)";
-    const g = graphics.group({ class: "apexcharts-unit-track" });
-    track.cells.forEach((c) => {
-      let el;
-      if (opts.shape === "square") {
-        const side = r2 * 2;
-        el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, trackColor, 1, 0, "none");
-        el.node.setAttribute("fill", trackColor);
-        el.node.setAttribute("x", String(c.x - r2));
-        el.node.setAttribute("y", String(c.y - r2));
-      } else {
-        el = graphics.drawCircle(r2, { fill: trackColor, "stroke-width": 0, stroke: "none" });
-        el.node.setAttribute("fill", trackColor);
-        el.node.setAttribute("cx", String(c.x));
-        el.node.setAttribute("cy", String(c.y));
-      }
-      el.node.classList.add("apexcharts-unit-track-cell");
-      g.add(el);
-    });
-    ret.add(g);
-  }
-  /**
    * Scatter / beeswarm layout: position every unit on a real numeric X value
    * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
    * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
@@ -2750,11 +3106,14 @@ class Unit {
   _layoutScatter(opts) {
     const w = this.w;
     const scfg = opts.scatter || {};
-    if (scfg.y === "value") return this._layoutScatter2D(opts);
-    if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts);
+    const unitData = w.seriesData.unitData || [];
+    const lens = unitData.map((c) => c ? c.length : 0);
+    const caps = this._applyMaxUnits(lens, opts.maxUnits);
+    const keep = (ci, j2) => Math.floor((j2 + 1) * caps[ci] / lens[ci]) > Math.floor(j2 * caps[ci] / lens[ci]);
+    if (scfg.y === "value") return this._layoutScatter2D(opts, keep);
+    if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts, keep);
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
-    const unitData = w.seriesData.unitData || [];
     const names = w.seriesData.seriesNames || [];
     const valueOf2 = (d) => this._unitValueOf(d);
     const sizeStats = this._scatterSizeStats(scfg, unitData);
@@ -2779,11 +3138,13 @@ class Unit {
       vmax = 1;
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount);
+    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount);
     const xMin = domain.min;
     const xMax = domain.max;
     const xSpan = xMax - xMin || 1;
-    const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? 92 : 8;
+    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 };
+    const laneName = (i2) => names[i2] || `series-${i2 + 1}`;
+    const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14) : 8;
     const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
     const plotL = laneW;
     const plotR = gw - 8;
@@ -2817,19 +3178,24 @@ class Unit {
     const maxR = sizeStats ? sizeStats.rMax : r2;
     visible.forEach((ci, slot) => {
       const cy = laneCy(slot);
-      lanes2.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` });
-      const cat = unitData[ci] || [];
-      const pts = cat.map((d, j2) => {
+      let name = laneName(ci);
+      const wid = laneW > 12 ? measureLabelWidth(w, [name], font) : 0;
+      if (wid > laneW - 14 && wid) {
+        name = name.slice(0, Math.max(1, Math.floor(name.length * (laneW - 14) / wid) - 1)) + "…";
+      }
+      lanes2.push({ i: ci, cy, name });
+      const pts = [];
+      (unitData[ci] || []).forEach((d, j2) => {
         const v = valueOf2(d);
-        const p = { j: j2, px: plotX(isNum(v) ? v : xMin), y: cy };
+        if (!isNum(v) || !keep(ci, j2)) return;
+        const p = { j: j2, px: plotX(v), y: cy };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r2);
-        return p;
+        pts.push(p);
       });
       if (jitter) {
         const halfLane = Math.max(maxR, laneH / 2 - maxR);
-        pts.forEach((p, k2) => {
-          const t2 = (k2 * 9301 + 49297) % 233280 / 233280;
-          p.y = cy + (t2 * 2 - 1) * halfLane;
+        pts.forEach((p) => {
+          p.y = cy + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
         });
       } else {
         this._beeswarm(pts, cy, r2, step, maxR);
@@ -2839,7 +3205,7 @@ class Unit {
         cx: (plotL + plotR) / 2,
         cy,
         outerR: laneH / 2,
-        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r }))
+        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r, j: p.j }))
       });
     });
     const ticks = domain.ticks;
@@ -2866,9 +3232,9 @@ class Unit {
    * dots horizontally off each column's centre line. The value-axis config keys
    * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
    * axis (now Y), so flipping `orientation` keeps the same value settings.
-   * @param {any} opts
+   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
    */
-  _layoutScatterVertical(opts) {
+  _layoutScatterVertical(opts, keep) {
     const w = this.w;
     const scfg = opts.scatter || {};
     const gw = w.layout.gridWidth;
@@ -2898,7 +3264,7 @@ class Unit {
       vmax = 1;
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount);
+    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount);
     const vMin = domain.min;
     const vMax = domain.max;
     const vSpan = vMax - vMin || 1;
@@ -2937,18 +3303,18 @@ class Unit {
     visible.forEach((ci, slot) => {
       const cx = laneCx(slot);
       lanes2.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
-      const cat = unitData[ci] || [];
-      const pts = cat.map((d, j2) => {
+      const pts = [];
+      (unitData[ci] || []).forEach((d, j2) => {
         const v = valueOf2(d);
-        const p = { j: j2, py: plotY(isNum(v) ? v : vMin), x: cx };
+        if (!isNum(v) || !keep(ci, j2)) return;
+        const p = { j: j2, py: plotY(v), x: cx };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r2);
-        return p;
+        pts.push(p);
       });
       if (jitter) {
         const halfLane = Math.max(maxR, laneW / 2 - maxR);
-        pts.forEach((p, k2) => {
-          const t2 = (k2 * 9301 + 49297) % 233280 / 233280;
-          p.x = cx + (t2 * 2 - 1) * halfLane;
+        pts.forEach((p) => {
+          p.x = cx + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
         });
       } else {
         this._beeswarm(pts, cx, r2, step, maxR, true);
@@ -2958,7 +3324,7 @@ class Unit {
         cx,
         cy: (plotT + plotB) / 2,
         outerR: laneW / 2,
-        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r }))
+        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r, j: p.j }))
       });
     });
     const ticks = domain.ticks;
@@ -2987,17 +3353,17 @@ class Unit {
    * per category). With `scatter.sizeRange` set, each dot is a BUBBLE scaled (by
    * area) from its `sizeField` (default 'z'). Needs the object form with numeric
    * `x` + `y`.
-   * @param {any} opts
+   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
    */
-  _layoutScatter2D(opts) {
+  _layoutScatter2D(opts, keep) {
     const w = this.w;
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
     const scfg = opts.scatter || {};
     const unitData = w.seriesData.unitData || [];
-    const isNum = (v) => typeof v === "number" && isFinite(v);
-    const xOf = (d) => d && typeof d === "object" ? d.x : null;
-    const yOf = (d) => d && typeof d === "object" ? d.y != null ? d.y : d.value : null;
+    const isNum = (v) => v != null;
+    const xOf = (d) => d && typeof d === "object" ? toNum(d.x) : null;
+    const yOf = (d) => d && typeof d === "object" ? toNum(d.y != null ? d.y : d.value) : null;
     const visible = unitData.map((_2, i2) => i2).filter(
       (i2) => (unitData[i2] || []).some((d) => isNum(xOf(d)) && isNum(yOf(d)))
     );
@@ -3023,22 +3389,24 @@ class Unit {
       ymn = 0;
       ymx = 1;
     }
-    const xTicksN = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const yTicksN = Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5));
-    const nx = this._niceScale(
-      scfg.xMin != null ? scfg.xMin : xmn,
-      scfg.xMax != null ? scfg.xMax : xmx,
-      xTicksN
+    const dx = this._scatterValueDomain(
+      scfg.xMin,
+      scfg.xMax,
+      xmn,
+      xmx,
+      Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
     );
-    const ny = this._niceScale(
-      scfg.yMin != null ? scfg.yMin : ymn,
-      scfg.yMax != null ? scfg.yMax : ymx,
-      yTicksN
+    const dy = this._scatterValueDomain(
+      scfg.yMin,
+      scfg.yMax,
+      ymn,
+      ymx,
+      Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5))
     );
-    const xMin = scfg.xMin != null ? scfg.xMin : nx.min;
-    const xMax = scfg.xMax != null ? scfg.xMax : nx.max;
-    const yMin = scfg.yMin != null ? scfg.yMin : ny.min;
-    const yMax = scfg.yMax != null ? scfg.yMax : ny.max;
+    const xMin = dx.min;
+    const xMax = dx.max;
+    const yMin = dy.min;
+    const yMax = dy.max;
     const xSpan = xMax - xMin || 1;
     const ySpan = yMax - yMin || 1;
     const leftGutter = 46 + (scfg.yTitle ? 18 : 0);
@@ -3056,15 +3424,17 @@ class Unit {
     this._lastDotR = baseR;
     const clusters = [];
     visible.forEach((ci) => {
-      const cat = unitData[ci] || [];
-      const dots = cat.map((d) => {
+      const dots = [];
+      (unitData[ci] || []).forEach((d, j2) => {
         const x2 = xOf(d);
         const y = yOf(d);
-        return {
-          x: plotX(isNum(x2) ? x2 : xMin),
-          y: plotY(isNum(y) ? y : yMin),
-          r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : void 0
-        };
+        if (x2 == null || y == null || !keep(ci, j2)) return;
+        dots.push({
+          x: plotX(x2),
+          y: plotY(y),
+          r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : void 0,
+          j: j2
+        });
       });
       clusters.push({
         i: ci,
@@ -3074,18 +3444,6 @@ class Unit {
         dots
       });
     });
-    const mkTicks = (lo, hi, span, spacing, pinned, n2) => {
-      const out = [];
-      if (pinned) {
-        for (let k2 = 0; k2 < n2; k2++) out.push(lo + span * k2 / (n2 - 1));
-      } else {
-        const sp = spacing || span / Math.max(1, n2 - 1);
-        for (let v = lo; v <= hi + sp * 0.5; v += sp) {
-          out.push(Math.abs(v) < sp * 1e-9 ? 0 : v);
-        }
-      }
-      return out;
-    };
     this._scatterAxis = {
       mode: "2d",
       plotL,
@@ -3094,22 +3452,8 @@ class Unit {
       plotB,
       plotX,
       plotY,
-      xTicks: mkTicks(
-        xMin,
-        xMax,
-        xSpan,
-        nx.spacing,
-        scfg.xMin != null || scfg.xMax != null,
-        xTicksN
-      ),
-      yTicks: mkTicks(
-        yMin,
-        yMax,
-        ySpan,
-        ny.spacing,
-        scfg.yMin != null || scfg.yMax != null,
-        yTicksN
-      ),
+      xTicks: dx.ticks,
+      yTicks: dy.ticks,
       xTitle: scfg.xTitle,
       yTitle: scfg.yTitle,
       xFormatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
@@ -3216,32 +3560,43 @@ class Unit {
     });
   }
   /**
-   * Value-axis domain + ticks for a 1D beeswarm. The domain ALWAYS contains
+   * Value-axis domain + ticks for a scatter axis. The domain ALWAYS contains
    * every datum: a swarm that clips a dot outside the plot box is a bug, so an
-   * explicit `xMin`/`xMax` only FRAMES the axis and is extended by whole
+   * explicit `lo`/`hi` only FRAMES the axis and is extended by whole
    * tick-steps whenever the data would otherwise overflow. Orientation-agnostic:
    * the same value axis is X for a horizontal swarm and Y for a vertical one.
-   * @param {any} scfg scatter config
+   * @param {number|undefined} lo pinned minimum @param {number|undefined} hi
+   *   pinned maximum
    * @param {number} vmin data minimum @param {number} vmax data maximum
    * @param {number} tickAmount desired tick count
    * @returns {{ min:number, max:number, ticks:number[] }}
    */
-  _scatterValueDomain(scfg, vmin, vmax, tickAmount) {
+  _scatterValueDomain(lo, hi, vmin, vmax, tickAmount) {
     const buildTicks = (min, max, spacing2) => {
       const ticks = [];
-      for (let v = min; v <= max + spacing2 * 0.5; v += spacing2) {
+      for (let k2 = 0, v = min; v <= max + spacing2 * 0.5; v = min + ++k2 * spacing2) {
         ticks.push(Math.abs(v) < spacing2 * 1e-9 ? 0 : v);
       }
       return ticks;
     };
-    if (scfg.xMin != null || scfg.xMax != null) {
-      let min = scfg.xMin != null ? scfg.xMin : vmin;
-      let max = scfg.xMax != null ? scfg.xMax : vmax;
-      if (!(max > min)) max = min + 1;
-      const spacing2 = (max - min) / Math.max(1, tickAmount - 1);
+    if (lo != null || hi != null) {
+      let min = (
+        /** @type {number} */
+        lo != null ? lo : hi
+      );
+      let max = (
+        /** @type {number} */
+        hi != null ? hi : lo
+      );
+      const spacing2 = max > min ? (max - min) / Math.max(1, tickAmount - 1) : this._niceScale(Math.min(min, vmin), Math.max(max, vmax), tickAmount).spacing;
       if (vmin < min) min -= Math.ceil((min - vmin) / spacing2) * spacing2;
       if (vmax > max) max += Math.ceil((vmax - max) / spacing2) * spacing2;
-      return { min, max, ticks: buildTicks(min, max, spacing2) };
+      if (!(max > min)) max = min + spacing2;
+      if ((max - min) / spacing2 <= 2 * tickAmount) {
+        return { min, max, ticks: buildTicks(min, max, spacing2) };
+      }
+      vmin = min;
+      vmax = max;
     }
     const nice = this._niceScale(vmin, vmax, tickAmount);
     const spacing = nice.spacing || (nice.max - nice.min) / Math.max(1, tickAmount - 1);
@@ -3332,13 +3687,13 @@ class Unit {
       ax.yTicks.forEach((v) => {
         const y = ax.plotY(v);
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
-        const label2 = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v);
+        const label2 = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v, ax.yTicks);
         text(label2, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       ax.xTicks.forEach((v) => {
         const x2 = ax.plotX(v);
         if (ax.gridlines) line(x2, ax.plotT, x2, ax.plotB, gridColor);
-        const label2 = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v);
+        const label2 = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v, ax.xTicks);
         text(label2, x2, ax.plotB + 14, "middle", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor);
@@ -3378,7 +3733,7 @@ class Unit {
       ax.ticks.forEach((v) => {
         const y = ax.plotY(v);
         if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
-        const label2 = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
+        const label2 = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v, ax.ticks);
         text(label2, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor);
@@ -3408,7 +3763,7 @@ class Unit {
     ax.ticks.forEach((v, idx) => {
       const x2 = ax.plotX(v);
       if (ax.gridlines) line(x2, ax.plotT, x2, ax.plotB, gridColor);
-      const label2 = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
+      const label2 = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v, ax.ticks);
       const anchor = idx === 0 ? "start" : idx === ax.ticks.length - 1 ? "end" : "middle";
       text(label2, x2, ax.plotB + 14, anchor, labelColor, 11, 400, "apexcharts-unit-tick");
     });
@@ -3434,17 +3789,19 @@ class Unit {
     ret.add(g);
   }
   /**
-   * Compact tick-value formatting: integers as-is, otherwise trimmed to a short
-   * decimal; large magnitudes get a k/M suffix.
-   * @param {number} v @returns {string}
+   * Compact tick-value formatting: integers as-is, otherwise trimmed to enough
+   * decimals to tell neighbouring ticks apart; large magnitudes get a k/M suffix.
+   * @param {number} v @param {number[]} ticks the axis ticks (their step sets
+   *   the decimals) @returns {string}
    */
-  _formatTick(v) {
+  _formatTick(v, ticks) {
     if (!isFinite(v)) return "";
     const a2 = Math.abs(v);
     if (a2 >= 1e6) return `${+(v / 1e6).toFixed(1)}M`;
     if (a2 >= 1e4) return `${+(v / 1e3).toFixed(1)}k`;
     if (Number.isInteger(v)) return String(v);
-    return String(+v.toFixed(2));
+    const step = Math.abs(ticks[1] - ticks[0]) || 1;
+    return String(+v.toFixed(Math.min(20, Math.max(2, 1 - Math.floor(Math.log10(step))))));
   }
   /**
    * Distribute `total` whole cells across `counts` in proportion to each value,
@@ -3509,17 +3866,12 @@ class Unit {
     return !!(sbv && sbv.enabled && opts.shape !== "image" && opts.shape !== "square");
   }
   /**
-   * This datum's numeric value for sizing / tooltip: the number itself, or an
-   * object's `value` / `y`. Null when there is no usable number.
+   * This datum's numeric value for sizing / tooltip: the number (or numeric
+   * string) itself, or an object's `value` / `y`. Null when there is none.
    * @param {any} d @returns {number | null}
    */
   _unitValueOf(d) {
-    if (typeof d === "number") return d;
-    if (d && typeof d === "object") {
-      const v = d.value != null ? d.value : d.y;
-      return typeof v === "number" ? v : null;
-    }
-    return null;
+    return toNum(d && typeof d === "object" ? d.value != null ? d.value : d.y : d);
   }
   /**
    * Radius for one bubble given the value stats. Default 'area' scaling makes
@@ -3661,8 +4013,9 @@ class Unit {
    *
    * @param {SVGElement} node @param {UnitMarkSpec} spec
    * @param {number} x @param {number} y
+   * @param {number} [k] scale against the spec's size, while a size tweens
    */
-  _place(node, spec, x2, y) {
+  _place(node, spec, x2, y, k2 = 1) {
     const s2 = (
       /** @type {any} */
       spec
@@ -3670,14 +4023,29 @@ class Unit {
     if (s2.pk === PK_GLYPH) {
       node.setAttribute(
         "transform",
-        "translate(" + (x2 - s2.ox) + "," + (y - s2.oy) + s2.tail
+        "translate(" + (x2 - s2.ox * k2) + "," + (y - s2.oy * k2) + (k2 === 1 ? s2.tail : ") scale(" + s2.s * k2 + ")")
       );
     } else if (s2.pk === PK_CORNER) {
-      node.setAttribute("x", String(x2 - s2.hx));
-      node.setAttribute("y", String(y - s2.hy));
+      node.setAttribute("x", String(x2 - s2.hx * k2));
+      node.setAttribute("y", String(y - s2.hy * k2));
     } else {
       node.setAttribute("cx", String(x2));
       node.setAttribute("cy", String(y));
+    }
+  }
+  /**
+   * Size one mark at `k` times its spec's size (a glyph scales in `_place`).
+   * @param {SVGElement} node @param {UnitMarkSpec} spec @param {number} k
+   */
+  _size(node, spec, k2) {
+    const s2 = (
+      /** @type {any} */
+      spec
+    );
+    if (s2.pk === PK_CIRCLE) node.setAttribute("r", String(s2.r * k2));
+    else if (s2.pk === PK_CORNER) {
+      node.setAttribute("width", String(2 * s2.hx * k2));
+      node.setAttribute("height", String(2 * s2.hy * k2));
     }
   }
   /**
@@ -3738,7 +4106,7 @@ class Unit {
    */
   _glyphSpec(mark, dotR, pcfg) {
     const qr = Math.round(dotR * 10) / 10;
-    const key = mark.name + "|" + mark.path.length + "|" + qr;
+    const key = mark.name + mark.path + mark.viewBox + mark.fillRule + qr;
     const hit = this._specCache.get(key);
     if (hit) return hit;
     const vb = mark.viewBox || [0, 0, 100, 100];
@@ -3787,9 +4155,9 @@ class Unit {
    * Draw one dot (circle, square, or image icon) with the category fill +
    * stroke, tagged so the shared non-axis tooltip and hover reuse work.
    * @param {Graphics} graphics @param {any} opts @param {number} dotR
-   * @param {string} color @param {number} i @param {number} j
-   * @param {UnitMarkSpec} [spec] this mark's resolved spec; defaults to the
-   *   chart-wide shape
+   * @param {string} color @param {number} i @param {number} j (i < 0: an exit
+   *   ghost, left untagged so tooltips and morph capture skip it)
+   * @param {UnitMarkSpec} spec this mark's resolved spec
    * @returns {any}
    */
   _drawDot(graphics, opts, dotR, color, i2, j2, spec) {
@@ -3798,7 +4166,7 @@ class Unit {
     const strokeColor = Array.isArray(w.globals.stroke.colors) ? w.globals.stroke.colors[i2] || "none" : "none";
     const fillOpacity = typeof w.config.fill.opacity === "number" ? w.config.fill.opacity : 1;
     let el;
-    if (spec && spec.pk === PK_GLYPH) {
+    if (spec.pk === PK_GLYPH) {
       el = w.dom.Paper.path(spec.d);
       el.node.setAttribute("fill", color);
       if (spec.fillRule === "evenodd") {
@@ -3806,7 +4174,7 @@ class Unit {
       }
       if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
       el.node.setAttribute("data:r", String(spec.r));
-    } else if (opts.shape === "image" && opts.image && opts.image.src) {
+    } else if (spec.pk === PK_CORNER && opts.shape === "image" && opts.image && opts.image.src) {
       const iw = opts.image.width || 20;
       const ih = opts.image.height || 20;
       el = w.dom.Paper.image(opts.image.src);
@@ -3816,7 +4184,7 @@ class Unit {
       if (opts.image.tint) {
         el.node.setAttribute("filter", `url(#${this._tintFilter(color)})`);
       }
-    } else if (opts.shape === "square") {
+    } else if (spec.pk === PK_CORNER) {
       const side = dotR * 2;
       el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, color, 1, strokeW, strokeColor);
       el.node.setAttribute("fill", color);
@@ -3830,9 +4198,11 @@ class Unit {
       el.node.setAttribute("fill", color);
       if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
     }
-    el.node.classList.add("apexcharts-unit-area");
-    el.node.setAttribute("i", String(i2));
-    el.node.setAttribute("j", String(j2));
+    if (i2 >= 0) {
+      el.node.classList.add("apexcharts-unit-area");
+      el.node.setAttribute("i", String(i2));
+      el.node.setAttribute("j", String(j2));
+    }
     return el;
   }
   /**
@@ -3846,10 +4216,12 @@ class Unit {
   _tintFilter(color) {
     const w = this.w;
     const NS = "http://www.w3.org/2000/svg";
-    const safe = String(color).replace(/[^a-zA-Z0-9]/g, "");
-    const id = `apexcharts-unit-tint-${w.globals.chartID}-${safe}`;
+    const tints = this._tints || (this._tints = /* @__PURE__ */ new Map());
+    let id = tints.get(color);
+    if (id) return id;
+    id = `apexcharts-unit-tint-${w.globals.chartID}-${tints.size}`;
+    tints.set(color, id);
     const svg = w.dom.Paper.node;
-    if (svg.querySelector(`#${id}`)) return id;
     let defs = svg.querySelector("defs");
     if (!defs) {
       defs = BrowserAPIs.createElementNS(NS, "defs");
@@ -3973,6 +4345,14 @@ class Unit {
     if (this.ctx) this.ctx._unitSprings = springs;
   }
   /**
+   * True once a loop's node no longer belongs to this chart's live SVG.
+   * @param {Element} node @returns {boolean}
+   */
+  _stale(node) {
+    const P = this.w.dom.Paper;
+    return !!this.w.globals.isDestroyed || !P || !P.node.contains(node);
+  }
+  /**
    * One rAF loop that tweens every dot from its start (cx0/cy0 - either the
    * cluster centre on first mount / for entering dots, or its previous slot on
    * an update) to its target slot, staggered by index. Entering dots fade in;
@@ -3994,8 +4374,8 @@ class Unit {
     const speed = Math.max(1, w.config.chart.animations.speed || 800);
     const maxDelay = Math.min(speed * 0.6, 450);
     const n2 = dots.length;
-    for (let k2 = 0; k2 < n2; k2++) {
-      dots[k2].delay = n2 > 1 ? k2 / (n2 - 1) * maxDelay : 0;
+    for (let k2 = n2; k2--; ) {
+      dots[k2].delay = dots[k2].pair ? dots[k2 + 1].delay : n2 > 1 ? k2 / (n2 - 1) * maxDelay : 0;
     }
     const gcfg = opts.gather || {};
     const motion = gcfg.motion || "auto";
@@ -4004,8 +4384,9 @@ class Unit {
     else if (this.ctx) this.ctx._unitSprings = null;
     for (let k2 = 0; k2 < n2; k2++) {
       const d = dots[k2];
-      if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-        d.node.setAttribute("r", String(d.r0));
+      if (d.r0 !== d.r1) {
+        this._size(d.node, d.spec, d.r0 / d.r1);
+        this._place(d.node, d.spec, d.cx0, d.cy0, d.r0 / d.r1);
       }
     }
     for (let k2 = 0; k2 < n2; k2++) {
@@ -4016,16 +4397,11 @@ class Unit {
       }
     }
     const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? easeInOutCubic : easeOutCubic;
-    if (this.w.globals.unitGatherRAF != null) {
-      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitGatherRAF);
-      this.w.globals.unitGatherRAF = null;
-    }
     const start = performance.now();
     let last = start;
     const stepFn = (now) => {
-      if (this.w.globals.isDestroyed) {
+      if (this._stale(dots[0].node)) {
         this.w.globals.unitGatherRAF = null;
-        this.w.globals.animationEnded = true;
         return;
       }
       const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1e3));
@@ -4053,16 +4429,18 @@ class Unit {
           cx = d.cx0 + (d.x - d.cx0) * e2;
           cy = d.cy0 + (d.y - d.cy0) * e2;
         }
-        this._place(d.node, d.spec, cx, cy);
+        let sk = 1;
+        if (d.r0 !== d.r1) {
+          sk = (d.r0 + (d.r1 - d.r0) * ec) / d.r1;
+          this._size(d.node, d.spec, sk);
+        }
+        this._place(d.node, d.spec, cx, cy, sk);
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t2 * 2.5));
         if (d._c0 && d._c1) {
           const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec);
           const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec);
           const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec);
           d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
-        }
-        if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-          d.node.setAttribute("r", String(d.r0 + (d.r1 - d.r0) * ec));
         }
         if (t2 < 1) done = false;
       }
@@ -4071,8 +4449,9 @@ class Unit {
           const d = dots[k2];
           d.node.style.opacity = "";
           if (d._c1 && d.fill1) d.node.setAttribute("fill", d.fill1);
-          if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-            d.node.setAttribute("r", String(d.r1));
+          if (d.r0 !== d.r1) {
+            this._size(d.node, d.spec, 1);
+            this._place(d.node, d.spec, d.x, d.y);
           }
         }
         this.w.globals.unitGatherRAF = null;
@@ -4095,7 +4474,7 @@ class Unit {
     const cap = Math.max(0, opts.maxUnits || 5e3);
     const exits = [];
     for (const [key, slot] of prev) {
-      if (!nextPrev.has(key)) {
+      if (!nextPrev.has(key) && key[0] !== "l") {
         exits.push(slot);
         if (exits.length >= cap) break;
       }
@@ -4122,7 +4501,7 @@ class Unit {
     exits.forEach((slot) => {
       const r2 = slot.r != null ? slot.r : dotR;
       const spec = slot.spec || this._baseSpec(opts, r2);
-      const el = this._drawDot(graphics, opts, r2, slot.fill, 0, 0, spec);
+      const el = this._drawDot(graphics, opts, r2, slot.fill, -1, 0, spec);
       el.node.classList.add("apexcharts-unit-exit");
       this._place(el.node, spec, slot.x, slot.y);
       group2.add(el);
@@ -4133,13 +4512,9 @@ class Unit {
       return;
     }
     const speed = Math.max(1, w.config.chart.animations.speed || 800);
-    if (this.w.globals.unitExitRAF != null) {
-      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF);
-      this.w.globals.unitExitRAF = null;
-    }
     const start = performance.now();
     const stepFn = (now) => {
-      if (this.w.globals.isDestroyed) {
+      if (this._stale(group2.node)) {
         this.w.globals.unitExitRAF = null;
         return;
       }
@@ -4210,7 +4585,8 @@ ${percent2.toFixed(1)}%`;
     if (!lines.length) return 0;
     const width = measureLabelWidth(w, lines, {
       fontSize: cfg.fontSize,
-      fontFamily: cfg.fontFamily || w.config.chart.fontFamily
+      fontFamily: cfg.fontFamily || w.config.chart.fontFamily,
+      fontWeight: cfg.fontWeight
     });
     const gap = conn.gap != null ? conn.gap : 8;
     const length = conn.length != null ? conn.length : 22;
@@ -4347,6 +4723,7 @@ ${percent2.toFixed(1)}%`;
    * the blob in either direction.
    * @param {any} elSeries @param {{ i:number, cx:number, cy:number, outerR:number, flat?:boolean }} cluster
    * @param {number} value @param {number} total @param {any} opts @param {string} color
+   * @returns {SVGElement|undefined}
    */
   _drawClusterLabel(elSeries, cluster, value, total, opts, color) {
     const w = this.w;
@@ -4404,6 +4781,10 @@ ${percent2.toFixed(1)}%`;
       textEl.textContent = str;
     }
     elSeries.node.appendChild(textEl);
+    return (
+      /** @type {any} */
+      textEl
+    );
   }
 }
 ApexCharts__default.use({
@@ -4506,26 +4887,33 @@ function drilldownById(w, id) {
   const list = dd && Array.isArray(dd.series) ? dd.series : [];
   return list.find((s2) => s2 && s2.id === id);
 }
-function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+function segment(name, seen) {
+  var _a;
+  const n2 = String(name).replace(/\//g, "%2F");
+  const o2 = ((_a = seen.get(n2)) != null ? _a : -1) + 1;
+  seen.set(n2, o2);
+  return `${o2}:${n2}`;
+}
+function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
   var _a, _b, _c;
   const isObj = d && typeof d === "object";
   const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-  const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+  const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+  const value = raw == null || raw === "" ? NaN : Number(raw);
   const node = {
     name: String(name),
     value: isNaN(value) ? null : value,
     color: isObj && d.color ? d.color : void 0,
-    // Identity across data updates: the path of names (indexed so same-named
-    // siblings stay distinct). Update animations morph matched keys in place.
-    _key: `${parentKey}/${i2}:${name}`
+    _key: `${parentKey}/${segment(name, seen)}`
   };
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i2 % paletteFromParent.length];
   }
   if (opts.keepDatum) node._datum = d;
+  const kids = /* @__PURE__ */ new Map();
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
-      (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts)
+      (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts, kids)
     );
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
@@ -4536,7 +4924,7 @@ function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {
         nextSeen.add(d.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts)
+          (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts, kids)
         );
       }
     }
@@ -4551,8 +4939,9 @@ function buildHierarchy(w, opts = {}) {
   const first = cfgSeries && cfgSeries[0];
   const data = first && Array.isArray(first.data) ? first.data : cfgSeries;
   if (!Array.isArray(data)) return [];
+  const seen = /* @__PURE__ */ new Map();
   return data.map(
-    (d, i2) => toNode(w, d, i2, null, "", null, opts)
+    (d, i2) => toNode(w, d, i2, null, "", null, opts, seen)
   );
 }
 function fillValues(node) {
@@ -4706,7 +5095,7 @@ function renderBreadcrumb(w, opts) {
     text.setAttribute("class", "apexcharts-breadcrumb-label");
     text.textContent = String(label2);
     btn.appendChild(text);
-    btn.addEventListener("click", () => opts.onNavigate(i2, crumb));
+    btn.addEventListener("click", (e2) => opts.onNavigate(i2, crumb, e2));
     nav.appendChild(btn);
   });
   elWrap.appendChild(nav);
@@ -4826,6 +5215,15 @@ function resolveFocus(node, current, roots) {
   if (next === current) return { changed: false, focus: current };
   return { changed: true, focus: next };
 }
+function focusByKey(key, nodesAll, roots) {
+  var _a;
+  const f = key && nodesAll.find((n2) => n2._key === key);
+  return f && ((_a = f.children) == null ? void 0 : _a.length) && !(roots.length === 1 && f === roots[0]) ? f : null;
+}
+function setZoomCursor(chart, node) {
+  if (!Environment.isBrowser() || chart.cfg.zoomOnClick === false) return;
+  node._el.node.style.cursor = resolveFocus(node, chart._focus, chart._roots).changed ? "pointer" : "default";
+}
 function parseSize(size, max, fallbackRatio = 0) {
   if (typeof size === "number") return size;
   const s2 = String(size).trim();
@@ -4860,6 +5258,7 @@ function colorPass(node, color, tint, out) {
     }
   }
 }
+const escapeHtml$1 = (s2) => String(s2).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 class NodeTooltip {
   /**
    * @param {any} w
@@ -4897,14 +5296,29 @@ class NodeTooltip {
    * @param {any} node
    */
   show(e2, node) {
+    var _a;
     const t2 = this._tip();
     if (!t2) return;
     const w = this.w;
     const pctTotal = (node.value / this.total * 100).toFixed(1);
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
-    t2.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const ty = w.config.tooltip.y;
+    const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
+    const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
+    t2.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml$1(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+    const group2 = (
+      /** @type {HTMLElement} */
+      t2.firstChild
+    );
+    const marker = (
+      /** @type {HTMLElement} */
+      group2.firstChild
+    );
+    marker.style.backgroundColor = node._color;
+    if (w.config.tooltip.fillSeriesColor) {
+      group2.style.backgroundColor = node._color;
+    }
     t2.classList.add("apexcharts-active");
     t2.style.opacity = "1";
     this.position(e2);
@@ -4992,14 +5406,19 @@ class SunburstChart {
     this.centerY = gh / 2 + (this.cfg.offsetY || 0);
     this.maxRadius = Math.min(gw, gh) / 2.05 - this.strokeWidth - (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0);
     if (this.maxRadius < 5) return g;
-    this._roots = this._buildHierarchy();
+    this._roots = buildHierarchy(w);
     if (!this._roots.length) return g;
-    this._roots.forEach((r2) => this._fillValues(r2));
+    this._roots.forEach(fillValues);
     this._validateStrict();
     this._nodesAll = [];
     const colors = w.globals.colors || [];
     this._roots.forEach((r2, i2) => {
-      this._colorPass(r2, r2.color || colors[i2 % colors.length] || "#008FFB");
+      colorPass(
+        r2,
+        r2.color || colors[i2 % colors.length] || "#008FFB",
+        this.cfg.tint,
+        this._nodesAll
+      );
     });
     this.total = this._roots.reduce((s2, r2) => s2 + Math.max(0, r2.value), 0) || 1;
     this._tooltip.total = this.total;
@@ -5007,13 +5426,17 @@ class SunburstChart {
     this._labelsG = graphics.group({ class: "apexcharts-sunburst-labels" });
     g.add(this._ringsG);
     g.add(this._labelsG);
-    this._focus = null;
+    this._focus = focusByKey(
+      w.globals.sunburstFocusKey,
+      this._nodesAll,
+      this._roots
+    );
     this._relayout(this._focus);
     const anims = w.config.chart.animations;
     let mode = "none";
     if (anims.enabled) {
       if (w.globals.dataChanged) {
-        if (anims.dynamicAnimation.enabled) mode = "update";
+        if (w.globals.shouldAnimate !== false) mode = "update";
       } else if (!w.globals.resized) {
         mode = "intro";
       }
@@ -5023,22 +5446,6 @@ class SunburstChart {
     return g;
   }
   // ------------------------------------------------------------------ data
-  /**
-   * Resolve the config into root nodes `{ name, value, color?, children? }`.
-   * Each datum may carry `children` (native) or `drilldown: '<id>'` (adapter).
-   * Shared with the treemap - see charts/common/Hierarchy.
-   * @returns {any[]}
-   */
-  _buildHierarchy() {
-    return buildHierarchy(this.w);
-  }
-  /**
-   * Fill a parent's value from its children when missing.
-   * @param {any} node
-   */
-  _fillValues(node) {
-    fillValues(node);
-  }
   /**
    * With `partition: 'strict'`, warn (once) when a parent's value does not
    * match the sum of its children. The angles are still normalized to fill the
@@ -5052,22 +5459,13 @@ class SunburstChart {
       remedy: "Angles are normalized to fill the wedge."
     });
   }
-  /**
-   * Assign a colour to every node (explicit `color` wins, else the parent's
-   * colour tinted lighter). Done once so zoom preserves colours.
-   * Shared with the icicle - see charts/common/partition/Tint.
-   * @param {any} node
-   * @param {string} color
-   */
-  _colorPass(node, color) {
-    colorPass(node, color, this.cfg.tint, this._nodesAll);
-  }
   // ---------------------------------------------------------------- layout
   /**
    * Recompute visibility + angles + radii for a focus node (null = whole tree).
    * @param {any} focus
    */
   _relayout(focus) {
+    this.w.globals.sunburstFocusKey = focus && focus._key;
     this._focusMaxDepth = placeTree({
       roots: this._roots,
       nodesAll: this._nodesAll,
@@ -5108,14 +5506,15 @@ class SunburstChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     const anims = w.config.chart.animations;
-    const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+    const dyn = anims.dynamicAnimation;
+    const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
     const gen = ++this._zoomGen;
     const morph = (
       /** @type {any} */
-      (_a = this.ctx) == null ? void 0 : _a.morphTypeChange
+      (_c = this.ctx) == null ? void 0 : _c.morphTypeChange
     );
     const morphActive = !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialPathAt === "function";
     const morphDur = morphActive ? morph.getSpeed() : 0;
@@ -5124,6 +5523,11 @@ class SunburstChart {
       /** @type {any} */
       this.ctx._sunburstPrevGeoms
     ) : null;
+    const geo = (n2) => n2._cur || { a0: n2._t0, a1: n2._t1, iR: n2._iR, oR: n2._oR };
+    const pinch = (c) => {
+      const m = (c.a0 + c.a1) / 2;
+      return { a0: m, a1: m, iR: c.iR, oR: c.iR };
+    };
     this._nodesAll.forEach((node) => {
       if (node._show) {
         const target2 = {
@@ -5133,36 +5537,55 @@ class SunburstChart {
           oR: node._oR
         };
         if (!node._el) node._el = this._createArcEl(node);
+        setZoomCursor(this, node);
         const morphFrom = morphActive ? this._morphSourceFor(node) : null;
         if (morphFrom && morphDur > 0) {
           this._morphArcFrom(node, morphFrom, target2, morphDur, gen);
         } else if ((mode === "intro" || morphActive) && dur > 0) {
           this._sweepArc(node, target2, morphActive ? morphDur : dur, gen);
         } else {
-          let from;
-          let isNew = false;
-          if (node._cur) {
-            from = node._cur;
-          } else if (prev && prev.get(node._key)) {
-            from = prev.get(node._key);
-          } else {
-            const mid = (target2.a0 + target2.a1) / 2;
-            from = { a0: mid, a1: mid, iR: target2.iR, oR: target2.iR };
-            isNew = true;
-          }
-          this._animateArc(node, from, target2, dur, false, isNew, gen);
+          const p = prev && prev.get(node._key);
+          const from = node._cur || (p ? geo(p) : pinch(target2));
+          this._animateArc(node, from, target2, dur, false, !node._cur && !p, gen);
         }
       } else if (node._el && node._cur) {
-        const mid = (node._cur.a0 + node._cur.a1) / 2;
-        const target2 = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR };
-        this._animateArc(node, node._cur, target2, dur, true, false, gen);
+        this._animateArc(node, node._cur, pinch(node._cur), dur, true, false, gen);
       }
     });
+    if (prev && dur && !morphActive) {
+      const keys = new Set(this._nodesAll.map((n2) => n2._show && n2._key));
+      prev.forEach((p, k2) => {
+        if (keys.has(k2) || !(p._show || p._cur)) return;
+        const el = this._graphics.drawPath({
+          fill: p._color,
+          stroke: this.strokeColor,
+          strokeWidth: this.strokeWidth,
+          classes: "apexcharts-sunburst-arc"
+        });
+        el.node.setAttribute("data:name", p.name);
+        this._ringsG.add(el.attr({ opacity: p._el.attr("opacity") }));
+        const c = geo(p);
+        const g = { _el: el, _color: p._color, name: p.name, _key: k2, _cur: c };
+        this._nodesAll.push(g);
+        this._animateArc(g, c, pinch(c), dur, true, false, gen);
+      });
+    }
+    const end = Math.max(dur, morphDur);
+    if (end) {
+      this._ringsG.animate(end).after(() => {
+        if (this._zoomGen === gen && this._ringsG.node.isConnected)
+          new Animations(
+            w,
+            /** @type {any} */
+            this.ctx
+          ).animationCompleted(
+            this._ringsG.node
+          );
+      });
+    } else w.globals.animationEnded = true;
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n2) => {
-      if (n2._show) {
-        geoms.set(n2._key, { a0: n2._t0, a1: n2._t1, iR: n2._iR, oR: n2._oR });
-      }
+      if (n2._show || n2._cur) geoms.set(n2._key, n2);
     });
     this.ctx._sunburstPrevGeoms = geoms;
     this._renderLabels(dur);
@@ -5279,11 +5702,9 @@ class SunburstChart {
    */
   _createArcEl(node) {
     const path = this._graphics.drawPath({
-      d: "",
       fill: node._color,
       stroke: this.strokeColor,
       strokeWidth: this.strokeWidth,
-      fillOpacity: 1,
       classes: "apexcharts-sunburst-arc"
     });
     const el = path.node;
@@ -5295,9 +5716,8 @@ class SunburstChart {
       String(!(node.children && node.children.length))
     );
     this._tooltip.attach(el, node);
-    if (Environment.isBrowser()) {
+    if (Environment.isBrowser() && this.cfg.zoomOnClick !== false) {
       el.addEventListener("click", () => this._zoomTo(node));
-      el.style.cursor = "pointer";
     }
     this._ringsG.add(path);
     return path;
@@ -5361,11 +5781,12 @@ class SunburstChart {
       if (node._t1 - node._t0 < this.cfg.dataLabels.minAngleToShow) return;
       this._renderCurvedLabel(node);
     });
+    const gen = this._zoomGen;
+    labelsG.attr({ opacity: dur > 0 ? 0 : 1 });
     if (dur > 0) {
-      labelsG.attr({ opacity: 0 });
-      labelsG.animate(250, dur).attr({ opacity: 1 });
-    } else {
-      labelsG.attr({ opacity: 1 });
+      labelsG.animate(250, dur).during((p) => {
+        if (this._zoomGen === gen) labelsG.attr({ opacity: p });
+      });
     }
   }
   /**
@@ -5374,11 +5795,10 @@ class SunburstChart {
    * @param {any} node
    */
   _renderCurvedLabel(node) {
-    if (!Environment.isBrowser()) return;
     const style = this.cfg.dataLabels.style;
     const w = this.w;
     const r2 = (node._iR + node._oR) / 2;
-    const mid = (node._t0 + node._t1) / 2;
+    const mid = ((node._t0 + node._t1) / 2 % 360 + 360) % 360;
     const flip = mid > 90 && mid < 270;
     const padDeg = Math.min(r2 > 0 ? 4 / r2 * R2D : 0, (node._t1 - node._t0) / 2);
     const from = flip ? node._t1 - padDeg : node._t0 + padDeg;
@@ -5439,16 +5859,12 @@ class SunburstChart {
    */
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return;
-    const next = resolveFocus(node, this._focus);
+    const next = resolveFocus(node, this._focus, this._roots);
     if (!next.changed) return;
     this._focus = next.focus;
     this._relayout(this._focus);
     this._applyLayout("zoom");
     this._renderBreadcrumb();
-  }
-  /** Root -> focus chain of nodes. */
-  _focusChain() {
-    return focusChain(this._focus);
   }
   /**
    * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
@@ -5469,7 +5885,7 @@ class SunburstChart {
     nav.style.top = "0px";
     nav.style.left = "0px";
     const crumbs = [{ name: "All", node: null }].concat(
-      this._focusChain().map((n2) => ({ name: n2.name, node: n2 }))
+      focusChain(this._focus).map((n2) => ({ name: n2.name, node: n2 }))
     );
     crumbs.forEach((crumb, i2) => {
       if (i2 > 0) {
@@ -5511,21 +5927,7 @@ class SunburstChart {
       }
     });
     elWrap.appendChild(nav);
-    this._avoidChromeOverlap(nav);
-  }
-  /**
-   * The breadcrumb is an absolute overlay at top-left, so it can sit on top of
-   * a left-aligned title (or subtitle). After mounting, push it below any chart
-   * chrome it intersects. (Duplicated from drilldown's Breadcrumb on purpose —
-   * sunburst must not import the drilldown feature.)
-   * @param {any} nav
-   */
-  /**
-   * Shared with the treemap - see charts/common/Breadcrumb.
-   * @param {any} nav
-   */
-  _avoidChromeOverlap(nav) {
-    avoidChromeOverlap(this.w, nav);
+    avoidChromeOverlap(w, nav);
   }
   // ------------------------------------------------------------ geometry
   /**
@@ -5626,6 +6028,8 @@ class IcicleChart {
     this._roots = buildHierarchy(this.w);
     if (!this._roots.length) return g;
     this._roots.forEach((r2) => fillValues(r2));
+    this._nodesAll = [];
+    this._colorNodes();
     sortTree(this._roots, this.cfg.sort);
     if (this.cfg.partition === "strict") {
       validateStrict(this._roots, {
@@ -5633,15 +6037,17 @@ class IcicleChart {
         remedy: "Extents are normalized to fill the parent."
       });
     }
-    this._nodesAll = [];
-    this._colorNodes();
     this.total = this._roots.reduce((s2, r2) => s2 + Math.max(0, r2.value), 0) || 1;
     this._tooltip.total = this.total;
     this._cellsG = graphics.group({ class: "apexcharts-icicle-cells" });
     this._labelsG = graphics.group({ class: "apexcharts-icicle-labels" });
     g.add(this._cellsG);
     g.add(this._labelsG);
-    this._focus = null;
+    this._focus = focusByKey(
+      w.globals.icicleFocusKey,
+      this._nodesAll,
+      this._roots
+    );
     this._relayout(this._focus);
     const anims = w.config.chart.animations;
     let mode = "none";
@@ -5672,7 +6078,7 @@ class IcicleChart {
     const fallback = colors[0] || "#008FFB";
     let level = this._roots;
     const trunk = [];
-    while (level.length === 1 && level[0].children && level[0].children.length > 1) {
+    while (level.length === 1 && level[0].children && level[0].children.length) {
       trunk.push(level[0]);
       level = level[0].children;
     }
@@ -5704,6 +6110,7 @@ class IcicleChart {
    * @param {any} focus
    */
   _relayout(focus) {
+    this.w.globals.icicleFocusKey = focus && focus._key;
     const extent = this._valueExtent();
     const maxDepth = this.cfg.maxDepth;
     const capLevels = typeof maxDepth === "number" && maxDepth > 0 ? maxDepth : 0;
@@ -5739,9 +6146,14 @@ class IcicleChart {
       gap: 1
     });
     this._nodesAll.forEach((n2) => {
+      n2._sub = false;
       if (!n2._show) return;
       n2._d0 = scale.near(n2._vDepth);
       n2._d1 = farEdge(n2, scale, this._focusMaxDepth, this.cfg.leaf, used);
+      if (n2._t1 - n2._t0 < 0.5) {
+        n2._show = false;
+        n2._sub = true;
+      }
     });
   }
   /**
@@ -5819,31 +6231,30 @@ class IcicleChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
+    var _a, _b;
     const w = this.w;
     const anims = w.config.chart.animations;
-    const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" || mode === "zoom" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+    const dyn = anims.dynamicAnimation;
+    const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
     const gen = ++this._zoomGen;
-    const prev = mode === "update" ? (
+    const prev = dur > 0 && mode !== "intro" ? (
       /** @type {any} */
       this.ctx._iciclePrevGeoms
     ) : null;
     this._nodesAll.forEach((node) => {
+      const was = node._cur || prev && prev.get(node._key) && prev.get(node._key)();
       if (node._show) {
         const to = this._box(node);
         if (!node._el) node._el = this._createCellEl(node);
         node._el.node.setAttribute("data:clipped", String(!!node._clipped));
-        this._setCursor(node);
+        setZoomCursor(this, node);
         if (mode === "intro" && dur > 0) {
           this._wipeCell(node, to, dur, gen);
           return;
         }
-        let from;
+        let from = was;
         let isNew = false;
-        if (node._cur) {
-          from = node._cur;
-        } else if (prev && prev.get(node._key)) {
-          from = prev.get(node._key);
-        } else {
+        if (!from) {
           from = {
             x: to.x + to.w / 2,
             y: to.y + to.h / 2,
@@ -5853,6 +6264,9 @@ class IcicleChart {
           isNew = true;
         }
         this._animateCell(node, from, to, dur, false, isNew, gen);
+      } else if (node._sub && was && !was.s) {
+        if (!node._el) node._el = this._createCellEl(node);
+        this._animateCell(node, was, this._box(node), dur, true, false, gen);
       } else if (node._el && node._cur) {
         const c = node._cur;
         const collapsed = {
@@ -5866,7 +6280,9 @@ class IcicleChart {
     });
     const geoms = /* @__PURE__ */ new Map();
     this._nodesAll.forEach((n2) => {
-      if (n2._show) geoms.set(n2._key, this._box(n2));
+      const b = this._box(n2);
+      if (n2._sub) b.s = 1;
+      if (n2._show || n2._sub) geoms.set(n2._key, () => n2._cur || b);
     });
     this.ctx._iciclePrevGeoms = geoms;
     this._renderLabels(dur);
@@ -5961,7 +6377,7 @@ class IcicleChart {
     }
     el.node.style.display = "";
     const startOp = hide ? Number(el.attr("opacity")) || 1 : fadeIn ? 0 : 1;
-    const endOp = hide ? 0 : 1;
+    const endOp = hide && !node._sub ? 0 : 1;
     el.attr({ opacity: startOp });
     el.animate(dur).during((pos) => {
       if (this._zoomGen !== gen) return;
@@ -6023,11 +6439,12 @@ class IcicleChart {
       this._renderLabel(node);
       if (node._clipped) this._renderMoreMark(node);
     });
+    const gen = this._zoomGen;
+    labelsG.attr({ opacity: dur > 0 ? 0 : 1 });
     if (dur > 0) {
-      labelsG.attr({ opacity: 0 });
-      labelsG.animate(250, dur).attr({ opacity: 1 });
-    } else {
-      labelsG.attr({ opacity: 1 });
+      labelsG.animate(250, dur).during((p) => {
+        if (this._zoomGen === gen) labelsG.attr({ opacity: p });
+      });
     }
   }
   /**
@@ -6040,7 +6457,6 @@ class IcicleChart {
    * @param {any} node
    */
   _renderLabel(node) {
-    if (!Environment.isBrowser()) return;
     const dl = this.cfg.dataLabels;
     const style = dl.style;
     const box = this._box(node);
@@ -6053,7 +6469,7 @@ class IcicleChart {
     const room = along - 8;
     let label2 = node.name;
     if (dl.showValue) {
-      const full = `${node.name}: ${node.value}`;
+      const full = `${node.name}: ${+node.value.toPrecision(12)}`;
       if (this._fits(full, room, fontPx)) label2 = full;
     }
     const text = this._truncate(label2, room, fontPx);
@@ -6102,7 +6518,6 @@ class IcicleChart {
    * @param {any} node
    */
   _renderMoreMark(node) {
-    if (!Environment.isBrowser()) return;
     const box = this._box(node);
     const along = this._vertical ? box.w : box.h;
     if (along < 18) return;
@@ -6153,18 +6568,6 @@ class IcicleChart {
     return name.slice(0, maxChars - 1) + "…";
   }
   // ----------------------------------------------------------------- zoom
-  /**
-   * A cell offers the pointer only while clicking it would change the view.
-   * A leaf under the current focus, or the single root of a one-root tree,
-   * resolves to the focus the reader is already on, and a pointer there
-   * promises a zoom that cannot happen. Asked on every layout, because a zoom
-   * changes the answer for every cell.
-   * @param {any} node
-   */
-  _setCursor(node) {
-    if (!Environment.isBrowser() || this.cfg.zoomOnClick === false) return;
-    node._el.node.style.cursor = resolveFocus(node, this._focus, this._roots).changed ? "pointer" : "default";
-  }
   /**
    * Focus a node (zoom in), or zoom out one level when the current focus is
    * clicked.
@@ -6353,24 +6756,18 @@ function observationsOf(d, allowFlatY) {
   return out.length ? out : null;
 }
 function derivedStats(w, kind) {
-  var _a, _b;
-  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
-  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+  const all = w.statsDerived || (w.statsDerived = {});
+  return all[kind] || (all[kind] = /* @__PURE__ */ new Map());
+}
+function deriveStat(derived, key, values, opts, fn) {
+  const s2 = JSON.stringify(opts) + values;
+  let hit = derived.get(key);
+  if (!hit || hit.s !== s2) derived.set(key, hit = { s: s2, e: fn(values, opts) });
+  return hit.e;
 }
 function isDerived(derived, key, value) {
-  const ours = derived.get(key);
-  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
-    return false;
-  }
-  for (let k2 = 0; k2 < value.length; k2++) {
-    const a2 = ours[k2];
-    const b = value[k2];
-    if (a2 === b) continue;
-    if (!Array.isArray(a2) || !Array.isArray(b) || a2[0] !== b[0] || a2[1] !== b[1]) {
-      return false;
-    }
-  }
-  return true;
+  const e2 = (derived.get(key) || {}).e;
+  return !!e2 && JSON.stringify(e2.density || e2.summary) === JSON.stringify(value);
 }
 function raincloudTransform(ser, w) {
   var _a, _b;
@@ -6395,21 +6792,26 @@ function raincloudTransform(ser, w) {
       if (!values) return d;
       const out = __spreadValues({}, y);
       if (needDensity) {
-        const est = kernelDensity(values, {
-          bandwidth: kde.bandwidth,
-          resolution: kde.resolution
-        });
+        const est = deriveStat(
+          ourDensity,
+          key,
+          values,
+          { bandwidth: kde.bandwidth, resolution: kde.resolution },
+          kernelDensity
+        );
         if (!est) return d;
         out.density = est.density;
         out.points = values;
-        ourDensity.set(key, est.density);
       }
       if (needSummary) {
-        const est = fiveNumberSummary(values, { whiskers });
-        if (est) {
-          out.summary = est.summary;
-          ourSummary.set(key, est.summary);
-        }
+        const est = deriveStat(
+          ourSummary,
+          key,
+          values,
+          { whiskers },
+          fiveNumberSummary
+        );
+        if (est) out.summary = est.summary;
       }
       touched = true;
       return __spreadProps(__spreadValues({}, d), { y: out });
@@ -6438,7 +6840,9 @@ class Breadcrumb {
     const w = this.w;
     const elWrap = w.dom.elWrap;
     if (!elWrap) return;
-    const existing = elWrap.querySelector(".apexcharts-breadcrumb");
+    const existing = elWrap.querySelector(
+      ".apexcharts-breadcrumb[aria-label^=Drill]"
+    );
     if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
     }
@@ -7869,22 +8273,55 @@ class AxisMapping {
     return w.globals.minX + px * AxisMapping.xRatio(w);
   }
   /**
-   * Client (screen) x -> pixels from the plot origin. The origin is the svg
-   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
-   * (fact 2 above), so the result does not depend on what the grid happens to
-   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
-   * against the measured one is the CSS zoom of any container the chart sits in.
+   * The plot area on screen, in client px: its corner is where the plot's
+   * group is translated to (translateX, translateY into the svg), and it is
+   * gridWidth by gridHeight. The one screen-to-plot measurement: the tooltip,
+   * zoom, selection and every other pointer reader map through it, so x and y
+   * cannot disagree under CSS zoom.
+   *
+   * Never the `.apexcharts-grid` group's box: a group measures to the union
+   * of what it happens to draw (fact 2 above). The plot's outline starts a
+   * pixel down (`Grid.drawGridArea`), so unless gridlines or row bands reach
+   * the top edge the box starts a pixel below the plot, and on a numeric-x bar
+   * chart the horizontal gridlines run `barPadForNumericAxis` out past both
+   * sides.
+   *
+   * `zoom` is the CSS zoom of any container the chart sits in (screen px per
+   * plot px): the measured svg width over `svgWidth`, the unscaled width it
+   * was drawn at. A distance measured on screen from this corner is divided
+   * by it to land in plot px, the space the series are laid out and painted in.
+   * With nothing mounted to measure, screen px are taken as svg px.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
+   */
+  static plotRect(w) {
+    var _a, _b, _c;
+    const svg = ((_a = w.dom.Paper) == null ? void 0 : _a.node) || ((_b = w.dom.baseEl) == null ? void 0 : _b.querySelector(".apexcharts-svg"));
+    const box = ((_c = svg || w.dom.elWrap) == null ? void 0 : _c.getBoundingClientRect()) || {
+      left: 0,
+      top: 0,
+      width: 0
+    };
+    const zoom = (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1;
+    return {
+      left: box.left + w.layout.translateX * zoom,
+      top: box.top + w.layout.translateY * zoom,
+      width: w.layout.gridWidth * zoom,
+      height: w.layout.gridHeight * zoom,
+      zoom
+    };
+  }
+  /**
+   * Client (screen) x -> pixels from the plot origin of {@link plotRect}.
+   * Pass the rect when the caller has already measured it.
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} screenX
+   * @param {{ left: number, zoom: number }} [plot]
    * @returns {number}
    */
-  static screenXToPlotPx(w, screenX) {
-    const baseEl = w.dom.baseEl;
-    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return screenX - w.layout.translateX;
-    const svgRect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
-    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
+  static screenXToPlotPx(w, screenX, plot = AxisMapping.plotRect(w)) {
+    return (screenX - plot.left) / plot.zoom;
   }
 }
 const VPAD = 3;
@@ -8077,7 +8514,8 @@ class StreamLabels {
         text: name,
         maxWidth: span,
         fontSize: `${px}px`,
-        fontFamily
+        fontFamily,
+        fontWeight
       });
       if (!text || text === "...") continue;
       const drawnWidth = text === name ? rect.width : rect.width * (text.length / name.length);
@@ -8928,7 +9366,8 @@ class RendererController {
         this._activate(desired, this._instances[desired]);
         return this._activeKind;
       }
-      if (mode === desired) {
+      if (mode === desired && !this._warned) {
+        this._warned = 1;
         warnMissingFeature(
           `\`chart.renderer: '${desired}'\``,
           `renderer-${desired}`,
@@ -8937,10 +9376,16 @@ class RendererController {
           }
         );
       }
-    } else if (mode === "canvas" && hasCanvasUnsupportedFeature(this.w)) {
+    } else if (mode === "canvas" && !this._warned && hasCanvasUnsupportedFeature(this.w)) {
+      this._warned = 1;
       console.warn(
         `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
       );
+    }
+    const prev = this._instances[this._activeKind];
+    if (prev) {
+      prev.destroy();
+      delete this._instances[this._activeKind];
     }
     this._activate("svg", this.svg);
     return this._activeKind;
@@ -10058,9 +10503,11 @@ class HeatmapGradientLegend {
     this._min = 0;
     this._max = 0;
     this._geom = null;
+    this._grad = null;
     this._bandHitEls = [];
     this._activeBandIndex = -1;
     this._targetEl = null;
+    this.panelsW = null;
     this._onCellEnter = this._onCellEnter.bind(this);
     this._onCellLeave = this._onCellLeave.bind(this);
     this._onBandEnter = this._onBandEnter.bind(this);
@@ -10175,15 +10622,8 @@ class HeatmapGradientLegend {
       linearGrad.setAttribute("x2", "1");
       linearGrad.setAttribute("y2", "0");
     }
-    const { min, max, stops, bands } = this._computeStops();
-    this._min = min;
-    this._max = max;
-    stops.forEach((s2) => {
-      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
-      stopEl.setAttribute("offset", `${(s2.percent * 100).toFixed(2)}%`);
-      stopEl.setAttribute("stop-color", s2.color);
-      linearGrad.appendChild(stopEl);
-    });
+    this._grad = linearGrad;
+    const { min, max, bands } = this._paintStops();
     defs.appendChild(linearGrad);
     svg.appendChild(defs);
     const rect = BrowserAPIs.createElementNS(SVG_NS, "rect");
@@ -10392,6 +10832,7 @@ class HeatmapGradientLegend {
    */
   repositionToPlot() {
     var _a, _b;
+    if (this._grad) this._paintStops();
     if (!Environment.isBrowser()) return;
     if (this._targetEl) return;
     const w = this.w;
@@ -10526,14 +10967,25 @@ class HeatmapGradientLegend {
     if (idx < 0 || idx === this._activeBandIndex) return;
     this._activeBandIndex = idx;
     (_d = (_c = (_b = this.ctx) == null ? void 0 : _b.events) == null ? void 0 : _c.fireEvent) == null ? void 0 : _d.call(_c, "legendHover", [this.ctx, idx, w]);
-    new Series(w).highlightRangeInSeries(idx, "highlight");
+    this._highlightRange(idx, "highlight");
   }
   /** Leaving a band clears the highlight. */
   _onBandLeave() {
     if (this._activeBandIndex < 0) return;
     const idx = this._activeBandIndex;
     this._activeBandIndex = -1;
-    new Series(this.w).highlightRangeInSeries(idx, "reset");
+    this._highlightRange(idx, "reset");
+  }
+  /**
+   * A shared trellis strip sets `panelsW` so a band reaches every panel.
+   * @param {number} idx
+   * @param {'highlight'|'reset'} action
+   */
+  _highlightRange(idx, action) {
+    var _a;
+    (((_a = this.panelsW) == null ? void 0 : _a.call(this)) || [this.w]).forEach(
+      (w) => new Series(w).highlightRangeInSeries(idx, action)
+    );
   }
   _attachHoverListeners() {
     var _a, _b;
@@ -10555,10 +11007,10 @@ class HeatmapGradientLegend {
    */
   _onCellEnter(...args) {
     var _a, _b, _c;
-    const w = this.w;
     if (!this.arrowEl) return;
     const opts = args[args.length - 1];
     if (!opts || typeof opts !== "object") return;
+    const w = opts.w || this.w;
     const i2 = opts.seriesIndex;
     const j2 = opts.dataPointIndex;
     if (typeof i2 !== "number" || typeof j2 !== "number") return;
@@ -10670,6 +11122,21 @@ class HeatmapGradientLegend {
     polygon.setAttribute("pointer-events", "none");
     return polygon;
   }
+  /** (Re)write the strip's stops; returns `_computeStops()`. */
+  _paintStops() {
+    const r2 = this._computeStops();
+    const grad = this._grad;
+    this._min = r2.min;
+    this._max = r2.max;
+    grad.innerHTML = "";
+    r2.stops.forEach((s2) => {
+      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
+      stopEl.setAttribute("offset", `${(s2.percent * 100).toFixed(2)}%`);
+      stopEl.setAttribute("stop-color", s2.color);
+      grad.appendChild(stopEl);
+    });
+    return r2;
+  }
   /**
    * Build gradient stops + return effective min/max.
    * - If `colorScale.ranges` is set, stops are placed at each range boundary
@@ -10711,7 +11178,8 @@ class HeatmapGradientLegend {
     if (!Number.isFinite(dataMax)) dataMax = 0;
     let min = dataMin;
     let max = dataMax;
-    if (typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min) {
+    const csWindow = typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min;
+    if (csWindow) {
       min = cs.min;
       max = cs.max;
     } else {
@@ -10742,34 +11210,30 @@ class HeatmapGradientLegend {
     } else {
       const baseColor = w.globals.colors[0] || "#008FFB";
       const utils = new Utils();
-      const plot = w.config.plotOptions[w.config.chart.type] || {};
+      const type = w.config.chart.type;
+      const plot = w.config.plotOptions[type] || {};
       const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
-      const hasNegs = (
+      const g = (
         /** @type {any} */
-        w.globals.hasNegs
+        w.globals
       );
+      const hasNegs = g.hasNegs;
+      const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
+      const hi = yExt ? g.maxY : max;
+      const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
+      const k2 = shadeIntensity * 1.25;
       const n2 = Math.max(2, cfg.stops || 16);
       for (let s2 = 0; s2 < n2; s2++) {
         const t2 = s2 / (n2 - 1);
-        const v = min + t2 * (max - min);
-        const total = Math.abs(max) + Math.abs(min);
-        const percent_v = total === 0 ? 0 : 100 * v / total;
-        let colorShadePercent;
-        if (hasNegs) {
-          if (plot.reverseNegativeShade) {
-            colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
-          } else {
-            colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
-          }
-        } else {
-          colorShadePercent = 1 - percent_v / 100;
-        }
-        if (colorShadePercent > 1) colorShadePercent = 1;
-        if (colorShadePercent < -1) colorShadePercent = -1;
-        const shaded = plot.enableShades ? utils.shadeColor(
-          w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
-          baseColor
-        ) : baseColor;
+        const p = total === 0 ? 0 : Math.min(min + t2 * (max - min), hi) / total;
+        const c = Math.max(
+          -1,
+          Math.min(
+            1,
+            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k2 : 1)
+          )
+        );
+        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t2, color: shaded });
       }
     }
@@ -10794,6 +11258,7 @@ class TrellisChrome {
     this.elBreadcrumb = null;
     this.gradientLegend = null;
     this._gradPending = null;
+    this._gradWire = null;
   }
   /**
    * The per-cell facet header. Built with the cell, before the panel mounts,
@@ -11024,17 +11489,20 @@ class TrellisChrome {
     const legend = new HeatmapGradientLegend(chart.w, chart.ctx);
     legend.draw(slot);
     this.gradientLegend = legend;
-    t2.panels.forEach((p) => {
+    legend.panelsW = () => t2.panels.filter((p) => p.chart).map((p) => (
+      /** @type {any} */
+      p.chart.w
+    ));
+    const wire = (_2, p) => {
       var _a;
-      if (!p.chart || p === mounted) return;
-      const ev = (
-        /** @type {any} */
-        (_a = p.chart.ctx) == null ? void 0 : _a.events
-      );
-      if (!(ev == null ? void 0 : ev.addEventListener)) return;
+      const ev = p.chart !== chart && ((_a = p.chart) == null ? void 0 : _a.ctx.events);
+      if (!ev) return;
       ev.addEventListener("dataPointMouseEnter", legend._onCellEnter);
       ev.addEventListener("dataPointMouseLeave", legend._onCellLeave);
-    });
+    };
+    t2.panels.forEach((p) => wire(0, p));
+    t2.ctx.events.addEventListener("panelMounted", wire);
+    this._gradWire = wire;
   }
   /** Tear down the shared gradient strip (P5). */
   destroyGradientLegend() {
@@ -11044,6 +11512,7 @@ class TrellisChrome {
       (_b = (_a = t2.ctx.events).removeEventListener) == null ? void 0 : _b.call(_a, "panelMounted", this._gradPending);
       this._gradPending = null;
     }
+    t2.ctx.events.removeEventListener("panelMounted", this._gradWire);
     if (this.gradientLegend) {
       try {
         this.gradientLegend.destroy();
@@ -11360,6 +11829,7 @@ class TrellisSync {
       });
     };
     const loop = () => {
+      if (elGrid !== this.trellis.elGrid) return raf2 = 0;
       apply();
       raf2 = hoverTarget ? requestAnimationFrame(loop) : 0;
     };
@@ -11842,15 +12312,33 @@ class TrellisVirtual {
     this._gutterFloor = 0;
   }
 }
-const CURSOR_PAD = 14;
-const BAR_FAMILY = [
+Object.setPrototypeOf(
+  {
+    funnel: "bar",
+    pyramid: "bar",
+    gauge: "radialBar",
+    waffle: "unit",
+    histogram: "bar",
+    waterfall: "rangeBar",
+    dumbbell: "rangeBar",
+    streamgraph: "rangeArea",
+    raincloud: "violin",
+    // `column` is the name half the world uses for a vertical bar chart, and the
+    // combo path has always accepted it on `series[].type`. On `chart.type` it
+    // used to fall through every dispatch and die inside the renderer (#5325),
+    // so it is spelled out here as what it has always meant.
+    column: "bar"
+  },
+  null
+);
+const BAR_PATHWAY_TYPES = [
   "bar",
-  "column",
   "rangeBar",
   "candlestick",
   "boxPlot",
   "violin"
 ];
+const CURSOR_PAD = 14;
 class TrellisTooltip {
   /**
    * @param {import('./Trellis').default} trellis
@@ -11915,7 +12403,7 @@ class TrellisTooltip {
         return -1;
       }
     }
-    const slotted = (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
+    const slotted = (BAR_PATHWAY_TYPES.includes(w.config.chart.type) || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
     const j2 = slotted ? Math.ceil(hoverX / (gridWidth / n2)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n2 - 1)));
     return Math.max(0, Math.min(n2 - 1, j2));
   }
@@ -13063,8 +13551,12 @@ class Trellis {
         // gap is the breathing room here).
         parentHeightOffset: 0,
         toolbar: { show: false },
+        // the shared toolbar owns the one reset (TrellisSync.resetAll); with
+        // toolbar 'none' a panel's own reset is the only way back, unless the
+        // page turned it off
         zoom: {
-          enabled: this.cfg.zoom !== "none"
+          enabled: this.cfg.zoom !== "none",
+          resetControl: this.cfg.toolbar == "none" && w.config.chart.zoom.resetControl !== false
         }
       }, animationsOff ? { animations: { enabled: false } } : {}), this._panelRenderer ? { renderer: this._panelRenderer } : {}), {
         events: __spreadProps(__spreadValues({}, userEvents), {
@@ -15870,6 +16362,7 @@ function licensedForPremium(key) {
 }
 function reinstateWatermark(ctx, elWrap) {
   const node = C.add(elWrap, { manage: false });
+  ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
@@ -15898,6 +16391,8 @@ function addWatermark(ctx, elWrap) {
   ctx._wmObservedWrap = elWrap;
 }
 function teardownWatermark(ctx, elWrap) {
+  if (!ctx._wmPainted) return;
+  ctx._wmPainted = false;
   if (ctx._wmWrapObserver) {
     ctx._wmWrapObserver.disconnect();
     ctx._wmWrapObserver = null;
@@ -17290,6 +17785,7 @@ class CanvasGraphics {
     cmd.strokeWidth = opts.strokeWidth;
     cmd.fill = opts.fill;
     cmd.lineCap = opts.strokeLinecap;
+    cmd.strokeDash = this._g.seriesDash(opts.realIndex);
     cmd.si = opts.realIndex;
     if (typeof opts.j === "number") cmd.dj = opts.j;
     if (opts.shouldClipToGrid !== false) {
@@ -19088,276 +19584,6 @@ class History {
 }
 ApexCharts__default.registerFeatures({ history: History });
 const DataLabels = ApexCharts.__apex_DataLabels;
-const resolveEasing = ApexCharts.__apex_Easing_resolveEasing;
-const parsePath = ApexCharts.__apex_PathMorphing_parsePath;
-const arrayToPath = ApexCharts.__apex_PathMorphing_arrayToPath;
-function buildUnionEntries(join, oldN) {
-  const exitSet = new Set(join.exits);
-  const entries = [];
-  let oi = 0;
-  for (let nj = 0; nj < join.toOld.length; nj++) {
-    const oj = join.toOld[nj];
-    if (oj !== -1) {
-      while (oi < oj) {
-        if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
-        oi++;
-      }
-      entries.push({ oldJ: oj, newJ: nj });
-      oi = oj + 1;
-    } else {
-      entries.push({ oldJ: -1, newJ: nj });
-    }
-  }
-  while (oi < oldN) {
-    if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
-    oi++;
-  }
-  return entries;
-}
-function analyzeSeriesPath(d, expectedAnchors, isArea) {
-  if (!d || typeof d !== "string") return null;
-  const cmds = parsePath(d);
-  if (!cmds.length || cmds[0][0] !== "M") return null;
-  for (let i2 = 1; i2 < cmds.length; i2++) {
-    if (cmds[i2][0] === "M") return null;
-  }
-  let body = cmds;
-  let closing = null;
-  if (isArea) {
-    if (cmds.length < 5) return null;
-    closing = cmds.slice(-3);
-    body = cmds.slice(0, -3);
-    if (closing[2][0] !== "Z") return null;
-    if (closing[1][0] !== "L") return null;
-    if (closing[0][0] !== "L" && closing[0][0] !== "C") return null;
-  } else if (cmds[cmds.length - 1][0] === "Z") {
-    return null;
-  }
-  if (body.length !== expectedAnchors || body.length < 2) return null;
-  const segType = body[1][0];
-  if (segType !== "L" && segType !== "C") return null;
-  for (let i2 = 2; i2 < body.length; i2++) {
-    if (body[i2][0] !== segType) return null;
-  }
-  const anchors = body.map(
-    (c) => c[0] === "C" ? [Number(c[5]), Number(c[6])] : [Number(c[1]), Number(c[2])]
-  );
-  for (const a2 of anchors) {
-    if (!isFinite(a2[0]) || !isFinite(a2[1])) return null;
-  }
-  return { body, closing, segType, anchors };
-}
-function lerpPt(a2, b, t2) {
-  return [a2[0] + (b[0] - a2[0]) * t2, a2[1] + (b[1] - a2[1]) * t2];
-}
-function splitCubic(s2, cmd, t2) {
-  const p0 = s2;
-  const p1 = [cmd[1], cmd[2]];
-  const p2 = [cmd[3], cmd[4]];
-  const p3 = [cmd[5], cmd[6]];
-  const p01 = lerpPt(p0, p1, t2);
-  const p12 = lerpPt(p1, p2, t2);
-  const p23 = lerpPt(p2, p3, t2);
-  const p012 = lerpPt(p01, p12, t2);
-  const p123 = lerpPt(p12, p23, t2);
-  const mid = lerpPt(p012, p123, t2);
-  return {
-    first: ["C", p01[0], p01[1], p012[0], p012[1], mid[0], mid[1]],
-    second: ["C", p123[0], p123[1], p23[0], p23[1], p3[0], p3[1]],
-    mid
-  };
-}
-function splitLine(s2, cmd, t2) {
-  const e2 = [cmd[1], cmd[2]];
-  const mid = lerpPt(s2, e2, t2);
-  return {
-    first: ["L", mid[0], mid[1]],
-    second: ["L", e2[0], e2[1]],
-    mid
-  };
-}
-function expandPath(analysis, ownIdx) {
-  const { body, closing, segType, anchors } = analysis;
-  const n2 = anchors.length;
-  const m = ownIdx.length;
-  const degen = (p) => segType === "C" ? ["C", p[0], p[1], p[0], p[1], p[0], p[1]] : ["L", p[0], p[1]];
-  const out = [["M", anchors[0][0], anchors[0][1]]];
-  let firstOwn = 0;
-  while (firstOwn < m && ownIdx[firstOwn] !== 0) firstOwn++;
-  for (let q2 = 1; q2 <= firstOwn; q2++) out.push(degen(anchors[0]));
-  let entry = firstOwn + 1;
-  for (let s2 = 0; s2 < n2 - 1; s2++) {
-    let interior = 0;
-    while (entry + interior < m && ownIdx[entry + interior] === -1) interior++;
-    const cmd = body[s2 + 1];
-    if (!interior) {
-      out.push(cmd.slice());
-    } else {
-      const totalParts = interior + 1;
-      let start = anchors[s2];
-      let rest = cmd;
-      for (let q2 = 0; q2 < interior; q2++) {
-        const t2 = 1 / (totalParts - q2);
-        const sp = segType === "C" ? splitCubic(start, rest, t2) : splitLine(start, rest, t2);
-        out.push(sp.first);
-        start = sp.mid;
-        rest = sp.second;
-      }
-      out.push(rest);
-    }
-    entry += interior + 1;
-  }
-  while (entry < m) {
-    out.push(degen(anchors[n2 - 1]));
-    entry++;
-  }
-  if (closing) closing.forEach((c) => out.push(c.slice()));
-  return out;
-}
-function reconcilePathPair(fromD, toD, entries, oldN, newN, isArea) {
-  const fromAnalysis = analyzeSeriesPath(fromD, oldN, isArea);
-  if (!fromAnalysis) return null;
-  const toAnalysis = analyzeSeriesPath(toD, newN, isArea);
-  if (!toAnalysis) return null;
-  if (fromAnalysis.segType !== toAnalysis.segType) return null;
-  if ((fromAnalysis.closing || toAnalysis.closing) && (!fromAnalysis.closing || !toAnalysis.closing || fromAnalysis.closing[0][0] !== toAnalysis.closing[0][0])) {
-    return null;
-  }
-  const fromOwn = entries.map((e2) => e2.oldJ);
-  const toOwn = entries.map((e2) => e2.newJ);
-  return {
-    from: arrayToPath(expandPath(fromAnalysis, fromOwn)),
-    toInterp: arrayToPath(expandPath(toAnalysis, toOwn))
-  };
-}
-function lengthTransitionEnabled(w) {
-  var _a;
-  const anim = w.config.chart.animations;
-  if (!anim || anim.enabled === false) return false;
-  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
-    return false;
-  }
-  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
-  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
-  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
-}
-function datumKey(w, realIndex, j2) {
-  var _a, _b, _c, _d;
-  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
-    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
-  }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j2];
-  if (lbl != null && String(lbl) !== "") {
-    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
-  }
-  return "j:" + j2;
-}
-function frameDatumKey(frame, realIndex, j2) {
-  var _a, _b;
-  if (frame.isXNumeric) {
-    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
-    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
-  }
-  const lbl = (_b = frame.labels) == null ? void 0 : _b[j2];
-  if (lbl != null && String(lbl) !== "") {
-    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
-  }
-  return "j:" + j2;
-}
-function joinKeys(oldKeys, newKeys) {
-  const oldIndex = /* @__PURE__ */ new Map();
-  oldKeys.forEach((k2, i2) => {
-    if (!oldIndex.has(k2)) oldIndex.set(k2, i2);
-  });
-  const toOld = new Array(newKeys.length);
-  const usedOld = /* @__PURE__ */ new Set();
-  let prev = -1;
-  let ordered = true;
-  let identity = oldKeys.length === newKeys.length;
-  newKeys.forEach((k2, i2) => {
-    const oi = oldIndex.has(k2) && !usedOld.has(oldIndex.get(k2)) ? oldIndex.get(k2) : -1;
-    toOld[i2] = oi;
-    if (oi !== -1) {
-      usedOld.add(oi);
-      if (oi < prev) ordered = false;
-      prev = oi;
-    }
-    if (oi !== i2) identity = false;
-  });
-  const exits = [];
-  for (let i2 = 0; i2 < oldKeys.length; i2++) {
-    if (!usedOld.has(i2)) exits.push(i2);
-  }
-  return { toOld, exits, ordered, changed: !identity };
-}
-function uniquifyKeys(keys) {
-  const seen = /* @__PURE__ */ new Map();
-  return keys.map((k2) => {
-    const count = seen.get(k2) || 0;
-    seen.set(k2, count + 1);
-    return count === 0 ? k2 : `${k2}#${count}`;
-  });
-}
-function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
-  var _a, _b;
-  if (!lengthTransitionEnabled(w)) return null;
-  const frame = w.globals.prevStreamFrame;
-  if (!frame) return null;
-  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
-  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
-  if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
-  if (!oldY.length || !newY.length) return null;
-  const oldKeys = uniquifyKeys(
-    oldY.map((_2, j2) => frameDatumKey(frame, realIndex, j2))
-  );
-  const newKeys = uniquifyKeys(newY.map((_2, j2) => datumKey(w, realIndex, j2)));
-  const join = joinKeys(oldKeys, newKeys);
-  if (!join.ordered && !allowReorder) return null;
-  if (!join.changed && !includeIdentity) return null;
-  return { join, oldKeys, newKeys };
-}
-function morphEasing(w) {
-  var _a, _b;
-  const anim = w.config.chart.animations;
-  return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
-}
-function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
-  var _a, _b;
-  const sj = seriesJoin(w, realIndex);
-  if (!sj) return null;
-  const { join, oldKeys, newKeys } = sj;
-  const frame = w.globals.prevStreamFrame;
-  if (!frame) return null;
-  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
-  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
-  if (oldY.length < 2 || newY.length < 2) return null;
-  if (oldY.some((v) => v === null) || newY.some((v) => v === null)) return null;
-  const entries = buildUnionEntries(join, oldKeys.length);
-  const out = {};
-  if (Array.isArray(linePaths) && linePaths.length === 1 && pathFromLine) {
-    out.line = reconcilePathPair(
-      pathFromLine,
-      linePaths[0],
-      entries,
-      oldKeys.length,
-      newKeys.length,
-      false
-    );
-  }
-  if (type === "area" && Array.isArray(areaPaths) && areaPaths.length === 1 && pathFromArea) {
-    out.area = reconcilePathPair(
-      pathFromArea,
-      areaPaths[0],
-      entries,
-      oldKeys.length,
-      newKeys.length,
-      true
-    );
-  }
-  if (!out.line && !out.area) return null;
-  return out;
-}
 function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   var _a;
   const gl = w.globals;
@@ -21324,9 +21550,9 @@ function wrapParentTip(hf, tm) {
     }
     const v = (_c = tm._tip()) == null ? void 0 : _c.querySelector(".apexcharts-tooltip-text-y-value");
     if (!v) return;
-    let rest = `/ ${tm._formatValue(h.total)}`;
+    let rest = `/ ${tm._formatValue(h.total, node._si)}`;
     if (tt.share && h.total) rest += ` · ${Math.round(h.share * 100)}%`;
-    v.innerHTML = `${tm._formatValue(h.value)} <span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">${rest}</span>`;
+    v.innerHTML = `${tm._formatValue(h.value, node._si)} <span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">${rest}</span>`;
   };
 }
 function tone(rec, fore) {
@@ -21864,7 +22090,7 @@ class HighlightFilter {
     const active = hd.active;
     if (!active && !(prevMap == null ? void 0 : prevMap.size)) return void 0;
     const { j: j2, realIndex } = o2;
-    const key = BAR + `${realIndex}::${datumKey(w, realIndex, j2)}`;
+    const key = BAR + `${realIndex}::${bar._keys(realIndex)[j2]}`;
     this._seen.add(key);
     const prev = prevMap == null ? void 0 : prevMap.get(key);
     const p = active ? (_a = hd.parts[realIndex]) == null ? void 0 : _a[j2] : null;
@@ -22174,14 +22400,14 @@ class HighlightFilter {
   }
   /**
    * The stack a stacked bar datum joins, as the renderer resolves it
-   * (BarStacked drawStackedColumnPaths): its series group, then its x value
-   * on a numeric or datetime column axis, else its index.
+   * (BarStacked): its series group, then its x value on a numeric or
+   * datetime axis, else its index.
    * @param {number} i @param {number} j
    */
   _barKey(i2, j2) {
     var _a;
     const w = this.w;
-    return w.labelData.seriesGroupIndex[i2] + "|" + (!w.config.plotOptions.bar.horizontal && w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i2]) == null ? void 0 : _a[j2] : j2);
+    return w.labelData.seriesGroupIndex[i2] + "|" + (w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i2]) == null ? void 0 : _a[j2] : j2);
   }
   /**
    * Line.draw, once per series right after its whole has been rendered and
@@ -22245,7 +22471,7 @@ class HighlightFilter {
     const exit = !to && !!(prev == null ? void 0 : prev.d) && animate;
     const base = active && animate && (exit || to && !(prev == null ? void 0 : prev.d) && (prev || this.cfg.enter === "baseline")) ? this._lineBase(ln, type, series, i2, realIndex, ti, has ? raw : null) : null;
     if (pp && w.config.chart.stacked) {
-      this._swap(ln, () => ln._recordStackTops(realIndex, pp.yArrj));
+      this._swap(ln, () => ln._recordStackTops(realIndex, pp.yArrj, pp.S[i2]));
       this._stkPrev.push(pp.yArrj);
     }
     if (exit) {

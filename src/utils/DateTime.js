@@ -25,22 +25,6 @@ class DateTime {
   }
 
   /**
-   * @param {any} dateStr
-   */
-  getTimeStamp(dateStr) {
-    // Guard on NaN, not truthiness: a date that parses to epoch 0
-    // (1970-01-01T00:00:00Z) is falsy but valid, and returning the raw string
-    // for it produces NaN downstream in numeric axis math.
-    if (isNaN(Date.parse(dateStr))) {
-      return dateStr
-    }
-    const utc = this.w.config.xaxis.labels.datetimeUTC
-    return !utc
-      ? new Date(dateStr).getTime()
-      : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
-  }
-
-  /**
    * @param {any} timestamp
    */
   getDate(timestamp) {
@@ -55,7 +39,10 @@ class DateTime {
   parseDate(dateStr) {
     const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
-      return this.getTimeStamp(dateStr)
+      // A parsed date is already a UTC instant, with or without
+      // datetimeUTC. Anything else goes through new Date(), which keeps a
+      // Date's milliseconds (its toString() has none).
+      return typeof dateStr === 'string' ? parsed : new Date(dateStr).getTime()
     }
 
     // The salvage pass below re-spells the input and parses it again. Only a
@@ -67,9 +54,7 @@ class DateTime {
       return NaN
     }
 
-    let output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
-    output = this.getTimeStamp(output)
-    return output
+    return Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191

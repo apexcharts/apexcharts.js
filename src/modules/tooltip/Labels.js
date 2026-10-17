@@ -22,13 +22,18 @@ export default class Labels {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
     this.tooltipUtil = new Utils(tooltipContext)
+    // Stateless helpers a datetime hover used to build afresh on every move.
+    this.xFormat = new Formatters(this.w)
+    this.dateTime = new DateTime(this.w)
   }
 
   /** @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any }} opts */
   drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
     const w = this.w
+    const custom = w.config.tooltip.custom !== undefined
+    const tooltipEl = this.ttCtx.getElTooltip()
 
-    if (w.config.tooltip.custom !== undefined) {
+    if (custom) {
       this.handleCustomTooltip({ i, j, y1, y2, w })
     } else {
       this.toggleActiveInactiveSeries(shared, i)
@@ -46,11 +51,12 @@ export default class Labels {
       ttItems,
       shared,
       e,
+      // Markup from tooltip.custom has replaced the built-in rows: formatting
+      // them anyway ran every formatter into nodes no one sees.
+      rows: !custom || tooltipEl?.contains(ttItems?.[0]),
     })
 
     // Re-calculate tooltip dimensions now that we have drawn the text
-    const tooltipEl = this.ttCtx.getElTooltip()
-
     if (tooltipEl) {
       // One rect read, not two: each call forces a synchronous layout of the
       // whole tooltip, which on a shared tooltip with a row per series is the
@@ -61,11 +67,27 @@ export default class Labels {
     }
   }
 
-  /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any}} opts */
-  printLabels({ i, j, values, ttItems, shared, e }) {
+  /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any, rows?: boolean}} opts */
+  printLabels({ i, j, values, ttItems, shared, e, rows = true }) {
     const w = this.w
+    const ttCtx = this.ttCtx
     const { xVal, zVal, xAxisTTVal } = values
     const seriesLen = w.seriesData.series.length
+
+    // The title and the x-axis label read the same for every row, so they are
+    // written once a hover, not once per series.
+    if (ttItems?.[0]) {
+      if (rows && ttCtx.showTooltipTitle) {
+        ttCtx.tooltipTitle ??= w.dom.baseEl.querySelector(
+          '.apexcharts-tooltip-title',
+        )
+        if (ttCtx.tooltipTitle) ttCtx.tooltipTitle.innerHTML = xVal
+      }
+      if (ttCtx.isXAxisTooltipEnabled && ttCtx.xaxisTooltipText) {
+        ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
+      }
+    }
+    if (!rows) return
 
     const basePColor =
       j !== null && w.config.plotOptions.bar.distributed
@@ -103,8 +125,6 @@ export default class Labels {
         values: {
           val: row.val,
           goalVals: row.goalVals,
-          xVal,
-          xAxisTTVal,
           zVal,
         },
         seriesName: row.seriesName,
@@ -122,38 +142,28 @@ export default class Labels {
    */
   computeSeriesRow({ i, j, tIndex, shared, e, basePColor }) {
     const w = this.w
-    let f = this.getFormatters(i)
+    // A shared row speaks for series tIndex. Its formatters and name are taken
+    // once, not the hovered series' first and then thrown away, which ran the
+    // title formatter twice per row.
+    const own = w.globals.axisCharts && shared ? tIndex : i
+    const f = this.getFormatters(own)
     let pColor = basePColor
     let val
     let goalVals = /** @type {any[]} */ ([])
 
-    let seriesName =
-      w.config.chart.type === 'treemap'
-        ? f.yLbTitleFormatter(
-            String(/** @type {any} */ (w.config.series[i]).data[j].x),
-            {
-              series: w.seriesData.series,
-              seriesIndex: i,
-              dataPointIndex: j,
-              w,
-            },
-          )
-        : this.getSeriesName({
-            fn: f.yLbTitleFormatter,
-            index: i,
-            seriesIndex: i,
-            j,
-          })
+    const seriesName = this.getSeriesName({
+      fn: f.yLbTitleFormatter,
+      index: own,
+      seriesIndex: i,
+      j,
+      leaf:
+        w.config.chart.type === 'treemap'
+          ? String(/** @type {any} */ (w.config.series[i]).data[j].x)
+          : null,
+    })
 
     if (w.globals.axisCharts) {
       if (shared) {
-        f = this.getFormatters(tIndex)
-        seriesName = this.getSeriesName({
-          fn: f.yLbTitleFormatter,
-          index: tIndex,
-          seriesIndex: i,
-          j,
-        })
         pColor = w.globals.colors[tIndex]
         val = this.formatYValue(f, tIndex, j)
         goalVals = this.formatGoalVals(f, tIndex, j)
@@ -358,15 +368,22 @@ export default class Labels {
     }
   }
 
-  /** @param {{fn: any, index: any, seriesIndex: any, j: any}} opts */
-  getSeriesName({ fn, index, seriesIndex, j }) {
+  /**
+   * A treemap row is named by its leaf, not its series.
+   * @param {{fn: any, index: any, seriesIndex: any, j: any, leaf?: string | null}} opts
+   */
+  getSeriesName({ fn, index, seriesIndex, j, leaf }) {
     const w = this.w
-    return fn(String(w.seriesData.seriesNames[index]), {
+    const s = fn(leaf ?? String(w.seriesData.seriesNames[index]), {
       series: w.seriesData.series,
       seriesIndex,
       dataPointIndex: j,
       w,
     })
+    // A leaf's name is data and the title is written as HTML. The default
+    // title is the name plus ': ', so that shape gets the name's '<' escaped
+    // (enough in element text); markup a title formatter adds stays markup.
+    return leaf && s === leaf + ': ' ? leaf.replace(/</g, '&lt;') + ': ' : s
   }
 
   /**
@@ -397,7 +414,7 @@ export default class Labels {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    const { val, goalVals, xVal, xAxisTTVal, zVal } = values
+    const { val, goalVals, zVal } = values
 
     // A hover processed mid-render (e.g. during a cross-type updateOptions, where
     // the new type's series count can momentarily outpace the rebuilt tooltip
@@ -415,25 +432,6 @@ export default class Labels {
     if (w.config.tooltip.fillSeriesColor) {
       ttItems[t].style.backgroundColor = pColor
       ttItemsChildren[0].style.display = 'none'
-    }
-
-    if (ttCtx.showTooltipTitle) {
-      if (ttCtx.tooltipTitle === null) {
-        // get it once if null, and store it in class property
-        ttCtx.tooltipTitle = w.dom.baseEl.querySelector(
-          '.apexcharts-tooltip-title',
-        )
-      }
-      if (ttCtx.tooltipTitle) {
-        ttCtx.tooltipTitle.innerHTML = xVal
-      }
-    }
-
-    // if xaxis tooltip is constructed, we need to replace the innerHTML
-    if (ttCtx.isXAxisTooltipEnabled) {
-      if (ttCtx.xaxisTooltipText) {
-        ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
-      }
     }
 
     const ttYLabel = refs.yLabel
@@ -580,12 +578,10 @@ export default class Labels {
       // Rows are indexed by series index, except where only one was allocated
       // (the non-shared cartesian case, see Tooltip.createTTElements) and
       // every hovered series writes into row 0.
-      const rowIndex = this.ttCtx.ttItems?.length === 1 ? 0 : i
-
-      // enable the first tooltip text group
-      const firstTooltipSeriesGroup = w.dom.baseEl.querySelector(
-        `.apexcharts-tooltip-series-group-${rowIndex}`,
-      )
+      const rows = this.ttCtx.ttItems
+      // enable the first tooltip text group, the row already held, not
+      // queried for on every move
+      const firstTooltipSeriesGroup = rows?.[rows.length === 1 ? 0 : i]
 
       if (firstTooltipSeriesGroup) {
         const ftsGroup = /** @type {HTMLElement} */ (firstTooltipSeriesGroup)
@@ -598,12 +594,7 @@ export default class Labels {
   /** @param {{i: any, j: any}} opts */
   getValuesToPrint({ i, j }) {
     const w = this.w
-    /**
-     * @param {any[]} ser
-     */
-    const filteredSeriesX = w.seriesData.seriesX.map(
-      (/** @type {any} */ ser) => (ser.length > 0 ? ser : []),
-    )
+    const seriesX = /** @type {any[][]} */ (w.seriesData.seriesX)
 
     let xVal = ''
     let xAxisTTVal = ''
@@ -623,16 +614,23 @@ export default class Labels {
       val = w.seriesData.series[i]
     } else {
       if (w.axisFlags.isXNumeric && w.config.chart.type !== 'treemap') {
-        xVal = filteredSeriesX[i][j]
-        if (filteredSeriesX[i].length === 0) {
+        xVal = seriesX[i][j]
+        if (seriesX[i].length === 0) {
           // a series (possibly the first one) might be collapsed, so get the next active index
           const firstActiveSeriesIndex =
-            this.tooltipUtil.getFirstActiveXArray(filteredSeriesX)
-          xVal = filteredSeriesX[firstActiveSeriesIndex][j]
+            this.tooltipUtil.getFirstActiveXArray(seriesX)
+          xVal = seriesX[firstActiveSeriesIndex][j]
         }
       } else {
-        const dataFormat = new Data(this.w)
-        if (dataFormat.isFormatXY()) {
+        // Asked once a render (drawTooltip starts a new one): asking per move
+        // built a Data and scanned the series, and on [{x, y}, null] data
+        // logged its mixed-format warning on every move.
+        const gen = this.ttCtx.allTooltipSeriesGroups
+        if (this._xyGen !== gen) {
+          this._xyGen = gen
+          this._isXY = new Data(this.w).isFormatXY()
+        }
+        if (this._isXY) {
           // a null entry is a gap in the data, with no x of its own
           const datum = /** @type {any} */ (w.config.series[i]).data[j]
           xVal = datum == null ? '' : datum.x
@@ -648,14 +646,13 @@ export default class Labels {
     const bufferXVal = xVal
 
     if (w.axisFlags.isXNumeric && w.config.xaxis.type === 'datetime') {
-      const xFormat = new Formatters(this.w)
-      xVal = xFormat.xLabelFormat(
+      xVal = this.xFormat.xLabelFormat(
         /** @type {Function} */ (w.formatters.ttKeyFormatter),
         bufferXVal,
         bufferXVal,
         {
           i: undefined,
-          dateFormatter: new DateTime(this.w).formatDate,
+          dateFormatter: this.dateTime.formatDate,
           w: this.w,
         },
       )

@@ -49,6 +49,11 @@ export default class Globals {
     // that drops range data. See audit D1.
     gl.seriesRangeName = {}
 
+    // Fill colours resolved through a probe (CSS variables), keyed by the
+    // colour as configured. Reset each render, so a theme change is re-read.
+    // No prototype: a configured colour is user input.
+    gl.themeColors = Object.create(null)
+
     // ── Labels & categories (ephemeral — derived from parsed series/config) ──
     gl.labels = []
     gl.hasXaxisGroups = false

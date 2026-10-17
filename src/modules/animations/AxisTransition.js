@@ -435,6 +435,12 @@ function transitionAxis(
 
   const newLinesAligned = newLines.length === newLabels.length
   const oldLinesAligned = oldLines.length === oldLabels.length
+  // Only a category x axis (or a horizontal bar chart's value axis) skips its
+  // blank labels: nothing projects it, now or from the next update's
+  // capture. Elsewhere that capture reads every label's in-flight position
+  // (the y projection's outermost anchors, the clamp span).
+  const skipBlank =
+    posAttr === 'x' && (!w.axisFlags?.isXNumeric || w.globals.isBarHorizontal)
 
   // Projected positions can land thousands of px off-axis on a deep zoom.
   // The axis groups are not clipped, so clamp travel to just beyond the
@@ -474,6 +480,9 @@ function transitionAxis(
     const old = oldByText.get(newKeys[i])
     const line = newLinesAligned ? newLines[i] : null
     if (old) matchedOld.add(old.i)
+    // A label thinned out by tickAmount or overlap has no text and paints
+    // nothing: with no gridline riding it, there is nothing to move.
+    if (skipBlank && !line && !label.textContent) return
     const labelTransform = label.getAttribute('transform')
 
     // Entering tick (no text match): slide in from its value's projected old
@@ -485,7 +494,6 @@ function transitionAxis(
             ? clamp(project.toOld(to))
             : NaN
           if (isFinite(from) && Math.abs(from - to) > 0.5) {
-            driven.add(label)
             tweenPos(w, label, [posAttr], from, to, duration, ease)
             if (line) {
               driven.add(line)
@@ -510,7 +518,6 @@ function transitionAxis(
       // zoom / length-change updates, not just reorders.
       const delta = old.pos - to
       if (isFinite(delta)) {
-        driven.add(label)
         const base = labelTransform || ''
         chromeTween(
           w,
@@ -531,7 +538,6 @@ function transitionAxis(
       return
     }
 
-    driven.add(label)
     tweenPos(w, label, [posAttr], old.pos, to, duration, ease)
     tweenPairedLine(line, old)
   })
@@ -612,7 +618,8 @@ export function applyAxisTransition(w, { layout = true } = {}) {
   const duration = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1)
   const ease = morphEasing(w)
 
-  // Nodes a tick tween drives, so the layout tween leaves their position be.
+  // Gridlines a tick tween drives, so the layout tween leaves their position
+  // be. (It moves no labels, so they are not listed.)
   /** @type {Set<Element>} */
   const driven = new Set()
 

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -807,10 +807,14 @@ class Exports {
         const byCategory = /* @__PURE__ */ new Map();
         series.forEach((s, sI) => {
           var _a;
+          const seen = /* @__PURE__ */ new Map();
           (_a = s == null ? void 0 : s.data) == null ? void 0 : _a.forEach((d, i) => {
             if (!d || typeof d !== "object") return;
             const cat = Array.isArray(d) ? d[0] : d.x;
-            const key = String(cat);
+            const x = String(cat);
+            const n = seen.get(x) || 0;
+            seen.set(x, n + 1);
+            const key = `${n}:${x}`;
             let row = byCategory.get(key);
             if (!row) {
               row = { cat, values: cols.map((c) => c.head.map(() => "")) };
@@ -824,7 +828,8 @@ class Exports {
           const bText = typeof b.cat === "string";
           if (aText !== bText) return aText ? 1 : -1;
           if (!aText) return a.cat - b.cat;
-          return w.axisFlags.isXNumeric ? a.cat < b.cat ? -1 : 1 : 0;
+          if (!w.axisFlags.isXNumeric) return 0;
+          return a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : 0;
         }).forEach(({ cat, values }) => body.push([cat, ...values.flat()]));
       } else {
         const len = Math.max(
@@ -849,7 +854,8 @@ class Exports {
       }
     }
     const dates = body.map((r) => r[0]).filter(isDateCat);
-    const withTime = new Set(dates.map((c) => datetimeText(c))).size < dates.length;
+    const stamps = new Set(dates.map((c) => +new Date(c)));
+    const withTime = new Set([...stamps].map((t) => datetimeText(t))).size < stamps.size;
     body.forEach(
       (r) => rows.push(
         [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(

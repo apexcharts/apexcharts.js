@@ -241,9 +241,13 @@ export default class Responsive {
           ? Utils.clone(r.options.yaxis)
           : null
         const baseYaxis = cfg.yaxis
+        // On a copy: extendYAxis writes a logarithmic breakpoint's yaxis out
+        // into one axis per series, named after the series of this render.
+        // Kept on r.options, those names were merged back over the axes of
+        // every later render, after the series were reordered (#5353).
         cfg = Utils.extend(
           cfg,
-          CoreUtils.extendArrayProps(config, r.options, w),
+          CoreUtils.extendArrayProps(config, Utils.clone(r.options), w),
         )
         // Utils.extend does not deep-merge arrays, so a responsive `yaxis`
         // array silently replaces the entire base `yaxis`, losing base

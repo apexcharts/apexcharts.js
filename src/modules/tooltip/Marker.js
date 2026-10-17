@@ -2,7 +2,6 @@
 import Graphics from '../Graphics'
 import Position from './Position'
 import Markers from '../../modules/Markers'
-import Utils from '../../utils/Utils'
 import TooltipUtils from './Utils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { SVGNS } from '../../svg/math'
@@ -76,6 +75,8 @@ export default class Marker {
     // ones it actually touched. See enlargePoints().
     /** @type {Set<any>} */
     this.enlargedPoints = new Set()
+    // A hover may have moved a hover dot since the last resetPointsSize.
+    this.dirty = false
   }
 
   drawDynamicPoints() {
@@ -204,6 +205,7 @@ export default class Marker {
   enlargePaintedPoint(marker, x, y) {
     const w = this.w
     this.resetPointsSize()
+    this.dirty = true
 
     // A bubble's radius is its value, so enlargeCurrentPoint leaves an SVG
     // bubble as it is and clears only `markers.hover.size`; a painted one is
@@ -442,27 +444,29 @@ export default class Marker {
     this.enlargedPoints.delete(point)
   }
 
+  /**
+   * Put every marker a hover changed back as drawn: the ones newPointSize
+   * grew (tracked) and each visible series' hover dot, the only nodes the
+   * dot writers touch. This used to re-path every marker in the chart, on
+   * every hide.
+   */
   resetPointsSize() {
-    const w = this.w
-
-    // This is the chart-wide sweep, so nothing is left enlarged afterwards.
-    this.enlargedPoints.clear()
-
-    const points = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker',
-    )
-
-    for (let p = 0; p < points.length; p++) {
-      const size = parseFloat(
-        points[p].getAttribute('default-marker-size') ?? '0',
-      )
-
-      if (Utils.isNumber(size) && size > 0) {
-        const path = this.ttCtx.tooltipUtil.getPathFromPoint(points[p], size)
-        points[p].setAttribute('d', path)
-      } else {
-        points[p].setAttribute('d', 'M0,0')
+    const collapsed = this.w.globals.collapsedSeriesIndices
+    this.dirty = false
+    this.resetEnlargedPoints()
+    this.ttCtx.tooltipUtil.markerWraps().forEach(([i, ...dots]) => {
+      if (collapsed.indexOf(i) < 0) {
+        dots.forEach((p) => {
+          if (!p) return
+          const size = parseFloat(p.getAttribute('default-marker-size'))
+          p.setAttribute(
+            'd',
+            size > 0
+              ? this.ttCtx.tooltipUtil.getPathFromPoint(p, size)
+              : 'M0,0',
+          )
+        })
       }
-    }
+    })
   }
 }

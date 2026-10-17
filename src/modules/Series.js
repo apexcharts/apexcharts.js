@@ -229,9 +229,9 @@ export default class Series {
     const clearGroup = (g) => {
       if (w.globals.isDestroyed) return
       g.classList.remove('apexcharts-series-collapsing')
-      g.querySelectorAll('.apexcharts-marker-exit, .apexcharts-bar-ghost').forEach(
-        (/** @type {Element} */ el) => el.remove(),
-      )
+      g.querySelectorAll(
+        '.apexcharts-marker-exit, .apexcharts-bar-ghost',
+      ).forEach((/** @type {Element} */ el) => el.remove())
       g.querySelectorAll('path').forEach((/** @type {Element} */ p) => {
         p.setAttribute('d', '')
       })
@@ -373,7 +373,8 @@ export default class Series {
 
     this.clearSeriesCache()
 
-    let series = Utils.clone(w.globals.initialSeries)
+    // From the peek: reading initialSeries deep clones it first.
+    let series = Utils.clone(w.globals._initialSeriesPeek)
     // A chart constructed (or once updated) with an invalid series leaves no
     // usable snapshot; resetting to the live config beats crashing here and
     // stranding the chart mid-update.
@@ -500,7 +501,8 @@ export default class Series {
         // list before handing it on, and taking that would overwrite the only
         // copy of the data a later rise has to restore from.
         if (gl.axisCharts) {
-          if (s && Array.isArray(s.data) && s.data.length) rec.data = s.data.slice()
+          if (s && Array.isArray(s.data) && s.data.length)
+            rec.data = s.data.slice()
         } else {
           rec.data = s
         }
@@ -633,15 +635,14 @@ export default class Series {
 
     if (!targetElement) targetElement = e.target
 
-    const allSeriesEls = w.dom.baseEl.querySelectorAll(
-      `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`,
-    )
-
     if (e.type === 'mousemove') {
       const realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
       this.highlightSeries(w.seriesData.seriesNames[realIndex])
     } else if (e.type === 'mouseout') {
+      const allSeriesEls = w.dom.baseEl.querySelectorAll(
+        `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`,
+      )
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
       }
@@ -667,30 +668,15 @@ export default class Series {
       `apexcharts-${t}-rect`,
     )
 
-    /**
-     * @param {'add'|'remove'} op
-     */
-    const toggleAllInactive = (op) => {
-      for (let i = 0; i < allHeatMapElements.length; i++) {
-        const classList = /** @type {any} */ (allHeatMapElements[i]).classList
-        if (typeof classList[op] === 'function') {
-          classList[op](this.legendInactiveClass)
-        }
-      }
-    }
-
-    if (action === 'reset') {
-      toggleAllInactive('remove')
-      return
-    }
-
     const ranges = w.config.plotOptions[t].colorScale.ranges
     const range = ranges && ranges[rangeIndex]
-    if (!range) return
+    const reset = action === 'reset'
+    if (!reset && !range) return
 
-    toggleAllInactive('add')
-    for (let i = 0; i < allHeatMapElements.length; i++) {
-      const el = allHeatMapElements[i]
+    /**
+     * @param {Element} el
+     */
+    const inRange = (el) => {
       // treemap tiles carry no val; they are coloured by series[i][j]
       const val = Number(
         el.getAttribute('val') ??
@@ -700,9 +686,13 @@ export default class Series {
       )
       // Match the inclusive bounds used by determineColor (treemap/Helpers.js)
       // so the same cells that were colored by this range get highlighted.
-      if (val >= range.from && val <= range.to) {
-        el.classList.remove(this.legendInactiveClass)
-      }
+      return val >= range.from && val <= range.to
+    }
+
+    // One class write per cell: dimmed unless its value is in the range.
+    for (let i = 0; i < allHeatMapElements.length; i++) {
+      const el = allHeatMapElements[i]
+      el.classList.toggle(this.legendInactiveClass, !reset && !inRange(el))
     }
   }
 
@@ -770,24 +760,26 @@ export default class Series {
 
     return groups.map((/** @type {string[]} */ _, /** @type {number} */ gi) => {
       let last = -1
-      w.config.series.forEach((/** @type {any} */ s, /** @type {number} */ i) => {
-        if (w.labelData.seriesGroupIndex[i] !== gi) return
+      w.config.series.forEach(
+        (/** @type {any} */ s, /** @type {number} */ i) => {
+          if (w.labelData.seriesGroupIndex[i] !== gi) return
 
-        if (
-          w.globals.comboCharts &&
-          chartTypes.length &&
-          chartTypes.indexOf(s.type || w.config.chart.type) === -1
-        ) {
-          return
-        }
+          if (
+            w.globals.comboCharts &&
+            chartTypes.length &&
+            chartTypes.indexOf(s.type || w.config.chart.type) === -1
+          ) {
+            return
+          }
 
-        const hasData =
-          s.data &&
-          s.data.length > 0 &&
-          w.globals.collapsedSeriesIndices.indexOf(i) === -1
+          const hasData =
+            s.data &&
+            s.data.length > 0 &&
+            w.globals.collapsedSeriesIndices.indexOf(i) === -1
 
-        if (hasData) last = i
-      })
+          if (hasData) last = i
+        },
+      )
       return last
     })
   }
@@ -832,7 +824,9 @@ export default class Series {
     }
     this.capturePreviousPaths()
     gl.pendingCapture = Environment.isBrowser()
-      ? pendingUntilPaint(Object.fromEntries(Series.HELD.map((k) => [k, gl[k]])))
+      ? pendingUntilPaint(
+          Object.fromEntries(Series.HELD.map((k) => [k, gl[k]])),
+        )
       : null
   }
 
@@ -969,17 +963,25 @@ export default class Series {
     )
 
     if (heatTreeSeries.length > 0) {
+      // Each series' group (HeatMap and Treemap draw one per series) by
+      // realIndex, so its cells and labels are read from it: a whole-chart
+      // query per series scanned every cell for each one.
+      /** @type {Record<string, Element>} */
+      const byIndex = {}
+      heatTreeSeries.forEach(
+        (g) => (byIndex[g.getAttribute('data:realIndex') ?? ''] = g),
+      )
       for (let h = 0; h < heatTreeSeries.length; h++) {
+        const g = byIndex[h]
+        const within = (/** @type {string} */ sel) =>
+          g ? g.querySelectorAll(sel) : []
         // The cells/tiles by their class, rect or path alike: non-rect heatmap
         // cell shapes render as <path> (and without them a data update loses
         // its color-from and tweens in from transparent). Not every rect in
         // the group: a nested treemap draws its parents and headers ahead of
         // the tiles, so by position each tile started from a parent's shape,
         // and the series title plate came along too.
-        const base = `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h}']`
-        const seriesEls = w.dom.baseEl.querySelectorAll(
-          `${base} .apexcharts-${w.config.chart.type}-rect`,
-        )
+        const seriesEls = within(`.apexcharts-${w.config.chart.type}-rect`)
 
         const dArr = []
         // What each tile's label showed, so a label the next render adds (or
@@ -989,14 +991,17 @@ export default class Series {
         const labelled = new Map()
         /** @type {Set<string | null>} */
         const fading = new Set()
-        w.dom.baseEl
-          .querySelectorAll(`${base} .apexcharts-data-labels[data\\:key]`)
-          .forEach((/** @type {Element} */ el) => {
-            labelled.set(el.getAttribute('data:key'), Series.treemapLabelLook(el))
+        within('.apexcharts-data-labels[data\\:key]').forEach(
+          (/** @type {Element} */ el) => {
+            labelled.set(
+              el.getAttribute('data:key'),
+              Series.treemapLabelLook(el),
+            )
             if (parseFloat(el.getAttribute('opacity') ?? '1') < 0.999) {
               fading.add(el.getAttribute('data:key'))
             }
-          })
+          },
+        )
 
         for (let i = 0; i < seriesEls.length; i++) {
           /**
@@ -1098,22 +1103,29 @@ export default class Series {
         const tag = `zoom${++Series.ghostDefs}`
         /** @type {Map<string, Element>} */
         const defs = new Map()
-        copy.querySelectorAll('[fill^="url("], [stroke^="url("], [filter^="url("]').forEach((el) => {
-          ;['fill', 'stroke', 'filter'].forEach((a) => {
-            const m = /^url\(#([^)]+)\)$/.exec(el.getAttribute(a) || '')
-            if (!m) return
-            if (!defs.has(m[1])) {
-              const src = w.dom.baseEl.querySelector(`[id="${m[1]}"]`)
-              if (!src) return
-              const c = /** @type {Element} */ (src.cloneNode(true))
-              c.setAttribute('id', `${m[1]}-${tag}`)
-              defs.set(m[1], c)
-            }
-            el.setAttribute(a, `url(#${m[1]}-${tag})`)
+        copy
+          .querySelectorAll(
+            '[fill^="url("], [stroke^="url("], [filter^="url("]',
+          )
+          .forEach((el) => {
+            ;['fill', 'stroke', 'filter'].forEach((a) => {
+              const m = /^url\(#([^)]+)\)$/.exec(el.getAttribute(a) || '')
+              if (!m) return
+              if (!defs.has(m[1])) {
+                const src = w.dom.baseEl.querySelector(`[id="${m[1]}"]`)
+                if (!src) return
+                const c = /** @type {Element} */ (src.cloneNode(true))
+                c.setAttribute('id', `${m[1]}-${tag}`)
+                defs.set(m[1], c)
+              }
+              el.setAttribute(a, `url(#${m[1]}-${tag})`)
+            })
           })
-        })
         if (defs.size) {
-          const holder = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+          const holder = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'defs',
+          )
           holder.setAttribute('class', 'apexcharts-treemap-ghost-defs')
           defs.forEach((c) => holder.appendChild(c))
           copy.appendChild(holder)

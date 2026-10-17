@@ -278,7 +278,12 @@ export default class Helpers {
     const w = this.w
     const gl = w.globals
 
-    const series = Utils.clone(w.config.series)
+    // An axis chart only replaces a row's `data` below, so a copy per row
+    // does; a deep clone cost every point, once per `hidden: true` series on
+    // each render. A non-axis collapse writes into the slice values.
+    const series = gl.axisCharts
+      ? Utils.copySeriesShallow(w.config.series)
+      : Utils.clone(w.config.series)
 
     if (gl.axisCharts) {
       const yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]]

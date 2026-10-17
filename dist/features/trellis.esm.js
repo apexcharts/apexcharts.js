@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -277,7 +277,8 @@ class RendererController {
         this._activate(desired, this._instances[desired]);
         return this._activeKind;
       }
-      if (mode === desired) {
+      if (mode === desired && !this._warned) {
+        this._warned = 1;
         warnMissingFeature(
           `\`chart.renderer: '${desired}'\``,
           `renderer-${desired}`,
@@ -286,10 +287,16 @@ class RendererController {
           }
         );
       }
-    } else if (mode === "canvas" && hasCanvasUnsupportedFeature(this.w)) {
+    } else if (mode === "canvas" && !this._warned && hasCanvasUnsupportedFeature(this.w)) {
+      this._warned = 1;
       console.warn(
         `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
       );
+    }
+    const prev = this._instances[this._activeKind];
+    if (prev) {
+      prev.destroy();
+      delete this._instances[this._activeKind];
     }
     this._activate("svg", this.svg);
     return this._activeKind;
@@ -1581,9 +1588,11 @@ class HeatmapGradientLegend {
     this._min = 0;
     this._max = 0;
     this._geom = null;
+    this._grad = null;
     this._bandHitEls = [];
     this._activeBandIndex = -1;
     this._targetEl = null;
+    this.panelsW = null;
     this._onCellEnter = this._onCellEnter.bind(this);
     this._onCellLeave = this._onCellLeave.bind(this);
     this._onBandEnter = this._onBandEnter.bind(this);
@@ -1698,15 +1707,8 @@ class HeatmapGradientLegend {
       linearGrad.setAttribute("x2", "1");
       linearGrad.setAttribute("y2", "0");
     }
-    const { min, max, stops, bands } = this._computeStops();
-    this._min = min;
-    this._max = max;
-    stops.forEach((s) => {
-      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
-      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
-      stopEl.setAttribute("stop-color", s.color);
-      linearGrad.appendChild(stopEl);
-    });
+    this._grad = linearGrad;
+    const { min, max, bands } = this._paintStops();
     defs.appendChild(linearGrad);
     svg.appendChild(defs);
     const rect = BrowserAPIs.createElementNS(SVG_NS, "rect");
@@ -1915,6 +1917,7 @@ class HeatmapGradientLegend {
    */
   repositionToPlot() {
     var _a, _b;
+    if (this._grad) this._paintStops();
     if (!Environment.isBrowser()) return;
     if (this._targetEl) return;
     const w = this.w;
@@ -2049,14 +2052,25 @@ class HeatmapGradientLegend {
     if (idx < 0 || idx === this._activeBandIndex) return;
     this._activeBandIndex = idx;
     (_d = (_c = (_b = this.ctx) == null ? void 0 : _b.events) == null ? void 0 : _c.fireEvent) == null ? void 0 : _d.call(_c, "legendHover", [this.ctx, idx, w]);
-    new Series(w).highlightRangeInSeries(idx, "highlight");
+    this._highlightRange(idx, "highlight");
   }
   /** Leaving a band clears the highlight. */
   _onBandLeave() {
     if (this._activeBandIndex < 0) return;
     const idx = this._activeBandIndex;
     this._activeBandIndex = -1;
-    new Series(this.w).highlightRangeInSeries(idx, "reset");
+    this._highlightRange(idx, "reset");
+  }
+  /**
+   * A shared trellis strip sets `panelsW` so a band reaches every panel.
+   * @param {number} idx
+   * @param {'highlight'|'reset'} action
+   */
+  _highlightRange(idx, action) {
+    var _a;
+    (((_a = this.panelsW) == null ? void 0 : _a.call(this)) || [this.w]).forEach(
+      (w) => new Series(w).highlightRangeInSeries(idx, action)
+    );
   }
   _attachHoverListeners() {
     var _a, _b;
@@ -2078,10 +2092,10 @@ class HeatmapGradientLegend {
    */
   _onCellEnter(...args) {
     var _a, _b, _c;
-    const w = this.w;
     if (!this.arrowEl) return;
     const opts = args[args.length - 1];
     if (!opts || typeof opts !== "object") return;
+    const w = opts.w || this.w;
     const i = opts.seriesIndex;
     const j = opts.dataPointIndex;
     if (typeof i !== "number" || typeof j !== "number") return;
@@ -2193,6 +2207,21 @@ class HeatmapGradientLegend {
     polygon.setAttribute("pointer-events", "none");
     return polygon;
   }
+  /** (Re)write the strip's stops; returns `_computeStops()`. */
+  _paintStops() {
+    const r = this._computeStops();
+    const grad = this._grad;
+    this._min = r.min;
+    this._max = r.max;
+    grad.innerHTML = "";
+    r.stops.forEach((s) => {
+      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
+      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
+      stopEl.setAttribute("stop-color", s.color);
+      grad.appendChild(stopEl);
+    });
+    return r;
+  }
   /**
    * Build gradient stops + return effective min/max.
    * - If `colorScale.ranges` is set, stops are placed at each range boundary
@@ -2234,7 +2263,8 @@ class HeatmapGradientLegend {
     if (!Number.isFinite(dataMax)) dataMax = 0;
     let min = dataMin;
     let max = dataMax;
-    if (typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min) {
+    const csWindow = typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min;
+    if (csWindow) {
       min = cs.min;
       max = cs.max;
     } else {
@@ -2265,34 +2295,30 @@ class HeatmapGradientLegend {
     } else {
       const baseColor = w.globals.colors[0] || "#008FFB";
       const utils = new Utils();
-      const plot = w.config.plotOptions[w.config.chart.type] || {};
+      const type = w.config.chart.type;
+      const plot = w.config.plotOptions[type] || {};
       const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
-      const hasNegs = (
+      const g = (
         /** @type {any} */
-        w.globals.hasNegs
+        w.globals
       );
+      const hasNegs = g.hasNegs;
+      const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
+      const hi = yExt ? g.maxY : max;
+      const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
+      const k2 = shadeIntensity * 1.25;
       const n = Math.max(2, cfg.stops || 16);
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1);
-        const v = min + t * (max - min);
-        const total = Math.abs(max) + Math.abs(min);
-        const percent_v = total === 0 ? 0 : 100 * v / total;
-        let colorShadePercent;
-        if (hasNegs) {
-          if (plot.reverseNegativeShade) {
-            colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
-          } else {
-            colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
-          }
-        } else {
-          colorShadePercent = 1 - percent_v / 100;
-        }
-        if (colorShadePercent > 1) colorShadePercent = 1;
-        if (colorShadePercent < -1) colorShadePercent = -1;
-        const shaded = plot.enableShades ? utils.shadeColor(
-          w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
-          baseColor
-        ) : baseColor;
+        const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
+        const c = Math.max(
+          -1,
+          Math.min(
+            1,
+            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k2 : 1)
+          )
+        );
+        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
     }
@@ -2317,6 +2343,7 @@ class TrellisChrome {
     this.elBreadcrumb = null;
     this.gradientLegend = null;
     this._gradPending = null;
+    this._gradWire = null;
   }
   /**
    * The per-cell facet header. Built with the cell, before the panel mounts,
@@ -2547,17 +2574,20 @@ class TrellisChrome {
     const legend = new HeatmapGradientLegend(chart.w, chart.ctx);
     legend.draw(slot);
     this.gradientLegend = legend;
-    t.panels.forEach((p) => {
+    legend.panelsW = () => t.panels.filter((p) => p.chart).map((p) => (
+      /** @type {any} */
+      p.chart.w
+    ));
+    const wire = (_, p) => {
       var _a;
-      if (!p.chart || p === mounted) return;
-      const ev = (
-        /** @type {any} */
-        (_a = p.chart.ctx) == null ? void 0 : _a.events
-      );
-      if (!(ev == null ? void 0 : ev.addEventListener)) return;
+      const ev = p.chart !== chart && ((_a = p.chart) == null ? void 0 : _a.ctx.events);
+      if (!ev) return;
       ev.addEventListener("dataPointMouseEnter", legend._onCellEnter);
       ev.addEventListener("dataPointMouseLeave", legend._onCellLeave);
-    });
+    };
+    t.panels.forEach((p) => wire(0, p));
+    t.ctx.events.addEventListener("panelMounted", wire);
+    this._gradWire = wire;
   }
   /** Tear down the shared gradient strip (P5). */
   destroyGradientLegend() {
@@ -2567,6 +2597,7 @@ class TrellisChrome {
       (_b = (_a = t.ctx.events).removeEventListener) == null ? void 0 : _b.call(_a, "panelMounted", this._gradPending);
       this._gradPending = null;
     }
+    t.ctx.events.removeEventListener("panelMounted", this._gradWire);
     if (this.gradientLegend) {
       try {
         this.gradientLegend.destroy();
@@ -2883,6 +2914,7 @@ class TrellisSync {
       });
     };
     const loop = () => {
+      if (elGrid !== this.trellis.elGrid) return raf2 = 0;
       apply();
       raf2 = hoverTarget ? requestAnimationFrame(loop) : 0;
     };
@@ -3289,33 +3321,84 @@ class AxisMapping {
     return w.globals.minX + px * AxisMapping.xRatio(w);
   }
   /**
-   * Client (screen) x -> pixels from the plot origin. The origin is the svg
-   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
-   * (fact 2 above), so the result does not depend on what the grid happens to
-   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
-   * against the measured one is the CSS zoom of any container the chart sits in.
+   * The plot area on screen, in client px: its corner is where the plot's
+   * group is translated to (translateX, translateY into the svg), and it is
+   * gridWidth by gridHeight. The one screen-to-plot measurement: the tooltip,
+   * zoom, selection and every other pointer reader map through it, so x and y
+   * cannot disagree under CSS zoom.
+   *
+   * Never the `.apexcharts-grid` group's box: a group measures to the union
+   * of what it happens to draw (fact 2 above). The plot's outline starts a
+   * pixel down (`Grid.drawGridArea`), so unless gridlines or row bands reach
+   * the top edge the box starts a pixel below the plot, and on a numeric-x bar
+   * chart the horizontal gridlines run `barPadForNumericAxis` out past both
+   * sides.
+   *
+   * `zoom` is the CSS zoom of any container the chart sits in (screen px per
+   * plot px): the measured svg width over `svgWidth`, the unscaled width it
+   * was drawn at. A distance measured on screen from this corner is divided
+   * by it to land in plot px, the space the series are laid out and painted in.
+   * With nothing mounted to measure, screen px are taken as svg px.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
+   */
+  static plotRect(w) {
+    var _a, _b, _c;
+    const svg = ((_a = w.dom.Paper) == null ? void 0 : _a.node) || ((_b = w.dom.baseEl) == null ? void 0 : _b.querySelector(".apexcharts-svg"));
+    const box = ((_c = svg || w.dom.elWrap) == null ? void 0 : _c.getBoundingClientRect()) || {
+      left: 0,
+      top: 0,
+      width: 0
+    };
+    const zoom = (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1;
+    return {
+      left: box.left + w.layout.translateX * zoom,
+      top: box.top + w.layout.translateY * zoom,
+      width: w.layout.gridWidth * zoom,
+      height: w.layout.gridHeight * zoom,
+      zoom
+    };
+  }
+  /**
+   * Client (screen) x -> pixels from the plot origin of {@link plotRect}.
+   * Pass the rect when the caller has already measured it.
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} screenX
+   * @param {{ left: number, zoom: number }} [plot]
    * @returns {number}
    */
-  static screenXToPlotPx(w, screenX) {
-    const baseEl = w.dom.baseEl;
-    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return screenX - w.layout.translateX;
-    const svgRect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
-    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
+  static screenXToPlotPx(w, screenX, plot = AxisMapping.plotRect(w)) {
+    return (screenX - plot.left) / plot.zoom;
   }
 }
-const CURSOR_PAD = 14;
-const BAR_FAMILY = [
+Object.setPrototypeOf(
+  {
+    funnel: "bar",
+    pyramid: "bar",
+    gauge: "radialBar",
+    waffle: "unit",
+    histogram: "bar",
+    waterfall: "rangeBar",
+    dumbbell: "rangeBar",
+    streamgraph: "rangeArea",
+    raincloud: "violin",
+    // `column` is the name half the world uses for a vertical bar chart, and the
+    // combo path has always accepted it on `series[].type`. On `chart.type` it
+    // used to fall through every dispatch and die inside the renderer (#5325),
+    // so it is spelled out here as what it has always meant.
+    column: "bar"
+  },
+  null
+);
+const BAR_PATHWAY_TYPES = [
   "bar",
-  "column",
   "rangeBar",
   "candlestick",
   "boxPlot",
   "violin"
 ];
+const CURSOR_PAD = 14;
 class TrellisTooltip {
   /**
    * @param {import('./Trellis').default} trellis
@@ -3380,7 +3463,7 @@ class TrellisTooltip {
         return -1;
       }
     }
-    const slotted = (BAR_FAMILY.indexOf(w.config.chart.type) !== -1 || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
+    const slotted = (BAR_PATHWAY_TYPES.includes(w.config.chart.type) || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
     const j = slotted ? Math.ceil(hoverX / (gridWidth / n)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)));
     return Math.max(0, Math.min(n - 1, j));
   }
@@ -4528,8 +4611,12 @@ class Trellis {
         // gap is the breathing room here).
         parentHeightOffset: 0,
         toolbar: { show: false },
+        // the shared toolbar owns the one reset (TrellisSync.resetAll); with
+        // toolbar 'none' a panel's own reset is the only way back, unless the
+        // page turned it off
         zoom: {
-          enabled: this.cfg.zoom !== "none"
+          enabled: this.cfg.zoom !== "none",
+          resetControl: this.cfg.toolbar == "none" && w.config.chart.zoom.resetControl !== false
         }
       }, animationsOff ? { animations: { enabled: false } } : {}), this._panelRenderer ? { renderer: this._panelRenderer } : {}), {
         events: __spreadProps(__spreadValues({}, userEvents), {

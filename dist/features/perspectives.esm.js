@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -478,6 +478,7 @@ function licensedForPremium(key) {
 }
 function reinstateWatermark(ctx, elWrap) {
   const node = C.add(elWrap, { manage: false });
+  ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
@@ -506,6 +507,8 @@ function addWatermark(ctx, elWrap) {
   ctx._wmObservedWrap = elWrap;
 }
 function teardownWatermark(ctx, elWrap) {
+  if (!ctx._wmPainted) return;
+  ctx._wmPainted = false;
   if (ctx._wmWrapObserver) {
     ctx._wmWrapObserver.disconnect();
     ctx._wmWrapObserver = null;

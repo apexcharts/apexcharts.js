@@ -208,6 +208,16 @@ export function captureExitLabels(w) {
  */
 const px = (v) => (typeof v === 'number' ? v : NaN)
 
+/**
+ * A label with the background pill drawn just before it.
+ * @param {Element} text
+ * @returns {Element[]}
+ */
+function withPill(text) {
+  const prev = text.previousElementSibling
+  return prev && prev.tagName.toLowerCase() === 'rect' ? [prev, text] : [text]
+}
+
 /** Index of the value in `xs` nearest to `x`, or -1. */
 function nearestIndex(/** @type {Array<number | null>} */ xs, /** @type {number} */ x) {
   let best = -1
@@ -254,9 +264,7 @@ function riseLabels(w, rises) {
           const dx = px(oldX[j]) - px(newX[j])
           const dy = px(oldY[j]) - px(newY[j])
           if (j < 0 || !isFinite(dx) || !isFinite(dy)) return
-          const prev = text.previousElementSibling
-          const els =
-            prev && prev.tagName.toLowerCase() === 'rect' ? [prev, text] : [text]
+          const els = withPill(text)
           const bases = els.map((el) => el.getAttribute('transform') || '')
           const place = (/** @type {number} */ eased) =>
             els.forEach((el, k) => {
@@ -326,24 +334,22 @@ export function playExitLabels(w) {
   const done = () => {
     if (--pending <= 0) wrap.remove()
   }
+  /** @type {Record<number, boolean>} */
+  const owned = {}
 
   try {
     labels.forEach(({ realIndex, node, key, oldX, oldY }) => {
       // A renderer that drew its own collapsing labels (stacked columns)
-      // already carries this series out.
+      // already carries this series out. One lookup per series.
       if (
-        root.querySelector(
+        (owned[realIndex] ??= !!root.querySelector(
           `.apexcharts-datalabels[data\\:realIndex="${realIndex}"] .apexcharts-data-labels`,
-        )
+        ))
       ) {
         return
       }
       wrap.appendChild(node)
-      /** Each label with the background pill drawn just before it. */
-      const parts = [...node.querySelectorAll(DL_TEXT_SEL)].map((text) => {
-        const prev = text.previousElementSibling
-        return prev && prev.tagName.toLowerCase() === 'rect' ? [prev, text] : [text]
-      })
+      const parts = [...node.querySelectorAll(DL_TEXT_SEL)].map(withPill)
       /** @type {Array<{els: Element[], dx: number, dy: number}>} */
       const moves = []
       let ease = morphEase

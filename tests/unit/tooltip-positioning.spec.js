@@ -837,10 +837,14 @@ describe('Tooltip anchoring', () => {
         const focused = document.createElement('div')
         focused.classList.add('apexcharts-keyboard-focused')
         w.dom.baseEl.appendChild(focused)
+        document.body.appendChild(w.dom.baseEl)
+        // the node KeyboardNavigation outlined
+        ttCtx.ctx._keyboardNavigation = { _focusedEl: focused }
 
         const r = new TooltipPosition(ttCtx).computeTooltipPosition(50, 100, 1)
         // point at elWrap 120, margin 1 + 12: the box ends 13px above it
         expect(r.y).toBe(120 - 50 - 13)
+        w.dom.baseEl.remove()
       }
     })
   })

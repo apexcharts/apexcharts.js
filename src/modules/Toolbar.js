@@ -876,9 +876,10 @@ export default class Toolbar {
       }
 
       // if user has some series collapsed before hitting zoom reset button,
-      // those series should stay collapsed
+      // those series should stay collapsed. Cloned from the peek, as
+      // reading initialSeries deep clones it first.
       const series = ch.ctx.series.emptyCollapsedSeries(
-        Utils.clone(w.globals.initialSeries),
+        Utils.clone(w.globals._initialSeriesPeek),
       )
 
       ch.updateHelpers._updateSeries(

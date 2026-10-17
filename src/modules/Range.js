@@ -144,28 +144,6 @@ class Range {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
 
       const seriesType = /** @type {Record<string,any>} */ (cnf.series[i]).type
-
-      if (this.w.labelData.categoryLabels.length) {
-        /**
-         * @param {string} label
-         */
-        gl.dataPoints = this.w.labelData.categoryLabels.filter(
-          (label) => typeof label !== 'undefined',
-        ).length
-      }
-
-      if (
-        this.w.labelData.labels.length &&
-        cnf.xaxis.type !== 'datetime' &&
-        /**
-         * @param {number} a
-         * @param {number[]} c
-         */
-        this.w.seriesData.series.reduce((a, c) => a + c.length, 0) !== 0
-      ) {
-        // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
-        gl.dataPoints = Math.max(gl.dataPoints, this.w.labelData.labels.length)
-      }
       let firstXIndex = 0
       let lastXIndex = series[i].length - 1
       if (autoScaleYaxis) {
@@ -252,10 +230,8 @@ class Range {
         seriesType !== 'violin' &&
         seriesType !== 'rangeArea' &&
         seriesType !== 'rangeBar' &&
-        !(
-          this.w.seriesData.seriesGoals[i] &&
-          this.w.seriesData.seriesGoals[i].length
-        )
+        // Data allocates a series' goals only once one of its points has some
+        !this.w.seriesData.seriesGoals[i]
       if (plainNumeric) {
         const arr = series[i]
         const jEnd = Math.min(lastXIndex, arr.length - 1)
@@ -454,6 +430,26 @@ class Range {
           minY = 0
           lowestY = Math.min(lowestY, 0)
         }
+      }
+    }
+
+    // Both overrides read nothing the loop changes and nothing in the loop
+    // reads gl.dataPoints, so they run once per call, as the last iteration
+    // left them, instead of once per series.
+    if (endingSeriesIndex > startingSeriesIndex) {
+      if (this.w.labelData.categoryLabels.length) {
+        gl.dataPoints = this.w.labelData.categoryLabels.filter(
+          (label) => typeof label !== 'undefined',
+        ).length
+      }
+
+      if (
+        this.w.labelData.labels.length &&
+        cnf.xaxis.type !== 'datetime' &&
+        series.some((s) => s.length)
+      ) {
+        // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
+        gl.dataPoints = Math.max(gl.dataPoints, this.w.labelData.labels.length)
       }
     }
 
@@ -1113,18 +1109,18 @@ class Range {
             serie?.type === 'bar' ||
             serie?.type === 'column')
 
-        for (
-          let j = 0;
-          j < this.w.seriesData.series[gl.maxValsInArrayIndex].length;
-          j++
-        ) {
+        const len = this.w.seriesData.series[gl.maxValsInArrayIndex].length
+        const row = this.w.seriesData.series[i]
+        for (let j = 0; j < len; j++) {
           if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue
           const key = (gIdx[i] || 0) + '|' + (byX && xs ? xs[j] : j)
           let st = stacks.get(key)
           if (!st) stacks.set(key, (st = [0, 0]))
 
-          const v = this.w.seriesData.series[i][j]
-          if (stackSeries && v !== null && Utils.isNumber(v)) {
+          const v = row[j]
+          // what Utils.isNumber answers for a parsed value, without its
+          // three string round trips per point
+          if (stackSeries && Number.isFinite(v)) {
             v > 0 ? (st[0] += v * 1.000001) : (st[1] += +v)
           }
         }

@@ -64,18 +64,6 @@ describe('DateTime', () => {
     })
   })
 
-  describe('getTimeStamp', () => {
-    it('should convert date string to timestamp', () => {
-      const result = datetime.getTimeStamp('2023-01-01')
-      expect(result).toBeGreaterThan(0)
-    })
-
-    it('should return value if not parseable', () => {
-      const result = datetime.getTimeStamp(null)
-      expect(result).toBe(null)
-    })
-  })
-
   describe('getDate', () => {
     it('should convert timestamp to Date object', () => {
       const timestamp = new Date('2023-01-01').getTime()

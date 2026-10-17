@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -102,7 +102,9 @@ class Breadcrumb {
     const w = this.w;
     const elWrap = w.dom.elWrap;
     if (!elWrap) return;
-    const existing = elWrap.querySelector(".apexcharts-breadcrumb");
+    const existing = elWrap.querySelector(
+      ".apexcharts-breadcrumb[aria-label^=Drill]"
+    );
     if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
     }

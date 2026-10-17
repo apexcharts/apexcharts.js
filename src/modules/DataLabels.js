@@ -36,8 +36,7 @@ class DataLabels {
    */
   constructor(w, ctx = null) {
     this.w = w
-    // The chart instance: handed to dataLabels.formatter as `opts.ctx`, and
-    // to new Scatter(w, ctx) in the bubble chart path.
+    // The chart instance: handed to dataLabels.formatter as `opts.ctx`.
     this.ctx = ctx
   }
 
@@ -159,9 +158,15 @@ class DataLabels {
       return elDataLabelsWrap
     }
 
-    elDataLabelsWrap = graphics.group({
-      class: 'apexcharts-data-labels',
-    })
+    // The group is made by the first label drawn into it, so a point whose
+    // labels are all thinned out, off for this series or null adds none.
+    const parent = {
+      /** @param {any} el */
+      add: (el) =>
+        (elDataLabelsWrap ||= graphics.group({
+          class: 'apexcharts-data-labels',
+        })).add(el),
+    }
 
     for (let q = 0; q < pos.x.length; q++) {
       // a small hack as we have 2 points for the first val to connect it.
@@ -209,13 +214,9 @@ class DataLabels {
           val = w.seriesData.seriesZ[i][dataPointIndex]
           text = getText(val)
 
-          y = pos.y[q]
-          const scatter = new Scatter(
-            this.w,
-            /** @type {import('../types/internal').ChartContext} */ (this.ctx),
-          )
-          const centerTextInBubbleCoords = scatter.centerTextInBubble(y)
-          y = centerTextInBubbleCoords.y
+          // Static, not inlined: with no reference from here the bundles
+          // move Scatter away from Fill and Graphics and gzip worse.
+          y = Scatter.centerTextInBubble(w, pos.y[q])
         } else {
           if (typeof val !== 'undefined') {
             text = getText(val)
@@ -243,7 +244,7 @@ class DataLabels {
           text,
           i,
           j: dataPointIndex,
-          parent: elDataLabelsWrap,
+          parent,
           offsetCorrection: true,
           dataLabelsConfig: w.config.dataLabels,
           textAnchor,

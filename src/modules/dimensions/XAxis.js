@@ -3,6 +3,7 @@ import Formatters from '../Formatters'
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
+import { BAR_PATHWAY_TYPES } from '../settings/TypeAliases'
 
 export default class DimXAxis {
   /**
@@ -371,11 +372,7 @@ export default class DimXAxis {
         if (
           firstLabelPosition <
           -((!yaxe.show || yaxe.floating) &&
-          (cnf.chart.type === 'bar' ||
-            cnf.chart.type === 'candlestick' ||
-            cnf.chart.type === 'rangeBar' ||
-            cnf.chart.type === 'boxPlot' ||
-            cnf.chart.type === 'violin')
+          BAR_PATHWAY_TYPES.includes(cnf.chart.type)
             ? lbWidth / 1.75
             : 10)
         ) {

@@ -28,6 +28,13 @@ const MAX_DEPTH = 32
  */
 const DRILL_MARKER = '__apexDrilldownMarker'
 
+/**
+ * The config a level may override. Every restore frame captures all of them,
+ * since an onDrillDown level can carry any and which ones is not known in
+ * advance, but a return applies only those the levels it leaves carried.
+ */
+const VIEW_FIELDS = ['xaxis', 'yaxis', 'colors', 'plotOptions', 'fill', 'legend']
+
 export default class Drilldown {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -39,14 +46,15 @@ export default class Drilldown {
 
     /**
      * Restore-frames, one per level below root. stack[k] describes the level at
-     * depth k+1: { id, name, restore } where `restore` is a snapshot of the
-     * view at depth k (the parent), applied to navigate back to it.
-     * @type {Array<{ id: string|number, name?: string, restore: object }>}
+     * depth k+1: { id, name, keys, restore } where `restore` is a snapshot of
+     * the view at depth k (the parent), taken as the drill left it, so a return
+     * shows that level as it was last seen, host updates included, and `keys`
+     * are the VIEW_FIELDS the level itself carried.
+     * @type {Array<{ id: string|number, name?: string, keys: string[], restore: object }>}
      */
     this.stack = []
-    /** Full snapshot of the root view, captured lazily on the first drill. */
-    this.rootSnapshot = null
-    this._wired = false
+    /** Bumped by every navigation, so a late onDrillDown can tell it is stale. */
+    this._nav = 0
 
     /**
      * Async levels already resolved, keyed by the requested id, so drilling back
@@ -81,18 +89,14 @@ export default class Drilldown {
     /** Pointer-down position, to tell a click apart from a zoom drag. */
     this._downAt = null
     this._plotClickWired = null
+    /** Drilldown was on at the last render (see _afterRender). */
+    this._wasOn = !!w.config.drilldown?.enabled
 
     // Self-wire. The instance and w.globals.events both outlive updates, so the
-    // listeners registered here persist for the chart's lifetime.
-    this.init()
-  }
-
-  init() {
-    const w = this.w
-    if (!w.config.drilldown || !w.config.drilldown.enabled) return
-    if (this._wired) return
-    this._wired = true
-
+    // listeners registered here persist for the chart's lifetime. Wired even
+    // while disabled, since `updateOptions` may enable drilldown later; every
+    // handler checks `enabled` itself.
+    //
     // Coexist with any user dataPointSelection handler: both the config callback
     // and the addEventListener registry fire (see Graphics.pathMouseDown).
     this.ctx.addEventListener('dataPointSelection', this._onPointSelect)
@@ -103,7 +107,7 @@ export default class Drilldown {
 
     // Supply the drill dots for the FIRST render. Every later render gets them
     // from _apply (drills) or _afterRender (host-app updates).
-    if (w.config.markers) {
+    if (w.config.drilldown?.enabled && w.config.markers) {
       w.config.markers.discrete = this._drillMarkers(w.config.series)
     }
   }
@@ -170,13 +174,20 @@ export default class Drilldown {
     if (targetDepth < 0 || targetDepth >= cur) return Promise.resolve(this.ctx)
 
     const from = this.path[this.path.length - 1]
-    // To display depth D: apply the snapshot of that level's view.
-    //   D === 0  → rootSnapshot
-    //   D >= 1   → stack[D].restore (snapshot taken before drilling into D+1)
-    const restore = targetDepth === 0 ? this.rootSnapshot : this.stack[targetDepth].restore
+    // To display depth D, apply stack[D].restore: the snapshot of that level
+    // taken when it was last drilled out of. The root is no exception, or a
+    // return would bring back the root of the FIRST drill and drop every host
+    // update made at the root since.
+    // Only the fields a level being left carried go back: any other one is
+    // still the parent's, plus whatever the host updated it to since.
+    const left = this.stack.slice(targetDepth)
+    const keys = new Set(left.flatMap((f) => f.keys))
     this.stack = this.stack.slice(0, targetDepth)
     const to = this.path[this.path.length - 1]
-    return this._apply(this._viewFromSnapshot(restore), 'up', { from, to })
+    return this._apply(this._viewFromSnapshot(left[0].restore, keys), 'up', {
+      from,
+      to,
+    })
   }
 
   // ─── Internals ─────────────────────────────────────────────────────────────
@@ -202,9 +213,17 @@ export default class Drilldown {
       console.warn(`ApexCharts: drilldown max depth (${MAX_DEPTH}) reached.`)
       return Promise.resolve(this.ctx)
     }
-    if (!this.rootSnapshot) this.rootSnapshot = this._snapshot()
     const from = this.path[this.path.length - 1]
-    const level = { id: child.id, name: child.name, restore: this._snapshot() }
+    const level = {
+      id: child.id,
+      // A resolver drill from a point with no id has nothing better to show
+      // in the breadcrumb than the point it came from.
+      name:
+        child.name ??
+        (child.id == null ? this._pointLabel(triggerPoint, meta) : undefined),
+      keys: VIEW_FIELDS.filter((k) => child[k]),
+      restore: this._snapshot(),
+    }
     this.stack.push(level)
     return this._apply(this._viewFromChild(child), 'down', {
       from,
@@ -251,6 +270,9 @@ export default class Drilldown {
     // await-able contract intact.
     if (this._pending) return this._pending
 
+    // Navigation that happens while this is in flight (an inline drill, the
+    // breadcrumb, drillUp) moves the chart off the level the point was on.
+    const nav = this._nav
     let result
     this.loading.show()
     try {
@@ -277,15 +299,15 @@ export default class Drilldown {
     const p = Promise.resolve(result).then(
       (child) => {
         settle()
-        if (this._isDead()) return this.ctx
-        if (!child || !child.data) {
+        if (this._stale()) return this.ctx
+        if (!child || !(child.data || Array.isArray(child.series))) {
           // Previously a silent no-op, which looks identical to "nothing
           // happened" and is the hardest kind of integration bug to chase.
           this._fire('drillDownError', {
             id,
             error: new Error(
               `drilldown: onDrillDown resolved without a drillable level for id "${id}" ` +
-                `(expected an object with a \`data\` array).`,
+                `(expected an object with a \`data\` or \`series\` array).`,
             ),
           })
           return this.ctx
@@ -294,11 +316,14 @@ export default class Drilldown {
         // one that was asked for; the breadcrumb and restore stack key off it.
         const level = child.id != null ? child : { ...child, id }
         this._cacheSet(id, level)
+        // Kept for the next drill down this branch, but not stacked onto a
+        // level the user moved to meanwhile.
+        if (nav !== this._nav) return this.ctx
         return this._drillInto(level, point, meta)
       },
       (error) => {
         settle()
-        if (this._isDead()) return this.ctx
+        if (this._stale()) return this.ctx
         this._fire('drillDownError', { id, error })
         return this.ctx
       },
@@ -316,12 +341,16 @@ export default class Drilldown {
    * Without this the resolved level would be applied to a destroyed chart,
    * which throws out of `updateOptions` and surfaces in the host app as an
    * unhandled rejection from a click the user has already forgotten about.
+   * A chart rendered again after `destroy()` has a new drilldown instance, and
+   * a level this one fetched would land at its depth 0 with no way back.
    *
    * @returns {boolean}
    */
-  _isDead() {
+  _stale() {
     const w = this.w
-    return !w || !w.globals || w.globals.isDestroyed === true
+    return (
+      !w || !w.globals || w.globals.isDestroyed === true || this._retired()
+    )
   }
 
   /** @returns {boolean} whether resolved async levels are cached. */
@@ -361,14 +390,17 @@ export default class Drilldown {
   }
 
   /**
-   * Capture the overridable surface of the current view so it can be restored.
-   * Only fields that some drilldown.series entry can change are cloned; series
-   * and chart.type/stacked are always captured.
+   * Capture the overridable surface of the current view so it can be restored:
+   * series, chart.type/stacked and every VIEW_FIELDS entry. A field the view
+   * leaves unset is kept as `undefined`, so the restore unsets whatever the
+   * level being left put there.
    * @returns {object}
    */
   _snapshot() {
-    const c = this.w.config
-    const fields = this._overrideFields()
+    // The author's values, not an active breakpoint's: the restore goes
+    // through updateOptions, which would take them as the author's own.
+    const r = this.ctx.responsive
+    const c = r ? r.withoutBreakpoints(this.w.config) : this.w.config
     /** @type {Record<string, any>} */
     // Capture the FULL data, not the post-collapse view: navigation clears the
     // legend-collapse bookkeeping (see _apply), so a snapshot that kept a
@@ -379,12 +411,15 @@ export default class Drilldown {
       snap.labels = Utils.clone(c.labels)
     }
     snap.chart = { type: c.chart.type, stacked: c.chart.stacked }
-    if (fields.has('xaxis')) snap.xaxis = Utils.clone(c.xaxis)
-    if (fields.has('yaxis')) snap.yaxis = Utils.clone(c.yaxis)
-    if (fields.has('colors')) snap.colors = c.colors ? Utils.clone(c.colors) : undefined
-    if (fields.has('plotOptions')) snap.plotOptions = Utils.clone(c.plotOptions)
-    if (fields.has('fill')) snap.fill = Utils.clone(c.fill)
-    if (fields.has('legend')) snap.legend = Utils.clone(c.legend)
+    for (const k of VIEW_FIELDS) snap[k] = Utils.clone(c[k])
+    // A zoom writes its window into xaxis.min/max. The frame keeps the
+    // baseline bounds instead, or the restore would make the window the
+    // chart's own and updateSeries could no longer un-zoom it.
+    const last = this.w.globals.lastXAxis
+    if (snap.xaxis && last) {
+      snap.xaxis.min = last.min
+      snap.xaxis.max = last.max
+    }
     return snap
   }
 
@@ -434,38 +469,14 @@ export default class Drilldown {
   }
 
   /**
-   * Union of overridable fields across all declared drilldown levels. Ensures a
-   * deep drillToRoot restores everything any intermediate level may have changed.
-   * @returns {Set<string>}
-   */
-  _overrideFields() {
-    const fields = new Set()
-    const list = (this.w.config.drilldown && this.w.config.drilldown.series) || []
-    for (const s of list) {
-      if (!s) continue
-      if (s.xaxis) fields.add('xaxis')
-      if (s.yaxis) fields.add('yaxis')
-      if (s.colors) fields.add('colors')
-      if (s.plotOptions) fields.add('plotOptions')
-      if (s.fill) fields.add('fill')
-      if (s.legend) fields.add('legend')
-    }
-    return fields
-  }
-
-  /**
-   * Copy the optional view fields shared by a drilldown child level and a
-   * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
-   * `legend`) from `src` onto `view`, only when present.
+   * Copy the VIEW_FIELDS from `src` onto `view`: those a child level sets, or
+   * those in `keys` from a restore snapshot (`undefined` included, which
+   * unsets it).
    * @param {Record<string, any>} view @param {Record<string, any>} src
+   * @param {Set<string>} [keys]
    */
-  _copyOptionalViewFields(view, src) {
-    if (src.xaxis) view.xaxis = src.xaxis
-    if (src.yaxis) view.yaxis = src.yaxis
-    if (src.colors) view.colors = src.colors
-    if (src.plotOptions) view.plotOptions = src.plotOptions
-    if (src.fill) view.fill = src.fill
-    if (src.legend) view.legend = src.legend
+  _copyOptionalViewFields(view, src, keys) {
+    for (const k of VIEW_FIELDS) if (keys ? keys.has(k) : src[k]) view[k] = src[k]
   }
 
   /**
@@ -496,13 +507,14 @@ export default class Drilldown {
   /**
    * Build an updateOptions payload from a restore-snapshot.
    * @param {Record<string, any>} snap
+   * @param {Set<string>} keys the VIEW_FIELDS to restore
    * @returns {Record<string, any>}
    */
-  _viewFromSnapshot(snap) {
+  _viewFromSnapshot(snap, keys) {
     /** @type {Record<string, any>} */
     const view = { series: snap.series, chart: snap.chart }
     if (snap.labels && snap.labels.length) view.labels = snap.labels
-    this._copyOptionalViewFields(view, snap)
+    this._copyOptionalViewFields(view, snap, keys)
     return view
   }
 
@@ -516,6 +528,7 @@ export default class Drilldown {
    */
   _apply(view, direction, meta) {
     const w = this.w
+    this._nav++
 
     // A drill is navigation, not a data-point selection. Clear any selection
     // carried in from the click that triggered it: the child's data points are
@@ -727,7 +740,17 @@ export default class Drilldown {
 
     // Swap content while the marks are invisible, so the change is unseen. The
     // update rebuilds the chart, so the mark group is a fresh element afterwards.
-    await runUpdate()
+    // A refused update leaves the parent on screen, so its marks have to come
+    // back from the fill-forwards fade.
+    try {
+      await runUpdate()
+    } catch (e) {
+      if (outAnim) {
+        outAnim.cancel()
+        clear(outGroup)
+      }
+      throw e
+    }
 
     const inGroup = this._markGroup()
     if (inGroup) {
@@ -783,7 +806,9 @@ export default class Drilldown {
    * @param {{ seriesIndex?: number, dataPointIndex?: number }} opts
    */
   _onPointSelect(_event, _ctx, opts) {
-    if (!opts || this._retired()) return undefined
+    if (!opts || !this.w.config.drilldown?.enabled || this._retired()) {
+      return undefined
+    }
     const point = this._pointAt(opts.seriesIndex, opts.dataPointIndex)
     if (point && typeof point === 'object' && point.drilldown != null) {
       return this.drillDown(point.drilldown, point, opts)
@@ -810,6 +835,20 @@ export default class Drilldown {
   }
 
   /**
+   * @param {any} point
+   * @param {{ dataPointIndex?: number }} [meta]
+   * @returns {string|undefined}
+   */
+  _pointLabel(point, meta) {
+    const l =
+      point && point.x != null
+        ? point.x
+        : meta &&
+          this.w.globals.labels[/** @type {number} */ (meta.dataPointIndex)]
+    return l != null ? String(l) : undefined
+  }
+
+  /**
    * destroy() drops this instance without a teardown, and the listener
    * registry it wired into outlives it, so a render() after destroy() wires a
    * second instance beside it: every click would drill twice. The stale one
@@ -832,16 +871,24 @@ export default class Drilldown {
   _afterRender() {
     const w = this.w
     if (this._retired()) return
-    if (!w.config.drilldown || !w.config.drilldown.enabled) return
-    this._markDrillableTargets()
-    this._wirePlotClick()
+    const on = w.config.drilldown?.enabled
+    // A chart that never drilled has no dots or breadcrumb to tidy: the
+    // full bundle registers this module on every chart.
+    if (!on && !this.stack.length && !this._wasOn) return
+    this._wasOn = on
+    if (on) {
+      this._markDrillableTargets()
+      this._wirePlotClick()
+    }
+    // Disabled below the root: no more drilling, but the way back stays.
     this.breadcrumb.render(this.path)
     // Keep the dots in step with a host-app update that changed which points
-    // are drillable. There is no pre-update hook to run this in, so a plain
-    // `chart.updateSeries()` introducing newly-drillable points shows them from
-    // the next render. Drills are exact, since _apply computes them per level.
+    // are drillable (or turned drilldown on or off). There is no pre-update
+    // hook to run this in, so a plain `chart.updateSeries()` introducing
+    // newly-drillable points shows them from the next render. Drills are
+    // exact, since _apply computes them per level.
     if (w.config.markers) {
-      w.config.markers.discrete = this._drillMarkers(w.config.series)
+      w.config.markers.discrete = this._drillMarkers(on && w.config.series)
     }
   }
 
@@ -865,23 +912,32 @@ export default class Drilldown {
     const series = w.config.series
     if (!baseEl || !Array.isArray(series)) return
 
-    let unreachable = 0
+    // Keys of the drillable points, then ONE walk over the marks: a query per
+    // point is quadratic on a chart where most points drill and that updates
+    // every second. Nothing drills, nothing to walk.
+    const want = new Set()
     series.forEach((s, i) => {
-      const data = s && Array.isArray(s.data) ? s.data : null
-      if (!data) return
-      data.forEach((point, j) => {
-        if (!point || typeof point !== 'object' || point.drilldown == null) return
-        // bar/column/line: [index="i"][j="j"]; pie/donut: series index is 0.
-        const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j}"]`)
-        if (!nodes.length) unreachable++
-        nodes.forEach((node) => {
-          if (this._isClickThroughMark(node)) {
-            node.classList.remove('no-pointer-events')
+      if (s && Array.isArray(s.data)) {
+        s.data.forEach((point, j) => {
+          if (point && typeof point === 'object' && point.drilldown != null) {
+            want.add(i + ':' + j)
           }
-          node.classList.add('apexcharts-drilldown-target')
         })
-      })
+      }
     })
+    if (!want.size) return
+    const found = new Set()
+    // bar/column/line: [index="i"][j="j"]; pie/donut: series index is 0.
+    baseEl.querySelectorAll('[index][j]').forEach((node) => {
+      const k = node.getAttribute('index') + ':' + node.getAttribute('j')
+      if (!want.has(k)) return
+      found.add(k)
+      if (this._isClickThroughMark(node)) {
+        node.classList.remove('no-pointer-events')
+      }
+      node.classList.add('apexcharts-drilldown-target')
+    })
+    const unreachable = want.size - found.size
 
     // A drillable point with nothing to click is a dead interaction, and it
     // looks identical to a broken one. Say so rather than no-opping: the only

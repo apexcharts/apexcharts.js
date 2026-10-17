@@ -49,6 +49,7 @@
 import ApexCharts from '../apexcharts'
 import { registerSeriesTransform } from '../modules/SeriesTransformRegistry'
 import {
+  deriveStat,
   derivedStats,
   fiveNumberSummary,
   isDerived,
@@ -107,22 +108,27 @@ function raincloudTransform(ser, w) {
       // as before: beside a hand-supplied density the datum keeps its own.
       const out = { ...y }
       if (needDensity) {
-        const est = kernelDensity(values, {
-          bandwidth: kde.bandwidth,
-          resolution: kde.resolution,
-        })
+        const est = deriveStat(
+          ourDensity,
+          key,
+          values,
+          { bandwidth: kde.bandwidth, resolution: kde.resolution },
+          kernelDensity,
+        )
         // no density, no cloud: leave the datum as it came
         if (!est) return d
         out.density = est.density
         out.points = values
-        ourDensity.set(key, est.density)
       }
       if (needSummary) {
-        const est = fiveNumberSummary(values, { whiskers })
-        if (est) {
-          out.summary = est.summary
-          ourSummary.set(key, est.summary)
-        }
+        const est = deriveStat(
+          ourSummary,
+          key,
+          values,
+          { whiskers },
+          fiveNumberSummary,
+        )
+        if (est) out.summary = est.summary
       }
       touched = true
       return { ...d, y: out }

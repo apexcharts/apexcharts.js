@@ -1297,19 +1297,14 @@ rect.legend-mouseover-inactive,
   fill: none
 }
 
-.apexcharts-pie-label-delay,
+/* A slow fade, on purpose: these come in while the dots are still easing
+   into place, so a longer fade reads as arriving WITH the crowd. */
 .apexcharts-unit-label-delay {
   opacity: 0;
   animation-name: opaque;
-  animation-duration: .3s;
+  animation-duration: .5s;
   animation-fill-mode: forwards;
   animation-timing-function: ease
-}
-
-/* Slower than the pie's, on purpose: these come in while the dots are still
-   easing into place, so a longer fade reads as arriving WITH the crowd. */
-.apexcharts-unit-label-delay {
-  animation-duration: .5s
 }
 
 .apexcharts-radialbar-label {

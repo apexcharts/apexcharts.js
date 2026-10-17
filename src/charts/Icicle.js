@@ -296,9 +296,19 @@ export default class IcicleChart {
     })
 
     this._nodesAll.forEach((n) => {
+      n._sub = false
       if (!n._show) return
       n._d0 = scale.near(n._vDepth)
       n._d1 = farEdge(n, scale, this._focusMaxDepth, this.cfg.leaf, used)
+      // Under half a pixel along the value axis a cell shows nothing a reader
+      // can see or point at, and on flame-graph data most cells are that thin:
+      // no element, listeners or tween for it at rest. It keeps its box, so a
+      // zoom or update moves it into or out of that sliver like any other cell
+      // (_applyLayout), and a layout that widens it draws it again.
+      if (n._t1 - n._t0 < 0.5) {
+        n._show = false
+        n._sub = true
+      }
     })
   }
 
@@ -403,11 +413,18 @@ export default class IcicleChart {
     const gen = ++this._zoomGen
 
     // Geometry of the PREVIOUS render (stashed on the persistent chart ctx —
-    // this module is re-instantiated on every data update).
+    // this module is re-instantiated on every data update). A zoom reads it too,
+    // for the cells too thin to have been drawn (`_sub`): their slot is there.
     const prev =
-      mode === 'update' ? /** @type {any} */ (this.ctx)._iciclePrevGeoms : null
+      dur > 0 && mode !== 'intro'
+        ? /** @type {any} */ (this.ctx)._iciclePrevGeoms
+        : null
 
     this._nodesAll.forEach((node) => {
+      // Where the cell is on screen: its live box, else last pass's box (`s`
+      // marks a sub-pixel slot that had no element).
+      const was =
+        node._cur || (prev && prev.get(node._key) && prev.get(node._key)())
       if (node._show) {
         const to = this._box(node)
         if (!node._el) node._el = this._createCellEl(node)
@@ -420,15 +437,12 @@ export default class IcicleChart {
           return
         }
 
-        let from
+        // `_cur` is the cell's LIVE box (updated each frame), so an interrupted
+        // zoom continues from where it actually is; a cell that survived a data
+        // update, or was a sliver, tweens from its previous box.
+        let from = was
         let isNew = false
-        if (node._cur) {
-          // `_cur` is the cell's LIVE box (updated each frame), so an
-          // interrupted zoom continues from where it actually is.
-          from = node._cur
-        } else if (prev && prev.get(node._key)) {
-          from = prev.get(node._key)() // survived a data update: tween in place
-        } else {
+        if (!from) {
           // A new cell grows out of the middle of the slot it is taking.
           from = {
             x: to.x + to.w / 2,
@@ -439,6 +453,11 @@ export default class IcicleChart {
           isNew = true
         }
         this._animateCell(node, from, to, dur, false, isNew, gen)
+      } else if (node._sub && was && !was.s) {
+        // On screen until now and a sliver from here: ride into that sliver,
+        // as an uncut cell would, and only then drop the element.
+        if (!node._el) node._el = this._createCellEl(node)
+        this._animateCell(node, was, this._box(node), dur, true, false, gen)
       } else if (node._el && node._cur) {
         const c = node._cur
         const collapsed = {
@@ -456,7 +475,8 @@ export default class IcicleChart {
     const geoms = new Map()
     this._nodesAll.forEach((n) => {
       const b = this._box(n)
-      if (n._show) geoms.set(n._key, () => n._cur || b)
+      if (n._sub) b.s = 1
+      if (n._show || n._sub) geoms.set(n._key, () => n._cur || b)
     })
     ;/** @type {any} */ (this.ctx)._iciclePrevGeoms = geoms
 
@@ -567,7 +587,8 @@ export default class IcicleChart {
 
     el.node.style.display = ''
     const startOp = hide ? Number(el.attr('opacity')) || 1 : fadeIn ? 0 : 1
-    const endOp = hide ? 0 : 1
+    // A cell thinning into a sliver stays opaque, as it would if it were drawn.
+    const endOp = hide && !node._sub ? 0 : 1
     el.attr({ opacity: startOp })
 
     el.animate(dur)

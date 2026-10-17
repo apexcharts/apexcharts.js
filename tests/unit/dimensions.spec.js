@@ -1130,6 +1130,7 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
    * @param {boolean} [opts.featureLoaded] whether `ctx.drilldown` exists
    * @param {any} [opts.drilldown] the drilldown config block
    * @param {any} [opts.treemapZoom] plotOptions.treemap.zoom
+   * @param {boolean} [opts.nested] whether the treemap data has parents
    * @param {any} [opts.padding] the author's grid.padding
    * @param {number} [opts.titleBlockPad] room the title block already leaves
    */
@@ -1138,7 +1139,8 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
     w.config.chart.type = opts.type || 'line'
     w.globals.axisCharts = opts.axisCharts !== false
     w.config.drilldown = opts.drilldown
-    w.config.plotOptions.treemap = { zoom: opts.treemapZoom }
+    w.config.plotOptions.treemap = { zoom: opts.treemapZoom, parents: {} }
+    w.globals.treemapRoots = opts.nested === false ? null : [{}]
 
     const dim = Object.create(Dimensions.prototype)
     dim.w = w
@@ -1220,6 +1222,12 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
     ).toBe(BREADCRUMB_HEIGHT + 4)
   })
 
+  it('reserves nothing for a flat treemap, where zoom has nothing to open', () => {
+    expect(
+      reserve({ type: 'treemap', treemapZoom: { enabled: true }, nested: false }),
+    ).toBe(0)
+  })
+
   it('reserves for a treemap navigated by drilldown rather than its own zoom', () => {
     // Both render the same strip into the same place, so both need the band. A
     // treemap fills its box edge to edge, so unlike a cartesian plot it has no
@@ -1230,6 +1238,17 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
       treemapZoom: { enabled: false },
       drilldown: DRILL_ON,
       titleBlockPad: 20,
+    })
+    expect(band).toBe(BREADCRUMB_HEIGHT_FULL + 1)
+  })
+
+  it('reserves the drilldown band when drilldown and zoom are both on', () => {
+    // Zoom stands down for drilldown, so the strip drawn is the drilldown one
+    // and the band matches it rather than the shorter zoom band
+    const band = reserve({
+      type: 'treemap',
+      treemapZoom: { enabled: true },
+      drilldown: { ...DRILL_ON, series: [{ id: 'a', data: [] }] },
     })
     expect(band).toBe(BREADCRUMB_HEIGHT_FULL + 1)
   })

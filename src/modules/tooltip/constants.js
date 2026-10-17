@@ -14,11 +14,11 @@
 export const ARROW_TIP_OVERHANG = 7
 
 /**
- * Breathing room between a data point's marker and the tooltip's leading edge
- * (the arrow tip when the arrow is on, the box edge otherwise). Bars and heatmap
- * cells park the tip flush against the mark's edge, which reads fine on a large
- * flat shape; a marker is small and round, so it needs the tooltip to stop
- * clearly short of it to stay both visible and clickable.
+ * Extra room between a data point's marker and the tooltip's leading edge
+ * (the arrow tip when the arrow is on, the box edge otherwise), on top of the
+ * clearance that already keeps the tooltip off the marker. 0: the tip touches
+ * the marker's edge, as it touches a bar's or a heatmap cell's, and never
+ * covers it.
  */
 export const POINT_TIP_GAP = 0
 

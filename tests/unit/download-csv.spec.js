@@ -573,6 +573,17 @@ describe('Export Csv', () => {
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(csv).toContain('category,series1,series2\n2,1,\n9,,3\n10,2,')
   })
+
+  it('export csv from unequal series gives a repeated x its own row', () => {
+    const csv = csvOf({
+      chart: { type: 'scatter' },
+      series: [
+        { name: 'A', data: [[1, 1], [1, 2], [1, 3]] },
+        { name: 'B', data: [[1, 4], [1, 5], [2, 6]] },
+      ],
+    })
+    expect(csv).toBe('category,A,B\n1,1,4\n1,2,5\n1,3,\n2,,6')
+  })
 })
 
 // Builds the CSV text a chart exports, without the BOM.
@@ -787,6 +798,31 @@ describe('Export Csv: datetime categories', () => {
         '2026-10-10 10:00:00,1\n' +
         '2026-10-10 11:00:00,2\n' +
         '2026-10-10 12:00:00,3',
+    )
+  })
+
+  it('prints the day alone when a series repeats a datetime x', () => {
+    const csv = csvOf({
+      chart: { type: 'scatter' },
+      xaxis: { type: 'datetime' },
+      series: [
+        {
+          name: 'A',
+          data: [
+            [Date.UTC(2022, 0, 1), 1],
+            [Date.UTC(2022, 0, 1), 2],
+            [Date.UTC(2022, 0, 2), 3],
+          ],
+        },
+        { name: 'B', data: [[Date.UTC(2022, 0, 3), 5]] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A,B\n' +
+        'Sat Jan 01 2022,1,\n' +
+        'Sat Jan 01 2022,2,\n' +
+        'Sun Jan 02 2022,3,\n' +
+        'Mon Jan 03 2022,,5',
     )
   })
 
