@@ -42,6 +42,15 @@ export default class TrellisTooltip {
     this._raf = 0
     /** @type {any} */
     this._lastEvent = null
+    // Per-frame cache, see _update: the key, split and scales the card was
+    // built for (an in-place updateOptions swaps only the scales); also `_e` (the last event seen), `_zoom` (the hovered plot's CSS
+    // zoom) and `_titleEl` (the hovered cell's tooltip title node).
+    /** @type {string|null} */
+    this._key = null
+    /** @type {any} */
+    this._split = null
+    /** @type {any} */
+    this._scales = null
   }
 
   /**
@@ -66,6 +75,7 @@ export default class TrellisTooltip {
     }
     const leave = () => {
       this._lastEvent = null
+      this._key = null
       if (this._raf) {
         cancelAnimationFrame(this._raf)
         this._raf = 0
@@ -95,6 +105,7 @@ export default class TrellisTooltip {
     const gridWidth = w.layout.gridWidth
     if (!gridWidth) return -1
     const plot = TooltipUtils.plotRect(w)
+    this._zoom = plot.zoom
     const hoverX = AxisMapping.screenXToPlotPx(w, clientX, plot)
     const edgePad = gl.barPadForNumericAxis || 0
     if (hoverX < -edgePad || hoverX > gridWidth + edgePad) return -1
@@ -192,15 +203,22 @@ export default class TrellisTooltip {
 
   /**
    * One reconcile pass: resolve the hovered panel and index, then one row
-   * per panel from the split.
+   * per panel from the split. It runs every frame while the pointer is over
+   * the grid (D9): the index is resolved every frame (a wheel zoom moves the
+   * points under a still pointer), but the card is rebuilt (markup,
+   * formatters, a forced layout) only when its panel, index, title or split
+   * changed, and only a new pointer event moves it.
    * @param {HTMLElement} elWrap
    */
   _update(elWrap) {
     const t = this.trellis
     const card = this.el
     const e = this._lastEvent
-    if (!card || !e || !t.split) return
+    const split = t.split
+    if (!card || !e || !split) return
 
+    const moved = e !== this._e
+    this._e = e
     const cell =
       e.target && e.target.closest
         ? e.target.closest('.apexcharts-trellis-cell')
@@ -212,62 +230,58 @@ export default class TrellisTooltip {
         : -1
     if (!hovered || j === -1) {
       card.classList.remove('apexcharts-trellis-tooltip-active')
+      this._key = null
       return
     }
 
     // The hovered panel's own tooltip title carries the library's formatted
-    // x for this index (its native fill works for the hovered chart).
-    const titleEl = cell
-      ? cell.querySelector('.apexcharts-tooltip-title')
-      : null
-    const title = titleEl && titleEl.textContent ? titleEl.textContent : ''
+    // x for this index (its native fill works for the hovered chart, though
+    // it can land a frame late). Looked up once per cell, not per frame.
+    let titleEl = this._titleEl
+    if (!titleEl || !cell.contains(titleEl)) {
+      titleEl = this._titleEl = cell.querySelector('.apexcharts-tooltip-title')
+    }
+    const title = (titleEl && titleEl.textContent) || ''
+    const key = hovered.key + '\n' + j + '\n' + title
 
-    const names = t.split.seriesNames
-    const scales = t.scales
-    /** @type {string[]} */
-    const rows = []
-    t.split.panels.forEach((slice) => {
-      /** @type {string[]} */
-      const vals = []
-      names.forEach((name, ni) => {
-        const v = this._valueAt(slice, name, ni, j)
-        if (v === null) return
-        const color = scales ? scales.colorOf(name) : '#008FFB'
-        vals.push(
-          `<span class="apexcharts-trellis-tooltip-val"><span class="apexcharts-trellis-tooltip-marker" style="background:${escapeAttr(
+    if (key !== this._key || split !== this._split || t.scales !== this._scales) {
+      this._key = key
+      this._split = split
+      this._scales = t.scales
+      let html = title
+        ? `<div class="apexcharts-tooltip-title">${escapeHtml(title)}</div>`
+        : ''
+      split.panels.forEach((slice) => {
+        let vals = ''
+        split.seriesNames.forEach((name, ni) => {
+          const v = this._valueAt(slice, name, ni, j)
+          if (v === null) return
+          const color = t.scales ? t.scales.colorOf(name) : '#008FFB'
+          vals += `<span class="apexcharts-trellis-tooltip-val"><span class="apexcharts-trellis-tooltip-marker" style="background:${escapeAttr(
             color,
-          )}"></span>${escapeHtml(v)}</span>`,
-        )
-      })
-      const isHovered = slice.key === hovered.key
-      rows.push(
-        `<div class="apexcharts-trellis-tooltip-row${
-          isHovered ? ' apexcharts-trellis-tooltip-row-active' : ''
-        }" data-key="${escapeAttr(slice.key)}">` +
+          )}"></span>${escapeHtml(v)}</span>`
+        })
+        html +=
+          `<div class="apexcharts-trellis-tooltip-row${
+            slice.key === hovered.key
+              ? ' apexcharts-trellis-tooltip-row-active'
+              : ''
+          }" data-key="${escapeAttr(slice.key)}">` +
           `<span class="apexcharts-trellis-tooltip-key">${escapeHtml(
             slice.key,
           )}</span>` +
-          `<span class="apexcharts-trellis-tooltip-vals">${vals.join(
-            '',
-          )}</span>` +
-          `</div>`,
-      )
-    })
-
-    let html = ''
-    if (title) {
-      html += `<div class="apexcharts-tooltip-title">${escapeHtml(title)}</div>`
-    }
-    html += rows.join('')
-    card.innerHTML = html
-    card.classList.add('apexcharts-trellis-tooltip-active')
+          `<span class="apexcharts-trellis-tooltip-vals">${vals}</span></div>`
+      })
+      card.innerHTML = html
+      card.classList.add('apexcharts-trellis-tooltip-active')
+    } else if (!moved) return
 
     // Position near the cursor, clamped inside the wrap. The pointer and the
     // wrap's rect are in screen px and `style.left/top` in the wrap's own px,
     // which differ by the CSS zoom of any container the chart sits in; left
     // as screen px, the card stood that factor further from the pointer.
     const wrapRect = elWrap.getBoundingClientRect()
-    const zoom = TooltipUtils.plotRect(hovered.chart.w).zoom
+    const zoom = this._zoom || 1
     let x = (e.clientX - wrapRect.left) / zoom + CURSOR_PAD
     let y = (e.clientY - wrapRect.top) / zoom + CURSOR_PAD
     const cw = card.offsetWidth
