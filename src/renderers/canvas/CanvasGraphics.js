@@ -669,19 +669,34 @@ export default class CanvasGraphics {
     this._styles = []
     this._styleMap = new Map()
     this._resetStyleCache()
-    // Size the marker columns to the upper bound of points this render can emit.
-    const series = this.w.config.series || []
-    let cap = 16
+    // Size each columnar store to the points this render can emit into it:
+    // markers for a scatter/bubble series or sized markers, cells for a
+    // heatmap. Anything else (the dots beside nulls, discrete markers) grows
+    // on demand, so a plain line never allocates per-point columns.
+    const c = this.w.config
+    const series = c.series || []
+    const ms = c.markers && c.markers.size
+    let mcap = 16
+    let rcap = 16
     for (let i = 0; i < series.length; i++) {
-      const d = series[i] && series[i].data
-      if (Array.isArray(d)) cap += d.length
+      const s = series[i]
+      const n = s && Array.isArray(s.data) ? s.data.length : 0
+      const t = (s && s.type) || (c.chart && c.chart.type)
+      if (t === 'heatmap') rcap += n
+      else if (
+        t === 'scatter' ||
+        t === 'bubble' ||
+        (Array.isArray(ms) ? ms[i] : ms) > 0
+      ) {
+        mcap += n
+      }
     }
-    cap = Math.ceil(cap * 1.15) + 16
-    if (cap > this._mcap) this._allocMarkers(cap)
-    // Rect cells share the same upper bound (one cell per data point).
+    mcap = Math.ceil(mcap * 1.15) + 16
+    if (mcap > this._mcap) this._allocMarkers(mcap)
     this._crn = 0
     this._cellRadius = 0
-    if (cap > this._crcap) this._allocRects(cap)
+    rcap = Math.ceil(rcap * 1.15) + 16
+    if (rcap > this._crcap) this._allocRects(rcap)
   }
 
   /** @param {number} cap */
@@ -840,7 +855,6 @@ export default class CanvasGraphics {
   shapeName(id) {
     return SHAPE_NAME[id] || 'circle'
   }
-
   // ── columnar rect cell (heatmap): parallel unboxed arrays, no per-cell object ──
   /**
    * Record a heatmap-style cell (a filled, optionally stroked rect). Geometry
