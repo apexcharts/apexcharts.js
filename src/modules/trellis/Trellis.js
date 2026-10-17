@@ -343,14 +343,15 @@ export default class Trellis {
    *  column key; responsive recolumning would break the row/column
    *  semantics), so panels shrink instead of wrapping. */
   _layoutCfg() {
+    const cfg = this._effectiveCfg()
     if (this.split && this.split.mode === '2d' && this.split.colKeys) {
-      return { ...this.cfg, columns: this.split.colKeys.length }
+      return { ...cfg, columns: this.split.colKeys.length }
     }
-    return this.cfg
+    return cfg
   }
 
-  /** The trellis config with the EFFECTIVE y mode (a type frame can force
-   *  'shared'), as the scale resolver must see it. */
+  /** The trellis config with the EFFECTIVE y mode, so the scale resolver
+   *  and the edge-label policy agree when a type frame forced 'shared'. */
   _effectiveCfg() {
     const y = this._yMode()
     return y !== (this.cfg.scales?.y || 'shared')
@@ -1058,9 +1059,14 @@ export default class Trellis {
           : { show: false },
         // the shared toolbar owns the one reset (TrellisSync.resetAll); with
         // toolbar 'none' a panel's own reset is the only way back, unless the
-        // page turned it off
+        // page turned it off. trellis.zoom only decides whether a zoom SYNCS:
+        // the page's own chart.zoom.enabled: false still means no zoom at
+        // all. Read from the page's options, not the merged config: a type
+        // default (histogram, waterfall, sparkline) keeps the grid's zoom.
         zoom: {
-          enabled: this.cfg.zoom !== 'none',
+          enabled:
+            this.cfg.zoom !== 'none' &&
+            this.ctx.opts?.chart?.zoom?.enabled !== false,
           resetControl:
             this.cfg.toolbar == 'none' &&
             w.config.chart.zoom.resetControl !== false,

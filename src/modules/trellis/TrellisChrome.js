@@ -394,7 +394,8 @@ export default class TrellisChrome {
       t.panels.forEach((p) => {
         if (!p.chart) return
         const it = p.chart.w.interact
-        it.zoomEnabled = tool === 'zoom'
+        // never arms a zoom the panel's config turned off
+        it.zoomEnabled = tool === 'zoom' && p.chart.w.config.chart.zoom.enabled
         it.panEnabled = tool === 'pan'
         it.selectionEnabled = false
       })
@@ -422,11 +423,17 @@ export default class TrellisChrome {
       return b
     }
 
-    makeButton('zoom', 'Selection zoom', () => arm('zoom'))
-    makeButton('pan', 'Pan', () => arm('pan'))
-    makeButton('reset', 'Reset zoom', () => {
-      t.sync.resetAll()
-    })
+    // Same rule as the panels' zoom.enabled: with zoom off for the grid there
+    // is nothing for zoom, pan or reset to do, so they are left out.
+    const zoom =
+      t.cfg.zoom !== 'none' && t.ctx.opts?.chart?.zoom?.enabled !== false
+    if (zoom) {
+      makeButton('zoom', 'Selection zoom', () => arm('zoom'))
+      makeButton('pan', 'Pan', () => arm('pan'))
+      makeButton('reset', 'Reset zoom', () => {
+        t.sync.resetAll()
+      })
+    }
 
     // The download tool (P3): one composed artifact for the whole grid.
     // Requires the exports feature on the panels; omitted otherwise.
@@ -454,10 +461,13 @@ export default class TrellisChrome {
       bar.appendChild(menu)
     }
 
-    // Default tool mirrors the per-chart default (toolbar.autoSelected 'zoom').
-    buttons.zoom.classList.add('apexcharts-selected')
-    buttons.zoom.setAttribute('aria-pressed', 'true')
-    buttons.pan.setAttribute('aria-pressed', 'false')
+    if (!bar.firstChild) return
+    if (zoom) {
+      // Default tool mirrors the per-chart default (toolbar.autoSelected 'zoom').
+      buttons.zoom.classList.add('apexcharts-selected')
+      buttons.zoom.setAttribute('aria-pressed', 'true')
+      buttons.pan.setAttribute('aria-pressed', 'false')
+    }
 
     host.appendChild(bar)
     this.elToolbar = bar
