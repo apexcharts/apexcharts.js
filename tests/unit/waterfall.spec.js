@@ -153,38 +153,44 @@ describe('Accumulation — the value a label reads', () => {
     })
   })
 
-  test('the running total after each bar is recorded for the connectors', () => {
-    const w = fakeW()
-    waterfallTransform([{ data: CASHFLOW }], w)
-
-    expect(w.waterfallData.cumulative[0]).toEqual([
-      120000, 689000, 920000, 920000, 578000, 345000, 345000,
-    ])
-  })
-
-  test('the running total is always the bar’s own far edge', () => {
+  test('the running total after each bar is the bar’s own far edge', () => {
     const w = fakeW()
     const out = waterfallTransform([{ data: CASHFLOW }], w)
 
     // This is what lets the connector layer work from geometry alone.
-    out[0].data.forEach((d, j) => {
-      expect(w.waterfallData.cumulative[0][j]).toBe(d.y[1])
-    })
+    expect(out[0].data.map((d) => d.y[1])).toEqual([
+      120000, 689000, 920000, 920000, 578000, 345000, 345000,
+    ])
   })
 
   test('each bar is classified so it can be coloured', () => {
     const w = fakeW()
+    w.config.plotOptions.waterfall.colors = {
+      positive: 'P',
+      negative: 'N',
+      subtotal: 'S',
+      total: 'T',
+    }
+    const out = waterfallTransform([{ data: CASHFLOW }], w)
+
+    expect(out[0].data.map((d) => d.fillColor)).toEqual([
+      'P',
+      'P',
+      'P',
+      'S',
+      'N',
+      'N',
+      'T',
+    ])
+  })
+
+  test('only the state something reads is kept', () => {
+    // The running totals and the kinds are on the rows themselves (the far
+    // edge, the fill); a second copy on the state slice was read by nothing.
+    const w = fakeW()
     waterfallTransform([{ data: CASHFLOW }], w)
 
-    expect(w.waterfallData.kinds[0]).toEqual([
-      'positive',
-      'positive',
-      'positive',
-      'subtotal',
-      'negative',
-      'negative',
-      'total',
-    ])
+    expect(Object.keys(w.waterfallData).sort()).toEqual(['geometry', 'values'])
   })
 })
 

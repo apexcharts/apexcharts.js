@@ -133,23 +133,21 @@ export default class Base {
       // Cleared at the top of every parse, filled by features/stats, read by
       // Weave's api.data. null on every chart that has no such transform.
       seriesObservations: null,
-      // Waterfall accumulation — written by the waterfall series transform
+      // Waterfall accumulation, written by the waterfall series transform
       // (features/waterfall) each parse; empty for every other chart type.
-      //   values[i][j]     = the bar's signed height (end - start), which is
-      //                      the delta for a step bar and the sum for a
-      //                      subtotal / total bar. This is what a label and a
-      //                      tooltip show, in place of the "start - end" a
-      //                      range bar would otherwise read out.
-      //   cumulative[i][j] = the running total AFTER bar j, i.e. the level the
-      //                      connector to bar j+1 is drawn at.
-      //   kinds[i][j]      = 'positive' | 'negative' | 'subtotal' | 'total'
-      //   geometry[i][j]   = the px box the bar was actually drawn in, recorded
-      //                      by RangeBar. Present (as []) only on a waterfall,
-      //                      which is what tells RangeBar to record at all.
+      //   values[i][j]   = the bar's signed height (end - start), which is
+      //                    the delta for a step bar and the sum for a
+      //                    subtotal / total bar. This is what a label and a
+      //                    tooltip show, in place of the "start - end" a
+      //                    range bar would otherwise read out. Empty for a
+      //                    combo series of another type.
+      //   geometry[i][j] = the px box the bar was actually drawn in, recorded
+      //                    by RangeBar. The connectors are drawn from these
+      //                    boxes alone (the level is the box's far edge).
+      //                    Present (as []) only on a waterfall, which is what
+      //                    tells RangeBar to record at all.
       waterfallData: {
         values: [],
-        cumulative: [],
-        kinds: [],
         geometry: null,
       },
       // Dumbbell endpoints, written by the dumbbell series transform

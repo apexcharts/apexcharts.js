@@ -1822,12 +1822,10 @@ export default class Defaults {
       }
 
       let rows = ''
-      let total = 0
-      for (let i = data.order.length - 1; i >= 0; i--) {
-        const k = data.order[i]
+      /** One row; returns the value it read out, 0 when it had none. */
+      const row = (/** @type {number} */ k) => {
         const v = data.values[k]?.[dataPointIndex]
-        if (v == null || !isFinite(v)) continue
-        total += v
+        if (v == null || !isFinite(v)) return 0
         rows +=
           '<div class="apexcharts-tooltip-stream-band' +
           (k === active ? ' apexcharts-active' : '') +
@@ -1840,7 +1838,17 @@ export default class Defaults {
           '</span> <span class="value">' +
           bandValue(k, v) +
           '</span></div>'
+        return v
       }
+      let total = 0
+      for (let i = data.order.length - 1; i >= 0; i--) {
+        total += row(data.order[i])
+      }
+      const bands = rows
+      // A combo line over the stream is not a part of the whole: read out
+      // below the total, and never added to it.
+      rows = ''
+      ;(data.lines || []).forEach(row)
 
       // The total is the one number a streamgraph genuinely cannot be read for
       // — the drifting baseline is exactly what hides it — so it is stated
@@ -1858,8 +1866,9 @@ export default class Defaults {
         '<div class="apexcharts-tooltip-title">' +
         ylabel +
         '</div>' +
-        rows +
+        bands +
         totalRow +
+        rows +
         '</div>'
       )
     }

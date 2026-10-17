@@ -29,6 +29,7 @@
  */
 import Utils from '../../utils/Utils'
 import { collapsedIndices, stashSeries } from '../helpers/RawStash'
+import { withX } from '../helpers/XKey'
 
 /**
  * One input datum, read into the parts the accumulator needs.
@@ -121,17 +122,13 @@ function fillFor(datum, kind, colors) {
  * @param {any[]} data
  * @param {any[]|undefined} categories
  * @param {Record<string, any>} colors
- * @returns {{ data: any[], values: any[], cumulative: number[], kinds: any[] }}
+ * @returns {{ data: any[], values: any[] }}
  */
 function accumulate(data, categories, colors) {
   /** @type {any[]} */
   const rows = []
   /** @type {any[]} */
   const values = []
-  /** @type {number[]} */
-  const cumulative = []
-  /** @type {any[]} */
-  const kinds = []
 
   // The running total, and the level the current subtotal group opened at.
   let running = 0
@@ -163,8 +160,6 @@ function accumulate(data, categories, colors) {
         // still line up. Dropping the row instead would shift every category.
         rows.push({ ...rest, x, y: null })
         values.push(null)
-        cumulative.push(running)
-        kinds.push(null)
         continue
       }
       start = running
@@ -181,11 +176,9 @@ function accumulate(data, categories, colors) {
       ...(fill ? { fillColor: fill } : {}),
     })
     values.push(end - start)
-    cumulative.push(running)
-    kinds.push(kind)
   }
 
-  return { data: rows, values, cumulative, kinds }
+  return { data: rows, values }
 }
 
 /**
@@ -199,7 +192,10 @@ function accumulate(data, categories, colors) {
  * the zoom-aware downsampler use.
  *
  * Multiple series each accumulate independently, which draws them as grouped
- * waterfalls side by side (two scenarios over the same categories).
+ * waterfalls side by side (two scenarios over the same categories). A series
+ * with no type, or typed 'waterfall' or its base 'rangeBar', is a waterfall. A
+ * combo series of any other type (a target line over the bars) is not, and
+ * keeps its own values, so it draws where it was written.
  *
  * @param {any[]} ser
  * @param {any} w
@@ -221,22 +217,20 @@ export function waterfallTransform(ser, w) {
 
   /** @type {any[]} */
   const values = []
-  /** @type {any[]} */
-  const cumulative = []
-  /** @type {any[]} */
-  const kinds = []
 
   const out = raw.map((/** @type {any} */ s, /** @type {number} */ i) => {
     const data = Array.isArray(s?.data) ? s.data : []
+    // No steps recorded, so its tooltip and labels read its own values.
+    values[i] = []
 
     // A collapsed series draws nothing. Emitted here rather than left to the
     // caller, because this transform rebuilds the rows from the stash and would
     // otherwise resurrect the series the collapse just emptied.
-    if (collapsed.indexOf(i) !== -1) {
-      values[i] = []
-      cumulative[i] = []
-      kinds[i] = []
-      return { ...s, data: [] }
+    if (collapsed.indexOf(i) !== -1) return { ...s, data: [] }
+    if (s?.type && s.type !== 'waterfall' && s.type !== 'rangeBar') {
+      return Array.isArray(s.data)
+        ? { ...s, data: withX(s.data, categories) }
+        : s
     }
 
     if (isPrecomputed(data)) {
@@ -249,26 +243,16 @@ export function waterfallTransform(ser, w) {
         const hi = Utils.parseNumber(y[1])
         return lo === null || hi === null ? null : hi - lo
       })
-      cumulative[i] = data.map((/** @type {any} */ d) => {
-        const y = Array.isArray(d) ? d[1] : d && typeof d === 'object' ? d.y : d
-        const hi = Array.isArray(y) ? Utils.parseNumber(y[1]) : null
-        return hi === null ? 0 : hi
-      })
-      kinds[i] = data.map(() => null)
       return s
     }
 
     const acc = accumulate(data, categories, colors)
     values[i] = acc.values
-    cumulative[i] = acc.cumulative
-    kinds[i] = acc.kinds
     return { ...s, data: acc.data }
   })
 
   w.waterfallData = {
     values,
-    cumulative,
-    kinds,
     // A non-null sink is what tells RangeBar to record the px box it drew each
     // column in, which the connector layer joins up. Fresh every parse.
     geometry: [],

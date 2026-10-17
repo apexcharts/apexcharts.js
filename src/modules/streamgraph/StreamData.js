@@ -23,6 +23,7 @@
  */
 import Utils from '../../utils/Utils'
 import { collapsedIndices, stashSeries } from '../helpers/RawStash'
+import { withX, xKey } from '../helpers/XKey'
 
 /** Baselines. `wiggle` is the classic streamgraph (Byron & Wattenberg, 2008). */
 const OFFSETS = ['wiggle', 'silhouette', 'zero', 'expand']
@@ -86,13 +87,20 @@ function isPairShaped(data) {
  * `undefined`: one NaN in the accumulator poisons every band above it for the
  * rest of the row.
  *
+ * A series that is not a band (a typed combo series) joins nothing: its grid
+ * stays empty, so it adds no column and nothing to any column.
+ *
  * @param {any[]} raw
  * @param {any[]|undefined} categories
- * @returns {{ xs: any[], rows: Array<Record<string, any>>, grids: Array<Map<number, number>> }}
+ * @param {boolean} datetime - key date strings by their epoch (see `xKey`)
+ * @param {boolean[]} band - band[k] is false for a series left out of the stack
+ * @returns {{ xs: any[], keys: any[], rows: Array<Record<string, any>>, grids: Array<Map<number, number>> }}
  */
-function joinOnX(raw, categories) {
+function joinOnX(raw, categories, datetime, band) {
   /** @type {any[]} */
   const xs = []
+  /** @type {any[]} */
+  const keys = []
   /** @type {Array<Record<string, any>>} */
   const rows = []
   const seen = new Map()
@@ -100,15 +108,16 @@ function joinOnX(raw, categories) {
   const grids = []
 
   for (let k = 0; k < raw.length; k++) {
-    const data = Array.isArray(raw[k]?.data) ? raw[k].data : []
+    const data = band[k] && Array.isArray(raw[k]?.data) ? raw[k].data : []
     /** @type {Map<number, number>} */
     const grid = new Map()
     for (let j = 0; j < data.length; j++) {
       const { x, y, rest } = readDatum(data[j], j, categories)
-      const key = x instanceof Date ? x.getTime() : x
+      const key = xKey(x, datetime)
       if (!seen.has(key)) {
         seen.set(key, xs.length)
         xs.push(x)
+        keys.push(key)
         // The column inherits the per-datum extras (a fillColor, a `meta`
         // payload) of whichever series mentioned it first, so a datum written
         // once is not lost by the join.
@@ -119,7 +128,7 @@ function joinOnX(raw, categories) {
     grids.push(grid)
   }
 
-  return { xs, rows, grids }
+  return { xs, keys, rows, grids }
 }
 
 /**
@@ -129,25 +138,20 @@ function joinOnX(raw, categories) {
  * baseline is defined on ADJACENT columns, so an out-of-order column does not
  * merely look wrong, it feeds the baseline a difference between two periods
  * that are not neighbours. Category strings keep first-seen order, which is the
- * order the categories were declared in.
+ * order the categories were declared in. Date strings on a datetime axis are
+ * keyed by their epoch (see `joinOnX`), so they sort by time.
  *
- * @param {any[]} xs
+ * @param {any[]} keys the column keys `joinOnX` built
  * @returns {number[]|null} a permutation of column indices, or null to keep as-is
  */
-function sortColumns(xs) {
+function sortColumns(keys) {
   /** @type {number[]} */
-  const idx = []
-  for (let j = 0; j < xs.length; j++) {
-    const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j]
-    if (typeof x !== 'number' || !isFinite(x)) return null
-    idx.push(j)
+  const perm = []
+  for (let j = 0; j < keys.length; j++) {
+    if (typeof keys[j] !== 'number' || !isFinite(keys[j])) return null
+    perm.push(j)
   }
-  const keyed = idx.map((j) => ({
-    j,
-    v: xs[j] instanceof Date ? xs[j].getTime() : xs[j],
-  }))
-  keyed.sort((a, b) => a.v - b.v)
-  const perm = keyed.map((e) => e.j)
+  perm.sort((a, b) => keys[a] - keys[b])
   // Already sorted: skip the reshuffle entirely.
   for (let j = 0; j < perm.length; j++) {
     if (perm[j] !== j) return perm
@@ -298,9 +302,19 @@ export function streamgraphTransform(ser, w) {
   }
   const raw = gl.streamgraphRawSeries
 
+  // A series with no type, or typed 'streamgraph' or its base 'rangeArea', is
+  // a band. A combo series of any other type (a reference line drawn over the
+  // stream) is not: it stays out of the join, the baseline and the stack, and
+  // keeps its own values.
+  const band = raw.map(
+    (/** @type {any} */ s) =>
+      !s?.type || s.type === 'streamgraph' || s.type === 'rangeArea',
+  )
+
   if (
-    raw.some((/** @type {any} */ s) =>
-      isPairShaped(Array.isArray(s?.data) ? s.data : []),
+    raw.some(
+      (/** @type {any} */ s, /** @type {number} */ k) =>
+        band[k] && isPairShaped(Array.isArray(s?.data) ? s.data : []),
     )
   ) {
     // Bands were supplied ready-stacked. There is nothing to compute, and the
@@ -315,23 +329,46 @@ export function streamgraphTransform(ser, w) {
 
   const categories = cnf.xaxis?.categories
   const collapsed = collapsedIndices(gl)
-  const { xs, rows, grids } = joinOnX(raw, categories)
+  const datetime = cnf.xaxis?.type === 'datetime'
+  const { xs, keys, rows, grids } = joinOnX(raw, categories, datetime, band)
 
-  const perm = sortColumns(xs)
+  const perm = sortColumns(keys)
   const columns = perm ? perm.map((j) => xs[j]) : xs
   const columnRows = perm ? perm.map((j) => rows[j]) : rows
   const m = columns.length
+  /** @type {number[]} */
+  const lines = []
+  /** @type {Map<any, number>|undefined} x key to its column, built on demand */
+  let colOf
 
   // values[k][j], the numbers the reader actually gave, kept for the tooltip
   // and the labels. A streamgraph is a part-to-whole form and a negative part
   // has no thickness to draw, so negatives are floored at zero rather than
   // quietly inverting the band above them.
   let sawNegative = false
-  /** @type {number[][]} */
+  /** @type {Array<Array<number|null>>} */
   const values = []
   for (let k = 0; k < raw.length; k++) {
-    /** @type {number[]} */
+    /** @type {Array<number|null>} */
     const row = new Array(m)
+    if (!band[k]) {
+      // A combo line is read out at the column its x names, as written (not a
+      // part of the whole, so never floored), and null where it has no point.
+      row.fill(null)
+      if (collapsed.indexOf(k) === -1) lines.push(k)
+      if (!colOf) {
+        colOf = new Map()
+        for (let j = 0; j < m; j++) colOf.set(keys[perm ? perm[j] : j], j)
+      }
+      const data = Array.isArray(raw[k]?.data) ? raw[k].data : []
+      for (let j = 0; j < data.length; j++) {
+        const { x, y } = readDatum(data[j], j, categories)
+        const c = colOf.get(xKey(x, datetime))
+        if (c !== undefined) row[c] = Utils.parseNumber(y)
+      }
+      values.push(row)
+      continue
+    }
     for (let j = 0; j < m; j++) {
       const src = grids[k].get(perm ? perm[j] : j)
       let v = src === undefined || src === null ? 0 : Number(src)
@@ -360,16 +397,16 @@ export function streamgraphTransform(ser, w) {
   /** @type {number[]} */
   const visible = []
   for (let k = 0; k < raw.length; k++) {
-    if (collapsed.indexOf(k) === -1) visible.push(k)
+    if (band[k] && collapsed.indexOf(k) === -1) visible.push(k)
   }
 
   // `expand` normalizes each column to a share of its own total, so the stack
   // reads as composition over time at a constant thickness. It changes what is
   // stacked, never what is reported, so it works on a copy.
-  /** @type {number[][]} */
-  let stack = values
+  // Only bands are stacked, and a band's row holds numbers only.
+  let stack = /** @type {number[][]} */ (values)
   if (offset === 'expand') {
-    stack = values.map((row) => row.slice())
+    stack = stack.map((row) => row.slice())
     for (let j = 0; j < m; j++) {
       let total = 0
       for (let i = 0; i < visible.length; i++) total += stack[visible[i]][j]
@@ -416,6 +453,7 @@ export function streamgraphTransform(ser, w) {
     lows,
     highs,
     order: bandOrder,
+    lines,
     offset,
     hidden: raw
       .map((/** @type {any} */ _, /** @type {number} */ k) => k)
@@ -423,6 +461,14 @@ export function streamgraphTransform(ser, w) {
   }
 
   return raw.map((/** @type {any} */ s, /** @type {number} */ k) => {
+    if (!band[k]) {
+      // Collapsed here for the same reason a band is: this rebuilds from the
+      // stash, which would bring back the series the legend just emptied.
+      if (collapsed.indexOf(k) !== -1) return { ...s, data: [] }
+      return Array.isArray(s?.data)
+        ? { ...s, data: withX(s.data, categories) }
+        : s
+    }
     const lo = lows[k]
     const hi = highs[k]
     if (!lo || !hi) return { ...s, data: [] }

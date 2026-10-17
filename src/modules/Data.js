@@ -1921,8 +1921,6 @@ export default class Data {
     if (name !== 'waterfall' && this.w.waterfallData.geometry) {
       this.w.waterfallData = {
         values: [],
-        cumulative: [],
-        kinds: [],
         geometry: null,
       }
     }

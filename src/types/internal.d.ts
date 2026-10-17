@@ -183,10 +183,6 @@ export interface WaterfallData {
    * tooltip print, in place of the "start - end" a range bar would read out.
    */
   values: Array<Array<number | null>>
-  /** cumulative[seriesIndex][j] — the running total AFTER bar j. */
-  cumulative: number[][]
-  /** kinds[seriesIndex][j] — 'positive' | 'negative' | 'subtotal' | 'total' */
-  kinds: Array<Array<string | null>>
   /**
    * geometry[seriesIndex][j] — the px box the bar was drawn in, recorded by
    * RangeBar and joined up by the connector layer. A non-null sink here is what
@@ -244,8 +240,12 @@ export interface StreamgraphData {
   names: string[]
   /** xs[j] is column j's x value, in drawing order. */
   xs: any[]
-  /** values[k][j] is the number the reader gave for band k at column j. */
-  values: number[][]
+  /**
+   * values[k][j] is the number the reader gave for band k at column j. For a
+   * combo series of another type it is that series' own value at the column
+   * its x names, or null where it has no point.
+   */
+  values: Array<Array<number | null>>
   /**
    * Per-band stacking offsets, or null for a band the legend has collapsed.
    * `highs[k][j]` IS `lows[next][j]` — the same accumulator value, not a copy —
@@ -255,6 +255,8 @@ export interface StreamgraphData {
   highs: Array<number[] | null>
   /** Series indices, bottom band first. */
   order: number[]
+  /** Visible combo series of another type (a line over the stream). */
+  lines: number[]
   /** The baseline mode the bands were solved with. */
   offset: 'wiggle' | 'silhouette' | 'zero' | 'expand'
   /** Band indices collapsed from the legend. */
