@@ -28,6 +28,13 @@ const MAX_DEPTH = 32
  */
 const DRILL_MARKER = '__apexDrilldownMarker'
 
+/**
+ * The config a level may override. Every restore frame captures all of them,
+ * since an onDrillDown level can carry any and which ones is not known in
+ * advance, but a return applies only those the levels it leaves carried.
+ */
+const VIEW_FIELDS = ['xaxis', 'yaxis', 'colors', 'plotOptions', 'fill', 'legend']
+
 export default class Drilldown {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -39,13 +46,13 @@ export default class Drilldown {
 
     /**
      * Restore-frames, one per level below root. stack[k] describes the level at
-     * depth k+1: { id, name, restore } where `restore` is a snapshot of the
-     * view at depth k (the parent), applied to navigate back to it.
-     * @type {Array<{ id: string|number, name?: string, restore: object }>}
+     * depth k+1: { id, name, keys, restore } where `restore` is a snapshot of
+     * the view at depth k (the parent), taken as the drill left it, so a return
+     * shows that level as it was last seen, host updates included, and `keys`
+     * are the VIEW_FIELDS the level itself carried.
+     * @type {Array<{ id: string|number, name?: string, keys: string[], restore: object }>}
      */
     this.stack = []
-    /** Full snapshot of the root view, captured lazily on the first drill. */
-    this.rootSnapshot = null
     this._wired = false
 
     /**
@@ -170,13 +177,20 @@ export default class Drilldown {
     if (targetDepth < 0 || targetDepth >= cur) return Promise.resolve(this.ctx)
 
     const from = this.path[this.path.length - 1]
-    // To display depth D: apply the snapshot of that level's view.
-    //   D === 0  → rootSnapshot
-    //   D >= 1   → stack[D].restore (snapshot taken before drilling into D+1)
-    const restore = targetDepth === 0 ? this.rootSnapshot : this.stack[targetDepth].restore
+    // To display depth D, apply stack[D].restore: the snapshot of that level
+    // taken when it was last drilled out of. The root is no exception, or a
+    // return would bring back the root of the FIRST drill and drop every host
+    // update made at the root since.
+    // Only the fields a level being left carried go back: any other one is
+    // still the parent's, plus whatever the host updated it to since.
+    const left = this.stack.slice(targetDepth)
+    const keys = new Set(left.flatMap((f) => f.keys))
     this.stack = this.stack.slice(0, targetDepth)
     const to = this.path[this.path.length - 1]
-    return this._apply(this._viewFromSnapshot(restore), 'up', { from, to })
+    return this._apply(this._viewFromSnapshot(left[0].restore, keys), 'up', {
+      from,
+      to,
+    })
   }
 
   // ─── Internals ─────────────────────────────────────────────────────────────
@@ -202,9 +216,13 @@ export default class Drilldown {
       console.warn(`ApexCharts: drilldown max depth (${MAX_DEPTH}) reached.`)
       return Promise.resolve(this.ctx)
     }
-    if (!this.rootSnapshot) this.rootSnapshot = this._snapshot()
     const from = this.path[this.path.length - 1]
-    const level = { id: child.id, name: child.name, restore: this._snapshot() }
+    const level = {
+      id: child.id,
+      name: child.name,
+      keys: VIEW_FIELDS.filter((k) => child[k]),
+      restore: this._snapshot(),
+    }
     this.stack.push(level)
     return this._apply(this._viewFromChild(child), 'down', {
       from,
@@ -361,14 +379,17 @@ export default class Drilldown {
   }
 
   /**
-   * Capture the overridable surface of the current view so it can be restored.
-   * Only fields that some drilldown.series entry can change are cloned; series
-   * and chart.type/stacked are always captured.
+   * Capture the overridable surface of the current view so it can be restored:
+   * series, chart.type/stacked and every VIEW_FIELDS entry. A field the view
+   * leaves unset is kept as `undefined`, so the restore unsets whatever the
+   * level being left put there.
    * @returns {object}
    */
   _snapshot() {
-    const c = this.w.config
-    const fields = this._overrideFields()
+    // The author's values, not an active breakpoint's: the restore goes
+    // through updateOptions, which would take them as the author's own.
+    const r = this.ctx.responsive
+    const c = r ? r.withoutBreakpoints(this.w.config) : this.w.config
     /** @type {Record<string, any>} */
     // Capture the FULL data, not the post-collapse view: navigation clears the
     // legend-collapse bookkeeping (see _apply), so a snapshot that kept a
@@ -379,12 +400,15 @@ export default class Drilldown {
       snap.labels = Utils.clone(c.labels)
     }
     snap.chart = { type: c.chart.type, stacked: c.chart.stacked }
-    if (fields.has('xaxis')) snap.xaxis = Utils.clone(c.xaxis)
-    if (fields.has('yaxis')) snap.yaxis = Utils.clone(c.yaxis)
-    if (fields.has('colors')) snap.colors = c.colors ? Utils.clone(c.colors) : undefined
-    if (fields.has('plotOptions')) snap.plotOptions = Utils.clone(c.plotOptions)
-    if (fields.has('fill')) snap.fill = Utils.clone(c.fill)
-    if (fields.has('legend')) snap.legend = Utils.clone(c.legend)
+    for (const k of VIEW_FIELDS) snap[k] = Utils.clone(c[k])
+    // A zoom writes its window into xaxis.min/max. The frame keeps the
+    // baseline bounds instead, or the restore would make the window the
+    // chart's own and updateSeries could no longer un-zoom it.
+    const last = this.w.globals.lastXAxis
+    if (snap.xaxis && last) {
+      snap.xaxis.min = last.min
+      snap.xaxis.max = last.max
+    }
     return snap
   }
 
@@ -434,38 +458,14 @@ export default class Drilldown {
   }
 
   /**
-   * Union of overridable fields across all declared drilldown levels. Ensures a
-   * deep drillToRoot restores everything any intermediate level may have changed.
-   * @returns {Set<string>}
-   */
-  _overrideFields() {
-    const fields = new Set()
-    const list = (this.w.config.drilldown && this.w.config.drilldown.series) || []
-    for (const s of list) {
-      if (!s) continue
-      if (s.xaxis) fields.add('xaxis')
-      if (s.yaxis) fields.add('yaxis')
-      if (s.colors) fields.add('colors')
-      if (s.plotOptions) fields.add('plotOptions')
-      if (s.fill) fields.add('fill')
-      if (s.legend) fields.add('legend')
-    }
-    return fields
-  }
-
-  /**
-   * Copy the optional view fields shared by a drilldown child level and a
-   * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
-   * `legend`) from `src` onto `view`, only when present.
+   * Copy the VIEW_FIELDS from `src` onto `view`: those a child level sets, or
+   * those in `keys` from a restore snapshot (`undefined` included, which
+   * unsets it).
    * @param {Record<string, any>} view @param {Record<string, any>} src
+   * @param {Set<string>} [keys]
    */
-  _copyOptionalViewFields(view, src) {
-    if (src.xaxis) view.xaxis = src.xaxis
-    if (src.yaxis) view.yaxis = src.yaxis
-    if (src.colors) view.colors = src.colors
-    if (src.plotOptions) view.plotOptions = src.plotOptions
-    if (src.fill) view.fill = src.fill
-    if (src.legend) view.legend = src.legend
+  _copyOptionalViewFields(view, src, keys) {
+    for (const k of VIEW_FIELDS) if (keys ? keys.has(k) : src[k]) view[k] = src[k]
   }
 
   /**
@@ -496,13 +496,14 @@ export default class Drilldown {
   /**
    * Build an updateOptions payload from a restore-snapshot.
    * @param {Record<string, any>} snap
+   * @param {Set<string>} keys the VIEW_FIELDS to restore
    * @returns {Record<string, any>}
    */
-  _viewFromSnapshot(snap) {
+  _viewFromSnapshot(snap, keys) {
     /** @type {Record<string, any>} */
     const view = { series: snap.series, chart: snap.chart }
     if (snap.labels && snap.labels.length) view.labels = snap.labels
-    this._copyOptionalViewFields(view, snap)
+    this._copyOptionalViewFields(view, snap, keys)
     return view
   }
 
