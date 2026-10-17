@@ -13,23 +13,14 @@ export default class TreemapHelpers {
     this.w = w
   }
 
+  /** Whether a colour range reaches zero or below. Runs once per draw. */
   checkColorRange() {
     const w = this.w
-
-    let negRange = false
-    const chartOpts = w.config.plotOptions[w.config.chart.type]
-
-    if (chartOpts.colorScale.ranges.length > 0) {
-      /**
-       * @param {number} range
-       */
-      chartOpts.colorScale.ranges.map((/** @type {any} */ range) => {
-        if (range.from <= 0) {
-          negRange = true
-        }
-      })
-    }
-    return negRange
+    // Drop the per-row extents determineColor memoises.
+    this.rowExt = /** @type {number[][]} */ ([])
+    return w.config.plotOptions[w.config.chart.type].colorScale.ranges.some(
+      (/** @type {any} */ range) => range.from <= 0,
+    )
   }
 
   /**
@@ -40,60 +31,37 @@ export default class TreemapHelpers {
    */
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w
-
-    let colorShadePercent = 1
-    const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity
+    const opts = w.config.plotOptions[chartType]
+    const shadeIntensity = opts.shadeIntensity
+    const k = shadeIntensity * 1.25
 
     const colorProps = this.determineColor(chartType, i, j)
+    const p = colorProps.percent / 100
 
+    let colorShadePercent
     if (/** @type {any} */ (w.globals).hasNegs || negRange) {
-      if (w.config.plotOptions[chartType].reverseNegativeShade) {
-        if (colorProps.percent < 0) {
-          colorShadePercent =
-            (colorProps.percent / 100) * (shadeIntensity * 1.25)
-        } else {
-          colorShadePercent =
-            (1 - colorProps.percent / 100) * (shadeIntensity * 1.25)
-        }
-      } else {
-        if (colorProps.percent <= 0) {
-          colorShadePercent =
-            1 - (1 + colorProps.percent / 100) * shadeIntensity
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * shadeIntensity
-        }
-      }
+      colorShadePercent = opts.reverseNegativeShade
+        ? (p < 0 ? p : 1 - p) * k
+        : p <= 0
+          ? 1 - (1 + p) * shadeIntensity
+          : (1 - p) * shadeIntensity
     } else {
-      colorShadePercent = 1 - colorProps.percent / 100
-      if (chartType === 'treemap') {
-        colorShadePercent =
-          (1 - colorProps.percent / 100) * (shadeIntensity * 1.25)
-      }
+      colorShadePercent = chartType === 'treemap' ? (1 - p) * k : 1 - p
     }
 
     let color = colorProps.color
-    const utils = new Utils()
 
-    if (w.config.plotOptions[chartType].enableShades) {
-      // The shadeColor function may return either an RGB or a hex color value
-      // However, hexToRgba requires the input to be in hex format
-      // The ternary operator checks if the color is in RGB format, and if so, converts it to hex
-      if (this.w.config.theme.mode === 'dark') {
-        const shadeColor = utils.shadeColor(
-          colorShadePercent * -1,
-          colorProps.color,
-        )
-        color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity,
-        )
-      } else {
-        const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color)
-        color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity,
-        )
-      }
+    if (opts.enableShades) {
+      // shadeColor may return rgb() or hex, and hexToRgba needs hex. Dark mode
+      // shades the other way.
+      const shadeColor = new Utils().shadeColor(
+        w.config.theme.mode === 'dark' ? -colorShadePercent : colorShadePercent,
+        color,
+      )
+      color = Utils.hexToRgba(
+        Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
+        w.config.fill.opacity,
+      )
     }
 
     return { color, colorProps }
@@ -131,18 +99,29 @@ export default class TreemapHelpers {
       // Per-row extent (distributed heatmap / treemap). Use a loop, not
       // Math.min(...row): a wide continuous-X heatmap row can exceed the call
       // argument limit and throw "RangeError: Maximum call stack size exceeded".
-      const row = w.seriesData.series[i]
-      min = row.length ? row[0] : 0
-      max = min
-      for (let k = 1; k < row.length; k++) {
-        if (row[k] < min) min = row[k]
-        if (row[k] > max) max = row[k]
+      // Scanned once per row per draw (checkColorRange resets the memo), not
+      // once per cell, which made a wide row quadratic.
+      let ext = /** @type {number[][]} */ (this.rowExt)[i]
+      if (!ext) {
+        const row = w.seriesData.series[i]
+        min = row.length ? row[0] : 0
+        max = min
+        for (let k = 1; k < row.length; k++) {
+          if (row[k] < min) min = row[k]
+          if (row[k] > max) max = row[k]
+        }
+        ext = /** @type {number[][]} */ (this.rowExt)[i] = [min, max]
       }
+      ;[min, max] = ext
     }
 
     const csMin = chartOpts.colorScale.min
     const csMax = chartOpts.colorScale.max
-    if (typeof csMin !== 'undefined' && typeof csMax !== 'undefined' && csMax > csMin) {
+    if (
+      typeof csMin !== 'undefined' &&
+      typeof csMax !== 'undefined' &&
+      csMax > csMin
+    ) {
       // BOTH ends set: an explicit, ABSOLUTE window. This is what lets
       // several charts share one color scale (a trellis pushes the union
       // extent): comparing against each chart's own niced globals would
