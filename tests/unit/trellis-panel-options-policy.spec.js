@@ -3,6 +3,8 @@
  *   - an explicit chart.zoom.enabled: false is respected; trellis.zoom only
  *     decides whether an enabled zoom syncs (and the shared toolbar leaves
  *     out zoom, pan and reset when zoom is off);
+ *   - the user's series and trellis.data are never deep-cloned per panel
+ *     (and the user's config is never mutated doing so);
  *   - the edge-label policy reads the EFFECTIVE y mode, so a histogram a
  *     type frame forced to a shared y labels only its edge panels.
  */
@@ -10,6 +12,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/trellis.js'
+import Utils from '../../src/utils/Utils.js'
 
 beforeAll(() => {
   Object.defineProperty(window.SVGElement.prototype, 'getBBox', {
@@ -92,6 +95,28 @@ describe('chart.zoom.enabled: false is respected (p2-trellis-5)', () => {
     chart.trellis.panels.forEach((p) =>
       expect(p.chart.w.config.chart.zoom.enabled).toBe(true),
     )
+    chart.destroy()
+  })
+})
+
+describe('panels never deep-clone the whole grid (p2-trellis-8)', () => {
+  it('assembly clones the user options without series or trellis.data, and leaves them intact', async () => {
+    const { chart } = await mk()
+    const t = chart.trellis
+    const spy = vi.spyOn(Utils, 'clone')
+    t._assemblePanelOptions(0)
+    const cloned = spy.mock.calls.map((c) => c[0])
+    spy.mockRestore()
+    cloned.forEach((arg) => {
+      expect(arg).not.toBe(chart.opts)
+      if (arg && typeof arg === 'object' && !Array.isArray(arg)) {
+        expect(Object.prototype.hasOwnProperty.call(arg, 'series')).toBe(false)
+        expect(Object.prototype.hasOwnProperty.call(arg, 'trellis')).toBe(false)
+      }
+    })
+    // the user's own option object still carries everything
+    expect(chart.opts.series).toBe(SERIES)
+    expect(chart.opts.trellis.by).toBe('region')
     chart.destroy()
   })
 })

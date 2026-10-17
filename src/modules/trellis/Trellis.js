@@ -1003,11 +1003,17 @@ export default class Trellis {
     )
     const slice = split.panels[i]
 
+    // Cloned WITHOUT the keys the trellis owns: `series` and `trellis.data`
+    // hold every panel's data, and deep-cloning them per panel only to
+    // delete them cost more than the rest of the assembly put together.
+    const {
+      series: _s,
+      trellis: _t,
+      responsive: _r,
+      ...userOpts
+    } = this.ctx.opts || {}
     /** @type {Record<string, any>} */
-    const base = Utils.clone(this.ctx.opts || {})
-    delete base.trellis
-    delete base.series
-    delete base.responsive
+    const base = Utils.clone(userOpts)
     // Trellis-scoped annotations (P3): declared once on the host, filtered
     // per panel by `scope`, projected through each panel's own scale.
     if (base.annotations) {
