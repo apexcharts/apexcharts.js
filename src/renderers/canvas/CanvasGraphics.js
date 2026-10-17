@@ -851,10 +851,6 @@ export default class CanvasGraphics {
   markerSeries(i) {
     return this._msi[i]
   }
-  /** @param {number} id @returns {string} */
-  shapeName(id) {
-    return SHAPE_NAME[id] || 'circle'
-  }
   // ── columnar rect cell (heatmap): parallel unboxed arrays, no per-cell object ──
   /**
    * Record a heatmap-style cell (a filled, optionally stroked rect). Geometry
@@ -1187,5 +1183,3 @@ export default class CanvasGraphics {
     return this._g.getMarkerPath(x, y, SHAPE_NAME[shapeId] || 'circle', size)
   }
 }
-
-export { CanvasMark, CanvasMarkerRef }
