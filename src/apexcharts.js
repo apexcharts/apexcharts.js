@@ -1224,12 +1224,12 @@ export default class ApexCharts {
     // Appending to the derived rows instead would add bars whose x is an
     // observation value, or whose y is a level rather than a step with the walk
     // restarting from zero at the join, or endpoints appended to the one series
-    // that happens to be carrying the merge.
-    const derivedRaw =
-      me.w.globals.histogramRawSeries ||
-      me.w.globals.waterfallRawSeries ||
-      me.w.globals.dumbbellRawSeries ||
-      me.w.globals.streamgraphRawSeries
+    // that happens to be carrying the merge. Only the CURRENT type's stash: one
+    // kept for a drilldown root while a child of another type is drawn is not
+    // what the chart shows. All four are aliases, so `requestedType` names them.
+    const derivedRaw = /** @type {any} */ (gl)[
+      me.w.config.chart.requestedType + 'RawSeries'
+    ]
     if (derivedRaw) {
       for (let i = 0; i < derivedRaw.length; i++) {
         const src = /** @type {any} */ (newData[i])

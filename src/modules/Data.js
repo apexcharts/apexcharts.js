@@ -1938,6 +1938,26 @@ export default class Data {
     if (name !== 'streamgraph' && this.w.streamgraphData) {
       this.w.streamgraphData = null
     }
+    // The raw stash too, and it hands back the user's series: `ser` is the
+    // rows the old type derived (levels, offsets, bins, merged pairs), and
+    // drawn by the new type they were the wrong numbers. A stash left set
+    // also took every appendData and resetSeries after the switch. A
+    // legend-hidden series stays hidden: its values go to its collapse record.
+    // Only when `ser` IS those rows (what the last parse wrote back): a payload
+    // with its own series (a drilldown child, a replay) is drawn as given, and
+    // the stash stays for the level it came from.
+    const gl = /** @type {any} */ (this.w.globals)
+    for (const t of ['histogram', 'waterfall', 'dumbbell', 'streamgraph']) {
+      const raw = gl[t + 'RawSeries']
+      if (name !== t && raw && ser === this._rows) {
+        gl[t + 'RawSeries'] = null
+        const recs = gl.collapsedSeries.concat(gl.ancillaryCollapsedSeries)
+        ser = raw.map((/** @type {any} */ s, /** @type {number} */ i) => {
+          const r = recs.find((/** @type {any} */ r) => r.index === i)
+          return r ? ((r.data = s.data), { ...s, data: [] }) : s
+        })
+      }
+    }
 
     // The samples behind the rows, which only a transform that summarised raw
     // observations writes. Cleared on every parse rather than when the type
@@ -2060,23 +2080,29 @@ export default class Data {
     const gl = w.globals
     if (w.config.chart.type !== 'treemap' || !Array.isArray(ser)) return ser
 
-    if (!gl.treemapRawSeries) {
-      if (!isNestedTreemap(w, ser)) {
-        // Flat treemap: the renderer builds the two-level tree itself. Clear
-        // any tree left over from a previous (nested) data set.
-        gl.treemapRoots = null
-        return ser
+    // Nesting turned off by updateOptions: `ser` is the flattened leaves the
+    // last parse wrote back, so gate on the stash and hand back the input, as
+    // the alias types do. It becomes config.series, so appendData reaches it,
+    // and turning nesting on again re-stashes its levels.
+    let raw = gl.treemapRawSeries
+    if (!isNestedTreemap(w, raw || ser)) {
+      // Flat treemap: the renderer builds the two-level tree itself. Clear
+      // any tree left over from a previous (nested) data set.
+      gl.treemapRoots = null
+      if (raw && ser === this._rows) {
+        gl.treemapRawSeries = null
+        return raw
       }
-      gl.treemapRawSeries = ser.map((/** @type {any} */ s) => ({
+      return ser
+    }
+    if (!raw) {
+      raw = gl.treemapRawSeries = ser.map((/** @type {any} */ s) => ({
         ...s,
         data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
       }))
     }
 
-    const { roots, leafSeries, maxDepth } = resolveTreemapTree(
-      w,
-      gl.treemapRawSeries,
-    )
+    const { roots, leafSeries, maxDepth } = resolveTreemapTree(w, raw)
     gl.treemapRoots = roots
     gl.treemapMaxDepth = maxDepth
     return leafSeries
@@ -2399,7 +2425,8 @@ export default class Data {
       ser = ser.map((s) => ({ ...s }))
     }
 
-    cnf.series = ser
+    // Remembered so a type switch can tell its own rows from a new payload.
+    cnf.series = this._rows = ser
     // parseDataAxisCharts mutates ser[i] to the windowed/downsampled view.
     // Re-cloning from cnf.series each parse would corrupt initialSeries and
     // break resetZoom (it would only restore one zoom step). Instead, snapshot
