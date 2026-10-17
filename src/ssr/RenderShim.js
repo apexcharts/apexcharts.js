@@ -53,29 +53,112 @@ class SSRRenderElement extends SSRElement {
    * browser's would on HTML elements and inside the legend (its marker shapes
    * are centred by a style): renderToHTML emits that markup. The chart's own
    * SVG keeps its attributes only, since a style there can be a start state
-   * the browser animates away.
+   * the browser animates away. A part hidden inline (hide(), gridlines with
+   * grid.show false, a label avoidOverlap dropped) is not drawn, though, so
+   * it keeps that as a presentation attribute: it carries nothing animatable.
    */
   toString() {
-    if (this.namespaceURI === SVGNS) {
-      let n = this.parentNode
-      while (n && !n.classList?.contains('apexcharts-legend')) n = n.parentNode
-      if (!n) return super.toString()
-    }
     /** @type {Map<string, any>} */
     const own = this.attributes
     const attrs = new Map(own)
-    const cls = [...new Set(classesOf(this).filter(Boolean))].join(' ')
-    if (cls) attrs.set('class', cls)
-    const css = [own.get('style'), cssText(this.style)]
-      .filter(Boolean)
-      .join(';')
-    if (css) attrs.set('style', css)
+    let styled = this.namespaceURI !== SVGNS
+    for (let n = this.parentNode; n && !styled; n = n.parentNode) {
+      styled = !!n.classList?.contains('apexcharts-legend')
+    }
+    if (!styled) {
+      const { display, visibility } = /** @type {any} */ (this.style)
+      if (display !== 'none' && visibility !== 'hidden') return super.toString()
+      if (display === 'none') attrs.set('display', 'none')
+      if (visibility === 'hidden') attrs.set('visibility', 'hidden')
+    } else {
+      const cls = [...new Set(classesOf(this).filter(Boolean))].join(' ')
+      if (cls) attrs.set('class', cls)
+      const css = [own.get('style'), cssText(this.style)]
+        .filter(Boolean)
+        .join(';')
+      if (css) attrs.set('style', css)
+    }
     this.attributes = attrs
     try {
       return super.toString()
     } finally {
       this.attributes = own
     }
+  }
+
+  // The browser coerces what it is given to a string: a numeric 0 reads "0".
+  get textContent() {
+    return super.textContent
+  }
+
+  set textContent(value) {
+    super.textContent = value == null ? '' : String(value)
+  }
+
+  get innerHTML() {
+    return super.innerHTML
+  }
+
+  set innerHTML(value) {
+    super.innerHTML = value == null ? '' : String(value)
+  }
+
+  // Tree walking as a DOM element walks: SVGElement.children() filters on
+  // nodeType, clear() empties through firstChild, and the y-axis reorder
+  // behind grid.position 'back' depends on both.
+  get nodeType() {
+    return 1
+  }
+
+  get firstChild() {
+    return this.children[0] || null
+  }
+
+  get lastChild() {
+    return this.children[this.children.length - 1] || null
+  }
+
+  get nextSibling() {
+    const sibs = this.parentNode?.children || []
+    return sibs[sibs.indexOf(this) + 1] || null
+  }
+
+  get previousSibling() {
+    const sibs = this.parentNode?.children || []
+    return sibs[sibs.indexOf(this) - 1] || null
+  }
+
+  /** @param {string} name */
+  getAttribute(name) {
+    const value = super.getAttribute(name)
+    return value === undefined ? null : value
+  }
+
+  // Element-level lookups, so attr({ x }) reaches a text's newline tspans.
+  // The selector is optional only to keep the base class's signature.
+  /** @param {string} [selector] */
+  querySelector(selector) {
+    return querySelectorAll(this, selector || '', true)[0] || null
+  }
+
+  /**
+   * @param {string} [selector]
+   * @returns {any}
+   */
+  querySelectorAll(selector) {
+    return querySelectorAll(this, selector || '')
+  }
+
+  remove() {
+    this.parentNode?.removeChild(this)
+  }
+
+  /** @param {string} selector */
+  closest(selector) {
+    /** @type {any} */
+    let n = this
+    while (n && !matchesSelector(n, selector)) n = n.parentNode
+    return n || null
   }
 
   /** Only the legend's layout reads these: no other HTML box is measured. */
@@ -237,25 +320,51 @@ const matchesChain = (el, compounds) => {
 }
 
 /**
- * querySelectorAll over the shim's element tree, in document order.
- * @param {any} root
+ * A selector list split into groups, each a chain of compound selectors.
  * @param {string} selector
- * @returns {any[]}
+ * @returns {string[][]}
  */
-const querySelectorAll = (root, selector) => {
-  const groups = selector
+const selectorGroups = (selector) =>
+  selector
     .split(',')
     .map((g) => g.trim().split(/\s+(?![^[(]*[\])])/))
     .filter((g) => g[0])
+
+/**
+ * Whether `el` matches any group of a selector list.
+ * @param {any} el
+ * @param {string} selector
+ */
+const matchesSelector = (el, selector) =>
+  selectorGroups(selector).some((g) => matchesChain(el, g))
+
+/**
+ * querySelectorAll over the shim's element tree, in document order. With
+ * `first` the walk stops at the first match, so querySelector stays cheap on
+ * the root (gradients and patterns look up `defs` once per shape).
+ * @param {any} root
+ * @param {string} selector
+ * @param {boolean} [first]
+ * @returns {any[]}
+ */
+const querySelectorAll = (root, selector, first) => {
+  const groups = selectorGroups(selector)
   /** @type {any[]} */
   const found = []
-  /** @param {any} node */
+  /**
+   * @param {any} node
+   * @returns {boolean} whether the walk is done
+   */
   const walk = (node) => {
     for (const child of node.children || []) {
       if (!(child.attributes instanceof Map)) continue
-      if (groups.some((g) => matchesChain(child, g))) found.push(child)
-      walk(child)
+      if (groups.some((g) => matchesChain(child, g))) {
+        found.push(child)
+        if (first) return true
+      }
+      if (walk(child)) return true
     }
+    return false
   }
   walk(root)
   return found
