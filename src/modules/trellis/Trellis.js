@@ -404,15 +404,53 @@ export default class Trellis {
       )
     }
     this._axisNames = axisNames
-    this.scales = TrellisScales.resolve(split, this._effectiveCfg(), {
-      chartType: c.type,
-      userColors: this.ctx.opts && this.ctx.opts.colors,
-      // The page's own axes when there are several (see _multiY).
-      yaxis: yaxis || w.config.yaxis,
-      axisNames,
-      yExtentOverride: this._frames.yExtentOverride,
-      ...this._stackingHost(),
-    })
+    const theme = w.config.theme
+    const scales = (this.scales = TrellisScales.resolve(
+      split,
+      this._effectiveCfg(),
+      {
+        chartType: c.type,
+        userColors: this.ctx.opts && this.ctx.opts.colors,
+        palette: theme.palette,
+        // The page's own axes when there are several (see _multiY).
+        yaxis: yaxis || w.config.yaxis,
+        axisNames,
+        yExtentOverride: this._frames.yExtentOverride,
+        ...this._stackingHost(),
+      },
+    ))
+    // Monochrome and colour-blind panels paint their own colours whatever
+    // they are handed (the core ignores `colors` there), and a function in
+    // `colors` is resolved by the panel: the shared legend and grid tooltip
+    // read the colour a mounted panel painted for the name instead. `raw`
+    // (the panel push) still gets the configured entry.
+    if (
+      theme.monochrome?.enabled ||
+      theme.accessibility?.colorBlindMode ||
+      scales.palette.some((c) => typeof c === 'function')
+    ) {
+      const colorOf = scales.colorOf
+      scales.colorOf = (name, raw) => {
+        if (!raw) {
+          for (const p of this.panels) {
+            const pw = p.chart && p.chart.w
+            const i = pw ? pw.seriesData.seriesNames.indexOf(name) : -1
+            const c = i > -1 && pw.globals.colors[i]
+            // a function the core kept per datum: its first point's colour
+            if (typeof c === 'function') {
+              return c({
+                value: pw.seriesData.series[i][0] || 0,
+                seriesIndex: i,
+                dataPointIndex: 0,
+                w: pw,
+              })
+            }
+            if (c) return c
+          }
+        }
+        return colorOf(name)
+      }
+    }
   }
 
   /** @returns {{ chartType: string, datetime: boolean }} the split's host facts */
@@ -1256,7 +1294,10 @@ export default class Trellis {
     } else {
       // Shared color: by series NAME across the whole trellis, so 'Revenue'
       // is the same color in every panel no matter the panel's series order.
-      patch.colors = series.map((/** @type {any} */ s) => scales.colorOf(s.name))
+      // `raw` keeps a function entry in place for the panel to resolve.
+      patch.colors = series.map((/** @type {any} */ s) =>
+        scales.colorOf(s.name, true),
+      )
       // The shared legend's hidden set, stated on EVERY row: a panel mounted
       // after a toggle is born with the series hidden (no flash, no second
       // render), and an explicit false keeps a later update from inheriting

@@ -344,7 +344,7 @@ export function yExtentInWindow(panels, _xForm, xMin, xMax, parts = false) {
  *
  * @param {import('./TrellisSplit').TrellisSplitResult} splitResult
  * @param {{ scales?: { x?: string, y?: string, color?: string }, targetTicks?: number }} cfg
- * @param {{ chartType?: string, userColors?: any[], yaxis?: any[], axisNames?: string[][] | null, yExtentOverride?: { min: number, max: number } | null, stacked?: boolean, stackType?: string, stackOnlyBar?: boolean, parts?: boolean }} host
+ * @param {{ chartType?: string, userColors?: any[], palette?: string, yaxis?: any[], axisNames?: string[][] | null, yExtentOverride?: { min: number, max: number } | null, stacked?: boolean, stackType?: string, stackOnlyBar?: boolean, parts?: boolean }} host
  *   `yaxis` lists the y axes (`logarithmic`, `logBase` per entry);
  *   `axisNames`, given only for several axes, lists each axis's series
  *   names, one assignment for the whole grid
@@ -353,8 +353,8 @@ export function yExtentInWindow(panels, _xForm, xMin, xMax, parts = false) {
  *   y: YBounds,
  *   rowY: Map<string, YBounds> | null,
  *   colY: Map<string, YBounds> | null,
- *   colorOf: (name: string) => string,
- *   palette: string[],
+ *   colorOf: (name: string, raw?: boolean) => any,
+ *   palette: any[],
  * }}
  */
 export function resolve(splitResult, cfg = {}, host = {}) {
@@ -506,22 +506,25 @@ export function resolve(splitResult, cfg = {}, host = {}) {
   const rowY = yMode === 'independent-row' ? byGroup('rowKey') : null
   const colY = yMode === 'independent-column' ? byGroup('colKey') : null
 
-  // Color: one series-name -> color mapping for the whole trellis. The user's
-  // `colors` array wins; the default palette otherwise. Function entries in
-  // `colors` are per-datapoint resolvers the trellis cannot index by name, so
-  // they fall back to the palette for the shared map.
-  const palettes = getThemePalettes()
-  const fallback = palettes.palette1
-  const userColors = Array.isArray(host.userColors)
-    ? host.userColors.filter((c) => typeof c === 'string')
-    : []
-  const palette = userColors.length ? userColors : fallback
+  // Color: one series-name -> color mapping for the whole trellis. The
+  // user's `colors` array wins, entry for entry: a function entry keeps its
+  // place (filtering it out shifted every later colour onto the wrong
+  // series; the panel resolves it per datum, and the shared chrome reads the
+  // colour the panel painted). Otherwise the theme's palette, as the core
+  // picks it (the config has already swapped in the dark-mode default).
+  const palettes = /** @type {Record<string, string[]>} */ (getThemePalettes())
+  /** @type {any[]} */
+  const palette =
+    Array.isArray(host.userColors) && host.userColors.length
+      ? host.userColors
+      : palettes[host.palette || ''] || palettes.palette1
   const names = splitResult.seriesNames
-  /** @param {string} name */
-  const colorOf = (name) => {
-    const idx = names.indexOf(name)
-    return palette[(idx === -1 ? 0 : idx) % palette.length]
-  }
+  /**
+   * @param {string} name
+   * @returns {any}
+   */
+  const colorOf = (name) =>
+    palette[Math.max(0, names.indexOf(name)) % palette.length]
 
   return { x, y, rowY, colY, colorOf, palette }
 }
