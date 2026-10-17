@@ -1872,6 +1872,22 @@ class Line {
                 series[i][j + 1] === null ||
                 typeof series[i][j + 1] === 'undefined'
               ) {
+                // A stepline's horizontal run belongs to this point. A null
+                // drops only the step after it, so keep the run out to that
+                // x (#4787). straight and linestep still end on the point.
+                if (
+                  curve === 'stepline' &&
+                  series[i][j + 1] === null &&
+                  !rangeArea
+                ) {
+                  const run = graphics.line(x, null, 'H')
+                  linePath += run
+                  areaPath +=
+                    run +
+                    graphics.line(x, areaBottomY) +
+                    graphics.line(segmentStartX, areaBottomY) +
+                    'z'
+                }
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0
@@ -1888,14 +1904,21 @@ class Line {
             case 1:
               // Continuing with segment
               if (series[i][j + 1] === null) {
-                // Segment ends here
+                // Segment ends here. For a stepline the run into the null
+                // stays; only the step after the null is removed (#4787).
+                let endX = pX
                 if (isLowerRangeAreaPath) {
                   linePath += graphics.line(pX, y2)
+                } else if (curve === 'stepline' && !rangeArea) {
+                  const run = graphics.line(x, null, 'H')
+                  linePath += run
+                  areaPath += run
+                  endX = x
                 } else {
                   linePath += graphics.move(pX, pY)
                 }
                 areaPath +=
-                  graphics.line(pX, areaBottomY) +
+                  graphics.line(endX, areaBottomY) +
                   graphics.line(segmentStartX, areaBottomY) +
                   'z'
                 linePaths.push(linePath)
