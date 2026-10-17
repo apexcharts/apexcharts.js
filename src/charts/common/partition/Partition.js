@@ -184,34 +184,46 @@ export function farEdge(node, scale, maxDepth, leafMode, edge) {
     : scale.far(node._vDepth)
 }
 
+/** Strict-partition warnings already printed, so a resize never repeats one. */
+const strictWarned = new Set()
+
 /**
- * With `partition: 'strict'`, warn once when a parent's value does not match
- * the sum of its children. The layout still normalizes (true strict rendering
- * is a later refinement); this only surfaces the data mismatch.
+ * With `partition: 'strict'`, warn when a parent's value does not match the
+ * sum of its children. The layout still normalizes (true strict rendering is a
+ * later refinement); this only surfaces the data mismatch.
+ *
+ * The tolerance is relative (1e-6 of the larger side), so it forgives float
+ * noise at any scale yet catches a parent of 1 whose children sum to 0.5. One
+ * warning per render at most, and each distinct mismatch is reported once: a
+ * resize or legend toggle re-renders the same data and stays quiet.
  *
  * @param {any[]} roots
  * @param {{ type: string, remedy: string }} opts
  */
 export function validateStrict(roots, { type, remedy }) {
-  let warned = false
+  let msg = ''
   /** @param {any} node */
   const walk = (node) => {
-    if (node.children && node.children.length) {
-      const sum = node.children.reduce(
-        (/** @type {number} */ s, /** @type {any} */ c) =>
-          s + Math.max(0, c.value || 0),
-        0,
-      )
-      if (!warned && node.value != null && Math.abs(sum - node.value) > 0.5) {
-        console.warn(
-          `ApexCharts ${type}: partition 'strict' but "${node.name}" (${node.value}) != sum of its children (${sum}). ${remedy}`,
-        )
-        warned = true
-      }
-      node.children.forEach(walk)
+    if (msg || !node.children?.length) return
+    const sum = node.children.reduce(
+      (/** @type {number} */ s, /** @type {any} */ c) =>
+        s + Math.max(0, c.value || 0),
+      0,
+    )
+    const v = node.value
+    // `sum` is never negative.
+    if (v != null && Math.abs(sum - v) > 1e-6 * Math.max(Math.abs(v), sum)) {
+      msg = `ApexCharts ${type}: partition 'strict' but "${node.name}" (${v}) != sum of its children (${sum}). ${remedy}`
     }
+    node.children.forEach(walk)
   }
   roots.forEach(walk)
+  if (msg && !strictWarned.has(msg)) {
+    // Live data can mismatch a new way on every update: bound the memory.
+    if (strictWarned.size > 99) strictWarned.clear()
+    strictWarned.add(msg)
+    console.warn(msg)
+  }
 }
 
 /**
@@ -264,13 +276,21 @@ export function resolveFocus(node, current, roots) {
  * The focus a re-render restores from its stored key (the chart instance is
  * rebuilt every render), under resolveFocus's rules: a key that no longer
  * exists, a branch turned leaf or the lone root is no focus.
+ *
+ * The tree is fresh, so parents are linked here first: placing a focused
+ * branch never walks its ancestors, and the breadcrumb, a one-level zoom-out
+ * and the icicle's depth cap all read the focus's real ancestry.
  * @param {any} key
- * @param {any[]} nodesAll
+ * @param {any[]} nodesAll  every node, so linking each one's children links all
  * @param {any[]} roots
  * @returns {any}
  */
 export function focusByKey(key, nodesAll, roots) {
-  const f = key && nodesAll.find((n) => n._key === key)
+  if (!key) return null
+  nodesAll.forEach((n) =>
+    n.children?.forEach((/** @type {any} */ c) => (c._parent = n)),
+  )
+  const f = nodesAll.find((n) => n._key === key)
   return f && f.children?.length && !(roots.length === 1 && f === roots[0])
     ? f
     : null

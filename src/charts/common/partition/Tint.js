@@ -14,9 +14,11 @@
  */
 
 /**
- * Blend a hex colour toward white by `amount` (0..1). Anything that is not a
- * hex string is returned untouched, so named colours, rgb() and gradients pass
- * through rather than being mangled.
+ * Blend a hex colour toward white by `amount`, clamped to 0..1 (a negative or
+ * non-numeric tint keeps the colour, anything past 1 is white), so the result
+ * is always a valid 6-digit hex. Anything that is not a hex string is returned
+ * untouched, so named colours, rgb() and gradients pass through rather than
+ * being mangled.
  *
  * @param {string} color
  * @param {number} amount
@@ -34,6 +36,7 @@ export function lighten(color, amount) {
   if (hex.length !== 6) return color
   const num = parseInt(hex, 16)
   if (isNaN(num)) return color
+  amount = amount > 0 ? Math.min(amount, 1) : 0
   let rC = (num >> 16) & 255
   let gC = (num >> 8) & 255
   let bC = num & 255
