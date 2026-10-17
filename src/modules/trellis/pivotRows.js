@@ -19,9 +19,23 @@
 
 /**
  * @typedef {Object} PivotResult
- * @property {any[]} series    series-form output ({ name, [by]: key, data })
+ * @property {any[]} series    series-form output ({ name, [by]: key, data };
+ *   `[by]` is left off when it names a series field, see SERIES_FIELDS)
  * @property {string[]} warnings
  */
+
+/**
+ * The facet value of a pivoted series, read by the split ahead of
+ * `trellis.by`. Non-enumerable, so it never reaches a panel's config.
+ */
+export const PIVOT_FACET = Symbol('facet')
+
+/**
+ * Series fields a facet column must not overwrite: `by` names a ROW column,
+ * so `by: 'name'` facets by the rows' name column while the series names
+ * still come from `seriesBy` (or the y column).
+ */
+const SERIES_FIELDS = ['name', 'data', 'type', 'group', 'color', 'hidden']
 
 /**
  * Pivot tidy rows into trellis series.
@@ -119,11 +133,11 @@ export function pivotRows(rows, spec = {}) {
   const series = []
   acc.forEach((byName, facet) => {
     byName.forEach((data, name) => {
-      series.push({
-        name,
-        [by]: facet,
-        data: Array.from(data, ([x, y]) => ({ x, y })),
-      })
+      /** @type {any} */
+      const s = { name, data: Array.from(data, ([x, y]) => ({ x, y })) }
+      if (SERIES_FIELDS.indexOf(by) === -1) s[by] = facet
+      Object.defineProperty(s, PIVOT_FACET, { value: facet })
+      series.push(s)
     })
   })
   return { series, warnings }

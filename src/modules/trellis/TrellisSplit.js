@@ -24,6 +24,8 @@
  * @module modules/trellis/TrellisSplit
  */
 
+import { PIVOT_FACET } from './pivotRows'
+
 /**
  * @typedef {Object} TrellisSlice
  * @property {string} key           display/lookup key ('North', or 'Sales / Q1')
@@ -101,7 +103,7 @@ function placeholderFor(x, form) {
  * Resolve the facet key of one series along one dimension.
  * @param {any} s
  * @param {number} i
- * @param {string|Function} by
+ * @param {string|symbol|Function} by
  * @returns {string|null} null when the series carries no key (repeat it)
  */
 export function keyOf(s, i, by) {
@@ -217,22 +219,30 @@ export function alignsToUnionX(chartType) {
 /**
  * Build the aligner: re-emits one series against the union x list, recording
  * trellis-wide series names first-seen.
+ *
+ * A reference series is aligned once per panel, so anything derived from the
+ * series itself (its fallback name, its duplicate-x count) is keyed by the
+ * HOST series, never by how many times align has run.
  * @param {ReturnType<typeof collectUnion>} u
- * @param {string[]} warnings mutated
- * @param {boolean} [alignToUnion] false leaves each panel's own points alone
+ * @param {string[]} warnings mutated (duplicate-x notes land on `flush()`)
+ * @param {boolean} alignToUnion false leaves each panel's own points alone
+ * @param {any[]} list the host series, whose index names an unnamed series
  */
-function makeAligner(u, warnings, alignToUnion = true) {
+function makeAligner(u, warnings, alignToUnion, list) {
   /** @type {string[]} */
   const seriesNames = []
   const nameSeen = new Set()
-  let globalIdx = 0
+  /** @type {Map<string, number>} series name -> duplicate x count */
+  const dupes = new Map()
+  const counted = new Set()
 
   /** @param {any} s */
   const align = (s) => {
     const form = detectForm(s && s.data)
+    // Named after its host index, as the core names an unnamed series, so a
+    // repeated one is ONE series (one colour, one legend entry) everywhere.
     const name =
-      s && s.name != null ? String(s.name) : `series-${globalIdx + 1}`
-    globalIdx++
+      s && s.name != null ? String(s.name) : `series-${list.indexOf(s) + 1}`
     if (!nameSeen.has(name)) {
       nameSeen.add(name)
       seriesNames.push(name)
@@ -265,17 +275,20 @@ function makeAligner(u, warnings, alignToUnion = true) {
     /** @type {Map<any, any>} */
     const parts = new Map()
     const hd = Array.isArray(s.highlightData) ? s.highlightData : null
+    let dup = 0
     s.data.forEach((/** @type {any} */ d, /** @type {number} */ idx) => {
       const x = xKeyOf(d, form)
-      if (x !== undefined && !map.has(x)) {
+      if (x === undefined) return
+      if (map.has(x)) dup++
+      else {
         map.set(x, d)
         if (hd) parts.set(x, hd[idx])
-      } else if (x !== undefined && map.has(x)) {
-        warnings.push(
-          `trellis: duplicate x "${String(x)}" in series "${name}"; keeping the first`,
-        )
       }
     })
+    if (dup && !counted.has(s)) {
+      counted.add(s)
+      dupes.set(name, (dupes.get(name) || 0) + dup)
+    }
     out.data = u.unionX.map((x) =>
       map.has(x) ? map.get(x) : placeholderFor(x, form),
     )
@@ -287,7 +300,15 @@ function makeAligner(u, warnings, alignToUnion = true) {
     return out
   }
 
-  return { align, seriesNames }
+  /** One duplicate-x note per series name, however many panels repeat it. */
+  const flush = () =>
+    dupes.forEach((n, name) =>
+      warnings.push(
+        `trellis: ${n} duplicate x value(s) in series "${name}"; keeping the first of each`,
+      ),
+    )
+
+  return { align, seriesNames, flush }
 }
 
 /**
@@ -370,7 +391,8 @@ export function split(series, cfg = {}, host = {}) {
   const repeated = []
 
   list.forEach((s, i) => {
-    const k = keyOf(s, i, by)
+    // A pivoted series carries its facet privately (see PIVOT_FACET).
+    const k = keyOf(s, i, s && s[PIVOT_FACET] !== undefined ? PIVOT_FACET : by)
     if (k === null) repeated.push(s)
     else {
       if (!byKey.has(k)) byKey.set(k, [])
@@ -399,7 +421,12 @@ export function split(series, cfg = {}, host = {}) {
     .reduce((/** @type {any[]} */ acc, k) => acc.concat(byKey.get(k) || []), [])
     .concat(repeated)
   const u = collectUnion(contributing, warnings)
-  const { align, seriesNames } = makeAligner(u, warnings, alignToUnion)
+  const { align, seriesNames, flush } = makeAligner(
+    u,
+    warnings,
+    alignToUnion,
+    list,
+  )
 
   const panels = keys.map((key) => {
     const own = (byKey.get(key) || []).map(align)
@@ -414,6 +441,7 @@ export function split(series, cfg = {}, host = {}) {
       empty: slice.length === 0,
     }
   })
+  flush()
 
   return {
     mode: /** @type {'1d'} */ ('1d'),
@@ -529,7 +557,12 @@ function split2d(list, cfg, warnings, alignToUnion = true) {
 
   // Everything renders somewhere, so everything feeds the union.
   const u = collectUnion(list, warnings)
-  const { align, seriesNames } = makeAligner(u, warnings, alignToUnion)
+  const { align, seriesNames, flush } = makeAligner(
+    u,
+    warnings,
+    alignToUnion,
+    list,
+  )
 
   /** @type {TrellisSlice[]} */
   const panels = []
@@ -551,6 +584,7 @@ function split2d(list, cfg, warnings, alignToUnion = true) {
       })
     })
   })
+  flush()
 
   return {
     mode: /** @type {'2d'} */ ('2d'),
