@@ -1693,7 +1693,7 @@ export default class Trellis {
     this.sync.currentWindow = null
     this.chrome.destroyGradientLegend()
     const c = this.chrome
-    c.elLegend = c.elToolbar = c.elTitle = c.elBreadcrumb = null
+    c.elLegend = c.elToolbar = c.elTitle = c.elSubtitle = c.elBreadcrumb = null
     this._elChromeTop = null
     if (this.gridTooltip) {
       this.gridTooltip.destroy()

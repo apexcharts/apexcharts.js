@@ -78,19 +78,28 @@ export default class TrellisExports {
     return '#fff'
   }
 
-  /** Text pieces to compose: title + one header per cell (+ legend items). */
+  /**
+   * Text pieces to compose: title + subtitle + one header per cell (+ legend
+   * items). An inline `text-align` (the title's `align`) wins over the
+   * piece's default anchor.
+   */
   _chromeTexts() {
     const t = this.trellis
-    /** @type {Array<{ text: string, x: number, y: number, font: string, fontSize: number, color: string, align: 'left'|'center' }>} */
+    /** @type {Array<{ text: string, x: number, y: number, font: string, fontSize: number, color: string, align: 'left'|'center'|'right' }>} */
     const texts = []
-    /** @param {Element|null} el @param {'left'|'center'} align */
-    const push = (el, align) => {
+    /** @param {Element|null} el @param {'left'|'center'} fallback */
+    const push = (el, fallback) => {
       if (!el || !el.textContent) return
       const rect = this._rectIn(el)
       const cs = getComputedStyle(/** @type {HTMLElement} */ (el))
+      const align = /** @type {'left'|'center'|'right'} */ (
+        /** @type {HTMLElement} */ (el).style.textAlign || fallback
+      )
       texts.push({
         text: el.textContent,
-        x: align === 'center' ? rect.x + rect.w / 2 : rect.x,
+        x:
+          rect.x +
+          (align === 'left' ? 0 : align === 'right' ? rect.w : rect.w / 2),
         y: rect.y + rect.h / 2,
         font: `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
         fontSize: parseFloat(cs.fontSize) || 12,
@@ -99,6 +108,7 @@ export default class TrellisExports {
       })
     }
     push(t.chrome.elTitle, 'left')
+    push(t.chrome.elSubtitle, 'left')
     this._shown().forEach((p) => {
       if (!p.cellEl) return
       push(p.cellEl.querySelector('.apexcharts-trellis-header'), 'center')
@@ -214,7 +224,12 @@ export default class TrellisExports {
       )
     }
     for (const piece of this._chromeTexts()) {
-      const anchor = piece.align === 'center' ? 'middle' : 'start'
+      const anchor =
+        piece.align === 'left'
+          ? 'start'
+          : piece.align === 'right'
+            ? 'end'
+            : 'middle'
       parts.push(
         `<text x="${piece.x}" y="${piece.y}" text-anchor="${anchor}" dominant-baseline="central" style="font:${escapeAttr(
           piece.font,

@@ -54,6 +54,8 @@ export default class TrellisChrome {
     /** @type {HTMLElement|null} */
     this.elTitle = null
     /** @type {HTMLElement|null} */
+    this.elSubtitle = null
+    /** @type {HTMLElement|null} */
     this.elBreadcrumb = null
     /** @type {HeatmapGradientLegend|null} shared gradient strip (P5, heatmap) */
     this.gradientLegend = null
@@ -185,21 +187,42 @@ export default class TrellisChrome {
   }
 
   /**
-   * The trellis-level title, from the host's own `title` config (panels have
-   * theirs suppressed).
+   * The trellis-level title and subtitle, from the host's own `title` and
+   * `subtitle` config (panels have theirs suppressed). The title keeps the
+   * stylesheet's lighter weight unless the page set `title.style.fontWeight`
+   * itself (the merged core default, 900, is heavier than the grid chrome).
    * @param {HTMLElement} host
    */
   buildTitle(host) {
-    const title = this.trellis.w.config.title
-    if (!title || !title.text) return
-    const el = BrowserAPIs.createElement('div')
-    el.className = 'apexcharts-trellis-title'
-    el.textContent = title.text
-    const style = title.style || {}
-    if (style.fontSize) el.style.fontSize = style.fontSize
-    if (style.color) el.style.color = style.color
-    host.appendChild(el)
-    this.elTitle = el
+    const config = this.trellis.w.config
+    /** @param {'title'|'subtitle'} k */
+    const make = (k) => {
+      const cfg = config[k]
+      if (!cfg || !cfg.text) return null
+      const el = BrowserAPIs.createElement('div')
+      el.className = 'apexcharts-trellis-' + k
+      el.textContent = cfg.text
+      const { fontSize, fontWeight, fontFamily, color } = cfg.style || {}
+      const s = el.style
+      if (fontSize) s.fontSize = fontSize
+      // the title's stylesheet weight stands unless the page set one
+      const fw =
+        k === 'title'
+          ? this.trellis.ctx.opts?.title?.style?.fontWeight
+          : fontWeight
+      if (fw) s.fontWeight = String(fw)
+      if (fontFamily) s.fontFamily = fontFamily
+      if (color || k !== 'title') {
+        // no stylesheet rule for the subtitle (core CSS stays untouched)
+        s.color = color || 'var(--apx-fore, var(--apx-trellis-fore, #373d3f))'
+      }
+      if (k !== 'title') s.padding = '0 0 6px'
+      if (cfg.align && cfg.align !== 'left') s.textAlign = cfg.align
+      host.appendChild(el)
+      return el
+    }
+    this.elTitle = make('title')
+    this.elSubtitle = make('subtitle')
   }
 
   /**
