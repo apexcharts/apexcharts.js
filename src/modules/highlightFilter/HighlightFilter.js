@@ -1032,10 +1032,21 @@ export default class HighlightFilter {
       this._stk.set(key, c)
     }
 
-    // A 100% stack is laid out in shares of the category's total, the same
-    // signed total the wholes are divided by.
+    // A 100% stack is laid out in shares of its stack's total, the same
+    // signed total the wholes are divided by (CoreUtils.getPercentSeries):
+    // per series group, and per x on a numeric axis. Summed once a render.
     const pct = w.config.chart.stackType === '100%'
-    const total = w.seriesData.stackedSeriesTotals[j]
+    let tot = this._stk.get('%')
+    if (pct && !tot) {
+      this._stk.set('%', (tot = new Map()))
+      w.seriesData.series.forEach((s, i) =>
+        s.forEach((/** @type {any} */ x, /** @type {number} */ k) => {
+          const b = this._barKey(i, k)
+          tot.set(b, (tot.get(b) || 0) + (+x || 0))
+        }),
+      )
+    }
+    const total = pct && tot.get(key)
     const val = p == null ? null : pct ? (total ? (100 * p) / total : 0) : p
     const v = val ?? 0
     // A missing part sits on the side it last drew on, else its whole's.
