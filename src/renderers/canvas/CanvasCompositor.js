@@ -600,7 +600,10 @@ export default class CanvasCompositor {
         ctx.globalAlpha = this._alpha
         ctx.fillStyle = cmd.fill || '#000'
         const size = cmd.fontSize || '11px'
-        ctx.font = `${typeof size === 'number' ? size + 'px' : size} ${cmd.fontFamily || 'Helvetica, Arial, sans-serif'}`
+        // Weight leads the CSS font shorthand. SVG's 'regular' default is no
+        // CSS weight, and the canvas drops a whole font string it can't parse.
+        const weight = cmd.fontWeight
+        ctx.font = `${weight && weight !== 'regular' ? weight + ' ' : ''}${typeof size === 'number' ? size + 'px' : size} ${cmd.fontFamily || 'Helvetica, Arial, sans-serif'}`
         ctx.textAlign =
           cmd.textAnchor === 'middle'
             ? 'center'

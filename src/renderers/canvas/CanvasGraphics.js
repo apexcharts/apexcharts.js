@@ -460,6 +460,13 @@ class CanvasMark {
       if (clip !== undefined) cmd.clip = clip
       return
     }
+    // The series a mark belongs to, as every emit site tags it (realIndex):
+    // a custom series' primitives get their identity only this way, so
+    // legend dimming and series paint order reach them as on SVG.
+    if (k === 'index') {
+      cmd.si = cmd.z = Number(v)
+      return
+    }
     const sk = STYLE_KEYS[k]
     if (sk !== undefined) cmd[sk] = v
   }
@@ -1022,7 +1029,8 @@ export default class CanvasGraphics {
     cmd.stroke = opts.stroke
     cmd.strokeWidth = opts.strokeWidth
     cmd.fill = opts.fill
-    cmd.lineCap = opts.strokeLinecap
+    // Graphics.drawPath falls back to stroke.lineCap for an unset cap.
+    cmd.lineCap = opts.strokeLinecap || this.w.config.stroke.lineCap
     cmd.strokeDash = this._g.seriesDash(opts.realIndex)
     cmd.si = opts.realIndex
     // Data point identity. Only a mark that stands for one point (a bar-like:
@@ -1053,7 +1061,7 @@ export default class CanvasGraphics {
     cmd.fill = opts.fill
     cmd.fillOpacity = opts.fillOpacity
     cmd.strokeOpacity = opts.strokeOpacity
-    cmd.lineCap = opts.strokeLinecap
+    cmd.lineCap = opts.strokeLinecap || this.w.config.stroke.lineCap
     cmd.strokeDash = opts.strokeDashArray
     return new CanvasMark(cmd)
   }
@@ -1062,9 +1070,20 @@ export default class CanvasGraphics {
   /**
    * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
    * @param {string} lineColor @param {any} dashArray @param {number} strokeWidth
+   * @param {string} [lineCap]
    */
-  drawLine(x1, y1, x2, y2, lineColor = '#a8a8a8', dashArray = 0, strokeWidth = 1) {
+  drawLine(
+    x1,
+    y1,
+    x2,
+    y2,
+    lineColor = '#a8a8a8',
+    dashArray = 0,
+    strokeWidth = 1,
+    lineCap = 'butt',
+  ) {
     const cmd = this._cmd('line', 0)
+    cmd.lineCap = lineCap
     cmd.lx1 = x1
     cmd.ly1 = y1
     cmd.lx2 = x2
@@ -1118,13 +1137,14 @@ export default class CanvasGraphics {
   drawCircle(radius, attrs = null) {
     const cmd = this._cmd('circle', 0)
     cmd.r = radius < 0 ? 0 : radius
+    const mark = new CanvasMark(cmd)
     if (attrs) {
       cmd.cx = attrs.cx
       cmd.cy = attrs.cy
-      if (attrs.fill !== undefined) cmd.fill = attrs.fill
-      if (attrs.stroke !== undefined) cmd.stroke = attrs.stroke
+      // the style keys (fill, stroke, stroke-width, opacities) as SVG does
+      mark.attr(attrs)
     }
-    return new CanvasMark(cmd)
+    return mark
   }
 
   /** @param {any} opts */
@@ -1134,9 +1154,13 @@ export default class CanvasGraphics {
     cmd.tx = opts.x
     cmd.ty = opts.y
     cmd.textAnchor = opts.textAnchor || 'start'
+    // Graphics.drawText's defaults: the resolved chart foreColor (light in
+    // dark mode) and font family.
+    const chart = this.w.config.chart
     cmd.fontSize = opts.fontSize
-    cmd.fontFamily = opts.fontFamily
-    cmd.fill = opts.foreColor
+    cmd.fontFamily = opts.fontFamily || chart.fontFamily
+    cmd.fontWeight = opts.fontWeight
+    cmd.fill = opts.foreColor || chart.foreColor
     return new CanvasMark(cmd)
   }
 

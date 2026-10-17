@@ -99,7 +99,7 @@ describe('pathBox: the box a recorded path spans', () => {
 describe('a recorded mark measures like an SVG path', () => {
   it('bbox() is the box its path spans, and follows a new path', () => {
     const g = new CanvasGraphics({
-      config: { series: [], stroke: {} },
+      config: { series: [], stroke: {}, chart: {} },
       globals: {},
     })
     g.reset()
