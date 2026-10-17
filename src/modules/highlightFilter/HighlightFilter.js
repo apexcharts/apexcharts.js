@@ -1779,13 +1779,13 @@ export default class HighlightFilter {
       .querySelectorAll('.apexcharts-datalabels[data\\:realIndex]')
       .forEach((/** @type {any} */ wrap) => {
         const ri = Number(wrap.getAttribute('data:realIndex'))
-        const xs = w.globals.seriesXvalues[ri] || []
+        const near = nearestIn(w.globals.seriesXvalues[ri] || [])
         /** @type {Map<number, any>} */
         const m = new Map()
         wrap
           .querySelectorAll(`text.apexcharts-datalabel, text.${LABEL_EXIT}`)
           .forEach((/** @type {any} */ t) => {
-            const k = nearest(xs, parseFloat(t.getAttribute('cx')))
+            const k = near(parseFloat(t.getAttribute('cx')))
             if (k < 0) return
             const [x, y] = drawnAt(t)
             m.set(k, {
@@ -1823,10 +1823,11 @@ export default class HighlightFilter {
     const used = new Set()
     /** @param {any} v */
     const ok = (v) => typeof v === 'number' && isFinite(v)
+    const near = nearestIn(xs)
     root
       .querySelectorAll('text.apexcharts-datalabel')
       .forEach((/** @type {any} */ t) => {
-        const k = nearest(xs, parseFloat(t.getAttribute('cx')))
+        const k = near(parseFloat(t.getAttribute('cx')))
         if (k < 0) return
         const [x, y] = drawnAt(t)
         const s = src?.get(k)
@@ -2574,7 +2575,10 @@ export default class HighlightFilter {
       view.series = view.series.map(stripSeries)
       // The drill applies its level without moving the chart's baseline
       // (initialSeries stays the top level), so remember the level itself.
-      this._level = { series: view.series, base: this.w.globals.initialSeries }
+      this._level = {
+        series: view.series,
+        base: this.w.globals._initialSeriesPeek,
+      }
     }
     // A level is applied as a merge, which keeps top-level config: a circle's
     // parts would land by index on a level with as many slices.
@@ -2591,7 +2595,7 @@ export default class HighlightFilter {
     return !!(
       lv &&
       (this.ctx.drilldown?.depth || 0) > 0 &&
-      this.w.globals.initialSeries === lv.base
+      this.w.globals._initialSeriesPeek === lv.base
     )
   }
 
@@ -2788,16 +2792,15 @@ export default class HighlightFilter {
 
   /** The series as the chart was handed them: nested treemaps and reduced
    * rows are kept raw elsewhere, and re-feeding derived rows would lose them.
-   * A drill level is the level on screen. */
+   * A drill level is the level on screen. The series are read through the
+   * peek, not `initialSeries`, whose first read after each update deep-clones
+   * every point: nothing here writes to them (stripSeries copies). */
   _rawSeries() {
     const gl = /** @type {any} */ (this.w.globals)
     const raw =
       (this._drilled() && this._level?.series) ||
       gl.treemapRawSeries ||
-      (gl.dataReducerRawSeries && this.w.config.chart.dataReducer?.enabled
-        ? gl.initialSeries
-        : null) ||
-      gl.initialSeries ||
+      gl._initialSeriesPeek ||
       this.w.config.series
     return /** @type {any[]} */ (raw).map((/** @type {any} */ s) =>
       isPoint(s) ? { ...s } : s,
@@ -2855,6 +2858,19 @@ function nearest(xs, x) {
     }
   })
   return k
+}
+
+/**
+ * `nearest` over one row for many lookups. A label is drawn at its point's
+ * own x (its `cx`), so a lookup is a map hit, the lowest index first as the
+ * scan picks; a label moved off its point falls back to the scan.
+ * @param {any[]} xs
+ */
+function nearestIn(xs) {
+  /** @type {Map<number, number>} */
+  const at = new Map()
+  xs.forEach((v, q) => isFinite(v ?? NaN) && !at.has(+v) && at.set(+v, q))
+  return (/** @type {number} */ x) => at.get(x) ?? nearest(xs, x)
 }
 
 /**

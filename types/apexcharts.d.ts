@@ -5269,6 +5269,7 @@ type ApexHighlightParts =
       seriesName: string
       x: any
       value: number | null
+      /** The data point as you passed it, not a copy: read it, never change it. */
       datum: any
       w: any
     }) => number | null)
