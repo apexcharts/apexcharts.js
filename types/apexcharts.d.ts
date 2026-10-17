@@ -94,9 +94,14 @@ type ApexColorFormatterOpts = {
 /**
  * Opts object passed to `tooltip.custom`. `series` is the parsed series
  * matrix; `y1`/`y2` are populated for range-bar / range-area tooltips.
+ *
+ * The `sunburst` and `icicle` charts call it once per hovered node with
+ * `seriesIndex: 0`, `dataPointIndex: -1` and the `node`/`percentOf*` fields
+ * below; the array form uses its first entry. Return markup or an Element to
+ * replace the tooltip content, or `null`/`undefined` to keep the built-in row.
  */
 type ApexTooltipCustomOpts = {
-  /** The chart instance the tooltip belongs to. */
+  /** The chart instance the tooltip belongs to (axis and pie charts). */
   ctx?: ApexCharts
   series: number[][]
   seriesIndex: number
@@ -104,6 +109,15 @@ type ApexTooltipCustomOpts = {
   y1?: number
   y2?: number
   w: ApexChartContext
+  /**
+   * `sunburst` / `icicle` only: the hovered tree node (`name`, `value`, and
+   * `children` for a branch; a branch's value is its rolled-up total).
+   */
+  node?: ApexTreemapNode
+  /** `sunburst` / `icicle` only: the node's share of its parent, 0 to 100, one decimal. */
+  percentOfParent?: number
+  /** `sunburst` / `icicle` only: the node's share of the chart total, 0 to 100, one decimal; zooming into a branch does not change it. */
+  percentOfTotal?: number
 }
 
 declare class ApexCharts {
@@ -4864,8 +4878,8 @@ type ApexTooltip = {
    */
   compact?: boolean
   custom?:
-    | ((opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string })
-    | Array<(opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string }>
+    | ((opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string } | null | undefined)
+    | Array<(opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string } | null | undefined>
   fillSeriesColor?: boolean
   theme?: 'light' | 'dark'
   cssClass?: string

@@ -99,7 +99,7 @@ export default class IcicleChart {
     this._roots = []
     /** @type {any[]} flat list of every node */
     this._nodesAll = []
-    this._tooltip = new NodeTooltip(w)
+    this._tooltip = new NodeTooltip(w, this.ctx)
     /** @type {any} */
     this._graphics = null
     /** @type {any} */

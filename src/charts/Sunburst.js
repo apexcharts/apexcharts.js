@@ -95,7 +95,7 @@ export default class SunburstChart {
     this._innerR = () => 0
     /** @type {(vd: number) => number} */
     this._outerR = () => 0
-    this._tooltip = new NodeTooltip(w)
+    this._tooltip = new NodeTooltip(w, this.ctx)
     this._lblSeq = 0
     // How many leaves have taken a captured mark this layout pass (cross-type
     // morph: leaf k unrolls from the outgoing chart's k-th mark).
