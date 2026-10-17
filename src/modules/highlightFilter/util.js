@@ -174,15 +174,32 @@ export function bindHit(whole, n) {
 /**
  * Hover and selection light a whole through its `filter`; a part over it
  * lights too, however the whole's filter changes (the pointer, the API, the
- * keyboard, another mark's click clearing it).
+ * keyboard, another mark's click clearing it). The chart's drop shadow stays
+ * the whole's: on the part it would lay a blurred dark arc along the part's
+ * edge, over the faded whole. At rest that is the whole's whole filter
+ * (shared by its series; a state filter never is); a state filter runs the
+ * shadow after its colour step, so the part gets a copy of that step alone.
  * @param {any} whole the whole's node
  * @param {any} n the part's node
  */
 export function mirrorFilter(whole, n) {
+  /** @type {any} */
+  let own
   const sync = () => {
-    const f = whole.getAttribute('filter')
-    if (f) n.setAttribute('filter', f)
-    else n.removeAttribute('filter')
+    let f = whole.getAttribute('filter')
+    const src = whole.instance?._filter
+    const node = src?.node
+    own?.remove()
+    if (!f || src?.shared) return n.removeAttribute('filter')
+    // the colour step is the state filter's first primitive
+    if (node?.querySelector('feGaussianBlur')) {
+      own = node.cloneNode()
+      own.append(node.firstElementChild.cloneNode())
+      own.id += 'p'
+      node.after(own)
+      f = `url(#${own.id})`
+    }
+    n.setAttribute('filter', f)
   }
   sync()
   // A server render has no pointer, and its elements are not DOM nodes.

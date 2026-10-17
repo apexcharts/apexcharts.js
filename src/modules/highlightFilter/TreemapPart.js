@@ -18,6 +18,8 @@
  */
 
 import Graphics from '../Graphics'
+import { drilldownById } from '../../charts/common/Hierarchy'
+import { drilldownAsLevels } from '../../charts/common/treemap/Nested'
 import { finite, mix, info, isPoint, stripSeries } from './util'
 
 const TILE = 't:'
@@ -44,13 +46,16 @@ export function treeParse(hf, type) {
       'on a nested treemap put the part on each leaf as { x, y, highlight }; highlightData is ignored.',
     )
   }
-  /** @param {any} d @returns {boolean} */
-  const onParent = (d) =>
-    isPoint(d) &&
-    Array.isArray(d.children) &&
-    d.children.length > 0 &&
-    ('highlight' in d || d.children.some(onParent))
-  if (raw.some((s) => (s?.data || []).some(onParent))) {
+  /** @param {any} d @param {any[]} path @returns {boolean} */
+  const onParent = (d, path) => {
+    const k = kids(hf.w, d, path)
+    return !!k && ('highlight' in d || k[0].some((c) => onParent(c, k[1])))
+  }
+  if (
+    raw.some((s) =>
+      (s?.data || []).some((/** @type {any} */ d) => onParent(d, [])),
+    )
+  ) {
     hf._warn(
       'parent',
       "a parent's highlight is ignored: parents add up their leaves' parts.",
@@ -60,10 +65,34 @@ export function treeParse(hf, type) {
 }
 
 /**
+ * A datum's children as the tree resolves them (see Hierarchy's toNode),
+ * with the drilldown ids expanded on the path down to them: its own, or
+ * under `nested.drilldownAsLevels` its drilldown series' data, unless that
+ * id is already expanded above it. Null for a leaf.
+ * @param {any} w @param {any} d @param {any[]} path ids expanded above
+ * @returns {[any[], any[]] | null}
+ */
+function kids(w, d, path) {
+  if (!isPoint(d)) return null
+  if (Array.isArray(d.children) && d.children.length) return [d.children, path]
+  const id = d.drilldown
+  const dd =
+    id != null &&
+    drilldownAsLevels(w) &&
+    !path.includes(id) &&
+    drilldownById(w, id)
+  return dd && Array.isArray(dd.data) && dd.data.length
+    ? [dd.data, [...path, id]]
+    : null
+}
+
+/**
  * set() on a nested treemap: the series as handed in with each leaf's part
  * on the leaf itself, by its index among its series' leaves (depth first,
  * as the chart numbers them). `parts` is one row per series, or a function
- * of the leaf.
+ * of the leaf. A level read from a drilldown id is copied in as the
+ * datum's children (while that id still reads as that level), so its leaves
+ * carry their parts too.
  * @param {any} hf @param {any[]} base the raw nested series
  * @param {any} parts
  */
@@ -74,13 +103,34 @@ export function treeSeries(hf, base, parts) {
     const row = Array.isArray(parts?.[i]) ? parts[i] : null
     if (typeof parts !== 'function' && !row) return out
     let k = 0
-    /** @param {any} d @returns {any} */
-    const leaf = (d) => {
-      if (isPoint(d) && Array.isArray(d.children) && d.children.length) {
-        return { ...d, children: d.children.map(leaf) }
+    /** @param {any} d @param {any[]} path @returns {any} */
+    const leaf = (d, path) => {
+      const c = kids(w, d, path)
+      if (c) {
+        const ch = c[0].map((x) => leaf(stripSeries(x), c[1]))
+        const pt = { ...d }
+        const src = c[0]
+        if (c[1] === path) pt.children = ch
+        else {
+          // The chart keeps these series as handed in, so a copied level
+          // must not outlive its options: it reads as children only while
+          // the id still resolves to the data it was copied from. Not
+          // enumerable, so a clear's copy drops it too.
+          Object.defineProperty(pt, 'children', {
+            get: () =>
+              drilldownAsLevels(w) &&
+              drilldownById(w, d.drilldown)?.data === src
+                ? ch
+                : undefined,
+          })
+        }
+        return pt
       }
       const j = k++
       const pt = isPoint(d) ? { ...d } : { x: '', y: d }
+      // An id the path already expanded stays a leaf once copied in, where
+      // no path is left to say so.
+      if (path.includes(pt.drilldown)) delete pt.drilldown
       pt.highlight =
         typeof parts === 'function'
           ? parts({
@@ -98,7 +148,8 @@ export function treeSeries(hf, base, parts) {
           : row?.[j]
       return pt
     }
-    if (Array.isArray(out.data)) out.data = out.data.map(leaf)
+    if (Array.isArray(out.data))
+      out.data = out.data.map((/** @type {any} */ d) => leaf(d, []))
     return out
   })
 }

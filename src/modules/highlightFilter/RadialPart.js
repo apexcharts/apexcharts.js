@@ -106,6 +106,8 @@ export function radialPass(hf, r) {
   }
   // The renderer's own method, called directly: the wrap is an own property.
   const ap = r.animatePaths
+  /** The rings drawn on the arc clock. @type {Set<number>} */
+  const arcs = new Set()
   r.animatePaths = (/** @type {any} */ el, /** @type {any} */ a) => {
     // Copied first: the call writes to the args (animateArc's dur).
     const c = { ...a }
@@ -113,19 +115,24 @@ export function radialPass(hf, r) {
     if (a.isTrack) return
     // A ring with no angle to come from lands at once (see animateArc).
     c.run = a.dur
+    arcs.add(c.i)
     ring(hf, r, el, c, ap)
   }
   if (hf.ctx.morphTypeChange?.isActive() === true) {
     // A cross-type morph moves each ring in from the other chart's mark,
     // not through the arc animation: the parts come in at rest once it has,
-    // so they are drawn once the rings are.
+    // so they are drawn once the rings are. A ring with no mark to come
+    // from sweeps in on the arc clock instead, its part with it.
     Promise.resolve().then(() => {
       if (hf._render !== r || w.globals.isDestroyed) return
       w.dom.baseEl
         ?.querySelectorAll(
           '.apexcharts-radial-series .apexcharts-radialbar-area',
         )
-        .forEach((/** @type {any} */ n) => ring(hf, r, n.instance, null, ap))
+        .forEach(
+          (/** @type {any} */ n) =>
+            arcs.has(+n.getAttribute('j')) || ring(hf, r, n.instance, null, ap),
+        )
     })
   }
 }

@@ -28,6 +28,7 @@ import {
   mirrorFilter,
   ownOpacity,
   solid,
+  addClass,
 } from './util'
 
 const PIE = 'p:'
@@ -415,7 +416,8 @@ function paint(hf, p, g, s) {
           )
         }
         wedge(px, part, target, fromR)
-        if (over && !exit) pn.classList.add('apexcharts-highlight-overflow')
+        // The attribute, which a server render keeps (see addClass).
+        if (over && !exit) addClass(pn, 'apexcharts-highlight-overflow')
         mirrorFilter(node, pn)
         // A part past its whole would hide where the whole ends, so the
         // whole's edge is traced over it (just inside the rim, where a pie
