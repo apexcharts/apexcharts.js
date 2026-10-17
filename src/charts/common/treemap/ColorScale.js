@@ -117,20 +117,19 @@ export function colorValueOfDatum(w, datum, i, j) {
  * @param {number} min
  * @param {number} max
  * @param {number|null} midpoint
+ * @param {boolean} explicit  `cfg.stops` lists two or more stops
  * @returns {Array<{value: number, color: string}>}
  */
-function resolveStops(cfg, min, max, midpoint) {
+function resolveStops(cfg, min, max, midpoint, explicit) {
   // Explicit stops win outright.
-  if (Array.isArray(cfg.stops) && cfg.stops.length >= 2) {
+  if (explicit) {
     return cfg.stops
       .filter((/** @type {any} */ s) => s && Number.isFinite(Number(s.value)))
       .map((/** @type {any} */ s) => ({
         value: Number(s.value),
         color: normalizeHex(s.color),
       }))
-      .sort(
-        (/** @type {any} */ a, /** @type {any} */ b) => a.value - b.value,
-      )
+      .sort((/** @type {any} */ a, /** @type {any} */ b) => a.value - b.value)
   }
 
   const colors = (
@@ -206,8 +205,12 @@ export function buildContinuousScale(w) {
     dataMax = 0
   }
 
-  let min = Number.isFinite(Number(cfg.min)) ? Number(cfg.min) : dataMin
-  let max = Number.isFinite(Number(cfg.max)) ? Number(cfg.max) : dataMax
+  /** @param {any} v */
+  const pin = (v) => (Number.isFinite(Number(v)) ? Number(v) : null)
+  const pinMin = pin(cfg.min)
+  const pinMax = pin(cfg.max)
+  let min = pinMin ?? dataMin
+  let max = pinMax ?? dataMax
 
   /** @type {number|null} */
   let midpoint = null
@@ -227,8 +230,8 @@ export function buildContinuousScale(w) {
   if (
     midpoint != null &&
     cfg.symmetric !== false &&
-    !Number.isFinite(Number(cfg.min)) &&
-    !Number.isFinite(Number(cfg.max))
+    pinMin == null &&
+    pinMax == null
   ) {
     const reach = Math.max(Math.abs(min - midpoint), Math.abs(max - midpoint))
     min = midpoint - reach
@@ -242,8 +245,16 @@ export function buildContinuousScale(w) {
     max += 0.5
   }
 
-  const stops = resolveStops(cfg, min, max, midpoint)
+  const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2
+  const stops = resolveStops(cfg, min, max, midpoint, explicit)
   if (stops.length < 2) return null
+  // Explicit stops carry their own values, so the legend domain covers them as
+  // well as the data: a data-only one would put stops outside the strip while
+  // the tiles are coloured by the stops. A pinned min/max still wins.
+  if (explicit) {
+    if (pinMin == null) min = Math.min(min, stops[0].value)
+    if (pinMax == null) max = Math.max(max, stops[stops.length - 1].value)
+  }
 
   /**
    * @param {number} v
@@ -266,11 +277,16 @@ export function buildContinuousScale(w) {
     return last.color
   }
 
+  // A stop outside a pinned domain is clamped to its end, at the colour a tile
+  // there gets, so the strip never disagrees with the tiles.
   const span = max - min
-  const legendStops = stops.map((s) => ({
-    percent: span === 0 ? 0 : (s.value - min) / span,
-    color: s.color,
-  }))
+  const legendStops = stops.map((s) => {
+    const v = Math.min(max, Math.max(min, s.value))
+    return {
+      percent: span && (v - min) / span,
+      color: v === s.value ? s.color : at(v),
+    }
+  })
 
   return { min, max, midpoint, stops, at, legendStops }
 }

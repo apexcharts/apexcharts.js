@@ -3645,9 +3645,15 @@ type ApexPlotOptions = {
        */
       gradient?: {
         enabled?: boolean
-        /** Domain low. Defaults to the extent of the colour metric. */
+        /**
+         * Domain low. Defaults to the extent of the colour metric, widened to
+         * cover `stops` when given.
+         */
         min?: number
-        /** Domain high. Defaults to the extent of the colour metric. */
+        /**
+         * Domain high. Defaults to the extent of the colour metric, widened to
+         * cover `stops` when given.
+         */
         max?: number
         /**
          * The value the middle colour is pinned to. Defaults to 0 when the
