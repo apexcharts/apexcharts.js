@@ -78,20 +78,25 @@ export default class TrellisTooltip {
 
   /**
    * The hovered data-point index in the union x space, or -1 when the
-   * pointer is outside the hovered panel's plot. Mirrors the divisor rules
-   * of tooltip/Utils.getNearestValues (trellis panels are never combos).
+   * pointer is outside the hovered panel's plot. Mirrors
+   * tooltip/Utils.getNearestValues (trellis panels are never combos):
+   * horizontal bars take the row under the pointer, numeric and datetime x
+   * the point nearest the data x under it (a zoomed window or irregular
+   * spacing does not spread evenly), category x the divisor rules.
    * @param {any} chart the hovered panel's instance
    * @param {number} clientX
    * @param {number} clientY
    */
   _hoverIndex(chart, clientX, clientY) {
     const w = chart.w
-    const n = w.globals.dataPoints
+    const gl = w.globals
+    const n = gl.dataPoints
     if (!n || n < 1) return -1
     const gridWidth = w.layout.gridWidth
     if (!gridWidth) return -1
-    const hoverX = AxisMapping.screenXToPlotPx(w, clientX)
-    const edgePad = w.globals.barPadForNumericAxis || 0
+    const plot = TooltipUtils.plotRect(w)
+    const hoverX = AxisMapping.screenXToPlotPx(w, clientX, plot)
+    const edgePad = gl.barPadForNumericAxis || 0
     if (hoverX < -edgePad || hoverX > gridWidth + edgePad) return -1
     // Vertical bound: the panel's own plot. This used to measure
     // `w.dom.elGridRect`, the library's element wrapper around a clip-path
@@ -100,25 +105,40 @@ export default class TrellisTooltip {
     // too. (The grid group's box would not do either: it starts a pixel below
     // the plot.)
     const baseEl = w.dom && w.dom.baseEl
-    if (baseEl && baseEl.querySelector('.apexcharts-svg')) {
-      const plot = TooltipUtils.plotRect(w)
-      if (
-        plot.height &&
-        (clientY < plot.top || clientY > plot.top + plot.height)
-      ) {
-        return -1
-      }
+    if (
+      baseEl &&
+      baseEl.querySelector('.apexcharts-svg') &&
+      plot.height &&
+      (clientY < plot.top || clientY > plot.top + plot.height)
+    ) {
+      return -1
     }
-    // Bars and `tickPlacement: 'between'` put each point in the middle of
-    // its own slot, so the slot under the pointer wins, not the nearest of
-    // n - 1 gaps.
-    const slotted =
-      (BAR_PATHWAY_TYPES.includes(w.config.chart.type) ||
-        w.config.xaxis.tickPlacement === 'between') &&
-      !w.config.xaxis.convertedCatToNumeric
-    const j = slotted
-      ? Math.ceil(hoverX / (gridWidth / n)) - 1
-      : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)))
+    let j
+    if (gl.isBarHorizontal) {
+      j = Math.floor(
+        (clientY - plot.top) / plot.zoom / (w.layout.gridHeight / n),
+      )
+    } else if (w.axisFlags && w.axisFlags.isXNumeric) {
+      // The point nearest the data x under the pointer, in the first x array
+      // with points (a legend-hidden series has none). The split aligned
+      // every panel to the union x, so this index addresses all of them.
+      const xs = gl.seriesX.find((/** @type {any[]} */ a) => a.length) || []
+      const x = AxisMapping.pxToDataX(w, hoverX)
+      j = 0
+      for (let i = 1; i < xs.length; i++) {
+        if (Math.abs(xs[i] - x) < Math.abs(xs[j] - x)) j = i
+      }
+    } else {
+      // Bars and `tickPlacement: 'between'` put each point in the middle of
+      // its own slot, so the slot under the pointer wins, not the nearest of
+      // n - 1 gaps.
+      j =
+        (BAR_PATHWAY_TYPES.includes(w.config.chart.type) ||
+          w.config.xaxis.tickPlacement === 'between') &&
+        !w.config.xaxis.convertedCatToNumeric
+          ? Math.ceil(hoverX / (gridWidth / n)) - 1
+          : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)))
+    }
     return Math.max(0, Math.min(n - 1, j))
   }
 
@@ -185,9 +205,7 @@ export default class TrellisTooltip {
       e.target && e.target.closest
         ? e.target.closest('.apexcharts-trellis-cell')
         : null
-    const hovered = cell
-      ? t.panels.find((p) => p.cellEl === cell)
-      : undefined
+    const hovered = cell ? t.panels.find((p) => p.cellEl === cell) : undefined
     const j =
       hovered && hovered.chart
         ? this._hoverIndex(hovered.chart, e.clientX, e.clientY)
