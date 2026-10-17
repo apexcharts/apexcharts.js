@@ -1036,9 +1036,10 @@ interface ApexPluginAPI {
    * Null means the parts were not taken, and a plugin that gets null needs
    * something else to do. The host says null when the highlight-filter feature
    * is not loaded on the page, when the chart is not an axis chart, when the
-   * type draws no parts, and when the caller is already showing parts of their
-   * own. Check it per call: three of the four can change on the caller's next
-   * update.
+   * type draws no parts (a nested treemap included: its parts sit on its
+   * leaves, never in a row per series), and when the caller is already
+   * showing parts of their own. Check it per call: three of the four can
+   * change on the caller's next update.
    *
    * Registering, updating and releasing each re-render the chart, coalesced to
    * one render per turn. Released on teardown, on destroy, and if the host

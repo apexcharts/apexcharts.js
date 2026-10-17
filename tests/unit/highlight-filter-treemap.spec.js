@@ -491,6 +491,42 @@ describe('nested', () => {
     const xl = q(chart, '.apexcharts-xaxis-label').map((n) => n.textContent)
     expect(xl).toEqual(['Jan', 'Feb', 'Mar'])
   })
+
+  // Points that carry children on a treemap with nesting turned off are
+  // drawn flat, so their own parts draw as on any flat treemap.
+  const WITH_CHILDREN = [
+    {
+      name: 'S',
+      data: [
+        { x: 'a', y: 40, highlight: 10, children: [{ x: 'a1', y: 40 }] },
+        { x: 'b', y: 30, highlight: 20, children: [{ x: 'b1', y: 30 }] },
+        { x: 'c', y: 20, highlight: 5 },
+      ],
+    },
+  ]
+  test('nesting turned off: points with children keep their parts', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const chart = treemap({
+      series: WITH_CHILDREN,
+      tm: { nested: { enabled: false } },
+    })
+    expect(chart.w.globals.treemapRoots).toBeFalsy()
+    expect(chart.w.highlightData.parts).toEqual([[10, 20, 5]])
+    expect(warn.mock.calls.flat().join(' ')).not.toMatch(/not drawn/)
+  })
+  test('nesting turned off by updateOptions: the flat parts draw', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const chart = treemap({ series: WITH_CHILDREN })
+    expect(chart.w.globals.treemapRoots).toBeTruthy()
+    await chart.updateOptions(
+      { plotOptions: { treemap: { nested: { enabled: false } } } },
+      false,
+      false,
+    )
+    expect(chart.w.globals.treemapRoots).toBeFalsy()
+    expect(chart.w.highlightData.parts).toEqual([[10, 20, 5]])
+    expect(warn.mock.calls.flat().join(' ')).not.toMatch(/not drawn/)
+  })
 })
 
 describe('updates', () => {

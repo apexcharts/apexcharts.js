@@ -233,6 +233,28 @@ describe('api.highlight', () => {
     )
   })
 
+  // Children on a treemap with nesting turned off are drawn flat, so the
+  // chart takes a plugin's row like any flat treemap.
+  it('gives a handle on a treemap with nesting turned off', async () => {
+    pending = [{ series: 'Shop', values: [5, 5] }]
+    const c = chart({
+      chart: { type: 'treemap' },
+      series: [
+        {
+          name: 'Shop',
+          data: [
+            { x: 'a', y: 40, children: [{ x: 'a1', y: 40 }] },
+            { x: 'b', y: 30, children: [{ x: 'b1', y: 30 }] },
+          ],
+        },
+      ],
+      rest: { plotOptions: { treemap: { nested: { enabled: false } } } },
+    })
+    expect(handle).not.toBeNull()
+    await settle()
+    expect(c.w.highlightData.parts).toEqual([[5, 5]])
+  })
+
   // A plugin that gets null must have a fallback to run, so each refusal is
   // pinned rather than left to be discovered by a customer.
   describe('says null rather than drawing', () => {
@@ -272,6 +294,52 @@ describe('api.highlight', () => {
           { name: 'Desktop', data: [42, 45, 48], highlightData: [8, 9, 10] },
           { name: 'Mobile', data: [58, 62, 66] },
         ],
+      })
+      expect(handle).toBeNull()
+    })
+
+    // A nested treemap's parts arrive on its leaves, never as a row per
+    // series, so a plugin's row would redraw the chart and change nothing.
+    it('on a nested treemap', () => {
+      pending = [{ series: 'Shop', values: [5, 5] }]
+      chart({
+        chart: { type: 'treemap' },
+        series: [
+          {
+            name: 'Shop',
+            data: [
+              { x: 'Apparel', children: [{ x: 'Jackets', y: 40 }] },
+              { x: 'Home', children: [{ x: 'Lamps', y: 30 }] },
+            ],
+          },
+        ],
+      })
+      expect(handle).toBeNull()
+    })
+
+    // Nested through drilldown refs read as levels: no children in config,
+    // and still a nested treemap by the time the plugin's setup asks.
+    it('on a treemap nested through drilldownAsLevels', () => {
+      pending = [{ series: 'Shop', values: [5] }]
+      chart({
+        chart: { type: 'treemap' },
+        series: [
+          { name: 'Shop', data: [{ x: 'Root', y: 100, drilldown: 'lvl' }] },
+        ],
+        rest: {
+          plotOptions: { treemap: { nested: { drilldownAsLevels: true } } },
+          drilldown: {
+            series: [
+              {
+                id: 'lvl',
+                data: [
+                  { x: 'p', y: 60 },
+                  { x: 'q', y: 40 },
+                ],
+              },
+            ],
+          },
+        },
       })
       expect(handle).toBeNull()
     })

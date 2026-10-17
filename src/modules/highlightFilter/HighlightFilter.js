@@ -98,7 +98,10 @@ const L_COVER = { f: 0, o: 1 }
  * Whether a series carries a part, in either form. O(1) per series for the
  * parallel form. In the per-point form only the picked points need the key, so
  * object data is scanned until one has it; numeric and tuple data cannot carry
- * it and stop at the first value.
+ * it and stop at the first value. Core's missing-feature warning reads only
+ * the first point, which is enough for a hint; here a pick on a later point
+ * must still be drawn, so a chart of object points with no part at all pays
+ * one key check per point per parse.
  * @param {any} s
  */
 export function seriesHasHighlight(s) {
@@ -219,19 +222,42 @@ export default class HighlightFilter {
    * no has a fallback to run; a plugin that registered and then found out from
    * a console warning has already changed the chart.
    *
-   * Type only. The data-dependent refusals (a stack over several y axes, a
-   * logarithmic one) stay in `parse`, because they can appear and vanish on any
-   * update and a parse is where the chart finds out.
+   * Type only, plus the one shape a plugin's parts cannot reach: a nested
+   * treemap's part arrives on each leaf, never in a row per series, so a
+   * plugin is told no there (`parse` lets the leaves' own parts through). The
+   * data-dependent refusals (a stack over several y axes, a logarithmic one)
+   * stay in `parse`, because they can appear and vanish on any update and a
+   * parse is where the chart finds out.
    */
   canDrawParts() {
     const w = this.w
     const cnf = w.config
     const type = cnf.chart.type
+    // Circle charts ask from _parseCircle; the Weave seam asks axis charts.
     if (!w.globals.axisCharts) {
       return CIRCLE.indexOf(type) > -1 || type === 'radialBar'
     }
+    const nc = cnf.plotOptions.treemap.nested || {}
     return (
       !w.globals.comboCharts &&
+      // Nested: a parse resolves it into treemapRoots. Before the first one
+      // (a plugin's setup runs at construction) the config is read as Data's
+      // isNestedTreemap reads it: nesting not turned off, and a point with
+      // children, or a drilldown ref read as a level.
+      !(
+        type === 'treemap' &&
+        (w.globals.treemapRoots ||
+          (!this._parsed &&
+            nc.enabled !== false &&
+            /** @type {any[]} */ (cnf.series || []).some((s) =>
+              (s && Array.isArray(s.data) ? s.data : []).some(
+                (/** @type {any} */ d) =>
+                  d &&
+                  ((d.children && d.children.length) ||
+                    (nc.drilldownAsLevels && d.drilldown != null)),
+              ),
+            )))
+      ) &&
       (type === 'bar' ||
         type === 'line' ||
         type === 'area' ||
@@ -252,16 +278,10 @@ export default class HighlightFilter {
    * core host can ask without importing this feature.
    */
   callerCarriesParts() {
-    const w = this.w
-    if (!w.globals.axisCharts) {
-      return (
-        Array.isArray(this.cfg.data) ||
-        slicePoints(/** @type {any[]} */ (w.config.series || [])).some(
-          (d) => 'highlight' in d,
-        )
-      )
-    }
-    return /** @type {any[]} */ (w.config.series || []).some(seriesHasHighlight)
+    // Axis charts only: the Weave seam refuses a circle chart before asking.
+    return /** @type {any[]} */ (this.w.config.series || []).some(
+      seriesHasHighlight,
+    )
   }
 
   /**
@@ -295,6 +315,8 @@ export default class HighlightFilter {
     const cfg = this.cfg
     const series = /** @type {any[]} */ (cnf.series || [])
     const values = w.seriesData.series || []
+    // From here on treemapRoots says whether a treemap is nested.
+    this._parsed = true
     if (!w.globals.axisCharts) return this._parseCircle()
 
     const stacked = !!cnf.chart.stacked
@@ -323,7 +345,7 @@ export default class HighlightFilter {
       }
     }
 
-    let supported = w.globals.axisCharts && this.canDrawParts()
+    let supported = nested || this.canDrawParts()
     if (present && !supported) this._unsupported()
     // A stack over several y axes has no single extent to stack the parts
     // to, and a log axis stacks the logs of its segments, which a part has no
@@ -347,8 +369,8 @@ export default class HighlightFilter {
     const active = !!(cfg.enabled !== false && present && supported)
 
     if (!active) {
-      // Nothing reads an inactive chart's parts, so a large chart that only
-      // shares a page with the feature pays nothing per point here.
+      // Nothing reads an inactive chart's parts, so no rows are built (the
+      // detection above still checks object points, see seriesHasHighlight).
       this._inactive(supported)
       return
     }
@@ -529,8 +551,7 @@ export default class HighlightFilter {
         arr = arr.map((/** @type {any} */ v) => (Array.isArray(v) ? v[0] : v))
       }
     }
-    const type = cnf.chart.type
-    const supported = CIRCLE.indexOf(type) > -1 || type === 'radialBar'
+    const supported = this.canDrawParts()
     const present = point || !!arr
     if (present && !supported) this._unsupported()
     if (!(cfg.enabled !== false && present && supported)) {
