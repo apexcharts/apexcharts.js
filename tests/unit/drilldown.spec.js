@@ -75,11 +75,16 @@ describe('Drilldown — feature registration & state', () => {
     expect(chart.drilldown.path).toEqual(['root'])
   })
 
-  it('does not wire listeners when disabled', () => {
+  it('stays inert when disabled', () => {
     const chart = makeChart({ drilldown: { enabled: false } })
-    // Instance still exists (eager), but it never wired itself.
+    // Instance still exists (eager), and its listeners ignore every click
+    // until updateOptions turns drilldown on.
     expect(chart.drilldown).toBeInstanceOf(Drilldown)
-    expect(chart.drilldown._wired).toBe(false)
+    expect(
+      chart.drilldown._onPointSelect(null, chart, { seriesIndex: 0, dataPointIndex: 0 }),
+    ).toBeUndefined()
+    expect(chart.drilldown.depth).toBe(0)
+    expect(chart.w.config.markers.discrete).toEqual([])
   })
 })
 

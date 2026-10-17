@@ -53,7 +53,8 @@ export default class Drilldown {
      * @type {Array<{ id: string|number, name?: string, keys: string[], restore: object }>}
      */
     this.stack = []
-    this._wired = false
+    /** Bumped by every navigation, so a late onDrillDown can tell it is stale. */
+    this._nav = 0
 
     /**
      * Async levels already resolved, keyed by the requested id, so drilling back
@@ -88,18 +89,14 @@ export default class Drilldown {
     /** Pointer-down position, to tell a click apart from a zoom drag. */
     this._downAt = null
     this._plotClickWired = null
+    /** Drilldown was on at the last render (see _afterRender). */
+    this._wasOn = !!w.config.drilldown?.enabled
 
     // Self-wire. The instance and w.globals.events both outlive updates, so the
-    // listeners registered here persist for the chart's lifetime.
-    this.init()
-  }
-
-  init() {
-    const w = this.w
-    if (!w.config.drilldown || !w.config.drilldown.enabled) return
-    if (this._wired) return
-    this._wired = true
-
+    // listeners registered here persist for the chart's lifetime. Wired even
+    // while disabled, since `updateOptions` may enable drilldown later; every
+    // handler checks `enabled` itself.
+    //
     // Coexist with any user dataPointSelection handler: both the config callback
     // and the addEventListener registry fire (see Graphics.pathMouseDown).
     this.ctx.addEventListener('dataPointSelection', this._onPointSelect)
@@ -110,7 +107,7 @@ export default class Drilldown {
 
     // Supply the drill dots for the FIRST render. Every later render gets them
     // from _apply (drills) or _afterRender (host-app updates).
-    if (w.config.markers) {
+    if (w.config.drilldown?.enabled && w.config.markers) {
       w.config.markers.discrete = this._drillMarkers(w.config.series)
     }
   }
@@ -219,7 +216,11 @@ export default class Drilldown {
     const from = this.path[this.path.length - 1]
     const level = {
       id: child.id,
-      name: child.name,
+      // A resolver drill from a point with no id has nothing better to show
+      // in the breadcrumb than the point it came from.
+      name:
+        child.name ??
+        (child.id == null ? this._pointLabel(triggerPoint, meta) : undefined),
       keys: VIEW_FIELDS.filter((k) => child[k]),
       restore: this._snapshot(),
     }
@@ -269,6 +270,9 @@ export default class Drilldown {
     // await-able contract intact.
     if (this._pending) return this._pending
 
+    // Navigation that happens while this is in flight (an inline drill, the
+    // breadcrumb, drillUp) moves the chart off the level the point was on.
+    const nav = this._nav
     let result
     this.loading.show()
     try {
@@ -295,15 +299,15 @@ export default class Drilldown {
     const p = Promise.resolve(result).then(
       (child) => {
         settle()
-        if (this._isDead()) return this.ctx
-        if (!child || !child.data) {
+        if (this._stale()) return this.ctx
+        if (!child || !(child.data || Array.isArray(child.series))) {
           // Previously a silent no-op, which looks identical to "nothing
           // happened" and is the hardest kind of integration bug to chase.
           this._fire('drillDownError', {
             id,
             error: new Error(
               `drilldown: onDrillDown resolved without a drillable level for id "${id}" ` +
-                `(expected an object with a \`data\` array).`,
+                `(expected an object with a \`data\` or \`series\` array).`,
             ),
           })
           return this.ctx
@@ -312,11 +316,14 @@ export default class Drilldown {
         // one that was asked for; the breadcrumb and restore stack key off it.
         const level = child.id != null ? child : { ...child, id }
         this._cacheSet(id, level)
+        // Kept for the next drill down this branch, but not stacked onto a
+        // level the user moved to meanwhile.
+        if (nav !== this._nav) return this.ctx
         return this._drillInto(level, point, meta)
       },
       (error) => {
         settle()
-        if (this._isDead()) return this.ctx
+        if (this._stale()) return this.ctx
         this._fire('drillDownError', { id, error })
         return this.ctx
       },
@@ -334,12 +341,16 @@ export default class Drilldown {
    * Without this the resolved level would be applied to a destroyed chart,
    * which throws out of `updateOptions` and surfaces in the host app as an
    * unhandled rejection from a click the user has already forgotten about.
+   * A chart rendered again after `destroy()` has a new drilldown instance, and
+   * a level this one fetched would land at its depth 0 with no way back.
    *
    * @returns {boolean}
    */
-  _isDead() {
+  _stale() {
     const w = this.w
-    return !w || !w.globals || w.globals.isDestroyed === true
+    return (
+      !w || !w.globals || w.globals.isDestroyed === true || this._retired()
+    )
   }
 
   /** @returns {boolean} whether resolved async levels are cached. */
@@ -517,6 +528,7 @@ export default class Drilldown {
    */
   _apply(view, direction, meta) {
     const w = this.w
+    this._nav++
 
     // A drill is navigation, not a data-point selection. Clear any selection
     // carried in from the click that triggered it: the child's data points are
@@ -728,7 +740,17 @@ export default class Drilldown {
 
     // Swap content while the marks are invisible, so the change is unseen. The
     // update rebuilds the chart, so the mark group is a fresh element afterwards.
-    await runUpdate()
+    // A refused update leaves the parent on screen, so its marks have to come
+    // back from the fill-forwards fade.
+    try {
+      await runUpdate()
+    } catch (e) {
+      if (outAnim) {
+        outAnim.cancel()
+        clear(outGroup)
+      }
+      throw e
+    }
 
     const inGroup = this._markGroup()
     if (inGroup) {
@@ -784,7 +806,9 @@ export default class Drilldown {
    * @param {{ seriesIndex?: number, dataPointIndex?: number }} opts
    */
   _onPointSelect(_event, _ctx, opts) {
-    if (!opts || this._retired()) return undefined
+    if (!opts || !this.w.config.drilldown?.enabled || this._retired()) {
+      return undefined
+    }
     const point = this._pointAt(opts.seriesIndex, opts.dataPointIndex)
     if (point && typeof point === 'object' && point.drilldown != null) {
       return this.drillDown(point.drilldown, point, opts)
@@ -811,6 +835,20 @@ export default class Drilldown {
   }
 
   /**
+   * @param {any} point
+   * @param {{ dataPointIndex?: number }} [meta]
+   * @returns {string|undefined}
+   */
+  _pointLabel(point, meta) {
+    const l =
+      point && point.x != null
+        ? point.x
+        : meta &&
+          this.w.globals.labels[/** @type {number} */ (meta.dataPointIndex)]
+    return l != null ? String(l) : undefined
+  }
+
+  /**
    * destroy() drops this instance without a teardown, and the listener
    * registry it wired into outlives it, so a render() after destroy() wires a
    * second instance beside it: every click would drill twice. The stale one
@@ -833,16 +871,24 @@ export default class Drilldown {
   _afterRender() {
     const w = this.w
     if (this._retired()) return
-    if (!w.config.drilldown || !w.config.drilldown.enabled) return
-    this._markDrillableTargets()
-    this._wirePlotClick()
+    const on = w.config.drilldown?.enabled
+    // A chart that never drilled has no dots or breadcrumb to tidy: the
+    // full bundle registers this module on every chart.
+    if (!on && !this.stack.length && !this._wasOn) return
+    this._wasOn = on
+    if (on) {
+      this._markDrillableTargets()
+      this._wirePlotClick()
+    }
+    // Disabled below the root: no more drilling, but the way back stays.
     this.breadcrumb.render(this.path)
     // Keep the dots in step with a host-app update that changed which points
-    // are drillable. There is no pre-update hook to run this in, so a plain
-    // `chart.updateSeries()` introducing newly-drillable points shows them from
-    // the next render. Drills are exact, since _apply computes them per level.
+    // are drillable (or turned drilldown on or off). There is no pre-update
+    // hook to run this in, so a plain `chart.updateSeries()` introducing
+    // newly-drillable points shows them from the next render. Drills are
+    // exact, since _apply computes them per level.
     if (w.config.markers) {
-      w.config.markers.discrete = this._drillMarkers(w.config.series)
+      w.config.markers.discrete = this._drillMarkers(on && w.config.series)
     }
   }
 

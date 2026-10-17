@@ -254,7 +254,8 @@ export default class InitCtxVariables {
 
     // Drilldown: ctx.drilldown (opt-in click→drill navigation + breadcrumb).
     // Eager so the history stack exists before the first click and survives
-    // updates. The constructor self-wires its listeners when drilldown.enabled.
+    // updates. The constructor self-wires its listeners, which stay inert
+    // while drilldown.enabled is off.
     const DrilldownCtor = reg.get('drilldown')
     ctx.drilldown = DrilldownCtor ? new DrilldownCtor(w, ctx) : null
 
