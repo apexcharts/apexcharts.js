@@ -140,12 +140,9 @@ export default class HighlightFilter {
     this._targets = new Map()
     /** The renderer drawing now; a new one is a new render. @type {any} */
     this._render = null
-    /** Datums this render visited, and each series' group by realIndex, so a
-     * part whose datum left can exit with its whole. */
-    /** @type {Set<string>} */
+    /** Datums this render visited, so a part whose datum left can exit with
+     * its whole. @type {Set<string>} */
     this._seen = new Set()
-    /** @type {Map<string, any>} */
-    this._seriesEls = new Map()
     /** @type {CoreUtils | null} */
     this._cu = null
     /** Per-render stack cursors, see _beginRender. @type {Map<string, any>} */
@@ -808,7 +805,6 @@ export default class HighlightFilter {
     this._render = renderer
     this._targets = new Map()
     this._seen = new Set()
-    this._seriesEls = new Map()
     this._cu = new CoreUtils(this.w)
     // Where each stack's parts have reached in this render: stacked bars by
     // group and category, stacked lines and areas by x.
@@ -835,17 +831,24 @@ export default class HighlightFilter {
     const w = this.w
     const prev = this._prev()
     if (!prev || w.globals.isDestroyed || !this._animates()) return
+    // The renderer names its ghost by the datum alone. Indexed once, over
+    // the plot, on the first exit (a render where nothing left reads no
+    // DOM): a series that kept no datum drew no part but still has ghosts.
+    // A datum's newest ghost comes first (each exit is painted under).
+    /** @type {Map<string | null, any> | null} */
+    let ghosts = null
     prev.forEach((t, key) => {
       if (this._seen.has(key) || key.indexOf(BAR) !== 0) return
-      // The renderer names its ghost by the datum alone.
-      const datum = key.slice(BAR.length)
-      const el = this._seriesEls.get(datum.slice(0, datum.indexOf('::')))
-      if (!el) return
-      const ghost = Array.from(
-        el.querySelectorAll('.apexcharts-bar-ghost'),
-      ).find(
-        (/** @type {any} */ n) => n.getAttribute('data:ghostKey') === datum,
-      )
+      if (!ghosts) {
+        const g = (ghosts = new Map())
+        w.dom.elGraphical?.node
+          .querySelectorAll('.apexcharts-bar-ghost')
+          .forEach((/** @type {any} */ n) => {
+            const k = n.getAttribute('data:ghostKey')
+            if (!g.has(k)) g.set(k, n)
+          })
+      }
+      const ghost = ghosts.get(key.slice(BAR.length))
       if (!ghost) return
       ghost.setAttribute('fill-opacity', String(t.f))
       if (!t.d) return
@@ -1890,7 +1893,6 @@ export default class HighlightFilter {
     const animate = this._animates()
     const { key, prev, geo, fadeTo, active, bar } = s
     const elSeries = r.elSeries
-    this._seriesEls.set(String(o.realIndex), elSeries.node)
 
     // Where the part goes, and whether it starts or lands on the whole's
     // exact shape (the whole then sits at 0 under it, see Look). In a stack
@@ -2788,7 +2790,6 @@ export default class HighlightFilter {
     this._render = null
     this._cu = null
     this._level = null
-    this._seriesEls = new Map()
     this._tiles = null
     this._tmDefs = []
     this.ctx.events?.removeEventListener('mounted', this._onRender)
