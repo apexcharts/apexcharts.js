@@ -533,7 +533,7 @@ class BarStacked extends Bar {
     }
   }
 
-  /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, columnGroupIndex: any, elSeries: any}} opts */
+  /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, columnGroupIndex: any, strokeWidth: any, elSeries: any}} opts */
   drawStackedColumnPaths({
     indexes,
     x,
@@ -542,6 +542,7 @@ class BarStacked extends Bar {
     barWidth,
     zeroH,
     columnGroupIndex,
+    strokeWidth,
     elSeries,
   }) {
     const w = this.w
@@ -622,9 +623,14 @@ class BarStacked extends Bar {
       y1: barYPosition,
       y2: y,
       yRatio: this.yRatio[translationsIndex],
-      // the series' width even for an empty segment, so a hidden layer keeps
-      // its place, but no inset at all when no stroke is drawn
-      strokeWidth: w.config.stroke.show ? this.strokeWidth : 0,
+      // Along the value axis, the per-datum width from getStrokeWidth (0 for
+      // a null/zero value): the series' width grew an empty segment by the
+      // stroke centering into a visible strip (#5046).
+      strokeWidth,
+      // Sideways, the series' width even for an empty segment, so a hidden
+      // layer keeps its slot inset and re-enters from the geometry it left,
+      // but no inset at all when no stroke is drawn.
+      insetWidth: w.config.stroke.show ? this.strokeWidth : 0,
       isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,

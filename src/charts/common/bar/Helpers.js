@@ -716,15 +716,38 @@ export default class Helpers {
    * `base` is the rect collapsed onto its baseline, padded to the command
    * count of `pathTo` so the rise morphs cleanly.
    *
-   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
+   * `insetWidth`, when given, is the stroke width used only for the sideways
+   * inset along the slot (`a`/`len`); the value axis keeps `strokeWidth`. It
+   * defaults to `strokeWidth`, so one width sets both directions.
+   *
+   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, insetWidth?: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
    */
-  barRect({ a, len, v1, v2, strokeWidth, realIndex, j, dir, horizontal }) {
+  barRect({
+    a,
+    len,
+    v1,
+    v2,
+    strokeWidth,
+    insetWidth,
+    realIndex,
+    j,
+    dir,
+    horizontal,
+  }) {
     const w = this.w
     const graphics = new Graphics(w)
     strokeWidth = Array.isArray(strokeWidth)
       ? strokeWidth[realIndex]
       : strokeWidth
     if (!strokeWidth) strokeWidth = 0
+    if (insetWidth === undefined) {
+      insetWidth = strokeWidth
+    } else {
+      insetWidth = Array.isArray(insetWidth)
+        ? insetWidth[realIndex]
+        : insetWidth
+      if (!insetWidth) insetWidth = 0
+    }
 
     const datum = /** @type {any} */ (w.config.series[realIndex]).data[j]
     const offset = horizontal
@@ -737,6 +760,7 @@ export default class Helpers {
 
     // Center the stroke on the coordinates
     const strokeCenter = strokeWidth / 2
+    const insetCenter = insetWidth / 2
     const direction = dir * (this.barCtx.isReversed ? -1 : 1)
     const closing =
       w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
@@ -747,8 +771,8 @@ export default class Helpers {
     // The 0.001 nudges avoid exponentials, which break border-radius.
     let x1, x2, y1, y2, sl, squarePathTo
     if (horizontal) {
-      y1 = a + strokeCenter
-      y2 = a + len - strokeCenter
+      y1 = a + insetCenter
+      y2 = a + len - insetCenter
       x1 = v1 + 0.001 + strokeCenter * direction
       x2 = v2 + 0.001 - strokeCenter * direction
       sl = graphics.line(x1, y2)
@@ -759,8 +783,8 @@ export default class Helpers {
         sl +
         closing
     } else {
-      x1 = a + strokeCenter
-      x2 = a + len - strokeCenter
+      x1 = a + insetCenter
+      x2 = a + len - insetCenter
       y1 = v1 + 0.001 - strokeCenter * direction
       y2 = v2 + 0.001 + strokeCenter * direction
       sl = graphics.line(x2, y1)
@@ -808,13 +832,14 @@ export default class Helpers {
     }
   }
 
-  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
+  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, insetWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getColumnPaths({
     barWidth,
     barXPosition,
     y1,
     y2,
     strokeWidth,
+    insetWidth,
     series,
     realIndex,
     i,
@@ -827,6 +852,7 @@ export default class Helpers {
       v1: y1,
       v2: y2,
       strokeWidth,
+      insetWidth,
       realIndex,
       j,
       dir: series[i][j] >= 0 ? 1 : -1,
