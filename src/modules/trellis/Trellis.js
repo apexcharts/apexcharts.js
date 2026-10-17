@@ -394,6 +394,12 @@ export default class Trellis {
     })
   }
 
+  /** @returns {{ chartType: string, datetime: boolean }} the split's host facts */
+  _splitHost() {
+    const cnf = this.w.config
+    return { chartType: cnf.chart.type, datetime: cnf.xaxis.type === 'datetime' }
+  }
+
   /**
    * The stacking facts the shared-scale resolver needs. A stacked panel is as
    * tall as its tallest PILE, so the shared y domain has to come from the
@@ -579,9 +585,7 @@ export default class Trellis {
       }
 
       // 1. Split (union x alignment included, 22a D5).
-      const split = splitSeries(inputSeries, this.cfg, {
-        chartType: w.config.chart.type,
-      })
+      const split = splitSeries(inputSeries, this.cfg, this._splitHost())
       this.split = split
       split.warnings.forEach((msg) => console.warn(`ApexCharts: ${msg}`))
       if (!split.panels.length) return
@@ -1601,9 +1605,7 @@ export default class Trellis {
     if (this.ctx.opts) this.ctx.opts.series = newSeries
     if (!this._mounted) return this.ctx.render()
 
-    const nextSplit = splitSeries(newSeries || [], this.cfg, {
-      chartType: w.config.chart.type,
-    })
+    const nextSplit = splitSeries(newSeries || [], this.cfg, this._splitHost())
     // A cell that gains or loses its data under 'skip'/'hide' changes its
     // mount state, and a placeholder cell carries its own label: both are
     // structural, exactly like a changed key set.

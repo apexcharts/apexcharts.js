@@ -25,6 +25,7 @@
  */
 
 import { PIVOT_FACET } from './pivotRows'
+import { xKey } from '../helpers/XKey'
 
 /**
  * @typedef {Object} TrellisSlice
@@ -68,22 +69,19 @@ function detectForm(data) {
 }
 
 /**
- * The x key of one datum, normalized for map lookup (Date -> epoch ms).
+ * The x key of one datum, normalized for map lookup (Date -> epoch ms; on a
+ * datetime axis a date string -> the epoch it parses to, so the union sorts
+ * by time instead of keeping first-seen order).
  * Returns undefined for plain-form data (position IS the key there).
  * @param {any} d
  * @param {'plain'|'paired'|'object'|'empty'} form
+ * @param {boolean} [datetime] the x axis is `type: 'datetime'`
  * @returns {string|number|undefined}
  */
-function xKeyOf(d, form) {
+function xKeyOf(d, form, datetime) {
   if (d === null || d === undefined) return undefined
-  if (form === 'paired') {
-    const x = d[0]
-    return x instanceof Date ? x.getTime() : x
-  }
-  if (form === 'object') {
-    const x = d.x
-    return x instanceof Date ? x.getTime() : x
-  }
+  if (form === 'paired') return xKey(d[0], !!datetime)
+  if (form === 'object') return xKey(d.x, !!datetime)
   return undefined
 }
 
@@ -143,8 +141,9 @@ export function orderKeys(keys, order) {
  * Collect the union x-key list over every series that will render (22a D5).
  * @param {any[]} contributing
  * @param {string[]} warnings mutated
+ * @param {boolean} [datetime] key date strings by epoch (see `xKeyOf`)
  */
-function collectUnion(contributing, warnings) {
+function collectUnion(contributing, warnings, datetime) {
   /** @type {Array<string|number>} */
   const unionX = []
   const seen = new Set()
@@ -165,7 +164,7 @@ function collectUnion(contributing, warnings) {
     sawKeyed = true
     xForm = form
     s.data.forEach((/** @type {any} */ d) => {
-      const x = xKeyOf(d, form)
+      const x = xKeyOf(d, form, datetime)
       if (x === undefined) return
       const id = typeof x + ':' + String(x)
       if (!seen.has(id)) {
@@ -187,7 +186,7 @@ function collectUnion(contributing, warnings) {
   // categories keep first-seen order (they are labels, not positions).
   if (xIsNumeric) unionX.sort((a, b) => Number(a) - Number(b))
 
-  return { unionX, sawKeyed, plainMaxLen, xForm, xIsNumeric }
+  return { unionX, sawKeyed, plainMaxLen, xForm, xIsNumeric, datetime }
 }
 
 /**
@@ -277,7 +276,8 @@ function makeAligner(u, warnings, alignToUnion, list) {
     const hd = Array.isArray(s.highlightData) ? s.highlightData : null
     let dup = 0
     s.data.forEach((/** @type {any} */ d, /** @type {number} */ idx) => {
-      const x = xKeyOf(d, form)
+      // Keyed as the union is; the datum itself keeps its own x.
+      const x = xKeyOf(d, form, u.datetime)
       if (x === undefined) return
       if (map.has(x)) dup++
       else {
@@ -364,8 +364,9 @@ export function placeholderSeries(splitResult, opts = {}) {
  *
  * @param {any[]} series the host config series
  * @param {{ by?: string|Function, row?: string|Function, column?: string|Function, order?: any, limit?: number }} cfg
- * @param {{ chartType?: string }} [host] the chart type decides whether panels
- *   are re-emitted against the union x list (see `alignsToUnionX`)
+ * @param {{ chartType?: string, datetime?: boolean }} [host] the chart type
+ *   decides whether panels are re-emitted against the union x list (see
+ *   `alignsToUnionX`); `datetime` keys date strings by epoch (see `xKeyOf`)
  * @returns {TrellisSplitResult}
  */
 export function split(series, cfg = {}, host = {}) {
@@ -380,7 +381,7 @@ export function split(series, cfg = {}, host = {}) {
         'trellis: `by` is ignored when `row`/`column` are set (they are mutually exclusive)',
       )
     }
-    return split2d(list, cfg, warnings, alignToUnion)
+    return split2d(list, cfg, warnings, alignToUnion, host.datetime)
   }
 
   const by = cfg.by || 'facet'
@@ -420,7 +421,7 @@ export function split(series, cfg = {}, host = {}) {
   const contributing = keys
     .reduce((/** @type {any[]} */ acc, k) => acc.concat(byKey.get(k) || []), [])
     .concat(repeated)
-  const u = collectUnion(contributing, warnings)
+  const u = collectUnion(contributing, warnings, host.datetime)
   const { align, seriesNames, flush } = makeAligner(
     u,
     warnings,
@@ -482,9 +483,10 @@ function emptyResult(warnings) {
  * @param {{ row?: string|Function, column?: string|Function, order?: any, limit?: number }} cfg
  * @param {string[]} warnings
  * @param {boolean} [alignToUnion]
+ * @param {boolean} [datetime]
  * @returns {TrellisSplitResult}
  */
-function split2d(list, cfg, warnings, alignToUnion = true) {
+function split2d(list, cfg, warnings, alignToUnion = true, datetime) {
   const rowBy = cfg.row
   const colBy = cfg.column
 
@@ -556,7 +558,7 @@ function split2d(list, cfg, warnings, alignToUnion = true) {
   const colKeys = orderKeys(colSeen.length ? colSeen : [''], cfg.order)
 
   // Everything renders somewhere, so everything feeds the union.
-  const u = collectUnion(list, warnings)
+  const u = collectUnion(list, warnings, datetime)
   const { align, seriesNames, flush } = makeAligner(
     u,
     warnings,
