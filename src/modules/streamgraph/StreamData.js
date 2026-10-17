@@ -259,18 +259,18 @@ function baselineFor(mode, order, stack, m) {
   for (let j = 1; j < m; j++) {
     let s1 = 0
     let s2 = 0
+    // The movement of every band below this one, carried up the stack, so a
+    // column costs one pass over the bands rather than one per band.
+    let below = 0
     for (let i = 0; i < order.length; i++) {
       const vi = stack[order[i]]
       const now = vi[j]
+      const diff = now - vi[j - 1]
       // This band's own movement counts half (the band is displaced by its own
       // growth from both edges), everything already below it counts whole.
-      let moved = (now - vi[j - 1]) / 2
-      for (let k = 0; k < i; k++) {
-        const vk = stack[order[k]]
-        moved += vk[j] - vk[j - 1]
-      }
       s1 += now
-      s2 += moved * now
+      s2 += (diff / 2 + below) * now
+      below += diff
     }
     if (s1) y -= s2 / s1
     base[j] = y

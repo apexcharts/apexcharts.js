@@ -519,9 +519,8 @@ export default class StreamLabels {
   /**
    * Which band is under the pointer, or -1.
    *
-   * x goes through `AxisMapping.screenXToPlotPx`, the one screen-to-plot
-   * mapping, so a chart inside a CSS-zoomed container hit-tests where it looks.
-   * y is measured off the same svg rect with the same zoom factor.
+   * Both axes go through `AxisMapping.plotRect`, measured once per move, so a
+   * chart inside a CSS-zoomed container hit-tests where it looks.
    *
    * @param {MouseEvent} e
    * @returns {number}
@@ -531,13 +530,9 @@ export default class StreamLabels {
     const d = w.streamgraphData
     if (!d || !d.order.length) return -1
 
-    const svg = w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-svg')
-    if (!svg) return -1
-    const rect = svg.getBoundingClientRect()
-    const zoom = w.globals.svgWidth ? rect.width / w.globals.svgWidth : 1
-
-    const px = AxisMapping.screenXToPlotPx(w, e.clientX)
-    const py = (e.clientY - rect.top) / (zoom || 1) - w.layout.translateY
+    const plot = AxisMapping.plotRect(w)
+    const px = AxisMapping.screenXToPlotPx(w, e.clientX, plot)
+    const py = (e.clientY - plot.top) / plot.zoom
 
     if (px < 0 || px > w.layout.gridWidth) return -1
     if (py < 0 || py > w.layout.gridHeight) return -1
@@ -562,18 +557,50 @@ export default class StreamLabels {
         }
       }
     }
-    if (j < 0) return -1
+    return j < 0 ? -1 : this.bandAt(py, j)
+  }
 
-    // A wiggle baseline leaves plot background above and below the surface, and
-    // the tooltip (intersect: false) still names the nearest band when the
-    // cursor is out there. So does this, or the tooltip would name a band with
-    // nothing on the chart pointing at it.
+  /**
+   * The band at client y in column `j`, for the default tooltip, which has
+   * the column already and must name the same band the hover dims.
+   *
+   * @param {number} clientY
+   * @param {number} j
+   * @returns {number} the band, or -1
+   */
+  bandAtClientY(clientY, j) {
+    const plot = AxisMapping.plotRect(this.w)
+    return this.bandAt((clientY - plot.top) / plot.zoom, j)
+  }
+
+  /**
+   * The band containing plot y `py` in column `j`, else the nearest one, or
+   * -1 when there is nothing to hit. The one band hit-test: the hover dim and
+   * the default tooltip both resolve through it, so they cannot disagree.
+   *
+   * A wiggle baseline leaves plot background above and below the surface, and
+   * the tooltip (intersect: false) still names the nearest band when the
+   * cursor is out there. So does this, or the tooltip would name a band with
+   * nothing on the chart pointing at it.
+   *
+   * @param {number} py
+   * @param {number} j
+   * @returns {number}
+   */
+  bandAt(py, j) {
+    const gl = this.w.globals
+    const d = this.w.streamgraphData
+    const span = gl.maxY - gl.minY
+    if (!d || !Array.isArray(d.order) || !span || !isFinite(span)) return -1
     let nearest = -1
     let gap = Infinity
     for (let i = 0; i < d.order.length; i++) {
       const k = d.order[i]
-      const a = this._yPx(d.highs[k][j])
-      const b = this._yPx(d.lows[k][j])
+      const hi = d.highs[k] && d.highs[k][j]
+      const lo = d.lows[k] && d.lows[k][j]
+      if (lo == null || hi == null) continue
+      const a = this._yPx(hi)
+      const b = this._yPx(lo)
       const top = Math.min(a, b)
       const bottom = Math.max(a, b)
       if (py >= top && py <= bottom) return k

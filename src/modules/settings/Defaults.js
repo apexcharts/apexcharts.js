@@ -1769,44 +1769,15 @@ export default class Defaults {
       // does. Containment is what a band chart means by "the one you are
       // pointing at", and it is also what the hover outline traces, so
       // resolving it here is what keeps the two from naming different bands.
-      const active = (() => {
-        const d = w.streamgraphData
-        const svg =
-          w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-svg')
-        const clientY = w.interact && w.interact.clientY
-        const span = w.globals.maxY - w.globals.minY
-        if (!svg || clientY == null || !span || !isFinite(span)) {
-          return seriesIndex
-        }
-        const rect = svg.getBoundingClientRect()
-        const zoom = w.globals.svgWidth ? rect.width / w.globals.svgWidth : 1
-        const py = (clientY - rect.top) / (zoom || 1) - w.layout.translateY
-        const h = w.layout.gridHeight
-        /** @param {number} v */
-        const yPx = (v) => {
-          const frac = (v - w.globals.minY) / span
-          return w.config.yaxis[0]?.reversed ? frac * h : h - frac * h
-        }
-        let nearest = seriesIndex
-        let gap = Infinity
-        for (let i = 0; i < d.order.length; i++) {
-          const k = d.order[i]
-          const lo = d.lows[k] && d.lows[k][dataPointIndex]
-          const hi = d.highs[k] && d.highs[k][dataPointIndex]
-          if (lo == null || hi == null) continue
-          const a = yPx(hi)
-          const b = yPx(lo)
-          const top = Math.min(a, b)
-          const bottom = Math.max(a, b)
-          if (py >= top && py <= bottom) return k
-          const dist = py < top ? top - py : py - bottom
-          if (dist < gap) {
-            gap = dist
-            nearest = k
-          }
-        }
-        return nearest
-      })()
+      // The hit-test itself is the streamgraph layer's (StreamLabels.bandAt),
+      // the same one the hover dim uses, so the two cannot drift apart.
+      const layer = opts.ctx && opts.ctx.streamgraph
+      const clientY = w.interact && w.interact.clientY
+      const hit =
+        layer && clientY != null
+          ? layer.bandAtClientY(clientY, dataPointIndex)
+          : -1
+      const active = hit < 0 ? seriesIndex : hit
 
       const configured = w.formatters.ttVal !== undefined
       /** @param {number} k @param {number} v */
