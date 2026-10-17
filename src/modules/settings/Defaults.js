@@ -4,6 +4,7 @@ import DateTime from '../../utils/DateTime'
 import Formatters from '../Formatters'
 import Options from './Options'
 import { TYPE_ALIASES, BUILTIN_TYPES, SOLO_TYPES } from './TypeAliases'
+import { nameAsHtml } from '../../utils/nameAsHtml.js'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -256,9 +257,12 @@ const getRangeValues = ({
     end,
   }
 
-  if (typeof yLbTitleFormatter === 'function') {
-    seriesName = yLbTitleFormatter(seriesName, opts)
-  }
+  seriesName = nameAsHtml(
+    seriesName,
+    typeof yLbTitleFormatter === 'function'
+      ? yLbTitleFormatter(seriesName, opts)
+      : seriesName,
+  )
   if (w.config.series[seriesIndex].data[dataPointIndex]?.x) {
     ylabel = w.config.series[seriesIndex].data[dataPointIndex].x
   }
@@ -2709,7 +2713,7 @@ export default class Defaults {
     if (_si.type && _si.type !== chartType) {
       return `<div class="apexcharts-custom-tooltip">
           ${
-            _si.name ? _si.name : 'series-' + (seriesIndex + 1)
+            _si.name ? nameAsHtml(_si.name) : 'series-' + (seriesIndex + 1)
           }: <strong>${w.seriesData.series[seriesIndex][dataPointIndex]}</strong>
         </div>`
     } else {
@@ -2757,7 +2761,7 @@ export default class Defaults {
 
     return (
       `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}">` +
-      `<div class="apexcharts-tooltip-violin-name">${name}</div>` +
+      `<div class="apexcharts-tooltip-violin-name">${nameAsHtml(name)}</div>` +
       `<div>Min: <span class="value">${minV}</span></div>` +
       `<div>Max: <span class="value">${maxV}</span></div>` +
       `<div>Observations: <span class="value">${pts.length}</span></div>` +
@@ -2797,7 +2801,7 @@ export default class Defaults {
 
     return (
       `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}">` +
-      `<div class="apexcharts-tooltip-violin-name">${name}</div>` +
+      `<div class="apexcharts-tooltip-violin-name">${nameAsHtml(name)}</div>` +
       `<div>Whisker high: <span class="value">${fmt(hi)}</span></div>` +
       `<div>Q3: <span class="value">${fmt(q3)}</span></div>` +
       `<div>Median: <span class="value">${fmt(med)}</span></div>` +

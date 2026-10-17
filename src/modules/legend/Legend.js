@@ -324,7 +324,19 @@ class Legend {
 
       const elLegendText = BrowserAPIs.createElement('span')
       elLegendText.classList.add('apexcharts-legend-text')
-      elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text
+      // A series name is data, so it shows as text; only what a
+      // legend.formatter changes is written as the HTML it documents.
+      const shown = Array.isArray(text) ? text.join(' ') : text
+      const name = legendNames[i]
+      if (
+        String(shown) === String(Array.isArray(name) ? name.join(' ') : name)
+      ) {
+        elLegendText.textContent = shown
+      } else {
+        elLegendText.innerHTML = shown
+        // a hover that resets the item writes it back the same way
+        elLegendText.setAttribute('data:html', '1')
+      }
 
       let textColor = w.config.legend.labels.useSeriesColors
         ? w.globals.colors[i]

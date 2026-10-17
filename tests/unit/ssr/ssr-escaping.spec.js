@@ -39,6 +39,19 @@ describe('SSR output escapes user text', () => {
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
   })
 
+  it('renderToHTML emits no raw tag from a series name in the legend', async () => {
+    const html = await SSRRenderer.renderToHTML({
+      chart: { type: 'line', width: 500, height: 300 },
+      series: [
+        { name: '<img src=x onerror=alert(1)>', data: [1, 2] },
+        { name: 'b', data: [2, 3] },
+      ],
+    })
+    expect(html).toContain('apexcharts-legend-text')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  })
+
   it('renderToString escapes & in text', async () => {
     const svg = await SSRRenderer.renderToString(opts())
     expect(svg).not.toMatch(/Tom & Jerry/)

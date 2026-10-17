@@ -6,6 +6,7 @@ import Data from '../Data'
 import { renderMarkerSVG } from './Marker'
 import { isCustom } from '../ChartFactory'
 import { TYPE_ALIASES } from '../settings/TypeAliases'
+import { nameAsHtml } from '../../utils/nameAsHtml.js'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -374,16 +375,14 @@ export default class Labels {
    */
   getSeriesName({ fn, index, seriesIndex, j, leaf }) {
     const w = this.w
-    const s = fn(leaf ?? String(w.seriesData.seriesNames[index]), {
+    const name = leaf ?? String(w.seriesData.seriesNames[index])
+    const s = fn(name, {
       series: w.seriesData.series,
       seriesIndex,
       dataPointIndex: j,
       w,
     })
-    // A leaf's name is data and the title is written as HTML. The default
-    // title is the name plus ': ', so that shape gets the name's '<' escaped
-    // (enough in element text); markup a title formatter adds stays markup.
-    return leaf && s === leaf + ': ' ? leaf.replace(/</g, '&lt;') + ': ' : s
+    return nameAsHtml(name, s)
   }
 
   /**
@@ -489,7 +488,7 @@ export default class Labels {
          * @param {any} goal
          */
         goalVals.forEach((/** @type {any} */ goal) => {
-          gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${goal.attrs.strokeColor}; height: 3px; border-radius: 0; top: 5px;"></span> ${goal.attrs.name}</div>`
+          gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${String(goal.attrs.strokeColor).replace(/["<]/g, '')}; height: 3px; border-radius: 0; top: 5px;"></span> ${nameAsHtml(String(goal.attrs.name))}</div>`
           gVals += `<div>${goal.val}</div>`
         })
         ttGLabel.innerHTML = gLabels + `</div>`
@@ -696,10 +695,14 @@ export default class Labels {
       xAxisTTVal = xVal
     }
 
+    const plain = (/** @type {any} */ v) => (Array.isArray(v) ? v.join(' ') : v)
+    // A category is data: the title and the x-axis label show it as text
+    // unless a formatter turned it into markup.
+    const rawX = plain(bufferXVal)
     return {
-      val: Array.isArray(val) ? val.join(' ') : val,
-      xVal: Array.isArray(xVal) ? xVal.join(' ') : xVal,
-      xAxisTTVal: Array.isArray(xAxisTTVal) ? xAxisTTVal.join(' ') : xAxisTTVal,
+      val: plain(val),
+      xVal: nameAsHtml(rawX, plain(xVal)),
+      xAxisTTVal: nameAsHtml(rawX, plain(xAxisTTVal)),
       zVal,
     }
   }

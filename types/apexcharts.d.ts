@@ -4632,8 +4632,15 @@ type ApexLegend = {
   height?: number
   offsetX?: number
   offsetY?: number
+  /**
+   * Returns the item's HTML. `legendName` is the raw name, not escaped:
+   * escape it before adding markup if names can come from untrusted data.
+   * Returned unchanged, the name is shown as text.
+   */
   formatter?(legendName: string, opts?: ApexLegendFormatterOpts): string
+  /** As `formatter`, applied on hover; `legendName` is the raw name. */
   tooltipHoverFormatter?(legendName: string, opts?: ApexLegendFormatterOpts): string
+  /** Item labels, shown as text. */
   customLegendItems?: string[]
   clusterGroupedSeries?: boolean;
   clusterGroupedSeriesOrientation?: 'vertical' | 'horizontal';

@@ -11,6 +11,7 @@ import XAxis from './../axes/XAxis'
 import Utils from './Utils'
 import { isCustom } from '../ChartFactory'
 import { POINTER_CLEARANCE_BELOW } from './constants'
+import { nameAsHtml } from '../../utils/nameAsHtml.js'
 
 const INTERACTIVE_TOOLTIP_HIDE_DELAY = 150
 
@@ -1646,7 +1647,7 @@ export default class Tooltip {
       const l = /** @type {HTMLElement} */ (els[k])
       const lsIndex = parseInt(l.getAttribute('i') ?? '', 10)
       const name = decodeURIComponent(l.getAttribute('data:default-text') ?? '')
-      l.innerHTML = (
+      const out = (
         shared
           ? w.globals.collapsedSeriesIndices.indexOf(lsIndex) < 0
           : lsIndex === series
@@ -1657,6 +1658,10 @@ export default class Tooltip {
             w,
           })
         : name
+      // The name is data: written back as text, as the legend wrote it,
+      // unless a formatter (legend or hover) made it markup.
+      if (out === name && !l.hasAttribute('data:html')) l.textContent = name
+      else l.innerHTML = out
     }
   }
 
@@ -1752,7 +1757,7 @@ export default class Tooltip {
     // The arrow is a sibling of the content; detach so innerHTML keeps it.
     const arrowEl = tooltipEl.querySelector('.apexcharts-tooltip-arrow')
     tooltipEl.innerHTML =
-      `<div class="apexcharts-tooltip-title" style="font-family: ${fontFamily}; font-size: ${fontSize};">${seriesName}</div>` +
+      `<div class="apexcharts-tooltip-title" style="font-family: ${fontFamily}; font-size: ${fontSize};">${nameAsHtml(seriesName)}</div>` +
       `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display: flex;">` +
       `<span class="apexcharts-tooltip-marker" style="background-color: ${color};"></span>` +
       `<div class="apexcharts-tooltip-text" style="font-family: ${fontFamily}; font-size: ${fontSize};">` +
