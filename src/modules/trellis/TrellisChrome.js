@@ -26,6 +26,21 @@ const ICONS = {
     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>',
 }
 
+/**
+ * Paint one legend item from the trellis's state: the marker from the
+ * colour map, the inactive look from the hidden set (which every panel
+ * mounted from it honours too, so the two always agree).
+ * @param {import('./Trellis').default} t
+ * @param {any} item
+ * @param {string} name
+ */
+function paintItem(t, item, name) {
+  const hidden = t.sync.isHidden(name)
+  item.firstChild.style.background = t.scales ? t.scales.colorOf(name) : '#008FFB'
+  item.classList.toggle('apexcharts-inactive-legend', hidden)
+  item.setAttribute('data:collapsed', String(hidden))
+}
+
 export default class TrellisChrome {
   /**
    * @param {import('./Trellis').default} trellis
@@ -194,6 +209,8 @@ export default class TrellisChrome {
    */
   buildLegend(host) {
     const t = this.trellis
+    /** @type {string|null} the categorical legend's names, as JSON */
+    this._names = null
     if ((t.cfg.legend || 'shared') !== 'shared') return
     // A heatmap's legend IS its color scale (P5): one shared gradient strip
     // for the grid instead of a categorical name list.
@@ -215,11 +232,9 @@ export default class TrellisChrome {
       item.className = 'apexcharts-legend-series apexcharts-trellis-legend-item'
       item.setAttribute('role', 'listitem')
       item.setAttribute('tabindex', '0')
-      item.setAttribute('data:collapsed', 'false')
 
       const marker = BrowserAPIs.createElement('span')
       marker.className = 'apexcharts-legend-marker'
-      marker.style.background = t.scales ? t.scales.colorOf(name) : '#008FFB'
 
       const text = BrowserAPIs.createElement('span')
       text.className = 'apexcharts-legend-text'
@@ -227,11 +242,11 @@ export default class TrellisChrome {
 
       item.appendChild(marker)
       item.appendChild(text)
+      paintItem(t, item, name)
 
       const toggle = () => {
-        const hidden = t.sync.toggleSeries(name)
-        item.classList.toggle('apexcharts-inactive-legend', hidden)
-        item.setAttribute('data:collapsed', String(hidden))
+        t.sync.toggleSeries(name)
+        paintItem(t, item, name)
       }
       item.addEventListener('click', toggle)
       item.addEventListener('keydown', (/** @type {any} */ e) => {
@@ -245,25 +260,33 @@ export default class TrellisChrome {
 
     host.appendChild(wrap)
     this.elLegend = wrap
+    this._names = JSON.stringify(names)
   }
 
   /**
-   * Repaint the shared legend's markers from the current colour map, without
-   * rebuilding the legend (which would drop the collapsed state a viewer has
-   * toggled). Used by the in-place option update, where `colors` may have
-   * moved but nothing structural has.
+   * Bring the shared legend up to date after an in-place update: new data
+   * may add or drop names (and a heatmap strip has to span the new colour
+   * range); a `colors` change moves the markers. The same names repaint in
+   * place, so a streaming grid neither churns the DOM nor takes keyboard
+   * focus off an item. Otherwise the legend is rebuilt where it stood.
    */
-  refreshLegendColors() {
+  rebuildLegend() {
     const t = this.trellis
-    const legend = this.elLegend
-    const scales = t.scales
-    if (!legend || !scales) return
-    const items = legend.querySelectorAll('.apexcharts-trellis-legend-item')
-    items.forEach((/** @type {any} */ item) => {
-      const name = item.querySelector('.apexcharts-legend-text')?.textContent
-      const marker = item.querySelector('.apexcharts-legend-marker')
-      if (name && marker) marker.style.background = scales.colorOf(name)
-    })
+    const old = this.elLegend
+    const names = t.split ? t.split.seriesNames : []
+    if (old && this._names === JSON.stringify(names)) {
+      names.forEach((n, i) =>
+        paintItem(t, old.children[i], n),
+      )
+      return
+    }
+    this.destroyGradientLegend()
+    this.elLegend = null
+    if (t.elWrap) this.buildLegend(t.elWrap)
+    // (buildLegend set it; the cast undoes the narrowing to null above)
+    const el = /** @type {HTMLElement|null} */ (this.elLegend)
+    // the new legend takes the old one's place in the wrap
+    if (old) el ? old.replaceWith(el) : old.remove()
   }
 
   /**
@@ -328,11 +351,19 @@ export default class TrellisChrome {
       t.ctx.events.removeEventListener?.('panelMounted', this._gradPending)
       this._gradPending = null
     }
-    // the panels' own buses die with them right after (teardown)
     t.ctx.events.removeEventListener('panelMounted', this._gradWire)
-    if (this.gradientLegend) {
+    this._gradWire = null
+    const legend = this.gradientLegend
+    if (legend) {
+      // Live panels outlive a strip rebuilt in place (an update), so their
+      // hover wiring has to go with it; on teardown they die right after.
+      t.panels.forEach((p) => {
+        const ev = /** @type {any} */ (p.chart)?.ctx.events
+        ev?.removeEventListener('dataPointMouseEnter', legend._onCellEnter)
+        ev?.removeEventListener('dataPointMouseLeave', legend._onCellLeave)
+      })
       try {
-        this.gradientLegend.destroy()
+        legend.destroy()
       } catch (e) {
         // The carrier panel may already be destroyed; the strip DOM goes
         // with the trellis wrap either way.

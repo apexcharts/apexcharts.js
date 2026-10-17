@@ -345,6 +345,50 @@ export default class Trellis {
     return this.cfg
   }
 
+  /** The trellis config with the EFFECTIVE y mode (a type frame can force
+   *  'shared'), as the scale resolver must see it. */
+  _effectiveCfg() {
+    const y = this._yMode()
+    return y !== (this.cfg.scales?.y || 'shared')
+      ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y } }
+      : this.cfg
+  }
+
+  /**
+   * Re-derive everything the panels share from the data: the type frames,
+   * the uniform label decimals and the shared scales. One place, so the
+   * first render and every update see the same derivation.
+   * @param {import('./TrellisSplit').TrellisSplitResult} split
+   * @param {boolean} [frames] false keeps the current type frames (the data
+   *   did not change, only the colours may have)
+   */
+  _deriveShared(split, frames = true) {
+    const w = this.w
+    const c = w.config.chart
+    if (frames || !this._frames) {
+      // `histogram` is a Config ALIAS (chart.type is rewritten to 'bar', the
+      // original kept in requestedType), so the frame gate reads the alias.
+      this._frames = buildTypeFrames(
+        split,
+        this.cfg,
+        w.config,
+        c.requestedType === 'histogram' ? 'histogram' : c.type,
+      )
+    }
+    // With an overridden y domain the DRAWN values are not the data
+    // (histogram counts, not observations), so the data's decimals must not
+    // leak into the labels; the tick step's own decimals still apply.
+    this._yLabelDecimals = this._frames.yExtentOverride
+      ? 0
+      : TrellisScales.maxYDecimals(split.panels)
+    this.scales = TrellisScales.resolve(split, this._effectiveCfg(), {
+      chartType: c.type,
+      userColors: this.ctx.opts && this.ctx.opts.colors,
+      yExtentOverride: this._frames.yExtentOverride,
+      ...this._stackingHost(),
+    })
+  }
+
   /**
    * The stacking facts the shared-scale resolver needs. A stacked panel is as
    * tall as its tallest PILE, so the shared y domain has to come from the
@@ -565,36 +609,14 @@ export default class Trellis {
 
       // 1.6 Type frames (P5): the shared hidden frames (histogram bin edges
       //     + count domain, violin bandwidth, heatmap color scale, bubble z,
-      //     pie totals) that make the awkward types honest. `histogram` is a
-      //     Config ALIAS (chart.type is rewritten to 'bar', the original kept
-      //     in requestedType), so the frame gate must look at the alias.
-      const frameType =
-        w.config.chart.requestedType === 'histogram'
-          ? 'histogram'
-          : w.config.chart.type
-      this._frames = buildTypeFrames(split, this.cfg, w.config, frameType)
-      this._frames.warnings.forEach((msg) =>
-        console.warn(`ApexCharts: ${msg}`),
+      //     pie totals) that make the awkward types honest; then the shared
+      //     scales through the EFFECTIVE y mode (a type frame can force
+      //     'shared' where group modes are meaningless).
+      this._deriveShared(split)
+      const frames = /** @type {import('./TrellisFrames').TypeFrames} */ (
+        this._frames
       )
-
-      // 2. Shared scales (through the EFFECTIVE y mode: a type frame can
-      //    force 'shared' where group modes are meaningless).
-      // With an overridden y domain the DRAWN values are not the data
-      // (histogram counts, not observations), so the data's decimals must
-      // not leak into the labels; the tick step's own decimals still apply.
-      this._yLabelDecimals = this._frames.yExtentOverride
-        ? 0
-        : TrellisScales.maxYDecimals(split.panels)
-      const scalesCfg =
-        this._yMode() !== (this.cfg.scales?.y || 'shared')
-          ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y: this._yMode() } }
-          : this.cfg
-      this.scales = TrellisScales.resolve(split, scalesCfg, {
-        chartType: w.config.chart.type,
-        userColors: this.ctx.opts && this.ctx.opts.colors,
-        yExtentOverride: this._frames.yExtentOverride,
-        ...this._stackingHost(),
-      })
+      frames.warnings.forEach((msg) => console.warn(`ApexCharts: ${msg}`))
 
       // 2.5 Renderer policy (P2): one uniform grid-level decision.
       this._panelRenderer = choosePanelRenderer(
@@ -951,9 +973,6 @@ export default class Trellis {
     const split = /** @type {import('./TrellisSplit').TrellisSplitResult} */ (
       this.split
     )
-    const scales = /** @type {ReturnType<typeof TrellisScales.resolve>} */ (
-      this.scales
-    )
     const ly = /** @type {import('./TrellisLayout').TrellisLayoutResult} */ (
       this.layout
     )
@@ -982,32 +1001,9 @@ export default class Trellis {
       (split.panels.length > ANIMATION_PANEL_BUDGET &&
         userAnimations === undefined)
 
-    // Empty combination under 'placeholder' (P4): a real panel carrying one
-    // valueless series aligned to the union x, so it runs the exact scale
-    // and geometry code every sibling runs (zero-size marks for bar types:
-    // the numeric bar pad only engages for series that draw).
     const isPlaceholder =
       slice.empty && (this.cfg.emptyPanels || 'placeholder') === 'placeholder'
-    let panelSeries = isPlaceholder
-      ? [placeholderSeries(split, { chartType: w.config.chart.type })]
-      : slice.series
-
-    // The radial value family (P5) takes a BARE values array, not the
-    // axis-chart {name, data} form the split emits: unwrap, keeping the
-    // POSITION of every value (a missing value becomes 0, never dropped:
-    // value k must stay aligned with label k in every panel).
-    const isValueSeries = ['pie', 'donut', 'polarArea', 'radialBar'].includes(
-      w.config.chart.type,
-    )
-    if (isValueSeries) {
-      panelSeries = panelSeries
-        .flatMap((/** @type {any} */ s) =>
-          Array.isArray(s.data) ? s.data : [],
-        )
-        .map((/** @type {any} */ v) =>
-          typeof v === 'number' && isFinite(v) ? v : 0,
-        )
-    }
+    const data = this._panelDataPatch(i)
 
     /** @type {Record<string, any>} */
     const overrides = {
@@ -1051,18 +1047,8 @@ export default class Trellis {
           scrolled: this.sync.makeScrolledHandler(userEvents.scrolled),
         },
       },
-      series: panelSeries,
-      // Shared color: by series NAME across the whole trellis, so 'Revenue'
-      // is the same color in every panel no matter the panel's series order.
-      // The radial value family colors by LABEL index from the shared config
-      // instead, which is identical across panels by construction.
-      ...(isValueSeries
-        ? {}
-        : {
-            colors: panelSeries.map((/** @type {any} */ s) =>
-              scales.colorOf(s.name),
-            ),
-          }),
+      series: data.series,
+      ...(data.colors ? { colors: data.colors } : {}),
       // Headers replace per-panel titles; the shared legend replaces per-panel
       // legends. margin: 0 and floating both matter: an empty-string title
       // still charges its margin to the top gutter in Dimensions, and its
@@ -1111,86 +1097,19 @@ export default class Trellis {
       }
     }
 
-    // Shared x domain (numeric/datetime): the equal-minX gate is what allows
-    // the group tooltip sync at all. Skipped when x IS the value axis
-    // (horizontal bars): there the union of the numeric CATEGORIES would
-    // overwrite the value domain with category indices.
-    const valueAxisIsX = this._valueAxisIsX()
-    if (scales.x && !valueAxisIsX) {
-      overrides.xaxis = { min: scales.x.min, max: scales.x.max }
-    }
-    // The panel's y domain per the scales mode (shared union, or its
-    // row's/column's union, P4): identical bounds + tickAmount => identical
-    // ticks, labels, gutters and plot rects (22a Q1). Merged INTO the user's
-    // own yaxis entry (array or object): Utils.extend replaces arrays
-    // wholesale, so a bare object override would drop the user's
-    // formatter/label config.
-    const yBounds = this._yBoundsFor(slice)
-    if (yBounds) {
-      const userYaxisRaw = Array.isArray(this.ctx.opts?.yaxis)
-        ? this.ctx.opts.yaxis[0]
-        : this.ctx.opts?.yaxis
+    // The data-derived half (_panelDataPatch). Its yaxis patch is merged
+    // INTO the user's own yaxis entry (array or object): Utils.extend
+    // replaces arrays wholesale, so a bare object override would drop the
+    // user's formatter/label config.
+    if (data.xaxis) overrides.xaxis = data.xaxis
+    if (data.yaxis) {
       const userYaxis = Array.isArray(base.yaxis) ? base.yaxis[0] : base.yaxis
-      // Identical bounds need identical label FORMATTING to yield identical
-      // gutters: the library derives label decimals from each panel's OWN
-      // data (decimalsInFloat only applies to float panels), so a
-      // placeholder's zeros, or an integer-valued panel among float
-      // siblings, would render "20" beside "20.00" and misalign. When the
-      // user brought no formatter, push one uniform toFixed sized by the
-      // union data's decimals and the tick step's own.
-      /** @type {Record<string, any>} */
-      let labelsPatch = {}
-      if (typeof userYaxisRaw?.labels?.formatter !== 'function') {
-        const step =
-          (yBounds.max - yBounds.min) / Math.max(1, yBounds.tickAmount)
-        const digits = Math.max(
-          this._yLabelDecimals,
-          TrellisScales.decimalCount(step),
-        )
-        labelsPatch = {
-          labels: {
-            formatter: (/** @type {any} */ val) =>
-              typeof val === 'number' && isFinite(val)
-                ? val.toFixed(digits)
-                : val,
-          },
-        }
-      }
-      overrides.yaxis = Utils.extend(userYaxis || {}, {
-        min: yBounds.min,
-        max: yBounds.max,
-        tickAmount: yBounds.tickAmount,
-        ...labelsPatch,
-      })
+      overrides.yaxis = Utils.extend(userYaxis || {}, data.yaxis)
       delete base.yaxis
-      if (valueAxisIsX) {
-        overrides.xaxis = Utils.extend(
-          overrides.xaxis || {},
-          this._valueAxisXPatch(yBounds),
-        )
-      }
     }
-
-    // Type frames (P5): the shared hidden frames every panel must draw in.
     // Deep-merged into the user's own plotOptions by Utils.extend below, so
-    // only the shared keys (histogram range/binWidth, violin bandwidth,
-    // heatmap colorScale min/max, bubble minZ/maxZ) are pinned.
-    const frames = this._frames
-    if (frames && frames.plotOptions) {
-      overrides.plotOptions = Utils.clone(frames.plotOptions)
-    }
-    if (frames && frames.pieScaleOf) {
-      const ratio = frames.pieScaleOf(slice.key)
-      if (ratio !== null) {
-        const userScale = this.ctx.opts?.plotOptions?.pie?.customScale
-        overrides.plotOptions = Utils.extend(overrides.plotOptions || {}, {
-          pie: {
-            customScale:
-              ratio * (typeof userScale === 'number' ? userScale : 1),
-          },
-        })
-      }
-    }
+    // only the shared frame keys are pinned.
+    if (data.plotOptions) overrides.plotOptions = data.plotOptions
 
     let opts = Utils.extend(base, overrides)
     if (typeof this.cfg.panel === 'function') {
@@ -1201,13 +1120,131 @@ export default class Trellis {
   }
 
   /**
+   * The DATA-derived half of one panel's options: its series, the shared
+   * colour map, the shared x/y domains with the uniform label formatter,
+   * and the type frames. Both the first assembly and every host
+   * updateSeries push this one patch, so an override added here can never
+   * go stale after an update the way a second copy of it did.
+   * @param {number} i
+   * @returns {Record<string, any>}
+   */
+  _panelDataPatch(i) {
+    const w = this.w
+    const split = /** @type {import('./TrellisSplit').TrellisSplitResult} */ (
+      this.split
+    )
+    const scales = /** @type {ReturnType<typeof TrellisScales.resolve>} */ (
+      this.scales
+    )
+    const slice = split.panels[i]
+    const type = w.config.chart.type
+
+    // Empty combination under 'placeholder' (P4): a real panel carrying one
+    // valueless series aligned to the union x, so it runs the exact scale
+    // and geometry code every sibling runs (zero-size marks for bar types:
+    // the numeric bar pad only engages for series that draw).
+    const series =
+      slice.empty && (this.cfg.emptyPanels || 'placeholder') === 'placeholder'
+        ? [placeholderSeries(split, { chartType: type })]
+        : slice.series
+    /** @type {Record<string, any>} */
+    const patch = { series }
+    if (['pie', 'donut', 'polarArea', 'radialBar'].includes(type)) {
+      // The radial value family (P5) takes a BARE values array, not the
+      // axis-chart {name, data} form the split emits: unwrap, keeping the
+      // POSITION of every value (a missing value becomes 0, never dropped:
+      // value k must stay aligned with label k in every panel). It colours
+      // by LABEL index from the shared config, identical by construction.
+      patch.series = series
+        .flatMap((/** @type {any} */ s) =>
+          Array.isArray(s.data) ? s.data : [],
+        )
+        .map((/** @type {any} */ v) =>
+          typeof v === 'number' && isFinite(v) ? v : 0,
+        )
+    } else {
+      // Shared color: by series NAME across the whole trellis, so 'Revenue'
+      // is the same color in every panel no matter the panel's series order.
+      patch.colors = series.map((/** @type {any} */ s) => scales.colorOf(s.name))
+    }
+
+    // Shared x domain (numeric/datetime): the equal-minX gate is what allows
+    // the group tooltip sync at all. Skipped when x IS the value axis
+    // (horizontal bars): there the union of the numeric CATEGORIES would
+    // overwrite the value domain with category indices.
+    const valueAxisIsX = this._valueAxisIsX()
+    if (scales.x && !valueAxisIsX) {
+      patch.xaxis = { min: scales.x.min, max: scales.x.max }
+    }
+    // The panel's y domain per the scales mode (shared union, or its
+    // row's/column's union, P4): identical bounds + tickAmount => identical
+    // ticks, labels, gutters and plot rects (22a Q1).
+    const yBounds = this._yBoundsFor(slice)
+    if (yBounds) {
+      patch.yaxis = {
+        min: yBounds.min,
+        max: yBounds.max,
+        tickAmount: yBounds.tickAmount,
+      }
+      // Identical bounds need identical label FORMATTING to yield identical
+      // gutters: the library derives label decimals from each panel's OWN
+      // data (decimalsInFloat only applies to float panels), so a
+      // placeholder's zeros, or an integer-valued panel among float
+      // siblings, would render "20" beside "20.00" and misalign. When the
+      // user brought no formatter, push one uniform toFixed sized by the
+      // union data's decimals and the tick step's own (both re-derived on
+      // every update: a grid that turns fractional must print fractions).
+      const userYaxis = Array.isArray(this.ctx.opts?.yaxis)
+        ? this.ctx.opts.yaxis[0]
+        : this.ctx.opts?.yaxis
+      if (typeof userYaxis?.labels?.formatter !== 'function') {
+        const digits = Math.max(
+          this._yLabelDecimals,
+          TrellisScales.decimalCount(
+            (yBounds.max - yBounds.min) / Math.max(1, yBounds.tickAmount),
+          ),
+        )
+        patch.yaxis.labels = {
+          formatter: (/** @type {any} */ val) =>
+            typeof val === 'number' && isFinite(val) ? val.toFixed(digits) : val,
+        }
+      }
+      if (valueAxisIsX) {
+        patch.xaxis = Utils.extend(
+          patch.xaxis || {},
+          this._valueAxisXPatch(yBounds),
+        )
+      }
+    }
+
+    // Type frames (P5): the shared hidden frames every panel must draw in
+    // (histogram range/binWidth, violin bandwidth, heatmap colorScale
+    // min/max, bubble minZ/maxZ, the pie radius-by-total scale).
+    const frames = this._frames
+    if (frames && frames.plotOptions) {
+      patch.plotOptions = Utils.clone(frames.plotOptions)
+    }
+    const ratio = frames && frames.pieScaleOf ? frames.pieScaleOf(slice.key) : null
+    if (ratio !== null) {
+      const userScale = this.ctx.opts?.plotOptions?.pie?.customScale
+      patch.plotOptions = Utils.extend(patch.plotOptions || {}, {
+        pie: {
+          customScale: ratio * (typeof userScale === 'number' ? userScale : 1),
+        },
+      })
+    }
+    return patch
+  }
+
+  /**
    * Independent-y gutter alignment (22a Q2): measure every panel's label
    * gutter, push the max as a shared `yaxis.labels.minWidth`. `max()` of the
    * measured widths makes the panels' `max(minWidth, measured)` resolve to
    * the same constant everywhere, so one iteration is exact by construction.
+   * @param {boolean} [grow] push only when the floor has to widen
    * @returns {Promise<void>}
    */
-  async _alignGutters() {
+  async _alignGutters(grow = false) {
     const widths = this.panels
       .map((p) => p.chart?.w?.globals?.yLabelsCoords?.[0]?.width)
       .filter((v) => typeof v === 'number' && isFinite(v))
@@ -1215,6 +1252,10 @@ export default class Trellis {
     const isHorizontal = !!this.panels[0]?.chart?.w?.globals?.isBarHorizontal
     const labelPad = isHorizontal ? 0 : Y_LABEL_PAD
     const minWidth = Math.max(0, Math.max(...widths) - labelPad)
+    // One floor for both paths: a virtualized grid keeps growing it as
+    // panels mount, and an update only re-pushes it when it grew.
+    if (grow && minWidth <= this.virtual._gutterFloor + 0.5) return
+    this.virtual._gutterFloor = minWidth
     await this._pushGutterFloor(minWidth)
   }
 
@@ -1467,16 +1508,7 @@ export default class Trellis {
 
     // `colors` feeds the series→colour map, so re-resolve it first. Pure and
     // cheap: no DOM, no panels touched.
-    const scalesCfg =
-      this._yMode() !== (this.cfg.scales?.y || 'shared')
-        ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y: this._yMode() } }
-        : this.cfg
-    this.scales = TrellisScales.resolve(split, scalesCfg, {
-      chartType: this.w.config.chart.type,
-      userColors: this.ctx.opts && this.ctx.opts.colors,
-      yExtentOverride: this._frames ? this._frames.yExtentOverride : null,
-      ...this._stackingHost(),
-    })
+    this._deriveShared(split, false)
 
     await Promise.all(
       this.panels.map((p) => {
@@ -1493,7 +1525,7 @@ export default class Trellis {
     )
 
     // The shared legend paints its markers from the colour map.
-    this.chrome.refreshLegendColors?.()
+    this.chrome.rebuildLegend()
   }
 
   /**
@@ -1520,95 +1552,51 @@ export default class Trellis {
     const nextSplit = splitSeries(newSeries || [], this.cfg, {
       chartType: w.config.chart.type,
     })
+    // A cell that gains or loses its data under 'skip'/'hide' changes its
+    // mount state, and a placeholder cell carries its own label: both are
+    // structural, exactly like a changed key set.
     const sameKeys =
       nextSplit.panels.length === this.panels.length &&
-      nextSplit.panels.every((p, i) => p.key === this.panels[i].key)
+      nextSplit.panels.every(
+        (p, i) =>
+          p.key === this.panels[i].key && !!p.empty === !!this.panels[i].empty,
+      )
     if (!sameKeys) {
       this.teardown()
       return this.ctx.render()
     }
 
     this.split = nextSplit
-    // Type frames (P5) are data-derived (bin edges, color extent, z extent,
-    // pie totals): recompute them with the new data before the pushes.
-    this._frames = buildTypeFrames(
-      nextSplit,
-      this.cfg,
-      w.config,
-      w.config.chart.requestedType === 'histogram'
-        ? 'histogram'
-        : w.config.chart.type,
-    )
-    const scalesCfg =
-      this._yMode() !== (this.cfg.scales?.y || 'shared')
-        ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y: this._yMode() } }
-        : this.cfg
-    this.scales = TrellisScales.resolve(nextSplit, scalesCfg, {
-      chartType: w.config.chart.type,
-      userColors: this.ctx.opts && this.ctx.opts.colors,
-      yExtentOverride: this._frames.yExtentOverride,
-      ...this._stackingHost(),
+    // Type frames, label decimals and scales are all data-derived.
+    this._deriveShared(nextSplit)
+    this.sync.prune(nextSplit.seriesNames)
+    // New data restates every panel's domains, which un-zooms them, as a
+    // plain chart's updateSeries does; the grid's window record and every
+    // stashed (unmounted) window describe the old data, so they go too.
+    this.sync.currentWindow = null
+    this.panels.forEach((p) => {
+      if (p.viewStash) p.viewStash = { ...p.viewStash, window: null, zoomed: false }
+      if (p.chart) p.chart.w.interact.zoomed = false
     })
-    const scales = this.scales
-    const frames = this._frames
-
-    const isValueSeries = ['pie', 'donut', 'polarArea', 'radialBar'].includes(
-      w.config.chart.type,
+    await Promise.all(
+      this.panels.map((p) => {
+        if (!p.chart) return Promise.resolve()
+        const patch = this._panelDataPatch(p.index)
+        // yaxisPayload keeps the live gutter floor (labels.minWidth)
+        if (patch.yaxis) patch.yaxis = yaxisPayload(p.chart, patch.yaxis)
+        return p.chart
+          .updateOptions(patch, false, animate, false)
+          .catch(() => {})
+      }),
     )
-    const pushes = this.panels.map((p, i) => {
-      if (!p.chart) return Promise.resolve()
-      /** @type {Record<string, any>} */
-      const payload = {
-        // The radial value family takes a BARE values array (see the same
-        // unwrap in _assemblePanelOptions).
-        series: isValueSeries
-          ? nextSplit.panels[i].series
-              .flatMap((/** @type {any} */ s) =>
-                Array.isArray(s.data) ? s.data : [],
-              )
-              .map((/** @type {any} */ v) =>
-                typeof v === 'number' && isFinite(v) ? v : 0,
-              )
-          : nextSplit.panels[i].series,
-      }
-      const valueAxisIsX = this._valueAxisIsX()
-      if (scales.x && !valueAxisIsX) {
-        payload.xaxis = { min: scales.x.min, max: scales.x.max }
-      }
-      const yBounds = this._yBoundsFor(nextSplit.panels[i])
-      if (yBounds) {
-        payload.yaxis = yaxisPayload(p.chart, {
-          min: yBounds.min,
-          max: yBounds.max,
-          tickAmount: yBounds.tickAmount,
-        })
-        if (valueAxisIsX) {
-          payload.xaxis = Utils.extend(
-            payload.xaxis || {},
-            this._valueAxisXPatch(yBounds),
-          )
-        }
-      }
-      if (frames.plotOptions) {
-        payload.plotOptions = Utils.clone(frames.plotOptions)
-      }
-      if (frames.pieScaleOf) {
-        const ratio = frames.pieScaleOf(nextSplit.panels[i].key)
-        if (ratio !== null) {
-          const userScale = this.ctx.opts?.plotOptions?.pie?.customScale
-          payload.plotOptions = Utils.extend(payload.plotOptions || {}, {
-            pie: {
-              customScale:
-                ratio * (typeof userScale === 'number' ? userScale : 1),
-            },
-          })
-        }
-      }
-      return p.chart
-        .updateOptions(payload, false, animate, false)
-        .catch(() => {})
-    })
-    return Promise.all(pushes)
+    // Independent y: a panel whose labels outgrew the shared gutter floor
+    // pulls every panel with it. Grow-only, like the virtualized floor: a
+    // second pass on every update would cut the update's own animation.
+    if (this._yMode() !== 'shared') await this._alignGutters(true)
+    // The shared chrome reads the data too: legend names and colours, and a
+    // heatmap's gradient strip spans the new colour range.
+    this.chrome.rebuildLegend()
+    this._refitForChrome()
   }
 
   /** @returns {Array<{ key: string, index: number, chart: any|null, el: HTMLElement|null }>} */

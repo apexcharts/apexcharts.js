@@ -237,6 +237,17 @@ export default class TrellisSync {
   }
 
   /**
+   * Forget hidden names the data no longer carries, so a name that comes
+   * back later starts visible (as a plain chart's legend does).
+   * @param {string[]} names the current split's series names
+   */
+  prune(names) {
+    this._hidden.forEach((n) => {
+      if (!names.includes(n)) this._hidden.delete(n)
+    })
+  }
+
+  /**
    * Bring one freshly mounted panel in line with the shared legend's hidden
    * set (virtualized remounts miss the toggles that happened while they were
    * unmounted; the trellis-wide `_hidden` set is the truth).
