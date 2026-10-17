@@ -160,13 +160,13 @@ export default class RendererController {
       hasCanvasUnsupportedFeature(this.w)
     ) {
       // Explicit canvas, but a configured feature (gradient/pattern/image fill,
-      // or a state color-matrix filter) can't render on canvas yet: 'auto'
-      // declines silently, explicit 'canvas' says why (once).
+      // a line forecast, or a state color-matrix filter) can't render on
+      // canvas yet: 'auto' declines silently, explicit 'canvas' says why (once).
       this._warned = 1
       console.warn(
         `[apexcharts] renderer:"canvas" requested but this chart uses a feature the ` +
-          `canvas renderer does not render yet (gradient/pattern/image fill or a ` +
-          `state color-matrix filter); falling back to SVG.`,
+          `canvas renderer does not render yet (gradient/pattern/image fill, a line ` +
+          `forecast or a state color-matrix filter); falling back to SVG.`,
       )
     }
 

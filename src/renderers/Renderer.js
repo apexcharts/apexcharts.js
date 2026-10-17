@@ -106,52 +106,56 @@ export function computeMarkCount(w) {
 
 /**
  * Whether the config uses a feature the canvas renderer cannot reproduce
- * (pattern/image fill, or a state color-matrix filter beyond lighten/darken).
+ * (gradient/pattern/image fill or area stroke, a line forecast, or a state
+ * color-matrix filter beyond lighten/darken).
  * Their presence makes `'auto'` decline canvas and `'canvas'` warn + fall back.
  *
  * @param {any} w
  * @returns {boolean}
  */
 export function hasCanvasUnsupportedFeature(w) {
-  const fillType = w.config.fill && w.config.fill.type
+  const cfg = w.config
+  const po = cfg.plotOptions || {}
+  const sf = cfg.stroke && cfg.stroke.fill
+  const fc = cfg.forecastDataPoints
+  const lc = po.line && po.line.colors
+  const states = cfg.states || {}
   // 'gradient' is included as a P2 gate, not a hard limit: canvas CAN paint
   // gradients, but the P2 canvas renderer ships solid fills only (gradient
   // reconstruction via Fill.getFillDescriptor is the P2.1 fast-follow). Until
   // then a gradient chart routes to SVG. pattern/image are genuine v1 non-goals.
-  const isUnsupportedFill = (/** @type {any} */ t) =>
-    t === 'pattern' || t === 'image' || t === 'gradient'
-  if (
-    Array.isArray(fillType)
-      ? fillType.some(isUnsupportedFill)
-      : isUnsupportedFill(fillType)
-  ) {
-    return true
+  const badFill = (/** @type {any} */ t) =>
+    [].concat(t).some((x) => x === 'pattern' || x === 'image' || x === 'gradient')
+  // A state color-matrix filter beyond lighten/darken.
+  const badFilter = (/** @type {any} */ st) => {
+    const t = st && st.filter && st.filter.type
+    return t && !OK_FILTER_TYPES.includes(t)
   }
-
-  // Multi-color line (colorAboveThreshold/BelowThreshold) is drawn via a
-  // gradient internally: same P2 gate as above.
-  const lineColors = w.config.plotOptions?.line?.colors
-  if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
-    return true
-  }
-
-  // Heatmap cell shapes other than the default rect render as SVG <path>
-  // cells: the canvas cell store is rect-only (drawRectCell), so decline
-  // canvas for them the same way image fills are declined, rather than
-  // inventing a columnar path store for shaped cells.
-  if (
-    w.config.chart.type === 'heatmap' &&
-    (w.config.plotOptions?.heatmap?.shape || 'rect') !== 'rect'
-  ) {
-    return true
-  }
-
-  const states = w.config.states || {}
-  const hoverFilter = states.hover && states.hover.filter && states.hover.filter.type
-  const activeFilter =
-    states.active && states.active.filter && states.active.filter.type
-  if (hoverFilter && !OK_FILTER_TYPES.includes(hoverFilter)) return true
-  if (activeFilter && !OK_FILTER_TYPES.includes(activeFilter)) return true
-
-  return false
+  /** Whether any series (or the chart type it inherits) matches `re`. */
+  const hasType = (/** @type {RegExp} */ re) =>
+    (cfg.series || []).some((/** @type {any} */ s) =>
+      re.test((s && s.type) || cfg.chart.type),
+    )
+  return !!(
+    badFill(cfg.fill && cfg.fill.type) ||
+    // On a line-like series (line, area, rangeArea) an area outline takes its
+    // paint from stroke.fill, a url() the canvas skips, so only the body
+    // would paint. On a line or area (Line.js draws none for rangeArea) a
+    // forecast is the series drawn twice, split by clip-paths the canvas does
+    // not paint through, so the dashed copy would cover it all. Bars mark
+    // their forecast per bar, which the canvas paints.
+    (sf && badFill(sf.type) && hasType(/line|area/i)) ||
+    (fc && fc.count > 0 && hasType(/^(line|area)$/)) ||
+    // Multi-color line (colorAboveThreshold/BelowThreshold) is drawn via a
+    // gradient internally: same P2 gate as above.
+    (lc && lc.colorAboveThreshold && lc.colorBelowThreshold) ||
+    // Heatmap cell shapes other than the default rect render as SVG <path>
+    // cells: the canvas cell store is rect-only (drawRectCell), so decline
+    // canvas for them the same way image fills are declined, rather than
+    // inventing a columnar path store for shaped cells.
+    (cfg.chart.type === 'heatmap' &&
+      ((po.heatmap && po.heatmap.shape) || 'rect') !== 'rect') ||
+    badFilter(states.hover) ||
+    badFilter(states.active)
+  )
 }
