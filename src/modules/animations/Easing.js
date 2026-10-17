@@ -14,7 +14,8 @@
  * pop) are intentionally NOT routed through here: `applyProgressiveReveal`
  * inverts `easeOutCubic` for reveal-sync timing, so those stay fixed. This
  * registry governs the GENERIC runner tweens (data-update value transitions,
- * path morphs, marker animate).
+ * path morphs, marker animate) and the gauge needle, which resolves
+ * 'easeOutBack' and 'easeOutCubic' by name.
  *
  * @module modules/animations/Easing
  */

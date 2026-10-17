@@ -249,7 +249,9 @@ describe('#5324: formatters get the opts their declaration promises', () => {
 })
 
 describe('#5325: an unknown chart.type is named, not crashed on', () => {
-  it.each(['banana', 'Line', 'donut ', 'Bar'])(
+  // 'constructor' and 'toString' are keys every plain object inherits: a type
+  // lookup that reads them took the Object function for an alias
+  it.each(['banana', 'Line', 'donut ', 'Bar', 'constructor', 'toString'])(
     'rejects %j with a message naming the option and the value',
     (type) => {
       expect(() =>
@@ -457,6 +459,31 @@ describe('#5326: unknown top-level option keys are reported', () => {
     expect(
       warnings().filter((m) => m.includes('unrecognized top-level')),
     ).toHaveLength(0)
+    chart.destroy()
+  })
+})
+
+describe('options with no effect are still accepted in silence', () => {
+  // chart.layers and chart.dataReducer.algorithm were typed but never read.
+  // Their defaults are gone; a page that sets them must not start warning or
+  // failing before they leave the types in 9.0.
+  const DEPRECATED = {
+    layers: { series: 'svg', grid: 'svg' },
+    dataReducer: { enabled: true, algorithm: 'lttb', threshold: 2 },
+  }
+
+  it('renders without a warning on mount and on update', async () => {
+    const chart = await render({
+      chart: { type: 'line', ...DEPRECATED },
+      series: [{ name: 'S', data: [10, 41, 35, 51, 49] }],
+    })
+    await chart.updateOptions({ chart: { layers: null } })
+    await chart.updateOptions({ chart: DEPRECATED })
+    expect(warnings()).toEqual([])
+    expect(chart.w.config.chart.layers.series).toBe('svg')
+    expect(
+      document.querySelectorAll('.apexcharts-series path').length,
+    ).toBeGreaterThan(0)
     chart.destroy()
   })
 })

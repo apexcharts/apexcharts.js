@@ -1,0 +1,2388 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parsed output pins, TZ=America/New_York > DateTime.parseDate and isValidDate 1`] = `
+{
+  "utc false": [
+    [
+      "2017-01-01",
+      1483228800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00Z",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00.123Z",
+      1483264800123,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00",
+      1483282800000,
+      true,
+    ],
+    [
+      "2017-01-01 10:00",
+      1483282800000,
+      true,
+    ],
+    [
+      "2017-1-5",
+      1483592400000,
+      true,
+    ],
+    [
+      "01/02/2017",
+      1483333200000,
+      true,
+    ],
+    [
+      "Jan 5 2017",
+      1483592400000,
+      true,
+    ],
+    [
+      "5th Jan 2017",
+      NaN,
+      false,
+    ],
+    [
+      "2017",
+      1483228800000,
+      true,
+    ],
+    [
+      "+010000-01-01T00:00:00.000Z",
+      253402300800000,
+      true,
+    ],
+    [
+      "-000001-01-01T00:00:00.000Z",
+      -62198755200000,
+      true,
+    ],
+    [
+      "garbage",
+      NaN,
+      false,
+    ],
+    [
+      "",
+      NaN,
+      false,
+    ],
+    [
+      "Sat Dec 31 2016 19:00:00 GMT-0500 (Eastern Standard Time)",
+      1483228800123,
+      true,
+    ],
+    [
+      "Invalid Date",
+      NaN,
+      false,
+    ],
+    [
+      "null",
+      NaN,
+      false,
+    ],
+    [
+      "undefined",
+      NaN,
+      false,
+    ],
+    [
+      "1483228800000",
+      NaN,
+      false,
+    ],
+  ],
+  "utc true": [
+    [
+      "2017-01-01",
+      1483228800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00Z",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00.123Z",
+      1483264800123,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00",
+      1483282800000,
+      true,
+    ],
+    [
+      "2017-01-01 10:00",
+      1483282800000,
+      true,
+    ],
+    [
+      "2017-1-5",
+      1483592400000,
+      true,
+    ],
+    [
+      "01/02/2017",
+      1483333200000,
+      true,
+    ],
+    [
+      "Jan 5 2017",
+      1483592400000,
+      true,
+    ],
+    [
+      "5th Jan 2017",
+      NaN,
+      false,
+    ],
+    [
+      "2017",
+      1483228800000,
+      true,
+    ],
+    [
+      "+010000-01-01T00:00:00.000Z",
+      253402300800000,
+      true,
+    ],
+    [
+      "-000001-01-01T00:00:00.000Z",
+      -62198755200000,
+      true,
+    ],
+    [
+      "garbage",
+      NaN,
+      false,
+    ],
+    [
+      "",
+      NaN,
+      false,
+    ],
+    [
+      "Sat Dec 31 2016 19:00:00 GMT-0500 (Eastern Standard Time)",
+      1483228800123,
+      true,
+    ],
+    [
+      "Invalid Date",
+      NaN,
+      false,
+    ],
+    [
+      "null",
+      NaN,
+      false,
+    ],
+    [
+      "undefined",
+      NaN,
+      false,
+    ],
+    [
+      "1483228800000",
+      NaN,
+      false,
+    ],
+  ],
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > category bar, {x, y} with goals on one series and nulls 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    [
+      [
+        {
+          "name": "g",
+          "value": 9,
+        },
+      ],
+      null,
+      null,
+      [
+        {
+          "name": "g",
+          "value": -3,
+        },
+      ],
+    ],
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    "A",
+    "B",
+    "C",
+    "D",
+  ],
+  "maxX": -1.7976931348623157e+308,
+  "maxY": 10,
+  "minX": 1.7976931348623157e+308,
+  "minXDiff": 1.7976931348623157e+308,
+  "minY": 0,
+  "series": [
+    [
+      4,
+      null,
+      6,
+      2,
+    ],
+    [
+      1,
+      2,
+      null,
+      7,
+    ],
+  ],
+  "seriesX": [
+    [
+      "A",
+      "B",
+      "C",
+      "D",
+    ],
+    [
+      "A",
+      "B",
+      "C",
+      "D",
+    ],
+  ],
+  "xLabels": [
+    "A",
+    "B",
+    "C",
+    "D",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > category bar, {x, y} without goals, negative values 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "maxX": -1.7976931348623157e+308,
+  "maxY": 0,
+  "minX": 1.7976931348623157e+308,
+  "minXDiff": 1.7976931348623157e+308,
+  "minY": -4,
+  "series": [
+    [
+      -4,
+      -2.5,
+      -1,
+    ],
+  ],
+  "seriesX": [
+    [
+      "A",
+      "B",
+      "C",
+    ],
+  ],
+  "xLabels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > category, {x: name} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1,
+    2,
+    3,
+    4,
+  ],
+  "maxX": 4,
+  "maxY": 8,
+  "minX": 1,
+  "minXDiff": 1,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "xLabels": [
+    "Apples",
+    "Pears",
+    "Plums",
+    "Figs",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > category, {x: strings that look like dates} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1,
+    2,
+    3,
+    4,
+  ],
+  "maxX": 4,
+  "maxY": 8,
+  "minX": 1,
+  "minXDiff": 1,
+  "minY": 0,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "xLabels": [
+    "2017-01-01",
+    "01/02/2017",
+    "Jan 3 2017",
+    "2017",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, [[ISO string, y]] 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483286400000,
+    1483344000000,
+    1483401600000,
+  ],
+  "maxX": 1483401600000,
+  "maxY": 3,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, [[timestamp, y]] 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 5,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 0,
+  "series": [
+    [
+      0,
+      1.5,
+      3,
+      4.5,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, [[timestamp, y]] with a null row and a null y 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 4,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      null,
+      null,
+      4,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      NaN,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, [[timestamp, y]] with fractional timestamps 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483286400000,
+    1483344000000,
+    1483401600000,
+  ],
+  "maxX": 1483401600000,
+  "maxY": 3,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, {x: Date} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800250,
+    1483315200250,
+    1483401600250,
+    1483488000250,
+  ],
+  "maxX": 1483488000250,
+  "maxY": 8,
+  "minX": 1483228800250,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800250,
+      1483315200250,
+      1483401600250,
+      1483488000250,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, {x: ISO string} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, {x: ISO string}, datetimeUTC false 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 68400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483333200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, {x: date without a time} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, {x: local date strings} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483246800000,
+    1483333200000,
+    1483419600000,
+    1483506000000,
+  ],
+  "maxX": 1483506000000,
+  "maxY": 8,
+  "minX": 1483246800000,
+  "minXDiff": 64800000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483246800000,
+      1483333200000,
+      1483441200000,
+      1483506000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, {x: timestamp} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, plain values with ISO categories, two series 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 4,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+    [
+      4,
+      3,
+      2.25,
+      1,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 2,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > datetime, plain values with local date labels 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483246800000,
+    1483327200000,
+    1483407600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 4,
+  "minX": 1483246800000,
+  "minXDiff": 68400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483246800000,
+      1483333200000,
+      1483419600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > numeric line, two {x, y} series, the second all null 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    1,
+    2,
+    3,
+  ],
+  "maxX": 3,
+  "maxY": 6,
+  "minX": 1,
+  "minXDiff": 1,
+  "minY": 2,
+  "series": [
+    [
+      2,
+      4,
+      6,
+    ],
+    [
+      null,
+      null,
+      null,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2,
+      3,
+    ],
+    [
+      1,
+      2,
+      3,
+    ],
+  ],
+  "xLabels": [
+    "1",
+    "2",
+    "3",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > numeric, {x: number} with a null y 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    1,
+    3.33,
+    5.66,
+    7.99,
+  ],
+  "maxX": 8,
+  "maxY": 10,
+  "minX": 1,
+  "minXDiff": 1.5,
+  "minY": 0,
+  "series": [
+    [
+      10,
+      null,
+      0.125,
+      3,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2.5,
+      4,
+      8,
+    ],
+  ],
+  "xLabels": [
+    "1.0",
+    "3.3",
+    "5.7",
+    "8.0",
+  ],
+  "yValueDecimal": 3,
+}
+`;
+
+exports[`parsed output pins, TZ=America/New_York > stacked bar, {x, y} with goals absent 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "maxX": -1.7976931348623157e+308,
+  "maxY": 6,
+  "minX": 1.7976931348623157e+308,
+  "minXDiff": 1.7976931348623157e+308,
+  "minY": -4,
+  "series": [
+    [
+      1,
+      -2,
+      3.5,
+    ],
+    [
+      4,
+      -1,
+      0.25,
+    ],
+  ],
+  "seriesX": [
+    [
+      "A",
+      "B",
+      "C",
+    ],
+    [
+      "A",
+      "B",
+      "C",
+    ],
+  ],
+  "xLabels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "yValueDecimal": 2,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > DateTime.parseDate and isValidDate 1`] = `
+{
+  "utc false": [
+    [
+      "2017-01-01",
+      1483228800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00Z",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00.123Z",
+      1483264800123,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-01-01 10:00",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-1-5",
+      1483574400000,
+      true,
+    ],
+    [
+      "01/02/2017",
+      1483315200000,
+      true,
+    ],
+    [
+      "Jan 5 2017",
+      1483574400000,
+      true,
+    ],
+    [
+      "5th Jan 2017",
+      NaN,
+      false,
+    ],
+    [
+      "2017",
+      1483228800000,
+      true,
+    ],
+    [
+      "+010000-01-01T00:00:00.000Z",
+      253402300800000,
+      true,
+    ],
+    [
+      "-000001-01-01T00:00:00.000Z",
+      -62198755200000,
+      true,
+    ],
+    [
+      "garbage",
+      NaN,
+      false,
+    ],
+    [
+      "",
+      NaN,
+      false,
+    ],
+    [
+      "Sun Jan 01 2017 00:00:00 GMT+0000 (Coordinated Universal Time)",
+      1483228800123,
+      true,
+    ],
+    [
+      "Invalid Date",
+      NaN,
+      false,
+    ],
+    [
+      "null",
+      NaN,
+      false,
+    ],
+    [
+      "undefined",
+      NaN,
+      false,
+    ],
+    [
+      "1483228800000",
+      NaN,
+      false,
+    ],
+  ],
+  "utc true": [
+    [
+      "2017-01-01",
+      1483228800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00Z",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00.123Z",
+      1483264800123,
+      true,
+    ],
+    [
+      "2017-01-01T10:00:00",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-01-01 10:00",
+      1483264800000,
+      true,
+    ],
+    [
+      "2017-1-5",
+      1483574400000,
+      true,
+    ],
+    [
+      "01/02/2017",
+      1483315200000,
+      true,
+    ],
+    [
+      "Jan 5 2017",
+      1483574400000,
+      true,
+    ],
+    [
+      "5th Jan 2017",
+      NaN,
+      false,
+    ],
+    [
+      "2017",
+      1483228800000,
+      true,
+    ],
+    [
+      "+010000-01-01T00:00:00.000Z",
+      253402300800000,
+      true,
+    ],
+    [
+      "-000001-01-01T00:00:00.000Z",
+      -62198755200000,
+      true,
+    ],
+    [
+      "garbage",
+      NaN,
+      false,
+    ],
+    [
+      "",
+      NaN,
+      false,
+    ],
+    [
+      "Sun Jan 01 2017 00:00:00 GMT+0000 (Coordinated Universal Time)",
+      1483228800123,
+      true,
+    ],
+    [
+      "Invalid Date",
+      NaN,
+      false,
+    ],
+    [
+      "null",
+      NaN,
+      false,
+    ],
+    [
+      "undefined",
+      NaN,
+      false,
+    ],
+    [
+      "1483228800000",
+      NaN,
+      false,
+    ],
+  ],
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > category bar, {x, y} with goals on one series and nulls 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    [
+      [
+        {
+          "name": "g",
+          "value": 9,
+        },
+      ],
+      null,
+      null,
+      [
+        {
+          "name": "g",
+          "value": -3,
+        },
+      ],
+    ],
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    "A",
+    "B",
+    "C",
+    "D",
+  ],
+  "maxX": -1.7976931348623157e+308,
+  "maxY": 10,
+  "minX": 1.7976931348623157e+308,
+  "minXDiff": 1.7976931348623157e+308,
+  "minY": 0,
+  "series": [
+    [
+      4,
+      null,
+      6,
+      2,
+    ],
+    [
+      1,
+      2,
+      null,
+      7,
+    ],
+  ],
+  "seriesX": [
+    [
+      "A",
+      "B",
+      "C",
+      "D",
+    ],
+    [
+      "A",
+      "B",
+      "C",
+      "D",
+    ],
+  ],
+  "xLabels": [
+    "A",
+    "B",
+    "C",
+    "D",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > category bar, {x, y} without goals, negative values 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "maxX": -1.7976931348623157e+308,
+  "maxY": 0,
+  "minX": 1.7976931348623157e+308,
+  "minXDiff": 1.7976931348623157e+308,
+  "minY": -4,
+  "series": [
+    [
+      -4,
+      -2.5,
+      -1,
+    ],
+  ],
+  "seriesX": [
+    [
+      "A",
+      "B",
+      "C",
+    ],
+  ],
+  "xLabels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > category, {x: name} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1,
+    2,
+    3,
+    4,
+  ],
+  "maxX": 4,
+  "maxY": 8,
+  "minX": 1,
+  "minXDiff": 1,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "xLabels": [
+    "Apples",
+    "Pears",
+    "Plums",
+    "Figs",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > category, {x: strings that look like dates} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1,
+    2,
+    3,
+    4,
+  ],
+  "maxX": 4,
+  "maxY": 8,
+  "minX": 1,
+  "minXDiff": 1,
+  "minY": 0,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "xLabels": [
+    "2017-01-01",
+    "01/02/2017",
+    "Jan 3 2017",
+    "2017",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, [[ISO string, y]] 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483286400000,
+    1483344000000,
+    1483401600000,
+  ],
+  "maxX": 1483401600000,
+  "maxY": 3,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, [[timestamp, y]] 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 5,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 0,
+  "series": [
+    [
+      0,
+      1.5,
+      3,
+      4.5,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, [[timestamp, y]] with a null row and a null y 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 4,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      null,
+      null,
+      4,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      NaN,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, [[timestamp, y]] with fractional timestamps 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483286400000,
+    1483344000000,
+    1483401600000,
+  ],
+  "maxX": 1483401600000,
+  "maxY": 3,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, {x: Date} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800250,
+    1483315200250,
+    1483401600250,
+    1483488000250,
+  ],
+  "maxX": 1483488000250,
+  "maxY": 8,
+  "minX": 1483228800250,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800250,
+      1483315200250,
+      1483401600250,
+      1483488000250,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, {x: ISO string} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, {x: ISO string}, datetimeUTC false 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, {x: date without a time} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, {x: local date strings} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 64800000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483423200000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, {x: timestamp} 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 8,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 2,
+  "series": [
+    [
+      3,
+      5.5,
+      2,
+      8,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 1,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, plain values with ISO categories, two series 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 4,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+    [
+      4,
+      3,
+      2.25,
+      1,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 2,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > datetime, plain values with local date labels 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    1483228800000,
+    1483315200000,
+    1483401600000,
+    1483488000000,
+  ],
+  "maxX": 1483488000000,
+  "maxY": 4,
+  "minX": 1483228800000,
+  "minXDiff": 86400000,
+  "minY": 1,
+  "series": [
+    [
+      1,
+      2,
+      3,
+      4,
+    ],
+  ],
+  "seriesX": [
+    [
+      1483228800000,
+      1483315200000,
+      1483401600000,
+      1483488000000,
+    ],
+  ],
+  "xLabels": [
+    "01 Jan 00:00",
+    "01 Jan 06:00",
+    "01 Jan 12:00",
+    "01 Jan 18:00",
+    "02 Jan 00:00",
+    "02 Jan 06:00",
+    "02 Jan 12:00",
+    "02 Jan 18:00",
+    "03 Jan 00:00",
+    "03 Jan 06:00",
+    "03 Jan 12:00",
+    "03 Jan 18:00",
+    "04 Jan 00:00",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > numeric line, two {x, y} series, the second all null 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    1,
+    2,
+    3,
+  ],
+  "maxX": 3,
+  "maxY": 6,
+  "minX": 1,
+  "minXDiff": 1,
+  "minY": 2,
+  "series": [
+    [
+      2,
+      4,
+      6,
+    ],
+    [
+      null,
+      null,
+      null,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2,
+      3,
+    ],
+    [
+      1,
+      2,
+      3,
+    ],
+  ],
+  "xLabels": [
+    "1",
+    "2",
+    "3",
+  ],
+  "yValueDecimal": 0,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > numeric, {x: number} with a null y 1`] = `
+{
+  "dataPoints": 4,
+  "goals": [
+    null,
+  ],
+  "hasNullValues": true,
+  "labels": [
+    1,
+    3.33,
+    5.66,
+    7.99,
+  ],
+  "maxX": 8,
+  "maxY": 10,
+  "minX": 1,
+  "minXDiff": 1.5,
+  "minY": 0,
+  "series": [
+    [
+      10,
+      null,
+      0.125,
+      3,
+    ],
+  ],
+  "seriesX": [
+    [
+      1,
+      2.5,
+      4,
+      8,
+    ],
+  ],
+  "xLabels": [
+    "1.0",
+    "3.3",
+    "5.7",
+    "8.0",
+  ],
+  "yValueDecimal": 3,
+}
+`;
+
+exports[`parsed output pins, TZ=UTC > stacked bar, {x, y} with goals absent 1`] = `
+{
+  "dataPoints": 3,
+  "goals": [
+    null,
+    null,
+  ],
+  "hasNullValues": false,
+  "labels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "maxX": -1.7976931348623157e+308,
+  "maxY": 6,
+  "minX": 1.7976931348623157e+308,
+  "minXDiff": 1.7976931348623157e+308,
+  "minY": -4,
+  "series": [
+    [
+      1,
+      -2,
+      3.5,
+    ],
+    [
+      4,
+      -1,
+      0.25,
+    ],
+  ],
+  "seriesX": [
+    [
+      "A",
+      "B",
+      "C",
+    ],
+    [
+      "A",
+      "B",
+      "C",
+    ],
+  ],
+  "xLabels": [
+    "A",
+    "B",
+    "C",
+  ],
+  "yValueDecimal": 2,
+}
+`;

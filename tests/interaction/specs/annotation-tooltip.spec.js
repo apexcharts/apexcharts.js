@@ -11,12 +11,14 @@
  *    the series tooltip on the next mousemove.
  *
  * 2. getElTooltip isolation: the annotation tooltip element shares the
- *    .apexcharts-tooltip class for styling. After updateSeries() the series
- *    tooltip is re-appended and ends up AFTER the annotation tooltip in DOM
- *    order, so a bare querySelector('.apexcharts-tooltip') would return the
- *    annotation tooltip and hijack the series-tooltip machinery. The
+ *    .apexcharts-tooltip class for styling. A data update that rebuilds the
+ *    series tooltip (a custom tooltip replaced its rows) re-appends it AFTER
+ *    the annotation tooltip in DOM order, so a bare
+ *    querySelector('.apexcharts-tooltip') would return the annotation
+ *    tooltip and hijack the series-tooltip machinery. The
  *    :not(.apexcharts-annotation-tooltip) guard keeps both tooltips working
- *    after fast updates.
+ *    after fast updates. A plain data update keeps the series tooltip in
+ *    place; both cases are covered.
  */
 
 import { test, expect } from '../fixtures/base.js'
@@ -61,6 +63,24 @@ async function hoverAnnotationMarker(page, index) {
   const box = await marker.boundingBox()
   await page.mouse.move(box.x + box.width / 2 + 1, box.y + box.height / 2)
   await page.waitForTimeout(150)
+}
+
+// A data-only update (the fast path) of the sample's one series.
+async function updatePrices(page) {
+  await page.evaluate(() => {
+    const data = window.series.monthDataSeries1.prices.map((p) => p + 50)
+    return window.chart.updateSeries([{ name: 'Price', data }])
+  })
+  await page.waitForTimeout(400)
+}
+
+// Which kind of tooltip box comes first in the DOM.
+async function tooltipOrder(page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll('.apexcharts-tooltip')].map((el) =>
+      el.classList.contains('apexcharts-annotation-tooltip') ? 'anno' : 'series',
+    ),
+  )
 }
 
 test.describe('Point-annotation hover tooltips', () => {
@@ -113,7 +133,7 @@ test.describe('Point-annotation hover tooltips', () => {
     expect(html).toContain('9,340.85') // built from annotation.y
   })
 
-  test('both tooltips keep working after updateSeries reorders the tooltip DOM', async ({
+  test('both tooltips keep working after updateSeries keeps the series tooltip', async ({
     page,
     loadChart,
   }) => {
@@ -124,22 +144,11 @@ test.describe('Point-annotation hover tooltips', () => {
     await hoverAnnotationMarker(page, 0)
     expect((await tooltipStates(page)).anno).toBe(true)
 
-    await page.evaluate(() => {
-      const data = window.series.monthDataSeries1.prices.map((p) => p + 50)
-      return window.chart.updateSeries([{ name: 'Price', data }])
-    })
-    await page.waitForTimeout(400)
+    await updatePrices(page)
 
-    // The hazard this test exists for: the re-appended series tooltip now
-    // sits after the annotation tooltip in DOM order.
-    const order = await page.evaluate(() =>
-      [...document.querySelectorAll('.apexcharts-tooltip')].map((el) =>
-        el.classList.contains('apexcharts-annotation-tooltip')
-          ? 'anno'
-          : 'series',
-      ),
-    )
-    expect(order).toEqual(['anno', 'series'])
+    // A data-only update keeps the series tooltip where it was, before the
+    // annotation tooltip (the next test covers the rebuild).
+    expect(await tooltipOrder(page)).toEqual(['series', 'anno'])
 
     // Series tooltip still works, with real content.
     await hoverPlainSpot(page, 0.4, 0.5)
@@ -154,6 +163,52 @@ test.describe('Point-annotation hover tooltips', () => {
     expect(title.length).toBeGreaterThan(0)
 
     // Annotation tooltip still works too.
+    await hoverAnnotationMarker(page, 1)
+    expect(await tooltipStates(page)).toEqual({ series: false, anno: true })
+  })
+
+  test('both tooltips keep working after updateSeries rebuilds the series tooltip after the annotation tooltip', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('line', 'line-with-annotation-tooltips')
+    // A custom tooltip replaces the box's rows with its own markup, so the
+    // next data update cannot keep them and builds the box again.
+    await page.evaluate(() =>
+      window.chart.updateOptions({
+        tooltip: {
+          enabled: true,
+          custom: ({ dataPointIndex }) =>
+            `<div class="probe-custom">point ${dataPointIndex}</div>`,
+        },
+      }),
+    )
+    await page.waitForTimeout(300)
+    await hoverPlainSpot(page, 0.4, 0.5)
+    expect((await tooltipStates(page)).series).toBe(true)
+    await hoverAnnotationMarker(page, 0)
+    expect((await tooltipStates(page)).anno).toBe(true)
+
+    await updatePrices(page)
+
+    // The hazard this test exists for: the rebuilt series tooltip now sits
+    // after the annotation tooltip in DOM order, where a bare
+    // querySelector('.apexcharts-tooltip') would find the annotation one.
+    expect(await tooltipOrder(page)).toEqual(['anno', 'series'])
+
+    // The series hover writes into the series box, not the annotation one.
+    await hoverPlainSpot(page, 0.4, 0.5)
+    expect(await tooltipStates(page)).toEqual({ series: true, anno: false })
+    const text = await page.evaluate(
+      ([s, a]) => [
+        document.querySelector(`${s} .probe-custom`)?.textContent,
+        document.querySelector(`${a} .probe-custom`),
+      ],
+      [SERIES_TT, ANNO_TT],
+    )
+    expect(text[0]).toMatch(/^point \d+$/)
+    expect(text[1]).toBeNull()
+
     await hoverAnnotationMarker(page, 1)
     expect(await tooltipStates(page)).toEqual({ series: false, anno: true })
   })

@@ -162,7 +162,10 @@ export default class Breadcrumb {
       const list = (this.w.config.drilldown.series || []).find(
         (s) => s && s.id === id,
       )
-      label = (list && list.name) || String(id)
+      // An onDrillDown level is not in that list: its name rides on the
+      // stack frame (or, drilled from a point with no id, the point's label).
+      const frame = this.drilldown.stack[index - 1]
+      label = (list && list.name) || (frame && frame.name) || String(id)
     }
     if (typeof cfg.formatter === 'function') {
       return cfg.formatter(label, { index, depth: this.drilldown.depth })

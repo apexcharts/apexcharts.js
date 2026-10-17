@@ -87,6 +87,7 @@ describe('UpdateHelpers._extendSeries', () => {
         data: [9, 8],
       },
       0, // series index 0
+      w.config.series[0],
     )
 
     expect(result.name).toBe('X')
@@ -101,8 +102,8 @@ describe('UpdateHelpers._extendSeries', () => {
     const w = makeW()
     const uh = new UpdateHelpers(w, makeCtx(w))
 
-    // Empty update object — everything should come from w.config.series[1]
-    const result = uh._extendSeries({}, 1)
+    // Empty update object: everything comes from the row passed in
+    const result = uh._extendSeries({}, 1, w.config.series[1])
 
     expect(result.name).toBe('B')
     expect(result.color).toBe('#00f')
@@ -110,11 +111,23 @@ describe('UpdateHelpers._extendSeries', () => {
     expect(result.data).toEqual([4, 5, 6])
   })
 
+  it('inherits nothing when there is no baseline row', () => {
+    const w = makeW()
+    const uh = new UpdateHelpers(w, makeCtx(w))
+
+    // A row past the end of the baseline must not borrow the live row.
+    const result = uh._extendSeries({ data: [1] }, 1, undefined)
+    expect(result.name).toBeUndefined()
+    expect(result.color).toBeUndefined()
+    expect(result.type).toBeUndefined()
+    expect(result.data).toEqual([1])
+  })
+
   it('assigns zIndex from index when not provided', () => {
     const w = makeW()
     const uh = new UpdateHelpers(w, makeCtx(w))
 
-    const result = uh._extendSeries({}, 1)
+    const result = uh._extendSeries({}, 1, w.config.series[1])
     // when s.zIndex is undefined, zIndex defaults to the series index
     expect(result.zIndex).toBe(1)
   })
@@ -123,7 +136,7 @@ describe('UpdateHelpers._extendSeries', () => {
     const w = makeW()
     const uh = new UpdateHelpers(w, makeCtx(w))
 
-    const result = uh._extendSeries({ zIndex: 99 }, 0)
+    const result = uh._extendSeries({ zIndex: 99 }, 0, w.config.series[0])
     expect(result.zIndex).toBe(99)
   })
 
@@ -132,7 +145,7 @@ describe('UpdateHelpers._extendSeries', () => {
     const uh = new UpdateHelpers(w, makeCtx(w))
 
     // hidden=false is defined → should use it, not fall back to ser?.hidden
-    const result = uh._extendSeries({ hidden: false }, 0)
+    const result = uh._extendSeries({ hidden: false }, 0, w.config.series[0])
     expect(result.hidden).toBe(false)
   })
 
@@ -140,9 +153,9 @@ describe('UpdateHelpers._extendSeries', () => {
     const w = makeW()
     const uh = new UpdateHelpers(w, makeCtx(w))
 
-    // _extendSeries spreads w.config.series[i], so any extra keys survive
+    // _extendSeries spreads the row passed in, so any extra keys survive
     w.config.series[0].customProp = 'kept'
-    const result = uh._extendSeries({}, 0)
+    const result = uh._extendSeries({}, 0, w.config.series[0])
     expect(result.customProp).toBe('kept')
   })
 })

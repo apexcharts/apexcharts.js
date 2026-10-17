@@ -123,8 +123,3 @@ export function getUnitMark(name) {
 export function unregisterUnitMark(name) {
   delete getMarks()[name]
 }
-
-/** @returns {string[]} */
-export function registeredUnitMarkNames() {
-  return Object.keys(getMarks())
-}

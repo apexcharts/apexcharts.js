@@ -84,6 +84,29 @@ function legendSignature(w) {
   ])
 }
 
+/**
+ * @param {any} s
+ * @returns {boolean}
+ */
+function isNamedOrNotAnObject(s) {
+  return !s || typeof s !== 'object' || !!s.name
+}
+
+/**
+ * Where the series called name sits, under the name extendYAxis would give an
+ * unnamed one.
+ * @param {any[]} series
+ * @param {string} name
+ * @returns {number}
+ */
+function seriesIndexOf(series, name) {
+  for (let i = 0; i < series.length; i++) {
+    const s = series[i]
+    if ((s && s.name ? s.name : `series-${i + 1}`) === name) return i
+  }
+  return -1
+}
+
 export default class UpdateHelpers {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -139,10 +162,9 @@ export default class UpdateHelpers {
           w.globals.resized = true
           w.globals.dataChanged = true
 
-          // see _updateSeries: previous paths only feed update morphs
-          if (animate && w.config.chart.animations.enabled) {
-            ch.series.getPreviousPaths()
-          }
+          // A `chart` section can switch the morph on or change the type,
+          // both read after this capture, so it captures as before.
+          ch.updateHelpers.capture(animate, options?.chart)
         } else {
           // From scratch: render as the chart did when it mounted (or, with
           // animate=false, simply at rest). Both flags outlive the update
@@ -269,6 +291,11 @@ export default class UpdateHelpers {
             clearRawSeriesStashes(w)
           }
 
+          // A payload that names yaxis went through extendYAxis above.
+          if (!options.yaxis && Array.isArray(options.series)) {
+            options.series = this.syncSharedLogAxes(options.series)
+          }
+
           w.config = Utils.extend(w.config, options)
           // A path an active breakpoint also sets keeps the payload's value
           // for when the breakpoint is left (#5347).
@@ -358,6 +385,133 @@ export default class UpdateHelpers {
   }
 
   /**
+   * A logarithmic chart that declares one axis gets one hidden copy of it per
+   * extra series when it is created (Config.extendYAxis), and those copies keep
+   * every series on the declared axis. updateSeries() changes the series count
+   * without running that step, so a series added later fell onto a hidden
+   * axis with its own scale. Build the axes again for the new series.
+   * @param {any} newSeries
+   * @returns {any} the series to use: copies when the axes were rebuilt
+   */
+  syncSharedLogAxes(newSeries) {
+    const w = this.w
+    if (!Array.isArray(newSeries) || !this.isSharedLogAxes(w.config.yaxis)) {
+      return newSeries
+    }
+    const stale = this.sharedLogAxesStale(w.config.yaxis, newSeries)
+    // Series are matched to axes by name, and extendYAxis names the unnamed
+    // ones. Without that an unnamed series falls off its axis on every update,
+    // even when the axes themselves are still right.
+    if (!stale && newSeries.every(isNamedOrNotAnObject)) return newSeries
+    // The objects belong to the caller, who may have frozen them.
+    const series = newSeries.map(
+      (/** @type {any} */ s, /** @type {number} */ i) =>
+        s && typeof s === 'object'
+          ? { ...s, name: s.name || `series-${i + 1}` }
+          : s,
+    )
+    if (!stale) return series
+    const rebuilt = this.buildSharedLogAxes(w.config.yaxis[0], series)
+    // A responsive yaxis override saved the old axes, and the next render puts
+    // them back, so the saved copy is rebuilt as well.
+    const saved = this.ctx.responsive.withoutBreakpoints(w.config).yaxis
+    if (this.sharedLogAxesStale(saved, series)) {
+      this.ctx.responsive.absorb({
+        yaxis: this.buildSharedLogAxes(saved[0], series),
+      })
+    }
+    w.config.yaxis = rebuilt
+    // Zoom and pan restore the axes from this snapshot.
+    const initial = w.globals.initialConfig
+    if (initial && this.sharedLogAxesStale(initial.yaxis, series)) {
+      initial.yaxis = this.buildSharedLogAxes(initial.yaxis[0], series)
+    }
+    return series
+  }
+
+  /**
+   * Whether yaxis is a first logarithmic axis followed by hidden copies of it,
+   * the shape extendYAxis generates. Allocates nothing, since it runs on every
+   * update of every chart.
+   * @param {any} yaxis
+   * @returns {boolean}
+   */
+  isSharedLogAxes(yaxis) {
+    if (!Array.isArray(yaxis) || yaxis.length < 2) return false
+    const first = yaxis[0]
+    if (!first.logarithmic || first.seriesName === undefined) return false
+    for (let i = 1; i < yaxis.length; i++) {
+      const y = yaxis[i]
+      if (
+        !y.logarithmic ||
+        y.show !== false ||
+        y.seriesName !== first.seriesName
+      )
+        return false
+    }
+    return true
+  }
+
+  /**
+   * Whether yaxis is a set of generated shared log axes that no longer fit
+   * newSeries.
+   * @param {any} yaxis
+   * @param {any[]} newSeries
+   * @returns {boolean}
+   */
+  sharedLogAxesStale(yaxis, newSeries) {
+    if (!this.isSharedLogAxes(yaxis)) return false
+    if (newSeries.length !== yaxis.length) return true
+    // Same count: every series goes to the axis at the index of the series the
+    // axes name (setSeriesYAxisMappings), so they still fit only while that
+    // series stays where it was. A reorder that moves it would leave every
+    // series on a hidden axis with its own scale (#5353). An axis that already
+    // named another series keeps naming it. Where it was comes from the last
+    // mapping, not w.config.series, which resetSeries() replaces first.
+    const at = seriesIndexOf(newSeries, yaxis[0].seriesName)
+    return at === -1 || at !== this.w.globals.seriesYAxisReverseMap[0]
+  }
+
+  /**
+   * The axes a new chart gets for series: the first axis plus one hidden copy
+   * per extra series.
+   * @param {any} first the declared axis
+   * @param {any[]} series
+   * @returns {any[]}
+   */
+  buildSharedLogAxes(first, series) {
+    const w = this.w
+    return new Config({}).extendYAxis(
+      { yaxis: [first], series, chart: w.config.chart },
+      w,
+    ).yaxis
+  }
+
+  /**
+   * Capture what is on screen for an update to morph from. Previous paths
+   * (and the stream, axis chrome and label frames taken with them) only feed
+   * data-change MORPHS, which need dynamicAnimation; the capture is O(n). An
+   * update that does not capture drops the last one instead: a frame left in
+   * place reads as this update's (a canvas line kept building path strings
+   * for it on every later pan).
+   *
+   * @param {boolean} animate
+   * @param {any} [chart] the payload's `chart` section, if any
+   */
+  capture(animate, chart) {
+    const w = this.w
+    const gl = w.globals
+    const a = w.config.chart.animations
+    if (animate && a.enabled && (a.dynamicAnimation.enabled || chart)) {
+      this.ctx.series.getPreviousPaths()
+    } else {
+      gl.previousPaths = []
+      gl.prevStreamFrame = null
+      gl.streamScrolled = false
+    }
+  }
+
+  /**
    * Private method to update Series.
    *
    * @param {any[]} newSeries - New series which will override the existing
@@ -383,12 +537,7 @@ export default class UpdateHelpers {
 
       PerformanceCache.invalidateSelectors(w)
 
-      // Previous paths (and the stream-frame / axis-chrome snapshots captured
-      // with them) only feed update MORPHS. When animations are globally off
-      // nothing consumes them, and the capture is O(n) per update.
-      if (animate && w.config.chart.animations.enabled) {
-        this.ctx.series.getPreviousPaths()
-      }
+      this.capture(animate)
 
       // The category names on screen. The fast path keeps the axis DOM and the
       // layout, and the axis-scale signature above only knows the value scale,
@@ -432,6 +581,7 @@ export default class UpdateHelpers {
         clearRawSeriesStashes(w)
       }
 
+      newSeries = this.syncSharedLogAxes(newSeries)
       const definedSeries = newSeries
       let reconciledCollapses = false
 
@@ -581,13 +731,13 @@ export default class UpdateHelpers {
   /**
    * @param {any} s
    * @param {number} i
+   * @param {any} ser the baseline row a partial `s` inherits from. No
+   *   fallback to the live config row: a row past the end of the baseline
+   *   is new and inherits nothing.
    */
-  _extendSeries(s, i) {
-    const w = this.w
-    const ser = w.config.series[i]
-
+  _extendSeries(s, i, ser) {
     return {
-      .../** @type {Record<string,any>} */ (w.config.series[i]),
+      .../** @type {Record<string,any>} */ (ser),
       name: s.name ? s.name : /** @type {any} */ (ser)?.name,
       color: s.color ? s.color : /** @type {any} */ (ser)?.color,
       type: s.type ? s.type : /** @type {any} */ (ser)?.type,

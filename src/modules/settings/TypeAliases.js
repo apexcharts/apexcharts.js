@@ -32,23 +32,27 @@
  */
 export const RESERVED_TYPES = ['icicle', 'unit', 'sunburst', 'violin']
 
+// No prototype, so a lookup never finds 'constructor' or 'toString'
 /** @type {Record<string, string>} */
-export const TYPE_ALIASES = {
-  funnel: 'bar',
-  pyramid: 'bar',
-  gauge: 'radialBar',
-  waffle: 'unit',
-  histogram: 'bar',
-  waterfall: 'rangeBar',
-  dumbbell: 'rangeBar',
-  streamgraph: 'rangeArea',
-  raincloud: 'violin',
-  // `column` is the name half the world uses for a vertical bar chart, and the
-  // combo path has always accepted it on `series[].type`. On `chart.type` it
-  // used to fall through every dispatch and die inside the renderer (#5325),
-  // so it is spelled out here as what it has always meant.
-  column: 'bar',
-}
+export const TYPE_ALIASES = Object.setPrototypeOf(
+  {
+    funnel: 'bar',
+    pyramid: 'bar',
+    gauge: 'radialBar',
+    waffle: 'unit',
+    histogram: 'bar',
+    waterfall: 'rangeBar',
+    dumbbell: 'rangeBar',
+    streamgraph: 'rangeArea',
+    raincloud: 'violin',
+    // `column` is the name half the world uses for a vertical bar chart, and the
+    // combo path has always accepted it on `series[].type`. On `chart.type` it
+    // used to fall through every dispatch and die inside the renderer (#5325),
+    // so it is spelled out here as what it has always meant.
+    column: 'bar',
+  },
+  null,
+)
 
 /**
  * Alias chart types that cannot draw anything true until the named feature
@@ -120,6 +124,19 @@ export const XY_TYPES = [
   'violin',
   'scatter',
   'bubble',
+]
+
+/**
+ * The XY types drawn through the bar pathway: one slot per point, so the
+ * hover divisor counts slots, and on a numeric axis the edge marks hang half
+ * a slot outside the plot and need padding and a widened clip.
+ */
+export const BAR_PATHWAY_TYPES = [
+  'bar',
+  'rangeBar',
+  'candlestick',
+  'boxPlot',
+  'violin',
 ]
 
 /**

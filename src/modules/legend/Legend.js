@@ -534,27 +534,41 @@ class Legend {
     const w = this.w
     const target = /** @type {Element} */ (e.target)
 
-    const hoverOverLegend = isLegendItem(target)
+    if (!isLegendItem(target)) return
 
+    const rel = target.getAttribute('rel')
+    const move = e.type === 'mousemove'
+    const to = /** @type {Element | null} */ (e.relatedTarget)
+    // The item under the pointer, kept on the per-render selector cache so
+    // any re-render (fastUpdate included) forgets it. Another move inside
+    // that item, or an out onto another part of it, changes nothing. The
+    // same rel in another chart's legend is another item.
+    const c = /** @type {any} */ (w.globals.cachedSelectors)
+    if (
+      move
+        ? c.legendRel === rel
+        : to &&
+          isLegendItem(to) &&
+          to.getAttribute('rel') === rel &&
+          w.dom.elWrap.contains(to)
+    ) {
+      return
+    }
+    c.legendRel = move ? rel : null
+
+    const series = new Series(this.ctx.w)
     if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
       // closest: the text span of a hidden item carries no inactive class
-      if (hoverOverLegend && !target.closest('.apexcharts-inactive-legend')) {
-        const series = new Series(this.ctx.w)
+      if (!target.closest('.apexcharts-inactive-legend')) {
         series.toggleSeriesOnHover(e, target)
       }
     } else {
       // for heatmap handling
-      if (hoverOverLegend) {
-        const seriesCnt = parseInt(target.getAttribute('rel') ?? '0', 10) - 1
+      const seriesCnt = parseInt(rel ?? '0', 10) - 1
+      if (move) {
         this.ctx.events.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
-
-        const series = new Series(this.ctx.w)
-        if (e.type === 'mousemove') {
-          series.highlightRangeInSeries(seriesCnt, 'highlight')
-        } else if (e.type === 'mouseout') {
-          series.highlightRangeInSeries(seriesCnt, 'reset')
-        }
       }
+      series.highlightRangeInSeries(seriesCnt, move ? 'highlight' : 'reset')
     }
   }
 

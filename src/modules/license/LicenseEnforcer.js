@@ -235,6 +235,7 @@ function reinstateWatermark(ctx, elWrap) {
   // and resolves a per-chart `chart.license` key, so letting the package decide
   // would paint free charts and erase watermarks we deliberately applied.
   const node = Watermark.add(elWrap, { manage: false })
+  ctx._wmPainted = true
   if (!node || typeof MutationObserver === 'undefined') return
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return
 
@@ -279,6 +280,10 @@ function addWatermark(ctx, elWrap) {
  * @param {any} ctx @param {HTMLElement | null | undefined} [elWrap]
  */
 export function teardownWatermark(ctx, elWrap) {
+  // Free and licensed charts run this on every render: with nothing painted
+  // there is nothing to undo, so skip the subtree query for the node.
+  if (!ctx._wmPainted) return
+  ctx._wmPainted = false
   if (ctx._wmWrapObserver) {
     ctx._wmWrapObserver.disconnect()
     ctx._wmWrapObserver = null

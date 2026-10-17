@@ -142,7 +142,7 @@ export function resolveTreemapTree(w, series) {
  * built here so there is exactly one layout path.
  *
  * @param {any} w
- * @returns {{ roots: any[], maxDepth: number, nested: boolean }}
+ * @returns {{ roots: any[], maxDepth: number }}
  */
 export function getTreemapRoots(w) {
   const stashed = w.globals.treemapRoots
@@ -150,7 +150,6 @@ export function getTreemapRoots(w) {
     return {
       roots: stashed,
       maxDepth: w.globals.treemapMaxDepth || 1,
-      nested: true,
     }
   }
   const roots = buildSeriesRoots(w, w.config.series, {
@@ -159,7 +158,7 @@ export function getTreemapRoots(w) {
   })
   roots.forEach(fillValues)
   const { maxDepth } = annotate(roots)
-  return { roots, maxDepth, nested: false }
+  return { roots, maxDepth }
 }
 
 export { hasNesting }

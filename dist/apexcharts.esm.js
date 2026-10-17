@@ -31,7 +31,7 @@ var __objRest = (source, exclude) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1023,10 +1023,14 @@ class Exports {
         const byCategory = /* @__PURE__ */ new Map();
         series.forEach((s, sI) => {
           var _a;
+          const seen = /* @__PURE__ */ new Map();
           (_a = s == null ? void 0 : s.data) == null ? void 0 : _a.forEach((d, i) => {
             if (!d || typeof d !== "object") return;
             const cat = Array.isArray(d) ? d[0] : d.x;
-            const key = String(cat);
+            const x2 = String(cat);
+            const n = seen.get(x2) || 0;
+            seen.set(x2, n + 1);
+            const key = `${n}:${x2}`;
             let row = byCategory.get(key);
             if (!row) {
               row = { cat, values: cols.map((c) => c.head.map(() => "")) };
@@ -1040,7 +1044,8 @@ class Exports {
           const bText = typeof b.cat === "string";
           if (aText !== bText) return aText ? 1 : -1;
           if (!aText) return a.cat - b.cat;
-          return w.axisFlags.isXNumeric ? a.cat < b.cat ? -1 : 1 : 0;
+          if (!w.axisFlags.isXNumeric) return 0;
+          return a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : 0;
         }).forEach(({ cat, values }) => body.push([cat, ...values.flat()]));
       } else {
         const len = Math.max(
@@ -1065,7 +1070,8 @@ class Exports {
       }
     }
     const dates = body.map((r) => r[0]).filter(isDateCat);
-    const withTime = new Set(dates.map((c) => datetimeText(c))).size < dates.length;
+    const stamps = new Set(dates.map((c) => +new Date(c)));
+    const withTime = new Set([...stamps].map((t) => datetimeText(t))).size < stamps.size;
     body.forEach(
       (r) => rows.push(
         [getFormattedCategory(r[0], withTime), ...r.slice(1)].join(
@@ -1142,6 +1148,7 @@ let Helpers$3 = class Helpers {
   toggleDataSeries(seriesCnt, isHidden) {
     var _a, _b, _c;
     const w = this.w;
+    if (!w.dom.baseEl) return;
     if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
       w.globals.resized = true;
       let seriesEl = null;
@@ -1305,7 +1312,7 @@ let Helpers$3 = class Helpers {
     var _a, _b;
     const w = this.w;
     const gl = w.globals;
-    const series = Utils.clone(w.config.series);
+    const series = gl.axisCharts ? Utils.copySeriesShallow(w.config.series) : Utils.clone(w.config.series);
     if (gl.axisCharts) {
       const yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]];
       const collapseData = {
@@ -1611,9 +1618,11 @@ class HeatmapGradientLegend {
     this._min = 0;
     this._max = 0;
     this._geom = null;
+    this._grad = null;
     this._bandHitEls = [];
     this._activeBandIndex = -1;
     this._targetEl = null;
+    this.panelsW = null;
     this._onCellEnter = this._onCellEnter.bind(this);
     this._onCellLeave = this._onCellLeave.bind(this);
     this._onBandEnter = this._onBandEnter.bind(this);
@@ -1728,15 +1737,8 @@ class HeatmapGradientLegend {
       linearGrad.setAttribute("x2", "1");
       linearGrad.setAttribute("y2", "0");
     }
-    const { min, max, stops, bands } = this._computeStops();
-    this._min = min;
-    this._max = max;
-    stops.forEach((s) => {
-      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
-      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
-      stopEl.setAttribute("stop-color", s.color);
-      linearGrad.appendChild(stopEl);
-    });
+    this._grad = linearGrad;
+    const { min, max, bands } = this._paintStops();
     defs.appendChild(linearGrad);
     svg.appendChild(defs);
     const rect = BrowserAPIs.createElementNS(SVG_NS, "rect");
@@ -1945,6 +1947,7 @@ class HeatmapGradientLegend {
    */
   repositionToPlot() {
     var _a, _b;
+    if (this._grad) this._paintStops();
     if (!Environment.isBrowser()) return;
     if (this._targetEl) return;
     const w = this.w;
@@ -2079,14 +2082,25 @@ class HeatmapGradientLegend {
     if (idx < 0 || idx === this._activeBandIndex) return;
     this._activeBandIndex = idx;
     (_d = (_c = (_b = this.ctx) == null ? void 0 : _b.events) == null ? void 0 : _c.fireEvent) == null ? void 0 : _d.call(_c, "legendHover", [this.ctx, idx, w]);
-    new Series(w).highlightRangeInSeries(idx, "highlight");
+    this._highlightRange(idx, "highlight");
   }
   /** Leaving a band clears the highlight. */
   _onBandLeave() {
     if (this._activeBandIndex < 0) return;
     const idx = this._activeBandIndex;
     this._activeBandIndex = -1;
-    new Series(this.w).highlightRangeInSeries(idx, "reset");
+    this._highlightRange(idx, "reset");
+  }
+  /**
+   * A shared trellis strip sets `panelsW` so a band reaches every panel.
+   * @param {number} idx
+   * @param {'highlight'|'reset'} action
+   */
+  _highlightRange(idx, action) {
+    var _a;
+    (((_a = this.panelsW) == null ? void 0 : _a.call(this)) || [this.w]).forEach(
+      (w) => new Series(w).highlightRangeInSeries(idx, action)
+    );
   }
   _attachHoverListeners() {
     var _a, _b;
@@ -2108,10 +2122,10 @@ class HeatmapGradientLegend {
    */
   _onCellEnter(...args) {
     var _a, _b, _c;
-    const w = this.w;
     if (!this.arrowEl) return;
     const opts = args[args.length - 1];
     if (!opts || typeof opts !== "object") return;
+    const w = opts.w || this.w;
     const i = opts.seriesIndex;
     const j = opts.dataPointIndex;
     if (typeof i !== "number" || typeof j !== "number") return;
@@ -2223,6 +2237,21 @@ class HeatmapGradientLegend {
     polygon.setAttribute("pointer-events", "none");
     return polygon;
   }
+  /** (Re)write the strip's stops; returns `_computeStops()`. */
+  _paintStops() {
+    const r = this._computeStops();
+    const grad = this._grad;
+    this._min = r.min;
+    this._max = r.max;
+    grad.innerHTML = "";
+    r.stops.forEach((s) => {
+      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
+      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
+      stopEl.setAttribute("stop-color", s.color);
+      grad.appendChild(stopEl);
+    });
+    return r;
+  }
   /**
    * Build gradient stops + return effective min/max.
    * - If `colorScale.ranges` is set, stops are placed at each range boundary
@@ -2264,7 +2293,8 @@ class HeatmapGradientLegend {
     if (!Number.isFinite(dataMax)) dataMax = 0;
     let min = dataMin;
     let max = dataMax;
-    if (typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min) {
+    const csWindow = typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min;
+    if (csWindow) {
       min = cs.min;
       max = cs.max;
     } else {
@@ -2295,34 +2325,30 @@ class HeatmapGradientLegend {
     } else {
       const baseColor = w.globals.colors[0] || "#008FFB";
       const utils = new Utils();
-      const plot = w.config.plotOptions[w.config.chart.type] || {};
+      const type = w.config.chart.type;
+      const plot = w.config.plotOptions[type] || {};
       const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
-      const hasNegs = (
+      const g = (
         /** @type {any} */
-        w.globals.hasNegs
+        w.globals
       );
+      const hasNegs = g.hasNegs;
+      const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
+      const hi = yExt ? g.maxY : max;
+      const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
+      const k2 = shadeIntensity * 1.25;
       const n = Math.max(2, cfg.stops || 16);
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1);
-        const v = min + t * (max - min);
-        const total = Math.abs(max) + Math.abs(min);
-        const percent_v = total === 0 ? 0 : 100 * v / total;
-        let colorShadePercent;
-        if (hasNegs) {
-          if (plot.reverseNegativeShade) {
-            colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
-          } else {
-            colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
-          }
-        } else {
-          colorShadePercent = 1 - percent_v / 100;
-        }
-        if (colorShadePercent > 1) colorShadePercent = 1;
-        if (colorShadePercent < -1) colorShadePercent = -1;
-        const shaded = plot.enableShades ? utils.shadeColor(
-          w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
-          baseColor
-        ) : baseColor;
+        const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
+        const c = Math.max(
+          -1,
+          Math.min(
+            1,
+            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k2 : 1)
+          )
+        );
+        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
     }
@@ -2352,9 +2378,12 @@ class Legend {
     this.legendHelpers = new Helpers$3(this);
   }
   init() {
+    var _a;
     const w = this.w;
     const gl = w.globals;
     const cnf = w.config;
+    (_a = this.heatmapGradientLegend) == null ? void 0 : _a.destroy();
+    this.heatmapGradientLegend = null;
     this.isBarsDistributed = cnf.chart.type === "bar" && cnf.plotOptions.bar.distributed && cnf.series.length === 1;
     const showLegendAlways = cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1 || this.isBarsDistributed || // Heatmap legends are colorScale-driven (discrete ranges or the
     // gradient strip), not series-driven, so they must render even for a
@@ -2371,10 +2400,6 @@ class Legend {
       );
       while (elLegendWrap.firstChild) {
         elLegendWrap.removeChild(elLegendWrap.firstChild);
-      }
-      if (this.heatmapGradientLegend) {
-        this.heatmapGradientLegend.destroy();
-        this.heatmapGradientLegend = null;
       }
       if (HeatmapGradientLegend.isEnabled(w)) {
         this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx);
@@ -2553,7 +2578,7 @@ class Legend {
         }
       }
       const lg = legendGroups[w.labelData.seriesGroupIndex[i]];
-      if (lg) elLegendWrap.appendChild(lg);
+      if (lg && !lg.parentNode) elLegendWrap.appendChild(lg);
       (lg || elLegendWrap).appendChild(elLegend);
       elLegendWrap.classList.add(
         `apexcharts-align-${w.config.legend.horizontalAlign}`
@@ -2664,7 +2689,7 @@ class Legend {
     );
     const hoverOverLegend = isLegendItem(target);
     if (w.config.chart.type !== "heatmap" && !this.isBarsDistributed) {
-      if (!target.classList.contains("apexcharts-inactive-legend") && hoverOverLegend) {
+      if (hoverOverLegend && !target.closest(".apexcharts-inactive-legend")) {
         const series = new Series(this.ctx.w);
         series.toggleSeriesOnHover(e, target);
       }
@@ -2698,7 +2723,8 @@ class Legend {
       me.onLegendClick(e);
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
-          const restored = w.dom.baseEl.querySelector(
+          var _a;
+          const restored = (_a = w.dom.baseEl) == null ? void 0 : _a.querySelector(
             `.apexcharts-legend-series[rel="${rel}"]`
           );
           if (restored) restored.focus();
@@ -3470,7 +3496,7 @@ class Toolbar {
         });
       }
       const series = ch.ctx.series.emptyCollapsedSeries(
-        Utils.clone(w.globals.initialSeries)
+        Utils.clone(w.globals._initialSeriesPeek)
       );
       ch.updateHelpers._updateSeries(
         series,
@@ -3521,22 +3547,55 @@ class AxisMapping {
     return w.globals.minX + px * AxisMapping.xRatio(w);
   }
   /**
-   * Client (screen) x -> pixels from the plot origin. The origin is the svg
-   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
-   * (fact 2 above), so the result does not depend on what the grid happens to
-   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
-   * against the measured one is the CSS zoom of any container the chart sits in.
+   * The plot area on screen, in client px: its corner is where the plot's
+   * group is translated to (translateX, translateY into the svg), and it is
+   * gridWidth by gridHeight. The one screen-to-plot measurement: the tooltip,
+   * zoom, selection and every other pointer reader map through it, so x and y
+   * cannot disagree under CSS zoom.
+   *
+   * Never the `.apexcharts-grid` group's box: a group measures to the union
+   * of what it happens to draw (fact 2 above). The plot's outline starts a
+   * pixel down (`Grid.drawGridArea`), so unless gridlines or row bands reach
+   * the top edge the box starts a pixel below the plot, and on a numeric-x bar
+   * chart the horizontal gridlines run `barPadForNumericAxis` out past both
+   * sides.
+   *
+   * `zoom` is the CSS zoom of any container the chart sits in (screen px per
+   * plot px): the measured svg width over `svgWidth`, the unscaled width it
+   * was drawn at. A distance measured on screen from this corner is divided
+   * by it to land in plot px, the space the series are laid out and painted in.
+   * With nothing mounted to measure, screen px are taken as svg px.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {{ left: number, top: number, width: number, height: number, zoom: number }}
+   */
+  static plotRect(w) {
+    var _a, _b, _c;
+    const svg = ((_a = w.dom.Paper) == null ? void 0 : _a.node) || ((_b = w.dom.baseEl) == null ? void 0 : _b.querySelector(".apexcharts-svg"));
+    const box = ((_c = svg || w.dom.elWrap) == null ? void 0 : _c.getBoundingClientRect()) || {
+      left: 0,
+      top: 0,
+      width: 0
+    };
+    const zoom = (svg && w.globals.svgWidth ? box.width / w.globals.svgWidth : 1) || 1;
+    return {
+      left: box.left + w.layout.translateX * zoom,
+      top: box.top + w.layout.translateY * zoom,
+      width: w.layout.gridWidth * zoom,
+      height: w.layout.gridHeight * zoom,
+      zoom
+    };
+  }
+  /**
+   * Client (screen) x -> pixels from the plot origin of {@link plotRect}.
+   * Pass the rect when the caller has already measured it.
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} screenX
+   * @param {{ left: number, zoom: number }} [plot]
    * @returns {number}
    */
-  static screenXToPlotPx(w, screenX) {
-    const baseEl = w.dom.baseEl;
-    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return screenX - w.layout.translateX;
-    const svgRect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
-    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
+  static screenXToPlotPx(w, screenX, plot = AxisMapping.plotRect(w)) {
+    return (screenX - plot.left) / plot.zoom;
   }
 }
 const WHEEL_ZOOM_PIXELS_PER_2X = 240;
@@ -3783,6 +3842,63 @@ class ZoomPanSelection extends Toolbar {
     const { zoom } = this.w.config.chart;
     return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom);
   }
+  /** An explicit `true` zooms on every wheel; 'auto' needs Ctrl/Cmd. */
+  _wheelZoomGreedy() {
+    return this.w.config.chart.zoom.allowMouseWheelZoom === true;
+  }
+  /**
+   * Tell a viewer whose bare wheel just scrolled past the chart how to zoom it.
+   * Shown over the chart while the scroll goes on and faded out shortly after
+   * it stops. Only for a mostly vertical wheel: a sideways trackpad swipe is
+   * not someone reaching for zoom.
+   *
+   * The node lives in elWrap and the timer on w.interact, since a re-render can
+   * replace both this instance and the wrapper's contents while it is up.
+   *
+   * @param {any} e
+   */
+  _showWheelHint(e) {
+    const w = this.w;
+    if (w.config.chart.zoom.wheelHint === false) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const wrap = w.dom.elWrap;
+    if (!wrap) return;
+    let el = wrap.querySelector(".apexcharts-wheel-hint");
+    if (!el) {
+      const win = BrowserAPIs.getWindow();
+      const nav = win && win.navigator;
+      const mac = !!nav && /Mac|iPhone|iPad/.test(nav.platform || nav.userAgent);
+      const text = (w.globals.locale.toolbar.wheelZoomHint || "").replace(
+        "{key}",
+        mac ? "⌘" : "Ctrl"
+      );
+      el = BrowserAPIs.createElement("div");
+      el.className = "apexcharts-wheel-hint";
+      el.setAttribute("aria-hidden", "true");
+      const label = BrowserAPIs.createElement("span");
+      label.textContent = text;
+      label.style.fontFamily = w.config.chart.fontFamily;
+      el.appendChild(label);
+      wrap.appendChild(el);
+      void /** @type {HTMLElement} */
+      el.offsetWidth;
+    }
+    el.classList.add("apexcharts-wheel-hint-visible");
+    const it = w.interact;
+    if (it.wheelHintTimer) clearTimeout(it.wheelHintTimer);
+    it.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
+  }
+  _hideWheelHint() {
+    var _a;
+    const w = this.w;
+    const it = w.interact;
+    if (it.wheelHintTimer) {
+      clearTimeout(it.wheelHintTimer);
+      it.wheelHintTimer = null;
+    }
+    const el = (_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-wheel-hint");
+    if (el) el.classList.remove("apexcharts-wheel-hint-visible");
+  }
   /**
    * Put keyboard focus on the chart, where the chart is focusable at all.
    *
@@ -3854,8 +3970,13 @@ class ZoomPanSelection extends Toolbar {
    * @param {any} e
    */
   mouseWheelEvent(e) {
-    e.preventDefault();
     const st = this._wheel();
+    if (!this._wheelZoomGreedy() && !e.ctrlKey && !e.metaKey && st.endTimer == null) {
+      this._showWheelHint(e);
+      return;
+    }
+    e.preventDefault();
+    this._hideWheelHint();
     let dy = e.deltaY;
     if (e.deltaMode === 1) dy *= 33;
     else if (e.deltaMode === 2) dy *= 330;
@@ -4435,6 +4556,7 @@ class ZoomPanSelection extends Toolbar {
         xHighestValue = maxX;
       }
     }
+    if (xLowestValue === minX && xHighestValue === maxX) return;
     const xaxis = {
       min: xLowestValue,
       max: xHighestValue
@@ -4618,6 +4740,34 @@ class ZoomPanSelection extends Toolbar {
     const args = { xaxis: { min, max } };
     w.config.chart.events.scrolled(this.ctx, args);
     this.ctx.events.fireEvent("scrolled", args);
+  }
+  /**
+   * Pan a zoomed x-window by `fraction` of its width (keyboard Shift+Arrow),
+   * clamped to the data as a drag pan is, and reported as one (`scrolled`).
+   * @param {number} fraction
+   */
+  panBy(fraction) {
+    const w = this.w;
+    if (!w.interact.zoomed) return;
+    const { min, max } = this._currentXWindow();
+    let d = (max - min) * fraction;
+    if (w.config.xaxis.convertedCatToNumeric) {
+      d = d > 0 ? Math.ceil(d) : Math.floor(d);
+    }
+    if (w.axisFlags.isRangeBar) {
+      const r = w.rangeData;
+      let lo = Infinity;
+      let hi = -Infinity;
+      r.seriesRangeStart.concat(r.seriesRangeEnd).flat().forEach((y) => {
+        if (y != null) {
+          lo = Math.min(lo, y);
+          hi = Math.max(hi, y);
+        }
+      });
+      d = d > 0 ? Math.min(d, Math.max(0, hi - max)) : Math.max(d, Math.min(0, lo - min));
+      if (!d) return;
+    }
+    if (this._applyXRange(min + d, max + d, false)) this._fireScrolled();
   }
   /** @param {number} x @param {number} t */
   _pushSample(x2, t) {
@@ -4896,10 +5046,16 @@ let Helpers$2 = class Helpers2 {
     }
   }
   /**
+   * Measure a label's background and draw it. With `deferDraw` it only
+   * measures, and returns the step that draws the rect: annotationsBackground
+   * measures every label before drawing any, since each rect drawn would force
+   * a fresh layout for the next label's reads.
    * @param {any} annoEl
    * @param {Record<string, any>} anno
+   * @param {boolean} [deferDraw]
+   * @returns {any}
    */
-  addBackgroundToAnno(annoEl, anno) {
+  addBackgroundToAnno(annoEl, anno, deferDraw) {
     const w = this.w;
     if (!annoEl || !anno.label.text || !String(anno.label.text).trim()) {
       return null;
@@ -4926,58 +5082,68 @@ let Helpers$2 = class Helpers2 {
     const gridTop = elGridRect.top - gridBBox.y * zoom;
     const x1 = (coords.left - gridLeft) / zoom - pleft;
     const y1 = (coords.top - gridTop) / zoom - ptop;
-    const elRect = this.annoCtx.graphics.drawRect(
-      x1,
-      y1,
-      coords.width / zoom + pleft + pright,
-      coords.height / zoom + ptop + pbottom,
-      anno.label.borderRadius,
-      anno.label.style.background,
-      1,
-      anno.label.borderWidth,
-      anno.label.borderColor,
-      0
-    );
-    if (anno.id) {
-      elRect.node.classList.add(anno.id);
-    }
-    return elRect;
+    const draw = () => {
+      const elRect = this.annoCtx.graphics.drawRect(
+        x1,
+        y1,
+        coords.width / zoom + pleft + pright,
+        coords.height / zoom + ptop + pbottom,
+        anno.label.borderRadius,
+        anno.label.style.background,
+        1,
+        anno.label.borderWidth,
+        anno.label.borderColor,
+        0
+      );
+      if (anno.id) {
+        elRect.node.classList.add(anno.id);
+      }
+      return elRect;
+    };
+    return deferDraw ? draw : draw();
   }
   annotationsBackground() {
     const w = this.w;
+    const drawn = [];
     const add = (anno, i, type) => {
-      const annoLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+      const annoLabel = (
+        /** @type {Element} */
+        w.dom.baseEl.querySelector(
+          `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+        )
       );
-      if (annoLabel) {
-        const parent = annoLabel.parentNode;
-        const elRect = this.addBackgroundToAnno(annoLabel, anno);
-        if (elRect) {
-          parent == null ? void 0 : parent.insertBefore(elRect.node, annoLabel);
-          const labelX = annoLabel.getAttribute("x");
-          if (labelX !== null) {
-            applyProgressiveReveal(elRect, parseFloat(labelX), w);
-          }
-          if (anno.label.mouseEnter) {
-            elRect.node.addEventListener(
-              "mouseenter",
-              anno.label.mouseEnter.bind(this, anno)
-            );
-          }
-          if (anno.label.mouseLeave) {
-            elRect.node.addEventListener(
-              "mouseleave",
-              anno.label.mouseLeave.bind(this, anno)
-            );
-          }
-          if (anno.label.click) {
-            elRect.node.addEventListener(
-              "click",
-              anno.label.click.bind(this, anno)
-            );
-          }
+      const draw = this.addBackgroundToAnno(annoLabel, anno, true);
+      if (!draw) return;
+      drawn.push(() => {
+        const elRect = draw();
+        const parent = (
+          /** @type {Node} */
+          annoLabel.parentNode
+        );
+        parent == null ? void 0 : parent.insertBefore(elRect.node, annoLabel);
+        const labelX = annoLabel.getAttribute("x");
+        if (labelX !== null) {
+          applyProgressiveReveal(elRect, parseFloat(labelX), w);
         }
-      }
+        if (anno.label.mouseEnter) {
+          elRect.node.addEventListener(
+            "mouseenter",
+            anno.label.mouseEnter.bind(this, anno)
+          );
+        }
+        if (anno.label.mouseLeave) {
+          elRect.node.addEventListener(
+            "mouseleave",
+            anno.label.mouseLeave.bind(this, anno)
+          );
+        }
+        if (anno.label.click) {
+          elRect.node.addEventListener(
+            "click",
+            anno.label.click.bind(this, anno)
+          );
+        }
+      });
     };
     w.config.annotations.xaxis.forEach(
       (anno, i) => add(anno, i, "xaxis")
@@ -4988,6 +5154,7 @@ let Helpers$2 = class Helpers2 {
     w.config.annotations.points.forEach(
       (anno, i) => add(anno, i, "point")
     );
+    drawn.forEach((draw) => draw());
   }
   /**
    * Does the x position take the category branch of `getX1X2` (a label lookup)
@@ -6083,16 +6250,35 @@ class KeyboardNavigation {
     });
     svgEl.addEventListener("keydown", this._onKeyDown, { passive: false });
     this.ctx.events.addEventListener("legendClick", this._onLegendClick);
+    const kept = w.interact.keyNav;
+    const doc = svgEl.ownerDocument;
+    w.interact.keyNav = null;
+    if (kept && (!doc.activeElement || doc.activeElement === doc.body)) {
+      [this.seriesIndex, this.dataPointIndex, , this._tooltipDismissed] = kept;
+      if (!kept[2]) this.notePointerFocus();
+      svgEl.focus({ preventScroll: true });
+    }
   }
   /**
-   * Removes all event listeners. Called from chart.destroy().
+   * Removes all event listeners. Called from chart.destroy(), and with
+   * `updating` when an update is about to replace the SVG.
+   * @param {boolean} [updating]
    */
-  destroy() {
+  destroy(updating) {
+    var _a;
     const w = this.w;
     const svgEl = w.dom.Paper && w.dom.Paper.node;
     this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
     clearTimeout(this._announceTimer);
     if (!svgEl) return;
+    if (updating && ((_a = svgEl.getRootNode) == null ? void 0 : _a.call(svgEl).activeElement) === svgEl) {
+      w.interact.keyNav = [
+        this.seriesIndex,
+        this.dataPointIndex,
+        this.active,
+        this._tooltipDismissed
+      ];
+    }
     svgEl.removeEventListener("focus", this._onFocus);
     svgEl.removeEventListener("blur", this._onBlur);
     svgEl.removeEventListener("keydown", this._onKeyDown);
@@ -6144,7 +6330,7 @@ class KeyboardNavigation {
     this.active = true;
     this._clampCursor();
     this._snapToVisibleRange();
-    this._showCurrentPoint();
+    if (!this._tooltipDismissed) this._showCurrentPoint();
   }
   _onBlur() {
     this.active = false;
@@ -6190,20 +6376,18 @@ class KeyboardNavigation {
         break;
       case "Home":
         e.preventDefault();
-        this.dataPointIndex = 0;
-        this._skipNullForward();
+        this._seek(0, 1);
         this._showCurrentPoint();
         break;
       case "End":
         e.preventDefault();
-        this.dataPointIndex = this._getDataPointCount(this.seriesIndex) - 1;
-        this._skipNullBackward();
+        this._seek(this._getDataPointCount(this.seriesIndex) - 1, -1);
         this._showCurrentPoint();
         break;
       case "Enter":
       case " ":
         e.preventDefault();
-        this._fireClick();
+        this._fireClick(e);
         break;
       case "+":
       case "=":
@@ -6251,22 +6435,15 @@ class KeyboardNavigation {
     );
   }
   _canPan() {
-    return this._canZoom();
+    return this._canZoom() && this.w.interact.zoomed;
   }
   /**
-   * Shift the visible x-range by ~10% in the given direction.
+   * Shift the visible x-range by ~10% in the given direction, as a drag pan.
    * @param {number} direction +1 = right, -1 = left
    */
   _panBy(direction) {
-    const toolbar = this.ctx.toolbar;
-    if (!toolbar) return;
-    const r = toolbar._currentXRange();
-    const minX = Number(r.minX);
-    const maxX = Number(r.maxX);
-    if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return;
-    const span = maxX - minX;
-    const step = span * 0.1 * direction;
-    toolbar.zoomUpdateOptions(minX + step, maxX + step);
+    var _a;
+    (_a = this.ctx.zoomPanSelection) == null ? void 0 : _a.panBy(direction / 10);
     this._announce(direction > 0 ? "Panned right" : "Panned left");
   }
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -6281,8 +6458,8 @@ class KeyboardNavigation {
     if (dSeries !== 0) {
       const ttCtx = this.w.globals.tooltip;
       const type = w.config.chart.type;
-      const perCell = type === "heatmap" || type === "treemap";
-      if (!perCell && ttCtx && ttCtx.tConfig && ttCtx.tConfig.shared) {
+      const perCell = type === "heatmap" || type === "treemap" || type === "radialBar";
+      if (!perCell && (ttCtx == null ? void 0 : ttCtx.ttItems) && ttCtx.tConfig.shared) {
         const j = this.dataPointIndex;
         const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
         if (isActuallyShared) return;
@@ -6308,59 +6485,43 @@ class KeyboardNavigation {
       }
     }
     if (dPoint !== 0) {
-      const dpCount = this._getDataPointCount(this.seriesIndex);
-      let di = this.dataPointIndex + dPoint;
-      if (di < 0) di = wrapAround ? dpCount - 1 : 0;
-      if (di >= dpCount) di = wrapAround ? 0 : dpCount - 1;
-      this.dataPointIndex = di;
-      if (dPoint > 0) {
-        this._skipNullForward();
-      } else {
-        this._skipNullBackward();
-      }
+      this._seek(this.dataPointIndex + dPoint, dPoint);
       if (!this._isDataPointVisible(this.seriesIndex, this.dataPointIndex)) {
         this._snapToVisibleRangeInDirection(dPoint);
       }
     }
     this._showCurrentPoint();
   }
-  /** Advance dataPointIndex forward past any nulls */
-  _skipNullForward() {
+  /**
+   * Land on the first non-null point from `di` going `dir`. Past an edge it
+   * wraps only with wrapAround; when no point lies ahead the cursor stays.
+   * @param {number} di
+   * @param {number} dir
+   */
+  _seek(di, dir) {
     const w = this.w;
-    const si = this.seriesIndex;
-    const dpCount = this._getDataPointCount(si);
-    let di = this.dataPointIndex;
-    let attempts = 0;
-    if (!Array.isArray(w.seriesData.series[si])) return;
-    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-      di = (di + 1) % dpCount;
-      attempts++;
+    const row = w.seriesData.series[this.seriesIndex];
+    const n = this._getDataPointCount(this.seriesIndex);
+    for (let k2 = 0; k2 < n; k2++, di += dir) {
+      if (w.config.chart.accessibility.keyboard.navigation.wrapAround) {
+        di = (di + n) % n;
+      } else if (di < 0 || di >= n) return;
+      if (!Array.isArray(row) || row[di] !== null) {
+        this.dataPointIndex = di;
+        return;
+      }
     }
-    this.dataPointIndex = di;
-  }
-  /** Retreat dataPointIndex backward past any nulls */
-  _skipNullBackward() {
-    const w = this.w;
-    const si = this.seriesIndex;
-    const dpCount = this._getDataPointCount(si);
-    let di = this.dataPointIndex;
-    let attempts = 0;
-    if (!Array.isArray(w.seriesData.series[si])) return;
-    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
-      di = (di - 1 + dpCount) % dpCount;
-      attempts++;
-    }
-    this.dataPointIndex = di;
   }
   // ─── Display ──────────────────────────────────────────────────────────────
   _showCurrentPoint() {
     const { seriesIndex: i, dataPointIndex: j } = this;
     const w = this.w;
     const ttCtx = w.globals.tooltip;
-    if (!ttCtx || !ttCtx.ttItems) return;
+    this._tooltipDismissed = false;
     w.interact.capturedSeriesIndex = i;
     w.interact.capturedDataPointIndex = j;
     this._applyFocusClass(i, j);
+    if (!(ttCtx == null ? void 0 : ttCtx.ttItems)) return this._announce(this._buildPointLabel(i, j));
     this._showTooltip(
       i,
       j,
@@ -6418,10 +6579,8 @@ class KeyboardNavigation {
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
       tooltipEl.removeAttribute("aria-hidden");
     }
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (type === "pie" || type === "donut" || type === "polarArea" || type === "radialBar") {
       this._showTooltipNonAxis(i, j, ttCtx, tooltipEl);
-    } else if (type === "radialBar") {
-      this._showTooltipRadialBar(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
     } else if (this._isBarLikeSeries(i)) {
@@ -6776,78 +6935,27 @@ class KeyboardNavigation {
     return true;
   }
   /**
-   * pie / donut / polarArea
+   * pie / donut / polarArea (a slice per point, i is 0) and radialBar (a ring
+   * per series, j is 0)
    * @param {number} i
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @param {HTMLElement} tooltipEl
    */
   _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
-    const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
-      i: j,
+      i: i + j,
       shared: false
     });
     const tooltipBound = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
-    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
-    const anchor = ttCtx.getSliceAnchor(sliceEl);
+    const anchor = ttCtx.getSliceAnchor(this._getFocusableElement(i, j));
     if (anchor) {
       const pos = ttCtx.tooltipPosition.placeOverAnchor(
         anchor.x,
         anchor.y,
-        ttWidth,
-        ttHeight,
-        10
-      );
-      tooltipEl.style.left = pos.x + "px";
-      tooltipEl.style.top = pos.y + "px";
-    }
-  }
-  /**
-   * radialBar — one ring per series, single value each
-   * @param {number} i
-   * @param {any} _j
-   * @param {import('../tooltip/Tooltip').default} ttCtx
-   * @param {HTMLElement} tooltipEl
-   */
-  _showTooltipRadialBar(i, _j, ttCtx, tooltipEl) {
-    var _a;
-    const w = this.w;
-    ttCtx.tooltipLabels.drawSeriesTexts({
-      ttItems: ttCtx.ttItems,
-      i,
-      shared: false
-    });
-    const { ttWidth = 0, ttHeight = 0 } = ttCtx.getCachedDimensions();
-    const arcEl = w.dom.baseEl.querySelector(
-      `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
-    );
-    if (arcEl) {
-      const angle = parseFloat((_a = arcEl.getAttribute("data:angle")) != null ? _a : "") || 0;
-      const initialAngle = w.config.plotOptions.radialBar.startAngle || 0;
-      const midAngle = initialAngle + angle / 2;
-      const centerX = w.layout.gridWidth / 2;
-      const centerY = w.layout.gridHeight / 2;
-      const radialSize = w.globals.radialSize || Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2;
-      const seriesCount = w.seriesData.series.length;
-      const trackSize = radialSize / Math.max(seriesCount, 1);
-      const outerRadius = radialSize - i * trackSize;
-      const innerRadius = outerRadius - trackSize;
-      const ringRadius = (outerRadius + innerRadius) / 2;
-      const centroid = Utils.polarToCartesian(
-        centerX,
-        centerY,
-        ringRadius,
-        midAngle
-      );
-      const x2 = centroid.x + (w.layout.translateX || 0);
-      const y = centroid.y + (w.layout.translateY || 0);
-      const pos = ttCtx.tooltipPosition.placeOverAnchor(
-        x2,
-        y,
         ttWidth,
         ttHeight,
         10
@@ -7115,9 +7223,7 @@ class KeyboardNavigation {
     const mark = this._canvasMark(i, j);
     if (!mark) return this._drawCanvasMarkerFocusRing(i, j);
     const w = this.w;
-    const host = Array.from(
-      w.dom.baseEl.querySelectorAll(".apexcharts-series")
-    ).find((g) => g.getAttribute("data:realIndex") === String(i));
+    const host = this._seriesGroup(i);
     if (!host) return null;
     const ring = new Graphics(w, this.ctx).drawPath({
       d: mark.d,
@@ -7141,9 +7247,7 @@ class KeyboardNavigation {
     const marker = this._canvasMarker(i, j);
     if (!marker) return null;
     const w = this.w;
-    const host = Array.from(
-      w.dom.baseEl.querySelectorAll(".apexcharts-series")
-    ).find((g) => g.getAttribute("data:realIndex") === String(i));
+    const host = this._seriesGroup(i);
     if (!host) return null;
     const ring = new Graphics(w, this.ctx).drawPath({
       d: marker.d,
@@ -7237,6 +7341,7 @@ class KeyboardNavigation {
    * @param {number} j
    */
   _getFocusableElement(i, j) {
+    var _a, _b;
     const w = this.w;
     const type = w.config.chart.type;
     const baseEl = w.dom.baseEl;
@@ -7254,32 +7359,47 @@ class KeyboardNavigation {
       );
     }
     if (type === "radialBar") {
-      return baseEl.querySelector(
-        `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
-      );
+      return baseEl.querySelector(`.apexcharts-radialbar-slice-${i}`);
     }
     if (this._isBarLikeSeries(i)) {
       if (this._canvasMark(i, j)) return null;
-      return baseEl.querySelector(
-        `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`
-      );
+      return (_a = this._seriesGroup(i)) == null ? void 0 : _a.querySelector(`path[j='${j}']`);
     }
-    const marker = baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker[rel='${j}']`
-    );
-    return marker || null;
+    return (_b = this._seriesGroup(i)) == null ? void 0 : _b.querySelector(`.apexcharts-marker[rel='${j}']`);
+  }
+  /**
+   * The series' own group, by realIndex (`rel` counts within a type's groups,
+   * which a combo has several of). Matched in script: not every selector
+   * engine takes the escaped `data\:realIndex` attribute.
+   * @param {number} i
+   * @returns {Element | undefined}
+   */
+  _seriesGroup(i) {
+    return Array.from(
+      this.w.dom.baseEl.querySelectorAll(".apexcharts-series")
+    ).find((g) => g.getAttribute("data:realIndex") === String(i));
   }
   // ─── Click / Enter ────────────────────────────────────────────────────────
-  _fireClick() {
-    const w = this.w;
-    const ttCtx = w.globals.tooltip;
-    if (!ttCtx) return;
-    const syntheticEvent = {
-      type: "mouseup",
-      clientX: 0,
-      clientY: 0
-    };
-    ttCtx.markerClick(syntheticEvent, this.seriesIndex, this.dataPointIndex);
+  /**
+   * What a click on the focused mark does: its mousedown selects it
+   * (dataPointSelection), its mouseup slides a pie slice out and fires
+   * markerClick.
+   * @param {KeyboardEvent} e
+   */
+  _fireClick(e) {
+    var _a, _b;
+    const el = (
+      /** @type {any} */
+      (_a = this._focusedEl) == null ? void 0 : _a.instance
+    );
+    const pie = this.ctx.pie;
+    if (el) new Graphics(this.w, this.ctx).pathMouseDown(el, e);
+    if (pie && pie.getExpandOffset() > 0) pie.pieClicked(this.dataPointIndex);
+    (_b = this.w.globals.tooltip) == null ? void 0 : _b.markerClick(
+      e,
+      this.seriesIndex,
+      this.dataPointIndex
+    );
   }
   // ─── Helpers ──────────────────────────────────────────────────────────────
   _isNavEnabled() {
@@ -7303,8 +7423,8 @@ class KeyboardNavigation {
     if (type === "pie" || type === "donut" || type === "polarArea") {
       return w.seriesData.series.length;
     }
-    const series = w.seriesData.series;
-    return series[si] && Array.isArray(series[si]) ? series[si].length : 0;
+    const s = w.seriesData.series[si];
+    return Array.isArray(s) ? s.length : 1;
   }
   _clampCursor() {
     const seriesCount = this._getSeriesCount();
@@ -8073,7 +8193,7 @@ class MorphTypeChange {
     const svg = probe.ownerSVGElement;
     if (typeof /** @type {any} */
     probe.isPointInFill !== "function" || !svg || typeof svg.createSVGPoint !== "function") {
-      layer.removeChild(probe);
+      probe.remove();
       return null;
     }
     const pt = svg.createSVGPoint();
@@ -8084,7 +8204,7 @@ class MorphTypeChange {
         /** @type {any} */
         probe
       );
-      return p.isPointInFill(pt) || typeof p.isPointInStroke === "function" && p.isPointInStroke(pt);
+      return p.isPointInFill(pt) || p.isPointInStroke(pt);
     };
     const SCAN = 48;
     const intervalsAt = (bandLo, bandHi, horizontal) => {
@@ -8173,6 +8293,7 @@ class MorphTypeChange {
     if (!layer) return this._revealPieceHidden();
     const pieces = [];
     const doc = layer.ownerDocument;
+    const staged = doc.createDocumentFragment();
     const sourceFam = familyOf(snap.fromType);
     const shapedSource = sourceFam === "summary" || sourceFam === "radial";
     Array.from(byCluster.keys()).sort((a, b) => a - b).forEach((i) => {
@@ -8212,7 +8333,7 @@ class MorphTypeChange {
         el.setAttribute("height", String(cell.height));
         el.setAttribute("rx", "0");
         el.setAttribute("fill", String(markFill));
-        layer.appendChild(el);
+        staged.appendChild(el);
         pieces.push({
           el,
           from: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
@@ -8230,6 +8351,7 @@ class MorphTypeChange {
         });
       }
     });
+    layer.appendChild(staged);
     if (!pieces.length) return this._cancelPieces();
     this._runPieces(pieces, (piece) => {
       reveal(piece.meta.dotEl);
@@ -8283,6 +8405,7 @@ class MorphTypeChange {
     const layer = this._makePieceLayer();
     if (!layer) return this._revealPieceHidden();
     const doc = layer.ownerDocument;
+    const staged = doc.createDocumentFragment();
     const pieces = [];
     const targetFam = familyOf(snap.toType);
     const shapedTarget = targetFam === "summary" || targetFam === "radial";
@@ -8315,7 +8438,7 @@ class MorphTypeChange {
       const markState = {
         remaining: ordered.length,
         els: target.els,
-        g: layer.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "g"))
+        g: staged.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "g"))
       };
       for (let m = 0; m < ordered.length; m++) {
         const dot = ordered[m];
@@ -8342,6 +8465,7 @@ class MorphTypeChange {
         });
       }
     }
+    layer.appendChild(staged);
     if (!pieces.length) return this._cancelPieces();
     this._runPieces(pieces, (piece) => {
       const state = piece.meta.markState;
@@ -10007,19 +10131,25 @@ const _WeaveHost = class _WeaveHost {
       this._setScales(extra.xyRatios);
     }
     const pass = extra && extra.pass || "full";
+    const host = this;
     let data = null;
     for (const record of this.active) {
       if (record.disabled) continue;
       const fns = record.handlers.get(hook);
       if (!fns || !fns.length) continue;
-      if (data === null) {
-        data = this._dataSnapshot();
-        this._lastData = data;
-      }
       const payload = {
         api: record.api,
         scales: this._currentScales,
-        data,
+        // Built on first read and shared with api.data for the rest of this
+        // pass: a handler that never reads it costs no snapshot.
+        get data() {
+          return data || (data = host._lastData || (host._lastData = host._dataSnapshot()));
+        },
+        // A handler may still overwrite its own payload.data, as it could
+        // when this was a plain field.
+        set data(v) {
+          Object.defineProperty(this, "data", { value: v, writable: true });
+        },
         pass,
         hook
       };
@@ -10655,12 +10785,7 @@ const _WeaveHost = class _WeaveHost {
    * groups), so without this, fast-path redraws would duplicate plugin output.
    */
   _resetLayers() {
-    const el = this.w.dom.elGraphical;
-    const parent = el && el.node;
-    if (parent) {
-      const groups = parent.querySelectorAll('g[class*="apexcharts-plugin-"]');
-      Array.prototype.forEach.call(groups, (n) => n.remove());
-    }
+    this._layers.forEach((g) => g.node.remove());
     this._layers.clear();
     this._declared = null;
   }
@@ -11432,24 +11557,18 @@ function observationsOf(d, allowFlatY) {
   return out.length ? out : null;
 }
 function derivedStats(w, kind) {
-  var _a, _b;
-  const all = (_a = w.statsDerived) != null ? _a : w.statsDerived = {};
-  return (_b = all[kind]) != null ? _b : all[kind] = /* @__PURE__ */ new Map();
+  const all = w.statsDerived || (w.statsDerived = {});
+  return all[kind] || (all[kind] = /* @__PURE__ */ new Map());
+}
+function deriveStat(derived, key, values, opts, fn) {
+  const s = JSON.stringify(opts) + values;
+  let hit = derived.get(key);
+  if (!hit || hit.s !== s) derived.set(key, hit = { s, e: fn(values, opts) });
+  return hit.e;
 }
 function isDerived(derived, key, value) {
-  const ours = derived.get(key);
-  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
-    return false;
-  }
-  for (let k2 = 0; k2 < value.length; k2++) {
-    const a = ours[k2];
-    const b = value[k2];
-    if (a === b) continue;
-    if (!Array.isArray(a) || !Array.isArray(b) || a[0] !== b[0] || a[1] !== b[1]) {
-      return false;
-    }
-  }
-  return true;
+  const e = (derived.get(key) || {}).e;
+  return !!e && JSON.stringify(e.density || e.summary) === JSON.stringify(value);
 }
 function histogramValues(data) {
   const out = [];
@@ -11530,62 +11649,61 @@ function histogramTransform(ser, w) {
 }
 function boxPlotTransform(ser, w) {
   var _a, _b;
-  if (!Array.isArray(ser)) return ser;
-  const whiskers = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax";
-  const derived = derivedStats(w, "boxPlot");
-  const observed = [];
-  const out = ser.map((s, i) => {
-    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "boxPlot") return s;
-    let touched = false;
-    const byPoint = new Array(s.data.length).fill(null);
-    const data = s.data.map((d, j) => {
-      const key = i + ":" + j;
-      if (Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && !isDerived(derived, key, d.y)) {
-        return d;
-      }
-      const values = observationsOf(d, false);
-      if (!values) return d;
-      const summary = fiveNumberSummary(values, { whiskers });
-      if (!summary) return d;
-      touched = true;
-      byPoint[j] = values;
-      derived.set(key, summary.summary);
-      return __spreadProps(__spreadValues({}, d), { y: summary.summary, points: values });
-    });
-    if (touched) observed[i] = byPoint;
-    return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
-  });
-  recordObservations(w, observed, ser.length);
-  return out;
+  return sampleTransform(
+    ser,
+    w,
+    "boxPlot",
+    { whiskers: ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax" },
+    fiveNumberSummary,
+    (d) => Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && d.y,
+    (d, est, values) => __spreadProps(__spreadValues({}, d), {
+      y: est.summary,
+      points: values
+    })
+  );
 }
 function violinTransform(ser, w) {
   var _a, _b;
-  if (!Array.isArray(ser)) return ser;
   const kde = ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.violin) == null ? void 0 : _b.kde) || {};
-  const derived = derivedStats(w, "violin");
+  return sampleTransform(
+    ser,
+    w,
+    "violin",
+    { bandwidth: kde.bandwidth, resolution: kde.resolution },
+    kernelDensity,
+    (d) => {
+      var _a2;
+      return Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && d.y.density;
+    },
+    (d, est, values) => __spreadProps(__spreadValues({}, d), {
+      // Keep the rest of an object `y`: a summary given with the points still
+      // draws the box lane.
+      y: __spreadProps(__spreadValues({}, d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {}), {
+        density: est.density,
+        points: values
+      })
+    })
+  );
+}
+function sampleTransform(ser, w, type, opts, fn, statOf, write) {
+  if (!Array.isArray(ser)) return ser;
+  const derived = derivedStats(w, type);
   const observed = [];
   const out = ser.map((s, i) => {
-    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== "violin") return s;
+    if (!Array.isArray(s == null ? void 0 : s.data) || s.type && s.type !== type) return s;
     let touched = false;
     const byPoint = new Array(s.data.length).fill(null);
     const data = s.data.map((d, j) => {
-      var _a2;
       const key = i + ":" + j;
-      if (Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && !isDerived(derived, key, d.y.density)) {
-        return d;
-      }
-      const values = observationsOf(d, true);
+      const stat = statOf(d);
+      if (stat && !isDerived(derived, key, stat)) return d;
+      const values = observationsOf(d, type === "violin");
       if (!values) return d;
-      const est = kernelDensity(values, {
-        bandwidth: kde.bandwidth,
-        resolution: kde.resolution
-      });
+      const est = deriveStat(derived, key, values, opts, fn);
       if (!est) return d;
       touched = true;
       byPoint[j] = values;
-      const rest = d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {};
-      derived.set(key, est.density);
-      return __spreadProps(__spreadValues({}, d), { y: __spreadProps(__spreadValues({}, rest), { density: est.density, points: values }) });
+      return write(d, est, values);
     });
     if (touched) observed[i] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s), { data }) : s;
@@ -11738,6 +11856,1925 @@ const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
     w
   });
   return Number.isFinite(resolved) ? resolved : 0;
+};
+class BarDataLabels {
+  /**
+   * @param {import('../../../charts/Bar').default} barCtx
+   */
+  constructor(barCtx) {
+    this.w = barCtx.w;
+    this.barCtx = barCtx;
+    this.totalFormatter = this.w.config.plotOptions.bar.dataLabels.total.formatter;
+    if (!this.totalFormatter) {
+      this.totalFormatter = this.w.config.dataLabels.formatter;
+    }
+  }
+  /** handleBarDataLabels is used to calculate the positions for the data-labels
+   * It also sets the element's data attr for bars and calls drawCalculatedBarDataLabels()
+   * After calculating, it also calls the function to draw data labels
+   * @memberof Bar
+   * @param {Record<string, any>} opts - bar properties used throughout the bar drawing function
+   * @return {object} dataLabels node-element which you can append later
+   **/
+  handleBarDataLabels(opts) {
+    var _a, _b, _c, _d, _e, _f;
+    const {
+      x: x2,
+      y,
+      y1,
+      y2,
+      i,
+      j,
+      realIndex,
+      columnGroupIndex,
+      barHeight,
+      barWidth,
+      barXPosition,
+      barYPosition,
+      visibleSeries,
+      hl,
+      noLabel
+    } = opts;
+    const w = this.w;
+    const graphics = new Graphics(this.barCtx.w);
+    this.hlt = hl == null ? void 0 : hl.total;
+    const steps = w.waterfallData && w.waterfallData.values;
+    const waterfallStep = hl && hl.val != null ? hl.val : steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
+    const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
+    let bcx;
+    let bcy;
+    if (w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
+      bcx = x2 + barWidth * (visibleSeries + 1);
+      bcy = y + barHeight * (visibleSeries + 1) - strokeWidth;
+    } else {
+      bcx = x2 + barWidth * visibleSeries;
+      bcy = y + barHeight * visibleSeries;
+    }
+    let dataLabels = null;
+    let totalDataLabels = null;
+    let dataLabelsX = x2;
+    let dataLabelsY = y;
+    let dataLabelsPos = (
+      /** @type {any} */
+      {}
+    );
+    const dataLabelsConfig = w.config.dataLabels;
+    const barDataLabelsConfig = this.barCtx.barOptions.dataLabels;
+    const barTotalDataLabelsConfig = this.barCtx.barOptions.dataLabels.total;
+    if (typeof barYPosition !== "undefined" && (this.barCtx.isRangeBar || this.barCtx.isPyramid)) {
+      bcy = barYPosition;
+      dataLabelsY = barYPosition;
+    }
+    if (typeof barXPosition !== "undefined" && this.barCtx.isVerticalGroupedRangeBar) {
+      bcx = barXPosition;
+      dataLabelsX = barXPosition;
+    }
+    const offX = resolveDataLabelOffset(
+      dataLabelsConfig.offsetX,
+      w,
+      realIndex,
+      j
+    );
+    const offY = resolveDataLabelOffset(
+      dataLabelsConfig.offsetY,
+      w,
+      realIndex,
+      j
+    );
+    const val = (hl == null ? void 0 : hl.hide) ? void 0 : waterfallStep !== null ? waterfallStep : (
+      // only RangeBar passes a range, vertical or horizontal
+      y2 !== void 0 ? [y1, y2] : w.config.chart.stackType === "100%" ? (
+        // Read the percentages globally rather than out of `series`.
+        // Under `stackType: '100%'` BarStacked replaces `series` with
+        // the percentage rows, and in a combo chart it narrows them to
+        // just the series it draws as bars, so `series` is indexed by
+        // bar position while `realIndex` counts every series. A line
+        // ahead of a column pushed `realIndex` past the end and the
+        // label read a value off `undefined` (#2429).
+        w.globals.seriesPercent[realIndex][j]
+      ) : w.seriesData.series[realIndex][j]
+    );
+    let text;
+    let textRects = {
+      width: 0,
+      height: 0
+    };
+    if (dataLabelsConfig.enabled) {
+      text = val === void 0 ? "" : dataLabelsConfig.formatter(val, __spreadProps(__spreadValues({}, w), {
+        seriesIndex: realIndex,
+        dataPointIndex: j,
+        w
+      }));
+      textRects = graphics.getTextRects(
+        text,
+        parseFloat(dataLabelsConfig.style.fontSize).toString(),
+        dataLabelsConfig.style.fontFamily,
+        void 0,
+        true,
+        dataLabelsConfig.style.fontWeight
+      );
+    }
+    const params = {
+      x: (_a = hl == null ? void 0 : hl.x) != null ? _a : x2,
+      y: (_b = hl == null ? void 0 : hl.y) != null ? _b : y,
+      neg: hl && hl.val != null ? hl.val < 0 : void 0,
+      i,
+      j,
+      realIndex,
+      columnGroupIndex,
+      bcx,
+      bcy,
+      barHeight: (_c = hl == null ? void 0 : hl.barHeight) != null ? _c : barHeight,
+      barWidth: (_d = hl == null ? void 0 : hl.barWidth) != null ? _d : barWidth,
+      textRects,
+      strokeWidth,
+      dataLabelsX,
+      dataLabelsY,
+      dataLabelsConfig,
+      barDataLabelsConfig,
+      barTotalDataLabelsConfig,
+      offX,
+      offY
+    };
+    if (this.barCtx.isHorizontal) {
+      dataLabelsPos = this.calculateBarsDataLabelsPosition(params);
+    } else {
+      dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
+    }
+    if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
+      const box = (_f = (_e = w.waterfallData.geometry) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[j];
+      if (box && box.horizontal) {
+        dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
+      }
+    }
+    dataLabels = noLabel ? null : this.drawCalculatedDataLabels({
+      x: dataLabelsPos.dataLabelsX,
+      y: dataLabelsPos.dataLabelsY,
+      neg: params.neg,
+      val,
+      text,
+      i: realIndex,
+      j,
+      barWidth: params.barWidth,
+      barHeight: params.barHeight,
+      textRects,
+      dataLabelsConfig
+    });
+    if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled && this.hlt !== false) {
+      totalDataLabels = this.drawTotalDataLabels({
+        x: dataLabelsPos.totalDataLabelsX,
+        y: dataLabelsPos.totalDataLabelsY,
+        barWidth,
+        barHeight,
+        realIndex,
+        j,
+        textAnchor: dataLabelsPos.totalDataLabelsAnchor,
+        val: this.getStackedTotalDataLabel({ realIndex, j }),
+        rawVal: this.getStackedTotalValue({ realIndex, j }),
+        dataLabelsConfig,
+        barTotalDataLabelsConfig
+      });
+    }
+    return {
+      dataLabelsPos,
+      dataLabels,
+      totalDataLabels
+    };
+  }
+  /**
+   * True when this chart stacks in more than one group, so totals have to be
+   * resolved per group rather than across the whole data point. A single-group
+   * chart keeps every old code path exactly as it was. See #4173.
+   */
+  hasMultipleSeriesGroups() {
+    return this.w.labelData.seriesGroups.length > 1;
+  }
+  /**
+   * The series group `realIndex` belongs to, or null when totals are
+   * chart-wide (the single-group case).
+   * @param {number} realIndex
+   * @returns {{groupIndex: number} | null}
+   */
+  getTotalGroupContext(realIndex) {
+    if (!this.hasMultipleSeriesGroups()) return null;
+    const groupIndex = this.barCtx.barHelpers.getSeriesGroupIndex(realIndex);
+    if (groupIndex < 0) return null;
+    return { groupIndex };
+  }
+  /**
+   * Whether `realIndex` is the series that should draw the stacked total.
+   *
+   * That is the series capping the stack. With grouped stacks each group has
+   * its own cap, so gating on the chart-wide `lastActiveBarSerieIndex` drew a
+   * single total for the last group only. See #4173.
+   * @param {number} realIndex
+   */
+  drawsStackedTotal(realIndex) {
+    const byGroup = this.barCtx.lastActiveBarSerieIndexByGroup;
+    const ctx = this.getTotalGroupContext(realIndex);
+    if (ctx && byGroup && byGroup.length > ctx.groupIndex) {
+      return byGroup[ctx.groupIndex] === realIndex;
+    }
+    return this.barCtx.lastActiveBarSerieIndex === realIndex;
+  }
+  /**
+   * The raw (unformatted) stacked total at this data point. Split out of
+   * getStackedTotalDataLabel so the label transition can count the total up
+   * from its previous number and re-run the formatter itself each frame.
+   * @param {{realIndex: any, j: any}} opts
+   */
+  getStackedTotalValue({ realIndex, j }) {
+    if (this.hlt) return this.hlt.val;
+    const w = this.w;
+    const top = this.xStackTop(realIndex, j);
+    if (top) return top[3];
+    const ctx = this.getTotalGroupContext(realIndex);
+    const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
+    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
+  }
+  /**
+   * The running stack at this bar's x (BarStacked `tops`) on a numeric axis,
+   * where bars stack by x rather than by index.
+   * @param {number} realIndex @param {number} j
+   */
+  xStackTop(realIndex, j) {
+    var _a, _b;
+    const w = this.w;
+    return w.axisFlags.isXNumeric && /** @type {any} */
+    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(w.seriesData.seriesX[realIndex][j]));
+  }
+  /**
+   * The stacked total's text box, measured in the total's own font.
+   * @param {number} realIndex @param {number} j
+   */
+  totalRects(realIndex, j) {
+    const s = this.barCtx.barOptions.dataLabels.total.style;
+    return new Graphics(this.w).getTextRects(
+      this.getStackedTotalDataLabel({ realIndex, j }),
+      s.fontSize,
+      s.fontFamily,
+      void 0,
+      true,
+      s.fontWeight
+    );
+  }
+  /** @param {{realIndex: any, j: any}} opts */
+  getStackedTotalDataLabel({ realIndex, j }) {
+    const w = this.w;
+    let val = this.getStackedTotalValue({ realIndex, j });
+    if (this.totalFormatter) {
+      val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
+        seriesIndex: realIndex,
+        dataPointIndex: j,
+        w
+      }));
+    }
+    return val;
+  }
+  /**
+   * @param {Record<string, any>} opts
+   */
+  calculateColumnsDataLabelsPosition(opts) {
+    var _a;
+    const w = this.w;
+    let {
+      j,
+      realIndex,
+      y,
+      bcx,
+      barWidth,
+      barHeight,
+      textRects,
+      dataLabelsX,
+      dataLabelsY,
+      barDataLabelsConfig,
+      barTotalDataLabelsConfig,
+      strokeWidth,
+      offX,
+      offY
+    } = opts;
+    let totalDataLabelsY;
+    let totalDataLabelsX;
+    const totalDataLabelsAnchor = "middle";
+    const totalDataLabelsBcx = bcx;
+    barHeight = Math.abs(barHeight);
+    const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
+    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
+      i: realIndex,
+      j
+    });
+    bcx = bcx - strokeWidth / 2;
+    const dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints;
+    if (this.barCtx.isVerticalGroupedRangeBar) {
+      dataLabelsX += barWidth / 2;
+    } else {
+      if (w.axisFlags.isXNumeric) {
+        dataLabelsX = bcx - barWidth / 2 + offX;
+      } else {
+        dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
+      }
+      if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        dataLabelsX -= barWidth * zeroEncounters;
+      }
+    }
+    if (vertical) {
+      const offsetDLX = 2;
+      dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
+    }
+    const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[realIndex][j] < 0;
+    let newY = y;
+    if (this.barCtx.isReversed) {
+      newY = y + (valIsNegative ? barHeight : -barHeight);
+    }
+    switch (barDataLabelsConfig.position) {
+      case "center":
+        if (vertical) {
+          if (valIsNegative) {
+            dataLabelsY = newY - barHeight / 2 + offY;
+          } else {
+            dataLabelsY = newY + barHeight / 2 - offY;
+          }
+        } else {
+          if (valIsNegative) {
+            dataLabelsY = newY - barHeight / 2 + textRects.height / 2 + offY;
+          } else {
+            dataLabelsY = newY + barHeight / 2 + textRects.height / 2 - offY;
+          }
+        }
+        break;
+      case "bottom":
+        if (vertical) {
+          if (valIsNegative) {
+            dataLabelsY = newY - barHeight + offY;
+          } else {
+            dataLabelsY = newY + barHeight - offY;
+          }
+        } else {
+          if (valIsNegative) {
+            dataLabelsY = newY - barHeight + textRects.height + strokeWidth + offY;
+          } else {
+            dataLabelsY = newY + barHeight - textRects.height / 2 + strokeWidth - offY;
+          }
+        }
+        break;
+      case "top":
+        if (vertical) {
+          if (valIsNegative) {
+            dataLabelsY = newY + offY;
+          } else {
+            dataLabelsY = newY - offY;
+          }
+        } else {
+          if (valIsNegative) {
+            dataLabelsY = newY - textRects.height / 2 - offY;
+          } else {
+            dataLabelsY = newY + textRects.height + offY;
+          }
+        }
+        break;
+    }
+    let lowestPrevY = newY;
+    const totalGroupCtx = this.getTotalGroupContext(realIndex);
+    const top = this.xStackTop(realIndex, j);
+    const stacks = top ? [] : (
+      /** @type {any} */
+      this.barCtx.stacks || []
+    );
+    if (top) {
+      lowestPrevY = valIsNegative ? Math.max(newY, top[5]) : Math.min(newY, top[4]);
+    }
+    stacks.forEach((g, gi) => {
+      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
+      g.prevY.forEach((arr) => {
+        if (valIsNegative) {
+          lowestPrevY = Math.max(arr[j], lowestPrevY);
+        } else {
+          lowestPrevY = Math.min(arr[j], lowestPrevY);
+        }
+      });
+    });
+    if (this.hlt) lowestPrevY = this.hlt.edge;
+    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
+      const h = this.totalRects(realIndex, j).height;
+      if (valIsNegative) {
+        totalDataLabelsY = lowestPrevY + h * 0.77 - offY - barTotalDataLabelsConfig.offsetY;
+      } else {
+        totalDataLabelsY = lowestPrevY - h * 0.3 + offY + barTotalDataLabelsConfig.offsetY;
+      }
+      const xDivision = dataPointsDividedWidth;
+      totalDataLabelsX = totalDataLabelsBcx + (w.axisFlags.isXNumeric ? -barWidth / 2 : barWidth / 2 - xDivision) + barTotalDataLabelsConfig.offsetX;
+    }
+    if (!w.config.chart.stacked) {
+      if (dataLabelsY < 0) {
+        dataLabelsY = 0 + strokeWidth;
+      } else if (dataLabelsY + textRects.height / 3 > w.layout.gridHeight) {
+        dataLabelsY = w.layout.gridHeight - strokeWidth;
+      }
+    }
+    return {
+      bcx,
+      bcy: y,
+      dataLabelsX,
+      dataLabelsY,
+      totalDataLabelsX,
+      totalDataLabelsY,
+      totalDataLabelsAnchor
+    };
+  }
+  /**
+   * @param {Record<string, any>} opts
+   */
+  calculateBarsDataLabelsPosition(opts) {
+    var _a, _b;
+    const w = this.w;
+    let {
+      x: x2,
+      j,
+      realIndex,
+      bcy,
+      barHeight,
+      barWidth,
+      textRects,
+      dataLabelsX,
+      strokeWidth,
+      dataLabelsConfig,
+      barDataLabelsConfig,
+      barTotalDataLabelsConfig,
+      offX,
+      offY
+    } = opts;
+    const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints;
+    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
+      i: realIndex,
+      j
+    });
+    barWidth = Math.abs(barWidth);
+    let dataLabelsY;
+    if (this.barCtx.isPyramid) {
+      const centerOffset = (_a = textRects.centerOffset) != null ? _a : 0;
+      dataLabelsY = bcy + barHeight / 2 + offY - centerOffset;
+    } else {
+      dataLabelsY = bcy - (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) + barHeight / 2 + textRects.height / 2 + offY - 3;
+    }
+    if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+      dataLabelsY -= barHeight * zeroEncounters;
+    }
+    let totalDataLabelsX;
+    let totalDataLabelsY;
+    let totalDataLabelsAnchor = "start";
+    const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[realIndex][j] < 0;
+    let newX = x2;
+    if (this.barCtx.isReversed) {
+      newX = x2 + (valIsNegative ? -barWidth : barWidth);
+      totalDataLabelsAnchor = valIsNegative ? "start" : "end";
+    }
+    if (this.barCtx.isPyramid) {
+      dataLabelsX = w.layout.gridWidth / 2 + offX;
+    } else {
+      switch (barDataLabelsConfig.position) {
+        case "center":
+          if (valIsNegative) {
+            dataLabelsX = newX + barWidth / 2 - offX;
+          } else {
+            dataLabelsX = Math.max(textRects.width / 2, newX - barWidth / 2) + offX;
+          }
+          break;
+        case "bottom":
+          if (valIsNegative) {
+            dataLabelsX = newX + barWidth - strokeWidth - offX;
+          } else {
+            dataLabelsX = newX - barWidth + strokeWidth + offX;
+          }
+          break;
+        case "top":
+          if (valIsNegative) {
+            dataLabelsX = newX - strokeWidth - offX;
+          } else {
+            dataLabelsX = newX - strokeWidth + offX;
+          }
+          break;
+      }
+    }
+    let lowestPrevX = newX;
+    const totalGroupCtx = this.getTotalGroupContext(realIndex);
+    const top = this.xStackTop(realIndex, j);
+    const stacks = top ? [] : (
+      /** @type {any} */
+      this.barCtx.stacks || []
+    );
+    if (top) {
+      lowestPrevX = valIsNegative ? Math.min(newX, top[4]) : Math.max(newX, top[5]);
+    }
+    stacks.forEach((g, gi) => {
+      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
+      g.prevX.forEach((arr) => {
+        if (valIsNegative) {
+          lowestPrevX = Math.min(arr[j], lowestPrevX);
+        } else {
+          lowestPrevX = Math.max(arr[j], lowestPrevX);
+        }
+      });
+    });
+    if (this.hlt) lowestPrevX = this.hlt.edge;
+    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
+      const totalLabeltextRects = this.totalRects(realIndex, j);
+      if (valIsNegative) {
+        totalDataLabelsX = lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX;
+        totalDataLabelsAnchor = "end";
+      } else {
+        totalDataLabelsX = lowestPrevX + offX + barTotalDataLabelsConfig.offsetX + (this.barCtx.isReversed ? -(barWidth + strokeWidth) : strokeWidth);
+      }
+      totalDataLabelsY = dataLabelsY - textRects.height / 2 + totalLabeltextRects.height / 2 + barTotalDataLabelsConfig.offsetY + strokeWidth;
+      if (w.globals.barGroups.length > 1 && !totalGroupCtx) {
+        totalDataLabelsY = totalDataLabelsY - w.globals.barGroups.length / 2 * (barHeight / 2);
+      }
+    }
+    if (!w.config.chart.stacked) {
+      const flipped = valIsNegative && dataLabelsConfig.textAnchor !== "middle" ? dataLabelsConfig.textAnchor === "start" ? "end" : "start" : dataLabelsConfig.textAnchor;
+      let spanLeft;
+      if (barDataLabelsConfig.orientation === "vertical") {
+        spanLeft = textRects.height / 2;
+      } else if (flipped === "end") {
+        spanLeft = textRects.width;
+      } else if (flipped === "middle") {
+        spanLeft = textRects.width / 2;
+      } else {
+        spanLeft = 0;
+      }
+      const span = barDataLabelsConfig.orientation === "vertical" ? textRects.height : textRects.width;
+      const spanRight = span - spanLeft;
+      if (dataLabelsX + spanRight > w.layout.gridWidth - strokeWidth) {
+        dataLabelsX = w.layout.gridWidth - spanRight - strokeWidth;
+      }
+      if (dataLabelsX - spanLeft < strokeWidth) {
+        dataLabelsX = spanLeft + strokeWidth;
+      }
+    }
+    return {
+      bcx: x2,
+      bcy,
+      dataLabelsX,
+      dataLabelsY,
+      totalDataLabelsX,
+      totalDataLabelsY,
+      totalDataLabelsAnchor
+    };
+  }
+  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
+  drawCalculatedDataLabels({
+    x: x2,
+    y,
+    val,
+    text,
+    neg,
+    i,
+    // = realIndex
+    j,
+    textRects,
+    barHeight,
+    barWidth,
+    dataLabelsConfig
+  }) {
+    var _a, _b, _c;
+    const w = this.w;
+    let rotate = "rotate(0)";
+    if (w.config.plotOptions.bar.dataLabels.orientation === "vertical")
+      rotate = `rotate(-90, ${x2}, ${y})`;
+    const dataLabels = new DataLabels(this.barCtx.w, this.barCtx.ctx);
+    const graphics = new Graphics(this.barCtx.w);
+    const formatter = dataLabelsConfig.formatter;
+    let elDataLabelsWrap = null;
+    const isSeriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1;
+    const isSeriesCollapsing = (w.globals.collapsingSeriesIndices || []).indexOf(i) > -1;
+    const dlKey = `${i}::${this.barCtx._keys(i)[j]}`;
+    if (isSeriesCollapsing) {
+      const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(dlKey);
+      if (prev && isFinite(prev.val)) {
+        val = prev.val;
+        text = void 0;
+      }
+    }
+    if (dataLabelsConfig.enabled && (!isSeriesCollapsed || isSeriesCollapsing)) {
+      elDataLabelsWrap = graphics.group({
+        class: "apexcharts-data-labels",
+        transform: rotate
+      });
+      const dlCfg = w.config.dataLabels;
+      if (((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled)) {
+        elDataLabelsWrap.node.setAttribute("data:dlKey", dlKey);
+        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j));
+        if (typeof val === "number" && isFinite(val)) {
+          elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
+        }
+      }
+      if (val === void 0) {
+        text = "";
+      } else if (text === void 0) {
+        text = formatter(val, __spreadProps(__spreadValues({}, w), {
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        }));
+      }
+      if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        text = "";
+      }
+      let anchor = dataLabelsConfig.textAnchor;
+      if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
+        anchor = w.config.plotOptions.bar.dataLabels.position === "center" ? "middle" : (neg != null ? neg : w.seriesData.series[i][j] < 0) ? "end" : "start";
+      }
+      if (this.barCtx.isRangeBar && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && barWidth < textRects.width) {
+        text = "";
+      }
+      if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && // A collapsing series is measured against its NEW extent, which is
+      // already zero, so this would blank a label whose bar is still at full
+      // height on screen. It starts out fitting and fades away with the mark.
+      !isSeriesCollapsing) {
+        if (this.barCtx.isHorizontal) {
+          if (textRects.width / 1.6 > Math.abs(barWidth)) {
+            text = "";
+          }
+        } else {
+          if (textRects.height / 1.6 > Math.abs(barHeight)) {
+            text = "";
+          }
+        }
+      }
+      const modifiedDataLabelsConfig = __spreadProps(__spreadValues({}, dataLabelsConfig), {
+        textAnchor: anchor
+      });
+      if (this.barCtx.isHorizontal && val < 0) {
+        if (anchor === "start") {
+          modifiedDataLabelsConfig.textAnchor = "end";
+        } else if (anchor === "end") {
+          modifiedDataLabelsConfig.textAnchor = "start";
+        }
+      }
+      dataLabels.plotDataLabelsText({
+        x: x2,
+        y,
+        text,
+        i,
+        j,
+        parent: elDataLabelsWrap,
+        dataLabelsConfig: modifiedDataLabelsConfig,
+        alwaysDrawDataLabel: true,
+        offsetCorrection: true
+      });
+    }
+    return elDataLabelsWrap;
+  }
+  /** @param {{ x?: any, y?: any, val?: any, rawVal?: any, realIndex?: any, j?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
+  drawTotalDataLabels({
+    x: x2,
+    y,
+    val,
+    rawVal,
+    realIndex,
+    j,
+    textAnchor,
+    barTotalDataLabelsConfig
+  }) {
+    var _a, _b;
+    const graphics = new Graphics(this.barCtx.w);
+    let totalDataLabelText;
+    if (barTotalDataLabelsConfig.enabled && typeof x2 !== "undefined" && typeof y !== "undefined" && this.drawsStackedTotal(realIndex)) {
+      totalDataLabelText = graphics.drawText({
+        x: x2,
+        y,
+        foreColor: barTotalDataLabelsConfig.style.color,
+        text: val,
+        textAnchor,
+        fontFamily: barTotalDataLabelsConfig.style.fontFamily,
+        fontSize: barTotalDataLabelsConfig.style.fontSize,
+        fontWeight: barTotalDataLabelsConfig.style.fontWeight
+      });
+      totalDataLabelText.attr({
+        class: "apexcharts-datalabel-total",
+        cx: x2,
+        cy: y
+      });
+      const dlCfg = this.w.config.dataLabels;
+      if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
+        const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex);
+        totalDataLabelText.node.setAttribute(
+          "data:dlTotalKey",
+          `${groupIndex}::${this.barCtx._keys(realIndex)[j]}`
+        );
+        totalDataLabelText.node.setAttribute(
+          "data:dlTotalSeries",
+          String(realIndex)
+        );
+        if (typeof rawVal === "number" && isFinite(rawVal)) {
+          totalDataLabelText.node.setAttribute("data:dlTotalVal", String(rawVal));
+        }
+      }
+    }
+    return totalDataLabelText;
+  }
+}
+function isHistogramOverlay(w) {
+  var _a, _b, _c, _d, _e, _f, _g;
+  if (((_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.requestedType) !== "histogram") return false;
+  if (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.histogram) == null ? void 0 : _d.overlap) === false) return false;
+  return ((_g = (_f = (_e = w.seriesData) == null ? void 0 : _e.series) == null ? void 0 : _f.length) != null ? _g : 0) > 1;
+}
+let Helpers$1 = class Helpers3 {
+  /**
+   * @param {Record<string, any>} barCtx
+   */
+  constructor(barCtx) {
+    this.w = barCtx.w;
+    this.barCtx = barCtx;
+  }
+  /**
+   * @param {any[]} series
+   * @param {any} [seriesIndex] a combo's real indices of `series`
+   */
+  initVariables(series, seriesIndex) {
+    const w = this.w;
+    this.seriesIndex = seriesIndex;
+    this.barCtx.series = series;
+    this.barCtx.totalItems = 0;
+    this.barCtx.seriesLen = 0;
+    this.barCtx.visibleI = -1;
+    this.barCtx.visibleItems = 1;
+    for (let sl = 0; sl < series.length; sl++) {
+      if (series[sl].length > 0) {
+        this.barCtx.seriesLen = this.barCtx.seriesLen + 1;
+        this.barCtx.totalItems += series[sl].length;
+      }
+      if (w.axisFlags.isXNumeric) {
+        for (let j = 0; j < series[sl].length; j++) {
+          if (w.seriesData.seriesX[sl][j] > w.globals.minX && w.seriesData.seriesX[sl][j] < w.globals.maxX) {
+            this.barCtx.visibleItems++;
+          }
+        }
+      } else {
+        this.barCtx.visibleItems = w.globals.dataPoints;
+      }
+    }
+    const labels = w.labelData.labels;
+    this.rows = w.globals.isBarHorizontal && w.axisFlags.isXNumeric && !this.barCtx.isRangeBar && w.seriesData.seriesX.some((s) => s == null ? void 0 : s.some((x2, j) => x2 !== labels[j])) ? new Map(labels.map((x2, r) => [x2, r])) : null;
+    this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series);
+    if (Utils.isSafari()) {
+      this.arrBorderRadius = this.arrBorderRadius.map(
+        (brArr) => (
+          /**
+           * @param {any} _
+           */
+          brArr.map((_) => "none")
+        )
+      );
+    }
+    if (this.barCtx.seriesLen === 0) {
+      this.barCtx.seriesLen = 1;
+    }
+  }
+  /**
+   * The x-span that one bar slot covers, in DATA units, on a numeric or
+   * datetime axis. Returns 0 when it cannot be resolved, which leaves the
+   * caller on its category-style fallback.
+   *
+   * `w.globals.minXDiff` cannot serve here on its own, for two reasons:
+   *
+   *  - It is the smallest gap WITHIN a series, minimised over series, so it
+   *    never sees the gaps BETWEEN two series' x values. Series A on the 1st
+   *    and the 4th plus series B on the 2nd gives minXDiff = 3 days while the
+   *    axis really has a 1 day gap, and every bar is drawn 3 days wide, so
+   *    neighbours overlap (#4885).
+   *  - With one data point there are no gaps to measure at all and it is set
+   *    to a 0.5 sentinel, so the slot fell back to the whole grid width and a
+   *    single bar covered most of the chart. Range._handleSingleDataPoint pads
+   *    the axis by ±2 units around a lone point (2 days for datetime, 2 for
+   *    numeric), so one unit is a quarter of the resulting span.
+   *
+   * Cached: the merge below is O(points × series) and every series in a draw
+   * pass asks the same question.
+   *
+   * @returns {number}
+   */
+  barSlotXSpan() {
+    const w = this.w;
+    if (this._slotXSpan !== void 0) return this._slotXSpan;
+    let slot = 0;
+    if (w.globals.dataPoints <= 1) {
+      const span = w.globals.maxX - w.globals.minX;
+      slot = span > 0 ? span / 4 : 0;
+    } else {
+      slot = this._unionMinXGap();
+      if (!(slot > 0) || !isFinite(slot)) {
+        const min = w.globals.minXDiff;
+        slot = min > 0 && isFinite(min) && min !== 0.5 ? min : 0;
+      }
+    }
+    this._slotXSpan = slot;
+    return slot;
+  }
+  /**
+   * Smallest positive gap between neighbouring x values once every series is
+   * merged onto one axis. A k-way merge over the series arrays, which needs
+   * each one ascending: a non-ascending array (newest-first data) is merged
+   * from a sorted copy, or every gap would read as one huge slot.
+   *
+   * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
+   * them would widen every bar the moment someone hid the tightest-spaced
+   * series from the legend, so bar geometry would depend on legend state.
+   * In a combo only this renderer's own series count: a line's x values say
+   * nothing about how wide a column may be.
+   *
+   * @returns {number}
+   */
+  _unionMinXGap() {
+    const w = this.w;
+    const seriesX = w.seriesData.seriesX || [];
+    const own = this.seriesIndex;
+    const arrays = [];
+    for (let i = 0; i < seriesX.length; i++) {
+      const xs = seriesX[i];
+      if (own && own.indexOf(i) < 0) continue;
+      if (Array.isArray(xs) && xs.length > 0) {
+        arrays.push(
+          xs.some((v, n) => v < xs[n - 1]) ? xs.filter((v) => v === +v).sort((a, b) => a - b) : xs
+        );
+      }
+    }
+    if (!arrays.length) return 0;
+    const cursor = new Array(arrays.length).fill(0);
+    let prev = NaN;
+    let min = Infinity;
+    for (; ; ) {
+      let next = Infinity;
+      let from = -1;
+      for (let k2 = 0; k2 < arrays.length; k2++) {
+        const xs = arrays[k2];
+        while (cursor[k2] < xs.length && typeof xs[cursor[k2]] !== "number") {
+          cursor[k2]++;
+        }
+        if (cursor[k2] >= xs.length) continue;
+        const v = xs[cursor[k2]];
+        if (v !== v) {
+          cursor[k2]++;
+          k2--;
+          continue;
+        }
+        if (v < next) {
+          next = v;
+          from = k2;
+        }
+      }
+      if (from === -1) break;
+      cursor[from]++;
+      if (prev === prev) {
+        const d = next - prev;
+        if (d > 0 && d < min) min = d;
+      }
+      prev = next;
+    }
+    return isFinite(min) ? min : 0;
+  }
+  /**
+   * The band a horizontal bar is drawn in: its x's band when the series do
+   * not line up by index (see initVariables), else its index.
+   * @param {number} realIndex @param {number} j
+   */
+  barRow(realIndex, j) {
+    var _a, _b, _c;
+    return (_c = (_b = this.rows) == null ? void 0 : _b.get((_a = this.w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j])) != null ? _c : j;
+  }
+  /**
+   * @param {number} realIndex
+   */
+  initialPositions(realIndex) {
+    const w = this.w;
+    let x2, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW;
+    let dataPoints = w.globals.dataPoints;
+    if (this.barCtx.isRangeBar) {
+      dataPoints = w.labelData.labels.length;
+    }
+    let seriesLen = this.barCtx.seriesLen;
+    if (w.config.plotOptions.bar.rangeBarGroupRows || isHistogramOverlay(w)) {
+      seriesLen = 1;
+    }
+    if (this.barCtx.isHorizontal) {
+      yDivision = w.layout.gridHeight / dataPoints;
+      barHeight = yDivision / seriesLen;
+      barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
+      if (String(this.barCtx.barOptions.barHeight).indexOf("%") === -1) {
+        barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
+      }
+      zeroW = this.barCtx.baseLineInvertedY + w.globals.padHorizontal + (this.barCtx.isReversed ? w.layout.gridWidth : 0) - (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0);
+      if (this.barCtx.isFunnel) {
+        zeroW = w.layout.gridWidth / 2;
+      }
+      y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
+    } else {
+      xDivision = w.layout.gridWidth / this.barCtx.visibleItems;
+      if (w.config.xaxis.convertedCatToNumeric) {
+        xDivision = w.layout.gridWidth / w.globals.dataPoints;
+      }
+      barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
+      if (w.axisFlags.isXNumeric) {
+        const xRatio = this.barCtx.xRatio;
+        const slotXSpan = this.barSlotXSpan();
+        if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
+          xDivision = slotXSpan / xRatio;
+        }
+        barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
+        if (barWidth < 1) {
+          barWidth = 1;
+        }
+      }
+      if (String(this.barCtx.barOptions.columnWidth).indexOf("%") === -1) {
+        barWidth = parseInt(this.barCtx.barOptions.columnWidth, 10);
+      }
+      zeroH = w.layout.gridHeight - this.barCtx.baseLineY[this.barCtx.translationsIndex] - (this.barCtx.isReversed ? w.layout.gridHeight : 0) + (this.barCtx.isReversed ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2 : 0);
+      if (w.axisFlags.isXNumeric) {
+        const xForNumericX = this.barCtx.getBarXForNumericXAxis({
+          x: x2,
+          j: 0,
+          realIndex,
+          barWidth
+        });
+        x2 = xForNumericX.x;
+      } else {
+        x2 = w.globals.padHorizontal + Utils.noExponents(xDivision - barWidth * this.barCtx.seriesLen) / 2;
+      }
+    }
+    w.globals.barHeight = barHeight;
+    w.globals.barWidth = barWidth;
+    return {
+      x: x2,
+      y,
+      yDivision,
+      xDivision,
+      barHeight,
+      barWidth,
+      zeroH,
+      zeroW
+    };
+  }
+  /**
+   * @param {Record<string, any>} ctx
+   */
+  initializeStackedPrevVars(ctx) {
+    ctx.stacks = ctx.w.labelData.seriesGroups.map(() => ({
+      prevY: [],
+      prevX: [],
+      prevYF: [],
+      prevXF: [],
+      prevYVal: [],
+      prevXVal: [],
+      tops: /* @__PURE__ */ new Map()
+    }));
+  }
+  /**
+   * @param {Record<string, any>} ctx
+   */
+  initializeStackedXYVars(ctx) {
+    ctx.stacks.forEach((g) => {
+      g.xArrj = [];
+      g.xArrjF = [];
+      g.xArrjVal = [];
+      g.yArrj = [];
+      g.yArrjF = [];
+      g.yArrjVal = [];
+    });
+  }
+  /**
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
+  getPathFillColor(series, i, j, realIndex) {
+    var _a;
+    const w = this.w;
+    const fill = new Fill(this.barCtx.w);
+    let fillColor = null;
+    const seriesNumber = this.barCtx.barOptions.distributed ? j : i;
+    let useRangeColor = false;
+    if (this.barCtx.barOptions.colors.ranges.length > 0) {
+      const colorRange = this.barCtx.barOptions.colors.ranges;
+      colorRange.map((range) => {
+        if (series[i][j] >= range.from && series[i][j] <= range.to) {
+          fillColor = range.color;
+          useRangeColor = true;
+        }
+      });
+    }
+    const connectorFill = this.getDumbbellConnectorFill(i, j);
+    const datumFill = connectorFill || ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.fill);
+    const connector = this.barCtx.barOptions.isDumbbell ? w.config.plotOptions.bar.dumbbell.connector : null;
+    let connectorOpacity;
+    if (connector && connector.color) {
+      fillColor = connector.color;
+      connectorOpacity = connector.opacity;
+    }
+    const pathFill = fill.fillPath({
+      seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
+      dataPointIndex: j,
+      color: fillColor,
+      opacity: connectorOpacity,
+      value: series[i][j],
+      fillConfig: datumFill,
+      fillType: (datumFill == null ? void 0 : datumFill.type) ? datumFill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
+    });
+    return {
+      color: pathFill,
+      useRangeColor
+    };
+  }
+  /**
+   * The connector's fill for one dumbbell row, or null to leave the fill alone.
+   *
+   * Returns a gradient running from the colour of the measure at the low end to
+   * the colour of the measure at the high end, which is the pair of dots the
+   * connector is between. `w.dumbbellData.order` is what makes it per-row: the
+   * merged interval is emitted low-to-high and no longer knows which measure
+   * was which, so a chart-wide gradient would point the wrong way on any row
+   * where the two cross.
+   *
+   * A user-set `connector.color` means a plain connector, and the `[lo, hi]`
+   * form names no measures to take colours from; both leave the fill alone.
+   *
+   * @param {number} i @param {number} j
+   * @returns {Record<string, any>|null}
+   */
+  getDumbbellConnectorFill(i, j) {
+    const w = this.w;
+    if (!this.barCtx.barOptions.isDumbbell) return null;
+    const dumbbell = w.dumbbellData;
+    if (!dumbbell || dumbbell.form !== "series") return null;
+    const connector = w.config.plotOptions.bar.dumbbell.connector;
+    if (connector.color) return null;
+    const order = dumbbell.order[j];
+    if (!order) return null;
+    const from = w.globals.colors[order[0]];
+    const to = w.globals.colors[order[1]];
+    if (!from || !to) return null;
+    return {
+      type: "gradient",
+      gradient: {
+        // Along the connector: the value axis is x when the rows are
+        // horizontal, y when they are columns.
+        type: this.barCtx.isHorizontal ? "horizontal" : "vertical",
+        gradientFrom: from,
+        gradientTo: to,
+        opacityFrom: connector.opacity,
+        opacityTo: connector.opacity,
+        stops: [0, 100],
+        // A column's y runs down the screen, so its low end is at the BOTTOM
+        // and the gradient has to be read the other way round to still start
+        // at the low end's colour.
+        inverseColors: !this.barCtx.isHorizontal
+      }
+    };
+  }
+  /**
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
+  getStrokeWidth(i, j, realIndex) {
+    let strokeWidth = 0;
+    const w = this.w;
+    if (typeof this.barCtx.series[i][j] === "undefined" || this.barCtx.series[i][j] === null || w.config.chart.type === "bar" && !this.barCtx.series[i][j]) {
+      this.barCtx.isNullValue = true;
+    } else {
+      this.barCtx.isNullValue = false;
+    }
+    if (w.config.stroke.show) {
+      if (!this.barCtx.isNullValue) {
+        strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
+      }
+    }
+    return strokeWidth;
+  }
+  /**
+   * Series indices bucketed into the stacks they actually draw in: one bucket
+   * per series group, or a single bucket holding every series when the chart is
+   * not grouped. Order within a bucket follows series order, which is stacking
+   * order.
+   *
+   * `w.globals.columnSeries` (when set) is the combo chart's own list of which
+   * series it draws as bars; a line or area series never occupies a stack
+   * segment, so it is filtered out here rather than left to compete for the
+   * outermost slot (#5296).
+   *
+   * @param {number} numSeries
+   * @returns {number[][]}
+   */
+  getStackedSeriesIndices(numSeries) {
+    const w = this.w;
+    const groups = w.labelData.seriesGroups;
+    const barIndices = w.globals.columnSeries ? new Set(
+      /** @type {any} */
+      w.globals.columnSeries.i
+    ) : null;
+    const isBar = (i) => !barIndices || barIndices.has(i);
+    if (!groups || groups.length < 2) {
+      const bucket = Array.from({ length: numSeries }, (_, i) => i).filter(isBar);
+      return bucket.length ? [bucket] : [];
+    }
+    const buckets = Array.from({ length: groups.length }, () => []);
+    const ungrouped = [];
+    for (let i = 0; i < numSeries; i++) {
+      if (!isBar(i)) continue;
+      const g = this.getSeriesGroupIndex(i);
+      if (g > -1) buckets[g].push(i);
+      else ungrouped.push(i);
+    }
+    if (ungrouped.length) buckets.push(ungrouped);
+    return buckets.filter((b) => b.length > 0);
+  }
+  /**
+   * Which corners each bar rounds, as a [seriesIndex][dataPointIndex] grid of
+   * 'top' | 'bottom' | 'both' | 'none'.
+   *
+   * A rounded corner belongs to the OUTSIDE of a stack, so this resolves, per
+   * data point, the outermost segment on each side of the baseline; everything
+   * sandwiched between them stays square.
+   *
+   * Crucially a "stack" is a series GROUP, not the whole chart. A grouped
+   * stacked chart draws one independent stack per group, side by side, and each
+   * one needs its own outermost segments. Resolving chart-wide instead put the
+   * radius on the bottom of the first group's lowest series and the top of the
+   * last group's highest, leaving every stack in between completely square, 
+   * which is exactly how it looked: the first column rounded at the bottom, the
+   * second at the top, and nothing else touched. Stacked totals already resolve
+   * per group (see drawsStackedTotal, #4173); corners never got the same fix.
+   *
+   * plotOptions.bar.borderRadiusWhenStacked picks which ends round: 'all'
+   * caps both the baseline and the far end, 'last' only the far end (#4845).
+   *
+   * A single-data-point chart used to hand its baseline segment 'top' (and a
+   * solo segment 'top' instead of 'both'), which on a horizontal stack rounded
+   * the first segment on its INNER edge and left a pill in the middle of the
+   * bar (#4845). One data point is resolved like any other now.
+   *
+   * @param {any[]} series
+   * @returns {string[][]}
+   */
+  createBorderRadiusArr(series) {
+    const w = this.w;
+    const alwaysApplyRadius = !this.w.config.chart.stacked || w.config.plotOptions.bar.borderRadius <= 0;
+    const numSeries = series.length;
+    const numColumns = Math.max(0, ...series.map((s) => (s == null ? void 0 : s.length) | 0));
+    const output = Array.from(
+      { length: numSeries },
+      () => Array(numColumns).fill(alwaysApplyRadius ? "top" : "none")
+    );
+    if (alwaysApplyRadius) return output;
+    const lastOnly = w.config.plotOptions.bar.borderRadiusWhenStacked === "last";
+    const soloPositive = lastOnly ? "top" : "both";
+    const soloNegative = lastOnly ? "bottom" : "both";
+    const positiveBase = lastOnly ? "none" : "bottom";
+    const negativeBase = lastOnly ? "none" : "top";
+    for (const stack of this.getStackedSeriesIndices(numSeries)) {
+      for (let j = 0; j < numColumns; j++) {
+        const positiveIndices = [];
+        const negativeIndices = [];
+        for (const i of stack) {
+          const value = series[i][j];
+          if (value > 0) positiveIndices.push(i);
+          else if (value < 0) negativeIndices.push(i);
+        }
+        if (positiveIndices.length > 0 && negativeIndices.length === 0) {
+          if (positiveIndices.length === 1) {
+            output[positiveIndices[0]][j] = soloPositive;
+          } else {
+            const first = positiveIndices[0];
+            const last = positiveIndices[positiveIndices.length - 1];
+            for (const i of positiveIndices) {
+              output[i][j] = i === first ? positiveBase : i === last ? "top" : "none";
+            }
+          }
+        } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
+          if (negativeIndices.length === 1) {
+            output[negativeIndices[0]][j] = soloNegative;
+          } else {
+            const nearest = Math.min(...negativeIndices);
+            const farthest = Math.max(...negativeIndices);
+            for (const i of negativeIndices) {
+              output[i][j] = i === nearest ? negativeBase : i === farthest ? "bottom" : "none";
+            }
+          }
+        } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
+          const lastPositive = positiveIndices[positiveIndices.length - 1];
+          for (const i of positiveIndices) {
+            output[i][j] = i === lastPositive ? "top" : "none";
+          }
+          const highestNegative = Math.max(...negativeIndices);
+          for (const i of negativeIndices) {
+            output[i][j] = i === highestNegative ? "bottom" : "none";
+          }
+        }
+      }
+    }
+    return output;
+  }
+  /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
+  barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
+    const w = this.w;
+    const graphics = new Graphics(this.barCtx.w);
+    const sr = new Series(this.barCtx.w);
+    const activeSeriesIndex = sr.getActiveConfigSeriesIndex();
+    if (this.barCtx.barOptions.colors.backgroundBarColors.length > 0 && activeSeriesIndex === i) {
+      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
+        j %= this.barCtx.barOptions.colors.backgroundBarColors.length;
+      }
+      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j];
+      const rect = graphics.drawRect(
+        typeof x1 !== "undefined" ? x1 : 0,
+        typeof y1 !== "undefined" ? y1 : 0,
+        typeof x2 !== "undefined" ? x2 : w.layout.gridWidth,
+        typeof y2 !== "undefined" ? y2 : w.layout.gridHeight,
+        this.barCtx.barOptions.colors.backgroundBarRadius,
+        bcolor,
+        this.barCtx.barOptions.colors.backgroundBarOpacity
+      );
+      elSeries.add(rect);
+      rect.node.classList.add("apexcharts-backgroundBar");
+    }
+  }
+  /**
+   * The rect a column or bar is drawn as: its slot across the category axis
+   * (`a`, `len`) and its two ends on the value axis (`v1` the baseline, `v2`
+   * the value), with the stroke centred on the edges and the configured
+   * corners rounded. getColumnPaths and getBarpaths build their bars here, and
+   * so does the highlight filter's part, which is how a part lines up with its
+   * whole to the sub-pixel.
+   *
+   * `base` is the rect collapsed onto its baseline, padded to the command
+   * count of `pathTo` so the rise morphs cleanly.
+   *
+   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
+   */
+  barRect({ a, len, v1, v2, strokeWidth, realIndex, j, dir, horizontal }) {
+    const w = this.w;
+    const graphics = new Graphics(w);
+    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
+    if (!strokeWidth) strokeWidth = 0;
+    const datum = (
+      /** @type {any} */
+      w.config.series[realIndex].data[j]
+    );
+    const offset = horizontal ? datum == null ? void 0 : datum.barHeightOffset : datum == null ? void 0 : datum.columnWidthOffset;
+    if (offset) {
+      a -= offset / 2;
+      len += offset;
+    }
+    const strokeCenter = strokeWidth / 2;
+    const direction = dir * (this.barCtx.isReversed ? -1 : 1);
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
+    let x1, x2, y1, y2, sl, squarePathTo;
+    if (horizontal) {
+      y1 = a + strokeCenter;
+      y2 = a + len - strokeCenter;
+      x1 = v1 + 1e-3 + strokeCenter * direction;
+      x2 = v2 + 1e-3 - strokeCenter * direction;
+      sl = graphics.line(x1, y2);
+      squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
+    } else {
+      x1 = a + strokeCenter;
+      x2 = a + len - strokeCenter;
+      y1 = v1 + 1e-3 - strokeCenter * direction;
+      y2 = v2 + 1e-3 + strokeCenter * direction;
+      sl = graphics.line(x2, y1);
+      squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
+    }
+    const pathTo = this.arrBorderRadius[realIndex][j] !== "none" ? graphics.roundPathCorners(
+      squarePathTo,
+      w.config.plotOptions.bar.borderRadius
+    ) : squarePathTo;
+    return {
+      x1,
+      x2,
+      y1,
+      y2,
+      sl,
+      closing,
+      squarePathTo,
+      pathTo,
+      base: graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing,
+      strokeWidth,
+      strokeCenter,
+      direction
+    };
+  }
+  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
+  getColumnPaths({
+    barWidth,
+    barXPosition,
+    y1,
+    y2,
+    strokeWidth,
+    series,
+    realIndex,
+    i,
+    j,
+    w
+  }) {
+    var _a, _b, _c;
+    const r = this.barRect({
+      a: barXPosition,
+      len: barWidth,
+      v1: y1,
+      v2: y2,
+      strokeWidth,
+      realIndex,
+      j,
+      dir: series[i][j] >= 0 ? 1 : -1
+    });
+    const { pathTo, squarePathTo, strokeCenter, direction } = r;
+    y1 = r.y1;
+    y2 = r.y2;
+    let pathFrom = null;
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
+    }
+    if (pathFrom == null) {
+      pathFrom = r.base;
+    }
+    if (w.config.chart.stacked) {
+      const _ctx = this.barCtx.groupCtx;
+      _ctx.yArrj.push(y2 - strokeCenter * direction);
+      _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction));
+      _ctx.yArrjVal.push((_c = this.barCtx.series[i][j]) != null ? _c : null);
+    }
+    return {
+      pathTo,
+      pathFrom,
+      // The box the path was built from, AFTER the stroke centering and the
+      // anti-exponential nudge above. Anything that has to line up with a drawn
+      // bar (the waterfall connectors) reads this rather than recomputing the
+      // edges, which is how it stays exact when a stroke width is set.
+      // `y1` is the lower value's edge and `y2` the upper one's.
+      drawnBox: { x1: r.x1, x2: r.x2, y1, y2 }
+    };
+  }
+  /**
+   * Build a trapezoidal funnel-stage path. Used when
+   * `plotOptions.funnel.shape === 'trapezoid'` is active alongside `isFunnel`.
+   *
+   * Each stage is a 4-corner polygon whose top width matches the current
+   * stage's value and bottom width matches the next stage's value, producing
+   * continuous sloped sides between consecutive stages.
+   *
+   * For the last stage, the bottom width is configurable:
+   * - `lastShape: 'flat'`  → bottom width = top width (parallel sides)
+   * - `lastShape: 'taper'` → bottom width = 0 (taper to a point)
+   *
+   * @param {{ barYPosition: number, barHeight: number, series: any[][], i: number, j: number, realIndex: number, strokeWidth: number, w: any }} opts
+   */
+  getFunnelTrapezoidPaths({
+    barYPosition,
+    barHeight,
+    series,
+    i,
+    j,
+    realIndex,
+    strokeWidth,
+    w
+  }) {
+    var _a, _b;
+    const graphics = new Graphics(this.barCtx.w);
+    const center = w.layout.gridWidth / 2;
+    const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
+    const topHalf = halfWidthFor(series[i][j]);
+    const lastIdx = series[i].length - 1;
+    const isLast = j === lastIdx;
+    const lastShape = w.config.plotOptions.funnel.lastShape === "taper" ? "taper" : "flat";
+    let bottomHalf;
+    if (isLast) {
+      bottomHalf = lastShape === "taper" ? 0 : topHalf;
+    } else {
+      bottomHalf = halfWidthFor(series[i][j + 1]);
+    }
+    const strokeCenter = strokeWidth / 2;
+    const y1 = barYPosition + strokeCenter;
+    const y2 = barYPosition + barHeight - strokeCenter;
+    const topLeftX = center - topHalf;
+    const topRightX = center + topHalf;
+    const bottomLeftX = center - bottomHalf;
+    const bottomRightX = center + bottomHalf;
+    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
+    let pathFrom = null;
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+    }
+    if (pathFrom == null) {
+      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
+    }
+    return {
+      pathTo,
+      pathFrom,
+      // x is the right edge of the wider (top) side — used by dataLabel
+      // positioning helpers that expect a "right" reference.
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center
+    };
+  }
+  /**
+   * Pre-compute the per-segment layout for a value-proportional pyramid.
+   *
+   * Each segment is a horizontal slice of a triangle whose apex sits at the
+   * top of the plot area (width = 0) and whose base spans `gridWidth` at the
+   * bottom. The vertical extent of each slice is its share of the total
+   * series value, so areas track value contribution and segments share
+   * edges (no gaps). The first data point is the apex, the last is the base.
+   *
+   * @param {any[]} seriesData - 1D array of values for a single series row
+   * @returns {{ y: number, height: number, topHalf: number, bottomHalf: number }[]}
+   */
+  computePyramidLayout(seriesData) {
+    const w = this.w;
+    const gridHeight = w.layout.gridHeight;
+    const gridWidth = w.layout.gridWidth;
+    const values = seriesData.map(
+      /** @param {any} v */
+      (v) => Math.abs(Number(v) || 0)
+    );
+    const total = values.reduce(
+      /** @param {number} a @param {number} b */
+      (a, b) => a + b,
+      0
+    );
+    if (total === 0 || gridHeight <= 0) {
+      return values.map(() => ({ y: 0, height: 0, topHalf: 0, bottomHalf: 0 }));
+    }
+    const halfWidth = gridWidth / 2;
+    let cumulative = 0;
+    const layout = [];
+    for (let j = 0; j < values.length; j++) {
+      const topRatio = cumulative / total;
+      cumulative += values[j];
+      const bottomRatio = cumulative / total;
+      const topY = topRatio * gridHeight;
+      const bottomY = bottomRatio * gridHeight;
+      layout.push({
+        y: topY,
+        height: bottomY - topY,
+        topHalf: topRatio * halfWidth,
+        bottomHalf: bottomRatio * halfWidth
+      });
+    }
+    return layout;
+  }
+  /**
+   * Build a single pyramid stage path. Geometry is precomputed by
+   * `computePyramidLayout`; this method only renders that geometry into an
+   * SVG path string plus a `pathFrom` for entry/morph animations.
+   *
+   * @param {{ barYPosition: number, barHeight: number, topHalf: number, bottomHalf: number, realIndex: number, j: number, strokeWidth: number, w: any }} opts
+   */
+  getPyramidPaths({
+    barYPosition,
+    barHeight,
+    topHalf,
+    bottomHalf,
+    realIndex,
+    j,
+    strokeWidth,
+    w
+  }) {
+    var _a, _b;
+    const graphics = new Graphics(this.barCtx.w);
+    const center = w.layout.gridWidth / 2;
+    const strokeCenter = strokeWidth / 2;
+    const y1 = barYPosition + strokeCenter;
+    const y2 = barYPosition + barHeight - strokeCenter;
+    const topLeftX = center - topHalf;
+    const topRightX = center + topHalf;
+    const bottomLeftX = center - bottomHalf;
+    const bottomRightX = center + bottomHalf;
+    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
+    let pathFrom = null;
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+    }
+    if (pathFrom == null) {
+      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
+    }
+    return {
+      pathTo,
+      pathFrom,
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center
+    };
+  }
+  /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
+  getBarpaths({
+    barYPosition,
+    barHeight,
+    x1,
+    x2,
+    strokeWidth,
+    series,
+    realIndex,
+    i,
+    j,
+    w
+  }) {
+    var _a, _b, _c;
+    const graphics = new Graphics(this.barCtx.w);
+    const r = this.barRect({
+      a: barYPosition,
+      len: barHeight,
+      v1: x1,
+      v2: x2,
+      strokeWidth,
+      realIndex,
+      j,
+      dir: series[i][j] >= 0 ? 1 : -1,
+      horizontal: true
+    });
+    const { y1, y2, sl, closing, squarePathTo, pathTo, strokeCenter, direction } = r;
+    x1 = r.x1;
+    x2 = r.x2;
+    const isFunnel = this.barCtx.isFunnel;
+    const fromX = isFunnel ? (x1 + x2) / 2 : x1;
+    let pathFrom = null;
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
+    }
+    if (pathFrom == null) {
+      const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
+      pathFrom = graphics.move(fromX, y1) + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + closing;
+    }
+    if (w.config.chart.stacked) {
+      const _ctx = this.barCtx.groupCtx;
+      _ctx.xArrj.push(x2 + strokeCenter * direction);
+      _ctx.xArrjF.push(Math.abs(x1 - x2 - r.strokeWidth * direction));
+      _ctx.xArrjVal.push((_c = this.barCtx.series[i][j]) != null ? _c : null);
+    }
+    return {
+      pathTo,
+      pathFrom,
+      // See getColumnPaths. Here `x1` is the start value's edge and `x2` the
+      // end value's, because a horizontal bar's two ends arrive unsorted.
+      drawnBox: { x1, x2, y1, y2 }
+    };
+  }
+  /**
+   * @param {number} value
+   * @param {number} zeroW
+   */
+  getXForValue(value, zeroW, zeroPositionForNull = true) {
+    let xForVal = zeroPositionForNull ? zeroW : null;
+    if (typeof value !== "undefined" && value !== null) {
+      xForVal = zeroW + value / this.barCtx.invertedYRatio - (this.barCtx.isReversed ? value / this.barCtx.invertedYRatio : 0) * 2;
+    }
+    return xForVal;
+  }
+  /**
+   * @param {number} value
+   * @param {number} zeroH
+   * @param {number} translationsIndex
+   */
+  getYForValue(value, zeroH, translationsIndex, zeroPositionForNull = true) {
+    let yForVal = zeroPositionForNull ? zeroH : null;
+    if (typeof value !== "undefined" && value !== null) {
+      yForVal = zeroH - value / this.barCtx.yRatio[translationsIndex] + (this.barCtx.isReversed ? value / this.barCtx.yRatio[translationsIndex] : 0) * 2;
+    }
+    return yForVal;
+  }
+  /**
+   * @param {string} type
+   * @param {number} zeroW
+   * @param {number} zeroH
+   * @param {number} i
+   * @param {number} j
+   * @param {number} translationsIndex
+   */
+  getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
+    const w = this.w;
+    const goals = [];
+    const pushGoal = (value, attrs) => {
+      if (!w.globals.invalidLogScale) {
+        value = new CoreUtils(w).getLogValAtSeriesIndex(value, i);
+      }
+      goals.push({
+        [type]: type === "x" ? this.getXForValue(value, zeroW, false) : this.getYForValue(value, zeroH, translationsIndex, false),
+        attrs
+      });
+    };
+    if (w.seriesData.seriesGoals[i] && w.seriesData.seriesGoals[i][j] && Array.isArray(w.seriesData.seriesGoals[i][j])) {
+      w.seriesData.seriesGoals[i][j].forEach((goal) => {
+        pushGoal(goal.value, goal);
+      });
+    }
+    if (this.barCtx.barOptions.isDumbbell) {
+      const ends = this.getDumbbellEnds(i, j);
+      if (ends.length) {
+        const commonAttrs = {
+          strokeHeight: type === "x" ? 0 : w.globals.markers.size[i],
+          strokeWidth: type === "x" ? w.globals.markers.size[i] : 0,
+          strokeDashArray: 0,
+          strokeLineCap: "round"
+        };
+        let lo = 0;
+        let hi = 0;
+        for (let e = 1; e < ends.length; e++) {
+          if (ends[e].value < ends[lo].value) lo = e;
+          if (ends[e].value > ends[hi].value) hi = e;
+        }
+        const labelsCnf = w.config.plotOptions.bar.dumbbell.dataLabels;
+        ends.forEach((end, e) => {
+          const attrs = __spreadProps(__spreadValues({}, commonAttrs), { strokeColor: end.color });
+          if (labelsCnf.enabled && (e === lo || e === hi)) {
+            attrs.label = {
+              text: this.getDumbbellLabelText(end.value, i, j, end.index),
+              color: labelsCnf.colorFromMarker ? end.color : Array.isArray(labelsCnf.style.colors) ? labelsCnf.style.colors[end.index] || labelsCnf.style.colors[0] : labelsCnf.style.colors,
+              // Away from the connector: the low end reads to its left (below,
+              // on a column), the high end to its right. A lone endpoint has no
+              // connector to be clear of, so it takes the outward side.
+              outward: e === lo && lo !== hi ? -1 : 1
+            };
+          }
+          pushGoal(end.value, attrs);
+        });
+      }
+    }
+    return goals;
+  }
+  /**
+   * The marked ends of one dumbbell row: a value and the colour that says which
+   * measure it belongs to.
+   *
+   * `chart.type: 'dumbbell'` merged N measures into one interval and left the
+   * endpoint identities on `w.dumbbellData`, so an end is coloured after the
+   * SERIES it came from. A row where the two measures cross therefore keeps its
+   * colours, which the interval alone could not say: it is emitted low-to-high
+   * and has forgotten which end was which.
+   *
+   * The `y: [lo, hi]` form names no measures, so it keeps the positional
+   * `dumbbellColors` pathway: colour 0 for the start, colour 1 for the end.
+   *
+   * @param {number} i @param {number} j
+   * @returns {Array<{ value: number, color: string, index: number }>}
+   */
+  getDumbbellEnds(i, j) {
+    const w = this.w;
+    const ends = [];
+    const dumbbell = w.dumbbellData;
+    if (dumbbell && dumbbell.form === "series") {
+      const values = dumbbell.values[j] || [];
+      for (let k2 = 0; k2 < values.length; k2++) {
+        const v = values[k2];
+        if (v === null || dumbbell.hidden.indexOf(k2) !== -1) continue;
+        ends.push({ value: v, color: w.globals.colors[k2], index: k2 });
+      }
+      return ends;
+    }
+    if (!w.rangeData.seriesRange.length) return ends;
+    const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w.globals.colors;
+    const pick = (n) => Array.isArray(colors[i]) ? colors[i][n] : colors[i];
+    return [
+      { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
+      { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 }
+    ];
+  }
+  /**
+   * The text for one end label.
+   *
+   * Deliberately NOT `dataLabels.formatter`: on a range bar that one reads out
+   * `end - start`, so an endpoint run through it would print the gap twice and
+   * the values never. The value-axis formatter is the one that already knows
+   * these numbers are percentages, or dollars, or dates.
+   *
+   * @param {number} value @param {number} i @param {number} j @param {number} k
+   * @returns {string}
+   */
+  getDumbbellLabelText(value, i, j, k2) {
+    const w = this.w;
+    const cnf = w.config.plotOptions.bar.dumbbell.dataLabels;
+    if (typeof cnf.formatter === "function") {
+      return cnf.formatter(value, {
+        seriesIndex: i,
+        dataPointIndex: j,
+        endpointIndex: k2,
+        w
+      });
+    }
+    const axisFormatter = this.barCtx.isHorizontal ? w.formatters.xLabelFormatter : w.formatters.yLabelFormatters[0];
+    if (typeof axisFormatter === "function") {
+      return axisFormatter(value, j, w);
+    }
+    return String(value);
+  }
+  /** @param {{barXPosition: any, barYPosition: any, goalX: any, goalY: any, barWidth: any, barHeight: any}} opts */
+  drawGoalLine({
+    barXPosition,
+    barYPosition,
+    goalX,
+    goalY,
+    barWidth,
+    barHeight
+  }) {
+    const hasGoals = Array.isArray(goalX) && goalX.length > 0 || Array.isArray(goalY) && goalY.length > 0;
+    if (!hasGoals) {
+      return null;
+    }
+    const graphics = new Graphics(this.barCtx.w);
+    const lineGroup = graphics.group({
+      class: "apexcharts-bar-goals-groups"
+    });
+    lineGroup.node.classList.add("apexcharts-element-hidden");
+    this.barCtx.w.globals.delayedElements.push({
+      el: lineGroup.node
+    });
+    lineGroup.attr(
+      "clip-path",
+      `url(#gridRectMarkerMask${this.barCtx.w.globals.cuid})`
+    );
+    let line = null;
+    if (this.barCtx.isHorizontal) {
+      if (Array.isArray(goalX)) {
+        goalX.forEach((goal) => {
+          if (goal.x >= -1 && goal.x <= graphics.w.layout.gridWidth + 1) {
+            const sHeight = typeof goal.attrs.strokeHeight !== "undefined" ? goal.attrs.strokeHeight : barHeight / 2;
+            const y = barYPosition + sHeight + barHeight / 2;
+            line = graphics.drawLine(
+              goal.x,
+              y - sHeight * 2,
+              goal.x,
+              y,
+              goal.attrs.strokeColor ? goal.attrs.strokeColor : void 0,
+              goal.attrs.strokeDashArray,
+              goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
+              goal.attrs.strokeLineCap
+            );
+            lineGroup.add(line);
+            if (goal.attrs.label) {
+              lineGroup.add(
+                this.drawDumbbellLabel(goal.attrs, {
+                  x: goal.x,
+                  y: y - sHeight,
+                  horizontal: true,
+                  markerSize: goal.attrs.strokeWidth || 0
+                })
+              );
+            }
+          }
+        });
+      }
+    } else {
+      if (Array.isArray(goalY)) {
+        goalY.forEach((goal) => {
+          if (goal.y >= -1 && goal.y <= graphics.w.layout.gridHeight + 1) {
+            const sWidth = typeof goal.attrs.strokeWidth !== "undefined" ? goal.attrs.strokeWidth : barWidth / 2;
+            const x2 = barXPosition + sWidth + barWidth / 2;
+            line = graphics.drawLine(
+              x2 - sWidth * 2,
+              goal.y,
+              x2,
+              goal.y,
+              goal.attrs.strokeColor ? goal.attrs.strokeColor : void 0,
+              goal.attrs.strokeDashArray,
+              goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2,
+              goal.attrs.strokeLineCap
+            );
+            lineGroup.add(line);
+            if (goal.attrs.label) {
+              lineGroup.add(
+                this.drawDumbbellLabel(goal.attrs, {
+                  x: x2 - sWidth,
+                  y: goal.y,
+                  horizontal: false,
+                  markerSize: goal.attrs.strokeHeight || 0
+                })
+              );
+            }
+          }
+        });
+      }
+    }
+    return lineGroup;
+  }
+  /**
+   * One dumbbell end label, placed clear of the marker it belongs to.
+   *
+   * Offset from the marker's EDGE rather than its centre, so growing
+   * `markers.size` never walks a label under its own dot. Vertically it is
+   * centred on the marker with `dominant-baseline`, which is exact whatever the
+   * font metrics are, where a dy fudge factor drifts with font size.
+   *
+   * @param {Record<string, any>} attrs the goal's attrs, carrying `label`
+   * @param {{x: number, y: number, horizontal: boolean, markerSize: number}} pos
+   */
+  drawDumbbellLabel(attrs, pos) {
+    const w = this.w;
+    const graphics = new Graphics(w);
+    const cnf = w.config.plotOptions.bar.dumbbell.dataLabels;
+    const gap = pos.markerSize / 2 + cnf.offset;
+    const away = attrs.label.outward;
+    return graphics.drawText({
+      x: pos.x + (pos.horizontal ? gap * away : 0),
+      y: pos.y - (pos.horizontal ? 0 : gap * away),
+      text: attrs.label.text,
+      textAnchor: pos.horizontal ? away < 0 ? "end" : "start" : "middle",
+      dominantBaseline: pos.horizontal ? "central" : away < 0 ? "hanging" : "auto",
+      foreColor: attrs.label.color,
+      fontSize: cnf.style.fontSize,
+      fontFamily: cnf.style.fontFamily,
+      fontWeight: cnf.style.fontWeight,
+      cssClass: "apexcharts-dumbbell-label"
+    });
+  }
+  /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
+  drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
+    const w = this.w;
+    const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths;
+    const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths;
+    const prevY2 = prevY1 + currPaths.barHeight;
+    const graphics = new Graphics(this.barCtx.w);
+    const utils = new Utils();
+    const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    return graphics.drawPath({
+      d: shadowPath,
+      fill: utils.shadeColor(0.5, Utils.rgb2hex(color)),
+      stroke: "none",
+      strokeWidth: 0,
+      fillOpacity: 1,
+      classes: "apexcharts-bar-shadow apexcharts-decoration-element"
+    });
+  }
+  /** @param {{i: any, j: any}} opts */
+  getZeroValueEncounters({ i, j }) {
+    var _a;
+    const w = this.w;
+    let nonZeroColumns = 0;
+    let zeroEncounters = 0;
+    const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
+    seriesIndices.forEach((_si) => {
+      const val = w.seriesData.series[_si][j];
+      if (val) {
+        nonZeroColumns++;
+      }
+      if (_si < i && !val) {
+        zeroEncounters++;
+      }
+    });
+    return {
+      nonZeroColumns,
+      zeroEncounters
+    };
+  }
+  /**
+   * Index of the series group `seriesIndex` belongs to within
+   * `w.labelData.seriesGroups`, or -1 when the chart has no groups.
+   *
+   * Unlike `getGroupIndex` this is a pure lookup: it never appends to
+   * `columnGroupIndices`, so it is safe to call from positioning/label code
+   * that must not perturb the draw order bookkeeping.
+   * @param {number} seriesIndex
+   * @returns {number}
+   */
+  getSeriesGroupIndex(seriesIndex) {
+    var _a;
+    return (_a = this.w.labelData.seriesGroupIndex[seriesIndex]) != null ? _a : -1;
+  }
+  /**
+   * @param {number} seriesIndex
+   */
+  getGroupIndex(seriesIndex) {
+    const groupIndex = this.getSeriesGroupIndex(seriesIndex);
+    const cGI = this.barCtx.columnGroupIndices;
+    let columnGroupIndex = cGI.indexOf(groupIndex);
+    if (columnGroupIndex < 0) {
+      cGI.push(groupIndex);
+      columnGroupIndex = cGI.length - 1;
+    }
+    return { groupIndex, columnGroupIndex };
+  }
 };
 function buildUnionEntries(join, oldN) {
   const exitSet = new Set(join.exits);
@@ -11947,6 +13984,11 @@ function uniquifyKeys(keys) {
     return count === 0 ? k2 : `${k2}#${count}`;
   });
 }
+function seriesKeys(w, realIndex, n = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
+  return uniquifyKeys(
+    Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j))
+  );
+}
 function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
@@ -11959,7 +14001,7 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
   const oldKeys = uniquifyKeys(
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
-  const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+  const newKeys = seriesKeys(w, realIndex);
   const join = joinKeys(oldKeys, newKeys);
   if (!join.ordered && !allowReorder) return null;
   if (!join.changed && !includeIdentity) return null;
@@ -12243,1917 +14285,6 @@ function renderBarExitGhosts({
     BrowserAPIs.requestAnimationFrame(step);
   });
 }
-class BarDataLabels {
-  /**
-   * @param {import('../../../charts/Bar').default} barCtx
-   */
-  constructor(barCtx) {
-    this.w = barCtx.w;
-    this.barCtx = barCtx;
-    this.totalFormatter = this.w.config.plotOptions.bar.dataLabels.total.formatter;
-    if (!this.totalFormatter) {
-      this.totalFormatter = this.w.config.dataLabels.formatter;
-    }
-  }
-  /** handleBarDataLabels is used to calculate the positions for the data-labels
-   * It also sets the element's data attr for bars and calls drawCalculatedBarDataLabels()
-   * After calculating, it also calls the function to draw data labels
-   * @memberof Bar
-   * @param {Record<string, any>} opts - bar properties used throughout the bar drawing function
-   * @return {object} dataLabels node-element which you can append later
-   **/
-  handleBarDataLabels(opts) {
-    var _a, _b, _c, _d, _e, _f;
-    const {
-      x: x2,
-      y,
-      y1,
-      y2,
-      i,
-      j,
-      realIndex,
-      columnGroupIndex,
-      barHeight,
-      barWidth,
-      barXPosition,
-      barYPosition,
-      visibleSeries,
-      hl
-    } = opts;
-    const w = this.w;
-    const graphics = new Graphics(this.barCtx.w);
-    this.hlt = hl == null ? void 0 : hl.total;
-    const steps = w.waterfallData && w.waterfallData.values;
-    const waterfallStep = hl && hl.val != null ? hl.val : steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
-    const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
-    let bcx;
-    let bcy;
-    if (w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
-      bcx = x2 + barWidth * (visibleSeries + 1);
-      bcy = y + barHeight * (visibleSeries + 1) - strokeWidth;
-    } else {
-      bcx = x2 + barWidth * visibleSeries;
-      bcy = y + barHeight * visibleSeries;
-    }
-    let dataLabels = null;
-    let totalDataLabels = null;
-    let dataLabelsX = x2;
-    let dataLabelsY = y;
-    let dataLabelsPos = (
-      /** @type {any} */
-      {}
-    );
-    const dataLabelsConfig = w.config.dataLabels;
-    const barDataLabelsConfig = this.barCtx.barOptions.dataLabels;
-    const barTotalDataLabelsConfig = this.barCtx.barOptions.dataLabels.total;
-    if (typeof barYPosition !== "undefined" && (this.barCtx.isRangeBar || this.barCtx.isPyramid)) {
-      bcy = barYPosition;
-      dataLabelsY = barYPosition;
-    }
-    if (typeof barXPosition !== "undefined" && this.barCtx.isVerticalGroupedRangeBar) {
-      bcx = barXPosition;
-      dataLabelsX = barXPosition;
-    }
-    const offX = resolveDataLabelOffset(
-      dataLabelsConfig.offsetX,
-      w,
-      realIndex,
-      j
-    );
-    const offY = resolveDataLabelOffset(
-      dataLabelsConfig.offsetY,
-      w,
-      realIndex,
-      j
-    );
-    const val = (hl == null ? void 0 : hl.hide) ? void 0 : waterfallStep !== null ? waterfallStep : (
-      // only RangeBar passes a range, vertical or horizontal
-      y2 !== void 0 ? [y1, y2] : w.config.chart.stackType === "100%" ? (
-        // Read the percentages globally rather than out of `series`.
-        // Under `stackType: '100%'` BarStacked replaces `series` with
-        // the percentage rows, and in a combo chart it narrows them to
-        // just the series it draws as bars, so `series` is indexed by
-        // bar position while `realIndex` counts every series. A line
-        // ahead of a column pushed `realIndex` past the end and the
-        // label read a value off `undefined` (#2429).
-        w.globals.seriesPercent[realIndex][j]
-      ) : w.seriesData.series[realIndex][j]
-    );
-    let text;
-    let textRects = {
-      width: 0,
-      height: 0
-    };
-    if (dataLabelsConfig.enabled) {
-      text = val === void 0 ? "" : dataLabelsConfig.formatter(val, __spreadProps(__spreadValues({}, w), {
-        seriesIndex: realIndex,
-        dataPointIndex: j,
-        w
-      }));
-      textRects = graphics.getTextRects(
-        text,
-        parseFloat(dataLabelsConfig.style.fontSize).toString(),
-        dataLabelsConfig.style.fontFamily,
-        void 0,
-        true,
-        dataLabelsConfig.style.fontWeight
-      );
-    }
-    const params = {
-      x: (_a = hl == null ? void 0 : hl.x) != null ? _a : x2,
-      y: (_b = hl == null ? void 0 : hl.y) != null ? _b : y,
-      neg: hl && hl.val != null ? hl.val < 0 : void 0,
-      i,
-      j,
-      realIndex,
-      columnGroupIndex,
-      bcx,
-      bcy,
-      barHeight: (_c = hl == null ? void 0 : hl.barHeight) != null ? _c : barHeight,
-      barWidth: (_d = hl == null ? void 0 : hl.barWidth) != null ? _d : barWidth,
-      textRects,
-      strokeWidth,
-      dataLabelsX,
-      dataLabelsY,
-      dataLabelsConfig,
-      barDataLabelsConfig,
-      barTotalDataLabelsConfig,
-      offX,
-      offY
-    };
-    if (this.barCtx.isHorizontal) {
-      dataLabelsPos = this.calculateBarsDataLabelsPosition(params);
-    } else {
-      dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
-    }
-    if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
-      const box = (_f = (_e = w.waterfallData.geometry) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[j];
-      if (box && box.horizontal) {
-        dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
-      }
-    }
-    dataLabels = this.drawCalculatedDataLabels({
-      x: dataLabelsPos.dataLabelsX,
-      y: dataLabelsPos.dataLabelsY,
-      neg: params.neg,
-      val,
-      text,
-      i: realIndex,
-      j,
-      barWidth: params.barWidth,
-      barHeight: params.barHeight,
-      textRects,
-      dataLabelsConfig
-    });
-    if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled && this.hlt !== false) {
-      totalDataLabels = this.drawTotalDataLabels({
-        x: dataLabelsPos.totalDataLabelsX,
-        y: dataLabelsPos.totalDataLabelsY,
-        barWidth,
-        barHeight,
-        realIndex,
-        j,
-        textAnchor: dataLabelsPos.totalDataLabelsAnchor,
-        val: this.getStackedTotalDataLabel({ realIndex, j }),
-        rawVal: this.getStackedTotalValue({ realIndex, j }),
-        dataLabelsConfig,
-        barTotalDataLabelsConfig
-      });
-    }
-    return {
-      dataLabelsPos,
-      dataLabels,
-      totalDataLabels
-    };
-  }
-  /**
-   * True when this chart stacks in more than one group, so totals have to be
-   * resolved per group rather than across the whole data point. A single-group
-   * chart keeps every old code path exactly as it was. See #4173.
-   */
-  hasMultipleSeriesGroups() {
-    return this.w.labelData.seriesGroups.length > 1;
-  }
-  /**
-   * The series group `realIndex` belongs to, or null when totals are
-   * chart-wide (the single-group case).
-   * @param {number} realIndex
-   * @returns {{groupIndex: number} | null}
-   */
-  getTotalGroupContext(realIndex) {
-    if (!this.hasMultipleSeriesGroups()) return null;
-    const groupIndex = this.barCtx.barHelpers.getSeriesGroupIndex(realIndex);
-    if (groupIndex < 0) return null;
-    return { groupIndex };
-  }
-  /**
-   * Whether `realIndex` is the series that should draw the stacked total.
-   *
-   * That is the series capping the stack. With grouped stacks each group has
-   * its own cap, so gating on the chart-wide `lastActiveBarSerieIndex` drew a
-   * single total for the last group only. See #4173.
-   * @param {number} realIndex
-   */
-  drawsStackedTotal(realIndex) {
-    const byGroup = this.barCtx.lastActiveBarSerieIndexByGroup;
-    const ctx = this.getTotalGroupContext(realIndex);
-    if (ctx && byGroup && byGroup.length > ctx.groupIndex) {
-      return byGroup[ctx.groupIndex] === realIndex;
-    }
-    return this.barCtx.lastActiveBarSerieIndex === realIndex;
-  }
-  /**
-   * The raw (unformatted) stacked total at this data point. Split out of
-   * getStackedTotalDataLabel so the label transition can count the total up
-   * from its previous number and re-run the formatter itself each frame.
-   * @param {{realIndex: any, j: any}} opts
-   */
-  getStackedTotalValue({ realIndex, j }) {
-    if (this.hlt) return this.hlt.val;
-    const w = this.w;
-    const top = this.xStackTop(realIndex, j);
-    if (top) return top[3];
-    const ctx = this.getTotalGroupContext(realIndex);
-    const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
-    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
-  }
-  /**
-   * The running stack at this column's x (BarStacked `tops`, columns only) on
-   * a numeric axis, where columns stack by x rather than by index.
-   * @param {number} realIndex @param {number} j
-   */
-  xStackTop(realIndex, j) {
-    var _a, _b;
-    const w = this.w;
-    return w.axisFlags.isXNumeric && /** @type {any} */
-    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(w.seriesData.seriesX[realIndex][j]));
-  }
-  /** @param {{realIndex: any, j: any}} opts */
-  getStackedTotalDataLabel({ realIndex, j }) {
-    const w = this.w;
-    let val = this.getStackedTotalValue({ realIndex, j });
-    if (this.totalFormatter) {
-      val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
-        seriesIndex: realIndex,
-        dataPointIndex: j,
-        w
-      }));
-    }
-    return val;
-  }
-  /**
-   * @param {Record<string, any>} opts
-   */
-  calculateColumnsDataLabelsPosition(opts) {
-    var _a;
-    const w = this.w;
-    let {
-      i,
-      j,
-      realIndex,
-      y,
-      bcx,
-      barWidth,
-      barHeight,
-      textRects,
-      dataLabelsX,
-      dataLabelsY,
-      dataLabelsConfig,
-      barDataLabelsConfig,
-      barTotalDataLabelsConfig,
-      strokeWidth,
-      offX,
-      offY
-    } = opts;
-    let totalDataLabelsY;
-    let totalDataLabelsX;
-    const totalDataLabelsAnchor = "middle";
-    const totalDataLabelsBcx = bcx;
-    barHeight = Math.abs(barHeight);
-    const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i,
-      j
-    });
-    bcx = bcx - strokeWidth / 2;
-    const dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints;
-    if (this.barCtx.isVerticalGroupedRangeBar) {
-      dataLabelsX += barWidth / 2;
-    } else {
-      if (w.axisFlags.isXNumeric) {
-        dataLabelsX = bcx - barWidth / 2 + offX;
-      } else {
-        dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
-      }
-      if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        dataLabelsX -= barWidth * zeroEncounters;
-      }
-    }
-    if (vertical) {
-      const offsetDLX = 2;
-      dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
-    }
-    const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[i][j] < 0;
-    let newY = y;
-    if (this.barCtx.isReversed) {
-      newY = y + (valIsNegative ? barHeight : -barHeight);
-    }
-    switch (barDataLabelsConfig.position) {
-      case "center":
-        if (vertical) {
-          if (valIsNegative) {
-            dataLabelsY = newY - barHeight / 2 + offY;
-          } else {
-            dataLabelsY = newY + barHeight / 2 - offY;
-          }
-        } else {
-          if (valIsNegative) {
-            dataLabelsY = newY - barHeight / 2 + textRects.height / 2 + offY;
-          } else {
-            dataLabelsY = newY + barHeight / 2 + textRects.height / 2 - offY;
-          }
-        }
-        break;
-      case "bottom":
-        if (vertical) {
-          if (valIsNegative) {
-            dataLabelsY = newY - barHeight + offY;
-          } else {
-            dataLabelsY = newY + barHeight - offY;
-          }
-        } else {
-          if (valIsNegative) {
-            dataLabelsY = newY - barHeight + textRects.height + strokeWidth + offY;
-          } else {
-            dataLabelsY = newY + barHeight - textRects.height / 2 + strokeWidth - offY;
-          }
-        }
-        break;
-      case "top":
-        if (vertical) {
-          if (valIsNegative) {
-            dataLabelsY = newY + offY;
-          } else {
-            dataLabelsY = newY - offY;
-          }
-        } else {
-          if (valIsNegative) {
-            dataLabelsY = newY - textRects.height / 2 - offY;
-          } else {
-            dataLabelsY = newY + textRects.height + offY;
-          }
-        }
-        break;
-    }
-    let lowestPrevY = newY;
-    const totalGroupCtx = this.getTotalGroupContext(realIndex);
-    const top = this.xStackTop(realIndex, j);
-    const stacks = top ? [] : (
-      /** @type {any} */
-      this.barCtx.stacks || []
-    );
-    if (top) {
-      lowestPrevY = valIsNegative ? Math.max(newY, top[5]) : Math.min(newY, top[4]);
-    }
-    stacks.forEach((g, gi) => {
-      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
-      g.prevY.forEach((arr) => {
-        if (valIsNegative) {
-          lowestPrevY = Math.max(arr[j], lowestPrevY);
-        } else {
-          lowestPrevY = Math.min(arr[j], lowestPrevY);
-        }
-      });
-    });
-    if (this.hlt) lowestPrevY = this.hlt.edge;
-    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const ADDITIONAL_OFFY = 18;
-      const graphics = new Graphics(this.barCtx.w);
-      const totalLabeltextRects = graphics.getTextRects(
-        this.getStackedTotalDataLabel({ realIndex, j }),
-        dataLabelsConfig.fontSize
-      );
-      if (valIsNegative) {
-        totalDataLabelsY = lowestPrevY - totalLabeltextRects.height / 2 - offY - barTotalDataLabelsConfig.offsetY + ADDITIONAL_OFFY;
-      } else {
-        totalDataLabelsY = lowestPrevY + totalLabeltextRects.height + offY + barTotalDataLabelsConfig.offsetY - ADDITIONAL_OFFY;
-      }
-      const xDivision = dataPointsDividedWidth;
-      totalDataLabelsX = totalDataLabelsBcx + (w.axisFlags.isXNumeric ? -barWidth / 2 : barWidth / 2 - xDivision) + barTotalDataLabelsConfig.offsetX;
-    }
-    if (!w.config.chart.stacked) {
-      if (dataLabelsY < 0) {
-        dataLabelsY = 0 + strokeWidth;
-      } else if (dataLabelsY + textRects.height / 3 > w.layout.gridHeight) {
-        dataLabelsY = w.layout.gridHeight - strokeWidth;
-      }
-    }
-    return {
-      bcx,
-      bcy: y,
-      dataLabelsX,
-      dataLabelsY,
-      totalDataLabelsX,
-      totalDataLabelsY,
-      totalDataLabelsAnchor
-    };
-  }
-  /**
-   * @param {Record<string, any>} opts
-   */
-  calculateBarsDataLabelsPosition(opts) {
-    var _a, _b;
-    const w = this.w;
-    let {
-      x: x2,
-      i,
-      j,
-      realIndex,
-      bcy,
-      barHeight,
-      barWidth,
-      textRects,
-      dataLabelsX,
-      strokeWidth,
-      dataLabelsConfig,
-      barDataLabelsConfig,
-      barTotalDataLabelsConfig,
-      offX,
-      offY
-    } = opts;
-    const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints;
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i,
-      j
-    });
-    barWidth = Math.abs(barWidth);
-    let dataLabelsY;
-    if (this.barCtx.isPyramid) {
-      const centerOffset = (_a = textRects.centerOffset) != null ? _a : 0;
-      dataLabelsY = bcy + barHeight / 2 + offY - centerOffset;
-    } else {
-      dataLabelsY = bcy - (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) + barHeight / 2 + textRects.height / 2 + offY - 3;
-    }
-    if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-      dataLabelsY -= barHeight * zeroEncounters;
-    }
-    let totalDataLabelsX;
-    let totalDataLabelsY;
-    let totalDataLabelsAnchor = "start";
-    const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[i][j] < 0;
-    let newX = x2;
-    if (this.barCtx.isReversed) {
-      newX = x2 + (valIsNegative ? -barWidth : barWidth);
-      totalDataLabelsAnchor = valIsNegative ? "start" : "end";
-    }
-    if (this.barCtx.isPyramid) {
-      dataLabelsX = w.layout.gridWidth / 2 + offX;
-    } else {
-      switch (barDataLabelsConfig.position) {
-        case "center":
-          if (valIsNegative) {
-            dataLabelsX = newX + barWidth / 2 - offX;
-          } else {
-            dataLabelsX = Math.max(textRects.width / 2, newX - barWidth / 2) + offX;
-          }
-          break;
-        case "bottom":
-          if (valIsNegative) {
-            dataLabelsX = newX + barWidth - strokeWidth - offX;
-          } else {
-            dataLabelsX = newX - barWidth + strokeWidth + offX;
-          }
-          break;
-        case "top":
-          if (valIsNegative) {
-            dataLabelsX = newX - strokeWidth - offX;
-          } else {
-            dataLabelsX = newX - strokeWidth + offX;
-          }
-          break;
-      }
-    }
-    let lowestPrevX = newX;
-    const totalGroupCtx = this.getTotalGroupContext(realIndex);
-    const stacks = (
-      /** @type {any} */
-      this.barCtx.stacks || []
-    );
-    stacks.forEach((g, gi) => {
-      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
-      g.prevX.forEach((arr) => {
-        if (valIsNegative) {
-          lowestPrevX = Math.min(arr[j], lowestPrevX);
-        } else {
-          lowestPrevX = Math.max(arr[j], lowestPrevX);
-        }
-      });
-    });
-    if (this.hlt) lowestPrevX = this.hlt.edge;
-    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const graphics = new Graphics(this.barCtx.w);
-      const totalLabeltextRects = graphics.getTextRects(
-        this.getStackedTotalDataLabel({ realIndex, j }),
-        dataLabelsConfig.fontSize
-      );
-      if (valIsNegative) {
-        totalDataLabelsX = lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX;
-        totalDataLabelsAnchor = "end";
-      } else {
-        totalDataLabelsX = lowestPrevX + offX + barTotalDataLabelsConfig.offsetX + (this.barCtx.isReversed ? -(barWidth + strokeWidth) : strokeWidth);
-      }
-      totalDataLabelsY = dataLabelsY - textRects.height / 2 + totalLabeltextRects.height / 2 + barTotalDataLabelsConfig.offsetY + strokeWidth;
-      if (w.globals.barGroups.length > 1 && !totalGroupCtx) {
-        totalDataLabelsY = totalDataLabelsY - w.globals.barGroups.length / 2 * (barHeight / 2);
-      }
-    }
-    if (!w.config.chart.stacked) {
-      const flipped = valIsNegative && dataLabelsConfig.textAnchor !== "middle" ? dataLabelsConfig.textAnchor === "start" ? "end" : "start" : dataLabelsConfig.textAnchor;
-      let spanLeft;
-      if (barDataLabelsConfig.orientation === "vertical") {
-        spanLeft = textRects.height / 2;
-      } else if (flipped === "end") {
-        spanLeft = textRects.width;
-      } else if (flipped === "middle") {
-        spanLeft = textRects.width / 2;
-      } else {
-        spanLeft = 0;
-      }
-      const span = barDataLabelsConfig.orientation === "vertical" ? textRects.height : textRects.width;
-      const spanRight = span - spanLeft;
-      if (dataLabelsX + spanRight > w.layout.gridWidth - strokeWidth) {
-        dataLabelsX = w.layout.gridWidth - spanRight - strokeWidth;
-      }
-      if (dataLabelsX - spanLeft < strokeWidth) {
-        dataLabelsX = spanLeft + strokeWidth;
-      }
-    }
-    return {
-      bcx: x2,
-      bcy,
-      dataLabelsX,
-      dataLabelsY,
-      totalDataLabelsX,
-      totalDataLabelsY,
-      totalDataLabelsAnchor
-    };
-  }
-  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
-  drawCalculatedDataLabels({
-    x: x2,
-    y,
-    val,
-    text,
-    neg,
-    i,
-    // = realIndex
-    j,
-    textRects,
-    barHeight,
-    barWidth,
-    dataLabelsConfig
-  }) {
-    var _a, _b, _c;
-    const w = this.w;
-    let rotate = "rotate(0)";
-    if (w.config.plotOptions.bar.dataLabels.orientation === "vertical")
-      rotate = `rotate(-90, ${x2}, ${y})`;
-    const dataLabels = new DataLabels(this.barCtx.w, this.barCtx.ctx);
-    const graphics = new Graphics(this.barCtx.w);
-    const formatter = dataLabelsConfig.formatter;
-    let elDataLabelsWrap = null;
-    const isSeriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1;
-    const isSeriesCollapsing = (w.globals.collapsingSeriesIndices || []).indexOf(i) > -1;
-    if (isSeriesCollapsing) {
-      const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(`${i}::${datumKey(w, i, j)}`);
-      if (prev && isFinite(prev.val)) {
-        val = prev.val;
-        text = void 0;
-      }
-    }
-    if (dataLabelsConfig.enabled && (!isSeriesCollapsed || isSeriesCollapsing)) {
-      elDataLabelsWrap = graphics.group({
-        class: "apexcharts-data-labels",
-        transform: rotate
-      });
-      const dlCfg = w.config.dataLabels;
-      if (((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled)) {
-        elDataLabelsWrap.node.setAttribute(
-          "data:dlKey",
-          `${i}::${datumKey(w, i, j)}`
-        );
-        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j));
-        if (typeof val === "number" && isFinite(val)) {
-          elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
-        }
-      }
-      if (val === void 0) {
-        text = "";
-      } else if (text === void 0) {
-        text = formatter(val, __spreadProps(__spreadValues({}, w), {
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        }));
-      }
-      if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        text = "";
-      }
-      const valIsNegative = neg != null ? neg : w.seriesData.series[i][j] < 0;
-      const position = w.config.plotOptions.bar.dataLabels.position;
-      if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
-        if (position === "top") {
-          if (valIsNegative) dataLabelsConfig.textAnchor = "end";
-          else dataLabelsConfig.textAnchor = "start";
-        }
-        if (position === "center") {
-          dataLabelsConfig.textAnchor = "middle";
-        }
-        if (position === "bottom") {
-          if (valIsNegative) dataLabelsConfig.textAnchor = "end";
-          else dataLabelsConfig.textAnchor = "start";
-        }
-      }
-      if (this.barCtx.isRangeBar && this.barCtx.barOptions.dataLabels.hideOverflowingLabels) {
-        const txRect = graphics.getTextRects(
-          text,
-          parseFloat(dataLabelsConfig.style.fontSize).toString()
-        );
-        if (barWidth < txRect.width) {
-          text = "";
-        }
-      }
-      if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && // A collapsing series is measured against its NEW extent, which is
-      // already zero, so this would blank a label whose bar is still at full
-      // height on screen. It starts out fitting and fades away with the mark.
-      !isSeriesCollapsing) {
-        if (this.barCtx.isHorizontal) {
-          if (textRects.width / 1.6 > Math.abs(barWidth)) {
-            text = "";
-          }
-        } else {
-          if (textRects.height / 1.6 > Math.abs(barHeight)) {
-            text = "";
-          }
-        }
-      }
-      const modifiedDataLabelsConfig = __spreadValues({}, dataLabelsConfig);
-      if (this.barCtx.isHorizontal) {
-        if (val < 0) {
-          if (dataLabelsConfig.textAnchor === "start") {
-            modifiedDataLabelsConfig.textAnchor = "end";
-          } else if (dataLabelsConfig.textAnchor === "end") {
-            modifiedDataLabelsConfig.textAnchor = "start";
-          }
-        }
-      }
-      dataLabels.plotDataLabelsText({
-        x: x2,
-        y,
-        text,
-        i,
-        j,
-        parent: elDataLabelsWrap,
-        dataLabelsConfig: modifiedDataLabelsConfig,
-        alwaysDrawDataLabel: true,
-        offsetCorrection: true
-      });
-    }
-    return elDataLabelsWrap;
-  }
-  /** @param {{ x?: any, y?: any, val?: any, rawVal?: any, realIndex?: any, j?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
-  drawTotalDataLabels({
-    x: x2,
-    y,
-    val,
-    rawVal,
-    realIndex,
-    j,
-    textAnchor,
-    barTotalDataLabelsConfig
-  }) {
-    var _a, _b;
-    const graphics = new Graphics(this.barCtx.w);
-    let totalDataLabelText;
-    if (barTotalDataLabelsConfig.enabled && typeof x2 !== "undefined" && typeof y !== "undefined" && this.drawsStackedTotal(realIndex)) {
-      totalDataLabelText = graphics.drawText({
-        x: x2,
-        y,
-        foreColor: barTotalDataLabelsConfig.style.color,
-        text: val,
-        textAnchor,
-        fontFamily: barTotalDataLabelsConfig.style.fontFamily,
-        fontSize: barTotalDataLabelsConfig.style.fontSize,
-        fontWeight: barTotalDataLabelsConfig.style.fontWeight
-      });
-      totalDataLabelText.attr({
-        class: "apexcharts-datalabel-total",
-        cx: x2,
-        cy: y
-      });
-      const dlCfg = this.w.config.dataLabels;
-      if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
-        const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex);
-        totalDataLabelText.node.setAttribute(
-          "data:dlTotalKey",
-          `${groupIndex}::${datumKey(this.w, realIndex, j)}`
-        );
-        totalDataLabelText.node.setAttribute(
-          "data:dlTotalSeries",
-          String(realIndex)
-        );
-        if (typeof rawVal === "number" && isFinite(rawVal)) {
-          totalDataLabelText.node.setAttribute("data:dlTotalVal", String(rawVal));
-        }
-      }
-    }
-    return totalDataLabelText;
-  }
-}
-function isHistogramOverlay(w) {
-  var _a, _b, _c, _d, _e, _f, _g;
-  if (((_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.requestedType) !== "histogram") return false;
-  if (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.histogram) == null ? void 0 : _d.overlap) === false) return false;
-  return ((_g = (_f = (_e = w.seriesData) == null ? void 0 : _e.series) == null ? void 0 : _f.length) != null ? _g : 0) > 1;
-}
-let Helpers$1 = class Helpers3 {
-  /**
-   * @param {Record<string, any>} barCtx
-   */
-  constructor(barCtx) {
-    this.w = barCtx.w;
-    this.barCtx = barCtx;
-  }
-  /**
-   * @param {any[]} series
-   */
-  initVariables(series) {
-    const w = this.w;
-    this.barCtx.series = series;
-    this.barCtx.totalItems = 0;
-    this.barCtx.seriesLen = 0;
-    this.barCtx.visibleI = -1;
-    this.barCtx.visibleItems = 1;
-    for (let sl = 0; sl < series.length; sl++) {
-      if (series[sl].length > 0) {
-        this.barCtx.seriesLen = this.barCtx.seriesLen + 1;
-        this.barCtx.totalItems += series[sl].length;
-      }
-      if (w.axisFlags.isXNumeric) {
-        for (let j = 0; j < series[sl].length; j++) {
-          if (w.seriesData.seriesX[sl][j] > w.globals.minX && w.seriesData.seriesX[sl][j] < w.globals.maxX) {
-            this.barCtx.visibleItems++;
-          }
-        }
-      } else {
-        this.barCtx.visibleItems = w.globals.dataPoints;
-      }
-    }
-    this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series);
-    if (Utils.isSafari()) {
-      this.arrBorderRadius = this.arrBorderRadius.map(
-        (brArr) => (
-          /**
-           * @param {any} _
-           */
-          brArr.map((_) => "none")
-        )
-      );
-    }
-    if (this.barCtx.seriesLen === 0) {
-      this.barCtx.seriesLen = 1;
-    }
-  }
-  /**
-   * The x-span that one bar slot covers, in DATA units, on a numeric or
-   * datetime axis. Returns 0 when it cannot be resolved, which leaves the
-   * caller on its category-style fallback.
-   *
-   * `w.globals.minXDiff` cannot serve here on its own, for two reasons:
-   *
-   *  - It is the smallest gap WITHIN a series, minimised over series, so it
-   *    never sees the gaps BETWEEN two series' x values. Series A on the 1st
-   *    and the 4th plus series B on the 2nd gives minXDiff = 3 days while the
-   *    axis really has a 1 day gap, and every bar is drawn 3 days wide, so
-   *    neighbours overlap (#4885).
-   *  - With one data point there are no gaps to measure at all and it is set
-   *    to a 0.5 sentinel, so the slot fell back to the whole grid width and a
-   *    single bar covered most of the chart. Range._handleSingleDataPoint pads
-   *    the axis by ±2 units around a lone point (2 days for datetime, 2 for
-   *    numeric), so one unit is a quarter of the resulting span.
-   *
-   * Cached: the merge below is O(points × series) and every series in a draw
-   * pass asks the same question.
-   *
-   * @returns {number}
-   */
-  barSlotXSpan() {
-    const w = this.w;
-    if (this._slotXSpan !== void 0) return this._slotXSpan;
-    let slot = 0;
-    if (w.globals.dataPoints <= 1) {
-      const span = w.globals.maxX - w.globals.minX;
-      slot = span > 0 ? span / 4 : 0;
-    } else {
-      slot = this._unionMinXGap();
-      if (!(slot > 0) || !isFinite(slot)) {
-        const min = w.globals.minXDiff;
-        slot = min > 0 && isFinite(min) && min !== 0.5 ? min : 0;
-      }
-    }
-    this._slotXSpan = slot;
-    return slot;
-  }
-  /**
-   * Smallest positive gap between neighbouring x values once every series is
-   * merged onto one axis. A k-way merge over the series arrays, which needs
-   * each one ascending: a non-ascending array (newest-first data) is merged
-   * from a sorted copy, or every gap would read as one huge slot.
-   *
-   * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
-   * them would widen every bar the moment someone hid the tightest-spaced
-   * series from the legend, so bar geometry would depend on legend state.
-   *
-   * @returns {number}
-   */
-  _unionMinXGap() {
-    const w = this.w;
-    const seriesX = w.seriesData.seriesX || [];
-    const arrays = [];
-    for (let i = 0; i < seriesX.length; i++) {
-      const xs = seriesX[i];
-      if (Array.isArray(xs) && xs.length > 0) {
-        arrays.push(
-          xs.some((v, n) => v < xs[n - 1]) ? xs.filter((v) => v === +v).sort((a, b) => a - b) : xs
-        );
-      }
-    }
-    if (!arrays.length) return 0;
-    const cursor = new Array(arrays.length).fill(0);
-    let prev = NaN;
-    let min = Infinity;
-    for (; ; ) {
-      let next = Infinity;
-      let from = -1;
-      for (let k2 = 0; k2 < arrays.length; k2++) {
-        const xs = arrays[k2];
-        while (cursor[k2] < xs.length && typeof xs[cursor[k2]] !== "number") {
-          cursor[k2]++;
-        }
-        if (cursor[k2] >= xs.length) continue;
-        const v = xs[cursor[k2]];
-        if (v !== v) {
-          cursor[k2]++;
-          k2--;
-          continue;
-        }
-        if (v < next) {
-          next = v;
-          from = k2;
-        }
-      }
-      if (from === -1) break;
-      cursor[from]++;
-      if (prev === prev) {
-        const d = next - prev;
-        if (d > 0 && d < min) min = d;
-      }
-      prev = next;
-    }
-    return isFinite(min) ? min : 0;
-  }
-  /**
-   * @param {number} realIndex
-   */
-  initialPositions(realIndex) {
-    const w = this.w;
-    let x2, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW;
-    let dataPoints = w.globals.dataPoints;
-    if (this.barCtx.isRangeBar) {
-      dataPoints = w.labelData.labels.length;
-    }
-    let seriesLen = this.barCtx.seriesLen;
-    if (w.config.plotOptions.bar.rangeBarGroupRows || isHistogramOverlay(w)) {
-      seriesLen = 1;
-    }
-    if (this.barCtx.isHorizontal) {
-      yDivision = w.layout.gridHeight / dataPoints;
-      barHeight = yDivision / seriesLen;
-      barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
-      if (String(this.barCtx.barOptions.barHeight).indexOf("%") === -1) {
-        barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
-      }
-      zeroW = this.barCtx.baseLineInvertedY + w.globals.padHorizontal + (this.barCtx.isReversed ? w.layout.gridWidth : 0) - (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0);
-      if (this.barCtx.isFunnel) {
-        zeroW = w.layout.gridWidth / 2;
-      }
-      y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
-    } else {
-      xDivision = w.layout.gridWidth / this.barCtx.visibleItems;
-      if (w.config.xaxis.convertedCatToNumeric) {
-        xDivision = w.layout.gridWidth / w.globals.dataPoints;
-      }
-      barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
-      if (w.axisFlags.isXNumeric) {
-        const xRatio = this.barCtx.xRatio;
-        const slotXSpan = this.barSlotXSpan();
-        if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
-          xDivision = slotXSpan / xRatio;
-        }
-        barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
-        if (barWidth < 1) {
-          barWidth = 1;
-        }
-      }
-      if (String(this.barCtx.barOptions.columnWidth).indexOf("%") === -1) {
-        barWidth = parseInt(this.barCtx.barOptions.columnWidth, 10);
-      }
-      zeroH = w.layout.gridHeight - this.barCtx.baseLineY[this.barCtx.translationsIndex] - (this.barCtx.isReversed ? w.layout.gridHeight : 0) + (this.barCtx.isReversed ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2 : 0);
-      if (w.axisFlags.isXNumeric) {
-        const xForNumericX = this.barCtx.getBarXForNumericXAxis({
-          x: x2,
-          j: 0,
-          realIndex,
-          barWidth
-        });
-        x2 = xForNumericX.x;
-      } else {
-        x2 = w.globals.padHorizontal + Utils.noExponents(xDivision - barWidth * this.barCtx.seriesLen) / 2;
-      }
-    }
-    w.globals.barHeight = barHeight;
-    w.globals.barWidth = barWidth;
-    return {
-      x: x2,
-      y,
-      yDivision,
-      xDivision,
-      barHeight,
-      barWidth,
-      zeroH,
-      zeroW
-    };
-  }
-  /**
-   * @param {Record<string, any>} ctx
-   */
-  initializeStackedPrevVars(ctx) {
-    ctx.stacks = ctx.w.labelData.seriesGroups.map(() => ({
-      prevY: [],
-      prevX: [],
-      prevYF: [],
-      prevXF: [],
-      prevYVal: [],
-      prevXVal: [],
-      tops: /* @__PURE__ */ new Map()
-    }));
-  }
-  /**
-   * @param {Record<string, any>} ctx
-   */
-  initializeStackedXYVars(ctx) {
-    ctx.stacks.forEach((g) => {
-      g.xArrj = [];
-      g.xArrjF = [];
-      g.xArrjVal = [];
-      g.yArrj = [];
-      g.yArrjF = [];
-      g.yArrjVal = [];
-    });
-  }
-  /**
-   * @param {any[]} series
-   * @param {number} i
-   * @param {number} j
-   * @param {number} realIndex
-   */
-  getPathFillColor(series, i, j, realIndex) {
-    var _a;
-    const w = this.w;
-    const fill = new Fill(this.barCtx.w);
-    let fillColor = null;
-    const seriesNumber = this.barCtx.barOptions.distributed ? j : i;
-    let useRangeColor = false;
-    if (this.barCtx.barOptions.colors.ranges.length > 0) {
-      const colorRange = this.barCtx.barOptions.colors.ranges;
-      colorRange.map((range) => {
-        if (series[i][j] >= range.from && series[i][j] <= range.to) {
-          fillColor = range.color;
-          useRangeColor = true;
-        }
-      });
-    }
-    const connectorFill = this.getDumbbellConnectorFill(i, j);
-    const datumFill = connectorFill || ((_a = w.config.series[i].data[j]) == null ? void 0 : _a.fill);
-    const connector = this.barCtx.barOptions.isDumbbell ? w.config.plotOptions.bar.dumbbell.connector : null;
-    let connectorOpacity;
-    if (connector && connector.color) {
-      fillColor = connector.color;
-      connectorOpacity = connector.opacity;
-    }
-    const pathFill = fill.fillPath({
-      seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
-      dataPointIndex: j,
-      color: fillColor,
-      opacity: connectorOpacity,
-      value: series[i][j],
-      fillConfig: datumFill,
-      fillType: (datumFill == null ? void 0 : datumFill.type) ? datumFill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
-    });
-    return {
-      color: pathFill,
-      useRangeColor
-    };
-  }
-  /**
-   * The connector's fill for one dumbbell row, or null to leave the fill alone.
-   *
-   * Returns a gradient running from the colour of the measure at the low end to
-   * the colour of the measure at the high end, which is the pair of dots the
-   * connector is between. `w.dumbbellData.order` is what makes it per-row: the
-   * merged interval is emitted low-to-high and no longer knows which measure
-   * was which, so a chart-wide gradient would point the wrong way on any row
-   * where the two cross.
-   *
-   * A user-set `connector.color` means a plain connector, and the `[lo, hi]`
-   * form names no measures to take colours from; both leave the fill alone.
-   *
-   * @param {number} i @param {number} j
-   * @returns {Record<string, any>|null}
-   */
-  getDumbbellConnectorFill(i, j) {
-    const w = this.w;
-    if (!this.barCtx.barOptions.isDumbbell) return null;
-    const dumbbell = w.dumbbellData;
-    if (!dumbbell || dumbbell.form !== "series") return null;
-    const connector = w.config.plotOptions.bar.dumbbell.connector;
-    if (connector.color) return null;
-    const order = dumbbell.order[j];
-    if (!order) return null;
-    const from = w.globals.colors[order[0]];
-    const to = w.globals.colors[order[1]];
-    if (!from || !to) return null;
-    return {
-      type: "gradient",
-      gradient: {
-        // Along the connector: the value axis is x when the rows are
-        // horizontal, y when they are columns.
-        type: this.barCtx.isHorizontal ? "horizontal" : "vertical",
-        gradientFrom: from,
-        gradientTo: to,
-        opacityFrom: connector.opacity,
-        opacityTo: connector.opacity,
-        stops: [0, 100],
-        // A column's y runs down the screen, so its low end is at the BOTTOM
-        // and the gradient has to be read the other way round to still start
-        // at the low end's colour.
-        inverseColors: !this.barCtx.isHorizontal
-      }
-    };
-  }
-  /**
-   * @param {number} i
-   * @param {number} j
-   * @param {number} realIndex
-   */
-  getStrokeWidth(i, j, realIndex) {
-    let strokeWidth = 0;
-    const w = this.w;
-    if (typeof this.barCtx.series[i][j] === "undefined" || this.barCtx.series[i][j] === null || w.config.chart.type === "bar" && !this.barCtx.series[i][j]) {
-      this.barCtx.isNullValue = true;
-    } else {
-      this.barCtx.isNullValue = false;
-    }
-    if (w.config.stroke.show) {
-      if (!this.barCtx.isNullValue) {
-        strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
-      }
-    }
-    return strokeWidth;
-  }
-  /**
-   * Series indices bucketed into the stacks they actually draw in: one bucket
-   * per series group, or a single bucket holding every series when the chart is
-   * not grouped. Order within a bucket follows series order, which is stacking
-   * order.
-   *
-   * `w.globals.columnSeries` (when set) is the combo chart's own list of which
-   * series it draws as bars; a line or area series never occupies a stack
-   * segment, so it is filtered out here rather than left to compete for the
-   * outermost slot (#5296).
-   *
-   * @param {number} numSeries
-   * @returns {number[][]}
-   */
-  getStackedSeriesIndices(numSeries) {
-    const w = this.w;
-    const groups = w.labelData.seriesGroups;
-    const barIndices = w.globals.columnSeries ? new Set(
-      /** @type {any} */
-      w.globals.columnSeries.i
-    ) : null;
-    const isBar = (i) => !barIndices || barIndices.has(i);
-    if (!groups || groups.length < 2) {
-      const bucket = Array.from({ length: numSeries }, (_, i) => i).filter(isBar);
-      return bucket.length ? [bucket] : [];
-    }
-    const buckets = Array.from({ length: groups.length }, () => []);
-    const ungrouped = [];
-    for (let i = 0; i < numSeries; i++) {
-      if (!isBar(i)) continue;
-      const g = this.getSeriesGroupIndex(i);
-      if (g > -1) buckets[g].push(i);
-      else ungrouped.push(i);
-    }
-    if (ungrouped.length) buckets.push(ungrouped);
-    return buckets.filter((b) => b.length > 0);
-  }
-  /**
-   * Which corners each bar rounds, as a [seriesIndex][dataPointIndex] grid of
-   * 'top' | 'bottom' | 'both' | 'none'.
-   *
-   * A rounded corner belongs to the OUTSIDE of a stack, so this resolves, per
-   * data point, the outermost segment on each side of the baseline; everything
-   * sandwiched between them stays square.
-   *
-   * Crucially a "stack" is a series GROUP, not the whole chart. A grouped
-   * stacked chart draws one independent stack per group, side by side, and each
-   * one needs its own outermost segments. Resolving chart-wide instead put the
-   * radius on the bottom of the first group's lowest series and the top of the
-   * last group's highest, leaving every stack in between completely square, 
-   * which is exactly how it looked: the first column rounded at the bottom, the
-   * second at the top, and nothing else touched. Stacked totals already resolve
-   * per group (see drawsStackedTotal, #4173); corners never got the same fix.
-   *
-   * plotOptions.bar.borderRadiusWhenStacked picks which ends round: 'all'
-   * caps both the baseline and the far end, 'last' only the far end (#4845).
-   *
-   * A single-data-point chart used to hand its baseline segment 'top' (and a
-   * solo segment 'top' instead of 'both'), which on a horizontal stack rounded
-   * the first segment on its INNER edge and left a pill in the middle of the
-   * bar (#4845). One data point is resolved like any other now.
-   *
-   * @param {any[]} series
-   * @returns {string[][]}
-   */
-  createBorderRadiusArr(series) {
-    var _a;
-    const w = this.w;
-    const alwaysApplyRadius = !this.w.config.chart.stacked || w.config.plotOptions.bar.borderRadius <= 0;
-    const numSeries = series.length;
-    const numColumns = ((_a = series[0]) == null ? void 0 : _a.length) | 0;
-    const output = Array.from(
-      { length: numSeries },
-      () => Array(numColumns).fill(alwaysApplyRadius ? "top" : "none")
-    );
-    if (alwaysApplyRadius) return output;
-    const lastOnly = w.config.plotOptions.bar.borderRadiusWhenStacked === "last";
-    const soloPositive = lastOnly ? "top" : "both";
-    const soloNegative = lastOnly ? "bottom" : "both";
-    const positiveBase = lastOnly ? "none" : "bottom";
-    const negativeBase = lastOnly ? "none" : "top";
-    for (const stack of this.getStackedSeriesIndices(numSeries)) {
-      for (let j = 0; j < numColumns; j++) {
-        const positiveIndices = [];
-        const negativeIndices = [];
-        for (const i of stack) {
-          const value = series[i][j];
-          if (value > 0) positiveIndices.push(i);
-          else if (value < 0) negativeIndices.push(i);
-        }
-        if (positiveIndices.length > 0 && negativeIndices.length === 0) {
-          if (positiveIndices.length === 1) {
-            output[positiveIndices[0]][j] = soloPositive;
-          } else {
-            const first = positiveIndices[0];
-            const last = positiveIndices[positiveIndices.length - 1];
-            for (const i of positiveIndices) {
-              output[i][j] = i === first ? positiveBase : i === last ? "top" : "none";
-            }
-          }
-        } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
-          if (negativeIndices.length === 1) {
-            output[negativeIndices[0]][j] = soloNegative;
-          } else {
-            const nearest = Math.min(...negativeIndices);
-            const farthest = Math.max(...negativeIndices);
-            for (const i of negativeIndices) {
-              output[i][j] = i === nearest ? negativeBase : i === farthest ? "bottom" : "none";
-            }
-          }
-        } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
-          const lastPositive = positiveIndices[positiveIndices.length - 1];
-          for (const i of positiveIndices) {
-            output[i][j] = i === lastPositive ? "top" : "none";
-          }
-          const highestNegative = Math.max(...negativeIndices);
-          for (const i of negativeIndices) {
-            output[i][j] = i === highestNegative ? "bottom" : "none";
-          }
-        }
-      }
-    }
-    return output;
-  }
-  /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
-  barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
-    const w = this.w;
-    const graphics = new Graphics(this.barCtx.w);
-    const sr = new Series(this.barCtx.w);
-    const activeSeriesIndex = sr.getActiveConfigSeriesIndex();
-    if (this.barCtx.barOptions.colors.backgroundBarColors.length > 0 && activeSeriesIndex === i) {
-      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        j %= this.barCtx.barOptions.colors.backgroundBarColors.length;
-      }
-      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j];
-      const rect = graphics.drawRect(
-        typeof x1 !== "undefined" ? x1 : 0,
-        typeof y1 !== "undefined" ? y1 : 0,
-        typeof x2 !== "undefined" ? x2 : w.layout.gridWidth,
-        typeof y2 !== "undefined" ? y2 : w.layout.gridHeight,
-        this.barCtx.barOptions.colors.backgroundBarRadius,
-        bcolor,
-        this.barCtx.barOptions.colors.backgroundBarOpacity
-      );
-      elSeries.add(rect);
-      rect.node.classList.add("apexcharts-backgroundBar");
-    }
-  }
-  /**
-   * The rect a column or bar is drawn as: its slot across the category axis
-   * (`a`, `len`) and its two ends on the value axis (`v1` the baseline, `v2`
-   * the value), with the stroke centred on the edges and the configured
-   * corners rounded. getColumnPaths and getBarpaths build their bars here, and
-   * so does the highlight filter's part, which is how a part lines up with its
-   * whole to the sub-pixel.
-   *
-   * `base` is the rect collapsed onto its baseline, padded to the command
-   * count of `pathTo` so the rise morphs cleanly.
-   *
-   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
-   */
-  barRect({ a, len, v1, v2, strokeWidth, realIndex, j, dir, horizontal }) {
-    const w = this.w;
-    const graphics = new Graphics(w);
-    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
-    if (!strokeWidth) strokeWidth = 0;
-    const datum = (
-      /** @type {any} */
-      w.config.series[realIndex].data[j]
-    );
-    const offset = horizontal ? datum == null ? void 0 : datum.barHeightOffset : datum == null ? void 0 : datum.columnWidthOffset;
-    if (offset) {
-      a -= offset / 2;
-      len += offset;
-    }
-    const strokeCenter = strokeWidth / 2;
-    const direction = dir * (this.barCtx.isReversed ? -1 : 1);
-    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
-    let x1, x2, y1, y2, sl, squarePathTo;
-    if (horizontal) {
-      y1 = a + strokeCenter;
-      y2 = a + len - strokeCenter;
-      x1 = v1 + 1e-3 + strokeCenter * direction;
-      x2 = v2 + 1e-3 - strokeCenter * direction;
-      sl = graphics.line(x1, y2);
-      squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
-    } else {
-      x1 = a + strokeCenter;
-      x2 = a + len - strokeCenter;
-      y1 = v1 + 1e-3 - strokeCenter * direction;
-      y2 = v2 + 1e-3 + strokeCenter * direction;
-      sl = graphics.line(x2, y1);
-      squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
-    }
-    const pathTo = this.arrBorderRadius[realIndex][j] !== "none" ? graphics.roundPathCorners(
-      squarePathTo,
-      w.config.plotOptions.bar.borderRadius
-    ) : squarePathTo;
-    return {
-      x1,
-      x2,
-      y1,
-      y2,
-      sl,
-      closing,
-      squarePathTo,
-      pathTo,
-      base: graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing,
-      strokeWidth,
-      strokeCenter,
-      direction
-    };
-  }
-  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
-  getColumnPaths({
-    barWidth,
-    barXPosition,
-    y1,
-    y2,
-    strokeWidth,
-    series,
-    realIndex,
-    i,
-    j,
-    w
-  }) {
-    var _a, _b;
-    const r = this.barRect({
-      a: barXPosition,
-      len: barWidth,
-      v1: y1,
-      v2: y2,
-      strokeWidth,
-      realIndex,
-      j,
-      dir: series[i][j] >= 0 ? 1 : -1
-    });
-    const { pathTo, squarePathTo, strokeCenter, direction } = r;
-    y1 = r.y1;
-    y2 = r.y2;
-    let pathFrom = null;
-    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
-      realIndex,
-      j
-    );
-    if (morphFrom) {
-      pathFrom = morphFrom;
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
-    }
-    if (pathFrom == null) {
-      pathFrom = r.base;
-    }
-    if (w.config.chart.stacked) {
-      const _ctx = this.barCtx.groupCtx;
-      _ctx.yArrj.push(y2 - strokeCenter * direction);
-      _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction));
-      _ctx.yArrjVal.push(this.barCtx.series[i][j]);
-    }
-    return {
-      pathTo,
-      pathFrom,
-      // The box the path was built from, AFTER the stroke centering and the
-      // anti-exponential nudge above. Anything that has to line up with a drawn
-      // bar (the waterfall connectors) reads this rather than recomputing the
-      // edges, which is how it stays exact when a stroke width is set.
-      // `y1` is the lower value's edge and `y2` the upper one's.
-      drawnBox: { x1: r.x1, x2: r.x2, y1, y2 }
-    };
-  }
-  /**
-   * Build a trapezoidal funnel-stage path. Used when
-   * `plotOptions.funnel.shape === 'trapezoid'` is active alongside `isFunnel`.
-   *
-   * Each stage is a 4-corner polygon whose top width matches the current
-   * stage's value and bottom width matches the next stage's value, producing
-   * continuous sloped sides between consecutive stages.
-   *
-   * For the last stage, the bottom width is configurable:
-   * - `lastShape: 'flat'`  → bottom width = top width (parallel sides)
-   * - `lastShape: 'taper'` → bottom width = 0 (taper to a point)
-   *
-   * @param {{ barYPosition: number, barHeight: number, series: any[][], i: number, j: number, realIndex: number, strokeWidth: number, w: any }} opts
-   */
-  getFunnelTrapezoidPaths({
-    barYPosition,
-    barHeight,
-    series,
-    i,
-    j,
-    realIndex,
-    strokeWidth,
-    w
-  }) {
-    var _a, _b;
-    const graphics = new Graphics(this.barCtx.w);
-    const center = w.layout.gridWidth / 2;
-    const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
-    const topHalf = halfWidthFor(series[i][j]);
-    const lastIdx = series[i].length - 1;
-    const isLast = j === lastIdx;
-    const lastShape = w.config.plotOptions.funnel.lastShape === "taper" ? "taper" : "flat";
-    let bottomHalf;
-    if (isLast) {
-      bottomHalf = lastShape === "taper" ? 0 : topHalf;
-    } else {
-      bottomHalf = halfWidthFor(series[i][j + 1]);
-    }
-    const strokeCenter = strokeWidth / 2;
-    const y1 = barYPosition + strokeCenter;
-    const y2 = barYPosition + barHeight - strokeCenter;
-    const topLeftX = center - topHalf;
-    const topRightX = center + topHalf;
-    const bottomLeftX = center - bottomHalf;
-    const bottomRightX = center + bottomHalf;
-    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-    let pathFrom = null;
-    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
-      realIndex,
-      j
-    );
-    if (morphFrom) {
-      pathFrom = morphFrom;
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-    }
-    if (pathFrom == null) {
-      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
-    }
-    return {
-      pathTo,
-      pathFrom,
-      // x is the right edge of the wider (top) side — used by dataLabel
-      // positioning helpers that expect a "right" reference.
-      x: topRightX,
-      x1: topLeftX,
-      barXPosition: center
-    };
-  }
-  /**
-   * Pre-compute the per-segment layout for a value-proportional pyramid.
-   *
-   * Each segment is a horizontal slice of a triangle whose apex sits at the
-   * top of the plot area (width = 0) and whose base spans `gridWidth` at the
-   * bottom. The vertical extent of each slice is its share of the total
-   * series value, so areas track value contribution and segments share
-   * edges (no gaps). The first data point is the apex, the last is the base.
-   *
-   * @param {any[]} seriesData - 1D array of values for a single series row
-   * @returns {{ y: number, height: number, topHalf: number, bottomHalf: number }[]}
-   */
-  computePyramidLayout(seriesData) {
-    const w = this.w;
-    const gridHeight = w.layout.gridHeight;
-    const gridWidth = w.layout.gridWidth;
-    const values = seriesData.map(
-      /** @param {any} v */
-      (v) => Math.abs(Number(v) || 0)
-    );
-    const total = values.reduce(
-      /** @param {number} a @param {number} b */
-      (a, b) => a + b,
-      0
-    );
-    if (total === 0 || gridHeight <= 0) {
-      return values.map(() => ({ y: 0, height: 0, topHalf: 0, bottomHalf: 0 }));
-    }
-    const halfWidth = gridWidth / 2;
-    let cumulative = 0;
-    const layout = [];
-    for (let j = 0; j < values.length; j++) {
-      const topRatio = cumulative / total;
-      cumulative += values[j];
-      const bottomRatio = cumulative / total;
-      const topY = topRatio * gridHeight;
-      const bottomY = bottomRatio * gridHeight;
-      layout.push({
-        y: topY,
-        height: bottomY - topY,
-        topHalf: topRatio * halfWidth,
-        bottomHalf: bottomRatio * halfWidth
-      });
-    }
-    return layout;
-  }
-  /**
-   * Build a single pyramid stage path. Geometry is precomputed by
-   * `computePyramidLayout`; this method only renders that geometry into an
-   * SVG path string plus a `pathFrom` for entry/morph animations.
-   *
-   * @param {{ barYPosition: number, barHeight: number, topHalf: number, bottomHalf: number, realIndex: number, j: number, strokeWidth: number, w: any }} opts
-   */
-  getPyramidPaths({
-    barYPosition,
-    barHeight,
-    topHalf,
-    bottomHalf,
-    realIndex,
-    j,
-    strokeWidth,
-    w
-  }) {
-    var _a, _b;
-    const graphics = new Graphics(this.barCtx.w);
-    const center = w.layout.gridWidth / 2;
-    const strokeCenter = strokeWidth / 2;
-    const y1 = barYPosition + strokeCenter;
-    const y2 = barYPosition + barHeight - strokeCenter;
-    const topLeftX = center - topHalf;
-    const topRightX = center + topHalf;
-    const bottomLeftX = center - bottomHalf;
-    const bottomRightX = center + bottomHalf;
-    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-    let pathFrom = null;
-    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
-      realIndex,
-      j
-    );
-    if (morphFrom) {
-      pathFrom = morphFrom;
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-    }
-    if (pathFrom == null) {
-      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
-    }
-    return {
-      pathTo,
-      pathFrom,
-      x: topRightX,
-      x1: topLeftX,
-      barXPosition: center
-    };
-  }
-  /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
-  getBarpaths({
-    barYPosition,
-    barHeight,
-    x1,
-    x2,
-    strokeWidth,
-    series,
-    realIndex,
-    i,
-    j,
-    w
-  }) {
-    var _a, _b;
-    const graphics = new Graphics(this.barCtx.w);
-    const r = this.barRect({
-      a: barYPosition,
-      len: barHeight,
-      v1: x1,
-      v2: x2,
-      strokeWidth,
-      realIndex,
-      j,
-      dir: series[i][j] >= 0 ? 1 : -1,
-      horizontal: true
-    });
-    const { y1, y2, sl, closing, squarePathTo, pathTo, strokeCenter, direction } = r;
-    x1 = r.x1;
-    x2 = r.x2;
-    const isFunnel = this.barCtx.isFunnel;
-    const fromX = isFunnel ? (x1 + x2) / 2 : x1;
-    let pathFrom = null;
-    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
-      realIndex,
-      j
-    );
-    if (morphFrom) {
-      pathFrom = morphFrom;
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
-    }
-    if (pathFrom == null) {
-      const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
-      pathFrom = graphics.move(fromX, y1) + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + closing;
-    }
-    if (w.config.chart.stacked) {
-      const _ctx = this.barCtx.groupCtx;
-      _ctx.xArrj.push(x2 + strokeCenter * direction);
-      _ctx.xArrjF.push(Math.abs(x1 - x2 - r.strokeWidth * direction));
-      _ctx.xArrjVal.push(this.barCtx.series[i][j]);
-    }
-    return {
-      pathTo,
-      pathFrom,
-      // See getColumnPaths. Here `x1` is the start value's edge and `x2` the
-      // end value's, because a horizontal bar's two ends arrive unsorted.
-      drawnBox: { x1, x2, y1, y2 }
-    };
-  }
-  /**
-   * @param {number} value
-   * @param {number} zeroW
-   */
-  getXForValue(value, zeroW, zeroPositionForNull = true) {
-    let xForVal = zeroPositionForNull ? zeroW : null;
-    if (typeof value !== "undefined" && value !== null) {
-      xForVal = zeroW + value / this.barCtx.invertedYRatio - (this.barCtx.isReversed ? value / this.barCtx.invertedYRatio : 0) * 2;
-    }
-    return xForVal;
-  }
-  /**
-   * @param {number} value
-   * @param {number} zeroH
-   * @param {number} translationsIndex
-   */
-  getYForValue(value, zeroH, translationsIndex, zeroPositionForNull = true) {
-    let yForVal = zeroPositionForNull ? zeroH : null;
-    if (typeof value !== "undefined" && value !== null) {
-      yForVal = zeroH - value / this.barCtx.yRatio[translationsIndex] + (this.barCtx.isReversed ? value / this.barCtx.yRatio[translationsIndex] : 0) * 2;
-    }
-    return yForVal;
-  }
-  /**
-   * @param {string} type
-   * @param {number} zeroW
-   * @param {number} zeroH
-   * @param {number} i
-   * @param {number} j
-   * @param {number} translationsIndex
-   */
-  getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
-    const w = this.w;
-    const goals = [];
-    const pushGoal = (value, attrs) => {
-      goals.push({
-        [type]: type === "x" ? this.getXForValue(value, zeroW, false) : this.getYForValue(value, zeroH, translationsIndex, false),
-        attrs
-      });
-    };
-    if (w.seriesData.seriesGoals[i] && w.seriesData.seriesGoals[i][j] && Array.isArray(w.seriesData.seriesGoals[i][j])) {
-      w.seriesData.seriesGoals[i][j].forEach((goal) => {
-        pushGoal(goal.value, goal);
-      });
-    }
-    if (this.barCtx.barOptions.isDumbbell) {
-      const ends = this.getDumbbellEnds(i, j);
-      if (ends.length) {
-        const commonAttrs = {
-          strokeHeight: type === "x" ? 0 : w.globals.markers.size[i],
-          strokeWidth: type === "x" ? w.globals.markers.size[i] : 0,
-          strokeDashArray: 0,
-          strokeLineCap: "round"
-        };
-        let lo = 0;
-        let hi = 0;
-        for (let e = 1; e < ends.length; e++) {
-          if (ends[e].value < ends[lo].value) lo = e;
-          if (ends[e].value > ends[hi].value) hi = e;
-        }
-        const labelsCnf = w.config.plotOptions.bar.dumbbell.dataLabels;
-        ends.forEach((end, e) => {
-          const attrs = __spreadProps(__spreadValues({}, commonAttrs), { strokeColor: end.color });
-          if (labelsCnf.enabled && (e === lo || e === hi)) {
-            attrs.label = {
-              text: this.getDumbbellLabelText(end.value, i, j, end.index),
-              color: labelsCnf.colorFromMarker ? end.color : Array.isArray(labelsCnf.style.colors) ? labelsCnf.style.colors[end.index] || labelsCnf.style.colors[0] : labelsCnf.style.colors,
-              // Away from the connector: the low end reads to its left (below,
-              // on a column), the high end to its right. A lone endpoint has no
-              // connector to be clear of, so it takes the outward side.
-              outward: e === lo && lo !== hi ? -1 : 1
-            };
-          }
-          pushGoal(end.value, attrs);
-        });
-      }
-    }
-    return goals;
-  }
-  /**
-   * The marked ends of one dumbbell row: a value and the colour that says which
-   * measure it belongs to.
-   *
-   * `chart.type: 'dumbbell'` merged N measures into one interval and left the
-   * endpoint identities on `w.dumbbellData`, so an end is coloured after the
-   * SERIES it came from. A row where the two measures cross therefore keeps its
-   * colours, which the interval alone could not say: it is emitted low-to-high
-   * and has forgotten which end was which.
-   *
-   * The `y: [lo, hi]` form names no measures, so it keeps the positional
-   * `dumbbellColors` pathway: colour 0 for the start, colour 1 for the end.
-   *
-   * @param {number} i @param {number} j
-   * @returns {Array<{ value: number, color: string, index: number }>}
-   */
-  getDumbbellEnds(i, j) {
-    const w = this.w;
-    const ends = [];
-    const dumbbell = w.dumbbellData;
-    if (dumbbell && dumbbell.form === "series") {
-      const values = dumbbell.values[j] || [];
-      for (let k2 = 0; k2 < values.length; k2++) {
-        const v = values[k2];
-        if (v === null || dumbbell.hidden.indexOf(k2) !== -1) continue;
-        ends.push({ value: v, color: w.globals.colors[k2], index: k2 });
-      }
-      return ends;
-    }
-    if (!w.rangeData.seriesRange.length) return ends;
-    const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w.globals.colors;
-    const pick = (n) => Array.isArray(colors[i]) ? colors[i][n] : colors[i];
-    return [
-      { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
-      { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 }
-    ];
-  }
-  /**
-   * The text for one end label.
-   *
-   * Deliberately NOT `dataLabels.formatter`: on a range bar that one reads out
-   * `end - start`, so an endpoint run through it would print the gap twice and
-   * the values never. The value-axis formatter is the one that already knows
-   * these numbers are percentages, or dollars, or dates.
-   *
-   * @param {number} value @param {number} i @param {number} j @param {number} k
-   * @returns {string}
-   */
-  getDumbbellLabelText(value, i, j, k2) {
-    const w = this.w;
-    const cnf = w.config.plotOptions.bar.dumbbell.dataLabels;
-    if (typeof cnf.formatter === "function") {
-      return cnf.formatter(value, {
-        seriesIndex: i,
-        dataPointIndex: j,
-        endpointIndex: k2,
-        w
-      });
-    }
-    const axisFormatter = this.barCtx.isHorizontal ? w.formatters.xLabelFormatter : w.formatters.yLabelFormatters[0];
-    if (typeof axisFormatter === "function") {
-      return axisFormatter(value, j, w);
-    }
-    return String(value);
-  }
-  /** @param {{barXPosition: any, barYPosition: any, goalX: any, goalY: any, barWidth: any, barHeight: any}} opts */
-  drawGoalLine({
-    barXPosition,
-    barYPosition,
-    goalX,
-    goalY,
-    barWidth,
-    barHeight
-  }) {
-    const hasGoals = Array.isArray(goalX) && goalX.length > 0 || Array.isArray(goalY) && goalY.length > 0;
-    if (!hasGoals) {
-      return null;
-    }
-    const graphics = new Graphics(this.barCtx.w);
-    const lineGroup = graphics.group({
-      class: "apexcharts-bar-goals-groups"
-    });
-    lineGroup.node.classList.add("apexcharts-element-hidden");
-    this.barCtx.w.globals.delayedElements.push({
-      el: lineGroup.node
-    });
-    lineGroup.attr(
-      "clip-path",
-      `url(#gridRectMarkerMask${this.barCtx.w.globals.cuid})`
-    );
-    let line = null;
-    if (this.barCtx.isHorizontal) {
-      if (Array.isArray(goalX)) {
-        goalX.forEach((goal) => {
-          if (goal.x >= -1 && goal.x <= graphics.w.layout.gridWidth + 1) {
-            const sHeight = typeof goal.attrs.strokeHeight !== "undefined" ? goal.attrs.strokeHeight : barHeight / 2;
-            const y = barYPosition + sHeight + barHeight / 2;
-            line = graphics.drawLine(
-              goal.x,
-              y - sHeight * 2,
-              goal.x,
-              y,
-              goal.attrs.strokeColor ? goal.attrs.strokeColor : void 0,
-              goal.attrs.strokeDashArray,
-              goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
-              goal.attrs.strokeLineCap
-            );
-            lineGroup.add(line);
-            if (goal.attrs.label) {
-              lineGroup.add(
-                this.drawDumbbellLabel(goal.attrs, {
-                  x: goal.x,
-                  y: y - sHeight,
-                  horizontal: true,
-                  markerSize: goal.attrs.strokeWidth || 0
-                })
-              );
-            }
-          }
-        });
-      }
-    } else {
-      if (Array.isArray(goalY)) {
-        goalY.forEach((goal) => {
-          if (goal.y >= -1 && goal.y <= graphics.w.layout.gridHeight + 1) {
-            const sWidth = typeof goal.attrs.strokeWidth !== "undefined" ? goal.attrs.strokeWidth : barWidth / 2;
-            const x2 = barXPosition + sWidth + barWidth / 2;
-            line = graphics.drawLine(
-              x2 - sWidth * 2,
-              goal.y,
-              x2,
-              goal.y,
-              goal.attrs.strokeColor ? goal.attrs.strokeColor : void 0,
-              goal.attrs.strokeDashArray,
-              goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2,
-              goal.attrs.strokeLineCap
-            );
-            lineGroup.add(line);
-            if (goal.attrs.label) {
-              lineGroup.add(
-                this.drawDumbbellLabel(goal.attrs, {
-                  x: x2 - sWidth,
-                  y: goal.y,
-                  horizontal: false,
-                  markerSize: goal.attrs.strokeHeight || 0
-                })
-              );
-            }
-          }
-        });
-      }
-    }
-    return lineGroup;
-  }
-  /**
-   * One dumbbell end label, placed clear of the marker it belongs to.
-   *
-   * Offset from the marker's EDGE rather than its centre, so growing
-   * `markers.size` never walks a label under its own dot. Vertically it is
-   * centred on the marker with `dominant-baseline`, which is exact whatever the
-   * font metrics are, where a dy fudge factor drifts with font size.
-   *
-   * @param {Record<string, any>} attrs the goal's attrs, carrying `label`
-   * @param {{x: number, y: number, horizontal: boolean, markerSize: number}} pos
-   */
-  drawDumbbellLabel(attrs, pos) {
-    const w = this.w;
-    const graphics = new Graphics(w);
-    const cnf = w.config.plotOptions.bar.dumbbell.dataLabels;
-    const gap = pos.markerSize / 2 + cnf.offset;
-    const away = attrs.label.outward;
-    return graphics.drawText({
-      x: pos.x + (pos.horizontal ? gap * away : 0),
-      y: pos.y - (pos.horizontal ? 0 : gap * away),
-      text: attrs.label.text,
-      textAnchor: pos.horizontal ? away < 0 ? "end" : "start" : "middle",
-      dominantBaseline: pos.horizontal ? "central" : away < 0 ? "hanging" : "auto",
-      foreColor: attrs.label.color,
-      fontSize: cnf.style.fontSize,
-      fontFamily: cnf.style.fontFamily,
-      fontWeight: cnf.style.fontWeight,
-      cssClass: "apexcharts-dumbbell-label"
-    });
-  }
-  /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
-  drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
-    const w = this.w;
-    const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths;
-    const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths;
-    const prevY2 = prevY1 + currPaths.barHeight;
-    const graphics = new Graphics(this.barCtx.w);
-    const utils = new Utils();
-    const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
-    return graphics.drawPath({
-      d: shadowPath,
-      fill: utils.shadeColor(0.5, Utils.rgb2hex(color)),
-      stroke: "none",
-      strokeWidth: 0,
-      fillOpacity: 1,
-      classes: "apexcharts-bar-shadow apexcharts-decoration-element"
-    });
-  }
-  /** @param {{i: any, j: any}} opts */
-  getZeroValueEncounters({ i, j }) {
-    var _a;
-    const w = this.w;
-    let nonZeroColumns = 0;
-    let zeroEncounters = 0;
-    const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
-    seriesIndices.forEach((_si) => {
-      const val = w.globals.seriesPercent[_si][j];
-      if (val) {
-        nonZeroColumns++;
-      }
-      if (_si < i && val === 0) {
-        zeroEncounters++;
-      }
-    });
-    return {
-      nonZeroColumns,
-      zeroEncounters
-    };
-  }
-  /**
-   * Index of the series group `seriesIndex` belongs to within
-   * `w.labelData.seriesGroups`, or -1 when the chart has no groups.
-   *
-   * Unlike `getGroupIndex` this is a pure lookup: it never appends to
-   * `columnGroupIndices`, so it is safe to call from positioning/label code
-   * that must not perturb the draw order bookkeeping.
-   * @param {number} seriesIndex
-   * @returns {number}
-   */
-  getSeriesGroupIndex(seriesIndex) {
-    var _a;
-    return (_a = this.w.labelData.seriesGroupIndex[seriesIndex]) != null ? _a : -1;
-  }
-  /**
-   * @param {number} seriesIndex
-   */
-  getGroupIndex(seriesIndex) {
-    const groupIndex = this.getSeriesGroupIndex(seriesIndex);
-    const cGI = this.barCtx.columnGroupIndices;
-    let columnGroupIndex = cGI.indexOf(groupIndex);
-    if (columnGroupIndex < 0) {
-      cGI.push(groupIndex);
-      columnGroupIndex = cGI.length - 1;
-    }
-    return { groupIndex, columnGroupIndex };
-  }
-};
 class Bar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -14220,15 +14351,17 @@ class Bar {
   /**
    * Point the per-series axis state at this series' y axis. Every bar-family
    * renderer calls it before initialPositions, which reads the baseline by
-   * this.translationsIndex.
+   * this.translationsIndex and flips it for a reversed axis.
    * @param {number} realIndex
    * @return {number} translationsIndex
    */
   setSeriesAxis(realIndex) {
+    var _a;
     if (this.yRatio.length > 1) {
       this.yaxisIndex = this.w.globals.seriesYAxisReverseMap[realIndex];
       this.translationsIndex = realIndex;
     }
+    this.isReversed = (_a = this.w.config.yaxis[this.yaxisIndex]) == null ? void 0 : _a.reversed;
     return this.translationsIndex;
   }
   /** primary draw method which is called on bar object
@@ -14245,7 +14378,7 @@ class Bar {
     series = coreUtils.getLogSeries(series);
     this.series = series;
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
-    this.barHelpers.initVariables(series);
+    this.barHelpers.initVariables(series, seriesIndex);
     const ret = graphics.group({
       class: "apexcharts-bar-series apexcharts-plot-series"
     });
@@ -14277,7 +14410,6 @@ class Bar {
         this.visibleI = this.visibleI + 1;
       }
       const translationsIndex = this.setSeriesAxis(realIndex);
-      this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
       if (this.isPyramid) {
         this.pyramidLayout = this.barHelpers.computePyramidLayout(series[i]);
       }
@@ -14355,7 +14487,9 @@ class Bar {
           elSeries
         };
         if (this.isHorizontal) {
-          paths = this.drawBarPaths(__spreadProps(__spreadValues({}, pathsParams), {
+          paths = this.drawBarPaths(__spreadProps(__spreadValues(__spreadValues({}, pathsParams), this.barHelpers.rows && {
+            y: initY + this.barHelpers.barRow(realIndex, j) * yDivision
+          }), {
             barHeight,
             zeroW,
             yDivision
@@ -14437,6 +14571,7 @@ class Bar {
           series,
           barHeight: Math.abs(paths.barHeight ? paths.barHeight : barHeight),
           barWidth: Math.abs(paths.barWidth ? paths.barWidth : barWidth),
+          barXPosition: paths.barXPosition,
           elDataLabelsWrap,
           elGoalsMarkers,
           elBarShadows,
@@ -14447,15 +14582,11 @@ class Bar {
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;
       if (w.globals.previousPaths.length > 0) {
-        const newKeys = [];
-        for (let j = 0; j < series[i].length; j++) {
-          newKeys.push(datumKey(w, realIndex, j));
-        }
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys,
+          newKeys: this._keys(realIndex),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed
         });
@@ -14464,7 +14595,7 @@ class Bar {
     }
     return ret;
   }
-  /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean }} opts */
+  /** @param {{ hl?: any, realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any, fadeReveal?: boolean, noLabel?: boolean }} opts */
   renderSeries({
     hl,
     realIndex,
@@ -14496,7 +14627,9 @@ class Bar {
     visibleSeries,
     type,
     classes,
-    fadeReveal = false
+    fadeReveal = false,
+    noLabel
+    // a datum's extra paths (box halves, box lane) label nothing
   }) {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
@@ -14570,7 +14703,8 @@ class Bar {
         barXPosition,
         barYPosition,
         visibleSeries,
-        hl: hl == null ? void 0 : hl.label
+        hl: hl == null ? void 0 : hl.label,
+        noLabel
       })
     );
     if (delayMs > 0) {
@@ -14586,19 +14720,18 @@ class Bar {
     }
     let leaving = false;
     if (!w.globals.isBarHorizontal) {
-      if (dataLabelsObj.dataLabelsPos.dataLabelsX + Math.max(barWidth, w.globals.barPadForNumericAxis) < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - Math.max(barWidth, w.globals.barPadForNumericAxis) > w.layout.gridWidth) {
+      const cx = barXPosition === void 0 ? dataLabelsObj.dataLabelsPos.dataLabelsX : barXPosition + barWidth / 2;
+      const pad = Math.max(barWidth, w.globals.barPadForNumericAxis);
+      if (cx + pad < 0 || cx - pad > w.layout.gridWidth) {
         if (this._wasOnScreen(realIndex, j)) leaving = true;
         else skipDrawing = true;
       }
     }
-    if (
-      /** @type {Record<string,any>} */
-      w.config.series[i].data[j] && /** @type {Record<string,any>} */
-      w.config.series[i].data[j].strokeColor
-    ) {
-      lineFill = /** @type {Record<string,any>} */
-      w.config.series[i].data[j].strokeColor;
-    }
+    const datum = (
+      /** @type {any} */
+      w.config.series[realIndex].data[j]
+    );
+    if (datum && datum.strokeColor) lineFill = datum.strokeColor;
     const fill = pathFill;
     if (this.isNullValue && w.globals.collapsingSeriesIndices.indexOf(realIndex) === -1) {
       pathFill = "none";
@@ -14621,7 +14754,7 @@ class Bar {
           pathTo,
           stroke: lineFill,
           strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
+          strokeLinecap: w.config.stroke.lineCap,
           fill: pathFill,
           pathToInterp,
           animationDelay: delay,
@@ -14673,12 +14806,12 @@ class Bar {
         cy: dataLabelsObj.dataLabelsPos.bcy,
         cx: dataLabelsObj.dataLabelsPos.bcx,
         j,
-        val: w.seriesData.series[i][j],
+        val: w.seriesData.series[realIndex][j],
         barHeight,
         barWidth,
         // Datum identity for the next update's keyed join (see
         // LengthTransition): survivors match by key, not array position.
-        "data:pathKey": datumKey(w, realIndex, j)
+        "data:pathKey": this._keys(realIndex)[j]
       });
       hl == null ? void 0 : hl.paint(renderedPath, {
         delay,
@@ -14754,7 +14887,10 @@ class Bar {
     const j = indexes.j;
     let barYPosition;
     if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-      const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
+      const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({
+        i: indexes.realIndex,
+        j
+      });
       if (nonZeroColumns > 0) {
         barHeight = this.seriesLen * barHeight / nonZeroColumns;
       }
@@ -14893,7 +15029,7 @@ class Bar {
       barXPosition = xForNumericX.barXPosition;
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
+        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: realIndex, j });
         if (nonZeroColumns > 0) {
           barWidth = this.seriesLen * barWidth / nonZeroColumns;
         }
@@ -14957,15 +15093,16 @@ class Bar {
   /** @param {{x: any, barWidth: any, realIndex: any, j: any}} opts */
   getBarXForNumericXAxis({ x: x2, barWidth, realIndex, j }) {
     const w = this.w;
+    const overlay = isHistogramOverlay(w);
     let sxI = realIndex;
     if (!w.seriesData.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex;
     }
     if (Utils.isNumber(w.seriesData.seriesX[sxI][j])) {
-      x2 = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) - barWidth * this.seriesLen / 2;
+      x2 = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) - barWidth * (overlay ? 1 : this.seriesLen) / 2;
     }
     return {
-      barXPosition: x2 + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
+      barXPosition: x2 + (overlay ? 0 : barWidth * this.visibleI),
       x: x2
     };
   }
@@ -14986,7 +15123,20 @@ class Bar {
   _wasOnScreen(realIndex, j) {
     if (!lengthTransitionEnabled(this.w)) return false;
     const keyed = this._prevKeyedPaths(realIndex);
-    return !!keyed && keyed.has(datumKey(this.w, realIndex, j));
+    return !!keyed && keyed.has(this._keys(realIndex)[j]);
+  }
+  /**
+   * This render's datum keys for a series (see seriesKeys), as stamped on
+   * each bar and looked up in the previous render's.
+   * @param {number} realIndex
+   * @returns {string[]}
+   */
+  _keys(realIndex) {
+    const c = (
+      /** @type {any} */
+      this._keyCache || (this._keyCache = {})
+    );
+    return c[realIndex] || (c[realIndex] = seriesKeys(this.w, realIndex));
   }
   /**
    * The captured previous-render record for a series (last match wins, same
@@ -15042,7 +15192,7 @@ class Bar {
    * @returns {boolean}
    */
   isLengthTransition(realIndex) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     if (!this._ltCache) this._ltCache = {};
     if (this._ltCache[realIndex] !== void 0) return this._ltCache[realIndex];
     const w = this.w;
@@ -15050,20 +15200,14 @@ class Bar {
     if (lengthTransitionEnabled(w) && w.globals.previousPaths.length > 0) {
       const record = this._prevRecord(realIndex);
       const dataLen = (_b = (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length) != null ? _b : 0;
+      const keyed = record && this._prevKeyedPaths(realIndex);
       if (!record) {
         result = dataLen > 0;
-      } else if (record.paths.length !== dataLen) {
-        result = true;
+      } else if (keyed) {
+        const now = new Set(this._keys(realIndex));
+        result = ((_f = (_e = (_d = (_c = w.globals.prevStreamFrame) == null ? void 0 : _c.seriesY) == null ? void 0 : _d[realIndex]) == null ? void 0 : _e.length) != null ? _f : dataLen) !== dataLen || [...keyed.keys()].some((k2) => !now.has(k2));
       } else {
-        const keyed = this._prevKeyedPaths(realIndex);
-        if (keyed) {
-          for (let j = 0; j < dataLen; j++) {
-            if (!keyed.has(datumKey(w, realIndex, j))) {
-              result = true;
-              break;
-            }
-          }
-        }
+        result = record.paths.length !== dataLen;
       }
     }
     this._ltCache[realIndex] = result;
@@ -15123,7 +15267,7 @@ class Bar {
     let isNewDatum = false;
     const keyed = this._prevKeyedPaths(realIndex);
     if (keyed) {
-      const prev = keyed.get(datumKey(w, realIndex, j));
+      const prev = keyed.get(this._keys(realIndex)[j]);
       if (prev) {
         oldD = prev.d;
       } else {
@@ -15266,11 +15410,10 @@ class Bar {
    * @returns {boolean | null} null when there is no previous record to consult
    */
   getPreviousFlip(realIndex, j) {
-    const w = this.w;
     const record = this._prevRecord(realIndex);
     if (!record) return null;
     const keyed = this._prevKeyedPaths(realIndex);
-    const prev = keyed ? keyed.get(datumKey(w, realIndex, j)) : record.paths[j];
+    const prev = keyed ? keyed.get(this._keys(realIndex)[j]) : record.paths[j];
     return prev ? !!prev.flip : null;
   }
   /**
@@ -15297,7 +15440,7 @@ class BarStacked extends Bar {
     const coreUtils = new CoreUtils(this.w);
     series = coreUtils.getLogSeries(series);
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
-    this.barHelpers.initVariables(series);
+    this.barHelpers.initVariables(series, seriesIndex);
     if (w.config.chart.stackType === "100%") {
       series = w.globals.comboCharts ? (
         /** @type {any} */
@@ -15328,7 +15471,6 @@ class BarStacked extends Bar {
       const xArrValues = [];
       const yArrValues = [];
       const translationsIndex = this.setSeriesAxis(realIndex);
-      this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
       let elSeries = this.graphics.group({
         class: `apexcharts-series`,
         seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex]),
@@ -15398,7 +15540,9 @@ class BarStacked extends Bar {
           null
         );
         if (this.isHorizontal) {
-          paths = this.drawStackedBarPaths(__spreadProps(__spreadValues({}, commonPathOpts), {
+          paths = this.drawStackedBarPaths(__spreadProps(__spreadValues(__spreadValues({}, commonPathOpts), this.barHelpers.rows && {
+            y: initPositions.y + this.barHelpers.barRow(realIndex, j) * yDivision
+          }), {
             zeroW,
             barHeight,
             yDivision
@@ -15472,6 +15616,7 @@ class BarStacked extends Bar {
           series,
           barHeight,
           barWidth,
+          barXPosition: paths.barXPosition,
           elDataLabelsWrap,
           elGoalsMarkers,
           type: "bar",
@@ -15489,7 +15634,7 @@ class BarStacked extends Bar {
       this.groupCtx.prevXVal.push(this.groupCtx.xArrjVal);
       ret.add(elSeries);
     }
-    if (heldMirrors) this.settleHeldMirrors();
+    if (heldMirrors) this.settleHeldMirrors(ret);
     return ret;
   }
   /**
@@ -15510,15 +15655,21 @@ class BarStacked extends Bar {
    * 'bottom' → 'top', where the endpoint really is rounded at the other end;
    * everywhere else the mirror is an exact identity on the settled shape, so
    * removing it changes nothing on screen.
+   *
+   * The marks are collected now, not when the timer fires: a query then also
+   * stripped the mirrors a LATER update was still holding mid-tween.
+   * @param {any} [ret] this draw's series group (default: the whole chart)
    */
-  settleHeldMirrors() {
+  settleHeldMirrors(ret) {
     const w = this.w;
     if (!Environment.isBrowser()) return;
     const anim = w.config.chart.animations;
     const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100;
+    const held = (ret ? ret.node : w.dom.baseEl).querySelectorAll(
+      ".apexcharts-flip-held"
+    );
     setTimeout(() => {
-      if (w.globals.isDestroyed || !Utils.elementExists(w.dom.baseEl)) return;
-      w.dom.baseEl.querySelectorAll(".apexcharts-flip-held").forEach((el) => {
+      held.forEach((el) => {
         el.classList.remove(
           "apexcharts-flip-held",
           "apexcharts-flip-y",
@@ -15594,7 +15745,7 @@ class BarStacked extends Bar {
     yDivision,
     elSeries
   }) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b;
     const w = this.w;
     const barYPosition = y + columnGroupIndex * barHeight;
     let barXPosition;
@@ -15602,36 +15753,21 @@ class BarStacked extends Bar {
     const j = indexes.j;
     const realIndex = indexes.realIndex;
     const translationsIndex = indexes.translationsIndex;
-    let prevBarW = 0;
-    for (let k2 = 0; k2 < this.groupCtx.prevXF.length; k2++) {
-      prevBarW = prevBarW + this.groupCtx.prevXF[k2][j];
-    }
-    const gsi = this.groupCtx.prevX.length;
-    if (gsi > 0) {
-      let bXP = zeroW;
-      if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
-        bXP = /** @type {any} */
-        ((_a = this.series[i]) == null ? void 0 : _a[j]) >= 0 ? this.groupCtx.prevX[gsi - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j];
-      } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
-        bXP = /** @type {any} */
-        ((_b = this.series[i]) == null ? void 0 : _b[j]) >= 0 ? this.groupCtx.prevX[gsi - 1][j] : this.groupCtx.prevX[gsi - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
-      }
-      barXPosition = bXP;
+    const v = (
+      /** @type {any} */
+      (_b = (_a = this.series[i]) == null ? void 0 : _a[j]) != null ? _b : null
+    );
+    const g = this.groupCtx;
+    const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j] : j;
+    const top = g.tops.get(key);
+    if (top) {
+      const [prevX, prevVal, prevBarW] = top;
+      const flip = (this.isReversed ? prevBarW : 0) * 2;
+      barXPosition = prevVal < 0 ? v >= 0 ? prevX + prevBarW - flip : prevX : v >= 0 ? prevX : prevX - prevBarW + flip;
     } else {
       barXPosition = zeroW;
     }
-    if (
-      /** @type {any} */
-      ((_c = this.series[i]) == null ? void 0 : _c[j]) === null
-    ) {
-      x2 = barXPosition;
-    } else {
-      x2 = barXPosition + /** @type {any} */
-      ((_d = this.series[i]) == null ? void 0 : _d[j]) / this.invertedYRatio - (this.isReversed ? (
-        /** @type {any} */
-        ((_e = this.series[i]) == null ? void 0 : _e[j]) / this.invertedYRatio
-      ) : 0) * 2;
-    }
+    x2 = barXPosition + v / this.invertedYRatio * (this.isReversed ? -1 : 1);
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
       barHeight,
@@ -15645,6 +15781,7 @@ class BarStacked extends Bar {
       j,
       w
     });
+    this._setTop(key, top, g.xArrj[j], g.xArrjVal[j], g.xArrjF[j], realIndex, j);
     this.barHelpers.barBackground({
       j,
       i,
@@ -15682,13 +15819,17 @@ class BarStacked extends Bar {
     columnGroupIndex,
     elSeries
   }) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c;
     const w = this.w;
     const i = indexes.i;
     const j = indexes.j;
     const bc = indexes.bc;
     const realIndex = indexes.realIndex;
     const translationsIndex = indexes.translationsIndex;
+    const v = (
+      /** @type {any} */
+      (_b = (_a = this.series[i]) == null ? void 0 : _a[j]) != null ? _b : null
+    );
     if (w.axisFlags.isXNumeric) {
       let seriesVal = w.seriesData.seriesX[realIndex][j];
       if (!seriesVal) seriesVal = 0;
@@ -15703,11 +15844,9 @@ class BarStacked extends Bar {
       const [prevYValue, prevVal, prevBarH] = top;
       let bYP;
       if (prevVal < 0) {
-        bYP = /** @type {any} */
-        ((_a = this.series[i]) == null ? void 0 : _a[j]) >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
+        bYP = v >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
       } else if (prevVal >= 0) {
-        bYP = /** @type {any} */
-        ((_b = this.series[i]) == null ? void 0 : _b[j]) >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
+        bYP = v >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
       }
       if (typeof bYP === "undefined") bYP = w.layout.gridHeight;
       if (((_c = g.prevYF[0]) == null ? void 0 : _c.every((val) => val === 0)) && g.prevYF.slice(1).every(
@@ -15720,25 +15859,16 @@ class BarStacked extends Bar {
     } else {
       barYPosition = zeroH;
     }
-    if (
-      /** @type {any} */
-      (_d = this.series[i]) == null ? void 0 : _d[j]
-    ) {
-      y = barYPosition - /** @type {any} */
-      ((_e = this.series[i]) == null ? void 0 : _e[j]) / this.yRatio[translationsIndex] + (this.isReversed ? (
-        /** @type {any} */
-        ((_f = this.series[i]) == null ? void 0 : _f[j]) / this.yRatio[translationsIndex]
-      ) : 0) * 2;
-    } else {
-      y = barYPosition;
-    }
+    y = barYPosition - v / this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
       barWidth,
       y1: barYPosition,
       y2: y,
       yRatio: this.yRatio[translationsIndex],
-      strokeWidth: this.strokeWidth,
+      // the series' width even for an empty segment, so a hidden layer keeps
+      // its place, but no inset at all when no stroke is drawn
+      strokeWidth: w.config.stroke.show ? this.strokeWidth : 0,
       isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,
@@ -15746,17 +15876,7 @@ class BarStacked extends Bar {
       j,
       w
     });
-    const t = g.yArrj[j];
-    if (!isNaN(t)) {
-      g.tops.set(key, [
-        t,
-        g.yArrjVal[j],
-        (top ? top[2] : 0) + g.yArrjF[j],
-        (top ? top[3] : 0) + (w.seriesData.series[realIndex][j] || 0),
-        top ? Math.min(top[0], top[4]) : 1 / 0,
-        top ? Math.max(top[0], top[5]) : -1 / 0
-      ]);
-    }
+    this._setTop(key, top, g.yArrj[j], g.yArrjVal[j], g.yArrjF[j], realIndex, j);
     this.barHelpers.barBackground({
       bc,
       j,
@@ -15775,17 +15895,47 @@ class BarStacked extends Bar {
         zeroH,
         realIndex,
         j,
-        0
+        translationsIndex
       ),
       barXPosition,
       x: w.axisFlags.isXNumeric ? x2 : x2 + xDivision,
       y
     };
   }
+  /**
+   * Record the segment just drawn as the top of its stack. Per key it holds
+   * the top and value of the last segment drawn there, the summed lengths and
+   * raw values of every segment so far (the total label's value), and the
+   * extreme tops below that segment (the total label's position).
+   * @param {any} key @param {any} top @param {number} t @param {any} val
+   * @param {number} len @param {number} realIndex @param {number} j
+   */
+  _setTop(key, top, t, val, len, realIndex, j) {
+    if (isNaN(t)) return;
+    this.groupCtx.tops.set(key, [
+      t,
+      val,
+      (top ? top[2] : 0) + len,
+      (top ? top[3] : 0) + (this.w.seriesData.series[realIndex][j] || 0),
+      top ? Math.min(top[0], top[4]) : 1 / 0,
+      top ? Math.max(top[0], top[5]) : -1 / 0
+    ]);
+  }
+}
+function jitterExtent(pool, w) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  pool.slice(0, w.seriesData.series.length).flat(2).forEach((v) => {
+    if (v === +v) {
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+  });
+  return [lo, hi];
 }
 function buildJitterGroups({
-  w,
   points,
+  extent,
   seedA,
   seedB,
   center,
@@ -15796,6 +15946,7 @@ function buildJitterGroups({
   clampAt,
   sideSign
 }) {
+  var _a, _b;
   const opts = options;
   if (!opts || opts.show === false) return [];
   if (!points || !points.length) return [];
@@ -15809,8 +15960,8 @@ function buildJitterGroups({
   const scale = opts.colorScale;
   const useScale = scale && Array.isArray(scale.colors) && scale.colors.length > 0;
   const steps = useScale ? Math.max(2, scale.steps || 24) : 1;
-  const sMin = useScale && scale.min != null ? scale.min : w.globals.minY;
-  const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY;
+  const sMin = (_a = scale == null ? void 0 : scale.min) != null ? _a : extent[0];
+  const sMax = (_b = scale == null ? void 0 : scale.max) != null ? _b : extent[1];
   const span = sMax - sMin || 1;
   const buckets = useScale ? new Array(steps).fill("") : [""];
   for (let k2 = 0; k2 < points.length; k2 += stride) {
@@ -15896,7 +16047,7 @@ function renderJitter({
   elSeries.add(elPointsWrap);
 }
 function darkenColor(color, amount) {
-  const rgb = Utils.parseHex(color);
+  const rgb = Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color));
   if (!rgb) return color;
   const f = Math.max(0, 1 - amount);
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
@@ -15961,7 +16112,7 @@ class BoxCandleStick extends Bar {
     if (!keyed || keyed.size === 0 || !row || row.length === 0) return false;
     let survivors = 0;
     for (let j = 0; j < row.length; j++) {
-      if (keyed.has(datumKey(this.w, realIndex, j))) survivors++;
+      if (keyed.has(this._keys(realIndex)[j])) survivors++;
     }
     return survivors / keyed.size < 0.5;
   }
@@ -15990,7 +16141,7 @@ class BoxCandleStick extends Bar {
       }
       this._prevHalves[realIndex] = map;
     }
-    const halves = map && map.get(datumKey(this.w, realIndex, j));
+    const halves = map && map.get(this._keys(realIndex)[j]);
     return halves && halves.length === 2 ? halves[pi] : null;
   }
   /**
@@ -16000,7 +16151,7 @@ class BoxCandleStick extends Bar {
    */
   // @ts-ignore -- BoxCandleStick.draw has an extra ctype param compared to Bar.draw
   draw(series, ctype, seriesIndex) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -16008,16 +16159,17 @@ class BoxCandleStick extends Bar {
     this.candlestickOptions = this.w.config.plotOptions.candlestick;
     this.boxOptions = this.w.config.plotOptions.boxPlot;
     this.isHorizontal = w.config.plotOptions.bar.horizontal;
-    this.isOHLC = this.candlestickOptions && this.candlestickOptions.type === "ohlc";
     this.coreUtils = new CoreUtils(this.w);
     series = this.coreUtils.getLogSeries(series);
     this.series = series;
     this.yRatio = this.coreUtils.getLogYRatios(this.yRatio);
-    this.barHelpers.initVariables(series);
+    this.barHelpers.initVariables(series, seriesIndex);
     const ret = graphics.group({
       class: `apexcharts-${type}-series apexcharts-plot-series`
     });
     this.isBoxPlot = type === "boxPlot";
+    this.isOHLC = !this.isBoxPlot && ((_a = this.candlestickOptions) == null ? void 0 : _a.type) === "ohlc";
+    const jx = jitterExtent(w.candleData.seriesBoxPoints, w);
     for (let i = 0; i < series.length; i++) {
       let x2;
       let y;
@@ -16143,6 +16295,7 @@ class BoxCandleStick extends Bar {
               i,
               pathFrom: (_a2 = this._prevBoxHalf(realIndex, j, pi)) != null ? _a2 : paths.pathFrom,
               fadeReveal,
+              noLabel: pi > 0,
               pathTo,
               strokeWidth,
               elSeries,
@@ -16164,7 +16317,7 @@ class BoxCandleStick extends Bar {
           }
         );
         if (boxPointsOpts && boxPointsOpts.show !== false) {
-          const pts = (_a = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _a[j];
+          const pts = (_b = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _b[j];
           if (pts && pts.length) {
             const logVal = (v) => (
               /** @type {any} */
@@ -16175,14 +16328,14 @@ class BoxCandleStick extends Bar {
             );
             let center, halfExtent, alongFn;
             if (this.isHorizontal) {
-              const yRatio = this.invertedYRatio;
+              const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
               const bh = barHeight != null ? barHeight : 0;
               const z = zeroW != null ? zeroW : 0;
               center = paths.barYPosition + bh / 2;
               halfExtent = bh / 2;
               alongFn = (v) => z + logVal(v) / yRatio;
             } else {
-              const yRatio = this.yRatio[translationsIndex];
+              const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
               const bw = barWidth != null ? barWidth : 0;
               const z = zeroH != null ? zeroH : 0;
               center = paths.barXPosition + bw / 2;
@@ -16190,8 +16343,8 @@ class BoxCandleStick extends Bar {
               alongFn = (v) => z - logVal(v) / yRatio;
             }
             const groups = buildJitterGroups({
-              w,
               points: pts,
+              extent: jx,
               seedA: realIndex,
               seedB: j,
               center,
@@ -16220,15 +16373,13 @@ class BoxCandleStick extends Bar {
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;
       if (w.globals.previousPaths.length > 0 && !fadeReveal) {
-        const newKeys = [];
-        for (let j = 0; j < series[i].length; j++) {
-          newKeys.push(datumKey(w, realIndex, j));
-        }
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys,
+          newKeys: this._keys(realIndex).filter(
+            (_, j) => series[i][j] != null
+          ),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed
         });
@@ -16247,7 +16398,7 @@ class BoxCandleStick extends Bar {
     strokeWidth,
     cullBounds = null
   }) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const i = indexes.i;
@@ -16258,7 +16409,7 @@ class BoxCandleStick extends Bar {
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
     const colorPos = getColor(candleColors.upward);
     const colorNeg = getColor(candleColors.downward);
-    const yRatio = this.yRatio[indexes.translationsIndex];
+    const yRatio = this.yRatio[indexes.translationsIndex] * (this.isReversed ? -1 : 1);
     const ohlc = this.getOHLCValue(realIndex, j);
     let l1 = zeroH;
     let l2 = zeroH;
@@ -16275,9 +16426,11 @@ class BoxCandleStick extends Bar {
       x2 = pos.x;
       barXPosition = pos.barXPosition;
     }
-    if (typeof /** @type {any} */
-    ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
+    const hole = (
+      /** @type {any} */
+      ((_a = this.series[i]) == null ? void 0 : _a[j]) == null
+    );
+    if (hole) {
       y1 = zeroH;
       y2 = zeroH;
     } else {
@@ -16287,7 +16440,7 @@ class BoxCandleStick extends Bar {
       l2 = zeroH - ohlc.l / yRatio;
       m = zeroH - ohlc.m / yRatio;
     }
-    if (cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi) && !this._wasOnScreen(realIndex, j)) {
+    if (hole || cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi) && !this._wasOnScreen(realIndex, j)) {
       return {
         pathTo: null,
         pathFrom: null,
@@ -16317,7 +16470,7 @@ class BoxCandleStick extends Bar {
       ];
     }
     let pathFrom = null;
-    const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j);
+    const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
@@ -16356,7 +16509,7 @@ class BoxCandleStick extends Bar {
     zeroW,
     strokeWidth
   }) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const i = indexes.i;
@@ -16365,7 +16518,7 @@ class BoxCandleStick extends Bar {
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
-    const yRatio = this.invertedYRatio;
+    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
     const ohlc = this.getOHLCValue(realIndex, j);
     let color = ohlc.o < ohlc.c ? [getColor(candleColors.upward)] : [getColor(candleColors.downward)];
     if (this.isBoxPlot) {
@@ -16377,9 +16530,11 @@ class BoxCandleStick extends Bar {
     let x2 = Math.max(ohlc.o, ohlc.c);
     let m = ohlc.m;
     const barYPosition = y + barHeight * this.visibleI;
-    if (typeof /** @type {any} */
-    ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
+    const hole = (
+      /** @type {any} */
+      ((_a = this.series[i]) == null ? void 0 : _a[j]) == null
+    );
+    if (hole) {
       x1 = zeroW;
       x2 = zeroW;
     } else {
@@ -16394,7 +16549,7 @@ class BoxCandleStick extends Bar {
       graphics.move(m, barYPosition) + graphics.line(m, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight - barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition) + graphics.line(m, barYPosition) + "z"
     ];
     let pathFrom = null;
-    const morphFrom = (_d = (_c = this.ctx) == null ? void 0 : _c.morphTypeChange) == null ? void 0 : _d.getInitialPathFor(realIndex, j);
+    const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
@@ -16419,7 +16574,8 @@ class BoxCandleStick extends Bar {
         0
       ),
       barYPosition,
-      color
+      color,
+      culled: hole
     };
   }
   /**
@@ -16596,13 +16752,9 @@ class TreemapHelpers {
       elDataLabelsWrap = graphics.group({
         class: "apexcharts-data-labels"
       });
-      const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j);
-      const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j);
-      const dataLabelsX = x2 + offX;
-      const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
       dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
+        x: x2,
+        y: y + parseFloat(dataLabelsConfig.style.fontSize) / 3,
         text,
         i,
         j,
@@ -17066,18 +17218,16 @@ class Helpers4 {
     this.lineCtx = lineCtx;
   }
   /**
-   * @param {number} i
+   * @param {number} i index into `series`, the rows this draw call renders
    * @param {any[]} series
+   * @param {number} realIndex index into the config / fill options
    */
-  sameValueSeriesFix(i, series) {
+  sameValueSeriesFix(i, series, realIndex) {
     const w = this.w;
-    if (w.config.fill.type === "gradient" || w.config.fill.type[i] === "gradient") {
-      const coreUtils = new CoreUtils(this.lineCtx.w);
-      if (coreUtils.seriesHaveSameValues(i)) {
-        const gSeries = series[i].slice();
-        gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 1e-6;
-        series[i] = gSeries;
-      }
+    const s = series[i];
+    if ((w.config.fill.type === "gradient" || w.config.fill.type[realIndex] === "gradient") && s.every((v) => v === s[0])) {
+      series[i] = s.slice();
+      series[i][s.length - 1] += 1e-6;
     }
     return series;
   }
@@ -17518,13 +17668,27 @@ class Line {
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
     this.prevSeriesY = [];
     this.prevSeriesYByX = /* @__PURE__ */ new Map();
+    this._stackXs = null;
+    if (w.config.chart.stacked && w.axisFlags.isXNumeric) {
+      const xs = series.map(
+        (_, i) => w.globals.comboCharts ? (
+          /** @type {any} */
+          seriesIndex[i]
+        ) : i
+      ).filter((ri) => !this._hidden(ri)).map((ri) => w.seriesData.seriesX[ri] || []);
+      if (xs.some(
+        (a) => a.length !== xs[0].length || a.some((v, k2) => v !== xs[0][k2])
+      )) {
+        this._stackXs = [...new Set(xs.flat())].sort((a, b) => a - b);
+      }
+    }
     const allSeries = [];
     for (let i = 0; i < series.length; i++) {
-      series = this.lineHelpers.sameValueSeriesFix(i, series);
       const realIndex = w.globals.comboCharts ? (
         /** @type {any} */
         seriesIndex[i]
       ) : i;
+      series = this.lineHelpers.sameValueSeriesFix(i, series, realIndex);
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0;
       const flat = this._collapsedBaselineRow(series, i, realIndex);
       this._shapeOnly = !!flat;
@@ -17708,9 +17872,7 @@ class Line {
     const gl = w.globals;
     if (w.config.chart.stacked || this.pointsChart) return null;
     if (!Array.isArray(series[i]) || series[i].length !== 0) return null;
-    if (gl.collapsedSeriesIndices.indexOf(realIndex) === -1 && gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) === -1) {
-      return null;
-    }
+    if (!this._hidden(realIndex)) return null;
     const n = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex] || []).length : gl.dataPoints;
     if (!n) return null;
     const lo = Utils.isNumber(gl.minYArr[realIndex]) ? gl.minYArr[realIndex] : gl.minY;
@@ -17839,6 +18001,11 @@ class Line {
     if (key === void 0 || key === null) return void 0;
     return this.prevSeriesYByX.get(key);
   }
+  /** @param {number} ri */
+  _hidden(ri) {
+    const g = this.w.globals;
+    return g.collapsedSeriesIndices.indexOf(ri) > -1 || g.ancillaryCollapsedSeriesIndices.indexOf(ri) > -1;
+  }
   /**
    * Fold a drawn series into the running stack top, so the next series can find
    * its baseline by x (#4886).
@@ -17854,19 +18021,18 @@ class Line {
    * correct if that representation ever changes.
    * @param {number} realIndex
    * @param {any[]} yArrj
+   * @param {any[]} [row] the drawn row, if not the series' own (a part)
    */
-  _recordStackTops(realIndex, yArrj) {
+  _recordStackTops(realIndex, yArrj, row = this.w.seriesData.series[realIndex]) {
     const w = this.w;
     if (!w.config.chart.stacked) return;
     if (!Array.isArray(yArrj)) return;
-    if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
-      return;
-    }
+    if (this._hidden(realIndex)) return;
     for (let j = 0; j < yArrj.length; j++) {
       const key = this._stackKey(realIndex, j);
       if (key === void 0 || key === null) continue;
       const y = yArrj[j];
-      if (!Utils.isNumber(y)) continue;
+      if (!Utils.isNumber(y) || (row == null ? void 0 : row[j]) == null) continue;
       this.prevSeriesYByX.set(key, y);
     }
   }
@@ -17899,7 +18065,8 @@ class Line {
     w.globals.seriesYvalues[realIndex] = paths.yArrj;
     const forecast = w.config.forecastDataPoints;
     if (forecast.count > 0 && type !== "rangeArea") {
-      const forecastCutoff = w.globals.seriesXvalues[realIndex][w.globals.seriesXvalues[realIndex].length - forecast.count - 1];
+      const ci = paths.xArrj.length - forecast.count - 1;
+      const forecastCutoff = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex][ci] - w.globals.minX) / this.xRatio : w.globals.padHorizontal + this.categoryAxisCorrection + ci * this.xDivision;
       const elForecastMask = graphics.drawRect(
         forecastCutoff,
         0,
@@ -17986,7 +18153,7 @@ class Line {
           scrollMorph: !!streamScroll,
           stroke: "none",
           strokeWidth: 0,
-          strokeLineCap: null,
+          strokeLinecap: null,
           fill: pathFill
         }));
         this.elSeries.add(renderedPath);
@@ -18028,7 +18195,7 @@ class Line {
           scrollMorph: !!streamScroll,
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
+          strokeLinecap: w.config.stroke.lineCap,
           fill: type === "rangeArea" ? pathFill : "none"
         });
         const renderedPath = emit.renderPaths(linePathCommonOpts);
@@ -18082,7 +18249,7 @@ class Line {
     isRangeStart,
     seriesRangeEnd
   }) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const yRatio = this.yRatio;
@@ -18134,15 +18301,30 @@ class Line {
       });
       if (fast) return fast;
     }
+    const ks = stackSeries ? this._stackXs : null;
+    let kp = 0;
+    const midsAt = [];
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
       const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
       if (w.axisFlags.isXNumeric) {
-        let sX = w.seriesData.seriesX[realIndex][j + 1];
-        if (typeof w.seriesData.seriesX[realIndex][j + 1] === "undefined") {
-          sX = w.seriesData.seriesX[realIndex][iterations - 1];
+        const sxs = w.seriesData.seriesX[realIndex];
+        let sX = sxs[j + 1];
+        if (typeof sX === "undefined") {
+          sX = sxs[iterations - 1];
         }
         x2 = (sX - w.globals.minX) / this.xRatio;
+        if (ks) {
+          const m = [];
+          while (ks[kp] <= sxs[j]) kp++;
+          while (ks[kp] < sX) {
+            m.push([
+              (ks[kp] - w.globals.minX) / this.xRatio,
+              (_c = this.prevSeriesYByX.get(ks[kp++])) != null ? _c : this.zeroY
+            ]);
+          }
+          if (m.length) midsAt[j + 1] = m;
+        }
       } else {
         x2 = x2 + this.xDivision;
       }
@@ -18152,9 +18334,7 @@ class Line {
             var _a2;
             for (let pii = pi; pii >= 0; pii--) {
               const ri = (_a2 = seriesIndex == null ? void 0 : seriesIndex[pii]) != null ? _a2 : pii;
-              if (w.globals.collapsedSeriesIndices.indexOf(ri) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(ri) === -1) {
-                return pii;
-              }
+              if (!this._hidden(ri)) return pii;
             }
             return -1;
           };
@@ -18210,6 +18390,7 @@ class Line {
         j,
         x: x2,
         y,
+        midsAt,
         y2,
         xArrj,
         yArrj,
@@ -18450,7 +18631,7 @@ class Line {
       numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : void 0
     };
   }
-  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
+  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, midsAt: any[][], xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
   _createPaths({
     type,
     series,
@@ -18458,6 +18639,7 @@ class Line {
     j,
     x: x2,
     y,
+    midsAt,
     xArrj,
     yArrj,
     y2,
@@ -18477,6 +18659,8 @@ class Line {
     const areaBottomY = this.areaBottomY;
     const rangeArea = type === "rangeArea";
     const isLowerRangeAreaPath = type === "rangeArea" && isRangeStart;
+    const mids = midsAt[j + 1];
+    const via = (f) => mids ? [...mids, [x2, y]].map(([bx, by], k2, a) => f(...k2 ? a[k2 - 1] : [pX, pY], bx, by)).join("") : f(pX, pY, x2, y);
     switch (curve) {
       case "monotoneCubic": {
         const yAj = isRangeStart ? yArrj : y2Arrj;
@@ -18522,8 +18706,19 @@ class Line {
             }
           // falls through
           case 2: {
-            const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
-            const _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+            let _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
+            let _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+            if (midsAt.length && !rangeArea) {
+              const P = [];
+              _xAj.forEach((v, k2) => {
+                if (_yAj[k2] !== null && _yAj[k2 - 1] != null && midsAt[k2]) {
+                  P.push(...midsAt[k2]);
+                }
+                P.push([v, _yAj[k2]]);
+              });
+              _xAj = P.map((p) => p[0]);
+              _yAj = P.map((p) => p[1]);
+            }
             const smoothInputs = getSmoothInputs(_xAj, _yAj);
             const points = smoothInputs.length > 1 ? spline.points(smoothInputs) : smoothInputs;
             let smoothInputsLower = [];
@@ -18582,7 +18777,10 @@ class Line {
         break;
       }
       case "smooth": {
-        const length = (x2 - pX) * 0.35;
+        const toPoint = (ax, ay, bx, by) => {
+          const l = (bx - ax) * 0.35;
+          return graphics.curve(ax + l, ay, bx - l, by, bx, by);
+        };
         if (series[i][j] === null) {
           pathState = 0;
         } else {
@@ -18602,7 +18800,7 @@ class Line {
               }
               pathState = 1;
               if (j < series[i].length - 2) {
-                const p = graphics.curve(pX + length, pY, x2 - length, y, x2, y);
+                const p = via(toPoint);
                 linePath += p;
                 areaPath += p;
                 break;
@@ -18620,7 +18818,7 @@ class Line {
                 areaPaths.push(areaPath);
                 pathState = -1;
               } else {
-                const p = graphics.curve(pX + length, pY, x2 - length, y, x2, y);
+                const p = via(toPoint);
                 linePath += p;
                 areaPath += p;
                 if (j >= series[i].length - 2) {
@@ -18641,9 +18839,9 @@ class Line {
         break;
       }
       default: {
-        const pathToPoint = (curve2, x3, y3) => {
+        const pathToPoint = (_ax, _ay, x3, y3) => {
           let path = "";
-          switch (curve2) {
+          switch (curve) {
             case "stepline":
               path = graphics.line(x3, null, "H") + graphics.line(null, y3, "V");
               break;
@@ -18675,7 +18873,7 @@ class Line {
               }
               pathState = 1;
               if (j < series[i].length - 2) {
-                const p = pathToPoint(curve, x2, y);
+                const p = via(pathToPoint);
                 linePath += p;
                 areaPath += p;
                 break;
@@ -18693,7 +18891,7 @@ class Line {
                 areaPaths.push(areaPath);
                 pathState = -1;
               } else {
-                const p = pathToPoint(curve, x2, y);
+                const p = via(pathToPoint);
                 linePath += p;
                 areaPath += p;
                 if (j >= series[i].length - 2) {
@@ -19863,17 +20061,11 @@ class Pie {
     this.offsetSlice(i, this.getExpandOffset(), animate);
   }
   /**
-   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
-   * drilldown owns the click, and always for polarArea: there the radius
-   * encodes the value, so moving a slice outward would read as a bigger number.
+   * How far a clicked slice slides out, in px (see Filters.sliceExpandOffset).
    * @returns {number}
    */
   getExpandOffset() {
-    const pie = this.w.config.plotOptions.pie;
-    if (!pie.expandOnClick || this.chartType === "polarArea") return 0;
-    if (Filters.drilldownBlocksSliceOffset(this.w)) return 0;
-    const offset = Number(pie.expandOffset);
-    return Number.isFinite(offset) && offset > 0 ? offset : 0;
+    return Filters.sliceExpandOffset(this.w);
   }
   /**
    * Every node that has to travel with slice `i`: the slice path itself plus
@@ -20552,7 +20744,7 @@ class Radar {
       }
       s.forEach((dv, j) => {
         const range = Math.abs(this.maxValue - this.minValue);
-        dv = dv - this.minValue;
+        dv = Math.max(0, dv - this.minValue);
         if (this.isLog) {
           dv = this.coreUtils.getLogVal(this.logBase, dv, 0);
         }
@@ -20589,7 +20781,7 @@ class Radar {
         shouldClipToGrid: false,
         bindEventsOnPaths: false,
         stroke: w.globals.stroke.colors[i],
-        strokeLineCap: w.config.stroke.lineCap
+        strokeLinecap: w.config.stroke.lineCap
       };
       let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
@@ -20766,6 +20958,7 @@ class Radar {
   drawXAxisTexts() {
     const w = this.w;
     const xaxisLabelsConfig = w.config.xaxis.labels;
+    const lc = xaxisLabelsConfig.style.colors;
     const elXAxisWrap = this.graphics.group({
       class: "apexcharts-xaxis"
     });
@@ -20789,7 +20982,7 @@ class Radar {
           j: i,
           parent: elXAxisWrap,
           className: "apexcharts-xaxis-label",
-          color: Array.isArray(xaxisLabelsConfig.style.colors) && xaxisLabelsConfig.style.colors[i] ? xaxisLabelsConfig.style.colors[i] : "#a8a8a8",
+          color: (Array.isArray(lc) ? lc[i] : lc) || "#a8a8a8",
           dataLabelsConfig: __spreadValues({
             textAnchor: textPos.textAnchor,
             dropShadow: { enabled: false }
@@ -21660,12 +21853,10 @@ class Radial extends Pie {
       return null;
     }
     const speed = Number((_b = cfg.animation) == null ? void 0 : _b.duration) || Number(cfg.animationSpeed) || (isInitialMount ? anim.speed : (_c = anim.dynamicAnimation) == null ? void 0 : _c.speed) || 800;
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
     return {
       speed,
       mount: isInitialMount,
-      ease: isInitialMount ? (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2) : (t) => 1 - Math.pow(1 - t, 3)
+      ease: resolveEasing(isInitialMount ? "easeOutBack" : "easeOutCubic")
     };
   }
   /**
@@ -21774,14 +21965,14 @@ class RangeBar extends Bar {
    * @param {number} seriesIndex
    */
   draw(series, seriesIndex) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    var _a, _b, _c, _d, _e, _f;
     const w = this.w;
     const graphics = new Graphics(this.w);
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar;
     this.series = series;
     this.seriesRangeStart = w.rangeData.seriesRangeStart;
     this.seriesRangeEnd = w.rangeData.seriesRangeEnd;
-    this.barHelpers.initVariables(series);
+    this.barHelpers.initVariables(series, seriesIndex);
     const ret = graphics.group({
       class: "apexcharts-rangebar-series apexcharts-plot-series"
     });
@@ -21803,6 +21994,9 @@ class RangeBar extends Bar {
         this.visibleI = this.visibleI + 1;
       }
       const translationsIndex = this.setSeriesAxis(realIndex);
+      if (this.isHorizontal && w.labelData.timescaleLabels.length) {
+        this.isReversed = false;
+      }
       const initPositions = this.barHelpers.initialPositions(realIndex);
       const {
         y: initY,
@@ -21812,10 +22006,8 @@ class RangeBar extends Bar {
         zeroH
         // zeroH is the baseline where 0 meets y axis
       } = initPositions;
-      let barWidth = (_a = initPositions.barWidth) != null ? _a : 0;
-      let barHeight = (_b = initPositions.barHeight) != null ? _b : 0;
-      const yDivision = (_c = initPositions.yDivision) != null ? _c : 0;
-      const xDivision = (_d = initPositions.xDivision) != null ? _d : 0;
+      const yDivision = (_a = initPositions.yDivision) != null ? _a : 0;
+      const xDivision = (_b = initPositions.xDivision) != null ? _b : 0;
       y = initY;
       x2 = initX;
       const elDataLabelsWrap = graphics.group({
@@ -21825,10 +22017,16 @@ class RangeBar extends Bar {
       const elGoalsMarkers = graphics.group({
         class: "apexcharts-rangebar-goals-markers"
       });
+      const data = (
+        /** @type {any} */
+        w.config.series[realIndex].data
+      );
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
-        const y1 = this.seriesRangeStart[i][j];
-        const y2 = this.seriesRangeEnd[i][j];
+        let barWidth = (_c = initPositions.barWidth) != null ? _c : 0;
+        let barHeight = (_d = initPositions.barHeight) != null ? _d : 0;
+        const y1 = this.seriesRangeStart[realIndex][j];
+        const y2 = this.seriesRangeEnd[realIndex][j];
         let paths = (
           /** @type {any} */
           null
@@ -21840,20 +22038,16 @@ class RangeBar extends Bar {
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           seriesLen = 1;
         }
-        if (typeof /** @type {Record<string,any>} */
-        ((_e = w.config.series[i].data) == null ? void 0 : _e[j]) === "undefined") {
+        if (typeof (data == null ? void 0 : data[j]) === "undefined") {
           break;
         }
         if (this.isHorizontal) {
           barYPosition = y + barHeight * /** @type {any} */
           this.visibleI;
           const srty = (yDivision - barHeight * seriesLen) / 2;
-          if (
-            /** @type {Record<string,any>} */
-            (_g = (_f = w.config.series[i].data) == null ? void 0 : _f[j]) == null ? void 0 : _g.x
-          ) {
+          if (((_e = data[j]) == null ? void 0 : _e.x) != null) {
             const positions = this.detectOverlappingBars({
-              i,
+              i: realIndex,
               j,
               barYPosition,
               srty,
@@ -21876,17 +22070,14 @@ class RangeBar extends Bar {
           barWidth = paths.barWidth;
         } else {
           if (w.axisFlags.isXNumeric) {
-            x2 = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
+            x2 = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
           }
           barXPosition = x2 + barWidth * /** @type {any} */
           this.visibleI;
           const srtx = (xDivision - barWidth * seriesLen) / 2;
-          if (
-            /** @type {Record<string,any>} */
-            (_i = (_h = w.config.series[i].data) == null ? void 0 : _h[j]) == null ? void 0 : _i.x
-          ) {
+          if (((_f = data[j]) == null ? void 0 : _f.x) != null) {
             const positions = this.detectOverlappingBars({
-              i,
+              i: realIndex,
               j,
               barXPosition,
               srtx,
@@ -21905,9 +22096,10 @@ class RangeBar extends Bar {
             xDivision
           }, params));
           barHeight = paths.barHeight;
+          barXPosition = paths.barXPosition;
         }
         const barGoalLine = this.barHelpers.drawGoalLine({
-          barXPosition: paths.barXPosition,
+          barXPosition,
           barYPosition,
           goalX: paths.goalX,
           goalY: paths.goalY,
@@ -21952,19 +22144,11 @@ class RangeBar extends Bar {
         });
       }
       if (w.globals.previousPaths.length > 0) {
-        const data = (
-          /** @type {Record<string,any>} */
-          w.config.series[i].data || []
-        );
-        const newKeys = [];
-        for (let j = 0; j < data.length; j++) {
-          newKeys.push(datumKey(w, realIndex, j));
-        }
         renderBarExitGhosts({
           w,
           elSeries,
           record: this._prevRecord(realIndex),
-          newKeys,
+          newKeys: this._keys(realIndex),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed
         });
@@ -22016,11 +22200,11 @@ class RangeBar extends Bar {
         );
         if (overlaps.indexOf(rangeName) > -1) {
           barHeight = initPositions.barHeight / overlaps.length;
-          barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+          barYPosition += barHeight * overlaps.indexOf(rangeName);
         }
       }
     } else {
-      if (rowIndex > -1 && !w.labelData.timescaleLabels.length) {
+      if (rowIndex > -1 && !w.axisFlags.isXNumeric) {
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           barXPosition = srtx + xDivision * rowIndex;
         } else {
@@ -22034,7 +22218,7 @@ class RangeBar extends Bar {
         );
         if (overlaps.indexOf(rangeName) > -1) {
           barWidth = initPositions.barWidth / overlaps.length;
-          barXPosition = barWidth * this.visibleI + xDivision * (100 - parseInt(this.barOptions.barWidth, 10)) / 100 / 2 + barWidth * (this.visibleI + overlaps.indexOf(rangeName)) + xDivision * rowIndex;
+          barXPosition += barWidth * overlaps.indexOf(rangeName);
         }
       }
     }
@@ -22057,7 +22241,7 @@ class RangeBar extends Bar {
     var _a, _b;
     const w = this.w;
     const { i, j, realIndex, translationsIndex } = indexes;
-    const yRatio = this.yRatio[translationsIndex];
+    const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
     const range = this.getRangeValue(realIndex, j);
     let y1 = Math.min(range.start, range.end);
     let y2 = Math.max(range.start, range.end);
@@ -22065,7 +22249,7 @@ class RangeBar extends Bar {
     ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
     ((_b = this.series[i]) == null ? void 0 : _b[j]) === null);
     if (!hasValue) {
-      y1 = zeroH;
+      y1 = y2 = zeroH;
     } else {
       y1 = zeroH - y1 / yRatio;
       y2 = zeroH - y2 / yRatio;
@@ -22127,6 +22311,30 @@ class RangeBar extends Bar {
     };
   }
   /**
+   * Timeline datums key by their own row, not by the j-th label: a row can
+   * hold several bars, so labels[j] names some other datum's row.
+   * @param {number} realIndex
+   * @returns {string[]}
+   */
+  _keys(realIndex) {
+    const c = (
+      /** @type {any} */
+      this._keyCache || (this._keyCache = {})
+    );
+    const data = (
+      /** @type {any} */
+      this.w.config.series[realIndex].data
+    );
+    return c[realIndex] || (c[realIndex] = uniquifyKeys(
+      (data || []).map(
+        (d, j) => {
+          var _a;
+          return "c:" + ((_a = d == null ? void 0 : d.x) != null ? _a : j);
+        }
+      )
+    ));
+  }
+  /**
    * @param {number} val
    */
   preventBarOverflow(val) {
@@ -22152,8 +22360,9 @@ class RangeBar extends Bar {
   }) {
     const w = this.w;
     const { realIndex, j } = indexes;
-    const x1 = this.preventBarOverflow(zeroW + y1 / this.invertedYRatio);
-    const x2 = this.preventBarOverflow(zeroW + y2 / this.invertedYRatio);
+    const ratio = this.invertedYRatio * (this.isReversed ? -1 : 1);
+    const x1 = this.preventBarOverflow(zeroW + y1 / ratio);
+    const x2 = this.preventBarOverflow(zeroW + y2 / ratio);
     const range = this.getRangeValue(realIndex, j);
     const barWidth = Math.abs(x2 - x1);
     const paths = this.barHelpers.getBarpaths({
@@ -22400,26 +22609,33 @@ function drilldownById(w, id) {
   const list = dd && Array.isArray(dd.series) ? dd.series : [];
   return list.find((s) => s && s.id === id);
 }
-function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+function segment(name, seen) {
+  var _a;
+  const n = String(name).replace(/\//g, "%2F");
+  const o = ((_a = seen.get(n)) != null ? _a : -1) + 1;
+  seen.set(n, o);
+  return `${o}:${n}`;
+}
+function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
   var _a, _b, _c;
   const isObj = d && typeof d === "object";
   const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-  const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+  const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+  const value = raw == null || raw === "" ? NaN : Number(raw);
   const node = {
     name: String(name),
     value: isNaN(value) ? null : value,
     color: isObj && d.color ? d.color : void 0,
-    // Identity across data updates: the path of names (indexed so same-named
-    // siblings stay distinct). Update animations morph matched keys in place.
-    _key: `${parentKey}/${i}:${name}`
+    _key: `${parentKey}/${segment(name, seen)}`
   };
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i % paletteFromParent.length];
   }
   if (opts.keepDatum) node._datum = d;
+  const kids = /* @__PURE__ */ new Map();
   if (isObj && Array.isArray(d.children) && d.children.length) {
     node.children = d.children.map(
-      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
+      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts, kids)
     );
   } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
@@ -22430,7 +22646,7 @@ function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}
         nextSeen.add(d.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
+          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts, kids)
         );
       }
     }
@@ -22443,10 +22659,12 @@ function buildSeriesRoots(w, series, opts = {}) {
     series || w.config.series
   );
   if (!Array.isArray(cfgSeries)) return [];
+  const seen = /* @__PURE__ */ new Map();
   return cfgSeries.map((s, i) => {
     var _a, _b;
     const data = s && Array.isArray(s.data) ? s.data : [];
-    const key = `${i}:${(_a = s == null ? void 0 : s.name) != null ? _a : ""}`;
+    const key = segment((_a = s == null ? void 0 : s.name) != null ? _a : "", seen);
+    const kids = /* @__PURE__ */ new Map();
     const root = {
       name: String((_b = s == null ? void 0 : s.name) != null ? _b : ""),
       value: null,
@@ -22454,7 +22672,7 @@ function buildSeriesRoots(w, series, opts = {}) {
       _key: key,
       _seriesIndex: i,
       children: data.map(
-        (d, j) => toNode(w, d, j, null, key, null, opts)
+        (d, j) => toNode(w, d, j, null, key, null, opts, kids)
       )
     };
     return root;
@@ -22508,8 +22726,7 @@ function getTreemapRoots(w) {
   if (stashed && stashed.length) {
     return {
       roots: stashed,
-      maxDepth: w.globals.treemapMaxDepth || 1,
-      nested: true
+      maxDepth: w.globals.treemapMaxDepth || 1
     };
   }
   const roots = buildSeriesRoots(w, w.config.series, {
@@ -22518,7 +22735,7 @@ function getTreemapRoots(w) {
   });
   roots.forEach(fillValues);
   const { maxDepth } = annotate(roots);
-  return { roots, maxDepth, nested: false };
+  return { roots, maxDepth };
 }
 const XHTML = "http://www.w3.org/1999/xhtml";
 const BREADCRUMB_HEIGHT = 18;
@@ -22620,7 +22837,7 @@ function renderBreadcrumb(w, opts) {
     text.setAttribute("class", "apexcharts-breadcrumb-label");
     text.textContent = String(label);
     btn.appendChild(text);
-    btn.addEventListener("click", () => opts.onNavigate(i, crumb));
+    btn.addEventListener("click", (e) => opts.onNavigate(i, crumb, e));
     nav.appendChild(btn);
   });
   elWrap.appendChild(nav);
@@ -22648,6 +22865,11 @@ function withFills(from, to, fillWas, fillNow) {
   }
   return [from, to];
 }
+const showsParents = (w) => {
+  var _a;
+  const show = w.config.plotOptions.treemap.parents.show;
+  return show === true || show !== false && !!((_a = w.globals.treemapRoots) == null ? void 0 : _a.length);
+};
 const headerLook = (el) => Series.treemapHeaderLook(el);
 class TreemapChart {
   /**
@@ -22663,7 +22885,6 @@ class TreemapChart {
     this.labels = [];
     this.roots = [];
     this.drawn = [];
-    this.nested = false;
     this.showParents = false;
     this.scale = null;
     this._levelCache = null;
@@ -22690,13 +22911,11 @@ class TreemapChart {
       });
     });
     const tree = getTreemapRoots(w);
-    this.nested = tree.nested;
     this.roots = tree.roots;
     this.scale = buildContinuousScale(w);
     const drawn = tree.roots.length === 1 ? tree.roots[0].children || [] : tree.roots;
     this.drawn = drawn;
-    const parentsCfg = w.config.plotOptions.treemap.parents;
-    this.showParents = parentsCfg.show === true || parentsCfg.show !== false && this.nested;
+    this.showParents = showsParents(w);
     const focus = this._resolveFocus(drawn);
     const layoutRoots = focus ? [focus] : drawn;
     TreemapSquared.generateNested(
@@ -22728,7 +22947,7 @@ class TreemapChart {
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow;
         const filters = new Filters(this.w);
-        filters.dropShadow(ret, shadow, i);
+        filters.dropShadow(elSeries, shadow, i);
       }
       const elDataLabelWrap = graphics.group({
         class: "apexcharts-data-labels"
@@ -22822,6 +23041,7 @@ class TreemapChart {
         });
         elRect.node.classList.add("apexcharts-treemap-rect");
         elRect.node.setAttribute("data:key", morphKey(leaf._key));
+        let tileTween = null;
         let fromRect = {
           x: x1 + (x2 - x1) / 2,
           y: y1 + (y2 - y1) / 2,
@@ -22847,7 +23067,7 @@ class TreemapChart {
           if (w.globals.resized) {
             w.globals.animationEnded = true;
           } else {
-            this.animateTreemap(
+            tileTween = this.animateTreemap(
               elRect,
               fromRect,
               toRect,
@@ -22858,7 +23078,6 @@ class TreemapChart {
             );
           }
         }
-        let tileTween = null;
         let labelFrom = null;
         let prevLook = null;
         if (w.globals.dataChanged) {
@@ -23240,7 +23459,7 @@ class TreemapChart {
     const elGroup = graphics.group({
       class: "apexcharts-treemap-parent",
       "data:depth": depth,
-      "data:name": Utils.escapeString(node.name)
+      "data:name": node.name
     });
     const key = morphKey(node._key);
     const morphFrom = this._morphKeyed() ? this.ctx.morphTypeChange.getInitialPathForKey(key) : null;
@@ -23349,7 +23568,7 @@ class TreemapChart {
       if (typeof header.formatter === "function") {
         text = String(
           header.formatter(node.name, {
-            value: node.value,
+            value: node._area,
             depth,
             seriesIndex: i,
             node,
@@ -23357,7 +23576,7 @@ class TreemapChart {
           })
         );
       } else if (header.showValue) {
-        text = `${text}  ${this._formatValue(node.value)}`;
+        text = `${text}  ${this._formatValue(node._area, node._si)}`;
       }
       headerText = text;
       const offsetX = Number(header.offsetX) || 0;
@@ -23368,7 +23587,9 @@ class TreemapChart {
       const clipped = graphics.getTextBasedOnMaxWidth({
         text,
         maxWidth,
-        fontSize
+        fontSize,
+        fontFamily: chrome.headerFontFamily,
+        fontWeight: chrome.headerFontWeight
       });
       if (clipped) {
         let tx = x1 + pad + offsetX;
@@ -23443,7 +23664,7 @@ class TreemapChart {
     const total = this._drawnTotal();
     const pct = total > 0 ? (node._area / total * 100).toFixed(1) : "0";
     const n = this._countLeaves(node);
-    const lead = visibleText && String(visibleText).trim() ? String(visibleText).replace(/\s+/g, " ").trim() : `${node.name}, ${this._formatValue(node._area)}`;
+    const lead = visibleText && String(visibleText).trim() ? String(visibleText).replace(/\s+/g, " ").trim() : `${node.name}, ${this._formatValue(node._area, node._si)}`;
     return `${lead}, ${n} ${n === 1 ? "item" : "items"}, ${pct}% of total`;
   }
   /**
@@ -23462,15 +23683,18 @@ class TreemapChart {
    * @param {string} [visibleText] the header's rendered text, unclipped
    */
   _makeParentAccessible(el, node, chrome, elRect, visibleText) {
+    const a11y = this.w.config.chart.accessibility;
     if (!el || !el.setAttribute) return;
-    if (!this._zoomEnabled()) return;
+    if (!a11y.enabled || !a11y.keyboard.enabled || !this._zoomEnabled()) return;
+    const open = this.w.globals.treemapFocusKey === node._key;
+    el.tmKey = node._key;
     el.setAttribute("role", "button");
     el.setAttribute("tabindex", "0");
     el.setAttribute(
       "aria-label",
-      `${this._parentLabel(node, visibleText)}. Zoom in`
+      `${this._parentLabel(node, visibleText)}. Zoom ${open ? "out" : "in"}`
     );
-    el.setAttribute("aria-expanded", "false");
+    el.setAttribute("aria-expanded", open);
     if (!Environment.isBrowser() || !el.addEventListener) return;
     el.addEventListener("focus", () => {
       elRect.node.setAttribute("stroke", chrome.hoverColor);
@@ -23534,29 +23758,41 @@ class TreemapChart {
    * Active means the feature is loaded as well as configured: without it the
    * click navigates nowhere (the chart warns about the missing feature), so
    * standing zoom down too would leave the click doing nothing at all.
-   * @returns {boolean}
+   *
+   * Reads only `w`, so the layout, which runs before this renderer, asks it
+   * through the type registry (`prototype.zoomLive`) and reserves the
+   * breadcrumb band on the same answer: a flat treemap, with no parents to
+   * click, used to keep an empty band. Not a static: one on this class cost
+   * the default bundle about 290 B gzip.
+   * @param {any} w
+   * @param {any} drilldown the chart's drilldown feature, when loaded
+   * @returns {any} the zoom config when live, null when drilldown is what
+   *   stands it down, else false
    */
-  _zoomEnabled() {
-    const w = this.w;
+  zoomLive(w, drilldown) {
+    var _a;
     const z = w.config.plotOptions.treemap.zoom;
-    if (!z || !z.enabled || !this.showParents) return false;
+    if (!(z == null ? void 0 : z.enabled) || !showsParents(w)) return false;
     const dd = w.config.drilldown;
-    if (this.ctx.drilldown && dd && dd.enabled && Array.isArray(dd.series) && dd.series.length) {
-      if (!this._warnedZoomConflict) {
-        this._warnedZoomConflict = true;
-        console.warn(
-          "ApexCharts treemap: `plotOptions.treemap.zoom` and the drilldown feature both navigate the hierarchy, so zoom is ignored here. Drop `drilldown.series` to zoom a nested treemap instead."
-        );
-      }
-      return false;
+    return drilldown && (dd == null ? void 0 : dd.enabled) && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown) ? null : z;
+  }
+  /** @returns {boolean} */
+  _zoomEnabled() {
+    const d = this.ctx.drilldown;
+    const live = this.zoomLive(this.w, d);
+    if (live === null && !d.zoomWarned) {
+      d.zoomWarned = true;
+      console.warn(
+        "ApexCharts treemap: zoom is ignored while drilldown is active (plotOptions.treemap.zoom vs drilldown series or onDrillDown)."
+      );
     }
-    return true;
+    return !!live;
   }
   /**
    * The focused branch for this render, looked up by the key stashed on the
    * last click. Keys are rebuilt identically from the same data, so the focus
-   * survives a re-render; a key that no longer resolves (the data changed under
-   * it) simply falls back to the whole tree.
+   * survives a re-render; a key that no longer resolves, or a branch left with
+   * nothing to draw (the data changed under it), falls back to the whole tree.
    * @param {any[]} drawn
    * @returns {any}
    */
@@ -23573,7 +23809,11 @@ class TreemapChart {
       if (node.children) node.children.forEach(walk);
     };
     drawn.forEach(walk);
-    return found && found.children && found.children.length ? found : null;
+    if (found && found.children && found.children.length && this._subtreeArea(found) > 0) {
+      return found;
+    }
+    this.w.globals.treemapFocusKey = null;
+    return null;
   }
   /**
    * @param {any} node
@@ -23586,28 +23826,7 @@ class TreemapChart {
     const w = this.w;
     if (!node || !node.children || !node.children.length) return;
     const next = w.globals.treemapFocusKey === node._key ? null : node._key;
-    const done = this._refocus(next);
-    if (!restoreFocus || !done || typeof done.then !== "function") return;
-    done.then(() => {
-      if (!Environment.isBrowser()) return;
-      const crumb = (
-        /** @type {any} */
-        w.dom.baseEl.querySelector(
-          ".apexcharts-breadcrumb .apexcharts-breadcrumb-item"
-        )
-      );
-      if (crumb && crumb.focus) {
-        crumb.focus();
-        return;
-      }
-      const header = (
-        /** @type {any} */
-        w.dom.baseEl.querySelector(
-          ".apexcharts-treemap-parent-header[tabindex]"
-        )
-      );
-      if (header && header.focus) header.focus();
-    });
+    this._refocus(next, restoreFocus);
   }
   /**
    * Re-render focused on another branch (null: the whole tree).
@@ -23618,22 +23837,34 @@ class TreemapChart {
    * left, which replayed the mount animation (every tile growing from
    * nothing) or snapped, while the containers, headers and labels jumped.
    * @param {string | null} next
-   * @returns {any} the update's promise
+   * @param {boolean} [restoreFocus] see _zoomTo
    */
-  _refocus(next) {
-    var _a;
+  _refocus(next, restoreFocus) {
     const w = this.w;
     const gl = w.globals;
+    const from = gl.treemapFocusKey;
     const anim = w.config.chart.animations;
     const animate = !!(anim.enabled && anim.dynamicAnimation.enabled);
-    gl.treemapZoom = animate && Environment.isBrowser() ? { from: (_a = gl.treemapFocusKey) != null ? _a : null, to: next } : null;
+    gl.treemapZoom = animate && Environment.isBrowser() ? { from: from != null ? from : null, to: next } : null;
     gl.treemapFocusKey = next;
     this._hideParentTooltip();
     gl.shouldAnimate = animate;
     gl.resized = true;
     gl.dataChanged = true;
     if (gl.treemapZoom) this.ctx.series.getPreviousPaths();
-    return this.ctx.update();
+    const done = this.ctx.update();
+    if (restoreFocus) {
+      done.then(() => {
+        const b = w.dom.baseEl;
+        const heads = (
+          /** @type {any[]} */
+          Array.from(
+            b.querySelectorAll(".apexcharts-treemap-parent-header[tabindex]")
+          )
+        );
+        (b.querySelector(".apexcharts-breadcrumb-item") || heads.find((h) => h.tmKey === from) || heads[0] || b).focus();
+      });
+    }
   }
   /**
    * A zoom reframes one tree, so it moves like a camera: one map takes the
@@ -23945,8 +24176,9 @@ class TreemapChart {
       crumbs: [{ label: "All", data: null }].concat(
         chain.map((n) => ({ label: n.name, data: n }))
       ),
-      onNavigate: (_i, crumb) => {
-        this._refocus(crumb.data ? crumb.data._key : null);
+      // A keyboard click (detail 0) keeps focus in the chart.
+      onNavigate: (_i, crumb, e) => {
+        this._refocus(crumb.data ? crumb.data._key : null, !e.detail);
       }
     });
     if (!nav) return;
@@ -23963,6 +24195,9 @@ class TreemapChart {
    * that grows the font - where a readable chip over the tiles beats a
    * breadcrumb clipped by the plot.
    *
+   * Breadcrumb.placeInReservedBand does the same plus a y-axis label ceiling
+   * a treemap has no use for, which would cost the default bundle its bytes.
+   *
    * @param {any} nav
    */
   _placeBreadcrumb(nav) {
@@ -23972,11 +24207,12 @@ class TreemapChart {
     const dimHelpers = (_b = (_a = this.ctx) == null ? void 0 : _a.dimensions) == null ? void 0 : _b.dimHelpers;
     const titleArea = dimHelpers ? dimHelpers.getTitleSubtitleCoords("title").height + dimHelpers.getTitleSubtitleCoords("subtitle").height : 0;
     const navH = nav.getBoundingClientRect().height || BREADCRUMB_HEIGHT;
+    const oy = this._breadcrumbCfg().offsetY || 0;
     if (gridTop - titleArea >= navH + 1) {
-      nav.style.top = `${gridTop - navH - 1}px`;
+      nav.style.top = `${gridTop - navH - 1 + oy}px`;
       return;
     }
-    nav.style.top = `${titleArea}px`;
+    nav.style.top = `${titleArea + oy}px`;
     const dark = w.config.theme.mode === "dark";
     nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
     nav.style.borderRadius = "4px";
@@ -23995,7 +24231,7 @@ class TreemapChart {
     const t = this._tip();
     if (!t) return;
     const total = this._drawnTotal();
-    const parentVal = node._parent ? node._parent._area : total;
+    const parentVal = node._parent ? this._subtreeArea(node._parent) : total;
     const pctTotal = total > 0 ? (node._area / total * 100).toFixed(1) : "0.0";
     const pctParent = parentVal > 0 ? (node._area / parentVal * 100).toFixed(1) : pctTotal;
     const cfg = this.w.config.plotOptions.treemap.parents;
@@ -24016,10 +24252,9 @@ class TreemapChart {
     } else {
       const marker = this._parentChrome(node.depth || 0).headerBg;
       const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${marker};` : "";
-      html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${Utils.escapeString(
-        node.name
-      )}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
-        node._area
+      html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${String(node.name).replace(/&/g, "&amp;").replace(/</g, "&lt;")}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
+        node._area,
+        node._si
       )}</span></div><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${leafCount} items, </span><span class="apexcharts-tooltip-text-y-value">${pctParent}% of parent, ${pctTotal}% of total</span></div></div></div>`;
     }
     t.innerHTML = html;
@@ -24115,17 +24350,21 @@ class TreemapChart {
   }
   /**
    * Format an aggregate the way the chart formats its own y values, so a
-   * parent's total reads like the tiles it contains.
+   * parent's total reads like the tiles it contains. A branch is no data
+   * point, so dataPointIndex is -1.
    * @param {number} v
+   * @param {number} [si] the branch's series index
    * @returns {string}
    */
-  _formatValue(v) {
+  _formatValue(v, si) {
     var _a, _b, _c, _d, _e;
     const w = this.w;
     const fmt = ((_b = (_a = w.config.tooltip) == null ? void 0 : _a.y) == null ? void 0 : _b.formatter) || ((_e = (_d = (_c = w.config.yaxis) == null ? void 0 : _c[0]) == null ? void 0 : _d.labels) == null ? void 0 : _e.formatter);
     if (typeof fmt === "function") {
       try {
-        return String(fmt(v, { seriesIndex: 0, dataPointIndex: 0, w }));
+        return String(
+          fmt(v, { seriesIndex: si || 0, dataPointIndex: -1, w })
+        );
       } catch (_) {
       }
     }
@@ -24206,7 +24445,7 @@ class TreemapChart {
    */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, String(fontSize));
+    const textRect = this._labelRect(graphics, text, fontSize);
     if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
       const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
       elText.node.setAttribute(
@@ -24214,6 +24453,24 @@ class TreemapChart {
         `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y}) translate(${textRect.height / 3})`
       );
     }
+  }
+  /**
+   * A tile label's box, measured at the family and weight it is drawn at
+   * (bold is wider than the default regular).
+   * @param {Graphics} graphics
+   * @param {string} text
+   * @param {string | number} fontSize
+   */
+  _labelRect(graphics, text, fontSize) {
+    const st = this.w.config.dataLabels.style;
+    return graphics.getTextRects(
+      text,
+      String(fontSize),
+      st.fontFamily,
+      "",
+      true,
+      st.fontWeight
+    );
   }
   // This is an alternative label formatting method that uses a
   // consistent font size, and trims the edge of long labels
@@ -24227,13 +24484,13 @@ class TreemapChart {
    */
   truncateLabels(text, fontSize, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, String(fontSize));
+    const textRect = this._labelRect(graphics, text, fontSize);
     const labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
-    const truncatedText = graphics.getTextBasedOnMaxWidth({
+    const truncatedText = graphics.getTextBasedOnMaxWidth(__spreadProps(__spreadValues({}, this.w.config.dataLabels.style), {
       text,
       maxWidth: labelMaxWidth,
       fontSize
-    });
+    }));
     if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
       return "";
     } else {

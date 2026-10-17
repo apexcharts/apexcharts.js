@@ -231,11 +231,15 @@ export default class Data {
    * guarded, so any later reshaping of the series array simply falls back to
    * the scan). Returns false untouched on any non-conforming point so the
    * general loop below handles mixed/exotic data with unchanged output.
+   * On a datetime axis every x must be an integer timestamp, the one value
+   * new Date(x).getTime() hands back unchanged; anything else (a string, a
+   * Date, a fractional or out-of-range number) bails to the general loop.
    * @param {any[]} data
    * @param {number} i
+   * @param {boolean} isDatetime
    * @returns {boolean}
    */
-  _fast2DArrayParse(data, i) {
+  _fast2DArrayParse(data, i, isDatetime) {
     const n = data.length
     if (n === 0) return false
     const ys = new Array(n)
@@ -258,6 +262,9 @@ export default class Data {
       if (!Array.isArray(point) || point.length > 2) return false
       const x = point[0]
       const y = point[1]
+      if (isDatetime && !(Number.isInteger(x) && Math.abs(x) <= 8.64e15)) {
+        return false
+      }
       if (xNumeric) {
         if (typeof x === 'number') {
           if (x === x) {
@@ -361,8 +368,7 @@ export default class Data {
 
     if (
       !isBoxPlot &&
-      cnf.xaxis.type !== 'datetime' &&
-      this._fast2DArrayParse(data, i)
+      this._fast2DArrayParse(data, i, cnf.xaxis.type === 'datetime')
     ) {
       return
     }
@@ -489,13 +495,13 @@ export default class Data {
         this.twoDSeries.push(val)
       }
 
-      if (typeof this.seriesGoals[i] === 'undefined') {
-        this.seriesGoals[i] = []
-      }
-      if (typeof point.goals !== 'undefined' && Array.isArray(point.goals)) {
-        this.seriesGoals[i].push(point.goals)
+      // Allocated on the first point that has goals, backfilled with nulls:
+      // an all-null array per series cost a slot per point, and its length
+      // kept Range.getMinYMaxY off its plain-numeric lane.
+      if (Array.isArray(point.goals)) {
+        ;(this.seriesGoals[i] ??= Array(j).fill(null)).push(point.goals)
       } else {
-        this.seriesGoals[i].push(null)
+        this.seriesGoals[i]?.push(null)
       }
 
       this.pushZ(point.z, j)
@@ -514,7 +520,9 @@ export default class Data {
 
       const isXString = typeof x === 'string'
       const isXArr = Array.isArray(x)
-      const isXDate = !isXArr && !!dt.isValidDate(x)
+      // only read for a non-string x: a string is parsed below or kept as a
+      // category, so testing a string here was a discarded parse per point
+      const isXDate = !isXString && !isXArr && !!dt.isValidDate(x)
 
       if (isXString || isXDate) {
         // user supplied a date string ('01/01/2017') or a JS Date object
@@ -592,17 +600,13 @@ export default class Data {
 
     this.w.rangeData.seriesRange[i] = range.rangeUniques
 
-    // check for overlaps to avoid clashes in a timeline chart
-    /**
-     * @param {Array<Record<string, any>>} sr
-     */
-    this.w.rangeData.seriesRange.forEach((sr) => {
-      if (!sr) return
-
-      /**
-       * @param {Record<string, any>} sarr
-       */
-      sr.forEach((sarr) => {
+    // Check for overlaps to split clashing bars into lanes in a timeline
+    // chart. RangeBar reads them only with rangeBarOverlap off, and only this
+    // series is new: earlier ones were scanned when they were parsed. A Set
+    // keeps its insertion order, which is the lane order, so the pairwise
+    // scan stays.
+    if (!this.w.config.plotOptions.bar.rangeBarOverlap) {
+      range.rangeUniques.forEach((/** @type {Record<string, any>} */ sarr) => {
         const yItems = /** @type {any} */ (sarr).y
         const len = /** @type {any[]} */ (yItems).length
 
@@ -629,7 +633,7 @@ export default class Data {
           }
         }
       })
-    })
+    }
 
     return range
   }
@@ -983,7 +987,8 @@ export default class Data {
         serC.push(null)
       }
       const pts = data[j] && /** @type {any} */ (data[j]).points
-      serPoints.push(Array.isArray(pts) ? pts : [])
+      // null, not a fresh [] per candle: every reader skips a falsy slot
+      serPoints.push(Array.isArray(pts) ? pts : null)
     }
 
     return {
@@ -1061,24 +1066,21 @@ export default class Data {
     )
     this.w.labelData.seriesGroups = buckets
 
-    const handleDates = () => {
-      for (let j = 0; j < xlabels.length; j++) {
-        if (typeof xlabels[j] === 'string') {
-          // user provided date strings
-          const isDate = dt.isValidDate(xlabels[j])
-          if (isDate) {
-            this.twoDSeriesX.push(dt.parseDate(xlabels[j]))
-          } else {
-            throw new Error(
-              'You have provided invalid Date format. Please provide a valid JavaScript Date',
-            )
-          }
-        } else {
-          // user provided timestamps
-          this.twoDSeriesX.push(xlabels[j])
+    // The labels are the same for every series, so they are parsed once and
+    // the series share the array, as the numeric branch below shares xlabels.
+    /** @type {any[] | undefined} */
+    let dates
+    const handleDates = () =>
+      (dates ??= Array.from(xlabels, (l) => {
+        if (typeof l !== 'string') return l // user provided timestamps
+        const t = dt.parseDate(l)
+        if (isNaN(t)) {
+          throw new Error(
+            'You have provided invalid Date format. Please provide a valid JavaScript Date',
+          )
         }
-      }
-    }
+        return t
+      }))
 
     this._pinActive = false
     this.getFirstDataPoint()
@@ -1226,7 +1228,7 @@ export default class Data {
           // Also labels/categories were supplied differently
           this.w.axisFlags.isXNumeric = true
 
-          handleDates()
+          this.twoDSeriesX = handleDates()
 
           this.w.seriesData.seriesX.push(this.twoDSeriesX)
         } else if (cnf.xaxis.type === 'numeric') {
@@ -1936,6 +1938,26 @@ export default class Data {
     if (name !== 'streamgraph' && this.w.streamgraphData) {
       this.w.streamgraphData = null
     }
+    // The raw stash too, and it hands back the user's series: `ser` is the
+    // rows the old type derived (levels, offsets, bins, merged pairs), and
+    // drawn by the new type they were the wrong numbers. A stash left set
+    // also took every appendData and resetSeries after the switch. A
+    // legend-hidden series stays hidden: its values go to its collapse record.
+    // Only when `ser` IS those rows (what the last parse wrote back): a payload
+    // with its own series (a drilldown child, a replay) is drawn as given, and
+    // the stash stays for the level it came from.
+    const gl = /** @type {any} */ (this.w.globals)
+    for (const t of ['histogram', 'waterfall', 'dumbbell', 'streamgraph']) {
+      const raw = gl[t + 'RawSeries']
+      if (name !== t && raw && ser === this._rows) {
+        gl[t + 'RawSeries'] = null
+        const recs = gl.collapsedSeries.concat(gl.ancillaryCollapsedSeries)
+        ser = raw.map((/** @type {any} */ s, /** @type {number} */ i) => {
+          const r = recs.find((/** @type {any} */ r) => r.index === i)
+          return r ? ((r.data = s.data), { ...s, data: [] }) : s
+        })
+      }
+    }
 
     // The samples behind the rows, which only a transform that summarised raw
     // observations writes. Cleared on every parse rather than when the type
@@ -2058,23 +2080,29 @@ export default class Data {
     const gl = w.globals
     if (w.config.chart.type !== 'treemap' || !Array.isArray(ser)) return ser
 
-    if (!gl.treemapRawSeries) {
-      if (!isNestedTreemap(w, ser)) {
-        // Flat treemap: the renderer builds the two-level tree itself. Clear
-        // any tree left over from a previous (nested) data set.
-        gl.treemapRoots = null
-        return ser
+    // Nesting turned off by updateOptions: `ser` is the flattened leaves the
+    // last parse wrote back, so gate on the stash and hand back the input, as
+    // the alias types do. It becomes config.series, so appendData reaches it,
+    // and turning nesting on again re-stashes its levels.
+    let raw = gl.treemapRawSeries
+    if (!isNestedTreemap(w, raw || ser)) {
+      // Flat treemap: the renderer builds the two-level tree itself. Clear
+      // any tree left over from a previous (nested) data set.
+      gl.treemapRoots = null
+      if (raw && ser === this._rows) {
+        gl.treemapRawSeries = null
+        return raw
       }
-      gl.treemapRawSeries = ser.map((/** @type {any} */ s) => ({
+      return ser
+    }
+    if (!raw) {
+      raw = gl.treemapRawSeries = ser.map((/** @type {any} */ s) => ({
         ...s,
         data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
       }))
     }
 
-    const { roots, leafSeries, maxDepth } = resolveTreemapTree(
-      w,
-      gl.treemapRawSeries,
-    )
+    const { roots, leafSeries, maxDepth } = resolveTreemapTree(w, raw)
     gl.treemapRoots = roots
     gl.treemapMaxDepth = maxDepth
     return leafSeries
@@ -2397,7 +2425,8 @@ export default class Data {
       ser = ser.map((s) => ({ ...s }))
     }
 
-    cnf.series = ser
+    // Remembered so a type switch can tell its own rows from a new payload.
+    cnf.series = this._rows = ser
     // parseDataAxisCharts mutates ser[i] to the windowed/downsampled view.
     // Re-cloning from cnf.series each parse would corrupt initialSeries and
     // break resetZoom (it would only restore one zoom step). Instead, snapshot

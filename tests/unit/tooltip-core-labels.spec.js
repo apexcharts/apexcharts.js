@@ -487,11 +487,13 @@ describe('tooltip.hideEmptySeries', () => {
   })
 
   it('keeps a range that starts at 0', async () => {
+    // Range series in a line chart: a rangeArea chart's own tooltip.custom
+    // replaces the rows, which are then left unwritten.
     const rows = await draw({
-      chart: { type: 'rangeArea' },
+      chart: { type: 'line' },
       series: [
-        { name: 'r', data: [{ x: 'a', y: [0, 5] }] },
-        { name: 'z', data: [{ x: 'a', y: [0, 0] }] },
+        { name: 'r', type: 'rangeArea', data: [{ x: 'a', y: [0, 5] }] },
+        { name: 'z', type: 'rangeArea', data: [{ x: 'a', y: [0, 0] }] },
       ],
     })
     expect(rows[0].text).toBe('')

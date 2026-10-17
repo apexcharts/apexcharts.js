@@ -1,5 +1,5 @@
 // @ts-check
-import Utils from './../utils/Utils'
+import InitCtxVariables from './helpers/InitCtxVariables'
 
 /**
  * Default blend strength for each state filter when `states.*.filter.value`
@@ -47,22 +47,38 @@ class Filters {
   }
 
   /**
+   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
+   * drilldown owns the click, when the offset is not a finite positive number,
+   * and always for polarArea: there the radius encodes the value, so moving a
+   * slice outward would read as a bigger number. The one rule for both the
+   * slide (Pie.getExpandOffset) and sliceOffsetOwnsActiveState, so a slice
+   * that does not move is never also left without its darken.
+   * @param {any} w
+   * @returns {number}
+   */
+  static sliceExpandOffset(w) {
+    const pie = w.config.plotOptions.pie
+    const offset = Number(pie.expandOffset)
+    return pie.expandOnClick &&
+      w.config.chart.type !== 'polarArea' &&
+      Filters.isSliceChart(w) &&
+      !Filters.drilldownBlocksSliceOffset(w) &&
+      Number.isFinite(offset) &&
+      offset > 0
+      ? offset
+      : 0
+  }
+
+  /**
    * True when a pie / donut slice carries the selected state itself, by
    * sliding out of the pie (see Pie.offsetSlice). Moving out of the pie is a
    * strong enough signal on its own, so the states.active darken filter would
-   * only muddy the slice colour on top of it. polarArea is excluded: it never
-   * slides (its radius is the value), so it keeps the filter as its only
-   * click feedback.
+   * only muddy the slice colour on top of it. polarArea never slides, so it
+   * keeps the filter as its only click feedback.
    * @param {any} w
    */
   static sliceOffsetOwnsActiveState(w) {
-    return (
-      Filters.isSliceChart(w) &&
-      w.config.chart.type !== 'polarArea' &&
-      w.config.plotOptions.pie.expandOnClick === true &&
-      w.config.plotOptions.pie.expandOffset > 0 &&
-      !Filters.drilldownBlocksSliceOffset(w)
-    )
+    return Filters.sliceExpandOffset(w) > 0
   }
 
   /**
@@ -74,16 +90,15 @@ class Filters {
    *
    * Only while the drilldown feature is loaded. Without it the click is not
    * navigation (the chart warns about the missing feature instead), so the pie
-   * keeps the pull-out it would have had. Read off the shared feature registry
+   * keeps the pull-out it would have had. Read off the feature registry
    * because `w` is all this has; a registered feature is on every chart.
    * @param {any} w
    */
   static drilldownBlocksSliceOffset(w) {
-    const features = /** @type {any} */ (globalThis).__apexcharts_features_v1__
     return (
       Filters.isSliceChart(w) &&
       w.config.drilldown?.enabled === true &&
-      !!features?.has('drilldown')
+      InitCtxVariables._featureRegistry.has('drilldown')
     )
   }
 
@@ -164,14 +179,8 @@ class Filters {
         if (shadowAttr.enabled) {
           this.addShadow(add, i, shadowAttr, 'brightness')
         }
+        this._sizeFilter(add.filter.node, shadowAttr)
       })
-
-      if (!shadowAttr.noUserSpaceOnUse) {
-        el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
-      }
-
-      // this scales the filter to a bigger size so that the dropshadow doesn't crops
-      this._scaleFilterSize(el.filterer()?.node)
     }
   }
 
@@ -234,11 +243,6 @@ class Filters {
       el.unfilter(true)
     }
 
-    if (Utils.isMsEdge() && w.config.chart.type === 'radialBar') {
-      // in radialbar charts, dropshadow is clipping actual drawing in IE
-      return el
-    }
-
     if (w.config.chart.dropShadow.enabledOnSeries?.length > 0) {
       if (w.config.chart.dropShadow.enabledOnSeries?.indexOf(i) === -1) {
         return el
@@ -246,16 +250,15 @@ class Filters {
     }
 
     if (el.filterWith) {
-      el.filterWith((/** @type {any} */ add) => {
-        this.addShadow(add, i, attrs, 'SourceGraphic')
-      })
-
-      if (!attrs.noUserSpaceOnUse) {
-        el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
-      }
-
-      // this scales the filter to a bigger size so that the dropshadow doesn't crops
-      this._scaleFilterSize(el.filterer()?.node)
+      // The marks of a series share one filter per shadow config, rather
+      // than each writing five primitives into the defs.
+      el.filterWith(
+        (/** @type {any} */ add) => {
+          this.addShadow(add, i, attrs, 'SourceGraphic')
+          this._sizeFilter(add.filter.node, attrs)
+        },
+        JSON.stringify(attrs) + i,
+      )
     }
 
     return el
@@ -288,26 +291,23 @@ class Filters {
   }
 
   /**
-   * @param {any} el
+   * Measures the filter in user space (unless the shadow opts out) and
+   * doubles its region, so the shadow is not cropped.
+   * @param {Element} el the <filter>
+   * @param {Record<string, any>} attrs the shadow config
    */
-  _scaleFilterSize(el) {
-    if (!el) return
-    /**
-     * @param {Record<string, any>} attrs
-     */
-    const setAttributes = (attrs) => {
-      for (const key in attrs) {
-        if (Object.prototype.hasOwnProperty.call(attrs, key)) {
-          el.setAttribute(key, attrs[key])
-        }
-      }
+  _sizeFilter(el, attrs) {
+    if (!attrs.noUserSpaceOnUse) {
+      el.setAttribute('filterUnits', 'userSpaceOnUse')
     }
-    setAttributes({
+    for (const [k, v] of Object.entries({
       width: '200%',
       height: '200%',
       x: '-50%',
       y: '-50%',
-    })
+    })) {
+      el.setAttribute(k, v)
+    }
   }
 }
 

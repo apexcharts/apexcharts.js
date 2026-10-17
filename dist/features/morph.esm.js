@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -685,7 +685,7 @@ class MorphTypeChange {
     const svg = probe.ownerSVGElement;
     if (typeof /** @type {any} */
     probe.isPointInFill !== "function" || !svg || typeof svg.createSVGPoint !== "function") {
-      layer.removeChild(probe);
+      probe.remove();
       return null;
     }
     const pt = svg.createSVGPoint();
@@ -696,7 +696,7 @@ class MorphTypeChange {
         /** @type {any} */
         probe
       );
-      return p.isPointInFill(pt) || typeof p.isPointInStroke === "function" && p.isPointInStroke(pt);
+      return p.isPointInFill(pt) || p.isPointInStroke(pt);
     };
     const SCAN = 48;
     const intervalsAt = (bandLo, bandHi, horizontal) => {
@@ -785,6 +785,7 @@ class MorphTypeChange {
     if (!layer) return this._revealPieceHidden();
     const pieces = [];
     const doc = layer.ownerDocument;
+    const staged = doc.createDocumentFragment();
     const sourceFam = familyOf(snap.fromType);
     const shapedSource = sourceFam === "summary" || sourceFam === "radial";
     Array.from(byCluster.keys()).sort((a, b) => a - b).forEach((i) => {
@@ -824,7 +825,7 @@ class MorphTypeChange {
         el.setAttribute("height", String(cell.height));
         el.setAttribute("rx", "0");
         el.setAttribute("fill", String(markFill));
-        layer.appendChild(el);
+        staged.appendChild(el);
         pieces.push({
           el,
           from: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
@@ -842,6 +843,7 @@ class MorphTypeChange {
         });
       }
     });
+    layer.appendChild(staged);
     if (!pieces.length) return this._cancelPieces();
     this._runPieces(pieces, (piece) => {
       reveal(piece.meta.dotEl);
@@ -895,6 +897,7 @@ class MorphTypeChange {
     const layer = this._makePieceLayer();
     if (!layer) return this._revealPieceHidden();
     const doc = layer.ownerDocument;
+    const staged = doc.createDocumentFragment();
     const pieces = [];
     const targetFam = familyOf(snap.toType);
     const shapedTarget = targetFam === "summary" || targetFam === "radial";
@@ -927,7 +930,7 @@ class MorphTypeChange {
       const markState = {
         remaining: ordered.length,
         els: target.els,
-        g: layer.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "g"))
+        g: staged.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "g"))
       };
       for (let m = 0; m < ordered.length; m++) {
         const dot = ordered[m];
@@ -954,6 +957,7 @@ class MorphTypeChange {
         });
       }
     }
+    layer.appendChild(staged);
     if (!pieces.length) return this._cancelPieces();
     this._runPieces(pieces, (piece) => {
       const state = piece.meta.markState;

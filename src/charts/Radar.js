@@ -307,12 +307,13 @@ class Radar {
         elSeries.add(renderedAreaPath)
       }
 
+      // one per series: it indexes markers.discrete on first use
+      const markers = new Markers(this.w, this.ctx)
       /**
        * @param {any} sj
        * @param {number} j
        */
       s.forEach((/** @type {any} */ sj, /** @type {any} */ j) => {
-        const markers = new Markers(this.w, this.ctx)
 
         const opts = markers.getMarkerConfig({
           cssClass: 'apexcharts-marker',

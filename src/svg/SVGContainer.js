@@ -185,9 +185,10 @@ class TspanWrapper {
   }
 
   newLine() {
-    // Mark as newline tspan — x will be propagated when parent text sets x
+    // Mark as newline tspan: x is propagated when the parent text sets x.
+    // An attribute, not dataset, so the server-side shim can carry it too.
     this.node.setAttribute('dy', '1.1em')
-    this.node.dataset.newline = '1'
+    this.node.setAttribute('data-newline', '1')
     return this
   }
 }

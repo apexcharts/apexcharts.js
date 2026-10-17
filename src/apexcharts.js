@@ -1058,50 +1058,30 @@ export default class ApexCharts {
     // fixes apexcharts.js#1488
     w.interact.selection = undefined
 
-    // try shallow comparison first before expensive JSON.stringify
-    if (this.lastUpdateOptions) {
-      // quick shallow check on top-level keys
-      if (Utils.shallowEqual(this.lastUpdateOptions, options)) {
-        return Promise.resolve(this)
-      }
-
-      // If shallow check fails, do deep comparison only for critical paths
-      // check series separately (skipped for data-heavy series, where the
-      // stringify costs more than the render it might save)
-      if (
-        options.series &&
-        this.lastUpdateOptions.series &&
-        !ApexCharts._optionsTooBigToCompare(options)
-      ) {
-        if (
-          Utils.stringifyForCompare(this.lastUpdateOptions.series) ===
-          Utils.stringifyForCompare(options.series)
-        ) {
-          // series unchanged, check other options
-          const optionsWithoutSeries = { ...options }
-          const lastWithoutSeries = { ...this.lastUpdateOptions }
-          delete optionsWithoutSeries.series
-          delete lastWithoutSeries.series
-
-          if (Utils.shallowEqual(optionsWithoutSeries, lastWithoutSeries)) {
-            return Promise.resolve(this)
-          }
-        }
-      }
-    }
+    // An identical update is skipped in update(), against the options it
+    // last rendered. The checks that used to run here compared this raw
+    // payload with those processed options, so they could only match a
+    // payload of bare values, and a series payload never.
 
     if (options.series) {
       this.data.resetParsingFlags()
+      this.series.clearSeriesCache()
 
-      this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
+        // A partial row inherits from the baseline resetSeries() restores,
+        // collapsed rows emptied. Shallow rows: restoring it in place deep
+        // cloned every old point twice, and the merge then replaced it.
+        const peek = w.globals._initialSeriesPeek
+        const base = this.series.emptyCollapsedSeries(
+          Utils.copySeriesShallow(Array.isArray(peek) ? peek : w.config.series),
+        )
         /**
          * @param {Record<string, any>} s
          * @param {number} i
          */
         options.series = options.series.map(
           (/** @type {any} */ s, /** @type {any} */ i) => {
-            return this.updateHelpers._extendSeries(s, i)
+            return this.updateHelpers._extendSeries(s, i, base[i])
           },
         )
       }
@@ -1235,11 +1215,7 @@ export default class ApexCharts {
     // zoom, a brush moving its target, updateSeries(data, false)) silently
     // switched off the animation of every append after it.
     me.w.globals.shouldAnimate = true
-    // previous paths feed the update morph; with animations off nothing
-    // consumes them, and the capture is O(n) (stream-frame + DOM walk)
-    if (me.w.config.chart.animations.enabled) {
-      me.series.getPreviousPaths()
-    }
+    me.updateHelpers.capture(true)
 
     // Histogram, waterfall and dumbbell: `config.series` holds rows this
     // library derived (binned counts, accumulated [start, end] pairs, merged
@@ -1248,12 +1224,12 @@ export default class ApexCharts {
     // Appending to the derived rows instead would add bars whose x is an
     // observation value, or whose y is a level rather than a step with the walk
     // restarting from zero at the join, or endpoints appended to the one series
-    // that happens to be carrying the merge.
-    const derivedRaw =
-      me.w.globals.histogramRawSeries ||
-      me.w.globals.waterfallRawSeries ||
-      me.w.globals.dumbbellRawSeries ||
-      me.w.globals.streamgraphRawSeries
+    // that happens to be carrying the merge. Only the CURRENT type's stash: one
+    // kept for a drilldown root while a child of another type is drawn is not
+    // what the chart shows. All four are aliases, so `requestedType` names them.
+    const derivedRaw = /** @type {any} */ (gl)[
+      me.w.config.chart.requestedType + 'RawSeries'
+    ]
     if (derivedRaw) {
       for (let i = 0; i < derivedRaw.length; i++) {
         const src = /** @type {any} */ (newData[i])
@@ -1350,24 +1326,22 @@ export default class ApexCharts {
       // and cloning megabytes of series data costs more per update than the
       // render it might save. Data-heavy paths (updateSeries/appendData) call
       // update() with no options at all and skip straight through.
-      if (
-        options &&
-        this.lastUpdateOptions &&
-        !ApexCharts._optionsTooBigToCompare(options) &&
-        Utils.stringifyForCompare(this.lastUpdateOptions) ===
-          Utils.stringifyForCompare(options)
-      ) {
+      //
+      // The comparison string is taken now and kept: a deep clone kept to be
+      // stringified on the next call cost a clone per update. The options
+      // themselves are kept by reference (the payload copied at the boundary
+      // is the chart's own) for the highlight filter's radial pass.
+      const key =
+        options && !ApexCharts._optionsTooBigToCompare(options)
+          ? Utils.stringifyForCompare(options)
+          : null
+      // (Every reset nulls lastUpdateOptions, which disarms the key too.)
+      if (this.lastUpdateOptions && key === this._lastUpdateKey) {
         // Options are identical, skip the update
         return resolve(this)
       }
-
-      // Series data changed (or is too big to compare cheaply): any previously
-      // stored options no longer describe the chart, so clear rather than
-      // deep-clone a potentially huge object.
-      this.lastUpdateOptions =
-        options && !ApexCharts._optionsTooBigToCompare(options)
-          ? Utils.clone(options)
-          : null
+      this._lastUpdateKey = key
+      this.lastUpdateOptions = key && options
 
       // A type-change morph that has already been shown is over for this
       // render: it starts from the screen, not from the old chart's shapes.
@@ -2711,7 +2685,10 @@ export default class ApexCharts {
       seriesCandleC: w.candleData.seriesCandleC,
       seriesRangeStart: w.rangeData.seriesRangeStart,
       seriesRangeEnd: w.rangeData.seriesRangeEnd,
-      seriesGoals: w.seriesData.seriesGoals,
+      // a series without goals has no row internally; keep one per series
+      seriesGoals: w.seriesData.series.map(
+        (_, i) => w.seriesData.seriesGoals[i] || [],
+      ),
     }
   }
 

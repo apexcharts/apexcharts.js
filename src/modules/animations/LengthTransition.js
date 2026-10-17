@@ -73,15 +73,13 @@ export function lengthTransitionEnabled(w) {
  * @returns {string}
  */
 export function datumKey(w, realIndex, j) {
-  if (w.axisFlags?.isXNumeric) {
-    const sx = w.seriesData?.seriesX?.[realIndex]
-    if (sx && sx.length && sx[j] != null) return 'x:' + sx[j]
-  }
-  const lbl = w.globals.labels?.[j]
-  if (lbl != null && String(lbl) !== '') {
-    return 'c:' + (Array.isArray(lbl) ? lbl.join(' ') : String(lbl))
-  }
-  return 'j:' + j
+  return keyOf(
+    w.axisFlags?.isXNumeric,
+    w.seriesData?.seriesX,
+    w.globals.labels,
+    realIndex,
+    j,
+  )
 }
 
 /**
@@ -95,11 +93,23 @@ export function datumKey(w, realIndex, j) {
  * @returns {string}
  */
 export function frameDatumKey(frame, realIndex, j) {
-  if (frame.isXNumeric) {
-    const sx = frame.seriesX?.[realIndex]
+  return keyOf(frame.isXNumeric, frame.seriesX, frame.labels, realIndex, j)
+}
+
+/**
+ * @param {any} isXNumeric
+ * @param {any[][] | undefined} seriesX
+ * @param {any[] | undefined} labels
+ * @param {number} realIndex
+ * @param {number} j
+ * @returns {string}
+ */
+function keyOf(isXNumeric, seriesX, labels, realIndex, j) {
+  if (isXNumeric) {
+    const sx = seriesX?.[realIndex]
     if (sx && sx.length && sx[j] != null) return 'x:' + sx[j]
   }
-  const lbl = frame.labels?.[j]
+  const lbl = labels?.[j]
   if (lbl != null && String(lbl) !== '') {
     return 'c:' + (Array.isArray(lbl) ? lbl.join(' ') : String(lbl))
   }
@@ -209,10 +219,16 @@ export function seriesKeys(
  * label tween is order-agnostic, so labels can ride a reorder the same way the
  * keyed bar morph already does. Do NOT pass it for path/marker reconciliation.
  *
+ * Both flags set returns the join unfiltered. A caller that needs several
+ * gates for one series in one render builds that once and passes it as
+ * `sj`, so the keys and the join are not rebuilt per gate.
+ *
  * @param {import('../../types/internal').ChartStateW} w
  * @param {number} realIndex
  * @param {boolean} [includeIdentity=false]
  * @param {boolean} [allowReorder=false]
+ * @param {{join: ReturnType<typeof joinKeys>, oldKeys: string[], newKeys: string[]} | null} [sj]
+ *   the unfiltered join for this series and render, when already built
  * @returns {{join: ReturnType<typeof joinKeys>, oldKeys: string[], newKeys: string[]} | null}
  */
 export function seriesJoin(
@@ -220,7 +236,19 @@ export function seriesJoin(
   realIndex,
   includeIdentity = false,
   allowReorder = false,
+  sj = buildJoin(w, realIndex),
 ) {
+  if (!sj) return null
+  if (!sj.join.ordered && !allowReorder) return null
+  if (!sj.join.changed && !includeIdentity) return null
+  return sj
+}
+
+/**
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {number} realIndex
+ */
+function buildJoin(w, realIndex) {
   if (!lengthTransitionEnabled(w)) return null
   const frame = w.globals.prevStreamFrame
   if (!frame) return null
@@ -233,10 +261,7 @@ export function seriesJoin(
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j)),
   )
   const newKeys = seriesKeys(w, realIndex)
-  const join = joinKeys(oldKeys, newKeys)
-  if (!join.ordered && !allowReorder) return null
-  if (!join.changed && !includeIdentity) return null
-  return { join, oldKeys, newKeys }
+  return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys }
 }
 
 /**
@@ -261,12 +286,15 @@ export function morphEasing(w) {
  * @param {(t: number) => number} ease
  * @param {(eased: number, raw: number) => void} onFrame
  * @param {(() => void)} [onDone]
+ * @param {() => any} [alive] checked before every frame; once it fails the
+ *   tween stops without onDone (its node was replaced or detached)
+ * @returns {() => void} stops the tween, also without onDone
  */
-export function rafTween(w, duration, ease, onFrame, onDone) {
+export function rafTween(w, duration, ease, onFrame, onDone, alive) {
   const startAt = performance.now()
   /** @param {number} now */
   const step = (now) => {
-    if (w.globals.isDestroyed) return
+    if (w.globals.isDestroyed || (alive && !alive())) return
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration))
     onFrame(ease(raw), raw)
     if (raw < 1) {
@@ -276,7 +304,23 @@ export function rafTween(w, duration, ease, onFrame, onDone) {
     }
   }
   BrowserAPIs.requestAnimationFrame(step)
+  // Cancelling fails the liveness check from the next frame on.
+  return () => {
+    alive = () => false
+  }
 }
+
+/**
+ * Liveness of the tweens on a series' markers: a later render replaces the
+ * marker wrap, and the tweens of the markers it held stop with it. Inside the
+ * chart's element rather than connected, so a chart taken off the page
+ * mid-flight still lands them.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {any} elPointsMain
+ */
+const onPage = (w, elPointsMain) => () =>
+  w.dom.baseEl.contains(elPointsMain.node)
 
 /**
  * Tween a series' markers across a layout change: surviving datums' markers
@@ -288,29 +332,37 @@ export function rafTween(w, duration, ease, onFrame, onDone) {
  * visible instead of hiding it until the morph completes.
  *
  * @param {import('../../types/internal').ChartStateW} w
- * @param {{elPointsMain: any, realIndex: number, speed: number}} opts
+ * @param {{elPointsMain: any, realIndex: number, speed: number, join?: () => any}} opts
+ *   `join` hands back the series' unfiltered join (see seriesJoin)
  * @returns {boolean}
  */
-export function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
-  if (!elPointsMain?.node) return false
+export function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed, join }) {
+  // The cheap gates first: a render that cannot ride skips the marker scan.
+  if (
+    !elPointsMain?.node ||
+    !w.globals.prevStreamFrame ||
+    !lengthTransitionEnabled(w)
+  )
+    return false
+  const markers = elPointsMain.node.querySelectorAll('.apexcharts-marker')
+  if (!markers.length) return false
   // Identity joins qualify: markers also ride zooms and same-length value
   // updates, where every datum survives but its pixel position moves.
-  const sj = seriesJoin(w, realIndex, true)
+  const sj = seriesJoin(w, realIndex, true, false, join?.())
   if (!sj) return false
-  const frame = w.globals.prevStreamFrame
-  if (!frame) return false
+  // A join implies the frame it was built from.
+  const frame = /** @type {any} */ (w.globals.prevStreamFrame)
   const oldXP = frame.xPixels?.[realIndex]
   const oldYP = frame.yPixels?.[realIndex]
   if (!oldXP || !oldYP) return false
 
-  const markers = elPointsMain.node.querySelectorAll('.apexcharts-marker')
-  if (!markers.length) return false
   const newXP = w.globals.seriesXvalues?.[realIndex] || []
   const newYP = w.globals.seriesYvalues?.[realIndex] || []
   const ease = morphEasing(w)
   const duration = Math.max(1, speed || 1)
 
   elPointsMain.node.classList.remove('apexcharts-element-hidden')
+  const alive = onPage(w, elPointsMain)
 
   markers.forEach((/** @type {Element} */ node) => {
     const j = parseInt(
@@ -336,6 +388,7 @@ export function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
         () => {
           style.opacity = ''
         },
+        alive,
       )
       return
     }
@@ -375,9 +428,14 @@ export function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
       }
     }
     apply(0)
-    rafTween(w, duration, ease, apply, () => {
-      node.removeAttribute('transform')
-    })
+    rafTween(
+      w,
+      duration,
+      ease,
+      apply,
+      () => node.removeAttribute('transform'),
+      alive,
+    )
   })
   return true
 }
@@ -412,11 +470,19 @@ export function growRisingMarkers(w, { elPointsMain, realIndex, speed }) {
   const markers = elPointsMain.node.querySelectorAll('.apexcharts-marker')
   if (!markers.length) return false
   const ease = morphEasing(w)
+  const alive = onPage(w, elPointsMain)
   elPointsMain.node.classList.remove('apexcharts-element-hidden')
   markers.forEach((/** @type {any} */ node) => {
-    const b = node.getBBox()
-    const cx = b.x + b.width / 2
-    const cy = b.y + b.height / 2
+    // Every shape is drawn about its anchor (cx, cy), which is also the
+    // centre of its box, so no layout is read; except the star, whose lower
+    // points sit short of its tip.
+    let cx = parseFloat(node.getAttribute('cx'))
+    let cy = parseFloat(node.getAttribute('cy'))
+    if (node.getAttribute('shape') === 'star' || !isFinite(cx + cy)) {
+      const b = node.getBBox()
+      cx = b.x + b.width / 2
+      cy = b.y + b.height / 2
+    }
     scaleAbout(node, cx, cy, 0)
     rafTween(
       w,
@@ -424,6 +490,7 @@ export function growRisingMarkers(w, { elPointsMain, realIndex, speed }) {
       ease,
       (eased) => scaleAbout(node, cx, cy, eased),
       () => node.removeAttribute('transform'),
+      alive,
     )
   })
   return true
@@ -505,19 +572,20 @@ export function shrinkCollapsingMarkers(w, { elPointsMain, realIndex, speed, dra
  *   pathFromArea: string,
  *   linePaths: string[],
  *   areaPaths: string[],
- * }} opts
+ *   join?: () => any,
+ * }} opts `join` as in tweenSeriesMarkers
  * @returns {{line?: {from: string, toInterp: string} | null, area?: {from: string, toInterp: string} | null} | null}
  */
 export function reconcileSeriesPaths(
   w,
-  { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths },
+  { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths, join: sjOf },
 ) {
-  const sj = seriesJoin(w, realIndex)
+  const sj = seriesJoin(w, realIndex, false, false, sjOf?.())
   if (!sj) return null
   const { join, oldKeys, newKeys } = sj
 
-  const frame = w.globals.prevStreamFrame
-  if (!frame) return null
+  const frame = /** @type {any} */ (w.globals.prevStreamFrame)
+  /** @type {any[]} */
   const oldY = frame.seriesY?.[realIndex]
   const newY = w.seriesData.series?.[realIndex]
   if (oldY.length < 2 || newY.length < 2) return null
@@ -608,7 +676,12 @@ export function renderBarExitGhosts({
   const graphics = new Graphics(w)
   const fallbackFill = w.globals.colors?.[parseInt(String(record.realIndex), 10)]
 
-  exits.forEach((p) => {
+  // Built off the page and inserted in one write, then one pass reads every
+  // box before the pass that writes styles: a read between two writes would
+  // force a layout per ghost.
+  const host = elSeries.node
+  const staged = host.ownerDocument.createDocumentFragment()
+  const nodes = exits.map((p) => {
     let fill = p.fill || fallbackFill || '#c8c8c8'
     // Gradient/pattern fills reference defs of the destroyed render; fall back
     // to the series' solid color rather than risking a dead url() reference.
@@ -628,69 +701,71 @@ export function renderBarExitGhosts({
       'clip-path',
       `url(#gridRectBarMask${w.globals.cuid})`,
     )
+    // Painted under the surviving bars so the reflow slides over the ghosts
+    // (each one first, as when they were inserted one at a time).
+    staged.insertBefore(node, staged.firstChild)
+    return node
+  })
+  host.insertBefore(staged, host.firstChild)
 
-    // Painted under the surviving bars so the reflow slides over the ghosts.
-    elSeries.node.insertBefore(node, elSeries.node.firstChild)
-
-    // The path's first M sits on the baseline edge; shrink toward it.
-    const start = firstMove(p.d)
-    let origin = isHorizontal ? 'left center' : 'center bottom'
+  const boxes = nodes.map((node) => {
     try {
-      const bb = node.getBBox()
-      if (start && bb) {
-        if (isHorizontal) {
-          origin =
-            Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width))
-              ? 'left center'
-              : 'right center'
-        } else {
-          origin =
-            Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y)
-              ? 'center bottom'
-              : 'center top'
-        }
-      }
+      return node.getBBox()
     } catch (_) {
       // getBBox can throw on detached/zero-size geometry; keep the default.
+      return null
     }
+  })
+
+  exits.forEach((p, i) => {
+    const node = nodes[i]
+    const bb = boxes[i]
+    // The path's first M sits on the baseline edge; shrink toward it: the
+    // left (horizontal) or bottom edge unless it starts nearer the other.
+    const start = firstMove(p.d)
+    const near =
+      !start ||
+      !bb ||
+      (isHorizontal
+        ? Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width))
+        : Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y))
 
     const style = node.style
     style.transformBox = 'fill-box'
-    style.transformOrigin = origin
+    style.transformOrigin = isHorizontal
+      ? near
+        ? 'left center'
+        : 'right center'
+      : near
+        ? 'center bottom'
+        : 'center top'
 
     // Its datum and the edge it shrinks toward, so the bar's data label can
-    // ride the same exit (DataLabelTransition.playExitLabels).
+    // ride the same exit (DataLabelTransition.playExitLabels). No box, no
+    // ride: the label fades where it stands.
     node.setAttribute('data:ghostKey', `${record.realIndex}::${p.key}`)
-    try {
-      const bb = node.getBBox()
+    if (bb) {
       const edge = isHorizontal
-        ? origin.startsWith('left')
+        ? near
           ? bb.x
           : bb.x + bb.width
-        : origin.endsWith('bottom')
+        : near
           ? bb.y + bb.height
           : bb.y
       if (isFinite(edge)) node.setAttribute('data:ghostEdge', String(edge))
-    } catch (_) {
-      // No box, no ride: the label fades where it stands.
     }
 
-    const duration = Math.max(1, speed || 1)
-    const startAt = performance.now()
-    /** @param {number} now */
-    const step = (now) => {
-      if (w.globals.isDestroyed || !node.parentNode) return
-      const t = Math.max(0, Math.min(1, (now - startAt) / duration))
-      const eased = 1 - Math.pow(1 - t, 3)
-      const scale = 1 - eased
-      style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`
-      style.opacity = String(1 - eased)
-      if (t < 1) {
-        BrowserAPIs.requestAnimationFrame(step)
-      } else {
-        node.parentNode.removeChild(node)
-      }
-    }
-    BrowserAPIs.requestAnimationFrame(step)
+    rafTween(
+      w,
+      Math.max(1, speed || 1),
+      (t) => 1 - Math.pow(1 - t, 3),
+      (eased) => {
+        const scale = 1 - eased
+        style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`
+        style.opacity = String(scale)
+      },
+      () => node.remove(),
+      () => node.parentNode,
+    )
   })
 }

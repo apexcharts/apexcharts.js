@@ -1278,17 +1278,11 @@ class Pie {
   }
 
   /**
-   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
-   * drilldown owns the click, and always for polarArea: there the radius
-   * encodes the value, so moving a slice outward would read as a bigger number.
+   * How far a clicked slice slides out, in px (see Filters.sliceExpandOffset).
    * @returns {number}
    */
   getExpandOffset() {
-    const pie = this.w.config.plotOptions.pie
-    if (!pie.expandOnClick || this.chartType === 'polarArea') return 0
-    if (Filters.drilldownBlocksSliceOffset(this.w)) return 0
-    const offset = Number(pie.expandOffset)
-    return Number.isFinite(offset) && offset > 0 ? offset : 0
+    return Filters.sliceExpandOffset(this.w)
   }
 
   /**

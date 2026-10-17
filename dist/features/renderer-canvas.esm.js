@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -859,6 +859,7 @@ class CanvasGraphics {
     cmd.strokeWidth = opts.strokeWidth;
     cmd.fill = opts.fill;
     cmd.lineCap = opts.strokeLinecap;
+    cmd.strokeDash = this._g.seriesDash(opts.realIndex);
     cmd.si = opts.realIndex;
     if (typeof opts.j === "number") cmd.dj = opts.j;
     if (opts.shouldClipToGrid !== false) {

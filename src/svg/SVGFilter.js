@@ -95,39 +95,48 @@ class FilterBuilder {
  */
 function installFilterMethods(ElementClass) {
   /**
+   * Elements passing the same `key` share one filter per <svg>, so `key`
+   * must stand for everything `fn` writes into it.
    * @param {Function} fn
+   * @param {string} [key] none: a filter of its own
    */
-  ElementClass.prototype.filterWith = function (fn) {
-    const filter = new SVGFilter()
-    this._filter = filter
-
-    // Add filter to nearest <defs>
+  ElementClass.prototype.filterWith = function (fn, key = '') {
     let svgRoot = this.node
     while (svgRoot && svgRoot.nodeName !== 'svg') {
       svgRoot = svgRoot.parentNode
     }
-    if (svgRoot) {
-      let defs = svgRoot.querySelector('defs')
-      if (!defs) {
-        defs = BrowserAPIs.createElementNS(SVGNS, 'defs')
-        svgRoot.insertBefore(defs, svgRoot.firstChild)
+    const shared = (svgRoot && svgRoot.sharedFilters) || {}
+    let filter = shared[key]
+    // rebuilt once swept from the defs (fastUpdate drops unused filters)
+    if (!filter || !filter.node.parentNode) {
+      filter = new SVGFilter()
+      // Add filter to nearest <defs>
+      if (svgRoot) {
+        let defs = svgRoot.querySelector('defs')
+        if (!defs) {
+          defs = BrowserAPIs.createElementNS(SVGNS, 'defs')
+          svgRoot.insertBefore(defs, svgRoot.firstChild)
+        }
+        defs.appendChild(filter.node)
+        if (key) (svgRoot.sharedFilters = shared)[key] = filter
       }
-      defs.appendChild(filter.node)
+      filter.shared = key
+      fn(new FilterBuilder(filter))
     }
-
-    fn(new FilterBuilder(filter))
+    this._filter = filter
     this.attr('filter', 'url(#' + filter._id + ')')
     return this
   }
 
   /**
-   * @param {boolean} all
+   * @param {boolean} all also remove the filter, unless it is shared
    */
   ElementClass.prototype.unfilter = function (all) {
-    if (this._filter) {
+    const filter = this._filter
+    if (filter) {
       this.node.removeAttribute('filter')
-      if (all && this._filter.node && this._filter.node.parentNode) {
-        this._filter.node.parentNode.removeChild(this._filter.node)
+      if (all && !filter.shared && filter.node.parentNode) {
+        filter.node.parentNode.removeChild(filter.node)
       }
       this._filter = null
     }

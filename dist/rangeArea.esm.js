@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -41,18 +41,16 @@ class Helpers {
     this.lineCtx = lineCtx;
   }
   /**
-   * @param {number} i
+   * @param {number} i index into `series`, the rows this draw call renders
    * @param {any[]} series
+   * @param {number} realIndex index into the config / fill options
    */
-  sameValueSeriesFix(i, series) {
+  sameValueSeriesFix(i, series, realIndex) {
     const w = this.w;
-    if (w.config.fill.type === "gradient" || w.config.fill.type[i] === "gradient") {
-      const coreUtils = new CoreUtils(this.lineCtx.w);
-      if (coreUtils.seriesHaveSameValues(i)) {
-        const gSeries = series[i].slice();
-        gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 1e-6;
-        series[i] = gSeries;
-      }
+    const s = series[i];
+    if ((w.config.fill.type === "gradient" || w.config.fill.type[realIndex] === "gradient") && s.every((v) => v === s[0])) {
+      series[i] = s.slice();
+      series[i][s.length - 1] += 1e-6;
     }
     return series;
   }
@@ -653,6 +651,11 @@ function uniquifyKeys(keys) {
     return count === 0 ? k : `${k}#${count}`;
   });
 }
+function seriesKeys(w, realIndex, n = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
+  return uniquifyKeys(
+    Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j))
+  );
+}
 function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
@@ -665,7 +668,7 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
   const oldKeys = uniquifyKeys(
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
-  const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+  const newKeys = seriesKeys(w, realIndex);
   const join = joinKeys(oldKeys, newKeys);
   if (!join.ordered && !allowReorder) return null;
   if (!join.changed && !includeIdentity) return null;
@@ -929,13 +932,27 @@ class Line {
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
     this.prevSeriesY = [];
     this.prevSeriesYByX = /* @__PURE__ */ new Map();
+    this._stackXs = null;
+    if (w.config.chart.stacked && w.axisFlags.isXNumeric) {
+      const xs = series.map(
+        (_, i) => w.globals.comboCharts ? (
+          /** @type {any} */
+          seriesIndex[i]
+        ) : i
+      ).filter((ri) => !this._hidden(ri)).map((ri) => w.seriesData.seriesX[ri] || []);
+      if (xs.some(
+        (a) => a.length !== xs[0].length || a.some((v, k) => v !== xs[0][k])
+      )) {
+        this._stackXs = [...new Set(xs.flat())].sort((a, b) => a - b);
+      }
+    }
     const allSeries = [];
     for (let i = 0; i < series.length; i++) {
-      series = this.lineHelpers.sameValueSeriesFix(i, series);
       const realIndex = w.globals.comboCharts ? (
         /** @type {any} */
         seriesIndex[i]
       ) : i;
+      series = this.lineHelpers.sameValueSeriesFix(i, series, realIndex);
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0;
       const flat = this._collapsedBaselineRow(series, i, realIndex);
       this._shapeOnly = !!flat;
@@ -1119,9 +1136,7 @@ class Line {
     const gl = w.globals;
     if (w.config.chart.stacked || this.pointsChart) return null;
     if (!Array.isArray(series[i]) || series[i].length !== 0) return null;
-    if (gl.collapsedSeriesIndices.indexOf(realIndex) === -1 && gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) === -1) {
-      return null;
-    }
+    if (!this._hidden(realIndex)) return null;
     const n = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex] || []).length : gl.dataPoints;
     if (!n) return null;
     const lo = Utils.isNumber(gl.minYArr[realIndex]) ? gl.minYArr[realIndex] : gl.minY;
@@ -1250,6 +1265,11 @@ class Line {
     if (key === void 0 || key === null) return void 0;
     return this.prevSeriesYByX.get(key);
   }
+  /** @param {number} ri */
+  _hidden(ri) {
+    const g = this.w.globals;
+    return g.collapsedSeriesIndices.indexOf(ri) > -1 || g.ancillaryCollapsedSeriesIndices.indexOf(ri) > -1;
+  }
   /**
    * Fold a drawn series into the running stack top, so the next series can find
    * its baseline by x (#4886).
@@ -1265,19 +1285,18 @@ class Line {
    * correct if that representation ever changes.
    * @param {number} realIndex
    * @param {any[]} yArrj
+   * @param {any[]} [row] the drawn row, if not the series' own (a part)
    */
-  _recordStackTops(realIndex, yArrj) {
+  _recordStackTops(realIndex, yArrj, row = this.w.seriesData.series[realIndex]) {
     const w = this.w;
     if (!w.config.chart.stacked) return;
     if (!Array.isArray(yArrj)) return;
-    if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
-      return;
-    }
+    if (this._hidden(realIndex)) return;
     for (let j = 0; j < yArrj.length; j++) {
       const key = this._stackKey(realIndex, j);
       if (key === void 0 || key === null) continue;
       const y = yArrj[j];
-      if (!Utils.isNumber(y)) continue;
+      if (!Utils.isNumber(y) || (row == null ? void 0 : row[j]) == null) continue;
       this.prevSeriesYByX.set(key, y);
     }
   }
@@ -1310,7 +1329,8 @@ class Line {
     w.globals.seriesYvalues[realIndex] = paths.yArrj;
     const forecast = w.config.forecastDataPoints;
     if (forecast.count > 0 && type !== "rangeArea") {
-      const forecastCutoff = w.globals.seriesXvalues[realIndex][w.globals.seriesXvalues[realIndex].length - forecast.count - 1];
+      const ci = paths.xArrj.length - forecast.count - 1;
+      const forecastCutoff = w.axisFlags.isXNumeric ? (w.seriesData.seriesX[realIndex][ci] - w.globals.minX) / this.xRatio : w.globals.padHorizontal + this.categoryAxisCorrection + ci * this.xDivision;
       const elForecastMask = graphics.drawRect(
         forecastCutoff,
         0,
@@ -1397,7 +1417,7 @@ class Line {
           scrollMorph: !!streamScroll,
           stroke: "none",
           strokeWidth: 0,
-          strokeLineCap: null,
+          strokeLinecap: null,
           fill: pathFill
         }));
         this.elSeries.add(renderedPath);
@@ -1439,7 +1459,7 @@ class Line {
           scrollMorph: !!streamScroll,
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
+          strokeLinecap: w.config.stroke.lineCap,
           fill: type === "rangeArea" ? pathFill : "none"
         });
         const renderedPath = emit.renderPaths(linePathCommonOpts);
@@ -1493,7 +1513,7 @@ class Line {
     isRangeStart,
     seriesRangeEnd
   }) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const yRatio = this.yRatio;
@@ -1545,15 +1565,30 @@ class Line {
       });
       if (fast) return fast;
     }
+    const ks = stackSeries ? this._stackXs : null;
+    let kp = 0;
+    const midsAt = [];
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
       const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
       if (w.axisFlags.isXNumeric) {
-        let sX = w.seriesData.seriesX[realIndex][j + 1];
-        if (typeof w.seriesData.seriesX[realIndex][j + 1] === "undefined") {
-          sX = w.seriesData.seriesX[realIndex][iterations - 1];
+        const sxs = w.seriesData.seriesX[realIndex];
+        let sX = sxs[j + 1];
+        if (typeof sX === "undefined") {
+          sX = sxs[iterations - 1];
         }
         x = (sX - w.globals.minX) / this.xRatio;
+        if (ks) {
+          const m = [];
+          while (ks[kp] <= sxs[j]) kp++;
+          while (ks[kp] < sX) {
+            m.push([
+              (ks[kp] - w.globals.minX) / this.xRatio,
+              (_c = this.prevSeriesYByX.get(ks[kp++])) != null ? _c : this.zeroY
+            ]);
+          }
+          if (m.length) midsAt[j + 1] = m;
+        }
       } else {
         x = x + this.xDivision;
       }
@@ -1563,9 +1598,7 @@ class Line {
             var _a2;
             for (let pii = pi; pii >= 0; pii--) {
               const ri = (_a2 = seriesIndex == null ? void 0 : seriesIndex[pii]) != null ? _a2 : pii;
-              if (w.globals.collapsedSeriesIndices.indexOf(ri) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(ri) === -1) {
-                return pii;
-              }
+              if (!this._hidden(ri)) return pii;
             }
             return -1;
           };
@@ -1621,6 +1654,7 @@ class Line {
         j,
         x,
         y,
+        midsAt,
         y2,
         xArrj,
         yArrj,
@@ -1861,7 +1895,7 @@ class Line {
       numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : void 0
     };
   }
-  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
+  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, midsAt: any[][], xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
   _createPaths({
     type,
     series,
@@ -1869,6 +1903,7 @@ class Line {
     j,
     x,
     y,
+    midsAt,
     xArrj,
     yArrj,
     y2,
@@ -1888,6 +1923,8 @@ class Line {
     const areaBottomY = this.areaBottomY;
     const rangeArea = type === "rangeArea";
     const isLowerRangeAreaPath = type === "rangeArea" && isRangeStart;
+    const mids = midsAt[j + 1];
+    const via = (f) => mids ? [...mids, [x, y]].map(([bx, by], k, a) => f(...k ? a[k - 1] : [pX, pY], bx, by)).join("") : f(pX, pY, x, y);
     switch (curve) {
       case "monotoneCubic": {
         const yAj = isRangeStart ? yArrj : y2Arrj;
@@ -1933,8 +1970,19 @@ class Line {
             }
           // falls through
           case 2: {
-            const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
-            const _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+            let _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
+            let _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+            if (midsAt.length && !rangeArea) {
+              const P = [];
+              _xAj.forEach((v, k) => {
+                if (_yAj[k] !== null && _yAj[k - 1] != null && midsAt[k]) {
+                  P.push(...midsAt[k]);
+                }
+                P.push([v, _yAj[k]]);
+              });
+              _xAj = P.map((p) => p[0]);
+              _yAj = P.map((p) => p[1]);
+            }
             const smoothInputs = getSmoothInputs(_xAj, _yAj);
             const points = smoothInputs.length > 1 ? spline.points(smoothInputs) : smoothInputs;
             let smoothInputsLower = [];
@@ -1993,7 +2041,10 @@ class Line {
         break;
       }
       case "smooth": {
-        const length = (x - pX) * 0.35;
+        const toPoint = (ax, ay, bx, by) => {
+          const l = (bx - ax) * 0.35;
+          return graphics.curve(ax + l, ay, bx - l, by, bx, by);
+        };
         if (series[i][j] === null) {
           pathState = 0;
         } else {
@@ -2013,7 +2064,7 @@ class Line {
               }
               pathState = 1;
               if (j < series[i].length - 2) {
-                const p = graphics.curve(pX + length, pY, x - length, y, x, y);
+                const p = via(toPoint);
                 linePath += p;
                 areaPath += p;
                 break;
@@ -2031,7 +2082,7 @@ class Line {
                 areaPaths.push(areaPath);
                 pathState = -1;
               } else {
-                const p = graphics.curve(pX + length, pY, x - length, y, x, y);
+                const p = via(toPoint);
                 linePath += p;
                 areaPath += p;
                 if (j >= series[i].length - 2) {
@@ -2052,9 +2103,9 @@ class Line {
         break;
       }
       default: {
-        const pathToPoint = (curve2, x2, y3) => {
+        const pathToPoint = (_ax, _ay, x2, y3) => {
           let path = "";
-          switch (curve2) {
+          switch (curve) {
             case "stepline":
               path = graphics.line(x2, null, "H") + graphics.line(null, y3, "V");
               break;
@@ -2086,7 +2137,7 @@ class Line {
               }
               pathState = 1;
               if (j < series[i].length - 2) {
-                const p = pathToPoint(curve, x, y);
+                const p = via(pathToPoint);
                 linePath += p;
                 areaPath += p;
                 break;
@@ -2104,7 +2155,7 @@ class Line {
                 areaPaths.push(areaPath);
                 pathState = -1;
               } else {
-                const p = pathToPoint(curve, x, y);
+                const p = via(pathToPoint);
                 linePath += p;
                 areaPath += p;
                 if (j >= series[i].length - 2) {

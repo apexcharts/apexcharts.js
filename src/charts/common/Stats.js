@@ -282,7 +282,8 @@ export function observationsOf(d, allowFlatY) {
 
 /**
  * The statistics a transform derived on this chart, keyed `series:datum`,
- * holding the value it wrote. parseData writes a transform's output back to
+ * each as `{ s, e }`: the sample and options it came from, and the estimate
+ * whose summary or density was written. parseData writes a transform's output back to
  * `config.series`, so the next pass meets a datum that already carries a
  * summary or density and has to tell its own output (re-derive: the options
  * that shaped it may have changed) from one the caller supplied (keep). This
@@ -292,39 +293,45 @@ export function observationsOf(d, allowFlatY) {
  *
  * @param {any} w
  * @param {string} kind
- * @returns {Map<string, any[]>}
+ * @returns {Map<string, any>}
  */
 export function derivedStats(w, kind) {
-  const all = (w.statsDerived ??= {})
-  return (all[kind] ??= new Map())
+  const all = w.statsDerived || (w.statsDerived = {})
+  return all[kind] || (all[kind] = new Map())
+}
+
+/**
+ * `fn(values, opts)`, recorded at `key`, and reused while neither the sample
+ * nor the options changed: every resize and legend click parses the series
+ * again, and a sort plus a kernel over a large sample per datum was the whole
+ * cost of that pass. The signature is a string, so a sample mutated in place
+ * after the write-back still reads as changed.
+ *
+ * @param {Map<string, any>} derived
+ * @param {string} key
+ * @param {number[]} values
+ * @param {any} opts
+ * @param {(values: number[], opts: any) => any} fn
+ */
+export function deriveStat(derived, key, values, opts, fn) {
+  const s = JSON.stringify(opts) + values
+  let hit = derived.get(key)
+  if (!hit || hit.s !== s) derived.set(key, (hit = { s, e: fn(values, opts) }))
+  return hit.e
 }
 
 /**
  * Whether a statistic still holds exactly the value recorded at `key`: a flat
  * summary, or a density of `[value, weight]` pairs.
  *
- * @param {Map<string, any[]>} derived
+ * @param {Map<string, any>} derived
  * @param {string} key
  * @param {any} value
  * @returns {boolean}
  */
 export function isDerived(derived, key, value) {
-  const ours = derived.get(key)
-  if (!ours || !Array.isArray(value) || ours.length !== value.length) {
-    return false
-  }
-  for (let k = 0; k < value.length; k++) {
-    const a = ours[k]
-    const b = value[k]
-    if (a === b) continue
-    if (
-      !Array.isArray(a) ||
-      !Array.isArray(b) ||
-      a[0] !== b[0] ||
-      a[1] !== b[1]
-    ) {
-      return false
-    }
-  }
-  return true
+  const e = (derived.get(key) || {}).e
+  // Both sides are plain numbers or [value, weight] pairs, so their JSON is
+  // equal exactly when every number is.
+  return !!e && JSON.stringify(e.density || e.summary) === JSON.stringify(value)
 }

@@ -21,8 +21,6 @@ class Fill {
     /** @type {any} */
     this.opts = null
     this.seriesIndex = 0
-    /** @type {any} */
-    this.patternIDs = []
   }
 
   /**
@@ -286,14 +284,21 @@ class Fill {
 
     // Gradients and patterns require resolved color values (not CSS variables).
     // Resolve inside the chart, so a variable scoped to its container (or a
-    // shadow root) is found.
-    const resolvedFillColor = Utils.getThemeColor(fillColor, w.dom.elWrap)
+    // shadow root) is found. The probe forces a style recalc, so only these
+    // two fills ask, once per colour per render (initGlobalVars resets it).
+    const resolvedFillColor = () => {
+      const resolved = /** @type {any} */ (w.globals).themeColors
+      return (
+        resolved[fillColor] ||
+        (resolved[fillColor] = Utils.getThemeColor(fillColor, w.dom.elWrap))
+      )
+    }
 
     if (fillType === 'pattern') {
       patternFill = this.handlePatternFill({
         fillConfig: opts.fillConfig,
         patternFill,
-        fillColor: resolvedFillColor,
+        fillColor: resolvedFillColor(),
         defaultColor,
       })
     }
@@ -319,7 +324,7 @@ class Fill {
       gradientFill = this.handleGradientFill({
         type,
         fillConfig: opts.fillConfig,
-        fillColor: resolvedFillColor,
+        fillColor: resolvedFillColor(),
         fillOpacity,
         colorStops,
         i: this.seriesIndex,
@@ -338,7 +343,11 @@ class Fill {
         opts.seriesNumber + 1
       }${patternID}`
 
-      if (this.patternIDs.indexOf(patternKey) === -1) {
+      // Bars build a Fill per bar, so the drawn patterns are recorded on the
+      // defs: a re-render draws into fresh defs, a fast update keeps its own.
+      const defs = w.dom.elDefs.node
+      const drawn = defs.imagePatterns || (defs.imagePatterns = {})
+      if (!drawn[patternKey]) {
         this.clippedImgArea({
           opacity: fillOpacity,
           image: Array.isArray(imgSrc)
@@ -352,7 +361,7 @@ class Fill {
           patternID: patternKey,
         })
 
-        this.patternIDs.push(patternKey)
+        drawn[patternKey] = 1
       }
 
       pathFill = `url(#${patternKey})`

@@ -48,10 +48,16 @@ export default class Helpers {
   }
 
   /**
+   * Measure a label's background and draw it. With `deferDraw` it only
+   * measures, and returns the step that draws the rect: annotationsBackground
+   * measures every label before drawing any, since each rect drawn would force
+   * a fresh layout for the next label's reads.
    * @param {any} annoEl
    * @param {Record<string, any>} anno
+   * @param {boolean} [deferDraw]
+   * @returns {any}
    */
-  addBackgroundToAnno(annoEl, anno) {
+  addBackgroundToAnno(annoEl, anno, deferDraw) {
     const w = this.w
 
     if (!annoEl || !anno.label.text || !String(anno.label.text).trim()) {
@@ -94,28 +100,33 @@ export default class Helpers {
 
     const x1 = (coords.left - gridLeft) / zoom - pleft
     const y1 = (coords.top - gridTop) / zoom - ptop
-    const elRect = this.annoCtx.graphics.drawRect(
-      x1,
-      y1,
-      coords.width / zoom + pleft + pright,
-      coords.height / zoom + ptop + pbottom,
-      anno.label.borderRadius,
-      anno.label.style.background,
-      1,
-      anno.label.borderWidth,
-      anno.label.borderColor,
-      0,
-    )
+    const draw = () => {
+      const elRect = this.annoCtx.graphics.drawRect(
+        x1,
+        y1,
+        coords.width / zoom + pleft + pright,
+        coords.height / zoom + ptop + pbottom,
+        anno.label.borderRadius,
+        anno.label.style.background,
+        1,
+        anno.label.borderWidth,
+        anno.label.borderColor,
+        0,
+      )
 
-    if (anno.id) {
-      elRect.node.classList.add(anno.id)
+      if (anno.id) {
+        elRect.node.classList.add(anno.id)
+      }
+
+      return elRect
     }
-
-    return elRect
+    return deferDraw ? draw : draw()
   }
 
   annotationsBackground() {
     const w = this.w
+    /** @type {Function[]} */
+    const drawn = []
 
     /**
      * @param {Record<string, any>} anno
@@ -123,44 +134,47 @@ export default class Helpers {
      * @param {string} type
      */
     const add = (anno, i, type) => {
-      const annoLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`,
+      // Null when the label is missing: addBackgroundToAnno returns null then.
+      const annoLabel = /** @type {Element} */ (
+        w.dom.baseEl.querySelector(
+          `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`,
+        )
       )
+      // Measured now, drawn in a second pass: see addBackgroundToAnno.
+      const draw = this.addBackgroundToAnno(annoLabel, anno, true)
+      if (!draw) return
+      drawn.push(() => {
+        const elRect = draw()
+        // insertBefore, not before(): the SSR DOM has no ChildNode methods.
+        const parent = /** @type {Node} */ (annoLabel.parentNode)
+        parent?.insertBefore(elRect.node, annoLabel)
 
-      if (annoLabel) {
-        const parent = annoLabel.parentNode
-        const elRect = this.addBackgroundToAnno(annoLabel, anno)
-
-        if (elRect) {
-          parent?.insertBefore(elRect.node, annoLabel)
-
-          // Mirror the label's progressive reveal onto the background rect so
-          // it doesn't pop in before the line draw reaches the annotation x.
-          const labelX = annoLabel.getAttribute('x')
-          if (labelX !== null) {
-            applyProgressiveReveal(elRect, parseFloat(labelX), w)
-          }
-
-          if (anno.label.mouseEnter) {
-            elRect.node.addEventListener(
-              'mouseenter',
-              anno.label.mouseEnter.bind(this, anno),
-            )
-          }
-          if (anno.label.mouseLeave) {
-            elRect.node.addEventListener(
-              'mouseleave',
-              anno.label.mouseLeave.bind(this, anno),
-            )
-          }
-          if (anno.label.click) {
-            elRect.node.addEventListener(
-              'click',
-              anno.label.click.bind(this, anno),
-            )
-          }
+        // Mirror the label's progressive reveal onto the background rect so
+        // it doesn't pop in before the line draw reaches the annotation x.
+        const labelX = annoLabel.getAttribute('x')
+        if (labelX !== null) {
+          applyProgressiveReveal(elRect, parseFloat(labelX), w)
         }
-      }
+
+        if (anno.label.mouseEnter) {
+          elRect.node.addEventListener(
+            'mouseenter',
+            anno.label.mouseEnter.bind(this, anno),
+          )
+        }
+        if (anno.label.mouseLeave) {
+          elRect.node.addEventListener(
+            'mouseleave',
+            anno.label.mouseLeave.bind(this, anno),
+          )
+        }
+        if (anno.label.click) {
+          elRect.node.addEventListener(
+            'click',
+            anno.label.click.bind(this, anno),
+          )
+        }
+      })
     }
 
     /**
@@ -184,6 +198,8 @@ export default class Helpers {
     w.config.annotations.points.forEach(
       (/** @type {any} */ anno, /** @type {any} */ i) => add(anno, i, 'point'),
     )
+
+    drawn.forEach((draw) => draw())
   }
 
   /**

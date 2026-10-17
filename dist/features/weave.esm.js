@@ -16,7 +16,7 @@ var __spreadValues = (a, b) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.2.0
+ * ApexCharts v8.3.1
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -872,19 +872,25 @@ const _WeaveHost = class _WeaveHost {
       this._setScales(extra.xyRatios);
     }
     const pass = extra && extra.pass || "full";
+    const host = this;
     let data = null;
     for (const record of this.active) {
       if (record.disabled) continue;
       const fns = record.handlers.get(hook);
       if (!fns || !fns.length) continue;
-      if (data === null) {
-        data = this._dataSnapshot();
-        this._lastData = data;
-      }
       const payload = {
         api: record.api,
         scales: this._currentScales,
-        data,
+        // Built on first read and shared with api.data for the rest of this
+        // pass: a handler that never reads it costs no snapshot.
+        get data() {
+          return data || (data = host._lastData || (host._lastData = host._dataSnapshot()));
+        },
+        // A handler may still overwrite its own payload.data, as it could
+        // when this was a plain field.
+        set data(v) {
+          Object.defineProperty(this, "data", { value: v, writable: true });
+        },
         pass,
         hook
       };
@@ -1520,12 +1526,7 @@ const _WeaveHost = class _WeaveHost {
    * groups), so without this, fast-path redraws would duplicate plugin output.
    */
   _resetLayers() {
-    const el = this.w.dom.elGraphical;
-    const parent = el && el.node;
-    if (parent) {
-      const groups = parent.querySelectorAll('g[class*="apexcharts-plugin-"]');
-      Array.prototype.forEach.call(groups, (n) => n.remove());
-    }
+    this._layers.forEach((g) => g.node.remove());
     this._layers.clear();
     this._declared = null;
   }

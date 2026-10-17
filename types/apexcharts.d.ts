@@ -1418,15 +1418,22 @@ declare namespace ApexCharts {
     }
     /**
      * Async resolver called when a drillable point has no inline `series` match.
+     * Resolve with a level carrying `data` (one series) or `series` (several);
+     * an omitted `id` defaults to the requested one. Overrides the level
+     * carries (`colors`, `plotOptions`, `xaxis` and the rest) are undone on the
+     * way back up.
      *
      * Failure never changes state: a throw, a rejection, or a resolved value
-     * without a `data` array leaves the chart where it was and fires
-     * `drillDownError`. A second click while one is in flight is ignored rather
-     * than starting a second request.
+     * with neither a `data` nor a `series` array leaves the chart where it was
+     * and fires `drillDownError`. A second click while one is in flight is
+     * ignored rather than starting a second request, and a level that settles
+     * after the chart navigated elsewhere is cached but not drilled into.
      */
     onDrillDown?(
       ctx: ApexDrilldownContext
-    ): ApexDrilldownSeries | Promise<ApexDrilldownSeries>
+    ):
+      | (Omit<ApexDrilldownSeries, 'id'> & { id?: string | number })
+      | Promise<Omit<ApexDrilldownSeries, 'id'> & { id?: string | number }>
     /**
      * Overlay shown while an async level resolves. `text` is optional; with
      * none, the spinner shows alone and carries "Loading" as its accessible
@@ -2131,6 +2138,7 @@ type ApexChart = {
   /** Strata (#2) series renderer. Requires `import 'apexcharts/features/renderer-canvas'` for non-SVG. */
   renderer?: 'svg' | 'canvas' | 'auto'
   rendererThreshold?: number
+  /** @deprecated Has no effect; removed in 9.0. Use `renderer` instead. */
   layers?: {
     series?: 'svg' | 'canvas' | 'auto'
     grid?: 'svg'
@@ -2406,6 +2414,7 @@ type ApexChart = {
   }
   dataReducer?: {
     enabled?: boolean
+    /** @deprecated Has no effect; removed in 9.0. */
     algorithm?: 'lttb'
     targetPoints?: number
     threshold?: number

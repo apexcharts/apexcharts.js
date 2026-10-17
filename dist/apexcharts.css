@@ -1040,6 +1040,41 @@ rect.legend-mouseover-inactive,
   cursor: move
 }
 
+.apexcharts-wheel-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.apexcharts-wheel-hint-visible {
+  opacity: 1;
+}
+
+.apexcharts-wheel-hint span {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+  background: rgba(28, 28, 31, 0.82);
+}
+
+.apexcharts-theme-dark .apexcharts-wheel-hint span {
+  color: #1c1c1f;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apexcharts-wheel-hint {
+    transition: none;
+  }
+}
+
 .apexcharts-menu-icon,
 .apexcharts-measure-icon,
 .apexcharts-pan-icon,
@@ -1262,19 +1297,14 @@ rect.legend-mouseover-inactive,
   fill: none
 }
 
-.apexcharts-pie-label-delay,
+/* A slow fade, on purpose: these come in while the dots are still easing
+   into place, so a longer fade reads as arriving WITH the crowd. */
 .apexcharts-unit-label-delay {
   opacity: 0;
   animation-name: opaque;
-  animation-duration: .3s;
+  animation-duration: .5s;
   animation-fill-mode: forwards;
   animation-timing-function: ease
-}
-
-/* Slower than the pie's, on purpose: these come in while the dots are still
-   easing into place, so a longer fade reads as arriving WITH the crowd. */
-.apexcharts-unit-label-delay {
-  animation-duration: .5s
 }
 
 .apexcharts-radialbar-label {
