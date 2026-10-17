@@ -39,3 +39,26 @@ describe('drilldown: zoomFromPoint when the update is refused', () => {
     chart.destroy()
   })
 })
+
+describe('drilldown: marking drillable targets', () => {
+  it('walks the marks once, not once per drillable point', () => {
+    const chart = barChart(40)
+    const baseEl = chart.w.dom.baseEl
+    const spy = vi.spyOn(baseEl, 'querySelectorAll')
+    chart.drilldown._markDrillableTargets()
+    expect(spy.mock.calls.length).toBeLessThanOrEqual(1)
+    spy.mockRestore()
+    expect(baseEl.querySelectorAll('.apexcharts-drilldown-target').length).toBe(40)
+    chart.destroy()
+  })
+
+  it('skips the walk when no point drills', () => {
+    const chart = barChart(40, false)
+    const baseEl = chart.w.dom.baseEl
+    const spy = vi.spyOn(baseEl, 'querySelectorAll')
+    chart.drilldown._markDrillableTargets()
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+    chart.destroy()
+  })
+})

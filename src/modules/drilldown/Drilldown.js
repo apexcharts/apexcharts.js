@@ -912,23 +912,32 @@ export default class Drilldown {
     const series = w.config.series
     if (!baseEl || !Array.isArray(series)) return
 
-    let unreachable = 0
+    // Keys of the drillable points, then ONE walk over the marks: a query per
+    // point is quadratic on a chart where most points drill and that updates
+    // every second. Nothing drills, nothing to walk.
+    const want = new Set()
     series.forEach((s, i) => {
-      const data = s && Array.isArray(s.data) ? s.data : null
-      if (!data) return
-      data.forEach((point, j) => {
-        if (!point || typeof point !== 'object' || point.drilldown == null) return
-        // bar/column/line: [index="i"][j="j"]; pie/donut: series index is 0.
-        const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j}"]`)
-        if (!nodes.length) unreachable++
-        nodes.forEach((node) => {
-          if (this._isClickThroughMark(node)) {
-            node.classList.remove('no-pointer-events')
+      if (s && Array.isArray(s.data)) {
+        s.data.forEach((point, j) => {
+          if (point && typeof point === 'object' && point.drilldown != null) {
+            want.add(i + ':' + j)
           }
-          node.classList.add('apexcharts-drilldown-target')
         })
-      })
+      }
     })
+    if (!want.size) return
+    const found = new Set()
+    // bar/column/line: [index="i"][j="j"]; pie/donut: series index is 0.
+    baseEl.querySelectorAll('[index][j]').forEach((node) => {
+      const k = node.getAttribute('index') + ':' + node.getAttribute('j')
+      if (!want.has(k)) return
+      found.add(k)
+      if (this._isClickThroughMark(node)) {
+        node.classList.remove('no-pointer-events')
+      }
+      node.classList.add('apexcharts-drilldown-target')
+    })
+    const unreachable = want.size - found.size
 
     // A drillable point with nothing to click is a dead interaction, and it
     // looks identical to a broken one. Say so rather than no-opping: the only
