@@ -283,6 +283,10 @@ export default class Trellis {
     this._noKeyWarned = false
     /** @type {import('./TrellisFrames').TypeFrames|null} shared type frames (P5) */
     this._frames = null
+    /** Bumped by teardown(), so an in-flight render can tell it was cancelled. */
+    this._gen = 0
+    /** @type {'zoom'|'pan'|null} the tool armed from the shared toolbar */
+    this._tool = null
   }
 
   /** Whether this chart is a trellis host: `by` (1-D) or `row`/`column`
@@ -548,6 +552,10 @@ export default class Trellis {
       return
     }
     this._rendering = true
+    // A destroy() or rebuild while a panel is mounting bumps the generation;
+    // every await below checks it and stops quietly, the way a plain chart's
+    // render settles when it is destroyed mid-mount.
+    const gen = this._gen
     try {
       this.cfg = w.config.trellis || {}
       this.autoScaleYaxis = !!w.config.chart?.zoom?.autoScaleYaxis
@@ -617,6 +625,20 @@ export default class Trellis {
         this._frames
       )
       frames.warnings.forEach((msg) => console.warn(`ApexCharts: ${msg}`))
+      // A rebuild keeps the legend-hidden set, as a plain chart keeps its
+      // hidden series across updates; a name the new data lost is let go.
+      // A series the page declares `hidden: true` seeds it, once (_seeded
+      // outlives teardown): the panels read their hidden state from this
+      // set alone.
+      if (!this._seeded) {
+        this._seeded = true
+        split.panels.forEach((p) =>
+          p.series.forEach(
+            (/** @type {any} */ s) => s.hidden && this.sync._hidden.add(s.name),
+          ),
+        )
+      }
+      this.sync.prune(split.seriesNames)
 
       // 2.5 Renderer policy (P2): one uniform grid-level decision.
       this._panelRenderer = choosePanelRenderer(
@@ -670,6 +692,7 @@ export default class Trellis {
           )
           panel.chart = chart
           await chart.render()
+          if (gen !== this._gen) return
           this._fire('panelMounted', {
             key: panel.key,
             index: panel.index,
@@ -681,6 +704,7 @@ export default class Trellis {
         //    exact in one iteration by construction (max of measured widths).
         if (independentY) {
           await this._alignGutters()
+          if (gen !== this._gen) return
           wrap.style.visibility = ''
         }
       }
@@ -1027,7 +1051,11 @@ export default class Trellis {
         // slack de-syncs mounted cells from the skeleton reserve (the grid
         // gap is the breathing room here).
         parentHeightOffset: 0,
-        toolbar: { show: false },
+        // The tool armed on the shared toolbar reaches panels mounted after
+        // the click too (virtualized scroll-ins, rebuilt-in-place panels).
+        toolbar: this._tool
+          ? { show: false, autoSelected: this._tool }
+          : { show: false },
         // the shared toolbar owns the one reset (TrellisSync.resetAll); with
         // toolbar 'none' a panel's own reset is the only way back, unless the
         // page turned it off
@@ -1166,6 +1194,14 @@ export default class Trellis {
       // Shared color: by series NAME across the whole trellis, so 'Revenue'
       // is the same color in every panel no matter the panel's series order.
       patch.colors = series.map((/** @type {any} */ s) => scales.colorOf(s.name))
+      // The shared legend's hidden set, stated on EVERY row: a panel mounted
+      // after a toggle is born with the series hidden (no flash, no second
+      // render), and an explicit false keeps a later update from inheriting
+      // a stale `hidden: true` from the panel's initial series.
+      patch.series = series.map((/** @type {any} */ s) => ({
+        ...s,
+        hidden: this.sync.isHidden(s.name),
+      }))
     }
 
     // Shared x domain (numeric/datetime): the equal-minX gate is what allows
@@ -1515,8 +1551,12 @@ export default class Trellis {
         if (!p.chart) return Promise.resolve()
         const opts = this._assemblePanelOptions(p.index)
         // The data did not change, and neither did the geometry: pushing them
-        // again would re-run the whole parse for a recolour.
+        // again would re-run the whole parse for a recolour. Nor did the
+        // domains: restating them would un-zoom every panel while the sync
+        // (and each panel's zoomed flag) still held the window.
         delete opts.series
+        delete opts.xaxis
+        delete opts.yaxis
         if (opts.chart) delete opts.chart.height
         return p.chart
           .updateOptions(opts, false, animate, false, false)
@@ -1578,6 +1618,8 @@ export default class Trellis {
       if (p.viewStash) p.viewStash = { ...p.viewStash, window: null, zoomed: false }
       if (p.chart) p.chart.w.interact.zoomed = false
     })
+    const gen = this._gen
+
     await Promise.all(
       this.panels.map((p) => {
         if (!p.chart) return Promise.resolve()
@@ -1589,10 +1631,12 @@ export default class Trellis {
           .catch(() => {})
       }),
     )
+    if (gen !== this._gen) return
     // Independent y: a panel whose labels outgrew the shared gutter floor
     // pulls every panel with it. Grow-only, like the virtualized floor: a
     // second pass on every update would cut the update's own animation.
     if (this._yMode() !== 'shared') await this._alignGutters(true)
+    if (gen !== this._gen) return
     // The shared chrome reads the data too: legend names and colours, and a
     // heatmap's gradient strip spans the new colour range.
     this.chrome.rebuildLegend()
@@ -1623,12 +1667,22 @@ export default class Trellis {
    * disconnect the observers, and remove the trellis DOM.
    */
   teardown() {
+    // cancels an in-flight render (see _render)
+    this._gen++
     this.virtual.stop()
     this._virtualActive = false
     this._panelRenderer = null
     this._promotedKey = null
     this._frames = null
+    // A rebuild starts every panel on the trellis's own domains with the
+    // default tool (the toolbar is rebuilt too), so no window or armed tool
+    // may outlive it; the legend-hidden set does (pruned at render).
+    this._tool = null
+    this.sync.currentWindow = null
     this.chrome.destroyGradientLegend()
+    const c = this.chrome
+    c.elLegend = c.elToolbar = c.elTitle = c.elBreadcrumb = null
+    this._elChromeTop = null
     if (this.gridTooltip) {
       this.gridTooltip.destroy()
       this.gridTooltip = null

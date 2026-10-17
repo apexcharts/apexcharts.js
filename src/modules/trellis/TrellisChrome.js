@@ -389,6 +389,8 @@ export default class TrellisChrome {
     const buttons = {}
     /** @param {'zoom'|'pan'} tool */
     const arm = (tool) => {
+      // kept on the trellis, so panels mounted later start with this tool
+      t._tool = tool
       t.panels.forEach((p) => {
         if (!p.chart) return
         const it = p.chart.w.interact
