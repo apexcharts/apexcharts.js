@@ -249,7 +249,7 @@ describe('the ghost copy', () => {
 describe('timers and teardown', () => {
   beforeEach(() => {
     vi.useFakeTimers({
-      toFake: ['setTimeout', 'clearTimeout', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'],
+      toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'],
     })
   })
   afterEach(() => {

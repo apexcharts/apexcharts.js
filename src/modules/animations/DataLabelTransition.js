@@ -36,7 +36,12 @@
 
 import { Environment } from '../../utils/Environment'
 import Utils from '../../utils/Utils'
-import { lengthTransitionEnabled, morphEasing, rafTween } from './LengthTransition'
+import {
+  GHOST_EASE,
+  lengthTransitionEnabled,
+  morphEasing,
+  rafTween,
+} from './LengthTransition'
 
 const DL_GROUP_SEL = '.apexcharts-data-labels[data\\:dlKey]'
 const DL_TEXT_SEL = '.apexcharts-datalabel'
@@ -327,8 +332,6 @@ export function playExitLabels(w) {
 
   const speed = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1)
   const morphEase = morphEasing(w)
-  /** @param {number} t */
-  const ghostEase = (t) => 1 - Math.pow(1 - t, 3)
   const isHorizontal = !!w.globals.isBarHorizontal
   let pending = 0
   const done = () => {
@@ -353,13 +356,17 @@ export function playExitLabels(w) {
       /** @type {Array<{els: Element[], dx: number, dy: number}>} */
       const moves = []
       let ease = morphEase
+      /** @type {number | undefined} */
+      let startAt
 
       const ghost = key
         ? root.querySelector(`.apexcharts-bar-ghost[data\\:ghostKey="${key}"]`)
         : null
       const edge = parseFloat(ghost?.getAttribute('data:ghostEdge') ?? '')
       if (ghost && isFinite(edge)) {
-        ease = ghostEase
+        // Ride the ghost: its easing and its start, not this later moment.
+        ease = GHOST_EASE
+        startAt = +(ghost.getAttribute('data:ghostStart') ?? '') || undefined
         parts.forEach((els) => {
           const text = els[els.length - 1]
           const c = parseFloat(text.getAttribute(isHorizontal ? 'cx' : 'cy') || '')
@@ -403,6 +410,8 @@ export function playExitLabels(w) {
           })
         },
         done,
+        undefined,
+        startAt,
       )
     })
   } catch (_) {

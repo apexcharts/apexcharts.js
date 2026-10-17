@@ -2,6 +2,7 @@
 import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { prefersReducedMotion } from './Animations'
+import { resolveEasing } from './animations/Easing'
 import { parsePath } from '../svg/PathMorphing'
 import {
   gridDivideRect,
@@ -1106,9 +1107,12 @@ export default class MorphTypeChange {
     for (let k = 0; k < pieces.length; k++) {
       pieces[k].delay = pieces.length > 1 ? (k / (pieces.length - 1)) * stagger : 0
     }
+    const anim = this.w.config.chart.animations
     this._pieceCancel = runPieceTween({
       pieces,
       duration: flight,
+      // The update easing the rest of the morph rides (morphEasing).
+      ease: resolveEasing(anim.dynamicAnimation?.easing ?? anim.easing),
       onPieceDone,
       // destroy() mid-flight: stop writing to the detached pieces.
       alive: () => !this.w.globals.isDestroyed,

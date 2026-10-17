@@ -316,11 +316,6 @@ export function makeColorLerp(from, to) {
   }
 }
 
-/** @param {number} t */
-function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
-
 /**
  * @typedef {Object} PieceRect
  * @property {number} x
@@ -352,15 +347,25 @@ function easeInOutCubic(t) {
  * @param {Object} opts
  * @param {Piece[]} opts.pieces
  * @param {number} opts.duration - per-piece flight time, ms
+ * @param {(t: number) => number} opts.ease - the chart's update easing, so
+ *   the pieces move in step with the plot rect and the axis chrome
  * @param {(piece: Piece) => void} [opts.onPieceDone] - fired once per piece at t=1
  * @param {() => void} [opts.onAllDone]
  * @param {() => boolean} [opts.alive] - false once the chart is gone: the
  *   run stops on that frame without writing or completing
  * @returns {() => void} cancel
  */
-export function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive }) {
+export function runPieceTween({
+  pieces,
+  duration,
+  ease,
+  onPieceDone,
+  onAllDone,
+  alive,
+}) {
   let cancelled = false
-  const start = Date.now()
+  // The clock every other tween reads (rafTween), not wall time.
+  const start = performance.now()
   const dur = Math.max(1, duration)
 
   /** @param {Piece} p @param {number} e */
@@ -377,9 +382,10 @@ export function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive 
     else if (e >= 1 && p.fillEnd) el.setAttribute('fill', p.fillEnd)
   }
 
-  const frame = () => {
+  /** @param {number} now */
+  const frame = (now) => {
     if (cancelled || (alive && !alive())) return
-    const elapsed = Date.now() - start
+    const elapsed = now - start
     let live = false
     for (let k = 0; k < pieces.length; k++) {
       const p = pieces[k]
@@ -388,7 +394,7 @@ export function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive 
       if (raw < 1) live = true
       if (raw <= 0) continue
       const t = Math.min(1, raw)
-      write(p, easeInOutCubic(t))
+      write(p, ease(t))
       if (t >= 1) {
         ;/** @type {any} */ (p)._done = true
         if (onPieceDone) onPieceDone(p)

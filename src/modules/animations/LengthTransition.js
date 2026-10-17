@@ -288,10 +288,19 @@ export function morphEasing(w) {
  * @param {(() => void)} [onDone]
  * @param {() => any} [alive] checked before every frame; once it fails the
  *   tween stops without onDone (its node was replaced or detached)
+ * @param {number} [startAt] the clock reading the tween starts from (now by
+ *   default); a tween that must stay in step with another passes its start
  * @returns {() => void} stops the tween, also without onDone
  */
-export function rafTween(w, duration, ease, onFrame, onDone, alive) {
-  const startAt = performance.now()
+export function rafTween(
+  w,
+  duration,
+  ease,
+  onFrame,
+  onDone,
+  alive,
+  startAt = performance.now(),
+) {
   /** @param {number} now */
   const step = (now) => {
     if (w.globals.isDestroyed || (alive && !alive())) return
@@ -640,6 +649,9 @@ function firstMove(d) {
   return isFinite(x) && isFinite(y) ? { x, y } : null
 }
 
+/** The exit ghosts' easing, which their riding data labels share. */
+export const GHOST_EASE = (/** @type {number} */ t) => 1 - Math.pow(1 - t, 3)
+
 /**
  * Render exit ghosts for the previous render's bars whose datum keys are not
  * present in the new data. Each ghost is inserted UNDER the new bars (first
@@ -717,6 +729,9 @@ export function renderBarExitGhosts({
     }
   })
 
+  // One start for every ghost: their data labels, played after the render,
+  // start from it too instead of trailing by the render's length.
+  const t0 = performance.now()
   exits.forEach((p, i) => {
     const node = nodes[i]
     const bb = boxes[i]
@@ -744,6 +759,7 @@ export function renderBarExitGhosts({
     // ride the same exit (DataLabelTransition.playExitLabels). No box, no
     // ride: the label fades where it stands.
     node.setAttribute('data:ghostKey', `${record.realIndex}::${p.key}`)
+    node.setAttribute('data:ghostStart', String(t0))
     if (bb) {
       const edge = isHorizontal
         ? near
@@ -758,7 +774,7 @@ export function renderBarExitGhosts({
     rafTween(
       w,
       Math.max(1, speed || 1),
-      (t) => 1 - Math.pow(1 - t, 3),
+      GHOST_EASE,
       (eased) => {
         const scale = 1 - eased
         style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`
@@ -766,6 +782,7 @@ export function renderBarExitGhosts({
       },
       () => node.remove(),
       () => node.parentNode,
+      t0,
     )
   })
 }
