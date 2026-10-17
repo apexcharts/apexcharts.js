@@ -781,8 +781,8 @@ describe('drilldown, trellis and histogram: stacked and line charts', () => {
     )
     const xf = res.xForm
     // without the feature's say-so the wholes alone set the scale
-    expect(TrellisScales.yExtent(res.panels, xf)).toEqual({ min: 5, max: 30 })
-    expect(TrellisScales.yExtent(res.panels, xf, true)).toEqual({
+    expect(TrellisScales.yExtent(res.panels)).toEqual({ min: 5, max: 30 })
+    expect(TrellisScales.yExtent(res.panels, true)).toEqual({
       min: -12,
       max: 50,
     })
@@ -799,12 +799,12 @@ describe('drilldown, trellis and histogram: stacked and line charts', () => {
       { by: 'facet' },
       { chartType: 'bar', stacked: true },
     )
-    expect(TrellisScales.stackedYExtent(st.panels, st.xForm)).toEqual({
+    expect(TrellisScales.stackedYExtent(st.panels)).toEqual({
       min: 0,
       max: 25,
     })
     expect(
-      TrellisScales.stackedYExtent(st.panels, st.xForm, { parts: true }),
+      TrellisScales.stackedYExtent(st.panels, { parts: true }),
     ).toEqual({ min: -10, max: 55 })
     // resolve() hands the panels bounds over both
     const y = TrellisScales.resolve(

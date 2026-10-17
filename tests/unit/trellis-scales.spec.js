@@ -10,11 +10,12 @@ import { split } from '../../src/modules/trellis/TrellisSplit'
 
 describe('TrellisScales.niceBounds', () => {
   it('picks the nice step whose tick count lands closest to the target', () => {
-    expect(niceBounds(3, 97, 4)).toEqual({ min: 0, max: 100, tickAmount: 4 })
+    expect(niceBounds(3, 97, 4)).toEqual({ min: 0, max: 100, tickAmount: 4, decimals: 0 })
     expect(niceBounds(0, 4000000, 4)).toEqual({
       min: 0,
       max: 4000000,
       tickAmount: 4,
+      decimals: 0,
     })
   })
 
@@ -26,6 +27,7 @@ describe('TrellisScales.niceBounds', () => {
       min: 0,
       max: 60000,
       tickAmount: 3,
+      decimals: 0,
     })
     // Default target is 3 (a small panel wears at most ~4 labels well).
     const b = niceBounds(0, 812)
@@ -43,7 +45,7 @@ describe('TrellisScales.niceBounds', () => {
     const b = niceBounds(-83, 42, 4)
     expect(b.min).toBeLessThanOrEqual(-83)
     expect(b.max).toBeGreaterThanOrEqual(42)
-    expect(niceBounds(NaN, Infinity)).toEqual({ min: 0, max: 1, tickAmount: 1 })
+    expect(niceBounds(NaN, Infinity)).toEqual({ min: 0, max: 1, tickAmount: 1, decimals: 0 })
   })
 
   it('is deterministic: same input, same bounds (the alignment contract)', () => {
@@ -59,14 +61,14 @@ describe('TrellisScales.yExtent', () => {
       { name: 'a', k: 'p1', data: [[1, 5], [2, -3]] },
       { name: 'a', k: 'p2', data: [[1, 40]] },
     ])
-    expect(yExtent(s.panels, s.xForm)).toEqual({ min: -3, max: 40 })
+    expect(yExtent(s.panels)).toEqual({ min: -3, max: 40 })
   })
 
   it('flattens array y values (OHLC / box summaries / ranges)', () => {
     const s = mkSplit([
       { name: 'a', k: 'p1', data: [{ x: 1, y: [5, 60, 2, 30] }] },
     ])
-    expect(yExtent(s.panels, s.xForm)).toEqual({ min: 2, max: 60 })
+    expect(yExtent(s.panels)).toEqual({ min: 2, max: 60 })
   })
 
   it('ignores the nulls the union alignment inserted', () => {
@@ -74,12 +76,12 @@ describe('TrellisScales.yExtent', () => {
       { name: 'a', k: 'p1', data: [[1, 10], [2, 20]] },
       { name: 'a', k: 'p2', data: [[2, 5]] }, // gets [1, null] inserted
     ])
-    expect(yExtent(s.panels, s.xForm)).toEqual({ min: 5, max: 20 })
+    expect(yExtent(s.panels)).toEqual({ min: 5, max: 20 })
   })
 
   it('returns null when nothing is finite', () => {
     const s = mkSplit([{ name: 'a', k: 'p1', data: [[1, null]] }])
-    expect(yExtent(s.panels, s.xForm)).toBeNull()
+    expect(yExtent(s.panels)).toBeNull()
   })
 })
 
@@ -114,7 +116,7 @@ describe('TrellisScales.resolve', () => {
     ])
     expect(r.x).toEqual({ min: 10, max: 50 })
     // Default targetTicks 3: ties between candidates prefer fewer ticks.
-    expect(r.y).toEqual({ min: 0, max: 100, tickAmount: 2 })
+    expect(r.y).toEqual({ min: 0, max: 100, tickAmount: 2, decimals: 0 })
   })
 
   it('independent y resolves to null (the gutter pass aligns instead)', () => {
@@ -177,8 +179,8 @@ describe('TrellisScales: a stacked trellis shares the STACK domain', () => {
 
   it('stackedYExtent measures the piles, not the values', () => {
     const s = mkSplit(stacked)
-    expect(yExtent(s.panels, s.xForm)).toEqual({ min: 10, max: 45 })
-    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: 0, max: 80 })
+    expect(yExtent(s.panels)).toEqual({ min: 10, max: 45 })
+    expect(stackedYExtent(s.panels)).toEqual({ min: 0, max: 80 })
   })
 
   it('positive and negative runs accumulate away from the baseline separately', () => {
@@ -188,7 +190,7 @@ describe('TrellisScales: a stacked trellis shares the STACK domain', () => {
       { name: 'C', k: 'p', data: [{ x: 1, y: -15 }] },
       { name: 'D', k: 'p', data: [{ x: 1, y: -25 }] },
     ])
-    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: -40, max: 50 })
+    expect(stackedYExtent(s.panels)).toEqual({ min: -40, max: 50 })
   })
 
   it('groups pile separately, the way the core groups them', () => {
@@ -198,7 +200,7 @@ describe('TrellisScales: a stacked trellis shares the STACK domain', () => {
       { name: 'C', k: 'p', group: 'g2', data: [{ x: 1, y: 40 }] },
     ])
     // 50, not 90: g1 and g2 are two piles side by side.
-    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: 0, max: 50 })
+    expect(stackedYExtent(s.panels)).toEqual({ min: 0, max: 50 })
   })
 
   it('stackOnlyBar keeps a reference line out of the pile but on the axis', () => {
@@ -207,12 +209,12 @@ describe('TrellisScales: a stacked trellis shares the STACK domain', () => {
       { name: 'B', k: 'p', data: [{ x: 1, y: 20 }] },
       { name: 'Target', k: 'p', type: 'line', data: [{ x: 1, y: 70 }] },
     ])
-    expect(stackedYExtent(s.panels, s.xForm, { stackOnlyBar: true })).toEqual({
+    expect(stackedYExtent(s.panels, { stackOnlyBar: true })).toEqual({
       min: 0,
       max: 70,
     })
     // Without the flag everything stacks: 30 + 20 + 70.
-    expect(stackedYExtent(s.panels, s.xForm)).toEqual({ min: 0, max: 120 })
+    expect(stackedYExtent(s.panels)).toEqual({ min: 0, max: 120 })
   })
 
   it('resolve uses the stack totals when the chart is stacked', () => {

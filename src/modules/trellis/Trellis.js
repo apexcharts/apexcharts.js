@@ -32,6 +32,7 @@ import { Environment } from '../../utils/Environment.js'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { addResizeListener, removeResizeListener } from '../../utils/Resize'
 import RendererController from '../RendererController'
+import CoreUtils from '../CoreUtils'
 import InitCtxVariables from '../helpers/InitCtxVariables'
 import {
   computeMarkCount,
@@ -254,8 +255,6 @@ export default class Trellis {
     this._virtualActive = false
     /** @type {'canvas'|null} uniform panel renderer override (P2) */
     this._panelRenderer = null
-    /** @type {number} uniform y-label decimals across the grid (P4) */
-    this._yLabelDecimals = 0
     /** @type {HTMLElement|null} the outer trellis element (w.dom.elWrap) */
     this.elWrap = null
     /** @type {HTMLElement|null} */
@@ -380,15 +379,37 @@ export default class Trellis {
         c.requestedType === 'histogram' ? 'histogram' : c.type,
       )
     }
-    // With an overridden y domain the DRAWN values are not the data
-    // (histogram counts, not observations), so the data's decimals must not
-    // leak into the labels; the tick step's own decimals still apply.
-    this._yLabelDecimals = this._frames.yExtentOverride
-      ? 0
-      : TrellisScales.maxYDecimals(split.panels)
+    // The label decimals ride on the bounds: with an overridden y domain
+    // (histogram counts, not observations) only the tick step's count.
+    //
+    // Several y axes: the series go to axes ONCE for the grid, by the core's
+    // own rules (`seriesName`, string or array, then one-for-one by index)
+    // run on the grid's full name list, and every panel is pushed the result
+    // as `seriesName` arrays. Mapped per panel, a facet missing one named
+    // series had its others fall onto the wrong shared axis.
+    const yaxis = this._multiY()
+    /** @type {string[][] | null} */
+    let axisNames = null
+    if (yaxis) {
+      const names = split.seriesNames
+      const cu = new CoreUtils(
+        /** @type {any} */ ({
+          config: { series: names.map((name) => ({ name })), yaxis },
+          globals: {},
+        }),
+      )
+      cu.setSeriesYAxisMappings()
+      axisNames = cu.w.globals.seriesYAxisMap.map((/** @type {number[]} */ m) =>
+        m.map((i) => names[i]).filter((n) => n != null),
+      )
+    }
+    this._axisNames = axisNames
     this.scales = TrellisScales.resolve(split, this._effectiveCfg(), {
       chartType: c.type,
       userColors: this.ctx.opts && this.ctx.opts.colors,
+      // The page's own axes when there are several (see _multiY).
+      yaxis: yaxis || w.config.yaxis,
+      axisNames,
       yExtentOverride: this._frames.yExtentOverride,
       ...this._stackingHost(),
     })
@@ -398,6 +419,20 @@ export default class Trellis {
   _splitHost() {
     const cnf = this.w.config
     return { chartType: cnf.chart.type, datetime: cnf.xaxis.type === 'datetime' }
+  }
+
+  /**
+   * The page's y axes when there are several, else null (also for a
+   * horizontal bar trellis, whose value axis is `xaxis`). The page's own
+   * list: the merged config holds one log axis per HOST series, which says
+   * nothing about the panels' axes.
+   * @returns {any[] | null}
+   */
+  _multiY() {
+    const yaxis = this.ctx.opts?.yaxis
+    return Array.isArray(yaxis) && yaxis.length > 1 && !this._valueAxisIsX()
+      ? yaxis
+      : null
   }
 
   /**
@@ -443,22 +478,28 @@ export default class Trellis {
    * ('independent-column'), or none ('independent'). Types whose y axis does
    * not carry the data values (heatmap rows, the radial family) never get a
    * yaxis push at all (P5): the frame's own channel is the shared one.
+   *
+   * With several y axes the bounds are one per axis, handed out only when
+   * `all` asks for them: a caller that pushes one domain onto every axis
+   * (the grid reset) gets null and leaves the axes alone.
    * @param {import('./TrellisSplit').TrellisSlice} slice
-   * @returns {{ min: number, max: number, tickAmount: number } | null}
+   * @param {boolean} [all]
+   * @returns {any} TrellisBounds, an array of them (`all`), or null
    */
-  _yBoundsFor(slice) {
+  _yBoundsFor(slice, all) {
     const scales = this.scales
     if (!scales) return null
     if (this._frames && this._frames.skipYaxisPush) return null
     const yMode = this._yMode()
-    if (yMode === 'shared') return scales.y
-    if (yMode === 'independent-row' && scales.rowY) {
-      return scales.rowY.get(slice.rowKey ?? '') || null
-    }
-    if (yMode === 'independent-column' && scales.colY) {
-      return scales.colY.get(slice.colKey ?? '') || null
-    }
-    return null
+    const b =
+      yMode === 'shared'
+        ? scales.y
+        : yMode === 'independent-row' && scales.rowY
+          ? scales.rowY.get(slice.rowKey ?? '')
+          : yMode === 'independent-column' && scales.colY
+            ? scales.colY.get(slice.colKey ?? '')
+            : null
+    return b && (all || !Array.isArray(b)) ? b : null
   }
 
   /**
@@ -565,7 +606,11 @@ export default class Trellis {
     const gen = this._gen
     try {
       this.cfg = w.config.trellis || {}
-      this.autoScaleYaxis = !!w.config.chart?.zoom?.autoScaleYaxis
+      // The grid's autoscale restates ONE y domain on every axis, which
+      // would flatten a combo's second axis: there each panel keeps the
+      // core's own per-axis autoscale.
+      this.autoScaleYaxis =
+        !!w.config.chart?.zoom?.autoScaleYaxis && !this._multiY()
 
       // 0. Tidy-row input (P2): `trellis.data` rows pivot to series form and
       //    flow through the same proven split path. Rows win over `series`
@@ -1144,11 +1189,13 @@ export default class Trellis {
     // The data-derived half (_panelDataPatch). Its yaxis patch is merged
     // INTO the user's own yaxis entry (array or object): Utils.extend
     // replaces arrays wholesale, so a bare object override would drop the
-    // user's formatter/label config.
+    // user's formatter/label config. Several axes merge entry by entry.
     if (data.xaxis) overrides.xaxis = data.xaxis
     if (data.yaxis) {
-      const userYaxis = Array.isArray(base.yaxis) ? base.yaxis[0] : base.yaxis
-      overrides.yaxis = Utils.extend(userYaxis || {}, data.yaxis)
+      const userY = /** @type {any[]} */ ([]).concat(base.yaxis || {})
+      overrides.yaxis = Array.isArray(data.yaxis)
+        ? data.yaxis.map((p, ai) => Utils.extend(userY[ai] || {}, p))
+        : Utils.extend(userY[0] || {}, data.yaxis)
       delete base.yaxis
     }
     // Deep-merged into the user's own plotOptions by Utils.extend below, so
@@ -1230,37 +1277,40 @@ export default class Trellis {
     }
     // The panel's y domain per the scales mode (shared union, or its
     // row's/column's union, P4): identical bounds + tickAmount => identical
-    // ticks, labels, gutters and plot rects (22a Q1).
-    const yBounds = this._yBoundsFor(slice)
+    // ticks, labels, gutters and plot rects (22a Q1). Several y axes get one
+    // entry each, in the user's order (a single object would replace them),
+    // naming the grid's series for it so the panel maps them the same way.
+    const yBounds = this._yBoundsFor(slice, true)
     if (yBounds) {
-      patch.yaxis = {
-        min: yBounds.min,
-        max: yBounds.max,
-        tickAmount: yBounds.tickAmount,
-      }
-      // Identical bounds need identical label FORMATTING to yield identical
-      // gutters: the library derives label decimals from each panel's OWN
-      // data (decimalsInFloat only applies to float panels), so a
-      // placeholder's zeros, or an integer-valued panel among float
-      // siblings, would render "20" beside "20.00" and misalign. When the
-      // user brought no formatter, push one uniform toFixed sized by the
-      // union data's decimals and the tick step's own (both re-derived on
-      // every update: a grid that turns fractional must print fractions).
-      const userYaxis = Array.isArray(this.ctx.opts?.yaxis)
-        ? this.ctx.opts.yaxis[0]
-        : this.ctx.opts?.yaxis
-      if (typeof userYaxis?.labels?.formatter !== 'function') {
-        const digits = Math.max(
-          this._yLabelDecimals,
-          TrellisScales.decimalCount(
-            (yBounds.max - yBounds.min) / Math.max(1, yBounds.tickAmount),
-          ),
-        )
-        patch.yaxis.labels = {
-          formatter: (/** @type {any} */ val) =>
-            typeof val === 'number' && isFinite(val) ? val.toFixed(digits) : val,
+      const userY = this.ctx.opts?.yaxis
+      const names = this._axisNames
+      patch.yaxis = /** @type {any[]} */ ([]).concat(yBounds).map((b, ai) => {
+        /** @type {Record<string, any>} */
+        const entry = b
+          ? { min: b.min, max: b.max, tickAmount: b.tickAmount }
+          : {}
+        if (names) entry.seriesName = names[ai]
+        // Identical bounds need identical label FORMATTING to yield
+        // identical gutters: the library derives label decimals from each
+        // panel's OWN data (decimalsInFloat only applies to float panels),
+        // so a placeholder's zeros, or an integer-valued panel among float
+        // siblings, would render "20" beside "20.00" and misalign. When the
+        // user brought no formatter, push one uniform toFixed sized by the
+        // union data's decimals and the tick step's own (both re-derived on
+        // every update: a grid that turns fractional must print fractions).
+        // A log axis sizes it by its smallest tick (0.01) instead of a step.
+        const user = Array.isArray(userY) ? userY[ai] : userY
+        if (b && typeof user?.labels?.formatter !== 'function') {
+          entry.labels = {
+            formatter: (/** @type {any} */ val) =>
+              typeof val === 'number' && isFinite(val)
+                ? val.toFixed(b.decimals)
+                : val,
+          }
         }
-      }
+        return entry
+      })
+      if (!Array.isArray(yBounds)) patch.yaxis = patch.yaxis[0]
       if (valueAxisIsX) {
         patch.xaxis = Utils.extend(
           patch.xaxis || {},
@@ -1638,8 +1688,15 @@ export default class Trellis {
       this.panels.map((p) => {
         if (!p.chart) return Promise.resolve()
         const patch = this._panelDataPatch(p.index)
-        // yaxisPayload keeps the live gutter floor (labels.minWidth)
-        if (patch.yaxis) patch.yaxis = yaxisPayload(p.chart, patch.yaxis)
+        // yaxisPayload keeps the live gutter floor (labels.minWidth); with
+        // several axes each live entry takes its own axis's patch.
+        const py = patch.yaxis
+        if (py) {
+          patch.yaxis = yaxisPayload(p.chart, {}).map(
+            (/** @type {any} */ e, /** @type {number} */ ai) =>
+              Utils.extend(e, (Array.isArray(py) ? py[ai] : py) || {}),
+          )
+        }
         return p.chart
           .updateOptions(patch, false, animate, false)
           .catch(() => {})
