@@ -77,60 +77,61 @@
       }
     </script>
 
-    <script>
-      var pointCount = 50000
+    <script src="../../../dist/features/renderer-canvas.js"></script>
+  <script>
+    var pointCount = 50000
 
-      // Box-Muller gaussian: gives two legible clusters at any density instead of
-      // uniform noise, so the plotted shape stays readable whether it is 2,000 or
-      // 100,000 points.
-      function gauss(mean, sd) {
-        var u = 1 - Math.random()
-        var v = Math.random()
-        return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+    // Box-Muller gaussian: gives two legible clusters at any density instead of
+    // uniform noise, so the plotted shape stays readable whether it is 2,000 or
+    // 100,000 points.
+    function gauss(mean, sd) {
+      var u = 1 - Math.random()
+      var v = Math.random()
+      return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+    }
+
+    function generateClusters(count) {
+      var half = Math.floor(count / 2)
+      var a = new Array(half)
+      var b = new Array(count - half)
+      for (var i = 0; i < a.length; i++) {
+        a[i] = [+gauss(32, 9).toFixed(2), +gauss(62, 15).toFixed(2)]
       }
-
-      function generateClusters(count) {
-        var half = Math.floor(count / 2)
-        var a = new Array(half)
-        var b = new Array(count - half)
-        for (var i = 0; i < a.length; i++) {
-          a[i] = [+gauss(32, 9).toFixed(2), +gauss(62, 15).toFixed(2)]
-        }
-        for (var j = 0; j < b.length; j++) {
-          b[j] = [+gauss(70, 10).toFixed(2), +gauss(34, 13).toFixed(2)]
-        }
-        return [a, b]
+      for (var j = 0; j < b.length; j++) {
+        b[j] = [+gauss(70, 10).toFixed(2), +gauss(34, 13).toFixed(2)]
       }
+      return [a, b]
+    }
 
-      var clusters = generateClusters(pointCount)
-      var lastRenderMs = 0
+    var clusters = generateClusters(pointCount)
+    var lastRenderMs = 0
 
-      // Every SVG mark is a live DOM node, so counting nodes inside the chart makes
-      // the hybrid renderer visible: canvas keeps this in the dozens no matter how
-      // many points are plotted.
-      function domNodeCount() {
-        var el = document.querySelector('#chart')
-        return el ? el.getElementsByTagName('*').length : 0
-      }
+    // Every SVG mark is a live DOM node, so counting nodes inside the chart makes
+    // the hybrid renderer visible: canvas keeps this in the dozens no matter how
+    // many points are plotted.
+    function domNodeCount() {
+      var el = document.querySelector('#chart')
+      return el ? el.getElementsByTagName('*').length : 0
+    }
 
-      // Accepts the live chart instance as an argument so the React and Vue builds
-      // (which have no global `chart` var) can share this stateless helper.
-      function updateStats(chart) {
-        var el = document.getElementById('stats')
-        if (!el || !chart) return
-        var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
-        el.innerHTML =
-          'Points: <b>' +
-          pointCount.toLocaleString() +
-          '</b> &nbsp;·&nbsp; Active renderer: <b>' +
-          active.toUpperCase() +
-          '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
-          domNodeCount().toLocaleString() +
-          '</b> &nbsp;·&nbsp; Render: <b>' +
-          (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
-          '</b>'
-      }
-    </script>
+    // Accepts the live chart instance as an argument so the React and Vue builds
+    // (which have no global `chart` var) can share this stateless helper.
+    function updateStats(chart) {
+      var el = document.getElementById('stats')
+      if (!el || !chart) return
+      var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+      el.innerHTML =
+        'Points: <b>' +
+        pointCount.toLocaleString() +
+        '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+        active.toUpperCase() +
+        '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+        domNodeCount().toLocaleString() +
+        '</b> &nbsp;·&nbsp; Render: <b>' +
+        (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+        '</b>'
+    }
+  </script>
   </head>
 
   <body>
