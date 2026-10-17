@@ -27,9 +27,8 @@ export const COVERED = { f: 0, o: 0 }
  */
 export const look = (f) => ({ f, o: f < 1 ? 1 : 0 })
 
-/** @param {any} v */
-export const finite = (v) =>
-  typeof v === 'number' && v === v && v !== Infinity && v !== -Infinity
+/** A number, neither NaN nor infinite (a string never is one). */
+export const finite = Number.isFinite
 
 /** From x to y at progress t, landing exactly on y.
  * @param {number} x @param {number} y @param {number} t */

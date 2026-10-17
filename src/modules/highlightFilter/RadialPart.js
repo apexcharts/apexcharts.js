@@ -676,9 +676,21 @@ function lanes(hf, r, el, o) {
   if (Environment.isBrowser()) {
     // Which lane the pointer is on, for the tooltip: by its distance from
     // the centre, split in the middle of the gap, so crossing it is staying
-    // on the ring. Forwarded events carry the pointer's position too.
+    // on the ring. Forwarded events carry the pointer's position too. The
+    // ring's screen matrix is read as the pointer comes onto it and kept
+    // while it moves there (read after the tooltip's writes, it forces a
+    // layout); a scroll or a resize under the pointer reads it again.
+    /** @type {any} */
+    let m = null
+    let seen = -1
     const at = (/** @type {any} */ e) => {
-      hf._lane = [i, laneAt(node, e, rec)]
+      // mouseover or touchstart: coming onto the ring
+      if (seen !== moved || /over|start/.test(e.type)) {
+        m = node.getScreenCTM?.()
+        seen = moved
+        watchMoves()
+      }
+      hf._lane = [i, laneAt(m, e, rec)]
     }
     ;['mouseover', 'mousemove', 'mousedown', 'touchstart', 'touchmove'].forEach(
       (t) => node.addEventListener(t, at, true),
@@ -686,16 +698,31 @@ function lanes(hf, r, el, o) {
   }
 }
 
+// Bumped by any scroll or resize on the page, so a ring knows its cached
+// screen matrix may be stale. One pair of listeners for the page, added on
+// the first lanes hover: per-ring listeners outlived every re-render.
+let moved = 0
+let watching = false
+function watchMoves() {
+  if (watching) return
+  watching = true
+  ;['scroll', 'resize'].forEach((t) =>
+    BrowserAPIs.addWindowEventListener(t, () => moved++, {
+      capture: true,
+      passive: true,
+    }),
+  )
+}
+
 /**
  * The lane under a pointer event on a ring: 'whole' outside the middle of
  * the gap, 'part' inside it (and wherever the ring is not split).
- * @param {any} node the ring's whole @param {any} e
+ * @param {any} m the ring's screen matrix @param {any} e
  * @param {any} rec the ring's record (centre, live split and gap middle)
  * @returns {'part' | 'whole'}
  */
-function laneAt(node, e, rec) {
+function laneAt(m, e, rec) {
   const p = e.touches?.[0] || e
-  const m = node.getScreenCTM?.()
   if (!m || !(rec.s > 0)) return 'part'
   const x = p.clientX - m.e
   const y = p.clientY - m.f

@@ -3,12 +3,13 @@ import { createChartWithOptions } from './utils/utils.js'
 import { SSRRenderer } from '../../src/ssr/SSRRenderer.js'
 import { BrowserAPIs } from '../../src/ssr/BrowserAPIs.js'
 import Filters from '../../src/modules/Filters.js'
+import { finite } from '../../src/modules/highlightFilter/util.js'
 import '../../src/features/highlight-filter.js'
 import '../../src/features/morph.js'
 
 // The part painters (treemap, pie, radial) and the helpers they share: leaf
 // numbering under drilldown levels, a morph's rings, the server render's
-// classes and which filters a part mirrors.
+// classes, which filters a part mirrors, and the lanes hover's matrix.
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -180,6 +181,58 @@ describe('radialBar', () => {
       ).toBe(1)
     }
   })
+
+  test('lanes hover reads the ring matrix once per entry, again after a scroll', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'radialBar', width: 400, height: 400 },
+      series: [70],
+      highlightFilter: { data: [40], radialBar: { indicator: 'lanes' } },
+    })
+    const ring = q(
+      chart,
+      '.apexcharts-radial-series .apexcharts-radialbar-area',
+    )[0]
+    const ctm = vi.fn(() => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }))
+    ring.getScreenCTM = ctm
+    const fire = (type) =>
+      ring.dispatchEvent(
+        new MouseEvent(type, { clientX: 1, clientY: 1, bubbles: true }),
+      )
+    fire('mouseover')
+    fire('mousemove')
+    fire('mousemove')
+    fire('mousemove')
+    expect(ctm).toHaveBeenCalledTimes(1)
+    expect(chart.highlightFilter._lane[0]).toBe(0)
+    window.dispatchEvent(new Event('scroll'))
+    fire('mousemove')
+    fire('mousemove')
+    expect(ctm).toHaveBeenCalledTimes(2)
+    // a new entry reads it afresh
+    fire('mouseover')
+    expect(ctm).toHaveBeenCalledTimes(3)
+  })
+
+  test('lanes hover adds no window listeners per ring or per render', async () => {
+    const add = vi.spyOn(window, 'addEventListener')
+    const chart = createChartWithOptions({
+      chart: { type: 'radialBar', width: 400, height: 400 },
+      series: [70, 40],
+      highlightFilter: { data: [40, 20], radialBar: { indicator: 'lanes' } },
+    })
+    for (let k = 0; k < 3; k++) {
+      q(chart, '.apexcharts-radial-series .apexcharts-radialbar-area').forEach(
+        (ring) =>
+          ring.dispatchEvent(
+            new MouseEvent('mouseover', { clientX: 1, clientY: 1, bubbles: true }),
+          ),
+      )
+      await chart.updateSeries([70 - k, 40 + k])
+    }
+    // one page-wide pair at most (none if an earlier hover already added it)
+    expect(add.mock.calls.filter((c) => c[0] === 'scroll').length).toBeLessThanOrEqual(1)
+    add.mockRestore()
+  })
 })
 
 describe('pie', () => {
@@ -262,5 +315,13 @@ describe('pie', () => {
     await Promise.resolve()
     expect(whole.getAttribute('filter')).toMatch(/^url\(/)
     expect(part.getAttribute('filter')).toBe(whole.getAttribute('filter'))
+  })
+})
+
+describe('util', () => {
+  test('finite is a number check that rejects NaN, the infinities and strings', () => {
+    expect(
+      [1, 0, -2.5, NaN, Infinity, -Infinity, '3', null].map(finite),
+    ).toEqual([true, true, true, false, false, false, false, false])
   })
 })

@@ -18,6 +18,7 @@
  */
 
 import Graphics from '../Graphics'
+import Utils from '../../utils/Utils'
 import { drilldownById } from '../../charts/common/Hierarchy'
 import { drilldownAsLevels } from '../../charts/common/treemap/Nested'
 import { finite, mix, info, isPoint, stripSeries } from './util'
@@ -512,39 +513,14 @@ function texts(n) {
  * @returns {(t: number) => string}
  */
 function colourEase(a, b) {
-  const x = rgba(a)
-  const y = rgba(b)
-  if (a === b || !x || !y) return (t) => (t >= 1 ? b : a)
+  // Read as the core reads a colour (hex with or without alpha, rgb()/rgba()).
+  const x = Utils.parseColor(String(a).trim())
+  const y = Utils.parseColor(String(b).trim())
+  if (a === b || !x?.every(finite) || !y?.every(finite)) {
+    return (t) => (t >= 1 ? b : a)
+  }
   return (t) =>
     t >= 1
       ? b
       : `rgba(${[0, 1, 2].map((k) => Math.round(mix(x[k], y[k], t))).join(',')},${+mix(x[3], y[3], t).toFixed(3)})`
-}
-
-/**
- * `#rgb`, `#rrggbb` (with or without alpha) and `rgb()`/`rgba()` as
- * [r, g, b, a], or null.
- * @param {string} c
- * @returns {number[] | null}
- */
-function rgba(c) {
-  const s = String(c).trim()
-  let m = /^#([\da-f]+)$/i.exec(s)
-  if (m) {
-    let h = m[1]
-    if (h.length < 5) h = h.replace(/./g, '$&$&')
-    if (h.length !== 6 && h.length !== 8) return null
-    return [0, 2, 4, 6].map((k) =>
-      k < h.length ? parseInt(h.slice(k, k + 2), 16) / (k === 6 ? 255 : 1) : 1,
-    )
-  }
-  m = /^rgba?\(([^)]*)\)$/i.exec(s)
-  if (!m) return null
-  const v = m[1]
-    .split(/[\s,/]+/)
-    .filter(Boolean)
-    .map(parseFloat)
-  return v.length >= 3 && v.every(isFinite)
-    ? [v[0], v[1], v[2], v[3] ?? 1]
-    : null
 }
