@@ -49,6 +49,17 @@ export default class TrellisExports {
     }
   }
 
+  /**
+   * Panels on screen. A promotion parks the rest as display:none, whose
+   * rects collapse onto the wrap origin; the export is what the user sees,
+   * so a promoted grid exports the promoted panel alone.
+   */
+  _shown() {
+    return this.trellis.panels.filter(
+      (p) => !p.cellEl?.classList.contains('apexcharts-trellis-cell-parked'),
+    )
+  }
+
   /** Export surface size = the wrap's own box. */
   _size() {
     const wrap = /** @type {HTMLElement} */ (this.trellis.elWrap)
@@ -88,7 +99,7 @@ export default class TrellisExports {
       })
     }
     push(t.chrome.elTitle, 'left')
-    t.panels.forEach((p) => {
+    this._shown().forEach((p) => {
       if (!p.cellEl) return
       push(p.cellEl.querySelector('.apexcharts-trellis-header'), 'center')
     })
@@ -122,7 +133,6 @@ export default class TrellisExports {
    * @returns {Promise<{ imgURI: string }>}
    */
   async dataURI(options = {}) {
-    const t = this.trellis
     const scale = options.scale || 1
     const size = this._size()
     const canvas = document.createElement('canvas')
@@ -136,7 +146,7 @@ export default class TrellisExports {
     ctx.fillRect(0, 0, size.w, size.h)
 
     // Panels first (their own export path), skeleton tint for unmounted.
-    for (const p of t.panels) {
+    for (const p of this._shown()) {
       if (!p.el) continue
       const rect = this._rectIn(p.el)
       if (!p.chart) {
@@ -180,7 +190,6 @@ export default class TrellisExports {
    * @returns {Promise<string>}
    */
   async svgString(scale = 1) {
-    const t = this.trellis
     const size = this._size()
     /** @type {string[]} */
     const parts = []
@@ -190,7 +199,7 @@ export default class TrellisExports {
     parts.push(
       `<rect width="${size.w}" height="${size.h}" fill="${this._background()}"/>`,
     )
-    for (const p of t.panels) {
+    for (const p of this._shown()) {
       if (!p.el) continue
       const rect = this._rectIn(p.el)
       if (!p.chart) {
@@ -248,9 +257,20 @@ export default class TrellisExports {
         ? `"${s.replace(/"/g, '""')}"`
         : s
     }
+    // Plain value arrays carry no x: the union holds positions, so write the
+    // label the axis shows there (categories, then labels, then 1-based).
+    const cats =
+      split.xForm === 'plain' &&
+      (w.config.xaxis.categories?.length
+        ? w.config.xaxis.categories
+        : w.config.labels || [])
     /** @param {any} x */
-    const xOut = (x) =>
-      isDatetime && typeof x === 'number' ? new Date(x).toISOString() : x
+    const xOut = (x) => {
+      if (cats) x = cats[x] ?? x + 1
+      // a multi-line category reads as one line, as in a plain chart's CSV
+      if (Array.isArray(x)) x = x.join(' ')
+      return isDatetime && typeof x === 'number' ? new Date(x).toISOString() : x
+    }
 
     const names = split.seriesNames
     const lines = [
