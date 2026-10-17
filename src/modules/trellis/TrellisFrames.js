@@ -78,13 +78,12 @@ function observationValues(data) {
 
 /**
  * Raw observation ARRAYS of one series' data (the violin/boxPlot raw form:
- * `{ x: 'A', y: [obs...] }`), flattened.
+ * `{ x: 'A', y: [obs...] }`), flattened onto `out`.
  * @param {any} data
+ * @param {number[]} out appended to in place, so a union grows in one pass
  * @returns {number[]}
  */
-function rawObservationArrays(data) {
-  /** @type {number[]} */
-  const out = []
+function rawObservationArrays(data, out) {
   if (!Array.isArray(data)) return out
   data.forEach((/** @type {any} */ d) => {
     const y = d && typeof d === 'object' ? d.y : null
@@ -146,16 +145,13 @@ export function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
   // which pins the edges no matter what each panel's own extent is.
   if (chartType === 'histogram') {
     const hcfg = plot.histogram || {}
-    /** @type {number[]} */
-    let union = []
     /** @type {number[][][]} per panel, per series */
     const panelSeriesVals = panels.map((p) =>
-      p.series.map((/** @type {any} */ s) => {
-        const vals = observationValues(s.data)
-        union = union.concat(vals)
-        return vals
-      }),
+      p.series.map((/** @type {any} */ s) => observationValues(s.data)),
     )
+    // One flatten: re-concatenating the growing union per series copied it
+    // once per series (quadratic in the panel count).
+    const union = panelSeriesVals.flat(2)
     const binning = computeBinning(union, {
       bins: hcfg.bins,
       binWidth: hcfg.binWidth,
@@ -203,11 +199,11 @@ export function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
     const kde = plot.violin?.kde || {}
     if (!(typeof kde.bandwidth === 'number' && kde.bandwidth > 0)) {
       /** @type {number[]} */
-      let union = []
+      const union = []
       panels.forEach((p) =>
-        p.series.forEach((/** @type {any} */ s) => {
-          union = union.concat(rawObservationArrays(s.data))
-        }),
+        p.series.forEach((/** @type {any} */ s) =>
+          rawObservationArrays(s.data, union),
+        ),
       )
       const est = union.length
         ? kernelDensity(union, { resolution: 8 })
