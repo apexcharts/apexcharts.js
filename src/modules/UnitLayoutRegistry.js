@@ -25,9 +25,11 @@
 
 const LAYOUT_KEY = '__apexcharts_unit_layouts__'
 
-if (!/** @type {any} */ (globalThis)[LAYOUT_KEY]) {
-  ;/** @type {any} */ (globalThis)[LAYOUT_KEY] = {}
-}
+// A prototype-free table, so a name like 'constructor' is not already
+// "registered". A slot another copy made as `{}` is kept, which is why the
+// lookup below checks own entries too.
+const g = /** @type {any} */ (globalThis)
+if (!g[LAYOUT_KEY]) g[LAYOUT_KEY] = Object.create(null)
 
 /** @returns {Record<string, Function>} */
 function getLayouts() {
@@ -63,8 +65,9 @@ export function registerUnitLayout(name, fn) {
  * @returns {Function|null}
  */
 export function getUnitLayout(name) {
-  if (!name) return null
-  return getLayouts()[name] || null
+  const table = getLayouts()
+  // Only functions are ever stored, and never under an empty name.
+  return Object.prototype.hasOwnProperty.call(table, name) ? table[name] : null
 }
 
 /**

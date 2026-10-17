@@ -32,9 +32,11 @@
 
 const MARK_KEY = '__apexcharts_unit_marks__'
 
-if (!/** @type {any} */ (globalThis)[MARK_KEY]) {
-  ;/** @type {any} */ (globalThis)[MARK_KEY] = {}
-}
+// Prototype-free, like the unit layout table, so a name such as
+// 'constructor' is not already "registered"; the lookup checks own entries
+// too, for a slot another copy made as `{}`.
+const g = /** @type {any} */ (globalThis)
+if (!g[MARK_KEY]) g[MARK_KEY] = Object.create(null)
 
 /** @returns {Record<string, UnitMark>} */
 function getMarks() {
@@ -111,8 +113,8 @@ export function registerUnitMark(name, def) {
  * @returns {UnitMark|null}
  */
 export function getUnitMark(name) {
-  if (!name) return null
-  return getMarks()[name] || null
+  const table = getMarks()
+  return Object.prototype.hasOwnProperty.call(table, name) ? table[name] : null
 }
 
 /**

@@ -27,7 +27,9 @@ const LAYOUT_KEY = '__apexcharts_unit_layouts__'
 /** @returns {Record<string, Function>} */
 function layouts() {
   const g = /** @type {any} */ (globalThis)
-  if (!g[LAYOUT_KEY]) g[LAYOUT_KEY] = {}
+  // Prototype-free, matching UnitLayoutRegistry, so inherited names never
+  // resolve as layouts.
+  if (!g[LAYOUT_KEY]) g[LAYOUT_KEY] = Object.create(null)
   return g[LAYOUT_KEY]
 }
 

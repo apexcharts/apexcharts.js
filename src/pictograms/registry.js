@@ -28,7 +28,8 @@ const MARK_KEY = '__apexcharts_unit_marks__'
 /** @returns {Record<string, any>} */
 function marks() {
   const g = /** @type {any} */ (globalThis)
-  if (!g[MARK_KEY]) g[MARK_KEY] = {}
+  // Prototype-free, matching UnitMarkRegistry.
+  if (!g[MARK_KEY]) g[MARK_KEY] = Object.create(null)
   return g[MARK_KEY]
 }
 
