@@ -289,6 +289,12 @@ export default class TrellisSync {
    * inside the grid makes the settled state the mirrored one; the loop stops
    * on mouseleave, so an idle page costs nothing.
    *
+   * A resting pointer must not cost a full rewrite per frame either: each
+   * cell's crosshair element is cached (re-found once the panel re-renders
+   * or remounts, which detaches the old one), and a target is written only
+   * where it differs from the source. Comparing against the target's live
+   * attributes rather than the last write keeps the re-assert above intact.
+   *
    * @param {HTMLElement} elGrid the trellis grid element
    */
   wireCrosshairs(elGrid) {
@@ -296,28 +302,39 @@ export default class TrellisSync {
     let raf = 0
     /** @type {any} */
     let hoverTarget = null
+    /** @type {WeakMap<Element, Element|null>} cell -> its crosshair */
+    const cache = new WeakMap()
+    /** @param {Element} cell @returns {any} */
+    const crosshair = (cell) => {
+      let x = cache.get(cell)
+      if (!x || !cell.contains(x)) {
+        cache.set(cell, (x = cell.querySelector('.apexcharts-xcrosshairs')))
+      }
+      return x
+    }
+    const ATTRS = ['x', 'x1', 'x2']
 
     const apply = () => {
       const cell =
         hoverTarget && hoverTarget.closest
           ? hoverTarget.closest('.apexcharts-trellis-cell')
           : null
-      const source = cell
-        ? cell.querySelector('.apexcharts-xcrosshairs')
-        : null
-      const active = source && source.classList.contains('apexcharts-active')
+      const source = cell ? crosshair(cell) : null
+      const vals =
+        source &&
+        source.classList.contains('apexcharts-active') &&
+        ATTRS.map((a) => source.getAttribute(a) || '0')
       this.trellis.panels.forEach((p) => {
         if (!p.cellEl || p.cellEl === cell) return
-        const x = p.cellEl.querySelector('.apexcharts-xcrosshairs')
+        const x = crosshair(p.cellEl)
         if (!x) return
-        if (active) {
-          x.setAttribute('x', source.getAttribute('x') || '0')
-          x.setAttribute('x1', source.getAttribute('x1') || '0')
-          x.setAttribute('x2', source.getAttribute('x2') || '0')
-          x.classList.add('apexcharts-active')
-        } else {
-          x.classList.remove('apexcharts-active')
+        if (vals) {
+          ATTRS.forEach((a, i) => {
+            if (x.getAttribute(a) !== vals[i]) x.setAttribute(a, vals[i])
+          })
         }
+        // a forced toggle writes only when the state actually changes
+        x.classList.toggle('apexcharts-active', !!vals)
       })
     }
     const loop = () => {
@@ -337,7 +354,7 @@ export default class TrellisSync {
         raf = 0
       }
       this.trellis.panels.forEach((p) => {
-        const x = p.cellEl && p.cellEl.querySelector('.apexcharts-xcrosshairs')
+        const x = p.cellEl && crosshair(p.cellEl)
         if (x) x.classList.remove('apexcharts-active')
       })
     }
