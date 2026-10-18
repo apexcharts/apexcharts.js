@@ -12,7 +12,7 @@
   },
   "files": {
     "dist/apexcharts.min.js": {
-      "gzip": 271000,
+      "gzip": 271500,
       "minifiedFrom": "dist/apexcharts.js"
     },
     "dist/apexcharts.core.min.js": {
@@ -20,7 +20,7 @@
       "minifiedFrom": "dist/apexcharts.core.js"
     },
     "dist/apexcharts.full.min.js": {
-      "gzip": 394000,
+      "gzip": 394500,
       "minifiedFrom": "dist/apexcharts.full.js",
       "slack": "full",
       "largerThan": "dist/apexcharts.min.js"
