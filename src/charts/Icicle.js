@@ -49,6 +49,14 @@ import {
 } from './common/partition/Partition'
 import { colorPass, lighten } from './common/partition/Tint'
 import { NodeTooltip } from './common/partition/NodeTooltip'
+import {
+  CHAR_W_EM,
+  durationFor,
+  fadeInAfter,
+  handOffGeoms,
+  lerp,
+  resolveMode,
+} from './common/partition/Transitions'
 
 const SVGNS = 'http://www.w3.org/2000/svg'
 
@@ -57,13 +65,6 @@ const SVGNS = 'http://www.w3.org/2000/svg'
  * drawing. Below this it is a stub, and a chart full of stubs reads as clutter.
  */
 const MIN_LABEL_CHARS = 3
-
-/**
- * @param {number} a
- * @param {number} b
- * @param {number} t
- */
-const lerp = (a, b, t) => a + (b - a) * t
 
 export default class IcicleChart {
   /**
@@ -161,24 +162,9 @@ export default class IcicleChart {
     )
     this._relayout(this._focus)
 
-    // Same gating as the sunburst and the pie family: a wipe intro on first
-    // render, a morph from the previous on-screen geometry on data updates
-    // (never an instant re-render while animations are on), nothing on resize.
-    const anims = w.config.chart.animations
-    /** @type {'intro'|'zoom'|'update'|'none'} */
-    let mode = 'none'
-    if (anims.enabled) {
-      if (w.globals.dataChanged) {
-        if (
-          anims.dynamicAnimation.enabled &&
-          w.globals.shouldAnimate !== false
-        )
-          mode = 'update'
-      } else if (!w.globals.resized) {
-        mode = 'intro'
-      }
-    }
-    this._applyLayout(mode)
+    // A wipe intro on first render, a tween from the previous on-screen
+    // geometry on data updates, nothing on resize (shared with the sunburst).
+    this._applyLayout(resolveMode(w))
     this._renderBreadcrumb()
 
     return g
@@ -396,29 +382,14 @@ export default class IcicleChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
-    const w = this.w
-    const anims = w.config.chart.animations
-    // A zoom is a response to a click, so it runs on the interaction clock
-    // (`dynamicAnimation.speed`) like an update, NOT on `animations.speed`,
-    // which paces the first render. Reading the intro's clock made a click take
-    // 800ms by default, which feels like lag rather than motion.
-    const dyn = anims.dynamicAnimation
-    const dur =
-      !anims.enabled || mode === 'none'
-        ? 0
-        : mode === 'intro'
-          ? (anims.speed ?? 500)
-          : dyn.enabled
-            ? (dyn.speed ?? 350)
-            : 0
+    const dur = durationFor(this.w, mode)
 
     // Supersede any in-flight zoom: stale frames from the previous pass check
     // this and stop.
     const gen = ++this._zoomGen
 
-    // Geometry of the PREVIOUS render (stashed on the persistent chart ctx —
-    // this module is re-instantiated on every data update). A zoom reads it too,
-    // for the cells too thin to have been drawn (`_sub`): their slot is there.
+    // Geometry of the PREVIOUS render. A zoom reads it too, for the cells too
+    // thin to have been drawn (`_sub`): their slot is there.
     const prev =
       dur > 0 && mode !== 'intro'
         ? /** @type {any} */ (this.ctx)._iciclePrevGeoms
@@ -476,13 +447,12 @@ export default class IcicleChart {
 
     // Stash what is on screen so the NEXT data update can tween from it: read
     // live, so an update landing mid-tween starts where the cell actually is.
-    const geoms = new Map()
-    this._nodesAll.forEach((n) => {
+    handOffGeoms(this.ctx, '_iciclePrevGeoms', this._nodesAll, (n) => {
+      if (!n._show && !n._sub) return null
       const b = this._box(n)
       if (n._sub) b.s = 1
-      if (n._show || n._sub) geoms.set(n._key, () => n._cur || b)
+      return () => n._cur || b
     })
-    ;/** @type {any} */ (this.ctx)._iciclePrevGeoms = geoms
 
     this._renderLabels(dur)
   }
@@ -663,15 +633,8 @@ export default class IcicleChart {
       if (node._clipped) this._renderMoreMark(node)
     })
 
-    // Gen-checked: a superseded zoom's fade must not reveal labels over cells
-    // the newer zoom is still moving.
     const gen = this._zoomGen
-    labelsG.attr({ opacity: dur > 0 ? 0 : 1 })
-    if (dur > 0) {
-      labelsG.animate(250, dur).during((/** @type {number} */ p) => {
-        if (this._zoomGen === gen) labelsG.attr({ opacity: p })
-      })
-    }
+    fadeInAfter(labelsG, dur, () => this._zoomGen === gen)
   }
 
   /**
@@ -805,7 +768,7 @@ export default class IcicleChart {
    * @returns {boolean}
    */
   _fits(text, room, fontPx) {
-    return text.length * fontPx * 0.58 <= room
+    return text.length * fontPx * CHAR_W_EM <= room
   }
 
   /**
@@ -822,7 +785,7 @@ export default class IcicleChart {
    * @returns {string}
    */
   _truncate(name, room, fontPx) {
-    const charW = fontPx * 0.58
+    const charW = fontPx * CHAR_W_EM
     const maxChars = Math.floor(room / charW)
     if (maxChars >= name.length) return name
     if (maxChars < MIN_LABEL_CHARS + 1) return ''

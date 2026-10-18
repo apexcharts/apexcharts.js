@@ -43,18 +43,19 @@ import {
 } from './common/partition/Partition'
 import { colorPass } from './common/partition/Tint'
 import { NodeTooltip } from './common/partition/NodeTooltip'
+import {
+  CHAR_W_EM,
+  durationFor,
+  fadeInAfter,
+  handOffGeoms,
+  lerp,
+  resolveMode,
+} from './common/partition/Transitions'
 
 const D2R = Math.PI / 180
 const R2D = 180 / Math.PI
 const SVGNS = 'http://www.w3.org/2000/svg'
 const XHTML = 'http://www.w3.org/1999/xhtml'
-
-/**
- * @param {number} a
- * @param {number} b
- * @param {number} t
- */
-const lerp = (a, b, t) => a + (b - a) * t
 
 export default class SunburstChart {
   /**
@@ -164,20 +165,10 @@ export default class SunburstChart {
     )
     this._relayout(this._focus)
 
-    // Same gating as Pie: angular clock-sweep intro on first render, a morph
-    // from the previous on-screen geometry on data updates (never an instant
-    // re-render while animations are on), nothing on resize.
-    const anims = w.config.chart.animations
-    /** @type {'intro'|'zoom'|'update'|'none'} */
-    let mode = 'none'
-    if (anims.enabled) {
-      if (w.globals.dataChanged) {
-        if (w.globals.shouldAnimate !== false) mode = 'update'
-      } else if (!w.globals.resized) {
-        mode = 'intro'
-      }
-    }
-    this._applyLayout(mode)
+    // Angular clock-sweep intro on first render, a morph from the previous
+    // on-screen geometry on data updates, nothing on resize (shared with the
+    // icicle).
+    this._applyLayout(resolveMode(w))
     this._renderBreadcrumb()
 
     return g
@@ -256,16 +247,7 @@ export default class SunburstChart {
    */
   _applyLayout(mode) {
     const w = this.w
-    const anims = w.config.chart.animations
-    const dyn = anims.dynamicAnimation
-    const dur =
-      !anims.enabled || mode === 'none'
-        ? 0
-        : mode === 'intro'
-          ? (anims.speed ?? 500)
-          : dyn.enabled
-            ? (dyn.speed ?? 350)
-            : 0
+    const dur = durationFor(w, mode)
 
     // Supersede any in-flight zoom: stale frames from the previous pass check
     // this and stop, so a fast re-click can't leave two animations fighting.
@@ -287,9 +269,8 @@ export default class SunburstChart {
     const morphDur = morphActive ? morph.getSpeed() : 0
     this._morphLeafIndex = 0
 
-    // The PREVIOUS render's nodes (stashed on the persistent chart ctx, as
-    // this module is re-instantiated on every data update), read live so an
-    // update landing mid-tween starts where each arc actually is.
+    // The PREVIOUS render's nodes, read live so an update landing mid-tween
+    // starts where each arc actually is.
     const prev =
       mode === 'update' ? /** @type {any} */ (this.ctx)._sunburstPrevGeoms : null
     /** @param {any} n */
@@ -372,11 +353,9 @@ export default class SunburstChart {
     } else w.globals.animationEnded = true
 
     // Stash what is now on screen so the NEXT data update can morph from it.
-    const geoms = new Map()
-    this._nodesAll.forEach((n) => {
-      if (n._show || n._cur) geoms.set(n._key, n)
-    })
-    ;/** @type {any} */ (this.ctx)._sunburstPrevGeoms = geoms
+    handOffGeoms(this.ctx, '_sunburstPrevGeoms', this._nodesAll, (n) =>
+      n._show || n._cur ? n : null,
+    )
 
     this._renderLabels(dur)
   }
@@ -596,15 +575,8 @@ export default class SunburstChart {
       this._renderCurvedLabel(node)
     })
 
-    // Gen-checked: a superseded zoom's fade must not reveal labels over arcs
-    // the newer zoom is still moving.
     const gen = this._zoomGen
-    labelsG.attr({ opacity: dur > 0 ? 0 : 1 })
-    if (dur > 0) {
-      labelsG.animate(250, dur).during((/** @type {number} */ p) => {
-        if (this._zoomGen === gen) labelsG.attr({ opacity: p })
-      })
-    }
+    fadeInAfter(labelsG, dur, () => this._zoomGen === gen)
   }
 
   /**
@@ -671,7 +643,7 @@ export default class SunburstChart {
    */
   _truncate(name, r, spanDeg, fontSize) {
     const arcLen = r * spanDeg * D2R - 8
-    const charW = (parseFloat(fontSize) || 12) * 0.58
+    const charW = (parseFloat(fontSize) || 12) * CHAR_W_EM
     const maxChars = Math.floor(arcLen / charW)
     if (maxChars >= name.length) return name
     if (maxChars <= 1) return ''
