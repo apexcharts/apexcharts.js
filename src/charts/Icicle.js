@@ -33,6 +33,7 @@ import {
   breadcrumbConfig,
   clearBreadcrumb,
   placeInReservedBand,
+  refocusBreadcrumb,
   renderBreadcrumb,
 } from './common/Breadcrumb'
 import {
@@ -40,6 +41,7 @@ import {
   farEdge,
   focusByKey,
   focusChain,
+  focusTrail,
   parseSize,
   placeTree,
   resolveFocus,
@@ -625,7 +627,9 @@ export default class IcicleChart {
     while (labelsG.node.firstChild) {
       labelsG.node.removeChild(labelsG.node.firstChild)
     }
-    if (!this.cfg.dataLabels.show) return
+    // The global switch turns labels off here as on every other type.
+    if (!this.cfg.dataLabels.show || this.w.config.dataLabels.enabled === false)
+      return
 
     this._nodesAll.forEach((node) => {
       if (!node._show) return
@@ -823,25 +827,17 @@ export default class IcicleChart {
     }
 
     const cfg = breadcrumbConfig(this.w)
-    // The strip always opens with a crumb for the whole tree. With one root
-    // that crumb IS the root, so listing the root again would put the same view
-    // in the trail twice, and the second copy would be dead. Several roots have
-    // no shared name, so the tree keeps a crumb of its own ahead of them.
-    const soleRoot = this._roots.length === 1 ? this._roots[0] : null
-    const crumbs = (soleRoot ? [] : [{ label: 'All', data: null }]).concat(
-      focusChain(this._focus).map((n) => ({ label: n.name, data: n })),
-    )
-
     const nav = renderBreadcrumb(this.w, {
-      crumbs,
+      crumbs: focusTrail(this._roots, this._focus),
       ariaLabel: 'Icicle breadcrumb',
       config: cfg,
       compact: true,
-      onNavigate: (/** @type {number} */ i, /** @type {any} */ crumb) => {
-        this._focus = crumb.data === soleRoot ? null : crumb.data
+      onNavigate: (/** @type {number} */ i, /** @type {any} */ crumb, e) => {
+        this._focus = crumb.focus
         this._relayout(this._focus)
         this._applyLayout('zoom')
         this._renderBreadcrumb()
+        refocusBreadcrumb(this.w, e)
       },
     })
     if (nav) placeInReservedBand(this.w, this.ctx, nav, cfg)

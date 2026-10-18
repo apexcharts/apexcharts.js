@@ -13,9 +13,10 @@
  * (`series` + `drilldown.series`) read as plain data by the adapter below (NO
  * dependency on the drilldown runtime feature).
  *
- * Self-contained by design (colour tint + tooltip + breadcrumb, and the shared
- * standalone arc-path builder in common/arc which has no Pie dependency) so a
- * `apexcharts/sunburst` bundle does not drag in the Pie or Drilldown modules.
+ * Self-contained by design (the partition, tint, tooltip and breadcrumb helpers
+ * in charts/common, and the standalone arc-path builder in common/arc which has
+ * no Pie dependency) so a `apexcharts/sunburst` bundle does not drag in the Pie
+ * or Drilldown modules.
  * See plans/19-sunburst.md.
  *
  * @module SunburstChart
@@ -29,12 +30,17 @@ import {
 } from './common/arc/ArcPath'
 import Animations from '../modules/Animations'
 import { buildHierarchy, fillValues, morphKey } from './common/Hierarchy'
-import { avoidChromeOverlap } from './common/Breadcrumb'
+import {
+  avoidChromeOverlap,
+  clearBreadcrumb,
+  refocusBreadcrumb,
+  renderBreadcrumb,
+} from './common/Breadcrumb'
 import {
   bandScale,
   farEdge,
   focusByKey,
-  focusChain,
+  focusTrail,
   parseSize,
   placeTree,
   resolveFocus,
@@ -55,7 +61,6 @@ import {
 const D2R = Math.PI / 180
 const R2D = 180 / Math.PI
 const SVGNS = 'http://www.w3.org/2000/svg'
-const XHTML = 'http://www.w3.org/1999/xhtml'
 
 export default class SunburstChart {
   /**
@@ -257,11 +262,14 @@ export default class SunburstChart {
     // out in draw order, which is the order the outgoing chart's marks were
     // captured in, so tile k becomes leaf k.
     //
-    // Not gated on `mode`: a type change arrives with new data, so it resolves
-    // to 'update', and a snapshot only exists during one anyway. It brings its
-    // own speed, the same one every other morphing renderer uses.
+    // Not gated on the render mode: a type change arrives with new data, so it
+    // resolves to 'update', and a snapshot only exists during one anyway. It
+    // brings its own speed, the same one every other morphing renderer uses.
+    // A zoom is not a render: it lays out the arcs already on screen and
+    // supersedes a morph still running, as it supersedes an earlier zoom.
     const morph = /** @type {any} */ (this.ctx)?.morphTypeChange
     const morphActive =
+      mode !== 'zoom' &&
       !!morph &&
       typeof morph.isActive === 'function' &&
       morph.isActive() &&
@@ -298,13 +306,19 @@ export default class SunburstChart {
         // have no counterpart in a flat partition, so they sweep in as the
         // leaves arrive.
         const morphFrom = morphActive ? this._morphSourceFor(node) : null
+        const p = prev && prev.get(node._key)
+        // The previous render's arc was still mid-path (a morph, or a zoom
+        // that took one over): start from its shape on screen, not from the
+        // target its `_cur` was parked on.
+        if (p && this._midMorph(p)) this._adopt(node, p)
 
         if (morphFrom && morphDur > 0) {
           this._morphArcFrom(node, morphFrom, target, morphDur, gen)
+        } else if (this._midMorph(node)) {
+          this._continueMorph(node, target, dur, gen)
         } else if ((mode === 'intro' || morphActive) && dur > 0) {
           this._sweepArc(node, target, morphActive ? morphDur : dur, gen)
         } else {
-          const p = prev && prev.get(node._key)
           // `_cur` is the arc's LIVE geometry (updated each frame), so an
           // interrupted zoom continues smoothly from where it actually is; a
           // survivor of a data update morphs in place; a new arc unfurls from
@@ -312,6 +326,8 @@ export default class SunburstChart {
           const from = node._cur || (p ? geo(p) : pinch(target))
           this._animateArc(node, from, target, dur, false, !node._cur && !p, gen)
         }
+      } else if (node._el && this._midMorph(node)) {
+        this._continueMorph(node, null, dur, gen)
       } else if (node._el && node._cur) {
         this._animateArc(node, node._cur, pinch(node._cur), dur, true, false, gen)
       }
@@ -336,7 +352,10 @@ export default class SunburstChart {
         const c = geo(p)
         const g = { _el: el, _color: p._color, name: p.name, _key: k, _cur: c }
         this._nodesAll.push(g)
-        this._animateArc(g, c, pinch(c), dur, true, false, gen)
+        if (this._midMorph(p)) {
+          this._adopt(g, p)
+          this._continueMorph(g, null, dur, gen)
+        } else this._animateArc(g, c, pinch(c), dur, true, false, gen)
       })
     }
 
@@ -418,14 +437,13 @@ export default class SunburstChart {
     )
     el.node.style.display = ''
     el.attr({ d: fromD, opacity: 1 })
-    // `_cur` is what an interrupting zoom tweens FROM. During a cross-type
-    // morph the arc has no meaningful intermediate geometry (it is a rectangle
-    // part-way to an arc), so the target is the honest answer: a zoom landing
-    // mid-morph continues from the arc this one is becoming.
+    // During a cross-type morph the arc has no intermediate geometry in arc
+    // terms (it is a rectangle part-way to an arc), so `_cur` holds the target
+    // and a zoom landing mid-morph takes the path over instead (_midMorph).
     node._cur = target
-    if (this._zoomGen !== gen) return
+    node._pathEnd = this.w.globals.shouldAnimate ? performance.now() + dur : 0
     new Animations(this.w, /** @type {any} */ (this.ctx)).morphSVG(
-      el,
+      this._gated(el, gen),
       0,
       // Not a (series, point) index: an arc has no j, and passing a number here
       // would make morphSVG treat it as the last point of a series and fire the
@@ -437,6 +455,78 @@ export default class SunburstChart {
       dur,
       0,
     )
+  }
+
+  /**
+   * The arc's element as seen by a tween this pass starts: once a newer
+   * layout supersedes the pass, its writes are dropped (reads still pass), so
+   * a runner with no generation check of its own, like morphSVG's, stops
+   * fighting the newer pass for the path and cannot land on a stale arc.
+   * @param {any} el
+   * @param {number} gen
+   * @returns {any}
+   */
+  _gated(el, gen) {
+    const live = Object.create(el)
+    live.attr = (/** @type {any[]} */ ...a) =>
+      this._zoomGen === gen || (a.length === 1 && typeof a[0] === 'string')
+        ? el.attr(...a)
+        : live
+    return live
+  }
+
+  /**
+   * Whether a path tween (a cross-type morph, or a zoom that took one over)
+   * is still reshaping this arc.
+   * @param {any} node
+   */
+  _midMorph(node) {
+    return node._pathEnd > 0 && node._pathEnd > performance.now()
+  }
+
+  /**
+   * Hand a previous render's mid-path arc over to this render's element: its
+   * shape and opacity as they are on screen, and the path tween still due.
+   * @param {any} node
+   * @param {any} p  the previous render's node
+   */
+  _adopt(node, p) {
+    node._el.attr({ d: p._el.attr('d'), opacity: p._el.attr('opacity') })
+    node._pathEnd = p._pathEnd
+  }
+
+  /**
+   * Take over an arc a superseded path tween is still reshaping. What is on
+   * screen is part-way from a tile to an arc, which arc parameters cannot
+   * express, so it carries on as a path tween from exactly there to the new
+   * target on this pass's clock, resampled as the morph was. An arc this pass
+   * hides fades out where it is.
+   * @param {any} node
+   * @param {{a0:number,a1:number,iR:number,oR:number} | null} to  null hides
+   * @param {number} dur
+   * @param {number} gen
+   */
+  _continueMorph(node, to, dur, gen) {
+    const el = node._el
+    const toD = to && this._arcPath(to.iR, to.oR, to.a0, to.a1, this.cfg.borderRadius)
+    if (to) node._cur = to
+    node._pathEnd = dur ? performance.now() + dur : 0
+    const land = () => {
+      if (to) return
+      el.node.style.display = 'none'
+      node._cur = null
+    }
+    if (!dur) {
+      if (to) el.attr({ d: toD, opacity: 1 })
+      land()
+      return
+    }
+    el.node.style.display = ''
+    const run = this._gated(el, gen).animate(dur)
+    if (to) run.plot(toD, 'polygons')
+    run.attr({ opacity: to ? 1 : 0 }).after(() => {
+      if (this._zoomGen === gen) land()
+    })
   }
 
   /**
@@ -567,7 +657,9 @@ export default class SunburstChart {
   _renderLabels(dur) {
     const labelsG = this._labelsG
     while (labelsG.node.firstChild) labelsG.node.removeChild(labelsG.node.firstChild)
-    if (!this.cfg.dataLabels.show) return
+    // The global switch turns labels off here as on every other type.
+    if (!this.cfg.dataLabels.show || this.w.config.dataLabels.enabled === false)
+      return
 
     this._nodesAll.forEach((node) => {
       if (!node._show) return
@@ -660,83 +752,41 @@ export default class SunburstChart {
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return
     const next = resolveFocus(node, this._focus, this._roots)
-    if (!next.changed) return
-    this._focus = next.focus
-    this._relayout(this._focus)
+    if (next.changed) this._focusOn(next.focus)
+  }
+
+  /**
+   * @param {any} focus  null = the whole tree
+   */
+  _focusOn(focus) {
+    this._focus = focus
+    this._relayout(focus)
     this._applyLayout('zoom')
     this._renderBreadcrumb()
   }
 
   /**
-   * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
-   * CSS classes, but does NOT depend on the drilldown feature).
+   * The zoom breadcrumb, on the renderer the treemap, icicle and drilldown
+   * share, so it honours `drilldown.breadcrumb` and carries the same markup and
+   * semantics. It floats over a corner rather than sitting in a reserved band:
+   * the rings leave the corners empty.
    */
   _renderBreadcrumb() {
     if (!Environment.isBrowser()) return
-    const w = this.w
-    const elWrap = w.dom.elWrap
-    if (!elWrap) return
-    const existing = elWrap.querySelector('.apexcharts-breadcrumb')
-    if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
-
-    if (!this._focus) return // only shown once zoomed in
-
-    const nav = BrowserAPIs.createElementNS(XHTML, 'nav')
-    nav.setAttribute('class', 'apexcharts-breadcrumb')
-    nav.setAttribute('aria-label', 'Sunburst breadcrumb')
-    nav.style.position = 'absolute'
-    nav.style.top = '0px'
-    nav.style.left = '0px'
-
-    const crumbs = [{ name: 'All', node: null }].concat(
-      focusChain(this._focus).map((n) => ({ name: n.name, node: n })),
-    )
-
-    crumbs.forEach((crumb, i) => {
-      if (i > 0) {
-        const sep = BrowserAPIs.createElementNS(XHTML, 'span')
-        sep.setAttribute('class', 'apexcharts-breadcrumb-separator')
-        sep.textContent = ' / '
-        nav.appendChild(sep)
-      }
-      const isCurrent = i === crumbs.length - 1
-      if (isCurrent) {
-        const cur = BrowserAPIs.createElementNS(XHTML, 'span')
-        cur.setAttribute(
-          'class',
-          'apexcharts-breadcrumb-item apexcharts-breadcrumb-current',
-        )
-        cur.textContent = crumb.name
-        nav.appendChild(cur)
-      } else {
-        const btn = BrowserAPIs.createElementNS(XHTML, 'button')
-        btn.setAttribute('type', 'button')
-        btn.setAttribute('class', 'apexcharts-breadcrumb-item')
-        if (i === 0) {
-          const arrow = BrowserAPIs.createElementNS(XHTML, 'span')
-          arrow.setAttribute('class', 'apexcharts-breadcrumb-arrow')
-          arrow.textContent = '←'
-          btn.appendChild(arrow)
-        }
-        const text = BrowserAPIs.createElementNS(XHTML, 'span')
-        text.setAttribute('class', 'apexcharts-breadcrumb-label')
-        text.textContent = crumb.name
-        btn.appendChild(text)
-        btn.addEventListener('click', () => {
-          this._focus = crumb.node
-          this._relayout(this._focus)
-          this._applyLayout('zoom')
-          this._renderBreadcrumb()
-        })
-        nav.appendChild(btn)
-      }
+    if (!this._focus) {
+      clearBreadcrumb(this.w)
+      return
+    }
+    const nav = renderBreadcrumb(this.w, {
+      crumbs: focusTrail(this._roots, this._focus),
+      ariaLabel: 'Sunburst breadcrumb',
+      onNavigate: (/** @type {number} */ i, /** @type {any} */ crumb, e) => {
+        this._focusOn(crumb.focus)
+        refocusBreadcrumb(this.w, e)
+      },
     })
-
-    elWrap.appendChild(nav)
-    // The breadcrumb is an absolute overlay at top-left: push it below any
-    // chart chrome it intersects (shared with the treemap, see
-    // charts/common/Breadcrumb).
-    avoidChromeOverlap(w, nav)
+    // Pushed below a title or subtitle it would otherwise sit on.
+    if (nav) avoidChromeOverlap(this.w, nav)
   }
 
   // ------------------------------------------------------------ geometry

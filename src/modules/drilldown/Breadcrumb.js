@@ -1,7 +1,11 @@
 // @ts-check
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
-import { placeInReservedBand } from '../../charts/common/Breadcrumb.js'
+import {
+  avoidChromeOverlap,
+  placeInReservedBand,
+  positionBreadcrumb,
+} from '../../charts/common/Breadcrumb.js'
 
 const XHTML = 'http://www.w3.org/1999/xhtml'
 
@@ -56,7 +60,7 @@ export default class Breadcrumb {
     const nav = BrowserAPIs.createElementNS(XHTML, 'nav')
     nav.setAttribute('class', 'apexcharts-breadcrumb')
     nav.setAttribute('aria-label', 'Drilldown breadcrumb')
-    this._position(nav, cfg)
+    positionBreadcrumb(nav, cfg)
 
     const separator = cfg.separator != null ? cfg.separator : ' / '
 
@@ -112,40 +116,7 @@ export default class Breadcrumb {
     // Still runs after the band placement: on a pie there is no band, and even
     // on an axis chart a responsive override can turn drilldown on after layout
     // and leave the strip with nowhere reserved.
-    this._avoidChromeOverlap(nav)
-  }
-
-  /**
-   * The breadcrumb is an absolute overlay, so at its default top-left it can
-   * sit on top of a left-aligned title (or subtitle). After mounting, push it
-   * below any chart chrome it intersects. (Sunburst's self-contained
-   * breadcrumb applies the same rule.)
-   * @param {HTMLElement} nav
-   */
-  _avoidChromeOverlap(nav) {
-    const w = this.w
-    const chrome = /** @type {Element[]} */ (
-      ['.apexcharts-title-text', '.apexcharts-subtitle-text']
-        .map((s) => w.dom.baseEl.querySelector(s))
-        .filter((el) => el !== null)
-    )
-    if (!chrome.length) return
-    const wrapTop = w.dom.elWrap.getBoundingClientRect().top
-    // Up to two passes: moving below the title can land on the subtitle.
-    for (let pass = 0; pass < chrome.length + 1; pass++) {
-      const nr = nav.getBoundingClientRect()
-      const hit = chrome.find((el) => {
-        const r = el.getBoundingClientRect()
-        return (
-          nr.left < r.right &&
-          nr.right > r.left &&
-          nr.top < r.bottom &&
-          nr.bottom > r.top
-        )
-      })
-      if (!hit) break
-      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`
-    }
+    avoidChromeOverlap(w, nav)
   }
 
   /**
@@ -171,21 +142,5 @@ export default class Breadcrumb {
       return cfg.formatter(label, { index, depth: this.drilldown.depth })
     }
     return label
-  }
-
-  /**
-   * @param {HTMLElement} nav
-   * @param {Record<string, any>} cfg
-   */
-  _position(nav, cfg) {
-    const ox = cfg.offsetX || 0
-    const oy = cfg.offsetY || 0
-    nav.style.position = 'absolute'
-    nav.style.top = oy + 'px'
-    if (cfg.position === 'top-right') {
-      nav.style.right = -ox + 3 + 'px'
-    } else {
-      nav.style.left = ox + 'px'
-    }
   }
 }

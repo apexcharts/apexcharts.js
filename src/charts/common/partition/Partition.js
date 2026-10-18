@@ -242,6 +242,31 @@ export function focusChain(focus) {
 }
 
 /**
+ * The breadcrumb trail for a focus, in the shape the shared renderer takes,
+ * each crumb carrying the focus it navigates back to.
+ *
+ * The strip always opens with a crumb for the whole tree. With one root that
+ * crumb IS the root (a lone root is never a focus, see resolveFocus), so
+ * listing the root again would put the same view in the trail twice and the
+ * second copy would be dead. Several roots have no shared name, so the tree
+ * keeps a crumb of its own ahead of them.
+ *
+ * @param {any[]} roots
+ * @param {any} focus
+ * @returns {Array<{ label?: string, data: any, focus: any }>}
+ */
+export function focusTrail(roots, focus) {
+  const sole = roots.length === 1 ? roots[0] : null
+  const trail = focusChain(focus).map((n) => ({
+    label: n.name,
+    data: n,
+    focus: n === sole ? null : n,
+  }))
+  // The leading crumb's label is the renderer's: it always shows rootLabel.
+  return sole ? trail : [{ data: null, focus: null }].concat(trail)
+}
+
+/**
  * Which node a click should focus.
  *
  * Clicking the current focus zooms out one level. A leaf is never a meaningful

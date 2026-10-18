@@ -13,10 +13,10 @@
  * `plotOptions.treemap.zoom.breadcrumb`), so a chart that never imports the
  * drilldown feature still styles its breadcrumb the same way.
  *
- * NOTE: `src/modules/drilldown/Breadcrumb.js` still has its own copy of this
- * markup. It is the drilldown feature's own bundle and is being worked on
- * elsewhere; folding it into this module is a follow-up, and the two are kept
- * behaviourally identical in the meantime.
+ * NOTE: `src/modules/drilldown/Breadcrumb.js` still builds its own copy of
+ * this markup, because it clears only its own strip (a zoomed treemap's shares
+ * the class) and resolves labels from the drill stack. It takes the positioning
+ * and the title/subtitle dodge from here; the markup is kept identical.
  *
  * @module charts/common/Breadcrumb
  */
@@ -48,17 +48,21 @@ export const BREADCRUMB_HEIGHT_FULL = 23
  */
 export function breadcrumbConfig(w, localCfg) {
   const shared = (w.config.drilldown && w.config.drilldown.breadcrumb) || {}
-  return {
-    show: true,
-    position: 'top-left',
-    separator: ' / ',
-    rootLabel: 'All',
-    offsetX: 0,
-    offsetY: 0,
-    formatter: undefined,
-    ...shared,
-    ...(localCfg || {}),
-  }
+  // Object.assign rather than object spread: the add-on bundles that inline
+  // this (sunburst, icicle) would otherwise each carry a spread helper.
+  return Object.assign(
+    {
+      show: true,
+      position: 'top-left',
+      separator: ' / ',
+      rootLabel: 'All',
+      offsetX: 0,
+      offsetY: 0,
+      formatter: undefined,
+    },
+    shared,
+    localCfg,
+  )
 }
 
 /**
@@ -190,7 +194,7 @@ export function clearBreadcrumb(w) {
  *
  * @param {any} w
  * @param {{
- *   crumbs: Array<{ label: string, data?: any }>,
+ *   crumbs: Array<{ label?: string, data?: any }>,
  *   onNavigate: (index: number, crumb: any, e: MouseEvent) => void,
  *   ariaLabel?: string,
  *   config?: any,
@@ -276,6 +280,23 @@ export function renderBreadcrumb(w, opts) {
 
   elWrap.appendChild(nav)
   return nav
+}
+
+/**
+ * After a keyboard activation of a crumb (a click with `detail` 0) has
+ * re-rendered the strip, put focus back on it: the button the reader stood on
+ * is gone, and the page would otherwise drop them to its top. Zoomed all the
+ * way out there is no strip, so focus goes to the chart's SVG (a tab stop when
+ * keyboard navigation is on).
+ * @param {any} w
+ * @param {MouseEvent} e
+ */
+export function refocusBreadcrumb(w, e) {
+  if (e.detail) return
+  const el =
+    w.dom.elWrap?.querySelector('.apexcharts-breadcrumb-item') ||
+    w.dom.Paper?.node
+  el?.focus?.()
 }
 
 /**
