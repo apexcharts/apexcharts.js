@@ -2114,21 +2114,32 @@ export default class TreemapChart {
    * @param {number} y2
    */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.w)
-    const textRect = this._labelRect(graphics, text, fontSize)
+    const textRect = /** @type {any} */ (
+      this._labelRect(new Graphics(this.w), text, fontSize)
+    )
+    const t = elText.node.querySelector('text')
 
     // if the label fits better sideways then rotate it
     if (
+      t &&
       textRect.width + this.w.config.stroke.width + 5 > x2 - x1 &&
       textRect.width <= y2 - y1
     ) {
-      const labelRotatingCenter = graphics.rotateAroundCenter(elText.node)
+      // About the centre of the drawn box, worked out from the measure above
+      // and the drawn anchor point: reading it back with getBBox forced a
+      // layout per turned tile.
+      const a = t.getAttribute('text-anchor')
+      // start: +width/2, end: -width/2, middle: 0
+      const cx =
+        +t.getAttribute('x') +
+        ((/** @type {any} */ (a === 'start') - /** @type {any} */ (a === 'end')) *
+          textRect.width) /
+          2
+      const cy = +t.getAttribute('y') + textRect.centerOffset
 
       elText.node.setAttribute(
         'transform',
-        `rotate(-90 ${labelRotatingCenter.x} ${
-          labelRotatingCenter.y
-        }) translate(${textRect.height / 3})`,
+        `rotate(-90 ${cx} ${cy}) translate(${textRect.height / 3})`,
       )
     }
   }
@@ -2193,13 +2204,17 @@ export default class TreemapChart {
    * @returns {boolean}
    */
   _morphKeyed() {
+    // Asked per leaf and per branch, and hasKeyedMarks walks the whole
+    // snapshot when the outgoing chart has no keys. The answer cannot change
+    // within a draw, and each draw has its own instance (Core), so it is
+    // kept like _avgLabelSize.
     const m = this.ctx?.morphTypeChange
-    return !!(
+    return (this._keyed ??= !!(
       m &&
       typeof m.hasKeyedMarks === 'function' &&
       m.hasKeyedMarks() &&
       typeof m.getInitialPathForKey === 'function'
-    )
+    ))
   }
 
   /**
