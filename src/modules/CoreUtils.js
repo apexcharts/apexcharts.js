@@ -91,29 +91,21 @@ class CoreUtils {
     return total
   }
 
-  // get total of the all values inside all series
   /**
-   * @param {number | null} [index]
+   * The total of one series; 0 for an index that names no series.
+   * @param {number} index
    */
-  getSeriesTotalByIndex(index = null) {
-    if (index === null) {
-      // non-plot chart types - pie / donut / circle
-      return /** @type {any[]} */ (this.w.config.series).reduce(
-        (/** @type {any} */ acc, /** @type {any} */ cur) => acc + cur,
-        0,
-      )
-    } else {
-      const seriesAtIndex = this.w.seriesData.series[index]
-      if (!Array.isArray(seriesAtIndex)) {
-        // pie/donut/polarArea/radialBar called per-index from legend loop
-        return seriesAtIndex ?? 0
-      }
-      // axis charts - supporting multiple series
-      return seriesAtIndex.reduce(
-        (/** @type {any} */ acc, /** @type {any} */ cur) => acc + cur,
-        0,
-      )
+  getSeriesTotalByIndex(index) {
+    const seriesAtIndex = this.w.seriesData.series[index]
+    if (!Array.isArray(seriesAtIndex)) {
+      // pie/donut/polarArea/radialBar called per-index from legend loop
+      return seriesAtIndex ?? 0
     }
+    // axis charts - supporting multiple series
+    return seriesAtIndex.reduce(
+      (/** @type {any} */ acc, /** @type {any} */ cur) => acc + cur,
+      0,
+    )
   }
 
   /**
@@ -328,29 +320,16 @@ class CoreUtils {
   }
 
   /**
-   * @param {number | null} [index]
+   * Does the series hold no value at all? True for an index that names none.
+   * @param {number} index
    */
-  isSeriesNull(index = null) {
-    let r = []
-    if (index === null) {
-      // non-plot chart types - pie / donut / circle
-      const series = /** @type {any[]} */ (this.w.config.series)
-      r = series.filter((/** @type {any} */ d) => d !== null)
-    } else {
-      const seriesAtIndex = this.w.seriesData.series[index]
-      if (Array.isArray(seriesAtIndex)) {
-        // axis charts - supporting multiple series
-        r = seriesAtIndex.filter((/** @type {any} */ d) => d !== null)
-      } else {
-        // pie/donut/polarArea/radialBar called per-index from legend loop
-        r =
-          seriesAtIndex !== null && seriesAtIndex !== undefined
-            ? [seriesAtIndex]
-            : []
-      }
-    }
-
-    return r.length === 0
+  isSeriesNull(index) {
+    const seriesAtIndex = this.w.seriesData.series[index]
+    // axis charts hold an array per series; pie/donut/polarArea/radialBar a
+    // single value, read per index from the legend loop
+    return Array.isArray(seriesAtIndex)
+      ? seriesAtIndex.every((/** @type {any} */ d) => d === null)
+      : seriesAtIndex == null
   }
 
   /**

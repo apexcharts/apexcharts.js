@@ -247,10 +247,14 @@ export default class AxesUtils {
     if (!yaxis.showForNullSeries) {
       const seriesIndices = w.globals.seriesYAxisMap[index]
       const coreUtils = new CoreUtils(this.w)
+      // A y axis that no series maps to holds an `undefined` placeholder. It
+      // stays drawn while the chart has any series and hides on an empty one.
       /**
        * @param {number} si
        */
-      return seriesIndices.every((si) => coreUtils.isSeriesNull(si))
+      return seriesIndices.every((si) =>
+        si === undefined ? !w.config.series.length : coreUtils.isSeriesNull(si),
+      )
     }
     return false
   }
