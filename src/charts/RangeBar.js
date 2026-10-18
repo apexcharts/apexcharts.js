@@ -281,18 +281,18 @@ class RangeBar extends Bar {
     const x = /** @type {Record<string,any>} */ (w.config.series[i]).data?.[j]?.x
     const labelX = Array.isArray(x) ? x.join(' ') : x
 
-    const rowIndex = w.labelData.labels
-      /**
-       * @param {any} _
-       */
-      .map((_) => (Array.isArray(_) ? _.join(' ') : _))
-      .indexOf(labelX)
-    /**
-     * @param {any} tx
-     */
-    const overlappedIndex = w.rangeData.seriesRange[i].findIndex(
-      (/** @type {any} */ tx) => tx.x === labelX && tx.overlaps?.size > 0,
+    // The labels as row keys, mapped once per draw rather than once per bar.
+    const self = /** @type {any} */ (this)
+    self._rowKeys ||= w.labelData.labels.map((/** @type {any} */ l) =>
+      Array.isArray(l) ? l.join(' ') : l,
     )
+    const rowIndex = self._rowKeys.indexOf(labelX)
+    // Only lanes read the overlap group, and they are off by default.
+    const overlappedIndex = w.config.plotOptions.bar.rangeBarOverlap
+      ? -1
+      : w.rangeData.seriesRange[i].findIndex(
+          (/** @type {any} */ tx) => tx.x === labelX && tx.overlaps?.size > 0,
+        )
 
     if (this.isHorizontal) {
       if (w.config.plotOptions.bar.rangeBarGroupRows) {
@@ -301,7 +301,7 @@ class RangeBar extends Bar {
         barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex
       }
 
-      if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+      if (overlappedIndex > -1) {
         overlaps = Array.from(
           /** @type {any} */ (w.rangeData.seriesRange[i][overlappedIndex])
             .overlaps,
@@ -321,7 +321,7 @@ class RangeBar extends Bar {
         }
       }
 
-      if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+      if (overlappedIndex > -1) {
         overlaps = Array.from(
           /** @type {any} */ (w.rangeData.seriesRange[i][overlappedIndex])
             .overlaps,
