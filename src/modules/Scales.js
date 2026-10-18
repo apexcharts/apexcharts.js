@@ -15,6 +15,26 @@ export default class Scales {
     this.coreUtils = new CoreUtils(this.w)
   }
 
+  /**
+   * One configured y bound as a number, or undefined when there is nothing
+   * usable to override the computed extent with. Range (one axis) and
+   * scaleMultipleYAxes (several) both resolve bounds here.
+   *
+   * A bound may be a number or a function of the computed extent (#2098).
+   * Anything else was already dropped by Config.normalizeAxisBounds, and a
+   * function is free to return nothing at all (#5328).
+   *
+   * @param {any} bound the configured `min` or `max`
+   * @param {number} computed what the data alone says this extent is
+   * @returns {number|undefined}
+   */
+  resolveBound(bound, computed) {
+    if (typeof bound === 'number') return bound
+    if (typeof bound !== 'function') return undefined
+    const resolved = bound(computed)
+    return Utils.isNumber(resolved) ? resolved : undefined
+  }
+
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
   // This routine creates the Y axis values for a graph.
   /**
@@ -889,25 +909,14 @@ export default class Scales {
             }
           }
         }
-        if (cnf.yaxis[ai].min !== undefined) {
-          if (typeof cnf.yaxis[ai].min === 'function') {
-            minY = cnf.yaxis[ai].min(minY)
-          } else {
-            minY = cnf.yaxis[ai].min
-          }
-        }
-        if (cnf.yaxis[ai].max !== undefined) {
-          if (typeof cnf.yaxis[ai].max === 'function') {
-            maxY = cnf.yaxis[ai].max(maxY)
-          } else {
-            maxY = cnf.yaxis[ai].max
-          }
-        }
+        const yaxe = cnf.yaxis[ai]
+        // A function bound that returns nothing usable leaves the data extent.
+        minY = this.resolveBound(yaxe.min, minY) ?? minY
+        maxY = this.resolveBound(yaxe.max, maxY) ?? maxY
 
         // Determine whether this axis joins the zero-alignment group. User-set
         // min/max win over alignment (silent override would violate intent),
         // log axes have no zero in log space, and unresolved bounds are skipped.
-        const yaxe = cnf.yaxis[ai]
         const participates =
           canAlignZero &&
           yaxe.alignZero === true &&

@@ -566,32 +566,13 @@ class Range {
           : minYMaxY.minY
     }
 
-    /**
-     * One configured bound as a number, or undefined when there is nothing
-     * usable to override the computed extent with.
-     *
-     * A bound may be a number or a function of the computed extent (#2098).
-     * Anything else was already dropped by Config.normalizeAxisBounds, and a
-     * function is free to return nothing at all.
-     *
-     * @param {any} bound the configured `min` or `max`
-     * @param {number} computed what the data alone says this extent is
-     * @returns {number|undefined}
-     */
-    const resolveBound = (bound, computed) => {
-      if (typeof bound === 'number') return bound
-      if (typeof bound !== 'function') return undefined
-      const resolved = bound(computed)
-      return Utils.isNumber(resolved) ? resolved : undefined
-    }
-
     // Multiple axes take their bounds per axis in scaleMultipleYAxes: minYArr
     // is indexed by series, so writing yaxis[k]'s bound there clobbered
     // whichever series sits at k, possibly on another axis.
     const yaxe = cnf.yaxis[0]
     if (!gl.isMultipleYAxis && yaxe) {
       // Override the computed extent with the user's bound, but ONLY when
-      // resolveBound found one.
+      // Scales.resolveBound found one.
       //
       // Publishing to `gl.maxY`/`gl.minY` used to sit outside the type test,
       // so a bound that was neither a number nor a function (a numeric string,
@@ -599,10 +580,10 @@ class Range {
       // undefined at this point, and copying that into `gl.minY` collapsed
       // the axis to the `0 … tickAmount` scale a chart with no data gets,
       // drawing the series off the plot (#5328).
-      const max = resolveBound(yaxe.max, gl.maxY)
+      const max = this.scales.resolveBound(yaxe.max, gl.maxY)
       if (max !== undefined) gl.maxYArr[0] = gl.maxY = max
 
-      const min = resolveBound(yaxe.min, gl.minY)
+      const min = this.scales.resolveBound(yaxe.min, gl.minY)
       if (min !== undefined) gl.minYArr[0] = gl.minY = min
     }
 
