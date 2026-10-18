@@ -169,7 +169,11 @@ export default class IcicleChart {
     let mode = 'none'
     if (anims.enabled) {
       if (w.globals.dataChanged) {
-        if (anims.dynamicAnimation.enabled) mode = 'update'
+        if (
+          anims.dynamicAnimation.enabled &&
+          w.globals.shouldAnimate !== false
+        )
+          mode = 'update'
       } else if (!w.globals.resized) {
         mode = 'intro'
       }
