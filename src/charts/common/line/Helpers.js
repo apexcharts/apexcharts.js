@@ -1,5 +1,6 @@
 // @ts-check
 import Utils from '../../../utils/Utils'
+import { prevRecords } from '../PreviousPaths'
 
 export default class Helpers {
   /**
@@ -75,23 +76,20 @@ export default class Helpers {
   checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
     const w = this.w
 
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp]
-
+    for (const gpp of prevRecords(w, realIndex)) {
       if (
         (gpp.type === 'line' || gpp.type === 'area') &&
-        gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
+        gpp.paths.length > 0
       ) {
         if (gpp.type === 'line') {
           this.lineCtx.appendPathFrom = false
-          pathFromLine = w.globals.previousPaths[pp].paths[0].d
+          pathFromLine = gpp.paths[0].d
         } else if (gpp.type === 'area') {
           this.lineCtx.appendPathFrom = false
-          pathFromArea = w.globals.previousPaths[pp].paths[0].d
+          pathFromArea = gpp.paths[0].d
 
-          if (w.config.stroke.show && w.globals.previousPaths[pp].paths[1]) {
-            pathFromLine = w.globals.previousPaths[pp].paths[1].d
+          if (w.config.stroke.show && gpp.paths[1]) {
+            pathFromLine = gpp.paths[1].d
           }
         }
       }
@@ -117,10 +115,9 @@ export default class Helpers {
    * @returns {string | null}
    */
   previousRangeAreaPath(realIndex) {
-    for (const gpp of this.w.globals.previousPaths) {
+    for (const gpp of prevRecords(this.w, realIndex)) {
       if (
         gpp.type === 'rangeArea' &&
-        parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10) &&
         gpp.paths.length === 1 &&
         gpp.paths[0].d
       ) {

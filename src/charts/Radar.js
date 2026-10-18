@@ -8,6 +8,7 @@ import Utils from '../utils/Utils'
 import Helpers from './common/circle/Helpers'
 import CoreUtils from '../modules/CoreUtils'
 import Series from '../modules/Series'
+import { prevRecords } from './common/PreviousPaths'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -666,21 +667,16 @@ class Radar {
    * @param {number} realIndex
    */
   getPreviousPath(realIndex) {
-    const w = this.w
     let pathFrom = null
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp]
-
+    for (const gpp of prevRecords(this.w, realIndex)) {
       // A chart that was not a radar a moment ago (a pie switched to one)
       // left plain values here, not paths: nothing to start from.
       if (
         Array.isArray(gpp?.paths) &&
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)
+        typeof gpp.paths[0] !== 'undefined'
       ) {
-        if (typeof w.globals.previousPaths[pp].paths[0] !== 'undefined') {
-          pathFrom = w.globals.previousPaths[pp].paths[0].d
-        }
+        pathFrom = gpp.paths[0].d
       }
     }
     return pathFrom

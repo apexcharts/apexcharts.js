@@ -66,7 +66,7 @@ class BoxCandleStick extends Bar {
    * @returns {string | null}
    */
   _prevBoxHalf(realIndex, j, pi) {
-    if (!this.isBoxPlot) return null
+    if (!this.isBoxPlot || !this._pathFromUsed()) return null
     if (!this._prevHalves) {
       /** @type {Record<number, Map<string, string[]> | null>} */
       this._prevHalves = {}
@@ -217,6 +217,8 @@ class BoxCandleStick extends Bar {
       // Morph when the update keeps the candles' identity, fade when it does
       // not (see _identityLost).
       const fadeReveal = this._identityLost(realIndex, series[i])
+      // A fading series draws no pathFrom (see Bar._pathFromUsed).
+      this._fadeReveal = fadeReveal
 
       for (let j = 0; j < dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
@@ -399,7 +401,11 @@ class BoxCandleStick extends Bar {
       // still has, culled ones included: a candle only scrolled off-screen
       // has not left, it is just not drawn. One turned null has left.
       // (Not when the series fades: the fade replaces the whole set at once.)
-      if (w.globals.previousPaths.length > 0 && !fadeReveal) {
+      if (
+        w.globals.previousPaths.length > 0 &&
+        !fadeReveal &&
+        lengthTransitionEnabled(w)
+      ) {
         renderBarExitGhosts({
           w,
           elSeries,

@@ -475,6 +475,58 @@ class Graphics {
   }
 
   /**
+   * How renderPaths reveals a path this render, the one answer for it and
+   * for the bar renderers, which skip building a pathFrom nothing will read
+   * (`animate && !fade` is false).
+   *
+   * - animate: the mount animation (a first render: no re-render yet and no
+   *   data change), a data change under dynamicAnimation, or a cross-type
+   *   morph, which is not a data change and must not be gated on
+   *   dynamicAnimation (boxPlot and violin ship with it off).
+   * - draw: line/area/rangeArea/radar mount in draw mode (whole class names:
+   *   a prefix let a candle classed `apexcharts-line-area` in).
+   * - fade: rendered at the final path and revealed by one opacity fade,
+   *   above animations.largeDatasetThreshold (a morph per path janks there)
+   *   or when the caller found the update keeps too little identity to morph
+   *   (`fadeReveal`, e.g. a reducer re-aggregating candles on zoom).
+   *
+   * @param {string} [className]
+   * @param {boolean} [fadeReveal]
+   * @returns {{animate: boolean, draw: boolean, fade: boolean, cross: boolean}}
+   */
+  revealPlan(className, fadeReveal) {
+    const gl = this.w.globals
+    const a = this.w.config.chart.animations
+    const cross = this.ctx?.morphTypeChange?.isActive() === true
+    const mount = a.enabled && !gl.resized && !gl.dataChanged
+    const animate = !!(
+      mount ||
+      (a.enabled &&
+        gl.shouldAnimate &&
+        (cross || (a.dynamicAnimation.enabled && gl.dataChanged)))
+    )
+    const draw =
+      mount &&
+      typeof className === 'string' &&
+      className
+        .split(' ')
+        .some(
+          (c) =>
+            c === 'apexcharts-line' ||
+            c === 'apexcharts-area' ||
+            c === 'apexcharts-rangeArea' ||
+            c === 'apexcharts-radar',
+        )
+    const fade =
+      animate &&
+      !draw &&
+      ((a.largeDatasetThreshold > 0 &&
+        gl.dataPoints > a.largeDatasetThreshold) ||
+        (!!fadeReveal && gl.dataChanged && !cross))
+    return { animate, draw, fade, cross }
+  }
+
+  /**
    * @memberof Graphics
    * @param {Record<string, any>} opts
    *  i = series's index
@@ -535,88 +587,12 @@ class Graphics {
     }
 
     let d
-    // A cross-type morph is not a data change. It arrives through the update
-    // path, so `resized` and `dataChanged` are both set, which used to leave it
-    // gated on `dynamicAnimation.enabled`, and boxPlot and violin ship with
-    // that off by default (an index-based morph on a data change reads as
-    // churn). The result was that a type change INTO either of them could not
-    // animate at all, however well the engine had paired the marks up.
-    const crossTypeMorph = this.ctx?.morphTypeChange?.isActive() === true
-    // The first arm is the mount animation, so it needs a first render: no
-    // re-render yet AND no data change. Without the second half, an update on
-    // a chart that had never been re-rendered took it too: it started from the
-    // previous shape and, with dynamicAnimation off, never left it (the new
-    // data was never drawn), or with animate=false dropped every bar to the
-    // baseline and popped them back on the mount stagger.
-    const shouldAnimate = !!(
-      (initialAnim && !w.globals.resized && !w.globals.dataChanged) ||
-      (dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate) ||
-      (crossTypeMorph && initialAnim && w.globals.shouldAnimate)
-    )
-
-    // Draw-mode (initial mount only): line/area/rangeArea/radar render at
-    // final path and reveal via stroke-dashoffset or a mask-rect width
-    // animation. Default-on whenever `chart.animations.enabled` is true.
-    // Whole class names: a prefix let any `apexcharts-line-*` class in (the
-    // candles of a 'line' combo were once `apexcharts-line-area`), and those
-    // marks were drawn in place of growing like every other bar-like.
-    const isDrawableSeries =
-      typeof className === 'string' &&
-      className
-        .split(' ')
-        .some(
-          (c) =>
-            c === 'apexcharts-line' ||
-            c === 'apexcharts-area' ||
-            c === 'apexcharts-rangeArea' ||
-            c === 'apexcharts-radar',
-        )
-    const useDrawMode = !!(
-      initialAnim &&
-      !w.globals.resized &&
-      !w.globals.dataChanged &&
-      isDrawableSeries
-    )
-
-    // Large-dataset fast path: morphSVG chains three JS-driven tweens per path,
-    // so animating thousands of candlesticks/bars individually ties up the main
-    // thread and janks the initial render (and every zoom re-render). Above
-    // chart.animations.largeDatasetThreshold we instead render each path at its
-    // final position and reveal the whole series with a single GPU-composited
-    // opacity fade (reusing delayedElements + apexcharts-element-hidden). Set the
-    // threshold to 0 to always animate per-element regardless of dataset size.
-    const largeThreshold = w.config.chart.animations.largeDatasetThreshold ?? 0
-    const bulkRender = !!(
-      shouldAnimate &&
-      !useDrawMode &&
-      largeThreshold > 0 &&
-      w.globals.dataPoints > largeThreshold
-    )
-
-    // Candlestick / OHLC / boxPlot data changes used to fade here instead of
-    // morphing, because their morph was index-based (candle j -> candle j): on
-    // a zoom or pan, where the index -> x mapping shifts, every candle slid to
-    // another candle's place. They now morph like bars do, each candle from its
-    // OWN previous shape, matched by datum key (Bar.getPreviousPath), with exit
-    // ghosts for the candles that leave. The fade made every candle blink out
-    // and back in on every update, the ones that did not change included.
-    // Large datasets still take the bulk fade above.
-
-    // ...unless the caller found that the update keeps too little identity to
-    // morph (`fadeReveal`: most candles on screen are not the same candles
-    // afterwards, e.g. a data reducer re-aggregating on zoom), where a morph
-    // would be a shuffle of hundreds of shrinking and growing marks.
-    const fadeOnUpdate = !!(
-      fadeReveal &&
-      shouldAnimate &&
-      !useDrawMode &&
-      w.globals.dataChanged &&
-      !crossTypeMorph
-    )
-
-    // Renders at the final position and reveals via one CSS opacity fade
-    // rather than a per-path morph.
-    const revealViaFade = bulkRender || fadeOnUpdate
+    const {
+      animate: shouldAnimate,
+      draw: useDrawMode,
+      fade: revealViaFade,
+      cross: crossTypeMorph,
+    } = this.revealPlan(className, fadeReveal)
 
     if (shouldAnimate && !useDrawMode && !revealViaFade) {
       d = pathFrom

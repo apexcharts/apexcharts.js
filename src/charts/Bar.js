@@ -14,6 +14,7 @@ import {
 } from '../modules/animations/LengthTransition'
 import Series from '../modules/Series'
 import AxisMapping from '../modules/AxisMapping'
+import { prevRecords } from './common/PreviousPaths'
 import { seriesEmitter } from '../renderers/Renderer'
 
 /**
@@ -1183,19 +1184,34 @@ class Bar {
    * @returns {any | null}
    */
   _prevRecord(realIndex) {
-    const w = this.w
-    let record = null
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp]
-      if (
-        gpp.paths &&
-        gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)
-      ) {
-        record = gpp
-      }
+    const list = prevRecords(this.w, realIndex)
+    for (let k = list.length - 1; k >= 0; k--) {
+      if (list[k].paths && list[k].paths.length > 0) return list[k]
     }
-    return record
+    return null
+  }
+
+  /**
+   * Whether this render uses a bar's `pathFrom` at all (Graphics.revealPlan,
+   * the predicate renderPaths itself runs); when it does not, the
+   * previous-path lookups and corner padding built for it are skipped. A
+   * chart drawing highlight parts (now or a frame ago) keeps them: its parts
+   * start from the whole's pathFrom on their own rule. Canvas paints the
+   * final frame. `_fadeReveal` is the candles' per-series fade.
+   * @returns {boolean}
+   */
+  _pathFromUsed() {
+    const w = this.w
+    const hd = w.highlightData
+    const parts = /** @type {any} */ (w.globals).prevHighlightParts
+    if (hd && (hd.active || parts?.size)) return true
+    const r = this.ctx?.renderer
+    if (r && r.kind && r.kind !== 'svg') return false
+    const p = new Graphics(w, this.ctx).revealPlan(
+      '',
+      /** @type {any} */ (this)._fadeReveal,
+    )
+    return p.animate && !p.fade
   }
 
   /**
@@ -1316,6 +1332,8 @@ class Bar {
     // Side channel for the corner-flip case below; renderSeries consumes and
     // clears it on the very next call, so it can never go stale.
     this._pathToInterp = null
+    // Nothing reads pathFrom this render (bulk fade, no animation, canvas).
+    if (!this._pathFromUsed()) return pathTo
     const record = this._prevRecord(realIndex)
     if (!record) {
       // The series itself is new: enter from the baseline when this render is

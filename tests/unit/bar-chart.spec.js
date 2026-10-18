@@ -137,11 +137,17 @@ describe('Bar chart', () => {
   // =========================================================================
   describe('getPreviousPath', () => {
     const PATH_TO = 'M 0 0 L 1 1' // 2 commands
+    // A render that animates, so pathFrom is read and looked up at all (the
+    // mount arm: neither resized nor dataChanged, so no length transition).
+    const animated = (w) => {
+      w.config.chart.animations.enabled = true
+      return w
+    }
 
     it('returns pathTo (snap) when no previous paths exist', () => {
       const { ctx } = createBarInstance()
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe(PATH_TO)
     })
@@ -158,7 +164,7 @@ describe('Bar chart', () => {
         },
       })
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe('M 10 20 L 30 40')
       expect(bar.getPreviousPath(0, 1, PATH_TO)).toBe('M 50 60 L 70 80')
@@ -176,7 +182,7 @@ describe('Bar chart', () => {
         },
       })
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe(PATH_TO)
     })
@@ -193,7 +199,7 @@ describe('Bar chart', () => {
         },
       })
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       expect(bar.getPreviousPath(0, 5, PATH_TO)).toBe(PATH_TO)
     })
@@ -210,7 +216,7 @@ describe('Bar chart', () => {
         },
       })
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       expect(bar.getPreviousPath(2, 0, PATH_TO)).toBe('M 1 2 L 3 4')
     })
@@ -225,7 +231,7 @@ describe('Bar chart', () => {
         },
       })
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe('M 99 99 L 1 1')
     })
@@ -245,7 +251,7 @@ describe('Bar chart', () => {
         },
       })
       const bar = Object.create(Bar.prototype)
-      bar.w = ctx.w
+      bar.w = animated(ctx.w)
 
       // PATH_TO is 2 commands → mismatch → snap.
       expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe(PATH_TO)
