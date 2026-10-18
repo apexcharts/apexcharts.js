@@ -43,25 +43,12 @@ export default class Helpers {
     this.barCtx.totalItems = 0
     this.barCtx.seriesLen = 0
     this.barCtx.visibleI = -1 // visible Series
-    this.barCtx.visibleItems = 1 // number of visible bars after user zoomed in/out
+    this._bgOwner = undefined
 
     for (let sl = 0; sl < series.length; sl++) {
       if (series[sl].length > 0) {
         this.barCtx.seriesLen = this.barCtx.seriesLen + 1
         this.barCtx.totalItems += series[sl].length
-      }
-      if (w.axisFlags.isXNumeric) {
-        // get max visible items
-        for (let j = 0; j < series[sl].length; j++) {
-          if (
-            w.seriesData.seriesX[sl][j] > w.globals.minX &&
-            w.seriesData.seriesX[sl][j] < w.globals.maxX
-          ) {
-            this.barCtx.visibleItems++
-          }
-        }
-      } else {
-        this.barCtx.visibleItems = w.globals.dataPoints
       }
     }
 
@@ -216,6 +203,27 @@ export default class Helpers {
   }
 
   /**
+   * How many bars a column slot is divided by: the data points on a category
+   * axis, and on a numeric one 1 plus every x strictly inside the axis range.
+   * Only read when a numeric axis has no slot span, so counted then.
+   * @returns {number}
+   */
+  visibleItems() {
+    const g = this.w.globals
+    if (!this.w.axisFlags.isXNumeric) return g.dataPoints
+    let n = 1
+    const xs = this.w.seriesData.seriesX
+    this.barCtx.series.forEach(
+      (/** @type {any[]} */ s, /** @type {number} */ sl) => {
+        for (let j = 0; j < s.length; j++) {
+          if (xs[sl][j] > g.minX && xs[sl][j] < g.maxX) n++
+        }
+      },
+    )
+    return n
+  }
+
+  /**
    * The band a horizontal bar is drawn in: its x's band when the series do
    * not line up by index (see initVariables), else its index.
    * @param {number} realIndex @param {number} j
@@ -268,11 +276,16 @@ export default class Helpers {
       }
       y = (yDivision - barHeight * this.barCtx.seriesLen) / 2
     } else {
-      // width divided into equal parts
-      xDivision = w.layout.gridWidth / this.barCtx.visibleItems
-      if (w.config.xaxis.convertedCatToNumeric) {
-        xDivision = w.layout.gridWidth / w.globals.dataPoints
-      }
+      // width divided into equal parts. On a numeric axis the slot span
+      // replaces it below, so the visible bars are only counted without one.
+      const xRatio = this.barCtx.xRatio
+      const slotXSpan = w.axisFlags.isXNumeric ? this.barSlotXSpan() : 0
+      const bySlot = slotXSpan > 0 && slotXSpan / xRatio > 0
+      xDivision = w.config.xaxis.convertedCatToNumeric
+        ? w.layout.gridWidth / w.globals.dataPoints
+        : bySlot
+          ? 0
+          : w.layout.gridWidth / this.visibleItems()
       barWidth =
         ((xDivision / seriesLen) *
           parseInt(this.barCtx.barOptions.columnWidth, 10)) /
@@ -280,10 +293,7 @@ export default class Helpers {
 
       if (w.axisFlags.isXNumeric) {
         // one slot wide at most, so neighbouring bars cannot overlap
-        const xRatio = this.barCtx.xRatio
-        const slotXSpan = this.barSlotXSpan()
-
-        if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
+        if (bySlot) {
           xDivision = slotXSpan / xRatio
         }
 
@@ -677,28 +687,29 @@ export default class Helpers {
   /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w
-    const graphics = new Graphics(this.barCtx.w)
+    const colors = this.barCtx.barOptions.colors
+    // Called for every bar; without background colours there is nothing to
+    // draw, and the owning series is the same for the whole draw.
+    if (!colors.backgroundBarColors.length) return
+    if (this._bgOwner === undefined) {
+      this._bgOwner = new Series(w).getActiveConfigSeriesIndex()
+    }
 
-    const sr = new Series(this.barCtx.w)
-    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
-
-    if (
-      this.barCtx.barOptions.colors.backgroundBarColors.length > 0 &&
-      activeSeriesIndex === i
-    ) {
-      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        j %= this.barCtx.barOptions.colors.backgroundBarColors.length
+    if (this._bgOwner === i) {
+      const graphics = new Graphics(w)
+      if (j >= colors.backgroundBarColors.length) {
+        j %= colors.backgroundBarColors.length
       }
 
-      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j]
+      const bcolor = colors.backgroundBarColors[j]
       const rect = graphics.drawRect(
         typeof x1 !== 'undefined' ? x1 : 0,
         typeof y1 !== 'undefined' ? y1 : 0,
         typeof x2 !== 'undefined' ? x2 : w.layout.gridWidth,
         typeof y2 !== 'undefined' ? y2 : w.layout.gridHeight,
-        this.barCtx.barOptions.colors.backgroundBarRadius,
+        colors.backgroundBarRadius,
         bcolor,
-        this.barCtx.barOptions.colors.backgroundBarOpacity
+        colors.backgroundBarOpacity
       )
       elSeries.add(rect)
       rect.node.classList.add('apexcharts-backgroundBar')
@@ -775,13 +786,21 @@ export default class Helpers {
     // squarePathTo is kept because a bar that is GAINING a rounded corner has
     // to travel to its new slot square and only round once it gets there, see
     // Bar.getPreviousPath.
-    const pathTo =
-      this.arrBorderRadius[realIndex][j] !== 'none'
-        ? graphics.roundPathCorners(
-            squarePathTo,
-            w.config.plotOptions.bar.borderRadius
-          )
-        : squarePathTo
+    const radius = w.config.plotOptions.bar.borderRadius
+    let pathTo = squarePathTo
+    if (this.arrBorderRadius[realIndex][j] !== 'none') {
+      // At radius 0 rounding only pads each joined corner with a zero-length
+      // curve on itself, the command count the morphs are built around (all
+      // four when the path closes with Z, which joins the last edge to the
+      // first). Written in directly, it is exactly the string
+      // roundPathCorners returns, without parsing a path per bar.
+      pathTo =
+        radius === 0 && isFinite(x1 + x2 + y1 + y2)
+          ? squarePathTo
+              .replace(' Z', ` L ${x1} ${y1} Z`)
+              .replace(/ L (\S+ \S+)(?= [LZ])/g, ' L $1 C $1 $1 $1') + ' '
+          : graphics.roundPathCorners(squarePathTo, radius)
+    }
 
     return {
       x1,

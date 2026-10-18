@@ -179,7 +179,21 @@ export default class BarDataLabels {
       )
     }
 
+    // One series caps each stack and draws its total; only that bar formats,
+    // measures and places it (the user's total formatter ran for every
+    // series at every point).
+    const drawTotal =
+      w.config.chart.stacked &&
+      barTotalDataLabelsConfig.enabled &&
+      this.hlt !== false &&
+      this.drawsStackedTotal(realIndex)
+    const totalText = drawTotal
+      ? this.getStackedTotalDataLabel({ realIndex, j })
+      : undefined
+
     const params = {
+      drawTotal,
+      totalText,
       x: hl?.x ?? x,
       y: hl?.y ?? y,
       neg: hl && hl.val != null ? hl.val < 0 : undefined,
@@ -240,11 +254,7 @@ export default class BarDataLabels {
           dataLabelsConfig,
         })
 
-    if (
-      w.config.chart.stacked &&
-      barTotalDataLabelsConfig.enabled &&
-      this.hlt !== false
-    ) {
+    if (drawTotal) {
       totalDataLabels = this.drawTotalDataLabels({
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
@@ -253,7 +263,7 @@ export default class BarDataLabels {
         realIndex,
         j,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
-        val: this.getStackedTotalDataLabel({ realIndex, j }),
+        val: totalText,
         rawVal: this.getStackedTotalValue({ realIndex, j }),
         dataLabelsConfig,
         barTotalDataLabelsConfig,
@@ -345,12 +355,12 @@ export default class BarDataLabels {
 
   /**
    * The stacked total's text box, measured in the total's own font.
-   * @param {number} realIndex @param {number} j
+   * @param {any} text the formatted total
    */
-  totalRects(realIndex, j) {
+  totalRects(text) {
     const s = this.barCtx.barOptions.dataLabels.total.style
     return new Graphics(this.w).getTextRects(
-      this.getStackedTotalDataLabel({ realIndex, j }),
+      text,
       s.fontSize,
       s.fontFamily,
       undefined,
@@ -374,6 +384,21 @@ export default class BarDataLabels {
     }
 
     return val
+  }
+
+  /**
+   * How many zero bars ahead of this one were dropped from its group, which
+   * only `hideZeroBarsWhenGrouped` does (and never on a stack): 0 otherwise,
+   * without asking for every bar.
+   * @param {number} realIndex @param {number} j
+   */
+  zeroEncounters(realIndex, j) {
+    const w = this.w
+    return !w.config.chart.stacked &&
+      w.config.plotOptions.bar.hideZeroBarsWhenGrouped
+      ? this.barCtx.barHelpers.getZeroValueEncounters({ i: realIndex, j })
+          .zeroEncounters
+      : 0
   }
 
   /**
@@ -407,10 +432,7 @@ export default class BarDataLabels {
     const vertical =
       w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
 
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i: realIndex,
-      j,
-    })
+    const zeroEncounters = this.zeroEncounters(realIndex, j)
 
     bcx = bcx - strokeWidth / 2
 
@@ -424,13 +446,7 @@ export default class BarDataLabels {
       } else {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
       }
-      if (
-        !w.config.chart.stacked &&
-        zeroEncounters > 0 &&
-        w.config.plotOptions.bar.hideZeroBarsWhenGrouped
-      ) {
-        dataLabelsX -= barWidth * zeroEncounters
-      }
+      if (zeroEncounters > 0) dataLabelsX -= barWidth * zeroEncounters
     }
 
     if (vertical) {
@@ -496,35 +512,35 @@ export default class BarDataLabels {
         break
     }
 
-    let lowestPrevY = newY
-    // Only this series' own group: scanning every group took the extremum
-    // across the whole cluster, so a group's total floated above the tallest
-    // *other* group's stack instead of its own. See #4173.
-    const totalGroupCtx = this.getTotalGroupContext(realIndex)
-    const top = this.xStackTop(realIndex, j)
-    const stacks = top ? [] : /** @type {any} */ (this.barCtx).stacks || []
-    if (top) {
-      lowestPrevY = valIsNegative
-        ? Math.max(newY, top[5])
-        : Math.min(newY, top[4])
-    }
-    stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
-      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
-      g.prevY.forEach((/** @type {any} */ arr) => {
-        if (valIsNegative) {
-          lowestPrevY = Math.max(arr[j], lowestPrevY)
-        } else {
-          lowestPrevY = Math.min(arr[j], lowestPrevY)
-        }
+    if (opts.drawTotal) {
+      let lowestPrevY = newY
+      // Only this series' own group: scanning every group took the extremum
+      // across the whole cluster, so a group's total floated above the
+      // tallest *other* group's stack instead of its own. See #4173.
+      const totalGroupCtx = this.getTotalGroupContext(realIndex)
+      const top = this.xStackTop(realIndex, j)
+      const stacks = top ? [] : /** @type {any} */ (this.barCtx).stacks || []
+      if (top) {
+        lowestPrevY = valIsNegative
+          ? Math.max(newY, top[5])
+          : Math.min(newY, top[4])
+      }
+      stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
+        if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
+        g.prevY.forEach((/** @type {any} */ arr) => {
+          if (valIsNegative) {
+            lowestPrevY = Math.max(arr[j], lowestPrevY)
+          } else {
+            lowestPrevY = Math.min(arr[j], lowestPrevY)
+          }
+        })
       })
-    })
-    if (this.hlt) lowestPrevY = this.hlt.edge
+      if (this.hlt) lowestPrevY = this.hlt.edge
 
-    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       // The baseline sits clear of the stack end by a share of the text
       // height, so a large total neither sinks into its own stack nor floats
       // off it (a fixed 18px suited 11px text only).
-      const h = this.totalRects(realIndex, j).height
+      const h = this.totalRects(opts.totalText).height
 
       if (valIsNegative) {
         totalDataLabelsY =
@@ -596,10 +612,7 @@ export default class BarDataLabels {
     } = opts
 
     const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i: realIndex,
-      j,
-    })
+    const zeroEncounters = this.zeroEncounters(realIndex, j)
 
     barWidth = Math.abs(barWidth)
 
@@ -625,13 +638,7 @@ export default class BarDataLabels {
         3
     }
 
-    if (
-      !w.config.chart.stacked &&
-      zeroEncounters > 0 &&
-      w.config.plotOptions.bar.hideZeroBarsWhenGrouped
-    ) {
-      dataLabelsY -= barHeight * zeroEncounters
-    }
+    if (zeroEncounters > 0) dataLabelsY -= barHeight * zeroEncounters
     let totalDataLabelsX
     let totalDataLabelsY
     let totalDataLabelsAnchor = 'start'
@@ -679,30 +686,31 @@ export default class BarDataLabels {
       }
     }
 
-    let lowestPrevX = newX
-    // This series' own group only — see the matching note in the column path.
-    const totalGroupCtx = this.getTotalGroupContext(realIndex)
-    const top = this.xStackTop(realIndex, j)
-    const stacks = top ? [] : /** @type {any} */ (this.barCtx).stacks || []
-    if (top) {
-      lowestPrevX = valIsNegative
-        ? Math.min(newX, top[4])
-        : Math.max(newX, top[5])
-    }
-    stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
-      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
-      g.prevX.forEach((/** @type {any} */ arr) => {
-        if (valIsNegative) {
-          lowestPrevX = Math.min(arr[j], lowestPrevX)
-        } else {
-          lowestPrevX = Math.max(arr[j], lowestPrevX)
-        }
+    if (opts.drawTotal) {
+      let lowestPrevX = newX
+      // This series' own group only, see the matching note in the column
+      // path.
+      const totalGroupCtx = this.getTotalGroupContext(realIndex)
+      const top = this.xStackTop(realIndex, j)
+      const stacks = top ? [] : /** @type {any} */ (this.barCtx).stacks || []
+      if (top) {
+        lowestPrevX = valIsNegative
+          ? Math.min(newX, top[4])
+          : Math.max(newX, top[5])
+      }
+      stacks.forEach((/** @type {any} */ g, /** @type {number} */ gi) => {
+        if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return
+        g.prevX.forEach((/** @type {any} */ arr) => {
+          if (valIsNegative) {
+            lowestPrevX = Math.min(arr[j], lowestPrevX)
+          } else {
+            lowestPrevX = Math.max(arr[j], lowestPrevX)
+          }
+        })
       })
-    })
-    if (this.hlt) lowestPrevX = this.hlt.edge
+      if (this.hlt) lowestPrevX = this.hlt.edge
 
-    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const totalLabeltextRects = this.totalRects(realIndex, j)
+      const totalLabeltextRects = this.totalRects(opts.totalText)
       if (valIsNegative) {
         totalDataLabelsX =
           lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX
