@@ -8,6 +8,7 @@ import Filters from '../modules/Filters'
 import Series from '../modules/Series'
 
 import Utils from '../utils/Utils'
+import { nameAsHtml } from '../utils/nameAsHtml.js'
 import { Environment } from '../utils/Environment.js'
 import { getTreemapRoots } from './common/treemap/Nested'
 import { morphKey } from './common/Hierarchy'
@@ -1858,22 +1859,31 @@ export default class TreemapChart {
       parentVal > 0 ? ((node._area / parentVal) * 100).toFixed(1) : pctTotal
 
     const cfg = this.w.config.plotOptions.treemap.parents
-    const custom = cfg && cfg.tooltip && cfg.tooltip.formatter
     const leafCount = this._countLeaves(node)
 
-    let html
-    if (typeof custom === 'function') {
-      html = custom({
-        name: node.name,
-        value: node._area,
-        depth: node.depth || 0,
-        leafCount,
-        percentOfParent: Number(pctParent),
-        percentOfTotal: Number(pctTotal),
-        node,
-        w,
-      })
-    } else {
+    // parents.tooltip.formatter, the option made for branches, else
+    // tooltip.custom called as the sunburst and icicle call it (the array
+    // form is one fn per series). One opts object serves both. Markup or an
+    // Element replaces the rows below; null, undefined or false keeps them.
+    // A custom written for leaf rows sees dataPointIndex -1 here and should
+    // check `node` (or the chart sets parents.tooltip.formatter).
+    let fn = cfg && cfg.tooltip && cfg.tooltip.formatter
+    if (typeof fn !== 'function') fn = w.config.tooltip.custom
+    let html = (Array.isArray(fn) ? fn[node._si] : fn)?.({
+      name: node.name,
+      value: node._area,
+      depth: node.depth || 0,
+      leafCount,
+      percentOfParent: +pctParent,
+      percentOfTotal: +pctTotal,
+      node,
+      w,
+      series: w.seriesData.series,
+      seriesIndex: node._si,
+      dataPointIndex: -1,
+      ctx: this.ctx,
+    })
+    if (html == null || html === false) {
       const marker = this._parentChrome(node.depth || 0).headerBg
       const groupBg = w.config.tooltip.fillSeriesColor
         ? `background-color:${marker};`
@@ -1884,9 +1894,7 @@ export default class TreemapChart {
         `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}">` +
         `<div class="apexcharts-tooltip-text">` +
         `<div class="apexcharts-tooltip-y-group">` +
-        `<span class="apexcharts-tooltip-text-y-label">${String(node.name)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')}: </span>` +
+        `<span class="apexcharts-tooltip-text-y-label">${nameAsHtml(node.name)}: </span>` +
         `<span class="apexcharts-tooltip-text-y-value">${this._formatValue(
           node._area,
           node._si,
@@ -1899,7 +1907,8 @@ export default class TreemapChart {
         `</div></div>`
     }
 
-    t.innerHTML = html
+    if (html?.nodeName) t.replaceChildren(html.cloneNode(true))
+    else t.innerHTML = html
     t.classList.add('apexcharts-active')
     t.removeAttribute('aria-hidden')
     this._positionTooltip(e)

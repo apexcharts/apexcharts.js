@@ -97,8 +97,14 @@ type ApexColorFormatterOpts = {
  *
  * The `sunburst` and `icicle` charts call it once per hovered node with
  * `seriesIndex: 0`, `dataPointIndex: -1` and the `node`/`percentOf*` fields
- * below; the array form uses its first entry. Return markup or an Element to
- * replace the tooltip content, or `null`/`undefined` to keep the built-in row.
+ * below; the array form uses its first entry. A nested `treemap` calls it
+ * the same way for a hovered branch (parent container), with `seriesIndex`
+ * the branch's series (the array form uses that entry) and `value` its
+ * total, unless `plotOptions.treemap.parents.tooltip.formatter` is set, which
+ * then owns branch tooltips; treemap leaves are called like any other data
+ * point. Return markup or an Element to replace the tooltip content, or
+ * `null`/`undefined` to keep the built-in row. A custom written for data
+ * points should return `null` when `node` is set (`dataPointIndex` is -1).
  */
 type ApexTooltipCustomOpts = {
   /** The chart instance the tooltip belongs to (axis and pie charts). */
@@ -110,13 +116,17 @@ type ApexTooltipCustomOpts = {
   y2?: number
   w: ApexChartContext
   /**
-   * `sunburst` / `icicle` only: the hovered tree node (`name`, `value`, and
-   * `children` for a branch; a branch's value is its rolled-up total).
+   * `sunburst` / `icicle` / treemap branch only: the hovered tree node
+   * (`name`, `value`, and `children` for a branch; a sunburst or icicle
+   * branch's value is its rolled-up total, a treemap branch's total is the
+   * `value` field below).
    */
   node?: ApexTreemapNode
-  /** `sunburst` / `icicle` only: the node's share of its parent, 0 to 100, one decimal. */
+  /** Treemap branch only: the branch total, as its header and built-in tooltip show it. */
+  value?: number
+  /** `sunburst` / `icicle` / treemap branch only: the node's share of its parent, 0 to 100, one decimal. */
   percentOfParent?: number
-  /** `sunburst` / `icicle` only: the node's share of the chart total, 0 to 100, one decimal; zooming into a branch does not change it. */
+  /** `sunburst` / `icicle` / treemap branch only: the node's share of the chart total, 0 to 100, one decimal; zooming into a branch does not change it. */
   percentOfTotal?: number
 }
 
@@ -3718,6 +3728,13 @@ type ApexPlotOptions = {
       /** `'auto'` (default): on when the data carries `children`. */
       show?: boolean | 'auto'
       tooltip?: {
+        /**
+         * The whole branch tooltip, as markup or an Element. When set it wins
+         * over `tooltip.custom` for branches (custom still serves the
+         * leaves); a `null`/`undefined`/`false` return keeps the built-in
+         * rows. Also handed the `tooltip.custom` fields (`series`,
+         * `seriesIndex`, `dataPointIndex: -1`, `ctx`).
+         */
         formatter?(opts: {
           name: string
           value: number
@@ -3727,7 +3744,11 @@ type ApexPlotOptions = {
           percentOfTotal: number
           node: ApexTreemapNode
           w: any
-        }): string
+          series: number[][]
+          seriesIndex: number
+          dataPointIndex: number
+          ctx: ApexCharts
+        }): string | Element | null | undefined | false
       }
     }
     /**
