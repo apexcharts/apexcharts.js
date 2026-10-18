@@ -88,6 +88,10 @@ export default class YAxis {
 
       let firstLabel = null
       const drawn = new Set()
+      const yColors = this.axesUtils.getYAxisForeColor(
+        yaxisStyle.colors,
+        realIndex,
+      )
       for (let i = tickAmount; i >= 0; i--) {
         const thinned = labelStep > 1 && i % labelStep !== 0
         const val = thinned ? '' : lbFormatter(labels[i], i, w)
@@ -98,10 +102,6 @@ export default class YAxis {
         const textAnchor = this.getTextAnchor(
           w.config.yaxis[realIndex].labels.align,
           w.config.yaxis[realIndex].opposite,
-        )
-        const yColors = this.axesUtils.getYAxisForeColor(
-          yaxisStyle.colors,
-          realIndex,
         )
         const foreColor = Array.isArray(yColors) ? yColors[i] : yColors
 

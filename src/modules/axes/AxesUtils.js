@@ -255,22 +255,20 @@ export default class AxesUtils {
     return false
   }
 
-  // get the label color for y-axis
-  // realIndex is the actual series index, while i is the tick Index
   /**
-   * @param {string[]} yColors
+   * The y axis label colours, an array cycled out to one entry per tick of
+   * axis `realIndex`. A copy: the config array is the user's and stays as set.
+   * @param {string[] | string} yColors
    * @param {number} realIndex
    */
   getYAxisForeColor(yColors, realIndex) {
-    const w = this.w
-    if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex]) {
-      this.theme?.pushExtraColors(
-        yColors,
-        w.globals.yAxisScale[realIndex].result.length,
-        false,
-      )
+    const scale = this.w.globals.yAxisScale[realIndex]
+    if (!Array.isArray(yColors) || !scale) return yColors
+    const out = yColors.slice()
+    for (let i = out.length; i < scale.result.length; i++) {
+      out.push(out[i - yColors.length])
     }
-    return yColors
+    return out
   }
 
   /**

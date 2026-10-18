@@ -430,6 +430,10 @@ export default class XAxis {
     }
 
     if (ylabels.show) {
+      const yColors = this.axesUtils.getYAxisForeColor(
+        ylabels.style.colors,
+        realIndex,
+      )
       for (let i = 0; i <= labels.length - 1; i++) {
         let label = typeof labels[i] === 'undefined' ? '' : labels[i]
 
@@ -439,10 +443,6 @@ export default class XAxis {
           w,
         )
 
-        const yColors = this.axesUtils.getYAxisForeColor(
-          ylabels.style.colors,
-          realIndex,
-        )
         const getForeColor = () => {
           return Array.isArray(yColors) ? yColors[i] : yColors
         }
