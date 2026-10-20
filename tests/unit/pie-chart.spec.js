@@ -1,4 +1,5 @@
 import Pie from '../../src/charts/Pie.js'
+import ApexCharts from '../../src/entries/standard.js'
 import { createChartWithOptions } from './utils/utils.js'
 import Graphics from '../../src/modules/Graphics.js'
 import { measureLabelWidth } from '../../src/charts/common/OuterLabels.js'
@@ -400,6 +401,188 @@ describe('Pie chart', () => {
       expect(Math.min(...ys)).toBeGreaterThanOrEqual(top)
     })
   })
+
+  // A slice that covers the whole turn used to stroke a line from the centre
+  // to the rim: the wedge path draws both radii, and a 0.01° overlap clamp
+  // leaves them a hair apart (#5084).
+  describe('stroke of a full turn', () => {
+    const stroke = { show: true, width: 4, colors: ['#fff'] }
+
+    const slicesOf = (chart) => [
+      ...chart.el.querySelectorAll('.apexcharts-pie-area'),
+    ]
+
+    // Line commands in a wedge: the two radii. roundPathCorners fillets the
+    // apex, so the line no longer ends on the centre, but a closed circle
+    // has no line command at all.
+    const lineCommands = (d) => {
+      if (!d) return 0
+      return d.trim().split(/[\s,]+/).filter((t) => t === 'L').length
+    }
+
+    const arcCount = (d) => (d && d.match(/A/g) ? d.match(/A/g).length : 0)
+
+    it('draws a single series as a closed circle with its stroke and no radial seam', () => {
+      const chart = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [44],
+        labels: ['Only'],
+        stroke,
+      })
+      const slice = slicesOf(chart)[0]
+      const d = slice.getAttribute('d')
+
+      expect(slice.getAttribute('stroke-width')).toBe('4')
+      expect(parseFloat(slice.getAttribute('data:angle'))).toBeCloseTo(360, 5)
+      // Two 180° arcs, closed, and no line back to the centre.
+      expect(arcCount(d)).toBe(2)
+      expect(d.toLowerCase()).toContain('z')
+      expect(lineCommands(d)).toBe(0)
+    })
+
+    it('draws no radial seam when the other values are zero', () => {
+      const chart = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [44, 0, 0],
+        labels: ['A', 'B', 'C'],
+        stroke,
+      })
+      const slices = slicesOf(chart)
+      expect(slices).toHaveLength(3)
+
+      const full = slices.find(
+        (s) => parseFloat(s.getAttribute('data:angle')) > 359
+      )
+      expect(full.getAttribute('stroke-width')).toBe('4')
+      expect(arcCount(full.getAttribute('d'))).toBe(2)
+      expect(lineCommands(full.getAttribute('d'))).toBe(0)
+
+      // A zero-value sibling is not a slice. Its wedge degenerates to the
+      // same centre-to-rim line, so it must not paint one either.
+      for (const s of slices) {
+        expect(lineCommands(s.getAttribute('d'))).toBe(0)
+      }
+    })
+
+    it('draws a single polarArea series as a closed circle', () => {
+      const chart = pieChart({
+        chart: { type: 'polarArea', width: 400, height: 400 },
+        series: [44],
+        labels: ['Only'],
+        stroke,
+      })
+      const slice = slicesOf(chart)[0]
+      const d = slice.getAttribute('d')
+
+      expect(slice.getAttribute('stroke-width')).toBe('4')
+      expect(parseFloat(slice.getAttribute('data:angle'))).toBeCloseTo(360, 5)
+      expect(arcCount(d)).toBe(2)
+      expect(lineCommands(d)).toBe(0)
+    })
+
+    it('keeps the configured stroke on a single-slice semicircle', () => {
+      const chart = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [44],
+        labels: ['Half'],
+        pie: { startAngle: -90, endAngle: 90 },
+        stroke,
+      })
+      const slice = slicesOf(chart)[0]
+      const d = slice.getAttribute('d')
+
+      expect(slice.getAttribute('stroke-width')).toBe('4')
+      expect(parseFloat(slice.getAttribute('data:angle'))).toBeCloseTo(180, 5)
+      // The flat edge is a real border, so the radii stay.
+      expect(lineCommands(d)).toBeGreaterThan(0)
+      expect(arcCount(d)).toBe(1)
+    })
+
+    it('keeps radial borders and the configured stroke on a multi-slice pie', () => {
+      const chart = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [44, 55, 13],
+        labels: ['A', 'B', 'C'],
+        stroke,
+      })
+      const slices = slicesOf(chart)
+      expect(slices).toHaveLength(3)
+
+      for (const s of slices) {
+        const angle = parseFloat(s.getAttribute('data:angle'))
+        expect(s.getAttribute('stroke-width')).toBe('4')
+        expect(angle).toBeGreaterThan(0)
+        expect(angle).toBeLessThan(360)
+        expect(lineCommands(s.getAttribute('d'))).toBeGreaterThan(0)
+        expect(arcCount(s.getAttribute('d'))).toBe(1)
+      }
+    })
+
+    it('draws a closed circle after the legend collapses every sibling', () => {
+      const chart = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [44, 55, 13],
+        labels: ['A', 'B', 'C'],
+        stroke,
+      })
+      chart.toggleSeries('B')
+      chart.toggleSeries('C')
+
+      const slices = slicesOf(chart)
+      const full = slices.find(
+        (s) => parseFloat(s.getAttribute('data:angle')) > 359
+      )
+      expect(full).toBeTruthy()
+      expect(full.getAttribute('stroke-width')).toBe('4')
+      expect(arcCount(full.getAttribute('d'))).toBe(2)
+      expect(lineCommands(full.getAttribute('d'))).toBe(0)
+    })
+
+    it('ends an animated full-circle sweep on a closed circle', async () => {
+      vi.useFakeTimers({
+        toFake: [
+          'setTimeout',
+          'clearTimeout',
+          'Date',
+          'requestAnimationFrame',
+          'cancelAnimationFrame',
+          'performance',
+        ],
+      })
+      try {
+        document.body.innerHTML = '<div id="chart" />'
+        const chart = new ApexCharts(document.querySelector('#chart'), {
+          chart: {
+            type: 'pie',
+            width: 400,
+            height: 400,
+            animations: { enabled: true, speed: 800 },
+          },
+          series: [44],
+          labels: ['Only'],
+          dataLabels: { enabled: false },
+          stroke,
+        })
+        const rendered = chart.render()
+        await vi.advanceTimersByTimeAsync(2000)
+        await rendered
+
+        const slice = chart.el.querySelector('.apexcharts-pie-area')
+        const d = slice.getAttribute('d')
+        expect(slice.getAttribute('stroke-width')).toBe('4')
+        expect(parseFloat(slice.getAttribute('data:angle'))).toBeCloseTo(
+          360,
+          5
+        )
+        expect(arcCount(d)).toBe(2)
+        expect(d.toLowerCase()).toContain('z')
+        expect(lineCommands(d)).toBe(0)
+        chart.destroy()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
 })
 
 // ===========================================================================
@@ -555,6 +738,101 @@ describe('Donut chart', () => {
       // the centre in a short card and in a tall one alike.
       expect(valueLift(400)).toBe(10)
       expect(valueLift(1200)).toBe(10)
+    })
+  })
+
+  describe('stroke of a full turn', () => {
+    const stroke = { show: true, width: 4, colors: ['#fff'] }
+
+    const arcRadii = (d) => {
+      const radii = []
+      const re = /A\s+([-\d.e]+)/g
+      let m
+      while ((m = re.exec(d))) radii.push(parseFloat(m[1]))
+      return radii
+    }
+
+    const expectAnnulus = (chart) => {
+      const slice = chart.el.querySelector('.apexcharts-donut-slice-0')
+      const d = slice.getAttribute('d')
+      const outer = chart.w.globals.radialSize
+      const inner =
+        (outer * parseInt(chart.w.config.plotOptions.pie.donut.size, 10)) / 100
+      const radii = arcRadii(d)
+
+      expect(slice.getAttribute('stroke-width')).toBe('4')
+      expect(parseFloat(slice.getAttribute('data:angle'))).toBeCloseTo(360, 5)
+      // Outer circle and reverse inner circle: two arcs each, no connector.
+      expect(radii.filter((r) => Math.abs(r - outer) < 0.01)).toHaveLength(2)
+      expect(radii.filter((r) => Math.abs(r - inner) < 0.01)).toHaveLength(2)
+      expect(d).not.toMatch(/\bL\b/)
+    }
+
+    it('keeps the inner and outer border on a single-slice donut', () => {
+      const chart = donutChart({
+        chart: { width: 400, height: 400 },
+        series: [44],
+        labels: ['Only'],
+        stroke,
+      })
+      expectAnnulus(chart)
+    })
+
+    it('keeps the inner and outer border when sibling values are zero', () => {
+      const chart = donutChart({
+        chart: { width: 400, height: 400 },
+        series: [44, 0, 0],
+        labels: ['A', 'B', 'C'],
+        stroke,
+      })
+      expectAnnulus(chart)
+      const slices = [...chart.el.querySelectorAll('.apexcharts-pie-area')]
+      expect(slices).toHaveLength(3)
+      for (const s of slices) {
+        expect(s.getAttribute('stroke-width')).toBe('4')
+        expect(s.getAttribute('d') || '').not.toMatch(/\bL\b/)
+      }
+    })
+
+    it('keeps the stroke and both rims of a single-slice semicircle donut', () => {
+      const chart = donutChart({
+        chart: { width: 400, height: 400 },
+        series: [44],
+        labels: ['Half'],
+        pie: { startAngle: -90, endAngle: 90 },
+        stroke,
+      })
+      const slice = chart.el.querySelector('.apexcharts-donut-slice-0')
+      const d = slice.getAttribute('d')
+      const radii = arcRadii(d)
+      const outer = chart.w.globals.radialSize
+      const inner =
+        (outer * parseInt(chart.w.config.plotOptions.pie.donut.size, 10)) / 100
+
+      expect(slice.getAttribute('stroke-width')).toBe('4')
+      expect(parseFloat(slice.getAttribute('data:angle'))).toBeCloseTo(180, 5)
+      // Half a ring still has two radial edges, so the stroke stays on them.
+      expect(d).toMatch(/\bL\b/)
+      expect(radii.filter((r) => Math.abs(r - outer) < 0.01)).toHaveLength(1)
+      expect(radii.filter((r) => Math.abs(r - inner) < 0.01)).toHaveLength(1)
+    })
+
+    it('keeps the radial borders of a multi-slice donut', () => {
+      const chart = donutChart({
+        chart: { width: 400, height: 400 },
+        series: [44, 55],
+        labels: ['A', 'B'],
+        stroke,
+      })
+      const slices = [...chart.el.querySelectorAll('.apexcharts-pie-area')]
+      expect(slices).toHaveLength(2)
+      for (const s of slices) {
+        expect(s.getAttribute('stroke-width')).toBe('4')
+        expect(parseFloat(s.getAttribute('data:angle'))).toBeLessThan(360)
+        // Outer arc, line to the inner rim, inner arc, line back.
+        expect(s.getAttribute('d')).toMatch(/\bL\b/)
+        expect(arcRadii(s.getAttribute('d'))).toHaveLength(2)
+      }
     })
   })
 })
