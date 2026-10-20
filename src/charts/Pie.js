@@ -1090,7 +1090,14 @@ class Pie {
           ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle
           : opts.prevEndAngle - opts.prevStartAngle
     }
-    if (angle === this.fullAngle) angle = this.fullAngle - 0.01
+    // A 360° arc whose ends meet does not paint, so a full sweep is pulled
+    // back a hair. That hair is the radial seam on a pie, donut or polarArea
+    // slice that already covers the whole turn: getPiePath closes those as a
+    // circle, and the pullback would open the seam again (#5084). A semicircle
+    // (fullAngle < 360) and a radialBar keep the pullback.
+    if (angle === this.fullAngle && !this.isFullTurnSlice(angle)) {
+      angle = this.fullAngle - 0.01
+    }
 
     me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts)
   }
@@ -1593,11 +1600,126 @@ class Pie {
     return { startDeg, spanDeg, endDeg }
   }
 
+  /**
+   * A slice of `angle` degrees that has no edge of its own: it covers the
+   * whole turn, and spacing is not asking for a gap. A semicircle
+   * (fullAngle < 360) is not one of these — its flat side is a real border.
+   * @param {number} angle
+   * @returns {boolean}
+   */
+  isFullTurnSlice(angle) {
+    const t = this.chartType
+    return (
+      (t === 'pie' || t === 'donut' || t === 'polarArea') &&
+      this.fullAngle >= 360 &&
+      angle >= this.fullAngle - 1e-4 &&
+      !(this.w.config.plotOptions.pie.spacing > 0)
+    )
+  }
+
+  /**
+   * Closed path for a slice that occupies the whole turn.
+   *
+   * Pie and polarArea: two 180° arcs and a close, with no line to the centre.
+   * The wedge builder's two radii are the same line, and the stroke paints
+   * that line from the centre to the rim (#5084).
+   *
+   * Donut: the outer circle, then the inner circle swept the other way, as
+   * two subpaths of one path. The stroke outlines both rims and the nonzero
+   * fill rule leaves the hole empty. A connector between the circles would
+   * be the same seam, drawn across the ring.
+   *
+   * @param {{me: any, startAngle: number, size: number}} opts
+   * @returns {string}
+   */
+  getFullTurnPath({ me, startAngle, size }) {
+    const graphics = new Graphics(this.w)
+    const cx = me.centerX
+    const cy = me.centerY
+    const outerStart = Utils.polarToCartesian(cx, cy, size, startAngle)
+    const outerMid = Utils.polarToCartesian(cx, cy, size, startAngle + 180)
+
+    /** @type {Array<string | number>} */
+    const path = [
+      'M',
+      outerStart.x,
+      outerStart.y,
+      'A',
+      size,
+      size,
+      0,
+      1,
+      1,
+      outerMid.x,
+      outerMid.y,
+      'A',
+      size,
+      size,
+      0,
+      1,
+      1,
+      outerStart.x,
+      outerStart.y,
+      'z',
+    ]
+
+    if (me.chartType === 'donut') {
+      const innerStart = Utils.polarToCartesian(
+        cx,
+        cy,
+        me.donutSize,
+        startAngle,
+      )
+      const innerMid = Utils.polarToCartesian(
+        cx,
+        cy,
+        me.donutSize,
+        startAngle + 180,
+      )
+      path.push(
+        'M',
+        innerStart.x,
+        innerStart.y,
+        'A',
+        me.donutSize,
+        me.donutSize,
+        0,
+        1,
+        0,
+        innerMid.x,
+        innerMid.y,
+        'A',
+        me.donutSize,
+        me.donutSize,
+        0,
+        1,
+        0,
+        innerStart.x,
+        innerStart.y,
+        'z',
+      )
+    }
+
+    return graphics.roundPathCorners(path.join(' '), this.strokeWidth * 2)
+  }
+
   /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
   getPiePath({ me, startAngle, angle, size }) {
     let path
     const w = this.w
     const graphics = new Graphics(this.w)
+
+    const isSliceType =
+      me.chartType === 'pie' ||
+      me.chartType === 'donut' ||
+      me.chartType === 'polarArea'
+
+    // Whole turn: a closed circle (or annulus), not a wedge. Checked on the
+    // raw span, before getSliceExtent pulls endDeg back by 0.01° — that
+    // clamp is what leaves the two radii a hair apart for the stroke to paint.
+    if (isSliceType && this.isFullTurnSlice(angle)) {
+      return this.getFullTurnPath({ me, startAngle, size })
+    }
 
     const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
       me,
@@ -1606,10 +1728,12 @@ class Pie {
       size,
     })
 
-    const isSliceType =
-      me.chartType === 'pie' ||
-      me.chartType === 'donut' ||
-      me.chartType === 'polarArea'
+    // A zero-value slice has no area. The wedge degenerates into a line along
+    // the seam, so a sibling the data already called empty redraws the gap
+    // the full slice just stopped drawing (#5084). Draw nothing.
+    if (isSliceType && Number.isFinite(spanDeg) && !(spanDeg > 0)) {
+      return ''
+    }
 
     const startRadians = (Math.PI * (startDeg - 90)) / 180
 
