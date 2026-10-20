@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -391,6 +391,10 @@ class CanvasMark {
       if (clip !== void 0) cmd.clip = clip;
       return;
     }
+    if (k === "index") {
+      cmd.si = cmd.z = Number(v);
+      return;
+    }
     const sk = STYLE_KEYS[k];
     if (sk !== void 0) cmd[sk] = v;
   }
@@ -542,17 +546,26 @@ class CanvasGraphics {
     this._styles = [];
     this._styleMap = /* @__PURE__ */ new Map();
     this._resetStyleCache();
-    const series = this.w.config.series || [];
-    let cap = 16;
+    const c = this.w.config;
+    const series = c.series || [];
+    const ms = c.markers && c.markers.size;
+    let mcap = 16;
+    let rcap = 16;
     for (let i = 0; i < series.length; i++) {
-      const d = series[i] && series[i].data;
-      if (Array.isArray(d)) cap += d.length;
+      const s = series[i];
+      const n = s && Array.isArray(s.data) ? s.data.length : 0;
+      const t = s && s.type || c.chart && c.chart.type;
+      if (t === "heatmap") rcap += n;
+      else if (t === "scatter" || t === "bubble" || (Array.isArray(ms) ? ms[i] : ms) > 0) {
+        mcap += n;
+      }
     }
-    cap = Math.ceil(cap * 1.15) + 16;
-    if (cap > this._mcap) this._allocMarkers(cap);
+    mcap = Math.ceil(mcap * 1.15) + 16;
+    if (mcap > this._mcap) this._allocMarkers(mcap);
     this._crn = 0;
     this._cellRadius = 0;
-    if (cap > this._crcap) this._allocRects(cap);
+    rcap = Math.ceil(rcap * 1.15) + 16;
+    if (rcap > this._crcap) this._allocRects(rcap);
   }
   /** @param {number} cap */
   _allocRects(cap) {
@@ -698,10 +711,6 @@ class CanvasGraphics {
   /** @param {number} i @returns {number} series (realIndex) of a marker, -1 if none */
   markerSeries(i) {
     return this._msi[i];
-  }
-  /** @param {number} id @returns {string} */
-  shapeName(id) {
-    return SHAPE_NAME[id] || "circle";
   }
   // ── columnar rect cell (heatmap): parallel unboxed arrays, no per-cell object ──
   /**
@@ -858,7 +867,7 @@ class CanvasGraphics {
     cmd.stroke = opts.stroke;
     cmd.strokeWidth = opts.strokeWidth;
     cmd.fill = opts.fill;
-    cmd.lineCap = opts.strokeLinecap;
+    cmd.lineCap = opts.strokeLinecap || this.w.config.stroke.lineCap;
     cmd.strokeDash = this._g.seriesDash(opts.realIndex);
     cmd.si = opts.realIndex;
     if (typeof opts.j === "number") cmd.dj = opts.j;
@@ -878,7 +887,7 @@ class CanvasGraphics {
     cmd.fill = opts.fill;
     cmd.fillOpacity = opts.fillOpacity;
     cmd.strokeOpacity = opts.strokeOpacity;
-    cmd.lineCap = opts.strokeLinecap;
+    cmd.lineCap = opts.strokeLinecap || this.w.config.stroke.lineCap;
     cmd.strokeDash = opts.strokeDashArray;
     return new CanvasMark(cmd);
   }
@@ -886,9 +895,11 @@ class CanvasGraphics {
   /**
    * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
    * @param {string} lineColor @param {any} dashArray @param {number} strokeWidth
+   * @param {string} [lineCap]
    */
-  drawLine(x1, y1, x2, y2, lineColor = "#a8a8a8", dashArray = 0, strokeWidth = 1) {
+  drawLine(x1, y1, x2, y2, lineColor = "#a8a8a8", dashArray = 0, strokeWidth = 1, lineCap = "butt") {
     const cmd = this._cmd("line", 0);
+    cmd.lineCap = lineCap;
     cmd.lx1 = x1;
     cmd.ly1 = y1;
     cmd.lx2 = x2;
@@ -929,13 +940,13 @@ class CanvasGraphics {
   drawCircle(radius, attrs = null) {
     const cmd = this._cmd("circle", 0);
     cmd.r = radius < 0 ? 0 : radius;
+    const mark = new CanvasMark(cmd);
     if (attrs) {
       cmd.cx = attrs.cx;
       cmd.cy = attrs.cy;
-      if (attrs.fill !== void 0) cmd.fill = attrs.fill;
-      if (attrs.stroke !== void 0) cmd.stroke = attrs.stroke;
+      mark.attr(attrs);
     }
-    return new CanvasMark(cmd);
+    return mark;
   }
   /** @param {any} opts */
   drawText(opts) {
@@ -944,9 +955,11 @@ class CanvasGraphics {
     cmd.tx = opts.x;
     cmd.ty = opts.y;
     cmd.textAnchor = opts.textAnchor || "start";
+    const chart = this.w.config.chart;
     cmd.fontSize = opts.fontSize;
-    cmd.fontFamily = opts.fontFamily;
-    cmd.fill = opts.foreColor;
+    cmd.fontFamily = opts.fontFamily || chart.fontFamily;
+    cmd.fontWeight = opts.fontWeight;
+    cmd.fill = opts.foreColor || chart.foreColor;
     return new CanvasMark(cmd);
   }
   /**
@@ -1446,7 +1459,8 @@ class CanvasCompositor {
         ctx.globalAlpha = this._alpha;
         ctx.fillStyle = cmd.fill || "#000";
         const size = cmd.fontSize || "11px";
-        ctx.font = `${typeof size === "number" ? size + "px" : size} ${cmd.fontFamily || "Helvetica, Arial, sans-serif"}`;
+        const weight = cmd.fontWeight;
+        ctx.font = `${weight && weight !== "regular" ? weight + " " : ""}${typeof size === "number" ? size + "px" : size} ${cmd.fontFamily || "Helvetica, Arial, sans-serif"}`;
         ctx.textAlign = cmd.textAnchor === "middle" ? "center" : cmd.textAnchor === "end" ? "right" : "left";
         ctx.fillText(String(cmd.text), cmd.tx, cmd.ty);
         ctx.restore();

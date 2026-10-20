@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -426,14 +426,12 @@ function colorValueOfDatum(w, datum, i, j) {
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
-function resolveStops(cfg, min, max, midpoint) {
-  if (Array.isArray(cfg.stops) && cfg.stops.length >= 2) {
+function resolveStops(cfg, min, max, midpoint, explicit) {
+  if (explicit) {
     return cfg.stops.filter((s) => s && Number.isFinite(Number(s.value))).map((s) => ({
       value: Number(s.value),
       color: normalizeHex(s.color)
-    })).sort(
-      (a, b) => a.value - b.value
-    );
+    })).sort((a, b) => a.value - b.value);
   }
   const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
   const n = colors.length;
@@ -485,8 +483,11 @@ function buildContinuousScale(w) {
     dataMin = 0;
     dataMax = 0;
   }
-  let min = Number.isFinite(Number(cfg.min)) ? Number(cfg.min) : dataMin;
-  let max = Number.isFinite(Number(cfg.max)) ? Number(cfg.max) : dataMax;
+  const pin = (v) => Number.isFinite(Number(v)) ? Number(v) : null;
+  const pinMin = pin(cfg.min);
+  const pinMax = pin(cfg.max);
+  let min = pinMin != null ? pinMin : dataMin;
+  let max = pinMax != null ? pinMax : dataMax;
   let midpoint = null;
   if (cfg.midpoint === null) {
     midpoint = null;
@@ -495,7 +496,7 @@ function buildContinuousScale(w) {
   } else if (min < 0 && max > 0) {
     midpoint = 0;
   }
-  if (midpoint != null && cfg.symmetric !== false && !Number.isFinite(Number(cfg.min)) && !Number.isFinite(Number(cfg.max))) {
+  if (midpoint != null && cfg.symmetric !== false && pinMin == null && pinMax == null) {
     const reach = Math.max(Math.abs(min - midpoint), Math.abs(max - midpoint));
     min = midpoint - reach;
     max = midpoint + reach;
@@ -504,8 +505,13 @@ function buildContinuousScale(w) {
     min -= 0.5;
     max += 0.5;
   }
-  const stops = resolveStops(cfg, min, max, midpoint);
+  const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2;
+  const stops = resolveStops(cfg, min, max, midpoint, explicit);
   if (stops.length < 2) return null;
+  if (explicit) {
+    if (pinMin == null) min = Math.min(min, stops[0].value);
+    if (pinMax == null) max = Math.max(max, stops[stops.length - 1].value);
+  }
   const at = (v) => {
     if (!Number.isFinite(v)) return stops[Math.floor(stops.length / 2)].color;
     if (v <= stops[0].value) return stops[0].color;
@@ -523,10 +529,13 @@ function buildContinuousScale(w) {
     return last.color;
   };
   const span = max - min;
-  const legendStops = stops.map((s) => ({
-    percent: span === 0 ? 0 : (s.value - min) / span,
-    color: s.color
-  }));
+  const legendStops = stops.map((s) => {
+    const v = Math.min(max, Math.max(min, s.value));
+    return {
+      percent: span && (v - min) / span,
+      color: v === s.value ? s.color : at(v)
+    };
+  });
   return { min, max, midpoint, stops, at, legendStops };
 }
 const TooltipUtils = _core.__apex_tooltip_Utils;
@@ -1476,7 +1485,14 @@ class Legend {
       }
       const elLegendText = BrowserAPIs.createElement("span");
       elLegendText.classList.add("apexcharts-legend-text");
-      elLegendText.innerHTML = Array.isArray(text) ? text.join(" ") : text;
+      const shown = Array.isArray(text) ? text.join(" ") : text;
+      const name = legendNames[i];
+      if (String(shown) === String(Array.isArray(name) ? name.join(" ") : name)) {
+        elLegendText.textContent = shown;
+      } else {
+        elLegendText.innerHTML = shown;
+        elLegendText.setAttribute("data:html", "1");
+      }
       let textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : Array.isArray(w.config.legend.labels.colors) ? (_a = w.config.legend.labels.colors) == null ? void 0 : _a[i] : w.config.legend.labels.colors;
       if (!textColor) {
         textColor = w.config.chart.foreColor;
@@ -1609,29 +1625,37 @@ class Legend {
    * @param {MouseEvent} e
    */
   onLegendHovered(e) {
-    var _a;
     const w = this.w;
     const target = (
       /** @type {Element} */
       e.target
     );
-    const hoverOverLegend = isLegendItem(target);
+    if (!isLegendItem(target)) return;
+    const rel = target.getAttribute("rel");
+    const move = e.type === "mousemove";
+    const to = (
+      /** @type {Element | null} */
+      e.relatedTarget
+    );
+    const c = (
+      /** @type {any} */
+      w.globals.cachedSelectors
+    );
+    if (move ? c.legendRel === rel : to && isLegendItem(to) && to.getAttribute("rel") === rel && w.dom.elWrap.contains(to)) {
+      return;
+    }
+    c.legendRel = move ? rel : null;
+    const series = new Series(this.ctx.w);
     if (w.config.chart.type !== "heatmap" && !this.isBarsDistributed) {
-      if (hoverOverLegend && !target.closest(".apexcharts-inactive-legend")) {
-        const series = new Series(this.ctx.w);
+      if (!target.closest(".apexcharts-inactive-legend")) {
         series.toggleSeriesOnHover(e, target);
       }
     } else {
-      if (hoverOverLegend) {
-        const seriesCnt = parseInt((_a = target.getAttribute("rel")) != null ? _a : "0", 10) - 1;
+      const seriesCnt = parseInt(rel != null ? rel : "0", 10) - 1;
+      if (move) {
         this.ctx.events.fireEvent("legendHover", [this.ctx, seriesCnt, this.w]);
-        const series = new Series(this.ctx.w);
-        if (e.type === "mousemove") {
-          series.highlightRangeInSeries(seriesCnt, "highlight");
-        } else if (e.type === "mouseout") {
-          series.highlightRangeInSeries(seriesCnt, "reset");
-        }
       }
+      series.highlightRangeInSeries(seriesCnt, move ? "highlight" : "reset");
     }
   }
   /**

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -180,6 +180,23 @@ function morphKey(key) {
   const i = key.indexOf("/");
   return i === -1 ? "" : key.slice(i);
 }
+const XHTML = "http://www.w3.org/1999/xhtml";
+function breadcrumbConfig(w, localCfg) {
+  const shared = w.config.drilldown && w.config.drilldown.breadcrumb || {};
+  return Object.assign(
+    {
+      show: true,
+      position: "top-left",
+      separator: " / ",
+      rootLabel: "All",
+      offsetX: 0,
+      offsetY: 0,
+      formatter: void 0
+    },
+    shared,
+    localCfg
+  );
+}
 function avoidChromeOverlap(w, nav) {
   const chrome = (
     /** @type {Element[]} */
@@ -195,6 +212,98 @@ function avoidChromeOverlap(w, nav) {
     });
     if (!hit) break;
     nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+  }
+}
+function clearBreadcrumb(w) {
+  const elWrap = w.dom.elWrap;
+  if (!elWrap) return;
+  const existing = elWrap.querySelector(".apexcharts-breadcrumb");
+  if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+}
+function renderBreadcrumb(w, opts) {
+  if (!Environment.isBrowser()) return null;
+  const elWrap = w.dom.elWrap;
+  if (!elWrap) return null;
+  clearBreadcrumb(w);
+  const cfg = opts.config || breadcrumbConfig(w);
+  if (cfg.show === false) return null;
+  const crumbs = opts.crumbs || [];
+  if (crumbs.length < 2) return null;
+  const nav = BrowserAPIs.createElementNS(XHTML, "nav");
+  nav.setAttribute("class", "apexcharts-breadcrumb");
+  nav.setAttribute("aria-label", opts.ariaLabel || "Breadcrumb");
+  positionBreadcrumb(nav, cfg);
+  if (opts.compact) {
+    nav.style.fontSize = "11px";
+    nav.style.padding = "0 2px";
+  }
+  const separator = cfg.separator != null ? cfg.separator : " / ";
+  crumbs.forEach((crumb, i) => {
+    var _a;
+    if (i > 0) {
+      const sep = BrowserAPIs.createElementNS(XHTML, "span");
+      sep.setAttribute("class", "apexcharts-breadcrumb-separator");
+      sep.setAttribute("aria-hidden", "true");
+      sep.textContent = separator;
+      nav.appendChild(sep);
+    }
+    let label = i === 0 ? (_a = cfg.rootLabel) != null ? _a : "All" : crumb.label;
+    if (typeof cfg.formatter === "function") {
+      label = cfg.formatter(label, {
+        index: i,
+        depth: crumbs.length - 1,
+        data: crumb.data
+      });
+    }
+    if (i === crumbs.length - 1) {
+      const cur = BrowserAPIs.createElementNS(XHTML, "span");
+      cur.setAttribute(
+        "class",
+        "apexcharts-breadcrumb-item apexcharts-breadcrumb-current"
+      );
+      cur.setAttribute("aria-current", "page");
+      cur.textContent = String(label);
+      nav.appendChild(cur);
+      return;
+    }
+    const btn = (
+      /** @type {HTMLButtonElement} */
+      BrowserAPIs.createElementNS(XHTML, "button")
+    );
+    btn.setAttribute("type", "button");
+    btn.setAttribute("class", "apexcharts-breadcrumb-item");
+    if (i === 0) {
+      const arrow = BrowserAPIs.createElementNS(XHTML, "span");
+      arrow.setAttribute("class", "apexcharts-breadcrumb-arrow");
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = "←";
+      btn.appendChild(arrow);
+    }
+    const text = BrowserAPIs.createElementNS(XHTML, "span");
+    text.setAttribute("class", "apexcharts-breadcrumb-label");
+    text.textContent = String(label);
+    btn.appendChild(text);
+    btn.addEventListener("click", (e) => opts.onNavigate(i, crumb, e));
+    nav.appendChild(btn);
+  });
+  elWrap.appendChild(nav);
+  return nav;
+}
+function refocusBreadcrumb(w, e) {
+  var _a, _b, _c;
+  if (e.detail) return;
+  const el = ((_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-breadcrumb-item")) || ((_b = w.dom.Paper) == null ? void 0 : _b.node);
+  (_c = el == null ? void 0 : el.focus) == null ? void 0 : _c.call(el);
+}
+function positionBreadcrumb(nav, cfg) {
+  const ox = cfg.offsetX || 0;
+  const oy = cfg.offsetY || 0;
+  nav.style.position = "absolute";
+  nav.style.top = oy + "px";
+  if (cfg.position === "top-right") {
+    nav.style.right = -ox + 3 + "px";
+  } else {
+    nav.style.left = ox + "px";
   }
 }
 function placeSubtree(node, vDepth, t0, t1, parent, state) {
@@ -252,24 +361,28 @@ function bandScale({ maxDepth, near, far, gap = 0 }) {
 function farEdge(node, scale, maxDepth, leafMode, edge) {
   return node._leaf && leafMode === "extend" && node._vDepth < maxDepth ? edge : scale.far(node._vDepth);
 }
+const strictWarned = /* @__PURE__ */ new Set();
 function validateStrict(roots, { type, remedy }) {
-  let warned = false;
+  let msg = "";
   const walk = (node) => {
-    if (node.children && node.children.length) {
-      const sum = node.children.reduce(
-        (s, c) => s + Math.max(0, c.value || 0),
-        0
-      );
-      if (!warned && node.value != null && Math.abs(sum - node.value) > 0.5) {
-        console.warn(
-          `ApexCharts ${type}: partition 'strict' but "${node.name}" (${node.value}) != sum of its children (${sum}). ${remedy}`
-        );
-        warned = true;
-      }
-      node.children.forEach(walk);
+    var _a;
+    if (msg || !((_a = node.children) == null ? void 0 : _a.length)) return;
+    const sum = node.children.reduce(
+      (s, c) => s + Math.max(0, c.value || 0),
+      0
+    );
+    const v = node.value;
+    if (v != null && Math.abs(sum - v) > 1e-6 * Math.max(Math.abs(v), sum)) {
+      msg = `ApexCharts ${type}: partition 'strict' but "${node.name}" (${v}) != sum of its children (${sum}). ${remedy}`;
     }
+    node.children.forEach(walk);
   };
   roots.forEach(walk);
+  if (msg && !strictWarned.has(msg)) {
+    if (strictWarned.size > 99) strictWarned.clear();
+    strictWarned.add(msg);
+    console.warn(msg);
+  }
 }
 function focusChain(focus) {
   const chain = [];
@@ -279,6 +392,15 @@ function focusChain(focus) {
     n = n._parent;
   }
   return chain;
+}
+function focusTrail(roots, focus) {
+  const sole = roots.length === 1 ? roots[0] : null;
+  const trail = focusChain(focus).map((n) => ({
+    label: n.name,
+    data: n,
+    focus: n === sole ? null : n
+  }));
+  return sole ? trail : [{ data: null, focus: null }].concat(trail);
 }
 function resolveFocus(node, current, roots) {
   let next = node === current ? node._parent || null : node;
@@ -291,7 +413,14 @@ function resolveFocus(node, current, roots) {
 }
 function focusByKey(key, nodesAll, roots) {
   var _a;
-  const f = key && nodesAll.find((n) => n._key === key);
+  if (!key) return null;
+  nodesAll.forEach(
+    (n) => {
+      var _a2;
+      return (_a2 = n.children) == null ? void 0 : _a2.forEach((c) => c._parent = n);
+    }
+  );
+  const f = nodesAll.find((n) => n._key === key);
   return f && ((_a = f.children) == null ? void 0 : _a.length) && !(roots.length === 1 && f === roots[0]) ? f : null;
 }
 function setZoomCursor(chart, node) {
@@ -314,6 +443,7 @@ function lighten(color, amount) {
   if (hex.length !== 6) return color;
   const num = parseInt(hex, 16);
   if (isNaN(num)) return color;
+  amount = amount > 0 ? Math.min(amount, 1) : 0;
   let rC = num >> 16 & 255;
   let gC = num >> 8 & 255;
   let bC = num & 255;
@@ -336,9 +466,11 @@ const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt
 class NodeTooltip {
   /**
    * @param {any} w
+   * @param {any} [ctx] chart instance, handed to tooltip.custom as core does
    */
-  constructor(w) {
+  constructor(w, ctx) {
     this.w = w;
+    this.ctx = ctx;
     this.total = 1;
     this._el = null;
   }
@@ -377,21 +509,39 @@ class NodeTooltip {
     const pctTotal = (node.value / this.total * 100).toFixed(1);
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const ty = w.config.tooltip.y;
-    const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
-    const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
-    const group = (
-      /** @type {HTMLElement} */
-      t.firstChild
-    );
-    const marker = (
-      /** @type {HTMLElement} */
-      group.firstChild
-    );
-    marker.style.backgroundColor = node._color;
-    if (w.config.tooltip.fillSeriesColor) {
-      group.style.backgroundColor = node._color;
+    let fn = w.config.tooltip.custom;
+    if (Array.isArray(fn)) fn = fn[0];
+    const out = typeof fn === "function" && fn({
+      series: w.seriesData.series,
+      seriesIndex: 0,
+      dataPointIndex: -1,
+      w,
+      ctx: this.ctx,
+      node,
+      percentOfParent: +pctParent,
+      percentOfTotal: +pctTotal
+    });
+    if (out == null ? void 0 : out.nodeName) {
+      t.replaceChildren(out.cloneNode(true));
+    } else if (typeof out === "string" || typeof out === "number") {
+      t.innerHTML = out;
+    } else {
+      const ty = w.config.tooltip.y;
+      const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
+      const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
+      t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+      const group = (
+        /** @type {HTMLElement} */
+        t.firstChild
+      );
+      const marker = (
+        /** @type {HTMLElement} */
+        group.firstChild
+      );
+      marker.style.backgroundColor = node._color;
+      if (w.config.tooltip.fillSeriesColor) {
+        group.style.backgroundColor = node._color;
+      }
     }
     t.classList.add("apexcharts-active");
     t.style.opacity = "1";
@@ -425,11 +575,43 @@ class NodeTooltip {
     t.style.opacity = "0";
   }
 }
+const CHAR_W_EM = 0.58;
+const lerp = (a, b, t) => a + (b - a) * t;
+function resolveMode(w) {
+  const anims = w.config.chart.animations;
+  if (!anims.enabled) return "none";
+  if (w.globals.dataChanged) {
+    return anims.dynamicAnimation.enabled && w.globals.shouldAnimate !== false ? "update" : "none";
+  }
+  return w.globals.resized ? "none" : "intro";
+}
+function durationFor(w, mode) {
+  var _a, _b;
+  const anims = w.config.chart.animations;
+  if (!anims.enabled || mode === "none") return 0;
+  if (mode === "intro") return (_a = anims.speed) != null ? _a : 500;
+  const dyn = anims.dynamicAnimation;
+  return dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
+}
+function fadeInAfter(group, dur, alive) {
+  group.attr({ opacity: dur > 0 ? 0 : 1 });
+  if (dur > 0) {
+    group.animate(250, dur).during((p) => {
+      if (alive()) group.attr({ opacity: p });
+    });
+  }
+}
+function handOffGeoms(ctx, slot, nodes, entry) {
+  const geoms = /* @__PURE__ */ new Map();
+  nodes.forEach((n) => {
+    const e = entry(n);
+    if (e) geoms.set(n._key, e);
+  });
+  ctx[slot] = geoms;
+}
 const D2R = Math.PI / 180;
 const R2D = 180 / Math.PI;
 const SVGNS = "http://www.w3.org/2000/svg";
-const XHTML = "http://www.w3.org/1999/xhtml";
-const lerp = (a, b, t) => a + (b - a) * t;
 class SunburstChart {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -456,7 +638,7 @@ class SunburstChart {
     this._nodesAll = [];
     this._innerR = () => 0;
     this._outerR = () => 0;
-    this._tooltip = new NodeTooltip(w);
+    this._tooltip = new NodeTooltip(w, this.ctx);
     this._lblSeq = 0;
     this._morphLeafIndex = 0;
     this._graphics = null;
@@ -506,16 +688,7 @@ class SunburstChart {
       this._roots
     );
     this._relayout(this._focus);
-    const anims = w.config.chart.animations;
-    let mode = "none";
-    if (anims.enabled) {
-      if (w.globals.dataChanged) {
-        if (w.globals.shouldAnimate !== false) mode = "update";
-      } else if (!w.globals.resized) {
-        mode = "intro";
-      }
-    }
-    this._applyLayout(mode);
+    this._applyLayout(resolveMode(w));
     this._renderBreadcrumb();
     return g;
   }
@@ -580,17 +753,15 @@ class SunburstChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
-    var _a, _b, _c;
+    var _a;
     const w = this.w;
-    const anims = w.config.chart.animations;
-    const dyn = anims.dynamicAnimation;
-    const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
+    const dur = durationFor(w, mode);
     const gen = ++this._zoomGen;
     const morph = (
       /** @type {any} */
-      (_c = this.ctx) == null ? void 0 : _c.morphTypeChange
+      (_a = this.ctx) == null ? void 0 : _a.morphTypeChange
     );
-    const morphActive = !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialPathAt === "function";
+    const morphActive = mode !== "zoom" && !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialPathAt === "function";
     const morphDur = morphActive ? morph.getSpeed() : 0;
     this._morphLeafIndex = 0;
     const prev = mode === "update" ? (
@@ -613,15 +784,20 @@ class SunburstChart {
         if (!node._el) node._el = this._createArcEl(node);
         setZoomCursor(this, node);
         const morphFrom = morphActive ? this._morphSourceFor(node) : null;
+        const p = prev && prev.get(node._key);
+        if (p && this._midMorph(p)) this._adopt(node, p);
         if (morphFrom && morphDur > 0) {
           this._morphArcFrom(node, morphFrom, target, morphDur, gen);
+        } else if (this._midMorph(node)) {
+          this._continueMorph(node, target, dur, gen);
         } else if ((mode === "intro" || morphActive) && dur > 0) {
           this._sweepArc(node, target, morphActive ? morphDur : dur, gen);
         } else {
-          const p = prev && prev.get(node._key);
           const from = node._cur || (p ? geo(p) : pinch(target));
           this._animateArc(node, from, target, dur, false, !node._cur && !p, gen);
         }
+      } else if (node._el && this._midMorph(node)) {
+        this._continueMorph(node, null, dur, gen);
       } else if (node._el && node._cur) {
         this._animateArc(node, node._cur, pinch(node._cur), dur, true, false, gen);
       }
@@ -641,7 +817,10 @@ class SunburstChart {
         const c = geo(p);
         const g = { _el: el, _color: p._color, name: p.name, _key: k, _cur: c };
         this._nodesAll.push(g);
-        this._animateArc(g, c, pinch(c), dur, true, false, gen);
+        if (this._midMorph(p)) {
+          this._adopt(g, p);
+          this._continueMorph(g, null, dur, gen);
+        } else this._animateArc(g, c, pinch(c), dur, true, false, gen);
       });
     }
     const end = Math.max(dur, morphDur);
@@ -657,11 +836,12 @@ class SunburstChart {
           );
       });
     } else w.globals.animationEnded = true;
-    const geoms = /* @__PURE__ */ new Map();
-    this._nodesAll.forEach((n) => {
-      if (n._show || n._cur) geoms.set(n._key, n);
-    });
-    this.ctx._sunburstPrevGeoms = geoms;
+    handOffGeoms(
+      this.ctx,
+      "_sunburstPrevGeoms",
+      this._nodesAll,
+      (n) => n._show || n._cur ? n : null
+    );
     this._renderLabels(dur);
   }
   /**
@@ -719,13 +899,13 @@ class SunburstChart {
     el.node.style.display = "";
     el.attr({ d: fromD, opacity: 1 });
     node._cur = target;
-    if (this._zoomGen !== gen) return;
+    node._pathEnd = this.w.globals.shouldAnimate ? performance.now() + dur : 0;
     new Animations(
       this.w,
       /** @type {any} */
       this.ctx
     ).morphSVG(
-      el,
+      this._gated(el, gen),
       0,
       // Not a (series, point) index: an arc has no j, and passing a number here
       // would make morphSVG treat it as the last point of a series and fire the
@@ -738,6 +918,71 @@ class SunburstChart {
       dur,
       0
     );
+  }
+  /**
+   * The arc's element as seen by a tween this pass starts: once a newer
+   * layout supersedes the pass, its writes are dropped (reads still pass), so
+   * a runner with no generation check of its own, like morphSVG's, stops
+   * fighting the newer pass for the path and cannot land on a stale arc.
+   * @param {any} el
+   * @param {number} gen
+   * @returns {any}
+   */
+  _gated(el, gen) {
+    const live = Object.create(el);
+    live.attr = (...a) => this._zoomGen === gen || a.length === 1 && typeof a[0] === "string" ? el.attr(...a) : live;
+    return live;
+  }
+  /**
+   * Whether a path tween (a cross-type morph, or a zoom that took one over)
+   * is still reshaping this arc.
+   * @param {any} node
+   */
+  _midMorph(node) {
+    return node._pathEnd > 0 && node._pathEnd > performance.now();
+  }
+  /**
+   * Hand a previous render's mid-path arc over to this render's element: its
+   * shape and opacity as they are on screen, and the path tween still due.
+   * @param {any} node
+   * @param {any} p  the previous render's node
+   */
+  _adopt(node, p) {
+    node._el.attr({ d: p._el.attr("d"), opacity: p._el.attr("opacity") });
+    node._pathEnd = p._pathEnd;
+  }
+  /**
+   * Take over an arc a superseded path tween is still reshaping. What is on
+   * screen is part-way from a tile to an arc, which arc parameters cannot
+   * express, so it carries on as a path tween from exactly there to the new
+   * target on this pass's clock, resampled as the morph was. An arc this pass
+   * hides fades out where it is.
+   * @param {any} node
+   * @param {{a0:number,a1:number,iR:number,oR:number} | null} to  null hides
+   * @param {number} dur
+   * @param {number} gen
+   */
+  _continueMorph(node, to, dur, gen) {
+    const el = node._el;
+    const toD = to && this._arcPath(to.iR, to.oR, to.a0, to.a1, this.cfg.borderRadius);
+    if (to) node._cur = to;
+    node._pathEnd = dur ? performance.now() + dur : 0;
+    const land = () => {
+      if (to) return;
+      el.node.style.display = "none";
+      node._cur = null;
+    };
+    if (!dur) {
+      if (to) el.attr({ d: toD, opacity: 1 });
+      land();
+      return;
+    }
+    el.node.style.display = "";
+    const run = this._gated(el, gen).animate(dur);
+    if (to) run.plot(toD, "polygons");
+    run.attr({ opacity: to ? 1 : 0 }).after(() => {
+      if (this._zoomGen === gen) land();
+    });
   }
   /**
    * Pie/donut-style intro: a clock sweep from startAngle to endAngle. Each
@@ -849,19 +1094,15 @@ class SunburstChart {
   _renderLabels(dur) {
     const labelsG = this._labelsG;
     while (labelsG.node.firstChild) labelsG.node.removeChild(labelsG.node.firstChild);
-    if (!this.cfg.dataLabels.show) return;
+    if (!this.cfg.dataLabels.show || this.w.config.dataLabels.enabled === false)
+      return;
     this._nodesAll.forEach((node) => {
       if (!node._show) return;
       if (node._t1 - node._t0 < this.cfg.dataLabels.minAngleToShow) return;
       this._renderCurvedLabel(node);
     });
     const gen = this._zoomGen;
-    labelsG.attr({ opacity: dur > 0 ? 0 : 1 });
-    if (dur > 0) {
-      labelsG.animate(250, dur).during((p) => {
-        if (this._zoomGen === gen) labelsG.attr({ opacity: p });
-      });
-    }
+    fadeInAfter(labelsG, dur, () => this._zoomGen === gen);
   }
   /**
    * Curved label along the arc's mid-radius (flipped on the bottom half so it
@@ -919,7 +1160,7 @@ class SunburstChart {
    */
   _truncate(name, r, spanDeg, fontSize) {
     const arcLen = r * spanDeg * D2R - 8;
-    const charW = (parseFloat(fontSize) || 12) * 0.58;
+    const charW = (parseFloat(fontSize) || 12) * CHAR_W_EM;
     const maxChars = Math.floor(arcLen / charW);
     if (maxChars >= name.length) return name;
     if (maxChars <= 1) return "";
@@ -934,74 +1175,38 @@ class SunburstChart {
   _zoomTo(node) {
     if (this.cfg.zoomOnClick === false) return;
     const next = resolveFocus(node, this._focus, this._roots);
-    if (!next.changed) return;
-    this._focus = next.focus;
-    this._relayout(this._focus);
+    if (next.changed) this._focusOn(next.focus);
+  }
+  /**
+   * @param {any} focus  null = the whole tree
+   */
+  _focusOn(focus) {
+    this._focus = focus;
+    this._relayout(focus);
     this._applyLayout("zoom");
     this._renderBreadcrumb();
   }
   /**
-   * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
-   * CSS classes, but does NOT depend on the drilldown feature).
+   * The zoom breadcrumb, on the renderer the treemap, icicle and drilldown
+   * share, so it honours `drilldown.breadcrumb` and carries the same markup and
+   * semantics. It floats over a corner rather than sitting in a reserved band:
+   * the rings leave the corners empty.
    */
   _renderBreadcrumb() {
     if (!Environment.isBrowser()) return;
-    const w = this.w;
-    const elWrap = w.dom.elWrap;
-    if (!elWrap) return;
-    const existing = elWrap.querySelector(".apexcharts-breadcrumb");
-    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
-    if (!this._focus) return;
-    const nav = BrowserAPIs.createElementNS(XHTML, "nav");
-    nav.setAttribute("class", "apexcharts-breadcrumb");
-    nav.setAttribute("aria-label", "Sunburst breadcrumb");
-    nav.style.position = "absolute";
-    nav.style.top = "0px";
-    nav.style.left = "0px";
-    const crumbs = [{ name: "All", node: null }].concat(
-      focusChain(this._focus).map((n) => ({ name: n.name, node: n }))
-    );
-    crumbs.forEach((crumb, i) => {
-      if (i > 0) {
-        const sep = BrowserAPIs.createElementNS(XHTML, "span");
-        sep.setAttribute("class", "apexcharts-breadcrumb-separator");
-        sep.textContent = " / ";
-        nav.appendChild(sep);
-      }
-      const isCurrent = i === crumbs.length - 1;
-      if (isCurrent) {
-        const cur = BrowserAPIs.createElementNS(XHTML, "span");
-        cur.setAttribute(
-          "class",
-          "apexcharts-breadcrumb-item apexcharts-breadcrumb-current"
-        );
-        cur.textContent = crumb.name;
-        nav.appendChild(cur);
-      } else {
-        const btn = BrowserAPIs.createElementNS(XHTML, "button");
-        btn.setAttribute("type", "button");
-        btn.setAttribute("class", "apexcharts-breadcrumb-item");
-        if (i === 0) {
-          const arrow = BrowserAPIs.createElementNS(XHTML, "span");
-          arrow.setAttribute("class", "apexcharts-breadcrumb-arrow");
-          arrow.textContent = "←";
-          btn.appendChild(arrow);
-        }
-        const text = BrowserAPIs.createElementNS(XHTML, "span");
-        text.setAttribute("class", "apexcharts-breadcrumb-label");
-        text.textContent = crumb.name;
-        btn.appendChild(text);
-        btn.addEventListener("click", () => {
-          this._focus = crumb.node;
-          this._relayout(this._focus);
-          this._applyLayout("zoom");
-          this._renderBreadcrumb();
-        });
-        nav.appendChild(btn);
+    if (!this._focus) {
+      clearBreadcrumb(this.w);
+      return;
+    }
+    const nav = renderBreadcrumb(this.w, {
+      crumbs: focusTrail(this._roots, this._focus),
+      ariaLabel: "Sunburst breadcrumb",
+      onNavigate: (i, crumb, e) => {
+        this._focusOn(crumb.focus);
+        refocusBreadcrumb(this.w, e);
       }
     });
-    elWrap.appendChild(nav);
-    avoidChromeOverlap(w, nav);
+    if (nav) avoidChromeOverlap(this.w, nav);
   }
   // ------------------------------------------------------------ geometry
   /**

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -198,18 +198,14 @@ class TreemapHelpers {
     this.ctx = ctx;
     this.w = w;
   }
+  /** Whether a colour range reaches zero or below. Runs once per draw. */
   checkColorRange() {
     const w = this.w;
-    let negRange = false;
-    const chartOpts = w.config.plotOptions[w.config.chart.type];
-    if (chartOpts.colorScale.ranges.length > 0) {
-      chartOpts.colorScale.ranges.map((range) => {
-        if (range.from <= 0) {
-          negRange = true;
-        }
-      });
-    }
-    return negRange;
+    this.rowExt = /** @type {number[][]} */
+    [];
+    return w.config.plotOptions[w.config.chart.type].colorScale.ranges.some(
+      (range) => range.from <= 0
+    );
   }
   /**
    * @param {string} chartType
@@ -219,51 +215,30 @@ class TreemapHelpers {
    */
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w;
-    let colorShadePercent = 1;
-    const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
+    const opts = w.config.plotOptions[chartType];
+    const shadeIntensity = opts.shadeIntensity;
+    const k = shadeIntensity * 1.25;
     const colorProps = this.determineColor(chartType, i, j);
+    const p = colorProps.percent / 100;
+    let colorShadePercent;
     if (
       /** @type {any} */
       w.globals.hasNegs || negRange
     ) {
-      if (w.config.plotOptions[chartType].reverseNegativeShade) {
-        if (colorProps.percent < 0) {
-          colorShadePercent = colorProps.percent / 100 * (shadeIntensity * 1.25);
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-        }
-      } else {
-        if (colorProps.percent <= 0) {
-          colorShadePercent = 1 - (1 + colorProps.percent / 100) * shadeIntensity;
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * shadeIntensity;
-        }
-      }
+      colorShadePercent = opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
     } else {
-      colorShadePercent = 1 - colorProps.percent / 100;
-      if (chartType === "treemap") {
-        colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-      }
+      colorShadePercent = chartType === "treemap" ? (1 - p) * k : 1 - p;
     }
     let color = colorProps.color;
-    const utils = new Utils();
-    if (w.config.plotOptions[chartType].enableShades) {
-      if (this.w.config.theme.mode === "dark") {
-        const shadeColor = utils.shadeColor(
-          colorShadePercent * -1,
-          colorProps.color
-        );
-        color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      } else {
-        const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color);
-        color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      }
+    if (opts.enableShades) {
+      const shadeColor = new Utils().shadeColor(
+        w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,
+        color
+      );
+      color = Utils.hexToRgba(
+        Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
+        w.config.fill.opacity
+      );
     }
     return { color, colorProps };
   }
@@ -288,13 +263,22 @@ class TreemapHelpers {
       min = w.globals.minY;
       max = w.globals.maxY;
     } else {
-      const row = w.seriesData.series[i];
-      min = row.length ? row[0] : 0;
-      max = min;
-      for (let k = 1; k < row.length; k++) {
-        if (row[k] < min) min = row[k];
-        if (row[k] > max) max = row[k];
+      let ext = (
+        /** @type {number[][]} */
+        this.rowExt[i]
+      );
+      if (!ext) {
+        const row = w.seriesData.series[i];
+        min = row.length ? row[0] : 0;
+        max = min;
+        for (let k = 1; k < row.length; k++) {
+          if (row[k] < min) min = row[k];
+          if (row[k] > max) max = row[k];
+        }
+        ext = /** @type {number[][]} */
+        this.rowExt[i] = [min, max];
       }
+      [min, max] = ext;
     }
     const csMin = chartOpts.colorScale.min;
     const csMax = chartOpts.colorScale.max;
@@ -355,6 +339,11 @@ class TreemapHelpers {
 }
 const Filters = _core.__apex_Filters;
 const Series = _core.__apex_Series;
+function nameAsHtml(name, out = name) {
+  const s = String(name != null ? name : "");
+  const tail = out === s ? "" : out === s + ": " ? ": " : null;
+  return tail === null ? out : s.replace(/&/g, "&amp;").replace(/</g, "&lt;") + tail;
+}
 const Environment = _core.__apex_Environment_Environment;
 function drilldownById(w, id) {
   const dd = w.config.drilldown;
@@ -491,10 +480,9 @@ function getTreemapRoots(w) {
 }
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const resolveEasing = _core.__apex_Easing_resolveEasing;
-function rafTween(w, duration, ease, onFrame, onDone) {
-  const startAt = performance.now();
+function rafTween(w, duration, ease, onFrame, onDone, alive, startAt = performance.now()) {
   const step = (now) => {
-    if (w.globals.isDestroyed) return;
+    if (w.globals.isDestroyed || alive && !alive()) return;
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
     onFrame(ease(raw), raw);
     if (raw < 1) {
@@ -504,6 +492,9 @@ function rafTween(w, duration, ease, onFrame, onDone) {
     }
   };
   BrowserAPIs.requestAnimationFrame(step);
+  return () => {
+    alive = () => false;
+  };
 }
 const DEFAULT_DIVERGING = ["#cf4d3f", "#8f9499", "#26a75b"];
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -547,14 +538,12 @@ function colorValueOfDatum(w, datum, i, j) {
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
-function resolveStops(cfg, min, max, midpoint) {
-  if (Array.isArray(cfg.stops) && cfg.stops.length >= 2) {
+function resolveStops(cfg, min, max, midpoint, explicit) {
+  if (explicit) {
     return cfg.stops.filter((s) => s && Number.isFinite(Number(s.value))).map((s) => ({
       value: Number(s.value),
       color: normalizeHex(s.color)
-    })).sort(
-      (a, b) => a.value - b.value
-    );
+    })).sort((a, b) => a.value - b.value);
   }
   const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
   const n = colors.length;
@@ -606,8 +595,11 @@ function buildContinuousScale(w) {
     dataMin = 0;
     dataMax = 0;
   }
-  let min = Number.isFinite(Number(cfg.min)) ? Number(cfg.min) : dataMin;
-  let max = Number.isFinite(Number(cfg.max)) ? Number(cfg.max) : dataMax;
+  const pin = (v) => Number.isFinite(Number(v)) ? Number(v) : null;
+  const pinMin = pin(cfg.min);
+  const pinMax = pin(cfg.max);
+  let min = pinMin != null ? pinMin : dataMin;
+  let max = pinMax != null ? pinMax : dataMax;
   let midpoint = null;
   if (cfg.midpoint === null) {
     midpoint = null;
@@ -616,7 +608,7 @@ function buildContinuousScale(w) {
   } else if (min < 0 && max > 0) {
     midpoint = 0;
   }
-  if (midpoint != null && cfg.symmetric !== false && !Number.isFinite(Number(cfg.min)) && !Number.isFinite(Number(cfg.max))) {
+  if (midpoint != null && cfg.symmetric !== false && pinMin == null && pinMax == null) {
     const reach = Math.max(Math.abs(min - midpoint), Math.abs(max - midpoint));
     min = midpoint - reach;
     max = midpoint + reach;
@@ -625,8 +617,13 @@ function buildContinuousScale(w) {
     min -= 0.5;
     max += 0.5;
   }
-  const stops = resolveStops(cfg, min, max, midpoint);
+  const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2;
+  const stops = resolveStops(cfg, min, max, midpoint, explicit);
   if (stops.length < 2) return null;
+  if (explicit) {
+    if (pinMin == null) min = Math.min(min, stops[0].value);
+    if (pinMax == null) max = Math.max(max, stops[stops.length - 1].value);
+  }
   const at = (v) => {
     if (!Number.isFinite(v)) return stops[Math.floor(stops.length / 2)].color;
     if (v <= stops[0].value) return stops[0].color;
@@ -644,10 +641,13 @@ function buildContinuousScale(w) {
     return last.color;
   };
   const span = max - min;
-  const legendStops = stops.map((s) => ({
-    percent: span === 0 ? 0 : (s.value - min) / span,
-    color: s.color
-  }));
+  const legendStops = stops.map((s) => {
+    const v = Math.min(max, Math.max(min, s.value));
+    return {
+      percent: span && (v - min) / span,
+      color: v === s.value ? s.color : at(v)
+    };
+  });
   return { min, max, midpoint, stops, at, legendStops };
 }
 function readableOn(bg) {
@@ -658,15 +658,19 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 const BREADCRUMB_HEIGHT = 18;
 function breadcrumbConfig(w, localCfg) {
   const shared = w.config.drilldown && w.config.drilldown.breadcrumb || {};
-  return __spreadValues(__spreadValues({
-    show: true,
-    position: "top-left",
-    separator: " / ",
-    rootLabel: "All",
-    offsetX: 0,
-    offsetY: 0,
-    formatter: void 0
-  }, shared), localCfg || {});
+  return Object.assign(
+    {
+      show: true,
+      position: "top-left",
+      separator: " / ",
+      rootLabel: "All",
+      offsetX: 0,
+      offsetY: 0,
+      formatter: void 0
+    },
+    shared,
+    localCfg
+  );
 }
 function avoidChromeOverlap(w, nav) {
   const chrome = (
@@ -2144,6 +2148,7 @@ class TreemapChart {
    * @param {any} node
    */
   _showParentTooltip(e, node) {
+    var _a;
     const w = this.w;
     const t = this._tip();
     if (!t) return;
@@ -2152,29 +2157,33 @@ class TreemapChart {
     const pctTotal = total > 0 ? (node._area / total * 100).toFixed(1) : "0.0";
     const pctParent = parentVal > 0 ? (node._area / parentVal * 100).toFixed(1) : pctTotal;
     const cfg = this.w.config.plotOptions.treemap.parents;
-    const custom = cfg && cfg.tooltip && cfg.tooltip.formatter;
     const leafCount = this._countLeaves(node);
-    let html;
-    if (typeof custom === "function") {
-      html = custom({
-        name: node.name,
-        value: node._area,
-        depth: node.depth || 0,
-        leafCount,
-        percentOfParent: Number(pctParent),
-        percentOfTotal: Number(pctTotal),
-        node,
-        w
-      });
-    } else {
+    let fn = cfg && cfg.tooltip && cfg.tooltip.formatter;
+    if (typeof fn !== "function") fn = w.config.tooltip.custom;
+    let html = (_a = Array.isArray(fn) ? fn[node._si] : fn) == null ? void 0 : _a({
+      name: node.name,
+      value: node._area,
+      depth: node.depth || 0,
+      leafCount,
+      percentOfParent: +pctParent,
+      percentOfTotal: +pctTotal,
+      node,
+      w,
+      series: w.seriesData.series,
+      seriesIndex: node._si,
+      dataPointIndex: -1,
+      ctx: this.ctx
+    });
+    if (html == null || html === false) {
       const marker = this._parentChrome(node.depth || 0).headerBg;
       const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${marker};` : "";
-      html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${String(node.name).replace(/&/g, "&amp;").replace(/</g, "&lt;")}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
+      html = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${nameAsHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${this._formatValue(
         node._area,
         node._si
       )}</span></div><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${leafCount} items, </span><span class="apexcharts-tooltip-text-y-value">${pctParent}% of parent, ${pctTotal}% of total</span></div></div></div>`;
     }
-    t.innerHTML = html;
+    if (html == null ? void 0 : html.nodeName) t.replaceChildren(html.cloneNode(true));
+    else t.innerHTML = html;
     t.classList.add("apexcharts-active");
     t.removeAttribute("aria-hidden");
     this._positionTooltip(e);
@@ -2361,13 +2370,20 @@ class TreemapChart {
    * @param {number} y2
    */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.w);
-    const textRect = this._labelRect(graphics, text, fontSize);
-    if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
-      const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
+    const textRect = (
+      /** @type {any} */
+      this._labelRect(new Graphics(this.w), text, fontSize)
+    );
+    const t = elText.node.querySelector("text");
+    if (t && textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
+      const a = t.getAttribute("text-anchor");
+      const cx = +t.getAttribute("x") + /** @type {any} */
+      ((a === "start") - /** @type {any} */
+      (a === "end")) * textRect.width / 2;
+      const cy = +t.getAttribute("y") + textRect.centerOffset;
       elText.node.setAttribute(
         "transform",
-        `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y}) translate(${textRect.height / 3})`
+        `rotate(-90 ${cx} ${cy}) translate(${textRect.height / 3})`
       );
     }
   }
@@ -2420,9 +2436,9 @@ class TreemapChart {
    * @returns {boolean}
    */
   _morphKeyed() {
-    var _a;
+    var _a, _b;
     const m = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange;
-    return !!(m && typeof m.hasKeyedMarks === "function" && m.hasKeyedMarks() && typeof m.getInitialPathForKey === "function");
+    return (_b = this._keyed) != null ? _b : this._keyed = !!(m && typeof m.hasKeyedMarks === "function" && m.hasKeyedMarks() && typeof m.getInitialPathForKey === "function");
   }
   /**
    * The captured shape a LEAF tile unrolls from, or null when the outgoing

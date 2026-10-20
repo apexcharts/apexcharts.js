@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -517,9 +517,8 @@ class StreamLabels {
   /**
    * Which band is under the pointer, or -1.
    *
-   * x goes through `AxisMapping.screenXToPlotPx`, the one screen-to-plot
-   * mapping, so a chart inside a CSS-zoomed container hit-tests where it looks.
-   * y is measured off the same svg rect with the same zoom factor.
+   * Both axes go through `AxisMapping.plotRect`, measured once per move, so a
+   * chart inside a CSS-zoomed container hit-tests where it looks.
    *
    * @param {MouseEvent} e
    * @returns {number}
@@ -528,12 +527,9 @@ class StreamLabels {
     const w = this.w;
     const d = w.streamgraphData;
     if (!d || !d.order.length) return -1;
-    const svg = w.dom.baseEl && w.dom.baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return -1;
-    const rect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? rect.width / w.globals.svgWidth : 1;
-    const px = AxisMapping.screenXToPlotPx(w, e.clientX);
-    const py = (e.clientY - rect.top) / (zoom || 1) - w.layout.translateY;
+    const plot = AxisMapping.plotRect(w);
+    const px = AxisMapping.screenXToPlotPx(w, e.clientX, plot);
+    const py = (e.clientY - plot.top) / plot.zoom;
     if (px < 0 || px > w.layout.gridWidth) return -1;
     if (py < 0 || py > w.layout.gridHeight) return -1;
     const xs = w.globals.seriesXvalues[d.order[0]];
@@ -552,13 +548,48 @@ class StreamLabels {
         }
       }
     }
-    if (j < 0) return -1;
+    return j < 0 ? -1 : this.bandAt(py, j);
+  }
+  /**
+   * The band at client y in column `j`, for the default tooltip, which has
+   * the column already and must name the same band the hover dims.
+   *
+   * @param {number} clientY
+   * @param {number} j
+   * @returns {number} the band, or -1
+   */
+  bandAtClientY(clientY, j) {
+    const plot = AxisMapping.plotRect(this.w);
+    return this.bandAt((clientY - plot.top) / plot.zoom, j);
+  }
+  /**
+   * The band containing plot y `py` in column `j`, else the nearest one, or
+   * -1 when there is nothing to hit. The one band hit-test: the hover dim and
+   * the default tooltip both resolve through it, so they cannot disagree.
+   *
+   * A wiggle baseline leaves plot background above and below the surface, and
+   * the tooltip (intersect: false) still names the nearest band when the
+   * cursor is out there. So does this, or the tooltip would name a band with
+   * nothing on the chart pointing at it.
+   *
+   * @param {number} py
+   * @param {number} j
+   * @returns {number}
+   */
+  bandAt(py, j) {
+    const gl = this.w.globals;
+    const d = this.w.streamgraphData;
+    const span = gl.maxY - gl.minY;
+    if (!d || !Array.isArray(d.order) || !span || !isFinite(span)) return -1;
     let nearest = -1;
     let gap = Infinity;
     for (let i = 0; i < d.order.length; i++) {
       const k = d.order[i];
-      const a = this._yPx(d.highs[k][j]);
-      const b = this._yPx(d.lows[k][j]);
+      const hi = d.highs[k] && d.highs[k][j];
+      const lo = d.lows[k] && d.lows[k][j];
+      if (lo == null || hi == null) continue;
+      const a = this._yPx(hi);
+      const b = this._yPx(lo);
       const top = Math.min(a, b);
       const bottom = Math.max(a, b);
       if (py >= top && py <= bottom) return k;
@@ -696,6 +727,23 @@ function stashSeries(ser, gl) {
     return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
   });
 }
+const DateTime = _core.__apex_DateTime;
+function xKey(x, datetime) {
+  if (x instanceof Date) return x.getTime();
+  if (datetime && typeof x === "string") {
+    const t = DateTime.prototype.parseDate(x);
+    if (!isNaN(t)) return t;
+  }
+  return x;
+}
+function withX(data, categories) {
+  return data.map(
+    (d, j) => d !== null && typeof d === "object" ? d : {
+      x: categories && categories[j] !== void 0 ? categories[j] : j + 1,
+      y: d
+    }
+  );
+}
 const OFFSETS = ["wiggle", "silhouette", "zero", "expand"];
 const ORDERS = ["inside-out", "inverse", "none"];
 function readDatum(d, j, categories) {
@@ -717,21 +765,23 @@ function isPairShaped(data) {
   }
   return false;
 }
-function joinOnX(raw, categories) {
+function joinOnX(raw, categories, datetime, band) {
   var _a;
   const xs = [];
+  const keys = [];
   const rows = [];
   const seen = /* @__PURE__ */ new Map();
   const grids = [];
   for (let k = 0; k < raw.length; k++) {
-    const data = Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
+    const data = band[k] && Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
     const grid = /* @__PURE__ */ new Map();
     for (let j = 0; j < data.length; j++) {
       const { x, y, rest } = readDatum(data[j], j, categories);
-      const key = x instanceof Date ? x.getTime() : x;
+      const key = xKey(x, datetime);
       if (!seen.has(key)) {
         seen.set(key, xs.length);
         xs.push(x);
+        keys.push(key);
         rows.push(__spreadValues({}, rest));
       }
       grid.set(
@@ -742,21 +792,15 @@ function joinOnX(raw, categories) {
     }
     grids.push(grid);
   }
-  return { xs, rows, grids };
+  return { xs, keys, rows, grids };
 }
-function sortColumns(xs) {
-  const idx = [];
-  for (let j = 0; j < xs.length; j++) {
-    const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
-    if (typeof x !== "number" || !isFinite(x)) return null;
-    idx.push(j);
+function sortColumns(keys) {
+  const perm = [];
+  for (let j = 0; j < keys.length; j++) {
+    if (typeof keys[j] !== "number" || !isFinite(keys[j])) return null;
+    perm.push(j);
   }
-  const keyed = idx.map((j) => ({
-    j,
-    v: xs[j] instanceof Date ? xs[j].getTime() : xs[j]
-  }));
-  keyed.sort((a, b) => a.v - b.v);
-  const perm = keyed.map((e) => e.j);
+  perm.sort((a, b) => keys[a] - keys[b]);
   for (let j = 0; j < perm.length; j++) {
     if (perm[j] !== j) return perm;
   }
@@ -816,16 +860,14 @@ function baselineFor(mode, order, stack, m) {
   for (let j = 1; j < m; j++) {
     let s1 = 0;
     let s2 = 0;
+    let below = 0;
     for (let i = 0; i < order.length; i++) {
       const vi = stack[order[i]];
       const now = vi[j];
-      let moved = (now - vi[j - 1]) / 2;
-      for (let k = 0; k < i; k++) {
-        const vk = stack[order[k]];
-        moved += vk[j] - vk[j - 1];
-      }
+      const diff = now - vi[j - 1];
       s1 += now;
-      s2 += moved * now;
+      s2 += (diff / 2 + below) * now;
+      below += diff;
     }
     if (s1) y -= s2 / s1;
     base[j] = y;
@@ -833,7 +875,7 @@ function baselineFor(mode, order, stack, m) {
   return base;
 }
 function streamgraphTransform(ser, w) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const cnf = w.config;
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
@@ -841,8 +883,11 @@ function streamgraphTransform(ser, w) {
     gl.streamgraphRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.streamgraphRawSeries;
+  const band = raw.map(
+    (s) => !(s == null ? void 0 : s.type) || s.type === "streamgraph" || s.type === "rangeArea"
+  );
   if (raw.some(
-    (s) => isPairShaped(Array.isArray(s == null ? void 0 : s.data) ? s.data : [])
+    (s, k) => band[k] && isPairShaped(Array.isArray(s == null ? void 0 : s.data) ? s.data : [])
   )) {
     w.streamgraphData = null;
     return ser;
@@ -852,15 +897,34 @@ function streamgraphTransform(ser, w) {
   const order = ORDERS.indexOf(opts.order) !== -1 ? opts.order : "inside-out";
   const categories = (_b = cnf.xaxis) == null ? void 0 : _b.categories;
   const collapsed = collapsedIndices(gl);
-  const { xs, rows, grids } = joinOnX(raw, categories);
-  const perm = sortColumns(xs);
+  const datetime = ((_c = cnf.xaxis) == null ? void 0 : _c.type) === "datetime";
+  const { xs, keys, rows, grids } = joinOnX(raw, categories, datetime, band);
+  const perm = sortColumns(keys);
   const columns = perm ? perm.map((j) => xs[j]) : xs;
   const columnRows = perm ? perm.map((j) => rows[j]) : rows;
   const m = columns.length;
+  const lines = [];
+  let colOf;
   let sawNegative = false;
   const values = [];
   for (let k = 0; k < raw.length; k++) {
     const row = new Array(m);
+    if (!band[k]) {
+      row.fill(null);
+      if (collapsed.indexOf(k) === -1) lines.push(k);
+      if (!colOf) {
+        colOf = /* @__PURE__ */ new Map();
+        for (let j = 0; j < m; j++) colOf.set(keys[perm ? perm[j] : j], j);
+      }
+      const data = Array.isArray((_d = raw[k]) == null ? void 0 : _d.data) ? raw[k].data : [];
+      for (let j = 0; j < data.length; j++) {
+        const { x, y } = readDatum(data[j], j, categories);
+        const c = colOf.get(xKey(x, datetime));
+        if (c !== void 0) row[c] = Utils.parseNumber(y);
+      }
+      values.push(row);
+      continue;
+    }
     for (let j = 0; j < m; j++) {
       const src = grids[k].get(perm ? perm[j] : j);
       let v = src === void 0 || src === null ? 0 : Number(src);
@@ -881,11 +945,14 @@ function streamgraphTransform(ser, w) {
   }
   const visible = [];
   for (let k = 0; k < raw.length; k++) {
-    if (collapsed.indexOf(k) === -1) visible.push(k);
+    if (band[k] && collapsed.indexOf(k) === -1) visible.push(k);
   }
-  let stack = values;
+  let stack = (
+    /** @type {number[][]} */
+    values
+  );
   if (offset === "expand") {
-    stack = values.map((row) => row.slice());
+    stack = stack.map((row) => row.slice());
     for (let j = 0; j < m; j++) {
       let total = 0;
       for (let i = 0; i < visible.length; i++) total += stack[visible[i]][j];
@@ -931,10 +998,15 @@ function streamgraphTransform(ser, w) {
     lows,
     highs,
     order: bandOrder,
+    lines,
     offset,
     hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
   };
   return raw.map((s, k) => {
+    if (!band[k]) {
+      if (collapsed.indexOf(k) !== -1) return __spreadProps(__spreadValues({}, s), { data: [] });
+      return Array.isArray(s == null ? void 0 : s.data) ? __spreadProps(__spreadValues({}, s), { data: withX(s.data, categories) }) : s;
+    }
     const lo = lows[k];
     const hi = highs[k];
     if (!lo || !hi) return __spreadProps(__spreadValues({}, s), { data: [] });

@@ -1,21 +1,5 @@
-var __defProp = Object.defineProperty;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -107,15 +91,19 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 const BREADCRUMB_HEIGHT = 18;
 function breadcrumbConfig(w, localCfg) {
   const shared = w.config.drilldown && w.config.drilldown.breadcrumb || {};
-  return __spreadValues(__spreadValues({
-    show: true,
-    position: "top-left",
-    separator: " / ",
-    rootLabel: "All",
-    offsetX: 0,
-    offsetY: 0,
-    formatter: void 0
-  }, shared), {});
+  return Object.assign(
+    {
+      show: true,
+      position: "top-left",
+      separator: " / ",
+      rootLabel: "All",
+      offsetX: 0,
+      offsetY: 0,
+      formatter: void 0
+    },
+    shared,
+    localCfg
+  );
 }
 function breadcrumbCeiling(w, nav) {
   const gridTop = w.layout.translateY || 0;
@@ -226,6 +214,12 @@ function renderBreadcrumb(w, opts) {
   elWrap.appendChild(nav);
   return nav;
 }
+function refocusBreadcrumb(w, e) {
+  var _a, _b, _c;
+  if (e.detail) return;
+  const el = ((_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-breadcrumb-item")) || ((_b = w.dom.Paper) == null ? void 0 : _b.node);
+  (_c = el == null ? void 0 : el.focus) == null ? void 0 : _c.call(el);
+}
 function positionBreadcrumb(nav, cfg) {
   const ox = cfg.offsetX || 0;
   const oy = cfg.offsetY || 0;
@@ -303,24 +297,28 @@ function bandScale({ maxDepth, near, far, gap = 0 }) {
 function farEdge(node, scale, maxDepth, leafMode, edge) {
   return node._leaf && leafMode === "extend" && node._vDepth < maxDepth ? edge : scale.far(node._vDepth);
 }
+const strictWarned = /* @__PURE__ */ new Set();
 function validateStrict(roots, { type, remedy }) {
-  let warned = false;
+  let msg = "";
   const walk = (node) => {
-    if (node.children && node.children.length) {
-      const sum = node.children.reduce(
-        (s, c) => s + Math.max(0, c.value || 0),
-        0
-      );
-      if (!warned && node.value != null && Math.abs(sum - node.value) > 0.5) {
-        console.warn(
-          `ApexCharts ${type}: partition 'strict' but "${node.name}" (${node.value}) != sum of its children (${sum}). ${remedy}`
-        );
-        warned = true;
-      }
-      node.children.forEach(walk);
+    var _a;
+    if (msg || !((_a = node.children) == null ? void 0 : _a.length)) return;
+    const sum = node.children.reduce(
+      (s, c) => s + Math.max(0, c.value || 0),
+      0
+    );
+    const v = node.value;
+    if (v != null && Math.abs(sum - v) > 1e-6 * Math.max(Math.abs(v), sum)) {
+      msg = `ApexCharts ${type}: partition 'strict' but "${node.name}" (${v}) != sum of its children (${sum}). ${remedy}`;
     }
+    node.children.forEach(walk);
   };
   roots.forEach(walk);
+  if (msg && !strictWarned.has(msg)) {
+    if (strictWarned.size > 99) strictWarned.clear();
+    strictWarned.add(msg);
+    console.warn(msg);
+  }
 }
 function focusChain(focus) {
   const chain = [];
@@ -330,6 +328,15 @@ function focusChain(focus) {
     n = n._parent;
   }
   return chain;
+}
+function focusTrail(roots, focus) {
+  const sole = roots.length === 1 ? roots[0] : null;
+  const trail = focusChain(focus).map((n) => ({
+    label: n.name,
+    data: n,
+    focus: n === sole ? null : n
+  }));
+  return sole ? trail : [{ data: null, focus: null }].concat(trail);
 }
 function resolveFocus(node, current, roots) {
   let next = node === current ? node._parent || null : node;
@@ -342,7 +349,14 @@ function resolveFocus(node, current, roots) {
 }
 function focusByKey(key, nodesAll, roots) {
   var _a;
-  const f = key && nodesAll.find((n) => n._key === key);
+  if (!key) return null;
+  nodesAll.forEach(
+    (n) => {
+      var _a2;
+      return (_a2 = n.children) == null ? void 0 : _a2.forEach((c) => c._parent = n);
+    }
+  );
+  const f = nodesAll.find((n) => n._key === key);
   return f && ((_a = f.children) == null ? void 0 : _a.length) && !(roots.length === 1 && f === roots[0]) ? f : null;
 }
 function setZoomCursor(chart, node) {
@@ -365,6 +379,7 @@ function lighten(color, amount) {
   if (hex.length !== 6) return color;
   const num = parseInt(hex, 16);
   if (isNaN(num)) return color;
+  amount = amount > 0 ? Math.min(amount, 1) : 0;
   let rC = num >> 16 & 255;
   let gC = num >> 8 & 255;
   let bC = num & 255;
@@ -387,9 +402,11 @@ const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt
 class NodeTooltip {
   /**
    * @param {any} w
+   * @param {any} [ctx] chart instance, handed to tooltip.custom as core does
    */
-  constructor(w) {
+  constructor(w, ctx) {
     this.w = w;
+    this.ctx = ctx;
     this.total = 1;
     this._el = null;
   }
@@ -428,21 +445,39 @@ class NodeTooltip {
     const pctTotal = (node.value / this.total * 100).toFixed(1);
     const parentVal = node._parent ? node._parent.value : this.total;
     const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
-    const ty = w.config.tooltip.y;
-    const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
-    const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
-    t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
-    const group = (
-      /** @type {HTMLElement} */
-      t.firstChild
-    );
-    const marker = (
-      /** @type {HTMLElement} */
-      group.firstChild
-    );
-    marker.style.backgroundColor = node._color;
-    if (w.config.tooltip.fillSeriesColor) {
-      group.style.backgroundColor = node._color;
+    let fn = w.config.tooltip.custom;
+    if (Array.isArray(fn)) fn = fn[0];
+    const out = typeof fn === "function" && fn({
+      series: w.seriesData.series,
+      seriesIndex: 0,
+      dataPointIndex: -1,
+      w,
+      ctx: this.ctx,
+      node,
+      percentOfParent: +pctParent,
+      percentOfTotal: +pctTotal
+    });
+    if (out == null ? void 0 : out.nodeName) {
+      t.replaceChildren(out.cloneNode(true));
+    } else if (typeof out === "string" || typeof out === "number") {
+      t.innerHTML = out;
+    } else {
+      const ty = w.config.tooltip.y;
+      const fmt = (_a = Array.isArray(ty) ? ty[0] : ty) == null ? void 0 : _a.formatter;
+      const val = fmt ? fmt(node.value, { seriesIndex: 0, dataPointIndex: -1, w, node }) : +node.value.toPrecision(12);
+      t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex"><span class="apexcharts-tooltip-marker"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${escapeHtml(node.name)}: </span><span class="apexcharts-tooltip-text-y-value">${val} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+      const group = (
+        /** @type {HTMLElement} */
+        t.firstChild
+      );
+      const marker = (
+        /** @type {HTMLElement} */
+        group.firstChild
+      );
+      marker.style.backgroundColor = node._color;
+      if (w.config.tooltip.fillSeriesColor) {
+        group.style.backgroundColor = node._color;
+      }
     }
     t.classList.add("apexcharts-active");
     t.style.opacity = "1";
@@ -476,9 +511,42 @@ class NodeTooltip {
     t.style.opacity = "0";
   }
 }
+const CHAR_W_EM = 0.58;
+const lerp = (a, b, t) => a + (b - a) * t;
+function resolveMode(w) {
+  const anims = w.config.chart.animations;
+  if (!anims.enabled) return "none";
+  if (w.globals.dataChanged) {
+    return anims.dynamicAnimation.enabled && w.globals.shouldAnimate !== false ? "update" : "none";
+  }
+  return w.globals.resized ? "none" : "intro";
+}
+function durationFor(w, mode) {
+  var _a, _b;
+  const anims = w.config.chart.animations;
+  if (!anims.enabled || mode === "none") return 0;
+  if (mode === "intro") return (_a = anims.speed) != null ? _a : 500;
+  const dyn = anims.dynamicAnimation;
+  return dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
+}
+function fadeInAfter(group, dur, alive) {
+  group.attr({ opacity: dur > 0 ? 0 : 1 });
+  if (dur > 0) {
+    group.animate(250, dur).during((p) => {
+      if (alive()) group.attr({ opacity: p });
+    });
+  }
+}
+function handOffGeoms(ctx, slot, nodes, entry) {
+  const geoms = /* @__PURE__ */ new Map();
+  nodes.forEach((n) => {
+    const e = entry(n);
+    if (e) geoms.set(n._key, e);
+  });
+  ctx[slot] = geoms;
+}
 const SVGNS = "http://www.w3.org/2000/svg";
 const MIN_LABEL_CHARS = 3;
-const lerp = (a, b, t) => a + (b - a) * t;
 class IcicleChart {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -501,7 +569,7 @@ class IcicleChart {
     this._zoomGen = 0;
     this._roots = [];
     this._nodesAll = [];
-    this._tooltip = new NodeTooltip(w);
+    this._tooltip = new NodeTooltip(w, this.ctx);
     this._graphics = null;
     this._cellsG = null;
     this._labelsG = null;
@@ -547,16 +615,7 @@ class IcicleChart {
       this._roots
     );
     this._relayout(this._focus);
-    const anims = w.config.chart.animations;
-    let mode = "none";
-    if (anims.enabled) {
-      if (w.globals.dataChanged) {
-        if (anims.dynamicAnimation.enabled) mode = "update";
-      } else if (!w.globals.resized) {
-        mode = "intro";
-      }
-    }
-    this._applyLayout(mode);
+    this._applyLayout(resolveMode(w));
     this._renderBreadcrumb();
     return g;
   }
@@ -729,11 +788,7 @@ class IcicleChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
-    var _a, _b;
-    const w = this.w;
-    const anims = w.config.chart.animations;
-    const dyn = anims.dynamicAnimation;
-    const dur = !anims.enabled || mode === "none" ? 0 : mode === "intro" ? (_a = anims.speed) != null ? _a : 500 : dyn.enabled ? (_b = dyn.speed) != null ? _b : 350 : 0;
+    const dur = durationFor(this.w, mode);
     const gen = ++this._zoomGen;
     const prev = dur > 0 && mode !== "intro" ? (
       /** @type {any} */
@@ -776,13 +831,12 @@ class IcicleChart {
         this._animateCell(node, c, collapsed, dur, true, false, gen);
       }
     });
-    const geoms = /* @__PURE__ */ new Map();
-    this._nodesAll.forEach((n) => {
+    handOffGeoms(this.ctx, "_iciclePrevGeoms", this._nodesAll, (n) => {
+      if (!n._show && !n._sub) return null;
       const b = this._box(n);
       if (n._sub) b.s = 1;
-      if (n._show || n._sub) geoms.set(n._key, () => n._cur || b);
+      return () => n._cur || b;
     });
-    this.ctx._iciclePrevGeoms = geoms;
     this._renderLabels(dur);
   }
   /**
@@ -931,19 +985,15 @@ class IcicleChart {
     while (labelsG.node.firstChild) {
       labelsG.node.removeChild(labelsG.node.firstChild);
     }
-    if (!this.cfg.dataLabels.show) return;
+    if (!this.cfg.dataLabels.show || this.w.config.dataLabels.enabled === false)
+      return;
     this._nodesAll.forEach((node) => {
       if (!node._show) return;
       this._renderLabel(node);
       if (node._clipped) this._renderMoreMark(node);
     });
     const gen = this._zoomGen;
-    labelsG.attr({ opacity: dur > 0 ? 0 : 1 });
-    if (dur > 0) {
-      labelsG.animate(250, dur).during((p) => {
-        if (this._zoomGen === gen) labelsG.attr({ opacity: p });
-      });
-    }
+    fadeInAfter(labelsG, dur, () => this._zoomGen === gen);
   }
   /**
    * One cell's label, horizontal wherever there is room for it.
@@ -1043,7 +1093,7 @@ class IcicleChart {
    * @returns {boolean}
    */
   _fits(text, room, fontPx) {
-    return text.length * fontPx * 0.58 <= room;
+    return text.length * fontPx * CHAR_W_EM <= room;
   }
   /**
    * Trim a label to the room available along its reading direction.
@@ -1059,7 +1109,7 @@ class IcicleChart {
    * @returns {string}
    */
   _truncate(name, room, fontPx) {
-    const charW = fontPx * 0.58;
+    const charW = fontPx * CHAR_W_EM;
     const maxChars = Math.floor(room / charW);
     if (maxChars >= name.length) return name;
     if (maxChars < MIN_LABEL_CHARS + 1) return "";
@@ -1093,20 +1143,17 @@ class IcicleChart {
       return;
     }
     const cfg = breadcrumbConfig(this.w);
-    const soleRoot = this._roots.length === 1 ? this._roots[0] : null;
-    const crumbs = (soleRoot ? [] : [{ label: "All", data: null }]).concat(
-      focusChain(this._focus).map((n) => ({ label: n.name, data: n }))
-    );
     const nav = renderBreadcrumb(this.w, {
-      crumbs,
+      crumbs: focusTrail(this._roots, this._focus),
       ariaLabel: "Icicle breadcrumb",
       config: cfg,
       compact: true,
-      onNavigate: (i, crumb) => {
-        this._focus = crumb.data === soleRoot ? null : crumb.data;
+      onNavigate: (i, crumb, e) => {
+        this._focus = crumb.focus;
         this._relayout(this._focus);
         this._applyLayout("zoom");
         this._renderBreadcrumb();
+        refocusBreadcrumb(this.w, e);
       }
     });
     if (nav) placeInReservedBand(this.w, this.ctx, nav, cfg);

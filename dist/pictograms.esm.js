@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 function definePictogram(meta) {
@@ -135,7 +135,7 @@ function marks() {
     /** @type {any} */
     globalThis
   );
-  if (!g[MARK_KEY]) g[MARK_KEY] = {};
+  if (!g[MARK_KEY]) g[MARK_KEY] = /* @__PURE__ */ Object.create(null);
   return g[MARK_KEY];
 }
 function registerMarks(defs) {

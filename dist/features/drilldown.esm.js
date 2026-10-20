@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -48,6 +48,23 @@ const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const BREADCRUMB_HEIGHT = 18;
+function avoidChromeOverlap(w, nav) {
+  const chrome = (
+    /** @type {Element[]} */
+    [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
+  );
+  if (!chrome.length) return;
+  const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
+  for (let pass = 0; pass < chrome.length + 1; pass++) {
+    const nr = nav.getBoundingClientRect();
+    const hit = chrome.find((el) => {
+      const r = el.getBoundingClientRect();
+      return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
+    });
+    if (!hit) break;
+    nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+  }
+}
 function breadcrumbCeiling(w, nav) {
   const gridTop = w.layout.translateY || 0;
   const elWrap = w.dom.elWrap;
@@ -82,6 +99,17 @@ function placeInReservedBand(w, ctx, nav, cfg) {
   nav.style.borderRadius = "4px";
   return false;
 }
+function positionBreadcrumb(nav, cfg) {
+  const ox = cfg.offsetX || 0;
+  const oy = cfg.offsetY || 0;
+  nav.style.position = "absolute";
+  nav.style.top = oy + "px";
+  if (cfg.position === "top-right") {
+    nav.style.right = -ox + 3 + "px";
+  } else {
+    nav.style.left = ox + "px";
+  }
+}
 const XHTML$1 = "http://www.w3.org/1999/xhtml";
 class Breadcrumb {
   /**
@@ -114,7 +142,7 @@ class Breadcrumb {
     const nav = BrowserAPIs.createElementNS(XHTML$1, "nav");
     nav.setAttribute("class", "apexcharts-breadcrumb");
     nav.setAttribute("aria-label", "Drilldown breadcrumb");
-    this._position(nav, cfg);
+    positionBreadcrumb(nav, cfg);
     const separator = cfg.separator != null ? cfg.separator : " / ";
     path.forEach((id, i) => {
       if (i > 0) {
@@ -161,32 +189,7 @@ class Breadcrumb {
     if (this.w.globals.axisCharts) {
       placeInReservedBand(this.w, this.ctx, nav, cfg);
     }
-    this._avoidChromeOverlap(nav);
-  }
-  /**
-   * The breadcrumb is an absolute overlay, so at its default top-left it can
-   * sit on top of a left-aligned title (or subtitle). After mounting, push it
-   * below any chart chrome it intersects. (Sunburst's self-contained
-   * breadcrumb applies the same rule.)
-   * @param {HTMLElement} nav
-   */
-  _avoidChromeOverlap(nav) {
-    const w = this.w;
-    const chrome = (
-      /** @type {Element[]} */
-      [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
-    );
-    if (!chrome.length) return;
-    const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
-    for (let pass = 0; pass < chrome.length + 1; pass++) {
-      const nr = nav.getBoundingClientRect();
-      const hit = chrome.find((el) => {
-        const r = el.getBoundingClientRect();
-        return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
-      });
-      if (!hit) break;
-      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
-    }
+    avoidChromeOverlap(w, nav);
   }
   /**
    * @param {string|number} id
@@ -202,27 +205,13 @@ class Breadcrumb {
       const list = (this.w.config.drilldown.series || []).find(
         (s) => s && s.id === id
       );
-      label = list && list.name || String(id);
+      const frame = this.drilldown.stack[index - 1];
+      label = list && list.name || frame && frame.name || String(id);
     }
     if (typeof cfg.formatter === "function") {
       return cfg.formatter(label, { index, depth: this.drilldown.depth });
     }
     return label;
-  }
-  /**
-   * @param {HTMLElement} nav
-   * @param {Record<string, any>} cfg
-   */
-  _position(nav, cfg) {
-    const ox = cfg.offsetX || 0;
-    const oy = cfg.offsetY || 0;
-    nav.style.position = "absolute";
-    nav.style.top = oy + "px";
-    if (cfg.position === "top-right") {
-      nav.style.right = -ox + 3 + "px";
-    } else {
-      nav.style.left = ox + "px";
-    }
   }
 }
 const XHTML = "http://www.w3.org/1999/xhtml";
@@ -287,17 +276,18 @@ class DrilldownLoading {
 }
 const MAX_DEPTH = 32;
 const DRILL_MARKER = "__apexDrilldownMarker";
+const VIEW_FIELDS = ["xaxis", "yaxis", "colors", "plotOptions", "fill", "legend"];
 class Drilldown {
   /**
    * @param {import('../../types/internal').ChartStateW} w
    * @param {import('../../types/internal').ChartContext} ctx
    */
   constructor(w, ctx) {
+    var _a, _b;
     this.w = w;
     this.ctx = ctx;
     this.stack = [];
-    this.rootSnapshot = null;
-    this._wired = false;
+    this._nav = 0;
     this._asyncCache = /* @__PURE__ */ new Map();
     this._pending = null;
     this._warnedUnreachable = false;
@@ -310,17 +300,11 @@ class Drilldown {
     this._onPlotClick = this._onPlotClick.bind(this);
     this._downAt = null;
     this._plotClickWired = null;
-    this.init();
-  }
-  init() {
-    const w = this.w;
-    if (!w.config.drilldown || !w.config.drilldown.enabled) return;
-    if (this._wired) return;
-    this._wired = true;
+    this._wasOn = !!((_a = w.config.drilldown) == null ? void 0 : _a.enabled);
     this.ctx.addEventListener("dataPointSelection", this._onPointSelect);
     this.ctx.addEventListener("mounted", this._afterRender);
     this.ctx.addEventListener("updated", this._afterRender);
-    if (w.config.markers) {
+    if (((_b = w.config.drilldown) == null ? void 0 : _b.enabled) && w.config.markers) {
       w.config.markers.discrete = this._drillMarkers(w.config.series);
     }
   }
@@ -375,10 +359,14 @@ class Drilldown {
     const cur = this.stack.length;
     if (targetDepth < 0 || targetDepth >= cur) return Promise.resolve(this.ctx);
     const from = this.path[this.path.length - 1];
-    const restore = targetDepth === 0 ? this.rootSnapshot : this.stack[targetDepth].restore;
+    const left = this.stack.slice(targetDepth);
+    const keys = new Set(left.flatMap((f) => f.keys));
     this.stack = this.stack.slice(0, targetDepth);
     const to = this.path[this.path.length - 1];
-    return this._apply(this._viewFromSnapshot(restore), "up", { from, to });
+    return this._apply(this._viewFromSnapshot(left[0].restore, keys), "up", {
+      from,
+      to
+    });
   }
   // ─── Internals ─────────────────────────────────────────────────────────────
   /**
@@ -397,13 +385,20 @@ class Drilldown {
    * @returns {Promise<any>}
    */
   _drillInto(child, triggerPoint, meta) {
+    var _a;
     if (this.stack.length >= MAX_DEPTH) {
       console.warn(`ApexCharts: drilldown max depth (${MAX_DEPTH}) reached.`);
       return Promise.resolve(this.ctx);
     }
-    if (!this.rootSnapshot) this.rootSnapshot = this._snapshot();
     const from = this.path[this.path.length - 1];
-    const level = { id: child.id, name: child.name, restore: this._snapshot() };
+    const level = {
+      id: child.id,
+      // A resolver drill from a point with no id has nothing better to show
+      // in the breadcrumb than the point it came from.
+      name: (_a = child.name) != null ? _a : child.id == null ? this._pointLabel(triggerPoint, meta) : void 0,
+      keys: VIEW_FIELDS.filter((k) => child[k]),
+      restore: this._snapshot()
+    };
     this.stack.push(level);
     return this._apply(this._viewFromChild(child), "down", {
       from,
@@ -436,6 +431,7 @@ class Drilldown {
     const cached = this._cacheGet(id);
     if (cached) return this._drillInto(cached, point, meta);
     if (this._pending) return this._pending;
+    const nav = this._nav;
     let result;
     this.loading.show();
     try {
@@ -460,23 +456,24 @@ class Drilldown {
     const p = Promise.resolve(result).then(
       (child) => {
         settle();
-        if (this._isDead()) return this.ctx;
-        if (!child || !child.data) {
+        if (this._stale()) return this.ctx;
+        if (!child || !(child.data || Array.isArray(child.series))) {
           this._fire("drillDownError", {
             id,
             error: new Error(
-              `drilldown: onDrillDown resolved without a drillable level for id "${id}" (expected an object with a \`data\` array).`
+              `drilldown: onDrillDown resolved without a drillable level for id "${id}" (expected an object with a \`data\` or \`series\` array).`
             )
           });
           return this.ctx;
         }
         const level = child.id != null ? child : __spreadProps(__spreadValues({}, child), { id });
         this._cacheSet(id, level);
+        if (nav !== this._nav) return this.ctx;
         return this._drillInto(level, point, meta);
       },
       (error) => {
         settle();
-        if (this._isDead()) return this.ctx;
+        if (this._stale()) return this.ctx;
         this._fire("drillDownError", { id, error });
         return this.ctx;
       }
@@ -492,12 +489,14 @@ class Drilldown {
    * Without this the resolved level would be applied to a destroyed chart,
    * which throws out of `updateOptions` and surfaces in the host app as an
    * unhandled rejection from a click the user has already forgotten about.
+   * A chart rendered again after `destroy()` has a new drilldown instance, and
+   * a level this one fetched would land at its depth 0 with no way back.
    *
    * @returns {boolean}
    */
-  _isDead() {
+  _stale() {
     const w = this.w;
-    return !w || !w.globals || w.globals.isDestroyed === true;
+    return !w || !w.globals || w.globals.isDestroyed === true || this._retired();
   }
   /** @returns {boolean} whether resolved async levels are cached. */
   _cacheEnabled() {
@@ -532,25 +531,26 @@ class Drilldown {
     return this.ctx;
   }
   /**
-   * Capture the overridable surface of the current view so it can be restored.
-   * Only fields that some drilldown.series entry can change are cloned; series
-   * and chart.type/stacked are always captured.
+   * Capture the overridable surface of the current view so it can be restored:
+   * series, chart.type/stacked and every VIEW_FIELDS entry. A field the view
+   * leaves unset is kept as `undefined`, so the restore unsets whatever the
+   * level being left put there.
    * @returns {object}
    */
   _snapshot() {
-    const c = this.w.config;
-    const fields = this._overrideFields();
+    const r = this.ctx.responsive;
+    const c = r ? r.withoutBreakpoints(this.w.config) : this.w.config;
     const snap = { series: this._uncollapseSeries(Utils.clone(c.series)) };
     if (Array.isArray(c.labels) && c.labels.length) {
       snap.labels = Utils.clone(c.labels);
     }
     snap.chart = { type: c.chart.type, stacked: c.chart.stacked };
-    if (fields.has("xaxis")) snap.xaxis = Utils.clone(c.xaxis);
-    if (fields.has("yaxis")) snap.yaxis = Utils.clone(c.yaxis);
-    if (fields.has("colors")) snap.colors = c.colors ? Utils.clone(c.colors) : void 0;
-    if (fields.has("plotOptions")) snap.plotOptions = Utils.clone(c.plotOptions);
-    if (fields.has("fill")) snap.fill = Utils.clone(c.fill);
-    if (fields.has("legend")) snap.legend = Utils.clone(c.legend);
+    for (const k of VIEW_FIELDS) snap[k] = Utils.clone(c[k]);
+    const last = this.w.globals.lastXAxis;
+    if (snap.xaxis && last) {
+      snap.xaxis.min = last.min;
+      snap.xaxis.max = last.max;
+    }
     return snap;
   }
   /**
@@ -589,37 +589,14 @@ class Drilldown {
     return series;
   }
   /**
-   * Union of overridable fields across all declared drilldown levels. Ensures a
-   * deep drillToRoot restores everything any intermediate level may have changed.
-   * @returns {Set<string>}
-   */
-  _overrideFields() {
-    const fields = /* @__PURE__ */ new Set();
-    const list = this.w.config.drilldown && this.w.config.drilldown.series || [];
-    for (const s of list) {
-      if (!s) continue;
-      if (s.xaxis) fields.add("xaxis");
-      if (s.yaxis) fields.add("yaxis");
-      if (s.colors) fields.add("colors");
-      if (s.plotOptions) fields.add("plotOptions");
-      if (s.fill) fields.add("fill");
-      if (s.legend) fields.add("legend");
-    }
-    return fields;
-  }
-  /**
-   * Copy the optional view fields shared by a drilldown child level and a
-   * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
-   * `legend`) from `src` onto `view`, only when present.
+   * Copy the VIEW_FIELDS from `src` onto `view`: those a child level sets, or
+   * those in `keys` from a restore snapshot (`undefined` included, which
+   * unsets it).
    * @param {Record<string, any>} view @param {Record<string, any>} src
+   * @param {Set<string>} [keys]
    */
-  _copyOptionalViewFields(view, src) {
-    if (src.xaxis) view.xaxis = src.xaxis;
-    if (src.yaxis) view.yaxis = src.yaxis;
-    if (src.colors) view.colors = src.colors;
-    if (src.plotOptions) view.plotOptions = src.plotOptions;
-    if (src.fill) view.fill = src.fill;
-    if (src.legend) view.legend = src.legend;
+  _copyOptionalViewFields(view, src, keys) {
+    for (const k of VIEW_FIELDS) if (keys ? keys.has(k) : src[k]) view[k] = src[k];
   }
   /**
    * Build an updateOptions/updateSeries payload for drilling INTO a child level.
@@ -645,12 +622,13 @@ class Drilldown {
   /**
    * Build an updateOptions payload from a restore-snapshot.
    * @param {Record<string, any>} snap
+   * @param {Set<string>} keys the VIEW_FIELDS to restore
    * @returns {Record<string, any>}
    */
-  _viewFromSnapshot(snap) {
+  _viewFromSnapshot(snap, keys) {
     const view = { series: snap.series, chart: snap.chart };
     if (snap.labels && snap.labels.length) view.labels = snap.labels;
-    this._copyOptionalViewFields(view, snap);
+    this._copyOptionalViewFields(view, snap, keys);
     return view;
   }
   /**
@@ -664,6 +642,7 @@ class Drilldown {
   _apply(view, direction, meta) {
     var _a;
     const w = this.w;
+    this._nav++;
     w.interact.selectedDataPoints = [];
     w.globals.collapsedSeries = [];
     w.globals.collapsedSeriesIndices = [];
@@ -800,7 +779,15 @@ class Drilldown {
         } catch (e) {
         }
       }
-      yield runUpdate();
+      try {
+        yield runUpdate();
+      } catch (e) {
+        if (outAnim) {
+          outAnim.cancel();
+          clear(outGroup);
+        }
+        throw e;
+      }
       const inGroup = this._markGroup();
       if (inGroup) {
         anchor(inGroup);
@@ -847,7 +834,10 @@ class Drilldown {
    * @param {{ seriesIndex?: number, dataPointIndex?: number }} opts
    */
   _onPointSelect(_event, _ctx, opts) {
-    if (!opts || this._retired()) return void 0;
+    var _a;
+    if (!opts || !((_a = this.w.config.drilldown) == null ? void 0 : _a.enabled) || this._retired()) {
+      return void 0;
+    }
     const point = this._pointAt(opts.seriesIndex, opts.dataPointIndex);
     if (point && typeof point === "object" && point.drilldown != null) {
       return this.drillDown(point.drilldown, point, opts);
@@ -872,6 +862,18 @@ class Drilldown {
     return s.data[dataPointIndex] != null ? s.data[dataPointIndex] : null;
   }
   /**
+   * @param {any} point
+   * @param {{ dataPointIndex?: number }} [meta]
+   * @returns {string|undefined}
+   */
+  _pointLabel(point, meta) {
+    const l = point && point.x != null ? point.x : meta && this.w.globals.labels[
+      /** @type {number} */
+      meta.dataPointIndex
+    ];
+    return l != null ? String(l) : void 0;
+  }
+  /**
    * destroy() drops this instance without a teardown, and the listener
    * registry it wired into outlives it, so a render() after destroy() wires a
    * second instance beside it: every click would drill twice. The stale one
@@ -891,14 +893,19 @@ class Drilldown {
     return true;
   }
   _afterRender() {
+    var _a;
     const w = this.w;
     if (this._retired()) return;
-    if (!w.config.drilldown || !w.config.drilldown.enabled) return;
-    this._markDrillableTargets();
-    this._wirePlotClick();
+    const on = (_a = w.config.drilldown) == null ? void 0 : _a.enabled;
+    if (!on && !this.stack.length && !this._wasOn) return;
+    this._wasOn = on;
+    if (on) {
+      this._markDrillableTargets();
+      this._wirePlotClick();
+    }
     this.breadcrumb.render(this.path);
     if (w.config.markers) {
-      w.config.markers.discrete = this._drillMarkers(w.config.series);
+      w.config.markers.discrete = this._drillMarkers(on && w.config.series);
     }
   }
   /**
@@ -920,22 +927,28 @@ class Drilldown {
     const baseEl = w.dom.baseEl;
     const series = w.config.series;
     if (!baseEl || !Array.isArray(series)) return;
-    let unreachable = 0;
+    const want = /* @__PURE__ */ new Set();
     series.forEach((s, i) => {
-      const data = s && Array.isArray(s.data) ? s.data : null;
-      if (!data) return;
-      data.forEach((point, j) => {
-        if (!point || typeof point !== "object" || point.drilldown == null) return;
-        const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j}"]`);
-        if (!nodes.length) unreachable++;
-        nodes.forEach((node) => {
-          if (this._isClickThroughMark(node)) {
-            node.classList.remove("no-pointer-events");
+      if (s && Array.isArray(s.data)) {
+        s.data.forEach((point, j) => {
+          if (point && typeof point === "object" && point.drilldown != null) {
+            want.add(i + ":" + j);
           }
-          node.classList.add("apexcharts-drilldown-target");
         });
-      });
+      }
     });
+    if (!want.size) return;
+    const found = /* @__PURE__ */ new Set();
+    baseEl.querySelectorAll("[index][j]").forEach((node) => {
+      const k = node.getAttribute("index") + ":" + node.getAttribute("j");
+      if (!want.has(k)) return;
+      found.add(k);
+      if (this._isClickThroughMark(node)) {
+        node.classList.remove("no-pointer-events");
+      }
+      node.classList.add("apexcharts-drilldown-target");
+    });
+    const unreachable = want.size - found.size;
     if (unreachable && !this._warnedUnreachable) {
       this._warnedUnreachable = true;
       console.warn(

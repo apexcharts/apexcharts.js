@@ -4,6 +4,7 @@ var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __pow = Math.pow;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
@@ -17,6 +18,18 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve2, reject) => {
     var fulfilled = (value) => {
@@ -38,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -167,25 +180,33 @@ function computeMarkCount(w) {
   return total;
 }
 function hasCanvasUnsupportedFeature(w) {
-  var _a, _b, _c, _d;
-  const fillType = w.config.fill && w.config.fill.type;
-  const isUnsupportedFill = (t) => t === "pattern" || t === "image" || t === "gradient";
-  if (Array.isArray(fillType) ? fillType.some(isUnsupportedFill) : isUnsupportedFill(fillType)) {
-    return true;
-  }
-  const lineColors = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.line) == null ? void 0 : _b.colors;
-  if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
-    return true;
-  }
-  if (w.config.chart.type === "heatmap" && (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.heatmap) == null ? void 0 : _d.shape) || "rect") !== "rect") {
-    return true;
-  }
-  const states = w.config.states || {};
-  const hoverFilter = states.hover && states.hover.filter && states.hover.filter.type;
-  const activeFilter = states.active && states.active.filter && states.active.filter.type;
-  if (hoverFilter && !OK_FILTER_TYPES.includes(hoverFilter)) return true;
-  if (activeFilter && !OK_FILTER_TYPES.includes(activeFilter)) return true;
-  return false;
+  const cfg = w.config;
+  const po = cfg.plotOptions || {};
+  const sf = cfg.stroke && cfg.stroke.fill;
+  const fc = cfg.forecastDataPoints;
+  const lc = po.line && po.line.colors;
+  const states = cfg.states || {};
+  const badFill = (t) => [].concat(t).some((x2) => x2 === "pattern" || x2 === "image" || x2 === "gradient");
+  const badFilter = (st) => {
+    const t = st && st.filter && st.filter.type;
+    return t && !OK_FILTER_TYPES.includes(t);
+  };
+  const hasType = (re) => (cfg.series || []).some(
+    (s) => re.test(s && s.type || cfg.chart.type)
+  );
+  return !!(badFill(cfg.fill && cfg.fill.type) || // On a line-like series (line, area, rangeArea) an area outline takes its
+  // paint from stroke.fill, a url() the canvas skips, so only the body
+  // would paint. On a line or area (Line.js draws none for rangeArea) a
+  // forecast is the series drawn twice, split by clip-paths the canvas does
+  // not paint through, so the dashed copy would cover it all. Bars mark
+  // their forecast per bar, which the canvas paints.
+  sf && badFill(sf.type) && hasType(/line|area/i) || fc && fc.count > 0 && hasType(/^(line|area)$/) || // Multi-color line (colorAboveThreshold/BelowThreshold) is drawn via a
+  // gradient internally: same P2 gate as above.
+  lc && lc.colorAboveThreshold && lc.colorBelowThreshold || // Heatmap cell shapes other than the default rect render as SVG <path>
+  // cells: the canvas cell store is rect-only (drawRectCell), so decline
+  // canvas for them the same way image fills are declined, rather than
+  // inventing a columnar path store for shaped cells.
+  cfg.chart.type === "heatmap" && (po.heatmap && po.heatmap.shape || "rect") !== "rect" || badFilter(states.hover) || badFilter(states.active));
 }
 const RENDERER_REGISTRY_KEY = "__apexcharts_renderers__";
 function getRendererRegistry() {
@@ -290,7 +311,7 @@ class RendererController {
     } else if (mode === "canvas" && !this._warned && hasCanvasUnsupportedFeature(this.w)) {
       this._warned = 1;
       console.warn(
-        `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
+        `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill, a line forecast or a state color-matrix filter); falling back to SVG.`
       );
     }
     const prev = this._instances[this._activeKind];
@@ -328,7 +349,96 @@ class RendererController {
     this.w.globals.activeRenderer = null;
   }
 }
+const CoreUtils = _core.__apex_CoreUtils;
 const InitCtxVariables = _core.__apex_helpers_InitCtxVariables;
+const PIVOT_FACET = Symbol("facet");
+const SERIES_FIELDS = ["name", "data", "type", "group", "color", "hidden"];
+function pivotRows(rows, spec = {}) {
+  const warnings = [];
+  const by = spec.by;
+  if (typeof by !== "string" || !by) {
+    return {
+      series: [],
+      warnings: [
+        "trellis: tidy-row input (trellis.data) needs a string `by` column name"
+      ]
+    };
+  }
+  const xKey2 = spec.x;
+  const yKey = spec.y;
+  if (!xKey2 || !yKey) {
+    return {
+      series: [],
+      warnings: [
+        "trellis: tidy-row input (trellis.data) needs `x` and `y` column names"
+      ]
+    };
+  }
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) {
+    return { series: [], warnings: ["trellis: trellis.data is empty"] };
+  }
+  const seriesBy = spec.seriesBy;
+  let skipped = 0;
+  let dupes = 0;
+  const acc = /* @__PURE__ */ new Map();
+  list.forEach((row) => {
+    if (!row || typeof row !== "object") {
+      skipped++;
+      return;
+    }
+    const facet = row[by];
+    const x2 = row[xKey2];
+    if (facet === void 0 || facet === null || x2 === void 0 || x2 === null) {
+      skipped++;
+      return;
+    }
+    const name = seriesBy && row[seriesBy] !== void 0 && row[seriesBy] !== null ? String(row[seriesBy]) : String(yKey);
+    let byName = acc.get(String(facet));
+    if (!byName) {
+      byName = /* @__PURE__ */ new Map();
+      acc.set(String(facet), byName);
+    }
+    let data = byName.get(name);
+    if (!data) {
+      data = /* @__PURE__ */ new Map();
+      byName.set(name, data);
+    }
+    const xk = x2 instanceof Date ? x2.getTime() : x2;
+    if (data.has(xk)) dupes++;
+    const y = row[yKey];
+    data.set(xk, y === void 0 ? null : y);
+  });
+  if (skipped) {
+    warnings.push(
+      `trellis: ${skipped} row(s) missing "${by}" or "${xKey2}" were skipped`
+    );
+  }
+  if (dupes) {
+    warnings.push(
+      `trellis: ${dupes} duplicate (panel, series, x) row(s); kept the last. Aggregate the rows first if you want sums or means.`
+    );
+  }
+  const series = [];
+  acc.forEach((byName, facet) => {
+    byName.forEach((data, name) => {
+      const s = { name, data: Array.from(data, ([x2, y]) => ({ x: x2, y })) };
+      if (SERIES_FIELDS.indexOf(by) === -1) s[by] = facet;
+      Object.defineProperty(s, PIVOT_FACET, { value: facet });
+      series.push(s);
+    });
+  });
+  return { series, warnings };
+}
+const DateTime = _core.__apex_DateTime;
+function xKey(x2, datetime) {
+  if (x2 instanceof Date) return x2.getTime();
+  if (datetime && typeof x2 === "string") {
+    const t = DateTime.prototype.parseDate(x2);
+    if (!isNaN(t)) return t;
+  }
+  return x2;
+}
 function detectForm(data) {
   if (!Array.isArray(data) || data.length === 0) return "empty";
   for (let i = 0; i < data.length; i++) {
@@ -340,16 +450,10 @@ function detectForm(data) {
   }
   return "empty";
 }
-function xKeyOf(d, form) {
+function xKeyOf(d, form, datetime) {
   if (d === null || d === void 0) return void 0;
-  if (form === "paired") {
-    const x2 = d[0];
-    return x2 instanceof Date ? x2.getTime() : x2;
-  }
-  if (form === "object") {
-    const x2 = d.x;
-    return x2 instanceof Date ? x2.getTime() : x2;
-  }
+  if (form === "paired") return xKey(d[0], !!datetime);
+  if (form === "object") return xKey(d.x, !!datetime);
   return void 0;
 }
 function placeholderFor(x2, form) {
@@ -381,7 +485,7 @@ function orderKeys(keys, order) {
   if (typeof order === "function") return keys.slice().sort(order);
   return keys.slice();
 }
-function collectUnion(contributing, warnings) {
+function collectUnion(contributing, warnings, datetime) {
   const unionX = [];
   const seen = /* @__PURE__ */ new Set();
   let sawKeyed = false;
@@ -399,7 +503,7 @@ function collectUnion(contributing, warnings) {
     sawKeyed = true;
     xForm = form;
     s.data.forEach((d) => {
-      const x2 = xKeyOf(d, form);
+      const x2 = xKeyOf(d, form, datetime);
       if (x2 === void 0) return;
       const id = typeof x2 + ":" + String(x2);
       if (!seen.has(id)) {
@@ -415,20 +519,20 @@ function collectUnion(contributing, warnings) {
   }
   const xIsNumeric = sawKeyed && unionX.every((x2) => typeof x2 === "number" && isFinite(x2));
   if (xIsNumeric) unionX.sort((a, b) => Number(a) - Number(b));
-  return { unionX, sawKeyed, plainMaxLen, xForm, xIsNumeric };
+  return { unionX, sawKeyed, plainMaxLen, xForm, xIsNumeric, datetime };
 }
 const POINT_MARK_TYPES = ["scatter", "bubble"];
 function alignsToUnionX(chartType) {
   return !POINT_MARK_TYPES.includes(chartType || "");
 }
-function makeAligner(u, warnings, alignToUnion = true) {
+function makeAligner(u, warnings, alignToUnion, list) {
   const seriesNames = [];
   const nameSeen = /* @__PURE__ */ new Set();
-  let globalIdx = 0;
+  const dupes = /* @__PURE__ */ new Map();
+  const counted = /* @__PURE__ */ new Set();
   const align = (s) => {
     const form = detectForm(s && s.data);
-    const name = s && s.name != null ? String(s.name) : `series-${globalIdx + 1}`;
-    globalIdx++;
+    const name = s && s.name != null ? String(s.name) : `series-${list.indexOf(s) + 1}`;
     if (!nameSeen.has(name)) {
       nameSeen.add(name);
       seriesNames.push(name);
@@ -453,17 +557,20 @@ function makeAligner(u, warnings, alignToUnion = true) {
     const map = /* @__PURE__ */ new Map();
     const parts = /* @__PURE__ */ new Map();
     const hd = Array.isArray(s.highlightData) ? s.highlightData : null;
+    let dup = 0;
     s.data.forEach((d, idx) => {
-      const x2 = xKeyOf(d, form);
-      if (x2 !== void 0 && !map.has(x2)) {
+      const x2 = xKeyOf(d, form, u.datetime);
+      if (x2 === void 0) return;
+      if (map.has(x2)) dup++;
+      else {
         map.set(x2, d);
         if (hd) parts.set(x2, hd[idx]);
-      } else if (x2 !== void 0 && map.has(x2)) {
-        warnings.push(
-          `trellis: duplicate x "${String(x2)}" in series "${name}"; keeping the first`
-        );
       }
     });
+    if (dup && !counted.has(s)) {
+      counted.add(s);
+      dupes.set(name, (dupes.get(name) || 0) + dup);
+    }
     out.data = u.unionX.map(
       (x2) => map.has(x2) ? map.get(x2) : placeholderFor(x2, form)
     );
@@ -474,7 +581,12 @@ function makeAligner(u, warnings, alignToUnion = true) {
     }
     return out;
   };
-  return { align, seriesNames };
+  const flush = () => dupes.forEach(
+    (n, name) => warnings.push(
+      `trellis: ${n} duplicate x value(s) in series "${name}"; keeping the first of each`
+    )
+  );
+  return { align, seriesNames, flush };
 }
 function placeholderSeries(splitResult, opts = {}) {
   const form = splitResult.xForm;
@@ -504,13 +616,13 @@ function split(series, cfg = {}, host = {}) {
         "trellis: `by` is ignored when `row`/`column` are set (they are mutually exclusive)"
       );
     }
-    return split2d(list, cfg, warnings, alignToUnion);
+    return split2d(list, cfg, warnings, alignToUnion, host.datetime);
   }
   const by = cfg.by || "facet";
   const byKey = /* @__PURE__ */ new Map();
   const repeated = [];
   list.forEach((s, i) => {
-    const k2 = keyOf(s, i, by);
+    const k2 = keyOf(s, i, s && s[PIVOT_FACET] !== void 0 ? PIVOT_FACET : by);
     if (k2 === null) repeated.push(s);
     else {
       if (!byKey.has(k2)) byKey.set(k2, []);
@@ -530,8 +642,13 @@ function split(series, cfg = {}, host = {}) {
     keys = keys.slice(0, cfg.limit);
   }
   const contributing = keys.reduce((acc, k2) => acc.concat(byKey.get(k2) || []), []).concat(repeated);
-  const u = collectUnion(contributing, warnings);
-  const { align, seriesNames } = makeAligner(u, warnings, alignToUnion);
+  const u = collectUnion(contributing, warnings, host.datetime);
+  const { align, seriesNames, flush } = makeAligner(
+    u,
+    warnings,
+    alignToUnion,
+    list
+  );
   const panels = keys.map((key) => {
     const own = (byKey.get(key) || []).map(align);
     const rep = repeated.map(align);
@@ -545,6 +662,7 @@ function split(series, cfg = {}, host = {}) {
       empty: slice.length === 0
     };
   });
+  flush();
   return {
     mode: (
       /** @type {'1d'} */
@@ -575,7 +693,7 @@ function emptyResult(warnings) {
     warnings
   };
 }
-function split2d(list, cfg, warnings, alignToUnion = true) {
+function split2d(list, cfg, warnings, alignToUnion = true, datetime) {
   const rowBy = cfg.row;
   const colBy = cfg.column;
   const cells = /* @__PURE__ */ new Map();
@@ -647,8 +765,13 @@ function split2d(list, cfg, warnings, alignToUnion = true) {
   }
   const rowKeys = orderKeys(rowSeen.length ? rowSeen : [""], cfg.order);
   const colKeys = orderKeys(colSeen.length ? colSeen : [""], cfg.order);
-  const u = collectUnion(list, warnings);
-  const { align, seriesNames } = makeAligner(u, warnings, alignToUnion);
+  const u = collectUnion(list, warnings, datetime);
+  const { align, seriesNames, flush } = makeAligner(
+    u,
+    warnings,
+    alignToUnion,
+    list
+  );
   const panels = [];
   rowKeys.forEach((rk) => {
     colKeys.forEach((ck) => {
@@ -665,6 +788,7 @@ function split2d(list, cfg, warnings, alignToUnion = true) {
       });
     });
   });
+  flush();
   return {
     mode: (
       /** @type {'2d'} */
@@ -869,8 +993,7 @@ function observationValues(data) {
   }
   return out;
 }
-function rawObservationArrays(data) {
-  const out = [];
+function rawObservationArrays(data, out) {
   if (!Array.isArray(data)) return out;
   data.forEach((d) => {
     const y = d && typeof d === "object" ? d.y : null;
@@ -908,14 +1031,10 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
   const plot = (hostConfig == null ? void 0 : hostConfig.plotOptions) || {};
   if (chartType === "histogram") {
     const hcfg = plot.histogram || {};
-    let union = [];
     const panelSeriesVals = panels.map(
-      (p) => p.series.map((s) => {
-        const vals = observationValues(s.data);
-        union = union.concat(vals);
-        return vals;
-      })
+      (p) => p.series.map((s) => observationValues(s.data))
     );
+    const union = panelSeriesVals.flat(2);
     const binning = S(union, {
       bins: hcfg.bins,
       binWidth: hcfg.binWidth,
@@ -956,11 +1075,11 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
   if (chartType === "violin") {
     const kde = ((_b = plot.violin) == null ? void 0 : _b.kde) || {};
     if (!(typeof kde.bandwidth === "number" && kde.bandwidth > 0)) {
-      let union = [];
+      const union = [];
       panels.forEach(
-        (p) => p.series.forEach((s) => {
-          union = union.concat(rawObservationArrays(s.data));
-        })
+        (p) => p.series.forEach(
+          (s) => rawObservationArrays(s.data, union)
+        )
       );
       const est = union.length ? kernelDensity(union, { resolution: 8 }) : null;
       if (est && isFinite(est.bandwidth) && est.bandwidth > 0) {
@@ -1040,89 +1159,11 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
   }
   return frames;
 }
-function pivotRows(rows, spec = {}) {
-  const warnings = [];
-  const by = spec.by;
-  if (typeof by !== "string" || !by) {
-    return {
-      series: [],
-      warnings: [
-        "trellis: tidy-row input (trellis.data) needs a string `by` column name"
-      ]
-    };
-  }
-  const xKey = spec.x;
-  const yKey = spec.y;
-  if (!xKey || !yKey) {
-    return {
-      series: [],
-      warnings: [
-        "trellis: tidy-row input (trellis.data) needs `x` and `y` column names"
-      ]
-    };
-  }
-  const list = Array.isArray(rows) ? rows : [];
-  if (!list.length) {
-    return { series: [], warnings: ["trellis: trellis.data is empty"] };
-  }
-  const seriesBy = spec.seriesBy;
-  let skipped = 0;
-  let dupes = 0;
-  const acc = /* @__PURE__ */ new Map();
-  list.forEach((row) => {
-    if (!row || typeof row !== "object") {
-      skipped++;
-      return;
-    }
-    const facet = row[by];
-    const x2 = row[xKey];
-    if (facet === void 0 || facet === null || x2 === void 0 || x2 === null) {
-      skipped++;
-      return;
-    }
-    const name = seriesBy && row[seriesBy] !== void 0 && row[seriesBy] !== null ? String(row[seriesBy]) : String(yKey);
-    let byName = acc.get(String(facet));
-    if (!byName) {
-      byName = /* @__PURE__ */ new Map();
-      acc.set(String(facet), byName);
-    }
-    let data = byName.get(name);
-    if (!data) {
-      data = /* @__PURE__ */ new Map();
-      byName.set(name, data);
-    }
-    const xk = x2 instanceof Date ? x2.getTime() : x2;
-    if (data.has(xk)) dupes++;
-    const y = row[yKey];
-    data.set(xk, y === void 0 ? null : y);
-  });
-  if (skipped) {
-    warnings.push(
-      `trellis: ${skipped} row(s) missing "${by}" or "${xKey}" were skipped`
-    );
-  }
-  if (dupes) {
-    warnings.push(
-      `trellis: ${dupes} duplicate (panel, series, x) row(s); kept the last. Aggregate the rows first if you want sums or means.`
-    );
-  }
-  const series = [];
-  acc.forEach((byName, facet) => {
-    byName.forEach((data, name) => {
-      series.push({
-        name,
-        [by]: facet,
-        data: Array.from(data, ([x2, y]) => ({ x: x2, y }))
-      });
-    });
-  });
-  return { series, warnings };
-}
 const getThemePalettes = _core.__apex_ThemePalettes_getThemePalettes;
 const DEFAULT_TARGET_TICKS = 3;
 function niceBounds(min, max, targetTicks = DEFAULT_TARGET_TICKS) {
   if (!isFinite(min) || !isFinite(max)) {
-    return { min: 0, max: 1, tickAmount: 1 };
+    return { min: 0, max: 1, tickAmount: 1, decimals: 0 };
   }
   if (min === max) {
     const pad = min === 0 ? 1 : Math.abs(min) * 0.1;
@@ -1131,42 +1172,36 @@ function niceBounds(min, max, targetTicks = DEFAULT_TARGET_TICKS) {
   }
   const target = Math.max(1, targetTicks);
   const rawStep = (max - min) / target;
-  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const exp = Math.floor(Math.log10(rawStep));
+  const mag = Math.pow(10, exp);
   const norms = mag >= 10 ? [1, 2, 2.5, 5, 10] : [1, 2, 5, 10];
-  let best = { dist: Infinity, ticks: 0, min: 0, max: 1 };
+  let bestDist = Infinity;
+  let best = { min: 0, max: 1, tickAmount: 0, decimals: 0 };
   norms.forEach((n) => {
     const step = n * mag;
-    const lo = Math.floor(min / step) * step;
-    const hi = Math.ceil(max / step) * step;
+    const decimals = Math.min(20, Math.max(0, (n === 10 ? -1 : 0) - exp));
+    const lo = +(Math.floor(min / step) * step).toFixed(decimals);
+    const hi = +(Math.ceil(max / step) * step).toFixed(decimals);
     const ticks = Math.max(1, Math.round((hi - lo) / step));
     const dist = Math.abs(ticks - target);
-    if (dist < best.dist || dist === best.dist && ticks < best.ticks) {
-      best = { dist, ticks, min: lo, max: hi };
+    if (dist < bestDist || dist === bestDist && ticks < best.tickAmount) {
+      bestDist = dist;
+      best = { min: lo, max: hi, tickAmount: ticks, decimals };
     }
   });
-  return { min: best.min, max: best.max, tickAmount: best.ticks };
+  return best;
 }
-function extendByDatum(d, form, ext) {
-  if (d === null || d === void 0) return;
-  let y = d;
-  if (form === "paired") y = d[1];
-  else if (form === "object") y = d.y;
+const yOf = (d) => d === null || d === void 0 ? d : Array.isArray(d) ? d[1] : typeof d === "object" ? d.y : d;
+function extendByDatum(d, ext, pos) {
+  const y = yOf(d);
   if (y === null || y === void 0) return;
-  if (Array.isArray(y)) {
-    for (let i = 0; i < y.length; i++) {
-      const v2 = Number(y[i]);
-      if (isFinite(v2)) {
-        if (v2 < ext.min) ext.min = v2;
-        if (v2 > ext.max) ext.max = v2;
-      }
+  (Array.isArray(y) ? y : [y]).forEach((n) => {
+    const v = Number(n);
+    if (isFinite(v) && !(pos && v <= 0)) {
+      if (v < ext.min) ext.min = v;
+      if (v > ext.max) ext.max = v;
     }
-    return;
-  }
-  const v = Number(y);
-  if (isFinite(v)) {
-    if (v < ext.min) ext.min = v;
-    if (v > ext.max) ext.max = v;
-  }
+  });
 }
 function partOf(s, d, j) {
   const p = d && typeof d === "object" && !Array.isArray(d) && "highlight" in d ? d.highlight : Array.isArray(s.highlightData) ? s.highlightData[j] : null;
@@ -1188,10 +1223,7 @@ function maxYDecimals(panels) {
     (p) => p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return;
       s.data.forEach((d) => {
-        if (d === null || d === void 0) return;
-        let y = d;
-        if (Array.isArray(d)) y = d[1];
-        else if (typeof d === "object") y = d.y;
+        const y = yOf(d);
         if (Array.isArray(y)) y.forEach(count);
         else count(y);
       });
@@ -1199,15 +1231,15 @@ function maxYDecimals(panels) {
   );
   return max;
 }
-function yExtent(panels, xForm, parts = false) {
+function yExtent(panels, parts = false, pos = false) {
   const ext = { min: Infinity, max: -Infinity };
   panels.forEach(
     (p) => p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return;
       s.data.forEach((d, j) => {
-        extendByDatum(d, xForm, ext);
+        extendByDatum(d, ext, pos);
         const v = parts ? partOf(s, d, j) : null;
-        if (v !== null) extendByDatum(v, "plain", ext);
+        if (v !== null) extendByDatum(v, ext, pos);
       });
     })
   );
@@ -1219,7 +1251,7 @@ function stacksInto(s, opts) {
   const t = s && s.type;
   return t === void 0 || t === null || t === "bar" || t === "column";
 }
-function stackedYExtent(panels, xForm, opts = {}) {
+function stackedYExtent(panels, opts = {}) {
   const ext = { min: Infinity, max: -Infinity };
   const fold = (v) => {
     if (!isFinite(v)) return;
@@ -1227,8 +1259,7 @@ function stackedYExtent(panels, xForm, opts = {}) {
     if (v > ext.max) ext.max = v;
   };
   const scalarY = (d) => {
-    if (d === null || d === void 0) return null;
-    const y = xForm === "paired" ? d[1] : xForm === "object" ? d.y : d;
+    const y = yOf(d);
     if (y === null || y === void 0 || Array.isArray(y)) return null;
     const v = Number(y);
     return isFinite(v) ? v : null;
@@ -1239,7 +1270,7 @@ function stackedYExtent(panels, xForm, opts = {}) {
       var _a;
       if (!Array.isArray(s.data)) return;
       if (!stacksInto(s, opts)) {
-        s.data.forEach((d) => extendByDatum(d, xForm, ext));
+        s.data.forEach((d) => extendByDatum(d, ext));
         return;
       }
       const key = String((_a = s.group) != null ? _a : "");
@@ -1272,19 +1303,18 @@ function stackedYExtent(panels, xForm, opts = {}) {
   if (!isFinite(ext.min) || !isFinite(ext.max)) return null;
   return ext;
 }
-function yExtentInWindow(panels, xForm, xMin, xMax, parts = false) {
+function yExtentInWindow(panels, _xForm, xMin, xMax, parts = false) {
   const ext = { min: Infinity, max: -Infinity };
   panels.forEach(
     (p) => p.series.forEach((s) => {
       if (!Array.isArray(s.data)) return;
       s.data.forEach((d, j) => {
-        if (d === null || d === void 0) return;
-        const rawX = xForm === "paired" ? d[0] : xForm === "object" ? d.x : null;
-        const x2 = rawX instanceof Date ? rawX.getTime() : Number(rawX);
+        if (d === null || typeof d !== "object") return;
+        const x2 = Number(xKey(Array.isArray(d) ? d[0] : d.x, true));
         if (!isFinite(x2) || x2 < xMin || x2 > xMax) return;
-        extendByDatum(d, xForm, ext);
+        extendByDatum(d, ext);
         const v = parts ? partOf(s, d, j) : null;
-        if (v !== null) extendByDatum(v, "plain", ext);
+        if (v !== null) extendByDatum(v, ext);
       });
     })
   );
@@ -1304,60 +1334,76 @@ function resolve(splitResult, cfg = {}, host = {}) {
     x2 = { min: xs[0], max: xs[xs.length - 1] };
   }
   const barFamily = ["bar", "column", "histogram"].includes(host.chartType || "");
-  const toBounds = (ext) => {
+  const yaxes = host.yaxis || [];
+  const axisNames = host.axisNames;
+  const axes = axisNames ? axisNames.map((_, ai) => ai) : [0];
+  const onAxis = (group, ai) => axisNames ? group.map((p) => __spreadProps(__spreadValues({}, p), {
+    series: p.series.filter((s) => axisNames[ai].includes(s.name))
+  })) : group;
+  const dataDecimals = axes.map(
+    (ai) => host.yExtentOverride ? 0 : maxYDecimals(onAxis(splitResult.panels, ai))
+  );
+  const toBounds = (ext, ai) => {
     if (!ext) return null;
+    const ya = yaxes[ai] || {};
+    if (ya.logarithmic && ext.min > 0) {
+      const b = ya.logBase || 10;
+      const L2 = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
+      const lo = Math.floor(L2(ext.min));
+      const hi = Math.max(lo + 1, Math.ceil(L2(ext.max)));
+      return {
+        min: __pow(b, lo),
+        max: __pow(b, hi),
+        tickAmount: hi - lo,
+        decimals: Math.max(dataDecimals[ai], decimalCount(__pow(b, lo)))
+      };
+    }
     if (barFamily && ext.min > 0) ext.min = 0;
-    return niceBounds(ext.min, ext.max, cfg.targetTicks || DEFAULT_TARGET_TICKS);
+    const nb = niceBounds(ext.min, ext.max, cfg.targetTicks || DEFAULT_TARGET_TICKS);
+    nb.decimals = Math.max(nb.decimals, dataDecimals[ai]);
+    return nb;
   };
   const percent = !!host.stacked && host.stackType === "100%";
   const stacked = !!host.stacked && !percent;
-  const extentOf = (group) => percent ? { min: 0, max: 100 } : stacked ? stackedYExtent(group, splitResult.xForm, {
-    stackOnlyBar: host.stackOnlyBar,
-    parts: host.parts
-  }) : yExtent(group, splitResult.xForm, host.parts);
+  const extentOf = (group, ai) => {
+    var _a;
+    const sub = onAxis(group, ai);
+    return ((_a = yaxes[ai]) == null ? void 0 : _a.logarithmic) ? yExtent(sub, host.parts, true) : percent ? { min: 0, max: 100 } : stacked ? stackedYExtent(sub, {
+      stackOnlyBar: host.stackOnlyBar,
+      parts: host.parts
+    }) : yExtent(sub, host.parts);
+  };
+  const boundsOf = (group, override) => {
+    const out = axes.map((ai) => toBounds(override || extentOf(group, ai), ai));
+    return axisNames ? out : out[0];
+  };
   let y = null;
   if (yMode === "shared") {
-    y = toBounds(host.yExtentOverride || extentOf(splitResult.panels));
+    y = boundsOf(splitResult.panels, axisNames ? null : host.yExtentOverride);
   }
-  let rowY = null;
-  if (yMode === "independent-row") {
-    rowY = /* @__PURE__ */ new Map();
+  const byGroup = (dim) => {
     const groups = /* @__PURE__ */ new Map();
     splitResult.panels.forEach((p) => {
       var _a;
-      const k2 = (_a = p.rowKey) != null ? _a : "";
-      if (!groups.has(k2)) groups.set(k2, []);
-      groups.get(k2).push(p);
+      const k2 = (_a = p[dim]) != null ? _a : "";
+      groups.set(k2, (groups.get(k2) || []).concat(p));
     });
+    const out = /* @__PURE__ */ new Map();
     groups.forEach((panels, k2) => {
-      const b = toBounds(extentOf(panels));
-      if (b) rowY == null ? void 0 : rowY.set(k2, b);
+      const b = boundsOf(panels);
+      if (b) out.set(k2, b);
     });
-  }
-  let colY = null;
-  if (yMode === "independent-column") {
-    colY = /* @__PURE__ */ new Map();
-    const groups = /* @__PURE__ */ new Map();
-    splitResult.panels.forEach((p) => {
-      var _a;
-      const k2 = (_a = p.colKey) != null ? _a : "";
-      if (!groups.has(k2)) groups.set(k2, []);
-      groups.get(k2).push(p);
-    });
-    groups.forEach((panels, k2) => {
-      const b = toBounds(extentOf(panels));
-      if (b) colY == null ? void 0 : colY.set(k2, b);
-    });
-  }
-  const palettes = getThemePalettes();
-  const fallback = palettes.palette1;
-  const userColors = Array.isArray(host.userColors) ? host.userColors.filter((c) => typeof c === "string") : [];
-  const palette = userColors.length ? userColors : fallback;
-  const names = splitResult.seriesNames;
-  const colorOf = (name) => {
-    const idx = names.indexOf(name);
-    return palette[(idx === -1 ? 0 : idx) % palette.length];
+    return out;
   };
+  const rowY = yMode === "independent-row" ? byGroup("rowKey") : null;
+  const colY = yMode === "independent-column" ? byGroup("colKey") : null;
+  const palettes = (
+    /** @type {Record<string, string[]>} */
+    getThemePalettes()
+  );
+  const palette = Array.isArray(host.userColors) && host.userColors.length ? host.userColors : palettes[host.palette || ""] || palettes.palette1;
+  const names = splitResult.seriesNames;
+  const colorOf = (name) => palette[Math.max(0, names.indexOf(name)) % palette.length];
   return { x: x2, y, rowY, colY, colorOf, palette };
 }
 const DEFAULT_MIN_PANEL_HEIGHT = 80;
@@ -1469,14 +1515,12 @@ function colorValueOfDatum(w, datum, i, j) {
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
-function resolveStops(cfg, min, max, midpoint) {
-  if (Array.isArray(cfg.stops) && cfg.stops.length >= 2) {
+function resolveStops(cfg, min, max, midpoint, explicit) {
+  if (explicit) {
     return cfg.stops.filter((s) => s && Number.isFinite(Number(s.value))).map((s) => ({
       value: Number(s.value),
       color: normalizeHex(s.color)
-    })).sort(
-      (a, b) => a.value - b.value
-    );
+    })).sort((a, b) => a.value - b.value);
   }
   const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
   const n = colors.length;
@@ -1528,8 +1572,11 @@ function buildContinuousScale(w) {
     dataMin = 0;
     dataMax = 0;
   }
-  let min = Number.isFinite(Number(cfg.min)) ? Number(cfg.min) : dataMin;
-  let max = Number.isFinite(Number(cfg.max)) ? Number(cfg.max) : dataMax;
+  const pin = (v) => Number.isFinite(Number(v)) ? Number(v) : null;
+  const pinMin = pin(cfg.min);
+  const pinMax = pin(cfg.max);
+  let min = pinMin != null ? pinMin : dataMin;
+  let max = pinMax != null ? pinMax : dataMax;
   let midpoint = null;
   if (cfg.midpoint === null) {
     midpoint = null;
@@ -1538,7 +1585,7 @@ function buildContinuousScale(w) {
   } else if (min < 0 && max > 0) {
     midpoint = 0;
   }
-  if (midpoint != null && cfg.symmetric !== false && !Number.isFinite(Number(cfg.min)) && !Number.isFinite(Number(cfg.max))) {
+  if (midpoint != null && cfg.symmetric !== false && pinMin == null && pinMax == null) {
     const reach = Math.max(Math.abs(min - midpoint), Math.abs(max - midpoint));
     min = midpoint - reach;
     max = midpoint + reach;
@@ -1547,8 +1594,13 @@ function buildContinuousScale(w) {
     min -= 0.5;
     max += 0.5;
   }
-  const stops = resolveStops(cfg, min, max, midpoint);
+  const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2;
+  const stops = resolveStops(cfg, min, max, midpoint, explicit);
   if (stops.length < 2) return null;
+  if (explicit) {
+    if (pinMin == null) min = Math.min(min, stops[0].value);
+    if (pinMax == null) max = Math.max(max, stops[stops.length - 1].value);
+  }
   const at = (v) => {
     if (!Number.isFinite(v)) return stops[Math.floor(stops.length / 2)].color;
     if (v <= stops[0].value) return stops[0].color;
@@ -1566,10 +1618,13 @@ function buildContinuousScale(w) {
     return last.color;
   };
   const span = max - min;
-  const legendStops = stops.map((s) => ({
-    percent: span === 0 ? 0 : (s.value - min) / span,
-    color: s.color
-  }));
+  const legendStops = stops.map((s) => {
+    const v = Math.min(max, Math.max(min, s.value));
+    return {
+      percent: span && (v - min) / span,
+      color: v === s.value ? s.color : at(v)
+    };
+  });
   return { min, max, midpoint, stops, at, legendStops };
 }
 const TooltipUtils = _core.__apex_tooltip_Utils;
@@ -2331,6 +2386,12 @@ const ICONS = {
   reset: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 8 0 1 1 2 6"/><path d="M4 4v6h6"/></svg>',
   download: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>'
 };
+function paintItem(t, item, name) {
+  const hidden = t.sync.isHidden(name);
+  item.firstChild.style.background = t.scales ? t.scales.colorOf(name) : "#008FFB";
+  item.classList.toggle("apexcharts-inactive-legend", hidden);
+  item.setAttribute("data:collapsed", String(hidden));
+}
 class TrellisChrome {
   /**
    * @param {import('./Trellis').default} trellis
@@ -2340,6 +2401,7 @@ class TrellisChrome {
     this.elLegend = null;
     this.elToolbar = null;
     this.elTitle = null;
+    this.elSubtitle = null;
     this.elBreadcrumb = null;
     this.gradientLegend = null;
     this._gradPending = null;
@@ -2455,21 +2517,37 @@ class TrellisChrome {
     this.elBreadcrumb = null;
   }
   /**
-   * The trellis-level title, from the host's own `title` config (panels have
-   * theirs suppressed).
+   * The trellis-level title and subtitle, from the host's own `title` and
+   * `subtitle` config (panels have theirs suppressed). The title keeps the
+   * stylesheet's lighter weight unless the page set `title.style.fontWeight`
+   * itself (the merged core default, 900, is heavier than the grid chrome).
    * @param {HTMLElement} host
    */
   buildTitle(host) {
-    const title = this.trellis.w.config.title;
-    if (!title || !title.text) return;
-    const el = BrowserAPIs.createElement("div");
-    el.className = "apexcharts-trellis-title";
-    el.textContent = title.text;
-    const style = title.style || {};
-    if (style.fontSize) el.style.fontSize = style.fontSize;
-    if (style.color) el.style.color = style.color;
-    host.appendChild(el);
-    this.elTitle = el;
+    const config = this.trellis.w.config;
+    const make = (k2) => {
+      var _a, _b, _c;
+      const cfg = config[k2];
+      if (!cfg || !cfg.text) return null;
+      const el = BrowserAPIs.createElement("div");
+      el.className = "apexcharts-trellis-" + k2;
+      el.textContent = cfg.text;
+      const { fontSize, fontWeight, fontFamily, color } = cfg.style || {};
+      const s = el.style;
+      if (fontSize) s.fontSize = fontSize;
+      const fw = k2 === "title" ? (_c = (_b = (_a = this.trellis.ctx.opts) == null ? void 0 : _a.title) == null ? void 0 : _b.style) == null ? void 0 : _c.fontWeight : fontWeight;
+      if (fw) s.fontWeight = String(fw);
+      if (fontFamily) s.fontFamily = fontFamily;
+      if (color || k2 !== "title") {
+        s.color = color || "var(--apx-fore, var(--apx-trellis-fore, #373d3f))";
+      }
+      if (k2 !== "title") s.padding = "0 0 6px";
+      if (cfg.align && cfg.align !== "left") s.textAlign = cfg.align;
+      host.appendChild(el);
+      return el;
+    };
+    this.elTitle = make("title");
+    this.elSubtitle = make("subtitle");
   }
   /**
    * One legend for the grid. Clicking an item toggles that series name in
@@ -2478,6 +2556,7 @@ class TrellisChrome {
    */
   buildLegend(host) {
     const t = this.trellis;
+    this._names = null;
     if ((t.cfg.legend || "shared") !== "shared") return;
     if (t.w.config.chart.type === "heatmap") {
       this.buildGradientLegend(host);
@@ -2493,19 +2572,17 @@ class TrellisChrome {
       item.className = "apexcharts-legend-series apexcharts-trellis-legend-item";
       item.setAttribute("role", "listitem");
       item.setAttribute("tabindex", "0");
-      item.setAttribute("data:collapsed", "false");
       const marker = BrowserAPIs.createElement("span");
       marker.className = "apexcharts-legend-marker";
-      marker.style.background = t.scales ? t.scales.colorOf(name) : "#008FFB";
       const text = BrowserAPIs.createElement("span");
       text.className = "apexcharts-legend-text";
       text.textContent = name;
       item.appendChild(marker);
       item.appendChild(text);
+      paintItem(t, item, name);
       const toggle = () => {
-        const hidden = t.sync.toggleSeries(name);
-        item.classList.toggle("apexcharts-inactive-legend", hidden);
-        item.setAttribute("data:collapsed", String(hidden));
+        t.sync.toggleSeries(name);
+        paintItem(t, item, name);
       };
       item.addEventListener("click", toggle);
       item.addEventListener("keydown", (e) => {
@@ -2518,25 +2595,33 @@ class TrellisChrome {
     });
     host.appendChild(wrap);
     this.elLegend = wrap;
+    this._names = JSON.stringify(names);
   }
   /**
-   * Repaint the shared legend's markers from the current colour map, without
-   * rebuilding the legend (which would drop the collapsed state a viewer has
-   * toggled). Used by the in-place option update, where `colors` may have
-   * moved but nothing structural has.
+   * Bring the shared legend up to date after an in-place update: new data
+   * may add or drop names (and a heatmap strip has to span the new colour
+   * range); a `colors` change moves the markers. The same names repaint in
+   * place, so a streaming grid neither churns the DOM nor takes keyboard
+   * focus off an item. Otherwise the legend is rebuilt where it stood.
    */
-  refreshLegendColors() {
+  rebuildLegend() {
     const t = this.trellis;
-    const legend = this.elLegend;
-    const scales = t.scales;
-    if (!legend || !scales) return;
-    const items = legend.querySelectorAll(".apexcharts-trellis-legend-item");
-    items.forEach((item) => {
-      var _a;
-      const name = (_a = item.querySelector(".apexcharts-legend-text")) == null ? void 0 : _a.textContent;
-      const marker = item.querySelector(".apexcharts-legend-marker");
-      if (name && marker) marker.style.background = scales.colorOf(name);
-    });
+    const old = this.elLegend;
+    const names = t.split ? t.split.seriesNames : [];
+    if (old && this._names === JSON.stringify(names)) {
+      names.forEach(
+        (n, i) => paintItem(t, old.children[i], n)
+      );
+      return;
+    }
+    this.destroyGradientLegend();
+    this.elLegend = null;
+    if (t.elWrap) this.buildLegend(t.elWrap);
+    const el = (
+      /** @type {HTMLElement|null} */
+      this.elLegend
+    );
+    if (old) el ? old.replaceWith(el) : old.remove();
   }
   /**
    * One shared gradient strip for a heatmap grid (P5). Every panel carries
@@ -2598,9 +2683,20 @@ class TrellisChrome {
       this._gradPending = null;
     }
     t.ctx.events.removeEventListener("panelMounted", this._gradWire);
-    if (this.gradientLegend) {
+    this._gradWire = null;
+    const legend = this.gradientLegend;
+    if (legend) {
+      t.panels.forEach((p) => {
+        var _a2;
+        const ev = (
+          /** @type {any} */
+          (_a2 = p.chart) == null ? void 0 : _a2.ctx.events
+        );
+        ev == null ? void 0 : ev.removeEventListener("dataPointMouseEnter", legend._onCellEnter);
+        ev == null ? void 0 : ev.removeEventListener("dataPointMouseLeave", legend._onCellLeave);
+      });
       try {
-        this.gradientLegend.destroy();
+        legend.destroy();
       } catch (e) {
       }
       this.gradientLegend = null;
@@ -2614,16 +2710,18 @@ class TrellisChrome {
    * @param {HTMLElement} host
    */
   buildToolbar(host) {
+    var _a, _b, _c;
     const t = this.trellis;
     if ((t.cfg.toolbar || "shared") !== "shared") return;
     const bar = BrowserAPIs.createElement("div");
     bar.className = "apexcharts-trellis-toolbar";
     const buttons = {};
     const arm = (tool) => {
+      t._tool = tool;
       t.panels.forEach((p) => {
         if (!p.chart) return;
         const it = p.chart.w.interact;
-        it.zoomEnabled = tool === "zoom";
+        it.zoomEnabled = tool === "zoom" && p.chart.w.config.chart.zoom.enabled;
         it.panEnabled = tool === "pan";
         it.selectionEnabled = false;
       });
@@ -2645,11 +2743,14 @@ class TrellisChrome {
       bar.appendChild(b);
       return b;
     };
-    makeButton("zoom", "Selection zoom", () => arm("zoom"));
-    makeButton("pan", "Pan", () => arm("pan"));
-    makeButton("reset", "Reset zoom", () => {
-      t.sync.resetAll();
-    });
+    const zoom = t.cfg.zoom !== "none" && ((_c = (_b = (_a = t.ctx.opts) == null ? void 0 : _a.chart) == null ? void 0 : _b.zoom) == null ? void 0 : _c.enabled) !== false;
+    if (zoom) {
+      makeButton("zoom", "Selection zoom", () => arm("zoom"));
+      makeButton("pan", "Pan", () => arm("pan"));
+      makeButton("reset", "Reset zoom", () => {
+        t.sync.resetAll();
+      });
+    }
     if (t.ctx.exports) {
       const menu = BrowserAPIs.createElement("div");
       menu.className = "apexcharts-trellis-menu";
@@ -2673,9 +2774,12 @@ class TrellisChrome {
       });
       bar.appendChild(menu);
     }
-    buttons.zoom.classList.add("apexcharts-selected");
-    buttons.zoom.setAttribute("aria-pressed", "true");
-    buttons.pan.setAttribute("aria-pressed", "false");
+    if (!bar.firstChild) return;
+    if (zoom) {
+      buttons.zoom.classList.add("apexcharts-selected");
+      buttons.zoom.setAttribute("aria-pressed", "true");
+      buttons.pan.setAttribute("aria-pressed", "false");
+    }
     host.appendChild(bar);
     this.elToolbar = bar;
     host.classList.add("apexcharts-trellis-has-toolbar");
@@ -2851,6 +2955,16 @@ class TrellisSync {
     return this._hidden.has(name);
   }
   /**
+   * Forget hidden names the data no longer carries, so a name that comes
+   * back later starts visible (as a plain chart's legend does).
+   * @param {string[]} names the current split's series names
+   */
+  prune(names) {
+    this._hidden.forEach((n) => {
+      if (!names.includes(n)) this._hidden.delete(n);
+    });
+  }
+  /**
    * Bring one freshly mounted panel in line with the shared legend's hidden
    * set (virtualized remounts miss the toggles that happened while they were
    * unmounted; the trellis-wide `_hidden` set is the truth).
@@ -2890,27 +3004,40 @@ class TrellisSync {
    * inside the grid makes the settled state the mirrored one; the loop stops
    * on mouseleave, so an idle page costs nothing.
    *
+   * A resting pointer must not cost a full rewrite per frame either: each
+   * cell's crosshair element is cached (re-found once the panel re-renders
+   * or remounts, which detaches the old one), and a target is written only
+   * where it differs from the source. Comparing against the target's live
+   * attributes rather than the last write keeps the re-assert above intact.
+   *
    * @param {HTMLElement} elGrid the trellis grid element
    */
   wireCrosshairs(elGrid) {
     let raf2 = 0;
     let hoverTarget = null;
+    const cache = /* @__PURE__ */ new WeakMap();
+    const crosshair = (cell) => {
+      let x2 = cache.get(cell);
+      if (!x2 || !cell.contains(x2)) {
+        cache.set(cell, x2 = cell.querySelector(".apexcharts-xcrosshairs"));
+      }
+      return x2;
+    };
+    const ATTRS = ["x", "x1", "x2"];
     const apply = () => {
       const cell = hoverTarget && hoverTarget.closest ? hoverTarget.closest(".apexcharts-trellis-cell") : null;
-      const source = cell ? cell.querySelector(".apexcharts-xcrosshairs") : null;
-      const active = source && source.classList.contains("apexcharts-active");
+      const source = cell ? crosshair(cell) : null;
+      const vals = source && source.classList.contains("apexcharts-active") && ATTRS.map((a) => source.getAttribute(a) || "0");
       this.trellis.panels.forEach((p) => {
         if (!p.cellEl || p.cellEl === cell) return;
-        const x2 = p.cellEl.querySelector(".apexcharts-xcrosshairs");
+        const x2 = crosshair(p.cellEl);
         if (!x2) return;
-        if (active) {
-          x2.setAttribute("x", source.getAttribute("x") || "0");
-          x2.setAttribute("x1", source.getAttribute("x1") || "0");
-          x2.setAttribute("x2", source.getAttribute("x2") || "0");
-          x2.classList.add("apexcharts-active");
-        } else {
-          x2.classList.remove("apexcharts-active");
+        if (vals) {
+          ATTRS.forEach((a, i) => {
+            if (x2.getAttribute(a) !== vals[i]) x2.setAttribute(a, vals[i]);
+          });
         }
+        x2.classList.toggle("apexcharts-active", !!vals);
       });
     };
     const loop = () => {
@@ -2929,7 +3056,7 @@ class TrellisSync {
         raf2 = 0;
       }
       this.trellis.panels.forEach((p) => {
-        const x2 = p.cellEl && p.cellEl.querySelector(".apexcharts-xcrosshairs");
+        const x2 = p.cellEl && crosshair(p.cellEl);
         if (x2) x2.classList.remove("apexcharts-active");
       });
     };
@@ -3408,6 +3535,9 @@ class TrellisTooltip {
     this.el = null;
     this._raf = 0;
     this._lastEvent = null;
+    this._key = null;
+    this._split = null;
+    this._scales = null;
   }
   /**
    * Build the card element and start the hover loop.
@@ -3430,6 +3560,7 @@ class TrellisTooltip {
     };
     const leave = () => {
       this._lastEvent = null;
+      this._key = null;
       if (this._raf) {
         cancelAnimationFrame(this._raf);
         this._raf = 0;
@@ -3441,30 +3572,46 @@ class TrellisTooltip {
   }
   /**
    * The hovered data-point index in the union x space, or -1 when the
-   * pointer is outside the hovered panel's plot. Mirrors the divisor rules
-   * of tooltip/Utils.getNearestValues (trellis panels are never combos).
+   * pointer is outside the hovered panel's plot. Mirrors
+   * tooltip/Utils.getNearestValues (trellis panels are never combos):
+   * horizontal bars take the row under the pointer, numeric and datetime x
+   * the point nearest the data x under it (a zoomed window or irregular
+   * spacing does not spread evenly), category x the divisor rules.
    * @param {any} chart the hovered panel's instance
    * @param {number} clientX
    * @param {number} clientY
    */
   _hoverIndex(chart, clientX, clientY) {
     const w = chart.w;
-    const n = w.globals.dataPoints;
+    const gl = w.globals;
+    const n = gl.dataPoints;
     if (!n || n < 1) return -1;
     const gridWidth = w.layout.gridWidth;
     if (!gridWidth) return -1;
-    const hoverX = AxisMapping.screenXToPlotPx(w, clientX);
-    const edgePad = w.globals.barPadForNumericAxis || 0;
+    const plot = TooltipUtils.plotRect(w);
+    this._zoom = plot.zoom;
+    const hoverX = AxisMapping.screenXToPlotPx(w, clientX, plot);
+    const edgePad = gl.barPadForNumericAxis || 0;
     if (hoverX < -edgePad || hoverX > gridWidth + edgePad) return -1;
     const baseEl = w.dom && w.dom.baseEl;
-    if (baseEl && baseEl.querySelector(".apexcharts-svg")) {
-      const plot = TooltipUtils.plotRect(w);
-      if (plot.height && (clientY < plot.top || clientY > plot.top + plot.height)) {
-        return -1;
-      }
+    if (baseEl && baseEl.querySelector(".apexcharts-svg") && plot.height && (clientY < plot.top || clientY > plot.top + plot.height)) {
+      return -1;
     }
-    const slotted = (BAR_PATHWAY_TYPES.includes(w.config.chart.type) || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric;
-    const j = slotted ? Math.ceil(hoverX / (gridWidth / n)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)));
+    let j;
+    if (gl.isBarHorizontal) {
+      j = Math.floor(
+        (clientY - plot.top) / plot.zoom / (w.layout.gridHeight / n)
+      );
+    } else if (w.axisFlags && w.axisFlags.isXNumeric) {
+      const xs = gl.seriesX.find((a) => a.length) || [];
+      const x2 = AxisMapping.pxToDataX(w, hoverX);
+      j = 0;
+      for (let i = 1; i < xs.length; i++) {
+        if (Math.abs(xs[i] - x2) < Math.abs(xs[j] - x2)) j = i;
+      }
+    } else {
+      j = (BAR_PATHWAY_TYPES.includes(w.config.chart.type) || w.config.xaxis.tickPlacement === "between") && !w.config.xaxis.convertedCatToNumeric ? Math.ceil(hoverX / (gridWidth / n)) - 1 : Math.round(hoverX / (gridWidth / Math.max(1, n - 1)));
+    }
     return Math.max(0, Math.min(n - 1, j));
   }
   /**
@@ -3506,56 +3653,59 @@ class TrellisTooltip {
   }
   /**
    * One reconcile pass: resolve the hovered panel and index, then one row
-   * per panel from the split.
+   * per panel from the split. It runs every frame while the pointer is over
+   * the grid (D9): the index is resolved every frame (a wheel zoom moves the
+   * points under a still pointer), but the card is rebuilt (markup,
+   * formatters, a forced layout) only when its panel, index, title or split
+   * changed, and only a new pointer event moves it.
    * @param {HTMLElement} elWrap
    */
   _update(elWrap) {
     const t = this.trellis;
     const card = this.el;
     const e = this._lastEvent;
-    if (!card || !e || !t.split) return;
+    const split2 = t.split;
+    if (!card || !e || !split2) return;
+    const moved = e !== this._e;
+    this._e = e;
     const cell = e.target && e.target.closest ? e.target.closest(".apexcharts-trellis-cell") : null;
     const hovered = cell ? t.panels.find((p) => p.cellEl === cell) : void 0;
     const j = hovered && hovered.chart ? this._hoverIndex(hovered.chart, e.clientX, e.clientY) : -1;
     if (!hovered || j === -1) {
       card.classList.remove("apexcharts-trellis-tooltip-active");
+      this._key = null;
       return;
     }
-    const titleEl = cell ? cell.querySelector(".apexcharts-tooltip-title") : null;
-    const title = titleEl && titleEl.textContent ? titleEl.textContent : "";
-    const names = t.split.seriesNames;
-    const scales = t.scales;
-    const rows = [];
-    t.split.panels.forEach((slice) => {
-      const vals = [];
-      names.forEach((name, ni) => {
-        const v = this._valueAt(slice, name, ni, j);
-        if (v === null) return;
-        const color = scales ? scales.colorOf(name) : "#008FFB";
-        vals.push(
-          `<span class="apexcharts-trellis-tooltip-val"><span class="apexcharts-trellis-tooltip-marker" style="background:${escapeAttr$1(
-            color
-          )}"></span>${escapeHtml(v)}</span>`
-        );
-      });
-      const isHovered = slice.key === hovered.key;
-      rows.push(
-        `<div class="apexcharts-trellis-tooltip-row${isHovered ? " apexcharts-trellis-tooltip-row-active" : ""}" data-key="${escapeAttr$1(slice.key)}"><span class="apexcharts-trellis-tooltip-key">${escapeHtml(
-          slice.key
-        )}</span><span class="apexcharts-trellis-tooltip-vals">${vals.join(
-          ""
-        )}</span></div>`
-      );
-    });
-    let html = "";
-    if (title) {
-      html += `<div class="apexcharts-tooltip-title">${escapeHtml(title)}</div>`;
+    let titleEl = this._titleEl;
+    if (!titleEl || !cell.contains(titleEl)) {
+      titleEl = this._titleEl = cell.querySelector(".apexcharts-tooltip-title");
     }
-    html += rows.join("");
-    card.innerHTML = html;
-    card.classList.add("apexcharts-trellis-tooltip-active");
+    const title = titleEl && titleEl.textContent || "";
+    const key = hovered.key + "\n" + j + "\n" + title;
+    if (key !== this._key || split2 !== this._split || t.scales !== this._scales) {
+      this._key = key;
+      this._split = split2;
+      this._scales = t.scales;
+      let html = title ? `<div class="apexcharts-tooltip-title">${escapeHtml(title)}</div>` : "";
+      split2.panels.forEach((slice) => {
+        let vals = "";
+        split2.seriesNames.forEach((name, ni) => {
+          const v = this._valueAt(slice, name, ni, j);
+          if (v === null) return;
+          const color = t.scales ? t.scales.colorOf(name) : "#008FFB";
+          vals += `<span class="apexcharts-trellis-tooltip-val"><span class="apexcharts-trellis-tooltip-marker" style="background:${escapeAttr$1(
+            color
+          )}"></span>${escapeHtml(v)}</span>`;
+        });
+        html += `<div class="apexcharts-trellis-tooltip-row${slice.key === hovered.key ? " apexcharts-trellis-tooltip-row-active" : ""}" data-key="${escapeAttr$1(slice.key)}"><span class="apexcharts-trellis-tooltip-key">${escapeHtml(
+          slice.key
+        )}</span><span class="apexcharts-trellis-tooltip-vals">${vals}</span></div>`;
+      });
+      card.innerHTML = html;
+      card.classList.add("apexcharts-trellis-tooltip-active");
+    } else if (!moved) return;
     const wrapRect = elWrap.getBoundingClientRect();
-    const zoom = TooltipUtils.plotRect(hovered.chart.w).zoom;
+    const zoom = this._zoom || 1;
     let x2 = (e.clientX - wrapRect.left) / zoom + CURSOR_PAD;
     let y = (e.clientY - wrapRect.top) / zoom + CURSOR_PAD;
     const cw = card.offsetWidth;
@@ -3612,6 +3762,19 @@ class TrellisExports {
       h: r.height
     };
   }
+  /**
+   * Panels on screen. A promotion parks the rest as display:none, whose
+   * rects collapse onto the wrap origin; the export is what the user sees,
+   * so a promoted grid exports the promoted panel alone.
+   */
+  _shown() {
+    return this.trellis.panels.filter(
+      (p) => {
+        var _a;
+        return !((_a = p.cellEl) == null ? void 0 : _a.classList.contains("apexcharts-trellis-cell-parked"));
+      }
+    );
+  }
   /** Export surface size = the wrap's own box. */
   _size() {
     const wrap = (
@@ -3631,20 +3794,29 @@ class TrellisExports {
     }
     return "#fff";
   }
-  /** Text pieces to compose: title + one header per cell (+ legend items). */
+  /**
+   * Text pieces to compose: title + subtitle + one header per cell (+ legend
+   * items). An inline `text-align` (the title's `align`) wins over the
+   * piece's default anchor.
+   */
   _chromeTexts() {
     const t = this.trellis;
     const texts = [];
-    const push = (el, align) => {
+    const push = (el, fallback) => {
       if (!el || !el.textContent) return;
       const rect = this._rectIn(el);
       const cs = getComputedStyle(
         /** @type {HTMLElement} */
         el
       );
+      const align = (
+        /** @type {'left'|'center'|'right'} */
+        /** @type {HTMLElement} */
+        el.style.textAlign || fallback
+      );
       texts.push({
         text: el.textContent,
-        x: align === "center" ? rect.x + rect.w / 2 : rect.x,
+        x: rect.x + (align === "left" ? 0 : align === "right" ? rect.w : rect.w / 2),
         y: rect.y + rect.h / 2,
         font: `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
         fontSize: parseFloat(cs.fontSize) || 12,
@@ -3653,7 +3825,8 @@ class TrellisExports {
       });
     };
     push(t.chrome.elTitle, "left");
-    t.panels.forEach((p) => {
+    push(t.chrome.elSubtitle, "left");
+    this._shown().forEach((p) => {
       if (!p.cellEl) return;
       push(p.cellEl.querySelector(".apexcharts-trellis-header"), "center");
     });
@@ -3685,7 +3858,6 @@ class TrellisExports {
    */
   dataURI() {
     return __async(this, arguments, function* (options = {}) {
-      const t = this.trellis;
       const scale = options.scale || 1;
       const size = this._size();
       const canvas = document.createElement("canvas");
@@ -3700,7 +3872,7 @@ class TrellisExports {
       ctx.scale(scale, scale);
       ctx.fillStyle = this._background();
       ctx.fillRect(0, 0, size.w, size.h);
-      for (const p of t.panels) {
+      for (const p of this._shown()) {
         if (!p.el) continue;
         const rect = this._rectIn(p.el);
         if (!p.chart) {
@@ -3743,7 +3915,6 @@ class TrellisExports {
    */
   svgString(scale = 1) {
     return __async(this, null, function* () {
-      const t = this.trellis;
       const size = this._size();
       const parts = [];
       parts.push(
@@ -3752,7 +3923,7 @@ class TrellisExports {
       parts.push(
         `<rect width="${size.w}" height="${size.h}" fill="${this._background()}"/>`
       );
-      for (const p of t.panels) {
+      for (const p of this._shown()) {
         if (!p.el) continue;
         const rect = this._rectIn(p.el);
         if (!p.chart) {
@@ -3767,7 +3938,7 @@ class TrellisExports {
         );
       }
       for (const piece of this._chromeTexts()) {
-        const anchor = piece.align === "center" ? "middle" : "start";
+        const anchor = piece.align === "left" ? "start" : piece.align === "right" ? "end" : "middle";
         parts.push(
           `<text x="${piece.x}" y="${piece.y}" text-anchor="${anchor}" dominant-baseline="central" style="font:${escapeAttr(
             piece.font
@@ -3791,7 +3962,7 @@ class TrellisExports {
    * @returns {string}
    */
   csv(options = {}) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const t = this.trellis;
     const split2 = t.split;
     if (!split2) return "";
@@ -3803,7 +3974,13 @@ class TrellisExports {
       const s = String(v);
       return /[",\n]/.test(s) || s.indexOf(delimiter) !== -1 ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const xOut = (x2) => isDatetime && typeof x2 === "number" ? new Date(x2).toISOString() : x2;
+    const cats = split2.xForm === "plain" && (((_d = w.config.xaxis.categories) == null ? void 0 : _d.length) ? w.config.xaxis.categories : w.config.labels || []);
+    const xOut = (x2) => {
+      var _a2;
+      if (cats) x2 = (_a2 = cats[x2]) != null ? _a2 : x2 + 1;
+      if (Array.isArray(x2)) x2 = x2.join(" ");
+      return isDatetime && typeof x2 === "number" ? new Date(x2).toISOString() : x2;
+    };
     const names = split2.seriesNames;
     const lines = [
       ["x", "facet", ...names].map(cell).join(delimiter)
@@ -3973,7 +4150,6 @@ class Trellis {
     this._ApexCharts = _core__default;
     this._virtualActive = false;
     this._panelRenderer = null;
-    this._yLabelDecimals = 0;
     this.elWrap = null;
     this.elGrid = null;
     this._mounted = false;
@@ -3990,6 +4166,8 @@ class Trellis {
     this._vetoWarned = false;
     this._noKeyWarned = false;
     this._frames = null;
+    this._gen = 0;
+    this._tool = null;
   }
   /** Whether this chart is a trellis host: `by` (1-D) or `row`/`column`
    *  (2-D, P4) is the switch. A vetoed chart type (P5) returns false, which
@@ -4029,10 +4207,109 @@ class Trellis {
    *  column key; responsive recolumning would break the row/column
    *  semantics), so panels shrink instead of wrapping. */
   _layoutCfg() {
+    const cfg = this._effectiveCfg();
     if (this.split && this.split.mode === "2d" && this.split.colKeys) {
-      return __spreadProps(__spreadValues({}, this.cfg), { columns: this.split.colKeys.length });
+      return __spreadProps(__spreadValues({}, cfg), { columns: this.split.colKeys.length });
     }
-    return this.cfg;
+    return cfg;
+  }
+  /** The trellis config with the EFFECTIVE y mode, so the scale resolver
+   *  and the edge-label policy agree when a type frame forced 'shared'. */
+  _effectiveCfg() {
+    var _a;
+    const y = this._yMode();
+    return y !== (((_a = this.cfg.scales) == null ? void 0 : _a.y) || "shared") ? __spreadProps(__spreadValues({}, this.cfg), { scales: __spreadProps(__spreadValues({}, this.cfg.scales || {}), { y }) }) : this.cfg;
+  }
+  /**
+   * Re-derive everything the panels share from the data: the type frames,
+   * the uniform label decimals and the shared scales. One place, so the
+   * first render and every update see the same derivation.
+   * @param {import('./TrellisSplit').TrellisSplitResult} split
+   * @param {boolean} [frames] false keeps the current type frames (the data
+   *   did not change, only the colours may have)
+   */
+  _deriveShared(split2, frames = true) {
+    var _a, _b;
+    const w = this.w;
+    const c = w.config.chart;
+    if (frames || !this._frames) {
+      this._frames = buildTypeFrames(
+        split2,
+        this.cfg,
+        w.config,
+        c.requestedType === "histogram" ? "histogram" : c.type
+      );
+    }
+    const yaxis = this._multiY();
+    let axisNames = null;
+    if (yaxis) {
+      const names = split2.seriesNames;
+      const cu = new CoreUtils(
+        /** @type {any} */
+        {
+          config: { series: names.map((name) => ({ name })), yaxis },
+          globals: {}
+        }
+      );
+      cu.setSeriesYAxisMappings();
+      axisNames = cu.w.globals.seriesYAxisMap.map(
+        (m) => m.map((i) => names[i]).filter((n) => n != null)
+      );
+    }
+    this._axisNames = axisNames;
+    const theme = w.config.theme;
+    const scales = this.scales = resolve(
+      split2,
+      this._effectiveCfg(),
+      __spreadValues({
+        chartType: c.type,
+        userColors: this.ctx.opts && this.ctx.opts.colors,
+        palette: theme.palette,
+        // The page's own axes when there are several (see _multiY).
+        yaxis: yaxis || w.config.yaxis,
+        axisNames,
+        yExtentOverride: this._frames.yExtentOverride
+      }, this._stackingHost())
+    );
+    if (((_a = theme.monochrome) == null ? void 0 : _a.enabled) || ((_b = theme.accessibility) == null ? void 0 : _b.colorBlindMode) || scales.palette.some((c2) => typeof c2 === "function")) {
+      const colorOf = scales.colorOf;
+      scales.colorOf = (name, raw) => {
+        if (!raw) {
+          for (const p of this.panels) {
+            const pw = p.chart && p.chart.w;
+            const i = pw ? pw.seriesData.seriesNames.indexOf(name) : -1;
+            const c2 = i > -1 && pw.globals.colors[i];
+            if (typeof c2 === "function") {
+              return c2({
+                value: pw.seriesData.series[i][0] || 0,
+                seriesIndex: i,
+                dataPointIndex: 0,
+                w: pw
+              });
+            }
+            if (c2) return c2;
+          }
+        }
+        return colorOf(name);
+      };
+    }
+  }
+  /** @returns {{ chartType: string, datetime: boolean }} the split's host facts */
+  _splitHost() {
+    const cnf = this.w.config;
+    return { chartType: cnf.chart.type, datetime: cnf.xaxis.type === "datetime" };
+  }
+  /**
+   * The page's y axes when there are several, else null (also for a
+   * horizontal bar trellis, whose value axis is `xaxis`). The page's own
+   * list: the merged config holds one log axis per HOST series, which says
+   * nothing about the panels' axes.
+   * @returns {any[] | null}
+   */
+  _multiY() {
+    var _a;
+    const yaxis = (_a = this.ctx.opts) == null ? void 0 : _a.yaxis;
+    return Array.isArray(yaxis) && yaxis.length > 1 && !this._valueAxisIsX() ? yaxis : null;
   }
   /**
    * The stacking facts the shared-scale resolver needs. A stacked panel is as
@@ -4075,23 +4352,22 @@ class Trellis {
    * ('independent-column'), or none ('independent'). Types whose y axis does
    * not carry the data values (heatmap rows, the radial family) never get a
    * yaxis push at all (P5): the frame's own channel is the shared one.
+   *
+   * With several y axes the bounds are one per axis, handed out only when
+   * `all` asks for them: a caller that pushes one domain onto every axis
+   * (the grid reset) gets null and leaves the axes alone.
    * @param {import('./TrellisSplit').TrellisSlice} slice
-   * @returns {{ min: number, max: number, tickAmount: number } | null}
+   * @param {boolean} [all]
+   * @returns {any} TrellisBounds, an array of them (`all`), or null
    */
-  _yBoundsFor(slice) {
+  _yBoundsFor(slice, all) {
     var _a, _b;
     const scales = this.scales;
     if (!scales) return null;
     if (this._frames && this._frames.skipYaxisPush) return null;
     const yMode = this._yMode();
-    if (yMode === "shared") return scales.y;
-    if (yMode === "independent-row" && scales.rowY) {
-      return scales.rowY.get((_a = slice.rowKey) != null ? _a : "") || null;
-    }
-    if (yMode === "independent-column" && scales.colY) {
-      return scales.colY.get((_b = slice.colKey) != null ? _b : "") || null;
-    }
-    return null;
+    const b = yMode === "shared" ? scales.y : yMode === "independent-row" && scales.rowY ? scales.rowY.get((_a = slice.rowKey) != null ? _a : "") : yMode === "independent-column" && scales.colY ? scales.colY.get((_b = slice.colKey) != null ? _b : "") : null;
+    return b && (all || !Array.isArray(b)) ? b : null;
   }
   /**
    * Horizontal bars measure along x, and the library reads that value axis
@@ -4175,7 +4451,7 @@ class Trellis {
   /** @returns {Promise<void>} */
   _render() {
     return __async(this, null, function* () {
-      var _a, _b, _c, _d;
+      var _a, _b, _c;
       const w = this.w;
       if (this._mounted || this._rendering) return;
       if (!Environment.isBrowser()) {
@@ -4185,9 +4461,10 @@ class Trellis {
         return;
       }
       this._rendering = true;
+      const gen = this._gen;
       try {
         this.cfg = w.config.trellis || {};
-        this.autoScaleYaxis = !!((_b = (_a = w.config.chart) == null ? void 0 : _a.zoom) == null ? void 0 : _b.autoScaleYaxis);
+        this.autoScaleYaxis = !!((_b = (_a = w.config.chart) == null ? void 0 : _a.zoom) == null ? void 0 : _b.autoScaleYaxis) && !this._multiY();
         let inputSeries = w.config.series || [];
         if (Array.isArray(this.cfg.data)) {
           const pivoted = pivotRows(this.cfg.data, this.cfg);
@@ -4201,9 +4478,7 @@ class Trellis {
             inputSeries = pivoted.series;
           }
         }
-        const split$1 = split(inputSeries, this.cfg, {
-          chartType: w.config.chart.type
-        });
+        const split$1 = split(inputSeries, this.cfg, this._splitHost());
         this.split = split$1;
         split$1.warnings.forEach((msg) => console.warn(`ApexCharts: ${msg}`));
         if (!split$1.panels.length) return;
@@ -4231,18 +4506,21 @@ class Trellis {
             `ApexCharts: ${split$1.panels.length} trellis panels is a lot to read at once; consider trellis.limit.`
           );
         }
-        const frameType = w.config.chart.requestedType === "histogram" ? "histogram" : w.config.chart.type;
-        this._frames = buildTypeFrames(split$1, this.cfg, w.config, frameType);
-        this._frames.warnings.forEach(
-          (msg) => console.warn(`ApexCharts: ${msg}`)
+        this._deriveShared(split$1);
+        const frames = (
+          /** @type {import('./TrellisFrames').TypeFrames} */
+          this._frames
         );
-        this._yLabelDecimals = this._frames.yExtentOverride ? 0 : maxYDecimals(split$1.panels);
-        const scalesCfg = this._yMode() !== (((_d = this.cfg.scales) == null ? void 0 : _d.y) || "shared") ? __spreadProps(__spreadValues({}, this.cfg), { scales: __spreadProps(__spreadValues({}, this.cfg.scales || {}), { y: this._yMode() }) }) : this.cfg;
-        this.scales = resolve(split$1, scalesCfg, __spreadValues({
-          chartType: w.config.chart.type,
-          userColors: this.ctx.opts && this.ctx.opts.colors,
-          yExtentOverride: this._frames.yExtentOverride
-        }, this._stackingHost()));
+        frames.warnings.forEach((msg) => console.warn(`ApexCharts: ${msg}`));
+        if (!this._seeded) {
+          this._seeded = true;
+          split$1.panels.forEach(
+            (p) => p.series.forEach(
+              (s) => s.hidden && this.sync._hidden.add(s.name)
+            )
+          );
+        }
+        this.sync.prune(split$1.seriesNames);
         this._panelRenderer = choosePanelRenderer(
           split$1,
           w.config,
@@ -4283,6 +4561,7 @@ class Trellis {
             );
             panel.chart = chart;
             yield chart.render();
+            if (gen !== this._gen) return;
             this._fire("panelMounted", {
               key: panel.key,
               index: panel.index,
@@ -4291,6 +4570,7 @@ class Trellis {
           }
           if (independentY) {
             yield this._alignGutters();
+            if (gen !== this._gen) return;
             wrap.style.visibility = "";
           }
         }
@@ -4550,45 +4830,37 @@ class Trellis {
    * @returns {Record<string, any>}
    */
   _assemblePanelOptions(i, { noAnimation = false } = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
+    var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
     const w = this.w;
     const split2 = (
       /** @type {import('./TrellisSplit').TrellisSplitResult} */
       this.split
-    );
-    const scales = (
-      /** @type {ReturnType<typeof TrellisScales.resolve>} */
-      this.scales
     );
     const ly = (
       /** @type {import('./TrellisLayout').TrellisLayoutResult} */
       this.layout
     );
     const slice = split2.panels[i];
-    const base = Utils.clone(this.ctx.opts || {});
-    delete base.trellis;
-    delete base.series;
-    delete base.responsive;
+    const _a = this.ctx.opts || {}, {
+      series: _s,
+      trellis: _t,
+      responsive: _r
+    } = _a, userOpts = __objRest(_a, [
+      "series",
+      "trellis",
+      "responsive"
+    ]);
+    const base = Utils.clone(userOpts);
     if (base.annotations) {
       base.annotations = scopeAnnotations(base.annotations, slice.key);
     }
     const userChart = base.chart || {};
     const userEvents = userChart.events || {};
     const hostId = w.globals.chartID;
-    const userAnimations = (_c = (_b = (_a = this.ctx.opts) == null ? void 0 : _a.chart) == null ? void 0 : _b.animations) == null ? void 0 : _c.enabled;
+    const userAnimations = (_d = (_c = (_b = this.ctx.opts) == null ? void 0 : _b.chart) == null ? void 0 : _c.animations) == null ? void 0 : _d.enabled;
     const animationsOff = noAnimation || split2.panels.length > ANIMATION_PANEL_BUDGET && userAnimations === void 0;
     const isPlaceholder = slice.empty && (this.cfg.emptyPanels || "placeholder") === "placeholder";
-    let panelSeries = isPlaceholder ? [placeholderSeries(split2, { chartType: w.config.chart.type })] : slice.series;
-    const isValueSeries = ["pie", "donut", "polarArea", "radialBar"].includes(
-      w.config.chart.type
-    );
-    if (isValueSeries) {
-      panelSeries = panelSeries.flatMap(
-        (s) => Array.isArray(s.data) ? s.data : []
-      ).map(
-        (v) => typeof v === "number" && isFinite(v) ? v : 0
-      );
-    }
+    const data = this._panelDataPatch(i);
     const overrides = __spreadValues(__spreadValues(__spreadProps(__spreadValues({
       chart: __spreadProps(__spreadValues(__spreadValues({
         id: `${hostId}-tp${i}`,
@@ -4610,12 +4882,17 @@ class Trellis {
         // slack de-syncs mounted cells from the skeleton reserve (the grid
         // gap is the breathing room here).
         parentHeightOffset: 0,
-        toolbar: { show: false },
+        // The tool armed on the shared toolbar reaches panels mounted after
+        // the click too (virtualized scroll-ins, rebuilt-in-place panels).
+        toolbar: this._tool ? { show: false, autoSelected: this._tool } : { show: false },
         // the shared toolbar owns the one reset (TrellisSync.resetAll); with
         // toolbar 'none' a panel's own reset is the only way back, unless the
-        // page turned it off
+        // page turned it off. trellis.zoom only decides whether a zoom SYNCS:
+        // the page's own chart.zoom.enabled: false still means no zoom at
+        // all. Read from the page's options, not the merged config: a type
+        // default (histogram, waterfall, sparkline) keeps the grid's zoom.
         zoom: {
-          enabled: this.cfg.zoom !== "none",
+          enabled: this.cfg.zoom !== "none" && ((_g = (_f = (_e = this.ctx.opts) == null ? void 0 : _e.chart) == null ? void 0 : _f.zoom) == null ? void 0 : _g.enabled) !== false,
           resetControl: this.cfg.toolbar == "none" && w.config.chart.zoom.resetControl !== false
         }
       }, animationsOff ? { animations: { enabled: false } } : {}), this._panelRenderer ? { renderer: this._panelRenderer } : {}), {
@@ -4624,12 +4901,8 @@ class Trellis {
           scrolled: this.sync.makeScrolledHandler(userEvents.scrolled)
         })
       }),
-      series: panelSeries
-    }, isValueSeries ? {} : {
-      colors: panelSeries.map(
-        (s) => scales.colorOf(s.name)
-      )
-    }), {
+      series: data.series
+    }, data.colors ? { colors: data.colors } : {}), {
       // Headers replace per-panel titles; the shared legend replaces per-panel
       // legends. margin: 0 and floating both matter: an empty-string title
       // still charges its margin to the top gutter in Dimensions, and its
@@ -4637,11 +4910,11 @@ class Trellis {
       title: { text: "", margin: 0, floating: true },
       subtitle: { text: "", margin: 0, floating: true },
       legend: { show: false }
-    }), isPlaceholder ? { tooltip: { enabled: false } } : {}), ly.panelH < COMPACT_TOOLTIP_PANEL_H && this.cfg.tooltip !== "grid" && typeof ((_e = (_d = this.ctx.opts) == null ? void 0 : _d.tooltip) == null ? void 0 : _e.compact) !== "boolean" ? { tooltip: { compact: true } } : {});
+    }), isPlaceholder ? { tooltip: { enabled: false } } : {}), ly.panelH < COMPACT_TOOLTIP_PANEL_H && this.cfg.tooltip !== "grid" && typeof ((_i = (_h = this.ctx.opts) == null ? void 0 : _h.tooltip) == null ? void 0 : _i.compact) !== "boolean" ? { tooltip: { compact: true } } : {});
     const gridlessTypes = ["pie", "donut", "polarArea", "radialBar", "radar", "treemap"];
-    if (!((_f = userChart.sparkline) == null ? void 0 : _f.enabled) && !gridlessTypes.includes(w.config.chart.type)) {
+    if (!((_j = userChart.sparkline) == null ? void 0 : _j.enabled) && !gridlessTypes.includes(w.config.chart.type)) {
       const userPad = base.grid && base.grid.padding || {};
-      const reclaimBottom = ((_h = (_g = this.ctx.opts) == null ? void 0 : _g.xaxis) == null ? void 0 : _h.type) === "datetime" ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME : PANEL_PAD_RECLAIM_BOTTOM;
+      const reclaimBottom = ((_l = (_k = this.ctx.opts) == null ? void 0 : _k.xaxis) == null ? void 0 : _l.type) === "datetime" ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME : PANEL_PAD_RECLAIM_BOTTOM;
       overrides.grid = {
         padding: {
           top: (typeof userPad.top === "number" ? userPad.top : 0) - PANEL_PAD_RECLAIM_TOP,
@@ -4649,55 +4922,16 @@ class Trellis {
         }
       };
     }
-    const valueAxisIsX = this._valueAxisIsX();
-    if (scales.x && !valueAxisIsX) {
-      overrides.xaxis = { min: scales.x.min, max: scales.x.max };
-    }
-    const yBounds = this._yBoundsFor(slice);
-    if (yBounds) {
-      const userYaxisRaw = Array.isArray((_i = this.ctx.opts) == null ? void 0 : _i.yaxis) ? this.ctx.opts.yaxis[0] : (_j = this.ctx.opts) == null ? void 0 : _j.yaxis;
-      const userYaxis = Array.isArray(base.yaxis) ? base.yaxis[0] : base.yaxis;
-      let labelsPatch = {};
-      if (typeof ((_k = userYaxisRaw == null ? void 0 : userYaxisRaw.labels) == null ? void 0 : _k.formatter) !== "function") {
-        const step = (yBounds.max - yBounds.min) / Math.max(1, yBounds.tickAmount);
-        const digits = Math.max(
-          this._yLabelDecimals,
-          decimalCount(step)
-        );
-        labelsPatch = {
-          labels: {
-            formatter: (val) => typeof val === "number" && isFinite(val) ? val.toFixed(digits) : val
-          }
-        };
-      }
-      overrides.yaxis = Utils.extend(userYaxis || {}, __spreadValues({
-        min: yBounds.min,
-        max: yBounds.max,
-        tickAmount: yBounds.tickAmount
-      }, labelsPatch));
+    if (data.xaxis) overrides.xaxis = data.xaxis;
+    if (data.yaxis) {
+      const userY = (
+        /** @type {any[]} */
+        [].concat(base.yaxis || {})
+      );
+      overrides.yaxis = Array.isArray(data.yaxis) ? data.yaxis.map((p, ai) => Utils.extend(userY[ai] || {}, p)) : Utils.extend(userY[0] || {}, data.yaxis);
       delete base.yaxis;
-      if (valueAxisIsX) {
-        overrides.xaxis = Utils.extend(
-          overrides.xaxis || {},
-          this._valueAxisXPatch(yBounds)
-        );
-      }
     }
-    const frames = this._frames;
-    if (frames && frames.plotOptions) {
-      overrides.plotOptions = Utils.clone(frames.plotOptions);
-    }
-    if (frames && frames.pieScaleOf) {
-      const ratio = frames.pieScaleOf(slice.key);
-      if (ratio !== null) {
-        const userScale = (_n = (_m = (_l = this.ctx.opts) == null ? void 0 : _l.plotOptions) == null ? void 0 : _m.pie) == null ? void 0 : _n.customScale;
-        overrides.plotOptions = Utils.extend(overrides.plotOptions || {}, {
-          pie: {
-            customScale: ratio * (typeof userScale === "number" ? userScale : 1)
-          }
-        });
-      }
-    }
+    if (data.plotOptions) overrides.plotOptions = data.plotOptions;
     let opts = Utils.extend(base, overrides);
     if (typeof this.cfg.panel === "function") {
       const extra = this.cfg.panel(slice.key, { index: i, seriesNames: slice.seriesNames });
@@ -4706,13 +4940,96 @@ class Trellis {
     return opts;
   }
   /**
+   * The DATA-derived half of one panel's options: its series, the shared
+   * colour map, the shared x/y domains with the uniform label formatter,
+   * and the type frames. Both the first assembly and every host
+   * updateSeries push this one patch, so an override added here can never
+   * go stale after an update the way a second copy of it did.
+   * @param {number} i
+   * @returns {Record<string, any>}
+   */
+  _panelDataPatch(i) {
+    var _a, _b, _c, _d;
+    const w = this.w;
+    const split2 = (
+      /** @type {import('./TrellisSplit').TrellisSplitResult} */
+      this.split
+    );
+    const scales = (
+      /** @type {ReturnType<typeof TrellisScales.resolve>} */
+      this.scales
+    );
+    const slice = split2.panels[i];
+    const type = w.config.chart.type;
+    const series = slice.empty && (this.cfg.emptyPanels || "placeholder") === "placeholder" ? [placeholderSeries(split2, { chartType: type })] : slice.series;
+    const patch = { series };
+    if (["pie", "donut", "polarArea", "radialBar"].includes(type)) {
+      patch.series = series.flatMap(
+        (s) => Array.isArray(s.data) ? s.data : []
+      ).map(
+        (v) => typeof v === "number" && isFinite(v) ? v : 0
+      );
+    } else {
+      patch.colors = series.map(
+        (s) => scales.colorOf(s.name, true)
+      );
+      patch.series = series.map((s) => __spreadProps(__spreadValues({}, s), {
+        hidden: this.sync.isHidden(s.name)
+      }));
+    }
+    const valueAxisIsX = this._valueAxisIsX();
+    if (scales.x && !valueAxisIsX) {
+      patch.xaxis = { min: scales.x.min, max: scales.x.max };
+    }
+    const yBounds = this._yBoundsFor(slice, true);
+    if (yBounds) {
+      const userY = (_a = this.ctx.opts) == null ? void 0 : _a.yaxis;
+      const names = this._axisNames;
+      patch.yaxis = /** @type {any[]} */
+      [].concat(yBounds).map((b, ai) => {
+        var _a2;
+        const entry = b ? { min: b.min, max: b.max, tickAmount: b.tickAmount } : {};
+        if (names) entry.seriesName = names[ai];
+        const user = Array.isArray(userY) ? userY[ai] : userY;
+        if (b && typeof ((_a2 = user == null ? void 0 : user.labels) == null ? void 0 : _a2.formatter) !== "function") {
+          entry.labels = {
+            formatter: (val) => typeof val === "number" && isFinite(val) ? val.toFixed(b.decimals) : val
+          };
+        }
+        return entry;
+      });
+      if (!Array.isArray(yBounds)) patch.yaxis = patch.yaxis[0];
+      if (valueAxisIsX) {
+        patch.xaxis = Utils.extend(
+          patch.xaxis || {},
+          this._valueAxisXPatch(yBounds)
+        );
+      }
+    }
+    const frames = this._frames;
+    if (frames && frames.plotOptions) {
+      patch.plotOptions = Utils.clone(frames.plotOptions);
+    }
+    const ratio = frames && frames.pieScaleOf ? frames.pieScaleOf(slice.key) : null;
+    if (ratio !== null) {
+      const userScale = (_d = (_c = (_b = this.ctx.opts) == null ? void 0 : _b.plotOptions) == null ? void 0 : _c.pie) == null ? void 0 : _d.customScale;
+      patch.plotOptions = Utils.extend(patch.plotOptions || {}, {
+        pie: {
+          customScale: ratio * (typeof userScale === "number" ? userScale : 1)
+        }
+      });
+    }
+    return patch;
+  }
+  /**
    * Independent-y gutter alignment (22a Q2): measure every panel's label
    * gutter, push the max as a shared `yaxis.labels.minWidth`. `max()` of the
    * measured widths makes the panels' `max(minWidth, measured)` resolve to
    * the same constant everywhere, so one iteration is exact by construction.
+   * @param {boolean} [grow] push only when the floor has to widen
    * @returns {Promise<void>}
    */
-  _alignGutters() {
+  _alignGutters(grow = false) {
     return __async(this, null, function* () {
       var _a, _b, _c, _d;
       const widths = this.panels.map((p) => {
@@ -4723,6 +5040,8 @@ class Trellis {
       const isHorizontal = !!((_d = (_c = (_b = (_a = this.panels[0]) == null ? void 0 : _a.chart) == null ? void 0 : _b.w) == null ? void 0 : _c.globals) == null ? void 0 : _d.isBarHorizontal);
       const labelPad = isHorizontal ? 0 : Y_LABEL_PAD;
       const minWidth = Math.max(0, Math.max(...widths) - labelPad);
+      if (grow && minWidth <= this.virtual._gutterFloor + 0.5) return;
+      this.virtual._gutterFloor = minWidth;
       yield this._pushGutterFloor(minWidth);
     });
   }
@@ -4946,26 +5265,22 @@ class Trellis {
    */
   applyPanelOptions(animate = true) {
     return __async(this, null, function* () {
-      var _a, _b, _c;
       const split2 = this.split;
       if (!split2) return;
-      const scalesCfg = this._yMode() !== (((_a = this.cfg.scales) == null ? void 0 : _a.y) || "shared") ? __spreadProps(__spreadValues({}, this.cfg), { scales: __spreadProps(__spreadValues({}, this.cfg.scales || {}), { y: this._yMode() }) }) : this.cfg;
-      this.scales = resolve(split2, scalesCfg, __spreadValues({
-        chartType: this.w.config.chart.type,
-        userColors: this.ctx.opts && this.ctx.opts.colors,
-        yExtentOverride: this._frames ? this._frames.yExtentOverride : null
-      }, this._stackingHost()));
+      this._deriveShared(split2, false);
       yield Promise.all(
         this.panels.map((p) => {
           if (!p.chart) return Promise.resolve();
           const opts = this._assemblePanelOptions(p.index);
           delete opts.series;
+          delete opts.xaxis;
+          delete opts.yaxis;
           if (opts.chart) delete opts.chart.height;
           return p.chart.updateOptions(opts, false, animate, false, false).catch(() => {
           });
         })
       );
-      (_c = (_b = this.chrome).refreshLegendColors) == null ? void 0 : _c.call(_b);
+      this.chrome.rebuildLegend();
     });
   }
   /**
@@ -4979,7 +5294,6 @@ class Trellis {
    */
   updateSeries(newSeries, animate = true) {
     return __async(this, null, function* () {
-      var _a;
       const w = this.w;
       if (Array.isArray(this.cfg.data) && this.cfg.data.length) {
         console.warn(
@@ -4990,80 +5304,42 @@ class Trellis {
       w.config.series = newSeries;
       if (this.ctx.opts) this.ctx.opts.series = newSeries;
       if (!this._mounted) return this.ctx.render();
-      const nextSplit = split(newSeries || [], this.cfg, {
-        chartType: w.config.chart.type
-      });
-      const sameKeys = nextSplit.panels.length === this.panels.length && nextSplit.panels.every((p, i) => p.key === this.panels[i].key);
+      const nextSplit = split(newSeries || [], this.cfg, this._splitHost());
+      const sameKeys = nextSplit.panels.length === this.panels.length && nextSplit.panels.every(
+        (p, i) => p.key === this.panels[i].key && !!p.empty === !!this.panels[i].empty
+      );
       if (!sameKeys) {
         this.teardown();
         return this.ctx.render();
       }
       this.split = nextSplit;
-      this._frames = buildTypeFrames(
-        nextSplit,
-        this.cfg,
-        w.config,
-        w.config.chart.requestedType === "histogram" ? "histogram" : w.config.chart.type
-      );
-      const scalesCfg = this._yMode() !== (((_a = this.cfg.scales) == null ? void 0 : _a.y) || "shared") ? __spreadProps(__spreadValues({}, this.cfg), { scales: __spreadProps(__spreadValues({}, this.cfg.scales || {}), { y: this._yMode() }) }) : this.cfg;
-      this.scales = resolve(nextSplit, scalesCfg, __spreadValues({
-        chartType: w.config.chart.type,
-        userColors: this.ctx.opts && this.ctx.opts.colors,
-        yExtentOverride: this._frames.yExtentOverride
-      }, this._stackingHost()));
-      const scales = this.scales;
-      const frames = this._frames;
-      const isValueSeries = ["pie", "donut", "polarArea", "radialBar"].includes(
-        w.config.chart.type
-      );
-      const pushes = this.panels.map((p, i) => {
-        var _a2, _b, _c;
-        if (!p.chart) return Promise.resolve();
-        const payload = {
-          // The radial value family takes a BARE values array (see the same
-          // unwrap in _assemblePanelOptions).
-          series: isValueSeries ? nextSplit.panels[i].series.flatMap(
-            (s) => Array.isArray(s.data) ? s.data : []
-          ).map(
-            (v) => typeof v === "number" && isFinite(v) ? v : 0
-          ) : nextSplit.panels[i].series
-        };
-        const valueAxisIsX = this._valueAxisIsX();
-        if (scales.x && !valueAxisIsX) {
-          payload.xaxis = { min: scales.x.min, max: scales.x.max };
-        }
-        const yBounds = this._yBoundsFor(nextSplit.panels[i]);
-        if (yBounds) {
-          payload.yaxis = yaxisPayload(p.chart, {
-            min: yBounds.min,
-            max: yBounds.max,
-            tickAmount: yBounds.tickAmount
-          });
-          if (valueAxisIsX) {
-            payload.xaxis = Utils.extend(
-              payload.xaxis || {},
-              this._valueAxisXPatch(yBounds)
+      this._deriveShared(nextSplit);
+      this.sync.prune(nextSplit.seriesNames);
+      this.sync.currentWindow = null;
+      this.panels.forEach((p) => {
+        if (p.viewStash) p.viewStash = __spreadProps(__spreadValues({}, p.viewStash), { window: null, zoomed: false });
+        if (p.chart) p.chart.w.interact.zoomed = false;
+      });
+      const gen = this._gen;
+      yield Promise.all(
+        this.panels.map((p) => {
+          if (!p.chart) return Promise.resolve();
+          const patch = this._panelDataPatch(p.index);
+          const py = patch.yaxis;
+          if (py) {
+            patch.yaxis = yaxisPayload(p.chart, {}).map(
+              (e, ai) => Utils.extend(e, (Array.isArray(py) ? py[ai] : py) || {})
             );
           }
-        }
-        if (frames.plotOptions) {
-          payload.plotOptions = Utils.clone(frames.plotOptions);
-        }
-        if (frames.pieScaleOf) {
-          const ratio = frames.pieScaleOf(nextSplit.panels[i].key);
-          if (ratio !== null) {
-            const userScale = (_c = (_b = (_a2 = this.ctx.opts) == null ? void 0 : _a2.plotOptions) == null ? void 0 : _b.pie) == null ? void 0 : _c.customScale;
-            payload.plotOptions = Utils.extend(payload.plotOptions || {}, {
-              pie: {
-                customScale: ratio * (typeof userScale === "number" ? userScale : 1)
-              }
-            });
-          }
-        }
-        return p.chart.updateOptions(payload, false, animate, false).catch(() => {
-        });
-      });
-      return Promise.all(pushes);
+          return p.chart.updateOptions(patch, false, animate, false).catch(() => {
+          });
+        })
+      );
+      if (gen !== this._gen) return;
+      if (this._yMode() !== "shared") yield this._alignGutters(true);
+      if (gen !== this._gen) return;
+      this.chrome.rebuildLegend();
+      this._refitForChrome();
     });
   }
   /** @returns {Array<{ key: string, index: number, chart: any|null, el: HTMLElement|null }>} */
@@ -5088,12 +5364,18 @@ class Trellis {
    * disconnect the observers, and remove the trellis DOM.
    */
   teardown() {
+    this._gen++;
     this.virtual.stop();
     this._virtualActive = false;
     this._panelRenderer = null;
     this._promotedKey = null;
     this._frames = null;
+    this._tool = null;
+    this.sync.currentWindow = null;
     this.chrome.destroyGradientLegend();
+    const c = this.chrome;
+    c.elLegend = c.elToolbar = c.elTitle = c.elSubtitle = c.elBreadcrumb = null;
+    this._elChromeTop = null;
     if (this.gridTooltip) {
       this.gridTooltip.destroy();
       this.gridTooltip = null;

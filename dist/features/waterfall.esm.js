@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -158,6 +158,14 @@ function stashSeries(ser, gl) {
     return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
   });
 }
+function withX(data, categories) {
+  return data.map(
+    (d, j) => d !== null && typeof d === "object" ? d : {
+      x: categories && categories[j] !== void 0 ? categories[j] : j + 1,
+      y: d
+    }
+  );
+}
 function readDatum(d, j, categories) {
   const fallbackX = categories && categories[j] !== void 0 ? categories[j] : j + 1;
   if (d == null) {
@@ -205,8 +213,6 @@ function fillFor(datum, kind, colors) {
 function accumulate(data, categories, colors) {
   const rows = [];
   const values = [];
-  const cumulative = [];
-  const kinds = [];
   let running = 0;
   let cut = 0;
   for (let j = 0; j < data.length; j++) {
@@ -228,8 +234,6 @@ function accumulate(data, categories, colors) {
       if (delta === null || !isFinite(delta)) {
         rows.push(__spreadProps(__spreadValues({}, rest), { x, y: null }));
         values.push(null);
-        cumulative.push(running);
-        kinds.push(null);
         continue;
       }
       start = running;
@@ -243,10 +247,8 @@ function accumulate(data, categories, colors) {
       y: [start, end]
     }), fill ? { fillColor: fill } : {}));
     values.push(end - start);
-    cumulative.push(running);
-    kinds.push(kind);
   }
-  return { data: rows, values, cumulative, kinds };
+  return { data: rows, values };
 }
 function waterfallTransform(ser, w) {
   var _a, _b, _c;
@@ -261,15 +263,12 @@ function waterfallTransform(ser, w) {
   const categories = (_c = cnf.xaxis) == null ? void 0 : _c.categories;
   const collapsed = collapsedIndices(gl);
   const values = [];
-  const cumulative = [];
-  const kinds = [];
   const out = raw.map((s, i) => {
     const data = Array.isArray(s == null ? void 0 : s.data) ? s.data : [];
-    if (collapsed.indexOf(i) !== -1) {
-      values[i] = [];
-      cumulative[i] = [];
-      kinds[i] = [];
-      return __spreadProps(__spreadValues({}, s), { data: [] });
+    values[i] = [];
+    if (collapsed.indexOf(i) !== -1) return __spreadProps(__spreadValues({}, s), { data: [] });
+    if ((s == null ? void 0 : s.type) && s.type !== "waterfall" && s.type !== "rangeBar") {
+      return Array.isArray(s.data) ? __spreadProps(__spreadValues({}, s), { data: withX(s.data, categories) }) : s;
     }
     if (isPrecomputed(data)) {
       values[i] = data.map((d) => {
@@ -279,24 +278,14 @@ function waterfallTransform(ser, w) {
         const hi = Utils.parseNumber(y[1]);
         return lo === null || hi === null ? null : hi - lo;
       });
-      cumulative[i] = data.map((d) => {
-        const y = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
-        const hi = Array.isArray(y) ? Utils.parseNumber(y[1]) : null;
-        return hi === null ? 0 : hi;
-      });
-      kinds[i] = data.map(() => null);
       return s;
     }
     const acc = accumulate(data, categories, colors);
     values[i] = acc.values;
-    cumulative[i] = acc.cumulative;
-    kinds[i] = acc.kinds;
     return __spreadProps(__spreadValues({}, s), { data: acc.data });
   });
   w.waterfallData = {
     values,
-    cumulative,
-    kinds,
     // A non-null sink is what tells RangeBar to record the px box it drew each
     // column in, which the connector layer joins up. Fresh every parse.
     geometry: []

@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -24,6 +24,7 @@ import { default as default2 } from "apexcharts/core";
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
+const resolveEasing = _core.__apex_Easing_resolveEasing;
 const parsePath = _core.__apex_PathMorphing_parsePath;
 function gridDivideRect(bbox, count) {
   if (!(count > 0)) return [];
@@ -202,12 +203,16 @@ function makeColorLerp(from, to) {
     return al >= 1 ? `rgb(${r},${g},${bl})` : `rgba(${r},${g},${bl},${al})`;
   };
 }
-function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive }) {
+function runPieceTween({
+  pieces,
+  duration,
+  ease,
+  onPieceDone,
+  onAllDone,
+  alive
+}) {
   let cancelled = false;
-  const start = Date.now();
+  const start = performance.now();
   const dur = Math.max(1, duration);
   const write = (p, e) => {
     const f = p.from;
@@ -221,9 +226,9 @@ function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive }) {
     if (p.fill) el.setAttribute("fill", p.fill(e));
     else if (e >= 1 && p.fillEnd) el.setAttribute("fill", p.fillEnd);
   };
-  const frame = () => {
+  const frame = (now) => {
     if (cancelled || alive && !alive()) return;
-    const elapsed = Date.now() - start;
+    const elapsed = now - start;
     let live = false;
     for (let k = 0; k < pieces.length; k++) {
       const p = pieces[k];
@@ -235,7 +240,7 @@ function runPieceTween({ pieces, duration, onPieceDone, onAllDone, alive }) {
       if (raw < 1) live = true;
       if (raw <= 0) continue;
       const t = Math.min(1, raw);
-      write(p, easeInOutCubic(t));
+      write(p, ease(t));
       if (t >= 1) {
         p._done = true;
         if (onPieceDone) onPieceDone(p);
@@ -988,15 +993,19 @@ class MorphTypeChange {
    * @param {(piece: import('./MorphPieces').Piece) => void} onPieceDone
    */
   _runPieces(pieces, onPieceDone) {
+    var _a, _b;
     const speed = this.getSpeed();
     const stagger = Math.min(PIECE_STAGGER_MAX, speed * 0.35);
     const flight = Math.max(180, speed - stagger);
     for (let k = 0; k < pieces.length; k++) {
       pieces[k].delay = pieces.length > 1 ? k / (pieces.length - 1) * stagger : 0;
     }
+    const anim = this.w.config.chart.animations;
     this._pieceCancel = runPieceTween({
       pieces,
       duration: flight,
+      // The update easing the rest of the morph rides (morphEasing).
+      ease: resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing),
       onPieceDone,
       // destroy() mid-flight: stop writing to the detached pieces.
       alive: () => !this.w.globals.isDestroyed,
@@ -1586,7 +1595,7 @@ class MorphTypeChange {
     if (!this._snapshot) return null;
     const entry = this._snapshot.mapping.get(`${i}:0`);
     if (!entry) return null;
-    const box = this._pathBBox(entry.d);
+    const box = entry.box || (entry.box = this._pathBBox(entry.d));
     if (!box) return null;
     const { k, dx, dy } = this._oldToNew();
     return {

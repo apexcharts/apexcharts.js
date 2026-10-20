@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -154,7 +154,11 @@ class BarDataLabels {
         dataLabelsConfig.style.fontWeight
       );
     }
+    const drawTotal = w.config.chart.stacked && barTotalDataLabelsConfig.enabled && this.hlt !== false && this.drawsStackedTotal(realIndex);
+    const totalText = drawTotal ? this.getStackedTotalDataLabel({ realIndex, j }) : void 0;
     const params = {
+      drawTotal,
+      totalText,
       x: (_a = hl == null ? void 0 : hl.x) != null ? _a : x,
       y: (_b = hl == null ? void 0 : hl.y) != null ? _b : y,
       neg: hl && hl.val != null ? hl.val < 0 : void 0,
@@ -200,7 +204,7 @@ class BarDataLabels {
       textRects,
       dataLabelsConfig
     });
-    if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled && this.hlt !== false) {
+    if (drawTotal) {
       totalDataLabels = this.drawTotalDataLabels({
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
@@ -209,7 +213,7 @@ class BarDataLabels {
         realIndex,
         j,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
-        val: this.getStackedTotalDataLabel({ realIndex, j }),
+        val: totalText,
         rawVal: this.getStackedTotalValue({ realIndex, j }),
         dataLabelsConfig,
         barTotalDataLabelsConfig
@@ -285,12 +289,12 @@ class BarDataLabels {
   }
   /**
    * The stacked total's text box, measured in the total's own font.
-   * @param {number} realIndex @param {number} j
+   * @param {any} text the formatted total
    */
-  totalRects(realIndex, j) {
+  totalRects(text) {
     const s = this.barCtx.barOptions.dataLabels.total.style;
     return new Graphics(this.w).getTextRects(
-      this.getStackedTotalDataLabel({ realIndex, j }),
+      text,
       s.fontSize,
       s.fontFamily,
       void 0,
@@ -310,6 +314,16 @@ class BarDataLabels {
       }));
     }
     return val;
+  }
+  /**
+   * How many zero bars ahead of this one were dropped from its group, which
+   * only `hideZeroBarsWhenGrouped` does (and never on a stack): 0 otherwise,
+   * without asking for every bar.
+   * @param {number} realIndex @param {number} j
+   */
+  zeroEncounters(realIndex, j) {
+    const w = this.w;
+    return !w.config.chart.stacked && w.config.plotOptions.bar.hideZeroBarsWhenGrouped ? this.barCtx.barHelpers.getZeroValueEncounters({ i: realIndex, j }).zeroEncounters : 0;
   }
   /**
    * @param {Record<string, any>} opts
@@ -339,10 +353,7 @@ class BarDataLabels {
     const totalDataLabelsBcx = bcx;
     barHeight = Math.abs(barHeight);
     const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i: realIndex,
-      j
-    });
+    const zeroEncounters = this.zeroEncounters(realIndex, j);
     bcx = bcx - strokeWidth / 2;
     const dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints;
     if (this.barCtx.isVerticalGroupedRangeBar) {
@@ -353,9 +364,7 @@ class BarDataLabels {
       } else {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
       }
-      if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        dataLabelsX -= barWidth * zeroEncounters;
-      }
+      if (zeroEncounters > 0) dataLabelsX -= barWidth * zeroEncounters;
     }
     if (vertical) {
       const offsetDLX = 2;
@@ -413,29 +422,29 @@ class BarDataLabels {
         }
         break;
     }
-    let lowestPrevY = newY;
-    const totalGroupCtx = this.getTotalGroupContext(realIndex);
-    const top = this.xStackTop(realIndex, j);
-    const stacks = top ? [] : (
-      /** @type {any} */
-      this.barCtx.stacks || []
-    );
-    if (top) {
-      lowestPrevY = valIsNegative ? Math.max(newY, top[5]) : Math.min(newY, top[4]);
-    }
-    stacks.forEach((g, gi) => {
-      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
-      g.prevY.forEach((arr) => {
-        if (valIsNegative) {
-          lowestPrevY = Math.max(arr[j], lowestPrevY);
-        } else {
-          lowestPrevY = Math.min(arr[j], lowestPrevY);
-        }
+    if (opts.drawTotal) {
+      let lowestPrevY = newY;
+      const totalGroupCtx = this.getTotalGroupContext(realIndex);
+      const top = this.xStackTop(realIndex, j);
+      const stacks = top ? [] : (
+        /** @type {any} */
+        this.barCtx.stacks || []
+      );
+      if (top) {
+        lowestPrevY = valIsNegative ? Math.max(newY, top[5]) : Math.min(newY, top[4]);
+      }
+      stacks.forEach((g, gi) => {
+        if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
+        g.prevY.forEach((arr) => {
+          if (valIsNegative) {
+            lowestPrevY = Math.max(arr[j], lowestPrevY);
+          } else {
+            lowestPrevY = Math.min(arr[j], lowestPrevY);
+          }
+        });
       });
-    });
-    if (this.hlt) lowestPrevY = this.hlt.edge;
-    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const h = this.totalRects(realIndex, j).height;
+      if (this.hlt) lowestPrevY = this.hlt.edge;
+      const h = this.totalRects(opts.totalText).height;
       if (valIsNegative) {
         totalDataLabelsY = lowestPrevY + h * 0.77 - offY - barTotalDataLabelsConfig.offsetY;
       } else {
@@ -484,10 +493,7 @@ class BarDataLabels {
       offY
     } = opts;
     const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints;
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i: realIndex,
-      j
-    });
+    const zeroEncounters = this.zeroEncounters(realIndex, j);
     barWidth = Math.abs(barWidth);
     let dataLabelsY;
     if (this.barCtx.isPyramid) {
@@ -496,9 +502,7 @@ class BarDataLabels {
     } else {
       dataLabelsY = bcy - (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) + barHeight / 2 + textRects.height / 2 + offY - 3;
     }
-    if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-      dataLabelsY -= barHeight * zeroEncounters;
-    }
+    if (zeroEncounters > 0) dataLabelsY -= barHeight * zeroEncounters;
     let totalDataLabelsX;
     let totalDataLabelsY;
     let totalDataLabelsAnchor = "start";
@@ -535,29 +539,29 @@ class BarDataLabels {
           break;
       }
     }
-    let lowestPrevX = newX;
-    const totalGroupCtx = this.getTotalGroupContext(realIndex);
-    const top = this.xStackTop(realIndex, j);
-    const stacks = top ? [] : (
-      /** @type {any} */
-      this.barCtx.stacks || []
-    );
-    if (top) {
-      lowestPrevX = valIsNegative ? Math.min(newX, top[4]) : Math.max(newX, top[5]);
-    }
-    stacks.forEach((g, gi) => {
-      if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
-      g.prevX.forEach((arr) => {
-        if (valIsNegative) {
-          lowestPrevX = Math.min(arr[j], lowestPrevX);
-        } else {
-          lowestPrevX = Math.max(arr[j], lowestPrevX);
-        }
+    if (opts.drawTotal) {
+      let lowestPrevX = newX;
+      const totalGroupCtx = this.getTotalGroupContext(realIndex);
+      const top = this.xStackTop(realIndex, j);
+      const stacks = top ? [] : (
+        /** @type {any} */
+        this.barCtx.stacks || []
+      );
+      if (top) {
+        lowestPrevX = valIsNegative ? Math.min(newX, top[4]) : Math.max(newX, top[5]);
+      }
+      stacks.forEach((g, gi) => {
+        if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
+        g.prevX.forEach((arr) => {
+          if (valIsNegative) {
+            lowestPrevX = Math.min(arr[j], lowestPrevX);
+          } else {
+            lowestPrevX = Math.max(arr[j], lowestPrevX);
+          }
+        });
       });
-    });
-    if (this.hlt) lowestPrevX = this.hlt.edge;
-    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
-      const totalLabeltextRects = this.totalRects(realIndex, j);
+      if (this.hlt) lowestPrevX = this.hlt.edge;
+      const totalLabeltextRects = this.totalRects(opts.totalText);
       if (valIsNegative) {
         totalDataLabelsX = lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX;
         totalDataLabelsAnchor = "end";
@@ -781,20 +785,11 @@ class Helpers {
     this.barCtx.totalItems = 0;
     this.barCtx.seriesLen = 0;
     this.barCtx.visibleI = -1;
-    this.barCtx.visibleItems = 1;
+    this._bgOwner = void 0;
     for (let sl = 0; sl < series.length; sl++) {
       if (series[sl].length > 0) {
         this.barCtx.seriesLen = this.barCtx.seriesLen + 1;
         this.barCtx.totalItems += series[sl].length;
-      }
-      if (w.axisFlags.isXNumeric) {
-        for (let j = 0; j < series[sl].length; j++) {
-          if (w.seriesData.seriesX[sl][j] > w.globals.minX && w.seriesData.seriesX[sl][j] < w.globals.maxX) {
-            this.barCtx.visibleItems++;
-          }
-        }
-      } else {
-        this.barCtx.visibleItems = w.globals.dataPoints;
       }
     }
     const labels = w.labelData.labels;
@@ -917,6 +912,26 @@ class Helpers {
     return isFinite(min) ? min : 0;
   }
   /**
+   * How many bars a column slot is divided by: the data points on a category
+   * axis, and on a numeric one 1 plus every x strictly inside the axis range.
+   * Only read when a numeric axis has no slot span, so counted then.
+   * @returns {number}
+   */
+  visibleItems() {
+    const g = this.w.globals;
+    if (!this.w.axisFlags.isXNumeric) return g.dataPoints;
+    let n = 1;
+    const xs = this.w.seriesData.seriesX;
+    this.barCtx.series.forEach(
+      (s, sl) => {
+        for (let j = 0; j < s.length; j++) {
+          if (xs[sl][j] > g.minX && xs[sl][j] < g.maxX) n++;
+        }
+      }
+    );
+    return n;
+  }
+  /**
    * The band a horizontal bar is drawn in: its x's band when the series do
    * not line up by index (see initVariables), else its index.
    * @param {number} realIndex @param {number} j
@@ -952,15 +967,13 @@ class Helpers {
       }
       y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
     } else {
-      xDivision = w.layout.gridWidth / this.barCtx.visibleItems;
-      if (w.config.xaxis.convertedCatToNumeric) {
-        xDivision = w.layout.gridWidth / w.globals.dataPoints;
-      }
+      const xRatio = this.barCtx.xRatio;
+      const slotXSpan = w.axisFlags.isXNumeric ? this.barSlotXSpan() : 0;
+      const bySlot = slotXSpan > 0 && slotXSpan / xRatio > 0;
+      xDivision = w.config.xaxis.convertedCatToNumeric ? w.layout.gridWidth / w.globals.dataPoints : bySlot ? 0 : w.layout.gridWidth / this.visibleItems();
       barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
       if (w.axisFlags.isXNumeric) {
-        const xRatio = this.barCtx.xRatio;
-        const slotXSpan = this.barSlotXSpan();
-        if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
+        if (bySlot) {
           xDivision = slotXSpan / xRatio;
         }
         barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
@@ -1260,22 +1273,25 @@ class Helpers {
   /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w;
-    const graphics = new Graphics(this.barCtx.w);
-    const sr = new Series(this.barCtx.w);
-    const activeSeriesIndex = sr.getActiveConfigSeriesIndex();
-    if (this.barCtx.barOptions.colors.backgroundBarColors.length > 0 && activeSeriesIndex === i) {
-      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        j %= this.barCtx.barOptions.colors.backgroundBarColors.length;
+    const colors = this.barCtx.barOptions.colors;
+    if (!colors.backgroundBarColors.length) return;
+    if (this._bgOwner === void 0) {
+      this._bgOwner = new Series(w).getActiveConfigSeriesIndex();
+    }
+    if (this._bgOwner === i) {
+      const graphics = new Graphics(w);
+      if (j >= colors.backgroundBarColors.length) {
+        j %= colors.backgroundBarColors.length;
       }
-      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j];
+      const bcolor = colors.backgroundBarColors[j];
       const rect = graphics.drawRect(
         typeof x1 !== "undefined" ? x1 : 0,
         typeof y1 !== "undefined" ? y1 : 0,
         typeof x2 !== "undefined" ? x2 : w.layout.gridWidth,
         typeof y2 !== "undefined" ? y2 : w.layout.gridHeight,
-        this.barCtx.barOptions.colors.backgroundBarRadius,
+        colors.backgroundBarRadius,
         bcolor,
-        this.barCtx.barOptions.colors.backgroundBarOpacity
+        colors.backgroundBarOpacity
       );
       elSeries.add(rect);
       rect.node.classList.add("apexcharts-backgroundBar");
@@ -1292,13 +1308,37 @@ class Helpers {
    * `base` is the rect collapsed onto its baseline, padded to the command
    * count of `pathTo` so the rise morphs cleanly.
    *
-   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
+   * `insetWidth`, when given, is the stroke width used only for the sideways
+   * inset along the slot (`a`/`len`); the value axis keeps `strokeWidth`. It
+   * defaults to `strokeWidth`, so one width sets both directions. When
+   * `strokeWidth` is the smaller (an empty segment of a stroked series), the
+   * rect collapses onto its base edge inset by `insetWidth`, where its drawn
+   * self starts.
+   *
+   * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, insetWidth?: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
    */
-  barRect({ a, len, v1, v2, strokeWidth, realIndex, j, dir, horizontal }) {
+  barRect({
+    a,
+    len,
+    v1,
+    v2,
+    strokeWidth,
+    insetWidth,
+    realIndex,
+    j,
+    dir,
+    horizontal
+  }) {
     const w = this.w;
     const graphics = new Graphics(w);
     strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
     if (!strokeWidth) strokeWidth = 0;
+    if (insetWidth === void 0) {
+      insetWidth = strokeWidth;
+    } else {
+      insetWidth = Array.isArray(insetWidth) ? insetWidth[realIndex] : insetWidth;
+      if (!insetWidth) insetWidth = 0;
+    }
     const datum = (
       /** @type {any} */
       w.config.series[realIndex].data[j]
@@ -1309,28 +1349,35 @@ class Helpers {
       len += offset;
     }
     const strokeCenter = strokeWidth / 2;
+    const insetCenter = insetWidth / 2;
     const direction = dir * (this.barCtx.isReversed ? -1 : 1);
+    const empty = strokeWidth < insetWidth;
+    const baseCenter = empty ? insetCenter : strokeCenter;
+    let tip;
     const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
     let x1, x2, y1, y2, sl, squarePathTo;
     if (horizontal) {
-      y1 = a + strokeCenter;
-      y2 = a + len - strokeCenter;
-      x1 = v1 + 1e-3 + strokeCenter * direction;
-      x2 = v2 + 1e-3 - strokeCenter * direction;
+      y1 = a + insetCenter;
+      y2 = a + len - insetCenter;
+      x1 = v1 + 1e-3 + baseCenter * direction;
+      tip = v2 + 1e-3 - strokeCenter * direction;
+      x2 = empty ? x1 : tip;
       sl = graphics.line(x1, y2);
       squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
     } else {
-      x1 = a + strokeCenter;
-      x2 = a + len - strokeCenter;
-      y1 = v1 + 1e-3 - strokeCenter * direction;
-      y2 = v2 + 1e-3 + strokeCenter * direction;
+      x1 = a + insetCenter;
+      x2 = a + len - insetCenter;
+      y1 = v1 + 1e-3 - baseCenter * direction;
+      tip = v2 + 1e-3 + strokeCenter * direction;
+      y2 = empty ? y1 : tip;
       sl = graphics.line(x2, y1);
       squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
     }
-    const pathTo = this.arrBorderRadius[realIndex][j] !== "none" ? graphics.roundPathCorners(
-      squarePathTo,
-      w.config.plotOptions.bar.borderRadius
-    ) : squarePathTo;
+    const radius = w.config.plotOptions.bar.borderRadius;
+    let pathTo = squarePathTo;
+    if (this.arrBorderRadius[realIndex][j] !== "none") {
+      pathTo = radius === 0 && isFinite(x1 + x2 + y1 + y2) ? squarePathTo.replace(" Z", ` L ${x1} ${y1} Z`).replace(/ L (\S+ \S+)(?= [LZ])/g, " L $1 C $1 $1 $1") + " " : graphics.roundPathCorners(squarePathTo, radius);
+    }
     return {
       x1,
       x2,
@@ -1341,18 +1388,47 @@ class Helpers {
       squarePathTo,
       pathTo,
       base: graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing,
+      // the value end before an empty segment folds it onto its base edge
+      tip,
       strokeWidth,
       strokeCenter,
       direction
     };
   }
-  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
+  /**
+   * The sign a legend-hidden column had, read from the data its collapse
+   * stored (its values are all 0 while hidden): 1, -1, or 0 when the series
+   * is not hidden or the datum has no sign. A hidden layer then folds onto
+   * the base edge of the side it left, where its neighbours' strokes run.
+   * @param {number} realIndex @param {number} j
+   * @returns {number}
+   */
+  collapsedSign(realIndex, j) {
+    var _a;
+    const gl = this.w.globals;
+    const lists = [
+      [gl.collapsedSeriesIndices, gl.collapsedSeries],
+      [gl.ancillaryCollapsedSeriesIndices, gl.ancillaryCollapsedSeries]
+    ];
+    for (const [indices, entries] of lists) {
+      if (!indices || indices.indexOf(realIndex) < 0) continue;
+      const c = (entries || []).find(
+        (s) => s.index === realIndex
+      );
+      const d = (_a = c == null ? void 0 : c.data) == null ? void 0 : _a[j];
+      const v = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+      return typeof v === "number" && v ? Math.sign(v) : 0;
+    }
+    return 0;
+  }
+  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, insetWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getColumnPaths({
     barWidth,
     barXPosition,
     y1,
     y2,
     strokeWidth,
+    insetWidth,
     series,
     realIndex,
     i,
@@ -1366,9 +1442,10 @@ class Helpers {
       v1: y1,
       v2: y2,
       strokeWidth,
+      insetWidth,
       realIndex,
       j,
-      dir: series[i][j] >= 0 ? 1 : -1
+      dir: this.collapsedSign(realIndex, j) || (series[i][j] >= 0 ? 1 : -1)
     });
     const { pathTo, squarePathTo, strokeCenter, direction } = r;
     y1 = r.y1;
@@ -1388,7 +1465,7 @@ class Helpers {
     }
     if (w.config.chart.stacked) {
       const _ctx = this.barCtx.groupCtx;
-      _ctx.yArrj.push(y2 - strokeCenter * direction);
+      _ctx.yArrj.push(r.tip - strokeCenter * direction);
       _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction));
       _ctx.yArrjVal.push((_c = this.barCtx.series[i][j]) != null ? _c : null);
     }
@@ -1976,24 +2053,24 @@ function lengthTransitionEnabled(w) {
   return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
 }
 function datumKey(w, realIndex, j) {
-  var _a, _b, _c, _d;
-  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
-    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
-  }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
-  if (lbl != null && String(lbl) !== "") {
-    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
-  }
-  return "j:" + j;
+  var _a, _b;
+  return keyOf(
+    (_a = w.axisFlags) == null ? void 0 : _a.isXNumeric,
+    (_b = w.seriesData) == null ? void 0 : _b.seriesX,
+    w.globals.labels,
+    realIndex,
+    j
+  );
 }
 function frameDatumKey(frame, realIndex, j) {
-  var _a, _b;
-  if (frame.isXNumeric) {
-    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+  return keyOf(frame.isXNumeric, frame.seriesX, frame.labels, realIndex, j);
+}
+function keyOf(isXNumeric, seriesX, labels, realIndex, j) {
+  if (isXNumeric) {
+    const sx = seriesX == null ? void 0 : seriesX[realIndex];
     if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+  const lbl = labels == null ? void 0 : labels[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }
@@ -2038,7 +2115,13 @@ function seriesKeys(w, realIndex, n = ((_a) => (_a = w.seriesData.series[realInd
     Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j))
   );
 }
-function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false, sj = buildJoin(w, realIndex)) {
+  if (!sj) return null;
+  if (!sj.join.ordered && !allowReorder) return null;
+  if (!sj.join.changed && !includeIdentity) return null;
+  return sj;
+}
+function buildJoin(w, realIndex) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
   const frame = w.globals.prevStreamFrame;
@@ -2051,10 +2134,23 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
   const newKeys = seriesKeys(w, realIndex);
-  const join = joinKeys(oldKeys, newKeys);
-  if (!join.ordered && !allowReorder) return null;
-  if (!join.changed && !includeIdentity) return null;
-  return { join, oldKeys, newKeys };
+  return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
+}
+function rafTween(w, duration, ease, onFrame, onDone, alive, startAt = performance.now()) {
+  const step = (now) => {
+    if (w.globals.isDestroyed || alive && !alive()) return;
+    const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
+    onFrame(ease(raw), raw);
+    if (raw < 1) {
+      BrowserAPIs.requestAnimationFrame(step);
+    } else if (onDone) {
+      onDone();
+    }
+  };
+  BrowserAPIs.requestAnimationFrame(step);
+  return () => {
+    alive = () => false;
+  };
 }
 function firstMove(d) {
   const m = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d || "");
@@ -2063,6 +2159,7 @@ function firstMove(d) {
   const y = parseFloat(m[2]);
   return isFinite(x) && isFinite(y) ? { x, y } : null;
 }
+const GHOST_EASE = (t) => 1 - Math.pow(1 - t, 3);
 function renderBarExitGhosts({
   w,
   elSeries,
@@ -2081,7 +2178,9 @@ function renderBarExitGhosts({
   if (!exits.length) return;
   const graphics = new Graphics(w);
   const fallbackFill = (_a = w.globals.colors) == null ? void 0 : _a[parseInt(String(record.realIndex), 10)];
-  exits.forEach((p) => {
+  const host = elSeries.node;
+  const staged = host.ownerDocument.createDocumentFragment();
+  const nodes = exits.map((p) => {
     let fill = p.fill || fallbackFill || "#c8c8c8";
     if (String(fill).indexOf("url(") === 0) fill = fallbackFill || "#c8c8c8";
     const ghost = graphics.drawPath({
@@ -2098,46 +2197,45 @@ function renderBarExitGhosts({
       "clip-path",
       `url(#gridRectBarMask${w.globals.cuid})`
     );
-    elSeries.node.insertBefore(node, elSeries.node.firstChild);
-    const start = firstMove(p.d);
-    let origin = isHorizontal ? "left center" : "center bottom";
+    staged.insertBefore(node, staged.firstChild);
+    return node;
+  });
+  host.insertBefore(staged, host.firstChild);
+  const boxes = nodes.map((node) => {
     try {
-      const bb = node.getBBox();
-      if (start && bb) {
-        if (isHorizontal) {
-          origin = Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) ? "left center" : "right center";
-        } else {
-          origin = Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y) ? "center bottom" : "center top";
-        }
-      }
+      return node.getBBox();
     } catch (_) {
+      return null;
     }
+  });
+  const t0 = performance.now();
+  exits.forEach((p, i) => {
+    const node = nodes[i];
+    const bb = boxes[i];
+    const start = firstMove(p.d);
+    const near = !start || !bb || (isHorizontal ? Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) : Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y));
     const style = node.style;
     style.transformBox = "fill-box";
-    style.transformOrigin = origin;
+    style.transformOrigin = isHorizontal ? near ? "left center" : "right center" : near ? "center bottom" : "center top";
     node.setAttribute("data:ghostKey", `${record.realIndex}::${p.key}`);
-    try {
-      const bb = node.getBBox();
-      const edge = isHorizontal ? origin.startsWith("left") ? bb.x : bb.x + bb.width : origin.endsWith("bottom") ? bb.y + bb.height : bb.y;
+    node.setAttribute("data:ghostStart", String(t0));
+    if (bb) {
+      const edge = isHorizontal ? near ? bb.x : bb.x + bb.width : near ? bb.y + bb.height : bb.y;
       if (isFinite(edge)) node.setAttribute("data:ghostEdge", String(edge));
-    } catch (_) {
     }
-    const duration = Math.max(1, speed || 1);
-    const startAt = performance.now();
-    const step = (now) => {
-      if (w.globals.isDestroyed || !node.parentNode) return;
-      const t = Math.max(0, Math.min(1, (now - startAt) / duration));
-      const eased = 1 - Math.pow(1 - t, 3);
-      const scale = 1 - eased;
-      style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`;
-      style.opacity = String(1 - eased);
-      if (t < 1) {
-        BrowserAPIs.requestAnimationFrame(step);
-      } else {
-        node.parentNode.removeChild(node);
-      }
-    };
-    BrowserAPIs.requestAnimationFrame(step);
+    rafTween(
+      w,
+      Math.max(1, speed || 1),
+      GHOST_EASE,
+      (eased) => {
+        const scale = 1 - eased;
+        style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`;
+        style.opacity = String(scale);
+      },
+      () => node.remove(),
+      () => node.parentNode,
+      t0
+    );
   });
 }
 class AxisMapping {
@@ -2220,6 +2318,24 @@ class AxisMapping {
   static screenXToPlotPx(w, screenX, plot = AxisMapping.plotRect(w)) {
     return (screenX - plot.left) / plot.zoom;
   }
+}
+const indexes = /* @__PURE__ */ new WeakMap();
+function prevRecords(w, realIndex) {
+  const all = w.globals.previousPaths;
+  let idx = indexes.get(all);
+  if (!idx || idx.n !== all.length) {
+    idx = { n: all.length, m: /* @__PURE__ */ new Map() };
+    for (const gpp of all) {
+      const k = parseInt((gpp || {}).realIndex, 10);
+      if (k === k) {
+        const list = idx.m.get(k);
+        if (list) list.push(gpp);
+        else idx.m.set(k, [gpp]);
+      }
+    }
+    indexes.set(all, idx);
+  }
+  return idx.m.get(parseInt(String(realIndex), 10)) || [];
 }
 function seriesEmitter(ctx, graphics) {
   const r = ctx && ctx.renderer;
@@ -2813,7 +2929,7 @@ class Bar {
   }
   /** @param {{indexes: any, barHeight: any, strokeWidth: any, zeroW: any, x: any, y: any, yDivision: any, elSeries: any}} opts */
   drawBarPaths({
-    indexes,
+    indexes: indexes2,
     barHeight,
     strokeWidth,
     zeroW,
@@ -2823,12 +2939,12 @@ class Bar {
     elSeries
   }) {
     const w = this.w;
-    const i = indexes.i;
-    const j = indexes.j;
+    const i = indexes2.i;
+    const j = indexes2.j;
     let barYPosition;
     if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
       const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({
-        i: indexes.realIndex,
+        i: indexes2.realIndex,
         j
       });
       if (nonZeroColumns > 0) {
@@ -2868,7 +2984,7 @@ class Bar {
         barHeight,
         topHalf: pyramidSeg.topHalf,
         bottomHalf: pyramidSeg.bottomHalf,
-        realIndex: indexes.realIndex,
+        realIndex: indexes2.realIndex,
         j,
         strokeWidth,
         w
@@ -2884,7 +3000,7 @@ class Bar {
         ),
         i,
         j,
-        realIndex: indexes.realIndex,
+        realIndex: indexes2.realIndex,
         strokeWidth,
         w
       });
@@ -2898,7 +3014,7 @@ class Bar {
         strokeWidth,
         isReversed: this.isReversed,
         series: this.series,
-        realIndex: indexes.realIndex,
+        realIndex: indexes2.realIndex,
         i,
         j,
         w
@@ -2932,7 +3048,7 @@ class Bar {
         zeroW,
         /** @type {any} */
         null,
-        indexes.realIndex,
+        indexes2.realIndex,
         j,
         0
       ),
@@ -2942,7 +3058,7 @@ class Bar {
   }
   /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, elSeries: any}} opts */
   drawColumnPaths({
-    indexes,
+    indexes: indexes2,
     x,
     y,
     xDivision,
@@ -2952,11 +3068,11 @@ class Bar {
     elSeries
   }) {
     const w = this.w;
-    const realIndex = indexes.realIndex;
-    const translationsIndex = indexes.translationsIndex;
-    const i = indexes.i;
-    const j = indexes.j;
-    const bc = indexes.bc;
+    const realIndex = indexes2.realIndex;
+    const translationsIndex = indexes2.translationsIndex;
+    const i = indexes2.i;
+    const j = indexes2.j;
+    const bc = indexes2.bc;
     let barXPosition;
     if (w.axisFlags.isXNumeric) {
       const xForNumericX = this.getBarXForNumericXAxis({
@@ -3086,15 +3202,38 @@ class Bar {
    * @returns {any | null}
    */
   _prevRecord(realIndex) {
-    const w = this.w;
-    let record = null;
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp];
-      if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
-        record = gpp;
-      }
+    const list = prevRecords(this.w, realIndex);
+    for (let k = list.length - 1; k >= 0; k--) {
+      if (list[k].paths && list[k].paths.length > 0) return list[k];
     }
-    return record;
+    return null;
+  }
+  /**
+   * Whether this render uses a bar's `pathFrom` at all (Graphics.revealPlan,
+   * the predicate renderPaths itself runs); when it does not, the
+   * previous-path lookups and corner padding built for it are skipped. A
+   * chart drawing highlight parts (now or a frame ago) keeps them: its parts
+   * start from the whole's pathFrom on their own rule. Canvas paints the
+   * final frame. `_fadeReveal` is the candles' per-series fade.
+   * @returns {boolean}
+   */
+  _pathFromUsed() {
+    var _a;
+    const w = this.w;
+    const hd = w.highlightData;
+    const parts = (
+      /** @type {any} */
+      w.globals.prevHighlightParts
+    );
+    if (hd && (hd.active || (parts == null ? void 0 : parts.size))) return true;
+    const r = (_a = this.ctx) == null ? void 0 : _a.renderer;
+    if (r && r.kind && r.kind !== "svg") return false;
+    const p = new Graphics(w, this.ctx).revealPlan(
+      "",
+      /** @type {any} */
+      this._fadeReveal
+    );
+    return p.animate && !p.fade;
   }
   /**
    * Previous paths of a series re-keyed by datum key (stamped as
@@ -3199,6 +3338,7 @@ class Bar {
   getPreviousPath(realIndex, j, pathTo, squarePathTo) {
     const w = this.w;
     this._pathToInterp = null;
+    if (!this._pathFromUsed()) return pathTo;
     const record = this._prevRecord(realIndex);
     if (!record) {
       return lengthTransitionEnabled(w) ? null : pathTo;
@@ -3570,7 +3710,7 @@ class BoxCandleStick extends Bar {
    * @returns {string | null}
    */
   _prevBoxHalf(realIndex, j, pi) {
-    if (!this.isBoxPlot) return null;
+    if (!this.isBoxPlot || !this._pathFromUsed()) return null;
     if (!this._prevHalves) {
       this._prevHalves = {};
     }
@@ -3672,6 +3812,7 @@ class BoxCandleStick extends Bar {
       );
       const dataPoints = series[i].length === 0 ? 0 : w.globals.dataPoints;
       const fadeReveal = this._identityLost(realIndex, series[i]);
+      this._fadeReveal = fadeReveal;
       for (let j = 0; j < dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
@@ -3819,7 +3960,7 @@ class BoxCandleStick extends Bar {
       }
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;
-      if (w.globals.previousPaths.length > 0 && !fadeReveal) {
+      if (w.globals.previousPaths.length > 0 && !fadeReveal && lengthTransitionEnabled(w)) {
         renderBarExitGhosts({
           w,
           elSeries,
@@ -3837,7 +3978,7 @@ class BoxCandleStick extends Bar {
   }
   /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts */
   drawVerticalBoxPaths({
-    indexes,
+    indexes: indexes2,
     x,
     xDivision,
     barWidth,
@@ -3848,15 +3989,15 @@ class BoxCandleStick extends Bar {
     var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
-    const i = indexes.i;
-    const j = indexes.j;
+    const i = indexes2.i;
+    const j = indexes2.j;
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
-    const realIndex = indexes.realIndex;
+    const realIndex = indexes2.realIndex;
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
     const colorPos = getColor(candleColors.upward);
     const colorNeg = getColor(candleColors.downward);
-    const yRatio = this.yRatio[indexes.translationsIndex] * (this.isReversed ? -1 : 1);
+    const yRatio = this.yRatio[indexes2.translationsIndex] * (this.isReversed ? -1 : 1);
     const ohlc = this.getOHLCValue(realIndex, j);
     let l1 = zeroH;
     let l2 = zeroH;
@@ -3941,7 +4082,7 @@ class BoxCandleStick extends Bar {
         zeroH,
         realIndex,
         j,
-        indexes.translationsIndex
+        indexes2.translationsIndex
       ),
       barXPosition,
       color
@@ -3949,7 +4090,7 @@ class BoxCandleStick extends Bar {
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any, strokeWidth: any}} opts */
   drawHorizontalBoxPaths({
-    indexes,
+    indexes: indexes2,
     y,
     yDivision,
     barHeight,
@@ -3959,9 +4100,9 @@ class BoxCandleStick extends Bar {
     var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
-    const i = indexes.i;
-    const j = indexes.j;
-    const realIndex = indexes.realIndex;
+    const i = indexes2.i;
+    const j = indexes2.j;
+    const realIndex = indexes2.realIndex;
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1011,7 +1011,9 @@ class Pie {
       fromStartAngle = opts.prevEndAngle;
       prevAngle = opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle;
     }
-    if (angle === this.fullAngle) angle = this.fullAngle - 0.01;
+    if (angle === this.fullAngle && !this.isFullTurnSlice(angle)) {
+      angle = this.fullAngle - 0.01;
+    }
     me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
   }
   /**
@@ -1366,18 +1368,117 @@ class Pie {
     if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle;
     return { startDeg, spanDeg, endDeg };
   }
+  /**
+   * A slice of `angle` degrees that has no edge of its own: it covers the
+   * whole turn, and spacing is not asking for a gap. A semicircle
+   * (fullAngle < 360) is not one of these — its flat side is a real border.
+   * @param {number} angle
+   * @returns {boolean}
+   */
+  isFullTurnSlice(angle) {
+    const t = this.chartType;
+    return (t === "pie" || t === "donut" || t === "polarArea") && this.fullAngle >= 360 && angle >= this.fullAngle - 1e-4 && !(this.w.config.plotOptions.pie.spacing > 0);
+  }
+  /**
+   * Closed path for a slice that occupies the whole turn.
+   *
+   * Pie and polarArea: two 180° arcs and a close, with no line to the centre.
+   * The wedge builder's two radii are the same line, and the stroke paints
+   * that line from the centre to the rim (#5084).
+   *
+   * Donut: the outer circle, then the inner circle swept the other way, as
+   * two subpaths of one path. The stroke outlines both rims and the nonzero
+   * fill rule leaves the hole empty. A connector between the circles would
+   * be the same seam, drawn across the ring.
+   *
+   * @param {{me: any, startAngle: number, size: number}} opts
+   * @returns {string}
+   */
+  getFullTurnPath({ me, startAngle, size }) {
+    const graphics = new Graphics(this.w);
+    const cx = me.centerX;
+    const cy = me.centerY;
+    const outerStart = Utils.polarToCartesian(cx, cy, size, startAngle);
+    const outerMid = Utils.polarToCartesian(cx, cy, size, startAngle + 180);
+    const path = [
+      "M",
+      outerStart.x,
+      outerStart.y,
+      "A",
+      size,
+      size,
+      0,
+      1,
+      1,
+      outerMid.x,
+      outerMid.y,
+      "A",
+      size,
+      size,
+      0,
+      1,
+      1,
+      outerStart.x,
+      outerStart.y,
+      "z"
+    ];
+    if (me.chartType === "donut") {
+      const innerStart = Utils.polarToCartesian(
+        cx,
+        cy,
+        me.donutSize,
+        startAngle
+      );
+      const innerMid = Utils.polarToCartesian(
+        cx,
+        cy,
+        me.donutSize,
+        startAngle + 180
+      );
+      path.push(
+        "M",
+        innerStart.x,
+        innerStart.y,
+        "A",
+        me.donutSize,
+        me.donutSize,
+        0,
+        1,
+        0,
+        innerMid.x,
+        innerMid.y,
+        "A",
+        me.donutSize,
+        me.donutSize,
+        0,
+        1,
+        0,
+        innerStart.x,
+        innerStart.y,
+        "z"
+      );
+    }
+    return graphics.roundPathCorners(path.join(" "), this.strokeWidth * 2);
+  }
   /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
   getPiePath({ me, startAngle, angle, size }) {
     let path;
     const w = this.w;
     const graphics = new Graphics(this.w);
+    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+    if (isSliceType && this.isFullTurnSlice(angle)) {
+      return this.getFullTurnPath({ me, startAngle, size });
+    }
+    if (isSliceType && Number.isFinite(angle) && !(angle > 0)) {
+      const p = Utils.polarToCartesian(me.centerX, me.centerY, size, startAngle);
+      return `M ${p.x} ${p.y}`;
+    }
     const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
       me,
       startAngle,
       angle,
       size
     });
-    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
     const startRadians = Math.PI * (startDeg - 90) / 180;
     const borderRadius = w.config.plotOptions.pie.borderRadius;
     if (borderRadius > 0 && isSliceType) {

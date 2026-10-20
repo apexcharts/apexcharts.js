@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -11,12 +11,21 @@ const Fill = _core.__apex_Fill;
 const Graphics = _core.__apex_Graphics;
 const Series = _core.__apex_Series;
 function datumKey(w, realIndex, j) {
-  var _a, _b, _c, _d;
-  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
-    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+  var _a, _b;
+  return keyOf(
+    (_a = w.axisFlags) == null ? void 0 : _a.isXNumeric,
+    (_b = w.seriesData) == null ? void 0 : _b.seriesX,
+    w.globals.labels,
+    realIndex,
+    j
+  );
+}
+function keyOf(isXNumeric, seriesX, labels, realIndex, j) {
+  if (isXNumeric) {
+    const sx = seriesX == null ? void 0 : seriesX[realIndex];
     if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+  const lbl = labels == null ? void 0 : labels[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }

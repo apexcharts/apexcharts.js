@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -517,9 +517,8 @@ class StreamLabels {
   /**
    * Which band is under the pointer, or -1.
    *
-   * x goes through `AxisMapping.screenXToPlotPx`, the one screen-to-plot
-   * mapping, so a chart inside a CSS-zoomed container hit-tests where it looks.
-   * y is measured off the same svg rect with the same zoom factor.
+   * Both axes go through `AxisMapping.plotRect`, measured once per move, so a
+   * chart inside a CSS-zoomed container hit-tests where it looks.
    *
    * @param {MouseEvent} e
    * @returns {number}
@@ -528,12 +527,9 @@ class StreamLabels {
     const w = this.w;
     const d = w.streamgraphData;
     if (!d || !d.order.length) return -1;
-    const svg = w.dom.baseEl && w.dom.baseEl.querySelector(".apexcharts-svg");
-    if (!svg) return -1;
-    const rect = svg.getBoundingClientRect();
-    const zoom = w.globals.svgWidth ? rect.width / w.globals.svgWidth : 1;
-    const px = AxisMapping.screenXToPlotPx(w, e.clientX);
-    const py = (e.clientY - rect.top) / (zoom || 1) - w.layout.translateY;
+    const plot = AxisMapping.plotRect(w);
+    const px = AxisMapping.screenXToPlotPx(w, e.clientX, plot);
+    const py = (e.clientY - plot.top) / plot.zoom;
     if (px < 0 || px > w.layout.gridWidth) return -1;
     if (py < 0 || py > w.layout.gridHeight) return -1;
     const xs = w.globals.seriesXvalues[d.order[0]];
@@ -552,13 +548,48 @@ class StreamLabels {
         }
       }
     }
-    if (j < 0) return -1;
+    return j < 0 ? -1 : this.bandAt(py, j);
+  }
+  /**
+   * The band at client y in column `j`, for the default tooltip, which has
+   * the column already and must name the same band the hover dims.
+   *
+   * @param {number} clientY
+   * @param {number} j
+   * @returns {number} the band, or -1
+   */
+  bandAtClientY(clientY, j) {
+    const plot = AxisMapping.plotRect(this.w);
+    return this.bandAt((clientY - plot.top) / plot.zoom, j);
+  }
+  /**
+   * The band containing plot y `py` in column `j`, else the nearest one, or
+   * -1 when there is nothing to hit. The one band hit-test: the hover dim and
+   * the default tooltip both resolve through it, so they cannot disagree.
+   *
+   * A wiggle baseline leaves plot background above and below the surface, and
+   * the tooltip (intersect: false) still names the nearest band when the
+   * cursor is out there. So does this, or the tooltip would name a band with
+   * nothing on the chart pointing at it.
+   *
+   * @param {number} py
+   * @param {number} j
+   * @returns {number}
+   */
+  bandAt(py, j) {
+    const gl = this.w.globals;
+    const d = this.w.streamgraphData;
+    const span = gl.maxY - gl.minY;
+    if (!d || !Array.isArray(d.order) || !span || !isFinite(span)) return -1;
     let nearest = -1;
     let gap = Infinity;
     for (let i = 0; i < d.order.length; i++) {
       const k = d.order[i];
-      const a = this._yPx(d.highs[k][j]);
-      const b = this._yPx(d.lows[k][j]);
+      const hi = d.highs[k] && d.highs[k][j];
+      const lo = d.lows[k] && d.lows[k][j];
+      if (lo == null || hi == null) continue;
+      const a = this._yPx(hi);
+      const b = this._yPx(lo);
       const top = Math.min(a, b);
       const bottom = Math.max(a, b);
       if (py >= top && py <= bottom) return k;
@@ -696,6 +727,23 @@ function stashSeries(ser, gl) {
     return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
   });
 }
+const DateTime = _core.__apex_DateTime;
+function xKey(x, datetime) {
+  if (x instanceof Date) return x.getTime();
+  if (datetime && typeof x === "string") {
+    const t = DateTime.prototype.parseDate(x);
+    if (!isNaN(t)) return t;
+  }
+  return x;
+}
+function withX(data, categories) {
+  return data.map(
+    (d, j) => d !== null && typeof d === "object" ? d : {
+      x: categories && categories[j] !== void 0 ? categories[j] : j + 1,
+      y: d
+    }
+  );
+}
 const OFFSETS = ["wiggle", "silhouette", "zero", "expand"];
 const ORDERS = ["inside-out", "inverse", "none"];
 function readDatum(d, j, categories) {
@@ -717,21 +765,23 @@ function isPairShaped(data) {
   }
   return false;
 }
-function joinOnX(raw, categories) {
+function joinOnX(raw, categories, datetime, band) {
   var _a;
   const xs = [];
+  const keys = [];
   const rows = [];
   const seen = /* @__PURE__ */ new Map();
   const grids = [];
   for (let k = 0; k < raw.length; k++) {
-    const data = Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
+    const data = band[k] && Array.isArray((_a = raw[k]) == null ? void 0 : _a.data) ? raw[k].data : [];
     const grid = /* @__PURE__ */ new Map();
     for (let j = 0; j < data.length; j++) {
       const { x, y, rest } = readDatum(data[j], j, categories);
-      const key = x instanceof Date ? x.getTime() : x;
+      const key = xKey(x, datetime);
       if (!seen.has(key)) {
         seen.set(key, xs.length);
         xs.push(x);
+        keys.push(key);
         rows.push(__spreadValues({}, rest));
       }
       grid.set(
@@ -742,21 +792,15 @@ function joinOnX(raw, categories) {
     }
     grids.push(grid);
   }
-  return { xs, rows, grids };
+  return { xs, keys, rows, grids };
 }
-function sortColumns(xs) {
-  const idx = [];
-  for (let j = 0; j < xs.length; j++) {
-    const x = xs[j] instanceof Date ? xs[j].getTime() : xs[j];
-    if (typeof x !== "number" || !isFinite(x)) return null;
-    idx.push(j);
+function sortColumns(keys) {
+  const perm = [];
+  for (let j = 0; j < keys.length; j++) {
+    if (typeof keys[j] !== "number" || !isFinite(keys[j])) return null;
+    perm.push(j);
   }
-  const keyed = idx.map((j) => ({
-    j,
-    v: xs[j] instanceof Date ? xs[j].getTime() : xs[j]
-  }));
-  keyed.sort((a, b) => a.v - b.v);
-  const perm = keyed.map((e) => e.j);
+  perm.sort((a, b) => keys[a] - keys[b]);
   for (let j = 0; j < perm.length; j++) {
     if (perm[j] !== j) return perm;
   }
@@ -816,16 +860,14 @@ function baselineFor(mode, order, stack, m) {
   for (let j = 1; j < m; j++) {
     let s1 = 0;
     let s2 = 0;
+    let below = 0;
     for (let i = 0; i < order.length; i++) {
       const vi = stack[order[i]];
       const now = vi[j];
-      let moved = (now - vi[j - 1]) / 2;
-      for (let k = 0; k < i; k++) {
-        const vk = stack[order[k]];
-        moved += vk[j] - vk[j - 1];
-      }
+      const diff = now - vi[j - 1];
       s1 += now;
-      s2 += moved * now;
+      s2 += (diff / 2 + below) * now;
+      below += diff;
     }
     if (s1) y -= s2 / s1;
     base[j] = y;
@@ -833,7 +875,7 @@ function baselineFor(mode, order, stack, m) {
   return base;
 }
 function streamgraphTransform(ser, w) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const cnf = w.config;
   const gl = w.globals;
   if (!Array.isArray(ser)) return ser;
@@ -841,8 +883,11 @@ function streamgraphTransform(ser, w) {
     gl.streamgraphRawSeries = stashSeries(ser, gl);
   }
   const raw = gl.streamgraphRawSeries;
+  const band = raw.map(
+    (s) => !(s == null ? void 0 : s.type) || s.type === "streamgraph" || s.type === "rangeArea"
+  );
   if (raw.some(
-    (s) => isPairShaped(Array.isArray(s == null ? void 0 : s.data) ? s.data : [])
+    (s, k) => band[k] && isPairShaped(Array.isArray(s == null ? void 0 : s.data) ? s.data : [])
   )) {
     w.streamgraphData = null;
     return ser;
@@ -852,15 +897,34 @@ function streamgraphTransform(ser, w) {
   const order = ORDERS.indexOf(opts.order) !== -1 ? opts.order : "inside-out";
   const categories = (_b = cnf.xaxis) == null ? void 0 : _b.categories;
   const collapsed = collapsedIndices(gl);
-  const { xs, rows, grids } = joinOnX(raw, categories);
-  const perm = sortColumns(xs);
+  const datetime = ((_c = cnf.xaxis) == null ? void 0 : _c.type) === "datetime";
+  const { xs, keys, rows, grids } = joinOnX(raw, categories, datetime, band);
+  const perm = sortColumns(keys);
   const columns = perm ? perm.map((j) => xs[j]) : xs;
   const columnRows = perm ? perm.map((j) => rows[j]) : rows;
   const m = columns.length;
+  const lines = [];
+  let colOf;
   let sawNegative = false;
   const values = [];
   for (let k = 0; k < raw.length; k++) {
     const row = new Array(m);
+    if (!band[k]) {
+      row.fill(null);
+      if (collapsed.indexOf(k) === -1) lines.push(k);
+      if (!colOf) {
+        colOf = /* @__PURE__ */ new Map();
+        for (let j = 0; j < m; j++) colOf.set(keys[perm ? perm[j] : j], j);
+      }
+      const data = Array.isArray((_d = raw[k]) == null ? void 0 : _d.data) ? raw[k].data : [];
+      for (let j = 0; j < data.length; j++) {
+        const { x, y } = readDatum(data[j], j, categories);
+        const c = colOf.get(xKey(x, datetime));
+        if (c !== void 0) row[c] = Utils.parseNumber(y);
+      }
+      values.push(row);
+      continue;
+    }
     for (let j = 0; j < m; j++) {
       const src = grids[k].get(perm ? perm[j] : j);
       let v = src === void 0 || src === null ? 0 : Number(src);
@@ -881,11 +945,14 @@ function streamgraphTransform(ser, w) {
   }
   const visible = [];
   for (let k = 0; k < raw.length; k++) {
-    if (collapsed.indexOf(k) === -1) visible.push(k);
+    if (band[k] && collapsed.indexOf(k) === -1) visible.push(k);
   }
-  let stack = values;
+  let stack = (
+    /** @type {number[][]} */
+    values
+  );
   if (offset === "expand") {
-    stack = values.map((row) => row.slice());
+    stack = stack.map((row) => row.slice());
     for (let j = 0; j < m; j++) {
       let total = 0;
       for (let i = 0; i < visible.length; i++) total += stack[visible[i]][j];
@@ -931,10 +998,15 @@ function streamgraphTransform(ser, w) {
     lows,
     highs,
     order: bandOrder,
+    lines,
     offset,
     hidden: raw.map((_, k) => k).filter((k) => collapsed.indexOf(k) !== -1)
   };
   return raw.map((s, k) => {
+    if (!band[k]) {
+      if (collapsed.indexOf(k) !== -1) return __spreadProps(__spreadValues({}, s), { data: [] });
+      return Array.isArray(s == null ? void 0 : s.data) ? __spreadProps(__spreadValues({}, s), { data: withX(s.data, categories) }) : s;
+    }
     const lo = lows[k];
     const hi = highs[k];
     if (!lo || !hi) return __spreadProps(__spreadValues({}, s), { data: [] });
@@ -973,6 +1045,24 @@ const DataLabels = _core.__apex_DataLabels;
 const Markers = _core.__apex_Markers;
 const Scatter = _core.__apex_charts_Scatter;
 const Series = _core.__apex_Series;
+const indexes = /* @__PURE__ */ new WeakMap();
+function prevRecords(w, realIndex) {
+  const all = w.globals.previousPaths;
+  let idx = indexes.get(all);
+  if (!idx || idx.n !== all.length) {
+    idx = { n: all.length, m: /* @__PURE__ */ new Map() };
+    for (const gpp of all) {
+      const k = parseInt((gpp || {}).realIndex, 10);
+      if (k === k) {
+        const list = idx.m.get(k);
+        if (list) list.push(gpp);
+        else idx.m.set(k, [gpp]);
+      }
+    }
+    indexes.set(all, idx);
+  }
+  return idx.m.get(parseInt(String(realIndex), 10)) || [];
+}
 class Helpers {
   /**
    * @param {import('../../../charts/Line').default} lineCtx
@@ -1022,17 +1112,16 @@ class Helpers {
   /** @param {{pathFromLine: any, pathFromArea: any, realIndex: any}} opts */
   checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
     const w = this.w;
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp];
-      if ((gpp.type === "line" || gpp.type === "area") && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)) {
+    for (const gpp of prevRecords(w, realIndex)) {
+      if ((gpp.type === "line" || gpp.type === "area") && gpp.paths.length > 0) {
         if (gpp.type === "line") {
           this.lineCtx.appendPathFrom = false;
-          pathFromLine = w.globals.previousPaths[pp].paths[0].d;
+          pathFromLine = gpp.paths[0].d;
         } else if (gpp.type === "area") {
           this.lineCtx.appendPathFrom = false;
-          pathFromArea = w.globals.previousPaths[pp].paths[0].d;
-          if (w.config.stroke.show && w.globals.previousPaths[pp].paths[1]) {
-            pathFromLine = w.globals.previousPaths[pp].paths[1].d;
+          pathFromArea = gpp.paths[0].d;
+          if (w.config.stroke.show && gpp.paths[1]) {
+            pathFromLine = gpp.paths[1].d;
           }
         }
       }
@@ -1056,8 +1145,8 @@ class Helpers {
    * @returns {string | null}
    */
   previousRangeAreaPath(realIndex) {
-    for (const gpp of this.w.globals.previousPaths) {
-      if (gpp.type === "rangeArea" && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10) && gpp.paths.length === 1 && gpp.paths[0].d) {
+    for (const gpp of prevRecords(this.w, realIndex)) {
+      if (gpp.type === "rangeArea" && gpp.paths.length === 1 && gpp.paths[0].d) {
         return gpp.paths[0].d;
       }
     }
@@ -1534,24 +1623,24 @@ function lengthTransitionEnabled(w) {
   return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
 }
 function datumKey(w, realIndex, j) {
-  var _a, _b, _c, _d;
-  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
-    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
-  }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
-  if (lbl != null && String(lbl) !== "") {
-    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
-  }
-  return "j:" + j;
+  var _a, _b;
+  return keyOf(
+    (_a = w.axisFlags) == null ? void 0 : _a.isXNumeric,
+    (_b = w.seriesData) == null ? void 0 : _b.seriesX,
+    w.globals.labels,
+    realIndex,
+    j
+  );
 }
 function frameDatumKey(frame, realIndex, j) {
-  var _a, _b;
-  if (frame.isXNumeric) {
-    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+  return keyOf(frame.isXNumeric, frame.seriesX, frame.labels, realIndex, j);
+}
+function keyOf(isXNumeric, seriesX, labels, realIndex, j) {
+  if (isXNumeric) {
+    const sx = seriesX == null ? void 0 : seriesX[realIndex];
     if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+  const lbl = labels == null ? void 0 : labels[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }
@@ -1596,7 +1685,13 @@ function seriesKeys(w, realIndex, n = ((_a) => (_a = w.seriesData.series[realInd
     Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j))
   );
 }
-function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false, sj = buildJoin(w, realIndex)) {
+  if (!sj) return null;
+  if (!sj.join.ordered && !allowReorder) return null;
+  if (!sj.join.changed && !includeIdentity) return null;
+  return sj;
+}
+function buildJoin(w, realIndex) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
   const frame = w.globals.prevStreamFrame;
@@ -1609,20 +1704,16 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
   const newKeys = seriesKeys(w, realIndex);
-  const join = joinKeys(oldKeys, newKeys);
-  if (!join.ordered && !allowReorder) return null;
-  if (!join.changed && !includeIdentity) return null;
-  return { join, oldKeys, newKeys };
+  return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
 }
 function morphEasing(w) {
   var _a, _b;
   const anim = w.config.chart.animations;
   return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
 }
-function rafTween(w, duration, ease, onFrame, onDone) {
-  const startAt = performance.now();
+function rafTween(w, duration, ease, onFrame, onDone, alive, startAt = performance.now()) {
   const step = (now) => {
-    if (w.globals.isDestroyed) return;
+    if (w.globals.isDestroyed || alive && !alive()) return;
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
     onFrame(ease(raw), raw);
     if (raw < 1) {
@@ -1632,24 +1723,32 @@ function rafTween(w, duration, ease, onFrame, onDone) {
     }
   };
   BrowserAPIs.requestAnimationFrame(step);
+  return () => {
+    alive = () => false;
+  };
 }
-function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
+const onPage = (w, elPointsMain) => () => w.dom.baseEl.contains(elPointsMain.node);
+function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed, join }) {
   var _a, _b, _c, _d;
-  if (!(elPointsMain == null ? void 0 : elPointsMain.node)) return false;
-  const sj = seriesJoin(w, realIndex, true);
+  if (!(elPointsMain == null ? void 0 : elPointsMain.node) || !w.globals.prevStreamFrame || !lengthTransitionEnabled(w))
+    return false;
+  const markers = elPointsMain.node.querySelectorAll(".apexcharts-marker");
+  if (!markers.length) return false;
+  const sj = seriesJoin(w, realIndex, true, false, join == null ? void 0 : join());
   if (!sj) return false;
-  const frame = w.globals.prevStreamFrame;
-  if (!frame) return false;
+  const frame = (
+    /** @type {any} */
+    w.globals.prevStreamFrame
+  );
   const oldXP = (_a = frame.xPixels) == null ? void 0 : _a[realIndex];
   const oldYP = (_b = frame.yPixels) == null ? void 0 : _b[realIndex];
   if (!oldXP || !oldYP) return false;
-  const markers = elPointsMain.node.querySelectorAll(".apexcharts-marker");
-  if (!markers.length) return false;
   const newXP = ((_c = w.globals.seriesXvalues) == null ? void 0 : _c[realIndex]) || [];
   const newYP = ((_d = w.globals.seriesYvalues) == null ? void 0 : _d[realIndex]) || [];
   const ease = morphEasing(w);
   const duration = Math.max(1, speed || 1);
   elPointsMain.node.classList.remove("apexcharts-element-hidden");
+  const alive = onPage(w, elPointsMain);
   markers.forEach((node) => {
     var _a2, _b2, _c2, _d2, _e, _f, _g, _h, _i;
     const j = parseInt(
@@ -1674,7 +1773,8 @@ function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
         },
         () => {
           style.opacity = "";
-        }
+        },
+        alive
       );
       return;
     }
@@ -1702,9 +1802,14 @@ function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
       }
     };
     apply(0);
-    rafTween(w, duration, ease, apply, () => {
-      node.removeAttribute("transform");
-    });
+    rafTween(
+      w,
+      duration,
+      ease,
+      apply,
+      () => node.removeAttribute("transform"),
+      alive
+    );
   });
   return true;
 }
@@ -1717,18 +1822,24 @@ function growRisingMarkers(w, { elPointsMain, realIndex, speed }) {
   const markers = elPointsMain.node.querySelectorAll(".apexcharts-marker");
   if (!markers.length) return false;
   const ease = morphEasing(w);
+  const alive = onPage(w, elPointsMain);
   elPointsMain.node.classList.remove("apexcharts-element-hidden");
   markers.forEach((node) => {
-    const b = node.getBBox();
-    const cx = b.x + b.width / 2;
-    const cy = b.y + b.height / 2;
+    let cx = parseFloat(node.getAttribute("cx"));
+    let cy = parseFloat(node.getAttribute("cy"));
+    if (node.getAttribute("shape") === "star" || !isFinite(cx + cy)) {
+      const b = node.getBBox();
+      cx = b.x + b.width / 2;
+      cy = b.y + b.height / 2;
+    }
     scaleAbout(node, cx, cy, 0);
     rafTween(
       w,
       Math.max(1, speed || 1),
       ease,
       (eased) => scaleAbout(node, cx, cy, eased),
-      () => node.removeAttribute("transform")
+      () => node.removeAttribute("transform"),
+      alive
     );
   });
   return true;
@@ -1772,13 +1883,15 @@ function shrinkCollapsingMarkers(w, { elPointsMain, realIndex, speed, drawPoint 
   if (drawn) elPointsMain.node.classList.remove("apexcharts-element-hidden");
   return drawn;
 }
-function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
+function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths, join: sjOf }) {
   var _a, _b;
-  const sj = seriesJoin(w, realIndex);
+  const sj = seriesJoin(w, realIndex, false, false, sjOf == null ? void 0 : sjOf());
   if (!sj) return null;
   const { join, oldKeys, newKeys } = sj;
-  const frame = w.globals.prevStreamFrame;
-  if (!frame) return null;
+  const frame = (
+    /** @type {any} */
+    w.globals.prevStreamFrame
+  );
   const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
   const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
   if (oldY.length < 2 || newY.length < 2) return null;
@@ -2254,6 +2367,8 @@ class Line {
     if ((type === "line" || type === "area") && w.globals.dataChanged) {
       streamScroll = detectStreamScroll(w, realIndex, paths.xArrj, paths.yArrj);
     }
+    let sj;
+    const join = () => sj || (sj = seriesJoin(w, realIndex, true, true));
     let reconcile = null;
     if (!streamScroll && (type === "line" || type === "area")) {
       reconcile = reconcileSeriesPaths(w, {
@@ -2262,7 +2377,8 @@ class Line {
         pathFromLine: paths.pathFromLine,
         pathFromArea: paths.pathFromArea,
         linePaths: paths.linePaths,
-        areaPaths: paths.areaPaths
+        areaPaths: paths.areaPaths,
+        join
       });
     }
     w.globals.seriesXvalues[realIndex] = paths.xArrj;
@@ -2296,12 +2412,13 @@ class Line {
       const riding = tweenSeriesMarkers(w, {
         elPointsMain: this.elPointsMain,
         realIndex,
-        speed: w.config.chart.animations.dynamicAnimation.speed
+        speed: w.config.chart.animations.dynamicAnimation.speed,
+        join
       });
       if (!riding && type === "line" && !w.config.stroke.show && (w.globals.dataChanged || w.globals.resized)) {
         this.elPointsMain.node.classList.remove("apexcharts-element-hidden");
       }
-      if (seriesJoin(w, realIndex) && ((_a = this.elDataLabelsWrap) == null ? void 0 : _a.node)) {
+      if (((_a = this.elDataLabelsWrap) == null ? void 0 : _a.node) && seriesJoin(w, realIndex, false, false, join())) {
         this.elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
         w.globals.delayedElements.push({
           el: this.elDataLabelsWrap.node,
@@ -2346,7 +2463,7 @@ class Line {
       });
       for (let p = 0; p < areaPathsToDraw.length; p++) {
         const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: streamScroll ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
+          pathFrom: streamScroll ? projectPathToPrevFrame(areaPathsToDraw[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
           pathTo: areaPathsToDraw[p],
           pathToNumeric: numericXY ? {
             xs: numericXY.xs,
@@ -2392,7 +2509,7 @@ class Line {
           });
         }
         const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: streamScroll ? projectPathToPrevFrame(paths.linePaths[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
+          pathFrom: streamScroll ? projectPathToPrevFrame(linePathsToDraw[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
           pathTo: linePathsToDraw[p],
           pathToNumeric: numericXY ? { xs: numericXY.xs, ys: numericXY.ys } : void 0,
           pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
@@ -2508,6 +2625,9 @@ class Line {
     const ks = stackSeries ? this._stackXs : null;
     let kp = 0;
     const midsAt = [];
+    if (!this._shapeOnly && !this.pointsChart && iterations > 0 && series[i].length && w.seriesData.series[i].length > 1 && (w.globals.dataChanged || w.globals.resized || w.globals.markers.batched)) {
+      this.elPointsMain.node.classList.add("apexcharts-element-hidden");
+    }
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
       const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
@@ -2627,7 +2747,6 @@ class Line {
         this._handleMarkersAndLabels({
           type,
           pointsPos,
-          i,
           j,
           realIndex,
           isRangeStart
@@ -2643,15 +2762,10 @@ class Line {
       linePaths
     };
   }
-  /** @param {{type: any, pointsPos: any, isRangeStart: any, i: any, j: any, realIndex: any}} opts */
-  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
-    const w = this.w;
+  /** @param {{type: any, pointsPos: any, isRangeStart: any, j: any, realIndex: any}} opts */
+  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, j, realIndex }) {
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
-      const useProgressive = !w.globals.dataChanged && !w.globals.resized && !w.globals.markers.batched;
-      if (!useProgressive && w.seriesData.series[i].length > 1) {
-        this.elPointsMain.node.classList.add("apexcharts-element-hidden");
-      }
       const elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
         seriesIndex: realIndex,
@@ -3071,6 +3185,11 @@ class Line {
               }
               areaPath = graphics.move(pX, pY);
               if (series[i][j + 1] === null || typeof series[i][j + 1] === "undefined") {
+                if (curve === "stepline" && series[i][j + 1] === null && !rangeArea) {
+                  const run = graphics.line(x, null, "H");
+                  linePath += run;
+                  areaPath += run + graphics.line(x, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
+                }
                 linePaths.push(linePath);
                 areaPaths.push(areaPath);
                 break;
@@ -3085,12 +3204,18 @@ class Line {
             // falls through
             case 1:
               if (series[i][j + 1] === null) {
+                let endX = pX;
                 if (isLowerRangeAreaPath) {
                   linePath += graphics.line(pX, y2);
+                } else if (curve === "stepline" && !rangeArea) {
+                  const run = graphics.line(x, null, "H");
+                  linePath += run;
+                  areaPath += run;
+                  endX = x;
                 } else {
                   linePath += graphics.move(pX, pY);
                 }
-                areaPath += graphics.line(pX, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
+                areaPath += graphics.line(endX, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
                 linePaths.push(linePath);
                 areaPaths.push(areaPath);
                 pathState = -1;

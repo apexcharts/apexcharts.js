@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -167,6 +167,24 @@ class CircularChartsHelpers {
 }
 const CoreUtils = _core.__apex_CoreUtils;
 const Series = _core.__apex_Series;
+const indexes = /* @__PURE__ */ new WeakMap();
+function prevRecords(w, realIndex) {
+  const all = w.globals.previousPaths;
+  let idx = indexes.get(all);
+  if (!idx || idx.n !== all.length) {
+    idx = { n: all.length, m: /* @__PURE__ */ new Map() };
+    for (const gpp of all) {
+      const k = parseInt((gpp || {}).realIndex, 10);
+      if (k === k) {
+        const list = idx.m.get(k);
+        if (list) list.push(gpp);
+        else idx.m.set(k, [gpp]);
+      }
+    }
+    indexes.set(all, idx);
+  }
+  return idx.m.get(parseInt(String(realIndex), 10)) || [];
+}
 const RADAR_HIT_AREA_SIZE = 5;
 function scalePath(d, k) {
   if (!d || k === 1 || !Number.isFinite(k) || /[aA]/.test(d)) return d;
@@ -347,8 +365,8 @@ class Radar {
         }
         elSeries.add(renderedAreaPath);
       }
+      const markers = new Markers(this.w, this.ctx);
       s.forEach((sj, j) => {
-        const markers = new Markers(this.w, this.ctx);
         const opts = markers.getMarkerConfig({
           cssClass: "apexcharts-marker",
           seriesIndex: i,
@@ -597,14 +615,10 @@ class Radar {
    * @param {number} realIndex
    */
   getPreviousPath(realIndex) {
-    const w = this.w;
     let pathFrom = null;
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp];
-      if (Array.isArray(gpp == null ? void 0 : gpp.paths) && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
-        if (typeof w.globals.previousPaths[pp].paths[0] !== "undefined") {
-          pathFrom = w.globals.previousPaths[pp].paths[0].d;
-        }
+    for (const gpp of prevRecords(this.w, realIndex)) {
+      if (Array.isArray(gpp == null ? void 0 : gpp.paths) && gpp.paths.length > 0 && typeof gpp.paths[0] !== "undefined") {
+        pathFrom = gpp.paths[0].d;
       }
     }
     return pathFrom;

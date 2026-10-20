@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target2;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 const CMD = /[MmLlHhVvCcSsQqTtAaZz]/;
@@ -1304,7 +1304,7 @@ function layouts() {
     /** @type {any} */
     globalThis
   );
-  if (!g[LAYOUT_KEY]) g[LAYOUT_KEY] = {};
+  if (!g[LAYOUT_KEY]) g[LAYOUT_KEY] = /* @__PURE__ */ Object.create(null);
   return g[LAYOUT_KEY];
 }
 function registerShapes(shapes) {

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -53,10 +53,11 @@ function z(e) {
 }
 const Graphics = _core.__apex_Graphics;
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
-if (!/** @type {any} */
-globalThis[LAYOUT_KEY]) {
-  globalThis[LAYOUT_KEY] = {};
-}
+const g$1 = (
+  /** @type {any} */
+  globalThis
+);
+if (!g$1[LAYOUT_KEY]) g$1[LAYOUT_KEY] = /* @__PURE__ */ Object.create(null);
 function getLayouts() {
   return (
     /** @type {any} */
@@ -64,14 +65,15 @@ function getLayouts() {
   );
 }
 function getUnitLayout(name) {
-  if (!name) return null;
-  return getLayouts()[name] || null;
+  const table = getLayouts();
+  return Object.prototype.hasOwnProperty.call(table, name) ? table[name] : null;
 }
 const MARK_KEY = "__apexcharts_unit_marks__";
-if (!/** @type {any} */
-globalThis[MARK_KEY]) {
-  globalThis[MARK_KEY] = {};
-}
+const g = (
+  /** @type {any} */
+  globalThis
+);
+if (!g[MARK_KEY]) g[MARK_KEY] = /* @__PURE__ */ Object.create(null);
 function getMarks() {
   return (
     /** @type {any} */
@@ -109,8 +111,8 @@ function normalizeUnitMark(def, name) {
   }));
 }
 function getUnitMark(name) {
-  if (!name) return null;
-  return getMarks()[name] || null;
+  const table = getMarks();
+  return Object.prototype.hasOwnProperty.call(table, name) ? table[name] : null;
 }
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
@@ -1755,7 +1757,7 @@ class Unit {
     const ax = this._scatterAxis;
     if (!ax) return;
     const NS = "http://www.w3.org/2000/svg";
-    const g = graphics.group({ class: "apexcharts-unit-axis" });
+    const g2 = graphics.group({ class: "apexcharts-unit-axis" });
     const gridColor = w.config.grid && w.config.grid.borderColor || "rgba(128,128,128,0.18)";
     const axisColor = "rgba(128,128,128,0.5)";
     const cfgColors = w.config.xaxis && w.config.xaxis.labels && w.config.xaxis.labels.style && w.config.xaxis.labels.style.colors;
@@ -1769,7 +1771,7 @@ class Unit {
       l.setAttribute("y2", String(y2));
       l.setAttribute("stroke", stroke);
       l.setAttribute("shape-rendering", "crispEdges");
-      g.node.appendChild(l);
+      g2.node.appendChild(l);
     };
     const text = (str, x, y, anchor, fill, size, weight, cls) => {
       const t = BrowserAPIs.createElementNS(NS, "text");
@@ -1783,7 +1785,7 @@ class Unit {
       t.setAttribute("font-weight", String(weight));
       t.setAttribute("fill", fill);
       t.textContent = str;
-      g.node.appendChild(t);
+      g2.node.appendChild(t);
     };
     if (ax.mode === "2d") {
       ax.yTicks.forEach((v) => {
@@ -1826,9 +1828,9 @@ class Unit {
         yt.setAttribute("fill", labelColor);
         yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
         yt.textContent = String(ax.yTitle);
-        g.node.appendChild(yt);
+        g2.node.appendChild(yt);
       }
-      ret.add(g);
+      ret.add(g2);
       return;
     }
     if (ax.orientation === "vertical") {
@@ -1853,13 +1855,13 @@ class Unit {
         yt.setAttribute("fill", labelColor);
         yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
         yt.textContent = String(ax.valueTitle);
-        g.node.appendChild(yt);
+        g2.node.appendChild(yt);
       }
       ax.lanes.forEach((lane) => {
         const color = configuredLabelColor || w.globals.colors[lane.i] || w.globals.colors[0] || "#008FFB";
         text(lane.name, lane.cx, ax.plotB + 16, "middle", color, 12, 600, "apexcharts-unit-lane-label");
       });
-      ret.add(g);
+      ret.add(g2);
       return;
     }
     ax.ticks.forEach((v, idx) => {
@@ -1888,7 +1890,7 @@ class Unit {
         text(lane.name, ax.plotL - 8, lane.cy, "end", color, 12, 600, "apexcharts-unit-lane-label");
       });
     }
-    ret.add(g);
+    ret.add(g2);
   }
   /**
    * Compact tick-value formatting: integers as-is, otherwise trimmed to enough
@@ -2610,7 +2612,7 @@ class Unit {
       ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec });
     });
     if (!this._shouldAnimate()) {
-      ghosts.forEach((g) => g.node.remove());
+      ghosts.forEach((g2) => g2.node.remove());
       return;
     }
     const speed = Math.max(1, w.config.chart.animations.speed || 800);
@@ -2623,13 +2625,13 @@ class Unit {
       const t = Math.max(0, Math.min(1, (now - start) / speed));
       const e = easeOutCubic(t);
       for (let k = 0; k < ghosts.length; k++) {
-        const g = ghosts[k];
+        const g2 = ghosts[k];
         if (drift) {
-          const x = g.x0 + (cx - g.x0) * e * drift;
-          const y = g.y0 + (cy - g.y0) * e * drift;
-          this._place(g.node, g.spec, x, y);
+          const x = g2.x0 + (cx - g2.x0) * e * drift;
+          const y = g2.y0 + (cy - g2.y0) * e * drift;
+          this._place(g2.node, g2.spec, x, y);
         }
-        g.node.style.opacity = String(1 - e);
+        g2.node.style.opacity = String(1 - e);
       }
       if (t < 1) {
         this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn);

@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -198,24 +198,24 @@ function lengthTransitionEnabled(w) {
   return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
 }
 function datumKey(w, realIndex, j) {
-  var _a, _b, _c, _d;
-  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
-    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
-  }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
-  if (lbl != null && String(lbl) !== "") {
-    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
-  }
-  return "j:" + j;
+  var _a, _b;
+  return keyOf(
+    (_a = w.axisFlags) == null ? void 0 : _a.isXNumeric,
+    (_b = w.seriesData) == null ? void 0 : _b.seriesX,
+    w.globals.labels,
+    realIndex,
+    j
+  );
 }
 function frameDatumKey(frame, realIndex, j) {
-  var _a, _b;
-  if (frame.isXNumeric) {
-    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+  return keyOf(frame.isXNumeric, frame.seriesX, frame.labels, realIndex, j);
+}
+function keyOf(isXNumeric, seriesX, labels, realIndex, j) {
+  if (isXNumeric) {
+    const sx = seriesX == null ? void 0 : seriesX[realIndex];
     if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+  const lbl = labels == null ? void 0 : labels[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }
@@ -260,7 +260,13 @@ function seriesKeys(w, realIndex, n = ((_a) => (_a = w.seriesData.series[realInd
     Array.from({ length: n }, (_, j) => datumKey(w, realIndex, j))
   );
 }
-function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false, sj = buildJoin(w, realIndex)) {
+  if (!sj) return null;
+  if (!sj.join.ordered && !allowReorder) return null;
+  if (!sj.join.changed && !includeIdentity) return null;
+  return sj;
+}
+function buildJoin(w, realIndex) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
   const frame = w.globals.prevStreamFrame;
@@ -273,23 +279,22 @@ function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false)
     oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
   const newKeys = seriesKeys(w, realIndex);
-  const join = joinKeys(oldKeys, newKeys);
-  if (!join.ordered && !allowReorder) return null;
-  if (!join.changed && !includeIdentity) return null;
-  return { join, oldKeys, newKeys };
+  return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
 }
 function morphEasing(w) {
   var _a, _b;
   const anim = w.config.chart.animations;
   return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
 }
-function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
+function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths, join: sjOf }) {
   var _a, _b;
-  const sj = seriesJoin(w, realIndex);
+  const sj = seriesJoin(w, realIndex, false, false, sjOf == null ? void 0 : sjOf());
   if (!sj) return null;
   const { join, oldKeys, newKeys } = sj;
-  const frame = w.globals.prevStreamFrame;
-  if (!frame) return null;
+  const frame = (
+    /** @type {any} */
+    w.globals.prevStreamFrame
+  );
   const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
   const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
   if (oldY.length < 2 || newY.length < 2) return null;
@@ -479,7 +484,7 @@ const PART = "apexcharts-highlight-part";
 const PLAIN = { f: 1, o: 0 };
 const COVERED = { f: 0, o: 0 };
 const look = (f) => ({ f, o: f < 1 ? 1 : 0 });
-const finite = (v) => typeof v === "number" && v === v && v !== Infinity && v !== -Infinity;
+const finite = Number.isFinite;
 const mix = (x, y, t) => t >= 1 ? y : x + (y - x) * t;
 const isPoint = (p) => p && typeof p === "object" && !Array.isArray(p);
 const ownOpacity = (node, attr = "fill-opacity") => {
@@ -565,10 +570,22 @@ function bindHit(whole, n) {
   );
 }
 function mirrorFilter(whole, n) {
+  let own;
   const sync = () => {
-    const f = whole.getAttribute("filter");
-    if (f) n.setAttribute("filter", f);
-    else n.removeAttribute("filter");
+    var _a;
+    let f = whole.getAttribute("filter");
+    const src = (_a = whole.instance) == null ? void 0 : _a._filter;
+    const node = src == null ? void 0 : src.node;
+    own == null ? void 0 : own.remove();
+    if (!f || (src == null ? void 0 : src.shared)) return n.removeAttribute("filter");
+    if (node == null ? void 0 : node.querySelector("feGaussianBlur")) {
+      own = node.cloneNode();
+      own.append(node.firstElementChild.cloneNode());
+      own.id += "p";
+      node.after(own);
+      f = `url(#${own.id})`;
+    }
+    n.setAttribute("filter", f);
   };
   sync();
   Environment.isBrowser() && typeof MutationObserver !== "undefined" && new MutationObserver(sync).observe(whole, {
@@ -578,8 +595,8 @@ function mirrorFilter(whole, n) {
 }
 function insertAfter(node, n) {
   const parent = node.parentNode;
-  const kids = Array.from(parent.childNodes);
-  parent.insertBefore(n, kids[kids.indexOf(node) + 1] || null);
+  const kids2 = Array.from(parent.childNodes);
+  parent.insertBefore(n, kids2[kids2.indexOf(node) + 1] || null);
 }
 const addClass = (n, c) => n.setAttribute("class", `${n.getAttribute("class") || ""} ${c}`.trim());
 function forward(target, type, e) {
@@ -853,12 +870,11 @@ function paint(hf, p, g, s) {
           isTrack: true
         }));
       } else {
-        const a = Number(node.getAttribute("data:angle"));
         el.attr({
           d: px.getPiePath({
             me: px,
             startAngle: Number(node.getAttribute("data:startAngle")),
-            angle: a >= p.fullAngle ? p.fullAngle - 0.01 : a,
+            angle: Number(node.getAttribute("data:angle")),
             size: r
           }),
           "stroke-width": px.strokeWidth
@@ -894,7 +910,7 @@ function paint(hf, p, g, s) {
         );
       }
       wedge(px, part, target, fromR);
-      if (over && !exit) pn.classList.add("apexcharts-highlight-overflow");
+      if (over && !exit) addClass(pn, "apexcharts-highlight-overflow");
       mirrorFilter(node, pn);
       if (over && !exit || exit && (prev == null ? void 0 : prev.edge)) {
         edge = new Graphics(w).drawPath({
@@ -1114,11 +1130,13 @@ function radialPass(hf, r) {
     return g;
   };
   const ap = r.animatePaths;
+  const arcs = /* @__PURE__ */ new Set();
   r.animatePaths = (el, a) => {
     const c = __spreadValues({}, a);
     ap.call(r, el, a);
     if (a.isTrack) return;
     c.run = a.dur;
+    arcs.add(c.i);
     ring(hf, r, el, c, ap);
   };
   if (((_g = hf.ctx.morphTypeChange) == null ? void 0 : _g.isActive()) === true) {
@@ -1127,7 +1145,9 @@ function radialPass(hf, r) {
       if (hf._render !== r || w.globals.isDestroyed) return;
       (_a2 = w.dom.baseEl) == null ? void 0 : _a2.querySelectorAll(
         ".apexcharts-radial-series .apexcharts-radialbar-area"
-      ).forEach((n) => ring(hf, r, n.instance, null, ap));
+      ).forEach(
+        (n) => arcs.has(+n.getAttribute("j")) || ring(hf, r, n.instance, null, ap)
+      );
     });
   }
 }
@@ -1514,18 +1534,37 @@ function lanes(hf, r, el, o) {
     }
   );
   if (Environment.isBrowser()) {
+    let m = null;
+    let seen = -1;
     const at = (e) => {
-      hf._lane = [i, laneAt(node, e, rec)];
+      var _a2;
+      if (seen !== moved || /over|start/.test(e.type)) {
+        m = (_a2 = node.getScreenCTM) == null ? void 0 : _a2.call(node);
+        seen = moved;
+        watchMoves();
+      }
+      hf._lane = [i, laneAt(m, e, rec)];
     };
     ["mouseover", "mousemove", "mousedown", "touchstart", "touchmove"].forEach(
       (t) => node.addEventListener(t, at, true)
     );
   }
 }
-function laneAt(node, e, rec) {
-  var _a, _b;
+let moved = 0;
+let watching = false;
+function watchMoves() {
+  if (watching) return;
+  watching = true;
+  ["scroll", "resize"].forEach(
+    (t) => BrowserAPIs.addWindowEventListener(t, () => moved++, {
+      capture: true,
+      passive: true
+    })
+  );
+}
+function laneAt(m, e, rec) {
+  var _a;
   const p = ((_a = e.touches) == null ? void 0 : _a[0]) || e;
-  const m = (_b = node.getScreenCTM) == null ? void 0 : _b.call(node);
   if (!m || !(rec.s > 0)) return "part";
   const x = p.clientX - m.e;
   const y = p.clientY - m.f;
@@ -1648,10 +1687,10 @@ function tracksOf(r) {
     var _a2;
     return ` ${(_a2 = m.getAttribute) == null ? void 0 : _a2.call(m, "class")} `.includes(` ${cls} `);
   };
-  const kids = [...((_b = (_a = r.w.dom.Paper) == null ? void 0 : _a.node) == null ? void 0 : _b.childNodes) || []];
+  const kids2 = [...((_b = (_a = r.w.dom.Paper) == null ? void 0 : _a.node) == null ? void 0 : _b.childNodes) || []];
   let found = [];
-  for (let k = kids.length - 1; k >= 0 && !found.length; k--) {
-    const t = [...kids[k].childNodes || []].find(
+  for (let k = kids2.length - 1; k >= 0 && !found.length; k--) {
+    const t = [...kids2[k].childNodes || []].find(
       (m) => is(m, "apexcharts-tracks")
     );
     if (t) {
@@ -1706,8 +1745,8 @@ function wholeLine(hf, r, c, i, group) {
   if (group) {
     st.node = null;
     if (!rec || !rec.lf && rec.done) return;
-    const kids = group.node.childNodes;
-    const v = c.value.show ? kids[kids.length - 1] : null;
+    const kids2 = group.node.childNodes;
+    const v = c.value.show ? kids2[kids2.length - 1] : null;
     if (!v) return;
     if (rec.pv != null && !rec.done) {
       rec.hold = v.textContent;
@@ -2003,6 +2042,15 @@ function ownNeedle(hf, r, g) {
     });
   }
 }
+function drilldownById(w, id) {
+  const dd = w.config.drilldown;
+  const list = dd && Array.isArray(dd.series) ? dd.series : [];
+  return list.find((s) => s && s.id === id);
+}
+function drilldownAsLevels(w) {
+  var _a, _b, _c, _d;
+  return !!((_d = (_c = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.treemap) == null ? void 0 : _c.nested) == null ? void 0 : _d.drilldownAsLevels);
+}
 const TILE = "t:";
 const CLASS = "apexcharts-highlight-tile";
 const OVER = "apexcharts-highlight-overflow";
@@ -2020,14 +2068,26 @@ function treeParse(hf, type) {
       "on a nested treemap put the part on each leaf as { x, y, highlight }; highlightData is ignored."
     );
   }
-  const onParent = (d) => isPoint(d) && Array.isArray(d.children) && d.children.length > 0 && ("highlight" in d || d.children.some(onParent));
-  if (raw.some((s) => ((s == null ? void 0 : s.data) || []).some(onParent))) {
+  const onParent = (d, path) => {
+    const k = kids(hf.w, d, path);
+    return !!k && ("highlight" in d || k[0].some((c) => onParent(c, k[1])));
+  };
+  if (raw.some(
+    (s) => ((s == null ? void 0 : s.data) || []).some((d) => onParent(d, []))
+  )) {
     hf._warn(
       "parent",
       "a parent's highlight is ignored: parents add up their leaves' parts."
     );
   }
   return true;
+}
+function kids(w, d, path) {
+  if (!isPoint(d)) return null;
+  if (Array.isArray(d.children) && d.children.length) return [d.children, path];
+  const id = d.drilldown;
+  const dd = id != null && drilldownAsLevels(w) && !path.includes(id) && drilldownById(w, id);
+  return dd && Array.isArray(dd.data) && dd.data.length ? [dd.data, [...path, id]] : null;
 }
 function treeSeries(hf, base, parts) {
   const w = hf.w;
@@ -2036,13 +2096,27 @@ function treeSeries(hf, base, parts) {
     const row = Array.isArray(parts == null ? void 0 : parts[i]) ? parts[i] : null;
     if (typeof parts !== "function" && !row) return out;
     let k = 0;
-    const leaf = (d) => {
+    const leaf = (d, path) => {
       var _a, _b, _c;
-      if (isPoint(d) && Array.isArray(d.children) && d.children.length) {
-        return __spreadProps(__spreadValues({}, d), { children: d.children.map(leaf) });
+      const c = kids(w, d, path);
+      if (c) {
+        const ch = c[0].map((x) => leaf(stripSeries(x), c[1]));
+        const pt2 = __spreadValues({}, d);
+        const src = c[0];
+        if (c[1] === path) pt2.children = ch;
+        else {
+          Object.defineProperty(pt2, "children", {
+            get: () => {
+              var _a2;
+              return drilldownAsLevels(w) && ((_a2 = drilldownById(w, d.drilldown)) == null ? void 0 : _a2.data) === src ? ch : void 0;
+            }
+          });
+        }
+        return pt2;
       }
       const j = k++;
       const pt = isPoint(d) ? __spreadValues({}, d) : { x: "", y: d };
+      if (path.includes(pt.drilldown)) delete pt.drilldown;
       pt.highlight = typeof parts === "function" ? parts({
         seriesIndex: i,
         dataPointIndex: j,
@@ -2054,7 +2128,8 @@ function treeSeries(hf, base, parts) {
       }) : row == null ? void 0 : row[j];
       return pt;
     };
-    if (Array.isArray(out.data)) out.data = out.data.map(leaf);
+    if (Array.isArray(out.data))
+      out.data = out.data.map((d) => leaf(d, []));
     return out;
   });
 }
@@ -2251,14 +2326,14 @@ function treemapPass(hf, tm) {
 function rollUp(tm, parts, vals) {
   const walk = (n) => {
     var _a, _b;
-    const kids = n.children;
-    if (!kids || !kids.length) {
+    const kids2 = n.children;
+    if (!kids2 || !kids2.length) {
       const p = (_a = parts == null ? void 0 : parts[n._si]) == null ? void 0 : _a[n._di];
       n.highlight = parts ? info(finite(p) ? p : null, (_b = vals[n._si]) == null ? void 0 : _b[n._di]) : void 0;
       return n.highlight;
     }
     let v = null;
-    kids.forEach((c) => {
+    kids2.forEach((c) => {
       const h = walk(c);
       if (h && h.value != null && !(h.value * (h.total || 0) < 0)) {
         v = (v || 0) + Math.abs(h.value);
@@ -2313,27 +2388,12 @@ function texts(n) {
   return out;
 }
 function colourEase(a, b) {
-  const x = rgba(a);
-  const y = rgba(b);
-  if (a === b || !x || !y) return (t) => t >= 1 ? b : a;
-  return (t) => t >= 1 ? b : `rgba(${[0, 1, 2].map((k) => Math.round(mix(x[k], y[k], t))).join(",")},${+mix(x[3], y[3], t).toFixed(3)})`;
-}
-function rgba(c) {
-  var _a;
-  const s = String(c).trim();
-  let m = /^#([\da-f]+)$/i.exec(s);
-  if (m) {
-    let h = m[1];
-    if (h.length < 5) h = h.replace(/./g, "$&$&");
-    if (h.length !== 6 && h.length !== 8) return null;
-    return [0, 2, 4, 6].map(
-      (k) => k < h.length ? parseInt(h.slice(k, k + 2), 16) / (k === 6 ? 255 : 1) : 1
-    );
+  const x = Utils.parseColor(String(a).trim());
+  const y = Utils.parseColor(String(b).trim());
+  if (a === b || !(x == null ? void 0 : x.every(finite)) || !(y == null ? void 0 : y.every(finite))) {
+    return (t) => t >= 1 ? b : a;
   }
-  m = /^rgba?\(([^)]*)\)$/i.exec(s);
-  if (!m) return null;
-  const v = m[1].split(/[\s,/]+/).filter(Boolean).map(parseFloat);
-  return v.length >= 3 && v.every(isFinite) ? [v[0], v[1], v[2], (_a = v[3]) != null ? _a : 1] : null;
+  return (t) => t >= 1 ? b : `rgba(${[0, 1, 2].map((k) => Math.round(mix(x[k], y[k], t))).join(",")},${+mix(x[3], y[3], t).toFixed(3)})`;
 }
 ["prevHighlightParts", "prevHighlightLabels"].forEach((k) => {
   if (Series.HELD.indexOf(k) === -1) Series.HELD.push(k);
@@ -2375,7 +2435,6 @@ class HighlightFilter {
     this._targets = /* @__PURE__ */ new Map();
     this._render = null;
     this._seen = /* @__PURE__ */ new Set();
-    this._seriesEls = /* @__PURE__ */ new Map();
     this._cu = null;
     this._stk = /* @__PURE__ */ new Map();
     this._stkPrev = [];
@@ -2415,9 +2474,12 @@ class HighlightFilter {
    * no has a fallback to run; a plugin that registered and then found out from
    * a console warning has already changed the chart.
    *
-   * Type only. The data-dependent refusals (a stack over several y axes, a
-   * logarithmic one) stay in `parse`, because they can appear and vanish on any
-   * update and a parse is where the chart finds out.
+   * Type only, plus the one shape a plugin's parts cannot reach: a nested
+   * treemap's part arrives on each leaf, never in a row per series, so a
+   * plugin is told no there (`parse` lets the leaves' own parts through). The
+   * data-dependent refusals (a stack over several y axes, a logarithmic one)
+   * stay in `parse`, because they can appear and vanish on any update and a
+   * parse is where the chart finds out.
    */
   canDrawParts() {
     const w = this.w;
@@ -2426,7 +2488,17 @@ class HighlightFilter {
     if (!w.globals.axisCharts) {
       return CIRCLE.indexOf(type) > -1 || type === "radialBar";
     }
-    return !w.globals.comboCharts && (type === "bar" || type === "line" || type === "area" || type === "treemap") && !w.rangeData.seriesRange.length && // A histogram's rows are bins built from the observations, so a part
+    const nc = cnf.plotOptions.treemap.nested || {};
+    return !w.globals.comboCharts && // Nested: a parse resolves it into treemapRoots. Before the first one
+    // (a plugin's setup runs at construction) the config is read as Data's
+    // isNestedTreemap reads it: nesting not turned off, and a point with
+    // children, or a drilldown ref read as a level.
+    !(type === "treemap" && (w.globals.treemapRoots || !this._parsed && nc.enabled !== false && /** @type {any[]} */
+    (cnf.series || []).some(
+      (s) => (s && Array.isArray(s.data) ? s.data : []).some(
+        (d) => d && (d.children && d.children.length || nc.drilldownAsLevels && d.drilldown != null)
+      )
+    ))) && (type === "bar" || type === "line" || type === "area" || type === "treemap") && !w.rangeData.seriesRange.length && // A histogram's rows are bins built from the observations, so a part
     // per observation has no bar of its own to sit on.
     cnf.chart.requestedType !== "histogram";
   }
@@ -2439,18 +2511,11 @@ class HighlightFilter {
    * core host can ask without importing this feature.
    */
   callerCarriesParts() {
-    const w = this.w;
-    if (!w.globals.axisCharts) {
-      return Array.isArray(this.cfg.data) || slicePoints(
-        /** @type {any[]} */
-        w.config.series || []
-      ).some(
-        (d) => "highlight" in d
-      );
-    }
     return (
       /** @type {any[]} */
-      (w.config.series || []).some(seriesHasHighlight)
+      (this.w.config.series || []).some(
+        seriesHasHighlight
+      )
     );
   }
   /**
@@ -2483,6 +2548,7 @@ class HighlightFilter {
       cnf.series || []
     );
     const values = w.seriesData.series || [];
+    this._parsed = true;
     if (!w.globals.axisCharts) return this._parseCircle();
     const stacked = !!cnf.chart.stacked;
     const type = cnf.chart.type;
@@ -2496,7 +2562,7 @@ class HighlightFilter {
         break;
       }
     }
-    let supported = w.globals.axisCharts && this.canDrawParts();
+    let supported = nested || this.canDrawParts();
     if (present && !supported) this._unsupported();
     const axes = (
       /** @type {number[][]} */
@@ -2565,17 +2631,17 @@ class HighlightFilter {
       );
     }
     const extend = active && cfg.axis !== "clamp" && type !== "treemap" && !cnf.plotOptions.bar.isFunnel && !(stacked && cnf.chart.stackType === "100%");
-    let keyOf = null;
+    let keyOf2 = null;
     if (stacked && bars) {
-      keyOf = (i, j) => this._barKey(i, j);
+      keyOf2 = (i, j) => this._barKey(i, j);
     } else if (stacked) {
       const sx = w.seriesData.seriesX;
-      keyOf = (i, j) => {
+      keyOf2 = (i, j) => {
         var _a2;
         return String(w.axisFlags.isXNumeric ? (_a2 = sx[i]) == null ? void 0 : _a2[j] : j);
       };
     }
-    const ext = extend ? this._runningExt(parts, keyOf, bars) : null;
+    const ext = extend ? this._runningExt(parts, keyOf2, bars) : null;
     this._publish(parts, ext);
   }
   /** Warn once that this chart type draws no parts. */
@@ -2642,8 +2708,7 @@ class HighlightFilter {
         arr = arr.map((v) => Array.isArray(v) ? v[0] : v);
       }
     }
-    const type = cnf.chart.type;
-    const supported = CIRCLE.indexOf(type) > -1 || type === "radialBar";
+    const supported = this.canDrawParts();
     const present = point || !!arr;
     if (present && !supported) this._unsupported();
     if (!(cfg.enabled !== false && present && supported)) {
@@ -2878,7 +2943,6 @@ class HighlightFilter {
     this._render = renderer;
     this._targets = /* @__PURE__ */ new Map();
     this._seen = /* @__PURE__ */ new Set();
-    this._seriesEls = /* @__PURE__ */ new Map();
     this._cu = new CoreUtils(this.w);
     this._stk = /* @__PURE__ */ new Map();
     this._stkPrev = [];
@@ -2898,17 +2962,18 @@ class HighlightFilter {
     const w = this.w;
     const prev = this._prev();
     if (!prev || w.globals.isDestroyed || !this._animates()) return;
+    let ghosts = null;
     prev.forEach((t, key) => {
-      var _a;
+      var _a, _b;
       if (this._seen.has(key) || key.indexOf(BAR) !== 0) return;
-      const datum = key.slice(BAR.length);
-      const el = this._seriesEls.get(datum.slice(0, datum.indexOf("::")));
-      if (!el) return;
-      const ghost = Array.from(
-        el.querySelectorAll(".apexcharts-bar-ghost")
-      ).find(
-        (n) => n.getAttribute("data:ghostKey") === datum
-      );
+      if (!ghosts) {
+        const g = ghosts = /* @__PURE__ */ new Map();
+        (_a = w.dom.elGraphical) == null ? void 0 : _a.node.querySelectorAll(".apexcharts-bar-ghost").forEach((n) => {
+          const k = n.getAttribute("data:ghostKey");
+          if (!g.has(k)) g.set(k, n);
+        });
+      }
+      const ghost = ghosts.get(key.slice(BAR.length));
       if (!ghost) return;
       ghost.setAttribute("fill-opacity", String(t.f));
       if (!t.d) return;
@@ -2918,7 +2983,7 @@ class HighlightFilter {
         strokeWidth: 0,
         // Solid, at the alpha it had on screen (see _paintBar).
         fill: solid(ghost.getAttribute("fill"))[0],
-        fillOpacity: (_a = t.al) != null ? _a : 1,
+        fillOpacity: (_b = t.al) != null ? _b : 1,
         classes: `${PART} apexcharts-highlight-ghost`
       });
       const node = part.node;
@@ -3073,7 +3138,17 @@ class HighlightFilter {
       this._stk.set(key, c);
     }
     const pct = w.config.chart.stackType === "100%";
-    const total = w.seriesData.stackedSeriesTotals[j];
+    let tot = this._stk.get("%");
+    if (pct && !tot) {
+      this._stk.set("%", tot = /* @__PURE__ */ new Map());
+      w.seriesData.series.forEach(
+        (s, i) => s.forEach((x, k) => {
+          const b = this._barKey(i, k);
+          tot.set(b, (tot.get(b) || 0) + (+x || 0));
+        })
+      );
+    }
+    const total = pct && tot.get(key);
     const val = p == null ? null : pct ? total ? 100 * p / total : 0 : p;
     const v = val != null ? val : 0;
     const neg = val != null ? val < 0 : (prev == null ? void 0 : prev.s) != null ? prev.s < 0 : whole < 0;
@@ -3647,11 +3722,11 @@ class HighlightFilter {
     }
     root.querySelectorAll(".apexcharts-datalabels[data\\:realIndex]").forEach((wrap) => {
       const ri = Number(wrap.getAttribute("data:realIndex"));
-      const xs = w.globals.seriesXvalues[ri] || [];
+      const near = nearestIn(w.globals.seriesXvalues[ri] || []);
       const m = /* @__PURE__ */ new Map();
       wrap.querySelectorAll(`text.apexcharts-datalabel, text.${LABEL_EXIT}`).forEach((t) => {
         var _a;
-        const k = nearest(xs, parseFloat(t.getAttribute("cx")));
+        const k = near(parseFloat(t.getAttribute("cx")));
         if (k < 0) return;
         const [x, y] = drawnAt(t);
         m.set(k, {
@@ -3685,8 +3760,9 @@ class HighlightFilter {
     const items = [];
     const used = /* @__PURE__ */ new Set();
     const ok = (v) => typeof v === "number" && isFinite(v);
+    const near = nearestIn(xs);
     root.querySelectorAll("text.apexcharts-datalabel").forEach((t) => {
-      const k = nearest(xs, parseFloat(t.getAttribute("cx")));
+      const k = near(parseFloat(t.getAttribute("cx")));
       if (k < 0) return;
       const [x, y] = drawnAt(t);
       const s = src == null ? void 0 : src.get(k);
@@ -3775,7 +3851,6 @@ class HighlightFilter {
     const animate = this._animates();
     const { key, prev, geo, fadeTo, active, bar } = s;
     const elSeries = r.elSeries;
-    this._seriesEls.set(String(o.realIndex), elSeries.node);
     let to = (geo == null ? void 0 : geo.pathTo) || null;
     const exit = !to && !!(prev == null ? void 0 : prev.d) && animate;
     if (exit) to = this._exitTo(prev, active, r.pathTo, geo == null ? void 0 : geo.base);
@@ -4154,13 +4229,13 @@ class HighlightFilter {
    * @param {boolean} [split]
    * @returns {(number | null)[][]}
    */
-  _runningExt(parts, keyOf, split) {
-    if (!keyOf) return parts;
+  _runningExt(parts, keyOf2, split) {
+    if (!keyOf2) return parts;
     const sums = /* @__PURE__ */ new Map();
     return parts.map(
       (row, i) => row.map((p, j) => {
         if (p == null) return null;
-        const key = keyOf(i, j) + (split && p < 0 ? "-" : "+");
+        const key = keyOf2(i, j) + (split && p < 0 ? "-" : "+");
         const v = (sums.get(key) || 0) + p;
         sums.set(key, v);
         return v;
@@ -4272,7 +4347,10 @@ class HighlightFilter {
   drillView(view) {
     if (Array.isArray(view == null ? void 0 : view.series)) {
       view.series = view.series.map(stripSeries);
-      this._level = { series: view.series, base: this.w.globals.initialSeries };
+      this._level = {
+        series: view.series,
+        base: this.w.globals._initialSeriesPeek
+      };
     }
     if (view && this.cfg.data != null) {
       view.highlightFilter = __spreadProps(__spreadValues({}, view.highlightFilter), { data: null });
@@ -4282,7 +4360,7 @@ class HighlightFilter {
   _drilled() {
     var _a;
     const lv = this._level;
-    return !!(lv && (((_a = this.ctx.drilldown) == null ? void 0 : _a.depth) || 0) > 0 && this.w.globals.initialSeries === lv.base);
+    return !!(lv && (((_a = this.ctx.drilldown) == null ? void 0 : _a.depth) || 0) > 0 && this.w.globals._initialSeriesPeek === lv.base);
   }
   /** @param {'enter'|'update'|'clear'} phase */
   _fire(phase) {
@@ -4448,14 +4526,16 @@ class HighlightFilter {
   }
   /** The series as the chart was handed them: nested treemaps and reduced
    * rows are kept raw elsewhere, and re-feeding derived rows would lose them.
-   * A drill level is the level on screen. */
+   * A drill level is the level on screen. The series are read through the
+   * peek, not `initialSeries`, whose first read after each update deep-clones
+   * every point: nothing here writes to them (stripSeries copies). */
   _rawSeries() {
-    var _a, _b;
+    var _a;
     const gl = (
       /** @type {any} */
       this.w.globals
     );
-    const raw = this._drilled() && ((_a = this._level) == null ? void 0 : _a.series) || gl.treemapRawSeries || (gl.dataReducerRawSeries && ((_b = this.w.config.chart.dataReducer) == null ? void 0 : _b.enabled) ? gl.initialSeries : null) || gl.initialSeries || this.w.config.series;
+    const raw = this._drilled() && ((_a = this._level) == null ? void 0 : _a.series) || gl.treemapRawSeries || gl._initialSeriesPeek || this.w.config.series;
     return (
       /** @type {any[]} */
       raw.map(
@@ -4471,7 +4551,6 @@ class HighlightFilter {
     this._render = null;
     this._cu = null;
     this._level = null;
-    this._seriesEls = /* @__PURE__ */ new Map();
     this._tiles = null;
     this._tmDefs = [];
     (_a = this.ctx.events) == null ? void 0 : _a.removeEventListener("mounted", this._onRender);
@@ -4501,6 +4580,14 @@ function nearest(xs, x) {
     }
   });
   return k;
+}
+function nearestIn(xs) {
+  const at = /* @__PURE__ */ new Map();
+  xs.forEach((v, q) => isFinite(v != null ? v : NaN) && !at.has(+v) && at.set(+v, q));
+  return (x) => {
+    var _a;
+    return (_a = at.get(x)) != null ? _a : nearest(xs, x);
+  };
 }
 function withPill(t) {
   const bg = t.previousElementSibling;

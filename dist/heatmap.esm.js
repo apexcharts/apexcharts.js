@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.3.1
+ * ApexCharts v8.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -37,18 +37,14 @@ class TreemapHelpers {
     this.ctx = ctx;
     this.w = w;
   }
+  /** Whether a colour range reaches zero or below. Runs once per draw. */
   checkColorRange() {
     const w = this.w;
-    let negRange = false;
-    const chartOpts = w.config.plotOptions[w.config.chart.type];
-    if (chartOpts.colorScale.ranges.length > 0) {
-      chartOpts.colorScale.ranges.map((range) => {
-        if (range.from <= 0) {
-          negRange = true;
-        }
-      });
-    }
-    return negRange;
+    this.rowExt = /** @type {number[][]} */
+    [];
+    return w.config.plotOptions[w.config.chart.type].colorScale.ranges.some(
+      (range) => range.from <= 0
+    );
   }
   /**
    * @param {string} chartType
@@ -58,51 +54,30 @@ class TreemapHelpers {
    */
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w;
-    let colorShadePercent = 1;
-    const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
+    const opts = w.config.plotOptions[chartType];
+    const shadeIntensity = opts.shadeIntensity;
+    const k = shadeIntensity * 1.25;
     const colorProps = this.determineColor(chartType, i, j);
+    const p = colorProps.percent / 100;
+    let colorShadePercent;
     if (
       /** @type {any} */
       w.globals.hasNegs || negRange
     ) {
-      if (w.config.plotOptions[chartType].reverseNegativeShade) {
-        if (colorProps.percent < 0) {
-          colorShadePercent = colorProps.percent / 100 * (shadeIntensity * 1.25);
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-        }
-      } else {
-        if (colorProps.percent <= 0) {
-          colorShadePercent = 1 - (1 + colorProps.percent / 100) * shadeIntensity;
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * shadeIntensity;
-        }
-      }
+      colorShadePercent = opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
     } else {
-      colorShadePercent = 1 - colorProps.percent / 100;
-      if (chartType === "treemap") {
-        colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-      }
+      colorShadePercent = chartType === "treemap" ? (1 - p) * k : 1 - p;
     }
     let color = colorProps.color;
-    const utils = new Utils();
-    if (w.config.plotOptions[chartType].enableShades) {
-      if (this.w.config.theme.mode === "dark") {
-        const shadeColor = utils.shadeColor(
-          colorShadePercent * -1,
-          colorProps.color
-        );
-        color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      } else {
-        const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color);
-        color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      }
+    if (opts.enableShades) {
+      const shadeColor = new Utils().shadeColor(
+        w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,
+        color
+      );
+      color = Utils.hexToRgba(
+        Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
+        w.config.fill.opacity
+      );
     }
     return { color, colorProps };
   }
@@ -127,13 +102,22 @@ class TreemapHelpers {
       min = w.globals.minY;
       max = w.globals.maxY;
     } else {
-      const row = w.seriesData.series[i];
-      min = row.length ? row[0] : 0;
-      max = min;
-      for (let k = 1; k < row.length; k++) {
-        if (row[k] < min) min = row[k];
-        if (row[k] > max) max = row[k];
+      let ext = (
+        /** @type {number[][]} */
+        this.rowExt[i]
+      );
+      if (!ext) {
+        const row = w.seriesData.series[i];
+        min = row.length ? row[0] : 0;
+        max = min;
+        for (let k = 1; k < row.length; k++) {
+          if (row[k] < min) min = row[k];
+          if (row[k] > max) max = row[k];
+        }
+        ext = /** @type {number[][]} */
+        this.rowExt[i] = [min, max];
       }
+      [min, max] = ext;
     }
     const csMin = chartOpts.colorScale.min;
     const csMax = chartOpts.colorScale.max;
