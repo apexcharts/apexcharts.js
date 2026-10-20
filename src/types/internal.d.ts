@@ -80,6 +80,11 @@ export interface InteractState {
   selectedDataPoints: number[][]
   // Mouse / pointer state
   mousedown: boolean
+  // A zoom/selection drag past the selection threshold just ended on this
+  // mouseup. Lives on interact (not the ZoomPanSelection instance) so the chart
+  // click listener, which shares that bubbling mouseup, can tell a drag from a
+  // click even if applying the zoom recreates the selection handler first.
+  wasDragged?: boolean
   clientX: number | null
   clientY: number | null
   lastClientPosition: { x?: number; y?: number }

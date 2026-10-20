@@ -133,10 +133,17 @@ export default class Events {
             (e.type === 'mouseup' && e.which === 1) ||
             e.type === 'touchend'
           ) {
-            if (typeof w.config.chart.events.click === 'function') {
-              w.config.chart.events.click(e, me, opts)
+            // ZoomPanSelection listens on the svg, which is inside this
+            // element, so a finished zoom/selection drag has already set the
+            // flag by the time this mouseup bubbles here. A plain click has not.
+            if (w.interact.wasDragged) {
+              w.interact.wasDragged = false
+            } else {
+              if (typeof w.config.chart.events.click === 'function') {
+                w.config.chart.events.click(e, me, opts)
+              }
+              me.ctx.events.fireEvent('click', [e, me, opts])
             }
-            me.ctx.events.fireEvent('click', [e, me, opts])
           }
         },
         { capture: false, passive: true },

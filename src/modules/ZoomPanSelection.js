@@ -265,6 +265,9 @@ export default class ZoomPanSelection extends Toolbar {
       this.startY = this._screenYToPlotPx(this.clientY)
 
       this.dragged = false
+      // Drop a flag left by a drag that ended outside the chart, so the next
+      // plain click is not swallowed.
+      this.w.interact.wasDragged = false
       this.w.interact.mousedown = true
     }
 
@@ -314,6 +317,17 @@ export default class ZoomPanSelection extends Toolbar {
       this.endY = this._screenYToPlotPx(this.clientY)
       this.dragX = Math.abs(this.endX - this.startX)
       this.dragY = Math.abs(this.endY - this.startY)
+
+      // Same 10px gate as selectionDrawn. Set before that call: it may zoom
+      // (and recreate this handler) before the mouseup bubbles to the chart
+      // click listener, which reads the flag.
+      if (
+        (w.interact.zoomEnabled || w.interact.selectionEnabled) &&
+        this.dragged &&
+        (this.dragX > 10 || this.dragY > 10)
+      ) {
+        w.interact.wasDragged = true
+      }
 
       if (w.interact.zoomEnabled || w.interact.selectionEnabled) {
         this.selectionDrawn({
