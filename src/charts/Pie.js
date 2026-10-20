@@ -1721,19 +1721,23 @@ class Pie {
       return this.getFullTurnPath({ me, startAngle, size })
     }
 
+    // A zero-value slice has no area, and its wedge is a line along the seam
+    // the full slice just stopped drawing (#5084). It is a lone moveto at its
+    // start on the rim instead: SVG strokes no subpath that is only a moveto,
+    // whatever the linecap, but the d is not empty, so a morph still tweens
+    // to it and the morph capture keeps the slice in its place. Tested on the
+    // raw angle: the overlap clamp gives a zero slice near the end a sliver.
+    if (isSliceType && Number.isFinite(angle) && !(angle > 0)) {
+      const p = Utils.polarToCartesian(me.centerX, me.centerY, size, startAngle)
+      return `M ${p.x} ${p.y}`
+    }
+
     const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
       me,
       startAngle,
       angle,
       size,
     })
-
-    // A zero-value slice has no area. The wedge degenerates into a line along
-    // the seam, so a sibling the data already called empty redraws the gap
-    // the full slice just stopped drawing (#5084). Draw nothing.
-    if (isSliceType && Number.isFinite(spanDeg) && !(spanDeg > 0)) {
-      return ''
-    }
 
     const startRadians = (Math.PI * (startDeg - 90)) / 180
 

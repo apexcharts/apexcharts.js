@@ -913,6 +913,21 @@ describe('Pie.getPiePath', () => {
     // Path should have arc command with small arc flag
     expect(path).toMatch(/A\s+80\s+80\s+0\s+0/)
   })
+
+  // A zero slice paints nothing but keeps a real path (a lone moveto at its
+  // start on the rim), tested on the raw angle: the overlap clamp gives a
+  // zero slice that starts within 1° of the end a sliver of up to 1° (#5084).
+  it('draws a zero slice near the end of the turn as a lone moveto', () => {
+    for (const type of ['pie', 'donut', 'polarArea']) {
+      const pie = makePie(type)
+      for (const startAngle of [0, 120, 359.2, 359.995, 360]) {
+        const path = pie.getPiePath({ me: pie, startAngle, angle: 0, size: 80 })
+        expect(path).toMatch(/^M [\d.e+-]+ [\d.e+-]+$/)
+        const [x, y] = path.slice(2).split(' ').map(Number)
+        expect(Math.hypot(x - 100, y - 100)).toBeCloseTo(80, 6)
+      }
+    }
+  })
 })
 
 // ===========================================================================

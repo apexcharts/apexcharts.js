@@ -364,12 +364,13 @@ function paint(hf, p, g, s) {
             isTrack: true,
           })
         } else {
-          const a = Number(node.getAttribute('data:angle'))
+          // The raw angle: getPiePath closes a full turn as a circle, as on
+          // the whole, and clamps any other overlap itself (#5084).
           el.attr({
             d: px.getPiePath({
               me: px,
               startAngle: Number(node.getAttribute('data:startAngle')),
-              angle: a >= p.fullAngle ? p.fullAngle - 0.01 : a,
+              angle: Number(node.getAttribute('data:angle')),
               size: r,
             }),
             'stroke-width': px.strokeWidth,

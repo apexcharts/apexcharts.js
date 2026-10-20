@@ -485,3 +485,96 @@ describe('Chart works with morph feature registered', () => {
     ).resolves.toBeDefined()
   })
 })
+
+// A zero slice draws a lone moveto (#5084). It must still be a real path:
+// the morph tween ignores an empty target, and the outgoing capture skips an
+// empty slice and pairs the rest by position.
+describe('zero-value slices in a cross-type morph', () => {
+  const lone = /^M [\d.e+-]+ [\d.e+-]+$/
+
+  it('keeps a zero slice in the capture, so each later slice pairs with its own mark', async () => {
+    InitCtxVariables.registerFeatures({ morphTypeChange: MorphTypeChange })
+    for (const [to, newSeries, keys] of [
+      ['bar', [{ data: [10, 0, 20, 30] }], ['0:0', '0:1', '0:2', '0:3']],
+      ['donut', [10, 0, 20, 30], ['0:0', '1:0', '2:0', '3:0']],
+    ]) {
+      document.body.innerHTML = '<div id="chart"></div>'
+      const chart = new ApexCharts(document.querySelector('#chart'), {
+        chart: {
+          type: 'pie',
+          width: 400,
+          height: 400,
+          animations: { enabled: false },
+        },
+        series: [10, 0, 20, 30],
+        labels: ['A', 'B', 'C', 'D'],
+      })
+      await chart.render()
+      const fills = [
+        ...chart.el.querySelectorAll('.apexcharts-pie-area'),
+      ].map((n) => n.getAttribute('fill'))
+      const m = chart.ctx.morphTypeChange
+      const { marks, branches } = m._captureFromDOM('pie')
+      const map = m._buildMapping(marks, 'pie', to, newSeries, branches)
+      expect([...map.keys()]).toEqual(keys)
+      expect(keys.map((k) => map.get(k).fill)).toEqual(fills)
+      chart.destroy()
+    }
+  })
+
+  it('tweens a zero slice to its own final path, not the start shape', async () => {
+    InitCtxVariables.registerFeatures({ morphTypeChange: MorphTypeChange })
+    vi.useFakeTimers({
+      toFake: [
+        'setTimeout',
+        'clearTimeout',
+        'Date',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'performance',
+      ],
+    })
+    try {
+      for (const [from, to] of [
+        ['bar', 'pie'],
+        ['pie', 'donut'],
+      ]) {
+        document.body.innerHTML = '<div id="chart"></div>'
+        const data = [10, 0, 20, 30]
+        const chart = new ApexCharts(document.querySelector('#chart'), {
+          chart: {
+            type: from,
+            width: 400,
+            height: 400,
+            animations: {
+              enabled: true,
+              speed: 50,
+              chartTypeMorph: { enabled: true, speed: 120 },
+            },
+          },
+          series: from === 'bar' ? [{ name: 's', data }] : data,
+          labels: ['A', 'B', 'C', 'D'],
+          xaxis: { categories: ['A', 'B', 'C', 'D'] },
+        })
+        const rendered = chart.render()
+        await vi.advanceTimersByTimeAsync(1000)
+        await rendered
+        const updated = chart.updateOptions({
+          chart: { type: to },
+          series: data,
+        })
+        expect(chart.ctx.morphTypeChange.isActive()).toBe(true)
+        await vi.advanceTimersByTimeAsync(2000)
+        await updated
+
+        const zero = chart.el.querySelector('.apexcharts-pie-area[j="1"]')
+        const d = zero.getAttribute('d')
+        expect(d).toMatch(lone)
+        expect(d).toBe(zero.getAttribute('data:pathFinal'))
+        chart.destroy()
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
