@@ -729,7 +729,10 @@ export default class Helpers {
    *
    * `insetWidth`, when given, is the stroke width used only for the sideways
    * inset along the slot (`a`/`len`); the value axis keeps `strokeWidth`. It
-   * defaults to `strokeWidth`, so one width sets both directions.
+   * defaults to `strokeWidth`, so one width sets both directions. When
+   * `strokeWidth` is the smaller (an empty segment of a stroked series), the
+   * rect collapses onto its base edge inset by `insetWidth`, where its drawn
+   * self starts.
    *
    * @param {{a: number, len: number, v1: number, v2: number, strokeWidth: any, insetWidth?: any, realIndex: number, j: number, dir: number, horizontal?: boolean}} o
    */
@@ -773,6 +776,14 @@ export default class Helpers {
     const strokeCenter = strokeWidth / 2
     const insetCenter = insetWidth / 2
     const direction = dir * (this.barCtx.isReversed ? -1 : 1)
+    // An empty segment (no stroke of its own in a stroked series) collapses
+    // onto the base edge its drawn self had, inset by the series' half
+    // stroke, not onto the bare baseline: a legend-hidden layer then leaves
+    // and re-enters on the line it grew from, where the stroke of the layer
+    // above already lies, instead of half a stroke past it (#5046).
+    const empty = strokeWidth < insetWidth
+    const baseCenter = empty ? insetCenter : strokeCenter
+    let tip
     const closing =
       w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
       this.arrBorderRadius[realIndex][j] === 'both'
@@ -784,8 +795,9 @@ export default class Helpers {
     if (horizontal) {
       y1 = a + insetCenter
       y2 = a + len - insetCenter
-      x1 = v1 + 0.001 + strokeCenter * direction
-      x2 = v2 + 0.001 - strokeCenter * direction
+      x1 = v1 + 0.001 + baseCenter * direction
+      tip = v2 + 0.001 - strokeCenter * direction
+      x2 = empty ? x1 : tip
       sl = graphics.line(x1, y2)
       squarePathTo =
         graphics.move(x1, y1) +
@@ -796,8 +808,9 @@ export default class Helpers {
     } else {
       x1 = a + insetCenter
       x2 = a + len - insetCenter
-      y1 = v1 + 0.001 - strokeCenter * direction
-      y2 = v2 + 0.001 + strokeCenter * direction
+      y1 = v1 + 0.001 - baseCenter * direction
+      tip = v2 + 0.001 + strokeCenter * direction
+      y2 = empty ? y1 : tip
       sl = graphics.line(x2, y1)
       squarePathTo =
         graphics.move(x1, y1) +
@@ -845,10 +858,38 @@ export default class Helpers {
         sl +
         graphics.line(x1, y1) +
         closing,
+      // the value end before an empty segment folds it onto its base edge
+      tip,
       strokeWidth,
       strokeCenter,
       direction,
     }
+  }
+
+  /**
+   * The sign a legend-hidden column had, read from the data its collapse
+   * stored (its values are all 0 while hidden): 1, -1, or 0 when the series
+   * is not hidden or the datum has no sign. A hidden layer then folds onto
+   * the base edge of the side it left, where its neighbours' strokes run.
+   * @param {number} realIndex @param {number} j
+   * @returns {number}
+   */
+  collapsedSign(realIndex, j) {
+    const gl = this.w.globals
+    const lists = [
+      [gl.collapsedSeriesIndices, gl.collapsedSeries],
+      [gl.ancillaryCollapsedSeriesIndices, gl.ancillaryCollapsedSeries],
+    ]
+    for (const [indices, entries] of lists) {
+      if (!indices || indices.indexOf(realIndex) < 0) continue
+      const c = (entries || []).find(
+        (/** @type {any} */ s) => s.index === realIndex,
+      )
+      const d = c?.data?.[j]
+      const v = Array.isArray(d) ? d[1] : d && typeof d === 'object' ? d.y : d
+      return typeof v === 'number' && v ? Math.sign(v) : 0
+    }
+    return 0
   }
 
   /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, insetWidth?: any, isReversed?: any, series?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
@@ -874,7 +915,8 @@ export default class Helpers {
       insetWidth,
       realIndex,
       j,
-      dir: series[i][j] >= 0 ? 1 : -1,
+      dir:
+        this.collapsedSign(realIndex, j) || (series[i][j] >= 0 ? 1 : -1),
     })
     const { pathTo, squarePathTo, strokeCenter, direction } = r
     y1 = r.y1
@@ -907,7 +949,8 @@ export default class Helpers {
       // neither sign, so the layer above restarted at the axis. It stacks as
       // a null, as the padded series would.
       const _ctx = this.barCtx.groupCtx
-      _ctx.yArrj.push(y2 - strokeCenter * direction)
+      // (the value's own y, which the layer above stacks on)
+      _ctx.yArrj.push(r.tip - strokeCenter * direction)
       _ctx.yArrjF.push(Math.abs(y1 - y2 + r.strokeWidth * direction))
       _ctx.yArrjVal.push(this.barCtx.series[i][j] ?? null)
     }

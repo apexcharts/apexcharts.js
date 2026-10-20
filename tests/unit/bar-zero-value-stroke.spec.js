@@ -123,4 +123,75 @@ describe('stacked column zero values with stroke (#5046)', () => {
     expect(pathXExtent(el.getAttribute('pathTo'))).toEqual(pathXExtent(shownTo))
     chart.destroy()
   })
+
+  it('collapses a hidden layer onto the base edge it was drawn from, not half a stroke past it', async () => {
+    const chart = await render({
+      chart: { animations: { enabled: true } },
+      series: [
+        { name: 'S1', data: [100, -40] },
+        { name: 'S2', data: [20, -10] },
+      ],
+    })
+    // the base edge of a column: its bottom when it rises, its top when it
+    // hangs below the axis
+    const baseOf = (d, neg) => {
+      const { ys } = pathPoints(d)
+      return neg ? Math.min(...ys) : Math.max(...ys)
+    }
+    const cols = [
+      { j: 0, neg: false },
+      { j: 1, neg: true },
+    ]
+    const shown = cols.map(({ j, neg }) =>
+      baseOf(barPath(0, j).getAttribute('pathTo'), neg),
+    )
+    const above = cols.map(({ j }) => barPath(1, j).getAttribute('pathTo'))
+
+    chart.hideSeries('S1')
+    await settle()
+    const left = cols.map(({ j, neg }) => {
+      const hiddenTo = barPath(0, j).getAttribute('pathTo')
+      expect(pathYSpan(hiddenTo)).toBeLessThan(0.01)
+      // The collapsed layer lies on the base edge S2 is now drawn from,
+      // which is where its own stroke runs. On the bare baseline it was half
+      // a stroke (2.5px here) past it, and the series stroke drawn on that
+      // line as the layer was shown again showed as a sliver.
+      const s2 = baseOf(barPath(1, j).getAttribute('pathTo'), neg)
+      expect(baseOf(hiddenTo, neg)).toBeCloseTo(s2, 2)
+      return s2
+    })
+
+    chart.showSeries('S1')
+    await settle()
+    cols.forEach(({ j, neg }, k) => {
+      const el = barPath(0, j)
+      // re-enters from that same line, and lands where it was
+      expect(baseOf(el.getAttribute('pathFrom'), neg)).toBeCloseTo(left[k], 2)
+      expect(baseOf(el.getAttribute('pathTo'), neg)).toBeCloseTo(shown[k], 6)
+      // the layer above stacks on the value, not on the folded edge
+      expect(barPath(1, j).getAttribute('pathTo')).toBe(above[k])
+    })
+    chart.destroy()
+  })
+
+  it('lays an empty segment on the base edge the layer above starts from', async () => {
+    await render({
+      series: [
+        { name: 'S1', data: [100, 100] },
+        { name: 'S2', data: [0, 30] },
+        { name: 'S3', data: [30, 0] },
+      ],
+    })
+    const base = (i, j) =>
+      Math.max(...pathPoints(barPath(i, j).getAttribute('d')).ys)
+    const top = (i, j) =>
+      Math.min(...pathPoints(barPath(i, j).getAttribute('d')).ys)
+    // S3 over an empty S2 starts where S2 would have: one stroke above S1's
+    // drawn top, as S2 does over S1 in the next column (to the 0.001
+    // anti-exponential nudge each layer adds)
+    expect(base(2, 0) - top(0, 0)).toBeCloseTo(base(1, 1) - top(0, 1), 2)
+    // and the empty segment itself lies on that base edge, with no height
+    expect(pathYSpan(barPath(1, 0).getAttribute('d'))).toBeLessThan(0.01)
+    expect(base(1, 0)).toBeCloseTo(base(2, 0), 2)
+  })
 })
