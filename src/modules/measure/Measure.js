@@ -56,7 +56,6 @@ export default class Measure {
 
     ctx.addEventListener('mounted', this._afterRender)
     ctx.addEventListener('updated', this._afterRender)
-    this._bindKeys()
   }
 
   _cfg() {
@@ -124,12 +123,17 @@ export default class Measure {
 
   /** @param {any} e */
   _onKeyDown(e) {
-    if (!this._enabled() || this.persistent) return
+    if (!this._enabled()) return
+    // Escape cancels a drag in sticky mode too (toolbar or startMeasure);
+    // only the hold-to-arm key is ignored there.
+    if (e.key === 'Escape') {
+      this._cancelDrag()
+      return
+    }
+    if (this.persistent) return
     const key = this._cfg().key || 'm'
     if (e.key && e.key.toLowerCase() === String(key).toLowerCase()) {
       this._arm()
-    } else if (e.key === 'Escape') {
-      this._cancelDrag()
     }
   }
 
@@ -878,6 +882,11 @@ export default class Measure {
     // pins/arm only when the measure tool is enabled. The armed pane and live
     // overlay are per-gesture; only pins persist across a render.
     if (!this._enabled()) return
+
+    // Bound here, not in the constructor: the chart has no DOM until its first
+    // render, so a constructor bind found no document and the hold-to-measure
+    // key never worked. _bindKeys is idempotent.
+    this._bindKeys()
 
     // Pre-selected via toolbar.autoSelected: 'measure' — enter sticky measure
     // mode on mount so the ruler is ready to drag with no key held and no
