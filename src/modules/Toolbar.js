@@ -1,4 +1,5 @@
 // @ts-check
+import { eventOrigin } from 'apex-commons'
 import Graphics from './Graphics'
 import Exports from './Exports'
 import Utils from './../utils/Utils'
@@ -787,6 +788,7 @@ export default class Toolbar {
       } else {
         this.elMenu?.classList.add('apexcharts-menu-open')
         this.elMenuIcon?.setAttribute('aria-expanded', 'true')
+        this._watchOutside()
       }
     }, 0)
   }
@@ -794,6 +796,36 @@ export default class Toolbar {
   _closeMenu() {
     this.elMenu?.classList.remove('apexcharts-menu-open')
     this.elMenuIcon?.setAttribute('aria-expanded', 'false')
+    this._unwatchOutside()
+  }
+
+  /**
+   * Close the open menu on a press anywhere on the page outside it. The chart's
+   * own click listener only hears presses inside the chart, so a click on the
+   * page around it left the menu open. Bound only while the menu is open, and
+   * read through eventOrigin so a press inside a shadow root is not mistaken
+   * for one outside.
+   */
+  _watchOutside() {
+    const doc = this.elMenu?.ownerDocument
+    if (!doc || this._onOutside) return
+    /** @param {Event} e */
+    this._onOutside = (e) => {
+      const origin = /** @type {Node} */ (eventOrigin(e))
+      if (this.elMenu?.contains(origin) || this.elMenuIcon?.contains(origin)) {
+        return
+      }
+      this._closeMenu()
+    }
+    this._outsideDoc = doc
+    doc.addEventListener('pointerdown', this._onOutside, true)
+  }
+
+  _unwatchOutside() {
+    if (!this._onOutside || !this._outsideDoc) return
+    this._outsideDoc.removeEventListener('pointerdown', this._onOutside, true)
+    this._onOutside = null
+    this._outsideDoc = null
   }
 
   /**

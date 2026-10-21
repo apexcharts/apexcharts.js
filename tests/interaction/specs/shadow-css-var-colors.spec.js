@@ -128,6 +128,44 @@ const CHECKS = [
     run: ({ root, H, V }) => H.allHue(H.all(root, '.apexcharts-treemap-rect'), 'fill', V.c1),
   },
   {
+    id: 'C11-treemapGradient',
+    surface: 'treemap continuous colorScale.gradient colors (mixed per tile)',
+    options: {
+      series: [{ data: [{ x: 'a', y: 50, colorValue: 50 }, { x: 'b', y: 30, colorValue: 30 }, { x: 'c', y: 10, colorValue: 10 }] }],
+      chart: { type: 'treemap', height: 320, animations: { enabled: false } },
+      plotOptions: { treemap: { colorScale: { gradient: { colors: ['var(--c2)', 'var(--c1)'] } } } },
+    },
+    // The largest value takes the last colour and the smallest the first.
+    run: ({ root, H, V }) => {
+      const rects = H.all(root, '.apexcharts-treemap-rect')
+      return H.both(H.allHue([rects[0]], 'fill', V.c1), H.allHue([rects[rects.length - 1]], 'fill', V.c2))
+    },
+  },
+  {
+    id: 'C11-treemapStops',
+    surface: 'treemap continuous colorScale.gradient explicit stops',
+    options: {
+      series: [{ data: [{ x: 'a', y: 50, colorValue: 50 }, { x: 'b', y: 30, colorValue: 30 }, { x: 'c', y: 10, colorValue: 10 }] }],
+      chart: { type: 'treemap', height: 320, animations: { enabled: false } },
+      plotOptions: {
+        treemap: {
+          colorScale: {
+            gradient: {
+              stops: [
+                { value: 10, color: 'var(--c2)' },
+                { value: 50, color: 'var(--c1)' },
+              ],
+            },
+          },
+        },
+      },
+    },
+    run: ({ root, H, V }) => {
+      const rects = H.all(root, '.apexcharts-treemap-rect')
+      return H.both(H.allHue([rects[0]], 'fill', V.c1), H.allHue([rects[rects.length - 1]], 'fill', V.c2))
+    },
+  },
+  {
     id: 'C11-hover',
     surface: 'hover state (states.hover lighten) on a bar',
     options: base('bar'),

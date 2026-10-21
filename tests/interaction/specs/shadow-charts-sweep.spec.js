@@ -132,6 +132,14 @@ for (const mode of MODES) {
         openBefore: true,
         openAfter: false,
       })
+
+      // A press on the page outside the chart closes it too, not only one
+      // inside the chart (the chart's own listener never hears those).
+      await openMenu()
+      const vp = page.viewportSize()
+      await page.mouse.click(vp.width - 4, vp.height - 4)
+      await wait(page, 100)
+      expect(await isOpen()).toBe(false)
     })
 
     test('bare wheel shows the cooperative zoom hint', async ({ page, setup }) => {

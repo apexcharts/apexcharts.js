@@ -24,7 +24,11 @@ import { dirname, resolve } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, '..', '..', '..')
-export const distPath = resolve(rootDir, 'dist', 'apexcharts.js')
+// APEX_BUNDLE runs the same checks against another build (a release's, to
+// confirm a check fails without its fix), as helpers/frames.js does.
+export const distPath = process.env.APEX_BUNDLE
+  ? resolve(process.env.APEX_BUNDLE)
+  : resolve(rootDir, 'dist', 'apexcharts.js')
 export const featurePath = (name) =>
   resolve(rootDir, 'dist', 'features', `${name}.js`)
 

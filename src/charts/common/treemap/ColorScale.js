@@ -118,16 +118,22 @@ export function colorValueOfDatum(w, datum, i, j) {
  * @param {number} max
  * @param {number|null} midpoint
  * @param {boolean} explicit  `cfg.stops` lists two or more stops
+ * @param {Element} [el] the chart element a var() colour resolves against
  * @returns {Array<{value: number, color: string}>}
  */
-function resolveStops(cfg, min, max, midpoint, explicit) {
+function resolveStops(cfg, min, max, midpoint, explicit, el) {
+  // A var() colour is resolved against the chart before the hex maths: left
+  // raw, normalizeHex reads it as black and every tile mixes towards black.
+  /** @param {any} c */
+  const hex = (c) => normalizeHex(Utils.getThemeColor(c, el))
+
   // Explicit stops win outright.
   if (explicit) {
     return cfg.stops
       .filter((/** @type {any} */ s) => s && Number.isFinite(Number(s.value)))
       .map((/** @type {any} */ s) => ({
         value: Number(s.value),
-        color: normalizeHex(s.color),
+        color: hex(s.color),
       }))
       .sort((/** @type {any} */ a, /** @type {any} */ b) => a.value - b.value)
   }
@@ -136,7 +142,7 @@ function resolveStops(cfg, min, max, midpoint, explicit) {
     Array.isArray(cfg.colors) && cfg.colors.length >= 2
       ? cfg.colors
       : DEFAULT_DIVERGING
-  ).map(normalizeHex)
+  ).map(hex)
 
   const n = colors.length
   // A midpoint anchors the middle colour to a specific value (0 for a
@@ -246,7 +252,7 @@ export function buildContinuousScale(w) {
   }
 
   const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2
-  const stops = resolveStops(cfg, min, max, midpoint, explicit)
+  const stops = resolveStops(cfg, min, max, midpoint, explicit, w.dom?.elWrap)
   if (stops.length < 2) return null
   // Explicit stops carry their own values, so the legend domain covers them as
   // well as the data: a data-only one would put stops outside the strip while
