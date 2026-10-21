@@ -1,4 +1,5 @@
 // @ts-check
+import { queryAllInRoot, queryInRoot } from 'apex-commons'
 import { Environment } from '../../utils/Environment.js'
 import { prefersReducedMotion } from '../Animations'
 import { enforceLicense } from '../license/LicenseEnforcer'
@@ -115,11 +116,11 @@ export default class Storyboard {
     if (opts.scroller) {
       root =
         typeof opts.scroller === 'string'
-          ? doc.querySelector(opts.scroller)
+          ? queryInRoot(this.ctx.el, opts.scroller)
           : opts.scroller
     }
 
-    this._beats = this._resolveBeats(doc, root, opts.beats)
+    this._beats = this._resolveBeats(this.ctx.el, root, opts.beats)
     if (!this._beats.length) return 0
 
     this._animate = opts.animate !== false
@@ -147,14 +148,15 @@ export default class Storyboard {
 
   /**
    * Normalize the beats option, or auto-discover [data-apex-beat] elements in
-   * document order when no explicit list is given.
-   * @param {Document} doc
+   * document order when no explicit list is given. Selectors resolve in the
+   * chart's own root first, so beats beside a chart in a shadow root are found.
+   * @param {Element} chartEl
    * @param {Element | null} root
    * @param {Array<any>} [beatsOpt]
    * @returns {StoryboardBeat[]}
    * @private
    */
-  _resolveBeats(doc, root, beatsOpt) {
+  _resolveBeats(chartEl, root, beatsOpt) {
     /** @type {StoryboardBeat[]} */
     const beats = []
 
@@ -165,7 +167,7 @@ export default class Storyboard {
           b.el && typeof b.el === 'object'
             ? b.el
             : b.selector
-              ? doc.querySelector(b.selector)
+              ? queryInRoot(chartEl, b.selector)
               : null
         if (!el) {
           console.warn(
@@ -185,8 +187,10 @@ export default class Storyboard {
       return beats
     }
 
-    const scope = root || doc
-    scope.querySelectorAll('[data-apex-beat]').forEach((el, i) => {
+    const found = root
+      ? Array.from(root.querySelectorAll('[data-apex-beat]'))
+      : queryAllInRoot(chartEl, '[data-apex-beat]')
+    found.forEach((el, i) => {
       beats.push({
         el,
         key: el.getAttribute('data-apex-beat') || String(i),

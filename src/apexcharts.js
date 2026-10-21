@@ -60,7 +60,7 @@ import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
 import warnMissingFeature from './utils/MissingFeature.js'
 import { BrowserAPIs } from './ssr/BrowserAPIs.js'
-import { LicenseManager } from 'apex-commons'
+import { injectStyle, LicenseManager } from 'apex-commons'
 import {
   enforceLicense,
   teardownWatermark,
@@ -386,40 +386,24 @@ export default class ApexCharts {
             }
           }
 
-          const rootNode = /** @type {any} */ (
-            this.el.getRootNode && this.el.getRootNode()
-          )
-          const inShadowRoot = Utils.is('ShadowRoot', rootNode)
-          const doc = this.el.ownerDocument
-          let css = inShadowRoot
-            ? rootNode.getElementById('apexcharts-css')
-            : doc.getElementById('apexcharts-css')
-
-          if (!css) {
-            css = BrowserAPIs.createElementNS(
-              'http://www.w3.org/1999/xhtml',
-              'style',
+          // One stylesheet per root (document or shadow root), prepended so
+          // the page's own rules win at equal specificity. The library's
+          // defaults should be the weakest author styles: injected on the first
+          // render, long after the page's <link>s, an appended sheet would beat
+          // an author rule on document order alone. In a shadow root it is
+          // always added, since a page stylesheet cannot reach in. Counted per
+          // chart, so the last destroy() in that root takes it away.
+          if (!this._releaseCss) {
+            const rootNode = /** @type {any} */ (
+              this.el.getRootNode && this.el.getRootNode()
             )
-            css.id = 'apexcharts-css'
-            css.textContent = apexCSS
-            const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
-            if (nonce) {
-              css.setAttribute('nonce', nonce)
-            }
-
-            if (inShadowRoot) {
-              // We are in Shadow DOM, add to shadow root
-              rootNode.prepend(css)
-            } else if (this.w.config.chart.injectStyleSheet !== false) {
-              // Prepended, not appended, so the page's own stylesheet wins.
-              // This sheet is injected when the FIRST chart renders, which is
-              // long after the page's <link>s have parsed, so appending put it
-              // last in the cascade: an author rule at equal specificity lost
-              // on document order alone, wherever they put it, and the only way
-              // through was to out-specify us (repeating a class). Prepending
-              // makes us the weakest author styles, which is what a library's
-              // defaults should be, and matches the Shadow DOM branch above.
-              doc.head.prepend(css)
+            if (
+              Utils.is('ShadowRoot', rootNode) ||
+              this.w.config.chart.injectStyleSheet !== false
+            ) {
+              const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
+              const id = 'apexcharts-css'
+              this._releaseCss = injectStyle(this.el, id, apexCSS, { nonce })
             }
           }
         }
@@ -966,6 +950,10 @@ export default class ApexCharts {
     // enforcer does not hold on to its context.
     teardownWatermark(this)
     untrackChart(this)
+    if (this._releaseCss) {
+      this._releaseCss()
+      this._releaseCss = null
+    }
     new Destroy(this.ctx).clear({ isUpdating: false })
   }
 

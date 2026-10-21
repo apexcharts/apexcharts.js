@@ -1,4 +1,5 @@
 // @ts-check
+import { activeElementIn, eventOrigin } from 'apex-commons'
 import Utils from '../../utils/Utils'
 import { Environment } from '../../utils/Environment.js'
 import { captureViewState, applyViewInteraction } from '../state/ViewState'
@@ -221,7 +222,9 @@ export default class History {
    */
   _onPointerDown(e) {
     const el = /** @type {any} */ (this.ctx).el
-    this._engaged = !!(el && e.target && el.contains(e.target))
+    // The origin, not e.target, which is the shadow host inside a root.
+    const origin = eventOrigin(e)
+    this._engaged = !!(el && origin && el.contains(origin))
   }
 
   /**
@@ -234,8 +237,8 @@ export default class History {
 
     const el = /** @type {any} */ (this.ctx).el
     if (!el) return
-    const doc = el.ownerDocument
-    const active = doc && doc.activeElement
+    // Followed down through shadow roots: document.activeElement is the host.
+    const active = activeElementIn(el)
     // Never hijack an editable field's own undo (host inputs, or the ink inline
     // label editor while it is open).
     if (isEditableTarget(active)) return

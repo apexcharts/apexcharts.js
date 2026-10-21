@@ -1,4 +1,5 @@
 // @ts-check
+import { eventOrigin } from 'apex-commons'
 import Utils from '../../utils/Utils'
 import Options from '../settings/Options'
 import TooltipUtils from '../tooltip/Utils'
@@ -981,7 +982,8 @@ export default class InkLayer {
    */
   _onDocDownEditor(e) {
     const ed = this._editor
-    if (!ed || ed.card.contains(e.target)) return
+    // The origin, not e.target, which is the shadow host inside a root.
+    if (!ed || ed.card.contains(/** @type {Node} */ (eventOrigin(e)))) return
     this._closeEditor(true)
   }
 

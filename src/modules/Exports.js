@@ -1,4 +1,5 @@
 // @ts-check
+import { styleSheetsFor } from 'apex-commons'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
@@ -446,7 +447,12 @@ class Exports {
       }
     }
 
-    Array.from(document.styleSheets || []).forEach(walkSheet)
+    // Every sheet that applies to the chart, not just document.styleSheets:
+    // inside a shadow root the root's own and adopted sheets count too.
+    const el = this.w.dom.elWrap
+    ;(el ? styleSheetsFor(el) : Array.from(document.styleSheets || [])).forEach(
+      walkSheet,
+    )
 
     return Promise.all(remote).then(() => found)
   }

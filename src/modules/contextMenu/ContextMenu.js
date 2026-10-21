@@ -1,4 +1,5 @@
 // @ts-check
+import { eventOrigin } from 'apex-commons'
 import { Environment } from '../../utils/Environment.js'
 import Utils from '../../utils/Utils.js'
 import TooltipUtils from '../tooltip/Utils.js'
@@ -354,7 +355,10 @@ export default class ContextMenu {
 
   /** @param {any} e */
   _onDocDown(e) {
-    if (this.menu && this.menu.contains(e.target)) return
+    // The origin, not e.target: inside a shadow root a document listener sees
+    // the host, so every press on the menu would read as outside it.
+    if (this.menu && this.menu.contains(/** @type {Node} */ (eventOrigin(e))))
+      return
     this.close()
   }
 
