@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -68,7 +68,7 @@ class TreemapHelpers {
     } else {
       colorShadePercent = chartType === "treemap" ? (1 - p) * k : 1 - p;
     }
-    let color = colorProps.color;
+    let color = Utils.getThemeColor(colorProps.color, w.dom.elWrap);
     if (opts.enableShades) {
       const shadeColor = new Utils().shadeColor(
         w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,

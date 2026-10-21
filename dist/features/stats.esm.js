@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -111,101 +111,101 @@ function A(e, t) {
   const s = e.length;
   if (0 === s) return NaN;
   if (1 === s) return e[0];
-  const i = (s - 1) * t, n = Math.floor(i), r = Math.ceil(i);
-  return n === r ? e[n] : e[n] + (e[r] - e[n]) * (i - n);
+  const n = (s - 1) * t, i = Math.floor(n), r = Math.ceil(n);
+  return i === r ? e[i] : e[i] + (e[r] - e[i]) * (n - i);
 }
-function x(e, t, s) {
-  const i = e.length, n = (e2) => t / Math.max(1, Math.ceil(e2)), r = () => n(Math.log2(i) + 1);
+function S(e, t, s) {
+  const n = e.length, i = (e2) => t / Math.max(1, Math.ceil(e2)), r = () => i(Math.log2(n) + 1);
   switch (s) {
     case "sqrt":
-      return { width: n(Math.sqrt(i)), rule: "sqrt" };
+      return { width: i(Math.sqrt(n)), rule: "sqrt" };
     case "rice":
-      return { width: n(2 * Math.cbrt(i)), rule: "rice" };
+      return { width: i(2 * Math.cbrt(n)), rule: "rice" };
     case "scott": {
       const t2 = (function(e2) {
         const t3 = e2.length;
         if (t3 < 2) return 0;
         let s2 = 0;
-        for (let i3 = 0; i3 < t3; i3++) s2 += e2[i3];
-        const i2 = s2 / t3;
-        let n2 = 0;
+        for (let n3 = 0; n3 < t3; n3++) s2 += e2[n3];
+        const n2 = s2 / t3;
+        let i2 = 0;
         for (let s3 = 0; s3 < t3; s3++) {
-          const t4 = e2[s3] - i2;
-          n2 += t4 * t4;
+          const t4 = e2[s3] - n2;
+          i2 += t4 * t4;
         }
-        return Math.sqrt(n2 / t3);
+        return Math.sqrt(i2 / t3);
       })(e);
-      return t2 > 0 ? { width: 3.49 * t2 * Math.pow(i, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
+      return t2 > 0 ? { width: 3.49 * t2 * Math.pow(n, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
     }
     case "fd": {
       const t2 = A(e, 0.75) - A(e, 0.25);
-      return t2 > 0 ? { width: 2 * t2 * Math.pow(i, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
+      return t2 > 0 ? { width: 2 * t2 * Math.pow(n, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
     }
     case "auto": {
       const t2 = r(), s2 = A(e, 0.75) - A(e, 0.25);
       if (s2 <= 0) return { width: t2, rule: "sturges" };
-      const n2 = 2 * s2 * Math.pow(i, -1 / 3);
-      return n2 < t2 ? { width: n2, rule: "fd" } : { width: t2, rule: "sturges" };
+      const i2 = 2 * s2 * Math.pow(n, -1 / 3);
+      return i2 < t2 ? { width: i2, rule: "fd" } : { width: t2, rule: "sturges" };
     }
     default:
       return { width: r(), rule: "sturges" };
   }
 }
-function S(e, t = {}) {
+function x(e, t = {}) {
   if (!Array.isArray(e) || 0 === e.length) return null;
   const s = e.slice().sort(((e2, t2) => e2 - t2));
-  let i = s[0], n = s[s.length - 1];
+  let n = s[0], i = s[s.length - 1];
   const r = t.range;
   if (Array.isArray(r) && 2 === r.length) {
     const e2 = Number(r[0]), t2 = Number(r[1]);
-    Number.isFinite(e2) && Number.isFinite(t2) && t2 > e2 && (i = e2, n = t2);
+    Number.isFinite(e2) && Number.isFinite(t2) && t2 > e2 && (n = e2, i = t2);
   }
-  if (!(n > i)) {
-    const e2 = Math.abs(i) > 0 ? 0.05 * Math.abs(i) : 0.5;
-    return { edges: [i - e2, i + e2], binWidth: 2 * e2, rule: "single", capped: false };
+  if (!(i > n)) {
+    const e2 = Math.abs(n) > 0 ? 0.05 * Math.abs(n) : 0.5;
+    return { edges: [n - e2, n + e2], binWidth: 2 * e2, rule: "single", capped: false };
   }
-  const a = n - i;
-  let l, o;
-  if ("number" == typeof t.binWidth && t.binWidth > 0) l = t.binWidth, o = "binWidth";
-  else if ("number" == typeof t.bins && t.bins >= 1) l = a / Math.floor(t.bins), o = "count";
+  const a = i - n;
+  let o, l;
+  if ("number" == typeof t.binWidth && t.binWidth > 0) o = t.binWidth, l = "binWidth";
+  else if ("number" == typeof t.bins && t.bins >= 1) o = a / Math.floor(t.bins), l = "count";
   else {
-    const e2 = x(s, a, "string" == typeof t.bins ? t.bins : "auto");
-    l = e2.width, o = e2.rule;
+    const e2 = S(s, a, "string" == typeof t.bins ? t.bins : "auto");
+    o = e2.width, l = e2.rule;
   }
-  (!Number.isFinite(l) || l <= 0) && (l = a);
-  let c = Math.ceil(a / l);
+  (!Number.isFinite(o) || o <= 0) && (o = a);
+  let c = Math.ceil(a / o);
   (!Number.isFinite(c) || c < 1) && (c = 1);
   let u = false;
-  c > M && (c = M, u = true), l = a / c;
+  c > M && (c = M, u = true), o = a / c;
   const h = new Array(c + 1);
-  for (let e2 = 0; e2 <= c; e2++) h[e2] = i + e2 * l;
-  return h[c] = Math.max(h[c], n), { edges: h, binWidth: l, rule: o, capped: u };
+  for (let e2 = 0; e2 <= c; e2++) h[e2] = n + e2 * o;
+  return h[c] = Math.max(h[c], i), { edges: h, binWidth: o, rule: l, capped: u };
 }
 function k(e, t) {
   const s = t.length - 1;
   if (!(e >= t[0]) || e > t[s]) return -1;
   if (e === t[s]) return s - 1;
-  const i = (t[s] - t[0]) / s;
-  if (i > 0) {
-    let n2 = Math.floor((e - t[0]) / i);
-    return n2 < 0 && (n2 = 0), n2 > s - 1 && (n2 = s - 1), e < t[n2] ? n2-- : e >= t[n2 + 1] && n2++, n2 < 0 || n2 > s - 1 ? -1 : n2;
+  const n = (t[s] - t[0]) / s;
+  if (n > 0) {
+    let i2 = Math.floor((e - t[0]) / n);
+    return i2 < 0 && (i2 = 0), i2 > s - 1 && (i2 = s - 1), e < t[i2] ? i2-- : e >= t[i2 + 1] && i2++, i2 < 0 || i2 > s - 1 ? -1 : i2;
   }
-  let n = 0, r = s - 1;
-  for (; n <= r; ) {
-    const s2 = n + r >> 1;
+  let i = 0, r = s - 1;
+  for (; i <= r; ) {
+    const s2 = i + r >> 1;
     if (e < t[s2]) r = s2 - 1;
     else {
       if (!(e >= t[s2 + 1])) return s2;
-      n = s2 + 1;
+      i = s2 + 1;
     }
   }
   return -1;
 }
 function L(e, t) {
   const s = new Array(Math.max(0, t.length - 1)).fill(0);
-  for (let i = 0; i < e.length; i++) {
-    const n = k(e[i], t);
-    n >= 0 && s[n]++;
+  for (let n = 0; n < e.length; n++) {
+    const i = k(e[n], t);
+    i >= 0 && s[i]++;
   }
   return s;
 }
@@ -375,7 +375,7 @@ function histogramTransform(ser, w) {
   } else {
     for (const vals of perSeries) all = all.concat(vals);
   }
-  const binning = S(all, {
+  const binning = x(all, {
     bins: hcfg.bins,
     binWidth: hcfg.binWidth,
     range: hcfg.range

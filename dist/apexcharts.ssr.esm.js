@@ -52,7 +52,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -10514,7 +10514,7 @@ class Animations {
       delay,
       scrollMorph
     } = params;
-    const me = this;
+    const me2 = this;
     const w = this.w;
     let delayFactor = 0;
     if (w.config.chart.animations.animateGradually.enabled) {
@@ -10523,7 +10523,7 @@ class Animations {
     if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== "bar") {
       delayFactor = 0;
     }
-    me.morphSVG(
+    me2.morphSVG(
       el,
       realIndex,
       j2,
@@ -10618,12 +10618,12 @@ class Animations {
    */
   animateDraw(el, { realIndex, j: j2, isFill, isLast, speed, delay, mask: maskShape }) {
     const w = this.w;
-    const me = this;
+    const me2 = this;
     const finalize = () => {
       if (isLast && w.globals.shouldAnimate) {
-        me.animationCompleted(el);
+        me2.animationCompleted(el);
       }
-      me.showDelayedElements();
+      me2.showDelayedElements();
     };
     if (!Environment.isBrowser() || !w.globals.shouldAnimate || speed < 1) {
       finalize();
@@ -10897,7 +10897,7 @@ class Events {
   }
   setupEventHandlers() {
     const w = this.w;
-    const me = this.ctx;
+    const me2 = this.ctx;
     const clickableArea = w.dom.baseEl.querySelector(w.globals.chartClass);
     this.ctx.eventList.forEach((event) => {
       clickableArea == null ? void 0 : clickableArea.addEventListener(
@@ -10912,30 +10912,30 @@ class Events {
           if (e2.type === "keydown") {
             if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
               if (typeof w.config.chart.events.keyDown === "function") {
-                w.config.chart.events.keyDown(e2, me, opts);
+                w.config.chart.events.keyDown(e2, me2, opts);
               }
-              me.ctx.events.fireEvent("keydown", [e2, me, opts]);
+              me2.ctx.events.fireEvent("keydown", [e2, me2, opts]);
             }
           } else if (e2.type === "keyup") {
             if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
               if (typeof w.config.chart.events.keyUp === "function") {
-                w.config.chart.events.keyUp(e2, me, opts);
+                w.config.chart.events.keyUp(e2, me2, opts);
               }
-              me.ctx.events.fireEvent("keyup", [e2, me, opts]);
+              me2.ctx.events.fireEvent("keyup", [e2, me2, opts]);
             }
           } else if (e2.type === "mousemove" || e2.type === "touchmove") {
             if (typeof w.config.chart.events.mouseMove === "function") {
-              w.config.chart.events.mouseMove(e2, me, opts);
+              w.config.chart.events.mouseMove(e2, me2, opts);
             }
           } else if (e2.type === "mouseleave" || e2.type === "touchleave") {
             if (typeof w.config.chart.events.mouseLeave === "function") {
-              w.config.chart.events.mouseLeave(e2, me, opts);
+              w.config.chart.events.mouseLeave(e2, me2, opts);
             }
           } else if (e2.type === "mouseup" && e2.which === 1 || e2.type === "touchend") {
             if (typeof w.config.chart.events.click === "function") {
-              w.config.chart.events.click(e2, me, opts);
+              w.config.chart.events.click(e2, me2, opts);
             }
-            me.ctx.events.fireEvent("click", [e2, me, opts]);
+            me2.ctx.events.fireEvent("click", [e2, me2, opts]);
           }
         },
         { capture: false, passive: true }
@@ -14632,7 +14632,7 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
     writers.push((c, s2, e2) => {
       const P = { x: lerp2(P0.x, now.x, e2), y: lerp2(P0.y, now.y, e2) };
       const sigma = lerp2(P0.k / now.k, 1, e2);
-      const E = new DOMMatrix([
+      const E2 = new DOMMatrix([
         sigma / s2,
         0,
         0,
@@ -14640,7 +14640,7 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
         c1.cx + (P.x - c.cx - sigma * now.x) / s2,
         c1.cy + (P.y - c.cy - sigma * now.y) / s2
       ]);
-      let X = Minv.multiply(E).multiply(M2);
+      let X = Minv.multiply(E2).multiply(M2);
       if (ox || oy) {
         X = new DOMMatrix().translate(-ox, -oy).multiply(X).translate(ox, oy);
       }
@@ -16009,9 +16009,9 @@ const _Series = class _Series {
   }
   handleNoData() {
     const w = this.w;
-    const me = this;
+    const me2 = this;
     const noDataOpts = w.config.noData;
-    const graphics = new Graphics(me.w);
+    const graphics = new Graphics(me2.w);
     let x2 = w.globals.svgWidth / 2;
     let y = w.globals.svgHeight / 2;
     let textAnchor = "middle";
@@ -18734,13 +18734,13 @@ class Range {
       if (plainNumeric) {
         const arr = series[i2];
         const jEnd = Math.min(lastXIndex, arr.length - 1);
-        const pe = (_c = this.w.seriesData._parsedExtrema) == null ? void 0 : _c[i2];
-        if (pe && pe.ref === arr && pe.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
-          if (pe.maxY > maxY) maxY = pe.maxY;
-          if (pe.lowestY < lowestY) lowestY = pe.lowestY;
-          if (pe.negMinY < 0 && pe.negMinY < minY) minY = pe.negMinY;
-          if (pe.yDec > gl.yValueDecimal) gl.yValueDecimal = pe.yDec;
-          if (pe.hasNulls) gl.hasNullValues = true;
+        const pe2 = (_c = this.w.seriesData._parsedExtrema) == null ? void 0 : _c[i2];
+        if (pe2 && pe2.ref === arr && pe2.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
+          if (pe2.maxY > maxY) maxY = pe2.maxY;
+          if (pe2.lowestY < lowestY) lowestY = pe2.lowestY;
+          if (pe2.negMinY < 0 && pe2.negMinY < minY) minY = pe2.negMinY;
+          if (pe2.yDec > gl.yValueDecimal) gl.yValueDecimal = pe2.yDec;
+          if (pe2.hasNulls) gl.hasNullValues = true;
         } else {
           let yDec = gl.yValueDecimal;
           let hasNulls = false;
@@ -19029,10 +19029,10 @@ class Range {
           this.w.labelData.labels[i2]
         );
         if (!lbls) continue;
-        const pe = (_a2 = this.w.seriesData._parsedExtrema) == null ? void 0 : _a2[i2];
-        if (pe && pe.xNumeric && pe.xref === lbls && pe.len === lbls.length) {
-          if (pe.maxX > maxX) maxX = pe.maxX;
-          if (pe.minX < minX) minX = pe.minX;
+        const pe2 = (_a2 = this.w.seriesData._parsedExtrema) == null ? void 0 : _a2[i2];
+        if (pe2 && pe2.xNumeric && pe2.xref === lbls && pe2.len === lbls.length) {
+          if (pe2.maxX > maxX) maxX = pe2.maxX;
+          if (pe2.minX < minX) minX = pe2.minX;
           continue;
         }
         for (let j2 = 0; j2 < lbls.length; j2++) {
@@ -19241,9 +19241,9 @@ class Range {
               this.w.seriesData.seriesX[gl.maxValsInArrayIndex][this.w.seriesData.seriesX[gl.maxValsInArrayIndex].length - 1]
             );
           }
-          const pe = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[si];
-          if (pe && pe.xNumeric && pe.xSorted && pe.xref === sX && pe.len === sX.length) {
-            if (pe.minXDiff < gl.minXDiff) gl.minXDiff = pe.minXDiff;
+          const pe2 = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[si];
+          if (pe2 && pe2.xNumeric && pe2.xSorted && pe2.xref === sX && pe2.len === sX.length) {
+            if (pe2.minXDiff < gl.minXDiff) gl.minXDiff = pe2.minXDiff;
             if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
               gl.minXDiff = 0.5;
             }
@@ -26153,7 +26153,7 @@ class Marker {
   enlargePoints(j2) {
     var _a, _b;
     const w = this.w;
-    const me = this;
+    const me2 = this;
     const ttCtx = this.ttCtx;
     const col = j2;
     this.resetEnlargedPoints();
@@ -26173,7 +26173,7 @@ class Marker {
           index
         ] + w.config.markers.hover.sizeOffset;
       }
-      me.newPointSize(col, points[p]);
+      me2.newPointSize(col, points[p]);
       lastCx = (_a = points[p].getAttribute("cx")) != null ? _a : "0";
       lastCy = (_b = points[p].getAttribute("cy")) != null ? _b : "0";
       const y = parseFloat(lastCy);
@@ -26183,16 +26183,16 @@ class Marker {
       }
     }
     if (lastCx === null) return;
-    me.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
+    me2.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
     if (!ttCtx.fixedTooltip) {
-      me.tooltipPosition.moveTooltip(
+      me2.tooltipPosition.moveTooltip(
         parseFloat(lastCx),
         parseFloat(
           /** @type {string} */
           lastCy
         ),
         newSize,
-        me.tooltipPosition.isShortPlot() ? me.columnMark(col, colTop, colBottom, newSize) : null
+        me2.tooltipPosition.isShortPlot() ? me2.columnMark(col, colTop, colBottom, newSize) : null
       );
     }
   }
@@ -30160,8 +30160,8 @@ function installDraggable(ElementClass) {
       if (svgRoot) {
         ctm = svgRoot.getScreenCTM();
       }
-      const onMove = (me) => {
-        const mev = me.type === "touchmove" ? me.touches[0] : me;
+      const onMove = (me2) => {
+        const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
         let dx = mev.clientX - startClientX;
         let dy = mev.clientY - startClientY;
         if (ctm) {
@@ -30333,8 +30333,8 @@ function installSelectable(ElementClass) {
         }
         const startX = parseFloat(el.attr("x")) || 0;
         const startW = parseFloat(el.attr("width")) || 0;
-        const onMove = (me) => {
-          const mev = me.type === "touchmove" ? me.touches[0] : me;
+        const onMove = (me2) => {
+          const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
           let dx = mev.clientX - startClientX;
           if (ctm) dx = dx / /** @type {any} */
           ctm.a;
@@ -30575,8 +30575,8 @@ class InitCtxVariables {
       get() {
         var _a;
         if (!this._highlightFilter) {
-          const C2 = reg.get("highlightFilter");
-          if (C2) this._highlightFilter = new C2(w, this);
+          const C = reg.get("highlightFilter");
+          if (C) this._highlightFilter = new C(w, this);
         }
         return (_a = this._highlightFilter) != null ? _a : null;
       },
@@ -33873,13 +33873,13 @@ function t(t2, ...s2) {
 function s(t2) {
   e.warn(t2);
 }
-const i = "APEX-", n = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
+const n = "APEX-", i = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
 function a() {
   const e2 = globalThis;
   let t2 = e2[r];
   return t2 || (t2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, e2[r] = t2), t2;
 }
-const l = class {
+const o = class {
   static get licenseKey() {
     return a().key;
   }
@@ -33914,25 +33914,25 @@ const l = class {
   }
   static setLicense(e2) {
     var _a;
-    var i2;
+    var n2;
     if (!e2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
-    const n2 = this.validateKey(e2);
-    n2.valid || e2 === this.licenseKey || !(null == (i2 = this.validationResult) ? void 0 : i2.valid) ? (this.licenseKey = e2, this.publish(n2), n2.valid || t(`[Apex] ${n2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = n2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
+    const i2 = this.validateKey(e2);
+    i2.valid || e2 === this.licenseKey || !(null == (n2 = this.validationResult) ? void 0 : n2.valid) ? (this.licenseKey = e2, this.publish(i2), i2.valid || t(`[Apex] ${i2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = i2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
   }
   static validateKey(e2) {
     const t2 = this.parseKey(e2), s2 = this.validateStructure(e2, t2);
     if (!s2.valid || !(null == t2 ? void 0 : t2.signature)) return s2;
-    const i2 = this.verdicts.get(e2);
-    return false === i2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === i2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === i2 }));
+    const n2 = this.verdicts.get(e2);
+    return false === n2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === n2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === n2 }));
   }
   static _resetSignatureState() {
     this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
   }
   static base64ToBytes(e2) {
-    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), i2 = globalThis.atob;
-    if ("function" != typeof i2) throw new Error("no base64 decoder available");
-    const n2 = i2(s2), r2 = new Uint8Array(n2.length);
-    for (let e3 = 0; e3 < n2.length; e3++) r2[e3] = n2.charCodeAt(e3);
+    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), n2 = globalThis.atob;
+    if ("function" != typeof n2) throw new Error("no base64 decoder available");
+    const i2 = n2(s2), r2 = new Uint8Array(i2.length);
+    for (let e3 = 0; e3 < i2.length; e3++) r2[e3] = i2.charCodeAt(e3);
     return r2;
   }
   static canonicalPayload(e2) {
@@ -33946,7 +33946,7 @@ const l = class {
     }
   }
   static parseKey(e2) {
-    if ("string" != typeof e2 || !e2.startsWith(i)) return null;
+    if ("string" != typeof e2 || !e2.startsWith(n)) return null;
     const t2 = e2.slice(5);
     if (!t2) return null;
     try {
@@ -33961,10 +33961,10 @@ const l = class {
   }
   static validateStructure(e2, t2) {
     const s2 = (e3) => ({ expired: false, message: e3, signatureVerified: false, valid: false });
-    if ("string" != typeof e2 || !e2.startsWith(i)) return s2('Invalid license key format. License key must start with "APEX-".');
+    if ("string" != typeof e2 || !e2.startsWith(n)) return s2('Invalid license key format. License key must start with "APEX-".');
     if (!t2) return s2("Invalid license key. Unable to decode license data.");
     const { data: r2, signature: a2 } = t2;
-    if (!a2 && /* @__PURE__ */ new Date() >= n) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+    if (!a2 && /* @__PURE__ */ new Date() >= i) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
     if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
     if (r2.domains && r2.domains.length > 0) {
       const e3 = "undefined" == typeof location ? "" : location.hostname;
@@ -33972,19 +33972,19 @@ const l = class {
     }
     return { data: r2, expired: false, signatureVerified: false, valid: true };
   }
-  static verifySignature(e2, i2, n2) {
+  static verifySignature(e2, n2, i2) {
     return __async(this, null, function* () {
       var r2;
       if (this.verifying.has(e2) || this.verdicts.has(e2)) return;
       this.verifying.add(e2);
-      const a2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
-      if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
-      const o2 = new TextEncoder().encode(this.canonicalPayload(i2.data));
+      const a2 = this.epoch, o2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+      if (!o2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(o2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
+      const l2 = new TextEncoder().encode(this.canonicalPayload(n2.data));
       let c = false;
       for (const e3 of this.publicKeysSpki) {
         try {
-          const t2 = yield l2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-          c = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(i2.signature), o2);
+          const t2 = yield o2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+          c = yield o2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(n2.signature), l2);
         } catch (e4) {
           c = false;
         }
@@ -33992,120 +33992,120 @@ const l = class {
       }
       if (this.verifying.delete(e2), this.epoch !== a2) return;
       if (this.verdicts.set(e2, c), c) {
-        const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
+        const t2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
         return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
       }
-      const u = "Invalid license key. The license signature does not verify.", h = { data: i2.data, expired: false, message: u, signatureVerified: true, valid: false };
+      const u = "Invalid license key. The license signature does not verify.", h = { data: n2.data, expired: false, message: u, signatureVerified: true, valid: false };
       this.licenseKey === e2 ? this.publish(h) : this.notify(h), t(`[Apex] ${u}`);
     });
   }
 };
-l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
-let o = l;
+o.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], o.verdicts = /* @__PURE__ */ new Map(), o.verifying = /* @__PURE__ */ new Set(), o.warnedUnverifiable = false, o.epoch = 0;
+let l = o;
 const M = 1e3;
 function A(e2, t2) {
   const s2 = e2.length;
   if (0 === s2) return NaN;
   if (1 === s2) return e2[0];
-  const i2 = (s2 - 1) * t2, n2 = Math.floor(i2), r2 = Math.ceil(i2);
-  return n2 === r2 ? e2[n2] : e2[n2] + (e2[r2] - e2[n2]) * (i2 - n2);
+  const n2 = (s2 - 1) * t2, i2 = Math.floor(n2), r2 = Math.ceil(n2);
+  return i2 === r2 ? e2[i2] : e2[i2] + (e2[r2] - e2[i2]) * (n2 - i2);
 }
-function x(e2, t2, s2) {
-  const i2 = e2.length, n2 = (e3) => t2 / Math.max(1, Math.ceil(e3)), r2 = () => n2(Math.log2(i2) + 1);
+function S(e2, t2, s2) {
+  const n2 = e2.length, i2 = (e3) => t2 / Math.max(1, Math.ceil(e3)), r2 = () => i2(Math.log2(n2) + 1);
   switch (s2) {
     case "sqrt":
-      return { width: n2(Math.sqrt(i2)), rule: "sqrt" };
+      return { width: i2(Math.sqrt(n2)), rule: "sqrt" };
     case "rice":
-      return { width: n2(2 * Math.cbrt(i2)), rule: "rice" };
+      return { width: i2(2 * Math.cbrt(n2)), rule: "rice" };
     case "scott": {
       const t3 = (function(e3) {
         const t4 = e3.length;
         if (t4 < 2) return 0;
         let s3 = 0;
-        for (let i4 = 0; i4 < t4; i4++) s3 += e3[i4];
-        const i3 = s3 / t4;
-        let n3 = 0;
+        for (let n4 = 0; n4 < t4; n4++) s3 += e3[n4];
+        const n3 = s3 / t4;
+        let i3 = 0;
         for (let s4 = 0; s4 < t4; s4++) {
-          const t5 = e3[s4] - i3;
-          n3 += t5 * t5;
+          const t5 = e3[s4] - n3;
+          i3 += t5 * t5;
         }
-        return Math.sqrt(n3 / t4);
+        return Math.sqrt(i3 / t4);
       })(e2);
-      return t3 > 0 ? { width: 3.49 * t3 * Math.pow(i2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
+      return t3 > 0 ? { width: 3.49 * t3 * Math.pow(n2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
     }
     case "fd": {
       const t3 = A(e2, 0.75) - A(e2, 0.25);
-      return t3 > 0 ? { width: 2 * t3 * Math.pow(i2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
+      return t3 > 0 ? { width: 2 * t3 * Math.pow(n2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
     }
     case "auto": {
       const t3 = r2(), s3 = A(e2, 0.75) - A(e2, 0.25);
       if (s3 <= 0) return { width: t3, rule: "sturges" };
-      const n3 = 2 * s3 * Math.pow(i2, -1 / 3);
-      return n3 < t3 ? { width: n3, rule: "fd" } : { width: t3, rule: "sturges" };
+      const i3 = 2 * s3 * Math.pow(n2, -1 / 3);
+      return i3 < t3 ? { width: i3, rule: "fd" } : { width: t3, rule: "sturges" };
     }
     default:
       return { width: r2(), rule: "sturges" };
   }
 }
-function S(e2, t2 = {}) {
+function x(e2, t2 = {}) {
   if (!Array.isArray(e2) || 0 === e2.length) return null;
   const s2 = e2.slice().sort(((e3, t3) => e3 - t3));
-  let i2 = s2[0], n2 = s2[s2.length - 1];
+  let n2 = s2[0], i2 = s2[s2.length - 1];
   const r2 = t2.range;
   if (Array.isArray(r2) && 2 === r2.length) {
     const e3 = Number(r2[0]), t3 = Number(r2[1]);
-    Number.isFinite(e3) && Number.isFinite(t3) && t3 > e3 && (i2 = e3, n2 = t3);
+    Number.isFinite(e3) && Number.isFinite(t3) && t3 > e3 && (n2 = e3, i2 = t3);
   }
-  if (!(n2 > i2)) {
-    const e3 = Math.abs(i2) > 0 ? 0.05 * Math.abs(i2) : 0.5;
-    return { edges: [i2 - e3, i2 + e3], binWidth: 2 * e3, rule: "single", capped: false };
+  if (!(i2 > n2)) {
+    const e3 = Math.abs(n2) > 0 ? 0.05 * Math.abs(n2) : 0.5;
+    return { edges: [n2 - e3, n2 + e3], binWidth: 2 * e3, rule: "single", capped: false };
   }
-  const a2 = n2 - i2;
-  let l2, o2;
-  if ("number" == typeof t2.binWidth && t2.binWidth > 0) l2 = t2.binWidth, o2 = "binWidth";
-  else if ("number" == typeof t2.bins && t2.bins >= 1) l2 = a2 / Math.floor(t2.bins), o2 = "count";
+  const a2 = i2 - n2;
+  let o2, l2;
+  if ("number" == typeof t2.binWidth && t2.binWidth > 0) o2 = t2.binWidth, l2 = "binWidth";
+  else if ("number" == typeof t2.bins && t2.bins >= 1) o2 = a2 / Math.floor(t2.bins), l2 = "count";
   else {
-    const e3 = x(s2, a2, "string" == typeof t2.bins ? t2.bins : "auto");
-    l2 = e3.width, o2 = e3.rule;
+    const e3 = S(s2, a2, "string" == typeof t2.bins ? t2.bins : "auto");
+    o2 = e3.width, l2 = e3.rule;
   }
-  (!Number.isFinite(l2) || l2 <= 0) && (l2 = a2);
-  let c = Math.ceil(a2 / l2);
+  (!Number.isFinite(o2) || o2 <= 0) && (o2 = a2);
+  let c = Math.ceil(a2 / o2);
   (!Number.isFinite(c) || c < 1) && (c = 1);
   let u = false;
-  c > M && (c = M, u = true), l2 = a2 / c;
+  c > M && (c = M, u = true), o2 = a2 / c;
   const h = new Array(c + 1);
-  for (let e3 = 0; e3 <= c; e3++) h[e3] = i2 + e3 * l2;
-  return h[c] = Math.max(h[c], n2), { edges: h, binWidth: l2, rule: o2, capped: u };
+  for (let e3 = 0; e3 <= c; e3++) h[e3] = n2 + e3 * o2;
+  return h[c] = Math.max(h[c], i2), { edges: h, binWidth: o2, rule: l2, capped: u };
 }
 function k(e2, t2) {
   const s2 = t2.length - 1;
   if (!(e2 >= t2[0]) || e2 > t2[s2]) return -1;
   if (e2 === t2[s2]) return s2 - 1;
-  const i2 = (t2[s2] - t2[0]) / s2;
-  if (i2 > 0) {
-    let n3 = Math.floor((e2 - t2[0]) / i2);
-    return n3 < 0 && (n3 = 0), n3 > s2 - 1 && (n3 = s2 - 1), e2 < t2[n3] ? n3-- : e2 >= t2[n3 + 1] && n3++, n3 < 0 || n3 > s2 - 1 ? -1 : n3;
+  const n2 = (t2[s2] - t2[0]) / s2;
+  if (n2 > 0) {
+    let i3 = Math.floor((e2 - t2[0]) / n2);
+    return i3 < 0 && (i3 = 0), i3 > s2 - 1 && (i3 = s2 - 1), e2 < t2[i3] ? i3-- : e2 >= t2[i3 + 1] && i3++, i3 < 0 || i3 > s2 - 1 ? -1 : i3;
   }
-  let n2 = 0, r2 = s2 - 1;
-  for (; n2 <= r2; ) {
-    const s3 = n2 + r2 >> 1;
+  let i2 = 0, r2 = s2 - 1;
+  for (; i2 <= r2; ) {
+    const s3 = i2 + r2 >> 1;
     if (e2 < t2[s3]) r2 = s3 - 1;
     else {
       if (!(e2 >= t2[s3 + 1])) return s3;
-      n2 = s3 + 1;
+      i2 = s3 + 1;
     }
   }
   return -1;
 }
 function L(e2, t2) {
   const s2 = new Array(Math.max(0, t2.length - 1)).fill(0);
-  for (let i2 = 0; i2 < e2.length; i2++) {
-    const n2 = k(e2[i2], t2);
-    n2 >= 0 && s2[n2]++;
+  for (let n2 = 0; n2 < e2.length; n2++) {
+    const i2 = k(e2[n2], t2);
+    i2 >= 0 && s2[i2]++;
   }
   return s2;
 }
-const j = class {
+const E = class {
   static applyStyles(e2) {
     Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
@@ -34151,20 +34151,58 @@ const j = class {
     return t2 || (t2 = document.createElement("div"), t2.setAttribute(this.WATERMARK_ATTR, ""), e2.appendChild(t2)), this.applyStyles(t2), "function" == typeof getComputedStyle && "static" === getComputedStyle(e2).position && (e2.style.position = "relative"), t2;
   }
   static reconcile() {
-    const e2 = o.isLicenseValid();
+    const e2 = l.isLicenseValid();
     for (const t2 of this.managed) t2.isConnected ? e2 ? this.erase(t2) : this.paint(t2) : this.managed.delete(t2);
   }
   static setManaged(e2, t2) {
     false !== (null == t2 ? void 0 : t2.manage) ? this.track(e2) : this.managed.delete(e2);
   }
   static track(e2) {
-    this.managed.add(e2), this.subscribed || (this.subscribed = true, o.onChange((() => {
+    this.managed.add(e2), this.subscribed || (this.subscribed = true, l.onChange((() => {
       this.reconcile();
     })));
   }
 };
-j.WATERMARK_ATTR = "data-apexcharts-watermark", j.WATERMARK_TEXT = "APEXCHARTS", j.ATTR = "data-apexcharts-watermark", j.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, j.managed = /* @__PURE__ */ new Set(), j.subscribed = false;
-let C = j;
+E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Set(), E.subscribed = false;
+let j = E;
+function pe(e2) {
+  const t2 = e2.getRootNode ? e2.getRootNode() : null;
+  return t2 && (9 === t2.nodeType || 11 === t2.nodeType && "host" in t2) ? t2 : e2.ownerDocument || document;
+}
+function me(e2) {
+  const t2 = "function" == typeof e2.composedPath ? e2.composedPath() : null;
+  return (null == t2 ? void 0 : t2.length) ? t2[0] : e2.target;
+}
+const be = Symbol.for("apex-commons.styleUsers");
+function we(e2, t2, s2, n2 = {}) {
+  const i2 = pe(e2), r2 = e2.ownerDocument || document;
+  let a2 = i2.getElementById(t2);
+  if (!a2) {
+    a2 = r2.createElement("style"), a2.id = t2, a2.textContent = s2, n2.nonce && a2.setAttribute("nonce", n2.nonce);
+    (9 === i2.nodeType ? i2.head || i2.documentElement : i2).prepend(a2), a2[be] = 0;
+  }
+  const o2 = a2;
+  "number" == typeof o2[be] && (o2[be] += 1);
+  let l2 = false;
+  return () => {
+    l2 || (l2 = true, "number" == typeof o2[be] && (o2[be] -= 1, o2[be] <= 0 && o2.remove()));
+  };
+}
+function Me(e2) {
+  const t2 = [];
+  let s2 = e2;
+  for (; s2; ) {
+    const e3 = pe(s2);
+    t2.unshift(e3), s2 = 11 === e3.nodeType ? e3.host : null;
+  }
+  const n2 = [];
+  for (const e3 of t2) {
+    for (const t4 of Array.from(e3.styleSheets || [])) n2.push(t4);
+    const t3 = e3.adoptedStyleSheets;
+    if (t3) for (const e4 of t3) n2.push(e4);
+  }
+  return n2;
+}
 const PRICING_URL = "https://apexcharts.com/pricing";
 const STATE_KEY = "__apexcharts_license_enforcer_v1__";
 if (!/** @type {any} */
@@ -34215,7 +34253,7 @@ function premiumFeaturesInUse(w, ctx) {
 function resolveKey(w) {
   const perChart = w && w.config && w.config.chart && w.config.chart.license;
   if (perChart) return perChart;
-  const singleton = o.getKey();
+  const singleton = l.getKey();
   if (singleton) return singleton;
   const apex = Environment.getApex();
   if (apex && apex.license) return apex.license;
@@ -34224,22 +34262,22 @@ function resolveKey(w) {
 const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
 function licensedForPremium(key) {
   if (!key) return false;
-  const result = o.validateKey(key);
+  const result = l.validateKey(key);
   if (!result.valid) return false;
   const plan = result.data && result.data.plan;
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = C.add(elWrap, { manage: false });
+  const node = j.add(elWrap, { manage: false });
   ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = C.node(elWrap);
+    const n2 = j.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    C.applyStyles(n2);
+    j.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -34253,7 +34291,7 @@ function addWatermark(ctx, elWrap) {
   if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
   if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
   const wrapObs = new MutationObserver(() => {
-    if (!C.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!j.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -34273,7 +34311,7 @@ function teardownWatermark(ctx, elWrap) {
   ctx._wmObservedNode = null;
   ctx._wmObservedWrap = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) C.remove(wrap, { manage: false });
+  if (wrap) j.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
@@ -34285,7 +34323,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  const result = o.validateKey(key);
+  const result = l.validateKey(key);
   if (result.valid) {
     const plan = result.data && result.data.plan || "current";
     console.warn(
@@ -34293,7 +34331,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  if (key !== o.getKey()) {
+  if (key !== l.getKey()) {
     console.error(`[Apex] ${result.message}`);
   }
 }
@@ -34348,7 +34386,7 @@ function reevaluateLicenseAcrossCharts() {
     enforceLicense(w, ctx);
   });
 }
-o.onChange(reevaluateLicenseAcrossCharts);
+l.onChange(reevaluateLicenseAcrossCharts);
 function unloadedTypeRejection(chartType, series) {
   const types = [chartType];
   if (Array.isArray(series)) {
@@ -34609,28 +34647,15 @@ class ApexCharts {
               window.addEventListener("afterprint", this.afterPrintHandler);
             }
           }
-          const rootNode = (
-            /** @type {any} */
-            this.el.getRootNode && this.el.getRootNode()
-          );
-          const inShadowRoot = Utils$1.is("ShadowRoot", rootNode);
-          const doc = this.el.ownerDocument;
-          let css = inShadowRoot ? rootNode.getElementById("apexcharts-css") : doc.getElementById("apexcharts-css");
-          if (!css) {
-            css = BrowserAPIs.createElementNS(
-              "http://www.w3.org/1999/xhtml",
-              "style"
+          if (!this._releaseCss) {
+            const rootNode = (
+              /** @type {any} */
+              this.el.getRootNode && this.el.getRootNode()
             );
-            css.id = "apexcharts-css";
-            css.textContent = apexCSS;
-            const nonce = ((_n = this.opts.chart) == null ? void 0 : _n.nonce) || this.w.config.chart.nonce;
-            if (nonce) {
-              css.setAttribute("nonce", nonce);
-            }
-            if (inShadowRoot) {
-              rootNode.prepend(css);
-            } else if (this.w.config.chart.injectStyleSheet !== false) {
-              doc.head.prepend(css);
+            if (Utils$1.is("ShadowRoot", rootNode) || this.w.config.chart.injectStyleSheet !== false) {
+              const nonce = ((_n = this.opts.chart) == null ? void 0 : _n.nonce) || this.w.config.chart.nonce;
+              const id = "apexcharts-css";
+              this._releaseCss = we(this.el, id, apexCSS, { nonce });
             }
           }
         }
@@ -34837,26 +34862,26 @@ class ApexCharts {
    * @param {any} graphData
    */
   mount(graphData = null) {
-    const me = this;
-    const w = me.w;
+    const me2 = this;
+    const w = me2.w;
     return new Promise((resolve, reject) => {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
-      if (me.el === null) {
+      if (me2.el === null) {
         return reject(
           new Error("Not enough data to display or target element not found")
         );
       } else if (w.globals.allSeriesCollapsed) {
-        me.series.handleNoData();
+        me2.series.handleNoData();
       }
-      me.grid = new Grid(me.w, me);
-      const elgrid = me.grid.drawGrid();
+      me2.grid = new Grid(me2.w, me2);
+      const elgrid = me2.grid.drawGrid();
       const AnnotationsCtor = InitCtxVariables._featureRegistry.get("annotations");
-      me.annotations = AnnotationsCtor ? new AnnotationsCtor(me.w, {
-        theme: me.theme,
-        timeScale: me.timeScale
+      me2.annotations = AnnotationsCtor ? new AnnotationsCtor(me2.w, {
+        theme: me2.theme,
+        timeScale: me2.timeScale
       }) : null;
-      (_a = me.annotations) == null ? void 0 : _a.drawImageAnnos();
-      (_b = me.annotations) == null ? void 0 : _b.drawTextAnnos();
+      (_a = me2.annotations) == null ? void 0 : _a.drawImageAnnos();
+      (_b = me2.annotations) == null ? void 0 : _b.drawTextAnnos();
       if (w.config.grid.position === "back") {
         if (elgrid) {
           w.dom.elGraphical.add(elgrid.el);
@@ -34881,16 +34906,16 @@ class ApexCharts {
           w.dom.elGraphical.add(elgrid.elGridBorders);
         }
       }
-      (_e = me.waterfall) == null ? void 0 : _e.drawConnectors();
-      (_f = me.streamgraph) == null ? void 0 : _f.draw();
+      (_e = me2.waterfall) == null ? void 0 : _e.drawConnectors();
+      (_f = me2.streamgraph) == null ? void 0 : _f.draw();
       if (w.config.xaxis.crosshairs.position === "front") {
-        me.crosshairs.drawXCrosshairs();
+        me2.crosshairs.drawXCrosshairs();
       }
       if (w.config.yaxis[0].crosshairs.position === "front") {
-        me.crosshairs.drawYCrosshairs();
+        me2.crosshairs.drawYCrosshairs();
       }
       if (w.config.chart.type !== "treemap") {
-        me.axes.drawAxis(w.config.chart.type, elgrid);
+        me2.axes.drawAxis(w.config.chart.type, elgrid);
       }
       const xAxis = new XAxis(this.w, this.ctx, elgrid);
       const yaxis = new YAxis(
@@ -34908,21 +34933,21 @@ class ApexCharts {
         });
       }
       AxesUtils.pruneRedundantLabelTitles(w.dom.baseEl);
-      (_g = me.annotations) == null ? void 0 : _g.drawAxesAnnotations();
+      (_g = me2.annotations) == null ? void 0 : _g.drawAxesAnnotations();
       let tools;
       if (!w.globals.noData) {
         if (Environment.isBrowser() && w.config.tooltip.enabled && !w.globals.noData) {
-          (_h = me.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
+          (_h = me2.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
         }
         if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled && w.config.chart.accessibility.keyboard.navigation.enabled) {
-          (_i = me.keyboardNavigation) == null ? void 0 : _i.init();
+          (_i = me2.keyboardNavigation) == null ? void 0 : _i.init();
         }
         w.interact.keyNav = null;
         if (Environment.isBrowser() && w.globals.axisCharts && (w.axisFlags.isXNumeric || /** @type {Record<string,any>} */
         w.config.xaxis.convertedCatToNumeric || w.axisFlags.isRangeBar)) {
           if (w.config.chart.zoom.enabled || w.config.chart.selection && w.config.chart.selection.enabled || // @ts-ignore — chart.pan is an internal toolbar config property
           w.config.chart.pan && w.config.chart.pan.enabled) {
-            (_j = me.zoomPanSelection) == null ? void 0 : _j.init({
+            (_j = me2.zoomPanSelection) == null ? void 0 : _j.init({
               xyRatios: graphData.xyRatios
             });
           }
@@ -34938,13 +34963,13 @@ class ApexCharts {
           });
         }
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
-          (_k = me.toolbar) == null ? void 0 : _k.createToolbar();
-        } else if (!w.globals.allSeriesCollapsed && ((_l = me.toolbar) == null ? void 0 : _l.resetControlDue())) {
-          me.toolbar.createToolbar({ resetOnly: true });
+          (_k = me2.toolbar) == null ? void 0 : _k.createToolbar();
+        } else if (!w.globals.allSeriesCollapsed && ((_l = me2.toolbar) == null ? void 0 : _l.resetControlDue())) {
+          me2.toolbar.createToolbar({ resetOnly: true });
         }
         if (tools) w.config.chart.toolbar.tools = tools;
       }
-      (_m = me.weave) == null ? void 0 : _m.dispatch("draw", {
+      (_m = me2.weave) == null ? void 0 : _m.dispatch("draw", {
         pass: "full",
         xyRatios: graphData == null ? void 0 : graphData.xyRatios
       });
@@ -34954,10 +34979,10 @@ class ApexCharts {
         });
       }
       if (!w.globals.axisCharts && !w.globals.noData) {
-        me.core.resizeNonAxisCharts();
+        me2.core.resizeNonAxisCharts();
       }
-      enforceLicense(w, me);
-      resolve(me);
+      enforceLicense(w, me2);
+      resolve(me2);
     });
   }
   /**
@@ -34979,6 +35004,10 @@ class ApexCharts {
     }
     teardownWatermark(this);
     untrackChart(this);
+    if (this._releaseCss) {
+      this._releaseCss();
+      this._releaseCss = null;
+    }
     new Destroy(this.ctx).clear({ isUpdating: false });
   }
   /**
@@ -35126,13 +35155,13 @@ class ApexCharts {
    */
   appendData(newData, overwriteInitialSeries = true) {
     var _a;
-    const me = this;
-    const gl = me.w.globals;
-    if (!me.core) return Promise.resolve(me);
-    const t2 = me.trellis;
+    const me2 = this;
+    const gl = me2.w.globals;
+    if (!me2.core) return Promise.resolve(me2);
+    const t2 = me2.trellis;
     if (t2 && (t2._mounted || t2._rendering)) {
-      return me.updateSeries(
-        me.w.config.series.map(
+      return me2.updateSeries(
+        me2.w.config.series.map(
           (s2, i2) => newData[i2] ? __spreadProps(__spreadValues({}, s2), { data: s2.data.concat(
             /** @type {any} */
             newData[i2].data
@@ -35140,13 +35169,13 @@ class ApexCharts {
         )
       );
     }
-    me.data.resetParsingFlags();
-    me.w.globals.dataChanged = true;
-    me.w.globals.shouldAnimate = true;
-    me.updateHelpers.capture(true);
+    me2.data.resetParsingFlags();
+    me2.w.globals.dataChanged = true;
+    me2.w.globals.shouldAnimate = true;
+    me2.updateHelpers.capture(true);
     const derivedRaw = (
       /** @type {any} */
-      gl[me.w.config.chart.requestedType + "RawSeries"]
+      gl[me2.w.config.chart.requestedType + "RawSeries"]
     );
     if (derivedRaw) {
       for (let i2 = 0; i2 < derivedRaw.length; i2++) {
@@ -35160,7 +35189,7 @@ class ApexCharts {
       }
       return this.update(void 0, overwriteInitialSeries);
     }
-    const newSeries = me.w.config.series.slice();
+    const newSeries = me2.w.config.series.slice();
     const reducerRaw = gl.dataReducerRawSeries;
     const records = [...gl.collapsedSeries, ...gl.ancillaryCollapsedSeries];
     for (let i2 = 0; i2 < newSeries.length; i2++) {
@@ -35180,9 +35209,9 @@ class ApexCharts {
         }
       }
     }
-    trimStreamingSeries(newSeries, me.w);
-    if (reducerRaw) trimStreamingSeries(reducerRaw, me.w);
-    me.w.config.series = newSeries;
+    trimStreamingSeries(newSeries, me2.w);
+    if (reducerRaw) trimStreamingSeries(reducerRaw, me2.w);
+    me2.w.config.series = newSeries;
     return this.update(void 0, overwriteInitialSeries);
   }
   /**
@@ -35693,7 +35722,7 @@ class ApexCharts {
    * @returns {typeof ApexCharts}
    */
   static setLicense(key) {
-    o.setLicense(key);
+    l.setLicense(key);
     reevaluateLicenseAcrossCharts();
     return ApexCharts;
   }
@@ -36105,15 +36134,15 @@ class ApexCharts {
    */
   addXaxisAnnotation(opts, pushToMemory = true, context = void 0) {
     var _a;
-    let me = (
+    let me2 = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me = context;
+      me2 = context;
     }
-    (_a = me.annotations) == null ? void 0 : _a.addXaxisAnnotationExternal(opts, pushToMemory, me);
+    (_a = me2.annotations) == null ? void 0 : _a.addXaxisAnnotationExternal(opts, pushToMemory, me2);
   }
   /**
    * Adds a y-axis annotation dynamically after render.
@@ -36124,15 +36153,15 @@ class ApexCharts {
    */
   addYaxisAnnotation(opts, pushToMemory = true, context = void 0) {
     var _a;
-    let me = (
+    let me2 = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me = context;
+      me2 = context;
     }
-    (_a = me.annotations) == null ? void 0 : _a.addYaxisAnnotationExternal(opts, pushToMemory, me);
+    (_a = me2.annotations) == null ? void 0 : _a.addYaxisAnnotationExternal(opts, pushToMemory, me2);
   }
   /**
    * Adds a point annotation dynamically after render.
@@ -36143,15 +36172,15 @@ class ApexCharts {
    */
   addPointAnnotation(opts, pushToMemory = true, context = void 0) {
     var _a;
-    let me = (
+    let me2 = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me = context;
+      me2 = context;
     }
-    (_a = me.annotations) == null ? void 0 : _a.addPointAnnotationExternal(opts, pushToMemory, me);
+    (_a = me2.annotations) == null ? void 0 : _a.addPointAnnotationExternal(opts, pushToMemory, me2);
   }
   /**
    * Removes all annotations from the chart.
@@ -36160,16 +36189,16 @@ class ApexCharts {
    */
   clearAnnotations(context = void 0) {
     var _a;
-    let me = (
+    let me2 = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me = context;
+      me2 = context;
     }
-    me.lastUpdateOptions = null;
-    (_a = me.annotations) == null ? void 0 : _a.clearAnnotations(me);
+    me2.lastUpdateOptions = null;
+    (_a = me2.annotations) == null ? void 0 : _a.clearAnnotations(me2);
   }
   /**
    * Removes a specific annotation by its `id`.
@@ -36179,16 +36208,16 @@ class ApexCharts {
    */
   removeAnnotation(id, context = void 0) {
     var _a;
-    let me = (
+    let me2 = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me = context;
+      me2 = context;
     }
-    me.lastUpdateOptions = null;
-    (_a = me.annotations) == null ? void 0 : _a.removeAnnotation(me, id);
+    me2.lastUpdateOptions = null;
+    (_a = me2.annotations) == null ? void 0 : _a.removeAnnotation(me2, id);
   }
   /**
    * Returns the inner SVG group element that contains all chart graphics.
@@ -36845,6 +36874,51 @@ class Exports {
     });
   }
   /**
+   * Bake CSS variables into the clone. A fill like `var(--brand)` or
+   * `color-mix(in srgb, var(--brand) 85%, transparent)` only means something
+   * under the page that defines the variable; in a saved SVG or PNG it has
+   * nothing to resolve against and the mark loses its colour. Each such
+   * attribute or inline style is replaced with the live element's computed
+   * value. Runs on the fresh clone, before anything changes its shape, so
+   * the two trees line up element for element.
+   * @param {Element} live the chart's elWrap
+   * @param {Element} clone its deep clone
+   */
+  resolveCssVars(live, clone) {
+    const liveEls = [live, ...Array.from(live.querySelectorAll("*"))];
+    const cloneEls = [clone, ...Array.from(clone.querySelectorAll("*"))];
+    if (liveEls.length !== cloneEls.length) return;
+    const attrs = ["fill", "stroke", "stop-color", "flood-color", "color"];
+    cloneEls.forEach((el, k2) => {
+      let cs = null;
+      const value = (prop) => {
+        cs = cs || BrowserAPIs.getComputedStyle(
+          /** @type {any} */
+          liveEls[k2]
+        );
+        return cs && cs.getPropertyValue ? cs.getPropertyValue(prop) : "";
+      };
+      attrs.forEach((a2) => {
+        const v = el.getAttribute(a2);
+        if (v && v.indexOf("var(") !== -1) {
+          const resolved = value(a2);
+          if (resolved) el.setAttribute(a2, resolved);
+        }
+      });
+      const style = (
+        /** @type {any} */
+        el.style
+      );
+      if (!style || style.cssText.indexOf("var(") === -1) return;
+      Array.from(style).forEach((prop) => {
+        if (style.getPropertyValue(prop).indexOf("var(") !== -1) {
+          const resolved = value(prop);
+          if (resolved) style.setProperty(prop, resolved);
+        }
+      });
+    });
+  }
+  /**
    * Re-applies, as inline styles on the clone, the rules that used to reach
    * the exported SVG through an injected `<style>` block. A strict
    * Content-Security-Policy without `'unsafe-inline'` blocks that block and
@@ -37094,7 +37168,10 @@ class Exports {
         );
       }
     };
-    Array.from(document.styleSheets || []).forEach(walkSheet);
+    const el = this.w.dom.elWrap;
+    (el ? Me(el) : Array.from(document.styleSheets || [])).forEach(
+      walkSheet
+    );
     return Promise.all(remote).then(() => found);
   }
   /**
@@ -37222,6 +37299,7 @@ class Exports {
         /** @type {HTMLElement} */
         w.dom.elWrap.cloneNode(true)
       );
+      this.resolveCssVars(w.dom.elWrap, clonedNode);
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
@@ -38019,14 +38097,15 @@ function colorValueOfDatum(w, datum, i2, j2) {
   const n2 = Number(raw);
   return Number.isFinite(n2) ? n2 : null;
 }
-function resolveStops(cfg, min, max, midpoint, explicit) {
+function resolveStops(cfg, min, max, midpoint, explicit, el) {
+  const hex = (c) => normalizeHex(Utils$1.getThemeColor(c, el));
   if (explicit) {
     return cfg.stops.filter((s2) => s2 && Number.isFinite(Number(s2.value))).map((s2) => ({
       value: Number(s2.value),
-      color: normalizeHex(s2.color)
+      color: hex(s2.color)
     })).sort((a2, b) => a2.value - b.value);
   }
-  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
+  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(hex);
   const n2 = colors.length;
   if (midpoint != null && n2 >= 3) {
     const mid = Math.floor((n2 - 1) / 2);
@@ -38048,7 +38127,7 @@ function resolveStops(cfg, min, max, midpoint, explicit) {
   }));
 }
 function buildContinuousScale(w) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d;
   const cs = (_c = (_b = (_a = w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.treemap) == null ? void 0 : _c.colorScale;
   const cfg = cs && cs.gradient;
   if (!cfg) return null;
@@ -38099,7 +38178,7 @@ function buildContinuousScale(w) {
     max += 0.5;
   }
   const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2;
-  const stops = resolveStops(cfg, min, max, midpoint, explicit);
+  const stops = resolveStops(cfg, min, max, midpoint, explicit, (_d = w.dom) == null ? void 0 : _d.elWrap);
   if (stops.length < 2) return null;
   if (explicit) {
     if (pinMin == null) min = Math.min(min, stops[0].value);
@@ -39001,7 +39080,7 @@ class Legend {
   }
   drawLegends() {
     var _a;
-    const me = this;
+    const me2 = this;
     const w = this.w;
     const elLegendWrap = (
       /** @type {HTMLElement} */
@@ -39141,17 +39220,17 @@ class Legend {
         elLegend.classList.add("apexcharts-no-click");
       }
     }
-    w.dom.elWrap.addEventListener("click", me.onLegendClickEvent, true);
-    w.dom.elWrap.addEventListener("pointerdown", me.onLegendPointerDown, true);
-    w.dom.elWrap.addEventListener("pointerup", me.onLegendPointerUp, true);
+    w.dom.elWrap.addEventListener("click", me2.onLegendClickEvent, true);
+    w.dom.elWrap.addEventListener("pointerdown", me2.onLegendPointerDown, true);
+    w.dom.elWrap.addEventListener("pointerup", me2.onLegendPointerUp, true);
     if (w.config.legend.onItemHover.highlightDataSeries && w.config.legend.customLegendItems.length === 0) {
-      w.dom.elWrap.addEventListener("mousemove", me.onLegendHovered, true);
-      w.dom.elWrap.addEventListener("mouseout", me.onLegendHovered, true);
+      w.dom.elWrap.addEventListener("mousemove", me2.onLegendHovered, true);
+      w.dom.elWrap.addEventListener("mouseout", me2.onLegendHovered, true);
     }
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
       w.dom.elWrap.addEventListener(
         "keydown",
-        me.onLegendKeyDown.bind(me),
+        me2.onLegendKeyDown.bind(me2),
         true
       );
     }
@@ -39257,7 +39336,7 @@ class Legend {
    * @param {KeyboardEvent} e
    */
   onLegendKeyDown(e2) {
-    const me = this;
+    const me2 = this;
     const w = this.w;
     const target = (
       /** @type {Element} */
@@ -39267,7 +39346,7 @@ class Legend {
     if (e2.key === "Enter" || e2.key === " ") {
       e2.preventDefault();
       const rel = target.getAttribute("rel");
-      me.onLegendClick(e2);
+      me2.onLegendClick(e2);
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
           var _a;
@@ -39974,6 +40053,7 @@ class Toolbar {
       } else {
         (_b = this.elMenu) == null ? void 0 : _b.classList.add("apexcharts-menu-open");
         (_c = this.elMenuIcon) == null ? void 0 : _c.setAttribute("aria-expanded", "true");
+        this._watchOutside();
       }
     }, 0);
   }
@@ -39981,6 +40061,38 @@ class Toolbar {
     var _a, _b;
     (_a = this.elMenu) == null ? void 0 : _a.classList.remove("apexcharts-menu-open");
     (_b = this.elMenuIcon) == null ? void 0 : _b.setAttribute("aria-expanded", "false");
+    this._unwatchOutside();
+  }
+  /**
+   * Close the open menu on a press anywhere on the page outside it. The chart's
+   * own click listener only hears presses inside the chart, so a click on the
+   * page around it left the menu open. Bound only while the menu is open, and
+   * read through eventOrigin so a press inside a shadow root is not mistaken
+   * for one outside.
+   */
+  _watchOutside() {
+    var _a;
+    const doc = (_a = this.elMenu) == null ? void 0 : _a.ownerDocument;
+    if (!doc || this._onOutside) return;
+    this._onOutside = (e2) => {
+      var _a2, _b;
+      const origin = (
+        /** @type {Node} */
+        me(e2)
+      );
+      if (((_a2 = this.elMenu) == null ? void 0 : _a2.contains(origin)) || ((_b = this.elMenuIcon) == null ? void 0 : _b.contains(origin))) {
+        return;
+      }
+      this._closeMenu();
+    };
+    this._outsideDoc = doc;
+    doc.addEventListener("pointerdown", this._onOutside, true);
+  }
+  _unwatchOutside() {
+    if (!this._onOutside || !this._outsideDoc) return;
+    this._outsideDoc.removeEventListener("pointerdown", this._onOutside, true);
+    this._onOutside = null;
+    this._outsideDoc = null;
   }
   /**
    * @param {string} type
@@ -40104,7 +40216,7 @@ class ZoomPanSelection extends Toolbar {
   /** @param {{xyRatios: any}} opts */
   init({ xyRatios }) {
     const w = this.w;
-    const me = this;
+    const me2 = this;
     this.xyRatios = xyRatios;
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
@@ -40137,7 +40249,7 @@ class ZoomPanSelection extends Toolbar {
       var _a;
       (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(
         event,
-        me.svgMouseEvents.bind(me, xyRatios),
+        me2.svgMouseEvents.bind(me2, xyRatios),
         {
           capture: false,
           passive: true
@@ -40145,12 +40257,12 @@ class ZoomPanSelection extends Toolbar {
       );
     });
     if (this._wheelZoomEnabled()) {
-      this.hoverArea.addEventListener("wheel", me.mouseWheelEvent.bind(me), {
+      this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
         capture: false,
         passive: false
       });
     }
-    this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
+    this.hoverArea.addEventListener("keydown", me2.escapeResetEvent.bind(me2), {
       capture: false,
       passive: true
     });
@@ -40158,7 +40270,7 @@ class ZoomPanSelection extends Toolbar {
       ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
         (event) => {
           var _a;
-          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
+          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.momentumTouch.bind(me2), {
             capture: false,
             passive: false
           });
@@ -40672,14 +40784,14 @@ class ZoomPanSelection extends Toolbar {
   }
   selectionDrawing({ context, zoomtype }) {
     const w = this.w;
-    const me = context;
+    const me2 = context;
     if (!this._hasPlot()) return;
-    const startX = me.startX;
-    const startY = me.startY;
+    const startX = me2.startX;
+    const startY = me2.startY;
     let inversedX = false;
     let inversedY = false;
-    const left = this._screenXToPlotPx(me.clientX);
-    const top = this._screenYToPlotPx(me.clientY);
+    const left = this._screenXToPlotPx(me2.clientX);
+    const top = this._screenYToPlotPx(me2.clientY);
     let selectionWidth = left - startX;
     let selectionHeight = top - startY;
     let selectionRect = {
@@ -40725,8 +40837,8 @@ class ZoomPanSelection extends Toolbar {
       translateX: w.layout.translateX,
       translateY: w.layout.translateY
     });
-    me.drawSelectionRect(selectionRect);
-    me.selectionDragging("resizing");
+    me2.drawSelectionRect(selectionRect);
+    me2.selectionDragging("resizing");
     return selectionRect;
   }
   /**
@@ -40833,11 +40945,11 @@ class ZoomPanSelection extends Toolbar {
   selectionDrawn({ context, zoomtype }) {
     var _a;
     const w = this.w;
-    const me = context;
+    const me2 = context;
     const xyRatios = this.xyRatios;
     const toolbar = this.ctx.toolbar;
-    const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
-    if (!me._hasPlot()) return;
+    const selRect = w.interact.zoomEnabled ? me2.zoomRect.node.getBoundingClientRect() : me2.selectionRect.node.getBoundingClientRect();
+    if (!me2._hasPlot()) return;
     const localStartX = this._screenXToPlotPx(selRect.left);
     const localEndX = this._screenXToPlotPx(selRect.right);
     const localStartY = this._screenYToPlotPx(selRect.top);
@@ -40859,7 +40971,7 @@ class ZoomPanSelection extends Toolbar {
       yHighestValue.push(highestVal);
       yLowestValue.push(lowestVal);
     });
-    if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
+    if (me2.dragged && (me2.dragX > 10 || me2.dragY > 10) && xLowestValue !== xHighestValue) {
       if (w.interact.zoomEnabled) {
         if (!w.globals.initialConfig) return;
         let yaxis = Utils$1.clone(w.globals.initialConfig.yaxis);
@@ -40901,15 +41013,15 @@ class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           options2.yaxis = yaxis;
         }
-        const applied = me.ctx.updateHelpers._updateOptions(
+        const applied = me2.ctx.updateHelpers._updateOptions(
           options2,
           false,
-          me.w.config.chart.animations.dynamicAnimation.enabled
+          me2.w.config.chart.animations.dynamicAnimation.enabled
         );
         if (applied && typeof applied.then === "function") {
-          applied.then(() => me._focusForKeyboard());
+          applied.then(() => me2._focusForKeyboard());
         } else {
-          me._focusForKeyboard();
+          me2._focusForKeyboard();
         }
         if (typeof w.config.chart.events.zoomed === "function") {
           toolbar.zoomCallback(xaxis, yaxis);
@@ -40932,14 +41044,14 @@ class ZoomPanSelection extends Toolbar {
             yaxisCopy[index].max = yHighestValue[index];
           });
         }
-        w.interact.selection = me.selection;
+        w.interact.selection = me2.selection;
         if (typeof w.config.chart.events.selection === "function") {
-          w.config.chart.events.selection(me.ctx, {
+          w.config.chart.events.selection(me2.ctx, {
             xaxis,
             yaxis
           });
         }
-        (_a = me.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
+        (_a = me2.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
       }
     }
   }
@@ -40947,10 +41059,10 @@ class ZoomPanSelection extends Toolbar {
   panDragging({ context }) {
     var _a;
     const w = this.w;
-    const me = context;
+    const me2 = context;
     if (typeof w.interact.lastClientPosition.x !== "undefined") {
-      const deltaX = w.interact.lastClientPosition.x - me.clientX;
-      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me.clientY;
+      const deltaX = w.interact.lastClientPosition.x - me2.clientX;
+      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me2.clientY;
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
         this.moveDirection = "left";
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
@@ -40962,12 +41074,12 @@ class ZoomPanSelection extends Toolbar {
       }
     }
     w.interact.lastClientPosition = {
-      x: me.clientX,
-      y: me.clientY
+      x: me2.clientX,
+      y: me2.clientY
     };
     const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
     const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
-    me.panScrolled(xLowestValue, xHighestValue);
+    me2.panScrolled(xLowestValue, xHighestValue);
   }
   // delayedPanScrolled() {
   //   const w = this.w
@@ -42570,8 +42682,8 @@ class Annotations {
     contextMethod
   }) {
     var _a;
-    const me = context;
-    const w = me.w;
+    const me2 = context;
+    const w = me2.w;
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`);
     const index = (((_a = w.config.annotations[type === "point" ? "points" : type]) == null ? void 0 : _a.length) || 0) + parent.childNodes.length;
     const options2 = new Options();
@@ -42600,7 +42712,7 @@ class Annotations {
     }
     if (pushToMemory) {
       w.globals.memory.methodsToExec.push({
-        context: me,
+        context: me2,
         id: anno.id ? anno.id : Utils$1.randomId(),
         method: contextMethod,
         label: "addAnnotation",
@@ -47796,7 +47908,7 @@ function histogramTransform(ser, w) {
   } else {
     for (const vals of perSeries) all = all.concat(vals);
   }
-  const binning = S(all, {
+  const binning = x(all, {
     bins: hcfg.bins,
     binWidth: hcfg.binWidth,
     range: hcfg.range
@@ -52446,7 +52558,7 @@ class TreemapHelpers {
     } else {
       colorShadePercent = chartType === "treemap" ? (1 - p) * k2 : 1 - p;
     }
-    let color = colorProps.color;
+    let color = Utils$1.getThemeColor(colorProps.color, w.dom.elWrap);
     if (opts.enableShades) {
       const shadeColor = new Utils$1().shadeColor(
         w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,
@@ -54859,7 +54971,7 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
   const largeArc = spanDeg > 180 ? 1 : 0;
   const A2 = ptAt(rOut, a0);
   const B = ptAt(rOut, a1);
-  const C2 = ptAt(rIn, a1);
+  const C = ptAt(rIn, a1);
   const Din = ptAt(rIn, a0);
   return [
     "M",
@@ -54872,7 +54984,7 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
     1,
     xy(B),
     "L",
-    xy(C2),
+    xy(C),
     "A",
     rIn,
     rIn,
@@ -55567,7 +55679,7 @@ class Pie {
    * @param {Record<string, any>} opts
    */
   animatePaths(el, opts) {
-    const me = this;
+    const me2 = this;
     let angle = opts.endAngle < opts.startAngle ? this.fullAngle + opts.endAngle - opts.startAngle : opts.endAngle - opts.startAngle;
     let prevAngle = angle;
     let fromStartAngle = opts.startAngle;
@@ -55579,7 +55691,7 @@ class Pie {
     if (angle === this.fullAngle && !this.isFullTurnSlice(angle)) {
       angle = this.fullAngle - 0.01;
     }
-    me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
+    me2.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
   }
   /**
    * @param {any} el
@@ -55590,7 +55702,7 @@ class Pie {
    * @param {Record<string, any>} opts
    */
   animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
-    const me = this;
+    const me2 = this;
     const w = this.w;
     const animations = new Animations(this.w);
     const size = opts.size;
@@ -55609,8 +55721,8 @@ class Pie {
     const hasPrevSize = typeof opts.prevSize === "number";
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
       if (Number.isFinite(opts.prevEndAngle)) {
-        path = me.getPiePath({
-          me,
+        path = me2.getPiePath({
+          me: me2,
           startAngle: opts.prevStartAngle,
           angle: opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle,
           size: hasPrevSize ? opts.prevSize : size
@@ -55622,11 +55734,11 @@ class Pie {
       el.animate(opts.dur, opts.animBeginArr[opts.i]).after(
         /** @this {any} */
         function() {
-          if (me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea") {
+          if (me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea") {
             this.animate(
               w.config.chart.animations.dynamicAnimation.speed
             ).attr({
-              "stroke-width": me.strokeWidth
+              "stroke-width": me2.strokeWidth
             });
           }
           if (opts.collapsed) el.attr({ d: "" });
@@ -55640,8 +55752,8 @@ class Pie {
           currAngle = prevAngle + (angle - prevAngle) * pos;
           startAngle = fromStartAngle - prevAngle + (toStartAngle - (fromStartAngle - prevAngle)) * pos;
         }
-        path = me.getPiePath({
-          me,
+        path = me2.getPiePath({
+          me: me2,
           startAngle,
           angle: currAngle,
           size: hasPrevSize ? opts.prevSize + (size - opts.prevSize) * pos : size
@@ -55652,8 +55764,8 @@ class Pie {
         });
       });
     } else {
-      path = me.getPiePath({
-        me,
+      path = me2.getPiePath({
+        me: me2,
         startAngle,
         angle,
         size
@@ -55664,7 +55776,7 @@ class Pie {
       el.node.setAttribute("data:pathOrig", path);
       el.attr({
         d: opts.collapsed ? "" : path,
-        "stroke-width": me.strokeWidth
+        "stroke-width": me2.strokeWidth
       });
     }
   }
@@ -55680,10 +55792,10 @@ class Pie {
    */
   pieClicked(i2, opts) {
     const w = this.w;
-    const me = this;
+    const me2 = this;
     const animate = !(opts && opts.animate === false);
     const elPath = w.dom.Paper.findOne(
-      `.apexcharts-${me.chartType.toLowerCase()}-slice-${i2}`
+      `.apexcharts-${me2.chartType.toLowerCase()}-slice-${i2}`
     );
     if (!elPath) return;
     if (elPath.attr("data:pieClicked") === "true") {
@@ -55912,7 +56024,7 @@ class Pie {
    * @param {{me: any, startAngle: number, angle: number, size: number}} opts
    * @returns {{startDeg: number, spanDeg: number, endDeg: number}}
    */
-  getSliceExtent({ me, startAngle, angle, size }) {
+  getSliceExtent({ me: me2, startAngle, angle, size }) {
     const w = this.w;
     let startDeg = startAngle;
     let endDeg = angle + startAngle;
@@ -55920,10 +56032,10 @@ class Pie {
       endDeg = this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle - 0.01;
     }
     let spanDeg = endDeg - startDeg;
-    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+    const isSliceType = me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea";
     const spacing = w.config.plotOptions.pie.spacing;
     if (isSliceType && spacing > 0 && spanDeg > 0) {
-      const rRef = me.chartType === "donut" ? (size + me.donutSize) / 2 : size;
+      const rRef = me2.chartType === "donut" ? (size + me2.donutSize) / 2 : size;
       const gapDeg = rRef > 0 ? spacing / rRef * (180 / Math.PI) : 0;
       const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.5));
       startDeg += inset;
@@ -55959,10 +56071,10 @@ class Pie {
    * @param {{me: any, startAngle: number, size: number}} opts
    * @returns {string}
    */
-  getFullTurnPath({ me, startAngle, size }) {
+  getFullTurnPath({ me: me2, startAngle, size }) {
     const graphics = new Graphics(this.w);
-    const cx = me.centerX;
-    const cy = me.centerY;
+    const cx = me2.centerX;
+    const cy = me2.centerY;
     const outerStart = Utils$1.polarToCartesian(cx, cy, size, startAngle);
     const outerMid = Utils$1.polarToCartesian(cx, cy, size, startAngle + 180);
     const path = [
@@ -55987,17 +56099,17 @@ class Pie {
       outerStart.y,
       "z"
     ];
-    if (me.chartType === "donut") {
+    if (me2.chartType === "donut") {
       const innerStart = Utils$1.polarToCartesian(
         cx,
         cy,
-        me.donutSize,
+        me2.donutSize,
         startAngle
       );
       const innerMid = Utils$1.polarToCartesian(
         cx,
         cy,
-        me.donutSize,
+        me2.donutSize,
         startAngle + 180
       );
       path.push(
@@ -56005,16 +56117,16 @@ class Pie {
         innerStart.x,
         innerStart.y,
         "A",
-        me.donutSize,
-        me.donutSize,
+        me2.donutSize,
+        me2.donutSize,
         0,
         1,
         0,
         innerMid.x,
         innerMid.y,
         "A",
-        me.donutSize,
-        me.donutSize,
+        me2.donutSize,
+        me2.donutSize,
         0,
         1,
         0,
@@ -56026,20 +56138,20 @@ class Pie {
     return graphics.roundPathCorners(path.join(" "), this.strokeWidth * 2);
   }
   /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
-  getPiePath({ me, startAngle, angle, size }) {
+  getPiePath({ me: me2, startAngle, angle, size }) {
     let path;
     const w = this.w;
     const graphics = new Graphics(this.w);
-    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+    const isSliceType = me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea";
     if (isSliceType && this.isFullTurnSlice(angle)) {
-      return this.getFullTurnPath({ me, startAngle, size });
+      return this.getFullTurnPath({ me: me2, startAngle, size });
     }
     if (isSliceType && Number.isFinite(angle) && !(angle > 0)) {
-      const p = Utils$1.polarToCartesian(me.centerX, me.centerY, size, startAngle);
+      const p = Utils$1.polarToCartesian(me2.centerX, me2.centerY, size, startAngle);
       return `M ${p.x} ${p.y}`;
     }
     const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
-      me,
+      me: me2,
       startAngle,
       angle,
       size
@@ -56048,7 +56160,7 @@ class Pie {
     const borderRadius = w.config.plotOptions.pie.borderRadius;
     if (borderRadius > 0 && isSliceType) {
       const roundedPath = this.getRoundedSlicePath({
-        me,
+        me: me2,
         startDeg,
         spanDeg,
         size,
@@ -56057,33 +56169,33 @@ class Pie {
       if (roundedPath) return roundedPath;
     }
     const endRadians = Math.PI * (endDeg - 90) / 180;
-    const x1 = me.centerX + size * Math.cos(startRadians);
-    const y1 = me.centerY + size * Math.sin(startRadians);
-    const x2 = me.centerX + size * Math.cos(endRadians);
-    const y2 = me.centerY + size * Math.sin(endRadians);
+    const x1 = me2.centerX + size * Math.cos(startRadians);
+    const y1 = me2.centerY + size * Math.sin(startRadians);
+    const x2 = me2.centerX + size * Math.cos(endRadians);
+    const y2 = me2.centerY + size * Math.sin(endRadians);
     const startInner = Utils$1.polarToCartesian(
-      me.centerX,
-      me.centerY,
-      me.donutSize,
+      me2.centerX,
+      me2.centerY,
+      me2.donutSize,
       endDeg
     );
     const endInner = Utils$1.polarToCartesian(
-      me.centerX,
-      me.centerY,
-      me.donutSize,
+      me2.centerX,
+      me2.centerY,
+      me2.donutSize,
       startDeg
     );
     const largeArc = spanDeg > 180 ? 1 : 0;
     const pathBeginning = ["M", x1, y1, "A", size, size, 0, largeArc, 1, x2, y2];
-    if (me.chartType === "donut") {
+    if (me2.chartType === "donut") {
       path = [
         ...pathBeginning,
         "L",
         startInner.x,
         startInner.y,
         "A",
-        me.donutSize,
-        me.donutSize,
+        me2.donutSize,
+        me2.donutSize,
         0,
         largeArc,
         0,
@@ -56094,8 +56206,8 @@ class Pie {
         y1,
         "z"
       ].join(" ");
-    } else if (me.chartType === "pie" || me.chartType === "polarArea") {
-      path = [...pathBeginning, "L", me.centerX, me.centerY, "L", x1, y1].join(
+    } else if (me2.chartType === "pie" || me2.chartType === "polarArea") {
+      path = [...pathBeginning, "L", me2.centerX, me2.centerY, "L", x1, y1].join(
         " "
       );
     } else {
@@ -56120,14 +56232,14 @@ class Pie {
    * @param {{me: any, startDeg: number, spanDeg: number, size: number, borderRadius: number}} opts
    * @returns {string | null}
    */
-  getRoundedSlicePath({ me, startDeg, spanDeg, size, borderRadius }) {
+  getRoundedSlicePath({ me: me2, startDeg, spanDeg, size, borderRadius }) {
     if (!(spanDeg > 0)) return null;
     const D2R2 = Math.PI / 180;
-    const cx = me.centerX;
-    const cy = me.centerY;
-    const isDonut = me.chartType === "donut";
+    const cx = me2.centerX;
+    const cy = me2.centerY;
+    const isDonut = me2.chartType === "donut";
     const rOut = size;
-    const rIn = isDonut ? me.donutSize : 0;
+    const rIn = isDonut ? me2.donutSize : 0;
     const spanRad = spanDeg * D2R2;
     let r2 = borderRadius;
     r2 = Math.min(r2, spanRad * rOut / 2);

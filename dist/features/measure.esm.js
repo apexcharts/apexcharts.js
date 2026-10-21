@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -52,7 +52,6 @@ class Measure {
     this._afterRender = this._afterRender.bind(this);
     ctx.addEventListener("mounted", this._afterRender);
     ctx.addEventListener("updated", this._afterRender);
-    this._bindKeys();
   }
   _cfg() {
     return this.w.config.chart.measure || {};
@@ -115,12 +114,15 @@ class Measure {
   }
   /** @param {any} e */
   _onKeyDown(e) {
-    if (!this._enabled() || this.persistent) return;
+    if (!this._enabled()) return;
+    if (e.key === "Escape") {
+      this._cancelDrag();
+      return;
+    }
+    if (this.persistent) return;
     const key = this._cfg().key || "m";
     if (e.key && e.key.toLowerCase() === String(key).toLowerCase()) {
       this._arm();
-    } else if (e.key === "Escape") {
-      this._cancelDrag();
     }
   }
   /** @param {any} e */
@@ -782,6 +784,7 @@ class Measure {
   /** Re-project the measure pins after each render. */
   _afterRender() {
     if (!this._enabled()) return;
+    this._bindKeys();
     if (this.w.interact.measureEnabled && !this.persistent) {
       this.persistent = true;
     }

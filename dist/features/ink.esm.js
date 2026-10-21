@@ -1,10 +1,14 @@
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
+function me(e) {
+  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
+  return (null == t ? void 0 : t.length) ? t[0] : e.target;
+}
 const Utils = _core.__apex_Utils;
 const Options = _core.__apex_Options;
 const TooltipUtils = _core.__apex_tooltip_Utils;
@@ -229,11 +233,11 @@ class InkLayer {
     doc.addEventListener("touchend", this._onUp);
   }
   /** @param {any} me */
-  _onMove(me) {
+  _onMove(me2) {
     const d = this._drag;
     if (!d) return;
-    if (me.cancelable) me.preventDefault();
-    const mev = me.type === "touchmove" ? me.touches[0] : me;
+    if (me2.cancelable) me2.preventDefault();
+    const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
     d.dxPixel = (mev.clientX - d.startX) / d.scaleX;
     d.dyPixel = (mev.clientY - d.startY) / d.scaleY;
     if (Math.abs(d.dxPixel) > CLICK_SLOP_PX || Math.abs(d.dyPixel) > CLICK_SLOP_PX) {
@@ -795,7 +799,10 @@ class InkLayer {
    */
   _onDocDownEditor(e) {
     const ed = this._editor;
-    if (!ed || ed.card.contains(e.target)) return;
+    if (!ed || ed.card.contains(
+      /** @type {Node} */
+      me(e)
+    )) return;
     this._closeEditor(true);
   }
   /**

@@ -14,12 +14,23 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
+function me(e) {
+  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
+  return (null == t ? void 0 : t.length) ? t[0] : e.target;
+}
+function ge(e) {
+  var t;
+  const s = e.ownerDocument || e;
+  let n = s && "activeElement" in s ? s.activeElement : null;
+  for (; null == (t = null == n ? void 0 : n.shadowRoot) ? void 0 : t.activeElement; ) n = n.shadowRoot.activeElement;
+  return n;
+}
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
 const VIEWSTATE_VERSION = 1;
@@ -274,7 +285,8 @@ class History {
       /** @type {any} */
       this.ctx.el
     );
-    this._engaged = !!(el && e.target && el.contains(e.target));
+    const origin = me(e);
+    this._engaged = !!(el && origin && el.contains(origin));
   }
   /**
    * @param {KeyboardEvent} e
@@ -288,8 +300,7 @@ class History {
       this.ctx.el
     );
     if (!el) return;
-    const doc = el.ownerDocument;
-    const active = doc && doc.activeElement;
+    const active = ge(el);
     if (isEditableTarget(active)) return;
     if (!(el.contains(active) || this._engaged)) return;
     const redo = key === "y" || e.shiftKey;

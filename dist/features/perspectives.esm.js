@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -222,13 +222,13 @@ function t(t2, ...s2) {
 function s(t2) {
   e.warn(t2);
 }
-const i = "APEX-", n = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
+const n = "APEX-", i = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
 function a() {
   const e2 = globalThis;
   let t2 = e2[r];
   return t2 || (t2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, e2[r] = t2), t2;
 }
-const l = class {
+const o = class {
   static get licenseKey() {
     return a().key;
   }
@@ -263,25 +263,25 @@ const l = class {
   }
   static setLicense(e2) {
     var _a;
-    var i2;
+    var n2;
     if (!e2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
-    const n2 = this.validateKey(e2);
-    n2.valid || e2 === this.licenseKey || !(null == (i2 = this.validationResult) ? void 0 : i2.valid) ? (this.licenseKey = e2, this.publish(n2), n2.valid || t(`[Apex] ${n2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = n2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
+    const i2 = this.validateKey(e2);
+    i2.valid || e2 === this.licenseKey || !(null == (n2 = this.validationResult) ? void 0 : n2.valid) ? (this.licenseKey = e2, this.publish(i2), i2.valid || t(`[Apex] ${i2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = i2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
   }
   static validateKey(e2) {
     const t2 = this.parseKey(e2), s2 = this.validateStructure(e2, t2);
     if (!s2.valid || !(null == t2 ? void 0 : t2.signature)) return s2;
-    const i2 = this.verdicts.get(e2);
-    return false === i2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === i2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === i2 }));
+    const n2 = this.verdicts.get(e2);
+    return false === n2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === n2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === n2 }));
   }
   static _resetSignatureState() {
     this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
   }
   static base64ToBytes(e2) {
-    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), i2 = globalThis.atob;
-    if ("function" != typeof i2) throw new Error("no base64 decoder available");
-    const n2 = i2(s2), r2 = new Uint8Array(n2.length);
-    for (let e3 = 0; e3 < n2.length; e3++) r2[e3] = n2.charCodeAt(e3);
+    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), n2 = globalThis.atob;
+    if ("function" != typeof n2) throw new Error("no base64 decoder available");
+    const i2 = n2(s2), r2 = new Uint8Array(i2.length);
+    for (let e3 = 0; e3 < i2.length; e3++) r2[e3] = i2.charCodeAt(e3);
     return r2;
   }
   static canonicalPayload(e2) {
@@ -295,7 +295,7 @@ const l = class {
     }
   }
   static parseKey(e2) {
-    if ("string" != typeof e2 || !e2.startsWith(i)) return null;
+    if ("string" != typeof e2 || !e2.startsWith(n)) return null;
     const t2 = e2.slice(5);
     if (!t2) return null;
     try {
@@ -310,10 +310,10 @@ const l = class {
   }
   static validateStructure(e2, t2) {
     const s2 = (e3) => ({ expired: false, message: e3, signatureVerified: false, valid: false });
-    if ("string" != typeof e2 || !e2.startsWith(i)) return s2('Invalid license key format. License key must start with "APEX-".');
+    if ("string" != typeof e2 || !e2.startsWith(n)) return s2('Invalid license key format. License key must start with "APEX-".');
     if (!t2) return s2("Invalid license key. Unable to decode license data.");
     const { data: r2, signature: a2 } = t2;
-    if (!a2 && /* @__PURE__ */ new Date() >= n) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+    if (!a2 && /* @__PURE__ */ new Date() >= i) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
     if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
     if (r2.domains && r2.domains.length > 0) {
       const e3 = "undefined" == typeof location ? "" : location.hostname;
@@ -321,19 +321,19 @@ const l = class {
     }
     return { data: r2, expired: false, signatureVerified: false, valid: true };
   }
-  static verifySignature(e2, i2, n2) {
+  static verifySignature(e2, n2, i2) {
     return __async(this, null, function* () {
       var r2;
       if (this.verifying.has(e2) || this.verdicts.has(e2)) return;
       this.verifying.add(e2);
-      const a2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
-      if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
-      const o2 = new TextEncoder().encode(this.canonicalPayload(i2.data));
+      const a2 = this.epoch, o2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+      if (!o2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(o2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
+      const l2 = new TextEncoder().encode(this.canonicalPayload(n2.data));
       let c = false;
       for (const e3 of this.publicKeysSpki) {
         try {
-          const t2 = yield l2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-          c = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(i2.signature), o2);
+          const t2 = yield o2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+          c = yield o2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(n2.signature), l2);
         } catch (e4) {
           c = false;
         }
@@ -341,17 +341,17 @@ const l = class {
       }
       if (this.verifying.delete(e2), this.epoch !== a2) return;
       if (this.verdicts.set(e2, c), c) {
-        const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
+        const t2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
         return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
       }
-      const u = "Invalid license key. The license signature does not verify.", h = { data: i2.data, expired: false, message: u, signatureVerified: true, valid: false };
+      const u = "Invalid license key. The license signature does not verify.", h = { data: n2.data, expired: false, message: u, signatureVerified: true, valid: false };
       this.licenseKey === e2 ? this.publish(h) : this.notify(h), t(`[Apex] ${u}`);
     });
   }
 };
-l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
-let o = l;
-const j = class {
+o.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], o.verdicts = /* @__PURE__ */ new Map(), o.verifying = /* @__PURE__ */ new Set(), o.warnedUnverifiable = false, o.epoch = 0;
+let l = o;
+const E = class {
   static applyStyles(e2) {
     Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
@@ -397,20 +397,20 @@ const j = class {
     return t2 || (t2 = document.createElement("div"), t2.setAttribute(this.WATERMARK_ATTR, ""), e2.appendChild(t2)), this.applyStyles(t2), "function" == typeof getComputedStyle && "static" === getComputedStyle(e2).position && (e2.style.position = "relative"), t2;
   }
   static reconcile() {
-    const e2 = o.isLicenseValid();
+    const e2 = l.isLicenseValid();
     for (const t2 of this.managed) t2.isConnected ? e2 ? this.erase(t2) : this.paint(t2) : this.managed.delete(t2);
   }
   static setManaged(e2, t2) {
     false !== (null == t2 ? void 0 : t2.manage) ? this.track(e2) : this.managed.delete(e2);
   }
   static track(e2) {
-    this.managed.add(e2), this.subscribed || (this.subscribed = true, o.onChange((() => {
+    this.managed.add(e2), this.subscribed || (this.subscribed = true, l.onChange((() => {
       this.reconcile();
     })));
   }
 };
-j.WATERMARK_ATTR = "data-apexcharts-watermark", j.WATERMARK_TEXT = "APEXCHARTS", j.ATTR = "data-apexcharts-watermark", j.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, j.managed = /* @__PURE__ */ new Set(), j.subscribed = false;
-let C = j;
+E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Set(), E.subscribed = false;
+let j = E;
 const PRICING_URL = "https://apexcharts.com/pricing";
 const STATE_KEY = "__apexcharts_license_enforcer_v1__";
 if (!/** @type {any} */
@@ -462,7 +462,7 @@ function premiumFeaturesInUse(w, ctx) {
 function resolveKey(w) {
   const perChart = w && w.config && w.config.chart && w.config.chart.license;
   if (perChart) return perChart;
-  const singleton = o.getKey();
+  const singleton = l.getKey();
   if (singleton) return singleton;
   const apex = Environment.getApex();
   if (apex && apex.license) return apex.license;
@@ -471,22 +471,22 @@ function resolveKey(w) {
 const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
 function licensedForPremium(key) {
   if (!key) return false;
-  const result = o.validateKey(key);
+  const result = l.validateKey(key);
   if (!result.valid) return false;
   const plan = result.data && result.data.plan;
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = C.add(elWrap, { manage: false });
+  const node = j.add(elWrap, { manage: false });
   ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = C.node(elWrap);
+    const n2 = j.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    C.applyStyles(n2);
+    j.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -500,7 +500,7 @@ function addWatermark(ctx, elWrap) {
   if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
   if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
   const wrapObs = new MutationObserver(() => {
-    if (!C.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!j.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -520,7 +520,7 @@ function teardownWatermark(ctx, elWrap) {
   ctx._wmObservedNode = null;
   ctx._wmObservedWrap = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) C.remove(wrap, { manage: false });
+  if (wrap) j.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
@@ -532,7 +532,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  const result = o.validateKey(key);
+  const result = l.validateKey(key);
   if (result.valid) {
     const plan = result.data && result.data.plan || "current";
     console.warn(
@@ -540,7 +540,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  if (key !== o.getKey()) {
+  if (key !== l.getKey()) {
     console.error(`[Apex] ${result.message}`);
   }
 }
@@ -595,7 +595,7 @@ function reevaluateLicenseAcrossCharts() {
     enforceLicense(w, ctx);
   });
 }
-o.onChange(reevaluateLicenseAcrossCharts);
+l.onChange(reevaluateLicenseAcrossCharts);
 const PERSPECTIVE_VERSION = 1;
 const HASH_KEY = "apex";
 function toBase64(str) {

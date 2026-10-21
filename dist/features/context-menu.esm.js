@@ -1,10 +1,14 @@
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
+function me(e) {
+  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
+  return (null == t ? void 0 : t.length) ? t[0] : e.target;
+}
 const Environment = _core.__apex_Environment_Environment;
 const Utils = _core.__apex_Utils;
 const TooltipUtils = _core.__apex_tooltip_Utils;
@@ -278,7 +282,11 @@ class ContextMenu {
   }
   /** @param {any} e */
   _onDocDown(e) {
-    if (this.menu && this.menu.contains(e.target)) return;
+    if (this.menu && this.menu.contains(
+      /** @type {Node} */
+      me(e)
+    ))
+      return;
     this.close();
   }
   /** @param {any} e */

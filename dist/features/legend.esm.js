@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -426,14 +426,15 @@ function colorValueOfDatum(w, datum, i, j) {
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
-function resolveStops(cfg, min, max, midpoint, explicit) {
+function resolveStops(cfg, min, max, midpoint, explicit, el) {
+  const hex = (c) => normalizeHex(Utils.getThemeColor(c, el));
   if (explicit) {
     return cfg.stops.filter((s) => s && Number.isFinite(Number(s.value))).map((s) => ({
       value: Number(s.value),
-      color: normalizeHex(s.color)
+      color: hex(s.color)
     })).sort((a, b) => a.value - b.value);
   }
-  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
+  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(hex);
   const n = colors.length;
   if (midpoint != null && n >= 3) {
     const mid = Math.floor((n - 1) / 2);
@@ -455,7 +456,7 @@ function resolveStops(cfg, min, max, midpoint, explicit) {
   }));
 }
 function buildContinuousScale(w) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d;
   const cs = (_c = (_b = (_a = w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.treemap) == null ? void 0 : _c.colorScale;
   const cfg = cs && cs.gradient;
   if (!cfg) return null;
@@ -506,7 +507,7 @@ function buildContinuousScale(w) {
     max += 0.5;
   }
   const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2;
-  const stops = resolveStops(cfg, min, max, midpoint, explicit);
+  const stops = resolveStops(cfg, min, max, midpoint, explicit, (_d = w.dom) == null ? void 0 : _d.elWrap);
   if (stops.length < 2) return null;
   if (explicit) {
     if (pinMin == null) min = Math.min(min, stops[0].value);

@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts";
@@ -1363,13 +1363,13 @@ function t(t2, ...s2) {
 function s(t2) {
   e.warn(t2);
 }
-const i = "APEX-", n = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
+const n = "APEX-", i = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
 function a() {
   const e2 = globalThis;
   let t2 = e2[r];
   return t2 || (t2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, e2[r] = t2), t2;
 }
-const l = class {
+const o = class {
   static get licenseKey() {
     return a().key;
   }
@@ -1404,25 +1404,25 @@ const l = class {
   }
   static setLicense(e2) {
     var _a;
-    var i2;
+    var n2;
     if (!e2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
-    const n2 = this.validateKey(e2);
-    n2.valid || e2 === this.licenseKey || !(null == (i2 = this.validationResult) ? void 0 : i2.valid) ? (this.licenseKey = e2, this.publish(n2), n2.valid || t(`[Apex] ${n2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = n2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
+    const i2 = this.validateKey(e2);
+    i2.valid || e2 === this.licenseKey || !(null == (n2 = this.validationResult) ? void 0 : n2.valid) ? (this.licenseKey = e2, this.publish(i2), i2.valid || t(`[Apex] ${i2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = i2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
   }
   static validateKey(e2) {
     const t2 = this.parseKey(e2), s2 = this.validateStructure(e2, t2);
     if (!s2.valid || !(null == t2 ? void 0 : t2.signature)) return s2;
-    const i2 = this.verdicts.get(e2);
-    return false === i2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === i2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === i2 }));
+    const n2 = this.verdicts.get(e2);
+    return false === n2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === n2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === n2 }));
   }
   static _resetSignatureState() {
     this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
   }
   static base64ToBytes(e2) {
-    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), i2 = globalThis.atob;
-    if ("function" != typeof i2) throw new Error("no base64 decoder available");
-    const n2 = i2(s2), r2 = new Uint8Array(n2.length);
-    for (let e3 = 0; e3 < n2.length; e3++) r2[e3] = n2.charCodeAt(e3);
+    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), n2 = globalThis.atob;
+    if ("function" != typeof n2) throw new Error("no base64 decoder available");
+    const i2 = n2(s2), r2 = new Uint8Array(i2.length);
+    for (let e3 = 0; e3 < i2.length; e3++) r2[e3] = i2.charCodeAt(e3);
     return r2;
   }
   static canonicalPayload(e2) {
@@ -1436,7 +1436,7 @@ const l = class {
     }
   }
   static parseKey(e2) {
-    if ("string" != typeof e2 || !e2.startsWith(i)) return null;
+    if ("string" != typeof e2 || !e2.startsWith(n)) return null;
     const t2 = e2.slice(5);
     if (!t2) return null;
     try {
@@ -1451,10 +1451,10 @@ const l = class {
   }
   static validateStructure(e2, t2) {
     const s2 = (e3) => ({ expired: false, message: e3, signatureVerified: false, valid: false });
-    if ("string" != typeof e2 || !e2.startsWith(i)) return s2('Invalid license key format. License key must start with "APEX-".');
+    if ("string" != typeof e2 || !e2.startsWith(n)) return s2('Invalid license key format. License key must start with "APEX-".');
     if (!t2) return s2("Invalid license key. Unable to decode license data.");
     const { data: r2, signature: a2 } = t2;
-    if (!a2 && /* @__PURE__ */ new Date() >= n) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+    if (!a2 && /* @__PURE__ */ new Date() >= i) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
     if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
     if (r2.domains && r2.domains.length > 0) {
       const e3 = "undefined" == typeof location ? "" : location.hostname;
@@ -1462,19 +1462,19 @@ const l = class {
     }
     return { data: r2, expired: false, signatureVerified: false, valid: true };
   }
-  static verifySignature(e2, i2, n2) {
+  static verifySignature(e2, n2, i2) {
     return __async(this, null, function* () {
       var r2;
       if (this.verifying.has(e2) || this.verdicts.has(e2)) return;
       this.verifying.add(e2);
-      const a2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
-      if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
-      const o2 = new TextEncoder().encode(this.canonicalPayload(i2.data));
+      const a2 = this.epoch, o2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+      if (!o2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(o2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
+      const l2 = new TextEncoder().encode(this.canonicalPayload(n2.data));
       let c = false;
       for (const e3 of this.publicKeysSpki) {
         try {
-          const t2 = yield l2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-          c = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(i2.signature), o2);
+          const t2 = yield o2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+          c = yield o2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(n2.signature), l2);
         } catch (e4) {
           c = false;
         }
@@ -1482,120 +1482,120 @@ const l = class {
       }
       if (this.verifying.delete(e2), this.epoch !== a2) return;
       if (this.verdicts.set(e2, c), c) {
-        const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
+        const t2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
         return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
       }
-      const u = "Invalid license key. The license signature does not verify.", h = { data: i2.data, expired: false, message: u, signatureVerified: true, valid: false };
+      const u = "Invalid license key. The license signature does not verify.", h = { data: n2.data, expired: false, message: u, signatureVerified: true, valid: false };
       this.licenseKey === e2 ? this.publish(h) : this.notify(h), t(`[Apex] ${u}`);
     });
   }
 };
-l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
-let o = l;
+o.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], o.verdicts = /* @__PURE__ */ new Map(), o.verifying = /* @__PURE__ */ new Set(), o.warnedUnverifiable = false, o.epoch = 0;
+let l = o;
 const M = 1e3;
 function A$1(e2, t2) {
   const s2 = e2.length;
   if (0 === s2) return NaN;
   if (1 === s2) return e2[0];
-  const i2 = (s2 - 1) * t2, n2 = Math.floor(i2), r2 = Math.ceil(i2);
-  return n2 === r2 ? e2[n2] : e2[n2] + (e2[r2] - e2[n2]) * (i2 - n2);
+  const n2 = (s2 - 1) * t2, i2 = Math.floor(n2), r2 = Math.ceil(n2);
+  return i2 === r2 ? e2[i2] : e2[i2] + (e2[r2] - e2[i2]) * (n2 - i2);
 }
-function x(e2, t2, s2) {
-  const i2 = e2.length, n2 = (e3) => t2 / Math.max(1, Math.ceil(e3)), r2 = () => n2(Math.log2(i2) + 1);
+function S(e2, t2, s2) {
+  const n2 = e2.length, i2 = (e3) => t2 / Math.max(1, Math.ceil(e3)), r2 = () => i2(Math.log2(n2) + 1);
   switch (s2) {
     case "sqrt":
-      return { width: n2(Math.sqrt(i2)), rule: "sqrt" };
+      return { width: i2(Math.sqrt(n2)), rule: "sqrt" };
     case "rice":
-      return { width: n2(2 * Math.cbrt(i2)), rule: "rice" };
+      return { width: i2(2 * Math.cbrt(n2)), rule: "rice" };
     case "scott": {
       const t3 = (function(e3) {
         const t4 = e3.length;
         if (t4 < 2) return 0;
         let s3 = 0;
-        for (let i4 = 0; i4 < t4; i4++) s3 += e3[i4];
-        const i3 = s3 / t4;
-        let n3 = 0;
+        for (let n4 = 0; n4 < t4; n4++) s3 += e3[n4];
+        const n3 = s3 / t4;
+        let i3 = 0;
         for (let s4 = 0; s4 < t4; s4++) {
-          const t5 = e3[s4] - i3;
-          n3 += t5 * t5;
+          const t5 = e3[s4] - n3;
+          i3 += t5 * t5;
         }
-        return Math.sqrt(n3 / t4);
+        return Math.sqrt(i3 / t4);
       })(e2);
-      return t3 > 0 ? { width: 3.49 * t3 * Math.pow(i2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
+      return t3 > 0 ? { width: 3.49 * t3 * Math.pow(n2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
     }
     case "fd": {
       const t3 = A$1(e2, 0.75) - A$1(e2, 0.25);
-      return t3 > 0 ? { width: 2 * t3 * Math.pow(i2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
+      return t3 > 0 ? { width: 2 * t3 * Math.pow(n2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
     }
     case "auto": {
       const t3 = r2(), s3 = A$1(e2, 0.75) - A$1(e2, 0.25);
       if (s3 <= 0) return { width: t3, rule: "sturges" };
-      const n3 = 2 * s3 * Math.pow(i2, -1 / 3);
-      return n3 < t3 ? { width: n3, rule: "fd" } : { width: t3, rule: "sturges" };
+      const i3 = 2 * s3 * Math.pow(n2, -1 / 3);
+      return i3 < t3 ? { width: i3, rule: "fd" } : { width: t3, rule: "sturges" };
     }
     default:
       return { width: r2(), rule: "sturges" };
   }
 }
-function S(e2, t2 = {}) {
+function x(e2, t2 = {}) {
   if (!Array.isArray(e2) || 0 === e2.length) return null;
   const s2 = e2.slice().sort(((e3, t3) => e3 - t3));
-  let i2 = s2[0], n2 = s2[s2.length - 1];
+  let n2 = s2[0], i2 = s2[s2.length - 1];
   const r2 = t2.range;
   if (Array.isArray(r2) && 2 === r2.length) {
     const e3 = Number(r2[0]), t3 = Number(r2[1]);
-    Number.isFinite(e3) && Number.isFinite(t3) && t3 > e3 && (i2 = e3, n2 = t3);
+    Number.isFinite(e3) && Number.isFinite(t3) && t3 > e3 && (n2 = e3, i2 = t3);
   }
-  if (!(n2 > i2)) {
-    const e3 = Math.abs(i2) > 0 ? 0.05 * Math.abs(i2) : 0.5;
-    return { edges: [i2 - e3, i2 + e3], binWidth: 2 * e3, rule: "single", capped: false };
+  if (!(i2 > n2)) {
+    const e3 = Math.abs(n2) > 0 ? 0.05 * Math.abs(n2) : 0.5;
+    return { edges: [n2 - e3, n2 + e3], binWidth: 2 * e3, rule: "single", capped: false };
   }
-  const a2 = n2 - i2;
-  let l2, o2;
-  if ("number" == typeof t2.binWidth && t2.binWidth > 0) l2 = t2.binWidth, o2 = "binWidth";
-  else if ("number" == typeof t2.bins && t2.bins >= 1) l2 = a2 / Math.floor(t2.bins), o2 = "count";
+  const a2 = i2 - n2;
+  let o2, l2;
+  if ("number" == typeof t2.binWidth && t2.binWidth > 0) o2 = t2.binWidth, l2 = "binWidth";
+  else if ("number" == typeof t2.bins && t2.bins >= 1) o2 = a2 / Math.floor(t2.bins), l2 = "count";
   else {
-    const e3 = x(s2, a2, "string" == typeof t2.bins ? t2.bins : "auto");
-    l2 = e3.width, o2 = e3.rule;
+    const e3 = S(s2, a2, "string" == typeof t2.bins ? t2.bins : "auto");
+    o2 = e3.width, l2 = e3.rule;
   }
-  (!Number.isFinite(l2) || l2 <= 0) && (l2 = a2);
-  let c = Math.ceil(a2 / l2);
+  (!Number.isFinite(o2) || o2 <= 0) && (o2 = a2);
+  let c = Math.ceil(a2 / o2);
   (!Number.isFinite(c) || c < 1) && (c = 1);
   let u = false;
-  c > M && (c = M, u = true), l2 = a2 / c;
+  c > M && (c = M, u = true), o2 = a2 / c;
   const h = new Array(c + 1);
-  for (let e3 = 0; e3 <= c; e3++) h[e3] = i2 + e3 * l2;
-  return h[c] = Math.max(h[c], n2), { edges: h, binWidth: l2, rule: o2, capped: u };
+  for (let e3 = 0; e3 <= c; e3++) h[e3] = n2 + e3 * o2;
+  return h[c] = Math.max(h[c], i2), { edges: h, binWidth: o2, rule: l2, capped: u };
 }
 function k(e2, t2) {
   const s2 = t2.length - 1;
   if (!(e2 >= t2[0]) || e2 > t2[s2]) return -1;
   if (e2 === t2[s2]) return s2 - 1;
-  const i2 = (t2[s2] - t2[0]) / s2;
-  if (i2 > 0) {
-    let n3 = Math.floor((e2 - t2[0]) / i2);
-    return n3 < 0 && (n3 = 0), n3 > s2 - 1 && (n3 = s2 - 1), e2 < t2[n3] ? n3-- : e2 >= t2[n3 + 1] && n3++, n3 < 0 || n3 > s2 - 1 ? -1 : n3;
+  const n2 = (t2[s2] - t2[0]) / s2;
+  if (n2 > 0) {
+    let i3 = Math.floor((e2 - t2[0]) / n2);
+    return i3 < 0 && (i3 = 0), i3 > s2 - 1 && (i3 = s2 - 1), e2 < t2[i3] ? i3-- : e2 >= t2[i3 + 1] && i3++, i3 < 0 || i3 > s2 - 1 ? -1 : i3;
   }
-  let n2 = 0, r2 = s2 - 1;
-  for (; n2 <= r2; ) {
-    const s3 = n2 + r2 >> 1;
+  let i2 = 0, r2 = s2 - 1;
+  for (; i2 <= r2; ) {
+    const s3 = i2 + r2 >> 1;
     if (e2 < t2[s3]) r2 = s3 - 1;
     else {
       if (!(e2 >= t2[s3 + 1])) return s3;
-      n2 = s3 + 1;
+      i2 = s3 + 1;
     }
   }
   return -1;
 }
 function L(e2, t2) {
   const s2 = new Array(Math.max(0, t2.length - 1)).fill(0);
-  for (let i2 = 0; i2 < e2.length; i2++) {
-    const n2 = k(e2[i2], t2);
-    n2 >= 0 && s2[n2]++;
+  for (let n2 = 0; n2 < e2.length; n2++) {
+    const i2 = k(e2[n2], t2);
+    i2 >= 0 && s2[i2]++;
   }
   return s2;
 }
-const j = class {
+const E = class {
   static applyStyles(e2) {
     Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
@@ -1641,31 +1641,31 @@ const j = class {
     return t2 || (t2 = document.createElement("div"), t2.setAttribute(this.WATERMARK_ATTR, ""), e2.appendChild(t2)), this.applyStyles(t2), "function" == typeof getComputedStyle && "static" === getComputedStyle(e2).position && (e2.style.position = "relative"), t2;
   }
   static reconcile() {
-    const e2 = o.isLicenseValid();
+    const e2 = l.isLicenseValid();
     for (const t2 of this.managed) t2.isConnected ? e2 ? this.erase(t2) : this.paint(t2) : this.managed.delete(t2);
   }
   static setManaged(e2, t2) {
     false !== (null == t2 ? void 0 : t2.manage) ? this.track(e2) : this.managed.delete(e2);
   }
   static track(e2) {
-    this.managed.add(e2), this.subscribed || (this.subscribed = true, o.onChange((() => {
+    this.managed.add(e2), this.subscribed || (this.subscribed = true, l.onChange((() => {
       this.reconcile();
     })));
   }
 };
-j.WATERMARK_ATTR = "data-apexcharts-watermark", j.WATERMARK_TEXT = "APEXCHARTS", j.ATTR = "data-apexcharts-watermark", j.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, j.managed = /* @__PURE__ */ new Set(), j.subscribed = false;
-let C = j;
-const D = 0.05, K = 0.05, O = 1 / 45;
-function $(e2, t2, s2, i2) {
-  const n2 = { value: e2, velocity: 0, target: e2, stiffness: t2, damping: s2 };
-  return n2;
+E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Set(), E.subscribed = false;
+let j = E;
+const N = 0.05, K = 0.05, q = 1 / 45;
+function F(e2, t2, s2, n2) {
+  const i2 = { value: e2, velocity: 0, target: e2, stiffness: t2, damping: s2 };
+  return i2;
 }
-function q(e2, t2) {
+function $(e2, t2) {
   if (t2 <= 0) return W(e2);
   let s2 = t2;
   for (; s2 > 0; ) {
-    const t3 = Math.min(s2, O), i2 = -e2.stiffness * (e2.value - e2.target) - e2.damping * e2.velocity;
-    e2.velocity += i2 * t3, e2.value += e2.velocity * t3, s2 -= t3;
+    const t3 = Math.min(s2, q), n2 = -e2.stiffness * (e2.value - e2.target) - e2.damping * e2.velocity;
+    e2.velocity += n2 * t3, e2.value += e2.velocity * t3, s2 -= t3;
   }
   return !!W(e2) && (e2.value = e2.target, e2.velocity = 0, true);
 }
@@ -1674,24 +1674,51 @@ function _(e2, t2) {
 }
 function W(e2) {
   var _a, _b;
-  const t2 = (_a = e2.restVelocity) != null ? _a : D, s2 = (_b = e2.restDisplacement) != null ? _b : K;
+  const t2 = (_a = e2.restVelocity) != null ? _a : N, s2 = (_b = e2.restDisplacement) != null ? _b : K;
   return Math.abs(e2.velocity) < t2 && Math.abs(e2.value - e2.target) < s2;
 }
 const V = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-function z(e2) {
+function U(e2) {
   var _a;
   return (_a = V[e2 != null ? e2 : "crisp"]) != null ? _a : V.crisp;
 }
-const pe = "__apexcharts_crossfilters__";
+function pe(e2) {
+  const t2 = e2.getRootNode ? e2.getRootNode() : null;
+  return t2 && (9 === t2.nodeType || 11 === t2.nodeType && "host" in t2) ? t2 : e2.ownerDocument || document;
+}
+function me(e2) {
+  const t2 = "function" == typeof e2.composedPath ? e2.composedPath() : null;
+  return (null == t2 ? void 0 : t2.length) ? t2[0] : e2.target;
+}
 function ge(e2) {
+  var t2;
+  const s2 = e2.ownerDocument || e2;
+  let n2 = s2 && "activeElement" in s2 ? s2.activeElement : null;
+  for (; null == (t2 = null == n2 ? void 0 : n2.shadowRoot) ? void 0 : t2.activeElement; ) n2 = n2.shadowRoot.activeElement;
+  return n2;
+}
+function ye(e2, t2) {
+  const s2 = pe(e2), n2 = s2.querySelector(t2);
+  if (n2) return n2;
+  const i2 = e2.ownerDocument;
+  return i2 && i2 !== s2 ? i2.querySelector(t2) : null;
+}
+function ve(e2, t2) {
+  const s2 = pe(e2), n2 = Array.from(s2.querySelectorAll(t2));
+  if (n2.length) return n2;
+  const i2 = e2.ownerDocument;
+  return i2 && i2 !== s2 ? Array.from(i2.querySelectorAll(t2)) : [];
+}
+const Ae = "__apexcharts_crossfilters__";
+function Se(e2) {
   if (!Number.isFinite(e2)) return e2;
   const t2 = Number(e2.toPrecision(12));
   return Object.is(t2, -0) ? 0 : t2;
 }
-function me(e2) {
+function xe(e2) {
   return "number" == typeof e2 && Number.isFinite(e2);
 }
-function ye(e2) {
+function ke(e2) {
   if ("function" == typeof e2) return e2;
   if (e2 && "object" == typeof e2) {
     if ("string" == typeof e2.sum) {
@@ -1713,47 +1740,47 @@ function ye(e2) {
   }
   return (e3) => e3.length;
 }
-function ve(e2, t2) {
+function Le(e2, t2) {
   return "function" == typeof t2 ? e2.slice().sort(t2) : "asc" === t2 ? e2.slice().sort(((e3, t3) => e3 > t3 ? 1 : e3 < t3 ? -1 : 0)) : "desc" === t2 ? e2.slice().sort(((e3, t3) => e3 < t3 ? 1 : e3 > t3 ? -1 : 0)) : e2;
 }
-function be(e2, t2) {
-  if (!me(e2)) return -1;
+function Te(e2, t2) {
+  if (!xe(e2)) return -1;
   const s2 = t2.length - 1;
   if (e2 < t2[0] || e2 > t2[s2]) return -1;
   if (e2 === t2[s2]) return s2 - 1;
-  for (let i2 = 0; i2 < s2; i2++) if (e2 >= t2[i2] && e2 < t2[i2 + 1]) return i2;
+  for (let n2 = 0; n2 < s2; n2++) if (e2 >= t2[n2] && e2 < t2[n2 + 1]) return n2;
   return -1;
 }
-function we(e2) {
+function Ee(e2) {
   const t2 = [];
-  for (let s2 = 0; s2 < e2.length - 1; s2++) t2.push(ge((e2[s2] + e2[s2 + 1]) / 2));
+  for (let s2 = 0; s2 < e2.length - 1; s2++) t2.push(Se((e2[s2] + e2[s2 + 1]) / 2));
   return t2;
 }
-class Me {
+class je {
   constructor(e2, t2) {
     this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = e2, this.records = Array.isArray(t2) ? t2 : [];
   }
   static store() {
     const e2 = globalThis;
-    return e2[pe] || (e2[pe] = /* @__PURE__ */ new Map()), e2[pe];
+    return e2[Ae] || (e2[Ae] = /* @__PURE__ */ new Map()), e2[Ae];
   }
   static getOrCreate(e2) {
     if (!e2 || "string" != typeof e2.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
-    const t2 = Me.store(), s2 = t2.get(e2.id);
+    const t2 = je.store(), s2 = t2.get(e2.id);
     if (s2) return e2.records && s2.setRecords(e2.records), s2;
-    const i2 = new Me(e2.id, e2.records);
-    return t2.set(e2.id, i2), i2;
+    const n2 = new je(e2.id, e2.records);
+    return t2.set(e2.id, n2), n2;
   }
   static get(e2) {
-    return Me.store().get(e2) || null;
+    return je.store().get(e2) || null;
   }
   setRecords(e2) {
     return this.records = Array.isArray(e2) ? e2 : [], this.dims.forEach(((e3) => this.recomputeDomain(e3))), this.emit("records", this.state()), this.emit("change", this.state()), this;
   }
   registerDimension(e2, t2) {
     if (!t2 || "function" != typeof t2.dimension) throw new Error(`crossfilter.registerDimension("${e2}") needs a dimension function.`);
-    const s2 = t2.type || (t2.bins ? "range" : "category"), i2 = { accessor: t2.dimension, reducer: ye(t2.reduce), type: s2, bins: t2.bins, order: t2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
-    return this.dims.set(e2, i2), this.recomputeDomain(i2), null != t2.filter && this.setFilterOn(i2, t2.filter), this;
+    const s2 = t2.type || (t2.bins ? "range" : "category"), n2 = { accessor: t2.dimension, reducer: ke(t2.reduce), type: s2, bins: t2.bins, order: t2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+    return this.dims.set(e2, n2), this.recomputeDomain(n2), null != t2.filter && this.setFilterOn(n2, t2.filter), this;
   }
   hasDimension(e2) {
     return this.dims.has(e2);
@@ -1765,51 +1792,51 @@ class Me {
   recomputeDomain(e2) {
     if ("matrix" === e2.type) {
       const t2 = (function(e3, t3, s2) {
-        const i2 = /* @__PURE__ */ new Set(), n2 = /* @__PURE__ */ new Set(), r2 = [], a2 = [];
+        const n2 = /* @__PURE__ */ new Set(), i2 = /* @__PURE__ */ new Set(), r2 = [], a2 = [];
         for (let s3 = 0; s3 < e3.length; s3++) {
-          const l2 = t3(e3[s3]);
-          if (!l2) continue;
-          const o2 = l2[0], c = l2[1];
-          null == o2 || i2.has(o2) || (i2.add(o2), r2.push(o2)), null == c || n2.has(c) || (n2.add(c), a2.push(c));
+          const o2 = t3(e3[s3]);
+          if (!o2) continue;
+          const l2 = o2[0], c = o2[1];
+          null == l2 || n2.has(l2) || (n2.add(l2), r2.push(l2)), null == c || i2.has(c) || (i2.add(c), a2.push(c));
         }
-        return { xLabels: ve(r2, s2), yLabels: ve(a2, s2) };
+        return { xLabels: Le(r2, s2), yLabels: Le(a2, s2) };
       })(this.records, e2.accessor, e2.order);
       return e2.xLabels = t2.xLabels, e2.yLabels = t2.yLabels, void (e2.edges = null);
     }
     if ("range" === e2.type) return e2.edges = (function(e3, t2, s2) {
       if (s2 && Array.isArray(s2.thresholds) && s2.thresholds.length >= 2) {
-        const e4 = Array.from(new Set(s2.thresholds.filter(me))).sort(((e5, t3) => e5 - t3));
-        return e4.length >= 2 ? e4.map(ge) : [0, 1];
+        const e4 = Array.from(new Set(s2.thresholds.filter(xe))).sort(((e5, t3) => e5 - t3));
+        return e4.length >= 2 ? e4.map(Se) : [0, 1];
       }
-      let i2 = 1 / 0, n2 = -1 / 0;
+      let n2 = 1 / 0, i2 = -1 / 0;
       for (let s3 = 0; s3 < e3.length; s3++) {
         const r3 = t2(e3[s3]);
-        me(r3) && (r3 < i2 && (i2 = r3), r3 > n2 && (n2 = r3));
+        xe(r3) && (r3 < n2 && (n2 = r3), r3 > i2 && (i2 = r3));
       }
-      if (i2 === 1 / 0) return [0, 1];
-      if (i2 === n2) {
-        const e4 = Math.abs(i2) > 0 ? Math.abs(i2) : 1;
-        return [ge(i2), ge(i2 + e4)];
+      if (n2 === 1 / 0) return [0, 1];
+      if (n2 === i2) {
+        const e4 = Math.abs(n2) > 0 ? Math.abs(n2) : 1;
+        return [Se(n2), Se(n2 + e4)];
       }
-      if (s2 && me(s2.width) && s2.width > 0) {
-        const e4 = s2.width, t3 = Math.floor(i2 / e4) * e4;
-        let r3 = Math.ceil(n2 / e4) * e4;
+      if (s2 && xe(s2.width) && s2.width > 0) {
+        const e4 = s2.width, t3 = Math.floor(n2 / e4) * e4;
+        let r3 = Math.ceil(i2 / e4) * e4;
         r3 <= t3 && (r3 = t3 + e4);
-        const a3 = Math.max(1, Math.round((r3 - t3) / e4)), l3 = new Array(a3 + 1);
-        for (let s3 = 0; s3 <= a3; s3++) l3[s3] = ge(t3 + s3 * e4);
-        return l3;
+        const a3 = Math.max(1, Math.round((r3 - t3) / e4)), o3 = new Array(a3 + 1);
+        for (let s3 = 0; s3 <= a3; s3++) o3[s3] = Se(t3 + s3 * e4);
+        return o3;
       }
-      const r2 = s2 && me(s2.count) && s2.count >= 1 ? Math.floor(s2.count) : 30, a2 = (n2 - i2) / r2, l2 = new Array(r2 + 1);
-      for (let e4 = 0; e4 <= r2; e4++) l2[e4] = ge(i2 + e4 * a2);
-      return l2[r2] = ge(n2), l2;
-    })(this.records, e2.accessor, e2.bins), void (e2.labels = we(e2.edges));
+      const r2 = s2 && xe(s2.count) && s2.count >= 1 ? Math.floor(s2.count) : 30, a2 = (i2 - n2) / r2, o2 = new Array(r2 + 1);
+      for (let e4 = 0; e4 <= r2; e4++) o2[e4] = Se(n2 + e4 * a2);
+      return o2[r2] = Se(i2), o2;
+    })(this.records, e2.accessor, e2.bins), void (e2.labels = Ee(e2.edges));
     if (e2.labels = (function(e3, t2, s2) {
-      const i2 = /* @__PURE__ */ new Set(), n2 = [];
+      const n2 = /* @__PURE__ */ new Set(), i2 = [];
       for (let s3 = 0; s3 < e3.length; s3++) {
         const r2 = t2(e3[s3]);
-        null != r2 && (i2.has(r2) || (i2.add(r2), n2.push(r2)));
+        null != r2 && (n2.has(r2) || (n2.add(r2), i2.push(r2)));
       }
-      return ve(n2, s2);
+      return Le(i2, s2);
     })(this.records, e2.accessor, e2.order), e2.edges = null, e2.filter instanceof Set) {
       const t2 = new Set(e2.labels);
       Array.from(e2.filter).forEach(((s2) => {
@@ -1825,15 +1852,15 @@ class Me {
     const s2 = this.dims.get(e2);
     if (!s2 || "category" !== s2.type) return this;
     s2.filter instanceof Set || (s2.filter = /* @__PURE__ */ new Set());
-    const i2 = s2.filter;
-    return i2.has(t2) ? i2.delete(t2) : i2.add(t2), 0 === i2.size && (s2.filter = null), this.emit("change", this.state()), this;
+    const n2 = s2.filter;
+    return n2.has(t2) ? n2.delete(t2) : n2.add(t2), 0 === n2.size && (s2.filter = null), this.emit("change", this.state()), this;
   }
   setFilterOn(e2, t2) {
     if (null == t2) return void (e2.filter = null);
     if ("range" === e2.type) {
-      if (Array.isArray(t2) && 2 === t2.length && t2.every(me)) {
-        const [s3, i2] = t2;
-        e2.filter = [Math.min(s3, i2), Math.max(s3, i2)];
+      if (Array.isArray(t2) && 2 === t2.length && t2.every(xe)) {
+        const [s3, n2] = t2;
+        e2.filter = [Math.min(s3, n2), Math.max(s3, n2)];
       } else e2.filter = null;
       return;
     }
@@ -1856,14 +1883,14 @@ class Me {
     if (!this.hasFilter(e2)) return true;
     const s2 = e2.accessor(t2);
     if (e2.filter instanceof Set) return e2.filter.has(s2);
-    if (!me(s2)) return false;
-    const [i2, n2] = e2.filter;
-    return s2 >= i2 && s2 <= n2;
+    if (!xe(s2)) return false;
+    const [n2, i2] = e2.filter;
+    return s2 >= n2 && s2 <= i2;
   }
   filteredRecords(e2) {
     const t2 = [];
-    return this.dims.forEach(((s2, i2) => {
-      i2 !== e2 && this.hasFilter(s2) && t2.push(s2);
+    return this.dims.forEach(((s2, n2) => {
+      n2 !== e2 && this.hasFilter(s2) && t2.push(s2);
     })), 0 === t2.length ? this.records : this.records.filter(((e3) => t2.every(((t3) => this.passes(t3, e3)))));
   }
   filteredRows() {
@@ -1874,30 +1901,30 @@ class Me {
     if (!t2) return { type: "category", labels: [], values: [], keys: [] };
     const s2 = this.filteredRecords(e2);
     if ("matrix" === t2.type) {
-      const e3 = new Map(t2.xLabels.map(((e4, t3) => [e4, t3]))), i3 = new Map(t2.yLabels.map(((e4, t3) => [e4, t3]))), n2 = t2.yLabels.map((() => t2.xLabels.map((() => []))));
+      const e3 = new Map(t2.xLabels.map(((e4, t3) => [e4, t3]))), n3 = new Map(t2.yLabels.map(((e4, t3) => [e4, t3]))), i2 = t2.yLabels.map((() => t2.xLabels.map((() => []))));
       for (let r2 = 0; r2 < s2.length; r2++) {
         const a2 = t2.accessor(s2[r2]);
         if (!a2) continue;
-        const l2 = e3.get(a2[0]), o2 = i3.get(a2[1]);
-        null != l2 && null != o2 && n2[o2][l2].push(s2[r2]);
+        const o2 = e3.get(a2[0]), l2 = n3.get(a2[1]);
+        null != o2 && null != l2 && i2[l2][o2].push(s2[r2]);
       }
-      return { type: "matrix", xLabels: t2.xLabels.slice(), yLabels: t2.yLabels.slice(), matrix: n2.map(((e4) => e4.map(((e5) => t2.reducer(e5))))) };
+      return { type: "matrix", xLabels: t2.xLabels.slice(), yLabels: t2.yLabels.slice(), matrix: i2.map(((e4) => e4.map(((e5) => t2.reducer(e5))))) };
     }
     if ("range" === t2.type) {
-      const e3 = t2.edges || [0, 1], i3 = e3.length - 1, n2 = Array.from({ length: i3 }, (() => []));
-      for (let i4 = 0; i4 < s2.length; i4++) {
-        const r2 = be(t2.accessor(s2[i4]), e3);
-        r2 >= 0 && n2[r2].push(s2[i4]);
+      const e3 = t2.edges || [0, 1], n3 = e3.length - 1, i2 = Array.from({ length: n3 }, (() => []));
+      for (let n4 = 0; n4 < s2.length; n4++) {
+        const r2 = Te(t2.accessor(s2[n4]), e3);
+        r2 >= 0 && i2[r2].push(s2[n4]);
       }
-      return { type: "range", labels: we(e3), values: n2.map(((e4) => t2.reducer(e4))), keys: n2.map(((t3, s3) => [e3[s3], e3[s3 + 1]])), edges: e3 };
+      return { type: "range", labels: Ee(e3), values: i2.map(((e4) => t2.reducer(e4))), keys: i2.map(((t3, s3) => [e3[s3], e3[s3 + 1]])), edges: e3 };
     }
-    const i2 = /* @__PURE__ */ new Map();
-    t2.labels.forEach(((e3) => i2.set(e3, [])));
+    const n2 = /* @__PURE__ */ new Map();
+    t2.labels.forEach(((e3) => n2.set(e3, [])));
     for (let e3 = 0; e3 < s2.length; e3++) {
-      const n2 = i2.get(t2.accessor(s2[e3]));
-      n2 && n2.push(s2[e3]);
+      const i2 = n2.get(t2.accessor(s2[e3]));
+      i2 && i2.push(s2[e3]);
     }
-    return { type: "category", labels: t2.labels.slice(), values: t2.labels.map(((e3) => t2.reducer(i2.get(e3) || []))), keys: t2.labels.slice() };
+    return { type: "category", labels: t2.labels.slice(), values: t2.labels.map(((e3) => t2.reducer(n2.get(e3) || []))), keys: t2.labels.slice() };
   }
   aggregateAll() {
     const e2 = {};
@@ -1924,10 +1951,10 @@ class Me {
     return null == (s2 = this.listeners.get(e2)) || s2.delete(t2), this;
   }
   emit(e2, s2) {
-    var i2;
-    null == (i2 = this.listeners.get(e2)) || i2.forEach(((i3) => {
+    var n2;
+    null == (n2 = this.listeners.get(e2)) || n2.forEach(((n3) => {
       try {
-        i3(s2);
+        n3(s2);
       } catch (s3) {
         t(`[Apex] a crossfilter ${e2} listener threw`, s3);
       }
@@ -1942,28 +1969,28 @@ class Me {
     return (t2 ? Object.keys(t2) : []).map(((e3) => ({ field: e3, label: e3 })));
   }
   tableHTML(e2, t2, s2) {
-    const i2 = "<thead><tr>" + e2.map(((e3) => `<th>${Me.esc(e3.label)}</th>`)).join("") + "</tr></thead>", n2 = "<tbody>" + t2.map(((t3) => "<tr>" + e2.map(((e3) => {
-      const s3 = t3[e3.field], i3 = e3.format ? e3.format(s3, t3) : s3;
-      return `<td>${Me.esc(i3)}</td>`;
+    const n2 = "<thead><tr>" + e2.map(((e3) => `<th>${je.esc(e3.label)}</th>`)).join("") + "</tr></thead>", i2 = "<tbody>" + t2.map(((t3) => "<tr>" + e2.map(((e3) => {
+      const s3 = t3[e3.field], n3 = e3.format ? e3.format(s3, t3) : s3;
+      return `<td>${je.esc(n3)}</td>`;
     })).join("") + "</tr>")).join("") + "</tbody>";
-    return `<table class="apexcharts-cf-table">${`<caption>${t2.length} of ${s2} rows</caption>`}${i2}${n2}</table>`;
+    return `<table class="apexcharts-cf-table">${`<caption>${t2.length} of ${s2} rows</caption>`}${n2}${i2}</table>`;
   }
   dataTable(e2, t2) {
     if (!e2) return { refresh() {
     }, destroy() {
     } };
-    const s2 = t2 || {}, i2 = this.resolveColumns(s2.columns), n2 = s2.pageSize || 0, r2 = s2.page || 0, a2 = () => {
-      const t3 = this.filteredRows(), s3 = n2 ? t3.slice(r2 * n2, r2 * n2 + n2) : t3;
-      e2.innerHTML = this.tableHTML(i2, s3, t3.length);
+    const s2 = t2 || {}, n2 = this.resolveColumns(s2.columns), i2 = s2.pageSize || 0, r2 = s2.page || 0, a2 = () => {
+      const t3 = this.filteredRows(), s3 = i2 ? t3.slice(r2 * i2, r2 * i2 + i2) : t3;
+      e2.innerHTML = this.tableHTML(n2, s3, t3.length);
     };
     a2();
-    const l2 = this.on("change", a2);
+    const o2 = this.on("change", a2);
     return { refresh: a2, destroy: () => {
-      l2(), e2.innerHTML = "";
+      o2(), e2.innerHTML = "";
     } };
   }
   destroy() {
-    Me.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
+    je.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
   }
 }
 const LAYOUT_KEY$1 = "__apexcharts_unit_layouts__";
@@ -2154,7 +2181,7 @@ const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
 function springParams(preset, speed) {
-  const [stiffness, damping] = z(
+  const [stiffness, damping] = U(
     /** @type {import('apex-commons').SpringPreset|undefined} */
     preset
   );
@@ -3488,10 +3515,10 @@ class Unit {
     let zmax = -Infinity;
     unitData.forEach(
       (cat) => (cat || []).forEach((d) => {
-        const z2 = d && typeof d === "object" ? d[field] : null;
-        if (typeof z2 === "number" && isFinite(z2)) {
-          if (z2 < zmin) zmin = z2;
-          if (z2 > zmax) zmax = z2;
+        const z = d && typeof d === "object" ? d[field] : null;
+        if (typeof z === "number" && isFinite(z)) {
+          if (z < zmin) zmin = z;
+          if (z > zmax) zmax = z;
         }
       })
     );
@@ -3508,9 +3535,9 @@ class Unit {
    */
   _scatterRadius(d, st, fallback) {
     if (!st) return fallback;
-    const z2 = d && typeof d === "object" ? d[st.field] : null;
-    if (typeof z2 !== "number" || !isFinite(z2)) return st.rMin;
-    const t2 = st.zmax > st.zmin ? (z2 - st.zmin) / (st.zmax - st.zmin) : 1;
+    const z = d && typeof d === "object" ? d[st.field] : null;
+    if (typeof z !== "number" || !isFinite(z)) return st.rMin;
+    const t2 = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
     const tc = Math.max(0, Math.min(1, t2));
     const aMin = st.rMin * st.rMin;
     const aMax = st.rMax * st.rMax;
@@ -4334,8 +4361,8 @@ class Unit {
     for (let k2 = 0; k2 < dots.length; k2++) {
       const d = dots[k2];
       const carried = live && !d.isEnter && d.key != null ? live.get(d.key) : null;
-      const sx = carried ? carried.x : $(d.cx0, stiffness, damping);
-      const sy = carried ? carried.y : $(d.cy0, stiffness, damping);
+      const sx = carried ? carried.x : F(d.cx0, stiffness, damping);
+      const sy = carried ? carried.y : F(d.cy0, stiffness, damping);
       if (carried) {
         sx.stiffness = stiffness;
         sy.stiffness = stiffness;
@@ -4427,8 +4454,8 @@ class Unit {
             _(d.sy, d.y);
             d.released = true;
           }
-          const restX = q(d.sx, dt);
-          const restY = q(d.sy, dt);
+          const restX = $(d.sx, dt);
+          const restY = $(d.sy, dt);
           if (!d.released || !restX || !restY) done = false;
           cx = d.sx.value;
           cy = d.sy.value;
@@ -4866,7 +4893,7 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
   const largeArc = spanDeg > 180 ? 1 : 0;
   const A2 = ptAt(rOut, a0);
   const B = ptAt(rOut, a1);
-  const C2 = ptAt(rIn, a1);
+  const C = ptAt(rIn, a1);
   const Din = ptAt(rIn, a0);
   return [
     "M",
@@ -4879,7 +4906,7 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
     1,
     xy(B),
     "L",
-    xy(C2),
+    xy(C),
     "A",
     rIn,
     rIn,
@@ -6806,8 +6833,8 @@ function kernelDensity(values, opts = {}) {
     const x2 = lo + g2 * step;
     let sum2 = 0;
     for (let i2 = 0; i2 < n2; i2++) {
-      const z2 = (x2 - sorted[i2]) / h;
-      sum2 += Math.exp(-0.5 * z2 * z2);
+      const z = (x2 - sorted[i2]) / h;
+      sum2 += Math.exp(-0.5 * z * z);
     }
     density.push([x2, sum2 * norm]);
   }
@@ -10058,7 +10085,7 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
       (p) => p.series.map((s2) => observationValues(s2.data))
     );
     const union = panelSeriesVals.flat(2);
-    const binning = S(union, {
+    const binning = x(union, {
       bins: hcfg.bins,
       binWidth: hcfg.binWidth,
       range: hcfg.range
@@ -10537,14 +10564,15 @@ function colorValueOfDatum(w, datum, i2, j2) {
   const n2 = Number(raw);
   return Number.isFinite(n2) ? n2 : null;
 }
-function resolveStops(cfg, min, max, midpoint, explicit) {
+function resolveStops(cfg, min, max, midpoint, explicit, el) {
+  const hex = (c) => normalizeHex(Utils.getThemeColor(c, el));
   if (explicit) {
     return cfg.stops.filter((s2) => s2 && Number.isFinite(Number(s2.value))).map((s2) => ({
       value: Number(s2.value),
-      color: normalizeHex(s2.color)
+      color: hex(s2.color)
     })).sort((a2, b) => a2.value - b.value);
   }
-  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
+  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(hex);
   const n2 = colors.length;
   if (midpoint != null && n2 >= 3) {
     const mid = Math.floor((n2 - 1) / 2);
@@ -10566,7 +10594,7 @@ function resolveStops(cfg, min, max, midpoint, explicit) {
   }));
 }
 function buildContinuousScale(w) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d;
   const cs = (_c = (_b = (_a = w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.treemap) == null ? void 0 : _c.colorScale;
   const cfg = cs && cs.gradient;
   if (!cfg) return null;
@@ -10617,7 +10645,7 @@ function buildContinuousScale(w) {
     max += 0.5;
   }
   const explicit = Array.isArray(cfg.stops) && cfg.stops.length >= 2;
-  const stops = resolveStops(cfg, min, max, midpoint, explicit);
+  const stops = resolveStops(cfg, min, max, midpoint, explicit, (_d = w.dom) == null ? void 0 : _d.elWrap);
   if (stops.length < 2) return null;
   if (explicit) {
     if (pinMin == null) min = Math.min(min, stops[0].value);
@@ -14484,7 +14512,6 @@ class Measure {
     this._afterRender = this._afterRender.bind(this);
     ctx.addEventListener("mounted", this._afterRender);
     ctx.addEventListener("updated", this._afterRender);
-    this._bindKeys();
   }
   _cfg() {
     return this.w.config.chart.measure || {};
@@ -14547,12 +14574,15 @@ class Measure {
   }
   /** @param {any} e */
   _onKeyDown(e2) {
-    if (!this._enabled() || this.persistent) return;
+    if (!this._enabled()) return;
+    if (e2.key === "Escape") {
+      this._cancelDrag();
+      return;
+    }
+    if (this.persistent) return;
     const key = this._cfg().key || "m";
     if (e2.key && e2.key.toLowerCase() === String(key).toLowerCase()) {
       this._arm();
-    } else if (e2.key === "Escape") {
-      this._cancelDrag();
     }
   }
   /** @param {any} e */
@@ -15214,6 +15244,7 @@ class Measure {
   /** Re-project the measure pins after each render. */
   _afterRender() {
     if (!this._enabled()) return;
+    this._bindKeys();
     if (this.w.interact.measureEnabled && !this.persistent) {
       this.persistent = true;
     }
@@ -15387,7 +15418,7 @@ class LinkedViews {
   _cf() {
     const link = this.w.config.chart.link;
     const id = link && (link.id || this.w.config.chart.group);
-    return id ? Me.get(id) : null;
+    return id ? je.get(id) : null;
   }
   _isPie() {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -15643,7 +15674,7 @@ _core__default.registerFeatures({
   linkedViews: LinkedViews,
   crossfilter: (
     /** @type {any} */
-    Me
+    je
   )
 });
 const Options = _core.__apex_Options;
@@ -16434,7 +16465,10 @@ class InkLayer {
    */
   _onDocDownEditor(e2) {
     const ed = this._editor;
-    if (!ed || ed.card.contains(e2.target)) return;
+    if (!ed || ed.card.contains(
+      /** @type {Node} */
+      me(e2)
+    )) return;
     this._closeEditor(true);
   }
   /**
@@ -16735,7 +16769,7 @@ function premiumFeaturesInUse(w, ctx) {
 function resolveKey(w) {
   const perChart = w && w.config && w.config.chart && w.config.chart.license;
   if (perChart) return perChart;
-  const singleton = o.getKey();
+  const singleton = l.getKey();
   if (singleton) return singleton;
   const apex = Environment.getApex();
   if (apex && apex.license) return apex.license;
@@ -16744,22 +16778,22 @@ function resolveKey(w) {
 const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
 function licensedForPremium(key) {
   if (!key) return false;
-  const result = o.validateKey(key);
+  const result = l.validateKey(key);
   if (!result.valid) return false;
   const plan = result.data && result.data.plan;
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = C.add(elWrap, { manage: false });
+  const node = j.add(elWrap, { manage: false });
   ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = C.node(elWrap);
+    const n2 = j.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    C.applyStyles(n2);
+    j.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -16773,7 +16807,7 @@ function addWatermark(ctx, elWrap) {
   if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
   if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
   const wrapObs = new MutationObserver(() => {
-    if (!C.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!j.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -16793,7 +16827,7 @@ function teardownWatermark(ctx, elWrap) {
   ctx._wmObservedNode = null;
   ctx._wmObservedWrap = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) C.remove(wrap, { manage: false });
+  if (wrap) j.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
@@ -16805,7 +16839,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  const result = o.validateKey(key);
+  const result = l.validateKey(key);
   if (result.valid) {
     const plan = result.data && result.data.plan || "current";
     console.warn(
@@ -16813,7 +16847,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  if (key !== o.getKey()) {
+  if (key !== l.getKey()) {
     console.error(`[Apex] ${result.message}`);
   }
 }
@@ -16868,7 +16902,7 @@ function reevaluateLicenseAcrossCharts() {
     enforceLicense(w, ctx);
   });
 }
-o.onChange(reevaluateLicenseAcrossCharts);
+l.onChange(reevaluateLicenseAcrossCharts);
 class Storyboard {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -16902,9 +16936,9 @@ class Storyboard {
     if (!doc || typeof IntersectionObserver === "undefined") return 0;
     let root = null;
     if (opts.scroller) {
-      root = typeof opts.scroller === "string" ? doc.querySelector(opts.scroller) : opts.scroller;
+      root = typeof opts.scroller === "string" ? ye(this.ctx.el, opts.scroller) : opts.scroller;
     }
-    this._beats = this._resolveBeats(doc, root, opts.beats);
+    this._beats = this._resolveBeats(this.ctx.el, root, opts.beats);
     if (!this._beats.length) return 0;
     this._animate = opts.animate !== false;
     const offset = Math.min(Math.max((_a = opts.offset) != null ? _a : 0.5, 0), 1);
@@ -16924,20 +16958,21 @@ class Storyboard {
   }
   /**
    * Normalize the beats option, or auto-discover [data-apex-beat] elements in
-   * document order when no explicit list is given.
-   * @param {Document} doc
+   * document order when no explicit list is given. Selectors resolve in the
+   * chart's own root first, so beats beside a chart in a shadow root are found.
+   * @param {Element} chartEl
    * @param {Element | null} root
    * @param {Array<any>} [beatsOpt]
    * @returns {StoryboardBeat[]}
    * @private
    */
-  _resolveBeats(doc, root, beatsOpt) {
+  _resolveBeats(chartEl, root, beatsOpt) {
     const beats = [];
     if (Array.isArray(beatsOpt)) {
       beatsOpt.forEach((b, i2) => {
         var _a, _b;
         if (!b) return;
-        const el = b.el && typeof b.el === "object" ? b.el : b.selector ? doc.querySelector(b.selector) : null;
+        const el = b.el && typeof b.el === "object" ? b.el : b.selector ? ye(chartEl, b.selector) : null;
         if (!el) {
           console.warn(
             `apexcharts: storyboard beat ${i2} has no resolvable element; skipped.`
@@ -16955,8 +16990,8 @@ class Storyboard {
       });
       return beats;
     }
-    const scope = root || doc;
-    scope.querySelectorAll("[data-apex-beat]").forEach((el, i2) => {
+    const found = root ? Array.from(root.querySelectorAll("[data-apex-beat]")) : ve(chartEl, "[data-apex-beat]");
+    found.forEach((el, i2) => {
       beats.push({
         el,
         key: el.getAttribute("data-apex-beat") || String(i2),
@@ -18091,10 +18126,10 @@ class CanvasGraphics {
    * @param {number} z
    * @returns {any}
    */
-  _cmd(tag, z2) {
+  _cmd(tag, z) {
     const cmd = {
       tag,
-      z: z2 || 0,
+      z: z || 0,
       fill: void 0,
       stroke: void 0,
       strokeWidth: void 0,
@@ -19544,7 +19579,11 @@ class ContextMenu {
   }
   /** @param {any} e */
   _onDocDown(e2) {
-    if (this.menu && this.menu.contains(e2.target)) return;
+    if (this.menu && this.menu.contains(
+      /** @type {Node} */
+      me(e2)
+    ))
+      return;
     this.close();
   }
   /** @param {any} e */
@@ -19711,7 +19750,8 @@ class History {
       /** @type {any} */
       this.ctx.el
     );
-    this._engaged = !!(el && e2.target && el.contains(e2.target));
+    const origin = me(e2);
+    this._engaged = !!(el && origin && el.contains(origin));
   }
   /**
    * @param {KeyboardEvent} e
@@ -19725,8 +19765,7 @@ class History {
       this.ctx.el
     );
     if (!el) return;
-    const doc = el.ownerDocument;
-    const active = doc && doc.activeElement;
+    const active = ge(el);
     if (isEditableTarget(active)) return;
     if (!(el.contains(active) || this._engaged)) return;
     const redo = key === "y" || e2.shiftKey;
@@ -21133,16 +21172,16 @@ function lanes(hf, r2, el, o2) {
     cy: c ? c.centerY : gl.circleGeometry.cy
   };
   hf._targets.set(RAD + i2, rec);
-  const draw = (s2, we2, e2) => {
+  const draw = (s2, we, e2) => {
     rec.s = s2;
-    rec.we = we2;
+    rec.we = we;
     rec.e = e2;
     const wo = R1 - inset * s2;
     const wi = R0 + s2 * (R1 - inset - lw - R0);
     const pi = R0 + inset * s2;
     const po = pi + s2 * lw;
     rec.mid = (wi + po) / 2;
-    put(wl.node, arcAt(we2, (wi + wo) / 2), wo - wi);
+    put(wl.node, arcAt(we, (wi + wo) / 2), wo - wi);
     put(pl.node, po > pi ? arcAt(e2, (pi + po) / 2) : "", po - pi);
     if (!tn) return;
     if (s2) {
@@ -25043,11 +25082,11 @@ function buildGlobe(meta) {
     const sinT = Math.sin(tilt);
     const SAMPLES = 40;
     const project = (sinPhi, cosPhi, lon) => {
-      const z2 = cosPhi * Math.cos(lon);
+      const z = cosPhi * Math.cos(lon);
       return {
         x: radius * cosPhi * Math.sin(lon),
-        y: radius * (sinPhi * cosT + z2 * sinT),
-        depth: z2 * cosT - sinPhi * sinT
+        y: radius * (sinPhi * cosT + z * sinT),
+        depth: z * cosT - sinPhi * sinT
       };
     };
     const candidatesAt = (pitch2) => {

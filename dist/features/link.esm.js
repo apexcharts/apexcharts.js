@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -27,16 +27,16 @@ const e = globalThis.console;
 function t(t2, ...s) {
   e.error(t2, ...s);
 }
-const pe = "__apexcharts_crossfilters__";
-function ge(e2) {
+const Ae = "__apexcharts_crossfilters__";
+function Se(e2) {
   if (!Number.isFinite(e2)) return e2;
   const t2 = Number(e2.toPrecision(12));
   return Object.is(t2, -0) ? 0 : t2;
 }
-function me(e2) {
+function xe(e2) {
   return "number" == typeof e2 && Number.isFinite(e2);
 }
-function ye(e2) {
+function ke(e2) {
   if ("function" == typeof e2) return e2;
   if (e2 && "object" == typeof e2) {
     if ("string" == typeof e2.sum) {
@@ -58,47 +58,47 @@ function ye(e2) {
   }
   return (e3) => e3.length;
 }
-function ve(e2, t2) {
+function Le(e2, t2) {
   return "function" == typeof t2 ? e2.slice().sort(t2) : "asc" === t2 ? e2.slice().sort(((e3, t3) => e3 > t3 ? 1 : e3 < t3 ? -1 : 0)) : "desc" === t2 ? e2.slice().sort(((e3, t3) => e3 < t3 ? 1 : e3 > t3 ? -1 : 0)) : e2;
 }
-function be(e2, t2) {
-  if (!me(e2)) return -1;
+function Te(e2, t2) {
+  if (!xe(e2)) return -1;
   const s = t2.length - 1;
   if (e2 < t2[0] || e2 > t2[s]) return -1;
   if (e2 === t2[s]) return s - 1;
-  for (let i = 0; i < s; i++) if (e2 >= t2[i] && e2 < t2[i + 1]) return i;
+  for (let n = 0; n < s; n++) if (e2 >= t2[n] && e2 < t2[n + 1]) return n;
   return -1;
 }
-function we(e2) {
+function Ee(e2) {
   const t2 = [];
-  for (let s = 0; s < e2.length - 1; s++) t2.push(ge((e2[s] + e2[s + 1]) / 2));
+  for (let s = 0; s < e2.length - 1; s++) t2.push(Se((e2[s] + e2[s + 1]) / 2));
   return t2;
 }
-class Me {
+class je {
   constructor(e2, t2) {
     this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = e2, this.records = Array.isArray(t2) ? t2 : [];
   }
   static store() {
     const e2 = globalThis;
-    return e2[pe] || (e2[pe] = /* @__PURE__ */ new Map()), e2[pe];
+    return e2[Ae] || (e2[Ae] = /* @__PURE__ */ new Map()), e2[Ae];
   }
   static getOrCreate(e2) {
     if (!e2 || "string" != typeof e2.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
-    const t2 = Me.store(), s = t2.get(e2.id);
+    const t2 = je.store(), s = t2.get(e2.id);
     if (s) return e2.records && s.setRecords(e2.records), s;
-    const i = new Me(e2.id, e2.records);
-    return t2.set(e2.id, i), i;
+    const n = new je(e2.id, e2.records);
+    return t2.set(e2.id, n), n;
   }
   static get(e2) {
-    return Me.store().get(e2) || null;
+    return je.store().get(e2) || null;
   }
   setRecords(e2) {
     return this.records = Array.isArray(e2) ? e2 : [], this.dims.forEach(((e3) => this.recomputeDomain(e3))), this.emit("records", this.state()), this.emit("change", this.state()), this;
   }
   registerDimension(e2, t2) {
     if (!t2 || "function" != typeof t2.dimension) throw new Error(`crossfilter.registerDimension("${e2}") needs a dimension function.`);
-    const s = t2.type || (t2.bins ? "range" : "category"), i = { accessor: t2.dimension, reducer: ye(t2.reduce), type: s, bins: t2.bins, order: t2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
-    return this.dims.set(e2, i), this.recomputeDomain(i), null != t2.filter && this.setFilterOn(i, t2.filter), this;
+    const s = t2.type || (t2.bins ? "range" : "category"), n = { accessor: t2.dimension, reducer: ke(t2.reduce), type: s, bins: t2.bins, order: t2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+    return this.dims.set(e2, n), this.recomputeDomain(n), null != t2.filter && this.setFilterOn(n, t2.filter), this;
   }
   hasDimension(e2) {
     return this.dims.has(e2);
@@ -110,51 +110,51 @@ class Me {
   recomputeDomain(e2) {
     if ("matrix" === e2.type) {
       const t2 = (function(e3, t3, s) {
-        const i = /* @__PURE__ */ new Set(), n = /* @__PURE__ */ new Set(), r = [], a = [];
+        const n = /* @__PURE__ */ new Set(), i = /* @__PURE__ */ new Set(), r = [], a = [];
         for (let s2 = 0; s2 < e3.length; s2++) {
-          const l = t3(e3[s2]);
-          if (!l) continue;
-          const o = l[0], c = l[1];
-          null == o || i.has(o) || (i.add(o), r.push(o)), null == c || n.has(c) || (n.add(c), a.push(c));
+          const o = t3(e3[s2]);
+          if (!o) continue;
+          const l = o[0], c = o[1];
+          null == l || n.has(l) || (n.add(l), r.push(l)), null == c || i.has(c) || (i.add(c), a.push(c));
         }
-        return { xLabels: ve(r, s), yLabels: ve(a, s) };
+        return { xLabels: Le(r, s), yLabels: Le(a, s) };
       })(this.records, e2.accessor, e2.order);
       return e2.xLabels = t2.xLabels, e2.yLabels = t2.yLabels, void (e2.edges = null);
     }
     if ("range" === e2.type) return e2.edges = (function(e3, t2, s) {
       if (s && Array.isArray(s.thresholds) && s.thresholds.length >= 2) {
-        const e4 = Array.from(new Set(s.thresholds.filter(me))).sort(((e5, t3) => e5 - t3));
-        return e4.length >= 2 ? e4.map(ge) : [0, 1];
+        const e4 = Array.from(new Set(s.thresholds.filter(xe))).sort(((e5, t3) => e5 - t3));
+        return e4.length >= 2 ? e4.map(Se) : [0, 1];
       }
-      let i = 1 / 0, n = -1 / 0;
+      let n = 1 / 0, i = -1 / 0;
       for (let s2 = 0; s2 < e3.length; s2++) {
         const r2 = t2(e3[s2]);
-        me(r2) && (r2 < i && (i = r2), r2 > n && (n = r2));
+        xe(r2) && (r2 < n && (n = r2), r2 > i && (i = r2));
       }
-      if (i === 1 / 0) return [0, 1];
-      if (i === n) {
-        const e4 = Math.abs(i) > 0 ? Math.abs(i) : 1;
-        return [ge(i), ge(i + e4)];
+      if (n === 1 / 0) return [0, 1];
+      if (n === i) {
+        const e4 = Math.abs(n) > 0 ? Math.abs(n) : 1;
+        return [Se(n), Se(n + e4)];
       }
-      if (s && me(s.width) && s.width > 0) {
-        const e4 = s.width, t3 = Math.floor(i / e4) * e4;
-        let r2 = Math.ceil(n / e4) * e4;
+      if (s && xe(s.width) && s.width > 0) {
+        const e4 = s.width, t3 = Math.floor(n / e4) * e4;
+        let r2 = Math.ceil(i / e4) * e4;
         r2 <= t3 && (r2 = t3 + e4);
-        const a2 = Math.max(1, Math.round((r2 - t3) / e4)), l2 = new Array(a2 + 1);
-        for (let s2 = 0; s2 <= a2; s2++) l2[s2] = ge(t3 + s2 * e4);
-        return l2;
+        const a2 = Math.max(1, Math.round((r2 - t3) / e4)), o2 = new Array(a2 + 1);
+        for (let s2 = 0; s2 <= a2; s2++) o2[s2] = Se(t3 + s2 * e4);
+        return o2;
       }
-      const r = s && me(s.count) && s.count >= 1 ? Math.floor(s.count) : 30, a = (n - i) / r, l = new Array(r + 1);
-      for (let e4 = 0; e4 <= r; e4++) l[e4] = ge(i + e4 * a);
-      return l[r] = ge(n), l;
-    })(this.records, e2.accessor, e2.bins), void (e2.labels = we(e2.edges));
+      const r = s && xe(s.count) && s.count >= 1 ? Math.floor(s.count) : 30, a = (i - n) / r, o = new Array(r + 1);
+      for (let e4 = 0; e4 <= r; e4++) o[e4] = Se(n + e4 * a);
+      return o[r] = Se(i), o;
+    })(this.records, e2.accessor, e2.bins), void (e2.labels = Ee(e2.edges));
     if (e2.labels = (function(e3, t2, s) {
-      const i = /* @__PURE__ */ new Set(), n = [];
+      const n = /* @__PURE__ */ new Set(), i = [];
       for (let s2 = 0; s2 < e3.length; s2++) {
         const r = t2(e3[s2]);
-        null != r && (i.has(r) || (i.add(r), n.push(r)));
+        null != r && (n.has(r) || (n.add(r), i.push(r)));
       }
-      return ve(n, s);
+      return Le(i, s);
     })(this.records, e2.accessor, e2.order), e2.edges = null, e2.filter instanceof Set) {
       const t2 = new Set(e2.labels);
       Array.from(e2.filter).forEach(((s) => {
@@ -170,15 +170,15 @@ class Me {
     const s = this.dims.get(e2);
     if (!s || "category" !== s.type) return this;
     s.filter instanceof Set || (s.filter = /* @__PURE__ */ new Set());
-    const i = s.filter;
-    return i.has(t2) ? i.delete(t2) : i.add(t2), 0 === i.size && (s.filter = null), this.emit("change", this.state()), this;
+    const n = s.filter;
+    return n.has(t2) ? n.delete(t2) : n.add(t2), 0 === n.size && (s.filter = null), this.emit("change", this.state()), this;
   }
   setFilterOn(e2, t2) {
     if (null == t2) return void (e2.filter = null);
     if ("range" === e2.type) {
-      if (Array.isArray(t2) && 2 === t2.length && t2.every(me)) {
-        const [s2, i] = t2;
-        e2.filter = [Math.min(s2, i), Math.max(s2, i)];
+      if (Array.isArray(t2) && 2 === t2.length && t2.every(xe)) {
+        const [s2, n] = t2;
+        e2.filter = [Math.min(s2, n), Math.max(s2, n)];
       } else e2.filter = null;
       return;
     }
@@ -201,14 +201,14 @@ class Me {
     if (!this.hasFilter(e2)) return true;
     const s = e2.accessor(t2);
     if (e2.filter instanceof Set) return e2.filter.has(s);
-    if (!me(s)) return false;
-    const [i, n] = e2.filter;
-    return s >= i && s <= n;
+    if (!xe(s)) return false;
+    const [n, i] = e2.filter;
+    return s >= n && s <= i;
   }
   filteredRecords(e2) {
     const t2 = [];
-    return this.dims.forEach(((s, i) => {
-      i !== e2 && this.hasFilter(s) && t2.push(s);
+    return this.dims.forEach(((s, n) => {
+      n !== e2 && this.hasFilter(s) && t2.push(s);
     })), 0 === t2.length ? this.records : this.records.filter(((e3) => t2.every(((t3) => this.passes(t3, e3)))));
   }
   filteredRows() {
@@ -219,30 +219,30 @@ class Me {
     if (!t2) return { type: "category", labels: [], values: [], keys: [] };
     const s = this.filteredRecords(e2);
     if ("matrix" === t2.type) {
-      const e3 = new Map(t2.xLabels.map(((e4, t3) => [e4, t3]))), i2 = new Map(t2.yLabels.map(((e4, t3) => [e4, t3]))), n = t2.yLabels.map((() => t2.xLabels.map((() => []))));
+      const e3 = new Map(t2.xLabels.map(((e4, t3) => [e4, t3]))), n2 = new Map(t2.yLabels.map(((e4, t3) => [e4, t3]))), i = t2.yLabels.map((() => t2.xLabels.map((() => []))));
       for (let r = 0; r < s.length; r++) {
         const a = t2.accessor(s[r]);
         if (!a) continue;
-        const l = e3.get(a[0]), o = i2.get(a[1]);
-        null != l && null != o && n[o][l].push(s[r]);
+        const o = e3.get(a[0]), l = n2.get(a[1]);
+        null != o && null != l && i[l][o].push(s[r]);
       }
-      return { type: "matrix", xLabels: t2.xLabels.slice(), yLabels: t2.yLabels.slice(), matrix: n.map(((e4) => e4.map(((e5) => t2.reducer(e5))))) };
+      return { type: "matrix", xLabels: t2.xLabels.slice(), yLabels: t2.yLabels.slice(), matrix: i.map(((e4) => e4.map(((e5) => t2.reducer(e5))))) };
     }
     if ("range" === t2.type) {
-      const e3 = t2.edges || [0, 1], i2 = e3.length - 1, n = Array.from({ length: i2 }, (() => []));
-      for (let i3 = 0; i3 < s.length; i3++) {
-        const r = be(t2.accessor(s[i3]), e3);
-        r >= 0 && n[r].push(s[i3]);
+      const e3 = t2.edges || [0, 1], n2 = e3.length - 1, i = Array.from({ length: n2 }, (() => []));
+      for (let n3 = 0; n3 < s.length; n3++) {
+        const r = Te(t2.accessor(s[n3]), e3);
+        r >= 0 && i[r].push(s[n3]);
       }
-      return { type: "range", labels: we(e3), values: n.map(((e4) => t2.reducer(e4))), keys: n.map(((t3, s2) => [e3[s2], e3[s2 + 1]])), edges: e3 };
+      return { type: "range", labels: Ee(e3), values: i.map(((e4) => t2.reducer(e4))), keys: i.map(((t3, s2) => [e3[s2], e3[s2 + 1]])), edges: e3 };
     }
-    const i = /* @__PURE__ */ new Map();
-    t2.labels.forEach(((e3) => i.set(e3, [])));
+    const n = /* @__PURE__ */ new Map();
+    t2.labels.forEach(((e3) => n.set(e3, [])));
     for (let e3 = 0; e3 < s.length; e3++) {
-      const n = i.get(t2.accessor(s[e3]));
-      n && n.push(s[e3]);
+      const i = n.get(t2.accessor(s[e3]));
+      i && i.push(s[e3]);
     }
-    return { type: "category", labels: t2.labels.slice(), values: t2.labels.map(((e3) => t2.reducer(i.get(e3) || []))), keys: t2.labels.slice() };
+    return { type: "category", labels: t2.labels.slice(), values: t2.labels.map(((e3) => t2.reducer(n.get(e3) || []))), keys: t2.labels.slice() };
   }
   aggregateAll() {
     const e2 = {};
@@ -269,10 +269,10 @@ class Me {
     return null == (s = this.listeners.get(e2)) || s.delete(t2), this;
   }
   emit(e2, s) {
-    var i;
-    null == (i = this.listeners.get(e2)) || i.forEach(((i2) => {
+    var n;
+    null == (n = this.listeners.get(e2)) || n.forEach(((n2) => {
       try {
-        i2(s);
+        n2(s);
       } catch (s2) {
         t(`[Apex] a crossfilter ${e2} listener threw`, s2);
       }
@@ -287,28 +287,28 @@ class Me {
     return (t2 ? Object.keys(t2) : []).map(((e3) => ({ field: e3, label: e3 })));
   }
   tableHTML(e2, t2, s) {
-    const i = "<thead><tr>" + e2.map(((e3) => `<th>${Me.esc(e3.label)}</th>`)).join("") + "</tr></thead>", n = "<tbody>" + t2.map(((t3) => "<tr>" + e2.map(((e3) => {
-      const s2 = t3[e3.field], i2 = e3.format ? e3.format(s2, t3) : s2;
-      return `<td>${Me.esc(i2)}</td>`;
+    const n = "<thead><tr>" + e2.map(((e3) => `<th>${je.esc(e3.label)}</th>`)).join("") + "</tr></thead>", i = "<tbody>" + t2.map(((t3) => "<tr>" + e2.map(((e3) => {
+      const s2 = t3[e3.field], n2 = e3.format ? e3.format(s2, t3) : s2;
+      return `<td>${je.esc(n2)}</td>`;
     })).join("") + "</tr>")).join("") + "</tbody>";
-    return `<table class="apexcharts-cf-table">${`<caption>${t2.length} of ${s} rows</caption>`}${i}${n}</table>`;
+    return `<table class="apexcharts-cf-table">${`<caption>${t2.length} of ${s} rows</caption>`}${n}${i}</table>`;
   }
   dataTable(e2, t2) {
     if (!e2) return { refresh() {
     }, destroy() {
     } };
-    const s = t2 || {}, i = this.resolveColumns(s.columns), n = s.pageSize || 0, r = s.page || 0, a = () => {
-      const t3 = this.filteredRows(), s2 = n ? t3.slice(r * n, r * n + n) : t3;
-      e2.innerHTML = this.tableHTML(i, s2, t3.length);
+    const s = t2 || {}, n = this.resolveColumns(s.columns), i = s.pageSize || 0, r = s.page || 0, a = () => {
+      const t3 = this.filteredRows(), s2 = i ? t3.slice(r * i, r * i + i) : t3;
+      e2.innerHTML = this.tableHTML(n, s2, t3.length);
     };
     a();
-    const l = this.on("change", a);
+    const o = this.on("change", a);
     return { refresh: a, destroy: () => {
-      l(), e2.innerHTML = "";
+      o(), e2.innerHTML = "";
     } };
   }
   destroy() {
-    Me.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
+    je.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
   }
 }
 const MARK_SELECTOR = [
@@ -461,7 +461,7 @@ class LinkedViews {
   _cf() {
     const link = this.w.config.chart.link;
     const id = link && (link.id || this.w.config.chart.group);
-    return id ? Me.get(id) : null;
+    return id ? je.get(id) : null;
   }
   _isPie() {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -717,7 +717,7 @@ ApexCharts.registerFeatures({
   linkedViews: LinkedViews,
   crossfilter: (
     /** @type {any} */
-    Me
+    je
   )
 });
 export {

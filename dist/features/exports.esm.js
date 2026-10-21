@@ -1,10 +1,29 @@
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
+function pe(e) {
+  const t = e.getRootNode ? e.getRootNode() : null;
+  return t && (9 === t.nodeType || 11 === t.nodeType && "host" in t) ? t : e.ownerDocument || document;
+}
+function Me(e) {
+  const t = [];
+  let s = e;
+  for (; s; ) {
+    const e2 = pe(s);
+    t.unshift(e2), s = 11 === e2.nodeType ? e2.host : null;
+  }
+  const n = [];
+  for (const e2 of t) {
+    for (const t3 of Array.from(e2.styleSheets || [])) n.push(t3);
+    const t2 = e2.adoptedStyleSheets;
+    if (t2) for (const e3 of t2) n.push(e3);
+  }
+  return n;
+}
 const AxesUtils = _core.__apex_axes_AxesUtils;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
@@ -113,6 +132,51 @@ class Exports {
       if (el.style.getPropertyValue(prop) === "") {
         el.style.setProperty(prop, styles[prop]);
       }
+    });
+  }
+  /**
+   * Bake CSS variables into the clone. A fill like `var(--brand)` or
+   * `color-mix(in srgb, var(--brand) 85%, transparent)` only means something
+   * under the page that defines the variable; in a saved SVG or PNG it has
+   * nothing to resolve against and the mark loses its colour. Each such
+   * attribute or inline style is replaced with the live element's computed
+   * value. Runs on the fresh clone, before anything changes its shape, so
+   * the two trees line up element for element.
+   * @param {Element} live the chart's elWrap
+   * @param {Element} clone its deep clone
+   */
+  resolveCssVars(live, clone) {
+    const liveEls = [live, ...Array.from(live.querySelectorAll("*"))];
+    const cloneEls = [clone, ...Array.from(clone.querySelectorAll("*"))];
+    if (liveEls.length !== cloneEls.length) return;
+    const attrs = ["fill", "stroke", "stop-color", "flood-color", "color"];
+    cloneEls.forEach((el, k) => {
+      let cs = null;
+      const value = (prop) => {
+        cs = cs || BrowserAPIs.getComputedStyle(
+          /** @type {any} */
+          liveEls[k]
+        );
+        return cs && cs.getPropertyValue ? cs.getPropertyValue(prop) : "";
+      };
+      attrs.forEach((a) => {
+        const v = el.getAttribute(a);
+        if (v && v.indexOf("var(") !== -1) {
+          const resolved = value(a);
+          if (resolved) el.setAttribute(a, resolved);
+        }
+      });
+      const style = (
+        /** @type {any} */
+        el.style
+      );
+      if (!style || style.cssText.indexOf("var(") === -1) return;
+      Array.from(style).forEach((prop) => {
+        if (style.getPropertyValue(prop).indexOf("var(") !== -1) {
+          const resolved = value(prop);
+          if (resolved) style.setProperty(prop, resolved);
+        }
+      });
     });
   }
   /**
@@ -365,7 +429,10 @@ class Exports {
         );
       }
     };
-    Array.from(document.styleSheets || []).forEach(walkSheet);
+    const el = this.w.dom.elWrap;
+    (el ? Me(el) : Array.from(document.styleSheets || [])).forEach(
+      walkSheet
+    );
     return Promise.all(remote).then(() => found);
   }
   /**
@@ -493,6 +560,7 @@ class Exports {
         /** @type {HTMLElement} */
         w.dom.elWrap.cloneNode(true)
       );
+      this.resolveCssVars(w.dom.elWrap, clonedNode);
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);

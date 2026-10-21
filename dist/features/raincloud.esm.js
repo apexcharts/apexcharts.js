@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -49,8 +49,8 @@ function A(e, t) {
   const s = e.length;
   if (0 === s) return NaN;
   if (1 === s) return e[0];
-  const i = (s - 1) * t, n = Math.floor(i), r = Math.ceil(i);
-  return n === r ? e[n] : e[n] + (e[r] - e[n]) * (i - n);
+  const n = (s - 1) * t, i = Math.floor(n), r = Math.ceil(n);
+  return i === r ? e[i] : e[i] + (e[r] - e[i]) * (n - i);
 }
 function stdDev(values) {
   const n = values.length;

@@ -18,23 +18,23 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.0
+ * ApexCharts v8.4.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-const D = 0.05, K = 0.05, O = 1 / 45;
-function $(e, t, s, i) {
-  const n = { value: e, velocity: 0, target: e, stiffness: t, damping: s };
-  return n;
+const N = 0.05, K = 0.05, q = 1 / 45;
+function F(e, t, s, n) {
+  const i = { value: e, velocity: 0, target: e, stiffness: t, damping: s };
+  return i;
 }
-function q(e, t) {
+function $(e, t) {
   if (t <= 0) return W(e);
   let s = t;
   for (; s > 0; ) {
-    const t2 = Math.min(s, O), i = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
-    e.velocity += i * t2, e.value += e.velocity * t2, s -= t2;
+    const t2 = Math.min(s, q), n = -e.stiffness * (e.value - e.target) - e.damping * e.velocity;
+    e.velocity += n * t2, e.value += e.velocity * t2, s -= t2;
   }
   return !!W(e) && (e.value = e.target, e.velocity = 0, true);
 }
@@ -43,11 +43,11 @@ function _(e, t) {
 }
 function W(e) {
   var _a, _b;
-  const t = (_a = e.restVelocity) != null ? _a : D, s = (_b = e.restDisplacement) != null ? _b : K;
+  const t = (_a = e.restVelocity) != null ? _a : N, s = (_b = e.restDisplacement) != null ? _b : K;
   return Math.abs(e.velocity) < t && Math.abs(e.value - e.target) < s;
 }
 const V = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-function z(e) {
+function U(e) {
   var _a;
   return (_a = V[e != null ? e : "crisp"]) != null ? _a : V.crisp;
 }
@@ -250,7 +250,7 @@ const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
 function springParams(preset, speed) {
-  const [stiffness, damping] = z(
+  const [stiffness, damping] = U(
     /** @type {import('apex-commons').SpringPreset|undefined} */
     preset
   );
@@ -1584,10 +1584,10 @@ class Unit {
     let zmax = -Infinity;
     unitData.forEach(
       (cat) => (cat || []).forEach((d) => {
-        const z2 = d && typeof d === "object" ? d[field] : null;
-        if (typeof z2 === "number" && isFinite(z2)) {
-          if (z2 < zmin) zmin = z2;
-          if (z2 > zmax) zmax = z2;
+        const z = d && typeof d === "object" ? d[field] : null;
+        if (typeof z === "number" && isFinite(z)) {
+          if (z < zmin) zmin = z;
+          if (z > zmax) zmax = z;
         }
       })
     );
@@ -1604,9 +1604,9 @@ class Unit {
    */
   _scatterRadius(d, st, fallback) {
     if (!st) return fallback;
-    const z2 = d && typeof d === "object" ? d[st.field] : null;
-    if (typeof z2 !== "number" || !isFinite(z2)) return st.rMin;
-    const t = st.zmax > st.zmin ? (z2 - st.zmin) / (st.zmax - st.zmin) : 1;
+    const z = d && typeof d === "object" ? d[st.field] : null;
+    if (typeof z !== "number" || !isFinite(z)) return st.rMin;
+    const t = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
     const tc = Math.max(0, Math.min(1, t));
     const aMin = st.rMin * st.rMin;
     const aMax = st.rMax * st.rMax;
@@ -2430,8 +2430,8 @@ class Unit {
     for (let k = 0; k < dots.length; k++) {
       const d = dots[k];
       const carried = live && !d.isEnter && d.key != null ? live.get(d.key) : null;
-      const sx = carried ? carried.x : $(d.cx0, stiffness, damping);
-      const sy = carried ? carried.y : $(d.cy0, stiffness, damping);
+      const sx = carried ? carried.x : F(d.cx0, stiffness, damping);
+      const sy = carried ? carried.y : F(d.cy0, stiffness, damping);
       if (carried) {
         sx.stiffness = stiffness;
         sy.stiffness = stiffness;
@@ -2523,8 +2523,8 @@ class Unit {
             _(d.sy, d.y);
             d.released = true;
           }
-          const restX = q(d.sx, dt);
-          const restY = q(d.sy, dt);
+          const restX = $(d.sx, dt);
+          const restY = $(d.sy, dt);
           if (!d.released || !restX || !restY) done = false;
           cx = d.sx.value;
           cy = d.sy.value;
