@@ -131,6 +131,48 @@ class Exports {
   }
 
   /**
+   * Bake CSS variables into the clone. A fill like `var(--brand)` or
+   * `color-mix(in srgb, var(--brand) 85%, transparent)` only means something
+   * under the page that defines the variable; in a saved SVG or PNG it has
+   * nothing to resolve against and the mark loses its colour. Each such
+   * attribute or inline style is replaced with the live element's computed
+   * value. Runs on the fresh clone, before anything changes its shape, so
+   * the two trees line up element for element.
+   * @param {Element} live the chart's elWrap
+   * @param {Element} clone its deep clone
+   */
+  resolveCssVars(live, clone) {
+    const liveEls = [live, ...Array.from(live.querySelectorAll('*'))]
+    const cloneEls = [clone, ...Array.from(clone.querySelectorAll('*'))]
+    if (liveEls.length !== cloneEls.length) return
+    const attrs = ['fill', 'stroke', 'stop-color', 'flood-color', 'color']
+    cloneEls.forEach((el, k) => {
+      /** @type {any} */
+      let cs = null
+      const value = (/** @type {string} */ prop) => {
+        cs = cs || BrowserAPIs.getComputedStyle(/** @type {any} */ (liveEls[k]))
+        // SSR answers {} (no computed styles): leave the value as written.
+        return cs && cs.getPropertyValue ? cs.getPropertyValue(prop) : ''
+      }
+      attrs.forEach((a) => {
+        const v = el.getAttribute(a)
+        if (v && v.indexOf('var(') !== -1) {
+          const resolved = value(a)
+          if (resolved) el.setAttribute(a, resolved)
+        }
+      })
+      const style = /** @type {any} */ (el).style
+      if (!style || style.cssText.indexOf('var(') === -1) return
+      Array.from(style).forEach((/** @type {any} */ prop) => {
+        if (style.getPropertyValue(prop).indexOf('var(') !== -1) {
+          const resolved = value(prop)
+          if (resolved) style.setProperty(prop, resolved)
+        }
+      })
+    })
+  }
+
+  /**
    * Re-applies, as inline styles on the clone, the rules that used to reach
    * the exported SVG through an injected `<style>` block. A strict
    * Content-Security-Policy without `'unsafe-inline'` blocks that block and
@@ -616,6 +658,7 @@ class Exports {
       const clonedNode = /** @type {HTMLElement} */ (
         w.dom.elWrap.cloneNode(true)
       )
+      this.resolveCssVars(w.dom.elWrap, clonedNode)
       clonedNode.style.width = width + 'px'
       clonedNode.style.height = height + 'px'
       // Strata: replace any series-canvas with an <image> before serialization.

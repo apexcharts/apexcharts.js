@@ -49,7 +49,10 @@ export default class TreemapHelpers {
       colorShadePercent = chartType === 'treemap' ? (1 - p) * k : 1 - p
     }
 
-    let color = colorProps.color
+    // A var() colour is resolved against the chart, not document.body: a
+    // variable set on the chart's container or shadow host is invisible from
+    // the body, and the shade maths would then work on black.
+    let color = Utils.getThemeColor(colorProps.color, w.dom.elWrap)
 
     if (opts.enableShades) {
       // shadeColor may return rgb() or hex, and hexToRgba needs hex. Dark mode
