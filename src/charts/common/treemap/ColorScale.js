@@ -48,26 +48,34 @@ function toHexPair(n) {
  * @returns {string}
  */
 export function mixColors(c1, c2, t) {
-  const a = Utils.parseHex(normalizeHex(c1))
-  const b = Utils.parseHex(normalizeHex(c2))
+  const a = Utils.parseColor(normalizeHex(c1))
+  const b = Utils.parseColor(normalizeHex(c2))
   if (!a || !b) return c1
+  return toHex(a.map((v, k) => lerp(v, b[k], t)))
+}
+
+/**
+ * [r, g, b, a] as #rrggbb, or as #rrggbbaa when it is not opaque.
+ * @param {number[]} c
+ * @returns {string}
+ */
+function toHex(c) {
   return (
     '#' +
-    toHexPair(lerp(a[0], b[0], t)) +
-    toHexPair(lerp(a[1], b[1], t)) +
-    toHexPair(lerp(a[2], b[2], t))
+    c.slice(0, 3).map(toHexPair).join('') +
+    (c[3] < 1 ? toHexPair(c[3] * 255) : '')
   )
 }
 
 /**
+ * Any hex (#RGB, #RGBA, #RRGGBB, #RRGGBBAA), rgb() or rgba() colour as
+ * #rrggbb, keeping its alpha as #rrggbbaa; black for anything else.
  * @param {string} c
  * @returns {string}
  */
 function normalizeHex(c) {
-  if (typeof c !== 'string') return '#000000'
-  if (Utils.isColorHex(c)) return c
-  const asHex = Utils.rgb2hex(c)
-  return asHex || '#000000'
+  const rgba = typeof c === 'string' ? Utils.parseColor(c.trim()) : null
+  return rgba ? toHex(rgba) : '#000000'
 }
 
 /**
@@ -305,7 +313,8 @@ export function buildContinuousScale(w) {
  * @returns {string}
  */
 export function readableOn(bg) {
-  const hex = normalizeHex(bg)
+  // The contrast maths reads #rrggbb only, so judge the hue under any alpha.
+  const hex = normalizeHex(bg).slice(0, 7)
   return Utils.getContrastRatio(hex, '#ffffff') >=
     Utils.getContrastRatio(hex, '#000000')
     ? '#ffffff'
