@@ -914,7 +914,10 @@ export default class BarDataLabels {
             text = ''
           }
         } else {
-          if (textRects.height / 1.6 > Math.abs(barHeight)) {
+          if (
+            textRects.height / 1.6 > Math.abs(barHeight) ||
+            textRects.width > Math.abs(barWidth)
+          ) {
             text = ''
           }
         }
