@@ -68,6 +68,48 @@ describe('xaxis.stepSize on a numeric axis', () => {
     expect(chart.w.globals.maxX).toBe(100)
   })
 
+  it('a step that divides a fixed min..max window is used (#5082)', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bubble', width: 800, height: 300 },
+      series: [
+        { data: Array.from({ length: 20 }, (_, i) => [(i * 37) % 750, i, 20]) },
+      ],
+      xaxis: { type: 'numeric', min: 0, max: 200, stepSize: 50 },
+    })
+    const gl = chart.w.globals
+    expect(gl.xAxisScale.result).toEqual([0, 50, 100, 150, 200])
+    expect(gl.xTickAmount).toBe(4)
+    expect(gl.maxX).toBe(200)
+
+    const l = labels()
+    expect(l.map((d) => d.text)).toEqual(['0', '50', '100', '150', '200'])
+    const at = (t) => l.find((d) => d.text === t).x
+    expect(at('100') - at('0')).toBeCloseTo((at('200') - at('0')) / 2, 1)
+  })
+
+  it('a step that does not divide a fixed window leaves max in charge', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 800, height: 300 },
+      series: [{ data: Array.from({ length: 12 }, (_, i) => [i * 9, i]) }],
+      xaxis: { type: 'numeric', min: 0, max: 100, stepSize: 30 },
+    })
+    const gl = chart.w.globals
+    expect(gl.maxX).toBe(100)
+    expect(gl.xAxisScale.result[0]).toBe(0)
+    expect(gl.xAxisScale.niceMax).toBeCloseTo(100, 0)
+  })
+
+  it('tickAmount still wins over stepSize on a fixed window', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 800, height: 300 },
+      series: [{ data: Array.from({ length: 12 }, (_, i) => [i * 20, i]) }],
+      xaxis: { type: 'numeric', min: 0, max: 200, stepSize: 50, tickAmount: 8 },
+    })
+    expect(chart.w.globals.xAxisScale.result).toEqual([
+      0, 25, 50, 75, 100, 125, 150, 175, 200,
+    ])
+  })
+
   it('a step too fine to draw keeps the default tick count', () => {
     const chart = createChartWithOptions({
       chart: { type: 'line', width: 800, height: 300 },
