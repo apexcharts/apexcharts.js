@@ -250,7 +250,9 @@ export default class TrellisChrome {
     wrap.className = 'apexcharts-trellis-legend apexcharts-legend'
     wrap.setAttribute('role', 'list')
 
-    names.forEach((name) => {
+    const labelColors = t.w.config.legend.labels.colors
+
+    names.forEach((name, i) => {
       const item = BrowserAPIs.createElement('div')
       item.className = 'apexcharts-legend-series apexcharts-trellis-legend-item'
       item.setAttribute('role', 'listitem')
@@ -262,6 +264,10 @@ export default class TrellisChrome {
       const text = BrowserAPIs.createElement('span')
       text.className = 'apexcharts-legend-text'
       text.textContent = name
+      const textColor = Array.isArray(labelColors)
+        ? labelColors[i]
+        : labelColors
+      if (textColor) text.style.color = textColor
 
       item.appendChild(marker)
       item.appendChild(text)
