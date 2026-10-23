@@ -252,6 +252,7 @@ export default class BarDataLabels {
           barHeight: params.barHeight,
           textRects,
           dataLabelsConfig,
+          keep: hl?.keep,
         })
 
     if (drawTotal) {
@@ -799,7 +800,7 @@ export default class BarDataLabels {
     }
   }
 
-  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
+  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any, keep?: boolean}} opts */
   drawCalculatedDataLabels({
     x,
     y,
@@ -812,6 +813,7 @@ export default class BarDataLabels {
     barHeight,
     barWidth,
     dataLabelsConfig,
+    keep,
   }) {
     const w = this.w
     let rotate = 'rotate(0)'
@@ -905,7 +907,8 @@ export default class BarDataLabels {
         // A collapsing series is measured against its NEW extent, which is
         // already zero, so this would blank a label whose bar is still at full
         // height on screen. It starts out fitting and fades away with the mark.
-        !isSeriesCollapsing
+        !isSeriesCollapsing &&
+        !keep
       ) {
         // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
         // Note: This issue is only seen in stacked charts

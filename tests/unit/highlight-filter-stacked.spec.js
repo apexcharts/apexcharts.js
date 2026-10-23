@@ -628,10 +628,24 @@ describe('stacked: labels and totals', () => {
     ])
   })
 
+  test('a part of 0 is labelled at its part edge, not its whole', () => {
+    const c = withLabels({
+      series: [
+        { name: 'A', data: [10, 8, 6], highlightData: [5, 0, 3] },
+        { name: 'B', data: [4, 4, 4], highlightData: [2, 0, 1] },
+      ],
+    })
+    const ys = [...c.el.querySelectorAll('.apexcharts-datalabels')].map((g) =>
+      parseFloat(
+        g.querySelectorAll('.apexcharts-datalabel')[1].getAttribute('y'),
+      ),
+    )
+    ys.forEach((y) => expect(y).toBeGreaterThan(c.w.layout.gridHeight - 10))
+  })
+
   test('a horizontal part of 0 keeps its label', () => {
     const c = withLabels({
-      chart: { type: 'bar' },
-      options: { plotOptions: { bar: { horizontal: true } } },
+      bar: { horizontal: true },
       series: [
         { name: 'A', data: [10, 8, 6], highlightData: [5, 0, 3] },
         { name: 'B', data: [4, 4, 4], highlightData: [2, 0, 1] },
