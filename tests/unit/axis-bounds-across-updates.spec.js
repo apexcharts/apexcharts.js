@@ -83,12 +83,23 @@ describe('axis bounds across updates', () => {
   })
 
   it('clears the zoomed flag when updateSeries puts the axes back', async () => {
-    const chart = await mount()
+    const chart = await mount({
+      chart: {
+        type: 'line',
+        width: 600,
+        height: 300,
+        animations: { enabled: false },
+        zoom: { enabled: true },
+        toolbar: { show: false },
+      },
+    })
     chart.zoomX(15, 20)
     expect(chart.w.interact.zoomed).toBe(true)
-    await chart.updateSeries(shifted(2), false)
+    expect(document.querySelector('#c .apexcharts-reset-icon')).not.toBeNull()
+    await chart.updateSeries(shifted(2))
     expect(chart.w.interact.zoomed).toBe(false)
     expect(chart.getState().zoomed).toBe(false)
+    expect(document.querySelector('#c .apexcharts-reset-icon')).toBeNull()
     chart.destroy()
   })
 })

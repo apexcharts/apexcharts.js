@@ -1143,6 +1143,7 @@ export default class ApexCharts {
     this.series.prepareDataUpdate()
     this.updateHelpers.revertDefaultAxisMinMax()
     this.w.interact.zoomed = false
+    this.toolbar?.clearZoomAffordance()
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,
