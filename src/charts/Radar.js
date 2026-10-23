@@ -369,6 +369,7 @@ class Radar {
         })
 
         if (elPointsWrap) {
+          markers.setupMarkerDelegation(elPointsWrap)
           elPointsWrap.add(point)
         }
 
