@@ -615,6 +615,34 @@ describe('stacked: labels and totals', () => {
     expect(labelTexts(c)[0][1][0]).toBe('')
   })
 
+  test('a part of 0 keeps its label', () => {
+    const c = withLabels({
+      series: [
+        { name: 'A', data: [10, 8, 6], highlightData: [5, 0, 3] },
+        { name: 'B', data: [4, 4, 4], highlightData: [2, 0, 1] },
+      ],
+    })
+    expect(labelTexts(c)).toEqual([
+      ['0', ['5', '0', '3']],
+      ['1', ['2', '0', '1']],
+    ])
+  })
+
+  test('a horizontal part of 0 keeps its label', () => {
+    const c = withLabels({
+      chart: { type: 'bar' },
+      options: { plotOptions: { bar: { horizontal: true } } },
+      series: [
+        { name: 'A', data: [10, 8, 6], highlightData: [5, 0, 3] },
+        { name: 'B', data: [4, 4, 4], highlightData: [2, 0, 1] },
+      ],
+    })
+    expect(labelTexts(c)).toEqual([
+      ['0', ['5', '0', '3']],
+      ['1', ['2', '0', '1']],
+    ])
+  })
+
   test('a segment label sits inside its part segment', () => {
     const c = withLabels({
       series: SERIES,

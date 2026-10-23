@@ -1138,8 +1138,8 @@ export default class HighlightFilter {
       overflow,
       val,
       label: horiz
-        ? { x: v2, barWidth: Math.abs(v2 - v1) }
-        : { y: v2, barHeight: Math.abs(v2 - v1) },
+        ? { x: v2, ...(val !== 0 && { barWidth: Math.abs(v2 - v1) }) }
+        : { y: v2, ...(val !== 0 && { barHeight: Math.abs(v2 - v1) }) },
       // The stacked total, on the side of the stack core puts it (by the
       // sign the drawing series' label reads), or false when the stack has
       // no part at all.
