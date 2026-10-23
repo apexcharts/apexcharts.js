@@ -361,3 +361,26 @@ describe("stackType: '100%' holds its percentage domain across updates", () => {
     chart.destroy()
   })
 })
+
+describe('turning a trellis off through updateOptions', () => {
+  it('trellis: null leaves one chart and no grid', async () => {
+    const { chart, el } = mount()
+    await chart.render()
+    expect(el.querySelectorAll('.apexcharts-trellis-cell')).toHaveLength(2)
+
+    await chart.updateOptions({ trellis: null })
+    expect(el.querySelectorAll('.apexcharts-trellis')).toHaveLength(0)
+    expect(el.querySelectorAll('svg.apexcharts-svg')).toHaveLength(1)
+    chart.destroy()
+  })
+
+  it('trellis: { by: null } leaves one chart and no grid', async () => {
+    const { chart, el } = mount()
+    await chart.render()
+
+    await chart.updateOptions({ trellis: { by: null } })
+    expect(el.querySelectorAll('.apexcharts-trellis')).toHaveLength(0)
+    expect(el.querySelectorAll('svg.apexcharts-svg')).toHaveLength(1)
+    chart.destroy()
+  })
+})
