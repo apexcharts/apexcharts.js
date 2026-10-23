@@ -19,20 +19,6 @@ import {
 
 class BoxCandleStick extends Bar {
   /**
-   * The previous shape of one half of a box, or null.
-   *
-   * A box plot draws each datum as TWO paths, the box either side of the
-   * median, and both carry the datum's key. The keyed lookup the bar renderer
-   * uses (one path per key) would hand both halves the same previous path,
-   * so the upper box would morph out of the lower one. Halves are captured in
-   * draw order, so the n-th path under a key is half n. Candlesticks draw one
-   * path per datum and take the plain keyed lookup.
-   * @param {number} realIndex
-   * @param {number} j
-   * @param {number} pi which half, in draw order
-   * @returns {string | null}
-   */
-  /**
    * Whether this update keeps too little of the series' identity to morph.
    *
    * Candles morph from their own previous shape, matched by datum key. That
@@ -60,9 +46,17 @@ class BoxCandleStick extends Bar {
   }
 
   /**
+   * The previous shape of one half of a box, or null.
+   *
+   * A box plot draws each datum as TWO paths, the box either side of the
+   * median, and both carry the datum's key. The keyed lookup the bar renderer
+   * uses (one path per key) would hand both halves the same previous path,
+   * so the upper box would morph out of the lower one. Halves are captured in
+   * draw order, so the n-th path under a key is half n. Candlesticks draw one
+   * path per datum and take the plain keyed lookup.
    * @param {number} realIndex
    * @param {number} j
-   * @param {number} pi
+   * @param {number} pi which half, in draw order
    * @returns {string | null}
    */
   _prevBoxHalf(realIndex, j, pi) {
@@ -187,11 +181,11 @@ class BoxCandleStick extends Bar {
       const pointsByCat = []
 
       // Viewport culling (vertical candlestick / OHLC / boxPlot): for bars whose
-      // pixel-x falls outside the plot area (+ a one-bar buffer) drawVerticalBoxPaths
+      // pixel-x falls outside the plot area (+ a one-bar buffer) drawBoxPaths
       // returns before building the (costly) path string + pathFrom, and we skip
       // DOM creation here. Pixel-space testing means this is automatic on zoom/pan
       // (off-screen bars get a barXPosition < 0 or > gridWidth) and a complete no-op
-      // when the whole series fits. drawVerticalBoxPaths still computes each bar's
+      // when the whole series fits. drawBoxPaths still computes each bar's
       // x/y positions before the early-out, so the seriesXvalues/seriesYvalues
       // arrays below stay filled for every j and tooltip/crosshair index-mapping
       // stays correct for the culled bars.
@@ -223,36 +217,25 @@ class BoxCandleStick extends Bar {
       for (let j = 0; j < dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
-        let paths = /** @type {any} */ (null)
-        const pathsParams = {
-          indexes: {
-            i,
-            j,
-            realIndex,
-            translationsIndex,
-          },
-          x,
-          y,
-          strokeWidth,
-          elSeries,
-        }
-
-        if (this.isHorizontal) {
-          paths = this.drawHorizontalBoxPaths({
-            ...pathsParams,
-            yDivision,
-            barHeight,
-            zeroW,
+        const paths = /** @type {any} */ (
+          this.drawBoxPaths({
+            indexes: {
+              i,
+              j,
+              realIndex,
+              translationsIndex,
+            },
+            x,
+            y,
+            strokeWidth,
+            division: this.isHorizontal ? yDivision : xDivision,
+            band: this.isHorizontal ? barHeight : barWidth,
+            zero: this.isHorizontal ? zeroW : zeroH,
+            cullBounds: this.isHorizontal
+              ? null
+              : { lo: -cullBuffer, hi: gridW + cullBuffer },
           })
-        } else {
-          paths = this.drawVerticalBoxPaths({
-            ...pathsParams,
-            xDivision,
-            barWidth,
-            zeroH,
-            cullBounds: { lo: -cullBuffer, hi: gridW + cullBuffer },
-          })
-        }
+        )
 
         y = paths.y
         x = paths.x
@@ -264,17 +247,17 @@ class BoxCandleStick extends Bar {
         }
         yArrj.push(y)
 
-        // drawVerticalBoxPaths returns culled:true for off-screen bars (it
-        // skipped the path-string build), and both do for a null datum.
+        // drawBoxPaths returns culled:true for off-screen columns (it skipped
+        // the path-string build), and for a null datum.
         if (paths.culled) {
           continue
         }
 
         const barGoalLine = this.barHelpers.drawGoalLine({
-          barXPosition: paths.barXPosition,
-          barYPosition: paths.barYPosition,
-          goalX: paths.goalX,
-          goalY: paths.goalY,
+          barXPosition: paths.slot,
+          barYPosition: paths.slot,
+          goalX: paths.goals,
+          goalY: paths.goals,
           barHeight,
           barWidth,
         })
@@ -337,36 +320,22 @@ class BoxCandleStick extends Bar {
         if (boxPointsOpts && boxPointsOpts.show !== false) {
           const pts = w.candleData.seriesBoxPoints[realIndex]?.[j]
           if (pts && pts.length) {
-            /** @param {number} v */
-            const logVal = (v) =>
-              /** @type {any} */ (this.coreUtils).getLogValAtSeriesIndex(
-                v,
-                realIndex,
-              )
-            let center, halfExtent, alongFn
-            if (this.isHorizontal) {
-              const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1)
-              const bh = barHeight ?? 0
-              const z = zeroW ?? 0
-              center = paths.barYPosition + bh / 2
-              halfExtent = bh / 2
-              alongFn = (/** @type {number} */ v) => z + logVal(v) / yRatio
-            } else {
-              const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1)
-              const bw = barWidth ?? 0
-              const z = zeroH ?? 0
-              center = paths.barXPosition + bw / 2
-              halfExtent = bw / 2
-              alongFn = (/** @type {number} */ v) => z - logVal(v) / yRatio
-            }
+            const band = (this.isHorizontal ? barHeight : barWidth) ?? 0
             const groups = buildJitterGroups({
               points: pts,
               extent: jx,
               seedA: realIndex,
               seedB: j,
-              center,
-              halfExtent,
-              alongFn,
+              center: paths.slot + band / 2,
+              halfExtent: band / 2,
+              // the box's own value mapping, from an observation's log value
+              alongFn: (/** @type {number} */ v) =>
+                paths.along(
+                  /** @type {any} */ (this.coreUtils).getLogValAtSeriesIndex(
+                    v,
+                    realIndex,
+                  ),
+                ),
               isHorizontal: this.isHorizontal,
               options: boxPointsOpts,
             })
@@ -424,25 +393,32 @@ class BoxCandleStick extends Bar {
     return ret
   }
 
-  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts */
-  drawVerticalBoxPaths({
+  /**
+   * One candle, OHLC tick or box in either orientation. Every shape is built
+   * in (along, across) coordinates: `along` is the value axis, `across` the
+   * category slot from `slot` to `slot + band`. A column maps them to (y, x)
+   * and a row to (x, y), so both orientations draw the same shape. Only the
+   * box plot has a horizontal form (Defaults turns a horizontal candlestick
+   * off).
+   * @param {{indexes: any, x: any, y: any, division: any, band: any, zero: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts
+   */
+  drawBoxPaths({
     indexes,
     x,
-    xDivision,
-    barWidth,
-    zeroH,
+    y,
+    division,
+    band,
+    zero,
     strokeWidth,
     cullBounds = null,
   }) {
     const w = this.w
     const graphics = new Graphics(this.w)
-
-    const i = indexes.i
-    const j = indexes.j
+    const vertical = !this.isHorizontal
+    const { i, j, realIndex, translationsIndex } = indexes
 
     const { colors: candleColors } = w.config.plotOptions.candlestick
     const { colors: boxColors } = this.boxOptions
-    const realIndex = indexes.realIndex
 
     /**
      * @param {string} color
@@ -450,57 +426,56 @@ class BoxCandleStick extends Bar {
     const getColor = (color) =>
       Array.isArray(color) ? color[realIndex] : color
 
-    const colorPos = getColor(candleColors.upward)
-    const colorNeg = getColor(candleColors.downward)
-
-    const yRatio = this.yRatio[indexes.translationsIndex] * (this.isReversed ? -1 : 1)
-
     const ohlc = this.getOHLCValue(realIndex, j)
-    let l1 = zeroH
-    let l2 = zeroH
+    const color = this.isBoxPlot
+      ? [getColor(boxColors.lower), getColor(boxColors.upper)]
+      : [
+          getColor(
+            ohlc.o < ohlc.c ? candleColors.upward : candleColors.downward,
+          ),
+        ]
 
-    let color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg]
-
-    if (this.isBoxPlot) {
-      color = [getColor(boxColors.lower), getColor(boxColors.upper)]
-    }
-
-    let y1 = Math.min(ohlc.o, ohlc.c)
-    let y2 = Math.max(ohlc.o, ohlc.c)
-    let m = ohlc.m
+    // A value's pixel along the value axis: up a column, right along a row.
+    const ratio =
+      (vertical ? -this.yRatio[translationsIndex] : this.invertedYRatio) *
+      (this.isReversed ? -1 : 1)
+    /** @param {number} v */
+    const along = (v) => zero + v / ratio
 
     // On a numeric x axis the GROUP of candles/boxes at an x is centered on
     // it, the same mapping grouped columns use. Offsetting by one bar width
     // instead centered only the first series: with three series the last one
     // ran past the right edge of the plot, half clipped, and its final candle
     // fell outside the cull bounds and was not drawn at all. One series is
-    // unchanged (barWidth * seriesLen / 2 is barWidth / 2).
-    let barXPosition = x + barWidth * this.visibleI
-    if (w.axisFlags.isXNumeric) {
-      const pos = this.getBarXForNumericXAxis({ x, barWidth, realIndex, j })
-      x = pos.x
-      barXPosition = pos.barXPosition
+    // unchanged (barWidth * seriesLen / 2 is barWidth / 2). A row is one band
+    // per category on its side, a date or number x included: see
+    // Bar.drawBarPaths.
+    let slot = (vertical ? x : y) + band * this.visibleI
+    if (vertical && w.axisFlags.isXNumeric) {
+      ;({ x, barXPosition: slot } = this.getBarXForNumericXAxis({
+        x,
+        barWidth: band,
+        realIndex,
+        j,
+      }))
     }
+    // where the next category's slot starts
+    const next = !vertical
+      ? y + division
+      : w.axisFlags.isXNumeric
+        ? x
+        : x + division
 
     // a null or missing datum draws nothing, culled like an off-screen one
     const hole = /** @type {any} */ (this.series)[i]?.[j] == null
-    if (hole) {
-      y1 = zeroH
-      y2 = zeroH
-    } else {
-      y1 = zeroH - y1 / yRatio
-      y2 = zeroH - y2 / yRatio
-      l1 = zeroH - ohlc.h / yRatio
-      l2 = zeroH - ohlc.l / yRatio
-      m = zeroH - ohlc.m / yRatio
-    }
+    const a1 = hole ? zero : along(Math.min(ohlc.o, ohlc.c))
+    const a2 = hole ? zero : along(Math.max(ohlc.o, ohlc.c))
+    const pos = vertical ? { x: next, y: a2 } : { x: a2, y: next }
 
-    // Viewport cull: an off-screen bar skips the path-string build below (and
-    // pathFrom). Positions (barXPosition / y2 / advanced x) are already computed,
-    // so the caller still fills seriesXvalues/seriesYvalues densely — only the
-    // string concatenation + DOM work is avoided. x advances exactly as the
-    // normal return path would (category axis accumulates xDivision; numeric
-    // recomputes from seriesX next iteration so its returned x is moot).
+    // Viewport cull (columns only; a row chart does not zoom): an off-screen
+    // bar skips the path-string build below (and pathFrom). Positions are
+    // already computed, so the caller still fills seriesXvalues/seriesYvalues
+    // densely; only the string concatenation + DOM work is avoided.
     //
     // Except a candle that was on screen before an animated update: it is
     // drawn so it can morph to its new, off-screen place and slide out under
@@ -511,75 +486,87 @@ class BoxCandleStick extends Bar {
     if (
       hole ||
       (cullBounds &&
-        (barXPosition + barWidth < cullBounds.lo ||
-          barXPosition > cullBounds.hi) &&
+        (slot + band < cullBounds.lo || slot > cullBounds.hi) &&
         !this._wasOnScreen(realIndex, j))
     ) {
-      return {
-        pathTo: null,
-        pathFrom: null,
-        x: w.axisFlags.isXNumeric ? x : x + xDivision,
-        y: y2,
-        barXPosition,
-        color,
-        culled: true,
-      }
+      return { ...pos, culled: true }
     }
+
+    const l1 = along(ohlc.h)
+    const l2 = along(ohlc.l)
+    const m = along(ohlc.m)
+    const mid = slot + band / 2
+    const far = slot + band
+    const q1 = slot + band / 4
+    const q3 = slot + band - band / 4
+    // An open outline ends half a stroke past the corner it started at, so
+    // the corner is filled under a butt cap: toward the lower values from
+    // a1, toward the higher ones from a2.
+    const half = (vertical ? strokeWidth : -strokeWidth) / 2
+
+    /**
+     * @param {number} a along
+     * @param {number} c across
+     */
+    const M = (a, c) => (vertical ? graphics.move(c, a) : graphics.move(a, c))
+    /**
+     * @param {number} a along
+     * @param {number} c across
+     */
+    const L = (a, c) => (vertical ? graphics.line(c, a) : graphics.line(a, c))
 
     let pathTo
     if (this.isOHLC) {
-      const centerX = barXPosition + barWidth / 2
-      const openY = zeroH - ohlc.o / yRatio
-      const closeY = zeroH - ohlc.c / yRatio
-
+      const openA = along(ohlc.o)
+      const closeA = along(ohlc.c)
       pathTo = [
-        graphics.move(centerX, l1) +
-          graphics.line(centerX, l2) +
-          graphics.move(centerX, openY) +
-          graphics.line(barXPosition, openY) +
-          graphics.move(centerX, closeY) +
-          graphics.line(barXPosition + barWidth, closeY),
+        M(l1, mid) +
+          L(l2, mid) +
+          M(openA, mid) +
+          L(openA, slot) +
+          M(closeA, mid) +
+          L(closeA, far),
       ]
     } else if (this.isBoxPlot) {
       pathTo = [
-        graphics.move(barXPosition, y1) +
-          graphics.line(barXPosition + barWidth / 2, y1) +
-          graphics.line(barXPosition + barWidth / 2, l1) +
-          graphics.line(barXPosition + barWidth / 4, l1) +
-          graphics.line(barXPosition + barWidth - barWidth / 4, l1) +
-          graphics.line(barXPosition + barWidth / 2, l1) +
-          graphics.line(barXPosition + barWidth / 2, y1) +
-          graphics.line(barXPosition + barWidth, y1) +
-          graphics.line(barXPosition + barWidth, m) +
-          graphics.line(barXPosition, m) +
-          graphics.line(barXPosition, y1 + strokeWidth / 2),
-        graphics.move(barXPosition, m) +
-          graphics.line(barXPosition + barWidth, m) +
-          graphics.line(barXPosition + barWidth, y2) +
-          graphics.line(barXPosition + barWidth / 2, y2) +
-          graphics.line(barXPosition + barWidth / 2, l2) +
-          graphics.line(barXPosition + barWidth - barWidth / 4, l2) +
-          graphics.line(barXPosition + barWidth / 4, l2) +
-          graphics.line(barXPosition + barWidth / 2, l2) +
-          graphics.line(barXPosition + barWidth / 2, y2) +
-          graphics.line(barXPosition, y2) +
-          graphics.line(barXPosition, m) +
+        M(a1, slot) +
+          L(a1, mid) +
+          L(l1, mid) +
+          L(l1, q1) +
+          L(l1, q3) +
+          L(l1, mid) +
+          L(a1, mid) +
+          L(a1, far) +
+          L(m, far) +
+          L(m, slot) +
+          L(a1 + half, slot),
+        M(m, slot) +
+          L(m, far) +
+          L(a2, far) +
+          L(a2, mid) +
+          L(l2, mid) +
+          L(l2, q3) +
+          L(l2, q1) +
+          L(l2, mid) +
+          L(a2, mid) +
+          L(a2, slot) +
+          L(m, slot) +
           'z',
       ]
     } else {
       // Regular candlestick
       pathTo = [
-        graphics.move(barXPosition, y2) +
-          graphics.line(barXPosition + barWidth / 2, y2) +
-          graphics.line(barXPosition + barWidth / 2, l1) +
-          graphics.line(barXPosition + barWidth / 2, y2) +
-          graphics.line(barXPosition + barWidth, y2) +
-          graphics.line(barXPosition + barWidth, y1) +
-          graphics.line(barXPosition + barWidth / 2, y1) +
-          graphics.line(barXPosition + barWidth / 2, l2) +
-          graphics.line(barXPosition + barWidth / 2, y1) +
-          graphics.line(barXPosition, y1) +
-          graphics.line(barXPosition, y2 - strokeWidth / 2),
+        M(a2, slot) +
+          L(a2, mid) +
+          L(l1, mid) +
+          L(a2, mid) +
+          L(a2, far) +
+          L(a1, far) +
+          L(a1, mid) +
+          L(l2, mid) +
+          L(a1, mid) +
+          L(a1, slot) +
+          L(a2 - half, slot),
       ]
     }
 
@@ -598,154 +585,25 @@ class BoxCandleStick extends Bar {
     }
     if (pathFrom == null) {
       // Initial mount or entering datum: baseline collapsed at the bar's center.
-      pathFrom =
-        graphics.move(barXPosition + barWidth / 2, y1) +
-        graphics.move(barXPosition, y1)
-    }
-
-    if (!w.axisFlags.isXNumeric) {
-      x = x + xDivision
+      pathFrom = M(a1, mid) + M(a1, slot)
     }
 
     return {
+      ...pos,
       pathTo,
       pathFrom,
-      x,
-      y: y2,
-      goalY: this.barHelpers.getGoalValues(
-        'y',
-        /** @type {any} */ (null),
-        zeroH,
+      // the goal drawer reads goalY on a column, goalX on a row
+      goals: this.barHelpers.getGoalValues(
+        vertical ? 'y' : 'x',
+        zero,
+        zero,
         realIndex,
         j,
-        indexes.translationsIndex,
+        translationsIndex,
       ),
-      barXPosition,
+      slot,
+      along,
       color,
-    }
-  }
-
-  /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any, strokeWidth: any}} opts */
-  drawHorizontalBoxPaths({
-    indexes,
-    y,
-    yDivision,
-    barHeight,
-    zeroW,
-    strokeWidth,
-  }) {
-    const w = this.w
-    const graphics = new Graphics(this.w)
-
-    const i = indexes.i
-    const j = indexes.j
-    const realIndex = indexes.realIndex
-
-    const { colors: candleColors } = w.config.plotOptions.candlestick
-    const { colors: boxColors } = this.boxOptions
-
-    /**
-     * @param {string} color
-     */
-    const getColor = (color) =>
-      Array.isArray(color) ? color[realIndex] : color
-
-    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1)
-    const ohlc = this.getOHLCValue(realIndex, j)
-
-    let color =
-      ohlc.o < ohlc.c
-        ? [getColor(candleColors.upward)]
-        : [getColor(candleColors.downward)]
-
-    if (this.isBoxPlot) {
-      color = [getColor(boxColors.lower), getColor(boxColors.upper)]
-    }
-
-    let l1 = zeroW
-    let l2 = zeroW
-
-    let x1 = Math.min(ohlc.o, ohlc.c)
-    let x2 = Math.max(ohlc.o, ohlc.c)
-    let m = ohlc.m
-
-    // One band per row on its side, a date or number x included: see
-    // Bar.drawBarPaths.
-    const barYPosition = y + barHeight * this.visibleI
-
-    const hole = /** @type {any} */ (this.series)[i]?.[j] == null
-    if (hole) {
-      x1 = zeroW
-      x2 = zeroW
-    } else {
-      x1 = zeroW + x1 / yRatio
-      x2 = zeroW + x2 / yRatio
-      l1 = zeroW + ohlc.h / yRatio
-      l2 = zeroW + ohlc.l / yRatio
-      m = zeroW + ohlc.m / yRatio
-    }
-
-    const pathTo = [
-      graphics.move(x1, barYPosition) +
-        graphics.line(x1, barYPosition + barHeight / 2) +
-        graphics.line(l1, barYPosition + barHeight / 2) +
-        graphics.line(l1, barYPosition + barHeight / 2 - barHeight / 4) +
-        graphics.line(l1, barYPosition + barHeight / 2 + barHeight / 4) +
-        graphics.line(l1, barYPosition + barHeight / 2) +
-        graphics.line(x1, barYPosition + barHeight / 2) +
-        graphics.line(x1, barYPosition + barHeight) +
-        graphics.line(m, barYPosition + barHeight) +
-        graphics.line(m, barYPosition) +
-        graphics.line(x1 + strokeWidth / 2, barYPosition),
-      graphics.move(m, barYPosition) +
-        graphics.line(m, barYPosition + barHeight) +
-        graphics.line(x2, barYPosition + barHeight) +
-        graphics.line(x2, barYPosition + barHeight / 2) +
-        graphics.line(l2, barYPosition + barHeight / 2) +
-        graphics.line(l2, barYPosition + barHeight - barHeight / 4) +
-        graphics.line(l2, barYPosition + barHeight / 4) +
-        graphics.line(l2, barYPosition + barHeight / 2) +
-        graphics.line(x2, barYPosition + barHeight / 2) +
-        graphics.line(x2, barYPosition) +
-        graphics.line(m, barYPosition) +
-        'z',
-    ]
-
-    let pathFrom = null
-    // Cross-type morph (unit → boxPlot), horizontal. See the vertical branch.
-    const morphFrom = this.ctx?.morphTypeChange?.getInitialPathFor(realIndex, j)
-    if (morphFrom) {
-      pathFrom = morphFrom
-    } else if (w.globals.previousPaths.length > 0) {
-      // Update: keyed survivor → morph; shape-changed → snap; entering
-      // datum → null (falls through to the baseline collapse below).
-      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])
-    }
-    if (pathFrom == null) {
-      // Initial mount or entering datum: baseline collapsed at the bar's center.
-      pathFrom =
-        graphics.move(x1, barYPosition + barHeight / 2) +
-        graphics.move(x1, barYPosition)
-    }
-
-    y = y + yDivision
-
-    return {
-      pathTo,
-      pathFrom,
-      x: x2,
-      y,
-      goalX: this.barHelpers.getGoalValues(
-        'x',
-        zeroW,
-        /** @type {any} */ (null),
-        realIndex,
-        j,
-        0,
-      ),
-      barYPosition,
-      color,
-      culled: hole,
     }
   }
 
@@ -770,9 +628,10 @@ class BoxCandleStick extends Bar {
     const c = getCandleVal(w.candleData.seriesCandleC)
     const l = getCandleVal(w.candleData.seriesCandleL)
 
-    // BoxPlot data arrives as [min, q1, median, q3, max] and is stored in
-    // H=min, O=q1, M=median, C=q3, L=max — remap to OHLC semantics:
-    // o=q1(O), h=min(H), m=median(M), l=q3(C), c=max(L)
+    // BoxPlot data arrives as [min, q1, median, q3, max] and Data stores it
+    // in order as O=min, H=q1, M=median, L=q3, C=max. Remap so the drawing
+    // reads a box like a candle: the body runs o..c, the whiskers end at h
+    // and l. So o=q1(H), c=q3(L), h=min(O), l=max(C), m=median(M).
     return {
       o: this.isBoxPlot ? h : o,
       h: this.isBoxPlot ? o : h,

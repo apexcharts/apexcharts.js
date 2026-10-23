@@ -339,117 +339,70 @@ class Violin extends BarBase {
 
   /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
   drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
-    const w = this.w
     const { realIndex, j, translationsIndex } = indexes
     const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1)
 
     // the group of violins at a numeric x is centred on it, as candles are
     let barXPosition = x + barWidth * this.visibleI
-    if (w.axisFlags.isXNumeric) {
+    if (this.w.axisFlags.isXNumeric) {
       ;({ x, barXPosition } = this.getBarXForNumericXAxis({
         x,
         barWidth,
         realIndex,
         j,
       }))
-    }
-    const center = barXPosition + barWidth / 2
-    const halfExtent = barWidth / 2
-
-    const density = this.getDensity(realIndex, j)
-    const maxWeight = this.effectiveMaxWeight(density)
-    /** @param {number} v */
-    const alongFn = (v) => zeroH - this.logVal(v, realIndex) / yRatio
-
-    const lanes = resolveLanes({
-      halfExtent,
-      cloudSign: this.cloudSign ?? 0,
-      rainSign: this.rainSign ?? 0,
-      boxFrac: this.boxFrac ?? 0,
-      rainFrac: this.rainFrac ?? 0,
-    })
-    const cloudBase = center + lanes.cloudBaseOff
-
-    const pathTo = this.buildBodyPath({
-      nodes: density.nodes,
-      center: cloudBase,
-      halfExtent: lanes.cloudMaxPx,
-      maxWeight,
-      vertical: true,
-      alongFn,
-      collapsed: false,
-      sideSign: this.cloudSign,
-    })
-
-    let pathFrom = null
-    // Cross-type morph (unit -> violin): grow out of the captured dot cloud
-    // rather than out of a collapsed centreline, so collapsing is the inverse
-    // of the explode. Same precedence as bar/Helpers.js.
-    const morphFrom = this.ctx?.morphTypeChange?.getInitialPathFor(realIndex, j)
-    if (morphFrom) {
-      pathFrom = morphFrom
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this._prevBody(realIndex, j, pathTo)
-    }
-    if (pathFrom == null) {
-      pathFrom = this.buildBodyPath({
-        nodes: density.nodes,
-        center: cloudBase,
-        halfExtent: lanes.cloudMaxPx,
-        maxWeight,
-        vertical: true,
-        alongFn,
-        collapsed: true,
-        sideSign: this.cloudSign,
-      })
-    }
-
-    if (!w.axisFlags.isXNumeric) {
+    } else {
       x = x + xDivision
     }
 
     return {
-      pathTo,
-      pathFrom,
-      x,
-      y: zeroH,
-      center,
-      halfExtent,
-      alongFn,
-      density,
-      maxWeight,
-      cloudBase,
-      cloudMaxPx: lanes.cloudMaxPx,
-      rainCenter: center + lanes.rainCenterOff,
-      rainHalfPx: lanes.rainHalfPx,
-      boxPaths: this.buildBoxSubPaths({
+      ...this.buildViolin({
         realIndex,
         j,
-        boxCenter: center + lanes.boxCenterOff,
-        boxHalfPx: lanes.boxHalfPx,
-        alongFn,
+        center: barXPosition + barWidth / 2,
+        halfExtent: barWidth / 2,
+        alongFn: (v) => zeroH - this.logVal(v, realIndex) / yRatio,
         vertical: true,
       }),
-      alongRepresentative: alongFn(w.seriesData.series[realIndex][j] ?? 0),
+      x,
+      y: zeroH,
     }
   }
 
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
   drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
-    const w = this.w
     const { realIndex, j } = indexes
     const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1)
 
     // One band per row on its side, a date or number x included: see
     // Bar.drawBarPaths.
     const barYPosition = y + barHeight * this.visibleI
-    const center = barYPosition + barHeight / 2
-    const halfExtent = barHeight / 2
 
+    return {
+      ...this.buildViolin({
+        realIndex,
+        j,
+        center: barYPosition + barHeight / 2,
+        halfExtent: barHeight / 2,
+        alongFn: (v) => zeroW + this.logVal(v, realIndex) / yRatio,
+        vertical: false,
+      }),
+      x: zeroW,
+      y: y + yDivision,
+    }
+  }
+
+  /**
+   * One violin in either orientation: the body, where it grows from, its
+   * lanes and its box. The orientations differ only in the slot (`center`,
+   * `halfExtent`, across the category axis) and in `alongFn`, which maps a
+   * value to its pixel along the value axis.
+   * @param {{realIndex: number, j: number, center: number, halfExtent: number, alongFn: (v: number) => number, vertical: boolean}} opts
+   */
+  buildViolin({ realIndex, j, center, halfExtent, alongFn, vertical }) {
+    const w = this.w
     const density = this.getDensity(realIndex, j)
     const maxWeight = this.effectiveMaxWeight(density)
-    /** @param {number} v */
-    const alongFn = (v) => zeroW + this.logVal(v, realIndex) / yRatio
 
     const lanes = resolveLanes({
       halfExtent,
@@ -460,16 +413,19 @@ class Violin extends BarBase {
     })
     const cloudBase = center + lanes.cloudBaseOff
 
-    const pathTo = this.buildBodyPath({
-      nodes: density.nodes,
-      center: cloudBase,
-      halfExtent: lanes.cloudMaxPx,
-      maxWeight,
-      vertical: false,
-      alongFn,
-      collapsed: false,
-      sideSign: this.cloudSign,
-    })
+    /** @param {boolean} collapsed */
+    const body = (collapsed) =>
+      this.buildBodyPath({
+        nodes: density.nodes,
+        center: cloudBase,
+        halfExtent: lanes.cloudMaxPx,
+        maxWeight,
+        vertical,
+        alongFn,
+        collapsed,
+        sideSign: this.cloudSign,
+      })
+    const pathTo = body(false)
 
     let pathFrom = null
     // Cross-type morph (unit -> violin): grow out of the captured dot cloud
@@ -482,30 +438,17 @@ class Violin extends BarBase {
       pathFrom = this._prevBody(realIndex, j, pathTo)
     }
     if (pathFrom == null) {
-      pathFrom = this.buildBodyPath({
-        nodes: density.nodes,
-        center: cloudBase,
-        halfExtent: lanes.cloudMaxPx,
-        maxWeight,
-        vertical: false,
-        alongFn,
-        collapsed: true,
-        sideSign: this.cloudSign,
-      })
+      pathFrom = body(true)
     }
-
-    y = y + yDivision
 
     return {
       pathTo,
       pathFrom,
-      x: zeroW,
-      y,
       center,
       halfExtent,
       alongFn,
-      maxWeight,
       density,
+      maxWeight,
       cloudBase,
       cloudMaxPx: lanes.cloudMaxPx,
       rainCenter: center + lanes.rainCenterOff,
@@ -516,7 +459,7 @@ class Violin extends BarBase {
         boxCenter: center + lanes.boxCenterOff,
         boxHalfPx: lanes.boxHalfPx,
         alongFn,
-        vertical: false,
+        vertical,
       }),
       alongRepresentative: alongFn(w.seriesData.series[realIndex][j] ?? 0),
     }
