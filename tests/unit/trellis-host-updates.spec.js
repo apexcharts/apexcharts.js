@@ -287,6 +287,34 @@ describe('the HTML chrome follows the theme', () => {
     ).toBe('#ff00ff')
     chart.destroy()
   })
+
+  it('publishes chart.fontFamily and legend.fontFamily', async () => {
+    const { chart, el } = mount({
+      options: {
+        chart: {
+          type: 'line',
+          height: 400,
+          animations: { enabled: false },
+          fontFamily: 'Courier, monospace',
+        },
+        legend: { fontFamily: 'Georgia, serif' },
+        series: [
+          { name: 'Plan', region: 'North', data: rows(10) },
+          { name: 'Actual', region: 'North', data: rows(12) },
+          { name: 'Plan', region: 'South', data: rows(20) },
+          { name: 'Actual', region: 'South', data: rows(22) },
+        ],
+      },
+    })
+    await chart.render()
+    expect(el.querySelector('.apexcharts-trellis').style.fontFamily).toBe(
+      'Courier, monospace',
+    )
+    expect(el.querySelector('.apexcharts-trellis-legend').style.fontFamily).toBe(
+      'Georgia, serif',
+    )
+    chart.destroy()
+  })
 })
 
 // Reported from the field (2026-10-01, with a repro page): a '100%' stacked

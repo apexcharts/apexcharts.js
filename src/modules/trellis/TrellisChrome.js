@@ -249,6 +249,8 @@ export default class TrellisChrome {
     const wrap = BrowserAPIs.createElement('div')
     wrap.className = 'apexcharts-trellis-legend apexcharts-legend'
     wrap.setAttribute('role', 'list')
+    const legendFont = t.w.config.legend.fontFamily
+    if (legendFont) wrap.style.fontFamily = legendFont
 
     names.forEach((name) => {
       const item = BrowserAPIs.createElement('div')
