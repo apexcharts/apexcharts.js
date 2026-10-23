@@ -69,12 +69,7 @@ describe('bar data labels', () => {
         '.apexcharts-series[seriesName="B"] .apexcharts-bar-area',
       ),
     ]
-      .flatMap((p) =>
-        p
-          .getAttribute('d')
-          .match(/-?[\d.]+/g)
-          .map(Number),
-      )
+      .flatMap((p) => p.getAttribute('d').match(/-?[\d.]+/g).map(Number))
       .filter((_, k) => k % 2 === 1)
     const stackEnd = Math.max(...ys)
     const total = document.querySelector('.apexcharts-datalabel-total')
@@ -145,6 +140,21 @@ describe('stacked column data labels', () => {
     sizedText()
     stacked(true)
     expect(drawn()).toHaveLength(0)
+  })
+
+  it('keeps a vertical label that fits across its column', () => {
+    sizedText()
+    createChartWithOptions({
+      chart: { type: 'bar', stacked: true, width: 360, height: 300 },
+      plotOptions: { bar: { dataLabels: { orientation: 'vertical' } } },
+      dataLabels: { enabled: true },
+      xaxis: { categories: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] },
+      series: [
+        { name: 'A', data: [362961, 298114, 341007, 315552, 377210, 289904, 352118, 330671] },
+        { name: 'B', data: [214870, 251330, 199402, 238815, 205566, 262007, 221394, 247118] },
+      ],
+    })
+    expect(drawn()).toHaveLength(16)
   })
 
   it('keeps the label when hideOverflowingLabels is off', () => {

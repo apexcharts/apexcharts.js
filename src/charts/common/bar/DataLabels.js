@@ -916,7 +916,9 @@ export default class BarDataLabels {
         } else {
           if (
             textRects.height / 1.6 > Math.abs(barHeight) ||
-            textRects.width > Math.abs(barWidth)
+            (w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
+              ? textRects.height
+              : textRects.width) > Math.abs(barWidth)
           ) {
             text = ''
           }
