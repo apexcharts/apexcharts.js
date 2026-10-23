@@ -10,7 +10,7 @@
   <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/dm/apexcharts.svg" alt="downloads"></a>
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-ready-3178C6?logo=typescript&logoColor=white">
-  <a href="https://github.com/apexcharts/apexcharts.js/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Revenue--based-blue"></a>
+  <a href="https://github.com/apexcharts/apexcharts.js/blob/main/LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-Revenue--based-blue"></a>
   <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr"></a>
 </p>
 
