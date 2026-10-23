@@ -285,6 +285,63 @@ describe('Endpoints: which dot is which', () => {
 
     expect(ends.map((e) => e.color)).toEqual(['#start', '#end'])
   })
+
+  test('a null row in the y: [lo, hi] form has no dots', () => {
+    const w = fakeW({
+      globals: { collapsedSeriesIndices: [], colors: ['#one'] },
+      rangeData: {
+        seriesRange: [[{}]],
+        seriesRangeStart: [[null, 20]],
+        seriesRangeEnd: [[null, 62]],
+      },
+    })
+    dumbbellTransform(
+      [
+        {
+          data: [
+            { x: 'p', y: null },
+            { x: 'q', y: [20, 62] },
+          ],
+        },
+      ],
+      w,
+    )
+    const helpers = helpersFor(w)
+
+    expect(helpers.getDumbbellEnds(0, 0)).toEqual([])
+    expect(helpers.getDumbbellEnds(0, 1).map((e) => e.value)).toEqual([20, 62])
+  })
+
+  // #4458: the dots of a `y: null` row had no position, so they were drawn on
+  // the plot's top edge (its left edge when horizontal).
+  test.each([false, true])(
+    'a null row draws no dots on the chart (horizontal: %s)',
+    (horizontal) => {
+      const chart = createChartWithOptions({
+        chart: { type: 'rangeBar', width: 600, height: 400 },
+        plotOptions: { bar: { horizontal, isDumbbell: true } },
+        series: [
+          {
+            data: [
+              { x: '2008', y: null },
+              { x: '2009', y: [3200, 4100] },
+            ],
+          },
+          { data: [{ x: '2008', y: [2800, 4500] }] },
+        ],
+      })
+      const dots = [
+        ...chart.el.querySelectorAll('.apexcharts-bar-goals-groups line'),
+      ]
+      const pos = horizontal ? 'x1' : 'y1'
+
+      // two rows with values, two dots each
+      expect(dots).toHaveLength(4)
+      dots.forEach((dot) => {
+        expect(Number.isFinite(parseFloat(dot.getAttribute(pos)))).toBe(true)
+      })
+    },
+  )
 })
 
 describe('Connector', () => {

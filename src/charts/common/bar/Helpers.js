@@ -1417,10 +1417,12 @@ export default class Helpers {
     /** @param {number} n */
     const pick = (n) => (Array.isArray(colors[i]) ? colors[i][n] : colors[i])
 
+    // A `y: null` row has no ends to mark. Its dots would get a null position,
+    // which draws them on the plot's top edge (left edge when horizontal).
     return [
       { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
       { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 },
-    ]
+    ].filter((end) => end.value != null)
   }
 
   /**
