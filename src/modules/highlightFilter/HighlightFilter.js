@@ -2359,6 +2359,7 @@ export default class HighlightFilter {
   _fade(node, a, b, r, opt) {
     const attr = opt.attr || 'fill-opacity'
     const k = ownOpacity(node, attr)
+    const ks = ownOpacity(node, 'stroke-opacity')
     const ol = opt.outline
     const rec = opt.rec || {}
     const attrs =
@@ -2371,7 +2372,12 @@ export default class HighlightFilter {
       rec.lf = f
       rec.lo = ol ? o : 0
       node.setAttribute(attr, String(k * f))
-      if (!ol) return
+      if (!ol) {
+        if (f < 1 || node.getAttribute('stroke-opacity') != null) {
+          node.setAttribute('stroke-opacity', String(ks * f))
+        }
+        return
+      }
       if (o <= 0) {
         // The mark's own stroke, as drawn.
         attrs.forEach((n, x) =>
