@@ -206,7 +206,7 @@ describe('DataLabels.avoidOverlaps keeps labels inside the plot', () => {
   const PLOT = { left: 40, top: 400, width: 300, height: 200 }
 
   /** Two coincident 12px labels whose top is 5px under the plot's top. */
-  function mountLabels() {
+  function mountLabels(avoidOverlap = true) {
     const baseEl = document.createElement('div')
     const svg = document.createElementNS(SVGNS, 'svg')
     const plotGroup = document.createElementNS(SVGNS, 'g')
@@ -237,7 +237,7 @@ describe('DataLabels.avoidOverlaps keeps labels inside the plot', () => {
     const w = {
       config: {
         chart: { type: 'line' },
-        dataLabels: { avoidOverlap: true, background: { enabled: false } },
+        dataLabels: { avoidOverlap, background: { enabled: false } },
         plotOptions: {},
       },
       dom: { baseEl, elGraphical: { node: plotGroup } },
@@ -253,5 +253,12 @@ describe('DataLabels.avoidOverlaps keeps labels inside the plot', () => {
     // 14px to separate (12 + the 2px gap): 5 up to the plot top, 9 down
     expect(moved[0]).toBeCloseTo(-5, 5)
     expect(moved[1]).toBeCloseTo(9, 5)
+  })
+
+  it('hides instead of moving when maxShift is 0', () => {
+    const { w, texts } = mountLabels({ hide: true, maxShift: 0 })
+    new DataLabels(w).avoidOverlaps()
+    expect(texts.map((t) => t.getAttribute('y'))).toEqual(['17', '17'])
+    expect(texts.filter((t) => t.style.display === 'none')).toHaveLength(1)
   })
 })
