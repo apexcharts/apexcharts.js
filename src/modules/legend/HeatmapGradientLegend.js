@@ -3,7 +3,11 @@ import Utils from '../../utils/Utils'
 import Series from '../Series'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
-import { buildContinuousScale, colorValueOf } from '../../charts/common/treemap/ColorScale'
+import {
+  buildContinuousScale,
+  colorValueOf,
+  shadePercent,
+} from '../../charts/common/treemap/ColorScale'
 import TooltipUtils from '../tooltip/Utils'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
@@ -283,7 +287,7 @@ export default class HeatmapGradientLegend {
 
     // Arrow indicator (hidden until hover).
     const arrowColor = cfg.arrow?.color || w.config.chart.foreColor
-    const arrow = this._buildArrow(arrowSize, arrowColor, position)
+    const arrow = this._buildArrow(arrowColor)
     svg.appendChild(arrow)
     this.arrowEl = arrow
 
@@ -344,7 +348,6 @@ export default class HeatmapGradientLegend {
         cfg.labelStyle?.fontSize || '11px'
       tt.style.fontFamily =
         cfg.labelStyle?.fontFamily || w.config.chart.fontFamily || ''
-      tt.style.color = w.config.chart.foreColor
       tt.style.background = 'rgba(0,0,0,0.65)'
       tt.style.color = '#fff'
       tt.style.padding = '2px 6px'
@@ -772,15 +775,13 @@ export default class HeatmapGradientLegend {
       // Arrow tip touches the strip edge; arrow extends outward.
       let tipX, baseX
       if (position === 'left') {
-        // Strip is on the left of arrow. Arrow points left.
-        // Wait, position='left' means legend is on the chart's left side, so
-        // the strip's right edge faces the chart. Arrow sits on the right of
-        // the strip, pointing right toward the chart.
+        // The legend is on the chart's left, so the strip's right edge faces
+        // the chart. The arrow sits right of the strip, pointing left at it.
         tipX = stripX + stripThickness
         baseX = tipX + arrowSize
       } else {
-        // position === 'right' — chart is on the left of legend, so strip's
-        // left edge faces the chart. Arrow on the left of strip pointing left.
+        // position === 'right': the strip's left edge faces the chart. The
+        // arrow sits left of the strip, pointing right at it.
         tipX = stripX
         baseX = tipX - arrowSize
       }
@@ -841,11 +842,9 @@ export default class HeatmapGradientLegend {
   }
 
   /**
-   * @param {number} size
    * @param {string} color
-   * @param {'top'|'right'|'bottom'|'left'} _position
    */
-  _buildArrow(size, color, _position) {
+  _buildArrow(color) {
     const polygon = BrowserAPIs.createElementNS(SVG_NS, 'polygon')
     polygon.setAttribute('fill', color)
     polygon.setAttribute('opacity', '0')
@@ -988,18 +987,18 @@ export default class HeatmapGradientLegend {
       const utils = new Utils()
       const type = w.config.chart.type
       const plot = w.config.plotOptions[type] || {}
-      const shadeIntensity = plot.shadeIntensity ?? 0.5
       const g = /** @type {any} */ (w.globals)
-      const hasNegs = g.hasNegs
       // A non-distributed heatmap's cells shade against the niced y extent
       // and clamp into it (determineColor); use it once coreCalculations ran.
       // A one-sided colorScale.max past maxY is ignored there, so cap at maxY.
+      // A distributed heatmap or a treemap shades each row against its own
+      // extent, and no one strip fits every row, so the strip shades against
+      // the range its labels and arrow span (the row's own with one row).
       const yExt =
         type === 'heatmap' && !plot.distributed && !csWindow && g.maxY >= g.minY
       const hi = yExt ? g.maxY : max
       const total =
         Math.abs(hi) + Math.abs(yExt ? (cs.min < g.minY ? cs.min : g.minY) : min)
-      const k = shadeIntensity * 1.25
       const n = Math.max(2, cfg.stops || 16)
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1) // 0..1
@@ -1008,21 +1007,8 @@ export default class HeatmapGradientLegend {
         // sitting at value v = min + t*(max-min) gets p = v / total.
         const p =
           total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total
-        // Clamp to a reasonable range to avoid color blowout. Treemap tiles
-        // scale the plain shade too (getShadeColor).
-        const c = Math.max(
-          -1,
-          Math.min(
-            1,
-            hasNegs
-              ? plot.reverseNegativeShade
-                ? (p < 0 ? p : 1 - p) * k
-                : p <= 0
-                  ? 1 - (1 + p) * shadeIntensity
-                  : (1 - p) * shadeIntensity
-              : (1 - p) * (type === 'treemap' ? k : 1),
-          ),
-        )
+        // Clamp to a reasonable range to avoid color blowout.
+        const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)))
 
         const shaded = plot.enableShades
           ? utils.shadeColor(w.config.theme.mode === 'dark' ? -c : c, baseColor)

@@ -107,35 +107,8 @@ export default class Helpers {
       } else {
         this.hideSeries({ seriesEl, realIndex })
       }
-
-      // Update ARIA attributes for accessibility (axis charts)
-      if (w.config.chart.accessibility.enabled) {
-        const legendItem = w.dom.baseEl.querySelector(
-          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`,
-        )
-        if (legendItem) {
-          const isCollapsed =
-            w.globals.collapsedSeriesIndices.includes(realIndex) ||
-            w.globals.ancillaryCollapsedSeriesIndices.includes(realIndex)
-          legendItem.setAttribute(
-            'aria-pressed',
-            isCollapsed ? 'true' : 'false',
-          )
-
-          // Update aria-label - get text from legend text element
-          const legendTextEl = legendItem.querySelector(
-            '.apexcharts-legend-text',
-          )
-          const seriesName = legendTextEl
-            ? legendTextEl.textContent
-            : w.seriesData.seriesNames[seriesCnt]
-          const statusText = isCollapsed ? 'hidden' : 'visible'
-          legendItem.setAttribute(
-            'aria-label',
-            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`,
-          )
-        }
-      }
+      // The legend ARIA state needs no write here: the synchronous re-render
+      // above rebuilt the legend, and drawLegends is its single writer.
     } else {
       // for non-axis charts i.e pie / donut / polarArea / unit
       //
@@ -162,34 +135,6 @@ export default class Helpers {
           series,
           w.config.chart.animations.dynamicAnimation.enabled,
         )
-      }
-
-      // Update ARIA attributes for accessibility (non-axis charts)
-      if (w.config.chart.accessibility.enabled) {
-        const legendItem = w.dom.baseEl.querySelector(
-          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`,
-        )
-        if (legendItem) {
-          const isCollapsed =
-            w.globals.collapsedSeriesIndices.includes(seriesCnt)
-          legendItem.setAttribute(
-            'aria-pressed',
-            isCollapsed ? 'true' : 'false',
-          )
-
-          // Update aria-label - get text from legend text element
-          const legendTextEl = legendItem.querySelector(
-            '.apexcharts-legend-text',
-          )
-          const seriesName = legendTextEl
-            ? legendTextEl.textContent
-            : w.seriesData.seriesNames[seriesCnt]
-          const statusText = isCollapsed ? 'hidden' : 'visible'
-          legendItem.setAttribute(
-            'aria-label',
-            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`,
-          )
-        }
       }
     }
   }

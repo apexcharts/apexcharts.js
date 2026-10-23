@@ -444,6 +444,47 @@ describe('Accessibility', () => {
       })
     })
 
+    // drawLegends is the single writer of legend ARIA: a toggle re-renders
+    // the legend, so the new state shows, and keyboard-off charts stay bare.
+    it('should reflect a toggled series in the rebuilt legend item', () => {
+      const chart = chartWithAccessibility()
+      chart.toggleSeries('Series A')
+
+      const item = chart.el.querySelector('.apexcharts-legend-series[rel="1"]')
+      expect(item.getAttribute('aria-pressed')).toBe('true')
+      expect(item.getAttribute('aria-label')).toBe(
+        'Series A, hidden. Press Enter or Space to toggle.',
+      )
+      expect(item.getAttribute('role')).toBe('button')
+    })
+
+    it('should reflect a toggled pie slice in the rebuilt legend item', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'pie', accessibility: { enabled: true } },
+        series: [10, 20, 30],
+        labels: ['Apples', 'Pears', 'Plums'],
+        legend: { show: true },
+      })
+      chart.toggleSeries('Pears')
+
+      const item = chart.el.querySelector('.apexcharts-legend-series[rel="2"]')
+      expect(item.getAttribute('aria-pressed')).toBe('true')
+      expect(item.getAttribute('aria-label')).toBe(
+        'Pears, hidden. Press Enter or Space to toggle.',
+      )
+    })
+
+    it('should not add keyboard attributes on toggle when keyboard.enabled is false', () => {
+      const chart = chartWithAccessibility({
+        accessibility: { keyboard: { enabled: false } },
+      })
+      chart.toggleSeries('Series A')
+
+      const item = chart.el.querySelector('.apexcharts-legend-series[rel="1"]')
+      expect(item.getAttribute('aria-pressed')).toBeNull()
+      expect(item.getAttribute('aria-label')).toBeNull()
+    })
+
     it('should not add keyboard attributes when accessibility is disabled', () => {
       const chart = createChartWithOptions({
         chart: {

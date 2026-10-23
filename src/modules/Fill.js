@@ -2,8 +2,9 @@
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
-import { Environment } from '../utils/Environment.js'
 import { SVGNS } from '../svg/math'
+
+const XLINK = 'http://www.w3.org/1999/xlink'
 
 /**
  * ApexCharts Fill Class for setting fill options of the paths.
@@ -72,10 +73,7 @@ class Fill {
     const elImage = BrowserAPIs.createElementNS(SVGNS, 'image')
     elPattern.appendChild(elImage)
 
-    const SVGLib = Environment.isBrowser()
-      ? /** @type {any} */ (window).SVG
-      : /** @type {any} */ (global).SVG
-    elImage.setAttributeNS(SVGLib.xlink, 'href', fillImg)
+    elImage.setAttributeNS(XLINK, 'href', fillImg)
 
     Graphics.setAttrs(elImage, {
       x: 0,

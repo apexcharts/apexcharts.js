@@ -306,6 +306,30 @@ export function buildContinuousScale(w) {
 }
 
 /**
+ * How far a heatmap cell or treemap tile at colour-scale fraction `p`
+ * (determineColor's percent / 100) is shaded from its base colour. The
+ * gradient legend strip samples it too, so it cannot drift from the tiles.
+ * @param {any} w
+ * @param {string} chartType
+ * @param {number} p
+ * @param {any} negRange
+ * @returns {number}
+ */
+export function shadePercent(w, chartType, p, negRange) {
+  const opts = w.config.plotOptions[chartType]
+  const shadeIntensity = opts.shadeIntensity
+  const k = shadeIntensity * 1.25
+  if (w.globals.hasNegs || negRange) {
+    return opts.reverseNegativeShade
+      ? (p < 0 ? p : 1 - p) * k
+      : p <= 0
+        ? 1 - (1 + p) * shadeIntensity
+        : (1 - p) * shadeIntensity
+  }
+  return chartType === 'treemap' ? (1 - p) * k : 1 - p
+}
+
+/**
  * A readable text colour on top of `bg`, picked by WCAG contrast rather than a
  * fixed light/dark guess: a diverging palette runs through the middle of the
  * luminance range, so neither choice is right everywhere.

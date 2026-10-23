@@ -61,6 +61,62 @@ describe('heatmap gradient legend shade and teardown', () => {
     },
   )
 
+  // A treemap tile, or a distributed heatmap cell, shades against its own
+  // row's extent, so no single strip fits every row of a multi-row chart.
+  // The strip shades against the range its labels and arrow span: a smooth
+  // gradient from the labelled min to max, never a run of saturated stops.
+  const twoRows = (type, plot = {}) =>
+    createChartWithOptions({
+      chart: { type, height: 320, width: 600 },
+      colors: ['#008FFB'],
+      series: [
+        { name: 'r1', data: [10, 40, 100].map((y, i) => ({ x: `a${i}`, y })) },
+        { name: 'r2', data: [200, 500].map((y, i) => ({ x: `b${i}`, y })) },
+      ],
+      legend: { show: true, position: 'bottom' },
+      plotOptions: {
+        [type]: {
+          enableShades: true,
+          ...plot,
+          colorScale: { gradientLegend: { enabled: true } },
+        },
+      },
+      dataLabels: { enabled: false },
+    })
+  // every stop strictly darker than the one before it
+  const smooth = (stops) => {
+    const sum = (c) => c[0] + c[1] + c[2]
+    for (let k = 1; k < stops.length; k++) {
+      expect(sum(stops[k])).toBeLessThan(sum(stops[k - 1]))
+    }
+  }
+
+  it.each([
+    ['treemap', {}],
+    ['heatmap', { distributed: true }],
+    ['heatmap', {}],
+  ])('shades a multi-row %s strip as one gradient (%j)', (type, plot) => {
+    const chart = twoRows(type, plot)
+    const { stops, cell } = read(chart, type)
+    smooth(stops)
+    expect(chart.legend.heatmapGradientLegend._min).toBe(10)
+    expect(chart.legend.heatmapGradientLegend._max).toBe(500)
+    // a plain heatmap shades every cell against one extent: the strip ends
+    // are its min and max cells
+    if (type === 'heatmap' && !plot.distributed) {
+      near(stops[0], cell(10))
+      near(stops[stops.length - 1], cell(500))
+    }
+  })
+
+  it('keeps the strip a gradient when the first row is hidden', () => {
+    const chart = twoRows('heatmap', { distributed: true })
+    chart.hideSeries('r1')
+    const { stops } = read(chart)
+    smooth(stops)
+    stops.forEach((st) => expect(st).not.toEqual([255, 255, 255]))
+  })
+
   it.each([
     [[13, 40, 60], 60, { max: 100 }],
     [[13, 40, 100], 100, { max: 200 }],

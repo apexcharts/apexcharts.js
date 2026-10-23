@@ -2,6 +2,7 @@
 import Utils from '../../../utils/Utils'
 import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
+import { shadePercent } from './ColorScale'
 
 export default class TreemapHelpers {
   /**
@@ -32,22 +33,14 @@ export default class TreemapHelpers {
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w
     const opts = w.config.plotOptions[chartType]
-    const shadeIntensity = opts.shadeIntensity
-    const k = shadeIntensity * 1.25
 
     const colorProps = this.determineColor(chartType, i, j)
-    const p = colorProps.percent / 100
-
-    let colorShadePercent
-    if (/** @type {any} */ (w.globals).hasNegs || negRange) {
-      colorShadePercent = opts.reverseNegativeShade
-        ? (p < 0 ? p : 1 - p) * k
-        : p <= 0
-          ? 1 - (1 + p) * shadeIntensity
-          : (1 - p) * shadeIntensity
-    } else {
-      colorShadePercent = chartType === 'treemap' ? (1 - p) * k : 1 - p
-    }
+    const colorShadePercent = shadePercent(
+      w,
+      chartType,
+      colorProps.percent / 100,
+      negRange,
+    )
 
     // A var() colour is resolved against the chart, not document.body: a
     // variable set on the chart's container or shadow host is invisible from

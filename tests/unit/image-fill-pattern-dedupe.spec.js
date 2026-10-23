@@ -53,6 +53,18 @@ describe('image fill patterns', () => {
     c.destroy()
   })
 
+  it('links each pattern image through the xlink namespace', async () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const c = await chart(document.querySelector('#chart'))
+    const hrefs = Array.from(patterns(c)).map((p) =>
+      p
+        .querySelector('image')
+        .getAttributeNS('http://www.w3.org/1999/xlink', 'href'),
+    )
+    expect(hrefs).toEqual(['a.png', 'b.png'])
+    c.destroy()
+  })
+
   it('two charts on one page keep their own pattern ids', async () => {
     document.body.innerHTML = '<div id="a"></div><div id="b"></div>'
     const a = await chart(document.querySelector('#a'))

@@ -7,7 +7,6 @@ import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
 import HeatmapGradientLegend from './HeatmapGradientLegend'
 import Markers from '../Markers'
-import { Environment } from '../../utils/Environment.js'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 /**
@@ -132,7 +131,7 @@ class Legend {
     }
   }
 
-  createLegendMarker(/** @type {any} */ { i, fillcolor }) {
+  createLegendMarker(/** @type {any} */ { i, fillcolor, markers }) {
     const w = this.w
     const elMarker = BrowserAPIs.createElement('span')
     elMarker.classList.add('apexcharts-legend-marker')
@@ -174,8 +173,6 @@ class Legend {
         elMarker.innerHTML = w.config.legend.markers.customHTML()
       }
     } else {
-      const markers = new Markers(this.ctx.w, this.ctx)
-
       const markerConfig = markers.getMarkerConfig({
         cssClass: `apexcharts-legend-marker apexcharts-marker apexcharts-marker-${shape}`,
         seriesIndex: i,
@@ -183,10 +180,9 @@ class Legend {
         size: mSize,
       })
 
-      const SVGLib = Environment.isBrowser()
-        ? /** @type {any} */ (window).SVG
-        : /** @type {any} */ (global).SVG
-      const SVGMarker = SVGLib().addTo(elMarker).size('100%', '100%')
+      // globalThis is window in a browser and global in Node, as in Core.
+      const SVG = /** @type {any} */ (globalThis).SVG
+      const SVGMarker = SVG().addTo(elMarker).size('100%', '100%')
       const marker = new Graphics(this.w).drawMarker(0, 0, {
         ...markerConfig,
         pointFillColor: Array.isArray(fillcolor)
@@ -235,6 +231,8 @@ class Legend {
     const legendFormatter = w.formatters.legendFormatter
 
     const isLegendInversed = w.config.legend.inverseOrder
+    // One Markers for every item: it only resolves each item's marker config.
+    const markers = new Markers(w, this.ctx)
 
     /** @type {any[]} */
     const legendGroups = []
@@ -290,7 +288,7 @@ class Legend {
         }
       }
 
-      const elMarker = this.createLegendMarker({ i, fillcolor })
+      const elMarker = this.createLegendMarker({ i, fillcolor, markers })
 
       Graphics.setAttrs(elMarker, {
         rel: i + 1,
