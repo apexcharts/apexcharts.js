@@ -478,6 +478,18 @@ class CoreUtils {
   }
 
   /**
+   * The x a stacked datum stacks at, within its series group: its x value on
+   * a numeric or datetime axis, where each series carries its own x values
+   * (#4886), else its index. The stacked bar renderer, its total labels, the
+   * 100% shares and the highlight parts all key their stacks by this.
+   * @param {any} w @param {number} realIndex @param {number} j
+   * @returns {any}
+   */
+  static stackKey(w, realIndex, j) {
+    return w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex]?.[j] : j
+  }
+
+  /**
    * @memberof CoreUtils
    * returns the percentage value of all individual values which can be used in a 100% stacked series
    * Eg. w.seriesData.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
@@ -516,7 +528,7 @@ class CoreUtils {
     const gi = w.labelData.seriesGroupIndex
     const byKey = sx || w.labelData.seriesGroups.length > 1
     /** @param {number} i @param {number} j */
-    const key = (i, j) => gi[i] + ' ' + (sx ? sx[i][j] : j)
+    const key = (i, j) => gi[i] + ' ' + CoreUtils.stackKey(w, i, j)
     /** @type {Map<string, number>} */
     const byX = new Map()
     if (byKey) {

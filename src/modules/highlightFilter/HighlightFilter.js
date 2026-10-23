@@ -471,9 +471,8 @@ export default class HighlightFilter {
       keyOf = (/** @type {number} */ i, /** @type {number} */ j) =>
         this._barKey(i, j)
     } else if (stacked) {
-      const sx = w.seriesData.seriesX
       keyOf = (/** @type {number} */ i, /** @type {number} */ j) =>
-        String(w.axisFlags.isXNumeric ? sx[i]?.[j] : j)
+        String(CoreUtils.stackKey(w, i, j))
     }
     const ext = extend ? this._runningExt(parts, keyOf, bars) : null
     this._publish(parts, ext)
@@ -1150,17 +1149,12 @@ export default class HighlightFilter {
 
   /**
    * The stack a stacked bar datum joins, as the renderer resolves it
-   * (BarStacked): its series group, then its x value on a numeric or
-   * datetime axis, else its index.
+   * (BarStacked): its series group, then its CoreUtils.stackKey.
    * @param {number} i @param {number} j
    */
   _barKey(i, j) {
     const w = this.w
-    return (
-      w.labelData.seriesGroupIndex[i] +
-      '|' +
-      (w.axisFlags.isXNumeric ? w.seriesData.seriesX[i]?.[j] : j)
-    )
+    return w.labelData.seriesGroupIndex[i] + '|' + CoreUtils.stackKey(w, i, j)
   }
 
   /**

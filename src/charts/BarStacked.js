@@ -467,7 +467,7 @@ class BarStacked extends Bar {
     // drawStackedColumnPaths): a series without a row's x leaves that row's
     // stack as it was.
     const g = this.groupCtx
-    const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j] : j
+    const key = CoreUtils.stackKey(w, realIndex, j)
     const top = g.tops.get(key)
     if (top) {
       const [prevX, prevVal, prevBarW] = top
@@ -573,7 +573,7 @@ class BarStacked extends Bar {
     // far (the total label's value) and the extreme tops below that segment
     // (its position). A series without this x leaves it as it was, as a 0.
     const g = this.groupCtx
-    const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j] : j
+    const key = CoreUtils.stackKey(w, realIndex, j)
     const top = g.tops.get(key)
     if (top) {
       const [prevYValue, prevVal, prevBarH] = top

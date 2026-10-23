@@ -1,5 +1,6 @@
 // @ts-check
 import Graphics from '../../../modules/Graphics'
+import CoreUtils from '../../../modules/CoreUtils'
 import DataLabels from '../../../modules/DataLabels'
 import { resolveDataLabelOffset } from '../../../modules/helpers/DataLabelOffset'
 
@@ -349,7 +350,7 @@ export default class BarDataLabels {
       w.axisFlags.isXNumeric &&
       /** @type {any} */ (this.barCtx).stacks?.[
         w.labelData.seriesGroupIndex[realIndex]
-      ]?.tops.get(w.seriesData.seriesX[realIndex][j])
+      ]?.tops.get(CoreUtils.stackKey(w, realIndex, j))
     )
   }
 
