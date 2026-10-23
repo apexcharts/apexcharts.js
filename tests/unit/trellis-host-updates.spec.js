@@ -8,7 +8,8 @@
  *   - every `updateOptions`, however small, destroyed and rebuilt every panel.
  *   - `panelMounted` / `trellisMounted` only ever reached `addEventListener`,
  *     never the `chart.events` config callbacks every other event honours.
- *   - the HTML chrome (headers, legend) ignored `theme.mode`.
+ *   - the HTML chrome (headers, legend) ignored `theme.mode`, `chart.fontFamily`
+ *     and `legend.fontFamily`.
  *
  * The geometry halves (a height-only container resize refitting the panels,
  * the chrome-height reserve) need a real layout engine and live in
@@ -288,7 +289,7 @@ describe('the HTML chrome follows the theme', () => {
     chart.destroy()
   })
 
-  it('publishes chart.fontFamily and legend.fontFamily', async () => {
+  it('publishes chart.fontFamily and legend.fontFamily so the chrome matches the panels', async () => {
     const { chart, el } = mount({
       options: {
         chart: {
@@ -310,9 +311,9 @@ describe('the HTML chrome follows the theme', () => {
     expect(el.querySelector('.apexcharts-trellis').style.fontFamily).toBe(
       'Courier, monospace',
     )
-    expect(el.querySelector('.apexcharts-trellis-legend').style.fontFamily).toBe(
-      'Georgia, serif',
-    )
+    expect(
+      el.querySelector('.apexcharts-trellis-legend').style.fontFamily,
+    ).toBe('Georgia, serif')
     chart.destroy()
   })
 })
