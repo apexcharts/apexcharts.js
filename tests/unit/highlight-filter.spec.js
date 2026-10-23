@@ -148,6 +148,20 @@ describe('drawing', () => {
     // 900 on a 500 stage is clamped to the stage
     expect(width(p[1])).toBeCloseTo(width(w[1]), 2)
   })
+
+  test('a faded whole fades its own stroke when there is no outline', () => {
+    const chart = column({
+      series: [{ name: 'A', data: [10, 20, 30], highlightData: [5, 10, 15] }],
+      options: {
+        stroke: { show: true, width: 2 },
+        highlightFilter: { outline: { width: 0 } },
+      },
+    })
+    for (const el of wholes(chart)) {
+      expect(el.getAttribute('fill-opacity')).toBe('0.2')
+      expect(el.getAttribute('stroke-opacity')).toBe('0.2')
+    }
+  })
 })
 
 describe('value axis', () => {
@@ -993,20 +1007,6 @@ describe('scope', () => {
       String(c[0]).includes('highlightFilter'),
     )
     expect(ours.length).toBe(1)
-  })
-
-  test('a faded whole fades its own stroke when there is no outline', () => {
-    const chart = column({
-      series: [{ name: 'A', data: [10, 20, 30], highlightData: [5, 10, 15] }],
-      options: {
-        stroke: { show: true, width: 2 },
-        highlightFilter: { fadeOpacity: 0.2, outline: { width: 0 } },
-      },
-    })
-    for (const el of wholes(chart)) {
-      expect(el.getAttribute('fill-opacity')).toBe('0.2')
-      expect(el.getAttribute('stroke-opacity')).toBe('0.2')
-    }
   })
 
   test('premium usage is flagged only while parts are drawn', async () => {
