@@ -1031,6 +1031,7 @@ export default class ApexCharts {
         ? this.trellis.whenSettled()
         : Promise.resolve()
       return settled.then(async () => {
+        // Two updates in one task: the later teardown would cancel the earlier rebuild mid-mount.
         while (this.trellis._rendering) await this.trellis.whenSettled()
         // A change that only affects how a panel PAINTS goes to the live
         // panels. Rebuilding for every option, however small, threw away
