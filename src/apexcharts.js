@@ -1142,6 +1142,7 @@ export default class ApexCharts {
     // the initialSeries snapshot that parseData is about to overwrite anyway
     this.series.prepareDataUpdate()
     this.updateHelpers.revertDefaultAxisMinMax()
+    this.w.interact.zoomed = false
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,

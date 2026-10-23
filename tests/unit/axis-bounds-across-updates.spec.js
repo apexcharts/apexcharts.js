@@ -81,4 +81,14 @@ describe('axis bounds across updates', () => {
     expect(chart.w.config.xaxis.max).toBe(25)
     chart.destroy()
   })
+
+  it('clears the zoomed flag when updateSeries puts the axes back', async () => {
+    const chart = await mount()
+    chart.zoomX(15, 20)
+    expect(chart.w.interact.zoomed).toBe(true)
+    await chart.updateSeries(shifted(2), false)
+    expect(chart.w.interact.zoomed).toBe(false)
+    expect(chart.getState().zoomed).toBe(false)
+    chart.destroy()
+  })
 })
