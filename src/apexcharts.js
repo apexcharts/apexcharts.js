@@ -1030,7 +1030,8 @@ export default class ApexCharts {
       const settled = this.trellis._rendering
         ? this.trellis.whenSettled()
         : Promise.resolve()
-      return settled.then(() => {
+      return settled.then(async () => {
+        while (this.trellis._rendering) await this.trellis.whenSettled()
         // A change that only affects how a panel PAINTS goes to the live
         // panels. Rebuilding for every option, however small, threw away
         // hover state, keyboard focus and each panel's own zoom.

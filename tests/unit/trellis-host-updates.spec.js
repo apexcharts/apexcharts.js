@@ -141,6 +141,34 @@ describe('an update that lands before the first render settles', () => {
   })
 })
 
+describe('two updates in one task on a mounted grid', () => {
+  it('ends with the grid drawing the second update', async () => {
+    const { chart, el } = mount()
+    await chart.render()
+    const a = chart.updateOptions({ trellis: { by: 'region', columns: 1 } })
+    const b = chart.updateOptions({ trellis: { by: 'region', columns: 2 } })
+    await Promise.allSettled([a, b])
+
+    expect(el.querySelectorAll('.apexcharts-trellis-cell')).toHaveLength(2)
+    expect(chart.getPanels()).toHaveLength(2)
+    expect(chart.trellis.layout.cols).toBe(2)
+    chart.destroy()
+  })
+
+  it('keeps the host a trellis for the next update', async () => {
+    const { chart, el } = mount()
+    await chart.render()
+    const a = chart.updateOptions({ trellis: { by: 'region', columns: 1 } })
+    const b = chart.updateOptions({ trellis: { by: 'region', columns: 2 } })
+    await Promise.allSettled([a, b])
+    await chart.updateOptions({ trellis: { by: 'region', columns: 1 } })
+
+    expect(el.querySelectorAll(':scope > .apexcharts-canvas')).toHaveLength(0)
+    expect(el.querySelectorAll('.apexcharts-trellis-cell')).toHaveLength(2)
+    chart.destroy()
+  })
+})
+
 describe('updateOptions: rebuild only what needs rebuilding', () => {
   it('a paint-only change keeps the live panels (and their state)', async () => {
     const { chart } = mount()
