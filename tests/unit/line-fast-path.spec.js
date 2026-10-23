@@ -283,4 +283,58 @@ describe('stack tops by x (#4886) cost nothing when the chart is not stacked', (
     expect(sizes.at(-1)).toBe(50)
     chart.destroy()
   })
+
+  // The same predicate that decides stacking gates the walk: with the
+  // default stackOnlyBar a stacked combo stacks only its bars, so its line
+  // has no tops to record.
+  const combo = (stackOnlyBar) => ({
+    ...baseOpts('line'),
+    chart: {
+      type: 'line',
+      width: 700,
+      height: 350,
+      stacked: true,
+      stackOnlyBar,
+    },
+    series: [
+      { name: 'a', type: 'column', data: walk(40) },
+      { name: 'b', type: 'area', data: walk(40, 3) },
+      { name: 'c', type: 'line', data: walk(40, 7) },
+    ],
+    xaxis: { type: 'numeric' },
+  })
+
+  it('records nothing for the unstacked line of a stacked bar combo', () => {
+    const sizes = recordedSizes()
+    const chart = createChartWithOptions(combo(true))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(sizes.every((s) => s === 0)).toBe(true)
+    chart.destroy()
+  })
+
+  it('records the tops when stackOnlyBar is off and the lines stack too', () => {
+    const sizes = recordedSizes()
+    const chart = createChartWithOptions(combo(false))
+    expect(sizes.at(-1)).toBe(40)
+    chart.destroy()
+  })
+
+  it('isStackedSeries matches the per-series stacking rule', () => {
+    const chart = createChartWithOptions(combo(true))
+    const ln = new Line(chart.w, chart, {})
+    expect([0, 1, 2].map((ri) => ln.isStackedSeries(ri))).toEqual([
+      true,
+      false,
+      false,
+    ])
+    chart.w.config.chart.stackOnlyBar = false
+    expect([0, 1, 2].map((ri) => ln.isStackedSeries(ri))).toEqual([
+      true,
+      true,
+      true,
+    ])
+    chart.w.config.chart.stacked = false
+    expect(ln.isStackedSeries(0)).toBe(false)
+    chart.destroy()
+  })
 })

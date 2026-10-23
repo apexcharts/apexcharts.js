@@ -586,6 +586,20 @@ class Line {
     return this.prevSeriesYByX.get(key)
   }
 
+  /**
+   * Whether this series stacks. A stacked combo chart with the default
+   * `stackOnlyBar` stacks only its bar and column series, so none of the
+   * line and area series drawn here.
+   * @param {number} realIndex
+   */
+  isStackedSeries(realIndex) {
+    const cfg = this.w.config
+    if (!cfg.chart.stacked) return false
+    if (!this.w.globals.comboCharts || !cfg.chart.stackOnlyBar) return true
+    const t = /** @type {any} */ (cfg.series[realIndex])?.type
+    return t === 'bar' || t === 'column'
+  }
+
   /** @param {number} ri */
   _hidden(ri) {
     const g = this.w.globals
@@ -617,10 +631,10 @@ class Line {
     yArrj,
     row = this.w.seriesData.series[realIndex],
   ) {
-    const w = this.w
     // Only stacked series read the map back (stackTopAt), and the walk costs a
-    // Map write per point: 4.7ms per update on a 50k line that is not stacked.
-    if (!w.config.chart.stacked) return
+    // Map write per point: 4.7ms per update on a 50k line that is not stacked,
+    // or that sits unstacked in a stacked bar combo.
+    if (!this.isStackedSeries(realIndex)) return
     if (!Array.isArray(yArrj)) return
     if (this._hidden(realIndex)) return
 
@@ -1000,15 +1014,7 @@ class Line {
 
     let y2 = y
 
-    const stackSeries =
-      (w.config.chart.stacked && !w.globals.comboCharts) ||
-      (w.config.chart.stacked &&
-        w.globals.comboCharts &&
-        (!this.w.config.chart.stackOnlyBar ||
-          /** @type {Record<string,any>} */ (this.w.config.series[realIndex])
-            ?.type === 'bar' ||
-          /** @type {Record<string,any>} */ (this.w.config.series[realIndex])
-            ?.type === 'column'))
+    const stackSeries = this.isStackedSeries(realIndex)
 
     let curve = w.config.stroke.curve
     if (Array.isArray(curve)) {

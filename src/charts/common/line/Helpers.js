@@ -136,16 +136,7 @@ export default class Helpers {
     lineYPosition,
     translationsIndex,
   }) {
-    const w = this.w
-    const stackSeries =
-      (w.config.chart.stacked && !w.globals.comboCharts) ||
-      (w.config.chart.stacked &&
-        w.globals.comboCharts &&
-        (!this.w.config.chart.stackOnlyBar ||
-          /** @type {any} */ (this.w.config.series[realIndex])?.type ===
-            'bar' ||
-          /** @type {any} */ (this.w.config.series[realIndex])?.type ===
-            'column'))
+    const stackSeries = this.lineCtx.isStackedSeries(realIndex)
 
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {
