@@ -523,10 +523,9 @@ class CoreUtils {
       : w.seriesData.stackedSeriesTotals
     // Bars and areas on a numeric axis stack by x, so each point takes its
     // share of the stack at its own x.
-    const sx = w.axisFlags.isXNumeric && w.seriesData.seriesX
     // Each series group is its own stack, so it normalises to its own total.
     const gi = w.labelData.seriesGroupIndex
-    const byKey = sx || w.labelData.seriesGroups.length > 1
+    const byKey = w.axisFlags.isXNumeric || w.labelData.seriesGroups.length > 1
     /** @param {number} i @param {number} j */
     const key = (i, j) => gi[i] + ' ' + CoreUtils.stackKey(w, i, j)
     /** @type {Map<string, number>} */

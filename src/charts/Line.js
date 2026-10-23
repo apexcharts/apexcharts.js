@@ -567,9 +567,7 @@ class Line {
    * @returns {any}
    */
   _stackKey(realIndex, ordinal) {
-    if (!this.w.axisFlags.isXNumeric) return ordinal
-    const xs = this.w.seriesData.seriesX[realIndex]
-    return xs ? xs[ordinal] : undefined
+    return CoreUtils.stackKey(this.w, realIndex, ordinal)
   }
 
   /**
