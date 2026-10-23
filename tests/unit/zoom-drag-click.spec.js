@@ -5,7 +5,7 @@ import { createChartWithOptions } from './utils/utils.js'
 // treats every left-button mouseup as chart.events.click. A plain click, and
 // a click that only jitters inside the selection threshold, must still fire.
 
-function lineChart(events, chartExtra = {}) {
+function lineChart(events, chartExtra = {}, extra = {}) {
   return createChartWithOptions({
     chart: {
       type: 'line',
@@ -30,6 +30,7 @@ function lineChart(events, chartExtra = {}) {
     ],
     xaxis: { type: 'numeric' },
     markers: { size: 6 },
+    ...extra,
   })
 }
 
@@ -176,6 +177,31 @@ describe('zoom selection drag does not fire chart click (#5060)', () => {
     gesture(chart, { x: 80, y: 120 }, { x: 280, y: 160 })
 
     expect(click).not.toHaveBeenCalled()
+    chart.destroy()
+  })
+
+  it('fires click on a legend click after a drag that left the chart', () => {
+    const click = vi.fn()
+    const chart = lineChart(
+      { click },
+      {},
+      { legend: { show: true, showForSingleSeries: true } },
+    )
+    const svg = chart.w.dom.baseEl.querySelector('.apexcharts-svg')
+
+    // ZoomPanSelection also ends the gesture on mouseleave, but no mouseup
+    // reaches the chart to consume a flag set there, and a legend mousedown
+    // returns before the svg mousedown reset runs.
+    svg.dispatchEvent(pointer('mousedown', 80, 120))
+    svg.dispatchEvent(pointer('mousemove', 280, 220))
+    svg.dispatchEvent(pointer('mouseleave', 280, 220))
+
+    const legend = chart.w.dom.baseEl.querySelector('.apexcharts-legend-text')
+    expect(legend).toBeTruthy()
+    legend.dispatchEvent(pointer('mousedown', 20, 20))
+    legend.dispatchEvent(pointer('mouseup', 20, 20))
+
+    expect(click).toHaveBeenCalledTimes(1)
     chart.destroy()
   })
 

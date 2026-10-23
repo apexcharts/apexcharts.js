@@ -301,14 +301,14 @@ export default class ZoomPanSelection extends Toolbar {
       e.type === 'touchend' ||
       e.type === 'mouseleave'
     ) {
-      this.handleMouseUp({ zoomtype })
+      this.handleMouseUp({ zoomtype, eventType: e.type })
     }
 
     this.makeSelectionRectDraggable()
   }
 
-  /** @param {{ zoomtype?: any, isResized?: any }} opts */
-  handleMouseUp({ zoomtype, isResized }) {
+  /** @param {{ zoomtype?: any, isResized?: any, eventType?: string }} opts */
+  handleMouseUp({ zoomtype, isResized, eventType }) {
     const w = this.w
 
     if (this._hasPlot() && (this.w.interact.mousedown || isResized)) {
@@ -320,8 +320,11 @@ export default class ZoomPanSelection extends Toolbar {
 
       // Same 10px gate as selectionDrawn. Set before that call: it may zoom
       // (and recreate this handler) before the mouseup bubbles to the chart
-      // click listener, which reads the flag.
+      // click listener, which reads the flag. Only a real release bubbles
+      // there to consume it: a drag that ends on mouseleave would leave the
+      // flag set and swallow the next click (e.g. on the legend).
       if (
+        (eventType === 'mouseup' || eventType === 'touchend') &&
         (w.interact.zoomEnabled || w.interact.selectionEnabled) &&
         this.dragged &&
         (this.dragX > 10 || this.dragY > 10)
