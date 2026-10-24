@@ -1133,6 +1133,28 @@ export default class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
+    return this._replaceSeries(newSeries, animate, overwriteInitialSeries)
+  }
+
+  /**
+   * updateSeries() with one switch. Series fed in from the page drop any zoom
+   * (#5388); an internal re-feed of the chart's own series (a highlightFilter
+   * pick, a crossfilter aggregation) passes `keepView` so the zoomed window,
+   * the zoomed flag and the reset control survive it (#5389).
+   *
+   * @private
+   * @param {any[]} newSeries
+   * @param {boolean} [animate=true]
+   * @param {boolean} [overwriteInitialSeries=true]
+   * @param {{ keepView?: boolean }} [opts]
+   * @returns {Promise<ApexCharts>}
+   */
+  _replaceSeries(
+    newSeries = [],
+    animate = true,
+    overwriteInitialSeries = true,
+    { keepView = false } = {},
+  ) {
     // Same contract as updateOptions: a null/non-array series would poison
     // config.series and the initialSeries snapshot. Refuse it, keep the chart.
     // A destroyed chart is refused too (see updateOptions).
@@ -1164,7 +1186,7 @@ export default class ApexCharts {
     // clears collapse/path bookkeeping without restoring (and deep-cloning)
     // the initialSeries snapshot that parseData is about to overwrite anyway
     this.series.prepareDataUpdate()
-    this.updateHelpers.revertZoom()
+    if (!keepView) this.updateHelpers.revertZoom()
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,

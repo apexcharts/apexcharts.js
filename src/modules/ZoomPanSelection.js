@@ -626,9 +626,7 @@ export default class ZoomPanSelection extends Toolbar {
     if (w.globals.isDestroyed || !w.interact.zoomed) return
 
     const { min, max } = this._currentXWindow()
-    const yaxis = w.globals.initialConfig
-      ? Utils.clone(w.globals.initialConfig.yaxis)
-      : []
+    const yaxis = this.yaxisForXWindow()
     const toolbar = this.ctx.toolbar
     if (toolbar) toolbar.zoomCallback({ min, max }, yaxis)
   }
@@ -1347,7 +1345,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     const xyRatios = this.xyRatios
     if (!w.globals.initialConfig) return
-    const yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+    const yaxis = this.yaxisForXWindow()
 
     let xRatio = xyRatios.xRatio
     let minX = w.globals.minX
@@ -1579,7 +1577,7 @@ export default class ZoomPanSelection extends Toolbar {
     /** @type {{ xaxis: any; yaxis?: any }} */
     const options = { xaxis: { min: newMinX, max: newMaxX } }
     if (!w.config.chart.group) {
-      options.yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+      options.yaxis = this.yaxisForXWindow()
     }
     if (isZoom) w.interact.zoomed = true
 
@@ -1793,14 +1791,11 @@ export default class ZoomPanSelection extends Toolbar {
   }
 
   _endPinch() {
-    const w = this.w
     const m = this._m()
     m.pinch = null
     const { min, max } = this._currentXWindow()
     const xaxis = { min, max }
-    const yaxis = w.globals.initialConfig
-      ? Utils.clone(w.globals.initialConfig.yaxis)
-      : []
+    const yaxis = this.yaxisForXWindow()
     const toolbar = this.ctx.toolbar
     if (toolbar) toolbar.zoomCallback(xaxis, yaxis)
   }

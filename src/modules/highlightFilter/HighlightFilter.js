@@ -2805,7 +2805,11 @@ export default class HighlightFilter {
   _apply(series, opts) {
     const drilled = this._drilled()
     if (drilled && this._level) this._level.series = series.map(stripSeries)
-    return this.ctx.updateSeries(series, opts.animate !== false, !drilled)
+    // The chart's own series with new parts: not new data, so the zoom the
+    // user chose stays (#5389). The public updateSeries() would revert it.
+    return this.ctx._replaceSeries(series, opts.animate !== false, !drilled, {
+      keepView: true,
+    })
   }
 
   /** The series as the chart was handed them: nested treemaps and reduced

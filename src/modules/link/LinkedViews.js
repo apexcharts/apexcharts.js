@@ -390,7 +390,12 @@ export default class LinkedViews {
       return
     }
     this._lastValues = sig
-    this.ctx.updateSeries(this._seriesFromAgg(agg), true)
+    // Filter-mode series are the crossfilter's aggregation over a fixed
+    // bucket set, never page data: keep the user's zoom across a pick made
+    // in another chart (#5389).
+    this.ctx._replaceSeries(this._seriesFromAgg(agg), true, true, {
+      keepView: true,
+    })
     // updateSeries re-renders -> 'updated' -> _afterRender applies self-dim.
   }
 
@@ -423,7 +428,7 @@ export default class LinkedViews {
       const series = this._seriesFromAgg(agg)
       if (!series.length) return // empty record set: nothing to restore
       this._lastValues = this._sigOf(agg)
-      this.ctx.updateSeries(series, true)
+      this.ctx._replaceSeries(series, true, true, { keepView: true })
     })
   }
 

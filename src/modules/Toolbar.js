@@ -697,6 +697,38 @@ export default class Toolbar {
   }
 
   /**
+   * The y axes an x-window change (zoom buttons, zoomX, keyboard +/-, pan,
+   * wheel, pinch, pixel pan) renders with and reports in `zoomed`. Rebuilt
+   * from the initial config, except that the y window a zoom box chose on a
+   * 'xy' or 'y' chart is kept: moving x must not throw the y half of the zoom
+   * away (#5369). autoScaleYaxis fits y to the x window itself, so it keeps
+   * starting from the initial config.
+   * @returns {any[]}
+   */
+  yaxisForXWindow() {
+    const w = this.w
+    const initial = w.globals.initialConfig
+    if (!initial) return []
+    const yaxis = Utils.clone(initial.yaxis)
+    const zoom = w.config.chart.zoom || {}
+    if (
+      !w.interact.zoomed ||
+      zoom.autoScaleYaxis ||
+      (zoom.type !== 'xy' && zoom.type !== 'y') ||
+      !Array.isArray(yaxis)
+    ) {
+      return yaxis
+    }
+    yaxis.forEach((/** @type {any} */ y, /** @type {number} */ i) => {
+      const cur = w.config.yaxis[i]
+      if (!y || !cur) return
+      y.min = cur.min
+      y.max = cur.max
+    })
+    return yaxis
+  }
+
+  /**
    * @param {number} newMinX
    * @param {number} newMaxX
    */
@@ -738,7 +770,7 @@ export default class Toolbar {
       xaxis,
     }
     if (!w.globals.initialConfig) return
-    const yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+    const yaxis = this.yaxisForXWindow()
 
     if (!w.config.chart.group) {
       // if chart in a group, prevent yaxis update here
