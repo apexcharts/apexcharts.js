@@ -74,10 +74,11 @@ export default class YAxis {
       w.config.chart.type === 'heatmap' &&
       !w.config.yaxis[realIndex].labels.formatter
     ) {
-      const fs = parseInt(yaxisFontSize, 10) || 11
-      const maxLabels = Math.max(1, Math.floor(w.layout.gridHeight / (fs * 1.4)))
-      const count = tickAmount + 1
-      if (count > maxLabels) labelStep = Math.ceil(count / maxLabels)
+      labelStep = AxesUtils.categoryLabelStep(
+        w.layout.gridHeight,
+        tickAmount + 1,
+        yaxisFontSize,
+      )
     }
 
     if (w.config.yaxis[realIndex].labels.show) {

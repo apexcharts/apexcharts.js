@@ -5045,6 +5045,13 @@ type ApexXAxis = {
     show?: boolean
     rotate?: number
     rotateAlways?: boolean
+    /**
+     * Hide category labels that would overlap, keeping the drawn ones
+     * evenly spaced. On a horizontal bar chart this thins the category names
+     * down the side to the rows tall enough to hold them (the top name always
+     * stays); a `yaxis.labels.formatter` also turns that thinning off.
+     * @default true
+     */
     hideOverlappingLabels?: boolean
     showDuplicates?: boolean
     trim?: boolean

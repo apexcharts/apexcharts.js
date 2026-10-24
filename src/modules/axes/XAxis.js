@@ -429,6 +429,35 @@ export default class XAxis {
         typeof val === 'number' ? dt.formatDate(dt.getDate(val), format) : val
     }
 
+    // More category names than rows tall enough to hold them: thin them to
+    // the count that fits, the way heatmap rows are thinned (#5371), so the
+    // drawn ones stay legible and evenly spaced. The top name (index 0, the
+    // leader of a ranked list) always stays. Only the text is thinned: the
+    // element stays so DOM order matches the category index, and the tooltip
+    // and keyboard navigation read the full names from the data. Rows that
+    // fit are untouched (step 1). xaxis.labels.hideOverlappingLabels: false
+    // (the category axis switch) opts out, and so does a
+    // yaxis.labels.formatter, which may already choose which names to show.
+    let labelStep = 1
+    if (
+      ylabels.show &&
+      ylabels.formatter === undefined &&
+      w.config.xaxis.labels.hideOverlappingLabels !== false
+    ) {
+      let lines = 1
+      for (let i = 0; i < labels.length; i++) {
+        if (Array.isArray(labels[i]) && labels[i].length > lines) {
+          lines = labels[i].length
+        }
+      }
+      labelStep = AxesUtils.categoryLabelStep(
+        w.layout.gridHeight,
+        labels.length,
+        ylabels.style.fontSize,
+        lines,
+      )
+    }
+
     if (ylabels.show) {
       const yColors = this.axesUtils.getYAxisForeColor(
         ylabels.style.colors,
@@ -437,11 +466,14 @@ export default class XAxis {
       for (let i = 0; i <= labels.length - 1; i++) {
         let label = typeof labels[i] === 'undefined' ? '' : labels[i]
 
-        label = lbFormatter(
-          label,
-          { seriesIndex: realIndex, dataPointIndex: i, w },
-          w,
-        )
+        label =
+          labelStep > 1 && i % labelStep !== 0
+            ? ''
+            : lbFormatter(
+                label,
+                { seriesIndex: realIndex, dataPointIndex: i, w },
+                w,
+              )
 
         const getForeColor = () => {
           return Array.isArray(yColors) ? yColors[i] : yColors

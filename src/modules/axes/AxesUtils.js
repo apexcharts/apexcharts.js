@@ -15,6 +15,26 @@ export default class AxesUtils {
   static X_LABEL_GAP = 2
 
   /**
+   * Thinning step for category names stacked down a side axis (heatmap rows,
+   * horizontal bar categories): draw every `step`-th name so the drawn ones
+   * do not overlap. A name needs `fontSize * 1.4` px per text line; when every
+   * name fits the step is 1 and nothing is thinned. Callers keep the names at
+   * `index % step === 0`, so the first name (the top row) always stays and the
+   * kept names stay evenly spaced.
+   *
+   * @param {number} extent px the names share (the plot height)
+   * @param {number} count number of names
+   * @param {string | number} fontSize the labels' font size (`'11px'` or 11)
+   * @param {number} [lines] text lines in the tallest name
+   * @returns {number}
+   */
+  static categoryLabelStep(extent, count, fontSize, lines = 1) {
+    const fs = parseInt(String(fontSize), 10) || 11
+    const maxLabels = Math.max(1, Math.floor(extent / (fs * 1.4 * lines)))
+    return count > maxLabels ? Math.ceil(count / maxLabels) : 1
+  }
+
+  /**
    * @param {import('../../types/internal').ChartStateW} w
    */
   constructor(w, { theme = null, timeScale = null } = {}) {
