@@ -1000,7 +1000,11 @@ export default class ApexCharts {
     }
     options = copyPayload(options, options.series)
     // `tooltip: undefined` means "not given" (see Config.dropEmptyOptions).
+    // `trellis: null` is the exception: it turns a trellis back into one chart.
+    const trellisOff = options.trellis === null
     options = Config.dropEmptyOptions(options)
+    if (trellisOff)
+      options = { ...options, trellis: { by: null, row: null, column: null } }
 
     // A change to an opt-in type this page never loaded (a morph button to
     // `unit` on a page without dist/unit.js) used to get as far as tearing the
