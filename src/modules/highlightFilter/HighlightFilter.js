@@ -2115,7 +2115,10 @@ export default class HighlightFilter {
           ow > 0
             ? { color, width: ow, opacity: cfg.outline?.opacity ?? 1 }
             : null,
-        stroke: true,
+        // Only a page that turned the outline off: a whole that draws nothing
+        // (a series the legend hides) has no outline either, and keeps its
+        // own stroke as drawn, so it lands as a fresh render draws it.
+        stroke: !(width > 0),
         also: (t) => {
           shadow?.setAttribute('fill-opacity', String(mix(sf0, fadeTo, t)))
           strength(t)
