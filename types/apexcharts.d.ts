@@ -5435,6 +5435,18 @@ type ApexGrid = {
     colors?: string[]
     opacity?: number
   }
+  /**
+   * Extra space around the plot, in px, added to what the chart reserves
+   * itself; negative values take reserved space back.
+   *
+   * Above the plot, an axis chart keeps a 20 px band even with no title or
+   * subtitle: 10 px, plus 5 px for each of them that is unset (a set one
+   * adds its `margin` instead, 5 px by default). On column, line and area
+   * charts it holds
+   * the top y label's overhang and any marker or data label above the top
+   * value, so `top: -12` is about as far as is safe there. On horizontal bar
+   * charts it is empty when there is no title, and `top: -20` removes it.
+   */
   padding?: {
     top?: number
     right?: number
