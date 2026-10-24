@@ -56,6 +56,7 @@ export default class Base {
         selectedDataPoints: [],
         // Mouse / pointer state
         mousedown: false,
+        wasDragged: false,
         clientX: null,
         clientY: null,
         lastClientPosition: {},

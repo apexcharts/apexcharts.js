@@ -13,6 +13,8 @@
  *   - drag-zoom: mousedown → mousemove → mouseup path through selectionDrawing
  *     + selectionDrawn (zoomEnabled branch)
  *   - zoomed event fires with correct xaxis bounds
+ *   - a drag past the 10px gate fires zoomed and does not fire chart click (#5060)
+ *   - a click that only moves a few pixels still fires chart click
  *   - resetZoom restores original minX/maxX (w.interact.zoomed reset)
  *   - pan mode: mousedown → mousemove updates moveDirection + calls panScrolled
  *   - scrolled event fires during pan
@@ -73,6 +75,36 @@ async function waitForZoomEvent(page, timeout = 3_000) {
     window.__capturedZoomEvent = null
     return r
   })
+}
+
+/**
+ * Count chart.events.click and chart.events.zoomed from here on.
+ * Click is the chart mouseup listener in Events.js (#5060), not a separate
+ * DOM click, so these wrappers see the same call a user handler would.
+ */
+async function armClickAndZoomCounts(page) {
+  await page.evaluate(() => {
+    window.__clickCount = 0
+    window.__zoomedCount = 0
+    const events = window.chart.w.config.chart.events
+    const prevClick = events.click
+    const prevZoomed = events.zoomed
+    events.click = (...args) => {
+      window.__clickCount += 1
+      if (typeof prevClick === 'function') prevClick(...args)
+    }
+    events.zoomed = (...args) => {
+      window.__zoomedCount += 1
+      if (typeof prevZoomed === 'function') prevZoomed(...args)
+    }
+  })
+}
+
+async function readClickAndZoomCounts(page) {
+  return page.evaluate(() => ({
+    click: window.__clickCount,
+    zoomed: window.__zoomedCount,
+  }))
 }
 
 // ─── zoom tests ─────────────────────────────────────────────────────────────
@@ -208,6 +240,51 @@ test.describe('Drag zoom (type=x)', () => {
     expect(minX).toBeLessThan(1450)
     expect(maxX).toBeGreaterThan(1550)
     expect(maxX).toBeLessThan(1850)
+  })
+
+  test('drag zoom fires zoomed and does not fire chart click', async ({
+    page,
+    loadChart,
+  }) => {
+    // #5060: the mouseup that ends a drag-zoom bubbles to the chart element,
+    // where Events treats a left-button mouseup as chart.events.click. A drag
+    // past the same 10px gate selectionDrawn uses must zoom and skip that click.
+    await loadChart(CHART, FIXTURE)
+    await armClickAndZoomCounts(page)
+    const layout = await getGridLayout(page)
+
+    const startX = layout.translateX + layout.gridWidth * 0.2
+    const endX = layout.translateX + layout.gridWidth * 0.6
+    const midY = layout.translateY + layout.gridHeight / 2
+
+    await dragOnChart(page, { x: startX, y: midY }, { x: endX, y: midY })
+    await page.waitForFunction(() => window.__zoomedCount === 1, { timeout: 3_000 })
+
+    const counts = await readClickAndZoomCounts(page)
+    expect(counts.zoomed).toBe(1)
+    expect(counts.click).toBe(0)
+  })
+
+  test('a click that moves only a few pixels still fires chart click', async ({
+    page,
+    loadChart,
+  }) => {
+    // Under the 10px gate this is still a click: small jitter must not be
+    // swallowed with the drag-zoom suppression.
+    await loadChart(CHART, FIXTURE)
+    await armClickAndZoomCounts(page)
+    const layout = await getGridLayout(page)
+
+    const midX = layout.translateX + layout.gridWidth / 2
+    const midY = layout.translateY + layout.gridHeight / 2
+
+    // 4px — inside the 3–5px range, below the 10px selection gate.
+    await dragOnChart(page, { x: midX, y: midY }, { x: midX + 4, y: midY }, 2)
+    await page.waitForTimeout(300)
+
+    const counts = await readClickAndZoomCounts(page)
+    expect(counts.click).toBe(1)
+    expect(counts.zoomed).toBe(0)
   })
 
   test('short drag (< 10px) does not trigger zoom', async ({ page, loadChart }) => {
