@@ -43,6 +43,8 @@
  * @module weave/Claims
  */
 
+import { isDashPattern } from '../../utils/dash.js'
+
 /**
  * Options a plugin may claim, and the value type each takes per series.
  *
@@ -56,7 +58,12 @@
  * caller's list shape.
  */
 export const CLAIMABLE = Object.freeze({
-  'stroke.dashArray': Object.freeze({ type: 'number' }),
+  // One dash value per series: a number, an SVG dash list string
+  // ('8 3 2 3') or an array of lengths.
+  'stroke.dashArray': Object.freeze({
+    type: 'dash pattern',
+    accepts: isDashPattern,
+  }),
   'dataLabels.enabledOnSeries': Object.freeze({ type: 'boolean' }),
 })
 
@@ -101,7 +108,10 @@ function claimsFor(w, option) {
  * @returns {ClaimEntry[]}
  */
 export function normaliseEntries(option, entries) {
-  const spec = /** @type {Record<string, {type: string}>} */ (CLAIMABLE)[option]
+  const spec =
+    /** @type {Record<string, {type: string, accepts?: (v: any) => boolean}>} */ (
+      CLAIMABLE
+    )[option]
   const out = []
   for (const entry of Array.isArray(entries) ? entries : []) {
     if (!entry || (typeof entry.series !== 'string' && typeof entry.series !== 'number')) {
@@ -110,7 +120,11 @@ export function normaliseEntries(option, entries) {
       )
       continue
     }
-    if (typeof entry.value !== spec.type) {
+    if (
+      spec.accepts
+        ? !spec.accepts(entry.value)
+        : typeof entry.value !== spec.type
+    ) {
       console.warn(
         `[apexcharts] claim on "${option}": expected a ${spec.type} for series ${String(
           entry.series,

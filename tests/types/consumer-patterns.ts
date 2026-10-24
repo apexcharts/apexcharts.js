@@ -342,7 +342,9 @@ ApexChartsClass.registerPlugin({
     const axis: boolean = api.info.axisChart
     const bars: boolean = api.info.horizontalBars
     const onSeries: number[] | null = api.info.dataLabels.enabledOnSeries
-    const dash: number | number[] = api.info.stroke.dashArray
+    // The caller's dash as set: a pattern, or per series (#5383).
+    const dash: ApexCharts.ApexDashPattern | Array<number | string | number[]> =
+      api.info.stroke.dashArray
     const title: string = api.info.title
     void kind; void axis; void bars; void onSeries; void dash; void title
 
@@ -454,3 +456,27 @@ void columnChart
 // `trellis: null` turns a trellis back into one chart (#5363).
 const trellisOff: ApexCharts.ApexOptions = { trellis: null }
 void trellisOff
+
+// Dash patterns (#5383): a number, a dash list string or an array. A
+// top-level array on stroke.dashArray is one value per series, so a pattern
+// shared by every series is a string and a per-series array pattern nests.
+const dash: ApexCharts.ApexDashPattern = '8 3 2 3'
+const dashPatterns: ApexCharts.ApexOptions = {
+  chart: { type: 'line' },
+  stroke: { dashArray: [0, '8 3 2 3', [8, 3, 2, 3]] },
+  grid: { strokeDashArray: '4 2' },
+  markers: { strokeDashArray: [0, '2 2'] },
+  forecastDataPoints: { count: 2, dashArray: [6, 2] },
+  xaxis: { crosshairs: { stroke: { dashArray: '3,3' } } },
+  annotations: {
+    yaxis: [
+      { y: 10, strokeDashArray: '0 6', strokeLineCap: 'round' },
+      { y: 20, strokeDashArray: [8, 3, 2, 3, 2, 3] },
+    ],
+    xaxis: [{ x: 2, strokeDashArray: 6, strokeLineCap: 'square' }],
+  },
+}
+const sharedPattern: ApexCharts.ApexStroke = { dashArray: dash }
+// @ts-expect-error the cap is one of 'butt' | 'square' | 'round'
+const badCap: ApexCharts.YAxisAnnotations = { y: 1, strokeLineCap: 'flat' }
+void dashPatterns; void sharedPattern; void badCap

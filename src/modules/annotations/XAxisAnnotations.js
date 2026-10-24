@@ -46,6 +46,7 @@ export default class XAnnotations {
           anno.borderColor, // lineColor
           strokeDashArray, //dashArray
           anno.borderWidth,
+          anno.strokeLineCap || 'butt', // strokeLineCap
         )
         parent.appendChild(line.node)
         if (anno.id) {
@@ -77,6 +78,10 @@ export default class XAnnotations {
         strokeDashArray, // stokeDashArray
       )
       rect.node.classList.add('apexcharts-annotation-rect')
+      // The border's dash caps; the default (butt) writes nothing, as before.
+      if (anno.strokeLineCap && anno.strokeLineCap !== 'butt') {
+        rect.attr('stroke-linecap', anno.strokeLineCap)
+      }
       rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
       parent.appendChild(rect.node)
       if (anno.id) {

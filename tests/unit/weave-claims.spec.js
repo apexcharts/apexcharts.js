@@ -276,8 +276,30 @@ describe('what a plugin may claim', () => {
     const names = Object.keys(CLAIMABLE)
     expect(names.length).toBeGreaterThan(0)
     for (const name of names) {
-      expect(['number', 'boolean', 'string']).toContain(CLAIMABLE[name].type)
+      const spec = CLAIMABLE[name]
+      // A plain typeof check, or a named type with its own validator.
+      if (spec.accepts) {
+        expect(typeof spec.type).toBe('string')
+        expect(typeof spec.accepts).toBe('function')
+      } else {
+        expect(['number', 'boolean', 'string']).toContain(spec.type)
+      }
     }
     expect(Object.isFrozen(CLAIMABLE)).toBe(true)
+  })
+
+  // #5383: a claim takes the same dash values the option does.
+  it('takes a dash pattern string or array as a stroke.dashArray claim', () => {
+    pending = [
+      [
+        'stroke.dashArray',
+        [
+          { series: 'S1', value: '8 3 2 3' },
+          { series: 'S2', value: [6, 2] },
+        ],
+      ],
+    ]
+    lineChart([{ name: 'claimer' }])
+    expect(dashes()).toEqual(['8 3 2 3', '6,2'])
   })
 })

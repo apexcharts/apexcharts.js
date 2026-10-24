@@ -349,7 +349,7 @@ class Graphics {
     return c
   }
 
-  /** @param {{ d?: string, stroke?: string, strokeWidth?: number, fill: any, fillOpacity?: number, strokeOpacity?: number, classes?: any, strokeLinecap?: any, strokeDashArray?: number }} opts */
+  /** @param {{ d?: string, stroke?: string, strokeWidth?: number, fill: any, fillOpacity?: number, strokeOpacity?: number, classes?: any, strokeLinecap?: any, strokeDashArray?: number | string | number[] }} opts */
   drawPath({
     d = '',
     stroke = '#a8a8a8',

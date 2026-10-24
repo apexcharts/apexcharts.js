@@ -871,7 +871,8 @@ interface ApexPluginLayer {
     width?: number
     fill?: string
     opacity?: number
-    dash?: number
+    /** A number, a dash list string ('8 3 2 3') or an array of lengths. */
+    dash?: ApexDashPattern
     className?: string
   }): any
   line(opts: {
@@ -881,7 +882,8 @@ interface ApexPluginLayer {
     y2: number
     stroke?: string
     width?: number
-    dash?: number
+    /** A number, a dash list string ('8 3 2 3') or an array of lengths. */
+    dash?: ApexDashPattern
   }): any
   rect(opts: {
     x?: number
@@ -1123,10 +1125,11 @@ interface ApexPluginChartInfo {
   }
   readonly stroke: {
     /**
-     * The caller's own dashing. A scalar applies to every series, an array is
-     * per series, and 0 means none, so there is no "unset" to report.
+     * The caller's own dashing. A scalar or pattern string applies to every
+     * series, a top-level array is per series (each entry may itself be a
+     * pattern), and 0 means none, so there is no "unset" to report.
      */
-    readonly dashArray: number | number[]
+    readonly dashArray: ApexDashPattern | Array<number | string | number[]>
   }
   /**
    * What the chart calls itself, where the caller titled it. For a plugin that
@@ -1221,8 +1224,8 @@ interface ApexPluginActivation {
  * it to the series group. Coordinates are pixels in series space.
  */
 interface ApexMarksAPI {
-  path(opts: { d: string; stroke?: string; width?: number; fill?: string; opacity?: number; fillOpacity?: number; strokeOpacity?: number; dash?: number | number[]; lineCap?: string }): any
-  line(opts: { x1: number; y1: number; x2: number; y2: number; stroke?: string; width?: number; dash?: number | number[] }): any
+  path(opts: { d: string; stroke?: string; width?: number; fill?: string; opacity?: number; fillOpacity?: number; strokeOpacity?: number; dash?: ApexDashPattern; lineCap?: string }): any
+  line(opts: { x1: number; y1: number; x2: number; y2: number; stroke?: string; width?: number; dash?: ApexDashPattern }): any
   rect(opts: { x?: number; y?: number; w?: number; h?: number; r?: number; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }): any
   circle(opts: { cx?: number; cy?: number; r?: number; fill?: string; stroke?: string; strokeWidth?: number }): any
   text(opts: { x?: number; y?: number; text?: string | string[]; anchor?: 'start' | 'middle' | 'end'; size?: number; color?: string; weight?: number | string }): any
@@ -1551,6 +1554,7 @@ declare namespace ApexCharts {
   export type { ApexParsing }
   export type { ApexStates }
   export type { ApexStroke }
+  export type { ApexDashPattern }
   export type { ApexTitleSubtitle }
   export type { ApexTheme }
   export type { ApexTooltip }
@@ -2133,8 +2137,8 @@ type ApexChart = {
     line?: {
       /** Label drawn on the line. @default '' (no label) */
       text?: string
-      /** @default 4 */
-      strokeDashArray?: number
+      /** A number, a dash list string ('8 3 2 3') or an array. @default 4 */
+      strokeDashArray?: ApexDashPattern
       /** Line color; omit to keep the annotation default. */
       color?: string
     }
@@ -2344,7 +2348,7 @@ type ApexChart = {
       width?: number
       color?: string
       opacity?: number
-      dashArray?: number
+      dashArray?: ApexDashPattern
     }
     xaxis?: {
       min?: number
@@ -2652,7 +2656,7 @@ type ApexAxisChartSeries = {
      strokeHeight?: number;
      strokeWidth?: number;
      strokeColor?: string;
-     strokeDashArray?: number;
+     strokeDashArray?: ApexDashPattern;
      strokeLineCap?: 'butt' | 'square' | 'round'
    }[];
    barHeightOffset?: number;
@@ -2684,13 +2688,36 @@ type ApexNonAxisChartSeries =
  * Options for the line drawn on line and area charts.
  * See https://apexcharts.com/docs/options/stroke/
  */
+/**
+ * One dash value: a number (dash and gap of that length), a dash list
+ * string, or an array of lengths. `6`, `'8 3 2 3'` (or `'8,3,2,3'`) and
+ * `[8, 3, 2, 3]` are all accepted; `0` draws solid. A list with an odd
+ * number of entries repeats to an even length, as SVG `stroke-dasharray`
+ * does, so `'8 3 2'` reads as `'8 3 2 8 3 2'`.
+ *
+ * Dotted lines: a zero-length dash with a round cap draws round dots, e.g.
+ * `'0 6'` with `strokeLineCap: 'round'` (or `stroke.lineCap: 'round'`).
+ */
+type ApexDashPattern = number | string | number[]
+
 type ApexStroke = {
   show?: boolean
   curve?: 'smooth' | 'straight' | 'stepline' | 'linestep' | 'monotoneCubic' | ('smooth' | 'straight' | 'stepline' | 'linestep' | 'monotoneCubic')[]
   lineCap?: 'butt' | 'square' | 'round'
   colors?: string[]
   width?: number | number[]
-  dashArray?: number | number[]
+  /**
+   * The series' dash. A single value (a number or a pattern string) applies
+   * to every series; a top-level ARRAY is one value per series, in series
+   * order, each of which may itself be a pattern.
+   *
+   * So a pattern shared by all series is written as a string, `'8 3 2 3'`.
+   * `[8, 3, 2, 3]` at the top level means four series dashed 8, 3, 2 and 3;
+   * to give one series an array pattern, nest it:
+   * `[0, [8, 3, 2, 3]]` (first solid, second dash-dot).
+   * @default 0
+   */
+  dashArray?: ApexDashPattern | Array<number | string | number[]>
   fill?: ApexFill
 }
 
@@ -2744,7 +2771,18 @@ type XAxisAnnotations = {
   id?: number | string
   x?: null | number | string
   x2?: null | number | string
-  strokeDashArray?: number
+  /**
+   * The line's (or the range's border) dash: a number (dash = gap), a dash
+   * list string such as `'8 3 2 3'` (dash-dot), or an array of lengths.
+   * @default 1
+   */
+  strokeDashArray?: ApexDashPattern
+  /**
+   * The cap on each dash of the line or the range's border. `'round'` with
+   * a zero-length dash (`strokeDashArray: '0 6'`) draws round dots.
+   * @default 'butt'
+   */
+  strokeLineCap?: 'butt' | 'square' | 'round'
   fillColor?: string
   borderColor?: string
   borderWidth?: number
@@ -2770,7 +2808,18 @@ type YAxisAnnotations = {
   id?: number | string
   y?: null | number | string
   y2?: null | number | string
-  strokeDashArray?: number
+  /**
+   * The line's (or the range's border) dash: a number (dash = gap), a dash
+   * list string such as `'8 3 2 3'` (dash-dot), or an array of lengths.
+   * @default 1
+   */
+  strokeDashArray?: ApexDashPattern
+  /**
+   * The cap on each dash of the line or the range's border. `'round'` with
+   * a zero-length dash (`strokeDashArray: '0 6'`) draws round dots.
+   * @default 'butt'
+   */
+  strokeLineCap?: 'butt' | 'square' | 'round'
   fillColor?: string
   borderColor?: string
   borderWidth?: number
@@ -3541,8 +3590,8 @@ type ApexPlotOptions = {
       color?: string
       /** Default `1`. */
       strokeWidth?: number
-      /** Default `3`. */
-      strokeDashArray?: number
+      /** Default `3`. A number, a dash list string or an array. */
+      strokeDashArray?: ApexDashPattern
     }
   }
   /** `chart.type: 'streamgraph'`. Not in the default bundle since 8.0: `import 'apexcharts/features/streamgraph'`, or load `dist/features/streamgraph.js` after the ApexCharts script, or use the full bundle. */
@@ -4547,7 +4596,7 @@ type ApexPlotOptions = {
        */
       stroke?: string
       strokeWidth?: number
-      strokeDasharray?: string | number
+      strokeDasharray?: ApexDashPattern
       dropShadow?: ApexDropShadow
     }
     track?: {
@@ -4737,7 +4786,11 @@ type ApexMarkers = {
   strokeColors?: string | string[]
   strokeWidth?: number | number[]
   strokeOpacity?: number | number[]
-  strokeDashArray?: number | number[]
+  /**
+   * The marker outline's dash. As with `stroke.dashArray`, a top-level array
+   * is one value per series, so a pattern shared by all series is a string.
+   */
+  strokeDashArray?: ApexDashPattern | Array<number | string | number[]>
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
   shape?: ApexMarkerShape
@@ -5081,7 +5134,7 @@ type ApexXAxis = {
     stroke?: {
       color?: string
       width?: number
-      dashArray?: number
+      dashArray?: ApexDashPattern
     }
     fill?: {
       type?: string
@@ -5187,7 +5240,7 @@ type ApexYAxis = {
     stroke?: {
       color?: string
       width?: number
-      dashArray?: number
+      dashArray?: ApexDashPattern
     }
   }
   tooltip?: {
@@ -5200,7 +5253,8 @@ type ApexForecastDataPoints = {
   count?: number
   fillOpacity?: number
   strokeWidth?: undefined | number
-  dashArray?: number
+  /** A number, a dash list string ('8 3 2 3') or an array of lengths. */
+  dashArray?: ApexDashPattern
 }
 
 /**
@@ -5271,7 +5325,7 @@ type ApexHighlightFilter = {
    * Line, spline and step line: the whole is drawn dashed (this dash, in
    * px) at full strength instead of faded, with the part solid over it.
    */
-  line?: { dashArray?: number }
+  line?: { dashArray?: ApexDashPattern }
   /**
    * Pie and donut: how a part's share sets its radius, from the centre or
    * the hole. 'radius' is linear in the radius; 'area' makes the part's area
@@ -5356,7 +5410,8 @@ type ApexHighlightParts =
 type ApexGrid = {
   show?: boolean
   borderColor?: string
-  strokeDashArray?: number
+  /** A number, a dash list string ('8 3 2 3') or an array of lengths. */
+  strokeDashArray?: ApexDashPattern
   position?: 'front' | 'back'
   xaxis?: {
     lines?: {

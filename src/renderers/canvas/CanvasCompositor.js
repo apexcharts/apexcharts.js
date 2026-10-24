@@ -3,6 +3,7 @@ import SVGElement from '../../svg/SVGElement'
 import { SVGNS } from '../../svg/math'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import Grid from '../../modules/axes/Grid'
+import { parseDash } from '../../utils/dash.js'
 
 /**
  * Strata (#2) P2: CanvasCompositor: owns the `<foreignObject><canvas>` series
@@ -684,12 +685,9 @@ export default class CanvasCompositor {
     ctx.strokeStyle = stroke
     ctx.lineWidth = sw
     ctx.lineCap = style.lineCap || 'butt'
-    const dash = style.strokeDash
-    if (dash && dash !== 0) {
-      ctx.setLineDash(Array.isArray(dash) ? dash : [Number(dash)])
-    } else {
-      ctx.setLineDash([])
-    }
+    // A number, an SVG dash list string ('8 3 2 3') or an array; anything
+    // canvas cannot draw comes back [] (solid), as SVG would draw it.
+    ctx.setLineDash(parseDash(style.strokeDash))
     return true
   }
 
