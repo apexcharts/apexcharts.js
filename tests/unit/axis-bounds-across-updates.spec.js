@@ -102,4 +102,43 @@ describe('axis bounds across updates', () => {
     expect(document.querySelector('#c .apexcharts-reset-icon')).toBeNull()
     chart.destroy()
   })
+
+  it('clears the zoomed flag when updateOptions({ series }) puts the axes back', async () => {
+    const chart = await mount({
+      chart: {
+        type: 'line',
+        width: 600,
+        height: 300,
+        animations: { enabled: false },
+        zoom: { enabled: true },
+        toolbar: { show: false },
+      },
+    })
+    chart.zoomX(15, 20)
+    expect(chart.w.interact.zoomed).toBe(true)
+    expect(document.querySelector('#c .apexcharts-reset-icon')).not.toBeNull()
+    await chart.updateOptions({ series: shifted(2) })
+    expect(chart.w.interact.zoomed).toBe(false)
+    expect(chart.getState().zoomed).toBe(false)
+    expect(document.querySelector('#c .apexcharts-reset-icon')).toBeNull()
+    chart.destroy()
+  })
+
+  it('keeps the zoom through an updateOptions call without series', async () => {
+    const chart = await mount({
+      chart: {
+        type: 'line',
+        width: 600,
+        height: 300,
+        animations: { enabled: false },
+        zoom: { enabled: true },
+        toolbar: { show: false },
+      },
+    })
+    chart.zoomX(15, 20)
+    await chart.updateOptions({ title: { text: 'Hello' } })
+    expect(chart.w.interact.zoomed).toBe(true)
+    expect(document.querySelector('#c .apexcharts-reset-icon')).not.toBeNull()
+    chart.destroy()
+  })
 })

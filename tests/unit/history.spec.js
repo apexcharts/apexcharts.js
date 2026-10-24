@@ -274,3 +274,33 @@ describe('History: jump / clear / event / lifetime', () => {
     expect(spy).toHaveBeenCalled()
   })
 })
+
+describe('History: zoom across a restore', () => {
+  it('an undo back to a zoomed checkpoint keeps the reset control (#5388)', async () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 600,
+        height: 300,
+        animations: { enabled: false },
+        zoom: { enabled: true },
+        toolbar: { show: false },
+        history: { enabled: true, coalesceMs: COALESCE },
+      },
+      series: [{ name: 'A', data: [[1, 10], [2, 20], [3, 30], [4, 40], [5, 50], [6, 20], [7, 30], [8, 10]] }],
+      xaxis: { type: 'numeric' },
+    })
+    await settle()
+    chart.zoomX(2, 6)
+    await settle()
+    chart.zoomX(3, 5)
+    await settle()
+    await chart.history.undo()
+    await settle()
+    expect(chart.w.interact.zoomed).toBe(true)
+    expect(chart.w.config.xaxis.min).toBe(2)
+    expect(chart.w.config.xaxis.max).toBe(6)
+    expect(document.querySelector('.apexcharts-reset-icon')).not.toBeNull()
+    chart.destroy()
+  })
+})

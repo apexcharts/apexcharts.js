@@ -913,16 +913,25 @@ export default class BarDataLabels {
       ) {
         // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
         // Note: This issue is only seen in stacked charts
+        // The label's on-screen extent: a vertical label is rotated, so its
+        // length runs up the screen and its height across it.
+        const vertical =
+          w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
+        const labelW = vertical ? textRects.height : textRects.width
+        const labelH = vertical ? textRects.width : textRects.height
+        // Along the bar the label may spill a little (the 1.6 factor); across
+        // it, a label wider than a column or taller than a bar is hidden.
         if (this.barCtx.isHorizontal) {
-          if (textRects.width / 1.6 > Math.abs(barWidth)) {
+          if (
+            labelW / 1.6 > Math.abs(barWidth) ||
+            labelH > Math.abs(barHeight)
+          ) {
             text = ''
           }
         } else {
           if (
-            textRects.height / 1.6 > Math.abs(barHeight) ||
-            (w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
-              ? textRects.height
-              : textRects.width) > Math.abs(barWidth)
+            labelH / 1.6 > Math.abs(barHeight) ||
+            labelW > Math.abs(barWidth)
           ) {
             text = ''
           }

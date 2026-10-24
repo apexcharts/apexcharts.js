@@ -162,4 +162,60 @@ describe('stacked column data labels', () => {
     stacked(false)
     expect(drawn()).toHaveLength(16)
   })
+
+  // A rotated label's length runs along the column, so it is its WIDTH that
+  // must fit the segment's height. Segment B is about 20px tall: the label's
+  // height (15px) fits, its length (48px) does not.
+  const shortSegment = (orientation) => {
+    sizedText()
+    createChartWithOptions({
+      chart: { type: 'bar', stacked: true, width: 600, height: 300 },
+      plotOptions: { bar: { dataLabels: { orientation } } },
+      dataLabels: { enabled: true, formatter: (v) => 'value ' + v },
+      xaxis: { categories: ['a', 'b'] },
+      series: [
+        { name: 'A', data: [100, 100] },
+        { name: 'B', data: [10, 10] },
+      ],
+    })
+    return drawn().map((t) => t.textContent)
+  }
+
+  it('hides a vertical label longer than its segment is tall', () => {
+    expect(shortSegment('vertical')).toEqual(['value 100', 'value 100'])
+  })
+
+  it('keeps a horizontal label whose height fits the same segment', () => {
+    expect(shortSegment('horizontal')).toHaveLength(4)
+  })
+})
+
+describe('stacked horizontal bar data labels', () => {
+  const drawn = () =>
+    [...document.querySelectorAll('.apexcharts-datalabel')].filter(
+      (t) => t.textContent,
+    )
+  const bars = (n) => {
+    sizedText()
+    createChartWithOptions({
+      chart: { type: 'bar', stacked: true, width: 600, height: 300 },
+      plotOptions: { bar: { horizontal: true } },
+      dataLabels: { enabled: true },
+      xaxis: { categories: Array.from({ length: n }, (_, k) => 'c' + k) },
+      series: [
+        { name: 'A', data: Array(n).fill(100) },
+        { name: 'B', data: Array(n).fill(100) },
+      ],
+    })
+    return drawn()
+  }
+
+  it('hides a label taller than its bar', () => {
+    // 16 bars in a ~220px plot are under 10px thick; the label is 15px tall
+    expect(bars(16)).toHaveLength(0)
+  })
+
+  it('keeps a label that fits the bar thickness', () => {
+    expect(bars(3)).toHaveLength(6)
+  })
 })

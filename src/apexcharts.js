@@ -1091,8 +1091,15 @@ export default class ApexCharts {
       }
 
       // user updated the series via updateOptions() function.
-      // Hence, we need to reset axis min/max to avoid zooming issues
-      this.updateHelpers.revertDefaultAxisMinMax()
+      // Hence, we need to reset axis min/max to avoid zooming issues, and
+      // the zoom is gone with them (#5388). A History restore re-feeds a
+      // checkpoint's series and puts its zoom flag back itself, so it only
+      // reverts the axes.
+      if (this.history?.applying) {
+        this.updateHelpers.revertDefaultAxisMinMax()
+      } else {
+        this.updateHelpers.revertZoom()
+      }
     }
     // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
     if (options.xaxis) {
@@ -1157,9 +1164,7 @@ export default class ApexCharts {
     // clears collapse/path bookkeeping without restoring (and deep-cloning)
     // the initialSeries snapshot that parseData is about to overwrite anyway
     this.series.prepareDataUpdate()
-    this.updateHelpers.revertDefaultAxisMinMax()
-    this.w.interact.zoomed = false
-    this.toolbar?.clearZoomAffordance()
+    this.updateHelpers.revertZoom()
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,

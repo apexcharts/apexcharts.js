@@ -310,12 +310,22 @@ class Radar {
 
       // one per series: it indexes markers.discrete on first use
       const markers = new Markers(this.w, this.ctx)
+      const filters = new Filters(this.w)
+      // One marker group per series, created on first use. Real markers share
+      // a group that delegates the marker events once (as line and scatter
+      // do). The invisible `markers.size: 0` hit areas get their own group
+      // with no delegation: no marker means no marker events, exactly as a
+      // line chart without markers. The tooltip still resolves hover on them
+      // through its own listeners (#1575).
+      /** @type {any | null} */
+      let elPointsWrap = null
+      /** @type {any | null} */
+      let elHitWrap = null
       /**
        * @param {any} sj
        * @param {number} j
        */
       s.forEach((/** @type {any} */ sj, /** @type {any} */ j) => {
-
         const opts = markers.getMarkerConfig({
           cssClass: 'apexcharts-marker',
           seriesIndex: i,
@@ -346,7 +356,8 @@ class Radar {
         // larger area (8 was tried) overlaps the next series' point and steals
         // its hover, captioning the wrong series. Matching the default keeps
         // hit-resolution identical to a radar drawn with ordinary markers.
-        if (!opts.pSize) {
+        const isHitArea = !opts.pSize
+        if (isHitArea) {
           opts.pSize = RADAR_HIT_AREA_SIZE
           opts.pointFillColor = 'transparent'
           opts.pointStrokeColor = 'transparent'
@@ -364,16 +375,26 @@ class Radar {
         point.attr('index', i)
         point.node.setAttribute('default-marker-size', opts.pSize)
 
-        const elPointsWrap = this.graphics.group({
-          class: 'apexcharts-series-markers',
-        })
-
-        if (elPointsWrap) {
-          markers.setupMarkerDelegation(elPointsWrap)
+        if (isHitArea) {
+          if (!elHitWrap) {
+            elHitWrap = this.graphics.group({
+              class: 'apexcharts-series-markers',
+            })
+            elPointsMain.add(elHitWrap)
+          }
+          elHitWrap.add(point)
+        } else {
+          if (!elPointsWrap) {
+            elPointsWrap = this.graphics.group({
+              class: 'apexcharts-series-markers',
+            })
+            markers.setupMarkerDelegation(elPointsWrap)
+            elPointsMain.add(elPointsWrap)
+          }
+          // a selected point keeps its active state across redraws
+          filters.setSelectionFilter(point, i, j)
           elPointsWrap.add(point)
         }
-
-        elPointsMain.add(elPointsWrap)
 
         elSeries.add(elPointsMain)
 

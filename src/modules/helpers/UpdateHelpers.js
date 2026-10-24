@@ -869,7 +869,7 @@ export default class UpdateHelpers {
    * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
    * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
    * The function also accepts an object {xaxis, yaxis} which when present is set as the new xaxis/yaxis
-   * @param {Record<string, any>} opts
+   * @param {Record<string, any>} [opts]
    */
   revertDefaultAxisMinMax(opts) {
     const w = this.w
@@ -919,5 +919,18 @@ export default class UpdateHelpers {
         }
       }
     })
+  }
+
+  /**
+   * A series fed in from outside (updateSeries, appendSeries,
+   * updateOptions({ series })) drops any zoom: revert the axes, then clear the
+   * zoomed flag and the on-demand reset control so they match the full range
+   * that is drawn (#5388). The flag clears AFTER the revert, whose y branch
+   * still has to see the zoom.
+   */
+  revertZoom() {
+    this.revertDefaultAxisMinMax()
+    this.w.interact.zoomed = false
+    this.ctx.toolbar?.clearZoomAffordance()
   }
 }

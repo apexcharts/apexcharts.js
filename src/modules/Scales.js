@@ -758,6 +758,7 @@ export default class Scales {
       // A step fixes the tick count and the axis ends on the last step. One
       // too fine to draw keeps the default count instead.
       const fit = step > 0 && !gl.isBarHorizontal && x.type !== 'datetime'
+      const defaultTicks = gl.xTickAmount
       if (fit) {
         const n = Math.ceil((maxX - minX) / step - 1e-9)
         n > 1e3 ? (step = undefined) : (gl.xTickAmount = n)
@@ -766,9 +767,15 @@ export default class Scales {
       let s = this.linearScale(minX, maxX, gl.xTickAmount, 0, step)
       if (fit && step) {
         // linearScale rounds the step, so it can fall short of the data
-        while (s.niceMax < maxX)
+        while (s.niceMax < maxX && gl.xTickAmount < 1e3)
           s = this.linearScale(minX, maxX, ++gl.xTickAmount, 0, step)
-        gl.maxX = s.niceMax
+        if (s.niceMax < maxX) {
+          // a step that never reaches the data keeps the default count
+          gl.xTickAmount = defaultTicks
+          s = this.linearScale(minX, maxX, defaultTicks)
+        } else {
+          gl.maxX = s.niceMax
+        }
       }
       gl.xAxisScale = s
     }
