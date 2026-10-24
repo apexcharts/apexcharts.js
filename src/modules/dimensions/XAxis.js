@@ -4,6 +4,7 @@ import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 import { BAR_PATHWAY_TYPES } from '../settings/TypeAliases'
+import AxesUtils from '../axes/AxesUtils'
 
 export default class DimXAxis {
   /**
@@ -122,13 +123,41 @@ export default class DimXAxis {
             : xArrLabelrect.height,
       }
 
+      // Judge the fit against the plot as it will be drawn if the labels stay
+      // upright: `additionalPaddingXLabels` then narrows it by a right pad for
+      // the last label, so testing the unpadded width kept labels upright
+      // that no longer fit and the overlap pass hid half of them (#5370).
+      // Rotating removes that pad, so the decision is final in one pass.
+      // Each label also needs the gap the overlap test keeps between them, and
+      // the spacing is the drawn one: slot centres (plot / count) on a
+      // category axis, ticks (plot / intervals) on a numeric one, as in
+      // `drawXAxisLabelAndGroup`.
+      const labelCount = xaxisLabels.length
+      let slots = labelCount
+      if (w.axisFlags.isXNumeric) {
+        let dataPoints =
+          w.config.xaxis.type === 'category'
+            ? w.globals.dataPoints
+            : labelCount
+        if (dataPoints === 0) dataPoints = labelCount
+        const len = Math.max(
+          Number(w.config.xaxis.tickAmount) || 1,
+          dataPoints > 1 ? dataPoints - 1 : dataPoints,
+        )
+        slots = Math.max(1, Math.min(len, labelCount - 1))
+      }
+      const uprightPlotWidth =
+        w.globals.svgWidth -
+        this.dCtx.lgWidthForSideLegends -
+        this.dCtx.yAxisWidth -
+        this.dCtx.datalabelsCoords.width * 2 -
+        this.dCtx.gridPad.left -
+        this.dCtx.gridPad.right -
+        this.uprightLabelsRightPad(rect.width)
+
       if (
-        (rect.width * xaxisLabels.length >
-          w.globals.svgWidth -
-            this.dCtx.lgWidthForSideLegends -
-            this.dCtx.yAxisWidth -
-            this.dCtx.gridPad.left -
-            this.dCtx.gridPad.right &&
+        ((rect.width + AxesUtils.X_LABEL_GAP) * slots >
+          uprightPlotWidth &&
           w.config.xaxis.labels.rotate !== 0) ||
         w.config.xaxis.labels.rotateAlways
       ) {
@@ -176,6 +205,33 @@ export default class DimXAxis {
       width: rect.width,
       height: rect.height,
     }
+  }
+
+  /**
+   * The right pad `additionalPaddingXLabels` adds for upright, untrimmed
+   * non-datetime labels so the last one is not cropped (0 when none). Shared
+   * with the rotation test so both see the same plot width.
+   * @param {number} lbWidth widest upright label
+   * @returns {number}
+   */
+  uprightLabelsRightPad(lbWidth) {
+    const w = this.w
+    const cnf = w.config
+    if (
+      cnf.xaxis.type === 'datetime' ||
+      cnf.xaxis.labels.trim ||
+      !(this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight)
+    ) {
+      return 0
+    }
+    // additionalPaddingXLabels skips collapsed axes of a multi-axis chart;
+    // when it skips every axis, no pad is added.
+    const collapsed = w.globals.collapsedSeriesIndices
+    const anyAxisPads = cnf.yaxis.some(
+      (/** @type {any} */ _y, /** @type {number} */ i) =>
+        !(cnf.yaxis.length > 1 && collapsed.indexOf(i) !== -1),
+    )
+    return anyAxisPads ? lbWidth / 2 + 1 : 0
   }
 
   /**
@@ -383,14 +439,9 @@ export default class DimXAxis {
         if (this.dCtx.gridPad.right < lbWidth && !w.layout.rotateXLabels) {
           gl.skipLastTimelinelabel = true
         }
-      } else if (xtype !== 'datetime') {
-        if (
-          this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&
-          !w.layout.rotateXLabels &&
-          !w.config.xaxis.labels.trim
-        ) {
-          this.dCtx.xPadRight = lbWidth / 2 + 1
-        }
+      } else if (xtype !== 'datetime' && !w.layout.rotateXLabels) {
+        const pad = this.uprightLabelsRightPad(lbWidth)
+        if (pad > 0) this.dCtx.xPadRight = pad
       }
     }
 

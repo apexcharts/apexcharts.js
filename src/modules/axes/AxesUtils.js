@@ -6,6 +6,15 @@ import DateTime from '../../utils/DateTime'
 
 export default class AxesUtils {
   /**
+   * Minimum clear space, in px, between two upright category x-axis labels.
+   * Matches the default `gap` the data-label overlap pass keeps between two
+   * labels (`DataLabels.avoidOverlaps`), so "touching" means the same thing
+   * for every kind of label. The rotation test reserves it too, so a set of
+   * labels that is kept upright is one the overlap test can draw in full.
+   */
+  static X_LABEL_GAP = 2
+
+  /**
    * @param {import('../../types/internal').ChartStateW} w
    */
   constructor(w, { theme = null, timeScale = null } = {}) {
@@ -164,21 +173,34 @@ export default class AxesUtils {
 
     if (w.config.xaxis.labels.hideOverlappingLabels && drawnLabels.length > 0) {
       const prev = drawnLabelsRects[drawnLabelsRects.length - 1]
-      if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
+      const rotated = w.layout.rotateXLabels
+      // Trimmed upright labels are cut to their slot, so they cannot collide
+      // and must all stay (#3096). Rotated labels are trimmed along their
+      // length only, which does not stop them crowding: thin those as usual.
+      if (
+        w.config.xaxis.labels.trim &&
+        w.config.xaxis.type !== 'datetime' &&
+        !rotated
+      ) {
         return label
       }
-      if (
-        /** @type {any} */ (label).x <
-        prev.textRect.width /
-          (w.layout.rotateXLabels
-            ? // Floor the rotation at 1deg: rotateAlways:true forces
-              // rotateXLabels even with rotate:0, and a 0 divisor here makes the
-              // spread Infinity, blanking every label after the first.
-              Math.max(Math.abs(w.config.xaxis.labels.rotate), 1) / 12
-            : 1.01) +
-          prev.x
-      ) {
-        /** @type {any} */ ;(label).text = ''
+      const lbl = /** @type {any} */ (label)
+      const tooClose = rotated
+        ? lbl.x <
+          prev.x +
+            prev.textRect.width /
+              // Floor the rotation at 1deg: rotateAlways:true forces
+              // rotateXLabels even with rotate:0, and a 0 divisor here makes
+              // the spread Infinity, blanking every label after the first.
+              (Math.max(Math.abs(w.config.xaxis.labels.rotate), 1) / 12)
+        : // Upright text is centred on its x, so two labels clear each other
+          // when their centres are at least half of both widths apart, plus
+          // a gap so they do not touch.
+          lbl.x - prev.x <
+          (prev.textRect.width + (lbl.textRect?.width ?? 0)) / 2 +
+            AxesUtils.X_LABEL_GAP
+      if (tooClose) {
+        lbl.text = ''
       }
     }
 
