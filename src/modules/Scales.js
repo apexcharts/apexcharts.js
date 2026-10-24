@@ -468,27 +468,43 @@ export default class Scales {
     /** @type {number} */
     const ticksNum = /** @type {number} */ (ticks)
 
-    if (!step) {
+    // A step derived from the range has to land on yMax; a given one doesn't.
+    const derivedStep = !step
+    if (derivedStep) {
       step = range / ticksNum
     }
+    const rawStep = step
 
     const MIN_PRECISION = 2
+    let multiplier = 0
     if (step !== 0 && isFinite(step)) {
       // calculate the order of magnitude (e.g., 0.001 -> -3, 10 -> 1)
       const magnitude = Math.floor(Math.log10(Math.abs(step)))
       // increase precision for smaller magnitudes to avoid losing significant digits
       const precision = Math.max(MIN_PRECISION, -magnitude + MIN_PRECISION)
-      const multiplier = Math.pow(10, precision)
+      multiplier = Math.pow(10, precision)
       step = Math.round((step + Number.EPSILON) * multiplier) / multiplier
     }
-    let tickCount = ticksNum
 
-    let v = yMin
+    if (derivedStep && multiplier) {
+      // Adding the rounded step up would carry its rounding error into every
+      // tick (200 / 19 gave a last tick of 200.07), so place each tick from
+      // the unrounded step and round it on its own.
+      for (let i = 0; i < ticksNum; i++) {
+        const t = yMin + i * rawStep
+        result.push(Math.round((t + Number.EPSILON) * multiplier) / multiplier)
+      }
+      result.push(yMax)
+    } else {
+      let tickCount = ticksNum
 
-    while (tickCount >= 0) {
-      result.push(v)
-      v = Utils.preciseAddition(v, step)
-      tickCount -= 1
+      let v = yMin
+
+      while (tickCount >= 0) {
+        result.push(v)
+        v = Utils.preciseAddition(v, step)
+        tickCount -= 1
+      }
     }
 
     return {

@@ -186,6 +186,17 @@ describe('Scales.linearScale', () => {
     expect(result[result.length - 1]).toBe(50)
   })
 
+  it('ends on yMax when the derived step has to be rounded', () => {
+    const s = makeScales([{ data: [0, 200] }])
+    // 200 / 19 rounds to 10.53; adding that up gave a last tick of 200.07
+    const { result, niceMax } = s.linearScale(0, 200, 19)
+    expect(result.length).toBe(20)
+    expect(niceMax).toBe(200)
+    result.forEach((v, i) => expect(v).toBeCloseTo((i * 200) / 19, 2))
+
+    expect(s.linearScale(1, 8, 3).result).toEqual([1, 3.33, 5.67, 8])
+  })
+
   it('handles a custom step value', () => {
     const s = makeScales([{ data: [0, 30] }])
     const { result } = s.linearScale(0, 30, 3, 0, 10)
