@@ -632,8 +632,10 @@ class Utils {
    * @param {number} b
    */
   static preciseAddition(a, b) {
-    const aDecimals = (String(a).split('.')[1] || '').length
-    const bDecimals = (String(b).split('.')[1] || '').length
+    // decimalPlaces reads exponent notation too: splitting String(1e-7) on '.'
+    // found no decimals, so tiny steps rounded to 0 and never advanced.
+    const aDecimals = Utils.decimalPlaces(a)
+    const bDecimals = Utils.decimalPlaces(b)
 
     const factor = Math.pow(10, Math.max(aDecimals, bDecimals))
 
