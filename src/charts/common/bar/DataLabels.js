@@ -918,7 +918,12 @@ export default class BarDataLabels {
             text = ''
           }
         } else {
-          if (textRects.height / 1.6 > Math.abs(barHeight)) {
+          if (
+            textRects.height / 1.6 > Math.abs(barHeight) ||
+            (w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
+              ? textRects.height
+              : textRects.width) > Math.abs(barWidth)
+          ) {
             text = ''
           }
         }

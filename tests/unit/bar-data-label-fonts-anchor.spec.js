@@ -108,3 +108,58 @@ describe('bar data labels', () => {
     expect(label ? label.textContent : '').toBe('')
   })
 })
+
+describe('stacked column data labels', () => {
+  const stacked = (hideOverflowingLabels) =>
+    createChartWithOptions({
+      chart: { type: 'bar', stacked: true, width: 360, height: 300 },
+      plotOptions: { bar: { dataLabels: { hideOverflowingLabels } } },
+      dataLabels: { enabled: true },
+      xaxis: { categories: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] },
+      series: [
+        {
+          name: 'A',
+          data: [
+            362961, 298114, 341007, 315552, 377210, 289904, 352118, 330671,
+          ],
+        },
+        {
+          name: 'B',
+          data: [
+            214870, 251330, 199402, 238815, 205566, 262007, 221394, 247118,
+          ],
+        },
+      ],
+    })
+  const drawn = () =>
+    [...document.querySelectorAll('.apexcharts-datalabel')].filter(
+      (t) => t.textContent,
+    )
+
+  it('hides a label that is wider than its column', () => {
+    sizedText()
+    stacked(true)
+    expect(drawn()).toHaveLength(0)
+  })
+
+  it('keeps a vertical label that fits across its column', () => {
+    sizedText()
+    createChartWithOptions({
+      chart: { type: 'bar', stacked: true, width: 360, height: 300 },
+      plotOptions: { bar: { dataLabels: { orientation: 'vertical' } } },
+      dataLabels: { enabled: true },
+      xaxis: { categories: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] },
+      series: [
+        { name: 'A', data: [362961, 298114, 341007, 315552, 377210, 289904, 352118, 330671] },
+        { name: 'B', data: [214870, 251330, 199402, 238815, 205566, 262007, 221394, 247118] },
+      ],
+    })
+    expect(drawn()).toHaveLength(16)
+  })
+
+  it('keeps the label when hideOverflowingLabels is off', () => {
+    sizedText()
+    stacked(false)
+    expect(drawn()).toHaveLength(16)
+  })
+})
