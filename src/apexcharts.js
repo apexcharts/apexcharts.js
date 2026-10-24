@@ -1035,8 +1035,18 @@ export default class ApexCharts {
         ? this.trellis.whenSettled()
         : Promise.resolve()
       return settled.then(async () => {
-        // Two updates in one task: the later teardown would cancel the earlier rebuild mid-mount.
-        while (this.trellis._rendering) await this.trellis.whenSettled()
+        // Two updates in one task: the later teardown would cancel the
+        // earlier rebuild mid-mount, so wait for every rebuild in flight.
+        // Each pass must wait on a DIFFERENT render: a flag that stays set
+        // after its render settled would otherwise spin here on microtasks.
+        let waitedOn = null
+        while (
+          this.trellis?._rendering &&
+          this.trellis._renderPromise !== waitedOn
+        ) {
+          waitedOn = this.trellis._renderPromise
+          await this.trellis.whenSettled()
+        }
         // A change that only affects how a panel PAINTS goes to the live
         // panels. Rebuilding for every option, however small, threw away
         // hover state, keyboard focus and each panel's own zoom.

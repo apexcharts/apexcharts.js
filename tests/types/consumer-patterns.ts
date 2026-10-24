@@ -450,3 +450,7 @@ void datetimeBounds; void numericBounds
 // 'column' is a spelling of 'bar'.
 const columnChart: ApexCharts.ApexOptions = { chart: { type: 'column' } }
 void columnChart
+
+// `trellis: null` turns a trellis back into one chart (#5363).
+const trellisOff: ApexCharts.ApexOptions = { trellis: null }
+void trellisOff

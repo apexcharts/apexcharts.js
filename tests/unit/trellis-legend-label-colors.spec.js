@@ -69,4 +69,65 @@ describe('trellis shared legend label colors', () => {
     const c = await mount()
     texts(c).forEach((el) => expect(el.style.color).toBe(''))
   })
+
+  // The per-chart legend gives useSeriesColors precedence over labels.colors
+  // (Legend.js); the shared legend follows the same rule.
+  describe('legend.labels.useSeriesColors', () => {
+    const markerOf = (el) =>
+      el.parentNode.querySelector('.apexcharts-legend-marker').style.background
+
+    it('paints each name in its series colour', async () => {
+      const c = await mount({
+        colors: ['#cc0000', '#0000cc'],
+        legend: { labels: { useSeriesColors: true } },
+      })
+      const t = texts(c)
+      expect(t).toHaveLength(2)
+      expect(t[0].style.color).toBe('rgb(204, 0, 0)')
+      expect(t[1].style.color).toBe('rgb(0, 0, 204)')
+      t.forEach((el) => expect(el.style.color).toBe(markerOf(el)))
+    })
+
+    it('wins over legend.labels.colors', async () => {
+      const c = await mount({
+        colors: ['#cc0000', '#0000cc'],
+        legend: { labels: { useSeriesColors: true, colors: '#00cc00' } },
+      })
+      const t = texts(c)
+      expect(t[0].style.color).toBe('rgb(204, 0, 0)')
+      expect(t[1].style.color).toBe('rgb(0, 0, 204)')
+    })
+
+    it('survives a legend click', async () => {
+      const c = await mount({
+        colors: ['#cc0000', '#0000cc'],
+        legend: { labels: { useSeriesColors: true } },
+      })
+      texts(c)[0].parentNode.click()
+      const t = texts(c)
+      expect(t[0].parentNode.classList).toContain('apexcharts-inactive-legend')
+      expect(t[0].style.color).toBe('rgb(204, 0, 0)')
+    })
+
+    it('follows a colors update', async () => {
+      const c = await mount({
+        colors: ['#cc0000', '#0000cc'],
+        legend: { labels: { useSeriesColors: true } },
+      })
+      await c.updateOptions({ colors: ['#00cc00', '#cccc00'] })
+      const t = texts(c)
+      expect(t[0].style.color).toBe('rgb(0, 204, 0)')
+      expect(t[1].style.color).toBe('rgb(204, 204, 0)')
+      t.forEach((el) => expect(el.style.color).toBe(markerOf(el)))
+    })
+
+    it('turning it off hands the colour back to labels.colors', async () => {
+      const c = await mount({
+        colors: ['#cc0000', '#0000cc'],
+        legend: { labels: { useSeriesColors: true, colors: '#00cc00' } },
+      })
+      await c.updateOptions({ legend: { labels: { useSeriesColors: false } } })
+      texts(c).forEach((el) => expect(el.style.color).toBe('rgb(0, 204, 0)'))
+    })
+  })
 })

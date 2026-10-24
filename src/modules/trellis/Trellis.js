@@ -611,6 +611,11 @@ export default class Trellis {
    * @returns {Promise<void>}
    */
   render() {
+    // A second call while a mount is in flight joins it. Without this the
+    // early-returned (already resolved) promise would replace the live one,
+    // and a caller waiting on whenSettled() would wake while `_rendering`
+    // is still true.
+    if (this._rendering && this._renderPromise) return this._renderPromise
     const p = this._render()
     this._renderPromise = p
     return p
@@ -830,7 +835,10 @@ export default class Trellis {
       if (!useVirtual) w.globals.animationEnded = true
       this._fire('trellisMounted', { panels: this.getPanels() })
     } finally {
-      this._rendering = false
+      // Only the current render owns the flag. A render cancelled by
+      // teardown() (which already cleared it) must not clear the flag of a
+      // newer render that started after that teardown.
+      if (gen === this._gen) this._rendering = false
     }
   }
 
@@ -1783,8 +1791,11 @@ export default class Trellis {
    * disconnect the observers, and remove the trellis DOM.
    */
   teardown() {
-    // cancels an in-flight render (see _render)
+    // cancels an in-flight render (see _render), and drops its flag: the
+    // cancelled render stops at its next await, so nothing is mounting now
+    // and a stale `true` would hold every later update in a wait loop.
     this._gen++
+    this._rendering = false
     this.virtual.stop()
     this._virtualActive = false
     this._panelRenderer = null

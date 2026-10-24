@@ -29,14 +29,29 @@ const ICONS = {
 /**
  * Paint one legend item from the trellis's state: the marker from the
  * colour map, the inactive look from the hidden set (which every panel
- * mounted from it honours too, so the two always agree).
+ * mounted from it honours too, so the two always agree), and the label
+ * colour the way the per-chart legend picks it: `labels.useSeriesColors`
+ * wins over `labels.colors` (scalar, or an array by name index). With
+ * neither set the inline colour is cleared so the CSS var chain applies.
  * @param {import('./Trellis').default} t
  * @param {any} item
  * @param {string} name
+ * @param {number} i the name's index in the legend
  */
-function paintItem(t, item, name) {
+function paintItem(t, item, name, i) {
   const hidden = t.sync.isHidden(name)
-  item.firstChild.style.background = t.scales ? t.scales.colorOf(name) : '#008FFB'
+  const color = t.scales ? t.scales.colorOf(name) : '#008FFB'
+  item.firstChild.style.background = color
+  const text = item.querySelector('.apexcharts-legend-text')
+  if (text) {
+    const labels = t.w.config.legend?.labels || {}
+    const textColor = labels.useSeriesColors
+      ? color
+      : Array.isArray(labels.colors)
+        ? labels.colors[i]
+        : labels.colors
+    text.style.color = textColor || ''
+  }
   item.classList.toggle('apexcharts-inactive-legend', hidden)
   item.setAttribute('data:collapsed', String(hidden))
 }
@@ -252,8 +267,6 @@ export default class TrellisChrome {
     const legendFont = t.w.config.legend.fontFamily
     if (legendFont) wrap.style.fontFamily = legendFont
 
-    const labelColors = t.w.config.legend.labels.colors
-
     names.forEach((name, i) => {
       const item = BrowserAPIs.createElement('div')
       item.className = 'apexcharts-legend-series apexcharts-trellis-legend-item'
@@ -266,18 +279,14 @@ export default class TrellisChrome {
       const text = BrowserAPIs.createElement('span')
       text.className = 'apexcharts-legend-text'
       text.textContent = name
-      const textColor = Array.isArray(labelColors)
-        ? labelColors[i]
-        : labelColors
-      if (textColor) text.style.color = textColor
 
       item.appendChild(marker)
       item.appendChild(text)
-      paintItem(t, item, name)
+      paintItem(t, item, name, i)
 
       const toggle = () => {
         t.sync.toggleSeries(name)
-        paintItem(t, item, name)
+        paintItem(t, item, name, i)
       }
       item.addEventListener('click', toggle)
       item.addEventListener('keydown', (/** @type {any} */ e) => {
@@ -306,9 +315,7 @@ export default class TrellisChrome {
     const old = this.elLegend
     const names = t.split ? t.split.seriesNames : []
     if (old && this._names === JSON.stringify(names)) {
-      names.forEach((n, i) =>
-        paintItem(t, old.children[i], n),
-      )
+      names.forEach((n, i) => paintItem(t, old.children[i], n, i))
       return
     }
     this.destroyGradientLegend()

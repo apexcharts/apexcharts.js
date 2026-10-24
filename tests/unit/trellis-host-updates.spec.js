@@ -15,7 +15,9 @@
  * the chrome-height reserve) need a real layout engine and live in
  * tests/interaction/specs/trellis.spec.js.
  */
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
+import fs from 'node:fs'
+import path from 'node:path'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/trellis.js'
@@ -166,6 +168,81 @@ describe('two updates in one task on a mounted grid', () => {
 
     expect(el.querySelectorAll(':scope > .apexcharts-canvas')).toHaveLength(0)
     expect(el.querySelectorAll('.apexcharts-trellis-cell')).toHaveLength(2)
+    chart.destroy()
+  })
+
+  it('both updates landing before the first render settles end on the second', async () => {
+    const { chart, el } = mount()
+    const rendered = chart.render()
+    // Neither the render nor the first update is awaited before the second.
+    const a = chart.updateOptions({ trellis: { by: 'region', columns: 1 } })
+    const b = chart.updateOptions({ trellis: { by: 'region', columns: 2 } })
+    await rendered
+    await Promise.allSettled([a, b])
+
+    expect(el.querySelectorAll('.apexcharts-trellis')).toHaveLength(1)
+    expect(el.querySelectorAll(':scope > .apexcharts-canvas')).toHaveLength(0)
+    expect(el.querySelectorAll('.apexcharts-trellis-cell')).toHaveLength(2)
+    expect(chart.trellis.layout.cols).toBe(2)
+    expect(chart.trellis._rendering).toBe(false)
+    expect(chart.trellis._mounted).toBe(true)
+    chart.destroy()
+  })
+})
+
+// The root of #5365: a render cancelled by teardown() used to keep (or
+// later clear) the `_rendering` flag, which then belonged to nobody.
+describe('the rendering flag belongs to the current render only', () => {
+  it('a teardown mid-render leaves the flag clear', async () => {
+    const { chart } = mount()
+    const rendered = chart.render()
+    const t = chart.trellis
+    expect(t._rendering).toBe(true)
+    t.teardown()
+    expect(t._rendering).toBe(false)
+    await rendered
+    expect(t._rendering).toBe(false)
+    chart.destroy()
+  })
+
+  it("a cancelled render's cleanup does not clear a newer render's flag", async () => {
+    const { chart } = mount()
+    chart.render()
+    const t = chart.trellis
+    const first = t._renderPromise
+    t.teardown()
+    const second = t.render()
+    expect(second).not.toBe(first)
+    expect(t._rendering).toBe(true)
+    await first
+    // the cancelled render has settled; the newer one still owns the flag
+    expect(t._mounted).toBe(false)
+    expect(t._rendering).toBe(true)
+    await second
+    expect(t._rendering).toBe(false)
+    expect(t._mounted).toBe(true)
+    chart.destroy()
+  })
+
+  it('a second render() while mounting joins the in-flight one', async () => {
+    const { chart } = mount()
+    chart.render()
+    const t = chart.trellis
+    const live = t._renderPromise
+    expect(t.render()).toBe(live)
+    expect(t._renderPromise).toBe(live)
+    await live
+    chart.destroy()
+  })
+
+  it('a stale flag cannot hold an update in a wait loop', async () => {
+    const { chart, el } = mount()
+    await chart.render()
+    // Simulate the hazard: the flag says rendering, the promise is settled.
+    chart.trellis._rendering = true
+    await chart.updateOptions({ trellis: { by: 'region', columns: 1 } })
+    expect(el.querySelectorAll('.apexcharts-trellis-cell')).toHaveLength(2)
+    expect(chart.trellis.layout.cols).toBe(1)
     chart.destroy()
   })
 })
@@ -343,6 +420,96 @@ describe('the HTML chrome follows the theme', () => {
       el.querySelector('.apexcharts-trellis-legend').style.fontFamily,
     ).toBe('Georgia, serif')
     chart.destroy()
+  })
+
+  // #5366 on a page with a universal font reset (our own samples have
+  // `* { font-family: Arial }`): plain inheritance loses to a rule that
+  // targets the element, so the chrome has to inherit explicitly. jsdom
+  // reports a cascaded 'inherit' literally, so resolve it up the tree.
+  describe('against a page-level `* { font-family }` reset', () => {
+    let sheet
+    beforeEach(() => {
+      sheet = document.createElement('style')
+      sheet.textContent =
+        '* { font-family: Arial; }\n' +
+        fs.readFileSync(
+          path.resolve(__dirname, '../../src/assets/apexcharts.css'),
+          'utf8',
+        )
+      document.head.appendChild(sheet)
+    })
+    afterEach(() => sheet.remove())
+
+    const fontOf = (node) => {
+      for (let n = node; n; n = n.parentElement) {
+        const f = getComputedStyle(n).fontFamily
+        if (f !== 'inherit') return f
+      }
+      return ''
+    }
+
+    const SERIES_4 = [
+      { name: 'Plan', region: 'North', q: 'Q1', data: rows(10) },
+      { name: 'Actual', region: 'North', q: 'Q1', data: rows(12) },
+      { name: 'Plan', region: 'South', q: 'Q2', data: rows(20) },
+      { name: 'Actual', region: 'South', q: 'Q2', data: rows(22) },
+    ]
+    const FONT = 'Courier, monospace'
+    const chartOpts = {
+      type: 'line',
+      height: 400,
+      animations: { enabled: false },
+      fontFamily: FONT,
+    }
+
+    it('headers, legend, title and subtitle follow chart.fontFamily', async () => {
+      const { chart, el } = mount({
+        options: {
+          chart: chartOpts,
+          title: { text: 'Revenue' },
+          subtitle: { text: 'by region' },
+          series: SERIES_4,
+        },
+      })
+      await chart.render()
+      const sel = [
+        '.apexcharts-trellis-header',
+        '.apexcharts-trellis-legend .apexcharts-legend-text',
+        '.apexcharts-trellis-title',
+        '.apexcharts-trellis-subtitle',
+      ]
+      sel.forEach((s) => {
+        const n = el.querySelector(s)
+        expect(n, s).not.toBeNull()
+        expect(fontOf(n), s).toBe(FONT)
+      })
+      chart.destroy()
+    })
+
+    it('2-D strips follow chart.fontFamily', async () => {
+      const { chart, el } = mount({
+        options: { chart: chartOpts, series: SERIES_4 },
+        trellis: { by: undefined, row: 'region', column: 'q' },
+      })
+      await chart.render()
+      const strips = el.querySelectorAll('.apexcharts-trellis-strip')
+      expect(strips.length).toBeGreaterThan(0)
+      strips.forEach((n) => expect(fontOf(n)).toBe(FONT))
+      chart.destroy()
+    })
+
+    it('leaves the panel SVG text alone', async () => {
+      const { chart, el } = mount({
+        options: { chart: chartOpts, series: SERIES_4 },
+      })
+      await chart.render()
+      const texts = el.querySelectorAll('.apexcharts-trellis-panel text')
+      expect(texts.length).toBeGreaterThan(0)
+      texts.forEach((n) =>
+        expect(getComputedStyle(n).fontFamily).not.toBe('inherit'),
+      )
+      chart.destroy()
+    })
   })
 })
 

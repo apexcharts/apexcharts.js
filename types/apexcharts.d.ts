@@ -1513,8 +1513,9 @@ declare namespace ApexCharts {
      * pixel-aligned panels by a facet key. Requires
      * `import 'apexcharts/features/trellis'`. NOT in the default bundle; a
      * script-tag page adds `dist/features/trellis.js` after apexcharts.js.
+     * Pass `null` to updateOptions to turn a trellis off (back to one chart).
      */
-    trellis?: ApexTrellis
+    trellis?: ApexTrellis | null
     plotOptions?: ApexPlotOptions
     responsive?: ApexResponsive[]
     parsing?: ApexParsing;

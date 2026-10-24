@@ -1771,6 +1771,36 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis-legend-item.apexcharts-inactive-legend {
   opacity: 0.45;
 }
+/* The HTML chrome takes chart.fontFamily from the inline font on
+   .apexcharts-trellis (#5366). A page rule that targets elements directly
+   (a `* { font-family }` reset) would beat plain inheritance, so every HTML
+   node between the wrapper and the chrome text inherits explicitly. Named
+   classes only: a `.apexcharts-trellis *` rule would also hit the panels' SVG
+   text and override their font-family presentation attributes. The grid
+   tooltip card is all HTML, so it inherits wholesale like .apexcharts-tooltip. */
+.apexcharts-trellis-chrome,
+.apexcharts-trellis-grid,
+.apexcharts-trellis-cell,
+.apexcharts-trellis-header,
+.apexcharts-trellis-strip,
+.apexcharts-trellis-corner,
+.apexcharts-trellis-title,
+.apexcharts-trellis-subtitle,
+.apexcharts-trellis-breadcrumb,
+.apexcharts-trellis-breadcrumb-back,
+.apexcharts-trellis-breadcrumb-sep,
+.apexcharts-trellis-breadcrumb-current,
+.apexcharts-trellis-empty-label,
+.apexcharts-trellis-legend,
+.apexcharts-trellis-legend-item,
+.apexcharts-trellis-legend-item .apexcharts-legend-text,
+.apexcharts-trellis-toolbar,
+.apexcharts-trellis-menu,
+.apexcharts-trellis-menu-item,
+.apexcharts-trellis-tooltip,
+.apexcharts-trellis-tooltip * {
+  font-family: inherit;
+}
 
 /* Printing (#3352). The sheet is narrower than the screen and nothing reports
    its width to the page, so a chart laid out for the screen would be cropped at
