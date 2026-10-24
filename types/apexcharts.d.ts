@@ -369,6 +369,13 @@ declare class ApexCharts {
   /** Returns the sum of each series (totals used for percentage calculations). */
   getSeriesTotal(): number[]
 
+  /**
+   * Where a radialBar or gauge drew its dial on the last render (centre, ring
+   * and band radii, angles, value to angle), in the px of `getChartArea()`.
+   * Null on other chart types and before the first render.
+   */
+  getRadialScales(): ApexCharts.ApexRadialScales | null
+
   /** Returns all charts in the same chart.group, including this instance. */
   getSyncedCharts(): ApexCharts[]
 
@@ -843,6 +850,128 @@ interface ApexPluginScales {
   ratios: any
 }
 
+/**
+ * The dial a radialBar or gauge drew: `chart.getRadialScales()`, and Weave's
+ * `api.radialScales` / `payload.radialScales` (detect with
+ * `api.can('radial-scales')`). Null on every other chart type.
+ *
+ * Px are plot-local: the space of `chart.getChartArea()` and of a Weave
+ * `api.layer()`. Angles are degrees, 0 at 12 o'clock, running clockwise.
+ * Frozen; each render publishes a new object, so read it again after an
+ * update or resize rather than keeping one.
+ */
+interface ApexRadialScales {
+  /** The dial's centre. */
+  readonly cx: number
+  readonly cy: number
+  /** Where `min` sits on the dial. */
+  readonly startAngle: number
+  /**
+   * Where `max` sits: `startAngle` plus the sweep. The dial always runs
+   * clockwise; a full circle stops just short of closing (359.99).
+   */
+  readonly endAngle: number
+  /** The value domain, `plotOptions.radialBar.min` / `max`. */
+  readonly min: number
+  readonly max: number
+  /** The circle the dial is sized in, before any ring is laid out. */
+  readonly outerRadius: number
+  /**
+   * The first (outermost) ring's centre line, where the bands, the ticks,
+   * the needle and the targets are measured from.
+   */
+  readonly radius: number
+  /** A value arc's stroke width. */
+  readonly thickness: number
+  /**
+   * One ring per series, indexed by series. With `inverseOrder` the last
+   * series takes the outermost ring.
+   */
+  readonly rings: ReadonlyArray<{
+    readonly seriesIndex: number
+    /** The ring's centre line. */
+    readonly radius: number
+    /** Its value arc's stroke width. */
+    readonly thickness: number
+    /** Its track's stroke width (`track.strokeWidth` of `thickness`). */
+    readonly trackThickness: number
+  }>
+  /** The gauge bands' centre line and stroke width; null without bands. */
+  readonly bands: { readonly radius: number; readonly thickness: number } | null
+  /** The hollow circle's radius. */
+  readonly hollow: { readonly radius: number }
+  /**
+   * The needle's pivot and length on `shape: 'needle'`, null otherwise. The
+   * pivot is the centre shifted by `needle.offsetY`.
+   */
+  readonly needle: {
+    readonly cx: number
+    readonly cy: number
+    readonly length: number
+  } | null
+  /** The angle of a value, clamped to `min..max` as the chart draws it. */
+  angle(value: number): number
+  /** A value's point at `radius` (default: the first ring's `radius`). */
+  point(value: number, radius?: number): { x: number; y: number }
+}
+
+/** One entry of `plotOptions.radialBar.targets`. */
+interface ApexRadialTarget {
+  /**
+   * Where the mark sits, in the `min..max` domain (clamped to it), or
+   * `'series'` to follow the ring's own value, as a pointer on the rim.
+   * A missing or non-numeric value draws nothing.
+   */
+  value: number | 'series'
+  /** The ring it marks, by series index. @default 0 */
+  seriesIndex?: number
+  /** @default 'line' */
+  shape?: 'line' | 'triangle' | 'circle'
+  /**
+   * Across the ring's centre line, or off its outer or inner edge (the
+   * bands' edge on a needle gauge with no value arc). A triangle points at
+   * the ring. @default 'across' ('outside' for a triangle)
+   */
+  position?: 'across' | 'outside' | 'inside'
+  /**
+   * Extent along the radius: px, or `'130%'` of the ring's thickness. A
+   * line's length, a triangle's height, a circle's diameter.
+   * @default '130%' for a line, 10 otherwise
+   */
+  length?: number | string
+  /**
+   * Extent across the radius in px: a line's stroke width, a triangle's
+   * base. Not used by a circle. @default 3 for a line, 12 for a triangle
+   */
+  width?: number
+  /** @default chart.foreColor (follows the theme) */
+  color?: string
+  /** Outline of a triangle or circle, e.g. to read over a band of its own colour. */
+  strokeColor?: string
+  /** @default 0 */
+  strokeWidth?: number
+  /** Text off the mark's outer end (inner end when `position: 'inside'`); stays upright. */
+  label?: {
+    text?: string
+    /** px between the mark and the text. @default 4 */
+    offset?: number
+    style?: {
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: string | number
+      /** @default the target's color */
+      color?: string
+    }
+  }
+  /** Added to the target's `apexcharts-radial-target` group. */
+  cssClass?: string
+  /**
+   * Keeps a target's identity across updates, so it moves from where it was
+   * when the list is reordered. Without it targets match by position.
+   */
+  id?: string | number
+}
+
 interface ApexPluginSeries {
   name?: string
   hidden: boolean
@@ -917,6 +1046,8 @@ interface ApexPluginLayer {
 interface ApexPluginPayload {
   api: ApexPluginAPI
   scales: ApexPluginScales | null
+  /** The dial on a radialBar or gauge, null otherwise. @since Weave v7 */
+  radialScales: ApexRadialScales | null
   data: ApexPluginSeries[]
   pass: 'full' | 'fast' | 'update'
   hook: ApexPluginHook
@@ -941,6 +1072,12 @@ interface ApexPluginAPI {
    */
   layer(opts?: { z?: 'front' | 'behind'; className?: string }): ApexPluginLayer
   readonly scales: ApexPluginScales | null
+  /**
+   * The dial on a radialBar or gauge (centre, ring and band radii, angles,
+   * value to angle), null on other types, where `scales` applies instead.
+   * Detect with `api.can('radial-scales')`. @since Weave v7
+   */
+  readonly radialScales: ApexRadialScales | null
   readonly data: ApexPluginSeries[]
   /**
    * What kind of chart this is, for a plugin deciding whether it applies here
@@ -1555,6 +1692,8 @@ declare namespace ApexCharts {
   export type { ApexStates }
   export type { ApexStroke }
   export type { ApexDashPattern }
+  export type { ApexRadialScales }
+  export type { ApexRadialTarget }
   export type { ApexTitleSubtitle }
   export type { ApexTheme }
   export type { ApexTooltip }
@@ -4525,10 +4664,32 @@ type ApexPlotOptions = {
     }>
     bandsStyle?: {
       strokeWidth?: string
-      gap?: number
+      /**
+       * Gap between consecutive bands. A number or `'4px'` is px along the
+       * band (so it takes a smaller angle on a larger gauge), `'1%'` a share
+       * of the `min..max` scale and `'1.5deg'` an angle; both of those look
+       * the same at every size. A band narrower than the gap is not drawn,
+       * and the chart warns once in the console naming it. @default 0
+       */
+      gap?: number | string
       hideTrackWhenPresent?: boolean
       linecap?: 'butt' | 'round' | 'square'
     }
+    /**
+     * Marks at a value on a ring: a target, a limit, last period's reading.
+     * Drawn over the rings and bands, turned to their value around the dial's
+     * centre, and moved with the chart (in with the ring on mount, from the
+     * old value on a data update). Works on every ring of a radialBar and on
+     * both gauge shapes. Changed with `updateOptions`. Read the dial they sit
+     * on with `chart.getRadialScales()`.
+     *
+     * Requires the radial-targets feature (free), which is NOT in the default
+     * bundle: `import 'apexcharts/features/radial-targets'`, or add
+     * `dist/features/radial-targets.js` after apexcharts.js on a script-tag
+     * page (`apexcharts.full.min.js` includes it). Without it the dial draws
+     * without targets and warns once. @default []
+     */
+    targets?: ApexRadialTarget[]
     ticks?: {
       show?: boolean
       major?: {

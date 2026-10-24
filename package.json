@@ -321,6 +321,10 @@
       "import": "./dist/features/trellis.esm.js",
       "require": "./dist/features/trellis.common.js"
     },
+    "./features/radial-targets": {
+      "import": "./dist/features/radial-targets.esm.js",
+      "require": "./dist/features/radial-targets.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

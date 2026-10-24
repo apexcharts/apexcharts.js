@@ -60,6 +60,9 @@ const TIER_2 = [
   // Premium and dashboard-scoped: draws a part of each value over its faded
   // whole. Without it, parts are ignored with a one-time warning.
   'highlight-filter',
+  // Free, gauge-scoped: marks at a value on a radialBar ring. Without it,
+  // `plotOptions.radialBar.targets` warns once and the dial draws without them.
+  'radial-targets',
   // The first opt-in chart TYPE (premium, like trellis): chart.type
   // 'raincloud' warns and renders blank on the default bundle by design.
   'raincloud',

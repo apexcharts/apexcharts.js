@@ -9,6 +9,61 @@ import { resolveClaimed } from '../modules/weave/Claims'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { Environment } from '../utils/Environment'
 import { resolveEasing } from '../modules/animations/Easing'
+import warnMissingFeature from '../utils/MissingFeature.js'
+
+/**
+ * The angle of `value` on a dial running clockwise from `start` through `span`
+ * degrees over `[min, max]`: clamped to the domain, and a missing or
+ * non-numeric value reads as min. The one formula the value arc's needle, the
+ * bands, the ticks, the targets and the published geometry all map through.
+ *
+ * @param {any} value
+ * @param {number} min
+ * @param {number} max
+ * @param {number} start
+ * @param {number} span
+ * @returns {number}
+ */
+function dialAngle(value, min, max, start, span) {
+  const n = Number(value)
+  const f = Number.isFinite(n)
+    ? (Math.min(Math.max(n, min), max) - min) / (max - min)
+    : 0
+  return start + f * span
+}
+
+/**
+ * `bandsStyle.gap` as degrees of the dial. A number or `'4px'` is a length
+ * along the band's own radius (so the angle it takes shrinks as the chart
+ * grows), `'1%'` a share of the scale and `'1.5deg'` an angle; both of those
+ * read the same at every size. An unparseable string reads as 0.
+ *
+ * @param {any} gap
+ * @param {number} radius the band radius, px
+ * @param {number} span the dial's sweep, degrees
+ * @returns {number}
+ */
+function bandGapDegrees(gap, radius, span) {
+  let px = gap
+  if (typeof gap === 'string') {
+    const m = /^\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*(px|%|deg)?\s*$/i.exec(gap)
+    const v = m ? Math.abs(parseFloat(m[1])) : 0
+    const unit = m && m[2] ? m[2].toLowerCase() : 'px'
+    if (unit === '%') return (v / 100) * span
+    if (unit === 'deg') return v
+    px = v
+  }
+  return radius > 0 ? (Math.abs(px || 0) / radius) * (180 / Math.PI) : 0
+}
+
+/** Band-gap warnings already given, so a live gauge does not repeat them. */
+const bandGapWarned = new Set()
+
+/**
+ * Charts already told that their `targets` need the radial-targets add-on.
+ * @type {WeakSet<object>}
+ */
+const targetsWarned = new WeakSet()
 
 /**
  * ApexCharts Radial Class for drawing Circle / Semi Circle Charts.
@@ -85,6 +140,11 @@ class Radial extends Pie {
       cy: centerY,
       r: size,
     }
+    // The dial's geometry, built once: the bands, ticks, needle and targets
+    // read it, and it is published as chart.getRadialScales() and Weave's
+    // api.radialScales.
+    const geometry = this.radialGeometry({ size, centerX, centerY, series })
+    w.globals.radialScales = geometry
     const colorArr = w.globals.fill.colors
 
     const rb = w.config.plotOptions.radialBar
@@ -100,7 +160,7 @@ class Radial extends Pie {
       // either end of the dial, so the two never cross. Placed as drawn, so
       // it follows a shape changed by an update.
       const n = this.needlePath(
-        { size, centerX, centerY, series },
+        { size, centerX, centerY, series, geometry },
         rb.needle || {},
       )
       this.donutDataLabels = this.radialDataLabels = {
@@ -139,6 +199,7 @@ class Radial extends Pie {
         centerX,
         centerY,
         series,
+        geometry,
       })
       elSeries.add(elBands)
     }
@@ -162,13 +223,18 @@ class Radial extends Pie {
         centerX,
         centerY,
         series,
+        geometry,
       })
       // On initial mount, ticks/labels fade in after the value arc + needle
       // finish their sweep — so they read as a "settled" annotation rather
       // than competing for attention during the gauge animation.
       const isInitialMount =
         this.initialAnim && !w.globals.dataChanged && !w.globals.resized
-      if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+      if (
+        isInitialMount &&
+        Environment.isBrowser() &&
+        w.globals.shouldAnimate
+      ) {
         const ticksNode = elTicks.node
         ticksNode.style.opacity = '0'
         ticksNode.style.transition = 'opacity 280ms ease-out'
@@ -194,6 +260,7 @@ class Radial extends Pie {
         centerX,
         centerY,
         series,
+        geometry,
       })
       elSeries.add(elNeedle)
     }
@@ -217,6 +284,25 @@ class Radial extends Pie {
 
     elSeries.add(elG.g)
 
+    // Targets (features/radial-targets, opt-in): over the rings and the
+    // bands, so a target reads across the value arc. Asked on every render,
+    // so an emptied list stops a running tween.
+    const targets = /** @type {any} */ (this.ctx)?.radialTargets
+    if (targets) {
+      const elTargets = targets.draw(this, { series, geometry })
+      if (elTargets) elSeries.add(elTargets)
+    } else if (
+      Array.isArray(rb.targets) &&
+      rb.targets.length &&
+      this.ctx &&
+      !targetsWarned.has(this.ctx)
+    ) {
+      targetsWarned.add(this.ctx)
+      warnMissingFeature('`plotOptions.radialBar.targets`', 'radial-targets', {
+        tail: 'The dial draws without them.',
+      })
+    }
+
     if (w.config.plotOptions.radialBar.hollow.position === 'front') {
       elG.g.add(elG.elHollow)
       if (elG.dataLabels) {
@@ -227,6 +313,111 @@ class Radial extends Pie {
     ret.add(elSeries)
 
     return ret
+  }
+
+  /**
+   * The dial as this render draws it: its centre, the radius and thickness of
+   * every ring, the bands, the hollow and the needle, the angles, and the
+   * value-to-angle mapping. The one place these are worked out; the bands,
+   * ticks, needle and targets read them from here, and the same object is what
+   * `chart.getRadialScales()` and Weave's `api.radialScales` hand out.
+   *
+   * Plot-local px (elGraphical's space, the one a Weave layer draws in);
+   * angles in degrees, 0 at 12 o'clock, clockwise. Frozen, and built from
+   * plain numbers, so a reader holding it cannot see a later render change.
+   *
+   * @param {{size: number, centerX: number, centerY: number, series: any[]}} opts
+   * @param {boolean} [withNeedle=true] false for needlePath's own fallback
+   * @returns {import('../types/internal').RadialGeometry}
+   */
+  radialGeometry(opts, withNeedle = true) {
+    const w = this.w
+    const rb = w.config.plotOptions.radialBar
+    const { size, centerX: cx, centerY: cy, series } = opts
+    const n = series.length
+    const strokeWidth = this.getStrokeWidth({ size, series })
+
+    // As drawTracks and drawArcs step in: each ring is a stroke and a margin
+    // inside the last, the first one stroke in from the outer edge.
+    const first = size - strokeWidth / 2
+    const dialRadius = first - strokeWidth - this.margin
+    /** @type {number[]} */
+    const steps = []
+    let r = first
+    for (let k = 0; k < n; k++) {
+      r = r - strokeWidth - this.margin
+      steps.push(r)
+    }
+    const trackThickness =
+      (strokeWidth * parseInt(rb.track.strokeWidth, 10)) / 100
+    // drawArcs loops the series backwards with inverseOrder, so the LAST
+    // series takes the outermost ring.
+    const rings = series.map((_, i) =>
+      Object.freeze({
+        seriesIndex: i,
+        radius: steps[rb.inverseOrder ? n - 1 - i : i],
+        thickness: strokeWidth,
+        trackThickness,
+      }),
+    )
+    const hollowSize =
+      first -
+      strokeWidth * n -
+      this.margin * n -
+      (strokeWidth * parseInt(rb.track.strokeWidth, 10)) / 100 / 2
+
+    const [min, max] = this._domain()
+    const startAngle = this.startAngle
+    const span = Math.abs(this.endAngle - this.startAngle)
+    /** @param {any} v */
+    const angle = (v) => dialAngle(v, min, max, startAngle, span)
+
+    const hasBands = Array.isArray(rb.bands) && rb.bands.length > 0
+
+    /** @type {any} */
+    const geo = {
+      cx,
+      cy,
+      startAngle,
+      endAngle: startAngle + span,
+      min,
+      max,
+      outerRadius: size,
+      radius: dialRadius,
+      thickness: strokeWidth,
+      rings: Object.freeze(rings),
+      bands: hasBands
+        ? Object.freeze({
+            radius: dialRadius,
+            thickness:
+              (strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10)) / 100,
+          })
+        : null,
+      hollow: Object.freeze({
+        radius: hollowSize - rb.hollow.margin,
+      }),
+      needle: null,
+      angle,
+      /**
+       * @param {any} v
+       * @param {number} [radius]
+       */
+      point: (v, radius) =>
+        Utils.polarToCartesian(
+          cx,
+          cy,
+          radius === undefined ? dialRadius : radius,
+          angle(v),
+        ),
+    }
+    if (withNeedle && rb.shape === 'needle') {
+      const nd = this.needlePath(
+        { centerX: cx, centerY: cy, geometry: geo },
+        rb.needle || {},
+      )
+      geo.needle = Object.freeze({ cx: nd.cx, cy: nd.cy, length: nd.length })
+    }
+    return Object.freeze(geo)
   }
 
   /**
@@ -715,9 +906,13 @@ class Radial extends Pie {
    * @returns {number}
    */
   _angleAtValue(value) {
-    return (
-      this.startAngle +
-      this._fraction(value) * Math.abs(this.endAngle - this.startAngle)
+    const [min, max] = this._domain()
+    return dialAngle(
+      value,
+      min,
+      max,
+      this.startAngle,
+      Math.abs(this.endAngle - this.startAngle),
     )
   }
 
@@ -760,27 +955,30 @@ class Radial extends Pie {
       class: 'apexcharts-gauge-bands',
     })
 
-    // Mirror the size calculation drawArcs would apply for the first series
-    // so bands sit on the same arc radius as the value arc.
-    const strokeWidth = this.getStrokeWidth(opts)
-    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin
+    // The bands sit on the first ring's radius, as the value arc does.
+    const geo = opts.geometry
+    const radius = geo.bands.radius
+    const bandStroke = geo.bands.thickness
+    const gapDeg = bandGapDegrees(
+      rb.bandsStyle.gap,
+      radius,
+      geo.endAngle - geo.startAngle,
+    )
 
-    const bandStroke =
-      (strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10)) / 100
-    // The gap is in px along the band's own radius.
-    const gapDeg =
-      radius > 0
-        ? (Math.abs(rb.bandsStyle.gap || 0) / radius) * (180 / Math.PI)
-        : 0
-
+    /** @type {number[]} */
+    const dropped = []
     for (let b = 0; b < bands.length; b++) {
       const band = bands[b]
       if (band.from === undefined || band.to === undefined) continue
-      const a1 = this._angleAtValue(band.from)
-      const a2 = this._angleAtValue(band.to)
+      const a1 = geo.angle(band.from)
+      const a2 = geo.angle(band.to)
       const startA = Math.min(a1, a2) + gapDeg / 2
       const endA = Math.max(a1, a2) - gapDeg / 2
-      if (endA - startA <= 0) continue
+      if (endA - startA <= 0) {
+        // Narrower than the gap, rather than empty or off the scale.
+        if (a1 !== a2) dropped.push(b)
+        continue
+      }
 
       const elBand = graphics.drawPath({
         d: this._describeArc(opts.centerX, opts.centerY, radius, startA, endA),
@@ -792,6 +990,28 @@ class Radial extends Pie {
       })
       elBand.node.setAttribute('data-band-index', String(b))
       g.add(elBand)
+    }
+
+    if (dropped.length) {
+      // Once per message, not per render: a live gauge redraws on every
+      // update and resize. A 7.x gap in scale units (48000 on a 0 to 4.8M
+      // scale) lands here and would otherwise draw nothing and say nothing.
+      const gap = rb.bandsStyle.gap
+      const inPx = typeof gap === 'number' || !/(%|deg)\s*$/i.test(gap)
+      const msg =
+        `ApexCharts ${w.config.chart.type}: band${dropped.length > 1 ? 's' : ''} ` +
+        `${dropped.join(', ')} ${dropped.length > 1 ? 'are' : 'is'} narrower ` +
+        `than plotOptions.radialBar.bandsStyle.gap (${JSON.stringify(gap)}) ` +
+        `and not drawn.` +
+        (inPx
+          ? ` A number is px along the band; '1%' (a share of the scale) or ` +
+            `'1.5deg' keeps the gap the same at every size.`
+          : '')
+      if (!bandGapWarned.has(msg)) {
+        if (bandGapWarned.size > 99) bandGapWarned.clear()
+        bandGapWarned.add(msg)
+        console.warn(msg)
+      }
     }
 
     return g
@@ -810,10 +1030,10 @@ class Radial extends Pie {
     const ticks = rb.ticks
     const g = graphics.group({ class: 'apexcharts-gauge-ticks' })
 
-    const strokeWidth = this.getStrokeWidth(opts)
-    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin
-
-    const [min, max] = this._domain()
+    // Ticks run along the first ring, as the bands do.
+    const geo = opts.geometry
+    const radius = geo.radius
+    const { min, max } = geo
 
     const majorCount = Math.max(2, ticks.major?.count ?? 11)
     const minorCount = Math.max(0, ticks.minor?.count ?? 0)
@@ -824,12 +1044,10 @@ class Radial extends Pie {
      * @param {boolean} isMajor
      */
     const drawTickAt = (value, cfg, isMajor) => {
-      const angle = this._angleAtValue(value)
+      const angle = geo.angle(value)
       const length = cfg.length ?? 8
-      const inner =
-        cfg.placement === 'inside' ? radius - length : radius
-      const outer =
-        cfg.placement === 'inside' ? radius : radius + length
+      const inner = cfg.placement === 'inside' ? radius - length : radius
+      const outer = cfg.placement === 'inside' ? radius : radius + length
       const p1 = Utils.polarToCartesian(
         opts.centerX,
         opts.centerY,
@@ -856,8 +1074,7 @@ class Radial extends Pie {
       if (isMajor && ticks.labels?.show) {
         const labelRadius =
           (cfg.placement === 'inside' ? inner : outer) +
-          (cfg.placement === 'inside' ? -1 : 1) *
-            (ticks.labels.offset ?? 6)
+          (cfg.placement === 'inside' ? -1 : 1) * (ticks.labels.offset ?? 6)
         const labelPos = Utils.polarToCartesian(
           opts.centerX,
           opts.centerY,
@@ -937,7 +1154,7 @@ class Radial extends Pie {
 
     // Rotate the whole group around the base point.
     const value = Number(opts.series[0])
-    const targetAngle = this._angleAtValue(value)
+    const targetAngle = opts.geometry.angle(value)
 
     // Cache the previous angle in globals (it survives re-renders) so
     // updateSeries can tween from it. A mount, or a redraw replaying it,
@@ -1003,8 +1220,11 @@ class Radial extends Pie {
    * @returns {{path: string, cx: number, cy: number, length: number, baseW: number}}
    */
   needlePath(opts, cfg) {
-    const strokeWidth = this.getStrokeWidth(opts)
-    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin
+    // The first ring's radius, from the render's geometry, or worked out the
+    // same way for a caller drawing outside a render (the highlight filter).
+    const arcRadius = (
+      opts.geometry || this.radialGeometry(/** @type {any} */ (opts), false)
+    ).radius
     const length =
       typeof cfg.length === 'string' && cfg.length.endsWith('%')
         ? (arcRadius * parseInt(cfg.length, 10)) / 100

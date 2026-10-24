@@ -49,6 +49,7 @@ import '../features/renderer-canvas.js'
 import '../features/context-menu.js'
 import '../features/history.js'
 import '../features/highlight-filter.js'
+import '../features/radial-targets.js'
 
 // The unit chart's catalogs, by name, as `dist/unit-shapes.js` and
 // `dist/pictograms.js` register them. Their script-tag entries also hang the

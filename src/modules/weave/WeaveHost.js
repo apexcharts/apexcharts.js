@@ -166,6 +166,7 @@ export default class WeaveHost {
       const payload = {
         api: record.api,
         scales: this._currentScales,
+        radialScales: this.w.globals.radialScales || null,
         // Built on first read and shared with api.data for the rest of this
         // pass: a handler that never reads it costs no snapshot.
         get data() {

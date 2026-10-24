@@ -378,6 +378,50 @@ ApexChartsClass.registerPlugin({
   },
 })
 
+// The dial of a radialBar or gauge (#5380): a plugin draws on it from the
+// published geometry, and page code reads the same object off the chart.
+ApexChartsClass.registerPlugin({
+  name: 'rim-dot',
+  apiVersion: 7,
+  setup(api) {
+    if (!api.can('radial-scales')) return
+    api.on('draw', ({ radialScales }) => {
+      const rs = api.radialScales ?? radialScales
+      if (!rs) return
+      const ring = rs.rings[0]
+      const p: { x: number; y: number } = rs.point(80, ring.radius + ring.thickness / 2)
+      const deg: number = rs.angle(80) - rs.startAngle
+      const band: number | undefined = rs.bands?.thickness
+      const pivot: number | undefined = rs.needle?.cy
+      api.layer().circle({ cx: p.x, cy: p.y, r: 4 })
+      void deg; void band; void pivot; void rs.hollow.radius
+    })
+  },
+})
+const dial: ApexCharts.ApexRadialScales | null = chart.getRadialScales()
+void dial?.point(50).x
+
+// Gauge band gap units (#5374) and rim targets (#5381, #1280).
+const gaugeTargets: ApexCharts.ApexOptions = {
+  chart: { type: 'gauge' },
+  series: [62],
+  plotOptions: {
+    radialBar: {
+      bands: [{ from: 0, to: 50, color: '#d33' }, { from: 50, to: 100, color: '#2a6' }],
+      bandsStyle: { gap: '1%' },
+      targets: [
+        { value: 80, label: { text: 'Target', style: { fontSize: '11px' } } },
+        { value: 'series', shape: 'triangle', position: 'outside', length: 10, width: 12 },
+        { value: 40, seriesIndex: 0, shape: 'circle', length: '60%', color: '#c00', strokeColor: '#fff', strokeWidth: 1, id: 'floor', cssClass: 'floor' },
+      ],
+    },
+  },
+}
+const pxGap: ApexCharts.ApexPlotOptions = { radialBar: { bandsStyle: { gap: 4 } } }
+// @ts-expect-error a target's position is 'across' | 'outside' | 'inside'
+const badTarget: ApexCharts.ApexRadialTarget = { value: 10, position: 'over' }
+void gaugeTargets; void pxGap; void badTarget
+
 // A definition is registered; `plugins` in options activates one by name.
 const _activate: ApexCharts.ApexOptions = {plugins: [{name: 'demo', order: 10}]}
 void _activate

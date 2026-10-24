@@ -2670,6 +2670,20 @@ export default class ApexCharts {
   }
 
   /**
+   * Where a radialBar or gauge drew its dial on the last render: the centre,
+   * the radius and thickness of each ring and of the bands, the start and end
+   * angles, and the value-to-angle mapping. Plot-local px (the space of
+   * `getChartArea()`), angles in degrees, 0 at 12 o'clock, clockwise. Frozen;
+   * a later render publishes a new object. Null on every other chart type and
+   * before the first render.
+   *
+   * @returns {import('./types/internal').RadialGeometry | null}
+   */
+  getRadialScales() {
+    return this.w.globals.radialScales || null
+  }
+
+  /**
    * Returns a curated snapshot of chart state for use in formatters, events,
    * and external integrations. Prefer this over accessing `chart.w` directly.
    *

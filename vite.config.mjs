@@ -111,6 +111,10 @@ export const SUB_ENTRIES = {
   'features/dumbbell': resolve(__dirname, 'src/features/dumbbell.js'),
   'features/streamgraph': resolve(__dirname, 'src/features/streamgraph.js'),
   'features/trellis': resolve(__dirname, 'src/features/trellis.js'),
+  'features/radial-targets': resolve(
+    __dirname,
+    'src/features/radial-targets.js',
+  ),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
@@ -194,6 +198,12 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/features/perspectives.js'),
     global: 'ApexPerspectives',
     out: 'features/perspectives.js',
+    shared: true,
+  },
+  'features/radial-targets': {
+    file: resolve(__dirname, 'src/features/radial-targets.js'),
+    global: 'ApexRadialTargets',
+    out: 'features/radial-targets.js',
     shared: true,
   },
   // The lean-core CDN baseline (plan 08's other half). Bundles the chart class

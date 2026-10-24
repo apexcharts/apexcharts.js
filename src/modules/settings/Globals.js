@@ -121,6 +121,10 @@ export default class Globals {
     // circle this render: set by the renderer, read by CircleTransition.
     // Reset here so a render that draws no circle leaves none behind.
     gl.circleGeometry = null
+    // The dial a radialBar or gauge drew this render (Radial.radialGeometry),
+    // published as chart.getRadialScales() and Weave's api.radialScales. Reset
+    // here so every other chart type reads null.
+    gl.radialScales = null
     // Only Pie writes this, so a pie with outer labels switched to sunburst
     // padded its auto height by the old band.
     gl.pieExternalLabelMarginY = 0
@@ -421,6 +425,7 @@ export default class Globals {
       // render cancels the previous render's loop before starting its own,
       // instead of leaving it to animate detached nodes. NOT reset per render.
       radialNeedleRAF: null,
+      radialTargetRAF: null,
       unitGatherRAF: null,
       unitExitRAF: null,
       // The gauge needle's last angle (the next tween starts there) and its

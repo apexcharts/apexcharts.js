@@ -63,6 +63,34 @@ export type ResolvedApexOptions = {
 // ---------------------------------------------------------------------------
 
 /** Tool / pointer interaction state — lives on `w.interact` */
+/** A radialBar or gauge dial as drawn; see Radial.radialGeometry. */
+export interface RadialGeometry {
+  readonly cx: number
+  readonly cy: number
+  readonly startAngle: number
+  readonly endAngle: number
+  readonly min: number
+  readonly max: number
+  readonly outerRadius: number
+  readonly radius: number
+  readonly thickness: number
+  readonly rings: ReadonlyArray<{
+    readonly seriesIndex: number
+    readonly radius: number
+    readonly thickness: number
+    readonly trackThickness: number
+  }>
+  readonly bands: { readonly radius: number; readonly thickness: number } | null
+  readonly hollow: { readonly radius: number }
+  readonly needle: {
+    readonly cx: number
+    readonly cy: number
+    readonly length: number
+  } | null
+  angle(value: any): number
+  point(value: any, radius?: number): { x: number; y: number }
+}
+
 export interface InteractState {
   // Tool mode
   zoomEnabled: boolean
@@ -383,6 +411,8 @@ export interface ChartGlobals
   /** rAF handles cancelled across re-renders so a stale animation loop doesn't
    * keep running on detached nodes (audit follow-up). */
   radialNeedleRAF: number | null
+  /** The radialBar targets' tween (Radial.drawTargets), cancelled likewise. */
+  radialTargetRAF: number | null
   unitGatherRAF: number | null
   unitExitRAF: number | null
   /** The gauge needle's last angle, where the next needle tween starts. */
@@ -609,6 +639,12 @@ export interface ChartGlobals
     /** pie/donut only: [top, bottom] of the swept arc, plot-local */
     y?: number[] | false
   } | null
+  /**
+   * The dial a radialBar or gauge drew this render (Radial.radialGeometry):
+   * the public `chart.getRadialScales()` / Weave `api.radialScales`. Reset
+   * every render, so null on every other chart type.
+   */
+  radialScales: RadialGeometry | null
   /** vertical band (px) reserved above/below a pie for outer name labels */
   pieExternalLabelMarginY: number
   barHeight: number

@@ -173,7 +173,7 @@ import ApexCharts from 'apexcharts/full'
 | raincloud | `apexcharts/raincloud` | `dist/violin.js`, then `dist/features/raincloud.js` |
 | waterfall, dumbbell, streamgraph | `apexcharts/features/waterfall` (and so on) | `dist/features/waterfall.js` (and so on) |
 | drilldown | `apexcharts/features/drilldown` | `dist/features/drilldown.js` |
-| trellis, measure, link, ink, storyboard, perspectives, history, context-menu, highlight-filter, renderer-canvas | `apexcharts/features/<name>` | `dist/features/<name>.js` |
+| trellis, measure, link, ink, storyboard, perspectives, history, context-menu, highlight-filter, renderer-canvas, radial-targets | `apexcharts/features/<name>` | `dist/features/<name>.js` |
 
 Server rendering takes the same imports next to `apexcharts/ssr`.
 
@@ -214,6 +214,7 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/renderer-canvas' // canvas series renderer (opt-in)
 // import 'apexcharts/features/trellis'     // small multiples (premium, opt-in)
 // import 'apexcharts/features/highlight-filter' // whole faded, part solid in front (premium, opt-in)
+// import 'apexcharts/features/radial-targets' // radialBar / gauge targets on the rim (opt-in)
 // import 'apexcharts/features/waterfall'   // also 'dumbbell': on 'apexcharts/bar' (opt-in)
 // import 'apexcharts/features/streamgraph' // on 'apexcharts/line' (opt-in)
 // import 'apexcharts/raincloud'            // raincloud: violin renderer + its statistics, on 'apexcharts/bar' (premium, opt-in)

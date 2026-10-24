@@ -237,6 +237,19 @@ export default class InitCtxVariables {
       configurable: true,
     })
 
+    // radialBar targets (features/radial-targets): resolved on read the same
+    // way, so an add-on loaded after the chart is picked up on its next render.
+    Object.defineProperty(ctx, 'radialTargets', {
+      get() {
+        if (!this._radialTargets) {
+          const C = reg.get('radialTargets')
+          if (C) this._radialTargets = new C(w, this)
+        }
+        return this._radialTargets ?? null
+      },
+      configurable: true,
+    })
+
     // — Eager optional modules —
 
     // Exports: ctx.exports (also used directly in apexcharts.js public methods)

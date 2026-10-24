@@ -1763,12 +1763,24 @@ export default class Options {
             // % of arc radius. Slightly less than the value-arc stroke so
             // the value-arc reads on top by default.
             strokeWidth: '40%',
-            // px gap between consecutive bands.
+            // Gap between consecutive bands: a number (or '4px') is px along
+            // the band, '1%' a share of the scale, '1.5deg' degrees. A band
+            // narrower than the gap is not drawn (with a console warning).
             gap: 0,
             // Hide the track when bands cover the full range; the bands
             // themselves act as the visual backdrop.
             hideTrackWhenPresent: true,
           },
+          // Marks at a value on a ring (a target, a limit), drawn over the
+          // rings and bands and turned to their value around the centre:
+          // [{ value: 80 | 'series', seriesIndex: 0,
+          //    shape: 'line' | 'triangle' | 'circle',
+          //    position: 'across' | 'outside' | 'inside',
+          //    length: '130%' | 10, width: 3, color, strokeColor,
+          //    strokeWidth, label: { text, offset, style }, cssClass, id }].
+          // Empty (default) draws none. Needs the opt-in (free) add-on
+          // 'apexcharts/features/radial-targets'; without it, a warning.
+          targets: [],
           // Tick marks rendered along (outside) the gauge arc.
           ticks: {
             show: false,

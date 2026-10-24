@@ -64,6 +64,12 @@ import { collectDrawn } from './Drawn'
  * costs the caller a legend entry, a tooltip row, an export column and a
  * rescaled value axis. See `weave/Highlights`.
  *
+ * Since v7, detected as the `radial-scales` capability: `api.radialScales`
+ * (and `radialScales` on every hook payload), the dial a radialBar or gauge
+ * drew: centre, ring and band radii and thicknesses, angles, and the value to
+ * angle mapping. Null on other types. Before it a plugin drawing on a dial had
+ * to parse the drawn SVG for its centre and radius.
+ *
  * Feature-detect rather than bumping `apiVersion` unless the plugin genuinely
  * cannot work without the new surface: a plugin declaring v3 is SKIPPED
  * outright on a v2 host, so `apiVersion: 2` plus a capability check keeps one
@@ -98,6 +104,7 @@ export const WEAVE_CAPABILITIES = Object.freeze([
   'observations',
   'scale-orientation',
   'highlight',
+  'radial-scales',
 ])
 
 /**
@@ -323,6 +330,11 @@ export function buildPluginAPI(host, record) {
     // ── reads ──
     get scales() {
       return host._currentScales
+    },
+    // The dial of a radialBar or gauge (null on every other type, where
+    // `scales` is the axis projection instead). See Radial.radialGeometry.
+    get radialScales() {
+      return w.globals.radialScales || null
     },
     // Served from the per-dispatch snapshot when one exists (invalidated at
     // every dispatch), so reading api.data in a loop does not rebuild the
@@ -716,4 +728,7 @@ const WIRED = {
   // then returning null is the same shape as `claim()` on an option this host
   // does not know.
   highlight: (/** @type {any} */ a) => typeof a.highlight === 'function',
+  // A member on every facade, null off a radialBar or gauge (the chart's
+  // shape, as with `scales`); the capability says this host publishes it.
+  'radial-scales': (/** @type {any} */ a) => 'radialScales' in a,
 }
