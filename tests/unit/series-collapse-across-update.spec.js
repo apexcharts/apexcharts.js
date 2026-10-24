@@ -53,6 +53,44 @@ describe('a legend collapse across a data update', () => {
     chart.destroy()
   })
 
+  // appendData() pushes into config.series, where a hidden series is only an
+  // empty row. The points have to go to the collapse record that the rise
+  // restores from, or they are lost when the series is shown again (#3200).
+  it('keeps points appended with appendData while the series is hidden', async () => {
+    const chart = createChartWithOptions(
+      opts([{ name: 'A', data: [1, 2, 3] }, { name: 'B', data: [4, 5, 6] }]),
+    )
+    await chart.render()
+    chart.hideSeries('B')
+
+    await chart.appendData([{ data: [7] }, { data: [8] }])
+    expect(hidden(chart)).toEqual(['B'])
+    expect(chart.w.config.series[0].data).toEqual([1, 2, 3, 7])
+    // Still collapsed: the hidden row stays empty and its values stay out of
+    // the axis range.
+    expect(chart.w.config.series[1].data).toEqual([])
+    expect(chart.w.globals.maxY).toBe(7)
+
+    chart.showSeries('B')
+    expect(chart.w.config.series[1].data).toEqual([4, 5, 6, 8])
+    chart.destroy()
+  })
+
+  it('bounds the hidden series with chart.streaming.maxPoints', async () => {
+    const chart = createChartWithOptions({
+      ...opts([{ name: 'A', data: [1, 2, 3] }, { name: 'B', data: [4, 5, 6] }]),
+      chart: { type: 'line', width: 800, height: 300, streaming: { enabled: true, maxPoints: 4 } },
+    })
+    await chart.render()
+    chart.hideSeries('B')
+
+    await chart.appendData([{ data: [7, 8] }, { data: [9, 10] }])
+    chart.showSeries('B')
+    expect(chart.w.config.series[0].data).toEqual([2, 3, 7, 8])
+    expect(chart.w.config.series[1].data).toEqual([5, 6, 9, 10])
+    chart.destroy()
+  })
+
   // The behaviour the name matching exists for: a series the update no longer
   // carries cannot stay hidden, because it is not there to be shown again.
   it('drops the hide when the update no longer carries that series', async () => {

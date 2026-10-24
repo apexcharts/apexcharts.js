@@ -1312,6 +1312,8 @@ export default class ApexCharts {
     // The reducer stash is what every parse re-reduces from, so it is bound
     // too. (The waterfall stash is not: dropping a step shifts every level.)
     if (reducerRaw) trimStreamingSeries(reducerRaw, me.w)
+    // and so is a hidden series, whose rows wait on its collapse record
+    trimStreamingSeries(records, me.w)
 
     me.w.config.series = newSeries
 
