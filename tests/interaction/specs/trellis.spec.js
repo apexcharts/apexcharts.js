@@ -40,6 +40,52 @@ const WALK_SRC = `
   }
 `
 
+/**
+ * Per-panel chrome geometry: the plot rect, and the topmost / bottommost ink
+ * against the svg's clip edges. Text is measured by its box (the em box), a
+ * little taller than the glyphs, so >= 0 means no glyph is cropped.
+ */
+async function readChromeGeometry(page) {
+  return page.evaluate(() =>
+    window.chart.getPanels().map((p) => {
+      const g = p.chart.w.globals
+      const svgRect = p.el
+        .querySelector('svg.apexcharts-svg')
+        .getBoundingClientRect()
+      // Deepest x-label INK vs the svg's clip edge: timescale labels draw
+      // deeper than the category path, and an over-eager bottom reclaim
+      // CROPS them (a real regression: dates lost their bottom half).
+      const xBottoms = Array.from(
+        p.el.querySelectorAll('.apexcharts-xaxis-label'),
+        (n) => n.getBoundingClientRect().bottom,
+      )
+      // Everything that can rise above the top gridline. A path's or a
+      // marker's box is its geometry; its stroke reaches half a width further.
+      let top = Infinity
+      p.el
+        .querySelectorAll(
+          '.apexcharts-yaxis-label, .apexcharts-datalabel, .apexcharts-datalabel-total, .apexcharts-series path, .apexcharts-series-markers circle, .apexcharts-series-markers path',
+        )
+        .forEach((n) => {
+          const r = n.getBoundingClientRect()
+          if (!r.width && !r.height) return
+          const sw = parseFloat(n.getAttribute('stroke-width') || '0')
+          top = Math.min(top, r.top - sw / 2)
+        })
+      return {
+        key: p.key,
+        translateY: g.translateY,
+        plotShare: g.gridHeight / svgRect.height,
+        yLabelCount: p.el.querySelectorAll('.apexcharts-yaxis-label').length,
+        topInk: top === Infinity ? null : top - svgRect.top,
+        xLabelClearance: xBottoms.length
+          ? svgRect.bottom - Math.max(...xBottoms)
+          : null,
+      }
+    }),
+  )
+}
+
 async function mountTrellis(page, buildOptsSrc, { width = 1200 } = {}) {
   const errors = []
   page.on('pageerror', (err) => errors.push(err.message))
@@ -179,10 +225,12 @@ test.describe('trellis', () => {
     page,
   }) => {
     // The standalone chart's breathing room (no-title gutter, bottom slack)
-    // is dead space inside a small panel: the reclaim in
-    // _assemblePanelOptions must leave the plot MOST of the panel height,
-    // and the shared scale must not cram more than ~4 labels into it
-    // (the 7-label / 44%-plot regression this test pins).
+    // is dead space inside a small panel. The panel drops the whole top band
+    // (Dimensions.dropsTopBand) and keeps only what its top ink needs, the
+    // bottom reclaim in _assemblePanelOptions takes most of the slack, so
+    // the plot owns MOST of the panel height; and the shared scale must not
+    // cram more than ~4 labels into it (the 7-label / 44%-plot regression
+    // this test pins).
     const errors = await mountTrellis(
       page,
       `{
@@ -198,36 +246,18 @@ test.describe('trellis', () => {
         dataLabels: { enabled: false },
       }`,
     )
-    const geom = await page.evaluate(() =>
-      window.chart.getPanels().map((p) => {
-        const g = p.chart.w.globals
-        const svgRect = p.el
-          .querySelector('svg.apexcharts-svg')
-          .getBoundingClientRect()
-        // Deepest x-label INK vs the svg's clip edge: timescale labels draw
-        // deeper than the category path, and an over-eager bottom reclaim
-        // CROPS them (a real regression: dates lost their bottom half).
-        const xBottoms = Array.from(
-          p.el.querySelectorAll('.apexcharts-xaxis-label'),
-          (n) => n.getBoundingClientRect().bottom,
-        )
-        return {
-          key: p.key,
-          translateY: g.translateY,
-          plotShare: g.gridHeight / svgRect.height,
-          yLabelCount: p.el.querySelectorAll('.apexcharts-yaxis-label').length,
-          xLabelClearance: xBottoms.length
-            ? svgRect.bottom - Math.max(...xBottoms)
-            : null,
-        }
-      }),
-    )
+    const geom = await readChromeGeometry(page)
     for (const p of geom) {
-      // Top air above the first gridline: was 35px of a 120px panel.
-      expect(p.translateY, `translateY of ${p.key}`).toBeLessThanOrEqual(10)
+      // Top air above the first gridline: was 35px of a 120px panel, then 8
+      // with a fixed reclaim. Now only the top y label's overhang (its em box
+      // rises ~6.3px over the gridline at 11px) is kept.
+      expect(p.translateY, `translateY of ${p.key}`).toBeLessThanOrEqual(7)
+      // ...and that overhang is kept, not cropped: every glyph's box is
+      // inside the svg top.
+      expect(p.topInk, `top ink of ${p.key}`).toBeGreaterThanOrEqual(0)
       // The plot rectangle owns most of the panel: was 44%. (Datetime keeps
       // a little more bottom slack than category: its labels sit deeper.)
-      expect(p.plotShare, `plot share of ${p.key}`).toBeGreaterThanOrEqual(0.65)
+      expect(p.plotShare, `plot share of ${p.key}`).toBeGreaterThanOrEqual(0.66)
       // Default targetTicks 3: at most ~4-5 labels, never the crammed 7.
       expect(p.yLabelCount, `y labels of ${p.key}`).toBeLessThanOrEqual(5)
       expect(p.yLabelCount, `y labels of ${p.key}`).toBeGreaterThanOrEqual(2)
@@ -240,6 +270,73 @@ test.describe('trellis', () => {
       }
     }
     expect(errors).toHaveLength(0)
+  })
+
+  test('panel top band: only the top ink is kept, and none of it is cropped', async ({
+    page,
+  }) => {
+    // The ink that can rise above the top gridline, each at its default
+    // size: y labels, markers and point data labels on a value that hits the
+    // top tick (100), and stacked totals above a stack that does. A fixed
+    // reclaim cropped the data labels (1px) and the totals (7px); the
+    // computed clearance must keep every one of them inside the svg, and a
+    // panel with no top ink at all (no y labels) must lose the band entirely.
+    const fixtures = {
+      pointInk: `{
+        chart: { type: 'line', height: 300, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 2, panelHeight: 140 },
+        series: [
+          { name: 's', k: 'a', data: [10, 40, 100, 60, 80, 30] },
+          { name: 's', k: 'b', data: [20, 55, 35, 90, 45, 70] },
+        ],
+        xaxis: { categories: ['A', 'B', 'C', 'D', 'E', 'F'] },
+        markers: { size: 6 },
+        dataLabels: { enabled: true },
+      }`,
+      totals: `{
+        chart: { type: 'bar', stacked: true, height: 300, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 2, panelHeight: 140 },
+        series: [
+          { name: 'p', k: 'a', data: [10, 30, 50, 20] },
+          { name: 'q', k: 'a', data: [10, 20, 50, 30] },
+          { name: 'p', k: 'b', data: [15, 25, 35, 45] },
+          { name: 'q', k: 'b', data: [5, 15, 25, 35] },
+        ],
+        xaxis: { categories: ['A', 'B', 'C', 'D'] },
+        dataLabels: { enabled: false },
+        plotOptions: { bar: { dataLabels: { total: { enabled: true } } } },
+      }`,
+      noYLabels: `{
+        chart: { type: 'bar', height: 300, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 2, panelHeight: 140 },
+        series: [
+          { name: 's', k: 'a', data: [10, 40, 100, 60] },
+          { name: 's', k: 'b', data: [20, 55, 35, 90] },
+        ],
+        xaxis: { categories: ['A', 'B', 'C', 'D'] },
+        yaxis: { show: false },
+        dataLabels: { enabled: false },
+      }`,
+    }
+    for (const [name, src] of Object.entries(fixtures)) {
+      const errors = await mountTrellis(page, src)
+      const geom = await readChromeGeometry(page)
+      expect(geom.length, name).toBe(2)
+      for (const p of geom) {
+        expect(p.topInk, `${name}: top ink of ${p.key}`).toBeGreaterThanOrEqual(0)
+      }
+      // Kept, not padded: in the panel whose value hits the top tick, the
+      // topmost ink sits within a px of the svg top.
+      const tightest = Math.min(...geom.map((p) => p.topInk))
+      expect(tightest, `${name}: tightest top ink`).toBeLessThan(1.5)
+      if (name === 'noYLabels') {
+        // Nothing rises over the plot but the bar stroke: the band is gone.
+        for (const p of geom) {
+          expect(p.translateY, `translateY of ${p.key}`).toBeLessThanOrEqual(1)
+        }
+      }
+      expect(errors, name).toHaveLength(0)
+    }
   })
 
   test('crosshair sweeps every panel; tooltip stays in the hovered panel', async ({

@@ -110,6 +110,9 @@ export default class Dimensions {
     this.gridPadForBreadcrumb()
     // Must run before gridWidth has xPadRight subtracted from it below.
     this.dimGrid.gridPadForStackedTotalDataLabels()
+    // An add-on may rewrite the band above the plot through this pad: a
+    // trellis panel drops it (trellis/TrellisTopClearance). Absent, no-op.
+    if (this.ctx.panelTopBand) this.ctx.panelTopBand(this)
 
     // Honeycomb heatmap: the hexagon lattice overhangs the grid box by a
     // quarter cell horizontally (the alternating row offsets) and a sixth of

@@ -285,7 +285,7 @@ export default class TrellisVirtual {
     }
 
     panel.el.classList.remove('apexcharts-trellis-skeleton')
-    const chart = new t._ApexCharts(panel.el, opts)
+    const chart = t._createPanelChart(panel.el, opts)
     panel.chart = chart
     try {
       await chart.render()

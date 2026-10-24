@@ -48,6 +48,7 @@ import TrellisSync, { yaxisPayload } from './TrellisSync'
 import TrellisVirtual from './TrellisVirtual'
 import TrellisTooltip from './TrellisTooltip'
 import TrellisExports from './TrellisExports'
+import { dropPanelTopBand } from './TrellisTopClearance'
 
 /** Above this, `virtualize: 'auto'` mounts only the visible panels (P2). */
 const EAGER_PANEL_BUDGET = 64
@@ -58,24 +59,45 @@ const HARD_PANEL_WARN = 256
 /** Above this, panel mount animations default OFF (explicit user wins). */
 const ANIMATION_PANEL_BUDGET = 16
 
+/** Panel types with no axis chrome to trim (see _hasPlotChrome). */
+const GRIDLESS_TYPES = [
+  'pie',
+  'donut',
+  'polarArea',
+  'radialBar',
+  'radar',
+  'treemap',
+]
+
 /** The vertical-axis label pad inside the yLabelsCoords width (22a Q2). */
 const Y_LABEL_PAD = 10
 
 /**
  * Vertical air a standalone chart reserves that a trellis panel must NOT
  * (the header and grid gap are the breathing room here; inside the panel it
- * is dead space that visibly pushes rows apart). With the panel's empty
- * title/subtitle at margin 0, Dimensions still leaves a 20px no-title gutter
- * above the plot and a flat 15px of slack below the x-axis band; these
- * paddings (composed with the user's own grid.padding) reclaim most of it.
- * The bottom is axis-aware: TIMESCALE labels draw ~6px deeper into that
+ * is dead space that visibly pushes rows apart).
+ *
+ * TOP: not a fixed pad. Each panel chart carries a `panelTopBand` hook (set
+ * in _createPanelChart) that Dimensions calls per layout: it drops the whole
+ * band above the plot (the no-title gutter and the fixed axis-chart offset),
+ * keeping only the clearance computed from the panel's own config
+ * (TrellisTopClearance: the top y label's em box, markers, point data
+ * labels, stacked totals). The logic ships in this add-on, not in core. Measured at the defaults that is 7px for a panel
+ * with y labels (the top label's em box overhangs the plot by 6.3px), 9px
+ * with point data labels, 16px with stacked totals, and about 1px for
+ * horizontal bars whose rows are taller than their labels. A fixed reclaim
+ * could not be right for all of them: the old 12 cropped data labels by 1px
+ * and stacked totals by 7px.
+ *
+ * BOTTOM: Dimensions leaves a flat 15px of slack below the x-axis band;
+ * these paddings (composed with the user's own grid.padding) reclaim most of
+ * it. The bottom is axis-aware: TIMESCALE labels draw ~6px deeper into that
  * slack than the category/numeric label path (measured: a standalone
  * datetime chart keeps only ~5px of true clearance), so a datetime panel
  * may only take 2. Values are calibrated to Dimensions' constants; the
- * compact-chrome interaction test pins both the reclaim AND that no x-label
- * ink is cropped by the svg bottom.
+ * compact-chrome interaction test pins the reclaim AND that no ink is
+ * cropped by the svg top or bottom.
  */
-const PANEL_PAD_RECLAIM_TOP = 12
 const PANEL_PAD_RECLAIM_BOTTOM = 7
 const PANEL_PAD_RECLAIM_BOTTOM_DATETIME = 2
 
@@ -779,7 +801,7 @@ export default class Trellis {
           const panel = this.panels[i]
           if (panel.noMount) continue
           const opts = this._assemblePanelOptions(panel.index)
-          const chart = new ApexCharts(
+          const chart = this._createPanelChart(
             /** @type {HTMLElement} */ (panel.el),
             opts,
           )
@@ -1082,6 +1104,33 @@ export default class Trellis {
   }
 
   /**
+   * Whether a panel has the axis chrome the trellis trims (the band above
+   * the plot, the slack below the x axis). Circular and space-filling types
+   * have neither, and a sparkline zeroes its own.
+   * @param {any} chartOpts the panel's (or the user's) `chart` options
+   */
+  _hasPlotChrome(chartOpts) {
+    return (
+      !chartOpts?.sparkline?.enabled &&
+      !GRIDLESS_TYPES.includes(this.w.config.chart.type)
+    )
+  }
+
+  /**
+   * Construct (not render) one panel chart. Every mount path goes through
+   * here so the hook is never missed: `panelTopBand` has Dimensions drop
+   * the standalone title band above the plot and keep only what the top
+   * ink needs (TrellisTopClearance; see PANEL_PAD_RECLAIM_BOTTOM).
+   * @param {HTMLElement} el
+   * @param {any} opts
+   */
+  _createPanelChart(el, opts) {
+    const chart = /** @type {any} */ (new this._ApexCharts(el, opts))
+    if (this._hasPlotChrome(opts.chart)) chart.panelTopBand = dropPanelTopBand
+    return chart
+  }
+
+  /**
    * Build one panel's full options object: the user's own options (functions
    * preserved by reference), minus what the trellis owns, plus the shared
    * scale/color/geometry overrides. `trellis.panel(key, meta)` is applied
@@ -1209,16 +1258,14 @@ export default class Trellis {
         : {}),
     }
 
-    // Reclaim the standalone chart's vertical breathing room (see the
-    // PANEL_PAD_RECLAIM constants), composed with the user's own padding.
-    // Only for grid-based panels: circular/space-filling types have no
-    // top gutter or x-axis slack to reclaim, and a sparkline zeroes its own
-    // chrome (a negative pad there would shift the plot off the svg).
-    const gridlessTypes = ['pie', 'donut', 'polarArea', 'radialBar', 'radar', 'treemap']
-    if (
-      !userChart.sparkline?.enabled &&
-      !gridlessTypes.includes(w.config.chart.type)
-    ) {
+    // Reclaim the standalone chart's bottom slack (see the PANEL_PAD_RECLAIM
+    // constants), composed with the user's own padding. The top band is
+    // dropped by Dimensions itself (see _createPanelChart), so the user's top pad
+    // passes through untouched. Only for grid-based panels: circular and
+    // space-filling types have no x-axis slack to reclaim, and a sparkline
+    // zeroes its own chrome (a negative pad there would shift the plot off
+    // the svg).
+    if (this._hasPlotChrome(userChart)) {
       const userPad = (base.grid && base.grid.padding) || {}
       const reclaimBottom =
         this.ctx.opts?.xaxis?.type === 'datetime'
@@ -1226,9 +1273,6 @@ export default class Trellis {
           : PANEL_PAD_RECLAIM_BOTTOM
       overrides.grid = {
         padding: {
-          top:
-            (typeof userPad.top === 'number' ? userPad.top : 0) -
-            PANEL_PAD_RECLAIM_TOP,
           bottom:
             (typeof userPad.bottom === 'number' ? userPad.bottom : 0) -
             reclaimBottom,

@@ -976,6 +976,9 @@ export interface ChartContext {
   w: ChartStateW
   ctx: ChartContext   // self-reference: this.ctx = this
   opts: any           // original user-supplied options
+  // Set by the trellis on its panels: rewrites the band above the plot
+  // through Dimensions' grid pad (trellis/TrellisTopClearance).
+  panelTopBand?: (dims: any) => void
 
   // Public method list (populated by initModules)
   publicMethods: string[]
