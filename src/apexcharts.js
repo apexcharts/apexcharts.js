@@ -1034,7 +1034,9 @@ export default class ApexCharts {
       const settled = this.trellis._rendering
         ? this.trellis.whenSettled()
         : Promise.resolve()
-      return settled.then(() => {
+      return settled.then(async () => {
+        // Two updates in one task: the later teardown would cancel the earlier rebuild mid-mount.
+        while (this.trellis._rendering) await this.trellis.whenSettled()
         // A change that only affects how a panel PAINTS goes to the live
         // panels. Rebuilding for every option, however small, threw away
         // hover state, keyboard focus and each panel's own zoom.
