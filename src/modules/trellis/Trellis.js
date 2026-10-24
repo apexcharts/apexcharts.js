@@ -922,6 +922,10 @@ export default class Trellis {
     const foreColor = this.w.config.chart?.foreColor
     if (foreColor) wrap.style.setProperty('--apx-trellis-fore', foreColor)
 
+    // Same for the font: headers, strips, legend and title inherit it from here
+    const fontFamily = this.w.config.chart?.fontFamily
+    if (fontFamily) wrap.style.fontFamily = fontFamily
+
     const chromeTop = BrowserAPIs.createElement('div')
     chromeTop.className = 'apexcharts-trellis-chrome'
     wrap.appendChild(chromeTop)

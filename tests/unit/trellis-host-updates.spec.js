@@ -8,7 +8,8 @@
  *   - every `updateOptions`, however small, destroyed and rebuilt every panel.
  *   - `panelMounted` / `trellisMounted` only ever reached `addEventListener`,
  *     never the `chart.events` config callbacks every other event honours.
- *   - the HTML chrome (headers, legend) ignored `theme.mode`.
+ *   - the HTML chrome (headers, legend) ignored `theme.mode`, `chart.fontFamily`
+ *     and `legend.fontFamily`.
  *
  * The geometry halves (a height-only container resize refitting the panels,
  * the chrome-height reserve) need a real layout engine and live in
@@ -313,6 +314,34 @@ describe('the HTML chrome follows the theme', () => {
         .querySelector('.apexcharts-trellis')
         .style.getPropertyValue('--apx-trellis-fore'),
     ).toBe('#ff00ff')
+    chart.destroy()
+  })
+
+  it('publishes chart.fontFamily and legend.fontFamily so the chrome matches the panels', async () => {
+    const { chart, el } = mount({
+      options: {
+        chart: {
+          type: 'line',
+          height: 400,
+          animations: { enabled: false },
+          fontFamily: 'Courier, monospace',
+        },
+        legend: { fontFamily: 'Georgia, serif' },
+        series: [
+          { name: 'Plan', region: 'North', data: rows(10) },
+          { name: 'Actual', region: 'North', data: rows(12) },
+          { name: 'Plan', region: 'South', data: rows(20) },
+          { name: 'Actual', region: 'South', data: rows(22) },
+        ],
+      },
+    })
+    await chart.render()
+    expect(el.querySelector('.apexcharts-trellis').style.fontFamily).toBe(
+      'Courier, monospace',
+    )
+    expect(
+      el.querySelector('.apexcharts-trellis-legend').style.fontFamily,
+    ).toBe('Georgia, serif')
     chart.destroy()
   })
 })
