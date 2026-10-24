@@ -274,13 +274,20 @@ export default class Tooltip {
     this.fixedTooltip = this.tConfig.fixed.enabled
     // The constructor runs before the bar orientation is known.
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
+    // `tooltip.visible: false` keeps everything a hover resolves (the point
+    // under the pointer, the events that report it, crosshairs and hover
+    // markers per their own options) and shows no box. The axis tooltips are
+    // boxes too, so they are not drawn at all.
+    const boxVisible = this.tConfig.visible !== false
     this.isXAxisTooltipEnabled =
-      w.config.xaxis.tooltip.enabled && w.globals.axisCharts
+      boxVisible && w.config.xaxis.tooltip.enabled && w.globals.axisCharts
     /**
      * @param {number} y
      */
     this.yaxisTooltips = w.config.yaxis.map((y) => {
-      return y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false
+      return boxVisible && y.show && y.tooltip.enabled && w.globals.axisCharts
+        ? true
+        : false
     })
     /** @type {any} */
     this.allTooltipSeriesGroups = []
@@ -438,6 +445,13 @@ export default class Tooltip {
 
       w.dom.elWrap.appendChild(tooltipEl)
     }
+
+    // Hidden, never removed: every hover path reads this element (its rows,
+    // its `apexcharts-active` state) and returns early without it, so it stays
+    // in the DOM and does its work unseen. Set on every render, a kept box
+    // included, so an update that flips `visible` takes effect.
+    tooltipEl.style.display = boxVisible ? '' : 'none'
+    tooltipEl.classList.toggle('apexcharts-tooltip-hidden', !boxVisible)
 
     if (w.globals.axisCharts) {
       this.axesTooltip.drawXaxisTooltip()

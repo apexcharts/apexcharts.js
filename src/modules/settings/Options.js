@@ -2653,6 +2653,12 @@ export default class Options {
       },
       tooltip: {
         enabled: true,
+        // false: hover still resolves the point under the pointer and fires
+        // the events that report it (mouseMove, click, keyboard announcements),
+        // and crosshairs and hover markers follow their own options, but no
+        // tooltip box (nor x/y-axis tooltip) is shown. `enabled: false` turns
+        // all of that off.
+        visible: true,
         enabledOnSeries: undefined,
         shared: true,
         hideEmptySeries: false,

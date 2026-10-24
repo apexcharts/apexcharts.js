@@ -478,6 +478,11 @@ export default class KeyboardNavigation {
     // No tooltip to read out the point, so the live region names it
     if (!ttCtx?.ttItems) return this._announce(this._buildPointLabel(i, j))
     this._showTooltip(i, j, /** @type {any} */ (ttCtx))
+    // `tooltip.visible: false`: the box is hidden (display: none), and a
+    // hidden live region is not read out, so name the point here as well.
+    if (w.config.tooltip.visible === false) {
+      this._announce(this._buildPointLabel(i, j))
+    }
   }
 
   _hideFocus() {

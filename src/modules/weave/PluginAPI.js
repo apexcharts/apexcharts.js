@@ -610,11 +610,15 @@ export function buildPluginAPI(host, record) {
     /**
      * Subscribe to the data point a viewer is pointing at.
      *
-     * The chart already knows this: it resolves the series and point under the
-     * pointer for its own tooltip and fires `dataPointMouseEnter`,
-     * `dataPointMouseLeave` and `dataPointSelection` for the caller. This
-     * forwards the same three, so a plugin gets the host's answer rather than
-     * hit-testing the SVG itself and disagreeing with the tooltip.
+     * This forwards the chart's own `dataPointMouseEnter`,
+     * `dataPointMouseLeave` and `dataPointSelection`, so a plugin gets the
+     * host's answer rather than hit-testing the SVG itself.
+     *
+     * Those three fire when the pointer is over a drawn mark (a bar, slice,
+     * cell, or a marker that takes pointer events), which is not the same as
+     * the point the tooltip shows. A line or area swept with the default
+     * nearest-point tooltip (`tooltip.intersect: false`) has inert markers,
+     * so the tooltip follows the pointer while none of the three fire.
      *
      * The payload is normalised rather than the chart's own argument list,
      * which passes `w`. A plugin must not receive `w`, and the three things a

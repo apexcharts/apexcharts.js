@@ -494,3 +494,18 @@ const sharedPattern: ApexCharts.ApexStroke = { dashArray: dash }
 // @ts-expect-error the cap is one of 'butt' | 'square' | 'round'
 const badCap: ApexCharts.YAxisAnnotations = { y: 1, strokeLineCap: 'flat' }
 void dashPatterns; void sharedPattern; void badCap
+
+// Hover without the tooltip box (#5382): the app draws its own hover details
+// from the indices the chart events report, and the chart draws no box.
+const headlessHover: ApexCharts.ApexOptions = {
+  chart: {
+    type: 'line',
+    events: {
+      mouseMove: (_e, _chart, opts) => void opts?.dataPointIndex,
+    },
+  },
+  tooltip: { enabled: true, visible: false, shared: false, intersect: false },
+}
+// @ts-expect-error visible is a boolean
+const badVisible: ApexCharts.ApexTooltip = { visible: 'hidden' }
+void headlessHover; void badVisible

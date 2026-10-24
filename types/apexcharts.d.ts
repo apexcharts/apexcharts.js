@@ -4981,7 +4981,24 @@ type ApexTooltipY = {
  * See https://apexcharts.com/docs/options/tooltip/
  */
 type ApexTooltip = {
+  /**
+   * `false` turns hover handling off entirely: no tooltip, and `mouseMove` /
+   * `click` report `dataPointIndex: null` on a swept line or area. To keep the
+   * hover and only hide the box, use `visible: false`.
+   * @default true
+   */
   enabled?: boolean
+  /**
+   * `false` keeps everything a hover resolves and draws no tooltip box: the
+   * point under the pointer is still found, `chart.events.mouseMove` and
+   * `click` report its `seriesIndex` / `dataPointIndex`, the data point events
+   * fire as usual, keyboard navigation still announces the focused point, and
+   * crosshairs and hover markers follow their own options. The x-axis and
+   * y-axis tooltips are not drawn either. For apps that show hover details in
+   * their own UI. Ignored while `enabled` is `false`.
+   * @default true
+   */
+  visible?: boolean
   enabledOnSeries?: undefined | number[]
   shared?: boolean
   /**
