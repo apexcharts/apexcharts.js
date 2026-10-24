@@ -16,7 +16,7 @@ var __spreadValues = (a, b) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -34,8 +34,21 @@ function getRegistry() {
 function getPlugin(name) {
   return getRegistry()[name] || null;
 }
+function isDashPattern(v) {
+  if (typeof v === "number") return isFinite(v);
+  if (typeof v === "string") {
+    const s = v.trim();
+    return s === "none" || /^\d*\.?\d+(px)?([\s,]+\d*\.?\d+(px)?)*$/i.test(s);
+  }
+  return Array.isArray(v) && v.every((n) => typeof n === "number" && isFinite(n));
+}
 const CLAIMABLE = Object.freeze({
-  "stroke.dashArray": Object.freeze({ type: "number" }),
+  // One dash value per series: a number, an SVG dash list string
+  // ('8 3 2 3') or an array of lengths.
+  "stroke.dashArray": Object.freeze({
+    type: "dash pattern",
+    accepts: isDashPattern
+  }),
   "dataLabels.enabledOnSeries": Object.freeze({ type: "boolean" })
 });
 function store$1(w) {
@@ -49,7 +62,7 @@ function claimsFor(w, option) {
 }
 function normaliseEntries(option, entries) {
   const spec = (
-    /** @type {Record<string, {type: string}>} */
+    /** @type {Record<string, {type: string, accepts?: (v: any) => boolean}>} */
     CLAIMABLE[option]
   );
   const out = [];
@@ -60,7 +73,7 @@ function normaliseEntries(option, entries) {
       );
       continue;
     }
-    if (typeof entry.value !== spec.type) {
+    if (spec.accepts ? !spec.accepts(entry.value) : typeof entry.value !== spec.type) {
       console.warn(
         `[apexcharts] claim on "${option}": expected a ${spec.type} for series ${String(
           entry.series
@@ -196,7 +209,8 @@ const WEAVE_CAPABILITIES = Object.freeze([
   "drawn",
   "observations",
   "scale-orientation",
-  "highlight"
+  "highlight",
+  "radial-scales"
 ]);
 const PLUGIN_CHART_METHODS = [
   "updateOptions",
@@ -376,6 +390,11 @@ function buildPluginAPI(host, record) {
     // ── reads ──
     get scales() {
       return host._currentScales;
+    },
+    // The dial of a radialBar or gauge (null on every other type, where
+    // `scales` is the axis projection instead). See Radial.radialGeometry.
+    get radialScales() {
+      return w.globals.radialScales || null;
     },
     // Served from the per-dispatch snapshot when one exists (invalidated at
     // every dispatch), so reading api.data in a loop does not rebuild the
@@ -644,11 +663,15 @@ function buildPluginAPI(host, record) {
     /**
      * Subscribe to the data point a viewer is pointing at.
      *
-     * The chart already knows this: it resolves the series and point under the
-     * pointer for its own tooltip and fires `dataPointMouseEnter`,
-     * `dataPointMouseLeave` and `dataPointSelection` for the caller. This
-     * forwards the same three, so a plugin gets the host's answer rather than
-     * hit-testing the SVG itself and disagreeing with the tooltip.
+     * This forwards the chart's own `dataPointMouseEnter`,
+     * `dataPointMouseLeave` and `dataPointSelection`, so a plugin gets the
+     * host's answer rather than hit-testing the SVG itself.
+     *
+     * Those three fire when the pointer is over a drawn mark (a bar, slice,
+     * cell, or a marker that takes pointer events), which is not the same as
+     * the point the tooltip shows. A line or area swept with the default
+     * nearest-point tooltip (`tooltip.intersect: false`) has inert markers,
+     * so the tooltip follows the pointer while none of the three fire.
      *
      * The payload is normalised rather than the chart's own argument list,
      * which passes `w`. A plugin must not receive `w`, and the three things a
@@ -731,7 +754,10 @@ const WIRED = {
   // which is the answer a plugin can act on; advertising the capability and
   // then returning null is the same shape as `claim()` on an option this host
   // does not know.
-  highlight: (a) => typeof a.highlight === "function"
+  highlight: (a) => typeof a.highlight === "function",
+  // A member on every facade, null off a radialBar or gauge (the chart's
+  // shape, as with `scales`); the capability says this host publishes it.
+  "radial-scales": (a) => "radialScales" in a
 };
 const CoreUtils = ApexCharts.__apex_CoreUtils;
 function store(w) {
@@ -881,6 +907,7 @@ const _WeaveHost = class _WeaveHost {
       const payload = {
         api: record.api,
         scales: this._currentScales,
+        radialScales: this.w.globals.radialScales || null,
         // Built on first read and shared with api.data for the rest of this
         // pass: a handler that never reads it costs no snapshot.
         get data() {

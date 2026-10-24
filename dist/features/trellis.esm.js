@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1480,16 +1480,17 @@ function toHexPair(n) {
   return v.toString(16).padStart(2, "0");
 }
 function mixColors(c1, c2, t) {
-  const a = Utils.parseHex(normalizeHex(c1));
-  const b = Utils.parseHex(normalizeHex(c2));
+  const a = Utils.parseColor(normalizeHex(c1));
+  const b = Utils.parseColor(normalizeHex(c2));
   if (!a || !b) return c1;
-  return "#" + toHexPair(lerp(a[0], b[0], t)) + toHexPair(lerp(a[1], b[1], t)) + toHexPair(lerp(a[2], b[2], t));
+  return toHex(a.map((v, k2) => lerp(v, b[k2], t)));
+}
+function toHex(c) {
+  return "#" + c.slice(0, 3).map(toHexPair).join("") + (c[3] < 1 ? toHexPair(c[3] * 255) : "");
 }
 function normalizeHex(c) {
-  if (typeof c !== "string") return "#000000";
-  if (Utils.isColorHex(c)) return c;
-  const asHex = Utils.rgb2hex(c);
-  return asHex || "#000000";
+  const rgba = typeof c === "string" ? Utils.parseColor(c.trim()) : null;
+  return rgba ? toHex(rgba) : "#000000";
 }
 function colorValueOf(w, i, j) {
   const series = (
@@ -1627,6 +1628,15 @@ function buildContinuousScale(w) {
     };
   });
   return { min, max, midpoint, stops, at, legendStops };
+}
+function shadePercent(w, chartType, p, negRange) {
+  const opts = w.config.plotOptions[chartType];
+  const shadeIntensity = opts.shadeIntensity;
+  const k2 = shadeIntensity * 1.25;
+  if (w.globals.hasNegs || negRange) {
+    return opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
+  }
+  return chartType === "treemap" ? (1 - p) * k2 : 1 - p;
 }
 const TooltipUtils = _core.__apex_tooltip_Utils;
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -1803,7 +1813,7 @@ class HeatmapGradientLegend {
       }
     }
     const arrowColor = ((_f = cfg.arrow) == null ? void 0 : _f.color) || w.config.chart.foreColor;
-    const arrow = this._buildArrow(arrowSize, arrowColor, position);
+    const arrow = this._buildArrow(arrowColor);
     svg.appendChild(arrow);
     this.arrowEl = arrow;
     this._bandHitEls = [];
@@ -1851,7 +1861,6 @@ class HeatmapGradientLegend {
       tt.style.position = "absolute";
       tt.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
       tt.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
-      tt.style.color = w.config.chart.foreColor;
       tt.style.background = "rgba(0,0,0,0.65)";
       tt.style.color = "#fff";
       tt.style.padding = "2px 6px";
@@ -2250,11 +2259,9 @@ class HeatmapGradientLegend {
     }
   }
   /**
-   * @param {number} size
    * @param {string} color
-   * @param {'top'|'right'|'bottom'|'left'} _position
    */
-  _buildArrow(size, color, _position) {
+  _buildArrow(color) {
     const polygon = BrowserAPIs.createElementNS(SVG_NS, "polygon");
     polygon.setAttribute("fill", color);
     polygon.setAttribute("opacity", "0");
@@ -2287,7 +2294,7 @@ class HeatmapGradientLegend {
    * @returns {{ min: number, max: number, stops: Array<{percent:number,color:string}>, bands: Array<{index:number,p1:number,p2:number}> }}
    */
   _computeStops() {
-    var _a, _b;
+    var _a;
     const w = this.w;
     const cs = HeatmapGradientLegend.colorScaleOf(w) || {};
     const cfg = this._cfg();
@@ -2353,27 +2360,18 @@ class HeatmapGradientLegend {
       const utils = new Utils();
       const type = w.config.chart.type;
       const plot = w.config.plotOptions[type] || {};
-      const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
       const g = (
         /** @type {any} */
         w.globals
       );
-      const hasNegs = g.hasNegs;
       const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
       const hi = yExt ? g.maxY : max;
       const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
-      const k2 = shadeIntensity * 1.25;
       const n = Math.max(2, cfg.stops || 16);
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1);
         const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
-        const c = Math.max(
-          -1,
-          Math.min(
-            1,
-            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k2 : 1)
-          )
-        );
+        const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
         const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
@@ -2387,9 +2385,17 @@ const ICONS = {
   reset: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 8 0 1 1 2 6"/><path d="M4 4v6h6"/></svg>',
   download: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>'
 };
-function paintItem(t, item, name) {
+function paintItem(t, item, name, i) {
+  var _a;
   const hidden = t.sync.isHidden(name);
-  item.firstChild.style.background = t.scales ? t.scales.colorOf(name) : "#008FFB";
+  const color = t.scales ? t.scales.colorOf(name) : "#008FFB";
+  item.firstChild.style.background = color;
+  const text = item.querySelector(".apexcharts-legend-text");
+  if (text) {
+    const labels = ((_a = t.w.config.legend) == null ? void 0 : _a.labels) || {};
+    const textColor = labels.useSeriesColors ? color : Array.isArray(labels.colors) ? labels.colors[i] : labels.colors;
+    text.style.color = textColor || "";
+  }
   item.classList.toggle("apexcharts-inactive-legend", hidden);
   item.setAttribute("data:collapsed", String(hidden));
 }
@@ -2568,7 +2574,9 @@ class TrellisChrome {
     const wrap = BrowserAPIs.createElement("div");
     wrap.className = "apexcharts-trellis-legend apexcharts-legend";
     wrap.setAttribute("role", "list");
-    names.forEach((name) => {
+    const legendFont = t.w.config.legend.fontFamily;
+    if (legendFont) wrap.style.fontFamily = legendFont;
+    names.forEach((name, i) => {
       const item = BrowserAPIs.createElement("div");
       item.className = "apexcharts-legend-series apexcharts-trellis-legend-item";
       item.setAttribute("role", "listitem");
@@ -2580,10 +2588,10 @@ class TrellisChrome {
       text.textContent = name;
       item.appendChild(marker);
       item.appendChild(text);
-      paintItem(t, item, name);
+      paintItem(t, item, name, i);
       const toggle = () => {
         t.sync.toggleSeries(name);
-        paintItem(t, item, name);
+        paintItem(t, item, name, i);
       };
       item.addEventListener("click", toggle);
       item.addEventListener("keydown", (e) => {
@@ -2610,9 +2618,7 @@ class TrellisChrome {
     const old = this.elLegend;
     const names = t.split ? t.split.seriesNames : [];
     if (old && this._names === JSON.stringify(names)) {
-      names.forEach(
-        (n, i) => paintItem(t, old.children[i], n)
-      );
+      names.forEach((n, i) => paintItem(t, old.children[i], n, i));
       return;
     }
     this.destroyGradientLegend();
@@ -3336,7 +3342,7 @@ class TrellisVirtual {
         this._patchYaxis(opts, { labels: { minWidth: this._gutterFloor } });
       }
       panel.el.classList.remove("apexcharts-trellis-skeleton");
-      const chart = new t._ApexCharts(panel.el, opts);
+      const chart = t._createPanelChart(panel.el, opts);
       panel.chart = chart;
       try {
         yield chart.render();
@@ -4057,11 +4063,106 @@ function escapeXml(s) {
 function escapeAttr(s) {
   return String(s).replace(/"/g, "&quot;");
 }
+const Graphics = _core.__apex_Graphics;
+const PLOT_TOP_OFFSET = 10;
+function dropPanelTopBand(dims) {
+  const w = dims.w;
+  if (!w.globals.axisCharts) return;
+  const gutter = dims.titleBlockPad || 0;
+  if (w.config.xaxis.position === "top") {
+    dims.gridPad.top -= gutter;
+    return;
+  }
+  const plotH = w.layout.gridHeight - dims.gridPad.top - dims.gridPad.bottom + gutter + PLOT_TOP_OFFSET;
+  dims.gridPad.top += topInkClearance(dims, plotH) - PLOT_TOP_OFFSET - gutter;
+}
+function topInkClearance(dims, plotH) {
+  const w = dims.w;
+  const cnf = w.config;
+  const gl = w.globals;
+  const graphics = new Graphics(w);
+  const measure = (style) => {
+    const r = (
+      /** @type {{height: number, centerOffset?: number}} */
+      graphics.getTextRects(
+        "0",
+        style.fontSize,
+        style.fontFamily,
+        void 0,
+        true,
+        style.fontWeight
+      )
+    );
+    const ascent = r.height / 2 - (r.centerOffset || 0);
+    return {
+      ascent: ascent >= 0 && ascent <= r.height ? ascent : r.height,
+      height: r.height
+    };
+  };
+  const num = (v) => typeof v === "number" && isFinite(v) ? v : 0;
+  const largest = (v) => Math.max(0, ...[].concat(v).map(num));
+  let need = 0;
+  cnf.yaxis.forEach((yaxe) => {
+    if (!yaxe.show || !yaxe.labels.show) return;
+    const fs = parseFloat(yaxe.labels.style.fontSize) || 0;
+    const ascent = measure(yaxe.labels.style).ascent;
+    const offY = num(yaxe.labels.offsetY);
+    if (!gl.isBarHorizontal) {
+      need = Math.max(need, ascent - fs / 3 - offY);
+      return;
+    }
+    const labels = w.labelData.labels || [];
+    const n = Math.max(1, labels.length);
+    const lines = Math.max(
+      0,
+      ...labels.map(
+        (l) => Array.isArray(l) ? l.length : 0
+      )
+    );
+    const rise = ascent + (lines ? lines / 2 * fs : 0) - offY;
+    const K = 1 - 1 / 2.2;
+    need = Math.max(need, (rise - K * plotH / n) / (1 - K / n));
+  });
+  if (cnf.stroke.show) need = Math.max(need, largest(cnf.stroke.width) / 2);
+  const types = [cnf.chart.type].concat(
+    cnf.series.map((s) => s && s.type).filter(Boolean)
+  );
+  const pointTypes = ["line", "area", "scatter", "bubble", "rangeArea"];
+  if (types.some((t) => pointTypes.includes(t))) {
+    const m = cnf.markers;
+    const size = Math.max(
+      largest(m.size),
+      ...(m.discrete || []).map((d) => num(d.size))
+    );
+    if (size > 0) need = Math.max(need, size + largest(m.strokeWidth) / 2);
+    if (cnf.dataLabels.enabled) {
+      const offY = num(cnf.dataLabels.offsetY);
+      const baseline = Math.max(0, offY + 2) + offY;
+      need = Math.max(need, measure(cnf.dataLabels.style).ascent - baseline);
+    }
+  }
+  const total = cnf.plotOptions.bar.dataLabels.total;
+  if (cnf.chart.stacked && total.enabled && !gl.isBarHorizontal && types.some((t) => BAR_PATHWAY_TYPES.includes(t))) {
+    const m = measure(total.style);
+    need = Math.max(
+      need,
+      m.ascent + 0.3 * m.height - num(cnf.dataLabels.offsetY) - num(total.offsetY)
+    );
+  }
+  return Math.ceil(Math.max(0, need));
+}
 const EAGER_PANEL_BUDGET = 64;
 const HARD_PANEL_WARN = 256;
 const ANIMATION_PANEL_BUDGET = 16;
+const GRIDLESS_TYPES = [
+  "pie",
+  "donut",
+  "polarArea",
+  "radialBar",
+  "radar",
+  "treemap"
+];
 const Y_LABEL_PAD = 10;
-const PANEL_PAD_RECLAIM_TOP = 12;
 const PANEL_PAD_RECLAIM_BOTTOM = 7;
 const PANEL_PAD_RECLAIM_BOTTOM_DATETIME = 2;
 const PANEL_ONLY_OPTIONS = [
@@ -4436,6 +4537,7 @@ class Trellis {
    * @returns {Promise<void>}
    */
   render() {
+    if (this._rendering && this._renderPromise) return this._renderPromise;
     const p = this._render();
     this._renderPromise = p;
     return p;
@@ -4555,7 +4657,7 @@ class Trellis {
             const panel = this.panels[i];
             if (panel.noMount) continue;
             const opts = this._assemblePanelOptions(panel.index);
-            const chart = new _core__default(
+            const chart = this._createPanelChart(
               /** @type {HTMLElement} */
               panel.el,
               opts
@@ -4603,7 +4705,7 @@ class Trellis {
         if (!useVirtual) w.globals.animationEnded = true;
         this._fire("trellisMounted", { panels: this.getPanels() });
       } finally {
-        this._rendering = false;
+        if (gen === this._gen) this._rendering = false;
       }
     });
   }
@@ -4673,7 +4775,7 @@ class Trellis {
     return isFinite(h) && h > 0 ? h : 0;
   }
   _buildSkeleton() {
-    var _a;
+    var _a, _b;
     const el = (
       /** @type {HTMLElement} */
       this.ctx.el
@@ -4690,6 +4792,8 @@ class Trellis {
     wrap.setAttribute("data-tooltip-mode", this.cfg.tooltip || "panel");
     const foreColor = (_a = this.w.config.chart) == null ? void 0 : _a.foreColor;
     if (foreColor) wrap.style.setProperty("--apx-trellis-fore", foreColor);
+    const fontFamily = (_b = this.w.config.chart) == null ? void 0 : _b.fontFamily;
+    if (fontFamily) wrap.style.fontFamily = fontFamily;
     const chromeTop = BrowserAPIs.createElement("div");
     chromeTop.className = "apexcharts-trellis-chrome";
     wrap.appendChild(chromeTop);
@@ -4820,6 +4924,32 @@ class Trellis {
     cell.classList.toggle("apexcharts-trellis-mute-y", !c.showYLabels);
   }
   /**
+   * Whether a panel has the axis chrome the trellis trims (the band above
+   * the plot, the slack below the x axis). Circular and space-filling types
+   * have neither, and a sparkline zeroes its own.
+   * @param {any} chartOpts the panel's (or the user's) `chart` options
+   */
+  _hasPlotChrome(chartOpts) {
+    var _a;
+    return !((_a = chartOpts == null ? void 0 : chartOpts.sparkline) == null ? void 0 : _a.enabled) && !GRIDLESS_TYPES.includes(this.w.config.chart.type);
+  }
+  /**
+   * Construct (not render) one panel chart. Every mount path goes through
+   * here so the hook is never missed: `panelTopBand` has Dimensions drop
+   * the standalone title band above the plot and keep only what the top
+   * ink needs (TrellisTopClearance; see PANEL_PAD_RECLAIM_BOTTOM).
+   * @param {HTMLElement} el
+   * @param {any} opts
+   */
+  _createPanelChart(el, opts) {
+    const chart = (
+      /** @type {any} */
+      new this._ApexCharts(el, opts)
+    );
+    if (this._hasPlotChrome(opts.chart)) chart.panelTopBand = dropPanelTopBand;
+    return chart;
+  }
+  /**
    * Build one panel's full options object: the user's own options (functions
    * preserved by reference), minus what the trellis owns, plus the shared
    * scale/color/geometry overrides. `trellis.panel(key, meta)` is applied
@@ -4831,7 +4961,7 @@ class Trellis {
    * @returns {Record<string, any>}
    */
   _assemblePanelOptions(i, { noAnimation = false } = {}) {
-    var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+    var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     const w = this.w;
     const split2 = (
       /** @type {import('./TrellisSplit').TrellisSplitResult} */
@@ -4912,13 +5042,11 @@ class Trellis {
       subtitle: { text: "", margin: 0, floating: true },
       legend: { show: false }
     }), isPlaceholder ? { tooltip: { enabled: false } } : {}), ly.panelH < COMPACT_TOOLTIP_PANEL_H && this.cfg.tooltip !== "grid" && typeof ((_i = (_h = this.ctx.opts) == null ? void 0 : _h.tooltip) == null ? void 0 : _i.compact) !== "boolean" ? { tooltip: { compact: true } } : {});
-    const gridlessTypes = ["pie", "donut", "polarArea", "radialBar", "radar", "treemap"];
-    if (!((_j = userChart.sparkline) == null ? void 0 : _j.enabled) && !gridlessTypes.includes(w.config.chart.type)) {
+    if (this._hasPlotChrome(userChart)) {
       const userPad = base.grid && base.grid.padding || {};
-      const reclaimBottom = ((_l = (_k = this.ctx.opts) == null ? void 0 : _k.xaxis) == null ? void 0 : _l.type) === "datetime" ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME : PANEL_PAD_RECLAIM_BOTTOM;
+      const reclaimBottom = ((_k = (_j = this.ctx.opts) == null ? void 0 : _j.xaxis) == null ? void 0 : _k.type) === "datetime" ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME : PANEL_PAD_RECLAIM_BOTTOM;
       overrides.grid = {
         padding: {
-          top: (typeof userPad.top === "number" ? userPad.top : 0) - PANEL_PAD_RECLAIM_TOP,
           bottom: (typeof userPad.bottom === "number" ? userPad.bottom : 0) - reclaimBottom
         }
       };
@@ -5366,6 +5494,7 @@ class Trellis {
    */
   teardown() {
     this._gen++;
+    this._rendering = false;
     this.virtual.stop();
     this._virtualActive = false;
     this._panelRenderer = null;

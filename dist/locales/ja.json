@@ -49,7 +49,19 @@
       "zoomIn": "拡大",
       "zoomOut": "縮小",
       "pan": "パン",
-      "reset": "ズームリセット"
+      "reset": "ズームリセット",
+      "measure": "計測",
+      "wheelZoomHint": "{key} + スクロールでズーム"
+    },
+    "a11y": {
+      "legendItem": "{name}、{state}。Enter キーまたは Space キーで切り替えます。",
+      "visible": "表示中",
+      "hidden": "非表示",
+      "zoomedIn": "拡大しました",
+      "zoomedOut": "縮小しました",
+      "zoomReset": "ズームをリセットしました",
+      "pannedLeft": "左に移動しました",
+      "pannedRight": "右に移動しました"
     }
   }
 }

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -202,7 +202,8 @@ class BarDataLabels {
       barWidth: params.barWidth,
       barHeight: params.barHeight,
       textRects,
-      dataLabelsConfig
+      dataLabelsConfig,
+      keep: hl == null ? void 0 : hl.keep
     });
     if (drawTotal) {
       totalDataLabels = this.drawTotalDataLabels({
@@ -285,7 +286,7 @@ class BarDataLabels {
     var _a, _b;
     const w = this.w;
     return w.axisFlags.isXNumeric && /** @type {any} */
-    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(w.seriesData.seriesX[realIndex][j]));
+    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(CoreUtils.stackKey(w, realIndex, j)));
   }
   /**
    * The stacked total's text box, measured in the total's own font.
@@ -604,7 +605,7 @@ class BarDataLabels {
       totalDataLabelsAnchor
     };
   }
-  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
+  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any, keep?: boolean}} opts */
   drawCalculatedDataLabels({
     x,
     y,
@@ -617,7 +618,8 @@ class BarDataLabels {
     textRects,
     barHeight,
     barWidth,
-    dataLabelsConfig
+    dataLabelsConfig,
+    keep
   }) {
     var _a, _b, _c;
     const w = this.w;
@@ -673,13 +675,16 @@ class BarDataLabels {
       if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && // A collapsing series is measured against its NEW extent, which is
       // already zero, so this would blank a label whose bar is still at full
       // height on screen. It starts out fitting and fades away with the mark.
-      !isSeriesCollapsing) {
+      !isSeriesCollapsing && !keep) {
+        const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
+        const labelW = vertical ? textRects.height : textRects.width;
+        const labelH = vertical ? textRects.width : textRects.height;
         if (this.barCtx.isHorizontal) {
-          if (textRects.width / 1.6 > Math.abs(barWidth)) {
+          if (labelW / 1.6 > Math.abs(barWidth) || labelH > Math.abs(barHeight)) {
             text = "";
           }
         } else {
-          if (textRects.height / 1.6 > Math.abs(barHeight)) {
+          if (labelH / 1.6 > Math.abs(barHeight) || labelW > Math.abs(barWidth)) {
             text = "";
           }
         }
@@ -1820,7 +1825,7 @@ class Helpers {
     return [
       { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
       { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 }
-    ];
+    ].filter((end) => end.value != null);
   }
   /**
    * The text for one end label.
@@ -3664,20 +3669,6 @@ function squareSubPath(px, py, r) {
 }
 class BoxCandleStick extends Bar {
   /**
-   * The previous shape of one half of a box, or null.
-   *
-   * A box plot draws each datum as TWO paths, the box either side of the
-   * median, and both carry the datum's key. The keyed lookup the bar renderer
-   * uses (one path per key) would hand both halves the same previous path,
-   * so the upper box would morph out of the lower one. Halves are captured in
-   * draw order, so the n-th path under a key is half n. Candlesticks draw one
-   * path per datum and take the plain keyed lookup.
-   * @param {number} realIndex
-   * @param {number} j
-   * @param {number} pi which half, in draw order
-   * @returns {string | null}
-   */
-  /**
    * Whether this update keeps too little of the series' identity to morph.
    *
    * Candles morph from their own previous shape, matched by datum key. That
@@ -3704,9 +3695,17 @@ class BoxCandleStick extends Bar {
     return survivors / keyed.size < 0.5;
   }
   /**
+   * The previous shape of one half of a box, or null.
+   *
+   * A box plot draws each datum as TWO paths, the box either side of the
+   * median, and both carry the datum's key. The keyed lookup the bar renderer
+   * uses (one path per key) would hand both halves the same previous path,
+   * so the upper box would morph out of the lower one. Halves are captured in
+   * draw order, so the n-th path under a key is half n. Candlesticks draw one
+   * path per datum and take the plain keyed lookup.
    * @param {number} realIndex
    * @param {number} j
-   * @param {number} pi
+   * @param {number} pi which half, in draw order
    * @returns {string | null}
    */
   _prevBoxHalf(realIndex, j, pi) {
@@ -3738,7 +3737,7 @@ class BoxCandleStick extends Bar {
    */
   // @ts-ignore -- BoxCandleStick.draw has an extra ctype param compared to Bar.draw
   draw(series, ctype, seriesIndex) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -3815,36 +3814,24 @@ class BoxCandleStick extends Bar {
       this._fadeReveal = fadeReveal;
       for (let j = 0; j < dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
-        let paths = (
+        const paths = (
           /** @type {any} */
-          null
+          this.drawBoxPaths({
+            indexes: {
+              i,
+              j,
+              realIndex,
+              translationsIndex
+            },
+            x,
+            y,
+            strokeWidth,
+            division: this.isHorizontal ? yDivision : xDivision,
+            band: this.isHorizontal ? barHeight : barWidth,
+            zero: this.isHorizontal ? zeroW : zeroH,
+            cullBounds: this.isHorizontal ? null : { lo: -cullBuffer, hi: gridW + cullBuffer }
+          })
         );
-        const pathsParams = {
-          indexes: {
-            i,
-            j,
-            realIndex,
-            translationsIndex
-          },
-          x,
-          y,
-          strokeWidth,
-          elSeries
-        };
-        if (this.isHorizontal) {
-          paths = this.drawHorizontalBoxPaths(__spreadProps(__spreadValues({}, pathsParams), {
-            yDivision,
-            barHeight,
-            zeroW
-          }));
-        } else {
-          paths = this.drawVerticalBoxPaths(__spreadProps(__spreadValues({}, pathsParams), {
-            xDivision,
-            barWidth,
-            zeroH,
-            cullBounds: { lo: -cullBuffer, hi: gridW + cullBuffer }
-          }));
-        }
         y = paths.y;
         x = paths.x;
         if (j > 0) {
@@ -3855,10 +3842,10 @@ class BoxCandleStick extends Bar {
           continue;
         }
         const barGoalLine = this.barHelpers.drawGoalLine({
-          barXPosition: paths.barXPosition,
-          barYPosition: paths.barYPosition,
-          goalX: paths.goalX,
-          goalY: paths.goalY,
+          barXPosition: paths.slot,
+          barYPosition: paths.slot,
+          goalX: paths.goals,
+          goalY: paths.goals,
           barHeight,
           barWidth
         });
@@ -3907,37 +3894,22 @@ class BoxCandleStick extends Bar {
         if (boxPointsOpts && boxPointsOpts.show !== false) {
           const pts = (_b = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _b[j];
           if (pts && pts.length) {
-            const logVal = (v) => (
-              /** @type {any} */
-              this.coreUtils.getLogValAtSeriesIndex(
-                v,
-                realIndex
-              )
-            );
-            let center, halfExtent, alongFn;
-            if (this.isHorizontal) {
-              const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
-              const bh = barHeight != null ? barHeight : 0;
-              const z = zeroW != null ? zeroW : 0;
-              center = paths.barYPosition + bh / 2;
-              halfExtent = bh / 2;
-              alongFn = (v) => z + logVal(v) / yRatio;
-            } else {
-              const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
-              const bw = barWidth != null ? barWidth : 0;
-              const z = zeroH != null ? zeroH : 0;
-              center = paths.barXPosition + bw / 2;
-              halfExtent = bw / 2;
-              alongFn = (v) => z - logVal(v) / yRatio;
-            }
+            const band = (_c = this.isHorizontal ? barHeight : barWidth) != null ? _c : 0;
             const groups = buildJitterGroups({
               points: pts,
               extent: jx,
               seedA: realIndex,
               seedB: j,
-              center,
-              halfExtent,
-              alongFn,
+              center: paths.slot + band / 2,
+              halfExtent: band / 2,
+              // the box's own value mapping, from an observation's log value
+              alongFn: (v) => paths.along(
+                /** @type {any} */
+                this.coreUtils.getLogValAtSeriesIndex(
+                  v,
+                  realIndex
+                )
+              ),
               isHorizontal: this.isHorizontal,
               options: boxPointsOpts
             });
@@ -3976,85 +3948,86 @@ class BoxCandleStick extends Bar {
     }
     return ret;
   }
-  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts */
-  drawVerticalBoxPaths({
+  /**
+   * One candle, OHLC tick or box in either orientation. Every shape is built
+   * in (along, across) coordinates: `along` is the value axis, `across` the
+   * category slot from `slot` to `slot + band`. A column maps them to (y, x)
+   * and a row to (x, y), so both orientations draw the same shape. Only the
+   * box plot has a horizontal form (Defaults turns a horizontal candlestick
+   * off).
+   * @param {{indexes: any, x: any, y: any, division: any, band: any, zero: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts
+   */
+  drawBoxPaths({
     indexes: indexes2,
     x,
-    xDivision,
-    barWidth,
-    zeroH,
+    y,
+    division,
+    band,
+    zero,
     strokeWidth,
     cullBounds = null
   }) {
     var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
-    const i = indexes2.i;
-    const j = indexes2.j;
+    const vertical = !this.isHorizontal;
+    const { i, j, realIndex, translationsIndex } = indexes2;
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
-    const realIndex = indexes2.realIndex;
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
-    const colorPos = getColor(candleColors.upward);
-    const colorNeg = getColor(candleColors.downward);
-    const yRatio = this.yRatio[indexes2.translationsIndex] * (this.isReversed ? -1 : 1);
     const ohlc = this.getOHLCValue(realIndex, j);
-    let l1 = zeroH;
-    let l2 = zeroH;
-    let color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg];
-    if (this.isBoxPlot) {
-      color = [getColor(boxColors.lower), getColor(boxColors.upper)];
+    const color = this.isBoxPlot ? [getColor(boxColors.lower), getColor(boxColors.upper)] : [
+      getColor(
+        ohlc.o < ohlc.c ? candleColors.upward : candleColors.downward
+      )
+    ];
+    const ratio = (vertical ? -this.yRatio[translationsIndex] : this.invertedYRatio) * (this.isReversed ? -1 : 1);
+    const along = (v) => zero + v / ratio;
+    let slot = (vertical ? x : y) + band * this.visibleI;
+    if (vertical && w.axisFlags.isXNumeric) {
+      ({ x, barXPosition: slot } = this.getBarXForNumericXAxis({
+        x,
+        barWidth: band,
+        realIndex,
+        j
+      }));
     }
-    let y1 = Math.min(ohlc.o, ohlc.c);
-    let y2 = Math.max(ohlc.o, ohlc.c);
-    let m = ohlc.m;
-    let barXPosition = x + barWidth * this.visibleI;
-    if (w.axisFlags.isXNumeric) {
-      const pos = this.getBarXForNumericXAxis({ x, barWidth, realIndex, j });
-      x = pos.x;
-      barXPosition = pos.barXPosition;
-    }
+    const next = !vertical ? y + division : w.axisFlags.isXNumeric ? x : x + division;
     const hole = (
       /** @type {any} */
       ((_a = this.series[i]) == null ? void 0 : _a[j]) == null
     );
-    if (hole) {
-      y1 = zeroH;
-      y2 = zeroH;
-    } else {
-      y1 = zeroH - y1 / yRatio;
-      y2 = zeroH - y2 / yRatio;
-      l1 = zeroH - ohlc.h / yRatio;
-      l2 = zeroH - ohlc.l / yRatio;
-      m = zeroH - ohlc.m / yRatio;
+    const a1 = hole ? zero : along(Math.min(ohlc.o, ohlc.c));
+    const a2 = hole ? zero : along(Math.max(ohlc.o, ohlc.c));
+    const pos = vertical ? { x: next, y: a2 } : { x: a2, y: next };
+    if (hole || cullBounds && (slot + band < cullBounds.lo || slot > cullBounds.hi) && !this._wasOnScreen(realIndex, j)) {
+      return __spreadProps(__spreadValues({}, pos), { culled: true });
     }
-    if (hole || cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi) && !this._wasOnScreen(realIndex, j)) {
-      return {
-        pathTo: null,
-        pathFrom: null,
-        x: w.axisFlags.isXNumeric ? x : x + xDivision,
-        y: y2,
-        barXPosition,
-        color,
-        culled: true
-      };
-    }
+    const l1 = along(ohlc.h);
+    const l2 = along(ohlc.l);
+    const m = along(ohlc.m);
+    const mid = slot + band / 2;
+    const far = slot + band;
+    const q1 = slot + band / 4;
+    const q3 = slot + band - band / 4;
+    const half = (vertical ? strokeWidth : -strokeWidth) / 2;
+    const M = (a, c) => vertical ? graphics.move(c, a) : graphics.move(a, c);
+    const L = (a, c) => vertical ? graphics.line(c, a) : graphics.line(a, c);
     let pathTo;
     if (this.isOHLC) {
-      const centerX = barXPosition + barWidth / 2;
-      const openY = zeroH - ohlc.o / yRatio;
-      const closeY = zeroH - ohlc.c / yRatio;
+      const openA = along(ohlc.o);
+      const closeA = along(ohlc.c);
       pathTo = [
-        graphics.move(centerX, l1) + graphics.line(centerX, l2) + graphics.move(centerX, openY) + graphics.line(barXPosition, openY) + graphics.move(centerX, closeY) + graphics.line(barXPosition + barWidth, closeY)
+        M(l1, mid) + L(l2, mid) + M(openA, mid) + L(openA, slot) + M(closeA, mid) + L(closeA, far)
       ];
     } else if (this.isBoxPlot) {
       pathTo = [
-        graphics.move(barXPosition, y1) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition + barWidth / 2, l1) + graphics.line(barXPosition + barWidth / 4, l1) + graphics.line(barXPosition + barWidth - barWidth / 4, l1) + graphics.line(barXPosition + barWidth / 2, l1) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition + barWidth, y1) + graphics.line(barXPosition + barWidth, m) + graphics.line(barXPosition, m) + graphics.line(barXPosition, y1 + strokeWidth / 2),
-        graphics.move(barXPosition, m) + graphics.line(barXPosition + barWidth, m) + graphics.line(barXPosition + barWidth, y2) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth / 2, l2) + graphics.line(barXPosition + barWidth - barWidth / 4, l2) + graphics.line(barXPosition + barWidth / 4, l2) + graphics.line(barXPosition + barWidth / 2, l2) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition, y2) + graphics.line(barXPosition, m) + "z"
+        M(a1, slot) + L(a1, mid) + L(l1, mid) + L(l1, q1) + L(l1, q3) + L(l1, mid) + L(a1, mid) + L(a1, far) + L(m, far) + L(m, slot) + L(a1 + half, slot),
+        M(m, slot) + L(m, far) + L(a2, far) + L(a2, mid) + L(l2, mid) + L(l2, q3) + L(l2, q1) + L(l2, mid) + L(a2, mid) + L(a2, slot) + L(m, slot) + "z"
       ];
     } else {
       pathTo = [
-        graphics.move(barXPosition, y2) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth / 2, l1) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth, y2) + graphics.line(barXPosition + barWidth, y1) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition + barWidth / 2, l2) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition, y1) + graphics.line(barXPosition, y2 - strokeWidth / 2)
+        M(a2, slot) + L(a2, mid) + L(l1, mid) + L(a2, mid) + L(a2, far) + L(a1, far) + L(a1, mid) + L(l2, mid) + L(a1, mid) + L(a1, slot) + L(a2 - half, slot)
       ];
     }
     let pathFrom = null;
@@ -4065,106 +4038,24 @@ class BoxCandleStick extends Bar {
       pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
     }
     if (pathFrom == null) {
-      pathFrom = graphics.move(barXPosition + barWidth / 2, y1) + graphics.move(barXPosition, y1);
+      pathFrom = M(a1, mid) + M(a1, slot);
     }
-    if (!w.axisFlags.isXNumeric) {
-      x = x + xDivision;
-    }
-    return {
+    return __spreadProps(__spreadValues({}, pos), {
       pathTo,
       pathFrom,
-      x,
-      y: y2,
-      goalY: this.barHelpers.getGoalValues(
-        "y",
-        /** @type {any} */
-        null,
-        zeroH,
+      // the goal drawer reads goalY on a column, goalX on a row
+      goals: this.barHelpers.getGoalValues(
+        vertical ? "y" : "x",
+        zero,
+        zero,
         realIndex,
         j,
-        indexes2.translationsIndex
+        translationsIndex
       ),
-      barXPosition,
+      slot,
+      along,
       color
-    };
-  }
-  /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any, strokeWidth: any}} opts */
-  drawHorizontalBoxPaths({
-    indexes: indexes2,
-    y,
-    yDivision,
-    barHeight,
-    zeroW,
-    strokeWidth
-  }) {
-    var _a, _b, _c;
-    const w = this.w;
-    const graphics = new Graphics(this.w);
-    const i = indexes2.i;
-    const j = indexes2.j;
-    const realIndex = indexes2.realIndex;
-    const { colors: candleColors } = w.config.plotOptions.candlestick;
-    const { colors: boxColors } = this.boxOptions;
-    const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
-    const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
-    const ohlc = this.getOHLCValue(realIndex, j);
-    let color = ohlc.o < ohlc.c ? [getColor(candleColors.upward)] : [getColor(candleColors.downward)];
-    if (this.isBoxPlot) {
-      color = [getColor(boxColors.lower), getColor(boxColors.upper)];
-    }
-    let l1 = zeroW;
-    let l2 = zeroW;
-    let x1 = Math.min(ohlc.o, ohlc.c);
-    let x2 = Math.max(ohlc.o, ohlc.c);
-    let m = ohlc.m;
-    const barYPosition = y + barHeight * this.visibleI;
-    const hole = (
-      /** @type {any} */
-      ((_a = this.series[i]) == null ? void 0 : _a[j]) == null
-    );
-    if (hole) {
-      x1 = zeroW;
-      x2 = zeroW;
-    } else {
-      x1 = zeroW + x1 / yRatio;
-      x2 = zeroW + x2 / yRatio;
-      l1 = zeroW + ohlc.h / yRatio;
-      l2 = zeroW + ohlc.l / yRatio;
-      m = zeroW + ohlc.m / yRatio;
-    }
-    const pathTo = [
-      graphics.move(x1, barYPosition) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2 - barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2 + barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight) + graphics.line(m, barYPosition + barHeight) + graphics.line(m, barYPosition) + graphics.line(x1 + strokeWidth / 2, barYPosition),
-      graphics.move(m, barYPosition) + graphics.line(m, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight - barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition) + graphics.line(m, barYPosition) + "z"
-    ];
-    let pathFrom = null;
-    const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j);
-    if (morphFrom) {
-      pathFrom = morphFrom;
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
-    }
-    if (pathFrom == null) {
-      pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
-    }
-    y = y + yDivision;
-    return {
-      pathTo,
-      pathFrom,
-      x: x2,
-      y,
-      goalX: this.barHelpers.getGoalValues(
-        "x",
-        zeroW,
-        /** @type {any} */
-        null,
-        realIndex,
-        j,
-        0
-      ),
-      barYPosition,
-      color,
-      culled: hole
-    };
+    });
   }
   /**
    * @param {number} i

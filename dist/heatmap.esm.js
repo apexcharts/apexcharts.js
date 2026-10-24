@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -28,6 +28,15 @@ const Fill = _core.__apex_Fill;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const DataLabels = _core.__apex_DataLabels;
+function shadePercent(w, chartType, p, negRange) {
+  const opts = w.config.plotOptions[chartType];
+  const shadeIntensity = opts.shadeIntensity;
+  const k = shadeIntensity * 1.25;
+  if (w.globals.hasNegs || negRange) {
+    return opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
+  }
+  return chartType === "treemap" ? (1 - p) * k : 1 - p;
+}
 class TreemapHelpers {
   /**
    * @param {import('../../../types/internal').ChartStateW} w
@@ -55,19 +64,13 @@ class TreemapHelpers {
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w;
     const opts = w.config.plotOptions[chartType];
-    const shadeIntensity = opts.shadeIntensity;
-    const k = shadeIntensity * 1.25;
     const colorProps = this.determineColor(chartType, i, j);
-    const p = colorProps.percent / 100;
-    let colorShadePercent;
-    if (
-      /** @type {any} */
-      w.globals.hasNegs || negRange
-    ) {
-      colorShadePercent = opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
-    } else {
-      colorShadePercent = chartType === "treemap" ? (1 - p) * k : 1 - p;
-    }
+    const colorShadePercent = shadePercent(
+      w,
+      chartType,
+      colorProps.percent / 100,
+      negRange
+    );
     let color = Utils.getThemeColor(colorProps.color, w.dom.elWrap);
     if (opts.enableShades) {
       const shadeColor = new Utils().shadeColor(

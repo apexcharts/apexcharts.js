@@ -52,13 +52,24 @@
       "exportToPNG": "Exportálás PNG-be",
       "exportToCSV": "Exportálás CSV-be",
       "menu": "Fő ajánlat",
-      "download": "SVG letöltése",
       "selection": "Kiválasztás",
       "selectionZoom": "Nagyító kiválasztása",
       "zoomIn": "Nagyítás",
       "zoomOut": "Kicsinyítés",
       "pan": "Képcsúsztatás",
-      "reset": "Nagyító visszaállítása"
+      "reset": "Nagyító visszaállítása",
+      "measure": "Mérés",
+      "wheelZoomHint": "Nagyításhoz használja a {key} + görgetés kombinációt"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Váltáshoz nyomja meg az Enter vagy a Szóköz billentyűt.",
+      "visible": "látható",
+      "hidden": "rejtett",
+      "zoomedIn": "Nagyítva",
+      "zoomedOut": "Kicsinyítve",
+      "zoomReset": "Nagyítás visszaállítva",
+      "pannedLeft": "Balra mozgatva",
+      "pannedRight": "Jobbra mozgatva"
     }
   }
 }

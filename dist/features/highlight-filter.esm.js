@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1100,7 +1100,7 @@ const NEEDLE_KEYS = ["length", "baseWidth", "tipWidth", "offsetY"];
 const LANE = 0.45;
 const LANE_CLS = `${PART} apexcharts-radialbar-highlight-lane`;
 function radialPass(hf, r) {
-  var _a, _b, _c, _d, _e, _f, _g;
+  var _a, _b, _c, _d, _e, _f;
   const w = hf.w;
   const hd = w.highlightData;
   const said = (_b = (_a = hf.ctx.lastUpdateOptions) == null ? void 0 : _a.tooltip) == null ? void 0 : _b.enabled;
@@ -1111,11 +1111,18 @@ function radialPass(hf, r) {
   if (hf._render !== r) hf._beginRender(r, RAD);
   morphOut(hf);
   const rb = w.config.plotOptions.radialBar;
-  hf._ind = (_d = (_c = hf.cfg.radialBar) == null ? void 0 : _c.indicator) != null ? _d : rb.shape === "needle" ? "needle" : "arc";
-  if (hf._ind === "lanes" && rb.shape === "needle" && !((_e = rb.needle) == null ? void 0 : _e.showValueArc)) {
-    hf._ind = "needle";
+  const asked = (_c = hf.cfg.radialBar) == null ? void 0 : _c.indicator;
+  hf._ind = asked != null ? asked : rb.shape === "needle" ? "needle" : "arc";
+  if (rb.shape === "needle" && !((_d = rb.needle) == null ? void 0 : _d.showValueArc)) {
+    if (hf._ind === "lanes") hf._ind = "needle";
+    if (asked === "arc" || asked === "lanes") {
+      hf._warn(
+        "needleNoArc",
+        `indicator '${asked}' is drawn as a needle: a needle gauge without plotOptions.radialBar.needle.showValueArc has no arc to split.`
+      );
+    }
   }
-  if (!hd.active && !((_f = hf._prev()) == null ? void 0 : _f.size)) return;
+  if (!hd.active && !((_e = hf._prev()) == null ? void 0 : _e.size)) return;
   const tt = w.config.tooltip;
   if (hd.active && !tt.enabled && hf._tipUser == null && Environment.isBrowser()) {
     tt.enabled = true;
@@ -1139,7 +1146,7 @@ function radialPass(hf, r) {
     arcs.add(c.i);
     ring(hf, r, el, c, ap);
   };
-  if (((_g = hf.ctx.morphTypeChange) == null ? void 0 : _g.isActive()) === true) {
+  if (((_f = hf.ctx.morphTypeChange) == null ? void 0 : _f.isActive()) === true) {
     Promise.resolve().then(() => {
       var _a2;
       if (hf._render !== r || w.globals.isDestroyed) return;
@@ -1896,9 +1903,12 @@ function needlePart(hf, r, el, needle, pv, mount, morph, c) {
   const own = ((_b = cfg.radialBar) == null ? void 0 : _b.needle) || {};
   const base = rb.needle || {};
   const ncfg = {};
+  const none = (v) => v != null && !(parseFloat(v) > 0);
+  const thin = none(base.baseWidth) && none(base.tipWidth);
   NEEDLE_KEYS.forEach((k) => {
     var _a2;
-    return ncfg[k] = (_a2 = own[k]) != null ? _a2 : base[k];
+    const gone = k === "length" ? none(base.length) : thin && (k === "baseWidth" || k === "tipWidth");
+    ncfg[k] = (_a2 = own[k]) != null ? _a2 : gone ? void 0 : base[k];
   });
   const color = (_c = own.color) != null ? _c : gl.colors[0];
   const { path, cx, cy } = r.needlePath(
@@ -2635,11 +2645,7 @@ class HighlightFilter {
     if (stacked && bars) {
       keyOf2 = (i, j) => this._barKey(i, j);
     } else if (stacked) {
-      const sx = w.seriesData.seriesX;
-      keyOf2 = (i, j) => {
-        var _a2;
-        return String(w.axisFlags.isXNumeric ? (_a2 = sx[i]) == null ? void 0 : _a2[j] : j);
-      };
+      keyOf2 = (i, j) => String(CoreUtils.stackKey(w, i, j));
     }
     const ext = extend ? this._runningExt(parts, keyOf2, bars) : null;
     this._publish(parts, ext);
@@ -3205,7 +3211,7 @@ class HighlightFilter {
       s: neg ? -1 : 1,
       overflow,
       val,
-      label: horiz ? { x: v2, barWidth: Math.abs(v2 - v1) } : { y: v2, barHeight: Math.abs(v2 - v1) },
+      label: horiz ? { x: v2, barWidth: Math.abs(v2 - v1), keep: val === 0 } : { y: v2, barHeight: Math.abs(v2 - v1), keep: val === 0 },
       // The stacked total, on the side of the stack core puts it (by the
       // sign the drawing series' label reads), or false when the stack has
       // no part at all.
@@ -3214,14 +3220,12 @@ class HighlightFilter {
   }
   /**
    * The stack a stacked bar datum joins, as the renderer resolves it
-   * (BarStacked): its series group, then its x value on a numeric or
-   * datetime axis, else its index.
+   * (BarStacked): its series group, then its CoreUtils.stackKey.
    * @param {number} i @param {number} j
    */
   _barKey(i, j) {
-    var _a;
     const w = this.w;
-    return w.labelData.seriesGroupIndex[i] + "|" + (w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i]) == null ? void 0 : _a[j] : j);
+    return w.labelData.seriesGroupIndex[i] + "|" + CoreUtils.stackKey(w, i, j);
   }
   /**
    * Line.draw, once per series right after its whole has been rendered and
@@ -3238,7 +3242,7 @@ class HighlightFilter {
    * @param {any} paths what the whole was built into
    */
   line(ln, type, series, i, realIndex, ti, paths) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const hd = w.highlightData;
     if (!hd || type !== "line" && type !== "area") return;
@@ -3275,7 +3279,7 @@ class HighlightFilter {
       i,
       realIndex,
       ti,
-      this._partRow(raw, i, realIndex)
+      this._partRow(raw, i, realIndex, (_a = ln.percentRows) == null ? void 0 : _a[realIndex])
     ) : null;
     let to = flat ? { d: paths.linePaths.join(" "), a: paths.areaPaths.join(" ") } : has ? {
       d: pp.linePaths.join(" "),
@@ -3406,13 +3410,13 @@ class HighlightFilter {
       c: !active
     };
     this._targets.set(key, rec);
-    const a0 = cover ? alpha : (prev == null ? void 0 : prev.d) ? (_a = prev.al) != null ? _a : 1 : 1;
+    const a0 = cover ? alpha : (prev == null ? void 0 : prev.d) ? (_b = prev.al) != null ? _b : 1 : 1;
     const a1 = lands ? alpha : 1;
     rec.al = a1;
     this._fadeLine(
       type,
       looks,
-      cover ? L_COVER : prev ? { f: prev.f, o: (_b = prev.o) != null ? _b : 0 } : L_PLAIN,
+      cover ? L_COVER : prev ? { f: prev.f, o: (_c = prev.o) != null ? _c : 0 } : L_PLAIN,
       lands ? L_COVER : active ? L_REST : L_PLAIN,
       {
         width: ln.strokeWidth,
@@ -3441,17 +3445,23 @@ class HighlightFilter {
   /**
    * A part row in the units the renderer draws: logs on a log axis, and the
    * renderer's nudge for a flat row under a gradient, whose box would
-   * otherwise have no height to paint (#358).
+   * otherwise have no height to paint (#358). On a 100% stack the whole is
+   * drawn at its share (Line._percentRows), so the part takes the same
+   * share of the stack: scaled by the whole's share over its value.
    * @param {any[]} raw @param {number} i @param {number} realIndex
+   * @param {any[]} [pct] the whole's drawn 100% row, if any
    */
-  _partRow(raw, i, realIndex) {
+  _partRow(raw, i, realIndex, pct) {
     const w = this.w;
     const cu = (
       /** @type {CoreUtils} */
       this._cu
     );
     const ax = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]];
-    const row = (ax == null ? void 0 : ax.logarithmic) && !w.globals.invalidLogScale ? raw.map((v) => cu.getLogValAtSeriesIndex(v, realIndex)) : raw.slice();
+    const whole = w.seriesData.series[realIndex] || [];
+    const row = pct ? raw.map(
+      (v, j) => v == null ? v : whole[j] ? v * pct[j] / whole[j] : 0
+    ) : (ax == null ? void 0 : ax.logarithmic) && !w.globals.invalidLogScale ? raw.map((v) => cu.getLogValAtSeriesIndex(v, realIndex)) : raw.slice();
     const ft = (
       /** @type {any} */
       w.config.fill.type
@@ -3903,12 +3913,13 @@ class HighlightFilter {
     const own = ownOpacity(el.node);
     const a0 = (start == null ? void 0 : start.cover) && animate ? alpha : (prev == null ? void 0 : prev.d) ? (_a = prev.al) != null ? _a : 1 : 1;
     const a1 = lands ? alpha : 1;
-    const ow = s.whole || (prev == null ? void 0 : prev.o) ? (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1 : 0;
+    const width = (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1;
+    const ow = s.whole || (prev == null ? void 0 : prev.o) ? width : 0;
     const wn = el.node;
     const sc = wn.getAttribute("stroke");
     const k0 = (start == null ? void 0 : start.cover) && animate ? 1 : (prev == null ? void 0 : prev.d) ? (_d = prev.k) != null ? _d : 0 : 0;
     const k1 = lands ? 1 : 0;
-    const carry = !!part && ow > 0 && (k0 > 0 || k1 > 0) && parseFloat(wn.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
+    const carry = !!part && (ow > 0 || !(width > 0) && !!s.whole) && (k0 > 0 || k1 > 0) && parseFloat(wn.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
     const so = ownOpacity(wn, "stroke-opacity");
     const SK = ["stroke", "stroke-width", "stroke-opacity", "stroke-dasharray"];
     const bare = {};
@@ -3945,7 +3956,9 @@ class HighlightFilter {
       rec.lk = k;
       if (k > 0 || t < 1) {
         part.node.setAttribute("stroke-opacity", String(so * k));
-        if (!(rec.lo > 0) && k > 0) wn.setAttribute("stroke-opacity", "0");
+        if (ow > 0 && !(rec.lo > 0) && k > 0) {
+          wn.setAttribute("stroke-opacity", "0");
+        }
       } else {
         part.attr(bare);
       }
@@ -3958,6 +3971,10 @@ class HighlightFilter {
       r,
       {
         outline: ow > 0 ? { color, width: ow, opacity: (_i = (_h = cfg.outline) == null ? void 0 : _h.opacity) != null ? _i : 1 } : null,
+        // Only a page that turned the outline off: a whole that draws nothing
+        // (a series the legend hides) has no outline either, and keeps its
+        // own stroke as drawn, so it lands as a fresh render draws it.
+        stroke: !(width > 0),
         also: (t) => {
           shadow == null ? void 0 : shadow.setAttribute("fill-opacity", String(mix(sf0, fadeTo, t)));
           strength(t);
@@ -4174,7 +4191,10 @@ class HighlightFilter {
    * place of the bar morph's rule, and `force` tweens even when the look
    * stays (something else, through `also`, still moves). An outline without
    * a `width` changes the stroke's colour only: its width is the renderer's.
-   * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
+   * With `stroke` and no outline, the mark's own stroke fades with its fill,
+   * so a faded bar keeps no full-strength frame, and at full strength it is
+   * back as drawn (the attribute it had, or none).
+   * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, stroke?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
    */
   _fade(node, a, b, r, opt) {
     var _a;
@@ -4182,13 +4202,22 @@ class HighlightFilter {
     const k = ownOpacity(node, attr);
     const ol = opt.outline;
     const rec = opt.rec || {};
+    const fs = !ol && !!opt.stroke && attr !== "stroke-opacity";
+    const ks = fs ? ownOpacity(node, "stroke-opacity") : 1;
+    const os = fs ? node.getAttribute("stroke-opacity") : null;
     const attrs = ol && ol.width == null ? ["stroke", "stroke-opacity"] : ["stroke", "stroke-width", "stroke-opacity"];
     const own = attrs.map((n) => node.getAttribute(n));
     const set = (f, o) => {
       rec.lf = f;
       rec.lo = ol ? o : 0;
       node.setAttribute(attr, String(k * f));
-      if (!ol) return;
+      if (!ol) {
+        if (!fs) return;
+        if (f < 1) node.setAttribute("stroke-opacity", String(ks * f));
+        else if (os == null) node.removeAttribute("stroke-opacity");
+        else node.setAttribute("stroke-opacity", os);
+        return;
+      }
       if (o <= 0) {
         attrs.forEach(
           (n, x) => own[x] == null ? node.removeAttribute(n) : node.setAttribute(n, own[x])
@@ -4522,7 +4551,9 @@ class HighlightFilter {
   _apply(series, opts) {
     const drilled = this._drilled();
     if (drilled && this._level) this._level.series = series.map(stripSeries);
-    return this.ctx.updateSeries(series, opts.animate !== false, !drilled);
+    return this.ctx._replaceSeries(series, opts.animate !== false, !drilled, {
+      keepView: true
+    });
   }
   /** The series as the chart was handed them: nested treemaps and reduced
    * rows are kept raw elsewhere, and re-feeding derived rows would lose them.

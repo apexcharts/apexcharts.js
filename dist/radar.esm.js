@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -355,9 +355,9 @@ class Radar {
           drawMask: { type: "radial", cx: 0, cy: 0, r: this.size }
         }));
         if (w.config.chart.dropShadow.enabled) {
-          const filters = new Filters(this.w);
+          const filters2 = new Filters(this.w);
           const shadow = w.config.chart.dropShadow;
-          filters.dropShadow(
+          filters2.dropShadow(
             renderedAreaPath,
             Object.assign({}, shadow, { noUserSpaceOnUse: true }),
             i
@@ -366,13 +366,17 @@ class Radar {
         elSeries.add(renderedAreaPath);
       }
       const markers = new Markers(this.w, this.ctx);
+      const filters = new Filters(this.w);
+      let elPointsWrap = null;
+      let elHitWrap = null;
       s.forEach((sj, j) => {
         const opts = markers.getMarkerConfig({
           cssClass: "apexcharts-marker",
           seriesIndex: i,
           dataPointIndex: j
         });
-        if (!opts.pSize) {
+        const isHitArea = !opts.pSize;
+        if (isHitArea) {
           opts.pSize = RADAR_HIT_AREA_SIZE;
           opts.pointFillColor = "transparent";
           opts.pointStrokeColor = "transparent";
@@ -387,13 +391,25 @@ class Radar {
         point.attr("j", j);
         point.attr("index", i);
         point.node.setAttribute("default-marker-size", opts.pSize);
-        const elPointsWrap = this.graphics.group({
-          class: "apexcharts-series-markers"
-        });
-        if (elPointsWrap) {
+        if (isHitArea) {
+          if (!elHitWrap) {
+            elHitWrap = this.graphics.group({
+              class: "apexcharts-series-markers"
+            });
+            elPointsMain.add(elHitWrap);
+          }
+          elHitWrap.add(point);
+        } else {
+          if (!elPointsWrap) {
+            elPointsWrap = this.graphics.group({
+              class: "apexcharts-series-markers"
+            });
+            markers.setupMarkerDelegation(elPointsWrap);
+            elPointsMain.add(elPointsWrap);
+          }
+          filters.setSelectionFilter(point, i, j);
           elPointsWrap.add(point);
         }
-        elPointsMain.add(elPointsWrap);
         elSeries.add(elPointsMain);
         const dataLabelsConfig = w.config.dataLabels;
         if (dataLabelsConfig.enabled) {

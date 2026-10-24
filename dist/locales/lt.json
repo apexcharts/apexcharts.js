@@ -49,7 +49,19 @@
       "zoomIn": "Zoom: Priartinti",
       "zoomOut": "Zoom: Atitolinti",
       "pan": "Perkėlimas",
-      "reset": "Atstatyti"
+      "reset": "Atstatyti",
+      "measure": "Matuoti",
+      "wheelZoomHint": "Norėdami keisti mastelį, naudokite {key} + slinkimą"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Paspauskite Enter arba tarpo klavišą, kad perjungtumėte.",
+      "visible": "matoma",
+      "hidden": "paslėpta",
+      "zoomedIn": "Priartinta",
+      "zoomedOut": "Nutolinta",
+      "zoomReset": "Mastelis atkurtas",
+      "pannedLeft": "Pastumta į kairę",
+      "pannedRight": "Pastumta į dešinę"
     }
   }
 }

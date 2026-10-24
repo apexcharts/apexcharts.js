@@ -57,7 +57,19 @@
             "zoomIn": "Zoom Masuk",
             "zoomOut": "Zoom Keluar",
             "pan": "Pemusingan",
-            "reset": "Tetapkan Semula Zum"
+            "reset": "Tetapkan Semula Zum",
+            "measure": "Ukur",
+            "wheelZoomHint": "Gunakan {key} + tatal untuk zum"
+        },
+        "a11y": {
+            "legendItem": "{name}, {state}. Tekan Enter atau Space untuk togol.",
+            "visible": "kelihatan",
+            "hidden": "tersembunyi",
+            "zoomedIn": "Dizum masuk",
+            "zoomedOut": "Dizum keluar",
+            "zoomReset": "Zum ditetapkan semula",
+            "pannedLeft": "Dialihkan ke kiri",
+            "pannedRight": "Dialihkan ke kanan"
         }
     }
 }

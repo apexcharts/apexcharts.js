@@ -51,25 +51,25 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
-import ApexCharts from "apexcharts";
+import ApexCharts$1 from "apexcharts";
 import { default as default2 } from "apexcharts";
-import * as _core from "apexcharts/core";
-import _core__default from "apexcharts/core";
-const CoreUtils = _core.__apex_CoreUtils;
-const getChartClass = _core.__apex_ChartFactory_getChartClass;
-const Fill = _core.__apex_Fill;
-const Graphics = _core.__apex_Graphics;
-const Series = _core.__apex_Series;
-const Animations = _core.__apex_Animations;
-const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
-const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
-const Environment = _core.__apex_Environment_Environment;
-const resolveEasing = _core.__apex_Easing_resolveEasing;
-const parsePath = _core.__apex_PathMorphing_parsePath;
-const arrayToPath = _core.__apex_PathMorphing_arrayToPath;
+import * as ApexCharts from "apexcharts/core";
+import ApexCharts__default from "apexcharts/core";
+const CoreUtils = ApexCharts.__apex_CoreUtils;
+const getChartClass = ApexCharts.__apex_ChartFactory_getChartClass;
+const Fill = ApexCharts.__apex_Fill;
+const Graphics = ApexCharts.__apex_Graphics;
+const Series = ApexCharts.__apex_Series;
+const Animations = ApexCharts.__apex_Animations;
+const prefersReducedMotion = ApexCharts.__apex_Animations_prefersReducedMotion;
+const BrowserAPIs = ApexCharts.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = ApexCharts.__apex_Environment_Environment;
+const resolveEasing = ApexCharts.__apex_Easing_resolveEasing;
+const parsePath = ApexCharts.__apex_PathMorphing_parsePath;
+const arrayToPath = ApexCharts.__apex_PathMorphing_arrayToPath;
 function buildUnionEntries(join, oldN) {
   const exitSet = new Set(join.exits);
   const entries = [];
@@ -347,7 +347,7 @@ function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, 
   if (!out.line && !out.area) return null;
   return out;
 }
-const Utils = _core.__apex_Utils;
+const Utils = ApexCharts.__apex_Utils;
 const tangents = (points) => {
   const m = finiteDifferences(points);
   const n2 = points.length - 1;
@@ -837,101 +837,60 @@ class Violin extends BarBase {
   }
   /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
   drawVerticalViolin({ indexes, x: x2, xDivision, barWidth, zeroH }) {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const w = this.w;
     const { realIndex, j: j2, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
     let barXPosition = x2 + barWidth * this.visibleI;
-    if (w.axisFlags.isXNumeric) {
+    if (this.w.axisFlags.isXNumeric) {
       ({ x: x2, barXPosition } = this.getBarXForNumericXAxis({
         x: x2,
         barWidth,
         realIndex,
         j: j2
       }));
-    }
-    const center = barXPosition + barWidth / 2;
-    const halfExtent = barWidth / 2;
-    const density = this.getDensity(realIndex, j2);
-    const maxWeight = this.effectiveMaxWeight(density);
-    const alongFn = (v) => zeroH - this.logVal(v, realIndex) / yRatio;
-    const lanes2 = resolveLanes({
-      halfExtent,
-      cloudSign: (_a = this.cloudSign) != null ? _a : 0,
-      rainSign: (_b = this.rainSign) != null ? _b : 0,
-      boxFrac: (_c = this.boxFrac) != null ? _c : 0,
-      rainFrac: (_d = this.rainFrac) != null ? _d : 0
-    });
-    const cloudBase = center + lanes2.cloudBaseOff;
-    const pathTo = this.buildBodyPath({
-      nodes: density.nodes,
-      center: cloudBase,
-      halfExtent: lanes2.cloudMaxPx,
-      maxWeight,
-      vertical: true,
-      alongFn,
-      collapsed: false,
-      sideSign: this.cloudSign
-    });
-    let pathFrom = null;
-    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j2);
-    if (morphFrom) {
-      pathFrom = morphFrom;
-    } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this._prevBody(realIndex, j2, pathTo);
-    }
-    if (pathFrom == null) {
-      pathFrom = this.buildBodyPath({
-        nodes: density.nodes,
-        center: cloudBase,
-        halfExtent: lanes2.cloudMaxPx,
-        maxWeight,
-        vertical: true,
-        alongFn,
-        collapsed: true,
-        sideSign: this.cloudSign
-      });
-    }
-    if (!w.axisFlags.isXNumeric) {
+    } else {
       x2 = x2 + xDivision;
     }
-    return {
-      pathTo,
-      pathFrom,
+    return __spreadProps(__spreadValues({}, this.buildViolin({
+      realIndex,
+      j: j2,
+      center: barXPosition + barWidth / 2,
+      halfExtent: barWidth / 2,
+      alongFn: (v) => zeroH - this.logVal(v, realIndex) / yRatio,
+      vertical: true
+    })), {
       x: x2,
-      y: zeroH,
-      center,
-      halfExtent,
-      alongFn,
-      density,
-      maxWeight,
-      cloudBase,
-      cloudMaxPx: lanes2.cloudMaxPx,
-      rainCenter: center + lanes2.rainCenterOff,
-      rainHalfPx: lanes2.rainHalfPx,
-      boxPaths: this.buildBoxSubPaths({
-        realIndex,
-        j: j2,
-        boxCenter: center + lanes2.boxCenterOff,
-        boxHalfPx: lanes2.boxHalfPx,
-        alongFn,
-        vertical: true
-      }),
-      alongRepresentative: alongFn((_g = w.seriesData.series[realIndex][j2]) != null ? _g : 0)
-    };
+      y: zeroH
+    });
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
   drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const w = this.w;
     const { realIndex, j: j2 } = indexes;
     const yRatio = this.invertedYRatio * (this.isReversed ? -1 : 1);
     const barYPosition = y + barHeight * this.visibleI;
-    const center = barYPosition + barHeight / 2;
-    const halfExtent = barHeight / 2;
+    return __spreadProps(__spreadValues({}, this.buildViolin({
+      realIndex,
+      j: j2,
+      center: barYPosition + barHeight / 2,
+      halfExtent: barHeight / 2,
+      alongFn: (v) => zeroW + this.logVal(v, realIndex) / yRatio,
+      vertical: false
+    })), {
+      x: zeroW,
+      y: y + yDivision
+    });
+  }
+  /**
+   * One violin in either orientation: the body, where it grows from, its
+   * lanes and its box. The orientations differ only in the slot (`center`,
+   * `halfExtent`, across the category axis) and in `alongFn`, which maps a
+   * value to its pixel along the value axis.
+   * @param {{realIndex: number, j: number, center: number, halfExtent: number, alongFn: (v: number) => number, vertical: boolean}} opts
+   */
+  buildViolin({ realIndex, j: j2, center, halfExtent, alongFn, vertical }) {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const w = this.w;
     const density = this.getDensity(realIndex, j2);
     const maxWeight = this.effectiveMaxWeight(density);
-    const alongFn = (v) => zeroW + this.logVal(v, realIndex) / yRatio;
     const lanes2 = resolveLanes({
       halfExtent,
       cloudSign: (_a = this.cloudSign) != null ? _a : 0,
@@ -940,16 +899,17 @@ class Violin extends BarBase {
       rainFrac: (_d = this.rainFrac) != null ? _d : 0
     });
     const cloudBase = center + lanes2.cloudBaseOff;
-    const pathTo = this.buildBodyPath({
+    const body = (collapsed) => this.buildBodyPath({
       nodes: density.nodes,
       center: cloudBase,
       halfExtent: lanes2.cloudMaxPx,
       maxWeight,
-      vertical: false,
+      vertical,
       alongFn,
-      collapsed: false,
+      collapsed,
       sideSign: this.cloudSign
     });
+    const pathTo = body(false);
     let pathFrom = null;
     const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j2);
     if (morphFrom) {
@@ -958,28 +918,16 @@ class Violin extends BarBase {
       pathFrom = this._prevBody(realIndex, j2, pathTo);
     }
     if (pathFrom == null) {
-      pathFrom = this.buildBodyPath({
-        nodes: density.nodes,
-        center: cloudBase,
-        halfExtent: lanes2.cloudMaxPx,
-        maxWeight,
-        vertical: false,
-        alongFn,
-        collapsed: true,
-        sideSign: this.cloudSign
-      });
+      pathFrom = body(true);
     }
-    y = y + yDivision;
     return {
       pathTo,
       pathFrom,
-      x: zeroW,
-      y,
       center,
       halfExtent,
       alongFn,
-      maxWeight,
       density,
+      maxWeight,
       cloudBase,
       cloudMaxPx: lanes2.cloudMaxPx,
       rainCenter: center + lanes2.rainCenterOff,
@@ -990,7 +938,7 @@ class Violin extends BarBase {
         boxCenter: center + lanes2.boxCenterOff,
         boxHalfPx: lanes2.boxHalfPx,
         alongFn,
-        vertical: false
+        vertical
       }),
       alongRepresentative: alongFn((_g = w.seriesData.series[realIndex][j2]) != null ? _g : 0)
     };
@@ -1353,7 +1301,7 @@ function resolveLanes({
     rainHalfPx
   };
 }
-_core__default.use({
+ApexCharts__default.use({
   violin: Violin
 });
 const e = globalThis.console;
@@ -4822,7 +4770,7 @@ ${percent2.toFixed(1)}%`;
     );
   }
 }
-_core__default.use({
+ApexCharts__default.use({
   unit: Unit
 });
 const D2R$1 = Math.PI / 180;
@@ -6116,7 +6064,7 @@ class SunburstChart {
     return roundedDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, r: r2, spanDeg });
   }
 }
-_core__default.use({
+ApexCharts__default.use({
   sunburst: SunburstChart
 });
 const SVGNS$1 = "http://www.w3.org/2000/svg";
@@ -6733,7 +6681,7 @@ class IcicleChart {
     if (nav) placeInReservedBand(this.w, this.ctx, nav, cfg);
   }
 }
-_core__default.use({
+ApexCharts__default.use({
   icicle: IcicleChart
 });
 const TRANSFORM_KEY = "__apexcharts_series_transforms__";
@@ -7945,7 +7893,7 @@ class Drilldown {
     return type === "line" || type === "area";
   }
 }
-_core__default.registerFeatures({ drilldown: Drilldown });
+ApexCharts__default.registerFeatures({ drilldown: Drilldown });
 class Waterfall {
   /**
    * @param {any} w
@@ -8065,7 +8013,7 @@ function stashSeries(ser, gl) {
     return __spreadProps(__spreadValues({}, rest), { data: Array.isArray(data) ? data.slice() : data });
   });
 }
-const DateTime = _core.__apex_DateTime;
+const DateTime = ApexCharts.__apex_DateTime;
 function xKey(x2, datetime) {
   if (x2 instanceof Date) return x2.getTime();
   if (datetime && typeof x2 === "string") {
@@ -8209,7 +8157,7 @@ function waterfallTransform(ser, w) {
   return out;
 }
 registerSeriesTransform("waterfall", waterfallTransform);
-_core__default.registerFeatures({ waterfall: Waterfall });
+ApexCharts__default.registerFeatures({ waterfall: Waterfall });
 function readDatum$1(d, j2, categories) {
   const fallbackX = categories && categories[j2] !== void 0 ? categories[j2] : j2 + 1;
   if (d == null) return { x: fallbackX, y: null, rest: {} };
@@ -9288,9 +9236,9 @@ function streamgraphTransform(ser, w) {
   });
 }
 registerSeriesTransform("streamgraph", streamgraphTransform);
-_core__default.registerFeatures({ streamgraph: StreamLabels });
-const addResizeListener = _core.__apex_Resize_addResizeListener;
-const removeResizeListener = _core.__apex_Resize_removeResizeListener;
+ApexCharts__default.registerFeatures({ streamgraph: StreamLabels });
+const addResizeListener = ApexCharts.__apex_Resize_addResizeListener;
+const removeResizeListener = ApexCharts.__apex_Resize_removeResizeListener;
 function warnMissingFeature(subject, feature, opts = {}) {
   const {
     module = `features/${feature}`,
@@ -9582,7 +9530,7 @@ class RendererController {
     this.w.globals.activeRenderer = null;
   }
 }
-const InitCtxVariables = _core.__apex_helpers_InitCtxVariables;
+const InitCtxVariables = ApexCharts.__apex_helpers_InitCtxVariables;
 const PIVOT_FACET = Symbol("facet");
 const SERIES_FIELDS = ["name", "data", "type", "group", "color", "hidden"];
 function pivotRows(rows, spec = {}) {
@@ -10209,7 +10157,7 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
   }
   return frames;
 }
-const getThemePalettes = _core.__apex_ThemePalettes_getThemePalettes;
+const getThemePalettes = ApexCharts.__apex_ThemePalettes_getThemePalettes;
 const DEFAULT_TARGET_TICKS = 3;
 function niceBounds(min, max, targetTicks = DEFAULT_TARGET_TICKS) {
   if (!isFinite(min) || !isFinite(max)) {
@@ -10529,16 +10477,17 @@ function toHexPair(n2) {
   return v.toString(16).padStart(2, "0");
 }
 function mixColors(c1, c2, t2) {
-  const a2 = Utils.parseHex(normalizeHex(c1));
-  const b = Utils.parseHex(normalizeHex(c2));
+  const a2 = Utils.parseColor(normalizeHex(c1));
+  const b = Utils.parseColor(normalizeHex(c2));
   if (!a2 || !b) return c1;
-  return "#" + toHexPair(lerp(a2[0], b[0], t2)) + toHexPair(lerp(a2[1], b[1], t2)) + toHexPair(lerp(a2[2], b[2], t2));
+  return toHex(a2.map((v, k2) => lerp(v, b[k2], t2)));
+}
+function toHex(c) {
+  return "#" + c.slice(0, 3).map(toHexPair).join("") + (c[3] < 1 ? toHexPair(c[3] * 255) : "");
 }
 function normalizeHex(c) {
-  if (typeof c !== "string") return "#000000";
-  if (Utils.isColorHex(c)) return c;
-  const asHex = Utils.rgb2hex(c);
-  return asHex || "#000000";
+  const rgba = typeof c === "string" ? Utils.parseColor(c.trim()) : null;
+  return rgba ? toHex(rgba) : "#000000";
 }
 function colorValueOf(w, i2, j2) {
   const series = (
@@ -10677,7 +10626,16 @@ function buildContinuousScale(w) {
   });
   return { min, max, midpoint, stops, at, legendStops };
 }
-const TooltipUtils = _core.__apex_tooltip_Utils;
+function shadePercent(w, chartType, p, negRange) {
+  const opts = w.config.plotOptions[chartType];
+  const shadeIntensity = opts.shadeIntensity;
+  const k2 = shadeIntensity * 1.25;
+  if (w.globals.hasNegs || negRange) {
+    return opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
+  }
+  return chartType === "treemap" ? (1 - p) * k2 : 1 - p;
+}
+const TooltipUtils = ApexCharts.__apex_tooltip_Utils;
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -10852,7 +10810,7 @@ class HeatmapGradientLegend {
       }
     }
     const arrowColor = ((_f = cfg.arrow) == null ? void 0 : _f.color) || w.config.chart.foreColor;
-    const arrow2 = this._buildArrow(arrowSize, arrowColor, position);
+    const arrow2 = this._buildArrow(arrowColor);
     svg.appendChild(arrow2);
     this.arrowEl = arrow2;
     this._bandHitEls = [];
@@ -10900,7 +10858,6 @@ class HeatmapGradientLegend {
       tt.style.position = "absolute";
       tt.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
       tt.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
-      tt.style.color = w.config.chart.foreColor;
       tt.style.background = "rgba(0,0,0,0.65)";
       tt.style.color = "#fff";
       tt.style.padding = "2px 6px";
@@ -11299,11 +11256,9 @@ class HeatmapGradientLegend {
     }
   }
   /**
-   * @param {number} size
    * @param {string} color
-   * @param {'top'|'right'|'bottom'|'left'} _position
    */
-  _buildArrow(size, color, _position) {
+  _buildArrow(color) {
     const polygon = BrowserAPIs.createElementNS(SVG_NS, "polygon");
     polygon.setAttribute("fill", color);
     polygon.setAttribute("opacity", "0");
@@ -11336,7 +11291,7 @@ class HeatmapGradientLegend {
    * @returns {{ min: number, max: number, stops: Array<{percent:number,color:string}>, bands: Array<{index:number,p1:number,p2:number}> }}
    */
   _computeStops() {
-    var _a, _b;
+    var _a;
     const w = this.w;
     const cs = HeatmapGradientLegend.colorScaleOf(w) || {};
     const cfg = this._cfg();
@@ -11402,27 +11357,18 @@ class HeatmapGradientLegend {
       const utils = new Utils();
       const type = w.config.chart.type;
       const plot = w.config.plotOptions[type] || {};
-      const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
       const g2 = (
         /** @type {any} */
         w.globals
       );
-      const hasNegs = g2.hasNegs;
       const yExt = type === "heatmap" && !plot.distributed && !csWindow && g2.maxY >= g2.minY;
       const hi = yExt ? g2.maxY : max;
       const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g2.minY ? cs.min : g2.minY : min);
-      const k2 = shadeIntensity * 1.25;
       const n2 = Math.max(2, cfg.stops || 16);
       for (let s2 = 0; s2 < n2; s2++) {
         const t2 = s2 / (n2 - 1);
         const p = total === 0 ? 0 : Math.min(min + t2 * (max - min), hi) / total;
-        const c = Math.max(
-          -1,
-          Math.min(
-            1,
-            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k2 : 1)
-          )
-        );
+        const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
         const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t2, color: shaded });
       }
@@ -11436,9 +11382,17 @@ const ICONS = {
   reset: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 8 0 1 1 2 6"/><path d="M4 4v6h6"/></svg>',
   download: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>'
 };
-function paintItem(t2, item, name) {
+function paintItem(t2, item, name, i2) {
+  var _a;
   const hidden = t2.sync.isHidden(name);
-  item.firstChild.style.background = t2.scales ? t2.scales.colorOf(name) : "#008FFB";
+  const color = t2.scales ? t2.scales.colorOf(name) : "#008FFB";
+  item.firstChild.style.background = color;
+  const text = item.querySelector(".apexcharts-legend-text");
+  if (text) {
+    const labels = ((_a = t2.w.config.legend) == null ? void 0 : _a.labels) || {};
+    const textColor = labels.useSeriesColors ? color : Array.isArray(labels.colors) ? labels.colors[i2] : labels.colors;
+    text.style.color = textColor || "";
+  }
   item.classList.toggle("apexcharts-inactive-legend", hidden);
   item.setAttribute("data:collapsed", String(hidden));
 }
@@ -11617,7 +11571,9 @@ class TrellisChrome {
     const wrap = BrowserAPIs.createElement("div");
     wrap.className = "apexcharts-trellis-legend apexcharts-legend";
     wrap.setAttribute("role", "list");
-    names.forEach((name) => {
+    const legendFont = t2.w.config.legend.fontFamily;
+    if (legendFont) wrap.style.fontFamily = legendFont;
+    names.forEach((name, i2) => {
       const item = BrowserAPIs.createElement("div");
       item.className = "apexcharts-legend-series apexcharts-trellis-legend-item";
       item.setAttribute("role", "listitem");
@@ -11629,10 +11585,10 @@ class TrellisChrome {
       text.textContent = name;
       item.appendChild(marker);
       item.appendChild(text);
-      paintItem(t2, item, name);
+      paintItem(t2, item, name, i2);
       const toggle = () => {
         t2.sync.toggleSeries(name);
-        paintItem(t2, item, name);
+        paintItem(t2, item, name, i2);
       };
       item.addEventListener("click", toggle);
       item.addEventListener("keydown", (e2) => {
@@ -11659,9 +11615,7 @@ class TrellisChrome {
     const old = this.elLegend;
     const names = t2.split ? t2.split.seriesNames : [];
     if (old && this._names === JSON.stringify(names)) {
-      names.forEach(
-        (n2, i2) => paintItem(t2, old.children[i2], n2)
-      );
+      names.forEach((n2, i2) => paintItem(t2, old.children[i2], n2, i2));
       return;
     }
     this.destroyGradientLegend();
@@ -12491,7 +12445,7 @@ class TrellisVirtual {
         this._patchYaxis(opts, { labels: { minWidth: this._gutterFloor } });
       }
       panel.el.classList.remove("apexcharts-trellis-skeleton");
-      const chart = new t2._ApexCharts(panel.el, opts);
+      const chart = t2._createPanelChart(panel.el, opts);
       panel.chart = chart;
       try {
         yield chart.render();
@@ -13131,11 +13085,105 @@ function escapeXml(s2) {
 function escapeAttr(s2) {
   return String(s2).replace(/"/g, "&quot;");
 }
+const PLOT_TOP_OFFSET = 10;
+function dropPanelTopBand(dims) {
+  const w = dims.w;
+  if (!w.globals.axisCharts) return;
+  const gutter = dims.titleBlockPad || 0;
+  if (w.config.xaxis.position === "top") {
+    dims.gridPad.top -= gutter;
+    return;
+  }
+  const plotH = w.layout.gridHeight - dims.gridPad.top - dims.gridPad.bottom + gutter + PLOT_TOP_OFFSET;
+  dims.gridPad.top += topInkClearance(dims, plotH) - PLOT_TOP_OFFSET - gutter;
+}
+function topInkClearance(dims, plotH) {
+  const w = dims.w;
+  const cnf = w.config;
+  const gl = w.globals;
+  const graphics = new Graphics(w);
+  const measure = (style) => {
+    const r2 = (
+      /** @type {{height: number, centerOffset?: number}} */
+      graphics.getTextRects(
+        "0",
+        style.fontSize,
+        style.fontFamily,
+        void 0,
+        true,
+        style.fontWeight
+      )
+    );
+    const ascent = r2.height / 2 - (r2.centerOffset || 0);
+    return {
+      ascent: ascent >= 0 && ascent <= r2.height ? ascent : r2.height,
+      height: r2.height
+    };
+  };
+  const num = (v) => typeof v === "number" && isFinite(v) ? v : 0;
+  const largest = (v) => Math.max(0, ...[].concat(v).map(num));
+  let need = 0;
+  cnf.yaxis.forEach((yaxe) => {
+    if (!yaxe.show || !yaxe.labels.show) return;
+    const fs = parseFloat(yaxe.labels.style.fontSize) || 0;
+    const ascent = measure(yaxe.labels.style).ascent;
+    const offY = num(yaxe.labels.offsetY);
+    if (!gl.isBarHorizontal) {
+      need = Math.max(need, ascent - fs / 3 - offY);
+      return;
+    }
+    const labels = w.labelData.labels || [];
+    const n2 = Math.max(1, labels.length);
+    const lines = Math.max(
+      0,
+      ...labels.map(
+        (l2) => Array.isArray(l2) ? l2.length : 0
+      )
+    );
+    const rise = ascent + (lines ? lines / 2 * fs : 0) - offY;
+    const K2 = 1 - 1 / 2.2;
+    need = Math.max(need, (rise - K2 * plotH / n2) / (1 - K2 / n2));
+  });
+  if (cnf.stroke.show) need = Math.max(need, largest(cnf.stroke.width) / 2);
+  const types = [cnf.chart.type].concat(
+    cnf.series.map((s2) => s2 && s2.type).filter(Boolean)
+  );
+  const pointTypes = ["line", "area", "scatter", "bubble", "rangeArea"];
+  if (types.some((t2) => pointTypes.includes(t2))) {
+    const m = cnf.markers;
+    const size = Math.max(
+      largest(m.size),
+      ...(m.discrete || []).map((d) => num(d.size))
+    );
+    if (size > 0) need = Math.max(need, size + largest(m.strokeWidth) / 2);
+    if (cnf.dataLabels.enabled) {
+      const offY = num(cnf.dataLabels.offsetY);
+      const baseline = Math.max(0, offY + 2) + offY;
+      need = Math.max(need, measure(cnf.dataLabels.style).ascent - baseline);
+    }
+  }
+  const total = cnf.plotOptions.bar.dataLabels.total;
+  if (cnf.chart.stacked && total.enabled && !gl.isBarHorizontal && types.some((t2) => BAR_PATHWAY_TYPES.includes(t2))) {
+    const m = measure(total.style);
+    need = Math.max(
+      need,
+      m.ascent + 0.3 * m.height - num(cnf.dataLabels.offsetY) - num(total.offsetY)
+    );
+  }
+  return Math.ceil(Math.max(0, need));
+}
 const EAGER_PANEL_BUDGET = 64;
 const HARD_PANEL_WARN = 256;
 const ANIMATION_PANEL_BUDGET = 16;
+const GRIDLESS_TYPES = [
+  "pie",
+  "donut",
+  "polarArea",
+  "radialBar",
+  "radar",
+  "treemap"
+];
 const Y_LABEL_PAD = 10;
-const PANEL_PAD_RECLAIM_TOP = 12;
 const PANEL_PAD_RECLAIM_BOTTOM = 7;
 const PANEL_PAD_RECLAIM_BOTTOM_DATETIME = 2;
 const PANEL_ONLY_OPTIONS = [
@@ -13222,7 +13270,7 @@ class Trellis {
     this.exports = new TrellisExports(this);
     this.gridTooltip = null;
     this._promotedKey = null;
-    this._ApexCharts = _core__default;
+    this._ApexCharts = ApexCharts__default;
     this._virtualActive = false;
     this._panelRenderer = null;
     this.elWrap = null;
@@ -13510,6 +13558,7 @@ class Trellis {
    * @returns {Promise<void>}
    */
   render() {
+    if (this._rendering && this._renderPromise) return this._renderPromise;
     const p = this._render();
     this._renderPromise = p;
     return p;
@@ -13629,7 +13678,7 @@ class Trellis {
             const panel = this.panels[i2];
             if (panel.noMount) continue;
             const opts = this._assemblePanelOptions(panel.index);
-            const chart = new _core__default(
+            const chart = this._createPanelChart(
               /** @type {HTMLElement} */
               panel.el,
               opts
@@ -13677,7 +13726,7 @@ class Trellis {
         if (!useVirtual) w.globals.animationEnded = true;
         this._fire("trellisMounted", { panels: this.getPanels() });
       } finally {
-        this._rendering = false;
+        if (gen === this._gen) this._rendering = false;
       }
     });
   }
@@ -13747,7 +13796,7 @@ class Trellis {
     return isFinite(h) && h > 0 ? h : 0;
   }
   _buildSkeleton() {
-    var _a;
+    var _a, _b;
     const el = (
       /** @type {HTMLElement} */
       this.ctx.el
@@ -13764,6 +13813,8 @@ class Trellis {
     wrap.setAttribute("data-tooltip-mode", this.cfg.tooltip || "panel");
     const foreColor = (_a = this.w.config.chart) == null ? void 0 : _a.foreColor;
     if (foreColor) wrap.style.setProperty("--apx-trellis-fore", foreColor);
+    const fontFamily = (_b = this.w.config.chart) == null ? void 0 : _b.fontFamily;
+    if (fontFamily) wrap.style.fontFamily = fontFamily;
     const chromeTop = BrowserAPIs.createElement("div");
     chromeTop.className = "apexcharts-trellis-chrome";
     wrap.appendChild(chromeTop);
@@ -13894,6 +13945,32 @@ class Trellis {
     cell.classList.toggle("apexcharts-trellis-mute-y", !c.showYLabels);
   }
   /**
+   * Whether a panel has the axis chrome the trellis trims (the band above
+   * the plot, the slack below the x axis). Circular and space-filling types
+   * have neither, and a sparkline zeroes its own.
+   * @param {any} chartOpts the panel's (or the user's) `chart` options
+   */
+  _hasPlotChrome(chartOpts) {
+    var _a;
+    return !((_a = chartOpts == null ? void 0 : chartOpts.sparkline) == null ? void 0 : _a.enabled) && !GRIDLESS_TYPES.includes(this.w.config.chart.type);
+  }
+  /**
+   * Construct (not render) one panel chart. Every mount path goes through
+   * here so the hook is never missed: `panelTopBand` has Dimensions drop
+   * the standalone title band above the plot and keep only what the top
+   * ink needs (TrellisTopClearance; see PANEL_PAD_RECLAIM_BOTTOM).
+   * @param {HTMLElement} el
+   * @param {any} opts
+   */
+  _createPanelChart(el, opts) {
+    const chart = (
+      /** @type {any} */
+      new this._ApexCharts(el, opts)
+    );
+    if (this._hasPlotChrome(opts.chart)) chart.panelTopBand = dropPanelTopBand;
+    return chart;
+  }
+  /**
    * Build one panel's full options object: the user's own options (functions
    * preserved by reference), minus what the trellis owns, plus the shared
    * scale/color/geometry overrides. `trellis.panel(key, meta)` is applied
@@ -13905,7 +13982,7 @@ class Trellis {
    * @returns {Record<string, any>}
    */
   _assemblePanelOptions(i2, { noAnimation = false } = {}) {
-    var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+    var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     const w = this.w;
     const split2 = (
       /** @type {import('./TrellisSplit').TrellisSplitResult} */
@@ -13986,13 +14063,11 @@ class Trellis {
       subtitle: { text: "", margin: 0, floating: true },
       legend: { show: false }
     }), isPlaceholder ? { tooltip: { enabled: false } } : {}), ly.panelH < COMPACT_TOOLTIP_PANEL_H && this.cfg.tooltip !== "grid" && typeof ((_i = (_h = this.ctx.opts) == null ? void 0 : _h.tooltip) == null ? void 0 : _i.compact) !== "boolean" ? { tooltip: { compact: true } } : {});
-    const gridlessTypes = ["pie", "donut", "polarArea", "radialBar", "radar", "treemap"];
-    if (!((_j = userChart.sparkline) == null ? void 0 : _j.enabled) && !gridlessTypes.includes(w.config.chart.type)) {
+    if (this._hasPlotChrome(userChart)) {
       const userPad = base.grid && base.grid.padding || {};
-      const reclaimBottom = ((_l = (_k = this.ctx.opts) == null ? void 0 : _k.xaxis) == null ? void 0 : _l.type) === "datetime" ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME : PANEL_PAD_RECLAIM_BOTTOM;
+      const reclaimBottom = ((_k = (_j = this.ctx.opts) == null ? void 0 : _j.xaxis) == null ? void 0 : _k.type) === "datetime" ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME : PANEL_PAD_RECLAIM_BOTTOM;
       overrides.grid = {
         padding: {
-          top: (typeof userPad.top === "number" ? userPad.top : 0) - PANEL_PAD_RECLAIM_TOP,
           bottom: (typeof userPad.bottom === "number" ? userPad.bottom : 0) - reclaimBottom
         }
       };
@@ -14440,6 +14515,7 @@ class Trellis {
    */
   teardown() {
     this._gen++;
+    this._rendering = false;
     this.virtual.stop();
     this._virtualActive = false;
     this._panelRenderer = null;
@@ -14486,7 +14562,7 @@ class Trellis {
     this.ctx._renderPromise = null;
   }
 }
-_core__default.registerFeatures({ trellis: Trellis });
+ApexCharts__default.registerFeatures({ trellis: Trellis });
 class Measure {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -15267,7 +15343,7 @@ class Measure {
     this.pins = [];
   }
 }
-_core__default.registerFeatures({ measure: Measure });
+ApexCharts__default.registerFeatures({ measure: Measure });
 const MARK_SELECTOR = [
   ".apexcharts-bar-area",
   ".apexcharts-candlestick-area",
@@ -15572,7 +15648,9 @@ class LinkedViews {
       return;
     }
     this._lastValues = sig;
-    this.ctx.updateSeries(this._seriesFromAgg(agg), true);
+    this.ctx._replaceSeries(this._seriesFromAgg(agg), true, true, {
+      keepView: true
+    });
   }
   _afterRender() {
     if (this._mode() !== "filter") return;
@@ -15597,7 +15675,7 @@ class LinkedViews {
       const series = this._seriesFromAgg(agg);
       if (!series.length) return;
       this._lastValues = this._sigOf(agg);
-      this.ctx.updateSeries(series, true);
+      this.ctx._replaceSeries(series, true, true, { keepView: true });
     });
   }
   /**
@@ -15670,14 +15748,14 @@ class LinkedViews {
     }
   }
 }
-_core__default.registerFeatures({
+ApexCharts__default.registerFeatures({
   linkedViews: LinkedViews,
   crossfilter: (
     /** @type {any} */
     je
   )
 });
-const Options = _core.__apex_Options;
+const Options = ApexCharts.__apex_Options;
 const DRAG_CLASS = "apexcharts-ink-draggable";
 const OWNER = "ink";
 const TYPES = ["point", "xaxis", "yaxis"];
@@ -16717,7 +16795,7 @@ class InkLayer {
     }
   }
 }
-_core__default.registerFeatures({ ink: InkLayer });
+ApexCharts__default.registerFeatures({ ink: InkLayer });
 const PRICING_URL = "https://apexcharts.com/pricing";
 const STATE_KEY = "__apexcharts_license_enforcer_v1__";
 if (!/** @type {any} */
@@ -17356,7 +17434,7 @@ class Perspectives {
     }
   }
 }
-_core__default.registerFeatures({
+ApexCharts__default.registerFeatures({
   perspectives: Perspectives,
   perspectivesStatics: (
     /** @type {any} */
@@ -17374,7 +17452,7 @@ _core__default.registerFeatures({
     }
   )
 });
-_core__default.registerFeatures({ storyboard: Storyboard });
+ApexCharts__default.registerFeatures({ storyboard: Storyboard });
 const STYLE_KEYS = {
   fill: "fill",
   stroke: "stroke",
@@ -18321,9 +18399,31 @@ class CanvasGraphics {
     return this._g.getMarkerPath(x2, y, SHAPE_NAME[shapeId] || "circle", size);
   }
 }
-const SVGElement = _core.__apex_SVGElement;
-const SVGNS = _core.__apex_math_SVGNS;
-const Grid = _core.__apex_axes_Grid;
+const SVGElement = ApexCharts.__apex_SVGElement;
+const SVGNS = ApexCharts.__apex_math_SVGNS;
+const Grid = ApexCharts.__apex_axes_Grid;
+function parseDash(dash) {
+  if (dash == null || dash === "") return [];
+  let parts;
+  if (Array.isArray(dash)) {
+    parts = dash;
+  } else if (typeof dash === "number") {
+    parts = [dash];
+  } else {
+    const s2 = String(dash).trim();
+    if (s2 === "" || s2 === "none") return [];
+    parts = s2.split(/[\s,]+/);
+  }
+  const out = [];
+  let any = false;
+  for (const p of parts) {
+    const n2 = typeof p === "number" ? p : Number(String(p).replace(/px$/i, ""));
+    if (!isFinite(n2) || n2 < 0) return [];
+    if (n2 > 0) any = true;
+    out.push(n2);
+  }
+  return any ? out : [];
+}
 const TWO_PI = Math.PI * 2;
 const DPR_CAP = 2;
 class CanvasCompositor {
@@ -18875,12 +18975,7 @@ class CanvasCompositor {
     ctx.strokeStyle = stroke2;
     ctx.lineWidth = sw;
     ctx.lineCap = style.lineCap || "butt";
-    const dash = style.strokeDash;
-    if (dash && dash !== 0) {
-      ctx.setLineDash(Array.isArray(dash) ? dash : [Number(dash)]);
-    } else {
-      ctx.setLineDash([]);
-    }
+    ctx.setLineDash(parseDash(style.strokeDash));
     return true;
   }
   /** Series bitmap for the export composite bridge (P4). @returns {string|null} */
@@ -19301,7 +19396,7 @@ class CanvasRenderer {
     this._hitCtx = void 0;
   }
 }
-_core__default.registerRenderer(
+ApexCharts__default.registerRenderer(
   "canvas",
   /**
    * @param {any} w
@@ -19621,7 +19716,7 @@ class ContextMenu {
     this._detachTrigger();
   }
 }
-_core__default.registerFeatures({ contextMenu: ContextMenu });
+ApexCharts__default.registerFeatures({ contextMenu: ContextMenu });
 function isEditableTarget(node) {
   if (!node) return false;
   const tag = node.tagName;
@@ -20024,8 +20119,8 @@ class History {
     this._wired = false;
   }
 }
-_core__default.registerFeatures({ history: History });
-const DataLabels = _core.__apex_DataLabels;
+ApexCharts__default.registerFeatures({ history: History });
+const DataLabels = ApexCharts.__apex_DataLabels;
 function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   var _a;
   const gl = w.globals;
@@ -20798,7 +20893,7 @@ const NEEDLE_KEYS = ["length", "baseWidth", "tipWidth", "offsetY"];
 const LANE = 0.45;
 const LANE_CLS = `${PART} apexcharts-radialbar-highlight-lane`;
 function radialPass(hf, r2) {
-  var _a, _b, _c, _d, _e, _f, _g;
+  var _a, _b, _c, _d, _e, _f;
   const w = hf.w;
   const hd = w.highlightData;
   const said = (_b = (_a = hf.ctx.lastUpdateOptions) == null ? void 0 : _a.tooltip) == null ? void 0 : _b.enabled;
@@ -20809,11 +20904,18 @@ function radialPass(hf, r2) {
   if (hf._render !== r2) hf._beginRender(r2, RAD);
   morphOut(hf);
   const rb = w.config.plotOptions.radialBar;
-  hf._ind = (_d = (_c = hf.cfg.radialBar) == null ? void 0 : _c.indicator) != null ? _d : rb.shape === "needle" ? "needle" : "arc";
-  if (hf._ind === "lanes" && rb.shape === "needle" && !((_e = rb.needle) == null ? void 0 : _e.showValueArc)) {
-    hf._ind = "needle";
+  const asked = (_c = hf.cfg.radialBar) == null ? void 0 : _c.indicator;
+  hf._ind = asked != null ? asked : rb.shape === "needle" ? "needle" : "arc";
+  if (rb.shape === "needle" && !((_d = rb.needle) == null ? void 0 : _d.showValueArc)) {
+    if (hf._ind === "lanes") hf._ind = "needle";
+    if (asked === "arc" || asked === "lanes") {
+      hf._warn(
+        "needleNoArc",
+        `indicator '${asked}' is drawn as a needle: a needle gauge without plotOptions.radialBar.needle.showValueArc has no arc to split.`
+      );
+    }
   }
-  if (!hd.active && !((_f = hf._prev()) == null ? void 0 : _f.size)) return;
+  if (!hd.active && !((_e = hf._prev()) == null ? void 0 : _e.size)) return;
   const tt = w.config.tooltip;
   if (hd.active && !tt.enabled && hf._tipUser == null && Environment.isBrowser()) {
     tt.enabled = true;
@@ -20837,7 +20939,7 @@ function radialPass(hf, r2) {
     arcs.add(c.i);
     ring(hf, r2, el, c, ap);
   };
-  if (((_g = hf.ctx.morphTypeChange) == null ? void 0 : _g.isActive()) === true) {
+  if (((_f = hf.ctx.morphTypeChange) == null ? void 0 : _f.isActive()) === true) {
     Promise.resolve().then(() => {
       var _a2;
       if (hf._render !== r2 || w.globals.isDestroyed) return;
@@ -21594,9 +21696,12 @@ function needlePart(hf, r2, el, needle, pv, mount, morph, c) {
   const own = ((_b = cfg.radialBar) == null ? void 0 : _b.needle) || {};
   const base = rb.needle || {};
   const ncfg = {};
+  const none = (v) => v != null && !(parseFloat(v) > 0);
+  const thin = none(base.baseWidth) && none(base.tipWidth);
   NEEDLE_KEYS.forEach((k2) => {
     var _a2;
-    return ncfg[k2] = (_a2 = own[k2]) != null ? _a2 : base[k2];
+    const gone = k2 === "length" ? none(base.length) : thin && (k2 === "baseWidth" || k2 === "tipWidth");
+    ncfg[k2] = (_a2 = own[k2]) != null ? _a2 : gone ? void 0 : base[k2];
   });
   const color = (_c = own.color) != null ? _c : gl.colors[0];
   const { path, cx, cy } = r2.needlePath(
@@ -22328,11 +22433,7 @@ class HighlightFilter {
     if (stacked && bars) {
       keyOf2 = (i2, j2) => this._barKey(i2, j2);
     } else if (stacked) {
-      const sx = w.seriesData.seriesX;
-      keyOf2 = (i2, j2) => {
-        var _a2;
-        return String(w.axisFlags.isXNumeric ? (_a2 = sx[i2]) == null ? void 0 : _a2[j2] : j2);
-      };
+      keyOf2 = (i2, j2) => String(CoreUtils.stackKey(w, i2, j2));
     }
     const ext = extend ? this._runningExt(parts, keyOf2, bars) : null;
     this._publish(parts, ext);
@@ -22898,7 +22999,7 @@ class HighlightFilter {
       s: neg ? -1 : 1,
       overflow,
       val,
-      label: horiz ? { x: v2, barWidth: Math.abs(v2 - v1) } : { y: v2, barHeight: Math.abs(v2 - v1) },
+      label: horiz ? { x: v2, barWidth: Math.abs(v2 - v1), keep: val === 0 } : { y: v2, barHeight: Math.abs(v2 - v1), keep: val === 0 },
       // The stacked total, on the side of the stack core puts it (by the
       // sign the drawing series' label reads), or false when the stack has
       // no part at all.
@@ -22907,14 +23008,12 @@ class HighlightFilter {
   }
   /**
    * The stack a stacked bar datum joins, as the renderer resolves it
-   * (BarStacked): its series group, then its x value on a numeric or
-   * datetime axis, else its index.
+   * (BarStacked): its series group, then its CoreUtils.stackKey.
    * @param {number} i @param {number} j
    */
   _barKey(i2, j2) {
-    var _a;
     const w = this.w;
-    return w.labelData.seriesGroupIndex[i2] + "|" + (w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[i2]) == null ? void 0 : _a[j2] : j2);
+    return w.labelData.seriesGroupIndex[i2] + "|" + CoreUtils.stackKey(w, i2, j2);
   }
   /**
    * Line.draw, once per series right after its whole has been rendered and
@@ -22931,7 +23030,7 @@ class HighlightFilter {
    * @param {any} paths what the whole was built into
    */
   line(ln, type, series, i2, realIndex, ti, paths) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const hd = w.highlightData;
     if (!hd || type !== "line" && type !== "area") return;
@@ -22968,7 +23067,7 @@ class HighlightFilter {
       i2,
       realIndex,
       ti,
-      this._partRow(raw, i2, realIndex)
+      this._partRow(raw, i2, realIndex, (_a = ln.percentRows) == null ? void 0 : _a[realIndex])
     ) : null;
     let to = flat ? { d: paths.linePaths.join(" "), a: paths.areaPaths.join(" ") } : has ? {
       d: pp.linePaths.join(" "),
@@ -23099,13 +23198,13 @@ class HighlightFilter {
       c: !active
     };
     this._targets.set(key, rec);
-    const a0 = cover ? alpha : (prev == null ? void 0 : prev.d) ? (_a = prev.al) != null ? _a : 1 : 1;
+    const a0 = cover ? alpha : (prev == null ? void 0 : prev.d) ? (_b = prev.al) != null ? _b : 1 : 1;
     const a1 = lands ? alpha : 1;
     rec.al = a1;
     this._fadeLine(
       type,
       looks,
-      cover ? L_COVER : prev ? { f: prev.f, o: (_b = prev.o) != null ? _b : 0 } : L_PLAIN,
+      cover ? L_COVER : prev ? { f: prev.f, o: (_c = prev.o) != null ? _c : 0 } : L_PLAIN,
       lands ? L_COVER : active ? L_REST : L_PLAIN,
       {
         width: ln.strokeWidth,
@@ -23134,17 +23233,23 @@ class HighlightFilter {
   /**
    * A part row in the units the renderer draws: logs on a log axis, and the
    * renderer's nudge for a flat row under a gradient, whose box would
-   * otherwise have no height to paint (#358).
+   * otherwise have no height to paint (#358). On a 100% stack the whole is
+   * drawn at its share (Line._percentRows), so the part takes the same
+   * share of the stack: scaled by the whole's share over its value.
    * @param {any[]} raw @param {number} i @param {number} realIndex
+   * @param {any[]} [pct] the whole's drawn 100% row, if any
    */
-  _partRow(raw, i2, realIndex) {
+  _partRow(raw, i2, realIndex, pct) {
     const w = this.w;
     const cu = (
       /** @type {CoreUtils} */
       this._cu
     );
     const ax = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]];
-    const row = (ax == null ? void 0 : ax.logarithmic) && !w.globals.invalidLogScale ? raw.map((v) => cu.getLogValAtSeriesIndex(v, realIndex)) : raw.slice();
+    const whole = w.seriesData.series[realIndex] || [];
+    const row = pct ? raw.map(
+      (v, j2) => v == null ? v : whole[j2] ? v * pct[j2] / whole[j2] : 0
+    ) : (ax == null ? void 0 : ax.logarithmic) && !w.globals.invalidLogScale ? raw.map((v) => cu.getLogValAtSeriesIndex(v, realIndex)) : raw.slice();
     const ft = (
       /** @type {any} */
       w.config.fill.type
@@ -23596,12 +23701,13 @@ class HighlightFilter {
     const own = ownOpacity(el.node);
     const a0 = (start == null ? void 0 : start.cover) && animate ? alpha : (prev == null ? void 0 : prev.d) ? (_a = prev.al) != null ? _a : 1 : 1;
     const a1 = lands ? alpha : 1;
-    const ow = s2.whole || (prev == null ? void 0 : prev.o) ? (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1 : 0;
+    const width = (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1;
+    const ow = s2.whole || (prev == null ? void 0 : prev.o) ? width : 0;
     const wn = el.node;
     const sc = wn.getAttribute("stroke");
     const k0 = (start == null ? void 0 : start.cover) && animate ? 1 : (prev == null ? void 0 : prev.d) ? (_d = prev.k) != null ? _d : 0 : 0;
     const k1 = lands ? 1 : 0;
-    const carry = !!part && ow > 0 && (k0 > 0 || k1 > 0) && parseFloat(wn.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
+    const carry = !!part && (ow > 0 || !(width > 0) && !!s2.whole) && (k0 > 0 || k1 > 0) && parseFloat(wn.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
     const so = ownOpacity(wn, "stroke-opacity");
     const SK = ["stroke", "stroke-width", "stroke-opacity", "stroke-dasharray"];
     const bare = {};
@@ -23638,7 +23744,9 @@ class HighlightFilter {
       rec.lk = k2;
       if (k2 > 0 || t2 < 1) {
         part.node.setAttribute("stroke-opacity", String(so * k2));
-        if (!(rec.lo > 0) && k2 > 0) wn.setAttribute("stroke-opacity", "0");
+        if (ow > 0 && !(rec.lo > 0) && k2 > 0) {
+          wn.setAttribute("stroke-opacity", "0");
+        }
       } else {
         part.attr(bare);
       }
@@ -23651,6 +23759,10 @@ class HighlightFilter {
       r2,
       {
         outline: ow > 0 ? { color, width: ow, opacity: (_i = (_h = cfg.outline) == null ? void 0 : _h.opacity) != null ? _i : 1 } : null,
+        // Only a page that turned the outline off: a whole that draws nothing
+        // (a series the legend hides) has no outline either, and keeps its
+        // own stroke as drawn, so it lands as a fresh render draws it.
+        stroke: !(width > 0),
         also: (t2) => {
           shadow == null ? void 0 : shadow.setAttribute("fill-opacity", String(mix(sf0, fadeTo, t2)));
           strength(t2);
@@ -23867,7 +23979,10 @@ class HighlightFilter {
    * place of the bar morph's rule, and `force` tweens even when the look
    * stays (something else, through `also`, still moves). An outline without
    * a `width` changes the stroke's colour only: its width is the renderer's.
-   * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
+   * With `stroke` and no outline, the mark's own stroke fades with its fill,
+   * so a faded bar keeps no full-strength frame, and at full strength it is
+   * back as drawn (the attribute it had, or none).
+   * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, stroke?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
    */
   _fade(node, a2, b, r2, opt) {
     var _a;
@@ -23875,13 +23990,22 @@ class HighlightFilter {
     const k2 = ownOpacity(node, attr);
     const ol = opt.outline;
     const rec = opt.rec || {};
+    const fs = !ol && !!opt.stroke && attr !== "stroke-opacity";
+    const ks = fs ? ownOpacity(node, "stroke-opacity") : 1;
+    const os = fs ? node.getAttribute("stroke-opacity") : null;
     const attrs = ol && ol.width == null ? ["stroke", "stroke-opacity"] : ["stroke", "stroke-width", "stroke-opacity"];
     const own = attrs.map((n2) => node.getAttribute(n2));
     const set = (f, o2) => {
       rec.lf = f;
       rec.lo = ol ? o2 : 0;
       node.setAttribute(attr, String(k2 * f));
-      if (!ol) return;
+      if (!ol) {
+        if (!fs) return;
+        if (f < 1) node.setAttribute("stroke-opacity", String(ks * f));
+        else if (os == null) node.removeAttribute("stroke-opacity");
+        else node.setAttribute("stroke-opacity", os);
+        return;
+      }
       if (o2 <= 0) {
         attrs.forEach(
           (n2, x2) => own[x2] == null ? node.removeAttribute(n2) : node.setAttribute(n2, own[x2])
@@ -24215,7 +24339,9 @@ class HighlightFilter {
   _apply(series, opts) {
     const drilled = this._drilled();
     if (drilled && this._level) this._level.series = series.map(stripSeries);
-    return this.ctx.updateSeries(series, opts.animate !== false, !drilled);
+    return this.ctx._replaceSeries(series, opts.animate !== false, !drilled, {
+      keepView: true
+    });
   }
   /** The series as the chart was handed them: nested treemaps and reduced
    * rows are kept raw elsewhere, and re-feeding derived rows would lose them.
@@ -24320,7 +24446,215 @@ function scalePath(d, fx, fy) {
     return `${cmd} ${nums.join(" ")} `;
   });
 }
-_core__default.registerFeatures({ highlightFilter: HighlightFilter });
+ApexCharts__default.registerFeatures({ highlightFilter: HighlightFilter });
+class RadialTargets {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
+  constructor(w, ctx) {
+    this.w = w;
+    this.ctx = ctx;
+    this.angles = /* @__PURE__ */ new Map();
+  }
+  /** Stop a running tween, so it never turns a detached target. */
+  stop() {
+    const gl = this.w.globals;
+    if (gl.radialTargetRAF != null) {
+      BrowserAPIs.cancelAnimationFrame(gl.radialTargetRAF);
+      gl.radialTargetRAF = null;
+    }
+  }
+  /**
+   * Draw the targets for this render. Each is drawn pointing at 12 o'clock
+   * and turned to its value around the dial's centre, so it moves the way
+   * the needle does: in from `startAngle` with its ring on mount, from where
+   * it was on a data update, and straight to its place on a resize. Null,
+   * after stopping any tween, when the list is empty.
+   *
+   * @param {any} radial the Radial drawing this render (its animation state)
+   * @param {{series: any[], geometry: import('../../types/internal').RadialGeometry}} opts
+   * @returns {any}
+   */
+  draw(radial, opts) {
+    var _a;
+    const w = this.w;
+    const gl = w.globals;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    if (!Array.isArray(rb.targets) || !rb.targets.length) {
+      this.stop();
+      this.angles = /* @__PURE__ */ new Map();
+      return null;
+    }
+    const geo = opts.geometry;
+    const { cx, cy } = geo;
+    const g2 = graphics.group({ class: "apexcharts-radial-targets" });
+    g2.node.setAttribute("pointer-events", "none");
+    const valueArcHidden = rb.shape === "needle" && !((_a = rb.needle) == null ? void 0 : _a.showValueArc);
+    const isCollapsed = (i2) => [
+      ...gl.collapsedSeries || [],
+      ...gl.ancillaryCollapsedSeries || []
+    ].some((c) => c.index === i2);
+    const anim = w.config.chart.animations;
+    const isInitialMount = radial.initialAnim && !gl.dataChanged && !gl.resized;
+    const moving = Environment.isBrowser() && gl.shouldAnimate;
+    const ease = resolveEasing(anim.easing);
+    const prevAngles = this.angles;
+    const nextAngles = /* @__PURE__ */ new Map();
+    const runs = [];
+    rb.targets.forEach(
+      (t2, k2) => {
+        var _a2, _b, _c, _d, _e, _f;
+        if (!t2) return;
+        const seriesIndex = (_a2 = t2.seriesIndex) != null ? _a2 : 0;
+        const ring2 = geo.rings[seriesIndex];
+        if (!ring2 || isCollapsed(seriesIndex)) return;
+        const raw = t2.value === "series" ? opts.series[seriesIndex] : t2.value;
+        if (raw === null || raw === void 0 || raw === "") return;
+        const value = Number(raw);
+        if (!Number.isFinite(value)) return;
+        const shape = t2.shape === "triangle" || t2.shape === "circle" ? t2.shape : "line";
+        const position = t2.position === "outside" || t2.position === "inside" || t2.position === "across" ? t2.position : shape === "triangle" ? "outside" : "across";
+        const half = (seriesIndex === 0 && valueArcHidden && geo.bands ? geo.bands.thickness : ring2.thickness) / 2;
+        const lenRaw = (_b = t2.length) != null ? _b : shape === "line" ? "130%" : 10;
+        const length = typeof lenRaw === "string" && lenRaw.trim().endsWith("%") ? ring2.thickness * parseFloat(lenRaw) / 100 : Math.max(0, Number(lenRaw) || 0);
+        const width = Math.max(
+          0,
+          Number((_c = t2.width) != null ? _c : shape === "line" ? 3 : 12) || 0
+        );
+        const r2 = ring2.radius;
+        const [near, far] = position === "outside" ? [r2 + half, r2 + half + length] : position === "inside" ? [r2 - half, r2 - half - length] : [r2 - length / 2, r2 + length / 2];
+        const color = t2.color || w.config.chart.foreColor;
+        const strokeColor = t2.strokeColor || "none";
+        const strokeWidth = (_d = t2.strokeWidth) != null ? _d : 0;
+        const cls = ["apexcharts-radial-target"];
+        if (t2.cssClass) cls.push(t2.cssClass);
+        const tg = graphics.group({ class: cls.join(" ") });
+        tg.node.setAttribute("rel", String(seriesIndex + 1));
+        tg.node.setAttribute("data-target-index", String(k2));
+        if (t2.id != null) tg.node.setAttribute("data-target-id", String(t2.id));
+        g2.add(tg);
+        let el;
+        if (shape === "line") {
+          el = graphics.drawLine(cx, cy - near, cx, cy - far, color, 0, width);
+        } else if (shape === "triangle") {
+          el = graphics.drawPath({
+            d: `M ${cx} ${cy - near} L ${cx - width / 2} ${cy - far} L ${cx + width / 2} ${cy - far} Z`,
+            stroke: strokeColor,
+            strokeWidth,
+            fill: color,
+            strokeLinecap: "butt"
+          });
+        } else {
+          const mid = (near + far) / 2;
+          el = graphics.drawCircle(length / 2, {
+            cx,
+            cy: cy - mid,
+            r: length / 2,
+            fill: color,
+            stroke: strokeColor,
+            "stroke-width": strokeWidth
+          });
+        }
+        el.node.classList.add("apexcharts-radial-target-shape");
+        const shapeG = graphics.group({
+          class: "apexcharts-radial-target-mark"
+        });
+        shapeG.add(el);
+        tg.add(shapeG);
+        const lab = t2.label;
+        let elLabel = null;
+        let placeLabel = () => {
+        };
+        if (lab && lab.text != null && lab.text !== "") {
+          const style = lab.style || {};
+          const fontSize = style.fontSize || "11px";
+          const fs = parseFloat(fontSize) || 11;
+          const out = position === "inside" ? -1 : 1;
+          const tip = position === "inside" ? Math.min(near, far) : Math.max(near, far);
+          const offset = Number((_e = lab.offset) != null ? _e : 4);
+          elLabel = graphics.drawText({
+            x: cx,
+            y: cy,
+            text: String(lab.text),
+            textAnchor: "middle",
+            dominantBaseline: "middle",
+            fontSize,
+            fontFamily: style.fontFamily,
+            fontWeight: (_f = style.fontWeight) != null ? _f : 600,
+            foreColor: style.color || color,
+            cssClass: "apexcharts-radial-target-label"
+          });
+          placeLabel = (a2) => {
+            const rad = a2 * Math.PI / 180;
+            const dx = Math.sin(rad) * out;
+            const dy = -Math.cos(rad) * out;
+            const rho = tip + out * (offset + Math.abs(dy) * fs / 2);
+            const p = Utils.polarToCartesian(cx, cy, rho, a2);
+            elLabel.node.setAttribute("x", String(p.x));
+            elLabel.node.setAttribute("y", String(p.y));
+            elLabel.node.setAttribute(
+              "text-anchor",
+              dx > 0.3 ? "start" : dx < -0.3 ? "end" : "middle"
+            );
+          };
+          tg.add(elLabel);
+        }
+        const to = geo.angle(value);
+        const key = t2.id != null ? `id:${t2.id}` : `i:${k2}`;
+        nextAngles.set(key, to);
+        const prev = prevAngles.get(key);
+        let from = to;
+        let dur = 0;
+        let delay = 0;
+        if (moving && isInitialMount) {
+          from = geo.startAngle;
+          dur = anim.speed;
+          delay = radial.animBeginArr[seriesIndex] || 0;
+        } else if (moving && radial.dynamicAnim && gl.dataChanged && prev !== void 0) {
+          from = prev;
+          dur = anim.dynamicAnimation.speed;
+        }
+        const node = shapeG.node;
+        const place = (a2) => {
+          node.setAttribute("transform", `rotate(${a2} ${cx} ${cy})`);
+          placeLabel(a2);
+        };
+        place(from);
+        if (dur > 0 && from !== to) {
+          runs.push({ node, label: elLabel, from, to, delay, dur, place });
+        } else if (from !== to) {
+          place(to);
+        }
+      }
+    );
+    this.angles = nextAngles;
+    this.stop();
+    if (runs.length) {
+      const startAt = performance.now();
+      const step = (now) => {
+        if (this.w.globals.isDestroyed) {
+          gl.radialTargetRAF = null;
+          return;
+        }
+        let done = true;
+        runs.forEach((run) => {
+          const t2 = Math.max(
+            0,
+            Math.min(1, (now - startAt - run.delay) / run.dur)
+          );
+          if (t2 < 1) done = false;
+          run.place(run.from + (run.to - run.from) * ease(t2));
+        });
+        gl.radialTargetRAF = done ? null : BrowserAPIs.requestAnimationFrame(step);
+      };
+      gl.radialTargetRAF = BrowserAPIs.requestAnimationFrame(step);
+    }
+    return g2;
+  }
+}
+ApexCharts__default.registerFeatures({ radialTargets: RadialTargets });
 const CMD = /[MmLlHhVvCcSsQqTtAaZz]/;
 function flattenPath(d, tolerance = 0.6, keepLines = false) {
   const tol = tolerance > 0 ? tolerance : 0.6;
@@ -25726,7 +26060,7 @@ registerShapes(catalog$1);
 registerMarks(catalog);
 const A = (
   /** @type {any} */
-  ApexCharts
+  ApexCharts$1
 );
 A.unitShapes = catalog$1;
 A.pictograms = catalog;

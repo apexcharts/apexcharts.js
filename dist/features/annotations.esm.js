@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -395,7 +395,9 @@ class XAnnotations {
           // lineColor
           strokeDashArray,
           //dashArray
-          anno.borderWidth
+          anno.borderWidth,
+          anno.strokeLineCap || "butt"
+          // strokeLineCap
         );
         parent.appendChild(line.node);
         if (anno.id) {
@@ -435,6 +437,9 @@ class XAnnotations {
         // stokeDashArray
       );
       rect.node.classList.add("apexcharts-annotation-rect");
+      if (anno.strokeLineCap && anno.strokeLineCap !== "butt") {
+        rect.attr("stroke-linecap", anno.strokeLineCap);
+      }
       rect.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
       parent.appendChild(rect.node);
       if (anno.id) {
@@ -525,7 +530,9 @@ class YAnnotations {
           // lineColor
           strokeDashArray,
           // dashArray
-          anno.borderWidth
+          anno.borderWidth,
+          anno.strokeLineCap || "butt"
+          // strokeLineCap
         );
         parent.appendChild(line.node);
         if (anno.id) {
@@ -566,6 +573,9 @@ class YAnnotations {
           // stokeDashArray
         );
         rect.node.classList.add("apexcharts-annotation-rect");
+        if (anno.strokeLineCap && anno.strokeLineCap !== "butt") {
+          rect.attr("stroke-linecap", anno.strokeLineCap);
+        }
         rect.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
         parent.appendChild(rect.node);
         if (anno.id) {
@@ -1115,6 +1125,26 @@ class Annotations {
     const me = context;
     const w = me.w;
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`);
+    const remember = (id) => {
+      if (pushToMemory) {
+        w.globals.memory.methodsToExec.push({
+          context: me,
+          id: id ? id : Utils.randomId(),
+          method: contextMethod,
+          label: "addAnnotation",
+          params
+        });
+      }
+    };
+    if (!parent) {
+      if (pushToMemory) {
+        console.warn(
+          `ApexCharts: add${type[0].toUpperCase() + type.slice(1)}Annotation() not drawn: ${w.config.chart.type} charts do not draw ${type} annotations. It is kept and drawn if the chart becomes an axis chart.`
+        );
+      }
+      remember(params == null ? void 0 : params.id);
+      return context;
+    }
     const index = (((_a = w.config.annotations[type === "point" ? "points" : type]) == null ? void 0 : _a.length) || 0) + parent.childNodes.length;
     const options = new Options();
     const axesAnno = Object.assign(
@@ -1140,15 +1170,7 @@ class Annotations {
     if (elRect) {
       parent.insertBefore(elRect.node, axesAnnoLabel);
     }
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        id: anno.id ? anno.id : Utils.randomId(),
-        method: contextMethod,
-        label: "addAnnotation",
-        params
-      });
-    }
+    remember(anno.id);
     return context;
   }
   /**

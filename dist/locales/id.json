@@ -41,7 +41,19 @@
       "zoomIn": "Perbesar",
       "zoomOut": "Perkecil",
       "pan": "Geser",
-      "reset": "Atur Ulang Zoom"
+      "reset": "Atur Ulang Zoom",
+      "measure": "Ukur",
+      "wheelZoomHint": "Gunakan {key} + gulir untuk memperbesar"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Tekan Enter atau Spasi untuk mengalihkan.",
+      "visible": "terlihat",
+      "hidden": "tersembunyi",
+      "zoomedIn": "Diperbesar",
+      "zoomedOut": "Diperkecil",
+      "zoomReset": "Zoom diatur ulang",
+      "pannedLeft": "Digeser ke kiri",
+      "pannedRight": "Digeser ke kanan"
     }
   }
 }

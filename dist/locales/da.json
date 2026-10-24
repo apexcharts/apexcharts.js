@@ -49,7 +49,19 @@
       "zoomIn": "Zoom ind",
       "zoomOut": "Zoom ud",
       "pan": "Panorér",
-      "reset": "Nulstil zoom"
+      "reset": "Nulstil zoom",
+      "measure": "Mål",
+      "wheelZoomHint": "Brug {key} + rul for at zoome"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Tryk på Enter eller Mellemrum for at skifte.",
+      "visible": "synlig",
+      "hidden": "skjult",
+      "zoomedIn": "Zoomet ind",
+      "zoomedOut": "Zoomet ud",
+      "zoomReset": "Zoom nulstillet",
+      "pannedLeft": "Panoreret til venstre",
+      "pannedRight": "Panoreret til højre"
     }
   }
 }

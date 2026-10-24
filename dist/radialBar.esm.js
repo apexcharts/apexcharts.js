@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1845,6 +1845,37 @@ function resolveClaimed(w, option, seriesIndex, fallback) {
 }
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const resolveEasing = _core.__apex_Easing_resolveEasing;
+function warnMissingFeature(subject, feature, opts = {}) {
+  const {
+    module = `features/${feature}`,
+    entry,
+    scripts = [`features/${feature}.js`],
+    tail
+  } = opts;
+  const tags = scripts.map((f) => `<script src='.../dist/${f}'>`).join(" and ");
+  globalThis.console.warn(
+    `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/${module}'` + (entry ? ` (or from 'apexcharts/${entry}')` : "") + `. Script tag: add ${tags} after the ApexCharts script, or load apexcharts.full.min.js instead.` + (tail ? ` ${tail}` : "")
+  );
+}
+function dialAngle(value, min, max, start, span) {
+  const n = Number(value);
+  const f = Number.isFinite(n) ? (Math.min(Math.max(n, min), max) - min) / (max - min) : 0;
+  return start + f * span;
+}
+function bandGapDegrees(gap, radius, span) {
+  let px = gap;
+  if (typeof gap === "string") {
+    const m = /^\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*(px|%|deg)?\s*$/i.exec(gap);
+    const v = m ? Math.abs(parseFloat(m[1])) : 0;
+    const unit = m && m[2] ? m[2].toLowerCase() : "px";
+    if (unit === "%") return v / 100 * span;
+    if (unit === "deg") return v;
+    px = v;
+  }
+  return radius > 0 ? Math.abs(px || 0) / radius * (180 / Math.PI) : 0;
+}
+const bandGapWarned = /* @__PURE__ */ new Set();
+const targetsWarned = /* @__PURE__ */ new WeakSet();
 class Radial extends Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -1875,7 +1906,7 @@ class Radial extends Pie {
    * @param {any[]} series
    */
   draw(series) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const ret = graphics.group({
@@ -1895,6 +1926,8 @@ class Radial extends Pie {
       cy: centerY,
       r: size
     };
+    const geometry = this.radialGeometry({ size, centerX, centerY, series });
+    w.globals.radialScales = geometry;
     const colorArr = w.globals.fill.colors;
     const rb = w.config.plotOptions.radialBar;
     const hasBands = Array.isArray(rb.bands) && rb.bands.length > 0;
@@ -1903,7 +1936,7 @@ class Radial extends Pie {
     const dl = this.radialDataLabels;
     if (dl.value.offsetY == null) {
       const n = this.needlePath(
-        { size, centerX, centerY, series },
+        { size, centerX, centerY, series, geometry },
         rb.needle || {}
       );
       this.donutDataLabels = this.radialDataLabels = __spreadProps(__spreadValues({}, dl), {
@@ -1931,7 +1964,8 @@ class Radial extends Pie {
         size,
         centerX,
         centerY,
-        series
+        series,
+        geometry
       });
       elSeries.add(elBands);
     }
@@ -1952,7 +1986,8 @@ class Radial extends Pie {
         size,
         centerX,
         centerY,
-        series
+        series,
+        geometry
       });
       const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
       if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
@@ -1975,7 +2010,8 @@ class Radial extends Pie {
         size,
         centerX,
         centerY,
-        series
+        series,
+        geometry
       });
       elSeries.add(elNeedle);
     }
@@ -1993,6 +2029,19 @@ class Radial extends Pie {
       w.globals.radialSize += offset * angleRatio;
     }
     elSeries.add(elG.g);
+    const targets = (
+      /** @type {any} */
+      (_b = this.ctx) == null ? void 0 : _b.radialTargets
+    );
+    if (targets) {
+      const elTargets = targets.draw(this, { series, geometry });
+      if (elTargets) elSeries.add(elTargets);
+    } else if (Array.isArray(rb.targets) && rb.targets.length && this.ctx && !targetsWarned.has(this.ctx)) {
+      targetsWarned.add(this.ctx);
+      warnMissingFeature("`plotOptions.radialBar.targets`", "radial-targets", {
+        tail: "The dial draws without them."
+      });
+    }
     if (w.config.plotOptions.radialBar.hollow.position === "front") {
       elG.g.add(elG.elHollow);
       if (elG.dataLabels) {
@@ -2001,6 +2050,90 @@ class Radial extends Pie {
     }
     ret.add(elSeries);
     return ret;
+  }
+  /**
+   * The dial as this render draws it: its centre, the radius and thickness of
+   * every ring, the bands, the hollow and the needle, the angles, and the
+   * value-to-angle mapping. The one place these are worked out; the bands,
+   * ticks, needle and targets read them from here, and the same object is what
+   * `chart.getRadialScales()` and Weave's `api.radialScales` hand out.
+   *
+   * Plot-local px (elGraphical's space, the one a Weave layer draws in);
+   * angles in degrees, 0 at 12 o'clock, clockwise. Frozen, and built from
+   * plain numbers, so a reader holding it cannot see a later render change.
+   *
+   * @param {{size: number, centerX: number, centerY: number, series: any[]}} opts
+   * @param {boolean} [withNeedle=true] false for needlePath's own fallback
+   * @returns {import('../types/internal').RadialGeometry}
+   */
+  radialGeometry(opts, withNeedle = true) {
+    const w = this.w;
+    const rb = w.config.plotOptions.radialBar;
+    const { size, centerX: cx, centerY: cy, series } = opts;
+    const n = series.length;
+    const strokeWidth = this.getStrokeWidth({ size, series });
+    const first = size - strokeWidth / 2;
+    const dialRadius = first - strokeWidth - this.margin;
+    const steps = [];
+    let r = first;
+    for (let k = 0; k < n; k++) {
+      r = r - strokeWidth - this.margin;
+      steps.push(r);
+    }
+    const trackThickness = strokeWidth * parseInt(rb.track.strokeWidth, 10) / 100;
+    const rings = series.map(
+      (_, i) => Object.freeze({
+        seriesIndex: i,
+        radius: steps[rb.inverseOrder ? n - 1 - i : i],
+        thickness: strokeWidth,
+        trackThickness
+      })
+    );
+    const hollowSize = first - strokeWidth * n - this.margin * n - strokeWidth * parseInt(rb.track.strokeWidth, 10) / 100 / 2;
+    const [min, max] = this._domain();
+    const startAngle = this.startAngle;
+    const span = Math.abs(this.endAngle - this.startAngle);
+    const angle = (v) => dialAngle(v, min, max, startAngle, span);
+    const hasBands = Array.isArray(rb.bands) && rb.bands.length > 0;
+    const geo = {
+      cx,
+      cy,
+      startAngle,
+      endAngle: startAngle + span,
+      min,
+      max,
+      outerRadius: size,
+      radius: dialRadius,
+      thickness: strokeWidth,
+      rings: Object.freeze(rings),
+      bands: hasBands ? Object.freeze({
+        radius: dialRadius,
+        thickness: strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10) / 100
+      }) : null,
+      hollow: Object.freeze({
+        radius: hollowSize - rb.hollow.margin
+      }),
+      needle: null,
+      angle,
+      /**
+       * @param {any} v
+       * @param {number} [radius]
+       */
+      point: (v, radius) => Utils.polarToCartesian(
+        cx,
+        cy,
+        radius === void 0 ? dialRadius : radius,
+        angle(v)
+      )
+    };
+    if (withNeedle && rb.shape === "needle") {
+      const nd = this.needlePath(
+        { centerX: cx, centerY: cy, geometry: geo },
+        rb.needle || {}
+      );
+      geo.needle = Object.freeze({ cx: nd.cx, cy: nd.cy, length: nd.length });
+    }
+    return Object.freeze(geo);
   }
   /**
    * @param {Record<string, any>} opts
@@ -2342,7 +2475,14 @@ class Radial extends Pie {
    * @returns {number}
    */
   _angleAtValue(value) {
-    return this.startAngle + this._fraction(value) * Math.abs(this.endAngle - this.startAngle);
+    const [min, max] = this._domain();
+    return dialAngle(
+      value,
+      min,
+      max,
+      this.startAngle,
+      Math.abs(this.endAngle - this.startAngle)
+    );
   }
   /**
    * Build an SVG arc path from `startAngle` to `endAngle` at radius `r`
@@ -2378,18 +2518,26 @@ class Radial extends Pie {
     const g = graphics.group({
       class: "apexcharts-gauge-bands"
     });
-    const strokeWidth = this.getStrokeWidth(opts);
-    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
-    const bandStroke = strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10) / 100;
-    const gapDeg = radius > 0 ? Math.abs(rb.bandsStyle.gap || 0) / radius * (180 / Math.PI) : 0;
+    const geo = opts.geometry;
+    const radius = geo.bands.radius;
+    const bandStroke = geo.bands.thickness;
+    const gapDeg = bandGapDegrees(
+      rb.bandsStyle.gap,
+      radius,
+      geo.endAngle - geo.startAngle
+    );
+    const dropped = [];
     for (let b = 0; b < bands.length; b++) {
       const band = bands[b];
       if (band.from === void 0 || band.to === void 0) continue;
-      const a1 = this._angleAtValue(band.from);
-      const a2 = this._angleAtValue(band.to);
+      const a1 = geo.angle(band.from);
+      const a2 = geo.angle(band.to);
       const startA = Math.min(a1, a2) + gapDeg / 2;
       const endA = Math.max(a1, a2) - gapDeg / 2;
-      if (endA - startA <= 0) continue;
+      if (endA - startA <= 0) {
+        if (a1 !== a2) dropped.push(b);
+        continue;
+      }
       const elBand = graphics.drawPath({
         d: this._describeArc(opts.centerX, opts.centerY, radius, startA, endA),
         stroke: band.color || "#ccc",
@@ -2400,6 +2548,16 @@ class Radial extends Pie {
       });
       elBand.node.setAttribute("data-band-index", String(b));
       g.add(elBand);
+    }
+    if (dropped.length) {
+      const gap = rb.bandsStyle.gap;
+      const inPx = typeof gap === "number" || !/(%|deg)\s*$/i.test(gap);
+      const msg = `ApexCharts ${w.config.chart.type}: band${dropped.length > 1 ? "s" : ""} ${dropped.join(", ")} ${dropped.length > 1 ? "are" : "is"} narrower than plotOptions.radialBar.bandsStyle.gap (${JSON.stringify(gap)}) and not drawn.` + (inPx ? ` A number is px along the band; '1%' (a share of the scale) or '1.5deg' keeps the gap the same at every size.` : "");
+      if (!bandGapWarned.has(msg)) {
+        if (bandGapWarned.size > 99) bandGapWarned.clear();
+        bandGapWarned.add(msg);
+        console.warn(msg);
+      }
     }
     return g;
   }
@@ -2416,14 +2574,14 @@ class Radial extends Pie {
     const rb = w.config.plotOptions.radialBar;
     const ticks = rb.ticks;
     const g = graphics.group({ class: "apexcharts-gauge-ticks" });
-    const strokeWidth = this.getStrokeWidth(opts);
-    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
-    const [min, max] = this._domain();
+    const geo = opts.geometry;
+    const radius = geo.radius;
+    const { min, max } = geo;
     const majorCount = Math.max(2, (_b = (_a = ticks.major) == null ? void 0 : _a.count) != null ? _b : 11);
     const minorCount = Math.max(0, (_d = (_c = ticks.minor) == null ? void 0 : _c.count) != null ? _d : 0);
     const drawTickAt = (value, cfg, isMajor) => {
       var _a2, _b2, _c2;
-      const angle = this._angleAtValue(value);
+      const angle = geo.angle(value);
       const length = (_a2 = cfg.length) != null ? _a2 : 8;
       const inner = cfg.placement === "inside" ? radius - length : radius;
       const outer = cfg.placement === "inside" ? radius : radius + length;
@@ -2517,7 +2675,7 @@ class Radial extends Pie {
     });
     g.add(elNeedle);
     const value = Number(opts.series[0]);
-    const targetAngle = this._angleAtValue(value);
+    const targetAngle = opts.geometry.angle(value);
     const gl = w.globals;
     const motion = this.needleMotion();
     const fromAngle = Number.isFinite(gl.radialNeedleAngle) && !(motion == null ? void 0 : motion.mount) ? (
@@ -2570,8 +2728,11 @@ class Radial extends Pie {
    */
   needlePath(opts, cfg) {
     var _a, _b, _c;
-    const strokeWidth = this.getStrokeWidth(opts);
-    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const arcRadius = (opts.geometry || this.radialGeometry(
+      /** @type {any} */
+      opts,
+      false
+    )).radius;
     const length = typeof cfg.length === "string" && cfg.length.endsWith("%") ? arcRadius * parseInt(cfg.length, 10) / 100 : Number(cfg.length || arcRadius * 0.85);
     const baseW = (_a = cfg.baseWidth) != null ? _a : 4;
     const tipW = (_b = cfg.tipWidth) != null ? _b : 1;

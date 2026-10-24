@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -215,7 +215,7 @@ class KeyboardNavigation {
         if (this._canZoom()) {
           e.preventDefault();
           (_a = this.ctx.toolbar) == null ? void 0 : _a.handleZoomIn();
-          this._announce("Zoomed in");
+          this._announce(this._a11yText("zoomedIn", "Zoomed in"));
         }
         break;
       case "-":
@@ -223,14 +223,14 @@ class KeyboardNavigation {
         if (this._canZoom()) {
           e.preventDefault();
           (_b = this.ctx.toolbar) == null ? void 0 : _b.handleZoomOut();
-          this._announce("Zoomed out");
+          this._announce(this._a11yText("zoomedOut", "Zoomed out"));
         }
         break;
       case "0":
         if (this._canZoom() && this.w.interact.zoomed) {
           e.preventDefault();
           (_c = this.ctx.toolbar) == null ? void 0 : _c.handleZoomReset();
-          this._announce("Zoom reset");
+          this._announce(this._a11yText("zoomReset", "Zoom reset"));
         }
         break;
       case "Escape":
@@ -265,7 +265,9 @@ class KeyboardNavigation {
   _panBy(direction) {
     var _a;
     (_a = this.ctx.zoomPanSelection) == null ? void 0 : _a.panBy(direction / 10);
-    this._announce(direction > 0 ? "Panned right" : "Panned left");
+    this._announce(
+      direction > 0 ? this._a11yText("pannedRight", "Panned right") : this._a11yText("pannedLeft", "Panned left")
+    );
   }
   // ─── Navigation ───────────────────────────────────────────────────────────
   /**
@@ -349,6 +351,9 @@ class KeyboardNavigation {
       /** @type {any} */
       ttCtx
     );
+    if (w.config.tooltip.visible === false) {
+      this._announce(this._buildPointLabel(i, j));
+    }
   }
   _hideFocus() {
     var _a;
@@ -1331,6 +1336,17 @@ class KeyboardNavigation {
     const x = seriesX[di];
     if (x === void 0) return true;
     return x >= gl.minX && x <= gl.maxX;
+  }
+  /**
+   * A screen-reader string from the locale's `a11y` group, or the English
+   * default when a user-supplied locale omits it.
+   * @param {string} key
+   * @param {string} fallback
+   * @returns {string}
+   */
+  _a11yText(key, fallback) {
+    var _a, _b;
+    return ((_b = (_a = this.w.globals.locale) == null ? void 0 : _a.a11y) == null ? void 0 : _b[key]) || fallback;
   }
   /**
    * Push a short status message to the visually-hidden aria-live region so

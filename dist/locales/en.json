@@ -52,6 +52,16 @@
       "reset": "Reset Zoom",
       "measure": "Measure",
       "wheelZoomHint": "Use {key} + scroll to zoom"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Press Enter or Space to toggle.",
+      "visible": "visible",
+      "hidden": "hidden",
+      "zoomedIn": "Zoomed in",
+      "zoomedOut": "Zoomed out",
+      "zoomReset": "Zoom reset",
+      "pannedLeft": "Panned left",
+      "pannedRight": "Panned right"
     }
   }
 }

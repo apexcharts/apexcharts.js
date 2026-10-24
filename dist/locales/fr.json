@@ -49,7 +49,19 @@
       "zoomIn": "Zoomer",
       "zoomOut": "Dézoomer",
       "pan": "Navigation",
-      "reset": "Réinitialiser le zoom"
+      "reset": "Réinitialiser le zoom",
+      "measure": "Mesurer",
+      "wheelZoomHint": "Utilisez {key} + défilement pour zoomer"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Appuyez sur Entrée ou Espace pour basculer.",
+      "visible": "affichée",
+      "hidden": "masquée",
+      "zoomedIn": "Zoom avant effectué",
+      "zoomedOut": "Zoom arrière effectué",
+      "zoomReset": "Zoom réinitialisé",
+      "pannedLeft": "Déplacé vers la gauche",
+      "pannedRight": "Déplacé vers la droite"
     }
   }
 }

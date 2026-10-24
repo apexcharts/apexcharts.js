@@ -52,7 +52,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -1221,8 +1221,8 @@ let Utils$1 = class Utils {
    * @param {number} b
    */
   static preciseAddition(a2, b) {
-    const aDecimals = (String(a2).split(".")[1] || "").length;
-    const bDecimals = (String(b).split(".")[1] || "").length;
+    const aDecimals = Utils.decimalPlaces(a2);
+    const bDecimals = Utils.decimalPlaces(b);
     const factor = Math.pow(10, Math.max(aDecimals, bDecimals));
     return (Math.round(a2 * factor) + Math.round(b * factor)) / factor;
   }
@@ -1910,7 +1910,7 @@ class Formatters {
   }
 }
 const name = "en";
-const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom", "measure": "Measure", "wheelZoomHint": "Use {key} + scroll to zoom" } };
+const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom", "measure": "Measure", "wheelZoomHint": "Use {key} + scroll to zoom" }, "a11y": { "legendItem": "{name}, {state}. Press Enter or Space to toggle.", "visible": "visible", "hidden": "hidden", "zoomedIn": "Zoomed in", "zoomedOut": "Zoomed out", "zoomReset": "Zoom reset", "pannedLeft": "Panned left", "pannedRight": "Panned right" } };
 const en = {
   name,
   options
@@ -2080,6 +2080,7 @@ class Options {
       y: 0,
       y2: null,
       strokeDashArray: 1,
+      strokeLineCap: "butt",
       fillColor: "#c2c2c2",
       borderColor: "#c2c2c2",
       borderWidth: 1,
@@ -2121,6 +2122,7 @@ class Options {
       x: 0,
       x2: null,
       strokeDashArray: 1,
+      strokeLineCap: "butt",
       fillColor: "#c2c2c2",
       borderColor: "#c2c2c2",
       borderWidth: 1,
@@ -3719,12 +3721,24 @@ class Options {
             // % of arc radius. Slightly less than the value-arc stroke so
             // the value-arc reads on top by default.
             strokeWidth: "40%",
-            // px gap between consecutive bands.
+            // Gap between consecutive bands: a number (or '4px') is px along
+            // the band, '1%' a share of the scale, '1.5deg' degrees. A band
+            // narrower than the gap is not drawn (with a console warning).
             gap: 0,
             // Hide the track when bands cover the full range; the bands
             // themselves act as the visual backdrop.
             hideTrackWhenPresent: true
           },
+          // Marks at a value on a ring (a target, a limit), drawn over the
+          // rings and bands and turned to their value around the centre:
+          // [{ value: 80 | 'series', seriesIndex: 0,
+          //    shape: 'line' | 'triangle' | 'circle',
+          //    position: 'across' | 'outside' | 'inside',
+          //    length: '130%' | 10, width: 3, color, strokeColor,
+          //    strokeWidth, label: { text, offset, style }, cssClass, id }].
+          // Empty (default) draws none. Needs the opt-in (free) add-on
+          // 'apexcharts/features/radial-targets'; without it, a warning.
+          targets: [],
           // Tick marks rendered along (outside) the gauge arc.
           ticks: {
             show: false,
@@ -4220,6 +4234,11 @@ class Options {
         //             their budget, later-drawn first. Off by default: this
         //             pass runs on every chart, and silently deleting a value
         //             is worse than the overlap it set out to fix.
+        //   hideOrder which label of a pair `hide` drops: 'later' (default)
+        //             the later-drawn one, 'balanced' the one whose series
+        //             has lost the smaller share so far, so no series is
+        //             emptied. "Hide, never move":
+        //             { maxShift: 0, hide: true, hideOrder: 'balanced' }
         // Labels separate along the VALUE axis, so a horizontal bar's move
         // left/right and everything else moves up/down. Rotated labels are
         // avoided but never moved, and radial types (pie, radar, ...) are left
@@ -4334,8 +4353,12 @@ class Options {
         // track, the part solid in front from the same start), or 'needle'
         // where the gauge draws its own needle (plotOptions.radialBar.shape
         // 'needle'). 'lanes' (opt-in) splits each band in two, the whole
-        // light outside, the part solid inside. Unset needle keys fall back
-        // to plotOptions.radialBar.needle; unset, lanes.opacity (the whole
+        // light outside, the part solid inside. A needle gauge without
+        // needle.showValueArc has no arc to split: its first ring shows the
+        // part with the needle even when indicator is 'arc' or 'lanes' (D17,
+        // warned once). Unset needle keys fall back to
+        // plotOptions.radialBar.needle (a length or both widths of 0 fall
+        // back to the needle's defaults); unset, lanes.opacity (the whole
         // lane's strength) is 0.45.
         radialBar: { indicator: void 0, needle: {} }
       },
@@ -4623,6 +4646,12 @@ class Options {
       },
       tooltip: {
         enabled: true,
+        // false: hover still resolves the point under the pointer and fires
+        // the events that report it (mouseMove, click, keyboard announcements),
+        // and crosshairs and hover markers follow their own options, but no
+        // tooltip box (nor x/y-axis tooltip) is shown. `enabled: false` turns
+        // all of that off.
+        visible: true,
         enabledOnSeries: void 0,
         shared: true,
         hideEmptySeries: false,
@@ -4855,6 +4884,593 @@ class Options {
         }
       }
     };
+  }
+}
+class CoreUtils {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
+  constructor(w) {
+    this.w = w;
+  }
+  /**
+   * @param {any[]} series
+   * @param {string} chartType
+   */
+  static checkComboSeries(series, chartType) {
+    let comboCharts = false;
+    let comboBarCount = 0;
+    let comboCount = 0;
+    if (chartType === void 0) {
+      chartType = "line";
+    }
+    if (series.length && typeof series[0].type !== "undefined") {
+      series.forEach((s2) => {
+        if (s2.type === "bar" || s2.type === "column" || s2.type === "candlestick" || s2.type === "boxPlot" || s2.type === "violin") {
+          comboBarCount++;
+        }
+        if (typeof s2.type !== "undefined" && s2.type !== chartType) {
+          comboCount++;
+        }
+      });
+    }
+    if (comboCount > 0) {
+      comboCharts = true;
+    }
+    return {
+      comboBarCount,
+      comboCharts
+    };
+  }
+  /**
+   * @memberof CoreUtils
+   * returns the sum of all individual values in a multiple stacked series
+   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
+   *  @return [34,36,48,13]
+   * @param {number[]} excludedSeriesIndices
+   **/
+  getStackedSeriesTotals(excludedSeriesIndices = []) {
+    const w = this.w;
+    const total = [];
+    if (w.seriesData.series.length === 0) return total;
+    for (let i2 = 0; i2 < w.seriesData.series[w.globals.maxValsInArrayIndex].length; i2++) {
+      let t2 = 0;
+      for (let j2 = 0; j2 < w.seriesData.series.length; j2++) {
+        if (typeof w.seriesData.series[j2][i2] !== "undefined" && excludedSeriesIndices.indexOf(j2) === -1) {
+          t2 += w.seriesData.series[j2][i2];
+        }
+      }
+      total.push(t2);
+    }
+    return total;
+  }
+  /**
+   * The total of one series; 0 for an index that names no series.
+   * @param {number} index
+   */
+  getSeriesTotalByIndex(index) {
+    const seriesAtIndex = this.w.seriesData.series[index];
+    if (!Array.isArray(seriesAtIndex)) {
+      return seriesAtIndex != null ? seriesAtIndex : 0;
+    }
+    return seriesAtIndex.reduce(
+      (acc, cur) => acc + cur,
+      0
+    );
+  }
+  /**
+   * @memberof CoreUtils
+   * returns the sum of values in a multiple stacked grouped charts
+   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1], [43, 23, 34, 22]]
+   * series 1 and 2 are in a group, while series 3 is in another group
+   *  @return [[34, 36, 48, 12], [43, 23, 34, 22]]
+   **/
+  getStackedSeriesTotalsByGroups() {
+    const w = this.w;
+    const total = [];
+    w.labelData.seriesGroups.forEach((_, gi) => {
+      total.push(
+        this.getStackedSeriesTotals(
+          w.seriesData.series.map((_2, i2) => i2).filter((i2) => w.labelData.seriesGroupIndex[i2] !== gi)
+        )
+      );
+    });
+    return total;
+  }
+  setSeriesYAxisMappings() {
+    const gl = this.w.globals;
+    const cnf = this.w.config;
+    let axisSeriesMap = [];
+    const seriesYAxisReverseMap = [];
+    const unassignedSeriesIndices = [];
+    const seriesNameArrayStyle = cnf.series.length > cnf.yaxis.length || /**
+     * @param {ApexYAxis} a
+     */
+    cnf.yaxis.some((a2) => Array.isArray(a2.seriesName));
+    cnf.series.forEach((_s, i2) => {
+      unassignedSeriesIndices.push(i2);
+      seriesYAxisReverseMap.push(null);
+    });
+    cnf.yaxis.forEach(
+      (_yaxe, yi) => {
+        axisSeriesMap[yi] = [];
+      }
+    );
+    const unassignedYAxisIndices = [];
+    cnf.yaxis.forEach((yaxe, yi) => {
+      let assigned = false;
+      if (yaxe.seriesName) {
+        let seriesNames = [];
+        if (Array.isArray(yaxe.seriesName)) {
+          seriesNames = yaxe.seriesName;
+        } else {
+          seriesNames.push(yaxe.seriesName);
+        }
+        seriesNames.forEach((name2) => {
+          cnf.series.forEach((s2, si) => {
+            if (
+              /** @type {any} */
+              s2.name === name2
+            ) {
+              let remove = si;
+              if (yi === si || seriesNameArrayStyle) {
+                if (!seriesNameArrayStyle || unassignedSeriesIndices.indexOf(si) > -1) {
+                  axisSeriesMap[yi].push([yi, si]);
+                } else {
+                  console.warn(
+                    "Series '" + /** @type {any} */
+                    s2.name + "' referenced more than once in what looks like the new style. That is, when using either seriesName: [], or when there are more series than yaxes."
+                  );
+                }
+              } else {
+                axisSeriesMap[si].push([si, yi]);
+                remove = yi;
+              }
+              assigned = true;
+              remove = unassignedSeriesIndices.indexOf(remove);
+              if (remove !== -1) {
+                unassignedSeriesIndices.splice(remove, 1);
+              }
+            }
+          });
+        });
+      }
+      if (!assigned) {
+        unassignedYAxisIndices.push(yi);
+      }
+    });
+    axisSeriesMap = axisSeriesMap.map((yaxe) => {
+      const ra = [];
+      yaxe.forEach((sa) => {
+        seriesYAxisReverseMap[sa[1]] = sa[0];
+        ra.push(sa[1]);
+      });
+      return ra;
+    });
+    let lastUnassignedYAxis = cnf.yaxis.length - 1;
+    for (let i2 = 0; i2 < unassignedYAxisIndices.length; i2++) {
+      lastUnassignedYAxis = unassignedYAxisIndices[i2];
+      axisSeriesMap[lastUnassignedYAxis] = [];
+      if (unassignedSeriesIndices) {
+        const si = unassignedSeriesIndices[0];
+        unassignedSeriesIndices.shift();
+        axisSeriesMap[lastUnassignedYAxis].push(si);
+        seriesYAxisReverseMap[si] = lastUnassignedYAxis;
+      } else {
+        break;
+      }
+    }
+    unassignedSeriesIndices.forEach((i2) => {
+      axisSeriesMap[lastUnassignedYAxis].push(i2);
+      seriesYAxisReverseMap[i2] = lastUnassignedYAxis;
+    });
+    gl.seriesYAxisMap = axisSeriesMap.map((x) => x);
+    gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x);
+  }
+  /**
+   * Does the series hold no value at all? True for an index that names none.
+   * @param {number} index
+   */
+  isSeriesNull(index) {
+    const seriesAtIndex = this.w.seriesData.series[index];
+    return Array.isArray(seriesAtIndex) ? seriesAtIndex.every((d) => d === null) : seriesAtIndex == null;
+  }
+  /**
+   * @param {number} index
+   */
+  seriesHaveSameValues(index) {
+    const seriesAtIndex = this.w.seriesData.series[index];
+    if (!Array.isArray(seriesAtIndex)) {
+      return true;
+    }
+    return seriesAtIndex.every(
+      (val, i2, arr) => val === arr[0]
+    );
+  }
+  /**
+   * @param {any[]} labels
+   */
+  getCategoryLabels(labels) {
+    const w = this.w;
+    let catLabels = labels.slice();
+    if (w.config.xaxis.convertedCatToNumeric) {
+      catLabels = labels.map((i2) => {
+        return w.config.xaxis.labels.formatter(i2 - w.globals.minX + 1);
+      });
+    }
+    return catLabels;
+  }
+  // maxValsInArrayIndex is the index of series[] which has the largest number of items
+  getLargestSeries() {
+    const w = this.w;
+    w.globals.maxValsInArrayIndex = w.seriesData.series.map((a2) => a2.length).indexOf(
+      Math.max.apply(
+        Math,
+        /**
+         * @param {number[]} a
+         */
+        w.seriesData.series.map((a2) => a2.length)
+      )
+    );
+  }
+  getLargestMarkerSize() {
+    const w = this.w;
+    let size = 0;
+    w.globals.markers.size.forEach((m) => {
+      size = Math.max(size, m);
+    });
+    if (w.config.markers.discrete && w.config.markers.discrete.length) {
+      w.config.markers.discrete.forEach((m) => {
+        size = Math.max(size, m.size || 0);
+      });
+    }
+    if (size > 0) {
+      if (w.config.markers.hover.size > 0) {
+        size = w.config.markers.hover.size;
+      } else {
+        size += w.config.markers.hover.sizeOffset;
+      }
+    }
+    w.globals.markers.largestSize = size;
+    return size;
+  }
+  /**
+   * @memberof Core
+   * returns the sum of all values in a series
+   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
+   *  @return [120, 11]
+   **/
+  getSeriesTotals() {
+    const w = this.w;
+    w.globals.seriesTotals = w.seriesData.series.map((ser) => {
+      let total = 0;
+      if (Array.isArray(ser)) {
+        for (let j2 = 0; j2 < ser.length; j2++) {
+          total += ser[j2];
+        }
+      } else {
+        total += ser;
+      }
+      return total;
+    });
+  }
+  /**
+   * @param {number} minX
+   * @param {number} maxX
+   */
+  getSeriesTotalsXRange(minX, maxX) {
+    const w = this.w;
+    const seriesTotalsXRange = w.seriesData.series.map((ser, index) => {
+      let total = 0;
+      for (let j2 = 0; j2 < ser.length; j2++) {
+        if (w.seriesData.seriesX[index][j2] > minX && w.seriesData.seriesX[index][j2] < maxX) {
+          total += ser[j2];
+        }
+      }
+      return total;
+    });
+    return seriesTotalsXRange;
+  }
+  /**
+   * The x a stacked datum stacks at, within its series group: its x value on
+   * a numeric or datetime axis, where each series carries its own x values
+   * (#4886), else its index. The stacked bar renderer, its total labels, the
+   * 100% shares and the highlight parts all key their stacks by this.
+   * @param {any} w @param {number} realIndex @param {number} j
+   * @returns {any}
+   */
+  static stackKey(w, realIndex, j2) {
+    var _a;
+    return w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j2] : j2;
+  }
+  /**
+   * Which 100% stack each series is a slice of, from config alone so it is
+   * safe however early it is read (the stacked100 label formatter runs
+   * before any parse): 'bar' for a bar or column series, 'line' or 'area'
+   * for a stacked line or area series, else null. A line or area in a combo
+   * with `stackOnlyBar` does not stack (Line.isStackedSeries), so it is no
+   * slice of anything (#2429), nor is a scatter or a range series.
+   *
+   * Bars, areas and lines are separate stacks, each drawn up from the
+   * baseline by its own renderer, so each normalises to its own total.
+   * @param {any} config
+   * @returns {(string | null)[]}
+   */
+  static percentStackKinds(config) {
+    const series = config.series || [];
+    const chartType = config.chart.type;
+    const lineStacks = config.chart.stackOnlyBar === false || !CoreUtils.checkComboSeries(series, chartType).comboCharts;
+    return series.map((s2) => {
+      const t2 = (s2 == null ? void 0 : s2.type) || chartType;
+      if (t2 === "bar" || t2 === "column") return "bar";
+      return (t2 === "line" || t2 === "area") && lineStacks ? t2 : null;
+    });
+  }
+  /**
+   * @memberof CoreUtils
+   * returns the percentage value of all individual values which can be used in a 100% stacked series
+   * Eg. w.seriesData.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
+   *  @return [[94.11, 91.66, 89.58, 92.30], [5.88, 8.33, 10.41, 7.7]]
+   **/
+  getPercentSeries() {
+    const w = this.w;
+    const kinds = CoreUtils.percentStackKinds(w.config);
+    const combo = CoreUtils.checkComboSeries(
+      w.config.series,
+      w.config.chart.type
+    ).comboCharts;
+    const gi = w.labelData.seriesGroupIndex;
+    const stackOf = (i2) => {
+      const k = kinds[i2] || "none";
+      return k === "bar" || combo ? k + " " + gi[i2] : k;
+    };
+    const key = (i2, j2) => stackOf(i2) + " " + CoreUtils.stackKey(w, i2, j2);
+    const totals = /* @__PURE__ */ new Map();
+    w.seriesData.series.forEach((s2, i2) => {
+      if (Array.isArray(s2)) {
+        s2.forEach((v, j2) => {
+          const k = key(i2, j2);
+          totals.set(k, (totals.get(k) || 0) + (v || 0));
+        });
+      }
+    });
+    w.globals.seriesPercent = w.seriesData.series.map((ser, i2) => {
+      const seriesPercent = [];
+      if (Array.isArray(ser)) {
+        for (let j2 = 0; j2 < ser.length; j2++) {
+          const total = totals.get(key(i2, j2));
+          let percent = 0;
+          if (total) {
+            percent = 100 * ser[j2] / total;
+          }
+          seriesPercent.push(percent);
+        }
+      } else {
+        const total = w.globals.seriesTotals.reduce((acc, val) => acc + val, 0);
+        const percent = 100 * ser / total;
+        seriesPercent.push(percent);
+      }
+      return seriesPercent;
+    });
+  }
+  getCalculatedRatios() {
+    const w = this.w;
+    const gl = w.globals;
+    const yRatio = [];
+    let invertedYRatio = 0;
+    let xRatio = 0;
+    let invertedXRatio = 0;
+    let zRatio = 0;
+    let baseLineY = [];
+    let baseLineInvertedY = 0.1;
+    let baseLineX = 0;
+    gl.yRange = [];
+    if (gl.isMultipleYAxis) {
+      for (let i2 = 0; i2 < gl.minYArr.length; i2++) {
+        gl.yRange.push(Math.abs(gl.minYArr[i2] - gl.maxYArr[i2]));
+        baseLineY.push(0);
+      }
+    } else {
+      gl.yRange.push(Math.abs(gl.minY - gl.maxY));
+    }
+    gl.xRange = Math.abs(gl.maxX - gl.minX);
+    gl.zRange = Math.abs(gl.maxZ - gl.minZ);
+    for (let i2 = 0; i2 < gl.yRange.length; i2++) {
+      yRatio.push(gl.yRange[i2] / this.w.layout.gridHeight);
+    }
+    xRatio = gl.xRange / this.w.layout.gridWidth;
+    invertedYRatio = gl.yRange[0] / this.w.layout.gridWidth;
+    invertedXRatio = gl.xRange / this.w.layout.gridHeight;
+    zRatio = gl.zRange / this.w.layout.gridHeight * 16;
+    if (!zRatio) {
+      zRatio = 1;
+    }
+    const _hasNegsGl = (
+      /** @type {any} */
+      gl
+    );
+    _hasNegsGl.hasNegs = gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0;
+    if (w.globals.seriesYAxisReverseMap.length > 0) {
+      const scaleBaseLineYScale = (y, i2) => {
+        const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i2]];
+        if (!yAxis) return 0;
+        if (yAxis.logarithmic) return 0;
+        const sign = y < 0 ? -1 : 1;
+        y = Math.abs(y);
+        return -sign * y / yRatio[i2];
+      };
+      if (gl.isMultipleYAxis) {
+        baseLineY = [];
+        for (let i2 = 0; i2 < yRatio.length; i2++) {
+          baseLineY.push(scaleBaseLineYScale(gl.minYArr[i2], i2));
+        }
+      } else {
+        baseLineY = [];
+        baseLineY.push(scaleBaseLineYScale(gl.minY, 0));
+        if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
+          baseLineInvertedY = -gl.minY / invertedYRatio;
+          baseLineX = gl.minX / xRatio;
+        }
+      }
+    } else {
+      baseLineY = [];
+      baseLineY.push(0);
+      baseLineInvertedY = 0;
+      baseLineX = 0;
+    }
+    return {
+      yRatio,
+      invertedYRatio,
+      zRatio,
+      xRatio,
+      invertedXRatio,
+      baseLineInvertedY,
+      baseLineY,
+      baseLineX
+    };
+  }
+  /**
+   * @param {any[]} series
+   * @param {number[]} [realIndices] a combo subset's global series indices
+   */
+  getLogSeries(series, realIndices) {
+    const w = this.w;
+    w.globals.seriesLog = series.map((s2, i2) => {
+      if (realIndices) i2 = realIndices[i2];
+      const yAxisIndex = w.globals.seriesYAxisReverseMap[i2];
+      if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
+        return s2.map((d) => {
+          if (d === null) return null;
+          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d, i2);
+        });
+      } else {
+        return s2;
+      }
+    });
+    return w.globals.invalidLogScale ? series : w.globals.seriesLog;
+  }
+  /**
+   * @param {number} val
+   * @param {number} seriesIndex
+   * @returns {number}
+   */
+  getLogValAtSeriesIndex(val, seriesIndex) {
+    if (val === null) return (
+      /** @type {any} */
+      null
+    );
+    const w = this.w;
+    const yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex];
+    if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
+      return this.getLogVal(
+        w.config.yaxis[yAxisIndex].logBase,
+        val,
+        seriesIndex
+      );
+    }
+    return val;
+  }
+  /**
+   * @param {number} base
+   * @param {number} value
+   */
+  getBaseLog(base, value) {
+    return Math.log(value) / Math.log(base);
+  }
+  /**
+   * @param {number} b
+   * @param {number} d
+   * @param {number} seriesIndex
+   */
+  getLogVal(b, d, seriesIndex) {
+    if (d <= 0) {
+      return 0;
+    }
+    const w = this.w;
+    const boundsIndex = w.globals.isMultipleYAxis ? seriesIndex : 0;
+    const min_log_val = w.globals.minYArr[boundsIndex] === 0 ? -1 : this.getBaseLog(b, w.globals.minYArr[boundsIndex]);
+    const max_log_val = w.globals.maxYArr[boundsIndex] === 0 ? 0 : this.getBaseLog(b, w.globals.maxYArr[boundsIndex]);
+    const number_of_height_levels = max_log_val - min_log_val;
+    const log_height_value = this.getBaseLog(b, d) - min_log_val;
+    return log_height_value / number_of_height_levels;
+  }
+  /**
+   * @param {number[]} yRatio
+   */
+  getLogYRatios(yRatio) {
+    const w = this.w;
+    const gl = this.w.globals;
+    const _gl = (
+      /** @type {any} */
+      gl
+    );
+    _gl.yLogRatio = yRatio.slice();
+    _gl.logYRange = /** @type {any[]} */
+    gl.yRange.map(
+      (_, i2) => {
+        const yAxisIndex = w.globals.seriesYAxisReverseMap[i2];
+        if (w.config.yaxis[yAxisIndex] && this.w.config.yaxis[yAxisIndex].logarithmic) {
+          const range = 1;
+          _gl.yLogRatio[i2] = range / this.w.layout.gridHeight;
+          return range;
+        }
+        return gl.yRange[i2];
+      }
+    );
+    return _gl.invalidLogScale ? yRatio.slice() : _gl.yLogRatio;
+  }
+  // Some config objects can be array - and we need to extend them correctly
+  /**
+   * @param {any} configInstance
+   * @param {Record<string, any>} options
+   * @param {import('../types/internal').ChartStateW} w
+   */
+  static extendArrayProps(configInstance, options2, w) {
+    var _a, _b;
+    if (options2 == null ? void 0 : options2.yaxis) {
+      options2 = configInstance.extendYAxis(options2, w);
+    }
+    if (options2 == null ? void 0 : options2.annotations) {
+      if (options2.annotations.yaxis) {
+        options2 = configInstance.extendYAxisAnnotations(options2);
+      }
+      if ((_a = options2 == null ? void 0 : options2.annotations) == null ? void 0 : _a.xaxis) {
+        options2 = configInstance.extendXAxisAnnotations(options2);
+      }
+      if ((_b = options2 == null ? void 0 : options2.annotations) == null ? void 0 : _b.points) {
+        options2 = configInstance.extendPointAnnotations(options2);
+      }
+    }
+    return options2;
+  }
+  // Series of the same group and type can be stacked together distinct from
+  // other series of the same type on the same axis.
+  /**
+   * @param {Record<string, any>} typeSeries
+   * @param {number[]} typeGroups
+   * @param {string} type
+   * @param {string} chartClass
+   */
+  drawSeriesByGroup(typeSeries, typeGroups, type, chartClass) {
+    const w = this.w;
+    const graph = [];
+    if (typeSeries.series.length > 0) {
+      typeGroups.forEach((gn) => {
+        const gs = [];
+        const gi = [];
+        typeSeries.i.forEach((i2, ii) => {
+          if (w.labelData.seriesGroupIndex[i2] === gn) {
+            gs.push(typeSeries.series[ii]);
+            gi.push(i2);
+          }
+        });
+        gs.length > 0 && graph.push(
+          /** @type {any} */
+          chartClass.draw(gs, type, gi)
+        );
+      });
+    }
+    return graph;
   }
 }
 const RESERVED_TYPES = ["icicle", "unit", "sunburst", "violin"];
@@ -6508,15 +7124,17 @@ class Defaults {
       return val;
     };
     const plain = (val) => val !== null ? val : "";
-    const chartType = opts.chart.type;
-    const isBarSeries = (s2) => s2.type ? s2.type === "bar" || s2.type === "column" : chartType === "bar" || chartType === "column";
-    const hasBars = (opts.series || []).some(isBarSeries);
+    const kinds = CoreUtils.percentStackKinds(opts);
+    const hasPercent = kinds.some(Boolean);
     const format = (val, ctx) => {
-      var _a, _b, _c;
-      const barIndices = (_c = (_b = (_a = ctx == null ? void 0 : ctx.w) == null ? void 0 : _a.globals) == null ? void 0 : _b.columnSeries) == null ? void 0 : _c.i;
-      const isBarLabel = barIndices ? barIndices.includes(ctx == null ? void 0 : ctx.seriesIndex) : hasBars;
-      if (isBarLabel) return percent(val);
-      return plain(val);
+      var _a, _b;
+      const early = !((_b = (_a = ctx == null ? void 0 : ctx.w) == null ? void 0 : _a.globals) == null ? void 0 : _b.columnSeries);
+      const i2 = (
+        /** @type {number} */
+        ctx == null ? void 0 : ctx.seriesIndex
+      );
+      const isPercent = early ? hasPercent : !!kinds[i2];
+      return isPercent ? percent(val) : plain(val);
     };
     const marked = format;
     marked[STACKED_100] = true;
@@ -7873,6 +8491,7 @@ class Globals {
     gl.overlappingXLabels = false;
     gl.radialSize = 0;
     gl.circleGeometry = null;
+    gl.radialScales = null;
     gl.pieExternalLabelMarginY = 0;
     gl.barHeight = 0;
     gl.barWidth = 0;
@@ -8116,6 +8735,7 @@ class Globals {
       // render cancels the previous render's loop before starting its own,
       // instead of leaving it to animate detached nodes. NOT reset per render.
       radialNeedleRAF: null,
+      radialTargetRAF: null,
       unitGatherRAF: null,
       unitExitRAF: null,
       // The gauge needle's last angle (the next tween starts there) and its
@@ -8415,6 +9035,7 @@ class Base {
         selectedDataPoints: [],
         // Mouse / pointer state
         mousedown: false,
+        wasDragged: false,
         clientX: null,
         clientY: null,
         lastClientPosition: {},
@@ -8821,557 +9442,6 @@ class Base {
       /** @type {unknown} */
       w
     );
-  }
-}
-class CoreUtils {
-  /**
-   * @param {import('../types/internal').ChartStateW} w
-   */
-  constructor(w) {
-    this.w = w;
-  }
-  /**
-   * @param {any[]} series
-   * @param {string} chartType
-   */
-  static checkComboSeries(series, chartType) {
-    let comboCharts = false;
-    let comboBarCount = 0;
-    let comboCount = 0;
-    if (chartType === void 0) {
-      chartType = "line";
-    }
-    if (series.length && typeof series[0].type !== "undefined") {
-      series.forEach((s2) => {
-        if (s2.type === "bar" || s2.type === "column" || s2.type === "candlestick" || s2.type === "boxPlot" || s2.type === "violin") {
-          comboBarCount++;
-        }
-        if (typeof s2.type !== "undefined" && s2.type !== chartType) {
-          comboCount++;
-        }
-      });
-    }
-    if (comboCount > 0) {
-      comboCharts = true;
-    }
-    return {
-      comboBarCount,
-      comboCharts
-    };
-  }
-  /**
-   * @memberof CoreUtils
-   * returns the sum of all individual values in a multiple stacked series
-   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
-   *  @return [34,36,48,13]
-   * @param {number[]} excludedSeriesIndices
-   **/
-  getStackedSeriesTotals(excludedSeriesIndices = []) {
-    const w = this.w;
-    const total = [];
-    if (w.seriesData.series.length === 0) return total;
-    for (let i2 = 0; i2 < w.seriesData.series[w.globals.maxValsInArrayIndex].length; i2++) {
-      let t2 = 0;
-      for (let j2 = 0; j2 < w.seriesData.series.length; j2++) {
-        if (typeof w.seriesData.series[j2][i2] !== "undefined" && excludedSeriesIndices.indexOf(j2) === -1) {
-          t2 += w.seriesData.series[j2][i2];
-        }
-      }
-      total.push(t2);
-    }
-    return total;
-  }
-  /**
-   * The total of one series; 0 for an index that names no series.
-   * @param {number} index
-   */
-  getSeriesTotalByIndex(index) {
-    const seriesAtIndex = this.w.seriesData.series[index];
-    if (!Array.isArray(seriesAtIndex)) {
-      return seriesAtIndex != null ? seriesAtIndex : 0;
-    }
-    return seriesAtIndex.reduce(
-      (acc, cur) => acc + cur,
-      0
-    );
-  }
-  /**
-   * @memberof CoreUtils
-   * returns the sum of values in a multiple stacked grouped charts
-   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1], [43, 23, 34, 22]]
-   * series 1 and 2 are in a group, while series 3 is in another group
-   *  @return [[34, 36, 48, 12], [43, 23, 34, 22]]
-   **/
-  getStackedSeriesTotalsByGroups() {
-    const w = this.w;
-    const total = [];
-    w.labelData.seriesGroups.forEach((_, gi) => {
-      total.push(
-        this.getStackedSeriesTotals(
-          w.seriesData.series.map((_2, i2) => i2).filter((i2) => w.labelData.seriesGroupIndex[i2] !== gi)
-        )
-      );
-    });
-    return total;
-  }
-  setSeriesYAxisMappings() {
-    const gl = this.w.globals;
-    const cnf = this.w.config;
-    let axisSeriesMap = [];
-    const seriesYAxisReverseMap = [];
-    const unassignedSeriesIndices = [];
-    const seriesNameArrayStyle = cnf.series.length > cnf.yaxis.length || /**
-     * @param {ApexYAxis} a
-     */
-    cnf.yaxis.some((a2) => Array.isArray(a2.seriesName));
-    cnf.series.forEach((_s, i2) => {
-      unassignedSeriesIndices.push(i2);
-      seriesYAxisReverseMap.push(null);
-    });
-    cnf.yaxis.forEach(
-      (_yaxe, yi) => {
-        axisSeriesMap[yi] = [];
-      }
-    );
-    const unassignedYAxisIndices = [];
-    cnf.yaxis.forEach((yaxe, yi) => {
-      let assigned = false;
-      if (yaxe.seriesName) {
-        let seriesNames = [];
-        if (Array.isArray(yaxe.seriesName)) {
-          seriesNames = yaxe.seriesName;
-        } else {
-          seriesNames.push(yaxe.seriesName);
-        }
-        seriesNames.forEach((name2) => {
-          cnf.series.forEach((s2, si) => {
-            if (
-              /** @type {any} */
-              s2.name === name2
-            ) {
-              let remove = si;
-              if (yi === si || seriesNameArrayStyle) {
-                if (!seriesNameArrayStyle || unassignedSeriesIndices.indexOf(si) > -1) {
-                  axisSeriesMap[yi].push([yi, si]);
-                } else {
-                  console.warn(
-                    "Series '" + /** @type {any} */
-                    s2.name + "' referenced more than once in what looks like the new style. That is, when using either seriesName: [], or when there are more series than yaxes."
-                  );
-                }
-              } else {
-                axisSeriesMap[si].push([si, yi]);
-                remove = yi;
-              }
-              assigned = true;
-              remove = unassignedSeriesIndices.indexOf(remove);
-              if (remove !== -1) {
-                unassignedSeriesIndices.splice(remove, 1);
-              }
-            }
-          });
-        });
-      }
-      if (!assigned) {
-        unassignedYAxisIndices.push(yi);
-      }
-    });
-    axisSeriesMap = axisSeriesMap.map((yaxe) => {
-      const ra = [];
-      yaxe.forEach((sa) => {
-        seriesYAxisReverseMap[sa[1]] = sa[0];
-        ra.push(sa[1]);
-      });
-      return ra;
-    });
-    let lastUnassignedYAxis = cnf.yaxis.length - 1;
-    for (let i2 = 0; i2 < unassignedYAxisIndices.length; i2++) {
-      lastUnassignedYAxis = unassignedYAxisIndices[i2];
-      axisSeriesMap[lastUnassignedYAxis] = [];
-      if (unassignedSeriesIndices) {
-        const si = unassignedSeriesIndices[0];
-        unassignedSeriesIndices.shift();
-        axisSeriesMap[lastUnassignedYAxis].push(si);
-        seriesYAxisReverseMap[si] = lastUnassignedYAxis;
-      } else {
-        break;
-      }
-    }
-    unassignedSeriesIndices.forEach((i2) => {
-      axisSeriesMap[lastUnassignedYAxis].push(i2);
-      seriesYAxisReverseMap[i2] = lastUnassignedYAxis;
-    });
-    gl.seriesYAxisMap = axisSeriesMap.map((x) => x);
-    gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x);
-  }
-  /**
-   * Does the series hold no value at all? True for an index that names none.
-   * @param {number} index
-   */
-  isSeriesNull(index) {
-    const seriesAtIndex = this.w.seriesData.series[index];
-    return Array.isArray(seriesAtIndex) ? seriesAtIndex.every((d) => d === null) : seriesAtIndex == null;
-  }
-  /**
-   * @param {number} index
-   */
-  seriesHaveSameValues(index) {
-    const seriesAtIndex = this.w.seriesData.series[index];
-    if (!Array.isArray(seriesAtIndex)) {
-      return true;
-    }
-    return seriesAtIndex.every(
-      (val, i2, arr) => val === arr[0]
-    );
-  }
-  /**
-   * @param {any[]} labels
-   */
-  getCategoryLabels(labels) {
-    const w = this.w;
-    let catLabels = labels.slice();
-    if (w.config.xaxis.convertedCatToNumeric) {
-      catLabels = labels.map((i2) => {
-        return w.config.xaxis.labels.formatter(i2 - w.globals.minX + 1);
-      });
-    }
-    return catLabels;
-  }
-  // maxValsInArrayIndex is the index of series[] which has the largest number of items
-  getLargestSeries() {
-    const w = this.w;
-    w.globals.maxValsInArrayIndex = w.seriesData.series.map((a2) => a2.length).indexOf(
-      Math.max.apply(
-        Math,
-        /**
-         * @param {number[]} a
-         */
-        w.seriesData.series.map((a2) => a2.length)
-      )
-    );
-  }
-  getLargestMarkerSize() {
-    const w = this.w;
-    let size = 0;
-    w.globals.markers.size.forEach((m) => {
-      size = Math.max(size, m);
-    });
-    if (w.config.markers.discrete && w.config.markers.discrete.length) {
-      w.config.markers.discrete.forEach((m) => {
-        size = Math.max(size, m.size || 0);
-      });
-    }
-    if (size > 0) {
-      if (w.config.markers.hover.size > 0) {
-        size = w.config.markers.hover.size;
-      } else {
-        size += w.config.markers.hover.sizeOffset;
-      }
-    }
-    w.globals.markers.largestSize = size;
-    return size;
-  }
-  /**
-   * @memberof Core
-   * returns the sum of all values in a series
-   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
-   *  @return [120, 11]
-   **/
-  getSeriesTotals() {
-    const w = this.w;
-    w.globals.seriesTotals = w.seriesData.series.map((ser) => {
-      let total = 0;
-      if (Array.isArray(ser)) {
-        for (let j2 = 0; j2 < ser.length; j2++) {
-          total += ser[j2];
-        }
-      } else {
-        total += ser;
-      }
-      return total;
-    });
-  }
-  /**
-   * @param {number} minX
-   * @param {number} maxX
-   */
-  getSeriesTotalsXRange(minX, maxX) {
-    const w = this.w;
-    const seriesTotalsXRange = w.seriesData.series.map((ser, index) => {
-      let total = 0;
-      for (let j2 = 0; j2 < ser.length; j2++) {
-        if (w.seriesData.seriesX[index][j2] > minX && w.seriesData.seriesX[index][j2] < maxX) {
-          total += ser[j2];
-        }
-      }
-      return total;
-    });
-    return seriesTotalsXRange;
-  }
-  /**
-   * @memberof CoreUtils
-   * returns the percentage value of all individual values which can be used in a 100% stacked series
-   * Eg. w.seriesData.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
-   *  @return [[94.11, 91.66, 89.58, 92.30], [5.88, 8.33, 10.41, 7.7]]
-   **/
-  getPercentSeries() {
-    const w = this.w;
-    const chartType = w.config.chart.type;
-    const isBarSeries = (s2) => s2.type ? s2.type === "bar" || s2.type === "column" : chartType === "bar" || chartType === "column";
-    const hasBars = w.config.series.some(isBarSeries);
-    const excluded = hasBars ? w.config.series.map(
-      (s2, i2) => isBarSeries(s2) ? -1 : i2
-    ).filter((i2) => i2 !== -1) : [];
-    const stackedTotals = excluded.length ? this.getStackedSeriesTotals(excluded) : w.seriesData.stackedSeriesTotals;
-    const sx = w.axisFlags.isXNumeric && w.seriesData.seriesX;
-    const gi = w.labelData.seriesGroupIndex;
-    const byKey = sx || w.labelData.seriesGroups.length > 1;
-    const key = (i2, j2) => gi[i2] + " " + (sx ? sx[i2][j2] : j2);
-    const byX = /* @__PURE__ */ new Map();
-    if (byKey) {
-      w.seriesData.series.forEach((s2, i2) => {
-        if (excluded.indexOf(i2) < 0) {
-          s2.forEach((v, j2) => byX.set(key(i2, j2), (byX.get(key(i2, j2)) || 0) + v));
-        }
-      });
-    }
-    w.globals.seriesPercent = w.seriesData.series.map((ser, i2) => {
-      const seriesPercent = [];
-      if (Array.isArray(ser)) {
-        for (let j2 = 0; j2 < ser.length; j2++) {
-          const total = byKey ? byX.get(key(i2, j2)) : stackedTotals[j2];
-          let percent = 0;
-          if (total) {
-            percent = 100 * ser[j2] / total;
-          }
-          seriesPercent.push(percent);
-        }
-      } else {
-        const total = w.globals.seriesTotals.reduce((acc, val) => acc + val, 0);
-        const percent = 100 * ser / total;
-        seriesPercent.push(percent);
-      }
-      return seriesPercent;
-    });
-  }
-  getCalculatedRatios() {
-    const w = this.w;
-    const gl = w.globals;
-    const yRatio = [];
-    let invertedYRatio = 0;
-    let xRatio = 0;
-    let invertedXRatio = 0;
-    let zRatio = 0;
-    let baseLineY = [];
-    let baseLineInvertedY = 0.1;
-    let baseLineX = 0;
-    gl.yRange = [];
-    if (gl.isMultipleYAxis) {
-      for (let i2 = 0; i2 < gl.minYArr.length; i2++) {
-        gl.yRange.push(Math.abs(gl.minYArr[i2] - gl.maxYArr[i2]));
-        baseLineY.push(0);
-      }
-    } else {
-      gl.yRange.push(Math.abs(gl.minY - gl.maxY));
-    }
-    gl.xRange = Math.abs(gl.maxX - gl.minX);
-    gl.zRange = Math.abs(gl.maxZ - gl.minZ);
-    for (let i2 = 0; i2 < gl.yRange.length; i2++) {
-      yRatio.push(gl.yRange[i2] / this.w.layout.gridHeight);
-    }
-    xRatio = gl.xRange / this.w.layout.gridWidth;
-    invertedYRatio = gl.yRange[0] / this.w.layout.gridWidth;
-    invertedXRatio = gl.xRange / this.w.layout.gridHeight;
-    zRatio = gl.zRange / this.w.layout.gridHeight * 16;
-    if (!zRatio) {
-      zRatio = 1;
-    }
-    const _hasNegsGl = (
-      /** @type {any} */
-      gl
-    );
-    _hasNegsGl.hasNegs = gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0;
-    if (w.globals.seriesYAxisReverseMap.length > 0) {
-      const scaleBaseLineYScale = (y, i2) => {
-        const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i2]];
-        if (!yAxis) return 0;
-        if (yAxis.logarithmic) return 0;
-        const sign = y < 0 ? -1 : 1;
-        y = Math.abs(y);
-        return -sign * y / yRatio[i2];
-      };
-      if (gl.isMultipleYAxis) {
-        baseLineY = [];
-        for (let i2 = 0; i2 < yRatio.length; i2++) {
-          baseLineY.push(scaleBaseLineYScale(gl.minYArr[i2], i2));
-        }
-      } else {
-        baseLineY = [];
-        baseLineY.push(scaleBaseLineYScale(gl.minY, 0));
-        if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-          baseLineInvertedY = -gl.minY / invertedYRatio;
-          baseLineX = gl.minX / xRatio;
-        }
-      }
-    } else {
-      baseLineY = [];
-      baseLineY.push(0);
-      baseLineInvertedY = 0;
-      baseLineX = 0;
-    }
-    return {
-      yRatio,
-      invertedYRatio,
-      zRatio,
-      xRatio,
-      invertedXRatio,
-      baseLineInvertedY,
-      baseLineY,
-      baseLineX
-    };
-  }
-  /**
-   * @param {any[]} series
-   * @param {number[]} [realIndices] a combo subset's global series indices
-   */
-  getLogSeries(series, realIndices) {
-    const w = this.w;
-    w.globals.seriesLog = series.map((s2, i2) => {
-      if (realIndices) i2 = realIndices[i2];
-      const yAxisIndex = w.globals.seriesYAxisReverseMap[i2];
-      if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
-        return s2.map((d) => {
-          if (d === null) return null;
-          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d, i2);
-        });
-      } else {
-        return s2;
-      }
-    });
-    return w.globals.invalidLogScale ? series : w.globals.seriesLog;
-  }
-  /**
-   * @param {number} val
-   * @param {number} seriesIndex
-   * @returns {number}
-   */
-  getLogValAtSeriesIndex(val, seriesIndex) {
-    if (val === null) return (
-      /** @type {any} */
-      null
-    );
-    const w = this.w;
-    const yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex];
-    if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
-      return this.getLogVal(
-        w.config.yaxis[yAxisIndex].logBase,
-        val,
-        seriesIndex
-      );
-    }
-    return val;
-  }
-  /**
-   * @param {number} base
-   * @param {number} value
-   */
-  getBaseLog(base, value) {
-    return Math.log(value) / Math.log(base);
-  }
-  /**
-   * @param {number} b
-   * @param {number} d
-   * @param {number} seriesIndex
-   */
-  getLogVal(b, d, seriesIndex) {
-    if (d <= 0) {
-      return 0;
-    }
-    const w = this.w;
-    const boundsIndex = w.globals.isMultipleYAxis ? seriesIndex : 0;
-    const min_log_val = w.globals.minYArr[boundsIndex] === 0 ? -1 : this.getBaseLog(b, w.globals.minYArr[boundsIndex]);
-    const max_log_val = w.globals.maxYArr[boundsIndex] === 0 ? 0 : this.getBaseLog(b, w.globals.maxYArr[boundsIndex]);
-    const number_of_height_levels = max_log_val - min_log_val;
-    const log_height_value = this.getBaseLog(b, d) - min_log_val;
-    return log_height_value / number_of_height_levels;
-  }
-  /**
-   * @param {number[]} yRatio
-   */
-  getLogYRatios(yRatio) {
-    const w = this.w;
-    const gl = this.w.globals;
-    const _gl = (
-      /** @type {any} */
-      gl
-    );
-    _gl.yLogRatio = yRatio.slice();
-    _gl.logYRange = /** @type {any[]} */
-    gl.yRange.map(
-      (_, i2) => {
-        const yAxisIndex = w.globals.seriesYAxisReverseMap[i2];
-        if (w.config.yaxis[yAxisIndex] && this.w.config.yaxis[yAxisIndex].logarithmic) {
-          const range = 1;
-          _gl.yLogRatio[i2] = range / this.w.layout.gridHeight;
-          return range;
-        }
-        return gl.yRange[i2];
-      }
-    );
-    return _gl.invalidLogScale ? yRatio.slice() : _gl.yLogRatio;
-  }
-  // Some config objects can be array - and we need to extend them correctly
-  /**
-   * @param {any} configInstance
-   * @param {Record<string, any>} options
-   * @param {import('../types/internal').ChartStateW} w
-   */
-  static extendArrayProps(configInstance, options2, w) {
-    var _a, _b;
-    if (options2 == null ? void 0 : options2.yaxis) {
-      options2 = configInstance.extendYAxis(options2, w);
-    }
-    if (options2 == null ? void 0 : options2.annotations) {
-      if (options2.annotations.yaxis) {
-        options2 = configInstance.extendYAxisAnnotations(options2);
-      }
-      if ((_a = options2 == null ? void 0 : options2.annotations) == null ? void 0 : _a.xaxis) {
-        options2 = configInstance.extendXAxisAnnotations(options2);
-      }
-      if ((_b = options2 == null ? void 0 : options2.annotations) == null ? void 0 : _b.points) {
-        options2 = configInstance.extendPointAnnotations(options2);
-      }
-    }
-    return options2;
-  }
-  // Series of the same group and type can be stacked together distinct from
-  // other series of the same type on the same axis.
-  /**
-   * @param {Record<string, any>} typeSeries
-   * @param {number[]} typeGroups
-   * @param {string} type
-   * @param {string} chartClass
-   */
-  drawSeriesByGroup(typeSeries, typeGroups, type, chartClass) {
-    const w = this.w;
-    const graph = [];
-    if (typeSeries.series.length > 0) {
-      typeGroups.forEach((gn) => {
-        const gs = [];
-        const gi = [];
-        typeSeries.i.forEach((i2, ii) => {
-          if (w.labelData.seriesGroupIndex[i2] === gn) {
-            gs.push(typeSeries.series[ii]);
-            gi.push(i2);
-          }
-        });
-        gs.length > 0 && graph.push(
-          /** @type {any} */
-          chartClass.draw(gs, type, gi)
-        );
-      });
-    }
-    return graph;
   }
 }
 const SVGNS$1 = "http://www.w3.org/2000/svg";
@@ -10932,10 +11002,14 @@ class Events {
               w.config.chart.events.mouseLeave(e2, me, opts);
             }
           } else if (e2.type === "mouseup" && e2.which === 1 || e2.type === "touchend") {
-            if (typeof w.config.chart.events.click === "function") {
-              w.config.chart.events.click(e2, me, opts);
+            if (w.interact.wasDragged) {
+              w.interact.wasDragged = false;
+            } else {
+              if (typeof w.config.chart.events.click === "function") {
+                w.config.chart.events.click(e2, me, opts);
+              }
+              me.ctx.events.fireEvent("click", [e2, me, opts]);
             }
-            me.ctx.events.fireEvent("click", [e2, me, opts]);
           }
         },
         { capture: false, passive: true }
@@ -10993,7 +11067,26 @@ class Localization {
     }
   }
 }
-class AxesUtils {
+const _AxesUtils = class _AxesUtils {
+  /**
+   * Thinning step for category names stacked down a side axis (heatmap rows,
+   * horizontal bar categories): draw every `step`-th name so the drawn ones
+   * do not overlap. A name needs `fontSize * 1.4` px per text line; when every
+   * name fits the step is 1 and nothing is thinned. Callers keep the names at
+   * `index % step === 0`, so the first name (the top row) always stays and the
+   * kept names stay evenly spaced.
+   *
+   * @param {number} extent px the names share (the plot height)
+   * @param {number} count number of names
+   * @param {string | number} fontSize the labels' font size (`'11px'` or 11)
+   * @param {number} [lines] text lines in the tallest name
+   * @returns {number}
+   */
+  static categoryLabelStep(extent, count, fontSize, lines = 1) {
+    const fs = parseInt(String(fontSize), 10) || 11;
+    const maxLabels = Math.max(1, Math.floor(extent / (fs * 1.4 * lines)));
+    return count > maxLabels ? Math.ceil(count / maxLabels) : 1;
+  }
   /**
    * @param {import('../../types/internal').ChartStateW} w
    */
@@ -11097,6 +11190,7 @@ class AxesUtils {
    * @param {Array<Record<string, any>>} drawnLabelsRects
    */
   checkForOverflowingLabels(i2, label, labelsLen, drawnLabels, drawnLabelsRects) {
+    var _a, _b;
     const w = this.w;
     if (i2 === 0) {
       if (w.globals.skipFirstTimelinelabel) {
@@ -11110,19 +11204,25 @@ class AxesUtils {
     }
     if (w.config.xaxis.labels.hideOverlappingLabels && drawnLabels.length > 0) {
       const prev = drawnLabelsRects[drawnLabelsRects.length - 1];
-      if (w.config.xaxis.labels.trim && w.config.xaxis.type !== "datetime") {
+      const rotated = w.layout.rotateXLabels;
+      if (w.config.xaxis.labels.trim && w.config.xaxis.type !== "datetime" && !rotated) {
         return label;
       }
-      if (
+      const lbl = (
         /** @type {any} */
-        label.x < prev.textRect.width / (w.layout.rotateXLabels ? (
-          // Floor the rotation at 1deg: rotateAlways:true forces
-          // rotateXLabels even with rotate:0, and a 0 divisor here makes the
-          // spread Infinity, blanking every label after the first.
-          Math.max(Math.abs(w.config.xaxis.labels.rotate), 1) / 12
-        ) : 1.01) + prev.x
-      ) {
-        label.text = "";
+        label
+      );
+      const tooClose = rotated ? lbl.x < prev.x + prev.textRect.width / // Floor the rotation at 1deg: rotateAlways:true forces
+      // rotateXLabels even with rotate:0, and a 0 divisor here makes
+      // the spread Infinity, blanking every label after the first.
+      (Math.max(Math.abs(w.config.xaxis.labels.rotate), 1) / 12) : (
+        // Upright text is centred on its x, so two labels clear each other
+        // when their centres are at least half of both widths apart, plus
+        // a gap so they do not touch.
+        lbl.x - prev.x < (prev.textRect.width + ((_b = (_a = lbl.textRect) == null ? void 0 : _a.width) != null ? _b : 0)) / 2 + _AxesUtils.X_LABEL_GAP
+      );
+      if (tooClose) {
+        lbl.text = "";
       }
     }
     return label;
@@ -11267,7 +11367,16 @@ class AxesUtils {
       }
     });
   }
-}
+};
+/**
+ * Minimum clear space, in px, between two upright category x-axis labels.
+ * Matches the default `gap` the data-label overlap pass keeps between two
+ * labels (`DataLabels.avoidOverlaps`), so "touching" means the same thing
+ * for every kind of label. The rotation test reserves it too, so a set of
+ * labels that is kept upright is one the overlap test can draw in full.
+ */
+__publicField(_AxesUtils, "X_LABEL_GAP", 2);
+let AxesUtils = _AxesUtils;
 class XAxis {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -11550,6 +11659,21 @@ class XAxis {
       const format = w.config.xaxis.labels.format || w.config.tooltip.x.format;
       lbFormatter = (val) => typeof val === "number" ? dt.formatDate(dt.getDate(val), format) : val;
     }
+    let labelStep = 1;
+    if (ylabels.show && ylabels.formatter === void 0 && w.config.xaxis.labels.hideOverlappingLabels !== false) {
+      let lines = 1;
+      for (let i2 = 0; i2 < labels.length; i2++) {
+        if (Array.isArray(labels[i2]) && labels[i2].length > lines) {
+          lines = labels[i2].length;
+        }
+      }
+      labelStep = AxesUtils.categoryLabelStep(
+        w.layout.gridHeight,
+        labels.length,
+        ylabels.style.fontSize,
+        lines
+      );
+    }
     if (ylabels.show) {
       const yColors = this.axesUtils.getYAxisForeColor(
         ylabels.style.colors,
@@ -11557,7 +11681,7 @@ class XAxis {
       );
       for (let i2 = 0; i2 <= labels.length - 1; i2++) {
         let label = typeof labels[i2] === "undefined" ? "" : labels[i2];
-        label = lbFormatter(
+        label = labelStep > 1 && i2 % labelStep !== 0 ? "" : lbFormatter(
           label,
           { seriesIndex: realIndex, dataPointIndex: i2, w },
           w
@@ -11844,10 +11968,11 @@ class YAxis {
     );
     let labelStep = 1;
     if (w.config.chart.type === "heatmap" && !w.config.yaxis[realIndex].labels.formatter) {
-      const fs = parseInt(yaxisFontSize, 10) || 11;
-      const maxLabels = Math.max(1, Math.floor(w.layout.gridHeight / (fs * 1.4)));
-      const count = tickAmount + 1;
-      if (count > maxLabels) labelStep = Math.ceil(count / maxLabels);
+      labelStep = AxesUtils.categoryLabelStep(
+        w.layout.gridHeight,
+        tickAmount + 1,
+        yaxisFontSize
+      );
     }
     if (w.config.yaxis[realIndex].labels.show) {
       let lY = w.layout.translateY + w.config.yaxis[realIndex].labels.offsetY;
@@ -16362,7 +16487,19 @@ class DimXAxis {
         width: xLabelrect.width >= xArrLabelrect.width ? xLabelrect.width : xArrLabelrect.width,
         height: xLabelrect.height >= xArrLabelrect.height ? xLabelrect.height : xArrLabelrect.height
       };
-      if (rect.width * xaxisLabels.length > w.globals.svgWidth - this.dCtx.lgWidthForSideLegends - this.dCtx.yAxisWidth - this.dCtx.gridPad.left - this.dCtx.gridPad.right && w.config.xaxis.labels.rotate !== 0 || w.config.xaxis.labels.rotateAlways) {
+      const labelCount = xaxisLabels.length;
+      let slots = labelCount;
+      if (w.axisFlags.isXNumeric) {
+        let dataPoints = w.config.xaxis.type === "category" ? w.globals.dataPoints : labelCount;
+        if (dataPoints === 0) dataPoints = labelCount;
+        const len = Math.max(
+          Number(w.config.xaxis.tickAmount) || 1,
+          dataPoints > 1 ? dataPoints - 1 : dataPoints
+        );
+        slots = Math.max(1, Math.min(len, labelCount - 1));
+      }
+      const uprightPlotWidth = w.globals.svgWidth - this.dCtx.lgWidthForSideLegends - this.dCtx.yAxisWidth - this.dCtx.datalabelsCoords.width * 2 - this.dCtx.gridPad.left - this.dCtx.gridPad.right - this.uprightLabelsRightPad(rect.width);
+      if (w.config.chart.type !== "radar" && ((rect.width + AxesUtils.X_LABEL_GAP) * slots > uprightPlotWidth && w.config.xaxis.labels.rotate !== 0 || w.config.xaxis.labels.rotateAlways)) {
         if (!w.globals.isBarHorizontal) {
           w.layout.rotateXLabels = true;
           const getRotatedTextRects = (text) => {
@@ -16395,6 +16532,25 @@ class DimXAxis {
       width: rect.width,
       height: rect.height
     };
+  }
+  /**
+   * The right pad `additionalPaddingXLabels` adds for upright, untrimmed
+   * non-datetime labels so the last one is not cropped (0 when none). Shared
+   * with the rotation test so both see the same plot width.
+   * @param {number} lbWidth widest upright label
+   * @returns {number}
+   */
+  uprightLabelsRightPad(lbWidth) {
+    const w = this.w;
+    const cnf = w.config;
+    if (cnf.xaxis.type === "datetime" || cnf.xaxis.labels.trim || !(this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight)) {
+      return 0;
+    }
+    const collapsed = w.globals.collapsedSeriesIndices;
+    const anyAxisPads = cnf.yaxis.some(
+      (_y, i2) => !(cnf.yaxis.length > 1 && collapsed.indexOf(i2) !== -1)
+    );
+    return anyAxisPads ? lbWidth / 2 + 1 : 0;
   }
   /**
    * Get X Axis Label Group height
@@ -16520,10 +16676,9 @@ class DimXAxis {
         if (this.dCtx.gridPad.right < lbWidth && !w.layout.rotateXLabels) {
           gl.skipLastTimelinelabel = true;
         }
-      } else if (xtype !== "datetime") {
-        if (this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight && !w.layout.rotateXLabels && !w.config.xaxis.labels.trim) {
-          this.dCtx.xPadRight = lbWidth / 2 + 1;
-        }
+      } else if (xtype !== "datetime" && !w.layout.rotateXLabels) {
+        const pad = this.uprightLabelsRightPad(lbWidth);
+        if (pad > 0) this.dCtx.xPadRight = pad;
       }
     };
     const padYAxe = (yaxe, i2) => {
@@ -16752,9 +16907,42 @@ class DimGrid {
       const s2 = gl.minXDiff > 0 ? span / gl.minXDiff : 1;
       const need = cw / 2 * gridWidth / (s2 + cw) + 4;
       barWidth = Math.min(barWidth, Math.max(need, gridWidth / 8));
+      barWidth = Math.max(
+        barWidth,
+        this._edgeNeedInWindow(cw, gridWidth, barWidth)
+      );
       gl.barPadForNumericAxis = barWidth;
     }
     return barWidth;
+  }
+  /**
+   * The pad the edge bar group needs while a window narrower than the data is
+   * applied (zoom, pan, xaxis.min/max/range), 0 otherwise.
+   *
+   * The pad above is sized from the full data range, but the bars are sized
+   * from the window on screen (minX..maxX), so zooming in widens them while
+   * the pad stays put and the edge bars hang past the plot and get cut
+   * (#5368, #2651). This is the same edge solve on the window's slot count.
+   * It only ever raises the pad, and only once the window is narrow enough
+   * that the full range pad no longer fits the edge bar, so a moderate zoom
+   * keeps the un-zoomed layout and the plot only narrows as far as the
+   * bars need.
+   *
+   * @param {number} cw column width as a fraction of the slot
+   * @param {number} gridWidth the grid width before the pad comes off
+   * @param {number} pad the pad sized from the full data range
+   */
+  _edgeNeedInWindow(cw, gridWidth, pad) {
+    const gl = this.w.globals;
+    const fullSpan = Math.abs(gl.initialMaxX - gl.initialMinX);
+    const visibleSpan = Math.abs(gl.maxX - gl.minX);
+    if (!(visibleSpan > 0 && visibleSpan < fullSpan) || !(gl.minXDiff > 0) || // a px columnWidth is the same width at any zoom
+    String(this.w.config.plotOptions.bar.columnWidth).indexOf("%") === -1) {
+      return 0;
+    }
+    const s2 = Math.max(visibleSpan / gl.minXDiff, 1);
+    const half = cw / 2 * gridWidth / (s2 + cw);
+    return half + Math.min(4, Math.max(0, half - pad + 4));
   }
   /**
    * Reserve room to the right of the plot for stacked *total* dataLabels on a
@@ -16920,6 +17108,7 @@ class Dimensions {
     this.dimGrid.gridPadFortitleSubtitle();
     this.gridPadForBreadcrumb();
     this.dimGrid.gridPadForStackedTotalDataLabels();
+    if (this.ctx.panelTopBand) this.ctx.panelTopBand(this);
     if (w.config.chart.type === "heatmap" && w.config.plotOptions.heatmap.shape === "hexagon" && !((w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric)) {
       const cols = gl.dataPoints || 1;
       const rows = (w.seriesData.series || []).length || 1;
@@ -17498,22 +17687,32 @@ class Scales {
       /** @type {number} */
       ticks
     );
-    if (!step) {
-      step = range / ticksNum;
-    }
+    const derivedStep = !step;
+    const rawStep = step || range / ticksNum;
+    step = rawStep;
     const MIN_PRECISION = 2;
+    let multiplier = 0;
     if (step !== 0 && isFinite(step)) {
       const magnitude = Math.floor(Math.log10(Math.abs(step)));
       const precision = Math.max(MIN_PRECISION, -magnitude + MIN_PRECISION);
-      const multiplier = Math.pow(10, precision);
+      multiplier = Math.pow(10, precision);
       step = Math.round((step + Number.EPSILON) * multiplier) / multiplier;
     }
-    let tickCount = ticksNum;
-    let v = yMin;
-    while (tickCount >= 0) {
-      result.push(v);
-      v = Utils$1.preciseAddition(v, step);
-      tickCount -= 1;
+    if (derivedStep && multiplier) {
+      result.push(yMin);
+      for (let i2 = 1; i2 < ticksNum; i2++) {
+        const t2 = yMin + i2 * rawStep;
+        result.push(Math.round((t2 + Number.EPSILON) * multiplier) / multiplier);
+      }
+      result.push(yMax);
+    } else {
+      let tickCount = ticksNum;
+      let v = yMin;
+      while (tickCount >= 0) {
+        result.push(v);
+        v = Utils$1.preciseAddition(v, step);
+        tickCount -= 1;
+      }
     }
     return {
       result,
@@ -17675,24 +17874,39 @@ class Scales {
    * @param {number} maxX
    */
   setXScale(minX, maxX) {
-    var _a;
     const w = this.w;
     const gl = w.globals;
     if (maxX === -Number.MAX_VALUE || !Utils$1.isNumber(maxX)) {
       gl.xAxisScale = this.linearScale(0, 10, 10);
     } else {
       const x = w.config.xaxis;
-      let step = ((_a = x.max) != null ? _a : x.range) === void 0 ? x.stepSize : void 0;
-      const fit = step > 0 && !gl.isBarHorizontal && x.type !== "datetime";
-      if (fit) {
+      const fixedMax = typeof x.max === "number";
+      let step = x.range === void 0 ? x.stepSize : void 0;
+      let fit = step > 0 && !gl.isBarHorizontal && x.type !== "datetime";
+      const defaultTicks = gl.xTickAmount;
+      if (fit && fixedMax) {
+        const n2 = Math.round((maxX - minX) / step);
+        const divides = n2 >= 1 && Math.abs((maxX - minX) / step - n2) < 1e-9;
+        if (divides && n2 <= 1e3 && x.tickAmount === void 0 && !w.interact.zoomed) {
+          gl.xTickAmount = n2;
+        } else {
+          step = void 0;
+        }
+        fit = false;
+      } else if (fit) {
         const n2 = Math.ceil((maxX - minX) / step - 1e-9);
         n2 > 1e3 ? step = void 0 : gl.xTickAmount = n2;
       }
       let s2 = this.linearScale(minX, maxX, gl.xTickAmount, 0, step);
       if (fit && step) {
-        while (s2.niceMax < maxX)
+        while (s2.niceMax < maxX && gl.xTickAmount < 1e3)
           s2 = this.linearScale(minX, maxX, ++gl.xTickAmount, 0, step);
-        gl.maxX = s2.niceMax;
+        if (s2.niceMax < maxX) {
+          gl.xTickAmount = defaultTicks;
+          s2 = this.linearScale(minX, maxX, defaultTicks);
+        } else {
+          gl.maxX = s2.niceMax;
+        }
       }
       gl.xAxisScale = s2;
     }
@@ -22711,7 +22925,7 @@ class UpdateHelpers {
    * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
    * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
    * The function also accepts an object {xaxis, yaxis} which when present is set as the new xaxis/yaxis
-   * @param {Record<string, any>} opts
+   * @param {Record<string, any>} [opts]
    */
   revertDefaultAxisMinMax(opts) {
     const w = this.w;
@@ -22753,6 +22967,19 @@ class UpdateHelpers {
         }
       }
     });
+  }
+  /**
+   * A series fed in from outside (updateSeries, appendSeries,
+   * updateOptions({ series })) drops any zoom: revert the axes, then clear the
+   * zoomed flag and the on-demand reset control so they match the full range
+   * that is drawn (#5388). The flag clears AFTER the revert, whose y branch
+   * still has to see the zoom.
+   */
+  revertZoom() {
+    var _a;
+    this.revertDefaultAxisMinMax();
+    this.w.interact.zoomed = false;
+    (_a = this.ctx.toolbar) == null ? void 0 : _a.clearZoomAffordance();
   }
 }
 class AxisMapping {
@@ -27313,9 +27540,10 @@ class Tooltip {
     this.showTooltipTitle = this.tConfig.x.show;
     this.fixedTooltip = this.tConfig.fixed.enabled;
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared;
-    this.isXAxisTooltipEnabled = w.config.xaxis.tooltip.enabled && w.globals.axisCharts;
+    const boxVisible = this.tConfig.visible !== false;
+    this.isXAxisTooltipEnabled = boxVisible && w.config.xaxis.tooltip.enabled && w.globals.axisCharts;
     this.yaxisTooltips = w.config.yaxis.map((y) => {
-      return y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false;
+      return boxVisible && y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false;
     });
     this.allTooltipSeriesGroups = [];
     this.yaxisTTEls = null;
@@ -27401,6 +27629,8 @@ class Tooltip {
       }
       w.dom.elWrap.appendChild(tooltipEl);
     }
+    tooltipEl.style.display = boxVisible ? "" : "none";
+    tooltipEl.classList.toggle("apexcharts-tooltip-hidden", !boxVisible);
     if (w.globals.axisCharts) {
       this.axesTooltip.drawXaxisTooltip();
       this.axesTooltip.drawYaxisTooltip();
@@ -29867,6 +30097,17 @@ class InitCtxVariables {
       },
       configurable: true
     });
+    Object.defineProperty(ctx, "radialTargets", {
+      get() {
+        var _a;
+        if (!this._radialTargets) {
+          const C = reg.get("radialTargets");
+          if (C) this._radialTargets = new C(w, this);
+        }
+        return (_a = this._radialTargets) != null ? _a : null;
+      },
+      configurable: true
+    });
     const ExportsCtor = reg.get("exports");
     ctx.exports = ExportsCtor ? new ExportsCtor(w, ctx) : null;
     const LegendCtor = reg.get("legend");
@@ -30399,7 +30640,7 @@ class Graphics {
     }
     return c;
   }
-  /** @param {{ d?: string, stroke?: string, strokeWidth?: number, fill: any, fillOpacity?: number, strokeOpacity?: number, classes?: any, strokeLinecap?: any, strokeDashArray?: number }} opts */
+  /** @param {{ d?: string, stroke?: string, strokeWidth?: number, fill: any, fillOpacity?: number, strokeOpacity?: number, classes?: any, strokeLinecap?: any, strokeDashArray?: number | string | number[] }} opts */
   drawPath({
     d = "",
     stroke = "#a8a8a8",
@@ -31445,6 +31686,7 @@ class Graphics {
     }
   }
 }
+const XLINK = "http://www.w3.org/1999/xlink";
 class Fill {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -31487,14 +31729,7 @@ class Fill {
     });
     const elImage = BrowserAPIs.createElementNS(SVGNS$1, "image");
     elPattern.appendChild(elImage);
-    const SVGLib = Environment.isBrowser() ? (
-      /** @type {any} */
-      window.SVG
-    ) : (
-      /** @type {any} */
-      global.SVG
-    );
-    elImage.setAttributeNS(SVGLib.xlink, "href", fillImg);
+    elImage.setAttributeNS(XLINK, "href", fillImg);
     Graphics.setAttrs(elImage, {
       x: 0,
       y: 0,
@@ -32143,6 +32378,14 @@ function overlapY(a2, aShift, b, bShift) {
 function overlapX(a2, b) {
   return Math.min(a2.x + a2.width, b.x + b.width) - Math.max(a2.x, b.x);
 }
+function pickBalancedLoser(later, earlier, boxes, groups) {
+  const gl = groups.get(boxes[later].group);
+  const ge = groups.get(boxes[earlier].group);
+  if (!gl || !ge || gl === ge) return later;
+  const lossLater = (gl.hidden + 1) * ge.total;
+  const lossEarlier = (ge.hidden + 1) * gl.total;
+  return lossEarlier < lossLater ? earlier : later;
+}
 function resolveLabelOverlaps(boxes, opts) {
   var _a;
   const n2 = boxes.length;
@@ -32204,6 +32447,15 @@ function resolveLabelOverlaps(boxes, opts) {
     if (!moved) break;
   }
   if (!opts.hide) return result;
+  const balanced = opts.hideOrder === "balanced";
+  const groups = /* @__PURE__ */ new Map();
+  if (balanced) {
+    for (let i2 = 0; i2 < n2; i2++) {
+      const g2 = groups.get(boxes[i2].group);
+      if (g2) g2.total++;
+      else groups.set(boxes[i2].group, { total: 1, hidden: 0 });
+    }
+  }
   for (let p = 0; p < idx.length; p++) {
     const i2 = idx[p];
     if (result[i2].hidden) continue;
@@ -32215,11 +32467,17 @@ function resolveLabelOverlaps(boxes, opts) {
       if (b.x >= a2.x + a2.width) break;
       if (overlapX(a2, b) <= 0) continue;
       if (overlapY(a2, result[i2].dy, b, result[j2].dy) > 0) {
-        const first = a2.order <= b.order ? j2 : i2;
+        const later = a2.order <= b.order ? j2 : i2;
+        const earlier = later === i2 ? j2 : i2;
+        const first = balanced ? pickBalancedLoser(later, earlier, boxes, groups) : later;
         const second = first === i2 ? j2 : i2;
         const loser = !boxes[first].fixed ? first : !boxes[second].fixed ? second : -1;
         if (loser === -1) continue;
         result[loser].hidden = true;
+        if (balanced) {
+          const g2 = groups.get(boxes[loser].group);
+          if (g2) g2.hidden++;
+        }
         if (loser === i2) break;
       }
     }
@@ -32586,7 +32844,7 @@ class DataLabels {
    * what it costs such a chart is the one measuring loop below.
    */
   avoidOverlaps() {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     const cfg = w.config.dataLabels.avoidOverlap;
     if (!cfg) return;
@@ -32615,6 +32873,8 @@ class DataLabels {
       const scaleX = screen2 && ctm && ctm.a ? Math.abs(ctm.a) : 1;
       const padH = (bCnf.enabled ? bCnf.padding : 0) * scaleX;
       const padV = (bCnf.enabled ? bCnf.padding / 2 : 0) * scaleY;
+      const wrap = (_b = el.closest) == null ? void 0 : _b.call(el, ".apexcharts-datalabels");
+      const group = wrap ? wrap.getAttribute("data:realIndex") : null;
       measured.push({
         el,
         scaleY,
@@ -32624,12 +32884,13 @@ class DataLabels {
           width: box.width + padH * 2,
           height: box.height + padV,
           order: measured.length,
-          fixed: rotated
+          fixed: rotated,
+          group: group != null ? group : void 0
         }
       });
     }
     if (measured.length < 2) return;
-    const horizontal = !!((_c = (_b = w.config.plotOptions) == null ? void 0 : _b.bar) == null ? void 0 : _c.horizontal);
+    const horizontal = !!((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.bar) == null ? void 0 : _d.horizontal);
     const boxes = measured.map(
       ({ box }) => horizontal ? {
         x: box.y,
@@ -32637,21 +32898,23 @@ class DataLabels {
         width: box.height,
         height: box.width,
         order: box.order,
-        fixed: box.fixed
+        fixed: box.fixed,
+        group: box.group
       } : box
     );
-    const m = onScreen ? (_f = (_e = (_d = w.dom.elGraphical) == null ? void 0 : _d.node) == null ? void 0 : _e.getScreenCTM) == null ? void 0 : _f.call(_e) : null;
+    const m = onScreen ? (_g = (_f = (_e = w.dom.elGraphical) == null ? void 0 : _e.node) == null ? void 0 : _f.getScreenCTM) == null ? void 0 : _g.call(_f) : null;
     const useScreen = !!m && m.a > 0 && m.d > 0;
     const extent = boxes[0].height;
     const unit = measured[0].scaleY;
     const lo = useScreen ? horizontal ? m.e : m.f : 0;
     const hi = useScreen ? horizontal ? m.e + w.layout.gridWidth * m.a : m.f + w.layout.gridHeight * m.d : horizontal ? w.layout.gridWidth : w.layout.gridHeight;
     const resolved = resolveLabelOverlaps(boxes, {
-      gap: ((_g = opts.gap) != null ? _g : 2) * unit,
+      gap: ((_h = opts.gap) != null ? _h : 2) * unit,
       // Default budget is roughly one label's own extent in each direction:
       // far enough to clear a coincident twin, near enough that the label is
-      // still unmistakably its mark's.
-      maxShift: opts.maxShift ? opts.maxShift * unit : Math.max(extent, 14),
+      // still unmistakably its mark's. An explicit 0 is a real budget (never
+      // move, only hide), not a request for the default.
+      maxShift: typeof opts.maxShift === "number" ? Math.max(0, opts.maxShift) * unit : Math.max(extent, 14),
       // The plot itself, with no slack: past this edge the label is clipped,
       // so pushing one out there trades an overlap for a truncated value. A
       // label that already starts outside (the one above a bar that reaches
@@ -32663,7 +32926,12 @@ class DataLabels {
       // that silently deletes a value is worse than the overlap it set out to
       // fix: on a crowded horizontal bar it removed eight of eighteen labels.
       // Off, a pair that cannot be separated is simply left as it is today.
-      hide: opts.hide === true
+      hide: opts.hide === true,
+      // Which label of an unseparable pair goes. 'later' drops the later-drawn
+      // one, which on two series colliding at every point empties the second
+      // series; 'balanced' spreads the loss across series (#5378). Opt-in so
+      // every chart already using `hide` keeps its labels as they were.
+      hideOrder: opts.hideOrder === "balanced" ? "balanced" : "later"
     });
     const attr = horizontal ? "x" : "y";
     const centreAttr = horizontal ? "cx" : "cy";
@@ -33077,7 +33345,7 @@ function removeResizeListener(el, fn) {
     ros.delete(fn);
   }
 }
-const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.5s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
+const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.5s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}.apexcharts-trellis-chrome,.apexcharts-trellis-grid,.apexcharts-trellis-cell,.apexcharts-trellis-header,.apexcharts-trellis-strip,.apexcharts-trellis-corner,.apexcharts-trellis-title,.apexcharts-trellis-subtitle,.apexcharts-trellis-breadcrumb,.apexcharts-trellis-breadcrumb-back,.apexcharts-trellis-breadcrumb-sep,.apexcharts-trellis-breadcrumb-current,.apexcharts-trellis-empty-label,.apexcharts-trellis-legend,.apexcharts-trellis-legend-item,.apexcharts-trellis-legend-item .apexcharts-legend-text,.apexcharts-trellis-toolbar,.apexcharts-trellis-menu,.apexcharts-trellis-menu-item,.apexcharts-trellis-tooltip,.apexcharts-trellis-tooltip *{font-family:inherit}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
 const e = globalThis.console;
 function t(t2, ...s2) {
   e.error(t2, ...s2);
@@ -33880,19 +34148,21 @@ class ApexCharts {
       this.events.setupEventHandlers();
     }
     this.data.parseData(series, overwriteInitialSeries);
-    if (overwriteInitialSeries && hiddenAtInit.length) {
+    const records = (
+      /** @type {any[]} */
+      gl.collapsedSeries.concat(
+        gl.ancillaryCollapsedSeries
+      )
+    );
+    if (overwriteInitialSeries && (hiddenAtInit.length || records.length)) {
       const baseline = (
         /** @type {any[]} */
         gl._initialSeriesPeek || []
       );
-      const records = (
-        /** @type {any[]} */
-        gl.collapsedSeries.concat(
-          gl.ancillaryCollapsedSeries
-        )
-      );
       gl.initialSeries = baseline.map((s2, i2) => {
-        if (hiddenAtInit.indexOf(i2) === -1 || !Utils$1.isObject(s2)) return s2;
+        if (!Utils$1.isObject(s2)) return s2;
+        if (hiddenAtInit.indexOf(i2) === -1 && !(Array.isArray(s2.data) && s2.data.length === 0))
+          return s2;
         const rec = records.find((c) => c.index === i2);
         return rec && Array.isArray(rec.data) && rec.data.length ? __spreadProps(__spreadValues({}, s2), { data: rec.data.slice() }) : s2;
       });
@@ -34111,7 +34381,7 @@ class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = true) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     if (!this.core || !Utils$1.isObject(options2)) {
       console.warn(
@@ -34127,7 +34397,10 @@ class ApexCharts {
       delete options2.series;
     }
     options2 = copyPayload(options2, options2.series);
+    const trellisOff = options2.trellis === null;
     options2 = Config.dropEmptyOptions(options2);
+    if (trellisOff)
+      options2 = __spreadProps(__spreadValues({}, options2), { trellis: { by: null, row: null, column: null } });
     const unloaded = unloadedTypeRejection(
       (_a = options2 == null ? void 0 : options2.chart) == null ? void 0 : _a.type,
       options2 == null ? void 0 : options2.series
@@ -34138,13 +34411,19 @@ class ApexCharts {
       this.opts = Utils$1.extend(this.opts || {}, options2 || {});
       this.w.config = Utils$1.extend(w.config, options2 || {});
       const settled = this.trellis._rendering ? this.trellis.whenSettled() : Promise.resolve();
-      return settled.then(() => {
+      return settled.then(() => __async(this, null, function* () {
+        var _a2;
+        let waitedOn = null;
+        while (((_a2 = this.trellis) == null ? void 0 : _a2._rendering) && this.trellis._renderPromise !== waitedOn) {
+          waitedOn = this.trellis._renderPromise;
+          yield this.trellis.whenSettled();
+        }
         if (inPlace && this.trellis.canApplyInPlace(options2)) {
           return this.trellis.applyPanelOptions(animate).then(() => this);
         }
         this.trellis.teardown();
         return this.render();
-      });
+      }));
     }
     w.interact.selection = void 0;
     if (options2.series) {
@@ -34161,7 +34440,11 @@ class ApexCharts {
           }
         );
       }
-      this.updateHelpers.revertDefaultAxisMinMax();
+      if ((_b = this.history) == null ? void 0 : _b.applying) {
+        this.updateHelpers.revertDefaultAxisMinMax();
+      } else {
+        this.updateHelpers.revertZoom();
+      }
     }
     if (options2.xaxis) {
       options2 = this.updateHelpers.forceXAxisUpdate(options2);
@@ -34192,6 +34475,22 @@ class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
+    return this._replaceSeries(newSeries, animate, overwriteInitialSeries);
+  }
+  /**
+   * updateSeries() with one switch. Series fed in from the page drop any zoom
+   * (#5388); an internal re-feed of the chart's own series (a highlightFilter
+   * pick, a crossfilter aggregation) passes `keepView` so the zoomed window,
+   * the zoomed flag and the reset control survive it (#5389).
+   *
+   * @private
+   * @param {any[]} newSeries
+   * @param {boolean} [animate=true]
+   * @param {boolean} [overwriteInitialSeries=true]
+   * @param {{ keepView?: boolean }} [opts]
+   * @returns {Promise<ApexCharts>}
+   */
+  _replaceSeries(newSeries = [], animate = true, overwriteInitialSeries = true, { keepView = false } = {}) {
     if (!this.core || !Array.isArray(newSeries)) {
       console.warn(
         "ApexCharts: updateSeries() ignored the call: no series array, or a destroyed chart."
@@ -34209,7 +34508,7 @@ class ApexCharts {
     }
     this.data.resetParsingFlags();
     this.series.prepareDataUpdate();
-    this.updateHelpers.revertDefaultAxisMinMax();
+    if (!keepView) this.updateHelpers.revertZoom();
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,
@@ -34301,6 +34600,7 @@ class ApexCharts {
     }
     trimStreamingSeries(newSeries, me.w);
     if (reducerRaw) trimStreamingSeries(reducerRaw, me.w);
+    trimStreamingSeries(records, me.w);
     me.w.config.series = newSeries;
     return this.update(void 0, overwriteInitialSeries);
   }
@@ -34410,6 +34710,17 @@ class ApexCharts {
       if (w.config.chart.ink && w.config.chart.ink.enabled) {
         this._fastAxisBailReason = "ink";
         return false;
+      }
+      const frozenPad = gl.barPadForNumericAxis || 0;
+      if (frozenPad > 0 && this.dimensions && this.dimensions.dimGrid) {
+        const pad = this.dimensions.dimGrid.gridPadForColumnsInNumericAxis(
+          w.layout.gridWidth + 2 * frozenPad
+        );
+        gl.barPadForNumericAxis = frozenPad;
+        if (Math.abs(pad - frozenPad) > 0.5) {
+          this._fastAxisBailReason = `barPad ${pad} != ${frozenPad}`;
+          return false;
+        }
       }
       const dim = this.dimensions;
       if (!dim || !dim.dimYAxis) {
@@ -35353,6 +35664,19 @@ class ApexCharts {
    */
   getSeriesTotal() {
     return this.w.globals.seriesTotals;
+  }
+  /**
+   * Where a radialBar or gauge drew its dial on the last render: the centre,
+   * the radius and thickness of each ring and of the bands, the start and end
+   * angles, and the value-to-angle mapping. Plot-local px (the space of
+   * `getChartArea()`), angles in degrees, 0 at 12 o'clock, clockwise. Frozen;
+   * a later render publishes a new object. Null on every other chart type and
+   * before the first render.
+   *
+   * @returns {import('./types/internal').RadialGeometry | null}
+   */
+  getRadialScales() {
+    return this.w.globals.radialScales || null;
   }
   /**
    * Returns a curated snapshot of chart state for use in formatters, events,

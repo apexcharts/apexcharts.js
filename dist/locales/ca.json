@@ -49,7 +49,19 @@
       "zoomIn": "Augmentar",
       "zoomOut": "Disminuir",
       "pan": "Navegació",
-      "reset": "Reiniciar Zoom"
+      "reset": "Reiniciar Zoom",
+      "measure": "Mesurar",
+      "wheelZoomHint": "Utilitzeu {key} + desplaçament per fer zoom"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Premeu Retorn o Espai per alternar.",
+      "visible": "visible",
+      "hidden": "oculta",
+      "zoomedIn": "Ampliat",
+      "zoomedOut": "Reduït",
+      "zoomReset": "Zoom restablert",
+      "pannedLeft": "Desplaçat a l'esquerra",
+      "pannedRight": "Desplaçat a la dreta"
     }
   }
 }

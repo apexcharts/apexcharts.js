@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1529,6 +1529,32 @@ class Toolbar {
     };
   }
   /**
+   * The y axes an x-window change (zoom buttons, zoomX, keyboard +/-, pan,
+   * wheel, pinch, pixel pan) renders with and reports in `zoomed`. Rebuilt
+   * from the initial config, except that the y window a zoom box chose on a
+   * 'xy' or 'y' chart is kept: moving x must not throw the y half of the zoom
+   * away (#5369). autoScaleYaxis fits y to the x window itself, so it keeps
+   * starting from the initial config.
+   * @returns {any[]}
+   */
+  yaxisForXWindow() {
+    const w = this.w;
+    const initial = w.globals.initialConfig;
+    if (!initial) return [];
+    const yaxis = Utils.clone(initial.yaxis);
+    const zoom = w.config.chart.zoom || {};
+    if (!w.interact.zoomed || zoom.autoScaleYaxis || zoom.type !== "xy" && zoom.type !== "y" || !Array.isArray(yaxis)) {
+      return yaxis;
+    }
+    yaxis.forEach((y, i) => {
+      const cur = w.config.yaxis[i];
+      if (!y || !cur) return;
+      y.min = cur.min;
+      y.max = cur.max;
+    });
+    return yaxis;
+  }
+  /**
    * @param {number} newMinX
    * @param {number} newMaxX
    */
@@ -1563,7 +1589,7 @@ class Toolbar {
       xaxis
     };
     if (!w.globals.initialConfig) return;
-    const yaxis = Utils.clone(w.globals.initialConfig.yaxis);
+    const yaxis = this.yaxisForXWindow();
     if (!w.config.chart.group) {
       options.yaxis = yaxis;
     }
@@ -1961,6 +1987,7 @@ class ZoomPanSelection extends Toolbar {
       this.startX = this._screenXToPlotPx(this.clientX);
       this.startY = this._screenYToPlotPx(this.clientY);
       this.dragged = false;
+      this.w.interact.wasDragged = false;
       this.w.interact.mousedown = true;
     }
     if (e.type === "mousemove" && e.which === 1 || e.type === "touchmove") {
@@ -1984,18 +2011,21 @@ class ZoomPanSelection extends Toolbar {
       }
     }
     if (e.type === "mouseup" || e.type === "touchend" || e.type === "mouseleave") {
-      this.handleMouseUp({ zoomtype });
+      this.handleMouseUp({ zoomtype, eventType: e.type });
     }
     this.makeSelectionRectDraggable();
   }
-  /** @param {{ zoomtype?: any, isResized?: any }} opts */
-  handleMouseUp({ zoomtype, isResized }) {
+  /** @param {{ zoomtype?: any, isResized?: any, eventType?: string }} opts */
+  handleMouseUp({ zoomtype, isResized, eventType }) {
     const w = this.w;
     if (this._hasPlot() && (this.w.interact.mousedown || isResized)) {
       this.endX = this._screenXToPlotPx(this.clientX);
       this.endY = this._screenYToPlotPx(this.clientY);
       this.dragX = Math.abs(this.endX - this.startX);
       this.dragY = Math.abs(this.endY - this.startY);
+      if ((eventType === "mouseup" || eventType === "touchend") && (w.interact.zoomEnabled || w.interact.selectionEnabled) && this.dragged && (this.dragX > 10 || this.dragY > 10)) {
+        w.interact.wasDragged = true;
+      }
       if (w.interact.zoomEnabled || w.interact.selectionEnabled) {
         this.selectionDrawn({
           context: this,
@@ -2251,7 +2281,7 @@ class ZoomPanSelection extends Toolbar {
     st.endTimer = null;
     if (w.globals.isDestroyed || !w.interact.zoomed) return;
     const { min, max } = this._currentXWindow();
-    const yaxis = w.globals.initialConfig ? Utils.clone(w.globals.initialConfig.yaxis) : [];
+    const yaxis = this.yaxisForXWindow();
     const toolbar = this.ctx.toolbar;
     if (toolbar) toolbar.zoomCallback({ min, max }, yaxis);
   }
@@ -2744,7 +2774,7 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     const xyRatios = this.xyRatios;
     if (!w.globals.initialConfig) return;
-    const yaxis = Utils.clone(w.globals.initialConfig.yaxis);
+    const yaxis = this.yaxisForXWindow();
     let xRatio = xyRatios.xRatio;
     let minX = w.globals.minX;
     let maxX = w.globals.maxX;
@@ -2932,7 +2962,7 @@ class ZoomPanSelection extends Toolbar {
     if (!(newMaxX > newMinX)) return false;
     const options = { xaxis: { min: newMinX, max: newMaxX } };
     if (!w.config.chart.group) {
-      options.yaxis = Utils.clone(w.globals.initialConfig.yaxis);
+      options.yaxis = this.yaxisForXWindow();
     }
     if (isZoom) w.interact.zoomed = true;
     this.ctx.updateHelpers._updateOptions(options, false, false);
@@ -3100,12 +3130,11 @@ class ZoomPanSelection extends Toolbar {
     this._applyXRange(newMinX, newMaxX, true);
   }
   _endPinch() {
-    const w = this.w;
     const m = this._m();
     m.pinch = null;
     const { min, max } = this._currentXWindow();
     const xaxis = { min, max };
-    const yaxis = w.globals.initialConfig ? Utils.clone(w.globals.initialConfig.yaxis) : [];
+    const yaxis = this.yaxisForXWindow();
     const toolbar = this.ctx.toolbar;
     if (toolbar) toolbar.zoomCallback(xaxis, yaxis);
   }

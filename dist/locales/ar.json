@@ -57,7 +57,19 @@
 "zoomIn": "تكبير",
 "zoomOut": "تصغير",
 "pan": "تحريك",
-"reset": "إعادة التعيين"
+"reset": "إعادة التعيين",
+"measure": "قياس",
+"wheelZoomHint": "استخدم {key} + التمرير للتكبير"
+},
+"a11y": {
+"legendItem": "{name}، {state}. اضغط Enter أو مسافة للتبديل.",
+"visible": "ظاهرة",
+"hidden": "مخفية",
+"zoomedIn": "تم التكبير",
+"zoomedOut": "تم التصغير",
+"zoomReset": "تمت إعادة تعيين التكبير",
+"pannedLeft": "تم التحريك لليسار",
+"pannedRight": "تم التحريك لليمين"
 }
 }
 }

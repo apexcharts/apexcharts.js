@@ -50,7 +50,18 @@
       "zoomOut": "Micșorare",
       "pan": "Panoramare",
       "reset": "Resetare zoom",
-      "measure": "Măsurare"
+      "measure": "Măsurare",
+      "wheelZoomHint": "Folosiți {key} + derulare pentru zoom"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Apăsați Enter sau Spațiu pentru a comuta.",
+      "visible": "vizibilă",
+      "hidden": "ascunsă",
+      "zoomedIn": "Mărit",
+      "zoomedOut": "Micșorat",
+      "zoomReset": "Zoom resetat",
+      "pannedLeft": "Deplasat la stânga",
+      "pannedRight": "Deplasat la dreapta"
     }
   }
 }

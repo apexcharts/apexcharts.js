@@ -49,7 +49,19 @@
       "zoomIn": "Zoom: Přiblížit",
       "zoomOut": "Zoom: Oddálit",
       "pan": "Přesouvat",
-      "reset": "Resetovat"
+      "reset": "Resetovat",
+      "measure": "Měřit",
+      "wheelZoomHint": "Pro přiblížení použijte {key} + posouvání"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Stisknutím klávesy Enter nebo mezerníku přepnete.",
+      "visible": "zobrazena",
+      "hidden": "skryta",
+      "zoomedIn": "Přiblíženo",
+      "zoomedOut": "Oddáleno",
+      "zoomReset": "Přiblížení obnoveno",
+      "pannedLeft": "Posunuto doleva",
+      "pannedRight": "Posunuto doprava"
     }
   }
 }

@@ -49,7 +49,19 @@
       "zoomIn": "ซูมเข้า",
       "zoomOut": "ซูมออก",
       "pan": "ปรากฎว่า",
-      "reset": "รีเซ็ตการซูม"
+      "reset": "รีเซ็ตการซูม",
+      "measure": "วัด",
+      "wheelZoomHint": "ใช้ {key} + เลื่อนเพื่อซูม"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state} กด Enter หรือ Space เพื่อสลับ",
+      "visible": "แสดงอยู่",
+      "hidden": "ซ่อนอยู่",
+      "zoomedIn": "ซูมเข้าแล้ว",
+      "zoomedOut": "ซูมออกแล้ว",
+      "zoomReset": "รีเซ็ตการซูมแล้ว",
+      "pannedLeft": "เลื่อนไปทางซ้ายแล้ว",
+      "pannedRight": "เลื่อนไปทางขวาแล้ว"
     }
   }
 }

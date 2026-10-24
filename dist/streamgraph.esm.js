@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1161,12 +1161,9 @@ class Helpers {
     lineYPosition,
     translationsIndex
   }) {
-    var _a, _b, _c;
-    const w = this.w;
-    const stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || /** @type {any} */
-    ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || /** @type {any} */
-    ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
-    if (typeof ((_c = series[i]) == null ? void 0 : _c[0]) !== "undefined") {
+    var _a;
+    const stackSeries = this.lineCtx.isStackedSeries(realIndex);
+    if (typeof ((_a = series[i]) == null ? void 0 : _a[0]) !== "undefined") {
       if (stackSeries) {
         if (i > 0) {
           const top = this.lineCtx.stackTopAt(realIndex, 0);
@@ -1983,6 +1980,7 @@ class Line {
       seriesIndex
     );
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
+    series = this._percentRows(series, type, seriesIndex);
     this.prevSeriesY = [];
     this.prevSeriesYByX = /* @__PURE__ */ new Map();
     this._stackXs = null;
@@ -2301,9 +2299,7 @@ class Line {
    * @returns {any}
    */
   _stackKey(realIndex, ordinal) {
-    if (!this.w.axisFlags.isXNumeric) return ordinal;
-    const xs = this.w.seriesData.seriesX[realIndex];
-    return xs ? xs[ordinal] : void 0;
+    return CoreUtils.stackKey(this.w, realIndex, ordinal);
   }
   /**
    * Pixel y of the top of the stack at one point of the series being drawn, or
@@ -2317,6 +2313,54 @@ class Line {
     const key = this._stackKey(realIndex, ordinal);
     if (key === void 0 || key === null) return void 0;
     return this.prevSeriesYByX.get(key);
+  }
+  /**
+   * Whether this series stacks. A stacked combo chart with the default
+   * `stackOnlyBar` stacks only its bar and column series, so none of the
+   * line and area series drawn here.
+   * @param {number} realIndex
+   */
+  isStackedSeries(realIndex) {
+    var _a;
+    const cfg = this.w.config;
+    if (!cfg.chart.stacked) return false;
+    if (!this.w.globals.comboCharts || !cfg.chart.stackOnlyBar) return true;
+    const t = (
+      /** @type {any} */
+      (_a = cfg.series[realIndex]) == null ? void 0 : _a.type
+    );
+    return t === "bar" || t === "column";
+  }
+  /**
+   * Under `stackType: '100%'` a stacked line or area draws each point's
+   * share of its stack (w.globals.seriesPercent), as BarStacked does, not
+   * its raw value on the 0..100 axis (#5384). A series that does not stack
+   * (a line over a stacked bar combo with `stackOnlyBar`) keeps its row. A
+   * null stays null, a gap rather than a 0% point. `this.percentRows`
+   * holds the rows by realIndex for the data labels, else null.
+   * @param {any[]} series
+   * @param {string} type
+   * @param {any} seriesIndex
+   * @returns {any[]}
+   */
+  _percentRows(series, type, seriesIndex) {
+    const w = this.w;
+    this.percentRows = null;
+    if (!w.config.chart.stacked || w.config.chart.stackType !== "100%" || type !== "line" && type !== "area") {
+      return series;
+    }
+    const pct = w.globals.seriesPercent;
+    const rows = [];
+    const out = series.map((row, i) => {
+      const ri = w.globals.comboCharts ? seriesIndex[i] : i;
+      const p = pct == null ? void 0 : pct[ri];
+      if (!this.isStackedSeries(ri) || !Array.isArray(row) || !p) return row;
+      const raw = w.seriesData.series[ri] || row;
+      rows[ri] = row.map((v, j) => raw[j] == null ? raw[j] : p[j]);
+      return rows[ri];
+    });
+    this.percentRows = rows;
+    return out;
   }
   /** @param {number} ri */
   _hidden(ri) {
@@ -2341,8 +2385,7 @@ class Line {
    * @param {any[]} [row] the drawn row, if not the series' own (a part)
    */
   _recordStackTops(realIndex, yArrj, row = this.w.seriesData.series[realIndex]) {
-    const w = this.w;
-    if (!w.config.chart.stacked) return;
+    if (!this.isStackedSeries(realIndex)) return;
     if (!Array.isArray(yArrj)) return;
     if (this._hidden(realIndex)) return;
     for (let j = 0; j < yArrj.length; j++) {
@@ -2570,7 +2613,7 @@ class Line {
     isRangeStart,
     seriesRangeEnd
   }) {
-    var _a, _b, _c;
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const yRatio = this.yRatio;
@@ -2586,9 +2629,7 @@ class Line {
       return lineYPos - _y / yRatio[translationsIndex] + (this.isReversed ? _y / yRatio[translationsIndex] : 0) * 2;
     };
     let y2 = y;
-    const stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || /** @type {Record<string,any>} */
-    ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || /** @type {Record<string,any>} */
-    ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
+    const stackSeries = this.isStackedSeries(realIndex);
     let curve = w.config.stroke.curve;
     if (Array.isArray(curve)) {
       if (Array.isArray(seriesIndex)) {
@@ -2644,7 +2685,7 @@ class Line {
           while (ks[kp] < sX) {
             m.push([
               (ks[kp] - w.globals.minX) / this.xRatio,
-              (_c = this.prevSeriesYByX.get(ks[kp++])) != null ? _c : this.zeroY
+              (_a = this.prevSeriesYByX.get(ks[kp++])) != null ? _a : this.zeroY
             ]);
           }
           if (m.length) midsAt[j + 1] = m;
@@ -2764,6 +2805,7 @@ class Line {
   }
   /** @param {{type: any, pointsPos: any, isRangeStart: any, j: any, realIndex: any}} opts */
   _handleMarkersAndLabels({ type, pointsPos, isRangeStart, j, realIndex }) {
+    var _a;
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
       const elPointsWrap = this.markers.plotChartMarkers({
@@ -2788,7 +2830,9 @@ class Line {
       isRangeStart,
       pos: pointsPos,
       i: realIndex,
-      j: j + 1
+      j: j + 1,
+      // A 100% stack labels each point with the share it is drawn at.
+      row: (_a = this.percentRows) == null ? void 0 : _a[realIndex]
     });
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels);

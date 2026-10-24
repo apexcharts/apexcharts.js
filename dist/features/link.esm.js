@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -615,7 +615,9 @@ class LinkedViews {
       return;
     }
     this._lastValues = sig;
-    this.ctx.updateSeries(this._seriesFromAgg(agg), true);
+    this.ctx._replaceSeries(this._seriesFromAgg(agg), true, true, {
+      keepView: true
+    });
   }
   _afterRender() {
     if (this._mode() !== "filter") return;
@@ -640,7 +642,7 @@ class LinkedViews {
       const series = this._seriesFromAgg(agg);
       if (!series.length) return;
       this._lastValues = this._sigOf(agg);
-      this.ctx.updateSeries(series, true);
+      this.ctx._replaceSeries(series, true, true, { keepView: true });
     });
   }
   /**

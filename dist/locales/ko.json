@@ -49,7 +49,19 @@
       "zoomIn": "확대",
       "zoomOut": "축소",
       "pan": "패닝",
-      "reset": "원래대로"
+      "reset": "원래대로",
+      "measure": "측정",
+      "wheelZoomHint": "확대/축소하려면 {key} + 스크롤을 사용하세요"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. 전환하려면 Enter 또는 Space 키를 누르세요.",
+      "visible": "표시됨",
+      "hidden": "숨겨짐",
+      "zoomedIn": "확대됨",
+      "zoomedOut": "축소됨",
+      "zoomReset": "확대/축소 초기화됨",
+      "pannedLeft": "왼쪽으로 이동됨",
+      "pannedRight": "오른쪽으로 이동됨"
     }
   }
 }

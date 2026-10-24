@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -975,6 +975,28 @@ const SVGElement = _core.__apex_SVGElement;
 const SVGNS = _core.__apex_math_SVGNS;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const Grid = _core.__apex_axes_Grid;
+function parseDash(dash) {
+  if (dash == null || dash === "") return [];
+  let parts;
+  if (Array.isArray(dash)) {
+    parts = dash;
+  } else if (typeof dash === "number") {
+    parts = [dash];
+  } else {
+    const s = String(dash).trim();
+    if (s === "" || s === "none") return [];
+    parts = s.split(/[\s,]+/);
+  }
+  const out = [];
+  let any = false;
+  for (const p of parts) {
+    const n = typeof p === "number" ? p : Number(String(p).replace(/px$/i, ""));
+    if (!isFinite(n) || n < 0) return [];
+    if (n > 0) any = true;
+    out.push(n);
+  }
+  return any ? out : [];
+}
 const TWO_PI = Math.PI * 2;
 const DPR_CAP = 2;
 class CanvasCompositor {
@@ -1526,12 +1548,7 @@ class CanvasCompositor {
     ctx.strokeStyle = stroke;
     ctx.lineWidth = sw;
     ctx.lineCap = style.lineCap || "butt";
-    const dash = style.strokeDash;
-    if (dash && dash !== 0) {
-      ctx.setLineDash(Array.isArray(dash) ? dash : [Number(dash)]);
-    } else {
-      ctx.setLineDash([]);
-    }
+    ctx.setLineDash(parseDash(style.strokeDash));
     return true;
   }
   /** Series bitmap for the export composite bridge (P4). @returns {string|null} */

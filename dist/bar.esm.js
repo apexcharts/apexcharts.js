@@ -18,13 +18,14 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
+const CoreUtils = _core.__apex_CoreUtils;
 const DataLabels = _core.__apex_DataLabels;
 const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
   if (typeof value !== "function") return value;
@@ -201,7 +202,8 @@ class BarDataLabels {
       barWidth: params.barWidth,
       barHeight: params.barHeight,
       textRects,
-      dataLabelsConfig
+      dataLabelsConfig,
+      keep: hl == null ? void 0 : hl.keep
     });
     if (drawTotal) {
       totalDataLabels = this.drawTotalDataLabels({
@@ -284,7 +286,7 @@ class BarDataLabels {
     var _a, _b;
     const w = this.w;
     return w.axisFlags.isXNumeric && /** @type {any} */
-    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(w.seriesData.seriesX[realIndex][j]));
+    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(CoreUtils.stackKey(w, realIndex, j)));
   }
   /**
    * The stacked total's text box, measured in the total's own font.
@@ -603,7 +605,7 @@ class BarDataLabels {
       totalDataLabelsAnchor
     };
   }
-  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
+  /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any, keep?: boolean}} opts */
   drawCalculatedDataLabels({
     x,
     y,
@@ -616,7 +618,8 @@ class BarDataLabels {
     textRects,
     barHeight,
     barWidth,
-    dataLabelsConfig
+    dataLabelsConfig,
+    keep
   }) {
     var _a, _b, _c;
     const w = this.w;
@@ -672,13 +675,16 @@ class BarDataLabels {
       if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && // A collapsing series is measured against its NEW extent, which is
       // already zero, so this would blank a label whose bar is still at full
       // height on screen. It starts out fitting and fades away with the mark.
-      !isSeriesCollapsing) {
+      !isSeriesCollapsing && !keep) {
+        const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
+        const labelW = vertical ? textRects.height : textRects.width;
+        const labelH = vertical ? textRects.width : textRects.height;
         if (this.barCtx.isHorizontal) {
-          if (textRects.width / 1.6 > Math.abs(barWidth)) {
+          if (labelW / 1.6 > Math.abs(barWidth) || labelH > Math.abs(barHeight)) {
             text = "";
           }
         } else {
-          if (textRects.height / 1.6 > Math.abs(barHeight)) {
+          if (labelH / 1.6 > Math.abs(barHeight) || labelW > Math.abs(barWidth)) {
             text = "";
           }
         }
@@ -758,7 +764,6 @@ class BarDataLabels {
 }
 const Series = _core.__apex_Series;
 const Fill = _core.__apex_Fill;
-const CoreUtils = _core.__apex_CoreUtils;
 const Utils = _core.__apex_Utils;
 function isHistogramOverlay(w) {
   var _a, _b, _c, _d, _e, _f, _g;
@@ -1820,7 +1825,7 @@ class Helpers {
     return [
       { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
       { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 }
-    ];
+    ].filter((end) => end.value != null);
   }
   /**
    * The text for one end label.
@@ -3838,7 +3843,7 @@ class BarStacked extends Bar {
       (_b = (_a = this.series[i]) == null ? void 0 : _a[j]) != null ? _b : null
     );
     const g = this.groupCtx;
-    const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j] : j;
+    const key = CoreUtils.stackKey(w, realIndex, j);
     const top = g.tops.get(key);
     if (top) {
       const [prevX, prevVal, prevBarW] = top;
@@ -3919,7 +3924,7 @@ class BarStacked extends Bar {
     const barXPosition = x + columnGroupIndex * barWidth;
     let barYPosition;
     const g = this.groupCtx;
-    const key = w.axisFlags.isXNumeric ? w.seriesData.seriesX[realIndex][j] : j;
+    const key = CoreUtils.stackKey(w, realIndex, j);
     const top = g.tops.get(key);
     if (top) {
       const [prevYValue, prevVal, prevBarH] = top;

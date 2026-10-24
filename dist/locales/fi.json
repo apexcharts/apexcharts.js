@@ -49,7 +49,19 @@
       "zoomIn": "Lähennä",
       "zoomOut": "Loitonna",
       "pan": "Panoroi",
-      "reset": "Nollaa zoomaus"
+      "reset": "Nollaa zoomaus",
+      "measure": "Mittaa",
+      "wheelZoomHint": "Zoomaa käyttämällä {key} + vieritystä"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Vaihda painamalla Enter tai välilyönti.",
+      "visible": "näkyvissä",
+      "hidden": "piilotettu",
+      "zoomedIn": "Lähennetty",
+      "zoomedOut": "Loitonnettu",
+      "zoomReset": "Zoomaus nollattu",
+      "pannedLeft": "Siirretty vasemmalle",
+      "pannedRight": "Siirretty oikealle"
     }
   }
 }

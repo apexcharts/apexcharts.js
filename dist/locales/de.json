@@ -49,7 +49,19 @@
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
       "pan": "Verschieben",
-      "reset": "Zoom zurücksetzen"
+      "reset": "Zoom zurücksetzen",
+      "measure": "Messen",
+      "wheelZoomHint": "Zum Zoomen {key} + Scrollen verwenden"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Zum Umschalten Eingabetaste oder Leertaste drücken.",
+      "visible": "sichtbar",
+      "hidden": "ausgeblendet",
+      "zoomedIn": "Vergrößert",
+      "zoomedOut": "Verkleinert",
+      "zoomReset": "Zoom zurückgesetzt",
+      "pannedLeft": "Nach links verschoben",
+      "pannedRight": "Nach rechts verschoben"
     }
   }
 }

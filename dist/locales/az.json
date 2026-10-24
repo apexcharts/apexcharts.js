@@ -50,7 +50,18 @@
       "zoomOut": "Uzaqlaşdır",
       "pan": "Sürüşdürmə",
       "reset": "Yaxınlaşdırmanı Sıfırla",
-      "measure": "Ölçmə"
+      "measure": "Ölçmə",
+      "wheelZoomHint": "Yaxınlaşdırmaq üçün {key} + sürüşdürmədən istifadə edin"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Dəyişmək üçün Enter və ya Boşluq düyməsini basın.",
+      "visible": "görünür",
+      "hidden": "gizlədilib",
+      "zoomedIn": "Yaxınlaşdırıldı",
+      "zoomedOut": "Uzaqlaşdırıldı",
+      "zoomReset": "Miqyas sıfırlandı",
+      "pannedLeft": "Sola sürüşdürüldü",
+      "pannedRight": "Sağa sürüşdürüldü"
     }
   }
 }

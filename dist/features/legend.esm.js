@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.4.1
+ * ApexCharts v8.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -127,27 +127,6 @@ class Helpers {
       } else {
         this.hideSeries({ seriesEl, realIndex });
       }
-      if (w.config.chart.accessibility.enabled) {
-        const legendItem = w.dom.baseEl.querySelector(
-          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
-        );
-        if (legendItem) {
-          const isCollapsed = w.globals.collapsedSeriesIndices.includes(realIndex) || w.globals.ancillaryCollapsedSeriesIndices.includes(realIndex);
-          legendItem.setAttribute(
-            "aria-pressed",
-            isCollapsed ? "true" : "false"
-          );
-          const legendTextEl = legendItem.querySelector(
-            ".apexcharts-legend-text"
-          );
-          const seriesName = legendTextEl ? legendTextEl.textContent : w.seriesData.seriesNames[seriesCnt];
-          const statusText = isCollapsed ? "hidden" : "visible";
-          legendItem.setAttribute(
-            "aria-label",
-            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
-          );
-        }
-      }
     } else {
       w.globals.resized = true;
       w.globals.risingSeries = [];
@@ -163,27 +142,6 @@ class Helpers {
           series,
           w.config.chart.animations.dynamicAnimation.enabled
         );
-      }
-      if (w.config.chart.accessibility.enabled) {
-        const legendItem = w.dom.baseEl.querySelector(
-          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
-        );
-        if (legendItem) {
-          const isCollapsed = w.globals.collapsedSeriesIndices.includes(seriesCnt);
-          legendItem.setAttribute(
-            "aria-pressed",
-            isCollapsed ? "true" : "false"
-          );
-          const legendTextEl = legendItem.querySelector(
-            ".apexcharts-legend-text"
-          );
-          const seriesName = legendTextEl ? legendTextEl.textContent : w.seriesData.seriesNames[seriesCnt];
-          const statusText = isCollapsed ? "hidden" : "visible";
-          legendItem.setAttribute(
-            "aria-label",
-            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
-          );
-        }
       }
     }
   }
@@ -391,16 +349,17 @@ function toHexPair(n) {
   return v.toString(16).padStart(2, "0");
 }
 function mixColors(c1, c2, t) {
-  const a = Utils.parseHex(normalizeHex(c1));
-  const b = Utils.parseHex(normalizeHex(c2));
+  const a = Utils.parseColor(normalizeHex(c1));
+  const b = Utils.parseColor(normalizeHex(c2));
   if (!a || !b) return c1;
-  return "#" + toHexPair(lerp(a[0], b[0], t)) + toHexPair(lerp(a[1], b[1], t)) + toHexPair(lerp(a[2], b[2], t));
+  return toHex(a.map((v, k) => lerp(v, b[k], t)));
+}
+function toHex(c) {
+  return "#" + c.slice(0, 3).map(toHexPair).join("") + (c[3] < 1 ? toHexPair(c[3] * 255) : "");
 }
 function normalizeHex(c) {
-  if (typeof c !== "string") return "#000000";
-  if (Utils.isColorHex(c)) return c;
-  const asHex = Utils.rgb2hex(c);
-  return asHex || "#000000";
+  const rgba = typeof c === "string" ? Utils.parseColor(c.trim()) : null;
+  return rgba ? toHex(rgba) : "#000000";
 }
 function colorValueOf(w, i, j) {
   const series = (
@@ -538,6 +497,15 @@ function buildContinuousScale(w) {
     };
   });
   return { min, max, midpoint, stops, at, legendStops };
+}
+function shadePercent(w, chartType, p, negRange) {
+  const opts = w.config.plotOptions[chartType];
+  const shadeIntensity = opts.shadeIntensity;
+  const k = shadeIntensity * 1.25;
+  if (w.globals.hasNegs || negRange) {
+    return opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
+  }
+  return chartType === "treemap" ? (1 - p) * k : 1 - p;
 }
 const TooltipUtils = _core.__apex_tooltip_Utils;
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -714,7 +682,7 @@ class HeatmapGradientLegend {
       }
     }
     const arrowColor = ((_f = cfg.arrow) == null ? void 0 : _f.color) || w.config.chart.foreColor;
-    const arrow = this._buildArrow(arrowSize, arrowColor, position);
+    const arrow = this._buildArrow(arrowColor);
     svg.appendChild(arrow);
     this.arrowEl = arrow;
     this._bandHitEls = [];
@@ -762,7 +730,6 @@ class HeatmapGradientLegend {
       tt.style.position = "absolute";
       tt.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
       tt.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
-      tt.style.color = w.config.chart.foreColor;
       tt.style.background = "rgba(0,0,0,0.65)";
       tt.style.color = "#fff";
       tt.style.padding = "2px 6px";
@@ -1161,11 +1128,9 @@ class HeatmapGradientLegend {
     }
   }
   /**
-   * @param {number} size
    * @param {string} color
-   * @param {'top'|'right'|'bottom'|'left'} _position
    */
-  _buildArrow(size, color, _position) {
+  _buildArrow(color) {
     const polygon = BrowserAPIs.createElementNS(SVG_NS, "polygon");
     polygon.setAttribute("fill", color);
     polygon.setAttribute("opacity", "0");
@@ -1198,7 +1163,7 @@ class HeatmapGradientLegend {
    * @returns {{ min: number, max: number, stops: Array<{percent:number,color:string}>, bands: Array<{index:number,p1:number,p2:number}> }}
    */
   _computeStops() {
-    var _a, _b;
+    var _a;
     const w = this.w;
     const cs = HeatmapGradientLegend.colorScaleOf(w) || {};
     const cfg = this._cfg();
@@ -1264,27 +1229,18 @@ class HeatmapGradientLegend {
       const utils = new Utils();
       const type = w.config.chart.type;
       const plot = w.config.plotOptions[type] || {};
-      const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
       const g = (
         /** @type {any} */
         w.globals
       );
-      const hasNegs = g.hasNegs;
       const yExt = type === "heatmap" && !plot.distributed && !csWindow && g.maxY >= g.minY;
       const hi = yExt ? g.maxY : max;
       const total = Math.abs(hi) + Math.abs(yExt ? cs.min < g.minY ? cs.min : g.minY : min);
-      const k = shadeIntensity * 1.25;
       const n = Math.max(2, cfg.stops || 16);
       for (let s = 0; s < n; s++) {
         const t = s / (n - 1);
         const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
-        const c = Math.max(
-          -1,
-          Math.min(
-            1,
-            hasNegs ? plot.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity : (1 - p) * (type === "treemap" ? k : 1)
-          )
-        );
+        const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
         const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
@@ -1352,7 +1308,7 @@ class Legend {
       }
     }
   }
-  createLegendMarker({ i, fillcolor }) {
+  createLegendMarker({ i, fillcolor, markers }) {
     const w = this.w;
     const elMarker = BrowserAPIs.createElement("span");
     elMarker.classList.add("apexcharts-legend-marker");
@@ -1381,21 +1337,17 @@ class Legend {
         elMarker.innerHTML = w.config.legend.markers.customHTML();
       }
     } else {
-      const markers = new Markers(this.ctx.w, this.ctx);
       const markerConfig = markers.getMarkerConfig({
         cssClass: `apexcharts-legend-marker apexcharts-marker apexcharts-marker-${shape}`,
         seriesIndex: i,
         strokeWidth: mBorderWidth,
         size: mSize
       });
-      const SVGLib = Environment.isBrowser() ? (
+      const SVG = (
         /** @type {any} */
-        window.SVG
-      ) : (
-        /** @type {any} */
-        global.SVG
+        globalThis.SVG
       );
-      const SVGMarker = SVGLib().addTo(elMarker).size("100%", "100%");
+      const SVGMarker = SVG().addTo(elMarker).size("100%", "100%");
       const marker = new Graphics(this.w).drawMarker(0, 0, __spreadProps(__spreadValues({}, markerConfig), {
         pointFillColor: Array.isArray(fillcolor) ? fillcolor[i] : markerConfig.pointFillColor,
         shape
@@ -1406,7 +1358,7 @@ class Legend {
     return elMarker;
   }
   drawLegends() {
-    var _a;
+    var _a, _b;
     const me = this;
     const w = this.w;
     const elLegendWrap = (
@@ -1430,6 +1382,7 @@ class Legend {
     }
     const legendFormatter = w.formatters.legendFormatter;
     const isLegendInversed = w.config.legend.inverseOrder;
+    const markers = new Markers(w, this.ctx);
     const legendGroups = [];
     if (w.labelData.seriesGroups.length > 1 && w.config.legend.clusterGroupedSeries) {
       w.labelData.seriesGroups.forEach((_, gi) => {
@@ -1463,7 +1416,7 @@ class Legend {
           }
         }
       }
-      const elMarker = this.createLegendMarker({ i, fillcolor });
+      const elMarker = this.createLegendMarker({ i, fillcolor, markers });
       Graphics.setAttrs(elMarker, {
         rel: i + 1,
         "data:collapsed": collapsedSeries || ancillaryCollapsedSeries
@@ -1477,10 +1430,15 @@ class Legend {
         elLegend.setAttribute("tabindex", "0");
         const seriesName = Array.isArray(text) ? text.join(" ") : text;
         const isCollapsed = collapsedSeries || ancillaryCollapsedSeries;
-        const statusText = isCollapsed ? "hidden" : "visible";
+        const a11y = ((_a = w.globals.locale) == null ? void 0 : _a.a11y) || {};
+        const statusText = isCollapsed ? a11y.hidden || "hidden" : a11y.visible || "visible";
+        const template = a11y.legendItem || "{name}, {state}. Press Enter or Space to toggle.";
         elLegend.setAttribute(
           "aria-label",
-          `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+          template.replace(
+            /\{(name|state)\}/g,
+            (_, key) => key === "name" ? seriesName : statusText
+          )
         );
         elLegend.setAttribute("aria-pressed", isCollapsed ? "true" : "false");
       }
@@ -1494,7 +1452,7 @@ class Legend {
         elLegendText.innerHTML = shown;
         elLegendText.setAttribute("data:html", "1");
       }
-      let textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : Array.isArray(w.config.legend.labels.colors) ? (_a = w.config.legend.labels.colors) == null ? void 0 : _a[i] : w.config.legend.labels.colors;
+      let textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : Array.isArray(w.config.legend.labels.colors) ? (_b = w.config.legend.labels.colors) == null ? void 0 : _b[i] : w.config.legend.labels.colors;
       if (!textColor) {
         textColor = w.config.chart.foreColor;
       }
