@@ -457,6 +457,20 @@ void columnChart
 const trellisOff: ApexCharts.ApexOptions = { trellis: null }
 void trellisOff
 
+// "Hide, never move" data labels, the hiding shared across series (#5378).
+const hideNeverMove: ApexCharts.ApexOptions = {
+  dataLabels: {
+    enabled: true,
+    avoidOverlap: { maxShift: 0, hide: true, hideOrder: 'balanced' },
+  },
+}
+const laterFirst: ApexCharts.ApexDataLabels = {
+  avoidOverlap: { hide: true, hideOrder: 'later' },
+}
+// @ts-expect-error hideOrder is 'later' | 'balanced'
+const badHideOrder: ApexCharts.ApexDataLabels = { avoidOverlap: { hideOrder: 'alternate' } }
+void hideNeverMove; void laterFirst; void badHideOrder
+
 // Dash patterns (#5383): a number, a dash list string or an array. A
 // top-level array on stroke.dashArray is one value per series, so a pattern
 // shared by every series is a string and a per-series array pattern nests.

@@ -592,6 +592,10 @@ class DataLabels {
       // pass has to compare the pills or it leaves them touching.
       const padH = (bCnf.enabled ? bCnf.padding : 0) * scaleX
       const padV = (bCnf.enabled ? bCnf.padding / 2 : 0) * scaleY
+      // The series, for `hideOrder: 'balanced'`: every chart type draws its
+      // labels into a `.apexcharts-datalabels` group stamped with realIndex.
+      const wrap = el.closest?.('.apexcharts-datalabels')
+      const group = wrap ? wrap.getAttribute('data:realIndex') : null
       measured.push({
         el,
         scaleY,
@@ -602,6 +606,7 @@ class DataLabels {
           height: box.height + padV,
           order: measured.length,
           fixed: rotated,
+          group: group ?? undefined,
         },
       })
     }
@@ -623,6 +628,7 @@ class DataLabels {
             height: box.width,
             order: box.order,
             fixed: box.fixed,
+            group: box.group,
           }
         : box,
     )
@@ -673,6 +679,11 @@ class DataLabels {
       // fix: on a crowded horizontal bar it removed eight of eighteen labels.
       // Off, a pair that cannot be separated is simply left as it is today.
       hide: opts.hide === true,
+      // Which label of an unseparable pair goes. 'later' drops the later-drawn
+      // one, which on two series colliding at every point empties the second
+      // series; 'balanced' spreads the loss across series (#5378). Opt-in so
+      // every chart already using `hide` keeps its labels as they were.
+      hideOrder: opts.hideOrder === 'balanced' ? 'balanced' : 'later',
     })
 
     const attr = horizontal ? 'x' : 'y'

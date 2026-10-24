@@ -33,6 +33,9 @@
  *   rotated label is the case that matters: its `y` attribute runs along its
  *   own rotated axis, so writing to it slides the label sideways on screen
  *   rather than up or down.
+ * @property {number | string} [group] the series the label belongs to. Only
+ *   read by `hideOrder: 'balanced'`, which spreads the hiding across groups;
+ *   boxes without one share a single group.
  */
 
 /**
@@ -45,6 +48,10 @@
  * @property {boolean} [hide] drop a label that could not be separated. Off by
  *   default: leaving an overlap is what the chart did before this pass, and a
  *   silently deleted value is worse than the overlap.
+ * @property {'later' | 'balanced'} [hideOrder] which label of a colliding
+ *   pair `hide` drops. 'later' (default): the later-drawn one, so on two
+ *   series that collide at every point the second series loses all of its
+ *   labels. 'balanced': see `pickBalancedLoser`.
  * @property {number} [iterations] relaxation passes, default 6
  */
 
@@ -68,6 +75,40 @@ function overlapY(a, aShift, b, bShift) {
  */
 function overlapX(a, b) {
   return Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)
+}
+
+/**
+ * `hideOrder: 'balanced'`: of a colliding pair, drop the label whose series
+ * would come out of it having lost the SMALLER share of its labels, i.e. the
+ * smaller `(hidden + 1) / total`. Greedily that keeps the worst-hit series'
+ * loss as low as it can be, so no series is emptied while another keeps
+ * everything:
+ *
+ *   - two equal series colliding at every point take turns, each keeping
+ *     about half;
+ *   - a 4-label series against a 24-label one gives up a label only once the
+ *     large one has lost a quarter of its own, because one label is a quarter
+ *     of the small series but a 24th of the large one.
+ *
+ * A tie, and a pair from the same series, falls back to the 'later' rule. The
+ * inputs are geometry, draw order and series, never anything that changes
+ * between two renders of the same data, so the same label hides every time.
+ *
+ * @param {number} later index of the later-drawn box of the pair
+ * @param {number} earlier index of the earlier-drawn box
+ * @param {LabelBox[]} boxes
+ * @param {Map<number | string | undefined, {total: number, hidden: number}>} groups
+ * @returns {number} the index to hide
+ */
+function pickBalancedLoser(later, earlier, boxes, groups) {
+  const gl = groups.get(boxes[later].group)
+  const ge = groups.get(boxes[earlier].group)
+  if (!gl || !ge || gl === ge) return later
+  // (gl.hidden + 1) / gl.total vs (ge.hidden + 1) / ge.total, cross-multiplied
+  // so the comparison is exact.
+  const lossLater = (gl.hidden + 1) * ge.total
+  const lossEarlier = (ge.hidden + 1) * gl.total
+  return lossEarlier < lossLater ? earlier : later
 }
 
 /**
@@ -185,8 +226,19 @@ export function resolveLabelOverlaps(boxes, opts) {
 
   if (!opts.hide) return result
 
-  // Whatever the budget could not separate is hidden, later-drawn label first,
-  // so the chart is short a label rather than showing two unreadable ones.
+  // Whatever the budget could not separate is hidden, later-drawn label first
+  // (or spread across series, with hideOrder 'balanced'), so the chart is
+  // short a label rather than showing two unreadable ones.
+  const balanced = opts.hideOrder === 'balanced'
+  /** @type {Map<number | string | undefined, {total: number, hidden: number}>} */
+  const groups = new Map()
+  if (balanced) {
+    for (let i = 0; i < n; i++) {
+      const g = groups.get(boxes[i].group)
+      if (g) g.total++
+      else groups.set(boxes[i].group, { total: 1, hidden: 0 })
+    }
+  }
   for (let p = 0; p < idx.length; p++) {
     const i = idx[p]
     if (result[i].hidden) continue
@@ -202,7 +254,11 @@ export function resolveLabelOverlaps(boxes, opts) {
         // never allowed to move: if neither could be separated, leaving both
         // visible is what the chart did before this pass existed, and silently
         // deleting a label is worse than the overlap it was meant to prevent.
-        const first = a.order <= b.order ? j : i
+        const later = a.order <= b.order ? j : i
+        const earlier = later === i ? j : i
+        const first = balanced
+          ? pickBalancedLoser(later, earlier, boxes, groups)
+          : later
         const second = first === i ? j : i
         const loser = !boxes[first].fixed
           ? first
@@ -211,6 +267,10 @@ export function resolveLabelOverlaps(boxes, opts) {
             : -1
         if (loser === -1) continue
         result[loser].hidden = true
+        if (balanced) {
+          const g = groups.get(boxes[loser].group)
+          if (g) g.hidden++
+        }
         // `a` itself just lost, so it has no further say over the boxes to
         // its right; they are judged against whoever is still visible.
         if (loser === i) break

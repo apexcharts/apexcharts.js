@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import './__mocks__/ResizeObserver.js'
+import ApexCharts from '../../src/entries/standard.js'
 import { resolveLabelOverlaps } from '../../src/modules/helpers/DataLabelOverlap.js'
 import DataLabels from '../../src/modules/DataLabels.js'
 
@@ -185,6 +187,96 @@ describe('resolveLabelOverlaps', () => {
     expect(span).toBeLessThanOrEqual(2 * OPTS.maxShift + 0.01)
   })
 
+  // #5378: "hide, never move" on two series whose labels coincide at every
+  // point. Boxes are in draw order: all of series 0, then all of series 1.
+  describe('hideOrder', () => {
+    const N = 12
+    const twoSeries = (nA = N, nB = N) => [
+      ...Array.from({ length: nA }, (_, i) =>
+        ({ ...box(i * 60, 200, { order: i }), group: 0 }),
+      ),
+      ...Array.from({ length: nB }, (_, i) =>
+        ({ ...box(i * 60, 200, { order: nA + i }), group: 1 }),
+      ),
+    ]
+    const HIDE_ONLY = { ...OPTS, maxShift: 0 }
+    const keptPerSeries = (boxes, res) => {
+      const kept = [0, 0]
+      res.forEach((r, i) => {
+        if (!r.hidden) kept[boxes[i].group]++
+      })
+      return kept
+    }
+
+    it("'later' (the default) empties the later-drawn series, as before", () => {
+      const boxes = twoSeries()
+      const byDefault = resolveLabelOverlaps(boxes, HIDE_ONLY)
+      const later = resolveLabelOverlaps(boxes, { ...HIDE_ONLY, hideOrder: 'later' })
+      expect(later).toEqual(byDefault)
+      expect(keptPerSeries(boxes, later)).toEqual([N, 0])
+      expect(later.every((r) => r.dy === 0)).toBe(true)
+    })
+
+    it("'balanced' leaves each series about half its labels, none overlapping", () => {
+      const boxes = twoSeries()
+      const { res, pairs } = collisionsAfter(boxes, {
+        ...HIDE_ONLY,
+        hideOrder: 'balanced',
+      })
+      expect(pairs).toEqual([])
+      expect(res.every((r) => r.dy === 0)).toBe(true) // never moved
+      expect(keptPerSeries(boxes, res)).toEqual([N / 2, N / 2])
+      // One label per point survives, and the series take turns.
+      for (let i = 0; i < N; i++) {
+        expect(res[i].hidden).not.toBe(res[N + i].hidden)
+      }
+    })
+
+    it("'balanced' spreads the loss by share, so a short series is not emptied", () => {
+      // 4 labels against 12, every one of the short series colliding.
+      const boxes = twoSeries(12, 4)
+      const res = resolveLabelOverlaps(boxes, { ...HIDE_ONLY, hideOrder: 'balanced' })
+      const [a, b] = keptPerSeries(boxes, res)
+      expect(a + b).toBe(12) // one survivor per colliding point
+      expect(b).toBeGreaterThan(0)
+      // Each series keeps at least the share the other keeps, within a label.
+      expect(Math.abs(a / 12 - b / 4)).toBeLessThanOrEqual(1 / 4 + 1e-9)
+    })
+
+    it("'balanced' is deterministic: the same boxes hide the same labels", () => {
+      const opts = { ...HIDE_ONLY, hideOrder: 'balanced' }
+      const first = resolveLabelOverlaps(twoSeries(), opts)
+      const second = resolveLabelOverlaps(twoSeries(), opts)
+      expect(second).toEqual(first)
+    })
+
+    it("'balanced' falls back to later-drawn within one series and without groups", () => {
+      const stack = Array.from({ length: 4 }, (_, i) => box(100, 200, { order: i }))
+      const opts = { ...HIDE_ONLY, hideOrder: 'balanced' }
+      expect(resolveLabelOverlaps(stack, opts)).toEqual(
+        resolveLabelOverlaps(stack, HIDE_ONLY),
+      )
+      const oneSeries = stack.map((b) => ({ ...b, group: 3 }))
+      expect(resolveLabelOverlaps(oneSeries, opts)).toEqual(
+        resolveLabelOverlaps(oneSeries, HIDE_ONLY),
+      )
+    })
+
+    it("'balanced' still never drops a label that was never allowed to move", () => {
+      // The pick at the first point is the fixed label; its movable partner
+      // goes instead.
+      const boxes = [
+        { ...box(0, 200, { order: 0 }), group: 0 },
+        { ...box(0, 200, { order: 1, fixed: true }), group: 1 },
+        { ...box(200, 200, { order: 2 }), group: 1 },
+        { ...box(200, 200, { order: 3 }), group: 0 },
+      ]
+      const res = resolveLabelOverlaps(boxes, { ...HIDE_ONLY, hideOrder: 'balanced' })
+      expect(res[1].hidden).toBe(false)
+      expect(res.filter((r) => r.hidden)).toHaveLength(2)
+    })
+  })
+
   it('is stable: resolving an already-resolved layout changes nothing', () => {
     const boxes = [box(100, 200, { order: 0 }), box(140, 206, { order: 1 })]
     const first = resolveLabelOverlaps(boxes, OPTS)
@@ -269,5 +361,94 @@ describe('DataLabels.avoidOverlaps keeps labels inside the plot', () => {
     new DataLabels(w).avoidOverlaps()
     expect(texts.map((t) => t.getAttribute('y'))).toEqual(['17', '17'])
     expect(texts.some((t) => t.style.display === 'none')).toBe(false)
+  })
+})
+
+// #5378 on a rendered chart: two series with identical data, so their labels
+// coincide at every point. jsdom has no layout, so each label measures a box
+// around its own x/y attributes (what the browser measures for unrotated text).
+describe('avoidOverlap hideOrder on a rendered chart', () => {
+  const N = 10
+  const data = Array.from({ length: N }, (_, i) => 20 + i * 3)
+
+  let restore
+  beforeEach(() => {
+    const proto = SVGElement.prototype
+    const original = proto.getBBox
+    proto.getBBox = function () {
+      if (this.getAttribute?.('class')?.includes('apexcharts-datalabel')) {
+        const x = parseFloat(this.getAttribute('x') || '0')
+        const y = parseFloat(this.getAttribute('y') || '0')
+        return { x: x - 10, y: y - 12, width: 20, height: 14 }
+      }
+      return original.call(this)
+    }
+    restore = () => {
+      proto.getBBox = original
+    }
+  })
+  afterEach(() => restore())
+
+  const render = async (avoidOverlap) => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'line', width: 800, height: 300, animations: { enabled: false } },
+      series: [
+        { name: 'A', data },
+        { name: 'B', data },
+      ],
+      xaxis: { categories: data.map((_, i) => `P${i + 1}`) },
+      dataLabels: { enabled: true, background: { enabled: false }, avoidOverlap },
+      legend: { show: false },
+    })
+    await chart.render()
+    return chart
+  }
+
+  /** Per series: the indices of the labels left showing. */
+  const shown = (chart) =>
+    [0, 1].map((s) => {
+      const wrap = Array.from(
+        chart.w.dom.baseEl.querySelectorAll('.apexcharts-datalabels'),
+      ).find((n) => n.getAttribute('data:realIndex') === String(s))
+      return Array.from(wrap.querySelectorAll('text.apexcharts-datalabel'))
+        .map((t, i) => (t.style.display === 'none' ? -1 : i))
+        .filter((i) => i !== -1)
+    })
+
+  it("'later' (the default) keeps series A and drops every label of B", async () => {
+    const chart = await render({ maxShift: 0, hide: true })
+    const [a, b] = shown(chart)
+    expect(a).toHaveLength(N)
+    expect(b).toHaveLength(0)
+    chart.destroy()
+  })
+
+  it("'balanced' shares the hiding, never moves a label, and is stable on update", async () => {
+    const chart = await render({ maxShift: 0, hide: true, hideOrder: 'balanced' })
+    const [a, b] = shown(chart)
+    expect(a.length + b.length).toBe(N)
+    expect(a).toHaveLength(N / 2)
+    expect(b).toHaveLength(N / 2)
+    // Exactly one label per point: the series take turns.
+    expect([...a, ...b].sort((p, q) => p - q)).toEqual(
+      Array.from({ length: N }, (_, i) => i),
+    )
+    const ys = Array.from(
+      chart.w.dom.baseEl.querySelectorAll('text.apexcharts-datalabel'),
+    ).map((t) => t.getAttribute('y'))
+
+    // Same data again: the same labels hide, nothing moves.
+    await chart.updateSeries([
+      { name: 'A', data },
+      { name: 'B', data },
+    ])
+    expect(shown(chart)).toEqual([a, b])
+    expect(
+      Array.from(
+        chart.w.dom.baseEl.querySelectorAll('text.apexcharts-datalabel'),
+      ).map((t) => t.getAttribute('y')),
+    ).toEqual(ys)
+    chart.destroy()
   })
 })

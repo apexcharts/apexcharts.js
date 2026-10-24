@@ -4862,6 +4862,14 @@ type ApexDataLabels = {
    * Rotated labels (`plotOptions.bar.dataLabels.orientation: 'vertical'`) are
    * avoided but never moved, and radial types (pie, donut, polarArea,
    * radialBar, radar) are left to their own label placement.
+   *
+   * "Hide, never move": on a line or area chart a label moved up or down
+   * sits beside a different value on the axis, so keep every label on its
+   * mark and drop the ones that collide, shared out across the series:
+   *
+   * ```js
+   * avoidOverlap: { maxShift: 0, hide: true, hideOrder: 'balanced' }
+   * ```
    */
   avoidOverlap?:
     | boolean
@@ -4880,6 +4888,21 @@ type ApexDataLabels = {
          * unseparated overlap is left alone rather than a value removed.
          */
         hide?: boolean
+        /**
+         * Which label of a colliding pair `hide` drops.
+         * - `'later'` (default): the later-drawn one. Two series whose labels
+         *   collide at every point therefore leave the second series with
+         *   none.
+         * - `'balanced'`: the one whose series would have lost the smaller
+         *   share of its labels, so the hiding is spread across the series
+         *   (two equal series each keep about half) and none is emptied while
+         *   another keeps everything. A tie, or a pair from one series, falls
+         *   back to later-drawn.
+         *
+         * Both are deterministic: the same data hides the same labels on
+         * every render and update.
+         */
+        hideOrder?: 'later' | 'balanced'
       }
   /**
    * Horizontal offset of the label. Pass a function to vary the offset per

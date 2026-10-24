@@ -2256,6 +2256,11 @@ export default class Options {
         //             their budget, later-drawn first. Off by default: this
         //             pass runs on every chart, and silently deleting a value
         //             is worse than the overlap it set out to fix.
+        //   hideOrder which label of a pair `hide` drops: 'later' (default)
+        //             the later-drawn one, 'balanced' the one whose series
+        //             has lost the smaller share so far, so no series is
+        //             emptied. "Hide, never move":
+        //             { maxShift: 0, hide: true, hideOrder: 'balanced' }
         // Labels separate along the VALUE axis, so a horizontal bar's move
         // left/right and everything else moves up/down. Rotated labels are
         // avoided but never moved, and radial types (pie, radar, ...) are left
