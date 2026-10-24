@@ -49,7 +49,19 @@
       "zoomIn": "Zooma in",
       "zoomOut": "Zooma ut",
       "pan": "Panorering",
-      "reset": "Återställ zoomning"
+      "reset": "Återställ zoomning",
+      "measure": "Mät",
+      "wheelZoomHint": "Använd {key} + rullning för att zooma"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Tryck på Enter eller blanksteg för att växla.",
+      "visible": "synlig",
+      "hidden": "dold",
+      "zoomedIn": "Inzoomad",
+      "zoomedOut": "Utzoomad",
+      "zoomReset": "Zoom återställd",
+      "pannedLeft": "Panorerad åt vänster",
+      "pannedRight": "Panorerad åt höger"
     }
   }
 }

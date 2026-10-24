@@ -49,7 +49,19 @@
       "zoomIn": "Yakınlaştır",
       "zoomOut": "Uzaklaştır",
       "pan": "Kaydır",
-      "reset": "Yakınlaştırmayı Sıfırla"
+      "reset": "Yakınlaştırmayı Sıfırla",
+      "measure": "Ölç",
+      "wheelZoomHint": "Yakınlaştırmak için {key} + kaydırma kullanın"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Değiştirmek için Enter veya Boşluk tuşuna basın.",
+      "visible": "görünür",
+      "hidden": "gizli",
+      "zoomedIn": "Yakınlaştırıldı",
+      "zoomedOut": "Uzaklaştırıldı",
+      "zoomReset": "Yakınlaştırma sıfırlandı",
+      "pannedLeft": "Sola kaydırıldı",
+      "pannedRight": "Sağa kaydırıldı"
     }
   }
 }

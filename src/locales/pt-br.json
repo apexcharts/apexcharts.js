@@ -49,7 +49,19 @@
       "zoomIn": "Aumentar",
       "zoomOut": "Diminuir",
       "pan": "Navegação",
-      "reset": "Reiniciar Zoom"
+      "reset": "Reiniciar Zoom",
+      "measure": "Medir",
+      "wheelZoomHint": "Use {key} + rolagem para aplicar zoom"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Pressione Enter ou Espaço para alternar.",
+      "visible": "visível",
+      "hidden": "oculta",
+      "zoomedIn": "Zoom aumentado",
+      "zoomedOut": "Zoom reduzido",
+      "zoomReset": "Zoom redefinido",
+      "pannedLeft": "Movido para a esquerda",
+      "pannedRight": "Movido para a direita"
     }
   }
 }

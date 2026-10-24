@@ -57,7 +57,19 @@
       "zoomIn": "Phóng to",
       "zoomOut": "Thu nhỏ",
       "pan": "Di chuyển",
-      "reset": "Đặt lại thu phóng"
+      "reset": "Đặt lại thu phóng",
+      "measure": "Đo",
+      "wheelZoomHint": "Dùng {key} + cuộn để thu phóng"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Nhấn Enter hoặc Space để bật/tắt.",
+      "visible": "đang hiện",
+      "hidden": "đang ẩn",
+      "zoomedIn": "Đã phóng to",
+      "zoomedOut": "Đã thu nhỏ",
+      "zoomReset": "Đã đặt lại thu phóng",
+      "pannedLeft": "Đã di chuyển sang trái",
+      "pannedRight": "Đã di chuyển sang phải"
     }
   }
 }

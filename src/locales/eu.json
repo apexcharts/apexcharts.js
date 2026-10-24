@@ -50,7 +50,18 @@
       "zoomOut": "Txikiagotu",
       "pan": "Desplazatu",
       "reset": "Berrezarri zooma",
-      "measure": "Neurtu"
+      "measure": "Neurtu",
+      "wheelZoomHint": "Erabili {key} + korritu zooma egiteko"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Sakatu Sartu edo Zuriunea txandakatzeko.",
+      "visible": "ikusgai",
+      "hidden": "ezkutatuta",
+      "zoomedIn": "Handiagotuta",
+      "zoomedOut": "Txikiagotuta",
+      "zoomReset": "Zooma berrezarrita",
+      "pannedLeft": "Ezkerrera mugituta",
+      "pannedRight": "Eskuinera mugituta"
     }
   }
 }

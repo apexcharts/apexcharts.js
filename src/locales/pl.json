@@ -49,7 +49,19 @@
       "zoomIn": "Zoom: Przybliż",
       "zoomOut": "Zoom: Oddal",
       "pan": "Przesuwanie",
-      "reset": "Resetuj"
+      "reset": "Resetuj",
+      "measure": "Pomiar",
+      "wheelZoomHint": "Użyj {key} + przewijania, aby powiększyć"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Naciśnij Enter lub spację, aby przełączyć.",
+      "visible": "widoczna",
+      "hidden": "ukryta",
+      "zoomedIn": "Przybliżono",
+      "zoomedOut": "Oddalono",
+      "zoomReset": "Zresetowano powiększenie",
+      "pannedLeft": "Przesunięto w lewo",
+      "pannedRight": "Przesunięto w prawo"
     }
   }
 }

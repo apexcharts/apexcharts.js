@@ -57,7 +57,19 @@
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "pan": "Verplaatsen",
-      "reset": "Standaardwaarden"
+      "reset": "Standaardwaarden",
+      "measure": "Meten",
+      "wheelZoomHint": "Gebruik {key} + scrollen om te zoomen"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Druk op Enter of spatie om te wisselen.",
+      "visible": "zichtbaar",
+      "hidden": "verborgen",
+      "zoomedIn": "Ingezoomd",
+      "zoomedOut": "Uitgezoomd",
+      "zoomReset": "Zoom hersteld",
+      "pannedLeft": "Naar links verschoven",
+      "pannedRight": "Naar rechts verschoven"
     }
   }
 }

@@ -49,7 +49,19 @@
       "zoomIn": "Zoom: Aumentar",
       "zoomOut": "Zoom: Diminuir",
       "pan": "Deslocamento",
-      "reset": "Redefinir"
+      "reset": "Redefinir",
+      "measure": "Medir",
+      "wheelZoomHint": "Utilize {key} + deslocamento para fazer zoom"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Prima Enter ou Espaço para alternar.",
+      "visible": "visível",
+      "hidden": "oculta",
+      "zoomedIn": "Zoom aumentado",
+      "zoomedOut": "Zoom reduzido",
+      "zoomReset": "Zoom redefinido",
+      "pannedLeft": "Deslocado para a esquerda",
+      "pannedRight": "Deslocado para a direita"
     }
   }
 }

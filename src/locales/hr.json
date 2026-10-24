@@ -49,7 +49,19 @@
       "zoomIn": "Uvećajte prikaz",
       "zoomOut": "Umanjite prikaz",
       "pan": "Pomicanje",
-      "reset": "Povratak na zadani prikaz"
+      "reset": "Povratak na zadani prikaz",
+      "measure": "Mjerenje",
+      "wheelZoomHint": "Za zumiranje koristite {key} + pomicanje"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Pritisnite Enter ili razmaknicu za prebacivanje.",
+      "visible": "vidljiva",
+      "hidden": "skrivena",
+      "zoomedIn": "Uvećano",
+      "zoomedOut": "Umanjeno",
+      "zoomReset": "Zumiranje poništeno",
+      "pannedLeft": "Pomaknuto ulijevo",
+      "pannedRight": "Pomaknuto udesno"
     }
   }
 }

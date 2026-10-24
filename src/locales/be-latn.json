@@ -49,7 +49,19 @@
       "zoomIn": "Nablizić",
       "zoomOut": "Addalić",
       "pan": "Ssoŭvańnie",
-      "reset": "Skinuć maštabavańnie"
+      "reset": "Skinuć maštabavańnie",
+      "measure": "Vymierać",
+      "wheelZoomHint": "Kab maštabavać, vykarystoŭvajcie {key} + prakrutku"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Naciśnicie Enter abo Prabieł, kab pieraklučyć.",
+      "visible": "bačnaja",
+      "hidden": "schavanaja",
+      "zoomedIn": "Nabližana",
+      "zoomedOut": "Addalena",
+      "zoomReset": "Maštab skinuty",
+      "pannedLeft": "Zrušana ŭlieva",
+      "pannedRight": "Zrušana ŭprava"
     }
   }
 }

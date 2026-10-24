@@ -49,7 +49,19 @@
       "zoomIn": "放大",
       "zoomOut": "縮小",
       "pan": "平移",
-      "reset": "重置縮放"
+      "reset": "重置縮放",
+      "measure": "測量",
+      "wheelZoomHint": "使用 {key} + 捲動來縮放"
+    },
+    "a11y": {
+      "legendItem": "{name}，{state}。按 Enter 或空白鍵切換。",
+      "visible": "顯示",
+      "hidden": "隱藏",
+      "zoomedIn": "已放大",
+      "zoomedOut": "已縮小",
+      "zoomReset": "已重設縮放",
+      "pannedLeft": "已向左平移",
+      "pannedRight": "已向右平移"
     }
   }
 }

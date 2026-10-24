@@ -49,7 +49,19 @@
       "zoomIn": "Zoome inn",
       "zoomOut": "Zoome ut",
       "pan": "Skyving",
-      "reset": "Start på nytt"
+      "reset": "Start på nytt",
+      "measure": "Mål",
+      "wheelZoomHint": "Bruk {key} + rulling for å zoome"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Trykk Enter eller mellomrom for å veksle.",
+      "visible": "synlig",
+      "hidden": "skjult",
+      "zoomedIn": "Zoomet inn",
+      "zoomedOut": "Zoomet ut",
+      "zoomReset": "Zoom tilbakestilt",
+      "pannedLeft": "Panorert til venstre",
+      "pannedRight": "Panorert til høyre"
     }
   }
 }

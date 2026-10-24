@@ -57,7 +57,19 @@
       "zoomIn": "Suurenda",
       "zoomOut": "Vähenda",
       "pan": "Panoraamimine",
-      "reset": "Lähtesta suum"
+      "reset": "Lähtesta suum",
+      "measure": "Mõõda",
+      "wheelZoomHint": "Suumimiseks kasutage {key} + kerimist"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Vahetamiseks vajutage Enter või tühikut.",
+      "visible": "nähtav",
+      "hidden": "peidetud",
+      "zoomedIn": "Suurendatud",
+      "zoomedOut": "Vähendatud",
+      "zoomReset": "Suum lähtestatud",
+      "pannedLeft": "Nihutatud vasakule",
+      "pannedRight": "Nihutatud paremale"
     }
   }
 }

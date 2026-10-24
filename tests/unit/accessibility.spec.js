@@ -1,4 +1,5 @@
 import { createChartWithOptions } from './utils/utils.js'
+import de from '../../src/locales/de.json'
 
 // ---------------------------------------------------------------------------
 // Helper: create a chart with accessibility options
@@ -472,6 +473,45 @@ describe('Accessibility', () => {
       expect(item.getAttribute('aria-label')).toBe(
         'Pears, hidden. Press Enter or Space to toggle.',
       )
+    })
+
+    // #5373: the label's words come from the chart's locale, not English
+    it('should localize the legend aria-label from the chart locale', () => {
+      const chart = chartWithAccessibility({
+        chart: { locales: [de], defaultLocale: 'de' },
+      })
+      chart.toggleSeries('Series A')
+
+      const hidden = chart.el.querySelector(
+        '.apexcharts-legend-series[rel="1"]',
+      )
+      const shown = chart.el.querySelector('.apexcharts-legend-series[rel="2"]')
+      expect(hidden.getAttribute('aria-label')).toBe(
+        'Series A, ausgeblendet. Zum Umschalten Eingabetaste oder Leertaste drücken.',
+      )
+      expect(shown.getAttribute('aria-label')).toBe(
+        'Series B, sichtbar. Zum Umschalten Eingabetaste oder Leertaste drücken.',
+      )
+    })
+
+    it('should fill a custom legendItem template and keep $ in series names', () => {
+      const chart = chartWithAccessibility({
+        chart: {
+          locales: [
+            {
+              name: 'xx',
+              options: { a11y: { legendItem: '[{state}] {name}' } },
+            },
+          ],
+          defaultLocale: 'xx',
+        },
+        series: [
+          { name: 'Cost $&', data: [1, 2, 3] },
+          { name: 'B', data: [4, 5, 6] },
+        ],
+      })
+      const item = chart.el.querySelector('.apexcharts-legend-series[rel="1"]')
+      expect(item.getAttribute('aria-label')).toBe('[visible] Cost $&')
     })
 
     it('should not add keyboard attributes on toggle when keyboard.enabled is false', () => {

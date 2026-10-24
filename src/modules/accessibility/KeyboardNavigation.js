@@ -291,7 +291,7 @@ export default class KeyboardNavigation {
         if (this._canZoom()) {
           e.preventDefault()
           this.ctx.toolbar?.handleZoomIn()
-          this._announce('Zoomed in')
+          this._announce(this._a11yText('zoomedIn', 'Zoomed in'))
         }
         break
       case '-':
@@ -299,14 +299,14 @@ export default class KeyboardNavigation {
         if (this._canZoom()) {
           e.preventDefault()
           this.ctx.toolbar?.handleZoomOut()
-          this._announce('Zoomed out')
+          this._announce(this._a11yText('zoomedOut', 'Zoomed out'))
         }
         break
       case '0':
         if (this._canZoom() && this.w.interact.zoomed) {
           e.preventDefault()
           this.ctx.toolbar?.handleZoomReset()
-          this._announce('Zoom reset')
+          this._announce(this._a11yText('zoomReset', 'Zoom reset'))
         }
         break
       case 'Escape':
@@ -354,7 +354,11 @@ export default class KeyboardNavigation {
    */
   _panBy(direction) {
     this.ctx.zoomPanSelection?.panBy(direction / 10)
-    this._announce(direction > 0 ? 'Panned right' : 'Panned left')
+    this._announce(
+      direction > 0
+        ? this._a11yText('pannedRight', 'Panned right')
+        : this._a11yText('pannedLeft', 'Panned left'),
+    )
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -1835,6 +1839,17 @@ export default class KeyboardNavigation {
     if (x === undefined) return true
 
     return x >= gl.minX && x <= gl.maxX
+  }
+
+  /**
+   * A screen-reader string from the locale's `a11y` group, or the English
+   * default when a user-supplied locale omits it.
+   * @param {string} key
+   * @param {string} fallback
+   * @returns {string}
+   */
+  _a11yText(key, fallback) {
+    return this.w.globals.locale?.a11y?.[key] || fallback
   }
 
   /**

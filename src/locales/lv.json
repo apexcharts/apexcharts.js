@@ -57,7 +57,19 @@
       "zoomIn": "Pietuvināt",
       "zoomOut": "Attālināt",
       "pan": "Pārvietoties diagrammā",
-      "reset": "Atiestatīt pietuvinājumu"
+      "reset": "Atiestatīt pietuvinājumu",
+      "measure": "Mērīt",
+      "wheelZoomHint": "Lai tuvinātu, izmantojiet {key} + ritināšanu"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Nospiediet Enter vai atstarpes taustiņu, lai pārslēgtu.",
+      "visible": "redzama",
+      "hidden": "paslēpta",
+      "zoomedIn": "Pietuvināts",
+      "zoomedOut": "Attālināts",
+      "zoomReset": "Tālummaiņa atiestatīta",
+      "pannedLeft": "Pārvietots pa kreisi",
+      "pannedRight": "Pārvietots pa labi"
     }
   }
 }

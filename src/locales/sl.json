@@ -49,7 +49,19 @@
       "zoomIn": "Zoom: Približaj",
       "zoomOut": "Zoom: Oddalji",
       "pan": "Pomikanje",
-      "reset": "Resetiraj"
+      "reset": "Resetiraj",
+      "measure": "Merjenje",
+      "wheelZoomHint": "Za povečavo uporabite {key} + drsenje"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. Za preklop pritisnite Enter ali preslednico.",
+      "visible": "vidna",
+      "hidden": "skrita",
+      "zoomedIn": "Povečano",
+      "zoomedOut": "Pomanjšano",
+      "zoomReset": "Povečava ponastavljena",
+      "pannedLeft": "Premaknjeno levo",
+      "pannedRight": "Premaknjeno desno"
     }
   }
 }

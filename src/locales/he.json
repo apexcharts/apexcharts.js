@@ -49,7 +49,19 @@
       "zoomIn": "הגדלה",
       "zoomOut": "הקטנה",
       "pan": "הזזה",
-      "reset": "איפוס תצוגה"
+      "reset": "איפוס תצוגה",
+      "measure": "מדידה",
+      "wheelZoomHint": "השתמשו ב-{key} + גלילה כדי להגדיל"
+    },
+    "a11y": {
+      "legendItem": "{name}, {state}. הקישו Enter או רווח כדי להחליף מצב.",
+      "visible": "מוצגת",
+      "hidden": "מוסתרת",
+      "zoomedIn": "הוגדל",
+      "zoomedOut": "הוקטן",
+      "zoomReset": "התצוגה אופסה",
+      "pannedLeft": "הוזז שמאלה",
+      "pannedRight": "הוזז ימינה"
     }
   }
 }

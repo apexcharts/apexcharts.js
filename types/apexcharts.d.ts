@@ -2914,6 +2914,25 @@ type ApexLocale = {
       /** The cooperative wheel's hint; `{key}` becomes Ctrl or ⌘. Default 'Use {key} + scroll to zoom'. */
       wheelZoomHint?: string
     }
+    /** Screen-reader text: legend item labels and keyboard zoom/pan announcements. */
+    a11y?: {
+      /** A legend item's aria-label; `{name}` is the series name, `{state}` the visible/hidden word. Default '{name}, {state}. Press Enter or Space to toggle.'. */
+      legendItem?: string
+      /** Default 'visible'. */
+      visible?: string
+      /** Default 'hidden'. */
+      hidden?: string
+      /** Default 'Zoomed in'. */
+      zoomedIn?: string
+      /** Default 'Zoomed out'. */
+      zoomedOut?: string
+      /** Default 'Zoom reset'. */
+      zoomReset?: string
+      /** Default 'Panned left'. */
+      pannedLeft?: string
+      /** Default 'Panned right'. */
+      pannedRight?: string
+    }
     /** The highlight filter add-on's words. */
     highlightFilter?: {
       /** Names the part beside the whole on a ring's whole lane (tooltip.formatter). Default 'part'. */

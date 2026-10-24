@@ -312,10 +312,19 @@ class Legend {
         // Use formatted legend text (handle both string and array)
         const seriesName = Array.isArray(text) ? text.join(' ') : text
         const isCollapsed = collapsedSeries || ancillaryCollapsedSeries
-        const statusText = isCollapsed ? 'hidden' : 'visible'
+        // the words come from the locale (`a11y`), so a screen reader hears
+        // the chart's language; one template keeps word order per language
+        const a11y = w.globals.locale?.a11y || {}
+        const statusText = isCollapsed
+          ? a11y.hidden || 'hidden'
+          : a11y.visible || 'visible'
+        const template =
+          a11y.legendItem || '{name}, {state}. Press Enter or Space to toggle.'
         elLegend.setAttribute(
           'aria-label',
-          `${seriesName}, ${statusText}. Press Enter or Space to toggle.`,
+          template.replace(/\{(name|state)\}/g, (_, key) =>
+            key === 'name' ? seriesName : statusText,
+          ),
         )
         elLegend.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false')
       }
