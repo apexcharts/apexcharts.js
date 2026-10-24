@@ -289,6 +289,62 @@ describe('indicators', () => {
     expect(needle(chart)).not.toBe(null)
   })
 
+  test('an explicit arc or lanes overridden by the needle warns once', async () => {
+    const said = (spy) =>
+      spy.mock.calls.filter((c) => /is drawn as a needle/.test(String(c[0])))
+    for (const indicator of ['arc', 'lanes']) {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const chart = radial({
+        rb: { shape: 'needle' },
+        hf: { radialBar: { indicator } },
+      })
+      await chart.updateSeries([60])
+      expect(said(spy).length).toBe(1)
+      expect(String(said(spy)[0][0])).toContain(`'${indicator}'`)
+      spy.mockRestore()
+    }
+    // no override, no warning: unset, 'needle', or a gauge with a value arc
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    radial({ rb: { shape: 'needle' } })
+    radial({
+      rb: { shape: 'needle' },
+      hf: { radialBar: { indicator: 'needle' } },
+    })
+    radial({
+      rb: { shape: 'needle', needle: { showValueArc: true } },
+      hf: { radialBar: { indicator: 'arc' } },
+    })
+    expect(said(spy).length).toBe(0)
+  })
+
+  test("a page that hid its own needle still shows the part's at the default size", () => {
+    const d = (chart) =>
+      needle(chart)
+        .querySelector('path')
+        .getAttribute('d')
+        .replace(/\d+\.\d+/g, (n) => Number(n).toFixed(6))
+    const plain = radial({ rb: { shape: 'needle' } })
+    const hidden = radial({
+      rb: {
+        shape: 'needle',
+        needle: {
+          length: '0%',
+          baseWidth: 0,
+          tipWidth: 0,
+          color: 'transparent',
+        },
+      },
+    })
+    expect(needle(hidden)).not.toBe(null)
+    expect(d(hidden)).toBe(d(plain))
+    // a highlightFilter needle size still wins over the fallback
+    const own = radial({
+      rb: { shape: 'needle', needle: { length: '0%' } },
+      hf: { radialBar: { needle: { length: '50%' } } },
+    })
+    expect(d(own)).not.toBe(d(plain))
+  })
+
   test('the DOM contract: no hit, capture or tooltip markers on a part', () => {
     const chart = radial({ series: [70, 50], hf: { data: [40, 20] } })
     for (const p of parts(chart)) {

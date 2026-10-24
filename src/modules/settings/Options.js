@@ -2364,8 +2364,12 @@ export default class Options {
         // track, the part solid in front from the same start), or 'needle'
         // where the gauge draws its own needle (plotOptions.radialBar.shape
         // 'needle'). 'lanes' (opt-in) splits each band in two, the whole
-        // light outside, the part solid inside. Unset needle keys fall back
-        // to plotOptions.radialBar.needle; unset, lanes.opacity (the whole
+        // light outside, the part solid inside. A needle gauge without
+        // needle.showValueArc has no arc to split: its first ring shows the
+        // part with the needle even when indicator is 'arc' or 'lanes' (D17,
+        // warned once). Unset needle keys fall back to
+        // plotOptions.radialBar.needle (a length or both widths of 0 fall
+        // back to the needle's defaults); unset, lanes.opacity (the whole
         // lane's strength) is 0.45.
         radialBar: { indicator: undefined, needle: {} },
       },

@@ -5288,10 +5288,15 @@ type ApexHighlightFilter = {
    * or several rings, gets the arc, except a gauge that draws its own
    * needle (`plotOptions.radialBar.shape: 'needle'`), which gets the needle
    * and fades its own needle while a pick is active; rings after the first
-   * always show arcs. A part past `max` is pinned to the end and
-   * carries `apexcharts-highlight-overflow` (in lanes, so does a part past
-   * its whole, which gets no tick). The needle's keys each fall back to
-   * `plotOptions.radialBar.needle`; its colour to the series'. While a pick
+   * always show arcs. A needle gauge without
+   * `plotOptions.radialBar.needle.showValueArc` has no arc to split, so its
+   * first ring shows the part with the needle even when `indicator` is set
+   * to 'arc' or 'lanes' (a console warning says so once). A part past
+   * `max` is pinned to the end and carries `apexcharts-highlight-overflow`
+   * (in lanes, so does a part past its whole, which gets no tick). The
+   * needle's keys each fall back to `plotOptions.radialBar.needle` (a length
+   * or both widths the page set to 0 fall back to the needle's defaults
+   * instead); its colour to the series'. While a pick
    * is active the tooltip is on (one "part / whole" row per ring) unless
    * the page set `tooltip.enabled` itself.
    */

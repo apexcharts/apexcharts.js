@@ -71,15 +71,20 @@ export function radialPass(hf, r) {
   // front from the same start), unless the gauge draws its own needle:
   // then the part gets a needle beside it. 'lanes' is opt-in only.
   const rb = w.config.plotOptions.radialBar
-  hf._ind =
-    hf.cfg.radialBar?.indicator ?? (rb.shape === 'needle' ? 'needle' : 'arc')
-  // A needle gauge with no value arc has no band to split (D17).
-  if (
-    hf._ind === 'lanes' &&
-    rb.shape === 'needle' &&
-    !rb.needle?.showValueArc
-  ) {
-    hf._ind = 'needle'
+  const asked = hf.cfg.radialBar?.indicator
+  hf._ind = asked ?? (rb.shape === 'needle' ? 'needle' : 'arc')
+  // A needle gauge with no value arc has no band to split (D17): its first
+  // ring shows the part with a needle, whatever `indicator` says ('arc'
+  // through its transparent ring, see ring).
+  if (rb.shape === 'needle' && !rb.needle?.showValueArc) {
+    if (hf._ind === 'lanes') hf._ind = 'needle'
+    if (asked === 'arc' || asked === 'lanes') {
+      hf._warn(
+        'needleNoArc',
+        `indicator '${asked}' is drawn as a needle: a needle gauge without ` +
+          'plotOptions.radialBar.needle.showValueArc has no arc to split.',
+      )
+    }
   }
   if (!hd.active && !hf._prev()?.size) return
   const tt = w.config.tooltip
@@ -1192,7 +1197,18 @@ function needlePart(hf, r, el, needle, pv, mount, morph, c) {
   const base = rb.needle || {}
   /** @type {Record<string, any>} */
   const ncfg = {}
-  NEEDLE_KEYS.forEach((k) => (ncfg[k] = own[k] ?? base[k]))
+  // A page that hid its own needle (no length, or no width at either end)
+  // would hide the part's with it while a pick is on: a size it collapsed
+  // falls back to the needle's default (see needlePath), so the part shows.
+  const none = (/** @type {any} */ v) => v != null && !(parseFloat(v) > 0)
+  const thin = none(base.baseWidth) && none(base.tipWidth)
+  NEEDLE_KEYS.forEach((k) => {
+    const gone =
+      k === 'length'
+        ? none(base.length)
+        : thin && (k === 'baseWidth' || k === 'tipWidth')
+    ncfg[k] = own[k] ?? (gone ? undefined : base[k])
+  })
   const color = own.color ?? gl.colors[0]
   const { path, cx, cy } = r.needlePath(
     {
