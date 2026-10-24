@@ -132,6 +132,50 @@ describe('a legend collapse across a data update', () => {
     chart.destroy()
   })
 
+  // An update that rewrites the baseline while a series is legend-hidden
+  // parses that row emptied; the reset has to bring back the record's data,
+  // not the empty row, or the series is gone for the life of the chart.
+  it('resetSeries after appendData brings a legend-hidden series back whole', async () => {
+    const chart = createChartWithOptions(
+      opts([{ name: 'A', data: [1, 2, 3] }, { name: 'B', data: [4, 5, 6] }]),
+    )
+    await chart.render()
+    chart.hideSeries('B')
+
+    await chart.appendData([{ data: [7] }, { data: [8] }])
+    chart.resetSeries()
+    expect(hidden(chart)).toEqual([])
+    expect(chart.w.config.series[1].data).toEqual([4, 5, 6, 8])
+    chart.destroy()
+  })
+
+  it('resetSeries after updateSeries brings a legend-hidden series back whole', async () => {
+    const chart = createChartWithOptions(
+      opts([{ name: 'A', data: A }, { name: 'B', data: B }]),
+    )
+    await chart.render()
+    chart.hideSeries('B')
+
+    await chart.updateSeries([{ name: 'A', data: [9, 9, 9] }, { name: 'B', data: [8, 8, 8] }])
+    chart.resetSeries()
+    expect(chart.w.config.series[1].data).toEqual([8, 8, 8])
+    chart.destroy()
+  })
+
+  it('leaves a series that is really empty empty', async () => {
+    const chart = createChartWithOptions(
+      opts([{ name: 'A', data: A }, { name: 'B', data: B }, { name: 'C', data: [] }]),
+    )
+    await chart.render()
+    chart.hideSeries('B')
+
+    await chart.appendData([{ data: [7] }, { data: [8] }, { data: [] }])
+    chart.resetSeries()
+    expect(chart.w.config.series[1].data).toEqual([4, 5, 6, 8])
+    expect(chart.w.config.series[2].data).toEqual([])
+    chart.destroy()
+  })
+
   // Emptying a collapsed row must not reach back into the array the caller
   // still holds a reference to.
   it('does not empty the caller own series objects', async () => {

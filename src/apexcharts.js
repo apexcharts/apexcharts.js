@@ -615,13 +615,23 @@ export default class ApexCharts {
     // un-hides one from the legend its length of 0 is compared against its
     // siblings', the check fails, and every shared tooltip on the chart
     // silently drops to the single series nearest the cursor.
-    if (overwriteInitialSeries && hiddenAtInit.length) {
+    //
+    // A series hidden from the legend has the same emptied row whenever an
+    // update that overwrites the baseline (appendData's default) runs while it
+    // is hidden, so its row is repaired too -- but only while parseData saw it
+    // empty, which keeps a series whose data really is [] alone.
+    const records = /** @type {any[]} */ (gl.collapsedSeries).concat(
+      gl.ancillaryCollapsedSeries,
+    )
+    if (overwriteInitialSeries && (hiddenAtInit.length || records.length)) {
       const baseline = /** @type {any[]} */ (gl._initialSeriesPeek || [])
-      const records = /** @type {any[]} */ (gl.collapsedSeries).concat(
-        gl.ancillaryCollapsedSeries,
-      )
       gl.initialSeries = baseline.map((/** @type {any} */ s, i) => {
-        if (hiddenAtInit.indexOf(i) === -1 || !Utils.isObject(s)) return s
+        if (!Utils.isObject(s)) return s
+        if (
+          hiddenAtInit.indexOf(i) === -1 &&
+          !(Array.isArray(s.data) && s.data.length === 0)
+        )
+          return s
         const rec = records.find((/** @type {any} */ c) => c.index === i)
         return rec && Array.isArray(rec.data) && rec.data.length
           ? { ...s, data: rec.data.slice() }
