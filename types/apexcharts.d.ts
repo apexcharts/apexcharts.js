@@ -2193,6 +2193,13 @@ type ApexChart = {
     enabled?: boolean
   }
   stacked?: boolean
+  /**
+   * '100%' draws each stack as shares of its total on a 0 to 100 axis, for
+   * bar, column, area and line series. In a combo, a line or area joins the
+   * percent stack only with `chart.stackOnlyBar: false`, and each
+   * renderer (columns, areas) normalises to its own total. Tooltips keep the
+   * raw value.
+   */
   stackType?: 'normal' | '100%'
   stackOnlyBar?: boolean;
   /**

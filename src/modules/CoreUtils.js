@@ -490,6 +490,33 @@ class CoreUtils {
   }
 
   /**
+   * Which 100% stack each series is a slice of, from config alone so it is
+   * safe however early it is read (the stacked100 label formatter runs
+   * before any parse): 'bar' for a bar or column series, 'line' or 'area'
+   * for a stacked line or area series, else null. A line or area in a combo
+   * with `stackOnlyBar` does not stack (Line.isStackedSeries), so it is no
+   * slice of anything (#2429), nor is a scatter or a range series.
+   *
+   * Bars, areas and lines are separate stacks, each drawn up from the
+   * baseline by its own renderer, so each normalises to its own total.
+   * @param {any} config
+   * @returns {(string | null)[]}
+   */
+  static percentStackKinds(config) {
+    const series = config.series || []
+    const chartType = config.chart.type
+    // An unmerged user config may leave stackOnlyBar out: its default is on.
+    const lineStacks =
+      config.chart.stackOnlyBar === false ||
+      !CoreUtils.checkComboSeries(series, chartType).comboCharts
+    return series.map((/** @type {any} */ s) => {
+      const t = s?.type || chartType
+      if (t === 'bar' || t === 'column') return 'bar'
+      return (t === 'line' || t === 'area') && lineStacks ? t : null
+    })
+  }
+
+  /**
    * @memberof CoreUtils
    * returns the percentage value of all individual values which can be used in a 100% stacked series
    * Eg. w.seriesData.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
@@ -498,45 +525,38 @@ class CoreUtils {
   getPercentSeries() {
     const w = this.w
 
-    // In a combo the 100% total is the BAR series only (#2429). A line drawn
-    // over a 100% stack is not one of its slices, yet it was summed into the
-    // total, so the bars stacked to well under 100 and each label read a
-    // share of a number nothing on the chart shows. Bar.js already sums its
-    // stacked totals over the bar series alone; the percentages now agree.
-    // Classified from config so this is safe however early it is read.
-    const chartType = w.config.chart.type
-    /** @param {{ type?: string }} s */
-    const isBarSeries = (s) =>
-      s.type
-        ? s.type === 'bar' || s.type === 'column'
-        : chartType === 'bar' || chartType === 'column'
-    const hasBars = w.config.series.some(isBarSeries)
-    const excluded = hasBars
-      ? w.config.series
-          .map((/** @type {any} */ s, /** @type {number} */ i) =>
-            isBarSeries(s) ? -1 : i,
-          )
-          .filter((/** @type {number} */ i) => i !== -1)
-      : []
-    const stackedTotals = excluded.length
-      ? this.getStackedSeriesTotals(excluded)
-      : w.seriesData.stackedSeriesTotals
-    // Bars and areas on a numeric axis stack by x, so each point takes its
-    // share of the stack at its own x.
+    // Each series takes its share of the stack it is drawn in (#5384): bars
+    // of the bar total, areas of the area total, lines of the line total. A
+    // line drawn unstacked over a 100% bar stack is not one of its slices
+    // (#2429) and is not summed into it.
+    const kinds = CoreUtils.percentStackKinds(w.config)
     // Each series group is its own stack, so it normalises to its own total.
+    // A bar stacks per group in any chart, a line or area only in a combo
+    // (Core draws each group separately there; otherwise one pass).
+    const combo = CoreUtils.checkComboSeries(
+      w.config.series,
+      w.config.chart.type,
+    ).comboCharts
     const gi = w.labelData.seriesGroupIndex
-    const byKey = w.axisFlags.isXNumeric || w.labelData.seriesGroups.length > 1
-    /** @param {number} i @param {number} j */
-    const key = (i, j) => gi[i] + ' ' + CoreUtils.stackKey(w, i, j)
-    /** @type {Map<string, number>} */
-    const byX = new Map()
-    if (byKey) {
-      w.seriesData.series.forEach((s, i) => {
-        if (excluded.indexOf(i) < 0) {
-          s.forEach((v, j) => byX.set(key(i, j), (byX.get(key(i, j)) || 0) + v))
-        }
-      })
+    /** @param {number} i */
+    const stackOf = (i) => {
+      const k = kinds[i] || 'none'
+      return k === 'bar' || combo ? k + ' ' + gi[i] : k
     }
+    // On a numeric axis each point takes its share of the stack at its own
+    // x (CoreUtils.stackKey), else of the stack at its index.
+    /** @param {number} i @param {number} j */
+    const key = (i, j) => stackOf(i) + ' ' + CoreUtils.stackKey(w, i, j)
+    /** @type {Map<string, number>} */
+    const totals = new Map()
+    w.seriesData.series.forEach((s, i) => {
+      if (Array.isArray(s)) {
+        s.forEach((v, j) => {
+          const k = key(i, j)
+          totals.set(k, (totals.get(k) || 0) + (v || 0))
+        })
+      }
+    })
 
     /**
      * @param {any[]} ser
@@ -546,7 +566,7 @@ class CoreUtils {
       const seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {
-          const total = byKey ? byX.get(key(i, j)) : stackedTotals[j]
+          const total = totals.get(key(i, j))
           let percent = 0
           if (total) {
             percent = (100 * ser[j]) / total

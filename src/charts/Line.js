@@ -108,6 +108,7 @@ class Line {
 
     series = coreUtils.getLogSeries(series, /** @type {any} */ (seriesIndex))
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
+    series = this._percentRows(series, type, seriesIndex)
     // We call draw() for each series group
     this.prevSeriesY = []
     this.prevSeriesYByX = new Map()
@@ -596,6 +597,44 @@ class Line {
     if (!this.w.globals.comboCharts || !cfg.chart.stackOnlyBar) return true
     const t = /** @type {any} */ (cfg.series[realIndex])?.type
     return t === 'bar' || t === 'column'
+  }
+
+  /**
+   * Under `stackType: '100%'` a stacked line or area draws each point's
+   * share of its stack (w.globals.seriesPercent), as BarStacked does, not
+   * its raw value on the 0..100 axis (#5384). A series that does not stack
+   * (a line over a stacked bar combo with `stackOnlyBar`) keeps its row. A
+   * null stays null, a gap rather than a 0% point. `this.percentRows`
+   * holds the rows by realIndex for the data labels, else null.
+   * @param {any[]} series
+   * @param {string} type
+   * @param {any} seriesIndex
+   * @returns {any[]}
+   */
+  _percentRows(series, type, seriesIndex) {
+    const w = this.w
+    /** @type {any[] | null} */
+    this.percentRows = null
+    if (
+      !w.config.chart.stacked ||
+      w.config.chart.stackType !== '100%' ||
+      (type !== 'line' && type !== 'area')
+    ) {
+      return series
+    }
+    const pct = w.globals.seriesPercent
+    /** @type {any[]} */
+    const rows = []
+    const out = series.map((row, i) => {
+      const ri = w.globals.comboCharts ? seriesIndex[i] : i
+      const p = pct?.[ri]
+      if (!this.isStackedSeries(ri) || !Array.isArray(row) || !p) return row
+      const raw = w.seriesData.series[ri] || row
+      rows[ri] = row.map((v, j) => (raw[j] == null ? raw[j] : p[j]))
+      return rows[ri]
+    })
+    this.percentRows = rows
+    return out
   }
 
   /** @param {number} ri */
@@ -1329,6 +1368,8 @@ class Line {
       pos: pointsPos,
       i: realIndex,
       j: j + 1,
+      // A 100% stack labels each point with the share it is drawn at.
+      row: this.percentRows?.[realIndex],
     })
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels)

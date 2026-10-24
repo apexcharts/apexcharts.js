@@ -148,7 +148,9 @@ describe('100% stacked combo with data labels on (#2429)', () => {
 })
 
 describe('100% stacked area with data labels on', () => {
-  it('renders and labels each point with its raw value', async () => {
+  // An area is a slice of its own 100% stack (#5384): drawn at its share and
+  // labelled with it, as a bar is.
+  it('renders and labels each point with its share', async () => {
     await render(
       [
         { name: 'North', data: [31, 40, 28, 51] },
@@ -166,8 +168,8 @@ describe('100% stacked area with data labels on', () => {
       },
     )
     expect(labelsBySeries()).toEqual({
-      North: ['31', '40', '28', '51'],
-      South: ['11', '32', '45', '32'],
+      North: ['74%', '56%', '38%', '61%'],
+      South: ['26%', '44%', '62%', '39%'],
     })
   })
 })
@@ -208,7 +210,7 @@ describe('100% stacked formatter before columnSeries exists (#3579)', () => {
     expect(fmt(180, { w: chart.w, seriesIndex: 0 })).toBe('180%')
   })
 
-  it('keeps the plain value for a chart with no bars at all', async () => {
+  it('reads a percent for a stacked area with no bars at all', async () => {
     await render(
       [
         { name: 'North', data: [31, 40, 28, 51] },
@@ -225,8 +227,9 @@ describe('100% stacked formatter before columnSeries exists (#3579)', () => {
         },
       },
     )
-    // columnSeries stays null for a pure area chart even after render.
+    // columnSeries stays null for a pure area chart even after render, and
+    // every series is a slice of the area stack (#5384).
     const fmt = chart.w.config.dataLabels.formatter
-    expect(fmt(31, { w: chart.w, seriesIndex: 0 })).toBe(31)
+    expect(fmt(31, { w: chart.w, seriesIndex: 0 })).toBe('31%')
   })
 })

@@ -1233,7 +1233,7 @@ export default class HighlightFilter {
             i,
             realIndex,
             ti,
-            this._partRow(raw, i, realIndex),
+            this._partRow(raw, i, realIndex, ln.percentRows?.[realIndex]),
           )
         : null
 
@@ -1458,15 +1458,22 @@ export default class HighlightFilter {
   /**
    * A part row in the units the renderer draws: logs on a log axis, and the
    * renderer's nudge for a flat row under a gradient, whose box would
-   * otherwise have no height to paint (#358).
+   * otherwise have no height to paint (#358). On a 100% stack the whole is
+   * drawn at its share (Line._percentRows), so the part takes the same
+   * share of the stack: scaled by the whole's share over its value.
    * @param {any[]} raw @param {number} i @param {number} realIndex
+   * @param {any[]} [pct] the whole's drawn 100% row, if any
    */
-  _partRow(raw, i, realIndex) {
+  _partRow(raw, i, realIndex, pct) {
     const w = this.w
     const cu = /** @type {CoreUtils} */ (this._cu)
     const ax = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]]
-    const row =
-      ax?.logarithmic && !w.globals.invalidLogScale
+    const whole = w.seriesData.series[realIndex] || []
+    const row = pct
+      ? raw.map((v, j) =>
+          v == null ? v : whole[j] ? (v * pct[j]) / whole[j] : 0,
+        )
+      : ax?.logarithmic && !w.globals.invalidLogScale
         ? raw.map((v) => cu.getLogValAtSeriesIndex(v, realIndex))
         : raw.slice()
     const ft = /** @type {any} */ (w.config.fill.type)

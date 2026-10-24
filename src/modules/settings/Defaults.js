@@ -3,6 +3,7 @@ import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 import Formatters from '../Formatters'
 import Options from './Options'
+import CoreUtils from '../CoreUtils'
 import { TYPE_ALIASES, BUILTIN_TYPES, SOLO_TYPES } from './TypeAliases'
 import { nameAsHtml } from '../../utils/nameAsHtml.js'
 
@@ -1992,42 +1993,38 @@ export default class Defaults {
       return val
     }
 
-    // Only the series drawn as bars are part of the 100% total, and only
-    // their labels are handed the percentage (BarDataLabels reads
-    // w.globals.seriesPercent). Any other series (a line mixed into a combo,
-    // whichever type the chart is declared as) still gets its raw value, so
-    // it keeps the plain default rather than a '%'. In a pure bar chart
-    // columnSeries.i covers every series, so nothing changes there.
+    // Only the series that are slices of a 100% stack are handed the
+    // percentage (BarDataLabels reads w.globals.seriesPercent, Line passes
+    // its percent row): the bars, and stacked areas and lines (#5384). A
+    // line drawn unstacked over a 100% bar stack (a combo with the default
+    // `stackOnlyBar`) still gets its raw value, so it keeps the plain
+    // default rather than a '%'. Classified by CoreUtils.percentStackKinds,
+    // the same predicate getPercentSeries totals by.
     // The plain default is the same as Options' `dataLabels.formatter`,
     // inlined rather than building a full Options tree for one function.
     /** @param {any} val */
     const plain = (val) => (val !== null ? val : '')
 
-    // columnSeries is only built by plotChartType, which runs AFTER
-    // Dimensions has already measured the stacked-total label
-    // (gridPadForStackedTotalDataLabels, during plotCoords). Classified
-    // from config — as CoreUtils.getPercentSeries does — so the formatter
-    // is safe however early it is read: without this the reserve measured
-    // the plain string ("5700") while the drawn label read "5700%",
-    // under-reserving by the "%" and pushing the total label past the SVG
-    // viewport on a horizontal 100% stack (#3579).
-    const chartType = opts.chart.type
-    const isBarSeries = (/** @type {any} */ s) =>
-      s.type
-        ? s.type === 'bar' || s.type === 'column'
-        : chartType === 'bar' || chartType === 'column'
-    const hasBars = (opts.series || []).some(isBarSeries)
+    // Classified from config, so the formatter is safe however early it is
+    // read: Dimensions measures the stacked-total label during plotCoords
+    // (gridPadForStackedTotalDataLabels), before plotChartType builds
+    // globals.columnSeries. Without that the reserve measured the plain
+    // string ("5700") while the drawn label read "5700%", under-reserving by
+    // the "%" and pushing the total label past the SVG viewport on a
+    // horizontal 100% stack (#3579). That early measure passes seriesIndex 0
+    // whatever the stack holds, so until columnSeries exists every index
+    // reads as a percent whenever any series does.
+    const kinds = CoreUtils.percentStackKinds(opts)
+    const hasPercent = kinds.some(Boolean)
     /**
      * @param {any} val
      * @param {{ seriesIndex?: number, w?: any }} [ctx]
      */
     const format = (val, ctx) => {
-      const barIndices = ctx?.w?.globals?.columnSeries?.i
-      const isBarLabel = barIndices
-        ? barIndices.includes(ctx?.seriesIndex)
-        : hasBars
-      if (isBarLabel) return percent(val)
-      return plain(val)
+      const early = !ctx?.w?.globals?.columnSeries
+      const i = /** @type {number} */ (ctx?.seriesIndex)
+      const isPercent = early ? hasPercent : !!kinds[i]
+      return isPercent ? percent(val) : plain(val)
     }
     // Marked, so a later stackType change can tell it from the user's.
     /** @type {any} */
