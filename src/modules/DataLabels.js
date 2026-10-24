@@ -656,7 +656,7 @@ class DataLabels {
       // Default budget is roughly one label's own extent in each direction:
       // far enough to clear a coincident twin, near enough that the label is
       // still unmistakably its mark's.
-      maxShift: opts.maxShift ? opts.maxShift * unit : Math.max(extent, 14),
+      maxShift: opts.maxShift != null ? opts.maxShift * unit : Math.max(extent, 14),
       // The plot itself, with no slack: past this edge the label is clipped,
       // so pushing one out there trades an overlap for a truncated value. A
       // label that already starts outside (the one above a bar that reaches
