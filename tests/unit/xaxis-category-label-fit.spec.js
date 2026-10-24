@@ -162,6 +162,26 @@ describe('#5370 rotation is decided against the plot as drawn', () => {
     ).toBeGreaterThan(w.layout.gridWidth - pad)
     expect(drawnLabels(chart).length).toBe(PRODUCTS.length)
   })
+
+  it('never rotates radar category names, which sit around the polygon', () => {
+    mockTextRects()
+    // Long names that would rotate on a column chart this narrow. A radar
+    // reserving a rotated label band only shrank the polygon.
+    const names = Array.from({ length: 12 }, (_, i) => `Category name ${i}`)
+    chart = createChartWithOptions({
+      chart: { type: 'radar', width: 300, height: 300 },
+      series: [{ name: 's', data: names.map((_, i) => i + 1) }],
+      xaxis: { categories: names },
+    })
+    expect(chart.w.layout.rotateXLabels).toBe(false)
+    chart.destroy()
+    chart = createChartWithOptions({
+      chart: { type: 'radar', width: 300, height: 300 },
+      series: [{ name: 's', data: names.map((_, i) => i + 1) }],
+      xaxis: { categories: names, labels: { rotateAlways: true } },
+    })
+    expect(chart.w.layout.rotateXLabels).toBe(false)
+  })
 })
 
 describe('#5370 hideOverlappingLabels on upright labels', () => {

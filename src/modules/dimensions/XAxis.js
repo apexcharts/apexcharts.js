@@ -155,11 +155,14 @@ export default class DimXAxis {
         this.dCtx.gridPad.right -
         this.uprightLabelsRightPad(rect.width)
 
+      // Radar draws its category names around the polygon, never along an x
+      // axis, so there is nothing to rotate: deciding to would only reserve
+      // a rotated label band and shrink the radar.
       if (
-        ((rect.width + AxesUtils.X_LABEL_GAP) * slots >
-          uprightPlotWidth &&
+        w.config.chart.type !== 'radar' &&
+        (((rect.width + AxesUtils.X_LABEL_GAP) * slots > uprightPlotWidth &&
           w.config.xaxis.labels.rotate !== 0) ||
-        w.config.xaxis.labels.rotateAlways
+          w.config.xaxis.labels.rotateAlways)
       ) {
         if (!w.globals.isBarHorizontal) {
           w.layout.rotateXLabels = true
