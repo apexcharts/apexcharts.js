@@ -769,13 +769,26 @@ export default class Scales {
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
       const x = w.config.xaxis
-      // a fixed max or a streaming range window wins over the step
-      let step = (x.max ?? x.range) === undefined ? x.stepSize : undefined
+      const fixedMax = x.max !== undefined && x.max !== null
+      // a streaming range window wins over the step
+      let step = x.range === undefined ? x.stepSize : undefined
       // A step fixes the tick count and the axis ends on the last step. One
       // too fine to draw keeps the default count instead.
-      const fit = step > 0 && !gl.isBarHorizontal && x.type !== 'datetime'
+      let fit = step > 0 && !gl.isBarHorizontal && x.type !== 'datetime'
       const defaultTicks = gl.xTickAmount
-      if (fit) {
+      if (fit && fixedMax) {
+        // A fixed max can't move, so like niceScale() does for the y axis the
+        // step is only used when it divides the range; otherwise, or when a
+        // tickAmount is also set, max and the tick count win as before.
+        const n = Math.round((maxX - minX) / step)
+        const divides = n >= 1 && Math.abs((maxX - minX) / step - n) < 1e-9
+        if (divides && n <= 1e3 && x.tickAmount === undefined) {
+          gl.xTickAmount = n
+        } else {
+          step = undefined
+        }
+        fit = false
+      } else if (fit) {
         const n = Math.ceil((maxX - minX) / step - 1e-9)
         n > 1e3 ? (step = undefined) : (gl.xTickAmount = n)
       }
