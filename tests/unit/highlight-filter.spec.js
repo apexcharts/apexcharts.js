@@ -948,6 +948,177 @@ describe('frames and renderers', () => {
     chart.destroy()
   })
 
+  // #5391: with no outline a faded whole's own stroke fades with its fill,
+  // and a clear puts it back exactly as drawn.
+  test.each([
+    ['column', {}],
+    ['horizontal bar', { plotOptions: { bar: { horizontal: true } } }],
+    ['stacked', { chart: { stacked: true } }],
+    [
+      'funnel',
+      {
+        plotOptions: {
+          bar: { horizontal: true, isFunnel: true, distributed: true },
+        },
+      },
+    ],
+  ])(
+    'outline width 0: a %s whole fades its own stroke and clear restores it',
+    async (_, extra) => {
+      const funnel = !!extra.plotOptions?.bar?.isFunnel
+      const series = (hl) =>
+        (funnel ? picked.slice(0, 1) : picked).map((s) =>
+          hl ? s : { name: s.name, data: s.data },
+        )
+      const chart = createChartWithOptions({
+        chart: {
+          type: 'bar',
+          width: 600,
+          height: 300,
+          ...(extra.chart || {}),
+        },
+        series: series(false),
+        xaxis: { categories: CATS },
+        stroke: { show: true, width: 2 },
+        plotOptions: extra.plotOptions,
+        highlightFilter: { fadeOpacity: 0.2, outline: { width: 0 } },
+      })
+      const own = wholes(chart).map((n) => n.getAttribute('stroke-opacity'))
+      expect(own.length).toBeGreaterThan(0)
+      await chart.updateSeries(series(true))
+      expect(chart.highlightFilter.isActive()).toBe(true)
+      const ws = wholes(chart)
+      expect(ws.length).toBe(own.length)
+      ws.forEach((n, x) => {
+        expect(n.getAttribute('fill-opacity')).toBe('0.2')
+        expect(n.getAttribute('stroke-width')).toBe('2')
+        const k = own[x] == null ? 1 : parseFloat(own[x])
+        expect(parseFloat(n.getAttribute('stroke-opacity'))).toBeCloseTo(
+          k * 0.2,
+          6,
+        )
+      })
+      await chart.highlightFilter.clear()
+      expect(
+        wholes(chart).map((n) => n.getAttribute('stroke-opacity')),
+      ).toEqual(own)
+      chart.destroy()
+    },
+  )
+
+  test('outline width 0: a first pick carries the whole stroke on the part, then rests faded', async () => {
+    const chart = animated(
+      column({
+        series: plain,
+        options: {
+          stroke: { show: true, width: 2 },
+          highlightFilter: { outline: { width: 0 } },
+        },
+      }),
+    )
+    const hf = chart.highlightFilter
+    const frames = []
+    vi.spyOn(hf, '_tween').mockImplementation((d, s, onFrame, onDone) => {
+      onFrame(0)
+      frames.push({ onFrame, onDone })
+    })
+    await chart.updateSeries(picked)
+    const ws = wholes(chart)
+    const ps = parts(chart)
+    const wholeOf = (p) =>
+      ws.find(
+        (n) =>
+          n.getAttribute('index') === p.getAttribute('index') &&
+          n.getAttribute('j') === p.getAttribute('j'),
+      )
+    // frame 0: the whole is hidden under its part, which wears its stroke
+    for (const p of ps) {
+      const w = wholeOf(p)
+      expect(w.getAttribute('stroke-opacity')).toBe('0')
+      expect(p.getAttribute('stroke')).toBe(w.getAttribute('stroke'))
+      expect(p.getAttribute('stroke-width')).toBe('2')
+      expect(parseFloat(p.getAttribute('stroke-opacity'))).toBeGreaterThan(0)
+    }
+    // halfway: the whole's own stroke comes in with its fill
+    for (const f of frames) f.onFrame(0.5)
+    for (const p of ps) {
+      expect(parseFloat(wholeOf(p).getAttribute('stroke-opacity'))).toBeCloseTo(
+        0.1,
+        6,
+      )
+    }
+    // landed: the wholes rest at the fade
+    for (const f of frames) f.onFrame(1)
+    for (const w of ws) {
+      expect(parseFloat(w.getAttribute('stroke-opacity'))).toBeCloseTo(0.2, 6)
+    }
+    chart.destroy()
+  })
+
+  // #5391 is a bar fix: a slice with no outline keeps its own stroke as
+  // drawn while faded, and only a caller that opts in (`stroke`) fades it.
+  test.each(['pie', 'donut', 'polarArea'])(
+    'outline width 0: a faded %s keeps its own stroke',
+    async (type) => {
+      const chart = createChartWithOptions({
+        chart: { type, width: 400, height: 400 },
+        series: [40, 30, 20, 10],
+        labels: ['North', 'South', 'East', 'West'],
+        stroke: { show: true, width: 2 },
+        highlightFilter: { fadeOpacity: 0.2, outline: { width: 0 } },
+      })
+      const els = () => [
+        ...chart.w.dom.baseEl.querySelectorAll('.apexcharts-pie-area'),
+      ]
+      const own = els().map((n) => n.getAttribute('stroke-opacity'))
+      expect(own.length).toBe(4)
+      await chart.highlightFilter.set([20, 15, 5, null])
+      expect(chart.highlightFilter.isActive()).toBe(true)
+      expect(
+        els().some((n) => parseFloat(n.getAttribute('fill-opacity')) < 0.5),
+      ).toBe(true)
+      expect(els().map((n) => n.getAttribute('stroke-opacity'))).toEqual(own)
+      await chart.highlightFilter.clear()
+      expect(els().map((n) => n.getAttribute('stroke-opacity'))).toEqual(own)
+      chart.destroy()
+    },
+  )
+
+  test('_fade touches the own stroke only with `stroke`, and restores it exactly', () => {
+    const chart = column({ series: plain })
+    const hf = chart.highlightFilter
+    const r = { delayMs: 0, speed: 0 }
+    const mk = (so) => {
+      const n = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      if (so != null) n.setAttribute('stroke-opacity', so)
+      return n
+    }
+    const FADED = { f: 0.2, o: 0 }
+    const PLAIN_ = { f: 1, o: 0 }
+    // no opt-in (pie, radial): the stroke is left alone
+    const a = mk(null)
+    hf._fade(a, PLAIN_, FADED, r, { outline: null, anim: false })
+    expect(a.getAttribute('fill-opacity')).toBe('0.2')
+    expect(a.hasAttribute('stroke-opacity')).toBe(false)
+    // opt-in (bars): faded with the fill. Every render draws the bar anew,
+    // so each fade starts from the stroke as the renderer emitted it.
+    const opt = { outline: null, anim: false, stroke: true }
+    const b = mk(null)
+    hf._fade(b, PLAIN_, FADED, r, opt)
+    expect(b.getAttribute('stroke-opacity')).toBe('0.2')
+    const c = mk('0.5')
+    hf._fade(c, PLAIN_, FADED, r, opt)
+    expect(parseFloat(c.getAttribute('stroke-opacity'))).toBeCloseTo(0.1, 6)
+    // landing at full strength: removed when never set, else put back verbatim
+    const d = mk(null)
+    hf._fade(d, FADED, PLAIN_, r, opt)
+    expect(d.hasAttribute('stroke-opacity')).toBe(false)
+    const e = mk('0.5')
+    hf._fade(e, FADED, PLAIN_, r, opt)
+    expect(e.getAttribute('stroke-opacity')).toBe('0.5')
+    chart.destroy()
+  })
+
   test('each family keys its records under its own prefix', () => {
     const chart = createChartWithOptions({
       chart: { type: 'bar', width: 600, height: 300 },

@@ -255,7 +255,7 @@ describe('bars: the alpha moves on the pick clock, never snaps', () => {
     c.destroy()
   })
 
-  test('a first pick without an outline: the whole keeps its stroke on frame 0, then fades it', async () => {
+  test('a first pick without an outline: the part wears the whole stroke on frame 0, then the whole fades it', async () => {
     const c = animated(
       stacked({
         series: withParts(null),
@@ -264,8 +264,14 @@ describe('bars: the alpha moves on the pick clock, never snaps', () => {
     )
     const t = holdTweens(c)
     await c.updateSeries(withParts(SEARCH))
-    for (const w of barWholes(c))
-      expect(w.getAttribute('stroke-opacity')).toBe('1')
+    const parts = byAt(barParts(c))
+    for (const w of barWholes(c)) {
+      // hidden under its part, which carries it at full strength
+      expect(w.getAttribute('stroke-opacity')).toBe('0')
+      const p = parts.get(at(w))
+      expect(p.getAttribute('stroke')).toBe(w.getAttribute('stroke'))
+      expect(p.getAttribute('stroke-opacity')).toBe('1')
+    }
     t.step(1)
     for (const w of barWholes(c))
       expect(w.getAttribute('stroke-opacity')).toBe('0.2')

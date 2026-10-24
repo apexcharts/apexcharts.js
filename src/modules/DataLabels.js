@@ -655,8 +655,12 @@ class DataLabels {
       gap: (opts.gap ?? 2) * unit,
       // Default budget is roughly one label's own extent in each direction:
       // far enough to clear a coincident twin, near enough that the label is
-      // still unmistakably its mark's.
-      maxShift: opts.maxShift != null ? opts.maxShift * unit : Math.max(extent, 14),
+      // still unmistakably its mark's. An explicit 0 is a real budget (never
+      // move, only hide), not a request for the default.
+      maxShift:
+        typeof opts.maxShift === 'number'
+          ? Math.max(0, opts.maxShift) * unit
+          : Math.max(extent, 14),
       // The plot itself, with no slack: past this edge the label is clipped,
       // so pushing one out there trades an overlap for a truncated value. A
       // label that already starts outside (the one above a bar that reaches

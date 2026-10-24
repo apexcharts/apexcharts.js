@@ -4809,7 +4809,8 @@ type ApexDataLabels = {
         gap?: number
         /**
          * How far a label may travel from its own mark. Defaults to roughly
-         * the label's own size along the axis it is separated on.
+         * the label's own size along the axis it is separated on. `0` means
+         * never move a label: overlaps are left alone, or dropped with `hide`.
          */
         maxShift?: number
         /**

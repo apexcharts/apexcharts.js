@@ -261,4 +261,13 @@ describe('DataLabels.avoidOverlaps keeps labels inside the plot', () => {
     expect(texts.map((t) => t.getAttribute('y'))).toEqual(['17', '17'])
     expect(texts.filter((t) => t.style.display === 'none')).toHaveLength(1)
   })
+
+  // #5377: 0 was falsy and fell back to the default budget. Without `hide`
+  // it moves nothing and drops nothing; a negative budget is 0.
+  it.each([0, -5])('moves and hides nothing with maxShift %s', (maxShift) => {
+    const { w, texts } = mountLabels({ maxShift })
+    new DataLabels(w).avoidOverlaps()
+    expect(texts.map((t) => t.getAttribute('y'))).toEqual(['17', '17'])
+    expect(texts.some((t) => t.style.display === 'none')).toBe(false)
+  })
 })

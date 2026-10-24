@@ -2018,14 +2018,18 @@ export default class HighlightFilter {
     // frame are the whole as drawn. The stroke eases out as the part leaves
     // the whole's shape (in, as it comes back), on the fade's clock, and a
     // part at rest has none. `k` is its strength, as `al` is the alpha's.
-    const ow = s.whole || prev?.o ? (cfg.outline?.width ?? 1) : 0
+    // With no outline the whole's own stroke fades with its fill (see
+    // _fade), so it is 0 on those frames too and the part carries it the
+    // same way.
+    const width = cfg.outline?.width ?? 1
+    const ow = s.whole || prev?.o ? width : 0
     const wn = el.node
     const sc = wn.getAttribute('stroke')
     const k0 = start?.cover && animate ? 1 : prev?.d ? (prev.k ?? 0) : 0
     const k1 = lands ? 1 : 0
     const carry =
       !!part &&
-      ow > 0 &&
+      (ow > 0 || (!(width > 0) && !!s.whole)) &&
       (k0 > 0 || k1 > 0) &&
       parseFloat(wn.getAttribute('stroke-width')) > 0 &&
       !!sc &&
@@ -2079,7 +2083,10 @@ export default class HighlightFilter {
         part.node.setAttribute('stroke-opacity', String(so * k))
         // The whole shows its own stroke only on the frames its look has no
         // outline (the cover and the landing), and the part's is over it.
-        if (!(rec.lo > 0) && k > 0) wn.setAttribute('stroke-opacity', '0')
+        // With no outline the whole's own stroke rides its fill instead.
+        if (ow > 0 && !(rec.lo > 0) && k > 0) {
+          wn.setAttribute('stroke-opacity', '0')
+        }
       } else {
         // At rest a part draws no stroke: back as it was emitted.
         part.attr(bare)
@@ -2108,6 +2115,7 @@ export default class HighlightFilter {
           ow > 0
             ? { color, width: ow, opacity: cfg.outline?.opacity ?? 1 }
             : null,
+        stroke: true,
         also: (t) => {
           shadow?.setAttribute('fill-opacity', String(mix(sf0, fadeTo, t)))
           strength(t)
@@ -2348,34 +2356,35 @@ export default class HighlightFilter {
    * place of the bar morph's rule, and `force` tweens even when the look
    * stays (something else, through `also`, still moves). An outline without
    * a `width` changes the stroke's colour only: its width is the renderer's.
-   * With no outline at all, the mark's own stroke fades with the fill (a
-   * covered whole keeps it, as drawn).
-   * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
+   * With `stroke` and no outline, the mark's own stroke fades with its fill,
+   * so a faded bar keeps no full-strength frame, and at full strength it is
+   * back as drawn (the attribute it had, or none).
+   * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, stroke?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
    */
   _fade(node, a, b, r, opt) {
     const attr = opt.attr || 'fill-opacity'
     const k = ownOpacity(node, attr)
-    const ks = ownOpacity(node, 'stroke-opacity')
     const ol = opt.outline
     const rec = opt.rec || {}
+    const fs = !ol && !!opt.stroke && attr !== 'stroke-opacity'
+    const ks = fs ? ownOpacity(node, 'stroke-opacity') : 1
+    const os = fs ? node.getAttribute('stroke-opacity') : null
     const attrs =
       ol && ol.width == null
         ? ['stroke', 'stroke-opacity']
         : ['stroke', 'stroke-width', 'stroke-opacity']
     const own = attrs.map((n) => node.getAttribute(n))
-    /** @param {number} f @param {number} o @param {number} [sf] */
-    const set = (f, o, sf = f) => {
+    /** @param {number} f @param {number} o */
+    const set = (f, o) => {
       rec.lf = f
       rec.lo = ol ? o : 0
       node.setAttribute(attr, String(k * f))
       if (!ol) {
+        if (!fs) return
         // No outline: the mark's own stroke fades with its fill.
-        if (
-          attr !== 'stroke-opacity' &&
-          (sf < 1 || node.hasAttribute('stroke-opacity'))
-        ) {
-          node.setAttribute('stroke-opacity', String(ks * sf))
-        }
+        if (f < 1) node.setAttribute('stroke-opacity', String(ks * f))
+        else if (os == null) node.removeAttribute('stroke-opacity')
+        else node.setAttribute('stroke-opacity', os)
         return
       }
       if (o <= 0) {
@@ -2395,11 +2404,7 @@ export default class HighlightFilter {
     }
     /** @param {number} t */
     const frame = (t) => {
-      set(
-        mix(a.f, b.f, t),
-        mix(a.o, b.o, t),
-        mix(a === COVERED ? 1 : a.f, b === COVERED ? 1 : b.f, t),
-      )
+      set(mix(a.f, b.f, t), mix(a.o, b.o, t))
       opt.also && opt.also(t)
     }
     const land = () => {

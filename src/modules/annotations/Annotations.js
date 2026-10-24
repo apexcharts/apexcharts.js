@@ -310,10 +310,30 @@ export default class Annotations {
     const me = context
     const w = me.w
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`)
+    const remember = (/** @type {any} */ id) => {
+      if (pushToMemory) {
+        w.globals.memory.methodsToExec.push({
+          context: me,
+          id: id ? id : Utils.randomId(),
+          method: contextMethod,
+          label: 'addAnnotation',
+          params,
+        })
+      }
+    }
+
+    // Only axis charts build the annotation groups (pie, donut, polarArea,
+    // radialBar have no axes to annotate). Keep the annotation as if it had
+    // come in options: not drawn here, drawn again by the render replay if
+    // the chart is switched to an axis type. Only the user's own call warns,
+    // so the replay on every render stays silent.
     if (!parent) {
-      console.warn(
-        `ApexCharts: add${type[0].toUpperCase() + type.slice(1)}Annotation() ignored the call: ${w.config.chart.type} charts do not draw ${type} annotations.`,
-      )
+      if (pushToMemory) {
+        console.warn(
+          `ApexCharts: add${type[0].toUpperCase() + type.slice(1)}Annotation() not drawn: ${w.config.chart.type} charts do not draw ${type} annotations. It is kept and drawn if the chart becomes an axis chart.`,
+        )
+      }
+      remember(params?.id)
       return context
     }
     // Config annotations take their array index as rel, and the label is
@@ -356,15 +376,7 @@ export default class Annotations {
       parent.insertBefore(elRect.node, axesAnnoLabel)
     }
 
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        id: anno.id ? anno.id : Utils.randomId(),
-        method: contextMethod,
-        label: 'addAnnotation',
-        params,
-      })
-    }
+    remember(anno.id)
 
     return context
   }
