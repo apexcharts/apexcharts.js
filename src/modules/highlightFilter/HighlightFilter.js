@@ -2348,11 +2348,14 @@ export default class HighlightFilter {
    * place of the bar morph's rule, and `force` tweens even when the look
    * stays (something else, through `also`, still moves). An outline without
    * a `width` changes the stroke's colour only: its width is the renderer's.
+   * With no outline at all, the mark's own stroke fades with the fill (a
+   * covered whole keeps it, as drawn).
    * @param {{outline?: {color: string, width?: number, opacity: number} | null, attr?: string, anim?: boolean, force?: boolean, curve?: (t: number) => number, also?: (t: number) => void, land?: Look, done?: () => void, rec?: any}} opt
    */
   _fade(node, a, b, r, opt) {
     const attr = opt.attr || 'fill-opacity'
     const k = ownOpacity(node, attr)
+    const ks = ownOpacity(node, 'stroke-opacity')
     const ol = opt.outline
     const rec = opt.rec || {}
     const attrs =
@@ -2360,12 +2363,21 @@ export default class HighlightFilter {
         ? ['stroke', 'stroke-opacity']
         : ['stroke', 'stroke-width', 'stroke-opacity']
     const own = attrs.map((n) => node.getAttribute(n))
-    /** @param {number} f @param {number} o */
-    const set = (f, o) => {
+    /** @param {number} f @param {number} o @param {number} [sf] */
+    const set = (f, o, sf = f) => {
       rec.lf = f
       rec.lo = ol ? o : 0
       node.setAttribute(attr, String(k * f))
-      if (!ol) return
+      if (!ol) {
+        // No outline: the mark's own stroke fades with its fill.
+        if (
+          attr !== 'stroke-opacity' &&
+          (sf < 1 || node.hasAttribute('stroke-opacity'))
+        ) {
+          node.setAttribute('stroke-opacity', String(ks * sf))
+        }
+        return
+      }
       if (o <= 0) {
         // The mark's own stroke, as drawn.
         attrs.forEach((n, x) =>
@@ -2383,7 +2395,11 @@ export default class HighlightFilter {
     }
     /** @param {number} t */
     const frame = (t) => {
-      set(mix(a.f, b.f, t), mix(a.o, b.o, t))
+      set(
+        mix(a.f, b.f, t),
+        mix(a.o, b.o, t),
+        mix(a === COVERED ? 1 : a.f, b === COVERED ? 1 : b.f, t),
+      )
       opt.also && opt.also(t)
     }
     const land = () => {

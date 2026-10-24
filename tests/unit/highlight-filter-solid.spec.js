@@ -255,6 +255,23 @@ describe('bars: the alpha moves on the pick clock, never snaps', () => {
     c.destroy()
   })
 
+  test('a first pick without an outline: the whole keeps its stroke on frame 0, then fades it', async () => {
+    const c = animated(
+      stacked({
+        series: withParts(null),
+        options: { highlightFilter: { outline: { width: 0 } } },
+      }),
+    )
+    const t = holdTweens(c)
+    await c.updateSeries(withParts(SEARCH))
+    for (const w of barWholes(c))
+      expect(w.getAttribute('stroke-opacity')).toBe('1')
+    t.step(1)
+    for (const w of barWholes(c))
+      expect(w.getAttribute('stroke-opacity')).toBe('0.2')
+    c.destroy()
+  })
+
   test('a clear: from solid down to the whole look, then the plain chart', async () => {
     const c = animated(stacked())
     const t = holdTweens(c)
