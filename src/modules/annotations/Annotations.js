@@ -310,6 +310,12 @@ export default class Annotations {
     const me = context
     const w = me.w
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`)
+    if (!parent) {
+      console.warn(
+        `ApexCharts: add${type[0].toUpperCase() + type.slice(1)}Annotation() ignored the call: ${w.config.chart.type} charts do not draw ${type} annotations.`,
+      )
+      return context
+    }
     // Config annotations take their array index as rel, and the label is
     // found again by rel below, so a runtime rel must start past them.
     // Every drawn annotation adds a child, so later ones stay unique.
