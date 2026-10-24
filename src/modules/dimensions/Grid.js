@@ -101,10 +101,54 @@ export default class DimGrid {
       const need = ((cw / 2) * gridWidth) / (s + cw) + 4
       barWidth = Math.min(barWidth, Math.max(need, gridWidth / 8))
 
+      barWidth = Math.max(
+        barWidth,
+        this._edgeNeedInWindow(cw, gridWidth, barWidth),
+      )
+
       gl.barPadForNumericAxis = barWidth
     }
 
     return barWidth
+  }
+
+  /**
+   * The pad the edge bar group needs while a window narrower than the data is
+   * applied (zoom, pan, xaxis.min/max/range), 0 otherwise.
+   *
+   * The pad above is sized from the full data range, but the bars are sized
+   * from the window on screen (minX..maxX), so zooming in widens them while
+   * the pad stays put and the edge bars hang past the plot and get cut
+   * (#5368, #2651). This is the same edge solve on the window's slot count.
+   * It only ever raises the pad, and only once the window is narrow enough
+   * that the full range pad no longer fits the edge bar, so a moderate zoom
+   * keeps the un-zoomed layout and the plot only narrows as far as the
+   * bars need.
+   *
+   * @param {number} cw column width as a fraction of the slot
+   * @param {number} gridWidth the grid width before the pad comes off
+   * @param {number} pad the pad sized from the full data range
+   */
+  _edgeNeedInWindow(cw, gridWidth, pad) {
+    const gl = this.w.globals
+    const fullSpan = Math.abs(gl.initialMaxX - gl.initialMinX)
+    const visibleSpan = Math.abs(gl.maxX - gl.minX)
+    if (
+      !(visibleSpan > 0 && visibleSpan < fullSpan) ||
+      !(gl.minXDiff > 0) ||
+      // a px columnWidth is the same width at any zoom
+      String(this.w.config.plotOptions.bar.columnWidth).indexOf('%') === -1
+    ) {
+      return 0
+    }
+    // Under one slot across, the bar is wider than the window whatever the
+    // pad, and solving for it would squeeze the plot to nothing.
+    const s = Math.max(visibleSpan / gl.minXDiff, 1)
+    const half = ((cw / 2) * gridWidth) / (s + cw)
+    // The 4px stroke allowance ramps in over the last few px before the half
+    // group reaches the pad, so the pad never steps mid-gesture, and a dense
+    // chart whose half group sits well inside the pad keeps its layout.
+    return half + Math.min(4, Math.max(0, half - pad + 4))
   }
 
   /**

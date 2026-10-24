@@ -1484,6 +1484,25 @@ export default class ApexCharts {
         return false
       }
 
+      // Frozen-layout guard for the x side: a numeric-x bar chart insets the
+      // plot by a pad sized for the x window on screen (#5368). The x domain
+      // just changed (that is why this runs), so a zoom reset through
+      // resetSeries() kept the zoomed pad and drew the full range ~80px
+      // narrow. Re-solve the pad on the same pre-pad grid width; when it
+      // moves, only a full render can re-inset the plot. A window that stays
+      // put (a keepView re-feed while zoomed) solves to the same pad.
+      const frozenPad = gl.barPadForNumericAxis || 0
+      if (frozenPad > 0 && this.dimensions && this.dimensions.dimGrid) {
+        const pad = this.dimensions.dimGrid.gridPadForColumnsInNumericAxis(
+          w.layout.gridWidth + 2 * frozenPad,
+        )
+        gl.barPadForNumericAxis = frozenPad
+        if (Math.abs(pad - frozenPad) > 0.5) {
+          this._fastAxisBailReason = `barPad ${pad} != ${frozenPad}`
+          return false
+        }
+      }
+
       // Frozen-layout guard: measure the new y labels with the same code the
       // layout pass uses; when they need more width than was reserved, the
       // plot rect would have to shrink, which only a full render can do.
