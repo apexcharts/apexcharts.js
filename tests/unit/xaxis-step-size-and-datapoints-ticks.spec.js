@@ -99,6 +99,30 @@ describe('xaxis.stepSize on a numeric axis', () => {
     expect(gl.xAxisScale.niceMax).toBeCloseTo(100, 0)
   })
 
+  // A zoom writes xaxis.min/max wherever the drag ended. Step ticks only on
+  // the windows whose width happens to divide would flip the axis between two
+  // looks from one zoom to the next, so a zoomed window keeps the default.
+  it('a zoomed window keeps the default ticks, and the reset brings the step back', async () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: 800, height: 300, zoom: { enabled: true } },
+      series: [{ data: Array.from({ length: 21 }, (_, i) => [i * 10, i]) }],
+      xaxis: { type: 'numeric', min: 0, max: 200, stepSize: 50 },
+    })
+    await chart.render()
+    expect(chart.w.globals.xAxisScale.result).toEqual([0, 50, 100, 150, 200])
+
+    // 50..150 divides by the step, 50..140 does not; both look the same
+    chart.zoomX(50, 150)
+    const divides = chart.w.globals.xAxisScale.result
+    expect(divides).not.toEqual([50, 100, 150])
+    chart.zoomX(50, 140)
+    expect(chart.w.globals.xAxisScale.result.length).toBe(divides.length)
+
+    chart.resetSeries()
+    expect(chart.w.globals.xAxisScale.result).toEqual([0, 50, 100, 150, 200])
+    chart.destroy()
+  })
+
   it('tickAmount still wins over stepSize on a fixed window', () => {
     const chart = createChartWithOptions({
       chart: { type: 'line', width: 800, height: 300 },

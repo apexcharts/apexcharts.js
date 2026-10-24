@@ -197,6 +197,14 @@ describe('Scales.linearScale', () => {
     expect(s.linearScale(1, 8, 3).result).toEqual([1, 3.33, 5.67, 8])
   })
 
+  it('keeps both ends exact when the inner ticks are rounded', () => {
+    const s = makeScales([{ data: [1.234, 9.876] }])
+    const { result } = s.linearScale(1.234, 9.876, 5)
+    expect(result[0]).toBe(1.234)
+    expect(result[result.length - 1]).toBe(9.876)
+    expect(result.slice(1, -1)).toEqual([2.96, 4.69, 6.42, 8.15])
+  })
+
   it('handles a custom step value', () => {
     const s = makeScales([{ data: [0, 30] }])
     const { result } = s.linearScale(0, 30, 3, 0, 10)

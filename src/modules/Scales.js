@@ -470,10 +470,8 @@ export default class Scales {
 
     // A step derived from the range has to land on yMax; a given one doesn't.
     const derivedStep = !step
-    if (derivedStep) {
-      step = range / ticksNum
-    }
-    const rawStep = step
+    const rawStep = step || range / ticksNum
+    step = rawStep
 
     const MIN_PRECISION = 2
     let multiplier = 0
@@ -489,8 +487,9 @@ export default class Scales {
     if (derivedStep && multiplier) {
       // Adding the rounded step up would carry its rounding error into every
       // tick (200 / 19 gave a last tick of 200.07), so place each tick from
-      // the unrounded step and round it on its own.
-      for (let i = 0; i < ticksNum; i++) {
+      // the unrounded step and round it on its own. The ends stay exact.
+      result.push(yMin)
+      for (let i = 1; i < ticksNum; i++) {
         const t = yMin + i * rawStep
         result.push(Math.round((t + Number.EPSILON) * multiplier) / multiplier)
       }
@@ -769,7 +768,8 @@ export default class Scales {
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
       const x = w.config.xaxis
-      const fixedMax = x.max !== undefined && x.max !== null
+      // the same test Range uses before it applies xaxis.max
+      const fixedMax = typeof x.max === 'number'
       // a streaming range window wins over the step
       let step = x.range === undefined ? x.stepSize : undefined
       // A step fixes the tick count and the axis ends on the last step. One
@@ -779,10 +779,18 @@ export default class Scales {
       if (fit && fixedMax) {
         // A fixed max can't move, so like niceScale() does for the y axis the
         // step is only used when it divides the range; otherwise, or when a
-        // tickAmount is also set, max and the tick count win as before.
+        // tickAmount is also set, max and the tick count win as before. A
+        // zoom writes min and max wherever the drag ended, so a zoomed window
+        // keeps the default ticks rather than switching to step ticks only
+        // when its width happens to divide.
         const n = Math.round((maxX - minX) / step)
         const divides = n >= 1 && Math.abs((maxX - minX) / step - n) < 1e-9
-        if (divides && n <= 1e3 && x.tickAmount === undefined) {
+        if (
+          divides &&
+          n <= 1e3 &&
+          x.tickAmount === undefined &&
+          !w.interact.zoomed
+        ) {
           gl.xTickAmount = n
         } else {
           step = undefined
