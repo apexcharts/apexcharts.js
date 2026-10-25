@@ -1540,14 +1540,20 @@ export default class Unit {
   }
 
   /**
-   * Scatter / beeswarm layout: position every unit on a real numeric X value
-   * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
-   * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
-   * the centre line so equal / close values do not stack on top of each other.
+   * Scatter / beeswarm layout: position every unit on a real numeric value
+   * axis by its own value (`_unitValueOf`), laned by category. Within a lane an
+   * anti-overlap "swarm" pack (or a random jitter) spreads the dots off the
+   * centre line so equal / close values do not stack on top of each other.
    * This is the unit chart's answer to "put these on axes": one dot per datum,
    * placed by data, with a drawn value axis + category lanes (see
    * _drawScatterAxes). Needs the per-unit object form (each datum a numeric
    * `value`/`y`); flat counts have no per-unit value, so their lanes stay empty.
+   *
+   * Horizontal (default): the value runs along X and the lanes are rows on Y.
+   * `scatter.orientation: 'vertical'` transposes it: the value runs UP the Y
+   * axis and each category is a column across X. The value-axis config keys
+   * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) describe the value axis
+   * either way, so flipping `orientation` keeps the same value settings.
    * @param {any} opts
    */
   _layoutScatter(opts) {
@@ -1562,8 +1568,7 @@ export default class Unit {
       Math.floor(((j + 1) * caps[ci]) / lens[ci]) > Math.floor((j * caps[ci]) / lens[ci])
     // 2D value-value scatter: each datum's own x AND y on two numeric axes.
     if (scfg.y === 'value') return this._layoutScatter2D(opts, keep)
-    // Vertical beeswarm: value on the Y axis, category lanes as X columns.
-    if (scfg.orientation === 'vertical') return this._layoutScatterVertical(opts, keep)
+    const vertical = scfg.orientation === 'vertical'
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
     const names = w.seriesData.seriesNames || []
@@ -1574,173 +1579,6 @@ export default class Unit {
     // Per-category numeric values; a category is VISIBLE only if it has at least
     // one usable value (so a legend-hidden / empty lane drops and the rest
     // re-flow, as the other layouts do).
-    const catVals = unitData.map((cat) =>
-      Array.isArray(cat) ? cat.map(valueOf) : [],
-    )
-    /** @param {any} v @returns {v is number} */
-    const isNum = (v) => v != null && isFinite(v)
-    const visible = catVals
-      .map((_, i) => i)
-      .filter((i) => catVals[i].some(isNum))
-    const Kv = Math.max(1, visible.length)
-
-    // Global x range across all units, nice-numbered (unless overridden).
-    let vmin = Infinity
-    let vmax = -Infinity
-    catVals.forEach((vs) =>
-      vs.forEach((v) => {
-        if (v != null && isFinite(v)) {
-          if (v < vmin) vmin = v
-          if (v > vmax) vmax = v
-        }
-      }),
-    )
-    if (vmin === Infinity) {
-      vmin = 0
-      vmax = 1
-    }
-    const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
-    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount)
-    const xMin = domain.min
-    const xMax = domain.max
-    const xSpan = xMax - xMin || 1
-
-    // Plot box: left gutter for lane labels, bottom gutter for the axis. The
-    // gutter fits the widest lane label (drawn 12px / 600), up to a third of
-    // the plot; a label past it is shortened with an ellipsis.
-    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 }
-    const laneName = (/** @type {number} */ i) => names[i] || `series-${i + 1}`
-    const laneW =
-      scfg.laneLabelWidth != null
-        ? Math.max(0, scfg.laneLabelWidth)
-        : Kv > 1
-          ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14)
-          : 8
-    const bottomGutter = 30 + (scfg.xTitle ? 20 : 0)
-    const plotL = laneW
-    const plotR = gw - 8
-    const plotT = 10
-    const plotB = gh - bottomGutter
-    const plotW = Math.max(4, plotR - plotL)
-    const plotH = Math.max(4, plotB - plotT)
-
-    const plotX = (/** @type {number} */ v) =>
-      plotL + ((v - xMin) / xSpan) * plotW
-    const laneH = plotH / Kv
-    const laneCy = (/** @type {number} */ slot) => plotT + laneH * (slot + 0.5)
-
-    // Dot radius: fixed if set, else a SMALL auto radius (a swarm reads best
-    // with small dots) bounded by lane height + peak lane density, capped ~6px.
-    let r = 0
-    const fixed = this._fixedRadius(opts)
-    if (fixed) {
-      r = fixed
-    } else {
-      const maxLane = Math.max(
-        1,
-        ...visible.map((i) => catVals[i].filter(isNum).length),
-      )
-      r = Math.max(
-        2,
-        Math.min(6, laneH * 0.12, plotW / (2.5 * Math.sqrt(maxLane))),
-      )
-    }
-    this._lastDotR = r
-    const spacing = opts.spacing > 0 ? opts.spacing : 1
-    const step = Math.max(0.5, r * spacing) // vertical pack step (~half a dot)
-    const jitter = scfg.spread === 'jitter'
-
-    /** @type {{ i:number, cx:number, cy:number, outerR:number, dots:{x:number,y:number,r?:number}[] }[]} */
-    const clusters = []
-    /** @type {{ i:number, cy:number, name:string }[]} */
-    const lanes = []
-
-    // Bubble beeswarm: the largest possible dot radius bounds the pack's
-    // x-window break (a pair collides within r_i + r_j <= 2*maxR).
-    const maxR = sizeStats ? sizeStats.rMax : r
-
-    visible.forEach((ci, slot) => {
-      const cy = laneCy(slot)
-      let name = laneName(ci)
-      // Only a gutter wide enough to draw labels in (see _drawScatterAxes).
-      const wid = laneW > 12 ? measureLabelWidth(w, [name], font) : 0
-      if (wid > laneW - 14 && wid) {
-        name = name.slice(0, Math.max(1, Math.floor((name.length * (laneW - 14)) / wid) - 1)) + '\u2026'
-      }
-      lanes.push({ i: ci, cy, name })
-      // Points keep their original datum index j so draw() can still resolve
-      // unitData[i][j] for per-unit colour + tooltip. A datum with no numeric
-      // value has no place on the axis and is not drawn.
-      // With bubble sizing each point carries its own radius `r` (used by the
-      // pack + read back by draw()); otherwise the shared radius applies.
-      /** @type {{j:number,px:number,y:number,r?:number}[]} */
-      const pts = []
-      ;(unitData[ci] || []).forEach((/** @type {any} */ d, /** @type {number} */ j) => {
-        const v = valueOf(d)
-        if (!isNum(v) || !keep(ci, j)) return
-        /** @type {{j:number,px:number,y:number,r?:number}} */
-        const p = { j, px: plotX(v), y: cy }
-        if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r)
-        pts.push(p)
-      })
-      if (jitter) {
-        // Deterministic pseudo-jitter (no Math.random - keeps SSR + re-render
-        // stable): spread within the lane band.
-        const halfLane = Math.max(maxR, laneH / 2 - maxR)
-        pts.forEach((p) => {
-          p.y = cy + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane
-        })
-      } else {
-        this._beeswarm(pts, cy, r, step, maxR)
-      }
-      clusters.push({
-        i: ci,
-        cx: (plotL + plotR) / 2,
-        cy,
-        outerR: laneH / 2,
-        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r, j: p.j })),
-      })
-    })
-
-    // Tick values for the axis chrome (domain-aligned; see _scatterValueDomain).
-    const ticks = domain.ticks
-
-    this._scatterAxis = {
-      mode: '1d',
-      plotL,
-      plotR,
-      plotT,
-      plotB,
-      xMin,
-      xMax,
-      plotX,
-      ticks,
-      lanes,
-      xTitle: scfg.xTitle,
-      formatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
-      gridlines: scfg.gridlines !== false,
-    }
-    return clusters
-  }
-
-  /**
-   * Vertical beeswarm: the transpose of _layoutScatter. The value runs UP the Y
-   * axis and each category is a column (lane) across X; the swarm pack spreads
-   * dots horizontally off each column's centre line. The value-axis config keys
-   * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
-   * axis (now Y), so flipping `orientation` keeps the same value settings.
-   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
-   */
-  _layoutScatterVertical(opts, keep) {
-    const w = this.w
-    const scfg = opts.scatter || {}
-    const gw = w.layout.gridWidth
-    const gh = w.layout.gridHeight
-    const unitData = w.seriesData.unitData || []
-    const names = w.seriesData.seriesNames || []
-    const valueOf = (/** @type {any} */ d) => this._unitValueOf(d)
-    const sizeStats = this._scatterSizeStats(scfg, unitData)
-
     const catVals = unitData.map((cat) =>
       Array.isArray(cat) ? cat.map(valueOf) : [],
     )
@@ -1772,25 +1610,38 @@ export default class Unit {
     const vMax = domain.max
     const vSpan = vMax - vMin || 1
 
-    // Plot box: left gutter for the value (Y) axis, bottom gutter for the lane
+    // Plot box. Horizontal: a left gutter for the lane labels, which fits the
+    // widest one (drawn 12px / 600) up to a third of the plot (a label past it
+    // is shortened with an ellipsis), and a bottom gutter for the value axis.
+    // Vertical: a left gutter for the value axis and a bottom one for the lane
     // labels along X.
-    const leftGutter = 46 + (scfg.xTitle ? 18 : 0)
-    const bottomGutter = Kv > 1 ? 26 : 10
-    const plotL = leftGutter
-    const plotR = gw - 10
+    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 }
+    const laneName = (/** @type {number} */ i) => names[i] || `series-${i + 1}`
+    const labelW = vertical
+      ? 0
+      : scfg.laneLabelWidth != null
+        ? Math.max(0, scfg.laneLabelWidth)
+        : Kv > 1
+          ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14)
+          : 8
+    const plotL = vertical ? 46 + (scfg.xTitle ? 18 : 0) : labelW
+    const plotR = gw - (vertical ? 10 : 8)
     const plotT = 10
-    const plotB = gh - bottomGutter
+    const plotB = gh - (vertical ? (Kv > 1 ? 26 : 10) : 30 + (scfg.xTitle ? 20 : 0))
     const plotW = Math.max(4, plotR - plotL)
     const plotH = Math.max(4, plotB - plotT)
 
-    // Value grows UPWARD (larger value = smaller y).
-    const plotY = (/** @type {number} */ v) =>
-      plotB - ((v - vMin) / vSpan) * plotH
-    const laneW = plotW / Kv
-    const laneCx = (/** @type {number} */ slot) => plotL + laneW * (slot + 0.5)
+    // The value axis: along X, or UP the Y axis (larger value = smaller y).
+    const toPx = vertical
+      ? (/** @type {number} */ v) => plotB - ((v - vMin) / vSpan) * plotH
+      : (/** @type {number} */ v) => plotL + ((v - vMin) / vSpan) * plotW
+    // Lane thickness, and each lane's centre line on the spread axis.
+    const lane = (vertical ? plotW : plotH) / Kv
+    const laneMid = (/** @type {number} */ slot) =>
+      (vertical ? plotL : plotT) + lane * (slot + 0.5)
 
-    // Dot radius: fixed if set, else a small auto radius bounded by lane WIDTH
-    // and peak lane density (a swarm reads best with small dots).
+    // Dot radius: fixed if set, else a SMALL auto radius (a swarm reads best
+    // with small dots) bounded by lane thickness + peak lane density, capped ~6px.
     let r = 0
     const fixed = this._fixedRadius(opts)
     if (fixed) {
@@ -1802,68 +1653,85 @@ export default class Unit {
       )
       r = Math.max(
         2,
-        Math.min(6, laneW * 0.12, plotH / (2.5 * Math.sqrt(maxLane))),
+        Math.min(6, lane * 0.12, (vertical ? plotH : plotW) / (2.5 * Math.sqrt(maxLane))),
       )
     }
     this._lastDotR = r
     const spacing = opts.spacing > 0 ? opts.spacing : 1
-    const step = Math.max(0.5, r * spacing)
+    const step = Math.max(0.5, r * spacing) // spread pack step (~half a dot)
     const jitter = scfg.spread === 'jitter'
 
     /** @type {{ i:number, cx:number, cy:number, outerR:number, dots:{x:number,y:number,r?:number}[] }[]} */
     const clusters = []
-    /** @type {{ i:number, cx:number, name:string }[]} */
+    /** @type {{ i:number, cx?:number, cy?:number, name:string }[]} */
     const lanes = []
+
+    // Bubble beeswarm: the largest possible dot radius bounds the pack's
+    // value-window break (a pair collides within r_i + r_j <= 2*maxR).
     const maxR = sizeStats ? sizeStats.rMax : r
 
     visible.forEach((ci, slot) => {
-      const cx = laneCx(slot)
-      lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` })
-      /** @type {{j:number,py:number,x:number,r?:number}[]} */
+      const mid = laneMid(slot)
+      let name = laneName(ci)
+      // Only a gutter wide enough to draw labels in (see _drawScatterAxes).
+      const wid = labelW > 12 ? measureLabelWidth(w, [name], font) : 0
+      if (wid > labelW - 14 && wid) {
+        name = name.slice(0, Math.max(1, Math.floor((name.length * (labelW - 14)) / wid) - 1)) + '…'
+      }
+      lanes.push(vertical ? { i: ci, cx: mid, name } : { i: ci, cy: mid, name })
+      // Points keep their original datum index j so draw() can still resolve
+      // unitData[i][j] for per-unit colour + tooltip. A datum with no numeric
+      // value has no place on the axis and is not drawn. `f` is the value
+      // coordinate, `s` the spread one.
+      // With bubble sizing each point carries its own radius `r` (used by the
+      // pack + read back by draw()); otherwise the shared radius applies.
+      /** @type {{j:number,f:number,s:number,r?:number}[]} */
       const pts = []
       ;(unitData[ci] || []).forEach((/** @type {any} */ d, /** @type {number} */ j) => {
         const v = valueOf(d)
         if (!isNum(v) || !keep(ci, j)) return
-        /** @type {{j:number,py:number,x:number,r?:number}} */
-        const p = { j, py: plotY(v), x: cx }
+        /** @type {{j:number,f:number,s:number,r?:number}} */
+        const p = { j, f: toPx(v), s: mid }
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r)
         pts.push(p)
       })
       if (jitter) {
-        const halfLane = Math.max(maxR, laneW / 2 - maxR)
+        // Deterministic pseudo-jitter (no Math.random - keeps SSR + re-render
+        // stable): spread within the lane band.
+        const halfLane = Math.max(maxR, lane / 2 - maxR)
         pts.forEach((p) => {
-          p.x = cx + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane
+          p.s = mid + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane
         })
       } else {
-        this._beeswarm(pts, cx, r, step, maxR, true)
+        this._beeswarm(pts, mid, r, step, maxR)
       }
       clusters.push({
         i: ci,
-        cx,
-        cy: (plotT + plotB) / 2,
-        outerR: laneW / 2,
-        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r, j: p.j })),
+        cx: vertical ? mid : (plotL + plotR) / 2,
+        cy: vertical ? (plotT + plotB) / 2 : mid,
+        outerR: lane / 2,
+        dots: pts.map((p) =>
+          vertical
+            ? { x: p.s, y: p.f, r: p.r, j: p.j }
+            : { x: p.f, y: p.s, r: p.r, j: p.j },
+        ),
       })
     })
 
-    // Value-axis (Y) tick values (domain-aligned; see _scatterValueDomain).
-    const ticks = domain.ticks
-
+    // Tick values for the axis chrome (domain-aligned; see _scatterValueDomain).
     this._scatterAxis = {
       mode: '1d',
-      orientation: 'vertical',
       plotL,
       plotR,
       plotT,
       plotB,
-      vMin,
-      vMax,
-      plotY,
-      ticks,
+      ticks: domain.ticks,
       lanes,
-      valueTitle: scfg.xTitle,
       formatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
       gridlines: scfg.gridlines !== false,
+      ...(vertical
+        ? { orientation: 'vertical', vMin, vMax, plotY: toPx, valueTitle: scfg.xTitle }
+        : { xMin: vMin, xMax: vMax, plotX: toPx, xTitle: scfg.xTitle }),
     }
     return clusters
   }
@@ -2055,27 +1923,25 @@ export default class Unit {
   }
 
   /**
-   * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed x
-   * (`px`) and a lane centre `cy`, assign each a y so no two dots overlap (centre
-   * distance >= r_i + r_j). Greedy in ascending-x order, trying offsets 0, +step,
-   * -step, +2step ... and taking the SMALLEST that clears every already-placed
-   * neighbour still within reach in x. No-overlap always wins: a very dense lane
-   * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
-   * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
-   * else `rFallback` applies; `maxR` bounds the value-window break. Deterministic
-   * (no physics, no randomness).
+   * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed
+   * value coordinate `f` and a lane centre, assign each a spread coordinate `s`
+   * so no two dots overlap (centre distance >= r_i + r_j). Greedy in ascending
+   * value order, trying offsets 0, +step, -step, +2step ... and taking the
+   * SMALLEST that clears every already-placed neighbour still within reach on
+   * the value axis. No-overlap always wins: a very dense lane grows a wider
+   * swarm rather than stacking dots (offsets are not hard-clamped to the lane).
+   * Each point may carry its own radius `r` (bubble beeswarm), else `rFallback`
+   * applies; `maxR` bounds the value-window break. Deterministic (no physics,
+   * no randomness).
    *
-   * Orientation-agnostic: the "fixed" axis is the value axis and the "spread"
-   * axis is the lane thickness. Horizontal (default): fixed = `px`, spread = `y`
-   * (mutates `.y`). Vertical: fixed = `py`, spread = `x` (mutates `.x`).
-   * @param {any[]} pts @param {number} center lane centre on the spread axis
+   * Orientation-agnostic: `f` is X for a horizontal swarm and Y for a vertical
+   * one, `s` the other axis (see _layoutScatter).
+   * @param {{f:number,s:number,r?:number}[]} pts @param {number} center lane
+   *   centre on the spread axis
    * @param {number} rFallback @param {number} step @param {number} [maxR]
-   * @param {boolean} [vertical]
    */
-  _beeswarm(pts, center, rFallback, step, maxR, vertical = false) {
-    const fk = vertical ? 'py' : 'px' // fixed (value) coordinate
-    const sk = vertical ? 'x' : 'y' // spread (lane) coordinate to assign
-    const order = pts.slice().sort((a, b) => a[fk] - b[fk])
+  _beeswarm(pts, center, rFallback, step, maxR) {
+    const order = pts.slice().sort((a, b) => a.f - b.f)
     /** @type {{f:number,s:number,r:number}[]} */
     const placed = []
     const rCap = maxR != null ? maxR : rFallback
@@ -2088,7 +1954,7 @@ export default class Unit {
         let ok = true
         for (let m = placed.length - 1; m >= 0; m--) {
           const q = placed[m]
-          const df = p[fk] - q.f
+          const df = p.f - q.f
           if (df > pr + rCap) break // value-ascending; nothing else in reach
           const need = pr + q.r
           const ds = s - q.s
@@ -2102,8 +1968,8 @@ export default class Unit {
           break
         }
       }
-      p[sk] = center + chosen
-      placed.push({ f: p[fk], s: p[sk], r: pr })
+      p.s = center + chosen
+      placed.push({ f: p.f, s: p.s, r: pr })
     })
   }
 

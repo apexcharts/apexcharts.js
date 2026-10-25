@@ -815,6 +815,35 @@ describe('Unit chart - scatter (beeswarm) layout', () => {
     chart.destroy()
   })
 
+  it('packs one fixture the same way in both orientations, transposed', () => {
+    // One layout serves both orientations: the pack runs on the value axis
+    // and the spread axis, whichever screen axes those are. Equal values make
+    // the pack independent of the plot's aspect, so the offsets must match.
+    const swarm = (orientation) => {
+      const chart = unitChart({
+        series: [{ name: 'A', data: new Array(9).fill(50) }],
+        plotOptions: {
+          unit: { layout: 'scatter', size: 4, scatter: { orientation, xMin: 0, xMax: 100 } },
+        },
+      })
+      const pts = centers(laneGroup(chart, 0))
+      chart.destroy()
+      return pts
+    }
+    const h = swarm('horizontal')
+    const v = swarm('vertical')
+    expect(h).toHaveLength(9)
+    expect(v).toHaveLength(9)
+    // The value coordinate is shared by every dot; the spread is the other.
+    expect(new Set(h.map((p) => p.x.toFixed(6))).size).toBe(1)
+    expect(new Set(v.map((p) => p.y.toFixed(6))).size).toBe(1)
+    const offsets = (vals) => {
+      const mid = (Math.max(...vals) + Math.min(...vals)) / 2
+      return vals.map((s) => +(s - mid).toFixed(6)).sort((a, b) => a - b)
+    }
+    expect(offsets(v.map((p) => p.x))).toEqual(offsets(h.map((p) => p.y)))
+  })
+
   it('vertical swarm packing keeps equal-value dots from overlapping', () => {
     const data = new Array(12).fill(50)
     const chart = unitChart({

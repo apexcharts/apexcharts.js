@@ -30,6 +30,7 @@
  *
  * @module modules/animations/StreamScroll
  */
+import { mapPathAffine } from '../../svg/PathAffine'
 
 /**
  * @typedef {Object} StreamScrollTransform
@@ -248,56 +249,18 @@ export function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   return { ax, bx, ay, by }
 }
 
-const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi
-
 /**
- * Apply the previous←current affine transform to a rendered path string,
- * producing the morph's pathFrom. Affine maps are exact for every command the
- * series builders emit (bezier curves are affine-invariant): M/L/T points,
- * C/S/Q control points, H (x only), V (y only). Arcs keep their radii: the
- * scroll transform is ≈identity in scale: and only move their endpoint.
+ * Apply the previous<-current affine transform to a rendered path string,
+ * producing the morph's pathFrom (see mapPathAffine). Arcs keep their radii:
+ * the scroll transform is close to identity in scale and only moves their
+ * end point.
  *
  * @param {string} d
  * @param {StreamScrollTransform} t
  * @returns {string}
  */
 export function projectPathToPrevFrame(d, t) {
-  const { ax, bx, ay, by } = t
-  const out = []
-  const re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g
-  let match
-  while ((match = re.exec(d)) !== null) {
-    const cmd = match[1].toUpperCase()
-    const nums = (match[2].match(NUM_RE) || []).map(parseFloat)
-
-    if (cmd === 'Z') {
-      out.push('z')
-      continue
-    }
-    if (cmd === 'H') {
-      for (const x of nums) out.push(`H ${ax * x + bx}`)
-      continue
-    }
-    if (cmd === 'V') {
-      for (const y of nums) out.push(`V ${ay * y + by}`)
-      continue
-    }
-    if (cmd === 'A') {
-      for (let i = 0; i + 6 < nums.length; i += 7) {
-        out.push(
-          `A ${nums[i]} ${nums[i + 1]} ${nums[i + 2]} ${nums[i + 3]} ${nums[i + 4]} ${ax * nums[i + 5] + bx} ${ay * nums[i + 6] + by}`,
-        )
-      }
-      continue
-    }
-    // M, L, T, C, S, Q: pure (x, y) coordinate lists.
-    const coords = []
-    for (let i = 0; i + 1 < nums.length; i += 2) {
-      coords.push(`${ax * nums[i] + bx} ${ay * nums[i + 1] + by}`)
-    }
-    if (coords.length) out.push(`${cmd} ${coords.join(' ')}`)
-  }
-  return out.join(' ')
+  return mapPathAffine(d, t.ax, t.bx, t.ay, t.by)
 }
 
 /**

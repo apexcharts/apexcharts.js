@@ -4,6 +4,7 @@ import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { prefersReducedMotion } from './Animations'
 import { resolveEasing } from './animations/Easing'
 import { parsePath } from '../svg/PathMorphing'
+import { mapPathAffine } from '../svg/PathAffine'
 import {
   gridDivideRect,
   gridDivideShape,
@@ -97,6 +98,19 @@ const PIECE_BUDGET = 1500
 // morph, whichever is smaller): pieces sweep rather than march, but the last
 // one still lands within the configured speed.
 const PIECE_STAGGER_MAX = 300
+
+// The incoming chrome applyChromeFade fades in, which is also the outgoing
+// chrome the ghost leaves behind. The grid group carries its gridlines, so
+// they are not listed again: a nested fade multiplies, and the grid would
+// trail the axes.
+const CHROME_SELECTORS = [
+  '.apexcharts-xaxis',
+  '.apexcharts-yaxis',
+  '.apexcharts-grid',
+  '.apexcharts-legend',
+  '.apexcharts-title-text',
+  '.apexcharts-subtitle-text',
+]
 
 /**
  * Show a mark or dot a piece takeover held hidden.
@@ -410,26 +424,21 @@ export default class MorphTypeChange {
     const clone = node.cloneNode(true)
     // Everything that is not a series mark. The tooltip and toolbar live
     // outside the svg, so they are not in the clone to begin with.
-    const drop = [
-      '.apexcharts-xaxis',
-      '.apexcharts-yaxis',
-      // (the gridlines go with it)
-      '.apexcharts-grid',
-      '.apexcharts-legend',
-      '.apexcharts-title-text',
-      '.apexcharts-subtitle-text',
-      '.apexcharts-annotations',
-      '.apexcharts-zoom-rect',
-      '.apexcharts-selection-rect',
-      '.apexcharts-xcrosshairs',
-      '.apexcharts-ycrosshairs',
-    ]
     if (typeof clone.querySelectorAll === 'function') {
-      drop.forEach((sel) => {
-        clone.querySelectorAll(sel).forEach((/** @type {any} */ el) => {
+      clone
+        .querySelectorAll(
+          [
+            ...CHROME_SELECTORS,
+            '.apexcharts-annotations',
+            '.apexcharts-zoom-rect',
+            '.apexcharts-selection-rect',
+            '.apexcharts-xcrosshairs',
+            '.apexcharts-ycrosshairs',
+          ].join(),
+        )
+        .forEach((/** @type {any} */ el) => {
           el.remove()
         })
-      })
     }
 
     // An id collision would let the live chart resolve a gradient or clip-path
@@ -853,27 +862,13 @@ export default class MorphTypeChange {
           return
         }
 
-        // A gradient fill arrives as url(#...); the series colour is the
-        // honest solid stand-in.
-        const markFill =
-          entry.fill && entry.fill.indexOf('url(') !== 0
-            ? entry.fill
-            : this.w.globals.colors?.[i] || dots[0].fill
-
-        let prober = null
-        if (shapedSource) {
-          const shifted = this.getInitialPathFor(i, 0)
-          if (shifted) prober = this._makeExtentProber(shifted, box, layer)
-        }
-        const divided = prober
-          ? gridDivideShape(box, dots.length, prober.intervalsAt)
-          : gridDivideRect(box, dots.length)
-        if (prober) prober.dispose()
-
-        const cells = sortByHilbert(divided, (c) => [
-          c.x + c.width / 2,
-          c.y + c.height / 2,
-        ])
+        const markFill = this._solidFill(entry.fill, i, dots[0].fill)
+        const cells = this._cutMark(
+          box,
+          dots.length,
+          shapedSource && this.getInitialPathFor(i, 0),
+          layer,
+        )
         const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
 
         for (let k = 0; k < ordered.length; k++) {
@@ -1006,21 +1001,8 @@ export default class MorphTypeChange {
       }
       const bbox = { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY }
 
-      const markFill =
-        target.fill && target.fill.indexOf('url(') !== 0
-          ? target.fill
-          : this.w.globals.colors?.[target.realIndex] || dots[0].fill
-
-      const prober = shapedTarget ? this._makeExtentProber(d, bbox, layer) : null
-      const divided = prober
-        ? gridDivideShape(bbox, dots.length, prober.intervalsAt)
-        : gridDivideRect(bbox, dots.length)
-      if (prober) prober.dispose()
-
-      const cells = sortByHilbert(divided, (c) => [
-        c.x + c.width / 2,
-        c.y + c.height / 2,
-      ])
+      const markFill = this._solidFill(target.fill, target.realIndex, dots[0].fill)
+      const cells = this._cutMark(bbox, dots.length, shapedTarget && d, layer)
       const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
 
       // Landed-piece bookkeeping: the mark reveals when ALL of its pieces are
@@ -1071,6 +1053,37 @@ export default class MorphTypeChange {
         state.g.remove()
       }
     })
+  }
+
+  /**
+   * A mark's fill as a solid colour. A gradient arrives as url(#...); the
+   * series colour is the honest solid stand-in.
+   * @param {string|null|undefined} fill
+   * @param {number} i series index
+   * @param {string|null} fallback
+   */
+  _solidFill(fill, i, fallback) {
+    return fill && fill.indexOf('url(') !== 0
+      ? fill
+      : this.w.globals.colors?.[i] || fallback
+  }
+
+  /**
+   * Cut a mark's box into `n` cells in Hilbert order, the order its pieces
+   * pair with the dots in. A shaped mark (violin, boxPlot, arc: pass its `d`)
+   * is cut along its measured ink, a bar along its box.
+   * @param {{x: number, y: number, width: number, height: number}} box
+   * @param {number} n
+   * @param {string|false|null} d
+   * @param {any} layer
+   */
+  _cutMark(box, n, d, layer) {
+    const prober = d ? this._makeExtentProber(d, box, layer) : null
+    const cells = prober
+      ? gridDivideShape(box, n, prober.intervalsAt)
+      : gridDivideRect(box, n)
+    if (prober) prober.dispose()
+    return sortByHilbert(cells, (c) => [c.x + c.width / 2, c.y + c.height / 2])
   }
 
   /**
@@ -1449,7 +1462,7 @@ export default class MorphTypeChange {
   /**
    * Convert a radialBar's stroked open-arc `d` ("M x1 y1 A r r 0 large sweep
    * x2 y2") into a closed donut-segment polygon whose FILLED rendering
-   * visually matches the original stroked arc — needed because the morph
+   * visually matches the original stroked arc, needed because the morph
    * target (pie/donut/polarArea) renders by fill, not stroke. Returns null
    * if the input doesn't match the expected M-then-A shape.
    *
@@ -1464,45 +1477,21 @@ export default class MorphTypeChange {
       /M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+A\s*(-?[\d.]+)\s+(?:-?[\d.]+)\s+(?:-?[\d.]+)\s+(\d)\s+(\d)\s+(-?[\d.]+)\s+(-?[\d.]+)/,
     )
     if (!m) return null
-    const x1 = parseFloat(m[1])
-    const y1 = parseFloat(m[2])
     const r = parseFloat(m[3])
-    const large = parseInt(m[4], 10)
-    const sweep = parseInt(m[5], 10)
-    const x2 = parseFloat(m[6])
-    const y2 = parseFloat(m[7])
     if (!isFinite(r) || r <= 0) return null
-
-    const half = strokeWidth / 2
-    const rOuter = r + half
-    const rInner = Math.max(0, r - half)
-
-    // Project a point on the ring radius `r` onto a new radius around (cx, cy).
-    const proj = (
-      /** @type {number} */ px,
-      /** @type {number} */ py,
-      /** @type {number} */ newR,
-    ) => {
-      const dx = px - centerX
-      const dy = py - centerY
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist === 0) return { x: centerX, y: centerY }
-      const k = newR / dist
-      return { x: centerX + dx * k, y: centerY + dy * k }
-    }
-
-    const o1 = proj(x1, y1, rOuter)
-    const o2 = proj(x2, y2, rOuter)
-    const i1 = proj(x1, y1, rInner)
-    const i2 = proj(x2, y2, rInner)
-    // Inner arc traverses in the opposite sweep direction so the segment closes.
-    const sweepBack = sweep ? 0 : 1
-
-    return (
-      `M ${o1.x} ${o1.y} ` +
-      `A ${rOuter} ${rOuter} 0 ${large} ${sweep} ${o2.x} ${o2.y} ` +
-      `L ${i2.x} ${i2.y} ` +
-      `A ${rInner} ${rInner} 0 ${large} ${sweepBack} ${i1.x} ${i1.y} Z`
+    // Each end as a clock angle (0 at 12 o'clock, clockwise), which is what
+    // buildRingSegmentPath takes; the arc's sweep flag says which way round.
+    const angle = (/** @type {string} */ x, /** @type {string} */ y) =>
+      (Math.atan2(+x - centerX, centerY - +y) * 180) / Math.PI
+    const a1 = angle(m[1], m[2])
+    const span = (((angle(m[6], m[7]) - a1) % 360) + 360) % 360
+    return this.buildRingSegmentPath(
+      centerX,
+      centerY,
+      r,
+      strokeWidth,
+      a1,
+      a1 + (+m[5] ? span : span - 360),
     )
   }
 
@@ -1708,7 +1697,7 @@ export default class MorphTypeChange {
     const { k, dx, dy } = this._oldToNew()
     return k === 1 && dx === 0 && dy === 0
       ? entry.d
-      : this._translatePathD(entry.d, dx, dy, k)
+      : mapPathAffine(entry.d, k, dx, k, dy, k)
   }
 
   /**
@@ -1725,49 +1714,6 @@ export default class MorphTypeChange {
       dx: o.translateX + (o.shiftX ?? 0) - (this.w.layout.translateX || 0),
       dy: o.translateY + (o.shiftY ?? 0) - (this.w.layout.translateY || 0),
     }
-  }
-
-  /**
-   * Offset every absolute coordinate in an SVG path `d` by (dx, dy).
-   *
-   * Assumes the path uses only uppercase (absolute) commands — every path
-   * ApexCharts generates does. Relative-command paths would pass through
-   * unchanged at the lowercase, which is also semantically correct (deltas
-   * don't shift under a parent translate).
-   *
-   * @param {string} d
-   * @param {number} dx
-   * @param {number} dy
-   * @param {number} [k] scale every coordinate (and arc radius) by this first
-   * @returns {string}
-   */
-  _translatePathD(d, dx, dy, k = 1) {
-    if (dx === 0 && dy === 0 && k === 1) return d
-    const commands = parsePath(d)
-    const x = (/** @type {number} */ v) => v * k + dx
-    const y = (/** @type {number} */ v) => v * k + dy
-    return commands
-      .map(/** @param {any[]} c */ (c) => {
-        const cmd = c[0]
-        if (cmd === 'Z') return 'Z'
-        if (cmd === 'M' || cmd === 'L' || cmd === 'T') {
-          return `${cmd} ${x(c[1])} ${y(c[2])}`
-        }
-        if (cmd === 'H') return `${cmd} ${x(c[1])}`
-        if (cmd === 'V') return `${cmd} ${y(c[1])}`
-        if (cmd === 'C') {
-          return `${cmd} ${x(c[1])} ${y(c[2])} ${x(c[3])} ${y(c[4])} ${x(c[5])} ${y(c[6])}`
-        }
-        if (cmd === 'S' || cmd === 'Q') {
-          return `${cmd} ${x(c[1])} ${y(c[2])} ${x(c[3])} ${y(c[4])}`
-        }
-        if (cmd === 'A') {
-          // rotation, large-arc and sweep stay; the radii scale, the end point maps
-          return `${cmd} ${c[1] * k} ${c[2] * k} ${c[3]} ${c[4]} ${c[5]} ${x(c[6])} ${y(c[7])}`
-        }
-        return c.join(' ')
-      })
-      .join(' ')
   }
 
   /**
@@ -1998,13 +1944,9 @@ export default class MorphTypeChange {
     else this._mountGhost()
 
     const speed = this.getSpeed()
-    // The grid group carries its gridlines, so they are not listed again: a
-    // nested fade multiplies, and the grid would trail the axes.
     /** @type {any[]} */
     const chrome = Array.from(
-      baseEl.querySelectorAll(
-        '.apexcharts-xaxis,.apexcharts-yaxis,.apexcharts-grid,.apexcharts-legend,.apexcharts-title-text,.apexcharts-subtitle-text',
-      ),
+      baseEl.querySelectorAll(CHROME_SELECTORS.join()),
     ).filter((/** @type {any} */ el) => el.style)
     /** @param {string} opacity @param {string} [transition] */
     const set = (opacity, transition) =>

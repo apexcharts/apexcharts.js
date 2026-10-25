@@ -12,6 +12,7 @@
 import ApexCharts from '../../src/entries/standard.js'
 import InitCtxVariables from '../../src/modules/helpers/InitCtxVariables.js'
 import MorphTypeChange from '../../src/modules/MorphTypeChange.js'
+import { mapPathAffine } from '../../src/svg/PathAffine.js'
 
 function snapshotRegistry() {
   return new Map(InitCtxVariables._featureRegistry)
@@ -359,45 +360,86 @@ describe('MorphTypeChange.getInitialPathFor', () => {
   })
 })
 
-describe('MorphTypeChange._translatePathD', () => {
-  const morph = new MorphTypeChange(makeStubChart().w, makeStubChart())
+// The one affine path map the morph capture and the streaming scroll share
+// (svg/PathAffine.js). A shift is the morph's plot-origin move.
+describe('mapPathAffine', () => {
+  const shift = (d, dx, dy) => mapPathAffine(d, 1, dx, 1, dy)
 
-  it('passes the path through unchanged when delta is (0,0)', () => {
+  it('maps the path onto itself under the identity', () => {
     const d = 'M 10 20 L 30 40 Z'
-    expect(morph._translatePathD(d, 0, 0)).toBe(d)
+    expect(shift(d, 0, 0)).toBe(d)
   })
 
   it('offsets M and L (x, y) pairs', () => {
-    expect(morph._translatePathD('M 10 20 L 30 40 Z', 5, 7)).toBe(
-      'M 15 27 L 35 47 Z',
-    )
+    expect(shift('M 10 20 L 30 40 Z', 5, 7)).toBe('M 15 27 L 35 47 Z')
   })
 
   it('offsets only the last (x, y) of an A command (radii/flags unchanged)', () => {
-    expect(
-      morph._translatePathD('M 10 10 A 50 50 0 0 1 100 200 Z', 5, 3),
-    ).toBe('M 15 13 A 50 50 0 0 1 105 203 Z')
+    expect(shift('M 10 10 A 50 50 0 0 1 100 200 Z', 5, 3)).toBe(
+      'M 15 13 A 50 50 0 0 1 105 203 Z',
+    )
   })
 
   it('offsets all 3 control-point pairs of a C command', () => {
-    expect(morph._translatePathD('M 0 0 C 10 20 30 40 50 60', 1, 2)).toBe(
+    expect(shift('M 0 0 C 10 20 30 40 50 60', 1, 2)).toBe(
       'M 1 2 C 11 22 31 42 51 62',
     )
   })
 
   it('offsets H by dx only and V by dy only', () => {
-    expect(morph._translatePathD('M 10 10 H 50 V 80', 3, 4)).toBe(
-      'M 13 14 H 53 V 84',
-    )
+    expect(shift('M 10 10 H 50 V 80', 3, 4)).toBe('M 13 14 H 53 V 84')
   })
 
   it('handles a closed donut-segment (M A L A Z)', () => {
     const d =
       'M 100 50 A 80 80 0 0 1 180 130 L 165 130 A 65 65 0 0 0 100 65 Z'
-    const shifted = morph._translatePathD(d, 10, 20)
-    expect(shifted).toBe(
+    expect(shift(d, 10, 20)).toBe(
       'M 110 70 A 80 80 0 0 1 190 150 L 175 150 A 65 65 0 0 0 110 85 Z',
     )
+  })
+
+  it('scales arc radii by rk and keeps an implicit lineto after M', () => {
+    // The morph re-scales a circle (k = 2): points AND radii double.
+    expect(mapPathAffine('M 1 2 A 5 5 0 1 0 3 4', 2, 0, 2, 0, 2)).toBe(
+      'M 2 4 A 10 10 0 1 0 6 8',
+    )
+    // The stream scroll keeps radii (rk defaults to 1).
+    expect(mapPathAffine('M 1 2 A 5 5 0 1 0 3 4', 2, 0, 2, 0)).toBe(
+      'M 2 4 A 5 5 0 1 0 6 8',
+    )
+    // `M x y x y` draws a line to the second pair; it must not become a move.
+    expect(shift('M 0 0 10 10', 1, 1)).toBe('M 1 1 11 11')
+  })
+})
+
+describe('MorphTypeChange._radialArcToFilledSegment', () => {
+  const morph = new MorphTypeChange(makeStubChart().w, makeStubChart())
+  const pts = (d) => d.match(/-?[\d.e-]+/g).map(Number)
+
+  it('builds the same ring segment buildRingSegmentPath draws for that arc', () => {
+    // A clockwise quarter of a r=50 ring around (100, 100): 12 to 3 o'clock.
+    const arc = 'M 100 50 A 50 50 0 0 1 150 100'
+    const seg = morph._radialArcToFilledSegment(arc, 10, 100, 100)
+    const ref = morph.buildRingSegmentPath(100, 100, 50, 10, 0, 90)
+    pts(seg).forEach((v, k) => expect(v).toBeCloseTo(pts(ref)[k], 6))
+    // Outer radius 55, inner 45, the large-arc and sweep flags of the input.
+    expect(seg).toMatch(/^M [\d.e-]+ [\d.e-]+ A 55 55 0 0 1 /)
+    expect(seg).toMatch(/A 45 45 0 0 0 [\d.e-]+ [\d.e-]+ Z$/)
+  })
+
+  it('keeps a counter-clockwise, large arc going the same way round', () => {
+    // 12 o'clock, anticlockwise through 9 and 6, to 3 o'clock: 270 degrees.
+    const arc = 'M 100 50 A 50 50 0 1 0 150 100'
+    const seg = morph._radialArcToFilledSegment(arc, 10, 100, 100)
+    expect(seg).toMatch(/A 55 55 0 1 0 /)
+    expect(seg).toMatch(/A 45 45 0 1 1 /)
+    const [, , , , , , , ox, oy] = pts(seg)
+    expect(ox).toBeCloseTo(155, 6)
+    expect(oy).toBeCloseTo(100, 6)
+  })
+
+  it('returns null for a path that is not M then A', () => {
+    expect(morph._radialArcToFilledSegment('M 0 0 L 10 10', 4, 0, 0)).toBe(null)
   })
 })
 
