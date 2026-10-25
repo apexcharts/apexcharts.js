@@ -553,3 +553,19 @@ const headlessHover: ApexCharts.ApexOptions = {
 // @ts-expect-error visible is a boolean
 const badVisible: ApexCharts.ApexTooltip = { visible: 'hidden' }
 void headlessHover; void badVisible
+
+// Named type imports (#5077). The d.ts ends with `export = ApexCharts`, a
+// class merged with a namespace, so named imports resolve through the
+// namespace's exported members. The header comment promises that spelling,
+// and the series types are what wrapper props consume, so they must import
+// by name — not only as ApexCharts.*.
+import type {
+  ApexOptions,
+  ApexAxisChartSeries,
+  ApexNonAxisChartSeries,
+} from '../../types/apexcharts'
+
+const namedSeries: ApexAxisChartSeries = [{ name: 'a', data: [1, 2, 3] }]
+const namedNonAxis: ApexNonAxisChartSeries = [1, 2, 3]
+const namedOptions: ApexOptions = { series: namedSeries }
+void namedNonAxis; void namedOptions
