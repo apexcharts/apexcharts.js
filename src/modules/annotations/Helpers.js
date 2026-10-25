@@ -285,14 +285,27 @@ export default class Helpers {
         return { yP: 0, clipped: true }
       }
 
-      const xLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`,
-      )
-
-      yP = xLabel
-        ? parseFloat(xLabel.getAttribute('y') ?? '0')
-        : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) -
-          w.globals.barHeight
+      // The row's geometric centre, which is where Bar.js / RangeBar.js draw
+      // the bar. Every category gets an equal band of the grid and the bar
+      // (or the shared dumbbell row) is centred in it:
+      //   (catIndex + 0.5) * (gridHeight / rowCount)
+      //
+      // The category <text> `y` is not that centre. XAxis.drawXaxisInversed
+      // puts the baseline at `(i + 1 - 1/2.2) * colHeight + labels.offsetY`
+      // so the glyphs look centred, a fraction of the band below the bar.
+      // With `yaxis.labels.show: false` there is no <text> to read, and the
+      // old fallback `(gridHeight / n - 1) * (i + 1) - barHeight` subtracted
+      // 1 inside the band height, so the miss grew by a pixel per row (#5078).
+      //
+      // Range bars key a band per category label (bar/Helpers sets dataPoints
+      // to labels.length). Every other horizontal bar uses dataPoints, which
+      // is the same length on a normal category chart.
+      const rowCount =
+        w.rangeData.seriesRange.length && w.globals.isBarHorizontal
+          ? w.labelData.labels.length
+          : w.globals.dataPoints || labels.length
+      yP =
+        rowCount > 0 ? (catIndex + 0.5) * (w.layout.gridHeight / rowCount) : 0
 
       if (anno.seriesIndex !== undefined && w.globals.barHeight) {
         yP += this.barSlotOffset(anno.seriesIndex, w.globals.barHeight)
@@ -425,12 +438,24 @@ export default class Helpers {
    * share the slot only among the series actually laid out side by side:
    * a stacked chart draws them all in one column, and a hidden series (empty
    * data) or a non-bar combo series takes no slot.
+   *
+   * Grouped-row range bars (`plotOptions.bar.rangeBarGroupRows`) share a
+   * slot too. bar/Helpers forces `seriesLen` to 1, so every series is drawn
+   * on the row centre — the dumbbell / per-row-colour pattern. A point
+   * annotation's `seriesIndex` is 0 when it names the first series, and
+   * offsetting by that lifts the marker off the row by
+   * `barHeight * (0 - (n - 1) / 2)` (#5078).
    * @param {number} i
    * @param {number} size bar width, or bar height when horizontal
    */
   barSlotOffset(i, size) {
     const w = this.w
-    if (w.config.chart.stacked) return 0
+    if (
+      w.config.chart.stacked ||
+      w.config.plotOptions?.bar?.rangeBarGroupRows
+    ) {
+      return 0
+    }
     let n = 0
     let ordinal = 0
     w.seriesData.series.forEach(
