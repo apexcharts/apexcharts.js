@@ -1903,18 +1903,6 @@ describe('Unit chart — hidden (empty) category re-flow', () => {
   })
 })
 
-describe('Unit chart — colour parsing (_rgb)', () => {
-  const u = new Unit({ globals: {}, config: {}, layout: {} }, {})
-
-  it('parses #rrggbb, #rgb, rgb() and rgba(); null on garbage', () => {
-    expect(u._rgb('#ff0000')).toEqual([255, 0, 0])
-    expect(u._rgb('#0f0')).toEqual([0, 255, 0])
-    expect(u._rgb('rgb(1, 2, 3)')).toEqual([1, 2, 3])
-    expect(u._rgb('rgba(10,20,30,0.5)')).toEqual([10, 20, 30])
-    expect(u._rgb('not-a-color')).toBeNull()
-  })
-})
-
 describe('Unit chart — bar->unit morph (explode)', () => {
   let warnSpy
   beforeEach(() => {
@@ -2228,6 +2216,82 @@ describe('Unit chart — gather motion', () => {
     }
   })
 
+  it('times an update on dynamicAnimation.speed, not animations.speed', () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const clock = installFrameClock()
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: {
+        type: 'unit',
+        width: 500,
+        height: 360,
+        animations: { enabled: true, speed: 2000, dynamicAnimation: { speed: 200 } },
+      },
+      series: [40, 40],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { clusterLabels: { show: false }, gather: { motion: 'tween' } } },
+    })
+    try {
+      chart.render()
+      // The mount gather runs on animations.speed: still in flight at 400 ms.
+      for (let i = 0; i < 25; i++) clock.frame(16)
+      expect(chart.w.globals.unitGatherRAF).not.toBe(null)
+      for (let i = 0; i < 200; i++) clock.frame(16)
+      expect(chart.w.globals.unitGatherRAF).toBe(null)
+
+      chart.updateSeries([10, 70])
+      expect(chart.w.globals.unitGatherRAF).not.toBe(null)
+      // 200 ms plus its 120 ms stagger, and the exit ghosts on the same clock.
+      for (let i = 0; i < 25; i++) clock.frame(16)
+      expect(chart.w.globals.unitGatherRAF).toBe(null)
+      expect(chart.w.globals.unitExitRAF).toBe(null)
+      expect(chart.w.dom.baseEl.querySelector('.apexcharts-unit-exits')).toBe(null)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('places an update outright when dynamicAnimation is off', () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const clock = installFrameClock()
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: {
+        type: 'unit',
+        width: 500,
+        height: 360,
+        animations: { enabled: true, speed: 400, dynamicAnimation: { enabled: false } },
+      },
+      series: [40, 40],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { clusterLabels: { show: false } } },
+    })
+    try {
+      chart.render()
+      // The first gather still plays.
+      expect(chart.w.globals.unitGatherRAF).not.toBe(null)
+      for (let i = 0; i < 200; i++) clock.frame(16)
+
+      chart.updateSeries([10, 20])
+      expect(chart.w.globals.unitGatherRAF).toBe(null)
+      expect(chart.w.globals.unitExitRAF).toBe(null)
+      expect(chart._unitSprings).toBe(null)
+      // No exit ghosts: the removed dots are simply gone.
+      expect(chart.w.dom.baseEl.querySelector('.apexcharts-unit-exit')).toBe(null)
+      expect(chart.w.globals.animationEnded).toBe(true)
+      // Every dot already sits on its slot.
+      const dots = [...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area')]
+      expect(dots.length).toBe(30)
+      const at = (x, y) => (+x).toFixed(3) + ',' + (+y).toFixed(3)
+      const slots = new Set([...chart._unitPrevDots.values()].map((s) => at(s.x, s.y)))
+      dots.forEach((c) => {
+        expect(slots.has(at(c.getAttribute('cx'), c.getAttribute('cy')))).toBe(true)
+      })
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
   it('gather.motion "tween" opts out of springs', () => {
     const chart = animatedUnitChart({ gather: { motion: 'tween' } })
     const clock = installFrameClock()
@@ -2266,14 +2330,16 @@ describe('Unit chart — gather motion', () => {
     }
   })
 
-  it('a slower chart.animations.speed makes a softer spring, not a bouncier one', () => {
+  it('a slower update speed makes a softer spring, not a bouncier one', () => {
     // Damping ratio c / (2 * sqrt(k)) is what decides overshoot; `speed` must
-    // rescale the spring in time and leave that alone.
+    // rescale the spring in time and leave that alone. An update runs on
+    // dynamicAnimation.speed, so the mount speed is held fixed.
     const ratio = (s) => s.damping / (2 * Math.sqrt(s.stiffness))
+    const anim = (speed) => ({ enabled: true, speed: 800, dynamicAnimation: { speed } })
 
     document.body.innerHTML = '<div id="chart"></div>'
     const fast = new ApexCharts(document.querySelector('#chart'), {
-      chart: { type: 'unit', width: 500, height: 360, animations: { enabled: true, speed: 400 } },
+      chart: { type: 'unit', width: 500, height: 360, animations: anim(400) },
       series: [40, 40],
       labels: ['A', 'B'],
       plotOptions: { unit: { clusterLabels: { show: false } } },
@@ -2287,7 +2353,7 @@ describe('Unit chart — gather motion', () => {
 
       document.body.innerHTML = '<div id="chart"></div>'
       const slow = new ApexCharts(document.querySelector('#chart'), {
-        chart: { type: 'unit', width: 500, height: 360, animations: { enabled: true, speed: 1600 } },
+        chart: { type: 'unit', width: 500, height: 360, animations: anim(1600) },
         series: [40, 40],
         labels: ['A', 'B'],
         plotOptions: { unit: { clusterLabels: { show: false } } },

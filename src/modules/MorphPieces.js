@@ -18,6 +18,7 @@
  * @module modules/MorphPieces
  */
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
+import { lerpRGBA, resolveRGBA } from '../utils/Color'
 
 /**
  * Divide a bounding box into exactly `count` cells, as an aspect-ratio-aware
@@ -256,64 +257,20 @@ export function sortByHilbert(items, getXY) {
 }
 
 /**
- * Parse a solid CSS colour into [r, g, b, a], or null for anything that
- * cannot be interpolated (gradients arrive as `url(#...)`, and a piece is
- * better off keeping one endpoint's colour than guessing at a gradient).
- *
- * @param {string|null|undefined} str
- * @returns {[number, number, number, number]|null}
- */
-export function parseColor(str) {
-  if (!str || typeof str !== 'string') return null
-  const s = str.trim()
-  if (s[0] === '#') {
-    const hex = s.slice(1)
-    if (hex.length === 3) {
-      return [
-        parseInt(hex[0] + hex[0], 16),
-        parseInt(hex[1] + hex[1], 16),
-        parseInt(hex[2] + hex[2], 16),
-        1,
-      ]
-    }
-    if (hex.length === 6 || hex.length === 8) {
-      return [
-        parseInt(hex.slice(0, 2), 16),
-        parseInt(hex.slice(2, 4), 16),
-        parseInt(hex.slice(4, 6), 16),
-        hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1,
-      ]
-    }
-    return null
-  }
-  const m = s.match(/^rgba?\(([^)]+)\)$/i)
-  if (m) {
-    const parts = m[1].split(',').map((p) => parseFloat(p))
-    if (parts.length < 3 || parts.some((v) => !isFinite(v))) return null
-    return [parts[0], parts[1], parts[2], parts.length > 3 ? parts[3] : 1]
-  }
-  return null
-}
-
-/**
  * A colour interpolator between two solid fills, or null when either end is
- * not a solid colour. The caller falls back to a hard switch at the far end.
+ * not a solid colour (gradients arrive as `url(#...)`, and a piece is better
+ * off keeping one endpoint's colour than guessing at a gradient). The caller
+ * falls back to a hard switch at the far end.
  *
  * @param {string|null|undefined} from
  * @param {string|null|undefined} to
+ * @param {Map<string, number[] | null>} memo resolved colours, one per run
  * @returns {((t: number) => string) | null}
  */
-export function makeColorLerp(from, to) {
-  const a = parseColor(from)
-  const b = parseColor(to)
-  if (!a || !b) return null
-  return (t) => {
-    const r = Math.round(a[0] + (b[0] - a[0]) * t)
-    const g = Math.round(a[1] + (b[1] - a[1]) * t)
-    const bl = Math.round(a[2] + (b[2] - a[2]) * t)
-    const al = a[3] + (b[3] - a[3]) * t
-    return al >= 1 ? `rgb(${r},${g},${bl})` : `rgba(${r},${g},${bl},${al})`
-  }
+export function makeColorLerp(from, to, memo) {
+  const a = resolveRGBA(from, memo)
+  const b = resolveRGBA(to, memo)
+  return a && b ? (t) => lerpRGBA(a, b, t) : null
 }
 
 /**

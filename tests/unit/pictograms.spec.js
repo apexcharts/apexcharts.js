@@ -284,6 +284,40 @@ describe('unit chart : pictogram marks', () => {
     c.destroy()
   })
 
+  it('normalises a mark registerMarks stored, and warns once about one it cannot draw', () => {
+    // registerMarks writes the shared table without registerUnitMark's
+    // checks; the chart normalises on read, as registerUnitMark does on the
+    // way in: a string viewBox (JSON config) is read as numbers, a short one
+    // takes the 0..100 default, and one that cannot be read falls back with a
+    // warning instead of scaling every glyph by NaN.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    registerMarks({
+      fromJson: { path: person.path, viewBox: ['0', '0', '100', '100'] },
+      shortBox: { path: person.path, viewBox: [0, 0, 24] },
+      badBox: { path: person.path, viewBox: [0, 0, 'wide', 24] },
+    })
+    try {
+      for (const mark of ['fromJson', 'shortBox']) {
+        const c = unitChart({ shape: 'pictogram', pictogram: { mark } })
+        const glyphs = areas(c, 'path.apexcharts-unit-area')
+        expect(glyphs).toHaveLength(50)
+        glyphs.forEach((g) => expect(g.getAttribute('transform')).not.toMatch(/NaN/))
+        c.destroy()
+      }
+
+      const c = unitChart({ shape: 'pictogram', pictogram: { mark: 'badBox' } })
+      expect(areas(c, 'path.apexcharts-unit-area')).toHaveLength(0)
+      expect(areas(c, 'circle.apexcharts-unit-area')).toHaveLength(50)
+      c.destroy()
+      const msgs = warn.mock.calls.map((a) => String(a[0]))
+      expect(msgs.filter((m) => m.includes('mark "badBox" needs'))).toHaveLength(1)
+      expect(msgs.some((m) => m.includes('fromJson') || m.includes('shortBox'))).toBe(false)
+    } finally {
+      unregisterMarks(['fromJson', 'shortBox', 'badBox'])
+      warn.mockRestore()
+    }
+  })
+
   it('mixes glyphs and circles in one population, each on its own slot', () => {
     // The regression test for the whole placement refactor: before the spec
     // seam, positioning was one chart-wide decision, and a render where dot 3

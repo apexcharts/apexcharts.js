@@ -1,6 +1,8 @@
 // @ts-check
 import { morphPaths, morphPolygons } from './PathMorphing'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
+import Utils from '../utils/Utils.js'
+import { lerpRGBA } from '../utils/Color.js'
 
 // Sine ease in-out (matches SVG.js default '<>' easing). Kept as the fallback
 // so behavior is unchanged when no easing is configured.
@@ -27,37 +29,6 @@ let _defaultEasing = easeInOut
  */
 export function setDefaultEasing(fn) {
   _defaultEasing = typeof fn === 'function' ? fn : easeInOut
-}
-
-// Parse color string to [r, g, b, a]
-/**
- * @param {string} str
- */
-function parseColor(str) {
-  if (!str || typeof str !== 'string') return null
-  // hex #rgb or #rrggbb
-  if (str[0] === '#') {
-    let hex = str.slice(1)
-    if (hex.length === 3)
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
-    const n = parseInt(hex, 16)
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1]
-  }
-  // rgb(r,g,b) or rgba(r,g,b,a)
-  const m = str.match(
-    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/,
-  )
-  if (m) return [+m[1], +m[2], +m[3], m[4] !== undefined ? +m[4] : 1]
-  return null
-}
-
-/**
- * @param {number[]} from
- * @param {number[]} to
- * @param {number} pos
- */
-function interpolateColor(from, to, pos) {
-  return `rgba(${Math.round(from[0] + (to[0] - from[0]) * pos)},${Math.round(from[1] + (to[1] - from[1]) * pos)},${Math.round(from[2] + (to[2] - from[2]) * pos)},${from[3] + (to[3] - from[3]) * pos})`
 }
 
 class SVGAnimationRunner {
@@ -210,9 +181,9 @@ class SVGAnimationRunner {
         for (const key of Object.keys(this._attrTarget)) {
           const fromVal = el.attr(key)
           fromAttrs[key] = fromVal
-          // Check if this is a color value
-          const fc = parseColor(fromVal)
-          const tc = parseColor(String(this._attrTarget[key]))
+          // Check if this is a color value (alpha included: #rrggbbaa too)
+          const fc = Utils.parseColor(String(fromVal))
+          const tc = Utils.parseColor(String(this._attrTarget[key]))
           if (fc && tc) {
             fromColors[key] = fc
             toColors[key] = tc
@@ -257,7 +228,7 @@ class SVGAnimationRunner {
             const current = /** @type {Record<string, any>} */ ({})
             for (const key of Object.keys(this._attrTarget)) {
               if (fromColors[key] && toColors[key]) {
-                current[key] = interpolateColor(
+                current[key] = lerpRGBA(
                   fromColors[key],
                   toColors[key],
                   pos,

@@ -49,7 +49,14 @@ const frames = (n) => {
 
 async function mount(o) {
   document.body.innerHTML = '<div id="chart"></div>'
-  o.chart = { type: 'unit', width: 600, height: 400, animations: { enabled: true, speed: 400 } }
+  // Updates run on dynamicAnimation.speed; the frame counts below assume the
+  // same 400 ms as the mount.
+  o.chart = {
+    type: 'unit',
+    width: 600,
+    height: 400,
+    animations: { enabled: true, speed: 400, dynamicAnimation: { speed: 400 } },
+  }
   chart = new ApexCharts(document.querySelector('#chart'), o)
   await chart.render()
   return chart

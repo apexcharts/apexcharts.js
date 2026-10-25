@@ -36,6 +36,10 @@ function marks() {
 /**
  * Register marks under their own names.
  *
+ * Only the path is checked here. The chart normalises a stored mark when it
+ * first draws it (as registerUnitMark does on the way in), and warns once
+ * about a mark it cannot draw, such as a viewBox that is not 4 numbers.
+ *
  * @param {UnitMark[]|Record<string, UnitMark>} defs an array (each mark knows
  *   its name) or a map, where the key wins, so a mark can be registered under a
  *   name of your own.

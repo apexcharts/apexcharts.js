@@ -7,6 +7,8 @@ import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { prefersReducedMotion } from '../modules/Animations'
+import { resolveEasing } from '../modules/animations/Easing'
+import { lerpRGBA, resolveRGBA } from '../utils/Color'
 import {
   drawOuterLabel,
   measureLabelWidth,
@@ -42,6 +44,13 @@ import { hash01 } from './common/Jitter'
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 
 /**
+ * Registered mark -> its normalised form (null when it cannot draw). See
+ * Unit#_resolveMark.
+ * @type {WeakMap<object, any>}
+ */
+const NORMALISED = new WeakMap()
+
+/**
  * Suffix a repeated id ("a", "a#2", ...) so every unit sharing it keeps a key of
  * its own.
  * @param {Map<string, number>} seen
@@ -63,11 +72,6 @@ const toNum = (v) => {
   return typeof v === 'number' && isFinite(v) ? v : null
 }
 
-/** @param {number} t */
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3)
-}
-
 /**
  * Back-out ease factory: overshoots the target then springs back, so a dot
  * visibly "settles" into its slot instead of just decelerating to a stop.
@@ -76,15 +80,6 @@ function easeOutCubic(t) {
  */
 function easeOutBack(s) {
   return (t) => 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2)
-}
-
-/**
- * In-out ease: dots accelerate gently out of rest and decelerate into their
- * slot, so a regroup reads as weighted motion rather than an instant launch.
- * @param {number} t
- */
-function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
 /**
@@ -124,7 +119,7 @@ const PK_GLYPH = 2
  * keep meaning what it means for every other tween in the chart.
  *
  * @param {string|undefined} preset 'crisp' (default) | 'gentle' | 'snappy'
- * @param {number} speed chart.animations.speed, in ms
+ * @param {number} speed the tween length, in ms (see Unit#_speed)
  * @returns {[number, number]}
  */
 function springParams(preset, speed) {
@@ -273,7 +268,12 @@ export default class Unit {
     if (layout === 'scatter') this._drawScatterAxes(ret, graphics)
 
     const dotR = this._lastDotR
-    const animate = this._shouldAnimate()
+    // A previous unit render to tween from makes this an update, which runs
+    // on dynamicAnimation like every other chart's data change. The first
+    // gather (and a cross-type morph, which never follows a unit render)
+    // keeps `animations`.
+    const update = !!(this.ctx && this.ctx._unitPrevDots)
+    const animate = this._shouldAnimate(update)
 
     // Cross-type morph (bar/wedge -> unit): when the optional `morph` feature
     // captured an outgoing bar/radial chart, each cluster's dots come out of the
@@ -303,7 +303,7 @@ export default class Unit {
     // of re-gathering from the centre. Dots with no previous slot are "enter"s
     // and fly out from the centre + fade in. Ignored during a cross-type morph
     // (the previous chart was not a unit chart).
-    const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null
+    const prev = animate && !morphActive && update ? this.ctx._unitPrevDots : null
     // An update that cut a piece takeover short (the morph's retire hands its
     // piece layer over): a dot whose piece was still flying starts where that
     // piece is, at its size and colour, not at the slot it never reached.
@@ -589,7 +589,7 @@ export default class Unit {
       if (exits.length) {
         const exitGroup = graphics.group({ class: 'apexcharts-unit-exits' })
         ret.add(exitGroup)
-        this._runExits(exitGroup, exits, opts)
+        this._runExits(exitGroup, exits, opts, this._speed(true))
       }
     }
 
@@ -607,7 +607,7 @@ export default class Unit {
     if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null
 
     if (animate && animDots.length) {
-      this._runGather(animDots)
+      this._runGather(animDots, this._speed(update))
     } else {
       // Nothing is in flight, so the chart is already at rest. Every other
       // chart type raises this flag (Pie, Scatter, Graphics, Animations); the
@@ -2582,14 +2582,25 @@ export default class Unit {
     // Sugar: an inline outline rather than a registered name.
     if (s[0] === 'M' || s[0] === 'm') return normalizeUnitMark(s)
     const found = getUnitMark(s)
-    if (found) return found
+    // `registerMarks` (apexcharts/pictograms) writes the shared table without
+    // registerUnitMark's checks, so a stored mark is normalised here, once per
+    // object: a bad viewBox would otherwise scale every glyph by NaN.
+    let mark = found && typeof found === 'object' ? NORMALISED.get(found) : null
+    if (mark === undefined) {
+      mark = normalizeUnitMark(found, s)
+      NORMALISED.set(/** @type {object} */ (found), mark)
+    }
+    if (mark) return mark
     if (!this._markWarned) this._markWarned = new Set()
     if (!this._markWarned.has(s)) {
       this._markWarned.add(s)
       console.warn(
-        `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
-          `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
-          `or import a catalog from 'apexcharts/pictograms'.`,
+        found
+          ? `[ApexCharts] unit chart: mark "${s}" needs a path string and a ` +
+              `viewBox of 4 numbers with a positive width and height.`
+          : `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
+              `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
+              `or import a catalog from 'apexcharts/pictograms'.`,
       )
     }
     return null
@@ -2810,48 +2821,40 @@ export default class Unit {
   }
 
   /**
-   * Parse a `#rgb` / `#rrggbb` / `rgb()` / `rgba()` colour to `[r, g, b]`, or
-   * null if it cannot be parsed (the colour tween is then skipped).
-   * @param {string} str @returns {number[] | null}
-   */
-  _rgb(str) {
-    if (typeof str !== 'string') return null
-    let s = str.trim()
-    if (s[0] === '#') {
-      if (s.length === 4) s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]
-      const n = parseInt(s.slice(1, 7), 16)
-      if (isNaN(n)) return null
-      return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-    }
-    const m = s.match(/rgba?\(([^)]+)\)/)
-    if (m) {
-      const p = m[1].split(',').map((x) => parseFloat(x))
-      if (p.length >= 3 && p.every((v) => !isNaN(v))) return [p[0], p[1], p[2]]
-    }
-    return null
-  }
-
-  /**
    * Whether to run the gather / transition animation. Runs on the initial mount
    * and on data-driven updates (keyed old->new tween or cross-type burst).
-   * Skipped: in SSR, when animations are off, when the caller passed
-   * `animate:false` (shouldAnimate === false), on a PURE window resize (resized
-   * with no data change - re-gathering on every resize would be jarring), and
-   * when the user prefers reduced motion.
+   * Skipped: in SSR, when animations are off, on an update when
+   * `dynamicAnimation` is off, when the caller passed `animate:false`
+   * (shouldAnimate === false), on a PURE window resize (resized with no data
+   * change - re-gathering on every resize would be jarring), and when the user
+   * prefers reduced motion.
    *
    * Note: `w.globals.resized` is set true on every update (not just window
    * resize), so it must be paired with `!dataChanged` to isolate a real resize.
+   * @param {boolean} update a tween from a previous unit render
    * @returns {boolean}
    */
-  _shouldAnimate() {
+  _shouldAnimate(update) {
     const w = this.w
     const anim = w.config.chart.animations
     if (!Environment.isBrowser()) return false
     if (!anim || anim.enabled === false) return false
+    if (update && anim.dynamicAnimation?.enabled === false) return false
     if (w.globals.shouldAnimate === false) return false
     if (w.globals.resized && !w.globals.dataChanged) return false
     if (anim.respectReducedMotion && prefersReducedMotion()) return false
     return true
+  }
+
+  /**
+   * Tween length (ms): `animations.speed` for the first gather,
+   * `dynamicAnimation.speed` for an update.
+   * @param {boolean} update
+   * @returns {number}
+   */
+  _speed(update) {
+    const anim = this.w.config.chart.animations
+    return Math.max(1, (update ? anim.dynamicAnimation?.speed : anim.speed) || 800)
   }
 
   /**
@@ -2872,7 +2875,7 @@ export default class Unit {
    *
    * @param {UnitAnimDot[]} dots
    * @param {any} gcfg plotOptions.unit.gather
-   * @param {number} speed chart.animations.speed, in ms
+   * @param {number} speed the tween length, in ms (see _speed)
    */
   _seedSprings(dots, gcfg, speed) {
     const [stiffness, damping] = springParams(gcfg.spring, speed)
@@ -2942,11 +2945,11 @@ export default class Unit {
    * quantities, and the shared solver's rest thresholds are absolute (0.05 in
    * caller units), which is negligible for pixels but 5% of a unit interval.
    * @param {UnitAnimDot[]} dots
+   * @param {number} speed tween length, in ms (see _speed)
    */
-  _runGather(dots) {
+  _runGather(dots, speed) {
     const w = this.w
     const opts = w.config.plotOptions.unit
-    const speed = Math.max(1, w.config.chart.animations.speed || 800)
 
     // The placement rule is on each dot's `spec` (see `_place`), not hoisted
     // here: a pictogram render mixes <circle> and <path> in one population, so
@@ -2991,13 +2994,16 @@ export default class Unit {
       }
     }
 
-    // Pre-parse the endpoints for dots that recolour mid-flight (flow regroup);
-    // dots that keep their colour skip the tween entirely.
+    // Pre-parse the endpoints for dots that recolour mid-flight (flow regroup),
+    // alpha included; a named or hsl() colour is resolved once per colour, not
+    // per dot. Dots that keep their colour skip the tween entirely.
+    /** @type {Map<string, number[] | null>} */
+    const memo = new Map()
     for (let k = 0; k < n; k++) {
       const d = dots[k]
       if (d.fill0 && d.fill1 && d.fill0 !== d.fill1) {
-        d._c0 = this._rgb(d.fill0)
-        d._c1 = this._rgb(d.fill1)
+        d._c0 = resolveRGBA(d.fill0, memo)
+        d._c1 = resolveRGBA(d.fill1, memo)
       }
     }
 
@@ -3008,12 +3014,13 @@ export default class Unit {
     // Colour, radius and opacity always stay on the out-cubic: a back ease
     // exceeds 1 mid-flight, which would push RGB channels out of range and
     // wobble radii.
+    const easeOut = resolveEasing('easeOutCubic')
     const easePos =
       gcfg.easing === 'outBack'
         ? easeOutBack(typeof gcfg.overshoot === 'number' ? gcfg.overshoot : 1.70158)
         : gcfg.easing === 'inOutCubic'
-          ? easeInOutCubic
-          : easeOutCubic
+          ? resolveEasing('easeInOutCubic')
+          : easeOut
 
     // draw() already cancelled the previous render's loop.
     const start = performance.now()
@@ -3034,7 +3041,7 @@ export default class Unit {
         const d = dots[k]
         const elapsed = now - start - d.delay
         const t = Math.max(0, Math.min(1, elapsed / speed))
-        const ec = easeOutCubic(t)
+        const ec = easeOut(t)
         let cx, cy
         if (d.sx && d.sy) {
           // Hold at the start value until the dot's stagger delay elapses,
@@ -3066,12 +3073,7 @@ export default class Unit {
         // Entering dots fade in over the first stretch; moving dots stay solid.
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5))
         // Cross-fade the fill for dots that changed group colour.
-        if (d._c0 && d._c1) {
-          const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec)
-          const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec)
-          const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec)
-          d.node.setAttribute('fill', `rgb(${cr},${cg},${cb})`)
-        }
+        if (d._c0 && d._c1) d.node.setAttribute('fill', lerpRGBA(d._c0, d._c1, ec))
         if (t < 1) done = false
       }
       if (done) {
@@ -3129,8 +3131,9 @@ export default class Unit {
    * blob / bar layouts keep the gentle inward collapse so a removal reads as
    * motion rather than a pop.
    * @param {any} group @param {{x:number,y:number,fill:string,r?:number,spec?:any}[]} exits @param {any} opts
+   * @param {number} speed tween length, in ms (see _speed)
    */
-  _runExits(group, exits, opts) {
+  _runExits(group, exits, opts, speed) {
     const w = this.w
     const graphics = new Graphics(w, this.ctx)
     const dotR = this._lastDotR
@@ -3162,14 +3165,9 @@ export default class Unit {
       ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec })
     })
 
-    if (!this._shouldAnimate()) {
-      // No animation: just drop them (they belong to the old data).
-      ghosts.forEach((g) => g.node.remove())
-      return
-    }
-
-    const speed = Math.max(1, w.config.chart.animations.speed || 800)
+    // Only an animated update has exits (draw collects none otherwise).
     const start = performance.now()
+    const easeOut = resolveEasing('easeOutCubic')
 
     /** @param {number} now */
     const stepFn = (now) => {
@@ -3179,7 +3177,7 @@ export default class Unit {
         return
       }
       const t = Math.max(0, Math.min(1, (now - start) / speed))
-      const e = easeOutCubic(t)
+      const e = easeOut(t)
       for (let k = 0; k < ghosts.length; k++) {
         const g = ghosts[k]
         // Drift a little toward the centre while fading (no drift for a grid:

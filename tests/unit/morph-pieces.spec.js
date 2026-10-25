@@ -11,7 +11,6 @@ import {
   gridDivideShape,
   hilbertIndex,
   makeColorLerp,
-  parseColor,
   sortByHilbert,
 } from '../../src/modules/MorphPieces'
 import MorphTypeChange from '../../src/modules/MorphTypeChange'
@@ -231,26 +230,23 @@ describe('hilbert ordering', () => {
 })
 
 describe('colour blending', () => {
-  it('parses hex and rgb() and refuses gradients', () => {
-    expect(parseColor('#000000')).toEqual([0, 0, 0, 1])
-    expect(parseColor('#abc')).toEqual([170, 187, 204, 1])
-    expect(parseColor('rgb(10, 20, 30)')).toEqual([10, 20, 30, 1])
-    expect(parseColor('rgba(10, 20, 30, 0.5)')).toEqual([10, 20, 30, 0.5])
-    expect(parseColor('url(#gradient1)')).toBe(null)
-    expect(parseColor(null)).toBe(null)
-    expect(parseColor('none')).toBe(null)
-  })
-
   it('interpolates between two solids and lands on both endpoints', () => {
-    const lerp = makeColorLerp('#000000', '#ffffff')
+    const lerp = makeColorLerp('#000000', '#ffffff', new Map())
     expect(lerp(0)).toBe('rgb(0,0,0)')
     expect(lerp(1)).toBe('rgb(255,255,255)')
     expect(lerp(0.5)).toBe('rgb(128,128,128)')
   })
 
+  it('carries alpha through the blend, #rrggbbaa included', () => {
+    const lerp = makeColorLerp('#FF000080', 'rgba(0, 0, 255, 0.5)', new Map())
+    expect(lerp(0)).toBe(`rgba(255,0,0,${128 / 255})`)
+    expect(lerp(1)).toBe('rgba(0,0,255,0.5)')
+  })
+
   it('returns null when either end cannot be blended', () => {
-    expect(makeColorLerp('url(#g)', '#fff')).toBe(null)
-    expect(makeColorLerp('#fff', undefined)).toBe(null)
+    expect(makeColorLerp('url(#g)', '#fff', new Map())).toBe(null)
+    expect(makeColorLerp('#fff', undefined, new Map())).toBe(null)
+    expect(makeColorLerp('none', '#fff', new Map())).toBe(null)
   })
 })
 

@@ -848,6 +848,8 @@ export default class MorphTypeChange {
     // its cells follow the measured ink instead.
     const sourceFam = familyOf(snap.fromType)
     const shapedSource = sourceFam === 'summary' || sourceFam === 'radial'
+    /** @type {Map<string, number[] | null>} */
+    const memo = new Map()
 
     Array.from(byCluster.keys())
       .sort((a, b) => a - b)
@@ -896,7 +898,7 @@ export default class MorphTypeChange {
               height: dot.r * 2,
               rx: dot.r,
             },
-            fill: makeColorLerp(markFill, dot.fill),
+            fill: makeColorLerp(markFill, dot.fill, memo),
             fillEnd: dot.fill,
             delay: 0,
             meta: { dotEl: dot.el },
@@ -982,6 +984,8 @@ export default class MorphTypeChange {
     // violin should build the violin's outline, not its bounding rectangle.
     const targetFam = familyOf(snap.toType)
     const shapedTarget = targetFam === 'summary' || targetFam === 'radial'
+    /** @type {Map<string, number[] | null>} */
+    const memo = new Map()
 
     for (let k = 0; k < clusterIdx.length; k++) {
       const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
@@ -1034,7 +1038,7 @@ export default class MorphTypeChange {
           el,
           from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
           to: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
-          fill: makeColorLerp(dot.fill, markFill),
+          fill: makeColorLerp(dot.fill, markFill, memo),
           fillEnd: String(markFill),
           delay: 0,
           meta: { markState },
