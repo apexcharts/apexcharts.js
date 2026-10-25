@@ -19,3 +19,8 @@ jobs:
       - run: yarn install --frozen-lockfile
       - name: Lint
         run: yarn lint
+      # Compiles tests/types against types/apexcharts.d.ts, so a d.ts edit
+      # that drops a consumer spelling (e.g. the named imports of #5077)
+      # fails here instead of in a user's build.
+      - name: Type-check the public d.ts
+        run: yarn typecheck:types
