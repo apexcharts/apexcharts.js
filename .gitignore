@@ -23,3 +23,8 @@ dist-ssr
 
 # Playwright per-failure artifacts (traces, error contexts): transient output.
 tests/interaction/test-results/
+# code-review-graph (local dev tooling): graph DB and its Claude skills.
+.code-review-graph/
+.claude/skills/
+# Playwright output when run from the repo root.
+/test-results/
