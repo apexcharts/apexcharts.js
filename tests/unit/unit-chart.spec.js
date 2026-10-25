@@ -2318,6 +2318,51 @@ describe('Unit chart — gather motion', () => {
     }
   })
 
+  it('finishes an update that cuts a piece morph short on the morph clock', () => {
+    // retire() hands a piece morph's layer over as ctx._unitPieces when an
+    // update lands mid-flight. Those dots carry on from the pieces at the
+    // morph's pace (chartTypeMorph.speed) and are not dropped when
+    // dynamicAnimation is off; a plain update after it is.
+    document.body.innerHTML = '<div id="chart"></div>'
+    const clock = installFrameClock()
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: {
+        type: 'unit',
+        width: 500,
+        height: 360,
+        animations: {
+          enabled: true,
+          speed: 400,
+          dynamicAnimation: { enabled: false },
+          chartTypeMorph: { enabled: true, speed: 1000 },
+        },
+      },
+      series: [40, 40],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { clusterLabels: { show: false }, gather: { motion: 'tween' } } },
+    })
+    try {
+      chart.render()
+      for (let i = 0; i < 200; i++) clock.frame(16)
+      expect(chart.morphTypeChange).toBeTruthy()
+
+      chart._unitPieces = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+      chart.updateSeries([10, 70])
+      expect(chart._unitPieces).toBe(null)
+      // 1000 ms plus its stagger: still in flight well past 400 ms.
+      for (let i = 0; i < 50; i++) clock.frame(16)
+      expect(chart.w.globals.unitGatherRAF).not.toBe(null)
+      for (let i = 0; i < 100; i++) clock.frame(16)
+      expect(chart.w.globals.unitGatherRAF).toBe(null)
+
+      chart.updateSeries([40, 40])
+      expect(chart.w.globals.unitGatherRAF).toBe(null)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
   it('places an update outright when dynamicAnimation is off', () => {
     document.body.innerHTML = '<div id="chart"></div>'
     const clock = installFrameClock()

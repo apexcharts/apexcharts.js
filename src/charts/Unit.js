@@ -273,7 +273,17 @@ export default class Unit {
     // gather (and a cross-type morph, which never follows a unit render)
     // keeps `animations`.
     const update = !!(this.ctx && this.ctx._unitPrevDots)
-    const animate = this._shouldAnimate(update)
+    // Except an update that lands while a piece morph into this chart is
+    // still flying (retire handed its pieces over): its dots carry on from
+    // the pieces and finish on the morph's clock, as the morph would have.
+    // Relaunching them on the shorter update clock would lurch every dot
+    // forward on the next frame, and dynamicAnimation off would snap them.
+    const morphSpeed =
+      update && this.ctx._unitPieces && this.ctx.morphTypeChange
+        ? this.ctx.morphTypeChange.getSpeed()
+        : 0
+    const animate = this._shouldAnimate(update && !morphSpeed)
+    const speed = morphSpeed || this._speed(update)
 
     // Cross-type morph (bar/wedge -> unit): when the optional `morph` feature
     // captured an outgoing bar/radial chart, each cluster's dots come out of the
@@ -589,7 +599,7 @@ export default class Unit {
       if (exits.length) {
         const exitGroup = graphics.group({ class: 'apexcharts-unit-exits' })
         ret.add(exitGroup)
-        this._runExits(exitGroup, exits, opts, this._speed(true))
+        this._runExits(exitGroup, exits, opts, speed)
       }
     }
 
@@ -607,7 +617,7 @@ export default class Unit {
     if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null
 
     if (animate && animDots.length) {
-      this._runGather(animDots, this._speed(update))
+      this._runGather(animDots, speed)
     } else {
       // Nothing is in flight, so the chart is already at rest. Every other
       // chart type raises this flag (Pie, Scatter, Graphics, Animations); the
