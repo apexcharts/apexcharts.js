@@ -123,14 +123,10 @@ export default class ZoomPanSelection extends Toolbar {
     this.hoverArea.classList.add('apexcharts-zoomable')
 
     this.eventList.forEach((event) => {
-      this.hoverArea?.addEventListener(
-        event,
-        me.svgMouseEvents.bind(me, xyRatios),
-        {
-          capture: false,
-          passive: true,
-        },
-      )
+      this.hoverArea?.addEventListener(event, me.svgMouseEvents.bind(me), {
+        capture: false,
+        passive: true,
+      })
     })
 
     if (this._wheelZoomEnabled()) {
@@ -174,11 +170,22 @@ export default class ZoomPanSelection extends Toolbar {
 
   // remove the event listeners which were previously added on hover area
   destroy() {
-    // Momentum: no teardown here. destroy() runs on every update (isUpdating),
-    // not only on a real destroy, so cancelling inertia here would kill a glide
-    // on its first frame. The inertia loop self-terminates on
-    // w.globals.isDestroyed (set only on a full destroy), and the gesture state
-    // on w.interact is discarded with w when the chart is truly destroyed.
+    // The wheel, inertia and wheel-hint frames and timers live on w.interact.
+    // destroy() runs on every update (isUpdating), not only on a real destroy,
+    // and each gesture frame is an update, so cancelling them per update would
+    // kill a glide on its first frame. Only a real destroy
+    // (w.globals.isDestroyed, set before this runs) ends them, and drops the
+    // state so a later render() starts clean: a stale rafId or busy flag
+    // would block every gesture after it.
+    if (this.w.globals.isDestroyed) {
+      const it = this.w.interact
+      const st = this._wheel()
+      BrowserAPIs.cancelAnimationFrame(st.rafId)
+      clearTimeout(st.endTimer)
+      this._hideWheelHint()
+      this._cancelInertia()
+      it.wheel = it.momentum = undefined
+    }
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false)
       this.slDraggableRect.off()
@@ -190,10 +197,9 @@ export default class ZoomPanSelection extends Toolbar {
   }
 
   /**
-   * @param {import('../types/internal').XYRatios} xyRatios
    * @param {any} e
    */
-  svgMouseEvents(xyRatios, e) {
+  svgMouseEvents(e) {
     const w = this.w
     const toolbar = this.ctx.toolbar
 
@@ -338,10 +344,6 @@ export default class ZoomPanSelection extends Toolbar {
           zoomtype,
         })
       }
-
-      // if (w.interact.panEnabled && w.config.xaxis.convertedCatToNumeric) {
-      //   this.delayedPanScrolled()
-      // }
     }
 
     if (w.interact.zoomEnabled) {
@@ -1153,11 +1155,7 @@ export default class ZoomPanSelection extends Toolbar {
     /** @type {any[]} */
     const yLowestValue = []
 
-    /**
-     * @param {ApexYAxis} yaxe
-     * @param {number} index
-     */
-    w.config.yaxis.forEach((yaxe, index) => {
+    w.config.yaxis.forEach((_, index) => {
       // pick whichever series is mapped to this y-axis
       const seriesIndex = w.globals.seriesYAxisMap[index][0]
       const highestVal =
@@ -1206,13 +1204,9 @@ export default class ZoomPanSelection extends Toolbar {
         }
 
         if (zoomtype === 'xy' || zoomtype === 'y') {
-          /**
-           * @param {ApexYAxis} yaxe
-           * @param {number} index
-           */
           yaxis.forEach((/** @type {any} */ yaxe, /** @type {any} */ index) => {
-            yaxis[index].min = yLowestValue[index]
-            yaxis[index].max = yHighestValue[index]
+            yaxe.min = yLowestValue[index]
+            yaxe.max = yHighestValue[index]
           })
         }
 
@@ -1266,8 +1260,8 @@ export default class ZoomPanSelection extends Toolbar {
           )
           yaxis = yaxisCopy
           yaxisCopy.forEach((yaxe, index) => {
-            yaxisCopy[index].min = yLowestValue[index]
-            yaxisCopy[index].max = yHighestValue[index]
+            yaxe.min = yLowestValue[index]
+            yaxe.max = yHighestValue[index]
           })
         }
 
@@ -1323,35 +1317,8 @@ export default class ZoomPanSelection extends Toolbar {
       ? w.globals.maxY
       : w.globals.maxX
 
-    // removed delayedPanScrolled as it doesn't seem to cause bugs anymore in convertedCatToNumeric
-    // if (!w.config.xaxis.convertedCatToNumeric) {
     me.panScrolled(xLowestValue, xHighestValue)
-    // }
   }
-
-  // delayedPanScrolled() {
-  //   const w = this.w
-
-  //   let newMinX = w.globals.minX
-  //   let newMaxX = w.globals.maxX
-  //   const centerX = (w.globals.maxX - w.globals.minX) / 2
-
-  //   if (this.moveDirection === 'left') {
-  //     newMinX = w.globals.minX + centerX
-  //     newMaxX = w.globals.maxX + centerX
-  //   } else if (this.moveDirection === 'right') {
-  //     newMinX = w.globals.minX - centerX
-  //     newMaxX = w.globals.maxX - centerX
-  //   }
-
-  //   newMinX = Math.floor(newMinX)
-  //   newMaxX = Math.floor(newMaxX)
-  //   this.updateScrolledChart(
-  //     { xaxis: { min: newMinX, max: newMaxX } },
-  //     newMinX,
-  //     newMaxX
-  //   )
-  // }
 
   /**
    * @param {number} xLowestValue
@@ -1444,8 +1411,7 @@ export default class ZoomPanSelection extends Toolbar {
   // interaction slice that persists across re-renders, like the crude pan's
   // lastClientPosition). The instance that received touchstart keeps driving
   // the gesture off the persistent state; inertia is a self-contained rAF loop
-  // that stops on w.globals.isDestroyed (a real destroy) rather than being
-  // cancelled by the per-update destroy().
+  // that only a real destroy cancels (see destroy()).
   // ---------------------------------------------------------------------------
 
   _momentumEnabled() {

@@ -152,7 +152,7 @@ export class BrowserAPIs {
 
   /**
    * Get XMLSerializer instance
-   * @returns {XMLSerializer|object}
+   * @returns {XMLSerializer} the browser's, or the SSR shim's stand-in
    */
   static getXMLSerializer() {
     if (Environment.isSSR()) {
@@ -170,7 +170,7 @@ export class BrowserAPIs {
 
   /**
    * Get DOMParser instance
-   * @returns {DOMParser|object}
+   * @returns {DOMParser} the browser's, or the SSR shim's stand-in
    */
   static getDOMParser() {
     if (Environment.isSSR()) {
@@ -228,7 +228,7 @@ export class BrowserAPIs {
 
   /**
    * Cancel animation frame
-   * @param {number} id - Animation frame ID
+   * @param {number | null} [id] - Animation frame ID; none is a no-op
    */
   static cancelAnimationFrame(id) {
     if (Environment.isBrowser() && id) {

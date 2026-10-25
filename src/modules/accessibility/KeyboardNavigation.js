@@ -566,12 +566,7 @@ export default class KeyboardNavigation {
       tooltipEl.removeAttribute('aria-hidden')
     }
 
-    if (
-      type === 'pie' ||
-      type === 'donut' ||
-      type === 'polarArea' ||
-      type === 'radialBar'
-    ) {
+    if (this._isSliceChart() || type === 'radialBar') {
       this._showTooltipNonAxis(i, j, ttCtx, tooltipEl)
     } else if (type === 'heatmap' || type === 'treemap') {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type)
@@ -1561,7 +1556,7 @@ export default class KeyboardNavigation {
     const series = w.seriesData.series || []
 
     // Non-axis charts: i is unused by navigation (single-series), j is the slice
-    if (type === 'pie' || type === 'donut' || type === 'polarArea') {
+    if (this._isSliceChart()) {
       const sliceLabel = (w.labelData?.labels && w.labelData.labels[j]) ?? ''
       const value = Array.isArray(series) ? series[j] : ''
       return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`
@@ -1636,7 +1631,7 @@ export default class KeyboardNavigation {
     const type = w.config.chart.type
     const baseEl = w.dom.baseEl
 
-    if (type === 'pie' || type === 'donut' || type === 'polarArea') {
+    if (this._isSliceChart()) {
       // j is 0-indexed; the path carries j='${j}' (rel is on the parent group)
       return baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`)
     }
@@ -1711,11 +1706,18 @@ export default class KeyboardNavigation {
     )
   }
 
+  /**
+   * pie, donut and polarArea: one ring of slices, navigated as one series.
+   * @returns {boolean}
+   */
+  _isSliceChart() {
+    return ['pie', 'donut', 'polarArea'].includes(this.w.config.chart.type)
+  }
+
   _getSeriesCount() {
     const w = this.w
-    const type = w.config.chart.type
     // Non-axis charts: pie/donut/polarArea navigate slices, not series
-    if (type === 'pie' || type === 'donut' || type === 'polarArea') {
+    if (this._isSliceChart()) {
       return 1 // single "series" — all navigation is on dataPointIndex
     }
     return w.seriesData.series.length
@@ -1726,9 +1728,8 @@ export default class KeyboardNavigation {
    */
   _getDataPointCount(si) {
     const w = this.w
-    const type = w.config.chart.type
     // Non-axis charts: globals.series is a flat array of values (one per slice)
-    if (type === 'pie' || type === 'donut' || type === 'polarArea') {
+    if (this._isSliceChart()) {
       return w.seriesData.series.length
     }
     // A radialBar ring is a series of one value

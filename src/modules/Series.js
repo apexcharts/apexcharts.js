@@ -125,12 +125,24 @@ export default class Series {
     // the class earlier re-opens the hole in the columns that have not finished
     // shrinking. Overshooting is free: by then the marks are at zero size and
     // paint nothing either way.
-    const anim = w.config.chart.animations
-    const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
-    setTimeout(() => {
-      if (w.globals.isDestroyed) return
+    Series.afterCollapseHold(w, () => {
       elSeries.node.classList.remove('apexcharts-series-collapsing')
-    }, hold)
+    })
+  }
+
+  /**
+   * Run `fn` once the last mark of a collapsing series can have landed: a
+   * full `dynamicAnimation.speed` plus `animations.speed` (see above), and a
+   * margin. Not on a chart destroyed meanwhile.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {() => void} fn
+   */
+  static afterCollapseHold(w, fn) {
+    const anim = w.config.chart.animations
+    setTimeout(
+      () => w.globals.isDestroyed || fn(),
+      (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100,
+    )
   }
 
   /**
@@ -236,8 +248,8 @@ export default class Series {
         p.setAttribute('d', '')
       })
     }
+    // Run now or from the hold, which skips a destroyed chart.
     const clearLeaving = () => {
-      if (w.globals.isDestroyed) return
       leaving.forEach((el) => el.remove())
     }
 
@@ -277,11 +289,10 @@ export default class Series {
     // Everything else (exits drawn some other way, marks that slid out of
     // view) waits as long as the -collapsing class does: long enough for the
     // last mark of any exit, or of an invisible re-render morph, to land.
-    const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
-    setTimeout(() => {
+    Series.afterCollapseHold(w, () => {
       clearLeaving()
       timed.forEach(clearGroup)
-    }, hold)
+    })
   }
 
   /**

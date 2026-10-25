@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import Exports from '../../src/modules/Exports'
+import { BrowserAPIs } from '../../src/ssr/BrowserAPIs'
 
 const lineChart = () =>
   createChartWithOptions({
@@ -151,5 +152,35 @@ describe('embedFonts finds and resolves @font-face rules like the browser', () =
     expect(out).toBe(
       '@font-face { font-family: Inter; src: url(data:font/woff2;base64,AAAA) }',
     )
+  })
+})
+
+describe('getSvgString goes through BrowserAPIs for the DOM it needs', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  // Routing only: the export itself stays browser-only.
+  it('routes parsing and serializing through BrowserAPIs, not the bare globals', async () => {
+    const chart = lineChart()
+    const parser = new DOMParser()
+    const serializer = new XMLSerializer()
+    const getParser = vi
+      .spyOn(BrowserAPIs, 'getDOMParser')
+      .mockReturnValue(parser)
+    const getSerializer = vi
+      .spyOn(BrowserAPIs, 'getXMLSerializer')
+      .mockReturnValue(serializer)
+    vi.stubGlobal('DOMParser', undefined)
+    vi.stubGlobal('XMLSerializer', undefined)
+
+    const svg = await settle(
+      new Exports(chart.w, chart.ctx).getSvgString(),
+      2000,
+    )
+    expect(typeof svg).toBe('string')
+    expect(svg).not.toBe('pending')
+    expect(getParser).toHaveBeenCalledTimes(1)
+    expect(getSerializer).toHaveBeenCalledTimes(2)
   })
 })
