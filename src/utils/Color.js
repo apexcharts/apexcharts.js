@@ -13,18 +13,21 @@ import Utils from './Utils'
  * [r, g, b, a] of a solid colour, or null when it has none (a gradient's
  * url(), 'none'). Hex and rgb()/rgba() parse directly; a named, hsl() or var()
  * colour is resolved by the browser once per distinct colour per `memo`, so
- * the frame loop that follows never probes the DOM.
+ * the frame loop that follows never probes the DOM. It is resolved inside
+ * `el` (the chart's elWrap), so a variable scoped to the chart's container or
+ * a shadow root is found, and currentColor is the chart's.
  * @param {any} color
  * @param {Map<string, number[] | null>} memo one per run
+ * @param {Element} [el] where to resolve; document.body when omitted
  * @returns {number[] | null}
  */
-export function resolveRGBA(color, memo) {
+export function resolveRGBA(color, memo, el) {
   if (typeof color !== 'string') return null
   const c = color.trim()
   if (!memo.has(c)) {
     memo.set(
       c,
-      Utils.parseColor(c) || Utils.parseColor(Utils.resolveColor(c)) || null,
+      Utils.parseColor(c) || Utils.parseColor(Utils.resolveColor(c, el)) || null,
     )
   }
   return /** @type {number[] | null} */ (memo.get(c))

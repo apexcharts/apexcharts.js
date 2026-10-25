@@ -17,6 +17,7 @@ import '../../src/entries/unit.js'
 import '../../src/features/perspectives.js'
 import ApexCharts from '../../src/entries/standard.js'
 import Unit from '../../src/charts/Unit.js'
+import Utils from '../../src/utils/Utils.js'
 import { LicenseManager } from 'apex-commons'
 import { installTestSigningKey, signedKey } from './utils/license-keys.js'
 import {
@@ -2246,6 +2247,72 @@ describe('Unit chart — gather motion', () => {
       expect(chart.w.globals.unitExitRAF).toBe(null)
       expect(chart.w.dom.baseEl.querySelector('.apexcharts-unit-exits')).toBe(null)
     } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  /**
+   * A flow regroup with two group colours: keys 10..19 change group on the
+   * update (A shrinks 20 -> 10), so those dots cross-fade from A's colour to
+   * B's. Returns the chart and the regrouping dots, one frame in.
+   */
+  function regroupMidFlight(colors, clock) {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'unit', width: 500, height: 360, animations: { enabled: true, speed: 400 } },
+      colors,
+      series: [20, 20],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { transition: 'flow', clusterLabels: { show: false } } },
+    })
+    chart.render()
+    for (let i = 0; i < 200; i++) clock.frame(16)
+    chart.updateSeries([10, 30])
+    // Past every dot's stagger delay (210 ms at 350 ms), short of landing.
+    for (let i = 0; i < 16; i++) clock.frame(16)
+    expect(chart.w.globals.unitGatherRAF).not.toBe(null)
+    const moving = [...chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-area')].filter(
+      (d) => !colors.includes(d.getAttribute('fill')),
+    )
+    return { chart, moving }
+  }
+
+  it('keeps the alpha of rgba() group colours through a regroup cross-fade', () => {
+    const clock = installFrameClock()
+    const colors = ['rgba(255, 0, 0, 0.6)', 'rgba(0, 0, 255, 0.6)']
+    const { chart, moving } = regroupMidFlight(colors, clock)
+    try {
+      // Mid-flight the fill is a blend of the two, at the groups' own 0.6
+      // (a 3-channel blend would paint it opaque and drop to 0.6 at the end).
+      expect(moving.length).toBeGreaterThan(0)
+      moving.forEach((d) => {
+        const m = /^rgba\((\d+),0,(\d+),([\d.]+)\)$/.exec(d.getAttribute('fill'))
+        expect(m).not.toBe(null)
+        expect(+m[3]).toBeCloseTo(0.6, 10)
+        expect(+m[1] + +m[2]).toBeGreaterThanOrEqual(254)
+      })
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('resolves a regroup colour it cannot parse inside the chart, not in body', () => {
+    // A var() scoped to the chart's container (or a shadow root) only
+    // resolves there; jsdom has no var(), so the resolver is stubbed.
+    const named = { 'var(--a)': 'rgb(255, 0, 0)', 'var(--b)': 'rgb(0, 0, 255)' }
+    const spy = vi.spyOn(Utils, 'resolveColor').mockImplementation((c) => named[c] || c)
+    const clock = installFrameClock()
+    const { chart, moving } = regroupMidFlight(['var(--a)', 'var(--b)'], clock)
+    try {
+      expect(moving.length).toBeGreaterThan(0)
+      moving.forEach((d) => expect(d.getAttribute('fill')).toMatch(/^rgb\(\d+,0,\d+\)$/))
+      const calls = spy.mock.calls.filter((c) => c[0] in named)
+      expect(calls.length).toBeGreaterThan(0)
+      calls.forEach((c) => expect(c[1]).toBe(chart.w.dom.elWrap))
+    } finally {
+      spy.mockRestore()
       clock.restore()
       chart.destroy()
     }

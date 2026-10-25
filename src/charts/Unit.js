@@ -2995,15 +2995,18 @@ export default class Unit {
     }
 
     // Pre-parse the endpoints for dots that recolour mid-flight (flow regroup),
-    // alpha included; a named or hsl() colour is resolved once per colour, not
-    // per dot. Dots that keep their colour skip the tween entirely.
+    // alpha included; a named, hsl() or var() colour is resolved once per
+    // colour, not per dot, and inside the chart (elWrap) so a variable scoped
+    // to its container or shadow root is found. Dots that keep their colour
+    // skip the tween entirely.
     /** @type {Map<string, number[] | null>} */
     const memo = new Map()
+    const wrap = w.dom.elWrap
     for (let k = 0; k < n; k++) {
       const d = dots[k]
       if (d.fill0 && d.fill1 && d.fill0 !== d.fill1) {
-        d._c0 = resolveRGBA(d.fill0, memo)
-        d._c1 = resolveRGBA(d.fill1, memo)
+        d._c0 = resolveRGBA(d.fill0, memo, wrap)
+        d._c1 = resolveRGBA(d.fill1, memo, wrap)
       }
     }
 

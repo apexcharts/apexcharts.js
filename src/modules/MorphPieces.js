@@ -265,11 +265,13 @@ export function sortByHilbert(items, getXY) {
  * @param {string|null|undefined} from
  * @param {string|null|undefined} to
  * @param {Map<string, number[] | null>} memo resolved colours, one per run
+ * @param {Element} [el] the chart's elWrap, where a var() or currentColor
+ *   resolves (see resolveRGBA)
  * @returns {((t: number) => string) | null}
  */
-export function makeColorLerp(from, to, memo) {
-  const a = resolveRGBA(from, memo)
-  const b = resolveRGBA(to, memo)
+export function makeColorLerp(from, to, memo, el) {
+  const a = resolveRGBA(from, memo, el)
+  const b = resolveRGBA(to, memo, el)
   return a && b ? (t) => lerpRGBA(a, b, t) : null
 }
 

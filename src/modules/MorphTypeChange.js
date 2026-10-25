@@ -850,6 +850,8 @@ export default class MorphTypeChange {
     const shapedSource = sourceFam === 'summary' || sourceFam === 'radial'
     /** @type {Map<string, number[] | null>} */
     const memo = new Map()
+    // A var() or currentColor fill resolves inside the chart, not in body.
+    const wrap = this.w.dom?.elWrap
 
     Array.from(byCluster.keys())
       .sort((a, b) => a - b)
@@ -898,7 +900,7 @@ export default class MorphTypeChange {
               height: dot.r * 2,
               rx: dot.r,
             },
-            fill: makeColorLerp(markFill, dot.fill, memo),
+            fill: makeColorLerp(markFill, dot.fill, memo, wrap),
             fillEnd: dot.fill,
             delay: 0,
             meta: { dotEl: dot.el },
@@ -986,6 +988,7 @@ export default class MorphTypeChange {
     const shapedTarget = targetFam === 'summary' || targetFam === 'radial'
     /** @type {Map<string, number[] | null>} */
     const memo = new Map()
+    const wrap = this.w.dom?.elWrap
 
     for (let k = 0; k < clusterIdx.length; k++) {
       const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
@@ -1038,7 +1041,7 @@ export default class MorphTypeChange {
           el,
           from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
           to: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
-          fill: makeColorLerp(dot.fill, markFill, memo),
+          fill: makeColorLerp(dot.fill, markFill, memo, wrap),
           fillEnd: String(markFill),
           delay: 0,
           meta: { markState },
