@@ -18,8 +18,9 @@
  * values), stacked column and bar (groups, 100%, diverging stacks), funnel
  * (rectangle, trapezoid, pyramid), line and area with every curve (stacked
  * area included), pie, donut and polarArea, radialBar and the gauge, and
- * treemap (flat and nested). Other types warn once and draw as they always
- * do.
+ * treemap (flat and nested). A combo of those axis types (columns, bars or
+ * an area, plus one or more lines) draws parts on the series that carry
+ * them. Other types warn once and draw as they always do.
  *
  * @module modules/highlightFilter/HighlightFilter
  */
@@ -119,6 +120,22 @@ export function seriesHasHighlight(s) {
 }
 
 /**
+ * The type a series is drawn as. Its own type wins; otherwise it takes the
+ * chart's. `column` is the combo name for a vertical bar and stays on the
+ * series (only `chart.type` is rewritten to `bar`).
+ * @param {any} s
+ * @param {string} chartType
+ */
+function axisSeriesType(s, chartType) {
+  return (s && s.type) || chartType
+}
+
+/** Axis types this filter already draws parts on. @param {string} t */
+function partAxisType(t) {
+  return t === 'bar' || t === 'column' || t === 'line' || t === 'area'
+}
+
+/**
  * A datum's part, as handed in: the per-point key wins over the parallel array.
  * @param {any} pt @param {any[] | null} hd @param {number} j
  */
@@ -141,8 +158,14 @@ export default class HighlightFilter {
      * treemap tile its colour (`col`) and its share and colour as drawn.
      * @type {Map<string, {d: string | null, a?: string | null, f: number, o?: number, base?: string, edge?: boolean, s?: number, flip?: boolean, n?: any, m?: any, c?: boolean, lf?: number, lo?: number, ls?: number, lc?: string, col?: string, run?: boolean, al?: number, la?: number, k?: number, lk?: number}>} */
     this._targets = new Map()
-    /** The renderer drawing now; a new one is a new render. @type {any} */
+    /** The renderer drawing now. @type {any} */
     this._render = null
+    /**
+     * True once a painter has claimed this chart render's target and seen
+     * maps. A combo chart draws through several renderers in one pass; only
+     * the first resets those maps. `beginPass` opens the next render.
+     */
+    this._pass = false
     /** Datums this render visited, so a part whose datum left can exit with
      * its whole. @type {Set<string>} */
     this._seen = new Set()
@@ -239,7 +262,7 @@ export default class HighlightFilter {
     }
     const nc = cnf.plotOptions.treemap.nested || {}
     return (
-      !w.globals.comboCharts &&
+      this._drawsAxisParts() &&
       // Nested: a parse resolves it into treemapRoots. Before the first one
       // (a plugin's setup runs at construction) the config is read as Data's
       // isNestedTreemap reads it: nesting not turned off, and a point with
@@ -258,14 +281,34 @@ export default class HighlightFilter {
               ),
             )))
       ) &&
-      (type === 'bar' ||
-        type === 'line' ||
-        type === 'area' ||
-        type === 'treemap') &&
       !w.rangeData.seriesRange.length &&
       // A histogram's rows are bins built from the observations, so a part
       // per observation has no bar of its own to sit on.
       cnf.chart.requestedType !== 'histogram'
+    )
+  }
+
+  /**
+   * Axis charts this filter draws: bar, line, area and treemap, and a combo
+   * whose every series is bar, column, line or area. A series with no type
+   * of its own takes the chart type. Anything else (a scatter, a candle)
+   * still draws as it always has, with no parts.
+   */
+  _drawsAxisParts() {
+    const w = this.w
+    const type = w.config.chart.type
+    if (!w.globals.comboCharts) {
+      return (
+        type === 'bar' ||
+        type === 'line' ||
+        type === 'area' ||
+        type === 'treemap'
+      )
+    }
+    const series = /** @type {any[]} */ (w.config.series || [])
+    return (
+      series.length > 0 &&
+      series.every((s) => partAxisType(axisSeriesType(s, type)))
     )
   }
 
@@ -321,7 +364,13 @@ export default class HighlightFilter {
 
     const stacked = !!cnf.chart.stacked
     const type = cnf.chart.type
-    const bars = type === 'bar'
+    // A combo's chart.type is often `line` while its columns are typed
+    // `column` or `bar` on the series. Those stack the way the bar renderer
+    // does; every other series uses the line stack key.
+    const barLike = (/** @type {number} */ i) => {
+      const seriesType = axisSeriesType(series[i], type)
+      return seriesType === 'bar' || seriesType === 'column'
+    }
     // A nested treemap's rows are its leaves, each spread from its datum, so
     // a part on a leaf arrives on its row. The series' own highlightData does
     // not: it is spread onto the leaves unchanged, sized to the top level.
@@ -467,14 +516,11 @@ export default class HighlightFilter {
     // category).
     /** @type {any} */
     let keyOf = null
-    if (stacked && bars) {
+    if (stacked) {
       keyOf = (/** @type {number} */ i, /** @type {number} */ j) =>
-        this._barKey(i, j)
-    } else if (stacked) {
-      keyOf = (/** @type {number} */ i, /** @type {number} */ j) =>
-        String(CoreUtils.stackKey(w, i, j))
+        barLike(i) ? this._barKey(i, j) : String(CoreUtils.stackKey(w, i, j))
     }
-    const ext = extend ? this._runningExt(parts, keyOf, bars) : null
+    const ext = extend ? this._runningExt(parts, keyOf, barLike) : null
     this._publish(parts, ext)
   }
 
@@ -814,17 +860,31 @@ export default class HighlightFilter {
   }
 
   /**
-   * The first datum of a render. What the last render drew was handed over at
-   * capture; whatever an uncaptured render left (an update without animation,
-   * the second update in one frame) is dropped here, so the map always
-   * describes the screen.
+   * Core.plotChartType, once, before any series renderer draws. A combo
+   * chart then paints through Bar and Line in this same pass; those share
+   * the target map and the seen set. The next call opens a new pass, so the
+   * first painter of that render drops whatever the last one left.
+   */
+  beginPass() {
+    this._pass = false
+  }
+
+  /**
+   * The first datum of a renderer. What the last render drew was handed over
+   * at capture; whatever an uncaptured render left (an update without
+   * animation, the second update in one frame) is dropped by the first
+   * painter of the new pass, so the map always describes the screen. A later
+   * painter in the same pass (Line after Bar on a combo) keeps both.
    * @param {any} renderer the renderer instance drawing this pass
    * @param {string} family the key prefix of what it draws
    */
   _beginRender(renderer, family) {
     this._render = renderer
-    this._targets = new Map()
-    this._seen = new Set()
+    if (!this._pass) {
+      this._targets = new Map()
+      this._seen = new Set()
+      this._pass = true
+    }
     this._cu = new CoreUtils(this.w)
     // Where each stack's parts have reached in this render: stacked bars by
     // group and category, stacked lines and areas by x.
@@ -1188,6 +1248,20 @@ export default class HighlightFilter {
     const area = type === 'area'
     const raw = active ? hd.parts[realIndex] || [] : []
     const has = raw.some((v) => v != null)
+    const stacked = !!w.config.chart.stacked
+    // A combo overlay that carries no parts (a trend line over columns) is
+    // left as the renderer drew it. `others: 'fade'` gives it the highlighted
+    // whole's look instead. A record already plain (no part path, full
+    // strength) still counts: the series was only visited, not picked, so the
+    // next render must not dash it. A part that was here and left does not.
+    const plainPrev =
+      !prev || (!prev.d && (prev.o ?? 0) <= 0 && (prev.f ?? 1) >= 1)
+    const leavePlain =
+      gl.comboCharts &&
+      !has &&
+      plainPrev &&
+      !stacked &&
+      this.cfg.others !== 'fade'
     // A legend-hidden series is drawn flat, and its part (gone with its
     // data) flattens with it; the renderer clears both once they land.
     const flat = active && ln._shapeOnly
@@ -1409,7 +1483,8 @@ export default class HighlightFilter {
       d: null,
       a: null,
       f: 1,
-      o: active ? 1 : 0,
+      // A plain overlay was never picked, so its record stays plain too.
+      o: active && !leavePlain ? 1 : 0,
       n: exit ? n?.node : null,
       m: exit ? m?.node : null,
       c: !active,
@@ -1424,7 +1499,7 @@ export default class HighlightFilter {
       type,
       looks,
       cover ? L_COVER : prev ? { f: prev.f, o: prev.o ?? 0 } : L_PLAIN,
-      lands ? L_COVER : active ? L_REST : L_PLAIN,
+      lands ? L_COVER : active ? (leavePlain ? L_PLAIN : L_REST) : L_PLAIN,
       {
         width: ln.strokeWidth,
         also:
@@ -1452,7 +1527,8 @@ export default class HighlightFilter {
     )
     if (to && !exit)
       Object.assign(rec, { d: to.d, a: to.a, n: n?.node, m: m?.node })
-    this._lineLabels(ln, type, i, realIndex, raw, pp, paths)
+    // An overlay left plain keeps the labels the renderer just drew.
+    if (!leavePlain) this._lineLabels(ln, type, i, realIndex, raw, pp, paths)
   }
 
   /**
@@ -2439,20 +2515,24 @@ export default class HighlightFilter {
    * the part itself. In a stack it is the running sum of the parts below it
    * and its own, per stack key (`keyOf(i, j)`), in series order; `split`
    * keeps positive and negative parts in separate sums, as diverging bar
-   * stacks are drawn. A null part adds nothing and reaches nothing new.
+   * stacks are drawn. A boolean splits every series; a function is asked
+   * per series (a combo stacks its columns that way and its lines not).
+   * A null part adds nothing and reaches nothing new.
    * @param {(number | null)[][]} parts
    * @param {((i: number, j: number) => string) | null} keyOf
-   * @param {boolean} [split]
+   * @param {boolean | ((i: number) => boolean)} [split]
    * @returns {(number | null)[][]}
    */
   _runningExt(parts, keyOf, split) {
     if (!keyOf) return parts
     /** @type {Map<string, number>} */
     const sums = new Map()
+    const diverges = (/** @type {number} */ i) =>
+      typeof split === 'function' ? !!split(i) : !!split
     return parts.map((row, i) =>
       row.map((p, j) => {
         if (p == null) return null
-        const key = keyOf(i, j) + (split && p < 0 ? '-' : '+')
+        const key = keyOf(i, j) + (diverges(i) && p < 0 ? '-' : '+')
         const v = (sums.get(key) || 0) + p
         sums.set(key, v)
         return v

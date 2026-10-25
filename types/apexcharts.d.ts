@@ -5535,6 +5535,12 @@ type ApexHighlightFilter = {
    */
   line?: { dashArray?: ApexDashPattern }
   /**
+   * A series that carries no parts on a combo chart (a trend line over
+   * columns, bars or an area). 'plain' (default) draws it as it is drawn
+   * with no pick. 'fade' gives it the highlighted look of a whole.
+   */
+  others?: 'plain' | 'fade'
+  /**
    * Pie and donut: how a part's share sets its radius, from the centre or
    * the hole. 'radius' is linear in the radius; 'area' makes the part's area
    * its share of the slice's. polarArea always follows its own value scale.
