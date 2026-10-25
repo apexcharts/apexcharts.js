@@ -28,3 +28,4 @@ tests/interaction/test-results/
 .claude/skills/
 # Playwright output when run from the repo root.
 /test-results/
+CLAUDE.local.md
