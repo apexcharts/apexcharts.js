@@ -1640,7 +1640,8 @@ export default class Helpers {
 
     return graphics.drawPath({
       d: shadowPath,
-      fill: utils.shadeColor(0.5, Utils.rgb2hex(color)),
+      // rgb2hex reads rgb()/rgba() only; shade any other colour as given
+      fill: utils.shadeColor(0.5, Utils.rgb2hex(color) || color),
       stroke: 'none',
       strokeWidth: 0,
       fillOpacity: 1,
