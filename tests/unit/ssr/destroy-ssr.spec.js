@@ -64,7 +64,7 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     const ctx = makeCtx({ paperNode: undefined })
     const destroy = new Destroy(ctx)
 
-    expect(() => destroy.clearDomElements({ isUpdating: false })).not.toThrow()
+    expect(() => destroy.clearDomElements()).not.toThrow()
   })
 
   it('should not throw in SSR when Paper.node is null', () => {
@@ -74,7 +74,7 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     const ctx = makeCtx({ paperNode: null })
     const destroy = new Destroy(ctx)
 
-    expect(() => destroy.clearDomElements({ isUpdating: false })).not.toThrow()
+    expect(() => destroy.clearDomElements()).not.toThrow()
   })
 
   it('should still null out all domEls refs in SSR', () => {
@@ -83,7 +83,7 @@ describe('Destroy.clearDomElements() SSR safety', () => {
 
     const ctx = makeCtx()
     const destroy = new Destroy(ctx)
-    destroy.clearDomElements({ isUpdating: false })
+    destroy.clearDomElements()
 
     const dom = ctx.w.dom
     expect(dom.elWrap).toBeNull()
@@ -109,7 +109,7 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     // w.dom.Paper (release the detached SVG root), so read the mock directly.
     const paper = ctx.w.dom.Paper
     const destroy = new Destroy(ctx)
-    destroy.clearDomElements({ isUpdating: false })
+    destroy.clearDomElements()
 
     // These are browser-only operations — should not be called in SSR
     expect(paper.remove).not.toHaveBeenCalled()
@@ -131,7 +131,7 @@ describe('Destroy.clearDomElements() SSR safety', () => {
 
     const destroy = new Destroy(ctx)
     const paper = ctx.w.dom.Paper
-    destroy.clearDomElements({ isUpdating: false })
+    destroy.clearDomElements()
 
     expect(paper.remove).toHaveBeenCalledOnce()
     expect(paper.each).toHaveBeenCalledOnce()

@@ -126,7 +126,7 @@ export default class Destroy {
       this.ctx._keyboardNavigation = null
       this.ctx.w.globals.tooltip = null
     }
-    this.clearDomElements({ isUpdating })
+    this.clearDomElements()
   }
 
   /**
@@ -145,10 +145,7 @@ export default class Destroy {
     draw.clear()
   }
 
-  /**
-   * @param {{ isUpdating: boolean }} opts
-   */
-  clearDomElements({ isUpdating }) {
+  clearDomElements() {
     const domEls = /** @type {any} */ (this.w.dom)
 
     // When the chart never completed setupElements() — e.g. it was rendered
@@ -157,11 +154,9 @@ export default class Destroy {
     // un-mounted chart doesn't throw "Cannot read properties of undefined
     // (reading 'node')". See react-apexcharts#602 / vue-apexcharts#256.
     if (Environment.isBrowser() && domEls.Paper) {
-      const elSVG = domEls.Paper.node
-      // fixes apexcharts.js#1654 & vue-apexcharts#256
-      if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
-        elSVG.parentNode.parentNode.style.minHeight = 'unset'
-      }
+      // The host's style is the user's and is left as it is: the chart's
+      // height reservation lives on elWrap and leaves with it
+      // (apexcharts.js#1654, react-apexcharts#751).
 
       // detach root event
       const baseEl = domEls.baseEl

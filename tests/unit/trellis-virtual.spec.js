@@ -182,6 +182,10 @@ describe('mount / unmount reconcile', () => {
     expect(
       el.querySelectorAll('.apexcharts-trellis-skeleton'),
     ).toHaveLength(6)
+    // The panel chart's destroy() hands its mount back; the skeleton must
+    // still reserve the exact panel height so the page cannot shift.
+    const panelH = `${chart.trellis.layout.panelH}px`
+    chart.trellis.panels.forEach((p) => expect(p.el.style.minHeight).toBe(panelH))
 
     // Panel 0 re-enters with NO mounted sibling: the stash is the source.
     io().trigger([cells(el)[0]])

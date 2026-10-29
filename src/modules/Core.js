@@ -773,10 +773,7 @@ export default class Core {
         cnf.chart.sparkline.enabled || !needsAxisPadding
           ? 0
           : cnf.chart.parentHeightOffset
-      const paperNode = this.w.dom.Paper.node
-      if (paperNode.parentNode?.parentNode) {
-        paperNode.parentNode.parentNode.style.minHeight = `${gl.svgHeight + offsetY}px`
-      }
+      this.reserveHeight(gl.svgHeight + offsetY)
     }
 
     this.w.dom.elWrap.style.width = `${gl.svgWidth}px`
@@ -1043,10 +1040,7 @@ export default class Core {
         this.w.dom.elWrap.style.height = `${elWrapHeight}px`
         Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight })
         if (Environment.isBrowser()) {
-          const grandparent = this.w.dom.Paper.node.parentNode?.parentNode
-          if (grandparent) {
-            grandparent.style.minHeight = `${elWrapHeight}px`
-          }
+          this.reserveHeight(elWrapHeight)
         }
         // A bottom legend was placed at the bottom of the ORIGINAL (full-circle)
         // svgHeight; now that the SVG has been hugged to the arc, re-anchor it to
@@ -1082,11 +1076,21 @@ export default class Core {
     this.w.dom.elWrap.style.height = `${newHeight}px`
     Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight })
     if (Environment.isBrowser()) {
-      const grandparent = this.w.dom.Paper.node.parentNode?.parentNode
-      if (grandparent) {
-        grandparent.style.minHeight = `${newHeight}px`
-      }
+      this.reserveHeight(newHeight)
     }
+  }
+
+  /**
+   * Reserve the chart's height (plus parentHeightOffset) as a min-height on
+   * elWrap, the chart's own wrapper. The host element is the user's: Core
+   * writes nothing on it, so its min-height, from a style prop or a
+   * stylesheet, applies as written (react-apexcharts#751). A min-height
+   * rather than padding, so a global `box-sizing: border-box` cannot eat it.
+   *
+   * @param {number} px
+   */
+  reserveHeight(px) {
+    this.w.dom.elWrap.style.minHeight = `${px}px`
   }
 
   coreCalculations() {

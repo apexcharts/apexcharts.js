@@ -355,9 +355,9 @@ export default class TrellisVirtual {
     panel.chart = null
     if (panel.el) {
       panel.el.classList.add('apexcharts-trellis-skeleton')
-      // destroy() resets the container's inline min-height ('unset'); the
-      // skeleton must re-reserve the exact panel height or page height and
-      // scroll position shift as panels unmount.
+      // The panel chart's own height reservation left with it; the skeleton
+      // must reserve the current panel height or page height and scroll
+      // position shift as panels unmount.
       const ly = this.trellis.layout
       if (ly) panel.el.style.minHeight = `${ly.panelH}px`
     }

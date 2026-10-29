@@ -168,7 +168,7 @@ export default class ApexCharts {
   /** @type {string[]} */ eventList = []
   /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {number | null} */ _parentResizeWaiter = null
-  /** @type {{width: any, viewBoxAdded?: boolean, minHeight?: string} | null} */
+  /** @type {{width: any, viewBoxAdded?: boolean} | null} */
   _printRestore = null
   /** @type {any} */ beforePrintHandler
   /** @type {any} */ afterPrintHandler
@@ -947,6 +947,10 @@ export default class ApexCharts {
     this._renderPromise = null
     // remove event listeners and the Apex._chartInstances entry
     this._detachHost()
+    // Destroyed between beforeprint and afterprint: the afterprint hook is gone
+    // now, so drop the print state or a later render() could never print again
+    // (_beforePrint bails while it is set).
+    this._printRestore = null
     // cancel any pending resize redraw so a queued update() can't run against
     // a torn-down chart after destroy(). See react-apexcharts#602.
     clearTimeout(this.w.globals.resizeTimer ?? undefined)
@@ -3108,17 +3112,9 @@ export default class ApexCharts {
       )
       this._printRestore.viewBoxAdded = true
       // The stylesheet's shrink-to-fit rules key off this class, so they can
-      // never apply to an SVG that has no viewBox to scale by.
+      // never apply to an SVG that has no viewBox to scale by. They also
+      // release the height Core reserves on elWrap; the host is never touched.
       w.dom?.elWrap?.classList.add('apexcharts-printing')
-      // Core reserves the chart's height on the host as an inline min-height
-      // (parentHeightOffset), which no stylesheet can override. Left in place, a
-      // chart scaled down to fit a narrow column prints above a white gap the
-      // size of the height it gave up.
-      const host = /** @type {HTMLElement} */ (this.el)
-      if (host && host.style) {
-        this._printRestore.minHeight = host.style.minHeight
-        host.style.minHeight = '0'
-      }
     }
   }
 
@@ -3133,10 +3129,6 @@ export default class ApexCharts {
     if (restore.viewBoxAdded) {
       w.dom?.Paper?.node?.removeAttribute('viewBox')
       w.dom?.elWrap?.classList.remove('apexcharts-printing')
-      const host = /** @type {HTMLElement} */ (this.el)
-      if (host && host.style) {
-        host.style.minHeight = restore.minHeight ?? ''
-      }
     }
     if (w.config.chart.width !== restore.width) {
       this.updateHelpers._updateOptions(

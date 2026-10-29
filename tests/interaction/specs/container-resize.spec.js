@@ -258,7 +258,7 @@ test.describe('container resize without a window resize (#1584)', () => {
   test('the deferred resize does not redraw a chart whose box did not change', async ({
     dash,
   }) => {
-    // The chart's own render resizes its container (the host gets a min-height),
+    // The chart's own render resizes its container (the host grows to fit it),
     // which fires the same observer. Waiting for the animation instead of
     // dropping the callback must not turn that into a redraw, let alone a loop.
     const r = await dash({ waitFor: 'animation', settle: 2000 })

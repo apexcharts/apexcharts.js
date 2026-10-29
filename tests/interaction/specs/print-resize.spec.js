@@ -101,6 +101,7 @@ const test = base.extend({
               hostWidth: Math.round(host.getBoundingClientRect().width),
               viewBox: svg && svg.getAttribute('viewBox'),
               hostMinHeight: host.style.minHeight,
+              canvasMinHeight: canvas ? getComputedStyle(canvas).minHeight : null,
               printing: !!canvas &&
                 canvas.classList.contains('apexcharts-printing'),
               configWidth: w.config.chart.width,
@@ -186,15 +187,24 @@ test.describe('printing (#3352)', () => {
   test('the reserved height is released while printing, then given back', async ({
     printRun,
   }) => {
-    // Core reserves the chart's height on the host as an inline min-height, and
-    // no stylesheet can override that. A chart scaled down to fit a narrow
-    // column would otherwise print above a white gap the size of what it gave
-    // up, which is very visible on a card-based dashboard.
-    const r = await printRun({ viewport: { width: 1400, height: 900 } })
+    // Core reserves the chart's height (plus parentHeightOffset) as a
+    // min-height on its own wrapper. A chart scaled down to fit a narrow column
+    // would otherwise print above a white gap the size of what it gave up,
+    // which is very visible on a card-based dashboard. The host is the user's
+    // and keeps its own min-height throughout (react-apexcharts#751).
+    const r = await printRun({
+      viewport: { width: 1400, height: 900 },
+      printMedia: true,
+      html: '<div id="chart" style="width:100%; min-height:120px"></div>',
+    })
 
-    expect(r.before.hostMinHeight).toMatch(/px$/)
-    expect(r.during.hostMinHeight).toBe('0px')
-    expect(r.after.hostMinHeight).toBe(r.before.hostMinHeight)
+    expect(r.before.canvasMinHeight).toMatch(/px$/)
+    expect(r.before.canvasMinHeight).not.toBe('0px')
+    expect(r.during.canvasMinHeight).toBe('0px')
+    expect(r.after.canvasMinHeight).toBe(r.before.canvasMinHeight)
+    for (const s of [r.before, r.during, r.after]) {
+      expect(s.hostMinHeight).toBe('120px')
+    }
   })
 
   test('printing does not rewrite the initial config', async ({ printRun }) => {
