@@ -168,6 +168,10 @@ export default class ApexCharts {
   /** @type {string[]} */ eventList = []
   /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {number | null} */ _parentResizeWaiter = null
+  /** @type {{ el: number[], parent: number[] } | null} */
+  _heldDimensions = null
+  /** @type {{ from: { w: number, h: number, iw?: number } | null, heightChanged: boolean, at: number, returns: number, win: number[] } | null} */
+  _lastResizeRedraw = null
   /** @type {{width: any, viewBoxAdded?: boolean} | null} */
   _printRestore = null
   /** @type {any} */ beforePrintHandler
@@ -3163,23 +3167,84 @@ export default class ApexCharts {
       // instantly and cancels any running entrance animation. The signature
       // captures only the container inputs that feed the size, so a pixel-sized
       // chart never redraws on resize while a percentage-sized one still does.
+      let returns = 0
       if (this.core && gl.lastResizeSignature) {
+        const cur = gl.lastResizeSignature
         const sig = this.core.getResizeSignature()
-        if (
-          sig.w === gl.lastResizeSignature.w &&
-          sig.h === gl.lastResizeSignature.h &&
-          sig.iw === gl.lastResizeSignature.iw
-        ) {
+        if (sig.w === cur.w && sig.h === cur.h && sig.iw === cur.iw) {
           return
         }
+        // The chart and the page answering each other (see _resizeReturns).
+        returns = this._resizeReturns(sig)
+        if (returns > 1 && sig.w >= cur.w && sig.h >= cur.h) return
       }
 
       gl.resized = true
       gl.dataChanged = false
+      const from = gl.lastResizeSignature
+      const fromHeight = gl.svgHeight
 
+      // Measure the container now, while the old chart still holds the page's
+      // height, and size the new one from that. The redraw clears the old chart
+      // before it measures, and a page that needed a scrollbar only because of
+      // the chart loses it for that instant: the chart was sized for a
+      // scrollbar-free page, drawn into one that has a scrollbar again, and the
+      // page settled back where it started, so no observer ever reported the
+      // mismatch (react-apexcharts#187). Resize redraws only; an update the
+      // caller asked for measures the page as before.
+      this._heldDimensions = {
+        el: Utils.getDimensions(this.el),
+        parent: Utils.getDimensions(this.el.parentNode),
+      }
       // we need to redraw the whole chart on window resize (with a small delay).
-      this.ctx.update()
+      try {
+        this.ctx.update()
+      } finally {
+        // update() consumes it synchronously; never let it reach a later render
+        this._heldDimensions = null
+      }
+      this._lastResizeRedraw = {
+        from,
+        heightChanged: this.w.globals.svgHeight !== fromHeight,
+        at: Date.now(),
+        returns,
+        win: [window.innerWidth, window.innerHeight],
+      }
     }, 150)
+  }
+
+  /**
+   * How many times in a row, counting this one, a resize sends the chart
+   * straight back to the size its last resize redraw left. 0 when it does not.
+   *
+   * Counted because the page can answer the chart's own redraw. An auto-height
+   * chart near the point where the page needs a scrollbar: drawn wide it is
+   * tall enough to bring the scrollbar in, which narrows its container; drawn
+   * narrower it is short enough to send the scrollbar away, which widens it
+   * again. Each redraw is a correct answer to the size it was given, and
+   * together they rebuild the chart several times a second, forever.
+   *
+   * A return counts only when the last redraw changed the chart's height (the
+   * only way a redraw can move the page), it was moments ago, and the window
+   * is the size it was then: a window resize is never the page answering the
+   * chart. The caller refuses only a second return in a row, and only to a
+   * larger box, so one quick move back (a sidebar opened and closed at once)
+   * always redraws, and the chart settles on the narrower size, where it can
+   * be a little short of its box but never hang out of it.
+   *
+   * @param {{ w: number, h: number, iw?: number }} sig
+   * @returns {number}
+   */
+  _resizeReturns(sig) {
+    const last = this._lastResizeRedraw
+    if (!last || !last.from || !last.heightChanged) return 0
+    if (Date.now() - last.at > 500) return 0
+    if (last.win[0] !== window.innerWidth || last.win[1] !== window.innerHeight) {
+      return 0
+    }
+    const back =
+      sig.w === last.from.w && sig.h === last.from.h && sig.iw === last.from.iw
+    return back ? last.returns + 1 : 0
   }
 
   _windowResizeHandler() {

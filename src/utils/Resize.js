@@ -15,28 +15,19 @@ export function addResizeListener(el, fn) {
   // No-op in SSR environment
   if (Environment.isSSR()) return
 
-  let called = false
-
-  if (el.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
-    const elRect = el.getBoundingClientRect()
-    if (el.style.display === 'none' || elRect.width === 0) {
-      // if elRect.width=0, the chart is not rendered at all
-      // (it has either display none or hidden in a different tab)
-      // fixes https://github.com/apexcharts/apexcharts.js/issues/2825
-      // fixes https://github.com/apexcharts/apexcharts.js/issues/2991
-      // fixes https://github.com/apexcharts/apexcharts.js/issues/2992
-      called = true
-    }
-  }
-
+  // Every callback is delivered, the first one included. An observer reports
+  // its first size at the next layout after observe(), not at observe() itself
+  // (https://drafts.csswg.org/resize-observer/#ref-for-element%E2%91%A3). The
+  // chart observes, then draws, and anything that moves the container before
+  // that layout (the page gaining a scrollbar because the chart made it taller,
+  // a sidebar or grid settling in the same frame) is reported only in that
+  // first callback. Discarding it left the chart at its first width until the
+  // window was resized (react-apexcharts#187). Both listeners compare against
+  // the size they last drew at, so a first callback that changes nothing costs
+  // a check, never a redraw. A hidden (0-wide) element needs no special case: it
+  // used to be the one place the first callback was kept (#2825, #2991, #2992).
   const ro = new ResizeObserver((r) => {
-    // ROs fire immediately after being created,
-    // per spec: https://drafts.csswg.org/resize-observer/#ref-for-element%E2%91%A3
-    // we don't want that so we just discard the first run
-    if (called) {
-      fn.call(el, r)
-    }
-    called = true
+    fn.call(el, r)
   })
 
   if (el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
