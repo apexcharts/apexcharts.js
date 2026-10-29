@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -5008,8 +5008,8 @@ class Trellis {
         redrawOnParentResize: false,
         redrawOnWindowResize: false,
         print: { enabled: false },
-        // Core pads the chart's container by parentHeightOffset (default 15)
-        // via an inline min-height; inside a height-budgeted grid cell that
+        // Core pads the chart by parentHeightOffset (default 15) via a
+        // min-height on its wrapper; inside a height-budgeted grid cell that
         // slack de-syncs mounted cells from the skeleton reserve (the grid
         // gap is the breathing room here).
         parentHeightOffset: 0,

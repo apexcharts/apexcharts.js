@@ -55,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -581,7 +581,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /**
      * Get XMLSerializer instance
-     * @returns {XMLSerializer|object}
+     * @returns {XMLSerializer} the browser's, or the SSR shim's stand-in
      */
     static getXMLSerializer() {
       if (Environment.isSSR()) {
@@ -598,7 +598,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /**
      * Get DOMParser instance
-     * @returns {DOMParser|object}
+     * @returns {DOMParser} the browser's, or the SSR shim's stand-in
      */
     static getDOMParser() {
       if (Environment.isSSR()) {
@@ -649,7 +649,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /**
      * Cancel animation frame
-     * @param {number} id - Animation frame ID
+     * @param {number | null} [id] - Animation frame ID; none is a no-op
      */
     static cancelAnimationFrame(id) {
       if (Environment.isBrowser() && id) {
@@ -10060,30 +10060,31 @@ var __async = (__this, __arguments, generator) => {
       return out + "Z";
     };
   }
+  function resolveRGBA(color, memo, el) {
+    if (typeof color !== "string") return null;
+    const c = color.trim();
+    if (!memo.has(c)) {
+      memo.set(
+        c,
+        Utils$1.parseColor(c) || Utils$1.parseColor(Utils$1.resolveColor(c, el)) || null
+      );
+    }
+    return (
+      /** @type {number[] | null} */
+      memo.get(c)
+    );
+  }
+  function lerpRGBA(a2, b, t2) {
+    const c = [0, 1, 2].map((k2) => Math.round(a2[k2] + (b[k2] - a2[k2]) * t2));
+    const al = a2[3] + (b[3] - a2[3]) * t2;
+    return al >= 1 ? `rgb(${c})` : `rgba(${c},${al})`;
+  }
   function easeInOut(t2) {
     return -Math.cos(t2 * Math.PI) / 2 + 0.5;
   }
   let _defaultEasing = easeInOut;
   function setDefaultEasing(fn) {
     _defaultEasing = typeof fn === "function" ? fn : easeInOut;
-  }
-  function parseColor$1(str) {
-    if (!str || typeof str !== "string") return null;
-    if (str[0] === "#") {
-      let hex = str.slice(1);
-      if (hex.length === 3)
-        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-      const n2 = parseInt(hex, 16);
-      return [n2 >> 16 & 255, n2 >> 8 & 255, n2 & 255, 1];
-    }
-    const m = str.match(
-      /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/
-    );
-    if (m) return [+m[1], +m[2], +m[3], m[4] !== void 0 ? +m[4] : 1];
-    return null;
-  }
-  function interpolateColor(from, to, pos) {
-    return `rgba(${Math.round(from[0] + (to[0] - from[0]) * pos)},${Math.round(from[1] + (to[1] - from[1]) * pos)},${Math.round(from[2] + (to[2] - from[2]) * pos)},${from[3] + (to[3] - from[3]) * pos})`;
   }
   class SVGAnimationRunner {
     /**
@@ -10226,8 +10227,8 @@ var __async = (__this, __arguments, generator) => {
           for (const key of Object.keys(this._attrTarget)) {
             const fromVal = el.attr(key);
             fromAttrs[key] = fromVal;
-            const fc = parseColor$1(fromVal);
-            const tc = parseColor$1(String(this._attrTarget[key]));
+            const fc = Utils$1.parseColor(String(fromVal));
+            const tc = Utils$1.parseColor(String(this._attrTarget[key]));
             if (fc && tc) {
               fromColors[key] = fc;
               toColors[key] = tc;
@@ -10260,7 +10261,7 @@ var __async = (__this, __arguments, generator) => {
               );
               for (const key of Object.keys(this._attrTarget)) {
                 if (fromColors[key] && toColors[key]) {
-                  current[key] = interpolateColor(
+                  current[key] = lerpRGBA(
                     fromColors[key],
                     toColors[key],
                     pos
@@ -10394,7 +10395,7 @@ var __async = (__this, __arguments, generator) => {
     };
   }
   const SVGNS$2 = "http://www.w3.org/2000/svg";
-  function easeOutCubic$1(t2) {
+  function easeOutCubic(t2) {
     return 1 - Math.pow(1 - t2, 3);
   }
   function easeOutBack$1(t2) {
@@ -10745,7 +10746,7 @@ var __async = (__this, __arguments, generator) => {
         const startAt = performance.now() + (delay || 0);
         onFrame(w, (now) => {
           const t2 = Math.max(0, Math.min(1, (now - startAt) / speed));
-          const eased = easeOutCubic$1(t2);
+          const eased = easeOutCubic(t2);
           if (isRadial) {
             revealEl.setAttribute("r", String(eased * targetRadius));
           } else {
@@ -10763,7 +10764,7 @@ var __async = (__this, __arguments, generator) => {
         const startAt = performance.now() + (delay || 0);
         onFrame(w, (now) => {
           const t2 = Math.max(0, Math.min(1, (now - startAt) / speed));
-          node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic$1(t2))));
+          node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic(t2))));
           if (t2 < 1) return true;
           node.removeAttribute("stroke-dasharray");
           node.removeAttribute("stroke-dashoffset");
@@ -13148,6 +13149,36 @@ var __async = (__this, __arguments, generator) => {
       newConfig;
     }
   }
+  const CMD_RE = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+  const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+  function mapPathAffine(d, ax, bx, ay, by, rk = 1) {
+    const out = [];
+    const x2 = (v) => ax * v + bx;
+    const y = (v) => ay * v + by;
+    CMD_RE.lastIndex = 0;
+    let match;
+    while ((match = CMD_RE.exec(d)) !== null) {
+      const cmd = match[1].toUpperCase();
+      const nums2 = (match[2].match(NUM_RE) || []).map(parseFloat);
+      if (cmd === "Z") out.push("Z");
+      else if (cmd === "H") for (const v of nums2) out.push(`H ${x2(v)}`);
+      else if (cmd === "V") for (const v of nums2) out.push(`V ${y(v)}`);
+      else if (cmd === "A") {
+        for (let i2 = 0; i2 + 6 < nums2.length; i2 += 7) {
+          out.push(
+            `A ${nums2[i2] * rk} ${nums2[i2 + 1] * rk} ${nums2[i2 + 2]} ${nums2[i2 + 3]} ${nums2[i2 + 4]} ${x2(nums2[i2 + 5])} ${y(nums2[i2 + 6])}`
+          );
+        }
+      } else {
+        const coords = [];
+        for (let i2 = 0; i2 + 1 < nums2.length; i2 += 2) {
+          coords.push(`${x2(nums2[i2])} ${y(nums2[i2 + 1])}`);
+        }
+        if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
+      }
+    }
+    return out.join(" ");
+  }
   function captureStreamFrame(w) {
     var _a, _b, _c;
     const gl = w.globals;
@@ -13298,42 +13329,8 @@ var __async = (__this, __arguments, generator) => {
     gl.streamScrolled = true;
     return { ax, bx, ay, by };
   }
-  const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
   function projectPathToPrevFrame(d, t2) {
-    const { ax, bx, ay, by } = t2;
-    const out = [];
-    const re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
-    let match;
-    while ((match = re.exec(d)) !== null) {
-      const cmd = match[1].toUpperCase();
-      const nums2 = (match[2].match(NUM_RE) || []).map(parseFloat);
-      if (cmd === "Z") {
-        out.push("z");
-        continue;
-      }
-      if (cmd === "H") {
-        for (const x2 of nums2) out.push(`H ${ax * x2 + bx}`);
-        continue;
-      }
-      if (cmd === "V") {
-        for (const y of nums2) out.push(`V ${ay * y + by}`);
-        continue;
-      }
-      if (cmd === "A") {
-        for (let i2 = 0; i2 + 6 < nums2.length; i2 += 7) {
-          out.push(
-            `A ${nums2[i2]} ${nums2[i2 + 1]} ${nums2[i2 + 2]} ${nums2[i2 + 3]} ${nums2[i2 + 4]} ${ax * nums2[i2 + 5] + bx} ${ay * nums2[i2 + 6] + by}`
-          );
-        }
-        continue;
-      }
-      const coords = [];
-      for (let i2 = 0; i2 + 1 < nums2.length; i2 += 2) {
-        coords.push(`${ax * nums2[i2] + bx} ${ay * nums2[i2 + 1] + by}`);
-      }
-      if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
-    }
-    return out.join(" ");
+    return mapPathAffine(d, t2.ax, t2.bx, t2.ay, t2.by);
   }
   function trimStreamingSeries(newSeries, w) {
     const cfg = w.config.chart.streaming;
@@ -15372,12 +15369,23 @@ var __async = (__this, __arguments, generator) => {
       if ((w.globals.collapsingSeriesIndices || []).indexOf(index) === -1) return;
       elSeries.node.classList.add("apexcharts-series-collapsing");
       if (!Environment.isBrowser()) return;
-      const anim = w.config.chart.animations;
-      const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100;
-      setTimeout(() => {
-        if (w.globals.isDestroyed) return;
+      _Series.afterCollapseHold(w, () => {
         elSeries.node.classList.remove("apexcharts-series-collapsing");
-      }, hold);
+      });
+    }
+    /**
+     * Run `fn` once the last mark of a collapsing series can have landed: a
+     * full `dynamicAnimation.speed` plus `animations.speed` (see above), and a
+     * margin. Not on a chart destroyed meanwhile.
+     * @param {import('../types/internal').ChartStateW} w
+     * @param {() => void} fn
+     */
+    static afterCollapseHold(w, fn) {
+      const anim = w.config.chart.animations;
+      setTimeout(
+        () => w.globals.isDestroyed || fn(),
+        (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
+      );
     }
     /**
      * What a treemap tile's label shows: its text, its size, and whether it is
@@ -15452,7 +15460,6 @@ var __async = (__this, __arguments, generator) => {
         });
       };
       const clearLeaving = () => {
-        if (w.globals.isDestroyed) return;
         leaving.forEach((el) => el.remove());
       };
       const anim = w.config.chart.animations;
@@ -15477,11 +15484,10 @@ var __async = (__this, __arguments, generator) => {
           clearGroup(g2);
         };
       });
-      const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100;
-      setTimeout(() => {
+      _Series.afterCollapseHold(w, () => {
         clearLeaving();
         timed.forEach(clearGroup);
-      }, hold);
+      });
     }
     /**
      * Instance entry point for the render pipeline; see the static.
@@ -20380,7 +20386,6 @@ var __async = (__this, __arguments, generator) => {
       return String(value).split(/[0-9]+/g).pop();
     }
     setSVGDimensions() {
-      var _a;
       const { globals: gl, config: cnf } = this.w;
       cnf.chart.width = cnf.chart.width || "100%";
       cnf.chart.height = cnf.chart.height || "auto";
@@ -20420,10 +20425,7 @@ var __async = (__this, __arguments, generator) => {
           (y) => y.show && (y.labels.show || y.axisBorder.show || y.axisTicks.show)
         ));
         const offsetY = cnf.chart.sparkline.enabled || !needsAxisPadding ? 0 : cnf.chart.parentHeightOffset;
-        const paperNode = this.w.dom.Paper.node;
-        if ((_a = paperNode.parentNode) == null ? void 0 : _a.parentNode) {
-          paperNode.parentNode.parentNode.style.minHeight = `${gl.svgHeight + offsetY}px`;
-        }
+        this.reserveHeight(gl.svgHeight + offsetY);
       }
       this.w.dom.elWrap.style.width = `${gl.svgWidth}px`;
       this.w.dom.elWrap.style.height = `${gl.svgHeight}px`;
@@ -20499,7 +20501,7 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     resizeNonAxisCharts() {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const { w } = this;
       const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
       const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
@@ -20590,14 +20592,11 @@ var __async = (__this, __arguments, generator) => {
           this.w.dom.elWrap.style.height = `${elWrapHeight}px`;
           Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight });
           if (Environment.isBrowser()) {
-            const grandparent = (_h = this.w.dom.Paper.node.parentNode) == null ? void 0 : _h.parentNode;
-            if (grandparent) {
-              grandparent.style.minHeight = `${elWrapHeight}px`;
-            }
+            this.reserveHeight(elWrapHeight);
           }
           w.globals.svgHeight = svgHeight;
           if (w.config.legend.position === "bottom" && w.config.legend.show && !w.config.legend.floating) {
-            (_i = this.ctx.legend) == null ? void 0 : _i.setLegendWrapXY(20, 0);
+            (_h = this.ctx.legend) == null ? void 0 : _h.setLegendWrapXY(20, 0);
           }
         }
         return;
@@ -20613,11 +20612,20 @@ var __async = (__this, __arguments, generator) => {
       this.w.dom.elWrap.style.height = `${newHeight}px`;
       Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight });
       if (Environment.isBrowser()) {
-        const grandparent = (_j = this.w.dom.Paper.node.parentNode) == null ? void 0 : _j.parentNode;
-        if (grandparent) {
-          grandparent.style.minHeight = `${newHeight}px`;
-        }
+        this.reserveHeight(newHeight);
       }
+    }
+    /**
+     * Reserve the chart's height (plus parentHeightOffset) as a min-height on
+     * elWrap, the chart's own wrapper. The host element is the user's: Core
+     * writes nothing on it, so its min-height, from a style prop or a
+     * stylesheet, applies as written (react-apexcharts#751). A min-height
+     * rather than padding, so a global `box-sizing: border-box` cannot eat it.
+     *
+     * @param {number} px
+     */
+    reserveHeight(px2) {
+      this.w.dom.elWrap.style.minHeight = `${px2}px`;
     }
     coreCalculations() {
       new Range(this.w).init();
@@ -33987,7 +33995,7 @@ var __async = (__this, __arguments, generator) => {
         this.ctx._keyboardNavigation = null;
         this.ctx.w.globals.tooltip = null;
       }
-      this.clearDomElements({ isUpdating });
+      this.clearDomElements();
     }
     /**
      * @param {any} draw
@@ -34003,19 +34011,12 @@ var __async = (__this, __arguments, generator) => {
       );
       draw.clear();
     }
-    /**
-     * @param {{ isUpdating: boolean }} opts
-     */
-    clearDomElements({ isUpdating }) {
+    clearDomElements() {
       const domEls = (
         /** @type {any} */
         this.w.dom
       );
       if (Environment.isBrowser() && domEls.Paper) {
-        const elSVG = domEls.Paper.node;
-        if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
-          elSVG.parentNode.parentNode.style.minHeight = "unset";
-        }
         const baseEl = domEls.baseEl;
         if (baseEl) {
           this.ctx.eventList.forEach((event) => {
@@ -34233,7 +34234,7 @@ var __async = (__this, __arguments, generator) => {
       ros.delete(fn);
     }
   }
-  const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.5s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}.apexcharts-trellis-chrome,.apexcharts-trellis-grid,.apexcharts-trellis-cell,.apexcharts-trellis-header,.apexcharts-trellis-strip,.apexcharts-trellis-corner,.apexcharts-trellis-title,.apexcharts-trellis-subtitle,.apexcharts-trellis-breadcrumb,.apexcharts-trellis-breadcrumb-back,.apexcharts-trellis-breadcrumb-sep,.apexcharts-trellis-breadcrumb-current,.apexcharts-trellis-empty-label,.apexcharts-trellis-legend,.apexcharts-trellis-legend-item,.apexcharts-trellis-legend-item .apexcharts-legend-text,.apexcharts-trellis-toolbar,.apexcharts-trellis-menu,.apexcharts-trellis-menu-item,.apexcharts-trellis-tooltip,.apexcharts-trellis-tooltip *{font-family:inherit}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important}.apexcharts-toolbar{display:none!important}}';
+  const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.5s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}.apexcharts-trellis-chrome,.apexcharts-trellis-grid,.apexcharts-trellis-cell,.apexcharts-trellis-header,.apexcharts-trellis-strip,.apexcharts-trellis-corner,.apexcharts-trellis-title,.apexcharts-trellis-subtitle,.apexcharts-trellis-breadcrumb,.apexcharts-trellis-breadcrumb-back,.apexcharts-trellis-breadcrumb-sep,.apexcharts-trellis-breadcrumb-current,.apexcharts-trellis-empty-label,.apexcharts-trellis-legend,.apexcharts-trellis-legend-item,.apexcharts-trellis-legend-item .apexcharts-legend-text,.apexcharts-trellis-toolbar,.apexcharts-trellis-menu,.apexcharts-trellis-menu-item,.apexcharts-trellis-tooltip,.apexcharts-trellis-tooltip *{font-family:inherit}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important;min-height:0!important}.apexcharts-toolbar{display:none!important}}';
   const e = globalThis.console;
   function t(t2, ...s2) {
     e.error(t2, ...s2);
@@ -35200,7 +35201,7 @@ var __async = (__this, __arguments, generator) => {
       __publicField(this, "_renderPromise", null);
       /** @type {number | null} */
       __publicField(this, "_parentResizeWaiter", null);
-      /** @type {{width: any, viewBoxAdded?: boolean, minHeight?: string} | null} */
+      /** @type {{width: any, viewBoxAdded?: boolean} | null} */
       __publicField(this, "_printRestore", null);
       /** @type {any} */
       __publicField(this, "beforePrintHandler");
@@ -35700,6 +35701,7 @@ var __async = (__this, __arguments, generator) => {
       }
       this._renderPromise = null;
       this._detachHost();
+      this._printRestore = null;
       clearTimeout((_a = this.w.globals.resizeTimer) != null ? _a : void 0);
       clearTimeout((_b = this._parentResizeWaiter) != null ? _b : void 0);
       this._parentResizeWaiter = null;
@@ -37361,19 +37363,11 @@ var __async = (__this, __arguments, generator) => {
         );
         this._printRestore.viewBoxAdded = true;
         (_f = (_e = w.dom) == null ? void 0 : _e.elWrap) == null ? void 0 : _f.classList.add("apexcharts-printing");
-        const host = (
-          /** @type {HTMLElement} */
-          this.el
-        );
-        if (host && host.style) {
-          this._printRestore.minHeight = host.style.minHeight;
-          host.style.minHeight = "0";
-        }
       }
     }
     /** Put back what _beforePrint() changed. */
     _afterPrint() {
-      var _a, _b, _c, _d, _e, _f, _g;
+      var _a, _b, _c, _d, _e, _f;
       if (!this._printRestore) return;
       const w = this.w;
       const restore = this._printRestore;
@@ -37381,13 +37375,6 @@ var __async = (__this, __arguments, generator) => {
       if (restore.viewBoxAdded) {
         (_c = (_b = (_a = w.dom) == null ? void 0 : _a.Paper) == null ? void 0 : _b.node) == null ? void 0 : _c.removeAttribute("viewBox");
         (_e = (_d = w.dom) == null ? void 0 : _d.elWrap) == null ? void 0 : _e.classList.remove("apexcharts-printing");
-        const host = (
-          /** @type {HTMLElement} */
-          this.el
-        );
-        if (host && host.style) {
-          host.style.minHeight = (_f = restore.minHeight) != null ? _f : "";
-        }
       }
       if (w.config.chart.width !== restore.width) {
         this.updateHelpers._updateOptions(
@@ -37397,7 +37384,7 @@ var __async = (__this, __arguments, generator) => {
           false,
           false
         );
-        clearTimeout((_g = w.globals.resizeTimer) != null ? _g : void 0);
+        clearTimeout((_f = w.globals.resizeTimer) != null ? _f : void 0);
       }
     }
     /**
@@ -37548,8 +37535,10 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} svgString
      */
     svgStringToNode(svgString) {
-      const parser = new DOMParser();
-      const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+      const svgDoc = BrowserAPIs.getDOMParser().parseFromString(
+        svgString,
+        "image/svg+xml"
+      );
       return svgDoc.documentElement;
     }
     /**
@@ -37589,7 +37578,7 @@ var __async = (__this, __arguments, generator) => {
           continue;
         }
         const fo = clonedFOs[i2];
-        const img = document.createElementNS(SVGNS$3, "image");
+        const img = BrowserAPIs.createElementNS(SVGNS$3, "image");
         img.setAttribute("x", fo.getAttribute("x") || "0");
         img.setAttribute("y", fo.getAttribute("y") || "0");
         img.setAttribute("width", fo.getAttribute("width") || "0");
@@ -37968,7 +37957,7 @@ var __async = (__this, __arguments, generator) => {
       }).then((cssBlocks) => {
         const css = (cssBlocks || []).filter(Boolean).join("\n");
         if (!css) return;
-        const style = document.createElementNS(SVGNS$3, "style");
+        const style = BrowserAPIs.createElementNS(SVGNS$3, "style");
         style.textContent = css;
         svgNode.insertBefore(style, svgNode.firstChild);
       }).catch(() => {
@@ -38037,6 +38026,9 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     /**
+     * Browser only: it reads the live chart's computed styles, fonts and
+     * stylesheets. Parsing and serializing go through BrowserAPIs like the
+     * rest of its DOM access.
      * @param {number} [_scale]
      */
     getSvgString(_scale) {
@@ -38062,7 +38054,7 @@ var __async = (__this, __arguments, generator) => {
         clonedNode.style.height = height + "px";
         this.inlineCanvasLayers(clonedNode);
         this.applyExportStyles(clonedNode);
-        const serializedNode = new XMLSerializer().serializeToString(clonedNode);
+        const serializedNode = BrowserAPIs.getXMLSerializer().serializeToString(clonedNode);
         let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -38086,7 +38078,7 @@ var __async = (__this, __arguments, generator) => {
           this.convertImagesToBase64(svgNode),
           this.embedFonts(svgNode)
         ]).then(() => {
-          svgString = new XMLSerializer().serializeToString(svgNode);
+          svgString = BrowserAPIs.getXMLSerializer().serializeToString(svgNode);
           resolve2(svgString.replace(/&nbsp;/g, "&#160;"));
         });
       });
@@ -40989,14 +40981,10 @@ var __async = (__this, __arguments, generator) => {
       this.hoverArea.classList.add("apexcharts-zoomable");
       this.eventList.forEach((event) => {
         var _a;
-        (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(
-          event,
-          me2.svgMouseEvents.bind(me2, xyRatios),
-          {
-            capture: false,
-            passive: true
-          }
-        );
+        (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
+          capture: false,
+          passive: true
+        });
       });
       if (this._wheelZoomEnabled()) {
         this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
@@ -41022,6 +41010,15 @@ var __async = (__this, __arguments, generator) => {
     }
     // remove the event listeners which were previously added on hover area
     destroy() {
+      if (this.w.globals.isDestroyed) {
+        const it = this.w.interact;
+        const st = this._wheel();
+        BrowserAPIs.cancelAnimationFrame(st.rafId);
+        clearTimeout(st.endTimer);
+        this._hideWheelHint();
+        this._cancelInertia();
+        it.wheel = it.momentum = void 0;
+      }
       if (this.slDraggableRect) {
         this.slDraggableRect.draggable(false);
         this.slDraggableRect.off();
@@ -41031,10 +41028,9 @@ var __async = (__this, __arguments, generator) => {
       this.zoomRect = null;
     }
     /**
-     * @param {import('../types/internal').XYRatios} xyRatios
      * @param {any} e
      */
-    svgMouseEvents(xyRatios, e2) {
+    svgMouseEvents(e2) {
       const w = this.w;
       const toolbar = this.ctx.toolbar;
       if (w.interact.momentum && w.interact.momentum.busy) return;
@@ -41710,7 +41706,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const yHighestValue = [];
       const yLowestValue = [];
-      w.config.yaxis.forEach((yaxe, index) => {
+      w.config.yaxis.forEach((_2, index) => {
         const seriesIndex = w.globals.seriesYAxisMap[index][0];
         const highestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localStartY;
         const lowestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localEndY;
@@ -41742,8 +41738,8 @@ var __async = (__this, __arguments, generator) => {
           }
           if (zoomtype === "xy" || zoomtype === "y") {
             yaxis.forEach((yaxe, index) => {
-              yaxis[index].min = yLowestValue[index];
-              yaxis[index].max = yHighestValue[index];
+              yaxe.min = yLowestValue[index];
+              yaxe.max = yHighestValue[index];
             });
           }
           if (toolbar) {
@@ -41786,8 +41782,8 @@ var __async = (__this, __arguments, generator) => {
             );
             yaxis = yaxisCopy;
             yaxisCopy.forEach((yaxe, index) => {
-              yaxisCopy[index].min = yLowestValue[index];
-              yaxisCopy[index].max = yHighestValue[index];
+              yaxe.min = yLowestValue[index];
+              yaxe.max = yHighestValue[index];
             });
           }
           w.interact.selection = me2.selection;
@@ -41827,26 +41823,6 @@ var __async = (__this, __arguments, generator) => {
       const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
       me2.panScrolled(xLowestValue, xHighestValue);
     }
-    // delayedPanScrolled() {
-    //   const w = this.w
-    //   let newMinX = w.globals.minX
-    //   let newMaxX = w.globals.maxX
-    //   const centerX = (w.globals.maxX - w.globals.minX) / 2
-    //   if (this.moveDirection === 'left') {
-    //     newMinX = w.globals.minX + centerX
-    //     newMaxX = w.globals.maxX + centerX
-    //   } else if (this.moveDirection === 'right') {
-    //     newMinX = w.globals.minX - centerX
-    //     newMaxX = w.globals.maxX - centerX
-    //   }
-    //   newMinX = Math.floor(newMinX)
-    //   newMaxX = Math.floor(newMaxX)
-    //   this.updateScrolledChart(
-    //     { xaxis: { min: newMinX, max: newMaxX } },
-    //     newMinX,
-    //     newMaxX
-    //   )
-    // }
     /**
      * @param {number} xLowestValue
      * @param {number} xHighestValue
@@ -41921,8 +41897,7 @@ var __async = (__this, __arguments, generator) => {
     // interaction slice that persists across re-renders, like the crude pan's
     // lastClientPosition). The instance that received touchstart keeps driving
     // the gesture off the persistent state; inertia is a self-contained rAF loop
-    // that stops on w.globals.isDestroyed (a real destroy) rather than being
-    // cancelled by the per-update destroy().
+    // that only a real destroy cancels (see destroy()).
     // ---------------------------------------------------------------------------
     _momentumEnabled() {
       return this._pinchEnabled() || this._panInertiaEnabled();
@@ -43929,7 +43904,7 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
         tooltipEl.removeAttribute("aria-hidden");
       }
-      if (type === "pie" || type === "donut" || type === "polarArea" || type === "radialBar") {
+      if (this._isSliceChart() || type === "radialBar") {
         this._showTooltipNonAxis(i2, j2, ttCtx, tooltipEl);
       } else if (type === "heatmap" || type === "treemap") {
         this._showTooltipHeatTree(i2, j2, ttCtx, tooltipEl, type);
@@ -44633,7 +44608,7 @@ var __async = (__this, __arguments, generator) => {
       const type = w.config.chart.type;
       const seriesNames = w.seriesData.seriesNames || [];
       const series = w.seriesData.series || [];
-      if (type === "pie" || type === "donut" || type === "polarArea") {
+      if (this._isSliceChart()) {
         const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j2]) != null ? _b : "";
         const value = Array.isArray(series) ? series[j2] : "";
         return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
@@ -44695,7 +44670,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const type = w.config.chart.type;
       const baseEl = w.dom.baseEl;
-      if (type === "pie" || type === "donut" || type === "polarArea") {
+      if (this._isSliceChart()) {
         return baseEl.querySelector(`.apexcharts-pie-area[j='${j2}']`);
       }
       if (type === "heatmap") {
@@ -44756,10 +44731,16 @@ var __async = (__this, __arguments, generator) => {
       const a11y = this.w.config.chart.accessibility;
       return a11y.enabled && a11y.keyboard.enabled && a11y.keyboard.navigation.enabled;
     }
+    /**
+     * pie, donut and polarArea: one ring of slices, navigated as one series.
+     * @returns {boolean}
+     */
+    _isSliceChart() {
+      return ["pie", "donut", "polarArea"].includes(this.w.config.chart.type);
+    }
     _getSeriesCount() {
       const w = this.w;
-      const type = w.config.chart.type;
-      if (type === "pie" || type === "donut" || type === "polarArea") {
+      if (this._isSliceChart()) {
         return 1;
       }
       return w.seriesData.series.length;
@@ -44769,8 +44750,7 @@ var __async = (__this, __arguments, generator) => {
      */
     _getDataPointCount(si) {
       const w = this.w;
-      const type = w.config.chart.type;
-      if (type === "pie" || type === "donut" || type === "polarArea") {
+      if (this._isSliceChart()) {
         return w.seriesData.series.length;
       }
       const s2 = w.seriesData.series[si];
@@ -45028,48 +45008,10 @@ var __async = (__this, __arguments, generator) => {
       d: hilbertIndex(pts[k2][0], pts[k2][1], minX, minY, maxX, maxY)
     })).sort((a2, b) => a2.d - b.d).map((e2) => e2.item);
   }
-  function parseColor(str) {
-    if (!str || typeof str !== "string") return null;
-    const s2 = str.trim();
-    if (s2[0] === "#") {
-      const hex = s2.slice(1);
-      if (hex.length === 3) {
-        return [
-          parseInt(hex[0] + hex[0], 16),
-          parseInt(hex[1] + hex[1], 16),
-          parseInt(hex[2] + hex[2], 16),
-          1
-        ];
-      }
-      if (hex.length === 6 || hex.length === 8) {
-        return [
-          parseInt(hex.slice(0, 2), 16),
-          parseInt(hex.slice(2, 4), 16),
-          parseInt(hex.slice(4, 6), 16),
-          hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1
-        ];
-      }
-      return null;
-    }
-    const m = s2.match(/^rgba?\(([^)]+)\)$/i);
-    if (m) {
-      const parts = m[1].split(",").map((p) => parseFloat(p));
-      if (parts.length < 3 || parts.some((v) => !isFinite(v))) return null;
-      return [parts[0], parts[1], parts[2], parts.length > 3 ? parts[3] : 1];
-    }
-    return null;
-  }
-  function makeColorLerp(from, to) {
-    const a2 = parseColor(from);
-    const b = parseColor(to);
-    if (!a2 || !b) return null;
-    return (t2) => {
-      const r2 = Math.round(a2[0] + (b[0] - a2[0]) * t2);
-      const g2 = Math.round(a2[1] + (b[1] - a2[1]) * t2);
-      const bl = Math.round(a2[2] + (b[2] - a2[2]) * t2);
-      const al = a2[3] + (b[3] - a2[3]) * t2;
-      return al >= 1 ? `rgb(${r2},${g2},${bl})` : `rgba(${r2},${g2},${bl},${al})`;
-    };
+  function makeColorLerp(from, to, memo, el) {
+    const a2 = resolveRGBA(from, memo, el);
+    const b = resolveRGBA(to, memo, el);
+    return a2 && b ? (t2) => lerpRGBA(a2, b, t2) : null;
   }
   function runPieceTween({
     pieces,
@@ -45131,6 +45073,14 @@ var __async = (__this, __arguments, generator) => {
   let ghostSeq = 0;
   const PIECE_BUDGET = 1500;
   const PIECE_STAGGER_MAX = 300;
+  const CHROME_SELECTORS = [
+    ".apexcharts-xaxis",
+    ".apexcharts-yaxis",
+    ".apexcharts-grid",
+    ".apexcharts-legend",
+    ".apexcharts-title-text",
+    ".apexcharts-subtitle-text"
+  ];
   const reveal = (el) => {
     el.removeAttribute("opacity");
     el.removeAttribute("data-piece-hidden");
@@ -45324,25 +45274,18 @@ var __async = (__this, __arguments, generator) => {
       const node = paper && paper.node;
       if (!node || typeof node.cloneNode !== "function") return;
       const clone = node.cloneNode(true);
-      const drop = [
-        ".apexcharts-xaxis",
-        ".apexcharts-yaxis",
-        // (the gridlines go with it)
-        ".apexcharts-grid",
-        ".apexcharts-legend",
-        ".apexcharts-title-text",
-        ".apexcharts-subtitle-text",
-        ".apexcharts-annotations",
-        ".apexcharts-zoom-rect",
-        ".apexcharts-selection-rect",
-        ".apexcharts-xcrosshairs",
-        ".apexcharts-ycrosshairs"
-      ];
       if (typeof clone.querySelectorAll === "function") {
-        drop.forEach((sel) => {
-          clone.querySelectorAll(sel).forEach((el) => {
-            el.remove();
-          });
+        clone.querySelectorAll(
+          [
+            ...CHROME_SELECTORS,
+            ".apexcharts-annotations",
+            ".apexcharts-zoom-rect",
+            ".apexcharts-selection-rect",
+            ".apexcharts-xcrosshairs",
+            ".apexcharts-ycrosshairs"
+          ].join()
+        ).forEach((el) => {
+          el.remove();
         });
       }
       if (typeof clone.querySelectorAll === "function") {
@@ -45644,7 +45587,7 @@ var __async = (__this, __arguments, generator) => {
      * geometrically exact and nothing ever fades.
      */
     _separatePieces() {
-      var _a;
+      var _a, _b;
       const snap = this._snapshot;
       const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
       if (!snap || !baseEl) return this._revealPieceHidden();
@@ -45661,8 +45604,9 @@ var __async = (__this, __arguments, generator) => {
       const staged = doc.createDocumentFragment();
       const sourceFam = familyOf(snap.fromType);
       const shapedSource = sourceFam === "summary" || sourceFam === "radial";
+      const memo = /* @__PURE__ */ new Map();
+      const wrap = (_b = this.w.dom) == null ? void 0 : _b.elWrap;
       Array.from(byCluster.keys()).sort((a2, b) => a2 - b).forEach((i2) => {
-        var _a2;
         const dots = (
           /** @type {any[]} */
           byCluster.get(i2)
@@ -45673,18 +45617,13 @@ var __async = (__this, __arguments, generator) => {
           dots.forEach((d) => reveal(d.el));
           return;
         }
-        const markFill = entry.fill && entry.fill.indexOf("url(") !== 0 ? entry.fill : ((_a2 = this.w.globals.colors) == null ? void 0 : _a2[i2]) || dots[0].fill;
-        let prober = null;
-        if (shapedSource) {
-          const shifted = this.getInitialPathFor(i2, 0);
-          if (shifted) prober = this._makeExtentProber(shifted, box, layer);
-        }
-        const divided = prober ? gridDivideShape(box, dots.length, prober.intervalsAt) : gridDivideRect(box, dots.length);
-        if (prober) prober.dispose();
-        const cells = sortByHilbert(divided, (c) => [
-          c.x + c.width / 2,
-          c.y + c.height / 2
-        ]);
+        const markFill = this._solidFill(entry.fill, i2, dots[0].fill);
+        const cells = this._cutMark(
+          box,
+          dots.length,
+          shapedSource && this.getInitialPathFor(i2, 0),
+          layer
+        );
         const ordered = sortByHilbert(dots, (d) => [d.x, d.y]);
         for (let k2 = 0; k2 < ordered.length; k2++) {
           const cell = cells[k2];
@@ -45709,7 +45648,7 @@ var __async = (__this, __arguments, generator) => {
               height: dot.r * 2,
               rx: dot.r
             },
-            fill: makeColorLerp(markFill, dot.fill),
+            fill: makeColorLerp(markFill, dot.fill, memo, wrap),
             fillEnd: dot.fill,
             delay: 0,
             meta: { dotEl: dot.el }
@@ -45774,6 +45713,8 @@ var __async = (__this, __arguments, generator) => {
       const pieces = [];
       const targetFam = familyOf(snap.toType);
       const shapedTarget = targetFam === "summary" || targetFam === "radial";
+      const memo = /* @__PURE__ */ new Map();
+      const wrap = (_b = this.w.dom) == null ? void 0 : _b.elWrap;
       for (let k2 = 0; k2 < clusterIdx.length; k2++) {
         const dots = (
           /** @type {any[]} */
@@ -45791,14 +45732,8 @@ var __async = (__this, __arguments, generator) => {
           continue;
         }
         const bbox = { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY };
-        const markFill = target2.fill && target2.fill.indexOf("url(") !== 0 ? target2.fill : ((_b = this.w.globals.colors) == null ? void 0 : _b[target2.realIndex]) || dots[0].fill;
-        const prober = shapedTarget ? this._makeExtentProber(d, bbox, layer) : null;
-        const divided = prober ? gridDivideShape(bbox, dots.length, prober.intervalsAt) : gridDivideRect(bbox, dots.length);
-        if (prober) prober.dispose();
-        const cells = sortByHilbert(divided, (c) => [
-          c.x + c.width / 2,
-          c.y + c.height / 2
-        ]);
+        const markFill = this._solidFill(target2.fill, target2.realIndex, dots[0].fill);
+        const cells = this._cutMark(bbox, dots.length, shapedTarget && d, layer);
         const ordered = sortByHilbert(dots, (d2) => [d2.x, d2.y]);
         const markState = {
           remaining: ordered.length,
@@ -45823,7 +45758,7 @@ var __async = (__this, __arguments, generator) => {
             el,
             from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
             to: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
-            fill: makeColorLerp(dot.fill, markFill),
+            fill: makeColorLerp(dot.fill, markFill, memo, wrap),
             fillEnd: String(markFill),
             delay: 0,
             meta: { markState }
@@ -45840,6 +45775,32 @@ var __async = (__this, __arguments, generator) => {
           state2.g.remove();
         }
       });
+    }
+    /**
+     * A mark's fill as a solid colour. A gradient arrives as url(#...); the
+     * series colour is the honest solid stand-in.
+     * @param {string|null|undefined} fill
+     * @param {number} i series index
+     * @param {string|null} fallback
+     */
+    _solidFill(fill, i2, fallback) {
+      var _a;
+      return fill && fill.indexOf("url(") !== 0 ? fill : ((_a = this.w.globals.colors) == null ? void 0 : _a[i2]) || fallback;
+    }
+    /**
+     * Cut a mark's box into `n` cells in Hilbert order, the order its pieces
+     * pair with the dots in. A shaped mark (violin, boxPlot, arc: pass its `d`)
+     * is cut along its measured ink, a bar along its box.
+     * @param {{x: number, y: number, width: number, height: number}} box
+     * @param {number} n
+     * @param {string|false|null} d
+     * @param {any} layer
+     */
+    _cutMark(box, n2, d, layer) {
+      const prober = d ? this._makeExtentProber(d, box, layer) : null;
+      const cells = prober ? gridDivideShape(box, n2, prober.intervalsAt) : gridDivideRect(box, n2);
+      if (prober) prober.dispose();
+      return sortByHilbert(cells, (c) => [c.x + c.width / 2, c.y + c.height / 2]);
     }
     /**
      * A collected target mark's final geometry as one path: the radial `d` it
@@ -46119,7 +46080,7 @@ var __async = (__this, __arguments, generator) => {
     /**
      * Convert a radialBar's stroked open-arc `d` ("M x1 y1 A r r 0 large sweep
      * x2 y2") into a closed donut-segment polygon whose FILLED rendering
-     * visually matches the original stroked arc — needed because the morph
+     * visually matches the original stroked arc, needed because the morph
      * target (pie/donut/polarArea) renders by fill, not stroke. Returns null
      * if the input doesn't match the expected M-then-A shape.
      *
@@ -46134,31 +46095,19 @@ var __async = (__this, __arguments, generator) => {
         /M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+A\s*(-?[\d.]+)\s+(?:-?[\d.]+)\s+(?:-?[\d.]+)\s+(\d)\s+(\d)\s+(-?[\d.]+)\s+(-?[\d.]+)/
       );
       if (!m) return null;
-      const x1 = parseFloat(m[1]);
-      const y1 = parseFloat(m[2]);
       const r2 = parseFloat(m[3]);
-      const large = parseInt(m[4], 10);
-      const sweep = parseInt(m[5], 10);
-      const x2 = parseFloat(m[6]);
-      const y2 = parseFloat(m[7]);
       if (!isFinite(r2) || r2 <= 0) return null;
-      const half = strokeWidth / 2;
-      const rOuter = r2 + half;
-      const rInner = Math.max(0, r2 - half);
-      const proj = (px2, py, newR) => {
-        const dx = px2 - centerX;
-        const dy = py - centerY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist === 0) return { x: centerX, y: centerY };
-        const k2 = newR / dist;
-        return { x: centerX + dx * k2, y: centerY + dy * k2 };
-      };
-      const o1 = proj(x1, y1, rOuter);
-      const o2 = proj(x2, y2, rOuter);
-      const i1 = proj(x1, y1, rInner);
-      const i2 = proj(x2, y2, rInner);
-      const sweepBack = sweep ? 0 : 1;
-      return `M ${o1.x} ${o1.y} A ${rOuter} ${rOuter} 0 ${large} ${sweep} ${o2.x} ${o2.y} L ${i2.x} ${i2.y} A ${rInner} ${rInner} 0 ${large} ${sweepBack} ${i1.x} ${i1.y} Z`;
+      const angle = (x2, y) => Math.atan2(+x2 - centerX, centerY - +y) * 180 / Math.PI;
+      const a1 = angle(m[1], m[2]);
+      const span = ((angle(m[6], m[7]) - a1) % 360 + 360) % 360;
+      return this.buildRingSegmentPath(
+        centerX,
+        centerY,
+        r2,
+        strokeWidth,
+        a1,
+        a1 + (+m[5] ? span : span - 360)
+      );
     }
     /**
      * Build a closed donut-segment path for the given polar arc geometry. Used
@@ -46304,7 +46253,7 @@ var __async = (__this, __arguments, generator) => {
       const entry = this._snapshot.mapping.get(`${realIndex}:${j2}`);
       if (!entry) return null;
       const { k: k2, dx, dy } = this._oldToNew();
-      return k2 === 1 && dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy, k2);
+      return k2 === 1 && dx === 0 && dy === 0 ? entry.d : mapPathAffine(entry.d, k2, dx, k2, dy, k2);
     }
     /**
      * The map from the captured marks' space to the new chart's plot space:
@@ -46324,48 +46273,6 @@ var __async = (__this, __arguments, generator) => {
         dx: o2.translateX + ((_b = o2.shiftX) != null ? _b : 0) - (this.w.layout.translateX || 0),
         dy: o2.translateY + ((_c = o2.shiftY) != null ? _c : 0) - (this.w.layout.translateY || 0)
       };
-    }
-    /**
-     * Offset every absolute coordinate in an SVG path `d` by (dx, dy).
-     *
-     * Assumes the path uses only uppercase (absolute) commands — every path
-     * ApexCharts generates does. Relative-command paths would pass through
-     * unchanged at the lowercase, which is also semantically correct (deltas
-     * don't shift under a parent translate).
-     *
-     * @param {string} d
-     * @param {number} dx
-     * @param {number} dy
-     * @param {number} [k] scale every coordinate (and arc radius) by this first
-     * @returns {string}
-     */
-    _translatePathD(d, dx, dy, k2 = 1) {
-      if (dx === 0 && dy === 0 && k2 === 1) return d;
-      const commands = parsePath(d);
-      const x2 = (v) => v * k2 + dx;
-      const y = (v) => v * k2 + dy;
-      return commands.map(
-        /** @param {any[]} c */
-        (c) => {
-          const cmd = c[0];
-          if (cmd === "Z") return "Z";
-          if (cmd === "M" || cmd === "L" || cmd === "T") {
-            return `${cmd} ${x2(c[1])} ${y(c[2])}`;
-          }
-          if (cmd === "H") return `${cmd} ${x2(c[1])}`;
-          if (cmd === "V") return `${cmd} ${y(c[1])}`;
-          if (cmd === "C") {
-            return `${cmd} ${x2(c[1])} ${y(c[2])} ${x2(c[3])} ${y(c[4])} ${x2(c[5])} ${y(c[6])}`;
-          }
-          if (cmd === "S" || cmd === "Q") {
-            return `${cmd} ${x2(c[1])} ${y(c[2])} ${x2(c[3])} ${y(c[4])}`;
-          }
-          if (cmd === "A") {
-            return `${cmd} ${c[1] * k2} ${c[2] * k2} ${c[3]} ${c[4]} ${c[5]} ${x2(c[6])} ${y(c[7])}`;
-          }
-          return c.join(" ");
-        }
-      ).join(" ");
     }
     /**
      * The centre point (in the NEW chart's screen space) of the captured shape
@@ -46561,9 +46468,7 @@ var __async = (__this, __arguments, generator) => {
       else this._mountGhost();
       const speed = this.getSpeed();
       const chrome = Array.from(
-        baseEl.querySelectorAll(
-          ".apexcharts-xaxis,.apexcharts-yaxis,.apexcharts-grid,.apexcharts-legend,.apexcharts-title-text,.apexcharts-subtitle-text"
-        )
+        baseEl.querySelectorAll(CHROME_SELECTORS.join())
       ).filter((el) => el.style);
       const set = (opacity, transition) => chrome.forEach((el) => {
         el.style.opacity = opacity;
@@ -61922,6 +61827,7 @@ var __async = (__this, __arguments, generator) => {
     violin: Violin
   });
   const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+  const NORMALISED = /* @__PURE__ */ new WeakMap();
   const uniqueId = (seen, id) => {
     const n2 = (seen.get(id) || 0) + 1;
     seen.set(id, n2);
@@ -61931,14 +61837,8 @@ var __async = (__this, __arguments, generator) => {
     if (typeof v === "string") v = parseFloat(v);
     return typeof v === "number" && isFinite(v) ? v : null;
   };
-  function easeOutCubic(t2) {
-    return 1 - Math.pow(1 - t2, 3);
-  }
   function easeOutBack(s2) {
     return (t2) => 1 + (s2 + 1) * Math.pow(t2 - 1, 3) + s2 * Math.pow(t2 - 1, 2);
-  }
-  function easeInOutCubic(t2) {
-    return t2 < 0.5 ? 4 * t2 * t2 * t2 : 1 - Math.pow(-2 * t2 + 2, 3) / 2;
   }
   const SPRING_REFERENCE_SPEED = 800;
   const MAX_FRAME_STEP = 0.25;
@@ -62000,11 +61900,14 @@ var __async = (__this, __arguments, generator) => {
       const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : layout === "arc" ? this._layoutArc(counts, opts) : layout === "custom" ? this._layoutCustom(counts, opts) : this._layoutGrouped(counts, opts);
       if (layout === "scatter") this._drawScatterAxes(ret, graphics);
       const dotR = this._lastDotR;
-      const animate = this._shouldAnimate();
+      const update = !!(this.ctx && this.ctx._unitPrevDots);
+      const morphSpeed = update && this.ctx._unitPieces && this.ctx.morphTypeChange ? this.ctx.morphTypeChange.getSpeed() : 0;
+      const animate = this._shouldAnimate(update && !morphSpeed);
+      const speed = morphSpeed || this._speed(update);
       const morph = this.ctx && this.ctx.morphTypeChange;
       const morphActive = animate && !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialSlotFor === "function";
       const pieceTakeover = morphActive && typeof morph.usesPieceTakeover === "function" && morph.usesPieceTakeover();
-      const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null;
+      const prev = animate && !morphActive && update ? this.ctx._unitPrevDots : null;
       const pieces = this.ctx && this.ctx._unitPieces;
       if (pieces) {
         this.ctx._unitPieces = null;
@@ -62168,13 +62071,13 @@ var __async = (__this, __arguments, generator) => {
         if (exits.length) {
           const exitGroup = graphics.group({ class: "apexcharts-unit-exits" });
           ret.add(exitGroup);
-          this._runExits(exitGroup, exits, opts);
+          this._runExits(exitGroup, exits, opts, speed);
         }
       }
       if (this.ctx) this.ctx._unitPrevDots = nextPrev;
       if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null;
       if (animate && animDots.length) {
-        this._runGather(animDots);
+        this._runGather(animDots, speed);
       } else {
         w.globals.animationEnded = true;
       }
@@ -62893,14 +62796,20 @@ var __async = (__this, __arguments, generator) => {
       return clusters;
     }
     /**
-     * Scatter / beeswarm layout: position every unit on a real numeric X value
-     * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
-     * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
-     * the centre line so equal / close values do not stack on top of each other.
+     * Scatter / beeswarm layout: position every unit on a real numeric value
+     * axis by its own value (`_unitValueOf`), laned by category. Within a lane an
+     * anti-overlap "swarm" pack (or a random jitter) spreads the dots off the
+     * centre line so equal / close values do not stack on top of each other.
      * This is the unit chart's answer to "put these on axes": one dot per datum,
      * placed by data, with a drawn value axis + category lanes (see
      * _drawScatterAxes). Needs the per-unit object form (each datum a numeric
      * `value`/`y`); flat counts have no per-unit value, so their lanes stay empty.
+     *
+     * Horizontal (default): the value runs along X and the lanes are rows on Y.
+     * `scatter.orientation: 'vertical'` transposes it: the value runs UP the Y
+     * axis and each category is a column across X. The value-axis config keys
+     * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) describe the value axis
+     * either way, so flipping `orientation` keeps the same value settings.
      * @param {any} opts
      */
     _layoutScatter(opts) {
@@ -62911,135 +62820,9 @@ var __async = (__this, __arguments, generator) => {
       const caps = this._applyMaxUnits(lens, opts.maxUnits);
       const keep = (ci, j2) => Math.floor((j2 + 1) * caps[ci] / lens[ci]) > Math.floor(j2 * caps[ci] / lens[ci]);
       if (scfg.y === "value") return this._layoutScatter2D(opts, keep);
-      if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts, keep);
+      const vertical = scfg.orientation === "vertical";
       const gw = w.layout.gridWidth;
       const gh = w.layout.gridHeight;
-      const names = w.seriesData.seriesNames || [];
-      const valueOf2 = (d) => this._unitValueOf(d);
-      const sizeStats = this._scatterSizeStats(scfg, unitData);
-      const catVals = unitData.map(
-        (cat) => Array.isArray(cat) ? cat.map(valueOf2) : []
-      );
-      const isNum = (v) => v != null && isFinite(v);
-      const visible = catVals.map((_2, i2) => i2).filter((i2) => catVals[i2].some(isNum));
-      const Kv = Math.max(1, visible.length);
-      let vmin = Infinity;
-      let vmax = -Infinity;
-      catVals.forEach(
-        (vs) => vs.forEach((v) => {
-          if (v != null && isFinite(v)) {
-            if (v < vmin) vmin = v;
-            if (v > vmax) vmax = v;
-          }
-        })
-      );
-      if (vmin === Infinity) {
-        vmin = 0;
-        vmax = 1;
-      }
-      const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-      const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount);
-      const xMin = domain.min;
-      const xMax = domain.max;
-      const xSpan = xMax - xMin || 1;
-      const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 };
-      const laneName = (i2) => names[i2] || `series-${i2 + 1}`;
-      const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14) : 8;
-      const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
-      const plotL = laneW;
-      const plotR = gw - 8;
-      const plotT = 10;
-      const plotB = gh - bottomGutter;
-      const plotW = Math.max(4, plotR - plotL);
-      const plotH = Math.max(4, plotB - plotT);
-      const plotX = (v) => plotL + (v - xMin) / xSpan * plotW;
-      const laneH = plotH / Kv;
-      const laneCy = (slot) => plotT + laneH * (slot + 0.5);
-      let r2 = 0;
-      const fixed = this._fixedRadius(opts);
-      if (fixed) {
-        r2 = fixed;
-      } else {
-        const maxLane = Math.max(
-          1,
-          ...visible.map((i2) => catVals[i2].filter(isNum).length)
-        );
-        r2 = Math.max(
-          2,
-          Math.min(6, laneH * 0.12, plotW / (2.5 * Math.sqrt(maxLane)))
-        );
-      }
-      this._lastDotR = r2;
-      const spacing = opts.spacing > 0 ? opts.spacing : 1;
-      const step = Math.max(0.5, r2 * spacing);
-      const jitter = scfg.spread === "jitter";
-      const clusters = [];
-      const lanes2 = [];
-      const maxR = sizeStats ? sizeStats.rMax : r2;
-      visible.forEach((ci, slot) => {
-        const cy = laneCy(slot);
-        let name2 = laneName(ci);
-        const wid = laneW > 12 ? measureLabelWidth(w, [name2], font) : 0;
-        if (wid > laneW - 14 && wid) {
-          name2 = name2.slice(0, Math.max(1, Math.floor(name2.length * (laneW - 14) / wid) - 1)) + "…";
-        }
-        lanes2.push({ i: ci, cy, name: name2 });
-        const pts = [];
-        (unitData[ci] || []).forEach((d, j2) => {
-          const v = valueOf2(d);
-          if (!isNum(v) || !keep(ci, j2)) return;
-          const p = { j: j2, px: plotX(v), y: cy };
-          if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r2);
-          pts.push(p);
-        });
-        if (jitter) {
-          const halfLane = Math.max(maxR, laneH / 2 - maxR);
-          pts.forEach((p) => {
-            p.y = cy + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
-          });
-        } else {
-          this._beeswarm(pts, cy, r2, step, maxR);
-        }
-        clusters.push({
-          i: ci,
-          cx: (plotL + plotR) / 2,
-          cy,
-          outerR: laneH / 2,
-          dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r, j: p.j }))
-        });
-      });
-      const ticks = domain.ticks;
-      this._scatterAxis = {
-        mode: "1d",
-        plotL,
-        plotR,
-        plotT,
-        plotB,
-        xMin,
-        xMax,
-        plotX,
-        ticks,
-        lanes: lanes2,
-        xTitle: scfg.xTitle,
-        formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
-        gridlines: scfg.gridlines !== false
-      };
-      return clusters;
-    }
-    /**
-     * Vertical beeswarm: the transpose of _layoutScatter. The value runs UP the Y
-     * axis and each category is a column (lane) across X; the swarm pack spreads
-     * dots horizontally off each column's centre line. The value-axis config keys
-     * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
-     * axis (now Y), so flipping `orientation` keeps the same value settings.
-     * @param {any} opts @param {(ci:number, j:number) => boolean} keep
-     */
-    _layoutScatterVertical(opts, keep) {
-      const w = this.w;
-      const scfg = opts.scatter || {};
-      const gw = w.layout.gridWidth;
-      const gh = w.layout.gridHeight;
-      const unitData = w.seriesData.unitData || [];
       const names = w.seriesData.seriesNames || [];
       const valueOf2 = (d) => this._unitValueOf(d);
       const sizeStats = this._scatterSizeStats(scfg, unitData);
@@ -63068,17 +62851,18 @@ var __async = (__this, __arguments, generator) => {
       const vMin = domain.min;
       const vMax = domain.max;
       const vSpan = vMax - vMin || 1;
-      const leftGutter = 46 + (scfg.xTitle ? 18 : 0);
-      const bottomGutter = Kv > 1 ? 26 : 10;
-      const plotL = leftGutter;
-      const plotR = gw - 10;
+      const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 };
+      const laneName = (i2) => names[i2] || `series-${i2 + 1}`;
+      const labelW = vertical ? 0 : scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14) : 8;
+      const plotL = vertical ? 46 + (scfg.xTitle ? 18 : 0) : labelW;
+      const plotR = gw - (vertical ? 10 : 8);
       const plotT = 10;
-      const plotB = gh - bottomGutter;
+      const plotB = gh - (vertical ? Kv > 1 ? 26 : 10 : 30 + (scfg.xTitle ? 20 : 0));
       const plotW = Math.max(4, plotR - plotL);
       const plotH = Math.max(4, plotB - plotT);
-      const plotY = (v) => plotB - (v - vMin) / vSpan * plotH;
-      const laneW = plotW / Kv;
-      const laneCx = (slot) => plotL + laneW * (slot + 0.5);
+      const toPx = vertical ? (v) => plotB - (v - vMin) / vSpan * plotH : (v) => plotL + (v - vMin) / vSpan * plotW;
+      const lane = (vertical ? plotW : plotH) / Kv;
+      const laneMid = (slot) => (vertical ? plotL : plotT) + lane * (slot + 0.5);
       let r2 = 0;
       const fixed = this._fixedRadius(opts);
       if (fixed) {
@@ -63090,7 +62874,7 @@ var __async = (__this, __arguments, generator) => {
         );
         r2 = Math.max(
           2,
-          Math.min(6, laneW * 0.12, plotH / (2.5 * Math.sqrt(maxLane)))
+          Math.min(6, lane * 0.12, (vertical ? plotH : plotW) / (2.5 * Math.sqrt(maxLane)))
         );
       }
       this._lastDotR = r2;
@@ -63101,49 +62885,50 @@ var __async = (__this, __arguments, generator) => {
       const lanes2 = [];
       const maxR = sizeStats ? sizeStats.rMax : r2;
       visible.forEach((ci, slot) => {
-        const cx = laneCx(slot);
-        lanes2.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
+        const mid = laneMid(slot);
+        let name2 = laneName(ci);
+        const wid = labelW > 12 ? measureLabelWidth(w, [name2], font) : 0;
+        if (wid > labelW - 14 && wid) {
+          name2 = name2.slice(0, Math.max(1, Math.floor(name2.length * (labelW - 14) / wid) - 1)) + "…";
+        }
+        lanes2.push(vertical ? { i: ci, cx: mid, name: name2 } : { i: ci, cy: mid, name: name2 });
         const pts = [];
         (unitData[ci] || []).forEach((d, j2) => {
           const v = valueOf2(d);
           if (!isNum(v) || !keep(ci, j2)) return;
-          const p = { j: j2, py: plotY(v), x: cx };
+          const p = { j: j2, f: toPx(v), s: mid };
           if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r2);
           pts.push(p);
         });
         if (jitter) {
-          const halfLane = Math.max(maxR, laneW / 2 - maxR);
+          const halfLane = Math.max(maxR, lane / 2 - maxR);
           pts.forEach((p) => {
-            p.x = cx + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
+            p.s = mid + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
           });
         } else {
-          this._beeswarm(pts, cx, r2, step, maxR, true);
+          this._beeswarm(pts, mid, r2, step, maxR);
         }
         clusters.push({
           i: ci,
-          cx,
-          cy: (plotT + plotB) / 2,
-          outerR: laneW / 2,
-          dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r, j: p.j }))
+          cx: vertical ? mid : (plotL + plotR) / 2,
+          cy: vertical ? (plotT + plotB) / 2 : mid,
+          outerR: lane / 2,
+          dots: pts.map(
+            (p) => vertical ? { x: p.s, y: p.f, r: p.r, j: p.j } : { x: p.f, y: p.s, r: p.r, j: p.j }
+          )
         });
       });
-      const ticks = domain.ticks;
-      this._scatterAxis = {
+      this._scatterAxis = __spreadValues({
         mode: "1d",
-        orientation: "vertical",
         plotL,
         plotR,
         plotT,
         plotB,
-        vMin,
-        vMax,
-        plotY,
-        ticks,
+        ticks: domain.ticks,
         lanes: lanes2,
-        valueTitle: scfg.xTitle,
         formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
         gridlines: scfg.gridlines !== false
-      };
+      }, vertical ? { orientation: "vertical", vMin, vMax, plotY: toPx, valueTitle: scfg.xTitle } : { xMin: vMin, xMax: vMax, plotX: toPx, xTitle: scfg.xTitle });
       return clusters;
     }
     /**
@@ -63309,27 +63094,25 @@ var __async = (__this, __arguments, generator) => {
       return Math.sqrt(aMin + tc * (aMax - aMin));
     }
     /**
-     * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed x
-     * (`px`) and a lane centre `cy`, assign each a y so no two dots overlap (centre
-     * distance >= r_i + r_j). Greedy in ascending-x order, trying offsets 0, +step,
-     * -step, +2step ... and taking the SMALLEST that clears every already-placed
-     * neighbour still within reach in x. No-overlap always wins: a very dense lane
-     * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
-     * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
-     * else `rFallback` applies; `maxR` bounds the value-window break. Deterministic
-     * (no physics, no randomness).
+     * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed
+     * value coordinate `f` and a lane centre, assign each a spread coordinate `s`
+     * so no two dots overlap (centre distance >= r_i + r_j). Greedy in ascending
+     * value order, trying offsets 0, +step, -step, +2step ... and taking the
+     * SMALLEST that clears every already-placed neighbour still within reach on
+     * the value axis. No-overlap always wins: a very dense lane grows a wider
+     * swarm rather than stacking dots (offsets are not hard-clamped to the lane).
+     * Each point may carry its own radius `r` (bubble beeswarm), else `rFallback`
+     * applies; `maxR` bounds the value-window break. Deterministic (no physics,
+     * no randomness).
      *
-     * Orientation-agnostic: the "fixed" axis is the value axis and the "spread"
-     * axis is the lane thickness. Horizontal (default): fixed = `px`, spread = `y`
-     * (mutates `.y`). Vertical: fixed = `py`, spread = `x` (mutates `.x`).
-     * @param {any[]} pts @param {number} center lane centre on the spread axis
+     * Orientation-agnostic: `f` is X for a horizontal swarm and Y for a vertical
+     * one, `s` the other axis (see _layoutScatter).
+     * @param {{f:number,s:number,r?:number}[]} pts @param {number} center lane
+     *   centre on the spread axis
      * @param {number} rFallback @param {number} step @param {number} [maxR]
-     * @param {boolean} [vertical]
      */
-    _beeswarm(pts, center, rFallback, step, maxR, vertical = false) {
-      const fk = vertical ? "py" : "px";
-      const sk = vertical ? "x" : "y";
-      const order = pts.slice().sort((a2, b) => a2[fk] - b[fk]);
+    _beeswarm(pts, center, rFallback, step, maxR) {
+      const order = pts.slice().sort((a2, b) => a2.f - b.f);
       const placed = [];
       const rCap = maxR != null ? maxR : rFallback;
       order.forEach((p) => {
@@ -63341,7 +63124,7 @@ var __async = (__this, __arguments, generator) => {
           let ok = true;
           for (let m = placed.length - 1; m >= 0; m--) {
             const q2 = placed[m];
-            const df = p[fk] - q2.f;
+            const df = p.f - q2.f;
             if (df > pr + rCap) break;
             const need = pr + q2.r;
             const ds = s2 - q2.s;
@@ -63355,8 +63138,8 @@ var __async = (__this, __arguments, generator) => {
             break;
           }
         }
-        p[sk] = center + chosen;
-        placed.push({ f: p[fk], s: p[sk], r: pr });
+        p.s = center + chosen;
+        placed.push({ f: p.f, s: p.s, r: pr });
       });
     }
     /**
@@ -63876,12 +63659,21 @@ var __async = (__this, __arguments, generator) => {
       const s2 = ref.trim();
       if (s2[0] === "M" || s2[0] === "m") return normalizeUnitMark(s2);
       const found = getUnitMark(s2);
-      if (found) return found;
+      let mark = found && typeof found === "object" ? NORMALISED.get(found) : null;
+      if (mark === void 0) {
+        mark = normalizeUnitMark(found, s2);
+        NORMALISED.set(
+          /** @type {object} */
+          found,
+          mark
+        );
+      }
+      if (mark) return mark;
       if (!this._markWarned) this._markWarned = /* @__PURE__ */ new Set();
       if (!this._markWarned.has(s2)) {
         this._markWarned.add(s2);
         console.warn(
-          `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
+          found ? `[ApexCharts] unit chart: mark "${s2}" needs a path string and a viewBox of 4 numbers with a positive width and height.` : `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
         );
       }
       return null;
@@ -64057,47 +63849,41 @@ var __async = (__this, __arguments, generator) => {
       this._place(node, spec || this._baseSpec(opts), x2, y);
     }
     /**
-     * Parse a `#rgb` / `#rrggbb` / `rgb()` / `rgba()` colour to `[r, g, b]`, or
-     * null if it cannot be parsed (the colour tween is then skipped).
-     * @param {string} str @returns {number[] | null}
-     */
-    _rgb(str) {
-      if (typeof str !== "string") return null;
-      let s2 = str.trim();
-      if (s2[0] === "#") {
-        if (s2.length === 4) s2 = "#" + s2[1] + s2[1] + s2[2] + s2[2] + s2[3] + s2[3];
-        const n2 = parseInt(s2.slice(1, 7), 16);
-        if (isNaN(n2)) return null;
-        return [n2 >> 16 & 255, n2 >> 8 & 255, n2 & 255];
-      }
-      const m = s2.match(/rgba?\(([^)]+)\)/);
-      if (m) {
-        const p = m[1].split(",").map((x2) => parseFloat(x2));
-        if (p.length >= 3 && p.every((v) => !isNaN(v))) return [p[0], p[1], p[2]];
-      }
-      return null;
-    }
-    /**
      * Whether to run the gather / transition animation. Runs on the initial mount
      * and on data-driven updates (keyed old->new tween or cross-type burst).
-     * Skipped: in SSR, when animations are off, when the caller passed
-     * `animate:false` (shouldAnimate === false), on a PURE window resize (resized
-     * with no data change - re-gathering on every resize would be jarring), and
-     * when the user prefers reduced motion.
+     * Skipped: in SSR, when animations are off, on an update when
+     * `dynamicAnimation` is off, when the caller passed `animate:false`
+     * (shouldAnimate === false), on a PURE window resize (resized with no data
+     * change - re-gathering on every resize would be jarring), and when the user
+     * prefers reduced motion.
      *
      * Note: `w.globals.resized` is set true on every update (not just window
      * resize), so it must be paired with `!dataChanged` to isolate a real resize.
+     * @param {boolean} update a tween from a previous unit render
      * @returns {boolean}
      */
-    _shouldAnimate() {
+    _shouldAnimate(update) {
+      var _a;
       const w = this.w;
       const anim = w.config.chart.animations;
       if (!Environment.isBrowser()) return false;
       if (!anim || anim.enabled === false) return false;
+      if (update && ((_a = anim.dynamicAnimation) == null ? void 0 : _a.enabled) === false) return false;
       if (w.globals.shouldAnimate === false) return false;
       if (w.globals.resized && !w.globals.dataChanged) return false;
       if (anim.respectReducedMotion && prefersReducedMotion()) return false;
       return true;
+    }
+    /**
+     * Tween length (ms): `animations.speed` for the first gather,
+     * `dynamicAnimation.speed` for an update.
+     * @param {boolean} update
+     * @returns {number}
+     */
+    _speed(update) {
+      var _a;
+      const anim = this.w.config.chart.animations;
+      return Math.max(1, (update ? (_a = anim.dynamicAnimation) == null ? void 0 : _a.speed : anim.speed) || 800);
     }
     /**
      * Give every dot an x/y spring, reusing the live springs of a gather this
@@ -64117,7 +63903,7 @@ var __async = (__this, __arguments, generator) => {
      *
      * @param {UnitAnimDot[]} dots
      * @param {any} gcfg plotOptions.unit.gather
-     * @param {number} speed chart.animations.speed, in ms
+     * @param {number} speed the tween length, in ms (see _speed)
      */
     _seedSprings(dots, gcfg, speed) {
       const [stiffness, damping] = springParams(gcfg.spring, speed);
@@ -64167,11 +63953,11 @@ var __async = (__this, __arguments, generator) => {
      * quantities, and the shared solver's rest thresholds are absolute (0.05 in
      * caller units), which is negligible for pixels but 5% of a unit interval.
      * @param {UnitAnimDot[]} dots
+     * @param {number} speed tween length, in ms (see _speed)
      */
-    _runGather(dots) {
+    _runGather(dots, speed) {
       const w = this.w;
       const opts = w.config.plotOptions.unit;
-      const speed = Math.max(1, w.config.chart.animations.speed || 800);
       const maxDelay = Math.min(speed * 0.6, 450);
       const n2 = dots.length;
       for (let k2 = n2; k2--; ) {
@@ -64189,14 +63975,17 @@ var __async = (__this, __arguments, generator) => {
           this._place(d.node, d.spec, d.cx0, d.cy0, d.r0 / d.r1);
         }
       }
+      const memo = /* @__PURE__ */ new Map();
+      const wrap = w.dom.elWrap;
       for (let k2 = 0; k2 < n2; k2++) {
         const d = dots[k2];
         if (d.fill0 && d.fill1 && d.fill0 !== d.fill1) {
-          d._c0 = this._rgb(d.fill0);
-          d._c1 = this._rgb(d.fill1);
+          d._c0 = resolveRGBA(d.fill0, memo, wrap);
+          d._c1 = resolveRGBA(d.fill1, memo, wrap);
         }
       }
-      const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? easeInOutCubic : easeOutCubic;
+      const easeOut = resolveEasing("easeOutCubic");
+      const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? resolveEasing("easeInOutCubic") : easeOut;
       const start = performance.now();
       let last = start;
       const stepFn = (now) => {
@@ -64211,7 +64000,7 @@ var __async = (__this, __arguments, generator) => {
           const d = dots[k2];
           const elapsed = now - start - d.delay;
           const t2 = Math.max(0, Math.min(1, elapsed / speed));
-          const ec = easeOutCubic(t2);
+          const ec = easeOut(t2);
           let cx, cy;
           if (d.sx && d.sy) {
             if (elapsed >= 0 && !d.released) {
@@ -64236,12 +64025,7 @@ var __async = (__this, __arguments, generator) => {
           }
           this._place(d.node, d.spec, cx, cy, sk);
           if (d.isEnter) d.node.style.opacity = String(Math.min(1, t2 * 2.5));
-          if (d._c0 && d._c1) {
-            const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec);
-            const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec);
-            const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec);
-            d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
-          }
+          if (d._c0 && d._c1) d.node.setAttribute("fill", lerpRGBA(d._c0, d._c1, ec));
           if (t2 < 1) done = false;
         }
         if (done) {
@@ -64289,8 +64073,9 @@ var __async = (__this, __arguments, generator) => {
      * blob / bar layouts keep the gentle inward collapse so a removal reads as
      * motion rather than a pop.
      * @param {any} group @param {{x:number,y:number,fill:string,r?:number,spec?:any}[]} exits @param {any} opts
+     * @param {number} speed tween length, in ms (see _speed)
      */
-    _runExits(group2, exits, opts) {
+    _runExits(group2, exits, opts, speed) {
       const w = this.w;
       const graphics = new Graphics(w, this.ctx);
       const dotR = this._lastDotR;
@@ -64307,19 +64092,15 @@ var __async = (__this, __arguments, generator) => {
         group2.add(el);
         ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec });
       });
-      if (!this._shouldAnimate()) {
-        ghosts.forEach((g2) => g2.node.remove());
-        return;
-      }
-      const speed = Math.max(1, w.config.chart.animations.speed || 800);
       const start = performance.now();
+      const easeOut = resolveEasing("easeOutCubic");
       const stepFn = (now) => {
         if (this._stale(group2.node)) {
           this.w.globals.unitExitRAF = null;
           return;
         }
         const t2 = Math.max(0, Math.min(1, (now - start) / speed));
-        const e2 = easeOutCubic(t2);
+        const e2 = easeOut(t2);
         for (let k2 = 0; k2 < ghosts.length; k2++) {
           const g2 = ghosts[k2];
           if (drift) {
@@ -72034,8 +71815,8 @@ ${percent2.toFixed(1)}%`;
           redrawOnParentResize: false,
           redrawOnWindowResize: false,
           print: { enabled: false },
-          // Core pads the chart's container by parentHeightOffset (default 15)
-          // via an inline min-height; inside a height-budgeted grid cell that
+          // Core pads the chart by parentHeightOffset (default 15) via a
+          // min-height on its wrapper; inside a height-budgeted grid cell that
           // slack de-syncs mounted cells from the skeleton reserve (the grid
           // gap is the breathing room here).
           parentHeightOffset: 0,

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -75,8 +75,10 @@ class Exports {
    * @param {string} svgString
    */
   svgStringToNode(svgString) {
-    const parser = new DOMParser();
-    const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+    const svgDoc = BrowserAPIs.getDOMParser().parseFromString(
+      svgString,
+      "image/svg+xml"
+    );
     return svgDoc.documentElement;
   }
   /**
@@ -116,7 +118,7 @@ class Exports {
         continue;
       }
       const fo = clonedFOs[i];
-      const img = document.createElementNS(SVGNS, "image");
+      const img = BrowserAPIs.createElementNS(SVGNS, "image");
       img.setAttribute("x", fo.getAttribute("x") || "0");
       img.setAttribute("y", fo.getAttribute("y") || "0");
       img.setAttribute("width", fo.getAttribute("width") || "0");
@@ -495,7 +497,7 @@ class Exports {
     }).then((cssBlocks) => {
       const css = (cssBlocks || []).filter(Boolean).join("\n");
       if (!css) return;
-      const style = document.createElementNS(SVGNS, "style");
+      const style = BrowserAPIs.createElementNS(SVGNS, "style");
       style.textContent = css;
       svgNode.insertBefore(style, svgNode.firstChild);
     }).catch(() => {
@@ -564,6 +566,9 @@ class Exports {
     });
   }
   /**
+   * Browser only: it reads the live chart's computed styles, fonts and
+   * stylesheets. Parsing and serializing go through BrowserAPIs like the
+   * rest of its DOM access.
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -589,7 +594,7 @@ class Exports {
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
       this.applyExportStyles(clonedNode);
-      const serializedNode = new XMLSerializer().serializeToString(clonedNode);
+      const serializedNode = BrowserAPIs.getXMLSerializer().serializeToString(clonedNode);
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -613,7 +618,7 @@ class Exports {
         this.convertImagesToBase64(svgNode),
         this.embedFonts(svgNode)
       ]).then(() => {
-        svgString = new XMLSerializer().serializeToString(svgNode);
+        svgString = BrowserAPIs.getXMLSerializer().serializeToString(svgNode);
         resolve(svgString.replace(/&nbsp;/g, "&#160;"));
       });
     });
@@ -1907,14 +1912,10 @@ class ZoomPanSelection extends Toolbar {
     this.hoverArea.classList.add("apexcharts-zoomable");
     this.eventList.forEach((event) => {
       var _a;
-      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(
-        event,
-        me2.svgMouseEvents.bind(me2, xyRatios),
-        {
-          capture: false,
-          passive: true
-        }
-      );
+      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
+        capture: false,
+        passive: true
+      });
     });
     if (this._wheelZoomEnabled()) {
       this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
@@ -1940,6 +1941,15 @@ class ZoomPanSelection extends Toolbar {
   }
   // remove the event listeners which were previously added on hover area
   destroy() {
+    if (this.w.globals.isDestroyed) {
+      const it = this.w.interact;
+      const st = this._wheel();
+      BrowserAPIs.cancelAnimationFrame(st.rafId);
+      clearTimeout(st.endTimer);
+      this._hideWheelHint();
+      this._cancelInertia();
+      it.wheel = it.momentum = void 0;
+    }
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false);
       this.slDraggableRect.off();
@@ -1949,10 +1959,9 @@ class ZoomPanSelection extends Toolbar {
     this.zoomRect = null;
   }
   /**
-   * @param {import('../types/internal').XYRatios} xyRatios
    * @param {any} e
    */
-  svgMouseEvents(xyRatios, e) {
+  svgMouseEvents(e) {
     const w = this.w;
     const toolbar = this.ctx.toolbar;
     if (w.interact.momentum && w.interact.momentum.busy) return;
@@ -2628,7 +2637,7 @@ class ZoomPanSelection extends Toolbar {
     }
     const yHighestValue = [];
     const yLowestValue = [];
-    w.config.yaxis.forEach((yaxe, index) => {
+    w.config.yaxis.forEach((_, index) => {
       const seriesIndex = w.globals.seriesYAxisMap[index][0];
       const highestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localStartY;
       const lowestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localEndY;
@@ -2660,8 +2669,8 @@ class ZoomPanSelection extends Toolbar {
         }
         if (zoomtype === "xy" || zoomtype === "y") {
           yaxis.forEach((yaxe, index) => {
-            yaxis[index].min = yLowestValue[index];
-            yaxis[index].max = yHighestValue[index];
+            yaxe.min = yLowestValue[index];
+            yaxe.max = yHighestValue[index];
           });
         }
         if (toolbar) {
@@ -2704,8 +2713,8 @@ class ZoomPanSelection extends Toolbar {
           );
           yaxis = yaxisCopy;
           yaxisCopy.forEach((yaxe, index) => {
-            yaxisCopy[index].min = yLowestValue[index];
-            yaxisCopy[index].max = yHighestValue[index];
+            yaxe.min = yLowestValue[index];
+            yaxe.max = yHighestValue[index];
           });
         }
         w.interact.selection = me2.selection;
@@ -2745,26 +2754,6 @@ class ZoomPanSelection extends Toolbar {
     const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
     me2.panScrolled(xLowestValue, xHighestValue);
   }
-  // delayedPanScrolled() {
-  //   const w = this.w
-  //   let newMinX = w.globals.minX
-  //   let newMaxX = w.globals.maxX
-  //   const centerX = (w.globals.maxX - w.globals.minX) / 2
-  //   if (this.moveDirection === 'left') {
-  //     newMinX = w.globals.minX + centerX
-  //     newMaxX = w.globals.maxX + centerX
-  //   } else if (this.moveDirection === 'right') {
-  //     newMinX = w.globals.minX - centerX
-  //     newMaxX = w.globals.maxX - centerX
-  //   }
-  //   newMinX = Math.floor(newMinX)
-  //   newMaxX = Math.floor(newMaxX)
-  //   this.updateScrolledChart(
-  //     { xaxis: { min: newMinX, max: newMaxX } },
-  //     newMinX,
-  //     newMaxX
-  //   )
-  // }
   /**
    * @param {number} xLowestValue
    * @param {number} xHighestValue
@@ -2839,8 +2828,7 @@ class ZoomPanSelection extends Toolbar {
   // interaction slice that persists across re-renders, like the crude pan's
   // lastClientPosition). The instance that received touchstart keeps driving
   // the gesture off the persistent state; inertia is a self-contained rAF loop
-  // that stops on w.globals.isDestroyed (a real destroy) rather than being
-  // cancelled by the per-update destroy().
+  // that only a real destroy cancels (see destroy()).
   // ---------------------------------------------------------------------------
   _momentumEnabled() {
     return this._pinchEnabled() || this._panInertiaEnabled();

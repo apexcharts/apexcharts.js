@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -51,8 +51,10 @@ class Exports {
    * @param {string} svgString
    */
   svgStringToNode(svgString) {
-    const parser = new DOMParser();
-    const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+    const svgDoc = BrowserAPIs.getDOMParser().parseFromString(
+      svgString,
+      "image/svg+xml"
+    );
     return svgDoc.documentElement;
   }
   /**
@@ -92,7 +94,7 @@ class Exports {
         continue;
       }
       const fo = clonedFOs[i];
-      const img = document.createElementNS(SVGNS, "image");
+      const img = BrowserAPIs.createElementNS(SVGNS, "image");
       img.setAttribute("x", fo.getAttribute("x") || "0");
       img.setAttribute("y", fo.getAttribute("y") || "0");
       img.setAttribute("width", fo.getAttribute("width") || "0");
@@ -471,7 +473,7 @@ class Exports {
     }).then((cssBlocks) => {
       const css = (cssBlocks || []).filter(Boolean).join("\n");
       if (!css) return;
-      const style = document.createElementNS(SVGNS, "style");
+      const style = BrowserAPIs.createElementNS(SVGNS, "style");
       style.textContent = css;
       svgNode.insertBefore(style, svgNode.firstChild);
     }).catch(() => {
@@ -540,6 +542,9 @@ class Exports {
     });
   }
   /**
+   * Browser only: it reads the live chart's computed styles, fonts and
+   * stylesheets. Parsing and serializing go through BrowserAPIs like the
+   * rest of its DOM access.
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -565,7 +570,7 @@ class Exports {
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
       this.applyExportStyles(clonedNode);
-      const serializedNode = new XMLSerializer().serializeToString(clonedNode);
+      const serializedNode = BrowserAPIs.getXMLSerializer().serializeToString(clonedNode);
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -589,7 +594,7 @@ class Exports {
         this.convertImagesToBase64(svgNode),
         this.embedFonts(svgNode)
       ]).then(() => {
-        svgString = new XMLSerializer().serializeToString(svgNode);
+        svgString = BrowserAPIs.getXMLSerializer().serializeToString(svgNode);
         resolve(svgString.replace(/&nbsp;/g, "&#160;"));
       });
     });

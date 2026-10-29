@@ -31,7 +31,7 @@ var __objRest = (source, exclude) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -189,8 +189,10 @@ class Exports {
    * @param {string} svgString
    */
   svgStringToNode(svgString) {
-    const parser = new DOMParser();
-    const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+    const svgDoc = BrowserAPIs.getDOMParser().parseFromString(
+      svgString,
+      "image/svg+xml"
+    );
     return svgDoc.documentElement;
   }
   /**
@@ -230,7 +232,7 @@ class Exports {
         continue;
       }
       const fo = clonedFOs[i];
-      const img = document.createElementNS(SVGNS, "image");
+      const img = BrowserAPIs.createElementNS(SVGNS, "image");
       img.setAttribute("x", fo.getAttribute("x") || "0");
       img.setAttribute("y", fo.getAttribute("y") || "0");
       img.setAttribute("width", fo.getAttribute("width") || "0");
@@ -609,7 +611,7 @@ class Exports {
     }).then((cssBlocks) => {
       const css = (cssBlocks || []).filter(Boolean).join("\n");
       if (!css) return;
-      const style = document.createElementNS(SVGNS, "style");
+      const style = BrowserAPIs.createElementNS(SVGNS, "style");
       style.textContent = css;
       svgNode.insertBefore(style, svgNode.firstChild);
     }).catch(() => {
@@ -678,6 +680,9 @@ class Exports {
     });
   }
   /**
+   * Browser only: it reads the live chart's computed styles, fonts and
+   * stylesheets. Parsing and serializing go through BrowserAPIs like the
+   * rest of its DOM access.
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -703,7 +708,7 @@ class Exports {
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
       this.applyExportStyles(clonedNode);
-      const serializedNode = new XMLSerializer().serializeToString(clonedNode);
+      const serializedNode = BrowserAPIs.getXMLSerializer().serializeToString(clonedNode);
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -727,7 +732,7 @@ class Exports {
         this.convertImagesToBase64(svgNode),
         this.embedFonts(svgNode)
       ]).then(() => {
-        svgString = new XMLSerializer().serializeToString(svgNode);
+        svgString = BrowserAPIs.getXMLSerializer().serializeToString(svgNode);
         resolve(svgString.replace(/&nbsp;/g, "&#160;"));
       });
     });
@@ -3713,14 +3718,10 @@ class ZoomPanSelection extends Toolbar {
     this.hoverArea.classList.add("apexcharts-zoomable");
     this.eventList.forEach((event) => {
       var _a;
-      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(
-        event,
-        me2.svgMouseEvents.bind(me2, xyRatios),
-        {
-          capture: false,
-          passive: true
-        }
-      );
+      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
+        capture: false,
+        passive: true
+      });
     });
     if (this._wheelZoomEnabled()) {
       this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
@@ -3746,6 +3747,15 @@ class ZoomPanSelection extends Toolbar {
   }
   // remove the event listeners which were previously added on hover area
   destroy() {
+    if (this.w.globals.isDestroyed) {
+      const it = this.w.interact;
+      const st = this._wheel();
+      BrowserAPIs.cancelAnimationFrame(st.rafId);
+      clearTimeout(st.endTimer);
+      this._hideWheelHint();
+      this._cancelInertia();
+      it.wheel = it.momentum = void 0;
+    }
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false);
       this.slDraggableRect.off();
@@ -3755,10 +3765,9 @@ class ZoomPanSelection extends Toolbar {
     this.zoomRect = null;
   }
   /**
-   * @param {import('../types/internal').XYRatios} xyRatios
    * @param {any} e
    */
-  svgMouseEvents(xyRatios, e) {
+  svgMouseEvents(e) {
     const w = this.w;
     const toolbar = this.ctx.toolbar;
     if (w.interact.momentum && w.interact.momentum.busy) return;
@@ -4434,7 +4443,7 @@ class ZoomPanSelection extends Toolbar {
     }
     const yHighestValue = [];
     const yLowestValue = [];
-    w.config.yaxis.forEach((yaxe, index) => {
+    w.config.yaxis.forEach((_, index) => {
       const seriesIndex = w.globals.seriesYAxisMap[index][0];
       const highestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localStartY;
       const lowestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localEndY;
@@ -4466,8 +4475,8 @@ class ZoomPanSelection extends Toolbar {
         }
         if (zoomtype === "xy" || zoomtype === "y") {
           yaxis.forEach((yaxe, index) => {
-            yaxis[index].min = yLowestValue[index];
-            yaxis[index].max = yHighestValue[index];
+            yaxe.min = yLowestValue[index];
+            yaxe.max = yHighestValue[index];
           });
         }
         if (toolbar) {
@@ -4510,8 +4519,8 @@ class ZoomPanSelection extends Toolbar {
           );
           yaxis = yaxisCopy;
           yaxisCopy.forEach((yaxe, index) => {
-            yaxisCopy[index].min = yLowestValue[index];
-            yaxisCopy[index].max = yHighestValue[index];
+            yaxe.min = yLowestValue[index];
+            yaxe.max = yHighestValue[index];
           });
         }
         w.interact.selection = me2.selection;
@@ -4551,26 +4560,6 @@ class ZoomPanSelection extends Toolbar {
     const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
     me2.panScrolled(xLowestValue, xHighestValue);
   }
-  // delayedPanScrolled() {
-  //   const w = this.w
-  //   let newMinX = w.globals.minX
-  //   let newMaxX = w.globals.maxX
-  //   const centerX = (w.globals.maxX - w.globals.minX) / 2
-  //   if (this.moveDirection === 'left') {
-  //     newMinX = w.globals.minX + centerX
-  //     newMaxX = w.globals.maxX + centerX
-  //   } else if (this.moveDirection === 'right') {
-  //     newMinX = w.globals.minX - centerX
-  //     newMaxX = w.globals.maxX - centerX
-  //   }
-  //   newMinX = Math.floor(newMinX)
-  //   newMaxX = Math.floor(newMaxX)
-  //   this.updateScrolledChart(
-  //     { xaxis: { min: newMinX, max: newMaxX } },
-  //     newMinX,
-  //     newMaxX
-  //   )
-  // }
   /**
    * @param {number} xLowestValue
    * @param {number} xHighestValue
@@ -4645,8 +4634,7 @@ class ZoomPanSelection extends Toolbar {
   // interaction slice that persists across re-renders, like the crude pan's
   // lastClientPosition). The instance that received touchstart keeps driving
   // the gesture off the persistent state; inertia is a self-contained rAF loop
-  // that stops on w.globals.isDestroyed (a real destroy) rather than being
-  // cancelled by the per-update destroy().
+  // that only a real destroy cancels (see destroy()).
   // ---------------------------------------------------------------------------
   _momentumEnabled() {
     return this._pinchEnabled() || this._panInertiaEnabled();
@@ -6656,7 +6644,7 @@ class KeyboardNavigation {
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
       tooltipEl.removeAttribute("aria-hidden");
     }
-    if (type === "pie" || type === "donut" || type === "polarArea" || type === "radialBar") {
+    if (this._isSliceChart() || type === "radialBar") {
       this._showTooltipNonAxis(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
@@ -7360,7 +7348,7 @@ class KeyboardNavigation {
     const type = w.config.chart.type;
     const seriesNames = w.seriesData.seriesNames || [];
     const series = w.seriesData.series || [];
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j]) != null ? _b : "";
       const value = Array.isArray(series) ? series[j] : "";
       return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
@@ -7422,7 +7410,7 @@ class KeyboardNavigation {
     const w = this.w;
     const type = w.config.chart.type;
     const baseEl = w.dom.baseEl;
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       return baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     }
     if (type === "heatmap") {
@@ -7483,10 +7471,16 @@ class KeyboardNavigation {
     const a11y = this.w.config.chart.accessibility;
     return a11y.enabled && a11y.keyboard.enabled && a11y.keyboard.navigation.enabled;
   }
+  /**
+   * pie, donut and polarArea: one ring of slices, navigated as one series.
+   * @returns {boolean}
+   */
+  _isSliceChart() {
+    return ["pie", "donut", "polarArea"].includes(this.w.config.chart.type);
+  }
   _getSeriesCount() {
     const w = this.w;
-    const type = w.config.chart.type;
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       return 1;
     }
     return w.seriesData.series.length;
@@ -7496,8 +7490,7 @@ class KeyboardNavigation {
    */
   _getDataPointCount(si) {
     const w = this.w;
-    const type = w.config.chart.type;
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       return w.seriesData.series.length;
     }
     const s = w.seriesData.series[si];
@@ -7623,6 +7616,55 @@ class KeyboardNavigation {
 _core__default.registerFeatures({ keyboardNavigation: KeyboardNavigation });
 const resolveEasing = _core.__apex_Easing_resolveEasing;
 const parsePath = _core.__apex_PathMorphing_parsePath;
+const CMD_RE = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+function mapPathAffine(d, ax, bx, ay, by, rk = 1) {
+  const out = [];
+  const x2 = (v) => ax * v + bx;
+  const y = (v) => ay * v + by;
+  CMD_RE.lastIndex = 0;
+  let match;
+  while ((match = CMD_RE.exec(d)) !== null) {
+    const cmd = match[1].toUpperCase();
+    const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
+    if (cmd === "Z") out.push("Z");
+    else if (cmd === "H") for (const v of nums) out.push(`H ${x2(v)}`);
+    else if (cmd === "V") for (const v of nums) out.push(`V ${y(v)}`);
+    else if (cmd === "A") {
+      for (let i = 0; i + 6 < nums.length; i += 7) {
+        out.push(
+          `A ${nums[i] * rk} ${nums[i + 1] * rk} ${nums[i + 2]} ${nums[i + 3]} ${nums[i + 4]} ${x2(nums[i + 5])} ${y(nums[i + 6])}`
+        );
+      }
+    } else {
+      const coords = [];
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        coords.push(`${x2(nums[i])} ${y(nums[i + 1])}`);
+      }
+      if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
+    }
+  }
+  return out.join(" ");
+}
+function resolveRGBA(color, memo, el) {
+  if (typeof color !== "string") return null;
+  const c = color.trim();
+  if (!memo.has(c)) {
+    memo.set(
+      c,
+      Utils.parseColor(c) || Utils.parseColor(Utils.resolveColor(c, el)) || null
+    );
+  }
+  return (
+    /** @type {number[] | null} */
+    memo.get(c)
+  );
+}
+function lerpRGBA(a, b, t) {
+  const c = [0, 1, 2].map((k2) => Math.round(a[k2] + (b[k2] - a[k2]) * t));
+  const al = a[3] + (b[3] - a[3]) * t;
+  return al >= 1 ? `rgb(${c})` : `rgba(${c},${al})`;
+}
 function gridDivideRect(bbox, count) {
   if (!(count > 0)) return [];
   if (count === 1) return [__spreadValues({}, bbox)];
@@ -7757,48 +7799,10 @@ function sortByHilbert(items, getXY) {
     d: hilbertIndex(pts[k2][0], pts[k2][1], minX, minY, maxX, maxY)
   })).sort((a, b) => a.d - b.d).map((e) => e.item);
 }
-function parseColor(str) {
-  if (!str || typeof str !== "string") return null;
-  const s = str.trim();
-  if (s[0] === "#") {
-    const hex = s.slice(1);
-    if (hex.length === 3) {
-      return [
-        parseInt(hex[0] + hex[0], 16),
-        parseInt(hex[1] + hex[1], 16),
-        parseInt(hex[2] + hex[2], 16),
-        1
-      ];
-    }
-    if (hex.length === 6 || hex.length === 8) {
-      return [
-        parseInt(hex.slice(0, 2), 16),
-        parseInt(hex.slice(2, 4), 16),
-        parseInt(hex.slice(4, 6), 16),
-        hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1
-      ];
-    }
-    return null;
-  }
-  const m = s.match(/^rgba?\(([^)]+)\)$/i);
-  if (m) {
-    const parts = m[1].split(",").map((p) => parseFloat(p));
-    if (parts.length < 3 || parts.some((v) => !isFinite(v))) return null;
-    return [parts[0], parts[1], parts[2], parts.length > 3 ? parts[3] : 1];
-  }
-  return null;
-}
-function makeColorLerp(from, to) {
-  const a = parseColor(from);
-  const b = parseColor(to);
-  if (!a || !b) return null;
-  return (t) => {
-    const r = Math.round(a[0] + (b[0] - a[0]) * t);
-    const g = Math.round(a[1] + (b[1] - a[1]) * t);
-    const bl = Math.round(a[2] + (b[2] - a[2]) * t);
-    const al = a[3] + (b[3] - a[3]) * t;
-    return al >= 1 ? `rgb(${r},${g},${bl})` : `rgba(${r},${g},${bl},${al})`;
-  };
+function makeColorLerp(from, to, memo, el) {
+  const a = resolveRGBA(from, memo, el);
+  const b = resolveRGBA(to, memo, el);
+  return a && b ? (t) => lerpRGBA(a, b, t) : null;
 }
 function runPieceTween({
   pieces,
@@ -7860,6 +7864,14 @@ const GHOST_FADE_FRACTION = 0.55;
 let ghostSeq = 0;
 const PIECE_BUDGET = 1500;
 const PIECE_STAGGER_MAX = 300;
+const CHROME_SELECTORS = [
+  ".apexcharts-xaxis",
+  ".apexcharts-yaxis",
+  ".apexcharts-grid",
+  ".apexcharts-legend",
+  ".apexcharts-title-text",
+  ".apexcharts-subtitle-text"
+];
 const reveal = (el) => {
   el.removeAttribute("opacity");
   el.removeAttribute("data-piece-hidden");
@@ -8053,25 +8065,18 @@ class MorphTypeChange {
     const node = paper && paper.node;
     if (!node || typeof node.cloneNode !== "function") return;
     const clone = node.cloneNode(true);
-    const drop = [
-      ".apexcharts-xaxis",
-      ".apexcharts-yaxis",
-      // (the gridlines go with it)
-      ".apexcharts-grid",
-      ".apexcharts-legend",
-      ".apexcharts-title-text",
-      ".apexcharts-subtitle-text",
-      ".apexcharts-annotations",
-      ".apexcharts-zoom-rect",
-      ".apexcharts-selection-rect",
-      ".apexcharts-xcrosshairs",
-      ".apexcharts-ycrosshairs"
-    ];
     if (typeof clone.querySelectorAll === "function") {
-      drop.forEach((sel) => {
-        clone.querySelectorAll(sel).forEach((el) => {
-          el.remove();
-        });
+      clone.querySelectorAll(
+        [
+          ...CHROME_SELECTORS,
+          ".apexcharts-annotations",
+          ".apexcharts-zoom-rect",
+          ".apexcharts-selection-rect",
+          ".apexcharts-xcrosshairs",
+          ".apexcharts-ycrosshairs"
+        ].join()
+      ).forEach((el) => {
+        el.remove();
       });
     }
     if (typeof clone.querySelectorAll === "function") {
@@ -8373,7 +8378,7 @@ class MorphTypeChange {
    * geometrically exact and nothing ever fades.
    */
   _separatePieces() {
-    var _a;
+    var _a, _b;
     const snap = this._snapshot;
     const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
     if (!snap || !baseEl) return this._revealPieceHidden();
@@ -8390,8 +8395,9 @@ class MorphTypeChange {
     const staged = doc.createDocumentFragment();
     const sourceFam = familyOf(snap.fromType);
     const shapedSource = sourceFam === "summary" || sourceFam === "radial";
+    const memo = /* @__PURE__ */ new Map();
+    const wrap = (_b = this.w.dom) == null ? void 0 : _b.elWrap;
     Array.from(byCluster.keys()).sort((a, b) => a - b).forEach((i) => {
-      var _a2;
       const dots = (
         /** @type {any[]} */
         byCluster.get(i)
@@ -8402,18 +8408,13 @@ class MorphTypeChange {
         dots.forEach((d) => reveal(d.el));
         return;
       }
-      const markFill = entry.fill && entry.fill.indexOf("url(") !== 0 ? entry.fill : ((_a2 = this.w.globals.colors) == null ? void 0 : _a2[i]) || dots[0].fill;
-      let prober = null;
-      if (shapedSource) {
-        const shifted = this.getInitialPathFor(i, 0);
-        if (shifted) prober = this._makeExtentProber(shifted, box, layer);
-      }
-      const divided = prober ? gridDivideShape(box, dots.length, prober.intervalsAt) : gridDivideRect(box, dots.length);
-      if (prober) prober.dispose();
-      const cells = sortByHilbert(divided, (c) => [
-        c.x + c.width / 2,
-        c.y + c.height / 2
-      ]);
+      const markFill = this._solidFill(entry.fill, i, dots[0].fill);
+      const cells = this._cutMark(
+        box,
+        dots.length,
+        shapedSource && this.getInitialPathFor(i, 0),
+        layer
+      );
       const ordered = sortByHilbert(dots, (d) => [d.x, d.y]);
       for (let k2 = 0; k2 < ordered.length; k2++) {
         const cell = cells[k2];
@@ -8438,7 +8439,7 @@ class MorphTypeChange {
             height: dot.r * 2,
             rx: dot.r
           },
-          fill: makeColorLerp(markFill, dot.fill),
+          fill: makeColorLerp(markFill, dot.fill, memo, wrap),
           fillEnd: dot.fill,
           delay: 0,
           meta: { dotEl: dot.el }
@@ -8503,6 +8504,8 @@ class MorphTypeChange {
     const pieces = [];
     const targetFam = familyOf(snap.toType);
     const shapedTarget = targetFam === "summary" || targetFam === "radial";
+    const memo = /* @__PURE__ */ new Map();
+    const wrap = (_b = this.w.dom) == null ? void 0 : _b.elWrap;
     for (let k2 = 0; k2 < clusterIdx.length; k2++) {
       const dots = (
         /** @type {any[]} */
@@ -8520,14 +8523,8 @@ class MorphTypeChange {
         continue;
       }
       const bbox = { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY };
-      const markFill = target.fill && target.fill.indexOf("url(") !== 0 ? target.fill : ((_b = this.w.globals.colors) == null ? void 0 : _b[target.realIndex]) || dots[0].fill;
-      const prober = shapedTarget ? this._makeExtentProber(d, bbox, layer) : null;
-      const divided = prober ? gridDivideShape(bbox, dots.length, prober.intervalsAt) : gridDivideRect(bbox, dots.length);
-      if (prober) prober.dispose();
-      const cells = sortByHilbert(divided, (c) => [
-        c.x + c.width / 2,
-        c.y + c.height / 2
-      ]);
+      const markFill = this._solidFill(target.fill, target.realIndex, dots[0].fill);
+      const cells = this._cutMark(bbox, dots.length, shapedTarget && d, layer);
       const ordered = sortByHilbert(dots, (d2) => [d2.x, d2.y]);
       const markState = {
         remaining: ordered.length,
@@ -8552,7 +8549,7 @@ class MorphTypeChange {
           el,
           from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
           to: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
-          fill: makeColorLerp(dot.fill, markFill),
+          fill: makeColorLerp(dot.fill, markFill, memo, wrap),
           fillEnd: String(markFill),
           delay: 0,
           meta: { markState }
@@ -8569,6 +8566,32 @@ class MorphTypeChange {
         state.g.remove();
       }
     });
+  }
+  /**
+   * A mark's fill as a solid colour. A gradient arrives as url(#...); the
+   * series colour is the honest solid stand-in.
+   * @param {string|null|undefined} fill
+   * @param {number} i series index
+   * @param {string|null} fallback
+   */
+  _solidFill(fill, i, fallback) {
+    var _a;
+    return fill && fill.indexOf("url(") !== 0 ? fill : ((_a = this.w.globals.colors) == null ? void 0 : _a[i]) || fallback;
+  }
+  /**
+   * Cut a mark's box into `n` cells in Hilbert order, the order its pieces
+   * pair with the dots in. A shaped mark (violin, boxPlot, arc: pass its `d`)
+   * is cut along its measured ink, a bar along its box.
+   * @param {{x: number, y: number, width: number, height: number}} box
+   * @param {number} n
+   * @param {string|false|null} d
+   * @param {any} layer
+   */
+  _cutMark(box, n, d, layer) {
+    const prober = d ? this._makeExtentProber(d, box, layer) : null;
+    const cells = prober ? gridDivideShape(box, n, prober.intervalsAt) : gridDivideRect(box, n);
+    if (prober) prober.dispose();
+    return sortByHilbert(cells, (c) => [c.x + c.width / 2, c.y + c.height / 2]);
   }
   /**
    * A collected target mark's final geometry as one path: the radial `d` it
@@ -8848,7 +8871,7 @@ class MorphTypeChange {
   /**
    * Convert a radialBar's stroked open-arc `d` ("M x1 y1 A r r 0 large sweep
    * x2 y2") into a closed donut-segment polygon whose FILLED rendering
-   * visually matches the original stroked arc — needed because the morph
+   * visually matches the original stroked arc, needed because the morph
    * target (pie/donut/polarArea) renders by fill, not stroke. Returns null
    * if the input doesn't match the expected M-then-A shape.
    *
@@ -8863,31 +8886,19 @@ class MorphTypeChange {
       /M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+A\s*(-?[\d.]+)\s+(?:-?[\d.]+)\s+(?:-?[\d.]+)\s+(\d)\s+(\d)\s+(-?[\d.]+)\s+(-?[\d.]+)/
     );
     if (!m) return null;
-    const x1 = parseFloat(m[1]);
-    const y1 = parseFloat(m[2]);
     const r = parseFloat(m[3]);
-    const large = parseInt(m[4], 10);
-    const sweep = parseInt(m[5], 10);
-    const x2 = parseFloat(m[6]);
-    const y2 = parseFloat(m[7]);
     if (!isFinite(r) || r <= 0) return null;
-    const half = strokeWidth / 2;
-    const rOuter = r + half;
-    const rInner = Math.max(0, r - half);
-    const proj = (px, py, newR) => {
-      const dx = px - centerX;
-      const dy = py - centerY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist === 0) return { x: centerX, y: centerY };
-      const k2 = newR / dist;
-      return { x: centerX + dx * k2, y: centerY + dy * k2 };
-    };
-    const o1 = proj(x1, y1, rOuter);
-    const o2 = proj(x2, y2, rOuter);
-    const i1 = proj(x1, y1, rInner);
-    const i2 = proj(x2, y2, rInner);
-    const sweepBack = sweep ? 0 : 1;
-    return `M ${o1.x} ${o1.y} A ${rOuter} ${rOuter} 0 ${large} ${sweep} ${o2.x} ${o2.y} L ${i2.x} ${i2.y} A ${rInner} ${rInner} 0 ${large} ${sweepBack} ${i1.x} ${i1.y} Z`;
+    const angle = (x2, y) => Math.atan2(+x2 - centerX, centerY - +y) * 180 / Math.PI;
+    const a1 = angle(m[1], m[2]);
+    const span = ((angle(m[6], m[7]) - a1) % 360 + 360) % 360;
+    return this.buildRingSegmentPath(
+      centerX,
+      centerY,
+      r,
+      strokeWidth,
+      a1,
+      a1 + (+m[5] ? span : span - 360)
+    );
   }
   /**
    * Build a closed donut-segment path for the given polar arc geometry. Used
@@ -9033,7 +9044,7 @@ class MorphTypeChange {
     const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
     if (!entry) return null;
     const { k: k2, dx, dy } = this._oldToNew();
-    return k2 === 1 && dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy, k2);
+    return k2 === 1 && dx === 0 && dy === 0 ? entry.d : mapPathAffine(entry.d, k2, dx, k2, dy, k2);
   }
   /**
    * The map from the captured marks' space to the new chart's plot space:
@@ -9053,48 +9064,6 @@ class MorphTypeChange {
       dx: o.translateX + ((_b = o.shiftX) != null ? _b : 0) - (this.w.layout.translateX || 0),
       dy: o.translateY + ((_c = o.shiftY) != null ? _c : 0) - (this.w.layout.translateY || 0)
     };
-  }
-  /**
-   * Offset every absolute coordinate in an SVG path `d` by (dx, dy).
-   *
-   * Assumes the path uses only uppercase (absolute) commands — every path
-   * ApexCharts generates does. Relative-command paths would pass through
-   * unchanged at the lowercase, which is also semantically correct (deltas
-   * don't shift under a parent translate).
-   *
-   * @param {string} d
-   * @param {number} dx
-   * @param {number} dy
-   * @param {number} [k] scale every coordinate (and arc radius) by this first
-   * @returns {string}
-   */
-  _translatePathD(d, dx, dy, k2 = 1) {
-    if (dx === 0 && dy === 0 && k2 === 1) return d;
-    const commands = parsePath(d);
-    const x2 = (v) => v * k2 + dx;
-    const y = (v) => v * k2 + dy;
-    return commands.map(
-      /** @param {any[]} c */
-      (c) => {
-        const cmd = c[0];
-        if (cmd === "Z") return "Z";
-        if (cmd === "M" || cmd === "L" || cmd === "T") {
-          return `${cmd} ${x2(c[1])} ${y(c[2])}`;
-        }
-        if (cmd === "H") return `${cmd} ${x2(c[1])}`;
-        if (cmd === "V") return `${cmd} ${y(c[1])}`;
-        if (cmd === "C") {
-          return `${cmd} ${x2(c[1])} ${y(c[2])} ${x2(c[3])} ${y(c[4])} ${x2(c[5])} ${y(c[6])}`;
-        }
-        if (cmd === "S" || cmd === "Q") {
-          return `${cmd} ${x2(c[1])} ${y(c[2])} ${x2(c[3])} ${y(c[4])}`;
-        }
-        if (cmd === "A") {
-          return `${cmd} ${c[1] * k2} ${c[2] * k2} ${c[3]} ${c[4]} ${c[5]} ${x2(c[6])} ${y(c[7])}`;
-        }
-        return c.join(" ");
-      }
-    ).join(" ");
   }
   /**
    * The centre point (in the NEW chart's screen space) of the captured shape
@@ -9290,9 +9259,7 @@ class MorphTypeChange {
     else this._mountGhost();
     const speed = this.getSpeed();
     const chrome = Array.from(
-      baseEl.querySelectorAll(
-        ".apexcharts-xaxis,.apexcharts-yaxis,.apexcharts-grid,.apexcharts-legend,.apexcharts-title-text,.apexcharts-subtitle-text"
-      )
+      baseEl.querySelectorAll(CHROME_SELECTORS.join())
     ).filter((el) => el.style);
     const set = (opacity, transition) => chrome.forEach((el) => {
       el.style.opacity = opacity;

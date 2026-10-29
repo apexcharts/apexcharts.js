@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -405,7 +405,7 @@ class KeyboardNavigation {
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
       tooltipEl.removeAttribute("aria-hidden");
     }
-    if (type === "pie" || type === "donut" || type === "polarArea" || type === "radialBar") {
+    if (this._isSliceChart() || type === "radialBar") {
       this._showTooltipNonAxis(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
@@ -1109,7 +1109,7 @@ class KeyboardNavigation {
     const type = w.config.chart.type;
     const seriesNames = w.seriesData.seriesNames || [];
     const series = w.seriesData.series || [];
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j]) != null ? _b : "";
       const value = Array.isArray(series) ? series[j] : "";
       return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
@@ -1171,7 +1171,7 @@ class KeyboardNavigation {
     const w = this.w;
     const type = w.config.chart.type;
     const baseEl = w.dom.baseEl;
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       return baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     }
     if (type === "heatmap") {
@@ -1232,10 +1232,16 @@ class KeyboardNavigation {
     const a11y = this.w.config.chart.accessibility;
     return a11y.enabled && a11y.keyboard.enabled && a11y.keyboard.navigation.enabled;
   }
+  /**
+   * pie, donut and polarArea: one ring of slices, navigated as one series.
+   * @returns {boolean}
+   */
+  _isSliceChart() {
+    return ["pie", "donut", "polarArea"].includes(this.w.config.chart.type);
+  }
   _getSeriesCount() {
     const w = this.w;
-    const type = w.config.chart.type;
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       return 1;
     }
     return w.seriesData.series.length;
@@ -1245,8 +1251,7 @@ class KeyboardNavigation {
    */
   _getDataPointCount(si) {
     const w = this.w;
-    const type = w.config.chart.type;
-    if (type === "pie" || type === "donut" || type === "polarArea") {
+    if (this._isSliceChart()) {
       return w.seriesData.series.length;
     }
     const s = w.seriesData.series[si];

@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts$1 from "apexcharts";
@@ -1974,7 +1974,7 @@ function normalizeUnitMark(def, name) {
     const d = def.trim();
     if (!d) return null;
     return Object.freeze({
-      name: "anonymous",
+      name: name || "anonymous",
       path: d,
       viewBox: (
         /** @type {[number,number,number,number]} */
@@ -1989,7 +1989,7 @@ function normalizeUnitMark(def, name) {
     return null;
   }
   return Object.freeze(__spreadProps(__spreadValues({}, def), {
-    name: def.name || "anonymous",
+    name: name || def.name || "anonymous",
     path: def.path.trim(),
     viewBox: (
       /** @type {[number,number,number,number]} */
@@ -2002,6 +2002,25 @@ function normalizeUnitMark(def, name) {
 function getUnitMark(name) {
   const table = getMarks();
   return Object.prototype.hasOwnProperty.call(table, name) ? table[name] : null;
+}
+function resolveRGBA(color, memo, el) {
+  if (typeof color !== "string") return null;
+  const c = color.trim();
+  if (!memo.has(c)) {
+    memo.set(
+      c,
+      Utils.parseColor(c) || Utils.parseColor(Utils.resolveColor(c, el)) || null
+    );
+  }
+  return (
+    /** @type {number[] | null} */
+    memo.get(c)
+  );
+}
+function lerpRGBA(a2, b, t2) {
+  const c = [0, 1, 2].map((k2) => Math.round(a2[k2] + (b[k2] - a2[k2]) * t2));
+  const al = a2[3] + (b[3] - a2[3]) * t2;
+  return al >= 1 ? `rgb(${c})` : `rgba(${c},${al})`;
 }
 function drawOuterLabel(w, spec) {
   const {
@@ -2105,6 +2124,7 @@ function spaceOutLabels(items, minGap, maxY, minY) {
   }
 }
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const NORMALISED = /* @__PURE__ */ new WeakMap();
 const uniqueId = (seen, id) => {
   const n2 = (seen.get(id) || 0) + 1;
   seen.set(id, n2);
@@ -2114,14 +2134,8 @@ const toNum = (v) => {
   if (typeof v === "string") v = parseFloat(v);
   return typeof v === "number" && isFinite(v) ? v : null;
 };
-function easeOutCubic(t2) {
-  return 1 - Math.pow(1 - t2, 3);
-}
 function easeOutBack(s2) {
   return (t2) => 1 + (s2 + 1) * Math.pow(t2 - 1, 3) + s2 * Math.pow(t2 - 1, 2);
-}
-function easeInOutCubic(t2) {
-  return t2 < 0.5 ? 4 * t2 * t2 * t2 : 1 - Math.pow(-2 * t2 + 2, 3) / 2;
 }
 const SPRING_REFERENCE_SPEED = 800;
 const MAX_FRAME_STEP = 0.25;
@@ -2183,11 +2197,14 @@ class Unit {
     const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : layout === "arc" ? this._layoutArc(counts, opts) : layout === "custom" ? this._layoutCustom(counts, opts) : this._layoutGrouped(counts, opts);
     if (layout === "scatter") this._drawScatterAxes(ret, graphics);
     const dotR = this._lastDotR;
-    const animate = this._shouldAnimate();
+    const update = !!(this.ctx && this.ctx._unitPrevDots);
+    const morphSpeed = update && this.ctx._unitPieces && this.ctx.morphTypeChange ? this.ctx.morphTypeChange.getSpeed() : 0;
+    const animate = this._shouldAnimate(update && !morphSpeed);
+    const speed = morphSpeed || this._speed(update);
     const morph = this.ctx && this.ctx.morphTypeChange;
     const morphActive = animate && !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialSlotFor === "function";
     const pieceTakeover = morphActive && typeof morph.usesPieceTakeover === "function" && morph.usesPieceTakeover();
-    const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null;
+    const prev = animate && !morphActive && update ? this.ctx._unitPrevDots : null;
     const pieces = this.ctx && this.ctx._unitPieces;
     if (pieces) {
       this.ctx._unitPieces = null;
@@ -2351,13 +2368,13 @@ class Unit {
       if (exits.length) {
         const exitGroup = graphics.group({ class: "apexcharts-unit-exits" });
         ret.add(exitGroup);
-        this._runExits(exitGroup, exits, opts);
+        this._runExits(exitGroup, exits, opts, speed);
       }
     }
     if (this.ctx) this.ctx._unitPrevDots = nextPrev;
     if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null;
     if (animate && animDots.length) {
-      this._runGather(animDots);
+      this._runGather(animDots, speed);
     } else {
       w.globals.animationEnded = true;
     }
@@ -3076,14 +3093,20 @@ class Unit {
     return clusters;
   }
   /**
-   * Scatter / beeswarm layout: position every unit on a real numeric X value
-   * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
-   * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
-   * the centre line so equal / close values do not stack on top of each other.
+   * Scatter / beeswarm layout: position every unit on a real numeric value
+   * axis by its own value (`_unitValueOf`), laned by category. Within a lane an
+   * anti-overlap "swarm" pack (or a random jitter) spreads the dots off the
+   * centre line so equal / close values do not stack on top of each other.
    * This is the unit chart's answer to "put these on axes": one dot per datum,
    * placed by data, with a drawn value axis + category lanes (see
    * _drawScatterAxes). Needs the per-unit object form (each datum a numeric
    * `value`/`y`); flat counts have no per-unit value, so their lanes stay empty.
+   *
+   * Horizontal (default): the value runs along X and the lanes are rows on Y.
+   * `scatter.orientation: 'vertical'` transposes it: the value runs UP the Y
+   * axis and each category is a column across X. The value-axis config keys
+   * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) describe the value axis
+   * either way, so flipping `orientation` keeps the same value settings.
    * @param {any} opts
    */
   _layoutScatter(opts) {
@@ -3094,135 +3117,9 @@ class Unit {
     const caps = this._applyMaxUnits(lens, opts.maxUnits);
     const keep = (ci, j2) => Math.floor((j2 + 1) * caps[ci] / lens[ci]) > Math.floor(j2 * caps[ci] / lens[ci]);
     if (scfg.y === "value") return this._layoutScatter2D(opts, keep);
-    if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts, keep);
+    const vertical = scfg.orientation === "vertical";
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
-    const names = w.seriesData.seriesNames || [];
-    const valueOf2 = (d) => this._unitValueOf(d);
-    const sizeStats = this._scatterSizeStats(scfg, unitData);
-    const catVals = unitData.map(
-      (cat) => Array.isArray(cat) ? cat.map(valueOf2) : []
-    );
-    const isNum = (v) => v != null && isFinite(v);
-    const visible = catVals.map((_2, i2) => i2).filter((i2) => catVals[i2].some(isNum));
-    const Kv = Math.max(1, visible.length);
-    let vmin = Infinity;
-    let vmax = -Infinity;
-    catVals.forEach(
-      (vs) => vs.forEach((v) => {
-        if (v != null && isFinite(v)) {
-          if (v < vmin) vmin = v;
-          if (v > vmax) vmax = v;
-        }
-      })
-    );
-    if (vmin === Infinity) {
-      vmin = 0;
-      vmax = 1;
-    }
-    const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-    const domain = this._scatterValueDomain(scfg.xMin, scfg.xMax, vmin, vmax, tickAmount);
-    const xMin = domain.min;
-    const xMax = domain.max;
-    const xSpan = xMax - xMin || 1;
-    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 };
-    const laneName = (i2) => names[i2] || `series-${i2 + 1}`;
-    const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14) : 8;
-    const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
-    const plotL = laneW;
-    const plotR = gw - 8;
-    const plotT = 10;
-    const plotB = gh - bottomGutter;
-    const plotW = Math.max(4, plotR - plotL);
-    const plotH = Math.max(4, plotB - plotT);
-    const plotX = (v) => plotL + (v - xMin) / xSpan * plotW;
-    const laneH = plotH / Kv;
-    const laneCy = (slot) => plotT + laneH * (slot + 0.5);
-    let r2 = 0;
-    const fixed = this._fixedRadius(opts);
-    if (fixed) {
-      r2 = fixed;
-    } else {
-      const maxLane = Math.max(
-        1,
-        ...visible.map((i2) => catVals[i2].filter(isNum).length)
-      );
-      r2 = Math.max(
-        2,
-        Math.min(6, laneH * 0.12, plotW / (2.5 * Math.sqrt(maxLane)))
-      );
-    }
-    this._lastDotR = r2;
-    const spacing = opts.spacing > 0 ? opts.spacing : 1;
-    const step = Math.max(0.5, r2 * spacing);
-    const jitter = scfg.spread === "jitter";
-    const clusters = [];
-    const lanes2 = [];
-    const maxR = sizeStats ? sizeStats.rMax : r2;
-    visible.forEach((ci, slot) => {
-      const cy = laneCy(slot);
-      let name = laneName(ci);
-      const wid = laneW > 12 ? measureLabelWidth(w, [name], font) : 0;
-      if (wid > laneW - 14 && wid) {
-        name = name.slice(0, Math.max(1, Math.floor(name.length * (laneW - 14) / wid) - 1)) + "…";
-      }
-      lanes2.push({ i: ci, cy, name });
-      const pts = [];
-      (unitData[ci] || []).forEach((d, j2) => {
-        const v = valueOf2(d);
-        if (!isNum(v) || !keep(ci, j2)) return;
-        const p = { j: j2, px: plotX(v), y: cy };
-        if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r2);
-        pts.push(p);
-      });
-      if (jitter) {
-        const halfLane = Math.max(maxR, laneH / 2 - maxR);
-        pts.forEach((p) => {
-          p.y = cy + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
-        });
-      } else {
-        this._beeswarm(pts, cy, r2, step, maxR);
-      }
-      clusters.push({
-        i: ci,
-        cx: (plotL + plotR) / 2,
-        cy,
-        outerR: laneH / 2,
-        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r, j: p.j }))
-      });
-    });
-    const ticks = domain.ticks;
-    this._scatterAxis = {
-      mode: "1d",
-      plotL,
-      plotR,
-      plotT,
-      plotB,
-      xMin,
-      xMax,
-      plotX,
-      ticks,
-      lanes: lanes2,
-      xTitle: scfg.xTitle,
-      formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
-      gridlines: scfg.gridlines !== false
-    };
-    return clusters;
-  }
-  /**
-   * Vertical beeswarm: the transpose of _layoutScatter. The value runs UP the Y
-   * axis and each category is a column (lane) across X; the swarm pack spreads
-   * dots horizontally off each column's centre line. The value-axis config keys
-   * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
-   * axis (now Y), so flipping `orientation` keeps the same value settings.
-   * @param {any} opts @param {(ci:number, j:number) => boolean} keep
-   */
-  _layoutScatterVertical(opts, keep) {
-    const w = this.w;
-    const scfg = opts.scatter || {};
-    const gw = w.layout.gridWidth;
-    const gh = w.layout.gridHeight;
-    const unitData = w.seriesData.unitData || [];
     const names = w.seriesData.seriesNames || [];
     const valueOf2 = (d) => this._unitValueOf(d);
     const sizeStats = this._scatterSizeStats(scfg, unitData);
@@ -3251,17 +3148,18 @@ class Unit {
     const vMin = domain.min;
     const vMax = domain.max;
     const vSpan = vMax - vMin || 1;
-    const leftGutter = 46 + (scfg.xTitle ? 18 : 0);
-    const bottomGutter = Kv > 1 ? 26 : 10;
-    const plotL = leftGutter;
-    const plotR = gw - 10;
+    const font = { fontFamily: w.config.chart.fontFamily, fontWeight: 600 };
+    const laneName = (i2) => names[i2] || `series-${i2 + 1}`;
+    const labelW = vertical ? 0 : scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? Math.min(gw / 3, measureLabelWidth(w, visible.map(laneName), font) + 14) : 8;
+    const plotL = vertical ? 46 + (scfg.xTitle ? 18 : 0) : labelW;
+    const plotR = gw - (vertical ? 10 : 8);
     const plotT = 10;
-    const plotB = gh - bottomGutter;
+    const plotB = gh - (vertical ? Kv > 1 ? 26 : 10 : 30 + (scfg.xTitle ? 20 : 0));
     const plotW = Math.max(4, plotR - plotL);
     const plotH = Math.max(4, plotB - plotT);
-    const plotY = (v) => plotB - (v - vMin) / vSpan * plotH;
-    const laneW = plotW / Kv;
-    const laneCx = (slot) => plotL + laneW * (slot + 0.5);
+    const toPx = vertical ? (v) => plotB - (v - vMin) / vSpan * plotH : (v) => plotL + (v - vMin) / vSpan * plotW;
+    const lane = (vertical ? plotW : plotH) / Kv;
+    const laneMid = (slot) => (vertical ? plotL : plotT) + lane * (slot + 0.5);
     let r2 = 0;
     const fixed = this._fixedRadius(opts);
     if (fixed) {
@@ -3273,7 +3171,7 @@ class Unit {
       );
       r2 = Math.max(
         2,
-        Math.min(6, laneW * 0.12, plotH / (2.5 * Math.sqrt(maxLane)))
+        Math.min(6, lane * 0.12, (vertical ? plotH : plotW) / (2.5 * Math.sqrt(maxLane)))
       );
     }
     this._lastDotR = r2;
@@ -3284,49 +3182,50 @@ class Unit {
     const lanes2 = [];
     const maxR = sizeStats ? sizeStats.rMax : r2;
     visible.forEach((ci, slot) => {
-      const cx = laneCx(slot);
-      lanes2.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
+      const mid = laneMid(slot);
+      let name = laneName(ci);
+      const wid = labelW > 12 ? measureLabelWidth(w, [name], font) : 0;
+      if (wid > labelW - 14 && wid) {
+        name = name.slice(0, Math.max(1, Math.floor(name.length * (labelW - 14) / wid) - 1)) + "…";
+      }
+      lanes2.push(vertical ? { i: ci, cx: mid, name } : { i: ci, cy: mid, name });
       const pts = [];
       (unitData[ci] || []).forEach((d, j2) => {
         const v = valueOf2(d);
         if (!isNum(v) || !keep(ci, j2)) return;
-        const p = { j: j2, py: plotY(v), x: cx };
+        const p = { j: j2, f: toPx(v), s: mid };
         if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r2);
         pts.push(p);
       });
       if (jitter) {
-        const halfLane = Math.max(maxR, laneW / 2 - maxR);
+        const halfLane = Math.max(maxR, lane / 2 - maxR);
         pts.forEach((p) => {
-          p.x = cx + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
+          p.s = mid + (hash01(ci * 7919 + p.j) * 2 - 1) * halfLane;
         });
       } else {
-        this._beeswarm(pts, cx, r2, step, maxR, true);
+        this._beeswarm(pts, mid, r2, step, maxR);
       }
       clusters.push({
         i: ci,
-        cx,
-        cy: (plotT + plotB) / 2,
-        outerR: laneW / 2,
-        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r, j: p.j }))
+        cx: vertical ? mid : (plotL + plotR) / 2,
+        cy: vertical ? (plotT + plotB) / 2 : mid,
+        outerR: lane / 2,
+        dots: pts.map(
+          (p) => vertical ? { x: p.s, y: p.f, r: p.r, j: p.j } : { x: p.f, y: p.s, r: p.r, j: p.j }
+        )
       });
     });
-    const ticks = domain.ticks;
-    this._scatterAxis = {
+    this._scatterAxis = __spreadValues({
       mode: "1d",
-      orientation: "vertical",
       plotL,
       plotR,
       plotT,
       plotB,
-      vMin,
-      vMax,
-      plotY,
-      ticks,
+      ticks: domain.ticks,
       lanes: lanes2,
-      valueTitle: scfg.xTitle,
       formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
       gridlines: scfg.gridlines !== false
-    };
+    }, vertical ? { orientation: "vertical", vMin, vMax, plotY: toPx, valueTitle: scfg.xTitle } : { xMin: vMin, xMax: vMax, plotX: toPx, xTitle: scfg.xTitle });
     return clusters;
   }
   /**
@@ -3492,27 +3391,25 @@ class Unit {
     return Math.sqrt(aMin + tc * (aMax - aMin));
   }
   /**
-   * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed x
-   * (`px`) and a lane centre `cy`, assign each a y so no two dots overlap (centre
-   * distance >= r_i + r_j). Greedy in ascending-x order, trying offsets 0, +step,
-   * -step, +2step ... and taking the SMALLEST that clears every already-placed
-   * neighbour still within reach in x. No-overlap always wins: a very dense lane
-   * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
-   * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
-   * else `rFallback` applies; `maxR` bounds the value-window break. Deterministic
-   * (no physics, no randomness).
+   * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed
+   * value coordinate `f` and a lane centre, assign each a spread coordinate `s`
+   * so no two dots overlap (centre distance >= r_i + r_j). Greedy in ascending
+   * value order, trying offsets 0, +step, -step, +2step ... and taking the
+   * SMALLEST that clears every already-placed neighbour still within reach on
+   * the value axis. No-overlap always wins: a very dense lane grows a wider
+   * swarm rather than stacking dots (offsets are not hard-clamped to the lane).
+   * Each point may carry its own radius `r` (bubble beeswarm), else `rFallback`
+   * applies; `maxR` bounds the value-window break. Deterministic (no physics,
+   * no randomness).
    *
-   * Orientation-agnostic: the "fixed" axis is the value axis and the "spread"
-   * axis is the lane thickness. Horizontal (default): fixed = `px`, spread = `y`
-   * (mutates `.y`). Vertical: fixed = `py`, spread = `x` (mutates `.x`).
-   * @param {any[]} pts @param {number} center lane centre on the spread axis
+   * Orientation-agnostic: `f` is X for a horizontal swarm and Y for a vertical
+   * one, `s` the other axis (see _layoutScatter).
+   * @param {{f:number,s:number,r?:number}[]} pts @param {number} center lane
+   *   centre on the spread axis
    * @param {number} rFallback @param {number} step @param {number} [maxR]
-   * @param {boolean} [vertical]
    */
-  _beeswarm(pts, center, rFallback, step, maxR, vertical = false) {
-    const fk = vertical ? "py" : "px";
-    const sk = vertical ? "x" : "y";
-    const order = pts.slice().sort((a2, b) => a2[fk] - b[fk]);
+  _beeswarm(pts, center, rFallback, step, maxR) {
+    const order = pts.slice().sort((a2, b) => a2.f - b.f);
     const placed = [];
     const rCap = maxR != null ? maxR : rFallback;
     order.forEach((p) => {
@@ -3524,7 +3421,7 @@ class Unit {
         let ok = true;
         for (let m = placed.length - 1; m >= 0; m--) {
           const q2 = placed[m];
-          const df = p[fk] - q2.f;
+          const df = p.f - q2.f;
           if (df > pr + rCap) break;
           const need = pr + q2.r;
           const ds = s2 - q2.s;
@@ -3538,8 +3435,8 @@ class Unit {
           break;
         }
       }
-      p[sk] = center + chosen;
-      placed.push({ f: p[fk], s: p[sk], r: pr });
+      p.s = center + chosen;
+      placed.push({ f: p.f, s: p.s, r: pr });
     });
   }
   /**
@@ -4059,12 +3956,21 @@ class Unit {
     const s2 = ref.trim();
     if (s2[0] === "M" || s2[0] === "m") return normalizeUnitMark(s2);
     const found = getUnitMark(s2);
-    if (found) return found;
+    let mark = found && typeof found === "object" ? NORMALISED.get(found) : null;
+    if (mark === void 0) {
+      mark = normalizeUnitMark(found, s2);
+      NORMALISED.set(
+        /** @type {object} */
+        found,
+        mark
+      );
+    }
+    if (mark) return mark;
     if (!this._markWarned) this._markWarned = /* @__PURE__ */ new Set();
     if (!this._markWarned.has(s2)) {
       this._markWarned.add(s2);
       console.warn(
-        `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
+        found ? `[ApexCharts] unit chart: mark "${s2}" needs a path string and a viewBox of 4 numbers with a positive width and height.` : `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
       );
     }
     return null;
@@ -4240,47 +4146,41 @@ class Unit {
     this._place(node, spec || this._baseSpec(opts), x2, y);
   }
   /**
-   * Parse a `#rgb` / `#rrggbb` / `rgb()` / `rgba()` colour to `[r, g, b]`, or
-   * null if it cannot be parsed (the colour tween is then skipped).
-   * @param {string} str @returns {number[] | null}
-   */
-  _rgb(str) {
-    if (typeof str !== "string") return null;
-    let s2 = str.trim();
-    if (s2[0] === "#") {
-      if (s2.length === 4) s2 = "#" + s2[1] + s2[1] + s2[2] + s2[2] + s2[3] + s2[3];
-      const n2 = parseInt(s2.slice(1, 7), 16);
-      if (isNaN(n2)) return null;
-      return [n2 >> 16 & 255, n2 >> 8 & 255, n2 & 255];
-    }
-    const m = s2.match(/rgba?\(([^)]+)\)/);
-    if (m) {
-      const p = m[1].split(",").map((x2) => parseFloat(x2));
-      if (p.length >= 3 && p.every((v) => !isNaN(v))) return [p[0], p[1], p[2]];
-    }
-    return null;
-  }
-  /**
    * Whether to run the gather / transition animation. Runs on the initial mount
    * and on data-driven updates (keyed old->new tween or cross-type burst).
-   * Skipped: in SSR, when animations are off, when the caller passed
-   * `animate:false` (shouldAnimate === false), on a PURE window resize (resized
-   * with no data change - re-gathering on every resize would be jarring), and
-   * when the user prefers reduced motion.
+   * Skipped: in SSR, when animations are off, on an update when
+   * `dynamicAnimation` is off, when the caller passed `animate:false`
+   * (shouldAnimate === false), on a PURE window resize (resized with no data
+   * change - re-gathering on every resize would be jarring), and when the user
+   * prefers reduced motion.
    *
    * Note: `w.globals.resized` is set true on every update (not just window
    * resize), so it must be paired with `!dataChanged` to isolate a real resize.
+   * @param {boolean} update a tween from a previous unit render
    * @returns {boolean}
    */
-  _shouldAnimate() {
+  _shouldAnimate(update) {
+    var _a;
     const w = this.w;
     const anim = w.config.chart.animations;
     if (!Environment.isBrowser()) return false;
     if (!anim || anim.enabled === false) return false;
+    if (update && ((_a = anim.dynamicAnimation) == null ? void 0 : _a.enabled) === false) return false;
     if (w.globals.shouldAnimate === false) return false;
     if (w.globals.resized && !w.globals.dataChanged) return false;
     if (anim.respectReducedMotion && prefersReducedMotion()) return false;
     return true;
+  }
+  /**
+   * Tween length (ms): `animations.speed` for the first gather,
+   * `dynamicAnimation.speed` for an update.
+   * @param {boolean} update
+   * @returns {number}
+   */
+  _speed(update) {
+    var _a;
+    const anim = this.w.config.chart.animations;
+    return Math.max(1, (update ? (_a = anim.dynamicAnimation) == null ? void 0 : _a.speed : anim.speed) || 800);
   }
   /**
    * Give every dot an x/y spring, reusing the live springs of a gather this
@@ -4300,7 +4200,7 @@ class Unit {
    *
    * @param {UnitAnimDot[]} dots
    * @param {any} gcfg plotOptions.unit.gather
-   * @param {number} speed chart.animations.speed, in ms
+   * @param {number} speed the tween length, in ms (see _speed)
    */
   _seedSprings(dots, gcfg, speed) {
     const [stiffness, damping] = springParams(gcfg.spring, speed);
@@ -4350,11 +4250,11 @@ class Unit {
    * quantities, and the shared solver's rest thresholds are absolute (0.05 in
    * caller units), which is negligible for pixels but 5% of a unit interval.
    * @param {UnitAnimDot[]} dots
+   * @param {number} speed tween length, in ms (see _speed)
    */
-  _runGather(dots) {
+  _runGather(dots, speed) {
     const w = this.w;
     const opts = w.config.plotOptions.unit;
-    const speed = Math.max(1, w.config.chart.animations.speed || 800);
     const maxDelay = Math.min(speed * 0.6, 450);
     const n2 = dots.length;
     for (let k2 = n2; k2--; ) {
@@ -4372,14 +4272,17 @@ class Unit {
         this._place(d.node, d.spec, d.cx0, d.cy0, d.r0 / d.r1);
       }
     }
+    const memo = /* @__PURE__ */ new Map();
+    const wrap = w.dom.elWrap;
     for (let k2 = 0; k2 < n2; k2++) {
       const d = dots[k2];
       if (d.fill0 && d.fill1 && d.fill0 !== d.fill1) {
-        d._c0 = this._rgb(d.fill0);
-        d._c1 = this._rgb(d.fill1);
+        d._c0 = resolveRGBA(d.fill0, memo, wrap);
+        d._c1 = resolveRGBA(d.fill1, memo, wrap);
       }
     }
-    const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? easeInOutCubic : easeOutCubic;
+    const easeOut = resolveEasing("easeOutCubic");
+    const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? resolveEasing("easeInOutCubic") : easeOut;
     const start = performance.now();
     let last = start;
     const stepFn = (now) => {
@@ -4394,7 +4297,7 @@ class Unit {
         const d = dots[k2];
         const elapsed = now - start - d.delay;
         const t2 = Math.max(0, Math.min(1, elapsed / speed));
-        const ec = easeOutCubic(t2);
+        const ec = easeOut(t2);
         let cx, cy;
         if (d.sx && d.sy) {
           if (elapsed >= 0 && !d.released) {
@@ -4419,12 +4322,7 @@ class Unit {
         }
         this._place(d.node, d.spec, cx, cy, sk);
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t2 * 2.5));
-        if (d._c0 && d._c1) {
-          const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec);
-          const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec);
-          const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec);
-          d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
-        }
+        if (d._c0 && d._c1) d.node.setAttribute("fill", lerpRGBA(d._c0, d._c1, ec));
         if (t2 < 1) done = false;
       }
       if (done) {
@@ -4472,8 +4370,9 @@ class Unit {
    * blob / bar layouts keep the gentle inward collapse so a removal reads as
    * motion rather than a pop.
    * @param {any} group @param {{x:number,y:number,fill:string,r?:number,spec?:any}[]} exits @param {any} opts
+   * @param {number} speed tween length, in ms (see _speed)
    */
-  _runExits(group2, exits, opts) {
+  _runExits(group2, exits, opts, speed) {
     const w = this.w;
     const graphics = new Graphics(w, this.ctx);
     const dotR = this._lastDotR;
@@ -4490,19 +4389,15 @@ class Unit {
       group2.add(el);
       ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec });
     });
-    if (!this._shouldAnimate()) {
-      ghosts.forEach((g2) => g2.node.remove());
-      return;
-    }
-    const speed = Math.max(1, w.config.chart.animations.speed || 800);
     const start = performance.now();
+    const easeOut = resolveEasing("easeOutCubic");
     const stepFn = (now) => {
       if (this._stale(group2.node)) {
         this.w.globals.unitExitRAF = null;
         return;
       }
       const t2 = Math.max(0, Math.min(1, (now - start) / speed));
-      const e2 = easeOutCubic(t2);
+      const e2 = easeOut(t2);
       for (let k2 = 0; k2 < ghosts.length; k2++) {
         const g2 = ghosts[k2];
         if (drift) {
@@ -14029,8 +13924,8 @@ class Trellis {
         redrawOnParentResize: false,
         redrawOnWindowResize: false,
         print: { enabled: false },
-        // Core pads the chart's container by parentHeightOffset (default 15)
-        // via an inline min-height; inside a height-budgeted grid cell that
+        // Core pads the chart by parentHeightOffset (default 15) via a
+        // min-height on its wrapper; inside a height-budgeted grid cell that
         // slack de-syncs mounted cells from the skeleton reserve (the grid
         // gap is the breathing room here).
         parentHeightOffset: 0,
@@ -20121,6 +20016,36 @@ class History {
 }
 ApexCharts__default.registerFeatures({ history: History });
 const DataLabels = ApexCharts.__apex_DataLabels;
+const CMD_RE = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+function mapPathAffine(d, ax, bx, ay, by, rk = 1) {
+  const out = [];
+  const x2 = (v) => ax * v + bx;
+  const y = (v) => ay * v + by;
+  CMD_RE.lastIndex = 0;
+  let match;
+  while ((match = CMD_RE.exec(d)) !== null) {
+    const cmd = match[1].toUpperCase();
+    const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
+    if (cmd === "Z") out.push("Z");
+    else if (cmd === "H") for (const v of nums) out.push(`H ${x2(v)}`);
+    else if (cmd === "V") for (const v of nums) out.push(`V ${y(v)}`);
+    else if (cmd === "A") {
+      for (let i2 = 0; i2 + 6 < nums.length; i2 += 7) {
+        out.push(
+          `A ${nums[i2] * rk} ${nums[i2 + 1] * rk} ${nums[i2 + 2]} ${nums[i2 + 3]} ${nums[i2 + 4]} ${x2(nums[i2 + 5])} ${y(nums[i2 + 6])}`
+        );
+      }
+    } else {
+      const coords = [];
+      for (let i2 = 0; i2 + 1 < nums.length; i2 += 2) {
+        coords.push(`${x2(nums[i2])} ${y(nums[i2 + 1])}`);
+      }
+      if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
+    }
+  }
+  return out.join(" ");
+}
 function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   var _a;
   const gl = w.globals;
@@ -20236,42 +20161,8 @@ function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   gl.streamScrolled = true;
   return { ax, bx, ay, by };
 }
-const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
 function projectPathToPrevFrame(d, t2) {
-  const { ax, bx, ay, by } = t2;
-  const out = [];
-  const re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
-  let match;
-  while ((match = re.exec(d)) !== null) {
-    const cmd = match[1].toUpperCase();
-    const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
-    if (cmd === "Z") {
-      out.push("z");
-      continue;
-    }
-    if (cmd === "H") {
-      for (const x2 of nums) out.push(`H ${ax * x2 + bx}`);
-      continue;
-    }
-    if (cmd === "V") {
-      for (const y of nums) out.push(`V ${ay * y + by}`);
-      continue;
-    }
-    if (cmd === "A") {
-      for (let i2 = 0; i2 + 6 < nums.length; i2 += 7) {
-        out.push(
-          `A ${nums[i2]} ${nums[i2 + 1]} ${nums[i2 + 2]} ${nums[i2 + 3]} ${nums[i2 + 4]} ${ax * nums[i2 + 5] + bx} ${ay * nums[i2 + 6] + by}`
-        );
-      }
-      continue;
-    }
-    const coords = [];
-    for (let i2 = 0; i2 + 1 < nums.length; i2 += 2) {
-      coords.push(`${ax * nums[i2] + bx} ${ay * nums[i2 + 1] + by}`);
-    }
-    if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
-  }
-  return out.join(" ");
+  return mapPathAffine(d, t2.ax, t2.bx, t2.ay, t2.by);
 }
 const PART = "apexcharts-highlight-part";
 const PLAIN = { f: 1, o: 0 };

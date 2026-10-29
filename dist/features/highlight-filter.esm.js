@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.5.0
+ * ApexCharts v8.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -324,6 +324,36 @@ function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, 
   if (!out.line && !out.area) return null;
   return out;
 }
+const CMD_RE = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+function mapPathAffine(d, ax, bx, ay, by, rk = 1) {
+  const out = [];
+  const x = (v) => ax * v + bx;
+  const y = (v) => ay * v + by;
+  CMD_RE.lastIndex = 0;
+  let match;
+  while ((match = CMD_RE.exec(d)) !== null) {
+    const cmd = match[1].toUpperCase();
+    const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
+    if (cmd === "Z") out.push("Z");
+    else if (cmd === "H") for (const v of nums) out.push(`H ${x(v)}`);
+    else if (cmd === "V") for (const v of nums) out.push(`V ${y(v)}`);
+    else if (cmd === "A") {
+      for (let i = 0; i + 6 < nums.length; i += 7) {
+        out.push(
+          `A ${nums[i] * rk} ${nums[i + 1] * rk} ${nums[i + 2]} ${nums[i + 3]} ${nums[i + 4]} ${x(nums[i + 5])} ${y(nums[i + 6])}`
+        );
+      }
+    } else {
+      const coords = [];
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        coords.push(`${x(nums[i])} ${y(nums[i + 1])}`);
+      }
+      if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
+    }
+  }
+  return out.join(" ");
+}
 function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   var _a;
   const gl = w.globals;
@@ -439,42 +469,8 @@ function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   gl.streamScrolled = true;
   return { ax, bx, ay, by };
 }
-const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
 function projectPathToPrevFrame(d, t) {
-  const { ax, bx, ay, by } = t;
-  const out = [];
-  const re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
-  let match;
-  while ((match = re.exec(d)) !== null) {
-    const cmd = match[1].toUpperCase();
-    const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
-    if (cmd === "Z") {
-      out.push("z");
-      continue;
-    }
-    if (cmd === "H") {
-      for (const x of nums) out.push(`H ${ax * x + bx}`);
-      continue;
-    }
-    if (cmd === "V") {
-      for (const y of nums) out.push(`V ${ay * y + by}`);
-      continue;
-    }
-    if (cmd === "A") {
-      for (let i = 0; i + 6 < nums.length; i += 7) {
-        out.push(
-          `A ${nums[i]} ${nums[i + 1]} ${nums[i + 2]} ${nums[i + 3]} ${nums[i + 4]} ${ax * nums[i + 5] + bx} ${ay * nums[i + 6] + by}`
-        );
-      }
-      continue;
-    }
-    const coords = [];
-    for (let i = 0; i + 1 < nums.length; i += 2) {
-      coords.push(`${ax * nums[i] + bx} ${ay * nums[i + 1] + by}`);
-    }
-    if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
-  }
-  return out.join(" ");
+  return mapPathAffine(d, t.ax, t.bx, t.ay, t.by);
 }
 function seriesEmitter(ctx, graphics) {
   const r = ctx && ctx.renderer;
