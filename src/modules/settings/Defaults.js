@@ -2079,6 +2079,15 @@ export default class Defaults {
   }
 
   /**
+   * Whether the x label formatter is only the floor default a converted axis
+   * gets when the page has none, which turns a value into its integer part.
+   * @param {Record<string, any>} xaxis
+   */
+  static isFloorXLabelFormatter(xaxis) {
+    return xaxis.labels?.formatter === floorLabel
+  }
+
+  /**
    * Re-decide the conversion after an update merged into the config: a type
    * or orientation change can move the chart to the other side of it. When it
    * turns off, the axis gets back what the conversion took (its names, type,
