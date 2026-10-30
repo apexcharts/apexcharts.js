@@ -554,6 +554,30 @@ const headlessHover: ApexCharts.ApexOptions = {
 const badVisible: ApexCharts.ApexTooltip = { visible: 'hidden' }
 void headlessHover; void badVisible
 
+// Markers of several series drawn at one spot (apexcharts.js#4778): the
+// events name the topmost point and list every one drawn there.
+const coincidentClicks: ApexCharts.ApexOptions = {
+  chart: {
+    type: 'line',
+    events: {
+      markerClick: (_e, _chart, opts) => {
+        const all: ApexCharts.ApexCoincidentPoint[] = opts?.coincident ?? []
+        void all.map((p) => p.seriesIndex + p.dataPointIndex)
+      },
+      dataPointSelection: (_e, _chart, opts) =>
+        void opts?.coincident?.[0]?.dataPointIndex,
+    },
+  },
+  tooltip: {
+    intersect: true,
+    shared: false,
+    custom: (opts) => String(opts.coincident?.length ?? 1),
+  },
+}
+// @ts-expect-error a coincident point's indexes are numbers
+const badPoint: ApexCharts.ApexCoincidentPoint = { seriesIndex: '0', dataPointIndex: 1 }
+void coincidentClicks; void badPoint
+
 // Named type imports (#5077). The d.ts ends with `export = ApexCharts`, a
 // class merged with a namespace, so named imports resolve through the
 // namespace's exported members. The header comment promises that spelling,

@@ -1,4 +1,6 @@
 // @ts-check
+import { coincidentPoints } from './CoincidentMarkers'
+
 export default class Events {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -139,6 +141,10 @@ export default class Events {
             if (w.interact.wasDragged) {
               w.interact.wasDragged = false
             } else {
+              // On a marker, the points of every series drawn at its spot
+              // (CoincidentMarkers): only the topmost can be clicked.
+              const coincident = coincidentPoints(w, { node: e.target })
+              if (coincident) /** @type {any} */ (opts).coincident = coincident
               if (typeof w.config.chart.events.click === 'function') {
                 w.config.chart.events.click(e, me, opts)
               }

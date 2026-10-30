@@ -12,6 +12,7 @@ import Utils from './Utils'
 import { isCustom } from '../ChartFactory'
 import { POINTER_CLEARANCE_BELOW } from './constants'
 import { nameAsHtml } from '../../utils/nameAsHtml.js'
+import { coincidentPoints } from '../CoincidentMarkers'
 
 const INTERACTIVE_TOOLTIP_HIDE_DELAY = 150
 
@@ -562,103 +563,113 @@ export default class Tooltip {
    * @param {number} ttItemsCnt
    */
   createTTElements(ttItemsCnt) {
-    const w = this.w
     /** @type {any[]} */
     const ttItems = []
 
     const tooltipEl = this.getElTooltip()
     if (!tooltipEl) return ttItems
     for (let i = 0; i < ttItemsCnt; i++) {
-      const gTxt = BrowserAPIs.createElementNS(
-        'http://www.w3.org/1999/xhtml',
-        'div',
-      )
-
-      gTxt.classList.add(
-        'apexcharts-tooltip-series-group',
-        `apexcharts-tooltip-series-group-${i}`,
-      )
-      gTxt.style.order = String(
-        w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1,
-      )
-
-      const point = BrowserAPIs.createElementNS(
-        'http://www.w3.org/1999/xhtml',
-        'span',
-      )
-      point.classList.add('apexcharts-tooltip-marker')
-
-      if (w.config.tooltip.fillSeriesColor) {
-        point.style.backgroundColor = w.globals.colors[i]
-      } else {
-        point.style.color = w.globals.colors[i]
-      }
-
-      const mShape = w.config.markers.shape
-      let shape = mShape
-      if (Array.isArray(mShape)) {
-        shape = mShape[i]
-      }
-
-      point.setAttribute('shape', shape)
-      // Inline SVG renders crisper than the previous unicode-glyph
-      // `::before` pseudo-elements (which rendered at different sizes on
-      // Windows vs macOS).
-      point.innerHTML = renderMarkerSVG(shape)
-      gTxt.appendChild(point)
-
-      const gYZ = BrowserAPIs.createElementNS(
-        'http://www.w3.org/1999/xhtml',
-        'div',
-      )
-      gYZ.classList.add('apexcharts-tooltip-text')
-
-      gYZ.style.fontFamily =
-        this.tConfig.style.fontFamily || w.config.chart.fontFamily
-      gYZ.style.fontSize = this.tConfig.style.fontSize
-
-      // Keep the nodes a hover has to write into. Labels.DOMHandling used to
-      // re-`querySelector` all of them on every mousemove, which on a shared
-      // tooltip is 4-6 scoped lookups per series per frame: a CPU profile of a
-      // 700-series chart spent 38% of hover time inside querySelector alone.
-      /** @type {Record<string, any>} */
-      const refs = { marker: point, text: gYZ }
-      ;['y', 'goals', 'z'].forEach((g) => {
-        const gValText = BrowserAPIs.createElementNS(
-          'http://www.w3.org/1999/xhtml',
-          'div',
-        )
-        gValText.classList.add(`apexcharts-tooltip-${g}-group`)
-
-        const txtLabel = BrowserAPIs.createElementNS(
-          'http://www.w3.org/1999/xhtml',
-          'span',
-        )
-        txtLabel.classList.add(`apexcharts-tooltip-text-${g}-label`)
-        gValText.appendChild(txtLabel)
-
-        const txtValue = BrowserAPIs.createElementNS(
-          'http://www.w3.org/1999/xhtml',
-          'span',
-        )
-        txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
-        gValText.appendChild(txtValue)
-
-        refs[`${g}Label`] = txtLabel
-        refs[`${g}Value`] = txtValue
-
-        gYZ.appendChild(gValText)
-      })
-
-      gTxt.appendChild(gYZ)
-      ;/** @type {any} */ (gTxt).ttRefs = refs
-
+      const gTxt = this.createTTElement(i, ttItemsCnt)
       tooltipEl.appendChild(gTxt)
-
       ttItems.push(gTxt)
     }
 
     return ttItems
+  }
+
+  /**
+   * One tooltip row (series group), not yet placed in the tooltip.
+   * @param {number} i the row's index
+   * @param {number} ttItemsCnt how many rows the tooltip has
+   * @returns {HTMLElement}
+   */
+  createTTElement(i, ttItemsCnt) {
+    const w = this.w
+    const gTxt = BrowserAPIs.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'div',
+    )
+
+    gTxt.classList.add(
+      'apexcharts-tooltip-series-group',
+      `apexcharts-tooltip-series-group-${i}`,
+    )
+    gTxt.style.order = String(
+      w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1,
+    )
+
+    const point = BrowserAPIs.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'span',
+    )
+    point.classList.add('apexcharts-tooltip-marker')
+
+    if (w.config.tooltip.fillSeriesColor) {
+      point.style.backgroundColor = w.globals.colors[i]
+    } else {
+      point.style.color = w.globals.colors[i]
+    }
+
+    const mShape = w.config.markers.shape
+    let shape = mShape
+    if (Array.isArray(mShape)) {
+      shape = mShape[i]
+    }
+
+    point.setAttribute('shape', shape)
+    // Inline SVG renders crisper than the previous unicode-glyph
+    // `::before` pseudo-elements (which rendered at different sizes on
+    // Windows vs macOS).
+    point.innerHTML = renderMarkerSVG(shape)
+    gTxt.appendChild(point)
+
+    const gYZ = BrowserAPIs.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'div',
+    )
+    gYZ.classList.add('apexcharts-tooltip-text')
+
+    gYZ.style.fontFamily =
+      this.tConfig.style.fontFamily || w.config.chart.fontFamily
+    gYZ.style.fontSize = this.tConfig.style.fontSize
+
+    // Keep the nodes a hover has to write into. Labels.DOMHandling used to
+    // re-`querySelector` all of them on every mousemove, which on a shared
+    // tooltip is 4-6 scoped lookups per series per frame: a CPU profile of a
+    // 700-series chart spent 38% of hover time inside querySelector alone.
+    /** @type {Record<string, any>} */
+    const refs = { marker: point, text: gYZ }
+    ;['y', 'goals', 'z'].forEach((g) => {
+      const gValText = BrowserAPIs.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        'div',
+      )
+      gValText.classList.add(`apexcharts-tooltip-${g}-group`)
+
+      const txtLabel = BrowserAPIs.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        'span',
+      )
+      txtLabel.classList.add(`apexcharts-tooltip-text-${g}-label`)
+      gValText.appendChild(txtLabel)
+
+      const txtValue = BrowserAPIs.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        'span',
+      )
+      txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
+      gValText.appendChild(txtValue)
+
+      refs[`${g}Label`] = txtLabel
+      refs[`${g}Value`] = txtValue
+
+      gYZ.appendChild(gValText)
+    })
+
+    gTxt.appendChild(gYZ)
+    ;/** @type {any} */ (gTxt).ttRefs = refs
+
+    return /** @type {HTMLElement} */ (gTxt)
   }
 
   addSVGEvents() {
@@ -1990,24 +2001,32 @@ export default class Tooltip {
   }
 
   /**
+   * The point's marker may be the topmost of several series' markers drawn
+   * at one spot. `coincident` lists them all (CoincidentMarkers), taken from
+   * the marker when the caller has not already: a point with no marker
+   * leaves it out.
    * @param {Event} e
    * @param {number} seriesIndex
    * @param {number} dataPointIndex
+   * @param {import('../CoincidentMarkers').CoincidentPoint[] | null} [coincident]
    */
-  markerClick(e, seriesIndex, dataPointIndex) {
+  markerClick(e, seriesIndex, dataPointIndex, coincident) {
     const w = this.w
+    const points =
+      coincident !== undefined
+        ? coincident
+        : coincidentPoints(w, { i: seriesIndex, j: dataPointIndex })
+    /** @returns {Record<string, any>} */
+    const opts = () => ({
+      seriesIndex,
+      dataPointIndex,
+      w,
+      ...(points && { coincident: points.map((p) => ({ ...p })) }),
+    })
     if (typeof w.config.chart.events.markerClick === 'function') {
-      w.config.chart.events.markerClick(e, this.ctx, {
-        seriesIndex,
-        dataPointIndex,
-        w,
-      })
+      w.config.chart.events.markerClick(e, this.ctx, opts())
     }
-    this.ctx.events.fireEvent('markerClick', [
-      e,
-      this.ctx,
-      { seriesIndex, dataPointIndex, w },
-    ])
+    this.ctx.events.fireEvent('markerClick', [e, this.ctx, opts()])
   }
 
   /**
