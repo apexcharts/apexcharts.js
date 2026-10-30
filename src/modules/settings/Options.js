@@ -2738,6 +2738,7 @@ export default class Options {
         type: 'category',
         categories: [],
         convertedCatToNumeric: false, // internal property which should not be altered outside
+        autoDataPointsTicks: false, // internal: tickAmount 'dataPoints' was written by the conversion above, not by the user
         offsetX: 0,
         offsetY: 0,
         overwriteCategories: undefined,
