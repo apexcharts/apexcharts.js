@@ -41,13 +41,16 @@ type ApexChartEventOpts = {
   dataPointIndex: number
   w: ApexChartContext
   /**
-   * `markerClick`, `dataPointSelection` and `click` on a point drawn as a
-   * marker (line, area, scatter, bubble, radar): every visible series' point
-   * whose marker is drawn at the same spot, this one included, in series
-   * order. Only the marker drawn last at a spot can be clicked, so
-   * `seriesIndex` / `dataPointIndex` name that one and this names the
-   * points under it as well. A single entry where no other series shares
-   * the spot; absent when the point has no marker.
+   * `markerClick` and `dataPointSelection` on a point drawn as a marker
+   * (line, area, scatter, bubble, radar), and `click` on such a marker with
+   * the SVG renderer: every visible series' point whose marker is drawn at
+   * the same spot, this one included, in series order. Only the marker
+   * drawn last at a spot can be clicked, so `seriesIndex` / `dataPointIndex`
+   * name that one and this names the points under it as well. A single
+   * entry where no other series shares the spot; absent when the point has
+   * no marker. With the canvas renderer `click` does not carry it (the
+   * event target is the canvas, not a marker); use `markerClick` there.
+   * `dataPointSelection` fires on the SVG renderer only.
    */
   coincident?: ApexCoincidentPoint[]
   [key: string]: any
