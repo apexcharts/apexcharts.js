@@ -182,3 +182,94 @@ describe('the automatic value across updates', () => {
     expect(c.w.globals.xAxisScale.result.length).toBe(11)
   })
 })
+
+// An update that carries a label formatter, categories or top-level labels is
+// converted on its own before it is merged, and the conversion fills in a
+// tickAmount when it finds none. That default must not replace the tick
+// count the chart already has.
+describe('a formatter or categories update keeps the chart tick count', () => {
+  const formatter = (v) => `v${v}`
+  const PAYLOADS = {
+    'a label formatter': () => ({ xaxis: { labels: { formatter } } }),
+    'empty categories': () => ({ xaxis: { categories: [] } }),
+    'top-level labels': () => ({ xaxis: {}, labels: [] }),
+  }
+
+  for (const [name, payload] of Object.entries(PAYLOADS)) {
+    it(`explicit 'dataPoints' (400 points) survives ${name}`, async () => {
+      const c = line([{ data: points(400, SPACINGS.unit) }], {
+        tickAmount: 'dataPoints',
+      })
+      await c.render()
+      expect(c.w.globals.xTickAmount).toBe(399)
+
+      await c.updateOptions(payload())
+      expect(c.w.config.xaxis.tickAmount).toBe('dataPoints')
+      expect(c.w.config.xaxis.autoDataPointsTicks).toBe(false)
+      expect(c.w.globals.xTickAmount).toBe(399)
+      expect(xLabels().length).toBe(400)
+    })
+
+    it(`explicit 'dataPoints' (40 points, tens) survives ${name}`, async () => {
+      const c = line([{ data: points(40, SPACINGS.tens) }], {
+        tickAmount: 'dataPoints',
+      })
+      await c.render()
+      expect(c.w.globals.xTickAmount).toBe(39)
+
+      await c.updateOptions(payload())
+      expect(c.w.globals.xTickAmount).toBe(39)
+      // and it stays the user's through later renders
+      await c.updateSeries([{ data: points(50, SPACINGS.tens) }])
+      expect(c.w.globals.xTickAmount).toBe(49)
+    })
+
+    it(`a numeric tickAmount survives ${name}`, async () => {
+      const c = line([{ data: points(400, SPACINGS.unit) }], { tickAmount: 5 })
+      await c.render()
+      expect(c.w.globals.xTickAmount).toBe(5)
+
+      await c.updateOptions(payload())
+      expect(c.w.config.xaxis.tickAmount).toBe(5)
+      expect(c.w.globals.xTickAmount).toBe(5)
+    })
+
+    it(`the automatic value stays automatic after ${name}`, async () => {
+      const c = line([{ data: points(400, SPACINGS.unit) }])
+      await c.render()
+      expect(c.w.globals.xTickAmount).toBe(10)
+
+      await c.updateOptions(payload())
+      expect(c.w.config.xaxis.tickAmount).toBe('dataPoints')
+      expect(c.w.config.xaxis.autoDataPointsTicks).toBe(true)
+      expect(c.w.globals.xTickAmount).toBe(10)
+    })
+  }
+
+  it('the new formatter is applied while the tick count stays', async () => {
+    const c = line([{ data: points(40, SPACINGS.tens) }], {
+      tickAmount: 'dataPoints',
+    })
+    await c.render()
+    await c.updateOptions({ xaxis: { labels: { formatter } } })
+    const texts = [...xLabels()].map((t) => t.textContent)
+    expect(texts.length).toBe(40)
+    expect(texts[0]).toBe('v0')
+    expect(texts[39]).toBe('v390')
+  })
+
+  it('a tickAmount named next to the formatter is used', async () => {
+    const c = line([{ data: points(40, SPACINGS.tens) }])
+    await c.render()
+    expect(c.w.globals.xTickAmount).toBe(10)
+
+    await c.updateOptions({
+      xaxis: { tickAmount: 'dataPoints', labels: { formatter } },
+    })
+    expect(c.w.config.xaxis.autoDataPointsTicks).toBe(false)
+    expect(c.w.globals.xTickAmount).toBe(39)
+
+    await c.updateOptions({ xaxis: { tickAmount: 4, categories: [] } })
+    expect(c.w.globals.xTickAmount).toBe(4)
+  })
+})

@@ -818,6 +818,13 @@ export default class UpdateHelpers {
     // names into 1, 2, 3 and dropped the user's formatter with them.
     if (w.config.xaxis.convertedCatToNumeric) {
       const x = options.xaxis
+      // The conversion fills in a tickAmount when the object it is handed has
+      // none. Here that object is the update, not the chart, so the default
+      // it wrote replaced the tick count the chart already had: a formatter
+      // or categories update turned tickAmount: 5 into 'dataPoints', and an
+      // explicit 'dataPoints' into the automatic one. A payload that does not
+      // name a tickAmount keeps the chart's.
+      const namesTickAmount = 'tickAmount' in x
       if ('categories' in x || 'labels' in options) {
         // New names, or an explicit empty list to clear them.
         options = new Defaults(options).convertCatToNumericXaxis(options)
@@ -832,6 +839,10 @@ export default class UpdateHelpers {
       }
       // Otherwise the payload says nothing about the labels, and the
       // converted formatter already in the config stands.
+      if (!namesTickAmount) {
+        delete options.xaxis.tickAmount
+        delete options.xaxis.autoDataPointsTicks
+      }
     }
     return options
   }

@@ -77,4 +77,35 @@ test.describe('Numeric x axis with no xaxis.type', () => {
     )
     expect(await page.locator('.apexcharts-xaxis-label').count()).toBe(400)
   })
+
+  test("an explicit 'dataPoints' outlives a formatter update", async ({
+    page,
+  }) => {
+    await render(page, { tickAmount: 'dataPoints' })
+    await page.evaluate(() =>
+      window.chart.updateOptions({
+        xaxis: { labels: { formatter: (v) => 'v' + v } },
+      }),
+    )
+    await expect(page.locator('.apexcharts-xaxis-label')).toHaveCount(400)
+    expect(await page.evaluate(() => window.chart.w.globals.xTickAmount)).toBe(
+      399,
+    )
+    await expect(page.locator('.apexcharts-xaxis-label').first()).toHaveText(
+      'v1',
+    )
+  })
+
+  test('the automatic count outlives a formatter update', async ({ page }) => {
+    await render(page)
+    await page.evaluate(() =>
+      window.chart.updateOptions({
+        xaxis: { labels: { formatter: (v) => 'v' + v } },
+      }),
+    )
+    await expect(page.locator('.apexcharts-xaxis-label').first()).toHaveText(
+      'v1',
+    )
+    await expect(page.locator('.apexcharts-xaxis-label')).toHaveCount(11)
+  })
 })
