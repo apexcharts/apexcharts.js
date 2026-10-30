@@ -58,7 +58,11 @@ describe('captureViewState', () => {
     const chart = lineChart({ theme: { mode: 'dark', palette: 'palette2' } })
     const view = captureViewState(chart.w, chart)
 
-    expect(view.theme).toEqual({ mode: 'dark', palette: 'palette2' })
+    expect(view.theme).toEqual({
+      mode: 'dark',
+      palette: 'palette2',
+      paletteExplicit: true,
+    })
     expect(view.locale).toBe('en')
     chart.destroy()
   })

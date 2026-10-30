@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import ApexCharts from '../../src/entries/standard.js'
 import { getThemePalettes } from '../../src/utils/ThemePalettes.js'
+// Tier 2 features the standard entry does not register: their restores replay
+// a captured palette, which must not turn the mode default into a choice.
+import '../../src/features/history.js'
+import '../../src/features/perspectives.js'
 
 /**
  * An explicitly configured theme.palette always wins over the mode default.
@@ -279,5 +283,224 @@ describe('theme.palette: what the fix must leave alone', () => {
     expectPalette(b, 'palette1')
     a.destroy()
     b.destroy()
+  })
+})
+
+describe('theme.palette: leaving dark mode for the default mode', () => {
+  // '' is the documented default (auto) and a serialised wrapper sends null;
+  // both draw light chrome, so a chart with no palette goes back to palette1.
+  for (const mode of ['', null]) {
+    it(`a chart with no palette returns to palette1 on mode ${JSON.stringify(mode)}`, async () => {
+      const chart = make({ mode: 'light' })
+      await chart.render()
+      await chart.updateOptions({ theme: { mode: 'dark' } })
+      expectPalette(chart, 'palette4')
+      await chart.updateOptions({ theme: { mode } })
+      expectPalette(chart, 'palette1')
+      expect(chart.w.config.chart.foreColor).toBe('#373d3f')
+      chart.destroy()
+
+      const fromDark = make({ mode: 'dark' })
+      await fromDark.render()
+      await fromDark.updateOptions({ theme: { mode } })
+      expectPalette(fromDark, 'palette1')
+      fromDark.destroy()
+    })
+
+    it(`a named palette4 stays on mode ${JSON.stringify(mode)}`, async () => {
+      const chart = make({ mode: 'dark', palette: 'palette4' })
+      await chart.render()
+      await chart.updateOptions({ theme: { mode } })
+      expectPalette(chart, 'palette4')
+      chart.destroy()
+    })
+  }
+})
+
+describe('theme.palette: an empty local palette next to a window.Apex one', () => {
+  for (const empty of [null, undefined]) {
+    it(`palette: ${empty} in the chart keeps the global palette`, async () => {
+      window.Apex = { theme: { palette: 'palette7' } }
+      const chart = make({ mode: 'dark', palette: empty })
+      expect(chart.w.config.theme.palette).toBe('palette7')
+      await chart.render()
+      expectPalette(chart, 'palette7')
+      await chart.updateOptions({ theme: { mode: 'light' } })
+      expectPalette(chart, 'palette7')
+      chart.destroy()
+    })
+
+    it(`palette: ${empty} in the chart with only a global mode follows the mode`, async () => {
+      window.Apex = { theme: { mode: 'dark' } }
+      const chart = make({ palette: empty })
+      await chart.render()
+      expectPalette(chart, 'palette4')
+      await chart.updateOptions({ theme: { mode: 'light' } })
+      expectPalette(chart, 'palette1')
+      chart.destroy()
+    })
+  }
+})
+
+const sleep = (/** @type {number} */ ms) =>
+  new Promise((r) => setTimeout(r, ms))
+// History coalesces captures on a timer; wait past it after each change.
+const COALESCE = 20
+const settle = () => sleep(COALESCE + 50)
+
+/**
+ * A chart with history enabled, rendered and with its baseline captured.
+ * @param {Record<string, any>} theme
+ */
+async function historyChart(theme) {
+  const chart = make(theme, {
+    chart: {
+      type: 'line',
+      animations: { enabled: false },
+      history: { enabled: true, coalesceMs: COALESCE },
+    },
+    xaxis: { type: 'numeric' },
+  })
+  await chart.render()
+  await settle()
+  return chart
+}
+
+describe('theme.palette: undo and redo keep whether a palette was named', () => {
+  it('a chart with no palette still follows the mode after an undo', async () => {
+    const chart = await historyChart({ mode: 'light' })
+    await chart.updateOptions({ xaxis: { min: 2, max: 4 } }, false, false)
+    await settle()
+    await chart.history.undo()
+    await settle()
+    expectPalette(chart, 'palette1')
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expectPalette(chart, 'palette4')
+    await chart.updateOptions({ theme: { mode: 'light' } })
+    expectPalette(chart, 'palette1')
+    chart.destroy()
+  })
+
+  it('and after a redo', async () => {
+    const chart = await historyChart({ mode: 'dark' })
+    await chart.updateOptions({ xaxis: { min: 2, max: 4 } }, false, false)
+    await settle()
+    await chart.history.undo()
+    await settle()
+    await chart.history.redo()
+    await settle()
+    expect(chart.w.config.xaxis.min).toBe(2)
+    expectPalette(chart, 'palette4')
+    await chart.updateOptions({ theme: { mode: 'light' } })
+    expectPalette(chart, 'palette1')
+    chart.destroy()
+  })
+
+  for (const [palette, mode] of [
+    ['palette1', 'dark'],
+    ['palette4', 'light'],
+  ]) {
+    it(`a named ${palette} in ${mode} mode survives an undo and a mode switch`, async () => {
+      const chart = await historyChart({ mode, palette })
+      await chart.updateOptions({ xaxis: { min: 2, max: 4 } }, false, false)
+      await settle()
+      await chart.history.undo()
+      await settle()
+      expectPalette(chart, palette)
+      await chart.updateOptions({ theme: { mode: other(mode) } })
+      expectPalette(chart, palette)
+      chart.destroy()
+    })
+  }
+
+  it('undoing the update that named a palette brings back the mode default', async () => {
+    const chart = await historyChart({ mode: 'light' })
+    await chart.updateOptions({ theme: { palette: 'palette7' } })
+    await settle()
+    expectPalette(chart, 'palette7')
+    await chart.history.undo()
+    await settle()
+    expectPalette(chart, 'palette1')
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expectPalette(chart, 'palette4')
+    chart.destroy()
+  })
+})
+
+describe('theme.palette: applying a perspective keeps whether a palette was named', () => {
+  /** @param {any} chart @param {any} token */
+  const apply = async (chart, token) => {
+    chart.perspectives.apply(token, { animate: false })
+    await sleep(30)
+  }
+
+  it('a chart with no palette records that, and still follows the mode after apply', async () => {
+    const chart = make({ mode: 'light' })
+    await chart.render()
+    const token = chart.perspectives.capture()
+    expect(token.view.theme).toEqual({
+      mode: 'light',
+      palette: 'palette1',
+      paletteExplicit: false,
+    })
+    await apply(chart, token)
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expectPalette(chart, 'palette4')
+    chart.destroy()
+  })
+
+  it('so does a token that went through encode and decode', async () => {
+    const chart = make({ mode: 'dark' })
+    await chart.render()
+    await apply(chart, chart.perspectives.encode())
+    expectPalette(chart, 'palette4')
+    await chart.updateOptions({ theme: { mode: 'light' } })
+    expectPalette(chart, 'palette1')
+    chart.destroy()
+  })
+
+  it('a named palette1 in dark mode stays named after apply', async () => {
+    const chart = make({ mode: 'dark', palette: 'palette1' })
+    await chart.render()
+    const token = chart.perspectives.capture()
+    expect(token.view.theme.paletteExplicit).toBe(true)
+    await apply(chart, token)
+    expectPalette(chart, 'palette1')
+    await chart.updateOptions({ theme: { mode: 'light' } })
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expectPalette(chart, 'palette1')
+    chart.destroy()
+  })
+
+  it('a view taken before a palette was named restores the mode default', async () => {
+    const chart = make({ mode: 'light' })
+    await chart.render()
+    const token = chart.perspectives.capture()
+    await chart.updateOptions({ theme: { palette: 'palette7' } })
+    await apply(chart, token)
+    expectPalette(chart, 'palette1')
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expectPalette(chart, 'palette4')
+    chart.destroy()
+  })
+
+  it('a view without paletteExplicit (an older token) names only a non-default palette', async () => {
+    const chart = make({ mode: 'light' })
+    await chart.render()
+    const token = chart.perspectives.capture()
+    delete token.view.theme.paletteExplicit
+    await apply(chart, token)
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    expectPalette(chart, 'palette4')
+
+    const named = chart.perspectives.capture()
+    delete named.view.theme.paletteExplicit
+    named.view.theme = { mode: 'light', palette: 'palette4' }
+    await apply(chart, named)
+    expectPalette(chart, 'palette4')
+    await chart.updateOptions({ theme: { mode: 'dark' } })
+    await chart.updateOptions({ theme: { mode: 'light' } })
+    expectPalette(chart, 'palette4')
+    chart.destroy()
   })
 })

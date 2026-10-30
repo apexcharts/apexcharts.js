@@ -2,7 +2,11 @@
 import { activeElementIn, eventOrigin } from 'apex-commons'
 import Utils from '../../utils/Utils'
 import { Environment } from '../../utils/Environment.js'
-import { captureViewState, applyViewInteraction } from '../state/ViewState'
+import {
+  captureViewState,
+  applyViewInteraction,
+  restorePaletteChoice,
+} from '../state/ViewState'
 
 /**
  * Rewind (#3): in-memory undo/redo history.
@@ -392,6 +396,9 @@ export default class History {
     try {
       this.ctx.clearAnnotations()
       p = this.ctx.updateOptions(Utils.clone(cp.config), false, animate, false, false)
+      // The config carries the palette the chart drew, which the merge takes
+      // as named; put back whether it was.
+      restorePaletteChoice(this.w, cp.view && cp.view.theme)
     } catch (e) {
       this.applying = false
       throw e

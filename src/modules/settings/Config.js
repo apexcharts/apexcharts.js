@@ -159,9 +159,13 @@ export default class Config {
     // nor window.Apex naming one, the palette follows the mode. Resolved here,
     // on the merged config, so w.config holds a concrete value from the start
     // and nothing has to be written into the caller's or the global options.
-    if (!Config.hasExplicitPalette(opts)) {
-      config.theme.palette = Config.modeDefaultPalette(config.theme.mode)
-    }
+    // An empty palette in the chart's own options (null or undefined, as a
+    // serialised options object sends it) is not given: merged in, it would
+    // have overwritten a palette window.Apex names.
+    config.theme.palette =
+      opts.theme?.palette ||
+      Environment.getApex().theme?.palette ||
+      Config.modeDefaultPalette(config.theme.mode)
 
     // some features are not supported. those mismatches should be handled
     Defaults.reconcile(config)
