@@ -867,3 +867,240 @@ describe('Export Csv: datetime categories', () => {
     )
   })
 })
+
+describe('Export Csv: each row writes its own point, not an axis tick', () => {
+  // n points whose x is x(i), with y = 2i
+  const xy = (n, x = (i) => i + 1) =>
+    Array.from({ length: n }, (_, i) => ({ x: x(i), y: i * 2 }))
+  const rowsOf = (csv) => csv.split('\n').slice(1)
+  const cats = (csv) => rowsOf(csv).map((r) => r.split(',')[0])
+
+  it('writes every x of a long series when tickAmount leaves fewer ticks than points', () => {
+    // Blazor-ApexCharts #618: the first 41 rows held the tick labels 1, 40, 80
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { tickAmount: 40 },
+      series: [{ name: 'A', data: xy(1600) }],
+    })
+    expect(cats(csv)).toEqual(xy(1600).map((p) => String(p.x)))
+    expect(rowsOf(csv).slice(0, 3)).toEqual(['1,0', '2,2', '3,4'])
+  })
+
+  it('writes the x of [x, y] pairs under a tickAmount', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { tickAmount: 4 },
+      series: [{ name: 'A', data: xy(12).map((p) => [p.x, p.y]) }],
+    })
+    expect(cats(csv)).toEqual(xy(12).map((p) => String(p.x)))
+  })
+
+  it('writes x values the ticks do not land on', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      series: [{ name: 'A', data: xy(5, (i) => 2 * (i + 1)) }],
+    })
+    expect(csv).toBe('category,A\n2,0\n4,2\n6,4\n8,6\n10,8')
+  })
+
+  it('keeps the decimals of an x', () => {
+    const csv = csvOf({
+      chart: { type: 'scatter' },
+      series: [{ name: 'A', data: [[1.5, 2], [2.25, 3], [7, 4]] }],
+    })
+    expect(csv).toBe('category,A\n1.5,2\n2.25,3\n7,4')
+  })
+
+  it('runs every x through the page label formatter, past the last tick too', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { tickAmount: 2, labels: { formatter: (v) => `${v}kg` } },
+      series: [{ name: 'A', data: xy(5) }],
+    })
+    expect(cats(csv)).toEqual(['1kg', '2kg', '3kg', '4kg', '5kg'])
+  })
+
+  it('writes the x of a bar chart, which keeps its category axis', () => {
+    const csv = csvOf({
+      chart: { type: 'bar' },
+      xaxis: { tickAmount: 4 },
+      series: [{ name: 'A', data: xy(12) }],
+    })
+    expect(cats(csv)).toEqual(xy(12).map((p) => String(p.x)))
+  })
+
+  it('gives a bar label formatter the x of each bar', () => {
+    const csv = csvOf({
+      chart: { type: 'bar' },
+      xaxis: { labels: { formatter: (v) => `${v}kg` } },
+      series: [{ name: 'A', data: xy(3) }],
+    })
+    expect(csv).toBe('category,A\n1kg,0\n2kg,2\n3kg,4')
+  })
+
+  it('numbers the rows of a plain bar series under a tickAmount', () => {
+    const csv = csvOf({
+      chart: { type: 'bar' },
+      xaxis: { tickAmount: 2 },
+      series: [{ name: 'A', data: [5, 6, 7, 8, 9, 10] }],
+    })
+    expect(csv).toBe('category,A\n1,5\n2,6\n3,7\n4,8\n5,9\n6,10')
+  })
+
+  it('writes the x of each row when series differ in length', () => {
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { tickAmount: 3 },
+      series: [
+        { name: 'A', data: xy(6) },
+        { name: 'B', data: xy(4) },
+      ],
+    })
+    expect(csv).toBe('category,A,B\n1,0,0\n2,2,2\n3,4,4\n4,6,6\n5,8,\n6,10,')
+  })
+
+  it('writes every category of an axis zoomed by xaxis.min and max', () => {
+    const names = ['a', 'b', 'c', 'd', 'e', 'f']
+    const viaCategories = csvOf({
+      chart: { type: 'line' },
+      xaxis: { min: 3, max: 5, categories: names },
+      series: [{ name: 'A', data: [1, 2, 3, 4, 5, 6] }],
+    })
+    const viaX = csvOf({
+      chart: { type: 'line' },
+      xaxis: { min: 3, max: 5 },
+      series: [{ name: 'A', data: names.map((x, i) => ({ x, y: i + 1 })) }],
+    })
+    const want = 'category,A\na,1\nb,2\nc,3\nd,4\ne,5\nf,6'
+    expect(viaCategories).toBe(want)
+    expect(viaX).toBe(want)
+  })
+
+  // Shapes whose rows were already right: the output must not move.
+  it.each([
+    [
+      'xaxis.categories under a tickAmount',
+      {
+        chart: { type: 'line' },
+        xaxis: { tickAmount: 2, categories: ['a', 'b', 'c', 'd', 'e'] },
+        series: [{ name: 'A', data: [1, 2, 3, 4, 5] }],
+      },
+      'category,A\na,1\nb,2\nc,3\nd,4\ne,5',
+    ],
+    [
+      'labels under a tickAmount',
+      {
+        chart: { type: 'line' },
+        labels: ['a', 'b', 'c', 'd', 'e'],
+        xaxis: { tickAmount: 2 },
+        series: [{ name: 'A', data: [1, 2, 3, 4, 5] }],
+      },
+      'category,A\na,1\nb,2\nc,3\nd,4\ne,5',
+    ],
+    [
+      'categories through the page label formatter',
+      {
+        chart: { type: 'line' },
+        xaxis: {
+          tickAmount: 2,
+          categories: ['a', 'b', 'c', 'd'],
+          labels: { formatter: (v) => `F${v}` },
+        },
+        series: [{ name: 'A', data: [1, 2, 3, 4] }],
+      },
+      'category,A\nFa,1\nFb,2\nFc,3\nFd,4',
+    ],
+    [
+      'string x under a tickAmount',
+      {
+        chart: { type: 'line' },
+        xaxis: { tickAmount: 2 },
+        series: [{ name: 'A', data: xy(4, (i) => `c${i}`) }],
+      },
+      'category,A\nc0,0\nc1,2\nc2,4\nc3,6',
+    ],
+    [
+      'numeric categories',
+      {
+        chart: { type: 'line' },
+        xaxis: { tickAmount: 2, categories: [2020, 2021, 2022, 2023] },
+        series: [{ name: 'A', data: [1, 2, 3, 4] }],
+      },
+      'category,A\n2020,1\n2021,2\n2022,3\n2023,4',
+    ],
+    [
+      'bar categories under a tickAmount',
+      {
+        chart: { type: 'bar' },
+        xaxis: { tickAmount: 2, categories: ['a', 'b', 'c', 'd'] },
+        series: [{ name: 'A', data: [1, 2, 3, 4] }],
+      },
+      'category,A\na,1\nb,2\nc,3\nd,4',
+    ],
+    [
+      'a horizontal bar',
+      {
+        chart: { type: 'bar' },
+        plotOptions: { bar: { horizontal: true } },
+        xaxis: { categories: ['a', 'b', 'c'] },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+      },
+      'category,A\na,1\nb,2\nc,3',
+    ],
+    [
+      'numeric x the ticks land on',
+      {
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: xy(4, (i) => 10 * (i + 1)) }],
+      },
+      'category,A\n10,0\n20,2\n30,4\n40,6',
+    ],
+    [
+      'numeric x the ticks land on, through the page label formatter',
+      {
+        chart: { type: 'line' },
+        xaxis: { labels: { formatter: (v) => `${v}kg` } },
+        series: [{ name: 'A', data: xy(3) }],
+      },
+      'category,A\n1kg,0\n2kg,2\n3kg,4',
+    ],
+    [
+      'plain values',
+      {
+        chart: { type: 'line' },
+        xaxis: { tickAmount: 2 },
+        series: [{ name: 'A', data: [5, 6, 7, 8] }],
+      },
+      'category,A\n1,5\n2,6\n3,7\n4,8',
+    ],
+    [
+      'a numeric axis',
+      {
+        chart: { type: 'line' },
+        xaxis: { type: 'numeric', tickAmount: 2 },
+        series: [{ name: 'A', data: xy(4) }],
+      },
+      'category,A\n1,0\n2,2\n3,4\n4,6',
+    ],
+    [
+      'datetime x under a tickAmount',
+      {
+        chart: { type: 'line' },
+        xaxis: { type: 'datetime', tickAmount: 2 },
+        series: [{ name: 'A', data: xy(3, (i) => Date.UTC(2026, 0, i + 1)) }],
+      },
+      'category,A\nThu Jan 01 2026,0\nFri Jan 02 2026,2\nSat Jan 03 2026,4',
+    ],
+    [
+      'datetime categories',
+      {
+        chart: { type: 'line' },
+        xaxis: { type: 'datetime', categories: ['2026-01-01', '2026-01-02'] },
+        series: [{ name: 'A', data: [1, 2] }],
+      },
+      'category,A\nThu Jan 01 2026,1\nFri Jan 02 2026,2',
+    ],
+  ])('keeps the rows of %s', (_, options, want) => {
+    expect(csvOf(options)).toBe(want)
+  })
+})

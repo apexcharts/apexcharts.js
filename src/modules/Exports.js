@@ -1,6 +1,7 @@
 // @ts-check
 import { styleSheetsFor } from 'apex-commons'
 import AxesUtils from '../modules/axes/AxesUtils'
+import Defaults from '../modules/settings/Defaults'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
@@ -984,6 +985,32 @@ class Exports {
       theme: this.ctx.theme,
       timeScale: this.ctx.timeScale,
     })
+
+    // On a numeric x scale (numeric x values, or a category axis converted to
+    // positions) labelData.labels holds the axis TICKS: one per tick in view,
+    // not one per data point, so its ith entry is not the ith row's category.
+    // Each row reads its own x instead: the point's x when the data carries
+    // one, else the position 1..n the chart plots the ith category at.
+    const xFromScale =
+      w.axisFlags.isXNumeric && !w.labelData.timescaleLabels.length
+    // The axis formatter turns a position back into its category name, and a
+    // page formatter is the text the page asked for. Without either, the x is
+    // written as given: the floor default a converted axis gets, and the
+    // built-in tick formatter, would round decimals off the data.
+    const formatScaleX =
+      typeof w.config.xaxis.labels.formatter === 'function' &&
+      !Defaults.isFloorXLabelFormatter(w.config.xaxis)
+    /** @type {any[]} */
+    const scaleX = []
+    /** @param {number} i */
+    const rowX = (i) => {
+      if (!w.axisFlags.dataFormatXNumeric) return i + 1
+      const d = series
+        .map((/** @type {any} */ s) => s.data?.[i])
+        .find((/** @type {any} */ d) => d != null && typeof d === 'object')
+      return d == null ? undefined : Array.isArray(d) ? d[0] : d.x
+    }
+
     /**
      * @param {number} i
      */
@@ -1011,6 +1038,14 @@ class Exports {
               dataPointIndex: i,
               w,
             })
+          } else if (xFromScale) {
+            const x = rowX(i)
+            if (x == null || !formatScaleX) {
+              cat = x == null ? '' : x
+            } else {
+              scaleX[i] = x
+              cat = axesUtils.getLabel(scaleX, [], 0, i).text
+            }
           } else {
             cat = axesUtils.getLabel(
               w.labelData.labels,
