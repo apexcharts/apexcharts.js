@@ -4,6 +4,8 @@ This file deals with the x-axis and y-axis tooltips.
 ### Intersect.js
 This file deals with functions related to intersecting tooltips (tooltips that appear when user hovers directly over a data-point whether).
 
+Where markers of several series are drawn at the hovered marker's spot (`../CoincidentMarkers.js`), an intersect tooltip lists each of those series, and `markerClick`, `dataPointSelection` and `click` name them as `coincident` beside the topmost point.
+
 ### Labels.js
 This file deals with printing actual text on the tooltip.
 

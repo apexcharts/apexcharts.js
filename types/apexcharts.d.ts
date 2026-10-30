@@ -40,7 +40,26 @@ type ApexChartEventOpts = {
   seriesIndex: number
   dataPointIndex: number
   w: ApexChartContext
+  /**
+   * `markerClick`, `dataPointSelection` and `click` on a point drawn as a
+   * marker (line, area, scatter, bubble, radar): every visible series' point
+   * whose marker is drawn at the same spot, this one included, in series
+   * order. Only the marker drawn last at a spot can be clicked, so
+   * `seriesIndex` / `dataPointIndex` name that one and this names the
+   * points under it as well. A single entry where no other series shares
+   * the spot; absent when the point has no marker.
+   */
+  coincident?: ApexCoincidentPoint[]
   [key: string]: any
+}
+
+/**
+ * A data point, as `coincident` on the marker events and in
+ * `tooltip.custom` names the points drawn at one spot.
+ */
+type ApexCoincidentPoint = {
+  seriesIndex: number
+  dataPointIndex: number
 }
 
 /**
@@ -115,6 +134,13 @@ type ApexTooltipCustomOpts = {
   y1?: number
   y2?: number
   w: ApexChartContext
+  /**
+   * An intersect tooltip (`tooltip.intersect`, `shared: false`) on a marker
+   * other series' markers are drawn under: the points of the series it
+   * lists, in the order it lists them (`seriesIndex` / `dataPointIndex` stay
+   * the hovered one). Absent when the hovered point is alone at its spot.
+   */
+  coincident?: ApexCoincidentPoint[]
   /**
    * `sunburst` / `icicle` / treemap branch only: the hovered tree node
    * (`name`, `value`, and `children` for a branch; a sunburst or icicle
@@ -1705,6 +1731,7 @@ declare namespace ApexCharts {
   export type { ApexDropShadow }
   export type { ApexChartContext }
   export type { ApexChartEventOpts }
+  export type { ApexCoincidentPoint }
   export type { ApexFormatterOpts }
   export type { ApexDataLabelsFormatterOpts }
   export type { ApexLegendFormatterOpts }

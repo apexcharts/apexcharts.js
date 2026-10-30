@@ -3,6 +3,7 @@ import Animations from './Animations'
 import Filters from './Filters'
 import Utils from '../utils/Utils'
 import { resolveClaimed } from './weave/Claims'
+import { coincidentPoints } from './CoincidentMarkers'
 
 /**
  * ApexCharts Graphics Class for all drawing operations.
@@ -1401,26 +1402,23 @@ class Graphics {
       )
     }
 
+    // A marker may be the topmost of several series' markers drawn at one
+    // spot; the others are named alongside it (CoincidentMarkers).
+    const coincident = coincidentPoints(w, { node: path.node })
+    const opts = () => ({
+      selectedDataPoints: w.interact.selectedDataPoints,
+      seriesIndex: i,
+      dataPointIndex: j,
+      w,
+      ...(coincident && { coincident: coincident.map((p) => ({ ...p })) }),
+    })
+
     if (typeof w.config.chart.events.dataPointSelection === 'function') {
-      w.config.chart.events.dataPointSelection(e, this.ctx, {
-        selectedDataPoints: w.interact.selectedDataPoints,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w,
-      })
+      w.config.chart.events.dataPointSelection(e, this.ctx, opts())
     }
 
     if (e) {
-      Graphics._fireEvent(w, 'dataPointSelection', [
-        e,
-        this.ctx,
-        {
-          selectedDataPoints: w.interact.selectedDataPoints,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w,
-        },
-      ])
+      Graphics._fireEvent(w, 'dataPointSelection', [e, this.ctx, opts()])
     }
   }
 
