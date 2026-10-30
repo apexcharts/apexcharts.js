@@ -782,7 +782,18 @@ interface ApexViewState {
   collapsed: number[]
   ancillaryCollapsed: number[]
   selectedDataPoints: number[][]
-  theme: { mode: string | null; palette: string | null } | null
+  theme: {
+    mode: string | null
+    palette: string | null
+    /**
+     * Whether the page named `palette` (in its options, window.Apex or an
+     * updateOptions payload). When false the palette is only the mode's
+     * default, and once the view is applied it keeps following the mode.
+     * Absent from views captured before this field existed: such a palette
+     * counts as named unless it is the default of the chart's mode.
+     */
+    paletteExplicit?: boolean
+  } | null
   locale: string | null
   annotations: {
     static: any
@@ -5693,6 +5704,12 @@ type ApexGrid = {
 type ApexTheme = {
   /** '' (the default) inherits / auto-resolves; 'light' | 'dark' force a mode. */
   mode?: 'light' | 'dark' | ''
+  /**
+   * A built-in palette, 'palette1' to 'palette10'. Once set (here, in
+   * window.Apex or through updateOptions) it is kept whatever the mode. Left
+   * unset, the palette follows the mode: 'palette4' in dark mode, 'palette1'
+   * otherwise, switching with it when the mode changes.
+   */
   palette?: string
   /**
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade

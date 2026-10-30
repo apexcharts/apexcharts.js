@@ -296,7 +296,20 @@ export default class UpdateHelpers {
             options.series = this.syncSharedLogAxes(options.series)
           }
 
+          // A palette the payload names is the page's choice from now on, so
+          // a later mode switch keeps it (see Theme.applyModePalette).
+          if (options.theme?.palette) w.globals.themePaletteExplicit = true
+
           w.config = Utils.extend(w.config, options)
+          // A payload that sets the mode moves a chart with no palette of its
+          // own onto that mode's default. '' (the default mode) and null count
+          // as light, as they do for the tooltip and foreColor defaults in
+          // updateThemeOptions, so leaving dark this way also leaves palette4.
+          if (options.theme && options.theme.mode !== undefined) {
+            ch.theme?.applyModePalette(
+              w.config.theme.mode === 'dark' ? 'dark' : 'light',
+            )
+          }
           // A path an active breakpoint also sets keeps the payload's value
           // for when the breakpoint is left (#5347).
           ch.responsive?.absorb(options)

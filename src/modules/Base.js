@@ -26,6 +26,9 @@ export default class Base {
   init() {
     const config = new Config(this.opts).init({ responsiveOverride: false })
     const globals = new Globals().init(config)
+    // Read from what the page passed, not from the merged config, where the
+    // defaulted palette1 cannot be told apart from one the page chose.
+    globals.themePaletteExplicit = Config.hasExplicitPalette(this.opts)
 
     const w = {
       config,

@@ -473,6 +473,9 @@ export default class Globals {
       // What the named theme (theme.name) wrote into config.theme, so a switch
       // to another named theme can take it back (see Theme._applyNamedThemeMode).
       namedThemeApplied: undefined,
+      // Whether the page named theme.palette, so the mode defaults leave it
+      // alone (see Theme.applyModePalette). Set by Base and updateOptions.
+      themePaletteExplicit: false,
       lastXAxis: [],
       lastYAxis: [],
 

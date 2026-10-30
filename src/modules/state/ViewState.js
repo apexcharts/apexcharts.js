@@ -28,7 +28,8 @@ import Utils from '../../utils/Utils'
  *   - collapsed           ← w.globals.collapsedSeriesIndices (persistent)
  *   - ancillaryCollapsed  ← w.globals.ancillaryCollapsedSeriesIndices
  *   - selectedDataPoints  ← w.interact.selectedDataPoints
- *   - theme               ← w.config.theme.mode / .palette
+ *   - theme               ← w.config.theme.mode / .palette, and whether the
+ *                            page named that palette (globals.themePaletteExplicit)
  *   - locale              ← w.config.chart.defaultLocale
  *   - annotations.static  ← w.config.annotations (declarative set)
  *   - annotations.dynamic ← w.globals.memory.methodsToExec (add*Annotation calls)
@@ -175,7 +176,13 @@ export function captureViewState(w, ctx) {
     ancillaryCollapsed: (w.globals.ancillaryCollapsedSeriesIndices || []).slice(),
     selectedDataPoints: cloneSelection(w.interact.selectedDataPoints),
     theme: theme
-      ? { mode: theme.mode ?? null, palette: theme.palette ?? null }
+      ? {
+          mode: theme.mode ?? null,
+          palette: theme.palette ?? null,
+          // A palette the chart only defaulted to keeps following the mode
+          // once restored; without this the restore would name it.
+          paletteExplicit: !!w.globals.themePaletteExplicit,
+        }
       : null,
     locale: (w.config.chart && w.config.chart.defaultLocale) || null,
     annotations: captureAnnotations(w, ctx),
@@ -330,10 +337,36 @@ export function applyViewState(
     false /* updateSyncedCharts */,
     false /* overwriteInitialConfig */,
   )
+  restorePaletteChoice(ctx.w, view.theme)
 
   // 3. Everything that does not live in w.config (zoom flag, collapsed set,
   //    dynamic annotations, selection, locale).
   applyViewInteraction(ctx, view)
+}
+
+/**
+ * After a restore has merged a captured theme, put back whether its palette
+ * was one the page named. The restore's payload carries the palette the chart
+ * drew, and a palette in an updateOptions payload counts as named, so without
+ * this every undo or perspective pinned the mode default of a chart that never
+ * named a palette, and a later mode switch left it behind.
+ *
+ * A view without `paletteExplicit` (a token from an earlier build, or a view
+ * written by hand) counts its palette as named unless it is the default of the
+ * mode the chart is now in, which is how such a palette behaved before.
+ *
+ * Call it right after the restore's updateOptions, whose merge is synchronous.
+ *
+ * @param {any} w chart state object
+ * @param {any} theme the restored view's `theme`
+ */
+export function restorePaletteChoice(w, theme) {
+  if (!w || !theme || theme.palette == null) return
+  w.globals.themePaletteExplicit =
+    typeof theme.paletteExplicit === 'boolean'
+      ? theme.paletteExplicit
+      : theme.palette !==
+        (w.config.theme.mode === 'dark' ? 'palette4' : 'palette1')
 }
 
 /**
