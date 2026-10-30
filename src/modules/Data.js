@@ -1581,13 +1581,23 @@ export default class Data {
     if (gl.axisCharts) {
       if (this.w.seriesData.series.length > 0) {
         if (this.isFormatXY()) {
-          // in case there is a combo chart (boxplot/scatter)
-          // and there are duplicated x values, we need to eliminate duplicates
+          // A combo chart (boxplot/scatter, #2706) stacks several outliers on
+          // one category, so a repeated x there must not add a column: those
+          // series count their distinct x only.
+          //
+          // A line or area series is different: each point is the next step
+          // of one path, and a repeated x (two readings in the same second of
+          // a live feed) is still a step of its own. Counting it once left
+          // the labels, and the seriesX built from them, shorter than the
+          // series, so its last points had no x and the path was dropped
+          // (Blazor-ApexCharts #509). Points are still placed by their index.
           /**
            * @param {Object} serie
            */
           const seriesDataFiltered = cnf.series.map(
             (/** @type {any} */ serie) => {
+              const type = serie.type || cnf.chart.type
+              if (type === 'line' || type === 'area') return serie.data
               const seen = new Map()
               for (const point of serie.data) {
                 if (!seen.has(point?.x)) seen.set(point?.x, point)
