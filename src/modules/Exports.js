@@ -4,6 +4,7 @@ import AxesUtils from '../modules/axes/AxesUtils'
 import Defaults from '../modules/settings/Defaults'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
+import DateTime from '../utils/DateTime'
 import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { SVGNS } from '../svg/math'
@@ -997,18 +998,36 @@ class Exports {
     // page formatter is the text the page asked for. Without either, the x is
     // written as given: the floor default a converted axis gets, and the
     // built-in tick formatter, would round decimals off the data.
+    const xFormatter = w.config.xaxis.labels.formatter
     const formatScaleX =
-      typeof w.config.xaxis.labels.formatter === 'function' &&
+      typeof xFormatter === 'function' &&
       !Defaults.isFloorXLabelFormatter(w.config.xaxis)
-    /** @type {any[]} */
-    const scaleX = []
+    const dateFormatter = new DateTime(w).formatDate
     /** @param {number} i */
     const rowX = (i) => {
       if (!w.axisFlags.dataFormatXNumeric) return i + 1
       const d = series
         .map((/** @type {any} */ s) => s.data?.[i])
         .find((/** @type {any} */ d) => d != null && typeof d === 'object')
-      return d == null ? undefined : Array.isArray(d) ? d[0] : d.x
+      const x = d == null ? undefined : Array.isArray(d) ? d[0] : d.x
+      // The chart plots a Date x at its epoch (Data.js), so that is its x.
+      return x instanceof Date ? x.getTime() : x
+    }
+    // The row's category as text, the type the tick labels this replaces gave
+    // csv.categoryFormatter. The page formatter is called the way the axis
+    // calls it (AxesUtils.getLabel), without the text measurement getLabel
+    // also does, which the CSV has no use for.
+    /**
+     * @param {number} i
+     * @returns {any}
+     */
+    const scaleCat = (i) => {
+      const x = rowX(i)
+      if (x == null) return ''
+      if (!formatScaleX) return String(x)
+      const label = xFormatter(x, x, { i, dateFormatter, w })
+      if (label == null) return ''
+      return Array.isArray(label) ? label : String(label)
     }
 
     /**
@@ -1039,13 +1058,7 @@ class Exports {
               w,
             })
           } else if (xFromScale) {
-            const x = rowX(i)
-            if (x == null || !formatScaleX) {
-              cat = x == null ? '' : x
-            } else {
-              scaleX[i] = x
-              cat = axesUtils.getLabel(scaleX, [], 0, i).text
-            }
+            cat = scaleCat(i)
           } else {
             cat = axesUtils.getLabel(
               w.labelData.labels,

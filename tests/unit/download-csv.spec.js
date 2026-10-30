@@ -1103,4 +1103,113 @@ describe('Export Csv: each row writes its own point, not an axis tick', () => {
   ])('keeps the rows of %s', (_, options, want) => {
     expect(csvOf(options)).toBe(want)
   })
+
+  // csv.categoryFormatter got the tick label text on these shapes, so a
+  // string. The row's own x must reach it as a string too, or a formatter
+  // calling a string method throws and the export fails.
+  const withCategoryFormatter = (options, categoryFormatter) => ({
+    ...options,
+    chart: {
+      ...options.chart,
+      toolbar: { export: { csv: { categoryFormatter } } },
+    },
+  })
+
+  it.each(['line', 'area'])(
+    'hands csv.categoryFormatter the text of each %s row of plain values',
+    (type) => {
+      const csv = csvOf(
+        withCategoryFormatter(
+          { chart: { type }, series: [{ name: 'A', data: [5, 6, 7] }] },
+          (c) => 'Day ' + c.padStart(2, '0'),
+        ),
+      )
+      expect(csv).toBe('category,A\nDay 01,5\nDay 02,6\nDay 03,7')
+    },
+  )
+
+  it.each([
+    ['plain values', { chart: { type: 'line' }, series: [{ data: [3, 5, 7, 9] }] }],
+    ['numeric {x, y}', { chart: { type: 'line' }, series: [{ data: xy(4) }] }],
+    [
+      'numeric [x, y]',
+      { chart: { type: 'line' }, series: [{ data: xy(4).map((p) => [p.x, p.y]) }] },
+    ],
+    [
+      'equal series',
+      { chart: { type: 'line' }, series: [{ data: xy(3) }, { data: xy(3) }] },
+    ],
+    [
+      'a page label formatter',
+      {
+        chart: { type: 'line' },
+        xaxis: { labels: { formatter: (v) => v } },
+        series: [{ data: xy(3) }],
+      },
+    ],
+    ['a bar with numeric x', { chart: { type: 'bar' }, series: [{ data: xy(3) }] }],
+    [
+      'a combo without categories',
+      {
+        chart: { type: 'line' },
+        series: [
+          { type: 'column', data: [1, 2, 3] },
+          { type: 'line', data: [4, 5, 6] },
+        ],
+      },
+    ],
+    [
+      'a candlestick with numeric x',
+      {
+        chart: { type: 'candlestick' },
+        series: [{ data: [1, 2, 3].map((x) => ({ x, y: [1, 4, 0, 2] })) }],
+      },
+    ],
+    [
+      'a boxPlot with numeric x',
+      {
+        chart: { type: 'boxPlot' },
+        series: [{ data: [1, 2, 3].map((x) => ({ x, y: [0, 1, 2, 3, 4] })) }],
+      },
+    ],
+  ])('hands csv.categoryFormatter a string for %s', (_, options) => {
+    const seen = []
+    csvOf(withCategoryFormatter(options, (c) => (seen.push(c), c)))
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every((c) => typeof c === 'string')).toBe(true)
+  })
+
+  it('writes the epoch of a Date x on a bar chart, the value it plots', () => {
+    const days = [Date.UTC(2024, 0, 1), Date.UTC(2024, 0, 2)]
+    const csv = csvOf({
+      chart: { type: 'bar' },
+      series: [{ name: 'A', data: days.map((t, i) => ({ x: new Date(t), y: i })) }],
+    })
+    expect(csv).toBe(`category,A\n${days[0]},0\n${days[1]},1`)
+  })
+
+  it('calls the page label formatter for each row without measuring text', async () => {
+    const Graphics = (await import('../../src/modules/Graphics')).default
+    let spy
+    const calls = []
+    const csv = csvOf(
+      {
+        chart: { type: 'line' },
+        xaxis: {
+          tickAmount: 2,
+          labels: { formatter: (v, t, o) => (calls.push([v, t, o?.i]), `${v}kg`) },
+        },
+        series: [{ name: 'A', data: xy(4) }],
+      },
+      {},
+      () => {
+        calls.length = 0
+        spy = vi.spyOn(Graphics.prototype, 'getTextRects')
+      },
+    )
+    expect(csv).toBe('category,A\n1kg,0\n2kg,2\n3kg,4\n4kg,6')
+    expect(calls).toEqual([[1, 1, 0], [2, 2, 1], [3, 3, 2], [4, 4, 3]])
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
 })
