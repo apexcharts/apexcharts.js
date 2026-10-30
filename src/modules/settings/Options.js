@@ -2865,7 +2865,10 @@ export default class Options {
       yaxis: this.yAxis,
       theme: {
         mode: '',
-        palette: 'palette1', // If defined, it will overwrite globals.colors variable
+        // A stand-in: unless the chart or window.Apex names a palette,
+        // Config.init replaces it with the mode's default (palette4 in dark),
+        // and it keeps following the mode (see Theme.applyModePalette).
+        palette: 'palette1',
         // Facet (#13): read `--apx-*` CSS design tokens from the cascade
         // (accent/fore/grid/surface + series-1..N). true (default) reads any
         // present (absence is a no-op); false disables. Tokens top the

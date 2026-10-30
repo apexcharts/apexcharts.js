@@ -490,6 +490,13 @@ export interface ChartGlobals
   namedThemeApplied:
     | { mode?: string; accessibility?: string; monochrome?: any }
     | undefined
+  /**
+   * Whether the page named `theme.palette` (in the chart's options, in
+   * window.Apex or in an updateOptions payload). An explicit palette is kept
+   * whatever the mode; otherwise the palette follows the mode. See
+   * Theme.applyModePalette.
+   */
+  themePaletteExplicit: boolean
 
   // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────
   // Raw series stash captured on first parse so zoom/pan can re-downsample

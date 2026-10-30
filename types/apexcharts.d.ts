@@ -5666,6 +5666,12 @@ type ApexGrid = {
 type ApexTheme = {
   /** '' (the default) inherits / auto-resolves; 'light' | 'dark' force a mode. */
   mode?: 'light' | 'dark' | ''
+  /**
+   * A built-in palette, 'palette1' to 'palette10'. Once set (here, in
+   * window.Apex or through updateOptions) it is kept whatever the mode. Left
+   * unset, the palette follows the mode: 'palette4' in dark mode, 'palette1'
+   * otherwise, switching with it when the mode changes.
+   */
   palette?: string
   /**
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade

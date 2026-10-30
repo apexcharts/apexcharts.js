@@ -296,7 +296,12 @@ export default class UpdateHelpers {
             options.series = this.syncSharedLogAxes(options.series)
           }
 
+          // A palette the payload names is the page's choice from now on, so
+          // a later mode switch keeps it (see Theme.applyModePalette).
+          if (options.theme?.palette) w.globals.themePaletteExplicit = true
+
           w.config = Utils.extend(w.config, options)
+          if (options.theme) ch.theme?.applyModePalette()
           // A path an active breakpoint also sets keeps the payload's value
           // for when the breakpoint is left (#5347).
           ch.responsive?.absorb(options)
