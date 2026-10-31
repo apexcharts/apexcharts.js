@@ -1033,9 +1033,11 @@ class Pie {
       'mouseleave',
       graphics.pathMouseLeave.bind(graphics, elPath),
     )
+    // A selected slice keeps its own centre label. Leaving the slice (or any
+    // other slice that was only hovered) must not fall back to the total.
     elPath.node.addEventListener(
       'mouseleave',
-      this.revertDataLabelsInner.bind(this),
+      this.onDataLabelMouseLeave.bind(this),
     )
 
     if (typeof i === 'number') {
@@ -2142,6 +2144,54 @@ class Pie {
 
       parent.add(line)
     }
+  }
+
+  /**
+   * Pointer left a slice. Hover prints that slice in the hole; with nothing
+   * selected, the total returns. A slice that is selected
+   * (`data:pieClicked === 'true'`, or listed in `selectedDataPoints`) keeps
+   * its own labels instead — leaving it used to wipe the selection back to
+   * "Total". `total.showAlways` never yields the hole, so it still reverts.
+   */
+  onDataLabelMouseLeave() {
+    const labels = this.donutDataLabels
+    if (labels.show && !labels.total.showAlways) {
+      const el = this.selectedSliceNode()
+      if (el) {
+        this.printDataLabelsInner(el, labels)
+        return
+      }
+    }
+    this.revertDataLabelsInner()
+  }
+
+  /**
+   * The slice a click selected, if any. `selectedDataPoints` is written on
+   * mousedown and `data:pieClicked` on mouseup, so either mark counts: a
+   * mouseleave can land with only one of them set. The last selected index
+   * wins when several slices are selected.
+   * @returns {Element | null}
+   */
+  selectedSliceNode() {
+    const w = this.w
+    const base = w.dom.baseEl
+    if (!base) return null
+
+    const picked =
+      w.interact.selectedDataPoints && w.interact.selectedDataPoints[0]
+    if (Array.isArray(picked) && picked.length) {
+      const idx = picked[picked.length - 1]
+      const el = base.querySelector(
+        `.apexcharts-${this.chartType.toLowerCase()}-slice-${idx}`,
+      )
+      if (el) return el
+    }
+
+    const areas = base.getElementsByClassName('apexcharts-pie-area')
+    for (let n = areas.length - 1; n >= 0; n--) {
+      if (areas[n].getAttribute('data:pieClicked') === 'true') return areas[n]
+    }
+    return null
   }
 
   revertDataLabelsInner() {

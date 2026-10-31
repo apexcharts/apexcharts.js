@@ -723,6 +723,56 @@ describe('Donut chart', () => {
       }
     })
 
+    const labelsOn = {
+      donut: {
+        labels: {
+          show: true,
+          name: { show: true },
+          value: { show: true },
+          total: { show: true, label: 'Total' },
+        },
+      },
+    }
+
+    const centre = (chart) => ({
+      name: chart.el.querySelector('.apexcharts-datalabel-label').textContent,
+      value: chart.el.querySelector('.apexcharts-datalabel-value').textContent,
+    })
+
+    const clickSlice = (chart, i) => {
+      const slice = chart.el.querySelector(`.apexcharts-donut-slice-${i}`)
+      slice.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+      slice.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+      return slice
+    }
+
+    it('keeps the selected slice in the centre after the pointer leaves', () => {
+      const chart = donutChart(labelsOn)
+      const slice = clickSlice(chart, 1)
+      expect(centre(chart)).toEqual({ name: 'B', value: '40' })
+
+      slice.dispatchEvent(new MouseEvent('mouseleave'))
+
+      // Issue #4013: mouseleave used to rewrite the hole as the total.
+      expect(centre(chart)).toEqual({ name: 'B', value: '40' })
+      expect(slice.getAttribute('data:pieClicked')).toBe('true')
+
+      // Leaving a different slice restores the one that is selected.
+      const other = chart.el.querySelector('.apexcharts-donut-slice-0')
+      other.dispatchEvent(new MouseEvent('mouseenter'))
+      expect(centre(chart)).toEqual({ name: 'A', value: '30' })
+      other.dispatchEvent(new MouseEvent('mouseleave'))
+      expect(centre(chart)).toEqual({ name: 'B', value: '40' })
+    })
+
+    it('reverts the centre to the total when the selected slice is deselected', () => {
+      const chart = donutChart(labelsOn)
+      clickSlice(chart, 1)
+      clickSlice(chart, 1)
+
+      expect(centre(chart)).toEqual({ name: 'Total', value: '100' })
+    })
+
     it('centres the value by the text, not the container, when total.label is empty', () => {
       const valueLift = (height) => {
         const chart = donutChart({
