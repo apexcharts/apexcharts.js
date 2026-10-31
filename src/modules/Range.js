@@ -766,10 +766,25 @@ class Range {
           ticks = gl.dataPoints - 1
         }
       } else if (cnf.xaxis.tickAmount === 'dataPoints') {
-        ticks = Math.max(
-          1,
-          (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length - 1,
-        )
+        // A chart that set no xaxis.type or tickAmount is converted to a
+        // numeric axis, and the conversion writes 'dataPoints' as its default.
+        // On a single series of numeric x values that default always meant
+        // the default count (a tick per point only on a short range, below),
+        // so it keeps meaning that: taken literally it drew a label for every
+        // one of hundreds of points. Only a 'dataPoints' the user asked for
+        // gives a single series one tick per point.
+        const keepDefaultCount =
+          cnf.xaxis.convertedCatToNumeric &&
+          cnf.xaxis.autoDataPointsTicks &&
+          this.w.axisFlags.dataFormatXNumeric &&
+          this.w.seriesData.series.length < 2
+        if (!keepDefaultCount) {
+          ticks = Math.max(
+            1,
+            (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length -
+              1,
+          )
+        }
         if (this.w.axisFlags.isXNumeric) {
           const diff = Math.round(gl.maxX - gl.minX)
           if (diff < 30) {

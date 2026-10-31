@@ -134,17 +134,18 @@ export default class Theme {
   /**
    * Facet (#13): normalize the mode's concrete defaults (foreColor + palette +
    * tooltip theme) at render time. Only overwrites a value still at its
-   * opposite-mode default sentinel, so an explicit user value or a value
-   * already normalized by checkForDarkTheme/updateThemeOptions is untouched.
+   * opposite-mode default sentinel, so a value already normalized by
+   * checkForDarkTheme/updateThemeOptions is untouched. The palette is left
+   * alone altogether once the page has named one: palette1 and palette4 are
+   * ordinary choices too, and a sentinel check alone cannot tell them from
+   * the defaults.
    */
   _applyModeDefaults(mode = this.w.config.theme.mode) {
     const w = this.w
+    this.applyModePalette(mode)
     if (mode === 'dark') {
       if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK
-      }
-      if (w.config.theme.palette === 'palette1') {
-        w.config.theme.palette = 'palette4'
       }
       if (w.config.tooltip && w.config.tooltip.theme !== 'light') {
         w.config.tooltip.theme = 'dark'
@@ -153,9 +154,24 @@ export default class Theme {
       if (w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_LIGHT
       }
-      if (w.config.theme.palette === 'palette4') {
-        w.config.theme.palette = 'palette1'
-      }
+    }
+  }
+
+  /**
+   * Move a chart that never named a palette onto the default of `mode`
+   * (palette4 in dark mode, palette1 in light mode). A palette the page named,
+   * in its options, in window.Apex or in an updateOptions payload, is kept
+   * whatever the mode, palette1 and palette4 included.
+   *
+   * @param {string} [mode]
+   */
+  applyModePalette(mode = this.w.config.theme.mode) {
+    const w = this.w
+    if (w.globals.themePaletteExplicit) return
+    if (mode === 'dark' && w.config.theme.palette === 'palette1') {
+      w.config.theme.palette = 'palette4'
+    } else if (mode === 'light' && w.config.theme.palette === 'palette4') {
+      w.config.theme.palette = 'palette1'
     }
   }
 
@@ -518,20 +534,32 @@ export default class Theme {
     for (const k in applied) {
       if (options.theme[k] !== undefined) delete /** @type {any} */ (applied)[k]
     }
+    // An empty palette (`palette: undefined` or null, as a serialised options
+    // object sends it) is not given: merged in, it left the chart with no
+    // palette at all. Copied first, so the caller's object is not touched.
+    if ('palette' in options.theme && !options.theme.palette) {
+      options = { ...options, theme: { ...options.theme } }
+      delete options.theme.palette
+    }
     // Only a mode change re-derives the mode defaults. A palette, monochrome
     // or name update keeps the tooltip and foreColor the chart already has,
     // and a value passed in the same call always wins.
     if (mode === undefined) return options
-    options.chart = options.chart || {}
-    options.tooltip = options.tooltip || {}
+    // Copies: the defaults below must not land in the caller's object, where
+    // a reused payload would carry them into the next call as its own.
+    options = { ...options, theme: { ...options.theme } }
+    options.chart = { ...options.chart }
+    options.tooltip = { ...options.tooltip }
     const dark = mode === 'dark'
 
     options.tooltip.theme = options.tooltip.theme || mode || 'light'
     options.chart.foreColor =
       options.chart.foreColor ||
       (dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT)
-    options.theme.palette =
-      options.theme.palette || (dark ? 'palette4' : 'palette1')
+    // No palette is filled in. A palette in the payload is how
+    // _updateOptions learns the page chose one, so a default written here
+    // would pin it; a chart that never chose one is moved onto the new mode's
+    // default by applyModePalette once the payload is merged.
 
     return options
   }

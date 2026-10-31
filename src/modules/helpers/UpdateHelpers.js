@@ -296,7 +296,20 @@ export default class UpdateHelpers {
             options.series = this.syncSharedLogAxes(options.series)
           }
 
+          // A palette the payload names is the page's choice from now on, so
+          // a later mode switch keeps it (see Theme.applyModePalette).
+          if (options.theme?.palette) w.globals.themePaletteExplicit = true
+
           w.config = Utils.extend(w.config, options)
+          // A payload that sets the mode moves a chart with no palette of its
+          // own onto that mode's default. '' (the default mode) and null count
+          // as light, as they do for the tooltip and foreColor defaults in
+          // updateThemeOptions, so leaving dark this way also leaves palette4.
+          if (options.theme && options.theme.mode !== undefined) {
+            ch.theme?.applyModePalette(
+              w.config.theme.mode === 'dark' ? 'dark' : 'light',
+            )
+          }
           // A path an active breakpoint also sets keeps the payload's value
           // for when the breakpoint is left (#5347).
           ch.responsive?.absorb(options)
@@ -818,6 +831,13 @@ export default class UpdateHelpers {
     // names into 1, 2, 3 and dropped the user's formatter with them.
     if (w.config.xaxis.convertedCatToNumeric) {
       const x = options.xaxis
+      // The conversion fills in a tickAmount when the object it is handed has
+      // none. Here that object is the update, not the chart, so the default
+      // it wrote replaced the tick count the chart already had: a formatter
+      // or categories update turned tickAmount: 5 into 'dataPoints', and an
+      // explicit 'dataPoints' into the automatic one. A payload that does not
+      // name a tickAmount keeps the chart's.
+      const namesTickAmount = 'tickAmount' in x
       if ('categories' in x || 'labels' in options) {
         // New names, or an explicit empty list to clear them.
         options = new Defaults(options).convertCatToNumericXaxis(options)
@@ -832,6 +852,10 @@ export default class UpdateHelpers {
       }
       // Otherwise the payload says nothing about the labels, and the
       // converted formatter already in the config stands.
+      if (!namesTickAmount) {
+        delete options.xaxis.tickAmount
+        delete options.xaxis.autoDataPointsTicks
+      }
     }
     return options
   }

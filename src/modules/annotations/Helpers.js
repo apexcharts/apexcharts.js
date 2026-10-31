@@ -454,16 +454,20 @@ export default class Helpers {
   getStringX(x) {
     const w = this.w
     let rX = x
+    // The 1-based slot of `x` in the full category list, when the axis was
+    // converted to numeric and `x` names one of its categories.
+    let catSlot = 0
 
     if (
       w.config.xaxis.convertedCatToNumeric &&
       w.labelData.categoryLabels.length
     ) {
       const strX = String(x)
-      x =
+      catSlot =
         w.labelData.categoryLabels.findIndex(
           (/** @type {any} */ l) => String(l) === strX,
         ) + 1
+      x = catSlot
     }
 
     const catIndex = w.labelData.labels
@@ -488,6 +492,16 @@ export default class Helpers {
         ? (x - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth)
         : w.globals.padHorizontal +
           ((catIndex + 0.5) * w.layout.gridWidth) / w.globals.dataPoints
+    } else if (catSlot > 0 && Utils.isNumber(w.globals.xRange)) {
+      // The category exists but has no tick on screen. A converted axis only
+      // lists the ticks of the visible window in `labels`, so after a zoom
+      // the categories outside it (or between two fractional ticks after a
+      // pan) are not there to look up. Project the category's slot through
+      // the axis domain instead: off-window ends land outside the grid and
+      // getX1X2 clamps them to its edge and marks them clipped, as it does
+      // for a numeric or datetime axis. A range whose ends both lie outside a
+      // window it covers then fills the plot instead of vanishing.
+      rX = (catSlot - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth)
     }
 
     return rX

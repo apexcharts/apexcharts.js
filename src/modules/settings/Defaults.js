@@ -2079,6 +2079,15 @@ export default class Defaults {
   }
 
   /**
+   * Whether the x label formatter is only the floor default a converted axis
+   * gets when the page has none, which turns a value into its integer part.
+   * @param {Record<string, any>} xaxis
+   */
+  static isFloorXLabelFormatter(xaxis) {
+    return xaxis.labels?.formatter === floorLabel
+  }
+
+  /**
    * Re-decide the conversion after an update merged into the config: a type
    * or orientation change can move the chart to the other side of it. When it
    * turns off, the axis gets back what the conversion took (its names, type,
@@ -2089,6 +2098,16 @@ export default class Defaults {
    */
   static syncCatToNumeric(config, options) {
     const x = config.xaxis
+    // An update that names a tickAmount is the user's choice, even when it is
+    // the 'dataPoints' the conversion wrote before. A payload converted on the
+    // way in (new categories) already carries its own mark.
+    const payload = options?.xaxis
+    if (
+      payload?.tickAmount !== undefined &&
+      payload.autoDataPointsTicks === undefined
+    ) {
+      x.autoDataPointsTicks = false
+    }
     const was = !!x.convertedCatToNumeric
     // A converted axis reads 'numeric' because the conversion wrote it.
     let asked = options?.xaxis?.type
@@ -2110,6 +2129,7 @@ export default class Defaults {
     if (x.tickAmount === 'dataPoints' && !options?.xaxis?.tickAmount) {
       x.tickAmount = undefined
     }
+    x.autoDataPointsTicks = false
   }
 
   /**
@@ -2166,7 +2186,18 @@ export default class Defaults {
 
     opts.xaxis.categories = []
     opts.labels = []
-    opts.xaxis.tickAmount = opts.xaxis.tickAmount || 'dataPoints'
+    // Remember whether 'dataPoints' is the conversion's default or the
+    // user's choice: Range keeps the default count on numeric x values for
+    // the first, and honours the second. Every parse converts again, so a
+    // 'dataPoints' this function wrote earlier stays marked as its own.
+    const x = opts.xaxis
+    if (!x.tickAmount) {
+      x.tickAmount = 'dataPoints'
+      x.autoDataPointsTicks = true
+    } else {
+      x.autoDataPointsTicks =
+        x.tickAmount === 'dataPoints' && x.autoDataPointsTicks === true
+    }
     return opts
   }
 

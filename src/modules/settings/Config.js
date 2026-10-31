@@ -155,6 +155,18 @@ export default class Config {
     // in. Done after the merge so window.Apex's bounds are covered too.
     Config.normalizeAxisBounds(config)
 
+    // The palette Options defaults is only a stand-in: with neither this chart
+    // nor window.Apex naming one, the palette follows the mode. Resolved here,
+    // on the merged config, so w.config holds a concrete value from the start
+    // and nothing has to be written into the caller's or the global options.
+    // An empty palette in the chart's own options (null or undefined, as a
+    // serialised options object sends it) is not given: merged in, it would
+    // have overwritten a palette window.Apex names.
+    config.theme.palette =
+      opts.theme?.palette ||
+      Environment.getApex().theme?.palette ||
+      Config.modeDefaultPalette(config.theme.mode)
+
     // some features are not supported. those mismatches should be handled
     Defaults.reconcile(config)
 
@@ -465,14 +477,40 @@ export default class Config {
         opts.tooltip.theme = 'dark'
       }
 
+      // window.Apex may carry a theme and no chart section.
+      if (!opts.chart) {
+        opts.chart = {}
+      }
       if (!opts.chart.foreColor) {
         opts.chart.foreColor = '#f6f7f8'
       }
-
-      if (!opts.theme.palette) {
-        opts.theme.palette = 'palette4'
-      }
+      // No palette is filled in here. Written into window.Apex it was read by
+      // every later chart as one the page had chosen, and written into the
+      // chart's options it hid a palette window.Apex names. init() resolves
+      // the mode default on the merged config instead.
     }
+  }
+
+  /**
+   * Whether the chart's own options or window.Apex name a theme palette. Only
+   * then does the palette stay put when the mode changes; otherwise it is the
+   * mode's default (palette4 in dark mode, palette1 in light mode).
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitPalette(opts) {
+    return !!(opts?.theme?.palette || Environment.getApex().theme?.palette)
+  }
+
+  /**
+   * The built-in palette a chart with no palette of its own uses in `mode`.
+   *
+   * @param {string | undefined} mode
+   * @returns {'palette1' | 'palette4'}
+   */
+  static modeDefaultPalette(mode) {
+    return mode === 'dark' ? 'palette4' : 'palette1'
   }
 
   /**

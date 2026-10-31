@@ -40,7 +40,29 @@ type ApexChartEventOpts = {
   seriesIndex: number
   dataPointIndex: number
   w: ApexChartContext
+  /**
+   * `markerClick` and `dataPointSelection` on a point drawn as a marker
+   * (line, area, scatter, bubble, radar), and `click` on such a marker with
+   * the SVG renderer: every visible series' point whose marker is drawn at
+   * the same spot, this one included, in series order. Only the marker
+   * drawn last at a spot can be clicked, so `seriesIndex` / `dataPointIndex`
+   * name that one and this names the points under it as well. A single
+   * entry where no other series shares the spot; absent when the point has
+   * no marker. With the canvas renderer `click` does not carry it (the
+   * event target is the canvas, not a marker); use `markerClick` there.
+   * `dataPointSelection` fires on the SVG renderer only.
+   */
+  coincident?: ApexCoincidentPoint[]
   [key: string]: any
+}
+
+/**
+ * A data point, as `coincident` on the marker events and in
+ * `tooltip.custom` names the points drawn at one spot.
+ */
+type ApexCoincidentPoint = {
+  seriesIndex: number
+  dataPointIndex: number
 }
 
 /**
@@ -115,6 +137,13 @@ type ApexTooltipCustomOpts = {
   y1?: number
   y2?: number
   w: ApexChartContext
+  /**
+   * An intersect tooltip (`tooltip.intersect`, `shared: false`) on a marker
+   * other series' markers are drawn under: the points of the series it
+   * lists, in the order it lists them (`seriesIndex` / `dataPointIndex` stay
+   * the hovered one). Absent when the hovered point is alone at its spot.
+   */
+  coincident?: ApexCoincidentPoint[]
   /**
    * `sunburst` / `icicle` / treemap branch only: the hovered tree node
    * (`name`, `value`, and `children` for a branch; a sunburst or icicle
@@ -756,7 +785,18 @@ interface ApexViewState {
   collapsed: number[]
   ancillaryCollapsed: number[]
   selectedDataPoints: number[][]
-  theme: { mode: string | null; palette: string | null } | null
+  theme: {
+    mode: string | null
+    palette: string | null
+    /**
+     * Whether the page named `palette` (in its options, window.Apex or an
+     * updateOptions payload). When false the palette is only the mode's
+     * default, and once the view is applied it keeps following the mode.
+     * Absent from views captured before this field existed: such a palette
+     * counts as named unless it is the default of the chart's mode.
+     */
+    paletteExplicit?: boolean
+  } | null
   locale: string | null
   annotations: {
     static: any
@@ -1705,6 +1745,7 @@ declare namespace ApexCharts {
   export type { ApexDropShadow }
   export type { ApexChartContext }
   export type { ApexChartEventOpts }
+  export type { ApexCoincidentPoint }
   export type { ApexFormatterOpts }
   export type { ApexDataLabelsFormatterOpts }
   export type { ApexLegendFormatterOpts }
@@ -5666,6 +5707,12 @@ type ApexGrid = {
 type ApexTheme = {
   /** '' (the default) inherits / auto-resolves; 'light' | 'dark' force a mode. */
   mode?: 'light' | 'dark' | ''
+  /**
+   * A built-in palette, 'palette1' to 'palette10'. Once set (here, in
+   * window.Apex or through updateOptions) it is kept whatever the mode. Left
+   * unset, the palette follows the mode: 'palette4' in dark mode, 'palette1'
+   * otherwise, switching with it when the mode changes.
+   */
   palette?: string
   /**
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade

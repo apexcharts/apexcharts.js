@@ -1,8 +1,8 @@
 // @ts-check
-import Utils from '../../utils/Utils'
 import Graphics from '../Graphics'
 import TooltipUtils from './Utils'
 import { ARROW_TIP_OVERHANG, POINTER_CLEARANCE_BELOW } from './constants'
+import { coincidentPoints, markerSeriesIndex } from '../CoincidentMarkers'
 
 /**
  * ApexCharts Tooltip.Intersect Class.
@@ -324,24 +324,24 @@ class Intersect {
       const cy = parseInt(opt.paths.getAttribute('cy'), 10)
 
       j = parseInt(opt.paths.getAttribute('rel'), 10)
-      const el = Utils.findAncestor(opt.paths, 'apexcharts-series')
-      i = el
-        ? parseInt(el.getAttribute('data:realIndex'), 10)
-        : parseInt(
-            opt.paths.parentNode.parentNode.parentNode.getAttribute('rel'),
-            10,
-          ) - 1
+      i = markerSeriesIndex(opt.paths)
+
+      const shared = ttCtx.showOnIntersect ? false : w.config.tooltip.shared
+      // Other series' markers drawn under this one, which no pointer can
+      // reach: the tooltip lists them too, and a click names them.
+      const coincident = coincidentPoints(w, { node: opt.paths })
 
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i,
         j,
-        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
+        shared,
         e,
+        ...(!shared && { coincident: this.coincidentRows(coincident, i, j) }),
       })
 
       if (e.type === 'mouseup') {
-        ttCtx.markerClick(e, i, j)
+        ttCtx.markerClick(e, i, j, coincident)
       }
 
       w.interact.capturedSeriesIndex = i
@@ -364,6 +364,54 @@ class Intersect {
       x,
       y,
     }
+  }
+
+  /**
+   * The rows an intersect tooltip lists for a hovered marker (`i`, `j`) whose
+   * spot other series' markers share (`points`, CoincidentMarkers): those of
+   * the series the tooltip is enabled on (tooltip.enabledOnSeries), one per
+   * series, in series order or its reverse (tooltip.inverseOrder). An empty
+   * series is left out under tooltip.hideEmptySeries, as a shared tooltip
+   * leaves it out, but never the hovered one, which the tooltip showed
+   * alone before. Null when that leaves the hovered point by itself: the
+   * tooltip is the one it always was.
+   * @param {import('../CoincidentMarkers').CoincidentPoint[] | null} points
+   * @param {number} i
+   * @param {number} j
+   * @returns {import('../CoincidentMarkers').CoincidentPoint[] | null}
+   */
+  coincidentRows(points, i, j) {
+    if (!points || points.length < 2) return null
+    const w = this.w
+    const ttCtx = this.ttCtx
+    const enabled = ttCtx.tConfig?.enabledOnSeries
+    const hideEmpty = w.config.tooltip.hideEmptySeries
+    /** @type {Map<number, import('../CoincidentMarkers').CoincidentPoint>} */
+    const bySeries = new Map()
+    for (const p of points) {
+      const s = p.seriesIndex
+      const hovered = s === i && p.dataPointIndex === j
+      if (Array.isArray(enabled) && enabled.indexOf(s) < 0) continue
+      if (
+        hideEmpty &&
+        !hovered &&
+        ttCtx.tooltipLabels.isEmptyAt(s, p.dataPointIndex)
+      ) {
+        continue
+      }
+      // One row a series: its point at the hovered index, if it has two here.
+      if (!bySeries.has(s) || hovered) bySeries.set(s, p)
+    }
+    const rows = [...bySeries.values()]
+    if (!rows.length) return null
+    if (
+      rows.length === 1 &&
+      rows[0].seriesIndex === i &&
+      rows[0].dataPointIndex === j
+    ) {
+      return null
+    }
+    return w.config.tooltip.inverseOrder ? rows.reverse() : rows
   }
 
   /**
@@ -419,16 +467,20 @@ class Intersect {
     }
     ttCtx.cancelOffMarkHide?.()
 
+    // The hit test finds the marker painted last; others may lie under it.
+    const coincident = coincidentPoints(w, { i, j })
+
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: opt.ttItems,
       i,
       j,
       shared: false,
       e,
+      coincident: this.coincidentRows(coincident, i, j),
     })
 
     if (e.type === 'mouseup') {
-      ttCtx.markerClick(e, i, j)
+      ttCtx.markerClick(e, i, j, coincident)
     }
 
     w.interact.capturedSeriesIndex = i

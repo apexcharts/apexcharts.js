@@ -26,10 +26,46 @@ export default class Labels {
     // Stateless helpers a datetime hover used to build afresh on every move.
     this.xFormat = new Formatters(this.w)
     this.dateTime = new DateTime(this.w)
+    /**
+     * The rows a coincident hover added to a single-row tooltip, and the
+     * tooltip rows (`ttItems`) they were added beside.
+     * @type {{ owner: any[], rows: HTMLElement[] } | null}
+     */
+    this.coincidentExtra = null
   }
 
-  /** @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any }} opts */
-  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
+  /**
+   * `coincident`, on a tooltip that is not shared: the points of the series
+   * whose markers are drawn where the hovered one is, in the order to list
+   * them (Intersect.coincidentRows). One row each, in place of the hovered
+   * series' row alone.
+   * @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any, coincident?: import('../CoincidentMarkers').CoincidentPoint[] | null }} opts
+   */
+  drawSeriesTexts({
+    shared = true,
+    ttItems,
+    i = 0,
+    j = null,
+    y1,
+    y2,
+    e,
+    coincident = null,
+  }) {
+    if (coincident && !shared) {
+      this.drawCoincidentSeriesTexts({
+        ttItems,
+        i,
+        j,
+        y1,
+        y2,
+        e,
+        points: coincident,
+      })
+      return
+    }
+    // The rows a coincident hover added stand for no series here.
+    this.detachCoincidentRows(0)
+
     const w = this.w
     const custom = w.config.tooltip.custom !== undefined
     const tooltipEl = this.ttCtx.getElTooltip()
@@ -57,7 +93,14 @@ export default class Labels {
       rows: !custom || tooltipEl?.contains(ttItems?.[0]),
     })
 
-    // Re-calculate tooltip dimensions now that we have drawn the text
+    this.measureTooltip(tooltipEl)
+  }
+
+  /**
+   * Re-calculate tooltip dimensions now that the text is drawn.
+   * @param {Element | null | undefined} tooltipEl
+   */
+  measureTooltip(tooltipEl) {
     if (tooltipEl) {
       // One rect read, not two: each call forces a synchronous layout of the
       // whole tooltip, which on a shared tooltip with a row per series is the
@@ -68,15 +111,124 @@ export default class Labels {
     }
   }
 
-  /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any, rows?: boolean}} opts */
-  printLabels({ i, j, values, ttItems, shared, e, rows = true }) {
+  /**
+   * An intersect tooltip on a marker other series' markers share a spot
+   * with: a row for each of those series (`points`, already in the order to
+   * list them), as a shared tooltip restricted to them would show. `i`, `j`
+   * is the hovered point, which the title and a custom tooltip speak for.
+   * @param {{ ttItems?: any, i: number, j: any, y1?: any, y2?: any, e?: any, points: import('../CoincidentMarkers').CoincidentPoint[] }} opts
+   */
+  drawCoincidentSeriesTexts({ ttItems, i, j, y1, y2, e, points }) {
+    const w = this.w
+    const custom = w.config.tooltip.custom !== undefined
+    const tooltipEl = this.ttCtx.getElTooltip()
+
+    if (custom) {
+      this.handleCustomTooltip({ i, j, y1, y2, w, coincident: points })
+    } else {
+      this.tooltipUtil.toggleAllTooltipSeriesGroups('disable')
+    }
+
+    const values = this.getValuesToPrint({ i, j })
+    const rows = !custom || !!tooltipEl?.contains(ttItems?.[0])
+    this.printTitle({ values, ttItems, rows })
+
+    if (rows && ttItems?.[0]) {
+      const els = this.coincidentRowEls(ttItems, points)
+      for (let r = 0; r < points.length; r++) {
+        const el = els[r]
+        if (!el) continue
+        el.classList.add('apexcharts-active')
+        el.style.display = w.config.tooltip.items.display
+
+        const s = points[r].seriesIndex
+        const pj = points[r].dataPointIndex
+        const hovered = s === i && pj === j
+        const row = this.computeSeriesRow({
+          i: s,
+          j: pj,
+          t: r,
+          tIndex: s,
+          shared: false,
+          // the hovered marker's own fill speaks for its row only
+          e: hovered ? e : null,
+          basePColor: w.globals.colors[s],
+        })
+        this.DOMHandling({
+          i: s,
+          t: r,
+          j: pj,
+          ttItems: els,
+          values: {
+            val: row.val,
+            goalVals: row.goalVals,
+            zVal: hovered
+              ? values.zVal
+              : this.getValuesToPrint({ i: s, j: pj }).zVal,
+          },
+          seriesName: row.seriesName,
+          shared: false,
+          pColor: row.pColor,
+        })
+      }
+    }
+
+    this.measureTooltip(tooltipEl)
+  }
+
+  /**
+   * The row elements for a coincident hover's points. A tooltip with a row
+   * per series lends each point its series' row. One with a single row (the
+   * non-shared cartesian one) lists the first point there and the others in
+   * rows added after it, kept for the next such hover and taken out of the
+   * tooltip by any other.
+   * @param {any[]} ttItems
+   * @param {import('../CoincidentMarkers').CoincidentPoint[]} points
+   * @returns {HTMLElement[]}
+   */
+  coincidentRowEls(ttItems, points) {
+    if (ttItems.length > 1) {
+      return points.map((p) => ttItems[p.seriesIndex])
+    }
+    let extra = this.coincidentExtra
+    if (!extra || extra.owner !== ttItems) {
+      this.detachCoincidentRows(0)
+      extra = this.coincidentExtra = { owner: ttItems, rows: [] }
+    }
+    const els = [ttItems[0]]
+    for (let r = 1; r < points.length; r++) {
+      let el = extra.rows[r - 1]
+      if (!el) {
+        el = extra.rows[r - 1] = this.ttCtx.createTTElement(r, 1)
+        el.style.order = String(r + 1)
+      }
+      if (el.previousSibling !== els[r - 1]) els[r - 1].after(el)
+      els.push(el)
+    }
+    this.detachCoincidentRows(points.length - 1)
+    return els
+  }
+
+  /**
+   * Take the rows a coincident hover added out of the tooltip, from the
+   * `from`-th on, so no other hover's row toggling can show them.
+   * @param {number} from
+   */
+  detachCoincidentRows(from) {
+    const rows = this.coincidentExtra?.rows
+    if (!rows) return
+    for (let r = from; r < rows.length; r++) rows[r].remove()
+  }
+
+  /**
+   * The title and the x-axis label read the same for every row, so they are
+   * written once a hover, not once per series.
+   * @param {{ values: any, ttItems: any, rows: boolean }} opts
+   */
+  printTitle({ values, ttItems, rows }) {
     const w = this.w
     const ttCtx = this.ttCtx
-    const { xVal, zVal, xAxisTTVal } = values
-    const seriesLen = w.seriesData.series.length
-
-    // The title and the x-axis label read the same for every row, so they are
-    // written once a hover, not once per series.
+    const { xVal, xAxisTTVal } = values
     if (ttItems?.[0]) {
       if (rows && ttCtx.showTooltipTitle) {
         ttCtx.tooltipTitle ??= w.dom.baseEl.querySelector(
@@ -88,6 +240,15 @@ export default class Labels {
         ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
       }
     }
+  }
+
+  /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any, rows?: boolean}} opts */
+  printLabels({ i, j, values, ttItems, shared, e, rows = true }) {
+    const w = this.w
+    const { zVal } = values
+    const seriesLen = w.seriesData.series.length
+
+    this.printTitle({ values, ttItems, rows })
     if (!rows) return
 
     const basePColor =
@@ -522,12 +683,7 @@ export default class Labels {
     if (shared && ttItemsChildren[0]) {
       // hide when no Val or series collapsed
       if (w.config.tooltip.hideEmptySeries) {
-        // Decided on the data, not the formatted text: a range starting at 0
-        // or a value rounded to "0.00" is not empty, and "$0" is.
-        const rd = w.rangeData
-        const empty = this.isRangeSeries(t)
-          ? !rd.seriesRangeStart[t]?.[j] && !rd.seriesRangeEnd[t]?.[j]
-          : w.seriesData.series[t]?.[j] === 0
+        const empty = this.isEmptyAt(t, j)
         refs.text.style.display = empty ? 'none' : ''
         // Back to the stylesheet's display, and only when the marker shows
         // at all (marker.show and fillSeriesColor hide it above).
@@ -559,6 +715,22 @@ export default class Labels {
         ttItemsChildren[0].parentNode.style.display = 'none'
       }
     }
+  }
+
+  /**
+   * Whether series `t` is empty at `j`, as tooltip.hideEmptySeries means it.
+   * Decided on the data, not the formatted text: a range starting at 0 or a
+   * value rounded to "0.00" is not empty, and "$0" is.
+   * @param {number} t
+   * @param {any} j
+   * @returns {boolean}
+   */
+  isEmptyAt(t, j) {
+    const w = this.w
+    const rd = w.rangeData
+    return this.isRangeSeries(t)
+      ? !rd.seriesRangeStart[t]?.[j] && !rd.seriesRangeEnd[t]?.[j]
+      : w.seriesData.series[t]?.[j] === 0
   }
 
   /**
@@ -707,8 +879,8 @@ export default class Labels {
     }
   }
 
-  /** @param {{i: any, j: any, y1: any, y2: any, w: any}} opts */
-  handleCustomTooltip({ i, j, y1, y2, w }) {
+  /** @param {{i: any, j: any, y1: any, y2: any, w: any, coincident?: any[]}} opts */
+  handleCustomTooltip({ i, j, y1, y2, w, coincident }) {
     const tooltipEl = this.ttCtx.getElTooltip()
     let fn = w.config.tooltip.custom
 
@@ -731,6 +903,9 @@ export default class Labels {
       y1,
       y2,
       w,
+      // the points of the series drawn at the hovered marker's spot, when
+      // there are others (an intersect tooltip on coincident markers)
+      ...(coincident && { coincident: coincident.map((p) => ({ ...p })) }),
     })
 
     if (tooltipEl) {
