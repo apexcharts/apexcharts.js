@@ -45,4 +45,42 @@ describe('candlestick/boxPlot null gap keeps OHLC index alignment', () => {
     expect(w.candleData.seriesCandleO[0].length).toBe(data.length)
     expect(w.candleData.seriesCandleC[0][2]).toBe(95)
   })
+
+  // #5407: a line series in a candlestick chart is not a run of gaps. Its
+  // scalar points have no OHLC tuple, and nulls in its OHLC slots pulled the
+  // y range down to 0.
+  it('candlestick + line combo: the line does not floor the y axis at 0', () => {
+    const candles = []
+    const band = []
+    for (let j = 0; j < 20; j++) {
+      const base = 80000 + j * 20
+      candles.push({ x: T0 + j * DAY, y: [base, base + 50, base - 50, base + 10] })
+      band.push({ x: T0 + j * DAY, y: j < 4 ? null : base + 100 })
+    }
+    const chart = createChartWithOptions({
+      chart: { type: 'candlestick', width: 600, height: 400, animations: { enabled: false } },
+      xaxis: { type: 'datetime' },
+      series: [
+        { name: 'price', type: 'candlestick', data: candles },
+        { name: 'band', type: 'line', data: band },
+      ],
+    })
+    const w = chart.w
+    expect(w.globals.minY).toBeGreaterThan(70000)
+    expect(w.globals.maxY).toBeGreaterThanOrEqual(80000 + 19 * 20 + 100)
+    expect(w.candleData.seriesCandleO[1]).toEqual([])
+  })
+
+  it('candlestick chart with an untyped line series keeps the OHLC rows of the candles only', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'candlestick', width: 600, height: 400, animations: { enabled: false } },
+      xaxis: { type: 'datetime' },
+      series: [
+        { name: 'price', data: [{ x: T0, y: [100, 110, 95, 105] }, { x: T0 + DAY, y: [105, 112, 101, 108] }] },
+        { name: 'avg', type: 'line', data: [{ x: T0, y: 102 }, { x: T0 + DAY, y: 106 }] },
+      ],
+    })
+    expect(chart.w.globals.minY).toBeGreaterThan(50)
+    expect(chart.w.candleData.seriesCandleO[0]).toEqual([100, 105])
+  })
 })

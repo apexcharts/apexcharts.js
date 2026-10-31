@@ -307,11 +307,12 @@ class Range {
       ) {
         const val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
-          if (typeof seriesMax[i]?.[j] !== 'undefined') {
+          // != null: an OHLC gap holds null, and Math.min(x, null) is 0
+          if (seriesMax[i]?.[j] != null) {
             maxY = Math.max(maxY, seriesMax[i][j])
             lowestY = Math.min(lowestY, seriesMax[i][j])
           }
-          if (typeof seriesMin[i]?.[j] !== 'undefined') {
+          if (seriesMin[i]?.[j] != null) {
             lowestY = Math.min(lowestY, seriesMin[i][j])
             highestY = Math.max(highestY, seriesMin[i][j])
           }
@@ -323,9 +324,7 @@ class Range {
           switch (seriesType) {
             case 'candlestick':
               {
-                if (
-                  typeof this.w.candleData.seriesCandleC[i][j] !== 'undefined'
-                ) {
+                if (this.w.candleData.seriesCandleC[i]?.[j] != null) {
                   maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i][j])
                   lowestY = Math.min(
                     lowestY,
@@ -336,9 +335,7 @@ class Range {
               break
             case 'boxPlot':
               {
-                if (
-                  typeof this.w.candleData.seriesCandleC[i][j] !== 'undefined'
-                ) {
+                if (this.w.candleData.seriesCandleC[i]?.[j] != null) {
                   maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i][j])
                   lowestY = Math.min(
                     lowestY,

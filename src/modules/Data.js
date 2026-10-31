@@ -688,9 +688,14 @@ export default class Data {
   handleCandleStickBoxData(ser, i) {
     /** @type {any} */
     let ohlc = { o: [], h: [], m: [], l: [], c: [] }
-    if (this.isFormat2DArray()) {
+    // A line or other series in a candlestick/boxPlot chart has no OHLC rows.
+    // Parsed as candles, each scalar point became a null gap, and the nulls
+    // pulled the y range down to 0 (#5407).
+    const own = ser[i].type
+    const isOhlcSeries = !own || own === 'candlestick' || own === 'boxPlot'
+    if (isOhlcSeries && this.isFormat2DArray()) {
       ohlc = this.handleCandleStickBoxDataFormat('array', ser, i)
-    } else if (this.isFormatXY()) {
+    } else if (isOhlcSeries && this.isFormatXY()) {
       ohlc = this.handleCandleStickBoxDataFormat('xy', ser, i)
     }
 
