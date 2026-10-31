@@ -85,9 +85,10 @@ Required if you are **embedding ApexCharts into a product or platform used by ot
 ✅ What's included:
 
 - Redistribution rights for **one application or product**
-- **Unlimited developer seats** on that application, with no separate per-developer license to buy
 - **Every licensed feature**, at the highest tier
 - 12-month subscription with updates & support
+
+⚠️ **Developer licenses are purchased separately.** The OEM License grants redistribution rights and carries no developer seats. Each developer who works with ApexCharts in that application also needs a **Community + Commercial** license of their own. That is the tier whatever features your product uses, because the license key comes from the OEM License and already renders every licensed feature.
 
 Your end users need no license of their own. A second application needs a second OEM license. White-label, resale, and affiliate arrangements are quoted separately.
 
