@@ -31,7 +31,7 @@ var __objRest = (source, exclude) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.6.0
+ * ApexCharts v8.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -163,8 +163,10 @@ function Me(e) {
   return n;
 }
 const AxesUtils = _core.__apex_axes_AxesUtils;
+const Defaults = _core.__apex_Defaults;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
+const DateTime = _core.__apex_DateTime;
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const SVGNS = _core.__apex_math_SVGNS;
@@ -926,6 +928,27 @@ class Exports {
       theme: this.ctx.theme,
       timeScale: this.ctx.timeScale
     });
+    const xFromScale = w.axisFlags.isXNumeric && !w.labelData.timescaleLabels.length;
+    const xFormatter = w.config.xaxis.labels.formatter;
+    const formatScaleX = typeof xFormatter === "function" && !Defaults.isFloorXLabelFormatter(w.config.xaxis);
+    const dateFormatter = new DateTime(w).formatDate;
+    const rowX = (i) => {
+      if (!w.axisFlags.dataFormatXNumeric) return i + 1;
+      const d = series.map((s) => {
+        var _a;
+        return (_a = s.data) == null ? void 0 : _a[i];
+      }).find((d2) => d2 != null && typeof d2 === "object");
+      const x2 = d == null ? void 0 : Array.isArray(d) ? d[0] : d.x;
+      return x2 instanceof Date ? x2.getTime() : x2;
+    };
+    const scaleCat = (i) => {
+      const x2 = rowX(i);
+      if (x2 == null) return "";
+      if (!formatScaleX) return String(x2);
+      const label = xFormatter(x2, x2, { i, dateFormatter, w });
+      if (label == null) return "";
+      return Array.isArray(label) ? label : String(label);
+    };
     const getCat = (i) => {
       let cat = "";
       if (!gl.axisCharts) {
@@ -941,6 +964,8 @@ class Exports {
               dataPointIndex: i,
               w
             });
+          } else if (xFromScale) {
+            cat = scaleCat(i);
           } else {
             cat = axesUtils.getLabel(
               w.labelData.labels,
@@ -5367,11 +5392,13 @@ class Helpers2 {
     var _a;
     const w = this.w;
     let rX = x2;
+    let catSlot = 0;
     if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
       const strX = String(x2);
-      x2 = w.labelData.categoryLabels.findIndex(
+      catSlot = w.labelData.categoryLabels.findIndex(
         (l) => String(l) === strX
       ) + 1;
+      x2 = catSlot;
     }
     const catIndex = w.labelData.labels.map(
       (item) => Array.isArray(item) ? item.join(" ") : item
@@ -5383,6 +5410,8 @@ class Helpers2 {
       rX = parseFloat((_a = xLabel.getAttribute("x")) != null ? _a : "0");
     } else if (catIndex > -1) {
       rX = w.axisFlags.isXNumeric ? (x2 - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth) : w.globals.padHorizontal + (catIndex + 0.5) * w.layout.gridWidth / w.globals.dataPoints;
+    } else if (catSlot > 0 && Utils.isNumber(w.globals.xRange)) {
+      rX = (catSlot - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth);
     }
     return rX;
   }

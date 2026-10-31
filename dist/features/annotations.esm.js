@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.6.0
+ * ApexCharts v8.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -335,11 +335,13 @@ class Helpers {
     var _a;
     const w = this.w;
     let rX = x;
+    let catSlot = 0;
     if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
       const strX = String(x);
-      x = w.labelData.categoryLabels.findIndex(
+      catSlot = w.labelData.categoryLabels.findIndex(
         (l) => String(l) === strX
       ) + 1;
+      x = catSlot;
     }
     const catIndex = w.labelData.labels.map(
       (item) => Array.isArray(item) ? item.join(" ") : item
@@ -351,6 +353,8 @@ class Helpers {
       rX = parseFloat((_a = xLabel.getAttribute("x")) != null ? _a : "0");
     } else if (catIndex > -1) {
       rX = w.axisFlags.isXNumeric ? (x - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth) : w.globals.padHorizontal + (catIndex + 0.5) * w.layout.gridWidth / w.globals.dataPoints;
+    } else if (catSlot > 0 && Utils.isNumber(w.globals.xRange)) {
+      rX = (catSlot - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth);
     }
     return rX;
   }

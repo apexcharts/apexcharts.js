@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.6.0
+ * ApexCharts v8.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -49,8 +49,10 @@ function Me(e) {
 }
 const Graphics = _core.__apex_Graphics;
 const AxesUtils = _core.__apex_axes_AxesUtils;
+const Defaults = _core.__apex_Defaults;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
+const DateTime = _core.__apex_DateTime;
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const SVGNS = _core.__apex_math_SVGNS;
@@ -812,6 +814,27 @@ class Exports {
       theme: this.ctx.theme,
       timeScale: this.ctx.timeScale
     });
+    const xFromScale = w.axisFlags.isXNumeric && !w.labelData.timescaleLabels.length;
+    const xFormatter = w.config.xaxis.labels.formatter;
+    const formatScaleX = typeof xFormatter === "function" && !Defaults.isFloorXLabelFormatter(w.config.xaxis);
+    const dateFormatter = new DateTime(w).formatDate;
+    const rowX = (i) => {
+      if (!w.axisFlags.dataFormatXNumeric) return i + 1;
+      const d = series.map((s) => {
+        var _a;
+        return (_a = s.data) == null ? void 0 : _a[i];
+      }).find((d2) => d2 != null && typeof d2 === "object");
+      const x = d == null ? void 0 : Array.isArray(d) ? d[0] : d.x;
+      return x instanceof Date ? x.getTime() : x;
+    };
+    const scaleCat = (i) => {
+      const x = rowX(i);
+      if (x == null) return "";
+      if (!formatScaleX) return String(x);
+      const label = xFormatter(x, x, { i, dateFormatter, w });
+      if (label == null) return "";
+      return Array.isArray(label) ? label : String(label);
+    };
     const getCat = (i) => {
       let cat = "";
       if (!gl.axisCharts) {
@@ -827,6 +850,8 @@ class Exports {
               dataPointIndex: i,
               w
             });
+          } else if (xFromScale) {
+            cat = scaleCat(i);
           } else {
             cat = axesUtils.getLabel(
               w.labelData.labels,

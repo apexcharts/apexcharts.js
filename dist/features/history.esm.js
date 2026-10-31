@@ -14,7 +14,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.6.0
+ * ApexCharts v8.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -101,7 +101,13 @@ function captureViewState(w, ctx) {
     collapsed: (w.globals.collapsedSeriesIndices || []).slice(),
     ancillaryCollapsed: (w.globals.ancillaryCollapsedSeriesIndices || []).slice(),
     selectedDataPoints: cloneSelection(w.interact.selectedDataPoints),
-    theme: theme ? { mode: (_a = theme.mode) != null ? _a : null, palette: (_b = theme.palette) != null ? _b : null } : null,
+    theme: theme ? {
+      mode: (_a = theme.mode) != null ? _a : null,
+      palette: (_b = theme.palette) != null ? _b : null,
+      // A palette the chart only defaulted to keeps following the mode
+      // once restored; without this the restore would name it.
+      paletteExplicit: !!w.globals.themePaletteExplicit
+    } : null,
     locale: w.config.chart && w.config.chart.defaultLocale || null,
     annotations: captureAnnotations(w, ctx),
     drill: drilldown && drilldown.depth > 0 ? { path: drilldown.path.slice() } : null,
@@ -135,6 +141,10 @@ function applyCollapsedSet(ctx, targetCollapsed, targetAncillary) {
 function restoreSelection(ctx, selectedDataPoints) {
   if (!Array.isArray(selectedDataPoints)) return;
   ctx.w.interact.selectedDataPoints = cloneSelection(selectedDataPoints);
+}
+function restorePaletteChoice(w, theme) {
+  if (!w || !theme || theme.palette == null) return;
+  w.globals.themePaletteExplicit = typeof theme.paletteExplicit === "boolean" ? theme.paletteExplicit : theme.palette !== (w.config.theme.mode === "dark" ? "palette4" : "palette1");
 }
 function applyViewInteraction(ctx, view) {
   if (!ctx || !view) return;
@@ -422,6 +432,7 @@ class History {
     try {
       this.ctx.clearAnnotations();
       p = this.ctx.updateOptions(Utils.clone(cp.config), false, animate, false, false);
+      restorePaletteChoice(this.w, cp.view && cp.view.theme);
     } catch (e) {
       this.applying = false;
       throw e;

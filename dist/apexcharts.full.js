@@ -55,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.6.0
+ * ApexCharts v8.7.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -4729,6 +4729,8 @@ var __async = (__this, __arguments, generator) => {
           categories: [],
           convertedCatToNumeric: false,
           // internal property which should not be altered outside
+          autoDataPointsTicks: false,
+          // internal: tickAmount 'dataPoints' was written by the conversion above, not by the user
           offsetX: 0,
           offsetY: 0,
           overwriteCategories: void 0,
@@ -4859,8 +4861,10 @@ var __async = (__this, __arguments, generator) => {
         yaxis: this.yAxis,
         theme: {
           mode: "",
+          // A stand-in: unless the chart or window.Apex names a palette,
+          // Config.init replaces it with the mode's default (palette4 in dark),
+          // and it keeps following the mode (see Theme.applyModePalette).
           palette: "palette1",
-          // If defined, it will overwrite globals.colors variable
           // Facet (#13): read `--apx-*` CSS design tokens from the cascade
           // (accent/fore/grid/surface + series-1..N). true (default) reads any
           // present (absence is a no-op); false disables. Tokens top the
@@ -7165,6 +7169,15 @@ var __async = (__this, __arguments, generator) => {
       return !isBarHorizontal && !unsupportedZoom && !isScatterJitter && xaxisType !== "datetime" && xaxisType !== "numeric" && tickPlacement !== "between";
     }
     /**
+     * Whether the x label formatter is only the floor default a converted axis
+     * gets when the page has none, which turns a value into its integer part.
+     * @param {Record<string, any>} xaxis
+     */
+    static isFloorXLabelFormatter(xaxis) {
+      var _a;
+      return ((_a = xaxis.labels) == null ? void 0 : _a.formatter) === floorLabel;
+    }
+    /**
      * Re-decide the conversion after an update merged into the config: a type
      * or orientation change can move the chart to the other side of it. When it
      * turns off, the axis gets back what the conversion took (its names, type,
@@ -7176,6 +7189,10 @@ var __async = (__this, __arguments, generator) => {
     static syncCatToNumeric(config, options2) {
       var _a, _b, _c, _d;
       const x2 = config.xaxis;
+      const payload = options2 == null ? void 0 : options2.xaxis;
+      if ((payload == null ? void 0 : payload.tickAmount) !== void 0 && payload.autoDataPointsTicks === void 0) {
+        x2.autoDataPointsTicks = false;
+      }
       const was = !!x2.convertedCatToNumeric;
       let asked = (_a = options2 == null ? void 0 : options2.xaxis) == null ? void 0 : _a.type;
       if (was && asked === "numeric") asked = void 0;
@@ -7196,6 +7213,7 @@ var __async = (__this, __arguments, generator) => {
       if (x2.tickAmount === "dataPoints" && !((_d = options2 == null ? void 0 : options2.xaxis) == null ? void 0 : _d.tickAmount)) {
         x2.tickAmount = void 0;
       }
+      x2.autoDataPointsTicks = false;
     }
     /**
      * @param {Record<string, any>} opts
@@ -7229,7 +7247,13 @@ var __async = (__this, __arguments, generator) => {
       }
       opts.xaxis.categories = [];
       opts.labels = [];
-      opts.xaxis.tickAmount = opts.xaxis.tickAmount || "dataPoints";
+      const x2 = opts.xaxis;
+      if (!x2.tickAmount) {
+        x2.tickAmount = "dataPoints";
+        x2.autoDataPointsTicks = true;
+      } else {
+        x2.autoDataPointsTicks = x2.tickAmount === "dataPoints" && x2.autoDataPointsTicks === true;
+      }
       return opts;
     }
     bubble() {
@@ -7891,7 +7915,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{responsiveOverride: any}} opts */
     init({ responsiveOverride }) {
-      var _a, _b, _c, _d, _e, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
       let config = new Options().init();
       let opts = __spreadValues({}, _Config.dropEmptyOptions(this.opts, config));
       [
@@ -7957,6 +7981,7 @@ var __async = (__this, __arguments, generator) => {
       );
       config = Utils$1.extend(mergedWithDefaultConfig, opts);
       _Config.normalizeAxisBounds(config);
+      config.theme.palette = ((_i = opts.theme) == null ? void 0 : _i.palette) || ((_j = Environment.getApex().theme) == null ? void 0 : _j.palette) || _Config.modeDefaultPalette(config.theme.mode);
       Defaults.reconcile(config);
       return config;
     }
@@ -8143,13 +8168,34 @@ var __async = (__this, __arguments, generator) => {
         if (opts.tooltip.theme !== "light") {
           opts.tooltip.theme = "dark";
         }
+        if (!opts.chart) {
+          opts.chart = {};
+        }
         if (!opts.chart.foreColor) {
           opts.chart.foreColor = "#f6f7f8";
         }
-        if (!opts.theme.palette) {
-          opts.theme.palette = "palette4";
-        }
       }
+    }
+    /**
+     * Whether the chart's own options or window.Apex name a theme palette. Only
+     * then does the palette stay put when the mode changes; otherwise it is the
+     * mode's default (palette4 in dark mode, palette1 in light mode).
+     *
+     * @param {Record<string, any> | null | undefined} opts  the chart's own options
+     * @returns {boolean}
+     */
+    static hasExplicitPalette(opts) {
+      var _a, _b;
+      return !!(((_a = opts == null ? void 0 : opts.theme) == null ? void 0 : _a.palette) || ((_b = Environment.getApex().theme) == null ? void 0 : _b.palette));
+    }
+    /**
+     * The built-in palette a chart with no palette of its own uses in `mode`.
+     *
+     * @param {string | undefined} mode
+     * @returns {'palette1' | 'palette4'}
+     */
+    static modeDefaultPalette(mode) {
+      return mode === "dark" ? "palette4" : "palette1";
     }
     /**
      * Reject a `chart.type` no renderer answers to, at the point the config is
@@ -8787,6 +8833,9 @@ var __async = (__this, __arguments, generator) => {
         // What the named theme (theme.name) wrote into config.theme, so a switch
         // to another named theme can take it back (see Theme._applyNamedThemeMode).
         namedThemeApplied: void 0,
+        // Whether the page named theme.palette, so the mode defaults leave it
+        // alone (see Theme.applyModePalette). Set by Base and updateOptions.
+        themePaletteExplicit: false,
         lastXAxis: [],
         lastYAxis: [],
         // ── User interaction state (must survive re-renders) ──────────────────────
@@ -9019,6 +9068,7 @@ var __async = (__this, __arguments, generator) => {
     init() {
       const config = new Config(this.opts).init({ responsiveOverride: false });
       const globals = new Globals().init(config);
+      globals.themePaletteExplicit = Config.hasExplicitPalette(this.opts);
       const w = {
         config,
         globals,
@@ -10907,6 +10957,162 @@ var __async = (__this, __arguments, generator) => {
       };
     }
   }
+  const COINCIDENT_TOLERANCE = 0.5;
+  const indexes$1 = /* @__PURE__ */ new WeakMap();
+  function markerSeriesIndex(node) {
+    var _a, _b, _c, _d, _e;
+    const el = Utils$1.findAncestor(node, "apexcharts-series");
+    if (el) return parseInt((_a = el.getAttribute("data:realIndex")) != null ? _a : "", 10);
+    const up = (
+      /** @type {any} */
+      (_c = (_b = node.parentNode) == null ? void 0 : _b.parentNode) == null ? void 0 : _c.parentNode
+    );
+    return parseInt((_e = (_d = up == null ? void 0 : up.getAttribute) == null ? void 0 : _d.call(up, "rel")) != null ? _e : "", 10) - 1;
+  }
+  function isPointMarker(node) {
+    var _a;
+    return !!(((_a = node == null ? void 0 : node.classList) == null ? void 0 : _a.contains("apexcharts-marker")) && node.hasAttribute("rel"));
+  }
+  const bucketKey = (x2, y) => `${Math.floor(x2)},${Math.floor(y)}`;
+  function paintsMarkers(w) {
+    var _a;
+    const renderer = (_a = w.globals) == null ? void 0 : _a.activeRenderer;
+    return (renderer == null ? void 0 : renderer.kind) === "canvas" && typeof renderer.hitTestMarker === "function" && !!w.globals.xyCharts;
+  }
+  function renderToken(w) {
+    var _a, _b, _c, _d, _e;
+    return (_e = (_d = (_b = (_a = w.dom) == null ? void 0 : _a.elGraphical) == null ? void 0 : _b.node) != null ? _d : (_c = w.dom) == null ? void 0 : _c.baseEl) != null ? _e : null;
+  }
+  function addEntry(index, entry) {
+    if (!(entry.x === entry.x && entry.y === entry.y)) return;
+    const pointKey = `${entry.i}:${entry.j}`;
+    if (!index.byPoint.has(pointKey)) index.byPoint.set(pointKey, entry);
+    const key = bucketKey(entry.x, entry.y);
+    const bucket = index.buckets.get(key);
+    if (bucket) bucket.push(entry);
+    else index.buckets.set(key, [entry]);
+  }
+  function buildIndex(w) {
+    var _a, _b, _c, _d;
+    const token = renderToken(w);
+    if (!token) return null;
+    const points = (_a = w.globals) == null ? void 0 : _a.pointsArray;
+    const index = {
+      token,
+      points,
+      byNode: /* @__PURE__ */ new Map(),
+      byPoint: /* @__PURE__ */ new Map(),
+      buckets: /* @__PURE__ */ new Map(),
+      misses: /* @__PURE__ */ new Set()
+    };
+    if (paintsMarkers(w)) {
+      if (Array.isArray(points)) {
+        for (let i2 = 0; i2 < points.length; i2++) {
+          const row = points[i2];
+          if (!Array.isArray(row)) continue;
+          for (let j2 = 0; j2 < row.length; j2++) {
+            const p = row[j2];
+            if (!p) continue;
+            addEntry(index, { i: i2, j: j2, x: +p[0], y: +p[1], node: null });
+          }
+        }
+      }
+    } else {
+      const nodes = token.querySelectorAll(".apexcharts-marker[rel]");
+      for (let k2 = 0; k2 < nodes.length; k2++) {
+        const node = nodes[k2];
+        const entry = {
+          i: markerSeriesIndex(node),
+          j: parseInt((_b = node.getAttribute("rel")) != null ? _b : "", 10),
+          x: parseFloat((_c = node.getAttribute("cx")) != null ? _c : ""),
+          y: parseFloat((_d = node.getAttribute("cy")) != null ? _d : ""),
+          node
+        };
+        if (isNaN(entry.i) || isNaN(entry.j)) continue;
+        index.byNode.set(node, entry);
+        if (node.getAttribute("default-marker-size") === "0") continue;
+        addEntry(index, entry);
+      }
+    }
+    indexes$1.set(w, index);
+    return index;
+  }
+  function getIndex(w, rebuild = false) {
+    var _a;
+    const index = indexes$1.get(w);
+    if (!rebuild && index && index.token === renderToken(w) && index.points === ((_a = w.globals) == null ? void 0 : _a.pointsArray)) {
+      return index;
+    }
+    return buildIndex(w);
+  }
+  function liveCentre(entry) {
+    var _a, _b;
+    if (!entry.node) return entry;
+    return {
+      x: parseFloat((_a = entry.node.getAttribute("cx")) != null ? _a : ""),
+      y: parseFloat((_b = entry.node.getAttribute("cy")) != null ? _b : "")
+    };
+  }
+  function isStale(entry) {
+    if (!entry.node) return false;
+    if (!entry.node.isConnected) return true;
+    const c = liveCentre(entry);
+    return c.x !== entry.x || c.y !== entry.y;
+  }
+  function locate(w, at2, rebuild) {
+    const index = getIndex(w, rebuild);
+    if (!index) return null;
+    const entry = at2.node ? index.byNode.get(at2.node) : index.byPoint.get(`${at2.i}:${at2.j}`);
+    return entry ? { index, entry } : null;
+  }
+  function coincidentPoints(w, at2) {
+    var _a, _b, _c;
+    if (!(w == null ? void 0 : w.globals) || !w.dom) return null;
+    if (at2.node && !isPointMarker(at2.node)) return null;
+    let found = locate(w, at2, false);
+    if (!found || isStale(found.entry)) {
+      const missKey = (_a = at2.node) != null ? _a : `${at2.i}:${at2.j}`;
+      if (!found && ((_b = indexes$1.get(w)) == null ? void 0 : _b.misses.has(missKey))) return null;
+      found = locate(w, at2, true);
+      if (!found) {
+        (_c = indexes$1.get(w)) == null ? void 0 : _c.misses.add(missKey);
+        return null;
+      }
+    }
+    const { index, entry } = found;
+    const centre2 = liveCentre(entry);
+    const hidden = /* @__PURE__ */ new Set([
+      ...w.globals.collapsedSeriesIndices || [],
+      ...w.globals.ancillaryCollapsedSeriesIndices || []
+    ]);
+    const tol = COINCIDENT_TOLERANCE;
+    const out = /* @__PURE__ */ new Map();
+    out.set(`${entry.i}:${entry.j}`, {
+      seriesIndex: entry.i,
+      dataPointIndex: entry.j
+    });
+    const bx = Math.floor(centre2.x);
+    const by = Math.floor(centre2.y);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const bucket = index.buckets.get(`${bx + dx},${by + dy}`);
+        if (!bucket) continue;
+        for (const other of bucket) {
+          if (other === entry || hidden.has(other.i)) continue;
+          const key = `${other.i}:${other.j}`;
+          if (out.has(key)) continue;
+          const c = liveCentre(other);
+          if (Math.abs(c.x - centre2.x) > tol || Math.abs(c.y - centre2.y) > tol) {
+            continue;
+          }
+          out.set(key, { seriesIndex: other.i, dataPointIndex: other.j });
+        }
+      }
+    }
+    return [...out.values()].sort(
+      (a2, b) => a2.seriesIndex - b.seriesIndex || a2.dataPointIndex - b.dataPointIndex
+    );
+  }
   class Events {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -11010,6 +11216,8 @@ var __async = (__this, __arguments, generator) => {
               if (w.interact.wasDragged) {
                 w.interact.wasDragged = false;
               } else {
+                const coincident = coincidentPoints(w, { node: e2.target });
+                if (coincident) opts.coincident = coincident;
                 if (typeof w.config.chart.events.click === "function") {
                   w.config.chart.events.click(e2, me2, opts);
                 }
@@ -16434,17 +16642,18 @@ var __async = (__this, __arguments, generator) => {
     /**
      * Facet (#13): normalize the mode's concrete defaults (foreColor + palette +
      * tooltip theme) at render time. Only overwrites a value still at its
-     * opposite-mode default sentinel, so an explicit user value or a value
-     * already normalized by checkForDarkTheme/updateThemeOptions is untouched.
+     * opposite-mode default sentinel, so a value already normalized by
+     * checkForDarkTheme/updateThemeOptions is untouched. The palette is left
+     * alone altogether once the page has named one: palette1 and palette4 are
+     * ordinary choices too, and a sentinel check alone cannot tell them from
+     * the defaults.
      */
     _applyModeDefaults(mode = this.w.config.theme.mode) {
       const w = this.w;
+      this.applyModePalette(mode);
       if (mode === "dark") {
         if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
           w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK;
-        }
-        if (w.config.theme.palette === "palette1") {
-          w.config.theme.palette = "palette4";
         }
         if (w.config.tooltip && w.config.tooltip.theme !== "light") {
           w.config.tooltip.theme = "dark";
@@ -16453,9 +16662,23 @@ var __async = (__this, __arguments, generator) => {
         if (w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
           w.config.chart.foreColor = DEFAULT_FORECOLOR_LIGHT;
         }
-        if (w.config.theme.palette === "palette4") {
-          w.config.theme.palette = "palette1";
-        }
+      }
+    }
+    /**
+     * Move a chart that never named a palette onto the default of `mode`
+     * (palette4 in dark mode, palette1 in light mode). A palette the page named,
+     * in its options, in window.Apex or in an updateOptions payload, is kept
+     * whatever the mode, palette1 and palette4 included.
+     *
+     * @param {string} [mode]
+     */
+    applyModePalette(mode = this.w.config.theme.mode) {
+      const w = this.w;
+      if (w.globals.themePaletteExplicit) return;
+      if (mode === "dark" && w.config.theme.palette === "palette1") {
+        w.config.theme.palette = "palette4";
+      } else if (mode === "light" && w.config.theme.palette === "palette4") {
+        w.config.theme.palette = "palette1";
       }
     }
     /**
@@ -16713,13 +16936,17 @@ var __async = (__this, __arguments, generator) => {
         if (options2.theme[k2] !== void 0) delete /** @type {any} */
         applied[k2];
       }
+      if ("palette" in options2.theme && !options2.theme.palette) {
+        options2 = __spreadProps(__spreadValues({}, options2), { theme: __spreadValues({}, options2.theme) });
+        delete options2.theme.palette;
+      }
       if (mode === void 0) return options2;
-      options2.chart = options2.chart || {};
-      options2.tooltip = options2.tooltip || {};
+      options2 = __spreadProps(__spreadValues({}, options2), { theme: __spreadValues({}, options2.theme) });
+      options2.chart = __spreadValues({}, options2.chart);
+      options2.tooltip = __spreadValues({}, options2.tooltip);
       const dark = mode === "dark";
       options2.tooltip.theme = options2.tooltip.theme || mode || "light";
       options2.chart.foreColor = options2.chart.foreColor || (dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT);
-      options2.theme.palette = options2.theme.palette || (dark ? "palette4" : "palette1");
       return options2;
     }
     predefined() {
@@ -18917,7 +19144,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {{minY: number, maxY: number, lowestY: number, highestY: number}}
      */
     getMinYMaxY(startingSeriesIndex, lowestY = Number.MAX_VALUE, highestY = -Number.MAX_VALUE, endingSeriesIndex = null) {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
       const cnf = this.w.config;
       const gl = this.w.globals;
       let maxY = -Number.MAX_VALUE;
@@ -19048,18 +19275,18 @@ var __async = (__this, __arguments, generator) => {
         for (let j2 = firstXIndex; j2 <= lastXIndex && j2 < this.w.seriesData.series[i2].length; j2++) {
           const val = series[i2][j2];
           if (val !== null && Utils$1.isNumber(val)) {
-            if (typeof ((_d = seriesMax[i2]) == null ? void 0 : _d[j2]) !== "undefined") {
+            if (((_d = seriesMax[i2]) == null ? void 0 : _d[j2]) != null) {
               maxY = Math.max(maxY, seriesMax[i2][j2]);
               lowestY = Math.min(lowestY, seriesMax[i2][j2]);
             }
-            if (typeof ((_e = seriesMin[i2]) == null ? void 0 : _e[j2]) !== "undefined") {
+            if (((_e = seriesMin[i2]) == null ? void 0 : _e[j2]) != null) {
               lowestY = Math.min(lowestY, seriesMin[i2][j2]);
               highestY = Math.max(highestY, seriesMin[i2][j2]);
             }
             switch (seriesType) {
               case "candlestick":
                 {
-                  if (typeof this.w.candleData.seriesCandleC[i2][j2] !== "undefined") {
+                  if (((_f = this.w.candleData.seriesCandleC[i2]) == null ? void 0 : _f[j2]) != null) {
                     maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i2][j2]);
                     lowestY = Math.min(
                       lowestY,
@@ -19070,7 +19297,7 @@ var __async = (__this, __arguments, generator) => {
                 break;
               case "boxPlot":
                 {
-                  if (typeof this.w.candleData.seriesCandleC[i2][j2] !== "undefined") {
+                  if (((_g = this.w.candleData.seriesCandleC[i2]) == null ? void 0 : _g[j2]) != null) {
                     maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i2][j2]);
                     lowestY = Math.min(
                       lowestY,
@@ -19081,7 +19308,7 @@ var __async = (__this, __arguments, generator) => {
                 break;
               case "violin":
                 {
-                  if (typeof ((_f = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _f[j2]) !== "undefined") {
+                  if (typeof ((_h = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _h[j2]) !== "undefined") {
                     maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i2][j2]);
                     lowestY = Math.min(
                       lowestY,
@@ -19104,7 +19331,7 @@ var __async = (__this, __arguments, generator) => {
               );
             }
             if (this.w.config.chart.type === "boxPlot" || seriesType === "boxPlot") {
-              const boxPts = (_h = (_g = this.w.candleData.seriesBoxPoints) == null ? void 0 : _g[i2]) == null ? void 0 : _h[j2];
+              const boxPts = (_j = (_i = this.w.candleData.seriesBoxPoints) == null ? void 0 : _i[i2]) == null ? void 0 : _j[j2];
               if (boxPts) {
                 for (let p = 0; p < boxPts.length; p++) {
                   const pv = boxPts[p];
@@ -19122,7 +19349,7 @@ var __async = (__this, __arguments, generator) => {
                 Utils$1.decimalPlaces(val)
               );
             }
-            if (minY > ((_i = seriesMin[i2]) == null ? void 0 : _i[j2]) && ((_j = seriesMin[i2]) == null ? void 0 : _j[j2]) < 0) {
+            if (minY > ((_k = seriesMin[i2]) == null ? void 0 : _k[j2]) && ((_l = seriesMin[i2]) == null ? void 0 : _l[j2]) < 0) {
               minY = seriesMin[i2][j2];
             }
           } else {
@@ -19348,10 +19575,13 @@ var __async = (__this, __arguments, generator) => {
             ticks = gl.dataPoints - 1;
           }
         } else if (cnf.xaxis.tickAmount === "dataPoints") {
-          ticks = Math.max(
-            1,
-            (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length - 1
-          );
+          const keepDefaultCount = cnf.xaxis.convertedCatToNumeric && cnf.xaxis.autoDataPointsTicks && this.w.axisFlags.dataFormatXNumeric && this.w.seriesData.series.length < 2;
+          if (!keepDefaultCount) {
+            ticks = Math.max(
+              1,
+              (this.w.seriesData.series[gl.maxValsInArrayIndex] || []).length - 1
+            );
+          }
           if (this.w.axisFlags.isXNumeric) {
             const diff = Math.round(gl.maxX - gl.minX);
             if (diff < 30) {
@@ -20385,6 +20615,20 @@ var __async = (__this, __arguments, generator) => {
     _extractDimensionUnit(value) {
       return String(value).split(/[0-9]+/g).pop();
     }
+    /**
+     * The container measurements a resize redraw took before the old chart was
+     * cleared, used once and then dropped (see ApexCharts._windowResize).
+     * @returns {{ el: number[], parent: number[] } | null}
+     */
+    _takeHeldDimensions() {
+      const ctx = (
+        /** @type {any} */
+        this.ctx
+      );
+      const held = (ctx == null ? void 0 : ctx._heldDimensions) || null;
+      if (ctx) ctx._heldDimensions = null;
+      return held;
+    }
     setSVGDimensions() {
       const { globals: gl, config: cnf } = this.w;
       cnf.chart.width = cnf.chart.width || "100%";
@@ -20393,7 +20637,8 @@ var __async = (__this, __arguments, generator) => {
       const rawHeight = cnf.chart.height;
       gl.svgWidth = NaN;
       gl.svgHeight = NaN;
-      const elDim = Utils$1.getDimensions(this.el);
+      const held = this._takeHeldDimensions();
+      const elDim = held ? held.el : Utils$1.getDimensions(this.el);
       const widthUnit = this._extractDimensionUnit(rawWidth);
       if (widthUnit === "%") {
         if (Utils$1.isNumber(elDim[0])) {
@@ -20405,7 +20650,7 @@ var __async = (__this, __arguments, generator) => {
       const heightUnit = this._extractDimensionUnit(rawHeight);
       if (rawHeight !== "auto" && rawHeight !== "") {
         if (heightUnit === "%") {
-          const elParentDim = Utils$1.getDimensions(this.el.parentNode);
+          const elParentDim = held ? held.parent : Utils$1.getDimensions(this.el.parentNode);
           gl.svgHeight = elParentDim[1] * parseInt(rawHeight, 10) / 100;
         } else {
           gl.svgHeight = parseInt(rawHeight, 10);
@@ -20413,6 +20658,7 @@ var __async = (__this, __arguments, generator) => {
       } else {
         gl.svgHeight = gl.axisCharts ? gl.svgWidth / 1.61 : gl.svgWidth / 1.2;
       }
+      gl.lastResizeSignature = this.getResizeSignature(held);
       this._applyWeaveReservation(gl);
       gl.svgWidth = Math.max(gl.svgWidth, 0);
       gl.svgHeight = Math.max(gl.svgHeight, 0);
@@ -20429,7 +20675,6 @@ var __async = (__this, __arguments, generator) => {
       }
       this.w.dom.elWrap.style.width = `${gl.svgWidth}px`;
       this.w.dom.elWrap.style.height = `${gl.svgHeight}px`;
-      gl.lastResizeSignature = this.getResizeSignature();
     }
     /**
      * Take off the space Weave plugins have reserved for their own UI.
@@ -20473,19 +20718,21 @@ var __async = (__this, __arguments, generator) => {
      * forces a redraw; a percentage-sized chart's signature tracks the container.
      * The window-resize handler compares this against the last render to skip
      * redraws (and the entrance-animation teardown they cause) that aren't needed.
+     * @param {{ el: number[], parent: number[] } | null} [held] measurements to use instead of
+     *   reading the page, so the signature records what the render was sized from
      * @returns {{ w: number, h: number }}
      */
-    getResizeSignature() {
+    getResizeSignature(held = null) {
       const { config: cnf } = this.w;
       const rawWidth = (cnf.chart.width || "100%").toString().trim();
       const rawHeight = (cnf.chart.height || "auto").toString().trim();
       let w = 0;
       let h = 0;
       if (rawWidth.endsWith("%")) {
-        w = Utils$1.getDimensions(this.el)[0] || 0;
+        w = (held ? held.el : Utils$1.getDimensions(this.el))[0] || 0;
       }
       if (rawHeight.endsWith("%")) {
-        h = Utils$1.getDimensions(this.el.parentNode)[1] || 0;
+        h = (held ? held.parent : Utils$1.getDimensions(this.el.parentNode))[1] || 0;
       }
       const sig = { w: Math.round(w), h: Math.round(h) };
       if (cnf.responsive && cnf.responsive.length && Environment.isBrowser()) {
@@ -21552,9 +21799,11 @@ var __async = (__this, __arguments, generator) => {
      */
     handleCandleStickBoxData(ser, i2) {
       let ohlc = { o: [], h: [], m: [], l: [], c: [] };
-      if (this.isFormat2DArray()) {
+      const own = ser[i2].type;
+      const isOhlcSeries = !own || own === "candlestick" || own === "boxPlot";
+      if (isOhlcSeries && this.isFormat2DArray()) {
         ohlc = this.handleCandleStickBoxDataFormat("array", ser, i2);
-      } else if (this.isFormatXY()) {
+      } else if (isOhlcSeries && this.isFormatXY()) {
         ohlc = this.handleCandleStickBoxDataFormat("xy", ser, i2);
       }
       this.w.candleData.seriesCandleO[i2] = ohlc.o;
@@ -22198,6 +22447,8 @@ var __async = (__this, __arguments, generator) => {
           if (this.isFormatXY()) {
             const seriesDataFiltered = cnf.series.map(
               (serie) => {
+                const type = serie.type || cnf.chart.type;
+                if (type === "line" || type === "area") return serie.data;
                 const seen = /* @__PURE__ */ new Map();
                 for (const point of serie.data) {
                   if (!seen.has(point == null ? void 0 : point.x)) seen.set(point == null ? void 0 : point.x, point);
@@ -23251,7 +23502,7 @@ var __async = (__this, __arguments, generator) => {
         }
         const payload = options2;
         const updates = charts.map((ch) => {
-          var _a, _b, _c, _d;
+          var _a, _b, _c, _d, _e, _f;
           const w = ch.w;
           options2 = payload;
           if (options2 && typeof options2 === "object") {
@@ -23318,8 +23569,14 @@ var __async = (__this, __arguments, generator) => {
             if (!options2.yaxis && Array.isArray(options2.series)) {
               options2.series = this.syncSharedLogAxes(options2.series);
             }
+            if ((_d = options2.theme) == null ? void 0 : _d.palette) w.globals.themePaletteExplicit = true;
             w.config = Utils$1.extend(w.config, options2);
-            (_d = ch.responsive) == null ? void 0 : _d.absorb(options2);
+            if (options2.theme && options2.theme.mode !== void 0) {
+              (_e = ch.theme) == null ? void 0 : _e.applyModePalette(
+                w.config.theme.mode === "dark" ? "dark" : "light"
+              );
+            }
+            (_f = ch.responsive) == null ? void 0 : _f.absorb(options2);
             Defaults.handOverTypeDefaults(w.config, fromType, options2);
             Defaults.syncCatToNumeric(w.config, options2);
             Defaults.syncSparkline(w.config, wasSparkline, options2);
@@ -23666,6 +23923,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (w.config.xaxis.convertedCatToNumeric) {
         const x2 = options2.xaxis;
+        const namesTickAmount = "tickAmount" in x2;
         if ("categories" in x2 || "labels" in options2) {
           options2 = new Defaults(options2).convertCatToNumericXaxis(options2);
         } else if ((_a = x2.labels) == null ? void 0 : _a.formatter) {
@@ -23677,6 +23935,10 @@ var __async = (__this, __arguments, generator) => {
             options2,
             names
           );
+        }
+        if (!namesTickAmount) {
+          delete options2.xaxis.tickAmount;
+          delete options2.xaxis.autoDataPointsTicks;
         }
       }
       return options2;
@@ -26626,9 +26888,38 @@ var __async = (__this, __arguments, generator) => {
       this.tooltipUtil = new Utils(tooltipContext);
       this.xFormat = new Formatters(this.w);
       this.dateTime = new DateTime(this.w);
+      this.coincidentExtra = null;
     }
-    /** @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any }} opts */
-    drawSeriesTexts({ shared = true, ttItems, i: i2 = 0, j: j2 = null, y1, y2, e: e2 }) {
+    /**
+     * `coincident`, on a tooltip that is not shared: the points of the series
+     * whose markers are drawn where the hovered one is, in the order to list
+     * them (Intersect.coincidentRows). One row each, in place of the hovered
+     * series' row alone.
+     * @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any, coincident?: import('../CoincidentMarkers').CoincidentPoint[] | null }} opts
+     */
+    drawSeriesTexts({
+      shared = true,
+      ttItems,
+      i: i2 = 0,
+      j: j2 = null,
+      y1,
+      y2,
+      e: e2,
+      coincident = null
+    }) {
+      if (coincident && !shared) {
+        this.drawCoincidentSeriesTexts({
+          ttItems,
+          i: i2,
+          j: j2,
+          y1,
+          y2,
+          e: e2,
+          points: coincident
+        });
+        return;
+      }
+      this.detachCoincidentRows(0);
       const w = this.w;
       const custom = w.config.tooltip.custom !== void 0;
       const tooltipEl = this.ttCtx.getElTooltip();
@@ -26652,19 +26943,129 @@ var __async = (__this, __arguments, generator) => {
         // them anyway ran every formatter into nodes no one sees.
         rows: !custom || (tooltipEl == null ? void 0 : tooltipEl.contains(ttItems == null ? void 0 : ttItems[0]))
       });
+      this.measureTooltip(tooltipEl);
+    }
+    /**
+     * Re-calculate tooltip dimensions now that the text is drawn.
+     * @param {Element | null | undefined} tooltipEl
+     */
+    measureTooltip(tooltipEl) {
       if (tooltipEl) {
         const rect = tooltipEl.getBoundingClientRect();
         this.ttCtx.tooltipRect.ttWidth = rect.width;
         this.ttCtx.tooltipRect.ttHeight = rect.height;
       }
     }
-    /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any, rows?: boolean}} opts */
-    printLabels({ i: i2, j: j2, values, ttItems, shared, e: e2, rows = true }) {
+    /**
+     * An intersect tooltip on a marker other series' markers share a spot
+     * with: a row for each of those series (`points`, already in the order to
+     * list them), as a shared tooltip restricted to them would show. `i`, `j`
+     * is the hovered point, which the title and a custom tooltip speak for.
+     * @param {{ ttItems?: any, i: number, j: any, y1?: any, y2?: any, e?: any, points: import('../CoincidentMarkers').CoincidentPoint[] }} opts
+     */
+    drawCoincidentSeriesTexts({ ttItems, i: i2, j: j2, y1, y2, e: e2, points }) {
+      const w = this.w;
+      const custom = w.config.tooltip.custom !== void 0;
+      const tooltipEl = this.ttCtx.getElTooltip();
+      if (custom) {
+        this.handleCustomTooltip({ i: i2, j: j2, y1, y2, w, coincident: points });
+      } else {
+        this.tooltipUtil.toggleAllTooltipSeriesGroups("disable");
+      }
+      const values = this.getValuesToPrint({ i: i2, j: j2 });
+      const rows = !custom || !!(tooltipEl == null ? void 0 : tooltipEl.contains(ttItems == null ? void 0 : ttItems[0]));
+      this.printTitle({ values, ttItems, rows });
+      if (rows && (ttItems == null ? void 0 : ttItems[0])) {
+        const els = this.coincidentRowEls(ttItems, points);
+        for (let r2 = 0; r2 < points.length; r2++) {
+          const el = els[r2];
+          if (!el) continue;
+          el.classList.add("apexcharts-active");
+          el.style.display = w.config.tooltip.items.display;
+          const s2 = points[r2].seriesIndex;
+          const pj = points[r2].dataPointIndex;
+          const hovered = s2 === i2 && pj === j2;
+          const row = this.computeSeriesRow({
+            i: s2,
+            j: pj,
+            t: r2,
+            tIndex: s2,
+            shared: false,
+            // the hovered marker's own fill speaks for its row only
+            e: hovered ? e2 : null,
+            basePColor: w.globals.colors[s2]
+          });
+          this.DOMHandling({
+            i: s2,
+            t: r2,
+            j: pj,
+            ttItems: els,
+            values: {
+              val: row.val,
+              goalVals: row.goalVals,
+              zVal: hovered ? values.zVal : this.getValuesToPrint({ i: s2, j: pj }).zVal
+            },
+            seriesName: row.seriesName,
+            shared: false,
+            pColor: row.pColor
+          });
+        }
+      }
+      this.measureTooltip(tooltipEl);
+    }
+    /**
+     * The row elements for a coincident hover's points. A tooltip with a row
+     * per series lends each point its series' row. One with a single row (the
+     * non-shared cartesian one) lists the first point there and the others in
+     * rows added after it, kept for the next such hover and taken out of the
+     * tooltip by any other.
+     * @param {any[]} ttItems
+     * @param {import('../CoincidentMarkers').CoincidentPoint[]} points
+     * @returns {HTMLElement[]}
+     */
+    coincidentRowEls(ttItems, points) {
+      if (ttItems.length > 1) {
+        return points.map((p) => ttItems[p.seriesIndex]);
+      }
+      let extra = this.coincidentExtra;
+      if (!extra || extra.owner !== ttItems) {
+        this.detachCoincidentRows(0);
+        extra = this.coincidentExtra = { owner: ttItems, rows: [] };
+      }
+      const els = [ttItems[0]];
+      for (let r2 = 1; r2 < points.length; r2++) {
+        let el = extra.rows[r2 - 1];
+        if (!el) {
+          el = extra.rows[r2 - 1] = this.ttCtx.createTTElement(r2, 1);
+          el.style.order = String(r2 + 1);
+        }
+        if (el.previousSibling !== els[r2 - 1]) els[r2 - 1].after(el);
+        els.push(el);
+      }
+      this.detachCoincidentRows(points.length - 1);
+      return els;
+    }
+    /**
+     * Take the rows a coincident hover added out of the tooltip, from the
+     * `from`-th on, so no other hover's row toggling can show them.
+     * @param {number} from
+     */
+    detachCoincidentRows(from) {
+      var _a;
+      const rows = (_a = this.coincidentExtra) == null ? void 0 : _a.rows;
+      if (!rows) return;
+      for (let r2 = from; r2 < rows.length; r2++) rows[r2].remove();
+    }
+    /**
+     * The title and the x-axis label read the same for every row, so they are
+     * written once a hover, not once per series.
+     * @param {{ values: any, ttItems: any, rows: boolean }} opts
+     */
+    printTitle({ values, ttItems, rows }) {
       var _a;
       const w = this.w;
       const ttCtx = this.ttCtx;
-      const { xVal, zVal, xAxisTTVal } = values;
-      const seriesLen = w.seriesData.series.length;
+      const { xVal, xAxisTTVal } = values;
       if (ttItems == null ? void 0 : ttItems[0]) {
         if (rows && ttCtx.showTooltipTitle) {
           (_a = ttCtx.tooltipTitle) != null ? _a : ttCtx.tooltipTitle = w.dom.baseEl.querySelector(
@@ -26676,6 +27077,13 @@ var __async = (__this, __arguments, generator) => {
           ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== "" ? xAxisTTVal : xVal;
         }
       }
+    }
+    /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any, rows?: boolean}} opts */
+    printLabels({ i: i2, j: j2, values, ttItems, shared, e: e2, rows = true }) {
+      const w = this.w;
+      const { zVal } = values;
+      const seriesLen = w.seriesData.series.length;
+      this.printTitle({ values, ttItems, rows });
       if (!rows) return;
       const basePColor = j2 !== null && w.config.plotOptions.bar.distributed ? w.globals.colors[j2] : w.globals.colors[i2];
       const singleRow = (ttItems == null ? void 0 : ttItems.length) === 1;
@@ -26938,7 +27346,6 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{ t?: any, j?: any, i?: any, ttItems?: any, values?: any, seriesName?: any, shared?: any, pColor?: any }} opts */
     DOMHandling({ i: i2, t: t2, j: j2, ttItems, values, seriesName, shared, pColor }) {
-      var _a, _b, _c;
       const w = this.w;
       const ttCtx = this.ttCtx;
       const { val, goalVals, zVal } = values;
@@ -27017,8 +27424,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (shared && ttItemsChildren[0]) {
         if (w.config.tooltip.hideEmptySeries) {
-          const rd = w.rangeData;
-          const empty = this.isRangeSeries(t2) ? !((_a = rd.seriesRangeStart[t2]) == null ? void 0 : _a[j2]) && !((_b = rd.seriesRangeEnd[t2]) == null ? void 0 : _b[j2]) : ((_c = w.seriesData.series[t2]) == null ? void 0 : _c[j2]) === 0;
+          const empty = this.isEmptyAt(t2, j2);
           refs.text.style.display = empty ? "none" : "";
           refs.marker.style.display = empty || !w.config.tooltip.marker.show || w.config.tooltip.fillSeriesColor ? "none" : "";
         }
@@ -27032,6 +27438,20 @@ var __async = (__this, __arguments, generator) => {
           ttItemsChildren[0].parentNode.style.display = "none";
         }
       }
+    }
+    /**
+     * Whether series `t` is empty at `j`, as tooltip.hideEmptySeries means it.
+     * Decided on the data, not the formatted text: a range starting at 0 or a
+     * value rounded to "0.00" is not empty, and "$0" is.
+     * @param {number} t
+     * @param {any} j
+     * @returns {boolean}
+     */
+    isEmptyAt(t2, j2) {
+      var _a, _b, _c;
+      const w = this.w;
+      const rd = w.rangeData;
+      return this.isRangeSeries(t2) ? !((_a = rd.seriesRangeStart[t2]) == null ? void 0 : _a[j2]) && !((_b = rd.seriesRangeEnd[t2]) == null ? void 0 : _b[j2]) : ((_c = w.seriesData.series[t2]) == null ? void 0 : _c[j2]) === 0;
     }
     /**
      * @param {boolean} shared
@@ -27144,15 +27564,15 @@ var __async = (__this, __arguments, generator) => {
         zVal
       };
     }
-    /** @param {{i: any, j: any, y1: any, y2: any, w: any}} opts */
-    handleCustomTooltip({ i: i2, j: j2, y1, y2, w }) {
+    /** @param {{i: any, j: any, y1: any, y2: any, w: any, coincident?: any[]}} opts */
+    handleCustomTooltip({ i: i2, j: j2, y1, y2, w, coincident }) {
       const tooltipEl = this.ttCtx.getElTooltip();
       let fn = w.config.tooltip.custom;
       if (Array.isArray(fn)) {
         fn = fn[i2];
       }
       if (typeof fn !== "function") return;
-      const customTooltip = fn({
+      const customTooltip = fn(__spreadValues({
         ctx: this.ttCtx.ctx,
         series: w.seriesData.series,
         seriesIndex: i2,
@@ -27160,7 +27580,7 @@ var __async = (__this, __arguments, generator) => {
         y1,
         y2,
         w
-      });
+      }, coincident && { coincident: coincident.map((p) => __spreadValues({}, p)) }));
       if (tooltipEl) {
         const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
         if (typeof customTooltip === "string" || typeof customTooltip === "number") {
@@ -27383,20 +27803,18 @@ var __async = (__this, __arguments, generator) => {
         const cx = parseInt(opt.paths.getAttribute("cx"), 10);
         const cy = parseInt(opt.paths.getAttribute("cy"), 10);
         j2 = parseInt(opt.paths.getAttribute("rel"), 10);
-        const el = Utils$1.findAncestor(opt.paths, "apexcharts-series");
-        i2 = el ? parseInt(el.getAttribute("data:realIndex"), 10) : parseInt(
-          opt.paths.parentNode.parentNode.parentNode.getAttribute("rel"),
-          10
-        ) - 1;
-        ttCtx.tooltipLabels.drawSeriesTexts({
+        i2 = markerSeriesIndex(opt.paths);
+        const shared = ttCtx.showOnIntersect ? false : w.config.tooltip.shared;
+        const coincident = coincidentPoints(w, { node: opt.paths });
+        ttCtx.tooltipLabels.drawSeriesTexts(__spreadValues({
           ttItems: opt.ttItems,
           i: i2,
           j: j2,
-          shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
+          shared,
           e: e2
-        });
+        }, !shared && { coincident: this.coincidentRows(coincident, i2, j2) }));
         if (e2.type === "mouseup") {
-          ttCtx.markerClick(e2, i2, j2);
+          ttCtx.markerClick(e2, i2, j2, coincident);
         }
         w.interact.capturedSeriesIndex = i2;
         w.interact.capturedDataPointIndex = j2;
@@ -27408,6 +27826,44 @@ var __async = (__this, __arguments, generator) => {
         x: x2,
         y
       };
+    }
+    /**
+     * The rows an intersect tooltip lists for a hovered marker (`i`, `j`) whose
+     * spot other series' markers share (`points`, CoincidentMarkers): those of
+     * the series the tooltip is enabled on (tooltip.enabledOnSeries), one per
+     * series, in series order or its reverse (tooltip.inverseOrder). An empty
+     * series is left out under tooltip.hideEmptySeries, as a shared tooltip
+     * leaves it out, but never the hovered one, which the tooltip showed
+     * alone before. Null when that leaves the hovered point by itself: the
+     * tooltip is the one it always was.
+     * @param {import('../CoincidentMarkers').CoincidentPoint[] | null} points
+     * @param {number} i
+     * @param {number} j
+     * @returns {import('../CoincidentMarkers').CoincidentPoint[] | null}
+     */
+    coincidentRows(points, i2, j2) {
+      var _a;
+      if (!points || points.length < 2) return null;
+      const w = this.w;
+      const ttCtx = this.ttCtx;
+      const enabled = (_a = ttCtx.tConfig) == null ? void 0 : _a.enabledOnSeries;
+      const hideEmpty = w.config.tooltip.hideEmptySeries;
+      const bySeries = /* @__PURE__ */ new Map();
+      for (const p of points) {
+        const s2 = p.seriesIndex;
+        const hovered = s2 === i2 && p.dataPointIndex === j2;
+        if (Array.isArray(enabled) && enabled.indexOf(s2) < 0) continue;
+        if (hideEmpty && !hovered && ttCtx.tooltipLabels.isEmptyAt(s2, p.dataPointIndex)) {
+          continue;
+        }
+        if (!bySeries.has(s2) || hovered) bySeries.set(s2, p);
+      }
+      const rows = [...bySeries.values()];
+      if (!rows.length) return null;
+      if (rows.length === 1 && rows[0].seriesIndex === i2 && rows[0].dataPointIndex === j2) {
+        return null;
+      }
+      return w.config.tooltip.inverseOrder ? rows.reverse() : rows;
     }
     /**
      * The marker a hover is over on a chart that paints its markers to
@@ -27453,15 +27909,17 @@ var __async = (__this, __arguments, generator) => {
         return;
       }
       (_a = ttCtx.cancelOffMarkHide) == null ? void 0 : _a.call(ttCtx);
+      const coincident = coincidentPoints(w, { i: i2, j: j2 });
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i: i2,
         j: j2,
         shared: false,
-        e: e2
+        e: e2,
+        coincident: this.coincidentRows(coincident, i2, j2)
       });
       if (e2.type === "mouseup") {
-        ttCtx.markerClick(e2, i2, j2);
+        ttCtx.markerClick(e2, i2, j2, coincident);
       }
       w.interact.capturedSeriesIndex = i2;
       w.interact.capturedDataPointIndex = j2;
@@ -28471,76 +28929,89 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} ttItemsCnt
      */
     createTTElements(ttItemsCnt) {
-      const w = this.w;
       const ttItems = [];
       const tooltipEl = this.getElTooltip();
       if (!tooltipEl) return ttItems;
       for (let i2 = 0; i2 < ttItemsCnt; i2++) {
-        const gTxt = BrowserAPIs.createElementNS(
-          "http://www.w3.org/1999/xhtml",
-          "div"
-        );
-        gTxt.classList.add(
-          "apexcharts-tooltip-series-group",
-          `apexcharts-tooltip-series-group-${i2}`
-        );
-        gTxt.style.order = String(
-          w.config.tooltip.inverseOrder ? ttItemsCnt - i2 : i2 + 1
-        );
-        const point = BrowserAPIs.createElementNS(
-          "http://www.w3.org/1999/xhtml",
-          "span"
-        );
-        point.classList.add("apexcharts-tooltip-marker");
-        if (w.config.tooltip.fillSeriesColor) {
-          point.style.backgroundColor = w.globals.colors[i2];
-        } else {
-          point.style.color = w.globals.colors[i2];
-        }
-        const mShape = w.config.markers.shape;
-        let shape = mShape;
-        if (Array.isArray(mShape)) {
-          shape = mShape[i2];
-        }
-        point.setAttribute("shape", shape);
-        point.innerHTML = renderMarkerSVG(shape);
-        gTxt.appendChild(point);
-        const gYZ = BrowserAPIs.createElementNS(
-          "http://www.w3.org/1999/xhtml",
-          "div"
-        );
-        gYZ.classList.add("apexcharts-tooltip-text");
-        gYZ.style.fontFamily = this.tConfig.style.fontFamily || w.config.chart.fontFamily;
-        gYZ.style.fontSize = this.tConfig.style.fontSize;
-        const refs = { marker: point, text: gYZ };
-        ["y", "goals", "z"].forEach((g2) => {
-          const gValText = BrowserAPIs.createElementNS(
-            "http://www.w3.org/1999/xhtml",
-            "div"
-          );
-          gValText.classList.add(`apexcharts-tooltip-${g2}-group`);
-          const txtLabel = BrowserAPIs.createElementNS(
-            "http://www.w3.org/1999/xhtml",
-            "span"
-          );
-          txtLabel.classList.add(`apexcharts-tooltip-text-${g2}-label`);
-          gValText.appendChild(txtLabel);
-          const txtValue = BrowserAPIs.createElementNS(
-            "http://www.w3.org/1999/xhtml",
-            "span"
-          );
-          txtValue.classList.add(`apexcharts-tooltip-text-${g2}-value`);
-          gValText.appendChild(txtValue);
-          refs[`${g2}Label`] = txtLabel;
-          refs[`${g2}Value`] = txtValue;
-          gYZ.appendChild(gValText);
-        });
-        gTxt.appendChild(gYZ);
-        gTxt.ttRefs = refs;
+        const gTxt = this.createTTElement(i2, ttItemsCnt);
         tooltipEl.appendChild(gTxt);
         ttItems.push(gTxt);
       }
       return ttItems;
+    }
+    /**
+     * One tooltip row (series group), not yet placed in the tooltip.
+     * @param {number} i the row's index
+     * @param {number} ttItemsCnt how many rows the tooltip has
+     * @returns {HTMLElement}
+     */
+    createTTElement(i2, ttItemsCnt) {
+      const w = this.w;
+      const gTxt = BrowserAPIs.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div"
+      );
+      gTxt.classList.add(
+        "apexcharts-tooltip-series-group",
+        `apexcharts-tooltip-series-group-${i2}`
+      );
+      gTxt.style.order = String(
+        w.config.tooltip.inverseOrder ? ttItemsCnt - i2 : i2 + 1
+      );
+      const point = BrowserAPIs.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "span"
+      );
+      point.classList.add("apexcharts-tooltip-marker");
+      if (w.config.tooltip.fillSeriesColor) {
+        point.style.backgroundColor = w.globals.colors[i2];
+      } else {
+        point.style.color = w.globals.colors[i2];
+      }
+      const mShape = w.config.markers.shape;
+      let shape = mShape;
+      if (Array.isArray(mShape)) {
+        shape = mShape[i2];
+      }
+      point.setAttribute("shape", shape);
+      point.innerHTML = renderMarkerSVG(shape);
+      gTxt.appendChild(point);
+      const gYZ = BrowserAPIs.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div"
+      );
+      gYZ.classList.add("apexcharts-tooltip-text");
+      gYZ.style.fontFamily = this.tConfig.style.fontFamily || w.config.chart.fontFamily;
+      gYZ.style.fontSize = this.tConfig.style.fontSize;
+      const refs = { marker: point, text: gYZ };
+      ["y", "goals", "z"].forEach((g2) => {
+        const gValText = BrowserAPIs.createElementNS(
+          "http://www.w3.org/1999/xhtml",
+          "div"
+        );
+        gValText.classList.add(`apexcharts-tooltip-${g2}-group`);
+        const txtLabel = BrowserAPIs.createElementNS(
+          "http://www.w3.org/1999/xhtml",
+          "span"
+        );
+        txtLabel.classList.add(`apexcharts-tooltip-text-${g2}-label`);
+        gValText.appendChild(txtLabel);
+        const txtValue = BrowserAPIs.createElementNS(
+          "http://www.w3.org/1999/xhtml",
+          "span"
+        );
+        txtValue.classList.add(`apexcharts-tooltip-text-${g2}-value`);
+        gValText.appendChild(txtValue);
+        refs[`${g2}Label`] = txtLabel;
+        refs[`${g2}Value`] = txtValue;
+        gYZ.appendChild(gValText);
+      });
+      gTxt.appendChild(gYZ);
+      gTxt.ttRefs = refs;
+      return (
+        /** @type {HTMLElement} */
+        gTxt
+      );
     }
     addSVGEvents() {
       const w = this.w;
@@ -29398,24 +29869,27 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /**
+     * The point's marker may be the topmost of several series' markers drawn
+     * at one spot. `coincident` lists them all (CoincidentMarkers), taken from
+     * the marker when the caller has not already: a point with no marker
+     * leaves it out.
      * @param {Event} e
      * @param {number} seriesIndex
      * @param {number} dataPointIndex
+     * @param {import('../CoincidentMarkers').CoincidentPoint[] | null} [coincident]
      */
-    markerClick(e2, seriesIndex, dataPointIndex) {
+    markerClick(e2, seriesIndex, dataPointIndex, coincident) {
       const w = this.w;
+      const points = coincident !== void 0 ? coincident : coincidentPoints(w, { i: seriesIndex, j: dataPointIndex });
+      const opts = () => __spreadValues({
+        seriesIndex,
+        dataPointIndex,
+        w
+      }, points && { coincident: points.map((p) => __spreadValues({}, p)) });
       if (typeof w.config.chart.events.markerClick === "function") {
-        w.config.chart.events.markerClick(e2, this.ctx, {
-          seriesIndex,
-          dataPointIndex,
-          w
-        });
+        w.config.chart.events.markerClick(e2, this.ctx, opts());
       }
-      this.ctx.events.fireEvent("markerClick", [
-        e2,
-        this.ctx,
-        { seriesIndex, dataPointIndex, w }
-      ]);
+      this.ctx.events.fireEvent("markerClick", [e2, this.ctx, opts()]);
     }
     /**
      * Marks (#11): whether the chart's type (or any series' type) is a registered
@@ -32339,25 +32813,18 @@ var __async = (__this, __arguments, generator) => {
           selected
         );
       }
+      const coincident = coincidentPoints(w, { node: path.node });
+      const opts = () => __spreadValues({
+        selectedDataPoints: w.interact.selectedDataPoints,
+        seriesIndex: i2,
+        dataPointIndex: j2,
+        w
+      }, coincident && { coincident: coincident.map((p) => __spreadValues({}, p)) });
       if (typeof w.config.chart.events.dataPointSelection === "function") {
-        w.config.chart.events.dataPointSelection(e2, this.ctx, {
-          selectedDataPoints: w.interact.selectedDataPoints,
-          seriesIndex: i2,
-          dataPointIndex: j2,
-          w
-        });
+        w.config.chart.events.dataPointSelection(e2, this.ctx, opts());
       }
       if (e2) {
-        Graphics._fireEvent(w, "dataPointSelection", [
-          e2,
-          this.ctx,
-          {
-            selectedDataPoints: w.interact.selectedDataPoints,
-            seriesIndex: i2,
-            dataPointIndex: j2,
-            w
-          }
-        ]);
+        Graphics._fireEvent(w, "dataPointSelection", [e2, this.ctx, opts()]);
       }
     }
     /**
@@ -34204,18 +34671,8 @@ var __async = (__this, __arguments, generator) => {
   const ros = /* @__PURE__ */ new WeakMap();
   function addResizeListener(el, fn) {
     if (Environment.isSSR()) return;
-    let called = false;
-    if (el.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
-      const elRect = el.getBoundingClientRect();
-      if (el.style.display === "none" || elRect.width === 0) {
-        called = true;
-      }
-    }
     const ro = new ResizeObserver((r2) => {
-      if (called) {
-        fn.call(el, r2);
-      }
-      called = true;
+      fn.call(el, r2);
     });
     if (el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
       Array.from(el.children).forEach((c) => ro.observe(c));
@@ -35201,6 +35658,10 @@ var __async = (__this, __arguments, generator) => {
       __publicField(this, "_renderPromise", null);
       /** @type {number | null} */
       __publicField(this, "_parentResizeWaiter", null);
+      /** @type {{ el: number[], parent: number[] } | null} */
+      __publicField(this, "_heldDimensions", null);
+      /** @type {{ from: { w: number, h: number, iw?: number } | null, heightChanged: boolean, at: number, returns: number, win: number[] } | null} */
+      __publicField(this, "_lastResizeRedraw", null);
       /** @type {{width: any, viewBoxAdded?: boolean} | null} */
       __publicField(this, "_printRestore", null);
       /** @type {any} */
@@ -37395,16 +37856,69 @@ var __async = (__this, __arguments, generator) => {
       clearTimeout((_a = this.w.globals.resizeTimer) != null ? _a : void 0);
       this.w.globals.resizeTimer = window.setTimeout(() => {
         const gl = this.w.globals;
+        let returns = 0;
         if (this.core && gl.lastResizeSignature) {
+          const cur = gl.lastResizeSignature;
           const sig = this.core.getResizeSignature();
-          if (sig.w === gl.lastResizeSignature.w && sig.h === gl.lastResizeSignature.h && sig.iw === gl.lastResizeSignature.iw) {
+          if (sig.w === cur.w && sig.h === cur.h && sig.iw === cur.iw) {
             return;
           }
+          returns = this._resizeReturns(sig);
+          if (returns > 1 && sig.w >= cur.w && sig.h >= cur.h) return;
         }
         gl.resized = true;
         gl.dataChanged = false;
-        this.ctx.update();
+        const from = gl.lastResizeSignature;
+        const fromHeight = gl.svgHeight;
+        this._heldDimensions = {
+          el: Utils$1.getDimensions(this.el),
+          parent: Utils$1.getDimensions(this.el.parentNode)
+        };
+        try {
+          this.ctx.update();
+        } finally {
+          this._heldDimensions = null;
+        }
+        this._lastResizeRedraw = {
+          from,
+          heightChanged: this.w.globals.svgHeight !== fromHeight,
+          at: Date.now(),
+          returns,
+          win: [window.innerWidth, window.innerHeight]
+        };
       }, 150);
+    }
+    /**
+     * How many times in a row, counting this one, a resize sends the chart
+     * straight back to the size its last resize redraw left. 0 when it does not.
+     *
+     * Counted because the page can answer the chart's own redraw. An auto-height
+     * chart near the point where the page needs a scrollbar: drawn wide it is
+     * tall enough to bring the scrollbar in, which narrows its container; drawn
+     * narrower it is short enough to send the scrollbar away, which widens it
+     * again. Each redraw is a correct answer to the size it was given, and
+     * together they rebuild the chart several times a second, forever.
+     *
+     * A return counts only when the last redraw changed the chart's height (the
+     * only way a redraw can move the page), it was moments ago, and the window
+     * is the size it was then: a window resize is never the page answering the
+     * chart. The caller refuses only a second return in a row, and only to a
+     * larger box, so one quick move back (a sidebar opened and closed at once)
+     * always redraws, and the chart settles on the narrower size, where it can
+     * be a little short of its box but never hang out of it.
+     *
+     * @param {{ w: number, h: number, iw?: number }} sig
+     * @returns {number}
+     */
+    _resizeReturns(sig) {
+      const last = this._lastResizeRedraw;
+      if (!last || !last.from || !last.heightChanged) return 0;
+      if (Date.now() - last.at > 500) return 0;
+      if (last.win[0] !== window.innerWidth || last.win[1] !== window.innerHeight) {
+        return 0;
+      }
+      const back = sig.w === last.from.w && sig.h === last.from.h && sig.iw === last.from.iw;
+      return back ? last.returns + 1 : 0;
     }
     _windowResizeHandler() {
       var _a;
@@ -38272,6 +38786,27 @@ var __async = (__this, __arguments, generator) => {
         theme: this.ctx.theme,
         timeScale: this.ctx.timeScale
       });
+      const xFromScale = w.axisFlags.isXNumeric && !w.labelData.timescaleLabels.length;
+      const xFormatter = w.config.xaxis.labels.formatter;
+      const formatScaleX = typeof xFormatter === "function" && !Defaults.isFloorXLabelFormatter(w.config.xaxis);
+      const dateFormatter = new DateTime(w).formatDate;
+      const rowX = (i2) => {
+        if (!w.axisFlags.dataFormatXNumeric) return i2 + 1;
+        const d = series.map((s2) => {
+          var _a;
+          return (_a = s2.data) == null ? void 0 : _a[i2];
+        }).find((d2) => d2 != null && typeof d2 === "object");
+        const x2 = d == null ? void 0 : Array.isArray(d) ? d[0] : d.x;
+        return x2 instanceof Date ? x2.getTime() : x2;
+      };
+      const scaleCat = (i2) => {
+        const x2 = rowX(i2);
+        if (x2 == null) return "";
+        if (!formatScaleX) return String(x2);
+        const label2 = xFormatter(x2, x2, { i: i2, dateFormatter, w });
+        if (label2 == null) return "";
+        return Array.isArray(label2) ? label2 : String(label2);
+      };
       const getCat = (i2) => {
         let cat = "";
         if (!gl.axisCharts) {
@@ -38287,6 +38822,8 @@ var __async = (__this, __arguments, generator) => {
                 dataPointIndex: i2,
                 w
               });
+            } else if (xFromScale) {
+              cat = scaleCat(i2);
             } else {
               cat = axesUtils.getLabel(
                 w.labelData.labels,
@@ -42628,11 +43165,13 @@ var __async = (__this, __arguments, generator) => {
       var _a;
       const w = this.w;
       let rX = x2;
+      let catSlot = 0;
       if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
         const strX = String(x2);
-        x2 = w.labelData.categoryLabels.findIndex(
+        catSlot = w.labelData.categoryLabels.findIndex(
           (l2) => String(l2) === strX
         ) + 1;
+        x2 = catSlot;
       }
       const catIndex = w.labelData.labels.map(
         (item) => Array.isArray(item) ? item.join(" ") : item
@@ -42644,6 +43183,8 @@ var __async = (__this, __arguments, generator) => {
         rX = parseFloat((_a = xLabel.getAttribute("x")) != null ? _a : "0");
       } else if (catIndex > -1) {
         rX = w.axisFlags.isXNumeric ? (x2 - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth) : w.globals.padHorizontal + (catIndex + 0.5) * w.layout.gridWidth / w.globals.dataPoints;
+      } else if (catSlot > 0 && Utils$1.isNumber(w.globals.xRange)) {
+        rX = (catSlot - w.globals.minX) / (w.globals.xRange / w.layout.gridWidth);
       }
       return rX;
     }
@@ -50815,7 +51356,8 @@ var __async = (__this, __arguments, generator) => {
       const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j2] === "both" ? " Z" : " z");
       return graphics.drawPath({
         d: shadowPath,
-        fill: utils.shadeColor(0.5, Utils$1.rgb2hex(color)),
+        // rgb2hex reads rgb()/rgba() only; shade any other colour as given
+        fill: utils.shadeColor(0.5, Utils$1.rgb2hex(color) || color),
         stroke: "none",
         strokeWidth: 0,
         fillOpacity: 1,
@@ -69948,7 +70490,13 @@ ${percent2.toFixed(1)}%`;
       collapsed: (w.globals.collapsedSeriesIndices || []).slice(),
       ancillaryCollapsed: (w.globals.ancillaryCollapsedSeriesIndices || []).slice(),
       selectedDataPoints: cloneSelection(w.interact.selectedDataPoints),
-      theme: theme ? { mode: (_a = theme.mode) != null ? _a : null, palette: (_b = theme.palette) != null ? _b : null } : null,
+      theme: theme ? {
+        mode: (_a = theme.mode) != null ? _a : null,
+        palette: (_b = theme.palette) != null ? _b : null,
+        // A palette the chart only defaulted to keeps following the mode
+        // once restored; without this the restore would name it.
+        paletteExplicit: !!w.globals.themePaletteExplicit
+      } : null,
       locale: w.config.chart && w.config.chart.defaultLocale || null,
       annotations: captureAnnotations(w, ctx),
       drill: drilldown && drilldown.depth > 0 ? { path: drilldown.path.slice() } : null,
@@ -70026,7 +70574,12 @@ ${percent2.toFixed(1)}%`;
       false,
       false
     );
+    restorePaletteChoice(ctx.w, view.theme);
     applyViewInteraction(ctx, view);
+  }
+  function restorePaletteChoice(w, theme) {
+    if (!w || !theme || theme.palette == null) return;
+    w.globals.themePaletteExplicit = typeof theme.paletteExplicit === "boolean" ? theme.paletteExplicit : theme.palette !== (w.config.theme.mode === "dark" ? "palette4" : "palette1");
   }
   function applyViewInteraction(ctx, view) {
     if (!ctx || !view) return;
@@ -77557,6 +78110,7 @@ ${percent2.toFixed(1)}%`;
       try {
         this.ctx.clearAnnotations();
         p = this.ctx.updateOptions(Utils$1.clone(cp.config), false, animate, false, false);
+        restorePaletteChoice(this.w, cp.view && cp.view.theme);
       } catch (e2) {
         this.applying = false;
         throw e2;
