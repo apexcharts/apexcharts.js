@@ -318,6 +318,24 @@ const getRangeValues = ({
 
   return { start, end, startVal, endVal, ylabel, color, seriesName }
 }
+
+/**
+ * The opts `tooltip.y.formatter` is documented to receive. Same shape as
+ * TooltipLabels.formatYValue. Range, dumbbell and streamgraph tooltips build
+ * their own HTML and used to call the formatter with the value alone, so the
+ * context was undefined on those charts (#4951).
+ * @param {any} series
+ * @param {number} seriesIndex
+ * @param {number} dataPointIndex
+ * @param {any} w
+ */
+const yFormatterCtx = (series, seriesIndex, dataPointIndex, w) => ({
+  series,
+  seriesIndex,
+  dataPointIndex,
+  w,
+})
+
 /**
  * @param {Record<string, any>} opts
  */
@@ -327,11 +345,14 @@ const buildRangeTooltipHTML = (opts) => {
 
   const formatter =
     opts.w.globals.tooltip.tooltipLabels.getFormatters(seriesIndex)
+  const ctx = (/** @type {any} */ series) =>
+    yFormatterCtx(series, seriesIndex, dataPointIndex, opts.w)
 
-  start = formatter.yLbFormatter(start)
-  end = formatter.yLbFormatter(end)
+  start = formatter.yLbFormatter(start, ctx(opts.w.rangeData.seriesRangeStart))
+  end = formatter.yLbFormatter(end, ctx(opts.w.rangeData.seriesRangeEnd))
   const val = formatter.yLbFormatter(
     opts.w.seriesData.series[seriesIndex][dataPointIndex],
+    ctx(opts.w.seriesData.series),
   )
 
   let valueHTML = ''
@@ -1527,7 +1548,10 @@ export default class Defaults {
         rows += endpointRow(
           dumbbell.names[k],
           w.globals.colors[k],
-          formatter.yLbFormatter(values[k]),
+          formatter.yLbFormatter(
+            values[k],
+            yFormatterCtx(w.seriesData.series, k, dataPointIndex, w),
+          ),
         )
       }
 
@@ -1540,7 +1564,10 @@ export default class Defaults {
             '<span class="category">' +
             w.config.plotOptions.bar.dumbbell.tooltip.differenceLabel +
             ': </span><span class="value">' +
-            formatter.yLbFormatter(Math.abs(shown[1] - shown[0])) +
+            formatter.yLbFormatter(
+              Math.abs(shown[1] - shown[0]),
+              yFormatterCtx(w.seriesData.series, seriesIndex, dataPointIndex, w),
+            ) +
             '</span></div>'
           : ''
 
@@ -1789,7 +1816,12 @@ export default class Defaults {
       const bandValue = (k, v) => {
         if (configured) {
           const f = w.globals.tooltip.tooltipLabels.getFormatters(k)
-          if (typeof f.yLbFormatter === 'function') return f.yLbFormatter(v)
+          if (typeof f.yLbFormatter === 'function') {
+            return f.yLbFormatter(
+              v,
+              yFormatterCtx(data.values, k, dataPointIndex, w),
+            )
+          }
         }
         if (Number.isInteger(v)) return String(v)
         // Six places is past anything a part-to-whole reading needs, and it
