@@ -174,6 +174,32 @@ describe('Legend', () => {
       expect(textContents).not.toContain('A')
       expect(textContents).not.toContain('B')
     })
+
+    // apexcharts#4711: custom legend items are not series markers, so a
+    // series fillOpacity of 0 must not hide the matching legend marker.
+    it('keeps custom legend markers opaque when series marker fillOpacity is 0', () => {
+      const chart = chartWithLegend({
+        series: [
+          { name: 'A', data: [10, 20] },
+          { name: 'B', data: [15, 25] },
+        ],
+        legend: {
+          customLegendItems: ['Custom One', 'Custom Two'],
+          markers: { fillColors: ['#ff0000', '#0000ff'] },
+        },
+        extra: {
+          markers: { fillOpacity: [1, 0] },
+        },
+      })
+
+      const shapes = chart.el.querySelectorAll(
+        '.apexcharts-legend-series > .apexcharts-legend-marker .apexcharts-marker',
+      )
+      expect(shapes.length).toBe(2)
+      expect(
+        Array.from(shapes).map((el) => el.getAttribute('fill-opacity')),
+      ).toEqual(['1', '1'])
+    })
   })
 
   // =========================================================================

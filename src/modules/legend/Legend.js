@@ -180,6 +180,13 @@ class Legend {
         size: mSize,
       })
 
+      // Custom legend items are not series markers. getMarkerConfig copies
+      // markers.fillOpacity[i], so a series drawn with fillOpacity 0 hid the
+      // matching legend marker (apexcharts#4711).
+      if (w.config.legend.customLegendItems.length) {
+        markerConfig.pointFillOpacity = 1
+      }
+
       // globalThis is window in a browser and global in Node, as in Core.
       const SVG = /** @type {any} */ (globalThis).SVG
       const SVGMarker = SVG().addTo(elMarker).size('100%', '100%')
