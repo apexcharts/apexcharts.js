@@ -185,7 +185,10 @@ export default class DimYAxis {
     let yAxisWidth = 0
     let yAxisWidthLeft = 0
     let yAxisWidthRight = 0
-    const padding = w.globals.yAxisScale.length > 1 ? 10 : 0
+    // the gap goes between drawn axes; one with show: false takes none (#5004)
+    const shownYAxes = w.config.yaxis.filter((/** @type {any} */ y) => y.show)
+    const padding =
+      w.globals.yAxisScale.length > 1 && shownYAxes.length > 1 ? 10 : 0
     const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme })
 
     /**
