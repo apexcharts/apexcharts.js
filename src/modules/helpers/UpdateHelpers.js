@@ -1,6 +1,7 @@
 // @ts-check
 import Defaults from '../settings/Defaults'
 import Config from '../settings/Config'
+import Theme from '../Theme'
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
@@ -148,6 +149,8 @@ export default class UpdateHelpers {
       // `chart` section the alias handover writes): a sibling deletes
       // `series` and `yaxis` from it, which used to empty the caller's object.
       const payload = options
+      // Read off the payload itself: the per-chart copies below are new objects.
+      const filled = Theme.modeDefaultsFilled(payload)
       const updates = charts.map((ch) => {
         const w = ch.w
         options = payload
@@ -299,6 +302,15 @@ export default class UpdateHelpers {
           // A palette the payload names is the page's choice from now on, so
           // a later mode switch keeps it (see Theme.applyModePalette).
           if (options.theme?.palette) w.globals.themePaletteExplicit = true
+          // So is a foreColor or tooltip theme it names. One that
+          // updateThemeOptions filled in for a mode change is the mode's
+          // default, and keeps following the mode as before.
+          if (options.chart?.foreColor) {
+            w.globals.themeForeColorExplicit = !filled?.foreColor
+          }
+          if (options.tooltip?.theme) {
+            w.globals.tooltipThemeExplicit = !filled?.tooltip
+          }
 
           w.config = Utils.extend(w.config, options)
           // A payload that sets the mode moves a chart with no palette of its

@@ -317,6 +317,12 @@ export default class History {
       view,
       config,
       seriesSig,
+      // Whether the page named the foreColor and tooltip theme the config
+      // carries; the restore's merge would otherwise take both as named.
+      themeChoices: {
+        foreColor: !!this.w.globals.themeForeColorExplicit,
+        tooltip: !!this.w.globals.tooltipThemeExplicit,
+      },
       label: label || 'change',
       at: Environment.isBrowser() ? Date.now() : 0,
       origin: 'local', // reserved for per-user scoping (Live Rooms)
@@ -399,6 +405,10 @@ export default class History {
       // The config carries the palette the chart drew, which the merge takes
       // as named; put back whether it was.
       restorePaletteChoice(this.w, cp.view && cp.view.theme)
+      if (cp.themeChoices) {
+        this.w.globals.themeForeColorExplicit = cp.themeChoices.foreColor
+        this.w.globals.tooltipThemeExplicit = cp.themeChoices.tooltip
+      }
     } catch (e) {
       this.applying = false
       throw e

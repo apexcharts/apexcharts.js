@@ -171,7 +171,10 @@ export default class Responsive {
     // Nothing applied and nothing to apply: leave w.config alone. Re-deriving
     // it on every render above the largest breakpoint broke updateSeries()
     // with a changed series count (#2056).
-    if (res.length === 0 && this._activeBreakpoint === null) return
+    if (res.length === 0 && this._activeBreakpoint === null) {
+      w.globals.responsiveTooltipTheme = false
+      return
+    }
 
     res
       .sort(
@@ -197,7 +200,10 @@ export default class Responsive {
     const matching = res.filter(
       (/** @type {{ breakpoint: number }} */ r) => width < r.breakpoint,
     )
-    if (matching.length === 0 && this._activeBreakpoint === null) return
+    if (matching.length === 0 && this._activeBreakpoint === null) {
+      w.globals.responsiveTooltipTheme = false
+      return
+    }
 
     const config = new Config({})
 
@@ -268,6 +274,10 @@ export default class Responsive {
         this._activeBreakpoint = r.breakpoint
       }
     }
+
+    // Whether a matching breakpoint names tooltip.theme, so the mode leaves it
+    // alone only while that breakpoint applies (Theme._tooltipThemeExplicit).
+    w.globals.responsiveTooltipTheme = this._base.has('tooltip.theme')
 
     this.overrideResponsiveOptions(cfg)
   }

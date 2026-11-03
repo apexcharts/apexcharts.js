@@ -476,6 +476,14 @@ export default class Globals {
       // Whether the page named theme.palette, so the mode defaults leave it
       // alone (see Theme.applyModePalette). Set by Base and updateOptions.
       themePaletteExplicit: false,
+      // The same for chart.foreColor and tooltip.theme: a value the page named
+      // is not swapped for the other mode's default (see
+      // Theme._applyModeDefaults). Set by Base and updateOptions.
+      themeForeColorExplicit: false,
+      tooltipThemeExplicit: false,
+      // Whether a responsive breakpoint that matches this render names
+      // tooltip.theme. Set by Responsive.checkResponsiveConfig.
+      responsiveTooltipTheme: false,
       lastXAxis: [],
       lastYAxis: [],
 

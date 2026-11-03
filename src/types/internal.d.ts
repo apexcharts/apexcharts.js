@@ -497,6 +497,25 @@ export interface ChartGlobals
    * Theme.applyModePalette.
    */
   themePaletteExplicit: boolean
+  /**
+   * Whether the page named `chart.foreColor` (in the chart's options, in
+   * window.Apex or in an updateOptions payload). An explicit foreColor is not
+   * swapped for the mode default at render time, '#373d3f' and '#f6f7f8'
+   * included. A mode-only updateOptions fills the new mode's default and
+   * clears it. See Theme._applyModeDefaults.
+   */
+  themeForeColorExplicit: boolean
+  /**
+   * The same for `tooltip.theme`: one the page did not name follows the mode,
+   * however the mode arrived (a named theme, `theme.follow: 'os'`).
+   */
+  tooltipThemeExplicit: boolean
+  /**
+   * Whether a responsive breakpoint that matches the current render names
+   * `tooltip.theme`. Set by Responsive.checkResponsiveConfig; counts as
+   * explicit only while that breakpoint applies.
+   */
+  responsiveTooltipTheme: boolean
 
   // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────
   // Raw series stash captured on first parse so zoom/pan can re-downsample

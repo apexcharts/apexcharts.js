@@ -113,8 +113,8 @@ export default class Config {
         opts = defaults.dumbbellSizing(opts)
       }
 
-      // If user has specified a dark theme, make the tooltip dark too
-      this.checkForDarkTheme(Environment.getApex()) // check global window Apex options
+      // If user has specified a dark theme, make the tooltip dark too. A dark
+      // mode in window.Apex is resolved on the merged config below.
       this.checkForDarkTheme(opts) // check locally passed options
 
       // A copy, as the flag below is written into it: taken by reference, the
@@ -150,6 +150,8 @@ export default class Config {
 
     // get the merged config and extend with user defined config
     config = Utils.extend(mergedWithDefaultConfig, opts)
+
+    Config.applyGlobalDarkDefaults(config, opts)
 
     // Axis bounds reach the scale code as numbers, whatever shape they arrived
     // in. Done after the merge so window.Apex's bounds are covered too.
@@ -489,6 +491,55 @@ export default class Config {
       // chart's options it hid a palette window.Apex names. init() resolves
       // the mode default on the merged config instead.
     }
+  }
+
+  /**
+   * checkForDarkTheme's tooltip and foreColor defaults for a chart that is
+   * dark through window.Apex, filled into its merged config. They used to be
+   * written into window.Apex itself, where every later chart read them as
+   * values the page had chosen: a light chart after a dark one kept the dark
+   * tooltip, and '#f6f7f8' passed for an explicit foreColor. Filled only when
+   * the chart ends up dark, so a chart with a mode of its own is left alone.
+   *
+   * @param {Record<string, any>} config  the merged config
+   * @param {Record<string, any>} opts  the chart's own options
+   */
+  static applyGlobalDarkDefaults(config, opts) {
+    const apex = Environment.getApex()
+    if (apex.theme?.mode !== 'dark' || config.theme?.mode !== 'dark') return
+    // A local dark mode went through checkForDarkTheme already.
+    if (opts.theme?.mode === 'dark') return
+    if (!opts.tooltip?.theme) {
+      config.tooltip.theme = apex.tooltip?.theme === 'light' ? 'light' : 'dark'
+    }
+    if (!opts.chart?.foreColor && !apex.chart?.foreColor) {
+      config.chart.foreColor = '#f6f7f8'
+    }
+  }
+
+  /**
+   * Whether the chart's own options or window.Apex name `chart.foreColor`.
+   * Only then is it kept when it equals the other mode's default; otherwise
+   * it is the mode's default ('#f6f7f8' in dark mode, '#373d3f' otherwise).
+   * Read from what the page passed: in the merged config the defaulted
+   * '#373d3f' cannot be told apart from one the page chose.
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitForeColor(opts) {
+    return !!(opts?.chart?.foreColor || Environment.getApex().chart?.foreColor)
+  }
+
+  /**
+   * Whether the chart's own options or window.Apex name `tooltip.theme`.
+   * One they do not name follows the mode (see Theme._applyModeDefaults).
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitTooltipTheme(opts) {
+    return !!(opts?.tooltip?.theme || Environment.getApex().tooltip?.theme)
   }
 
   /**

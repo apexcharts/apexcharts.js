@@ -17,6 +17,10 @@ const DEFAULT_FORECOLOR_LIGHT = '#373d3f'
 const DEFAULT_FORECOLOR_DARK = '#f6f7f8'
 const DEFAULT_AXIS_GRID = '#e0e0e0'
 
+// Payloads updateThemeOptions filled mode defaults into, and which ones.
+/** @type {WeakMap<object, {foreColor: boolean, tooltip: boolean}>} */
+const MODE_FILLED = new WeakMap()
+
 export default class Theme {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -82,8 +86,8 @@ export default class Theme {
     // for the CURRENT mode. Config-time (checkForDarkTheme) and update-time
     // (updateThemeOptions) both do this, but a mode set late in create() (the
     // theme.follow:'os' watcher runs in _initOptionalModules, after config) has
-    // no other chance. Sentinel-gated, so it is a no-op when the value is
-    // already correct or explicitly overridden.
+    // no other chance. A no-op when the value is already correct or the page
+    // named it (globals.themeForeColorExplicit and friends).
     this._applyModeDefaults()
 
     // Facet (#13): resolve tokens (CSS `--apx-*` layered over the named theme's
@@ -91,6 +95,8 @@ export default class Theme {
     // palette (predefined) and the chrome.
     this._tokens = this._resolveTokens()
     this.applyTokenChrome(this._tokens)
+    // After the token pass, which may have set or given back chart.background.
+    this.applyModePaper()
 
     const colorBlindMode = w.config.theme.accessibility?.colorBlindMode
     if (colorBlindMode) {
@@ -143,18 +149,62 @@ export default class Theme {
   _applyModeDefaults(mode = this.w.config.theme.mode) {
     const w = this.w
     this.applyModePalette(mode)
+    // The same holds for a foreColor the page named: '#373d3f' on a dark
+    // chart is a choice, not the light default left behind.
+    const fore = !w.globals.themeForeColorExplicit
+    const tooltip = w.config.tooltip
     if (mode === 'dark') {
-      if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
+      if (fore && w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK
       }
-      if (w.config.tooltip && w.config.tooltip.theme !== 'light') {
-        w.config.tooltip.theme = 'dark'
+      // A tooltip theme the page did not name goes dark with the mode,
+      // however the mode arrived. Options defaults it to 'light', so a
+      // sentinel check alone never fired for a named dark theme or
+      // theme.follow 'os'. Nothing is forced in light mode: pie, donut and
+      // polarArea default to a dark tooltip there.
+      if (
+        tooltip &&
+        (tooltip.theme !== 'light' || !this._tooltipThemeExplicit())
+      ) {
+        tooltip.theme = 'dark'
       }
     } else if (mode === 'light') {
-      if (w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
+      if (fore && w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_LIGHT
       }
     }
+  }
+
+  /**
+   * Whether the tooltip theme is the page's: named in its options, window.Apex
+   * or an updateOptions payload, or set by a responsive breakpoint, which the
+   * mode must not override while it applies.
+   * @returns {boolean}
+   */
+  _tooltipThemeExplicit() {
+    const w = this.w
+    // responsiveTooltipTheme is set by Responsive.checkResponsiveConfig, true
+    // only while a matching breakpoint writes tooltip.theme.
+    return (
+      !!w.globals.tooltipThemeExplicit || !!w.globals.responsiveTooltipTheme
+    )
+  }
+
+  /**
+   * Paint the SVG paper for the final mode. Core.setupElements paints it
+   * first, before a named theme (or the take-back of one) has settled the
+   * mode, which left a named dark theme on a transparent paper until the
+   * next render. Same rule as there: chart.background, a token surface
+   * included (applyTokenChrome writes it into the same field), wins.
+   */
+  applyModePaper() {
+    const w = this.w
+    const node = w.dom.Paper && w.dom.Paper.node
+    if (!node || !node.style) return
+    const mode = w.config.theme.mode
+    const bg = w.config.chart.background
+    node.style.background =
+      mode === 'dark' && !bg ? '#343A3F' : mode === 'light' && !bg ? '#fff' : bg
   }
 
   /**
@@ -188,10 +238,15 @@ export default class Theme {
     const applied = (w.globals.namedThemeApplied = {})
     // Take back what the previous named theme wrote, where config still holds
     // it, so switching themes does not inherit the old one's mode or colours.
+    // The tooltip theme goes back to light with the mode, unless the page
+    // named it. This write is the library's, so it does not count as named:
+    // a following dark theme still darkens it (see _applyModeDefaults).
     if (prev.mode && theme.mode === prev.mode) {
       theme.mode = ''
       this._applyModeDefaults('light')
-      if (w.config.tooltip) w.config.tooltip.theme = 'light'
+      if (w.config.tooltip && !this._tooltipThemeExplicit()) {
+        w.config.tooltip.theme = 'light'
+      }
     }
     if (
       prev.accessibility &&
@@ -283,13 +338,21 @@ export default class Theme {
       }
     }
 
-    // axis labels + legend text funnel to chart.foreColor
+    // axis labels + legend text funnel to chart.foreColor. A foreColor the
+    // page named that equals the OTHER mode's default ('#373d3f' on a dark
+    // chart) is a choice and is kept; one equal to this mode's default is
+    // replaceable like the grid defaults below, so the token still wins.
+    const foreDef = dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT
     swap(
       w.config.chart,
       'foreColor',
       'fore',
-      dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT,
-      dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK,
+      foreDef,
+      w.globals.themeForeColorExplicit
+        ? foreDef
+        : dark
+          ? DEFAULT_FORECOLOR_LIGHT
+          : DEFAULT_FORECOLOR_DARK,
     )
     const axes = /** @type {any[]} */ ([w.config.xaxis]).concat(w.config.yaxis)
     swap(w.config.grid, 'borderColor', 'grid', DEFAULT_AXIS_GRID)
@@ -554,6 +617,12 @@ export default class Theme {
     options.tooltip = { ...options.tooltip }
     const dark = mode === 'dark'
 
+    // Recorded before filling, so _updateOptions can tell the defaults
+    // written here from values the page passed (see modeDefaultsFilled).
+    MODE_FILLED.set(options, {
+      foreColor: !options.chart.foreColor,
+      tooltip: !options.tooltip.theme,
+    })
     options.tooltip.theme = options.tooltip.theme || mode || 'light'
     options.chart.foreColor =
       options.chart.foreColor ||
@@ -564,6 +633,20 @@ export default class Theme {
     // default by applyModePalette once the payload is merged.
 
     return options
+  }
+
+  /**
+   * Which of chart.foreColor and tooltip.theme updateThemeOptions filled into
+   * `options` with the mode's default, as opposed to the page passing them.
+   * Undefined for a payload it did not fill.
+   *
+   * @param {any} options  a payload updateThemeOptions returned
+   * @returns {{foreColor: boolean, tooltip: boolean} | undefined}
+   */
+  static modeDefaultsFilled(options) {
+    return options && typeof options === 'object'
+      ? MODE_FILLED.get(options)
+      : undefined
   }
 
   predefined() {

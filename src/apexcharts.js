@@ -1048,6 +1048,19 @@ export default class ApexCharts {
     if (this.trellis && (this.trellis._mounted || this.trellis._rendering)) {
       const inPlace = this.trellis.canApplyInPlace(options)
       this.opts = Utils.extend(this.opts || {}, options || {})
+      // Panels count a foreColor in these options as the page's, and keep it
+      // in either mode. A mode-only change used to swap a built-in default
+      // ('#373d3f', '#f6f7f8') left from the old mode; drop it instead, so
+      // the panels take the new mode's default. Other colours stay, as before.
+      const fore = this.opts.chart?.foreColor
+      if (
+        options?.theme?.mode &&
+        !options.chart?.foreColor &&
+        (fore === '#373d3f' || fore === '#f6f7f8')
+      ) {
+        this.opts.chart = { ...this.opts.chart }
+        delete this.opts.chart.foreColor
+      }
       this.w.config = Utils.extend(w.config, options || {})
       const settled = this.trellis._rendering
         ? this.trellis.whenSettled()

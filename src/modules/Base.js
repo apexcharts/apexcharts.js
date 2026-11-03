@@ -29,6 +29,9 @@ export default class Base {
     // Read from what the page passed, not from the merged config, where the
     // defaulted palette1 cannot be told apart from one the page chose.
     globals.themePaletteExplicit = Config.hasExplicitPalette(this.opts)
+    // Likewise '#373d3f' and '#f6f7f8', and the tooltip theme 'light'.
+    globals.themeForeColorExplicit = Config.hasExplicitForeColor(this.opts)
+    globals.tooltipThemeExplicit = Config.hasExplicitTooltipTheme(this.opts)
 
     const w = {
       config,
