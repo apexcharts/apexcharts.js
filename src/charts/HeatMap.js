@@ -404,7 +404,7 @@ export default class HeatMap {
                 w.globals.previousPaths[i] && w.globals.previousPaths[i][j]
               const colorTo = Utils.isColorHex(color)
                 ? color
-                : Utils.rgb2hex(color)
+                : Utils.rgb2hex(color) || color
 
               if (!prev?.color) {
                 // A cell this update adds (a longer series, another row) has
@@ -451,7 +451,7 @@ export default class HeatMap {
                   cell,
                   Utils.isColorHex(prev.color)
                     ? prev.color
-                    : Utils.rgb2hex(prev.color),
+                    : Utils.rgb2hex(prev.color) || prev.color,
                   colorTo,
                   speed,
                   boxFrom && {

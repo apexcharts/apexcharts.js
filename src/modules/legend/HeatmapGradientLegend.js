@@ -1011,7 +1011,11 @@ export default class HeatmapGradientLegend {
         const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)))
 
         const shaded = plot.enableShades
-          ? utils.shadeColor(w.config.theme.mode === 'dark' ? -c : c, baseColor)
+          ? utils.shadeColor(
+              w.config.theme.mode === 'dark' ? -c : c,
+              baseColor,
+              w.dom.elWrap,
+            )
           : baseColor
         stops.push({ percent: t, color: shaded })
       }

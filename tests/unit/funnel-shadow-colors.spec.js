@@ -38,4 +38,12 @@ describe('funnel connector shadow colour', () => {
     expect(shadowFills(c)).toEqual(Array(4).fill('rgb(255,210,128)'))
     c.destroy()
   })
+
+  it('shades a modern colour as its hex, not grey', () => {
+    // Fill hands the stage colour over inside a color-mix() with
+    // transparent (fill.opacity); the shadow is opaque, as a hex one is.
+    const c = funnel('color(srgb 0.2 0.4 0.8)')
+    expect(shadowFills(c)).toEqual(Array(4).fill('rgb(153,179,230)'))
+    c.destroy()
+  })
 })

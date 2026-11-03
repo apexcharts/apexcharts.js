@@ -1638,10 +1638,22 @@ export default class Helpers {
         ? ' Z'
         : ' z')
 
+    // rgb2hex reads rgb()/rgba() only, and drops the fill opacity a hex fill
+    // carries; a var() or modern colour carries it in Fill's color-mix() with
+    // transparent, so take the colour back out of that. Shade any other
+    // colour as given, resolved inside the chart.
+    const mixed = /^color-mix\(in srgb, (.+) [\d.]+%, transparent\)$/.exec(
+      color,
+    )
+    const shade = utils.shadeColor(
+      0.5,
+      mixed ? mixed[1] : Utils.rgb2hex(color) || color,
+      w.dom.elWrap,
+    )
+
     return graphics.drawPath({
       d: shadowPath,
-      // rgb2hex reads rgb()/rgba() only; shade any other colour as given
-      fill: utils.shadeColor(0.5, Utils.rgb2hex(color) || color),
+      fill: shade,
       stroke: 'none',
       strokeWidth: 0,
       fillOpacity: 1,

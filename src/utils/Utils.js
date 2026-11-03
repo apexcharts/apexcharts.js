@@ -14,6 +14,14 @@ import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 const fnIds = new WeakMap()
 let fnSeq = 0
 
+/**
+ * isColor's verdicts. Whether the browser accepts a colour string does not
+ * change within a session, and a heatmap, treemap or gradient bar asks once
+ * per mark for the same series colour. Cleared past a few hundred strings.
+ * @type {Map<string, boolean>}
+ */
+const colorVerdicts = new Map()
+
 class Utils {
   /**
    * @param {*} item
@@ -363,7 +371,10 @@ class Utils {
 
   /**
    * [r, g, b, a] of a hex (3, 4, 6 or 8 digits) or rgb()/rgba() colour, the
-   * channels 0 to 255 and the alpha 0 to 1; null for anything else.
+   * channels 0 to 255 and the alpha 0 to 1; null for anything else. rgb()
+   * reads both the comma and the space syntax, channels as numbers or
+   * percentages and the alpha after a comma or a slash; a relative
+   * rgb(from ...) or one holding a var() is not read.
    * @param {string} color
    * @returns {number[] | null}
    */
@@ -376,15 +387,48 @@ class Utils {
         i < h.length ? parseInt(h.substr(i, 2), 16) / (i > 4 ? 255 : 1) : 1,
       )
     }
-    const n = /^rgba?\(/i.test(color) && color.match(/[\d.]+/g)
-    return n ? [+n[0], +n[1], +n[2], n[3] ? +n[3] : 1] : null
+    const r = /^\s*rgba?\(([^()]*)\)\s*$/i.exec(color)
+    const n = r ? r[1].trim().split(/\s*[,/]\s*|\s+/) : []
+    if (n.length < 3 || n.length > 4) return null
+    const num = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?%?$/i
+    if (!n.every((v) => num.test(v))) return null
+    // A percentage channel is a share of 255, a percentage alpha of 1.
+    const v = n.map((s, i) =>
+      s.slice(-1) === '%' ? (parseFloat(s) * (i < 3 ? 255 : 1)) / 100 : +s,
+    )
+    return [v[0], v[1], v[2], n[3] ? v[3] : 1]
   }
 
   /**
+   * [r, g, b, a] of `color(srgb r g b / a)`, the form a browser computes
+   * color(srgb ...), color-mix(in srgb ...) and rgb(from ...) to; null for
+   * anything else. Kept apart from parseColor, which the tweens read.
+   * @param {string} color
+   * @returns {number[] | null}
+   */
+  static parseSrgbColor(color) {
+    const r = /^\s*color\(\s*srgb\s+([^()]*)\)\s*$/i.exec(String(color))
+    const n = r ? r[1].trim().split(/\s*\/\s*|\s+/) : []
+    if (n.length < 3 || n.length > 4) return null
+    const v = n.map((s) =>
+      s.slice(-1) === '%' ? parseFloat(s) / 100 : s === 'none' ? 0 : +s,
+    )
+    if (!v.every(Number.isFinite)) return null
+    const ch = (/** @type {number} */ x) =>
+      Math.round(Math.min(1, Math.max(0, x)) * 255)
+    return [ch(v[0]), ch(v[1]), ch(v[2]), n[3] ? Math.min(1, v[3]) : 1]
+  }
+
+  /**
+   * The alpha of an rgba() colour, after its last comma or its slash; NaN
+   * when it has none to read.
    * @param {string} rgba
    */
   static getOpacityFromRGBA(rgba) {
-    return parseFloat(rgba.replace(/^.*,(.+)\)/, '$1'))
+    const a = parseFloat(rgba.replace(/^.*,(.+)\)/, '$1'))
+    if (Number.isFinite(a)) return a
+    const c = Utils.parseColor(rgba)
+    return c ? c[3] : NaN
   }
 
   /**
@@ -440,32 +484,107 @@ class Utils {
   }
 
   /**
+   * The #rrggbb of an rgb()/rgba() colour (its alpha dropped); '' for any
+   * other string, so a caller can fall back with `rgb2hex(c) || c`.
    * @param {any} rgb
    */
   static rgb2hex(rgb) {
-    rgb = rgb.match(
+    const m = rgb.match(
       /^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i,
     )
-    return rgb && rgb.length === 4
+    if (m && m.length === 4) {
+      return (
+        '#' +
+        ('0' + parseInt(m[1], 10).toString(16)).slice(-2) +
+        ('0' + parseInt(m[2], 10).toString(16)).slice(-2) +
+        ('0' + parseInt(m[3], 10).toString(16)).slice(-2)
+      )
+    }
+    // The space syntax, decimal and percentage channels (CSS Color 4).
+    const c = /^\s*rgba?\(/i.test(rgb) ? Utils.parseColor(rgb) : null
+    return c
       ? '#' +
-          ('0' + parseInt(rgb[1], 10).toString(16)).slice(-2) +
-          ('0' + parseInt(rgb[2], 10).toString(16)).slice(-2) +
-          ('0' + parseInt(rgb[3], 10).toString(16)).slice(-2)
+          c
+            .slice(0, 3)
+            .map((v) =>
+              (Math.round(Math.min(255, Math.max(0, v))) | 256)
+                .toString(16)
+                .slice(1),
+            )
+            .join('')
       : ''
+  }
+
+  /**
+   * [r, g, b, a] of `color` (see parseColor), else of its computed value
+   * inside `el` (default `document.body`), which also reads a named, hsl()
+   * or var() colour and the color(srgb ...) a browser computes color-mix(in
+   * srgb ...) and rgb(from ...) to. `resolved` is the computed text, or the
+   * input when there is none, for a caller that falls back to the browser.
+   * @param {string} color
+   * @param {Element} [el]
+   * @returns {{ c: number[] | null, resolved: string }}
+   */
+  static readColor(color, el) {
+    const c = Utils.parseColor(color)
+    if (c) return { c, resolved: color }
+    const resolved = Utils.resolveColor(color, el) || color
+    return {
+      c:
+        Utils.parseColor(resolved) ||
+        Utils.parseSrgbColor(resolved) ||
+        Utils.parseSrgbColor(color),
+      resolved,
+    }
+  }
+
+  /**
+   * Whether the browser accepts `color` as a CSS colour; false under SSR,
+   * where nothing can tell.
+   * @param {string} color
+   */
+  static isColor(color) {
+    if (Environment.isSSR() || typeof color !== 'string') return false
+    let ok = colorVerdicts.get(color)
+    if (ok === undefined) {
+      const probe = document.createElement('div')
+      probe.style.color = color
+      ok = !!probe.style.color
+      if (colorVerdicts.size > 256) colorVerdicts.clear()
+      colorVerdicts.set(color, ok)
+    }
+    return ok
+  }
+
+  /**
+   * `color` blended toward white (p > 0) or black (p < 0) by |p| as a CSS
+   * color-mix(), for a colour the browser can paint but the channel maths
+   * cannot read (oklch(), color(display-p3 ...)). Mixing in sRGB is the same
+   * per-channel blend shadeColor does.
+   * @param {string} color
+   * @param {number} p
+   */
+  static mixColor(color, p) {
+    const keep = Math.round((1 - Math.min(1, Math.abs(p))) * 10000) / 100
+    return keep >= 100
+      ? color
+      : `color-mix(in srgb, ${color} ${keep}%, ${p < 0 ? 'black' : 'white'})`
   }
 
   /**
    * Blend `color` toward white (p > 0) or black (p < 0) by |p|. Hex in, hex
    * out (alpha kept); anything else comes back as rgb()/rgba(). A named,
-   * hsl() or var() colour is resolved by the browser first; a colour that
-   * cannot be read is returned unchanged.
+   * hsl() or var() colour is resolved by the browser first, inside `el` when
+   * given, so a variable scoped to the chart's container resolves. A valid
+   * colour the maths cannot read comes back as a color-mix() (see mixColor);
+   * one that is not a colour is returned unchanged.
    * @param {number} p
    * @param {string} color
+   * @param {Element} [el]
    */
-  shadeColor(p, color) {
-    const c =
-      Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color))
-    if (!c) return color
+  shadeColor(p, color, el) {
+    const { c, resolved } = Utils.readColor(color, el)
+    if (!c) return Utils.isColor(color) ? Utils.mixColor(resolved, p) : color
     const t = p < 0 ? 0 : 255
     p = Math.abs(p)
     for (let i = 0; i < 3; i++) c[i] += Math.round((t - c[i]) * p)

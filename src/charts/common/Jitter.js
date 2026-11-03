@@ -200,8 +200,8 @@ export function renderJitter({
       fc === 'series'
         ? catColor
         : fc === 'series-dark'
-          ? darkenColor(catColor, 0.45)
-          : fc || darkenColor(catColor, 0.45)
+          ? darkenColor(catColor, 0.45, w.dom.elWrap)
+          : fc || darkenColor(catColor, 0.45, w.dom.elWrap)
 
     groups.forEach((g) => {
       const elPoints = graphics.drawPath({
@@ -229,16 +229,19 @@ export function renderJitter({
 
 /**
  * Darken a colour toward black by `amount` (0 = unchanged, 1 = black),
- * returning an `rgb(...)` string. Falls back to the input when it can't be
- * parsed (hex, rgb()/rgba(), or a named colour the browser resolves).
+ * returning an `rgb(...)` string. A named or var() colour is resolved by the
+ * browser, inside `el` when given; a valid colour the maths cannot read
+ * (oklch()) comes back as a color-mix() toward black, anything else as given.
  * @param {string} color
  * @param {number} amount 0..1
+ * @param {Element} [el]
  * @returns {string}
  */
-export function darkenColor(color, amount) {
-  const rgb =
-    Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color))
-  if (!rgb) return color
+export function darkenColor(color, amount, el) {
+  const { c: rgb, resolved } = Utils.readColor(color, el)
+  if (!rgb) {
+    return Utils.isColor(color) ? Utils.mixColor(resolved, -amount) : color
+  }
   const f = Math.max(0, 1 - amount)
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`
 }

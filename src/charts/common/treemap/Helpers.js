@@ -49,15 +49,23 @@ export default class TreemapHelpers {
 
     if (opts.enableShades) {
       // shadeColor may return rgb() or hex, and hexToRgba needs hex. Dark mode
-      // shades the other way.
+      // shades the other way. A colour the hex maths cannot read (oklch(),
+      // color(display-p3 ...)) comes back as a color-mix() shade, and takes
+      // the opacity the same way. Such a shade is a colour exactly when the
+      // series colour is, so the check asks of that (one probe per series,
+      // see Utils.isColor) rather than of every tile's own shade.
       const shadeColor = new Utils().shadeColor(
         w.config.theme.mode === 'dark' ? -colorShadePercent : colorShadePercent,
         color,
+        w.dom.elWrap,
       )
-      color = Utils.hexToRgba(
-        Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-        w.config.fill.opacity,
-      )
+      const hex = Utils.isColorHex(shadeColor)
+        ? shadeColor
+        : Utils.rgb2hex(shadeColor)
+      color =
+        hex || !Utils.isColor(color)
+          ? Utils.hexToRgba(hex, w.config.fill.opacity)
+          : Utils.applyOpacityToColor(shadeColor, w.config.fill.opacity)
     }
 
     return { color, colorProps }

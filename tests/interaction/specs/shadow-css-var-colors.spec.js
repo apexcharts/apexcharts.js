@@ -25,9 +25,12 @@ import { dirname, resolve } from 'path'
 import { appendFileSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DIST = resolve(__dirname, '..', '..', '..', 'dist')
-const BUNDLE = resolve(DIST, 'apexcharts.js')
-const HF = resolve(DIST, 'features', 'highlight-filter.js')
+// APEX_BUNDLE runs the same checks against another build (its add-ons are
+// read from the features folder next to it).
+const BUNDLE = process.env.APEX_BUNDLE
+  ? resolve(process.env.APEX_BUNDLE)
+  : resolve(__dirname, '..', '..', '..', 'dist', 'apexcharts.js')
+const HF = resolve(dirname(BUNDLE), 'features', 'highlight-filter.js')
 
 const VARS = { c1: '#e4572e', c2: '#17bebb', c1New: '#2e86ab' }
 const MODES = ['light', 'shadow', 'nested']
@@ -283,6 +286,101 @@ const CHECKS = [
       const low = els.filter((e) => ['0', '4'].includes(e.getAttribute('j')))
       const high = els.filter((e) => !['0', '4'].includes(e.getAttribute('j')))
       return H.both(H.allHue(low, 'fill', V.c2), H.allHue(high, 'fill', V.c1))
+    },
+  },
+  {
+    id: 'C11-monochrome',
+    surface: 'theme.monochrome shades of a var() colour',
+    options: base('bar', {
+      series: [...two(), { name: 's3', data: DATA2 }],
+      theme: {
+        monochrome: {
+          enabled: true,
+          color: 'var(--c1)',
+          shadeTo: 'light',
+          shadeIntensity: 0.65,
+        },
+      },
+    }),
+    run: ({ root, H, V }) =>
+      H.both(
+        H.allPaint(
+          H.all(root, '.apexcharts-series[rel="1"] .apexcharts-bar-area'),
+          ['fill'],
+          V.c1,
+        ),
+        H.allHue(H.all(root, '.apexcharts-bar-area'), 'fill', V.c1),
+      ),
+  },
+  {
+    id: 'C11-heatmapGradientLegend',
+    surface: 'heatmap colorScale gradient legend strip',
+    options: base('heatmap', {
+      series: [{ name: 's1', data: DATA1 }],
+      plotOptions: {
+        heatmap: { colorScale: { gradientLegend: { enabled: true } } },
+      },
+    }),
+    run: ({ root, H, V }) =>
+      H.allHue(
+        H.all(root, '.apexcharts-gradient-legend stop'),
+        'stopColor',
+        V.c1,
+      ),
+  },
+  {
+    id: 'C11-funnelShadow',
+    surface: '3D funnel connector shadow, a lighter shade',
+    options: base('bar', {
+      series: [{ name: 's1', data: [100, 80, 60, 40] }],
+      xaxis: { categories: ['a', 'b', 'c', 'd'] },
+      plotOptions: {
+        bar: { horizontal: true, isFunnel: true, isFunnel3d: true },
+      },
+    }),
+    run: ({ root, H, V }) => {
+      const els = H.all(root, '.apexcharts-bar-shadow')
+      const hue = H.allHue(els, 'fill', V.c1)
+      const sum = (p) => p[0] + p[1] + p[2]
+      const lighter = els.every((e) => {
+        const p = H.parse(getComputedStyle(e).fill)
+        return p && sum(p) > sum(H.rgbOf(V.c1)) + 30
+      })
+      return {
+        ok: hue.ok && lighter,
+        detail: `${hue.detail}; lighter than c1: ${lighter}`,
+      }
+    },
+  },
+  {
+    id: 'C11-boxJitter',
+    surface: 'boxPlot points (series-dark default fill), a darker shade',
+    options: {
+      series: [
+        {
+          name: 'b',
+          data: [
+            { x: 'a', y: [20, 30, 40, 50, 60], points: [25, 35, 45, 55] },
+            { x: 'b', y: [30, 40, 50, 60, 70], points: [35, 48, 62] },
+          ],
+        },
+      ],
+      chart: { type: 'boxPlot', height: 320, animations: { enabled: false } },
+      plotOptions: { boxPlot: { points: { show: true } } },
+      colors: ['var(--c1)', 'var(--c2)'],
+    },
+    run: ({ root, H, V }) => {
+      const els = H.all(root, '.apexcharts-boxPlot-points')
+      const hue = H.allHue(els, 'fill', V.c1)
+      const sum = (p) => p[0] + p[1] + p[2]
+      const darker = els.every((e) => {
+        const p = H.parse(getComputedStyle(e).fill)
+        return p && sum(p) < sum(H.rgbOf(V.c1)) - 30
+      })
+      return {
+        ok: hue.ok && darker,
+        detail: `${hue.detail}; darker than c1: ${darker}`,
+      }
     },
   },
   {

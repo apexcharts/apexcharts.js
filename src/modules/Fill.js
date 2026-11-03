@@ -5,6 +5,18 @@ import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { SVGNS } from '../svg/math'
 
 const XLINK = 'http://www.w3.org/1999/xlink'
+// CSS colour functions the hex maths cannot read (rgb() aside, which it can).
+const MODERN_COLOR = /^\s*(color|color-mix|oklch|oklab|lab|lch|hwb)\(/i
+
+/**
+ * Whether `c` carries its own opacity: an rgba(), or an rgb() with a slash
+ * alpha (CSS Color 4). Case-sensitive, as the checks it replaced were; a
+ * relative rgb(from ...) or one holding a var() is left to the browser.
+ * @param {string} c
+ */
+const hasOwnAlpha = (c) =>
+  /^\s*rgba\s*\(/.test(c) ||
+  (/^\s*rgb\(/.test(c) && c.indexOf('/') > -1 && !/\bfrom\b|var\(/.test(c))
 
 /**
  * ApexCharts Fill Class for setting fill options of the paths.
@@ -272,12 +284,17 @@ class Fill {
       } else if (fillColor.length < 9) {
         defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
       }
+    } else if (hasOwnAlpha(fillColor)) {
+      const a = Utils.getOpacityFromRGBA(fillColor)
+      if (Number.isFinite(a)) fillOpacity = a
     } else {
-      if (fillColor.indexOf('rgba') > -1) {
-        fillOpacity = Utils.getOpacityFromRGBA(fillColor)
-      } else {
-        defaultColor = Utils.hexToRgba(Utils.rgb2hex(fillColor), fillOpacity)
-      }
+      // Any other string naming rgb: rgb() in any syntax, or a modern colour
+      // such as color(srgb ...), color-mix(in srgb ...) or rgb(from ...),
+      // which the hex maths cannot read and the browser blends instead.
+      const hex = Utils.rgb2hex(fillColor)
+      defaultColor = hex
+        ? Utils.hexToRgba(hex, fillOpacity)
+        : Utils.applyOpacityToColor(fillColor, fillOpacity)
     }
 
     // Gradients and patterns require resolved color values (not CSS variables).
@@ -518,9 +535,13 @@ class Fill {
           ? fillCnf.gradient.opacityFrom[i]
           : fillCnf.gradient.opacityFrom
 
-    if (gradientFrom.indexOf('rgba') > -1) {
-      opacityFrom = Utils.getOpacityFromRGBA(gradientFrom)
+    // An rgba() (or a slash-alpha rgb()) carries its own opacity; one it
+    // cannot be read from (NaN) keeps the configured opacity.
+    const rgbaOpacity = (/** @type {string} */ c, /** @type {number} */ o) => {
+      const a = hasOwnAlpha(c) ? Utils.getOpacityFromRGBA(c) : NaN
+      return Number.isFinite(a) ? a : o
     }
+    opacityFrom = rgbaOpacity(gradientFrom, opacityFrom)
     let opacityTo =
       fillCnf.gradient.opacityTo === undefined
         ? fillOpacity
@@ -532,24 +553,17 @@ class Fill {
       fillCnf.gradient.gradientToColors === undefined ||
       fillCnf.gradient.gradientToColors.length === 0
     ) {
-      if (fillCnf.gradient.shade === 'dark') {
-        gradientTo = utils.shadeColor(
-          parseFloat(fillCnf.gradient.shadeIntensity) * -1,
-          fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor,
-        )
-      } else {
-        gradientTo = utils.shadeColor(
-          parseFloat(fillCnf.gradient.shadeIntensity),
-          fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor,
-        )
-      }
+      const intensity = parseFloat(fillCnf.gradient.shadeIntensity)
+      gradientTo = utils.shadeColor(
+        fillCnf.gradient.shade === 'dark' ? -intensity : intensity,
+        Utils.rgb2hex(fillColor) || fillColor,
+        this.w.dom.elWrap,
+      )
     } else {
       if (fillCnf.gradient.gradientToColors[opts.seriesNumber]) {
         const gToColor = fillCnf.gradient.gradientToColors[opts.seriesNumber]
         gradientTo = gToColor
-        if (gToColor.indexOf('rgba') > -1) {
-          opacityTo = Utils.getOpacityFromRGBA(gToColor)
-        }
+        opacityTo = rgbaOpacity(gToColor, opacityTo)
       } else {
         gradientTo = fillColor
       }
@@ -568,12 +582,20 @@ class Fill {
       gradientTo = t
     }
 
-    if (gradientFrom.indexOf('rgb') > -1) {
-      gradientFrom = Utils.rgb2hex(gradientFrom)
-    }
-    if (gradientTo.indexOf('rgb') > -1) {
-      gradientTo = Utils.rgb2hex(gradientTo)
-    }
+    // drawGradient turns a hex stop into rgba() with the stop's opacity, on
+    // top of its stop-opacity. rgb() goes to it as hex; a modern colour the
+    // hex maths cannot read (color(srgb ...), color-mix(), oklch(), or a
+    // shade blended by the browser) gets the same opacity through
+    // color-mix(), so it paints as the same colour given in hex would.
+    // Named and hsl() colours stay as given. At opacity 0 the stop-opacity
+    // hides it already, and the raw colour keeps its hue for the gradient to
+    // fade through (as hexToRgba(hex, 0) does), not 'transparent' black.
+    const toStop = (/** @type {string} */ c, /** @type {number} */ o) =>
+      c.indexOf('rgb') > -1 || MODERN_COLOR.test(c)
+        ? Utils.rgb2hex(c) || (o > 0 ? Utils.applyOpacityToColor(c, o) : c)
+        : c
+    gradientFrom = toStop(gradientFrom, opacityFrom)
+    gradientTo = toStop(gradientTo, opacityTo)
 
     return graphics.drawGradient(
       type,

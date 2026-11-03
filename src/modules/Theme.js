@@ -398,11 +398,13 @@ export default class Theme {
     const part = 1 / (glsCnt / shadeIntensity)
     let percent = 0
 
+    // Resolved inside the chart, so a var() scoped to its container is found.
+    const el = this.w.dom.elWrap
     return Array.from({ length: glsCnt }, () => {
       const newColor =
         shadeTo === 'dark'
-          ? utils.shadeColor(percent * -1, color)
-          : utils.shadeColor(percent, color)
+          ? utils.shadeColor(percent * -1, color, el)
+          : utils.shadeColor(percent, color, el)
       percent += part
       return newColor
     })
