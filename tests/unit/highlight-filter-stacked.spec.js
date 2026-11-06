@@ -713,7 +713,7 @@ describe('stacked: labels and totals', () => {
 })
 
 describe('stacked: scope', () => {
-  test('a stacked combo still warns once and draws without parts', () => {
+  test('a stacked column and line combo draws the column parts', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const c = stacked({
       series: [
@@ -726,12 +726,13 @@ describe('stacked: scope', () => {
         { name: 'B', type: 'line', data: [1, 2, 3] },
       ],
     })
-    expect(c.highlightFilter.isActive()).toBe(false)
-    expect(partsOf(c).size).toBe(0)
+    expect(c.w.globals.comboCharts).toBe(true)
+    expect(c.highlightFilter.isActive()).toBe(true)
+    expect(partsOf(c).size).toBe(3)
     expect(
       warn.mock.calls.filter((x) => String(x[0]).includes('highlightFilter'))
         .length,
-    ).toBe(1)
+    ).toBe(0)
   })
 
   test.each([
