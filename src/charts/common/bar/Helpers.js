@@ -763,7 +763,8 @@ export default class Helpers {
       if (!insetWidth) insetWidth = 0
     }
 
-    const datum = /** @type {any} */ (w.config.series[realIndex]).data[j]
+    // Missing after an extreme zoom leaves the row unset (#4986).
+    const datum = w.config.series[realIndex]?.data?.[j]
     const offset = horizontal
       ? datum?.barHeightOffset
       : datum?.columnWidthOffset
@@ -784,9 +785,11 @@ export default class Helpers {
     const empty = strokeWidth < insetWidth
     const baseCenter = empty ? insetCenter : strokeCenter
     let tip
+    const radiusRow = this.arrBorderRadius[realIndex]
+    const corner = radiusRow ? radiusRow[j] : 'none'
     const closing =
       w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
-      this.arrBorderRadius[realIndex][j] === 'both'
+      corner === 'both'
         ? ' Z'
         : ' z'
 
@@ -825,7 +828,7 @@ export default class Helpers {
     // Bar.getPreviousPath.
     const radius = w.config.plotOptions.bar.borderRadius
     let pathTo = squarePathTo
-    if (this.arrBorderRadius[realIndex][j] !== 'none') {
+    if (corner !== 'none') {
       // At radius 0 rounding only pads each joined corner with a zero-length
       // curve on itself, the command count the morphs are built around (all
       // four when the path closes with Z, which joins the last edge to the
@@ -916,7 +919,7 @@ export default class Helpers {
       realIndex,
       j,
       dir:
-        this.collapsedSign(realIndex, j) || (series[i][j] >= 0 ? 1 : -1),
+        this.collapsedSign(realIndex, j) || (series?.[i]?.[j] >= 0 ? 1 : -1),
     })
     const { pathTo, squarePathTo, strokeCenter, direction } = r
     y1 = r.y1
@@ -1196,7 +1199,7 @@ export default class Helpers {
       strokeWidth,
       realIndex,
       j,
-      dir: series[i][j] >= 0 ? 1 : -1,
+      dir: series?.[i]?.[j] >= 0 ? 1 : -1,
       horizontal: true,
     })
     const { y1, y2, sl, closing, squarePathTo, pathTo, strokeCenter, direction } =
@@ -1420,8 +1423,16 @@ export default class Helpers {
     // A `y: null` row has no ends to mark. Its dots would get a null position,
     // which draws them on the plot's top edge (left edge when horizontal).
     return [
-      { value: w.rangeData.seriesRangeStart[i][j], color: pick(0), index: 0 },
-      { value: w.rangeData.seriesRangeEnd[i][j], color: pick(1), index: 1 },
+      {
+        value: w.rangeData.seriesRangeStart[i]?.[j],
+        color: pick(0),
+        index: 0,
+      },
+      {
+        value: w.rangeData.seriesRangeEnd[i]?.[j],
+        color: pick(1),
+        index: 1,
+      },
     ].filter((end) => end.value != null)
   }
 
@@ -1626,6 +1637,8 @@ export default class Helpers {
 
     const graphics = new Graphics(this.barCtx.w)
     const utils = new Utils()
+    const radiusRow = this.arrBorderRadius[realIndex]
+    const corner = radiusRow ? radiusRow[j] : 'none'
 
     const shadowPath =
       graphics.move(prevX1, prevY2) +
@@ -1634,7 +1647,7 @@ export default class Helpers {
       graphics.line(currX1, currY1) +
       graphics.line(prevX1, prevY2) +
       (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
-      this.arrBorderRadius[realIndex][j] === 'both'
+      corner === 'both'
         ? ' Z'
         : ' z')
 
