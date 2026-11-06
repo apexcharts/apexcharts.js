@@ -594,8 +594,23 @@ class Intersect {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
     }
 
-    if (x + ttCtx.tooltipRect.ttWidth > w.layout.gridWidth) {
-      x = x - ttCtx.tooltipRect.ttWidth
+    // Flip the box by its whole width only when that still lands on the bar.
+    // On a sparkline or a plot barely wider than the tooltip, `x - ttWidth`
+    // runs once `x + ttWidth` passes the plot: a short bar whose box still
+    // fits keeps `x`, and a wider box (or the next bar) is thrown left, often
+    // off the chart (#5119). Hold those inside the plot instead.
+    const ttWForFlip = ttCtx.tooltipRect.ttWidth || 0
+    if (
+      !TooltipUtils.isFollowCursor(w) &&
+      this._isNarrowColumnPlot(ttWForFlip)
+    ) {
+      const gridW = w.layout.gridWidth
+      if (ttWForFlip > 0 && x + ttWForFlip > gridW) {
+        x = Math.max(0, gridW - ttWForFlip)
+      }
+      if (x < 0) x = 0
+    } else if (x + ttWForFlip > w.layout.gridWidth) {
+      x = x - ttWForFlip
     } else if (x < 0) {
       x = 0
     }
@@ -687,6 +702,24 @@ class Intersect {
             plotInElWrap,
             j ?? 0,
             i,
+          )
+          placement = pos.placement
+          finalX = pos.x
+          finalY = pos.y
+          arrowX = pos.arrowX
+          arrowY = pos.arrowY
+        } else if (
+          !TooltipUtils.isFollowCursor(w) &&
+          this._isNarrowColumnPlot(ttW) &&
+          barInElWrap
+        ) {
+          // Beside the column, the box is shifted by its own width. That
+          // shift only fits for some widths, so a short bar and a wide
+          // tooltip on the same sparkline land in different places. Centre
+          // every box above its bar instead.
+          const pos = ttCtx.tooltipPosition.placeOverColumn(
+            barInElWrap,
+            plotInElWrap,
           )
           placement = pos.placement
           finalX = pos.x
@@ -802,6 +835,23 @@ class Intersect {
         )
       }
     }
+  }
+
+  /**
+   * A vertical column plot where shifting the tooltip by its own width
+   * throws a short bar's box off the bar (#5119): a sparkline, or a `bar`
+   * plot narrower than about two tooltips. Horizontal bars place above the
+   * bar already and are left alone.
+   * @param {number} ttWidth
+   * @returns {boolean}
+   */
+  _isNarrowColumnPlot(ttWidth) {
+    const w = this.w
+    if (w.globals.isBarHorizontal) return false
+    if (w.config.chart.sparkline?.enabled) return true
+    if (w.config.chart.type !== 'bar') return false
+    const gridW = w.layout.gridWidth
+    return ttWidth > 0 && gridW > 0 && gridW < ttWidth * 2
   }
 
   /**
