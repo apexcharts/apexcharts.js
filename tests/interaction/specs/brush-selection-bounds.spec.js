@@ -211,3 +211,133 @@ test.describe('Brush selection handles stay inside the data range', () => {
     expect(after.rectLeftPx).toBeCloseTo(before.rectLeftPx, 1)
   })
 })
+
+/**
+ * Drag-to-draw a new brush selection between two fractions of the plot width
+ * (0 = left plot edge, 1 = right plot edge). Fractions outside 0..1 start or
+ * end in the axis gutter / past the chart, which is the #4934 case: the old
+ * width-only guard kept a startX left of the plot and the rect covered the
+ * y-axis (and the target chart scrolled into dates before the data).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} fromFrac
+ * @param {number} toFrac
+ */
+async function drawBrushSelection(page, fromFrac, toFrac) {
+  await page.evaluate(
+    ({ fromFrac, toFrac }) => {
+      const w = window.chartLine.w
+      const svg = window.chartLine.el.querySelector('.apexcharts-svg')
+      const svgRect = svg.getBoundingClientRect()
+      const originX = svgRect.left + w.layout.translateX
+      const midY =
+        svgRect.top + w.layout.translateY + w.layout.gridHeight / 2
+      const fire = (type, x) =>
+        svg.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: x,
+            clientY: midY,
+            button: 0,
+            buttons: 1,
+            which: 1,
+          }),
+        )
+      const x0 = originX + w.layout.gridWidth * fromFrac
+      const x1 = originX + w.layout.gridWidth * toFrac
+      fire('mousedown', x0)
+      fire('mousemove', (x0 + x1) / 2)
+      fire('mousemove', x1)
+      fire('mouseup', x1)
+    },
+    { fromFrac, toFrac },
+  )
+  // selectionDrawn updates the target chart on mouseup.
+  await page.waitForTimeout(400)
+}
+
+test.describe('Brush selection drag stays inside the plot (#4934)', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart(CHART, FIXTURE)
+  })
+
+  test('a drag that starts on the y-axis does not cover the axis', async ({
+    page,
+  }) => {
+    await waitForBrushPair(page)
+
+    // -0.08 of the plot is inside the y-axis gutter (translateX is ~0.09 of
+    // gridWidth on this sample) and used to leave the rect that far left of
+    // the plot.
+    const endFrac = 0.45
+    await drawBrushSelection(page, -0.08, endFrac)
+
+    const after = await readSelectionBounds(page)
+    const { minX } = await getXRange(page)
+
+    expect(
+      after.rectLeftPx,
+      'rect left edge ran into the y-axis',
+    ).toBeGreaterThanOrEqual(-TOLERANCE_PX)
+    expect(after.rectRightPx).toBeLessThanOrEqual(after.gridWidth + TOLERANCE_PX)
+    expect(
+      Math.abs(after.rectRightPx - after.gridWidth * endFrac),
+      'the in-plot end of the drag did not follow the pointer',
+    ).toBeLessThanOrEqual(TOLERANCE_PX)
+    expect(
+      after.rectWidthPx,
+      'the drag produced no selection',
+    ).toBeGreaterThan(after.gridWidth * 0.2)
+
+    expect(
+      (after.dataMinX - minX) / after.xRatio,
+      'target chart shows empty space before the first data point',
+    ).toBeLessThanOrEqual(TOLERANCE_PX)
+  })
+
+  test('a drag that starts past the right edge stops on the plot', async ({
+    page,
+  }) => {
+    await waitForBrushPair(page)
+
+    const startFrac = 0.55
+    await drawBrushSelection(page, 1.2, startFrac)
+
+    const after = await readSelectionBounds(page)
+    const { maxX } = await getXRange(page)
+
+    expect(
+      after.rectRightPx,
+      'rect right edge ran past the plot',
+    ).toBeLessThanOrEqual(after.gridWidth + TOLERANCE_PX)
+    expect(after.rectLeftPx).toBeGreaterThanOrEqual(-TOLERANCE_PX)
+    expect(
+      Math.abs(after.rectLeftPx - after.gridWidth * startFrac),
+      'the in-plot end of the drag did not follow the pointer',
+    ).toBeLessThanOrEqual(TOLERANCE_PX)
+
+    expect(
+      (maxX - after.dataMaxX) / after.xRatio,
+      'target chart shows empty space past the last data point',
+    ).toBeLessThanOrEqual(TOLERANCE_PX)
+  })
+
+  test('a drag inside the plot still tracks the pointer', async ({ page }) => {
+    await waitForBrushPair(page)
+
+    const fromFrac = 0.2
+    const toFrac = 0.5
+    await drawBrushSelection(page, fromFrac, toFrac)
+
+    const after = await readSelectionBounds(page)
+
+    expect(
+      Math.abs(after.rectLeftPx - after.gridWidth * fromFrac),
+    ).toBeLessThanOrEqual(TOLERANCE_PX)
+    expect(
+      Math.abs(after.rectRightPx - after.gridWidth * toFrac),
+    ).toBeLessThanOrEqual(TOLERANCE_PX)
+  })
+})
