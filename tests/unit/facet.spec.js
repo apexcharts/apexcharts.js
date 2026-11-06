@@ -3,7 +3,7 @@ import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/standard.js'
 
 // ---------------------------------------------------------------------------
-// Facet (#13): named themes (ThemeRegistry) + OS-aware theming (OSThemeWatcher).
+// Facet (#13): named themes (the apex-commons registry) + OS-aware theming (OSThemeWatcher).
 // CSS --apx-* token reads need a real cascade, so those paths are covered by
 // the Playwright suite (tests/interaction/specs/facet.spec.js); here we cover
 // the registry, the named-theme resolution chain, and the matchMedia watcher.

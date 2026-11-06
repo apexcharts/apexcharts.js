@@ -1,8 +1,8 @@
 // @ts-check
+import { getTheme, readTokens, resolveOwnedRole } from 'apex-commons'
 import Utils from '../utils/Utils'
 import { getThemePalettes } from '../utils/ThemePalettes.js'
-import { readTokens } from './theme/Tokens.js'
-import { getTheme } from './ThemeRegistry.js'
+import { BrowserAPIs } from '../ssr/BrowserAPIs'
 
 /**
  * ApexCharts Theme Class for setting the colors and palettes.
@@ -286,11 +286,24 @@ export default class Theme {
    * Facet (#13): the effective token set. CSS `--apx-*` tokens (when enabled)
    * layer over the named theme's `tokens`, so a page-level token overrides a
    * registered brand default.
+   *
+   * Custom properties inherit, so reading them off `w.dom.elWrap` (appended
+   * to the user's container during `Core.setupElements`, before `Theme.init`)
+   * or the host element resolves tokens declared anywhere up the tree,
+   * including `:root` and rules scoped to the theme class added above. The
+   * read goes through `BrowserAPIs`, whose empty declaration server side reads
+   * as no tokens, so the built-in defaults render there.
    * @returns {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}}
    */
   _resolveTokens() {
+    const w = this.w
     const named = (this._namedTheme && this._namedTheme.tokens) || {}
-    const css = this._shouldUseTokens() ? readTokens(this.w) : {}
+    const css = this._shouldUseTokens()
+      ? readTokens(w.dom && (w.dom.elWrap || w.dom.baseEl), {
+          // The `{}` BrowserAPIs answers server side reads as no declaration.
+          host: /** @type {any} */ (BrowserAPIs),
+        })
+      : {}
     return { ...named, ...css }
   }
 
@@ -307,35 +320,41 @@ export default class Theme {
 
   /**
    * Facet (#13): overwrite chrome defaults with `--apx-*` tokens, but only where
-   * the value still equals its built-in default (so explicit config wins).
+   * the value still equals its built-in default or the token this chart wrote
+   * last (so explicit config wins). The ownership rules are the shared
+   * `resolveOwnedRole` from apex-commons.
    * @param {{fore?:string, grid?:string, surface?:string}} tokens
    */
   applyTokenChrome(tokens) {
     if (!tokens) return
     const w = this.w
-    const last = w.globals.tokenChrome || {}
+    const g = w.globals
+    const last = g.tokenChrome || {}
     const dark = w.config.theme.mode === 'dark'
 
     // A token value written into config looks like a user value on the next
-    // render, so remember what was written: our own value stays replaceable
-    // by a changed token (refreshTokens(), an OS flip) and falls back to the
-    // default once the token is gone, while an explicit value always wins.
+    // render, so each role remembers what it wrote: our own value stays
+    // replaceable by a changed token (refreshTokens(), an OS flip) and falls
+    // back to the first default once the token is gone, while an explicit
+    // value always wins. Every slot of a role resolves against the one
+    // snapshot, so the number and order of y axes cannot make it stale.
     /**
-     * @param {any} obj
-     * @param {string} key
-     * @param {'fore' | 'grid'} name
-     * @param {string} def
-     * @param {string} [alt] the other built-in default, also replaceable
+     * @param {'fore' | 'grid'} role
+     * @param {any[][]} slots [object, key] pairs; a missing object is skipped
+     * @param {string[]} defaults the values that count as unset
      */
-    const swap = (obj, key, name, def, alt = def) => {
-      const v = obj && obj[key]
-      const token = tokens[name]
-      if (
-        obj &&
-        ((token && (v === def || v === alt)) || (last[name] && v === last[name]))
-      ) {
-        obj[key] = token || def
-      }
+    const own = (role, slots, defaults) => {
+      const live = slots.filter((s) => s[0])
+      const res = resolveOwnedRole({
+        slots: live.map(([obj, key]) => ({ current: obj[key] })),
+        value: tokens[role],
+        last: last[role],
+        defaults,
+      })
+      live.forEach(([obj, key], i) => {
+        if (res.changed[i]) obj[key] = res.values[i]
+      })
+      return res.last
     }
 
     // axis labels + legend text funnel to chart.foreColor. A foreColor the
@@ -343,55 +362,37 @@ export default class Theme {
     // chart) is a choice and is kept; one equal to this mode's default is
     // replaceable like the grid defaults below, so the token still wins.
     const foreDef = dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT
-    swap(
-      w.config.chart,
-      'foreColor',
+    const fore = own(
       'fore',
-      foreDef,
-      w.globals.themeForeColorExplicit
-        ? foreDef
-        : dark
-          ? DEFAULT_FORECOLOR_LIGHT
-          : DEFAULT_FORECOLOR_DARK,
+      [[w.config.chart, 'foreColor']],
+      g.themeForeColorExplicit
+        ? [foreDef]
+        : [foreDef, dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK],
     )
+    const gridSlots = [[w.config.grid, 'borderColor']]
     const axes = /** @type {any[]} */ ([w.config.xaxis]).concat(w.config.yaxis)
-    swap(w.config.grid, 'borderColor', 'grid', DEFAULT_AXIS_GRID)
     axes.forEach((axis) => {
       if (axis) {
-        swap(axis.axisBorder, 'color', 'grid', DEFAULT_AXIS_GRID)
-        swap(axis.axisTicks, 'color', 'grid', DEFAULT_AXIS_GRID)
+        gridSlots.push([axis.axisBorder, 'color'], [axis.axisTicks, 'color'])
       }
     })
-    w.globals.tokenChrome = tokens
-
-    // `chart.background` defaults to '', so there is no default to compare
-    // against and the paper node has to follow it: handled on its own.
-    const appliedSurface = w.globals.tokenSurface
-    const currentBg = w.config.chart.background
-    const isOurs = !currentBg || currentBg === appliedSurface
-
-    if (tokens.surface) {
-      if (isOurs) {
-        w.config.chart.background = tokens.surface
-        w.globals.tokenSurface = tokens.surface
-        // The SVG paper background is set in Core.setupElements, which runs
-        // before Theme.init, so re-apply the resolved surface to the paper node.
-        const paperNode = w.dom.Paper && w.dom.Paper.node
-        if (paperNode && paperNode.style) {
-          paperNode.style.background = tokens.surface
-        }
-      }
-    } else if (appliedSurface && currentBg === appliedSurface) {
-      // The token went away (the host swapped to a theme that does not define
-      // --apx-surface). Give the background back rather than freezing the
-      // colour of a design system that is no longer applied.
-      w.config.chart.background = ''
-      w.globals.tokenSurface = undefined
-      const paperNode = w.dom.Paper && w.dom.Paper.node
-      if (paperNode && paperNode.style) {
-        paperNode.style.background = ''
-      }
+    g.tokenChrome = {
+      fore,
+      grid: own('grid', gridSlots, [DEFAULT_AXIS_GRID]),
     }
+
+    // `chart.background` defaults to '', so '' is its only unset value, and
+    // a background the token wrote is given back as '' once the token is
+    // gone. applyModePaper repaints the paper node from the result.
+    const surface = resolveOwnedRole({
+      slots: [{ current: w.config.chart.background || '' }],
+      value: tokens.surface,
+      last: g.tokenSurface,
+      defaults: [''],
+      remember: 'written',
+    })
+    if (surface.changed[0]) w.config.chart.background = surface.values[0]
+    g.tokenSurface = surface.last
   }
 
   /**

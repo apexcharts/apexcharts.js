@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * A `globalThis`-backed registry of row sources, mirroring ChartFactory's type
- * registry, ThemeRegistry, UnitLayoutRegistry and SeriesTransformRegistry so a
+ * registry, the theme registry, UnitLayoutRegistry and SeriesTransformRegistry so a
  * source registered once survives duplicate CJS+ESM module instances.
  *
  * A row source answers one question about a chart: **what rows is each of its

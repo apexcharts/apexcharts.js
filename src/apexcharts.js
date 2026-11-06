@@ -25,7 +25,6 @@ import {
   getChartClass,
   unregister,
 } from './modules/ChartFactory'
-import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
 import {
   registerUnitLayout,
   unregisterUnitLayout,
@@ -60,7 +59,13 @@ import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
 import warnMissingFeature from './utils/MissingFeature.js'
 import { BrowserAPIs } from './ssr/BrowserAPIs.js'
-import { injectStyle, LicenseManager } from 'apex-commons'
+import {
+  injectStyle,
+  LicenseManager,
+  registerTheme,
+  registeredThemes,
+  unregisterTheme,
+} from 'apex-commons'
 import {
   enforceLicense,
   teardownWatermark,
@@ -72,6 +77,12 @@ import {
  *
  * @module ApexCharts
  **/
+
+// Facet (#13): named themes live in the family registry on
+// `globalThis.__apexcharts_themes__`, shared with every other product and
+// every module copy on the page. Touch it once so the key exists from import,
+// as it always has.
+registeredThemes()
 
 /**
  * The rejection for an update that names a built-in type this page never
@@ -2234,7 +2245,15 @@ export default class ApexCharts {
    * @returns {typeof ApexCharts}
    */
   static registerTheme(name, def) {
-    registerTheme(name, def)
+    if (!name || typeof name !== 'string') {
+      console.warn('ApexCharts: registerTheme requires a non-empty name.')
+    } else if (def != null && (typeof def !== 'object' || Array.isArray(def))) {
+      console.warn(
+        `ApexCharts: registerTheme("${name}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`,
+      )
+    } else {
+      registerTheme(name, def)
+    }
     return ApexCharts
   }
 
