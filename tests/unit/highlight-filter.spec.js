@@ -65,6 +65,19 @@ const labelsOf = (chart, realIndex) =>
 afterEach(() => vi.restoreAllMocks())
 
 describe('drawing', () => {
+  test('a series with no parts still fades when the chart is not a combo', () => {
+    const chart = column({
+      series: [
+        { name: 'Revenue', data: [120, 140, 90], highlightData: [45, 60, 30] },
+        { name: 'Cost', data: [80, 60, 40] },
+      ],
+    })
+    const cost = wholes(chart).filter((n) => n.getAttribute('index') === '1')
+    expect(cost.length).toBe(3)
+    for (const el of cost) expect(el.getAttribute('fill-opacity')).toBe('0.2')
+    chart.destroy()
+  })
+
   test('every whole fades and each non-null part is drawn once', () => {
     const chart = column()
     expect(chart.highlightFilter.isActive()).toBe(true)

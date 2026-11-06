@@ -3,7 +3,8 @@ import { createChartWithOptions } from './utils/utils.js'
 import '../../src/features/highlight-filter.js'
 
 // A column, bar or area chart that also carries a line (a trend, a target)
-// draws parts on the series that have them. The line, which has none, stays
+// draws parts on the series that have them. Any series that carries none —
+// the line, or a column under a line that has parts, stacked or not — stays
 // as the renderer drew it unless highlightFilter.others is 'fade'. The two
 // renderers share one pass, so the columns' targets are still there after
 // the line has drawn.
@@ -166,6 +167,64 @@ describe('combo charts draw parts on the series that carry them', () => {
     c.destroy()
   })
 
+  test.each(['column', 'bar'])(
+    'a %s series with no parts stays plain when only the line carries parts',
+    (mark) => {
+      const c = combo({
+        mark,
+        labels: true,
+        series: [
+          { name: 'Sales', type: mark, data: SALES },
+          {
+            name: 'Trend',
+            type: 'line',
+            data: TREND,
+            highlightData: [10, 8, 6, 4, 2],
+          },
+        ],
+      })
+      expect(barParts(c).length).toBe(0)
+      expect(lineParts(c).length).toBeGreaterThan(0)
+      expect(bars(c).length).toBe(5)
+      for (const el of bars(c)) {
+        expect(el.getAttribute('fill-opacity')).not.toBe('0.2')
+      }
+      const strokes = lineStrokes(c)
+      expect(strokes.some((n) => n.getAttribute('stroke-dasharray') === '4')).toBe(
+        true,
+      )
+      const texts = (realIndex) =>
+        q(c, '.apexcharts-datalabels')
+          .filter((g) => g.getAttribute('data:realIndex') === String(realIndex))
+          .flatMap((g) => [...g.querySelectorAll('.apexcharts-datalabel')])
+          .map((t) => t.textContent)
+      expect(texts(0)).toEqual(['40', '15', '14', '20', '11'])
+      expect(texts(1)).toEqual(['10', '8', '6', '4', '2'])
+      c.destroy()
+    },
+  )
+
+  test('others: fade still fades a column series that carries no parts', () => {
+    const c = combo({
+      options: { highlightFilter: { others: 'fade' } },
+      series: [
+        { name: 'Sales', type: 'column', data: SALES },
+        {
+          name: 'Trend',
+          type: 'line',
+          data: TREND,
+          highlightData: [10, 8, 6, 4, 2],
+        },
+      ],
+    })
+    expect(barParts(c).length).toBe(0)
+    expect(bars(c).length).toBe(5)
+    for (const el of bars(c)) {
+      expect(el.getAttribute('fill-opacity')).toBe('0.2')
+    }
+    c.destroy()
+  })
+
   test('a line that carries parts is drawn and dashed, beside the columns', () => {
     const c = combo({
       series: [
@@ -203,6 +262,35 @@ describe('combo charts draw parts on the series that carry them', () => {
         .map((t) => t.textContent)
     expect(texts(0)).toEqual(['18', '11', '6', '10', '7'])
     expect(texts(1)).toEqual(['33', '26', '20', '15', '10'])
+    c.destroy()
+  })
+
+  test('a later render still leaves a partless column and a stacked line plain', async () => {
+    const series = [
+      { name: 'A', type: 'column', data: [10, 20] },
+      { name: 'B', type: 'column', data: [6, 12], highlightData: [2, 5] },
+      { name: 'T', type: 'line', data: [8, 16] },
+    ]
+    const c = createChartWithOptions({
+      chart: { type: 'line', stacked: true, width: 600, height: 300 },
+      series,
+      xaxis: { categories: ['P', 'Q'] },
+      stroke: { width: [0, 0, 3] },
+      dataLabels: { enabled: false },
+    })
+    await c.updateSeries(series, false)
+    const of = (index) =>
+      bars(c).filter((n) => n.getAttribute('index') === index)
+    for (const el of of('0')) {
+      expect(el.getAttribute('fill-opacity')).not.toBe('0.2')
+    }
+    for (const el of of('1')) {
+      expect(el.getAttribute('fill-opacity')).toBe('0.2')
+    }
+    expect(lineParts(c).length).toBe(0)
+    for (const el of lineStrokes(c)) {
+      expect(el.getAttribute('stroke-dasharray')).not.toBe('4')
+    }
     c.destroy()
   })
 
@@ -262,6 +350,150 @@ describe('combo charts draw parts on the series that carry them', () => {
     for (const el of lineStrokes(c)) {
       expect(el.getAttribute('stroke-dasharray')).not.toBe('4')
     }
+    c.destroy()
+  })
+})
+
+describe('stacked combos leave a series with no parts plain', () => {
+  test('a line with no parts is not dashed', () => {
+    const c = createChartWithOptions({
+      chart: { type: 'line', stacked: true, width: 600, height: 300 },
+      series: [
+        { name: 'A', type: 'column', data: [10, 20], highlightData: [4, 8] },
+        { name: 'B', type: 'column', data: [6, 12], highlightData: [2, 5] },
+        { name: 'T', type: 'line', data: [8, 16] },
+      ],
+      xaxis: { categories: ['P', 'Q'] },
+      stroke: { width: [0, 0, 3] },
+      dataLabels: { enabled: false },
+    })
+    expect(barParts(c).length).toBe(4)
+    expect(lineParts(c).length).toBe(0)
+    for (const el of bars(c)) {
+      expect(el.getAttribute('fill-opacity')).toBe('0.2')
+    }
+    const strokes = lineStrokes(c)
+    expect(strokes.length).toBeGreaterThan(0)
+    for (const el of strokes) {
+      expect(el.getAttribute('stroke-dasharray')).not.toBe('4')
+      expect(el.getAttribute('stroke-opacity')).not.toBe('0.2')
+    }
+    c.destroy()
+  })
+
+  test('others: fade still dashes a stacked line that carries no parts', () => {
+    const c = createChartWithOptions({
+      chart: { type: 'line', stacked: true, width: 600, height: 300 },
+      series: [
+        { name: 'A', type: 'column', data: [10, 20], highlightData: [4, 8] },
+        { name: 'T', type: 'line', data: [8, 16] },
+      ],
+      xaxis: { categories: ['P', 'Q'] },
+      stroke: { width: [0, 3] },
+      dataLabels: { enabled: false },
+      highlightFilter: { others: 'fade' },
+    })
+    const strokes = lineStrokes(c)
+    expect(strokes.length).toBeGreaterThan(0)
+    for (const el of strokes) {
+      expect(el.getAttribute('stroke-dasharray')).toBe('4')
+    }
+    c.destroy()
+  })
+
+  test('a stacked line that carries parts is still dashed', () => {
+    const c = createChartWithOptions({
+      chart: { type: 'line', stacked: true, width: 600, height: 300 },
+      series: [
+        { name: 'A', type: 'column', data: [10, 20], highlightData: [4, 8] },
+        {
+          name: 'T',
+          type: 'line',
+          data: [8, 16],
+          highlightData: [3, 4],
+        },
+      ],
+      xaxis: { categories: ['P', 'Q'] },
+      stroke: { width: [0, 3] },
+      dataLabels: { enabled: false },
+    })
+    expect(lineParts(c).length).toBeGreaterThan(0)
+    expect(
+      lineStrokes(c).some((n) => n.getAttribute('stroke-dasharray') === '4'),
+    ).toBe(true)
+    c.destroy()
+  })
+
+  test('a stacked column series with no parts stays plain, and the total stays the part sum', () => {
+    const c = createChartWithOptions({
+      chart: { type: 'line', stacked: true, width: 600, height: 300 },
+      series: [
+        { name: 'A', type: 'column', data: [10, 20], highlightData: [4, 8] },
+        { name: 'B', type: 'column', data: [6, 12] },
+        { name: 'T', type: 'line', data: [8, 16] },
+      ],
+      xaxis: { categories: ['P', 'Q'] },
+      stroke: { width: [0, 0, 3] },
+      dataLabels: { enabled: true },
+      plotOptions: { bar: { dataLabels: { total: { enabled: true } } } },
+    })
+    const of = (index) =>
+      bars(c).filter((n) => n.getAttribute('index') === index)
+    expect(of('0').length).toBe(2)
+    expect(of('1').length).toBe(2)
+    for (const el of of('0')) {
+      expect(el.getAttribute('fill-opacity')).toBe('0.2')
+    }
+    for (const el of of('1')) {
+      expect(el.getAttribute('fill-opacity')).not.toBe('0.2')
+    }
+    for (const el of lineStrokes(c)) {
+      expect(el.getAttribute('stroke-dasharray')).not.toBe('4')
+    }
+    const texts = (realIndex) =>
+      q(c, '.apexcharts-datalabels')
+        .filter((g) => g.getAttribute('data:realIndex') === String(realIndex))
+        .flatMap((g) => [...g.querySelectorAll('.apexcharts-datalabel')])
+        .map((t) => t.textContent)
+    expect(texts(0)).toEqual(['4', '8'])
+    expect(texts(1)).toEqual(['6', '12'])
+    expect(
+      q(c, '.apexcharts-datalabel-total').map((t) => t.textContent),
+    ).toEqual(['4', '8'])
+    c.destroy()
+  })
+
+  test('a stacked area with no parts stays plain when the line carries parts', () => {
+    const c = createChartWithOptions({
+      chart: { type: 'line', stacked: true, width: 600, height: 300 },
+      series: [
+        { name: 'A', type: 'area', data: [10, 20, 14] },
+        {
+          name: 'T',
+          type: 'line',
+          data: [8, 16, 12],
+          highlightData: [3, 4, 5],
+        },
+      ],
+      xaxis: { categories: ['P', 'Q', 'R'] },
+      stroke: { width: [2, 3] },
+      dataLabels: { enabled: false },
+    })
+    const areaFills = q(c, '.apexcharts-area').filter(
+      (n) =>
+        n.getAttribute('index') === '0' &&
+        !n.classList.contains('apexcharts-highlight-part') &&
+        n.getAttribute('fill') !== 'none',
+    )
+    expect(areaFills.length).toBeGreaterThan(0)
+    // A faded area is drawn at fadeOpacity times its own fill. Plain keeps
+    // the fill the renderer gave it.
+    for (const el of areaFills) {
+      expect(parseFloat(el.getAttribute('fill-opacity') ?? '1')).toBeGreaterThan(
+        0.5,
+      )
+    }
+    expect(lineParts(c).length).toBeGreaterThan(0)
     c.destroy()
   })
 })

@@ -20,7 +20,9 @@
  * area included), pie, donut and polarArea, radialBar and the gauge, and
  * treemap (flat and nested). A combo of those axis types (columns, bars or
  * an area, plus one or more lines) draws parts on the series that carry
- * them. Other types warn once and draw as they always do.
+ * them. A combo series that carries none stays as drawn
+ * (`highlightFilter.others: 'plain'`), stacked or not. Other types warn
+ * once and draw as they always do.
  *
  * @module modules/highlightFilter/HighlightFilter
  */
@@ -784,6 +786,28 @@ export default class HighlightFilter {
   }
 
   /**
+   * Whether a combo series that carries no parts stays as the renderer drew
+   * it. `others: 'plain'` (the default) does, for every such series: a
+   * column or bar under a line that has parts, an overlay line, a stacked
+   * line or area. `others: 'fade'` gives it the highlighted look of a whole
+   * instead. A record already plain (no part path, full strength) still
+   * counts: the series was only visited, not picked, so the next render
+   * must not fade or dash it. A part that was here and left does not.
+   * @param {boolean} has whether this series carries any part
+   * @param {any} prev the previous record for this series or datum
+   */
+  _leavePlain(has, prev) {
+    const plainPrev =
+      !prev || (!prev.d && (prev.o ?? 0) <= 0 && (prev.f ?? 1) >= 1)
+    return (
+      !!this.w.globals.comboCharts &&
+      !has &&
+      plainPrev &&
+      this.cfg.others !== 'fade'
+    )
+  }
+
+  /**
    * Bar.draw, once per datum before it is rendered. Returns what renderSeries
    * needs: the label override and a paint step to run once the whole's path
    * exists. Undefined when there is nothing to do here.
@@ -811,7 +835,12 @@ export default class HighlightFilter {
     if (!active && !prev) return undefined
 
     const cfg = this.cfg
-    const fadeTo = active ? (cfg.fadeOpacity ?? 0.2) : 1
+    // Series-level, not this datum: a column that carries parts still fades
+    // the points that have none. A series that carries none stays plain.
+    const has =
+      !!active && (hd.parts[realIndex] || []).some((v) => v != null)
+    const leavePlain = this._leavePlain(has, prev)
+    const fadeTo = active && !leavePlain ? (cfg.fadeOpacity ?? 0.2) : 1
     const whole = w.seriesData.series[realIndex]?.[j]
     const stacked = !!w.config.chart.stacked
     // A stacked datum is placed even without a part: the stack cursor moves
@@ -840,21 +869,27 @@ export default class HighlightFilter {
 
     if (active) {
       // Labels state the part by default. A datum with no part keeps no
-      // label: its whole is a faded backdrop, not a reading. A stacked total
+      // label: its whole is a faded backdrop, not a reading. A series left
+      // plain keeps the labels the renderer just drew. A stacked total
       // states the parts, at the edge of the part stack (core reads it only
-      // on the series that draws the total, which is drawn last).
+      // on the series that draws the total, which is drawn last). A plain
+      // series still reports that total when the stack has parts, and leaves
+      // the whole total in place when it does not.
       /** @type {any} */
       const label = {}
-      if ((cfg.dataLabels?.value ?? 'part') === 'part') {
+      if (!leavePlain && (cfg.dataLabels?.value ?? 'part') === 'part') {
         Object.assign(
           label,
           p == null ? { hide: true } : { val: geo?.val ?? p, ...geo?.label },
         )
       }
       if (stacked && (cfg.dataLabels?.total ?? 'part') === 'part') {
-        label.total = geo.total(label.val != null ? label.val < 0 : whole < 0)
+        const total = geo.total(
+          label.val != null ? label.val < 0 : whole < 0,
+        )
+        if (!leavePlain || total) label.total = total
       }
-      hl.label = label
+      if (!leavePlain || label.total) hl.label = label
     }
     return hl
   }
@@ -1248,20 +1283,8 @@ export default class HighlightFilter {
     const area = type === 'area'
     const raw = active ? hd.parts[realIndex] || [] : []
     const has = raw.some((v) => v != null)
-    const stacked = !!w.config.chart.stacked
-    // A combo overlay that carries no parts (a trend line over columns) is
-    // left as the renderer drew it. `others: 'fade'` gives it the highlighted
-    // whole's look instead. A record already plain (no part path, full
-    // strength) still counts: the series was only visited, not picked, so the
-    // next render must not dash it. A part that was here and left does not.
-    const plainPrev =
-      !prev || (!prev.d && (prev.o ?? 0) <= 0 && (prev.f ?? 1) >= 1)
-    const leavePlain =
-      gl.comboCharts &&
-      !has &&
-      plainPrev &&
-      !stacked &&
-      this.cfg.others !== 'fade'
+    // A combo series that carries no parts stays as drawn, stacked or not.
+    const leavePlain = this._leavePlain(has, prev)
     // A legend-hidden series is drawn flat, and its part (gone with its
     // data) flattens with it; the renderer clears both once they land.
     const flat = active && ln._shapeOnly

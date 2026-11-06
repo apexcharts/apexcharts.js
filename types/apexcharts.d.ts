@@ -5535,9 +5535,10 @@ type ApexHighlightFilter = {
    */
   line?: { dashArray?: ApexDashPattern }
   /**
-   * A series that carries no parts on a combo chart (a trend line over
-   * columns, bars or an area). 'plain' (default) draws it as it is drawn
-   * with no pick. 'fade' gives it the highlighted look of a whole.
+   * A combo series that carries no parts: a trend line over columns, bars
+   * or an area, or those series under a line that has parts, stacked or
+   * not. 'plain' (default) draws it as it is drawn with no pick. 'fade'
+   * gives it the highlighted look of a whole.
    */
   others?: 'plain' | 'fade'
   /**

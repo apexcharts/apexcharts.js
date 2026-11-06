@@ -2378,8 +2378,9 @@ export default class Options {
         dataLabels: { value: 'part', total: 'part' },
         tooltip: { show: true, share: false, formatter: undefined },
         line: { dashArray: 4 },
-        // A combo series that carries no parts (a trend line over columns):
-        // 'plain' draws it as without a pick, 'fade' gives it the highlighted
+        // A combo series that carries no parts (a trend line over columns,
+        // or a column, bar or area under a line, stacked or not): 'plain'
+        // draws it as without a pick, 'fade' gives it the highlighted
         // whole's look.
         others: 'plain',
         pie: { encoding: 'radius' },
