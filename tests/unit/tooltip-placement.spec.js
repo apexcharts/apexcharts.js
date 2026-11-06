@@ -4228,14 +4228,27 @@ describe('Intersect.handleBarTooltip: a column with no room beside it', () => {
    */
   function hoverColumn(
     bar,
-    { wrapWidth = 400, ttWidth = 100, card = null } = {},
+    {
+      wrapWidth = 400,
+      ttWidth = 100,
+      card = null,
+      sparkline = false,
+      gridWidth,
+      ttHeight = 60,
+      arrow = true,
+    } = {},
   ) {
     const ctx = makeCtx({
       ...TALL,
+      ...(gridWidth != null ? { gridWidth } : {}),
       ttWidth,
-      ttHeight: 60,
+      ttHeight,
       wrapRect: { ...TALL.wrapRect, width: wrapWidth },
-      chart: { type: 'bar' },
+      chart: {
+        type: 'bar',
+        ...(sparkline ? { sparkline: { enabled: true } } : {}),
+      },
+      tooltip: { arrow },
     })
     const { w, ttCtx, tooltipEl, elWrap } = ctx
     if (card) clipTo(elWrap, card)
@@ -4316,6 +4329,79 @@ describe('Intersect.handleBarTooltip: a column with no room beside it', () => {
     expect(tooltipEl.style.top).toBe(120 - GAP - 60 + 'px')
     expect(tooltipEl.style.left).toBe('50px')
     expect(tooltipEl.style.getPropertyValue('--apx-tt-arrow-x')).toBe('45px')
+  })
+
+  // #5119: a sparkline (and any column plot narrower than about two
+  // tooltips) used to shift the box by its whole width once `barX + ttWidth`
+  // passed the plot. A short bar whose tooltip still fit stayed beside it;
+  // a wider tooltip on the same bar was thrown left. Every width now sits
+  // centred above that bar.
+  it('centres a sparkline column tooltip above a short bar for every tooltip width', () => {
+    // bar elWrap 60..76, centre 68, top 100. translateX 50, plot 50..250.
+    const bar = { x: 10, y: 80, width: 16, height: 40 }
+    const opts = { sparkline: true, gridWidth: 200, wrapWidth: 400, ttHeight: 40 }
+    for (const ttWidth of [40, 90]) {
+      const tooltipEl = hoverColumn(bar, { ...opts, ttWidth })
+      expect(tooltipEl.dataset.placement).toBe('top')
+      // Held on the plot's left edge; the arrow still points at the bar
+      // centre (68), not a full tooltip-width to the left of it.
+      expect(tooltipEl.style.left).toBe('50px')
+      expect(tooltipEl.style.top).toBe(100 - GAP - 40 + 'px')
+      expect(tooltipEl.style.getPropertyValue('--apx-tt-arrow-x')).toBe('18px')
+    }
+  })
+
+  it('centres a wide sparkline tooltip above a short bar at the right, instead of flipping by its width', () => {
+    // bar elWrap 200..216, centre 208, top 140. A 70px box centred on it is
+    // 173..243, inside the 50..250 plot. The old flip (`x - ttWidth`) parked
+    // it a full box-width to the left.
+    const tooltipEl = hoverColumn(
+      { x: 150, y: 120, width: 16, height: 30 },
+      { sparkline: true, gridWidth: 200, wrapWidth: 400, ttWidth: 70, ttHeight: 40 },
+    )
+    expect(tooltipEl.dataset.placement).toBe('top')
+    expect(tooltipEl.style.left).toBe('173px')
+    expect(tooltipEl.style.top).toBe(140 - GAP - 40 + 'px')
+    expect(tooltipEl.style.getPropertyValue('--apx-tt-arrow-x')).toBe('35px')
+  })
+
+  it('centres a narrow non-sparkline column the same way when the plot is narrower than two tooltips', () => {
+    // grid 80 (plot 50..130), tooltip 50. bar elWrap 70..82, centre 76.
+    const tooltipEl = hoverColumn(
+      { x: 20, y: 80, width: 12, height: 40 },
+      { gridWidth: 80, wrapWidth: 130, ttWidth: 50, ttHeight: 40 },
+    )
+    expect(tooltipEl.dataset.placement).toBe('top')
+    expect(tooltipEl.style.left).toBe('51px')
+    expect(tooltipEl.style.top).toBe(100 - GAP - 40 + 'px')
+    expect(tooltipEl.style.getPropertyValue('--apx-tt-arrow-x')).toBe('25px')
+  })
+
+  it('still parks a wide chart beside the column', () => {
+    // bar elWrap 60..76. The plot (grid 400) has room beside it.
+    const tooltipEl = hoverColumn(
+      { x: 10, y: 80, width: 16, height: 40 },
+      { gridWidth: 400, wrapWidth: 500, ttWidth: 40, ttHeight: 40 },
+    )
+    expect(tooltipEl.dataset.placement).toBe('right')
+    expect(tooltipEl.style.left).toBe(76 + GAP + 'px')
+  })
+
+  it('centres an arrow-less sparkline tooltip above the bar too', () => {
+    const tooltipEl = hoverColumn(
+      { x: 150, y: 120, width: 16, height: 30 },
+      {
+        sparkline: true,
+        gridWidth: 200,
+        wrapWidth: 400,
+        ttWidth: 70,
+        ttHeight: 40,
+        arrow: false,
+      },
+    )
+    expect(tooltipEl.dataset.placement).toBe('top')
+    expect(tooltipEl.style.left).toBe('173px')
+    expect(tooltipEl.style.top).toBe(140 - GAP - 40 + 'px')
   })
 })
 
