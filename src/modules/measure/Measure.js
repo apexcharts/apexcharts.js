@@ -1,5 +1,6 @@
 // @ts-check
 import Graphics from '../Graphics'
+import Theme from '../Theme'
 import TooltipUtils from '../tooltip/Utils'
 import { Environment } from '../../utils/Environment.js'
 
@@ -775,7 +776,8 @@ export default class Measure {
    * @param {any} g @param {string[]} lines @param {number} bx @param {number} by
    * @param {number} boxW @param {number} boxH @param {string} color */
   _readout(g, lines, bx, by, boxW, boxH, color) {
-    const box = this.graphics.drawRect(bx, by, boxW, boxH, 4)
+    const r = Theme.radius(this.w, 4)
+    const box = this.graphics.drawRect(bx, by, boxW, boxH, r)
     box.node.setAttribute('class', 'apexcharts-measure-label-bg')
     box.attr({ fill: '#ffffff', 'fill-opacity': 0.95, stroke: color, 'stroke-width': 1 })
     g.add(box)

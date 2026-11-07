@@ -6,6 +6,7 @@ import Fill from '../modules/Fill'
 import Helpers from './common/treemap/Helpers'
 import Filters from '../modules/Filters'
 import Series from '../modules/Series'
+import Theme from '../modules/Theme'
 
 import Utils from '../utils/Utils'
 import { nameAsHtml } from '../utils/nameAsHtml.js'
@@ -1833,7 +1834,7 @@ export default class TreemapChart {
     nav.style.background = dark
       ? 'rgba(20,24,30,0.82)'
       : 'rgba(255,255,255,0.86)'
-    nav.style.borderRadius = '4px'
+    nav.style.borderRadius = `${Theme.radius(w, 4)}px`
   }
 
   // ---------------------------------------------------------------- tooltip

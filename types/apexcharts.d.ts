@@ -5717,8 +5717,8 @@ type ApexTheme = {
   /**
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade
    * (`--apx-accent`, `--apx-fore`, `--apx-grid`, `--apx-surface`,
-   * `--apx-series-1..N`, `--apx-font-family`). They top the resolution
-   * chain, below explicit config.
+   * `--apx-series-1..N`, `--apx-font-family`, `--apx-radius-factor`). They top
+   * the resolution chain, below explicit config.
    * true (default) reads any present (absence is a no-op); false disables
    * them and the design-system layer (`designSystem`).
    * Tokens are re-read on each render; use `chart.refreshTokens()` after a

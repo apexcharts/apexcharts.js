@@ -492,6 +492,12 @@ export interface ChartGlobals
    */
   tokenChrome: { fore?: string; grid?: string; font?: string } | undefined
   /**
+   * `--apx-radius-factor` as a number (1 when unset, never below 0), read
+   * with the tokens on every render. The radii drawn in JS are scaled by it
+   * through Theme.radius, as the stylesheet scales its own.
+   */
+  radiusFactor: number
+  /**
    * What the named theme wrote into `config.theme` (its mode, colorBlindMode,
    * and the monochrome object it replaced), so switching to another named
    * theme can revert it. See Theme._applyNamedThemeMode.

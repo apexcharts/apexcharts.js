@@ -470,6 +470,9 @@ export default class Globals {
       // The tokens the last render applied to fore, grid and font, for the
       // same reason (see Theme.applyTokenChrome).
       tokenChrome: undefined,
+      // `--apx-radius-factor` as a number, read with the tokens on every
+      // render (see Theme.radius).
+      radiusFactor: 1,
       // What the named theme (theme.name) wrote into config.theme, so a switch
       // to another named theme can take it back (see Theme._applyNamedThemeMode).
       namedThemeApplied: undefined,

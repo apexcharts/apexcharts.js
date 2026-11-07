@@ -2871,7 +2871,7 @@ export default class Options {
         // and it keeps following the mode (see Theme.applyModePalette).
         palette: 'palette1',
         // Facet (#13): read `--apx-*` CSS design tokens from the cascade
-        // (accent/fore/grid/surface + series-1..N, font-family).
+        // (accent/fore/grid/surface + series-1..N, font-family, radius-factor).
         // true (default) reads any present (absence is a no-op); false
         // disables them and the design-system layer below. Tokens top the
         // resolution chain below explicit config. Tokens are re-read on every

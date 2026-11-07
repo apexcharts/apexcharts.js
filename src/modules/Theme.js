@@ -127,6 +127,7 @@ export default class Theme {
     this._layers = this._resolveTokenLayers(el, cs, ds)
     this._tokens = { ...this._layers.named, ...this._layers.css }
     this.applyTokenChrome(this._layers)
+    this._applyRadiusFactor()
     // After the token pass, which may have set or given back chart.background.
     this.applyModePaper()
 
@@ -469,6 +470,36 @@ export default class Theme {
     return theme.accessibility?.colorBlindMode || theme.monochrome?.enabled
       ? null
       : ds
+  }
+
+  /**
+   * Plan 36 (1E): `--apx-radius-factor` as the number `Theme.radius` scales
+   * the JS radii by, read with the other tokens. 1 when it is unset or not a
+   * number, as the stylesheet's `var(--apx-radius-factor, 1)`; never below
+   * 0, where CSS clamps a radius too. With `theme.tokens: false` the
+   * stylesheet's factor falls back to its default as well.
+   */
+  _applyRadiusFactor() {
+    const w = this.w
+    const v = this._layers.css.radiusFactor
+    const n = v ? Number(v) : 1
+    w.globals.radiusFactor = isFinite(n) ? Math.max(0, n) : 1
+    const style = /** @type {any} */ (w.dom.elWrap).style
+    if (!this._shouldUseTokens() && style && style.setProperty) {
+      style.setProperty('--apx-radius-factor', 'initial')
+    }
+  }
+
+  /**
+   * Plan 36 (1E): a radius drawn in JS, `px` at the default factor, scaled
+   * by `--apx-radius-factor` as the stylesheet's radii are.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} px
+   * @returns {number}
+   */
+  static radius(w, px) {
+    const f = w.globals.radiusFactor
+    return f == null ? px : px * f
   }
 
   /**

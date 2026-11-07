@@ -3,6 +3,7 @@ import { eventOrigin } from 'apex-commons'
 import Utils from '../../utils/Utils'
 import Options from '../settings/Options'
 import TooltipUtils from '../tooltip/Utils'
+import Theme from '../Theme'
 
 /**
  * Ink Layer (#7): direct-manipulation annotation authoring.
@@ -720,7 +721,7 @@ export default class InkLayer {
     bs.cursor = 'pointer'
     bs.font = '12px sans-serif'
     bs.padding = '4px 9px'
-    bs.borderRadius = '5px'
+    bs.borderRadius = `${Theme.radius(w, 5)}px`
     bs.border = '1px solid #6366f1'
     bs.color = '#4338ca'
     bs.background = '#fff'

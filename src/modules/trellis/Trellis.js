@@ -954,6 +954,13 @@ export default class Trellis {
     const foreColor = this.w.config.chart?.foreColor
     if (foreColor) wrap.style.setProperty('--apx-trellis-fore', foreColor)
 
+    // A panel's canvas resets the radius factor under `theme.tokens: false`
+    // (Theme._applyRadiusFactor); the chrome around the panels is the
+    // host's, so it does the same here.
+    if (this.w.config.theme.tokens === false) {
+      wrap.style.setProperty('--apx-radius-factor', 'initial')
+    }
+
     const chromeTop = BrowserAPIs.createElement('div')
     chromeTop.className = 'apexcharts-trellis-chrome'
     wrap.appendChild(chromeTop)
