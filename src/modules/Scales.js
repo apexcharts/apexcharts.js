@@ -324,7 +324,9 @@ export default class Scales {
       range = Math.abs(yMax - yMin)
       // Final check and possible adjustment of stepSize to prevent
       // overriding the user's min or max choice.
-      stepSize = Utils.getGCD(range, stepSize)
+      if (gotMin || gotMax) {
+        stepSize = Utils.getGCD(range, stepSize)
+      }
       tiks = Math.round(range / stepSize)
     }
 

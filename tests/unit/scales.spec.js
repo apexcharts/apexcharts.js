@@ -60,6 +60,13 @@ describe('Scales.niceScale', () => {
     expect(s.niceScale(0.3, 0.1 + 0.2)).toEqual(s.niceScale(0.3, 0.3))
   })
 
+  it('handles a range just wider than rounding', () => {
+    const s = makeScales([{ data: [1, 1 + 1e-10] }])
+    const { result } = s.niceScale(1, 1 + 1e-10)
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    expect(result.length).toBeLessThan(20)
+  })
+
   it('handles all-negative range', () => {
     const s = makeScales([{ data: [-30, -20, -10] }])
     const { result, niceMin, niceMax } = s.niceScale(-30, -10)
