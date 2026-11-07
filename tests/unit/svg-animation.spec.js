@@ -191,4 +191,45 @@ describe('SVGAnimationRunner: colour attributes', () => {
       perf.mockRestore()
     }
   })
+
+  it('finishes when the frame stamp stays behind performance.now()', async () => {
+    // jsdom's requestAnimationFrame stamp is performance.now() minus the age
+    // of the window. Compared with a start captured from performance.now(),
+    // that difference never closes, so a 40ms tween was still running after
+    // the donut updateOptions spec gave up on animationEnded.
+    let wall = 10000
+    const frames = []
+    const raf = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb) => {
+        frames.push(cb)
+        return frames.length
+      })
+    const perf = vi.spyOn(performance, 'now').mockImplementation(() => wall)
+    try {
+      let ended = false
+      const el = {
+        attr() {
+          return this
+        },
+        plot() {
+          return this
+        },
+        node: {},
+      }
+      new SVGAnimationRunner(el, 40, 0).after(() => {
+        ended = true
+      })
+      await Promise.resolve()
+      wall = 10020
+      frames.shift()(wall - 5000)
+      expect(ended).toBe(false)
+      wall = 10040
+      frames.shift()(wall - 5000)
+      expect(ended).toBe(true)
+    } finally {
+      raf.mockRestore()
+      perf.mockRestore()
+    }
+  })
 })
