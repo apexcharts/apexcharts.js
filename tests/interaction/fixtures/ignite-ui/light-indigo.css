@@ -1,0 +1,38 @@
+/* Ignite UI 7.4.1 themes/light/indigo.css (igniteui-webcomponents), :root only:
+   the --ig-* tokens ApexCharts reads and the properties their values use.
+   Generated from Chromium's capture in plan 36's token inventory. */
+:root {
+  --ig-theme: indigo;
+  --ig-theme-variant: light;
+  --ig-primary-300: #7385f4;
+  --ig-primary-500: #3f51b5;
+  --ig-primary-700: #333d83;
+  --ig-primary-seed: #3f51b5;
+  --ig-secondary-300: #7385f4;
+  --ig-secondary-500: #3f51b5;
+  --ig-secondary-700: #333d83;
+  --ig-secondary-seed: #3f51b5;
+  --ig-gray-100: #f8f8fa;
+  --ig-gray-300: #cbcdd2;
+  --ig-gray-400: #b0b2b7;
+  --ig-gray-600: #6c707a;
+  --ig-gray-800: #3b3d47;
+  --ig-info-300: #da64ff;
+  --ig-info-500: #9c27b0;
+  --ig-info-700: #7f1192;
+  --ig-info-seed: #9c27b0;
+  --ig-success-300: #95bc74;
+  --ig-success-500: #689f38;
+  --ig-success-700: #4e8222;
+  --ig-success-seed: #689f38;
+  --ig-warn-300: #fb8f32;
+  --ig-warn-500: #f56b1d;
+  --ig-warn-700: #ec4820;
+  --ig-warn-seed: #f56b1d;
+  --ig-error-300: #ec5461;
+  --ig-error-500: #cf1a2b;
+  --ig-error-700: #b90415;
+  --ig-error-seed: #cf1a2b;
+  --ig-surface-500: #f8f8fa;
+  --ig-font-family: Nunito Sans, sans-serif;
+}
