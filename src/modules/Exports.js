@@ -937,9 +937,25 @@ class Exports {
       return /^[=+\-@\t\r]/.test(s) && isNaN(+s) ? `'${s}` : s
     }
 
-    /** @param {any} cat */
-    const isDateCat = (cat) =>
-      isDatetime && String(cat).length >= 10 && !isNaN(new Date(cat).getTime())
+    // A datetime category: an epoch, a Date, or a date string. Date.parse is
+    // not that test — it accepts "Endpoint 1" as 1 Jan 2001 — so a category
+    // name on a datetime axis stays text.
+    /**
+     * @param {any} cat
+     */
+    const isDateCat = (cat) => {
+      if (!isDatetime || cat == null || cat === '') return false
+      if (cat instanceof Date) return !isNaN(cat.getTime())
+      if (typeof cat === 'number') {
+        return (
+          Number.isFinite(cat) &&
+          String(Math.abs(Math.trunc(cat))).length >= 10
+        )
+      }
+      if (typeof cat !== 'string') return false
+      const s = cat.trim()
+      return s.length >= 10 && /^\d/.test(s) && !isNaN(new Date(s).getTime())
+    }
 
     // A datetime category in the zone the axis shows: the day, or the time as
     // well when two categories share a day.
@@ -980,6 +996,48 @@ class Exports {
       return typeof csvCfg.valueFormatter === 'function'
         ? csvCfg.valueFormatter(value)
         : csvSafe(value)
+    }
+
+    // The chart's datetime formatter. xaxis.labels.format is the format the
+    // axis was given; otherwise a full instant, which a spreadsheet reads as
+    // a date. The tooltip's default "dd MMM" drops the year and the time.
+    const dt = new DateTime(w)
+    /**
+     * @param {any} value
+     */
+    const formatChartDatetime = (value) => {
+      const date = dt.getDate(value)
+      if (!(date instanceof Date) || isNaN(date.getTime())) return value
+      const format = w.config.xaxis.labels.format
+      if (format) return dt.formatDate(date, format)
+      const ms = utc ? date.getUTCMilliseconds() : date.getMilliseconds()
+      return dt.formatDate(
+        date,
+        ms ? 'yyyy-MM-dd HH:mm:ss.fff' : 'yyyy-MM-dd HH:mm:ss',
+      )
+    }
+
+    // A timeline draws the datetime axis as the range (the category is the
+    // row name). A column chart's datetime axis is the category, so its
+    // numeric range stays a number — unless that range is itself an epoch
+    // and the row's x is not the date (#4106).
+    /**
+     * @param {string} type
+     * @param {any} x
+     * @param {any} value
+     */
+    const rangeDatetime = (type, x, value) => {
+      if (typeof csvCfg.valueFormatter === 'function') return false
+      if (type !== 'rangeBar' && type !== 'rangeArea') return false
+      if (!isDatetime || value == null || value === '') return false
+      if (typeof value !== 'number' && !(value instanceof Date)) return false
+      if (gl.isBarHorizontal) return true
+      if (isDateCat(x)) return false
+      if (value instanceof Date) return true
+      return (
+        Number.isFinite(value) &&
+        String(Math.abs(Math.trunc(value))).length >= 10
+      )
     }
 
     const axesUtils = new AxesUtils(this.w, {
@@ -1134,10 +1192,21 @@ class Exports {
               ),
             ]
           }
+          const datum = off ? undefined : s.data?.[i]
+          const x =
+            datum && typeof datum === 'object'
+              ? Array.isArray(datum)
+                ? datum[0]
+                : datum.x
+              : undefined
           return Object.values(fields).map((src) => {
             const v = off ? undefined : src?.[sI]?.[i]
             // a violin cell counts its observations
-            return getFormattedValue(Array.isArray(v) ? v.length : v)
+            if (Array.isArray(v)) return getFormattedValue(v.length)
+            if (rangeDatetime(type, x, v)) {
+              return csvSafe(formatChartDatetime(v))
+            }
+            return getFormattedValue(v)
           })
         },
       }

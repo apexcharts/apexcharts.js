@@ -844,6 +844,21 @@ describe('Export Csv: datetime categories', () => {
     expect(csv).toBe('category,A\nThu Jan 01 2026,1\nFri Jan 02 2026,2')
   })
 
+  it('keeps a category name that Date.parse would accept', () => {
+    // "Endpoint 1" is 10 characters and Date.parse reads it as 1 Jan 2001.
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'datetime' },
+      series: [
+        { name: 'A', data: [{ x: 'Endpoint 1', y: 1 }] },
+        { name: 'B', data: [{ x: '2000-01-02T00:00:00.000Z', y: 2 }] },
+      ],
+    })
+    expect(csv).toContain('Endpoint 1,1,')
+    expect(csv).toContain('Sun Jan 02 2000,,2')
+    expect(csv).not.toContain('2001')
+  })
+
   it('prints the local day and time when xaxis.labels.datetimeUTC is off', () => {
     const csv = csvOf({
       chart: { type: 'line' },
@@ -864,6 +879,122 @@ describe('Export Csv: datetime categories', () => {
         '2026-01-01 00:00:00,1\n' +
         '2026-01-02 00:00:00,2\n' +
         '2026-01-02 06:15:00,3',
+    )
+  })
+})
+
+describe('Export Csv: datetime range endpoints', () => {
+  // #4106: a timeline stores the dates in y, and the CSV used to write the
+  // raw epoch (which a spreadsheet shows in scientific notation).
+  const start = Date.UTC(2023, 9, 20, 18, 14, 37)
+  const end = Date.UTC(2023, 9, 31, 6, 14, 37)
+
+  it('formats a multi-series timeline instead of writing the epoch', () => {
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      plotOptions: { bar: { horizontal: true } },
+      xaxis: { type: 'datetime' },
+      series: [
+        {
+          name: 'Online',
+          data: [
+            { x: 'Endpoint 1', y: [start, end] },
+            { x: 'Endpoint 2', y: [start + 86400000, end] },
+          ],
+        },
+        {
+          name: 'Idle',
+          data: [{ x: 'Endpoint 1', y: [start + 3600000, end - 3600000] }],
+        },
+      ],
+    })
+    expect(csv).toBe(
+      'category,Online minimum,Online maximum,Idle minimum,Idle maximum\n' +
+        'Endpoint 1,2023-10-20 18:14:37,2023-10-31 06:14:37,2023-10-20 19:14:37,2023-10-31 05:14:37\n' +
+        'Endpoint 2,2023-10-21 18:14:37,2023-10-31 06:14:37,,',
+    )
+    expect(csv).not.toContain(String(start))
+  })
+
+  it('formats the same dates when the rangeBar is not horizontal', () => {
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      xaxis: { type: 'datetime' },
+      series: [
+        { name: 'Online', data: [{ x: 'Endpoint 1', y: [start, end] }] },
+        { name: 'Idle', data: [{ x: 'Endpoint 1', y: [start, end] }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,Online minimum,Online maximum,Idle minimum,Idle maximum\n' +
+        'Endpoint 1,2023-10-20 18:14:37,2023-10-31 06:14:37,2023-10-20 18:14:37,2023-10-31 06:14:37',
+    )
+  })
+
+  it('keeps a numeric range on a vertical datetime axis', () => {
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      xaxis: { type: 'datetime' },
+      series: [
+        {
+          name: 'A',
+          data: [
+            { x: Date.UTC(2023, 9, 20), y: [1, 5] },
+            { x: Date.UTC(2023, 9, 21), y: [3, 7] },
+          ],
+        },
+      ],
+    })
+    expect(csv).toBe(
+      'category,minimum,maximum\nFri Oct 20 2023,1,5\nSat Oct 21 2023,3,7',
+    )
+  })
+
+  it('uses xaxis.labels.format for the range endpoints', () => {
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      plotOptions: { bar: { horizontal: true } },
+      xaxis: { type: 'datetime', labels: { format: 'dd MMM yyyy' } },
+      series: [{ data: [{ x: 'Endpoint 1', y: [start, end] }] }],
+    })
+    expect(csv).toBe('category,minimum,maximum\nEndpoint 1,20 Oct 2023,31 Oct 2023')
+  })
+
+  it('passes the raw epoch to csv.valueFormatter', () => {
+    const seen = []
+    const csv = csvOf({
+      chart: {
+        type: 'rangeBar',
+        toolbar: {
+          export: {
+            csv: {
+              valueFormatter(value) {
+                seen.push(value)
+                return `D${value}`
+              },
+            },
+          },
+        },
+      },
+      plotOptions: { bar: { horizontal: true } },
+      xaxis: { type: 'datetime' },
+      series: [{ name: 'Online', data: [{ x: 'Endpoint 1', y: [start, end] }] }],
+    })
+    expect(seen).toEqual([start, end])
+    expect(csv).toBe(`category,minimum,maximum\nEndpoint 1,D${start},D${end}`)
+  })
+
+  it('formats timeline endpoints in local time when datetimeUTC is off', () => {
+    const localStart = new Date(2023, 9, 20, 18, 14, 37).getTime()
+    const localEnd = new Date(2023, 9, 21, 6, 14, 37).getTime()
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      plotOptions: { bar: { horizontal: true } },
+      xaxis: { type: 'datetime', labels: { datetimeUTC: false } },
+      series: [{ data: [{ x: 'Endpoint 1', y: [localStart, localEnd] }] }],
+    })
+    expect(csv).toBe(
+      'category,minimum,maximum\nEndpoint 1,2023-10-20 18:14:37,2023-10-21 06:14:37',
     )
   })
 })
