@@ -112,6 +112,18 @@ export default class Theme {
     w.dom.elWrap.classList.add(
       `apexcharts-theme-${w.config.theme.mode || 'light'}`,
     )
+    // Plan 36 (1D): the stylesheet's design-system twins key off these
+    // classes, so they go on only while the design system's colours apply:
+    // present, switched on, not bypassed by colorBlindMode or monochrome. The
+    // variant class keeps the overlay and grey twins to the parts drawn in
+    // the sheet's own variant (the D6 gate); a missing variant is light.
+    const dsColors = this._designSystemColors(ds)
+    if (dsColors) {
+      w.dom.elWrap.classList.add(
+        'apexcharts-igniteui',
+        `apexcharts-igniteui-${dsColors.variant || 'light'}`,
+      )
+    }
 
     // Facet (#13): apply the concrete dark/light foreColor + palette defaults
     // for the CURRENT mode. Config-time (checkForDarkTheme) and update-time
@@ -477,7 +489,7 @@ export default class Theme {
    * the JS radii by, read with the other tokens. 1 when it is unset or not a
    * number, as the stylesheet's `var(--apx-radius-factor, 1)`; never below
    * 0, where CSS clamps a radius too. With `theme.tokens: false` the
-   * stylesheet's factor falls back to its default as well.
+   * stylesheet's two family tokens fall back to their defaults as well.
    */
   _applyRadiusFactor() {
     const w = this.w
@@ -486,6 +498,7 @@ export default class Theme {
     w.globals.radiusFactor = isFinite(n) ? Math.max(0, n) : 1
     const style = /** @type {any} */ (w.dom.elWrap).style
     if (!this._shouldUseTokens() && style && style.setProperty) {
+      style.setProperty('--apx-font-family', 'initial')
       style.setProperty('--apx-radius-factor', 'initial')
     }
   }

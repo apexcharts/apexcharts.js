@@ -5722,7 +5722,8 @@ type ApexTheme = {
    * true (default) reads any present (absence is a no-op); false disables
    * them and the design-system layer (`designSystem`).
    * Tokens are re-read on each render; use `chart.refreshTokens()` after a
-   * runtime CSS change that does not itself trigger a render.
+   * runtime CSS change that does not itself trigger a render. A font that
+   * came from a token and is still loading is read again once it has loaded.
    */
   tokens?: boolean
   /**

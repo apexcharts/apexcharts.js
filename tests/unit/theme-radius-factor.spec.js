@@ -80,6 +80,7 @@ describe('the factor (1E)', () => {
     expect(chart.w.globals.radiusFactor).toBe(1)
     const style = chart.w.dom.elWrap.style
     expect(style.getPropertyValue('--apx-radius-factor')).toBe('initial')
+    expect(style.getPropertyValue('--apx-font-family')).toBe('initial')
     chart.destroy()
   })
 
@@ -87,6 +88,7 @@ describe('the factor (1E)', () => {
     const chart = await chartAt('0.5')
     const style = chart.w.dom.elWrap.style
     expect(style.getPropertyValue('--apx-radius-factor')).toBe('')
+    expect(style.getPropertyValue('--apx-font-family')).toBe('')
     chart.destroy()
   })
 })

@@ -187,6 +187,8 @@ export default class ApexCharts {
   _printRestore = null
   /** @type {any} */ beforePrintHandler
   /** @type {any} */ afterPrintHandler
+  // The token font a re-read on load is armed for (see _watchTokenFont).
+  /** @type {string | undefined} */ _tokenFontWatched = undefined
   /** @type {any} */ config
   /** @type {any} */ perspectives
   /** @type {any} */ storyboard
@@ -662,6 +664,7 @@ export default class ApexCharts {
 
     // this is a good time to set theme colors first
     this.theme.init()
+    this._watchTokenFont()
 
     // as markers accepts array, we need to setup global markers for easier access
     const markers = new Markers(this.w, this)
@@ -2953,6 +2956,49 @@ export default class ApexCharts {
   refreshTokens() {
     this.lastUpdateOptions = null
     return this.update()
+  }
+
+  /**
+   * Plan 36 (1F): a font that came from a token (`--apx-font-family`, Ignite
+   * UI's `--ig-font-family`) is usually a web font, and design-system sheets
+   * ship no `@font-face` to have it ready. Labels measured while it loads
+   * keep the fallback font's widths, so the tokens are read again once the
+   * font has loaded: once per font, and only while it is not in place, so a
+   * loaded font costs no second render. This runs before the first label is
+   * drawn, when nothing is loading yet and `fonts.ready` has already settled,
+   * so `fonts.load()` starts the fetch and is what is waited on. Never for a
+   * font the page passed, server side, or without `document.fonts`.
+   * @private
+   */
+  _watchTokenFont() {
+    const g = this.w.globals
+    const font = g.tokenChrome && g.tokenChrome.font
+    if (
+      !font ||
+      g.themeFontFamilyExplicit ||
+      this.w.config.chart.fontFamily !== font ||
+      this._tokenFontWatched === font
+    )
+      return
+    const doc = BrowserAPIs.getDocument()
+    const fonts = /** @type {any} */ (doc && doc.fonts)
+    if (!fonts || !fonts.load) return
+    let loading
+    try {
+      if (fonts.check(`1em ${font}`)) return
+      loading = fonts.load(`1em ${font}`)
+    } catch (e) {
+      // A family list the font shorthand cannot parse: nothing to wait on.
+      return
+    }
+    this._tokenFontWatched = font
+    // A font that fails to load leaves the fallback, which the labels have.
+    Promise.resolve(loading).then(
+      () => {
+        if (!this.w.globals.isDestroyed) this.refreshTokens()
+      },
+      () => {},
+    )
   }
 
   /**

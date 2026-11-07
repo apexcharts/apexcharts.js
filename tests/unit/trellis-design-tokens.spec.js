@@ -11,7 +11,7 @@ import { igniteSheet } from './utils/ignite-ui-sheet.js'
 //   page's, so they keep following the token (D5: "explicit" is what the page
 //   passed);
 // - the headers, legend and title take the panels' token font;
-// - `theme.tokens: false` resets the radius factor on the host's wrap too.
+// - `theme.tokens: false` resets the family tokens on the host's wrap too.
 
 const DEFAULT_FONT = 'Helvetica, Arial, sans-serif'
 const NAMES = ['trellisFont']
@@ -171,10 +171,11 @@ describe('trellis: the host wrap matches its panels', () => {
     chart.destroy()
   })
 
-  it('theme.tokens:false resets the radius factor on the host wrap and skips the token font', async () => {
+  it('theme.tokens:false resets the family tokens on the host wrap and skips the token font', async () => {
     page = igniteSheet({ apx: { '--apx-font-family': 'Georgia, serif' } })
     const chart = await host({ theme: { tokens: false } })
     const style = chart.trellis.elWrap.style
+    expect(style.getPropertyValue('--apx-font-family')).toBe('initial')
     expect(style.getPropertyValue('--apx-radius-factor')).toBe('initial')
     expect(fonts(chart)).toEqual({ host: DEFAULT_FONT, panels: [DEFAULT_FONT] })
     chart.destroy()
@@ -184,6 +185,7 @@ describe('trellis: the host wrap matches its panels', () => {
     page = igniteSheet()
     const chart = await host()
     const style = chart.trellis.elWrap.style
+    expect(style.getPropertyValue('--apx-font-family')).toBe('')
     expect(style.getPropertyValue('--apx-radius-factor')).toBe('')
     chart.destroy()
   })
