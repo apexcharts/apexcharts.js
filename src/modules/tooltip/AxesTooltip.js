@@ -148,7 +148,8 @@ class AxesTooltip {
     // A keyword with nothing to measure (no labels, no bar) still draws.
     ttCtx.xcrosshairsWidth = Number.isFinite(width) ? width : 1
 
-    if (w.globals.isBarHorizontal) {
+    // A horizontal range bar still uses the x axis for its time/value range.
+    if (w.globals.isBarHorizontal && w.config.chart.type !== 'rangeBar') {
       ttCtx.xcrosshairsWidth = 0
     }
     if (xcrosshairs !== null && ttCtx.xcrosshairsWidth > 0) {

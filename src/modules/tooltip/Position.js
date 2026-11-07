@@ -410,7 +410,10 @@ export default class Position {
 
     let x = cx - ttCtx.xcrosshairsWidth / 2
 
-    if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
+    if (
+      xcrosshairs !== null &&
+      (!w.globals.isBarHorizontal || w.config.chart.type === 'rangeBar')
+    ) {
       xcrosshairs.setAttribute('x', String(x))
       xcrosshairs.setAttribute('x1', String(x))
       xcrosshairs.setAttribute('x2', String(x))
