@@ -129,6 +129,21 @@ export default class Scales {
     if (ticks < 1) {
       ticks = 1
     }
+
+    // Extreme zoom (#4986). The ends are different numbers, but closer than
+    // one step can move at this magnitude (a datetime window below ~1ms).
+    // Adding the step then leaves the value unchanged, and the tick loop used
+    // to run until the array length overflowed. The chart had already been
+    // cleared, so Reset Zoom came back to a blank svg. The two ends are the
+    // whole scale; Reset Zoom restores the original domain from there.
+    if (yMin !== yMax && yMin + (yMax - yMin) / ticks === yMin) {
+      return {
+        result: [yMin, yMax],
+        niceMin: yMin,
+        niceMax: yMax,
+      }
+    }
+
     let tiks = ticks
 
     // Determine Range
@@ -434,10 +449,35 @@ export default class Scales {
     // This also fixes (amongst others):
     // https://github.com/apexcharts/apexcharts.js/issues/430
     const err = stepSize * jsPrecision
+    // A step that later rounding shrinks below the ulp never moves `val`.
+    // Stop well past a real tick count instead of growing the array without
+    // bound (#4986).
+    const limit = (Math.max(tiks, 1) || 1) * 8 + 2
+    let guard = 0
     do {
-      val += stepSize
+      const next = val + stepSize
+      if (!Number.isFinite(next) || next === val || guard >= limit) break
+      val = next
       result.push(Utils.stripNumber(val, 7))
+      guard++
     } while (yMax - val > err)
+
+    if (result.length < 2 || !Number.isFinite(result[0])) {
+      // Nothing usable was emitted. Widen by one unit, or by the smallest
+      // power of two that this magnitude can still represent.
+      const anchor = Number.isFinite(yMin) ? yMin : 0
+      let pad = 1
+      let spins = 0
+      while (anchor + pad === anchor && Number.isFinite(pad) && spins++ < 64) {
+        pad *= 2
+      }
+      if (!Number.isFinite(pad) || anchor + pad === anchor) pad = 1
+      result.length = 0
+      result.push(
+        anchor === 0 ? 0 : anchor - pad,
+        anchor === 0 ? Math.max(2, pad) : anchor + pad,
+      )
+    }
 
     return {
       result,

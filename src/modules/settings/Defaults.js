@@ -241,12 +241,12 @@ const getRangeValues = ({
   y2,
   w,
 }) => {
-  let start = w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
-  let end = w.rangeData.seriesRangeEnd[seriesIndex][dataPointIndex]
+  // The row is absent when a zoom collapsed that series (#4986).
+  let start = w.rangeData.seriesRangeStart[seriesIndex]?.[dataPointIndex]
+  let end = w.rangeData.seriesRangeEnd[seriesIndex]?.[dataPointIndex]
   let ylabel = w.labelData.labels[dataPointIndex]
-  let seriesName = w.config.series[seriesIndex].name
-    ? w.config.series[seriesIndex].name
-    : ''
+  const seriesCfg = w.config.series[seriesIndex]
+  let seriesName = seriesCfg?.name ? seriesCfg.name : ''
   const yLbFormatter = w.formatters.ttKeyFormatter
   const yLbTitleFormatter = w.config.tooltip.y.title.formatter
 
@@ -264,8 +264,8 @@ const getRangeValues = ({
       ? yLbTitleFormatter(seriesName, opts)
       : seriesName,
   )
-  if (w.config.series[seriesIndex].data[dataPointIndex]?.x) {
-    ylabel = w.config.series[seriesIndex].data[dataPointIndex].x
+  if (seriesCfg?.data?.[dataPointIndex]?.x) {
+    ylabel = seriesCfg.data[dataPointIndex].x
   }
 
   if (!isTimeline) {
@@ -1432,8 +1432,8 @@ export default class Defaults {
         ) {
           const getVal = () => {
             const start =
-              w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
-            const end = w.rangeData.seriesRangeEnd[seriesIndex][dataPointIndex]
+              w.rangeData.seriesRangeStart[seriesIndex]?.[dataPointIndex]
+            const end = w.rangeData.seriesRangeEnd[seriesIndex]?.[dataPointIndex]
             return end - start
           }
           if (w.globals.comboCharts) {
