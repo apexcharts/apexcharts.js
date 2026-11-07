@@ -211,12 +211,20 @@ class SVGAnimationRunner {
       // The chart's own easing, stamped on its root <svg> (see Animations).
       const root = el.node && el.node.ownerSVGElement
       const easing = this._easing || (root && root.__apexEase) || _defaultEasing
+      // Browsers stamp a frame with the same time origin as performance.now().
+      // jsdom stamps it with performance.now() minus the age of the window, so
+      // `now - start` stays negative for that whole age and the tween never
+      // ends (animationEnded never flips on a long-lived test worker).
+      /** @type {'frame' | 'wall' | null} */
+      let clock = null
 
       /**
        * @param {number} now
        */
       const tick = (now) => {
-        const elapsed = now - start
+        if (clock === null) clock = now < start ? 'wall' : 'frame'
+        const sample = clock === 'wall' ? performance.now() : now
+        const elapsed = Math.max(0, sample - start)
         const rawPos = Math.min(elapsed / duration, 1)
         const pos = easing(rawPos)
 
