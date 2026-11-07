@@ -16,12 +16,20 @@
  *   - radius factor 1 is today's radii, and --ig-radius-factor is never read
  *   - a sheet font that arrives late re-lays the labels out
  *   - JS colour state holds only hex or rgba()
+ * The layer is an opt-in add-on (revised D1), so every check above loads
+ * dist/features/ignite-ui.js, and one more runs without it: every sheet then
+ * looks exactly like no sheet, and no --ig-* token is read.
  */
 
 import { readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { test, expect, centreOf } from '../fixtures/shadow-mount.js'
+import {
+  test,
+  expect,
+  centreOf,
+  featurePath,
+} from '../fixtures/shadow-mount.js'
 import { wideFont } from '../helpers/test-font.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -55,9 +63,12 @@ const CHART = (o = {}, count = 6) => ({
   chart: { type: 'bar', contextMenu: { enabled: true }, ...(o.chart || {}) },
 })
 
-/** The page, the add-ons this suite uses, and the in-page helpers. */
-async function open(page, setup) {
-  await setup(['context-menu'])
+/**
+ * The page, the add-ons this suite uses, and the in-page helpers.
+ * `addon: false` leaves the Ignite UI add-on out.
+ */
+async function open(page, setup, { addon = true } = {}) {
+  await setup(addon ? ['context-menu', 'ignite-ui'] : ['context-menu'])
   await page.evaluate(() => {
     const ctx = document
       .createElement('canvas')
@@ -565,6 +576,49 @@ for (const root of ROOTS) {
         }
       })
     }
+
+    test('without the add-on every sheet looks like no sheet and no --ig-* token is read, until it loads', async ({
+      page,
+      setup,
+    }) => {
+      await open(page, setup, { addon: false })
+      // Every custom property the page reads, by name.
+      await page.evaluate(() => {
+        const get = CSSStyleDeclaration.prototype.getPropertyValue
+        window.__igReads = []
+        CSSStyleDeclaration.prototype.getPropertyValue = function (n) {
+          if (String(n).startsWith('--ig-')) window.__igReads.push(n)
+          return get.call(this, n)
+        }
+      })
+      const twins = () =>
+        page.evaluate(() =>
+          [
+            ...document.querySelectorAll('style'),
+            ...window.chartRoot.querySelectorAll('style'),
+          ].some((s) => s.id === 'apexcharts-igniteui-css'),
+        )
+      await mount(page, root, CHART())
+      const bare = await look(page)
+      for (const name of [...LIGHT, ...DARK, NEXT]) {
+        await setSheet(page, sheet(name))
+        await mount(page, root, CHART())
+        expect(await look(page), name).toEqual(bare)
+        expect(await twins(), name).toBe(false)
+      }
+      expect(await page.evaluate(() => window.__igReads)).toEqual([])
+
+      // A late import: the next refreshTokens() picks it up, twins and all.
+      await page.addScriptTag({ path: featurePath('ignite-ui') })
+      await page.evaluate(() => window.chart.refreshTokens())
+      const themed = await look(page)
+      expect(themed.mode).toBe('dark')
+      expect(themed.classes).toContain('apexcharts-igniteui-dark')
+      expect(await twins()).toBe(true)
+      expect(
+        (await page.evaluate(() => window.__igReads)).length,
+      ).toBeGreaterThan(0)
+    })
 
     test('designSystem:false and tokens:false give the built-in look back', async ({
       page,

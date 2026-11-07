@@ -5727,14 +5727,17 @@ type ApexTheme = {
    */
   tokens?: boolean
   /**
-   * Follow a design system's stylesheet on the page. With an Ignite UI theme
-   * loaded, its `--ig-*` tokens supply the series colours, the text, grid and
-   * overlay colours, the font, and an unset `mode` (from
-   * `--ig-theme-variant`). It ranks below everything else: explicit options,
-   * the chart's own CSS variables, `--apx-*` tokens, a named theme and an
-   * explicit `palette` all win. `colorBlindMode` and `monochrome` keep their
-   * own colours. Default true; false turns this layer off and keeps the
-   * `--apx-*` tokens. Without a design-system stylesheet it does nothing.
+   * Follow a design system's stylesheet on the page. Has an effect only while
+   * the Ignite UI add-on is loaded (`import 'apexcharts/features/ignite-ui'`,
+   * or `dist/features/ignite-ui.js` after apexcharts.js); without it the
+   * `--ig-*` tokens are ignored and this option does nothing. With the add-on
+   * and an Ignite UI theme on the page, its `--ig-*` tokens supply the series
+   * colours, the text, grid and overlay colours, the font, and an unset
+   * `mode` (from `--ig-theme-variant`). It ranks below everything else:
+   * explicit options, the chart's own CSS variables, `--apx-*` tokens, a
+   * named theme and an explicit `palette` all win. `colorBlindMode` and
+   * `monochrome` keep their own colours. Default true; false turns this layer
+   * off for this chart and keeps the `--apx-*` tokens.
    */
   designSystem?: boolean
   /**

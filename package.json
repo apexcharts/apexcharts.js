@@ -325,6 +325,10 @@
       "import": "./dist/features/radial-targets.esm.js",
       "require": "./dist/features/radial-targets.common.js"
     },
+    "./features/ignite-ui": {
+      "import": "./dist/features/ignite-ui.esm.js",
+      "require": "./dist/features/ignite-ui.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

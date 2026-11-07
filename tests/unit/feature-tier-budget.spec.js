@@ -77,6 +77,11 @@ const TIER_2 = [
   'waterfall',
   'dumbbell',
   'streamgraph',
+  // Free, and in no bundle at all, the full one included (plan 36, revised
+  // D1): it makes charts follow the page's Ignite UI theme. Silent without it
+  // by design, the one exception to the rule below: the page's --ig-* tokens
+  // are simply ignored, as before Ignite UI support existed.
+  'ignite-ui',
 ]
 
 const RULE = `

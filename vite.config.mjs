@@ -115,6 +115,7 @@ export const SUB_ENTRIES = {
     __dirname,
     'src/features/radial-targets.js',
   ),
+  'features/ignite-ui': resolve(__dirname, 'src/features/ignite-ui.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
@@ -204,6 +205,15 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/features/radial-targets.js'),
     global: 'ApexRadialTargets',
     out: 'features/radial-targets.js',
+    shared: true,
+  },
+  // Opt-in Ignite UI theming, in no baseline (the full one included): it
+  // changes how charts look, so only a page that loads it gets it. Carries
+  // the commons adapter and its stylesheet twins.
+  'features/ignite-ui': {
+    file: resolve(__dirname, 'src/features/ignite-ui.js'),
+    global: 'ApexIgniteUi',
+    out: 'features/ignite-ui.js',
     shared: true,
   },
   // The lean-core CDN baseline (plan 08's other half). Bundles the chart class
@@ -791,6 +801,9 @@ export default defineConfig(({ mode }) => {
           const cssFiles = [
             'src/assets/apexcharts.css',
             'src/assets/apexcharts-legend.css',
+            // For a page with chart.injectStyleSheet: false that loads the
+            // Ignite UI add-on: linked after apexcharts.css.
+            'src/assets/apexcharts-ignite-ui.css',
           ]
           cssFiles.forEach((file) => {
             if (existsSync(file)) copyFileSync(file, join('dist', basename(file)))

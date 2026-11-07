@@ -1,6 +1,5 @@
 // @ts-check
 import {
-  completeSeries,
   fillVariantMode,
   getTheme,
   layerValue,
@@ -10,6 +9,7 @@ import {
   resolveOwnedRole,
   takeBackVariantMode,
 } from 'apex-commons'
+import InitCtxVariables from './helpers/InitCtxVariables'
 import Utils from '../utils/Utils'
 import { getThemePalettes } from '../utils/ThemePalettes.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
@@ -112,16 +112,17 @@ export default class Theme {
     w.dom.elWrap.classList.add(
       `apexcharts-theme-${w.config.theme.mode || 'light'}`,
     )
-    // Plan 36 (1D): the stylesheet's design-system twins key off these
-    // classes, so they go on only while the design system's colours apply:
+    // Plan 36 (1D): the design-system add-on's stylesheet twins key off these
+    // classes (`apexcharts-<id>` and `apexcharts-<id>-<variant>`, the id
+    // being the adapter's name), so they go on only while its colours apply:
     // present, switched on, not bypassed by colorBlindMode or monochrome. The
     // variant class keeps the overlay and grey twins to the parts drawn in
     // the sheet's own variant (the D6 gate); a missing variant is light.
     const dsColors = this._designSystemColors(ds)
     if (dsColors) {
       w.dom.elWrap.classList.add(
-        'apexcharts-igniteui',
-        `apexcharts-igniteui-${dsColors.variant || 'light'}`,
+        `apexcharts-${dsColors.id}`,
+        `apexcharts-${dsColors.id}-${dsColors.variant || 'light'}`,
       )
     }
 
@@ -453,10 +454,12 @@ export default class Theme {
 
   /**
    * Plan 36: the design system's layer, Ignite UI's `--ig-*` tokens (rank 5,
-   * below explicit config, `--apx-*` and a named theme or palette). Off with
-   * `theme.tokens: false` or `theme.designSystem: false`. On a page without
-   * it the read stops after the two probe reads; server side it reads
-   * nothing.
+   * below explicit config, `--apx-*` and a named theme or palette). Only
+   * with the add-on loaded (`apexcharts/features/ignite-ui`), and read
+   * through the adapter it registered with its stylesheet, so a chart's
+   * colours and its CSS twins come from one build; without it nothing is
+   * read. Off with `theme.tokens: false` or `theme.designSystem: false`.
+   * Server side it reads nothing.
    *
    * @param {Element | null | undefined} el
    * @param {any} cs  the declaration fetched for `el`, or null
@@ -465,9 +468,14 @@ export default class Theme {
   _readDesignSystem(el, cs) {
     const theme = /** @type {any} */ (this.w.config.theme)
     if (!this._shouldUseTokens() || theme.designSystem === false) return null
+    const styles = /** @type {any} */ (
+      InitCtxVariables._featureRegistry.get('designSystemStyles')
+    )
+    if (!styles) return null
     return readDesignSystemLayer(el, {
       host: /** @type {any} */ (BrowserAPIs),
       cs,
+      adapter: styles.adapter,
     })
   }
 
@@ -934,7 +942,7 @@ export default class Theme {
     const ds = this._designSystemColors()
     const dsSeries =
       ds && !namedPalette && !this.w.globals.themePaletteExplicit
-        ? completeSeries(ds.series, builtin)
+        ? ds.palette(builtin)
         : null
 
     // Facet (#13): tokens top the palette chain (below explicit config colors,

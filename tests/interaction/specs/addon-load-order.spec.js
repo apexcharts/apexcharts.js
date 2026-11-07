@@ -69,6 +69,31 @@ test.describe('Add-ons loaded before the ApexCharts script', () => {
     expect(errors).toEqual([])
   })
 
+  // The Ignite UI add-on registers two things, its stylesheet with ApexCharts
+  // and the commons adapter in the slot every Apex product reads; both wait.
+  test('the Ignite UI add-on registers its stylesheet and adapter once the bundle loads', async ({
+    page,
+  }) => {
+    const errors = collectErrors(page)
+    await page.setContent('<div id="chart" style="width:500px"></div>')
+    await page.addScriptTag({ path: resolve(DIST, 'features/ignite-ui.js') })
+    expect(await page.evaluate(() => !!window.__apex_design_systems_v1__)).toBe(
+      false,
+    )
+    await page.addScriptTag({ path: BUNDLE })
+    await page.waitForFunction(
+      () => window.__apexcharts_pending_addons__?.length === 0,
+    )
+    expect(
+      await page.evaluate(() => ({
+        styles:
+          window.__apexcharts_features_v1__.get('designSystemStyles')?.name,
+        adapter: window.__apex_design_systems_v1__?.igniteui?.name,
+      })),
+    ).toEqual({ styles: 'igniteui', adapter: 'igniteui' })
+    expect(errors).toEqual([])
+  })
+
   test('wait for the lean core too', async ({ page }) => {
     const errors = collectErrors(page)
     await page.setContent('<div id="chart" style="width:500px"></div>')

@@ -2,6 +2,9 @@ import { describe, it, expect, afterEach } from 'vitest'
 import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/history.js'
 import { getThemePalettes } from '../../src/utils/ThemePalettes.js'
+// The Ignite UI layer is an add-on (plan 36): without it a sheet's --ig-*
+// tokens are ignored.
+import '../../src/features/ignite-ui.js'
 import { igniteSheet } from './utils/ignite-ui-sheet.js'
 
 // Plan 36, phase 1B: the design-system layer (Ignite UI's --ig-* tokens)
@@ -374,6 +377,8 @@ describe('what holds the design system back', () => {
     off.destroy()
   })
 
+  // With the add-on loaded; without it there are no reads at all
+  // (ignite-ui-addon.spec.js).
   it('a page without Ignite UI pays the two probe reads and renders as before', async () => {
     page = igniteSheet({ sheet: null })
     const chart = await chartWith({})

@@ -664,6 +664,7 @@ export default class ApexCharts {
 
     // this is a good time to set theme colors first
     this.theme.init()
+    this._injectDesignSystemCss()
     this._watchTokenFont()
 
     // as markers accepts array, we need to setup global markers for easier access
@@ -985,6 +986,10 @@ export default class ApexCharts {
     if (this._releaseCss) {
       this._releaseCss()
       this._releaseCss = null
+    }
+    if (this._releaseDsCss) {
+      this._releaseDsCss()
+      this._releaseDsCss = null
     }
     new Destroy(this.ctx).clear({ isUpdating: false })
   }
@@ -2956,6 +2961,43 @@ export default class ApexCharts {
   refreshTokens() {
     this.lastUpdateOptions = null
     return this.update()
+  }
+
+  /**
+   * Plan 36: the design-system add-on's stylesheet (`features/ignite-ui`
+   * registers it with its adapter), once per chart and only while Theme
+   * read a layer. It goes right after the main sheet in the same root and
+   * under the same rule (always in a shadow root, otherwise unless
+   * `chart.injectStyleSheet` is false), so its twins win by order alone and
+   * a page rule still beats them. Here rather than with the main sheet in
+   * render(), so a chart rendered before the add-on loaded picks it up on
+   * its next render. A chart that later loses its layer keeps its use of the
+   * sheet until destroy(); without the gate classes the twins match nothing.
+   * @private
+   */
+  _injectDesignSystemCss() {
+    if (this._releaseDsCss || !this.theme.designSystem) return
+    const styles = /** @type {any} */ (
+      InitCtxVariables._featureRegistry.get('designSystemStyles')
+    )
+    if (!styles) return
+    const rootNode = /** @type {any} */ (
+      this.el.getRootNode && this.el.getRootNode()
+    )
+    if (
+      !Utils.is('ShadowRoot', rootNode) &&
+      this.w.config.chart.injectStyleSheet === false
+    )
+      return
+    this._releaseDsCss = injectStyle(
+      this.el,
+      `apexcharts-${styles.name}-css`,
+      styles.css,
+      {
+        nonce: this.opts.chart?.nonce || this.w.config.chart.nonce,
+        after: 'apexcharts-css',
+      },
+    )
   }
 
   /**

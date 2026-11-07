@@ -2879,8 +2879,10 @@ export default class Options {
         // that does not itself trigger a render.
         tokens: true,
         // Plan 36: follow a design system's stylesheet on the page (Ignite UI's
-        // `--ig-*` tokens) for series, chrome, font and an unset mode. It ranks
-        // below every other source; false turns it off and keeps `--apx-*`.
+        // `--ig-*` tokens) for series, chrome, font and an unset mode, while
+        // the add-on (apexcharts/features/ignite-ui) is loaded; without it this
+        // does nothing. It ranks below every other source; false turns it off
+        // and keeps `--apx-*`.
         designSystem: true,
         // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
         // reactively (SSR-safe, cleaned up on destroy). false disables.

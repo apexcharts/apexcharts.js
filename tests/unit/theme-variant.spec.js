@@ -3,6 +3,9 @@ import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/history.js'
 import Theme from '../../src/modules/Theme.js'
 import { getThemePalettes } from '../../src/utils/ThemePalettes.js'
+// The Ignite UI layer is an add-on (plan 36): without it a sheet's --ig-*
+// tokens are ignored.
+import '../../src/features/ignite-ui.js'
 import { igniteSheet } from './utils/ignite-ui-sheet.js'
 
 // Plan 36, phase 1C: the design system's variant (--ig-theme-variant) is the

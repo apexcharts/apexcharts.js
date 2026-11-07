@@ -5,6 +5,9 @@ import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/measure.js'
 import Theme from '../../src/modules/Theme.js'
 import { placeInReservedBand } from '../../src/charts/common/Breadcrumb.js'
+// The Ignite UI layer is an add-on (plan 36): without it a sheet's --ig-*
+// tokens are ignored.
+import '../../src/features/ignite-ui.js'
 import { igniteSheet } from './utils/ignite-ui-sheet.js'
 
 // Plan 36, phase 1E (D3): `--apx-radius-factor` scales every fixed radius,

@@ -2,6 +2,9 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/trellis.js'
+// The Ignite UI layer is an add-on (plan 36): without it a sheet's --ig-*
+// tokens are ignored.
+import '../../src/features/ignite-ui.js'
 import { igniteSheet } from './utils/ignite-ui-sheet.js'
 
 // Plan 36 on a trellis. The host draws no chart and runs no Theme, but its

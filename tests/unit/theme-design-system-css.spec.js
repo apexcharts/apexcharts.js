@@ -3,18 +3,24 @@ import path from 'path'
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import ApexCharts from '../../src/entries/standard.js'
 import '../../src/features/measure.js'
+// The Ignite UI layer is an add-on (plan 36): without it a sheet's --ig-*
+// tokens are ignored.
+import '../../src/features/ignite-ui.js'
 import { igniteSheet } from './utils/ignite-ui-sheet.js'
 
-// Plan 36, phase 1D: the stylesheet maps the overlays (tooltip, axis tooltip,
-// both menus, ink card), the measure colours and the focus colour onto
-// Ignite UI through `:where(.apexcharts-igniteui)` twins. Theme.js puts the
-// class on the canvas only while the design system's colours apply, with a
-// variant class beside it for the D6 gate.
+// Plan 36, phase 1D: the add-on's stylesheet maps the overlays (tooltip, axis
+// tooltip, both menus, ink card), the measure colours and the focus colour
+// onto Ignite UI through `:where(.apexcharts-igniteui)` twins. Theme.js puts
+// the class on the canvas only while the design system's colours apply, with
+// a variant class beside it for the D6 gate.
 
-const CSS = fs.readFileSync(
-  path.resolve(__dirname, '../../src/assets/apexcharts.css'),
-  'utf8',
-)
+const read = (/** @type {string} */ file) =>
+  fs.readFileSync(path.resolve(__dirname, '../../src/assets', file), 'utf8')
+const MAIN = read('apexcharts.css')
+const TWINS = read('apexcharts-ignite-ui.css')
+// The two in cascade order: the add-on injects its sheet right after the
+// main one, in the same root.
+const CSS = `${MAIN}\n${TWINS}`
 
 /** @type {ReturnType<typeof igniteSheet> | null} */
 let page = null
@@ -319,6 +325,24 @@ describe('the stylesheet twins (1D)', () => {
       if (r.decls.some(([, v]) => v.includes('--ig-'))) {
         expect(r.selectors.every(isTwin), r.selectors.join(', ')).toBe(true)
       }
+    }
+  })
+
+  // The opt-in split: every bundle carries apexcharts.css, and only the
+  // add-on carries the twins.
+  it('keeps every twin in the add-on sheet and none in apexcharts.css', () => {
+    const strip = (/** @type {string} */ s) =>
+      s.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(strip(MAIN)).not.toMatch(/--ig-|apexcharts-igniteui/)
+    const own = [...strip(TWINS).matchAll(/([^{}]+)\{[^{}]*\}/g)].map((m) =>
+      m[1].trim(),
+    )
+    expect(own.length).toBe(twins.length)
+    for (const sel of own) {
+      expect(
+        sel.split(',').every((s) => isTwin(s)),
+        sel,
+      ).toBe(true)
     }
   })
 

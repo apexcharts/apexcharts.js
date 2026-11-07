@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import ApexCharts from '../../src/entries/standard.js'
 import { BrowserAPIs } from '../../src/ssr/BrowserAPIs.js'
+// The Ignite UI layer is an add-on (plan 36): without it a sheet's --ig-*
+// tokens are ignored.
+import '../../src/features/ignite-ui.js'
 import { igniteSheet } from './utils/ignite-ui-sheet.js'
 
 // Plan 36, phase 1F: a font that came from a token (`--apx-font-family`,

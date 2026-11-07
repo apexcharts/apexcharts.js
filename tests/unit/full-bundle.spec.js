@@ -28,6 +28,13 @@ import { catalog as pictograms } from '../../src/pictograms/catalog.js'
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const src = (rel) => readFileSync(resolve(rootDir, rel), 'utf8')
 
+/**
+ * Features the full bundle must NOT carry: loading one changes how charts
+ * look, so a page gets it only by asking for it (plan 36, revised D1: Ignite
+ * UI theming follows the page's Ignite UI theme).
+ */
+const OPT_IN = ['ignite-ui']
+
 /** The module specifiers a file imports, side-effect imports included. */
 const importsOf = (rel) =>
   [
@@ -68,8 +75,17 @@ describe('the full bundle carries everything', () => {
     const missing = readdirSync(resolve(rootDir, 'src/features'))
       .filter((f) => f.endsWith('.js') && f !== 'all.js')
       .map((f) => f.replace(/\.js$/, ''))
+      .filter((f) => !OPT_IN.includes(f))
       .filter((f) => !viaDefault.includes(f) && !direct.includes(f))
     expect(missing, 'features the full bundle leaves out').toEqual([])
+  })
+
+  it('leaves out the add-ons that switch behaviour on', () => {
+    const fromFull = importsOf('src/entries/full.js')
+    for (const name of OPT_IN) {
+      expect(fromFull, name).not.toContain(`../features/${name}`)
+      expect(importsOf('src/features/all.js'), name).not.toContain(`./${name}`)
+    }
   })
 
   it('registers both unit catalogs by name and hangs them off the class', () => {
