@@ -1,5 +1,5 @@
 // @ts-check
-import { styleSheetsFor } from 'apex-commons'
+import { rasterPaper, styleSheetsFor } from 'apex-commons'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Defaults from '../modules/settings/Defaults'
 import Series from '../modules/Series'
@@ -367,15 +367,25 @@ class Exports {
    * An explicit non-transparent `chart.background` still wins, including one
    * written by the Facet `--apx-surface` token (Theme assigns it into the same
    * field).
+   *
+   * A dark mode the design system's variant filled leaves the paper
+   * transparent on screen, over the page's own surface, so its raster base is
+   * that surface when the sheet declares one (Ignite UI `--ig-surface-base`,
+   * else `--ig-surface-500`), and the dark paper otherwise.
    * @returns {string}
    */
   resolveExportBackground() {
     const w = this.w
-    const bg = w.config.chart.background
-    if (bg && bg !== 'transparent') return bg
     // Same dark surface Core.setupElements gives the paper, so a transparent
     // dark chart rasterizes to the surface it would have had by default.
-    return w.config.theme.mode === 'dark' ? '#343A3F' : '#fff'
+    return rasterPaper({
+      background: w.config.chart.background,
+      mode: w.config.theme.mode,
+      fromVariant: !!w.globals.variantModeApplied,
+      designSystemPaper: this.ctx?.theme?.designSystem?.paperCheck,
+      dark: '#343A3F',
+      light: '#fff',
+    })
   }
 
   /**
@@ -666,6 +676,15 @@ class Exports {
         w.dom.elWrap.cloneNode(true)
       )
       this.resolveCssVars(w.dom.elWrap, clonedNode)
+      // A dark mode the design system's variant filled leaves the paper
+      // transparent over the page's surface, which a saved file does not
+      // have: the file gets the raster base, so its light text stays legible.
+      if (w.globals.variantModeApplied) {
+        const paper = /** @type {HTMLElement | null} */ (
+          clonedNode.querySelector('.apexcharts-svg')
+        )
+        if (paper) paper.style.background = this.resolveExportBackground()
+      }
       clonedNode.style.width = width + 'px'
       clonedNode.style.height = height + 'px'
       // Strata: replace any series-canvas with an <image> before serialization.

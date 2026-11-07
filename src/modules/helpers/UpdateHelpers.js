@@ -214,6 +214,8 @@ export default class UpdateHelpers {
           // `tooltip: undefined` in a payload means "not given", as it does
           // on a new chart (see Config.dropEmptyOptions).
           options = Config.dropEmptyOptions(options)
+          // Read before extendArrayProps fills every y axis with defaults.
+          const gridNamed = Config.explicitGridColors(options)
           ch.config = new Config(options)
           // Collapse user-facing chart-type aliases (funnel / pyramid → bar
           // with isFunnel; gauge → radialBar). On the initial render this
@@ -310,6 +312,27 @@ export default class UpdateHelpers {
           }
           if (options.tooltip?.theme) {
             w.globals.tooltipThemeExplicit = !filled?.tooltip
+          }
+          // A font or grid colour it names, too. Grid colours only from the
+          // page's own calls: zoom, pan and scroll hand back copies of the
+          // chart's axes, colours included, with overwriteInitialConfig off.
+          // The y axes a call names replace the chart's, so their flags are
+          // the payload's; a sibling's yaxis was dropped above and leaves
+          // them alone. A new object, since a History checkpoint may hold
+          // the old one.
+          if (options.chart?.fontFamily) {
+            w.globals.themeFontFamilyExplicit = true
+          }
+          if (overwriteInitialConfig) {
+            const was = w.globals.themeGridColorsExplicit
+            w.globals.themeGridColorsExplicit = {
+              grid: was.grid || gridNamed.grid,
+              xaxis: {
+                border: was.xaxis.border || gridNamed.xaxis.border,
+                ticks: was.xaxis.ticks || gridNamed.xaxis.ticks,
+              },
+              yaxis: options.yaxis ? gridNamed.yaxis : was.yaxis,
+            }
           }
 
           w.config = Utils.extend(w.config, options)

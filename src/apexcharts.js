@@ -1155,7 +1155,7 @@ export default class ApexCharts {
     }
     /* update theme mode#459 */
     if (options.theme) {
-      options = this.theme.updateThemeOptions(options)
+      options = this.theme.updateThemeOptions(options, !!this.history?.applying)
     }
     return this.updateHelpers._updateOptions(
       options,

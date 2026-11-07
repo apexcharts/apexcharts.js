@@ -5,6 +5,7 @@ import Globals from '../modules/settings/Globals'
 import Graphics from './Graphics'
 import Animations from './Animations'
 import Range from './Range'
+import Theme from './Theme'
 import Utils from '../utils/Utils'
 import TimeScale from './TimeScale'
 import { Environment } from '../utils/Environment.js'
@@ -96,12 +97,8 @@ export default class Core {
       transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`,
     })
 
-    this.w.dom.Paper.node.style.background =
-      cnf.theme.mode === 'dark' && !cnf.chart.background
-        ? '#343A3F'
-        : cnf.theme.mode === 'light' && !cnf.chart.background
-          ? '#fff'
-          : cnf.chart.background
+    // Theme.applyModePaper repaints it once the mode has settled.
+    this.w.dom.Paper.node.style.background = Theme.modePaper(this.w)
 
     this.setSVGDimensions()
 

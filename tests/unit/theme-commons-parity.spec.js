@@ -178,7 +178,10 @@ describe('chrome write-back on resolveOwnedRole', () => {
     chart.destroy()
   })
 
-  it('an explicit value equal to the mode default still yields to the token (P4)', async () => {
+  // P4 changed with 1B (D5): an explicit value equal to the mode default is
+  // the page's choice and beats the token. The axes it did not name still
+  // take the token.
+  it('an explicit value equal to the mode default beats the token (P4, D5)', async () => {
     ApexCharts.registerTheme('p4', {
       tokens: { fore: '#abcdef', grid: '#abcdef' },
     })
@@ -187,8 +190,9 @@ describe('chrome write-back on resolveOwnedRole', () => {
       grid: { borderColor: '#e0e0e0' },
       theme: { name: 'p4' },
     })
-    expect(chart.w.config.chart.foreColor).toBe('#abcdef')
-    expect(chart.w.config.grid.borderColor).toBe('#abcdef')
+    expect(chart.w.config.chart.foreColor).toBe('#373d3f')
+    expect(chart.w.config.grid.borderColor).toBe('#e0e0e0')
+    expect(chart.w.config.xaxis.axisBorder.color).toBe('#abcdef')
     chart.destroy()
   })
 

@@ -317,11 +317,17 @@ export default class History {
       view,
       config,
       seriesSig,
-      // Whether the page named the foreColor and tooltip theme the config
-      // carries; the restore's merge would otherwise take both as named.
+      // Whether the page named the foreColor, tooltip theme, font and grid
+      // colours the config carries; the restore's merge would otherwise take
+      // them all as named. Likewise whether the mode is the variant's. The
+      // grid flags and the variant record are replaced, never changed in
+      // place, so the checkpoint can hold them as they are.
       themeChoices: {
         foreColor: !!this.w.globals.themeForeColorExplicit,
         tooltip: !!this.w.globals.tooltipThemeExplicit,
+        fontFamily: !!this.w.globals.themeFontFamilyExplicit,
+        gridColors: this.w.globals.themeGridColorsExplicit,
+        variantMode: this.w.globals.variantModeApplied,
       },
       label: label || 'change',
       at: Environment.isBrowser() ? Date.now() : 0,
@@ -401,13 +407,20 @@ export default class History {
     let p
     try {
       this.ctx.clearAnnotations()
+      const choices = cp.themeChoices
+      // Before the render: a dark mode the variant filled stays the
+      // variant's (its paper stays transparent), and a light sheet can
+      // still take it back. updateThemeOptions keeps it while restoring.
+      if (choices) this.w.globals.variantModeApplied = choices.variantMode
       p = this.ctx.updateOptions(Utils.clone(cp.config), false, animate, false, false)
       // The config carries the palette the chart drew, which the merge takes
       // as named; put back whether it was.
       restorePaletteChoice(this.w, cp.view && cp.view.theme)
-      if (cp.themeChoices) {
-        this.w.globals.themeForeColorExplicit = cp.themeChoices.foreColor
-        this.w.globals.tooltipThemeExplicit = cp.themeChoices.tooltip
+      if (choices) {
+        this.w.globals.themeForeColorExplicit = choices.foreColor
+        this.w.globals.tooltipThemeExplicit = choices.tooltip
+        this.w.globals.themeFontFamilyExplicit = choices.fontFamily
+        this.w.globals.themeGridColorsExplicit = choices.gridColors
       }
     } catch (e) {
       this.applying = false

@@ -1,5 +1,15 @@
 // @ts-check
-import { getTheme, readTokens, resolveOwnedRole } from 'apex-commons'
+import {
+  completeSeries,
+  fillVariantMode,
+  getTheme,
+  layerValue,
+  modePaper,
+  readDesignSystemLayer,
+  readTokens,
+  resolveOwnedRole,
+  takeBackVariantMode,
+} from 'apex-commons'
 import Utils from '../utils/Utils'
 import { getThemePalettes } from '../utils/ThemePalettes.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
@@ -16,6 +26,9 @@ import { BrowserAPIs } from '../ssr/BrowserAPIs'
 const DEFAULT_FORECOLOR_LIGHT = '#373d3f'
 const DEFAULT_FORECOLOR_DARK = '#f6f7f8'
 const DEFAULT_AXIS_GRID = '#e0e0e0'
+const DEFAULT_FONT_FAMILY = 'Helvetica, Arial, sans-serif'
+// The paper of a dark mode the page chose.
+const DARK_PAPER = '#343A3F'
 
 // Payloads updateThemeOptions filled mode defaults into, and which ones.
 /** @type {WeakMap<object, {foreColor: boolean, tooltip: boolean}>} */
@@ -33,6 +46,14 @@ export default class Theme {
     this.isBarDistributed = false
     /** @type {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}} */
     this._tokens = {}
+    /** @type {import('apex-commons').TokenLayers} */
+    this._layers = { css: {}, named: {}, designSystem: null }
+    /**
+     * The design system (Ignite UI) the last render read, null when absent
+     * or switched off. Exports reads its paper for a raster base.
+     * @type {import('apex-commons').DesignSystemLayer | null}
+     */
+    this.designSystem = null
     /** @type {any} */
     this._namedTheme = null
   }
@@ -72,11 +93,21 @@ export default class Theme {
     this.isHeatmapDistributed = this.checkHeatmapDistributed()
     this.isBarDistributed = this.checkBarDistributed()
 
+    // Plan 36: the design system (Ignite UI) is read before the theme class
+    // goes on, so its variant can still settle the mode the class names. Its
+    // tokens live on :root, which the class does not touch. One declaration
+    // serves this read and the `--apx-*` one below; it is live, so that read
+    // still sees page rules scoped to the class.
+    const el = w.dom && (w.dom.elWrap || w.dom.baseEl)
+    const cs = this._shouldUseTokens() ? this._declaration(el) : null
+    const ds = (this.designSystem = this._readDesignSystem(el, cs))
+
     // Facet (#13): resolve a registered named theme (theme.name) and apply its
     // mode / monochrome / accessibility BEFORE the class + mode defaults, but
-    // only where the user (or the OS watcher) has not already set them.
+    // only where the user (or the OS watcher) has not already set them. The
+    // design system's variant fills a mode still unset after that.
     this._namedTheme = getTheme(w.config.theme.name)
-    this._applyNamedThemeMode()
+    this._applyNamedThemeMode(ds)
 
     w.dom.elWrap.classList.add(
       `apexcharts-theme-${w.config.theme.mode || 'light'}`,
@@ -91,10 +122,11 @@ export default class Theme {
     this._applyModeDefaults()
 
     // Facet (#13): resolve tokens (CSS `--apx-*` layered over the named theme's
-    // tokens). They top the resolution chain (below explicit config) for the
-    // palette (predefined) and the chrome.
-    this._tokens = this._resolveTokens()
-    this.applyTokenChrome(this._tokens)
+    // tokens, then the design system). They rank below explicit config for
+    // the palette (predefined) and the chrome.
+    this._layers = this._resolveTokenLayers(el, cs, ds)
+    this._tokens = { ...this._layers.named, ...this._layers.css }
+    this.applyTokenChrome(this._layers)
     // After the token pass, which may have set or given back chart.background.
     this.applyModePaper()
 
@@ -194,17 +226,34 @@ export default class Theme {
    * Paint the SVG paper for the final mode. Core.setupElements paints it
    * first, before a named theme (or the take-back of one) has settled the
    * mode, which left a named dark theme on a transparent paper until the
-   * next render. Same rule as there: chart.background, a token surface
-   * included (applyTokenChrome writes it into the same field), wins.
+   * next render. Same rule as there (Theme.modePaper).
    */
   applyModePaper() {
     const w = this.w
     const node = w.dom.Paper && w.dom.Paper.node
     if (!node || !node.style) return
-    const mode = w.config.theme.mode
-    const bg = w.config.chart.background
-    node.style.background =
-      mode === 'dark' && !bg ? '#343A3F' : mode === 'light' && !bg ? '#fff' : bg
+    node.style.background = Theme.modePaper(w)
+  }
+
+  /**
+   * The on-screen paper, for Core.setupElements and applyModePaper alike.
+   * chart.background, a token surface included (applyTokenChrome writes it
+   * into the same field), wins. Otherwise a dark mode the page chose gets the
+   * dark paper and an explicit light mode white, while a dark mode the design
+   * system's variant filled stays transparent: the page's own surface shows
+   * through, as it does under a chart with no mode.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {string}
+   */
+  static modePaper(w) {
+    return modePaper({
+      background: w.config.chart.background,
+      mode: w.config.theme.mode,
+      fromVariant: !!w.globals.variantModeApplied,
+      dark: DARK_PAPER,
+      light: '#fff',
+    })
   }
 
   /**
@@ -229,8 +278,14 @@ export default class Theme {
    * Facet (#13): apply a registered named theme's mode / accessibility /
    * monochrome, each only when the user (or the OS watcher) has not set it, so
    * explicit config and `follow:'os'` both win over the named theme.
+   *
+   * Plan 36 (D6): then the design system's variant fills a mode nobody set.
+   * Both take-backs run before either fill, so a dark mode a newly named
+   * theme brings is never undone by the variant's take-back.
+   *
+   * @param {import('apex-commons').DesignSystemLayer | null} [ds]
    */
-  _applyNamedThemeMode() {
+  _applyNamedThemeMode(ds = null) {
     const w = this.w
     const theme = w.config.theme
     const prev = w.globals.namedThemeApplied || {}
@@ -257,35 +312,91 @@ export default class Theme {
     if (prev.monochrome && theme.monochrome.enabled) {
       theme.monochrome = prev.monochrome
     }
+    this._takeBackVariantMode(ds)
 
     const named = this._namedTheme
-    if (!named) return
-    if (named.mode && !theme.mode) {
-      theme.mode = applied.mode = named.mode
+    if (named) {
+      if (named.mode && !theme.mode) {
+        theme.mode = applied.mode = named.mode
+      }
+      if (
+        named.accessibility &&
+        named.accessibility.colorBlindMode &&
+        !(theme.accessibility && theme.accessibility.colorBlindMode)
+      ) {
+        theme.accessibility = theme.accessibility || {}
+        theme.accessibility.colorBlindMode = applied.accessibility =
+          named.accessibility.colorBlindMode
+      }
+      if (
+        named.monochrome &&
+        named.monochrome.enabled &&
+        !theme.monochrome.enabled
+      ) {
+        applied.monochrome = theme.monochrome
+        theme.monochrome = { ...theme.monochrome, ...named.monochrome }
+      }
     }
-    if (
-      named.accessibility &&
-      named.accessibility.colorBlindMode &&
-      !(theme.accessibility && theme.accessibility.colorBlindMode)
-    ) {
-      theme.accessibility = theme.accessibility || {}
-      theme.accessibility.colorBlindMode = applied.accessibility =
-        named.accessibility.colorBlindMode
-    }
-    if (
-      named.monochrome &&
-      named.monochrome.enabled &&
-      !theme.monochrome.enabled
-    ) {
-      applied.monochrome = theme.monochrome
-      theme.monochrome = { ...theme.monochrome, ...named.monochrome }
+
+    // A dark variant fills a mode nobody set, and the record keeps the
+    // tooltip theme it is about to darken. A light one writes nothing: an
+    // unset mode already renders light, and 'light' would paint a white
+    // paper, a visible box on a design-system card.
+    const filled = fillVariantMode({
+      mode: theme.mode,
+      followsOS: theme.follow === 'os',
+      variant: ds && ds.variant,
+      state: w.config.tooltip && w.config.tooltip.theme,
+    })
+    if (filled) {
+      theme.mode = 'dark'
+      w.globals.variantModeApplied = filled
     }
   }
 
   /**
-   * Facet (#13): the effective token set. CSS `--apx-*` tokens (when enabled)
-   * layer over the named theme's `tokens`, so a page-level token overrides a
-   * registered brand default.
+   * Plan 36 (D6): give back a dark mode the design system's variant filled
+   * on an earlier render, once the sheet is no longer dark (turned light,
+   * removed, or switched off). The light defaults run, since those of an
+   * unset mode change nothing, and the tooltip gets back the theme it had,
+   * which keeps pie, donut and polarArea on their dark default. While the
+   * sheet stays dark the mode stays the variant's, unless a named theme
+   * brings a mode, which ranks above the variant (D5), or the page switched
+   * to `follow:'os'`, which the variant never fills under. Either way the
+   * mode goes back first, so the named theme fills it, and under `follow:'os'`
+   * it is left as unset as it was before the variant came.
+   *
+   * @param {import('apex-commons').DesignSystemLayer | null} ds
+   */
+  _takeBackVariantMode(ds) {
+    const w = this.w
+    const theme = w.config.theme
+    const record = w.globals.variantModeApplied
+    w.globals.variantModeApplied = undefined
+    const back = takeBackVariantMode({ mode: theme.mode, record })
+    if (!back.takeBack) return
+    const named = this._namedTheme
+    if (
+      ds &&
+      ds.variant === 'dark' &&
+      theme.follow !== 'os' &&
+      !(named && named.mode)
+    ) {
+      w.globals.variantModeApplied = record
+      return
+    }
+    theme.mode = ''
+    this._applyModeDefaults('light')
+    if (w.config.tooltip && !this._tooltipThemeExplicit()) {
+      w.config.tooltip.theme = back.state || 'light'
+    }
+  }
+
+  /**
+   * Facet (#13): the token layers, kept apart: CSS `--apx-*` tokens (when
+   * enabled), the named theme's `tokens`, and the design system (`ds`, read
+   * earlier). A page-level token overrides a registered brand default, and
+   * both override the design system.
    *
    * Custom properties inherit, so reading them off `w.dom.elWrap` (appended
    * to the user's container during `Core.setupElements`, before `Theme.init`)
@@ -293,25 +404,96 @@ export default class Theme {
    * including `:root` and rules scoped to the theme class added above. The
    * read goes through `BrowserAPIs`, whose empty declaration server side reads
    * as no tokens, so the built-in defaults render there.
-   * @returns {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}}
+   *
+   * @param {Element | null | undefined} el
+   * @param {any} cs  the declaration fetched for `el`, or null
+   * @param {import('apex-commons').DesignSystemLayer | null} ds
+   * @returns {import('apex-commons').TokenLayers}
    */
-  _resolveTokens() {
-    const w = this.w
+  _resolveTokenLayers(el, cs, ds) {
     const named = (this._namedTheme && this._namedTheme.tokens) || {}
     const css = this._shouldUseTokens()
-      ? readTokens(w.dom && (w.dom.elWrap || w.dom.baseEl), {
+      ? readTokens(el, {
           // The `{}` BrowserAPIs answers server side reads as no declaration.
           host: /** @type {any} */ (BrowserAPIs),
+          cs,
         })
       : {}
-    return { ...named, ...css }
+    return { css, named, designSystem: ds }
+  }
+
+  /**
+   * The computed style the token reads share, so a render fetches it once.
+   * Null when it cannot be had; the readers then ask the host themselves.
+   *
+   * @param {Element | null | undefined} el
+   * @returns {any}
+   */
+  _declaration(el) {
+    if (!el) return null
+    try {
+      return BrowserAPIs.getComputedStyle(/** @type {HTMLElement} */ (el))
+    } catch (e) {
+      return null
+    }
+  }
+
+  /**
+   * Plan 36: the design system's layer, Ignite UI's `--ig-*` tokens (rank 5,
+   * below explicit config, `--apx-*` and a named theme or palette). Off with
+   * `theme.tokens: false` or `theme.designSystem: false`. On a page without
+   * it the read stops after the two probe reads; server side it reads
+   * nothing.
+   *
+   * @param {Element | null | undefined} el
+   * @param {any} cs  the declaration fetched for `el`, or null
+   * @returns {import('apex-commons').DesignSystemLayer | null}
+   */
+  _readDesignSystem(el, cs) {
+    const theme = /** @type {any} */ (this.w.config.theme)
+    if (!this._shouldUseTokens() || theme.designSystem === false) return null
+    return readDesignSystemLayer(el, {
+      host: /** @type {any} */ (BrowserAPIs),
+      cs,
+    })
+  }
+
+  /**
+   * The design system as far as colours go: colorBlindMode and monochrome
+   * bypass it, as they bypass every colour token. Its variant and font
+   * still apply.
+   * @returns {import('apex-commons').DesignSystemLayer | null}
+   */
+  _designSystemColors(ds = this._layers.designSystem) {
+    const theme = this.w.config.theme
+    return theme.accessibility?.colorBlindMode || theme.monochrome?.enabled
+      ? null
+      : ds
+  }
+
+  /**
+   * Plan 36: the font the token layers give `el` under `w`'s theme options
+   * (`--apx-font-family`, then a named theme's, then the design system's),
+   * or undefined. For a trellis host, which runs no Theme of its own but
+   * wraps panels that take this font.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {Element} el
+   * @returns {string | undefined}
+   */
+  static tokenFont(w, el) {
+    const t = new Theme(w)
+    t._namedTheme = getTheme(w.config.theme.name)
+    const cs = t._shouldUseTokens() ? t._declaration(el) : null
+    const ds = t._readDesignSystem(el, cs)
+    return layerValue(t._resolveTokenLayers(el, cs, ds), 'font')
   }
 
   /**
    * Facet (#13): tokens are on unless explicitly disabled (`theme.tokens:false`).
    * `true` is the default (the legacy `'auto'` value is accepted and means the
    * same); `readTokens` returns only the tokens actually present, so absence
-   * is a no-op.
+   * is a no-op. Off, it skips the design system as well, variant included; a
+   * named theme's tokens still apply.
    * @returns {boolean}
    */
   _shouldUseTokens() {
@@ -319,35 +501,46 @@ export default class Theme {
   }
 
   /**
-   * Facet (#13): overwrite chrome defaults with `--apx-*` tokens, but only where
-   * the value still equals its built-in default or the token this chart wrote
-   * last (so explicit config wins). The ownership rules are the shared
+   * Facet (#13): overwrite chrome defaults with the token layers (`--apx-*`,
+   * then a named theme's tokens, then the design system), but only where the
+   * page did not name the value and it still equals its built-in default or
+   * the token this chart wrote last. The ownership rules are the shared
    * `resolveOwnedRole` from apex-commons.
-   * @param {{fore?:string, grid?:string, surface?:string}} tokens
+   * @param {import('apex-commons').TokenLayers} layers
    */
-  applyTokenChrome(tokens) {
-    if (!tokens) return
+  applyTokenChrome(layers) {
+    if (!layers) return
     const w = this.w
     const g = w.globals
     const last = g.tokenChrome || {}
-    const dark = w.config.theme.mode === 'dark'
+    const mode = w.config.theme.mode
+    const dark = mode === 'dark'
+    // The design system's text and hairlines apply only in its own variant
+    // (a dark sheet's gray-800 is a light grey), and not at all where
+    // colorBlindMode or monochrome bypass colour tokens.
+    const colorLayers = { ...layers, designSystem: this._designSystemColors() }
 
     // A token value written into config looks like a user value on the next
     // render, so each role remembers what it wrote: our own value stays
     // replaceable by a changed token (refreshTokens(), an OS flip) and falls
-    // back to the first default once the token is gone, while an explicit
-    // value always wins. Every slot of a role resolves against the one
-    // snapshot, so the number and order of y axes cannot make it stale.
+    // back to the first default once the token is gone, while a value the
+    // page named always wins, its default included. Every slot of a role
+    // resolves against the one snapshot, so the number and order of y axes
+    // cannot make it stale.
     /**
-     * @param {'fore' | 'grid'} role
-     * @param {any[][]} slots [object, key] pairs; a missing object is skipped
+     * @param {'fore' | 'grid' | 'font'} role
+     * @param {string | undefined} value the winning layer value
+     * @param {any[][]} slots [object, key, named] triples; a missing object is skipped
      * @param {string[]} defaults the values that count as unset
      */
-    const own = (role, slots, defaults) => {
+    const own = (role, value, slots, defaults) => {
       const live = slots.filter((s) => s[0])
       const res = resolveOwnedRole({
-        slots: live.map(([obj, key]) => ({ current: obj[key] })),
-        value: tokens[role],
+        slots: live.map(([obj, key, named]) => ({
+          current: obj[key],
+          explicit: !!named,
+        })),
+        value,
         last: last[role],
         defaults,
       })
@@ -358,35 +551,55 @@ export default class Theme {
     }
 
     // axis labels + legend text funnel to chart.foreColor. A foreColor the
-    // page named that equals the OTHER mode's default ('#373d3f' on a dark
-    // chart) is a choice and is kept; one equal to this mode's default is
-    // replaceable like the grid defaults below, so the token still wins.
+    // page did not name counts as unset at either mode's default, since the
+    // mode defaults may not have caught up with it yet.
     const foreDef = dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT
     const fore = own(
       'fore',
-      [[w.config.chart, 'foreColor']],
+      layerValue(colorLayers, 'fore', { mode }),
+      [[w.config.chart, 'foreColor', g.themeForeColorExplicit]],
       g.themeForeColorExplicit
         ? [foreDef]
         : [foreDef, dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK],
     )
-    const gridSlots = [[w.config.grid, 'borderColor']]
+    const gridNamed = g.themeGridColorsExplicit
+    const gridSlots = [
+      [w.config.grid, 'borderColor', gridNamed && gridNamed.grid],
+    ]
     const axes = /** @type {any[]} */ ([w.config.xaxis]).concat(w.config.yaxis)
-    axes.forEach((axis) => {
+    axes.forEach((axis, i) => {
       if (axis) {
-        gridSlots.push([axis.axisBorder, 'color'], [axis.axisTicks, 'color'])
+        const flags =
+          gridNamed && (i ? gridNamed.yaxis[i - 1] : gridNamed.xaxis)
+        gridSlots.push(
+          [axis.axisBorder, 'color', flags && flags.border],
+          [axis.axisTicks, 'color', flags && flags.ticks],
+        )
       }
     })
-    g.tokenChrome = {
-      fore,
-      grid: own('grid', gridSlots, [DEFAULT_AXIS_GRID]),
-    }
+    const grid = own(
+      'grid',
+      layerValue(colorLayers, 'grid', { mode }),
+      gridSlots,
+      [DEFAULT_AXIS_GRID],
+    )
+    // The font is not a colour, so the design system's applies whatever the
+    // palette mode.
+    const font = own(
+      'font',
+      layerValue(layers, 'font'),
+      [[w.config.chart, 'fontFamily', g.themeFontFamilyExplicit]],
+      [DEFAULT_FONT_FAMILY],
+    )
+    g.tokenChrome = { fore, grid, font }
 
     // `chart.background` defaults to '', so '' is its only unset value, and
     // a background the token wrote is given back as '' once the token is
-    // gone. applyModePaper repaints the paper node from the result.
+    // gone. applyModePaper repaints the paper node from the result. The
+    // design system never paints it.
     const surface = resolveOwnedRole({
       slots: [{ current: w.config.chart.background || '' }],
-      value: tokens.surface,
+      value: layerValue(layers, 'surface'),
       last: g.tokenSurface,
       defaults: [''],
       remember: 'written',
@@ -512,9 +725,12 @@ export default class Theme {
 
   applyRadarPolygonsColors() {
     const w = this.w
+    // Filled to blend with the dark paper, so none where the paper stays
+    // transparent: a dark mode the design system's variant filled.
+    const dark = w.config.theme.mode === 'dark' && !w.globals.variantModeApplied
     w.globals.radarPolygons.fill.colors =
       w.config.plotOptions.radar.polygons.fill.colors === undefined
-        ? [w.config.theme.mode === 'dark' ? '#343A3F' : 'none']
+        ? [dark ? DARK_PAPER : 'none']
         : w.config.plotOptions.radar.polygons.fill.colors.slice()
     this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20)
   }
@@ -591,14 +807,21 @@ export default class Theme {
 
   /**
    * @param {Record<string, any>} options
+   * @param {boolean} [restoring]  a History restore is replaying a checkpoint
    */
-  updateThemeOptions(options) {
+  updateThemeOptions(options, restoring = false) {
     const mode = options.theme.mode
     // A key this call passes belongs to the user now, so a later named-theme
     // switch must not revert it.
     const applied = this.w.globals.namedThemeApplied
     for (const k in applied) {
       if (options.theme[k] !== undefined) delete /** @type {any} */ (applied)[k]
+    }
+    // So is a mode, 'dark' included: a light sheet no longer takes it back.
+    // A History restore passes the mode its checkpoint drew and has already
+    // put back whether the variant set it.
+    if (mode !== undefined && !restoring) {
+      this.w.globals.variantModeApplied = undefined
     }
     // An empty palette (`palette: undefined` or null, as a serialised options
     // object sends it) is not given: merged in, it left the chart with no
@@ -656,6 +879,20 @@ export default class Theme {
     const builtin =
       /** @type {Record<string,any>} */ (palettes)[palette] || palettes.palette1
 
+    // Plan 36: the design system's series (rank 5), completed row by row from
+    // the built-in palette. Only when no named theme palette and no palette
+    // the page named rank above it: series are taken whole, never mixed.
+    const named = this._namedTheme
+    const namedPalette =
+      named && Array.isArray(named.palette) && named.palette.length
+        ? named.palette
+        : null
+    const ds = this._designSystemColors()
+    const dsSeries =
+      ds && !namedPalette && !this.w.globals.themePaletteExplicit
+        ? completeSeries(ds.series, builtin)
+        : null
+
     // Facet (#13): tokens top the palette chain (below explicit config colors,
     // which are handled by getColors before this runs).
     const tokens = this._tokens || {}
@@ -664,15 +901,13 @@ export default class Theme {
       return tokens.series.slice()
     }
     if (tokens.accent) {
-      // a single brand accent seeds colors[0]; the built-in palette fills the
-      // rest so multi-series charts keep distinct hues
-      return [tokens.accent, ...builtin]
+      // a single brand accent seeds colors[0]; the design system's rows from
+      // the second on, or else the built-in palette, fill the rest so
+      // multi-series charts keep distinct hues
+      return [tokens.accent, ...(dsSeries ? dsSeries.slice(1) : builtin)]
     }
     // Facet (#13): a registered named theme's palette (below tokens).
-    const named = this._namedTheme
-    if (named && Array.isArray(named.palette) && named.palette.length) {
-      return named.palette.slice()
-    }
-    return builtin
+    if (namedPalette) return namedPalette.slice()
+    return dsSeries || builtin
   }
 }

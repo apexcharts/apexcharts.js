@@ -555,6 +555,47 @@ export default class Config {
   }
 
   /**
+   * Whether the chart's own options or window.Apex name `chart.fontFamily`.
+   * Only then does a font equal to the default beat `--apx-font-family` and
+   * a design system's font; otherwise the default counts as unset.
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitFontFamily(opts) {
+    return !!(
+      opts?.chart?.fontFamily || Environment.getApex().chart?.fontFamily
+    )
+  }
+
+  /**
+   * Which grid and axis colours `opts` names: `grid.borderColor`, the x
+   * axis border and ticks, and the border and ticks of each y axis in the
+   * order `opts` lists them (an object is the one y axis it becomes). A
+   * colour named here beats every token, even one equal to its default.
+   *
+   * @param {Record<string, any> | null | undefined} opts
+   * @param {Record<string, any>} [apex]  global defaults that count as named (window.Apex)
+   * @returns {import('../../types/internal').GridColorsExplicit}
+   */
+  static explicitGridColors(opts, apex = {}) {
+    /** @param {any[]} axes */
+    const named = (...axes) => ({
+      border: axes.some((a) => !!a?.axisBorder?.color),
+      ticks: axes.some((a) => !!a?.axisTicks?.color),
+    })
+    const y = opts?.yaxis
+    // window.Apex's yaxis object sits under an object, never an array, as
+    // extendYAxis merges them.
+    const apexY = Array.isArray(apex.yaxis) ? null : apex.yaxis
+    return {
+      grid: !!(opts?.grid?.borderColor || apex.grid?.borderColor),
+      xaxis: named(opts?.xaxis, apex.xaxis),
+      yaxis: Array.isArray(y) ? y.map((a) => named(a)) : [named(y, apexY)],
+    }
+  }
+
+  /**
    * The built-in palette a chart with no palette of its own uses in `mode`.
    *
    * @param {string | undefined} mode

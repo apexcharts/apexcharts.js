@@ -30,8 +30,8 @@ test.describe('Facet: CSS design tokens', () => {
       grid: window.chart.w.config.grid.borderColor.toLowerCase(),
     }))
     expect(chrome.fore).toBe('#1f2937') // --apx-fore
-    // the fixture's grid.borderColor equals the built-in default sentinel, so
-    // the token replaces it (only a NON-default explicit value wins over tokens)
+    // the fixture names no grid.borderColor; one it named would beat the
+    // token, its default included (D5)
     expect(chrome.grid).toBe('#e5e7eb') // --apx-grid
   })
 
