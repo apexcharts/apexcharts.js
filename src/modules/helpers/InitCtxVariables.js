@@ -118,6 +118,7 @@ export default class InitCtxVariables {
       'showSeries',
       'hideSeries',
       'setLocale',
+      'refreshTokens',
       'resetSeries',
       'zoomX',
       'toggleDataPointSelection',
