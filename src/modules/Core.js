@@ -699,7 +699,7 @@ export default class Core {
   /**
    * The container measurements a resize redraw took before the old chart was
    * cleared, used once and then dropped (see ApexCharts._windowResize).
-   * @returns {{ el: number[], parent: number[] } | null}
+   * @returns {{ el: number[] } | null}
    */
   _takeHeldDimensions() {
     const ctx = /** @type {any} */ (this.ctx)
@@ -741,11 +741,19 @@ export default class Core {
     }
 
     const heightUnit = this._extractDimensionUnit(rawHeight)
+    /** @type {number | undefined} */
+    let sizedFromParentH
     if (rawHeight !== 'auto' && rawHeight !== '') {
       if (heightUnit === '%') {
-        const elParentDim = held
-          ? held.parent
-          : Utils.getDimensions(this.el.parentNode)
+        // Always the live parent, never the one a resize redraw held: the held
+        // parent still contains the old chart, and a parent sized by its
+        // content (a card holding a heading and the chart) is then taller by
+        // the old chart's height, so every redraw drew the chart taller than
+        // the last and the parent's resize asked for another, forever. Here
+        // the old chart is already cleared, so the percentage resolves against
+        // the same parent whatever height the chart had before.
+        const elParentDim = Utils.getDimensions(this.el.parentNode)
+        sizedFromParentH = elParentDim[1]
         gl.svgHeight = (elParentDim[1] * parseInt(rawHeight, 10)) / 100
       } else {
         gl.svgHeight = parseInt(rawHeight, 10)
@@ -753,15 +761,6 @@ export default class Core {
     } else {
       gl.svgHeight = gl.axisCharts ? gl.svgWidth / 1.61 : gl.svgWidth / 1.2
     }
-
-    // Record the container inputs this render was sized from, so a later resize
-    // can tell whether it actually changes the drawing box (see getResizeSignature).
-    // Taken here, before the chart writes its own size into the page: that write
-    // can move the container (a page that now needs a scrollbar narrows by its
-    // width), and recording afterwards stored the moved size as the drawn one,
-    // so the resize that followed read as no change and the chart overflowed
-    // for good (react-apexcharts#187).
-    gl.lastResizeSignature = this.getResizeSignature(held)
 
     this._applyWeaveReservation(gl)
 
@@ -799,6 +798,26 @@ export default class Core {
 
     this.w.dom.elWrap.style.width = `${gl.svgWidth}px`
     this.w.dom.elWrap.style.height = `${gl.svgHeight}px`
+
+    // Record the container inputs this render was sized from, so a later resize
+    // can tell whether it actually changes the drawing box (see getResizeSignature).
+    // The width is the measurement taken above, before the chart wrote its own
+    // size into the page: that write can move the container (a page that now
+    // needs a scrollbar narrows by its width), and recording afterwards stored
+    // the moved size as the drawn one, so the resize that followed read as no
+    // change and the chart overflowed for good (react-apexcharts#187). The
+    // parent's height is read now, with this chart in it, because that is what
+    // the next resize compares: a parent sized by its content grows by the
+    // chart's height, and recording it before the write made the parent's own
+    // answer to this draw read as a change and redraw the chart once more.
+    const sig = this.getResizeSignature(elDim)
+    // The parent height the percentage was taken from. When it differs from
+    // the parent after the write, the parent's height follows the chart's own
+    // (see ApexCharts._parentGrowth).
+    if (sizedFromParentH !== undefined) {
+      sig.ph = Math.round(sizedFromParentH || 0)
+    }
+    gl.lastResizeSignature = sig
   }
 
   /**
@@ -849,11 +868,11 @@ export default class Core {
    * forces a redraw; a percentage-sized chart's signature tracks the container.
    * The window-resize handler compares this against the last render to skip
    * redraws (and the entrance-animation teardown they cause) that aren't needed.
-   * @param {{ el: number[], parent: number[] } | null} [held] measurements to use instead of
-   *   reading the page, so the signature records what the render was sized from
-   * @returns {{ w: number, h: number }}
+   * @param {number[] | null} [elDim] the element measurement the render was
+   *   sized from, used instead of reading the element again
+   * @returns {{ w: number, h: number, iw?: number, ph?: number }}
    */
-  getResizeSignature(held = null) {
+  getResizeSignature(elDim = null) {
     const { config: cnf } = this.w
     const rawWidth = (cnf.chart.width || '100%').toString().trim()
     const rawHeight = (cnf.chart.height || 'auto').toString().trim()
@@ -863,13 +882,13 @@ export default class Core {
 
     if (rawWidth.endsWith('%')) {
       // The element's own width, as setSVGDimensions measures it.
-      w = (held ? held.el : Utils.getDimensions(this.el))[0] || 0
+      w = (elDim || Utils.getDimensions(this.el))[0] || 0
     }
     if (rawHeight.endsWith('%')) {
-      h = (held ? held.parent : Utils.getDimensions(this.el.parentNode))[1] || 0
+      h = Utils.getDimensions(this.el.parentNode)[1] || 0
     }
 
-    /** @type {{ w: number; h: number; iw?: number }} */
+    /** @type {{ w: number; h: number; iw?: number; ph?: number }} */
     const sig = { w: Math.round(w), h: Math.round(h) }
 
     // Responsive breakpoints are keyed on window.innerWidth and are only
