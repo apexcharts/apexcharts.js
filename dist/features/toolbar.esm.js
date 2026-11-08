@@ -18,34 +18,37 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function pe(e) {
-  const t = e.getRootNode ? e.getRootNode() : null;
-  return t && (9 === t.nodeType || 11 === t.nodeType && "host" in t) ? t : e.ownerDocument || document;
+function Mt({ background: t, dark: e, designSystemPaper: n, fromVariant: s, light: i, mode: r }) {
+  return t && "transparent" !== t ? t : "dark" === r ? s && n || e : i || "#fff";
 }
-function me(e) {
-  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
-  return (null == t ? void 0 : t.length) ? t[0] : e.target;
+function Ae(t) {
+  const e = t.getRootNode ? t.getRootNode() : null;
+  return e && (9 === e.nodeType || 11 === e.nodeType && "host" in e) ? e : t.ownerDocument || document;
 }
-function Me(e) {
-  const t = [];
-  let s = e;
-  for (; s; ) {
-    const e2 = pe(s);
-    t.unshift(e2), s = 11 === e2.nodeType ? e2.host : null;
+function ke(t) {
+  const e = "function" == typeof t.composedPath ? t.composedPath() : null;
+  return (null == e ? void 0 : e.length) ? e[0] : t.target;
+}
+function Ne(t) {
+  const e = [];
+  let n = t;
+  for (; n; ) {
+    const t2 = Ae(n);
+    e.unshift(t2), n = 11 === t2.nodeType ? t2.host : null;
   }
-  const n = [];
-  for (const e2 of t) {
-    for (const t3 of Array.from(e2.styleSheets || [])) n.push(t3);
-    const t2 = e2.adoptedStyleSheets;
-    if (t2) for (const e3 of t2) n.push(e3);
+  const s = [];
+  for (const t2 of e) {
+    for (const e3 of Array.from(t2.styleSheets || [])) s.push(e3);
+    const e2 = t2.adoptedStyleSheets;
+    if (e2) for (const t3 of e2) s.push(t3);
   }
-  return n;
+  return s;
 }
 const Graphics = _core.__apex_Graphics;
 const AxesUtils = _core.__apex_axes_AxesUtils;
@@ -358,13 +361,24 @@ class Exports {
    * An explicit non-transparent `chart.background` still wins, including one
    * written by the Facet `--apx-surface` token (Theme assigns it into the same
    * field).
+   *
+   * A dark mode the design system's variant filled leaves the paper
+   * transparent on screen, over the page's own surface, so its raster base is
+   * that surface when the sheet declares one (Ignite UI `--ig-surface-base`,
+   * else `--ig-surface-500`), and the dark paper otherwise.
    * @returns {string}
    */
   resolveExportBackground() {
+    var _a, _b, _c;
     const w = this.w;
-    const bg = w.config.chart.background;
-    if (bg && bg !== "transparent") return bg;
-    return w.config.theme.mode === "dark" ? "#343A3F" : "#fff";
+    return Mt({
+      background: w.config.chart.background,
+      mode: w.config.theme.mode,
+      fromVariant: !!w.globals.variantModeApplied,
+      designSystemPaper: (_c = (_b = (_a = this.ctx) == null ? void 0 : _a.theme) == null ? void 0 : _b.designSystem) == null ? void 0 : _c.paperCheck,
+      dark: "#343A3F",
+      light: "#fff"
+    });
   }
   /**
    * Font families the rendered chart actually paints with.
@@ -458,7 +472,7 @@ class Exports {
       }
     };
     const el = this.w.dom.elWrap;
-    (el ? Me(el) : Array.from(document.styleSheets || [])).forEach(
+    (el ? Ne(el) : Array.from(document.styleSheets || [])).forEach(
       walkSheet
     );
     return Promise.all(remote).then(() => found);
@@ -592,6 +606,13 @@ class Exports {
         w.dom.elWrap.cloneNode(true)
       );
       this.resolveCssVars(w.dom.elWrap, clonedNode);
+      if (w.globals.variantModeApplied) {
+        const paper = (
+          /** @type {HTMLElement | null} */
+          clonedNode.querySelector(".apexcharts-svg")
+        );
+        if (paper) paper.style.background = this.resolveExportBackground();
+      }
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
@@ -1685,7 +1706,7 @@ class Toolbar {
       var _a2, _b;
       const origin = (
         /** @type {Node} */
-        me(e)
+        ke(e)
       );
       if (((_a2 = this.elMenu) == null ? void 0 : _a2.contains(origin)) || ((_b = this.elMenuIcon) == null ? void 0 : _b.contains(origin))) {
         return;
@@ -1906,7 +1927,7 @@ class ZoomPanSelection extends Toolbar {
   /** @param {{xyRatios: any}} opts */
   init({ xyRatios }) {
     const w = this.w;
-    const me2 = this;
+    const me = this;
     this.xyRatios = xyRatios;
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
@@ -1937,18 +1958,18 @@ class ZoomPanSelection extends Toolbar {
     this.hoverArea.classList.add("apexcharts-zoomable");
     this.eventList.forEach((event) => {
       var _a;
-      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
+      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.svgMouseEvents.bind(me), {
         capture: false,
         passive: true
       });
     });
     if (this._wheelZoomEnabled()) {
-      this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
+      this.hoverArea.addEventListener("wheel", me.mouseWheelEvent.bind(me), {
         capture: false,
         passive: false
       });
     }
-    this.hoverArea.addEventListener("keydown", me2.escapeResetEvent.bind(me2), {
+    this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
       capture: false,
       passive: true
     });
@@ -1956,7 +1977,7 @@ class ZoomPanSelection extends Toolbar {
       ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
         (event) => {
           var _a;
-          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.momentumTouch.bind(me2), {
+          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
             capture: false,
             passive: false
           });
@@ -2482,14 +2503,14 @@ class ZoomPanSelection extends Toolbar {
   }
   selectionDrawing({ context, zoomtype }) {
     const w = this.w;
-    const me2 = context;
+    const me = context;
     if (!this._hasPlot()) return;
-    const startX = me2.startX;
-    const startY = me2.startY;
+    const startX = me.startX;
+    const startY = me.startY;
     let inversedX = false;
     let inversedY = false;
-    const left = this._screenXToPlotPx(me2.clientX);
-    const top = this._screenYToPlotPx(me2.clientY);
+    const left = this._screenXToPlotPx(me.clientX);
+    const top = this._screenYToPlotPx(me.clientY);
     let selectionWidth = left - startX;
     let selectionHeight = top - startY;
     let selectionRect = {
@@ -2535,8 +2556,8 @@ class ZoomPanSelection extends Toolbar {
       translateX: w.layout.translateX,
       translateY: w.layout.translateY
     });
-    me2.drawSelectionRect(selectionRect);
-    me2.selectionDragging("resizing");
+    me.drawSelectionRect(selectionRect);
+    me.selectionDragging("resizing");
     return selectionRect;
   }
   /**
@@ -2643,11 +2664,11 @@ class ZoomPanSelection extends Toolbar {
   selectionDrawn({ context, zoomtype }) {
     var _a;
     const w = this.w;
-    const me2 = context;
+    const me = context;
     const xyRatios = this.xyRatios;
     const toolbar = this.ctx.toolbar;
-    const selRect = w.interact.zoomEnabled ? me2.zoomRect.node.getBoundingClientRect() : me2.selectionRect.node.getBoundingClientRect();
-    if (!me2._hasPlot()) return;
+    const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
+    if (!me._hasPlot()) return;
     const localStartX = this._screenXToPlotPx(selRect.left);
     const localEndX = this._screenXToPlotPx(selRect.right);
     const localStartY = this._screenYToPlotPx(selRect.top);
@@ -2669,7 +2690,7 @@ class ZoomPanSelection extends Toolbar {
       yHighestValue.push(highestVal);
       yLowestValue.push(lowestVal);
     });
-    if (me2.dragged && (me2.dragX > 10 || me2.dragY > 10) && xLowestValue !== xHighestValue) {
+    if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
       if (w.interact.zoomEnabled) {
         if (!w.globals.initialConfig) return;
         let yaxis = Utils.clone(w.globals.initialConfig.yaxis);
@@ -2711,15 +2732,15 @@ class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           options.yaxis = yaxis;
         }
-        const applied = me2.ctx.updateHelpers._updateOptions(
+        const applied = me.ctx.updateHelpers._updateOptions(
           options,
           false,
-          me2.w.config.chart.animations.dynamicAnimation.enabled
+          me.w.config.chart.animations.dynamicAnimation.enabled
         );
         if (applied && typeof applied.then === "function") {
-          applied.then(() => me2._focusForKeyboard());
+          applied.then(() => me._focusForKeyboard());
         } else {
-          me2._focusForKeyboard();
+          me._focusForKeyboard();
         }
         if (typeof w.config.chart.events.zoomed === "function") {
           toolbar.zoomCallback(xaxis, yaxis);
@@ -2742,14 +2763,14 @@ class ZoomPanSelection extends Toolbar {
             yaxe.max = yHighestValue[index];
           });
         }
-        w.interact.selection = me2.selection;
+        w.interact.selection = me.selection;
         if (typeof w.config.chart.events.selection === "function") {
-          w.config.chart.events.selection(me2.ctx, {
+          w.config.chart.events.selection(me.ctx, {
             xaxis,
             yaxis
           });
         }
-        (_a = me2.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
+        (_a = me.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
       }
     }
   }
@@ -2757,10 +2778,10 @@ class ZoomPanSelection extends Toolbar {
   panDragging({ context }) {
     var _a;
     const w = this.w;
-    const me2 = context;
+    const me = context;
     if (typeof w.interact.lastClientPosition.x !== "undefined") {
-      const deltaX = w.interact.lastClientPosition.x - me2.clientX;
-      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me2.clientY;
+      const deltaX = w.interact.lastClientPosition.x - me.clientX;
+      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me.clientY;
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
         this.moveDirection = "left";
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
@@ -2772,12 +2793,12 @@ class ZoomPanSelection extends Toolbar {
       }
     }
     w.interact.lastClientPosition = {
-      x: me2.clientX,
-      y: me2.clientY
+      x: me.clientX,
+      y: me.clientY
     };
     const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
     const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
-    me2.panScrolled(xLowestValue, xHighestValue);
+    me.panScrolled(xLowestValue, xHighestValue);
   }
   /**
    * @param {number} xLowestValue

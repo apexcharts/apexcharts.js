@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -40,6 +40,7 @@ const Graphics = _core.__apex_Graphics;
 const CoreUtils = _core.__apex_CoreUtils;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
+const Theme = _core.__apex_Theme;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
 const DataLabels = _core.__apex_DataLabels;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
@@ -4324,7 +4325,8 @@ class HighlightFilter {
         refs.marker,
         on && !w.config.tooltip.fillSeriesColor ? ((_c = (_b = this._tiles) == null ? void 0 : _b.get(s + "|" + j)) == null ? void 0 : _c.base) || w.globals.colors[s] : null,
         lane ? (_f = (_e = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e.opacity) != null ? _f : LANE : cfg.fadeOpacity,
-        lane
+        lane,
+        Theme.radius(w, 3)
       );
     }
     if (!on) return;
@@ -4623,7 +4625,7 @@ function withPill(t) {
 function overflows(p, whole) {
   return whole != null && whole !== 0 && p / whole > 1;
 }
-function swatch(m, c, fade = 0.2, lane) {
+function swatch(m, c, fade = 0.2, lane, radius = 3) {
   const st = m.style;
   const shape = m.firstElementChild;
   if (!c) {
@@ -4637,7 +4639,7 @@ function swatch(m, c, fade = 0.2, lane) {
   const tint = c.charAt(0) === "#" ? Utils.hexToRgba(c, fade) : `color-mix(in srgb, ${c} ${fade * 100}%, transparent)`;
   st.background = lane === "part" ? c : lane ? tint : `linear-gradient(90deg, ${c} 50%, ${tint} 50%)`;
   st.boxShadow = `inset 0 0 0 1px ${c}`;
-  st.borderRadius = "3px";
+  st.borderRadius = `${radius}px`;
   if (shape) shape.style.display = "none";
 }
 function valueOf(d, parsed) {

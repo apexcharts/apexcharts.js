@@ -31,136 +31,178 @@ var __objRest = (source, exclude) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
-const M = 1e3;
-function A(e, t) {
-  const s = e.length;
-  if (0 === s) return NaN;
-  if (1 === s) return e[0];
-  const n = (s - 1) * t, i = Math.floor(n), r = Math.ceil(n);
-  return i === r ? e[i] : e[i] + (e[r] - e[i]) * (n - i);
+const x = 1e3;
+function S(t, e) {
+  const n = t.length;
+  if (0 === n) return NaN;
+  if (1 === n) return t[0];
+  const s = (n - 1) * e, i = Math.floor(s), r = Math.ceil(s);
+  return i === r ? t[i] : t[i] + (t[r] - t[i]) * (s - i);
 }
-function S(e, t, s) {
-  const n = e.length, i = (e2) => t / Math.max(1, Math.ceil(e2)), r = () => i(Math.log2(n) + 1);
-  switch (s) {
+function A(t, e, n) {
+  const s = t.length, i = (t2) => e / Math.max(1, Math.ceil(t2)), r = () => i(Math.log2(s) + 1);
+  switch (n) {
     case "sqrt":
-      return { width: i(Math.sqrt(n)), rule: "sqrt" };
+      return { width: i(Math.sqrt(s)), rule: "sqrt" };
     case "rice":
-      return { width: i(2 * Math.cbrt(n)), rule: "rice" };
+      return { width: i(2 * Math.cbrt(s)), rule: "rice" };
     case "scott": {
-      const t2 = (function(e2) {
-        const t3 = e2.length;
-        if (t3 < 2) return 0;
-        let s2 = 0;
-        for (let n3 = 0; n3 < t3; n3++) s2 += e2[n3];
-        const n2 = s2 / t3;
+      const e2 = (function(t2) {
+        const e3 = t2.length;
+        if (e3 < 2) return 0;
+        let n2 = 0;
+        for (let s3 = 0; s3 < e3; s3++) n2 += t2[s3];
+        const s2 = n2 / e3;
         let i2 = 0;
-        for (let s3 = 0; s3 < t3; s3++) {
-          const t4 = e2[s3] - n2;
-          i2 += t4 * t4;
+        for (let n3 = 0; n3 < e3; n3++) {
+          const e4 = t2[n3] - s2;
+          i2 += e4 * e4;
         }
-        return Math.sqrt(i2 / t3);
-      })(e);
-      return t2 > 0 ? { width: 3.49 * t2 * Math.pow(n, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
+        return Math.sqrt(i2 / e3);
+      })(t);
+      return e2 > 0 ? { width: 3.49 * e2 * Math.pow(s, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
     }
     case "fd": {
-      const t2 = A(e, 0.75) - A(e, 0.25);
-      return t2 > 0 ? { width: 2 * t2 * Math.pow(n, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
+      const e2 = S(t, 0.75) - S(t, 0.25);
+      return e2 > 0 ? { width: 2 * e2 * Math.pow(s, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
     }
     case "auto": {
-      const t2 = r(), s2 = A(e, 0.75) - A(e, 0.25);
-      if (s2 <= 0) return { width: t2, rule: "sturges" };
-      const i2 = 2 * s2 * Math.pow(n, -1 / 3);
-      return i2 < t2 ? { width: i2, rule: "fd" } : { width: t2, rule: "sturges" };
+      const e2 = r(), n2 = S(t, 0.75) - S(t, 0.25);
+      if (n2 <= 0) return { width: e2, rule: "sturges" };
+      const i2 = 2 * n2 * Math.pow(s, -1 / 3);
+      return i2 < e2 ? { width: i2, rule: "fd" } : { width: e2, rule: "sturges" };
     }
     default:
       return { width: r(), rule: "sturges" };
   }
 }
-function x(e, t = {}) {
-  if (!Array.isArray(e) || 0 === e.length) return null;
-  const s = e.slice().sort(((e2, t2) => e2 - t2));
-  let n = s[0], i = s[s.length - 1];
-  const r = t.range;
+function k(t, e = {}) {
+  if (!Array.isArray(t) || 0 === t.length) return null;
+  const n = t.slice().sort(((t2, e2) => t2 - e2));
+  let s = n[0], i = n[n.length - 1];
+  const r = e.range;
   if (Array.isArray(r) && 2 === r.length) {
-    const e2 = Number(r[0]), t2 = Number(r[1]);
-    Number.isFinite(e2) && Number.isFinite(t2) && t2 > e2 && (n = e2, i = t2);
+    const t2 = Number(r[0]), e2 = Number(r[1]);
+    Number.isFinite(t2) && Number.isFinite(e2) && e2 > t2 && (s = t2, i = e2);
   }
-  if (!(i > n)) {
-    const e2 = Math.abs(n) > 0 ? 0.05 * Math.abs(n) : 0.5;
-    return { edges: [n - e2, n + e2], binWidth: 2 * e2, rule: "single", capped: false };
+  if (!(i > s)) {
+    const t2 = Math.abs(s) > 0 ? 0.05 * Math.abs(s) : 0.5;
+    return { edges: [s - t2, s + t2], binWidth: 2 * t2, rule: "single", capped: false };
   }
-  const a = i - n;
-  let o, l;
-  if ("number" == typeof t.binWidth && t.binWidth > 0) o = t.binWidth, l = "binWidth";
-  else if ("number" == typeof t.bins && t.bins >= 1) o = a / Math.floor(t.bins), l = "count";
+  const o = i - s;
+  let l, a;
+  if ("number" == typeof e.binWidth && e.binWidth > 0) l = e.binWidth, a = "binWidth";
+  else if ("number" == typeof e.bins && e.bins >= 1) l = o / Math.floor(e.bins), a = "count";
   else {
-    const e2 = S(s, a, "string" == typeof t.bins ? t.bins : "auto");
-    o = e2.width, l = e2.rule;
+    const t2 = A(n, o, "string" == typeof e.bins ? e.bins : "auto");
+    l = t2.width, a = t2.rule;
   }
-  (!Number.isFinite(o) || o <= 0) && (o = a);
-  let c = Math.ceil(a / o);
+  (!Number.isFinite(l) || l <= 0) && (l = o);
+  let c = Math.ceil(o / l);
   (!Number.isFinite(c) || c < 1) && (c = 1);
   let u = false;
-  c > M && (c = M, u = true), o = a / c;
-  const h = new Array(c + 1);
-  for (let e2 = 0; e2 <= c; e2++) h[e2] = n + e2 * o;
-  return h[c] = Math.max(h[c], i), { edges: h, binWidth: o, rule: l, capped: u };
+  c > x && (c = x, u = true), l = o / c;
+  const d = new Array(c + 1);
+  for (let t2 = 0; t2 <= c; t2++) d[t2] = s + t2 * l;
+  return d[c] = Math.max(d[c], i), { edges: d, binWidth: l, rule: a, capped: u };
 }
-function k(e, t) {
-  const s = t.length - 1;
-  if (!(e >= t[0]) || e > t[s]) return -1;
-  if (e === t[s]) return s - 1;
-  const n = (t[s] - t[0]) / s;
-  if (n > 0) {
-    let i2 = Math.floor((e - t[0]) / n);
-    return i2 < 0 && (i2 = 0), i2 > s - 1 && (i2 = s - 1), e < t[i2] ? i2-- : e >= t[i2 + 1] && i2++, i2 < 0 || i2 > s - 1 ? -1 : i2;
+function L(t, e) {
+  const n = e.length - 1;
+  if (!(t >= e[0]) || t > e[n]) return -1;
+  if (t === e[n]) return n - 1;
+  const s = (e[n] - e[0]) / n;
+  if (s > 0) {
+    let i2 = Math.floor((t - e[0]) / s);
+    return i2 < 0 && (i2 = 0), i2 > n - 1 && (i2 = n - 1), t < e[i2] ? i2-- : t >= e[i2 + 1] && i2++, i2 < 0 || i2 > n - 1 ? -1 : i2;
   }
-  let i = 0, r = s - 1;
+  let i = 0, r = n - 1;
   for (; i <= r; ) {
-    const s2 = i + r >> 1;
-    if (e < t[s2]) r = s2 - 1;
+    const n2 = i + r >> 1;
+    if (t < e[n2]) r = n2 - 1;
     else {
-      if (!(e >= t[s2 + 1])) return s2;
-      i = s2 + 1;
+      if (!(t >= e[n2 + 1])) return n2;
+      i = n2 + 1;
     }
   }
   return -1;
 }
-function L(e, t) {
-  const s = new Array(Math.max(0, t.length - 1)).fill(0);
-  for (let n = 0; n < e.length; n++) {
-    const i = k(e[n], t);
-    i >= 0 && s[i]++;
-  }
-  return s;
-}
-function pe(e) {
-  const t = e.getRootNode ? e.getRootNode() : null;
-  return t && (9 === t.nodeType || 11 === t.nodeType && "host" in t) ? t : e.ownerDocument || document;
-}
-function me(e) {
-  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
-  return (null == t ? void 0 : t.length) ? t[0] : e.target;
-}
-function Me(e) {
-  const t = [];
-  let s = e;
-  for (; s; ) {
-    const e2 = pe(s);
-    t.unshift(e2), s = 11 === e2.nodeType ? e2.host : null;
-  }
-  const n = [];
-  for (const e2 of t) {
-    for (const t3 of Array.from(e2.styleSheets || [])) n.push(t3);
-    const t2 = e2.adoptedStyleSheets;
-    if (t2) for (const e3 of t2) n.push(e3);
+function C(t, e) {
+  const n = new Array(Math.max(0, e.length - 1)).fill(0);
+  for (let s = 0; s < t.length; s++) {
+    const i = L(t[s], e);
+    i >= 0 && n[i]++;
   }
   return n;
+}
+function Mt({ background: t, dark: e, designSystemPaper: n, fromVariant: s, light: i, mode: r }) {
+  return t && "transparent" !== t ? t : "dark" === r ? s && n || e : i || "#fff";
+}
+class xt {
+  constructor(t = {}) {
+    var _a;
+    this.dark = null, this.contrast = null, this.handler = null;
+    const e = (_a = t.host) != null ? _a : "undefined" == typeof window ? {} : window;
+    if (this.dark = St(e, "(prefers-color-scheme: dark)"), this.contrast = St(e, "(prefers-contrast: more)"), !this.dark && !this.contrast) return;
+    const n = t.onChange;
+    n && (this.handler = () => n(this.state), kt(this.dark, this.handler), kt(this.contrast, this.handler));
+  }
+  get state() {
+    var _a;
+    var t, e;
+    return { highContrast: (_a = null == (t = this.contrast) ? void 0 : t.matches) != null ? _a : false, mode: (null == (e = this.dark) ? void 0 : e.matches) ? "dark" : "light" };
+  }
+  get supports() {
+    return { contrast: At(this.contrast), scheme: At(this.dark) };
+  }
+  dispose() {
+    this.handler && (Lt(this.dark, this.handler), Lt(this.contrast, this.handler), this.handler = null), this.dark = null, this.contrast = null;
+  }
+}
+function St(t, e) {
+  var _a;
+  var n;
+  try {
+    return (_a = null == (n = t.matchMedia) ? void 0 : n.call(t, e)) != null ? _a : null;
+  } catch (e2) {
+    return null;
+  }
+}
+function At(t) {
+  return !!t && "not all" !== t.media;
+}
+function kt(t, e) {
+  t && ("function" == typeof t.addEventListener ? t.addEventListener("change", e) : "function" == typeof t.addListener && t.addListener(e));
+}
+function Lt(t, e) {
+  t && ("function" == typeof t.removeEventListener ? t.removeEventListener("change", e) : "function" == typeof t.removeListener && t.removeListener(e));
+}
+function Ae(t) {
+  const e = t.getRootNode ? t.getRootNode() : null;
+  return e && (9 === e.nodeType || 11 === e.nodeType && "host" in e) ? e : t.ownerDocument || document;
+}
+function ke(t) {
+  const e = "function" == typeof t.composedPath ? t.composedPath() : null;
+  return (null == e ? void 0 : e.length) ? e[0] : t.target;
+}
+function Ne(t) {
+  const e = [];
+  let n = t;
+  for (; n; ) {
+    const t2 = Ae(n);
+    e.unshift(t2), n = 11 === t2.nodeType ? t2.host : null;
+  }
+  const s = [];
+  for (const t2 of e) {
+    for (const e3 of Array.from(t2.styleSheets || [])) s.push(e3);
+    const e2 = t2.adoptedStyleSheets;
+    if (e2) for (const t3 of e2) s.push(t3);
+  }
+  return s;
 }
 const AxesUtils = _core.__apex_axes_AxesUtils;
 const Defaults = _core.__apex_Defaults;
@@ -472,13 +514,24 @@ class Exports {
    * An explicit non-transparent `chart.background` still wins, including one
    * written by the Facet `--apx-surface` token (Theme assigns it into the same
    * field).
+   *
+   * A dark mode the design system's variant filled leaves the paper
+   * transparent on screen, over the page's own surface, so its raster base is
+   * that surface when the sheet declares one (Ignite UI `--ig-surface-base`,
+   * else `--ig-surface-500`), and the dark paper otherwise.
    * @returns {string}
    */
   resolveExportBackground() {
+    var _a, _b, _c;
     const w = this.w;
-    const bg = w.config.chart.background;
-    if (bg && bg !== "transparent") return bg;
-    return w.config.theme.mode === "dark" ? "#343A3F" : "#fff";
+    return Mt({
+      background: w.config.chart.background,
+      mode: w.config.theme.mode,
+      fromVariant: !!w.globals.variantModeApplied,
+      designSystemPaper: (_c = (_b = (_a = this.ctx) == null ? void 0 : _a.theme) == null ? void 0 : _b.designSystem) == null ? void 0 : _c.paperCheck,
+      dark: "#343A3F",
+      light: "#fff"
+    });
   }
   /**
    * Font families the rendered chart actually paints with.
@@ -572,7 +625,7 @@ class Exports {
       }
     };
     const el = this.w.dom.elWrap;
-    (el ? Me(el) : Array.from(document.styleSheets || [])).forEach(
+    (el ? Ne(el) : Array.from(document.styleSheets || [])).forEach(
       walkSheet
     );
     return Promise.all(remote).then(() => found);
@@ -706,6 +759,13 @@ class Exports {
         w.dom.elWrap.cloneNode(true)
       );
       this.resolveCssVars(w.dom.elWrap, clonedNode);
+      if (w.globals.variantModeApplied) {
+        const paper = (
+          /** @type {HTMLElement | null} */
+          clonedNode.querySelector(".apexcharts-svg")
+        );
+        if (paper) paper.style.background = this.resolveExportBackground();
+      }
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
@@ -1611,6 +1671,7 @@ function shadePercent(w, chartType, p, negRange) {
   return chartType === "treemap" ? (1 - p) * k2 : 1 - p;
 }
 const TooltipUtils = _core.__apex_tooltip_Utils;
+const Theme = _core.__apex_Theme;
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -1754,7 +1815,7 @@ class HeatmapGradientLegend {
     rect.setAttribute("y", String(stripY));
     rect.setAttribute("width", String(isVertical ? stripThickness : stripLength));
     rect.setAttribute("height", String(isVertical ? stripLength : stripThickness));
-    rect.setAttribute("rx", "2");
+    rect.setAttribute("rx", String(Theme.radius(w, 2)));
     rect.setAttribute("fill", `url(#${gradId})`);
     svg.appendChild(rect);
     if (cfg.showLabels) {
@@ -1836,7 +1897,7 @@ class HeatmapGradientLegend {
       tt.style.background = "rgba(0,0,0,0.65)";
       tt.style.color = "#fff";
       tt.style.padding = "2px 6px";
-      tt.style.borderRadius = "3px";
+      tt.style.borderRadius = `${Theme.radius(w, 3)}px`;
       tt.style.pointerEvents = "none";
       tt.style.whiteSpace = "nowrap";
       tt.style.opacity = "0";
@@ -2344,7 +2405,11 @@ class HeatmapGradientLegend {
         const t = s / (n - 1);
         const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
         const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
-        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
+        const shaded = plot.enableShades ? utils.shadeColor(
+          w.config.theme.mode === "dark" ? -c : c,
+          baseColor,
+          w.dom.elWrap
+        ) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
     }
@@ -2446,6 +2511,9 @@ class Legend {
         strokeWidth: mBorderWidth,
         size: mSize
       });
+      if (w.config.legend.customLegendItems.length) {
+        markerConfig.pointFillOpacity = 1;
+      }
       const SVG = (
         /** @type {any} */
         globalThis.SVG
@@ -2462,7 +2530,7 @@ class Legend {
   }
   drawLegends() {
     var _a, _b;
-    const me2 = this;
+    const me = this;
     const w = this.w;
     const elLegendWrap = (
       /** @type {HTMLElement} */
@@ -2608,17 +2676,17 @@ class Legend {
         elLegend.classList.add("apexcharts-no-click");
       }
     }
-    w.dom.elWrap.addEventListener("click", me2.onLegendClickEvent, true);
-    w.dom.elWrap.addEventListener("pointerdown", me2.onLegendPointerDown, true);
-    w.dom.elWrap.addEventListener("pointerup", me2.onLegendPointerUp, true);
+    w.dom.elWrap.addEventListener("click", me.onLegendClickEvent, true);
+    w.dom.elWrap.addEventListener("pointerdown", me.onLegendPointerDown, true);
+    w.dom.elWrap.addEventListener("pointerup", me.onLegendPointerUp, true);
     if (w.config.legend.onItemHover.highlightDataSeries && w.config.legend.customLegendItems.length === 0) {
-      w.dom.elWrap.addEventListener("mousemove", me2.onLegendHovered, true);
-      w.dom.elWrap.addEventListener("mouseout", me2.onLegendHovered, true);
+      w.dom.elWrap.addEventListener("mousemove", me.onLegendHovered, true);
+      w.dom.elWrap.addEventListener("mouseout", me.onLegendHovered, true);
     }
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
       w.dom.elWrap.addEventListener(
         "keydown",
-        me2.onLegendKeyDown.bind(me2),
+        me.onLegendKeyDown.bind(me),
         true
       );
     }
@@ -2724,7 +2792,7 @@ class Legend {
    * @param {KeyboardEvent} e
    */
   onLegendKeyDown(e) {
-    const me2 = this;
+    const me = this;
     const w = this.w;
     const target = (
       /** @type {Element} */
@@ -2734,7 +2802,7 @@ class Legend {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       const rel = target.getAttribute("rel");
-      me2.onLegendClick(e);
+      me.onLegendClick(e);
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
           var _a;
@@ -3492,7 +3560,7 @@ class Toolbar {
       var _a2, _b;
       const origin = (
         /** @type {Node} */
-        me(e)
+        ke(e)
       );
       if (((_a2 = this.elMenu) == null ? void 0 : _a2.contains(origin)) || ((_b = this.elMenuIcon) == null ? void 0 : _b.contains(origin))) {
         return;
@@ -3712,7 +3780,7 @@ class ZoomPanSelection extends Toolbar {
   /** @param {{xyRatios: any}} opts */
   init({ xyRatios }) {
     const w = this.w;
-    const me2 = this;
+    const me = this;
     this.xyRatios = xyRatios;
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
@@ -3743,18 +3811,18 @@ class ZoomPanSelection extends Toolbar {
     this.hoverArea.classList.add("apexcharts-zoomable");
     this.eventList.forEach((event) => {
       var _a;
-      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
+      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.svgMouseEvents.bind(me), {
         capture: false,
         passive: true
       });
     });
     if (this._wheelZoomEnabled()) {
-      this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
+      this.hoverArea.addEventListener("wheel", me.mouseWheelEvent.bind(me), {
         capture: false,
         passive: false
       });
     }
-    this.hoverArea.addEventListener("keydown", me2.escapeResetEvent.bind(me2), {
+    this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
       capture: false,
       passive: true
     });
@@ -3762,7 +3830,7 @@ class ZoomPanSelection extends Toolbar {
       ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
         (event) => {
           var _a;
-          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.momentumTouch.bind(me2), {
+          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
             capture: false,
             passive: false
           });
@@ -4288,14 +4356,14 @@ class ZoomPanSelection extends Toolbar {
   }
   selectionDrawing({ context, zoomtype }) {
     const w = this.w;
-    const me2 = context;
+    const me = context;
     if (!this._hasPlot()) return;
-    const startX = me2.startX;
-    const startY = me2.startY;
+    const startX = me.startX;
+    const startY = me.startY;
     let inversedX = false;
     let inversedY = false;
-    const left = this._screenXToPlotPx(me2.clientX);
-    const top = this._screenYToPlotPx(me2.clientY);
+    const left = this._screenXToPlotPx(me.clientX);
+    const top = this._screenYToPlotPx(me.clientY);
     let selectionWidth = left - startX;
     let selectionHeight = top - startY;
     let selectionRect = {
@@ -4341,8 +4409,8 @@ class ZoomPanSelection extends Toolbar {
       translateX: w.layout.translateX,
       translateY: w.layout.translateY
     });
-    me2.drawSelectionRect(selectionRect);
-    me2.selectionDragging("resizing");
+    me.drawSelectionRect(selectionRect);
+    me.selectionDragging("resizing");
     return selectionRect;
   }
   /**
@@ -4449,11 +4517,11 @@ class ZoomPanSelection extends Toolbar {
   selectionDrawn({ context, zoomtype }) {
     var _a;
     const w = this.w;
-    const me2 = context;
+    const me = context;
     const xyRatios = this.xyRatios;
     const toolbar = this.ctx.toolbar;
-    const selRect = w.interact.zoomEnabled ? me2.zoomRect.node.getBoundingClientRect() : me2.selectionRect.node.getBoundingClientRect();
-    if (!me2._hasPlot()) return;
+    const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
+    if (!me._hasPlot()) return;
     const localStartX = this._screenXToPlotPx(selRect.left);
     const localEndX = this._screenXToPlotPx(selRect.right);
     const localStartY = this._screenYToPlotPx(selRect.top);
@@ -4475,7 +4543,7 @@ class ZoomPanSelection extends Toolbar {
       yHighestValue.push(highestVal);
       yLowestValue.push(lowestVal);
     });
-    if (me2.dragged && (me2.dragX > 10 || me2.dragY > 10) && xLowestValue !== xHighestValue) {
+    if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
       if (w.interact.zoomEnabled) {
         if (!w.globals.initialConfig) return;
         let yaxis = Utils.clone(w.globals.initialConfig.yaxis);
@@ -4517,15 +4585,15 @@ class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           options.yaxis = yaxis;
         }
-        const applied = me2.ctx.updateHelpers._updateOptions(
+        const applied = me.ctx.updateHelpers._updateOptions(
           options,
           false,
-          me2.w.config.chart.animations.dynamicAnimation.enabled
+          me.w.config.chart.animations.dynamicAnimation.enabled
         );
         if (applied && typeof applied.then === "function") {
-          applied.then(() => me2._focusForKeyboard());
+          applied.then(() => me._focusForKeyboard());
         } else {
-          me2._focusForKeyboard();
+          me._focusForKeyboard();
         }
         if (typeof w.config.chart.events.zoomed === "function") {
           toolbar.zoomCallback(xaxis, yaxis);
@@ -4548,14 +4616,14 @@ class ZoomPanSelection extends Toolbar {
             yaxe.max = yHighestValue[index];
           });
         }
-        w.interact.selection = me2.selection;
+        w.interact.selection = me.selection;
         if (typeof w.config.chart.events.selection === "function") {
-          w.config.chart.events.selection(me2.ctx, {
+          w.config.chart.events.selection(me.ctx, {
             xaxis,
             yaxis
           });
         }
-        (_a = me2.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
+        (_a = me.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
       }
     }
   }
@@ -4563,10 +4631,10 @@ class ZoomPanSelection extends Toolbar {
   panDragging({ context }) {
     var _a;
     const w = this.w;
-    const me2 = context;
+    const me = context;
     if (typeof w.interact.lastClientPosition.x !== "undefined") {
-      const deltaX = w.interact.lastClientPosition.x - me2.clientX;
-      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me2.clientY;
+      const deltaX = w.interact.lastClientPosition.x - me.clientX;
+      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me.clientY;
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
         this.moveDirection = "left";
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
@@ -4578,12 +4646,12 @@ class ZoomPanSelection extends Toolbar {
       }
     }
     w.interact.lastClientPosition = {
-      x: me2.clientX,
-      y: me2.clientY
+      x: me.clientX,
+      y: me.clientY
     };
     const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
     const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
-    me2.panScrolled(xLowestValue, xHighestValue);
+    me.panScrolled(xLowestValue, xHighestValue);
   }
   /**
    * @param {number} xLowestValue
@@ -5262,7 +5330,7 @@ class Helpers2 {
    * @param {Record<string, any>} anno
    */
   getY1Y2(type, anno) {
-    var _a, _b, _c;
+    var _a, _b;
     const w = this.w;
     const y = type === "y1" ? anno.y : anno.y2;
     const isPx = typeof y === "string" && y.includes("px");
@@ -5274,10 +5342,8 @@ class Helpers2 {
       if (!isPx && catIndex === -1) {
         return { yP: 0, clipped: true };
       }
-      const xLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
-      );
-      yP = xLabel ? parseFloat((_a = xLabel.getAttribute("y")) != null ? _a : "0") : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
+      const rowCount = w.rangeData.seriesRange.length && w.globals.isBarHorizontal ? w.labelData.labels.length : w.globals.dataPoints || labels.length;
+      yP = rowCount > 0 ? (catIndex + 0.5) * (w.layout.gridHeight / rowCount) : 0;
       if (anno.seriesIndex !== void 0 && w.globals.barHeight) {
         yP += this.barSlotOffset(anno.seriesIndex, w.globals.barHeight);
       }
@@ -5286,7 +5352,7 @@ class Helpers2 {
         return { yP: 0, clipped: true };
       }
       const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
-      const seriesIndex = (_b = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _b : null;
+      const seriesIndex = (_a = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _a : null;
       if (seriesIndex === null && w.seriesData.series.length) {
         return { yP: 0, clipped: true };
       }
@@ -5303,7 +5369,7 @@ class Helpers2 {
       if (anno.marker && (anno.y === void 0 || anno.y === null)) {
         yP = 0;
       }
-      if ((_c = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _c.reversed) {
+      if ((_b = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _b.reversed) {
         yP = yPos;
       }
     }
@@ -5362,20 +5428,30 @@ class Helpers2 {
    * share the slot only among the series actually laid out side by side:
    * a stacked chart draws them all in one column, and a hidden series (empty
    * data) or a non-bar combo series takes no slot.
+   *
+   * Grouped-row range bars (`plotOptions.bar.rangeBarGroupRows`) share a
+   * slot too. bar/Helpers forces `seriesLen` to 1, so every series is drawn
+   * on the row centre — the dumbbell / per-row-colour pattern. A point
+   * annotation's `seriesIndex` is 0 when it names the first series, and
+   * offsetting by that lifts the marker off the row by
+   * `barHeight * (0 - (n - 1) / 2)` (#5078).
    * @param {number} i
    * @param {number} size bar width, or bar height when horizontal
    */
   barSlotOffset(i, size) {
+    var _a, _b;
     const w = this.w;
-    if (w.config.chart.stacked) return 0;
+    if (w.config.chart.stacked || ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.rangeBarGroupRows)) {
+      return 0;
+    }
     let n = 0;
     let ordinal = 0;
     w.seriesData.series.forEach(
       (s, si) => {
-        var _a;
+        var _a2;
         const type = (
           /** @type {any} */
-          (_a = w.config.series[si]) == null ? void 0 : _a.type
+          (_a2 = w.config.series[si]) == null ? void 0 : _a2.type
         );
         if (s.length && (!w.globals.comboCharts || type === "bar" || type === "column")) {
           if (si < i) ordinal++;
@@ -6181,13 +6257,13 @@ class Annotations {
     contextMethod
   }) {
     var _a;
-    const me2 = context;
-    const w = me2.w;
+    const me = context;
+    const w = me.w;
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`);
     const remember = (id) => {
       if (pushToMemory) {
         w.globals.memory.methodsToExec.push({
-          context: me2,
+          context: me,
           id: id ? id : Utils.randomId(),
           method: contextMethod,
           label: "addAnnotation",
@@ -11260,8 +11336,6 @@ function makeCustomSeriesClass(name, def) {
   return cls;
 }
 _core__default._customSeriesFactory = makeCustomSeriesClass;
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-const CONTRAST_QUERY = "(prefers-contrast: more)";
 class OSThemeWatcher {
   /**
    * @param {any} w @param {any} ctx
@@ -11270,96 +11344,51 @@ class OSThemeWatcher {
     this.w = w;
     this.ctx = ctx;
     if (w.config.theme.follow !== "os" || !Environment.isBrowser()) return;
-    const media = this._ensureMedia();
-    if (!media) return;
-    this._applyToConfig(media);
-    this._ensureListeners(media);
-  }
-  /**
-   * Create (once per instance) the MediaQueryLists and stash them on `ctx` so
-   * they persist across the re-render that `updateOptions` triggers.
-   * @returns {{dark: MediaQueryList|null, contrast: MediaQueryList|null, handler: null|(()=>void)}|null}
-   */
-  _ensureMedia() {
-    if (!this.ctx._osThemeMedia) {
-      const dark = BrowserAPIs.matchMedia(DARK_QUERY);
-      const contrast = BrowserAPIs.matchMedia(CONTRAST_QUERY);
-      if (!dark && !contrast) return null;
-      this.ctx._osThemeMedia = { dark, contrast, handler: null };
+    let watcher = ctx._osTheme;
+    if (!watcher) {
+      watcher = new xt({
+        host: (
+          /** @type {any} */
+          BrowserAPIs
+        ),
+        // Closes over `ctx` (stable across re-renders), NOT over `this`: a
+        // fresh adapter is built whenever the modules are rebuilt.
+        onChange({ mode: mode2, highContrast: highContrast2 }) {
+          ctx.updateOptions(
+            {
+              theme: {
+                mode: mode2,
+                accessibility: {
+                  colorBlindMode: highContrast2 ? "highContrast" : ""
+                }
+              }
+            },
+            false,
+            true,
+            false
+          );
+        }
+      });
+      const { scheme, contrast } = watcher.supports;
+      if (!scheme && !contrast) {
+        watcher.dispose();
+        return;
+      }
+      ctx._osTheme = watcher;
     }
-    return this.ctx._osThemeMedia;
-  }
-  /**
-   * Write the OS-resolved mode / high-contrast onto the live `w.config.theme`.
-   * @param {{dark: MediaQueryList|null, contrast: MediaQueryList|null}} media
-   */
-  _applyToConfig(media) {
-    const theme = this.w.config.theme;
-    if (media.dark) {
-      theme.mode = media.dark.matches ? "dark" : "light";
-    }
-    if (media.contrast && media.contrast.matches) {
+    const theme = w.config.theme;
+    const { mode, highContrast } = watcher.state;
+    if (watcher.supports.scheme) theme.mode = mode;
+    if (highContrast) {
       theme.accessibility = theme.accessibility || {};
       theme.accessibility.colorBlindMode = "highContrast";
     }
   }
-  /**
-   * Attach the `change` listener once. The handler closes over `ctx` + `media`
-   * (both stable across re-renders), NOT over `this` (a fresh watcher is built
-   * each create), so it never goes stale.
-   * @param {{dark: MediaQueryList|null, contrast: MediaQueryList|null, handler: null|(()=>void)}} media
-   */
-  _ensureListeners(media) {
-    if (media.handler) return;
-    const ctx = this.ctx;
-    const handler = () => {
-      const m = ctx._osThemeMedia;
-      if (!m) return;
-      const themeOpt = { mode: m.dark && m.dark.matches ? "dark" : "light" };
-      if (m.contrast && m.contrast.matches) {
-        themeOpt.accessibility = { colorBlindMode: "highContrast" };
-      } else {
-        themeOpt.accessibility = { colorBlindMode: "" };
-      }
-      ctx.updateOptions({ theme: themeOpt }, false, true, false);
-    };
-    OSThemeWatcher._add(media.dark, handler);
-    OSThemeWatcher._add(media.contrast, handler);
-    media.handler = handler;
-  }
-  /** Remove the listeners and drop the stashed media. Called on full destroy. */
+  /** Detach the media listeners and drop the watcher. */
   teardown() {
-    const media = this.ctx._osThemeMedia;
-    if (!media) return;
-    if (media.handler) {
-      OSThemeWatcher._remove(media.dark, media.handler);
-      OSThemeWatcher._remove(media.contrast, media.handler);
-    }
-    this.ctx._osThemeMedia = null;
-  }
-  /**
-   * @param {MediaQueryList|null} mql @param {()=>void} handler
-   */
-  static _add(mql, handler) {
-    if (!mql) return;
-    if (typeof mql.addEventListener === "function") {
-      mql.addEventListener("change", handler);
-    } else if (typeof /** @type {any} */
-    mql.addListener === "function") {
-      mql.addListener(handler);
-    }
-  }
-  /**
-   * @param {MediaQueryList|null} mql @param {()=>void} handler
-   */
-  static _remove(mql, handler) {
-    if (!mql) return;
-    if (typeof mql.removeEventListener === "function") {
-      mql.removeEventListener("change", handler);
-    } else if (typeof /** @type {any} */
-    mql.removeListener === "function") {
-      mql.removeListener(handler);
-    }
+    var _a;
+    (_a = this.ctx._osTheme) == null ? void 0 : _a.dispose();
+    this.ctx._osTheme = null;
   }
 }
 _core__default.registerFeatures({ osThemeWatcher: OSThemeWatcher });
@@ -11450,17 +11479,17 @@ function rowsByBin(values, edges) {
   const buckets = new Array(n);
   for (let k2 = 0; k2 < n; k2++) buckets[k2] = [];
   for (let i = 0; i < values.length; i++) {
-    const k$1 = k(values[i], edges);
-    if (k$1 >= 0) buckets[k$1].push(values[i]);
+    const k2 = L(values[i], edges);
+    if (k2 >= 0) buckets[k2].push(values[i]);
   }
   return buckets;
 }
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = A(sorted, 0.25);
-  const median = A(sorted, 0.5);
-  const q3 = A(sorted, 0.75);
+  const q1 = S(sorted, 0.25);
+  const median = S(sorted, 0.5);
+  const q3 = S(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -11487,7 +11516,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
+    const iqr = S(sorted, 0.75) - S(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -11598,7 +11627,7 @@ function histogramTransform(ser, w) {
   } else {
     for (const vals of perSeries) all = all.concat(vals);
   }
-  const binning = x(all, {
+  const binning = k(all, {
     bins: hcfg.bins,
     binWidth: hcfg.binWidth,
     range: hcfg.range
@@ -11615,7 +11644,7 @@ function histogramTransform(ser, w) {
   }
   const { edges, binWidth } = binning;
   const counts = perSeries.map(
-    (vals) => L(vals, edges)
+    (vals) => C(vals, edges)
   );
   w.histogramData = {
     edges,

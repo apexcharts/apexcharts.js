@@ -1,17 +1,18 @@
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function me(e) {
-  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
-  return (null == t ? void 0 : t.length) ? t[0] : e.target;
+function ke(t) {
+  const e = "function" == typeof t.composedPath ? t.composedPath() : null;
+  return (null == e ? void 0 : e.length) ? e[0] : t.target;
 }
 const Utils = _core.__apex_Utils;
 const Options = _core.__apex_Options;
 const TooltipUtils = _core.__apex_tooltip_Utils;
+const Theme = _core.__apex_Theme;
 const DRAG_CLASS = "apexcharts-ink-draggable";
 const OWNER = "ink";
 const TYPES = ["point", "xaxis", "yaxis"];
@@ -233,11 +234,11 @@ class InkLayer {
     doc.addEventListener("touchend", this._onUp);
   }
   /** @param {any} me */
-  _onMove(me2) {
+  _onMove(me) {
     const d = this._drag;
     if (!d) return;
-    if (me2.cancelable) me2.preventDefault();
-    const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
+    if (me.cancelable) me.preventDefault();
+    const mev = me.type === "touchmove" ? me.touches[0] : me;
     d.dxPixel = (mev.clientX - d.startX) / d.scaleX;
     d.dyPixel = (mev.clientY - d.startY) / d.scaleY;
     if (Math.abs(d.dxPixel) > CLICK_SLOP_PX || Math.abs(d.dyPixel) > CLICK_SLOP_PX) {
@@ -568,7 +569,7 @@ class InkLayer {
     bs.cursor = "pointer";
     bs.font = "12px sans-serif";
     bs.padding = "4px 9px";
-    bs.borderRadius = "5px";
+    bs.borderRadius = `${Theme.radius(w, 5)}px`;
     bs.border = "1px solid #6366f1";
     bs.color = "#4338ca";
     bs.background = "#fff";
@@ -801,7 +802,7 @@ class InkLayer {
     const ed = this._editor;
     if (!ed || ed.card.contains(
       /** @type {Node} */
-      me(e)
+      ke(e)
     )) return;
     this._closeEditor(true);
   }

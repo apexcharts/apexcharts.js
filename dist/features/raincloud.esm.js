@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -45,12 +45,12 @@ function registerSeriesTransform(name, fn) {
   getTransforms()[name] = fn;
 }
 const Utils = _core.__apex_Utils;
-function A(e, t) {
-  const s = e.length;
-  if (0 === s) return NaN;
-  if (1 === s) return e[0];
-  const n = (s - 1) * t, i = Math.floor(n), r = Math.ceil(n);
-  return i === r ? e[i] : e[i] + (e[r] - e[i]) * (n - i);
+function S(t, e) {
+  const n = t.length;
+  if (0 === n) return NaN;
+  if (1 === n) return t[0];
+  const s = (n - 1) * e, i = Math.floor(s), r = Math.ceil(s);
+  return i === r ? t[i] : t[i] + (t[r] - t[i]) * (s - i);
 }
 function stdDev(values) {
   const n = values.length;
@@ -68,9 +68,9 @@ function stdDev(values) {
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = A(sorted, 0.25);
-  const median = A(sorted, 0.5);
-  const q3 = A(sorted, 0.75);
+  const q1 = S(sorted, 0.25);
+  const median = S(sorted, 0.5);
+  const q3 = S(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -97,7 +97,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
+    const iqr = S(sorted, 0.75) - S(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }

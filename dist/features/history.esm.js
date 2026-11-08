@@ -14,22 +14,22 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function me(e) {
-  const t = "function" == typeof e.composedPath ? e.composedPath() : null;
-  return (null == t ? void 0 : t.length) ? t[0] : e.target;
+function ke(t) {
+  const e = "function" == typeof t.composedPath ? t.composedPath() : null;
+  return (null == e ? void 0 : e.length) ? e[0] : t.target;
 }
-function ge(e) {
-  var t;
-  const s = e.ownerDocument || e;
-  let n = s && "activeElement" in s ? s.activeElement : null;
-  for (; null == (t = null == n ? void 0 : n.shadowRoot) ? void 0 : t.activeElement; ) n = n.shadowRoot.activeElement;
-  return n;
+function Le(t) {
+  var e;
+  const n = t.ownerDocument || t;
+  let s = n && "activeElement" in n ? n.activeElement : null;
+  for (; null == (e = null == s ? void 0 : s.shadowRoot) ? void 0 : e.activeElement; ) s = s.shadowRoot.activeElement;
+  return s;
 }
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
@@ -295,7 +295,7 @@ class History {
       /** @type {any} */
       this.ctx.el
     );
-    const origin = me(e);
+    const origin = ke(e);
     this._engaged = !!(el && origin && el.contains(origin));
   }
   /**
@@ -310,7 +310,7 @@ class History {
       this.ctx.el
     );
     if (!el) return;
-    const active = ge(el);
+    const active = Le(el);
     if (isEditableTarget(active)) return;
     if (!(el.contains(active) || this._engaged)) return;
     const redo = key === "y" || e.shiftKey;
@@ -368,6 +368,18 @@ class History {
       view,
       config,
       seriesSig,
+      // Whether the page named the foreColor, tooltip theme, font and grid
+      // colours the config carries; the restore's merge would otherwise take
+      // them all as named. Likewise whether the mode is the variant's. The
+      // grid flags and the variant record are replaced, never changed in
+      // place, so the checkpoint can hold them as they are.
+      themeChoices: {
+        foreColor: !!this.w.globals.themeForeColorExplicit,
+        tooltip: !!this.w.globals.tooltipThemeExplicit,
+        fontFamily: !!this.w.globals.themeFontFamilyExplicit,
+        gridColors: this.w.globals.themeGridColorsExplicit,
+        variantMode: this.w.globals.variantModeApplied
+      },
       label: label || "change",
       at: Environment.isBrowser() ? Date.now() : 0,
       origin: "local",
@@ -431,8 +443,16 @@ class History {
     let p;
     try {
       this.ctx.clearAnnotations();
+      const choices = cp.themeChoices;
+      if (choices) this.w.globals.variantModeApplied = choices.variantMode;
       p = this.ctx.updateOptions(Utils.clone(cp.config), false, animate, false, false);
       restorePaletteChoice(this.w, cp.view && cp.view.theme);
+      if (choices) {
+        this.w.globals.themeForeColorExplicit = choices.foreColor;
+        this.w.globals.tooltipThemeExplicit = choices.tooltip;
+        this.w.globals.themeFontFamilyExplicit = choices.fontFamily;
+        this.w.globals.themeGridColorsExplicit = choices.gridColors;
+      }
     } catch (e) {
       this.applying = false;
       throw e;

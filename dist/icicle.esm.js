@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -87,6 +87,7 @@ function morphKey(key) {
   const i = key.indexOf("/");
   return i === -1 ? "" : key.slice(i);
 }
+const Theme = _core.__apex_Theme;
 const XHTML = "http://www.w3.org/1999/xhtml";
 const BREADCRUMB_HEIGHT = 18;
 function breadcrumbConfig(w, localCfg) {
@@ -136,7 +137,7 @@ function placeInReservedBand(w, ctx, nav, cfg) {
   nav.style.top = `${titleArea + offsetY}px`;
   const dark = w.config.theme.mode === "dark";
   nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
-  nav.style.borderRadius = "4px";
+  nav.style.borderRadius = `${Theme.radius(w, 4)}px`;
   return false;
 }
 function clearBreadcrumb(w) {

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -396,12 +396,11 @@ class TreemapHelpers {
     if (opts.enableShades) {
       const shadeColor = new Utils().shadeColor(
         w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,
-        color
+        color,
+        w.dom.elWrap
       );
-      color = Utils.hexToRgba(
-        Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-        w.config.fill.opacity
-      );
+      const hex = Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor);
+      color = hex || !Utils.isColor(color) ? Utils.hexToRgba(hex, w.config.fill.opacity) : Utils.applyOpacityToColor(shadeColor, w.config.fill.opacity);
     }
     return { color, colorProps };
   }
@@ -502,6 +501,7 @@ class TreemapHelpers {
 }
 const Filters = _core.__apex_Filters;
 const Series = _core.__apex_Series;
+const Theme = _core.__apex_Theme;
 function nameAsHtml(name, out = name) {
   const s = String(name != null ? name : "");
   const tail = out === s ? "" : out === s + ": " ? ": " : null;
@@ -2141,7 +2141,7 @@ class TreemapChart {
     nav.style.top = `${titleArea + oy}px`;
     const dark = w.config.theme.mode === "dark";
     nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
-    nav.style.borderRadius = "4px";
+    nav.style.borderRadius = `${Theme.radius(w, 4)}px`;
   }
   // ---------------------------------------------------------------- tooltip
   /**

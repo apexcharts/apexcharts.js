@@ -52,7 +52,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -247,10 +247,10 @@ class SSRElement {
     const height = fontSize * (ASCENT_EM + DESCENT_EM) + (lines.length - 1) * fontSize * LINE_HEIGHT_EM;
     const anchor = this.attributes.get("text-anchor");
     const x2 = parseFloat(this.attributes.get("x")) || 0;
-    const y = parseFloat(this.attributes.get("y")) || 0;
+    const y2 = parseFloat(this.attributes.get("y")) || 0;
     return {
       x: anchor === "middle" ? x2 - width / 2 : anchor === "end" ? x2 - width : x2,
-      y: y - fontSize * ASCENT_EM,
+      y: y2 - fontSize * ASCENT_EM,
       width,
       height
     };
@@ -302,7 +302,7 @@ class SSRElement {
       return `<${this.nodeName}${attrs}/>`;
     }
     const text = this._rawHTML ? this._text : escapeText(this._text);
-    const childrenStr = this.children.map((c) => c.toString()).join("");
+    const childrenStr = this.children.map((c2) => c2.toString()).join("");
     return `<${this.nodeName}${attrs}>${text}${childrenStr}</${this.nodeName}>`;
   }
   // Property getters/setters
@@ -314,7 +314,7 @@ class SSRElement {
     this._rawHTML = false;
   }
   get innerHTML() {
-    return this.children.map((c) => c.toString()).join("");
+    return this.children.map((c2) => c2.toString()).join("");
   }
   set innerHTML(value) {
     this.children = [];
@@ -696,6 +696,7 @@ class BrowserAPIs {
 }
 const fnIds = /* @__PURE__ */ new WeakMap();
 let fnSeq = 0;
+const colorVerdicts = /* @__PURE__ */ new Map();
 let Utils$1 = class Utils {
   /**
    * @param {*} item
@@ -890,9 +891,9 @@ let Utils$1 = class Utils {
    * @param {number} num
    */
   static decimalPlaces(num) {
-    const [m, e2] = String(num).split("e");
-    const dot = m.indexOf(".");
-    return Math.max(0, (dot < 0 ? 0 : m.length - dot - 1) - (+e2 || 0));
+    const [m2, e2] = String(num).split("e");
+    const dot = m2.indexOf(".");
+    return Math.max(0, (dot < 0 ? 0 : m2.length - dot - 1) - (+e2 || 0));
   }
   /**
    * @param {any} element
@@ -978,32 +979,65 @@ let Utils$1 = class Utils {
    * @param {number} opacity
    */
   static hexToRgba(hex = "#999999", opacity = 0.6) {
-    const c = Utils.parseColor(hex[0] === "#" ? hex : "#999999");
-    return c ? "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + opacity * c[3] + ")" : hex;
+    const c2 = Utils.parseColor(hex[0] === "#" ? hex : "#999999");
+    return c2 ? "rgba(" + c2[0] + "," + c2[1] + "," + c2[2] + "," + opacity * c2[3] + ")" : hex;
   }
   /**
    * [r, g, b, a] of a hex (3, 4, 6 or 8 digits) or rgb()/rgba() colour, the
-   * channels 0 to 255 and the alpha 0 to 1; null for anything else.
+   * channels 0 to 255 and the alpha 0 to 1; null for anything else. rgb()
+   * reads both the comma and the space syntax, channels as numbers or
+   * percentages and the alpha after a comma or a slash; a relative
+   * rgb(from ...) or one holding a var() is not read.
    * @param {string} color
    * @returns {number[] | null}
    */
   static parseColor(color) {
-    const m = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.exec(color);
-    if (m) {
-      let h = m[1];
-      if (h.length < 5) h = h.replace(/./g, "$&$&");
+    const m2 = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.exec(color);
+    if (m2) {
+      let h2 = m2[1];
+      if (h2.length < 5) h2 = h2.replace(/./g, "$&$&");
       return [0, 2, 4, 6].map(
-        (i2) => i2 < h.length ? parseInt(h.substr(i2, 2), 16) / (i2 > 4 ? 255 : 1) : 1
+        (i2) => i2 < h2.length ? parseInt(h2.substr(i2, 2), 16) / (i2 > 4 ? 255 : 1) : 1
       );
     }
-    const n2 = /^rgba?\(/i.test(color) && color.match(/[\d.]+/g);
-    return n2 ? [+n2[0], +n2[1], +n2[2], n2[3] ? +n2[3] : 1] : null;
+    const r2 = /^\s*rgba?\(([^()]*)\)\s*$/i.exec(color);
+    const n2 = r2 ? r2[1].trim().split(/\s*[,/]\s*|\s+/) : [];
+    if (n2.length < 3 || n2.length > 4) return null;
+    const num = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?%?$/i;
+    if (!n2.every((v2) => num.test(v2))) return null;
+    const v = n2.map(
+      (s2, i2) => s2.slice(-1) === "%" ? parseFloat(s2) * (i2 < 3 ? 255 : 1) / 100 : +s2
+    );
+    return [v[0], v[1], v[2], n2[3] ? v[3] : 1];
   }
   /**
+   * [r, g, b, a] of `color(srgb r g b / a)`, the form a browser computes
+   * color(srgb ...), color-mix(in srgb ...) and rgb(from ...) to; null for
+   * anything else. Kept apart from parseColor, which the tweens read.
+   * @param {string} color
+   * @returns {number[] | null}
+   */
+  static parseSrgbColor(color) {
+    const r2 = /^\s*color\(\s*srgb\s+([^()]*)\)\s*$/i.exec(String(color));
+    const n2 = r2 ? r2[1].trim().split(/\s*\/\s*|\s+/) : [];
+    if (n2.length < 3 || n2.length > 4) return null;
+    const v = n2.map(
+      (s2) => s2.slice(-1) === "%" ? parseFloat(s2) / 100 : s2 === "none" ? 0 : +s2
+    );
+    if (!v.every(Number.isFinite)) return null;
+    const ch = (x2) => Math.round(Math.min(1, Math.max(0, x2)) * 255);
+    return [ch(v[0]), ch(v[1]), ch(v[2]), n2[3] ? Math.min(1, v[3]) : 1];
+  }
+  /**
+   * The alpha of an rgba() colour, after its last comma or its slash; NaN
+   * when it has none to read.
    * @param {string} rgba
    */
   static getOpacityFromRGBA(rgba) {
-    return parseFloat(rgba.replace(/^.*,(.+)\)/, "$1"));
+    const a2 = parseFloat(rgba.replace(/^.*,(.+)\)/, "$1"));
+    if (Number.isFinite(a2)) return a2;
+    const c2 = Utils.parseColor(rgba);
+    return c2 ? c2[3] : NaN;
   }
   /**
    * Parse a #RGB or #RRGGBB hex colour string into [r,g,b] in 0–255.
@@ -1013,15 +1047,15 @@ let Utils$1 = class Utils {
    */
   static parseHex(hex) {
     if (typeof hex !== "string") return null;
-    let h = hex.trim().replace("#", "");
-    if (h.length === 3) {
-      h = h.split("").map((c) => c + c).join("");
+    let h2 = hex.trim().replace("#", "");
+    if (h2.length === 3) {
+      h2 = h2.split("").map((c2) => c2 + c2).join("");
     }
-    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    if (!/^[0-9a-fA-F]{6}$/.test(h2)) return null;
     return [
-      parseInt(h.slice(0, 2), 16),
-      parseInt(h.slice(2, 4), 16),
-      parseInt(h.slice(4, 6), 16)
+      parseInt(h2.slice(0, 2), 16),
+      parseInt(h2.slice(2, 4), 16),
+      parseInt(h2.slice(4, 6), 16)
     ];
   }
   /**
@@ -1030,8 +1064,8 @@ let Utils$1 = class Utils {
    * @returns {number} 0.0–1.0
    */
   static relativeLuminance([r2, g2, b]) {
-    const channel = (c) => {
-      const v = c / 255;
+    const channel = (c2) => {
+      const v = c2 / 255;
       return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     };
     return 0.2126 * channel(r2) + 0.7152 * channel(g2) + 0.0722 * channel(b);
@@ -1055,33 +1089,92 @@ let Utils$1 = class Utils {
     return (lighter + 0.05) / (darker + 0.05);
   }
   /**
+   * The #rrggbb of an rgb()/rgba() colour (its alpha dropped); '' for any
+   * other string, so a caller can fall back with `rgb2hex(c) || c`.
    * @param {any} rgb
    */
   static rgb2hex(rgb) {
-    rgb = rgb.match(
+    const m2 = rgb.match(
       /^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i
     );
-    return rgb && rgb.length === 4 ? "#" + ("0" + parseInt(rgb[1], 10).toString(16)).slice(-2) + ("0" + parseInt(rgb[2], 10).toString(16)).slice(-2) + ("0" + parseInt(rgb[3], 10).toString(16)).slice(-2) : "";
+    if (m2 && m2.length === 4) {
+      return "#" + ("0" + parseInt(m2[1], 10).toString(16)).slice(-2) + ("0" + parseInt(m2[2], 10).toString(16)).slice(-2) + ("0" + parseInt(m2[3], 10).toString(16)).slice(-2);
+    }
+    const c2 = /^\s*rgba?\(/i.test(rgb) ? Utils.parseColor(rgb) : null;
+    return c2 ? "#" + c2.slice(0, 3).map(
+      (v) => (Math.round(Math.min(255, Math.max(0, v))) | 256).toString(16).slice(1)
+    ).join("") : "";
+  }
+  /**
+   * [r, g, b, a] of `color` (see parseColor), else of its computed value
+   * inside `el` (default `document.body`), which also reads a named, hsl()
+   * or var() colour and the color(srgb ...) a browser computes color-mix(in
+   * srgb ...) and rgb(from ...) to. `resolved` is the computed text, or the
+   * input when there is none, for a caller that falls back to the browser.
+   * @param {string} color
+   * @param {Element} [el]
+   * @returns {{ c: number[] | null, resolved: string }}
+   */
+  static readColor(color, el) {
+    const c2 = Utils.parseColor(color);
+    if (c2) return { c: c2, resolved: color };
+    const resolved = Utils.resolveColor(color, el) || color;
+    return {
+      c: Utils.parseColor(resolved) || Utils.parseSrgbColor(resolved) || Utils.parseSrgbColor(color),
+      resolved
+    };
+  }
+  /**
+   * Whether the browser accepts `color` as a CSS colour; false under SSR,
+   * where nothing can tell.
+   * @param {string} color
+   */
+  static isColor(color) {
+    if (Environment.isSSR() || typeof color !== "string") return false;
+    let ok = colorVerdicts.get(color);
+    if (ok === void 0) {
+      const probe = document.createElement("div");
+      probe.style.color = color;
+      ok = !!probe.style.color;
+      if (colorVerdicts.size > 256) colorVerdicts.clear();
+      colorVerdicts.set(color, ok);
+    }
+    return ok;
+  }
+  /**
+   * `color` blended toward white (p > 0) or black (p < 0) by |p| as a CSS
+   * color-mix(), for a colour the browser can paint but the channel maths
+   * cannot read (oklch(), color(display-p3 ...)). Mixing in sRGB is the same
+   * per-channel blend shadeColor does.
+   * @param {string} color
+   * @param {number} p
+   */
+  static mixColor(color, p2) {
+    const keep = Math.round((1 - Math.min(1, Math.abs(p2))) * 1e4) / 100;
+    return keep >= 100 ? color : `color-mix(in srgb, ${color} ${keep}%, ${p2 < 0 ? "black" : "white"})`;
   }
   /**
    * Blend `color` toward white (p > 0) or black (p < 0) by |p|. Hex in, hex
    * out (alpha kept); anything else comes back as rgb()/rgba(). A named,
-   * hsl() or var() colour is resolved by the browser first; a colour that
-   * cannot be read is returned unchanged.
+   * hsl() or var() colour is resolved by the browser first, inside `el` when
+   * given, so a variable scoped to the chart's container resolves. A valid
+   * colour the maths cannot read comes back as a color-mix() (see mixColor);
+   * one that is not a colour is returned unchanged.
    * @param {number} p
    * @param {string} color
+   * @param {Element} [el]
    */
-  shadeColor(p, color) {
-    const c = Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color));
-    if (!c) return color;
-    const t2 = p < 0 ? 0 : 255;
-    p = Math.abs(p);
-    for (let i2 = 0; i2 < 3; i2++) c[i2] += Math.round((t2 - c[i2]) * p);
+  shadeColor(p2, color, el) {
+    const { c: c2, resolved } = Utils.readColor(color, el);
+    if (!c2) return Utils.isColor(color) ? Utils.mixColor(resolved, p2) : color;
+    const t2 = p2 < 0 ? 0 : 255;
+    p2 = Math.abs(p2);
+    for (let i2 = 0; i2 < 3; i2++) c2[i2] += Math.round((t2 - c2[i2]) * p2);
     const a2 = (
       /** @type {number} */
-      c.pop()
+      c2.pop()
     );
-    return color[0] === "#" ? "#" + c.concat(a2 < 1 ? Math.round(a2 * 255) : []).map((v) => (v | 256).toString(16).slice(1)).join("") : (a2 < 1 ? "rgba(" : "rgb(") + c.concat(a2 < 1 ? a2 : []).join(",") + ")";
+    return color[0] === "#" ? "#" + c2.concat(a2 < 1 ? Math.round(a2 * 255) : []).map((v) => (v | 256).toString(16).slice(1)).join("") : (a2 < 1 ? "rgba(" : "rgb(") + c2.concat(a2 < 1 ? a2 : []).join(",") + ")";
   }
   /**
    * The computed colour of any CSS colour, read from a probe placed inside
@@ -1251,17 +1344,17 @@ let Utils$1 = class Utils {
    */
   static editDistance(a2, b, max) {
     if (Math.abs(a2.length - b.length) > max) return max + 1;
-    let prev = Array.from({ length: b.length + 1 }, (_, j2) => j2);
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
     for (let i2 = 1; i2 <= a2.length; i2++) {
       const row = [i2];
       let best = i2;
-      for (let j2 = 1; j2 <= b.length; j2++) {
-        row[j2] = Math.min(
-          prev[j2] + 1,
-          row[j2 - 1] + 1,
-          prev[j2 - 1] + (a2[i2 - 1] === b[j2 - 1] ? 0 : 1)
+      for (let j = 1; j <= b.length; j++) {
+        row[j] = Math.min(
+          prev[j] + 1,
+          row[j - 1] + 1,
+          prev[j - 1] + (a2[i2 - 1] === b[j - 1] ? 0 : 1)
         );
-        if (row[j2] < best) best = row[j2];
+        if (row[j] < best) best = row[j];
       }
       if (best > max) return max + 1;
       prev = row;
@@ -1287,9 +1380,9 @@ let Utils$1 = class Utils {
     let best = "";
     let bestDist = max + 1;
     candidates.forEach((candidate) => {
-      const d = Utils.editDistance(needle, candidate.toLowerCase(), max);
-      if (d < bestDist) {
-        bestDist = d;
+      const d2 = Utils.editDistance(needle, candidate.toLowerCase(), max);
+      if (d2 < bestDist) {
+        bestDist = d2;
         best = candidate;
       }
     });
@@ -1302,8 +1395,8 @@ let Utils$1 = class Utils {
    * @param {number} a
    * @param {number} b
    */
-  static getGCD(a2, b, p = 7) {
-    let factor = Math.pow(10, p - Math.floor(Math.log10(Math.max(a2, b))));
+  static getGCD(a2, b, p2 = 7) {
+    let factor = Math.pow(10, p2 - Math.floor(Math.log10(Math.max(a2, b))));
     if (factor > 1) {
       a2 = Math.round(Math.abs(a2) * factor);
       b = Math.round(Math.abs(b) * factor);
@@ -1337,8 +1430,8 @@ let Utils$1 = class Utils {
    * @param {number} a
    * @param {number} b
    */
-  static mod(a2, b, p = 7) {
-    const big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a2, b))));
+  static mod(a2, b, p2 = 7) {
+    const big = Math.pow(10, p2 - Math.floor(Math.log10(Math.max(a2, b))));
     a2 = Math.round(Math.abs(a2) * big);
     b = Math.round(Math.abs(b) * big);
     return a2 % b / big;
@@ -1396,38 +1489,38 @@ class DateTime {
       while (s3.length < len) s3 = "0" + s3;
       return s3;
     }
-    const y = utc ? date.getUTCFullYear() : date.getFullYear();
-    format = format.replace(/(^|[^\\])yyyy+/g, "$1" + y);
-    format = format.replace(/(^|[^\\])yy/g, "$1" + y.toString().substr(2, 2));
-    format = format.replace(/(^|[^\\])y/g, "$1" + y);
-    const M2 = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+    const y2 = utc ? date.getUTCFullYear() : date.getFullYear();
+    format = format.replace(/(^|[^\\])yyyy+/g, "$1" + y2);
+    format = format.replace(/(^|[^\\])yy/g, "$1" + y2.toString().substr(2, 2));
+    format = format.replace(/(^|[^\\])y/g, "$1" + y2);
+    const M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
     format = format.replace(/(^|[^\\])MMMM+/g, "$1" + MMMM[0]);
     format = format.replace(/(^|[^\\])MMM/g, "$1" + MMM[0]);
-    format = format.replace(/(^|[^\\])MM/g, "$1" + ii(M2));
-    format = format.replace(/(^|[^\\])M/g, "$1" + M2);
-    const d = utc ? date.getUTCDate() : date.getDate();
+    format = format.replace(/(^|[^\\])MM/g, "$1" + ii(M));
+    format = format.replace(/(^|[^\\])M/g, "$1" + M);
+    const d2 = utc ? date.getUTCDate() : date.getDate();
     format = format.replace(/(^|[^\\])dddd+/g, "$1" + dddd[0]);
     format = format.replace(/(^|[^\\])ddd/g, "$1" + ddd[0]);
-    format = format.replace(/(^|[^\\])dd/g, "$1" + ii(d));
-    format = format.replace(/(^|[^\\])d/g, "$1" + d);
+    format = format.replace(/(^|[^\\])dd/g, "$1" + ii(d2));
+    format = format.replace(/(^|[^\\])d/g, "$1" + d2);
     const H = utc ? date.getUTCHours() : date.getHours();
     format = format.replace(/(^|[^\\])HH+/g, "$1" + ii(H));
     format = format.replace(/(^|[^\\])H/g, "$1" + H);
-    const h = H > 12 ? H - 12 : H === 0 ? 12 : H;
-    format = format.replace(/(^|[^\\])hh+/g, "$1" + ii(h));
-    format = format.replace(/(^|[^\\])h/g, "$1" + h);
-    const m = utc ? date.getUTCMinutes() : date.getMinutes();
-    format = format.replace(/(^|[^\\])mm+/g, "$1" + ii(m));
-    format = format.replace(/(^|[^\\])m/g, "$1" + m);
+    const h2 = H > 12 ? H - 12 : H === 0 ? 12 : H;
+    format = format.replace(/(^|[^\\])hh+/g, "$1" + ii(h2));
+    format = format.replace(/(^|[^\\])h/g, "$1" + h2);
+    const m2 = utc ? date.getUTCMinutes() : date.getMinutes();
+    format = format.replace(/(^|[^\\])mm+/g, "$1" + ii(m2));
+    format = format.replace(/(^|[^\\])m/g, "$1" + m2);
     const s2 = utc ? date.getUTCSeconds() : date.getSeconds();
     format = format.replace(/(^|[^\\])ss+/g, "$1" + ii(s2));
     format = format.replace(/(^|[^\\])s/g, "$1" + s2);
-    let f = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
-    format = format.replace(/(^|[^\\])fff+/g, "$1" + ii(f, 3));
-    f = Math.round(f / 10);
-    format = format.replace(/(^|[^\\])ff/g, "$1" + ii(f));
-    f = Math.round(f / 10);
-    format = format.replace(/(^|[^\\])f/g, "$1" + f);
+    let f2 = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
+    format = format.replace(/(^|[^\\])fff+/g, "$1" + ii(f2, 3));
+    f2 = Math.round(f2 / 10);
+    format = format.replace(/(^|[^\\])ff/g, "$1" + ii(f2));
+    f2 = Math.round(f2 / 10);
+    format = format.replace(/(^|[^\\])f/g, "$1" + f2);
     const T = H < 12 ? "AM" : "PM";
     format = format.replace(/(^|[^\\])TT+/g, "$1" + T);
     format = format.replace(/(^|[^\\])T/g, "$1" + T.charAt(0));
@@ -1446,8 +1539,8 @@ class DateTime {
     const day = (utc ? date.getUTCDay() : date.getDay()) + 1;
     format = format.replace(new RegExp(dddd[0], "g"), dddd[day]);
     format = format.replace(new RegExp(ddd[0], "g"), ddd[day]);
-    format = format.replace(new RegExp(MMMM[0], "g"), MMMM[M2]);
-    format = format.replace(new RegExp(MMM[0], "g"), MMM[M2]);
+    format = format.replace(new RegExp(MMMM[0], "g"), MMMM[M]);
+    format = format.replace(new RegExp(MMM[0], "g"), MMM[M]);
     format = format.replace(/\\(.)/g, "$1");
     return format;
   }
@@ -1466,25 +1559,25 @@ class DateTime {
    * @returns {{ year: number, month: number, date: number, hour: number, minute: number, second: number, ms: number, weekday: number }}
    */
   getDateFields(timestamp, isUTC) {
-    const d = new Date(timestamp);
+    const d2 = new Date(timestamp);
     return isUTC ? {
-      year: d.getUTCFullYear(),
-      month: d.getUTCMonth(),
-      date: d.getUTCDate(),
-      hour: d.getUTCHours(),
-      minute: d.getUTCMinutes(),
-      second: d.getUTCSeconds(),
-      ms: d.getUTCMilliseconds(),
-      weekday: d.getUTCDay()
+      year: d2.getUTCFullYear(),
+      month: d2.getUTCMonth(),
+      date: d2.getUTCDate(),
+      hour: d2.getUTCHours(),
+      minute: d2.getUTCMinutes(),
+      second: d2.getUTCSeconds(),
+      ms: d2.getUTCMilliseconds(),
+      weekday: d2.getUTCDay()
     } : {
-      year: d.getFullYear(),
-      month: d.getMonth(),
-      date: d.getDate(),
-      hour: d.getHours(),
-      minute: d.getMinutes(),
-      second: d.getSeconds(),
-      ms: d.getMilliseconds(),
-      weekday: d.getDay()
+      year: d2.getFullYear(),
+      month: d2.getMonth(),
+      date: d2.getDate(),
+      hour: d2.getHours(),
+      minute: d2.getMinutes(),
+      second: d2.getSeconds(),
+      ms: d2.getMilliseconds(),
+      weekday: d2.getDay()
     };
   }
   /**
@@ -1498,57 +1591,57 @@ class DateTime {
    * @returns {number}
    */
   addInterval(timestamp, unit, count, isUTC) {
-    const d = new Date(timestamp);
+    const d2 = new Date(timestamp);
     if (isUTC) {
       switch (unit) {
         case "year":
-          d.setUTCFullYear(d.getUTCFullYear() + count);
+          d2.setUTCFullYear(d2.getUTCFullYear() + count);
           break;
         case "month":
-          d.setUTCMonth(d.getUTCMonth() + count);
+          d2.setUTCMonth(d2.getUTCMonth() + count);
           break;
         case "week":
-          d.setUTCDate(d.getUTCDate() + count * 7);
+          d2.setUTCDate(d2.getUTCDate() + count * 7);
           break;
         case "day":
-          d.setUTCDate(d.getUTCDate() + count);
+          d2.setUTCDate(d2.getUTCDate() + count);
           break;
         case "hour":
-          d.setUTCHours(d.getUTCHours() + count);
+          d2.setUTCHours(d2.getUTCHours() + count);
           break;
         case "minute":
-          d.setUTCMinutes(d.getUTCMinutes() + count);
+          d2.setUTCMinutes(d2.getUTCMinutes() + count);
           break;
         case "second":
-          d.setUTCSeconds(d.getUTCSeconds() + count);
+          d2.setUTCSeconds(d2.getUTCSeconds() + count);
           break;
       }
     } else {
       switch (unit) {
         case "year":
-          d.setFullYear(d.getFullYear() + count);
+          d2.setFullYear(d2.getFullYear() + count);
           break;
         case "month":
-          d.setMonth(d.getMonth() + count);
+          d2.setMonth(d2.getMonth() + count);
           break;
         case "week":
-          d.setDate(d.getDate() + count * 7);
+          d2.setDate(d2.getDate() + count * 7);
           break;
         case "day":
-          d.setDate(d.getDate() + count);
+          d2.setDate(d2.getDate() + count);
           break;
         case "hour":
-          d.setHours(d.getHours() + count);
+          d2.setHours(d2.getHours() + count);
           break;
         case "minute":
-          d.setMinutes(d.getMinutes() + count);
+          d2.setMinutes(d2.getMinutes() + count);
           break;
         case "second":
-          d.setSeconds(d.getSeconds() + count);
+          d2.setSeconds(d2.getSeconds() + count);
           break;
       }
     }
-    return d.getTime();
+    return d2.getTime();
   }
   /**
    * Snap a timestamp UP to the next boundary aligned with `step` units of
@@ -1569,57 +1662,57 @@ class DateTime {
    * @returns {number}
    */
   ceilToBoundary(timestamp, unit, step, isUTC) {
-    const d = new Date(timestamp);
+    const d2 = new Date(timestamp);
     if (isUTC) {
       switch (unit) {
         case "second": {
-          const s2 = d.getUTCSeconds();
+          const s2 = d2.getUTCSeconds();
           const aligned = Math.ceil(s2 / step) * step;
-          if (aligned === s2 && d.getUTCMilliseconds() === 0)
+          if (aligned === s2 && d2.getUTCMilliseconds() === 0)
             return timestamp;
-          d.setUTCMilliseconds(0);
-          d.setUTCSeconds(aligned);
-          return d.getTime();
+          d2.setUTCMilliseconds(0);
+          d2.setUTCSeconds(aligned);
+          return d2.getTime();
         }
         case "minute": {
-          const m = d.getUTCMinutes();
-          const aligned = Math.ceil(m / step) * step;
-          if (aligned === m && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+          const m2 = d2.getUTCMinutes();
+          const aligned = Math.ceil(m2 / step) * step;
+          if (aligned === m2 && d2.getUTCSeconds() === 0 && d2.getUTCMilliseconds() === 0)
             return timestamp;
-          d.setUTCMilliseconds(0);
-          d.setUTCSeconds(0);
-          d.setUTCMinutes(aligned);
-          return d.getTime();
+          d2.setUTCMilliseconds(0);
+          d2.setUTCSeconds(0);
+          d2.setUTCMinutes(aligned);
+          return d2.getTime();
         }
         case "hour": {
-          const h = d.getUTCHours();
-          const aligned = Math.ceil(h / step) * step;
-          if (aligned === h && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+          const h2 = d2.getUTCHours();
+          const aligned = Math.ceil(h2 / step) * step;
+          if (aligned === h2 && d2.getUTCMinutes() === 0 && d2.getUTCSeconds() === 0 && d2.getUTCMilliseconds() === 0)
             return timestamp;
-          d.setUTCMilliseconds(0);
-          d.setUTCSeconds(0);
-          d.setUTCMinutes(0);
-          d.setUTCHours(aligned);
-          return d.getTime();
+          d2.setUTCMilliseconds(0);
+          d2.setUTCSeconds(0);
+          d2.setUTCMinutes(0);
+          d2.setUTCHours(aligned);
+          return d2.getTime();
         }
         case "day": {
-          if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+          if (d2.getUTCHours() === 0 && d2.getUTCMinutes() === 0 && d2.getUTCSeconds() === 0 && d2.getUTCMilliseconds() === 0)
             return timestamp;
-          d.setUTCMilliseconds(0);
-          d.setUTCSeconds(0);
-          d.setUTCMinutes(0);
-          d.setUTCHours(0);
-          d.setUTCDate(d.getUTCDate() + 1);
-          return d.getTime();
+          d2.setUTCMilliseconds(0);
+          d2.setUTCSeconds(0);
+          d2.setUTCMinutes(0);
+          d2.setUTCHours(0);
+          d2.setUTCDate(d2.getUTCDate() + 1);
+          return d2.getTime();
         }
         case "week": {
           const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1e3;
           const REF_MONDAY_UTC = Date.UTC(1970, 0, 5);
-          d.setUTCMilliseconds(0);
-          d.setUTCSeconds(0);
-          d.setUTCMinutes(0);
-          d.setUTCHours(0);
-          const startOfDay = d.getTime();
+          d2.setUTCMilliseconds(0);
+          d2.setUTCSeconds(0);
+          d2.setUTCMinutes(0);
+          d2.setUTCHours(0);
+          const startOfDay = d2.getTime();
           const weeksSinceRef = Math.ceil(
             (startOfDay - REF_MONDAY_UTC) / MS_PER_WEEK
           );
@@ -1629,22 +1722,22 @@ class DateTime {
           return aligned + step * MS_PER_WEEK;
         }
         case "month": {
-          const m = d.getUTCMonth();
-          const aligned = Math.ceil(m / step) * step;
-          if (aligned === m && d.getUTCDate() === 1 && d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+          const m2 = d2.getUTCMonth();
+          const aligned = Math.ceil(m2 / step) * step;
+          if (aligned === m2 && d2.getUTCDate() === 1 && d2.getUTCHours() === 0 && d2.getUTCMinutes() === 0 && d2.getUTCSeconds() === 0 && d2.getUTCMilliseconds() === 0)
             return timestamp;
-          d.setUTCMilliseconds(0);
-          d.setUTCSeconds(0);
-          d.setUTCMinutes(0);
-          d.setUTCHours(0);
-          d.setUTCDate(1);
-          d.setUTCMonth(aligned);
-          return d.getTime();
+          d2.setUTCMilliseconds(0);
+          d2.setUTCSeconds(0);
+          d2.setUTCMinutes(0);
+          d2.setUTCHours(0);
+          d2.setUTCDate(1);
+          d2.setUTCMonth(aligned);
+          return d2.getTime();
         }
         case "year": {
-          const y = d.getUTCFullYear();
-          const aligned = Math.ceil(y / step) * step;
-          if (aligned === y && d.getUTCMonth() === 0 && d.getUTCDate() === 1 && d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+          const y2 = d2.getUTCFullYear();
+          const aligned = Math.ceil(y2 / step) * step;
+          if (aligned === y2 && d2.getUTCMonth() === 0 && d2.getUTCDate() === 1 && d2.getUTCHours() === 0 && d2.getUTCMinutes() === 0 && d2.getUTCSeconds() === 0 && d2.getUTCMilliseconds() === 0)
             return timestamp;
           return Date.UTC(aligned, 0, 1);
         }
@@ -1652,75 +1745,75 @@ class DateTime {
     } else {
       switch (unit) {
         case "second": {
-          const s2 = d.getSeconds();
+          const s2 = d2.getSeconds();
           const aligned = Math.ceil(s2 / step) * step;
-          if (aligned === s2 && d.getMilliseconds() === 0) return timestamp;
-          d.setMilliseconds(0);
-          d.setSeconds(aligned);
+          if (aligned === s2 && d2.getMilliseconds() === 0) return timestamp;
+          d2.setMilliseconds(0);
+          d2.setSeconds(aligned);
           break;
         }
         case "minute": {
-          const m = d.getMinutes();
-          const aligned = Math.ceil(m / step) * step;
-          if (aligned === m && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+          const m2 = d2.getMinutes();
+          const aligned = Math.ceil(m2 / step) * step;
+          if (aligned === m2 && d2.getSeconds() === 0 && d2.getMilliseconds() === 0)
             return timestamp;
-          d.setMilliseconds(0);
-          d.setSeconds(0);
-          d.setMinutes(aligned);
+          d2.setMilliseconds(0);
+          d2.setSeconds(0);
+          d2.setMinutes(aligned);
           break;
         }
         case "hour": {
-          const h = d.getHours();
-          const aligned = Math.ceil(h / step) * step;
-          if (aligned === h && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+          const h2 = d2.getHours();
+          const aligned = Math.ceil(h2 / step) * step;
+          if (aligned === h2 && d2.getMinutes() === 0 && d2.getSeconds() === 0 && d2.getMilliseconds() === 0)
             return timestamp;
-          d.setMilliseconds(0);
-          d.setSeconds(0);
-          d.setMinutes(0);
-          d.setHours(aligned);
+          d2.setMilliseconds(0);
+          d2.setSeconds(0);
+          d2.setMinutes(0);
+          d2.setHours(aligned);
           break;
         }
         case "day": {
-          if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+          if (d2.getHours() === 0 && d2.getMinutes() === 0 && d2.getSeconds() === 0 && d2.getMilliseconds() === 0)
             return timestamp;
-          d.setMilliseconds(0);
-          d.setSeconds(0);
-          d.setMinutes(0);
-          d.setHours(0);
-          d.setDate(d.getDate() + 1);
-          return d.getTime();
+          d2.setMilliseconds(0);
+          d2.setSeconds(0);
+          d2.setMinutes(0);
+          d2.setHours(0);
+          d2.setDate(d2.getDate() + 1);
+          return d2.getTime();
         }
         case "week": {
-          const days = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5 - 4;
+          const days = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate()) / 864e5 - 4;
           const weeks = Math.ceil(Math.ceil(days / 7) / step) * step;
           const aligned = new Date(1970, 0, 5 + weeks * 7).getTime();
           if (aligned >= timestamp) return aligned;
           return new Date(1970, 0, 5 + (weeks + step) * 7).getTime();
         }
         case "month": {
-          const m = d.getMonth();
-          const aligned = Math.ceil(m / step) * step;
-          if (aligned === m && d.getDate() === 1 && d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+          const m2 = d2.getMonth();
+          const aligned = Math.ceil(m2 / step) * step;
+          if (aligned === m2 && d2.getDate() === 1 && d2.getHours() === 0 && d2.getMinutes() === 0 && d2.getSeconds() === 0 && d2.getMilliseconds() === 0)
             return timestamp;
-          d.setMilliseconds(0);
-          d.setSeconds(0);
-          d.setMinutes(0);
-          d.setHours(0);
-          d.setDate(1);
-          d.setMonth(aligned);
-          return d.getTime();
+          d2.setMilliseconds(0);
+          d2.setSeconds(0);
+          d2.setMinutes(0);
+          d2.setHours(0);
+          d2.setDate(1);
+          d2.setMonth(aligned);
+          return d2.getTime();
         }
         case "year": {
-          const y = d.getFullYear();
-          const aligned = Math.ceil(y / step) * step;
-          if (aligned === y && d.getMonth() === 0 && d.getDate() === 1 && d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+          const y2 = d2.getFullYear();
+          const aligned = Math.ceil(y2 / step) * step;
+          if (aligned === y2 && d2.getMonth() === 0 && d2.getDate() === 1 && d2.getHours() === 0 && d2.getMinutes() === 0 && d2.getSeconds() === 0 && d2.getMilliseconds() === 0)
             return timestamp;
           return new Date(aligned, 0, 1).getTime();
         }
       }
     }
-    const r2 = d.getTime();
-    const shift = new Date(timestamp).getTimezoneOffset() - d.getTimezoneOffset();
+    const r2 = d2.getTime();
+    const shift = new Date(timestamp).getTimezoneOffset() - d2.getTimezoneOffset();
     return r2 < timestamp ? r2 + shift * 6e4 : r2;
   }
 }
@@ -1777,8 +1870,8 @@ class Formatters {
           yaxe.decimalsInFloat !== void 0 ? yaxe.decimalsInFloat : w.globals.yValueDecimal
         );
       } else {
-        const f = v.toFixed(0);
-        v = Number(f) === v ? f : v.toFixed(1);
+        const f2 = v.toFixed(0);
+        v = Number(f2) === v ? f2 : v.toFixed(1);
       }
     }
     return v;
@@ -4862,12 +4955,19 @@ class Options {
         // and it keeps following the mode (see Theme.applyModePalette).
         palette: "palette1",
         // Facet (#13): read `--apx-*` CSS design tokens from the cascade
-        // (accent/fore/grid/surface + series-1..N). true (default) reads any
-        // present (absence is a no-op); false disables. Tokens top the
+        // (accent/fore/grid/surface + series-1..N, font-family, radius-factor).
+        // true (default) reads any present (absence is a no-op); false
+        // disables them and the design-system layer below. Tokens top the
         // resolution chain below explicit config. Tokens are re-read on every
         // render; call chart.refreshTokens() to pick up a runtime CSS change
         // that does not itself trigger a render.
         tokens: true,
+        // Plan 36: follow a design system's stylesheet on the page (Ignite UI's
+        // `--ig-*` tokens) for series, chrome, font and an unset mode, while
+        // the add-on (apexcharts/features/ignite-ui) is loaded; without it this
+        // does nothing. It ranks below every other source; false turns it off
+        // and keeps `--apx-*`.
+        designSystem: true,
         // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
         // reactively (SSR-safe, cleaned up on destroy). false disables.
         follow: false,
@@ -4939,9 +5039,9 @@ class CoreUtils {
     if (w.seriesData.series.length === 0) return total;
     for (let i2 = 0; i2 < w.seriesData.series[w.globals.maxValsInArrayIndex].length; i2++) {
       let t2 = 0;
-      for (let j2 = 0; j2 < w.seriesData.series.length; j2++) {
-        if (typeof w.seriesData.series[j2][i2] !== "undefined" && excludedSeriesIndices.indexOf(j2) === -1) {
-          t2 += w.seriesData.series[j2][i2];
+      for (let j = 0; j < w.seriesData.series.length; j++) {
+        if (typeof w.seriesData.series[j][i2] !== "undefined" && excludedSeriesIndices.indexOf(j) === -1) {
+          t2 += w.seriesData.series[j][i2];
         }
       }
       total.push(t2);
@@ -5077,7 +5177,7 @@ class CoreUtils {
    */
   isSeriesNull(index) {
     const seriesAtIndex = this.w.seriesData.series[index];
-    return Array.isArray(seriesAtIndex) ? seriesAtIndex.every((d) => d === null) : seriesAtIndex == null;
+    return Array.isArray(seriesAtIndex) ? seriesAtIndex.every((d2) => d2 === null) : seriesAtIndex == null;
   }
   /**
    * @param {number} index
@@ -5120,12 +5220,12 @@ class CoreUtils {
   getLargestMarkerSize() {
     const w = this.w;
     let size = 0;
-    w.globals.markers.size.forEach((m) => {
-      size = Math.max(size, m);
+    w.globals.markers.size.forEach((m2) => {
+      size = Math.max(size, m2);
     });
     if (w.config.markers.discrete && w.config.markers.discrete.length) {
-      w.config.markers.discrete.forEach((m) => {
-        size = Math.max(size, m.size || 0);
+      w.config.markers.discrete.forEach((m2) => {
+        size = Math.max(size, m2.size || 0);
       });
     }
     if (size > 0) {
@@ -5149,8 +5249,8 @@ class CoreUtils {
     w.globals.seriesTotals = w.seriesData.series.map((ser) => {
       let total = 0;
       if (Array.isArray(ser)) {
-        for (let j2 = 0; j2 < ser.length; j2++) {
-          total += ser[j2];
+        for (let j = 0; j < ser.length; j++) {
+          total += ser[j];
         }
       } else {
         total += ser;
@@ -5166,9 +5266,9 @@ class CoreUtils {
     const w = this.w;
     const seriesTotalsXRange = w.seriesData.series.map((ser, index) => {
       let total = 0;
-      for (let j2 = 0; j2 < ser.length; j2++) {
-        if (w.seriesData.seriesX[index][j2] > minX && w.seriesData.seriesX[index][j2] < maxX) {
-          total += ser[j2];
+      for (let j = 0; j < ser.length; j++) {
+        if (w.seriesData.seriesX[index][j] > minX && w.seriesData.seriesX[index][j] < maxX) {
+          total += ser[j];
         }
       }
       return total;
@@ -5183,9 +5283,9 @@ class CoreUtils {
    * @param {any} w @param {number} realIndex @param {number} j
    * @returns {any}
    */
-  static stackKey(w, realIndex, j2) {
+  static stackKey(w, realIndex, j) {
     var _a;
-    return w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j2] : j2;
+    return w.axisFlags.isXNumeric ? (_a = w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j] : j;
   }
   /**
    * Which 100% stack each series is a slice of, from config alone so it is
@@ -5228,12 +5328,12 @@ class CoreUtils {
       const k2 = kinds[i2] || "none";
       return k2 === "bar" || combo ? k2 + " " + gi[i2] : k2;
     };
-    const key = (i2, j2) => stackOf(i2) + " " + CoreUtils.stackKey(w, i2, j2);
+    const key = (i2, j) => stackOf(i2) + " " + CoreUtils.stackKey(w, i2, j);
     const totals = /* @__PURE__ */ new Map();
     w.seriesData.series.forEach((s2, i2) => {
       if (Array.isArray(s2)) {
-        s2.forEach((v, j2) => {
-          const k2 = key(i2, j2);
+        s2.forEach((v, j) => {
+          const k2 = key(i2, j);
           totals.set(k2, (totals.get(k2) || 0) + (v || 0));
         });
       }
@@ -5241,11 +5341,11 @@ class CoreUtils {
     w.globals.seriesPercent = w.seriesData.series.map((ser, i2) => {
       const seriesPercent = [];
       if (Array.isArray(ser)) {
-        for (let j2 = 0; j2 < ser.length; j2++) {
-          const total = totals.get(key(i2, j2));
+        for (let j = 0; j < ser.length; j++) {
+          const total = totals.get(key(i2, j));
           let percent = 0;
           if (total) {
-            percent = 100 * ser[j2] / total;
+            percent = 100 * ser[j] / total;
           }
           seriesPercent.push(percent);
         }
@@ -5295,13 +5395,13 @@ class CoreUtils {
     );
     _hasNegsGl.hasNegs = gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0;
     if (w.globals.seriesYAxisReverseMap.length > 0) {
-      const scaleBaseLineYScale = (y, i2) => {
+      const scaleBaseLineYScale = (y2, i2) => {
         const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i2]];
         if (!yAxis) return 0;
         if (yAxis.logarithmic) return 0;
-        const sign = y < 0 ? -1 : 1;
-        y = Math.abs(y);
-        return -sign * y / yRatio[i2];
+        const sign = y2 < 0 ? -1 : 1;
+        y2 = Math.abs(y2);
+        return -sign * y2 / yRatio[i2];
       };
       if (gl.isMultipleYAxis) {
         baseLineY = [];
@@ -5343,9 +5443,9 @@ class CoreUtils {
       if (realIndices) i2 = realIndices[i2];
       const yAxisIndex = w.globals.seriesYAxisReverseMap[i2];
       if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
-        return s2.map((d) => {
-          if (d === null) return null;
-          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d, i2);
+        return s2.map((d2) => {
+          if (d2 === null) return null;
+          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d2, i2);
         });
       } else {
         return s2;
@@ -5386,8 +5486,8 @@ class CoreUtils {
    * @param {number} d
    * @param {number} seriesIndex
    */
-  getLogVal(b, d, seriesIndex) {
-    if (d <= 0) {
+  getLogVal(b, d2, seriesIndex) {
+    if (d2 <= 0) {
       return 0;
     }
     const w = this.w;
@@ -5395,7 +5495,7 @@ class CoreUtils {
     const min_log_val = w.globals.minYArr[boundsIndex] === 0 ? -1 : this.getBaseLog(b, w.globals.minYArr[boundsIndex]);
     const max_log_val = w.globals.maxYArr[boundsIndex] === 0 ? 0 : this.getBaseLog(b, w.globals.maxYArr[boundsIndex]);
     const number_of_height_levels = max_log_val - min_log_val;
-    const log_height_value = this.getBaseLog(b, d) - min_log_val;
+    const log_height_value = this.getBaseLog(b, d2) - min_log_val;
     return log_height_value / number_of_height_levels;
   }
   /**
@@ -5762,13 +5862,21 @@ const getRangeValues = ({
   }
   return { start, end, startVal, endVal, ylabel, color, seriesName };
 };
+const yFormatterCtx = (series, seriesIndex, dataPointIndex, w) => ({
+  series,
+  seriesIndex,
+  dataPointIndex,
+  w
+});
 const buildRangeTooltipHTML = (opts) => {
   let { color, seriesName, ylabel, start, end, seriesIndex, dataPointIndex } = opts;
   const formatter = opts.w.globals.tooltip.tooltipLabels.getFormatters(seriesIndex);
-  start = formatter.yLbFormatter(start);
-  end = formatter.yLbFormatter(end);
+  const ctx = (series) => yFormatterCtx(series, seriesIndex, dataPointIndex, opts.w);
+  start = formatter.yLbFormatter(start, ctx(opts.w.rangeData.seriesRangeStart));
+  end = formatter.yLbFormatter(end, ctx(opts.w.rangeData.seriesRangeEnd));
   const val = formatter.yLbFormatter(
-    opts.w.seriesData.series[seriesIndex][dataPointIndex]
+    opts.w.seriesData.series[seriesIndex][dataPointIndex],
+    ctx(opts.w.seriesData.series)
   );
   let valueHTML = "";
   const rangeValues = `<span class="value start-value">
@@ -5871,8 +5979,8 @@ class Defaults {
         }
       } else if (fmt == null ? void 0 : fmt[STACKED_100]) {
         config.dataLabels.formatter = plain;
-        for (const y of config.yaxis) {
-          if (y.min === 0 && y.max === 100) y.min = y.max = void 0;
+        for (const y2 of config.yaxis) {
+          if (y2.min === 0 && y2.max === 100) y2.min = y2.max = void 0;
         }
       }
     }
@@ -5934,26 +6042,26 @@ class Defaults {
     var _a;
     const now = !!((_a = config.chart.sparkline) == null ? void 0 : _a.enabled);
     if (now === !!was) return;
-    const d = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] });
+    const d2 = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] });
     const plain = plainFor(config);
     const walk = (preset, target, off, asked2, pre = "") => {
       for (const k2 of Object.keys(preset)) {
-        const p = pre + k2;
+        const p2 = pre + k2;
         if (Utils$1.isObject(preset[k2])) {
-          walk(preset[k2], target, off, asked2, p + ".");
-        } else if (readPath(asked2, p) === void 0) {
+          walk(preset[k2], target, off, asked2, p2 + ".");
+        } else if (readPath(asked2, p2) === void 0) {
           const on = preset[k2];
-          const base = readPath(off, p);
-          if (isUntouched(readPath(target, p), now ? base : on)) {
-            writePath(target, p, now ? on : base);
+          const base = readPath(off, p2);
+          if (isUntouched(readPath(target, p2), now ? base : on)) {
+            writePath(target, p2, now ? on : base);
           }
         }
       }
     };
-    walk(d.sparkline({}), config, plain, options2);
+    walk(d2.sparkline({}), config, plain, options2);
     const asked = options2 == null ? void 0 : options2.yaxis;
     walk(
-      d.opts.yaxis[0],
+      d2.opts.yaxis[0],
       config.yaxis[0],
       new Options().yAxis,
       Array.isArray(asked) ? asked[0] : asked
@@ -5979,9 +6087,9 @@ class Defaults {
   static syncHorizontal(config, was, options2) {
     if (!was || Defaults.isHorizontalBar(config)) return;
     const plain = plainFor(config);
-    for (const p of ["chart.zoom.enabled", "xaxis.tooltip.enabled"]) {
-      if (readPath(options2, p) === void 0 && readPath(config, p) === false) {
-        writePath(config, p, readPath(plain, p));
+    for (const p2 of ["chart.zoom.enabled", "xaxis.tooltip.enabled"]) {
+      if (readPath(options2, p2) === void 0 && readPath(config, p2) === false) {
+        writePath(config, p2, readPath(plain, p2));
       }
     }
   }
@@ -6785,10 +6893,16 @@ class Defaults {
         rows += endpointRow(
           dumbbell.names[k2],
           w.globals.colors[k2],
-          formatter.yLbFormatter(values[k2])
+          formatter.yLbFormatter(
+            values[k2],
+            yFormatterCtx(w.seriesData.series, k2, dataPointIndex, w)
+          )
         );
       }
-      const gap = shown.length === 2 ? '<div class="apexcharts-tooltip-dumbbell-gap"><span class="category">' + w.config.plotOptions.bar.dumbbell.tooltip.differenceLabel + ': </span><span class="value">' + formatter.yLbFormatter(Math.abs(shown[1] - shown[0])) + "</span></div>" : "";
+      const gap = shown.length === 2 ? '<div class="apexcharts-tooltip-dumbbell-gap"><span class="category">' + w.config.plotOptions.bar.dumbbell.tooltip.differenceLabel + ': </span><span class="value">' + formatter.yLbFormatter(
+        Math.abs(shown[1] - shown[0]),
+        yFormatterCtx(w.seriesData.series, seriesIndex, dataPointIndex, w)
+      ) + "</span></div>" : "";
       return '<div class="apexcharts-tooltip-rangebar apexcharts-tooltip-dumbbell"><div><span class="category">' + ylabel + "</span></div>" + rows + gap + "</div>";
     };
     return __spreadProps(__spreadValues({}, range), {
@@ -6977,8 +7091,13 @@ class Defaults {
       const configured = w.formatters.ttVal !== void 0;
       const bandValue = (k2, v) => {
         if (configured) {
-          const f = w.globals.tooltip.tooltipLabels.getFormatters(k2);
-          if (typeof f.yLbFormatter === "function") return f.yLbFormatter(v);
+          const f2 = w.globals.tooltip.tooltipLabels.getFormatters(k2);
+          if (typeof f2.yLbFormatter === "function") {
+            return f2.yLbFormatter(
+              v,
+              yFormatterCtx(data.values, k2, dataPointIndex, w)
+            );
+          }
         }
         if (Number.isInteger(v)) return String(v);
         return String(Number(v.toFixed(6)));
@@ -7201,10 +7320,10 @@ class Defaults {
     if (now === was) return;
     x2.convertedCatToNumeric = now;
     if (now) return;
-    const f = x2.labels.formatter;
-    const base = (f == null ? void 0 : f.baseFormatter) || f;
+    const f2 = x2.labels.formatter;
+    const base = (f2 == null ? void 0 : f2.baseFormatter) || f2;
     x2.labels.formatter = base === floorLabel ? void 0 : base;
-    if ((f == null ? void 0 : f.categoryNames) && !((_b = x2.categories) == null ? void 0 : _b.length)) x2.categories = f.categoryNames;
+    if ((f2 == null ? void 0 : f2.categoryNames) && !((_b = x2.categories) == null ? void 0 : _b.length)) x2.categories = f2.categoryNames;
     x2.type = asked || ((_c = cd.xaxis) == null ? void 0 : _c.type) || "category";
     if (x2.tickAmount === "dataPoints" && !((_d = options2 == null ? void 0 : options2.xaxis) == null ? void 0 : _d.tickAmount)) {
       x2.tickAmount = void 0;
@@ -7226,8 +7345,8 @@ class Defaults {
     const defaultFormatter = current.baseFormatter || current;
     let labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels;
     if (cats && cats.length) {
-      labels = cats.map((c) => {
-        return Array.isArray(c) ? c : String(c);
+      labels = cats.map((c2) => {
+        return Array.isArray(c2) ? c2 : String(c2);
       });
     }
     if (labels && labels.length) {
@@ -7767,10 +7886,10 @@ class Defaults {
    */
   _getBoxTooltip(w, seriesIndex, dataPointIndex, labels, chartType) {
     const o2 = w.candleData.seriesCandleO[seriesIndex][dataPointIndex];
-    const h = w.candleData.seriesCandleH[seriesIndex][dataPointIndex];
-    const m = w.candleData.seriesCandleM[seriesIndex][dataPointIndex];
+    const h2 = w.candleData.seriesCandleH[seriesIndex][dataPointIndex];
+    const m2 = w.candleData.seriesCandleM[seriesIndex][dataPointIndex];
     const l2 = w.candleData.seriesCandleL[seriesIndex][dataPointIndex];
-    const c = w.candleData.seriesCandleC[seriesIndex][dataPointIndex];
+    const c2 = w.candleData.seriesCandleC[seriesIndex][dataPointIndex];
     const _si = (
       /** @type {Record<string,any>} */
       w.config.series[seriesIndex]
@@ -7780,9 +7899,9 @@ class Defaults {
           ${_si.name ? nameAsHtml(_si.name) : "series-" + (seriesIndex + 1)}: <strong>${w.seriesData.series[seriesIndex][dataPointIndex]}</strong>
         </div>`;
     } else {
-      return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}"><div>${labels[0]}: <span class="value">` + o2 + `</span></div><div>${labels[1]}: <span class="value">` + h + "</span></div>" + // A median of 0 is a median: zero-centred data (residuals, deltas)
+      return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}"><div>${labels[0]}: <span class="value">` + o2 + `</span></div><div>${labels[1]}: <span class="value">` + h2 + "</span></div>" + // A median of 0 is a median: zero-centred data (residuals, deltas)
       // lost the row to a truthiness test. Candlesticks name no third row.
-      (labels[2] && m != null && !Number.isNaN(m) ? `<div>${labels[2]}:<span class="value">` + m + "</span></div>" : "") + `<div>${labels[3]}: <span class="value">` + l2 + `</span></div><div>${labels[4]}: <span class="value">` + c + "</span></div></div>";
+      (labels[2] && m2 != null && !Number.isNaN(m2) ? `<div>${labels[2]}:<span class="value">` + m2 + "</span></div>" : "") + `<div>${labels[3]}: <span class="value">` + l2 + `</span></div><div>${labels[4]}: <span class="value">` + c2 + "</span></div></div>";
     }
   }
   /**
@@ -7886,7 +8005,7 @@ function getChartClass(type, requested) {
     const feature = alias ? TYPE_FEATURES[alias] : void 0;
     const entry = feature ? alias : family(type);
     const files = feature ? [`${family(type)}.js`, `features/${feature}.js`] : [`${family(type)}.js`];
-    const tags = files.map((f) => `<script src=".../dist/${f}">`).join(" and ");
+    const tags = files.map((f2) => `<script src=".../dist/${f2}">`).join(" and ");
     const optIn = RESERVED_TYPES.includes(type) || !!feature && feature !== "stats";
     const message = `ApexCharts: chart type "${name2}" is not registered` + (name2 !== type ? ` (it draws through "${type}")` : "") + `. Bundler: import 'apexcharts/${entry}'` + (optIn ? ` (or import ApexCharts from 'apexcharts/full')` : "") + `. Script tag: add ${tags} after the ApexCharts script` + (optIn ? `, or load apexcharts.full.min.js instead, which has every type. This type is not in the default apexcharts.min.js.` : `, or load the default apexcharts.min.js instead.`);
     const missing = (
@@ -7957,7 +8076,6 @@ const _Config = class _Config {
       if (((_e = (_d = opts.plotOptions) == null ? void 0 : _d.bar) == null ? void 0 : _e.isDumbbell) && opts.chart.requestedType !== "dumbbell") {
         opts = defaults.dumbbellSizing(opts);
       }
-      this.checkForDarkTheme(Environment.getApex());
       this.checkForDarkTheme(opts);
       opts.xaxis = opts.xaxis || __spreadValues({}, Environment.getApex().xaxis);
       if (!responsiveOverride) {
@@ -7976,6 +8094,7 @@ const _Config = class _Config {
       Environment.getApex()
     );
     config = Utils$1.extend(mergedWithDefaultConfig, opts);
+    _Config.applyGlobalDarkDefaults(config, opts);
     _Config.normalizeAxisBounds(config);
     config.theme.palette = ((_i = opts.theme) == null ? void 0 : _i.palette) || ((_j = Environment.getApex().theme) == null ? void 0 : _j.palette) || _Config.modeDefaultPalette(config.theme.mode);
     Defaults.reconcile(config);
@@ -8058,10 +8177,10 @@ const _Config = class _Config {
   extendYAxis(opts, w) {
     var _a;
     const options2 = new Options();
-    const c = ((_a = opts.chart) == null ? void 0 : _a.type) ? opts.chart : w == null ? void 0 : w.config.chart;
+    const c2 = ((_a = opts.chart) == null ? void 0 : _a.type) ? opts.chart : w == null ? void 0 : w.config.chart;
     options2.yAxis = Utils$1.extend(
       options2.yAxis,
-      Defaults.typeYAxisDefaults((c == null ? void 0 : c.requestedType) || (c == null ? void 0 : c.type))
+      Defaults.typeYAxisDefaults((c2 == null ? void 0 : c2.requestedType) || (c2 == null ? void 0 : c2.type))
     );
     if (typeof opts.yaxis === "undefined" || !opts.yaxis || Array.isArray(opts.yaxis) && opts.yaxis.length === 0) {
       opts.yaxis = {};
@@ -8076,8 +8195,8 @@ const _Config = class _Config {
       opts.yaxis = Utils$1.extendArray(opts.yaxis, options2.yAxis);
     }
     let isLogY = false;
-    opts.yaxis.forEach((y) => {
-      if (y.logarithmic) {
+    opts.yaxis.forEach((y2) => {
+      if (y2.logarithmic) {
         isLogY = true;
       }
     });
@@ -8173,6 +8292,54 @@ const _Config = class _Config {
     }
   }
   /**
+   * checkForDarkTheme's tooltip and foreColor defaults for a chart that is
+   * dark through window.Apex, filled into its merged config. They used to be
+   * written into window.Apex itself, where every later chart read them as
+   * values the page had chosen: a light chart after a dark one kept the dark
+   * tooltip, and '#f6f7f8' passed for an explicit foreColor. Filled only when
+   * the chart ends up dark, so a chart with a mode of its own is left alone.
+   *
+   * @param {Record<string, any>} config  the merged config
+   * @param {Record<string, any>} opts  the chart's own options
+   */
+  static applyGlobalDarkDefaults(config, opts) {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const apex = Environment.getApex();
+    if (((_a = apex.theme) == null ? void 0 : _a.mode) !== "dark" || ((_b = config.theme) == null ? void 0 : _b.mode) !== "dark") return;
+    if (((_c = opts.theme) == null ? void 0 : _c.mode) === "dark") return;
+    if (!((_d = opts.tooltip) == null ? void 0 : _d.theme)) {
+      config.tooltip.theme = ((_e = apex.tooltip) == null ? void 0 : _e.theme) === "light" ? "light" : "dark";
+    }
+    if (!((_f = opts.chart) == null ? void 0 : _f.foreColor) && !((_g = apex.chart) == null ? void 0 : _g.foreColor)) {
+      config.chart.foreColor = "#f6f7f8";
+    }
+  }
+  /**
+   * Whether the chart's own options or window.Apex name `chart.foreColor`.
+   * Only then is it kept when it equals the other mode's default; otherwise
+   * it is the mode's default ('#f6f7f8' in dark mode, '#373d3f' otherwise).
+   * Read from what the page passed: in the merged config the defaulted
+   * '#373d3f' cannot be told apart from one the page chose.
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitForeColor(opts) {
+    var _a, _b;
+    return !!(((_a = opts == null ? void 0 : opts.chart) == null ? void 0 : _a.foreColor) || ((_b = Environment.getApex().chart) == null ? void 0 : _b.foreColor));
+  }
+  /**
+   * Whether the chart's own options or window.Apex name `tooltip.theme`.
+   * One they do not name follows the mode (see Theme._applyModeDefaults).
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitTooltipTheme(opts) {
+    var _a, _b;
+    return !!(((_a = opts == null ? void 0 : opts.tooltip) == null ? void 0 : _a.theme) || ((_b = Environment.getApex().tooltip) == null ? void 0 : _b.theme));
+  }
+  /**
    * Whether the chart's own options or window.Apex name a theme palette. Only
    * then does the palette stay put when the mode changes; otherwise it is the
    * mode's default (palette4 in dark mode, palette1 in light mode).
@@ -8183,6 +8350,48 @@ const _Config = class _Config {
   static hasExplicitPalette(opts) {
     var _a, _b;
     return !!(((_a = opts == null ? void 0 : opts.theme) == null ? void 0 : _a.palette) || ((_b = Environment.getApex().theme) == null ? void 0 : _b.palette));
+  }
+  /**
+   * Whether the chart's own options or window.Apex name `chart.fontFamily`.
+   * Only then does a font equal to the default beat `--apx-font-family` and
+   * a design system's font; otherwise the default counts as unset.
+   *
+   * @param {Record<string, any> | null | undefined} opts  the chart's own options
+   * @returns {boolean}
+   */
+  static hasExplicitFontFamily(opts) {
+    var _a, _b;
+    return !!(((_a = opts == null ? void 0 : opts.chart) == null ? void 0 : _a.fontFamily) || ((_b = Environment.getApex().chart) == null ? void 0 : _b.fontFamily));
+  }
+  /**
+   * Which grid and axis colours `opts` names: `grid.borderColor`, the x
+   * axis border and ticks, and the border and ticks of each y axis in the
+   * order `opts` lists them (an object is the one y axis it becomes). A
+   * colour named here beats every token, even one equal to its default.
+   *
+   * @param {Record<string, any> | null | undefined} opts
+   * @param {Record<string, any>} [apex]  global defaults that count as named (window.Apex)
+   * @returns {import('../../types/internal').GridColorsExplicit}
+   */
+  static explicitGridColors(opts, apex = {}) {
+    var _a, _b;
+    const named = (...axes) => ({
+      border: axes.some((a2) => {
+        var _a2;
+        return !!((_a2 = a2 == null ? void 0 : a2.axisBorder) == null ? void 0 : _a2.color);
+      }),
+      ticks: axes.some((a2) => {
+        var _a2;
+        return !!((_a2 = a2 == null ? void 0 : a2.axisTicks) == null ? void 0 : _a2.color);
+      })
+    });
+    const y2 = opts == null ? void 0 : opts.yaxis;
+    const apexY = Array.isArray(apex.yaxis) ? null : apex.yaxis;
+    return {
+      grid: !!(((_a = opts == null ? void 0 : opts.grid) == null ? void 0 : _a.borderColor) || ((_b = apex.grid) == null ? void 0 : _b.borderColor)),
+      xaxis: named(opts == null ? void 0 : opts.xaxis, apex.xaxis),
+      yaxis: Array.isArray(y2) ? y2.map((a2) => named(a2)) : [named(y2, apexY)]
+    };
   }
   /**
    * The built-in palette a chart with no palette of its own uses in `mode`.
@@ -8267,20 +8476,20 @@ const _Config = class _Config {
     };
     for (const key of Object.keys(opts)) {
       const v = opts[key];
-      const d = defaults[key];
+      const d2 = defaults[key];
       if (v == null) {
-        if (Utils$1.isObject(d)) write(key, void 0);
-        else if (Array.isArray(d)) write(key, []);
+        if (Utils$1.isObject(d2)) write(key, void 0);
+        else if (Array.isArray(d2)) write(key, []);
         continue;
       }
-      const entry = Array.isArray(d) ? d[0] : d;
+      const entry = Array.isArray(d2) ? d2[0] : d2;
       if (Array.isArray(v) && Utils$1.isObject(entry)) {
         const walked = v.map((item) => _Config.dropEmptyOptions(item, entry));
         if (walked.some((item, i2) => item !== v[i2])) write(key, walked);
         continue;
       }
-      if (Utils$1.isObject(v) && Utils$1.isObject(d)) {
-        const walked = _Config.dropEmptyOptions(v, d);
+      if (Utils$1.isObject(v) && Utils$1.isObject(d2)) {
+        const walked = _Config.dropEmptyOptions(v, d2);
         if (walked !== v) write(key, walked);
       }
     }
@@ -8339,11 +8548,11 @@ const _Config = class _Config {
       return Number.isFinite(value) ? value : _Config._rejectBound(value, where);
     }
     if (isDatetime) {
-      const dt = new DateTime(
+      const dt2 = new DateTime(
         /** @type {any} */
         { config: { xaxis: { labels: { datetimeUTC } } } }
       );
-      const parsed = dt.parseDate(value);
+      const parsed = dt2.parseDate(value);
       return Number.isFinite(parsed) ? parsed : _Config._rejectBound(value, where);
     }
     if (typeof value === "string" && value.trim() !== "") {
@@ -8823,15 +9032,39 @@ class Globals {
       // update it (see Theme.applyTokenChrome). Persistent: a re-render must
       // not forget it.
       tokenSurface: void 0,
-      // The tokens the last render applied to fore and grid, for the same
-      // reason (see Theme.applyTokenChrome).
+      // The tokens the last render applied to fore, grid and font, for the
+      // same reason (see Theme.applyTokenChrome).
       tokenChrome: void 0,
+      // `--apx-radius-factor` as a number, read with the tokens on every
+      // render (see Theme.radius).
+      radiusFactor: 1,
       // What the named theme (theme.name) wrote into config.theme, so a switch
       // to another named theme can take it back (see Theme._applyNamedThemeMode).
       namedThemeApplied: void 0,
+      // Set while the dark mode came from the design system's variant, so a
+      // light or removed sheet can take it back (see
+      // Theme._takeBackVariantMode).
+      variantModeApplied: void 0,
       // Whether the page named theme.palette, so the mode defaults leave it
       // alone (see Theme.applyModePalette). Set by Base and updateOptions.
       themePaletteExplicit: false,
+      // The same for chart.foreColor and tooltip.theme: a value the page named
+      // is not swapped for the other mode's default (see
+      // Theme._applyModeDefaults). Set by Base and updateOptions.
+      themeForeColorExplicit: false,
+      tooltipThemeExplicit: false,
+      // The same for chart.fontFamily and the grid and axis colours: a value
+      // the page named beats every token, its default included (see
+      // Theme.applyTokenChrome). Set by Base and updateOptions.
+      themeFontFamilyExplicit: false,
+      themeGridColorsExplicit: {
+        grid: false,
+        xaxis: { border: false, ticks: false },
+        yaxis: []
+      },
+      // Whether a responsive breakpoint that matches this render names
+      // tooltip.theme. Set by Responsive.checkResponsiveConfig.
+      responsiveTooltipTheme: false,
       lastXAxis: [],
       lastYAxis: [],
       // ── User interaction state (must survive re-renders) ──────────────────────
@@ -9065,6 +9298,13 @@ class Base {
     const config = new Config(this.opts).init({ responsiveOverride: false });
     const globals = new Globals().init(config);
     globals.themePaletteExplicit = Config.hasExplicitPalette(this.opts);
+    globals.themeForeColorExplicit = Config.hasExplicitForeColor(this.opts);
+    globals.tooltipThemeExplicit = Config.hasExplicitTooltipTheme(this.opts);
+    globals.themeFontFamilyExplicit = Config.hasExplicitFontFamily(this.opts);
+    globals.themeGridColorsExplicit = Config.explicitGridColors(
+      this.opts,
+      Environment.getApex()
+    );
     const w = {
       config,
       globals,
@@ -9500,13 +9740,13 @@ class Point {
    * @param {number|{x:number,y:number}} x
    * @param {number} [y]
    */
-  constructor(x2, y) {
+  constructor(x2, y2) {
     if (typeof x2 === "object") {
       this.x = x2.x;
       this.y = x2.y;
     } else {
       this.x = x2 || 0;
-      this.y = y || 0;
+      this.y = y2 || 0;
     }
   }
   /**
@@ -9529,13 +9769,13 @@ class Matrix {
    * @param {number} [e]
    * @param {number} [f]
    */
-  constructor(a2, b, c, d, e2, f) {
+  constructor(a2, b, c2, d2, e2, f2) {
     this.a = a2 != null ? a2 : 1;
     this.b = b != null ? b : 0;
-    this.c = c != null ? c : 0;
-    this.d = d != null ? d : 1;
+    this.c = c2 != null ? c2 : 0;
+    this.d = d2 != null ? d2 : 1;
     this.e = e2 != null ? e2 : 0;
-    this.f = f != null ? f : 0;
+    this.f = f2 != null ? f2 : 0;
   }
   /**
    * @param {number} deg
@@ -9556,14 +9796,14 @@ class Matrix {
   /**
    * @param {Matrix} m
    */
-  multiply(m) {
+  multiply(m2) {
     return new Matrix(
-      this.a * m.a + this.c * m.b,
-      this.b * m.a + this.d * m.b,
-      this.a * m.c + this.c * m.d,
-      this.b * m.c + this.d * m.d,
-      this.a * m.e + this.c * m.f + this.e,
-      this.b * m.e + this.d * m.f + this.f
+      this.a * m2.a + this.c * m2.b,
+      this.b * m2.a + this.d * m2.b,
+      this.a * m2.c + this.c * m2.d,
+      this.b * m2.c + this.d * m2.d,
+      this.a * m2.e + this.c * m2.f + this.e,
+      this.b * m2.e + this.d * m2.f + this.f
     );
   }
   /**
@@ -9583,15 +9823,15 @@ class Box {
    * @param {number} w
    * @param {number} h
    */
-  constructor(x2, y, w, h) {
+  constructor(x2, y2, w, h2) {
     this.x = x2;
-    this.y = y;
+    this.y = y2;
     this.w = w;
-    this.h = h;
+    this.h = h2;
     this.width = w;
-    this.height = h;
+    this.height = h2;
     this.x2 = x2 + w;
-    this.y2 = y + h;
+    this.y2 = y2 + h2;
   }
 }
 /*!
@@ -9608,22 +9848,22 @@ class Box {
  *                       alignment; always smooth and non-self-intersecting,
  *                       at the cost of throwing away curve smoothness.
  */
-function parsePath(d) {
-  if (!d || typeof d !== "string") return [["M", 0, 0]];
+function parsePath(d2) {
+  if (!d2 || typeof d2 !== "string") return [["M", 0, 0]];
   const commands = [];
   const re = /([MmLlHhVvCcSsQqTtAaZz])\s*/g;
   const numRe = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
   let match;
   const letters = [];
   const positions = [];
-  while ((match = re.exec(d)) !== null) {
+  while ((match = re.exec(d2)) !== null) {
     letters.push(match[1]);
     positions.push(match.index);
   }
   for (let i2 = 0; i2 < letters.length; i2++) {
     const start = positions[i2] + letters[i2].length;
-    const end = i2 + 1 < positions.length ? positions[i2 + 1] : d.length;
-    const paramStr = d.substring(start, end);
+    const end = i2 + 1 < positions.length ? positions[i2 + 1] : d2.length;
+    const paramStr = d2.substring(start, end);
     const nums2 = [];
     let numMatch;
     numRe.lastIndex = 0;
@@ -9634,44 +9874,44 @@ function parsePath(d) {
     if (cmd === "Z") {
       commands.push(["Z"]);
     } else if (cmd === "M" || cmd === "L" || cmd === "T") {
-      for (let j2 = 0; j2 < nums2.length; j2 += 2) {
-        commands.push([cmd, nums2[j2], nums2[j2 + 1]]);
+      for (let j = 0; j < nums2.length; j += 2) {
+        commands.push([cmd, nums2[j], nums2[j + 1]]);
       }
     } else if (cmd === "H") {
-      for (let j2 = 0; j2 < nums2.length; j2++) {
-        commands.push([cmd, nums2[j2]]);
+      for (let j = 0; j < nums2.length; j++) {
+        commands.push([cmd, nums2[j]]);
       }
     } else if (cmd === "V") {
-      for (let j2 = 0; j2 < nums2.length; j2++) {
-        commands.push([cmd, nums2[j2]]);
+      for (let j = 0; j < nums2.length; j++) {
+        commands.push([cmd, nums2[j]]);
       }
     } else if (cmd === "C") {
-      for (let j2 = 0; j2 < nums2.length; j2 += 6) {
+      for (let j = 0; j < nums2.length; j += 6) {
         commands.push([
           cmd,
-          nums2[j2],
-          nums2[j2 + 1],
-          nums2[j2 + 2],
-          nums2[j2 + 3],
-          nums2[j2 + 4],
-          nums2[j2 + 5]
+          nums2[j],
+          nums2[j + 1],
+          nums2[j + 2],
+          nums2[j + 3],
+          nums2[j + 4],
+          nums2[j + 5]
         ]);
       }
     } else if (cmd === "S" || cmd === "Q") {
-      for (let j2 = 0; j2 < nums2.length; j2 += 4) {
-        commands.push([cmd, nums2[j2], nums2[j2 + 1], nums2[j2 + 2], nums2[j2 + 3]]);
+      for (let j = 0; j < nums2.length; j += 4) {
+        commands.push([cmd, nums2[j], nums2[j + 1], nums2[j + 2], nums2[j + 3]]);
       }
     } else if (cmd === "A") {
-      for (let j2 = 0; j2 < nums2.length; j2 += 7) {
+      for (let j = 0; j < nums2.length; j += 7) {
         commands.push([
           cmd,
-          nums2[j2],
-          nums2[j2 + 1],
-          nums2[j2 + 2],
-          nums2[j2 + 3],
-          nums2[j2 + 4],
-          nums2[j2 + 5],
-          nums2[j2 + 6]
+          nums2[j],
+          nums2[j + 1],
+          nums2[j + 2],
+          nums2[j + 3],
+          nums2[j + 4],
+          nums2[j + 5],
+          nums2[j + 6]
         ]);
       }
     }
@@ -9687,12 +9927,12 @@ function pathBbox(arr) {
     for (let i2 = 1; i2 < cmd.length; i2 += 2) {
       if (i2 + 1 <= cmd.length) {
         const x2 = cmd[i2];
-        const y = cmd[i2 + 1];
-        if (typeof x2 === "number" && typeof y === "number") {
+        const y2 = cmd[i2 + 1];
+        if (typeof x2 === "number" && typeof y2 === "number") {
           if (x2 < minX) minX = x2;
           if (x2 > maxX) maxX = x2;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+          if (y2 < minY) minY = y2;
+          if (y2 > maxY) maxY = y2;
         }
       }
     }
@@ -9791,7 +10031,7 @@ function findNextM(arr, offset) {
   return false;
 }
 function arcToBezier(pos, val) {
-  var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x2 = val[6], y = val[7], A2 = new Point(pos[0], pos[1]), B = new Point(x2, y), primedCoord, lambda, mat, k2, c, cSquare, t2, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f, arcSegPoints, angle, sinAngle, cosAngle, pt, i2, il, retVal = [], x1, y1, x22, y2;
+  var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x2 = val[6], y2 = val[7], A2 = new Point(pos[0], pos[1]), B = new Point(x2, y2), primedCoord, lambda, mat, k2, c2, cSquare, t2, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f2, arcSegPoints, angle, sinAngle, cosAngle, pt, i2, il, retVal = [], x1, y1, x22, y22;
   if (rx === 0 || ry === 0 || A2.x === B.x && A2.y === B.y) {
     return [["C", A2.x, A2.y, B.x, B.y, B.x, B.y]];
   }
@@ -9815,9 +10055,9 @@ function arcToBezier(pos, val) {
   B = B.transform(mat);
   k2 = [B.x - A2.x, B.y - A2.y];
   cSquare = k2[0] * k2[0] + k2[1] * k2[1];
-  c = Math.sqrt(cSquare);
-  k2[0] /= c;
-  k2[1] /= c;
+  c2 = Math.sqrt(cSquare);
+  k2[0] /= c2;
+  k2[1] /= c2;
   t2 = cSquare < 4 ? Math.sqrt(1 - cSquare / 4) : 0;
   if (largeArcFlag === sweepFlag) {
     t2 *= -1;
@@ -9839,15 +10079,15 @@ function arcToBezier(pos, val) {
   arcSegPoints = [];
   angle = tetaStart;
   deltaTeta = (tetaEnd - tetaStart) / nbSectors;
-  f = 4 * Math.tan(deltaTeta / 4) / 3;
+  f2 = 4 * Math.tan(deltaTeta / 4) / 3;
   for (i2 = 0; i2 <= nbSectors; i2++) {
     cosAngle = Math.cos(angle);
     sinAngle = Math.sin(angle);
     pt = new Point(O.x + cosAngle, O.y + sinAngle);
     arcSegPoints[i2] = [
-      new Point(pt.x + f * sinAngle, pt.y - f * cosAngle),
+      new Point(pt.x + f2 * sinAngle, pt.y - f2 * cosAngle),
       pt,
-      new Point(pt.x - f * sinAngle, pt.y + f * cosAngle)
+      new Point(pt.x - f2 * sinAngle, pt.y + f2 * cosAngle)
     ];
     angle += deltaTeta;
   }
@@ -9866,11 +10106,11 @@ function arcToBezier(pos, val) {
     y1 = pt.y;
     pt = arcSegPoints[i2][0];
     x22 = pt.x;
-    y2 = pt.y;
+    y22 = pt.y;
     pt = arcSegPoints[i2][1];
     x2 = pt.x;
-    y = pt.y;
-    retVal.push(["C", x1, y1, x22, y2, x2, y]);
+    y2 = pt.y;
+    retVal.push(["C", x1, y1, x22, y22, x2, y2]);
   }
   return retVal;
 }
@@ -10021,10 +10261,10 @@ function morphPaths(fromD, toD) {
 }
 let _measureSvg = null;
 let _measurePath = null;
-function samplePathPoints(d, n2) {
+function samplePathPoints(d2, n2) {
   const pts = new Array(n2);
   if (!Environment.isBrowser()) {
-    const arr = parsePath(d);
+    const arr = parsePath(d2);
     const bbox = pathBbox(arr);
     const cx = bbox.x + bbox.width / 2;
     const cy = bbox.y + bbox.height / 2;
@@ -10045,7 +10285,7 @@ function samplePathPoints(d, n2) {
     _measureSvg.appendChild(_measurePath);
     document.body.appendChild(_measureSvg);
   }
-  _measurePath.setAttribute("d", d || "M0 0");
+  _measurePath.setAttribute("d", d2 || "M0 0");
   let len = 0;
   try {
     len = _measurePath.getTotalLength();
@@ -10053,7 +10293,7 @@ function samplePathPoints(d, n2) {
     len = 0;
   }
   if (!len || !isFinite(len)) {
-    const arr = parsePath(d);
+    const arr = parsePath(d2);
     const bbox = pathBbox(arr);
     const cx = bbox.x + bbox.width / 2;
     const cy = bbox.y + bbox.height / 2;
@@ -10062,8 +10302,8 @@ function samplePathPoints(d, n2) {
   }
   for (let i2 = 0; i2 < n2; i2++) {
     try {
-      const p = _measurePath.getPointAtLength(i2 / n2 * len);
-      pts[i2] = { x: p.x, y: p.y };
+      const p2 = _measurePath.getPointAtLength(i2 / n2 * len);
+      pts[i2] = { x: p2.x, y: p2.y };
     } catch (e2) {
       pts[i2] = { x: 0, y: 0 };
     }
@@ -10100,30 +10340,30 @@ function morphPolygons(fromD, toD, n2 = 96) {
       const a2 = aligned[i2];
       const b = toPts[i2];
       const x2 = a2.x + (b.x - a2.x) * pos;
-      const y = a2.y + (b.y - a2.y) * pos;
-      out += (i2 === 0 ? "M" : "L") + x2.toFixed(3) + " " + y.toFixed(3) + " ";
+      const y2 = a2.y + (b.y - a2.y) * pos;
+      out += (i2 === 0 ? "M" : "L") + x2.toFixed(3) + " " + y2.toFixed(3) + " ";
     }
     return out + "Z";
   };
 }
 function resolveRGBA(color, memo, el) {
   if (typeof color !== "string") return null;
-  const c = color.trim();
-  if (!memo.has(c)) {
+  const c2 = color.trim();
+  if (!memo.has(c2)) {
     memo.set(
-      c,
-      Utils$1.parseColor(c) || Utils$1.parseColor(Utils$1.resolveColor(c, el)) || null
+      c2,
+      Utils$1.parseColor(c2) || Utils$1.parseColor(Utils$1.resolveColor(c2, el)) || null
     );
   }
   return (
     /** @type {number[] | null} */
-    memo.get(c)
+    memo.get(c2)
   );
 }
 function lerpRGBA(a2, b, t2) {
-  const c = [0, 1, 2].map((k2) => Math.round(a2[k2] + (b[k2] - a2[k2]) * t2));
+  const c2 = [0, 1, 2].map((k2) => Math.round(a2[k2] + (b[k2] - a2[k2]) * t2));
   const al = a2[3] + (b[3] - a2[3]) * t2;
-  return al >= 1 ? `rgb(${c})` : `rgba(${c},${al})`;
+  return al >= 1 ? `rgb(${c2})` : `rgba(${c2},${al})`;
 }
 function easeInOut(t2) {
   return -Math.cos(t2 * Math.PI) / 2 + 0.5;
@@ -10183,8 +10423,8 @@ class SVGAnimationRunner {
    *   final geometry) but the element must end with the renderer's clean,
    *   un-padded d so later captures and morphs stay stable.
    */
-  plot(d, algorithm, snapTo) {
-    this._plotTarget = d;
+  plot(d2, algorithm, snapTo) {
+    this._plotTarget = d2;
     if (algorithm) this._plotAlgorithm = algorithm;
     this._plotSnap = snapTo || null;
     this._schedule();
@@ -10376,9 +10616,9 @@ function cubicBezier(x1, y1, x2, y2) {
     if (t2 < lo) return lo;
     if (t2 > hi) return hi;
     while (lo < hi) {
-      const xt = sampleX(t2);
-      if (Math.abs(xt - x3) < 1e-4) return t2;
-      if (x3 > xt) lo = t2;
+      const xt2 = sampleX(t2);
+      if (Math.abs(xt2 - x3) < 1e-4) return t2;
+      if (x3 > xt2) lo = t2;
       else hi = t2;
       t2 = (lo + hi) / 2;
     }
@@ -10436,8 +10676,8 @@ function resolveEasing(value) {
 }
 function guardEasing(fn) {
   return (t2) => {
-    const y = fn(t2);
-    return typeof y === "number" && isFinite(y) ? y : t2;
+    const y2 = fn(t2);
+    return typeof y2 === "number" && isFinite(y2) ? y2 : t2;
   };
 }
 const SVGNS$1 = "http://www.w3.org/2000/svg";
@@ -10457,14 +10697,14 @@ function onFrame(w, job) {
     BrowserAPIs.requestAnimationFrame((now) => {
       const jobs = s2.q;
       s2.q = [];
-      for (const j2 of jobs) {
+      for (const j of jobs) {
         if (w.globals.isDestroyed) {
           s2.n = 0;
           break;
         }
         try {
-          const r2 = j2(now);
-          if (r2 === true) onFrame(w, j2);
+          const r2 = j(now);
+          if (r2 === true) onFrame(w, j);
           else if (r2) jobs.push(r2);
         } catch (e2) {
           setTimeout(() => {
@@ -10626,7 +10866,7 @@ class Animations {
     const {
       el,
       realIndex,
-      j: j2,
+      j,
       fill,
       pathFrom,
       pathTo,
@@ -10635,7 +10875,7 @@ class Animations {
       delay,
       scrollMorph
     } = params;
-    const me2 = this;
+    const me = this;
     const w = this.w;
     let delayFactor = 0;
     if (w.config.chart.animations.animateGradually.enabled) {
@@ -10644,10 +10884,10 @@ class Animations {
     if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== "bar") {
       delayFactor = 0;
     }
-    me2.morphSVG(
+    me.morphSVG(
       el,
       realIndex,
-      j2,
+      j,
       w.config.chart.type === "line" && !w.globals.comboCharts ? "stroke" : fill,
       pathFrom,
       pathTo,
@@ -10700,9 +10940,9 @@ class Animations {
     }
   }
   showDelayedElements() {
-    this.w.globals.delayedElements.forEach((d) => {
-      if (d.holdUntilComplete && !this.w.globals.animationEnded) return;
-      const ele = d.el;
+    this.w.globals.delayedElements.forEach((d2) => {
+      if (d2.holdUntilComplete && !this.w.globals.animationEnded) return;
+      const ele = d2.el;
       ele.classList.remove("apexcharts-element-hidden");
       ele.classList.add("apexcharts-hidden-element-shown");
     });
@@ -10737,14 +10977,14 @@ class Animations {
    * @param {any} el            - SVG.js path element
    * @param {{realIndex: number, j?: number, isFill: boolean, isLast: boolean, speed: number, delay: number, mask?: {type: 'rect'|'radial', cx?: number, cy?: number, r?: number}}} params
    */
-  animateDraw(el, { realIndex, j: j2, isFill, isLast, speed, delay, mask: maskShape }) {
+  animateDraw(el, { realIndex, j, isFill, isLast, speed, delay, mask: maskShape }) {
     const w = this.w;
-    const me2 = this;
+    const me = this;
     const finalize = () => {
       if (isLast && w.globals.shouldAnimate) {
-        me2.animationCompleted(el);
+        me.animationCompleted(el);
       }
-      me2.showDelayedElements();
+      me.showDelayedElements();
     };
     if (!Environment.isBrowser() || !w.globals.shouldAnimate || speed < 1) {
       finalize();
@@ -10758,7 +10998,7 @@ class Animations {
       const radialCx = maskShape && maskShape.cx || 0;
       const radialCy = maskShape && maskShape.cy || 0;
       const targetRadius = (maskShape && maskShape.r || w.layout.gridWidth / 2) + pad;
-      const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j2 != null ? j2 : 0}-${isFill ? "f" : "s"}`;
+      const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j != null ? j : 0}-${isFill ? "f" : "s"}`;
       const mask = BrowserAPIs.createElementNS(SVGNS$1, "mask");
       mask.setAttribute("id", maskId);
       mask.setAttribute("maskUnits", "userSpaceOnUse");
@@ -10844,7 +11084,7 @@ class Animations {
    *   pathTo (extra anchors sitting exactly on the final geometry) and snap to
    *   the clean pathTo at the end.
    */
-  morphSVG(el, realIndex, j2, fill, pathFrom, pathTo, speed, delay, scrollMorph, pathToInterp) {
+  morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay, scrollMorph, pathToInterp) {
     var _a, _b;
     const w = this.w;
     if (!pathFrom) {
@@ -10895,9 +11135,9 @@ class Animations {
       morphAlgo,
       pathToInterp ? pathTo : void 0
     ).after(() => {
-      if (Utils$1.isNumber(j2)) {
+      if (Utils$1.isNumber(j)) {
         const maxSeries = w.seriesData.series[w.globals.maxValsInArrayIndex];
-        if (maxSeries && j2 === maxSeries.length - 2 && w.globals.shouldAnimate) {
+        if (maxSeries && j === maxSeries.length - 2 && w.globals.shouldAnimate) {
           this.animationCompleted(el);
         }
       } else if (fill !== "none" && w.globals.shouldAnimate) {
@@ -10969,7 +11209,7 @@ function isPointMarker(node) {
   var _a;
   return !!(((_a = node == null ? void 0 : node.classList) == null ? void 0 : _a.contains("apexcharts-marker")) && node.hasAttribute("rel"));
 }
-const bucketKey = (x2, y) => `${Math.floor(x2)},${Math.floor(y)}`;
+const bucketKey = (x2, y2) => `${Math.floor(x2)},${Math.floor(y2)}`;
 function paintsMarkers(w) {
   var _a;
   const renderer = (_a = w.globals) == null ? void 0 : _a.activeRenderer;
@@ -11006,10 +11246,10 @@ function buildIndex(w) {
       for (let i2 = 0; i2 < points.length; i2++) {
         const row = points[i2];
         if (!Array.isArray(row)) continue;
-        for (let j2 = 0; j2 < row.length; j2++) {
-          const p = row[j2];
-          if (!p) continue;
-          addEntry(index, { i: i2, j: j2, x: +p[0], y: +p[1], node: null });
+        for (let j = 0; j < row.length; j++) {
+          const p2 = row[j];
+          if (!p2) continue;
+          addEntry(index, { i: i2, j, x: +p2[0], y: +p2[1], node: null });
         }
       }
     }
@@ -11052,8 +11292,8 @@ function liveCentre(entry) {
 function isStale(entry) {
   if (!entry.node) return false;
   if (!entry.node.isConnected) return true;
-  const c = liveCentre(entry);
-  return c.x !== entry.x || c.y !== entry.y;
+  const c2 = liveCentre(entry);
+  return c2.x !== entry.x || c2.y !== entry.y;
 }
 function locate(w, at2, rebuild) {
   const index = getIndex(w, rebuild);
@@ -11097,8 +11337,8 @@ function coincidentPoints(w, at2) {
         if (other === entry || hidden.has(other.i)) continue;
         const key = `${other.i}:${other.j}`;
         if (out.has(key)) continue;
-        const c = liveCentre(other);
-        if (Math.abs(c.x - centre.x) > tol || Math.abs(c.y - centre.y) > tol) {
+        const c2 = liveCentre(other);
+        if (Math.abs(c2.x - centre.x) > tol || Math.abs(c2.y - centre.y) > tol) {
           continue;
         }
         out.set(key, { seriesIndex: other.i, dataPointIndex: other.j });
@@ -11174,7 +11414,7 @@ class Events {
   }
   setupEventHandlers() {
     const w = this.w;
-    const me2 = this.ctx;
+    const me = this.ctx;
     const clickableArea = w.dom.baseEl.querySelector(w.globals.chartClass);
     this.ctx.eventList.forEach((event) => {
       clickableArea == null ? void 0 : clickableArea.addEventListener(
@@ -11189,24 +11429,24 @@ class Events {
           if (e2.type === "keydown") {
             if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
               if (typeof w.config.chart.events.keyDown === "function") {
-                w.config.chart.events.keyDown(e2, me2, opts);
+                w.config.chart.events.keyDown(e2, me, opts);
               }
-              me2.ctx.events.fireEvent("keydown", [e2, me2, opts]);
+              me.ctx.events.fireEvent("keydown", [e2, me, opts]);
             }
           } else if (e2.type === "keyup") {
             if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
               if (typeof w.config.chart.events.keyUp === "function") {
-                w.config.chart.events.keyUp(e2, me2, opts);
+                w.config.chart.events.keyUp(e2, me, opts);
               }
-              me2.ctx.events.fireEvent("keyup", [e2, me2, opts]);
+              me.ctx.events.fireEvent("keyup", [e2, me, opts]);
             }
           } else if (e2.type === "mousemove" || e2.type === "touchmove") {
             if (typeof w.config.chart.events.mouseMove === "function") {
-              w.config.chart.events.mouseMove(e2, me2, opts);
+              w.config.chart.events.mouseMove(e2, me, opts);
             }
           } else if (e2.type === "mouseleave" || e2.type === "touchleave") {
             if (typeof w.config.chart.events.mouseLeave === "function") {
-              w.config.chart.events.mouseLeave(e2, me2, opts);
+              w.config.chart.events.mouseLeave(e2, me, opts);
             }
           } else if (e2.type === "mouseup" && e2.which === 1 || e2.type === "touchend") {
             if (w.interact.wasDragged) {
@@ -11215,9 +11455,9 @@ class Events {
               const coincident = coincidentPoints(w, { node: e2.target });
               if (coincident) opts.coincident = coincident;
               if (typeof w.config.chart.events.click === "function") {
-                w.config.chart.events.click(e2, me2, opts);
+                w.config.chart.events.click(e2, me, opts);
               }
-              me2.ctx.events.fireEvent("click", [e2, me2, opts]);
+              me.ctx.events.fireEvent("click", [e2, me, opts]);
             }
           }
         },
@@ -11264,7 +11504,7 @@ class Localization {
       locales = this.w.config.chart.locales.concat(globalApex.chart.locales);
     }
     const selectedLocale = locales.filter(
-      (c) => c.name === localeName
+      (c2) => c2.name === localeName
     )[0];
     if (selectedLocale) {
       const ret = Utils$1.extend(en, selectedLocale);
@@ -11864,9 +12104,9 @@ class XAxis {
     const ylabels = w.config.yaxis[0].labels;
     let lbFormatter = w.formatters.yLabelFormatters[0];
     if (w.config.xaxis.type === "datetime" && ylabels.formatter === void 0 && !w.axisFlags.isRangeBar) {
-      const dt = new DateTime(w);
+      const dt2 = new DateTime(w);
       const format = w.config.xaxis.labels.format || w.config.tooltip.x.format;
-      lbFormatter = (val) => typeof val === "number" ? dt.formatDate(dt.getDate(val), format) : val;
+      lbFormatter = (val) => typeof val === "number" ? dt2.formatDate(dt2.getDate(val), format) : val;
     }
     let labelStep = 1;
     if (ylabels.show && ylabels.formatter === void 0 && w.config.xaxis.labels.hideOverlappingLabels !== false) {
@@ -12945,11 +13185,11 @@ class Grid {
     }
   }
   /** @param {{c: any, x1: any, y1: any, x2: any, y2: any, type: any}} opts */
-  _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
+  _drawGridBandRect({ c: c2, x1, y1, x2, y2, type }) {
     const w = this.w;
     const graphics = new Graphics(this.w);
     const offX = w.globals.barPadForNumericAxis;
-    const color = w.config.grid[type].colors[c];
+    const color = w.config.grid[type].colors[c2];
     const rect = graphics.drawRect(
       x1 - (type === "row" ? offX : 0),
       y1,
@@ -13149,11 +13389,11 @@ class Grid {
     var _a, _b, _c, _d, _e;
     const w = this.w;
     const drawBands = (type, count, x1, y1, x2, y2) => {
-      for (let i2 = 0, c = 0; i2 < count; i2++, c++) {
-        if (c >= w.config.grid[type].colors.length) {
-          c = 0;
+      for (let i2 = 0, c2 = 0; i2 < count; i2++, c2++) {
+        if (c2 >= w.config.grid[type].colors.length) {
+          c2 = 0;
         }
-        this._drawGridBandRect({ c, x1, y1, x2, y2, type });
+        this._drawGridBandRect({ c: c2, x1, y1, x2, y2, type });
         y1 += w.layout.gridHeight / tickAmount;
       }
     };
@@ -13176,9 +13416,9 @@ class Grid {
       const y1 = 0;
       let x2 = w.globals.padHorizontal + w.layout.gridWidth / xc;
       const y2 = w.layout.gridHeight;
-      for (let i2 = 0, c = 0; i2 < xCount; i2++, c++) {
-        if (c >= w.config.grid.column.colors.length) {
-          c = 0;
+      for (let i2 = 0, c2 = 0; i2 < xCount; i2++, c2++) {
+        if (c2 >= w.config.grid.column.colors.length) {
+          c2 = 0;
         }
         if (w.config.xaxis.type === "datetime") {
           x1 = /** @type {any} */
@@ -13187,7 +13427,7 @@ class Grid {
           (((_e = this.xaxisLabels[i2 + 1]) == null ? void 0 : _e.position) || w.layout.gridWidth) - /** @type {any} */
           this.xaxisLabels[i2].position;
         }
-        this._drawGridBandRect({ c, x1, y1, x2, y2, type: "column" });
+        this._drawGridBandRect({ c: c2, x1, y1, x2, y2, type: "column" });
         x1 += w.layout.gridWidth / xc;
       }
     }
@@ -13290,7 +13530,10 @@ class Responsive {
     const w = this.w;
     const cnf = w.config;
     const res = (cnf.responsive || []).slice();
-    if (res.length === 0 && this._activeBreakpoint === null) return;
+    if (res.length === 0 && this._activeBreakpoint === null) {
+      w.globals.responsiveTooltipTheme = false;
+      return;
+    }
     res.sort(
       (a2, b) => a2.breakpoint > b.breakpoint ? 1 : b.breakpoint > a2.breakpoint ? -1 : 0
     ).reverse();
@@ -13298,7 +13541,10 @@ class Responsive {
     const matching = res.filter(
       (r2) => width < r2.breakpoint
     );
-    if (matching.length === 0 && this._activeBreakpoint === null) return;
+    if (matching.length === 0 && this._activeBreakpoint === null) {
+      w.globals.responsiveTooltipTheme = false;
+      return;
+    }
     const config = new Config({});
     this.absorb(opts);
     let cfg = Utils$1.extend({}, cnf);
@@ -13342,6 +13588,7 @@ class Responsive {
         this._activeBreakpoint = r2.breakpoint;
       }
     }
+    w.globals.responsiveTooltipTheme = this._base.has("tooltip.theme");
     this.overrideResponsiveOptions(cfg);
   }
   /**
@@ -13355,28 +13602,28 @@ class Responsive {
 }
 const CMD_RE = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
 const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
-function mapPathAffine(d, ax, bx, ay, by, rk = 1) {
+function mapPathAffine(d2, ax, bx, ay, by, rk = 1) {
   const out = [];
   const x2 = (v) => ax * v + bx;
-  const y = (v) => ay * v + by;
+  const y2 = (v) => ay * v + by;
   CMD_RE.lastIndex = 0;
   let match;
-  while ((match = CMD_RE.exec(d)) !== null) {
+  while ((match = CMD_RE.exec(d2)) !== null) {
     const cmd = match[1].toUpperCase();
     const nums2 = (match[2].match(NUM_RE) || []).map(parseFloat);
     if (cmd === "Z") out.push("Z");
     else if (cmd === "H") for (const v of nums2) out.push(`H ${x2(v)}`);
-    else if (cmd === "V") for (const v of nums2) out.push(`V ${y(v)}`);
+    else if (cmd === "V") for (const v of nums2) out.push(`V ${y2(v)}`);
     else if (cmd === "A") {
       for (let i2 = 0; i2 + 6 < nums2.length; i2 += 7) {
         out.push(
-          `A ${nums2[i2] * rk} ${nums2[i2 + 1] * rk} ${nums2[i2 + 2]} ${nums2[i2 + 3]} ${nums2[i2 + 4]} ${x2(nums2[i2 + 5])} ${y(nums2[i2 + 6])}`
+          `A ${nums2[i2] * rk} ${nums2[i2 + 1] * rk} ${nums2[i2 + 2]} ${nums2[i2 + 3]} ${nums2[i2 + 4]} ${x2(nums2[i2 + 5])} ${y2(nums2[i2 + 6])}`
         );
       }
     } else {
       const coords = [];
       for (let i2 = 0; i2 + 1 < nums2.length; i2 += 2) {
-        coords.push(`${x2(nums2[i2])} ${y(nums2[i2 + 1])}`);
+        coords.push(`${x2(nums2[i2])} ${y2(nums2[i2 + 1])}`);
       }
       if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
     }
@@ -13396,15 +13643,15 @@ function captureStreamFrame(w) {
     w.dom.baseEl.querySelectorAll(".apexcharts-marker").forEach((node) => {
       var _a2, _b2, _c2, _d, _e;
       const ri = parseInt((_a2 = node.getAttribute("index")) != null ? _a2 : "", 10);
-      const j2 = parseInt(
+      const j = parseInt(
         (_c2 = (_b2 = node.getAttribute("j")) != null ? _b2 : node.getAttribute("rel")) != null ? _c2 : "",
         10
       );
       const r2 = parseFloat(
         (_e = (_d = node.getAttribute("r")) != null ? _d : node.getAttribute("default-marker-size")) != null ? _e : ""
       );
-      if (isFinite(ri) && isFinite(j2) && isFinite(r2)) {
-        (rPixels[ri] = rPixels[ri] || [])[j2] = r2;
+      if (isFinite(ri) && isFinite(j) && isFinite(r2)) {
+        (rPixels[ri] = rPixels[ri] || [])[j] = r2;
       }
     });
   }
@@ -13513,19 +13760,19 @@ function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
     oldYP[k2 + yLo] - nyLo;
   }
   if (!isFinite(ay) || !isFinite(by) || ay < 0.2 || ay > 5) return null;
-  const m = Math.floor((a2 + b) / 2);
-  if (m !== a2 && m !== b && newXPixels[m] != null && oldXP[k2 + m] != null) {
+  const m2 = Math.floor((a2 + b) / 2);
+  if (m2 !== a2 && m2 !== b && newXPixels[m2] != null && oldXP[k2 + m2] != null) {
     const predX = ax * /** @type {number} */
-    newXPixels[m] + bx;
+    newXPixels[m2] + bx;
     if (Math.abs(predX - /** @type {number} */
-    oldXP[k2 + m]) > 1.5) {
+    oldXP[k2 + m2]) > 1.5) {
       return null;
     }
-    if (newYPixels[m] != null && oldYP[k2 + m] != null) {
+    if (newYPixels[m2] != null && oldYP[k2 + m2] != null) {
       const predY = ay * /** @type {number} */
-      newYPixels[m] + by;
+      newYPixels[m2] + by;
       if (Math.abs(predY - /** @type {number} */
-      oldYP[k2 + m]) > 1.5) {
+      oldYP[k2 + m2]) > 1.5) {
         return null;
       }
     }
@@ -13533,18 +13780,18 @@ function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
   gl.streamScrolled = true;
   return { ax, bx, ay, by };
 }
-function projectPathToPrevFrame(d, t2) {
-  return mapPathAffine(d, t2.ax, t2.bx, t2.ay, t2.by);
+function projectPathToPrevFrame(d2, t2) {
+  return mapPathAffine(d2, t2.ax, t2.bx, t2.ay, t2.by);
 }
 function trimStreamingSeries(newSeries, w) {
   const cfg = w.config.chart.streaming;
   if (!cfg || !cfg.enabled) return;
   const maxPoints = cfg.maxPoints;
   const range = w.config.xaxis.range;
-  const dt = w.config.xaxis.type === "datetime";
-  const xOf = (p) => {
-    const x2 = Array.isArray(p) ? p[0] : p && p.x;
-    const v = dt && x2 != null ? new Date(x2).getTime() : x2;
+  const dt2 = w.config.xaxis.type === "datetime";
+  const xOf = (p2) => {
+    const x2 = Array.isArray(p2) ? p2[0] : p2 && p2.x;
+    const v = dt2 && x2 != null ? new Date(x2).getTime() : x2;
     return typeof v === "number" && v === v ? v : null;
   };
   newSeries.forEach((s2) => {
@@ -13569,11 +13816,11 @@ function trimStreamingSeries(newSeries, w) {
 function readTranslate(el) {
   const t2 = (el.getAttribute("transform") || "").trim();
   if (!t2) return [0, 0];
-  const m = /^translate\(\s*([-+.\deE]+)(?:[\s,]+([-+.\deE]+))?\s*\)$/.exec(t2);
-  if (!m) return null;
-  const x2 = parseFloat(m[1]);
-  const y = m[2] === void 0 ? 0 : parseFloat(m[2]);
-  return Number.isFinite(x2) && Number.isFinite(y) ? [x2, y] : null;
+  const m2 = /^translate\(\s*([-+.\deE]+)(?:[\s,]+([-+.\deE]+))?\s*\)$/.exec(t2);
+  if (!m2) return null;
+  const x2 = parseFloat(m2[1]);
+  const y2 = m2[2] === void 0 ? 0 : parseFloat(m2[2]);
+  return Number.isFinite(x2) && Number.isFinite(y2) ? [x2, y2] : null;
 }
 function currentPlotRect(w) {
   var _a, _b, _c;
@@ -13648,10 +13895,10 @@ function captureLayout(w) {
   const g2 = (_a = w.dom.elGraphical) == null ? void 0 : _a.node;
   if (g2) {
     gridLines(g2).forEach(([ln, k2]) => {
-      const p = nums(ln, ["x1", "y1", "x2", "y2"]);
-      if (!p) return;
-      if (!ends[`h:${k2}`] && p[1] === p[3]) ends[`h:${k2}`] = [p[0], p[2]];
-      if (!ends[`v:${k2}`] && p[0] === p[2]) ends[`v:${k2}`] = [p[1], p[3]];
+      const p2 = nums(ln, ["x1", "y1", "x2", "y2"]);
+      if (!p2) return;
+      if (!ends[`h:${k2}`] && p2[1] === p2[3]) ends[`h:${k2}`] = [p2[0], p2[2]];
+      if (!ends[`v:${k2}`] && p2[0] === p2[2]) ends[`v:${k2}`] = [p2[1], p2[3]];
     });
     const row = nums(g2.querySelector(".apexcharts-grid-row"), ["x", "width"]);
     if (row) ends.row = row;
@@ -13725,14 +13972,14 @@ function transitionLayout(w, from, { driven, duration, ease }) {
   const slide = (el, was) => {
     const now = readTranslate(el);
     if (!was || !now) return;
-    const d = Math.max(Math.abs(was[0] - now[0]), Math.abs(was[1] - now[1]));
-    if (d < 0.5) return;
-    travel = Math.max(travel, d);
+    const d2 = Math.max(Math.abs(was[0] - now[0]), Math.abs(was[1] - now[1]));
+    if (d2 < 0.5) return;
+    travel = Math.max(travel, d2);
     const base = el.getAttribute("transform");
     writers.push((_, e2) => {
       const x2 = was[0] + (now[0] - was[0]) * e2;
-      const y = was[1] + (now[1] - was[1]) * e2;
-      el.setAttribute("transform", `translate(${x2}, ${y})`);
+      const y2 = was[1] + (now[1] - was[1]) * e2;
+      el.setAttribute("transform", `translate(${x2}, ${y2})`);
     });
     finals.push(() => {
       if (base) el.setAttribute("transform", base);
@@ -13818,7 +14065,7 @@ function transitionLayout(w, from, { driven, duration, ease }) {
       if (token.done) return;
       token.done = true;
       unlisten();
-      finals.forEach((f) => f());
+      finals.forEach((f2) => f2());
       if (gl.layoutTween === token) gl.layoutTween = null;
     }
   };
@@ -13878,9 +14125,9 @@ function buildUnionEntries(join, oldN) {
   }
   return entries;
 }
-function analyzeSeriesPath(d, expectedAnchors, isArea) {
-  if (!d || typeof d !== "string") return null;
-  const cmds = parsePath(d);
+function analyzeSeriesPath(d2, expectedAnchors, isArea) {
+  if (!d2 || typeof d2 !== "string") return null;
+  const cmds = parsePath(d2);
   if (!cmds.length || cmds[0][0] !== "M") return null;
   for (let i2 = 1; i2 < cmds.length; i2++) {
     if (cmds[i2][0] === "M") return null;
@@ -13904,7 +14151,7 @@ function analyzeSeriesPath(d, expectedAnchors, isArea) {
     if (body[i2][0] !== segType) return null;
   }
   const anchors = body.map(
-    (c) => c[0] === "C" ? [Number(c[5]), Number(c[6])] : [Number(c[1]), Number(c[2])]
+    (c2) => c2[0] === "C" ? [Number(c2[5]), Number(c2[6])] : [Number(c2[1]), Number(c2[2])]
   );
   for (const a2 of anchors) {
     if (!isFinite(a2[0]) || !isFinite(a2[1])) return null;
@@ -13943,16 +14190,16 @@ function splitLine(s2, cmd, t2) {
 function expandPath(analysis, ownIdx) {
   const { body, closing, segType, anchors } = analysis;
   const n2 = anchors.length;
-  const m = ownIdx.length;
-  const degen = (p) => segType === "C" ? ["C", p[0], p[1], p[0], p[1], p[0], p[1]] : ["L", p[0], p[1]];
+  const m2 = ownIdx.length;
+  const degen = (p2) => segType === "C" ? ["C", p2[0], p2[1], p2[0], p2[1], p2[0], p2[1]] : ["L", p2[0], p2[1]];
   const out = [["M", anchors[0][0], anchors[0][1]]];
   let firstOwn = 0;
-  while (firstOwn < m && ownIdx[firstOwn] !== 0) firstOwn++;
+  while (firstOwn < m2 && ownIdx[firstOwn] !== 0) firstOwn++;
   for (let q = 1; q <= firstOwn; q++) out.push(degen(anchors[0]));
   let entry = firstOwn + 1;
   for (let s2 = 0; s2 < n2 - 1; s2++) {
     let interior = 0;
-    while (entry + interior < m && ownIdx[entry + interior] === -1) interior++;
+    while (entry + interior < m2 && ownIdx[entry + interior] === -1) interior++;
     const cmd = body[s2 + 1];
     if (!interior) {
       out.push(cmd.slice());
@@ -13971,11 +14218,11 @@ function expandPath(analysis, ownIdx) {
     }
     entry += interior + 1;
   }
-  while (entry < m) {
+  while (entry < m2) {
     out.push(degen(anchors[n2 - 1]));
     entry++;
   }
-  if (closing) closing.forEach((c) => out.push(c.slice()));
+  if (closing) closing.forEach((c2) => out.push(c2.slice()));
   return out;
 }
 function reconcilePathPair(fromD, toD, entries, oldN, newN, isArea) {
@@ -14005,29 +14252,29 @@ function lengthTransitionEnabled(w) {
   if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
   return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
 }
-function datumKey(w, realIndex, j2) {
+function datumKey(w, realIndex, j) {
   var _a, _b;
   return keyOf(
     (_a = w.axisFlags) == null ? void 0 : _a.isXNumeric,
     (_b = w.seriesData) == null ? void 0 : _b.seriesX,
     w.globals.labels,
     realIndex,
-    j2
+    j
   );
 }
-function frameDatumKey(frame, realIndex, j2) {
-  return keyOf(frame.isXNumeric, frame.seriesX, frame.labels, realIndex, j2);
+function frameDatumKey(frame, realIndex, j) {
+  return keyOf(frame.isXNumeric, frame.seriesX, frame.labels, realIndex, j);
 }
-function keyOf(isXNumeric, seriesX, labels, realIndex, j2) {
+function keyOf(isXNumeric, seriesX, labels, realIndex, j) {
   if (isXNumeric) {
     const sx = seriesX == null ? void 0 : seriesX[realIndex];
-    if (sx && sx.length && sx[j2] != null) return "x:" + sx[j2];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
   }
-  const lbl = labels == null ? void 0 : labels[j2];
+  const lbl = labels == null ? void 0 : labels[j];
   if (lbl != null && String(lbl) !== "") {
     return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
   }
-  return "j:" + j2;
+  return "j:" + j;
 }
 function joinKeys(oldKeys, newKeys) {
   const oldIndex = /* @__PURE__ */ new Map();
@@ -14065,7 +14312,7 @@ function uniquifyKeys(keys) {
 }
 function seriesKeys(w, realIndex, n2 = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
   return uniquifyKeys(
-    Array.from({ length: n2 }, (_, j2) => datumKey(w, realIndex, j2))
+    Array.from({ length: n2 }, (_, j) => datumKey(w, realIndex, j))
   );
 }
 function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false, sj = buildJoin(w, realIndex)) {
@@ -14084,7 +14331,7 @@ function buildJoin(w, realIndex) {
   if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
   if (!oldY.length || !newY.length) return null;
   const oldKeys = uniquifyKeys(
-    oldY.map((_, j2) => frameDatumKey(frame, realIndex, j2))
+    oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
   const newKeys = seriesKeys(w, realIndex);
   return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
@@ -14134,13 +14381,13 @@ function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed, join }) {
   const alive = onPage(w, elPointsMain);
   markers.forEach((node) => {
     var _a2, _b2, _c2, _d2, _e, _f, _g, _h, _i;
-    const j2 = parseInt(
+    const j = parseInt(
       (_b2 = (_a2 = node.getAttribute("j")) != null ? _a2 : node.getAttribute("rel")) != null ? _b2 : "",
       10
     );
-    if (!isFinite(j2) || j2 < 0 || j2 >= sj.join.toOld.length) return;
-    const oldJ = sj.join.toOld[j2];
-    const to = newXP[j2] != null && newYP[j2] != null ? [newXP[j2], newYP[j2]] : null;
+    if (!isFinite(j) || j < 0 || j >= sj.join.toOld.length) return;
+    const oldJ = sj.join.toOld[j];
+    const to = newXP[j] != null && newYP[j] != null ? [newXP[j], newYP[j]] : null;
     if (oldJ === -1 || !to) {
       const style = (
         /** @type {any} */
@@ -14239,13 +14486,13 @@ function shrinkCollapsingMarkers(w, { elPointsMain, realIndex, speed, drawPoint 
   const fallbackR = w.globals.markers.size[realIndex] || 0;
   const ease = morphEasing(w);
   let drawn = false;
-  for (let j2 = 0; j2 < xs.length; j2++) {
-    const x2 = xs[j2];
-    const y = ys[j2];
-    if (x2 == null || y == null || !isFinite(x2) || !isFinite(y)) continue;
-    const r2 = isFinite(rs[j2]) ? rs[j2] : fallbackR;
+  for (let j = 0; j < xs.length; j++) {
+    const x2 = xs[j];
+    const y2 = ys[j];
+    if (x2 == null || y2 == null || !isFinite(x2) || !isFinite(y2)) continue;
+    const r2 = isFinite(rs[j]) ? rs[j] : fallbackR;
     if (!(r2 > 0)) continue;
-    const el = drawPoint(x2, y, r2, j2);
+    const el = drawPoint(x2, y2, r2, j);
     if (!(el == null ? void 0 : el.node)) continue;
     elPointsMain.add(el);
     const node = el.node;
@@ -14255,9 +14502,9 @@ function shrinkCollapsingMarkers(w, { elPointsMain, realIndex, speed, drawPoint 
       w,
       Math.max(1, speed || 1),
       ease,
-      (eased) => scaleAbout(node, x2, y, 1 - eased),
+      (eased) => scaleAbout(node, x2, y2, 1 - eased),
       () => {
-        scaleAbout(node, x2, y, 0);
+        scaleAbout(node, x2, y2, 0);
         landed();
       }
     );
@@ -14304,12 +14551,12 @@ function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, 
   if (!out.line && !out.area) return null;
   return out;
 }
-function firstMove(d) {
-  const m = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d || "");
-  if (!m) return null;
-  const x2 = parseFloat(m[1]);
-  const y = parseFloat(m[2]);
-  return isFinite(x2) && isFinite(y) ? { x: x2, y } : null;
+function firstMove(d2) {
+  const m2 = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d2 || "");
+  if (!m2) return null;
+  const x2 = parseFloat(m2[1]);
+  const y2 = parseFloat(m2[2]);
+  return isFinite(x2) && isFinite(y2) ? { x: x2, y: y2 } : null;
 }
 const GHOST_EASE = (t2) => 1 - Math.pow(1 - t2, 3);
 function renderBarExitGhosts({
@@ -14325,18 +14572,18 @@ function renderBarExitGhosts({
   if (!record || !Array.isArray(record.paths) || !(elSeries == null ? void 0 : elSeries.node)) return;
   const newKeySet = new Set(newKeys);
   const exits = record.paths.filter(
-    (p) => p && p.d && p.key != null && !newKeySet.has(p.key)
+    (p2) => p2 && p2.d && p2.key != null && !newKeySet.has(p2.key)
   );
   if (!exits.length) return;
   const graphics = new Graphics(w);
   const fallbackFill = (_a = w.globals.colors) == null ? void 0 : _a[parseInt(String(record.realIndex), 10)];
   const host = elSeries.node;
   const staged = host.ownerDocument.createDocumentFragment();
-  const nodes = exits.map((p) => {
-    let fill = p.fill || fallbackFill || "#c8c8c8";
+  const nodes = exits.map((p2) => {
+    let fill = p2.fill || fallbackFill || "#c8c8c8";
     if (String(fill).indexOf("url(") === 0) fill = fallbackFill || "#c8c8c8";
     const ghost = graphics.drawPath({
-      d: p.d,
+      d: p2.d,
       stroke: "none",
       strokeWidth: 0,
       fill,
@@ -14361,15 +14608,15 @@ function renderBarExitGhosts({
     }
   });
   const t0 = performance.now();
-  exits.forEach((p, i2) => {
+  exits.forEach((p2, i2) => {
     const node = nodes[i2];
     const bb = boxes[i2];
-    const start = firstMove(p.d);
+    const start = firstMove(p2.d);
     const near = !start || !bb || (isHorizontal ? Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) : Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y));
     const style = node.style;
     style.transformBox = "fill-box";
     style.transformOrigin = isHorizontal ? near ? "left center" : "right center" : near ? "center bottom" : "center top";
-    node.setAttribute("data:ghostKey", `${record.realIndex}::${p.key}`);
+    node.setAttribute("data:ghostKey", `${record.realIndex}::${p2.key}`);
     node.setAttribute("data:ghostStart", String(t0));
     if (bb) {
       const edge = isHorizontal ? near ? bb.x : bb.x + bb.width : near ? bb.y + bb.height : bb.y;
@@ -14444,7 +14691,7 @@ function currentYAnchors(w, labels) {
   const min = gl.minY;
   const max = gl.maxY;
   if (!isFinite(min) || !isFinite(max) || !(max > min)) return null;
-  const ps = labels.map((l2) => l2.pos).filter((p) => isFinite(p));
+  const ps = labels.map((l2) => l2.pos).filter((p2) => isFinite(p2));
   if (ps.length < 2) return null;
   return { min, max, pLo: Math.max(...ps), pHi: Math.min(...ps) };
 }
@@ -14454,8 +14701,8 @@ function composeXMap(o2, n2) {
   const ns = n2.max - n2.min;
   if (!(os > 0) || !(ns > 0) || !(o2.width > 0) || !(n2.width > 0)) return null;
   return {
-    toNew: (p) => (o2.min + p / o2.width * os - n2.min) / ns * n2.width,
-    toOld: (p) => (n2.min + p / n2.width * ns - o2.min) / os * o2.width
+    toNew: (p2) => (o2.min + p2 / o2.width * os - n2.min) / ns * n2.width,
+    toOld: (p2) => (n2.min + p2 / n2.width * ns - o2.min) / os * o2.width
   };
 }
 function composeYMap(o2, n2) {
@@ -14465,11 +14712,11 @@ function composeYMap(o2, n2) {
   const oSpanV = o2.max - o2.min;
   const nSpanV = n2.max - n2.min;
   if (!oSpanP || !nSpanP || !(oSpanV > 0) || !(nSpanV > 0)) return null;
-  const oldVal = (p) => o2.min + (p - o2.pLo) / oSpanP * oSpanV;
-  const newVal = (p) => n2.min + (p - n2.pLo) / nSpanP * nSpanV;
+  const oldVal = (p2) => o2.min + (p2 - o2.pLo) / oSpanP * oSpanV;
+  const newVal = (p2) => n2.min + (p2 - n2.pLo) / nSpanP * nSpanV;
   return {
-    toNew: (p) => n2.pLo + (oldVal(p) - n2.min) / nSpanV * nSpanP,
-    toOld: (p) => o2.pLo + (newVal(p) - o2.min) / oSpanV * oSpanP
+    toNew: (p2) => n2.pLo + (oldVal(p2) - n2.min) / nSpanV * nSpanP,
+    toOld: (p2) => o2.pLo + (newVal(p2) - o2.min) / oSpanV * oSpanP
   };
 }
 function captureAxisChrome(w) {
@@ -14628,11 +14875,11 @@ function transitionAxis(w, {
   const skipBlank = posAttr === "x" && (!((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) || w.globals.isBarHorizontal);
   const spanPs = oldLabels.map((l2) => l2.pos).concat(
     newLabels.map((l2) => parseFloat(l2.getAttribute(posAttr) || ""))
-  ).filter((p) => isFinite(p));
+  ).filter((p2) => isFinite(p2));
   const spanLo = Math.min(...spanPs);
   const spanHi = Math.max(...spanPs);
   const margin = Math.max(40, (spanHi - spanLo) * 0.25);
-  const clamp = (p) => Math.max(spanLo - margin, Math.min(spanHi + margin, p));
+  const clamp = (p2) => Math.max(spanLo - margin, Math.min(spanHi + margin, p2));
   const tweenPairedLine = (line, old) => {
     if (!line) return;
     const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || "");
@@ -14785,7 +15032,7 @@ function currentCircle(w, geom) {
 }
 function toPlot(el, graphical) {
   var _a, _b;
-  const m = (
+  const m2 = (
     /** @type {SVGGraphicsElement} */
     (_a = el.getCTM) == null ? void 0 : _a.call(el)
   );
@@ -14793,24 +15040,24 @@ function toPlot(el, graphical) {
     /** @type {SVGGraphicsElement} */
     (_b = graphical.getCTM) == null ? void 0 : _b.call(graphical)
   );
-  if (!m || !g2) return null;
-  const r2 = g2.inverse().multiply(m);
+  if (!m2 || !g2) return null;
+  const r2 = g2.inverse().multiply(m2);
   return new DOMMatrix([r2.a, r2.b, r2.c, r2.d, r2.e, r2.f]);
 }
 function textAt(el, graphical) {
   var _a;
   try {
-    const m = toPlot(el, graphical);
+    const m2 = toPlot(el, graphical);
     const b = (
       /** @type {SVGGraphicsElement} */
       el.getBBox()
     );
-    if (!m || !(b.width > 0 || b.height > 0)) return null;
-    const p = new DOMPoint(b.x + b.width / 2, b.y + b.height / 2).matrixTransform(m);
-    const k2 = Math.hypot(m.a, m.b);
+    if (!m2 || !(b.width > 0 || b.height > 0)) return null;
+    const p2 = new DOMPoint(b.x + b.width / 2, b.y + b.height / 2).matrixTransform(m2);
+    const k2 = Math.hypot(m2.a, m2.b);
     const own = parseFloat((_a = el.getAttribute("opacity")) != null ? _a : "");
     const o2 = Number.isFinite(own) ? own : 1;
-    return [p.x, p.y, k2].every(Number.isFinite) && k2 > 0 ? { x: p.x, y: p.y, k: k2, o: o2 } : null;
+    return [p2.x, p2.y, k2].every(Number.isFinite) && k2 > 0 ? { x: p2.x, y: p2.y, k: k2, o: o2 } : null;
   } catch (_) {
     return null;
   }
@@ -14906,23 +15153,23 @@ function applyCircleTransition(w, { layout = true } = {}) {
   }
 }
 function fitsTheChart(from, graphical) {
-  const d = from.drawn;
+  const d2 = from.drawn;
   const svg = (
     /** @type {SVGGraphicsElement} */
     graphical.ownerSVGElement
   );
-  if (!d || !svg) return true;
+  if (!d2 || !svg) return true;
   const s2 = svg.getBoundingClientRect();
   if (!(s2.width > 0 && s2.height > 0)) return true;
   const TOL = 2;
   const over = (was, now) => now <= Math.max(0, was) + TOL;
-  return over(-d.l, -d.l) && over(-d.t, -d.t) && over(d.r - d.W, d.r - s2.width) && over(d.b - d.H, d.b - s2.height);
+  return over(-d2.l, -d2.l) && over(-d2.t, -d2.t) && over(d2.r - d2.W, d2.r - s2.width) && over(d2.b - d2.H, d2.b - s2.height);
 }
 function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
   const gl = w.globals;
   const node = to.node;
   const c1 = { cx: to.cx, cy: to.cy, r: to.r };
-  const sane = (c) => [c.cx, c.cy, c.r].every(Number.isFinite) && c.r > 0;
+  const sane = (c2) => [c2.cx, c2.cy, c2.r].every(Number.isFinite) && c2.r > 0;
   if (!sane(c0) || !sane(c1)) return;
   const travel = Math.max(
     Math.abs(c0.cx - c1.cx),
@@ -14944,9 +15191,9 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
       /** @type {Element | null} */
       el.parentNode
     );
-    const M2 = parent ? toPlot(parent, graphical) : null;
+    const M = parent ? toPlot(parent, graphical) : null;
     const now = textAt(el, graphical);
-    if (!M2 || !now) return;
+    if (!M || !now) return;
     const at2 = texts.get(key);
     const P0 = at2 != null ? at2 : {
       x: c0.cx + s0 * (now.x - c1.cx),
@@ -14955,11 +15202,11 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
     };
     const own = el.getAttribute("transform");
     const opacity = el.getAttribute("opacity");
-    const Minv = M2.inverse();
+    const Minv = M.inverse();
     const origin = (el.getAttribute("transform-origin") || "").split(/[\s,]+/).map((v) => parseFloat(v));
     const [ox, oy] = origin.length === 2 && origin.every(Number.isFinite) ? origin : [0, 0];
     const fadeFrom = at2 ? at2.o : 0;
-    writers.push((c, s2, e2) => {
+    writers.push((c2, s2, e2) => {
       const P = { x: lerp2(P0.x, now.x, e2), y: lerp2(P0.y, now.y, e2) };
       const sigma = lerp2(P0.k / now.k, 1, e2);
       const E2 = new DOMMatrix([
@@ -14967,10 +15214,10 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
         0,
         0,
         sigma / s2,
-        c1.cx + (P.x - c.cx - sigma * now.x) / s2,
-        c1.cy + (P.y - c.cy - sigma * now.y) / s2
+        c1.cx + (P.x - c2.cx - sigma * now.x) / s2,
+        c1.cy + (P.y - c2.cy - sigma * now.y) / s2
       ]);
-      let X = Minv.multiply(E2).multiply(M2);
+      let X = Minv.multiply(E2).multiply(M);
       if (ox || oy) {
         X = new DOMMatrix().translate(-ox, -oy).multiply(X).translate(ox, oy);
       }
@@ -14990,10 +15237,10 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
   });
   node.querySelectorAll(".apexcharts-slices path[transform]").forEach((el) => {
     const own = el.getAttribute("transform") || "";
-    const m = /^translate\(\s*([-+.\deE]+)[\s,]+([-+.\deE]+)\s*\)$/.exec(own.trim());
-    if (!m) return;
-    const dx = parseFloat(m[1]);
-    const dy = parseFloat(m[2]);
+    const m2 = /^translate\(\s*([-+.\deE]+)[\s,]+([-+.\deE]+)\s*\)$/.exec(own.trim());
+    if (!m2) return;
+    const dx = parseFloat(m2[1]);
+    const dy = parseFloat(m2[2]);
     let wrote = own;
     let ours = true;
     writers.push((_, s2) => {
@@ -15021,23 +15268,23 @@ function tweenCircle(w, { from: c0, texts, to, graphical, duration, ease }) {
       token.done = true;
       unlisten();
       restore(node, base);
-      finals.forEach((f) => f());
+      finals.forEach((f2) => f2());
       if (gl.circleTween === token) gl.circleTween = null;
     }
   };
   const paint = (e2) => {
-    const c = {
+    const c2 = {
       cx: lerp2(c0.cx, c1.cx, e2),
       cy: lerp2(c0.cy, c1.cy, e2),
       r: lerp2(c0.r, c1.r, e2)
     };
-    token.circle = c;
-    const s2 = c.r / c1.r;
+    token.circle = c2;
+    const s2 = c2.r / c1.r;
     node.setAttribute(
       "transform",
-      `translate(${c.cx}, ${c.cy}) scale(${s2}) translate(${-c1.cx}, ${-c1.cy}) ${base || ""}`.trim()
+      `translate(${c2.cx}, ${c2.cy}) scale(${s2}) translate(${-c1.cx}, ${-c1.cy}) ${base || ""}`.trim()
     );
-    writers.forEach((fn) => fn(c, s2, e2));
+    writers.forEach((fn) => fn(c2, s2, e2));
   };
   gl.circleTween = token;
   unlisten = landOnGesture(w, () => token.finish());
@@ -15186,9 +15433,9 @@ function nearestIndex(xs, x2) {
   for (let k2 = 0; k2 < xs.length; k2++) {
     const v = xs[k2];
     if (v == null) continue;
-    const d = Math.abs(v - x2);
-    if (d < dist) {
-      dist = d;
+    const d2 = Math.abs(v - x2);
+    if (d2 < dist) {
+      dist = d2;
       best = k2;
     }
   }
@@ -15208,10 +15455,10 @@ function riseLabels(w, rises) {
       root.querySelectorAll(
         `.apexcharts-datalabels[data\\:realIndex="${ri}"] .apexcharts-data-labels:not([data\\:dlKey]) ${DL_TEXT_SEL}`
       ).forEach((text) => {
-        const j2 = nearestIndex(newX, parseFloat(text.getAttribute("cx") || ""));
-        const dx = px$1(oldX[j2]) - px$1(newX[j2]);
-        const dy = px$1(oldY[j2]) - px$1(newY[j2]);
-        if (j2 < 0 || !isFinite(dx) || !isFinite(dy)) return;
+        const j = nearestIndex(newX, parseFloat(text.getAttribute("cx") || ""));
+        const dx = px$1(oldX[j]) - px$1(newX[j]);
+        const dy = px$1(oldY[j]) - px$1(newY[j]);
+        if (j < 0 || !isFinite(dx) || !isFinite(dy)) return;
         const els = withPill(text);
         const bases = els.map((el) => el.getAttribute("transform") || "");
         const place2 = (eased) => els.forEach((el, k2) => {
@@ -15284,20 +15531,20 @@ function playExitLabels(w) {
         startAt = +((_c = ghost.getAttribute("data:ghostStart")) != null ? _c : "") || void 0;
         parts.forEach((els) => {
           const text = els[els.length - 1];
-          const c = parseFloat(text.getAttribute(isHorizontal ? "cx" : "cy") || "");
-          if (!isFinite(c)) return;
-          const d = edge - c;
-          moves.push({ els, dx: isHorizontal ? d : 0, dy: isHorizontal ? 0 : d });
+          const c2 = parseFloat(text.getAttribute(isHorizontal ? "cx" : "cy") || "");
+          if (!isFinite(c2)) return;
+          const d2 = edge - c2;
+          moves.push({ els, dx: isHorizontal ? d2 : 0, dy: isHorizontal ? 0 : d2 });
         });
       } else if (!key) {
         const newX = ((_d = gl.seriesXvalues) == null ? void 0 : _d[realIndex]) || [];
         const newY = ((_e = gl.seriesYvalues) == null ? void 0 : _e[realIndex]) || [];
         parts.forEach((els) => {
           const text = els[els.length - 1];
-          const j2 = nearestIndex(oldX, parseFloat(text.getAttribute("cx") || ""));
-          const dx = px$1(newX[j2]) - px$1(oldX[j2]);
-          const dy = px$1(newY[j2]) - px$1(oldY[j2]);
-          if (j2 < 0 || !isFinite(dx) || !isFinite(dy)) return;
+          const j = nearestIndex(oldX, parseFloat(text.getAttribute("cx") || ""));
+          const dx = px$1(newX[j]) - px$1(oldX[j]);
+          const dy = px$1(newY[j]) - px$1(oldY[j]);
+          if (j < 0 || !isFinite(dx) || !isFinite(dy)) return;
           moves.push({ els, dx, dy });
         });
       }
@@ -15458,7 +15705,7 @@ function applyDataLabelTransition(w) {
       }
       if (countUp && old) {
         const realIndex = parseInt(key, 10);
-        const j2 = parseInt(group.getAttribute("data:dlJ") || "", 10);
+        const j = parseInt(group.getAttribute("data:dlJ") || "", 10);
         countUpText(w, {
           el: textEl,
           from: old.val,
@@ -15469,7 +15716,7 @@ function applyDataLabelTransition(w) {
           // of `w` on every frame. Same shape the bar formatter gets.
           fmtOpts: __spreadProps(__spreadValues({}, w), {
             seriesIndex: realIndex,
-            dataPointIndex: isFinite(j2) ? j2 : 0,
+            dataPointIndex: isFinite(j) ? j : 0,
             w
           }),
           duration,
@@ -15659,8 +15906,8 @@ const _Series = class _Series {
       g2.querySelectorAll(
         ".apexcharts-marker-exit, .apexcharts-bar-ghost"
       ).forEach((el) => el.remove());
-      g2.querySelectorAll("path").forEach((p) => {
-        p.setAttribute("d", "");
+      g2.querySelectorAll("path").forEach((p2) => {
+        p2.setAttribute("d", "");
       });
     };
     const clearLeaving = () => {
@@ -15857,13 +16104,13 @@ const _Series = class _Series {
       const nextRecords = [];
       const nextIndices = [];
       records.forEach((rec) => {
-        const j2 = rec && rec.name != null && newNames[rec.index] !== rec.name ? newNames.indexOf(rec.name) : rec.index;
-        if (j2 == null || j2 < 0 || j2 >= target.length) return;
+        const j = rec && rec.name != null && newNames[rec.index] !== rec.name ? newNames.indexOf(rec.name) : rec.index;
+        if (j == null || j < 0 || j >= target.length) return;
         const s2 = (
           /** @type {any} */
-          target[j2]
+          target[j]
         );
-        rec.index = j2;
+        rec.index = j;
         if (gl.axisCharts) {
           if (s2 && Array.isArray(s2.data) && s2.data.length)
             rec.data = s2.data.slice();
@@ -15871,7 +16118,7 @@ const _Series = class _Series {
           rec.data = s2;
         }
         nextRecords.push(rec);
-        nextIndices.push(j2);
+        nextIndices.push(j);
       });
       return { records: nextRecords, indices: nextIndices };
     };
@@ -16156,19 +16403,19 @@ const _Series = class _Series {
         ),
         realIndex: seriesEls[i2].getAttribute("data:realIndex")
       };
-      for (let j2 = 0; j2 < paths.length; j2++) {
-        if (paths[j2].hasAttribute("pathTo")) {
-          const d = (type === "line" || type === "area") && paths[j2].getAttribute("d") || paths[j2].getAttribute("pathTo");
-          if (paths[j2].classList.contains("apexcharts-raincloud-box")) {
+      for (let j = 0; j < paths.length; j++) {
+        if (paths[j].hasAttribute("pathTo")) {
+          const d2 = (type === "line" || type === "area") && paths[j].getAttribute("d") || paths[j].getAttribute("pathTo");
+          if (paths[j].classList.contains("apexcharts-raincloud-box")) {
             const body = dArr.paths[dArr.paths.length - 1];
-            if (body) (body.box || (body.box = [])).push(d);
+            if (body) (body.box || (body.box = [])).push(d2);
             continue;
           }
           dArr.paths.push({
-            d,
-            key: paths[j2].getAttribute("data:pathKey"),
-            fill: paths[j2].getAttribute("fill"),
-            flip: paths[j2].classList.contains("apexcharts-flip-y") || paths[j2].classList.contains("apexcharts-flip-x")
+            d: d2,
+            key: paths[j].getAttribute("data:pathKey"),
+            fill: paths[j].getAttribute("fill"),
+            flip: paths[j].classList.contains("apexcharts-flip-y") || paths[j].classList.contains("apexcharts-flip-x")
           });
         }
       }
@@ -16192,8 +16439,8 @@ const _Series = class _Series {
     ];
     chartTypes.forEach((type) => {
       const paths = getPaths(type);
-      for (let p = 0; p < paths.length; p++) {
-        pushPaths(paths, p, type);
+      for (let p2 = 0; p2 < paths.length; p2++) {
+        pushPaths(paths, p2, type);
       }
     });
     const heatTreeSeries = w.dom.baseEl.querySelectorAll(
@@ -16207,8 +16454,8 @@ const _Series = class _Series {
           return byIndex[(_a2 = g2.getAttribute("data:realIndex")) != null ? _a2 : ""] = g2;
         }
       );
-      for (let h = 0; h < heatTreeSeries.length; h++) {
-        const g2 = byIndex[h];
+      for (let h2 = 0; h2 < heatTreeSeries.length; h2++) {
+        const g2 = byIndex[h2];
         const within = (sel) => g2 ? g2.querySelectorAll(sel) : [];
         const seriesEls = within(`.apexcharts-${w.config.chart.type}-rect`);
         const dArr = [];
@@ -16248,8 +16495,8 @@ const _Series = class _Series {
             // too, rather than appearing at full strength.
             labelFading: fading.has(getAttr("data:key"))
           };
-          const j2 = parseInt((_g = getAttr("j")) != null ? _g : "", 10);
-          if (Number.isFinite(j2) && j2 >= 0) dArr[j2] = entry;
+          const j = parseInt((_g = getAttr("j")) != null ? _g : "", 10);
+          if (Number.isFinite(j) && j >= 0) dArr[j] = entry;
           else dArr.push(entry);
         }
         w.globals.previousPaths.push(dArr);
@@ -16313,19 +16560,19 @@ const _Series = class _Series {
           '[fill^="url("], [stroke^="url("], [filter^="url("]'
         ).forEach((el) => {
           ["fill", "stroke", "filter"].forEach((a2) => {
-            const m = /^url\(#([^)]+)\)$/.exec(el.getAttribute(a2) || "");
-            if (!m) return;
-            if (!defs.has(m[1])) {
-              const src = w.dom.baseEl.querySelector(`[id="${m[1]}"]`);
+            const m2 = /^url\(#([^)]+)\)$/.exec(el.getAttribute(a2) || "");
+            if (!m2) return;
+            if (!defs.has(m2[1])) {
+              const src = w.dom.baseEl.querySelector(`[id="${m2[1]}"]`);
               if (!src) return;
-              const c = (
+              const c2 = (
                 /** @type {Element} */
                 src.cloneNode(true)
               );
-              c.setAttribute("id", `${m[1]}-${tag}`);
-              defs.set(m[1], c);
+              c2.setAttribute("id", `${m2[1]}-${tag}`);
+              defs.set(m2[1], c2);
             }
-            el.setAttribute(a2, `url(#${m[1]}-${tag})`);
+            el.setAttribute(a2, `url(#${m2[1]}-${tag})`);
           });
         });
         if (defs.size) {
@@ -16334,7 +16581,7 @@ const _Series = class _Series {
             "defs"
           );
           holder.setAttribute("class", "apexcharts-treemap-ghost-defs");
-          defs.forEach((c) => holder.appendChild(c));
+          defs.forEach((c2) => holder.appendChild(c2));
           copy.appendChild(holder);
         }
         w.globals.prevTreemapView = copy;
@@ -16348,11 +16595,11 @@ const _Series = class _Series {
   }
   handleNoData() {
     const w = this.w;
-    const me2 = this;
+    const me = this;
     const noDataOpts = w.config.noData;
-    const graphics = new Graphics(me2.w);
+    const graphics = new Graphics(me.w);
     let x2 = w.globals.svgWidth / 2;
-    let y = w.globals.svgHeight / 2;
+    let y2 = w.globals.svgHeight / 2;
     let textAnchor = "middle";
     w.globals.noData = true;
     w.globals.animationEnded = true;
@@ -16364,16 +16611,16 @@ const _Series = class _Series {
       textAnchor = "end";
     }
     if (noDataOpts.verticalAlign === "top") {
-      y = 50;
+      y2 = 50;
     } else if (noDataOpts.verticalAlign === "bottom") {
-      y = w.globals.svgHeight - 50;
+      y2 = w.globals.svgHeight - 50;
     }
     x2 = x2 + noDataOpts.offsetX;
-    y = y + parseInt(noDataOpts.style.fontSize, 10) + 2 + noDataOpts.offsetY;
+    y2 = y2 + parseInt(noDataOpts.style.fontSize, 10) + 2 + noDataOpts.offsetY;
     if (noDataOpts.text !== void 0 && noDataOpts.text !== "") {
       const titleText = graphics.drawText({
         x: x2,
-        y,
+        y: y2,
         text: noDataOpts.text,
         textAnchor,
         fontSize: noDataOpts.style.fontSize,
@@ -16394,7 +16641,7 @@ const _Series = class _Series {
     const w = this.w;
     for (let sl = 0; sl < series.length; sl++) {
       if (series[sl].length === 0) {
-        for (let j2 = 0; j2 < series[w.globals.maxValsInArrayIndex].length; j2++) {
+        for (let j = 0; j < series[w.globals.maxValsInArrayIndex].length; j++) {
           series[sl].push(0);
         }
       }
@@ -16409,7 +16656,7 @@ const _Series = class _Series {
       const a2 = sx[0];
       const b = sx[i2];
       const n2 = a2 === b ? 0 : Math.min(a2.length, b.length);
-      for (let j2 = 0; equalLen && j2 < n2; j2++) equalLen = a2[j2] === b[j2];
+      for (let j = 0; equalLen && j < n2; j++) equalLen = a2[j] === b[j];
     }
     w.globals.allSeriesHasEqualX = equalLen;
     return equalLen;
@@ -16436,6 +16683,525 @@ __publicField(_Series, "HELD", [
   "prevPolarSizes"
 ]);
 let Series = _Series;
+const t = globalThis.console;
+function e(e2, ...n2) {
+  t.error(e2, ...n2);
+}
+function n(e2) {
+  t.warn(e2);
+}
+const s = ["community", "pro", "premium", "embedded", "oem"], i = { enterprise: "oem" }, r = { community: 0, pro: 1, premium: 2, embedded: 2, oem: 2 }, o = (t2) => s.includes(t2);
+function l(t2) {
+  if ("string" != typeof t2) return null;
+  const e2 = t2.trim().toLowerCase();
+  return o(e2) ? e2 : Object.prototype.hasOwnProperty.call(i, e2) ? i[e2] : null;
+}
+function a(t2) {
+  const e2 = l(t2);
+  return e2 ? r[e2] : null;
+}
+const c = "APEX-", u = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), d = "__apex_license_v1__";
+function h() {
+  const t2 = globalThis;
+  let e2 = t2[d];
+  return e2 || (e2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, t2[d] = e2), e2;
+}
+const f = class {
+  static get licenseKey() {
+    return h().key;
+  }
+  static set licenseKey(t2) {
+    h().key = t2;
+  }
+  static get listeners() {
+    return h().listeners;
+  }
+  static get validationResult() {
+    return h().result;
+  }
+  static set validationResult(t2) {
+    h().result = t2;
+  }
+  static getKey() {
+    return this.licenseKey;
+  }
+  static getLicenseStatus() {
+    return this.licenseKey ? (this.validationResult = this.validateKey(this.licenseKey), this.validationResult) : { expired: false, signatureVerified: false, valid: false };
+  }
+  static isKeyValid(t2) {
+    return !!t2 && this.validateKey(t2).valid;
+  }
+  static isLicenseValid() {
+    return this.getLicenseStatus().valid;
+  }
+  static onChange(t2) {
+    return this.listeners.add(t2), () => {
+      this.listeners.delete(t2);
+    };
+  }
+  static setLicense(t2) {
+    var _a;
+    var s2, i2, r2, o2, c2;
+    if (!t2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
+    const u2 = this.validateKey(t2);
+    if (u2.valid || t2 === this.licenseKey || !(null == (s2 = this.validationResult) ? void 0 : s2.valid)) {
+      if (u2.valid && t2 !== this.licenseKey && this.licenseKey) {
+        const t3 = this.getLicenseStatus(), e2 = t3.valid ? a(null == (i2 = t3.data) ? void 0 : i2.plan) : null, s3 = a(null == (r2 = u2.data) ? void 0 : r2.plan);
+        if (null !== e2 && null !== s3 && s3 < e2) return void n(`[Apex] Ignoring license key: its plan (${l(null == (o2 = u2.data) ? void 0 : o2.plan)}) is lower than ${l(null == (c2 = t3.data) ? void 0 : c2.plan)}, the plan of the license already active on this page. Call setLicense("") first to replace it with a lower plan.`);
+      }
+      this.licenseKey = t2, this.publish(u2), u2.valid || e(`[Apex] ${u2.message}`);
+    } else n(`[Apex] Ignoring license key: ${(_a = u2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
+  }
+  static validateKey(t2) {
+    const e2 = this.parseKey(t2), n2 = this.validateStructure(t2, e2);
+    if (!n2.valid || !(null == e2 ? void 0 : e2.signature)) return n2;
+    const s2 = this.verdicts.get(t2);
+    return false === s2 ? { data: e2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === s2 && this.verifySignature(t2, e2, n2), __spreadProps(__spreadValues({}, n2), { signatureVerified: true === s2 }));
+  }
+  static _resetSignatureState() {
+    this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
+  }
+  static base64ToBytes(t2) {
+    const e2 = t2.replace(/-/g, "+").replace(/_/g, "/"), n2 = e2.padEnd(4 * Math.ceil(e2.length / 4), "="), s2 = globalThis.atob;
+    if ("function" != typeof s2) throw new Error("no base64 decoder available");
+    const i2 = s2(n2), r2 = new Uint8Array(i2.length);
+    for (let t3 = 0; t3 < i2.length; t3++) r2[t3] = i2.charCodeAt(t3);
+    return r2;
+  }
+  static canonicalPayload(t2) {
+    const e2 = t2.domains && t2.domains.length > 0 ? t2.domains.join(",") : "";
+    return `v1|${t2.issueDate}|${t2.expiryDate}|${t2.plan}|${e2}`;
+  }
+  static notify(t2) {
+    for (const e2 of this.listeners) try {
+      e2(t2);
+    } catch (e3) {
+    }
+  }
+  static parseKey(t2) {
+    if ("string" != typeof t2 || !t2.startsWith(c)) return null;
+    const e2 = t2.slice(5);
+    if (!e2) return null;
+    try {
+      const t3 = new TextDecoder().decode(this.base64ToBytes(e2)), n2 = JSON.parse(t3);
+      return n2.issueDate && n2.expiryDate && n2.plan ? { data: { domains: Array.isArray(n2.domains) ? n2.domains : void 0, expiryDate: n2.expiryDate, issueDate: n2.issueDate, plan: n2.plan, valid: true }, signature: "string" == typeof n2.sig && n2.sig ? n2.sig : null } : null;
+    } catch (e3) {
+      return null;
+    }
+  }
+  static publish(t2) {
+    this.validationResult = t2, this.notify(t2);
+  }
+  static validateStructure(t2, e2) {
+    const n2 = (t3) => ({ expired: false, message: t3, signatureVerified: false, valid: false });
+    if ("string" != typeof t2 || !t2.startsWith(c)) return n2('Invalid license key format. License key must start with "APEX-".');
+    if (!e2) return n2("Invalid license key. Unable to decode license data.");
+    const { data: s2, signature: i2 } = e2;
+    if (!i2 && /* @__PURE__ */ new Date() >= u) return n2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+    if (new Date(s2.expiryDate) < /* @__PURE__ */ new Date()) return { data: s2, expired: true, message: `License expired on ${s2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
+    if (s2.domains && s2.domains.length > 0) {
+      const t3 = "undefined" == typeof location ? "" : location.hostname;
+      if (!s2.domains.some(((e3) => t3 === e3 || t3.endsWith(`.${e3}`)))) return { data: s2, expired: false, message: `License is not valid for this domain (${t3}). Allowed domains: ${s2.domains.join(", ")}.`, signatureVerified: false, valid: false };
+    }
+    return { data: s2, expired: false, signatureVerified: false, valid: true };
+  }
+  static verifySignature(t2, s2, i2) {
+    return __async(this, null, function* () {
+      var r2;
+      if (this.verifying.has(t2) || this.verdicts.has(t2)) return;
+      this.verifying.add(t2);
+      const o2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+      if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(t2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, n(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
+      const a2 = new TextEncoder().encode(this.canonicalPayload(s2.data));
+      let c2 = false;
+      for (const t3 of this.publicKeysSpki) {
+        try {
+          const e2 = yield l2.importKey("spki", this.base64ToBytes(t3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+          c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, e2, this.base64ToBytes(s2.signature), a2);
+        } catch (e2) {
+          c2 = false;
+        }
+        if (c2) break;
+      }
+      if (this.verifying.delete(t2), this.epoch !== o2) return;
+      if (this.verdicts.set(t2, c2), c2) {
+        const e2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
+        return void (this.licenseKey === t2 ? this.publish(e2) : this.notify(e2));
+      }
+      const u2 = "Invalid license key. The license signature does not verify.", d2 = { data: s2.data, expired: false, message: u2, signatureVerified: true, valid: false };
+      this.licenseKey === t2 ? this.publish(d2) : this.notify(d2), e(`[Apex] ${u2}`);
+    });
+  }
+};
+f.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], f.verdicts = /* @__PURE__ */ new Map(), f.verifying = /* @__PURE__ */ new Set(), f.warnedUnverifiable = false, f.epoch = 0;
+let m = f;
+const p = /* @__PURE__ */ new Set();
+function g$2() {
+  var t2;
+  const e2 = m.getLicenseStatus();
+  return e2.valid ? l(null == (t2 = e2.data) ? void 0 : t2.plan) : null;
+}
+function y(t2) {
+  var e2;
+  try {
+    const i2 = m.getLicenseStatus();
+    if (!i2.valid) return false;
+    const o2 = null == (e2 = i2.data) ? void 0 : e2.plan, a2 = l(o2);
+    if (a2) return r[a2] >= r[t2];
+    const c2 = "string" == typeof o2 && o2.trim() ? o2.trim() : "(missing)";
+    return p.has(c2) || (p.add(c2), n(`[apex] licence plan ${JSON.stringify(c2)} is not a known plan, so plan-gated features are being allowed. Expected one of: ${s.join(", ")}.`)), true;
+  } catch (e3) {
+    return false;
+  }
+}
+const x = 1e3;
+function S(t2, e2) {
+  const n2 = t2.length;
+  if (0 === n2) return NaN;
+  if (1 === n2) return t2[0];
+  const s2 = (n2 - 1) * e2, i2 = Math.floor(s2), r2 = Math.ceil(s2);
+  return i2 === r2 ? t2[i2] : t2[i2] + (t2[r2] - t2[i2]) * (s2 - i2);
+}
+function A(t2, e2, n2) {
+  const s2 = t2.length, i2 = (t3) => e2 / Math.max(1, Math.ceil(t3)), r2 = () => i2(Math.log2(s2) + 1);
+  switch (n2) {
+    case "sqrt":
+      return { width: i2(Math.sqrt(s2)), rule: "sqrt" };
+    case "rice":
+      return { width: i2(2 * Math.cbrt(s2)), rule: "rice" };
+    case "scott": {
+      const e3 = (function(t3) {
+        const e4 = t3.length;
+        if (e4 < 2) return 0;
+        let n3 = 0;
+        for (let s4 = 0; s4 < e4; s4++) n3 += t3[s4];
+        const s3 = n3 / e4;
+        let i3 = 0;
+        for (let n4 = 0; n4 < e4; n4++) {
+          const e5 = t3[n4] - s3;
+          i3 += e5 * e5;
+        }
+        return Math.sqrt(i3 / e4);
+      })(t2);
+      return e3 > 0 ? { width: 3.49 * e3 * Math.pow(s2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
+    }
+    case "fd": {
+      const e3 = S(t2, 0.75) - S(t2, 0.25);
+      return e3 > 0 ? { width: 2 * e3 * Math.pow(s2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
+    }
+    case "auto": {
+      const e3 = r2(), n3 = S(t2, 0.75) - S(t2, 0.25);
+      if (n3 <= 0) return { width: e3, rule: "sturges" };
+      const i3 = 2 * n3 * Math.pow(s2, -1 / 3);
+      return i3 < e3 ? { width: i3, rule: "fd" } : { width: e3, rule: "sturges" };
+    }
+    default:
+      return { width: r2(), rule: "sturges" };
+  }
+}
+function k(t2, e2 = {}) {
+  if (!Array.isArray(t2) || 0 === t2.length) return null;
+  const n2 = t2.slice().sort(((t3, e3) => t3 - e3));
+  let s2 = n2[0], i2 = n2[n2.length - 1];
+  const r2 = e2.range;
+  if (Array.isArray(r2) && 2 === r2.length) {
+    const t3 = Number(r2[0]), e3 = Number(r2[1]);
+    Number.isFinite(t3) && Number.isFinite(e3) && e3 > t3 && (s2 = t3, i2 = e3);
+  }
+  if (!(i2 > s2)) {
+    const t3 = Math.abs(s2) > 0 ? 0.05 * Math.abs(s2) : 0.5;
+    return { edges: [s2 - t3, s2 + t3], binWidth: 2 * t3, rule: "single", capped: false };
+  }
+  const o2 = i2 - s2;
+  let l2, a2;
+  if ("number" == typeof e2.binWidth && e2.binWidth > 0) l2 = e2.binWidth, a2 = "binWidth";
+  else if ("number" == typeof e2.bins && e2.bins >= 1) l2 = o2 / Math.floor(e2.bins), a2 = "count";
+  else {
+    const t3 = A(n2, o2, "string" == typeof e2.bins ? e2.bins : "auto");
+    l2 = t3.width, a2 = t3.rule;
+  }
+  (!Number.isFinite(l2) || l2 <= 0) && (l2 = o2);
+  let c2 = Math.ceil(o2 / l2);
+  (!Number.isFinite(c2) || c2 < 1) && (c2 = 1);
+  let u2 = false;
+  c2 > x && (c2 = x, u2 = true), l2 = o2 / c2;
+  const d2 = new Array(c2 + 1);
+  for (let t3 = 0; t3 <= c2; t3++) d2[t3] = s2 + t3 * l2;
+  return d2[c2] = Math.max(d2[c2], i2), { edges: d2, binWidth: l2, rule: a2, capped: u2 };
+}
+function L(t2, e2) {
+  const n2 = e2.length - 1;
+  if (!(t2 >= e2[0]) || t2 > e2[n2]) return -1;
+  if (t2 === e2[n2]) return n2 - 1;
+  const s2 = (e2[n2] - e2[0]) / n2;
+  if (s2 > 0) {
+    let i3 = Math.floor((t2 - e2[0]) / s2);
+    return i3 < 0 && (i3 = 0), i3 > n2 - 1 && (i3 = n2 - 1), t2 < e2[i3] ? i3-- : t2 >= e2[i3 + 1] && i3++, i3 < 0 || i3 > n2 - 1 ? -1 : i3;
+  }
+  let i2 = 0, r2 = n2 - 1;
+  for (; i2 <= r2; ) {
+    const n3 = i2 + r2 >> 1;
+    if (t2 < e2[n3]) r2 = n3 - 1;
+    else {
+      if (!(t2 >= e2[n3 + 1])) return n3;
+      i2 = n3 + 1;
+    }
+  }
+  return -1;
+}
+function C(t2, e2) {
+  const n2 = new Array(Math.max(0, e2.length - 1)).fill(0);
+  for (let s2 = 0; s2 < t2.length; s2++) {
+    const i2 = L(t2[s2], e2);
+    i2 >= 0 && n2[i2]++;
+  }
+  return n2;
+}
+const E = class {
+  static applyStyles(t2) {
+    Object.assign(t2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
+  }
+  static node(t2) {
+    if (!t2) return null;
+    for (const e2 of Array.from(t2.children)) if (e2.hasAttribute(this.WATERMARK_ATTR)) return e2;
+    return null;
+  }
+  static add(t2, e2) {
+    return t2 && "undefined" != typeof document ? (this.setManaged(t2, e2), (null == e2 ? void 0 : e2.requires) && this.explainPlan(e2.requires), this.paint(t2)) : null;
+  }
+  static exists(t2) {
+    return !!this.node(t2);
+  }
+  static remove(t2, e2) {
+    t2 && (this.setManaged(t2, e2), this.erase(t2));
+  }
+  static untrack(t2) {
+    this.managed.delete(t2);
+  }
+  static createWatermarkPattern() {
+    const t2 = this.WATERMARK_TEXT;
+    return `url("data:image/svg+xml,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
+        <text
+          x="50%"
+          y="50%"
+          dominant-baseline="middle"
+          text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif"
+          font-size="18"
+          font-weight="600"
+          fill="rgba(134, 134, 134, 0.1)"
+          transform="rotate(-35, 100, 60)"
+        >${t2}</text>
+      </svg>
+    `.trim())}")`;
+  }
+  static explainPlan(t2) {
+    const e2 = g$2();
+    if (!e2 || y(t2)) return;
+    const s2 = `${e2}>${t2}`;
+    this.explainedPlans.has(s2) || (this.explainedPlans.add(s2), n(`[Apex] The license key is valid, but its plan (${e2}) does not include a product on this page that needs ${t2} or higher, so that product keeps the trial watermark.`));
+  }
+  static erase(t2) {
+    var e2;
+    null == (e2 = this.node(t2)) || e2.remove();
+  }
+  static paint(t2) {
+    let e2 = this.node(t2);
+    return e2 || (e2 = document.createElement("div"), e2.setAttribute(this.WATERMARK_ATTR, ""), t2.appendChild(e2)), this.applyStyles(e2), "function" == typeof getComputedStyle && "static" === getComputedStyle(t2).position && (t2.style.position = "relative"), e2;
+  }
+  static reconcile() {
+    const t2 = m.isLicenseValid();
+    for (const [e2, n2] of this.managed) e2.isConnected ? (n2 ? y(n2) : t2) ? this.erase(e2) : (n2 && this.explainPlan(n2), this.paint(e2)) : this.managed.delete(e2);
+  }
+  static setManaged(t2, e2) {
+    false !== (null == e2 ? void 0 : e2.manage) ? this.track(t2, null == e2 ? void 0 : e2.requires) : this.managed.delete(t2);
+  }
+  static track(t2, e2) {
+    this.managed.set(t2, e2), this.subscribed || (this.subscribed = true, m.onChange((() => {
+      this.reconcile();
+    })));
+  }
+};
+E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Map(), E.subscribed = false, E.explainedPlans = /* @__PURE__ */ new Set();
+let $ = E;
+function G(t2) {
+  return t2 && "function" == typeof t2.getPropertyValue ? t2 : null;
+}
+function tt(t2, e2 = globalThis) {
+  if (!t2 || "function" != typeof e2.getComputedStyle) return null;
+  try {
+    return G(e2.getComputedStyle(t2));
+  } catch (e3) {
+    return null;
+  }
+}
+function et(t2, e2) {
+  const n2 = t2.getPropertyValue(e2);
+  return n2 ? String(n2).trim() : "";
+}
+const nt = "__apex_design_systems_v1__";
+function st(t2, e2 = {}) {
+  var _a;
+  const n2 = globalThis[nt], s2 = e2.adapter ? [e2.adapter] : n2 ? Object.values(n2) : [];
+  if (!t2 || !s2.length) return null;
+  const i2 = (_a = G(e2.cs)) != null ? _a : tt(t2, e2.host);
+  if (!i2) return null;
+  for (const e3 of s2) try {
+    const n3 = e3.read(t2, i2);
+    if (n3) return n3;
+  } catch (e4) {
+  }
+  return null;
+}
+function it(t2, e2, n2) {
+  return t2 ? t2.color(e2, n2) : void 0;
+}
+const rt = "__apexcharts_themes__";
+function ot() {
+  const t2 = globalThis, e2 = t2[rt];
+  if (e2) return e2;
+  const n2 = {};
+  return t2[rt] = n2, n2;
+}
+function lt(t2, e2) {
+  t2 && "string" == typeof t2 && (null == e2 || "object" == typeof e2 && !Array.isArray(e2)) && (ot()[t2] = e2 != null ? e2 : {});
+}
+function at$1(t2) {
+  var _a;
+  return t2 ? (_a = ot()[t2]) != null ? _a : null : null;
+}
+function ct() {
+  return Object.keys(ot());
+}
+function ut(t2) {
+  t2 && delete ot()[t2];
+}
+const dt = { accent: "--apx-accent", fore: "--apx-fore", grid: "--apx-grid", surface: "--apx-surface", font: "--apx-font-family", radiusFactor: "--apx-radius-factor" }, ht = "--apx-series-", ft = 24;
+function mt(t2, e2 = {}) {
+  var _a;
+  const n2 = (_a = G(e2.cs)) != null ? _a : tt(t2, e2.host);
+  if (!n2) return {};
+  const s2 = {};
+  for (const [t3, e3] of Object.entries(dt)) {
+    const i3 = et(n2, e3);
+    i3 && (s2[t3] = i3);
+  }
+  const i2 = [];
+  for (let t3 = 1; t3 <= ft; t3++) {
+    const e3 = et(n2, `${ht}${t3}`);
+    if (!e3) break;
+    i2.push(e3);
+  }
+  return i2.length && (s2.series = i2), s2;
+}
+function yt(t2, e2, n2 = {}) {
+  var s2;
+  const i2 = t2.css[e2] || t2.named[e2];
+  return i2 || ("font" === e2 ? null == (s2 = t2.designSystem) ? void 0 : s2.font : "fore" === e2 || "grid" === e2 ? it(t2.designSystem, e2, n2.mode) : void 0);
+}
+function vt(t2) {
+  const { record: e2 } = t2;
+  return !e2 || t2.followsOS || "dark" !== t2.mode ? { takeBack: false } : { state: e2.state, takeBack: true };
+}
+function bt(t2) {
+  if (!t2.mode && !t2.followsOS && "dark" === t2.variant) return { state: t2.state };
+}
+function wt({ background: t2, dark: e2, fromVariant: n2, light: s2 = "", mode: i2 }) {
+  return t2 || ("dark" === i2 ? n2 ? "" : e2 : "light" === i2 ? s2 : "");
+}
+function Mt({ background: t2, dark: e2, designSystemPaper: n2, fromVariant: s2, light: i2, mode: r2 }) {
+  return t2 && "transparent" !== t2 ? t2 : "dark" === r2 ? s2 && n2 || e2 : i2 || "#fff";
+}
+class xt {
+  constructor(t2 = {}) {
+    var _a;
+    this.dark = null, this.contrast = null, this.handler = null;
+    const e2 = (_a = t2.host) != null ? _a : "undefined" == typeof window ? {} : window;
+    if (this.dark = St(e2, "(prefers-color-scheme: dark)"), this.contrast = St(e2, "(prefers-contrast: more)"), !this.dark && !this.contrast) return;
+    const n2 = t2.onChange;
+    n2 && (this.handler = () => n2(this.state), kt(this.dark, this.handler), kt(this.contrast, this.handler));
+  }
+  get state() {
+    var _a;
+    var t2, e2;
+    return { highContrast: (_a = null == (t2 = this.contrast) ? void 0 : t2.matches) != null ? _a : false, mode: (null == (e2 = this.dark) ? void 0 : e2.matches) ? "dark" : "light" };
+  }
+  get supports() {
+    return { contrast: At(this.contrast), scheme: At(this.dark) };
+  }
+  dispose() {
+    this.handler && (Lt(this.dark, this.handler), Lt(this.contrast, this.handler), this.handler = null), this.dark = null, this.contrast = null;
+  }
+}
+function St(t2, e2) {
+  var _a;
+  var n2;
+  try {
+    return (_a = null == (n2 = t2.matchMedia) ? void 0 : n2.call(t2, e2)) != null ? _a : null;
+  } catch (e3) {
+    return null;
+  }
+}
+function At(t2) {
+  return !!t2 && "not all" !== t2.media;
+}
+function kt(t2, e2) {
+  t2 && ("function" == typeof t2.addEventListener ? t2.addEventListener("change", e2) : "function" == typeof t2.addListener && t2.addListener(e2));
+}
+function Lt(t2, e2) {
+  t2 && ("function" == typeof t2.removeEventListener ? t2.removeEventListener("change", e2) : "function" == typeof t2.removeListener && t2.removeListener(e2));
+}
+function Tt(t2) {
+  var _a, _b, _c, _d, _e;
+  const { last: e2, value: n2 } = t2, s2 = [], i2 = [];
+  let r2 = false, o2 = false;
+  for (const l2 of t2.slots) {
+    const a2 = (_a = l2.current) != null ? _a : "", c2 = (_b = l2.defaults) != null ? _b : t2.defaults, u2 = !!e2 && a2 === e2;
+    let d2 = a2;
+    true === l2.explicit && a2 || (n2 && (u2 || c2.includes(a2)) ? (d2 = n2, r2 = true) : !n2 && u2 && (d2 = (_e = (_d = l2.fallback) != null ? _d : l2.defaults ? l2.defaults[0] : (_c = t2.fallback) != null ? _c : c2[0]) != null ? _e : "", o2 = true)), s2.push(d2), i2.push(d2 !== a2);
+  }
+  return { changed: i2, last: "written" === t2.remember ? r2 ? n2 : o2 ? void 0 : e2 : n2, values: s2 };
+}
+function Ae(t2) {
+  const e2 = t2.getRootNode ? t2.getRootNode() : null;
+  return e2 && (9 === e2.nodeType || 11 === e2.nodeType && "host" in e2) ? e2 : t2.ownerDocument || document;
+}
+function ke(t2) {
+  const e2 = "function" == typeof t2.composedPath ? t2.composedPath() : null;
+  return (null == e2 ? void 0 : e2.length) ? e2[0] : t2.target;
+}
+const Ee = Symbol.for("apex-commons.styleUsers");
+function $e(t2, e2, n2, s2 = {}) {
+  const i2 = Ae(t2), r2 = t2.ownerDocument || document;
+  let o2 = i2.getElementById(e2);
+  if (!o2) {
+    o2 = r2.createElement("style"), o2.id = e2, o2.textContent = n2, s2.nonce && o2.setAttribute("nonce", s2.nonce);
+    const t3 = s2.after ? i2.getElementById(s2.after) : null;
+    t3 ? t3.after(o2) : (9 === i2.nodeType ? i2.head || i2.documentElement : i2).prepend(o2), o2[Ee] = 0;
+  }
+  const l2 = o2;
+  "number" == typeof l2[Ee] && (l2[Ee] += 1);
+  let a2 = false;
+  return () => {
+    a2 || (a2 = true, "number" == typeof l2[Ee] && (l2[Ee] -= 1, l2[Ee] <= 0 && l2.remove()));
+  };
+}
+function Ne(t2) {
+  const e2 = [];
+  let n2 = t2;
+  for (; n2; ) {
+    const t3 = Ae(n2);
+    e2.unshift(t3), n2 = 11 === t3.nodeType ? t3.host : null;
+  }
+  const s2 = [];
+  for (const t3 of e2) {
+    for (const e4 of Array.from(t3.styleSheets || [])) s2.push(e4);
+    const e3 = t3.adoptedStyleSheets;
+    if (e3) for (const t4 of e3) s2.push(t4);
+  }
+  return s2;
+}
 function getThemePalettes() {
   return {
     // All colours pass WCAG 1.4.11 non-text contrast (≥ 3:1) against the
@@ -16489,81 +17255,12 @@ function getThemePalettes() {
     ]
   };
 }
-const TOKEN_MAP = {
-  accent: "--apx-accent",
-  fore: "--apx-fore",
-  grid: "--apx-grid",
-  surface: "--apx-surface"
-};
-const MAX_SERIES_TOKENS = 24;
-function readTokens(w) {
-  if (!Environment.isBrowser()) return {};
-  const el = w.dom && (w.dom.elWrap || w.dom.baseEl) || null;
-  if (!el) return {};
-  const cs = BrowserAPIs.getComputedStyle(el);
-  if (!cs || typeof /** @type {any} */
-  cs.getPropertyValue !== "function") {
-    return {};
-  }
-  const read = (name2) => {
-    const v = (
-      /** @type {any} */
-      cs.getPropertyValue(name2)
-    );
-    return v ? String(v).trim() : "";
-  };
-  const out = {};
-  for (const key in TOKEN_MAP) {
-    const v = read(
-      /** @type {any} */
-      TOKEN_MAP[key]
-    );
-    if (v) out[key] = v;
-  }
-  const series = [];
-  for (let i2 = 1; i2 <= MAX_SERIES_TOKENS; i2++) {
-    const v = read(`--apx-series-${i2}`);
-    if (!v) break;
-    series.push(v);
-  }
-  if (series.length) out.series = series;
-  return out;
-}
-const THEME_KEY = "__apexcharts_themes__";
-if (!/** @type {any} */
-globalThis[THEME_KEY]) {
-  globalThis[THEME_KEY] = {};
-}
-function getThemes() {
-  return (
-    /** @type {any} */
-    globalThis[THEME_KEY]
-  );
-}
-function registerTheme(name2, def) {
-  if (!name2 || typeof name2 !== "string") {
-    console.warn("ApexCharts: registerTheme requires a non-empty name.");
-    return;
-  }
-  if (def != null && (typeof def !== "object" || Array.isArray(def))) {
-    console.warn(
-      `ApexCharts: registerTheme("${name2}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`
-    );
-    return;
-  }
-  getThemes()[name2] = def || {};
-}
-function getTheme(name2) {
-  if (!name2) return null;
-  return getThemes()[name2] || null;
-}
-function unregisterTheme(name2) {
-  if (!name2) return;
-  delete getThemes()[name2];
-}
 const DEFAULT_FORECOLOR_LIGHT = "#373d3f";
 const DEFAULT_FORECOLOR_DARK = "#f6f7f8";
 const DEFAULT_AXIS_GRID = "#e0e0e0";
+const DEFAULT_FONT_FAMILY = "Helvetica, Arial, sans-serif";
+const DARK_PAPER = "#343A3F";
+const MODE_FILLED = /* @__PURE__ */ new WeakMap();
 class Theme {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -16575,6 +17272,8 @@ class Theme {
     this.isHeatmapDistributed = false;
     this.isBarDistributed = false;
     this._tokens = {};
+    this._layers = { css: {}, named: {}, designSystem: null };
+    this.designSystem = null;
     this._namedTheme = null;
   }
   checkHeatmapDistributed() {
@@ -16595,14 +17294,27 @@ class Theme {
     this.isColorFn = false;
     this.isHeatmapDistributed = this.checkHeatmapDistributed();
     this.isBarDistributed = this.checkBarDistributed();
-    this._namedTheme = getTheme(w.config.theme.name);
-    this._applyNamedThemeMode();
+    const el = w.dom && (w.dom.elWrap || w.dom.baseEl);
+    const cs = this._shouldUseTokens() ? this._declaration(el) : null;
+    const ds = this.designSystem = this._readDesignSystem(el, cs);
+    this._namedTheme = at$1(w.config.theme.name);
+    this._applyNamedThemeMode(ds);
     w.dom.elWrap.classList.add(
       `apexcharts-theme-${w.config.theme.mode || "light"}`
     );
+    const dsColors = this._designSystemColors(ds);
+    if (dsColors) {
+      w.dom.elWrap.classList.add(
+        `apexcharts-${dsColors.id}`,
+        `apexcharts-${dsColors.id}-${dsColors.variant || "light"}`
+      );
+    }
     this._applyModeDefaults();
-    this._tokens = this._resolveTokens();
-    this.applyTokenChrome(this._tokens);
+    this._layers = this._resolveTokenLayers(el, cs, ds);
+    this._tokens = __spreadValues(__spreadValues({}, this._layers.named), this._layers.css);
+    this.applyTokenChrome(this._layers);
+    this._applyRadiusFactor();
+    this.applyModePaper();
     const colorBlindMode = (_a = w.config.theme.accessibility) == null ? void 0 : _a.colorBlindMode;
     if (colorBlindMode) {
       w.globals.colors = this.getColorBlindColors(colorBlindMode);
@@ -16647,18 +17359,62 @@ class Theme {
   _applyModeDefaults(mode = this.w.config.theme.mode) {
     const w = this.w;
     this.applyModePalette(mode);
+    const fore = !w.globals.themeForeColorExplicit;
+    const tooltip = w.config.tooltip;
     if (mode === "dark") {
-      if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
+      if (fore && w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK;
       }
-      if (w.config.tooltip && w.config.tooltip.theme !== "light") {
-        w.config.tooltip.theme = "dark";
+      if (tooltip && (tooltip.theme !== "light" || !this._tooltipThemeExplicit())) {
+        tooltip.theme = "dark";
       }
     } else if (mode === "light") {
-      if (w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
+      if (fore && w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
         w.config.chart.foreColor = DEFAULT_FORECOLOR_LIGHT;
       }
     }
+  }
+  /**
+   * Whether the tooltip theme is the page's: named in its options, window.Apex
+   * or an updateOptions payload, or set by a responsive breakpoint, which the
+   * mode must not override while it applies.
+   * @returns {boolean}
+   */
+  _tooltipThemeExplicit() {
+    const w = this.w;
+    return !!w.globals.tooltipThemeExplicit || !!w.globals.responsiveTooltipTheme;
+  }
+  /**
+   * Paint the SVG paper for the final mode. Core.setupElements paints it
+   * first, before a named theme (or the take-back of one) has settled the
+   * mode, which left a named dark theme on a transparent paper until the
+   * next render. Same rule as there (Theme.modePaper).
+   */
+  applyModePaper() {
+    const w = this.w;
+    const node = w.dom.Paper && w.dom.Paper.node;
+    if (!node || !node.style) return;
+    node.style.background = Theme.modePaper(w);
+  }
+  /**
+   * The on-screen paper, for Core.setupElements and applyModePaper alike.
+   * chart.background, a token surface included (applyTokenChrome writes it
+   * into the same field), wins. Otherwise a dark mode the page chose gets the
+   * dark paper and an explicit light mode white, while a dark mode the design
+   * system's variant filled stays transparent: the page's own surface shows
+   * through, as it does under a chart with no mode.
+   *
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {string}
+   */
+  static modePaper(w) {
+    return wt({
+      background: w.config.chart.background,
+      mode: w.config.theme.mode,
+      fromVariant: !!w.globals.variantModeApplied,
+      dark: DARK_PAPER,
+      light: "#fff"
+    });
   }
   /**
    * Move a chart that never named a palette onto the default of `mode`
@@ -16681,8 +17437,14 @@ class Theme {
    * Facet (#13): apply a registered named theme's mode / accessibility /
    * monochrome, each only when the user (or the OS watcher) has not set it, so
    * explicit config and `follow:'os'` both win over the named theme.
+   *
+   * Plan 36 (D6): then the design system's variant fills a mode nobody set.
+   * Both take-backs run before either fill, so a dark mode a newly named
+   * theme brings is never undone by the variant's take-back.
+   *
+   * @param {import('apex-commons').DesignSystemLayer | null} [ds]
    */
-  _applyNamedThemeMode() {
+  _applyNamedThemeMode(ds = null) {
     var _a;
     const w = this.w;
     const theme = w.config.theme;
@@ -16691,7 +17453,9 @@ class Theme {
     if (prev.mode && theme.mode === prev.mode) {
       theme.mode = "";
       this._applyModeDefaults("light");
-      if (w.config.tooltip) w.config.tooltip.theme = "light";
+      if (w.config.tooltip && !this._tooltipThemeExplicit()) {
+        w.config.tooltip.theme = "light";
+      }
     }
     if (prev.accessibility && ((_a = theme.accessibility) == null ? void 0 : _a.colorBlindMode) === prev.accessibility) {
       theme.accessibility.colorBlindMode = "";
@@ -16699,97 +17463,293 @@ class Theme {
     if (prev.monochrome && theme.monochrome.enabled) {
       theme.monochrome = prev.monochrome;
     }
+    this._takeBackVariantMode(ds);
     const named = this._namedTheme;
-    if (!named) return;
-    if (named.mode && !theme.mode) {
-      theme.mode = applied.mode = named.mode;
+    if (named) {
+      if (named.mode && !theme.mode) {
+        theme.mode = applied.mode = named.mode;
+      }
+      if (named.accessibility && named.accessibility.colorBlindMode && !(theme.accessibility && theme.accessibility.colorBlindMode)) {
+        theme.accessibility = theme.accessibility || {};
+        theme.accessibility.colorBlindMode = applied.accessibility = named.accessibility.colorBlindMode;
+      }
+      if (named.monochrome && named.monochrome.enabled && !theme.monochrome.enabled) {
+        applied.monochrome = theme.monochrome;
+        theme.monochrome = __spreadValues(__spreadValues({}, theme.monochrome), named.monochrome);
+      }
     }
-    if (named.accessibility && named.accessibility.colorBlindMode && !(theme.accessibility && theme.accessibility.colorBlindMode)) {
-      theme.accessibility = theme.accessibility || {};
-      theme.accessibility.colorBlindMode = applied.accessibility = named.accessibility.colorBlindMode;
-    }
-    if (named.monochrome && named.monochrome.enabled && !theme.monochrome.enabled) {
-      applied.monochrome = theme.monochrome;
-      theme.monochrome = __spreadValues(__spreadValues({}, theme.monochrome), named.monochrome);
+    const filled = bt({
+      mode: theme.mode,
+      followsOS: theme.follow === "os",
+      variant: ds && ds.variant,
+      state: w.config.tooltip && w.config.tooltip.theme
+    });
+    if (filled) {
+      theme.mode = "dark";
+      w.globals.variantModeApplied = filled;
     }
   }
   /**
-   * Facet (#13): the effective token set. CSS `--apx-*` tokens (when enabled)
-   * layer over the named theme's `tokens`, so a page-level token overrides a
-   * registered brand default.
-   * @returns {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}}
+   * Plan 36 (D6): give back a dark mode the design system's variant filled
+   * on an earlier render, once the sheet is no longer dark (turned light,
+   * removed, or switched off). The light defaults run, since those of an
+   * unset mode change nothing, and the tooltip gets back the theme it had,
+   * which keeps pie, donut and polarArea on their dark default. While the
+   * sheet stays dark the mode stays the variant's, unless a named theme
+   * brings a mode, which ranks above the variant (D5), or the page switched
+   * to `follow:'os'`, which the variant never fills under. Either way the
+   * mode goes back first, so the named theme fills it, and under `follow:'os'`
+   * it is left as unset as it was before the variant came.
+   *
+   * @param {import('apex-commons').DesignSystemLayer | null} ds
    */
-  _resolveTokens() {
+  _takeBackVariantMode(ds) {
+    const w = this.w;
+    const theme = w.config.theme;
+    const record = w.globals.variantModeApplied;
+    w.globals.variantModeApplied = void 0;
+    const back = vt({ mode: theme.mode, record });
+    if (!back.takeBack) return;
+    const named = this._namedTheme;
+    if (ds && ds.variant === "dark" && theme.follow !== "os" && !(named && named.mode)) {
+      w.globals.variantModeApplied = record;
+      return;
+    }
+    theme.mode = "";
+    this._applyModeDefaults("light");
+    if (w.config.tooltip && !this._tooltipThemeExplicit()) {
+      w.config.tooltip.theme = back.state || "light";
+    }
+  }
+  /**
+   * Facet (#13): the token layers, kept apart: CSS `--apx-*` tokens (when
+   * enabled), the named theme's `tokens`, and the design system (`ds`, read
+   * earlier). A page-level token overrides a registered brand default, and
+   * both override the design system.
+   *
+   * Custom properties inherit, so reading them off `w.dom.elWrap` (appended
+   * to the user's container during `Core.setupElements`, before `Theme.init`)
+   * or the host element resolves tokens declared anywhere up the tree,
+   * including `:root` and rules scoped to the theme class added above. The
+   * read goes through `BrowserAPIs`, whose empty declaration server side reads
+   * as no tokens, so the built-in defaults render there.
+   *
+   * @param {Element | null | undefined} el
+   * @param {any} cs  the declaration fetched for `el`, or null
+   * @param {import('apex-commons').DesignSystemLayer | null} ds
+   * @returns {import('apex-commons').TokenLayers}
+   */
+  _resolveTokenLayers(el, cs, ds) {
     const named = this._namedTheme && this._namedTheme.tokens || {};
-    const css = this._shouldUseTokens() ? readTokens(this.w) : {};
-    return __spreadValues(__spreadValues({}, named), css);
+    const css = this._shouldUseTokens() ? mt(el, {
+      // The `{}` BrowserAPIs answers server side reads as no declaration.
+      host: (
+        /** @type {any} */
+        BrowserAPIs
+      ),
+      cs
+    }) : {};
+    return { css, named, designSystem: ds };
+  }
+  /**
+   * The computed style the token reads share, so a render fetches it once.
+   * Null when it cannot be had; the readers then ask the host themselves.
+   *
+   * @param {Element | null | undefined} el
+   * @returns {any}
+   */
+  _declaration(el) {
+    if (!el) return null;
+    try {
+      return BrowserAPIs.getComputedStyle(
+        /** @type {HTMLElement} */
+        el
+      );
+    } catch (e2) {
+      return null;
+    }
+  }
+  /**
+   * Plan 36: the design system's layer, Ignite UI's `--ig-*` tokens (rank 5,
+   * below explicit config, `--apx-*` and a named theme or palette). Only
+   * with the add-on loaded (`apexcharts/features/ignite-ui`), and read
+   * through the adapter it registered with its stylesheet, so a chart's
+   * colours and its CSS twins come from one build; without it nothing is
+   * read. Off with `theme.tokens: false` or `theme.designSystem: false`.
+   * Server side it reads nothing.
+   *
+   * @param {Element | null | undefined} el
+   * @param {any} cs  the declaration fetched for `el`, or null
+   * @returns {import('apex-commons').DesignSystemLayer | null}
+   */
+  _readDesignSystem(el, cs) {
+    const theme = (
+      /** @type {any} */
+      this.w.config.theme
+    );
+    if (!this._shouldUseTokens() || theme.designSystem === false) return null;
+    const styles = (
+      /** @type {any} */
+      InitCtxVariables._featureRegistry.get("designSystemStyles")
+    );
+    if (!styles) return null;
+    return st(el, {
+      host: (
+        /** @type {any} */
+        BrowserAPIs
+      ),
+      cs,
+      adapter: styles.adapter
+    });
+  }
+  /**
+   * The design system as far as colours go: colorBlindMode and monochrome
+   * bypass it, as they bypass every colour token. Its variant and font
+   * still apply.
+   * @returns {import('apex-commons').DesignSystemLayer | null}
+   */
+  _designSystemColors(ds = this._layers.designSystem) {
+    var _a, _b;
+    const theme = this.w.config.theme;
+    return ((_a = theme.accessibility) == null ? void 0 : _a.colorBlindMode) || ((_b = theme.monochrome) == null ? void 0 : _b.enabled) ? null : ds;
+  }
+  /**
+   * Plan 36 (1E): `--apx-radius-factor` as the number `Theme.radius` scales
+   * the JS radii by, read with the other tokens. 1 when it is unset or not a
+   * number, as the stylesheet's `var(--apx-radius-factor, 1)`; never below
+   * 0, where CSS clamps a radius too. With `theme.tokens: false` the
+   * stylesheet's two family tokens fall back to their defaults as well.
+   */
+  _applyRadiusFactor() {
+    const w = this.w;
+    const v = this._layers.css.radiusFactor;
+    const n2 = v ? Number(v) : 1;
+    w.globals.radiusFactor = isFinite(n2) ? Math.max(0, n2) : 1;
+    const style = (
+      /** @type {any} */
+      w.dom.elWrap.style
+    );
+    if (!this._shouldUseTokens() && style && style.setProperty) {
+      style.setProperty("--apx-font-family", "initial");
+      style.setProperty("--apx-radius-factor", "initial");
+    }
+  }
+  /**
+   * Plan 36 (1E): a radius drawn in JS, `px` at the default factor, scaled
+   * by `--apx-radius-factor` as the stylesheet's radii are.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} px
+   * @returns {number}
+   */
+  static radius(w, px2) {
+    const f2 = w.globals.radiusFactor;
+    return f2 == null ? px2 : px2 * f2;
+  }
+  /**
+   * Plan 36: the font the token layers give `el` under `w`'s theme options
+   * (`--apx-font-family`, then a named theme's, then the design system's),
+   * or undefined. For a trellis host, which runs no Theme of its own but
+   * wraps panels that take this font.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {Element} el
+   * @returns {string | undefined}
+   */
+  static tokenFont(w, el) {
+    const t2 = new Theme(w);
+    t2._namedTheme = at$1(w.config.theme.name);
+    const cs = t2._shouldUseTokens() ? t2._declaration(el) : null;
+    const ds = t2._readDesignSystem(el, cs);
+    return yt(t2._resolveTokenLayers(el, cs, ds), "font");
   }
   /**
    * Facet (#13): tokens are on unless explicitly disabled (`theme.tokens:false`).
    * `true` is the default (the legacy `'auto'` value is accepted and means the
    * same); `readTokens` returns only the tokens actually present, so absence
-   * is a no-op.
+   * is a no-op. Off, it skips the design system as well, variant included; a
+   * named theme's tokens still apply.
    * @returns {boolean}
    */
   _shouldUseTokens() {
     return this.w.config.theme.tokens !== false;
   }
   /**
-   * Facet (#13): overwrite chrome defaults with `--apx-*` tokens, but only where
-   * the value still equals its built-in default (so explicit config wins).
-   * @param {{fore?:string, grid?:string, surface?:string}} tokens
+   * Facet (#13): overwrite chrome defaults with the token layers (`--apx-*`,
+   * then a named theme's tokens, then the design system), but only where the
+   * page did not name the value and it still equals its built-in default or
+   * the token this chart wrote last. The ownership rules are the shared
+   * `resolveOwnedRole` from apex-commons.
+   * @param {import('apex-commons').TokenLayers} layers
    */
-  applyTokenChrome(tokens) {
-    if (!tokens) return;
+  applyTokenChrome(layers) {
+    if (!layers) return;
     const w = this.w;
-    const last = w.globals.tokenChrome || {};
-    const dark = w.config.theme.mode === "dark";
-    const swap = (obj, key, name2, def, alt = def) => {
-      const v = obj && obj[key];
-      const token = tokens[name2];
-      if (obj && (token && (v === def || v === alt) || last[name2] && v === last[name2])) {
-        obj[key] = token || def;
-      }
+    const g2 = w.globals;
+    const last = g2.tokenChrome || {};
+    const mode = w.config.theme.mode;
+    const dark = mode === "dark";
+    const colorLayers = __spreadProps(__spreadValues({}, layers), { designSystem: this._designSystemColors() });
+    const own = (role, value, slots, defaults) => {
+      const live = slots.filter((s2) => s2[0]);
+      const res = Tt({
+        slots: live.map(([obj, key, named]) => ({
+          current: obj[key],
+          explicit: !!named
+        })),
+        value,
+        last: last[role],
+        defaults
+      });
+      live.forEach(([obj, key], i2) => {
+        if (res.changed[i2]) obj[key] = res.values[i2];
+      });
+      return res.last;
     };
-    swap(
-      w.config.chart,
-      "foreColor",
+    const foreDef = dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT;
+    const fore = own(
       "fore",
-      dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT,
-      dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK
+      yt(colorLayers, "fore", { mode }),
+      [[w.config.chart, "foreColor", g2.themeForeColorExplicit]],
+      g2.themeForeColorExplicit ? [foreDef] : [foreDef, dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK]
     );
+    const gridNamed = g2.themeGridColorsExplicit;
+    const gridSlots = [
+      [w.config.grid, "borderColor", gridNamed && gridNamed.grid]
+    ];
     const axes = (
       /** @type {any[]} */
       [w.config.xaxis].concat(w.config.yaxis)
     );
-    swap(w.config.grid, "borderColor", "grid", DEFAULT_AXIS_GRID);
-    axes.forEach((axis) => {
+    axes.forEach((axis, i2) => {
       if (axis) {
-        swap(axis.axisBorder, "color", "grid", DEFAULT_AXIS_GRID);
-        swap(axis.axisTicks, "color", "grid", DEFAULT_AXIS_GRID);
+        const flags = gridNamed && (i2 ? gridNamed.yaxis[i2 - 1] : gridNamed.xaxis);
+        gridSlots.push(
+          [axis.axisBorder, "color", flags && flags.border],
+          [axis.axisTicks, "color", flags && flags.ticks]
+        );
       }
     });
-    w.globals.tokenChrome = tokens;
-    const appliedSurface = w.globals.tokenSurface;
-    const currentBg = w.config.chart.background;
-    const isOurs = !currentBg || currentBg === appliedSurface;
-    if (tokens.surface) {
-      if (isOurs) {
-        w.config.chart.background = tokens.surface;
-        w.globals.tokenSurface = tokens.surface;
-        const paperNode = w.dom.Paper && w.dom.Paper.node;
-        if (paperNode && paperNode.style) {
-          paperNode.style.background = tokens.surface;
-        }
-      }
-    } else if (appliedSurface && currentBg === appliedSurface) {
-      w.config.chart.background = "";
-      w.globals.tokenSurface = void 0;
-      const paperNode = w.dom.Paper && w.dom.Paper.node;
-      if (paperNode && paperNode.style) {
-        paperNode.style.background = "";
-      }
-    }
+    const grid = own(
+      "grid",
+      yt(colorLayers, "grid", { mode }),
+      gridSlots,
+      [DEFAULT_AXIS_GRID]
+    );
+    const font = own(
+      "font",
+      yt(layers, "font"),
+      [[w.config.chart, "fontFamily", g2.themeFontFamilyExplicit]],
+      [DEFAULT_FONT_FAMILY]
+    );
+    g2.tokenChrome = { fore, grid, font };
+    const surface = Tt({
+      slots: [{ current: w.config.chart.background || "" }],
+      value: yt(layers, "surface"),
+      last: g2.tokenSurface,
+      defaults: [""],
+      remember: "written"
+    });
+    if (surface.changed[0]) w.config.chart.background = surface.values[0];
+    g2.tokenSurface = surface.last;
   }
   /**
    * @param {any[]} configColors
@@ -16802,13 +17762,13 @@ class Theme {
     if (Array.isArray(configColors) && configColors.length > 0 && typeof configColors[0] === "function") {
       this.isColorFn = true;
       return w.config.series.map((s2, i2) => {
-        const c = configColors[i2] || configColors[0];
-        return typeof c === "function" ? c({
+        const c2 = configColors[i2] || configColors[0];
+        return typeof c2 === "function" ? c2({
           value: w.globals.axisCharts ? w.seriesData.series[i2][0] || 0 : w.seriesData.series[i2],
           seriesIndex: i2,
           dataPointIndex: i2,
           w: this.w
-        }) : c;
+        }) : c2;
       });
     }
     return configColors;
@@ -16818,9 +17778,9 @@ class Theme {
    * @param {any[]} globalsColors
    */
   applySeriesColors(seriesColors, globalsColors) {
-    seriesColors.forEach((c, i2) => {
-      if (c) {
-        globalsColors[i2] = c;
+    seriesColors.forEach((c2, i2) => {
+      if (c2) {
+        globalsColors[i2] = c2;
       }
     });
   }
@@ -16834,8 +17794,9 @@ class Theme {
     const glsCnt = this.isBarDistributed || this.isHeatmapDistributed ? this.distributedCount() : series.length;
     const part = 1 / (glsCnt / shadeIntensity);
     let percent = 0;
+    const el = this.w.dom.elWrap;
     return Array.from({ length: glsCnt }, () => {
-      const newColor = shadeTo === "dark" ? utils.shadeColor(percent * -1, color) : utils.shadeColor(percent, color);
+      const newColor = shadeTo === "dark" ? utils.shadeColor(percent * -1, color, el) : utils.shadeColor(percent, color, el);
       percent += part;
       return newColor;
     });
@@ -16846,11 +17807,11 @@ class Theme {
    */
   applyColorTypes(colorTypes, defaultColors) {
     const w = this.w;
-    colorTypes.forEach((c) => {
-      w.globals[c].colors = w.config[c].colors === void 0 ? this.isColorFn && w.config.colors ? w.config.colors.slice() : defaultColors : w.config[c].colors.slice();
+    colorTypes.forEach((c2) => {
+      w.globals[c2].colors = w.config[c2].colors === void 0 ? this.isColorFn && w.config.colors ? w.config.colors.slice() : defaultColors : w.config[c2].colors.slice();
       this.pushExtraColors(
         /** @type {Record<string,any>} */
-        w.globals[c].colors
+        w.globals[c2].colors
       );
     });
   }
@@ -16864,7 +17825,8 @@ class Theme {
   }
   applyRadarPolygonsColors() {
     const w = this.w;
-    w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors === void 0 ? [w.config.theme.mode === "dark" ? "#343A3F" : "none"] : w.config.plotOptions.radar.polygons.fill.colors.slice();
+    const dark = w.config.theme.mode === "dark" && !w.globals.variantModeApplied;
+    w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors === void 0 ? [dark ? DARK_PAPER : "none"] : w.config.plotOptions.radar.polygons.fill.colors.slice();
     this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20);
   }
   /**
@@ -16924,13 +17886,17 @@ class Theme {
   }
   /**
    * @param {Record<string, any>} options
+   * @param {boolean} [restoring]  a History restore is replaying a checkpoint
    */
-  updateThemeOptions(options2) {
+  updateThemeOptions(options2, restoring = false) {
     const mode = options2.theme.mode;
     const applied = this.w.globals.namedThemeApplied;
     for (const k2 in applied) {
       if (options2.theme[k2] !== void 0) delete /** @type {any} */
       applied[k2];
+    }
+    if (mode !== void 0 && !restoring) {
+      this.w.globals.variantModeApplied = void 0;
     }
     if ("palette" in options2.theme && !options2.theme.palette) {
       options2 = __spreadProps(__spreadValues({}, options2), { theme: __spreadValues({}, options2.theme) });
@@ -16941,9 +17907,24 @@ class Theme {
     options2.chart = __spreadValues({}, options2.chart);
     options2.tooltip = __spreadValues({}, options2.tooltip);
     const dark = mode === "dark";
+    MODE_FILLED.set(options2, {
+      foreColor: !options2.chart.foreColor,
+      tooltip: !options2.tooltip.theme
+    });
     options2.tooltip.theme = options2.tooltip.theme || mode || "light";
     options2.chart.foreColor = options2.chart.foreColor || (dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT);
     return options2;
+  }
+  /**
+   * Which of chart.foreColor and tooltip.theme updateThemeOptions filled into
+   * `options` with the mode's default, as opposed to the page passing them.
+   * Undefined for a payload it did not fill.
+   *
+   * @param {any} options  a payload updateThemeOptions returned
+   * @returns {{foreColor: boolean, tooltip: boolean} | undefined}
+   */
+  static modeDefaultsFilled(options2) {
+    return options2 && typeof options2 === "object" ? MODE_FILLED.get(options2) : void 0;
   }
   predefined() {
     const palette = this.w.config.theme.palette;
@@ -16952,18 +17933,19 @@ class Theme {
       /** @type {Record<string,any>} */
       palettes[palette] || palettes.palette1
     );
+    const named = this._namedTheme;
+    const namedPalette = named && Array.isArray(named.palette) && named.palette.length ? named.palette : null;
+    const ds = this._designSystemColors();
+    const dsSeries = ds && !namedPalette && !this.w.globals.themePaletteExplicit ? ds.palette(builtin) : null;
     const tokens = this._tokens || {};
     if (Array.isArray(tokens.series) && tokens.series.length) {
       return tokens.series.slice();
     }
     if (tokens.accent) {
-      return [tokens.accent, ...builtin];
+      return [tokens.accent, ...dsSeries ? dsSeries.slice(1) : builtin];
     }
-    const named = this._namedTheme;
-    if (named && Array.isArray(named.palette) && named.palette.length) {
-      return named.palette.slice();
-    }
-    return builtin;
+    if (namedPalette) return namedPalette.slice();
+    return dsSeries || builtin;
   }
 }
 class TitleSubtitle {
@@ -16984,7 +17966,7 @@ class TitleSubtitle {
     const w = this.w;
     const tsConfig = type === "title" ? w.config.title : w.config.subtitle;
     let x2 = w.globals.svgWidth / 2;
-    let y = tsConfig.offsetY;
+    let y2 = tsConfig.offsetY;
     let textAnchor = "middle";
     if (tsConfig.align === "left") {
       x2 = 10;
@@ -16994,12 +17976,12 @@ class TitleSubtitle {
       textAnchor = "end";
     }
     x2 = x2 + tsConfig.offsetX;
-    y = y + parseInt(tsConfig.style.fontSize, 10) + tsConfig.margin / 2;
+    y2 = y2 + parseInt(tsConfig.style.fontSize, 10) + tsConfig.margin / 2;
     if (tsConfig.text !== void 0) {
       const graphics = new Graphics(this.w);
       const titleText = graphics.drawText({
         x: x2,
-        y,
+        y: y2,
         text: tsConfig.text,
         textAnchor,
         fontSize: tsConfig.style.fontSize,
@@ -17625,7 +18607,8 @@ class DimYAxis {
     let yAxisWidth = 0;
     let yAxisWidthLeft = 0;
     let yAxisWidthRight = 0;
-    const padding = w.globals.yAxisScale.length > 1 ? 10 : 0;
+    const shownYAxes = w.config.yaxis.filter((y2) => y2.show);
+    const padding = w.globals.yAxisScale.length > 1 && shownYAxes.length > 1 ? 10 : 0;
     const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme });
     const isHiddenYAxis = function(index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1;
@@ -17682,8 +18665,8 @@ class DimGrid {
     if (gl.comboBarCount > 0) {
       seriesLen = gl.comboBarCount;
     }
-    gl.collapsedSeries.forEach((c) => {
-      if (hasBar(c.type)) {
+    gl.collapsedSeries.forEach((c2) => {
+      if (hasBar(c2.type)) {
         seriesLen -= 1;
       }
     });
@@ -17775,8 +18758,8 @@ class DimGrid {
     if (!totals.length) return;
     const formatter = totalConfig.formatter || w.config.dataLabels.formatter;
     const labels = totals.map(
-      (val, j2) => String(
-        formatter ? formatter(val, __spreadProps(__spreadValues({}, w), { seriesIndex: 0, dataPointIndex: j2, w })) : val
+      (val, j) => String(
+        formatter ? formatter(val, __spreadProps(__spreadValues({}, w), { seriesIndex: 0, dataPointIndex: j, w })) : val
       )
     );
     const graphics = new Graphics(w);
@@ -18294,9 +19277,9 @@ class Dimensions {
     }
     let minYAxisWidth = 0;
     let maxYAxisWidth = 0;
-    w.config.yaxis.forEach((y) => {
-      minYAxisWidth += y.labels.minWidth;
-      maxYAxisWidth += y.labels.maxWidth;
+    w.config.yaxis.forEach((y2) => {
+      minYAxisWidth += y2.labels.minWidth;
+      maxYAxisWidth += y2.labels.maxWidth;
     });
     if (this.yAxisWidth < minYAxisWidth) {
       this.yAxisWidth = minYAxisWidth;
@@ -18534,26 +19517,26 @@ class Scales {
     if (tiks > maxTicks && (!(gotTickAmount || gotStepSize) || axisCnf.forceNiceScale)) {
       const pf = Utils$1.getPrimeFactors(tiks);
       const last = pf.length - 1;
-      let tt = tiks;
+      let tt2 = tiks;
       reduceLoop: for (var xFactors = 0; xFactors < last; xFactors++) {
         for (var lowest = 0; lowest <= last - xFactors; lowest++) {
           const stop = Math.min(lowest + xFactors, last);
-          let t2 = tt;
+          let t2 = tt2;
           let div = 1;
           for (var next = lowest; next <= stop; next++) {
             div *= pf[next];
           }
           t2 /= div;
           if (t2 < maxTicks) {
-            tt = t2;
+            tt2 = t2;
             break reduceLoop;
           }
         }
       }
-      if (tt === tiks) {
+      if (tt2 === tiks) {
         stepSize = range;
       } else {
-        stepSize = range / tt;
+        stepSize = range / tt2;
       }
       tiks = Math.round(range / stepSize);
     }
@@ -18738,27 +19721,27 @@ class Scales {
   setYScaleForIndex(index, minY, maxY) {
     const gl = this.w.globals;
     const cnf = this.w.config;
-    const y = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index];
+    const y2 = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index];
     if (typeof gl.yAxisScale[index] === "undefined") {
       gl.yAxisScale[index] = [];
     }
-    if (y.logarithmic && minY <= Number.MIN_VALUE) {
+    if (y2.logarithmic && minY <= Number.MIN_VALUE) {
       const s2 = this.w.seriesData.series;
       const map = gl.isMultipleYAxis && gl.seriesYAxisMap[index];
-      const b = y.logBase || 10;
-      const m = (map ? map.map((i2) => s2[i2]) : s2).flat().reduce((a2, v) => v > 0 && (!a2 || v < a2) ? v : a2, 0);
-      minY = m && Math.min(b, __pow(b, Math.floor(Math.log(m) / Math.log(b))));
+      const b = y2.logBase || 10;
+      const m2 = (map ? map.map((i2) => s2[i2]) : s2).flat().reduce((a2, v) => v > 0 && (!a2 || v < a2) ? v : a2, 0);
+      minY = m2 && Math.min(b, __pow(b, Math.floor(Math.log(m2) / Math.log(b))));
     }
     const range = Math.abs(maxY - minY);
-    const spansABase = y.logarithmic && this._logDomainSpan(minY, maxY, y.logBase) >= 1;
-    const validLogScale = y.logarithmic && (spansABase || range > 5);
-    if (y.logarithmic && !validLogScale) {
+    const spansABase = y2.logarithmic && this._logDomainSpan(minY, maxY, y2.logBase) >= 1;
+    const validLogScale = y2.logarithmic && (spansABase || range > 5);
+    if (y2.logarithmic && !validLogScale) {
       gl.invalidLogScale = true;
     }
     if (validLogScale) {
       gl.allSeriesCollapsed = false;
-      const logTickAmount = this._resolveLogTickAmount(y);
-      gl.yAxisScale[index] = y.forceNiceScale ? this.logarithmicScaleNice(minY, maxY, y.logBase, logTickAmount) : this.logarithmicScale(minY, maxY, y.logBase, logTickAmount);
+      const logTickAmount = this._resolveLogTickAmount(y2);
+      gl.yAxisScale[index] = y2.forceNiceScale ? this.logarithmicScaleNice(minY, maxY, y2.logBase, logTickAmount) : this.logarithmicScale(minY, maxY, y2.logBase, logTickAmount);
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY) || minY === Number.MAX_VALUE || !Utils$1.isNumber(minY)) {
         gl.yAxisScale[index] = this.niceScale(
@@ -18873,14 +19856,14 @@ class Scales {
                   /** @type {Record<string,any>} */
                   cnf.series[si].group === gn
                 ) {
-                  for (let j2 = 0; j2 < this.w.seriesData.series[si].length; j2++) {
-                    const val = this.w.seriesData.series[si][j2];
+                  for (let j = 0; j < this.w.seriesData.series[si].length; j++) {
+                    const val = this.w.seriesData.series[si][j];
                     if (val >= 0) {
-                      posSeries[gni][j2] += val;
+                      posSeries[gni][j] += val;
                     } else {
-                      negSeries[gni][j2] += val;
+                      negSeries[gni][j] += val;
                     }
-                    sumSeries[gni][j2] += val;
+                    sumSeries[gni][j] += val;
                     lowestY = Math.min(lowestY, val);
                     highestY = Math.max(highestY, val);
                   }
@@ -18939,16 +19922,16 @@ class Scales {
       }
     });
     if (alignZeroParticipants.length >= 2) {
-      alignZeroParticipants.forEach((p) => {
-        this.setYScaleForIndex(p.ai, p.minY, p.maxY);
-        axisSeriesMap[p.ai].forEach((si) => {
-          minYArr[si] = gl.yAxisScale[p.ai].niceMin;
-          maxYArr[si] = gl.yAxisScale[p.ai].niceMax;
+      alignZeroParticipants.forEach((p2) => {
+        this.setYScaleForIndex(p2.ai, p2.minY, p2.maxY);
+        axisSeriesMap[p2.ai].forEach((si) => {
+          minYArr[si] = gl.yAxisScale[p2.ai].niceMin;
+          maxYArr[si] = gl.yAxisScale[p2.ai].niceMax;
         });
       });
       let targetRatio = 0;
-      alignZeroParticipants.forEach((p) => {
-        const scale = gl.yAxisScale[p.ai];
+      alignZeroParticipants.forEach((p2) => {
+        const scale = gl.yAxisScale[p2.ai];
         const range = scale.niceMax - scale.niceMin;
         if (range > 0) {
           const r2 = -scale.niceMin / range;
@@ -18970,8 +19953,8 @@ class Scales {
         else mult = 10;
         return mult * magPow;
       };
-      alignZeroParticipants.forEach((p) => {
-        const scale = gl.yAxisScale[p.ai];
+      alignZeroParticipants.forEach((p2) => {
+        const scale = gl.yAxisScale[p2.ai];
         if (!scale.result || scale.result.length < 2) return;
         const range = scale.niceMax - scale.niceMin;
         if (range <= 0) return;
@@ -19006,17 +19989,17 @@ class Scales {
         }
         scale.niceMin = newNiceMin;
         scale.niceMax = newNiceMax;
-        axisSeriesMap[p.ai].forEach((si) => {
+        axisSeriesMap[p2.ai].forEach((si) => {
           minYArr[si] = scale.niceMin;
           maxYArr[si] = scale.niceMax;
         });
       });
     } else if (alignZeroParticipants.length === 1) {
-      const p = alignZeroParticipants[0];
-      this.setYScaleForIndex(p.ai, p.minY, p.maxY);
-      axisSeriesMap[p.ai].forEach((si) => {
-        minYArr[si] = gl.yAxisScale[p.ai].niceMin;
-        maxYArr[si] = gl.yAxisScale[p.ai].niceMax;
+      const p2 = alignZeroParticipants[0];
+      this.setYScaleForIndex(p2.ai, p2.minY, p2.maxY);
+      axisSeriesMap[p2.ai].forEach((si) => {
+        minYArr[si] = gl.yAxisScale[p2.ai].niceMin;
+        maxYArr[si] = gl.yAxisScale[p2.ai].niceMax;
       });
     }
   }
@@ -19167,8 +20150,8 @@ class Range {
       }
       const hp = (_b = (_a = this.w.highlightData) == null ? void 0 : _a.ext) == null ? void 0 : _b[i2];
       if (hp) {
-        for (let j2 = firstXIndex; j2 <= lastXIndex && j2 < hp.length; j2++) {
-          const v = hp[j2];
+        for (let j = firstXIndex; j <= lastXIndex && j < hp.length; j++) {
+          const v = hp[j];
           if (v != null) {
             if (v > maxY) maxY = v;
             if (v < lowestY) lowestY = v;
@@ -19181,18 +20164,18 @@ class Range {
       if (plainNumeric) {
         const arr = series[i2];
         const jEnd = Math.min(lastXIndex, arr.length - 1);
-        const pe2 = (_c = this.w.seriesData._parsedExtrema) == null ? void 0 : _c[i2];
-        if (pe2 && pe2.ref === arr && pe2.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
-          if (pe2.maxY > maxY) maxY = pe2.maxY;
-          if (pe2.lowestY < lowestY) lowestY = pe2.lowestY;
-          if (pe2.negMinY < 0 && pe2.negMinY < minY) minY = pe2.negMinY;
-          if (pe2.yDec > gl.yValueDecimal) gl.yValueDecimal = pe2.yDec;
-          if (pe2.hasNulls) gl.hasNullValues = true;
+        const pe = (_c = this.w.seriesData._parsedExtrema) == null ? void 0 : _c[i2];
+        if (pe && pe.ref === arr && pe.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
+          if (pe.maxY > maxY) maxY = pe.maxY;
+          if (pe.lowestY < lowestY) lowestY = pe.lowestY;
+          if (pe.negMinY < 0 && pe.negMinY < minY) minY = pe.negMinY;
+          if (pe.yDec > gl.yValueDecimal) gl.yValueDecimal = pe.yDec;
+          if (pe.hasNulls) gl.hasNullValues = true;
         } else {
           let yDec = gl.yValueDecimal;
           let hasNulls = false;
-          for (let j2 = firstXIndex; j2 <= jEnd; j2++) {
-            const val = arr[j2];
+          for (let j = firstXIndex; j <= jEnd; j++) {
+            const val = arr[j];
             if (val !== null && typeof val === "number" && val === val && val !== Infinity && val !== -Infinity) {
               if (val > maxY) maxY = val;
               if (val < lowestY) lowestY = val;
@@ -19228,58 +20211,58 @@ class Range {
         }
         continue;
       }
-      for (let j2 = firstXIndex; j2 <= lastXIndex && j2 < this.w.seriesData.series[i2].length; j2++) {
-        const val = series[i2][j2];
+      for (let j = firstXIndex; j <= lastXIndex && j < this.w.seriesData.series[i2].length; j++) {
+        const val = series[i2][j];
         if (val !== null && Utils$1.isNumber(val)) {
-          if (((_d = seriesMax[i2]) == null ? void 0 : _d[j2]) != null) {
-            maxY = Math.max(maxY, seriesMax[i2][j2]);
-            lowestY = Math.min(lowestY, seriesMax[i2][j2]);
+          if (((_d = seriesMax[i2]) == null ? void 0 : _d[j]) != null) {
+            maxY = Math.max(maxY, seriesMax[i2][j]);
+            lowestY = Math.min(lowestY, seriesMax[i2][j]);
           }
-          if (((_e = seriesMin[i2]) == null ? void 0 : _e[j2]) != null) {
-            lowestY = Math.min(lowestY, seriesMin[i2][j2]);
-            highestY = Math.max(highestY, seriesMin[i2][j2]);
+          if (((_e = seriesMin[i2]) == null ? void 0 : _e[j]) != null) {
+            lowestY = Math.min(lowestY, seriesMin[i2][j]);
+            highestY = Math.max(highestY, seriesMin[i2][j]);
           }
           switch (seriesType) {
             case "candlestick":
               {
-                if (((_f = this.w.candleData.seriesCandleC[i2]) == null ? void 0 : _f[j2]) != null) {
-                  maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i2][j2]);
+                if (((_f = this.w.candleData.seriesCandleC[i2]) == null ? void 0 : _f[j]) != null) {
+                  maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i2][j]);
                   lowestY = Math.min(
                     lowestY,
-                    this.w.candleData.seriesCandleL[i2][j2]
+                    this.w.candleData.seriesCandleL[i2][j]
                   );
                 }
               }
               break;
             case "boxPlot":
               {
-                if (((_g = this.w.candleData.seriesCandleC[i2]) == null ? void 0 : _g[j2]) != null) {
-                  maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i2][j2]);
+                if (((_g = this.w.candleData.seriesCandleC[i2]) == null ? void 0 : _g[j]) != null) {
+                  maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i2][j]);
                   lowestY = Math.min(
                     lowestY,
-                    this.w.candleData.seriesCandleO[i2][j2]
+                    this.w.candleData.seriesCandleO[i2][j]
                   );
                 }
               }
               break;
             case "violin":
               {
-                if (typeof ((_h = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _h[j2]) !== "undefined") {
-                  maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i2][j2]);
+                if (typeof ((_h = this.w.violinData.seriesViolinMax[i2]) == null ? void 0 : _h[j]) !== "undefined") {
+                  maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i2][j]);
                   lowestY = Math.min(
                     lowestY,
-                    this.w.violinData.seriesViolinMin[i2][j2]
+                    this.w.violinData.seriesViolinMin[i2][j]
                   );
                 }
               }
               break;
           }
           if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "violin" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
-            maxY = Math.max(maxY, this.w.seriesData.series[i2][j2]);
-            lowestY = Math.min(lowestY, this.w.seriesData.series[i2][j2]);
+            maxY = Math.max(maxY, this.w.seriesData.series[i2][j]);
+            lowestY = Math.min(lowestY, this.w.seriesData.series[i2][j]);
           }
-          if (this.w.seriesData.seriesGoals[i2] && this.w.seriesData.seriesGoals[i2][j2] && Array.isArray(this.w.seriesData.seriesGoals[i2][j2])) {
-            this.w.seriesData.seriesGoals[i2][j2].forEach(
+          if (this.w.seriesData.seriesGoals[i2] && this.w.seriesData.seriesGoals[i2][j] && Array.isArray(this.w.seriesData.seriesGoals[i2][j])) {
+            this.w.seriesData.seriesGoals[i2][j].forEach(
               (g2) => {
                 maxY = Math.max(maxY, g2.value);
                 lowestY = Math.min(lowestY, g2.value);
@@ -19287,10 +20270,10 @@ class Range {
             );
           }
           if (this.w.config.chart.type === "boxPlot" || seriesType === "boxPlot") {
-            const boxPts = (_j = (_i = this.w.candleData.seriesBoxPoints) == null ? void 0 : _i[i2]) == null ? void 0 : _j[j2];
+            const boxPts = (_j = (_i = this.w.candleData.seriesBoxPoints) == null ? void 0 : _i[i2]) == null ? void 0 : _j[j];
             if (boxPts) {
-              for (let p = 0; p < boxPts.length; p++) {
-                const pv = boxPts[p];
+              for (let p2 = 0; p2 < boxPts.length; p2++) {
+                const pv = boxPts[p2];
                 if (typeof pv === "number") {
                   maxY = Math.max(maxY, pv);
                   lowestY = Math.min(lowestY, pv);
@@ -19305,8 +20288,8 @@ class Range {
               Utils$1.decimalPlaces(val)
             );
           }
-          if (minY > ((_k = seriesMin[i2]) == null ? void 0 : _k[j2]) && ((_l = seriesMin[i2]) == null ? void 0 : _l[j2]) < 0) {
-            minY = seriesMin[i2][j2];
+          if (minY > ((_k = seriesMin[i2]) == null ? void 0 : _k[j]) && ((_l = seriesMin[i2]) == null ? void 0 : _l[j]) < 0) {
+            minY = seriesMin[i2][j];
           }
         } else {
           gl.hasNullValues = true;
@@ -19413,9 +20396,9 @@ class Range {
     }
     if (gl.isBarHorizontal) {
       const minmax = ["min", "max"];
-      minmax.forEach((m) => {
-        if (cnf.xaxis[m] !== void 0 && typeof cnf.xaxis[m] === "number") {
-          m === "min" ? gl.minY = cnf.xaxis[m] : gl.maxY = cnf.xaxis[m];
+      minmax.forEach((m2) => {
+        if (cnf.xaxis[m2] !== void 0 && typeof cnf.xaxis[m2] === "number") {
+          m2 === "min" ? gl.minY = cnf.xaxis[m2] : gl.maxY = cnf.xaxis[m2];
         }
       });
     }
@@ -19476,14 +20459,14 @@ class Range {
           this.w.labelData.labels[i2]
         );
         if (!lbls) continue;
-        const pe2 = (_a2 = this.w.seriesData._parsedExtrema) == null ? void 0 : _a2[i2];
-        if (pe2 && pe2.xNumeric && pe2.xref === lbls && pe2.len === lbls.length) {
-          if (pe2.maxX > maxX) maxX = pe2.maxX;
-          if (pe2.minX < minX) minX = pe2.minX;
+        const pe = (_a2 = this.w.seriesData._parsedExtrema) == null ? void 0 : _a2[i2];
+        if (pe && pe.xNumeric && pe.xref === lbls && pe.len === lbls.length) {
+          if (pe.maxX > maxX) maxX = pe.maxX;
+          if (pe.minX < minX) minX = pe.minX;
           continue;
         }
-        for (let j2 = 0; j2 < lbls.length; j2++) {
-          const v = lbls[j2];
+        for (let j = 0; j < lbls.length; j++) {
+          const v = lbls[j];
           if (v !== null && typeof v === "number" && v === v) {
             if (v > maxX) maxX = v;
             if (v < minX) minX = v;
@@ -19636,10 +20619,10 @@ class Range {
     if (!this.w.axisFlags.isDataXYZ) return;
     for (let i2 = 0; i2 < this.w.seriesData.series.length; i2++) {
       if (typeof this.w.seriesData.seriesZ[i2] !== "undefined") {
-        for (let j2 = 0; j2 < this.w.seriesData.seriesZ[i2].length; j2++) {
-          if (this.w.seriesData.seriesZ[i2][j2] !== null && Utils$1.isNumber(this.w.seriesData.seriesZ[i2][j2])) {
-            gl.maxZ = Math.max(gl.maxZ, this.w.seriesData.seriesZ[i2][j2]);
-            gl.minZ = Math.min(gl.minZ, this.w.seriesData.seriesZ[i2][j2]);
+        for (let j = 0; j < this.w.seriesData.seriesZ[i2].length; j++) {
+          if (this.w.seriesData.seriesZ[i2][j] !== null && Utils$1.isNumber(this.w.seriesData.seriesZ[i2][j])) {
+            gl.maxZ = Math.max(gl.maxZ, this.w.seriesData.seriesZ[i2][j]);
+            gl.minZ = Math.min(gl.minZ, this.w.seriesData.seriesZ[i2][j]);
           }
         }
       }
@@ -19691,9 +20674,9 @@ class Range {
               this.w.seriesData.seriesX[gl.maxValsInArrayIndex][this.w.seriesData.seriesX[gl.maxValsInArrayIndex].length - 1]
             );
           }
-          const pe2 = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[si];
-          if (pe2 && pe2.xNumeric && pe2.xSorted && pe2.xref === sX && pe2.len === sX.length) {
-            if (pe2.minXDiff < gl.minXDiff) gl.minXDiff = pe2.minXDiff;
+          const pe = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[si];
+          if (pe && pe.xNumeric && pe.xSorted && pe.xref === sX && pe.len === sX.length) {
+            if (pe.minXDiff < gl.minXDiff) gl.minXDiff = pe.minXDiff;
             if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
               gl.minXDiff = 0.5;
             }
@@ -19701,11 +20684,11 @@ class Range {
           }
           let presorted = true;
           let minDiff = gl.minXDiff;
-          for (let j2 = 1; j2 < sX.length; j2++) {
-            const d = sX[j2] - sX[j2 - 1];
-            if (d > 0) {
-              if (d < minDiff) minDiff = d;
-            } else if (d < 0) {
+          for (let j = 1; j < sX.length; j++) {
+            const d2 = sX[j] - sX[j - 1];
+            if (d2 > 0) {
+              if (d2 < minDiff) minDiff = d2;
+            } else if (d2 < 0) {
               presorted = false;
               break;
             }
@@ -19719,9 +20702,9 @@ class Range {
           }
           const seriesX = sX.slice();
           seriesX.sort((a2, b) => a2 - b);
-          seriesX.forEach((s2, j2) => {
-            if (j2 > 0) {
-              const xDiff = s2 - seriesX[j2 - 1];
+          seriesX.forEach((s2, j) => {
+            if (j > 0) {
+              const xDiff = s2 - seriesX[j - 1];
               if (xDiff > 0) {
                 gl.minXDiff = Math.min(xDiff, gl.minXDiff);
               }
@@ -19749,21 +20732,21 @@ class Range {
         const stackSeries = this.w.config.chart.stacked && (!gl.comboCharts || !this.w.config.chart.stackOnlyBar || (serie == null ? void 0 : serie.type) === "bar" || (serie == null ? void 0 : serie.type) === "column");
         const len = this.w.seriesData.series[gl.maxValsInArrayIndex].length;
         const row = this.w.seriesData.series[i2];
-        for (let j2 = 0; j2 < len; j2++) {
-          if (hasX && (xs[j2] < bounds.lo || xs[j2] > bounds.hi)) continue;
-          const key = (gIdx[i2] || 0) + "|" + (byX && xs ? xs[j2] : j2);
-          let st = stacks.get(key);
-          if (!st) stacks.set(key, st = [0, 0]);
-          const v = row[j2];
+        for (let j = 0; j < len; j++) {
+          if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue;
+          const key = (gIdx[i2] || 0) + "|" + (byX && xs ? xs[j] : j);
+          let st2 = stacks.get(key);
+          if (!st2) stacks.set(key, st2 = [0, 0]);
+          const v = row[j];
           if (stackSeries && Number.isFinite(v)) {
-            v > 0 ? st[0] += v * 1.000001 : st[1] += +v;
+            v > 0 ? st2[0] += v * 1.000001 : st2[1] += +v;
           }
         }
       }
     );
-    stacks.forEach((st) => {
-      gl.maxY = Math.max(gl.maxY, st[0]);
-      gl.minY = Math.min(gl.minY, st[1]);
+    stacks.forEach((st2) => {
+      gl.maxY = Math.max(gl.maxY, st2[0]);
+      gl.minY = Math.min(gl.minY, st2[1]);
     });
   }
 }
@@ -19864,12 +20847,12 @@ class TimeScale {
    */
   generateBaseTicks(minX, maxX, interval) {
     const w = this.w;
-    const dt = new DateTime(w);
+    const dt2 = new DateTime(w);
     const isUTC = this.utc;
     const gridWidth = w.layout.gridWidth;
     const span = maxX - minX;
     const ticks = [];
-    let t2 = dt.ceilToBoundary(
+    let t2 = dt2.ceilToBoundary(
       minX,
       /** @type {any} */
       interval.unit,
@@ -19879,21 +20862,21 @@ class TimeScale {
     let iter = 0;
     const MAX_ITER = 5e3;
     while (t2 <= maxX && iter < MAX_ITER) {
-      const f = dt.getDateFields(t2, isUTC);
+      const f2 = dt2.getDateFields(t2, isUTC);
       const position = span > 0 ? (t2 - minX) / span * gridWidth : 0;
       ticks.push({
         timestamp: t2,
         position,
         unit: interval.unit,
-        year: f.year,
-        month: f.month + 1,
-        day: f.date,
-        hour: f.hour,
-        minute: f.minute,
-        second: f.second,
+        year: f2.year,
+        month: f2.month + 1,
+        day: f2.date,
+        hour: f2.hour,
+        minute: f2.minute,
+        second: f2.second,
         value: t2
       });
-      t2 = dt.addInterval(
+      t2 = dt2.addInterval(
         t2,
         /** @type {any} */
         interval.unit,
@@ -19935,15 +20918,15 @@ class TimeScale {
    */
   formatDates(rawTicks) {
     const w = this.w;
-    const dt = new DateTime(w);
+    const dt2 = new DateTime(w);
     const userFormat = w.config.xaxis.labels.format;
     const dtFmt = w.config.xaxis.labels.datetimeFormatter;
     const isUTC = this.utc;
     const pad = (n2, len = 2) => String(n2).padStart(len, "0");
     const effectiveFormat = userFormat ? userFormat : this._effectiveFormat(rawTicks, dtFmt);
     return rawTicks.map((tick) => {
-      const date = dt.getDate(tick.timestamp);
-      const value = dt.formatDate(date, effectiveFormat);
+      const date = dt2.getDate(tick.timestamp);
+      const value = dt2.formatDate(date, effectiveFormat);
       const ds = `${tick.year}-${pad(tick.month)}-${pad(tick.day)}T${pad(tick.hour)}:${pad(tick.minute)}:${pad(tick.second)}.000${isUTC ? "Z" : ""}`;
       return {
         dateString: ds,
@@ -20034,7 +21017,7 @@ class TimeScale {
         return item;
       }
       return null;
-    }).filter((f) => f !== null);
+    }).filter((f2) => f2 !== null);
     return filtered;
   }
 }
@@ -20069,11 +21052,11 @@ class Core {
   setupElements() {
     var _a;
     const { globals: gl, config: cnf } = this.w;
-    const ct = cnf.chart.type;
-    const isCustomType = !BUILTIN_TYPES.includes(ct) && isCustom(ct);
-    gl.axisCharts = AXIS_TYPES.includes(ct) || isCustomType;
-    gl.xyCharts = XY_TYPES.includes(ct) || isCustomType;
-    gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct) && cnf.plotOptions.bar.horizontal;
+    const ct2 = cnf.chart.type;
+    const isCustomType = !BUILTIN_TYPES.includes(ct2) && isCustom(ct2);
+    gl.axisCharts = AXIS_TYPES.includes(ct2) || isCustomType;
+    gl.xyCharts = XY_TYPES.includes(ct2) || isCustomType;
+    gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct2) && cnf.plotOptions.bar.horizontal;
     gl.isSlopeChart = !!cnf.plotOptions.line.isSlopeChart;
     gl.chartClass = `.apexcharts${gl.chartID}`;
     this.w.dom.baseEl = this.el;
@@ -20097,7 +21080,7 @@ class Core {
       "xmlns:data": "ApexChartsNS",
       transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`
     });
-    this.w.dom.Paper.node.style.background = cnf.theme.mode === "dark" && !cnf.chart.background ? "#343A3F" : cnf.theme.mode === "light" && !cnf.chart.background ? "#fff" : cnf.chart.background;
+    this.w.dom.Paper.node.style.background = Theme.modePaper(this.w);
     this.setSVGDimensions();
     this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(
       SVGNS$2,
@@ -20176,23 +21159,23 @@ class Core {
     const chartType = cnf.chart.type || "line";
     let nonComboType = null;
     let comboCount = 0;
-    this.w.seriesData.series.forEach((serie, st) => {
+    this.w.seriesData.series.forEach((serie, st2) => {
       var _a, _b;
-      const seriesType = ((_a = ser[st]) == null ? void 0 : _a.type) === "column" ? "bar" : ((_b = ser[st]) == null ? void 0 : _b.type) || (chartType === "column" ? "bar" : chartType);
+      const seriesType = ((_a = ser[st2]) == null ? void 0 : _a.type) === "column" ? "bar" : ((_b = ser[st2]) == null ? void 0 : _b.type) || (chartType === "column" ? "bar" : chartType);
       const st_ = (
         /** @type {Record<string,any>} */
         seriesTypes
       );
       if (st_[seriesType]) {
         if (seriesType === "rangeArea") {
-          st_[seriesType].series.push(this.w.rangeData.seriesRangeStart[st]);
+          st_[seriesType].series.push(this.w.rangeData.seriesRangeStart[st2]);
           st_[seriesType].seriesRangeEnd.push(
-            this.w.rangeData.seriesRangeEnd[st]
+            this.w.rangeData.seriesRangeEnd[st2]
           );
         } else {
           st_[seriesType].series.push(serie);
         }
-        st_[seriesType].i.push(st);
+        st_[seriesType].i.push(st2);
         if (seriesType === "bar") w.globals.columnSeries = seriesTypes.bar;
       } else if (SOLO_TYPES.includes(seriesType)) {
         nonComboType = seriesType;
@@ -20201,7 +21184,7 @@ class Core {
           customBuckets[seriesType] = { series: [], i: [] };
         }
         customBuckets[seriesType].series.push(serie);
-        customBuckets[seriesType].i.push(st);
+        customBuckets[seriesType].i.push(st2);
       } else {
         console.warn(
           `You have specified an unrecognized series type (${seriesType}).`
@@ -20624,7 +21607,7 @@ class Core {
     });
     if (heightUnit !== "%" && Environment.isBrowser()) {
       const needsAxisPadding = gl.axisCharts && (cnf.grid.show || cnf.dataLabels.enabled || cnf.xaxis.labels.show || cnf.xaxis.axisBorder.show || cnf.xaxis.axisTicks.show || cnf.yaxis.some(
-        (y) => y.show && (y.labels.show || y.axisBorder.show || y.axisTicks.show)
+        (y2) => y2.show && (y2.labels.show || y2.axisBorder.show || y2.axisTicks.show)
       ));
       const offsetY = cnf.chart.sparkline.enabled || !needsAxisPadding ? 0 : cnf.chart.parentHeightOffset;
       this.reserveHeight(gl.svgHeight + offsetY);
@@ -20656,13 +21639,13 @@ class Core {
     if (!weave || typeof weave.reservedBox !== "function") return;
     const box = weave.reservedBox();
     const x2 = box.left + box.right;
-    const y = box.top + box.bottom;
-    if (!x2 && !y) return;
+    const y2 = box.top + box.bottom;
+    if (!x2 && !y2) return;
     if (x2 && Number.isFinite(gl.svgWidth)) {
       gl.svgWidth -= Math.min(x2, gl.svgWidth / 2);
     }
-    if (y && Number.isFinite(gl.svgHeight)) {
-      gl.svgHeight -= Math.min(y, gl.svgHeight / 2);
+    if (y2 && Number.isFinite(gl.svgHeight)) {
+      gl.svgHeight -= Math.min(y2, gl.svgHeight / 2);
     }
   }
   /**
@@ -20683,14 +21666,14 @@ class Core {
     const rawWidth = (cnf.chart.width || "100%").toString().trim();
     const rawHeight = (cnf.chart.height || "auto").toString().trim();
     let w = 0;
-    let h = 0;
+    let h2 = 0;
     if (rawWidth.endsWith("%")) {
       w = (held ? held.el : Utils$1.getDimensions(this.el))[0] || 0;
     }
     if (rawHeight.endsWith("%")) {
-      h = (held ? held.parent : Utils$1.getDimensions(this.el.parentNode))[1] || 0;
+      h2 = (held ? held.parent : Utils$1.getDimensions(this.el.parentNode))[1] || 0;
     }
-    const sig = { w: Math.round(w), h: Math.round(h) };
+    const sig = { w: Math.round(w), h: Math.round(h2) };
     if (cnf.responsive && cnf.responsive.length && Environment.isBrowser()) {
       sig.iw = window.innerWidth;
     }
@@ -20737,9 +21720,9 @@ class Core {
         if (tag === "text" || tag === "tspan") return;
         const children = Array.from((_d2 = node.children) != null ? _d2 : []);
         if (children.length > 0) {
-          children.forEach((c) => accumulate(
+          children.forEach((c2) => accumulate(
             /** @type {Element} */
-            c
+            c2
           ));
           return;
         }
@@ -20758,9 +21741,9 @@ class Core {
         arcBottomFromSVGTop = w.layout.translateY + arcY[1] + externalLabelMarginY;
       } else {
         Array.from((_d = el.children) != null ? _d : []).forEach(
-          (c) => accumulate(
+          (c2) => accumulate(
             /** @type {Element} */
-            c
+            c2
           )
         );
       }
@@ -21046,7 +22029,7 @@ function warnMissingFeature(subject, feature, opts = {}) {
     scripts = [`features/${feature}.js`],
     tail
   } = opts;
-  const tags = scripts.map((f) => `<script src='.../dist/${f}'>`).join(" and ");
+  const tags = scripts.map((f2) => `<script src='.../dist/${f2}'>`).join(" and ");
   globalThis.console.warn(
     `ApexCharts: ${subject} requires the ${feature} feature, which is not in this bundle. Bundler: import 'apexcharts/${module}'` + (entry ? ` (or from 'apexcharts/${entry}')` : "") + `. Script tag: add ${tags} after the ApexCharts script, or load apexcharts.full.min.js instead.` + (tail ? ` ${tail}` : "")
   );
@@ -21082,37 +22065,37 @@ function segment(name2, seen) {
   seen.set(n2, o2);
   return `${o2}:${n2}`;
 }
-function toNode(w, d, i2, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
+function toNode(w, d2, i2, paletteFromParent, parentKey, seenIds = null, opts = {}, seen = /* @__PURE__ */ new Map()) {
   var _a, _b, _c;
-  const isObj = d && typeof d === "object";
-  const name2 = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-  const raw = isObj ? (_c = d.y) != null ? _c : d.value : d;
+  const isObj = d2 && typeof d2 === "object";
+  const name2 = isObj ? (_b = (_a = d2.x) != null ? _a : d2.name) != null ? _b : "" : "";
+  const raw = isObj ? (_c = d2.y) != null ? _c : d2.value : d2;
   const value = raw == null || raw === "" ? NaN : Number(raw);
   const node = {
     name: String(name2),
     value: isNaN(value) ? null : value,
-    color: isObj && d.color ? d.color : void 0,
+    color: isObj && d2.color ? d2.color : void 0,
     _key: `${parentKey}/${segment(name2, seen)}`
   };
   if (paletteFromParent && !node.color) {
     node.color = paletteFromParent[i2 % paletteFromParent.length];
   }
-  if (opts.keepDatum) node._datum = d;
+  if (opts.keepDatum) node._datum = d2;
   const kids = /* @__PURE__ */ new Map();
-  if (isObj && Array.isArray(d.children) && d.children.length) {
-    node.children = d.children.map(
-      (c, j2) => toNode(w, c, j2, null, node._key, seenIds, opts, kids)
+  if (isObj && Array.isArray(d2.children) && d2.children.length) {
+    node.children = d2.children.map(
+      (c2, j) => toNode(w, c2, j, null, node._key, seenIds, opts, kids)
     );
-  } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
+  } else if (isObj && d2.drilldown != null && opts.expandDrilldown !== false) {
     const visited = seenIds || /* @__PURE__ */ new Set();
-    if (!visited.has(d.drilldown)) {
-      const dd = drilldownById(w, d.drilldown);
+    if (!visited.has(d2.drilldown)) {
+      const dd = drilldownById(w, d2.drilldown);
       if (dd && Array.isArray(dd.data) && dd.data.length) {
         const nextSeen = new Set(visited);
-        nextSeen.add(d.drilldown);
+        nextSeen.add(d2.drilldown);
         const palette = Array.isArray(dd.colors) ? dd.colors : null;
         node.children = dd.data.map(
-          (c, j2) => toNode(w, c, j2, palette, node._key, nextSeen, opts, kids)
+          (c2, j) => toNode(w, c2, j, palette, node._key, nextSeen, opts, kids)
         );
       }
     }
@@ -21138,7 +22121,7 @@ function buildSeriesRoots(w, series, opts = {}) {
       _key: key,
       _seriesIndex: i2,
       children: data.map(
-        (d, j2) => toNode(w, d, j2, null, key, null, opts, kids)
+        (d2, j) => toNode(w, d2, j, null, key, null, opts, kids)
       )
     };
     return root;
@@ -21146,10 +22129,10 @@ function buildSeriesRoots(w, series, opts = {}) {
 }
 function fillValues(node) {
   if (node.children && node.children.length) {
-    node.children.forEach((c) => fillValues(c));
+    node.children.forEach((c2) => fillValues(c2));
     if (node.value == null || isNaN(node.value)) {
       node.value = node.children.reduce(
-        (s2, c) => s2 + Math.max(0, c.value || 0),
+        (s2, c2) => s2 + Math.max(0, c2.value || 0),
         0
       );
     }
@@ -21162,11 +22145,11 @@ function hasNesting(series, opts = {}) {
   for (let i2 = 0; i2 < series.length; i2++) {
     const data = series[i2] && series[i2].data;
     if (!Array.isArray(data)) continue;
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const d = data[j2];
-      if (!d || typeof d !== "object") continue;
-      if (Array.isArray(d.children) && d.children.length) return true;
-      if (countDrilldown && d.drilldown != null) return true;
+    for (let j = 0; j < data.length; j++) {
+      const d2 = data[j];
+      if (!d2 || typeof d2 !== "object") continue;
+      if (Array.isArray(d2.children) && d2.children.length) return true;
+      if (countDrilldown && d2.drilldown != null) return true;
     }
   }
   return false;
@@ -21203,7 +22186,7 @@ function annotate(roots) {
       } else {
         node._di = -1;
         node.children.forEach(
-          (c) => walk(c, depth + 1, node)
+          (c2) => walk(c2, depth + 1, node)
         );
       }
     };
@@ -21213,9 +22196,9 @@ function annotate(roots) {
   return { leaves, maxDepth };
 }
 function leafRow(node) {
-  const d = node._datum;
-  if (d && typeof d === "object") {
-    const row = __spreadProps(__spreadValues({}, d), { x: node.name, y: node.value });
+  const d2 = node._datum;
+  if (d2 && typeof d2 === "object") {
+    const row = __spreadProps(__spreadValues({}, d2), { x: node.name, y: node.value });
     delete row.children;
     return row;
   }
@@ -21265,32 +22248,32 @@ const NULL_ROW = (
   /** @type {any[]} */
   [void 0, null]
 );
-function isRawSample(d, name2, flatY) {
+function isRawSample(d2, name2, flatY) {
   var _a, _b, _c;
-  if (!d || typeof d !== "object" || Array.isArray(d)) return false;
-  if (name2 === "boxPlot" && Array.isArray(d.y) && d.y.length === 5) {
+  if (!d2 || typeof d2 !== "object" || Array.isArray(d2)) return false;
+  if (name2 === "boxPlot" && Array.isArray(d2.y) && d2.y.length === 5) {
     return false;
   }
-  if (name2 === "violin" && Array.isArray((_a = d.y) == null ? void 0 : _a.density) && d.y.density.length) {
+  if (name2 === "violin" && Array.isArray((_a = d2.y) == null ? void 0 : _a.density) && d2.y.density.length) {
     return false;
   }
-  if (name2 === "violin" && Array.isArray((_b = d.y) == null ? void 0 : _b.summary) && d.y.summary.length === 5) {
+  if (name2 === "violin" && Array.isArray((_b = d2.y) == null ? void 0 : _b.summary) && d2.y.summary.length === 5) {
     return false;
   }
-  const raw = Array.isArray(d.points) ? d.points : Array.isArray((_c = d.y) == null ? void 0 : _c.points) ? d.y.points : flatY && Array.isArray(d.y) && typeof d.y[0] === "number" ? d.y : null;
+  const raw = Array.isArray(d2.points) ? d2.points : Array.isArray((_c = d2.y) == null ? void 0 : _c.points) ? d2.y.points : flatY && Array.isArray(d2.y) && typeof d2.y[0] === "number" ? d2.y : null;
   return !!raw && raw.some((v) => {
     const n2 = Utils$1.parseNumber(v);
     return n2 !== null && isFinite(n2);
   });
 }
-function subtreeTotal(d) {
+function subtreeTotal(d2) {
   var _a;
-  if (!d || typeof d !== "object") return Utils$1.parseNumber(d) || 0;
-  const v = (_a = d.y) != null ? _a : d.value;
+  if (!d2 || typeof d2 !== "object") return Utils$1.parseNumber(d2) || 0;
+  const v = (_a = d2.y) != null ? _a : d2.value;
   if (v != null && v !== "") return Utils$1.parseNumber(v) || 0;
-  if (!Array.isArray(d.children)) return 0;
-  return d.children.reduce(
-    (s2, c) => s2 + Math.max(0, subtreeTotal(c)),
+  if (!Array.isArray(d2.children)) return 0;
+  return d2.children.reduce(
+    (s2, c2) => s2 + Math.max(0, subtreeTotal(c2)),
     0
   );
 }
@@ -21404,11 +22387,11 @@ class Data {
     let xSorted = true;
     let minXDiff = Infinity;
     let prevX = NaN;
-    for (let j2 = 0; j2 < n2; j2++) {
-      const point = data[j2];
+    for (let j = 0; j < n2; j++) {
+      const point = data[j];
       if (!Array.isArray(point) || point.length > 2) return false;
       const x2 = point[0];
-      const y = point[1];
+      const y2 = point[1];
       if (isDatetime && !(Number.isInteger(x2) && Math.abs(x2) <= 864e13)) {
         return false;
       }
@@ -21418,10 +22401,10 @@ class Data {
             if (x2 < minX) minX = x2;
             if (x2 > maxX) maxX = x2;
           }
-          const d = x2 - prevX;
-          if (d > 0) {
-            if (d < minXDiff) minXDiff = d;
-          } else if (d < 0) {
+          const d2 = x2 - prevX;
+          if (d2 > 0) {
+            if (d2 < minXDiff) minXDiff = d2;
+          } else if (d2 < 0) {
             xSorted = false;
           }
           prevX = x2;
@@ -21429,32 +22412,32 @@ class Data {
           xNumeric = false;
         }
       }
-      if (typeof y === "number") {
-        if (y === y && y !== Infinity && y !== -Infinity) {
-          if (y > maxY) maxY = y;
-          if (y < lowestY) lowestY = y;
-          if (y < 0 && y < negMinY) negMinY = y;
-          if (!Number.isInteger(y)) {
-            const av = y < 0 ? -y : y;
+      if (typeof y2 === "number") {
+        if (y2 === y2 && y2 !== Infinity && y2 !== -Infinity) {
+          if (y2 > maxY) maxY = y2;
+          if (y2 < lowestY) lowestY = y2;
+          if (y2 < 0 && y2 < negMinY) negMinY = y2;
+          if (!Number.isInteger(y2)) {
+            const av = y2 < 0 ? -y2 : y2;
             if (av >= 1e-6 && av < 1e21) {
-              const str = "" + y;
+              const str = "" + y2;
               const dot = str.indexOf(".");
               const dec = dot === -1 ? 0 : str.length - dot - 1;
               if (dec > yDec) yDec = dec;
             } else {
-              yDec = Math.max(yDec, Utils$1.decimalPlaces(y));
+              yDec = Math.max(yDec, Utils$1.decimalPlaces(y2));
             }
           }
         } else {
           hasNulls = true;
         }
-      } else if (y === null) {
+      } else if (y2 === null) {
         hasNulls = true;
       } else {
         return false;
       }
-      ys[j2] = y;
-      xs[j2] = x2;
+      ys[j] = y2;
+      xs[j] = x2;
     }
     this.twoDSeries = ys;
     this.twoDSeriesX = xs;
@@ -21487,8 +22470,8 @@ class Data {
     const data = ser[i2].data;
     if (data.length === 0 && this._isCollapsedIndex(i2)) {
       const activeData = ((_a = ser[this.activeSeriesIndex]) == null ? void 0 : _a.data) || [];
-      for (let j2 = 0; j2 < activeData.length; j2++) {
-        const x2 = Array.isArray(activeData[j2]) ? activeData[j2][0] : void 0;
+      for (let j = 0; j < activeData.length; j++) {
+        const x2 = Array.isArray(activeData[j]) ? activeData[j][0] : void 0;
         this.twoDSeriesX.push(
           cnf.xaxis.type === "datetime" ? new Date(x2).getTime() : x2
         );
@@ -21499,18 +22482,18 @@ class Data {
     if (!isBoxPlot && this._fast2DArrayParse(data, i2, cnf.xaxis.type === "datetime")) {
       return;
     }
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const point = data[j2] || NULL_ROW;
+    for (let j = 0; j < data.length; j++) {
+      const point = data[j] || NULL_ROW;
       const x2 = point[0];
-      const y = point[1];
+      const y2 = point[1];
       const z = point[2];
-      if (typeof y !== "undefined") {
-        if (Array.isArray(y) && y.length === 4 && !isBoxPlot) {
-          this.twoDSeries.push(Utils$1.parseNumber(y[3]));
+      if (typeof y2 !== "undefined") {
+        if (Array.isArray(y2) && y2.length === 4 && !isBoxPlot) {
+          this.twoDSeries.push(Utils$1.parseNumber(y2[3]));
         } else if (point.length >= 5) {
           this.twoDSeries.push(Utils$1.parseNumber(point[4]));
         } else {
-          this.twoDSeries.push(Utils$1.parseNumber(y));
+          this.twoDSeries.push(Utils$1.parseNumber(y2));
         }
         this.w.axisFlags.dataFormatXNumeric = true;
       }
@@ -21520,7 +22503,7 @@ class Data {
       } else {
         this.twoDSeriesX.push(x2);
       }
-      this.pushZ(z, j2);
+      this.pushZ(z, j);
     }
   }
   /**
@@ -21549,14 +22532,14 @@ class Data {
    * @param {any} z the point's raw `z`, or undefined when it has none
    * @param {number} j the point's index within the series
    */
-  pushZ(z, j2) {
+  pushZ(z, j) {
     if (typeof z === "undefined") {
       if (this.threeDSeries.length) this.threeDSeries.push(null);
       return;
     }
     const num = typeof z === "string" && z.trim() !== "" ? Number(z) : z;
     const measurable = Utils$1.isNumber(num);
-    while (this.threeDSeries.length < j2) this.threeDSeries.push(null);
+    while (this.threeDSeries.length < j) this.threeDSeries.push(null);
     this.threeDSeries.push(measurable ? num : z);
     if (measurable) {
       this.w.axisFlags.isDataXYZ = true;
@@ -21580,28 +22563,28 @@ class Data {
     var _a, _b, _c;
     const cnf = this.w.config;
     const gl = this.w.globals;
-    const dt = new DateTime(this.w);
+    const dt2 = new DateTime(this.w);
     const data = ser[i2].data;
     let activeI = i2;
     if (this._isCollapsedIndex(i2)) {
       activeI = this.activeSeriesIndex;
     }
     const activeData = ser[activeI].data;
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const point = data[j2] || NULL_POINT;
+    for (let j = 0; j < data.length; j++) {
+      const point = data[j] || NULL_POINT;
       if (typeof point.y !== "undefined") {
         const val = Array.isArray(point.y) ? Utils$1.parseNumber(point.y[point.y.length - 1]) : Utils$1.parseNumber(point.y);
         this.twoDSeries.push(val);
       }
       if (Array.isArray(point.goals)) {
-        ((_b = (_a = this.seriesGoals)[i2]) != null ? _b : _a[i2] = Array(j2).fill(null)).push(point.goals);
+        ((_b = (_a = this.seriesGoals)[i2]) != null ? _b : _a[i2] = Array(j).fill(null)).push(point.goals);
       } else {
         (_c = this.seriesGoals[i2]) == null ? void 0 : _c.push(null);
       }
-      this.pushZ(point.z, j2);
+      this.pushZ(point.z, j);
     }
-    for (let j2 = 0; j2 < activeData.length; j2++) {
-      const point = activeData[j2];
+    for (let j = 0; j < activeData.length; j++) {
+      const point = activeData[j];
       if (!point) {
         this.twoDSeriesX.push("");
         continue;
@@ -21609,12 +22592,12 @@ class Data {
       const x2 = point.x;
       const isXString = typeof x2 === "string";
       const isXArr = Array.isArray(x2);
-      const isXDate = !isXString && !isXArr && !!dt.isValidDate(x2);
+      const isXDate = !isXString && !isXArr && !!dt2.isValidDate(x2);
       if (isXString || isXDate) {
         if (isXString || cnf.xaxis.convertedCatToNumeric) {
           const isRangeColumn = gl.isBarHorizontal && this.w.axisFlags.isRangeData;
           if (cnf.xaxis.type === "datetime" && !isRangeColumn) {
-            this.twoDSeriesX.push(dt.parseDate(x2));
+            this.twoDSeriesX.push(dt2.parseDate(x2));
           } else {
             this.fallbackToCategory = true;
             this.twoDSeriesX.push(x2);
@@ -21625,7 +22608,7 @@ class Data {
         } else {
           if (cnf.xaxis.type === "datetime") {
             this.twoDSeriesX.push(
-              x2 instanceof Date ? x2.getTime() : dt.parseDate(x2.toString())
+              x2 instanceof Date ? x2.getTime() : dt2.parseDate(x2.toString())
             );
           } else {
             this.w.axisFlags.dataFormatXNumeric = true;
@@ -21711,23 +22694,23 @@ class Data {
     const data = ser[i2].data || [];
     const start = [];
     const end = [];
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const datum = data[j2];
+    for (let j = 0; j < data.length; j++) {
+      const datum = data[j];
       let lo;
       let hi;
       if (typeof yExtent === "function") {
-        let ext = yExtent(datum, j2);
+        let ext = yExtent(datum, j);
         if (!Array.isArray(ext)) ext = [ext];
         const nums2 = ext.map((v) => Utils$1.parseNumber(v)).filter((v) => v !== null && !isNaN(v));
         lo = nums2.length ? Math.min(...nums2) : null;
         hi = nums2.length ? Math.max(...nums2) : null;
       } else {
-        const y = datum == null ? null : datum.y;
-        if (Array.isArray(y)) {
-          lo = Utils$1.parseNumber(y[0]);
-          hi = Utils$1.parseNumber(y[y.length - 1]);
+        const y2 = datum == null ? null : datum.y;
+        if (Array.isArray(y2)) {
+          lo = Utils$1.parseNumber(y2[0]);
+          hi = Utils$1.parseNumber(y2[y2.length - 1]);
         } else {
-          lo = hi = Utils$1.parseNumber(y);
+          lo = hi = Utils$1.parseNumber(y2);
         }
       }
       start.push(lo);
@@ -21785,11 +22768,11 @@ class Data {
     const minArr = [];
     const maxArr = [];
     const placeholders = [];
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const d = data[j2];
-      const dens = (_c = (_b = (_a = d == null ? void 0 : d.y) == null ? void 0 : _a.density) != null ? _b : d == null ? void 0 : d[1]) != null ? _c : [];
-      const pts = (_f = (_e = (_d = d == null ? void 0 : d.y) == null ? void 0 : _d.points) != null ? _e : d == null ? void 0 : d[2]) != null ? _f : [];
-      const summary = this._parseViolinSummary((_h = (_g = d == null ? void 0 : d.y) == null ? void 0 : _g.summary) != null ? _h : d == null ? void 0 : d[3]);
+    for (let j = 0; j < data.length; j++) {
+      const d2 = data[j];
+      const dens = (_c = (_b = (_a = d2 == null ? void 0 : d2.y) == null ? void 0 : _a.density) != null ? _b : d2 == null ? void 0 : d2[1]) != null ? _c : [];
+      const pts = (_f = (_e = (_d = d2 == null ? void 0 : d2.y) == null ? void 0 : _d.points) != null ? _e : d2 == null ? void 0 : d2[2]) != null ? _f : [];
+      const summary = this._parseViolinSummary((_h = (_g = d2 == null ? void 0 : d2.y) == null ? void 0 : _g.summary) != null ? _h : d2 == null ? void 0 : d2[3]);
       const values = [];
       const weights = [];
       let maxWeight = 0;
@@ -21798,12 +22781,12 @@ class Data {
       let maxVal = -Infinity;
       for (let k2 = 0; k2 < dens.length; k2++) {
         const v = Utils$1.parseNumber(dens[k2][0]);
-        const wt = Utils$1.parseNumber(dens[k2][1]);
-        if (v === null || wt === null) continue;
+        const wt2 = Utils$1.parseNumber(dens[k2][1]);
+        if (v === null || wt2 === null) continue;
         values.push(v);
-        weights.push(wt);
-        if (wt > maxWeight) {
-          maxWeight = wt;
+        weights.push(wt2);
+        if (wt2 > maxWeight) {
+          maxWeight = wt2;
           modeValue = v;
         }
         if (v < minVal) minVal = v;
@@ -21811,11 +22794,11 @@ class Data {
       }
       const cleanPts = [];
       for (let k2 = 0; k2 < pts.length; k2++) {
-        const p = Utils$1.parseNumber(pts[k2]);
-        if (p === null) continue;
-        cleanPts.push(p);
-        if (p < minVal) minVal = p;
-        if (p > maxVal) maxVal = p;
+        const p2 = Utils$1.parseNumber(pts[k2]);
+        if (p2 === null) continue;
+        cleanPts.push(p2);
+        if (p2 < minVal) minVal = p2;
+        if (p2 > maxVal) maxVal = p2;
       }
       if (summary) {
         if (summary[0] < minVal) minVal = summary[0];
@@ -21880,35 +22863,35 @@ class Data {
       }
     });
     if (format === "array") {
-      for (let j2 = 0; j2 < ser[i2].data.length; j2++) {
-        if (Array.isArray(ser[i2].data[j2])) {
-          rangeStart.push(ser[i2].data[j2][1][0]);
-          rangeEnd.push(ser[i2].data[j2][1][1]);
+      for (let j = 0; j < ser[i2].data.length; j++) {
+        if (Array.isArray(ser[i2].data[j])) {
+          rangeStart.push(ser[i2].data[j][1][0]);
+          rangeEnd.push(ser[i2].data[j][1][1]);
         } else {
-          rangeStart.push(ser[i2].data[j2]);
-          rangeEnd.push(ser[i2].data[j2]);
+          rangeStart.push(ser[i2].data[j]);
+          rangeEnd.push(ser[i2].data[j]);
         }
       }
     } else if (format === "xy") {
-      for (let j2 = 0; j2 < ser[i2].data.length; j2++) {
-        const isDataPoint2D = Array.isArray(ser[i2].data[j2].y);
+      for (let j = 0; j < ser[i2].data.length; j++) {
+        const isDataPoint2D = Array.isArray(ser[i2].data[j].y);
         const id = Utils$1.randomId();
-        const x2 = ser[i2].data[j2].x;
-        const y = {
-          y1: isDataPoint2D ? ser[i2].data[j2].y[0] : ser[i2].data[j2].y,
-          y2: isDataPoint2D ? ser[i2].data[j2].y[1] : ser[i2].data[j2].y,
+        const x2 = ser[i2].data[j].x;
+        const y2 = {
+          y1: isDataPoint2D ? ser[i2].data[j].y[0] : ser[i2].data[j].y,
+          y2: isDataPoint2D ? ser[i2].data[j].y[1] : ser[i2].data[j].y,
           rangeName: id
         };
         const gl = this.w.globals;
         if (!gl.seriesRangeName) gl.seriesRangeName = {};
         if (!gl.seriesRangeName[i2]) gl.seriesRangeName[i2] = {};
-        gl.seriesRangeName[i2][j2] = id;
+        gl.seriesRangeName[i2][j] = id;
         const keyObj = uniqueKeysMap.get(rowKey(x2));
         if (keyObj) {
-          keyObj.y.push(y);
+          keyObj.y.push(y2);
         }
-        rangeStart.push(y.y1);
-        rangeEnd.push(y.y2);
+        rangeStart.push(y2.y1);
+        rangeEnd.push(y2.y2);
       }
     }
     return {
@@ -21953,15 +22936,15 @@ class Data {
       const first = data[0];
       const isFlat = isBoxPlot && first && first.length === 6 || !isBoxPlot && first && first.length === 5;
       if (isFlat) {
-        getVals = (d) => d.slice(1);
+        getVals = (d2) => d2.slice(1);
       } else {
-        getVals = (d) => Array.isArray(d[1]) ? d[1] : [];
+        getVals = (d2) => Array.isArray(d2[1]) ? d2[1] : [];
       }
     } else {
-      getVals = (d) => Array.isArray(d.y) ? d.y : [];
+      getVals = (d2) => Array.isArray(d2.y) ? d2.y : [];
     }
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const vals = getVals(data[j2]);
+    for (let j = 0; j < data.length; j++) {
+      const vals = getVals(data[j]);
       if (vals && vals.length >= 2) {
         serO.push(vals[0]);
         serH.push(vals[1]);
@@ -21980,8 +22963,8 @@ class Data {
         serL.push(null);
         serC.push(null);
       }
-      const pts = data[j2] && /** @type {any} */
-      data[j2].points;
+      const pts = data[j] && /** @type {any} */
+      data[j].points;
       serPoints.push(Array.isArray(pts) ? pts : null);
     }
     return {
@@ -22000,7 +22983,7 @@ class Data {
     var _a, _b, _c, _d;
     const cnf = this.w.config;
     const gl = this.w.globals;
-    const dt = new DateTime(this.w);
+    const dt2 = new DateTime(this.w);
     this.w.seriesData._parsedExtrema = [];
     this.seriesGoals = [];
     const xlabels = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
@@ -22040,7 +23023,7 @@ class Data {
     let dates;
     const handleDates = () => dates != null ? dates : dates = Array.from(xlabels, (l2) => {
       if (typeof l2 !== "string") return l2;
-      const t2 = dt.parseDate(l2);
+      const t2 = dt2.parseDate(l2);
       if (isNaN(t2)) {
         throw new Error(
           "You have provided invalid Date format. Please provide a valid JavaScript Date"
@@ -22076,8 +23059,8 @@ class Data {
         if (windowed.length > targetPoints) {
           let sampleY = null;
           for (let k2 = 0; sampleY == null && k2 < windowed.length; k2++) {
-            const p = windowed[k2];
-            sampleY = Array.isArray(p) ? p[1] : p == null ? void 0 : p.y;
+            const p2 = windowed[k2];
+            sampleY = Array.isArray(p2) ? p2[1] : p2 == null ? void 0 : p2.y;
           }
           if (Array.isArray(sampleY)) {
             if (sampleY.length === 4) {
@@ -22140,7 +23123,7 @@ class Data {
         }
         this.w.labelData.labels.push(this.twoDSeriesX);
         const singleArray = ser[i2].data.map(
-          (d) => Utils$1.parseNumber(d)
+          (d2) => Utils$1.parseNumber(d2)
         );
         this.w.seriesData.series.push(singleArray);
       }
@@ -22304,16 +23287,16 @@ class Data {
       serie.data.forEach((dataPoint) => {
         if (typeof dataPoint === "object" && dataPoint !== null) {
           const x2 = dataPoint.x !== void 0 ? dataPoint.x : dataPoint.name;
-          const y = dataPoint.y !== void 0 ? dataPoint.y : dataPoint.value;
+          const y2 = dataPoint.y !== void 0 ? dataPoint.y : dataPoint.value;
           if (rootColors && x2 !== void 0) {
             rootColors[labels.length] = dataPoint.color;
           }
           if (x2 !== void 0 && Array.isArray(dataPoint.children)) {
             labels.push(String(x2));
             values.push(subtreeTotal(dataPoint));
-          } else if (x2 !== void 0 && y !== void 0) {
+          } else if (x2 !== void 0 && y2 !== void 0) {
             labels.push(String(x2));
-            values.push(Utils$1.parseNumber(y));
+            values.push(Utils$1.parseNumber(y2));
           } else {
             console.warn(
               "ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:",
@@ -22400,7 +23383,7 @@ class Data {
             }
           );
           const len = seriesDataFiltered.reduce(
-            (p, c, i2, a2) => a2[p].length > c.length ? p : i2,
+            (p2, c2, i2, a2) => a2[p2].length > c2.length ? p2 : i2,
             0
           );
           for (let i2 = 0; i2 < seriesDataFiltered[len].length; i2++) {
@@ -22475,7 +23458,7 @@ class Data {
       }
       const firstDataPoint = serie.data[0];
       if (typeof firstDataPoint === "object" && firstDataPoint !== null && (Object.prototype.hasOwnProperty.call(firstDataPoint, "x") || Object.prototype.hasOwnProperty.call(firstDataPoint, "y")) && ![effectiveParsing.x, effectiveParsing.y, effectiveParsing.z].flat().some(
-        (f) => f && f !== "x" && f !== "y" && f !== "z" && this.getNestedValue(firstDataPoint, f) !== void 0
+        (f2) => f2 && f2 !== "x" && f2 !== "y" && f2 !== "z" && this.getNestedValue(firstDataPoint, f2) !== void 0
       ) || Array.isArray(firstDataPoint)) {
         return serie;
       }
@@ -22503,7 +23486,7 @@ class Data {
             return item;
           }
           const x2 = this.getNestedValue(item, effectiveParsing.x);
-          let y;
+          let y2;
           let z = void 0;
           if (Array.isArray(effectiveParsing.y)) {
             const yValues = effectiveParsing.y.map(
@@ -22515,12 +23498,12 @@ class Data {
                   `ApexCharts: series[${index}] bubble chart requires parseData.y to have at least 2 fields (y and z). Got: ${JSON.stringify(effectiveParsing.y)}`
                 );
               }
-              y = yValues[0];
+              y2 = yValues[0];
             } else {
-              y = yValues;
+              y2 = yValues;
             }
           } else {
-            y = this.getNestedValue(item, effectiveParsing.y);
+            y2 = this.getNestedValue(item, effectiveParsing.y);
           }
           if (effectiveParsing.z) {
             z = this.getNestedValue(item, effectiveParsing.z);
@@ -22530,12 +23513,12 @@ class Data {
               `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`
             );
           }
-          if (y === void 0) {
+          if (y2 === void 0) {
             console.warn(
               `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
             );
           }
-          const result = { x: x2, y, z: void 0 };
+          const result = { x: x2, y: y2, z: void 0 };
           if (this.w.config.chart.type === "bubble" && Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 2) {
             const zValue = this.getNestedValue(item, effectiveParsing.y[1]);
             if (zValue !== void 0) {
@@ -22627,8 +23610,8 @@ class Data {
     if (Array.isArray(ser)) {
       for (const t2 in RAW_SAMPLE_TYPES) {
         if (t2 !== name2 && ser.some((s2) => (s2 == null ? void 0 : s2.type) === t2)) {
-          const f = getSeriesTransform(t2);
-          ser = f ? f(ser, this.w) : this._withoutStats(ser, t2);
+          const f2 = getSeriesTransform(t2);
+          ser = f2 ? f2(ser, this.w) : this._withoutStats(ser, t2);
         }
       }
     }
@@ -22683,7 +23666,7 @@ class Data {
     if (this._warnedFeatures.has("stats")) return ser;
     const flatY = RAW_SAMPLE_TYPES[name2];
     const raw = ser.some(
-      (s2) => ((s2 == null ? void 0 : s2.type) || name2) === name2 && Array.isArray(s2 == null ? void 0 : s2.data) && s2.data.some((d) => isRawSample(d, name2, flatY))
+      (s2) => ((s2 == null ? void 0 : s2.type) || name2) === name2 && Array.isArray(s2 == null ? void 0 : s2.data) && s2.data.some((d2) => isRawSample(d2, name2, flatY))
     );
     if (raw) {
       this._warnedFeatures.add("stats");
@@ -22760,7 +23743,7 @@ class Data {
     if (!isScatter || !jt || !jt.enabled || !Array.isArray(ser)) return ser;
     const hasArrayY = ser.some(
       (s2) => Array.isArray(s2 == null ? void 0 : s2.data) && s2.data.some(
-        (d) => d && !Array.isArray(d) && Array.isArray(d.y)
+        (d2) => d2 && !Array.isArray(d2) && Array.isArray(d2.y)
       )
     );
     if (!hasArrayY) {
@@ -22777,12 +23760,12 @@ class Data {
     const bandIndex = /* @__PURE__ */ new Map();
     ser.forEach((s2) => {
       if (!Array.isArray(s2 == null ? void 0 : s2.data)) return;
-      s2.data.forEach((d) => {
-        if (d && Array.isArray(d.y)) {
-          const key = String(d.x);
+      s2.data.forEach((d2) => {
+        if (d2 && Array.isArray(d2.y)) {
+          const key = String(d2.x);
           if (!bandIndex.has(key)) {
             bandIndex.set(key, bandLabels.length);
-            bandLabels.push(d.x);
+            bandLabels.push(d2.x);
           }
         }
       });
@@ -22791,21 +23774,21 @@ class Data {
     const expanded = ser.map((s2) => {
       if (!Array.isArray(s2 == null ? void 0 : s2.data)) return s2;
       const out = [];
-      s2.data.forEach((d) => {
-        if (d && Array.isArray(d.y)) {
-          const bi = bandIndex.get(String(d.x));
-          const ys = d.y;
+      s2.data.forEach((d2) => {
+        if (d2 && Array.isArray(d2.y)) {
+          const bi = bandIndex.get(String(d2.x));
+          const ys = d2.y;
           const stride = ys.length > maxPoints ? Math.ceil(ys.length / maxPoints) : 1;
           for (let k2 = 0; k2 < ys.length; k2 += stride) {
             const yv = Utils$1.parseNumber(ys[k2]);
             if (yv === null) continue;
             out.push({ x: bi, y: yv });
           }
-        } else if (d && typeof d === "object" && !Array.isArray(d)) {
-          const key = String(d.x);
-          out.push({ x: bandIndex.has(key) ? bandIndex.get(key) : d.x, y: d.y });
+        } else if (d2 && typeof d2 === "object" && !Array.isArray(d2)) {
+          const key = String(d2.x);
+          out.push({ x: bandIndex.has(key) ? bandIndex.get(key) : d2.x, y: d2.y });
         } else {
-          out.push(d);
+          out.push(d2);
         }
       });
       return __spreadProps(__spreadValues({}, s2), { data: out });
@@ -22929,11 +23912,11 @@ class Data {
       let rawMinX = Infinity;
       let rawMaxX = -Infinity;
       for (const s2 of gl.dataReducerRawSeries) {
-        const d = s2 == null ? void 0 : s2.data;
-        if (!Array.isArray(d) || d.length === 0) continue;
-        const isXY = !Array.isArray(d[0]);
-        const firstX = toNum(isXY ? (_b = d[0]) == null ? void 0 : _b.x : (_c = d[0]) == null ? void 0 : _c[0]);
-        const lastX = toNum(isXY ? (_d = d[d.length - 1]) == null ? void 0 : _d.x : (_e = d[d.length - 1]) == null ? void 0 : _e[0]);
+        const d2 = s2 == null ? void 0 : s2.data;
+        if (!Array.isArray(d2) || d2.length === 0) continue;
+        const isXY = !Array.isArray(d2[0]);
+        const firstX = toNum(isXY ? (_b = d2[0]) == null ? void 0 : _b.x : (_c = d2[0]) == null ? void 0 : _c[0]);
+        const lastX = toNum(isXY ? (_d = d2[d2.length - 1]) == null ? void 0 : _d.x : (_e = d2[d2.length - 1]) == null ? void 0 : _e[0]);
         if (firstX === firstX) rawMinX = Math.min(rawMinX, firstX);
         if (lastX === lastX) rawMaxX = Math.max(rawMaxX, lastX);
       }
@@ -23080,15 +24063,15 @@ class Data {
     const len = data.length;
     if (len === 0) return data;
     const isXY = !Array.isArray(data[0]);
-    const getX = isXY ? (p) => toNum(p.x) : (p) => toNum(p[0]);
+    const getX = isXY ? (p2) => toNum(p2.x) : (p2) => toNum(p2[0]);
     let lo = 0;
     if (xmin != null) {
       let l2 = 0;
       let r2 = len - 1;
       while (l2 <= r2) {
-        const m = l2 + r2 >> 1;
-        if (getX(data[m]) < xmin) l2 = m + 1;
-        else r2 = m - 1;
+        const m2 = l2 + r2 >> 1;
+        if (getX(data[m2]) < xmin) l2 = m2 + 1;
+        else r2 = m2 - 1;
       }
       lo = Math.max(0, l2 - 1);
     }
@@ -23097,9 +24080,9 @@ class Data {
       let l2 = 0;
       let r2 = len - 1;
       while (l2 <= r2) {
-        const m = l2 + r2 >> 1;
-        if (getX(data[m]) > xmax) r2 = m - 1;
-        else l2 = m + 1;
+        const m2 = l2 + r2 >> 1;
+        if (getX(data[m2]) > xmax) r2 = m2 - 1;
+        else l2 = m2 + 1;
       }
       hi = Math.min(len, l2 + 1);
     }
@@ -23119,8 +24102,8 @@ class Data {
     const len = data.length;
     if (targetPoints >= len || targetPoints < 3) return data;
     const isXY = !Array.isArray(data[0]);
-    const getX = isXY ? (p) => toNum(p.x) : (p) => toNum(p[0]);
-    const getY = isXY ? (p) => toNum(p.y) : (p) => toNum(p[1]);
+    const getX = isXY ? (p2) => toNum(p2.x) : (p2) => toNum(p2[0]);
+    const getY = isXY ? (p2) => toNum(p2.y) : (p2) => toNum(p2[1]);
     const sampled = [];
     sampled.push(data[0]);
     const bucketSize = (len - 2) / (targetPoints - 2);
@@ -23131,9 +24114,9 @@ class Data {
       let avgX = 0;
       let avgY = 0;
       const avgRangeLen = avgRangeEnd - avgRangeStart;
-      for (let j2 = avgRangeStart; j2 < avgRangeEnd; j2++) {
-        avgX += getX(data[j2]);
-        avgY += getY(data[j2]);
+      for (let j = avgRangeStart; j < avgRangeEnd; j++) {
+        avgX += getX(data[j]);
+        avgY += getY(data[j]);
       }
       avgX /= avgRangeLen;
       avgY /= avgRangeLen;
@@ -23143,13 +24126,13 @@ class Data {
       const pointAY = getY(data[a2]);
       let maxArea = -1;
       let maxAreaIdx = rangeStart;
-      for (let j2 = rangeStart; j2 < rangeEnd; j2++) {
+      for (let j = rangeStart; j < rangeEnd; j++) {
         const area = Math.abs(
-          (pointAX - avgX) * (getY(data[j2]) - pointAY) - (pointAX - getX(data[j2])) * (avgY - pointAY)
+          (pointAX - avgX) * (getY(data[j]) - pointAY) - (pointAX - getX(data[j])) * (avgY - pointAY)
         ) * 0.5;
         if (area > maxArea) {
           maxArea = area;
-          maxAreaIdx = j2;
+          maxAreaIdx = j;
         }
       }
       sampled.push(data[maxAreaIdx]);
@@ -23177,9 +24160,9 @@ class Data {
     const len = data.length;
     if (targetPoints >= len || targetPoints < 1) return data;
     const isXY = !Array.isArray(data[0]);
-    const getX = isXY ? (p) => p.x : (p) => p[0];
-    const getY = isXY ? (p) => p.y : (p) => p[1];
-    const make = isXY ? (x2, y) => ({ x: x2, y }) : (x2, y) => [x2, y];
+    const getX = isXY ? (p2) => p2.x : (p2) => p2[0];
+    const getY = isXY ? (p2) => p2.y : (p2) => p2[1];
+    const make = isXY ? (x2, y2) => ({ x: x2, y: y2 }) : (x2, y2) => [x2, y2];
     const out = [];
     const bucketSize = len / targetPoints;
     for (let i2 = 0; i2 < targetPoints; i2++) {
@@ -23190,13 +24173,13 @@ class Data {
       let last = null;
       let high = -Infinity;
       let low = Infinity;
-      for (let j2 = start; j2 < end; j2++) {
-        const y = getY(data[j2]);
-        if (!Array.isArray(y)) continue;
-        if (!first) first = y;
-        last = y;
-        if (y[1] != null && y[1] > high) high = y[1];
-        if (y[2] != null && y[2] < low) low = y[2];
+      for (let j = start; j < end; j++) {
+        const y2 = getY(data[j]);
+        if (!Array.isArray(y2)) continue;
+        if (!first) first = y2;
+        last = y2;
+        if (y2[1] != null && y2[1] > high) high = y2[1];
+        if (y2[2] != null && y2[2] < low) low = y2[2];
       }
       out.push(
         make(
@@ -23232,9 +24215,9 @@ class Data {
     const len = data.length;
     if (targetPoints >= len || targetPoints < 1) return data;
     const isXY = !Array.isArray(data[0]);
-    const getX = isXY ? (p) => p.x : (p) => p[0];
-    const getY = isXY ? (p) => p.y : (p) => p[1];
-    const make = isXY ? (x2, y) => ({ x: x2, y }) : (x2, y) => [x2, y];
+    const getX = isXY ? (p2) => p2.x : (p2) => p2[0];
+    const getY = isXY ? (p2) => p2.y : (p2) => p2[1];
+    const make = isXY ? (x2, y2) => ({ x: x2, y: y2 }) : (x2, y2) => [x2, y2];
     const out = [];
     const bucketSize = len / targetPoints;
     for (let i2 = 0; i2 < targetPoints; i2++) {
@@ -23243,11 +24226,11 @@ class Data {
       if (end <= start) continue;
       let low = Infinity;
       let high = -Infinity;
-      for (let j2 = start; j2 < end; j2++) {
-        const y = getY(data[j2]);
-        if (y == null) continue;
+      for (let j = start; j < end; j++) {
+        const y2 = getY(data[j]);
+        if (y2 == null) continue;
         for (let k2 = 0; k2 < 2; k2++) {
-          const v = y[k2];
+          const v = y2[k2];
           if (v == null || !isFinite(v)) continue;
           if (v < low) low = v;
           if (v > high) high = v;
@@ -23444,8 +24427,9 @@ class UpdateHelpers {
         this.w.globals.isExecCalled = false;
       }
       const payload = options2;
+      const filled = Theme.modeDefaultsFilled(payload);
       const updates = charts.map((ch) => {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i;
         const w = ch.w;
         options2 = payload;
         if (options2 && typeof options2 === "object") {
@@ -23477,6 +24461,7 @@ class UpdateHelpers {
         }
         if (options2 && typeof options2 === "object") {
           options2 = Config.dropEmptyOptions(options2);
+          const gridNamed = Config.explicitGridColors(options2);
           ch.config = new Config(options2);
           const incomingType = options2.chart && options2.chart.type;
           const isAliasRequest = incomingType === "funnel" || incomingType === "pyramid" || incomingType === "gauge";
@@ -23513,13 +24498,33 @@ class UpdateHelpers {
             options2.series = this.syncSharedLogAxes(options2.series);
           }
           if ((_d = options2.theme) == null ? void 0 : _d.palette) w.globals.themePaletteExplicit = true;
+          if ((_e = options2.chart) == null ? void 0 : _e.foreColor) {
+            w.globals.themeForeColorExplicit = !(filled == null ? void 0 : filled.foreColor);
+          }
+          if ((_f = options2.tooltip) == null ? void 0 : _f.theme) {
+            w.globals.tooltipThemeExplicit = !(filled == null ? void 0 : filled.tooltip);
+          }
+          if ((_g = options2.chart) == null ? void 0 : _g.fontFamily) {
+            w.globals.themeFontFamilyExplicit = true;
+          }
+          if (overwriteInitialConfig) {
+            const was = w.globals.themeGridColorsExplicit;
+            w.globals.themeGridColorsExplicit = {
+              grid: was.grid || gridNamed.grid,
+              xaxis: {
+                border: was.xaxis.border || gridNamed.xaxis.border,
+                ticks: was.xaxis.ticks || gridNamed.xaxis.ticks
+              },
+              yaxis: options2.yaxis ? gridNamed.yaxis : was.yaxis
+            };
+          }
           w.config = Utils$1.extend(w.config, options2);
           if (options2.theme && options2.theme.mode !== void 0) {
-            (_e = ch.theme) == null ? void 0 : _e.applyModePalette(
+            (_h = ch.theme) == null ? void 0 : _h.applyModePalette(
               w.config.theme.mode === "dark" ? "dark" : "light"
             );
           }
-          (_f = ch.responsive) == null ? void 0 : _f.absorb(options2);
+          (_i = ch.responsive) == null ? void 0 : _i.absorb(options2);
           Defaults.handOverTypeDefaults(w.config, fromType, options2);
           Defaults.syncCatToNumeric(w.config, options2);
           Defaults.syncSparkline(w.config, wasSparkline, options2);
@@ -23597,8 +24602,8 @@ class UpdateHelpers {
     const first = yaxis[0];
     if (!first.logarithmic || first.seriesName === void 0) return false;
     for (let i2 = 1; i2 < yaxis.length; i2++) {
-      const y = yaxis[i2];
-      if (!y.logarithmic || y.show !== false || y.seriesName !== first.seriesName)
+      const y2 = yaxis[i2];
+      if (!y2.logarithmic || y2.show !== false || y2.seriesName !== first.seriesName)
         return false;
     }
     return true;
@@ -24246,7 +25251,7 @@ class Utils2 {
         hoverArea.classList.add("hovering-pan");
       }
     }
-    let j2 = slotted ? Math.ceil(hoverX / xDivisor) - 1 : Math.round(hoverX / xDivisor);
+    let j = slotted ? Math.ceil(hoverX / xDivisor) - 1 : Math.round(hoverX / xDivisor);
     let jHorz = Math.floor(hoverY / yDivisor);
     let capturedSeries = null;
     if (w.axisFlags.isXNumeric) {
@@ -24257,20 +25262,20 @@ class Utils2 {
         w.globals.seriesYvalues
       );
       capturedSeries = closest.index;
-      j2 = (_a = closest.j) != null ? _a : 0;
+      j = (_a = closest.j) != null ? _a : 0;
     }
     w.interact.capturedSeriesIndex = capturedSeries === null ? -1 : capturedSeries;
-    if (j2 > dataPoints - 1) j2 = dataPoints - 1;
+    if (j > dataPoints - 1) j = dataPoints - 1;
     if (jHorz > dataPoints - 1) jHorz = dataPoints - 1;
-    if (!j2 || j2 < 1) j2 = 0;
+    if (!j || j < 1) j = 0;
     if (w.globals.isBarHorizontal) {
       w.interact.capturedDataPointIndex = jHorz;
     } else {
-      w.interact.capturedDataPointIndex = j2;
+      w.interact.capturedDataPointIndex = j;
     }
     return {
       capturedSeries,
-      j: w.globals.isBarHorizontal ? jHorz : j2,
+      j: w.globals.isBarHorizontal ? jHorz : j,
       hoverX,
       hoverY
     };
@@ -24301,7 +25306,7 @@ class Utils2 {
     let closestDist = Infinity;
     let closestSeriesIndex = null;
     let closestPointIndex = null;
-    const isPoint = (xArr, yArr, j2) => Number.isFinite(xArr[j2]) && Number.isFinite(yArr[j2]);
+    const isPoint = (xArr, yArr, j) => Number.isFinite(xArr[j]) && Number.isFinite(yArr[j]);
     if (w.globals.allSeriesHasEqualX) {
       let bucketDistX = Infinity;
       for (let i2 = 0; i2 < Xarrays.length; i2++) {
@@ -24309,12 +25314,12 @@ class Utils2 {
         const xArr = Xarrays[i2];
         const yArr = Yarrays[i2];
         const len = Math.min(xArr.length, yArr.length);
-        for (let j2 = 0; j2 < len; j2++) {
-          if (!isPoint(xArr, yArr, j2)) continue;
-          const distX = Math.abs(hoverX - xArr[j2]);
+        for (let j = 0; j < len; j++) {
+          if (!isPoint(xArr, yArr, j)) continue;
+          const distX = Math.abs(hoverX - xArr[j]);
           if (distX < bucketDistX) {
             bucketDistX = distX;
-            closestPointIndex = j2;
+            closestPointIndex = j;
           }
         }
       }
@@ -24328,8 +25333,8 @@ class Utils2 {
             const len = Math.min(xArr.length, yArr.length);
             let prev = -1;
             let segs = 0;
-            for (let j2 = 0; j2 < len; j2++) {
-              if (!isPoint(xArr, yArr, j2)) continue;
+            for (let j = 0; j < len; j++) {
+              if (!isPoint(xArr, yArr, j)) continue;
               if (prev >= 0) {
                 segs++;
                 const seg = this._distanceToSegment(
@@ -24337,22 +25342,22 @@ class Utils2 {
                   hoverY,
                   xArr[prev],
                   yArr[prev],
-                  xArr[j2],
-                  yArr[j2]
+                  xArr[j],
+                  yArr[j]
                 );
                 if (seg.dist < bestSegDist) {
                   bestSegDist = seg.dist;
                   closestSeriesIndex = i2;
                 }
               }
-              prev = j2;
+              prev = j;
             }
             if (!segs) {
               const yVal = yArr[closestPointIndex];
               if (typeof yVal !== "number") continue;
-              const d = Math.abs(hoverY - yVal);
-              if (d < bestSegDist) {
-                bestSegDist = d;
+              const d2 = Math.abs(hoverY - yVal);
+              if (d2 < bestSegDist) {
+                bestSegDist = d2;
                 closestSeriesIndex = i2;
               }
             }
@@ -24386,8 +25391,8 @@ class Utils2 {
       if (isLineArea) {
         let prev = -1;
         let segs = 0;
-        for (let j2 = 0; j2 < len; j2++) {
-          if (!isPoint(xArr, yArr, j2)) continue;
+        for (let j = 0; j < len; j++) {
+          if (!isPoint(xArr, yArr, j)) continue;
           if (prev >= 0) {
             segs++;
             const seg = this._distanceToSegment(
@@ -24395,30 +25400,30 @@ class Utils2 {
               hoverY,
               xArr[prev],
               yArr[prev],
-              xArr[j2],
-              yArr[j2]
+              xArr[j],
+              yArr[j]
             );
             if (seg.dist < closestDist) {
               closestDist = seg.dist;
               closestSeriesIndex = i2;
-              closestPointIndex = seg.t < 0.5 ? prev : j2;
+              closestPointIndex = seg.t < 0.5 ? prev : j;
             }
           }
-          prev = j2;
+          prev = j;
         }
         if (segs) continue;
       }
-      for (let j2 = 0; j2 < len; j2++) {
-        if (!isPoint(xArr, yArr, j2)) continue;
-        const xVal = xArr[j2];
+      for (let j = 0; j < len; j++) {
+        if (!isPoint(xArr, yArr, j)) continue;
+        const xVal = xArr[j];
         const distX = hoverX - xVal;
-        const yVal = yArr[j2];
+        const yVal = yArr[j];
         const distY = hoverY - yVal;
         const dist = Math.sqrt(distX * distX + distY * distY);
         if (dist < closestDist) {
           closestDist = dist;
           closestSeriesIndex = i2;
-          closestPointIndex = j2;
+          closestPointIndex = j;
         }
       }
     }
@@ -24461,13 +25466,13 @@ class Utils2 {
    * @param {number} j - the inner index of series (series[i][j])
    * @return {boolean}
    */
-  isXoverlap(j2) {
+  isXoverlap(j) {
     const seriesX = this.w.seriesData.seriesX.filter(
       (s2) => s2[0] !== void 0
     );
     for (let i2 = 0; i2 < seriesX.length - 1; i2++) {
-      const a2 = seriesX[i2][j2];
-      const b = seriesX[i2 + 1][j2];
+      const a2 = seriesX[i2][j];
+      const b = seriesX[i2 + 1][j];
       if (a2 !== void 0 && b !== void 0 && a2 !== b) return false;
     }
     return true;
@@ -24525,18 +25530,18 @@ class Utils2 {
     var _a, _b;
     return (_b = (_a = this.facts()).wraps) != null ? _b : _a.wraps = [
       ...this.w.dom.baseEl.querySelectorAll(".apexcharts-series-markers-wrap")
-    ].map((m) => [
-      Number(m.getAttribute("data:realIndex")),
+    ].map((m2) => [
+      Number(m2.getAttribute("data:realIndex")),
       // usually one node twice
       .../* @__PURE__ */ new Set([
-        m.querySelector(".apexcharts-marker"),
-        m.querySelector(".apexcharts-series-markers path")
+        m2.querySelector(".apexcharts-marker"),
+        m2.querySelector(".apexcharts-series-markers path")
       ])
     ]).sort((a2, b) => a2[0] - b[0]);
   }
   getAllMarkers(filterCollapsed = false) {
     const collapsed = this.w.globals.collapsedSeriesIndices;
-    return this.markerWraps().filter((m) => !filterCollapsed || collapsed.indexOf(m[0]) < 0).map((m) => m[1]);
+    return this.markerWraps().filter((m2) => !filterCollapsed || collapsed.indexOf(m2[0]) < 0).map((m2) => m2[1]);
   }
   /**
    * @param {number} i
@@ -24631,15 +25636,15 @@ function placeAroundMark({
     return null;
   }
   let placement;
-  let y;
+  let y2;
   const above = markTop - gapAbove - ttHeight;
   const below = Math.max(markTop, markBottom) + gapBelow;
   if (above >= room.top) {
     placement = "top";
-    y = above;
+    y2 = above;
   } else if (below + ttHeight <= room.bottom) {
     placement = "bottom";
-    y = below;
+    y2 = below;
   } else {
     return null;
   }
@@ -24648,7 +25653,7 @@ function placeAroundMark({
     ARROW_EDGE_INSET,
     Math.min(ttWidth - ARROW_EDGE_INSET, anchorX - x2)
   );
-  return { x: x2, y, placement, arrowX };
+  return { x: x2, y: y2, placement, arrowX };
 }
 function lazyRoom(room) {
   if (typeof room !== "function") return () => room != null ? room : null;
@@ -24664,9 +25669,9 @@ function markSteps({ cell, plot, ttWidth, ttHeight, gap }) {
   const midY = (cell.top + cell.bottom) / 2;
   const aboveY = cell.top - gap - ttHeight;
   const belowY = cell.bottom + gap;
-  const vertical = (placement, y) => {
+  const vertical = (placement, y2) => {
     const x2 = alongEdge(midX, ttWidth, plot.left, plot.right);
-    return { x: x2, y, placement, arrowX: midX - x2, arrowY: null };
+    return { x: x2, y: y2, placement, arrowX: midX - x2, arrowY: null };
   };
   return {
     /** The side of the cell facing the plot's middle, which has more room. */
@@ -24688,8 +25693,8 @@ function markSteps({ cell, plot, ttWidth, ttHeight, gap }) {
       const onRight = side === "right";
       const x2 = onRight ? cell.right + gap : cell.left - gap - ttWidth;
       if (onRight ? x2 + ttWidth > bounds.right : x2 < bounds.left) return null;
-      const y = alongEdge(midY, ttHeight, plot.top, plot.bottom);
-      return { x: x2, y, placement: side, arrowX: null, arrowY: midY - y };
+      const y2 = alongEdge(midY, ttHeight, plot.top, plot.bottom);
+      return { x: x2, y: y2, placement: side, arrowX: null, arrowY: midY - y2 };
     }
   };
 }
@@ -24741,9 +25746,9 @@ function holdInRoom(pos, cell, room, ttWidth, ttHeight) {
     const midX = (cell.left + cell.right) / 2;
     return __spreadProps(__spreadValues({}, pos), { x: x2, arrowX: arrowOffset(midX - x2, ttWidth) });
   }
-  const y = Math.max(Math.min(pos.y, room.bottom - ttHeight), room.top);
+  const y2 = Math.max(Math.min(pos.y, room.bottom - ttHeight), room.top);
   const midY = (cell.top + cell.bottom) / 2;
-  return __spreadProps(__spreadValues({}, pos), { y, arrowY: arrowOffset(midY - y, ttHeight) });
+  return __spreadProps(__spreadValues({}, pos), { y: y2, arrowY: arrowOffset(midY - y2, ttHeight) });
 }
 function alongEdge(mid, size, lo, hi) {
   if (size > hi - lo) return mid - size / 2;
@@ -24770,10 +25775,10 @@ function getVisibleBounds(el, cache) {
     bottom: Math.min(win.innerHeight, (docEl == null ? void 0 : docEl.clientHeight) || Infinity)
   };
   if (!cache.clippers) cache.clippers = findClippingAncestors(el, win);
-  for (const { node, x: x2, y } of cache.clippers) {
+  for (const { node, x: x2, y: y2 } of cache.clippers) {
     if (!node.isConnected) continue;
     const r2 = node.getBoundingClientRect();
-    if (y) {
+    if (y2) {
       const top = r2.top + node.clientTop;
       bounds.top = Math.max(bounds.top, top);
       bounds.bottom = Math.min(bounds.bottom, top + node.clientHeight);
@@ -24798,8 +25803,8 @@ function findClippingAncestors(el, win) {
       if (!NO_OVERFLOW_DISPLAY.test(cs.display || "")) {
         const paint = clipsPaint(cs);
         const x2 = paint || isClipping(cs.overflowX);
-        const y = paint || isClipping(cs.overflowY);
-        if (x2 || y) out.push({ node, x: x2, y });
+        const y2 = paint || isClipping(cs.overflowY);
+        if (x2 || y2) out.push({ node, x: x2, y: y2 });
       }
       position = cs.position;
     }
@@ -24844,8 +25849,8 @@ function composedParent(node) {
   ) : null;
 }
 const CLIP_CACHE_TTL = 1e3;
-const barSel = (group, j2) => ["bar", "candlestick", "boxPlot", "violin", "rangebar"].map(
-  (t2) => `.apexcharts-${t2}-series .apexcharts-series[${group}]` + (j2 == null ? "" : ` path${t2 === "violin" ? ".apexcharts-violin-area" : ""}[j='${j2}']`)
+const barSel = (group, j) => ["bar", "candlestick", "boxPlot", "violin", "rangebar"].map(
+  (t2) => `.apexcharts-${t2}-series .apexcharts-series[${group}]` + (j == null ? "" : ` path${t2 === "violin" ? ".apexcharts-violin-area" : ""}[j='${j}']`)
 ).join();
 class Position {
   /**
@@ -24980,8 +25985,8 @@ class Position {
    * @param {number | null} [i]  the series; null for a whole row
    * @returns {import('./placement').CellPlacement}
    */
-  placeAroundBar(bar, plot, j2, i2 = null) {
-    const side = this.barValueSide(j2, i2);
+  placeAroundBar(bar, plot, j, i2 = null) {
+    const side = this.barValueSide(j, i2);
     return this._placeAround(
       placeAroundBar,
       this._visiblePart(bar, plot),
@@ -25085,7 +26090,7 @@ class Position {
    * @param {number | null} [i]  the series; null for every visible series
    * @returns {'left'|'right' | null}
    */
-  barValueSide(j2, i2 = null) {
+  barValueSide(j, i2 = null) {
     var _a, _b, _c, _d, _e, _f;
     const w = this.w;
     if ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.isFunnel) return "right";
@@ -25098,7 +26103,7 @@ class Position {
     let negative = false;
     series.forEach((data, s2) => {
       if (i2 == null ? collapsed.includes(s2) : s2 !== i2) return;
-      const v = data == null ? void 0 : data[j2];
+      const v = data == null ? void 0 : data[j];
       if (v > 0) positive = true;
       else if (v < 0) negative = true;
     });
@@ -25310,7 +26315,7 @@ class Position {
     const clearance = pointSize + (arrowEnabled ? ARROW_TIP_OVERHANG : 0) + POINT_TIP_GAP;
     let x2 = cxNum + clearance;
     const pointY = cyNum + w.layout.translateY;
-    let y = pointY - ttH / 2 + pointSize / 2;
+    let y2 = pointY - ttH / 2 + pointSize / 2;
     let placement = "right";
     let anchorGridX = cxNum;
     let pointerGridY = null;
@@ -25337,19 +26342,19 @@ class Position {
         placement = "right";
       }
       pointerGridY = ((_b = ttCtx.clientY) != null ? _b : ttCtx.e.clientY) - seriesBound.top;
-      y = pointerGridY + w.layout.translateY;
-      if (y > w.layout.gridHeight / 2) {
-        y = y - ttH;
+      y2 = pointerGridY + w.layout.translateY;
+      if (y2 > w.layout.gridHeight / 2) {
+        y2 = y2 - ttH;
       }
     } else {
       if (!w.globals.isBarHorizontal) {
         const gridTop = w.layout.translateY;
         const gridBottom = w.layout.translateY + w.layout.gridHeight;
-        if (y + ttH > gridBottom) {
-          y = gridBottom - ttH;
+        if (y2 + ttH > gridBottom) {
+          y2 = gridBottom - ttH;
         }
-        if (y < gridTop) {
-          y = gridTop;
+        if (y2 < gridTop) {
+          y2 = gridTop;
         }
       }
     }
@@ -25376,23 +26381,23 @@ class Position {
     if ((a11y == null ? void 0 : a11y.enabled) && ((_f = (_e = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _e.navigation) == null ? void 0 : _f.enabled) && ((_i = (_h = (_g = this.ttCtx.ctx) == null ? void 0 : _g._keyboardNavigation) == null ? void 0 : _h._focusedEl) == null ? void 0 : _i.isConnected)) {
       const refPointY = pointY;
       const margin = (pointSize || 1) + 12;
-      const tooltipTop = y;
-      const tooltipBottom = y + ttH;
+      const tooltipTop = y2;
+      const tooltipBottom = y2 + ttH;
       if (!isNaN(refPointY) && ttH > 0 && tooltipTop < refPointY + margin && tooltipBottom > refPointY - margin) {
-        y = refPointY - ttH - margin;
-        if (y < 0) {
-          y = refPointY + margin;
+        y2 = refPointY - ttH - margin;
+        if (y2 < 0) {
+          y2 = refPointY + margin;
         }
       }
     }
     let arrowY = null;
     if (arrowEnabled && ttH > 0) {
-      const localY = pointY - y;
+      const localY = pointY - y2;
       const minArrowY = 10;
       const maxArrowY = ttH - 10;
       arrowY = Math.max(minArrowY, Math.min(maxArrowY, localY));
     }
-    return { x: x2, y, placement, arrowY };
+    return { x: x2, y: y2, placement, arrowY };
   }
   /**
    * Single DOM-writer used by every positioning path on the main tooltip.
@@ -25440,20 +26445,20 @@ class Position {
    * @param {number} i
    * @param {number} j
    */
-  moveMarkers(i2, j2) {
+  moveMarkers(i2, j) {
     const w = this.w;
     const ttCtx = this.ttCtx;
     if (w.globals.markers.size[i2] > 0 && !w.globals.markers.batched) {
       const point = w.dom.baseEl.querySelector(
-        ` .apexcharts-series[data\\:realIndex='${i2}'] .apexcharts-marker[rel='${j2}']`
+        ` .apexcharts-series[data\\:realIndex='${i2}'] .apexcharts-marker[rel='${j}']`
       );
       if (point) {
         ttCtx.marker.resetEnlargedPoints();
-        ttCtx.marker.enlargeCurrentPoint(j2, point);
+        ttCtx.marker.enlargeCurrentPoint(j, point);
       }
     } else {
       ttCtx.marker.resetPointsSize();
-      this.moveDynamicPointOnHover(j2, i2);
+      this.moveDynamicPointOnHover(j, i2);
     }
   }
   // This function is used when you need to show markers/points only on hover -
@@ -25462,7 +26467,7 @@ class Position {
    * @param {number} j
    * @param {number} capturedSeries
    */
-  moveDynamicPointOnHover(j2, capturedSeries) {
+  moveDynamicPointOnHover(j, capturedSeries) {
     var _a, _b, _c, _d, _e;
     const w = this.w;
     const ttCtx = this.ttCtx;
@@ -25478,8 +26483,8 @@ class Position {
     if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot" || serType === "violin")) {
       return;
     }
-    cx = (_b = (_a = pointsArr[capturedSeries]) == null ? void 0 : _a[j2]) == null ? void 0 : _b[0];
-    const pointY = (_d = (_c = pointsArr[capturedSeries]) == null ? void 0 : _c[j2]) == null ? void 0 : _d[1];
+    cx = (_b = (_a = pointsArr[capturedSeries]) == null ? void 0 : _a[j]) == null ? void 0 : _b[0];
+    const pointY = (_d = (_c = pointsArr[capturedSeries]) == null ? void 0 : _c[j]) == null ? void 0 : _d[1];
     const hasPoint = Number.isFinite(pointY);
     cy = hasPoint ? (
       /** @type {number} */
@@ -25504,7 +26509,7 @@ class Position {
   /**
    * @param {number} j
    */
-  moveDynamicPointsOnHover(j2) {
+  moveDynamicPointsOnHover(j) {
     var _a, _b, _c, _d;
     const ttCtx = this.ttCtx;
     const w = ttCtx.w;
@@ -25522,9 +26527,9 @@ class Position {
     ]);
     const hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(activeSeries);
     let hasPoint = false;
-    if ((_a = pointsArr[activeSeries]) == null ? void 0 : _a[j2]) {
-      cx = pointsArr[activeSeries][j2][0];
-      cy = pointsArr[activeSeries][j2][1];
+    if ((_a = pointsArr[activeSeries]) == null ? void 0 : _a[j]) {
+      cx = pointsArr[activeSeries][j][0];
+      cy = pointsArr[activeSeries][j][1];
       hasPoint = Number.isFinite(cy);
     }
     if (isNaN(cx)) {
@@ -25532,29 +26537,29 @@ class Position {
     }
     const points = ttCtx.tooltipUtil.getAllMarkers();
     if (points.length) {
-      for (let p = 0; p < w.seriesData.series.length; p++) {
-        const pointArr = pointsArr[p];
+      for (let p2 = 0; p2 < w.seriesData.series.length; p2++) {
+        const pointArr = pointsArr[p2];
         if (w.globals.comboCharts) {
           if (typeof pointArr === "undefined") {
-            points.splice(p, 0, null);
+            points.splice(p2, 0, null);
           }
         }
-        if (points[p] && pointArr && pointArr.length) {
-          let pcy = (_b = pointArr[j2]) == null ? void 0 : _b[1];
+        if (points[p2] && pointArr && pointArr.length) {
+          let pcy = (_b = pointArr[j]) == null ? void 0 : _b[1];
           let pcy2;
-          points[p].setAttribute("cx", cx);
-          const shape = (_c = points[p].getAttribute("shape")) != null ? _c : "circle";
+          points[p2].setAttribute("cx", cx);
+          const shape = (_c = points[p2].getAttribute("shape")) != null ? _c : "circle";
           if (w.config.chart.type === "rangeArea" && !w.globals.comboCharts) {
-            const n2 = w.seriesData.series[p].length;
-            pcy2 = j2 < n2 ? (_d = pointArr[j2 + n2]) == null ? void 0 : _d[1] : NaN;
+            const n2 = w.seriesData.series[p2].length;
+            pcy2 = j < n2 ? (_d = pointArr[j + n2]) == null ? void 0 : _d[1] : NaN;
             const pcyDiff = Math.abs(pcy - pcy2) / 2;
             pcy = pcy - pcyDiff;
           }
           if (pcy !== null && !isNaN(pcy) && pcy < w.layout.gridHeight + hoverSize && pcy + hoverSize > 0) {
             const path = graphics.getMarkerPath(cx, pcy, shape, hoverSize);
-            points[p].setAttribute("d", path);
+            points[p2].setAttribute("d", path);
           } else {
-            points[p].setAttribute("d", "");
+            points[p2].setAttribute("d", "");
           }
         }
       }
@@ -25565,7 +26570,7 @@ class Position {
         cx,
         hasPoint ? cy : w.layout.gridHeight,
         hoverSize,
-        this.isShortPlot() ? this.columnExtent(j2, hoverSize) : null
+        this.isShortPlot() ? this.columnExtent(j, hoverSize) : null
       );
     }
   }
@@ -25579,7 +26584,7 @@ class Position {
    * @param {number} pad
    * @returns {{ top: number, bottom: number } | null}
    */
-  columnExtent(j2, pad) {
+  columnExtent(j, pad) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     const gl = w.globals;
@@ -25587,20 +26592,20 @@ class Position {
     const isRange = w.config.chart.type === "rangeArea" && !gl.comboCharts;
     let top = Infinity;
     let bottom = -Infinity;
-    for (let p = 0; p < pointsArr.length; p++) {
-      if (((_a = gl.collapsedSeriesIndices) == null ? void 0 : _a.indexOf(p)) > -1 || ((_b = gl.ancillaryCollapsedSeriesIndices) == null ? void 0 : _b.indexOf(p)) > -1) {
+    for (let p2 = 0; p2 < pointsArr.length; p2++) {
+      if (((_a = gl.collapsedSeriesIndices) == null ? void 0 : _a.indexOf(p2)) > -1 || ((_b = gl.ancillaryCollapsedSeriesIndices) == null ? void 0 : _b.indexOf(p2)) > -1) {
         continue;
       }
-      const ys = [(_d = (_c = pointsArr[p]) == null ? void 0 : _c[j2]) == null ? void 0 : _d[1]];
+      const ys = [(_d = (_c = pointsArr[p2]) == null ? void 0 : _c[j]) == null ? void 0 : _d[1]];
       if (isRange) {
-        const n2 = (_f = (_e = w.seriesData.series[p]) == null ? void 0 : _e.length) != null ? _f : 0;
-        if (j2 >= n2) continue;
-        ys.push((_h = (_g = pointsArr[p]) == null ? void 0 : _g[j2 + n2]) == null ? void 0 : _h[1]);
+        const n2 = (_f = (_e = w.seriesData.series[p2]) == null ? void 0 : _e.length) != null ? _f : 0;
+        if (j >= n2) continue;
+        ys.push((_h = (_g = pointsArr[p2]) == null ? void 0 : _g[j + n2]) == null ? void 0 : _h[1]);
       }
-      for (const y of ys) {
-        if (Number.isFinite(y) && y >= -pad && y <= w.layout.gridHeight + pad) {
-          top = Math.min(top, y);
-          bottom = Math.max(bottom, y);
+      for (const y2 of ys) {
+        if (Number.isFinite(y2) && y2 >= -pad && y2 <= w.layout.gridHeight + pad) {
+          top = Math.min(top, y2);
+          bottom = Math.max(bottom, y2);
         }
       }
     }
@@ -25610,7 +26615,7 @@ class Position {
    * @param {number} j
    * @param {number} capturedSeries
    */
-  moveStickyTooltipOverBars(j2, capturedSeries) {
+  moveStickyTooltipOverBars(j, capturedSeries) {
     var _a, _b, _c, _d, _e;
     const w = this.w;
     const ttCtx = this.ttCtx;
@@ -25628,11 +26633,11 @@ class Position {
     }
     const painted = !!/** @type {any} */
     w.globals.barCanvasCoords;
-    let jBar = painted ? null : this._marks(barSel(`rel='${i2}'`, j2))[0];
+    let jBar = painted ? null : this._marks(barSel(`rel='${i2}'`, j))[0];
     if (!jBar && !painted && typeof capturedSeries === "number") {
-      jBar = this._marks(barSel(`data\\:realIndex='${capturedSeries}'`, j2))[0];
+      jBar = this._marks(barSel(`data\\:realIndex='${capturedSeries}'`, j))[0];
     }
-    const bc = painted ? this._paintedBarFor(i2, j2, capturedSeries) : null;
+    const bc = painted ? this._paintedBarFor(i2, j, capturedSeries) : null;
     const hasBar = !!jBar || !!bc;
     let bcx = jBar ? parseFloat((_a = jBar.getAttribute("cx")) != null ? _a : "0") : bc ? (_b = bc.bodyCx) != null ? _b : bc.cx : 0;
     let bcy = jBar ? parseFloat((_c = jBar.getAttribute("cy")) != null ? _c : "0") : bc ? bc.cy : 0;
@@ -25642,12 +26647,12 @@ class Position {
     const seriesBound = Utils2.plotRect(w);
     const isBoxOrCandle = jBar ? jBar.classList.contains("apexcharts-candlestick-area") || jBar.classList.contains("apexcharts-boxPlot-area") : (bc == null ? void 0 : bc.type) === "candlestick" || (bc == null ? void 0 : bc.type) === "boxPlot";
     const isViolin = jBar ? jBar.classList.contains("apexcharts-violin-area") : (bc == null ? void 0 : bc.type) === "violin";
-    const violinMiddle = isViolin && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal ? this._violinsMiddleAt(j2) : null;
+    const violinMiddle = isViolin && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal ? this._violinsMiddleAt(j) : null;
     if (violinMiddle != null) {
       bcx = violinMiddle;
     } else if (w.axisFlags.isXNumeric) {
       if (hasBar && !isBoxOrCandle) {
-        const center = this._datapointCenterXFromBars(j2);
+        const center = this._datapointCenterXFromBars(j);
         if (center != null) {
           bcx = center;
         } else {
@@ -25659,8 +26664,8 @@ class Position {
         bcx = bcx - bw / 2;
       }
     } else if (!w.globals.isBarHorizontal) {
-      const tickCx = ttCtx.xAxisTicksPositions[j2 - 1] + ttCtx.dataPointsDividedWidth / 2;
-      bcx = isNaN(tickCx) ? ttCtx.xAxisTicksPositions[j2] - ttCtx.dataPointsDividedWidth / 2 : tickCx;
+      const tickCx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
+      bcx = isNaN(tickCx) ? ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2 : tickCx;
       if (isNaN(bcx) && bc) bcx = bc.cx;
     }
     if (!w.globals.isBarHorizontal) {
@@ -25679,10 +26684,10 @@ class Position {
     }
     if (!ttCtx.fixedTooltip) {
       if (w.globals.isBarHorizontal && !Utils2.isFollowCursor(w)) {
-        const placed = this.placeHorizontalSharedTooltip(j2);
+        const placed = this.placeHorizontalSharedTooltip(j);
         if (placed) return;
       }
-      const mark = this.isShortPlot() ? (_e = this._barsExtentInGrid(j2)) != null ? _e : { top: 0, bottom: w.layout.gridHeight } : null;
+      const mark = this.isShortPlot() ? (_e = this._barsExtentInGrid(j)) != null ? _e : { top: 0, bottom: w.layout.gridHeight } : null;
       const anchorY = !Number.isFinite(bcy) || bcy === 0 && !hasBar && !Utils2.isFollowCursor(w) ? w.layout.gridHeight : bcy;
       this.moveTooltip(bcx, anchorY, null, mark);
     }
@@ -25698,14 +26703,14 @@ class Position {
    */
   _marks(sel) {
     const gen = this.ttCtx.allTooltipSeriesGroups;
-    let m = this._memo;
-    if (!m || m.gen !== gen || m.size > 99) {
-      m = this._memo = /* @__PURE__ */ new Map();
-      m.gen = gen;
+    let m2 = this._memo;
+    if (!m2 || m2.gen !== gen || m2.size > 99) {
+      m2 = this._memo = /* @__PURE__ */ new Map();
+      m2.gen = gen;
     }
-    let hit = m.get(sel);
+    let hit = m2.get(sel);
     if (!hit || hit.some((n2) => !n2.isConnected)) {
-      m.set(sel, hit = Array.from(this.w.dom.baseEl.querySelectorAll(sel)));
+      m2.set(sel, hit = Array.from(this.w.dom.baseEl.querySelectorAll(sel)));
     }
     return hit;
   }
@@ -25722,7 +26727,7 @@ class Position {
    * @param {number} capturedSeries  realIndex
    * @returns {any}
    */
-  _paintedBarFor(rel, j2, capturedSeries) {
+  _paintedBarFor(rel, j, capturedSeries) {
     var _a, _b, _c;
     const w = this.w;
     const bcc = (
@@ -25733,13 +26738,13 @@ class Position {
     const groups = this._marks(barSel(`rel='${rel}'`));
     for (let g2 = 0; g2 < groups.length; g2++) {
       const realIndex = groups[g2].getAttribute("data:realIndex");
-      if (realIndex !== null && ((_a = bcc[realIndex]) == null ? void 0 : _a[j2])) return bcc[realIndex][j2];
+      if (realIndex !== null && ((_a = bcc[realIndex]) == null ? void 0 : _a[j])) return bcc[realIndex][j];
     }
-    if (typeof capturedSeries === "number" && ((_b = bcc[capturedSeries]) == null ? void 0 : _b[j2])) {
-      return bcc[capturedSeries][j2];
+    if (typeof capturedSeries === "number" && ((_b = bcc[capturedSeries]) == null ? void 0 : _b[j])) {
+      return bcc[capturedSeries][j];
     }
     for (const key in bcc) {
-      if ((_c = bcc[key]) == null ? void 0 : _c[j2]) return bcc[key][j2];
+      if ((_c = bcc[key]) == null ? void 0 : _c[j]) return bcc[key][j];
     }
     return null;
   }
@@ -25754,7 +26759,7 @@ class Position {
    * @param {string[]} types
    * @returns {{ left: number, top: number, right: number, bottom: number } | null}
    */
-  _paintedAt(j2, types) {
+  _paintedAt(j, types) {
     var _a;
     const w = this.w;
     const bcc = (
@@ -25768,9 +26773,9 @@ class Position {
     let right = -Infinity;
     let bottom = -Infinity;
     for (const key in bcc) {
-      const c = (_a = bcc[key]) == null ? void 0 : _a[j2];
-      const b = c == null ? void 0 : c.bounds;
-      if (!b || !types.includes(c.type) || hidden.includes(Number(key))) {
+      const c2 = (_a = bcc[key]) == null ? void 0 : _a[j];
+      const b = c2 == null ? void 0 : c2.bounds;
+      if (!b || !types.includes(c2.type) || hidden.includes(Number(key))) {
         continue;
       }
       left = Math.min(left, b.left);
@@ -25802,7 +26807,7 @@ class Position {
    * @param {number} j
    * @returns {number | null}
    */
-  _violinsMiddleAt(j2) {
+  _violinsMiddleAt(j) {
     var _a, _b;
     const w = this.w;
     let first = Infinity;
@@ -25819,12 +26824,12 @@ class Position {
     if (bcc) {
       const hidden = this._hiddenSeries();
       for (const key in bcc) {
-        const c = (_a = bcc[key]) == null ? void 0 : _a[j2];
-        if ((c == null ? void 0 : c.type) === "violin" && !hidden.includes(Number(key))) take(c.cx);
+        const c2 = (_a = bcc[key]) == null ? void 0 : _a[j];
+        if ((c2 == null ? void 0 : c2.type) === "violin" && !hidden.includes(Number(key))) take(c2.cx);
       }
     } else {
       const bodies = this._marks(
-        `.apexcharts-violin-series .apexcharts-series:not(.apexcharts-series-collapsed) path.apexcharts-violin-area[j='${j2}']`
+        `.apexcharts-violin-series .apexcharts-series:not(.apexcharts-series-collapsed) path.apexcharts-violin-area[j='${j}']`
       );
       for (let k2 = 0; k2 < bodies.length; k2++) {
         take(parseFloat((_b = bodies[k2].getAttribute("data:center")) != null ? _b : ""));
@@ -25842,13 +26847,13 @@ class Position {
    * @param {number} j
    * @returns {{ top: number, bottom: number } | null}
    */
-  _barsExtentInGrid(j2) {
+  _barsExtentInGrid(j) {
     var _a, _b;
     const w = this.w;
     const marks = this._marks(
-      `.apexcharts-bar-series path[j='${j2}'],.apexcharts-rangebar-series path[j='${j2}'],.apexcharts-candlestick-series path[j='${j2}'],.apexcharts-boxPlot-series path[j='${j2}'],.apexcharts-violin-series path[j='${j2}']`
+      `.apexcharts-bar-series path[j='${j}'],.apexcharts-rangebar-series path[j='${j}'],.apexcharts-candlestick-series path[j='${j}'],.apexcharts-boxPlot-series path[j='${j}'],.apexcharts-violin-series path[j='${j}']`
     );
-    const painted = this._paintedAt(j2, [
+    const painted = this._paintedAt(j, [
       "bar",
       "rangebar",
       "candlestick",
@@ -25890,13 +26895,13 @@ class Position {
    * @param {number} j
    * @returns {number | null}
    */
-  _datapointCenterXFromBars(j2) {
+  _datapointCenterXFromBars(j) {
     var _a, _b;
     const w = this.w;
     const bars = this._marks(
-      `.apexcharts-bar-series path[j='${j2}'],.apexcharts-rangebar-series path[j='${j2}']`
+      `.apexcharts-bar-series path[j='${j}'],.apexcharts-rangebar-series path[j='${j}']`
     );
-    const painted = this._paintedAt(j2, ["bar", "rangebar"]);
+    const painted = this._paintedAt(j, ["bar", "rangebar"]);
     if (!bars.length && !painted) return null;
     let unionLeft = Infinity;
     let unionRight = -Infinity;
@@ -25929,7 +26934,7 @@ class Position {
    * @param {number} j
    * @returns {boolean}
    */
-  placeHorizontalSharedTooltip(j2) {
+  placeHorizontalSharedTooltip(j) {
     var _a, _b;
     const w = this.w;
     const ttCtx = this.ttCtx;
@@ -25938,9 +26943,9 @@ class Position {
     const elGrid = ttCtx.getElGrid();
     if (!elGrid) return false;
     const bars = this._marks(
-      `.apexcharts-bar-series path[j='${j2}'],.apexcharts-rangebar-series path[j='${j2}'],.apexcharts-boxPlot-series path[j='${j2}'],.apexcharts-violin-series path.apexcharts-violin-area[j='${j2}'],.apexcharts-violin-series path.apexcharts-violin-points[j='${j2}']`
+      `.apexcharts-bar-series path[j='${j}'],.apexcharts-rangebar-series path[j='${j}'],.apexcharts-boxPlot-series path[j='${j}'],.apexcharts-violin-series path.apexcharts-violin-area[j='${j}'],.apexcharts-violin-series path.apexcharts-violin-points[j='${j}']`
     );
-    const painted = this._paintedAt(j2, ["bar", "rangebar", "boxPlot", "violin"]);
+    const painted = this._paintedAt(j, ["bar", "rangebar", "boxPlot", "violin"]);
     if (!bars.length && !painted) return false;
     let unionLeft = Infinity;
     let unionRight = -Infinity;
@@ -25998,7 +27003,7 @@ class Position {
           right: rowRightElWrap
         },
         { top: gridTop, bottom: gridBottom, left: gridLeft, right: gridRight },
-        j2
+        j
       )
     );
     return true;
@@ -26037,8 +27042,8 @@ function hasCanvasUnsupportedFeature(w) {
   const lc = po.line && po.line.colors;
   const states = cfg.states || {};
   const badFill = (t2) => [].concat(t2).some((x2) => x2 === "pattern" || x2 === "image" || x2 === "gradient");
-  const badFilter = (st) => {
-    const t2 = st && st.filter && st.filter.type;
+  const badFilter = (st2) => {
+    const t2 = st2 && st2.filter && st2.filter.type;
     return t2 && !OK_FILTER_TYPES.includes(t2);
   };
   const hasType = (re) => (cfg.series || []).some(
@@ -26113,13 +27118,13 @@ class Markers {
   _shouldBatch() {
     var _a, _b, _c, _d, _e, _f;
     const w = this.w;
-    const m = w.config.markers;
-    const threshold = (_a = m.largeDatasetThreshold) != null ? _a : 0;
+    const m2 = w.config.markers;
+    const threshold = (_a = m2.largeDatasetThreshold) != null ? _a : 0;
     if (threshold <= 0) return false;
     if (((_c = (_b = this.ctx) == null ? void 0 : _b.renderer) == null ? void 0 : _c.kind) === "canvas") return false;
     if (!Markers.markersAreInert(w)) return false;
-    if ((_d = m.discrete) == null ? void 0 : _d.length) return false;
-    if (m.onClick || m.onDblClick) return false;
+    if ((_d = m2.discrete) == null ? void 0 : _d.length) return false;
+    if (m2.onClick || m2.onDblClick) return false;
     if ((_e = w.config.chart.events) == null ? void 0 : _e.dataPointSelection) return false;
     const series = w.seriesData.series;
     if (!Array.isArray(series) || !series.length) return false;
@@ -26132,16 +27137,16 @@ class Markers {
         /** @type {Record<string, any>} */
         (_f = w.config.series[i2]) == null ? void 0 : _f.data
       );
-      for (let j2 = 0; j2 < series[i2].length; j2++) {
-        if (series[i2][j2] === null) hasNull = true;
-        const d = Array.isArray(data) ? data[j2] : null;
-        if (d && (d.fillColor || d.strokeColor)) {
+      for (let j = 0; j < series[i2].length; j++) {
+        if (series[i2][j] === null) hasNull = true;
+        const d2 = Array.isArray(data) ? data[j] : null;
+        if (d2 && (d2.fillColor || d2.strokeColor)) {
           perPointStyle = true;
           break;
         }
       }
       if (perPointStyle) return false;
-      const drawsMarkers = w.globals.markers.size[i2] > 0 || hasNull && m.showNullDataPoints;
+      const drawsMarkers = w.globals.markers.size[i2] > 0 || hasNull && m2.showNullDataPoints;
       if (!drawsMarkers) continue;
       if (series[i2].length > threshold) anyOverThreshold = true;
     }
@@ -26172,7 +27177,7 @@ class Markers {
   plotChartMarkers({
     pointsPos,
     seriesIndex,
-    j: j2,
+    j,
     pSize,
     alwaysDrawMarker = false,
     isVirtualPoint = false
@@ -26180,21 +27185,21 @@ class Markers {
     var _a;
     const w = this.w;
     const i2 = seriesIndex;
-    const p = pointsPos;
+    const p2 = pointsPos;
     let elMarkersWrap = null;
     const graphics = new Graphics(this.w);
     const emit = seriesEmitter(this.ctx, graphics);
     const hasDiscreteMarkers = (_a = w.config.markers.discrete) == null ? void 0 : _a.length;
-    if (Array.isArray(p.x)) {
-      for (let q = 0; q < p.x.length; q++) {
+    if (Array.isArray(p2.x)) {
+      for (let q = 0; q < p2.x.length; q++) {
         let markerElement;
-        let dataPointIndex = j2;
-        let invalidMarker = !Utils$1.isNumber(p.y[q]);
-        if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.seriesData.series[i2][j2 + 1] !== null && !isVirtualPoint) {
+        let dataPointIndex = j;
+        let invalidMarker = !Utils$1.isNumber(p2.y[q]);
+        if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.seriesData.series[i2][j + 1] !== null && !isVirtualPoint) {
           invalidMarker = true;
         }
-        if (j2 === 1 && q === 0) dataPointIndex = 0;
-        if (j2 === 1 && q === 1) dataPointIndex = 1;
+        if (j === 1 && q === 0) dataPointIndex = 0;
+        if (j === 1 && q === 1) dataPointIndex = 1;
         let markerClasses = "apexcharts-marker";
         if (Markers.markersAreInert(w)) {
           markerClasses += " no-pointer-events";
@@ -26202,7 +27207,7 @@ class Markers {
         const shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0;
         const batchThisPoint = w.globals.markers.batched && (shouldMarkerDraw || alwaysDrawMarker) && !hasDiscreteMarkers && !isVirtualPoint;
         if (batchThisPoint) {
-          this._batchPoint(seriesIndex, dataPointIndex, p.x[q], p.y[q], {
+          this._batchPoint(seriesIndex, dataPointIndex, p2.x[q], p2.y[q], {
             invalid: invalidMarker,
             graphics,
             // alwaysDrawMarker carries an explicit size; the standard path
@@ -26217,7 +27222,7 @@ class Markers {
             if (typeof w.globals.pointsArray[seriesIndex] === "undefined") {
               w.globals.pointsArray[seriesIndex] = [];
             }
-            w.globals.pointsArray[seriesIndex][dataPointIndex] = [p.x[q], p.y[q]];
+            w.globals.pointsArray[seriesIndex][dataPointIndex] = [p2.x[q], p2.y[q]];
           }
           if (!invalidMarker) {
             markerClasses += ` w${Utils$1.randomId()}`;
@@ -26231,15 +27236,15 @@ class Markers {
             /** @type {Record<string,any>} */
             w.config.series[i2]
           );
-          const d = _si.data[dataPointIndex];
-          if (d) {
-            if (d.fillColor) opts.pointFillColor = d.fillColor;
-            if (d.strokeColor) opts.pointStrokeColor = d.strokeColor;
+          const d2 = _si.data[dataPointIndex];
+          if (d2) {
+            if (d2.fillColor) opts.pointFillColor = d2.fillColor;
+            if (d2.strokeColor) opts.pointStrokeColor = d2.strokeColor;
           }
           if (typeof pSize !== "undefined") {
             opts.pSize = pSize;
           }
-          if (p.x[q] < -w.globals.markers.largestSize || p.x[q] > w.layout.gridWidth + w.globals.markers.largestSize || p.y[q] < -w.globals.markers.largestSize || p.y[q] > w.layout.gridHeight + w.globals.markers.largestSize) {
+          if (p2.x[q] < -w.globals.markers.largestSize || p2.x[q] > w.layout.gridWidth + w.globals.markers.largestSize || p2.y[q] < -w.globals.markers.largestSize || p2.y[q] > w.layout.gridHeight + w.globals.markers.largestSize) {
             opts.pSize = 0;
           }
           if (!invalidMarker) {
@@ -26263,12 +27268,12 @@ class Markers {
                 }
               }
             }
-            markerElement = emit.drawMarker(p.x[q], p.y[q], opts);
+            markerElement = emit.drawMarker(p2.x[q], p2.y[q], opts);
             markerElement.attr("rel", dataPointIndex);
             markerElement.attr("j", dataPointIndex);
             markerElement.attr("index", seriesIndex);
             markerElement.node.setAttribute("default-marker-size", opts.pSize);
-            applyProgressiveReveal(markerElement, p.x[q], w);
+            applyProgressiveReveal(markerElement, p2.x[q], w);
             this._filters.setSelectionFilter(
               markerElement,
               seriesIndex,
@@ -26281,7 +27286,7 @@ class Markers {
         } else {
           if (typeof w.globals.pointsArray[seriesIndex] === "undefined")
             w.globals.pointsArray[seriesIndex] = [];
-          w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]]);
+          w.globals.pointsArray[seriesIndex].push([p2.x[q], p2.y[q]]);
         }
       }
     }
@@ -26297,13 +27302,13 @@ class Markers {
    * @param {{invalid: boolean, graphics: Graphics, pSize?: number,
    *          trackPoint?: boolean}} o
    */
-  _batchPoint(seriesIndex, dataPointIndex, x2, y, { invalid, graphics, pSize, trackPoint }) {
+  _batchPoint(seriesIndex, dataPointIndex, x2, y2, { invalid, graphics, pSize, trackPoint }) {
     const w = this.w;
     if (trackPoint) {
       if (typeof w.globals.pointsArray[seriesIndex] === "undefined") {
         w.globals.pointsArray[seriesIndex] = [];
       }
-      w.globals.pointsArray[seriesIndex][dataPointIndex] = [x2, y];
+      w.globals.pointsArray[seriesIndex][dataPointIndex] = [x2, y2];
     }
     if (invalid) return;
     if (!this._batch || this._batch.seriesIndex !== seriesIndex) {
@@ -26316,7 +27321,7 @@ class Markers {
     const size = pSize === void 0 ? this._batch.opts.pSize : pSize;
     if (!(size > 0)) return;
     const slack = w.globals.markers.largestSize;
-    if (x2 < -slack || x2 > w.layout.gridWidth + slack || y < -slack || y > w.layout.gridHeight + slack) {
+    if (x2 < -slack || x2 > w.layout.gridWidth + slack || y2 < -slack || y2 > w.layout.gridHeight + slack) {
       return;
     }
     let group = this._batch.sizes.get(size);
@@ -26324,7 +27329,7 @@ class Markers {
       group = [];
       this._batch.sizes.set(size, group);
     }
-    group.push(graphics.getMarkerPath(x2, y, this._batch.opts.shape, size));
+    group.push(graphics.getMarkerPath(x2, y2, this._batch.opts.shape, size));
   }
   /**
    * Emit the accumulated series as one path element per marker size and append
@@ -26387,15 +27392,15 @@ class Markers {
     const w = this.w;
     const pStyle = this.getMarkerStyle(seriesIndex);
     let pSize = size === null ? w.globals.markers.size[seriesIndex] : size;
-    const m = w.config.markers;
-    if (dataPointIndex !== null && m.discrete.length) {
+    const m2 = w.config.markers;
+    if (dataPointIndex !== null && m2.discrete.length) {
       let idx = (
         /** @type {Record<string, any[]>} */
         this._discrete
       );
       if (!idx) {
         idx = this._discrete = {};
-        m.discrete.forEach(
+        m2.discrete.forEach(
           (e2) => {
             var _a2;
             return (idx[_a2 = e2.seriesIndex + ":" + e2.dataPointIndex] || (idx[_a2] = [])).push(e2);
@@ -26415,15 +27420,15 @@ class Markers {
     }
     return {
       pSize: radius === null ? pSize : radius,
-      pRadius: radius !== null ? radius : m.radius,
-      pointStrokeWidth: strokeWidth !== null ? strokeWidth : at(m.strokeWidth, seriesIndex),
+      pRadius: radius !== null ? radius : m2.radius,
+      pointStrokeWidth: strokeWidth !== null ? strokeWidth : at(m2.strokeWidth, seriesIndex),
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape: pStyle.pointShape || at(m.shape, seriesIndex),
+      shape: pStyle.pointShape || at(m2.shape, seriesIndex),
       class: cssClass,
-      pointStrokeOpacity: at(m.strokeOpacity, seriesIndex),
-      pointStrokeDashArray: at(m.strokeDashArray, seriesIndex),
-      pointFillOpacity: at(m.fillOpacity, seriesIndex),
+      pointStrokeOpacity: at(m2.strokeOpacity, seriesIndex),
+      pointStrokeDashArray: at(m2.strokeDashArray, seriesIndex),
+      pointFillOpacity: at(m2.fillOpacity, seriesIndex),
       seriesIndex
     };
   }
@@ -26573,7 +27578,7 @@ class Marker {
    * @param {number | null} [x]
    * @param {number | null} [y]
    */
-  enlargeCurrentPoint(rel, point, x2 = null, y = null) {
+  enlargeCurrentPoint(rel, point, x2 = null, y2 = null) {
     const w = this.w;
     let appliedSize = w.config.markers.hover.size;
     if (w.config.chart.type !== "bubble") {
@@ -26582,9 +27587,9 @@ class Marker {
     let cx = point.getAttribute("cx");
     let cy = point.getAttribute("cy");
     let mark = this.tooltipPosition.isShortPlot() ? this.markExtent(point, cy, appliedSize) : null;
-    if (x2 !== null && y !== null) {
+    if (x2 !== null && y2 !== null) {
       cx = x2;
-      cy = y;
+      cy = y2;
     }
     this.tooltipPosition.moveXCrosshairs(cx);
     if (!this.ttCtx.fixedTooltip) {
@@ -26612,7 +27617,7 @@ class Marker {
    * @param {number} x
    * @param {number} y
    */
-  enlargePaintedPoint(marker, x2, y) {
+  enlargePaintedPoint(marker, x2, y2) {
     var _a;
     const w = this.w;
     this.resetPointsSize();
@@ -26638,7 +27643,7 @@ class Marker {
     if (!this.ttCtx.fixedTooltip) {
       this.tooltipPosition.moveTooltip(
         x2,
-        y,
+        y2,
         hoverSize,
         this.tooltipPosition.isShortPlot() ? { top: marker.cy - reach, bottom: marker.cy + reach } : null
       );
@@ -26647,12 +27652,12 @@ class Marker {
   /**
    * @param {number} j
    */
-  enlargePoints(j2) {
+  enlargePoints(j) {
     var _a, _b;
     const w = this.w;
-    const me2 = this;
+    const me = this;
     const ttCtx = this.ttCtx;
-    const col = j2;
+    const col = j;
     this.resetEnlargedPoints();
     const points = w.dom.baseEl.querySelectorAll(
       `.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker[rel="${col}"]`
@@ -26662,34 +27667,34 @@ class Marker {
     let lastCy = null;
     let colTop = Infinity;
     let colBottom = -Infinity;
-    for (let p = 0; p < points.length; p++) {
-      const index = points[p].getAttribute("index");
+    for (let p2 = 0; p2 < points.length; p2++) {
+      const index = points[p2].getAttribute("index");
       if (newSize === void 0) {
         newSize = w.globals.markers.size[
           /** @type {any} */
           index
         ] + w.config.markers.hover.sizeOffset;
       }
-      me2.newPointSize(col, points[p]);
-      lastCx = (_a = points[p].getAttribute("cx")) != null ? _a : "0";
-      lastCy = (_b = points[p].getAttribute("cy")) != null ? _b : "0";
-      const y = parseFloat(lastCy);
-      if (Number.isFinite(y)) {
-        if (y < colTop) colTop = y;
-        if (y > colBottom) colBottom = y;
+      me.newPointSize(col, points[p2]);
+      lastCx = (_a = points[p2].getAttribute("cx")) != null ? _a : "0";
+      lastCy = (_b = points[p2].getAttribute("cy")) != null ? _b : "0";
+      const y2 = parseFloat(lastCy);
+      if (Number.isFinite(y2)) {
+        if (y2 < colTop) colTop = y2;
+        if (y2 > colBottom) colBottom = y2;
       }
     }
     if (lastCx === null) return;
-    me2.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
+    me.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
     if (!ttCtx.fixedTooltip) {
-      me2.tooltipPosition.moveTooltip(
+      me.tooltipPosition.moveTooltip(
         parseFloat(lastCx),
         parseFloat(
           /** @type {string} */
           lastCy
         ),
         newSize,
-        me2.tooltipPosition.isShortPlot() ? me2.columnMark(col, colTop, colBottom, newSize) : null
+        me.tooltipPosition.isShortPlot() ? me.columnMark(col, colTop, colBottom, newSize) : null
       );
     }
   }
@@ -26704,11 +27709,11 @@ class Marker {
    * @param {number} size  hover size
    * @returns {{ top: number, bottom: number } | null}
    */
-  columnMark(j2, top, bottom, size) {
+  columnMark(j, top, bottom, size) {
     const pad = Number.isFinite(size) ? size : 0;
     let mark = Number.isFinite(top) ? { top: top - pad, bottom: bottom + pad } : null;
     if (this.w.globals.comboCharts && this.ttCtx.tooltipUtil.hasBars()) {
-      const bars = this.tooltipPosition._barsExtentInGrid(j2);
+      const bars = this.tooltipPosition._barsExtentInGrid(j);
       if (bars) {
         mark = mark ? {
           top: Math.min(mark.top, bars.top),
@@ -26742,12 +27747,12 @@ class Marker {
         return { top: box.y, bottom: box.y + box.height };
       }
     }
-    const c = parseFloat(String(cy));
+    const c2 = parseFloat(String(cy));
     const r2 = Number.isFinite(size) ? (
       /** @type {number} */
       size
     ) : 0;
-    return Number.isFinite(c) ? { top: c - r2, bottom: c + r2 } : null;
+    return Number.isFinite(c2) ? { top: c2 - r2, bottom: c2 + r2 } : null;
   }
   /**
    * Restore every marker this module grew back to its default size. Cheap
@@ -26809,12 +27814,12 @@ class Marker {
     this.resetEnlargedPoints();
     this.ttCtx.tooltipUtil.markerWraps().forEach(([i2, ...dots]) => {
       if (collapsed.indexOf(i2) < 0) {
-        dots.forEach((p) => {
-          if (!p) return;
-          const size = parseFloat(p.getAttribute("default-marker-size"));
-          p.setAttribute(
+        dots.forEach((p2) => {
+          if (!p2) return;
+          const size = parseFloat(p2.getAttribute("default-marker-size"));
+          p2.setAttribute(
             "d",
-            size > 0 ? this.ttCtx.tooltipUtil.getPathFromPoint(p, size) : "M0,0"
+            size > 0 ? this.ttCtx.tooltipUtil.getPathFromPoint(p2, size) : "M0,0"
           );
         });
       }
@@ -26844,7 +27849,7 @@ class Labels {
     shared = true,
     ttItems,
     i: i2 = 0,
-    j: j2 = null,
+    j = null,
     y1,
     y2,
     e: e2,
@@ -26854,7 +27859,7 @@ class Labels {
       this.drawCoincidentSeriesTexts({
         ttItems,
         i: i2,
-        j: j2,
+        j,
         y1,
         y2,
         e: e2,
@@ -26867,17 +27872,17 @@ class Labels {
     const custom = w.config.tooltip.custom !== void 0;
     const tooltipEl = this.ttCtx.getElTooltip();
     if (custom) {
-      this.handleCustomTooltip({ i: i2, j: j2, y1, y2, w });
+      this.handleCustomTooltip({ i: i2, j, y1, y2, w });
     } else {
       this.toggleActiveInactiveSeries(shared, i2);
     }
     const values = this.getValuesToPrint({
       i: i2,
-      j: j2
+      j
     });
     this.printLabels({
       i: i2,
-      j: j2,
+      j,
       values,
       ttItems,
       shared,
@@ -26906,16 +27911,16 @@ class Labels {
    * is the hovered point, which the title and a custom tooltip speak for.
    * @param {{ ttItems?: any, i: number, j: any, y1?: any, y2?: any, e?: any, points: import('../CoincidentMarkers').CoincidentPoint[] }} opts
    */
-  drawCoincidentSeriesTexts({ ttItems, i: i2, j: j2, y1, y2, e: e2, points }) {
+  drawCoincidentSeriesTexts({ ttItems, i: i2, j, y1, y2, e: e2, points }) {
     const w = this.w;
     const custom = w.config.tooltip.custom !== void 0;
     const tooltipEl = this.ttCtx.getElTooltip();
     if (custom) {
-      this.handleCustomTooltip({ i: i2, j: j2, y1, y2, w, coincident: points });
+      this.handleCustomTooltip({ i: i2, j, y1, y2, w, coincident: points });
     } else {
       this.tooltipUtil.toggleAllTooltipSeriesGroups("disable");
     }
-    const values = this.getValuesToPrint({ i: i2, j: j2 });
+    const values = this.getValuesToPrint({ i: i2, j });
     const rows = !custom || !!(tooltipEl == null ? void 0 : tooltipEl.contains(ttItems == null ? void 0 : ttItems[0]));
     this.printTitle({ values, ttItems, rows });
     if (rows && (ttItems == null ? void 0 : ttItems[0])) {
@@ -26927,7 +27932,7 @@ class Labels {
         el.style.display = w.config.tooltip.items.display;
         const s2 = points[r2].seriesIndex;
         const pj = points[r2].dataPointIndex;
-        const hovered = s2 === i2 && pj === j2;
+        const hovered = s2 === i2 && pj === j;
         const row = this.computeSeriesRow({
           i: s2,
           j: pj,
@@ -26968,7 +27973,7 @@ class Labels {
    */
   coincidentRowEls(ttItems, points) {
     if (ttItems.length > 1) {
-      return points.map((p) => ttItems[p.seriesIndex]);
+      return points.map((p2) => ttItems[p2.seriesIndex]);
     }
     let extra = this.coincidentExtra;
     if (!extra || extra.owner !== ttItems) {
@@ -27022,20 +28027,20 @@ class Labels {
     }
   }
   /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any, rows?: boolean}} opts */
-  printLabels({ i: i2, j: j2, values, ttItems, shared, e: e2, rows = true }) {
+  printLabels({ i: i2, j, values, ttItems, shared, e: e2, rows = true }) {
     const w = this.w;
     const { zVal } = values;
     const seriesLen = w.seriesData.series.length;
     this.printTitle({ values, ttItems, rows });
     if (!rows) return;
-    const basePColor = j2 !== null && w.config.plotOptions.bar.distributed ? w.globals.colors[j2] : w.globals.colors[i2];
+    const basePColor = j !== null && w.config.plotOptions.bar.distributed ? w.globals.colors[j] : w.globals.colors[i2];
     const singleRow = (ttItems == null ? void 0 : ttItems.length) === 1;
     const iterations = singleRow ? 1 : seriesLen;
     for (let t2 = 0; t2 < iterations; t2++) {
       const tIndex = singleRow ? 0 : w.config.tooltip.inverseOrder ? seriesLen - 1 - t2 : t2;
       const row = this.computeSeriesRow({
         i: i2,
-        j: j2,
+        j,
         t: t2,
         tIndex,
         shared,
@@ -27045,7 +28050,7 @@ class Labels {
       this.DOMHandling({
         i: i2,
         t: tIndex,
-        j: j2,
+        j,
         ttItems,
         values: {
           val: row.val,
@@ -27064,10 +28069,10 @@ class Labels {
    * printLabels() to keep the outer loop scannable.
    * @param {{i: number, j: any, t: number, tIndex: number, shared: boolean, e: any, basePColor: string}} opts
    */
-  computeSeriesRow({ i: i2, j: j2, tIndex, shared, e: e2, basePColor }) {
+  computeSeriesRow({ i: i2, j, tIndex, shared, e: e2, basePColor }) {
     const w = this.w;
     const own = w.globals.axisCharts && shared ? tIndex : i2;
-    const f = this.getFormatters(own);
+    const f2 = this.getFormatters(own);
     let pColor = basePColor;
     let val;
     let goalVals = (
@@ -27075,28 +28080,28 @@ class Labels {
       []
     );
     const seriesName = this.getSeriesName({
-      fn: f.yLbTitleFormatter,
+      fn: f2.yLbTitleFormatter,
       index: own,
       seriesIndex: i2,
-      j: j2,
+      j,
       leaf: w.config.chart.type === "treemap" ? String(
         /** @type {any} */
-        w.config.series[i2].data[j2].x
+        w.config.series[i2].data[j].x
       ) : null
     });
     if (w.globals.axisCharts) {
       if (shared) {
         pColor = w.globals.colors[tIndex];
-        val = this.formatYValue(f, tIndex, j2);
-        goalVals = this.formatGoalVals(f, tIndex, j2);
+        val = this.formatYValue(f2, tIndex, j);
+        goalVals = this.formatGoalVals(f2, tIndex, j);
       } else {
         pColor = this.resolvePatternColor(e2, pColor, i2);
-        val = this.formatYValue(f, i2, j2);
-        goalVals = this.formatGoalVals(f, i2, j2);
+        val = this.formatYValue(f2, i2, j);
+        goalVals = this.formatGoalVals(f2, i2, j);
       }
     }
-    if (j2 === null) {
-      val = f.yLbFormatter(w.seriesData.series[i2], __spreadProps(__spreadValues({}, w), {
+    if (j === null) {
+      val = f2.yLbFormatter(w.seriesData.series[i2], __spreadProps(__spreadValues({}, w), {
         w,
         series: w.seriesData.series,
         seriesIndex: i2,
@@ -27112,35 +28117,35 @@ class Labels {
    * @param {number} index
    * @param {any} j
    */
-  formatYValue(f, index, j2) {
+  formatYValue(f2, index, j) {
     var _a, _b, _c, _d;
     const w = this.w;
     const steps = w.waterfallData && w.waterfallData.values;
-    if (steps && steps[index] && steps[index][j2] != null) {
-      return f.yLbFormatter(steps[index][j2], {
+    if (steps && steps[index] && steps[index][j] != null) {
+      return f2.yLbFormatter(steps[index][j], {
         series: steps,
         seriesIndex: index,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       });
     }
     if (this.isRangeSeries(index)) {
-      return f.yLbFormatter((_b = (_a = w.rangeData.seriesRangeStart) == null ? void 0 : _a[index]) == null ? void 0 : _b[j2], {
+      return f2.yLbFormatter((_b = (_a = w.rangeData.seriesRangeStart) == null ? void 0 : _a[index]) == null ? void 0 : _b[j], {
         series: w.rangeData.seriesRangeStart,
         seriesIndex: index,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
-      }) + " - " + f.yLbFormatter((_d = (_c = w.rangeData.seriesRangeEnd) == null ? void 0 : _c[index]) == null ? void 0 : _d[j2], {
+      }) + " - " + f2.yLbFormatter((_d = (_c = w.rangeData.seriesRangeEnd) == null ? void 0 : _c[index]) == null ? void 0 : _d[j], {
         series: w.rangeData.seriesRangeEnd,
         seriesIndex: index,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       });
     }
-    return f.yLbFormatter(w.seriesData.series[index][j2], {
+    return f2.yLbFormatter(w.seriesData.series[index][j], {
       series: w.seriesData.series,
       seriesIndex: index,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       w
     });
   }
@@ -27166,16 +28171,16 @@ class Labels {
    * @param {number} index
    * @param {any} j
    */
-  formatGoalVals(f, index, j2) {
+  formatGoalVals(f2, index, j) {
     var _a;
     const w = this.w;
-    const goals = (_a = w.seriesData.seriesGoals[index]) == null ? void 0 : _a[j2];
+    const goals = (_a = w.seriesData.seriesGoals[index]) == null ? void 0 : _a[j];
     if (!Array.isArray(goals)) return [];
     return goals.map((goal) => ({
       attrs: goal,
-      val: f.yLbFormatter(goal.value, {
+      val: f2.yLbFormatter(goal.value, {
         seriesIndex: index,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       })
     }));
@@ -27254,13 +28259,13 @@ class Labels {
    * A treemap row is named by its leaf, not its series.
    * @param {{fn: any, index: any, seriesIndex: any, j: any, leaf?: string | null}} opts
    */
-  getSeriesName({ fn, index, seriesIndex, j: j2, leaf }) {
+  getSeriesName({ fn, index, seriesIndex, j, leaf }) {
     const w = this.w;
     const name2 = leaf != null ? leaf : String(w.seriesData.seriesNames[index]);
     const s2 = fn(name2, {
       series: w.seriesData.series,
       seriesIndex,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       w
     });
     return nameAsHtml(name2, s2);
@@ -27288,7 +28293,7 @@ class Labels {
     return row.ttRefs;
   }
   /** @param {{ t?: any, j?: any, i?: any, ttItems?: any, values?: any, seriesName?: any, shared?: any, pColor?: any }} opts */
-  DOMHandling({ i: i2, t: t2, j: j2, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ i: i2, t: t2, j, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w;
     const ttCtx = this.ttCtx;
     const { val, goalVals, zVal } = values;
@@ -27330,7 +28335,7 @@ class Labels {
     }
     const hf = ttCtx.ctx.highlightFilter;
     if (hf) {
-      hf.tooltipRow(refs, s2, j2, this.getFormatters(s2));
+      hf.tooltipRow(refs, s2, j, this.getFormatters(s2));
     }
     const ttGLabel = refs.goalsLabel;
     const ttGVal = refs.goalsValue;
@@ -27346,7 +28351,7 @@ class Labels {
         ttGVal.innerHTML = gVals + `</div>`;
       };
       if (shared) {
-        if (w.seriesData.seriesGoals[t2][j2] && Array.isArray(w.seriesData.seriesGoals[t2][j2])) {
+        if (w.seriesData.seriesGoals[t2][j] && Array.isArray(w.seriesData.seriesGoals[t2][j])) {
           createGoalsHtml();
         } else {
           ttGLabel.innerHTML = "";
@@ -27367,7 +28372,7 @@ class Labels {
     }
     if (shared && ttItemsChildren[0]) {
       if (w.config.tooltip.hideEmptySeries) {
-        const empty = this.isEmptyAt(t2, j2);
+        const empty = this.isEmptyAt(t2, j);
         refs.text.style.display = empty ? "none" : "";
         refs.marker.style.display = empty || !w.config.tooltip.marker.show || w.config.tooltip.fillSeriesColor ? "none" : "";
       }
@@ -27390,11 +28395,11 @@ class Labels {
    * @param {any} j
    * @returns {boolean}
    */
-  isEmptyAt(t2, j2) {
+  isEmptyAt(t2, j) {
     var _a, _b, _c;
     const w = this.w;
     const rd = w.rangeData;
-    return this.isRangeSeries(t2) ? !((_a = rd.seriesRangeStart[t2]) == null ? void 0 : _a[j2]) && !((_b = rd.seriesRangeEnd[t2]) == null ? void 0 : _b[j2]) : ((_c = w.seriesData.series[t2]) == null ? void 0 : _c[j2]) === 0;
+    return this.isRangeSeries(t2) ? !((_a = rd.seriesRangeStart[t2]) == null ? void 0 : _a[j]) && !((_b = rd.seriesRangeEnd[t2]) == null ? void 0 : _b[j]) : ((_c = w.seriesData.series[t2]) == null ? void 0 : _c[j]) === 0;
   }
   /**
    * @param {boolean} shared
@@ -27419,7 +28424,7 @@ class Labels {
     }
   }
   /** @param {{i: any, j: any}} opts */
-  getValuesToPrint({ i: i2, j: j2 }) {
+  getValuesToPrint({ i: i2, j }) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     const w = this.w;
     const seriesX = (
@@ -27433,18 +28438,18 @@ class Labels {
     const customFormatterOpts = {
       series: w.seriesData.series,
       seriesIndex: i2,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       w
     };
     const zFormatter = w.formatters.ttZFormatter;
-    if (j2 === null) {
+    if (j === null) {
       val = w.seriesData.series[i2];
     } else {
       if (w.axisFlags.isXNumeric && w.config.chart.type !== "treemap") {
-        xVal = seriesX[i2][j2];
+        xVal = seriesX[i2][j];
         if (seriesX[i2].length === 0) {
           const firstActiveSeriesIndex = this.tooltipUtil.getFirstActiveXArray(seriesX);
-          xVal = seriesX[firstActiveSeriesIndex][j2];
+          xVal = seriesX[firstActiveSeriesIndex][j];
         }
       } else {
         const gen = this.ttCtx.allTooltipSeriesGroups;
@@ -27455,11 +28460,11 @@ class Labels {
         if (this._isXY) {
           const datum = (
             /** @type {any} */
-            w.config.series[i2].data[j2]
+            w.config.series[i2].data[j]
           );
           xVal = datum == null ? "" : datum.x;
         } else {
-          xVal = typeof w.labelData.labels[j2] !== "undefined" ? w.labelData.labels[j2] : "";
+          xVal = typeof w.labelData.labels[j] !== "undefined" ? w.labelData.labels[j] : "";
         }
       }
     }
@@ -27487,7 +28492,7 @@ class Labels {
       xVal = (_f = (_e = (_d = w.formatters).ttKeyFormatter) == null ? void 0 : _e.call(_d, bufferXVal, customFormatterOpts)) != null ? _f : bufferXVal;
     }
     if (w.axisFlags.isDataXYZ && w.seriesData.seriesZ.length > 0 && ((_g = w.seriesData.seriesZ[i2]) == null ? void 0 : _g.length) > 0) {
-      zVal = zFormatter == null ? void 0 : zFormatter((_h = w.seriesData.seriesZ[i2][j2]) != null ? _h : null, w);
+      zVal = zFormatter == null ? void 0 : zFormatter((_h = w.seriesData.seriesZ[i2][j]) != null ? _h : null, w);
     }
     if (typeof w.config.xaxis.tooltip.formatter === "function") {
       xAxisTTVal = (_j = (_i = w.formatters).xaxisTooltipFormatter) == null ? void 0 : _j.call(
@@ -27508,7 +28513,7 @@ class Labels {
     };
   }
   /** @param {{i: any, j: any, y1: any, y2: any, w: any, coincident?: any[]}} opts */
-  handleCustomTooltip({ i: i2, j: j2, y1, y2, w, coincident }) {
+  handleCustomTooltip({ i: i2, j, y1, y2, w, coincident }) {
     const tooltipEl = this.ttCtx.getElTooltip();
     let fn = w.config.tooltip.custom;
     if (Array.isArray(fn)) {
@@ -27519,11 +28524,11 @@ class Labels {
       ctx: this.ttCtx.ctx,
       series: w.seriesData.series,
       seriesIndex: i2,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       y1,
       y2,
       w
-    }, coincident && { coincident: coincident.map((p) => __spreadValues({}, p)) }));
+    }, coincident && { coincident: coincident.map((p2) => __spreadValues({}, p2)) }));
     if (tooltipEl) {
       const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
       if (typeof customTooltip === "string" || typeof customTooltip === "number") {
@@ -27554,19 +28559,19 @@ class Intersect {
    * @param {number} [i]
    * @param {number} [j]
    */
-  hoverCell(e2, i2 = -1, j2 = -1) {
+  hoverCell(e2, i2 = -1, j = -1) {
     const w = this.w;
     const prev = this.hotCell;
-    if (prev && prev[0] === i2 && prev[1] === j2) return;
+    if (prev && prev[0] === i2 && prev[1] === j) return;
     const ctx = this.ttCtx.ctx;
-    const fire = (name2, c) => {
+    const fire = (name2, c2) => {
       var _a, _b;
-      const opts = { seriesIndex: c[0], dataPointIndex: c[1], w };
+      const opts = { seriesIndex: c2[0], dataPointIndex: c2[1], w };
       (_b = (_a = w.config.chart.events) == null ? void 0 : _a[name2]) == null ? void 0 : _b.call(_a, e2, ctx, opts);
       Graphics._fireEvent(w, name2, [e2, ctx, opts]);
     };
     if (prev) fire("dataPointMouseLeave", prev);
-    this.hotCell = i2 < 0 ? null : [i2, j2];
+    this.hotCell = i2 < 0 ? null : [i2, j];
     if (this.hotCell) fire("dataPointMouseEnter", this.hotCell);
   }
   // a helper function to get an element's attribute value
@@ -27583,13 +28588,13 @@ class Intersect {
   }
   // handle tooltip for heatmaps and treemaps
   /** @param {{e: any, opt: any, x: any, y: any, type: any}} opts */
-  handleHeatTreeTooltip({ e: e2, opt, x: x2, y, type }) {
+  handleHeatTreeTooltip({ e: e2, opt, x: x2, y: y2, type }) {
     const ttCtx = this.ttCtx;
     const w = this.w;
     const renderer = w.globals.activeRenderer;
     const canvasCells = type === "heatmap" && renderer && renderer.kind === "canvas" && typeof renderer.hitTest === "function";
     const hovered = Utils2.hoverTarget(e2);
-    let i2, j2, cx, cy, width, height;
+    let i2, j, cx, cy, width, height;
     if (canvasCells) {
       const seriesBound = Utils2.plotRect(w);
       const pointer2 = Utils2.eventPointer(e2, opt);
@@ -27598,34 +28603,34 @@ class Intersect {
         (pointer2.y - seriesBound.top) / seriesBound.zoom
       );
       if (!hit) {
-        return { x: x2, y, noHit: true };
+        return { x: x2, y: y2, noHit: true };
       }
       i2 = hit.seriesIndex;
-      j2 = hit.dataPointIndex;
-      this.hoverCell(e2, i2, j2);
+      j = hit.dataPointIndex;
+      this.hoverCell(e2, i2, j);
       cx = hit.x;
       cy = hit.y;
       width = hit.width;
       height = hit.height;
     } else if (hovered.classList.contains(`apexcharts-${type}-rect`)) {
       i2 = this.getAttr(e2, "i");
-      j2 = this.getAttr(e2, "j");
+      j = this.getAttr(e2, "j");
       cx = this.getAttr(e2, "cx");
       cy = this.getAttr(e2, "cy");
       width = this.getAttr(e2, "width");
       height = this.getAttr(e2, "height");
     } else {
-      return { x: x2, y };
+      return { x: x2, y: y2 };
     }
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: opt.ttItems,
       i: i2,
-      j: j2,
+      j,
       shared: false,
       e: e2
     });
     w.interact.capturedSeriesIndex = i2;
-    w.interact.capturedDataPointIndex = j2;
+    w.interact.capturedDataPointIndex = j;
     ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
     const tooltipEl = ttCtx.getElTooltip();
     if (type === "heatmap" && w.config.tooltip.arrow && !Utils2.isFollowCursor(w) && tooltipEl) {
@@ -27642,7 +28647,7 @@ class Intersect {
         clBottom = cy + height;
       } else {
         const node = w.dom.baseEl.contains(hovered) ? hovered : w.dom.baseEl.querySelector(
-          `.apexcharts-heatmap-rect[i='${i2}'][j='${j2}']`
+          `.apexcharts-heatmap-rect[i='${i2}'][j='${j}']`
         ) || hovered;
         own = node;
         const r2 = node.getBoundingClientRect();
@@ -27692,12 +28697,12 @@ class Intersect {
       cellX = cx + width - ttWidth / 2;
     }
     x2 = gridLeft + cellX;
-    y = gridTop + cellY;
+    y2 = gridTop + cellY;
     const followsPointer = Utils2.isFollowCursor(w);
     const pointer = Utils2.eventPointer(e2, opt);
     if (followsPointer) {
       x2 = pointer.x - elWrapRect.left - (cellX > w.layout.gridWidth / 2 ? ttWidth : 0);
-      y = pointer.y - elWrapRect.top - (cellY > w.layout.gridHeight / 2 ? ttHeight : 0);
+      y2 = pointer.y - elWrapRect.top - (cellY > w.layout.gridHeight / 2 ? ttHeight : 0);
     }
     let stacked = null;
     if (followsPointer) {
@@ -27725,11 +28730,11 @@ class Intersect {
     }
     if (x2 + ttWidth > gridRight) x2 = gridRight - ttWidth;
     if (x2 < gridLeft) x2 = gridLeft;
-    if (y + ttHeight > gridBottom) y = gridBottom - ttHeight;
-    if (y < gridTop) y = gridTop;
+    if (y2 + ttHeight > gridBottom) y2 = gridBottom - ttHeight;
+    if (y2 < gridTop) y2 = gridTop;
     return {
       x: x2,
-      y
+      y: y2
     };
   }
   /**
@@ -27737,37 +28742,37 @@ class Intersect {
    * when user hovers over the marker directly, this function is executed
    */
   /** @param {{e: any, opt: any, x: any, y: any}} opts */
-  handleMarkerTooltip({ e: e2, opt, x: x2, y }) {
+  handleMarkerTooltip({ e: e2, opt, x: x2, y: y2 }) {
     const w = this.w;
     const ttCtx = this.ttCtx;
     let i2;
-    let j2;
+    let j;
     if (Utils2.hoverTarget(e2).classList.contains("apexcharts-marker")) {
       const cx = parseInt(opt.paths.getAttribute("cx"), 10);
       const cy = parseInt(opt.paths.getAttribute("cy"), 10);
-      j2 = parseInt(opt.paths.getAttribute("rel"), 10);
+      j = parseInt(opt.paths.getAttribute("rel"), 10);
       i2 = markerSeriesIndex(opt.paths);
       const shared = ttCtx.showOnIntersect ? false : w.config.tooltip.shared;
       const coincident = coincidentPoints(w, { node: opt.paths });
       ttCtx.tooltipLabels.drawSeriesTexts(__spreadValues({
         ttItems: opt.ttItems,
         i: i2,
-        j: j2,
+        j,
         shared,
         e: e2
-      }, !shared && { coincident: this.coincidentRows(coincident, i2, j2) }));
+      }, !shared && { coincident: this.coincidentRows(coincident, i2, j) }));
       if (e2.type === "mouseup") {
-        ttCtx.markerClick(e2, i2, j2, coincident);
+        ttCtx.markerClick(e2, i2, j, coincident);
       }
       w.interact.capturedSeriesIndex = i2;
-      w.interact.capturedDataPointIndex = j2;
+      w.interact.capturedDataPointIndex = j;
       x2 = cx;
-      y = cy;
-      ttCtx.marker.enlargeCurrentPoint(j2, opt.paths, x2, y);
+      y2 = cy;
+      ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x2, y2);
     }
     return {
       x: x2,
-      y
+      y: y2
     };
   }
   /**
@@ -27784,7 +28789,7 @@ class Intersect {
    * @param {number} j
    * @returns {import('../CoincidentMarkers').CoincidentPoint[] | null}
    */
-  coincidentRows(points, i2, j2) {
+  coincidentRows(points, i2, j) {
     var _a;
     if (!points || points.length < 2) return null;
     const w = this.w;
@@ -27792,18 +28797,18 @@ class Intersect {
     const enabled = (_a = ttCtx.tConfig) == null ? void 0 : _a.enabledOnSeries;
     const hideEmpty = w.config.tooltip.hideEmptySeries;
     const bySeries = /* @__PURE__ */ new Map();
-    for (const p of points) {
-      const s2 = p.seriesIndex;
-      const hovered = s2 === i2 && p.dataPointIndex === j2;
+    for (const p2 of points) {
+      const s2 = p2.seriesIndex;
+      const hovered = s2 === i2 && p2.dataPointIndex === j;
       if (Array.isArray(enabled) && enabled.indexOf(s2) < 0) continue;
-      if (hideEmpty && !hovered && ttCtx.tooltipLabels.isEmptyAt(s2, p.dataPointIndex)) {
+      if (hideEmpty && !hovered && ttCtx.tooltipLabels.isEmptyAt(s2, p2.dataPointIndex)) {
         continue;
       }
-      if (!bySeries.has(s2) || hovered) bySeries.set(s2, p);
+      if (!bySeries.has(s2) || hovered) bySeries.set(s2, p2);
     }
     const rows = [...bySeries.values()];
     if (!rows.length) return null;
-    if (rows.length === 1 && rows[0].seriesIndex === i2 && rows[0].dataPointIndex === j2) {
+    if (rows.length === 1 && rows[0].seriesIndex === i2 && rows[0].dataPointIndex === j) {
       return null;
     }
     return w.config.tooltip.inverseOrder ? rows.reverse() : rows;
@@ -27846,26 +28851,26 @@ class Intersect {
     var _a;
     const w = this.w;
     const ttCtx = this.ttCtx;
-    const { i: i2, j: j2 } = marker;
+    const { i: i2, j } = marker;
     if (Array.isArray(ttCtx.tConfig.enabledOnSeries) && ttCtx.tConfig.enabledOnSeries.indexOf(i2) < 0) {
       this.leavePaintedMark(e2, opt);
       return;
     }
     (_a = ttCtx.cancelOffMarkHide) == null ? void 0 : _a.call(ttCtx);
-    const coincident = coincidentPoints(w, { i: i2, j: j2 });
+    const coincident = coincidentPoints(w, { i: i2, j });
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: opt.ttItems,
       i: i2,
-      j: j2,
+      j,
       shared: false,
       e: e2,
-      coincident: this.coincidentRows(coincident, i2, j2)
+      coincident: this.coincidentRows(coincident, i2, j)
     });
     if (e2.type === "mouseup") {
-      ttCtx.markerClick(e2, i2, j2, coincident);
+      ttCtx.markerClick(e2, i2, j, coincident);
     }
     w.interact.capturedSeriesIndex = i2;
-    w.interact.capturedDataPointIndex = j2;
+    w.interact.capturedDataPointIndex = j;
     ttCtx.marker.enlargePaintedPoint(
       marker,
       Math.trunc(marker.cx),
@@ -27913,7 +28918,7 @@ class Intersect {
     const tooltipEl = ttCtx.getElTooltip();
     let bx = 0;
     let x2 = 0;
-    let y = 0;
+    let y2 = 0;
     let i2 = 0;
     const barXY = this.getBarTooltipXY({
       e: e2,
@@ -27928,20 +28933,20 @@ class Intersect {
       return;
     }
     i2 = barXY.i;
-    const j2 = barXY.j;
+    const j = barXY.j;
     if (barXY.byHitTest && Array.isArray(ttCtx.tConfig.enabledOnSeries) && !w.config.tooltip.shared && ttCtx.tConfig.enabledOnSeries.indexOf(i2) < 0) {
       ttCtx.handleMouseOut(opt);
       return;
     }
     w.interact.capturedSeriesIndex = i2;
-    w.interact.capturedDataPointIndex = j2 !== null ? j2 : w.interact.capturedDataPointIndex;
+    w.interact.capturedDataPointIndex = j !== null ? j : w.interact.capturedDataPointIndex;
     if (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars() || !w.config.tooltip.shared) {
       x2 = barXY.x;
-      y = barXY.y;
+      y2 = barXY.y;
       bx = x2;
     }
-    if (isNaN(y)) {
-      y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight;
+    if (isNaN(y2)) {
+      y2 = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight;
     }
     if (x2 + ttCtx.tooltipRect.ttWidth > w.layout.gridWidth) {
       x2 = x2 - ttCtx.tooltipRect.ttWidth;
@@ -27973,7 +28978,7 @@ class Intersect {
         let arrowY = null;
         let arrowX = null;
         let finalX = x2 + gridOffsetXInElWrap;
-        let finalY = y + gridOffsetYInElWrap - ttH / 2;
+        let finalY = y2 + gridOffsetYInElWrap - ttH / 2;
         const barInElWrap = barRectInGrid && {
           top: barRectInGrid.top + gridOffsetYInElWrap,
           bottom: barRectInGrid.bottom + gridOffsetYInElWrap,
@@ -27984,7 +28989,7 @@ class Intersect {
           const pos = ttCtx.tooltipPosition.placeAroundBar(
             barInElWrap,
             plotInElWrap,
-            j2 != null ? j2 : 0,
+            j != null ? j : 0,
             i2
           );
           placement = pos.placement;
@@ -28077,11 +29082,11 @@ class Intersect {
   /** @param {{e: any, opt: any}} opts */
   getBarTooltipXY({ e: e2, opt }) {
     const w = this.w;
-    let j2 = null;
+    let j = null;
     const ttCtx = this.ttCtx;
     let i2 = 0;
     let x2 = 0;
-    let y = 0;
+    let y2 = 0;
     let barWidth = 0;
     let barHeight = 0;
     let barCx = null;
@@ -28118,10 +29123,10 @@ class Intersect {
         bottom: rectTopInGrid + bh
       };
       const clientX = e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
-      j2 = mark ? mark.j : parseInt(bar.getAttribute("j"), 10);
+      j = mark ? mark.j : parseInt(bar.getAttribute("j"), 10);
       i2 = mark ? mark.i : parseInt(bar.parentNode.getAttribute("rel"), 10) - 1;
       const y1 = mark ? mark.y1 : bar.getAttribute("data-range-y1");
-      const y2 = mark ? mark.y2 : bar.getAttribute("data-range-y2");
+      const y22 = mark ? mark.y2 : bar.getAttribute("data-range-y2");
       if (w.globals.comboCharts && !mark) {
         i2 = parseInt(bar.parentNode.getAttribute("data:realIndex"), 10);
       }
@@ -28143,19 +29148,19 @@ class Intersect {
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i: i2,
-        j: j2,
+        j,
         y1: y1 != null ? parseFloat(y1) : null,
-        y2: y2 != null ? parseFloat(y2) : null,
+        y2: y22 != null ? parseFloat(y22) : null,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
         e: e2
       });
       if (Utils2.isFollowCursor(w)) {
         if (w.globals.isBarHorizontal) {
           x2 = clientX - seriesBound.left + 15;
-          y = handleYForBars();
+          y2 = handleYForBars();
         } else {
           x2 = handleXForColumns(x2);
-          y = e2.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15;
+          y2 = e2.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15;
         }
       } else {
         if (w.globals.isBarHorizontal) {
@@ -28163,20 +29168,20 @@ class Intersect {
           if (ttCtx.xyRatios && x2 < ttCtx.xyRatios.baseLineInvertedY) {
             x2 = cx - ttCtx.tooltipRect.ttWidth;
           }
-          y = handleYForBars();
+          y2 = handleYForBars();
         } else {
           x2 = handleXForColumns(x2);
-          y = cy;
+          y2 = cy;
         }
       }
     }
     return {
       x: x2,
-      y,
+      y: y2,
       barHeight,
       barWidth,
       i: i2,
-      j: j2,
+      j,
       // SVG attribute values — left for any caller that still wants them.
       barCx,
       barCy,
@@ -28218,9 +29223,9 @@ class Intersect {
     const cached = hit ? (_b = (_a = w.globals.barCanvasCoords) == null ? void 0 : _a[hit.seriesIndex]) == null ? void 0 : _b[hit.dataPointIndex] : null;
     if (!found || !hit || !cached) return { noHit: true };
     const i2 = hit.seriesIndex;
-    const j2 = hit.dataPointIndex;
+    const j = hit.dataPointIndex;
     if (cached.type === "violin") {
-      return this._violinMark(i2, j2, null, cached) || { noHit: true };
+      return this._violinMark(i2, j, null, cached) || { noHit: true };
     }
     const b = cached.bounds;
     const box = hit.width != null ? hit : b && {
@@ -28238,7 +29243,7 @@ class Intersect {
     const asAttr = (v) => parseInt(String(v), 10);
     return {
       i: i2,
-      j: j2,
+      j,
       rect: {
         left,
         top,
@@ -28323,18 +29328,18 @@ class Intersect {
    * @param {any} cached  the canvas coords, or null for an SVG violin
    * @returns {any}
    */
-  _violinMark(i2, j2, seriesEl, cached) {
+  _violinMark(i2, j, seriesEl, cached) {
     var _a;
-    const rect = this.violinGlyphRect(i2, j2, seriesEl);
+    const rect = this.violinGlyphRect(i2, j, seriesEl);
     if (!rect) return null;
-    const body = cached ? null : seriesEl == null ? void 0 : seriesEl.querySelector(`.apexcharts-violin-area[j='${j2}']`);
+    const body = cached ? null : seriesEl == null ? void 0 : seriesEl.querySelector(`.apexcharts-violin-area[j='${j}']`);
     const attr = (name2) => {
       var _a2;
       return cached ? cached[name2] : parseFloat((_a2 = body == null ? void 0 : body.getAttribute(name2)) != null ? _a2 : "");
     };
     return {
       i: i2,
-      j: j2,
+      j,
       rect: __spreadProps(__spreadValues({}, rect), {
         width: rect.right - rect.left,
         height: rect.bottom - rect.top
@@ -28358,7 +29363,7 @@ class Intersect {
    * @param {Element | null} [seriesEl]  the series group, when the caller has it
    * @returns {{ left: number, top: number, right: number, bottom: number } | null}
    */
-  violinGlyphRect(i2, j2, seriesEl = null) {
+  violinGlyphRect(i2, j, seriesEl = null) {
     var _a, _b, _c;
     const w = this.w;
     let left = Infinity;
@@ -28373,7 +29378,7 @@ class Intersect {
     };
     const b = Utils2.isCanvasViolinChart(w) ? (
       /** @type {any} */
-      (_c = (_b = (_a = w.globals.barCanvasCoords) == null ? void 0 : _a[i2]) == null ? void 0 : _b[j2]) == null ? void 0 : _c.bounds
+      (_c = (_b = (_a = w.globals.barCanvasCoords) == null ? void 0 : _a[i2]) == null ? void 0 : _b[j]) == null ? void 0 : _c.bounds
     ) : null;
     if (b) {
       const plot = Utils2.plotRect(w);
@@ -28388,7 +29393,7 @@ class Intersect {
       `.apexcharts-violin-series .apexcharts-series[data\\:realIndex='${i2}']`
     );
     const marks = group ? group.querySelectorAll(
-      `.apexcharts-violin-area[j='${j2}'], .apexcharts-violin-points[j='${j2}']`
+      `.apexcharts-violin-area[j='${j}'], .apexcharts-violin-points[j='${j}']`
     ) : [];
     for (let k2 = 0; k2 < marks.length; k2++) {
       const r2 = marks[k2].getBoundingClientRect();
@@ -28723,8 +29728,8 @@ class Tooltip {
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared;
     const boxVisible = this.tConfig.visible !== false;
     this.isXAxisTooltipEnabled = boxVisible && w.config.xaxis.tooltip.enabled && w.globals.axisCharts;
-    this.yaxisTooltips = w.config.yaxis.map((y) => {
-      return boxVisible && y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false;
+    this.yaxisTooltips = w.config.yaxis.map((y2) => {
+      return boxVisible && y2.show && y2.tooltip.enabled && w.globals.axisCharts ? true : false;
     });
     this.allTooltipSeriesGroups = [];
     this.yaxisTTEls = null;
@@ -28851,16 +29856,16 @@ class Tooltip {
     this.legendLabels = w.dom.baseEl.querySelectorAll(".apexcharts-legend-text");
     this.addSVGEvents();
     if (keep && tooltipEl.classList.contains("apexcharts-active")) {
-      const h = this.hoverAreaListeners[0];
-      if (h && /move/.test((_c = this.e) == null ? void 0 : _c.type) && !w.config.chart.group) {
+      const h2 = this.hoverAreaListeners[0];
+      if (h2 && /move/.test((_c = this.e) == null ? void 0 : _c.type) && !w.config.chart.group) {
         let n2 = 600;
         const replay = () => {
-          if (h !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return;
+          if (h2 !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return;
           if (!w.globals.animationEnded && n2-- && typeof requestAnimationFrame == "function")
             requestAnimationFrame(replay);
           else if (tooltipEl.classList.contains("apexcharts-active")) {
             delete tooltipEl.dataset.positioned;
-            this.seriesHover(h.opt, this.e);
+            this.seriesHover(h2.opt, this.e);
           }
         };
         w.dom.baseEl.classList.remove("apexcharts-tooltip-active");
@@ -29056,18 +30061,18 @@ class Tooltip {
     const ttWidth = tooltipRect.width + 10;
     const ttHeight = tooltipRect.height + 10;
     let x2 = this.tConfig.fixed.offsetX;
-    let y = this.tConfig.fixed.offsetY;
+    let y2 = this.tConfig.fixed.offsetY;
     const fixed = this.tConfig.fixed.position.toLowerCase();
     if (fixed.indexOf("right") > -1) {
       x2 = x2 + w.globals.svgWidth - ttWidth + 10;
     }
     if (fixed.indexOf("bottom") > -1) {
-      y = y + w.globals.svgHeight - ttHeight - 10;
+      y2 = y2 + w.globals.svgHeight - ttHeight - 10;
     }
-    this.tooltipPosition.applyTooltipPosition(tooltipEl, { x: x2, y });
+    this.tooltipPosition.applyTooltipPosition(tooltipEl, { x: x2, y: y2 });
     return {
       x: x2,
-      y,
+      y: y2,
       ttWidth,
       ttHeight
     };
@@ -29088,9 +30093,9 @@ class Tooltip {
    */
   addPathsEventListeners(paths, opts) {
     const self = this;
-    for (let p = 0; p < paths.length; p++) {
+    for (let p2 = 0; p2 < paths.length; p2++) {
       const extendedOpts = {
-        paths: paths[p],
+        paths: paths[p2],
         tooltipEl: opts.tooltipEl,
         elGrid: opts.elGrid,
         hoverArea: opts.hoverArea,
@@ -29105,15 +30110,15 @@ class Tooltip {
       ];
       events.map((ev) => {
         const handler = self.onSeriesHover.bind(self, extendedOpts);
-        if (paths[p] === opts.hoverArea) {
+        if (paths[p2] === opts.hoverArea) {
           self.hoverAreaListeners.push({
-            el: paths[p],
+            el: paths[p2],
             ev,
             handler,
             opt: extendedOpts
           });
         }
-        return paths[p].addEventListener(ev, handler, {
+        return paths[p2].addEventListener(ev, handler, {
           capture: false,
           passive: true
         });
@@ -29334,7 +30339,7 @@ class Tooltip {
   axisChartsTooltips({ e: e2, opt }) {
     var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
-    let x2, y;
+    let x2, y2;
     if (!opt.elGrid) return;
     const seriesBound = Utils2.plotRect(w);
     const clientX = (_a = opt.clientX) != null ? _a : e2.type === "touchmove" ? e2.touches[0].clientX : e2.clientX;
@@ -29419,7 +30424,7 @@ class Tooltip {
             e: e2,
             opt,
             x: x2,
-            y,
+            y: y2,
             type: w.config.chart.type
           });
           if (markerXY.noHit) {
@@ -29427,7 +30432,7 @@ class Tooltip {
             return;
           }
           x2 = markerXY.x;
-          y = markerXY.y;
+          y2 = markerXY.y;
           this.placeCellTooltip(tooltipEl, markerXY);
         } else {
           const paintedMarker = this.intersect.getPaintedMarker(e2, opt);
@@ -29444,7 +30449,7 @@ class Tooltip {
               e: e2,
               opt,
               x: x2,
-              y
+              y: y2
             });
           } else if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({
@@ -29458,8 +30463,8 @@ class Tooltip {
       }
       if (this.tooltipHidden) return;
       if (this.yaxisTooltips && this.yaxisTooltips.length) {
-        for (let yt = 0; yt < w.config.yaxis.length; yt++) {
-          this.axesTooltip.drawYaxisTooltipText(yt, clientY);
+        for (let yt2 = 0; yt2 < w.config.yaxis.length; yt2++) {
+          this.axesTooltip.drawYaxisTooltipText(yt2, clientY);
         }
       }
       w.dom.baseEl.classList.add("apexcharts-tooltip-active");
@@ -29574,10 +30579,10 @@ class Tooltip {
    * @param {number} j
    * @param {boolean | null} shared
    */
-  applyLegendHoverText(series, j2, shared) {
+  applyLegendHoverText(series, j, shared) {
     var _a, _b, _c;
     const w = this.w;
-    const key = `${shared || series},${j2}`;
+    const key = `${shared || series},${j}`;
     if (key === this.legendKey) return;
     this.legendKey = key;
     const els = (_a = this.legendLabels) != null ? _a : [];
@@ -29590,7 +30595,7 @@ class Tooltip {
       const name2 = decodeURIComponent((_c = l2.getAttribute("data:default-text")) != null ? _c : "");
       const out = (shared ? w.globals.collapsedSeriesIndices.indexOf(lsIndex) < 0 : lsIndex === series) ? w.config.legend.tooltipHoverFormatter(name2, {
         seriesIndex: shared ? lsIndex : series,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       }) : name2;
       if (out === name2 && !l2.hasAttribute("data:html")) l2.textContent = name2;
@@ -29611,9 +30616,9 @@ class Tooltip {
     const tooltipEl = this.getElTooltip();
     if (!tooltipEl) return;
     const i2 = parseInt(dotEl.getAttribute("i") || "0", 10);
-    const j2 = parseInt(dotEl.getAttribute("j") || "0", 10);
+    const j = parseInt(dotEl.getAttribute("j") || "0", 10);
     if (typeof w.config.tooltip.custom === "function") {
-      this.tooltipLabels.handleCustomTooltip({ i: i2, j: j2, y1: null, y2: null, w });
+      this.tooltipLabels.handleCustomTooltip({ i: i2, j, y1: null, y2: null, w });
       return;
     }
     const seriesName = w.seriesData.seriesNames[i2] || `series-${i2 + 1}`;
@@ -29623,7 +30628,7 @@ class Tooltip {
     const unitOpts = w.config.plotOptions.unit || {};
     const unitValue = unitOpts.unitValue > 0 ? unitOpts.unitValue : 1;
     const catData = w.seriesData.unitData && w.seriesData.unitData[i2];
-    const datum = catData ? catData[j2] : void 0;
+    const datum = catData ? catData[j] : void 0;
     const datumObj = datum && typeof datum === "object" ? datum : null;
     const color = datumObj && datumObj.fillColor || w.globals.colors && w.globals.colors[i2] || "#008FFB";
     let body;
@@ -29632,7 +30637,7 @@ class Tooltip {
       body = fmt({
         seriesName,
         seriesIndex: i2,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         count,
         value,
         unitValue,
@@ -29643,9 +30648,9 @@ class Tooltip {
     } else if (datum !== void 0 && datum !== null) {
       const label = datumObj ? (_c = (_b = (_a = datumObj.name) != null ? _a : datumObj.label) != null ? _b : datumObj.x) != null ? _c : null : null;
       const dVal = datumObj ? (_e = (_d = datumObj.value) != null ? _d : datumObj.y) != null ? _e : null : datum;
-      body = label != null && dVal != null ? `${label}: ${dVal}` : label != null ? String(label) : dVal != null ? String(dVal) : `#${(j2 + 1).toLocaleString()} of ${count.toLocaleString()}`;
+      body = label != null && dVal != null ? `${label}: ${dVal}` : label != null ? String(label) : dVal != null ? String(dVal) : `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
     } else {
-      body = `#${(j2 + 1).toLocaleString()} of ${count.toLocaleString()}`;
+      body = `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
       if (unitValue !== 1) {
         body += ` &middot; ${unitValue.toLocaleString()} per dot`;
       }
@@ -29691,7 +30696,7 @@ class Tooltip {
       clientX,
       clientY
     });
-    const j2 = capj.j;
+    const j = capj.j;
     let capturedSeries = capj.capturedSeries;
     if (capturedSeries !== null && w.globals.collapsedSeriesIndices.includes(capturedSeries != null ? capturedSeries : -1))
       capturedSeries = null;
@@ -29701,9 +30706,9 @@ class Tooltip {
       return;
     }
     if (capturedSeries !== null) {
-      this.handleStickyCapturedSeries(e2, capturedSeries != null ? capturedSeries : -1, opt, j2 != null ? j2 : 0);
+      this.handleStickyCapturedSeries(e2, capturedSeries != null ? capturedSeries : -1, opt, j != null ? j : 0);
     } else {
-      if (this.tooltipUtil.isXoverlap(j2 != null ? j2 : 0) || w.globals.isBarHorizontal) {
+      if (this.tooltipUtil.isXoverlap(j != null ? j : 0) || w.globals.isBarHorizontal) {
         const firstVisibleSeries = w.seriesData.series.findIndex(
           /**
            * @param {any} s
@@ -29711,7 +30716,7 @@ class Tooltip {
            */
           (s2, i2) => !w.globals.collapsedSeriesIndices.includes(i2)
         );
-        this.create(e2, this, firstVisibleSeries, j2 != null ? j2 : 0, opt.ttItems);
+        this.create(e2, this, firstVisibleSeries, j != null ? j : 0, opt.ttItems);
       }
     }
   }
@@ -29721,23 +30726,23 @@ class Tooltip {
    * @param {Record<string, any>} opt
    * @param {number} j
    */
-  handleStickyCapturedSeries(e2, capturedSeries, opt, j2) {
+  handleStickyCapturedSeries(e2, capturedSeries, opt, j) {
     const w = this.w;
     if (!this.tConfig.shared) {
-      const ignoreNull = w.seriesData.series[capturedSeries][j2] === null;
+      const ignoreNull = w.seriesData.series[capturedSeries][j] === null;
       if (ignoreNull) {
         this.handleMouseOut(opt);
         return;
       }
     }
-    if (typeof w.seriesData.series[capturedSeries][j2] !== "undefined") {
-      if (this.tConfig.shared && this.tooltipUtil.isXoverlap(j2) && this.tooltipUtil.isInitialSeriesSameLen()) {
-        this.create(e2, this, capturedSeries, j2, opt.ttItems);
+    if (typeof w.seriesData.series[capturedSeries][j] !== "undefined") {
+      if (this.tConfig.shared && this.tooltipUtil.isXoverlap(j) && this.tooltipUtil.isInitialSeriesSameLen()) {
+        this.create(e2, this, capturedSeries, j, opt.ttItems);
       } else {
-        this.create(e2, this, capturedSeries, j2, opt.ttItems, false);
+        this.create(e2, this, capturedSeries, j, opt.ttItems, false);
       }
     } else {
-      if (this.tooltipUtil.isXoverlap(j2)) {
+      if (this.tooltipUtil.isXoverlap(j)) {
         const firstVisibleSeries = w.seriesData.series.findIndex(
           /**
            * @param {any} s
@@ -29745,7 +30750,7 @@ class Tooltip {
            */
           (s2, i2) => !w.globals.collapsedSeriesIndices.includes(i2)
         );
-        this.create(e2, this, firstVisibleSeries, j2, opt.ttItems);
+        this.create(e2, this, firstVisibleSeries, j, opt.ttItems);
       }
     }
   }
@@ -29828,7 +30833,7 @@ class Tooltip {
       seriesIndex,
       dataPointIndex,
       w
-    }, points && { coincident: points.map((p) => __spreadValues({}, p)) });
+    }, points && { coincident: points.map((p2) => __spreadValues({}, p2)) });
     if (typeof w.config.chart.events.markerClick === "function") {
       w.config.chart.events.markerClick(e2, this.ctx, opts());
     }
@@ -29855,12 +30860,12 @@ class Tooltip {
    * @param {any} ttItems
    * @param {boolean | null} shared
    */
-  create(e2, context, capturedSeries, j2, ttItems, shared = null) {
+  create(e2, context, capturedSeries, j, ttItems, shared = null) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     const ttCtx = context;
     if (e2.type === "mouseup") {
-      this.markerClick(e2, capturedSeries, j2);
+      this.markerClick(e2, capturedSeries, j);
     }
     if (shared === null) shared = this.tConfig.shared;
     if (!this.tConfig.shared && Array.isArray(this.tConfig.enabledOnSeries) && this.tConfig.enabledOnSeries.indexOf(capturedSeries) < 0) {
@@ -29879,20 +30884,20 @@ class Tooltip {
     const dynamicPoints = canvasNonBar || canvasPointSeries || marksMode;
     const handlePoints = () => {
       if (w.globals.markers.largestSize > 0 && !canvasMode && !w.globals.markers.batched) {
-        ttCtx.marker.enlargePoints(j2);
+        ttCtx.marker.enlargePoints(j);
       } else {
-        ttCtx.tooltipPosition.moveDynamicPointsOnHover(j2);
+        ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
       }
     };
     if (w.config.legend.tooltipHoverFormatter) {
-      this.applyLegendHoverText(capturedSeries, j2, shared);
+      this.applyLegendHoverText(capturedSeries, j, shared);
     }
-    const y1 = (_f = (_e = w.rangeData.seriesRangeStart) == null ? void 0 : _e[capturedSeries]) == null ? void 0 : _f[j2];
-    const y2 = (_h = (_g = w.rangeData.seriesRangeEnd) == null ? void 0 : _g[capturedSeries]) == null ? void 0 : _h[j2];
+    const y1 = (_f = (_e = w.rangeData.seriesRangeStart) == null ? void 0 : _e[capturedSeries]) == null ? void 0 : _f[j];
+    const y2 = (_h = (_g = w.rangeData.seriesRangeEnd) == null ? void 0 : _g[capturedSeries]) == null ? void 0 : _h[j];
     const commonSeriesTextsParams = __spreadValues(__spreadValues({
       ttItems,
       i: capturedSeries,
-      j: j2
+      j
     }, y1 !== void 0 && { y1 }), y2 !== void 0 && { y2 });
     if (shared) {
       ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues({}, commonSeriesTextsParams), {
@@ -29905,14 +30910,14 @@ class Tooltip {
       if (this.tooltipUtil.hasBars()) {
         if (canvasMode) {
           if (!capturedPoints) {
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
           }
         } else if ([...this.tooltipUtil.getElBars()].some((b) => b.querySelector("path"))) {
           const graphics = new Graphics(this.w, this.ctx);
-          const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j2}']`);
+          const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`);
           this.deactivateHoverFilter();
           if (!capturedPoints) {
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
           }
           for (let b = 0; b < paths.length; b++) {
             graphics.pathMouseEnter(
@@ -29930,12 +30935,12 @@ class Tooltip {
         shared: false
       }, commonSeriesTextsParams));
       if (this.tooltipUtil.hasBars()) {
-        ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+        ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
       }
       if (hasMarkers) {
-        ttCtx.tooltipPosition.moveMarkers(capturedSeries, j2);
+        ttCtx.tooltipPosition.moveMarkers(capturedSeries, j);
       } else if (dynamicPoints) {
-        ttCtx.tooltipPosition.moveDynamicPointOnHover(j2, capturedSeries);
+        ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries);
       }
     }
     ttCtx.marker.dirty = true;
@@ -30004,8 +31009,8 @@ class SvgRenderer {
    * @param {number} y
    * @param {any} opts
    */
-  drawMarker(x2, y, opts = {}) {
-    return this.ctx.graphics.drawMarker(x2, y, opts);
+  drawMarker(x2, y2, opts = {}) {
+    return this.ctx.graphics.drawMarker(x2, y2, opts);
   }
   // ── capabilities: SVG supports everything the interface enumerates ──
   /** @param {string} _feature */
@@ -30241,15 +31246,15 @@ let SVGElement$1 = class SVGElement2 {
    * @param {number} w
    * @param {number} h
    */
-  size(w, h) {
-    return this.attr({ width: w, height: h });
+  size(w, h2) {
+    return this.attr({ width: w, height: h2 });
   }
   /**
    * @param {number} x
    * @param {number} y
    */
-  move(x2, y) {
-    return this.attr({ x: x2, y });
+  move(x2, y2) {
+    return this.attr({ x: x2, y: y2 });
   }
   /**
    * @param {number} cx
@@ -30277,8 +31282,8 @@ let SVGElement$1 = class SVGElement2 {
    * @param {any} parent
    */
   addTo(parent) {
-    const p = parent.node || parent;
-    p.appendChild(this.node);
+    const p2 = parent.node || parent;
+    p2.appendChild(this.node);
     return this;
   }
   remove() {
@@ -30431,9 +31436,9 @@ let SVGElement$1 = class SVGElement2 {
   /**
    * @param {string} d
    */
-  plot(d) {
-    if (typeof d === "string") {
-      this.attr("d", d);
+  plot(d2) {
+    if (typeof d2 === "string") {
+      this.attr("d", d2);
     }
     return this;
   }
@@ -30489,15 +31494,15 @@ class SVGGradient extends SVGElement$1 {
    * @param {number} x
    * @param {number} y
    */
-  from(x2, y) {
-    return this.attr({ x1: x2, y1: y });
+  from(x2, y2) {
+    return this.attr({ x1: x2, y1: y2 });
   }
   /**
    * @param {number} x
    * @param {number} y
    */
-  to(x2, y) {
-    return this.attr({ x2, y2: y });
+  to(x2, y2) {
+    return this.attr({ x2, y2 });
   }
   url() {
     return "url(#" + this._id + ")";
@@ -30537,14 +31542,14 @@ class SVGPattern extends SVGElement$1 {
    * @param {number} h
    * @param {Function} builder
    */
-  constructor(container, w, h, builder) {
+  constructor(container, w, h2, builder) {
     const node = BrowserAPIs.createElementNS(SVGNS$2, "pattern");
     super(node);
     this._id = "SvgjsPattern" + ++patternCounter;
     this.attr({
       id: this._id,
       width: w,
-      height: h,
+      height: h2,
       patternUnits: "userSpaceOnUse"
     });
     if (typeof builder === "function") {
@@ -30589,29 +31594,29 @@ class SVGContainer extends SVGElement$1 {
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} h
    */
-  rect(w, h) {
+  rect(w, h2) {
     const el = this._make("rect");
     if (w !== void 0) {
-      el.attr({ width: w, height: h });
+      el.attr({ width: w, height: h2 });
     }
     return el;
   }
   /**
    * @param {number} d
    */
-  circle(d) {
+  circle(d2) {
     const el = this._make("circle");
-    if (d !== void 0) {
-      el.attr({ r: d / 2, cx: d / 2, cy: d / 2 });
+    if (d2 !== void 0) {
+      el.attr({ r: d2 / 2, cx: d2 / 2, cy: d2 / 2 });
     }
     return el;
   }
   /**
    * @param {string} d
    */
-  path(d) {
+  path(d2) {
     const el = this._make("path");
-    if (d) el.attr("d", d);
+    if (d2) el.attr("d", d2);
     return el;
   }
   /**
@@ -30681,8 +31686,8 @@ class SVGContainer extends SVGElement$1 {
    * @param {number} h
    * @param {Function} builder
    */
-  pattern(w, h, builder) {
-    return new SVGPattern(this, w, h, builder);
+  pattern(w, h2, builder) {
+    return new SVGPattern(this, w, h2, builder);
   }
   /**
    * @param {string} tag
@@ -30783,14 +31788,14 @@ class FilterBuilder {
    * @param {string[]} sources
    */
   merge(sources) {
-    const m = BrowserAPIs.createElementNS(SVGNS$2, "feMerge");
+    const m2 = BrowserAPIs.createElementNS(SVGNS$2, "feMerge");
     sources.forEach((src) => {
       const mn = BrowserAPIs.createElementNS(SVGNS$2, "feMergeNode");
       mn.setAttribute("in", src);
-      m.appendChild(mn);
+      m2.appendChild(mn);
     });
-    this.filter.node.appendChild(m);
-    return new SVGElement$1(m);
+    this.filter.node.appendChild(m2);
+    return new SVGElement$1(m2);
   }
   /**
    * @param {string} tag
@@ -30872,8 +31877,8 @@ function installDraggable(ElementClass) {
       if (svgRoot) {
         ctm = svgRoot.getScreenCTM();
       }
-      const onMove = (me2) => {
-        const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
+      const onMove = (me) => {
+        const mev = me.type === "touchmove" ? me.touches[0] : me;
         let dx = mev.clientX - startClientX;
         let dy = mev.clientY - startClientY;
         if (ctm) {
@@ -30883,22 +31888,22 @@ function installDraggable(ElementClass) {
         let newX = startAttrX + dx;
         let newY = startAttrY + dy;
         const w = parseFloat(svgEl.getAttribute("width")) || 0;
-        const h = parseFloat(svgEl.getAttribute("height")) || 0;
+        const h2 = parseFloat(svgEl.getAttribute("height")) || 0;
         if (constraints.minX !== void 0 && newX < constraints.minX)
           newX = constraints.minX;
         if (constraints.minY !== void 0 && newY < constraints.minY)
           newY = constraints.minY;
         if (constraints.maxX !== void 0 && newX + w > constraints.maxX)
           newX = constraints.maxX - w;
-        if (constraints.maxY !== void 0 && newY + h > constraints.maxY)
-          newY = constraints.maxY - h;
+        if (constraints.maxY !== void 0 && newY + h2 > constraints.maxY)
+          newY = constraints.maxY - h2;
         const box = {
           x: newX,
           y: newY,
           w,
-          h,
+          h: h2,
           x2: newX + w,
-          y2: newY + h
+          y2: newY + h2
         };
         const event = new CustomEvent("dragmove", {
           detail: {
@@ -30907,9 +31912,9 @@ function installDraggable(ElementClass) {
                * @param {number} x
                * @param {number} y
                */
-              move: function(x2, y) {
+              move: function(x2, y2) {
                 svgEl.setAttribute("x", x2);
-                svgEl.setAttribute("y", y);
+                svgEl.setAttribute("y", y2);
               }
             },
             box
@@ -30977,9 +31982,9 @@ function installSelectable(ElementClass) {
     });
     const updatePositions = () => {
       const x2 = parseFloat(el.attr("x")) || 0;
-      const y = parseFloat(el.attr("y")) || 0;
+      const y2 = parseFloat(el.attr("y")) || 0;
       const w = parseFloat(el.attr("width")) || 0;
-      const h = parseFloat(el.attr("height")) || 0;
+      const h2 = parseFloat(el.attr("height")) || 0;
       const elTransform = el.node.getAttribute("transform");
       if (elTransform) {
         handleGroup.setAttribute("transform", elTransform);
@@ -30987,14 +31992,14 @@ function installSelectable(ElementClass) {
         handleGroup.removeAttribute("transform");
       }
       const positions = {
-        t: [x2 + w / 2, y],
-        b: [x2 + w / 2, y + h],
-        l: [x2, y + h / 2],
-        r: [x2 + w, y + h / 2],
-        lt: [x2, y],
-        rt: [x2 + w, y],
-        lb: [x2, y + h],
-        rb: [x2 + w, y + h]
+        t: [x2 + w / 2, y2],
+        b: [x2 + w / 2, y2 + h2],
+        l: [x2, y2 + h2 / 2],
+        r: [x2 + w, y2 + h2 / 2],
+        lt: [x2, y2],
+        rt: [x2 + w, y2],
+        lb: [x2, y2 + h2],
+        rb: [x2 + w, y2 + h2]
       };
       handleNames.forEach((name2) => {
         if (handles[name2] && positions[name2]) {
@@ -31045,8 +32050,8 @@ function installSelectable(ElementClass) {
         }
         const startX = parseFloat(el.attr("x")) || 0;
         const startW = parseFloat(el.attr("width")) || 0;
-        const onMove = (me2) => {
-          const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
+        const onMove = (me) => {
+          const mev = me.type === "touchmove" ? me.touches[0] : me;
           let dx = mev.clientX - startClientX;
           if (ctm) dx = dx / /** @type {any} */
           ctm.a;
@@ -31195,6 +32200,7 @@ class InitCtxVariables {
       "showSeries",
       "hideSeries",
       "setLocale",
+      "refreshTokens",
       "resetSeries",
       "zoomX",
       "toggleDataPointSelection",
@@ -31287,8 +32293,8 @@ class InitCtxVariables {
       get() {
         var _a;
         if (!this._highlightFilter) {
-          const C = reg.get("highlightFilter");
-          if (C) this._highlightFilter = new C(w, this);
+          const C2 = reg.get("highlightFilter");
+          if (C2) this._highlightFilter = new C2(w, this);
         }
         return (_a = this._highlightFilter) != null ? _a : null;
       },
@@ -31298,8 +32304,8 @@ class InitCtxVariables {
       get() {
         var _a;
         if (!this._radialTargets) {
-          const C = reg.get("radialTargets");
-          if (C) this._radialTargets = new C(w, this);
+          const C2 = reg.get("radialTargets");
+          if (C2) this._radialTargets = new C2(w, this);
         }
         return (_a = this._radialTargets) != null ? _a : null;
       },
@@ -31679,7 +32685,7 @@ function releaseOwner(w, owner) {
   if (!w.weaveClaims) return false;
   let released = false;
   for (const [option, list] of w.weaveClaims.byOption) {
-    const kept = list.filter((c) => c.owner !== owner);
+    const kept = list.filter((c2) => c2.owner !== owner);
     if (kept.length !== list.length) {
       w.weaveClaims.byOption.set(option, kept);
       released = true;
@@ -31848,8 +32854,8 @@ class Graphics {
     } else {
       resultCommands = commands;
     }
-    return resultCommands.reduce(function(str, c) {
-      return str + c.join(" ") + " ";
+    return resultCommands.reduce(function(str, c2) {
+      return str + c2.join(" ") + " ";
     }, "");
   }
   /**
@@ -31914,15 +32920,15 @@ class Graphics {
   drawCircle(radius, attrs = null) {
     const w = this.w;
     if (radius < 0) radius = 0;
-    const c = w.dom.Paper.circle(radius * 2);
+    const c2 = w.dom.Paper.circle(radius * 2);
     if (attrs !== null) {
-      c.attr(attrs);
+      c2.attr(attrs);
     }
-    return c;
+    return c2;
   }
   /** @param {{ d?: string, stroke?: string, strokeWidth?: number, fill: any, fillOpacity?: number, strokeOpacity?: number, classes?: any, strokeLinecap?: any, strokeDashArray?: number | string | number[] }} opts */
   drawPath({
-    d = "",
+    d: d2 = "",
     stroke = "#a8a8a8",
     strokeWidth = 1,
     fill,
@@ -31936,10 +32942,10 @@ class Graphics {
     if (strokeLinecap === null) {
       strokeLinecap = w.config.stroke.lineCap;
     }
-    if (d.indexOf("undefined") > -1 || d.indexOf("NaN") > -1) {
-      d = `M 0 ${w.layout.gridHeight}`;
+    if (d2.indexOf("undefined") > -1 || d2.indexOf("NaN") > -1) {
+      d2 = `M 0 ${w.layout.gridHeight}`;
     }
-    const p = w.dom.Paper.path(d).attr({
+    const p2 = w.dom.Paper.path(d2).attr({
       fill,
       "fill-opacity": fillOpacity,
       stroke,
@@ -31949,7 +32955,7 @@ class Graphics {
       "stroke-dasharray": strokeDashArray,
       class: classes
     });
-    return p;
+    return p2;
   }
   /**
    * @param {Record<string, any> | null} attrs
@@ -31966,8 +32972,8 @@ class Graphics {
    * @param {number} x
    * @param {number} y
    */
-  move(x2, y) {
-    const move = ["M", x2, y].join(" ");
+  move(x2, y2) {
+    const move = ["M", x2, y2].join(" ");
     return move;
   }
   /**
@@ -31976,10 +32982,10 @@ class Graphics {
    * @param {string | null} hORv
    * @returns {string}
    */
-  line(x2, y, hORv = null) {
+  line(x2, y2, hORv = null) {
     if (hORv === "H") return [" H", x2].join(" ");
-    if (hORv === "V") return [" V", y].join(" ");
-    return [" L", x2, y].join(" ");
+    if (hORv === "V") return [" V", y2].join(" ");
+    return [" L", x2, y2].join(" ");
   }
   /**
    * @param {number} x1
@@ -31989,8 +32995,8 @@ class Graphics {
    * @param {number} x
    * @param {number} y
    */
-  curve(x1, y1, x2, y2, x3, y) {
-    const curve = ["C", x1, y1, x2, y2, x3, y].join(" ");
+  curve(x1, y1, x2, y2, x3, y3) {
+    const curve = ["C", x1, y1, x2, y2, x3, y3].join(" ");
     return curve;
   }
   /**
@@ -32002,7 +33008,7 @@ class Graphics {
    * @param {number} x
    * @param {number} y
    */
-  arc(rx, ry, axisRotation, largeArcFlag, sweepFlag, x2, y, relative = false) {
+  arc(rx, ry, axisRotation, largeArcFlag, sweepFlag, x2, y2, relative = false) {
     let coord = "A";
     if (relative) coord = "a";
     const arc = [
@@ -32013,7 +33019,7 @@ class Graphics {
       largeArcFlag,
       sweepFlag,
       x2,
-      y
+      y2
     ].join(" ");
     return arc;
   }
@@ -32025,12 +33031,12 @@ class Graphics {
    * @param {number} realIndex
    */
   seriesDash(realIndex) {
-    const d = this.w.config.stroke.dashArray;
+    const d2 = this.w.config.stroke.dashArray;
     return resolveClaimed(
       this.w,
       "stroke.dashArray",
       realIndex,
-      Array.isArray(d) ? d[realIndex] : d
+      Array.isArray(d2) ? d2[realIndex] : d2
     );
   }
   /**
@@ -32061,7 +33067,7 @@ class Graphics {
     const mount = a2.enabled && !gl.resized && !gl.dataChanged;
     const animate = !!(mount || a2.enabled && gl.shouldAnimate && (cross || a2.dynamicAnimation.enabled && gl.dataChanged));
     const draw = mount && typeof className === "string" && className.split(" ").some(
-      (c) => c === "apexcharts-line" || c === "apexcharts-area" || c === "apexcharts-rangeArea" || c === "apexcharts-radar"
+      (c2) => c2 === "apexcharts-line" || c2 === "apexcharts-area" || c2 === "apexcharts-rangeArea" || c2 === "apexcharts-radar"
     );
     const fade = animate && !draw && (a2.largeDatasetThreshold > 0 && gl.dataPoints > a2.largeDatasetThreshold || !!fadeReveal && gl.dataChanged && !cross);
     return { animate, draw, fade, cross };
@@ -32084,7 +33090,7 @@ class Graphics {
    * @return {any} svg.js path object
    **/
   renderPaths({
-    j: j2,
+    j,
     realIndex,
     pathFrom,
     pathTo,
@@ -32101,7 +33107,7 @@ class Graphics {
     shouldClipToGrid = true,
     // The handlers bail on a path without a `j` (a whole-series line or
     // area), so bind them only for a per-point path.
-    bindEventsOnPaths = typeof j2 === "number",
+    bindEventsOnPaths = typeof j === "number",
     drawShadow = true,
     drawMask = null,
     scrollMorph = false,
@@ -32119,7 +33125,7 @@ class Graphics {
         pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0]);
       }
     }
-    let d;
+    let d2;
     const {
       animate: shouldAnimate,
       draw: useDrawMode,
@@ -32127,15 +33133,15 @@ class Graphics {
       cross: crossTypeMorph
     } = this.revealPlan(className, fadeReveal);
     if (shouldAnimate && !useDrawMode && !revealViaFade) {
-      d = pathFrom;
+      d2 = pathFrom;
     } else {
-      d = pathTo;
+      d2 = pathTo;
       if (!shouldAnimate) {
         w.globals.animationEnded = true;
       }
     }
     const el = this.drawPath({
-      d,
+      d: d2,
       stroke,
       strokeWidth,
       fill,
@@ -32170,7 +33176,7 @@ class Graphics {
     });
     const defaultAnimateOpts = {
       el,
-      j: j2,
+      j,
       realIndex,
       pathFrom,
       pathTo,
@@ -32188,7 +33194,7 @@ class Graphics {
         const isLast = w.globals.comboCharts ? true : realIndex === seriesCount - 1;
         anim.animateDraw(el, {
           realIndex,
-          j: j2,
+          j,
           isFill,
           isLast,
           speed: drawSpeed,
@@ -32228,7 +33234,7 @@ class Graphics {
    */
   drawPattern(style, width, height, stroke = "#a8a8a8", strokeWidth = 0) {
     const w = this.w;
-    const p = w.dom.Paper.pattern(width, height, (add) => {
+    const p2 = w.dom.Paper.pattern(width, height, (add) => {
       if (style === "horizontalLines") {
         add.line(0, 0, height, 0).stroke({ color: stroke, width: strokeWidth + 1 });
       } else if (style === "verticalLines") {
@@ -32241,7 +33247,7 @@ class Graphics {
         add.circle(width).fill("none").stroke({ color: stroke, width: strokeWidth });
       }
     });
-    return p;
+    return p2;
   }
   /**
    * @param {string} style
@@ -32361,7 +33367,7 @@ class Graphics {
    */
   drawText({
     x: x2,
-    y,
+    y: y2,
     text,
     textAnchor,
     fontSize,
@@ -32420,7 +33426,7 @@ class Graphics {
     }
     elText.attr({
       x: x2,
-      y,
+      y: y2,
       "text-anchor": textAnchor,
       "dominant-baseline": dominantBaseline,
       "font-size": fontSize,
@@ -32439,7 +33445,7 @@ class Graphics {
    * @param {string} type
    * @param {number} size
    */
-  getMarkerPath(x2, y, type, size) {
+  getMarkerPath(x2, y2, type, size) {
     const CROSS_SHRINK = 1.4;
     const PLUS_SHRINK = 1.12;
     const STAR_GROW = 1.15;
@@ -32448,15 +33454,15 @@ class Graphics {
     const DIAMOND_GROW = 1.05;
     const LINE_SHRINK = 1.1;
     const CIRCLE_DIAMETER = 2;
-    let d = "";
+    let d2 = "";
     switch (type) {
       case "cross":
         size = size / CROSS_SHRINK;
-        d = `M ${x2 - size} ${y - size} L ${x2 + size} ${y + size}  M ${x2 - size} ${y + size} L ${x2 + size} ${y - size}`;
+        d2 = `M ${x2 - size} ${y2 - size} L ${x2 + size} ${y2 + size}  M ${x2 - size} ${y2 + size} L ${x2 + size} ${y2 - size}`;
         break;
       case "plus":
         size = size / PLUS_SHRINK;
-        d = `M ${x2 - size} ${y} L ${x2 + size} ${y}  M ${x2} ${y - size} L ${x2} ${y + size}`;
+        d2 = `M ${x2 - size} ${y2} L ${x2 + size} ${y2}  M ${x2} ${y2 - size} L ${x2} ${y2 + size}`;
         break;
       case "star":
       case "sparkle": {
@@ -32471,50 +33477,50 @@ class Graphics {
           const angle = i2 * step;
           const radius = i2 % 2 === 0 ? size : size / 2;
           const xPos = x2 + radius * Math.sin(angle);
-          const yPos = y - radius * Math.cos(angle);
-          d += (i2 === 0 ? "M" : "L") + xPos + "," + yPos;
+          const yPos = y2 - radius * Math.cos(angle);
+          d2 += (i2 === 0 ? "M" : "L") + xPos + "," + yPos;
         }
-        d += "Z";
+        d2 += "Z";
         break;
       }
       case "triangle":
-        d = `M ${x2} ${y - size} 
-             L ${x2 + size} ${y + size} 
-             L ${x2 - size} ${y + size} 
+        d2 = `M ${x2} ${y2 - size} 
+             L ${x2 + size} ${y2 + size} 
+             L ${x2 - size} ${y2 + size} 
              Z`;
         break;
       case "square":
       case "rect":
         size = size / SQUARE_SHRINK;
-        d = `M ${x2 - size} ${y - size} 
-           L ${x2 + size} ${y - size} 
-           L ${x2 + size} ${y + size} 
-           L ${x2 - size} ${y + size} 
+        d2 = `M ${x2 - size} ${y2 - size} 
+           L ${x2 + size} ${y2 - size} 
+           L ${x2 + size} ${y2 + size} 
+           L ${x2 - size} ${y2 + size} 
            Z`;
         break;
       case "diamond":
         size = size * DIAMOND_GROW;
-        d = `M ${x2} ${y - size} 
-             L ${x2 + size} ${y} 
-             L ${x2} ${y + size} 
-             L ${x2 - size} ${y} 
+        d2 = `M ${x2} ${y2 - size} 
+             L ${x2 + size} ${y2} 
+             L ${x2} ${y2 + size} 
+             L ${x2 - size} ${y2} 
             Z`;
         break;
       case "line":
         size = size / LINE_SHRINK;
-        d = `M ${x2 - size} ${y} 
-           L ${x2 + size} ${y}`;
+        d2 = `M ${x2 - size} ${y2} 
+           L ${x2 + size} ${y2}`;
         break;
       case "circle":
       default:
         size = size * CIRCLE_DIAMETER;
-        d = `M ${x2}, ${y} 
+        d2 = `M ${x2}, ${y2} 
            m -${size / 2}, 0 
            a ${size / 2},${size / 2} 0 1,0 ${size},0 
            a ${size / 2},${size / 2} 0 1,0 -${size},0`;
         break;
     }
-    return d;
+    return d2;
   }
   /**
    * @param {number} x - The x-coordinate of the marker
@@ -32524,9 +33530,9 @@ class Graphics {
    * @param {Record<string, any>} opts - The options for the marker
    * @returns {any} The created marker.
    */
-  drawMarkerShape(x2, y, type, size, opts) {
+  drawMarkerShape(x2, y2, type, size, opts) {
     const path = this.drawPath({
-      d: this.getMarkerPath(x2, y, type, size),
+      d: this.getMarkerPath(x2, y2, type, size),
       stroke: opts.pointStrokeColor,
       strokeDashArray: opts.pointStrokeDashArray,
       strokeWidth: opts.pointStrokeWidth,
@@ -32536,7 +33542,7 @@ class Graphics {
     });
     path.attr({
       cx: x2,
-      cy: y,
+      cy: y2,
       shape: opts.shape,
       class: opts.class ? opts.class : ""
     });
@@ -32547,14 +33553,14 @@ class Graphics {
    * @param {number} y
    * @param {Record<string, any>} opts
    */
-  drawMarker(x2, y, opts) {
+  drawMarker(x2, y2, opts) {
     x2 = x2 || 0;
     let size = opts.pSize || 0;
-    if (!Utils$1.isNumber(y)) {
+    if (!Utils$1.isNumber(y2)) {
       size = 0;
-      y = 0;
+      y2 = 0;
     }
-    return this.drawMarkerShape(x2, y, opts == null ? void 0 : opts.shape, size, __spreadValues(__spreadValues({}, opts), opts.shape === "line" || opts.shape === "plus" || opts.shape === "cross" ? {
+    return this.drawMarkerShape(x2, y2, opts == null ? void 0 : opts.shape, size, __spreadValues(__spreadValues({}, opts), opts.shape === "line" || opts.shape === "plus" || opts.shape === "cross" ? {
       pointStrokeColor: opts.pointFillColor,
       pointStrokeOpacity: opts.pointFillOpacity
     } : {}));
@@ -32568,19 +33574,19 @@ class Graphics {
     const w = this.w;
     const filters = new Filters(this.w);
     const i2 = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
-    const j2 = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
-    if (isNaN(i2) || isNaN(j2)) return;
+    const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
+    if (isNaN(i2) || isNaN(j)) return;
     if (typeof w.config.chart.events.dataPointMouseEnter === "function") {
       w.config.chart.events.dataPointMouseEnter(e2, this.ctx, {
         seriesIndex: i2,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       });
     }
     Graphics._fireEvent(w, "dataPointMouseEnter", [
       e2,
       this.ctx,
-      { seriesIndex: i2, dataPointIndex: j2, w }
+      { seriesIndex: i2, dataPointIndex: j, w }
     ]);
     if (w.config.states.active.filter.type !== "none") {
       if (path.node.getAttribute("selected") === "true") {
@@ -32593,7 +33599,7 @@ class Graphics {
         const hoverFilter = w.config.states.hover.filter;
         filters.applyFilter(
           path,
-          Filters.isSliceChart(w) ? j2 : i2,
+          Filters.isSliceChart(w) ? j : i2,
           hoverFilter.type,
           hoverFilter.value
         );
@@ -32609,19 +33615,19 @@ class Graphics {
     const w = this.w;
     const filters = new Filters(this.w);
     const i2 = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
-    const j2 = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
-    if (isNaN(i2) || isNaN(j2)) return;
+    const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
+    if (isNaN(i2) || isNaN(j)) return;
     if (typeof w.config.chart.events.dataPointMouseLeave === "function") {
       w.config.chart.events.dataPointMouseLeave(e2, this.ctx, {
         seriesIndex: i2,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       });
     }
     Graphics._fireEvent(w, "dataPointMouseLeave", [
       e2,
       this.ctx,
-      { seriesIndex: i2, dataPointIndex: j2, w }
+      { seriesIndex: i2, dataPointIndex: j, w }
     ]);
     if (w.config.states.active.filter.type !== "none") {
       if (path.node.getAttribute("selected") === "true") {
@@ -32630,7 +33636,7 @@ class Graphics {
     }
     if (Filters.hoverOutlineOwnsHoverState(w)) return;
     if (w.config.states.hover.filter.type !== "none") {
-      filters.getDefaultFilter(path, Filters.isSliceChart(w) ? j2 : i2);
+      filters.getDefaultFilter(path, Filters.isSliceChart(w) ? j : i2);
     }
   }
   /**
@@ -32660,11 +33666,11 @@ class Graphics {
    * @param {any} path @param {any} filters @param {number} i @param {number} j
    * @returns {'true' | 'false'}
    */
-  _togglePointSelection(path, filters, i2, j2) {
+  _togglePointSelection(path, filters, i2, j) {
     const w = this.w;
     if (path.node.getAttribute("selected") === "true") {
       path.node.setAttribute("selected", "false");
-      const index = w.interact.selectedDataPoints[i2].indexOf(j2);
+      const index = w.interact.selectedDataPoints[i2].indexOf(j);
       if (index > -1) {
         w.interact.selectedDataPoints[i2].splice(index, 1);
       }
@@ -32677,7 +33683,7 @@ class Graphics {
     if (typeof w.interact.selectedDataPoints[i2] === "undefined") {
       w.interact.selectedDataPoints[i2] = [];
     }
-    w.interact.selectedDataPoints[i2].push(j2);
+    w.interact.selectedDataPoints[i2].push(j);
     return "true";
   }
   /**
@@ -32721,16 +33727,16 @@ class Graphics {
     const w = this.w;
     const filters = new Filters(this.w);
     const i2 = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
-    const j2 = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
-    if (isNaN(i2) || isNaN(j2)) return;
+    const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
+    if (isNaN(i2) || isNaN(j)) return;
     const link = w.config.chart.link;
     const crossfilterClick = !!(link && (typeof link.dimension === "function" || link.enabled));
     if (!crossfilterClick) {
-      const selected = this._togglePointSelection(path, filters, i2, j2);
+      const selected = this._togglePointSelection(path, filters, i2, j);
       this._applyPointSelectionFilter(
         path,
         filters,
-        Filters.isSliceChart(w) ? j2 : i2,
+        Filters.isSliceChart(w) ? j : i2,
         selected
       );
     }
@@ -32738,9 +33744,9 @@ class Graphics {
     const opts = () => __spreadValues({
       selectedDataPoints: w.interact.selectedDataPoints,
       seriesIndex: i2,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       w
-    }, coincident && { coincident: coincident.map((p) => __spreadValues({}, p)) });
+    }, coincident && { coincident: coincident.map((p2) => __spreadValues({}, p2)) });
     if (typeof w.config.chart.events.dataPointSelection === "function") {
       w.config.chart.events.dataPointSelection(e2, this.ctx, opts());
     }
@@ -32761,10 +33767,10 @@ class Graphics {
       coord = el.getBBox();
     }
     const x2 = coord.x + coord.width / 2;
-    const y = coord.y + coord.height / 2;
+    const y2 = coord.y + coord.height / 2;
     return {
       x: x2,
-      y
+      y: y2
     };
   }
   /**
@@ -32960,6 +33966,8 @@ class Graphics {
   }
 }
 const XLINK$1 = "http://www.w3.org/1999/xlink";
+const MODERN_COLOR = /^\s*(color|color-mix|oklch|oklab|lab|lch|hwb)\(/i;
+const hasOwnAlpha = (c2) => /^\s*rgba\s*\(/.test(c2) || /^\s*rgb\(/.test(c2) && c2.indexOf("/") > -1 && !/\bfrom\b|var\(/.test(c2);
 class Fill {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -33133,12 +34141,12 @@ class Fill {
       } else if (fillColor.length < 9) {
         defaultColor = Utils$1.hexToRgba(fillColor, fillOpacity);
       }
+    } else if (hasOwnAlpha(fillColor)) {
+      const a2 = Utils$1.getOpacityFromRGBA(fillColor);
+      if (Number.isFinite(a2)) fillOpacity = a2;
     } else {
-      if (fillColor.indexOf("rgba") > -1) {
-        fillOpacity = Utils$1.getOpacityFromRGBA(fillColor);
-      } else {
-        defaultColor = Utils$1.hexToRgba(Utils$1.rgb2hex(fillColor), fillOpacity);
-      }
+      const hex = Utils$1.rgb2hex(fillColor);
+      defaultColor = hex ? Utils$1.hexToRgba(hex, fillOpacity) : Utils$1.applyOpacityToColor(fillColor, fillOpacity);
     }
     const resolvedFillColor = () => {
       const resolved = (
@@ -33320,29 +34328,24 @@ class Fill {
     let gradientFrom = fillColor;
     let gradientTo;
     let opacityFrom = fillCnf.gradient.opacityFrom === void 0 ? fillOpacity : Array.isArray(fillCnf.gradient.opacityFrom) ? fillCnf.gradient.opacityFrom[i2] : fillCnf.gradient.opacityFrom;
-    if (gradientFrom.indexOf("rgba") > -1) {
-      opacityFrom = Utils$1.getOpacityFromRGBA(gradientFrom);
-    }
+    const rgbaOpacity = (c2, o2) => {
+      const a2 = hasOwnAlpha(c2) ? Utils$1.getOpacityFromRGBA(c2) : NaN;
+      return Number.isFinite(a2) ? a2 : o2;
+    };
+    opacityFrom = rgbaOpacity(gradientFrom, opacityFrom);
     let opacityTo = fillCnf.gradient.opacityTo === void 0 ? fillOpacity : Array.isArray(fillCnf.gradient.opacityTo) ? fillCnf.gradient.opacityTo[i2] : fillCnf.gradient.opacityTo;
     if (fillCnf.gradient.gradientToColors === void 0 || fillCnf.gradient.gradientToColors.length === 0) {
-      if (fillCnf.gradient.shade === "dark") {
-        gradientTo = utils.shadeColor(
-          parseFloat(fillCnf.gradient.shadeIntensity) * -1,
-          fillColor.indexOf("rgb") > -1 ? Utils$1.rgb2hex(fillColor) : fillColor
-        );
-      } else {
-        gradientTo = utils.shadeColor(
-          parseFloat(fillCnf.gradient.shadeIntensity),
-          fillColor.indexOf("rgb") > -1 ? Utils$1.rgb2hex(fillColor) : fillColor
-        );
-      }
+      const intensity = parseFloat(fillCnf.gradient.shadeIntensity);
+      gradientTo = utils.shadeColor(
+        fillCnf.gradient.shade === "dark" ? -intensity : intensity,
+        Utils$1.rgb2hex(fillColor) || fillColor,
+        this.w.dom.elWrap
+      );
     } else {
       if (fillCnf.gradient.gradientToColors[opts.seriesNumber]) {
         const gToColor = fillCnf.gradient.gradientToColors[opts.seriesNumber];
         gradientTo = gToColor;
-        if (gToColor.indexOf("rgba") > -1) {
-          opacityTo = Utils$1.getOpacityFromRGBA(gToColor);
-        }
+        opacityTo = rgbaOpacity(gToColor, opacityTo);
       } else {
         gradientTo = fillColor;
       }
@@ -33358,12 +34361,9 @@ class Fill {
       gradientFrom = gradientTo;
       gradientTo = t2;
     }
-    if (gradientFrom.indexOf("rgb") > -1) {
-      gradientFrom = Utils$1.rgb2hex(gradientFrom);
-    }
-    if (gradientTo.indexOf("rgb") > -1) {
-      gradientTo = Utils$1.rgb2hex(gradientTo);
-    }
+    const toStop = (c2, o2) => c2.indexOf("rgb") > -1 || MODERN_COLOR.test(c2) ? Utils$1.rgb2hex(c2) || (o2 > 0 ? Utils$1.applyOpacityToColor(c2, o2) : c2) : c2;
+    gradientFrom = toStop(gradientFrom, opacityFrom);
+    gradientTo = toStop(gradientTo, opacityTo);
     return graphics.drawGradient(
       type,
       gradientFrom,
@@ -33401,7 +34401,7 @@ class Scatter {
    * @param {number} j
    * @param {Record<string, any>} opts
    */
-  draw(elSeries, j2, opts) {
+  draw(elSeries, j, opts) {
     const w = this.w;
     const graphics = this.graphics;
     const emit = seriesEmitter(this.ctx, graphics);
@@ -33426,10 +34426,10 @@ class Scatter {
     }
     if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
-        let dataPointIndex = j2 + 1;
+        let dataPointIndex = j + 1;
         let shouldDraw = true;
-        if (j2 === 0 && q === 0) dataPointIndex = 0;
-        if (j2 === 0 && q === 1) dataPointIndex = 1;
+        if (j === 0 && q === 0) dataPointIndex = 0;
+        if (j === 0 && q === 1) dataPointIndex = 1;
         let radius = w.globals.markers.size[realIndex];
         if (zRatio !== Infinity) {
           const bubble = w.config.plotOptions.bubble;
@@ -33445,26 +34445,26 @@ class Scatter {
           }
         }
         const x2 = pointsPos.x[q];
-        const y = pointsPos.y[q];
+        const y2 = pointsPos.y[q];
         radius = radius || 0;
-        if (y === null || typeof w.seriesData.series[realIndex][dataPointIndex] === "undefined") {
+        if (y2 === null || typeof w.seriesData.series[realIndex][dataPointIndex] === "undefined") {
           shouldDraw = false;
         }
         if (shouldDraw) {
           const point = this.drawPoint(
             x2,
-            y,
+            y2,
             radius,
             realIndex,
             dataPointIndex,
-            j2
+            j
           );
           elPointsWrap.add(point);
           if (emit.kind === "canvas") {
             if (typeof w.globals.pointsArray[realIndex] === "undefined") {
               w.globals.pointsArray[realIndex] = [];
             }
-            w.globals.pointsArray[realIndex][dataPointIndex] = [x2, y];
+            w.globals.pointsArray[realIndex][dataPointIndex] = [x2, y2];
           }
         }
       }
@@ -33508,7 +34508,7 @@ class Scatter {
    * @param {number} dataPointIndex
    * @param {number} j
    */
-  drawPoint(x2, y, radius, realIndex, dataPointIndex, j2) {
+  drawPoint(x2, y2, radius, realIndex, dataPointIndex, j) {
     var _a;
     const w = this.w;
     const i2 = realIndex;
@@ -33561,7 +34561,7 @@ class Scatter {
         dataPointIndex,
         color: markerConfig.pointFillColor,
         patternUnits: "objectBoundingBox",
-        value: w.seriesData.series[realIndex][j2]
+        value: w.seriesData.series[realIndex][j]
       });
       if (ps.fillCacheable === void 0) {
         ps.fillCacheable = ps.canCacheConfig && fill.getFillType(realIndex) === "solid" && typeof markerConfig.pointFillColor === "string" && !!markerConfig.pointFillColor;
@@ -33570,7 +34570,7 @@ class Scatter {
         ps.fillCircle = pathFillCircle;
       }
     }
-    const el = emit.drawMarker(x2, y, markerConfig);
+    const el = emit.drawMarker(x2, y2, markerConfig);
     if (dataItem == null ? void 0 : dataItem.fillColor) {
       pathFillCircle = dataItem.fillColor;
     }
@@ -33629,8 +34629,8 @@ class Scatter {
    * @param {import('../types/internal').ChartStateW} w
    * @param {number} y
    */
-  static centerTextInBubble(w, y) {
-    return y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4;
+  static centerTextInBubble(w, y2) {
+    return y2 + parseInt(w.config.dataLabels.style.fontSize, 10) / 4;
   }
 }
 const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
@@ -33668,34 +34668,34 @@ function resolveLabelOverlaps(boxes, opts) {
   const { gap, maxShift, minY, maxY } = opts;
   const iterations = (_a = opts.iterations) != null ? _a : 6;
   const idx = boxes.map((_, i2) => i2).sort((a2, b) => boxes[a2].x - boxes[b].x);
-  const clampShift = (i2, d) => {
+  const clampShift = (i2, d2) => {
     const b = boxes[i2];
     if (b.fixed) return result[i2].dy;
-    const out = Math.max(-maxShift, Math.min(maxShift, d));
+    const out = Math.max(-maxShift, Math.min(maxShift, d2));
     const canGoUp = Math.min(0, minY - b.y);
     const canGoDown = Math.max(0, maxY - (b.y + b.height));
     return Math.max(canGoUp, Math.min(canGoDown, out));
   };
   for (let pass = 0; pass < iterations; pass++) {
     let moved = false;
-    for (let p = 0; p < idx.length; p++) {
-      const i2 = idx[p];
+    for (let p2 = 0; p2 < idx.length; p2++) {
+      const i2 = idx[p2];
       const a2 = boxes[i2];
       if (result[i2].hidden) continue;
-      for (let q = p + 1; q < idx.length; q++) {
-        const j2 = idx[q];
-        const b = boxes[j2];
-        if (result[j2].hidden) continue;
+      for (let q = p2 + 1; q < idx.length; q++) {
+        const j = idx[q];
+        const b = boxes[j];
+        if (result[j].hidden) continue;
         if (b.x >= a2.x + a2.width) break;
         if (overlapX(a2, b) <= 0) continue;
-        const oy = overlapY(a2, result[i2].dy, b, result[j2].dy);
+        const oy = overlapY(a2, result[i2].dy, b, result[j].dy);
         if (oy <= -gap) continue;
         const need = oy + gap;
         const aCy = a2.y + result[i2].dy + a2.height / 2;
-        const bCy = b.y + result[j2].dy + b.height / 2;
+        const bCy = b.y + result[j].dy + b.height / 2;
         const aUp = aCy === bCy ? a2.order <= b.order : aCy < bCy;
-        const upIdx = aUp ? i2 : j2;
-        const downIdx = aUp ? j2 : i2;
+        const upIdx = aUp ? i2 : j;
+        const downIdx = aUp ? j : i2;
         const wantUp = clampShift(upIdx, result[upIdx].dy - need / 2);
         const wantDown = clampShift(downIdx, result[downIdx].dy + need / 2);
         const gotUp = result[upIdx].dy - wantUp;
@@ -33729,21 +34729,21 @@ function resolveLabelOverlaps(boxes, opts) {
       else groups.set(boxes[i2].group, { total: 1, hidden: 0 });
     }
   }
-  for (let p = 0; p < idx.length; p++) {
-    const i2 = idx[p];
+  for (let p2 = 0; p2 < idx.length; p2++) {
+    const i2 = idx[p2];
     if (result[i2].hidden) continue;
     const a2 = boxes[i2];
-    for (let q = p + 1; q < idx.length; q++) {
-      const j2 = idx[q];
-      if (result[j2].hidden) continue;
-      const b = boxes[j2];
+    for (let q = p2 + 1; q < idx.length; q++) {
+      const j = idx[q];
+      if (result[j].hidden) continue;
+      const b = boxes[j];
       if (b.x >= a2.x + a2.width) break;
       if (overlapX(a2, b) <= 0) continue;
-      if (overlapY(a2, result[i2].dy, b, result[j2].dy) > 0) {
-        const later = a2.order <= b.order ? j2 : i2;
-        const earlier = later === i2 ? j2 : i2;
+      if (overlapY(a2, result[i2].dy, b, result[j].dy) > 0) {
+        const later = a2.order <= b.order ? j : i2;
+        const earlier = later === i2 ? j : i2;
         const first = balanced ? pickBalancedLoser(later, earlier, boxes, groups) : later;
-        const second = first === i2 ? j2 : i2;
+        const second = first === i2 ? j : i2;
         const loser = !boxes[first].fixed ? first : !boxes[second].fixed ? second : -1;
         if (loser === -1) continue;
         result[loser].hidden = true;
@@ -33783,7 +34783,7 @@ class DataLabels {
    * @param {boolean} alwaysDrawDataLabel
    * @param {string} fontSize
    */
-  dataLabelsCorrection(x2, y, val, i2, dataPointIndex, alwaysDrawDataLabel, fontSize) {
+  dataLabelsCorrection(x2, y2, val, i2, dataPointIndex, alwaysDrawDataLabel, fontSize) {
     var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -33794,15 +34794,15 @@ class DataLabels {
     );
     const width = textRects.width;
     const height = textRects.height;
-    if (y < 0) y = 0;
-    if (y > w.layout.gridHeight + height) y = w.layout.gridHeight + height / 2;
+    if (y2 < 0) y2 = 0;
+    if (y2 > w.layout.gridHeight + height) y2 = w.layout.gridHeight + height / 2;
     if (typeof /** @type {any} */
     w.globals.dataLabelsRects[i2] === "undefined") {
       w.globals.dataLabelsRects[i2] = [];
     }
     w.globals.dataLabelsRects[i2].push({
       x: x2,
-      y,
+      y: y2,
       width,
       height
     });
@@ -33819,7 +34819,7 @@ class DataLabels {
       );
       if (
         // next label forward and x not intersecting
-        x2 > lastDataLabelRect.x + lastDataLabelRect.width || y > lastDataLabelRect.y + lastDataLabelRect.height || y + height < lastDataLabelRect.y || x2 + width < lastDataLabelRect.x
+        x2 > lastDataLabelRect.x + lastDataLabelRect.width || y2 > lastDataLabelRect.y + lastDataLabelRect.height || y2 + height < lastDataLabelRect.y || x2 + width < lastDataLabelRect.x
       ) {
         drawnextLabel = true;
       }
@@ -33832,7 +34832,7 @@ class DataLabels {
     }
     return {
       x: x2,
-      y,
+      y: y2,
       textRects,
       drawnextLabel
     };
@@ -33842,13 +34842,13 @@ class DataLabels {
    * parts through here).
    * @param {{type: any, pos: any, i: any, j: any, isRangeStart?: any, strokeWidth?: any, row?: any[]}} opts
    */
-  drawDataLabel({ type, pos, i: i2, j: j2, isRangeStart, strokeWidth = 2, row }) {
+  drawDataLabel({ type, pos, i: i2, j, isRangeStart, strokeWidth = 2, row }) {
     const w = this.w;
     const graphics = new Graphics(this.w);
     const dataLabelsConfig = w.config.dataLabels;
     let x2 = 0;
-    let y = 0;
-    let dataPointIndex = j2;
+    let y2 = 0;
+    let dataPointIndex = j;
     let elDataLabelsWrap = null;
     const seriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i2) !== -1;
     if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
@@ -33861,10 +34861,10 @@ class DataLabels {
       }))).add(el)
     };
     for (let q = 0; q < pos.x.length; q++) {
-      if (j2 === 1 && q === 0) dataPointIndex = 0;
-      if (j2 === 1 && q === 1) dataPointIndex = 1;
+      if (j === 1 && q === 0) dataPointIndex = 0;
+      if (j === 1 && q === 1) dataPointIndex = 1;
       x2 = pos.x[q] + resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i2, dataPointIndex);
-      y = pos.y[q] + resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i2, dataPointIndex) + strokeWidth;
+      y2 = pos.y[q] + resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i2, dataPointIndex) + strokeWidth;
       if (!isNaN(x2)) {
         let val = (row || w.seriesData.series[i2])[dataPointIndex];
         if (type === "rangeArea") {
@@ -33886,7 +34886,7 @@ class DataLabels {
         if (w.config.chart.type === "bubble") {
           val = w.seriesData.seriesZ[i2][dataPointIndex];
           text = getText(val);
-          y = Scatter.centerTextInBubble(w, pos.y[q]);
+          y2 = Scatter.centerTextInBubble(w, pos.y[q]);
         } else {
           if (typeof val !== "undefined") {
             text = getText(val);
@@ -33905,7 +34905,7 @@ class DataLabels {
         }
         this.plotDataLabelsText({
           x: x2,
-          y,
+          y: y2,
           text,
           i: i2,
           j: dataPointIndex,
@@ -33926,9 +34926,9 @@ class DataLabels {
     const graphics = new Graphics(this.w);
     let {
       x: x2,
-      y,
+      y: y2,
       i: i2,
-      j: j2,
+      j,
       text,
       textAnchor,
       fontSize,
@@ -33941,7 +34941,7 @@ class DataLabels {
       // some callers (radar) reuse `j` for something other than the data point
       // index, so per-point offsets take these explicit indices when supplied
       seriesIndex = i2,
-      dataPointIndex = j2
+      dataPointIndex = j
     } = opts;
     let dataLabelText = null;
     const labelsOn = resolveClaimed(
@@ -33955,17 +34955,17 @@ class DataLabels {
     }
     let correctedLabels = {
       x: x2,
-      y,
+      y: y2,
       drawnextLabel: true,
       textRects: null
     };
     if (offsetCorrection) {
       correctedLabels = this.dataLabelsCorrection(
         x2,
-        y,
+        y2,
         text,
         i2,
-        j2,
+        j,
         alwaysDrawDataLabel,
         parseInt(
           /** @type {any} */
@@ -33976,7 +34976,7 @@ class DataLabels {
     }
     if (!w.interact.zoomed) {
       x2 = correctedLabels.x;
-      y = correctedLabels.y;
+      y2 = correctedLabels.y;
     }
     if (correctedLabels.textRects) {
       const barPad = w.globals.barPadForNumericAxis || 0;
@@ -33988,14 +34988,14 @@ class DataLabels {
     }
     let dataLabelColor = w.globals.dataLabels.style.colors[i2];
     if ((w.config.chart.type === "bar" || w.config.chart.type === "rangeBar") && w.config.plotOptions.bar.distributed || w.config.dataLabels.distributed) {
-      dataLabelColor = w.globals.dataLabels.style.colors[j2];
+      dataLabelColor = w.globals.dataLabels.style.colors[j];
     }
     if (typeof dataLabelColor === "function") {
       dataLabelColor = /** @type {any} */
       dataLabelColor({
         series: w.seriesData.series,
         seriesIndex: i2,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       });
     }
@@ -34018,10 +35018,10 @@ class DataLabels {
     let offX = resolvedOffX;
     const offY = resolvedOffY;
     if (w.globals.isSlopeChart) {
-      if (j2 !== 0) {
+      if (j !== 0) {
         offX = resolvedOffX * -2 + 5;
       }
-      if (j2 !== 0 && j2 !== /** @type {Record<string,any>} */
+      if (j !== 0 && j !== /** @type {Record<string,any>} */
       w.config.series[i2].data.length - 1) {
         offX = 0;
       }
@@ -34051,7 +35051,7 @@ class DataLabels {
       }
       dataLabelText = graphics.drawText({
         x: x2 + offX,
-        y: y + offY,
+        y: y2 + offY,
         foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text,
@@ -34062,7 +35062,7 @@ class DataLabels {
       dataLabelText.attr({
         class: className || "apexcharts-datalabel",
         cx: x2,
-        cy: y
+        cy: y2
       });
       if (dataLabelsConfig.dropShadow.enabled) {
         const textShadow = dataLabelsConfig.dropShadow;
@@ -34175,12 +35175,12 @@ class DataLabels {
         group: box.group
       } : box
     );
-    const m = onScreen ? (_g = (_f = (_e = w.dom.elGraphical) == null ? void 0 : _e.node) == null ? void 0 : _f.getScreenCTM) == null ? void 0 : _g.call(_f) : null;
-    const useScreen = !!m && m.a > 0 && m.d > 0;
+    const m2 = onScreen ? (_g = (_f = (_e = w.dom.elGraphical) == null ? void 0 : _e.node) == null ? void 0 : _f.getScreenCTM) == null ? void 0 : _g.call(_f) : null;
+    const useScreen = !!m2 && m2.a > 0 && m2.d > 0;
     const extent = boxes[0].height;
     const unit = measured[0].scaleY;
-    const lo = useScreen ? horizontal ? m.e : m.f : 0;
-    const hi = useScreen ? horizontal ? m.e + w.layout.gridWidth * m.a : m.f + w.layout.gridHeight * m.d : horizontal ? w.layout.gridWidth : w.layout.gridHeight;
+    const lo = useScreen ? horizontal ? m2.e : m2.f : 0;
+    const hi = useScreen ? horizontal ? m2.e + w.layout.gridWidth * m2.a : m2.f + w.layout.gridHeight * m2.d : horizontal ? w.layout.gridWidth : w.layout.gridHeight;
     const resolved = resolveLabelOverlaps(boxes, {
       gap: ((_h = opts.gap) != null ? _h : 2) * unit,
       // Default budget is roughly one label's own extent in each direction:
@@ -34220,9 +35220,9 @@ class DataLabels {
       const delta = dy / scaleY;
       const v = parseFloat(el.getAttribute(attr) || "0");
       el.setAttribute(attr, (v + delta).toString());
-      const c = el.getAttribute(centreAttr);
-      if (c !== null) {
-        el.setAttribute(centreAttr, (parseFloat(c) + delta).toString());
+      const c2 = el.getAttribute(centreAttr);
+      if (c2 !== null) {
+        el.setAttribute(centreAttr, (parseFloat(c2) + delta).toString());
       }
     }
   }
@@ -34476,11 +35476,11 @@ function getMarks() {
 }
 function normalizeUnitMark(def, name2) {
   if (typeof def === "string") {
-    const d = def.trim();
-    if (!d) return null;
+    const d2 = def.trim();
+    if (!d2) return null;
     return Object.freeze({
       name: name2 || "anonymous",
-      path: d,
+      path: d2,
       viewBox: (
         /** @type {[number,number,number,number]} */
         [0, 0, 100, 100]
@@ -34588,7 +35588,7 @@ function addResizeListener(el, fn) {
     fn.call(el, r2);
   });
   if (el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-    Array.from(el.children).forEach((c) => ro.observe(c));
+    Array.from(el.children).forEach((c2) => ro.observe(c2));
   } else {
     ro.observe(el);
   }
@@ -34604,344 +35604,7 @@ function removeResizeListener(el, fn) {
     ros.delete(fn);
   }
 }
-const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:4px;background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:8px;background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:Helvetica,Arial,sans-serif;font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:5px;background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:Helvetica,Arial,sans-serif;font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:5px}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:8px;background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:6px;position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{padding:6px 12px;border-radius:8px;font-size:13px;color:#fff;background:#1c1c1fd1}.apexcharts-theme-dark .apexcharts-wheel-hint span{color:#1c1c1f;background:#ffffffe6}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:8px;background:#ffffffd9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{background:#1c1c1fd1}.apexcharts-menu{background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:5px;cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:#0f172a0f}.apexcharts-theme-dark .apexcharts-menu{background:#1c1c1feb;border-color:#ffffff14;color:#f3f4f6;box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:#ffffff14}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:5px}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.5s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:3px;font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:4px}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:5px;box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:3px;cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:3px;color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}.apexcharts-trellis-chrome,.apexcharts-trellis-grid,.apexcharts-trellis-cell,.apexcharts-trellis-header,.apexcharts-trellis-strip,.apexcharts-trellis-corner,.apexcharts-trellis-title,.apexcharts-trellis-subtitle,.apexcharts-trellis-breadcrumb,.apexcharts-trellis-breadcrumb-back,.apexcharts-trellis-breadcrumb-sep,.apexcharts-trellis-breadcrumb-current,.apexcharts-trellis-empty-label,.apexcharts-trellis-legend,.apexcharts-trellis-legend-item,.apexcharts-trellis-legend-item .apexcharts-legend-text,.apexcharts-trellis-toolbar,.apexcharts-trellis-menu,.apexcharts-trellis-menu-item,.apexcharts-trellis-tooltip,.apexcharts-trellis-tooltip *{font-family:inherit}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important;min-height:0!important}.apexcharts-toolbar{display:none!important}}';
-const e = globalThis.console;
-function t(t2, ...s2) {
-  e.error(t2, ...s2);
-}
-function s(t2) {
-  e.warn(t2);
-}
-const n = "APEX-", i = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
-function a() {
-  const e2 = globalThis;
-  let t2 = e2[r];
-  return t2 || (t2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, e2[r] = t2), t2;
-}
-const o = class {
-  static get licenseKey() {
-    return a().key;
-  }
-  static set licenseKey(e2) {
-    a().key = e2;
-  }
-  static get listeners() {
-    return a().listeners;
-  }
-  static get validationResult() {
-    return a().result;
-  }
-  static set validationResult(e2) {
-    a().result = e2;
-  }
-  static getKey() {
-    return this.licenseKey;
-  }
-  static getLicenseStatus() {
-    return this.licenseKey ? (this.validationResult = this.validateKey(this.licenseKey), this.validationResult) : { expired: false, signatureVerified: false, valid: false };
-  }
-  static isKeyValid(e2) {
-    return !!e2 && this.validateKey(e2).valid;
-  }
-  static isLicenseValid() {
-    return this.getLicenseStatus().valid;
-  }
-  static onChange(e2) {
-    return this.listeners.add(e2), () => {
-      this.listeners.delete(e2);
-    };
-  }
-  static setLicense(e2) {
-    var _a;
-    var n2;
-    if (!e2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
-    const i2 = this.validateKey(e2);
-    i2.valid || e2 === this.licenseKey || !(null == (n2 = this.validationResult) ? void 0 : n2.valid) ? (this.licenseKey = e2, this.publish(i2), i2.valid || t(`[Apex] ${i2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = i2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
-  }
-  static validateKey(e2) {
-    const t2 = this.parseKey(e2), s2 = this.validateStructure(e2, t2);
-    if (!s2.valid || !(null == t2 ? void 0 : t2.signature)) return s2;
-    const n2 = this.verdicts.get(e2);
-    return false === n2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === n2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === n2 }));
-  }
-  static _resetSignatureState() {
-    this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
-  }
-  static base64ToBytes(e2) {
-    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), n2 = globalThis.atob;
-    if ("function" != typeof n2) throw new Error("no base64 decoder available");
-    const i2 = n2(s2), r2 = new Uint8Array(i2.length);
-    for (let e3 = 0; e3 < i2.length; e3++) r2[e3] = i2.charCodeAt(e3);
-    return r2;
-  }
-  static canonicalPayload(e2) {
-    const t2 = e2.domains && e2.domains.length > 0 ? e2.domains.join(",") : "";
-    return `v1|${e2.issueDate}|${e2.expiryDate}|${e2.plan}|${t2}`;
-  }
-  static notify(e2) {
-    for (const t2 of this.listeners) try {
-      t2(e2);
-    } catch (e3) {
-    }
-  }
-  static parseKey(e2) {
-    if ("string" != typeof e2 || !e2.startsWith(n)) return null;
-    const t2 = e2.slice(5);
-    if (!t2) return null;
-    try {
-      const e3 = new TextDecoder().decode(this.base64ToBytes(t2)), s2 = JSON.parse(e3);
-      return s2.issueDate && s2.expiryDate && s2.plan ? { data: { domains: Array.isArray(s2.domains) ? s2.domains : void 0, expiryDate: s2.expiryDate, issueDate: s2.issueDate, plan: s2.plan, valid: true }, signature: "string" == typeof s2.sig && s2.sig ? s2.sig : null } : null;
-    } catch (e3) {
-      return null;
-    }
-  }
-  static publish(e2) {
-    this.validationResult = e2, this.notify(e2);
-  }
-  static validateStructure(e2, t2) {
-    const s2 = (e3) => ({ expired: false, message: e3, signatureVerified: false, valid: false });
-    if ("string" != typeof e2 || !e2.startsWith(n)) return s2('Invalid license key format. License key must start with "APEX-".');
-    if (!t2) return s2("Invalid license key. Unable to decode license data.");
-    const { data: r2, signature: a2 } = t2;
-    if (!a2 && /* @__PURE__ */ new Date() >= i) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
-    if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
-    if (r2.domains && r2.domains.length > 0) {
-      const e3 = "undefined" == typeof location ? "" : location.hostname;
-      if (!r2.domains.some(((t3) => e3 === t3 || e3.endsWith(`.${t3}`)))) return { data: r2, expired: false, message: `License is not valid for this domain (${e3}). Allowed domains: ${r2.domains.join(", ")}.`, signatureVerified: false, valid: false };
-    }
-    return { data: r2, expired: false, signatureVerified: false, valid: true };
-  }
-  static verifySignature(e2, n2, i2) {
-    return __async(this, null, function* () {
-      var r2;
-      if (this.verifying.has(e2) || this.verdicts.has(e2)) return;
-      this.verifying.add(e2);
-      const a2 = this.epoch, o2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
-      if (!o2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(o2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
-      const l2 = new TextEncoder().encode(this.canonicalPayload(n2.data));
-      let c = false;
-      for (const e3 of this.publicKeysSpki) {
-        try {
-          const t2 = yield o2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-          c = yield o2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(n2.signature), l2);
-        } catch (e4) {
-          c = false;
-        }
-        if (c) break;
-      }
-      if (this.verifying.delete(e2), this.epoch !== a2) return;
-      if (this.verdicts.set(e2, c), c) {
-        const t2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
-        return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
-      }
-      const u = "Invalid license key. The license signature does not verify.", h = { data: n2.data, expired: false, message: u, signatureVerified: true, valid: false };
-      this.licenseKey === e2 ? this.publish(h) : this.notify(h), t(`[Apex] ${u}`);
-    });
-  }
-};
-o.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], o.verdicts = /* @__PURE__ */ new Map(), o.verifying = /* @__PURE__ */ new Set(), o.warnedUnverifiable = false, o.epoch = 0;
-let l = o;
-const M = 1e3;
-function A(e2, t2) {
-  const s2 = e2.length;
-  if (0 === s2) return NaN;
-  if (1 === s2) return e2[0];
-  const n2 = (s2 - 1) * t2, i2 = Math.floor(n2), r2 = Math.ceil(n2);
-  return i2 === r2 ? e2[i2] : e2[i2] + (e2[r2] - e2[i2]) * (n2 - i2);
-}
-function S(e2, t2, s2) {
-  const n2 = e2.length, i2 = (e3) => t2 / Math.max(1, Math.ceil(e3)), r2 = () => i2(Math.log2(n2) + 1);
-  switch (s2) {
-    case "sqrt":
-      return { width: i2(Math.sqrt(n2)), rule: "sqrt" };
-    case "rice":
-      return { width: i2(2 * Math.cbrt(n2)), rule: "rice" };
-    case "scott": {
-      const t3 = (function(e3) {
-        const t4 = e3.length;
-        if (t4 < 2) return 0;
-        let s3 = 0;
-        for (let n4 = 0; n4 < t4; n4++) s3 += e3[n4];
-        const n3 = s3 / t4;
-        let i3 = 0;
-        for (let s4 = 0; s4 < t4; s4++) {
-          const t5 = e3[s4] - n3;
-          i3 += t5 * t5;
-        }
-        return Math.sqrt(i3 / t4);
-      })(e2);
-      return t3 > 0 ? { width: 3.49 * t3 * Math.pow(n2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
-    }
-    case "fd": {
-      const t3 = A(e2, 0.75) - A(e2, 0.25);
-      return t3 > 0 ? { width: 2 * t3 * Math.pow(n2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
-    }
-    case "auto": {
-      const t3 = r2(), s3 = A(e2, 0.75) - A(e2, 0.25);
-      if (s3 <= 0) return { width: t3, rule: "sturges" };
-      const i3 = 2 * s3 * Math.pow(n2, -1 / 3);
-      return i3 < t3 ? { width: i3, rule: "fd" } : { width: t3, rule: "sturges" };
-    }
-    default:
-      return { width: r2(), rule: "sturges" };
-  }
-}
-function x(e2, t2 = {}) {
-  if (!Array.isArray(e2) || 0 === e2.length) return null;
-  const s2 = e2.slice().sort(((e3, t3) => e3 - t3));
-  let n2 = s2[0], i2 = s2[s2.length - 1];
-  const r2 = t2.range;
-  if (Array.isArray(r2) && 2 === r2.length) {
-    const e3 = Number(r2[0]), t3 = Number(r2[1]);
-    Number.isFinite(e3) && Number.isFinite(t3) && t3 > e3 && (n2 = e3, i2 = t3);
-  }
-  if (!(i2 > n2)) {
-    const e3 = Math.abs(n2) > 0 ? 0.05 * Math.abs(n2) : 0.5;
-    return { edges: [n2 - e3, n2 + e3], binWidth: 2 * e3, rule: "single", capped: false };
-  }
-  const a2 = i2 - n2;
-  let o2, l2;
-  if ("number" == typeof t2.binWidth && t2.binWidth > 0) o2 = t2.binWidth, l2 = "binWidth";
-  else if ("number" == typeof t2.bins && t2.bins >= 1) o2 = a2 / Math.floor(t2.bins), l2 = "count";
-  else {
-    const e3 = S(s2, a2, "string" == typeof t2.bins ? t2.bins : "auto");
-    o2 = e3.width, l2 = e3.rule;
-  }
-  (!Number.isFinite(o2) || o2 <= 0) && (o2 = a2);
-  let c = Math.ceil(a2 / o2);
-  (!Number.isFinite(c) || c < 1) && (c = 1);
-  let u = false;
-  c > M && (c = M, u = true), o2 = a2 / c;
-  const h = new Array(c + 1);
-  for (let e3 = 0; e3 <= c; e3++) h[e3] = n2 + e3 * o2;
-  return h[c] = Math.max(h[c], i2), { edges: h, binWidth: o2, rule: l2, capped: u };
-}
-function k(e2, t2) {
-  const s2 = t2.length - 1;
-  if (!(e2 >= t2[0]) || e2 > t2[s2]) return -1;
-  if (e2 === t2[s2]) return s2 - 1;
-  const n2 = (t2[s2] - t2[0]) / s2;
-  if (n2 > 0) {
-    let i3 = Math.floor((e2 - t2[0]) / n2);
-    return i3 < 0 && (i3 = 0), i3 > s2 - 1 && (i3 = s2 - 1), e2 < t2[i3] ? i3-- : e2 >= t2[i3 + 1] && i3++, i3 < 0 || i3 > s2 - 1 ? -1 : i3;
-  }
-  let i2 = 0, r2 = s2 - 1;
-  for (; i2 <= r2; ) {
-    const s3 = i2 + r2 >> 1;
-    if (e2 < t2[s3]) r2 = s3 - 1;
-    else {
-      if (!(e2 >= t2[s3 + 1])) return s3;
-      i2 = s3 + 1;
-    }
-  }
-  return -1;
-}
-function L(e2, t2) {
-  const s2 = new Array(Math.max(0, t2.length - 1)).fill(0);
-  for (let n2 = 0; n2 < e2.length; n2++) {
-    const i2 = k(e2[n2], t2);
-    i2 >= 0 && s2[i2]++;
-  }
-  return s2;
-}
-const E = class {
-  static applyStyles(e2) {
-    Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
-  }
-  static node(e2) {
-    return e2 ? e2.querySelector(`[${this.WATERMARK_ATTR}]`) : null;
-  }
-  static add(e2, t2) {
-    return e2 && "undefined" != typeof document ? (this.setManaged(e2, t2), this.paint(e2)) : null;
-  }
-  static exists(e2) {
-    return !!this.node(e2);
-  }
-  static remove(e2, t2) {
-    e2 && (this.setManaged(e2, t2), this.erase(e2));
-  }
-  static untrack(e2) {
-    this.managed.delete(e2);
-  }
-  static createWatermarkPattern() {
-    const e2 = this.WATERMARK_TEXT;
-    return `url("data:image/svg+xml,${encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
-        <text
-          x="50%"
-          y="50%"
-          dominant-baseline="middle"
-          text-anchor="middle"
-          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif"
-          font-size="18"
-          font-weight="600"
-          fill="rgba(134, 134, 134, 0.1)"
-          transform="rotate(-35, 100, 60)"
-        >${e2}</text>
-      </svg>
-    `.trim())}")`;
-  }
-  static erase(e2) {
-    var t2;
-    null == (t2 = this.node(e2)) || t2.remove();
-  }
-  static paint(e2) {
-    let t2 = this.node(e2);
-    return t2 || (t2 = document.createElement("div"), t2.setAttribute(this.WATERMARK_ATTR, ""), e2.appendChild(t2)), this.applyStyles(t2), "function" == typeof getComputedStyle && "static" === getComputedStyle(e2).position && (e2.style.position = "relative"), t2;
-  }
-  static reconcile() {
-    const e2 = l.isLicenseValid();
-    for (const t2 of this.managed) t2.isConnected ? e2 ? this.erase(t2) : this.paint(t2) : this.managed.delete(t2);
-  }
-  static setManaged(e2, t2) {
-    false !== (null == t2 ? void 0 : t2.manage) ? this.track(e2) : this.managed.delete(e2);
-  }
-  static track(e2) {
-    this.managed.add(e2), this.subscribed || (this.subscribed = true, l.onChange((() => {
-      this.reconcile();
-    })));
-  }
-};
-E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Set(), E.subscribed = false;
-let j = E;
-function pe(e2) {
-  const t2 = e2.getRootNode ? e2.getRootNode() : null;
-  return t2 && (9 === t2.nodeType || 11 === t2.nodeType && "host" in t2) ? t2 : e2.ownerDocument || document;
-}
-function me(e2) {
-  const t2 = "function" == typeof e2.composedPath ? e2.composedPath() : null;
-  return (null == t2 ? void 0 : t2.length) ? t2[0] : e2.target;
-}
-const be = Symbol.for("apex-commons.styleUsers");
-function we(e2, t2, s2, n2 = {}) {
-  const i2 = pe(e2), r2 = e2.ownerDocument || document;
-  let a2 = i2.getElementById(t2);
-  if (!a2) {
-    a2 = r2.createElement("style"), a2.id = t2, a2.textContent = s2, n2.nonce && a2.setAttribute("nonce", n2.nonce);
-    (9 === i2.nodeType ? i2.head || i2.documentElement : i2).prepend(a2), a2[be] = 0;
-  }
-  const o2 = a2;
-  "number" == typeof o2[be] && (o2[be] += 1);
-  let l2 = false;
-  return () => {
-    l2 || (l2 = true, "number" == typeof o2[be] && (o2[be] -= 1, o2[be] <= 0 && o2.remove()));
-  };
-}
-function Me(e2) {
-  const t2 = [];
-  let s2 = e2;
-  for (; s2; ) {
-    const e3 = pe(s2);
-    t2.unshift(e3), s2 = 11 === e3.nodeType ? e3.host : null;
-  }
-  const n2 = [];
-  for (const e3 of t2) {
-    for (const t4 of Array.from(e3.styleSheets || [])) n2.push(t4);
-    const t3 = e3.adoptedStyleSheets;
-    if (t3) for (const e4 of t3) n2.push(e4);
-  }
-  return n2;
-}
+const apexCSS = '@keyframes opaque{0%{opacity:0}to{opacity:1}}.apexcharts-canvas{position:relative;direction:ltr!important;user-select:none;--apexcharts-focus-color: #008FFB}.apexcharts-canvas .apexcharts-theme-dark,.apexcharts-theme-dark.apexcharts-canvas{--apexcharts-focus-color: #FFD500}.apexcharts-canvas.apexcharts-high-contrast,.apexcharts-high-contrast.apexcharts-canvas{--apexcharts-focus-color: #FFFF00}.apexcharts-sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:before,.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.apexcharts-canvas ::-webkit-scrollbar{-webkit-appearance:none;width:6px}.apexcharts-canvas ::-webkit-scrollbar-thumb{border-radius:calc(4px * var(--apx-radius-factor, 1));background-color:#00000080;box-shadow:0 0 1px #ffffff80;-webkit-box-shadow:0 0 1px rgba(255,255,255,.5)}.apexcharts-inner{position:relative}.apexcharts-text tspan{font-family:inherit}rect.legend-mouseover-inactive,.legend-mouseover-inactive rect,.legend-mouseover-inactive path,.legend-mouseover-inactive circle,.legend-mouseover-inactive line,.legend-mouseover-inactive text.apexcharts-yaxis-title-text,.legend-mouseover-inactive text.apexcharts-yaxis-label{transition:.15s ease all;opacity:.2}.apexcharts-crossfilter-dimmed{transition:opacity .25s ease;opacity:var(--apx-cf-dim, .2)}.apexcharts-cf-table{border-collapse:collapse;width:100%;font-size:13px}.apexcharts-cf-table caption{caption-side:bottom;text-align:right;padding:6px 2px;font-size:12px;opacity:.7}.apexcharts-cf-table th,.apexcharts-cf-table td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}.apexcharts-cf-table th{font-weight:600;border-bottom-width:2px}.apexcharts-cf-table tbody tr:hover{background:#6366f10f}.apexcharts-canvas{--apx-measure-up: #16a34a;--apx-measure-down: #dc2626;--apx-measure-neutral: #64748b;--apx-measure-guide: #94a3b8}.apexcharts-measure-capture{cursor:crosshair}.apexcharts-canvas{--apx-menu-bg: #ffffff;--apx-menu-fg: #1e293b;--apx-menu-border: #e2e8f0;--apx-menu-hover: #f1f5f9;--apx-menu-shadow: rgba(15, 23, 42, .18)}.apexcharts-context-menu{min-width:168px;padding:4px;border-radius:calc(8px * var(--apx-radius-factor, 1));background:var(--apx-menu-bg);border:1px solid var(--apx-menu-border);box-shadow:0 6px 22px var(--apx-menu-shadow);font-family:var(--apx-font-family, Helvetica, Arial, sans-serif);font-size:13px;z-index:20;user-select:none}.apexcharts-context-menu-item{display:block;width:100%;box-sizing:border-box;text-align:left;padding:7px 12px;border:0;border-radius:calc(5px * var(--apx-radius-factor, 1));background:transparent;color:var(--apx-menu-fg);font:inherit;cursor:pointer}.apexcharts-context-menu-item:hover,.apexcharts-context-menu-item--active{background:var(--apx-menu-hover)}.apexcharts-context-menu-item:focus{outline:none}.apexcharts-canvas{--apx-ink-card-bg: #ffffff;--apx-ink-card-fg: #1e293b;--apx-ink-card-border: #e2e8f0;--apx-ink-card-hover: #f1f5f9;--apx-ink-card-accent: #6366f1;--apx-ink-card-shadow: rgba(15, 23, 42, .18)}.apexcharts-ink-card{position:absolute;z-index:25;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:calc(8px * var(--apx-radius-factor, 1));background:var(--apx-ink-card-bg);border:1px solid var(--apx-ink-card-border);box-shadow:0 6px 22px var(--apx-ink-card-shadow);font-family:var(--apx-font-family, Helvetica, Arial, sans-serif);font-size:12px;color:var(--apx-ink-card-fg);user-select:none}.apexcharts-ink-card-row{display:flex;align-items:center;gap:4px}.apexcharts-ink-card input.apexcharts-ink-editor{flex:1 1 auto;width:150px;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;color:inherit;background:transparent;border:1px solid var(--apx-ink-card-border);border-radius:calc(5px * var(--apx-radius-factor, 1))}.apexcharts-ink-card input.apexcharts-ink-editor:focus{outline:none;border-color:var(--apx-ink-card-accent)}.apexcharts-ink-btn{flex:0 0 auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:calc(5px * var(--apx-radius-factor, 1));background:transparent;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer}.apexcharts-ink-btn:hover,.apexcharts-ink-btn--active{background:var(--apx-ink-card-hover)}.apexcharts-ink-btn:focus-visible,.apexcharts-ink-swatch:focus-visible{outline:2px solid var(--apx-ink-card-accent);outline-offset:1px}.apexcharts-ink-btn--bold{font-weight:700}.apexcharts-ink-btn--delete:hover{color:#dc2626}.apexcharts-ink-swatch{flex:0 0 auto;width:16px;height:16px;padding:0;border:1px solid rgba(100,116,139,.45);border-radius:50%;cursor:pointer}.apexcharts-ink-swatch--active{box-shadow:0 0 0 2px var(--apx-ink-card-bg),0 0 0 4px var(--apx-ink-card-accent)}.apexcharts-ink-sep{flex:0 0 auto;width:1px;height:16px;margin:0 2px;background:var(--apx-ink-card-border)}.apexcharts-ink-cardlabel{flex:0 0 auto;font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.65;margin-right:2px}.apexcharts-ink-marker-size{flex:0 0 auto;min-width:16px;text-align:center;font-variant-numeric:tabular-nums}.apexcharts-legend-text{padding-left:15px;margin-left:-15px}.apexcharts-legend-series[role=button]:focus{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-legend-series[role=button]:focus:not(:focus-visible){outline:none}.apexcharts-legend-series[role=button]:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:2px}.apexcharts-series-collapsed{opacity:0}.apexcharts-series-collapsed.apexcharts-series-collapsing{opacity:1}.apexcharts-datalabels.apexcharts-series-collapsing{animation:apexcharts-datalabels-exit var(--apexcharts-dl-exit, .4s) ease-in forwards}@keyframes apexcharts-datalabels-exit{0%{opacity:1}to{opacity:0}}.apexcharts-canvas svg:focus:not(:focus-visible){outline:none}.apexcharts-bar-area.apexcharts-keyboard-focused,.apexcharts-candlestick-area.apexcharts-keyboard-focused,.apexcharts-boxPlot-area.apexcharts-keyboard-focused,.apexcharts-violin-area.apexcharts-keyboard-focused,.apexcharts-rangebar-area.apexcharts-keyboard-focused,.apexcharts-pie-area.apexcharts-keyboard-focused,.apexcharts-heatmap-rect.apexcharts-keyboard-focused,.apexcharts-treemap-rect.apexcharts-keyboard-focused,.apexcharts-keyboard-focus-ring{stroke:var(--apexcharts-focus-color, #008FFB);stroke-width:2;stroke-opacity:1}.apexcharts-keyboard-focus-ring{fill:none;pointer-events:none}.apexcharts-tooltip{--apx-tt-bg: #ffffff;--apx-tt-border: rgba(15, 23, 42, .12);--apx-tt-shadow-dir: 1;--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, .06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, .1), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, .14);--apx-tt-arrow-bg: var(--apx-tt-bg);--apx-tt-color: #0f172a;--apx-tt-color-muted: rgba(15, 23, 42, .55);border-radius:calc(8px * var(--apx-radius-factor, 1));background:var(--apx-tt-bg);border:1px solid var(--apx-tt-border);box-shadow:var(--apx-tt-shadow);color:var(--apx-tt-color);cursor:default;font-size:13px;left:0;top:0;opacity:0;pointer-events:none;position:absolute;display:flex;flex-direction:column;padding:2px 0;white-space:nowrap;z-index:12;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-active{opacity:1;transition:opacity .12s ease}.apexcharts-tooltip.apexcharts-tooltip-interactive.apexcharts-active{pointer-events:auto}.apexcharts-tooltip.apexcharts-active[data-positioned=true]{transition:opacity .12s ease,left .16s ease-out,top .16s ease-out}.apexcharts-tooltip.apexcharts-theme-dark{--apx-tt-bg: #1c1c1f;--apx-tt-border: rgba(255, 255, 255, .16);--apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, .24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, .3), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, .38);--apx-tt-color: #f3f4f6;--apx-tt-color-muted: rgba(243, 244, 246, .55)}.apexcharts-tooltip *{font-family:inherit}.apexcharts-tooltip.apexcharts-annotation-tooltip{padding:6px 10px;max-width:240px;white-space:normal;line-height:1.4;pointer-events:none;z-index:13}.apexcharts-tooltip-title{padding:8px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--apx-tt-color-muted);background:transparent;border-bottom:none;margin-bottom:0}.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title{background:transparent;border-bottom:none}.apexcharts-tooltip.apexcharts-tooltip-fill-series{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;padding:0;overflow:hidden;color:#fff}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title{background:#00000038;color:#fff;opacity:1;padding:6px 12px}.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group{color:#fff}.apexcharts-tooltip-arrow{position:absolute;box-sizing:border-box;width:10px;height:10px;background:var(--apx-tt-arrow-bg);transform:rotate(45deg);pointer-events:none;top:calc(var(--apx-tt-arrow-y, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=right] .apexcharts-tooltip-arrow{left:-6px;border-left:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=left] .apexcharts-tooltip-arrow{right:-6px;border-top:1px solid var(--apx-tt-border);border-right:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow,.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:auto;left:calc(var(--apx-tt-arrow-x, calc(50% + 1px) ) - 6px)}.apexcharts-tooltip[data-placement=top] .apexcharts-tooltip-arrow{bottom:-6px;border-right:1px solid var(--apx-tt-border);border-bottom:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom] .apexcharts-tooltip-arrow{top:-6px;border-top:1px solid var(--apx-tt-border);border-left:1px solid var(--apx-tt-border)}.apexcharts-tooltip[data-placement=bottom]{--apx-tt-shadow-dir: -1 }.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value{display:inline-block;margin-left:5px;font-weight:600}.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty{display:none}.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{padding:6px 0 5px}.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value{display:flex}.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty){margin-top:-6px}.apexcharts-tooltip-marker{display:inline-flex;align-items:center;justify-content:center;position:relative;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:inherit}.apexcharts-tooltip-marker svg{width:100%;height:100%;display:block}.apexcharts-tooltip-series-group{padding:4px 12px;display:none;gap:8px;text-align:left;justify-content:left;align-items:center}.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker{opacity:1}.apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-series-group:last-child{padding-bottom:8px}.apexcharts-tooltip-y-group{padding:6px 0 5px}.apexcharts-tooltip.apexcharts-tooltip-compact{padding:3px 8px;font-size:11px;line-height:1.35}.apexcharts-tooltip-compact .apexcharts-tooltip-title{padding:0;font-size:11px;white-space:nowrap}.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child{padding:0;gap:5px}.apexcharts-tooltip-compact .apexcharts-tooltip-y-group{padding:0}.apexcharts-tooltip-compact .apexcharts-tooltip-marker{width:8px;height:8px}.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only{flex-direction:row;align-items:baseline;gap:6px}.apexcharts-tooltip-value-only .apexcharts-tooltip-marker,.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label{display:none}.apexcharts-custom-tooltip,.apexcharts-tooltip-box{padding:4px 8px}.apexcharts-tooltip-boxPlot{display:flex;flex-direction:column-reverse}.apexcharts-tooltip-box>div{margin:4px 0}.apexcharts-tooltip-box span.value{font-weight:700}.apexcharts-tooltip-rangebar{padding:5px 8px}.apexcharts-tooltip-rangebar .category{font-weight:600;color:#777}.apexcharts-tooltip-rangebar .series-name{font-weight:700;display:block;margin-bottom:5px}.apexcharts-tooltip-stream{padding:5px 8px}.apexcharts-tooltip-stream .apexcharts-tooltip-title{background:transparent;border:0;padding:0 0 4px;margin:0;font-weight:700}.apexcharts-tooltip-stream-band{display:flex;align-items:center;gap:5px;line-height:1.6;opacity:.72}.apexcharts-tooltip-stream-band.apexcharts-active{opacity:1;font-weight:700}.apexcharts-tooltip-stream-band .series-name{flex:1 1 auto;margin-right:8px}.apexcharts-tooltip-stream-band .value{font-weight:700;margin-left:auto}.apexcharts-tooltip-stream-total{display:flex;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))}.apexcharts-tooltip-stream-total .series-name{flex:1 1 auto;font-weight:600}.apexcharts-tooltip-stream-total .value{font-weight:700;margin-left:auto}.apexcharts-streamgraph-label{pointer-events:none}.apexcharts-xaxistooltip,.apexcharts-yaxistooltip{--apx-axt-bg: #ffffff;--apx-axt-border: rgba(15, 23, 42, .08);--apx-axt-color: #0f172a;--apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, .18), 0 1px 3px -1px rgba(15, 23, 42, .12);opacity:0;pointer-events:none;color:var(--apx-axt-color);font-size:12px;font-weight:500;text-align:center;border-radius:calc(6px * var(--apx-radius-factor, 1));position:absolute;z-index:10;background:var(--apx-axt-bg);border:1px solid var(--apx-axt-border);box-shadow:var(--apx-axt-shadow)}.apexcharts-xaxistooltip.apexcharts-theme-dark,.apexcharts-yaxistooltip.apexcharts-theme-dark{--apx-axt-bg: #1c1c1f;--apx-axt-border: rgba(255, 255, 255, .1);--apx-axt-color: #f3f4f6;--apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, .55), 0 1px 3px -1px rgba(0, 0, 0, .45) }.apexcharts-xaxistooltip{padding:4px 8px;transition:.15s ease all}.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before{left:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-xaxistooltip:after{border-color:transparent;border-width:5px;margin-left:-5px}.apexcharts-xaxistooltip:before{border-color:transparent;border-width:6px;margin-left:-6px}.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before{bottom:100%}.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before{top:100%}.apexcharts-xaxistooltip-bottom:after{border-bottom-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-bottom:before{border-bottom-color:var(--apx-axt-border)}.apexcharts-xaxistooltip-top:after{border-top-color:var(--apx-axt-bg)}.apexcharts-xaxistooltip-top:before{border-top-color:var(--apx-axt-border)}.apexcharts-xaxistooltip.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-yaxistooltip{padding:3px 8px}.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before{top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.apexcharts-yaxistooltip:after{border-color:transparent;border-width:5px;margin-top:-5px}.apexcharts-yaxistooltip:before{border-color:transparent;border-width:6px;margin-top:-6px}.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before{left:100%}.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before{right:100%}.apexcharts-yaxistooltip-left:after{border-left-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-left:before{border-left-color:var(--apx-axt-border)}.apexcharts-yaxistooltip-right:after{border-right-color:var(--apx-axt-bg)}.apexcharts-yaxistooltip-right:before{border-right-color:var(--apx-axt-border)}.apexcharts-yaxistooltip.apexcharts-active{opacity:1}.apexcharts-yaxistooltip-hidden{display:none}.apexcharts-xcrosshairs,.apexcharts-ycrosshairs{pointer-events:none;opacity:0;transition:.15s ease all}.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active{opacity:1;transition:.15s ease all}.apexcharts-ycrosshairs-hidden{opacity:0}.apexcharts-selection-rect{cursor:move}.svg_select_shape{stroke-width:1;stroke-dasharray:10 10;stroke:#000;stroke-opacity:.1;pointer-events:none;fill:none}.svg_select_handle{stroke-width:3;stroke:#000;fill:none}.svg_select_handle_r{cursor:e-resize}.svg_select_handle_l{cursor:w-resize}.apexcharts-svg.apexcharts-zoomable.hovering-zoom{cursor:crosshair}.apexcharts-svg.apexcharts-zoomable.hovering-pan{cursor:move}.apexcharts-wheel-hint{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s ease}.apexcharts-wheel-hint-visible{opacity:1}.apexcharts-wheel-hint span{--apx-wheel-hint-bg: rgba(28, 28, 31, .82);--apx-wheel-hint-fg: #fff;padding:6px 12px;border-radius:calc(8px * var(--apx-radius-factor, 1));font-size:13px;color:var(--apx-wheel-hint-fg);background:var(--apx-wheel-hint-bg)}.apexcharts-theme-dark .apexcharts-wheel-hint span{--apx-wheel-hint-bg: rgba(255, 255, 255, .9);--apx-wheel-hint-fg: #1c1c1f;color:var(--apx-wheel-hint-fg);background:var(--apx-wheel-hint-bg)}@media(prefers-reduced-motion:reduce){.apexcharts-wheel-hint{transition:none}}.apexcharts-menu-icon,.apexcharts-measure-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon{cursor:pointer;width:26px;height:24px;line-height:24px;color:#6e8192;text-align:center;padding:0;margin:0;background:transparent;border:0;border-radius:calc(5px * var(--apx-radius-factor, 1));display:inline-flex;align-items:center;justify-content:center;transition:background-color .12s ease,color .12s ease}.apexcharts-menu-icon svg,.apexcharts-measure-icon svg,.apexcharts-pan-icon svg,.apexcharts-reset-icon svg,.apexcharts-selection-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.apexcharts-theme-dark .apexcharts-menu-icon,.apexcharts-theme-dark .apexcharts-measure-icon,.apexcharts-theme-dark .apexcharts-pan-icon,.apexcharts-theme-dark .apexcharts-reset-icon,.apexcharts-theme-dark .apexcharts-selection-icon,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,.apexcharts-theme-dark .apexcharts-zoom-icon,.apexcharts-theme-dark .apexcharts-zoomin-icon,.apexcharts-theme-dark .apexcharts-zoomout-icon{color:#d4d6dc}.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected{background:#008ffb1f;color:#008ffb}.apexcharts-theme-light .apexcharts-menu-icon:hover,.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-reset-icon:hover,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-light .apexcharts-zoomin-icon:hover,.apexcharts-theme-light .apexcharts-zoomout-icon:hover{background:#0f172a0f;color:#1f2937}.apexcharts-theme-dark .apexcharts-menu-icon:hover,.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-reset-icon:hover,.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,.apexcharts-theme-dark .apexcharts-zoomout-icon:hover{background:#ffffff14;color:#fff}.apexcharts-menu-icon,.apexcharts-selection-icon{position:relative}.apexcharts-toolbar{--apx-toolbar-bg: rgba(255, 255, 255, .85);position:absolute;z-index:11;display:inline-flex;align-items:center;gap:1px;padding:3px;border-radius:calc(8px * var(--apx-radius-factor, 1));background:var(--apx-toolbar-bg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.apexcharts-theme-dark .apexcharts-toolbar{--apx-toolbar-bg: rgba(28, 28, 31, .82);background:var(--apx-toolbar-bg)}.apexcharts-menu{--apx-menu-bg: rgba(255, 255, 255, .95);--apx-menu-fg: currentColor;--apx-menu-border: rgba(15, 23, 42, .08);--apx-menu-hover: rgba(15, 23, 42, .06);background:var(--apx-menu-bg);color:var(--apx-menu-fg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);position:absolute;top:calc(100% + 4px);border:1px solid var(--apx-menu-border);border-radius:calc(8px * var(--apx-radius-factor, 1));padding:4px;right:0;opacity:0;min-width:120px;transition:opacity .15s ease,transform .15s ease;transform:translateY(-2px);pointer-events:none;box-shadow:0 4px 16px -4px #0f172a1f,0 2px 4px -1px #0f172a0f}.apexcharts-menu.apexcharts-menu-open{opacity:1;transform:translateY(0);pointer-events:all}.apexcharts-menu-item{padding:6px 9px;font-size:12px;border-radius:calc(5px * var(--apx-radius-factor, 1));cursor:pointer}.apexcharts-theme-light .apexcharts-menu-item:hover{background:var(--apx-menu-hover)}.apexcharts-theme-dark .apexcharts-menu{--apx-menu-bg: rgba(28, 28, 31, .92);--apx-menu-fg: #f3f4f6;--apx-menu-border: rgba(255, 255, 255, .08);--apx-menu-hover: rgba(255, 255, 255, .08);background:var(--apx-menu-bg);border-color:var(--apx-menu-border);color:var(--apx-menu-fg);box-shadow:0 4px 16px -4px #00000080,0 2px 4px -1px #0006}.apexcharts-theme-dark .apexcharts-menu-item:hover{background:var(--apx-menu-hover)}@media screen and (min-width:768px){.apexcharts-canvas:hover .apexcharts-toolbar{opacity:1}}.apexcharts-toolbar:focus-within{opacity:1}.apexcharts-menu-icon:focus-visible,.apexcharts-measure-icon:focus-visible,.apexcharts-pan-icon:focus-visible,.apexcharts-reset-icon:focus-visible,.apexcharts-selection-icon:focus-visible,.apexcharts-toolbar-custom-icon:focus-visible,.apexcharts-zoom-icon:focus-visible,.apexcharts-zoomin-icon:focus-visible,.apexcharts-zoomout-icon:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:1px;border-radius:calc(5px * var(--apx-radius-factor, 1))}.apexcharts-menu-item:focus-visible{outline:2px solid var(--apexcharts-focus-color, #008FFB);outline-offset:-2px;background:#eee}.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points{opacity:0}.apexcharts-hidden-element-shown{opacity:1;transition:.25s ease all}.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label,.apexcharts-pie-name-label,.apexcharts-pie-name-label-group,.apexcharts-pie-label-connector,.apexcharts-unit-outer-label,.apexcharts-unit-outer-label-group,.apexcharts-unit-label-connector{cursor:default;pointer-events:none}.apexcharts-pie-label-connector,.apexcharts-unit-label-connector{fill:none}.apexcharts-unit-label-delay{opacity:0;animation-name:opaque;animation-duration:.5s;animation-fill-mode:forwards;animation-timing-function:ease}.apexcharts-radialbar-label{cursor:pointer}.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-gridline,.apexcharts-line,.apexcharts-point-annotation-label,.apexcharts-radar-series path:not(.apexcharts-marker),.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect,.no-pointer-events{pointer-events:none}.apexcharts-tooltip-active .apexcharts-marker{transition:.15s ease all}.apexcharts-radar-series .apexcharts-yaxis,.apexcharts-bar-goals-markers,.apexcharts-bar-shadows,.apexcharts-rangebar-goals-markers{pointer-events:none}.apexcharts-drilldown-target{cursor:pointer}.apexcharts-breadcrumb{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:2px;font-size:12px;font-family:inherit;padding:2px 4px}.apexcharts-breadcrumb-item{background:transparent;border:none;padding:2px 6px;border-radius:calc(3px * var(--apx-radius-factor, 1));font:inherit;color:inherit;cursor:pointer;line-height:1.2}.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#00000014}.apexcharts-breadcrumb-arrow{margin-right:4px;font-weight:600;user-select:none}.apexcharts-breadcrumb-current{cursor:default;font-weight:600;opacity:.85}.apexcharts-breadcrumb-separator{opacity:.5;user-select:none}.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current){background:#ffffff1f}.apexcharts-drilldown-loading{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-family:inherit;color:inherit;background:#ffffff9e;cursor:progress}.apexcharts-drilldown-loading-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(0,0,0,.16);border-top-color:#0000008c;animation:apexcharts-drilldown-spin .7s linear infinite}.apexcharts-drilldown-loading-text{opacity:.8}.apexcharts-theme-dark .apexcharts-drilldown-loading{background:#1e1e1e9e}.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner{border-color:#ffffff38;border-top-color:#ffffffb3}@keyframes apexcharts-drilldown-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.apexcharts-canvas:not(.apexcharts-ignore-reduced-motion) .apexcharts-drilldown-loading-spinner{animation:apexcharts-drilldown-pulse 1.4s ease-in-out infinite!important}@keyframes apexcharts-drilldown-pulse{0%,to{opacity:.35}50%{opacity:1}}}.apexcharts-disable-transitions *{transition:none!important}.apexcharts-trellis{position:relative}.apexcharts-trellis-grid{display:grid}.apexcharts-trellis-cell{min-width:0;position:relative}.apexcharts-trellis-header{font-size:12px;font-weight:600;line-height:22px;height:22px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-title{font-size:14px;font-weight:700;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:0}.apexcharts-trellis-has-toolbar{padding-top:24px}.apexcharts-trellis-strip{font-size:12px;font-weight:600;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-strip-column{text-align:center;line-height:22px;height:22px;align-self:end}.apexcharts-trellis-strip-row{align-self:center;max-width:140px;padding-right:6px}.apexcharts-trellis-cell-empty{position:relative}.apexcharts-trellis-empty-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.45;pointer-events:none}.apexcharts-trellis-cell-hidden>*{visibility:hidden}.apexcharts-trellis-gradient-legend{margin:10px auto 0}.apexcharts-trellis-panel.apexcharts-trellis-skeleton{background:var(--apx-fore, var(--apx-trellis-fore, #373d3f));opacity:.05;border-radius:calc(4px * var(--apx-radius-factor, 1))}.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=panel] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-tooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-xaxistooltip,.apexcharts-trellis[data-tooltip-mode=grid] .apexcharts-trellis-cell .apexcharts-yaxistooltip{opacity:0!important}.apexcharts-trellis-tooltip{position:absolute;top:0;left:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .1s ease;background:var(--apx-bg, #fff);color:var(--apx-fore, var(--apx-trellis-fore, #373d3f));border:1px solid rgba(120,120,120,.25);border-radius:calc(5px * var(--apx-radius-factor, 1));box-shadow:2px 2px 6px -4px #0006;font-size:12px;min-width:140px;max-width:320px}.apexcharts-trellis-tooltip-active{opacity:1}.apexcharts-trellis-tooltip .apexcharts-tooltip-title{padding:5px 10px;font-weight:600;background:#78787814;border-bottom:1px solid rgba(120,120,120,.18);margin-bottom:2px}.apexcharts-trellis-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 10px;line-height:1.6}.apexcharts-trellis-tooltip-row-active{background:#7878781a;font-weight:600}.apexcharts-trellis-tooltip-key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.apexcharts-trellis-tooltip-vals{display:flex;gap:10px;white-space:nowrap}.apexcharts-trellis-tooltip-val{display:inline-flex;align-items:center;gap:5px}.apexcharts-trellis-tooltip-marker{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}.apexcharts-trellis-cell-promoted{grid-column:1 / -1}.apexcharts-trellis-cell-parked{display:none}.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis{opacity:1}.apexcharts-trellis-header-clickable{cursor:pointer}.apexcharts-trellis-header-clickable:hover{text-decoration:underline;text-underline-offset:3px}.apexcharts-trellis-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0 6px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-breadcrumb-back{border:none;background:none;padding:0;font-size:12px;cursor:pointer;color:var(--apx-accent, #008ffb)}.apexcharts-trellis-breadcrumb-back:hover{text-decoration:underline}.apexcharts-trellis-breadcrumb-sep{opacity:.5}.apexcharts-trellis-breadcrumb-current{font-weight:600}.apexcharts-trellis-menu{position:absolute;top:26px;right:0;display:none;flex-direction:column;min-width:132px;background:var(--apx-bg, #fff);border:1px solid rgba(120,120,120,.25);border-radius:calc(5px * var(--apx-radius-factor, 1));box-shadow:2px 2px 6px -4px #0006;padding:4px;z-index:15}.apexcharts-trellis-menu-open{display:flex}.apexcharts-trellis-menu-item{border:none;background:none;text-align:left;font-size:12px;padding:5px 8px;border-radius:calc(3px * var(--apx-radius-factor, 1));cursor:pointer;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-menu-item:hover{background:#7878781f}.apexcharts-trellis-toolbar{position:absolute;top:0;right:0;display:flex;gap:2px;z-index:12}.apexcharts-trellis-tool{border:0;background:transparent;padding:2px;cursor:pointer;border-radius:calc(3px * var(--apx-radius-factor, 1));color:#6e8192;line-height:0}.apexcharts-trellis-tool:hover{color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-tool.apexcharts-selected{color:var(--apx-accent, #008ffb)}.apexcharts-trellis-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding:8px 10px 2px}.apexcharts-trellis-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1}.apexcharts-trellis-legend-item .apexcharts-legend-marker{width:12px;height:12px;border-radius:50%;display:inline-block}.apexcharts-trellis-legend-item .apexcharts-legend-text{font-size:12px;color:var(--apx-fore, var(--apx-trellis-fore, #373d3f))}.apexcharts-trellis-legend-item.apexcharts-inactive-legend{opacity:.45}.apexcharts-trellis-chrome,.apexcharts-trellis-grid,.apexcharts-trellis-cell,.apexcharts-trellis-header,.apexcharts-trellis-strip,.apexcharts-trellis-corner,.apexcharts-trellis-title,.apexcharts-trellis-subtitle,.apexcharts-trellis-breadcrumb,.apexcharts-trellis-breadcrumb-back,.apexcharts-trellis-breadcrumb-sep,.apexcharts-trellis-breadcrumb-current,.apexcharts-trellis-empty-label,.apexcharts-trellis-legend,.apexcharts-trellis-legend-item,.apexcharts-trellis-legend-item .apexcharts-legend-text,.apexcharts-trellis-toolbar,.apexcharts-trellis-menu,.apexcharts-trellis-menu-item,.apexcharts-trellis-tooltip,.apexcharts-trellis-tooltip *{font-family:inherit}@media print{.apexcharts-canvas.apexcharts-printing,.apexcharts-canvas.apexcharts-printing svg{max-width:100%!important}.apexcharts-canvas.apexcharts-printing svg{height:auto!important}.apexcharts-canvas.apexcharts-printing{height:auto!important;min-height:0!important}.apexcharts-toolbar{display:none!important}}';
 const PRICING_URL = "https://apexcharts.com/pricing";
 const STATE_KEY = "__apexcharts_license_enforcer_v1__";
 if (!/** @type {any} */
@@ -34992,7 +35655,7 @@ function premiumFeaturesInUse(w, ctx) {
 function resolveKey(w) {
   const perChart = w && w.config && w.config.chart && w.config.chart.license;
   if (perChart) return perChart;
-  const singleton = l.getKey();
+  const singleton = m.getKey();
   if (singleton) return singleton;
   const apex = Environment.getApex();
   if (apex && apex.license) return apex.license;
@@ -35001,22 +35664,22 @@ function resolveKey(w) {
 const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
 function licensedForPremium(key) {
   if (!key) return false;
-  const result = l.validateKey(key);
+  const result = m.validateKey(key);
   if (!result.valid) return false;
   const plan = result.data && result.data.plan;
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = j.add(elWrap, { manage: false });
+  const node = $.add(elWrap, { manage: false });
   ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = j.node(elWrap);
+    const n2 = $.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    j.applyStyles(n2);
+    $.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -35030,7 +35693,7 @@ function addWatermark(ctx, elWrap) {
   if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
   if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
   const wrapObs = new MutationObserver(() => {
-    if (!j.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!$.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -35050,7 +35713,7 @@ function teardownWatermark(ctx, elWrap) {
   ctx._wmObservedNode = null;
   ctx._wmObservedWrap = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) j.remove(wrap, { manage: false });
+  if (wrap) $.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
@@ -35062,7 +35725,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  const result = l.validateKey(key);
+  const result = m.validateKey(key);
   if (result.valid) {
     const plan = result.data && result.data.plan || "current";
     console.warn(
@@ -35070,7 +35733,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  if (key !== l.getKey()) {
+  if (key !== m.getKey()) {
     console.error(`[Apex] ${result.message}`);
   }
 }
@@ -35125,7 +35788,8 @@ function reevaluateLicenseAcrossCharts() {
     enforceLicense(w, ctx);
   });
 }
-l.onChange(reevaluateLicenseAcrossCharts);
+m.onChange(reevaluateLicenseAcrossCharts);
+ct();
 function unloadedTypeRejection(chartType, series) {
   const types = [chartType];
   if (Array.isArray(series)) {
@@ -35247,6 +35911,9 @@ class ApexCharts {
     __publicField(this, "beforePrintHandler");
     /** @type {any} */
     __publicField(this, "afterPrintHandler");
+    // The token font a re-read on load is armed for (see _watchTokenFont).
+    /** @type {string | undefined} */
+    __publicField(this, "_tokenFontWatched");
     /** @type {any} */
     __publicField(this, "config");
     /** @type {any} */
@@ -35358,7 +36025,7 @@ class ApexCharts {
         if (!this.ink) {
           const inkOn = (_f = (_e = this.w.config.chart) == null ? void 0 : _e.ink) == null ? void 0 : _f.enabled;
           const anyDraggable = ((_h = (_g = this.w.config.annotations) == null ? void 0 : _g.points) != null ? _h : []).some(
-            (p) => p && p.draggable
+            (p2) => p2 && p2.draggable
           );
           if (inkOn || anyDraggable) {
             warnMissingFeature(
@@ -35398,7 +36065,7 @@ class ApexCharts {
             if (Utils$1.is("ShadowRoot", rootNode) || this.w.config.chart.injectStyleSheet !== false) {
               const nonce = ((_n = this.opts.chart) == null ? void 0 : _n.nonce) || this.w.config.chart.nonce;
               const id = "apexcharts-css";
-              this._releaseCss = we(this.el, id, apexCSS, { nonce });
+              this._releaseCss = $e(this.el, id, apexCSS, { nonce });
             }
           }
         }
@@ -35548,13 +36215,15 @@ class ApexCharts {
         if (!Utils$1.isObject(s2)) return s2;
         if (hiddenAtInit.indexOf(i2) === -1 && !(Array.isArray(s2.data) && s2.data.length === 0))
           return s2;
-        const rec = records.find((c) => c.index === i2);
+        const rec = records.find((c2) => c2.index === i2);
         return rec && Array.isArray(rec.data) && rec.data.length ? __spreadProps(__spreadValues({}, s2), { data: rec.data.slice() }) : s2;
       });
     }
     (_a = this.rendererController) == null ? void 0 : _a.resolve();
     (_b = this.weave) == null ? void 0 : _b.dispatch("afterParse");
     this.theme.init();
+    this._injectDesignSystemCss();
+    this._watchTokenFont();
     const markers = new Markers(this.w, this);
     markers.setGlobalMarkerSize();
     this.formatters.setLabelFormatters();
@@ -35607,26 +36276,26 @@ class ApexCharts {
    * @param {any} graphData
    */
   mount(graphData = null) {
-    const me2 = this;
-    const w = me2.w;
+    const me = this;
+    const w = me.w;
     return new Promise((resolve, reject) => {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
-      if (me2.el === null) {
+      if (me.el === null) {
         return reject(
           new Error("Not enough data to display or target element not found")
         );
       } else if (w.globals.allSeriesCollapsed) {
-        me2.series.handleNoData();
+        me.series.handleNoData();
       }
-      me2.grid = new Grid(me2.w, me2);
-      const elgrid = me2.grid.drawGrid();
+      me.grid = new Grid(me.w, me);
+      const elgrid = me.grid.drawGrid();
       const AnnotationsCtor = InitCtxVariables._featureRegistry.get("annotations");
-      me2.annotations = AnnotationsCtor ? new AnnotationsCtor(me2.w, {
-        theme: me2.theme,
-        timeScale: me2.timeScale
+      me.annotations = AnnotationsCtor ? new AnnotationsCtor(me.w, {
+        theme: me.theme,
+        timeScale: me.timeScale
       }) : null;
-      (_a = me2.annotations) == null ? void 0 : _a.drawImageAnnos();
-      (_b = me2.annotations) == null ? void 0 : _b.drawTextAnnos();
+      (_a = me.annotations) == null ? void 0 : _a.drawImageAnnos();
+      (_b = me.annotations) == null ? void 0 : _b.drawTextAnnos();
       if (w.config.grid.position === "back") {
         if (elgrid) {
           w.dom.elGraphical.add(elgrid.el);
@@ -35651,16 +36320,16 @@ class ApexCharts {
           w.dom.elGraphical.add(elgrid.elGridBorders);
         }
       }
-      (_e = me2.waterfall) == null ? void 0 : _e.drawConnectors();
-      (_f = me2.streamgraph) == null ? void 0 : _f.draw();
+      (_e = me.waterfall) == null ? void 0 : _e.drawConnectors();
+      (_f = me.streamgraph) == null ? void 0 : _f.draw();
       if (w.config.xaxis.crosshairs.position === "front") {
-        me2.crosshairs.drawXCrosshairs();
+        me.crosshairs.drawXCrosshairs();
       }
       if (w.config.yaxis[0].crosshairs.position === "front") {
-        me2.crosshairs.drawYCrosshairs();
+        me.crosshairs.drawYCrosshairs();
       }
       if (w.config.chart.type !== "treemap") {
-        me2.axes.drawAxis(w.config.chart.type, elgrid);
+        me.axes.drawAxis(w.config.chart.type, elgrid);
       }
       const xAxis = new XAxis(this.w, this.ctx, elgrid);
       const yaxis = new YAxis(
@@ -35678,21 +36347,21 @@ class ApexCharts {
         });
       }
       AxesUtils.pruneRedundantLabelTitles(w.dom.baseEl);
-      (_g = me2.annotations) == null ? void 0 : _g.drawAxesAnnotations();
+      (_g = me.annotations) == null ? void 0 : _g.drawAxesAnnotations();
       let tools;
       if (!w.globals.noData) {
         if (Environment.isBrowser() && w.config.tooltip.enabled && !w.globals.noData) {
-          (_h = me2.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
+          (_h = me.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
         }
         if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled && w.config.chart.accessibility.keyboard.navigation.enabled) {
-          (_i = me2.keyboardNavigation) == null ? void 0 : _i.init();
+          (_i = me.keyboardNavigation) == null ? void 0 : _i.init();
         }
         w.interact.keyNav = null;
         if (Environment.isBrowser() && w.globals.axisCharts && (w.axisFlags.isXNumeric || /** @type {Record<string,any>} */
         w.config.xaxis.convertedCatToNumeric || w.axisFlags.isRangeBar)) {
           if (w.config.chart.zoom.enabled || w.config.chart.selection && w.config.chart.selection.enabled || // @ts-ignore — chart.pan is an internal toolbar config property
           w.config.chart.pan && w.config.chart.pan.enabled) {
-            (_j = me2.zoomPanSelection) == null ? void 0 : _j.init({
+            (_j = me.zoomPanSelection) == null ? void 0 : _j.init({
               xyRatios: graphData.xyRatios
             });
           }
@@ -35708,13 +36377,13 @@ class ApexCharts {
           });
         }
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
-          (_k = me2.toolbar) == null ? void 0 : _k.createToolbar();
-        } else if (!w.globals.allSeriesCollapsed && ((_l = me2.toolbar) == null ? void 0 : _l.resetControlDue())) {
-          me2.toolbar.createToolbar({ resetOnly: true });
+          (_k = me.toolbar) == null ? void 0 : _k.createToolbar();
+        } else if (!w.globals.allSeriesCollapsed && ((_l = me.toolbar) == null ? void 0 : _l.resetControlDue())) {
+          me.toolbar.createToolbar({ resetOnly: true });
         }
         if (tools) w.config.chart.toolbar.tools = tools;
       }
-      (_m = me2.weave) == null ? void 0 : _m.dispatch("draw", {
+      (_m = me.weave) == null ? void 0 : _m.dispatch("draw", {
         pass: "full",
         xyRatios: graphData == null ? void 0 : graphData.xyRatios
       });
@@ -35724,10 +36393,10 @@ class ApexCharts {
         });
       }
       if (!w.globals.axisCharts && !w.globals.noData) {
-        me2.core.resizeNonAxisCharts();
+        me.core.resizeNonAxisCharts();
       }
-      enforceLicense(w, me2);
-      resolve(me2);
+      enforceLicense(w, me);
+      resolve(me);
     });
   }
   /**
@@ -35754,6 +36423,10 @@ class ApexCharts {
       this._releaseCss();
       this._releaseCss = null;
     }
+    if (this._releaseDsCss) {
+      this._releaseDsCss();
+      this._releaseDsCss = null;
+    }
     new Destroy(this.ctx).clear({ isUpdating: false });
   }
   /**
@@ -35767,7 +36440,7 @@ class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = true) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     const w = this.w;
     if (!this.core || !Utils$1.isObject(options2)) {
       console.warn(
@@ -35795,6 +36468,11 @@ class ApexCharts {
     if (this.trellis && (this.trellis._mounted || this.trellis._rendering)) {
       const inPlace = this.trellis.canApplyInPlace(options2);
       this.opts = Utils$1.extend(this.opts || {}, options2 || {});
+      const fore = (_b = this.opts.chart) == null ? void 0 : _b.foreColor;
+      if (((_c = options2 == null ? void 0 : options2.theme) == null ? void 0 : _c.mode) && !((_d = options2.chart) == null ? void 0 : _d.foreColor) && (fore === "#373d3f" || fore === "#f6f7f8")) {
+        this.opts.chart = __spreadValues({}, this.opts.chart);
+        delete this.opts.chart.foreColor;
+      }
       this.w.config = Utils$1.extend(w.config, options2 || {});
       const settled = this.trellis._rendering ? this.trellis.whenSettled() : Promise.resolve();
       return settled.then(() => __async(this, null, function* () {
@@ -35826,7 +36504,7 @@ class ApexCharts {
           }
         );
       }
-      if ((_b = this.history) == null ? void 0 : _b.applying) {
+      if ((_e = this.history) == null ? void 0 : _e.applying) {
         this.updateHelpers.revertDefaultAxisMinMax();
       } else {
         this.updateHelpers.revertZoom();
@@ -35842,7 +36520,7 @@ class ApexCharts {
       this.series.clearPreviousPaths();
     }
     if (options2.theme) {
-      options2 = this.theme.updateThemeOptions(options2);
+      options2 = this.theme.updateThemeOptions(options2, !!((_f = this.history) == null ? void 0 : _f.applying));
     }
     return this.updateHelpers._updateOptions(
       options2,
@@ -35930,13 +36608,13 @@ class ApexCharts {
    */
   appendData(newData, overwriteInitialSeries = true) {
     var _a;
-    const me2 = this;
-    const gl = me2.w.globals;
-    if (!me2.core) return Promise.resolve(me2);
-    const t2 = me2.trellis;
+    const me = this;
+    const gl = me.w.globals;
+    if (!me.core) return Promise.resolve(me);
+    const t2 = me.trellis;
     if (t2 && (t2._mounted || t2._rendering)) {
-      return me2.updateSeries(
-        me2.w.config.series.map(
+      return me.updateSeries(
+        me.w.config.series.map(
           (s2, i2) => newData[i2] ? __spreadProps(__spreadValues({}, s2), { data: s2.data.concat(
             /** @type {any} */
             newData[i2].data
@@ -35944,13 +36622,13 @@ class ApexCharts {
         )
       );
     }
-    me2.data.resetParsingFlags();
-    me2.w.globals.dataChanged = true;
-    me2.w.globals.shouldAnimate = true;
-    me2.updateHelpers.capture(true);
+    me.data.resetParsingFlags();
+    me.w.globals.dataChanged = true;
+    me.w.globals.shouldAnimate = true;
+    me.updateHelpers.capture(true);
     const derivedRaw = (
       /** @type {any} */
-      gl[me2.w.config.chart.requestedType + "RawSeries"]
+      gl[me.w.config.chart.requestedType + "RawSeries"]
     );
     if (derivedRaw) {
       for (let i2 = 0; i2 < derivedRaw.length; i2++) {
@@ -35964,7 +36642,7 @@ class ApexCharts {
       }
       return this.update(void 0, overwriteInitialSeries);
     }
-    const newSeries = me2.w.config.series.slice();
+    const newSeries = me.w.config.series.slice();
     const reducerRaw = gl.dataReducerRawSeries;
     const records = [...gl.collapsedSeries, ...gl.ancillaryCollapsedSeries];
     for (let i2 = 0; i2 < newSeries.length; i2++) {
@@ -35984,10 +36662,10 @@ class ApexCharts {
         }
       }
     }
-    trimStreamingSeries(newSeries, me2.w);
-    if (reducerRaw) trimStreamingSeries(reducerRaw, me2.w);
-    trimStreamingSeries(records, me2.w);
-    me2.w.config.series = newSeries;
+    trimStreamingSeries(newSeries, me.w);
+    if (reducerRaw) trimStreamingSeries(reducerRaw, me.w);
+    trimStreamingSeries(records, me.w);
+    me.w.config.series = newSeries;
     return this.update(void 0, overwriteInitialSeries);
   }
   /**
@@ -36002,8 +36680,8 @@ class ApexCharts {
     if (!Array.isArray(series)) return false;
     let points = 0;
     for (let i2 = 0; i2 < series.length; i2++) {
-      const d = series[i2] && series[i2].data;
-      points += Array.isArray(d) ? d.length : 1;
+      const d2 = series[i2] && series[i2].data;
+      points += Array.isArray(d2) ? d2.length : 1;
       if (points > 1e3) return true;
     }
     return false;
@@ -36316,7 +36994,7 @@ class ApexCharts {
           this.el.querySelectorAll("[fill^=url],[stroke^=url],[filter^=url]").forEach((n2) => {
             for (const a2 of n2.attributes) used.add(a2.value.slice(5, -1));
           });
-          defs.querySelectorAll("[id^=Svgjs]").forEach((d) => used.has(d.id) || d.remove());
+          defs.querySelectorAll("[id^=Svgjs]").forEach((d2) => used.has(d2.id) || d2.remove());
         }
         if (typeof w.config.chart.events.updated === "function") {
           w.config.chart.events.updated(this, w);
@@ -36383,10 +37061,10 @@ class ApexCharts {
   static getChartByID(id) {
     const chartId = Utils$1.escapeString(id);
     if (!Apex._chartInstances) return void 0;
-    const c = Apex._chartInstances.filter(
+    const c2 = Apex._chartInstances.filter(
       (ch) => ch.id === chartId
     )[0];
-    return c && c.chart;
+    return c2 && c2.chart;
   }
   /**
    * Trellis (#22): imperative entry point. Creates a trellis host and starts
@@ -36509,7 +37187,7 @@ class ApexCharts {
    * @returns {typeof ApexCharts}
    */
   static setLicense(key) {
-    l.setLicense(key);
+    m.setLicense(key);
     reevaluateLicenseAcrossCharts();
     return ApexCharts;
   }
@@ -36607,7 +37285,15 @@ class ApexCharts {
    * @returns {typeof ApexCharts}
    */
   static registerTheme(name2, def) {
-    registerTheme(name2, def);
+    if (!name2 || typeof name2 !== "string") {
+      console.warn("ApexCharts: registerTheme requires a non-empty name.");
+    } else if (def != null && (typeof def !== "object" || Array.isArray(def))) {
+      console.warn(
+        `ApexCharts: registerTheme("${name2}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`
+      );
+    } else {
+      lt(name2, def);
+    }
     return ApexCharts;
   }
   /**
@@ -36618,7 +37304,7 @@ class ApexCharts {
    * @returns {typeof ApexCharts}
    */
   static unregisterTheme(name2) {
-    unregisterTheme(name2);
+    ut(name2);
     return ApexCharts;
   }
   /**
@@ -36921,15 +37607,15 @@ class ApexCharts {
    */
   addXaxisAnnotation(opts, pushToMemory = true, context = void 0) {
     var _a;
-    let me2 = (
+    let me = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me2 = context;
+      me = context;
     }
-    (_a = me2.annotations) == null ? void 0 : _a.addXaxisAnnotationExternal(opts, pushToMemory, me2);
+    (_a = me.annotations) == null ? void 0 : _a.addXaxisAnnotationExternal(opts, pushToMemory, me);
   }
   /**
    * Adds a y-axis annotation dynamically after render.
@@ -36940,15 +37626,15 @@ class ApexCharts {
    */
   addYaxisAnnotation(opts, pushToMemory = true, context = void 0) {
     var _a;
-    let me2 = (
+    let me = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me2 = context;
+      me = context;
     }
-    (_a = me2.annotations) == null ? void 0 : _a.addYaxisAnnotationExternal(opts, pushToMemory, me2);
+    (_a = me.annotations) == null ? void 0 : _a.addYaxisAnnotationExternal(opts, pushToMemory, me);
   }
   /**
    * Adds a point annotation dynamically after render.
@@ -36959,15 +37645,15 @@ class ApexCharts {
    */
   addPointAnnotation(opts, pushToMemory = true, context = void 0) {
     var _a;
-    let me2 = (
+    let me = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me2 = context;
+      me = context;
     }
-    (_a = me2.annotations) == null ? void 0 : _a.addPointAnnotationExternal(opts, pushToMemory, me2);
+    (_a = me.annotations) == null ? void 0 : _a.addPointAnnotationExternal(opts, pushToMemory, me);
   }
   /**
    * Removes all annotations from the chart.
@@ -36976,16 +37662,16 @@ class ApexCharts {
    */
   clearAnnotations(context = void 0) {
     var _a;
-    let me2 = (
+    let me = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me2 = context;
+      me = context;
     }
-    me2.lastUpdateOptions = null;
-    (_a = me2.annotations) == null ? void 0 : _a.clearAnnotations(me2);
+    me.lastUpdateOptions = null;
+    (_a = me.annotations) == null ? void 0 : _a.clearAnnotations(me);
   }
   /**
    * Removes a specific annotation by its `id`.
@@ -36995,16 +37681,16 @@ class ApexCharts {
    */
   removeAnnotation(id, context = void 0) {
     var _a;
-    let me2 = (
+    let me = (
       /** @type {ApexCharts} */
       /** @type {unknown} */
       this
     );
     if (context) {
-      me2 = context;
+      me = context;
     }
-    me2.lastUpdateOptions = null;
-    (_a = me2.annotations) == null ? void 0 : _a.removeAnnotation(me2, id);
+    me.lastUpdateOptions = null;
+    (_a = me.annotations) == null ? void 0 : _a.removeAnnotation(me, id);
   }
   /**
    * Returns the inner SVG group element that contains all chart graphics.
@@ -37258,6 +37944,81 @@ class ApexCharts {
     return this.update();
   }
   /**
+   * Plan 36: the design-system add-on's stylesheet (`features/ignite-ui`
+   * registers it with its adapter), once per chart and only while Theme
+   * read a layer. It goes right after the main sheet in the same root and
+   * under the same rule (always in a shadow root, otherwise unless
+   * `chart.injectStyleSheet` is false), so its twins win by order alone and
+   * a page rule still beats them. Here rather than with the main sheet in
+   * render(), so a chart rendered before the add-on loaded picks it up on
+   * its next render. A chart that later loses its layer keeps its use of the
+   * sheet until destroy(); without the gate classes the twins match nothing.
+   * @private
+   */
+  _injectDesignSystemCss() {
+    var _a;
+    if (this._releaseDsCss || !this.theme.designSystem) return;
+    const styles = (
+      /** @type {any} */
+      InitCtxVariables._featureRegistry.get("designSystemStyles")
+    );
+    if (!styles) return;
+    const rootNode = (
+      /** @type {any} */
+      this.el.getRootNode && this.el.getRootNode()
+    );
+    if (!Utils$1.is("ShadowRoot", rootNode) && this.w.config.chart.injectStyleSheet === false)
+      return;
+    this._releaseDsCss = $e(
+      this.el,
+      `apexcharts-${styles.name}-css`,
+      styles.css,
+      {
+        nonce: ((_a = this.opts.chart) == null ? void 0 : _a.nonce) || this.w.config.chart.nonce,
+        after: "apexcharts-css"
+      }
+    );
+  }
+  /**
+   * Plan 36 (1F): a font that came from a token (`--apx-font-family`, Ignite
+   * UI's `--ig-font-family`) is usually a web font, and design-system sheets
+   * ship no `@font-face` to have it ready. Labels measured while it loads
+   * keep the fallback font's widths, so the tokens are read again once the
+   * font has loaded: once per font, and only while it is not in place, so a
+   * loaded font costs no second render. This runs before the first label is
+   * drawn, when nothing is loading yet and `fonts.ready` has already settled,
+   * so `fonts.load()` starts the fetch and is what is waited on. Never for a
+   * font the page passed, server side, or without `document.fonts`.
+   * @private
+   */
+  _watchTokenFont() {
+    const g2 = this.w.globals;
+    const font = g2.tokenChrome && g2.tokenChrome.font;
+    if (!font || g2.themeFontFamilyExplicit || this.w.config.chart.fontFamily !== font || this._tokenFontWatched === font)
+      return;
+    const doc = BrowserAPIs.getDocument();
+    const fonts = (
+      /** @type {any} */
+      doc && doc.fonts
+    );
+    if (!fonts || !fonts.load) return;
+    let loading;
+    try {
+      if (fonts.check(`1em ${font}`)) return;
+      loading = fonts.load(`1em ${font}`);
+    } catch (e2) {
+      return;
+    }
+    this._tokenFontWatched = font;
+    Promise.resolve(loading).then(
+      () => {
+        if (!this.w.globals.isDestroyed) this.refreshTokens();
+      },
+      () => {
+      }
+    );
+  }
+  /**
    * Drills into the child level referenced by `id` (a `chart.drilldown.series` entry).
    * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
    *
@@ -37321,8 +38082,8 @@ class ApexCharts {
    */
   _writeLayoutCoords(slice) {
     for (const key of Object.keys(slice)) {
-      const d = Object.getOwnPropertyDescriptor(slice, key);
-      if (d && "value" in d) this.w.layout[key] = d.value;
+      const d2 = Object.getOwnPropertyDescriptor(slice, key);
+      if (d2 && "value" in d2) this.w.layout[key] = d2.value;
     }
   }
   _parentResizeCallback() {
@@ -37909,13 +38670,24 @@ class Exports {
    * An explicit non-transparent `chart.background` still wins, including one
    * written by the Facet `--apx-surface` token (Theme assigns it into the same
    * field).
+   *
+   * A dark mode the design system's variant filled leaves the paper
+   * transparent on screen, over the page's own surface, so its raster base is
+   * that surface when the sheet declares one (Ignite UI `--ig-surface-base`,
+   * else `--ig-surface-500`), and the dark paper otherwise.
    * @returns {string}
    */
   resolveExportBackground() {
+    var _a, _b, _c;
     const w = this.w;
-    const bg = w.config.chart.background;
-    if (bg && bg !== "transparent") return bg;
-    return w.config.theme.mode === "dark" ? "#343A3F" : "#fff";
+    return Mt({
+      background: w.config.chart.background,
+      mode: w.config.theme.mode,
+      fromVariant: !!w.globals.variantModeApplied,
+      designSystemPaper: (_c = (_b = (_a = this.ctx) == null ? void 0 : _a.theme) == null ? void 0 : _b.designSystem) == null ? void 0 : _c.paperCheck,
+      dark: "#343A3F",
+      light: "#fff"
+    });
   }
   /**
    * Font families the rendered chart actually paints with.
@@ -37973,9 +38745,9 @@ class Exports {
     const pushFromText = (cssText2, base) => {
       const blocks = cssText2.match(/@font-face\s*\{[^}]*\}/gi) || [];
       blocks.forEach((css) => {
-        const m = css.match(/font-family\s*:\s*([^;}]+)/i);
-        if (!m) return;
-        const family = m[1].trim().replace(/^['"]|['"]$/g, "");
+        const m2 = css.match(/font-family\s*:\s*([^;}]+)/i);
+        if (!m2) return;
+        const family = m2[1].trim().replace(/^['"]|['"]$/g, "");
         found.push({ family: family.toLowerCase(), css, base });
       });
     };
@@ -38002,14 +38774,14 @@ class Exports {
         remote.push(
           fetchFont(
             sheet.href,
-            (u) => fetch(u).then((r2) => r2.ok ? r2.text() : Promise.reject())
+            (u2) => fetch(u2).then((r2) => r2.ok ? r2.text() : Promise.reject())
           ).then((text) => pushFromText(text, sheet.href)).catch(() => {
           })
         );
       }
     };
     const el = this.w.dom.elWrap;
-    (el ? Me(el) : Array.from(document.styleSheets || [])).forEach(
+    (el ? Ne(el) : Array.from(document.styleSheets || [])).forEach(
       walkSheet
     );
     return Promise.all(remote).then(() => found);
@@ -38040,7 +38812,7 @@ class Exports {
     const used = this.collectFontFamilies();
     if (!used.size) return Promise.resolve();
     return this.collectFontFaceRules().then((faces) => {
-      const wanted = faces.filter((f) => used.has(f.family));
+      const wanted = faces.filter((f2) => used.has(f2.family));
       if (!wanted.length) return Promise.resolve([]);
       return Promise.all(
         wanted.map(
@@ -38067,15 +38839,15 @@ class Exports {
   inlineFontFaceUrls(css, base) {
     const urls = [];
     const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
-    let m;
-    while ((m = re.exec(css)) !== null) {
-      if (!m[2].startsWith("data:")) urls.push(m[2]);
+    let m2;
+    while ((m2 = re.exec(css)) !== null) {
+      if (!m2[2].startsWith("data:")) urls.push(m2[2]);
     }
     if (!urls.length) return Promise.resolve(css.includes("data:") ? css : null);
     return Promise.all(
       urls.map((url) => {
         const href = base ? new URL(url, base).href : url;
-        return fetchFont(href, (u) => this.fetchAsDataUri(u)).catch(() => {
+        return fetchFont(href, (u2) => this.fetchAsDataUri(u2)).catch(() => {
         });
       })
     ).then((dataUris) => {
@@ -38143,6 +38915,13 @@ class Exports {
         w.dom.elWrap.cloneNode(true)
       );
       this.resolveCssVars(w.dom.elWrap, clonedNode);
+      if (w.globals.variantModeApplied) {
+        const paper = (
+          /** @type {HTMLElement | null} */
+          clonedNode.querySelector(".apexcharts-svg")
+        );
+        if (paper) paper.style.background = this.resolveExportBackground();
+      }
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
@@ -38342,12 +39121,12 @@ class Exports {
     };
     const isDateCat = (cat) => isDatetime && String(cat).length >= 10 && !isNaN(new Date(cat).getTime());
     const datetimeText = (cat, withTime2) => {
-      const d = new Date(cat);
-      if (!utc) d.setTime(d.getTime() - d.getTimezoneOffset() * 6e4);
+      const d2 = new Date(cat);
+      if (!utc) d2.setTime(d2.getTime() - d2.getTimezoneOffset() * 6e4);
       if (withTime2) {
-        return d.toISOString().slice(0, 23).replace("T", " ").replace(".000", "");
+        return d2.toISOString().slice(0, 23).replace("T", " ").replace(".000", "");
       }
-      const [day, date, month, year] = d.toUTCString().split(" ");
+      const [day, date, month, year] = d2.toUTCString().split(" ");
       return `${day.slice(0, 3)} ${month} ${date} ${year}`;
     };
     const getFormattedCategory = (cat, withTime2) => {
@@ -38371,11 +39150,11 @@ class Exports {
     const dateFormatter = new DateTime(w).formatDate;
     const rowX = (i2) => {
       if (!w.axisFlags.dataFormatXNumeric) return i2 + 1;
-      const d = series.map((s2) => {
+      const d2 = series.map((s2) => {
         var _a;
         return (_a = s2.data) == null ? void 0 : _a[i2];
-      }).find((d2) => d2 != null && typeof d2 === "object");
-      const x2 = d == null ? void 0 : Array.isArray(d) ? d[0] : d.x;
+      }).find((d3) => d3 != null && typeof d3 === "object");
+      const x2 = d2 == null ? void 0 : Array.isArray(d2) ? d2[0] : d2.x;
       return x2 instanceof Date ? x2.getTime() : x2;
     };
     const scaleCat = (i2) => {
@@ -38453,10 +39232,10 @@ class Exports {
           var _a;
           const off = hidden.has(sI);
           if (!fields) {
-            const d = off ? void 0 : (_a = s2.data) == null ? void 0 : _a[i2];
+            const d2 = off ? void 0 : (_a = s2.data) == null ? void 0 : _a[i2];
             return [
               getFormattedValue(
-                d && typeof d === "object" ? Array.isArray(d) ? d[1] : d.y : d
+                d2 && typeof d2 === "object" ? Array.isArray(d2) ? d2[1] : d2.y : d2
               )
             ];
           }
@@ -38482,7 +39261,7 @@ class Exports {
       });
     } else {
       rows.push(
-        [csvCfg.headerCategory, ...cols.flatMap((c) => c.head)].join(
+        [csvCfg.headerCategory, ...cols.flatMap((c2) => c2.head)].join(
           columnDelimiter
         )
       );
@@ -38491,16 +39270,16 @@ class Exports {
         series.forEach((s2, sI) => {
           var _a;
           const seen = /* @__PURE__ */ new Map();
-          (_a = s2 == null ? void 0 : s2.data) == null ? void 0 : _a.forEach((d, i2) => {
-            if (!d || typeof d !== "object") return;
-            const cat = Array.isArray(d) ? d[0] : d.x;
+          (_a = s2 == null ? void 0 : s2.data) == null ? void 0 : _a.forEach((d2, i2) => {
+            if (!d2 || typeof d2 !== "object") return;
+            const cat = Array.isArray(d2) ? d2[0] : d2.x;
             const x2 = String(cat);
             const n2 = seen.get(x2) || 0;
             seen.set(x2, n2 + 1);
             const key = `${n2}:${x2}`;
             let row = byCategory.get(key);
             if (!row) {
-              row = { cat, values: cols.map((c) => c.head.map(() => "")) };
+              row = { cat, values: cols.map((c2) => c2.head.map(() => "")) };
               byCategory.set(key, row);
             }
             row.values[sI] = cols[sI].cells(i2);
@@ -38526,18 +39305,18 @@ class Exports {
           let cat = getCat(i2);
           if (cat === null) continue;
           if (!cat) {
-            const d = series.map((s2) => {
+            const d2 = series.map((s2) => {
               var _a;
               return (_a = s2.data) == null ? void 0 : _a[i2];
-            }).find((d2) => d2 != null);
-            cat = d == null ? "" : Array.isArray(d) ? d[0] : d.x;
+            }).find((d3) => d3 != null);
+            cat = d2 == null ? "" : Array.isArray(d2) ? d2[0] : d2.x;
           }
-          body.push([cat, ...cols.flatMap((c) => c.cells(i2))]);
+          body.push([cat, ...cols.flatMap((c2) => c2.cells(i2))]);
         }
       }
     }
     const dates = body.map((r2) => r2[0]).filter(isDateCat);
-    const stamps = new Set(dates.map((c) => +new Date(c)));
+    const stamps = new Set(dates.map((c2) => +new Date(c2)));
     const withTime = new Set([...stamps].map((t2) => datetimeText(t2))).size < stamps.size;
     body.forEach(
       (r2) => rows.push(
@@ -38822,19 +39601,19 @@ let Helpers$3 = class Helpers2 {
     const w = this.w;
     let series = Utils$1.clone(w.config.series);
     if (collapsedSeries.length > 0) {
-      for (let c = 0; c < collapsedSeries.length; c++) {
-        if (collapsedSeries[c].index === realIndex) {
+      for (let c2 = 0; c2 < collapsedSeries.length; c2++) {
+        if (collapsedSeries[c2].index === realIndex) {
           if (w.globals.axisCharts) {
-            series[realIndex].data = collapsedSeries[c].data.slice();
+            series[realIndex].data = collapsedSeries[c2].data.slice();
             series[realIndex].hidden = false;
           } else {
             const container = this._nonAxisSliceContainer(series);
-            this._writeSliceValue(container, realIndex, collapsedSeries[c].data);
+            this._writeSliceValue(container, realIndex, collapsedSeries[c2].data);
           }
-          collapsedSeries.splice(c, 1);
-          seriesIndices.splice(c, 1);
+          collapsedSeries.splice(c2, 1);
+          seriesIndices.splice(c2, 1);
           w.globals.risingSeries.push(realIndex);
-          c--;
+          c2--;
         }
       }
       series = this._getSeriesBasedOnCollapsedState(series);
@@ -38891,28 +39670,28 @@ function mixColors(c1, c2, t2) {
   if (!a2 || !b) return c1;
   return toHex(a2.map((v, k2) => lerp(v, b[k2], t2)));
 }
-function toHex(c) {
-  return "#" + c.slice(0, 3).map(toHexPair).join("") + (c[3] < 1 ? toHexPair(c[3] * 255) : "");
+function toHex(c2) {
+  return "#" + c2.slice(0, 3).map(toHexPair).join("") + (c2[3] < 1 ? toHexPair(c2[3] * 255) : "");
 }
-function normalizeHex(c) {
-  const rgba = typeof c === "string" ? Utils$1.parseColor(c.trim()) : null;
+function normalizeHex(c2) {
+  const rgba = typeof c2 === "string" ? Utils$1.parseColor(c2.trim()) : null;
   return rgba ? toHex(rgba) : "#000000";
 }
-function colorValueOf(w, i2, j2) {
+function colorValueOf(w, i2, j) {
   const series = (
     /** @type {any} */
     w.config.series[i2]
   );
-  const datum = series && Array.isArray(series.data) ? series.data[j2] : null;
-  return colorValueOfDatum(w, datum, i2, j2);
+  const datum = series && Array.isArray(series.data) ? series.data[j] : null;
+  return colorValueOfDatum(w, datum, i2, j);
 }
-function colorValueOfDatum(w, datum, i2, j2) {
+function colorValueOfDatum(w, datum, i2, j) {
   var _a, _b, _c;
   if (!datum || typeof datum !== "object") return null;
   const accessor = (_c = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.treemap) == null ? void 0 : _b.colorScale) == null ? void 0 : _c.colorValue;
   let raw;
   if (typeof accessor === "function") {
-    raw = accessor(datum, { seriesIndex: i2, dataPointIndex: j2, w });
+    raw = accessor(datum, { seriesIndex: i2, dataPointIndex: j, w });
   } else if (typeof accessor === "string") {
     raw = datum[accessor];
   } else {
@@ -38923,7 +39702,7 @@ function colorValueOfDatum(w, datum, i2, j2) {
   return Number.isFinite(n2) ? n2 : null;
 }
 function resolveStops(cfg, min, max, midpoint, explicit, el) {
-  const hex = (c) => normalizeHex(Utils$1.getThemeColor(c, el));
+  const hex = (c2) => normalizeHex(Utils$1.getThemeColor(c2, el));
   if (explicit) {
     return cfg.stops.filter((s2) => s2 && Number.isFinite(Number(s2.value))).map((s2) => ({
       value: Number(s2.value),
@@ -38946,9 +39725,9 @@ function resolveStops(cfg, min, max, midpoint, explicit, el) {
     }
     return out;
   }
-  return colors.map((c, k2) => ({
+  return colors.map((c2, k2) => ({
     value: lerp(min, max, k2 / (n2 - 1)),
-    color: c
+    color: c2
   }));
 }
 function buildContinuousScale(w) {
@@ -38967,8 +39746,8 @@ function buildContinuousScale(w) {
   for (let i2 = 0; i2 < series.length; i2++) {
     const data = series[i2] && series[i2].data;
     if (!Array.isArray(data)) continue;
-    for (let j2 = 0; j2 < data.length; j2++) {
-      const v = colorValueOfDatum(w, data[j2], i2, j2);
+    for (let j = 0; j < data.length; j++) {
+      const v = colorValueOfDatum(w, data[j], i2, j);
       if (v == null) continue;
       found = true;
       if (v < dataMin) dataMin = v;
@@ -39035,14 +39814,14 @@ function buildContinuousScale(w) {
   });
   return { min, max, midpoint, stops, at: at2, legendStops };
 }
-function shadePercent(w, chartType, p, negRange) {
+function shadePercent(w, chartType, p2, negRange) {
   const opts = w.config.plotOptions[chartType];
   const shadeIntensity = opts.shadeIntensity;
   const k2 = shadeIntensity * 1.25;
   if (w.globals.hasNegs || negRange) {
-    return opts.reverseNegativeShade ? (p < 0 ? p : 1 - p) * k2 : p <= 0 ? 1 - (1 + p) * shadeIntensity : (1 - p) * shadeIntensity;
+    return opts.reverseNegativeShade ? (p2 < 0 ? p2 : 1 - p2) * k2 : p2 <= 0 ? 1 - (1 + p2) * shadeIntensity : (1 - p2) * shadeIntensity;
   }
-  return chartType === "treemap" ? (1 - p) * k2 : 1 - p;
+  return chartType === "treemap" ? (1 - p2) * k2 : 1 - p2;
 }
 function readableOn(bg) {
   const hex = normalizeHex(bg).slice(0, 7);
@@ -39191,7 +39970,7 @@ class HeatmapGradientLegend {
     rect.setAttribute("y", String(stripY));
     rect.setAttribute("width", String(isVertical ? stripThickness : stripLength));
     rect.setAttribute("height", String(isVertical ? stripLength : stripThickness));
-    rect.setAttribute("rx", "2");
+    rect.setAttribute("rx", String(Theme.radius(w, 2)));
     rect.setAttribute("fill", `url(#${gradId})`);
     svg.appendChild(rect);
     if (cfg.showLabels) {
@@ -39199,10 +39978,10 @@ class HeatmapGradientLegend {
       const labelFontSize = ((_d = cfg.labelStyle) == null ? void 0 : _d.fontSize) || "11px";
       const labelFontFamily = ((_e = cfg.labelStyle) == null ? void 0 : _e.fontFamily) || w.config.chart.fontFamily;
       const fmt = this._getFormatter();
-      const makeLabel = (text, x2, y, anchor) => {
+      const makeLabel = (text, x2, y2, anchor) => {
         const t2 = BrowserAPIs.createElementNS(SVG_NS, "text");
         t2.setAttribute("x", String(x2));
-        t2.setAttribute("y", String(y));
+        t2.setAttribute("y", String(y2));
         t2.setAttribute("text-anchor", anchor);
         t2.setAttribute("dominant-baseline", "middle");
         t2.setAttribute("fill", labelColor);
@@ -39265,20 +40044,20 @@ class HeatmapGradientLegend {
       svgHeight
     };
     if (cfg.showHoverValue) {
-      const tt = BrowserAPIs.createElement("div");
-      tt.classList.add("apexcharts-heatmap-gradient-legend-value");
-      tt.style.position = "absolute";
-      tt.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
-      tt.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
-      tt.style.background = "rgba(0,0,0,0.65)";
-      tt.style.color = "#fff";
-      tt.style.padding = "2px 6px";
-      tt.style.borderRadius = "3px";
-      tt.style.pointerEvents = "none";
-      tt.style.whiteSpace = "nowrap";
-      tt.style.opacity = "0";
-      tt.style.transition = "opacity 120ms ease";
-      this.hoverValueEl = tt;
+      const tt2 = BrowserAPIs.createElement("div");
+      tt2.classList.add("apexcharts-heatmap-gradient-legend-value");
+      tt2.style.position = "absolute";
+      tt2.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
+      tt2.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
+      tt2.style.background = "rgba(0,0,0,0.65)";
+      tt2.style.color = "#fff";
+      tt2.style.padding = "2px 6px";
+      tt2.style.borderRadius = `${Theme.radius(w, 3)}px`;
+      tt2.style.pointerEvents = "none";
+      tt2.style.whiteSpace = "nowrap";
+      tt2.style.opacity = "0";
+      tt2.style.transition = "opacity 120ms ease";
+      this.hoverValueEl = tt2;
     }
     elLegendWrap.classList.add("apexcharts-heatmap-gradient-legend-wrap");
     elLegendWrap.classList.add(
@@ -39351,11 +40130,11 @@ class HeatmapGradientLegend {
     elLegendWrap.style.bottom = "auto";
     if (isVertical) {
       const availableHeight = chartHeight - svgHeight - edgePad * 2;
-      let y;
-      if (align === "start") y = edgePad;
-      else if (align === "end") y = edgePad + Math.max(0, availableHeight);
-      else y = edgePad + Math.max(0, availableHeight) / 2;
-      elLegendWrap.style.top = y + userOffsetY + "px";
+      let y2;
+      if (align === "start") y2 = edgePad;
+      else if (align === "end") y2 = edgePad + Math.max(0, availableHeight);
+      else y2 = edgePad + Math.max(0, availableHeight) / 2;
+      elLegendWrap.style.top = y2 + userOffsetY + "px";
       if (position === "left") {
         elLegendWrap.style.left = edgePad + userOffsetX + "px";
       } else {
@@ -39571,14 +40350,14 @@ class HeatmapGradientLegend {
     if (!opts || typeof opts !== "object") return;
     const w = opts.w || this.w;
     const i2 = opts.seriesIndex;
-    const j2 = opts.dataPointIndex;
-    if (typeof i2 !== "number" || typeof j2 !== "number") return;
+    const j = opts.dataPointIndex;
+    if (typeof i2 !== "number" || typeof j !== "number") return;
     if (!HeatmapGradientLegend.supports(w)) return;
     let val;
     if (this._continuous) {
-      val = colorValueOf(w, i2, j2);
+      val = colorValueOf(w, i2, j);
     } else {
-      val = (_c = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i2]) == null ? void 0 : _c[j2];
+      val = (_c = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i2]) == null ? void 0 : _c[j];
     }
     if (val == null || Number.isNaN(val)) return;
     this._positionArrow(val);
@@ -39724,8 +40503,8 @@ class HeatmapGradientLegend {
     for (let i2 = 0; i2 < rows.length; i2++) {
       const row = rows[i2];
       if (!row) continue;
-      for (let j2 = 0; j2 < row.length; j2++) {
-        const v = row[j2];
+      for (let j = 0; j < row.length; j++) {
+        const v = row[j];
         if (v == null || Number.isNaN(v)) continue;
         if (v < dataMin) dataMin = v;
         if (v > dataMax) dataMax = v;
@@ -39779,9 +40558,13 @@ class HeatmapGradientLegend {
       const n2 = Math.max(2, cfg.stops || 16);
       for (let s2 = 0; s2 < n2; s2++) {
         const t2 = s2 / (n2 - 1);
-        const p = total === 0 ? 0 : Math.min(min + t2 * (max - min), hi) / total;
-        const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
-        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
+        const p2 = total === 0 ? 0 : Math.min(min + t2 * (max - min), hi) / total;
+        const c2 = Math.max(-1, Math.min(1, shadePercent(w, type, p2, false)));
+        const shaded = plot.enableShades ? utils.shadeColor(
+          w.config.theme.mode === "dark" ? -c2 : c2,
+          baseColor,
+          w.dom.elWrap
+        ) : baseColor;
         stops.push({ percent: t2, color: shaded });
       }
     }
@@ -39882,6 +40665,9 @@ class Legend {
         strokeWidth: mBorderWidth,
         size: mSize
       });
+      if (w.config.legend.customLegendItems.length) {
+        markerConfig.pointFillOpacity = 1;
+      }
       const SVG2 = (
         /** @type {any} */
         globalThis.SVG
@@ -39898,7 +40684,7 @@ class Legend {
   }
   drawLegends() {
     var _a, _b;
-    const me2 = this;
+    const me = this;
     const w = this.w;
     const elLegendWrap = (
       /** @type {HTMLElement} */
@@ -39942,15 +40728,15 @@ class Legend {
       let collapsedSeries = false;
       let ancillaryCollapsedSeries = false;
       if (w.globals.collapsedSeries.length > 0) {
-        for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
-          if (w.globals.collapsedSeries[c].index === i2) {
+        for (let c2 = 0; c2 < w.globals.collapsedSeries.length; c2++) {
+          if (w.globals.collapsedSeries[c2].index === i2) {
             collapsedSeries = true;
           }
         }
       }
       if (w.globals.ancillaryCollapsedSeriesIndices.length > 0) {
-        for (let c = 0; c < w.globals.ancillaryCollapsedSeriesIndices.length; c++) {
-          if (w.globals.ancillaryCollapsedSeriesIndices[c] === i2) {
+        for (let c2 = 0; c2 < w.globals.ancillaryCollapsedSeriesIndices.length; c2++) {
+          if (w.globals.ancillaryCollapsedSeriesIndices[c2] === i2) {
             ancillaryCollapsedSeries = true;
           }
         }
@@ -40044,17 +40830,17 @@ class Legend {
         elLegend.classList.add("apexcharts-no-click");
       }
     }
-    w.dom.elWrap.addEventListener("click", me2.onLegendClickEvent, true);
-    w.dom.elWrap.addEventListener("pointerdown", me2.onLegendPointerDown, true);
-    w.dom.elWrap.addEventListener("pointerup", me2.onLegendPointerUp, true);
+    w.dom.elWrap.addEventListener("click", me.onLegendClickEvent, true);
+    w.dom.elWrap.addEventListener("pointerdown", me.onLegendPointerDown, true);
+    w.dom.elWrap.addEventListener("pointerup", me.onLegendPointerUp, true);
     if (w.config.legend.onItemHover.highlightDataSeries && w.config.legend.customLegendItems.length === 0) {
-      w.dom.elWrap.addEventListener("mousemove", me2.onLegendHovered, true);
-      w.dom.elWrap.addEventListener("mouseout", me2.onLegendHovered, true);
+      w.dom.elWrap.addEventListener("mousemove", me.onLegendHovered, true);
+      w.dom.elWrap.addEventListener("mouseout", me.onLegendHovered, true);
     }
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
       w.dom.elWrap.addEventListener(
         "keydown",
-        me2.onLegendKeyDown.bind(me2),
+        me.onLegendKeyDown.bind(me),
         true
       );
     }
@@ -40071,20 +40857,20 @@ class Legend {
     );
     const legendHeight = elLegendWrap.clientHeight;
     let x2 = 0;
-    let y = 0;
+    let y2 = 0;
     if (w.config.legend.position === "bottom") {
-      y = w.globals.svgHeight - Math.min(legendHeight, w.globals.svgHeight / 2) - 5;
+      y2 = w.globals.svgHeight - Math.min(legendHeight, w.globals.svgHeight / 2) - 5;
     } else if (w.config.legend.position === "top") {
       const dim = new Dimensions(this.w, this.ctx);
       const titleH = dim.dimHelpers.getTitleSubtitleCoords("title").height;
       const subtitleH = dim.dimHelpers.getTitleSubtitleCoords("subtitle").height;
-      y = (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
+      y2 = (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
     }
     elLegendWrap.style.position = "absolute";
     x2 = x2 + offsetX + w.config.legend.offsetX;
-    y = y + offsetY + w.config.legend.offsetY;
+    y2 = y2 + offsetY + w.config.legend.offsetY;
     elLegendWrap.style.left = x2 + "px";
-    elLegendWrap.style.top = y + "px";
+    elLegendWrap.style.top = y2 + "px";
     if (w.config.legend.position === "right") {
       elLegendWrap.style.left = "auto";
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + "px";
@@ -40135,14 +40921,14 @@ class Legend {
       /** @type {Element | null} */
       e2.relatedTarget
     );
-    const c = (
+    const c2 = (
       /** @type {any} */
       w.globals.cachedSelectors
     );
-    if (move ? c.legendRel === rel : to && isLegendItem(to) && to.getAttribute("rel") === rel && w.dom.elWrap.contains(to)) {
+    if (move ? c2.legendRel === rel : to && isLegendItem(to) && to.getAttribute("rel") === rel && w.dom.elWrap.contains(to)) {
       return;
     }
-    c.legendRel = move ? rel : null;
+    c2.legendRel = move ? rel : null;
     const series = new Series(this.ctx.w);
     if (w.config.chart.type !== "heatmap" && !this.isBarsDistributed) {
       if (!target.closest(".apexcharts-inactive-legend")) {
@@ -40160,7 +40946,7 @@ class Legend {
    * @param {KeyboardEvent} e
    */
   onLegendKeyDown(e2) {
-    const me2 = this;
+    const me = this;
     const w = this.w;
     const target = (
       /** @type {Element} */
@@ -40170,7 +40956,7 @@ class Legend {
     if (e2.key === "Enter" || e2.key === " ") {
       e2.preventDefault();
       const rel = target.getAttribute("rel");
-      me2.onLegendClick(e2);
+      me.onLegendClick(e2);
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
           var _a;
@@ -40302,11 +41088,11 @@ class Toolbar {
    * @returns {boolean}
    */
   resetControlAllowed() {
-    const c = this.w.config.chart;
-    if (!c.zoom || !c.zoom.enabled) return false;
-    const setting = c.zoom.resetControl === void 0 ? "auto" : c.zoom.resetControl;
+    const c2 = this.w.config.chart;
+    if (!c2.zoom || !c2.zoom.enabled) return false;
+    const setting = c2.zoom.resetControl === void 0 ? "auto" : c2.zoom.resetControl;
     if (setting !== "auto") return !!setting;
-    const onScreen = c.toolbar && c.toolbar.show && c.toolbar.tools && c.toolbar.tools.reset;
+    const onScreen = c2.toolbar && c2.toolbar.show && c2.toolbar.tools && c2.toolbar.tools.reset;
     return !onScreen;
   }
   /**
@@ -40564,13 +41350,13 @@ class Toolbar {
     (_f = this.elPan) == null ? void 0 : _f.addEventListener("click", this.togglePanning.bind(this));
     (_g = this.elMeasure) == null ? void 0 : _g.addEventListener("click", this.toggleMeasure.bind(this));
     (_h = this.elMenuIcon) == null ? void 0 : _h.addEventListener("click", this.toggleMenu.bind(this));
-    this.elMenuItems.forEach((m) => {
-      if (m.classList.contains("exportSVG")) {
-        m.addEventListener("click", this.handleDownload.bind(this, "svg"));
-      } else if (m.classList.contains("exportPNG")) {
-        m.addEventListener("click", this.handleDownload.bind(this, "png"));
-      } else if (m.classList.contains("exportCSV")) {
-        m.addEventListener("click", this.handleDownload.bind(this, "csv"));
+    this.elMenuItems.forEach((m2) => {
+      if (m2.classList.contains("exportSVG")) {
+        m2.addEventListener("click", this.handleDownload.bind(this, "svg"));
+      } else if (m2.classList.contains("exportPNG")) {
+        m2.addEventListener("click", this.handleDownload.bind(this, "png"));
+      } else if (m2.classList.contains("exportCSV")) {
+        m2.addEventListener("click", this.handleDownload.bind(this, "csv"));
       }
     });
     for (let i2 = 0; i2 < this.t.customIcons.length; i2++) {
@@ -40599,7 +41385,7 @@ class Toolbar {
           requestAnimationFrame(() => {
             const baseEl = this.w.dom.baseEl;
             if (!baseEl) return;
-            const apexClass = btnClass.split(" ").find((c) => c.startsWith("apexcharts-"));
+            const apexClass = btnClass.split(" ").find((c2) => c2.startsWith("apexcharts-"));
             if (!apexClass) return;
             const restored = baseEl.querySelector(`.${apexClass}`);
             if (restored) restored.focus();
@@ -40624,8 +41410,8 @@ class Toolbar {
         }
       }
     );
-    this.elMenuItems.forEach((m, idx) => {
-      m.addEventListener("keydown", (e2) => {
+    this.elMenuItems.forEach((m2, idx) => {
+      m2.addEventListener("keydown", (e2) => {
         var _a2;
         if (e2.key === "ArrowDown") {
           e2.preventDefault();
@@ -40644,7 +41430,7 @@ class Toolbar {
           }
         } else if (e2.key === "Enter" || e2.key === " ") {
           e2.preventDefault();
-          m.click();
+          m2.click();
         }
       });
     });
@@ -40819,11 +41605,11 @@ class Toolbar {
     if (!w.interact.zoomed || zoom.autoScaleYaxis || zoom.type !== "xy" && zoom.type !== "y" || !Array.isArray(yaxis)) {
       return yaxis;
     }
-    yaxis.forEach((y, i2) => {
+    yaxis.forEach((y2, i2) => {
       const cur = w.config.yaxis[i2];
-      if (!y || !cur) return;
-      y.min = cur.min;
-      y.max = cur.max;
+      if (!y2 || !cur) return;
+      y2.min = cur.min;
+      y2.max = cur.max;
     });
     return yaxis;
   }
@@ -40928,7 +41714,7 @@ class Toolbar {
       var _a2, _b;
       const origin = (
         /** @type {Node} */
-        me(e2)
+        ke(e2)
       );
       if (((_a2 = this.elMenu) == null ? void 0 : _a2.contains(origin)) || ((_b = this.elMenuIcon) == null ? void 0 : _b.contains(origin))) {
         return;
@@ -41066,7 +41852,7 @@ class ZoomPanSelection extends Toolbar {
   /** @param {{xyRatios: any}} opts */
   init({ xyRatios }) {
     const w = this.w;
-    const me2 = this;
+    const me = this;
     this.xyRatios = xyRatios;
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
@@ -41097,18 +41883,18 @@ class ZoomPanSelection extends Toolbar {
     this.hoverArea.classList.add("apexcharts-zoomable");
     this.eventList.forEach((event) => {
       var _a;
-      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
+      (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.svgMouseEvents.bind(me), {
         capture: false,
         passive: true
       });
     });
     if (this._wheelZoomEnabled()) {
-      this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
+      this.hoverArea.addEventListener("wheel", me.mouseWheelEvent.bind(me), {
         capture: false,
         passive: false
       });
     }
-    this.hoverArea.addEventListener("keydown", me2.escapeResetEvent.bind(me2), {
+    this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
       capture: false,
       passive: true
     });
@@ -41116,7 +41902,7 @@ class ZoomPanSelection extends Toolbar {
       ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
         (event) => {
           var _a;
-          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.momentumTouch.bind(me2), {
+          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
             capture: false,
             passive: false
           });
@@ -41127,13 +41913,13 @@ class ZoomPanSelection extends Toolbar {
   // remove the event listeners which were previously added on hover area
   destroy() {
     if (this.w.globals.isDestroyed) {
-      const it = this.w.interact;
-      const st = this._wheel();
-      BrowserAPIs.cancelAnimationFrame(st.rafId);
-      clearTimeout(st.endTimer);
+      const it2 = this.w.interact;
+      const st2 = this._wheel();
+      BrowserAPIs.cancelAnimationFrame(st2.rafId);
+      clearTimeout(st2.endTimer);
       this._hideWheelHint();
       this._cancelInertia();
-      it.wheel = it.momentum = void 0;
+      it2.wheel = it2.momentum = void 0;
     }
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false);
@@ -41269,10 +42055,10 @@ class ZoomPanSelection extends Toolbar {
    */
   _incidentalZoomEnabled(setting) {
     var _a, _b, _c;
-    const c = this.w.config.chart;
-    if (!c.zoom || !c.zoom.enabled) return false;
+    const c2 = this.w.config.chart;
+    if (!c2.zoom || !c2.zoom.enabled) return false;
     if (setting !== "auto") return !!setting;
-    return !!(((_a = c.toolbar) == null ? void 0 : _a.show) && ((_c = (_b = c.toolbar) == null ? void 0 : _b.tools) == null ? void 0 : _c.reset));
+    return !!(((_a = c2.toolbar) == null ? void 0 : _a.show) && ((_c = (_b = c2.toolbar) == null ? void 0 : _b.tools) == null ? void 0 : _c.reset));
   }
   _wheelZoomEnabled() {
     const { zoom } = this.w.config.chart;
@@ -41320,17 +42106,17 @@ class ZoomPanSelection extends Toolbar {
       el.offsetWidth;
     }
     el.classList.add("apexcharts-wheel-hint-visible");
-    const it = w.interact;
-    if (it.wheelHintTimer) clearTimeout(it.wheelHintTimer);
-    it.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
+    const it2 = w.interact;
+    if (it2.wheelHintTimer) clearTimeout(it2.wheelHintTimer);
+    it2.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
   }
   _hideWheelHint() {
     var _a;
     const w = this.w;
-    const it = w.interact;
-    if (it.wheelHintTimer) {
-      clearTimeout(it.wheelHintTimer);
-      it.wheelHintTimer = null;
+    const it2 = w.interact;
+    if (it2.wheelHintTimer) {
+      clearTimeout(it2.wheelHintTimer);
+      it2.wheelHintTimer = null;
     }
     const el = (_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-wheel-hint");
     if (el) el.classList.remove("apexcharts-wheel-hint-visible");
@@ -41389,9 +42175,9 @@ class ZoomPanSelection extends Toolbar {
   }
   /** Lazily-created, re-render-surviving wheel-gesture state. */
   _wheel() {
-    const it = this.w.interact;
-    if (!it.wheel) {
-      it.wheel = {
+    const it2 = this.w.interact;
+    if (!it2.wheel) {
+      it2.wheel = {
         factor: 1,
         clientX: 0,
         /** @type {number|null} */
@@ -41400,14 +42186,14 @@ class ZoomPanSelection extends Toolbar {
         endTimer: null
       };
     }
-    return it.wheel;
+    return it2.wheel;
   }
   /**
    * @param {any} e
    */
   mouseWheelEvent(e2) {
-    const st = this._wheel();
-    if (!this._wheelZoomGreedy() && !e2.ctrlKey && !e2.metaKey && st.endTimer == null) {
+    const st2 = this._wheel();
+    if (!this._wheelZoomGreedy() && !e2.ctrlKey && !e2.metaKey && st2.endTimer == null) {
       this._showWheelHint(e2);
       return;
     }
@@ -41416,13 +42202,13 @@ class ZoomPanSelection extends Toolbar {
     let dy = e2.deltaY;
     if (e2.deltaMode === 1) dy *= 33;
     else if (e2.deltaMode === 2) dy *= 330;
-    st.factor *= Math.pow(2, dy / WHEEL_ZOOM_PIXELS_PER_2X);
-    st.clientX = e2.clientX;
-    if (st.rafId == null) {
-      st.rafId = requestAnimationFrame(() => this._applyWheelZoom());
+    st2.factor *= Math.pow(2, dy / WHEEL_ZOOM_PIXELS_PER_2X);
+    st2.clientX = e2.clientX;
+    if (st2.rafId == null) {
+      st2.rafId = requestAnimationFrame(() => this._applyWheelZoom());
     }
-    if (st.endTimer) clearTimeout(st.endTimer);
-    st.endTimer = setTimeout(() => this._endWheelZoom(), 150);
+    if (st2.endTimer) clearTimeout(st2.endTimer);
+    st2.endTimer = setTimeout(() => this._endWheelZoom(), 150);
   }
   /**
    * Apply the zoom factor accumulated since the last animation frame, keeping
@@ -41430,17 +42216,17 @@ class ZoomPanSelection extends Toolbar {
    */
   _applyWheelZoom() {
     const w = this.w;
-    const st = this._wheel();
-    st.rafId = null;
-    const scale = st.factor;
-    st.factor = 1;
+    const st2 = this._wheel();
+    st2.rafId = null;
+    const scale = st2.factor;
+    st2.factor = 1;
     if (scale === 1 || w.globals.isDestroyed) return;
     const gridWidth = w.layout.gridWidth;
     if (!this._hasPlot() || !gridWidth) return;
     const { min, max } = this._currentXWindow();
     const range = max - min;
     const mouseX = Math.min(
-      Math.max(this._screenXToPlotPx(st.clientX) / gridWidth, 0),
+      Math.max(this._screenXToPlotPx(st2.clientX) / gridWidth, 0),
       1
     );
     let newRange = range * scale;
@@ -41471,8 +42257,8 @@ class ZoomPanSelection extends Toolbar {
   /** Fire the zoomed callback once the wheel gesture settles (mirrors _endPinch). */
   _endWheelZoom() {
     const w = this.w;
-    const st = this._wheel();
-    st.endTimer = null;
+    const st2 = this._wheel();
+    st2.endTimer = null;
     if (w.globals.isDestroyed || !w.interact.zoomed) return;
     const { min, max } = this._currentXWindow();
     const yaxis = this.yaxisForXWindow();
@@ -41490,13 +42276,13 @@ class ZoomPanSelection extends Toolbar {
         },
         updateRot: () => {
         },
-        createHandle: (group, p, index, pointArr, handleName) => {
+        createHandle: (group, p2, index, pointArr, handleName) => {
           if (handleName === "l" || handleName === "r")
             return group.circle(8).css({ "stroke-width": 1, stroke: "#333", fill: "#fff" });
           return group.circle(0);
         },
-        updateHandle: (group, p) => {
-          return group.center(p[0], p[1]);
+        updateHandle: (group, p2) => {
+          return group.center(p2[0], p2[1]);
         }
       }).resize().on("resize", () => {
         var _a;
@@ -41561,7 +42347,7 @@ class ZoomPanSelection extends Toolbar {
     }
   }
   /** @param {{x: any, y: any, width: any, height: any, translateX: any, translateY: any}} opts */
-  drawSelectionRect({ x: x2, y, width, height, translateX = 0, translateY = 0 }) {
+  drawSelectionRect({ x: x2, y: y2, width, height, translateX = 0, translateY = 0 }) {
     const w = this.w;
     const zoomRect = this.zoomRect;
     const selectionRect = this.selectionRect;
@@ -41573,7 +42359,7 @@ class ZoomPanSelection extends Toolbar {
         if (width < 0) width = 1;
         zoomRect.attr({
           x: x2,
-          y,
+          y: y2,
           width,
           height,
           fill: w.config.chart.zoom.zoomedArea.fill.color,
@@ -41587,7 +42373,7 @@ class ZoomPanSelection extends Toolbar {
       if (w.interact.selectionEnabled) {
         selectionRect.attr({
           x: x2,
-          y,
+          y: y2,
           width: width > 0 ? width : 0,
           height: height > 0 ? height : 0,
           fill: w.config.chart.selection.fill.color,
@@ -41642,14 +42428,14 @@ class ZoomPanSelection extends Toolbar {
   }
   selectionDrawing({ context, zoomtype }) {
     const w = this.w;
-    const me2 = context;
+    const me = context;
     if (!this._hasPlot()) return;
-    const startX = me2.startX;
-    const startY = me2.startY;
+    const startX = me.startX;
+    const startY = me.startY;
     let inversedX = false;
     let inversedY = false;
-    const left = this._screenXToPlotPx(me2.clientX);
-    const top = this._screenYToPlotPx(me2.clientY);
+    const left = this._screenXToPlotPx(me.clientX);
+    const top = this._screenYToPlotPx(me.clientY);
     let selectionWidth = left - startX;
     let selectionHeight = top - startY;
     let selectionRect = {
@@ -41695,8 +42481,8 @@ class ZoomPanSelection extends Toolbar {
       translateX: w.layout.translateX,
       translateY: w.layout.translateY
     });
-    me2.drawSelectionRect(selectionRect);
-    me2.selectionDragging("resizing");
+    me.drawSelectionRect(selectionRect);
+    me.selectionDragging("resizing");
     return selectionRect;
   }
   /**
@@ -41713,20 +42499,20 @@ class ZoomPanSelection extends Toolbar {
       /** @type {any} */
       this.constraints
     );
-    let { x: x2, y } = box;
+    let { x: x2, y: y2 } = box;
     if (x2 < constraints.x) {
       x2 = constraints.x;
     }
-    if (y < constraints.y) {
-      y = constraints.y;
+    if (y2 < constraints.y) {
+      y2 = constraints.y;
     }
     if (box.x2 > constraints.x2) {
       x2 = constraints.x2 - box.w;
     }
     if (box.y2 > constraints.y2) {
-      y = constraints.y2 - box.h;
+      y2 = constraints.y2 - box.h;
     }
-    handler.move(x2, y);
+    handler.move(x2, y2);
     const selRect = this.selectionRect;
     let timerInterval = 0;
     if (type === "resizing") {
@@ -41803,11 +42589,11 @@ class ZoomPanSelection extends Toolbar {
   selectionDrawn({ context, zoomtype }) {
     var _a;
     const w = this.w;
-    const me2 = context;
+    const me = context;
     const xyRatios = this.xyRatios;
     const toolbar = this.ctx.toolbar;
-    const selRect = w.interact.zoomEnabled ? me2.zoomRect.node.getBoundingClientRect() : me2.selectionRect.node.getBoundingClientRect();
-    if (!me2._hasPlot()) return;
+    const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
+    if (!me._hasPlot()) return;
     const localStartX = this._screenXToPlotPx(selRect.left);
     const localEndX = this._screenXToPlotPx(selRect.right);
     const localStartY = this._screenYToPlotPx(selRect.top);
@@ -41829,7 +42615,7 @@ class ZoomPanSelection extends Toolbar {
       yHighestValue.push(highestVal);
       yLowestValue.push(lowestVal);
     });
-    if (me2.dragged && (me2.dragX > 10 || me2.dragY > 10) && xLowestValue !== xHighestValue) {
+    if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
       if (w.interact.zoomEnabled) {
         if (!w.globals.initialConfig) return;
         let yaxis = Utils$1.clone(w.globals.initialConfig.yaxis);
@@ -41871,15 +42657,15 @@ class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           options2.yaxis = yaxis;
         }
-        const applied = me2.ctx.updateHelpers._updateOptions(
+        const applied = me.ctx.updateHelpers._updateOptions(
           options2,
           false,
-          me2.w.config.chart.animations.dynamicAnimation.enabled
+          me.w.config.chart.animations.dynamicAnimation.enabled
         );
         if (applied && typeof applied.then === "function") {
-          applied.then(() => me2._focusForKeyboard());
+          applied.then(() => me._focusForKeyboard());
         } else {
-          me2._focusForKeyboard();
+          me._focusForKeyboard();
         }
         if (typeof w.config.chart.events.zoomed === "function") {
           toolbar.zoomCallback(xaxis, yaxis);
@@ -41902,14 +42688,14 @@ class ZoomPanSelection extends Toolbar {
             yaxe.max = yHighestValue[index];
           });
         }
-        w.interact.selection = me2.selection;
+        w.interact.selection = me.selection;
         if (typeof w.config.chart.events.selection === "function") {
-          w.config.chart.events.selection(me2.ctx, {
+          w.config.chart.events.selection(me.ctx, {
             xaxis,
             yaxis
           });
         }
-        (_a = me2.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
+        (_a = me.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
       }
     }
   }
@@ -41917,10 +42703,10 @@ class ZoomPanSelection extends Toolbar {
   panDragging({ context }) {
     var _a;
     const w = this.w;
-    const me2 = context;
+    const me = context;
     if (typeof w.interact.lastClientPosition.x !== "undefined") {
-      const deltaX = w.interact.lastClientPosition.x - me2.clientX;
-      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me2.clientY;
+      const deltaX = w.interact.lastClientPosition.x - me.clientX;
+      const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me.clientY;
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
         this.moveDirection = "left";
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
@@ -41932,12 +42718,12 @@ class ZoomPanSelection extends Toolbar {
       }
     }
     w.interact.lastClientPosition = {
-      x: me2.clientX,
-      y: me2.clientY
+      x: me.clientX,
+      y: me.clientY
     };
     const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
     const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
-    me2.panScrolled(xLowestValue, xHighestValue);
+    me.panScrolled(xLowestValue, xHighestValue);
   }
   /**
    * @param {number} xLowestValue
@@ -42022,14 +42808,14 @@ class ZoomPanSelection extends Toolbar {
     return this._incidentalZoomEnabled(this.w.config.chart.zoom.pinch);
   }
   _panInertiaEnabled() {
-    const c = this.w.config.chart;
-    return !!(c.pan && c.pan.inertia);
+    const c2 = this.w.config.chart;
+    return !!(c2.pan && c2.pan.inertia);
   }
   /** Lazily-created, re-render-surviving gesture state on the interaction slice. */
   _m() {
-    const it = this.w.interact;
-    if (!it.momentum) {
-      it.momentum = {
+    const it2 = this.w.interact;
+    if (!it2.momentum) {
+      it2.momentum = {
         busy: false,
         /** @type {any} */
         pinch: null,
@@ -42041,7 +42827,7 @@ class ZoomPanSelection extends Toolbar {
         inertiaRAF: null
       };
     }
-    return it.momentum;
+    return it2.momentum;
   }
   /** Current x data-window (rangeBars carry the datetime domain on y). */
   _currentXWindow() {
@@ -42142,10 +42928,10 @@ class ZoomPanSelection extends Toolbar {
     return { minX: newMinX, maxX: newMaxX };
   }
   _cancelInertia() {
-    const m = this._m();
-    if (m.inertiaRAF != null) {
-      cancelAnimationFrame(m.inertiaRAF);
-      m.inertiaRAF = null;
+    const m2 = this._m();
+    if (m2.inertiaRAF != null) {
+      cancelAnimationFrame(m2.inertiaRAF);
+      m2.inertiaRAF = null;
     }
   }
   _fireScrolled() {
@@ -42165,24 +42951,24 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     if (!w.interact.zoomed) return;
     const { min, max } = this._currentXWindow();
-    let d = (max - min) * fraction;
+    let d2 = (max - min) * fraction;
     if (w.config.xaxis.convertedCatToNumeric) {
-      d = d > 0 ? Math.ceil(d) : Math.floor(d);
+      d2 = d2 > 0 ? Math.ceil(d2) : Math.floor(d2);
     }
     if (w.axisFlags.isRangeBar) {
       const r2 = w.rangeData;
       let lo = Infinity;
       let hi = -Infinity;
-      r2.seriesRangeStart.concat(r2.seriesRangeEnd).flat().forEach((y) => {
-        if (y != null) {
-          lo = Math.min(lo, y);
-          hi = Math.max(hi, y);
+      r2.seriesRangeStart.concat(r2.seriesRangeEnd).flat().forEach((y2) => {
+        if (y2 != null) {
+          lo = Math.min(lo, y2);
+          hi = Math.max(hi, y2);
         }
       });
-      d = d > 0 ? Math.min(d, Math.max(0, hi - max)) : Math.max(d, Math.min(0, lo - min));
-      if (!d) return;
+      d2 = d2 > 0 ? Math.min(d2, Math.max(0, hi - max)) : Math.max(d2, Math.min(0, lo - min));
+      if (!d2) return;
     }
-    if (this._applyXRange(min + d, max + d, false)) this._fireScrolled();
+    if (this._applyXRange(min + d2, max + d2, false)) this._fireScrolled();
   }
   /** @param {number} x @param {number} t */
   _pushSample(x2, t2) {
@@ -42197,24 +42983,24 @@ class ZoomPanSelection extends Toolbar {
    */
   momentumTouch(e2) {
     const w = this.w;
-    const m = this._m();
+    const m2 = this._m();
     const type = e2.type;
     if (type === "touchstart") {
       this._cancelInertia();
       if (!this._hasPlot()) return;
       if (e2.touches.length >= 2 && this._pinchEnabled()) {
         e2.preventDefault();
-        m.busy = true;
-        m.panState = null;
+        m2.busy = true;
+        m2.panState = null;
         this._beginPinch(e2);
       } else if (e2.touches.length === 1 && this._panInertiaEnabled() && w.interact.panEnabled) {
-        m.busy = true;
-        m.pinch = null;
+        m2.busy = true;
+        m2.pinch = null;
         const t2 = e2.touches[0];
         const win = this._currentXWindow();
         const gw = w.layout.gridWidth || 1;
         const zoom = Utils2.plotRect(w).zoom;
-        m.panState = {
+        m2.panState = {
           startX: t2.clientX,
           startY: t2.clientY,
           axis: null,
@@ -42225,29 +43011,29 @@ class ZoomPanSelection extends Toolbar {
           // data per screen px
           ratio0: (win.max - win.min) / gw / zoom
         };
-        m.samples = [{ x: t2.clientX, t: e2.timeStamp }];
+        m2.samples = [{ x: t2.clientX, t: e2.timeStamp }];
       }
       return;
     }
     if (type === "touchmove") {
-      if (m.pinch && e2.touches.length >= 2) {
+      if (m2.pinch && e2.touches.length >= 2) {
         e2.preventDefault();
         this._movePinch(e2);
-      } else if (m.panState && e2.touches.length === 1) {
+      } else if (m2.panState && e2.touches.length === 1) {
         this._movePan(e2);
       }
       return;
     }
-    if (m.pinch) {
+    if (m2.pinch) {
       if (e2.touches.length < 2) this._endPinch();
-    } else if (m.panState) {
+    } else if (m2.panState) {
       if (e2.touches.length === 0) this._endPan();
     }
     if (e2.touches.length === 0) {
       w.interact.mousedown = false;
       this.dragged = false;
-      if (m.inertiaRAF == null && !m.pinch && !m.panState) {
-        m.busy = false;
+      if (m2.inertiaRAF == null && !m2.pinch && !m2.panState) {
+        m2.busy = false;
       }
     }
   }
@@ -42279,16 +43065,16 @@ class ZoomPanSelection extends Toolbar {
   /** @param {any} e */
   _movePinch(e2) {
     const w = this.w;
-    const p = this._m().pinch;
-    if (!p || !this._hasPlot()) return;
+    const p2 = this._m().pinch;
+    if (!p2 || !this._hasPlot()) return;
     const t0 = e2.touches[0];
     const t1 = e2.touches[1];
     const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
     const cx = this._screenXToPlotPx((t0.clientX + t1.clientX) / 2);
-    const range0 = p.maxX0 - p.minX0;
-    const newRange = range0 * (p.d0 / dist);
-    const anchorData = p.minX0 + p.cx0 / p.gridWidth * range0;
-    let newMinX = anchorData - cx / p.gridWidth * newRange;
+    const range0 = p2.maxX0 - p2.minX0;
+    const newRange = range0 * (p2.d0 / dist);
+    const anchorData = p2.minX0 + p2.cx0 / p2.gridWidth * range0;
+    let newMinX = anchorData - cx / p2.gridWidth * newRange;
     let newMaxX = newMinX + newRange;
     const bounds = this._clampBounds();
     if (bounds) {
@@ -42303,8 +43089,8 @@ class ZoomPanSelection extends Toolbar {
     this._applyXRange(newMinX, newMaxX, true);
   }
   _endPinch() {
-    const m = this._m();
-    m.pinch = null;
+    const m2 = this._m();
+    m2.pinch = null;
     const { min, max } = this._currentXWindow();
     const xaxis = { min, max };
     const yaxis = this.yaxisForXWindow();
@@ -42313,8 +43099,8 @@ class ZoomPanSelection extends Toolbar {
   }
   /** @param {any} e */
   _movePan(e2) {
-    const m = this._m();
-    const s2 = m.panState;
+    const m2 = this._m();
+    const s2 = m2.panState;
     const t2 = e2.touches[0];
     if (!s2.axis) {
       const dx = Math.abs(t2.clientX - s2.startX);
@@ -42324,8 +43110,8 @@ class ZoomPanSelection extends Toolbar {
         return;
       }
       if (dy > dx) {
-        m.busy = false;
-        m.panState = null;
+        m2.busy = false;
+        m2.panState = null;
         return;
       }
       s2.axis = "x";
@@ -42338,22 +43124,22 @@ class ZoomPanSelection extends Toolbar {
     this._applyXRange(s2.minX0 - deltaData, s2.maxX0 - deltaData, false);
   }
   _endPan() {
-    const m = this._m();
-    const s2 = m.panState;
-    m.panState = null;
+    const m2 = this._m();
+    const s2 = m2.panState;
+    m2.panState = null;
     let vel = 0;
-    const samples = m.samples;
+    const samples = m2.samples;
     if (samples.length >= 2) {
       const a2 = samples[0];
       const b = samples[samples.length - 1];
-      const dt = b.t - a2.t;
-      if (dt > 0) vel = (b.x - a2.x) / dt;
+      const dt2 = b.t - a2.t;
+      if (dt2 > 0) vel = (b.x - a2.x) / dt2;
     }
-    m.samples = [];
+    m2.samples = [];
     if (s2 && s2.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY) {
       this._startInertia(vel / s2.zoom);
     } else {
-      m.busy = false;
+      m2.busy = false;
       this._fireScrolled();
     }
   }
@@ -42366,36 +43152,36 @@ class ZoomPanSelection extends Toolbar {
    */
   _startInertia(vel0) {
     const w = this.w;
-    const m = this._m();
+    const m2 = this._m();
     const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction;
     const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : INERTIA_DEFAULT_FRICTION;
     let vel = vel0;
     let lastT = null;
-    m.busy = true;
+    m2.busy = true;
     const step = (ts) => {
       if (w.globals.isDestroyed) {
-        m.inertiaRAF = null;
-        m.busy = false;
+        m2.inertiaRAF = null;
+        m2.busy = false;
         return;
       }
       if (lastT == null) {
         lastT = ts;
-        m.inertiaRAF = requestAnimationFrame(step);
+        m2.inertiaRAF = requestAnimationFrame(step);
         return;
       }
-      const dt = ts - lastT;
+      const dt2 = ts - lastT;
       lastT = ts;
-      vel *= Math.pow(friction, dt / FRAME_MS_60FPS);
+      vel *= Math.pow(friction, dt2 / FRAME_MS_60FPS);
       if (Math.abs(vel) < INERTIA_STOP_VELOCITY) {
-        m.inertiaRAF = null;
-        m.busy = false;
+        m2.inertiaRAF = null;
+        m2.busy = false;
         this._fireScrolled();
         return;
       }
       const win = this._currentXWindow();
       const gw = w.layout.gridWidth || 1;
       const ratio = (win.max - win.min) / gw;
-      const deltaData = vel * dt * ratio;
+      const deltaData = vel * dt2 * ratio;
       const applied = this._applyXRange(
         win.min - deltaData,
         win.max - deltaData,
@@ -42404,14 +43190,14 @@ class ZoomPanSelection extends Toolbar {
       const bounds = this._clampBounds();
       const hitEdge = !applied || bounds && (deltaData > 0 && applied.minX <= bounds.min + (bounds.max - bounds.min) * 1e-6 || deltaData < 0 && applied.maxX >= bounds.max - (bounds.max - bounds.min) * 1e-6);
       if (hitEdge) {
-        m.inertiaRAF = null;
-        m.busy = false;
+        m2.inertiaRAF = null;
+        m2.busy = false;
         this._fireScrolled();
         return;
       }
-      m.inertiaRAF = requestAnimationFrame(step);
+      m2.inertiaRAF = requestAnimationFrame(step);
     };
-    m.inertiaRAF = requestAnimationFrame(step);
+    m2.inertiaRAF = requestAnimationFrame(step);
   }
 }
 ApexCharts.registerFeatures({
@@ -42454,8 +43240,8 @@ let Helpers$2 = class Helpers3 {
           "y",
           String(parseFloat((_b = xAnno.getAttribute("y")) != null ? _b : "0") + yOffset)
         );
-        const { x: x2, y } = this.annoCtx.graphics.rotateAroundCenter(xAnno);
-        xAnno.setAttribute("transform", `rotate(-90 ${x2} ${y})`);
+        const { x: x2, y: y2 } = this.annoCtx.graphics.rotateAroundCenter(xAnno);
+        xAnno.setAttribute("transform", `rotate(-90 ${x2} ${y2})`);
       }
     }
   }
@@ -42614,22 +43400,20 @@ let Helpers$2 = class Helpers3 {
    * @param {Record<string, any>} anno
    */
   getY1Y2(type, anno) {
-    var _a, _b, _c;
+    var _a, _b;
     const w = this.w;
-    const y = type === "y1" ? anno.y : anno.y2;
-    const isPx = typeof y === "string" && y.includes("px");
+    const y2 = type === "y1" ? anno.y : anno.y2;
+    const isPx = typeof y2 === "string" && y2.includes("px");
     let yP;
     let clipped = false;
     if (this.annoCtx.invertAxis) {
       const labels = w.config.xaxis.convertedCatToNumeric ? w.labelData.categoryLabels : w.labelData.labels;
-      const catIndex = labels.indexOf(y);
+      const catIndex = labels.indexOf(y2);
       if (!isPx && catIndex === -1) {
         return { yP: 0, clipped: true };
       }
-      const xLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
-      );
-      yP = xLabel ? parseFloat((_a = xLabel.getAttribute("y")) != null ? _a : "0") : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
+      const rowCount = w.rangeData.seriesRange.length && w.globals.isBarHorizontal ? w.labelData.labels.length : w.globals.dataPoints || labels.length;
+      yP = rowCount > 0 ? (catIndex + 0.5) * (w.layout.gridHeight / rowCount) : 0;
       if (anno.seriesIndex !== void 0 && w.globals.barHeight) {
         yP += this.barSlotOffset(anno.seriesIndex, w.globals.barHeight);
       }
@@ -42638,7 +43422,7 @@ let Helpers$2 = class Helpers3 {
         return { yP: 0, clipped: true };
       }
       const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
-      const seriesIndex = (_b = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _b : null;
+      const seriesIndex = (_a = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _a : null;
       if (seriesIndex === null && w.seriesData.series.length) {
         return { yP: 0, clipped: true };
       }
@@ -42646,23 +43430,23 @@ let Helpers$2 = class Helpers3 {
       const yRange = seriesIndex === null ? w.globals.maxY - w.globals.minY : w.globals.yRange[seriesIndex];
       const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic && seriesIndex !== null ? new CoreUtils(this.w).getLogVal(
         w.config.yaxis[anno.yAxisIndex].logBase,
-        y,
+        y2,
         seriesIndex
       ) / /** @type {any} */
-      w.globals.yLogRatio[seriesIndex] : (y - yMin) / (yRange / w.layout.gridHeight);
+      w.globals.yLogRatio[seriesIndex] : (y2 - yMin) / (yRange / w.layout.gridHeight);
       yP = w.layout.gridHeight - Math.min(Math.max(yPos, 0), w.layout.gridHeight);
       clipped = yPos > w.layout.gridHeight || yPos < 0;
       if (anno.marker && (anno.y === void 0 || anno.y === null)) {
         yP = 0;
       }
-      if ((_c = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _c.reversed) {
+      if ((_b = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _b.reversed) {
         yP = yPos;
       }
     }
     if (isPx) {
       yP = parseFloat(
         /** @type {string} */
-        y
+        y2
       );
     }
     return { yP, clipped };
@@ -42714,20 +43498,30 @@ let Helpers$2 = class Helpers3 {
    * share the slot only among the series actually laid out side by side:
    * a stacked chart draws them all in one column, and a hidden series (empty
    * data) or a non-bar combo series takes no slot.
+   *
+   * Grouped-row range bars (`plotOptions.bar.rangeBarGroupRows`) share a
+   * slot too. bar/Helpers forces `seriesLen` to 1, so every series is drawn
+   * on the row centre — the dumbbell / per-row-colour pattern. A point
+   * annotation's `seriesIndex` is 0 when it names the first series, and
+   * offsetting by that lifts the marker off the row by
+   * `barHeight * (0 - (n - 1) / 2)` (#5078).
    * @param {number} i
    * @param {number} size bar width, or bar height when horizontal
    */
   barSlotOffset(i2, size) {
+    var _a, _b;
     const w = this.w;
-    if (w.config.chart.stacked) return 0;
+    if (w.config.chart.stacked || ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.rangeBarGroupRows)) {
+      return 0;
+    }
     let n2 = 0;
     let ordinal = 0;
     w.seriesData.series.forEach(
       (s2, si) => {
-        var _a;
+        var _a2;
         const type = (
           /** @type {any} */
-          (_a = w.config.series[si]) == null ? void 0 : _a.type
+          (_a2 = w.config.series[si]) == null ? void 0 : _a2.type
         );
         if (s2.length && (!w.globals.comboCharts || type === "bar" || type === "column")) {
           if (si < i2) ordinal++;
@@ -43066,7 +43860,7 @@ class PointAnnotations {
     const x2 = resultX.x;
     const clipX = resultX.clipped;
     const resultY = this.helpers.getY1Y2("y1", anno);
-    const y = resultY.yP;
+    const y2 = resultY.yP;
     const clipY = resultY.clipped;
     if (!Utils$1.isNumber(x2)) return;
     if (!(clipY || clipX)) {
@@ -43081,7 +43875,7 @@ class PointAnnotations {
       };
       let point = this.annoCtx.graphics.drawMarker(
         x2 + anno.marker.offsetX,
-        y + anno.marker.offsetY,
+        y2 + anno.marker.offsetY,
         optsPoints
       );
       parent.appendChild(point.node);
@@ -43095,7 +43889,7 @@ class PointAnnotations {
       );
       const elText = this.annoCtx.graphics.drawText({
         x: labelX,
-        y: y + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
+        y: y2 + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
         text,
         textAnchor: anno.label.textAnchor,
         fontSize: anno.label.style.fontSize,
@@ -43114,7 +43908,7 @@ class PointAnnotations {
           class: "apexcharts-point-annotations-custom-svg " + anno.customSVG.cssClass
         });
         g2.attr({
-          transform: `translate(${x2 + anno.customSVG.offsetX}, ${y + anno.customSVG.offsetY})`
+          transform: `translate(${x2 + anno.customSVG.offsetX}, ${y2 + anno.customSVG.offsetY})`
         });
         g2.node.innerHTML = anno.customSVG.SVG;
         parent.appendChild(g2.node);
@@ -43125,7 +43919,7 @@ class PointAnnotations {
         const imgHeight = anno.image.height ? anno.image.height : 20;
         point = this.annoCtx.addImage({
           x: x2 + anno.image.offsetX - imgWidth / 2,
-          y: y + anno.image.offsetY - imgHeight / 2,
+          y: y2 + anno.image.offsetY - imgHeight / 2,
           width: imgWidth,
           height: imgHeight,
           path: anno.image.path,
@@ -43246,16 +44040,16 @@ class PointAnnotations {
    */
   getPointTooltipContent(anno) {
     const w = this.w;
-    const tt = anno.tooltip || {};
-    if (typeof tt.formatter === "function") {
-      return tt.formatter({
+    const tt2 = anno.tooltip || {};
+    if (typeof tt2.formatter === "function") {
+      return tt2.formatter({
         annotation: anno,
         seriesIndex: anno.seriesIndex,
         id: anno.id,
         w
       });
     }
-    let content = tt.text != null ? tt.text : anno.label && anno.label.text;
+    let content = tt2.text != null ? tt2.text : anno.label && anno.label.text;
     if (Array.isArray(content)) {
       content = content.join("<br/>");
     }
@@ -43402,7 +44196,7 @@ class Annotations {
   addText(params) {
     const {
       x: x2,
-      y,
+      y: y2,
       text,
       textAnchor,
       foreColor,
@@ -43426,7 +44220,7 @@ class Annotations {
     if (!parent) return;
     const elText = this.graphics.drawText({
       x: x2,
-      y,
+      y: y2,
       text,
       textAnchor: textAnchor || "start",
       fontSize: fontSize || "12px",
@@ -43461,13 +44255,13 @@ class Annotations {
     const {
       path,
       x: x2 = 0,
-      y = 0,
+      y: y2 = 0,
       width = 20,
       height = 20,
       appendTo = ".apexcharts-svg"
     } = params;
     const img = w.dom.Paper.image(path);
-    img.size(width, height).move(x2, y);
+    img.size(width, height).move(x2, y2);
     const parent = w.dom.baseEl.querySelector(appendTo);
     if (parent) {
       parent.appendChild(img.node);
@@ -43532,13 +44326,13 @@ class Annotations {
     contextMethod
   }) {
     var _a;
-    const me2 = context;
-    const w = me2.w;
+    const me = context;
+    const w = me.w;
     const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`);
     const remember = (id) => {
       if (pushToMemory) {
         w.globals.memory.methodsToExec.push({
-          context: me2,
+          context: me,
           id: id ? id : Utils$1.randomId(),
           method: contextMethod,
           label: "addAnnotation",
@@ -43630,12 +44424,12 @@ class Annotations {
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`);
     if (annos) {
       w.globals.memory.methodsToExec = w.globals.memory.methodsToExec.filter(
-        (m) => m.id !== id
+        (m2) => m2.id !== id
       );
       Object.keys(w.config.annotations).forEach((key) => {
         const annotationArray = w.config.annotations[key];
         if (Array.isArray(annotationArray)) {
-          w.config.annotations[key] = annotationArray.filter((m) => m.id !== id);
+          w.config.annotations[key] = annotationArray.filter((m2) => m2.id !== id);
         }
       });
       Array.prototype.forEach.call(annos, (a2) => {
@@ -43902,8 +44696,8 @@ class KeyboardNavigation {
       const type = w.config.chart.type;
       const perCell = type === "heatmap" || type === "treemap" || type === "radialBar";
       if (!perCell && (ttCtx == null ? void 0 : ttCtx.ttItems) && ttCtx.tConfig.shared) {
-        const j2 = this.dataPointIndex;
-        const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j2) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
+        const j = this.dataPointIndex;
+        const isActuallyShared = ttCtx.tooltipUtil && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
         if (isActuallyShared) return;
       }
       if (type === "heatmap" && !((_a = w.config.yaxis[0]) == null ? void 0 : _a.reversed)) {
@@ -43912,11 +44706,11 @@ class KeyboardNavigation {
       const total = this._getSeriesCount();
       let si = this.seriesIndex;
       for (let k2 = 1; k2 < total; k2++) {
-        let c = si + dSeries * k2;
-        if (wrapAround) c = (c + total) % total;
-        else if (c < 0 || c >= total) break;
-        if (!w.globals.collapsedSeriesIndices.includes(c)) {
-          si = c;
+        let c2 = si + dSeries * k2;
+        if (wrapAround) c2 = (c2 + total) % total;
+        else if (c2 < 0 || c2 >= total) break;
+        if (!w.globals.collapsedSeriesIndices.includes(c2)) {
+          si = c2;
           break;
         }
       }
@@ -43956,22 +44750,22 @@ class KeyboardNavigation {
   }
   // ─── Display ──────────────────────────────────────────────────────────────
   _showCurrentPoint() {
-    const { seriesIndex: i2, dataPointIndex: j2 } = this;
+    const { seriesIndex: i2, dataPointIndex: j } = this;
     const w = this.w;
     const ttCtx = w.globals.tooltip;
     this._tooltipDismissed = false;
     w.interact.capturedSeriesIndex = i2;
-    w.interact.capturedDataPointIndex = j2;
-    this._applyFocusClass(i2, j2);
-    if (!(ttCtx == null ? void 0 : ttCtx.ttItems)) return this._announce(this._buildPointLabel(i2, j2));
+    w.interact.capturedDataPointIndex = j;
+    this._applyFocusClass(i2, j);
+    if (!(ttCtx == null ? void 0 : ttCtx.ttItems)) return this._announce(this._buildPointLabel(i2, j));
     this._showTooltip(
       i2,
-      j2,
+      j,
       /** @type {any} */
       ttCtx
     );
     if (w.config.tooltip.visible === false) {
-      this._announce(this._buildPointLabel(i2, j2));
+      this._announce(this._buildPointLabel(i2, j));
     }
   }
   _hideFocus() {
@@ -44006,7 +44800,7 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showTooltip(i2, j2, ttCtx) {
+  _showTooltip(i2, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
     const tooltipEl = ttCtx.getElTooltip();
@@ -44018,20 +44812,20 @@ class KeyboardNavigation {
       ttWidth: cachedDims.ttWidth || 0,
       ttHeight: cachedDims.ttHeight || 0
     };
-    this._setSyntheticEvent(i2, j2, ttCtx);
+    this._setSyntheticEvent(i2, j, ttCtx);
     w.dom.baseEl.classList.add("apexcharts-tooltip-active");
     tooltipEl.classList.add("apexcharts-active");
     if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
       tooltipEl.removeAttribute("aria-hidden");
     }
     if (this._isSliceChart() || type === "radialBar") {
-      this._showTooltipNonAxis(i2, j2, ttCtx, tooltipEl);
+      this._showTooltipNonAxis(i2, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
-      this._showTooltipHeatTree(i2, j2, ttCtx, tooltipEl, type);
+      this._showTooltipHeatTree(i2, j, ttCtx, tooltipEl, type);
     } else if (this._isBarLikeSeries(i2)) {
-      this._showTooltipBar(i2, j2, ttCtx);
+      this._showTooltipBar(i2, j, ttCtx);
     } else {
-      this._showTooltipAxisLine(i2, j2, ttCtx);
+      this._showTooltipAxisLine(i2, j, ttCtx);
     }
     if (ttCtx.fixedTooltip) ttCtx.drawFixedTooltipRect();
   }
@@ -44066,13 +44860,13 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _setSyntheticEvent(i2, j2, ttCtx) {
+  _setSyntheticEvent(i2, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
     let clientX = 0;
     let clientY = 0;
-    const el = this._getFocusableElement(i2, j2);
-    const painted = el ? null : this._canvasCell(i2, j2) || this._canvasMark(i2, j2);
+    const el = this._getFocusableElement(i2, j);
+    const painted = el ? null : this._canvasCell(i2, j) || this._canvasMark(i2, j);
     if (el) {
       const rect = el.getBoundingClientRect();
       clientX = rect.left + rect.width / 2;
@@ -44081,8 +44875,8 @@ class KeyboardNavigation {
       const plot = Utils2.plotRect(w);
       clientX = plot.left + (painted.x + painted.width / 2) * plot.zoom;
       clientY = plot.top + (painted.y + painted.height / 2) * plot.zoom;
-    } else if (w.globals.pointsArray && w.globals.pointsArray[i2] && w.globals.pointsArray[i2][j2]) {
-      const pt = w.globals.pointsArray[i2][j2];
+    } else if (w.globals.pointsArray && w.globals.pointsArray[i2] && w.globals.pointsArray[i2][j]) {
+      const pt = w.globals.pointsArray[i2][j];
       const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
       if (elGrid) {
         const plot = Utils2.plotRect(w);
@@ -44098,8 +44892,8 @@ class KeyboardNavigation {
       }
     }
     if (!this._isBarLikeSeries(i2) && (type === "line" || type === "area" || type === "rangeArea" || type === "scatter" || type === "bubble" || type === "radar")) {
-      if (w.globals.pointsArray && w.globals.pointsArray[i2] && w.globals.pointsArray[i2][j2]) {
-        const pt = w.globals.pointsArray[i2][j2];
+      if (w.globals.pointsArray && w.globals.pointsArray[i2] && w.globals.pointsArray[i2][j]) {
+        const pt = w.globals.pointsArray[i2][j];
         const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
         if (elGrid) {
           const plot = Utils2.plotRect(w);
@@ -44118,28 +44912,28 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showTooltipBar(i2, j2, ttCtx) {
+  _showTooltipBar(i2, j, ttCtx) {
     var _a, _b, _c, _d;
     const w = this.w;
     if (w.globals.comboCharts) {
       ttCtx.marker.resetPointsSize();
       this._enlargedScatterMarker = null;
     }
-    const shared = ttCtx.tConfig.shared && (ttCtx.tooltipUtil.isXoverlap(j2) || w.globals.isBarHorizontal) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
+    const shared = ttCtx.tConfig.shared && (ttCtx.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
     const rangeData = (
       /** @type {any} */
-      (_d = (_c = (_b = (_a = w.rangeData.seriesRange) == null ? void 0 : _a[i2]) == null ? void 0 : _b[j2]) == null ? void 0 : _c.y) == null ? void 0 : _d[0]
+      (_d = (_c = (_b = (_a = w.rangeData.seriesRange) == null ? void 0 : _a[i2]) == null ? void 0 : _b[j]) == null ? void 0 : _c.y) == null ? void 0 : _d[0]
     );
     ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues(__spreadValues({
       ttItems: ttCtx.ttItems,
       i: i2,
-      j: j2
+      j
     }, (rangeData == null ? void 0 : rangeData.y1) !== void 0 && { y1: rangeData.y1 }), (rangeData == null ? void 0 : rangeData.y2) !== void 0 && { y2: rangeData.y2 }), {
       shared
     }));
     const parent = `.apexcharts-series[data\\:realIndex='${i2}']`;
-    const elPath = this._canvasMark(i2, j2) ? null : w.dom.Paper.findOne(
-      `${parent} path[j='${j2}'], ${parent} circle[j='${j2}'], ${parent} rect[j='${j2}']`
+    const elPath = this._canvasMark(i2, j) ? null : w.dom.Paper.findOne(
+      `${parent} path[j='${j}'], ${parent} circle[j='${j}'], ${parent} rect[j='${j}']`
     );
     if (elPath) {
       this._leaveHoveredBar();
@@ -44149,10 +44943,10 @@ class KeyboardNavigation {
     }
     if (w.globals.isBarHorizontal) {
       const fixed = ttCtx.fixedTooltip;
-      if (!fixed && !ttCtx.showOnIntersect && !Utils2.isFollowCursor(w) && ttCtx.tooltipPosition.placeHorizontalSharedTooltip(j2)) {
+      if (!fixed && !ttCtx.showOnIntersect && !Utils2.isFollowCursor(w) && ttCtx.tooltipPosition.placeHorizontalSharedTooltip(j)) {
         return;
       }
-      const bar = this._focusedBarInWrap(i2, j2, elPath, ttCtx);
+      const bar = this._focusedBarInWrap(i2, j, elPath, ttCtx);
       const tooltipEl = ttCtx.getElTooltip();
       if (bar && tooltipEl && !fixed) {
         const ttWidth = ttCtx.tooltipRect.ttWidth || 0;
@@ -44174,7 +44968,7 @@ class KeyboardNavigation {
         } else if (w.config.tooltip.arrow) {
           ttCtx.tooltipPosition.applyTooltipPosition(
             tooltipEl,
-            ttCtx.tooltipPosition.placeAroundBar(bar, plot, j2, i2)
+            ttCtx.tooltipPosition.placeAroundBar(bar, plot, j, i2)
           );
         } else {
           const baseline = ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null ? plot.left + ttCtx.xyRatios.baseLineInvertedY : (plot.left + plot.right) / 2;
@@ -44183,16 +44977,16 @@ class KeyboardNavigation {
             const px2 = (bar.left + bar.right) / 2 - plot.left + 15;
             x2 = plot.left + (px2 + ttWidth > w.layout.gridWidth ? px2 - ttWidth : px2);
           }
-          const y = (bar.top + bar.bottom) / 2 - ttHeight / 2;
+          const y2 = (bar.top + bar.bottom) / 2 - ttHeight / 2;
           tooltipEl.style.left = Math.max(Math.min(x2, plot.right - ttWidth), plot.left) + "px";
-          tooltipEl.style.top = Math.max(Math.min(y, plot.bottom - ttHeight), plot.top) + "px";
+          tooltipEl.style.top = Math.max(Math.min(y2, plot.bottom - ttHeight), plot.top) + "px";
           delete tooltipEl.dataset.placement;
         }
       }
     } else if (this._pointerHoversOneMark(ttCtx)) {
-      this._hoverFocusedMark(i2, j2, elPath, ttCtx);
+      this._hoverFocusedMark(i2, j, elPath, ttCtx);
     } else {
-      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, i2);
+      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i2);
     }
   }
   /**
@@ -44221,18 +45015,18 @@ class KeyboardNavigation {
    * @param {any} elPath  the SVG.js wrapper `_showTooltipBar` found
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _hoverFocusedMark(i2, j2, elPath, ttCtx) {
+  _hoverFocusedMark(i2, j, elPath, ttCtx) {
     const w = this.w;
-    const painted = this._canvasMark(i2, j2);
+    const painted = this._canvasMark(i2, j);
     const node = !painted && (elPath == null ? void 0 : elPath.node) && [
       "apexcharts-bar-area",
       "apexcharts-candlestick-area",
       "apexcharts-boxPlot-area",
       "apexcharts-rangebar-area",
       "apexcharts-violin-area"
-    ].some((c) => elPath.node.classList.contains(c)) ? elPath.node : null;
+    ].some((c2) => elPath.node.classList.contains(c2)) ? elPath.node : null;
     if (!painted && !node) {
-      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, i2);
+      ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i2);
       return;
     }
     const svg = w.dom.Paper.node;
@@ -44264,12 +45058,12 @@ class KeyboardNavigation {
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @returns {{ top: number, bottom: number, left: number, right: number } | null}
    */
-  _focusedBarInWrap(i2, j2, elPath, ttCtx) {
+  _focusedBarInWrap(i2, j, elPath, ttCtx) {
     var _a, _b, _c;
     const w = this.w;
     const isViolin = w.config.chart.type === "violin" || /** @type {any} */
     ((_a = w.config.series[i2]) == null ? void 0 : _a.type) === "violin";
-    const r2 = isViolin && ((_b = ttCtx.intersect) == null ? void 0 : _b.violinGlyphRect(i2, j2)) || ((_c = elPath == null ? void 0 : elPath.node) == null ? void 0 : _c.getBoundingClientRect()) || this._canvasMarkRect(i2, j2);
+    const r2 = isViolin && ((_b = ttCtx.intersect) == null ? void 0 : _b.violinGlyphRect(i2, j)) || ((_c = elPath == null ? void 0 : elPath.node) == null ? void 0 : _c.getBoundingClientRect()) || this._canvasMarkRect(i2, j);
     if (!r2) return null;
     const wrapRect = w.dom.elWrap.getBoundingClientRect();
     return {
@@ -44285,33 +45079,33 @@ class KeyboardNavigation {
    * @param {number} j
    * @param {import('../tooltip/Tooltip').default} ttCtx
    */
-  _showTooltipAxisLine(i2, j2, ttCtx) {
+  _showTooltipAxisLine(i2, j, ttCtx) {
     var _a;
     const w = this.w;
     const type = w.config.chart.type;
     const sharedConfigured = ttCtx.tConfig.shared;
-    const shared = sharedConfigured && ttCtx.tooltipUtil.isXoverlap(j2) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
+    const shared = sharedConfigured && ttCtx.tooltipUtil.isXoverlap(j) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i: i2,
-      j: j2,
+      j,
       shared
     });
     const isScatterLike = type === "scatter" || type === "bubble" || type === "radar";
     const hasVisibleMarkers = w.globals.markers.largestSize > 0 && !w.globals.markers.batched && ((_a = this.ctx.renderer) == null ? void 0 : _a.kind) !== "canvas";
-    const painted = this._pointerHoversOneMark(ttCtx) ? this._canvasMarker(i2, j2) : null;
+    const painted = this._pointerHoversOneMark(ttCtx) ? this._canvasMarker(i2, j) : null;
     if (painted) {
       this._hoverPaintedMarker(painted, ttCtx);
     } else if (isScatterLike || hasVisibleMarkers && !shared) {
-      if (!this._showScatterBubblePoint(i2, j2, ttCtx)) {
-        ttCtx.tooltipPosition.moveDynamicPointOnHover(j2, i2);
+      if (!this._showScatterBubblePoint(i2, j, ttCtx)) {
+        ttCtx.tooltipPosition.moveDynamicPointOnHover(j, i2);
       }
     } else if (hasVisibleMarkers) {
-      ttCtx.marker.enlargePoints(j2);
+      ttCtx.marker.enlargePoints(j);
     } else if (shared) {
-      ttCtx.tooltipPosition.moveDynamicPointsOnHover(j2);
+      ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
     } else {
-      ttCtx.tooltipPosition.moveDynamicPointOnHover(j2, i2);
+      ttCtx.tooltipPosition.moveDynamicPointOnHover(j, i2);
     }
   }
   /**
@@ -44322,12 +45116,12 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {{ seriesIndex: number, dataPointIndex: number, x: number, y: number, size: number, d: string } | null}
    */
-  _canvasMarker(i2, j2) {
+  _canvasMarker(i2, j) {
     const renderer = this.ctx.renderer;
     if (!renderer || renderer.kind !== "canvas" || typeof renderer.findMarker !== "function") {
       return null;
     }
-    return renderer.findMarker(i2, j2);
+    return renderer.findMarker(i2, j);
   }
   /**
    * Place the box for a focused marker painted to canvas the way a pointer
@@ -44363,7 +45157,7 @@ class KeyboardNavigation {
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @returns {boolean} whether a marker was found and the box placed by it
    */
-  _showScatterBubblePoint(i2, j2, ttCtx) {
+  _showScatterBubblePoint(i2, j, ttCtx) {
     const baseEl = this.w.dom.baseEl;
     if (this._enlargedScatterMarker) {
       ttCtx.marker.oldPointSize(this._enlargedScatterMarker);
@@ -44373,9 +45167,9 @@ class KeyboardNavigation {
       `.apexcharts-series[data\\:realIndex='${i2}']`
     );
     if (!seriesEl) return false;
-    const markerEl = seriesEl.querySelector(`.apexcharts-marker[rel='${j2}']`);
+    const markerEl = seriesEl.querySelector(`.apexcharts-marker[rel='${j}']`);
     if (!markerEl) return false;
-    ttCtx.marker.enlargeCurrentPoint(j2, markerEl);
+    ttCtx.marker.enlargeCurrentPoint(j, markerEl);
     this._enlargedScatterMarker = markerEl;
     return true;
   }
@@ -44387,16 +45181,16 @@ class KeyboardNavigation {
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @param {HTMLElement} tooltipEl
    */
-  _showTooltipNonAxis(i2, j2, ttCtx, tooltipEl) {
+  _showTooltipNonAxis(i2, j, ttCtx, tooltipEl) {
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
-      i: i2 + j2,
+      i: i2 + j,
       shared: false
     });
     const tooltipBound = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
-    const anchor = ttCtx.getSliceAnchor(this._getFocusableElement(i2, j2));
+    const anchor = ttCtx.getSliceAnchor(this._getFocusableElement(i2, j));
     if (anchor) {
       const pos = ttCtx.tooltipPosition.placeOverAnchor(
         anchor.x,
@@ -44417,24 +45211,24 @@ class KeyboardNavigation {
    * @param {HTMLElement} tooltipEl
    * @param {string} type
    */
-  _showTooltipHeatTree(i2, j2, ttCtx, tooltipEl, type) {
+  _showTooltipHeatTree(i2, j, ttCtx, tooltipEl, type) {
     var _a, _b;
     const w = this.w;
-    if (Utils2.isFollowCursor(w) && this._hoverFocusedCell(i2, j2, ttCtx)) {
+    if (Utils2.isFollowCursor(w) && this._hoverFocusedCell(i2, j, ttCtx)) {
       return;
     }
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i: i2,
-      j: j2,
+      j,
       shared: false
     });
     const tooltipRect = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipRect.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipRect.height || ttCtx.tooltipRect.ttHeight || 0;
     const rectClass = type === "heatmap" ? "apexcharts-heatmap-rect" : "apexcharts-treemap-rect";
-    const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i2}'][j='${j2}']`);
-    const painted = cell ? null : this._canvasCell(i2, j2);
+    const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i2}'][j='${j}']`);
+    const painted = cell ? null : this._canvasCell(i2, j);
     if (cell || painted) {
       const wrapRect = w.dom.elWrap.getBoundingClientRect();
       let cellCx = 0;
@@ -44459,7 +45253,7 @@ class KeyboardNavigation {
         ttCtx.tooltipPosition.moveXCrosshairs(painted.x + painted.width / 2);
       }
       let x2 = cellCx + cellWidth + ttWidth / 2;
-      const y = cellCy + cellHeight / 2 - ttHeight / 2;
+      const y2 = cellCy + cellHeight / 2 - ttHeight / 2;
       if (cellCx + cellWidth > w.layout.gridWidth / 2) {
         x2 = cellCx - ttWidth / 2;
       }
@@ -44496,7 +45290,7 @@ class KeyboardNavigation {
         return;
       }
       tooltipEl.style.left = x2 + "px";
-      tooltipEl.style.top = y + "px";
+      tooltipEl.style.top = y2 + "px";
       if (wasStacked) delete tooltipEl.dataset.placement;
     }
   }
@@ -44510,14 +45304,14 @@ class KeyboardNavigation {
    * @param {import('../tooltip/Tooltip').default} ttCtx
    * @returns {boolean}
    */
-  _hoverFocusedCell(i2, j2, ttCtx) {
+  _hoverFocusedCell(i2, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
     const tooltipEl = ttCtx.getElTooltip();
     const cell = w.dom.baseEl.querySelector(
-      `.apexcharts-${type}-rect[i='${i2}'][j='${j2}']`
+      `.apexcharts-${type}-rect[i='${i2}'][j='${j}']`
     );
-    if (!tooltipEl || !cell && !this._canvasCell(i2, j2)) return false;
+    if (!tooltipEl || !cell && !this._canvasCell(i2, j)) return false;
     const target = cell || w.dom.Paper.node;
     w.interact.capturedSeriesIndex = -1;
     w.interact.capturedDataPointIndex = -1;
@@ -44528,9 +45322,9 @@ class KeyboardNavigation {
       y: 0,
       type
     });
-    const found = !placed.noHit && w.interact.capturedSeriesIndex === i2 && w.interact.capturedDataPointIndex === j2;
+    const found = !placed.noHit && w.interact.capturedSeriesIndex === i2 && w.interact.capturedDataPointIndex === j;
     w.interact.capturedSeriesIndex = i2;
-    w.interact.capturedDataPointIndex = j2;
+    w.interact.capturedDataPointIndex = j;
     if (!found) return false;
     ttCtx.placeCellTooltip(tooltipEl, placed);
     return true;
@@ -44544,13 +45338,13 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {{ x: number, y: number, width: number, height: number, radius: number } | null}
    */
-  _canvasCell(i2, j2) {
+  _canvasCell(i2, j) {
     if (this.w.config.chart.type !== "heatmap") return null;
     const renderer = this.ctx.renderer;
     if (!renderer || renderer.kind !== "canvas" || typeof renderer.findCell !== "function") {
       return null;
     }
-    return renderer.findCell(i2, j2);
+    return renderer.findCell(i2, j);
   }
   /**
    * The bar-like mark (a bar, a candle, a box plot, a violin body) the
@@ -44561,13 +45355,13 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {{ x: number, y: number, width: number, height: number, d: string } | null}
    */
-  _canvasMark(i2, j2) {
+  _canvasMark(i2, j) {
     if (!this._isBarLikeSeries(i2)) return null;
     const renderer = this.ctx.renderer;
     if (!renderer || renderer.kind !== "canvas" || typeof renderer.findMark !== "function") {
       return null;
     }
-    return renderer.findMark(i2, j2);
+    return renderer.findMark(i2, j);
   }
   /**
    * Where `_canvasMark` puts the painted mark on screen, as a hovered SVG
@@ -44577,8 +45371,8 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {{ left: number, top: number, right: number, bottom: number } | null}
    */
-  _canvasMarkRect(i2, j2) {
-    const mark = this._canvasMark(i2, j2);
+  _canvasMarkRect(i2, j) {
+    const mark = this._canvasMark(i2, j);
     if (!mark) return null;
     const plot = Utils2.plotRect(this.w);
     const left = plot.left + mark.x * plot.zoom;
@@ -44595,13 +45389,13 @@ class KeyboardNavigation {
    * @param {number} i
    * @param {number} j
    */
-  _applyFocusClass(i2, j2) {
+  _applyFocusClass(i2, j) {
     this._removeFocusClass();
-    const el = this._getFocusableElement(i2, j2) || this._getBatchedFocusEl(i2) || this._drawCanvasFocusRing(i2, j2);
+    const el = this._getFocusableElement(i2, j) || this._getBatchedFocusEl(i2) || this._drawCanvasFocusRing(i2, j);
     if (el) {
       el.classList.add("apexcharts-keyboard-focused");
       el.setAttribute("role", "img");
-      const label = this._buildPointLabel(i2, j2);
+      const label = this._buildPointLabel(i2, j);
       if (label) el.setAttribute("aria-label", label);
       this._focusedEl = el;
     }
@@ -44634,9 +45428,9 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {Element | null}
    */
-  _drawCanvasFocusRing(i2, j2) {
-    const cell = this._canvasCell(i2, j2);
-    if (!cell) return this._drawCanvasMarkFocusRing(i2, j2);
+  _drawCanvasFocusRing(i2, j) {
+    const cell = this._canvasCell(i2, j);
+    if (!cell) return this._drawCanvasMarkFocusRing(i2, j);
     const host = this.w.dom.baseEl.querySelector(
       `.apexcharts-heatmap .apexcharts-series[rel='${i2 + 1}']`
     );
@@ -44650,7 +45444,7 @@ class KeyboardNavigation {
       "none"
     );
     ring.node.classList.add("apexcharts-keyboard-focus-ring");
-    ring.attr({ i: i2, j: j2 });
+    ring.attr({ i: i2, j });
     host.insertBefore(ring.node, host.firstChild);
     return ring.node;
   }
@@ -44664,9 +45458,9 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {Element | null}
    */
-  _drawCanvasMarkFocusRing(i2, j2) {
-    const mark = this._canvasMark(i2, j2);
-    if (!mark) return this._drawCanvasMarkerFocusRing(i2, j2);
+  _drawCanvasMarkFocusRing(i2, j) {
+    const mark = this._canvasMark(i2, j);
+    if (!mark) return this._drawCanvasMarkerFocusRing(i2, j);
     const w = this.w;
     const host = this._seriesGroup(i2);
     if (!host) return null;
@@ -44688,8 +45482,8 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {Element | null}
    */
-  _drawCanvasMarkerFocusRing(i2, j2) {
-    const marker = this._canvasMarker(i2, j2);
+  _drawCanvasMarkerFocusRing(i2, j) {
+    const marker = this._canvasMarker(i2, j);
     if (!marker) return null;
     const w = this.w;
     const host = this._seriesGroup(i2);
@@ -44722,15 +45516,15 @@ class KeyboardNavigation {
    * @param {number} j
    * @returns {string}
    */
-  _buildPointLabel(i2, j2) {
+  _buildPointLabel(i2, j) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     const type = w.config.chart.type;
     const seriesNames = w.seriesData.seriesNames || [];
     const series = w.seriesData.series || [];
     if (this._isSliceChart()) {
-      const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j2]) != null ? _b : "";
-      const value = Array.isArray(series) ? series[j2] : "";
+      const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j]) != null ? _b : "";
+      const value = Array.isArray(series) ? series[j] : "";
       return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
     }
     if (type === "radialBar") {
@@ -44740,14 +45534,14 @@ class KeyboardNavigation {
     }
     const seriesName = seriesNames[i2] || `Series ${i2 + 1}`;
     const row = Array.isArray(series[i2]) ? series[i2] : [];
-    const rawValue = row[j2];
+    const rawValue = row[j];
     let formattedValue = rawValue == null ? "" : String(rawValue);
     const yFormatter = (_d = (_c = w.formatters) == null ? void 0 : _c.yLabelFormatters) == null ? void 0 : _d[i2];
     if (typeof yFormatter === "function") {
       try {
         formattedValue = yFormatter(rawValue, {
           seriesIndex: i2,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
       } catch (e2) {
@@ -44756,20 +45550,20 @@ class KeyboardNavigation {
     let category = "";
     const categoryLabels = (_e = w.labelData) == null ? void 0 : _e.categoryLabels;
     const seriesX = (_g = (_f = w.seriesData) == null ? void 0 : _f.seriesX) == null ? void 0 : _g[i2];
-    if (Array.isArray(categoryLabels) && categoryLabels[j2] != null) {
-      category = String(categoryLabels[j2]);
-    } else if (Array.isArray(seriesX) && seriesX[j2] != null) {
+    if (Array.isArray(categoryLabels) && categoryLabels[j] != null) {
+      category = String(categoryLabels[j]);
+    } else if (Array.isArray(seriesX) && seriesX[j] != null) {
       const xFormatter = (_h = w.formatters) == null ? void 0 : _h.xLabelFormatter;
       if (typeof xFormatter === "function") {
         try {
           category = String(
-            xFormatter(seriesX[j2], { seriesIndex: i2, dataPointIndex: j2, w })
+            xFormatter(seriesX[j], { seriesIndex: i2, dataPointIndex: j, w })
           );
         } catch (e2) {
-          category = String(seriesX[j2]);
+          category = String(seriesX[j]);
         }
       } else {
-        category = String(seriesX[j2]);
+        category = String(seriesX[j]);
       }
     }
     return category ? `${seriesName}: ${formattedValue}, ${category}` : `${seriesName}: ${formattedValue}`;
@@ -44785,32 +45579,32 @@ class KeyboardNavigation {
    * @param {number} i
    * @param {number} j
    */
-  _getFocusableElement(i2, j2) {
+  _getFocusableElement(i2, j) {
     var _a, _b;
     const w = this.w;
     const type = w.config.chart.type;
     const baseEl = w.dom.baseEl;
     if (this._isSliceChart()) {
-      return baseEl.querySelector(`.apexcharts-pie-area[j='${j2}']`);
+      return baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     }
     if (type === "heatmap") {
       return baseEl.querySelector(
-        `.apexcharts-heatmap-rect[i='${i2}'][j='${j2}']`
+        `.apexcharts-heatmap-rect[i='${i2}'][j='${j}']`
       );
     }
     if (type === "treemap") {
       return baseEl.querySelector(
-        `.apexcharts-treemap-rect[i='${i2}'][j='${j2}']`
+        `.apexcharts-treemap-rect[i='${i2}'][j='${j}']`
       );
     }
     if (type === "radialBar") {
       return baseEl.querySelector(`.apexcharts-radialbar-slice-${i2}`);
     }
     if (this._isBarLikeSeries(i2)) {
-      if (this._canvasMark(i2, j2)) return null;
-      return (_a = this._seriesGroup(i2)) == null ? void 0 : _a.querySelector(`path[j='${j2}']`);
+      if (this._canvasMark(i2, j)) return null;
+      return (_a = this._seriesGroup(i2)) == null ? void 0 : _a.querySelector(`path[j='${j}']`);
     }
-    return (_b = this._seriesGroup(i2)) == null ? void 0 : _b.querySelector(`.apexcharts-marker[rel='${j2}']`);
+    return (_b = this._seriesGroup(i2)) == null ? void 0 : _b.querySelector(`.apexcharts-marker[rel='${j}']`);
   }
   /**
    * The series' own group, by realIndex (`rel` counts within a type's groups,
@@ -45012,15 +45806,15 @@ function gridDivideRect(bbox, count) {
     const cols = baseCols + (remainder > 0 ? 1 : 0);
     if (remainder > 0) remainder--;
     const colSize = cols > 0 ? colExtent / cols : 0;
-    for (let c = 0; c < cols; c++) {
+    for (let c2 = 0; c2 < cols; c2++) {
       cells.push(
         horizontal ? {
           x: bbox.x + rowStart,
-          y: bbox.y + c * colSize,
+          y: bbox.y + c2 * colSize,
           width: rowSize,
           height: colSize
         } : {
-          x: bbox.x + c * colSize,
+          x: bbox.x + c2 * colSize,
           y: bbox.y + rowStart,
           width: colSize,
           height: rowSize
@@ -45080,9 +45874,9 @@ function gridDivideShape(bbox, count, intervalsAt) {
       if (n2 <= 0) continue;
       const lo = spans[s2][0];
       const colSize = (spans[s2][1] - lo) / n2;
-      for (let c = 0; c < n2; c++) {
+      for (let c2 = 0; c2 < n2; c2++) {
         cells.push(
-          horizontal ? { x: rowStart, y: lo + c * colSize, width: rowSize, height: colSize } : { x: lo + c * colSize, y: rowStart, width: colSize, height: rowSize }
+          horizontal ? { x: rowStart, y: lo + c2 * colSize, width: rowSize, height: colSize } : { x: lo + c2 * colSize, y: rowStart, width: colSize, height: rowSize }
         );
       }
     }
@@ -45090,14 +45884,14 @@ function gridDivideShape(bbox, count, intervalsAt) {
   }
   return cells;
 }
-function hilbertIndex(x2, y, minX, minY, maxX, maxY) {
+function hilbertIndex(x2, y2, minX, minY, maxX, maxY) {
   let ix = maxX === minX ? 0 : Math.round(32767 * ((x2 - minX) / (maxX - minX)));
-  let iy = maxY === minY ? 0 : Math.round(32767 * ((y - minY) / (maxY - minY)));
-  let d = 0;
+  let iy = maxY === minY ? 0 : Math.round(32767 * ((y2 - minY) / (maxY - minY)));
+  let d2 = 0;
   for (let s2 = 32768; s2 >= 1; s2 /= 2) {
     const rx = (ix & s2) > 0 ? 1 : 0;
     const ry = (iy & s2) > 0 ? 1 : 0;
-    d += s2 * s2 * (3 * rx ^ ry);
+    d2 += s2 * s2 * (3 * rx ^ ry);
     if (ry === 0) {
       if (rx === 1) {
         ix = s2 - 1 - ix;
@@ -45108,20 +45902,20 @@ function hilbertIndex(x2, y, minX, minY, maxX, maxY) {
       iy = t2;
     }
   }
-  return d;
+  return d2;
 }
 function sortByHilbert(items, getXY) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  const pts = items.map((it) => {
-    const [x2, y] = getXY(it);
+  const pts = items.map((it2) => {
+    const [x2, y2] = getXY(it2);
     if (x2 < minX) minX = x2;
     if (x2 > maxX) maxX = x2;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-    return [x2, y];
+    if (y2 < minY) minY = y2;
+    if (y2 > maxY) maxY = y2;
+    return [x2, y2];
   });
   return items.map((item, k2) => ({
     item,
@@ -45144,36 +45938,36 @@ function runPieceTween({
   let cancelled = false;
   const start = performance.now();
   const dur = Math.max(1, duration);
-  const write = (p, e2) => {
-    const f = p.from;
-    const t2 = p.to;
-    const el = p.el;
-    el.setAttribute("x", String(f.x + (t2.x - f.x) * e2));
-    el.setAttribute("y", String(f.y + (t2.y - f.y) * e2));
-    el.setAttribute("width", String(Math.max(0, f.width + (t2.width - f.width) * e2)));
-    el.setAttribute("height", String(Math.max(0, f.height + (t2.height - f.height) * e2)));
-    el.setAttribute("rx", String(Math.max(0, f.rx + (t2.rx - f.rx) * e2)));
-    if (p.fill) el.setAttribute("fill", p.fill(e2));
-    else if (e2 >= 1 && p.fillEnd) el.setAttribute("fill", p.fillEnd);
+  const write = (p2, e2) => {
+    const f2 = p2.from;
+    const t2 = p2.to;
+    const el = p2.el;
+    el.setAttribute("x", String(f2.x + (t2.x - f2.x) * e2));
+    el.setAttribute("y", String(f2.y + (t2.y - f2.y) * e2));
+    el.setAttribute("width", String(Math.max(0, f2.width + (t2.width - f2.width) * e2)));
+    el.setAttribute("height", String(Math.max(0, f2.height + (t2.height - f2.height) * e2)));
+    el.setAttribute("rx", String(Math.max(0, f2.rx + (t2.rx - f2.rx) * e2)));
+    if (p2.fill) el.setAttribute("fill", p2.fill(e2));
+    else if (e2 >= 1 && p2.fillEnd) el.setAttribute("fill", p2.fillEnd);
   };
   const frame = (now) => {
     if (cancelled || alive && !alive()) return;
     const elapsed = now - start;
     let live = false;
     for (let k2 = 0; k2 < pieces.length; k2++) {
-      const p = pieces[k2];
+      const p2 = pieces[k2];
       if (
         /** @type {any} */
-        p._done
+        p2._done
       ) continue;
-      const raw = (elapsed - p.delay) / dur;
+      const raw = (elapsed - p2.delay) / dur;
       if (raw < 1) live = true;
       if (raw <= 0) continue;
       const t2 = Math.min(1, raw);
-      write(p, ease(t2));
+      write(p2, ease(t2));
       if (t2 >= 1) {
-        p._done = true;
-        if (onPieceDone) onPieceDone(p);
+        p2._done = true;
+        if (onPieceDone) onPieceDone(p2);
       }
     }
     if (live) BrowserAPIs.requestAnimationFrame(frame);
@@ -45311,8 +46105,8 @@ class MorphTypeChange {
     const gl = this.w.globals;
     const graphical = (_a = this.w.dom.elGraphical) == null ? void 0 : _a.node;
     const plot = gl.layoutTween && !gl.layoutTween.done && gl.layoutTween.graphical === graphical ? gl.layoutTween.rect : null;
-    const ct = gl.circleTween;
-    const circle = ct && !ct.done && (graphical == null ? void 0 : graphical.contains(ct.node)) ? ct : null;
+    const ct2 = gl.circleTween;
+    const circle = ct2 && !ct2.done && (graphical == null ? void 0 : graphical.contains(ct2.node)) ? ct2 : null;
     const scale = circle ? circle.circle.r / circle.target.r : 1;
     this._snapshot = {
       fromType,
@@ -45419,7 +46213,7 @@ class MorphTypeChange {
         for (const a2 of el.attributes) {
           const v = a2.value.replace(
             /(url\(['"]?#|^#)([^'")\s]+)/g,
-            (m, pre, id) => ids.has(id) ? pre + id + tag : m
+            (m2, pre, id) => ids.has(id) ? pre + id + tag : m2
           );
           if (v !== a2.value) a2.value = v;
         }
@@ -45526,8 +46320,8 @@ class MorphTypeChange {
    * @param {number|string} j
    * @returns {boolean}
    */
-  claimsTargetMark(realIndex, j2) {
-    return !!(this._snapshot && this._snapshot.pieceIn && this._snapshot.mapping.has(`${realIndex}:${j2}`));
+  claimsTargetMark(realIndex, j) {
+    return !!(this._snapshot && this._snapshot.pieceIn && this._snapshot.mapping.has(`${realIndex}:${j}`));
   }
   /**
    * Create the overlay group the pieces are driven in. It lives INSIDE the
@@ -45609,10 +46403,10 @@ class MorphTypeChange {
    * @param {any} layer - the mounted piece layer
    * @returns {{ intervalsAt: (bandLo: number, bandHi: number, horizontal: boolean) => Array<[number, number]> | null, dispose: () => void } | null}
    */
-  _makeExtentProber(d, bbox, layer) {
+  _makeExtentProber(d2, bbox, layer) {
     const doc = layer.ownerDocument;
     const probe = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-    probe.setAttribute("d", d);
+    probe.setAttribute("d", d2);
     probe.setAttribute("fill", "#000");
     probe.setAttribute("stroke", "#000");
     probe.setAttribute("stroke-width", "3");
@@ -45625,14 +46419,14 @@ class MorphTypeChange {
       return null;
     }
     const pt = svg.createSVGPoint();
-    const hit = (x2, y) => {
+    const hit = (x2, y2) => {
       pt.x = x2;
-      pt.y = y;
-      const p = (
+      pt.y = y2;
+      const p2 = (
         /** @type {any} */
         probe
       );
-      return p.isPointInFill(pt) || p.isPointInStroke(pt);
+      return p2.isPointInFill(pt) || p2.isPointInStroke(pt);
     };
     const SCAN = 48;
     const intervalsAt = (bandLo, bandHi, horizontal) => {
@@ -45648,10 +46442,10 @@ class MorphTypeChange {
       const edge = (inside, outside, major) => {
         let a2 = outside;
         let b = inside;
-        for (let it = 0; it < 6; it++) {
-          const m = (a2 + b) / 2;
-          if (at2(m, major)) b = m;
-          else a2 = m;
+        for (let it2 = 0; it2 < 6; it2++) {
+          const m2 = (a2 + b) / 2;
+          if (at2(m2, major)) b = m2;
+          else a2 = m2;
         }
         return (a2 + b) / 2;
       };
@@ -45734,7 +46528,7 @@ class MorphTypeChange {
       const box = this.getInitialBBoxFor(i2);
       const entry = snap.mapping.get(`${i2}:0`);
       if (!box || !entry) {
-        dots.forEach((d) => reveal(d.el));
+        dots.forEach((d2) => reveal(d2.el));
         return;
       }
       const markFill = this._solidFill(entry.fill, i2, dots[0].fill);
@@ -45744,7 +46538,7 @@ class MorphTypeChange {
         shapedSource && this.getInitialPathFor(i2, 0),
         layer
       );
-      const ordered = sortByHilbert(dots, (d) => [d.x, d.y]);
+      const ordered = sortByHilbert(dots, (d2) => [d2.x, d2.y]);
       for (let k2 = 0; k2 < ordered.length; k2++) {
         const cell = cells[k2];
         const dot = ordered[k2];
@@ -45797,14 +46591,14 @@ class MorphTypeChange {
       const num = (a2) => parseFloat(dot.getAttribute(a2));
       const cx = dot.getAttribute("cx");
       const w = num("width") || 0;
-      const h = num("height") || 0;
+      const h2 = num("height") || 0;
       const x2 = cx != null ? parseFloat(cx) : num("x") + w / 2;
-      const y = cx != null ? num("cy") : num("y") + h / 2;
-      const r2 = (cx != null ? num("r") : Math.max(w, h) / 2) || 3;
-      if (!isFinite(x2) || !isFinite(y)) return;
+      const y2 = cx != null ? num("cy") : num("y") + h2 / 2;
+      const r2 = (cx != null ? num("r") : Math.max(w, h2) / 2) || 3;
+      if (!isFinite(x2) || !isFinite(y2)) return;
       let list = into.get(i2);
       if (!list) into.set(i2, list = []);
-      list.push({ el: dot, x: x2, y, r: r2, fill: dot.getAttribute("fill") });
+      list.push({ el: dot, x: x2, y: y2, r: r2, fill: dot.getAttribute("fill") });
     });
     return into;
   }
@@ -45845,24 +46639,24 @@ class MorphTypeChange {
         /** @type {any} */
         key ? targets.get(key) : null
       );
-      const d = target && this._markD(target);
-      const b = d && this._pathBBox(d);
+      const d2 = target && this._markD(target);
+      const b = d2 && this._pathBBox(d2);
       if (!b || !dots || !dots.length) {
         if (target) target.els.forEach(reveal);
         continue;
       }
       const bbox = { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY };
       const markFill = this._solidFill(target.fill, target.realIndex, dots[0].fill);
-      const cells = this._cutMark(bbox, dots.length, shapedTarget && d, layer);
-      const ordered = sortByHilbert(dots, (d2) => [d2.x, d2.y]);
+      const cells = this._cutMark(bbox, dots.length, shapedTarget && d2, layer);
+      const ordered = sortByHilbert(dots, (d3) => [d3.x, d3.y]);
       const markState = {
         remaining: ordered.length,
         els: target.els,
         g: staged.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "g"))
       };
-      for (let m = 0; m < ordered.length; m++) {
-        const dot = ordered[m];
-        const cell = cells[m];
+      for (let m2 = 0; m2 < ordered.length; m2++) {
+        const dot = ordered[m2];
+        const cell = cells[m2];
         const el = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
         const fx = dot.x + dx - dot.r;
         const fy = dot.y + dy - dot.r;
@@ -45916,11 +46710,11 @@ class MorphTypeChange {
    * @param {string|false|null} d
    * @param {any} layer
    */
-  _cutMark(box, n2, d, layer) {
-    const prober = d ? this._makeExtentProber(d, box, layer) : null;
+  _cutMark(box, n2, d2, layer) {
+    const prober = d2 ? this._makeExtentProber(d2, box, layer) : null;
     const cells = prober ? gridDivideShape(box, n2, prober.intervalsAt) : gridDivideRect(box, n2);
     if (prober) prober.dispose();
-    return sortByHilbert(cells, (c) => [c.x + c.width / 2, c.y + c.height / 2]);
+    return sortByHilbert(cells, (c2) => [c2.x + c2.width / 2, c2.y + c2.height / 2]);
   }
   /**
    * A collected target mark's final geometry as one path: the radial `d` it
@@ -45930,7 +46724,7 @@ class MorphTypeChange {
    */
   _markD(target) {
     return target.d || target.els.map(
-      (p) => p.getAttribute("pathTo") || p.getAttribute("d")
+      (p2) => p2.getAttribute("pathTo") || p2.getAttribute("d")
     ).filter(Boolean).join(" ");
   }
   /**
@@ -45980,10 +46774,10 @@ class MorphTypeChange {
     if (!baseEl) return out;
     const fam = familyOf(toType);
     if (fam === "radial") {
-      baseEl.querySelectorAll(".apexcharts-pie-series .apexcharts-pie-area").forEach((p, i2) => {
-        const d = p.getAttribute("data:pathFinal") || p.getAttribute("d");
-        if (d && d.trim()) {
-          out.set(`${i2}:0`, { realIndex: i2, d, fill: p.getAttribute("fill"), els: [p] });
+      baseEl.querySelectorAll(".apexcharts-pie-series .apexcharts-pie-area").forEach((p2, i2) => {
+        const d2 = p2.getAttribute("data:pathFinal") || p2.getAttribute("d");
+        if (d2 && d2.trim()) {
+          out.set(`${i2}:0`, { realIndex: i2, d: d2, fill: p2.getAttribute("fill"), els: [p2] });
         }
       });
       return out;
@@ -45993,16 +46787,16 @@ class MorphTypeChange {
       var _a2;
       const realIndex = parseInt((_a2 = group.getAttribute("data:realIndex")) != null ? _a2 : "0", 10) || 0;
       let order = 0;
-      group.querySelectorAll("path[pathTo]:not(.apexcharts-highlight-part)").forEach((p) => {
+      group.querySelectorAll("path[pathTo]:not(.apexcharts-highlight-part)").forEach((p2) => {
         var _a3;
-        const d = p.getAttribute("pathTo") || p.getAttribute("d");
-        if (!d || !d.trim()) return;
-        const jAttr = parseInt((_a3 = p.getAttribute("j")) != null ? _a3 : "", 10);
-        const j2 = isNaN(jAttr) ? order++ : jAttr;
-        const key = `${realIndex}:${j2}`;
+        const d2 = p2.getAttribute("pathTo") || p2.getAttribute("d");
+        if (!d2 || !d2.trim()) return;
+        const jAttr = parseInt((_a3 = p2.getAttribute("j")) != null ? _a3 : "", 10);
+        const j = isNaN(jAttr) ? order++ : jAttr;
+        const key = `${realIndex}:${j}`;
         const prev = out.get(key);
-        if (prev) prev.els.push(p);
-        else out.set(key, { realIndex, fill: p.getAttribute("fill"), els: [p] });
+        if (prev) prev.els.push(p2);
+        else out.set(key, { realIndex, fill: p2.getAttribute("fill"), els: [p2] });
       });
     });
     return out;
@@ -46036,53 +46830,53 @@ class MorphTypeChange {
         const paths = seriesNode.querySelectorAll(
           "path[pathTo]:not(.apexcharts-highlight-part)"
         );
-        paths.forEach((p, j2) => {
-          const d = p.getAttribute("d") || p.getAttribute("pathTo");
-          if (!d) return;
+        paths.forEach((p2, j) => {
+          const d2 = p2.getAttribute("d") || p2.getAttribute("pathTo");
+          if (!d2) return;
           captured.push({
             realIndex,
-            j: j2,
-            d,
-            fill: p.getAttribute("fill")
+            j,
+            d: d2,
+            fill: p2.getAttribute("fill")
           });
         });
       });
     } else if (fam === "summary") {
       const byMark = /* @__PURE__ */ new Map();
-      baseEl.querySelectorAll(`.apexcharts-${fromType}-area`).forEach((p) => {
+      baseEl.querySelectorAll(`.apexcharts-${fromType}-area`).forEach((p2) => {
         var _a2, _b;
-        const j2 = parseInt((_a2 = p.getAttribute("j")) != null ? _a2 : "", 10);
-        if (isNaN(j2)) return;
-        const d = p.getAttribute("d") || p.getAttribute("pathTo");
-        if (!d || !d.trim()) return;
-        const group = typeof p.closest === "function" ? p.closest(".apexcharts-series") : null;
+        const j = parseInt((_a2 = p2.getAttribute("j")) != null ? _a2 : "", 10);
+        if (isNaN(j)) return;
+        const d2 = p2.getAttribute("d") || p2.getAttribute("pathTo");
+        if (!d2 || !d2.trim()) return;
+        const group = typeof p2.closest === "function" ? p2.closest(".apexcharts-series") : null;
         const realIndex = parseInt((_b = group == null ? void 0 : group.getAttribute("data:realIndex")) != null ? _b : "0", 10) || 0;
-        const key = `${realIndex}:${j2}`;
+        const key = `${realIndex}:${j}`;
         const prev = byMark.get(key);
-        if (prev) prev.d += ` ${d}`;
-        else byMark.set(key, { realIndex, j: j2, d, fill: p.getAttribute("fill") });
+        if (prev) prev.d += ` ${d2}`;
+        else byMark.set(key, { realIndex, j, d: d2, fill: p2.getAttribute("fill") });
       });
-      Array.from(byMark.values()).sort((a2, b) => a2.realIndex - b.realIndex || a2.j - b.j).forEach((m) => captured.push(m));
+      Array.from(byMark.values()).sort((a2, b) => a2.realIndex - b.realIndex || a2.j - b.j).forEach((m2) => captured.push(m2));
     } else if (fam === "partition") {
       if (fromType === "treemap") {
         const rectPath = (el) => {
           var _a2, _b, _c, _d;
           const x2 = parseFloat((_a2 = el.getAttribute("x")) != null ? _a2 : "");
-          const y = parseFloat((_b = el.getAttribute("y")) != null ? _b : "");
+          const y2 = parseFloat((_b = el.getAttribute("y")) != null ? _b : "");
           const width = parseFloat((_c = el.getAttribute("width")) != null ? _c : "");
           const height = parseFloat((_d = el.getAttribute("height")) != null ? _d : "");
-          if (![x2, y, width, height].every((v) => isFinite(v))) return null;
-          return `M ${x2} ${y} L ${x2 + width} ${y} L ${x2 + width} ${y + height} L ${x2} ${y + height} Z`;
+          if (![x2, y2, width, height].every((v) => isFinite(v))) return null;
+          return `M ${x2} ${y2} L ${x2 + width} ${y2} L ${x2 + width} ${y2 + height} L ${x2} ${y2 + height} Z`;
         };
         const tiles = baseEl.querySelectorAll(".apexcharts-treemap-rect");
         tiles.forEach((t2) => {
           var _a2, _b;
-          const d = rectPath(t2);
-          if (!d) return;
+          const d2 = rectPath(t2);
+          if (!d2) return;
           captured.push({
             realIndex: parseInt((_a2 = t2.getAttribute("i")) != null ? _a2 : "0", 10) || 0,
             j: parseInt((_b = t2.getAttribute("j")) != null ? _b : "0", 10) || 0,
-            d,
+            d: d2,
             fill: t2.getAttribute("fill"),
             key: t2.getAttribute("data:key") || null
           });
@@ -46090,11 +46884,11 @@ class MorphTypeChange {
         const containers = baseEl.querySelectorAll(
           ".apexcharts-treemap-parent-rect"
         );
-        containers.forEach((c) => {
-          const d = rectPath(c);
-          const key = c.getAttribute("data:key");
-          if (!d || !key) return;
-          branches.push({ key, d, fill: c.getAttribute("fill") });
+        containers.forEach((c2) => {
+          const d2 = rectPath(c2);
+          const key = c2.getAttribute("data:key");
+          if (!d2 || !key) return;
+          branches.push({ key, d: d2, fill: c2.getAttribute("fill") });
         });
       } else {
         const arcs = baseEl.querySelectorAll(".apexcharts-sunburst-arc");
@@ -46104,22 +46898,22 @@ class MorphTypeChange {
         });
         const source = leaves.length ? leaves : Array.from(arcs);
         source.forEach((a2, i2) => {
-          const d = a2.getAttribute("d");
-          if (!d || !d.trim()) return;
+          const d2 = a2.getAttribute("d");
+          if (!d2 || !d2.trim()) return;
           captured.push({
             realIndex: i2,
             j: 0,
-            d,
+            d: d2,
             fill: a2.getAttribute("fill"),
             key: a2.getAttribute("data:key") || null
           });
         });
         arcs.forEach((a2) => {
           if (a2.getAttribute("data:leaf") === "true") return;
-          const d = a2.getAttribute("d");
+          const d2 = a2.getAttribute("d");
           const key = a2.getAttribute("data:key");
-          if (!d || !d.trim() || !key) return;
-          branches.push({ key, d, fill: a2.getAttribute("fill") });
+          if (!d2 || !d2.trim() || !key) return;
+          branches.push({ key, d: d2, fill: a2.getAttribute("fill") });
         });
       }
     } else if (fam === "unit") {
@@ -46129,8 +46923,8 @@ class MorphTypeChange {
           /** @type {any[]} */
           unitDots.get(i2)
         );
-        const xs = list.map((d) => d.x);
-        const ys = list.map((d) => d.y);
+        const xs = list.map((d2) => d2.x);
+        const ys = list.map((d2) => d2.y);
         const pad = 2;
         const x1 = Math.min(...xs) - pad;
         const y1 = Math.min(...ys) - pad;
@@ -46151,20 +46945,20 @@ class MorphTypeChange {
         const rings = baseEl.querySelectorAll(
           ".apexcharts-radial-series .apexcharts-radialbar-area"
         );
-        rings.forEach((p) => {
+        rings.forEach((p2) => {
           var _a2;
           const parent = (
             /** @type {Element|null} */
-            p.parentElement
+            p2.parentElement
           );
           const realIndex = parseInt(
             (_a2 = parent == null ? void 0 : parent.getAttribute("data:realIndex")) != null ? _a2 : "0",
             10
           );
-          const rawD = p.getAttribute("d");
+          const rawD = p2.getAttribute("d");
           if (!rawD) return;
-          const strokeWidth = parseFloat(p.getAttribute("stroke-width") || "0");
-          const d = strokeWidth > 1 ? this._radialArcToFilledSegment(
+          const strokeWidth = parseFloat(p2.getAttribute("stroke-width") || "0");
+          const d2 = strokeWidth > 1 ? this._radialArcToFilledSegment(
             rawD,
             strokeWidth,
             centerX,
@@ -46173,8 +46967,8 @@ class MorphTypeChange {
           captured.push({
             realIndex,
             j: 0,
-            d,
-            fill: p.getAttribute("stroke")
+            d: d2,
+            fill: p2.getAttribute("stroke")
           });
         });
       } else {
@@ -46182,14 +46976,14 @@ class MorphTypeChange {
           ".apexcharts-pie-series .apexcharts-pie-area"
         );
         slices.forEach(
-          (p, i2) => {
-            const d = p.getAttribute("d");
-            if (!d) return;
+          (p2, i2) => {
+            const d2 = p2.getAttribute("d");
+            if (!d2) return;
             captured.push({
               realIndex: i2,
               j: 0,
-              d,
-              fill: p.getAttribute("fill")
+              d: d2,
+              fill: p2.getAttribute("fill")
             });
           }
         );
@@ -46211,22 +47005,22 @@ class MorphTypeChange {
    * @returns {string | null}
    */
   _radialArcToFilledSegment(rawD, strokeWidth, centerX, centerY) {
-    const m = rawD.match(
+    const m2 = rawD.match(
       /M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+A\s*(-?[\d.]+)\s+(?:-?[\d.]+)\s+(?:-?[\d.]+)\s+(\d)\s+(\d)\s+(-?[\d.]+)\s+(-?[\d.]+)/
     );
-    if (!m) return null;
-    const r2 = parseFloat(m[3]);
+    if (!m2) return null;
+    const r2 = parseFloat(m2[3]);
     if (!isFinite(r2) || r2 <= 0) return null;
-    const angle = (x2, y) => Math.atan2(+x2 - centerX, centerY - +y) * 180 / Math.PI;
-    const a1 = angle(m[1], m[2]);
-    const span = ((angle(m[6], m[7]) - a1) % 360 + 360) % 360;
+    const angle = (x2, y2) => Math.atan2(+x2 - centerX, centerY - +y2) * 180 / Math.PI;
+    const a1 = angle(m2[1], m2[2]);
+    const span = ((angle(m2[6], m2[7]) - a1) % 360 + 360) % 360;
     return this.buildRingSegmentPath(
       centerX,
       centerY,
       r2,
       strokeWidth,
       a1,
-      a1 + (+m[5] ? span : span - 360)
+      a1 + (+m2[5] ? span : span - 360)
     );
   }
   /**
@@ -46308,10 +47102,10 @@ class MorphTypeChange {
     const tf = familyOf(toType);
     const flat = captured.slice().sort((a2, b) => a2.realIndex - b.realIndex || a2.j - b.j);
     if (tf === "partition" && branches && branches.length) {
-      const keyedMarks = flat.filter((c) => c.key);
+      const keyedMarks = flat.filter((c2) => c2.key);
       if (keyedMarks.length === flat.length) {
-        keyedMarks.forEach((c) => {
-          map.set(`key:${c.key}`, { d: c.d, fill: c.fill });
+        keyedMarks.forEach((c2) => {
+          map.set(`key:${c2.key}`, { d: c2.d, fill: c2.fill });
         });
         branches.forEach((br) => {
           map.set(`key:${br.key}`, { d: br.d, fill: br.fill });
@@ -46320,16 +47114,16 @@ class MorphTypeChange {
     }
     const fromUnit = familyOf(_fromType) === "unit";
     if (tf === "radial" || tf === "unit" || tf === "partition") {
-      flat.forEach((c, i2) => {
-        map.set(`${fromUnit ? c.realIndex : i2}:0`, { d: c.d, fill: c.fill });
+      flat.forEach((c2, i2) => {
+        map.set(`${fromUnit ? c2.realIndex : i2}:0`, { d: c2.d, fill: c2.fill });
       });
       return map;
     }
     if (tf === "bar" || tf === "summary") {
       const keys = this._targetKeys(tf, newSeries);
-      flat.forEach((c, i2) => {
-        const key = keys[fromUnit ? c.realIndex : i2];
-        if (key) map.set(key, { d: c.d, fill: c.fill });
+      flat.forEach((c2, i2) => {
+        const key = keys[fromUnit ? c2.realIndex : i2];
+        if (key) map.set(key, { d: c2.d, fill: c2.fill });
       });
     }
     return map;
@@ -46355,7 +47149,7 @@ class MorphTypeChange {
     } else {
       series.forEach((s2, si) => {
         const data = s2 && Array.isArray(s2.data) ? s2.data : [];
-        for (let j2 = 0; j2 < data.length; j2++) keys.push(`${si}:${j2}`);
+        for (let j = 0; j < data.length; j++) keys.push(`${si}:${j}`);
       });
     }
     return keys;
@@ -46368,9 +47162,9 @@ class MorphTypeChange {
    * @param {number|string} j
    * @returns {string | null}
    */
-  getInitialPathFor(realIndex, j2) {
+  getInitialPathFor(realIndex, j) {
     if (!this._snapshot) return null;
-    const entry = this._snapshot.mapping.get(`${realIndex}:${j2}`);
+    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
     if (!entry) return null;
     const { k: k2, dx, dy } = this._oldToNew();
     return k2 === 1 && dx === 0 && dy === 0 ? entry.d : mapPathAffine(entry.d, k2, dx, k2, dy, k2);
@@ -46466,13 +47260,13 @@ class MorphTypeChange {
    * @param {number} n - objects in the cluster
    * @returns {{ x: number, y: number } | null}
    */
-  getInitialSlotFor(i2, j2, n2) {
+  getInitialSlotFor(i2, j, n2) {
     const box = this.getInitialBBoxFor(i2);
     if (!box) return null;
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
-    if (!(n2 > 1) || !(j2 >= 0)) return { x: cx, y: cy };
-    const t2 = (Math.min(j2, n2 - 1) + 0.5) / n2;
+    if (!(n2 > 1) || !(j >= 0)) return { x: cx, y: cy };
+    const t2 = (Math.min(j, n2 - 1) + 0.5) / n2;
     if (box.height >= box.width) {
       return { x: cx, y: box.y + box.height * (1 - t2) };
     }
@@ -46506,7 +47300,7 @@ class MorphTypeChange {
    * @param {string} d
    * @returns {{ minX:number, minY:number, maxX:number, maxY:number } | null}
    */
-  _pathBBox(d) {
+  _pathBBox(d2) {
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -46515,52 +47309,52 @@ class MorphTypeChange {
     let py = 0;
     let sx = 0;
     let sy = 0;
-    const add = (x2, y) => {
-      if (!isFinite(x2) || !isFinite(y)) return;
+    const add = (x2, y2) => {
+      if (!isFinite(x2) || !isFinite(y2)) return;
       if (x2 < minX) minX = x2;
       if (x2 > maxX) maxX = x2;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
+      if (y2 < minY) minY = y2;
+      if (y2 > maxY) maxY = y2;
     };
-    parsePath(d).forEach(
+    parsePath(d2).forEach(
       /** @param {any[]} c */
-      (c) => {
-        const cmd = c[0];
+      (c2) => {
+        const cmd = c2[0];
         if (cmd === "Z") {
           px2 = sx;
           py = sy;
           return;
         }
-        const n2 = c.length;
-        const x2 = cmd === "H" ? c[1] : cmd === "V" ? px2 : c[n2 - 2];
-        const y = cmd === "H" ? py : cmd === "V" ? c[1] : c[n2 - 1];
+        const n2 = c2.length;
+        const x2 = cmd === "H" ? c2[1] : cmd === "V" ? px2 : c2[n2 - 2];
+        const y2 = cmd === "H" ? py : cmd === "V" ? c2[1] : c2[n2 - 1];
         if (cmd === "A") {
-          if (c[1]) {
+          if (c2[1]) {
             const hx = (px2 - x2) / 2;
-            const hy = (py - y) / 2;
-            const f = (c[4] === c[5] ? -1 : 1) * Math.sqrt(Math.max(0, c[1] * c[1] / (hx * hx + hy * hy) - 1));
-            const cx = px2 - hx + f * hy;
-            const cy = py - hy - f * hx;
+            const hy = (py - y2) / 2;
+            const f2 = (c2[4] === c2[5] ? -1 : 1) * Math.sqrt(Math.max(0, c2[1] * c2[1] / (hx * hx + hy * hy) - 1));
+            const cx = px2 - hx + f2 * hy;
+            const cy = py - hy - f2 * hx;
             const r2 = Math.hypot(px2 - cx, py - cy);
             const a0 = Math.atan2(py - cy, px2 - cx);
             const TAU = 2 * Math.PI;
-            let sweep = Math.atan2(y - cy, x2 - cx) - a0;
-            if (c[5] && sweep < 0) sweep += TAU;
-            else if (!c[5] && sweep > 0) sweep -= TAU;
+            let sweep = Math.atan2(y2 - cy, x2 - cx) - a0;
+            if (c2[5] && sweep < 0) sweep += TAU;
+            else if (!c2[5] && sweep > 0) sweep -= TAU;
             for (let a2 = 0; a2 < TAU; a2 += Math.PI / 2) {
               const t2 = ((sweep > 0 ? a2 - a0 : a0 - a2) % TAU + TAU) % TAU;
               if (t2 <= Math.abs(sweep)) add(cx + r2 * Math.cos(a2), cy + r2 * Math.sin(a2));
             }
           }
         } else if (cmd !== "H" && cmd !== "V") {
-          for (let k2 = 1; k2 + 1 < n2; k2 += 2) add(c[k2], c[k2 + 1]);
+          for (let k2 = 1; k2 + 1 < n2; k2 += 2) add(c2[k2], c2[k2 + 1]);
         }
-        add(x2, y);
+        add(x2, y2);
         px2 = x2;
-        py = y;
+        py = y2;
         if (cmd === "M") {
           sx = x2;
-          sy = y;
+          sy = y2;
         }
       }
     );
@@ -46772,8 +47566,8 @@ const PLUGIN_CHART_METHODS = [
 ];
 function buildBoundPublicMethods(ctx) {
   const out = {};
-  PLUGIN_CHART_METHODS.forEach((m) => {
-    if (typeof ctx[m] === "function") out[m] = ctx[m].bind(ctx);
+  PLUGIN_CHART_METHODS.forEach((m2) => {
+    if (typeof ctx[m2] === "function") out[m2] = ctx[m2].bind(ctx);
   });
   return Object.freeze(out);
 }
@@ -46789,7 +47583,7 @@ function makeLayerHandle(g2, graphics, onClear) {
     /** @param {any} opts */
     path(opts = {}) {
       const {
-        d = "",
+        d: d2 = "",
         stroke = "#000",
         width = 1,
         fill = "none",
@@ -46799,7 +47593,7 @@ function makeLayerHandle(g2, graphics, onClear) {
       } = opts;
       return add(
         graphics.drawPath({
-          d,
+          d: d2,
           stroke,
           strokeWidth: width,
           fill,
@@ -46819,9 +47613,9 @@ function makeLayerHandle(g2, graphics, onClear) {
     rect(opts = {}) {
       const {
         x: x2 = 0,
-        y = 0,
+        y: y2 = 0,
         w = 0,
-        h = 0,
+        h: h2 = 0,
         r: r2 = 0,
         fill = "#000",
         stroke = null,
@@ -46830,9 +47624,9 @@ function makeLayerHandle(g2, graphics, onClear) {
       return add(
         graphics.drawRect(
           x2,
-          y,
+          y2,
           w,
-          h,
+          h2,
           r2,
           fill,
           opacity,
@@ -46852,7 +47646,7 @@ function makeLayerHandle(g2, graphics, onClear) {
     text(opts = {}) {
       const {
         x: x2 = 0,
-        y = 0,
+        y: y2 = 0,
         text = "",
         color,
         size,
@@ -46862,7 +47656,7 @@ function makeLayerHandle(g2, graphics, onClear) {
       return add(
         graphics.drawText({
           x: x2,
-          y,
+          y: y2,
           text,
           textAnchor: anchor,
           fontSize: size,
@@ -46898,9 +47692,9 @@ function buildPluginAPI(host, record) {
      * @param {Function} fn
      */
     on(hook, fn) {
-      const m = record.handlers;
-      if (!m.has(hook)) m.set(hook, []);
-      m.get(hook).push(fn);
+      const m2 = record.handlers;
+      if (!m2.has(hook)) m2.set(hook, []);
+      m2.get(hook).push(fn);
       return api;
     },
     /**
@@ -47524,8 +48318,8 @@ const _WeaveHost = class _WeaveHost {
     const rows = /* @__PURE__ */ new Map();
     if (banded) {
       const keys = isRangeBar ? w.labelData.labels : w.axisFlags.isXNumeric ? w.seriesData.seriesX[gl.maxValsInArrayIndex] || [] : [];
-      keys.forEach((k2, j2) => {
-        if (!rows.has(k2)) rows.set(k2, j2);
+      keys.forEach((k2, j) => {
+        if (!rows.has(k2)) rows.set(k2, j);
       });
     }
     const x2 = banded ? (v) => band * ((rows.has(v) ? (
@@ -47547,20 +48341,20 @@ const _WeaveHost = class _WeaveHost {
       if (!coreUtils) coreUtils = new CoreUtils(w);
       return coreUtils.getLogVal(ya.logBase, v, axis);
     };
-    const y = horizontal ? (v, axis = 0) => {
+    const y2 = horizontal ? (v, axis = 0) => {
       const range = Math.abs(maxY(axis) - minY(axis));
       const px2 = range ? (v - minY(axis)) / range * L2.gridWidth : 0;
       return reversed(axis) ? L2.gridWidth - px2 : px2;
     } : (v, axis = 0) => {
-      const f = logFraction(v, axis);
-      if (f !== null) {
-        return reversed(axis) ? f * L2.gridHeight : (1 - f) * L2.gridHeight;
+      const f2 = logFraction(v, axis);
+      if (f2 !== null) {
+        return reversed(axis) ? f2 * L2.gridHeight : (1 - f2) * L2.gridHeight;
       }
       return reversed(axis) ? (v - minY(axis)) / yr(axis) : (maxY(axis) - v) / yr(axis);
     };
     this._currentScales = {
       x: x2,
-      y,
+      y: y2,
       domainX: banded ? [-0.5, rowCount - 0.5] : [gl.minX, gl.maxX],
       /** @param {number} [axis] */
       domainY: (axis = 0) => [minY(axis), maxY(axis)],
@@ -47571,7 +48365,7 @@ const _WeaveHost = class _WeaveHost {
        * @param {number} vy
        * @param {number} [axis]
        */
-      point: (vx, vy, axis = 0) => horizontal ? { x: y(vy, axis), y: x2(vx) } : { x: x2(vx), y: y(vy, axis) },
+      point: (vx, vy, axis = 0) => horizontal ? { x: y2(vy, axis), y: x2(vx) } : { x: x2(vx), y: y2(vy, axis) },
       gridWidth: L2.gridWidth,
       gridHeight: L2.gridHeight,
       ratios: xyRatios
@@ -47590,9 +48384,9 @@ const _WeaveHost = class _WeaveHost {
     return series.map((sData, i2) => {
       const row = Array.isArray(sData) ? sData : [sData];
       const xs = seriesX[i2] || [];
-      const points = row.map((y, j2) => ({
-        x: xs[j2] != null ? xs[j2] : j2,
-        y
+      const points = row.map((y2, j) => ({
+        x: xs[j] != null ? xs[j] : j,
+        y: y2
       }));
       const cfg = cfgSeries[i2];
       const raw = cfg && typeof cfg === "object" && Array.isArray(cfg.data) ? cfg.data : [];
@@ -48118,7 +48912,7 @@ const _WeaveHost = class _WeaveHost {
       label: item.label ? String(item.label) : item.id,
       visible: item.visible !== false
     };
-    const at2 = mine.findIndex((d) => d.id === entry.id);
+    const at2 = mine.findIndex((d2) => d2.id === entry.id);
     if (at2 > -1) mine[at2] = entry;
     else mine.push(entry);
     this._declared.set(name2, mine);
@@ -48275,22 +49069,22 @@ function makeCustomSeriesClass(name2, def) {
         if (typeof w.globals.pointsArray[realIndex] === "undefined") {
           w.globals.pointsArray[realIndex] = [];
         }
-        for (let j2 = 0; j2 < yvals.length; j2++) {
-          const yVal = yvals[j2];
+        for (let j = 0; j < yvals.length; j++) {
+          const yVal = yvals[j];
           if (yVal === null || typeof yVal === "undefined") continue;
-          const xVal = xvals[j2];
-          const xPx = scales.xAt(j2, xVal);
+          const xVal = xvals[j];
+          const xPx = scales.xAt(j, xVal);
           const yPx = scales.y(yVal);
-          const api = this._api(emit, elSeries, realIndex, j2);
+          const api = this._api(emit, elSeries, realIndex, j);
           try {
             def.renderItem({
-              datum: rawData[j2],
+              datum: rawData[j],
               x: xPx,
               y: yPx,
               scales,
               api,
               seriesIndex: realIndex,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               color
             });
           } catch (e2) {
@@ -48302,9 +49096,9 @@ function makeCustomSeriesClass(name2, def) {
               this._warned = true;
             }
           }
-          w.globals.seriesXvalues[realIndex][j2] = xPx;
-          w.globals.seriesYvalues[realIndex][j2] = yPx;
-          w.globals.pointsArray[realIndex][j2] = [xPx, yPx];
+          w.globals.seriesXvalues[realIndex][j] = xPx;
+          w.globals.seriesYvalues[realIndex][j] = yPx;
+          w.globals.pointsArray[realIndex][j] = [xPx, yPx];
         }
         graphics.setupEventDelegation(elSeries, ".apexcharts-marks-mark");
         ret.add(elSeries);
@@ -48339,7 +49133,7 @@ function makeCustomSeriesClass(name2, def) {
       const bandW = n2 > 0 ? gridWidth / n2 : gridWidth;
       const tickOn = cnf.xaxis.tickPlacement === "on";
       const x2 = (v) => xRatio ? (v - gl.minX) / xRatio : gridWidth / 2;
-      const y = (v) => (maxY - v) / yr;
+      const y2 = (v) => (maxY - v) / yr;
       const xAt = (index, v) => {
         if (!catMode) return x2(v);
         if (tickOn && n2 > 1) return index / (n2 - 1) * gridWidth;
@@ -48350,7 +49144,7 @@ function makeCustomSeriesClass(name2, def) {
       return {
         x: x2,
         xAt,
-        y,
+        y: y2,
         gridWidth,
         gridHeight,
         band
@@ -48363,12 +49157,12 @@ function makeCustomSeriesClass(name2, def) {
      * events are coordinate-based).
      * @param {any} emit @param {any} elSeries @param {number} realIndex @param {number} j
      */
-    _api(emit, elSeries, realIndex, j2) {
+    _api(emit, elSeries, realIndex, j) {
       const tag = (el) => {
         if (el) {
           try {
             el.node.setAttribute("index", String(realIndex));
-            el.node.setAttribute("j", String(j2));
+            el.node.setAttribute("j", String(j));
             el.node.classList.add("apexcharts-marks-mark");
           } catch (e2) {
           }
@@ -48461,8 +49255,6 @@ function makeCustomSeriesClass(name2, def) {
   return cls;
 }
 ApexCharts._customSeriesFactory = makeCustomSeriesClass;
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-const CONTRAST_QUERY = "(prefers-contrast: more)";
 class OSThemeWatcher {
   /**
    * @param {any} w @param {any} ctx
@@ -48471,96 +49263,51 @@ class OSThemeWatcher {
     this.w = w;
     this.ctx = ctx;
     if (w.config.theme.follow !== "os" || !Environment.isBrowser()) return;
-    const media = this._ensureMedia();
-    if (!media) return;
-    this._applyToConfig(media);
-    this._ensureListeners(media);
-  }
-  /**
-   * Create (once per instance) the MediaQueryLists and stash them on `ctx` so
-   * they persist across the re-render that `updateOptions` triggers.
-   * @returns {{dark: MediaQueryList|null, contrast: MediaQueryList|null, handler: null|(()=>void)}|null}
-   */
-  _ensureMedia() {
-    if (!this.ctx._osThemeMedia) {
-      const dark = BrowserAPIs.matchMedia(DARK_QUERY);
-      const contrast = BrowserAPIs.matchMedia(CONTRAST_QUERY);
-      if (!dark && !contrast) return null;
-      this.ctx._osThemeMedia = { dark, contrast, handler: null };
+    let watcher = ctx._osTheme;
+    if (!watcher) {
+      watcher = new xt({
+        host: (
+          /** @type {any} */
+          BrowserAPIs
+        ),
+        // Closes over `ctx` (stable across re-renders), NOT over `this`: a
+        // fresh adapter is built whenever the modules are rebuilt.
+        onChange({ mode: mode2, highContrast: highContrast2 }) {
+          ctx.updateOptions(
+            {
+              theme: {
+                mode: mode2,
+                accessibility: {
+                  colorBlindMode: highContrast2 ? "highContrast" : ""
+                }
+              }
+            },
+            false,
+            true,
+            false
+          );
+        }
+      });
+      const { scheme, contrast } = watcher.supports;
+      if (!scheme && !contrast) {
+        watcher.dispose();
+        return;
+      }
+      ctx._osTheme = watcher;
     }
-    return this.ctx._osThemeMedia;
-  }
-  /**
-   * Write the OS-resolved mode / high-contrast onto the live `w.config.theme`.
-   * @param {{dark: MediaQueryList|null, contrast: MediaQueryList|null}} media
-   */
-  _applyToConfig(media) {
-    const theme = this.w.config.theme;
-    if (media.dark) {
-      theme.mode = media.dark.matches ? "dark" : "light";
-    }
-    if (media.contrast && media.contrast.matches) {
+    const theme = w.config.theme;
+    const { mode, highContrast } = watcher.state;
+    if (watcher.supports.scheme) theme.mode = mode;
+    if (highContrast) {
       theme.accessibility = theme.accessibility || {};
       theme.accessibility.colorBlindMode = "highContrast";
     }
   }
-  /**
-   * Attach the `change` listener once. The handler closes over `ctx` + `media`
-   * (both stable across re-renders), NOT over `this` (a fresh watcher is built
-   * each create), so it never goes stale.
-   * @param {{dark: MediaQueryList|null, contrast: MediaQueryList|null, handler: null|(()=>void)}} media
-   */
-  _ensureListeners(media) {
-    if (media.handler) return;
-    const ctx = this.ctx;
-    const handler = () => {
-      const m = ctx._osThemeMedia;
-      if (!m) return;
-      const themeOpt = { mode: m.dark && m.dark.matches ? "dark" : "light" };
-      if (m.contrast && m.contrast.matches) {
-        themeOpt.accessibility = { colorBlindMode: "highContrast" };
-      } else {
-        themeOpt.accessibility = { colorBlindMode: "" };
-      }
-      ctx.updateOptions({ theme: themeOpt }, false, true, false);
-    };
-    OSThemeWatcher._add(media.dark, handler);
-    OSThemeWatcher._add(media.contrast, handler);
-    media.handler = handler;
-  }
-  /** Remove the listeners and drop the stashed media. Called on full destroy. */
+  /** Detach the media listeners and drop the watcher. */
   teardown() {
-    const media = this.ctx._osThemeMedia;
-    if (!media) return;
-    if (media.handler) {
-      OSThemeWatcher._remove(media.dark, media.handler);
-      OSThemeWatcher._remove(media.contrast, media.handler);
-    }
-    this.ctx._osThemeMedia = null;
-  }
-  /**
-   * @param {MediaQueryList|null} mql @param {()=>void} handler
-   */
-  static _add(mql, handler) {
-    if (!mql) return;
-    if (typeof mql.addEventListener === "function") {
-      mql.addEventListener("change", handler);
-    } else if (typeof /** @type {any} */
-    mql.addListener === "function") {
-      mql.addListener(handler);
-    }
-  }
-  /**
-   * @param {MediaQueryList|null} mql @param {()=>void} handler
-   */
-  static _remove(mql, handler) {
-    if (!mql) return;
-    if (typeof mql.removeEventListener === "function") {
-      mql.removeEventListener("change", handler);
-    } else if (typeof /** @type {any} */
-    mql.removeListener === "function") {
-      mql.removeListener(handler);
-    }
+    var _a;
+    (_a = this.ctx._osTheme) == null ? void 0 : _a.dispose();
+    this.ctx._osTheme = null;
   }
 }
 ApexCharts.registerFeatures({ osThemeWatcher: OSThemeWatcher });
@@ -48572,8 +49319,8 @@ function stdDev(values) {
   const mean = sum / n2;
   let acc = 0;
   for (let i2 = 0; i2 < n2; i2++) {
-    const d = values[i2] - mean;
-    acc += d * d;
+    const d2 = values[i2] - mean;
+    acc += d2 * d2;
   }
   return Math.sqrt(acc / n2);
 }
@@ -48582,17 +49329,17 @@ function rowsByBin(values, edges) {
   const buckets = new Array(n2);
   for (let k2 = 0; k2 < n2; k2++) buckets[k2] = [];
   for (let i2 = 0; i2 < values.length; i2++) {
-    const k$1 = k(values[i2], edges);
-    if (k$1 >= 0) buckets[k$1].push(values[i2]);
+    const k2 = L(values[i2], edges);
+    if (k2 >= 0) buckets[k2].push(values[i2]);
   }
   return buckets;
 }
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a2, b) => a2 - b);
-  const q1 = A(sorted, 0.25);
-  const median = A(sorted, 0.5);
-  const q3 = A(sorted, 0.75);
+  const q1 = S(sorted, 0.25);
+  const median = S(sorted, 0.5);
+  const q3 = S(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -48602,12 +49349,12 @@ function fiveNumberSummary(values, opts = {}) {
     const hiFence = q3 + 1.5 * iqr;
     let i2 = 0;
     while (i2 < sorted.length && sorted[i2] < loFence) i2++;
-    let j2 = sorted.length - 1;
-    while (j2 >= 0 && sorted[j2] > hiFence) j2--;
-    if (i2 <= j2) {
+    let j = sorted.length - 1;
+    while (j >= 0 && sorted[j] > hiFence) j--;
+    if (i2 <= j) {
       lo = sorted[i2];
-      hi = sorted[j2];
-      outliers = sorted.slice(0, i2).concat(sorted.slice(j2 + 1));
+      hi = sorted[j];
+      outliers = sorted.slice(0, i2).concat(sorted.slice(j + 1));
     }
   }
   return { summary: [lo, q1, median, q3, hi], outliers, iqr };
@@ -48616,14 +49363,14 @@ function kernelDensity(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a2, b) => a2 - b);
   const n2 = sorted.length;
-  let h = opts.bandwidth;
-  if (!(typeof h === "number" && h > 0)) {
+  let h2 = opts.bandwidth;
+  if (!(typeof h2 === "number" && h2 > 0)) {
     const sd = stdDev(sorted);
-    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
+    const iqr = S(sorted, 0.75) - S(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
-    h = 0.9 * spread * Math.pow(n2, -1 / 5);
+    h2 = 0.9 * spread * Math.pow(n2, -1 / 5);
   }
-  if (!isFinite(h) || h <= 0) {
+  if (!isFinite(h2) || h2 <= 0) {
     const v = sorted[0];
     const eps = Math.abs(v) > 0 ? Math.abs(v) * 1e-3 : 1e-3;
     return {
@@ -48636,47 +49383,47 @@ function kernelDensity(values, opts = {}) {
     };
   }
   const steps = Math.max(8, Math.floor(opts.resolution || 64));
-  const lo = sorted[0] - 2 * h;
-  const hi = sorted[n2 - 1] + 2 * h;
+  const lo = sorted[0] - 2 * h2;
+  const hi = sorted[n2 - 1] + 2 * h2;
   const step = (hi - lo) / (steps - 1);
-  const norm = 1 / (n2 * h * Math.sqrt(2 * Math.PI));
+  const norm = 1 / (n2 * h2 * Math.sqrt(2 * Math.PI));
   const density = [];
   for (let g2 = 0; g2 < steps; g2++) {
     const x2 = lo + g2 * step;
     let sum = 0;
     for (let i2 = 0; i2 < n2; i2++) {
-      const z = (x2 - sorted[i2]) / h;
+      const z = (x2 - sorted[i2]) / h2;
       sum += Math.exp(-0.5 * z * z);
     }
     density.push([x2, sum * norm]);
   }
-  return { density, bandwidth: h };
+  return { density, bandwidth: h2 };
 }
 function normalizeCounts(counts, opts = {}) {
   let out = counts.slice();
   if (opts.cumulative) {
     let acc = 0;
-    out = out.map((c) => acc += c);
+    out = out.map((c2) => acc += c2);
   }
   const total = counts.reduce((a2, b) => a2 + b, 0);
   if (total <= 0) return out;
   if (opts.normalize === "relative") {
-    return out.map((c) => c / total * 100);
+    return out.map((c2) => c2 / total * 100);
   }
   if (opts.normalize === "density") {
     const w = opts.binWidth;
-    if (typeof w === "number" && w > 0) return out.map((c) => c / (total * w));
+    if (typeof w === "number" && w > 0) return out.map((c2) => c2 / (total * w));
   }
   return out;
 }
-function observationsOf(d, allowFlatY) {
+function observationsOf(d2, allowFlatY) {
   var _a;
-  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  if (!d2 || typeof d2 !== "object" || Array.isArray(d2)) return null;
   let raw = null;
-  if (Array.isArray(d.points)) raw = d.points;
-  else if (Array.isArray((_a = d.y) == null ? void 0 : _a.points)) raw = d.y.points;
-  else if (allowFlatY && Array.isArray(d.y) && typeof d.y[0] === "number") {
-    raw = d.y;
+  if (Array.isArray(d2.points)) raw = d2.points;
+  else if (Array.isArray((_a = d2.y) == null ? void 0 : _a.points)) raw = d2.y.points;
+  else if (allowFlatY && Array.isArray(d2.y) && typeof d2.y[0] === "number") {
+    raw = d2.y;
   }
   if (!raw) return null;
   const out = [];
@@ -48704,10 +49451,10 @@ function histogramValues(data) {
   const out = [];
   if (!Array.isArray(data)) return out;
   for (let i2 = 0; i2 < data.length; i2++) {
-    const d = data[i2];
-    let raw = d;
-    if (Array.isArray(d)) raw = d.length === 1 ? d[0] : d[1];
-    else if (d && typeof d === "object") raw = d.y !== void 0 ? d.y : d.x;
+    const d2 = data[i2];
+    let raw = d2;
+    if (Array.isArray(d2)) raw = d2.length === 1 ? d2[0] : d2[1];
+    else if (d2 && typeof d2 === "object") raw = d2.y !== void 0 ? d2.y : d2.x;
     const v = Utils$1.parseNumber(raw);
     if (v !== null && isFinite(v)) out.push(v);
   }
@@ -48730,7 +49477,7 @@ function histogramTransform(ser, w) {
   } else {
     for (const vals of perSeries) all = all.concat(vals);
   }
-  const binning = x(all, {
+  const binning = k(all, {
     bins: hcfg.bins,
     binWidth: hcfg.binWidth,
     range: hcfg.range
@@ -48747,7 +49494,7 @@ function histogramTransform(ser, w) {
   }
   const { edges, binWidth } = binning;
   const counts = perSeries.map(
-    (vals) => L(vals, edges)
+    (vals) => C(vals, edges)
   );
   w.histogramData = {
     edges,
@@ -48785,8 +49532,8 @@ function boxPlotTransform(ser, w) {
     "boxPlot",
     { whiskers: ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.boxPlot) == null ? void 0 : _b.whiskers) || "minmax" },
     fiveNumberSummary,
-    (d) => Array.isArray(d == null ? void 0 : d.y) && d.y.length === 5 && d.y,
-    (d, est, values) => __spreadProps(__spreadValues({}, d), {
+    (d2) => Array.isArray(d2 == null ? void 0 : d2.y) && d2.y.length === 5 && d2.y,
+    (d2, est, values) => __spreadProps(__spreadValues({}, d2), {
       y: est.summary,
       points: values
     })
@@ -48801,14 +49548,14 @@ function violinTransform(ser, w) {
     "violin",
     { bandwidth: kde.bandwidth, resolution: kde.resolution },
     kernelDensity,
-    (d) => {
+    (d2) => {
       var _a2;
-      return Array.isArray((_a2 = d == null ? void 0 : d.y) == null ? void 0 : _a2.density) && d.y.density.length && d.y.density;
+      return Array.isArray((_a2 = d2 == null ? void 0 : d2.y) == null ? void 0 : _a2.density) && d2.y.density.length && d2.y.density;
     },
-    (d, est, values) => __spreadProps(__spreadValues({}, d), {
+    (d2, est, values) => __spreadProps(__spreadValues({}, d2), {
       // Keep the rest of an object `y`: a summary given with the points still
       // draws the box lane.
-      y: __spreadProps(__spreadValues({}, d.y && typeof d.y === "object" && !Array.isArray(d.y) ? d.y : {}), {
+      y: __spreadProps(__spreadValues({}, d2.y && typeof d2.y === "object" && !Array.isArray(d2.y) ? d2.y : {}), {
         density: est.density,
         points: values
       })
@@ -48823,17 +49570,17 @@ function sampleTransform(ser, w, type, opts, fn, statOf, write) {
     if (!Array.isArray(s2 == null ? void 0 : s2.data) || s2.type && s2.type !== type) return s2;
     let touched = false;
     const byPoint = new Array(s2.data.length).fill(null);
-    const data = s2.data.map((d, j2) => {
-      const key = i2 + ":" + j2;
-      const stat = statOf(d);
-      if (stat && !isDerived(derived, key, stat)) return d;
-      const values = observationsOf(d, type === "violin");
-      if (!values) return d;
+    const data = s2.data.map((d2, j) => {
+      const key = i2 + ":" + j;
+      const stat = statOf(d2);
+      if (stat && !isDerived(derived, key, stat)) return d2;
+      const values = observationsOf(d2, type === "violin");
+      if (!values) return d2;
       const est = deriveStat(derived, key, values, opts, fn);
-      if (!est) return d;
+      if (!est) return d2;
       touched = true;
-      byPoint[j2] = values;
-      return write(d, est, values);
+      byPoint[j] = values;
+      return write(d2, est, values);
     });
     if (touched) observed[i2] = byPoint;
     return touched ? __spreadProps(__spreadValues({}, s2), { data }) : s2;
@@ -48862,14 +49609,14 @@ const DEFAULT_MAX_ROWS = 3e3;
 function thinClusters(clusters, maxRows) {
   let total = 0;
   let widest = 0;
-  for (const c of clusters) {
-    total += c.length;
-    if (c.length > widest) widest = c.length;
+  for (const c2 of clusters) {
+    total += c2.length;
+    if (c2.length > widest) widest = c2.length;
   }
   if (total <= maxRows) return { clusters, stride: 1, total, kept: total };
   const keptAt = (s2) => {
     let n2 = 0;
-    for (const c of clusters) n2 += Math.ceil(c.length / s2);
+    for (const c2 of clusters) n2 += Math.ceil(c2.length / s2);
     return n2;
   };
   let stride = Math.max(2, Math.ceil(total / maxRows));
@@ -48886,7 +49633,7 @@ function thinClusters(clusters, maxRows) {
 function toUnitSeries(w, clusters, opts) {
   const maxRows = opts && opts.maxRows != null ? opts.maxRows : DEFAULT_MAX_ROWS;
   const thinned = thinClusters(
-    clusters.map((c) => c.rows),
+    clusters.map((c2) => c2.rows),
     maxRows
   );
   if (thinned.stride > 1) {
@@ -48895,13 +49642,13 @@ function toUnitSeries(w, clusters, opts) {
     );
   }
   const colors = w.globals && w.globals.colors || [];
-  return clusters.map((c, i2) => {
-    const fillColor = colors[c.realIndex] || colors[0];
+  return clusters.map((c2, i2) => {
+    const fillColor = colors[c2.realIndex] || colors[0];
     return {
-      name: c.name,
+      name: c2.name,
       data: thinned.clusters[i2].map((v, q) => __spreadValues({
-        id: `${c.realIndex}:${i2}:${q}`,
-        x: c.name,
+        id: `${c2.realIndex}:${i2}:${q}`,
+        x: c2.name,
         y: v
       }, fillColor ? { fillColor } : {}))
     };
@@ -48951,8 +49698,8 @@ function pointsRowSource(pick) {
       if (collapsed.indexOf(i2) !== -1) return;
       if (!Array.isArray(byCat)) return;
       const seriesName = w.seriesData && ((_a2 = w.seriesData.seriesNames) == null ? void 0 : _a2[i2]);
-      byCat.forEach((pts, j2) => {
-        const label = labels[j2] != null ? String(labels[j2]) : `#${j2 + 1}`;
+      byCat.forEach((pts, j) => {
+        const label = labels[j] != null ? String(labels[j]) : `#${j + 1}`;
         clusters.push({
           name: perSeries.length > 1 && seriesName ? `${seriesName} ${label}` : label,
           realIndex: i2,
@@ -49000,11 +49747,11 @@ class BarDataLabels {
     var _a, _b, _c, _d, _e, _f;
     const {
       x: x2,
-      y,
+      y: y2,
       y1,
-      y2,
+      y2: y22,
       i: i2,
-      j: j2,
+      j,
       realIndex,
       columnGroupIndex,
       barHeight,
@@ -49019,21 +49766,21 @@ class BarDataLabels {
     const graphics = new Graphics(this.barCtx.w);
     this.hlt = hl == null ? void 0 : hl.total;
     const steps = w.waterfallData && w.waterfallData.values;
-    const waterfallStep = hl && hl.val != null ? hl.val : steps && steps[realIndex] && steps[realIndex][j2] != null ? steps[realIndex][j2] : null;
+    const waterfallStep = hl && hl.val != null ? hl.val : steps && steps[realIndex] && steps[realIndex][j] != null ? steps[realIndex][j] : null;
     const strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
     let bcx;
     let bcy;
     if (w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
       bcx = x2 + barWidth * (visibleSeries + 1);
-      bcy = y + barHeight * (visibleSeries + 1) - strokeWidth;
+      bcy = y2 + barHeight * (visibleSeries + 1) - strokeWidth;
     } else {
       bcx = x2 + barWidth * visibleSeries;
-      bcy = y + barHeight * visibleSeries;
+      bcy = y2 + barHeight * visibleSeries;
     }
     let dataLabels = null;
     let totalDataLabels = null;
     let dataLabelsX = x2;
-    let dataLabelsY = y;
+    let dataLabelsY = y2;
     let dataLabelsPos = (
       /** @type {any} */
       {}
@@ -49053,17 +49800,17 @@ class BarDataLabels {
       dataLabelsConfig.offsetX,
       w,
       realIndex,
-      j2
+      j
     );
     const offY = resolveDataLabelOffset(
       dataLabelsConfig.offsetY,
       w,
       realIndex,
-      j2
+      j
     );
     const val = (hl == null ? void 0 : hl.hide) ? void 0 : waterfallStep !== null ? waterfallStep : (
       // only RangeBar passes a range, vertical or horizontal
-      y2 !== void 0 ? [y1, y2] : w.config.chart.stackType === "100%" ? (
+      y22 !== void 0 ? [y1, y22] : w.config.chart.stackType === "100%" ? (
         // Read the percentages globally rather than out of `series`.
         // Under `stackType: '100%'` BarStacked replaces `series` with
         // the percentage rows, and in a combo chart it narrows them to
@@ -49071,8 +49818,8 @@ class BarDataLabels {
         // bar position while `realIndex` counts every series. A line
         // ahead of a column pushed `realIndex` past the end and the
         // label read a value off `undefined` (#2429).
-        w.globals.seriesPercent[realIndex][j2]
-      ) : w.seriesData.series[realIndex][j2]
+        w.globals.seriesPercent[realIndex][j]
+      ) : w.seriesData.series[realIndex][j]
     );
     let text;
     let textRects = {
@@ -49082,7 +49829,7 @@ class BarDataLabels {
     if (dataLabelsConfig.enabled) {
       text = val === void 0 ? "" : dataLabelsConfig.formatter(val, __spreadProps(__spreadValues({}, w), {
         seriesIndex: realIndex,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       }));
       textRects = graphics.getTextRects(
@@ -49095,15 +49842,15 @@ class BarDataLabels {
       );
     }
     const drawTotal = w.config.chart.stacked && barTotalDataLabelsConfig.enabled && this.hlt !== false && this.drawsStackedTotal(realIndex);
-    const totalText = drawTotal ? this.getStackedTotalDataLabel({ realIndex, j: j2 }) : void 0;
+    const totalText = drawTotal ? this.getStackedTotalDataLabel({ realIndex, j }) : void 0;
     const params = {
       drawTotal,
       totalText,
       x: (_a = hl == null ? void 0 : hl.x) != null ? _a : x2,
-      y: (_b = hl == null ? void 0 : hl.y) != null ? _b : y,
+      y: (_b = hl == null ? void 0 : hl.y) != null ? _b : y2,
       neg: hl && hl.val != null ? hl.val < 0 : void 0,
       i: i2,
-      j: j2,
+      j,
       realIndex,
       columnGroupIndex,
       bcx,
@@ -49126,7 +49873,7 @@ class BarDataLabels {
       dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
     }
     if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
-      const box = (_f = (_e = w.waterfallData.geometry) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[j2];
+      const box = (_f = (_e = w.waterfallData.geometry) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[j];
       if (box && box.horizontal) {
         dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
       }
@@ -49138,7 +49885,7 @@ class BarDataLabels {
       val,
       text,
       i: realIndex,
-      j: j2,
+      j,
       barWidth: params.barWidth,
       barHeight: params.barHeight,
       textRects,
@@ -49152,10 +49899,10 @@ class BarDataLabels {
         barWidth,
         barHeight,
         realIndex,
-        j: j2,
+        j,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
         val: totalText,
-        rawVal: this.getStackedTotalValue({ realIndex, j: j2 }),
+        rawVal: this.getStackedTotalValue({ realIndex, j }),
         dataLabelsConfig,
         barTotalDataLabelsConfig
       });
@@ -49208,25 +49955,25 @@ class BarDataLabels {
    * from its previous number and re-run the formatter itself each frame.
    * @param {{realIndex: any, j: any}} opts
    */
-  getStackedTotalValue({ realIndex, j: j2 }) {
+  getStackedTotalValue({ realIndex, j }) {
     if (this.hlt) return this.hlt.val;
     const w = this.w;
-    const top = this.xStackTop(realIndex, j2);
+    const top = this.xStackTop(realIndex, j);
     if (top) return top[3];
     const ctx = this.getTotalGroupContext(realIndex);
     const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
-    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j2] : this.barCtx.stackedSeriesTotals[j2];
+    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
   }
   /**
    * The running stack at this bar's x (BarStacked `tops`) on a numeric axis,
    * where bars stack by x rather than by index.
    * @param {number} realIndex @param {number} j
    */
-  xStackTop(realIndex, j2) {
+  xStackTop(realIndex, j) {
     var _a, _b;
     const w = this.w;
     return w.axisFlags.isXNumeric && /** @type {any} */
-    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(CoreUtils.stackKey(w, realIndex, j2)));
+    ((_b = (_a = this.barCtx.stacks) == null ? void 0 : _a[w.labelData.seriesGroupIndex[realIndex]]) == null ? void 0 : _b.tops.get(CoreUtils.stackKey(w, realIndex, j)));
   }
   /**
    * The stacked total's text box, measured in the total's own font.
@@ -49244,13 +49991,13 @@ class BarDataLabels {
     );
   }
   /** @param {{realIndex: any, j: any}} opts */
-  getStackedTotalDataLabel({ realIndex, j: j2 }) {
+  getStackedTotalDataLabel({ realIndex, j }) {
     const w = this.w;
-    let val = this.getStackedTotalValue({ realIndex, j: j2 });
+    let val = this.getStackedTotalValue({ realIndex, j });
     if (this.totalFormatter) {
       val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
         seriesIndex: realIndex,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       }));
     }
@@ -49262,9 +50009,9 @@ class BarDataLabels {
    * without asking for every bar.
    * @param {number} realIndex @param {number} j
    */
-  zeroEncounters(realIndex, j2) {
+  zeroEncounters(realIndex, j) {
     const w = this.w;
-    return !w.config.chart.stacked && w.config.plotOptions.bar.hideZeroBarsWhenGrouped ? this.barCtx.barHelpers.getZeroValueEncounters({ i: realIndex, j: j2 }).zeroEncounters : 0;
+    return !w.config.chart.stacked && w.config.plotOptions.bar.hideZeroBarsWhenGrouped ? this.barCtx.barHelpers.getZeroValueEncounters({ i: realIndex, j }).zeroEncounters : 0;
   }
   /**
    * @param {Record<string, any>} opts
@@ -49273,9 +50020,9 @@ class BarDataLabels {
     var _a;
     const w = this.w;
     let {
-      j: j2,
+      j,
       realIndex,
-      y,
+      y: y2,
       bcx,
       barWidth,
       barHeight,
@@ -49294,7 +50041,7 @@ class BarDataLabels {
     const totalDataLabelsBcx = bcx;
     barHeight = Math.abs(barHeight);
     const vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
-    const zeroEncounters = this.zeroEncounters(realIndex, j2);
+    const zeroEncounters = this.zeroEncounters(realIndex, j);
     bcx = bcx - strokeWidth / 2;
     const dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints;
     if (this.barCtx.isVerticalGroupedRangeBar) {
@@ -49311,10 +50058,10 @@ class BarDataLabels {
       const offsetDLX = 2;
       dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
     }
-    const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[realIndex][j2] < 0;
-    let newY = y;
+    const valIsNegative = (_a = opts.neg) != null ? _a : w.seriesData.series[realIndex][j] < 0;
+    let newY = y2;
     if (this.barCtx.isReversed) {
-      newY = y + (valIsNegative ? barHeight : -barHeight);
+      newY = y2 + (valIsNegative ? barHeight : -barHeight);
     }
     switch (barDataLabelsConfig.position) {
       case "center":
@@ -49366,7 +50113,7 @@ class BarDataLabels {
     if (opts.drawTotal) {
       let lowestPrevY = newY;
       const totalGroupCtx = this.getTotalGroupContext(realIndex);
-      const top = this.xStackTop(realIndex, j2);
+      const top = this.xStackTop(realIndex, j);
       const stacks = top ? [] : (
         /** @type {any} */
         this.barCtx.stacks || []
@@ -49378,18 +50125,18 @@ class BarDataLabels {
         if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
         g2.prevY.forEach((arr) => {
           if (valIsNegative) {
-            lowestPrevY = Math.max(arr[j2], lowestPrevY);
+            lowestPrevY = Math.max(arr[j], lowestPrevY);
           } else {
-            lowestPrevY = Math.min(arr[j2], lowestPrevY);
+            lowestPrevY = Math.min(arr[j], lowestPrevY);
           }
         });
       });
       if (this.hlt) lowestPrevY = this.hlt.edge;
-      const h = this.totalRects(opts.totalText).height;
+      const h2 = this.totalRects(opts.totalText).height;
       if (valIsNegative) {
-        totalDataLabelsY = lowestPrevY + h * 0.77 - offY - barTotalDataLabelsConfig.offsetY;
+        totalDataLabelsY = lowestPrevY + h2 * 0.77 - offY - barTotalDataLabelsConfig.offsetY;
       } else {
-        totalDataLabelsY = lowestPrevY - h * 0.3 + offY + barTotalDataLabelsConfig.offsetY;
+        totalDataLabelsY = lowestPrevY - h2 * 0.3 + offY + barTotalDataLabelsConfig.offsetY;
       }
       const xDivision = dataPointsDividedWidth;
       totalDataLabelsX = totalDataLabelsBcx + (w.axisFlags.isXNumeric ? -barWidth / 2 : barWidth / 2 - xDivision) + barTotalDataLabelsConfig.offsetX;
@@ -49403,7 +50150,7 @@ class BarDataLabels {
     }
     return {
       bcx,
-      bcy: y,
+      bcy: y2,
       dataLabelsX,
       dataLabelsY,
       totalDataLabelsX,
@@ -49419,7 +50166,7 @@ class BarDataLabels {
     const w = this.w;
     let {
       x: x2,
-      j: j2,
+      j,
       realIndex,
       bcy,
       barHeight,
@@ -49434,7 +50181,7 @@ class BarDataLabels {
       offY
     } = opts;
     const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints;
-    const zeroEncounters = this.zeroEncounters(realIndex, j2);
+    const zeroEncounters = this.zeroEncounters(realIndex, j);
     barWidth = Math.abs(barWidth);
     let dataLabelsY;
     if (this.barCtx.isPyramid) {
@@ -49447,7 +50194,7 @@ class BarDataLabels {
     let totalDataLabelsX;
     let totalDataLabelsY;
     let totalDataLabelsAnchor = "start";
-    const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[realIndex][j2] < 0;
+    const valIsNegative = (_b = opts.neg) != null ? _b : w.seriesData.series[realIndex][j] < 0;
     let newX = x2;
     if (this.barCtx.isReversed) {
       newX = x2 + (valIsNegative ? -barWidth : barWidth);
@@ -49483,7 +50230,7 @@ class BarDataLabels {
     if (opts.drawTotal) {
       let lowestPrevX = newX;
       const totalGroupCtx = this.getTotalGroupContext(realIndex);
-      const top = this.xStackTop(realIndex, j2);
+      const top = this.xStackTop(realIndex, j);
       const stacks = top ? [] : (
         /** @type {any} */
         this.barCtx.stacks || []
@@ -49495,9 +50242,9 @@ class BarDataLabels {
         if (totalGroupCtx && gi !== totalGroupCtx.groupIndex) return;
         g2.prevX.forEach((arr) => {
           if (valIsNegative) {
-            lowestPrevX = Math.min(arr[j2], lowestPrevX);
+            lowestPrevX = Math.min(arr[j], lowestPrevX);
           } else {
-            lowestPrevX = Math.max(arr[j2], lowestPrevX);
+            lowestPrevX = Math.max(arr[j], lowestPrevX);
           }
         });
       });
@@ -49548,13 +50295,13 @@ class BarDataLabels {
   /** @param {{x: any, y: any, val: any, text?: any, neg?: boolean, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any, keep?: boolean}} opts */
   drawCalculatedDataLabels({
     x: x2,
-    y,
+    y: y2,
     val,
     text,
     neg,
     i: i2,
     // = realIndex
-    j: j2,
+    j,
     textRects,
     barHeight,
     barWidth,
@@ -49565,14 +50312,14 @@ class BarDataLabels {
     const w = this.w;
     let rotate = "rotate(0)";
     if (w.config.plotOptions.bar.dataLabels.orientation === "vertical")
-      rotate = `rotate(-90, ${x2}, ${y})`;
+      rotate = `rotate(-90, ${x2}, ${y2})`;
     const dataLabels = new DataLabels(this.barCtx.w, this.barCtx.ctx);
     const graphics = new Graphics(this.barCtx.w);
     const formatter = dataLabelsConfig.formatter;
     let elDataLabelsWrap = null;
     const isSeriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i2) > -1;
     const isSeriesCollapsing = (w.globals.collapsingSeriesIndices || []).indexOf(i2) > -1;
-    const dlKey = `${i2}::${this.barCtx._keys(i2)[j2]}`;
+    const dlKey = `${i2}::${this.barCtx._keys(i2)[j]}`;
     if (isSeriesCollapsing) {
       const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(dlKey);
       if (prev && isFinite(prev.val)) {
@@ -49588,7 +50335,7 @@ class BarDataLabels {
       const dlCfg = w.config.dataLabels;
       if (((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled)) {
         elDataLabelsWrap.node.setAttribute("data:dlKey", dlKey);
-        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j2));
+        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j));
         if (typeof val === "number" && isFinite(val)) {
           elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
         }
@@ -49598,7 +50345,7 @@ class BarDataLabels {
       } else if (text === void 0) {
         text = formatter(val, __spreadProps(__spreadValues({}, w), {
           seriesIndex: i2,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         }));
       }
@@ -49607,7 +50354,7 @@ class BarDataLabels {
       }
       let anchor = dataLabelsConfig.textAnchor;
       if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
-        anchor = w.config.plotOptions.bar.dataLabels.position === "center" ? "middle" : (neg != null ? neg : w.seriesData.series[i2][j2] < 0) ? "end" : "start";
+        anchor = w.config.plotOptions.bar.dataLabels.position === "center" ? "middle" : (neg != null ? neg : w.seriesData.series[i2][j] < 0) ? "end" : "start";
       }
       if (this.barCtx.isRangeBar && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && barWidth < textRects.width) {
         text = "";
@@ -49641,10 +50388,10 @@ class BarDataLabels {
       }
       dataLabels.plotDataLabelsText({
         x: x2,
-        y,
+        y: y2,
         text,
         i: i2,
-        j: j2,
+        j,
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,
         alwaysDrawDataLabel: true,
@@ -49656,21 +50403,21 @@ class BarDataLabels {
   /** @param {{ x?: any, y?: any, val?: any, rawVal?: any, realIndex?: any, j?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
   drawTotalDataLabels({
     x: x2,
-    y,
+    y: y2,
     val,
     rawVal,
     realIndex,
-    j: j2,
+    j,
     textAnchor,
     barTotalDataLabelsConfig
   }) {
     var _a, _b;
     const graphics = new Graphics(this.barCtx.w);
     let totalDataLabelText;
-    if (barTotalDataLabelsConfig.enabled && typeof x2 !== "undefined" && typeof y !== "undefined" && this.drawsStackedTotal(realIndex)) {
+    if (barTotalDataLabelsConfig.enabled && typeof x2 !== "undefined" && typeof y2 !== "undefined" && this.drawsStackedTotal(realIndex)) {
       totalDataLabelText = graphics.drawText({
         x: x2,
-        y,
+        y: y2,
         foreColor: barTotalDataLabelsConfig.style.color,
         text: val,
         textAnchor,
@@ -49681,14 +50428,14 @@ class BarDataLabels {
       totalDataLabelText.attr({
         class: "apexcharts-datalabel-total",
         cx: x2,
-        cy: y
+        cy: y2
       });
       const dlCfg = this.w.config.dataLabels;
       if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
         const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex);
         totalDataLabelText.node.setAttribute(
           "data:dlTotalKey",
-          `${groupIndex}::${this.barCtx._keys(realIndex)[j2]}`
+          `${groupIndex}::${this.barCtx._keys(realIndex)[j]}`
         );
         totalDataLabelText.node.setAttribute(
           "data:dlTotalSeries",
@@ -49735,7 +50482,7 @@ let Helpers$1 = class Helpers4 {
       }
     }
     const labels = w.labelData.labels;
-    this.rows = w.globals.isBarHorizontal && w.axisFlags.isXNumeric && !this.barCtx.isRangeBar && w.seriesData.seriesX.some((s2) => s2 == null ? void 0 : s2.some((x2, j2) => x2 !== labels[j2])) ? new Map(labels.map((x2, r2) => [x2, r2])) : null;
+    this.rows = w.globals.isBarHorizontal && w.axisFlags.isXNumeric && !this.barCtx.isRangeBar && w.seriesData.seriesX.some((s2) => s2 == null ? void 0 : s2.some((x2, j) => x2 !== labels[j])) ? new Map(labels.map((x2, r2) => [x2, r2])) : null;
     this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series);
     if (Utils$1.isSafari()) {
       this.arrBorderRadius = this.arrBorderRadius.map(
@@ -49846,8 +50593,8 @@ let Helpers$1 = class Helpers4 {
       if (from === -1) break;
       cursor[from]++;
       if (prev === prev) {
-        const d = next - prev;
-        if (d > 0 && d < min) min = d;
+        const d2 = next - prev;
+        if (d2 > 0 && d2 < min) min = d2;
       }
       prev = next;
     }
@@ -49866,8 +50613,8 @@ let Helpers$1 = class Helpers4 {
     const xs = this.w.seriesData.seriesX;
     this.barCtx.series.forEach(
       (s2, sl) => {
-        for (let j2 = 0; j2 < s2.length; j2++) {
-          if (xs[sl][j2] > g2.minX && xs[sl][j2] < g2.maxX) n2++;
+        for (let j = 0; j < s2.length; j++) {
+          if (xs[sl][j] > g2.minX && xs[sl][j] < g2.maxX) n2++;
         }
       }
     );
@@ -49878,16 +50625,16 @@ let Helpers$1 = class Helpers4 {
    * not line up by index (see initVariables), else its index.
    * @param {number} realIndex @param {number} j
    */
-  barRow(realIndex, j2) {
+  barRow(realIndex, j) {
     var _a, _b, _c;
-    return (_c = (_b = this.rows) == null ? void 0 : _b.get((_a = this.w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j2])) != null ? _c : j2;
+    return (_c = (_b = this.rows) == null ? void 0 : _b.get((_a = this.w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[j])) != null ? _c : j;
   }
   /**
    * @param {number} realIndex
    */
   initialPositions(realIndex) {
     const w = this.w;
-    let x2, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW;
+    let x2, y2, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW;
     let dataPoints = w.globals.dataPoints;
     if (this.barCtx.isRangeBar) {
       dataPoints = w.labelData.labels.length;
@@ -49907,7 +50654,7 @@ let Helpers$1 = class Helpers4 {
       if (this.barCtx.isFunnel) {
         zeroW = w.layout.gridWidth / 2;
       }
-      y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
+      y2 = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
     } else {
       const xRatio = this.barCtx.xRatio;
       const slotXSpan = w.axisFlags.isXNumeric ? this.barSlotXSpan() : 0;
@@ -49943,7 +50690,7 @@ let Helpers$1 = class Helpers4 {
     w.globals.barWidth = barWidth;
     return {
       x: x2,
-      y,
+      y: y2,
       yDivision,
       xDivision,
       barHeight,
@@ -49985,24 +50732,24 @@ let Helpers$1 = class Helpers4 {
    * @param {number} j
    * @param {number} realIndex
    */
-  getPathFillColor(series, i2, j2, realIndex) {
+  getPathFillColor(series, i2, j, realIndex) {
     var _a;
     const w = this.w;
     const fill = new Fill(this.barCtx.w);
     let fillColor = null;
-    const seriesNumber = this.barCtx.barOptions.distributed ? j2 : i2;
+    const seriesNumber = this.barCtx.barOptions.distributed ? j : i2;
     let useRangeColor = false;
     if (this.barCtx.barOptions.colors.ranges.length > 0) {
       const colorRange = this.barCtx.barOptions.colors.ranges;
       colorRange.map((range) => {
-        if (series[i2][j2] >= range.from && series[i2][j2] <= range.to) {
+        if (series[i2][j] >= range.from && series[i2][j] <= range.to) {
           fillColor = range.color;
           useRangeColor = true;
         }
       });
     }
-    const connectorFill = this.getDumbbellConnectorFill(i2, j2);
-    const datumFill = connectorFill || ((_a = w.config.series[realIndex].data[j2]) == null ? void 0 : _a.fill);
+    const connectorFill = this.getDumbbellConnectorFill(i2, j);
+    const datumFill = connectorFill || ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.fill);
     const connector = this.barCtx.barOptions.isDumbbell ? w.config.plotOptions.bar.dumbbell.connector : null;
     let connectorOpacity;
     if (connector && connector.color) {
@@ -50011,10 +50758,10 @@ let Helpers$1 = class Helpers4 {
     }
     const pathFill = fill.fillPath({
       seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
-      dataPointIndex: j2,
+      dataPointIndex: j,
       color: fillColor,
       opacity: connectorOpacity,
-      value: series[i2][j2],
+      value: series[i2][j],
       fillConfig: datumFill,
       fillType: (datumFill == null ? void 0 : datumFill.type) ? datumFill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
     });
@@ -50039,14 +50786,14 @@ let Helpers$1 = class Helpers4 {
    * @param {number} i @param {number} j
    * @returns {Record<string, any>|null}
    */
-  getDumbbellConnectorFill(i2, j2) {
+  getDumbbellConnectorFill(i2, j) {
     const w = this.w;
     if (!this.barCtx.barOptions.isDumbbell) return null;
     const dumbbell = w.dumbbellData;
     if (!dumbbell || dumbbell.form !== "series") return null;
     const connector = w.config.plotOptions.bar.dumbbell.connector;
     if (connector.color) return null;
-    const order = dumbbell.order[j2];
+    const order = dumbbell.order[j];
     if (!order) return null;
     const from = w.globals.colors[order[0]];
     const to = w.globals.colors[order[1]];
@@ -50074,10 +50821,10 @@ let Helpers$1 = class Helpers4 {
    * @param {number} j
    * @param {number} realIndex
    */
-  getStrokeWidth(i2, j2, realIndex) {
+  getStrokeWidth(i2, j, realIndex) {
     let strokeWidth = 0;
     const w = this.w;
-    if (typeof this.barCtx.series[i2][j2] === "undefined" || this.barCtx.series[i2][j2] === null || w.config.chart.type === "bar" && !this.barCtx.series[i2][j2]) {
+    if (typeof this.barCtx.series[i2][j] === "undefined" || this.barCtx.series[i2][j] === null || w.config.chart.type === "bar" && !this.barCtx.series[i2][j]) {
       this.barCtx.isNullValue = true;
     } else {
       this.barCtx.isNullValue = false;
@@ -50170,42 +50917,42 @@ let Helpers$1 = class Helpers4 {
     const positiveBase = lastOnly ? "none" : "bottom";
     const negativeBase = lastOnly ? "none" : "top";
     for (const stack of this.getStackedSeriesIndices(numSeries)) {
-      for (let j2 = 0; j2 < numColumns; j2++) {
+      for (let j = 0; j < numColumns; j++) {
         const positiveIndices = [];
         const negativeIndices = [];
         for (const i2 of stack) {
-          const value = series[i2][j2];
+          const value = series[i2][j];
           if (value > 0) positiveIndices.push(i2);
           else if (value < 0) negativeIndices.push(i2);
         }
         if (positiveIndices.length > 0 && negativeIndices.length === 0) {
           if (positiveIndices.length === 1) {
-            output[positiveIndices[0]][j2] = soloPositive;
+            output[positiveIndices[0]][j] = soloPositive;
           } else {
             const first = positiveIndices[0];
             const last = positiveIndices[positiveIndices.length - 1];
             for (const i2 of positiveIndices) {
-              output[i2][j2] = i2 === first ? positiveBase : i2 === last ? "top" : "none";
+              output[i2][j] = i2 === first ? positiveBase : i2 === last ? "top" : "none";
             }
           }
         } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
           if (negativeIndices.length === 1) {
-            output[negativeIndices[0]][j2] = soloNegative;
+            output[negativeIndices[0]][j] = soloNegative;
           } else {
             const nearest = Math.min(...negativeIndices);
             const farthest = Math.max(...negativeIndices);
             for (const i2 of negativeIndices) {
-              output[i2][j2] = i2 === nearest ? negativeBase : i2 === farthest ? "bottom" : "none";
+              output[i2][j] = i2 === nearest ? negativeBase : i2 === farthest ? "bottom" : "none";
             }
           }
         } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
           const lastPositive = positiveIndices[positiveIndices.length - 1];
           for (const i2 of positiveIndices) {
-            output[i2][j2] = i2 === lastPositive ? "top" : "none";
+            output[i2][j] = i2 === lastPositive ? "top" : "none";
           }
           const highestNegative = Math.max(...negativeIndices);
           for (const i2 of negativeIndices) {
-            output[i2][j2] = i2 === highestNegative ? "bottom" : "none";
+            output[i2][j] = i2 === highestNegative ? "bottom" : "none";
           }
         }
       }
@@ -50213,7 +50960,7 @@ let Helpers$1 = class Helpers4 {
     return output;
   }
   /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
-  barBackground({ j: j2, i: i2, x1, x2, y1, y2, elSeries }) {
+  barBackground({ j, i: i2, x1, x2, y1, y2, elSeries }) {
     const w = this.w;
     const colors = this.barCtx.barOptions.colors;
     if (!colors.backgroundBarColors.length) return;
@@ -50222,10 +50969,10 @@ let Helpers$1 = class Helpers4 {
     }
     if (this._bgOwner === i2) {
       const graphics = new Graphics(w);
-      if (j2 >= colors.backgroundBarColors.length) {
-        j2 %= colors.backgroundBarColors.length;
+      if (j >= colors.backgroundBarColors.length) {
+        j %= colors.backgroundBarColors.length;
       }
-      const bcolor = colors.backgroundBarColors[j2];
+      const bcolor = colors.backgroundBarColors[j];
       const rect = graphics.drawRect(
         typeof x1 !== "undefined" ? x1 : 0,
         typeof y1 !== "undefined" ? y1 : 0,
@@ -50267,7 +51014,7 @@ let Helpers$1 = class Helpers4 {
     strokeWidth,
     insetWidth,
     realIndex,
-    j: j2,
+    j,
     dir,
     horizontal
   }) {
@@ -50283,7 +51030,7 @@ let Helpers$1 = class Helpers4 {
     }
     const datum = (
       /** @type {any} */
-      w.config.series[realIndex].data[j2]
+      w.config.series[realIndex].data[j]
     );
     const offset = horizontal ? datum == null ? void 0 : datum.barHeightOffset : datum == null ? void 0 : datum.columnWidthOffset;
     if (offset) {
@@ -50296,7 +51043,7 @@ let Helpers$1 = class Helpers4 {
     const empty = strokeWidth < insetWidth;
     const baseCenter = empty ? insetCenter : strokeCenter;
     let tip;
-    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j2] === "both" ? " Z" : " z";
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
     let x1, x2, y1, y2, sl, squarePathTo;
     if (horizontal) {
       y1 = a2 + insetCenter;
@@ -50317,7 +51064,7 @@ let Helpers$1 = class Helpers4 {
     }
     const radius = w.config.plotOptions.bar.borderRadius;
     let pathTo = squarePathTo;
-    if (this.arrBorderRadius[realIndex][j2] !== "none") {
+    if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = radius === 0 && isFinite(x1 + x2 + y1 + y2) ? squarePathTo.replace(" Z", ` L ${x1} ${y1} Z`).replace(/ L (\S+ \S+)(?= [LZ])/g, " L $1 C $1 $1 $1") + " " : graphics.roundPathCorners(squarePathTo, radius);
     }
     return {
@@ -50345,7 +51092,7 @@ let Helpers$1 = class Helpers4 {
    * @param {number} realIndex @param {number} j
    * @returns {number}
    */
-  collapsedSign(realIndex, j2) {
+  collapsedSign(realIndex, j) {
     var _a;
     const gl = this.w.globals;
     const lists = [
@@ -50354,11 +51101,11 @@ let Helpers$1 = class Helpers4 {
     ];
     for (const [indices, entries] of lists) {
       if (!indices || indices.indexOf(realIndex) < 0) continue;
-      const c = (entries || []).find(
+      const c2 = (entries || []).find(
         (s2) => s2.index === realIndex
       );
-      const d = (_a = c == null ? void 0 : c.data) == null ? void 0 : _a[j2];
-      const v = Array.isArray(d) ? d[1] : d && typeof d === "object" ? d.y : d;
+      const d2 = (_a = c2 == null ? void 0 : c2.data) == null ? void 0 : _a[j];
+      const v = Array.isArray(d2) ? d2[1] : d2 && typeof d2 === "object" ? d2.y : d2;
       return typeof v === "number" && v ? Math.sign(v) : 0;
     }
     return 0;
@@ -50374,7 +51121,7 @@ let Helpers$1 = class Helpers4 {
     series,
     realIndex,
     i: i2,
-    j: j2,
+    j,
     w
   }) {
     var _a, _b, _c;
@@ -50386,8 +51133,8 @@ let Helpers$1 = class Helpers4 {
       strokeWidth,
       insetWidth,
       realIndex,
-      j: j2,
-      dir: this.collapsedSign(realIndex, j2) || (series[i2][j2] >= 0 ? 1 : -1)
+      j,
+      dir: this.collapsedSign(realIndex, j) || (series[i2][j] >= 0 ? 1 : -1)
     });
     const { pathTo, squarePathTo, strokeCenter, direction } = r2;
     y1 = r2.y1;
@@ -50395,12 +51142,12 @@ let Helpers$1 = class Helpers4 {
     let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo, squarePathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
       pathFrom = r2.base;
@@ -50409,7 +51156,7 @@ let Helpers$1 = class Helpers4 {
       const _ctx = this.barCtx.groupCtx;
       _ctx.yArrj.push(r2.tip - strokeCenter * direction);
       _ctx.yArrjF.push(Math.abs(y1 - y2 + r2.strokeWidth * direction));
-      _ctx.yArrjVal.push((_c = this.barCtx.series[i2][j2]) != null ? _c : null);
+      _ctx.yArrjVal.push((_c = this.barCtx.series[i2][j]) != null ? _c : null);
     }
     return {
       pathTo,
@@ -50441,7 +51188,7 @@ let Helpers$1 = class Helpers4 {
     barHeight,
     series,
     i: i2,
-    j: j2,
+    j,
     realIndex,
     strokeWidth,
     w
@@ -50450,15 +51197,15 @@ let Helpers$1 = class Helpers4 {
     const graphics = new Graphics(this.barCtx.w);
     const center = w.layout.gridWidth / 2;
     const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
-    const topHalf = halfWidthFor(series[i2][j2]);
+    const topHalf = halfWidthFor(series[i2][j]);
     const lastIdx = series[i2].length - 1;
-    const isLast = j2 === lastIdx;
+    const isLast = j === lastIdx;
     const lastShape = w.config.plotOptions.funnel.lastShape === "taper" ? "taper" : "flat";
     let bottomHalf;
     if (isLast) {
       bottomHalf = lastShape === "taper" ? 0 : topHalf;
     } else {
-      bottomHalf = halfWidthFor(series[i2][j2 + 1]);
+      bottomHalf = halfWidthFor(series[i2][j + 1]);
     }
     const strokeCenter = strokeWidth / 2;
     const y1 = barYPosition + strokeCenter;
@@ -50471,12 +51218,12 @@ let Helpers$1 = class Helpers4 {
     let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
@@ -50522,9 +51269,9 @@ let Helpers$1 = class Helpers4 {
     const halfWidth = gridWidth / 2;
     let cumulative = 0;
     const layout = [];
-    for (let j2 = 0; j2 < values.length; j2++) {
+    for (let j = 0; j < values.length; j++) {
       const topRatio = cumulative / total;
-      cumulative += values[j2];
+      cumulative += values[j];
       const bottomRatio = cumulative / total;
       const topY = topRatio * gridHeight;
       const bottomY = bottomRatio * gridHeight;
@@ -50550,7 +51297,7 @@ let Helpers$1 = class Helpers4 {
     topHalf,
     bottomHalf,
     realIndex,
-    j: j2,
+    j,
     strokeWidth,
     w
   }) {
@@ -50568,12 +51315,12 @@ let Helpers$1 = class Helpers4 {
     let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
@@ -50596,7 +51343,7 @@ let Helpers$1 = class Helpers4 {
     series,
     realIndex,
     i: i2,
-    j: j2,
+    j,
     w
   }) {
     var _a, _b, _c;
@@ -50608,8 +51355,8 @@ let Helpers$1 = class Helpers4 {
       v2: x2,
       strokeWidth,
       realIndex,
-      j: j2,
-      dir: series[i2][j2] >= 0 ? 1 : -1,
+      j,
+      dir: series[i2][j] >= 0 ? 1 : -1,
       horizontal: true
     });
     const { y1, y2, sl, closing, squarePathTo, pathTo, strokeCenter, direction } = r2;
@@ -50620,12 +51367,12 @@ let Helpers$1 = class Helpers4 {
     let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
-      j2
+      j
     );
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j2, pathTo, squarePathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
@@ -50635,7 +51382,7 @@ let Helpers$1 = class Helpers4 {
       const _ctx = this.barCtx.groupCtx;
       _ctx.xArrj.push(x2 + strokeCenter * direction);
       _ctx.xArrjF.push(Math.abs(x1 - x2 - r2.strokeWidth * direction));
-      _ctx.xArrjVal.push((_c = this.barCtx.series[i2][j2]) != null ? _c : null);
+      _ctx.xArrjVal.push((_c = this.barCtx.series[i2][j]) != null ? _c : null);
     }
     return {
       pathTo,
@@ -50676,7 +51423,7 @@ let Helpers$1 = class Helpers4 {
    * @param {number} j
    * @param {number} translationsIndex
    */
-  getGoalValues(type, zeroW, zeroH, i2, j2, translationsIndex) {
+  getGoalValues(type, zeroW, zeroH, i2, j, translationsIndex) {
     const w = this.w;
     const goals = [];
     const pushGoal = (value, attrs) => {
@@ -50688,13 +51435,13 @@ let Helpers$1 = class Helpers4 {
         attrs
       });
     };
-    if (w.seriesData.seriesGoals[i2] && w.seriesData.seriesGoals[i2][j2] && Array.isArray(w.seriesData.seriesGoals[i2][j2])) {
-      w.seriesData.seriesGoals[i2][j2].forEach((goal) => {
+    if (w.seriesData.seriesGoals[i2] && w.seriesData.seriesGoals[i2][j] && Array.isArray(w.seriesData.seriesGoals[i2][j])) {
+      w.seriesData.seriesGoals[i2][j].forEach((goal) => {
         pushGoal(goal.value, goal);
       });
     }
     if (this.barCtx.barOptions.isDumbbell) {
-      const ends = this.getDumbbellEnds(i2, j2);
+      const ends = this.getDumbbellEnds(i2, j);
       if (ends.length) {
         const commonAttrs = {
           strokeHeight: type === "x" ? 0 : w.globals.markers.size[i2],
@@ -50713,7 +51460,7 @@ let Helpers$1 = class Helpers4 {
           const attrs = __spreadProps(__spreadValues({}, commonAttrs), { strokeColor: end.color });
           if (labelsCnf.enabled && (e2 === lo || e2 === hi)) {
             attrs.label = {
-              text: this.getDumbbellLabelText(end.value, i2, j2, end.index),
+              text: this.getDumbbellLabelText(end.value, i2, j, end.index),
               color: labelsCnf.colorFromMarker ? end.color : Array.isArray(labelsCnf.style.colors) ? labelsCnf.style.colors[end.index] || labelsCnf.style.colors[0] : labelsCnf.style.colors,
               // Away from the connector: the low end reads to its left (below,
               // on a column), the high end to its right. A lone endpoint has no
@@ -50743,12 +51490,12 @@ let Helpers$1 = class Helpers4 {
    * @param {number} i @param {number} j
    * @returns {Array<{ value: number, color: string, index: number }>}
    */
-  getDumbbellEnds(i2, j2) {
+  getDumbbellEnds(i2, j) {
     const w = this.w;
     const ends = [];
     const dumbbell = w.dumbbellData;
     if (dumbbell && dumbbell.form === "series") {
-      const values = dumbbell.values[j2] || [];
+      const values = dumbbell.values[j] || [];
       for (let k2 = 0; k2 < values.length; k2++) {
         const v = values[k2];
         if (v === null || dumbbell.hidden.indexOf(k2) !== -1) continue;
@@ -50760,8 +51507,8 @@ let Helpers$1 = class Helpers4 {
     const colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w.globals.colors;
     const pick = (n2) => Array.isArray(colors[i2]) ? colors[i2][n2] : colors[i2];
     return [
-      { value: w.rangeData.seriesRangeStart[i2][j2], color: pick(0), index: 0 },
-      { value: w.rangeData.seriesRangeEnd[i2][j2], color: pick(1), index: 1 }
+      { value: w.rangeData.seriesRangeStart[i2][j], color: pick(0), index: 0 },
+      { value: w.rangeData.seriesRangeEnd[i2][j], color: pick(1), index: 1 }
     ].filter((end) => end.value != null);
   }
   /**
@@ -50775,20 +51522,20 @@ let Helpers$1 = class Helpers4 {
    * @param {number} value @param {number} i @param {number} j @param {number} k
    * @returns {string}
    */
-  getDumbbellLabelText(value, i2, j2, k2) {
+  getDumbbellLabelText(value, i2, j, k2) {
     const w = this.w;
     const cnf = w.config.plotOptions.bar.dumbbell.dataLabels;
     if (typeof cnf.formatter === "function") {
       return cnf.formatter(value, {
         seriesIndex: i2,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         endpointIndex: k2,
         w
       });
     }
     const axisFormatter = this.barCtx.isHorizontal ? w.formatters.xLabelFormatter : w.formatters.yLabelFormatters[0];
     if (typeof axisFormatter === "function") {
-      return axisFormatter(value, j2, w);
+      return axisFormatter(value, j, w);
     }
     return String(value);
   }
@@ -50823,12 +51570,12 @@ let Helpers$1 = class Helpers4 {
         goalX.forEach((goal) => {
           if (goal.x >= -1 && goal.x <= graphics.w.layout.gridWidth + 1) {
             const sHeight = typeof goal.attrs.strokeHeight !== "undefined" ? goal.attrs.strokeHeight : barHeight / 2;
-            const y = barYPosition + sHeight + barHeight / 2;
+            const y2 = barYPosition + sHeight + barHeight / 2;
             line = graphics.drawLine(
               goal.x,
-              y - sHeight * 2,
+              y2 - sHeight * 2,
               goal.x,
-              y,
+              y2,
               goal.attrs.strokeColor ? goal.attrs.strokeColor : void 0,
               goal.attrs.strokeDashArray,
               goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
@@ -50839,7 +51586,7 @@ let Helpers$1 = class Helpers4 {
               lineGroup.add(
                 this.drawDumbbellLabel(goal.attrs, {
                   x: goal.x,
-                  y: y - sHeight,
+                  y: y2 - sHeight,
                   horizontal: true,
                   markerSize: goal.attrs.strokeWidth || 0
                 })
@@ -50912,18 +51659,25 @@ let Helpers$1 = class Helpers4 {
     });
   }
   /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
-  drawBarShadow({ prevPaths, currPaths, color, realIndex, j: j2 }) {
+  drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
     const w = this.w;
     const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths;
     const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths;
     const prevY2 = prevY1 + currPaths.barHeight;
     const graphics = new Graphics(this.barCtx.w);
     const utils = new Utils$1();
-    const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j2] === "both" ? " Z" : " z");
+    const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    const mixed = /^color-mix\(in srgb, (.+) [\d.]+%, transparent\)$/.exec(
+      color
+    );
+    const shade = utils.shadeColor(
+      0.5,
+      mixed ? mixed[1] : Utils$1.rgb2hex(color) || color,
+      w.dom.elWrap
+    );
     return graphics.drawPath({
       d: shadowPath,
-      // rgb2hex reads rgb()/rgba() only; shade any other colour as given
-      fill: utils.shadeColor(0.5, Utils$1.rgb2hex(color) || color),
+      fill: shade,
       stroke: "none",
       strokeWidth: 0,
       fillOpacity: 1,
@@ -50931,14 +51685,14 @@ let Helpers$1 = class Helpers4 {
     });
   }
   /** @param {{i: any, j: any}} opts */
-  getZeroValueEncounters({ i: i2, j: j2 }) {
+  getZeroValueEncounters({ i: i2, j }) {
     var _a;
     const w = this.w;
     let nonZeroColumns = 0;
     let zeroEncounters = 0;
     const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
     seriesIndices.forEach((_si) => {
-      const val = w.seriesData.series[_si][j2];
+      const val = w.seriesData.series[_si][j];
       if (val) {
         nonZeroColumns++;
       }
@@ -51103,7 +51857,7 @@ class Bar {
       }
     }
     for (let i2 = 0, bc = 0; i2 < series.length; i2++, bc++) {
-      let x2, y;
+      let x2, y2;
       const yArrj = [];
       const xArrj = [];
       const realIndex = w.globals.comboCharts ? (
@@ -51140,7 +51894,7 @@ class Bar {
       } = initPositions;
       let barHeight = initPositions.barHeight;
       let barWidth = initPositions.barWidth;
-      y = initY;
+      y2 = initY;
       x2 = initX;
       if (!this.isHorizontal) {
         xArrj.push(x2 + (barWidth != null ? barWidth : 0) / 2);
@@ -51179,8 +51933,8 @@ class Bar {
         });
         elBarShadows.node.classList.add("apexcharts-element-hidden");
       }
-      for (let j2 = 0; j2 < series[i2].length; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j2, realIndex);
+      for (let j = 0; j < series[i2].length; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j, realIndex);
         let paths = (
           /** @type {any} */
           null
@@ -51188,52 +51942,52 @@ class Bar {
         const pathsParams = {
           indexes: {
             i: i2,
-            j: j2,
+            j,
             realIndex,
             translationsIndex,
             bc
           },
           x: x2,
-          y,
+          y: y2,
           strokeWidth,
           elSeries
         };
         if (this.isHorizontal) {
           paths = this.drawBarPaths(__spreadProps(__spreadValues(__spreadValues({}, pathsParams), this.barHelpers.rows && {
-            y: initY + this.barHelpers.barRow(realIndex, j2) * yDivision
+            y: initY + this.barHelpers.barRow(realIndex, j) * yDivision
           }), {
             barHeight,
             zeroW,
             yDivision
           }));
-          barWidth = this.series[i2][j2] / this.invertedYRatio;
+          barWidth = this.series[i2][j] / this.invertedYRatio;
         } else {
           paths = this.drawColumnPaths(__spreadProps(__spreadValues({}, pathsParams), {
             xDivision,
             barWidth,
             zeroH
           }));
-          barHeight = this.series[i2][j2] / this.yRatio[translationsIndex];
+          barHeight = this.series[i2][j] / this.yRatio[translationsIndex];
         }
         const pathFill = this.barHelpers.getPathFillColor(
           series,
           i2,
-          j2,
+          j,
           realIndex
         );
-        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_d = w.config.plotOptions.funnel) == null ? void 0 : _d.shape) !== "trapezoid" && this.pathArr.length && j2 > 0) {
+        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_d = w.config.plotOptions.funnel) == null ? void 0 : _d.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
             color: typeof pathFill.color === "string" && ((_e = pathFill.color) == null ? void 0 : _e.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i2]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
             realIndex,
-            j: j2
+            j
           });
           elBarShadows.add(barShadow);
           shadows.push(barShadow);
           this._shadow = morphShadows && [
             barShadow,
-            shadowsWas[j2 - 1].attr("d")
+            shadowsWas[j - 1].attr("d")
           ];
           if (w.config.chart.dropShadow.enabled) {
             const filters = new Filters(this.w);
@@ -51252,16 +52006,16 @@ class Bar {
         if (barGoalLine) {
           elGoalsMarkers.add(barGoalLine);
         }
-        y = paths.y;
+        y2 = paths.y;
         x2 = paths.x;
-        if (j2 > 0) {
+        if (j > 0) {
           xArrj.push(x2 + (barWidth != null ? barWidth : 0) / 2);
         }
-        yArrj.push(y);
+        yArrj.push(y2);
         this.renderSeries(__spreadProps(__spreadValues({
           hl: hf == null ? void 0 : hf.bar(this, {
             i: i2,
-            j: j2,
+            j,
             realIndex,
             translationsIndex,
             paths,
@@ -51271,7 +52025,7 @@ class Bar {
           realIndex,
           pathFill: pathFill.color
         }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
-          j: j2,
+          j,
           i: i2,
           columnGroupIndex,
           pathFrom: paths.pathFrom,
@@ -51279,7 +52033,7 @@ class Bar {
           strokeWidth,
           elSeries,
           x: x2,
-          y,
+          y: y2,
           series,
           barHeight: Math.abs(paths.barHeight ? paths.barHeight : barHeight),
           barWidth: Math.abs(paths.barWidth ? paths.barWidth : barWidth),
@@ -51313,7 +52067,7 @@ class Bar {
     realIndex,
     pathFill,
     lineFill,
-    j: j2,
+    j,
     i: i2,
     columnGroupIndex,
     pathFrom,
@@ -51322,11 +52076,11 @@ class Bar {
     elSeries,
     x: x2,
     // x pos
-    y,
+    y: y2,
     // y pos
     y1,
     // absolute value
-    y2,
+    y2: y22,
     // absolute value
     series,
     barHeight,
@@ -51357,22 +52111,22 @@ class Bar {
     if (!lineFill) {
       let fetchColor = function(i3) {
         const exp = w.config.stroke.colors;
-        let c;
+        let c2;
         if (Array.isArray(exp) && exp.length > 0) {
-          c = exp[i3];
-          if (!c) c = "";
-          if (typeof c === "function") {
-            return c({
-              value: w.seriesData.series[i3][j2],
-              dataPointIndex: j2,
+          c2 = exp[i3];
+          if (!c2) c2 = "";
+          if (typeof c2 === "function") {
+            return c2({
+              value: w.seriesData.series[i3][j],
+              dataPointIndex: j,
               w
             });
           }
         }
-        return c;
+        return c2;
       };
       const checkAvailableColor = typeof w.globals.stroke.colors[realIndex] === "function" ? fetchColor(realIndex) : w.globals.stroke.colors[realIndex];
-      lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j2] : checkAvailableColor;
+      lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : checkAvailableColor;
     }
     const animCfg = w.config.chart.animations;
     const gradCfg = animCfg.animateGradually;
@@ -51388,7 +52142,7 @@ class Bar {
       );
       delayMs = computeStagger({
         style: "sequential",
-        index: j2,
+        index: j,
         baseDelay: baseDelayMs
       });
       if (w.config.chart.stacked && !w.globals.dataChanged) {
@@ -51402,11 +52156,11 @@ class Bar {
       /** @type {any} */
       barDataLabels.handleBarDataLabels({
         x: x2,
-        y,
+        y: y2,
         y1,
-        y2,
+        y2: y22,
         i: i2,
-        j: j2,
+        j,
         series,
         realIndex,
         columnGroupIndex,
@@ -51435,13 +52189,13 @@ class Bar {
       const cx = barXPosition === void 0 ? dataLabelsObj.dataLabelsPos.dataLabelsX : barXPosition + barWidth / 2;
       const pad = Math.max(barWidth, w.globals.barPadForNumericAxis);
       if (cx + pad < 0 || cx - pad > w.layout.gridWidth) {
-        if (this._wasOnScreen(realIndex, j2)) leaving = true;
+        if (this._wasOnScreen(realIndex, j)) leaving = true;
         else skipDrawing = true;
       }
     }
     const datum = (
       /** @type {any} */
-      w.config.series[realIndex].data[j2]
+      w.config.series[realIndex].data[j]
     );
     if (datum && datum.strokeColor) lineFill = datum.strokeColor;
     const fill = pathFill;
@@ -51451,7 +52205,7 @@ class Bar {
     if (!skipDrawing) {
       const morphActive = ((_g = this.ctx.morphTypeChange) == null ? void 0 : _g.isActive()) === true;
       const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
-      const pieceClaimed = morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j2);
+      const pieceClaimed = morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j);
       if (pieceClaimed) {
         pathFrom = pathTo;
         delay = 0;
@@ -51460,7 +52214,7 @@ class Bar {
         /** @type {any} */
         emit.renderPaths({
           i: i2,
-          j: j2,
+          j,
           realIndex,
           pathFrom,
           pathTo,
@@ -51501,29 +52255,29 @@ class Bar {
       }
       const forecast = w.config.forecastDataPoints;
       if (forecast.count > 0) {
-        if (j2 >= w.globals.dataPoints - forecast.count) {
+        if (j >= w.globals.dataPoints - forecast.count) {
           renderedPath.node.setAttribute("stroke-dasharray", forecast.dashArray);
           renderedPath.node.setAttribute("stroke-width", forecast.strokeWidth);
           renderedPath.node.setAttribute("fill-opacity", forecast.fillOpacity);
         }
       }
-      if (typeof y1 !== "undefined" && typeof y2 !== "undefined") {
+      if (typeof y1 !== "undefined" && typeof y22 !== "undefined") {
         renderedPath.attr("data-range-y1", y1);
-        renderedPath.attr("data-range-y2", y2);
+        renderedPath.attr("data-range-y2", y22);
       }
       const filters = new Filters(this.w);
-      filters.setSelectionFilter(renderedPath, realIndex, j2);
+      filters.setSelectionFilter(renderedPath, realIndex, j);
       elSeries.add(renderedPath);
       renderedPath.attr({
         cy: dataLabelsObj.dataLabelsPos.bcy,
         cx: dataLabelsObj.dataLabelsPos.bcx,
-        j: j2,
-        val: w.seriesData.series[realIndex][j2],
+        j,
+        val: w.seriesData.series[realIndex][j],
         barHeight,
         barWidth,
         // Datum identity for the next update's keyed join (see
         // LengthTransition): survivors match by key, not array position.
-        "data:pathKey": this._keys(realIndex)[j2]
+        "data:pathKey": this._keys(realIndex)[j]
       });
       hl == null ? void 0 : hl.paint(renderedPath, {
         delay,
@@ -51541,7 +52295,7 @@ class Bar {
         if (!w.globals.barCanvasCoords[realIndex]) {
           w.globals.barCanvasCoords[realIndex] = {};
         }
-        const prev = w.globals.barCanvasCoords[realIndex][j2];
+        const prev = w.globals.barCanvasCoords[realIndex][j];
         let bounds = (prev == null ? void 0 : prev.bounds) || null;
         const box = renderedPath.bbox();
         if (box.width > 0 || box.height > 0) {
@@ -51558,12 +52312,12 @@ class Bar {
             )
           };
         }
-        w.globals.barCanvasCoords[realIndex][j2] = __spreadProps(__spreadValues({
+        w.globals.barCanvasCoords[realIndex][j] = __spreadProps(__spreadValues({
           cx: dataLabelsObj.dataLabelsPos.bcx,
           cy: dataLabelsObj.dataLabelsPos.bcy,
           barWidth,
           type
-        }, typeof y1 !== "undefined" && typeof y2 !== "undefined" && { rangeY1: y1, rangeY2: y2 }), {
+        }, typeof y1 !== "undefined" && typeof y22 !== "undefined" && { rangeY1: y1, rangeY2: y22 }), {
           bounds
         });
       }
@@ -51590,29 +52344,29 @@ class Bar {
     strokeWidth,
     zeroW,
     x: x2,
-    y,
+    y: y2,
     yDivision,
     elSeries
   }) {
     const w = this.w;
     const i2 = indexes2.i;
-    const j2 = indexes2.j;
+    const j = indexes2.j;
     let barYPosition;
     if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
       const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({
         i: indexes2.realIndex,
-        j: j2
+        j
       });
       if (nonZeroColumns > 0) {
         barHeight = this.seriesLen * barHeight / nonZeroColumns;
       }
-      barYPosition = y + barHeight * this.visibleI;
+      barYPosition = y2 + barHeight * this.visibleI;
       barYPosition -= barHeight * zeroEncounters;
     } else {
-      barYPosition = y + barHeight * this.visibleI;
+      barYPosition = y2 + barHeight * this.visibleI;
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
-    const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j2] : null;
+    const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null;
     const usePyramid = !!pyramidSeg;
     if (pyramidSeg) {
       barYPosition = pyramidSeg.y;
@@ -51623,13 +52377,13 @@ class Bar {
       /** @type {any} */
       (this.barHelpers.getXForValue(
         /** @type {any} */
-        this.series[i2][j2],
+        this.series[i2][j],
         _zeroW
       ) - _zeroW) / 2;
     }
     x2 = this.barHelpers.getXForValue(
       /** @type {any} */
-      this.series[i2][j2],
+      this.series[i2][j],
       zeroW != null ? zeroW : 0
     );
     let paths;
@@ -51641,7 +52395,7 @@ class Bar {
         topHalf: pyramidSeg.topHalf,
         bottomHalf: pyramidSeg.bottomHalf,
         realIndex: indexes2.realIndex,
-        j: j2,
+        j,
         strokeWidth,
         w
       });
@@ -51655,7 +52409,7 @@ class Bar {
           this.series
         ),
         i: i2,
-        j: j2,
+        j,
         realIndex: indexes2.realIndex,
         strokeWidth,
         w
@@ -51672,7 +52426,7 @@ class Bar {
         series: this.series,
         realIndex: indexes2.realIndex,
         i: i2,
-        j: j2,
+        j,
         w
       });
     }
@@ -51681,13 +52435,13 @@ class Bar {
       x2 = paths.x;
     }
     if (!usePyramid) {
-      y = y + yDivision;
+      y2 = y2 + yDivision;
     }
     if (usePyramid) {
-      y = barYPosition;
+      y2 = barYPosition;
     }
     this.barHelpers.barBackground({
-      j: j2,
+      j,
       i: i2,
       y1: barYPosition - barHeight * this.visibleI,
       y2: barHeight * this.seriesLen,
@@ -51698,14 +52452,14 @@ class Bar {
       pathFrom: paths.pathFrom,
       x1: zeroW,
       x: x2,
-      y,
+      y: y2,
       goalX: this.barHelpers.getGoalValues(
         "x",
         zeroW,
         /** @type {any} */
         null,
         indexes2.realIndex,
-        j2,
+        j,
         0
       ),
       barYPosition,
@@ -51716,7 +52470,7 @@ class Bar {
   drawColumnPaths({
     indexes: indexes2,
     x: x2,
-    y,
+    y: y2,
     xDivision,
     barWidth,
     zeroH,
@@ -51727,13 +52481,13 @@ class Bar {
     const realIndex = indexes2.realIndex;
     const translationsIndex = indexes2.translationsIndex;
     const i2 = indexes2.i;
-    const j2 = indexes2.j;
+    const j = indexes2.j;
     const bc = indexes2.bc;
     let barXPosition;
     if (w.axisFlags.isXNumeric) {
       const xForNumericX = this.getBarXForNumericXAxis({
         x: x2,
-        j: j2,
+        j,
         realIndex,
         barWidth
       });
@@ -51741,7 +52495,7 @@ class Bar {
       barXPosition = xForNumericX.barXPosition;
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: realIndex, j: j2 });
+        const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i: realIndex, j });
         if (nonZeroColumns > 0) {
           barWidth = this.seriesLen * barWidth / nonZeroColumns;
         }
@@ -51751,9 +52505,9 @@ class Bar {
         barXPosition = x2 + barWidth * this.visibleI;
       }
     }
-    y = this.barHelpers.getYForValue(
+    y2 = this.barHelpers.getYForValue(
       /** @type {any} */
-      this.series[i2][j2],
+      this.series[i2][j],
       zeroH,
       translationsIndex
     );
@@ -51763,13 +52517,13 @@ class Bar {
         barXPosition,
         barWidth,
         y1: zeroH,
-        y2: y,
+        y2,
         strokeWidth,
         isReversed: this.isReversed,
         series: this.series,
         realIndex,
         i: i2,
-        j: j2,
+        j,
         w
       })
     );
@@ -51778,7 +52532,7 @@ class Bar {
     }
     this.barHelpers.barBackground({
       bc,
-      j: j2,
+      j,
       i: i2,
       x1: barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
       x2: barWidth * this.seriesLen + strokeWidth / 2,
@@ -51788,14 +52542,14 @@ class Bar {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
       x: x2,
-      y,
+      y: y2,
       goalY: this.barHelpers.getGoalValues(
         "y",
         /** @type {any} */
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition,
@@ -51803,15 +52557,15 @@ class Bar {
     };
   }
   /** @param {{x: any, barWidth: any, realIndex: any, j: any}} opts */
-  getBarXForNumericXAxis({ x: x2, barWidth, realIndex, j: j2 }) {
+  getBarXForNumericXAxis({ x: x2, barWidth, realIndex, j }) {
     const w = this.w;
     const overlay = isHistogramOverlay(w);
     let sxI = realIndex;
     if (!w.seriesData.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex;
     }
-    if (Utils$1.isNumber(w.seriesData.seriesX[sxI][j2])) {
-      x2 = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j2]) - barWidth * (overlay ? 1 : this.seriesLen) / 2;
+    if (Utils$1.isNumber(w.seriesData.seriesX[sxI][j])) {
+      x2 = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) - barWidth * (overlay ? 1 : this.seriesLen) / 2;
     }
     return {
       barXPosition: x2 + (overlay ? 0 : barWidth * this.visibleI),
@@ -51832,10 +52586,10 @@ class Bar {
    * @param {number} j
    * @returns {boolean}
    */
-  _wasOnScreen(realIndex, j2) {
+  _wasOnScreen(realIndex, j) {
     if (!lengthTransitionEnabled(this.w)) return false;
     const keyed = this._prevKeyedPaths(realIndex);
-    return !!keyed && keyed.has(this._keys(realIndex)[j2]);
+    return !!keyed && keyed.has(this._keys(realIndex)[j]);
   }
   /**
    * This render's datum keys for a series (see seriesKeys), as stamped on
@@ -51844,11 +52598,11 @@ class Bar {
    * @returns {string[]}
    */
   _keys(realIndex) {
-    const c = (
+    const c2 = (
       /** @type {any} */
       this._keyCache || (this._keyCache = {})
     );
-    return c[realIndex] || (c[realIndex] = seriesKeys(this.w, realIndex));
+    return c2[realIndex] || (c2[realIndex] = seriesKeys(this.w, realIndex));
   }
   /**
    * The captured previous-render record for a series (last match wins, same
@@ -51884,12 +52638,12 @@ class Bar {
     if (hd && (hd.active || (parts == null ? void 0 : parts.size))) return true;
     const r2 = (_a = this.ctx) == null ? void 0 : _a.renderer;
     if (r2 && r2.kind && r2.kind !== "svg") return false;
-    const p = new Graphics(w, this.ctx).revealPlan(
+    const p2 = new Graphics(w, this.ctx).revealPlan(
       "",
       /** @type {any} */
       this._fadeReveal
     );
-    return p.animate && !p.fade;
+    return p2.animate && !p2.fade;
   }
   /**
    * Previous paths of a series re-keyed by datum key (stamped as
@@ -51907,10 +52661,10 @@ class Bar {
     }
     const record = this._prevRecord(realIndex);
     let map = null;
-    if (record && record.paths.every((p) => p.key != null)) {
+    if (record && record.paths.every((p2) => p2.key != null)) {
       const keyed = /* @__PURE__ */ new Map();
-      record.paths.forEach((p) => {
-        keyed.set(p.key, p);
+      record.paths.forEach((p2) => {
+        keyed.set(p2.key, p2);
       });
       map = keyed;
     }
@@ -51991,7 +52745,7 @@ class Bar {
    *   bar gaining a corner can travel square and round only on arrival.
    * @returns {string | null}
    **/
-  getPreviousPath(realIndex, j2, pathTo, squarePathTo) {
+  getPreviousPath(realIndex, j, pathTo, squarePathTo) {
     const w = this.w;
     this._pathToInterp = null;
     if (!this._pathFromUsed()) return pathTo;
@@ -52003,14 +52757,14 @@ class Bar {
     let isNewDatum = false;
     const keyed = this._prevKeyedPaths(realIndex);
     if (keyed) {
-      const prev = keyed.get(this._keys(realIndex)[j2]);
+      const prev = keyed.get(this._keys(realIndex)[j]);
       if (prev) {
         oldD = prev.d;
       } else {
         isNewDatum = true;
       }
-    } else if (typeof record.paths[j2] !== "undefined") {
-      oldD = record.paths[j2].d;
+    } else if (typeof record.paths[j] !== "undefined") {
+      oldD = record.paths[j].d;
     } else {
       isNewDatum = true;
     }
@@ -52040,8 +52794,8 @@ class Bar {
       return oldD;
     }
     const graphics = new Graphics(this.w);
-    const extentOf = (d) => {
-      const box = Bar.pathBox(d);
+    const extentOf = (d2) => {
+      const box = Bar.pathBox(d2);
       return box ? Math.min(box.maxX - box.minX, box.maxY - box.minY) : 0;
     };
     const handingOver = fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1;
@@ -52078,19 +52832,19 @@ class Bar {
    * @param {string} d
    * @returns {{minX: number, maxX: number, minY: number, maxY: number, start: [number, number], vertical: boolean} | null}
    */
-  static pathBox(d) {
-    if (!d) return null;
+  static pathBox(d2) {
+    if (!d2) return null;
     const pts = [];
     const re = /([MLC])([^MLCZz]*)/g;
-    let m;
-    while ((m = re.exec(d)) !== null) {
-      const nums2 = m[2].trim().split(/[\s,]+/).map(Number);
+    let m2;
+    while ((m2 = re.exec(d2)) !== null) {
+      const nums2 = m2[2].trim().split(/[\s,]+/).map(Number);
       if (nums2.length < 2 || nums2.some(isNaN)) continue;
       pts.push([nums2[nums2.length - 2], nums2[nums2.length - 1]]);
     }
     if (pts.length < 3) return null;
-    const xs = pts.map((p) => p[0]);
-    const ys = pts.map((p) => p[1]);
+    const xs = pts.map((p2) => p2[0]);
+    const ys = pts.map((p2) => p2[1]);
     return {
       minX: Math.min(...xs),
       maxX: Math.max(...xs),
@@ -52116,8 +52870,8 @@ class Bar {
    * @param {string} d
    * @returns {string | null}
    */
-  static squareLike(d) {
-    const box = Bar.pathBox(d);
+  static squareLike(d2) {
+    const box = Bar.pathBox(d2);
     if (!box) return null;
     const { minX, maxX, minY, maxY, start, vertical } = box;
     const near = (v, a2, b) => Math.abs(v - a2) <= Math.abs(v - b) ? [a2, b] : [b, a2];
@@ -52131,7 +52885,7 @@ class Bar {
       y2 = y1 === minY ? maxY : minY;
       [x1, x2] = near(start[0], minX, maxX);
     }
-    const closing = d.trim().endsWith("Z") ? " Z" : " z";
+    const closing = d2.trim().endsWith("Z") ? " Z" : " z";
     return vertical ? `M ${x1} ${y1} L ${x1} ${y2} L ${x2} ${y2} L ${x2} ${y1}${closing}` : `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2}${closing}`;
   }
   /**
@@ -52145,11 +52899,11 @@ class Bar {
    * @param {number} j
    * @returns {boolean | null} null when there is no previous record to consult
    */
-  getPreviousFlip(realIndex, j2) {
+  getPreviousFlip(realIndex, j) {
     const record = this._prevRecord(realIndex);
     if (!record) return null;
     const keyed = this._prevKeyedPaths(realIndex);
-    const prev = keyed ? keyed.get(this._keys(realIndex)[j2]) : record.paths[j2];
+    const prev = keyed ? keyed.get(this._keys(realIndex)[j]) : record.paths[j];
     return prev ? !!prev.flip : null;
   }
   /**
@@ -52159,9 +52913,9 @@ class Bar {
    * @param {string} d
    * @returns {number}
    */
-  static pathCommandCount(d) {
-    if (!d) return 0;
-    const matches = d.match(/[MmLlHhVvCcSsQqTtAaZz]/g);
+  static pathCommandCount(d2) {
+    if (!d2) return 0;
+    const matches = d2.match(/[MmLlHhVvCcSsQqTtAaZz]/g);
     return matches ? matches.length : 0;
   }
 }
@@ -52192,7 +52946,7 @@ class BarStacked extends Bar {
     });
     const hf = this.ctx.highlightFilter;
     let x2 = 0;
-    let y = 0;
+    let y2 = 0;
     const anim = w.config.chart.animations;
     const holdMirror = anim.enabled && anim.dynamicAnimation.enabled && w.globals.previousPaths.length > 0;
     let heldMirrors = false;
@@ -52230,7 +52984,7 @@ class BarStacked extends Bar {
       });
       const initPositions = this.initialPositions(
         x2,
-        y,
+        y2,
         void 0,
         void 0,
         void 0,
@@ -52249,7 +53003,7 @@ class BarStacked extends Bar {
       } = initPositions;
       let barHeight = initPositions.barHeight;
       let barWidth = initPositions.barWidth;
-      y = initPositions.y;
+      y2 = initPositions.y;
       x2 = initPositions.x;
       w.globals.barHeight = barHeight;
       w.globals.barWidth = barWidth;
@@ -52261,13 +53015,13 @@ class BarStacked extends Bar {
         this.groupCtx.prevY[0] = this.groupCtx.prevY[0].map(() => zeroH);
         this.groupCtx.prevYF[0] = this.groupCtx.prevYF[0].map(() => 0);
       }
-      for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j2, realIndex);
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j, realIndex);
         const commonPathOpts = {
-          indexes: { i: i2, j: j2, realIndex, translationsIndex, bc },
+          indexes: { i: i2, j, realIndex, translationsIndex, bc },
           strokeWidth,
           x: x2,
-          y,
+          y: y2,
           elSeries,
           columnGroupIndex
         };
@@ -52277,20 +53031,20 @@ class BarStacked extends Bar {
         );
         if (this.isHorizontal) {
           paths = this.drawStackedBarPaths(__spreadProps(__spreadValues(__spreadValues({}, commonPathOpts), this.barHelpers.rows && {
-            y: initPositions.y + this.barHelpers.barRow(realIndex, j2) * yDivision
+            y: initPositions.y + this.barHelpers.barRow(realIndex, j) * yDivision
           }), {
             zeroW,
             barHeight,
             yDivision
           }));
-          barWidth = this.series[i2][j2] / this.invertedYRatio;
+          barWidth = this.series[i2][j] / this.invertedYRatio;
         } else {
           paths = this.drawStackedColumnPaths(__spreadProps(__spreadValues({}, commonPathOpts), {
             xDivision,
             barWidth,
             zeroH
           }));
-          barHeight = this.series[i2][j2] / this.yRatio[translationsIndex];
+          barHeight = this.series[i2][j] / this.yRatio[translationsIndex];
         }
         const barGoalLine = this.barHelpers.drawGoalLine({
           barXPosition: paths.barXPosition,
@@ -52303,23 +53057,23 @@ class BarStacked extends Bar {
         if (barGoalLine) {
           elGoalsMarkers.add(barGoalLine);
         }
-        y = paths.y;
+        y2 = paths.y;
         x2 = paths.x;
         xArrValues.push(x2);
-        yArrValues.push(y);
+        yArrValues.push(y2);
         const pathFill = this.barHelpers.getPathFillColor(
           series,
           i2,
-          j2,
+          j,
           realIndex
         );
         let classes = "";
         const flipClass = w.globals.isBarHorizontal ? "apexcharts-flip-x" : "apexcharts-flip-y";
         const wantsFlip = this.cornerFlip(
-          this.barHelpers.arrBorderRadius[realIndex][j2],
-          w.seriesData.series[realIndex][j2]
+          this.barHelpers.arrBorderRadius[realIndex][j],
+          w.seriesData.series[realIndex][j]
         );
-        const heldFlip = holdMirror && !wantsFlip && this.getPreviousFlip(realIndex, j2);
+        const heldFlip = holdMirror && !wantsFlip && this.getPreviousFlip(realIndex, j);
         if (wantsFlip || heldFlip) {
           classes = flipClass;
         }
@@ -52330,7 +53084,7 @@ class BarStacked extends Bar {
         elSeries = this.renderSeries(__spreadProps(__spreadValues({
           hl: hf == null ? void 0 : hf.bar(this, {
             i: i2,
-            j: j2,
+            j,
             realIndex,
             translationsIndex,
             paths,
@@ -52340,7 +53094,7 @@ class BarStacked extends Bar {
           realIndex,
           pathFill: pathFill.color
         }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
-          j: j2,
+          j,
           i: i2,
           columnGroupIndex,
           pathFrom: paths.pathFrom,
@@ -52348,7 +53102,7 @@ class BarStacked extends Bar {
           strokeWidth,
           elSeries,
           x: x2,
-          y,
+          y: y2,
           series,
           barHeight,
           barWidth,
@@ -52423,7 +53177,7 @@ class BarStacked extends Bar {
    * @param {number | undefined} zeroW
    * @param {number} translationsIndex
    */
-  initialPositions(x2, y, xDivision, yDivision, zeroH, zeroW, translationsIndex) {
+  initialPositions(x2, y2, xDivision, yDivision, zeroH, zeroW, translationsIndex) {
     const w = this.w;
     let barHeight, barWidth;
     if (this.isHorizontal) {
@@ -52435,7 +53189,7 @@ class BarStacked extends Bar {
         barHeight = yDivision * parseInt(userBarHeight, 10) / 100;
       }
       zeroW = w.globals.padHorizontal + (this.isReversed ? w.layout.gridWidth - this.baseLineInvertedY : this.baseLineInvertedY);
-      y = (yDivision - barHeight) / 2;
+      y2 = (yDivision - barHeight) / 2;
     } else {
       xDivision = w.layout.gridWidth / w.globals.dataPoints;
       barWidth = xDivision;
@@ -52460,7 +53214,7 @@ class BarStacked extends Bar {
     const subDivisions = w.globals.barGroups.length || 1;
     return {
       x: x2,
-      y,
+      y: y2,
       yDivision,
       xDivision,
       barHeight: (barHeight != null ? barHeight : 0) / subDivisions,
@@ -52476,25 +53230,25 @@ class BarStacked extends Bar {
     strokeWidth,
     zeroW,
     x: x2,
-    y,
+    y: y2,
     columnGroupIndex,
     yDivision,
     elSeries
   }) {
     var _a, _b;
     const w = this.w;
-    const barYPosition = y + columnGroupIndex * barHeight;
+    const barYPosition = y2 + columnGroupIndex * barHeight;
     let barXPosition;
     const i2 = indexes2.i;
-    const j2 = indexes2.j;
+    const j = indexes2.j;
     const realIndex = indexes2.realIndex;
     const translationsIndex = indexes2.translationsIndex;
     const v = (
       /** @type {any} */
-      (_b = (_a = this.series[i2]) == null ? void 0 : _a[j2]) != null ? _b : null
+      (_b = (_a = this.series[i2]) == null ? void 0 : _a[j]) != null ? _b : null
     );
     const g2 = this.groupCtx;
-    const key = CoreUtils.stackKey(w, realIndex, j2);
+    const key = CoreUtils.stackKey(w, realIndex, j);
     const top = g2.tops.get(key);
     if (top) {
       const [prevX, prevVal, prevBarW] = top;
@@ -52514,18 +53268,18 @@ class BarStacked extends Bar {
       series: this.series,
       realIndex: indexes2.realIndex,
       i: i2,
-      j: j2,
+      j,
       w
     });
-    this._setTop(key, top, g2.xArrj[j2], g2.xArrjVal[j2], g2.xArrjF[j2], realIndex, j2);
+    this._setTop(key, top, g2.xArrj[j], g2.xArrjVal[j], g2.xArrjF[j], realIndex, j);
     this.barHelpers.barBackground({
-      j: j2,
+      j,
       i: i2,
       y1: barYPosition,
       y2: barHeight,
       elSeries
     });
-    y = y + yDivision;
+    y2 = y2 + yDivision;
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
@@ -52535,20 +53289,20 @@ class BarStacked extends Bar {
         /** @type {any} */
         null,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition,
       barYPosition,
       x: x2,
-      y
+      y: y2
     };
   }
   /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, columnGroupIndex: any, strokeWidth: any, elSeries: any}} opts */
   drawStackedColumnPaths({
     indexes: indexes2,
     x: x2,
-    y,
+    y: y2,
     xDivision,
     barWidth,
     zeroH,
@@ -52559,23 +53313,23 @@ class BarStacked extends Bar {
     var _a, _b, _c;
     const w = this.w;
     const i2 = indexes2.i;
-    const j2 = indexes2.j;
+    const j = indexes2.j;
     const bc = indexes2.bc;
     const realIndex = indexes2.realIndex;
     const translationsIndex = indexes2.translationsIndex;
     const v = (
       /** @type {any} */
-      (_b = (_a = this.series[i2]) == null ? void 0 : _a[j2]) != null ? _b : null
+      (_b = (_a = this.series[i2]) == null ? void 0 : _a[j]) != null ? _b : null
     );
     if (w.axisFlags.isXNumeric) {
-      let seriesVal = w.seriesData.seriesX[realIndex][j2];
+      let seriesVal = w.seriesData.seriesX[realIndex][j];
       if (!seriesVal) seriesVal = 0;
       x2 = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2 * w.globals.barGroups.length;
     }
     const barXPosition = x2 + columnGroupIndex * barWidth;
     let barYPosition;
     const g2 = this.groupCtx;
-    const key = CoreUtils.stackKey(w, realIndex, j2);
+    const key = CoreUtils.stackKey(w, realIndex, j);
     const top = g2.tops.get(key);
     if (top) {
       const [prevYValue, prevVal, prevBarH] = top;
@@ -52596,12 +53350,12 @@ class BarStacked extends Bar {
     } else {
       barYPosition = zeroH;
     }
-    y = barYPosition - v / this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
+    y2 = barYPosition - v / this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
       barWidth,
       y1: barYPosition,
-      y2: y,
+      y2,
       yRatio: this.yRatio[translationsIndex],
       // Along the value axis, the per-datum width from getStrokeWidth (0 for
       // a null/zero value): the series' width grew an empty segment by the
@@ -52615,13 +53369,13 @@ class BarStacked extends Bar {
       series: this.series,
       realIndex: indexes2.realIndex,
       i: i2,
-      j: j2,
+      j,
       w
     });
-    this._setTop(key, top, g2.yArrj[j2], g2.yArrjVal[j2], g2.yArrjF[j2], realIndex, j2);
+    this._setTop(key, top, g2.yArrj[j], g2.yArrjVal[j], g2.yArrjF[j], realIndex, j);
     this.barHelpers.barBackground({
       bc,
-      j: j2,
+      j,
       i: i2,
       x1: barXPosition,
       x2: barWidth,
@@ -52636,12 +53390,12 @@ class BarStacked extends Bar {
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition,
       x: w.axisFlags.isXNumeric ? x2 : x2 + xDivision,
-      y
+      y: y2
     };
   }
   /**
@@ -52652,13 +53406,13 @@ class BarStacked extends Bar {
    * @param {any} key @param {any} top @param {number} t @param {any} val
    * @param {number} len @param {number} realIndex @param {number} j
    */
-  _setTop(key, top, t2, val, len, realIndex, j2) {
+  _setTop(key, top, t2, val, len, realIndex, j) {
     if (isNaN(t2)) return;
     this.groupCtx.tops.set(key, [
       t2,
       val,
       (top ? top[2] : 0) + len,
-      (top ? top[3] : 0) + (this.w.seriesData.series[realIndex][j2] || 0),
+      (top ? top[3] : 0) + (this.w.seriesData.series[realIndex][j] || 0),
       top ? Math.min(top[0], top[4]) : 1 / 0,
       top ? Math.max(top[0], top[5]) : -1 / 0
     ]);
@@ -52766,10 +53520,10 @@ function renderJitter({
   if (willAnimateIn) {
     w.globals.delayedElements.push({ el: elPointsWrap.node });
   }
-  pointsByCat.forEach(({ groups, j: j2 }) => {
-    const catColor = distributed ? w.globals.colors[j2] : w.globals.colors[realIndex];
+  pointsByCat.forEach(({ groups, j }) => {
+    const catColor = distributed ? w.globals.colors[j] : w.globals.colors[realIndex];
     const fc = options2.fillColor;
-    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45) : fc || darkenColor(catColor, 0.45);
+    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45, w.dom.elWrap) : fc || darkenColor(catColor, 0.45, w.dom.elWrap);
     groups.forEach((g2) => {
       const elPoints = graphics.drawPath({
         d: g2.d,
@@ -52780,7 +53534,7 @@ function renderJitter({
         classes: pointClass
       });
       elPoints.attr("data:realIndex", realIndex);
-      elPoints.attr("j", j2);
+      elPoints.attr("j", j);
       elPoints.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
       elPoints.node.style.pointerEvents = "none";
       elPointsWrap.add(elPoints);
@@ -52788,11 +53542,13 @@ function renderJitter({
   });
   elSeries.add(elPointsWrap);
 }
-function darkenColor(color, amount) {
-  const rgb = Utils$1.parseColor(color) || Utils$1.parseColor(Utils$1.resolveColor(color));
-  if (!rgb) return color;
-  const f = Math.max(0, 1 - amount);
-  return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
+function darkenColor(color, amount, el) {
+  const { c: rgb, resolved } = Utils$1.readColor(color, el);
+  if (!rgb) {
+    return Utils$1.isColor(color) ? Utils$1.mixColor(resolved, -amount) : color;
+  }
+  const f2 = Math.max(0, 1 - amount);
+  return `rgb(${Math.round(rgb[0] * f2)},${Math.round(rgb[1] * f2)},${Math.round(rgb[2] * f2)})`;
 }
 function rampColorAt(colors, t2) {
   if (!colors.length) return "#000";
@@ -52806,10 +53562,10 @@ function rampColorAt(colors, t2) {
   return `rgb(${mix(c0[0], c1[0])},${mix(c0[1], c1[1])},${mix(c0[2], c1[2])})`;
 }
 function hash01(n2) {
-  let h = (n2 ^ 2654435769) >>> 0;
-  h = Math.imul(h ^ h >>> 16, 73244475);
-  h = Math.imul(h ^ h >>> 16, 73244475);
-  return ((h ^ h >>> 16) >>> 0) / 4294967296;
+  let h2 = (n2 ^ 2654435769) >>> 0;
+  h2 = Math.imul(h2 ^ h2 >>> 16, 73244475);
+  h2 = Math.imul(h2 ^ h2 >>> 16, 73244475);
+  return ((h2 ^ h2 >>> 16) >>> 0) / 4294967296;
 }
 function circleSubPath(px2, py, r2) {
   return `M ${px2 - r2} ${py} a ${r2} ${r2} 0 1 0 ${2 * r2} 0 a ${r2} ${r2} 0 1 0 ${-2 * r2} 0 `;
@@ -52839,8 +53595,8 @@ class BoxCandleStick extends Bar {
     const keyed = this._prevKeyedPaths(realIndex);
     if (!keyed || keyed.size === 0 || !row || row.length === 0) return false;
     let survivors = 0;
-    for (let j2 = 0; j2 < row.length; j2++) {
-      if (keyed.has(this._keys(realIndex)[j2])) survivors++;
+    for (let j = 0; j < row.length; j++) {
+      if (keyed.has(this._keys(realIndex)[j])) survivors++;
     }
     return survivors / keyed.size < 0.5;
   }
@@ -52858,7 +53614,7 @@ class BoxCandleStick extends Bar {
    * @param {number} pi which half, in draw order
    * @returns {string | null}
    */
-  _prevBoxHalf(realIndex, j2, pi) {
+  _prevBoxHalf(realIndex, j, pi) {
     if (!this.isBoxPlot || !this._pathFromUsed()) return null;
     if (!this._prevHalves) {
       this._prevHalves = {};
@@ -52867,17 +53623,17 @@ class BoxCandleStick extends Bar {
     if (map === void 0) {
       map = null;
       const record = this._prevRecord(realIndex);
-      if (record && record.paths.every((p) => p.key != null)) {
+      if (record && record.paths.every((p2) => p2.key != null)) {
         map = /* @__PURE__ */ new Map();
-        for (const p of record.paths) {
-          const list = map.get(p.key) || [];
-          list.push(p.d);
-          map.set(p.key, list);
+        for (const p2 of record.paths) {
+          const list = map.get(p2.key) || [];
+          list.push(p2.d);
+          map.set(p2.key, list);
         }
       }
       this._prevHalves[realIndex] = map;
     }
-    const halves = map && map.get(this._keys(realIndex)[j2]);
+    const halves = map && map.get(this._keys(realIndex)[j]);
     return halves && halves.length === 2 ? halves[pi] : null;
   }
   /**
@@ -52908,7 +53664,7 @@ class BoxCandleStick extends Bar {
     const jx = jitterExtent(w.candleData.seriesBoxPoints, w);
     for (let i2 = 0; i2 < series.length; i2++) {
       let x2;
-      let y;
+      let y2;
       const yArrj = [];
       const xArrj = [];
       const realIndex = w.globals.comboCharts ? (
@@ -52942,7 +53698,7 @@ class BoxCandleStick extends Bar {
         zeroH
         // zeroH is the baseline where 0 meets y axis
       } = initPositions;
-      y = initY;
+      y2 = initY;
       x2 = initX;
       xArrj.push(x2 + (barWidth != null ? barWidth : 0) / 2);
       const elDataLabelsWrap = graphics.group({
@@ -52962,19 +53718,19 @@ class BoxCandleStick extends Bar {
       const dataPoints = series[i2].length === 0 ? 0 : w.globals.dataPoints;
       const fadeReveal = this._identityLost(realIndex, series[i2]);
       this._fadeReveal = fadeReveal;
-      for (let j2 = 0; j2 < dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j2, realIndex);
+      for (let j = 0; j < dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j, realIndex);
         const paths = (
           /** @type {any} */
           this.drawBoxPaths({
             indexes: {
               i: i2,
-              j: j2,
+              j,
               realIndex,
               translationsIndex
             },
             x: x2,
-            y,
+            y: y2,
             strokeWidth,
             division: this.isHorizontal ? yDivision : xDivision,
             band: this.isHorizontal ? barHeight : barWidth,
@@ -52982,12 +53738,12 @@ class BoxCandleStick extends Bar {
             cullBounds: this.isHorizontal ? null : { lo: -cullBuffer, hi: gridW + cullBuffer }
           })
         );
-        y = paths.y;
+        y2 = paths.y;
         x2 = paths.x;
-        if (j2 > 0) {
+        if (j > 0) {
           xArrj.push(x2 + (barWidth != null ? barWidth : 0) / 2);
         }
-        yArrj.push(y);
+        yArrj.push(y2);
         if (paths.culled) {
           continue;
         }
@@ -53008,24 +53764,24 @@ class BoxCandleStick extends Bar {
             const lineFill = !this.isBoxPlot && this.candlestickOptions.wick.useFillColor ? paths.color[pi] : w.globals.stroke.colors[realIndex];
             const pathFill = fill.fillPath({
               seriesNumber: realIndex,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               color: paths.color[pi],
-              value: series[i2][j2]
+              value: series[i2][j]
             });
             this.renderSeries({
               realIndex,
               pathFill,
               lineFill,
-              j: j2,
+              j,
               i: i2,
-              pathFrom: (_a2 = this._prevBoxHalf(realIndex, j2, pi)) != null ? _a2 : paths.pathFrom,
+              pathFrom: (_a2 = this._prevBoxHalf(realIndex, j, pi)) != null ? _a2 : paths.pathFrom,
               fadeReveal,
               noLabel: pi > 0,
               pathTo,
               strokeWidth,
               elSeries,
               x: x2,
-              y,
+              y: y2,
               series,
               columnGroupIndex,
               barHeight,
@@ -53042,14 +53798,14 @@ class BoxCandleStick extends Bar {
           }
         );
         if (boxPointsOpts && boxPointsOpts.show !== false) {
-          const pts = (_b = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _b[j2];
+          const pts = (_b = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _b[j];
           if (pts && pts.length) {
             const band = (_c = this.isHorizontal ? barHeight : barWidth) != null ? _c : 0;
             const groups = buildJitterGroups({
               points: pts,
               extent: jx,
               seedA: realIndex,
-              seedB: j2,
+              seedB: j,
               center: paths.slot + band / 2,
               halfExtent: band / 2,
               // the box's own value mapping, from an observation's log value
@@ -53063,7 +53819,7 @@ class BoxCandleStick extends Bar {
               isHorizontal: this.isHorizontal,
               options: boxPointsOpts
             });
-            if (groups.length) pointsByCat.push({ groups, j: j2 });
+            if (groups.length) pointsByCat.push({ groups, j });
           }
         }
       }
@@ -53088,7 +53844,7 @@ class BoxCandleStick extends Bar {
           elSeries,
           record: this._prevRecord(realIndex),
           newKeys: this._keys(realIndex).filter(
-            (_, j2) => series[i2][j2] != null
+            (_, j) => series[i2][j] != null
           ),
           isHorizontal: this.isHorizontal,
           speed: w.config.chart.animations.dynamicAnimation.speed
@@ -53110,7 +53866,7 @@ class BoxCandleStick extends Bar {
   drawBoxPaths({
     indexes: indexes2,
     x: x2,
-    y,
+    y: y2,
     division,
     band,
     zero,
@@ -53121,11 +53877,11 @@ class BoxCandleStick extends Bar {
     const w = this.w;
     const graphics = new Graphics(this.w);
     const vertical = !this.isHorizontal;
-    const { i: i2, j: j2, realIndex, translationsIndex } = indexes2;
+    const { i: i2, j, realIndex, translationsIndex } = indexes2;
     const { colors: candleColors } = w.config.plotOptions.candlestick;
     const { colors: boxColors } = this.boxOptions;
     const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
-    const ohlc = this.getOHLCValue(realIndex, j2);
+    const ohlc = this.getOHLCValue(realIndex, j);
     const color = this.isBoxPlot ? [getColor(boxColors.lower), getColor(boxColors.upper)] : [
       getColor(
         ohlc.o < ohlc.c ? candleColors.upward : candleColors.downward
@@ -53133,62 +53889,62 @@ class BoxCandleStick extends Bar {
     ];
     const ratio = (vertical ? -this.yRatio[translationsIndex] : this.invertedYRatio) * (this.isReversed ? -1 : 1);
     const along = (v) => zero + v / ratio;
-    let slot = (vertical ? x2 : y) + band * this.visibleI;
+    let slot = (vertical ? x2 : y2) + band * this.visibleI;
     if (vertical && w.axisFlags.isXNumeric) {
       ({ x: x2, barXPosition: slot } = this.getBarXForNumericXAxis({
         x: x2,
         barWidth: band,
         realIndex,
-        j: j2
+        j
       }));
     }
-    const next = !vertical ? y + division : w.axisFlags.isXNumeric ? x2 : x2 + division;
+    const next = !vertical ? y2 + division : w.axisFlags.isXNumeric ? x2 : x2 + division;
     const hole = (
       /** @type {any} */
-      ((_a = this.series[i2]) == null ? void 0 : _a[j2]) == null
+      ((_a = this.series[i2]) == null ? void 0 : _a[j]) == null
     );
     const a1 = hole ? zero : along(Math.min(ohlc.o, ohlc.c));
     const a2 = hole ? zero : along(Math.max(ohlc.o, ohlc.c));
     const pos = vertical ? { x: next, y: a2 } : { x: a2, y: next };
-    if (hole || cullBounds && (slot + band < cullBounds.lo || slot > cullBounds.hi) && !this._wasOnScreen(realIndex, j2)) {
+    if (hole || cullBounds && (slot + band < cullBounds.lo || slot > cullBounds.hi) && !this._wasOnScreen(realIndex, j)) {
       return __spreadProps(__spreadValues({}, pos), { culled: true });
     }
     const l1 = along(ohlc.h);
     const l2 = along(ohlc.l);
-    const m = along(ohlc.m);
+    const m2 = along(ohlc.m);
     const mid = slot + band / 2;
     const far = slot + band;
     const q1 = slot + band / 4;
     const q3 = slot + band - band / 4;
     const half = (vertical ? strokeWidth : -strokeWidth) / 2;
-    const M2 = (a3, c) => vertical ? graphics.move(c, a3) : graphics.move(a3, c);
-    const L2 = (a3, c) => vertical ? graphics.line(c, a3) : graphics.line(a3, c);
+    const M = (a3, c2) => vertical ? graphics.move(c2, a3) : graphics.move(a3, c2);
+    const L2 = (a3, c2) => vertical ? graphics.line(c2, a3) : graphics.line(a3, c2);
     let pathTo;
     if (this.isOHLC) {
       const openA = along(ohlc.o);
       const closeA = along(ohlc.c);
       pathTo = [
-        M2(l1, mid) + L2(l2, mid) + M2(openA, mid) + L2(openA, slot) + M2(closeA, mid) + L2(closeA, far)
+        M(l1, mid) + L2(l2, mid) + M(openA, mid) + L2(openA, slot) + M(closeA, mid) + L2(closeA, far)
       ];
     } else if (this.isBoxPlot) {
       pathTo = [
-        M2(a1, slot) + L2(a1, mid) + L2(l1, mid) + L2(l1, q1) + L2(l1, q3) + L2(l1, mid) + L2(a1, mid) + L2(a1, far) + L2(m, far) + L2(m, slot) + L2(a1 + half, slot),
-        M2(m, slot) + L2(m, far) + L2(a2, far) + L2(a2, mid) + L2(l2, mid) + L2(l2, q3) + L2(l2, q1) + L2(l2, mid) + L2(a2, mid) + L2(a2, slot) + L2(m, slot) + "z"
+        M(a1, slot) + L2(a1, mid) + L2(l1, mid) + L2(l1, q1) + L2(l1, q3) + L2(l1, mid) + L2(a1, mid) + L2(a1, far) + L2(m2, far) + L2(m2, slot) + L2(a1 + half, slot),
+        M(m2, slot) + L2(m2, far) + L2(a2, far) + L2(a2, mid) + L2(l2, mid) + L2(l2, q3) + L2(l2, q1) + L2(l2, mid) + L2(a2, mid) + L2(a2, slot) + L2(m2, slot) + "z"
       ];
     } else {
       pathTo = [
-        M2(a2, slot) + L2(a2, mid) + L2(l1, mid) + L2(a2, mid) + L2(a2, far) + L2(a1, far) + L2(a1, mid) + L2(l2, mid) + L2(a1, mid) + L2(a1, slot) + L2(a2 - half, slot)
+        M(a2, slot) + L2(a2, mid) + L2(l1, mid) + L2(a2, mid) + L2(a2, far) + L2(a1, far) + L2(a1, mid) + L2(l2, mid) + L2(a1, mid) + L2(a1, slot) + L2(a2 - half, slot)
       ];
     }
     let pathFrom = null;
-    const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j2);
+    const morphFrom = (_c = (_b = this.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j2, pathTo[0]);
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
     }
     if (pathFrom == null) {
-      pathFrom = M2(a1, mid) + M2(a1, slot);
+      pathFrom = M(a1, mid) + M(a1, slot);
     }
     return __spreadProps(__spreadValues({}, pos), {
       pathTo,
@@ -53199,7 +53955,7 @@ class BoxCandleStick extends Bar {
         zero,
         zero,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       slot,
@@ -53211,24 +53967,24 @@ class BoxCandleStick extends Bar {
    * @param {number} i
    * @param {number} j
    */
-  getOHLCValue(i2, j2) {
+  getOHLCValue(i2, j) {
     const w = this.w;
     const coreUtils = this.coreUtils;
-    const getCandleVal = (arr) => arr[i2] && arr[i2][j2] != null ? (
+    const getCandleVal = (arr) => arr[i2] && arr[i2][j] != null ? (
       /** @type {any} */
-      coreUtils.getLogValAtSeriesIndex(arr[i2][j2], i2)
+      coreUtils.getLogValAtSeriesIndex(arr[i2][j], i2)
     ) : 0;
-    const h = getCandleVal(w.candleData.seriesCandleH);
+    const h2 = getCandleVal(w.candleData.seriesCandleH);
     const o2 = getCandleVal(w.candleData.seriesCandleO);
-    const m = getCandleVal(w.candleData.seriesCandleM);
-    const c = getCandleVal(w.candleData.seriesCandleC);
+    const m2 = getCandleVal(w.candleData.seriesCandleM);
+    const c2 = getCandleVal(w.candleData.seriesCandleC);
     const l2 = getCandleVal(w.candleData.seriesCandleL);
     return {
-      o: this.isBoxPlot ? h : o2,
-      h: this.isBoxPlot ? o2 : h,
-      m,
-      l: this.isBoxPlot ? c : l2,
-      c: this.isBoxPlot ? l2 : c
+      o: this.isBoxPlot ? h2 : o2,
+      h: this.isBoxPlot ? o2 : h2,
+      m: m2,
+      l: this.isBoxPlot ? c2 : l2,
+      c: this.isBoxPlot ? l2 : c2
     };
   }
 }
@@ -53256,10 +54012,10 @@ class TreemapHelpers {
    * @param {number} j
    * @param {any} negRange
    */
-  getShadeColor(chartType, i2, j2, negRange) {
+  getShadeColor(chartType, i2, j, negRange) {
     const w = this.w;
     const opts = w.config.plotOptions[chartType];
-    const colorProps = this.determineColor(chartType, i2, j2);
+    const colorProps = this.determineColor(chartType, i2, j);
     const colorShadePercent = shadePercent(
       w,
       chartType,
@@ -53270,12 +54026,11 @@ class TreemapHelpers {
     if (opts.enableShades) {
       const shadeColor = new Utils$1().shadeColor(
         w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,
-        color
+        color,
+        w.dom.elWrap
       );
-      color = Utils$1.hexToRgba(
-        Utils$1.isColorHex(shadeColor) ? shadeColor : Utils$1.rgb2hex(shadeColor),
-        w.config.fill.opacity
-      );
+      const hex = Utils$1.isColorHex(shadeColor) ? shadeColor : Utils$1.rgb2hex(shadeColor);
+      color = hex || !Utils$1.isColor(color) ? Utils$1.hexToRgba(hex, w.config.fill.opacity) : Utils$1.applyOpacityToColor(shadeColor, w.config.fill.opacity);
     }
     return { color, colorProps };
   }
@@ -53284,13 +54039,13 @@ class TreemapHelpers {
    * @param {number} i
    * @param {number} j
    */
-  determineColor(chartType, i2, j2) {
+  determineColor(chartType, i2, j) {
     const w = this.w;
-    const val = w.seriesData.series[i2][j2];
+    const val = w.seriesData.series[i2][j];
     const chartOpts = w.config.plotOptions[chartType];
-    let seriesNumber = chartOpts.colorScale.inverse ? j2 : i2;
+    let seriesNumber = chartOpts.colorScale.inverse ? j : i2;
     if (chartOpts.distributed && w.config.chart.type === "treemap") {
-      seriesNumber = j2;
+      seriesNumber = j;
     }
     let color = w.globals.colors[seriesNumber];
     let foreColor = null;
@@ -53349,7 +54104,7 @@ class TreemapHelpers {
     };
   }
   /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any }} opts */
-  calculateDataLabels({ text, x: x2, y, i: i2, j: j2, colorProps, fontSize }) {
+  calculateDataLabels({ text, x: x2, y: y2, i: i2, j, colorProps, fontSize }) {
     const w = this.w;
     const dataLabelsConfig = w.config.dataLabels;
     const graphics = new Graphics(this.w);
@@ -53361,10 +54116,10 @@ class TreemapHelpers {
       });
       dataLabels.plotDataLabelsText({
         x: x2,
-        y: y + parseFloat(dataLabelsConfig.style.fontSize) / 3,
+        y: y2 + parseFloat(dataLabelsConfig.style.fontSize) / 3,
         text,
         i: i2,
-        j: j2,
+        j,
         color: colorProps.foreColor,
         parent: elDataLabelsWrap,
         fontSize,
@@ -53491,20 +54246,20 @@ class HeatMap {
       const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
       const visualRow = Math.round(y1 / yDivision);
       const rowOffset = shape === "hexagon" ? (visualRow % 2 === 0 ? -1 : 1) * xDivision / 4 : 0;
-      let j2 = 0;
+      let j = 0;
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
         if (!isContinuousX && w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
-          if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i2][j2]) {
+          if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i2][j]) {
             x1 = x1 + xDivision;
             continue;
           }
         }
-        if (j2 >= series[i2].length) break;
+        if (j >= series[i2].length) break;
         const cellW = isContinuousX ? binPx : xDivision;
         if (isContinuousX) {
-          const xVal = w.seriesData.seriesX[i2] ? w.seriesData.seriesX[i2][j2] : null;
+          const xVal = w.seriesData.seriesX[i2] ? w.seriesData.seriesX[i2][j] : null;
           if (xVal == null || xVal !== xVal) {
-            j2++;
+            j++;
             continue;
           }
           x1 = (xVal - w.globals.minX) / this.xRatio - binPx / 2;
@@ -53512,7 +54267,7 @@ class HeatMap {
         const heatColor = this.helpers.getShadeColor(
           w.config.chart.type,
           i2,
-          j2,
+          j,
           this.negRange
         );
         let color = heatColor.color;
@@ -53521,7 +54276,7 @@ class HeatMap {
           const fill = new Fill(this.w);
           color = fill.fillPath({
             seriesNumber: i2,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             opacity: (
               /** @type {any} */
               w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100
@@ -53541,7 +54296,7 @@ class HeatMap {
             strokeWidth: this.strokeWidth,
             radius,
             seriesIndex: i2,
-            dataPointIndex: j2
+            dataPointIndex: j
           });
         } else {
           const isRectCell = shape === "rect";
@@ -53568,8 +54323,8 @@ class HeatMap {
             fill: color,
             i: i2,
             index: i2,
-            j: j2,
-            val: series[i2][j2],
+            j,
+            val: series[i2][j],
             "stroke-width": this.strokeWidth,
             stroke,
             color
@@ -53585,12 +54340,12 @@ class HeatMap {
             if (w.globals.resized) {
               w.globals.animationEnded = true;
             } else if (isRectCell) {
-              this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i2, j2);
+              this.animateHeatMap(cell, x1, y1, cellW, yDivision, speed, i2, j);
             } else {
               const animations = new Animations(this.w);
               animations.animatePop(cell, {
                 speed,
-                delay: this.enterStaggerDelay(speed, i2, j2),
+                delay: this.enterStaggerDelay(speed, i2, j),
                 onComplete: () => {
                   animations.animationCompleted(cell);
                 }
@@ -53601,8 +54356,8 @@ class HeatMap {
             let speed = 1;
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed;
-              const prev = w.globals.previousPaths[i2] && w.globals.previousPaths[i2][j2];
-              const colorTo = Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color);
+              const prev = w.globals.previousPaths[i2] && w.globals.previousPaths[i2][j];
+              const colorTo = Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color) || color;
               if (!(prev == null ? void 0 : prev.color)) {
                 if (isRectCell) {
                   const cx = x1 + cellW / 2;
@@ -53621,7 +54376,7 @@ class HeatMap {
                 ) && (Math.abs(box.x - x1) > 0.5 || Math.abs(box.y - y1) > 0.5 || Math.abs(box.width - cellW) > 0.5 || Math.abs(box.height - yDivision) > 0.5) ? box : null;
                 this.animateHeatColor(
                   cell,
-                  Utils$1.isColorHex(prev.color) ? prev.color : Utils$1.rgb2hex(prev.color),
+                  Utils$1.isColorHex(prev.color) ? prev.color : Utils$1.rgb2hex(prev.color) || prev.color,
                   colorTo,
                   speed,
                   boxFrom && {
@@ -53635,10 +54390,10 @@ class HeatMap {
         }
         if (w.config.dataLabels.enabled) {
           const formatter = w.config.dataLabels.formatter;
-          const formattedText = formatter(w.seriesData.series[i2][j2], {
-            value: w.seriesData.series[i2][j2],
+          const formattedText = formatter(w.seriesData.series[i2][j], {
+            value: w.seriesData.series[i2][j],
             seriesIndex: i2,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           const dataLabels = this.helpers.calculateDataLabels({
@@ -53646,7 +54401,7 @@ class HeatMap {
             x: x1 + rowOffset + cellW / 2,
             y: y1 + yDivision / 2,
             i: i2,
-            j: j2,
+            j,
             colorProps: heatColorProps
           });
           if (dataLabels !== null) {
@@ -53654,7 +54409,7 @@ class HeatMap {
           }
         }
         if (!isContinuousX) x1 = x1 + xDivision;
-        j2++;
+        j++;
       }
       y1 = y1 + yDivision;
       ret.add(elSeries);
@@ -53671,20 +54426,20 @@ class HeatMap {
    * @param {number} [row] - series index (heatmap row)
    * @param {number} [col] - data point index (heatmap column)
    */
-  animateHeatMap(el, x2, y, width, height, speed, row = 0, col = 0) {
+  animateHeatMap(el, x2, y2, width, height, speed, row = 0, col = 0) {
     const animations = new Animations(this.w);
     const delay = this.enterStaggerDelay(speed, row, col);
     animations.animateRect(
       el,
       {
         x: x2 + width / 2,
-        y: y + height / 2,
+        y: y2 + height / 2,
         width: 0,
         height: 0
       },
       {
         x: x2,
-        y,
+        y: y2,
         width,
         height
       },
@@ -53748,18 +54503,18 @@ class HeatMap {
    * @param {number} height
    * @returns {string}
    */
-  cellShapePath(shape, x2, y, width, height) {
+  cellShapePath(shape, x2, y2, width, height) {
     const cx = x2 + width / 2;
-    const cy = y + height / 2;
+    const cy = y2 + height / 2;
     if (shape === "circle") {
       const r2 = Math.min(width, height) / 2;
       return `M ${cx - r2} ${cy} a ${r2} ${r2} 0 1 0 ${r2 * 2} 0 a ${r2} ${r2} 0 1 0 ${-r2 * 2} 0 Z`;
     }
     if (shape === "diamond") {
-      return `M ${cx} ${y} L ${x2 + width} ${cy} L ${cx} ${y + height} L ${x2} ${cy} Z`;
+      return `M ${cx} ${y2} L ${x2 + width} ${cy} L ${cx} ${y2 + height} L ${x2} ${cy} Z`;
     }
     const x22 = x2 + width;
-    return `M ${cx} ${y - height / 6} L ${x22} ${y + height / 6} L ${x22} ${y + height * 5 / 6} L ${cx} ${y + height * 7 / 6} L ${x2} ${y + height * 5 / 6} L ${x2} ${y + height / 6} Z`;
+    return `M ${cx} ${y2 - height / 6} L ${x22} ${y2 + height / 6} L ${x22} ${y2 + height * 5 / 6} L ${cx} ${y2 + height * 7 / 6} L ${x2} ${y2 + height * 5 / 6} L ${x2} ${y2 + height / 6} Z`;
   }
   /**
    * Hexagon rows overhang the grid box: a quarter cell horizontally (the
@@ -53839,7 +54594,7 @@ class Helpers5 {
     return series;
   }
   /** @param {{series: any, realIndex: any, x: any, y: any, i: any, j: any, prevY: any}} opts */
-  calculatePoints({ series, realIndex, x: x2, y, i: i2, j: j2, prevY }) {
+  calculatePoints({ series, realIndex, x: x2, y: y2, i: i2, j, prevY }) {
     const w = this.w;
     const ptX = [];
     const ptY = [];
@@ -53847,7 +54602,7 @@ class Helpers5 {
     if (w.axisFlags.isXNumeric) {
       xPT1st = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.lineCtx.xRatio + w.config.markers.offsetX;
     }
-    if (j2 === 0) {
+    if (j === 0) {
       ptX.push(xPT1st);
       ptY.push(
         Utils$1.isNumber(series[i2][0]) ? prevY + w.config.markers.offsetY : null
@@ -53855,7 +54610,7 @@ class Helpers5 {
     }
     ptX.push(x2 + w.config.markers.offsetX);
     ptY.push(
-      Utils$1.isNumber(series[i2][j2 + 1]) ? y + w.config.markers.offsetY : null
+      Utils$1.isNumber(series[i2][j + 1]) ? y2 + w.config.markers.offsetY : null
     );
     return {
       x: ptX,
@@ -53946,47 +54701,47 @@ class Helpers5 {
   }
 }
 const tangents = (points) => {
-  const m = finiteDifferences(points);
+  const m2 = finiteDifferences(points);
   const n2 = points.length - 1;
   const ε = 1e-6;
   const tgts = [];
-  let a2, b, d, s2;
+  let a2, b, d2, s2;
   for (let i2 = 0; i2 < n2; i2++) {
-    d = slope(points[i2], points[i2 + 1]);
-    if (Math.abs(d) < ε) {
-      m[i2] = m[i2 + 1] = 0;
+    d2 = slope(points[i2], points[i2 + 1]);
+    if (Math.abs(d2) < ε) {
+      m2[i2] = m2[i2 + 1] = 0;
     } else {
-      a2 = m[i2] / d;
-      b = m[i2 + 1] / d;
+      a2 = m2[i2] / d2;
+      b = m2[i2 + 1] / d2;
       s2 = a2 * a2 + b * b;
       if (s2 > 9) {
-        s2 = d * 3 / Math.sqrt(s2);
-        m[i2] = s2 * a2;
-        m[i2 + 1] = s2 * b;
+        s2 = d2 * 3 / Math.sqrt(s2);
+        m2[i2] = s2 * a2;
+        m2[i2 + 1] = s2 * b;
       }
     }
   }
   for (let i2 = 0; i2 <= n2; i2++) {
-    s2 = (points[Math.min(n2, i2 + 1)][0] - points[Math.max(0, i2 - 1)][0]) / (6 * (1 + m[i2] * m[i2]));
-    tgts.push([s2 || 0, m[i2] * s2 || 0]);
+    s2 = (points[Math.min(n2, i2 + 1)][0] - points[Math.max(0, i2 - 1)][0]) / (6 * (1 + m2[i2] * m2[i2]));
+    tgts.push([s2 || 0, m2[i2] * s2 || 0]);
   }
   return tgts;
 };
 const svgPath = (points) => {
-  let p = "";
+  let p2 = "";
   for (let i2 = 0; i2 < points.length; i2++) {
     const point = points[i2];
     const n2 = point.length;
     if (n2 > 4) {
-      p += `C${point[0]}, ${point[1]}`;
-      p += `, ${point[2]}, ${point[3]}`;
-      p += `, ${point[4]}, ${point[5]}`;
+      p2 += `C${point[0]}, ${point[1]}`;
+      p2 += `, ${point[2]}, ${point[3]}`;
+      p2 += `, ${point[4]}, ${point[5]}`;
     } else if (n2 > 2) {
-      p += `S${point[0]}, ${point[1]}`;
-      p += `, ${point[2]}, ${point[3]}`;
+      p2 += `S${point[0]}, ${point[1]}`;
+      p2 += `, ${point[2]}, ${point[3]}`;
     }
   }
-  return p;
+  return p2;
 };
 const spline = {
   /**
@@ -53996,7 +54751,7 @@ const spline = {
    */
   points(points) {
     const tgts = tangents(points);
-    const p = points[1];
+    const p2 = points[1];
     const p0 = points[0];
     const pts = [];
     const t2 = tgts[1];
@@ -54004,15 +54759,15 @@ const spline = {
     pts.push(p0, [
       p0[0] + t0[0],
       p0[1] + t0[1],
-      p[0] - t2[0],
-      p[1] - t2[1],
-      p[0],
-      p[1]
+      p2[0] - t2[0],
+      p2[1] - t2[1],
+      p2[0],
+      p2[1]
     ]);
     for (let i2 = 2, n2 = tgts.length; i2 < n2; i2++) {
-      const p2 = points[i2];
+      const p3 = points[i2];
       const t3 = tgts[i2];
-      pts.push([p2[0] - t3[0], p2[1] - t3[1], p2[0], p2[1]]);
+      pts.push([p3[0] - t3[0], p3[1] - t3[1], p3[0], p3[1]]);
     }
     return pts;
   },
@@ -54042,18 +54797,18 @@ function slope(p0, p1) {
   return (p1[1] - p0[1]) / (p1[0] - p0[0]);
 }
 function finiteDifferences(points) {
-  const m = [];
+  const m2 = [];
   let p0 = points[0];
   let p1 = points[1];
-  let d = m[0] = slope(p0, p1);
+  let d2 = m2[0] = slope(p0, p1);
   let i2 = 1;
   for (let n2 = points.length - 1; i2 < n2; i2++) {
     p0 = p1;
     p1 = points[i2 + 1];
-    m[i2] = (d + (d = slope(p0, p1))) * 0.5;
+    m2[i2] = (d2 + (d2 = slope(p0, p1))) * 0.5;
   }
-  m[i2] = d;
-  return m;
+  m2[i2] = d2;
+  return m2;
 }
 class Line {
   /**
@@ -54206,7 +54961,7 @@ class Line {
     const y2Arrj = [];
     const xArrj = [];
     let x2 = w.globals.padHorizontal + this.categoryAxisCorrection;
-    const y = 1;
+    const y2 = 1;
     const linePaths = [];
     const areaPaths = [];
     if (w.axisFlags.isXNumeric && w.seriesData.seriesX.length > 0) {
@@ -54257,7 +55012,7 @@ class Line {
       translationsIndex,
       i: i2,
       x: x2,
-      y,
+      y: y2,
       pX,
       pY,
       pathsFrom,
@@ -54490,10 +55245,10 @@ class Line {
     const rows = [];
     const out = series.map((row, i2) => {
       const ri = w.globals.comboCharts ? seriesIndex[i2] : i2;
-      const p = pct == null ? void 0 : pct[ri];
-      if (!this.isStackedSeries(ri) || !Array.isArray(row) || !p) return row;
+      const p2 = pct == null ? void 0 : pct[ri];
+      if (!this.isStackedSeries(ri) || !Array.isArray(row) || !p2) return row;
       const raw = w.seriesData.series[ri] || row;
-      rows[ri] = row.map((v, j2) => raw[j2] == null ? raw[j2] : p[j2]);
+      rows[ri] = row.map((v, j) => raw[j] == null ? raw[j] : p2[j]);
       return rows[ri];
     });
     this.percentRows = rows;
@@ -54525,12 +55280,12 @@ class Line {
     if (!this.isStackedSeries(realIndex)) return;
     if (!Array.isArray(yArrj)) return;
     if (this._hidden(realIndex)) return;
-    for (let j2 = 0; j2 < yArrj.length; j2++) {
-      const key = this._stackKey(realIndex, j2);
+    for (let j = 0; j < yArrj.length; j++) {
+      const key = this._stackKey(realIndex, j);
       if (key === void 0 || key === null) continue;
-      const y = yArrj[j2];
-      if (!Utils$1.isNumber(y) || (row == null ? void 0 : row[j2]) == null) continue;
-      this.prevSeriesYByX.set(key, y);
+      const y2 = yArrj[j];
+      if (!Utils$1.isNumber(y2) || (row == null ? void 0 : row[j]) == null) continue;
+      this.prevSeriesYByX.set(key, y2);
     }
   }
   /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
@@ -54621,7 +55376,7 @@ class Line {
           elPointsMain: this.elPointsMain,
           realIndex,
           speed: w.config.chart.animations.dynamicAnimation.speed,
-          drawPoint: (x2, y, r2, j2) => this.scatter.drawPoint(x2, y, r2, realIndex, j2, j2)
+          drawPoint: (x2, y2, r2, j) => this.scatter.drawPoint(x2, y2, r2, realIndex, j, j)
         });
       }
     }
@@ -54641,10 +55396,10 @@ class Line {
       const pathFill = fill.fillPath({
         seriesNumber: realIndex
       });
-      for (let p = 0; p < areaPathsToDraw.length; p++) {
+      for (let p2 = 0; p2 < areaPathsToDraw.length; p2++) {
         const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: streamScroll ? projectPathToPrevFrame(areaPathsToDraw[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
-          pathTo: areaPathsToDraw[p],
+          pathFrom: streamScroll ? projectPathToPrevFrame(areaPathsToDraw[p2], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
+          pathTo: areaPathsToDraw[p2],
           pathToNumeric: numericXY ? {
             xs: numericXY.xs,
             ys: numericXY.ys,
@@ -54681,7 +55436,7 @@ class Line {
           w.config.fill = prevFill;
         }
       }
-      for (let p = 0; p < linePathsToDraw.length; p++) {
+      for (let p2 = 0; p2 < linePathsToDraw.length; p2++) {
         let pathFill = lineFill;
         if (type === "rangeArea") {
           pathFill = fill.fillPath({
@@ -54689,8 +55444,8 @@ class Line {
           });
         }
         const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: streamScroll ? projectPathToPrevFrame(linePathsToDraw[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
-          pathTo: linePathsToDraw[p],
+          pathFrom: streamScroll ? projectPathToPrevFrame(linePathsToDraw[p2], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
+          pathTo: linePathsToDraw[p2],
           pathToNumeric: numericXY ? { xs: numericXY.xs, ys: numericXY.ys } : void 0,
           pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
           scrollMorph: !!streamScroll,
@@ -54736,7 +55491,7 @@ class Line {
     translationsIndex,
     i: i2,
     x: x2,
-    y,
+    y: y2,
     pX,
     pY,
     pathsFrom,
@@ -54765,7 +55520,7 @@ class Line {
     const getY = (_y, lineYPos) => {
       return lineYPos - _y / yRatio[translationsIndex] + (this.isReversed ? _y / yRatio[translationsIndex] : 0) * 2;
     };
-    let y2 = y;
+    let y22 = y2;
     const stackSeries = this.isStackedSeries(realIndex);
     let curve = w.config.stroke.curve;
     if (Array.isArray(curve)) {
@@ -54787,7 +55542,7 @@ class Line {
         translationsIndex,
         iterations,
         x: x2,
-        y,
+        y: y2,
         pX,
         pY,
         pathsFrom,
@@ -54806,26 +55561,26 @@ class Line {
     if (!this._shapeOnly && !this.pointsChart && iterations > 0 && series[i2].length && w.seriesData.series[i2].length > 1 && (w.globals.dataChanged || w.globals.resized || w.globals.markers.batched)) {
       this.elPointsMain.node.classList.add("apexcharts-element-hidden");
     }
-    for (let j2 = 0; j2 < iterations; j2++) {
+    for (let j = 0; j < iterations; j++) {
       if (series[i2].length === 0) break;
-      const isNull = typeof series[i2][j2 + 1] === "undefined" || series[i2][j2 + 1] === null;
+      const isNull = typeof series[i2][j + 1] === "undefined" || series[i2][j + 1] === null;
       if (w.axisFlags.isXNumeric) {
         const sxs = w.seriesData.seriesX[realIndex];
-        let sX = sxs[j2 + 1];
+        let sX = sxs[j + 1];
         if (typeof sX === "undefined") {
           sX = sxs[iterations - 1];
         }
         x2 = (sX - w.globals.minX) / this.xRatio;
         if (ks) {
-          const m = [];
-          while (ks[kp] <= sxs[j2]) kp++;
+          const m2 = [];
+          while (ks[kp] <= sxs[j]) kp++;
           while (ks[kp] < sX) {
-            m.push([
+            m2.push([
               (ks[kp] - w.globals.minX) / this.xRatio,
               (_a = this.prevSeriesYByX.get(ks[kp++])) != null ? _a : this.zeroY
             ]);
           }
-          if (m.length) midsAt[j2 + 1] = m;
+          if (m2.length) midsAt[j + 1] = m2;
         }
       } else {
         x2 = x2 + this.xDivision;
@@ -54844,7 +55599,7 @@ class Line {
           if (pIdx < 0) {
             lineYPosition = this.zeroY;
           } else {
-            const top = this.stackTopAt(realIndex, j2 + 1);
+            const top = this.stackTopAt(realIndex, j + 1);
             lineYPosition = top === void 0 ? this.zeroY : top;
           }
         } else {
@@ -54854,27 +55609,27 @@ class Line {
         lineYPosition = this.zeroY;
       }
       if (isNull) {
-        y = getY(minY, lineYPosition);
+        y2 = getY(minY, lineYPosition);
       } else {
-        y = getY(series[i2][j2 + 1], lineYPosition);
+        y2 = getY(series[i2][j + 1], lineYPosition);
         if (type === "rangeArea") {
-          y2 = getY(seriesRangeEnd[i2][j2 + 1], lineYPosition);
+          y22 = getY(seriesRangeEnd[i2][j + 1], lineYPosition);
         }
       }
       let xj = x2;
-      let yj = y;
+      let yj = y2;
       if (jitterPx) {
-        const seed = realIndex * 100003 + (j2 + 1);
+        const seed = realIndex * 100003 + (j + 1);
         if (jitterPx.x) xj = x2 + (hash01(seed * 7919 + 13) - 0.5) * 2 * jitterPx.x;
-        if (jitterPx.y) yj = y + (hash01(seed * 6271 + 97) - 0.5) * 2 * jitterPx.y;
+        if (jitterPx.y) yj = y2 + (hash01(seed * 6271 + 97) - 0.5) * 2 * jitterPx.y;
       }
-      xArrj.push(series[i2][j2 + 1] === null ? null : xj);
+      xArrj.push(series[i2][j + 1] === null ? null : xj);
       if (isNull && (w.config.stroke.curve === "smooth" || w.config.stroke.curve === "monotoneCubic")) {
         yArrj.push(null);
         y2Arrj.push(null);
       } else {
         yArrj.push(yj);
-        y2Arrj.push(y2);
+        y2Arrj.push(y22);
       }
       const pointsPos = this.lineHelpers.calculatePoints({
         series,
@@ -54882,18 +55637,18 @@ class Line {
         y: yj,
         realIndex,
         i: i2,
-        j: j2,
+        j,
         prevY
       });
       const calculatedPaths = this._createPaths({
         type,
         series,
         i: i2,
-        j: j2,
+        j,
         x: x2,
-        y,
+        y: y2,
         midsAt,
-        y2,
+        y2: y22,
         xArrj,
         yArrj,
         y2Arrj,
@@ -54921,11 +55676,11 @@ class Line {
         pathFromArea += graphics.line(x2, this.areaBottomY);
       }
       if (!this._shapeOnly) {
-        this.handleNullDataPoints(series, pointsPos, i2, j2, realIndex);
+        this.handleNullDataPoints(series, pointsPos, i2, j, realIndex);
         this._handleMarkersAndLabels({
           type,
           pointsPos,
-          j: j2,
+          j,
           realIndex,
           isRangeStart
         });
@@ -54941,21 +55696,21 @@ class Line {
     };
   }
   /** @param {{type: any, pointsPos: any, isRangeStart: any, j: any, realIndex: any}} opts */
-  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, j: j2, realIndex }) {
+  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, j, realIndex }) {
     var _a;
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
       const elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
         seriesIndex: realIndex,
-        j: j2 + 1
+        j: j + 1
       });
       if (elPointsWrap !== null && elPointsWrap !== this._elLastPointsWrap) {
         this.elPointsMain.add(elPointsWrap);
         this._elLastPointsWrap = elPointsWrap;
       }
     } else {
-      this.scatter.draw(this.elSeries, j2, {
+      this.scatter.draw(this.elSeries, j, {
         realIndex,
         pointsPos,
         zRatio: this.zRatio,
@@ -54967,7 +55722,7 @@ class Line {
       isRangeStart,
       pos: pointsPos,
       i: realIndex,
-      j: j2 + 1,
+      j: j + 1,
       // A 100% stack labels each point with the share it is drawn at.
       row: (_a = this.percentRows) == null ? void 0 : _a[realIndex]
     });
@@ -55023,7 +55778,7 @@ class Line {
     translationsIndex,
     iterations,
     x: x2,
-    y,
+    y: y2,
     pX,
     pY,
     pathsFrom,
@@ -55082,26 +55837,26 @@ class Line {
     let xv = x2;
     let xj = pX;
     let yj = pY;
-    for (let j2 = 0; j2 < iterations; j2++) {
+    for (let j = 0; j < iterations; j++) {
       if (sx) {
-        xj = (sx[j2 + 1] - minX) / xRatio;
+        xj = (sx[j + 1] - minX) / xRatio;
       } else {
         xv = xv + xDivision;
         xj = xv;
       }
-      const v = s2[j2 + 1];
+      const v = s2[j + 1];
       yj = zeroY - v / yR + (isReversed ? v / yR : 0) * 2;
       xArrj.push(xj);
       yArrj.push(yj);
-      y2Arrj.push(y);
+      y2Arrj.push(y2);
       pts.push([xj + offX, yj + offY]);
       if (buildStrings) {
-        parts[j2 + 1] = " L " + xj + " " + yj;
-        if (fromParts) fromParts[j2] = " L " + xj + " " + bottomY;
+        parts[j + 1] = " L " + xj + " " + yj;
+        if (fromParts) fromParts[j] = " L " + xj + " " + bottomY;
       }
       if (nxs && nys) {
-        nxs[j2 + 1] = xj;
-        nys[j2 + 1] = yj;
+        nxs[j + 1] = xj;
+        nys[j + 1] = yj;
       }
     }
     let linePath = "";
@@ -55135,13 +55890,13 @@ class Line {
     type,
     series,
     i: i2,
-    j: j2,
+    j,
     x: x2,
-    y,
+    y: y2,
     midsAt,
     xArrj,
     yArrj,
-    y2,
+    y2: y22,
     y2Arrj,
     pX,
     pY,
@@ -55158,8 +55913,8 @@ class Line {
     const areaBottomY = this.areaBottomY;
     const rangeArea = type === "rangeArea";
     const isLowerRangeAreaPath = type === "rangeArea" && isRangeStart;
-    const mids = midsAt[j2 + 1];
-    const via = (f) => mids ? [...mids, [x2, y]].map(([bx, by], k2, a2) => f(...k2 ? a2[k2 - 1] : [pX, pY], bx, by)).join("") : f(pX, pY, x2, y);
+    const mids = midsAt[j + 1];
+    const via = (f2) => mids ? [...mids, [x2, y2]].map(([bx, by], k2, a2) => f2(...k2 ? a2[k2 - 1] : [pX, pY], bx, by)).join("") : f2(pX, pY, x2, y2);
     switch (curve) {
       case "monotoneCubic": {
         const yAj = isRangeStart ? yArrj : y2Arrj;
@@ -55194,13 +55949,13 @@ class Line {
         };
         switch (pathState) {
           case 0:
-            if (yAj[j2 + 1] === null) {
+            if (yAj[j + 1] === null) {
               break;
             }
             pathState = 1;
           // falls through
           case 1:
-            if (!(rangeArea ? xArrj.length === series[i2].length : j2 === series[i2].length - 2)) {
+            if (!(rangeArea ? xArrj.length === series[i2].length : j === series[i2].length - 2)) {
               break;
             }
           // falls through
@@ -55215,8 +55970,8 @@ class Line {
                 }
                 P.push([v, _yAj[k2]]);
               });
-              _xAj = P.map((p) => p[0]);
-              _yAj = P.map((p) => p[1]);
+              _xAj = P.map((p2) => p2[0]);
+              _yAj = P.map((p2) => p2[1]);
             }
             const smoothInputs = getSmoothInputs(_xAj, _yAj);
             const points = smoothInputs.length > 1 ? spline.points(smoothInputs) : smoothInputs;
@@ -55266,7 +56021,7 @@ class Line {
               const upperLinePaths = linePaths.slice(segmentCount).reverse();
               linePaths.splice(segmentCount);
               upperLinePaths.forEach(
-                (u) => linePaths.push(u)
+                (u2) => linePaths.push(u2)
               );
             }
             pathState = 0;
@@ -55280,35 +56035,35 @@ class Line {
           const l2 = (bx - ax) * 0.35;
           return graphics.curve(ax + l2, ay, bx - l2, by, bx, by);
         };
-        if (series[i2][j2] === null) {
+        if (series[i2][j] === null) {
           pathState = 0;
         } else {
           switch (pathState) {
             case 0:
               segmentStartX = pX;
               if (isLowerRangeAreaPath) {
-                linePath = graphics.move(pX, y2Arrj[j2]) + graphics.line(pX, pY);
+                linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
               } else {
                 linePath = graphics.move(pX, pY);
               }
               areaPath = graphics.move(pX, pY);
-              if (series[i2][j2 + 1] === null || typeof series[i2][j2 + 1] === "undefined") {
+              if (series[i2][j + 1] === null || typeof series[i2][j + 1] === "undefined") {
                 linePaths.push(linePath);
                 areaPaths.push(areaPath);
                 break;
               }
               pathState = 1;
-              if (j2 < series[i2].length - 2) {
-                const p = via(toPoint);
-                linePath += p;
-                areaPath += p;
+              if (j < series[i2].length - 2) {
+                const p2 = via(toPoint);
+                linePath += p2;
+                areaPath += p2;
                 break;
               }
             // falls through
             case 1:
-              if (series[i2][j2 + 1] === null) {
+              if (series[i2][j + 1] === null) {
                 if (isLowerRangeAreaPath) {
-                  linePath += graphics.line(pX, y2);
+                  linePath += graphics.line(pX, y22);
                 } else {
                   linePath += graphics.move(pX, pY);
                 }
@@ -55317,14 +56072,14 @@ class Line {
                 areaPaths.push(areaPath);
                 pathState = -1;
               } else {
-                const p = via(toPoint);
-                linePath += p;
-                areaPath += p;
-                if (j2 >= series[i2].length - 2) {
+                const p2 = via(toPoint);
+                linePath += p2;
+                areaPath += p2;
+                if (j >= series[i2].length - 2) {
                   if (isLowerRangeAreaPath) {
-                    linePath += graphics.curve(x2, y, x2, y, x2, y2) + graphics.move(x2, y2);
+                    linePath += graphics.curve(x2, y2, x2, y2, x2, y22) + graphics.move(x2, y22);
                   }
-                  areaPath += graphics.curve(x2, y, x2, y, x2, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
+                  areaPath += graphics.curve(x2, y2, x2, y2, x2, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
                   linePaths.push(linePath);
                   areaPaths.push(areaPath);
                   pathState = -1;
@@ -55334,7 +56089,7 @@ class Line {
           }
         }
         pX = x2;
-        pY = y;
+        pY = y2;
         break;
       }
       default: {
@@ -55353,20 +56108,20 @@ class Line {
           }
           return path;
         };
-        if (series[i2][j2] === null) {
+        if (series[i2][j] === null) {
           pathState = 0;
         } else {
           switch (pathState) {
             case 0:
               segmentStartX = pX;
               if (isLowerRangeAreaPath) {
-                linePath = graphics.move(pX, y2Arrj[j2]) + graphics.line(pX, pY);
+                linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
               } else {
                 linePath = graphics.move(pX, pY);
               }
               areaPath = graphics.move(pX, pY);
-              if (series[i2][j2 + 1] === null || typeof series[i2][j2 + 1] === "undefined") {
-                if (curve === "stepline" && series[i2][j2 + 1] === null && !rangeArea) {
+              if (series[i2][j + 1] === null || typeof series[i2][j + 1] === "undefined") {
+                if (curve === "stepline" && series[i2][j + 1] === null && !rangeArea) {
                   const run = graphics.line(x2, null, "H");
                   linePath += run;
                   areaPath += run + graphics.line(x2, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
@@ -55376,18 +56131,18 @@ class Line {
                 break;
               }
               pathState = 1;
-              if (j2 < series[i2].length - 2) {
-                const p = via(pathToPoint);
-                linePath += p;
-                areaPath += p;
+              if (j < series[i2].length - 2) {
+                const p2 = via(pathToPoint);
+                linePath += p2;
+                areaPath += p2;
                 break;
               }
             // falls through
             case 1:
-              if (series[i2][j2 + 1] === null) {
+              if (series[i2][j + 1] === null) {
                 let endX = pX;
                 if (isLowerRangeAreaPath) {
-                  linePath += graphics.line(pX, y2);
+                  linePath += graphics.line(pX, y22);
                 } else if (curve === "stepline" && !rangeArea) {
                   const run = graphics.line(x2, null, "H");
                   linePath += run;
@@ -55401,12 +56156,12 @@ class Line {
                 areaPaths.push(areaPath);
                 pathState = -1;
               } else {
-                const p = via(pathToPoint);
-                linePath += p;
-                areaPath += p;
-                if (j2 >= series[i2].length - 2) {
+                const p2 = via(pathToPoint);
+                linePath += p2;
+                areaPath += p2;
+                if (j >= series[i2].length - 2) {
                   if (isLowerRangeAreaPath) {
-                    linePath += graphics.line(x2, y2);
+                    linePath += graphics.line(x2, y22);
                   }
                   areaPath += graphics.line(x2, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + "z";
                   linePaths.push(linePath);
@@ -55418,7 +56173,7 @@ class Line {
           }
         }
         pX = x2;
-        pY = y;
+        pY = y2;
         break;
       }
     }
@@ -55440,9 +56195,9 @@ class Line {
    * @param {number} j
    * @param {number} realIndex
    */
-  handleNullDataPoints(series, pointsPos, i2, j2, realIndex) {
+  handleNullDataPoints(series, pointsPos, i2, j, realIndex) {
     const w = this.w;
-    if (series[i2][j2] === null && w.config.markers.showNullDataPoints || series[i2].length === 1) {
+    if (series[i2][j] === null && w.config.markers.showNullDataPoints || series[i2].length === 1) {
       let pSize = this.strokeWidth - w.config.markers.strokeWidth / 2;
       if (!(pSize > 0)) {
         pSize = 0;
@@ -55450,7 +56205,7 @@ class Line {
       const elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
         seriesIndex: realIndex,
-        j: j2 + 1,
+        j: j + 1,
         pSize,
         alwaysDrawMarker: true
       });
@@ -55478,9 +56233,9 @@ function drawOuterLabel(w, spec) {
     class: spec.groupClass || "apexcharts-outer-label-group"
   });
   if (connector.show) {
-    const d = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`;
+    const d2 = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`;
     const line = graphics.drawPath({
-      d,
+      d: d2,
       stroke: connector.color,
       strokeWidth: connector.width,
       fill: "none",
@@ -55554,14 +56309,14 @@ class CircularChartsHelpers {
    * @param {number} i
    * @param {string | number} text
    */
-  drawYAxisTexts(x2, y, i2, text) {
+  drawYAxisTexts(x2, y2, i2, text) {
     const w = this.w;
     const yaxisConfig = w.config.yaxis[0];
     const formatter = w.formatters.yLabelFormatters[0];
     const graphics = new Graphics(this.w);
     const yaxisLabel = graphics.drawText({
       x: x2 + yaxisConfig.labels.offsetX,
-      y: y + yaxisConfig.labels.offsetY,
+      y: y2 + yaxisConfig.labels.offsetY,
       text: formatter(text, i2),
       textAnchor: "middle",
       fontSize: yaxisConfig.labels.style.fontSize,
@@ -55630,7 +56385,7 @@ function arcPoint(cx, cy, radius, deg) {
     y: cy + radius * Math.sin((deg - 90) * D2R)
   };
 }
-const xy = (p) => `${p.x} ${p.y}`;
+const xy = (p2) => `${p2.x} ${p2.y}`;
 function roundedDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, r: r2, spanDeg }) {
   const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
   const degOut = r2 / rOut * R2D;
@@ -55723,7 +56478,7 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
   const largeArc = spanDeg > 180 ? 1 : 0;
   const A2 = ptAt(rOut, a0);
   const B = ptAt(rOut, a1);
-  const C = ptAt(rIn, a1);
+  const C2 = ptAt(rIn, a1);
   const Din = ptAt(rIn, a0);
   return [
     "M",
@@ -55736,7 +56491,7 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
     1,
     xy(B),
     "L",
-    xy(C),
+    xy(C2),
     "A",
     rIn,
     rIn,
@@ -55862,7 +56617,7 @@ class Pie {
       lineSets.flat(),
       this.externalLabelStyle
     );
-    this.externalLabelMaxLines = lineSets.reduce((m, s2) => Math.max(m, s2.length), 1);
+    this.externalLabelMaxLines = lineSets.reduce((m2, s2) => Math.max(m2, s2.length), 1);
     this.externalLabelLineH = Math.round(
       (parseFloat(this.externalLabelStyle.fontSize) || 12) * 1.35
     );
@@ -55919,8 +56674,8 @@ class Pie {
     if (total === 0) {
       total = 1e-5;
     }
-    series.forEach((m) => {
-      this.maxY = Math.max(this.maxY, m);
+    series.forEach((m2) => {
+      this.maxY = Math.max(this.maxY, m2);
     });
     if (w.config.yaxis[0].max) {
       this.maxY = w.config.yaxis[0].max;
@@ -55965,7 +56720,7 @@ class Pie {
         }
         const sizeStash = w.globals.prevPolarSizes;
         if (Array.isArray(sizeStash) && sizeStash.length === prevValues.length) {
-          this.prevSliceSizes = sizeStash.map((f) => f * w.globals.radialSize);
+          this.prevSliceSizes = sizeStash.map((f2) => f2 * w.globals.radialSize);
         } else {
           let prevMaxY = 0;
           for (let k2 = 0; k2 < prevValues.length; k2++) {
@@ -56398,7 +57153,7 @@ class Pie {
     );
     elPath.node.addEventListener(
       "mouseleave",
-      this.revertDataLabelsInner.bind(this)
+      this.onDataLabelMouseLeave.bind(this)
     );
     if (typeof i2 === "number") {
       elPath.node.addEventListener(
@@ -56431,7 +57186,7 @@ class Pie {
    * @param {Record<string, any>} opts
    */
   animatePaths(el, opts) {
-    const me2 = this;
+    const me = this;
     let angle = opts.endAngle < opts.startAngle ? this.fullAngle + opts.endAngle - opts.startAngle : opts.endAngle - opts.startAngle;
     let prevAngle = angle;
     let fromStartAngle = opts.startAngle;
@@ -56443,7 +57198,7 @@ class Pie {
     if (angle === this.fullAngle && !this.isFullTurnSlice(angle)) {
       angle = this.fullAngle - 0.01;
     }
-    me2.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
+    me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
   }
   /**
    * @param {any} el
@@ -56454,7 +57209,7 @@ class Pie {
    * @param {Record<string, any>} opts
    */
   animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
-    const me2 = this;
+    const me = this;
     const w = this.w;
     const animations = new Animations(this.w);
     const size = opts.size;
@@ -56473,8 +57228,8 @@ class Pie {
     const hasPrevSize = typeof opts.prevSize === "number";
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
       if (Number.isFinite(opts.prevEndAngle)) {
-        path = me2.getPiePath({
-          me: me2,
+        path = me.getPiePath({
+          me,
           startAngle: opts.prevStartAngle,
           angle: opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle,
           size: hasPrevSize ? opts.prevSize : size
@@ -56486,11 +57241,11 @@ class Pie {
       el.animate(opts.dur, opts.animBeginArr[opts.i]).after(
         /** @this {any} */
         function() {
-          if (me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea") {
+          if (me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea") {
             this.animate(
               w.config.chart.animations.dynamicAnimation.speed
             ).attr({
-              "stroke-width": me2.strokeWidth
+              "stroke-width": me.strokeWidth
             });
           }
           if (opts.collapsed) el.attr({ d: "" });
@@ -56504,8 +57259,8 @@ class Pie {
           currAngle = prevAngle + (angle - prevAngle) * pos;
           startAngle = fromStartAngle - prevAngle + (toStartAngle - (fromStartAngle - prevAngle)) * pos;
         }
-        path = me2.getPiePath({
-          me: me2,
+        path = me.getPiePath({
+          me,
           startAngle,
           angle: currAngle,
           size: hasPrevSize ? opts.prevSize + (size - opts.prevSize) * pos : size
@@ -56516,8 +57271,8 @@ class Pie {
         });
       });
     } else {
-      path = me2.getPiePath({
-        me: me2,
+      path = me.getPiePath({
+        me,
         startAngle,
         angle,
         size
@@ -56528,7 +57283,7 @@ class Pie {
       el.node.setAttribute("data:pathOrig", path);
       el.attr({
         d: opts.collapsed ? "" : path,
-        "stroke-width": me2.strokeWidth
+        "stroke-width": me.strokeWidth
       });
     }
   }
@@ -56544,10 +57299,10 @@ class Pie {
    */
   pieClicked(i2, opts) {
     const w = this.w;
-    const me2 = this;
+    const me = this;
     const animate = !(opts && opts.animate === false);
     const elPath = w.dom.Paper.findOne(
-      `.apexcharts-${me2.chartType.toLowerCase()}-slice-${i2}`
+      `.apexcharts-${me.chartType.toLowerCase()}-slice-${i2}`
     );
     if (!elPath) return;
     if (elPath.attr("data:pieClicked") === "true") {
@@ -56776,7 +57531,7 @@ class Pie {
    * @param {{me: any, startAngle: number, angle: number, size: number}} opts
    * @returns {{startDeg: number, spanDeg: number, endDeg: number}}
    */
-  getSliceExtent({ me: me2, startAngle, angle, size }) {
+  getSliceExtent({ me, startAngle, angle, size }) {
     const w = this.w;
     let startDeg = startAngle;
     let endDeg = angle + startAngle;
@@ -56784,10 +57539,10 @@ class Pie {
       endDeg = this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle - 0.01;
     }
     let spanDeg = endDeg - startDeg;
-    const isSliceType = me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea";
+    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
     const spacing = w.config.plotOptions.pie.spacing;
     if (isSliceType && spacing > 0 && spanDeg > 0) {
-      const rRef = me2.chartType === "donut" ? (size + me2.donutSize) / 2 : size;
+      const rRef = me.chartType === "donut" ? (size + me.donutSize) / 2 : size;
       const gapDeg = rRef > 0 ? spacing / rRef * (180 / Math.PI) : 0;
       const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.5));
       startDeg += inset;
@@ -56823,10 +57578,10 @@ class Pie {
    * @param {{me: any, startAngle: number, size: number}} opts
    * @returns {string}
    */
-  getFullTurnPath({ me: me2, startAngle, size }) {
+  getFullTurnPath({ me, startAngle, size }) {
     const graphics = new Graphics(this.w);
-    const cx = me2.centerX;
-    const cy = me2.centerY;
+    const cx = me.centerX;
+    const cy = me.centerY;
     const outerStart = Utils$1.polarToCartesian(cx, cy, size, startAngle);
     const outerMid = Utils$1.polarToCartesian(cx, cy, size, startAngle + 180);
     const path = [
@@ -56851,17 +57606,17 @@ class Pie {
       outerStart.y,
       "z"
     ];
-    if (me2.chartType === "donut") {
+    if (me.chartType === "donut") {
       const innerStart = Utils$1.polarToCartesian(
         cx,
         cy,
-        me2.donutSize,
+        me.donutSize,
         startAngle
       );
       const innerMid = Utils$1.polarToCartesian(
         cx,
         cy,
-        me2.donutSize,
+        me.donutSize,
         startAngle + 180
       );
       path.push(
@@ -56869,16 +57624,16 @@ class Pie {
         innerStart.x,
         innerStart.y,
         "A",
-        me2.donutSize,
-        me2.donutSize,
+        me.donutSize,
+        me.donutSize,
         0,
         1,
         0,
         innerMid.x,
         innerMid.y,
         "A",
-        me2.donutSize,
-        me2.donutSize,
+        me.donutSize,
+        me.donutSize,
         0,
         1,
         0,
@@ -56890,20 +57645,20 @@ class Pie {
     return graphics.roundPathCorners(path.join(" "), this.strokeWidth * 2);
   }
   /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
-  getPiePath({ me: me2, startAngle, angle, size }) {
+  getPiePath({ me, startAngle, angle, size }) {
     let path;
     const w = this.w;
     const graphics = new Graphics(this.w);
-    const isSliceType = me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea";
+    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
     if (isSliceType && this.isFullTurnSlice(angle)) {
-      return this.getFullTurnPath({ me: me2, startAngle, size });
+      return this.getFullTurnPath({ me, startAngle, size });
     }
     if (isSliceType && Number.isFinite(angle) && !(angle > 0)) {
-      const p = Utils$1.polarToCartesian(me2.centerX, me2.centerY, size, startAngle);
-      return `M ${p.x} ${p.y}`;
+      const p2 = Utils$1.polarToCartesian(me.centerX, me.centerY, size, startAngle);
+      return `M ${p2.x} ${p2.y}`;
     }
     const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
-      me: me2,
+      me,
       startAngle,
       angle,
       size
@@ -56912,7 +57667,7 @@ class Pie {
     const borderRadius = w.config.plotOptions.pie.borderRadius;
     if (borderRadius > 0 && isSliceType) {
       const roundedPath = this.getRoundedSlicePath({
-        me: me2,
+        me,
         startDeg,
         spanDeg,
         size,
@@ -56921,33 +57676,33 @@ class Pie {
       if (roundedPath) return roundedPath;
     }
     const endRadians = Math.PI * (endDeg - 90) / 180;
-    const x1 = me2.centerX + size * Math.cos(startRadians);
-    const y1 = me2.centerY + size * Math.sin(startRadians);
-    const x2 = me2.centerX + size * Math.cos(endRadians);
-    const y2 = me2.centerY + size * Math.sin(endRadians);
+    const x1 = me.centerX + size * Math.cos(startRadians);
+    const y1 = me.centerY + size * Math.sin(startRadians);
+    const x2 = me.centerX + size * Math.cos(endRadians);
+    const y2 = me.centerY + size * Math.sin(endRadians);
     const startInner = Utils$1.polarToCartesian(
-      me2.centerX,
-      me2.centerY,
-      me2.donutSize,
+      me.centerX,
+      me.centerY,
+      me.donutSize,
       endDeg
     );
     const endInner = Utils$1.polarToCartesian(
-      me2.centerX,
-      me2.centerY,
-      me2.donutSize,
+      me.centerX,
+      me.centerY,
+      me.donutSize,
       startDeg
     );
     const largeArc = spanDeg > 180 ? 1 : 0;
     const pathBeginning = ["M", x1, y1, "A", size, size, 0, largeArc, 1, x2, y2];
-    if (me2.chartType === "donut") {
+    if (me.chartType === "donut") {
       path = [
         ...pathBeginning,
         "L",
         startInner.x,
         startInner.y,
         "A",
-        me2.donutSize,
-        me2.donutSize,
+        me.donutSize,
+        me.donutSize,
         0,
         largeArc,
         0,
@@ -56958,8 +57713,8 @@ class Pie {
         y1,
         "z"
       ].join(" ");
-    } else if (me2.chartType === "pie" || me2.chartType === "polarArea") {
-      path = [...pathBeginning, "L", me2.centerX, me2.centerY, "L", x1, y1].join(
+    } else if (me.chartType === "pie" || me.chartType === "polarArea") {
+      path = [...pathBeginning, "L", me.centerX, me.centerY, "L", x1, y1].join(
         " "
       );
     } else {
@@ -56984,14 +57739,14 @@ class Pie {
    * @param {{me: any, startDeg: number, spanDeg: number, size: number, borderRadius: number}} opts
    * @returns {string | null}
    */
-  getRoundedSlicePath({ me: me2, startDeg, spanDeg, size, borderRadius }) {
+  getRoundedSlicePath({ me, startDeg, spanDeg, size, borderRadius }) {
     if (!(spanDeg > 0)) return null;
     const D2R2 = Math.PI / 180;
-    const cx = me2.centerX;
-    const cy = me2.centerY;
-    const isDonut = me2.chartType === "donut";
+    const cx = me.centerX;
+    const cy = me.centerY;
+    const isDonut = me.chartType === "donut";
     const rOut = size;
-    const rIn = isDonut ? me2.donutSize : 0;
+    const rIn = isDonut ? me.donutSize : 0;
     const spanRad = spanDeg * D2R2;
     let r2 = borderRadius;
     r2 = Math.min(r2, spanRad * rOut / 2);
@@ -57062,7 +57817,7 @@ class Pie {
     dataLabelsGroup.node.innerHTML = "";
     dataLabelsGroup.node.style.opacity = opts.opacity;
     const x2 = opts.centerX;
-    const y = opts.centerY;
+    const y2 = opts.centerY;
     const nameRow = dataLabelsConfig.name.show && !!this.donutDataLabels.total.label;
     let labelColor, valueColor;
     if (dataLabelsConfig.name.color === void 0) {
@@ -57104,7 +57859,7 @@ class Pie {
     if (dataLabelsConfig.name.show) {
       const elLabel = graphics.drawText({
         x: x2,
-        y: y + parseFloat(dataLabelsConfig.name.offsetY),
+        y: y2 + parseFloat(dataLabelsConfig.name.offsetY),
         text: name2,
         textAnchor: "middle",
         foreColor: labelColor,
@@ -57119,7 +57874,7 @@ class Pie {
       const valOffset = nameRow ? parseFloat(dataLabelsConfig.value.offsetY) + 16 : dataLabelsConfig.value.offsetY;
       const elValue = graphics.drawText({
         x: x2,
-        y: y + valOffset,
+        y: y2 + valOffset,
         text: val,
         textAnchor: "middle",
         foreColor: valueColor,
@@ -57212,21 +57967,64 @@ class Pie {
     let slot = 0;
     for (let i2 = 0; i2 < n2; i2++) {
       if (collapsedIdx.indexOf(i2) > -1) continue;
-      const p = Utils$1.polarToCartesian(
+      const p2 = Utils$1.polarToCartesian(
         this.centerX,
         this.centerY,
         w.globals.radialSize,
         w.config.plotOptions.pie.startAngle + angleDivision * slot++
       );
       const line = graphics.drawLine(
-        p.x,
-        p.y,
+        p2.x,
+        p2.y,
         this.centerX,
         this.centerY,
         Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i2] : spokeConfig.connectorColors
       );
       parent.add(line);
     }
+  }
+  /**
+   * Pointer left a slice. Hover prints that slice in the hole; with nothing
+   * selected, the total returns. A slice that is selected
+   * (`data:pieClicked === 'true'`, or listed in `selectedDataPoints`) keeps
+   * its own labels instead — leaving it used to wipe the selection back to
+   * "Total". `total.showAlways` never yields the hole, so it still reverts.
+   */
+  onDataLabelMouseLeave() {
+    const labels = this.donutDataLabels;
+    if (labels.show && !labels.total.showAlways) {
+      const el = this.selectedSliceNode();
+      if (el) {
+        this.printDataLabelsInner(el, labels);
+        return;
+      }
+    }
+    this.revertDataLabelsInner();
+  }
+  /**
+   * The slice a click selected, if any. `selectedDataPoints` is written on
+   * mousedown and `data:pieClicked` on mouseup, so either mark counts: a
+   * mouseleave can land with only one of them set. The last selected index
+   * wins when several slices are selected.
+   * @returns {Element | null}
+   */
+  selectedSliceNode() {
+    const w = this.w;
+    const base = w.dom.baseEl;
+    if (!base) return null;
+    const picked = w.interact.selectedDataPoints && w.interact.selectedDataPoints[0];
+    if (Array.isArray(picked) && picked.length) {
+      const idx = picked[picked.length - 1];
+      const el = base.querySelector(
+        `.apexcharts-${this.chartType.toLowerCase()}-slice-${idx}`
+      );
+      if (el) return el;
+    }
+    const areas = base.getElementsByClassName("apexcharts-pie-area");
+    for (let n2 = areas.length - 1; n2 >= 0; n2--) {
+      if (areas[n2].getAttribute("data:pieClicked") === "true") return areas[n2];
+    }
+    return null;
   }
   revertDataLabelsInner() {
     const w = this.w;
@@ -57252,9 +58050,9 @@ class Pie {
   }
 }
 const RADAR_HIT_AREA_SIZE = 5;
-function scalePath(d, k2) {
-  if (!d || k2 === 1 || !Number.isFinite(k2) || /[aA]/.test(d)) return d;
-  return d.replace(
+function scalePath(d2, k2) {
+  if (!d2 || k2 === 1 || !Number.isFinite(k2) || /[aA]/.test(d2)) return d2;
+  return d2.replace(
     /-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi,
     (n2) => String(parseFloat(n2) * k2)
   );
@@ -57347,21 +58145,21 @@ class Radar {
       this.angleArr[i2] = [];
       const collapsed = s2.length === 0 && (w.globals.collapsedSeriesIndices.indexOf(i2) > -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(i2) > -1);
       if (collapsed) {
-        for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-          this.dataRadiusOfPercent[i2][j2] = 0;
-          this.dataRadius[i2][j2] = 0;
-          this.angleArr[i2][j2] = j2 * this.disAngle;
+        for (let j = 0; j < w.globals.dataPoints; j++) {
+          this.dataRadiusOfPercent[i2][j] = 0;
+          this.dataRadius[i2][j] = 0;
+          this.angleArr[i2][j] = j * this.disAngle;
         }
       }
-      s2.forEach((dv, j2) => {
+      s2.forEach((dv, j) => {
         const range = Math.abs(this.maxValue - this.minValue);
         dv = Math.max(0, dv - this.minValue);
         if (this.isLog) {
           dv = this.coreUtils.getLogVal(this.logBase, dv, 0);
         }
-        this.dataRadiusOfPercent[i2][j2] = dv / range;
-        this.dataRadius[i2][j2] = this.dataRadiusOfPercent[i2][j2] * this.size;
-        this.angleArr[i2][j2] = j2 * this.disAngle;
+        this.dataRadiusOfPercent[i2][j] = dv / range;
+        this.dataRadius[i2][j] = this.dataRadiusOfPercent[i2][j] * this.size;
+        this.angleArr[i2][j] = j * this.disAngle;
       });
       dataPointsPos = this.getDataPointsPos(
         this.dataRadius[i2],
@@ -57398,10 +58196,10 @@ class Radar {
       if (w.globals.previousPaths.length > 0) {
         pathFrom = scalePath(this.getPreviousPath(i2), fromScale);
       }
-      for (let p = 0; p < paths.linePathsTo.length; p++) {
+      for (let p2 = 0; p2 < paths.linePathsTo.length; p2++) {
         const renderedLinePath = this.graphics.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
-          pathTo: paths.linePathsTo[p],
+          pathFrom: pathFrom === null ? paths.linePathsFrom[p2] : pathFrom,
+          pathTo: paths.linePathsTo[p2],
           strokeWidth: Array.isArray(this.strokeWidth) ? this.strokeWidth[i2] : this.strokeWidth,
           fill: "none",
           drawShadow: false
@@ -57411,8 +58209,8 @@ class Radar {
           seriesNumber: i2
         });
         const renderedAreaPath = this.graphics.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
-          pathTo: paths.areaPathsTo[p],
+          pathFrom: pathFrom === null ? paths.areaPathsFrom[p2] : pathFrom,
+          pathTo: paths.areaPathsTo[p2],
           strokeWidth: 0,
           fill: pathFill,
           drawShadow: false,
@@ -57435,11 +58233,11 @@ class Radar {
       const filters = new Filters(this.w);
       let elPointsWrap = null;
       let elHitWrap = null;
-      s2.forEach((sj, j2) => {
+      s2.forEach((sj, j) => {
         const opts = markers.getMarkerConfig({
           cssClass: "apexcharts-marker",
           seriesIndex: i2,
-          dataPointIndex: j2
+          dataPointIndex: j
         });
         const isHitArea = !opts.pSize;
         if (isHitArea) {
@@ -57449,12 +58247,12 @@ class Radar {
           opts.pointStrokeWidth = 0;
         }
         const point = this.graphics.drawMarker(
-          dataPointsPos[j2].x,
-          dataPointsPos[j2].y,
+          dataPointsPos[j].x,
+          dataPointsPos[j].y,
           opts
         );
-        point.attr("rel", j2);
-        point.attr("j", j2);
+        point.attr("rel", j);
+        point.attr("j", j);
         point.attr("index", i2);
         point.node.setAttribute("default-marker-size", opts.pSize);
         if (isHitArea) {
@@ -57473,21 +58271,21 @@ class Radar {
             markers.setupMarkerDelegation(elPointsWrap);
             elPointsMain.add(elPointsWrap);
           }
-          filters.setSelectionFilter(point, i2, j2);
+          filters.setSelectionFilter(point, i2, j);
           elPointsWrap.add(point);
         }
         elSeries.add(elPointsMain);
         const dataLabelsConfig = w.config.dataLabels;
         if (dataLabelsConfig.enabled) {
-          const text = dataLabelsConfig.formatter(w.seriesData.series[i2][j2], {
+          const text = dataLabelsConfig.formatter(w.seriesData.series[i2][j], {
             ctx: this.ctx,
             seriesIndex: i2,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           dataLabels.plotDataLabelsText({
-            x: dataPointsPos[j2].x,
-            y: dataPointsPos[j2].y,
+            x: dataPointsPos[j].x,
+            y: dataPointsPos[j].y,
             text,
             textAnchor: "middle",
             i: i2,
@@ -57495,7 +58293,7 @@ class Radar {
             // `j` above is the series index (kept for the color lookup), so
             // pass the real data point index for per-point offsets
             seriesIndex: i2,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             parent: elDataPointsMain,
             offsetCorrection: false,
             dataLabelsConfig: __spreadValues({}, dataLabelsConfig)
@@ -57538,11 +58336,11 @@ class Radar {
     radiusSizes.forEach((radiusSize, r2) => {
       const polygon = Utils$1.getPolygonPos(radiusSize, this.dataPointsLen);
       let string = "";
-      polygon.forEach((p, i2) => {
+      polygon.forEach((p2, i2) => {
         if (r2 === 0) {
           const line = this.graphics.drawLine(
-            p.x,
-            p.y,
+            p2.x,
+            p2.y,
             0,
             0,
             Array.isArray(this.polygons.connectorColors) ? this.polygons.connectorColors[i2] : this.polygons.connectorColors
@@ -57551,19 +58349,19 @@ class Radar {
         }
         if (i2 === 0) {
           this.yaxisLabelsTextsPos.push({
-            x: p.x,
-            y: p.y
+            x: p2.x,
+            y: p2.y
           });
         }
-        string += p.x + "," + p.y + " ";
+        string += p2.x + "," + p2.y + " ";
       });
       polygonStrings.push(string);
     });
-    polygonStrings.forEach((p, i2) => {
+    polygonStrings.forEach((p2, i2) => {
       const strokeColors = this.polygons.strokeColors;
       const strokeWidth = this.polygons.strokeWidth;
       const polygon = this.graphics.drawPolygon(
-        p,
+        p2,
         Array.isArray(strokeColors) ? strokeColors[i2] : strokeColors,
         Array.isArray(strokeWidth) ? strokeWidth[i2] : strokeWidth,
         w.globals.radarPolygons.fill.colors[i2]
@@ -57575,8 +58373,8 @@ class Radar {
     });
     if (w.config.yaxis[0].show) {
       this.yaxisLabelsTextsPos.forEach(
-        (p, i2) => {
-          const yText = helpers.drawYAxisTexts(p.x, p.y, i2, yaxisTexts[i2]);
+        (p2, i2) => {
+          const yText = helpers.drawYAxisTexts(p2.x, p2.y, i2, yaxisTexts[i2]);
           this.yaxisLabels.add(yText);
         }
       );
@@ -57642,9 +58440,9 @@ class Radar {
       areaPathsFrom = [this.graphics.move(origin.x, origin.y)];
       let linePathTo = this.graphics.move(pos[0].x, pos[0].y);
       let areaPathTo = this.graphics.move(pos[0].x, pos[0].y);
-      pos.forEach((p, i2) => {
-        linePathTo += this.graphics.line(p.x, p.y);
-        areaPathTo += this.graphics.line(p.x, p.y);
+      pos.forEach((p2, i2) => {
+        linePathTo += this.graphics.line(p2.x, p2.y);
+        areaPathTo += this.graphics.line(p2.x, p2.y);
         if (i2 === pos.length - 1) {
           linePathTo += "Z";
           areaPathTo += "Z";
@@ -57713,10 +58511,10 @@ class Radar {
     dataRadiusArr = dataRadiusArr || [];
     angleArr = angleArr || [];
     const dataPointsPosArray = [];
-    for (let j2 = 0; j2 < dataPointsLen; j2++) {
+    for (let j = 0; j < dataPointsLen; j++) {
       const curPointPos = {};
-      curPointPos.x = dataRadiusArr[j2] * Math.sin(angleArr[j2]);
-      curPointPos.y = -dataRadiusArr[j2] * Math.cos(angleArr[j2]);
+      curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j]);
+      curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j]);
       dataPointsPosArray.push(curPointPos);
     }
     return dataPointsPosArray;
@@ -57724,15 +58522,15 @@ class Radar {
 }
 function dialAngle(value, min, max, start, span) {
   const n2 = Number(value);
-  const f = Number.isFinite(n2) ? (Math.min(Math.max(n2, min), max) - min) / (max - min) : 0;
-  return start + f * span;
+  const f2 = Number.isFinite(n2) ? (Math.min(Math.max(n2, min), max) - min) / (max - min) : 0;
+  return start + f2 * span;
 }
 function bandGapDegrees(gap, radius, span) {
   let px2 = gap;
   if (typeof gap === "string") {
-    const m = /^\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*(px|%|deg)?\s*$/i.exec(gap);
-    const v = m ? Math.abs(parseFloat(m[1])) : 0;
-    const unit = m && m[2] ? m[2].toLowerCase() : "px";
+    const m2 = /^\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*(px|%|deg)?\s*$/i.exec(gap);
+    const v = m2 ? Math.abs(parseFloat(m2[1])) : 0;
+    const unit = m2 && m2[2] ? m2[2].toLowerCase() : "px";
     if (unit === "%") return v / 100 * span;
     if (unit === "deg") return v;
     px2 = v;
@@ -58207,10 +59005,10 @@ class Radial extends Pie {
           textColor = w.config.chart.foreColor;
         }
         const x2 = barStartCords.x + this.barLabels.offsetX;
-        const y = barStartCords.y + this.barLabels.offsetY;
+        const y2 = barStartCords.y + this.barLabels.offsetY;
         const elText = graphics.drawText({
           x: x2,
-          y,
+          y: y2,
           text,
           textAnchor: "end",
           dominantBaseline: "middle",
@@ -58226,7 +59024,7 @@ class Radial extends Pie {
         });
         if (startAngle !== 0) {
           elText.attr({
-            "transform-origin": `${x2} ${y}`,
+            "transform-origin": `${x2} ${y2}`,
             transform: `rotate(${startAngle} 0 0)`
           });
         }
@@ -58496,13 +59294,13 @@ class Radial extends Pie {
         g2.add(elText);
       }
     };
-    for (let m = 0; m < majorCount; m++) {
-      const t2 = m / (majorCount - 1);
+    for (let m2 = 0; m2 < majorCount; m2++) {
+      const t2 = m2 / (majorCount - 1);
       const value = min + t2 * (max - min);
       drawTickAt(value, ticks.major || {}, true);
-      if (m < majorCount - 1 && minorCount > 0) {
+      if (m2 < majorCount - 1 && minorCount > 0) {
         for (let n2 = 1; n2 <= minorCount; n2++) {
-          const tMinor = (m + n2 / (minorCount + 1)) / (majorCount - 1);
+          const tMinor = (m2 + n2 / (minorCount + 1)) / (majorCount - 1);
           const minorValue = min + tMinor * (max - min);
           drawTickAt(minorValue, ticks.minor || {}, false);
         }
@@ -58749,7 +59547,7 @@ class RangeBar extends Bar {
       class: "apexcharts-rangebar-series apexcharts-plot-series"
     });
     for (let i2 = 0; i2 < series.length; i2++) {
-      let x2, y;
+      let x2, y2;
       const realIndex = w.globals.comboCharts ? (
         /** @type {any} */
         seriesIndex[i2]
@@ -58780,7 +59578,7 @@ class RangeBar extends Bar {
       } = initPositions;
       const yDivision = (_a = initPositions.yDivision) != null ? _a : 0;
       const xDivision = (_b = initPositions.xDivision) != null ? _b : 0;
-      y = initY;
+      y2 = initY;
       x2 = initX;
       const elDataLabelsWrap = graphics.group({
         class: "apexcharts-datalabels",
@@ -58793,34 +59591,34 @@ class RangeBar extends Bar {
         /** @type {any} */
         w.config.series[realIndex].data
       );
-      for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j2, realIndex);
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i2, j, realIndex);
         let barWidth = (_c = initPositions.barWidth) != null ? _c : 0;
         let barHeight = (_d = initPositions.barHeight) != null ? _d : 0;
-        const y1 = this.seriesRangeStart[realIndex][j2];
-        const y2 = this.seriesRangeEnd[realIndex][j2];
+        const y1 = this.seriesRangeStart[realIndex][j];
+        const y22 = this.seriesRangeEnd[realIndex][j];
         let paths = (
           /** @type {any} */
           null
         );
         let barXPosition = null;
         let barYPosition = null;
-        const params = { x: x2, y, strokeWidth, elSeries };
+        const params = { x: x2, y: y2, strokeWidth, elSeries };
         let seriesLen = this.seriesLen;
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           seriesLen = 1;
         }
-        if (typeof (data == null ? void 0 : data[j2]) === "undefined") {
+        if (typeof (data == null ? void 0 : data[j]) === "undefined") {
           break;
         }
         if (this.isHorizontal) {
-          barYPosition = y + barHeight * /** @type {any} */
+          barYPosition = y2 + barHeight * /** @type {any} */
           this.visibleI;
           const srty = (yDivision - barHeight * seriesLen) / 2;
-          if (((_e = data[j2]) == null ? void 0 : _e.x) != null) {
+          if (((_e = data[j]) == null ? void 0 : _e.x) != null) {
             const positions = this.detectOverlappingBars({
               i: realIndex,
-              j: j2,
+              j,
               barYPosition,
               srty,
               barHeight,
@@ -58831,26 +59629,26 @@ class RangeBar extends Bar {
             barYPosition = positions.barYPosition;
           }
           paths = this.drawRangeBarPaths(__spreadValues({
-            indexes: { i: i2, j: j2, realIndex },
+            indexes: { i: i2, j, realIndex },
             barHeight,
             barYPosition,
             zeroW,
             yDivision,
             y1,
-            y2
+            y2: y22
           }, params));
           barWidth = paths.barWidth;
         } else {
           if (w.axisFlags.isXNumeric) {
-            x2 = (w.seriesData.seriesX[realIndex][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+            x2 = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
           }
           barXPosition = x2 + barWidth * /** @type {any} */
           this.visibleI;
           const srtx = (xDivision - barWidth * seriesLen) / 2;
-          if (((_f = data[j2]) == null ? void 0 : _f.x) != null) {
+          if (((_f = data[j]) == null ? void 0 : _f.x) != null) {
             const positions = this.detectOverlappingBars({
               i: realIndex,
-              j: j2,
+              j,
               barXPosition,
               srtx,
               barWidth,
@@ -58861,7 +59659,7 @@ class RangeBar extends Bar {
             barXPosition = positions.barXPosition;
           }
           paths = this.drawRangeColumnPaths(__spreadValues({
-            indexes: { i: i2, j: j2, realIndex, translationsIndex },
+            indexes: { i: i2, j, realIndex, translationsIndex },
             barWidth,
             barXPosition,
             zeroH,
@@ -58881,24 +59679,24 @@ class RangeBar extends Bar {
         if (barGoalLine) {
           elGoalsMarkers.add(barGoalLine);
         }
-        y = paths.y;
+        y2 = paths.y;
         x2 = paths.x;
         const pathFill = this.barHelpers.getPathFillColor(
           series,
           i2,
-          j2,
+          j,
           realIndex
         );
         this.renderSeries({
           realIndex,
           pathFill: pathFill.color,
           lineFill: pathFill.useRangeColor ? pathFill.color : w.globals.stroke.colors[realIndex],
-          j: j2,
+          j,
           i: i2,
           x: x2,
-          y,
+          y: y2,
           y1,
-          y2,
+          y2: y22,
           pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
           strokeWidth,
@@ -58932,7 +59730,7 @@ class RangeBar extends Bar {
   /** @param {{ i?: any, j?: any, barYPosition?: any, barXPosition?: any, srty?: any, srtx?: any, barHeight?: any, barWidth?: any, yDivision?: any, xDivision?: any, initPositions?: any }} opts */
   detectOverlappingBars({
     i: i2,
-    j: j2,
+    j,
     barYPosition,
     barXPosition,
     srty,
@@ -58946,10 +59744,10 @@ class RangeBar extends Bar {
     var _a, _b, _c, _d;
     const w = this.w;
     let overlaps = [];
-    const rangeName = (_b = (_a = w.globals.seriesRangeName) == null ? void 0 : _a[i2]) == null ? void 0 : _b[j2];
+    const rangeName = (_b = (_a = w.globals.seriesRangeName) == null ? void 0 : _a[i2]) == null ? void 0 : _b[j];
     const x2 = (
       /** @type {Record<string,any>} */
-      (_d = (_c = w.config.series[i2].data) == null ? void 0 : _c[j2]) == null ? void 0 : _d.x
+      (_d = (_c = w.config.series[i2].data) == null ? void 0 : _c[j]) == null ? void 0 : _d.x
     );
     const labelX = Array.isArray(x2) ? x2.join(" ") : x2;
     const self = (
@@ -59019,14 +59817,14 @@ class RangeBar extends Bar {
   }) {
     var _a, _b;
     const w = this.w;
-    const { i: i2, j: j2, realIndex, translationsIndex } = indexes2;
+    const { i: i2, j, realIndex, translationsIndex } = indexes2;
     const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
-    const range = this.getRangeValue(realIndex, j2);
+    const range = this.getRangeValue(realIndex, j);
     let y1 = Math.min(range.start, range.end);
     let y2 = Math.max(range.start, range.end);
     const hasValue = !(typeof /** @type {any} */
-    ((_a = this.series[i2]) == null ? void 0 : _a[j2]) === "undefined" || /** @type {any} */
-    ((_b = this.series[i2]) == null ? void 0 : _b[j2]) === null);
+    ((_a = this.series[i2]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
+    ((_b = this.series[i2]) == null ? void 0 : _b[j]) === null);
     if (!hasValue) {
       y1 = y2 = zeroH;
     } else {
@@ -59043,13 +59841,13 @@ class RangeBar extends Bar {
       series: this.seriesRangeEnd,
       realIndex,
       i: realIndex,
-      j: j2,
+      j,
       w
     });
     if (hasValue) {
       const box = paths.drawnBox;
       const endIsUpper = range.end >= range.start;
-      this.recordColumnGeometry(realIndex, j2, {
+      this.recordColumnGeometry(realIndex, j, {
         slotStart: box.x1,
         slotEnd: box.x2,
         // `drawnBox.y1` is the lower VALUE's edge, so which of the two is the
@@ -59064,7 +59862,7 @@ class RangeBar extends Bar {
     } else {
       const xForNumericXAxis = this.getBarXForNumericXAxis({
         x: x2,
-        j: j2,
+        j,
         realIndex,
         barWidth
       });
@@ -59083,7 +59881,7 @@ class RangeBar extends Bar {
         null,
         zeroH,
         realIndex,
-        j2,
+        j,
         translationsIndex
       ),
       barXPosition
@@ -59096,7 +59894,7 @@ class RangeBar extends Bar {
    * @returns {string[]}
    */
   _keys(realIndex) {
-    const c = (
+    const c2 = (
       /** @type {any} */
       this._keyCache || (this._keyCache = {})
     );
@@ -59104,11 +59902,11 @@ class RangeBar extends Bar {
       /** @type {any} */
       this.w.config.series[realIndex].data
     );
-    return c[realIndex] || (c[realIndex] = uniquifyKeys(
+    return c2[realIndex] || (c2[realIndex] = uniquifyKeys(
       (data || []).map(
-        (d, j2) => {
+        (d2, j) => {
           var _a;
-          return "c:" + ((_a = d == null ? void 0 : d.x) != null ? _a : j2);
+          return "c:" + ((_a = d2 == null ? void 0 : d2.x) != null ? _a : j);
         }
       )
     ));
@@ -59129,20 +59927,20 @@ class RangeBar extends Bar {
   /** @param {{indexes: any, y: any, y1: any, y2: any, yDivision: any, barHeight: any, barYPosition: any, zeroW: any}} opts */
   drawRangeBarPaths({
     indexes: indexes2,
-    y,
+    y: y2,
     y1,
-    y2,
+    y2: y22,
     yDivision,
     barHeight,
     barYPosition,
     zeroW
   }) {
     const w = this.w;
-    const { realIndex, j: j2 } = indexes2;
+    const { realIndex, j } = indexes2;
     const ratio = this.invertedYRatio * (this.isReversed ? -1 : 1);
     const x1 = this.preventBarOverflow(zeroW + y1 / ratio);
-    const x2 = this.preventBarOverflow(zeroW + y2 / ratio);
-    const range = this.getRangeValue(realIndex, j2);
+    const x2 = this.preventBarOverflow(zeroW + y22 / ratio);
+    const range = this.getRangeValue(realIndex, j);
     const barWidth = Math.abs(x2 - x1);
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
@@ -59153,12 +59951,12 @@ class RangeBar extends Bar {
       series: this.seriesRangeEnd,
       i: realIndex,
       realIndex,
-      j: j2,
+      j,
       w
     });
     if (range.start != null && range.end != null) {
       const box = paths.drawnBox;
-      this.recordColumnGeometry(realIndex, j2, {
+      this.recordColumnGeometry(realIndex, j, {
         slotStart: box.y1,
         slotEnd: box.y2,
         levelStart: box.x1,
@@ -59167,7 +59965,7 @@ class RangeBar extends Bar {
       });
     }
     if (!w.axisFlags.isXNumeric) {
-      y = y + yDivision;
+      y2 = y2 + yDivision;
     }
     return {
       pathTo: paths.pathTo,
@@ -59180,10 +59978,10 @@ class RangeBar extends Bar {
         /** @type {any} */
         null,
         realIndex,
-        j2,
+        j,
         0
       ),
-      y
+      y: y2
     };
   }
   /**
@@ -59204,22 +60002,22 @@ class RangeBar extends Bar {
    * @param {number} j
    * @param {{slotStart: number, slotEnd: number, levelStart: number, levelEnd: number, horizontal: boolean}} rec
    */
-  recordColumnGeometry(realIndex, j2, rec) {
+  recordColumnGeometry(realIndex, j, rec) {
     const sink = this.w.waterfallData && this.w.waterfallData.geometry;
     if (!sink) return;
     if (!isFinite(rec.slotStart) || !isFinite(rec.levelEnd)) return;
     if (!sink[realIndex]) sink[realIndex] = [];
-    sink[realIndex][j2] = rec;
+    sink[realIndex][j] = rec;
   }
   /**
    * @param {number} i
    * @param {number} j
    */
-  getRangeValue(i2, j2) {
+  getRangeValue(i2, j) {
     const w = this.w;
     return {
-      start: w.rangeData.seriesRangeStart[i2][j2],
-      end: w.rangeData.seriesRangeEnd[i2][j2]
+      start: w.rangeData.seriesRangeStart[i2][j],
+      end: w.rangeData.seriesRangeEnd[i2][j]
     };
   }
 }
@@ -59259,9 +60057,9 @@ function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, h
     const areaWidth = rowSum / height;
     let subY = yoffset;
     for (let i2 = 0; i2 < rowLen; i2++) {
-      const h = row[i2] / areaWidth;
-      coords.push([xoffset, subY, xoffset + areaWidth, subY + h]);
-      subY += h;
+      const h2 = row[i2] / areaWidth;
+      coords.push([xoffset, subY, xoffset + areaWidth, subY + h2]);
+      subY += h2;
     }
   } else {
     const areaHeight = rowSum / width;
@@ -59384,7 +60182,7 @@ function generateNested(nodes, width, height, opts = {}) {
 }
 const TreemapSquared = { generateNested };
 const areaOf = (r2) => (r2[2] - r2[0]) * (r2[3] - r2[1]);
-const isPlainColor = (c) => typeof c === "string" && /^(#|rgb)/i.test(c);
+const isPlainColor = (c2) => typeof c2 === "string" && /^(#|rgb)/i.test(c2);
 function withFills(from, to, fillWas, fillNow) {
   if (isPlainColor(fillWas) && isPlainColor(fillNow) && fillWas !== fillNow) {
     return [
@@ -59489,8 +60287,8 @@ class TreemapChart {
       };
       const fromBounds = { xMin: Infinity, yMin: Infinity };
       if (this.showParents) {
-        (parentsBySeries[i2] || []).forEach((p) => {
-          this._drawParent(elSeries, p, i2);
+        (parentsBySeries[i2] || []).forEach((p2) => {
+          this._drawParent(elSeries, p2, i2);
         });
       }
       const animCfg = w.config.chart.animations;
@@ -59521,7 +60319,7 @@ class TreemapChart {
         var _a3;
         const r2 = leaf.rect;
         if (!r2) return;
-        const j2 = leaf._di;
+        const j = leaf._di;
         const x1 = r2[0];
         const y1 = r2[1];
         const x2 = r2[2];
@@ -59532,12 +60330,12 @@ class TreemapChart {
           bounds.xMax = Math.max(bounds.xMax, x2);
           bounds.yMax = Math.max(bounds.yMax, y2);
         }
-        const colorProps = this._leafColor(i2, j2);
+        const colorProps = this._leafColor(i2, j);
         const color = colorProps.color;
         let pathFill = fill.fillPath({
           color,
           seriesNumber: i2,
-          dataPointIndex: j2
+          dataPointIndex: j
         });
         const morphFrom = morphActive ? this._morphSourceForLeaf(leaf) : null;
         const elRect = morphFrom ? graphics.drawPath({
@@ -59557,13 +60355,13 @@ class TreemapChart {
           this.strokeWidth,
           w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i2]
         );
-        pathFill = (hl == null ? void 0 : hl(elRect, i2, j2, pathFill, leaf)) || pathFill;
+        pathFill = (hl == null ? void 0 : hl(elRect, i2, j, pathFill, leaf)) || pathFill;
         elRect.attr({
           cx: x1,
           cy: y1,
           index: i2,
           i: i2,
-          j: j2,
+          j,
           width: x2 - x1,
           height: y2 - y1,
           fill: pathFill
@@ -59590,7 +60388,7 @@ class TreemapChart {
             this._tilePath(x1, y1, x2, y2),
             this.ctx.morphTypeChange.getSpeed(),
             i2,
-            j2
+            j
           );
         } else if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           if (w.globals.resized) {
@@ -59615,7 +60413,7 @@ class TreemapChart {
             speed = this.dynamicAnim.speed;
             const prev = (
               /** @type {any} */
-              (_a3 = w.globals.previousPaths[i2]) == null ? void 0 : _a3[j2]
+              (_a3 = w.globals.previousPaths[i2]) == null ? void 0 : _a3[j]
             );
             const to = __spreadValues({}, toRect);
             if (!(prev == null ? void 0 : prev.rect) && this.camera) {
@@ -59637,7 +60435,7 @@ class TreemapChart {
                 prevLook = typeof prev.label === "string" ? prev.label : null;
                 if (prev.labelFading && this.camera) prevLook = "";
               }
-              const plain = (c) => typeof c === "string" && /^(#|rgb)/i.test(c);
+              const plain = (c2) => typeof c2 === "string" && /^(#|rgb)/i.test(c2);
               if (plain(prev.fill) && plain(pathFill) && prev.fill !== pathFill) {
                 fromRect.fill = prev.fill;
                 to.fill = pathFill;
@@ -59652,10 +60450,10 @@ class TreemapChart {
         }
         let dataLabels = null;
         if (w.config.dataLabels.enabled && this._labelCanShow(fontSize, x2 - x1, y2 - y1)) {
-          let formattedText = w.config.dataLabels.formatter(this.labels[i2][j2], {
-            value: w.seriesData.series[i2][j2],
+          let formattedText = w.config.dataLabels.formatter(this.labels[i2][j], {
+            value: w.seriesData.series[i2][j],
             seriesIndex: i2,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w,
             highlight: leaf.highlight
           });
@@ -59669,13 +60467,13 @@ class TreemapChart {
               y2
             );
           }
-          if (w.seriesData.series[i2][j2]) {
+          if (w.seriesData.series[i2][j]) {
             dataLabels = this.helpers.calculateDataLabels({
               text: formattedText,
               x: (x1 + x2) / 2,
               y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
               i: i2,
-              j: j2,
+              j,
               colorProps,
               fontSize
             });
@@ -59832,12 +60630,12 @@ class TreemapChart {
     const cfg = this._levelCfg(depth);
     const header = cfg.header || {};
     if (header.show === false) return 0;
-    const h = Number(header.height);
-    if (!Number.isFinite(h) || h <= 0) return 0;
+    const h2 = Number(header.height);
+    if (!Number.isFinite(h2) || h2 <= 0) return 0;
     const minWidth = Number(header.minWidth) || 40;
     if (rw < minWidth) return 0;
-    if (rh < h * 2) return 0;
-    return h;
+    if (rh < h2 * 2) return 0;
+    return h2;
   }
   // ------------------------------------------------------------------ nodes
   /**
@@ -59901,10 +60699,10 @@ class TreemapChart {
    * @param {number} j
    * @returns {any}
    */
-  _leafColor(i2, j2) {
+  _leafColor(i2, j) {
     const w = this.w;
     if (this.scale) {
-      const cv = colorValueOf(w, i2, j2);
+      const cv = colorValueOf(w, i2, j);
       if (cv != null) {
         const color = this.scale.at(cv);
         return {
@@ -59921,7 +60719,7 @@ class TreemapChart {
     return this.helpers.getShadeColor(
       w.config.chart.type,
       i2,
-      j2,
+      j,
       this.negRange
     );
   }
@@ -60307,10 +61105,10 @@ class TreemapChart {
   }
   /** @returns {boolean} */
   _zoomEnabled() {
-    const d = this.ctx.drilldown;
-    const live = this.zoomLive(this.w, d);
-    if (live === null && !d.zoomWarned) {
-      d.zoomWarned = true;
+    const d2 = this.ctx.drilldown;
+    const live = this.zoomLive(this.w, d2);
+    if (live === null && !d2.zoomWarned) {
+      d2.zoomWarned = true;
       console.warn(
         "ApexCharts treemap: zoom is ignored while drilldown is active (plotOptions.treemap.zoom vs drilldown series or onDrillDown)."
       );
@@ -60391,7 +61189,7 @@ class TreemapChart {
             b.querySelectorAll(".apexcharts-treemap-parent-header[tabindex]")
           )
         );
-        (b.querySelector(".apexcharts-breadcrumb-item") || heads.find((h) => h.tmKey === from) || heads[0] || b).focus();
+        (b.querySelector(".apexcharts-breadcrumb-item") || heads.find((h2) => h2.tmKey === from) || heads[0] || b).focus();
       });
     }
   }
@@ -60521,13 +61319,13 @@ class TreemapChart {
         el.setAttribute("height", String(from.height + (to.height - from.height) * e2));
       });
     };
-    const ride = (el, d, fade = false) => {
+    const ride = (el, d2, fade = false) => {
       var _a;
       const base = el.getAttribute("transform") || "";
       const o0 = parseFloat((_a = el.getAttribute("opacity")) != null ? _a : "1");
       const from = Number.isFinite(o0) ? o0 : 1;
       writers.push((e2) => {
-        el.setAttribute("transform", `translate(${d.x * e2} ${d.y * e2}) ${base}`.trim());
+        el.setAttribute("transform", `translate(${d2.x * e2} ${d2.y * e2}) ${base}`.trim());
         if (fade) el.setAttribute("opacity", String(from * (1 - e2)));
       });
     };
@@ -60559,10 +61357,10 @@ class TreemapChart {
         layer.querySelectorAll("rect").forEach((r2) => easeBox(r2, camera.fwd(boxOf(r2))));
         layer.querySelectorAll("text").forEach((t2) => {
           const lead = (el) => {
-            const m = /^translate\(\s*([-+.\deE]+)[\s,]+([-+.\deE]+)\s*\)/.exec(
+            const m2 = /^translate\(\s*([-+.\deE]+)[\s,]+([-+.\deE]+)\s*\)/.exec(
               ((el == null ? void 0 : el.getAttribute("transform")) || "").trim()
             );
-            return m ? [parseFloat(m[1]), parseFloat(m[2])] : [0, 0];
+            return m2 ? [parseFloat(m2[1]), parseFloat(m2[2])] : [0, 0];
           };
           const [px2, py] = lead(t2.parentElement);
           const [tx, ty] = lead(t2);
@@ -60577,7 +61375,7 @@ class TreemapChart {
           ride(t2, { x: to.x - at2.x, y: to.y - at2.y });
         });
         [...layer.childNodes].forEach(
-          (c) => (n2 === earlier.length - 1 && earlier.length > 1 ? labels : shapes).appendChild(c)
+          (c2) => (n2 === earlier.length - 1 && earlier.length > 1 ? labels : shapes).appendChild(c2)
         );
         layer.remove();
       });
@@ -60744,7 +61542,7 @@ class TreemapChart {
     nav.style.top = `${titleArea + oy}px`;
     const dark = w.config.theme.mode === "dark";
     nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
-    nav.style.borderRadius = "4px";
+    nav.style.borderRadius = `${Theme.radius(w, 4)}px`;
   }
   // ---------------------------------------------------------------- tooltip
   /**
@@ -60827,11 +61625,11 @@ class TreemapChart {
     let x2 = e2.clientX - rect.left + pad;
     if (x2 + tw > rect.width) x2 = e2.clientX - rect.left - tw - pad;
     x2 = Math.max(0, Math.min(x2, rect.width - tw));
-    let y = e2.clientY - rect.top + pad;
-    if (y + th > rect.height) y = e2.clientY - rect.top - th - pad;
-    y = Math.max(0, Math.min(y, rect.height - th));
+    let y2 = e2.clientY - rect.top + pad;
+    if (y2 + th > rect.height) y2 = e2.clientY - rect.top - th - pad;
+    y2 = Math.max(0, Math.min(y2, rect.height - th));
     t2.style.left = x2 + "px";
-    t2.style.top = y + "px";
+    t2.style.top = y2 + "px";
   }
   _hideParentTooltip() {
     const t2 = this._tooltipEl;
@@ -60878,7 +61676,7 @@ class TreemapChart {
   _countLeaves(node) {
     if (!node.children || !node.children.length) return 1;
     return node.children.reduce(
-      (s2, c) => s2 + this._countLeaves(c),
+      (s2, c2) => s2 + this._countLeaves(c2),
       0
     );
   }
@@ -61003,14 +61801,14 @@ class TreemapChart {
    * @param {string | number} fontSize
    */
   _labelRect(graphics, text, fontSize) {
-    const st = this.w.config.dataLabels.style;
+    const st2 = this.w.config.dataLabels.style;
     return graphics.getTextRects(
       text,
       String(fontSize),
-      st.fontFamily,
+      st2.fontFamily,
       "",
       true,
-      st.fontWeight
+      st2.fontWeight
     );
   }
   // This is an alternative label formatting method that uses a
@@ -61045,8 +61843,8 @@ class TreemapChart {
    */
   _morphKeyed() {
     var _a, _b;
-    const m = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange;
-    return (_b = this._keyed) != null ? _b : this._keyed = !!(m && typeof m.hasKeyedMarks === "function" && m.hasKeyedMarks() && typeof m.getInitialPathForKey === "function");
+    const m2 = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange;
+    return (_b = this._keyed) != null ? _b : this._keyed = !!(m2 && typeof m2.hasKeyedMarks === "function" && m2.hasKeyedMarks() && typeof m2.getInitialPathForKey === "function");
   }
   /**
    * The captured shape a LEAF tile unrolls from, or null when the outgoing
@@ -61105,9 +61903,9 @@ class TreemapChart {
    * @param {number} i
    * @param {number} j
    */
-  _morphTile(el, fromD, toD, speed, i2, j2) {
+  _morphTile(el, fromD, toD, speed, i2, j) {
     const animations = new Animations(this.w, this.ctx);
-    animations.morphSVG(el, i2, j2, "none", fromD, toD, speed, 0);
+    animations.morphSVG(el, i2, j, "none", fromD, toD, speed, 0);
   }
   /**
    * Carry a label (or any mark drawn at its final spot) along a tile tween:
@@ -61226,7 +62024,7 @@ const SVGNS = "http://www.w3.org/2000/svg";
 const CHAR_WIDTH_EM = 0.55;
 const px = (value, fallback = 0) => parseFloat(value) || fallback;
 const cssText = (style) => Object.keys(style).filter((k2) => style[k2] !== "" && style[k2] != null).map(
-  (k2) => k2.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + ":" + style[k2]
+  (k2) => k2.replace(/[A-Z]/g, (c2) => "-" + c2.toLowerCase()) + ":" + style[k2]
 ).join(";");
 class SSRRenderElement extends SSRElement {
   /**
@@ -61377,12 +62175,12 @@ class SSRRenderElement extends SSRElement {
     if (this._isLegend()) return legendRect(this);
     if (this.nodeName !== "text") return super.getBoundingClientRect();
     const box = this.getBBox();
-    const m = /rotate\(\s*([-\d.e]+)[\s,]*([-\d.e]*)[\s,]*([-\d.e]*)/.exec(
+    const m2 = /rotate\(\s*([-\d.e]+)[\s,]*([-\d.e]*)[\s,]*([-\d.e]*)/.exec(
       this.attributes.get("transform") || ""
     );
-    const angle = m ? parseFloat(m[1]) * Math.PI / 180 : 0;
-    const cx = m ? Number(m[2]) : 0;
-    const cy = m ? Number(m[3]) : 0;
+    const angle = m2 ? parseFloat(m2[1]) * Math.PI / 180 : 0;
+    const cx = m2 ? Number(m2[2]) : 0;
+    const cy = m2 ? Number(m2[3]) : 0;
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     const xs = [];
@@ -61436,9 +62234,9 @@ const matchesCompound = (el, compound) => {
   var _a;
   if (!el || !(el.attributes instanceof Map)) return false;
   const part = /\.([\w-]+)|\[([\w:-]+)(?:=(['"]?)([^\]]*?)\3)?\]|:not\(([^)]*)\)|:nth-child\((\d+)\)|^([\w-]+)|(.)/g;
-  let m;
-  while (m = part.exec(compound)) {
-    const [, cls, attr, , value, not, nth, tag] = m;
+  let m2;
+  while (m2 = part.exec(compound)) {
+    const [, cls, attr, , value, not, nth, tag] = m2;
     let ok;
     if (cls !== void 0) ok = classesOf(el).includes(cls);
     else if (attr !== void 0) {
@@ -61446,7 +62244,7 @@ const matchesCompound = (el, compound) => {
     } else if (not !== void 0) ok = !matchesCompound(el, not);
     else if (nth !== void 0) {
       const siblings = (((_a = el.parentNode) == null ? void 0 : _a.children) || []).filter(
-        (c) => c.attributes instanceof Map
+        (c2) => c2.attributes instanceof Map
       );
       ok = siblings.indexOf(el) + 1 === Number(nth);
     } else if (tag !== void 0)
@@ -61513,13 +62311,13 @@ const legendRect = (wrap) => {
       width = host - px(wrap.style.left, 20);
       let rowWidth = 0;
       let rowHeight = 0;
-      for (const [w, h] of sizes) {
+      for (const [w, h2] of sizes) {
         if (rowWidth && rowWidth + w > width - 20) {
           height += rowHeight;
           rowWidth = rowHeight = 0;
         }
         rowWidth += w;
-        rowHeight = Math.max(rowHeight, h);
+        rowHeight = Math.max(rowHeight, h2);
       }
       height = Math.min(height + rowHeight, px(wrap.style.maxHeight, Infinity));
     }
@@ -61828,7 +62626,7 @@ ${svgString}
    */
   static _parseConfig(encodedConfig) {
     const binary = atob(encodedConfig);
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const bytes = Uint8Array.from(binary, (c2) => c2.charCodeAt(0));
     return JSON.parse(new TextDecoder().decode(bytes));
   }
 }

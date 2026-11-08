@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -266,7 +266,7 @@ function renderJitter({
   pointsByCat.forEach(({ groups, j }) => {
     const catColor = distributed ? w.globals.colors[j] : w.globals.colors[realIndex];
     const fc = options.fillColor;
-    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45) : fc || darkenColor(catColor, 0.45);
+    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45, w.dom.elWrap) : fc || darkenColor(catColor, 0.45, w.dom.elWrap);
     groups.forEach((g) => {
       const elPoints = graphics.drawPath({
         d: g.d,
@@ -285,9 +285,11 @@ function renderJitter({
   });
   elSeries.add(elPointsWrap);
 }
-function darkenColor(color, amount) {
-  const rgb = Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color));
-  if (!rgb) return color;
+function darkenColor(color, amount, el) {
+  const { c: rgb, resolved } = Utils.readColor(color, el);
+  if (!rgb) {
+    return Utils.isColor(color) ? Utils.mixColor(resolved, -amount) : color;
+  }
   const f = Math.max(0, 1 - amount);
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
 }
