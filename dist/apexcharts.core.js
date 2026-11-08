@@ -55,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.8.0
+ * ApexCharts v8.8.1
  * (c) 2018-2026 ApexCharts
  */
 
@@ -20713,7 +20713,7 @@ var __async = (__this, __arguments, generator) => {
     /**
      * The container measurements a resize redraw took before the old chart was
      * cleared, used once and then dropped (see ApexCharts._windowResize).
-     * @returns {{ el: number[], parent: number[] } | null}
+     * @returns {{ el: number[] } | null}
      */
     _takeHeldDimensions() {
       const ctx = (
@@ -20743,9 +20743,11 @@ var __async = (__this, __arguments, generator) => {
         gl.svgWidth = parseInt(rawWidth, 10);
       }
       const heightUnit = this._extractDimensionUnit(rawHeight);
+      let sizedFromParentH;
       if (rawHeight !== "auto" && rawHeight !== "") {
         if (heightUnit === "%") {
-          const elParentDim = held ? held.parent : Utils$1.getDimensions(this.el.parentNode);
+          const elParentDim = Utils$1.getDimensions(this.el.parentNode);
+          sizedFromParentH = elParentDim[1];
           gl.svgHeight = elParentDim[1] * parseInt(rawHeight, 10) / 100;
         } else {
           gl.svgHeight = parseInt(rawHeight, 10);
@@ -20753,7 +20755,6 @@ var __async = (__this, __arguments, generator) => {
       } else {
         gl.svgHeight = gl.axisCharts ? gl.svgWidth / 1.61 : gl.svgWidth / 1.2;
       }
-      gl.lastResizeSignature = this.getResizeSignature(held);
       this._applyWeaveReservation(gl);
       gl.svgWidth = Math.max(gl.svgWidth, 0);
       gl.svgHeight = Math.max(gl.svgHeight, 0);
@@ -20770,6 +20771,11 @@ var __async = (__this, __arguments, generator) => {
       }
       this.w.dom.elWrap.style.width = `${gl.svgWidth}px`;
       this.w.dom.elWrap.style.height = `${gl.svgHeight}px`;
+      const sig = this.getResizeSignature(elDim);
+      if (sizedFromParentH !== void 0) {
+        sig.ph = Math.round(sizedFromParentH || 0);
+      }
+      gl.lastResizeSignature = sig;
     }
     /**
      * Take off the space Weave plugins have reserved for their own UI.
@@ -20813,21 +20819,21 @@ var __async = (__this, __arguments, generator) => {
      * forces a redraw; a percentage-sized chart's signature tracks the container.
      * The window-resize handler compares this against the last render to skip
      * redraws (and the entrance-animation teardown they cause) that aren't needed.
-     * @param {{ el: number[], parent: number[] } | null} [held] measurements to use instead of
-     *   reading the page, so the signature records what the render was sized from
-     * @returns {{ w: number, h: number }}
+     * @param {number[] | null} [elDim] the element measurement the render was
+     *   sized from, used instead of reading the element again
+     * @returns {{ w: number, h: number, iw?: number, ph?: number }}
      */
-    getResizeSignature(held = null) {
+    getResizeSignature(elDim = null) {
       const { config: cnf } = this.w;
       const rawWidth = (cnf.chart.width || "100%").toString().trim();
       const rawHeight = (cnf.chart.height || "auto").toString().trim();
       let w = 0;
       let h2 = 0;
       if (rawWidth.endsWith("%")) {
-        w = (held ? held.el : Utils$1.getDimensions(this.el))[0] || 0;
+        w = (elDim || Utils$1.getDimensions(this.el))[0] || 0;
       }
       if (rawHeight.endsWith("%")) {
-        h2 = (held ? held.parent : Utils$1.getDimensions(this.el.parentNode))[1] || 0;
+        h2 = Utils$1.getDimensions(this.el.parentNode)[1] || 0;
       }
       const sig = { w: Math.round(w), h: Math.round(h2) };
       if (cnf.responsive && cnf.responsive.length && Environment.isBrowser()) {
@@ -34930,9 +34936,9 @@ var __async = (__this, __arguments, generator) => {
       __publicField(this, "_renderPromise", null);
       /** @type {number | null} */
       __publicField(this, "_parentResizeWaiter", null);
-      /** @type {{ el: number[], parent: number[] } | null} */
+      /** @type {{ el: number[] } | null} */
       __publicField(this, "_heldDimensions", null);
-      /** @type {{ from: { w: number, h: number, iw?: number } | null, heightChanged: boolean, at: number, returns: number, win: number[] } | null} */
+      /** @type {{ from: { w: number, h: number, iw?: number } | null, heightChanged: boolean, at: number, returns: number, growth: number, win: number[] } | null} */
       __publicField(this, "_lastResizeRedraw", null);
       /** @type {{width: any, viewBoxAdded?: boolean} | null} */
       __publicField(this, "_printRestore", null);
@@ -37226,6 +37232,7 @@ var __async = (__this, __arguments, generator) => {
       this.w.globals.resizeTimer = window.setTimeout(() => {
         const gl = this.w.globals;
         let returns = 0;
+        let growth = 0;
         if (this.core && gl.lastResizeSignature) {
           const cur = gl.lastResizeSignature;
           const sig = this.core.getResizeSignature();
@@ -37234,15 +37241,14 @@ var __async = (__this, __arguments, generator) => {
           }
           returns = this._resizeReturns(sig);
           if (returns > 1 && sig.w >= cur.w && sig.h >= cur.h) return;
+          growth = this._parentGrowth(sig, cur);
+          if (growth > 1) return;
         }
         gl.resized = true;
         gl.dataChanged = false;
         const from = gl.lastResizeSignature;
         const fromHeight = gl.svgHeight;
-        this._heldDimensions = {
-          el: Utils$1.getDimensions(this.el),
-          parent: Utils$1.getDimensions(this.el.parentNode)
-        };
+        this._heldDimensions = { el: Utils$1.getDimensions(this.el) };
         try {
           this.ctx.update();
         } finally {
@@ -37253,6 +37259,7 @@ var __async = (__this, __arguments, generator) => {
           heightChanged: this.w.globals.svgHeight !== fromHeight,
           at: Date.now(),
           returns,
+          growth: this.w.globals.svgHeight > fromHeight ? growth : 0,
           win: [window.innerWidth, window.innerHeight]
         };
       }, 150);
@@ -37288,6 +37295,39 @@ var __async = (__this, __arguments, generator) => {
       }
       const back = sig.w === last.from.w && sig.h === last.from.h && sig.iw === last.from.iw;
       return back ? last.returns + 1 : 0;
+    }
+    /**
+     * How many height-only redraws in a row, counting this one, a percentage
+     * height chart takes to follow a parent that keeps growing with it. 0 when
+     * this resize is not one.
+     *
+     * A percentage height resolves against the parent with the chart cleared,
+     * which settles after one redraw when the chart is the parent's only
+     * content of its own size. Two such charts in one parent sized by its
+     * content (a card holding both) each size from a parent that holds the
+     * other: each redraw makes the parent taller, which is the other chart's
+     * next resize, and the two grow without end. CSS itself treats a percentage
+     * of a parent sized by its content as auto for this reason.
+     *
+     * Counted only when the parent is known to follow the chart (its height
+     * after the last draw differs from the one the chart was sized from, which
+     * never happens to a parent with a height of its own), only the parent's
+     * height grew, the last redraw also grew the chart moments ago, and the
+     * window is the size it was then. The caller refuses the second in a row,
+     * the same bound _resizeReturns keeps, so a parent that grows once (a
+     * heading that wraps, a font loading) is still followed, and a width change
+     * always redraws and starts the count again.
+     *
+     * @param {{ w: number, h: number, iw?: number }} sig
+     * @param {{ w: number, h: number, iw?: number, ph?: number }} cur
+     * @returns {number}
+     */
+    _parentGrowth(sig, cur) {
+      if (cur.ph === void 0 || cur.ph === cur.h) return 0;
+      if (sig.w !== cur.w || sig.iw !== cur.iw || !(sig.h > cur.h)) return 0;
+      const last = this._lastResizeRedraw;
+      const streak = last && last.growth && Date.now() - last.at <= 1e3 && last.win[0] === window.innerWidth && last.win[1] === window.innerHeight ? last.growth : 0;
+      return streak + 1;
     }
     _windowResizeHandler() {
       var _a;
