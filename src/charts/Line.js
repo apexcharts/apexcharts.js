@@ -300,7 +300,7 @@ class Line {
       y2Arrj.push(yArrj[0] !== null ? prevY2 : null)
     }
 
-    const pathsFrom = this._calculatePathsFrom(realIndex, prevY)
+    const pathsFrom = this._calculatePathsFrom(realIndex, prevY, pX)
 
     // RangeArea will resume with these for the upper path creation
     const rYArrj = [yArrj[0]]
@@ -334,7 +334,7 @@ class Line {
     })
 
     if (type === 'rangeArea') {
-      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2)
+      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2, pX)
       const rangePaths = this._iterateOverDataPoints({
         ...iteratingOpts,
         series: seriesRangeEnd,
@@ -529,13 +529,21 @@ class Line {
    * The baseline pathFrom a series grows from on mount, or the previous
    * render's paths when there are any. `prevY` rides along for the first
    * point's marker.
+   *
+   * The opening anchor sits at the first point's x, on the baseline. The
+   * per-point walk then adds one `L x baseline` per later point, so each
+   * from-anchor shares its destination's x and the morph rises vertically.
+   * An opening segment at x = 0 (and a second copy of it) shifted every
+   * later anchor onto the previous point, and the line slid diagonally
+   * (#4994).
    * @param {number} realIndex
    * @param {number} prevY
+   * @param {number} originX first point's x — the same x `pathTo` starts at
    */
-  _calculatePathsFrom(realIndex, prevY) {
+  _calculatePathsFrom(realIndex, prevY, originX) {
     const graphics = new Graphics(this.w)
-    let pathFromLine =
-      graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY)
+    const x0 = typeof originX === 'number' ? originX : 0
+    let pathFromLine = graphics.move(x0, this.areaBottomY)
     let pathFromArea = pathFromLine
 
     if (this.w.globals.previousPaths.length > 0) {
@@ -1474,8 +1482,10 @@ class Line {
     const offX = w.config.markers.offsetX
     const offY = w.config.markers.offsetY
 
-    // pathFrom baselines grow one ` L x bottom` per point (unless a previous
-    // render's path was adopted, which turns appendPathFrom off)
+    // pathFrom baselines: the opening M is the first point at the baseline
+    // (see _calculatePathsFrom); each later point adds one ` L x bottom`
+    // (unless a previous render's path was adopted, which turns
+    // appendPathFrom off)
     const appendFrom = this.appendPathFrom && !w.globals.hasNullValues
     let { pathFromLine, pathFromArea } = pathsFrom
 
