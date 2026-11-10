@@ -13,6 +13,7 @@ import { isCustom } from '../ChartFactory'
 import { POINTER_CLEARANCE_BELOW } from './constants'
 import { nameAsHtml } from '../../utils/nameAsHtml.js'
 import { coincidentPoints } from '../CoincidentMarkers'
+import { stillMoving } from '../animations/LengthTransition'
 
 const INTERACTIVE_TOOLTIP_HIDE_DELAY = 150
 
@@ -121,6 +122,12 @@ export default class Tooltip {
      * @type {Array<{ el: Element, ev: string, handler: (e: any) => void, opt: any }>}
      */
     this.hoverAreaListeners = []
+    /**
+     * The options each hover listener was bound with, by the node it is on,
+     * for a replay to reach the mark under the pointer: see hoverAt.
+     * @type {WeakMap<Element, Record<string, any>>}
+     */
+    this.hoverOpts = new WeakMap()
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     this.seriesHoverTimeout = undefined
     /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -548,43 +555,75 @@ export default class Tooltip {
     this.addSVGEvents()
 
     // Kept open across the update: shown again for the new data at the
-    // same pointer where that is all the hover reads (the plot-wide
-    // listener), else closed, its marks having been redrawn under it. The
+    // same pointer, through the listener a move there would reach now
+    // (hoverAt), else closed, no mark being left under the pointer. The
     // replay waits for the update's tween to land: a hover dot drawn now
-    // would sit at the new value while the line still eases towards it. A
-    // later bind or a mouseout drops the wait. Meanwhile the marker ease is
-    // off (markers riding the tween would lag under it), and the replay is
-    // placed as a first show is, or the new dots glide in from the corner.
-    // Without a frame clock (a DOM shim without one) it shows at once.
+    // would sit at the new value while the line still eases towards it, and
+    // a mark is only under the pointer where it lands. A later bind or a
+    // mouseout drops the wait. Meanwhile the marker ease is off (markers
+    // riding the tween would lag under it), and the replay is placed as a
+    // first show is, or the new dots glide in from the corner. Without a
+    // frame clock (a DOM shim without one) it shows at once.
     // The keyboard restores its own tooltip (KeyboardNavigation).
     if (wasOpen) {
-      const h = this.hoverAreaListeners[0]
       if (
-        h &&
         /move/.test(this.e?.type) &&
         !w.config.chart.group &&
-        (keep || this.pointerDriven)
+        // the pointer's, or any kept box on a plot-wide listener; one the
+        // keyboard opened over marks has no pointer to look under, and closes
+        (this.pointerDriven || (keep && this.hoverAreaListeners[0]))
       ) {
         const token = (this.pendingReplay = {})
         let n = 600
         const replay = () => {
           if (this.pendingReplay !== token || w.globals.isDestroyed) return
           if (
-            !w.globals.animationEnded &&
+            stillMoving(w) &&
             n-- &&
             typeof requestAnimationFrame == 'function'
           )
             requestAnimationFrame(replay)
           else {
             this.pendingReplay = null
-            delete tooltipEl.dataset.positioned
-            this.seriesHover(h.opt, this.e)
+            const opt = this.hoverAt(this.e)
+            if (opt) {
+              delete tooltipEl.dataset.positioned
+              this.seriesHover(opt, this.e)
+            } else this.handleMouseOut({ tooltipEl })
           }
         }
         w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
         replay()
       } else if (keep) this.handleMouseOut({ tooltipEl })
     }
+  }
+
+  /**
+   * The hover options a move at the pointer of `e` would reach now: the
+   * plot-wide listener's, else those of the mark under the pointer, found
+   * as the move's bubbling would, `e` then pointed at that mark. Null with
+   * no mark there or no hit test (a DOM shim).
+   * @param {any} e
+   * @returns {Record<string, any> | null}
+   */
+  hoverAt(e) {
+    const h = this.hoverAreaListeners[0]
+    if (h) return h.opt
+    const root = /** @type {any} */ (this.w.dom.baseEl.getRootNode())
+    if (typeof root.elementsFromPoint !== 'function') return null
+    const svg = this.w.dom.Paper.node
+    const { x, y } = Utils.eventPointer(e)
+    const hit = root
+      .elementsFromPoint(x, y)
+      .find((/** @type {Element} */ el) => svg.contains(el))
+    for (let el = hit; el && el !== svg; el = el.parentNode) {
+      const opt = this.hoverOpts.get(el)
+      if (opt) {
+        e.apexHoverTarget = hit
+        return opt
+      }
+    }
+    return null
   }
 
   /**
@@ -934,6 +973,7 @@ export default class Tooltip {
         hoverArea: opts.hoverArea,
         ttItems: opts.ttItems,
       }
+      self.hoverOpts.set(paths[p], extendedOpts)
 
       const events = [
         'mousemove',

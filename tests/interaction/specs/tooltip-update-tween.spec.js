@@ -94,3 +94,34 @@ for (const markers of [0, 5]) {
     expect(errors).toEqual([])
   })
 }
+
+// A slow update cut short by a fast one: the dot waits for what still moves,
+// the fast update's tween, not for the time the slow one would have taken.
+test('a slow update cut short by a fast one: the dot is back once the fast one lands', async ({ page }) => {
+  const opts = options(0)
+  opts.chart.animations.dynamicAnimation.speed = 4000
+  const errors = await mountChart(page, opts)
+  await hoverPoint(page, 3)
+
+  await page.evaluate(() => {
+    window.chart.updateSeries([{ name: 'Visits', data: [60, 20, 80, 10, 90, 15, 40, 30] }])
+  })
+  await advance(page, 100)
+  await page.evaluate(() => {
+    window.chart.updateOptions({
+      chart: { animations: { dynamicAnimation: { speed: 100 } } },
+      series: [{ name: 'Visits', data: [30, 40, 35, 50, 49, 60, 70, 91] }],
+    })
+  })
+  // before: nothing until 3.9 s on, when the slow update's axis tweens land
+  await advance(page, 300)
+
+  expect(await page.evaluate(dotOnLine)).toMatchObject({ open: true, painted: true, onLine: true })
+  expect(
+    await page.evaluate(() => {
+      const gl = window.chart.w.globals
+      return { moving: gl.liveTweens?.size ?? 0, replay: !!gl.tooltip.pendingReplay }
+    }),
+  ).toEqual({ moving: 0, replay: false })
+  expect(errors).toEqual([])
+})

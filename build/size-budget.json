@@ -16,7 +16,7 @@
       "minifiedFrom": "dist/apexcharts.js"
     },
     "dist/apexcharts.core.min.js": {
-      "gzip": 169500,
+      "gzip": 170000,
       "minifiedFrom": "dist/apexcharts.core.js"
     },
     "dist/apexcharts.full.min.js": {
