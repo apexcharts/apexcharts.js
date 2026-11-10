@@ -95,9 +95,10 @@ describe('a data-only update keeps the tooltip', () => {
     expect(value()).toBe(String(next[0].data[4]))
   })
 
-  // An animated update: the replay waits for the series tween to land, or
-  // the hover dot (drawn at the new value) floats off the line while it
-  // eases there. The box keeps its last values until then.
+  // An animated update: the box and the crosshair show the new data at
+  // once, but the hover dot waits for the series tween to land, or (drawn
+  // at the new value) it floats off the line while the line eases there.
+  // A second show once the tween lands draws it.
   const animated = () => {
     document.body.innerHTML = '<div id="chart" />'
     const c = new ApexCharts(document.querySelector('#chart'), {
@@ -114,7 +115,7 @@ describe('a data-only update keeps the tooltip', () => {
     return c
   }
 
-  it('an animated update replays the hover only once its tween has landed', async () => {
+  it('an animated update shows the new data at once, the hover again once its tween has landed', async () => {
     chart = animated()
     await landed(chart)
     const tt = chart.w.globals.tooltip
@@ -127,22 +128,26 @@ describe('a data-only update keeps the tooltip', () => {
     const next = lineSeries(2, 12, 11)
     await chart.updateSeries(next)
     await tick(30)
-    // mid-tween: no hover drawn at the new value yet, the box still open
+    const shown = () =>
+      el.querySelector(
+        '.apexcharts-tooltip-series-group-0 .apexcharts-tooltip-text-y-value',
+      ).textContent
+    // mid-tween: shown once, on the new value, crosshair included
     expect(chart.w.globals.animationEnded).toBe(false)
-    expect(hover).not.toHaveBeenCalled()
+    expect(hover).toHaveBeenCalledTimes(1)
     expect(el.classList.contains('apexcharts-active')).toBe(true)
+    expect(shown()).toBe(String(next[0].data[4]))
+    expect(
+      tt.getElXCrosshairs().classList.contains('apexcharts-active'),
+    ).toBe(true)
     // the marker ease is off while the marks ride the tween
     expect(
       chart.w.dom.baseEl.classList.contains('apexcharts-tooltip-active'),
     ).toBe(false)
 
     await landed(chart)
-    expect(hover).toHaveBeenCalledTimes(1)
-    expect(
-      el.querySelector(
-        '.apexcharts-tooltip-series-group-0 .apexcharts-tooltip-text-y-value',
-      ).textContent,
-    ).toBe(String(next[0].data[4]))
+    expect(hover).toHaveBeenCalledTimes(2)
+    expect(shown()).toBe(String(next[0].data[4]))
   })
 
   it('a mouseout or a second update during the tween drops the pending replay', async () => {
@@ -154,15 +159,18 @@ describe('a data-only update keeps the tooltip', () => {
     const el = tt.getElTooltip()
     const hover = vi.spyOn(tt, 'seriesHover')
 
-    // two updates inside one tween: one replay, for the last
+    // two updates inside one tween: each shown at once, one replay once it
+    // lands, for the last
     await chart.updateSeries(lineSeries(2, 12, 5))
     await chart.updateSeries(lineSeries(2, 12, 9))
+    expect(hover).toHaveBeenCalledTimes(2)
+    hover.mockClear()
     await landed(chart)
     expect(hover).toHaveBeenCalledTimes(1)
 
-    hover.mockClear()
     await chart.updateSeries(lineSeries(2, 12, 13))
     tt.handleMouseOut({ tooltipEl: el })
+    hover.mockClear()
     await landed(chart)
     expect(hover).not.toHaveBeenCalled()
     expect(el.classList.contains('apexcharts-active')).toBe(false)
@@ -279,8 +287,8 @@ describe('an update that rebuilds the box keeps an open tooltip open', () => {
     expect(value()).toBe('64')
   })
 
-  // The box built for the first update is closed until its replay lands, so
-  // a second update inside the tween goes by the pending replay.
+  // Each full render builds a new box and shows it at once; the replay
+  // waiting for the tween is the last render's alone.
   it('two full renders inside one tween replay once, a mouseout drops it', async () => {
     document.body.innerHTML = '<div id="chart" />'
     chart = new ApexCharts(document.querySelector('#chart'), {
@@ -301,15 +309,18 @@ describe('an update that rebuilds the box keeps an open tooltip open', () => {
 
     await chart.appendData([{ data: [12] }])
     await chart.appendData([{ data: [77] }])
-    expect(hover).not.toHaveBeenCalled()
+    expect(hover).toHaveBeenCalledTimes(2)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('77')
+    hover.mockClear()
     await landed(chart)
     expect(hover).toHaveBeenCalledTimes(1)
     expect(isOpen()).toBe(true)
     expect(value()).toBe('77')
 
-    hover.mockClear()
     await chart.appendData([{ data: [64] }])
     tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    hover.mockClear()
     await landed(chart)
     expect(hover).not.toHaveBeenCalled()
     expect(isOpen()).toBe(false)

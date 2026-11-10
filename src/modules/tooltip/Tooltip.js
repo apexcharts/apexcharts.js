@@ -554,16 +554,14 @@ export default class Tooltip {
     this.legendLabels = w.dom.baseEl.querySelectorAll('.apexcharts-legend-text')
     this.addSVGEvents()
 
-    // Kept open across the update: shown again for the new data at the
-    // same pointer, through the listener a move there would reach now
-    // (hoverAt), else closed, no mark being left under the pointer. The
-    // replay waits for the update's tween to land: a hover dot drawn now
-    // would sit at the new value while the line still eases towards it, and
-    // a mark is only under the pointer where it lands. A later bind or a
-    // mouseout drops the wait. Meanwhile the marker ease is off (markers
-    // riding the tween would lag under it), and the replay is placed as a
-    // first show is, or the new dots glide in from the corner. Without a
-    // frame clock (a DOM shim without one) it shows at once.
+    // Kept open across the update: shown again at the same pointer, through
+    // the listener a move there would reach now (hoverAt), at once and again
+    // once the tween lands. The first show puts the hover dot and enlarged
+    // markers back in the same task (resetPointsSize): they would sit at the
+    // new value while the line still eases there. The landing draws them, or
+    // closes the tooltip if no mark is under the pointer. The marker ease is
+    // off meanwhile, or markers riding the tween would lag, and each show is
+    // placed as a first one, or the dot glides in from the corner.
     // The keyboard restores its own tooltip (KeyboardNavigation). A mouseup
     // last (a click) is shown as the move it ends: replayed as itself it
     // would fire markerClick again.
@@ -575,36 +573,46 @@ export default class Tooltip {
         // keyboard opened over marks has no pointer to look under, and closes
         (this.pointerDriven || (keep && this.hoverAreaListeners[0]))
       ) {
+        // at the pointer as it is then: it may have moved during the tween
+        const show = () => {
+          const e =
+            this.e.type === 'mouseup'
+              ? {
+                  type: 'mousemove',
+                  clientX: this.e.clientX,
+                  clientY: this.e.clientY,
+                  target: this.e.target,
+                }
+              : this.e
+          const opt = this.hoverAt(e)
+          if (opt) {
+            delete tooltipEl.dataset.positioned
+            this.seriesHover(opt, e)
+          }
+          return !!opt
+        }
         const token = (this.pendingReplay = {})
         let n = 600
-        const replay = () => {
+        const land = () => {
           if (this.pendingReplay !== token || w.globals.isDestroyed) return
           if (
             stillMoving(w) &&
             n-- &&
             typeof requestAnimationFrame == 'function'
           )
-            requestAnimationFrame(replay)
+            requestAnimationFrame(land)
           else {
             this.pendingReplay = null
-            const e =
-              this.e.type === 'mouseup'
-                ? {
-                    type: 'mousemove',
-                    clientX: this.e.clientX,
-                    clientY: this.e.clientY,
-                    target: this.e.target,
-                  }
-                : this.e
-            const opt = this.hoverAt(e)
-            if (opt) {
-              delete tooltipEl.dataset.positioned
-              this.seriesHover(opt, e)
-            } else this.handleMouseOut({ tooltipEl })
+            if (!show()) this.handleMouseOut({ tooltipEl })
           }
         }
         w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
-        replay()
+        land()
+        if (this.pendingReplay === token) {
+          show()
+          this.marker.resetPointsSize()
+          w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
+        }
       } else if (keep) this.handleMouseOut({ tooltipEl })
     }
   }
