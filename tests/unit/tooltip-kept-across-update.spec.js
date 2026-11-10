@@ -9,6 +9,17 @@ import ApexCharts from '../../src/entries/standard.js'
 
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms))
 
+/** Until the series tween has landed and no replay waits on it. */
+const landed = async (c) => {
+  for (
+    let i = 0;
+    i < 250 &&
+    (!c.w.globals.animationEnded || c.w.globals.tooltip.pendingReplay);
+    i++
+  )
+    await tick(20)
+}
+
 const lineSeries = (n, len, k = 0) =>
   Array.from({ length: n }, (_, i) => ({
     name: `s${i}`,
@@ -102,10 +113,6 @@ describe('a data-only update keeps the tooltip', () => {
     c.render()
     return c
   }
-  const landed = async (c) => {
-    for (let i = 0; i < 100 && !c.w.globals.animationEnded; i++) await tick(20)
-    await tick(40)
-  }
 
   it('an animated update replays the hover only once its tween has landed', async () => {
     chart = animated()
@@ -186,5 +193,136 @@ describe('a data-only update keeps the tooltip', () => {
         '.apexcharts-tooltip-series-group-0 .apexcharts-tooltip-marker',
       ).style.color,
     ).toBe('rgb(171, 205, 239)')
+  })
+})
+
+// updateOptions, appendData and an updateSeries that changes the point count
+// redraw the whole chart, and with it the tooltip box, as does a fast update
+// once a custom tooltip has replaced the rows. A box that was open under the
+// pointer is open again afterwards, at the same pointer, with the new data
+// (#2883).
+describe('an update that rebuilds the box keeps an open tooltip open', () => {
+  const visits = [30, 40, 35, 50, 49, 60, 70, 91]
+  const mount = (tooltip = {}) =>
+    createChartWithOptions({
+      chart: { type: 'line', width: 500, height: 300 },
+      series: [{ name: 'Visits', data: visits }],
+      tooltip: { shared: true, intersect: false, ...tooltip },
+    })
+  const openAtLastPoint = async () => {
+    await tick(30)
+    moveAt(chart, visits.length - 1)
+    await tick(30)
+    expect(isOpen()).toBe(true)
+  }
+  const isOpen = () =>
+    chart.w.globals.tooltip
+      .getElTooltip()
+      .classList.contains('apexcharts-active')
+  const value = () =>
+    chart.w.globals.tooltip
+      .getElTooltip()
+      .querySelector('.apexcharts-tooltip-text-y-value').textContent
+
+  it('updateSeries with one more point', async () => {
+    chart = mount()
+    await openAtLastPoint()
+    await chart.updateSeries([{ name: 'Visits', data: [...visits, 12] }])
+    await tick(30)
+    expect(chart._updateStats.full).toBe(1)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('12')
+  })
+
+  it('updateOptions with new series', async () => {
+    chart = mount()
+    await openAtLastPoint()
+    await chart.updateOptions({
+      series: [{ name: 'Visits', data: [5, 6, 7, 8, 9, 10, 11, 64] }],
+    })
+    await tick(30)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('64')
+  })
+
+  it('updateOptions that leaves the data alone', async () => {
+    chart = mount()
+    await openAtLastPoint()
+    await chart.updateOptions({ title: { text: 'Visits per day' } })
+    await tick(30)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('91')
+  })
+
+  it('appendData', async () => {
+    chart = mount()
+    await openAtLastPoint()
+    await chart.appendData([{ data: [77] }])
+    await tick(30)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('77')
+  })
+
+  it('a data-only update of a custom tooltip', async () => {
+    chart = mount({
+      custom: ({ series, seriesIndex, dataPointIndex }) =>
+        `<div class="apexcharts-tooltip-text-y-value">${series[seriesIndex][dataPointIndex]}</div>`,
+    })
+    await openAtLastPoint()
+    expect(value()).toBe('91')
+    await chart.updateSeries([
+      { name: 'Visits', data: [5, 6, 7, 8, 9, 10, 11, 64] },
+    ])
+    await tick(30)
+    expect(chart._updateStats.full).toBe(0)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('64')
+  })
+
+  // The box built for the first update is closed until its replay lands, so
+  // a second update inside the tween goes by the pending replay.
+  it('two full renders inside one tween replay once, a mouseout drops it', async () => {
+    document.body.innerHTML = '<div id="chart" />'
+    chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: {
+        type: 'line',
+        width: 500,
+        height: 300,
+        animations: { speed: 100, dynamicAnimation: { speed: 200 } },
+      },
+      series: [{ name: 'Visits', data: visits }],
+      tooltip: { shared: true, intersect: false },
+    })
+    chart.render()
+    await landed(chart)
+    await openAtLastPoint()
+    const tt = chart.w.globals.tooltip
+    const hover = vi.spyOn(tt, 'seriesHover')
+
+    await chart.appendData([{ data: [12] }])
+    await chart.appendData([{ data: [77] }])
+    expect(hover).not.toHaveBeenCalled()
+    await landed(chart)
+    expect(hover).toHaveBeenCalledTimes(1)
+    expect(isOpen()).toBe(true)
+    expect(value()).toBe('77')
+
+    hover.mockClear()
+    await chart.appendData([{ data: [64] }])
+    tt.handleMouseOut({ tooltipEl: tt.getElTooltip() })
+    await landed(chart)
+    expect(hover).not.toHaveBeenCalled()
+    expect(isOpen()).toBe(false)
+  })
+
+  it('a tooltip the pointer has left stays closed', async () => {
+    chart = mount()
+    await openAtLastPoint()
+    moveAt(chart, visits.length - 1, 'mouseout')
+    await tick(30)
+    expect(isOpen()).toBe(false)
+    await chart.updateOptions({ title: { text: 'Visits per day' } })
+    await tick(30)
+    expect(isOpen()).toBe(false)
   })
 })

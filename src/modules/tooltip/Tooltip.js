@@ -133,6 +133,18 @@ export default class Tooltip {
      * @type {ReturnType<typeof setTimeout> | undefined}
      */
     this.offMarkHideTimeout = undefined
+    /**
+     * The replay of an open tooltip that drawTooltip holds for the update's
+     * tween; a later render or handleMouseOut drops it.
+     * @type {object | null}
+     */
+    this.pendingReplay = null
+    /**
+     * Did a hover listener show the tooltip last, not the keyboard? Only the
+     * pointer's is replayed after a full render.
+     * @type {boolean}
+     */
+    this.pointerDriven = false
     /** @type {number} */
     this.clientX = 0
     /** @type {number} */
@@ -313,6 +325,14 @@ export default class Tooltip {
     // again: rebuilding cost a row of nodes and an SVG parse per series per
     // update, and closed an open tooltip on every update. A custom tooltip
     // that replaced the rows rebuilds them.
+    //
+    // Was it open? Read off the last box before it is looked up again: a
+    // full render has detached it, classes intact. A replay still waiting
+    // on a tween counts as open.
+    const wasOpen =
+      !!this.pendingReplay ||
+      !!this._elTooltipCache?.classList.contains('apexcharts-active')
+    this.pendingReplay = null
     /** @type {any} */
     let tooltipEl = this.getElTooltip()
     const keep =
@@ -536,26 +556,34 @@ export default class Tooltip {
     // off (markers riding the tween would lag under it), and the replay is
     // placed as a first show is, or the new dots glide in from the corner.
     // Without a frame clock (a DOM shim without one) it shows at once.
-    if (keep && tooltipEl.classList.contains('apexcharts-active')) {
+    // The keyboard restores its own tooltip (KeyboardNavigation).
+    if (wasOpen) {
       const h = this.hoverAreaListeners[0]
-      if (h && /move/.test(this.e?.type) && !w.config.chart.group) {
+      if (
+        h &&
+        /move/.test(this.e?.type) &&
+        !w.config.chart.group &&
+        (keep || this.pointerDriven)
+      ) {
+        const token = (this.pendingReplay = {})
         let n = 600
         const replay = () => {
-          if (h !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return
+          if (this.pendingReplay !== token || w.globals.isDestroyed) return
           if (
             !w.globals.animationEnded &&
             n-- &&
             typeof requestAnimationFrame == 'function'
           )
             requestAnimationFrame(replay)
-          else if (tooltipEl.classList.contains('apexcharts-active')) {
+          else {
+            this.pendingReplay = null
             delete tooltipEl.dataset.positioned
             this.seriesHover(h.opt, this.e)
           }
         }
         w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
         replay()
-      } else this.handleMouseOut({ tooltipEl })
+      } else if (keep) this.handleMouseOut({ tooltipEl })
     }
   }
 
@@ -956,6 +984,7 @@ export default class Tooltip {
    */
   /** @param {Record<string, any>} opt @param {any} e */
   onSeriesHover(opt, e) {
+    this.pointerDriven = true
     if (this.tConfig.interactive) {
       clearTimeout(this.interactiveHideTimeout)
       if (e.type === 'mouseout') {
@@ -1947,6 +1976,7 @@ export default class Tooltip {
   handleMouseOut(opt) {
     const w = this.w
 
+    this.pendingReplay = null
     this.tooltipHidden = true
     // The next show looks the page's clipping ancestors up again, in case the
     // chart moved in between.
