@@ -797,6 +797,8 @@ export interface ChartGlobals
   } | null
   // The chrome tweens AxisTransition has running; each entry lands its tween.
   chromeTweens: Set<() => void> | null
+  // The rafTweens of the render on screen still running, a set per render.
+  liveTweens: Set<object> | null
   // A circle chart's outgoing circle, captured before an update's teardown
   // (CircleTransition.captureCircle) and consumed once after it mounts.
   // `circle` is what was on screen (in flight, mid-tween), `rendered` where

@@ -280,6 +280,7 @@ export function morphEasing(w) {
 
 /**
  * Minimal rAF tween shared by the marker, ghost, and axis-chrome animations.
+ * It counts on `w.globals.liveTweens` until it lands or stops: see stillMoving.
  *
  * @param {import('../../types/internal').ChartStateW} w
  * @param {number} duration
@@ -301,15 +302,22 @@ export function rafTween(
   alive,
   startAt = performance.now(),
 ) {
+  const live = (w.globals.liveTweens ||= new Set())
+  const self = {}
+  live.add(self)
   /** @param {number} now */
   const step = (now) => {
-    if (w.globals.isDestroyed || (alive && !alive())) return
+    if (w.globals.isDestroyed || (alive && !alive())) {
+      live.delete(self)
+      return
+    }
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration))
     onFrame(ease(raw), raw)
     if (raw < 1) {
       BrowserAPIs.requestAnimationFrame(step)
-    } else if (onDone) {
-      onDone()
+    } else {
+      live.delete(self)
+      if (onDone) onDone()
     }
   }
   BrowserAPIs.requestAnimationFrame(step)
@@ -317,6 +325,36 @@ export function rafTween(
   return () => {
     alive = () => false
   }
+}
+
+/**
+ * Call `start`, which starts a rafTween, `delay` ms from now, unless the chart
+ * is destroyed or the render that asked has been replaced by then: that
+ * render's tweens no longer count, nor would one it held back. Each render
+ * counts its tweens on a set of its own, which tells the renders apart.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @param {number} delay
+ * @param {() => void} start
+ */
+export function startTweenLater(w, delay, start) {
+  const render = w.globals.liveTweens
+  setTimeout(() => {
+    if (!w.globals.isDestroyed && w.globals.liveTweens === render) start()
+  }, delay)
+}
+
+/**
+ * Is anything of the chart still moving: its series animation, or a rafTween
+ * the render on screen started.
+ * Scatter and bubble flag their animation over as they draw, while their
+ * markers still ride to their new places on rafTweens.
+ *
+ * @param {import('../../types/internal').ChartStateW} w
+ * @returns {boolean}
+ */
+export function stillMoving(w) {
+  return !w.globals.animationEnded || !!w.globals.liveTweens?.size
 }
 
 /**
