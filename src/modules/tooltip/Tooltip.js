@@ -564,10 +564,12 @@ export default class Tooltip {
     // riding the tween would lag under it), and the replay is placed as a
     // first show is, or the new dots glide in from the corner. Without a
     // frame clock (a DOM shim without one) it shows at once.
-    // The keyboard restores its own tooltip (KeyboardNavigation).
+    // The keyboard restores its own tooltip (KeyboardNavigation). A mouseup
+    // last (a click) is shown as the move it ends: replayed as itself it
+    // would fire markerClick again.
     if (wasOpen) {
       if (
-        /move/.test(this.e?.type) &&
+        /move|mouseup/.test(this.e?.type) &&
         !w.config.chart.group &&
         // the pointer's, or any kept box on a plot-wide listener; one the
         // keyboard opened over marks has no pointer to look under, and closes
@@ -585,10 +587,19 @@ export default class Tooltip {
             requestAnimationFrame(replay)
           else {
             this.pendingReplay = null
-            const opt = this.hoverAt(this.e)
+            const e =
+              this.e.type === 'mouseup'
+                ? {
+                    type: 'mousemove',
+                    clientX: this.e.clientX,
+                    clientY: this.e.clientY,
+                    target: this.e.target,
+                  }
+                : this.e
+            const opt = this.hoverAt(e)
             if (opt) {
               delete tooltipEl.dataset.positioned
-              this.seriesHover(opt, this.e)
+              this.seriesHover(opt, e)
             } else this.handleMouseOut({ tooltipEl })
           }
         }

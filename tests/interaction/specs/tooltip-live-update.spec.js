@@ -109,6 +109,28 @@ test('a tooltip the pointer has left stays closed across an update', async ({ pa
   expect(errors).toEqual([])
 })
 
+// A click leaves the pointer where it was, and its mouseup is the last event
+// the hover saw: shown again as a move there, not as a second click.
+test('a tooltip clicked on stays open across an update, without clicking again', async ({ page }) => {
+  const errors = await mountChart(page, options)
+  await hoverLastPoint(page)
+  await page.evaluate(() => {
+    window.clicks = 0
+    window.chart.addEventListener('markerClick', () => window.clicks++)
+  })
+  await page.mouse.down()
+  await page.mouse.up()
+  await advance(page, 100)
+  expect(await page.evaluate(() => window.clicks)).toBe(1)
+
+  await page.evaluate(() => window.chart.appendData([{ data: [77] }]))
+  await advance(page, 2000)
+
+  expect(await page.evaluate(tooltipState)).toMatchObject({ open: true, value: '77', crosshair: true })
+  expect(await page.evaluate(() => window.clicks)).toBe(1)
+  expect(errors).toEqual([])
+})
+
 // An intersect tooltip hovers a mark (a column, a marker), not the plot, and
 // every update draws new marks. The one now under the pointer is what the
 // tooltip shows, and none there closes it, as moving onto or off a mark does.
