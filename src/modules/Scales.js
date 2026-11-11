@@ -116,8 +116,10 @@ export default class Scales {
       const temp = yMax
       yMax = yMin
       yMin = temp
-    } else if (yMin === yMax) {
-      // If yMin and yMax are identical, then
+    }
+
+    if (yMin === yMax || yMin + (yMax - yMin) / ticks === yMin) {
+      // If yMin and yMax are identical, or only differ by rounding, then
       // adjust the yMin and yMax values to actually
       // make a graph. Also avoids division by zero errors.
       yMin = yMin === 0 ? 0 : yMin - 1 // choose an integer in case yValueDecimals=0
@@ -321,7 +323,9 @@ export default class Scales {
       range = Math.abs(yMax - yMin)
       // Final check and possible adjustment of stepSize to prevent
       // overriding the user's min or max choice.
-      stepSize = Utils.getGCD(range, stepSize)
+      if (gotMin || gotMax) {
+        stepSize = Utils.getGCD(range, stepSize)
+      }
       tiks = Math.round(range / stepSize)
     }
 
