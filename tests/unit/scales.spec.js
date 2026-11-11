@@ -60,6 +60,20 @@ describe('Scales.niceScale', () => {
     expect(s.niceScale(0.3, 0.1 + 0.2)).toEqual(s.niceScale(0.3, 0.3))
   })
 
+  it('treats swapped values that only differ by rounding as identical', () => {
+    const s = makeScales([{ data: [0.1 + 0.2, 0.3] }])
+    expect(s.niceScale(0.1 + 0.2, 0.3)).toEqual(s.niceScale(0.3, 0.3))
+  })
+
+  it('does not pad a short timestamp window', () => {
+    const t = 1700000000000
+    const s = makeScales([{ data: [t, t + 16] }])
+    const { niceMin, niceMax } = s.niceScale(t, t + 16)
+    expect(niceMin).toBeGreaterThanOrEqual(t)
+    expect(niceMax).toBeGreaterThanOrEqual(t + 16)
+    expect(niceMax).toBeLessThan(t + 32)
+  })
+
   it('handles a range just wider than rounding', () => {
     const s = makeScales([{ data: [1, 1 + 1e-10] }])
     const { result } = s.niceScale(1, 1 + 1e-10)

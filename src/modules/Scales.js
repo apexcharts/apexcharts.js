@@ -116,10 +116,9 @@ export default class Scales {
       const temp = yMax
       yMax = yMin
       yMin = temp
-    } else if (
-      yMax - yMin <=
-      Math.max(Math.abs(yMin), Math.abs(yMax)) * jsPrecision
-    ) {
+    }
+
+    if (yMin === yMax || yMin + (yMax - yMin) / ticks === yMin) {
       // If yMin and yMax are identical, or only differ by rounding, then
       // adjust the yMin and yMax values to actually
       // make a graph. Also avoids division by zero errors.
