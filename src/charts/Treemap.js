@@ -413,6 +413,9 @@ export default class TreemapChart {
               cascadeDelays[k] || 0,
             )
           }
+        } else if (!w.globals.dataChanged) {
+          // Animations off: drawn at rest, and over.
+          w.globals.animationEnded = true
         }
         /** @type {{x: number, y: number} | null} */
         let labelFrom = null
@@ -461,6 +464,10 @@ export default class TreemapChart {
             }
 
             tileTween = this.animateTreemap(elRect, fromRect, to, speed)
+          } else if (!morphFrom) {
+            // An update that does not animate is over as it is drawn. A
+            // tile morphing in from another chart type ends it when it lands.
+            w.globals.animationEnded = true
           }
         }
 
