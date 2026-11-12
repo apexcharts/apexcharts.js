@@ -296,7 +296,7 @@ export default class ApexCharts {
           })
         }
 
-        // destroy() released the modules; setLocale below needs them
+        // destroy() released the modules; Localization below needs them
         if (!this.core) new InitCtxVariables(this).initModules()
         // set the locale here
         this.localization.setCurrentLocaleValues(
