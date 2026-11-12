@@ -530,6 +530,9 @@ export default class ApexCharts {
 
     gl.noData = false
     gl.animationEnded = false
+    // This render's tweens, on a set of its own: those of the render it
+    // replaces, running or held back, no longer count (stillMoving).
+    gl.liveTweens = new Set()
 
     if (!Utils.elementExists(this.el)) {
       gl.animationEnded = true
@@ -1715,6 +1718,7 @@ export default class ApexCharts {
         gl.shouldAnimate = animate
         gl.dataChanged = true
         gl.animationEnded = false
+        gl.liveTweens = new Set() // as in create()
 
         // Invalidate per-render selector cache (PerformanceCache uses TTL + render invalidation)
         PerformanceCache.invalidateSelectors(w)

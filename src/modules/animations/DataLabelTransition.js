@@ -41,6 +41,7 @@ import {
   lengthTransitionEnabled,
   morphEasing,
   rafTween,
+  startTweenLater,
 } from './LengthTransition'
 
 const DL_GROUP_SEL = '.apexcharts-data-labels[data\\:dlKey]'
@@ -486,10 +487,7 @@ function rideTo(w, { el, oldCx, oldCy, duration, ease, delay = 0 }) {
   if (delay > 0) {
     // Its bar starts this much later (the per-bar stagger), so hold the label
     // at its previous spot until then; the pair then move on one clock.
-    setTimeout(() => {
-      if (w.globals.isDestroyed) return
-      start()
-    }, delay)
+    startTweenLater(w, delay, start)
   } else {
     start()
   }
@@ -541,10 +539,7 @@ export function countUpText(w, { el, from, to, formatter, fmtOpts, duration, eas
   writeLabel(el, format(from))
   if (delay > 0) {
     // Same hold as the position ride: show the old value until the bar moves.
-    setTimeout(() => {
-      if (w.globals.isDestroyed) return
-      start()
-    }, delay)
+    startTweenLater(w, delay, start)
   } else {
     start()
   }

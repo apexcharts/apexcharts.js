@@ -588,6 +588,8 @@ export default class Globals {
       // The chrome tweens AxisTransition has running (each entry lands its
       // tween), so the next update can land them before reading the chrome.
       chromeTweens: null,
+      // The rafTweens of the render on screen still running, a set per render.
+      liveTweens: null,
       // A circle chart's circle (and, without axes, its plot rect) captured
       // before an update's teardown; consumed once by CircleTransition after
       // the new render mounts.
