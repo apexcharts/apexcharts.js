@@ -921,10 +921,10 @@ ansi-styles@^4.0.0, ansi-styles@^4.1.0:
   dependencies:
     color-convert "^2.0.1"
 
-apex-commons@^0.10.0:
-  version "0.10.0"
-  resolved "https://registry.npmjs.org/apex-commons/-/apex-commons-0.10.0.tgz#b3f1018167f76a38d4d537f77abb8e166dfe57c7"
-  integrity sha512-mBXqK6wykMnWV4TzT9636k4aaeEvE8PmBIfa2bHx91eQoit8RjJrOlBpGxNGz1Bmt6gq2U3CoqPAUZftBbYdLQ==
+apex-commons@^0.11.0:
+  version "0.11.0"
+  resolved "https://registry.npmjs.org/apex-commons/-/apex-commons-0.11.0.tgz#aadb7187662bcd1eb7e0031fc5aa9eb38eb083b2"
+  integrity sha512-r0t1hq4eNzjqRHlf0qG9jiwhd3g/68A9QvgVyjres4oif72NWA1pcvFizpx7gjc/SPECALq0KkL5f12ODIDBPA==
 
 append-transform@^2.0.0:
   version "2.0.0"
