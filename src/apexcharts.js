@@ -2851,6 +2851,9 @@ export default class ApexCharts {
    */
   setLocale(localeName) {
     this.localization.setCurrentLocaleValues(localeName)
+    // The labels on screen are in the old locale now, so an identical
+    // updateOptions() must not be skipped.
+    this.lastUpdateOptions = null
   }
 
   /**
