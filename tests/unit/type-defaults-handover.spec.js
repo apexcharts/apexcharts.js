@@ -153,15 +153,22 @@ describe('the behavioural leaves hand over', () => {
     const chart = await morph('bar', 'boxPlot')
     expect(chart.w.config.dataLabels.enabled).toBe(false)
   })
+
+  it('a bar that becomes a line draws its line like a fresh one (#5435)', async () => {
+    const chart = await morph('bar', 'line')
+    expect(chart.w.config.stroke.width).toBe(5)
+    expect(chart.w.config.stroke.curve).toBe('straight')
+    expect(chart.w.config.stroke.lineCap).toBe('butt')
+  })
 })
 
 describe('the painted leaves deliberately do not', () => {
-  it('fill, stroke and legend placement survive a type change', async () => {
+  it('fill, stroke colour and legend placement survive a type change', async () => {
     const chart = await morph('bar', 'donut')
-    // A donut would have chosen 1, 2 and 'right' for these. Keeping the bar's
-    // is the point: a morph re-reads the data without restyling mid-flight.
+    // A donut would have chosen 1, white and 'right' for these. Keeping the
+    // bar's is the point: a morph re-reads the data without restyling mid-flight.
     expect(chart.w.config.fill.opacity).toBe(0.85)
-    expect(chart.w.config.stroke.width).toBe(0)
+    expect(chart.w.config.stroke.colors).toBe(undefined)
     expect(chart.w.config.legend.position).toBe('bottom')
   })
 })

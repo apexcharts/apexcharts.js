@@ -50,8 +50,8 @@ const typeOwned = (fn) => {
  *
  * The line drawn here is between what a chart DOES and how it is PAINTED. A
  * leaf that decides what is read, what is said, or what is hit-tested belongs
- * to the type and hands over. A leaf that decides colour, opacity, stroke,
- * spacing or legend placement stays put, so that changing type re-reads the
+ * to the type and hands over. A leaf that decides colour, opacity, stroke
+ * colour, spacing or legend placement stays put, so that changing type re-reads the
  * data without also restyling the chart out from under a morph in flight, and
  * so that a palette chosen for a bar survives its becoming a line.
  *
@@ -73,6 +73,10 @@ const TYPE_OWNED_PATHS = [
   'plotOptions.bar.dataLabels.position',
   // A box plot's outlier markers are hit targets; a violin draws none.
   'markers.size',
+  // A bar's 0 width draws a line as nothing at all (#5435).
+  'stroke.width',
+  'stroke.curve',
+  'stroke.lineCap',
   // The violin layers a raincloud rearranges: which side the density is on,
   // whether the box lane exists and how its whiskers are computed, and where
   // the jitter sits. All decide what is drawn, so they hand over when the
