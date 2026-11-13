@@ -1,5 +1,6 @@
 // @ts-check
 import Defaults from '../settings/Defaults'
+import { Environment } from '../../utils/Environment.js'
 import Config from '../settings/Config'
 import Theme from '../Theme'
 import CoreUtils from '../CoreUtils'
@@ -356,7 +357,20 @@ export default class UpdateHelpers {
           // would otherwise outlive that type. Runs before the initialConfig
           // snapshot below, so a later resetSeries restores the config the
           // chart actually has rather than the stale one.
-          Defaults.handOverTypeDefaults(w.config, fromType, options)
+          // What the user named before this update, so a value of theirs
+          // that equals the outgoing type's default is still theirs.
+          ch._askedTypeOwned ??= Defaults.noteAskedTypeOwned(
+            new Set(),
+            ch.opts,
+            Environment.getApex(),
+          )
+          Defaults.handOverTypeDefaults(
+            w.config,
+            fromType,
+            options,
+            ch._askedTypeOwned,
+          )
+          Defaults.noteAskedTypeOwned(ch._askedTypeOwned, options)
           Defaults.syncCatToNumeric(w.config, options)
           Defaults.syncSparkline(w.config, wasSparkline, options)
           Defaults.syncHorizontal(w.config, wasHorizontal, options)
