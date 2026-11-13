@@ -51,9 +51,9 @@ const typeOwned = (fn) => {
  * The line drawn here is between what a chart DOES and how it is PAINTED. A
  * leaf that decides what is read, what is said, or what is hit-tested belongs
  * to the type and hands over. A leaf that decides colour, opacity, stroke
- * colour, spacing or legend placement stays put, so that changing type re-reads the
- * data without also restyling the chart out from under a morph in flight, and
- * so that a palette chosen for a bar survives its becoming a line.
+ * colour, spacing or legend placement stays put, so that changing type
+ * re-reads the data without also restyling the chart out from under a morph in
+ * flight, and so that a palette chosen for a bar survives its becoming a line.
  *
  * A leaf only hands over when it still holds exactly what the outgoing type
  * chose for it. Anything the user set, then or in this same update, is theirs
