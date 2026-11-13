@@ -562,7 +562,9 @@ export default class Defaults {
    * Put on or take off the sparkline preset when an update turns
    * `chart.sparkline.enabled` on or off; construction is the only other place
    * it is applied. A leaf moves only while it still holds what the outgoing
-   * mode chose, and never when this update names it.
+   * mode chose, and never when this update names it. The one exception is the
+   * y-axis of a sparkline: any update that passes yaxis hides it again, as
+   * construction does whatever the axis asks for.
    *
    * @param {Record<string, any>} config the merged w.config, mutated in place
    * @param {boolean} was whether the sparkline was on before the update
@@ -571,7 +573,7 @@ export default class Defaults {
   static syncSparkline(config, was, options) {
     const now = !!config.chart.sparkline?.enabled
     // A yaxis in the payload arrives filled with the plain axis defaults,
-    // show: true included, so it is hidden again on every such update (#5434).
+    // show: true included, so the axis is hidden again here (#5434).
     if (now && options?.yaxis) new Defaults(config).hideYAxis()
     if (now === !!was) return
     const d = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] })
