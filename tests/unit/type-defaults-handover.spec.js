@@ -186,6 +186,26 @@ describe('what the user set is never re-chosen', () => {
     expect(chart.w.config.markers.size).toBe(7)
   })
 
+  it('a curve set at construction survives even when it equals the outgoing default', async () => {
+    // 'straight' is also a line's own curve, so by value alone it would read
+    // as untouched and the area would replace it with 'smooth'.
+    const line = await morph('line', 'area', { stroke: { curve: 'straight' } })
+    expect(line.w.config.stroke.curve).toBe('straight')
+    const area = await morph('area', 'line', { stroke: { curve: 'smooth' } })
+    expect(area.w.config.stroke.curve).toBe('smooth')
+  })
+
+  it('a curve set by an earlier update survives a later type change', async () => {
+    const chart = await morph('line', 'line', {}, { stroke: { curve: 'straight' } })
+    await chart.updateOptions({ chart: { type: 'area' }, series: BARS })
+    expect(chart.w.config.stroke.curve).toBe('straight')
+  })
+
+  it('GUARD an unset curve still hands over between line and area', async () => {
+    const chart = await morph('line', 'area')
+    expect(chart.w.config.stroke.curve).toBe('smooth')
+  })
+
   it('an explicit zoom setting is not overridden by the incoming type', async () => {
     const chart = await morph('bar', 'violin', {
       chart: { zoom: { enabled: false } },

@@ -457,6 +457,25 @@ export default class Defaults {
   }
 
   /**
+   * Add to `named` every type-owned path that one of `sources` (constructor
+   * options, global Apex options, an update payload) names. Comparing by value
+   * cannot tell a user's curve: 'straight' from a line's own, so the ask is
+   * remembered instead.
+   *
+   * @param {Set<string>} named
+   * @param {...(Record<string, any> | undefined)} sources
+   */
+  static noteAskedTypeOwned(named, ...sources) {
+    for (const src of sources) {
+      if (!src) continue
+      for (const path of TYPE_OWNED_PATHS) {
+        if (readPath(src, path) !== undefined) named.add(path)
+      }
+    }
+    return named
+  }
+
+  /**
    * Re-choose the type-owned leaves (see TYPE_OWNED_PATHS) after
    * `updateOptions({ chart: { type } })` moved the chart from one type to
    * another, so the chart behaves as the type it now is.
@@ -465,13 +484,17 @@ export default class Defaults {
    * chose for it. That single test covers every way a value can be the user's
    * instead of ours: set at construction, set by an earlier update, or set by
    * this very update. `options` is consulted too, so an explicit ask in the
-   * same call wins even when it happens to equal the outgoing default.
+   * same call wins even when it happens to equal the outgoing default, and so
+   * is `named`, for an earlier ask that happens to equal it (a line set to
+   * curve: 'straight' stays straight as an area).
    *
    * @param {Record<string, any>} config the merged w.config, mutated in place
    * @param {string} fromType the type (or requested alias) before this update
    * @param {Record<string, any>} [options] this update's payload
+   * @param {Set<string>} [named] type-owned paths the user named before, see
+   *   Defaults.noteAskedTypeOwned
    */
-  static handOverTypeDefaults(config, fromType, options) {
+  static handOverTypeDefaults(config, fromType, options, named) {
     // Every update can reach a combination construction settles, whether or
     // not it changes the type.
     Defaults.reconcile(config, true)
@@ -538,6 +561,7 @@ export default class Defaults {
         ]
       : TYPE_OWNED_PATHS) {
       if (options && readPath(options, path) !== undefined) continue
+      if (named?.has(path)) continue
       const fromDefault = readPath(from, path)
       const toDefault = readPath(to, path)
       if (fromDefault === undefined && toDefault === undefined) continue
