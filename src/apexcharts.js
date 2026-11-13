@@ -1154,6 +1154,13 @@ export default class ApexCharts {
         this.updateHelpers.revertZoom()
       }
     }
+    // Still zoomed (no new series): new y axes keep the zoomed y range, as an
+    // xaxis without bounds keeps the zoomed x range. A wrapper re-sending its
+    // options on every render otherwise undid half of an xy zoom.
+    const zoomedY =
+      options.yaxis && w.interact.zoomed
+        ? this.updateHelpers.zoomedYBounds()
+        : null
     // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
     if (options.xaxis) {
       options = this.updateHelpers.forceXAxisUpdate(options)
@@ -1174,6 +1181,7 @@ export default class ApexCharts {
       animate,
       updateSyncedCharts,
       overwriteInitialConfig,
+      zoomedY,
     )
   }
 
