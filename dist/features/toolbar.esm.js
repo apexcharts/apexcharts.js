@@ -18,37 +18,37 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function Mt({ background: t, dark: e, designSystemPaper: n, fromVariant: s, light: i, mode: r }) {
-  return t && "transparent" !== t ? t : "dark" === r ? s && n || e : i || "#fff";
-}
-function Ae(t) {
+function pt(t) {
   const e = t.getRootNode ? t.getRootNode() : null;
   return e && (9 === e.nodeType || 11 === e.nodeType && "host" in e) ? e : t.ownerDocument || document;
 }
-function ke(t) {
+function gt(t) {
   const e = "function" == typeof t.composedPath ? t.composedPath() : null;
   return (null == e ? void 0 : e.length) ? e[0] : t.target;
 }
-function Ne(t) {
+function St(t) {
   const e = [];
   let n = t;
   for (; n; ) {
-    const t2 = Ae(n);
+    const t2 = pt(n);
     e.unshift(t2), n = 11 === t2.nodeType ? t2.host : null;
   }
-  const s = [];
+  const r = [];
   for (const t2 of e) {
-    for (const e3 of Array.from(t2.styleSheets || [])) s.push(e3);
+    for (const e3 of Array.from(t2.styleSheets || [])) r.push(e3);
     const e2 = t2.adoptedStyleSheets;
-    if (e2) for (const t3 of e2) s.push(t3);
+    if (e2) for (const t3 of e2) r.push(t3);
   }
-  return s;
+  return r;
+}
+function ge({ background: t, dark: e, designSystemPaper: n, fromVariant: r, light: s, mode: i }) {
+  return t && "transparent" !== t ? t : "dark" === i ? r && n || e : s || "#fff";
 }
 const Graphics = _core.__apex_Graphics;
 const AxesUtils = _core.__apex_axes_AxesUtils;
@@ -371,7 +371,7 @@ class Exports {
   resolveExportBackground() {
     var _a, _b, _c;
     const w = this.w;
-    return Mt({
+    return ge({
       background: w.config.chart.background,
       mode: w.config.theme.mode,
       fromVariant: !!w.globals.variantModeApplied,
@@ -472,7 +472,7 @@ class Exports {
       }
     };
     const el = this.w.dom.elWrap;
-    (el ? Ne(el) : Array.from(document.styleSheets || [])).forEach(
+    (el ? St(el) : Array.from(document.styleSheets || [])).forEach(
       walkSheet
     );
     return Promise.all(remote).then(() => found);
@@ -1706,7 +1706,7 @@ class Toolbar {
       var _a2, _b;
       const origin = (
         /** @type {Node} */
-        ke(e)
+        gt(e)
       );
       if (((_a2 = this.elMenu) == null ? void 0 : _a2.contains(origin)) || ((_b = this.elMenuIcon) == null ? void 0 : _b.contains(origin))) {
         return;
@@ -2481,12 +2481,22 @@ class ZoomPanSelection extends Toolbar {
     if (!(maxPx > PLOT_ORIGIN_PX)) return;
     const x = parseFloat(rect.node.getAttribute("x")) || 0;
     const width = parseFloat(rect.node.getAttribute("width")) || 0;
-    const clamp = (px) => Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx);
-    const left = clamp(x);
-    const right = clamp(x + width);
+    const left = this._clampPlotPx(x, maxPx);
+    const right = this._clampPlotPx(x + width, maxPx);
     if (left === x && right === x + width) return;
     rect.attr({ x: left, width: right - left });
     if (rect._updateSelectPositions) rect._updateSelectPositions();
+  }
+  /**
+   * Clamp one plot-origin pixel to the span the plot occupies, `[0, maxPx]`.
+   * A plot with no pixel size (pre-layout) collapses to the origin.
+   * @param {number} px
+   * @param {number} maxPx
+   * @returns {number}
+   */
+  _clampPlotPx(px, maxPx) {
+    if (!(maxPx > PLOT_ORIGIN_PX)) return PLOT_ORIGIN_PX;
+    return Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx);
   }
   /**
    * @param {any} rect
@@ -2505,57 +2515,31 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     const me = context;
     if (!this._hasPlot()) return;
-    const startX = me.startX;
-    const startY = me.startY;
-    let inversedX = false;
-    let inversedY = false;
-    const left = this._screenXToPlotPx(me.clientX);
-    const top = this._screenYToPlotPx(me.clientY);
-    let selectionWidth = left - startX;
-    let selectionHeight = top - startY;
-    let selectionRect = {
+    const plotW = w.layout.gridWidth;
+    const plotH = w.layout.gridHeight;
+    const startX = this._clampPlotPx(me.startX, plotW);
+    const startY = this._clampPlotPx(me.startY, plotH);
+    const endX = this._clampPlotPx(this._screenXToPlotPx(me.clientX), plotW);
+    const endY = this._clampPlotPx(this._screenYToPlotPx(me.clientY), plotH);
+    let x = Math.min(startX, endX);
+    let y = Math.min(startY, endY);
+    let width = Math.abs(endX - startX);
+    let height = Math.abs(endY - startY);
+    if (zoomtype === "x") {
+      y = 0;
+      height = plotH;
+    } else if (zoomtype === "y") {
+      x = 0;
+      width = plotW;
+    }
+    const selectionRect = {
+      x,
+      y,
+      width,
+      height,
       translateX: w.layout.translateX,
       translateY: w.layout.translateY
     };
-    if (Math.abs(selectionWidth + startX) > w.layout.gridWidth) {
-      selectionWidth = w.layout.gridWidth - startX;
-    } else if (left < 0) {
-      selectionWidth = startX;
-    }
-    if (startX > left) {
-      inversedX = true;
-      selectionWidth = Math.abs(selectionWidth);
-    }
-    if (startY > top) {
-      inversedY = true;
-      selectionHeight = Math.abs(selectionHeight);
-    }
-    if (zoomtype === "x") {
-      selectionRect = {
-        x: inversedX ? startX - selectionWidth : startX,
-        y: 0,
-        width: selectionWidth,
-        height: w.layout.gridHeight
-      };
-    } else if (zoomtype === "y") {
-      selectionRect = {
-        x: 0,
-        y: inversedY ? startY - selectionHeight : startY,
-        width: w.layout.gridWidth,
-        height: selectionHeight
-      };
-    } else {
-      selectionRect = {
-        x: inversedX ? startX - selectionWidth : startX,
-        y: inversedY ? startY - selectionHeight : startY,
-        width: selectionWidth,
-        height: selectionHeight
-      };
-    }
-    selectionRect = __spreadProps(__spreadValues({}, selectionRect), {
-      translateX: w.layout.translateX,
-      translateY: w.layout.translateY
-    });
     me.drawSelectionRect(selectionRect);
     me.selectionDragging("resizing");
     return selectionRect;

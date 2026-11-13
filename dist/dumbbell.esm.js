@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -2336,14 +2336,22 @@ function buildJoin(w, realIndex) {
   return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
 }
 function rafTween(w, duration, ease, onFrame, onDone, alive, startAt = performance.now()) {
+  var _a;
+  const live = (_a = w.globals).liveTweens || (_a.liveTweens = /* @__PURE__ */ new Set());
+  const self = {};
+  live.add(self);
   const step = (now) => {
-    if (w.globals.isDestroyed || alive && !alive()) return;
+    if (w.globals.isDestroyed || alive && !alive()) {
+      live.delete(self);
+      return;
+    }
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
     onFrame(ease(raw), raw);
     if (raw < 1) {
       BrowserAPIs.requestAnimationFrame(step);
-    } else if (onDone) {
-      onDone();
+    } else {
+      live.delete(self);
+      if (onDone) onDone();
     }
   };
   BrowserAPIs.requestAnimationFrame(step);

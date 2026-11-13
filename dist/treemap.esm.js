@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -644,14 +644,22 @@ function getTreemapRoots(w) {
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const resolveEasing = _core.__apex_Easing_resolveEasing;
 function rafTween(w, duration, ease, onFrame, onDone, alive, startAt = performance.now()) {
+  var _a;
+  const live = (_a = w.globals).liveTweens || (_a.liveTweens = /* @__PURE__ */ new Set());
+  const self = {};
+  live.add(self);
   const step = (now) => {
-    if (w.globals.isDestroyed || alive && !alive()) return;
+    if (w.globals.isDestroyed || alive && !alive()) {
+      live.delete(self);
+      return;
+    }
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
     onFrame(ease(raw), raw);
     if (raw < 1) {
       BrowserAPIs.requestAnimationFrame(step);
-    } else if (onDone) {
-      onDone();
+    } else {
+      live.delete(self);
+      if (onDone) onDone();
     }
   };
   BrowserAPIs.requestAnimationFrame(step);
@@ -1003,6 +1011,8 @@ class TreemapChart {
               cascadeDelays[k] || 0
             );
           }
+        } else if (!w.globals.dataChanged) {
+          w.globals.animationEnded = true;
         }
         let labelFrom = null;
         let prevLook = null;
@@ -1041,6 +1051,8 @@ class TreemapChart {
               }
             }
             tileTween = this.animateTreemap(elRect, fromRect, to, speed);
+          } else if (!morphFrom) {
+            w.globals.animationEnded = true;
           }
         }
         let fontSize = this.getFontSize(r);

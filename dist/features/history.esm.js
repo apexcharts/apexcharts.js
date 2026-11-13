@@ -14,22 +14,22 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function ke(t) {
+function gt(t) {
   const e = "function" == typeof t.composedPath ? t.composedPath() : null;
   return (null == e ? void 0 : e.length) ? e[0] : t.target;
 }
-function Le(t) {
+function yt(t) {
   var e;
   const n = t.ownerDocument || t;
-  let s = n && "activeElement" in n ? n.activeElement : null;
-  for (; null == (e = null == s ? void 0 : s.shadowRoot) ? void 0 : e.activeElement; ) s = s.shadowRoot.activeElement;
-  return s;
+  let r = n && "activeElement" in n ? n.activeElement : null;
+  for (; null == (e = null == r ? void 0 : r.shadowRoot) ? void 0 : e.activeElement; ) r = r.shadowRoot.activeElement;
+  return r;
 }
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
@@ -295,7 +295,7 @@ class History {
       /** @type {any} */
       this.ctx.el
     );
-    const origin = ke(e);
+    const origin = gt(e);
     this._engaged = !!(el && origin && el.contains(origin));
   }
   /**
@@ -310,7 +310,7 @@ class History {
       this.ctx.el
     );
     if (!el) return;
-    const active = Le(el);
+    const active = yt(el);
     if (isEditableTarget(active)) return;
     if (!(el.contains(active) || this._engaged)) return;
     const redo = key === "y" || e.shiftKey;

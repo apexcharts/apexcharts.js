@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -425,6 +425,8 @@ class HeatMap {
                 }
               });
             }
+          } else if (!w.globals.dataChanged) {
+            w.globals.animationEnded = true;
           }
           if (w.globals.dataChanged) {
             let speed = 1;
@@ -441,7 +443,11 @@ class HeatMap {
                     to: { x: x1, y: y1, width: cellW, height: yDivision }
                   });
                 } else {
-                  new Animations(this.w).animatePop(cell, { speed });
+                  const animations = new Animations(this.w);
+                  animations.animatePop(cell, {
+                    speed,
+                    onComplete: () => animations.animationCompleted(cell)
+                  });
                 }
               } else {
                 const box = prev.rect;
@@ -459,6 +465,8 @@ class HeatMap {
                   }
                 );
               }
+            } else {
+              w.globals.animationEnded = true;
             }
           }
         }
@@ -643,6 +651,7 @@ class HeatMap {
       fill: colorTo
     }, box == null ? void 0 : box.to));
     if (box) runner.ease(morphEasing(this.w));
+    runner.after(() => new Animations(this.w).animationCompleted(el));
   }
 }
 _core__default.use({

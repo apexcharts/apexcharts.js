@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -110,7 +110,7 @@ function u(e2) {
   const [t2 = "", ...r2] = e2.split("+")[0].split("-"), [n2 = 0, o2 = 0, i2 = 0] = t2.split(".", 3).map(((e3) => parseInt(e3, 10) || 0)), s2 = 1e6 * n2 + 1e3 * o2 + i2;
   return r2.length && s2 > 0 ? s2 - 0.5 : s2;
 }
-const f = /* @__PURE__ */ u("0.10.0");
+const f = /* @__PURE__ */ u("0.11.0");
 const g = (e2) => [`--ig-${e2}-seed`, `--ig-${e2}-500`], d = (e2, t2) => [`--ig-${e2}-${t2}`], y = ["primary", "secondary", "info", "success", "warn", "error"], p = (e2) => {
   if (e2 && "object" == typeof e2 && !Object.isFrozen(e2)) {
     for (const t2 of Object.values(e2)) p(t2);

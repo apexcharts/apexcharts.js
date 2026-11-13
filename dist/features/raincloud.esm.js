@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -45,12 +45,12 @@ function registerSeriesTransform(name, fn) {
   getTransforms()[name] = fn;
 }
 const Utils = _core.__apex_Utils;
-function S(t, e) {
+function x(t, e) {
   const n = t.length;
   if (0 === n) return NaN;
   if (1 === n) return t[0];
-  const s = (n - 1) * e, i = Math.floor(s), r = Math.ceil(s);
-  return i === r ? t[i] : t[i] + (t[r] - t[i]) * (s - i);
+  const r = (n - 1) * e, s = Math.floor(r), i = Math.ceil(r);
+  return s === i ? t[s] : t[s] + (t[i] - t[s]) * (r - s);
 }
 function stdDev(values) {
   const n = values.length;
@@ -68,9 +68,9 @@ function stdDev(values) {
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = S(sorted, 0.25);
-  const median = S(sorted, 0.5);
-  const q3 = S(sorted, 0.75);
+  const q1 = x(sorted, 0.25);
+  const median = x(sorted, 0.5);
+  const q3 = x(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -97,7 +97,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = S(sorted, 0.75) - S(sorted, 0.25);
+    const iqr = x(sorted, 0.75) - x(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -120,13 +120,13 @@ function kernelDensity(values, opts = {}) {
   const norm = 1 / (n * h * Math.sqrt(2 * Math.PI));
   const density = [];
   for (let g = 0; g < steps; g++) {
-    const x = lo + g * step;
+    const x2 = lo + g * step;
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const z = (x - sorted[i]) / h;
+      const z = (x2 - sorted[i]) / h;
       sum += Math.exp(-0.5 * z * z);
     }
-    density.push([x, sum * norm]);
+    density.push([x2, sum * norm]);
   }
   return { density, bandwidth: h };
 }

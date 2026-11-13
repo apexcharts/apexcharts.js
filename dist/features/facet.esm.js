@@ -1,18 +1,18 @@
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-class xt {
+class ye {
   constructor(t = {}) {
     var _a;
     this.dark = null, this.contrast = null, this.handler = null;
     const e = (_a = t.host) != null ? _a : "undefined" == typeof window ? {} : window;
-    if (this.dark = St(e, "(prefers-color-scheme: dark)"), this.contrast = St(e, "(prefers-contrast: more)"), !this.dark && !this.contrast) return;
+    if (this.dark = ve(e, "(prefers-color-scheme: dark)"), this.contrast = ve(e, "(prefers-contrast: more)"), !this.dark && !this.contrast) return;
     const n = t.onChange;
-    n && (this.handler = () => n(this.state), kt(this.dark, this.handler), kt(this.contrast, this.handler));
+    n && (this.handler = () => n(this.state), we(this.dark, this.handler), we(this.contrast, this.handler));
   }
   get state() {
     var _a;
@@ -20,13 +20,13 @@ class xt {
     return { highContrast: (_a = null == (t = this.contrast) ? void 0 : t.matches) != null ? _a : false, mode: (null == (e = this.dark) ? void 0 : e.matches) ? "dark" : "light" };
   }
   get supports() {
-    return { contrast: At(this.contrast), scheme: At(this.dark) };
+    return { contrast: be(this.contrast), scheme: be(this.dark) };
   }
   dispose() {
-    this.handler && (Lt(this.dark, this.handler), Lt(this.contrast, this.handler), this.handler = null), this.dark = null, this.contrast = null;
+    this.handler && (Me(this.dark, this.handler), Me(this.contrast, this.handler), this.handler = null), this.dark = null, this.contrast = null;
   }
 }
-function St(t, e) {
+function ve(t, e) {
   var _a;
   var n;
   try {
@@ -35,13 +35,13 @@ function St(t, e) {
     return null;
   }
 }
-function At(t) {
+function be(t) {
   return !!t && "not all" !== t.media;
 }
-function kt(t, e) {
+function we(t, e) {
   t && ("function" == typeof t.addEventListener ? t.addEventListener("change", e) : "function" == typeof t.addListener && t.addListener(e));
 }
-function Lt(t, e) {
+function Me(t, e) {
   t && ("function" == typeof t.removeEventListener ? t.removeEventListener("change", e) : "function" == typeof t.removeListener && t.removeListener(e));
 }
 const Environment = _core.__apex_Environment_Environment;
@@ -56,7 +56,7 @@ class OSThemeWatcher {
     if (w.config.theme.follow !== "os" || !Environment.isBrowser()) return;
     let watcher = ctx._osTheme;
     if (!watcher) {
-      watcher = new xt({
+      watcher = new ye({
         host: (
           /** @type {any} */
           BrowserAPIs

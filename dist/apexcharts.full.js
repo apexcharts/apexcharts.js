@@ -55,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 
@@ -1348,7 +1348,7 @@ var __async = (__this, __arguments, generator) => {
      */
     static editDistance(a2, b, max) {
       if (Math.abs(a2.length - b.length) > max) return max + 1;
-      let prev = Array.from({ length: b.length + 1 }, (_2, j) => j);
+      let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
       for (let i2 = 1; i2 <= a2.length; i2++) {
         const row = [i2];
         let best = i2;
@@ -1525,21 +1525,21 @@ var __async = (__this, __arguments, generator) => {
       format = format.replace(/(^|[^\\])ff/g, "$1" + ii(f2));
       f2 = Math.round(f2 / 10);
       format = format.replace(/(^|[^\\])f/g, "$1" + f2);
-      const T = H < 12 ? "AM" : "PM";
-      format = format.replace(/(^|[^\\])TT+/g, "$1" + T);
-      format = format.replace(/(^|[^\\])T/g, "$1" + T.charAt(0));
-      const t2 = T.toLowerCase();
+      const T2 = H < 12 ? "AM" : "PM";
+      format = format.replace(/(^|[^\\])TT+/g, "$1" + T2);
+      format = format.replace(/(^|[^\\])T/g, "$1" + T2.charAt(0));
+      const t2 = T2.toLowerCase();
       format = format.replace(/(^|[^\\])tt+/g, "$1" + t2);
       format = format.replace(/(^|[^\\])t/g, "$1" + t2.charAt(0));
       let tz = -date.getTimezoneOffset();
-      let K2 = utc || !tz ? "Z" : tz > 0 ? "+" : "-";
+      let K = utc || !tz ? "Z" : tz > 0 ? "+" : "-";
       if (!utc) {
         tz = Math.abs(tz);
         const tzHrs = Math.floor(tz / 60);
         const tzMin = tz % 60;
-        K2 += ii(tzHrs) + ":" + ii(tzMin);
+        K += ii(tzHrs) + ":" + ii(tzMin);
       }
-      format = format.replace(/(^|[^\\])K/g, "$1" + K2);
+      format = format.replace(/(^|[^\\])K/g, "$1" + K);
       const day = (utc ? date.getUTCDay() : date.getDay()) + 1;
       format = format.replace(new RegExp(dddd[0], "g"), dddd[day]);
       format = format.replace(new RegExp(ddd[0], "g"), ddd[day]);
@@ -5076,10 +5076,10 @@ var __async = (__this, __arguments, generator) => {
     getStackedSeriesTotalsByGroups() {
       const w = this.w;
       const total = [];
-      w.labelData.seriesGroups.forEach((_2, gi) => {
+      w.labelData.seriesGroups.forEach((_, gi) => {
         total.push(
           this.getStackedSeriesTotals(
-            w.seriesData.series.map((_3, i2) => i2).filter((i2) => w.labelData.seriesGroupIndex[i2] !== gi)
+            w.seriesData.series.map((_2, i2) => i2).filter((i2) => w.labelData.seriesGroupIndex[i2] !== gi)
           )
         );
       });
@@ -5515,7 +5515,7 @@ var __async = (__this, __arguments, generator) => {
       _gl.yLogRatio = yRatio.slice();
       _gl.logYRange = /** @type {any[]} */
       gl.yRange.map(
-        (_2, i2) => {
+        (_, i2) => {
           const yAxisIndex = w.globals.seriesYAxisReverseMap[i2];
           if (w.config.yaxis[yAxisIndex] && this.w.config.yaxis[yAxisIndex].logarithmic) {
             const range = 1;
@@ -7279,11 +7279,11 @@ var __async = (__this, __arguments, generator) => {
      * @returns {boolean}
      */
     static catToNumeric(chartType, opts, chartDefaults) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
       const unsupportedZoom = SOLO_TYPES.includes(chartType);
       const xaxisType = (_d = opts.xaxis.type) != null ? _d : (_c = chartDefaults.xaxis) == null ? void 0 : _c.type;
-      const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_g = (_f = (_e2 = opts.plotOptions) == null ? void 0 : _e2.scatter) == null ? void 0 : _f.jitter) == null ? void 0 : _g.enabled);
+      const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_g = (_f = (_e = opts.plotOptions) == null ? void 0 : _e.scatter) == null ? void 0 : _f.jitter) == null ? void 0 : _g.enabled);
       const tickPlacement = opts.xaxis.tickPlacement || ((_h = chartDefaults.xaxis) == null ? void 0 : _h.tickPlacement);
       return !isBarHorizontal && !unsupportedZoom && !isScatterJitter && xaxisType !== "datetime" && xaxisType !== "numeric" && tickPlacement !== "between";
     }
@@ -8034,7 +8034,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{responsiveOverride: any}} opts */
     init({ responsiveOverride }) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
       let config = new Options().init();
       let opts = __spreadValues({}, _Config.dropEmptyOptions(this.opts, config));
       [
@@ -8077,7 +8077,7 @@ var __async = (__this, __arguments, generator) => {
         if (opts.chart.stacked && opts.chart.stackType === "100%") {
           opts = defaults.stacked100(opts);
         }
-        if (((_e2 = (_d = opts.plotOptions) == null ? void 0 : _d.bar) == null ? void 0 : _e2.isDumbbell) && opts.chart.requestedType !== "dumbbell") {
+        if (((_e = (_d = opts.plotOptions) == null ? void 0 : _d.bar) == null ? void 0 : _e.isDumbbell) && opts.chart.requestedType !== "dumbbell") {
           opts = defaults.dumbbellSizing(opts);
         }
         this.checkForDarkTheme(opts);
@@ -8307,12 +8307,12 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} opts  the chart's own options
      */
     static applyGlobalDarkDefaults(config, opts) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const apex = Environment.getApex();
       if (((_a = apex.theme) == null ? void 0 : _a.mode) !== "dark" || ((_b = config.theme) == null ? void 0 : _b.mode) !== "dark") return;
       if (((_c = opts.theme) == null ? void 0 : _c.mode) === "dark") return;
       if (!((_d = opts.tooltip) == null ? void 0 : _d.theme)) {
-        config.tooltip.theme = ((_e2 = apex.tooltip) == null ? void 0 : _e2.theme) === "light" ? "light" : "dark";
+        config.tooltip.theme = ((_e = apex.tooltip) == null ? void 0 : _e.theme) === "light" ? "light" : "dark";
       }
       if (!((_f = opts.chart) == null ? void 0 : _f.foreColor) && !((_g = apex.chart) == null ? void 0 : _g.foreColor)) {
         config.chart.foreColor = "#f6f7f8";
@@ -8552,11 +8552,11 @@ var __async = (__this, __arguments, generator) => {
         return Number.isFinite(value) ? value : _Config._rejectBound(value, where);
       }
       if (isDatetime) {
-        const dt2 = new DateTime(
+        const dt = new DateTime(
           /** @type {any} */
           { config: { xaxis: { labels: { datetimeUTC } } } }
         );
-        const parsed = dt2.parseDate(value);
+        const parsed = dt.parseDate(value);
         return Number.isFinite(parsed) ? parsed : _Config._rejectBound(value, where);
       }
       if (typeof value === "string" && value.trim() !== "") {
@@ -9161,6 +9161,8 @@ var __async = (__this, __arguments, generator) => {
         // The chrome tweens AxisTransition has running (each entry lands its
         // tween), so the next update can land them before reading the chrome.
         chromeTweens: null,
+        // The rafTweens of the render on screen still running, a set per render.
+        liveTweens: null,
         // A circle chart's circle (and, without axes, its plot rect) captured
         // before an update's teardown; consumed once by CircleTransition after
         // the new render mounts.
@@ -9855,12 +9857,12 @@ var __async = (__this, __arguments, generator) => {
   function parsePath(d2) {
     if (!d2 || typeof d2 !== "string") return [["M", 0, 0]];
     const commands = [];
-    const re = /([MmLlHhVvCcSsQqTtAaZz])\s*/g;
+    const re2 = /([MmLlHhVvCcSsQqTtAaZz])\s*/g;
     const numRe = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
     let match;
     const letters = [];
     const positions = [];
-    while ((match = re.exec(d2)) !== null) {
+    while ((match = re2.exec(d2)) !== null) {
       letters.push(match[1]);
       positions.push(match.index);
     }
@@ -10035,7 +10037,7 @@ var __async = (__this, __arguments, generator) => {
     return false;
   }
   function arcToBezier(pos, val) {
-    var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x2 = val[6], y2 = val[7], A2 = new Point(pos[0], pos[1]), B = new Point(x2, y2), primedCoord, lambda, mat, k2, c2, cSquare, t2, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f2, arcSegPoints, angle, sinAngle, cosAngle, pt, i2, il, retVal = [], x1, y1, x22, y22;
+    var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x2 = val[6], y2 = val[7], A2 = new Point(pos[0], pos[1]), B = new Point(x2, y2), primedCoord, lambda, mat, k2, c2, cSquare, t2, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f2, arcSegPoints, angle, sinAngle, cosAngle, pt2, i2, il, retVal = [], x1, y1, x22, y22;
     if (rx === 0 || ry === 0 || A2.x === B.x && A2.y === B.y) {
       return [["C", A2.x, A2.y, B.x, B.y, B.x, B.y]];
     }
@@ -10087,11 +10089,11 @@ var __async = (__this, __arguments, generator) => {
     for (i2 = 0; i2 <= nbSectors; i2++) {
       cosAngle = Math.cos(angle);
       sinAngle = Math.sin(angle);
-      pt = new Point(O.x + cosAngle, O.y + sinAngle);
+      pt2 = new Point(O.x + cosAngle, O.y + sinAngle);
       arcSegPoints[i2] = [
-        new Point(pt.x + f2 * sinAngle, pt.y - f2 * cosAngle),
-        pt,
-        new Point(pt.x - f2 * sinAngle, pt.y + f2 * cosAngle)
+        new Point(pt2.x + f2 * sinAngle, pt2.y - f2 * cosAngle),
+        pt2,
+        new Point(pt2.x - f2 * sinAngle, pt2.y + f2 * cosAngle)
       ];
       angle += deltaTeta;
     }
@@ -10105,15 +10107,15 @@ var __async = (__this, __arguments, generator) => {
       arcSegPoints[i2][2] = arcSegPoints[i2][2].transform(mat);
     }
     for (i2 = 1, il = arcSegPoints.length; i2 < il; i2++) {
-      pt = arcSegPoints[i2 - 1][2];
-      x1 = pt.x;
-      y1 = pt.y;
-      pt = arcSegPoints[i2][0];
-      x22 = pt.x;
-      y22 = pt.y;
-      pt = arcSegPoints[i2][1];
-      x2 = pt.x;
-      y2 = pt.y;
+      pt2 = arcSegPoints[i2 - 1][2];
+      x1 = pt2.x;
+      y1 = pt2.y;
+      pt2 = arcSegPoints[i2][0];
+      x22 = pt2.x;
+      y22 = pt2.y;
+      pt2 = arcSegPoints[i2][1];
+      x2 = pt2.x;
+      y2 = pt2.y;
       retVal.push(["C", x1, y1, x22, y22, x2, y2]);
     }
     return retVal;
@@ -10620,9 +10622,9 @@ var __async = (__this, __arguments, generator) => {
       if (t2 < lo) return lo;
       if (t2 > hi) return hi;
       while (lo < hi) {
-        const xt2 = sampleX(t2);
-        if (Math.abs(xt2 - x3) < 1e-4) return t2;
-        if (x3 > xt2) lo = t2;
+        const xt = sampleX(t2);
+        if (Math.abs(xt - x3) < 1e-4) return t2;
+        if (x3 > xt) lo = t2;
         else hi = t2;
         t2 = (lo + hi) / 2;
       }
@@ -10728,7 +10730,7 @@ var __async = (__this, __arguments, generator) => {
         _reducedMotionMql = window.matchMedia("(prefers-reduced-motion: reduce)");
       }
       return !!_reducedMotionMql.matches;
-    } catch (_2) {
+    } catch (_) {
       return false;
     }
   }
@@ -10879,7 +10881,7 @@ var __async = (__this, __arguments, generator) => {
         delay,
         scrollMorph
       } = params;
-      const me = this;
+      const me2 = this;
       const w = this.w;
       let delayFactor = 0;
       if (w.config.chart.animations.animateGradually.enabled) {
@@ -10888,7 +10890,7 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== "bar") {
         delayFactor = 0;
       }
-      me.morphSVG(
+      me2.morphSVG(
         el,
         realIndex,
         j,
@@ -10983,12 +10985,12 @@ var __async = (__this, __arguments, generator) => {
      */
     animateDraw(el, { realIndex, j, isFill, isLast, speed, delay, mask: maskShape }) {
       const w = this.w;
-      const me = this;
+      const me2 = this;
       const finalize = () => {
         if (isLast && w.globals.shouldAnimate) {
-          me.animationCompleted(el);
+          me2.animationCompleted(el);
         }
-        me.showDelayedElements();
+        me2.showDelayedElements();
       };
       if (!Environment.isBrowser() || !w.globals.shouldAnimate || speed < 1) {
         finalize();
@@ -11067,7 +11069,7 @@ var __async = (__this, __arguments, generator) => {
         let len = 0;
         try {
           len = node.getTotalLength();
-        } catch (_2) {
+        } catch (_) {
         }
         return len ? () => runStrokeDraw(len) : finalize;
       });
@@ -11200,14 +11202,14 @@ var __async = (__this, __arguments, generator) => {
   const COINCIDENT_TOLERANCE = 0.5;
   const indexes$1 = /* @__PURE__ */ new WeakMap();
   function markerSeriesIndex(node) {
-    var _a, _b, _c, _d, _e2;
+    var _a, _b, _c, _d, _e;
     const el = Utils$1.findAncestor(node, "apexcharts-series");
     if (el) return parseInt((_a = el.getAttribute("data:realIndex")) != null ? _a : "", 10);
     const up = (
       /** @type {any} */
       (_c = (_b = node.parentNode) == null ? void 0 : _b.parentNode) == null ? void 0 : _c.parentNode
     );
-    return parseInt((_e2 = (_d = up == null ? void 0 : up.getAttribute) == null ? void 0 : _d.call(up, "rel")) != null ? _e2 : "", 10) - 1;
+    return parseInt((_e = (_d = up == null ? void 0 : up.getAttribute) == null ? void 0 : _d.call(up, "rel")) != null ? _e : "", 10) - 1;
   }
   function isPointMarker(node) {
     var _a;
@@ -11220,8 +11222,8 @@ var __async = (__this, __arguments, generator) => {
     return (renderer == null ? void 0 : renderer.kind) === "canvas" && typeof renderer.hitTestMarker === "function" && !!w.globals.xyCharts;
   }
   function renderToken(w) {
-    var _a, _b, _c, _d, _e2;
-    return (_e2 = (_d = (_b = (_a = w.dom) == null ? void 0 : _a.elGraphical) == null ? void 0 : _b.node) != null ? _d : (_c = w.dom) == null ? void 0 : _c.baseEl) != null ? _e2 : null;
+    var _a, _b, _c, _d, _e;
+    return (_e = (_d = (_b = (_a = w.dom) == null ? void 0 : _a.elGraphical) == null ? void 0 : _b.node) != null ? _d : (_c = w.dom) == null ? void 0 : _c.baseEl) != null ? _e : null;
   }
   function addEntry(index, entry) {
     if (!(entry.x === entry.x && entry.y === entry.y)) return;
@@ -11418,7 +11420,7 @@ var __async = (__this, __arguments, generator) => {
     }
     setupEventHandlers() {
       const w = this.w;
-      const me = this.ctx;
+      const me2 = this.ctx;
       const clickableArea = w.dom.baseEl.querySelector(w.globals.chartClass);
       this.ctx.eventList.forEach((event) => {
         clickableArea == null ? void 0 : clickableArea.addEventListener(
@@ -11433,24 +11435,24 @@ var __async = (__this, __arguments, generator) => {
             if (e2.type === "keydown") {
               if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
                 if (typeof w.config.chart.events.keyDown === "function") {
-                  w.config.chart.events.keyDown(e2, me, opts);
+                  w.config.chart.events.keyDown(e2, me2, opts);
                 }
-                me.ctx.events.fireEvent("keydown", [e2, me, opts]);
+                me2.ctx.events.fireEvent("keydown", [e2, me2, opts]);
               }
             } else if (e2.type === "keyup") {
               if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
                 if (typeof w.config.chart.events.keyUp === "function") {
-                  w.config.chart.events.keyUp(e2, me, opts);
+                  w.config.chart.events.keyUp(e2, me2, opts);
                 }
-                me.ctx.events.fireEvent("keyup", [e2, me, opts]);
+                me2.ctx.events.fireEvent("keyup", [e2, me2, opts]);
               }
             } else if (e2.type === "mousemove" || e2.type === "touchmove") {
               if (typeof w.config.chart.events.mouseMove === "function") {
-                w.config.chart.events.mouseMove(e2, me, opts);
+                w.config.chart.events.mouseMove(e2, me2, opts);
               }
             } else if (e2.type === "mouseleave" || e2.type === "touchleave") {
               if (typeof w.config.chart.events.mouseLeave === "function") {
-                w.config.chart.events.mouseLeave(e2, me, opts);
+                w.config.chart.events.mouseLeave(e2, me2, opts);
               }
             } else if (e2.type === "mouseup" && e2.which === 1 || e2.type === "touchend") {
               if (w.interact.wasDragged) {
@@ -11459,9 +11461,9 @@ var __async = (__this, __arguments, generator) => {
                 const coincident = coincidentPoints(w, { node: e2.target });
                 if (coincident) opts.coincident = coincident;
                 if (typeof w.config.chart.events.click === "function") {
-                  w.config.chart.events.click(e2, me, opts);
+                  w.config.chart.events.click(e2, me2, opts);
                 }
-                me.ctx.events.fireEvent("click", [e2, me, opts]);
+                me2.ctx.events.fireEvent("click", [e2, me2, opts]);
               }
             }
           },
@@ -12108,9 +12110,9 @@ var __async = (__this, __arguments, generator) => {
       const ylabels = w.config.yaxis[0].labels;
       let lbFormatter = w.formatters.yLabelFormatters[0];
       if (w.config.xaxis.type === "datetime" && ylabels.formatter === void 0 && !w.axisFlags.isRangeBar) {
-        const dt2 = new DateTime(w);
+        const dt = new DateTime(w);
         const format = w.config.xaxis.labels.format || w.config.tooltip.x.format;
-        lbFormatter = (val) => typeof val === "number" ? dt2.formatDate(dt2.getDate(val), format) : val;
+        lbFormatter = (val) => typeof val === "number" ? dt.formatDate(dt.getDate(val), format) : val;
       }
       let labelStep = 1;
       if (ylabels.show && ylabels.formatter === void 0 && w.config.xaxis.labels.hideOverlappingLabels !== false) {
@@ -13390,7 +13392,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} tickAmount
      */
     drawGridBands(xCount, tickAmount) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const drawBands = (type, count, x1, y1, x2, y2) => {
         for (let i2 = 0, c2 = 0; i2 < count; i2++, c2++) {
@@ -13428,7 +13430,7 @@ var __async = (__this, __arguments, generator) => {
             x1 = /** @type {any} */
             this.xaxisLabels[i2].position;
             x2 = /** @type {any} */
-            (((_e2 = this.xaxisLabels[i2 + 1]) == null ? void 0 : _e2.position) || w.layout.gridWidth) - /** @type {any} */
+            (((_e = this.xaxisLabels[i2 + 1]) == null ? void 0 : _e.position) || w.layout.gridWidth) - /** @type {any} */
             this.xaxisLabels[i2].position;
           }
           this._drawGridBandRect({ c: c2, x1, y1, x2, y2, type: "column" });
@@ -13645,14 +13647,14 @@ var __async = (__this, __arguments, generator) => {
     const rPixels = [];
     if ((_b = (_a = w.dom) == null ? void 0 : _a.baseEl) == null ? void 0 : _b.querySelectorAll) {
       w.dom.baseEl.querySelectorAll(".apexcharts-marker").forEach((node) => {
-        var _a2, _b2, _c2, _d, _e2;
+        var _a2, _b2, _c2, _d, _e;
         const ri = parseInt((_a2 = node.getAttribute("index")) != null ? _a2 : "", 10);
         const j = parseInt(
           (_c2 = (_b2 = node.getAttribute("j")) != null ? _b2 : node.getAttribute("rel")) != null ? _c2 : "",
           10
         );
         const r2 = parseFloat(
-          (_e2 = (_d = node.getAttribute("r")) != null ? _d : node.getAttribute("default-marker-size")) != null ? _e2 : ""
+          (_e = (_d = node.getAttribute("r")) != null ? _d : node.getAttribute("default-marker-size")) != null ? _e : ""
         );
         if (isFinite(ri) && isFinite(j) && isFinite(r2)) {
           (rPixels[ri] = rPixels[ri] || [])[j] = r2;
@@ -13792,10 +13794,10 @@ var __async = (__this, __arguments, generator) => {
     if (!cfg || !cfg.enabled) return;
     const maxPoints = cfg.maxPoints;
     const range = w.config.xaxis.range;
-    const dt2 = w.config.xaxis.type === "datetime";
+    const dt = w.config.xaxis.type === "datetime";
     const xOf = (p2) => {
       const x2 = Array.isArray(p2) ? p2[0] : p2 && p2.x;
-      const v = dt2 && x2 != null ? new Date(x2).getTime() : x2;
+      const v = dt && x2 != null ? new Date(x2).getTime() : x2;
       return typeof v === "number" && v === v ? v : null;
     };
     newSeries.forEach((s2) => {
@@ -13959,7 +13961,7 @@ var __async = (__this, __arguments, generator) => {
         const v = parseFloat(el.getAttribute(a2) || "");
         if (Number.isFinite(v)) travel = Math.max(travel, Math.abs(v - was[k2]));
       });
-      drive(el, attrs, (v, _2, e2, k2) => was[k2] + (v - was[k2]) * e2);
+      drive(el, attrs, (v, _, e2, k2) => was[k2] + (v - was[k2]) * e2);
     };
     const ends = from.ends || {};
     const nudge = (el, offset) => {
@@ -13980,7 +13982,7 @@ var __async = (__this, __arguments, generator) => {
       if (d2 < 0.5) return;
       travel = Math.max(travel, d2);
       const base = el.getAttribute("transform");
-      writers.push((_2, e2) => {
+      writers.push((_, e2) => {
         const x2 = was[0] + (now[0] - was[0]) * e2;
         const y2 = was[1] + (now[1] - was[1]) * e2;
         el.setAttribute("transform", `translate(${x2}, ${y2})`);
@@ -14199,7 +14201,7 @@ var __async = (__this, __arguments, generator) => {
     const out = [["M", anchors[0][0], anchors[0][1]]];
     let firstOwn = 0;
     while (firstOwn < m2 && ownIdx[firstOwn] !== 0) firstOwn++;
-    for (let q2 = 1; q2 <= firstOwn; q2++) out.push(degen(anchors[0]));
+    for (let q = 1; q <= firstOwn; q++) out.push(degen(anchors[0]));
     let entry = firstOwn + 1;
     for (let s2 = 0; s2 < n2 - 1; s2++) {
       let interior = 0;
@@ -14211,8 +14213,8 @@ var __async = (__this, __arguments, generator) => {
         const totalParts = interior + 1;
         let start = anchors[s2];
         let rest = cmd;
-        for (let q2 = 0; q2 < interior; q2++) {
-          const t2 = 1 / (totalParts - q2);
+        for (let q = 0; q < interior; q++) {
+          const t2 = 1 / (totalParts - q);
           const sp = segType === "C" ? splitCubic(start, rest, t2) : splitLine(start, rest, t2);
           out.push(sp.first);
           start = sp.mid;
@@ -14316,7 +14318,7 @@ var __async = (__this, __arguments, generator) => {
   }
   function seriesKeys(w, realIndex, n2 = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
     return uniquifyKeys(
-      Array.from({ length: n2 }, (_2, j) => datumKey(w, realIndex, j))
+      Array.from({ length: n2 }, (_, j) => datumKey(w, realIndex, j))
     );
   }
   function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false, sj = buildJoin(w, realIndex)) {
@@ -14335,7 +14337,7 @@ var __async = (__this, __arguments, generator) => {
     if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
     if (!oldY.length || !newY.length) return null;
     const oldKeys = uniquifyKeys(
-      oldY.map((_2, j) => frameDatumKey(frame, realIndex, j))
+      oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
     );
     const newKeys = seriesKeys(w, realIndex);
     return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
@@ -14346,20 +14348,38 @@ var __async = (__this, __arguments, generator) => {
     return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
   }
   function rafTween(w, duration, ease, onFrame2, onDone, alive, startAt = performance.now()) {
+    var _a;
+    const live = (_a = w.globals).liveTweens || (_a.liveTweens = /* @__PURE__ */ new Set());
+    const self2 = {};
+    live.add(self2);
     const step = (now) => {
-      if (w.globals.isDestroyed || alive && !alive()) return;
+      if (w.globals.isDestroyed || alive && !alive()) {
+        live.delete(self2);
+        return;
+      }
       const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
       onFrame2(ease(raw), raw);
       if (raw < 1) {
         BrowserAPIs.requestAnimationFrame(step);
-      } else if (onDone) {
-        onDone();
+      } else {
+        live.delete(self2);
+        if (onDone) onDone();
       }
     };
     BrowserAPIs.requestAnimationFrame(step);
     return () => {
       alive = () => false;
     };
+  }
+  function startTweenLater(w, delay, start) {
+    const render = w.globals.liveTweens;
+    setTimeout(() => {
+      if (!w.globals.isDestroyed && w.globals.liveTweens === render) start();
+    }, delay);
+  }
+  function stillMoving(w) {
+    var _a;
+    return !w.globals.animationEnded || !!((_a = w.globals.liveTweens) == null ? void 0 : _a.size);
   }
   const onPage = (w, elPointsMain) => () => w.dom.baseEl.contains(elPointsMain.node);
   function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed, join }) {
@@ -14384,7 +14404,7 @@ var __async = (__this, __arguments, generator) => {
     elPointsMain.node.classList.remove("apexcharts-element-hidden");
     const alive = onPage(w, elPointsMain);
     markers.forEach((node) => {
-      var _a2, _b2, _c2, _d2, _e2, _f, _g, _h, _i;
+      var _a2, _b2, _c2, _d2, _e, _f, _g, _h, _i;
       const j = parseInt(
         (_b2 = (_a2 = node.getAttribute("j")) != null ? _a2 : node.getAttribute("rel")) != null ? _b2 : "",
         10
@@ -14415,7 +14435,7 @@ var __async = (__this, __arguments, generator) => {
       const dx = ((_c2 = oldXP[oldJ]) != null ? _c2 : NaN) - to[0];
       const dy = ((_d2 = oldYP[oldJ]) != null ? _d2 : NaN) - to[1];
       if (!isFinite(dx) || !isFinite(dy)) return;
-      const rFrom = (_g = (_f = (_e2 = frame.rPixels) == null ? void 0 : _e2[realIndex]) == null ? void 0 : _f[oldJ]) != null ? _g : NaN;
+      const rFrom = (_g = (_f = (_e = frame.rPixels) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[oldJ]) != null ? _g : NaN;
       const rTo = parseFloat(
         (_i = (_h = node.getAttribute("r")) != null ? _h : node.getAttribute("default-marker-size")) != null ? _i : ""
       );
@@ -14607,7 +14627,7 @@ var __async = (__this, __arguments, generator) => {
     const boxes = nodes.map((node) => {
       try {
         return node.getBBox();
-      } catch (_2) {
+      } catch (_) {
         return null;
       }
     });
@@ -14749,7 +14769,7 @@ var __async = (__this, __arguments, generator) => {
         // LayoutTransition.
         layout: captureLayout(w)
       });
-    } catch (_2) {
+    } catch (_) {
       gl.prevChromeFrame = null;
     }
   }
@@ -14771,7 +14791,9 @@ var __async = (__this, __arguments, generator) => {
       (eased) => {
         if (!over) onFrame2(eased);
       },
-      finish
+      finish,
+      // landed early (finishChromeTweens): stop, or it still counts as moving
+      () => !over
     );
   }
   function finishChromeTweens(w) {
@@ -14981,7 +15003,7 @@ var __async = (__this, __arguments, generator) => {
     if (!(chrome == null ? void 0 : chrome.pending) || !gl.axisCharts || !Environment.isBrowser()) return;
     if (!lengthTransitionEnabled(w)) return;
     const anyMotion = (w.seriesData.series || []).some(
-      (_2, i2) => seriesJoin(w, i2, true, true) !== null
+      (_, i2) => seriesJoin(w, i2, true, true) !== null
     );
     if (!anyMotion) return;
     const root = w.dom.baseEl;
@@ -15026,7 +15048,7 @@ var __async = (__this, __arguments, generator) => {
         driven
       });
       if (layout) transitionLayout(w, chrome.layout, { driven, duration, ease });
-    } catch (_2) {
+    } catch (_) {
     }
   }
   function currentCircle(w, geom) {
@@ -15062,7 +15084,7 @@ var __async = (__this, __arguments, generator) => {
       const own = parseFloat((_a = el.getAttribute("opacity")) != null ? _a : "");
       const o2 = Number.isFinite(own) ? own : 1;
       return [p2.x, p2.y, k2].every(Number.isFinite) && k2 > 0 ? { x: p2.x, y: p2.y, k: k2, o: o2 } : null;
-    } catch (_2) {
+    } catch (_) {
       return null;
     }
   }
@@ -15122,7 +15144,7 @@ var __async = (__this, __arguments, generator) => {
         layout: gl.axisCharts ? null : captureLayout(w),
         texts: readTexts(geom.node, graphical)
       });
-    } catch (_2) {
+    } catch (_) {
       gl.prevCircleFrame = null;
     }
   }
@@ -15152,7 +15174,7 @@ var __async = (__this, __arguments, generator) => {
         duration,
         ease
       });
-    } catch (_2) {
+    } catch (_) {
       if (gl.circleTween && !gl.circleTween.done) gl.circleTween.finish();
     }
   }
@@ -15213,7 +15235,7 @@ var __async = (__this, __arguments, generator) => {
       writers.push((c2, s2, e2) => {
         const P = { x: lerp2(P0.x, now.x, e2), y: lerp2(P0.y, now.y, e2) };
         const sigma = lerp2(P0.k / now.k, 1, e2);
-        const E2 = new DOMMatrix([
+        const E = new DOMMatrix([
           sigma / s2,
           0,
           0,
@@ -15221,7 +15243,7 @@ var __async = (__this, __arguments, generator) => {
           c1.cx + (P.x - c2.cx - sigma * now.x) / s2,
           c1.cy + (P.y - c2.cy - sigma * now.y) / s2
         ]);
-        let X = Minv.multiply(E2).multiply(M);
+        let X = Minv.multiply(E).multiply(M);
         if (ox || oy) {
           X = new DOMMatrix().translate(-ox, -oy).multiply(X).translate(ox, oy);
         }
@@ -15247,7 +15269,7 @@ var __async = (__this, __arguments, generator) => {
       const dy = parseFloat(m2[2]);
       let wrote = own;
       let ours = true;
-      writers.push((_2, s2) => {
+      writers.push((_, s2) => {
         if (!ours) return;
         if (el.getAttribute("transform") !== wrote) {
           ours = false;
@@ -15372,7 +15394,7 @@ var __async = (__this, __arguments, generator) => {
         });
       });
       gl.prevDataLabels = map.size ? map : null;
-    } catch (_2) {
+    } catch (_) {
       gl.prevDataLabels = null;
     }
   }
@@ -15420,7 +15442,7 @@ var __async = (__this, __arguments, generator) => {
           });
         });
       });
-    } catch (_2) {
+    } catch (_) {
       gl.exitLabels = null;
       return;
     }
@@ -15487,7 +15509,7 @@ var __async = (__this, __arguments, generator) => {
           );
         });
       });
-    } catch (_2) {
+    } catch (_) {
     }
   }
   function playExitLabels(w) {
@@ -15517,7 +15539,7 @@ var __async = (__this, __arguments, generator) => {
     const owned = {};
     try {
       labels.forEach(({ realIndex, node, key, oldX, oldY }) => {
-        var _a2, _b, _c, _d, _e2;
+        var _a2, _b, _c, _d, _e;
         if ((_a2 = owned[realIndex]) != null ? _a2 : owned[realIndex] = !!root.querySelector(
           `.apexcharts-datalabels[data\\:realIndex="${realIndex}"] .apexcharts-data-labels`
         )) {
@@ -15542,7 +15564,7 @@ var __async = (__this, __arguments, generator) => {
           });
         } else if (!key) {
           const newX = ((_d = gl.seriesXvalues) == null ? void 0 : _d[realIndex]) || [];
-          const newY = ((_e2 = gl.seriesYvalues) == null ? void 0 : _e2[realIndex]) || [];
+          const newY = ((_e = gl.seriesYvalues) == null ? void 0 : _e[realIndex]) || [];
           parts.forEach((els) => {
             const text = els[els.length - 1];
             const j = nearestIndex(oldX, parseFloat(text.getAttribute("cx") || ""));
@@ -15578,7 +15600,7 @@ var __async = (__this, __arguments, generator) => {
           startAt
         );
       });
-    } catch (_2) {
+    } catch (_) {
     }
     if (!pending) wrap.remove();
   }
@@ -15623,10 +15645,7 @@ var __async = (__this, __arguments, generator) => {
     );
     el.setAttribute("transform", `translate(${dx} ${dy}) ${base}`.trim());
     if (delay > 0) {
-      setTimeout(() => {
-        if (w.globals.isDestroyed) return;
-        start();
-      }, delay);
+      startTweenLater(w, delay, start);
     } else {
       start();
     }
@@ -15641,7 +15660,7 @@ var __async = (__this, __arguments, generator) => {
       if (typeof formatter === "function") {
         try {
           out = formatter(rounded, fmtOpts);
-        } catch (_2) {
+        } catch (_) {
           out = rounded;
         }
       }
@@ -15661,10 +15680,7 @@ var __async = (__this, __arguments, generator) => {
     );
     writeLabel(el, format(from));
     if (delay > 0) {
-      setTimeout(() => {
-        if (w.globals.isDestroyed) return;
-        start();
-      }, delay);
+      startTweenLater(w, delay, start);
     } else {
       start();
     }
@@ -15756,7 +15772,7 @@ var __async = (__this, __arguments, generator) => {
           });
         }
       });
-    } catch (_2) {
+    } catch (_) {
     }
   }
   const _Series = class _Series {
@@ -16196,10 +16212,10 @@ var __async = (__this, __arguments, generator) => {
           `.apexcharts-series[rel='${realIndex + 1}'] path`
         );
       }
-      for (let se = 0; se < allSeriesEls.length; se++) {
+      for (let se2 = 0; se2 < allSeriesEls.length; se2++) {
         const serEl = (
           /** @type {Element} */
-          allSeriesEls[se]
+          allSeriesEls[se2]
         );
         serEl.classList.add(this.legendInactiveClass);
       }
@@ -16219,10 +16235,10 @@ var __async = (__this, __arguments, generator) => {
           yaxisEl.classList.remove(this.legendInactiveClass);
         }
       } else {
-        for (let se = 0; se < allSeriesEls.length; se++) {
+        for (let se2 = 0; se2 < allSeriesEls.length; se2++) {
           const serEl = (
             /** @type {Element} */
-            allSeriesEls[se]
+            allSeriesEls[se2]
           );
           serEl.classList.remove(this.legendInactiveClass);
         }
@@ -16245,8 +16261,8 @@ var __async = (__this, __arguments, generator) => {
         const allSeriesEls = w.dom.baseEl.querySelectorAll(
           `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
         );
-        for (let se = 0; se < allSeriesEls.length; se++) {
-          allSeriesEls[se].classList.remove(this.legendInactiveClass);
+        for (let se2 = 0; se2 < allSeriesEls.length; se2++) {
+          allSeriesEls[se2].classList.remove(this.legendInactiveClass);
         }
         this.canvasRestyle(null);
       }
@@ -16333,7 +16349,7 @@ var __async = (__this, __arguments, generator) => {
     getActiveConfigSeriesIndexByGroup(chartTypes = []) {
       const w = this.w;
       const groups = w.labelData.seriesGroups || [];
-      return groups.map((_2, gi) => {
+      return groups.map((_, gi) => {
         let last = -1;
         w.config.series.forEach(
           (s2, i2) => {
@@ -16380,7 +16396,7 @@ var __async = (__this, __arguments, generator) => {
       ) : null;
     }
     capturePreviousPaths() {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       captureStreamFrame(w);
       captureAxisChrome(w);
@@ -16488,7 +16504,7 @@ var __async = (__this, __arguments, generator) => {
               x: parseFloat((_b = getAttr("x")) != null ? _b : "0"),
               y: parseFloat((_c = getAttr("y")) != null ? _c : "0"),
               width: parseFloat((_d = getAttr("width")) != null ? _d : "0"),
-              height: parseFloat((_e2 = getAttr("height")) != null ? _e2 : "0")
+              height: parseFloat((_e = getAttr("height")) != null ? _e : "0")
             };
             const entry = {
               rect,
@@ -16599,9 +16615,9 @@ var __async = (__this, __arguments, generator) => {
     }
     handleNoData() {
       const w = this.w;
-      const me = this;
+      const me2 = this;
       const noDataOpts = w.config.noData;
-      const graphics = new Graphics(me.w);
+      const graphics = new Graphics(me2.w);
       let x2 = w.globals.svgWidth / 2;
       let y2 = w.globals.svgHeight / 2;
       let textAnchor = "middle";
@@ -16694,37 +16710,37 @@ var __async = (__this, __arguments, generator) => {
   function n(e2) {
     t.warn(e2);
   }
-  const s = ["community", "pro", "premium", "embedded", "oem"], i = { enterprise: "oem" }, r = { community: 0, pro: 1, premium: 2, embedded: 2, oem: 2 }, o = (t2) => s.includes(t2);
+  const r = ["community", "pro", "premium", "embedded", "oem"], s = { enterprise: "oem" }, i = { community: 0, pro: 1, premium: 2, embedded: 2, oem: 2 }, o = (t2) => r.includes(t2);
   function l(t2) {
     if ("string" != typeof t2) return null;
     const e2 = t2.trim().toLowerCase();
-    return o(e2) ? e2 : Object.prototype.hasOwnProperty.call(i, e2) ? i[e2] : null;
+    return o(e2) ? e2 : Object.prototype.hasOwnProperty.call(s, e2) ? s[e2] : null;
   }
   function a(t2) {
     const e2 = l(t2);
-    return e2 ? r[e2] : null;
+    return e2 ? i[e2] : null;
   }
   const c = "APEX-", u = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), d = "__apex_license_v1__";
-  function h() {
+  function f() {
     const t2 = globalThis;
     let e2 = t2[d];
     return e2 || (e2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, t2[d] = e2), e2;
   }
-  const f = class {
+  const h = class {
     static get licenseKey() {
-      return h().key;
+      return f().key;
     }
     static set licenseKey(t2) {
-      h().key = t2;
+      f().key = t2;
     }
     static get listeners() {
-      return h().listeners;
+      return f().listeners;
     }
     static get validationResult() {
-      return h().result;
+      return f().result;
     }
     static set validationResult(t2) {
-      h().result = t2;
+      f().result = t2;
     }
     static getKey() {
       return this.licenseKey;
@@ -16745,13 +16761,13 @@ var __async = (__this, __arguments, generator) => {
     }
     static setLicense(t2) {
       var _a;
-      var s2, i2, r2, o2, c2;
+      var r2, s2, i2, o2, c2;
       if (!t2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
       const u2 = this.validateKey(t2);
-      if (u2.valid || t2 === this.licenseKey || !(null == (s2 = this.validationResult) ? void 0 : s2.valid)) {
+      if (u2.valid || t2 === this.licenseKey || !(null == (r2 = this.validationResult) ? void 0 : r2.valid)) {
         if (u2.valid && t2 !== this.licenseKey && this.licenseKey) {
-          const t3 = this.getLicenseStatus(), e2 = t3.valid ? a(null == (i2 = t3.data) ? void 0 : i2.plan) : null, s3 = a(null == (r2 = u2.data) ? void 0 : r2.plan);
-          if (null !== e2 && null !== s3 && s3 < e2) return void n(`[Apex] Ignoring license key: its plan (${l(null == (o2 = u2.data) ? void 0 : o2.plan)}) is lower than ${l(null == (c2 = t3.data) ? void 0 : c2.plan)}, the plan of the license already active on this page. Call setLicense("") first to replace it with a lower plan.`);
+          const t3 = this.getLicenseStatus(), e2 = t3.valid ? a(null == (s2 = t3.data) ? void 0 : s2.plan) : null, r3 = a(null == (i2 = u2.data) ? void 0 : i2.plan);
+          if (null !== e2 && null !== r3 && r3 < e2) return void n(`[Apex] Ignoring license key: its plan (${l(null == (o2 = u2.data) ? void 0 : o2.plan)}) is lower than ${l(null == (c2 = t3.data) ? void 0 : c2.plan)}, the plan of the license already active on this page. Call setLicense("") first to replace it with a lower plan.`);
         }
         this.licenseKey = t2, this.publish(u2), u2.valid || e(`[Apex] ${u2.message}`);
       } else n(`[Apex] Ignoring license key: ${(_a = u2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
@@ -16759,18 +16775,18 @@ var __async = (__this, __arguments, generator) => {
     static validateKey(t2) {
       const e2 = this.parseKey(t2), n2 = this.validateStructure(t2, e2);
       if (!n2.valid || !(null == e2 ? void 0 : e2.signature)) return n2;
-      const s2 = this.verdicts.get(t2);
-      return false === s2 ? { data: e2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === s2 && this.verifySignature(t2, e2, n2), __spreadProps(__spreadValues({}, n2), { signatureVerified: true === s2 }));
+      const r2 = this.verdicts.get(t2);
+      return false === r2 ? { data: e2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === r2 && this.verifySignature(t2, e2, n2), __spreadProps(__spreadValues({}, n2), { signatureVerified: true === r2 }));
     }
     static _resetSignatureState() {
       this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
     }
     static base64ToBytes(t2) {
-      const e2 = t2.replace(/-/g, "+").replace(/_/g, "/"), n2 = e2.padEnd(4 * Math.ceil(e2.length / 4), "="), s2 = globalThis.atob;
-      if ("function" != typeof s2) throw new Error("no base64 decoder available");
-      const i2 = s2(n2), r2 = new Uint8Array(i2.length);
-      for (let t3 = 0; t3 < i2.length; t3++) r2[t3] = i2.charCodeAt(t3);
-      return r2;
+      const e2 = t2.replace(/-/g, "+").replace(/_/g, "/"), n2 = e2.padEnd(4 * Math.ceil(e2.length / 4), "="), r2 = globalThis.atob;
+      if ("function" != typeof r2) throw new Error("no base64 decoder available");
+      const s2 = r2(n2), i2 = new Uint8Array(s2.length);
+      for (let t3 = 0; t3 < s2.length; t3++) i2[t3] = s2.charCodeAt(t3);
+      return i2;
     }
     static canonicalPayload(t2) {
       const e2 = t2.domains && t2.domains.length > 0 ? t2.domains.join(",") : "";
@@ -16800,28 +16816,28 @@ var __async = (__this, __arguments, generator) => {
       const n2 = (t3) => ({ expired: false, message: t3, signatureVerified: false, valid: false });
       if ("string" != typeof t2 || !t2.startsWith(c)) return n2('Invalid license key format. License key must start with "APEX-".');
       if (!e2) return n2("Invalid license key. Unable to decode license data.");
-      const { data: s2, signature: i2 } = e2;
-      if (!i2 && /* @__PURE__ */ new Date() >= u) return n2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
-      if (new Date(s2.expiryDate) < /* @__PURE__ */ new Date()) return { data: s2, expired: true, message: `License expired on ${s2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
-      if (s2.domains && s2.domains.length > 0) {
+      const { data: r2, signature: s2 } = e2;
+      if (!s2 && /* @__PURE__ */ new Date() >= u) return n2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+      if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
+      if (r2.domains && r2.domains.length > 0) {
         const t3 = "undefined" == typeof location ? "" : location.hostname;
-        if (!s2.domains.some(((e3) => t3 === e3 || t3.endsWith(`.${e3}`)))) return { data: s2, expired: false, message: `License is not valid for this domain (${t3}). Allowed domains: ${s2.domains.join(", ")}.`, signatureVerified: false, valid: false };
+        if (!r2.domains.some(((e3) => t3 === e3 || t3.endsWith(`.${e3}`)))) return { data: r2, expired: false, message: `License is not valid for this domain (${t3}). Allowed domains: ${r2.domains.join(", ")}.`, signatureVerified: false, valid: false };
       }
-      return { data: s2, expired: false, signatureVerified: false, valid: true };
+      return { data: r2, expired: false, signatureVerified: false, valid: true };
     }
-    static verifySignature(t2, s2, i2) {
+    static verifySignature(t2, r2, s2) {
       return __async(this, null, function* () {
-        var r2;
+        var i2;
         if (this.verifying.has(t2) || this.verdicts.has(t2)) return;
         this.verifying.add(t2);
-        const o2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+        const o2 = this.epoch, l2 = null == (i2 = globalThis.crypto) ? void 0 : i2.subtle;
         if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(t2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, n(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
-        const a2 = new TextEncoder().encode(this.canonicalPayload(s2.data));
+        const a2 = new TextEncoder().encode(this.canonicalPayload(r2.data));
         let c2 = false;
         for (const t3 of this.publicKeysSpki) {
           try {
             const e2 = yield l2.importKey("spki", this.base64ToBytes(t3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-            c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, e2, this.base64ToBytes(s2.signature), a2);
+            c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, e2, this.base64ToBytes(r2.signature), a2);
           } catch (e2) {
             c2 = false;
           }
@@ -16829,16 +16845,16 @@ var __async = (__this, __arguments, generator) => {
         }
         if (this.verifying.delete(t2), this.epoch !== o2) return;
         if (this.verdicts.set(t2, c2), c2) {
-          const e2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
+          const e2 = __spreadProps(__spreadValues({}, s2), { signatureVerified: true });
           return void (this.licenseKey === t2 ? this.publish(e2) : this.notify(e2));
         }
-        const u2 = "Invalid license key. The license signature does not verify.", d2 = { data: s2.data, expired: false, message: u2, signatureVerified: true, valid: false };
+        const u2 = "Invalid license key. The license signature does not verify.", d2 = { data: r2.data, expired: false, message: u2, signatureVerified: true, valid: false };
         this.licenseKey === t2 ? this.publish(d2) : this.notify(d2), e(`[Apex] ${u2}`);
       });
     }
   };
-  f.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], f.verdicts = /* @__PURE__ */ new Map(), f.verifying = /* @__PURE__ */ new Set(), f.warnedUnverifiable = false, f.epoch = 0;
-  let m = f;
+  h.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], h.verdicts = /* @__PURE__ */ new Map(), h.verifying = /* @__PURE__ */ new Set(), h.warnedUnverifiable = false, h.epoch = 0;
+  let m = h;
   const p = /* @__PURE__ */ new Set();
   function g$2() {
     var t2;
@@ -16848,75 +16864,75 @@ var __async = (__this, __arguments, generator) => {
   function y(t2) {
     var e2;
     try {
-      const i2 = m.getLicenseStatus();
-      if (!i2.valid) return false;
-      const o2 = null == (e2 = i2.data) ? void 0 : e2.plan, a2 = l(o2);
-      if (a2) return r[a2] >= r[t2];
+      const s2 = m.getLicenseStatus();
+      if (!s2.valid) return false;
+      const o2 = null == (e2 = s2.data) ? void 0 : e2.plan, a2 = l(o2);
+      if (a2) return i[a2] >= i[t2];
       const c2 = "string" == typeof o2 && o2.trim() ? o2.trim() : "(missing)";
-      return p.has(c2) || (p.add(c2), n(`[apex] licence plan ${JSON.stringify(c2)} is not a known plan, so plan-gated features are being allowed. Expected one of: ${s.join(", ")}.`)), true;
+      return p.has(c2) || (p.add(c2), n(`[apex] licence plan ${JSON.stringify(c2)} is not a known plan, so plan-gated features are being allowed. Expected one of: ${r.join(", ")}.`)), true;
     } catch (e3) {
       return false;
     }
   }
-  const x = 1e3;
-  function S(t2, e2) {
+  const S = 1e3;
+  function x(t2, e2) {
     const n2 = t2.length;
     if (0 === n2) return NaN;
     if (1 === n2) return t2[0];
-    const s2 = (n2 - 1) * e2, i2 = Math.floor(s2), r2 = Math.ceil(s2);
-    return i2 === r2 ? t2[i2] : t2[i2] + (t2[r2] - t2[i2]) * (s2 - i2);
+    const r2 = (n2 - 1) * e2, s2 = Math.floor(r2), i2 = Math.ceil(r2);
+    return s2 === i2 ? t2[s2] : t2[s2] + (t2[i2] - t2[s2]) * (r2 - s2);
   }
   function A$1(t2, e2, n2) {
-    const s2 = t2.length, i2 = (t3) => e2 / Math.max(1, Math.ceil(t3)), r2 = () => i2(Math.log2(s2) + 1);
+    const r2 = t2.length, s2 = (t3) => e2 / Math.max(1, Math.ceil(t3)), i2 = () => s2(Math.log2(r2) + 1);
     switch (n2) {
       case "sqrt":
-        return { width: i2(Math.sqrt(s2)), rule: "sqrt" };
+        return { width: s2(Math.sqrt(r2)), rule: "sqrt" };
       case "rice":
-        return { width: i2(2 * Math.cbrt(s2)), rule: "rice" };
+        return { width: s2(2 * Math.cbrt(r2)), rule: "rice" };
       case "scott": {
         const e3 = (function(t3) {
           const e4 = t3.length;
           if (e4 < 2) return 0;
           let n3 = 0;
-          for (let s4 = 0; s4 < e4; s4++) n3 += t3[s4];
-          const s3 = n3 / e4;
-          let i3 = 0;
+          for (let r4 = 0; r4 < e4; r4++) n3 += t3[r4];
+          const r3 = n3 / e4;
+          let s3 = 0;
           for (let n4 = 0; n4 < e4; n4++) {
-            const e5 = t3[n4] - s3;
-            i3 += e5 * e5;
+            const e5 = t3[n4] - r3;
+            s3 += e5 * e5;
           }
-          return Math.sqrt(i3 / e4);
+          return Math.sqrt(s3 / e4);
         })(t2);
-        return e3 > 0 ? { width: 3.49 * e3 * Math.pow(s2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
+        return e3 > 0 ? { width: 3.49 * e3 * Math.pow(r2, -1 / 3), rule: "scott" } : { width: i2(), rule: "sturges" };
       }
       case "fd": {
-        const e3 = S(t2, 0.75) - S(t2, 0.25);
-        return e3 > 0 ? { width: 2 * e3 * Math.pow(s2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
+        const e3 = x(t2, 0.75) - x(t2, 0.25);
+        return e3 > 0 ? { width: 2 * e3 * Math.pow(r2, -1 / 3), rule: "fd" } : { width: i2(), rule: "sturges" };
       }
       case "auto": {
-        const e3 = r2(), n3 = S(t2, 0.75) - S(t2, 0.25);
+        const e3 = i2(), n3 = x(t2, 0.75) - x(t2, 0.25);
         if (n3 <= 0) return { width: e3, rule: "sturges" };
-        const i3 = 2 * n3 * Math.pow(s2, -1 / 3);
-        return i3 < e3 ? { width: i3, rule: "fd" } : { width: e3, rule: "sturges" };
+        const s3 = 2 * n3 * Math.pow(r2, -1 / 3);
+        return s3 < e3 ? { width: s3, rule: "fd" } : { width: e3, rule: "sturges" };
       }
       default:
-        return { width: r2(), rule: "sturges" };
+        return { width: i2(), rule: "sturges" };
     }
   }
   function k(t2, e2 = {}) {
     if (!Array.isArray(t2) || 0 === t2.length) return null;
     const n2 = t2.slice().sort(((t3, e3) => t3 - e3));
-    let s2 = n2[0], i2 = n2[n2.length - 1];
-    const r2 = e2.range;
-    if (Array.isArray(r2) && 2 === r2.length) {
-      const t3 = Number(r2[0]), e3 = Number(r2[1]);
-      Number.isFinite(t3) && Number.isFinite(e3) && e3 > t3 && (s2 = t3, i2 = e3);
+    let r2 = n2[0], s2 = n2[n2.length - 1];
+    const i2 = e2.range;
+    if (Array.isArray(i2) && 2 === i2.length) {
+      const t3 = Number(i2[0]), e3 = Number(i2[1]);
+      Number.isFinite(t3) && Number.isFinite(e3) && e3 > t3 && (r2 = t3, s2 = e3);
     }
-    if (!(i2 > s2)) {
-      const t3 = Math.abs(s2) > 0 ? 0.05 * Math.abs(s2) : 0.5;
-      return { edges: [s2 - t3, s2 + t3], binWidth: 2 * t3, rule: "single", capped: false };
+    if (!(s2 > r2)) {
+      const t3 = Math.abs(r2) > 0 ? 0.05 * Math.abs(r2) : 0.5;
+      return { edges: [r2 - t3, r2 + t3], binWidth: 2 * t3, rule: "single", capped: false };
     }
-    const o2 = i2 - s2;
+    const o2 = s2 - r2;
     let l2, a2;
     if ("number" == typeof e2.binWidth && e2.binWidth > 0) l2 = e2.binWidth, a2 = "binWidth";
     else if ("number" == typeof e2.bins && e2.bins >= 1) l2 = o2 / Math.floor(e2.bins), a2 = "count";
@@ -16928,40 +16944,40 @@ var __async = (__this, __arguments, generator) => {
     let c2 = Math.ceil(o2 / l2);
     (!Number.isFinite(c2) || c2 < 1) && (c2 = 1);
     let u2 = false;
-    c2 > x && (c2 = x, u2 = true), l2 = o2 / c2;
+    c2 > S && (c2 = S, u2 = true), l2 = o2 / c2;
     const d2 = new Array(c2 + 1);
-    for (let t3 = 0; t3 <= c2; t3++) d2[t3] = s2 + t3 * l2;
-    return d2[c2] = Math.max(d2[c2], i2), { edges: d2, binWidth: l2, rule: a2, capped: u2 };
+    for (let t3 = 0; t3 <= c2; t3++) d2[t3] = r2 + t3 * l2;
+    return d2[c2] = Math.max(d2[c2], s2), { edges: d2, binWidth: l2, rule: a2, capped: u2 };
   }
-  function L(t2, e2) {
+  function N(t2, e2) {
     const n2 = e2.length - 1;
     if (!(t2 >= e2[0]) || t2 > e2[n2]) return -1;
     if (t2 === e2[n2]) return n2 - 1;
-    const s2 = (e2[n2] - e2[0]) / n2;
-    if (s2 > 0) {
-      let i3 = Math.floor((t2 - e2[0]) / s2);
-      return i3 < 0 && (i3 = 0), i3 > n2 - 1 && (i3 = n2 - 1), t2 < e2[i3] ? i3-- : t2 >= e2[i3 + 1] && i3++, i3 < 0 || i3 > n2 - 1 ? -1 : i3;
+    const r2 = (e2[n2] - e2[0]) / n2;
+    if (r2 > 0) {
+      let s3 = Math.floor((t2 - e2[0]) / r2);
+      return s3 < 0 && (s3 = 0), s3 > n2 - 1 && (s3 = n2 - 1), t2 < e2[s3] ? s3-- : t2 >= e2[s3 + 1] && s3++, s3 < 0 || s3 > n2 - 1 ? -1 : s3;
     }
-    let i2 = 0, r2 = n2 - 1;
-    for (; i2 <= r2; ) {
-      const n3 = i2 + r2 >> 1;
-      if (t2 < e2[n3]) r2 = n3 - 1;
+    let s2 = 0, i2 = n2 - 1;
+    for (; s2 <= i2; ) {
+      const n3 = s2 + i2 >> 1;
+      if (t2 < e2[n3]) i2 = n3 - 1;
       else {
         if (!(t2 >= e2[n3 + 1])) return n3;
-        i2 = n3 + 1;
+        s2 = n3 + 1;
       }
     }
     return -1;
   }
   function C(t2, e2) {
     const n2 = new Array(Math.max(0, e2.length - 1)).fill(0);
-    for (let s2 = 0; s2 < t2.length; s2++) {
-      const i2 = L(t2[s2], e2);
-      i2 >= 0 && n2[i2]++;
+    for (let r2 = 0; r2 < t2.length; r2++) {
+      const s2 = N(t2[r2], e2);
+      s2 >= 0 && n2[s2]++;
     }
     return n2;
   }
-  const E = class {
+  const $ = class {
     static applyStyles(t2) {
       Object.assign(t2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
     }
@@ -17003,8 +17019,8 @@ var __async = (__this, __arguments, generator) => {
     static explainPlan(t2) {
       const e2 = g$2();
       if (!e2 || y(t2)) return;
-      const s2 = `${e2}>${t2}`;
-      this.explainedPlans.has(s2) || (this.explainedPlans.add(s2), n(`[Apex] The license key is valid, but its plan (${e2}) does not include a product on this page that needs ${t2} or higher, so that product keeps the trial watermark.`));
+      const r2 = `${e2}>${t2}`;
+      this.explainedPlans.has(r2) || (this.explainedPlans.add(r2), n(`[Apex] The license key is valid, but its plan (${e2}) does not include a product on this page that needs ${t2} or higher, so that product keeps the trial watermark.`));
     }
     static erase(t2) {
       var e2;
@@ -17027,131 +17043,189 @@ var __async = (__this, __arguments, generator) => {
       })));
     }
   };
-  E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Map(), E.subscribed = false, E.explainedPlans = /* @__PURE__ */ new Set();
-  let $ = E;
-  const D = 0.05, F = 0.05, K = 1 / 45;
-  function q(t2, e2, n2, s2) {
-    const i2 = { value: t2, velocity: 0, target: t2, stiffness: e2, damping: n2 };
-    return i2;
+  $.WATERMARK_ATTR = "data-apexcharts-watermark", $.WATERMARK_TEXT = "APEXCHARTS", $.ATTR = "data-apexcharts-watermark", $.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, $.managed = /* @__PURE__ */ new Map(), $.subscribed = false, $.explainedPlans = /* @__PURE__ */ new Set();
+  let T = $;
+  function pt(t2) {
+    const e2 = t2.getRootNode ? t2.getRootNode() : null;
+    return e2 && (9 === e2.nodeType || 11 === e2.nodeType && "host" in e2) ? e2 : t2.ownerDocument || document;
   }
-  function _(t2, e2) {
-    if (e2 <= 0) return W(t2);
+  function gt(t2) {
+    const e2 = "function" == typeof t2.composedPath ? t2.composedPath() : null;
+    return (null == e2 ? void 0 : e2.length) ? e2[0] : t2.target;
+  }
+  function yt(t2) {
+    var e2;
+    const n2 = t2.ownerDocument || t2;
+    let r2 = n2 && "activeElement" in n2 ? n2.activeElement : null;
+    for (; null == (e2 = null == r2 ? void 0 : r2.shadowRoot) ? void 0 : e2.activeElement; ) r2 = r2.shadowRoot.activeElement;
+    return r2;
+  }
+  function vt(t2, e2) {
+    const n2 = pt(t2), r2 = n2.querySelector(e2);
+    if (r2) return r2;
+    const s2 = t2.ownerDocument;
+    return s2 && s2 !== n2 ? s2.querySelector(e2) : null;
+  }
+  function bt(t2, e2) {
+    const n2 = pt(t2), r2 = Array.from(n2.querySelectorAll(e2));
+    if (r2.length) return r2;
+    const s2 = t2.ownerDocument;
+    return s2 && s2 !== n2 ? Array.from(s2.querySelectorAll(e2)) : [];
+  }
+  const wt = Symbol.for("apex-commons.styleUsers");
+  function Mt(t2, e2, n2, r2 = {}) {
+    const s2 = pt(t2), i2 = t2.ownerDocument || document;
+    let o2 = s2.getElementById(e2);
+    if (!o2) {
+      o2 = i2.createElement("style"), o2.id = e2, o2.textContent = n2, r2.nonce && o2.setAttribute("nonce", r2.nonce);
+      const t3 = r2.after ? s2.getElementById(r2.after) : null;
+      t3 ? t3.after(o2) : (9 === s2.nodeType ? s2.head || s2.documentElement : s2).prepend(o2), o2[wt] = 0;
+    }
+    const l2 = o2;
+    "number" == typeof l2[wt] && (l2[wt] += 1);
+    let a2 = false;
+    return () => {
+      a2 || (a2 = true, "number" == typeof l2[wt] && (l2[wt] -= 1, l2[wt] <= 0 && l2.remove()));
+    };
+  }
+  function St(t2) {
+    const e2 = [];
+    let n2 = t2;
+    for (; n2; ) {
+      const t3 = pt(n2);
+      e2.unshift(t3), n2 = 11 === t3.nodeType ? t3.host : null;
+    }
+    const r2 = [];
+    for (const t3 of e2) {
+      for (const e4 of Array.from(t3.styleSheets || [])) r2.push(e4);
+      const e3 = t3.adoptedStyleSheets;
+      if (e3) for (const t4 of e3) r2.push(t4);
+    }
+    return r2;
+  }
+  const $t = 0.05, Tt = 0.05, Et = 1 / 45;
+  function Rt(t2, e2, n2, r2) {
+    const s2 = { value: t2, velocity: 0, target: t2, stiffness: e2, damping: n2 };
+    return s2;
+  }
+  function Ft(t2, e2) {
+    if (e2 <= 0) return It(t2);
     let n2 = e2;
     for (; n2 > 0; ) {
-      const e3 = Math.min(n2, K), s2 = -t2.stiffness * (t2.value - t2.target) - t2.damping * t2.velocity;
-      t2.velocity += s2 * e3, t2.value += t2.velocity * e3, n2 -= e3;
+      const e3 = Math.min(n2, Et), r2 = -t2.stiffness * (t2.value - t2.target) - t2.damping * t2.velocity;
+      t2.velocity += r2 * e3, t2.value += t2.velocity * e3, n2 -= e3;
     }
-    return !!W(t2) && (t2.value = t2.target, t2.velocity = 0, true);
+    return !!It(t2) && (t2.value = t2.target, t2.velocity = 0, true);
   }
-  function I(t2, e2) {
+  function Ot(t2, e2) {
     t2.target = e2;
   }
-  function W(t2) {
+  function It(t2) {
     var _a, _b;
-    const e2 = (_a = t2.restVelocity) != null ? _a : D, n2 = (_b = t2.restDisplacement) != null ? _b : F;
+    const e2 = (_a = t2.restVelocity) != null ? _a : $t, n2 = (_b = t2.restDisplacement) != null ? _b : Tt;
     return Math.abs(t2.velocity) < e2 && Math.abs(t2.value - t2.target) < n2;
   }
-  const V = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-  function z(t2) {
+  const Kt = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
+  function _t(t2) {
     var _a;
-    return (_a = V[t2 != null ? t2 : "crisp"]) != null ? _a : V.crisp;
+    return (_a = Kt[t2 != null ? t2 : "crisp"]) != null ? _a : Kt.crisp;
   }
-  function G(t2) {
+  function Qt(t2) {
     return t2 && "function" == typeof t2.getPropertyValue ? t2 : null;
   }
-  function tt(t2, e2 = globalThis) {
+  function Xt(t2, e2 = globalThis) {
     if (!t2 || "function" != typeof e2.getComputedStyle) return null;
     try {
-      return G(e2.getComputedStyle(t2));
+      return Qt(e2.getComputedStyle(t2));
     } catch (e3) {
       return null;
     }
   }
-  function et(t2, e2) {
+  function Yt(t2, e2) {
     const n2 = t2.getPropertyValue(e2);
     return n2 ? String(n2).trim() : "";
   }
-  const nt = "__apex_design_systems_v1__";
-  function st(t2, e2 = {}) {
+  const Zt = "__apex_design_systems_v1__";
+  function Jt(t2, e2 = {}) {
     var _a;
-    const n2 = globalThis[nt], s2 = e2.adapter ? [e2.adapter] : n2 ? Object.values(n2) : [];
-    if (!t2 || !s2.length) return null;
-    const i2 = (_a = G(e2.cs)) != null ? _a : tt(t2, e2.host);
-    if (!i2) return null;
-    for (const e3 of s2) try {
-      const n3 = e3.read(t2, i2);
+    const n2 = globalThis[Zt], r2 = e2.adapter ? [e2.adapter] : n2 ? Object.values(n2) : [];
+    if (!t2 || !r2.length) return null;
+    const s2 = (_a = Qt(e2.cs)) != null ? _a : Xt(t2, e2.host);
+    if (!s2) return null;
+    for (const e3 of r2) try {
+      const n3 = e3.read(t2, s2);
       if (n3) return n3;
     } catch (e4) {
     }
     return null;
   }
-  function it(t2, e2, n2) {
+  function Gt(t2, e2, n2) {
     return t2 ? t2.color(e2, n2) : void 0;
   }
-  const rt = "__apexcharts_themes__";
-  function ot() {
-    const t2 = globalThis, e2 = t2[rt];
+  const te = "__apexcharts_themes__";
+  function ee() {
+    const t2 = globalThis, e2 = t2[te];
     if (e2) return e2;
     const n2 = {};
-    return t2[rt] = n2, n2;
+    return t2[te] = n2, n2;
   }
-  function lt(t2, e2) {
-    t2 && "string" == typeof t2 && (null == e2 || "object" == typeof e2 && !Array.isArray(e2)) && (ot()[t2] = e2 != null ? e2 : {});
+  function ne(t2, e2) {
+    t2 && "string" == typeof t2 && (null == e2 || "object" == typeof e2 && !Array.isArray(e2)) && (ee()[t2] = e2 != null ? e2 : {});
   }
-  function at$1(t2) {
+  function re(t2) {
     var _a;
-    return t2 ? (_a = ot()[t2]) != null ? _a : null : null;
+    return t2 ? (_a = ee()[t2]) != null ? _a : null : null;
   }
-  function ct() {
-    return Object.keys(ot());
+  function se() {
+    return Object.keys(ee());
   }
-  function ut(t2) {
-    t2 && delete ot()[t2];
+  function ie(t2) {
+    t2 && delete ee()[t2];
   }
-  const dt = { accent: "--apx-accent", fore: "--apx-fore", grid: "--apx-grid", surface: "--apx-surface", font: "--apx-font-family", radiusFactor: "--apx-radius-factor" }, ht = "--apx-series-", ft = 24;
-  function mt(t2, e2 = {}) {
+  const oe = { accent: "--apx-accent", fore: "--apx-fore", grid: "--apx-grid", surface: "--apx-surface", font: "--apx-font-family", radiusFactor: "--apx-radius-factor" }, le = "--apx-series-", ae = 24;
+  function ce(t2, e2 = {}) {
     var _a;
-    const n2 = (_a = G(e2.cs)) != null ? _a : tt(t2, e2.host);
+    const n2 = (_a = Qt(e2.cs)) != null ? _a : Xt(t2, e2.host);
     if (!n2) return {};
-    const s2 = {};
-    for (const [t3, e3] of Object.entries(dt)) {
-      const i3 = et(n2, e3);
-      i3 && (s2[t3] = i3);
+    const r2 = {};
+    for (const [t3, e3] of Object.entries(oe)) {
+      const s3 = Yt(n2, e3);
+      s3 && (r2[t3] = s3);
     }
-    const i2 = [];
-    for (let t3 = 1; t3 <= ft; t3++) {
-      const e3 = et(n2, `${ht}${t3}`);
+    const s2 = [];
+    for (let t3 = 1; t3 <= ae; t3++) {
+      const e3 = Yt(n2, `${le}${t3}`);
       if (!e3) break;
-      i2.push(e3);
+      s2.push(e3);
     }
-    return i2.length && (s2.series = i2), s2;
+    return s2.length && (r2.series = s2), r2;
   }
-  function yt(t2, e2, n2 = {}) {
-    var s2;
-    const i2 = t2.css[e2] || t2.named[e2];
-    return i2 || ("font" === e2 ? null == (s2 = t2.designSystem) ? void 0 : s2.font : "fore" === e2 || "grid" === e2 ? it(t2.designSystem, e2, n2.mode) : void 0);
+  function fe(t2, e2, n2 = {}) {
+    var r2;
+    const s2 = t2.css[e2] || t2.named[e2];
+    return s2 || ("font" === e2 ? null == (r2 = t2.designSystem) ? void 0 : r2.font : "fore" === e2 || "grid" === e2 ? Gt(t2.designSystem, e2, n2.mode) : void 0);
   }
-  function vt(t2) {
+  function he(t2) {
     const { record: e2 } = t2;
     return !e2 || t2.followsOS || "dark" !== t2.mode ? { takeBack: false } : { state: e2.state, takeBack: true };
   }
-  function bt(t2) {
+  function me(t2) {
     if (!t2.mode && !t2.followsOS && "dark" === t2.variant) return { state: t2.state };
   }
-  function wt({ background: t2, dark: e2, fromVariant: n2, light: s2 = "", mode: i2 }) {
-    return t2 || ("dark" === i2 ? n2 ? "" : e2 : "light" === i2 ? s2 : "");
+  function pe({ background: t2, dark: e2, fromVariant: n2, light: r2 = "", mode: s2 }) {
+    return t2 || ("dark" === s2 ? n2 ? "" : e2 : "light" === s2 ? r2 : "");
   }
-  function Mt({ background: t2, dark: e2, designSystemPaper: n2, fromVariant: s2, light: i2, mode: r2 }) {
-    return t2 && "transparent" !== t2 ? t2 : "dark" === r2 ? s2 && n2 || e2 : i2 || "#fff";
+  function ge({ background: t2, dark: e2, designSystemPaper: n2, fromVariant: r2, light: s2, mode: i2 }) {
+    return t2 && "transparent" !== t2 ? t2 : "dark" === i2 ? r2 && n2 || e2 : s2 || "#fff";
   }
-  class xt {
+  class ye {
     constructor(t2 = {}) {
       var _a;
       this.dark = null, this.contrast = null, this.handler = null;
       const e2 = (_a = t2.host) != null ? _a : "undefined" == typeof window ? {} : window;
-      if (this.dark = St(e2, "(prefers-color-scheme: dark)"), this.contrast = St(e2, "(prefers-contrast: more)"), !this.dark && !this.contrast) return;
+      if (this.dark = ve(e2, "(prefers-color-scheme: dark)"), this.contrast = ve(e2, "(prefers-contrast: more)"), !this.dark && !this.contrast) return;
       const n2 = t2.onChange;
-      n2 && (this.handler = () => n2(this.state), kt(this.dark, this.handler), kt(this.contrast, this.handler));
+      n2 && (this.handler = () => n2(this.state), we(this.dark, this.handler), we(this.contrast, this.handler));
     }
     get state() {
       var _a;
@@ -17159,13 +17233,13 @@ var __async = (__this, __arguments, generator) => {
       return { highContrast: (_a = null == (t2 = this.contrast) ? void 0 : t2.matches) != null ? _a : false, mode: (null == (e2 = this.dark) ? void 0 : e2.matches) ? "dark" : "light" };
     }
     get supports() {
-      return { contrast: At(this.contrast), scheme: At(this.dark) };
+      return { contrast: be(this.contrast), scheme: be(this.dark) };
     }
     dispose() {
-      this.handler && (Lt(this.dark, this.handler), Lt(this.contrast, this.handler), this.handler = null), this.dark = null, this.contrast = null;
+      this.handler && (Me(this.dark, this.handler), Me(this.contrast, this.handler), this.handler = null), this.dark = null, this.contrast = null;
     }
   }
-  function St(t2, e2) {
+  function ve(t2, e2) {
     var _a;
     var n2;
     try {
@@ -17174,94 +17248,36 @@ var __async = (__this, __arguments, generator) => {
       return null;
     }
   }
-  function At(t2) {
+  function be(t2) {
     return !!t2 && "not all" !== t2.media;
   }
-  function kt(t2, e2) {
+  function we(t2, e2) {
     t2 && ("function" == typeof t2.addEventListener ? t2.addEventListener("change", e2) : "function" == typeof t2.addListener && t2.addListener(e2));
   }
-  function Lt(t2, e2) {
+  function Me(t2, e2) {
     t2 && ("function" == typeof t2.removeEventListener ? t2.removeEventListener("change", e2) : "function" == typeof t2.removeListener && t2.removeListener(e2));
   }
-  function Tt(t2) {
-    var _a, _b, _c, _d, _e2;
-    const { last: e2, value: n2 } = t2, s2 = [], i2 = [];
-    let r2 = false, o2 = false;
+  function xe(t2) {
+    var _a, _b, _c, _d, _e;
+    const { last: e2, value: n2 } = t2, r2 = [], s2 = [];
+    let i2 = false, o2 = false;
     for (const l2 of t2.slots) {
       const a2 = (_a = l2.current) != null ? _a : "", c2 = (_b = l2.defaults) != null ? _b : t2.defaults, u2 = !!e2 && a2 === e2;
       let d2 = a2;
-      true === l2.explicit && a2 || (n2 && (u2 || c2.includes(a2)) ? (d2 = n2, r2 = true) : !n2 && u2 && (d2 = (_e2 = (_d = l2.fallback) != null ? _d : l2.defaults ? l2.defaults[0] : (_c = t2.fallback) != null ? _c : c2[0]) != null ? _e2 : "", o2 = true)), s2.push(d2), i2.push(d2 !== a2);
+      true === l2.explicit && a2 || (n2 && (u2 || c2.includes(a2)) ? (d2 = n2, i2 = true) : !n2 && u2 && (d2 = (_e = (_d = l2.fallback) != null ? _d : l2.defaults ? l2.defaults[0] : (_c = t2.fallback) != null ? _c : c2[0]) != null ? _e : "", o2 = true)), r2.push(d2), s2.push(d2 !== a2);
     }
-    return { changed: i2, last: "written" === t2.remember ? r2 ? n2 : o2 ? void 0 : e2 : n2, values: s2 };
+    return { changed: s2, last: "written" === t2.remember ? i2 ? n2 : o2 ? void 0 : e2 : n2, values: r2 };
   }
-  function Ae(t2) {
-    const e2 = t2.getRootNode ? t2.getRootNode() : null;
-    return e2 && (9 === e2.nodeType || 11 === e2.nodeType && "host" in e2) ? e2 : t2.ownerDocument || document;
-  }
-  function ke(t2) {
-    const e2 = "function" == typeof t2.composedPath ? t2.composedPath() : null;
-    return (null == e2 ? void 0 : e2.length) ? e2[0] : t2.target;
-  }
-  function Le(t2) {
-    var e2;
-    const n2 = t2.ownerDocument || t2;
-    let s2 = n2 && "activeElement" in n2 ? n2.activeElement : null;
-    for (; null == (e2 = null == s2 ? void 0 : s2.shadowRoot) ? void 0 : e2.activeElement; ) s2 = s2.shadowRoot.activeElement;
-    return s2;
-  }
-  function Ce(t2, e2) {
-    const n2 = Ae(t2), s2 = n2.querySelector(e2);
-    if (s2) return s2;
-    const i2 = t2.ownerDocument;
-    return i2 && i2 !== n2 ? i2.querySelector(e2) : null;
-  }
-  function Te(t2, e2) {
-    const n2 = Ae(t2), s2 = Array.from(n2.querySelectorAll(e2));
-    if (s2.length) return s2;
-    const i2 = t2.ownerDocument;
-    return i2 && i2 !== n2 ? Array.from(i2.querySelectorAll(e2)) : [];
-  }
-  const Ee = Symbol.for("apex-commons.styleUsers");
-  function $e(t2, e2, n2, s2 = {}) {
-    const i2 = Ae(t2), r2 = t2.ownerDocument || document;
-    let o2 = i2.getElementById(e2);
-    if (!o2) {
-      o2 = r2.createElement("style"), o2.id = e2, o2.textContent = n2, s2.nonce && o2.setAttribute("nonce", s2.nonce);
-      const t3 = s2.after ? i2.getElementById(s2.after) : null;
-      t3 ? t3.after(o2) : (9 === i2.nodeType ? i2.head || i2.documentElement : i2).prepend(o2), o2[Ee] = 0;
-    }
-    const l2 = o2;
-    "number" == typeof l2[Ee] && (l2[Ee] += 1);
-    let a2 = false;
-    return () => {
-      a2 || (a2 = true, "number" == typeof l2[Ee] && (l2[Ee] -= 1, l2[Ee] <= 0 && l2.remove()));
-    };
-  }
-  function Ne(t2) {
-    const e2 = [];
-    let n2 = t2;
-    for (; n2; ) {
-      const t3 = Ae(n2);
-      e2.unshift(t3), n2 = 11 === t3.nodeType ? t3.host : null;
-    }
-    const s2 = [];
-    for (const t3 of e2) {
-      for (const e4 of Array.from(t3.styleSheets || [])) s2.push(e4);
-      const e3 = t3.adoptedStyleSheets;
-      if (e3) for (const t4 of e3) s2.push(t4);
-    }
-    return s2;
-  }
-  const je = "__apexcharts_crossfilters__";
-  function Re(t2) {
+  const wn = "__apexcharts_crossfilters__";
+  function Mn(t2) {
     if (!Number.isFinite(t2)) return t2;
     const e2 = Number(t2.toPrecision(12));
     return Object.is(e2, -0) ? 0 : e2;
   }
-  function De(t2) {
+  function Sn(t2) {
     return "number" == typeof t2 && Number.isFinite(t2);
   }
-  function Fe(t2) {
+  function xn(t2) {
     if ("function" == typeof t2) return t2;
     if (t2 && "object" == typeof t2) {
       if ("string" == typeof t2.sum) {
@@ -17283,47 +17299,47 @@ var __async = (__this, __arguments, generator) => {
     }
     return (t3) => t3.length;
   }
-  function Ke(t2, e2) {
+  function An(t2, e2) {
     return "function" == typeof e2 ? t2.slice().sort(e2) : "asc" === e2 ? t2.slice().sort(((t3, e3) => t3 > e3 ? 1 : t3 < e3 ? -1 : 0)) : "desc" === e2 ? t2.slice().sort(((t3, e3) => t3 < e3 ? 1 : t3 > e3 ? -1 : 0)) : t2;
   }
-  function Oe(t2, e2) {
-    if (!De(t2)) return -1;
+  function kn(t2, e2) {
+    if (!Sn(t2)) return -1;
     const n2 = e2.length - 1;
     if (t2 < e2[0] || t2 > e2[n2]) return -1;
     if (t2 === e2[n2]) return n2 - 1;
-    for (let s2 = 0; s2 < n2; s2++) if (t2 >= e2[s2] && t2 < e2[s2 + 1]) return s2;
+    for (let r2 = 0; r2 < n2; r2++) if (t2 >= e2[r2] && t2 < e2[r2 + 1]) return r2;
     return -1;
   }
-  function qe(t2) {
+  function Nn(t2) {
     const e2 = [];
-    for (let n2 = 0; n2 < t2.length - 1; n2++) e2.push(Re((t2[n2] + t2[n2 + 1]) / 2));
+    for (let n2 = 0; n2 < t2.length - 1; n2++) e2.push(Mn((t2[n2] + t2[n2 + 1]) / 2));
     return e2;
   }
-  class _e {
+  class Cn {
     constructor(t2, e2) {
       this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = t2, this.records = Array.isArray(e2) ? e2 : [];
     }
     static store() {
       const t2 = globalThis;
-      return t2[je] || (t2[je] = /* @__PURE__ */ new Map()), t2[je];
+      return t2[wn] || (t2[wn] = /* @__PURE__ */ new Map()), t2[wn];
     }
     static getOrCreate(t2) {
       if (!t2 || "string" != typeof t2.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
-      const e2 = _e.store(), n2 = e2.get(t2.id);
+      const e2 = Cn.store(), n2 = e2.get(t2.id);
       if (n2) return t2.records && n2.setRecords(t2.records), n2;
-      const s2 = new _e(t2.id, t2.records);
-      return e2.set(t2.id, s2), s2;
+      const r2 = new Cn(t2.id, t2.records);
+      return e2.set(t2.id, r2), r2;
     }
     static get(t2) {
-      return _e.store().get(t2) || null;
+      return Cn.store().get(t2) || null;
     }
     setRecords(t2) {
       return this.records = Array.isArray(t2) ? t2 : [], this.dims.forEach(((t3) => this.recomputeDomain(t3))), this.emit("records", this.state()), this.emit("change", this.state()), this;
     }
     registerDimension(t2, e2) {
       if (!e2 || "function" != typeof e2.dimension) throw new Error(`crossfilter.registerDimension("${t2}") needs a dimension function.`);
-      const n2 = e2.type || (e2.bins ? "range" : "category"), s2 = { accessor: e2.dimension, reducer: Fe(e2.reduce), type: n2, bins: e2.bins, order: e2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
-      return this.dims.set(t2, s2), this.recomputeDomain(s2), null != e2.filter && this.setFilterOn(s2, e2.filter), this;
+      const n2 = e2.type || (e2.bins ? "range" : "category"), r2 = { accessor: e2.dimension, reducer: xn(e2.reduce), type: n2, bins: e2.bins, order: e2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+      return this.dims.set(t2, r2), this.recomputeDomain(r2), null != e2.filter && this.setFilterOn(r2, e2.filter), this;
     }
     hasDimension(t2) {
       return this.dims.has(t2);
@@ -17335,51 +17351,51 @@ var __async = (__this, __arguments, generator) => {
     recomputeDomain(t2) {
       if ("matrix" === t2.type) {
         const e2 = (function(t3, e3, n2) {
-          const s2 = /* @__PURE__ */ new Set(), i2 = /* @__PURE__ */ new Set(), r2 = [], o2 = [];
+          const r2 = /* @__PURE__ */ new Set(), s2 = /* @__PURE__ */ new Set(), i2 = [], o2 = [];
           for (let n3 = 0; n3 < t3.length; n3++) {
             const l2 = e3(t3[n3]);
             if (!l2) continue;
             const a2 = l2[0], c2 = l2[1];
-            null == a2 || s2.has(a2) || (s2.add(a2), r2.push(a2)), null == c2 || i2.has(c2) || (i2.add(c2), o2.push(c2));
+            null == a2 || r2.has(a2) || (r2.add(a2), i2.push(a2)), null == c2 || s2.has(c2) || (s2.add(c2), o2.push(c2));
           }
-          return { xLabels: Ke(r2, n2), yLabels: Ke(o2, n2) };
+          return { xLabels: An(i2, n2), yLabels: An(o2, n2) };
         })(this.records, t2.accessor, t2.order);
         return t2.xLabels = e2.xLabels, t2.yLabels = e2.yLabels, void (t2.edges = null);
       }
       if ("range" === t2.type) return t2.edges = (function(t3, e2, n2) {
         if (n2 && Array.isArray(n2.thresholds) && n2.thresholds.length >= 2) {
-          const t4 = Array.from(new Set(n2.thresholds.filter(De))).sort(((t5, e3) => t5 - e3));
-          return t4.length >= 2 ? t4.map(Re) : [0, 1];
+          const t4 = Array.from(new Set(n2.thresholds.filter(Sn))).sort(((t5, e3) => t5 - e3));
+          return t4.length >= 2 ? t4.map(Mn) : [0, 1];
         }
-        let s2 = 1 / 0, i2 = -1 / 0;
+        let r2 = 1 / 0, s2 = -1 / 0;
         for (let n3 = 0; n3 < t3.length; n3++) {
-          const r3 = e2(t3[n3]);
-          De(r3) && (r3 < s2 && (s2 = r3), r3 > i2 && (i2 = r3));
+          const i3 = e2(t3[n3]);
+          Sn(i3) && (i3 < r2 && (r2 = i3), i3 > s2 && (s2 = i3));
         }
-        if (s2 === 1 / 0) return [0, 1];
-        if (s2 === i2) {
-          const t4 = Math.abs(s2) > 0 ? Math.abs(s2) : 1;
-          return [Re(s2), Re(s2 + t4)];
+        if (r2 === 1 / 0) return [0, 1];
+        if (r2 === s2) {
+          const t4 = Math.abs(r2) > 0 ? Math.abs(r2) : 1;
+          return [Mn(r2), Mn(r2 + t4)];
         }
-        if (n2 && De(n2.width) && n2.width > 0) {
-          const t4 = n2.width, e3 = Math.floor(s2 / t4) * t4;
-          let r3 = Math.ceil(i2 / t4) * t4;
-          r3 <= e3 && (r3 = e3 + t4);
-          const o3 = Math.max(1, Math.round((r3 - e3) / t4)), l3 = new Array(o3 + 1);
-          for (let n3 = 0; n3 <= o3; n3++) l3[n3] = Re(e3 + n3 * t4);
+        if (n2 && Sn(n2.width) && n2.width > 0) {
+          const t4 = n2.width, e3 = Math.floor(r2 / t4) * t4;
+          let i3 = Math.ceil(s2 / t4) * t4;
+          i3 <= e3 && (i3 = e3 + t4);
+          const o3 = Math.max(1, Math.round((i3 - e3) / t4)), l3 = new Array(o3 + 1);
+          for (let n3 = 0; n3 <= o3; n3++) l3[n3] = Mn(e3 + n3 * t4);
           return l3;
         }
-        const r2 = n2 && De(n2.count) && n2.count >= 1 ? Math.floor(n2.count) : 30, o2 = (i2 - s2) / r2, l2 = new Array(r2 + 1);
-        for (let t4 = 0; t4 <= r2; t4++) l2[t4] = Re(s2 + t4 * o2);
-        return l2[r2] = Re(i2), l2;
-      })(this.records, t2.accessor, t2.bins), void (t2.labels = qe(t2.edges));
+        const i2 = n2 && Sn(n2.count) && n2.count >= 1 ? Math.floor(n2.count) : 30, o2 = (s2 - r2) / i2, l2 = new Array(i2 + 1);
+        for (let t4 = 0; t4 <= i2; t4++) l2[t4] = Mn(r2 + t4 * o2);
+        return l2[i2] = Mn(s2), l2;
+      })(this.records, t2.accessor, t2.bins), void (t2.labels = Nn(t2.edges));
       if (t2.labels = (function(t3, e2, n2) {
-        const s2 = /* @__PURE__ */ new Set(), i2 = [];
+        const r2 = /* @__PURE__ */ new Set(), s2 = [];
         for (let n3 = 0; n3 < t3.length; n3++) {
-          const r2 = e2(t3[n3]);
-          null != r2 && (s2.has(r2) || (s2.add(r2), i2.push(r2)));
+          const i2 = e2(t3[n3]);
+          null != i2 && (r2.has(i2) || (r2.add(i2), s2.push(i2)));
         }
-        return Ke(i2, n2);
+        return An(s2, n2);
       })(this.records, t2.accessor, t2.order), t2.edges = null, t2.filter instanceof Set) {
         const e2 = new Set(t2.labels);
         Array.from(t2.filter).forEach(((n2) => {
@@ -17395,15 +17411,15 @@ var __async = (__this, __arguments, generator) => {
       const n2 = this.dims.get(t2);
       if (!n2 || "category" !== n2.type) return this;
       n2.filter instanceof Set || (n2.filter = /* @__PURE__ */ new Set());
-      const s2 = n2.filter;
-      return s2.has(e2) ? s2.delete(e2) : s2.add(e2), 0 === s2.size && (n2.filter = null), this.emit("change", this.state()), this;
+      const r2 = n2.filter;
+      return r2.has(e2) ? r2.delete(e2) : r2.add(e2), 0 === r2.size && (n2.filter = null), this.emit("change", this.state()), this;
     }
     setFilterOn(t2, e2) {
       if (null == e2) return void (t2.filter = null);
       if ("range" === t2.type) {
-        if (Array.isArray(e2) && 2 === e2.length && e2.every(De)) {
-          const [n3, s2] = e2;
-          t2.filter = [Math.min(n3, s2), Math.max(n3, s2)];
+        if (Array.isArray(e2) && 2 === e2.length && e2.every(Sn)) {
+          const [n3, r2] = e2;
+          t2.filter = [Math.min(n3, r2), Math.max(n3, r2)];
         } else t2.filter = null;
         return;
       }
@@ -17426,14 +17442,14 @@ var __async = (__this, __arguments, generator) => {
       if (!this.hasFilter(t2)) return true;
       const n2 = t2.accessor(e2);
       if (t2.filter instanceof Set) return t2.filter.has(n2);
-      if (!De(n2)) return false;
-      const [s2, i2] = t2.filter;
-      return n2 >= s2 && n2 <= i2;
+      if (!Sn(n2)) return false;
+      const [r2, s2] = t2.filter;
+      return n2 >= r2 && n2 <= s2;
     }
     filteredRecords(t2) {
       const e2 = [];
-      return this.dims.forEach(((n2, s2) => {
-        s2 !== t2 && this.hasFilter(n2) && e2.push(n2);
+      return this.dims.forEach(((n2, r2) => {
+        r2 !== t2 && this.hasFilter(n2) && e2.push(n2);
       })), 0 === e2.length ? this.records : this.records.filter(((t3) => e2.every(((e3) => this.passes(e3, t3)))));
     }
     filteredRows() {
@@ -17444,30 +17460,30 @@ var __async = (__this, __arguments, generator) => {
       if (!e2) return { type: "category", labels: [], values: [], keys: [] };
       const n2 = this.filteredRecords(t2);
       if ("matrix" === e2.type) {
-        const t3 = new Map(e2.xLabels.map(((t4, e3) => [t4, e3]))), s3 = new Map(e2.yLabels.map(((t4, e3) => [t4, e3]))), i2 = e2.yLabels.map((() => e2.xLabels.map((() => []))));
-        for (let r2 = 0; r2 < n2.length; r2++) {
-          const o2 = e2.accessor(n2[r2]);
+        const t3 = new Map(e2.xLabels.map(((t4, e3) => [t4, e3]))), r3 = new Map(e2.yLabels.map(((t4, e3) => [t4, e3]))), s2 = e2.yLabels.map((() => e2.xLabels.map((() => []))));
+        for (let i2 = 0; i2 < n2.length; i2++) {
+          const o2 = e2.accessor(n2[i2]);
           if (!o2) continue;
-          const l2 = t3.get(o2[0]), a2 = s3.get(o2[1]);
-          null != l2 && null != a2 && i2[a2][l2].push(n2[r2]);
+          const l2 = t3.get(o2[0]), a2 = r3.get(o2[1]);
+          null != l2 && null != a2 && s2[a2][l2].push(n2[i2]);
         }
-        return { type: "matrix", xLabels: e2.xLabels.slice(), yLabels: e2.yLabels.slice(), matrix: i2.map(((t4) => t4.map(((t5) => e2.reducer(t5))))) };
+        return { type: "matrix", xLabels: e2.xLabels.slice(), yLabels: e2.yLabels.slice(), matrix: s2.map(((t4) => t4.map(((t5) => e2.reducer(t5))))) };
       }
       if ("range" === e2.type) {
-        const t3 = e2.edges || [0, 1], s3 = t3.length - 1, i2 = Array.from({ length: s3 }, (() => []));
-        for (let s4 = 0; s4 < n2.length; s4++) {
-          const r2 = Oe(e2.accessor(n2[s4]), t3);
-          r2 >= 0 && i2[r2].push(n2[s4]);
+        const t3 = e2.edges || [0, 1], r3 = t3.length - 1, s2 = Array.from({ length: r3 }, (() => []));
+        for (let r4 = 0; r4 < n2.length; r4++) {
+          const i2 = kn(e2.accessor(n2[r4]), t3);
+          i2 >= 0 && s2[i2].push(n2[r4]);
         }
-        return { type: "range", labels: qe(t3), values: i2.map(((t4) => e2.reducer(t4))), keys: i2.map(((e3, n3) => [t3[n3], t3[n3 + 1]])), edges: t3 };
+        return { type: "range", labels: Nn(t3), values: s2.map(((t4) => e2.reducer(t4))), keys: s2.map(((e3, n3) => [t3[n3], t3[n3 + 1]])), edges: t3 };
       }
-      const s2 = /* @__PURE__ */ new Map();
-      e2.labels.forEach(((t3) => s2.set(t3, [])));
+      const r2 = /* @__PURE__ */ new Map();
+      e2.labels.forEach(((t3) => r2.set(t3, [])));
       for (let t3 = 0; t3 < n2.length; t3++) {
-        const i2 = s2.get(e2.accessor(n2[t3]));
-        i2 && i2.push(n2[t3]);
+        const s2 = r2.get(e2.accessor(n2[t3]));
+        s2 && s2.push(n2[t3]);
       }
-      return { type: "category", labels: e2.labels.slice(), values: e2.labels.map(((t3) => e2.reducer(s2.get(t3) || []))), keys: e2.labels.slice() };
+      return { type: "category", labels: e2.labels.slice(), values: e2.labels.map(((t3) => e2.reducer(r2.get(t3) || []))), keys: e2.labels.slice() };
     }
     aggregateAll() {
       const t2 = {};
@@ -17494,10 +17510,10 @@ var __async = (__this, __arguments, generator) => {
       return null == (n2 = this.listeners.get(t2)) || n2.delete(e2), this;
     }
     emit(t2, n2) {
-      var s2;
-      null == (s2 = this.listeners.get(t2)) || s2.forEach(((s3) => {
+      var r2;
+      null == (r2 = this.listeners.get(t2)) || r2.forEach(((r3) => {
         try {
-          s3(n2);
+          r3(n2);
         } catch (n3) {
           e(`[Apex] a crossfilter ${t2} listener threw`, n3);
         }
@@ -17512,19 +17528,19 @@ var __async = (__this, __arguments, generator) => {
       return (e2 ? Object.keys(e2) : []).map(((t3) => ({ field: t3, label: t3 })));
     }
     tableHTML(t2, e2, n2) {
-      const s2 = "<thead><tr>" + t2.map(((t3) => `<th>${_e.esc(t3.label)}</th>`)).join("") + "</tr></thead>", i2 = "<tbody>" + e2.map(((e3) => "<tr>" + t2.map(((t3) => {
-        const n3 = e3[t3.field], s3 = t3.format ? t3.format(n3, e3) : n3;
-        return `<td>${_e.esc(s3)}</td>`;
+      const r2 = "<thead><tr>" + t2.map(((t3) => `<th>${Cn.esc(t3.label)}</th>`)).join("") + "</tr></thead>", s2 = "<tbody>" + e2.map(((e3) => "<tr>" + t2.map(((t3) => {
+        const n3 = e3[t3.field], r3 = t3.format ? t3.format(n3, e3) : n3;
+        return `<td>${Cn.esc(r3)}</td>`;
       })).join("") + "</tr>")).join("") + "</tbody>";
-      return `<table class="apexcharts-cf-table">${`<caption>${e2.length} of ${n2} rows</caption>`}${s2}${i2}</table>`;
+      return `<table class="apexcharts-cf-table">${`<caption>${e2.length} of ${n2} rows</caption>`}${r2}${s2}</table>`;
     }
     dataTable(t2, e2) {
       if (!t2) return { refresh() {
       }, destroy() {
       } };
-      const n2 = e2 || {}, s2 = this.resolveColumns(n2.columns), i2 = n2.pageSize || 0, r2 = n2.page || 0, o2 = () => {
-        const e3 = this.filteredRows(), n3 = i2 ? e3.slice(r2 * i2, r2 * i2 + i2) : e3;
-        t2.innerHTML = this.tableHTML(s2, n3, e3.length);
+      const n2 = e2 || {}, r2 = this.resolveColumns(n2.columns), s2 = n2.pageSize || 0, i2 = n2.page || 0, o2 = () => {
+        const e3 = this.filteredRows(), n3 = s2 ? e3.slice(i2 * s2, i2 * s2 + s2) : e3;
+        t2.innerHTML = this.tableHTML(r2, n3, e3.length);
       };
       o2();
       const l2 = this.on("change", o2);
@@ -17533,7 +17549,7 @@ var __async = (__this, __arguments, generator) => {
       } };
     }
     destroy() {
-      _e.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
+      Cn.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
     }
   }
   function getThemePalettes() {
@@ -17631,7 +17647,7 @@ var __async = (__this, __arguments, generator) => {
       const el = w.dom && (w.dom.elWrap || w.dom.baseEl);
       const cs = this._shouldUseTokens() ? this._declaration(el) : null;
       const ds = this.designSystem = this._readDesignSystem(el, cs);
-      this._namedTheme = at$1(w.config.theme.name);
+      this._namedTheme = re(w.config.theme.name);
       this._applyNamedThemeMode(ds);
       w.dom.elWrap.classList.add(
         `apexcharts-theme-${w.config.theme.mode || "light"}`
@@ -17742,7 +17758,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {string}
      */
     static modePaper(w) {
-      return wt({
+      return pe({
         background: w.config.chart.background,
         mode: w.config.theme.mode,
         fromVariant: !!w.globals.variantModeApplied,
@@ -17812,7 +17828,7 @@ var __async = (__this, __arguments, generator) => {
           theme.monochrome = __spreadValues(__spreadValues({}, theme.monochrome), named.monochrome);
         }
       }
-      const filled = bt({
+      const filled = me({
         mode: theme.mode,
         followsOS: theme.follow === "os",
         variant: ds && ds.variant,
@@ -17842,7 +17858,7 @@ var __async = (__this, __arguments, generator) => {
       const theme = w.config.theme;
       const record = w.globals.variantModeApplied;
       w.globals.variantModeApplied = void 0;
-      const back = vt({ mode: theme.mode, record });
+      const back = he({ mode: theme.mode, record });
       if (!back.takeBack) return;
       const named = this._namedTheme;
       if (ds && ds.variant === "dark" && theme.follow !== "os" && !(named && named.mode)) {
@@ -17875,7 +17891,7 @@ var __async = (__this, __arguments, generator) => {
      */
     _resolveTokenLayers(el, cs, ds) {
       const named = this._namedTheme && this._namedTheme.tokens || {};
-      const css = this._shouldUseTokens() ? mt(el, {
+      const css = this._shouldUseTokens() ? ce(el, {
         // The `{}` BrowserAPIs answers server side reads as no declaration.
         host: (
           /** @type {any} */
@@ -17927,7 +17943,7 @@ var __async = (__this, __arguments, generator) => {
         InitCtxVariables._featureRegistry.get("designSystemStyles")
       );
       if (!styles) return null;
-      return st(el, {
+      return Jt(el, {
         host: (
           /** @type {any} */
           BrowserAPIs
@@ -17990,10 +18006,10 @@ var __async = (__this, __arguments, generator) => {
      */
     static tokenFont(w, el) {
       const t2 = new Theme(w);
-      t2._namedTheme = at$1(w.config.theme.name);
+      t2._namedTheme = re(w.config.theme.name);
       const cs = t2._shouldUseTokens() ? t2._declaration(el) : null;
       const ds = t2._readDesignSystem(el, cs);
-      return yt(t2._resolveTokenLayers(el, cs, ds), "font");
+      return fe(t2._resolveTokenLayers(el, cs, ds), "font");
     }
     /**
      * Facet (#13): tokens are on unless explicitly disabled (`theme.tokens:false`).
@@ -18024,7 +18040,7 @@ var __async = (__this, __arguments, generator) => {
       const colorLayers = __spreadProps(__spreadValues({}, layers), { designSystem: this._designSystemColors() });
       const own = (role, value, slots, defaults) => {
         const live = slots.filter((s2) => s2[0]);
-        const res = Tt({
+        const res = xe({
           slots: live.map(([obj, key, named]) => ({
             current: obj[key],
             explicit: !!named
@@ -18041,7 +18057,7 @@ var __async = (__this, __arguments, generator) => {
       const foreDef = dark ? DEFAULT_FORECOLOR_DARK : DEFAULT_FORECOLOR_LIGHT;
       const fore = own(
         "fore",
-        yt(colorLayers, "fore", { mode }),
+        fe(colorLayers, "fore", { mode }),
         [[w.config.chart, "foreColor", g2.themeForeColorExplicit]],
         g2.themeForeColorExplicit ? [foreDef] : [foreDef, dark ? DEFAULT_FORECOLOR_LIGHT : DEFAULT_FORECOLOR_DARK]
       );
@@ -18064,20 +18080,20 @@ var __async = (__this, __arguments, generator) => {
       });
       const grid = own(
         "grid",
-        yt(colorLayers, "grid", { mode }),
+        fe(colorLayers, "grid", { mode }),
         gridSlots,
         [DEFAULT_AXIS_GRID]
       );
       const font = own(
         "font",
-        yt(layers, "font"),
+        fe(layers, "font"),
         [[w.config.chart, "fontFamily", g2.themeFontFamilyExplicit]],
         [DEFAULT_FONT_FAMILY]
       );
       g2.tokenChrome = { fore, grid, font };
-      const surface = Tt({
+      const surface = xe({
         slots: [{ current: w.config.chart.background || "" }],
-        value: yt(layers, "surface"),
+        value: fe(layers, "surface"),
         last: g2.tokenSurface,
         defaults: [""],
         remember: "written"
@@ -19429,7 +19445,7 @@ var __async = (__this, __arguments, generator) => {
      * around its presence would reflow every tile on each zoom.
      */
     gridPadForBreadcrumb() {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const isTreemap = w.config.chart.type === "treemap";
       if (isTreemap) {
@@ -19454,7 +19470,7 @@ var __async = (__this, __arguments, generator) => {
       if (!this.ctx.drilldown) return;
       if (!w.config.drilldown || !w.config.drilldown.enabled) return;
       if (breadcrumbConfig(w).show === false) return;
-      const labelFs = parseFloat(String((_h = (_g = (_f = (_e2 = w.config.yaxis) == null ? void 0 : _e2[0]) == null ? void 0 : _f.labels) == null ? void 0 : _g.style) == null ? void 0 : _h.fontSize)) || 11;
+      const labelFs = parseFloat(String((_h = (_g = (_f = (_e = w.config.yaxis) == null ? void 0 : _e[0]) == null ? void 0 : _f.labels) == null ? void 0 : _g.style) == null ? void 0 : _h.fontSize)) || 11;
       const yLabelOverhang = isTreemap ? 0 : Math.ceil(labelFs * LINE_HEIGHT_RATIO / 2);
       const needed = BREADCRUMB_HEIGHT_FULL + 1 + yLabelOverhang;
       const alreadyFree = isTreemap ? 0 : this.titleBlockPad || 0;
@@ -19743,7 +19759,8 @@ var __async = (__this, __arguments, generator) => {
         const temp = yMax;
         yMax = yMin;
         yMin = temp;
-      } else if (yMin === yMax) {
+      }
+      if (yMin === yMax || yMin + (yMax - yMin) / ticks === yMin) {
         yMin = yMin === 0 ? 0 : yMin - 1;
         yMax = yMax === 0 ? 2 : yMax + 1;
       }
@@ -19875,7 +19892,9 @@ var __async = (__this, __arguments, generator) => {
           }
         }
         range = Math.abs(yMax - yMin);
-        stepSize = Utils$1.getGCD(range, stepSize);
+        if (gotMin || gotMax) {
+          stepSize = Utils$1.getGCD(range, stepSize);
+        }
         tiks = Math.round(range / stepSize);
       }
       if (!gotTickAmount && !(gotMin || gotMax)) {
@@ -19891,26 +19910,26 @@ var __async = (__this, __arguments, generator) => {
       if (tiks > maxTicks && (!(gotTickAmount || gotStepSize) || axisCnf.forceNiceScale)) {
         const pf = Utils$1.getPrimeFactors(tiks);
         const last = pf.length - 1;
-        let tt2 = tiks;
+        let tt = tiks;
         reduceLoop: for (var xFactors = 0; xFactors < last; xFactors++) {
           for (var lowest = 0; lowest <= last - xFactors; lowest++) {
             const stop = Math.min(lowest + xFactors, last);
-            let t2 = tt2;
+            let t2 = tt;
             let div = 1;
             for (var next = lowest; next <= stop; next++) {
               div *= pf[next];
             }
             t2 /= div;
             if (t2 < maxTicks) {
-              tt2 = t2;
+              tt = t2;
               break reduceLoop;
             }
           }
         }
-        if (tt2 === tiks) {
+        if (tt === tiks) {
           stepSize = range;
         } else {
-          stepSize = range / tt2;
+          stepSize = range / tt;
         }
         tiks = Math.round(range / stepSize);
       }
@@ -20457,7 +20476,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {{minY: number, maxY: number, lowestY: number, highestY: number}}
      */
     getMinYMaxY(startingSeriesIndex, lowestY = Number.MAX_VALUE, highestY = -Number.MAX_VALUE, endingSeriesIndex = null) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k, _l;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
       const cnf = this.w.config;
       const gl = this.w.globals;
       let maxY = -Number.MAX_VALUE;
@@ -20538,13 +20557,13 @@ var __async = (__this, __arguments, generator) => {
         if (plainNumeric) {
           const arr = series[i2];
           const jEnd = Math.min(lastXIndex, arr.length - 1);
-          const pe = (_c = this.w.seriesData._parsedExtrema) == null ? void 0 : _c[i2];
-          if (pe && pe.ref === arr && pe.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
-            if (pe.maxY > maxY) maxY = pe.maxY;
-            if (pe.lowestY < lowestY) lowestY = pe.lowestY;
-            if (pe.negMinY < 0 && pe.negMinY < minY) minY = pe.negMinY;
-            if (pe.yDec > gl.yValueDecimal) gl.yValueDecimal = pe.yDec;
-            if (pe.hasNulls) gl.hasNullValues = true;
+          const pe2 = (_c = this.w.seriesData._parsedExtrema) == null ? void 0 : _c[i2];
+          if (pe2 && pe2.ref === arr && pe2.len === arr.length && firstXIndex === 0 && jEnd === arr.length - 1) {
+            if (pe2.maxY > maxY) maxY = pe2.maxY;
+            if (pe2.lowestY < lowestY) lowestY = pe2.lowestY;
+            if (pe2.negMinY < 0 && pe2.negMinY < minY) minY = pe2.negMinY;
+            if (pe2.yDec > gl.yValueDecimal) gl.yValueDecimal = pe2.yDec;
+            if (pe2.hasNulls) gl.hasNullValues = true;
           } else {
             let yDec = gl.yValueDecimal;
             let hasNulls = false;
@@ -20592,7 +20611,7 @@ var __async = (__this, __arguments, generator) => {
               maxY = Math.max(maxY, seriesMax[i2][j]);
               lowestY = Math.min(lowestY, seriesMax[i2][j]);
             }
-            if (((_e2 = seriesMin[i2]) == null ? void 0 : _e2[j]) != null) {
+            if (((_e = seriesMin[i2]) == null ? void 0 : _e[j]) != null) {
               lowestY = Math.min(lowestY, seriesMin[i2][j]);
               highestY = Math.max(highestY, seriesMin[i2][j]);
             }
@@ -20833,10 +20852,10 @@ var __async = (__this, __arguments, generator) => {
             this.w.labelData.labels[i2]
           );
           if (!lbls) continue;
-          const pe = (_a2 = this.w.seriesData._parsedExtrema) == null ? void 0 : _a2[i2];
-          if (pe && pe.xNumeric && pe.xref === lbls && pe.len === lbls.length) {
-            if (pe.maxX > maxX) maxX = pe.maxX;
-            if (pe.minX < minX) minX = pe.minX;
+          const pe2 = (_a2 = this.w.seriesData._parsedExtrema) == null ? void 0 : _a2[i2];
+          if (pe2 && pe2.xNumeric && pe2.xref === lbls && pe2.len === lbls.length) {
+            if (pe2.maxX > maxX) maxX = pe2.maxX;
+            if (pe2.minX < minX) minX = pe2.minX;
             continue;
           }
           for (let j = 0; j < lbls.length; j++) {
@@ -21048,9 +21067,9 @@ var __async = (__this, __arguments, generator) => {
                 this.w.seriesData.seriesX[gl.maxValsInArrayIndex][this.w.seriesData.seriesX[gl.maxValsInArrayIndex].length - 1]
               );
             }
-            const pe = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[si];
-            if (pe && pe.xNumeric && pe.xSorted && pe.xref === sX && pe.len === sX.length) {
-              if (pe.minXDiff < gl.minXDiff) gl.minXDiff = pe.minXDiff;
+            const pe2 = (_a = this.w.seriesData._parsedExtrema) == null ? void 0 : _a[si];
+            if (pe2 && pe2.xNumeric && pe2.xSorted && pe2.xref === sX && pe2.len === sX.length) {
+              if (pe2.minXDiff < gl.minXDiff) gl.minXDiff = pe2.minXDiff;
               if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
                 gl.minXDiff = 0.5;
               }
@@ -21109,18 +21128,18 @@ var __async = (__this, __arguments, generator) => {
           for (let j = 0; j < len; j++) {
             if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue;
             const key = (gIdx[i2] || 0) + "|" + (byX && xs ? xs[j] : j);
-            let st2 = stacks.get(key);
-            if (!st2) stacks.set(key, st2 = [0, 0]);
+            let st = stacks.get(key);
+            if (!st) stacks.set(key, st = [0, 0]);
             const v = row[j];
             if (stackSeries && Number.isFinite(v)) {
-              v > 0 ? st2[0] += v * 1.000001 : st2[1] += +v;
+              v > 0 ? st[0] += v * 1.000001 : st[1] += +v;
             }
           }
         }
       );
-      stacks.forEach((st2) => {
-        gl.maxY = Math.max(gl.maxY, st2[0]);
-        gl.minY = Math.min(gl.minY, st2[1]);
+      stacks.forEach((st) => {
+        gl.maxY = Math.max(gl.maxY, st[0]);
+        gl.minY = Math.min(gl.minY, st[1]);
       });
     }
   }
@@ -21221,12 +21240,12 @@ var __async = (__this, __arguments, generator) => {
      */
     generateBaseTicks(minX, maxX, interval) {
       const w = this.w;
-      const dt2 = new DateTime(w);
+      const dt = new DateTime(w);
       const isUTC = this.utc;
       const gridWidth = w.layout.gridWidth;
       const span = maxX - minX;
       const ticks = [];
-      let t2 = dt2.ceilToBoundary(
+      let t2 = dt.ceilToBoundary(
         minX,
         /** @type {any} */
         interval.unit,
@@ -21236,7 +21255,7 @@ var __async = (__this, __arguments, generator) => {
       let iter = 0;
       const MAX_ITER = 5e3;
       while (t2 <= maxX && iter < MAX_ITER) {
-        const f2 = dt2.getDateFields(t2, isUTC);
+        const f2 = dt.getDateFields(t2, isUTC);
         const position = span > 0 ? (t2 - minX) / span * gridWidth : 0;
         ticks.push({
           timestamp: t2,
@@ -21250,7 +21269,7 @@ var __async = (__this, __arguments, generator) => {
           second: f2.second,
           value: t2
         });
-        t2 = dt2.addInterval(
+        t2 = dt.addInterval(
           t2,
           /** @type {any} */
           interval.unit,
@@ -21292,15 +21311,15 @@ var __async = (__this, __arguments, generator) => {
      */
     formatDates(rawTicks) {
       const w = this.w;
-      const dt2 = new DateTime(w);
+      const dt = new DateTime(w);
       const userFormat = w.config.xaxis.labels.format;
       const dtFmt = w.config.xaxis.labels.datetimeFormatter;
       const isUTC = this.utc;
       const pad = (n2, len = 2) => String(n2).padStart(len, "0");
       const effectiveFormat = userFormat ? userFormat : this._effectiveFormat(rawTicks, dtFmt);
       return rawTicks.map((tick) => {
-        const date = dt2.getDate(tick.timestamp);
-        const value = dt2.formatDate(date, effectiveFormat);
+        const date = dt.getDate(tick.timestamp);
+        const value = dt.formatDate(date, effectiveFormat);
         const ds = `${tick.year}-${pad(tick.month)}-${pad(tick.day)}T${pad(tick.hour)}:${pad(tick.minute)}:${pad(tick.second)}.000${isUTC ? "Z" : ""}`;
         return {
           dateString: ds,
@@ -21426,11 +21445,11 @@ var __async = (__this, __arguments, generator) => {
     setupElements() {
       var _a;
       const { globals: gl, config: cnf } = this.w;
-      const ct2 = cnf.chart.type;
-      const isCustomType = !BUILTIN_TYPES.includes(ct2) && isCustom(ct2);
-      gl.axisCharts = AXIS_TYPES.includes(ct2) || isCustomType;
-      gl.xyCharts = XY_TYPES.includes(ct2) || isCustomType;
-      gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct2) && cnf.plotOptions.bar.horizontal;
+      const ct = cnf.chart.type;
+      const isCustomType = !BUILTIN_TYPES.includes(ct) && isCustom(ct);
+      gl.axisCharts = AXIS_TYPES.includes(ct) || isCustomType;
+      gl.xyCharts = XY_TYPES.includes(ct) || isCustomType;
+      gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct) && cnf.plotOptions.bar.horizontal;
       gl.isSlopeChart = !!cnf.plotOptions.line.isSlopeChart;
       gl.chartClass = `.apexcharts${gl.chartID}`;
       this.w.dom.baseEl = this.el;
@@ -21533,23 +21552,23 @@ var __async = (__this, __arguments, generator) => {
       const chartType = cnf.chart.type || "line";
       let nonComboType = null;
       let comboCount = 0;
-      this.w.seriesData.series.forEach((serie, st2) => {
+      this.w.seriesData.series.forEach((serie, st) => {
         var _a, _b;
-        const seriesType = ((_a = ser[st2]) == null ? void 0 : _a.type) === "column" ? "bar" : ((_b = ser[st2]) == null ? void 0 : _b.type) || (chartType === "column" ? "bar" : chartType);
+        const seriesType = ((_a = ser[st]) == null ? void 0 : _a.type) === "column" ? "bar" : ((_b = ser[st]) == null ? void 0 : _b.type) || (chartType === "column" ? "bar" : chartType);
         const st_ = (
           /** @type {Record<string,any>} */
           seriesTypes
         );
         if (st_[seriesType]) {
           if (seriesType === "rangeArea") {
-            st_[seriesType].series.push(this.w.rangeData.seriesRangeStart[st2]);
+            st_[seriesType].series.push(this.w.rangeData.seriesRangeStart[st]);
             st_[seriesType].seriesRangeEnd.push(
-              this.w.rangeData.seriesRangeEnd[st2]
+              this.w.rangeData.seriesRangeEnd[st]
             );
           } else {
             st_[seriesType].series.push(serie);
           }
-          st_[seriesType].i.push(st2);
+          st_[seriesType].i.push(st);
           if (seriesType === "bar") w.globals.columnSeries = seriesTypes.bar;
         } else if (SOLO_TYPES.includes(seriesType)) {
           nonComboType = seriesType;
@@ -21558,7 +21577,7 @@ var __async = (__this, __arguments, generator) => {
             customBuckets[seriesType] = { series: [], i: [] };
           }
           customBuckets[seriesType].series.push(serie);
-          customBuckets[seriesType].i.push(st2);
+          customBuckets[seriesType].i.push(st);
         } else {
           console.warn(
             `You have specified an unrecognized series type (${seriesType}).`
@@ -22067,7 +22086,7 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     resizeNonAxisCharts() {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const { w } = this;
       const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
       const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
@@ -22135,7 +22154,7 @@ var __async = (__this, __arguments, generator) => {
         const padding = Math.max(offY, w.globals.radialSize * 0.2);
         const verticalShift = Math.max(padding - arcTopFromSVGTop, 0);
         if (verticalShift !== 0) {
-          w.layout.translateY = ((_e2 = w.layout.translateY) != null ? _e2 : 0) + verticalShift;
+          w.layout.translateY = ((_e = w.layout.translateY) != null ? _e : 0) + verticalShift;
           Graphics.setAttrs(this.w.dom.elGraphical.node, {
             transform: `translate(${(_f = w.layout.translateX) != null ? _f : 0}, ${w.layout.translateY})`
           });
@@ -22730,7 +22749,7 @@ var __async = (__this, __arguments, generator) => {
         (_a = this.w.config.series[this.activeSeriesIndex]) == null ? void 0 : _a.data
       );
       if (data) {
-        const isXY = (pt) => pt && typeof pt.x !== "undefined";
+        const isXY = (pt2) => pt2 && typeof pt2.x !== "undefined";
         for (let k2 = 1; k2 < Math.min(3, data.length); k2++) {
           if (isXY(data[k2]) !== true) {
             console.warn(
@@ -22879,7 +22898,7 @@ var __async = (__this, __arguments, generator) => {
         const point = data[j] || NULL_ROW;
         const x2 = point[0];
         const y2 = point[1];
-        const z2 = point[2];
+        const z = point[2];
         if (typeof y2 !== "undefined") {
           if (Array.isArray(y2) && y2.length === 4 && !isBoxPlot) {
             this.twoDSeries.push(Utils$1.parseNumber(y2[3]));
@@ -22896,7 +22915,7 @@ var __async = (__this, __arguments, generator) => {
         } else {
           this.twoDSeriesX.push(x2);
         }
-        this.pushZ(z2, j);
+        this.pushZ(z, j);
       }
     }
     /**
@@ -22925,15 +22944,15 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} z the point's raw `z`, or undefined when it has none
      * @param {number} j the point's index within the series
      */
-    pushZ(z2, j) {
-      if (typeof z2 === "undefined") {
+    pushZ(z, j) {
+      if (typeof z === "undefined") {
         if (this.threeDSeries.length) this.threeDSeries.push(null);
         return;
       }
-      const num = typeof z2 === "string" && z2.trim() !== "" ? Number(z2) : z2;
+      const num = typeof z === "string" && z.trim() !== "" ? Number(z) : z;
       const measurable = Utils$1.isNumber(num);
       while (this.threeDSeries.length < j) this.threeDSeries.push(null);
-      this.threeDSeries.push(measurable ? num : z2);
+      this.threeDSeries.push(measurable ? num : z);
       if (measurable) {
         this.w.axisFlags.isDataXYZ = true;
       }
@@ -22956,7 +22975,7 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b, _c;
       const cnf = this.w.config;
       const gl = this.w.globals;
-      const dt2 = new DateTime(this.w);
+      const dt = new DateTime(this.w);
       const data = ser[i2].data;
       let activeI = i2;
       if (this._isCollapsedIndex(i2)) {
@@ -22985,12 +23004,12 @@ var __async = (__this, __arguments, generator) => {
         const x2 = point.x;
         const isXString = typeof x2 === "string";
         const isXArr = Array.isArray(x2);
-        const isXDate = !isXString && !isXArr && !!dt2.isValidDate(x2);
+        const isXDate = !isXString && !isXArr && !!dt.isValidDate(x2);
         if (isXString || isXDate) {
           if (isXString || cnf.xaxis.convertedCatToNumeric) {
             const isRangeColumn = gl.isBarHorizontal && this.w.axisFlags.isRangeData;
             if (cnf.xaxis.type === "datetime" && !isRangeColumn) {
-              this.twoDSeriesX.push(dt2.parseDate(x2));
+              this.twoDSeriesX.push(dt.parseDate(x2));
             } else {
               this.fallbackToCategory = true;
               this.twoDSeriesX.push(x2);
@@ -23001,7 +23020,7 @@ var __async = (__this, __arguments, generator) => {
           } else {
             if (cnf.xaxis.type === "datetime") {
               this.twoDSeriesX.push(
-                x2 instanceof Date ? x2.getTime() : dt2.parseDate(x2.toString())
+                x2 instanceof Date ? x2.getTime() : dt.parseDate(x2.toString())
               );
             } else {
               this.w.axisFlags.dataFormatXNumeric = true;
@@ -23152,7 +23171,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} i
      */
     handleViolinData(ser, i2) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const data = ser[i2].data;
       const densityArr = [];
@@ -23164,7 +23183,7 @@ var __async = (__this, __arguments, generator) => {
       for (let j = 0; j < data.length; j++) {
         const d2 = data[j];
         const dens = (_c = (_b = (_a = d2 == null ? void 0 : d2.y) == null ? void 0 : _a.density) != null ? _b : d2 == null ? void 0 : d2[1]) != null ? _c : [];
-        const pts = (_f = (_e2 = (_d = d2 == null ? void 0 : d2.y) == null ? void 0 : _d.points) != null ? _e2 : d2 == null ? void 0 : d2[2]) != null ? _f : [];
+        const pts = (_f = (_e = (_d = d2 == null ? void 0 : d2.y) == null ? void 0 : _d.points) != null ? _e : d2 == null ? void 0 : d2[2]) != null ? _f : [];
         const summary = this._parseViolinSummary((_h = (_g = d2 == null ? void 0 : d2.y) == null ? void 0 : _g.summary) != null ? _h : d2 == null ? void 0 : d2[3]);
         const values = [];
         const weights = [];
@@ -23376,7 +23395,7 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b, _c, _d;
       const cnf = this.w.config;
       const gl = this.w.globals;
-      const dt2 = new DateTime(this.w);
+      const dt = new DateTime(this.w);
       this.w.seriesData._parsedExtrema = [];
       this.seriesGoals = [];
       const xlabels = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
@@ -23416,7 +23435,7 @@ var __async = (__this, __arguments, generator) => {
       let dates;
       const handleDates = () => dates != null ? dates : dates = Array.from(xlabels, (l2) => {
         if (typeof l2 !== "string") return l2;
-        const t2 = dt2.parseDate(l2);
+        const t2 = dt.parseDate(l2);
         if (isNaN(t2)) {
           throw new Error(
             "You have provided invalid Date format. Please provide a valid JavaScript Date"
@@ -23837,7 +23856,7 @@ var __async = (__this, __arguments, generator) => {
         return series;
       }
       const processedSeries = series.map((serie, index) => {
-        var _a, _b, _c, _d, _e2;
+        var _a, _b, _c, _d, _e;
         if (!serie.data || !Array.isArray(serie.data) || serie.data.length === 0) {
           return serie;
         }
@@ -23866,7 +23885,7 @@ var __async = (__this, __arguments, generator) => {
             `ApexCharts [${this.w.globals.chartID}]: "${seriesName}" has a parseData config but is missing the '${missing.join(
               "', '"
             )}' field specification.`,
-            { parsing: (_e2 = serie.parsing) != null ? _e2 : globalParsing }
+            { parsing: (_e = serie.parsing) != null ? _e : globalParsing }
           );
           return serie;
         }
@@ -23880,7 +23899,7 @@ var __async = (__this, __arguments, generator) => {
             }
             const x2 = this.getNestedValue(item, effectiveParsing.x);
             let y2;
-            let z2 = void 0;
+            let z = void 0;
             if (Array.isArray(effectiveParsing.y)) {
               const yValues = effectiveParsing.y.map(
                 (fieldName) => this.getNestedValue(item, fieldName)
@@ -23899,7 +23918,7 @@ var __async = (__this, __arguments, generator) => {
               y2 = this.getNestedValue(item, effectiveParsing.y);
             }
             if (effectiveParsing.z) {
-              z2 = this.getNestedValue(item, effectiveParsing.z);
+              z = this.getNestedValue(item, effectiveParsing.z);
             }
             if (x2 === void 0) {
               console.warn(
@@ -23918,8 +23937,8 @@ var __async = (__this, __arguments, generator) => {
                 result.z = zValue;
               }
             }
-            if (z2 !== void 0) {
-              result.z = z2;
+            if (z !== void 0) {
+              result.z = z;
             }
             return result;
           }
@@ -24291,7 +24310,7 @@ var __async = (__this, __arguments, generator) => {
      *   baseline resetSeries() restores must not move.
      */
     parseData(ser, overwriteInitialSeries = true) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const cnf = w.config;
       const gl = w.globals;
@@ -24309,7 +24328,7 @@ var __async = (__this, __arguments, generator) => {
           if (!Array.isArray(d2) || d2.length === 0) continue;
           const isXY = !Array.isArray(d2[0]);
           const firstX = toNum$1(isXY ? (_b = d2[0]) == null ? void 0 : _b.x : (_c = d2[0]) == null ? void 0 : _c[0]);
-          const lastX = toNum$1(isXY ? (_d = d2[d2.length - 1]) == null ? void 0 : _d.x : (_e2 = d2[d2.length - 1]) == null ? void 0 : _e2[0]);
+          const lastX = toNum$1(isXY ? (_d = d2[d2.length - 1]) == null ? void 0 : _d.x : (_e = d2[d2.length - 1]) == null ? void 0 : _e[0]);
           if (firstX === firstX) rawMinX = Math.min(rawMinX, firstX);
           if (lastX === lastX) rawMaxX = Math.max(rawMaxX, lastX);
         }
@@ -24808,8 +24827,9 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
      * @param {boolean} animate - should animate or not on updating Options
      * @param {boolean} overwriteInitialConfig - should update the initial config or not
+     * @param {Array<{min: any, max: any} | null> | null} [zoomedY] - the y bounds a zoom wrote, from zoomedYBounds(), to keep through this update
      */
-    _updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = false) {
+    _updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = false, zoomedY = null) {
       return new Promise((resolve2, reject) => {
         let charts = [this.ctx];
         if (updateSyncedCharts) {
@@ -24822,7 +24842,7 @@ var __async = (__this, __arguments, generator) => {
         const payload = options2;
         const filled = Theme.modeDefaultsFilled(payload);
         const updates = charts.map((ch) => {
-          var _a, _b, _c, _d, _e2, _f, _g, _h, _i;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i;
           const w = ch.w;
           options2 = payload;
           if (options2 && typeof options2 === "object") {
@@ -24891,7 +24911,7 @@ var __async = (__this, __arguments, generator) => {
               options2.series = this.syncSharedLogAxes(options2.series);
             }
             if ((_d = options2.theme) == null ? void 0 : _d.palette) w.globals.themePaletteExplicit = true;
-            if ((_e2 = options2.chart) == null ? void 0 : _e2.foreColor) {
+            if ((_e = options2.chart) == null ? void 0 : _e.foreColor) {
               w.globals.themeForeColorExplicit = !(filled == null ? void 0 : filled.foreColor);
             }
             if ((_f = options2.tooltip) == null ? void 0 : _f.theme) {
@@ -24934,6 +24954,13 @@ var __async = (__this, __arguments, generator) => {
                 )
               );
               initialConfig.series = !options2.series && prevInitialSeries ? prevInitialSeries : Utils$1.copySeriesShallow(w.config.series);
+              if (w.interact.zoomed && w.globals.initialConfig) {
+                this.keepPreZoomBounds(
+                  initialConfig,
+                  w.globals.initialConfig,
+                  options2
+                );
+              }
               w.globals.initialConfig = initialConfig;
               if (options2.series) {
                 w.globals.initialSeries = w.config.series;
@@ -24942,6 +24969,9 @@ var __async = (__this, __arguments, generator) => {
             if (options2.series && (w.globals.collapsedSeriesIndices.length > 0 || w.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
               w.config.series = Utils$1.copySeriesShallow(w.config.series);
               ch.series.reconcileCollapsedByName();
+            }
+            if (zoomedY && ch === this.ctx && options2.yaxis) {
+              this.restoreZoomedYBounds(options2.yaxis, zoomedY);
             }
           }
           return ch.update(options2);
@@ -25352,6 +25382,68 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     /**
+     * The initialConfig snapshot a page's updateOptions() takes is where a zoom
+     * reset and the next zoom start from. Taken from w.config mid-zoom, it held
+     * the zoomed bounds, so a reset after any update (a title, a wrapper
+     * re-render) left the x range zoomed. Each bound the payload does not set
+     * stays what it was before the zoom. New objects throughout: the snapshot
+     * shares its nested axes with the live config.
+     * @param {Record<string, any>} next - the snapshot being taken
+     * @param {Record<string, any>} prev - the one it replaces
+     * @param {Record<string, any>} options - the payload, axes normalised
+     */
+    keepPreZoomBounds(next, prev, options2) {
+      const keep = (axis, was, named) => {
+        const out = __spreadValues({}, axis);
+        for (const k2 of ["min", "max"]) {
+          if ((named == null ? void 0 : named[k2]) === void 0) out[k2] = was == null ? void 0 : was[k2];
+        }
+        return out;
+      };
+      next.xaxis = keep(next.xaxis, prev.xaxis, options2.xaxis);
+      if (options2.yaxis) return;
+      if (Array.isArray(next.yaxis) && Array.isArray(prev.yaxis)) {
+        if (next.yaxis.length !== prev.yaxis.length) return;
+        next.yaxis = next.yaxis.map((y2, i2) => keep(y2, prev.yaxis[i2], void 0));
+      }
+    }
+    /**
+     * The y bounds a zoom wrote into the config, per axis: null for an axis
+     * still on the bounds the chart was given (an x zoom keeps those).
+     * @returns {Array<{min: any, max: any} | null>}
+     */
+    zoomedYBounds() {
+      var _a;
+      const w = this.w;
+      const initial = ((_a = w.globals.initialConfig) == null ? void 0 : _a.yaxis) || [];
+      return w.config.yaxis.map((y2, i2) => {
+        const was = (
+          /** @type {any} */
+          initial[i2] || {}
+        );
+        return y2.min === was.min && y2.max === was.max ? null : { min: y2.min, max: y2.max };
+      });
+    }
+    /**
+     * A page's updateOptions() that names yaxis replaces the y axes, and with
+     * them the range an xy or y zoom had written there, while the x range and
+     * the zoomed flag stayed: half the zoom snapped back. An axis whose new
+     * options set no bounds of their own keeps the zoomed ones until a reset.
+     * Axes added or removed by the update start fresh.
+     * @param {any[]} newYaxis - the payload's y axes, normalised to an array
+     * @param {Array<{min: any, max: any} | null>} zoomedY
+     */
+    restoreZoomedYBounds(newYaxis, zoomedY) {
+      const w = this.w;
+      if (w.config.yaxis.length !== zoomedY.length) return;
+      w.config.yaxis = w.config.yaxis.map((y2, i2) => {
+        const b = zoomedY[i2];
+        const named = newYaxis[i2] || {};
+        if (!b || named.min !== void 0 || named.max !== void 0) return y2;
+        return __spreadProps(__spreadValues({}, y2), { min: b.min, max: b.max });
+      });
+    }
+    /**
      * A series fed in from outside (updateSeries, appendSeries,
      * updateOptions({ series })) drops any zoom: revert the axes, then clear the
      * zoomed flag and the on-demand reset control so they match the full range
@@ -25473,11 +25565,11 @@ var __async = (__this, __arguments, generator) => {
      * @returns {{ x: number, y: number }}
      */
     static eventPointer(e2, opt = {}) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const touch = ((_a = e2 == null ? void 0 : e2.type) == null ? void 0 : _a.startsWith("touch")) ? (_b = e2.touches) == null ? void 0 : _b[0] : null;
       return {
         x: (_d = (_c = opt.clientX) != null ? _c : touch ? touch.clientX : e2 == null ? void 0 : e2.clientX) != null ? _d : 0,
-        y: (_f = (_e2 = opt.clientY) != null ? _e2 : touch ? touch.clientY : e2 == null ? void 0 : e2.clientY) != null ? _f : 0
+        y: (_f = (_e = opt.clientY) != null ? _e : touch ? touch.clientY : e2 == null ? void 0 : e2.clientY) != null ? _f : 0
       };
     }
     /**
@@ -26099,7 +26191,7 @@ var __async = (__this, __arguments, generator) => {
     ttHeight,
     gap = ARROW_TIP_OVERHANG
   }) {
-    var _a, _b, _c, _d, _e2;
+    var _a, _b, _c, _d, _e;
     const nums2 = [cell.top, cell.bottom, cell.left, cell.right, ttWidth, ttHeight];
     if (!nums2.every(Number.isFinite)) return null;
     const step = markSteps({ cell, plot, ttWidth, ttHeight, gap });
@@ -26108,7 +26200,7 @@ var __async = (__this, __arguments, generator) => {
     const r2 = lazyRoom(room)();
     if (!r2) return null;
     const other = step.middleSide === "right" ? "left" : "right";
-    return (_e2 = (_d = (_c = step.above(r2)) != null ? _c : step.below(r2)) != null ? _d : step.beside(step.middleSide, r2)) != null ? _e2 : step.beside(other, r2);
+    return (_e = (_d = (_c = step.above(r2)) != null ? _c : step.below(r2)) != null ? _d : step.beside(step.middleSide, r2)) != null ? _e : step.beside(other, r2);
   }
   function placeAroundBar({
     cell,
@@ -26432,7 +26524,7 @@ var __async = (__this, __arguments, generator) => {
     _placeAround(decide, mark, plot, _f = {}) {
       var _g = _f, {
         ttWidth = ((_d) => (_d = this.ttCtx.tooltipRect) == null ? void 0 : _d.ttWidth)() || 0,
-        ttHeight = ((_e2) => (_e2 = this.ttCtx.tooltipRect) == null ? void 0 : _e2.ttHeight)() || 0
+        ttHeight = ((_e) => (_e = this.ttCtx.tooltipRect) == null ? void 0 : _e.ttHeight)() || 0
       } = _g, rest = __objRest(_g, [
         "ttWidth",
         "ttHeight"
@@ -26484,7 +26576,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {'left'|'right' | null}
      */
     barValueSide(j, i2 = null) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       if ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.isFunnel) return "right";
       if (w.config.chart.type !== "bar" || ((_d = (_c = w.rangeData) == null ? void 0 : _c.seriesRange) == null ? void 0 : _d.length)) {
@@ -26501,7 +26593,7 @@ var __async = (__this, __arguments, generator) => {
         else if (v < 0) negative = true;
       });
       if (positive === negative) return null;
-      return negative !== !!((_f = (_e2 = w.config.yaxis) == null ? void 0 : _e2[0]) == null ? void 0 : _f.reversed) ? "left" : "right";
+      return negative !== !!((_f = (_e = w.config.yaxis) == null ? void 0 : _e[0]) == null ? void 0 : _f.reversed) ? "left" : "right";
     }
     /**
      * Box position for a tooltip that sits centred above an anchor (pie and
@@ -26694,7 +26786,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {{ x: number, y: number, placement: 'left'|'right'|'top'|'bottom', arrowY: number|null, arrowX?: number } | null}
      */
     computeTooltipPosition(cx, cy, markerSize = null, mark = null) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i;
       const w = this.w;
       const ttCtx = this.ttCtx;
       const tooltipRect = ttCtx.tooltipRect;
@@ -26771,7 +26863,7 @@ var __async = (__this, __arguments, generator) => {
       if (stacked) return stacked;
       x2 = x2 + w.layout.translateX;
       const a11y = (_d = (_c = w.config) == null ? void 0 : _c.chart) == null ? void 0 : _d.accessibility;
-      if ((a11y == null ? void 0 : a11y.enabled) && ((_f = (_e2 = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _e2.navigation) == null ? void 0 : _f.enabled) && ((_i = (_h = (_g = this.ttCtx.ctx) == null ? void 0 : _g._keyboardNavigation) == null ? void 0 : _h._focusedEl) == null ? void 0 : _i.isConnected)) {
+      if ((a11y == null ? void 0 : a11y.enabled) && ((_f = (_e = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _e.navigation) == null ? void 0 : _f.enabled) && ((_i = (_h = (_g = this.ttCtx.ctx) == null ? void 0 : _g._keyboardNavigation) == null ? void 0 : _h._focusedEl) == null ? void 0 : _i.isConnected)) {
         const refPointY = pointY;
         const margin = (pointSize || 1) + 12;
         const tooltipTop = y2;
@@ -26861,7 +26953,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} capturedSeries
      */
     moveDynamicPointOnHover(j, capturedSeries) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const ttCtx = this.ttCtx;
       let cx = 0;
@@ -26887,7 +26979,7 @@ var __async = (__this, __arguments, generator) => {
         `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`
       );
       if (point && hasPoint && cy <= w.layout.gridHeight && cy >= 0) {
-        const shape = (_e2 = point.getAttribute("shape")) != null ? _e2 : "circle";
+        const shape = (_e = point.getAttribute("shape")) != null ? _e : "circle";
         const path = graphics.getMarkerPath(cx, cy, shape, hoverSize * 1.5);
         point.setAttribute("d", path);
       }
@@ -26978,7 +27070,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {{ top: number, bottom: number } | null}
      */
     columnExtent(j, pad) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const gl = w.globals;
       const pointsArr = gl.pointsArray || [];
@@ -26991,7 +27083,7 @@ var __async = (__this, __arguments, generator) => {
         }
         const ys = [(_d = (_c = pointsArr[p2]) == null ? void 0 : _c[j]) == null ? void 0 : _d[1]];
         if (isRange) {
-          const n2 = (_f = (_e2 = w.seriesData.series[p2]) == null ? void 0 : _e2.length) != null ? _f : 0;
+          const n2 = (_f = (_e = w.seriesData.series[p2]) == null ? void 0 : _e.length) != null ? _f : 0;
           if (j >= n2) continue;
           ys.push((_h = (_g = pointsArr[p2]) == null ? void 0 : _g[j + n2]) == null ? void 0 : _h[1]);
         }
@@ -27009,7 +27101,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} capturedSeries
      */
     moveStickyTooltipOverBars(j, capturedSeries) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const ttCtx = this.ttCtx;
       let barLen = w.globals.columnSeries ? (
@@ -27080,7 +27172,7 @@ var __async = (__this, __arguments, generator) => {
           const placed = this.placeHorizontalSharedTooltip(j);
           if (placed) return;
         }
-        const mark = this.isShortPlot() ? (_e2 = this._barsExtentInGrid(j)) != null ? _e2 : { top: 0, bottom: w.layout.gridHeight } : null;
+        const mark = this.isShortPlot() ? (_e = this._barsExtentInGrid(j)) != null ? _e : { top: 0, bottom: w.layout.gridHeight } : null;
         const anchorY = !Number.isFinite(bcy) || bcy === 0 && !hasBar && !Utils.isFollowCursor(w) ? w.layout.gridHeight : bcy;
         this.moveTooltip(bcx, anchorY, null, mark);
       }
@@ -27435,12 +27527,12 @@ var __async = (__this, __arguments, generator) => {
     const lc = po.line && po.line.colors;
     const states = cfg.states || {};
     const badFill = (t2) => [].concat(t2).some((x2) => x2 === "pattern" || x2 === "image" || x2 === "gradient");
-    const badFilter = (st2) => {
-      const t2 = st2 && st2.filter && st2.filter.type;
+    const badFilter = (st) => {
+      const t2 = st && st.filter && st.filter.type;
       return t2 && !OK_FILTER_TYPES.includes(t2);
     };
-    const hasType = (re) => (cfg.series || []).some(
-      (s2) => re.test(s2 && s2.type || cfg.chart.type)
+    const hasType = (re2) => (cfg.series || []).some(
+      (s2) => re2.test(s2 && s2.type || cfg.chart.type)
     );
     return !!(badFill(cfg.fill && cfg.fill.type) || // On a line-like series (line, area, rangeArea) an area outline takes its
     // paint from stroke.fill, a url() the canvas skips, so only the body
@@ -27509,7 +27601,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {boolean}
      */
     _shouldBatch() {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       const m2 = w.config.markers;
       const threshold = (_a = m2.largeDatasetThreshold) != null ? _a : 0;
@@ -27518,7 +27610,7 @@ var __async = (__this, __arguments, generator) => {
       if (!Markers.markersAreInert(w)) return false;
       if ((_d = m2.discrete) == null ? void 0 : _d.length) return false;
       if (m2.onClick || m2.onDblClick) return false;
-      if ((_e2 = w.config.chart.events) == null ? void 0 : _e2.dataPointSelection) return false;
+      if ((_e = w.config.chart.events) == null ? void 0 : _e.dataPointSelection) return false;
       const series = w.seriesData.series;
       if (!Array.isArray(series) || !series.length) return false;
       let anyOverThreshold = false;
@@ -27584,15 +27676,15 @@ var __async = (__this, __arguments, generator) => {
       const emit = seriesEmitter(this.ctx, graphics);
       const hasDiscreteMarkers = (_a = w.config.markers.discrete) == null ? void 0 : _a.length;
       if (Array.isArray(p2.x)) {
-        for (let q2 = 0; q2 < p2.x.length; q2++) {
+        for (let q = 0; q < p2.x.length; q++) {
           let markerElement;
           let dataPointIndex = j;
-          let invalidMarker = !Utils$1.isNumber(p2.y[q2]);
+          let invalidMarker = !Utils$1.isNumber(p2.y[q]);
           if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.seriesData.series[i2][j + 1] !== null && !isVirtualPoint) {
             invalidMarker = true;
           }
-          if (j === 1 && q2 === 0) dataPointIndex = 0;
-          if (j === 1 && q2 === 1) dataPointIndex = 1;
+          if (j === 1 && q === 0) dataPointIndex = 0;
+          if (j === 1 && q === 1) dataPointIndex = 1;
           let markerClasses = "apexcharts-marker";
           if (Markers.markersAreInert(w)) {
             markerClasses += " no-pointer-events";
@@ -27600,7 +27692,7 @@ var __async = (__this, __arguments, generator) => {
           const shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0;
           const batchThisPoint = w.globals.markers.batched && (shouldMarkerDraw || alwaysDrawMarker) && !hasDiscreteMarkers && !isVirtualPoint;
           if (batchThisPoint) {
-            this._batchPoint(seriesIndex, dataPointIndex, p2.x[q2], p2.y[q2], {
+            this._batchPoint(seriesIndex, dataPointIndex, p2.x[q], p2.y[q], {
               invalid: invalidMarker,
               graphics,
               // alwaysDrawMarker carries an explicit size; the standard path
@@ -27615,7 +27707,7 @@ var __async = (__this, __arguments, generator) => {
               if (typeof w.globals.pointsArray[seriesIndex] === "undefined") {
                 w.globals.pointsArray[seriesIndex] = [];
               }
-              w.globals.pointsArray[seriesIndex][dataPointIndex] = [p2.x[q2], p2.y[q2]];
+              w.globals.pointsArray[seriesIndex][dataPointIndex] = [p2.x[q], p2.y[q]];
             }
             if (!invalidMarker) {
               markerClasses += ` w${Utils$1.randomId()}`;
@@ -27637,7 +27729,7 @@ var __async = (__this, __arguments, generator) => {
             if (typeof pSize !== "undefined") {
               opts.pSize = pSize;
             }
-            if (p2.x[q2] < -w.globals.markers.largestSize || p2.x[q2] > w.layout.gridWidth + w.globals.markers.largestSize || p2.y[q2] < -w.globals.markers.largestSize || p2.y[q2] > w.layout.gridHeight + w.globals.markers.largestSize) {
+            if (p2.x[q] < -w.globals.markers.largestSize || p2.x[q] > w.layout.gridWidth + w.globals.markers.largestSize || p2.y[q] < -w.globals.markers.largestSize || p2.y[q] > w.layout.gridHeight + w.globals.markers.largestSize) {
               opts.pSize = 0;
             }
             if (!invalidMarker) {
@@ -27661,12 +27753,12 @@ var __async = (__this, __arguments, generator) => {
                   }
                 }
               }
-              markerElement = emit.drawMarker(p2.x[q2], p2.y[q2], opts);
+              markerElement = emit.drawMarker(p2.x[q], p2.y[q], opts);
               markerElement.attr("rel", dataPointIndex);
               markerElement.attr("j", dataPointIndex);
               markerElement.attr("index", seriesIndex);
               markerElement.node.setAttribute("default-marker-size", opts.pSize);
-              applyProgressiveReveal(markerElement, p2.x[q2], w);
+              applyProgressiveReveal(markerElement, p2.x[q], w);
               this._filters.setSelectionFilter(
                 markerElement,
                 seriesIndex,
@@ -27679,7 +27771,7 @@ var __async = (__this, __arguments, generator) => {
           } else {
             if (typeof w.globals.pointsArray[seriesIndex] === "undefined")
               w.globals.pointsArray[seriesIndex] = [];
-            w.globals.pointsArray[seriesIndex].push([p2.x[q2], p2.y[q2]]);
+            w.globals.pointsArray[seriesIndex].push([p2.x[q], p2.y[q]]);
           }
         }
       }
@@ -28048,7 +28140,7 @@ var __async = (__this, __arguments, generator) => {
     enlargePoints(j) {
       var _a, _b;
       const w = this.w;
-      const me = this;
+      const me2 = this;
       const ttCtx = this.ttCtx;
       const col = j;
       this.resetEnlargedPoints();
@@ -28068,7 +28160,7 @@ var __async = (__this, __arguments, generator) => {
             index
           ] + w.config.markers.hover.sizeOffset;
         }
-        me.newPointSize(col, points[p2]);
+        me2.newPointSize(col, points[p2]);
         lastCx = (_a = points[p2].getAttribute("cx")) != null ? _a : "0";
         lastCy = (_b = points[p2].getAttribute("cy")) != null ? _b : "0";
         const y2 = parseFloat(lastCy);
@@ -28078,16 +28170,16 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       if (lastCx === null) return;
-      me.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
+      me2.tooltipPosition.moveXCrosshairs(parseFloat(lastCx));
       if (!ttCtx.fixedTooltip) {
-        me.tooltipPosition.moveTooltip(
+        me2.tooltipPosition.moveTooltip(
           parseFloat(lastCx),
           parseFloat(
             /** @type {string} */
             lastCy
           ),
           newSize,
-          me.tooltipPosition.isShortPlot() ? me.columnMark(col, colTop, colBottom, newSize) : null
+          me2.tooltipPosition.isShortPlot() ? me2.columnMark(col, colTop, colBottom, newSize) : null
         );
       }
     }
@@ -28818,7 +28910,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{i: any, j: any}} opts */
     getValuesToPrint({ i: i2, j }) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
       const w = this.w;
       const seriesX = (
         /** @type {any[][]} */
@@ -28882,7 +28974,7 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       if (w.config.tooltip.x.formatter !== void 0) {
-        xVal = (_f = (_e2 = (_d = w.formatters).ttKeyFormatter) == null ? void 0 : _e2.call(_d, bufferXVal, customFormatterOpts)) != null ? _f : bufferXVal;
+        xVal = (_f = (_e = (_d = w.formatters).ttKeyFormatter) == null ? void 0 : _e.call(_d, bufferXVal, customFormatterOpts)) != null ? _f : bufferXVal;
       }
       if (w.axisFlags.isDataXYZ && w.seriesData.seriesZ.length > 0 && ((_g = w.seriesData.seriesZ[i2]) == null ? void 0 : _g.length) > 0) {
         zVal = zFormatter == null ? void 0 : zFormatter((_h = w.seriesData.seriesZ[i2][j]) != null ? _h : null, w);
@@ -29992,9 +30084,12 @@ var __async = (__this, __arguments, generator) => {
       this.legendLabels = null;
       this.ttItems = null;
       this.hoverAreaListeners = [];
+      this.hoverOpts = /* @__PURE__ */ new WeakMap();
       this.seriesHoverTimeout = void 0;
       this.interactiveHideTimeout = void 0;
       this.offMarkHideTimeout = void 0;
+      this.pendingReplay = null;
+      this.pointerDriven = false;
       this.clientX = 0;
       this.clientY = 0;
       this.tooltipRect = { x: 0, y: 0, ttWidth: 0, ttHeight: 0 };
@@ -30102,7 +30197,7 @@ var __async = (__this, __arguments, generator) => {
     getYaxisTTEls() {
       const w = this.w;
       return this.yaxisTTEls || (this.yaxisTTEls = w.config.yaxis.map(
-        (_2, i2) => w.dom.baseEl.querySelector(`.apexcharts-yaxistooltip-${i2}`)
+        (_, i2) => w.dom.baseEl.querySelector(`.apexcharts-yaxistooltip-${i2}`)
       ));
     }
     getElGrid() {
@@ -30112,7 +30207,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {import('../../types/internal').XYRatios} xyRatios
      */
     drawTooltip(xyRatios) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d;
       const w = this.w;
       this.xyRatios = xyRatios;
       this.showOnIntersect = this.tConfig.intersect;
@@ -30132,8 +30227,10 @@ var __async = (__this, __arguments, generator) => {
       if (!w.globals.axisCharts) {
         this.showTooltipTitle = false;
       }
+      const wasOpen = !!this.pendingReplay || !!((_a = this._elTooltipCache) == null ? void 0 : _a.classList.contains("apexcharts-active"));
+      this.pendingReplay = null;
       let tooltipEl = this.getElTooltip();
-      const keep = (tooltipEl == null ? void 0 : tooltipEl.parentNode) === w.dom.elWrap && ((_b = (_a = this.ttItems) == null ? void 0 : _a[0]) == null ? void 0 : _b.parentNode) === tooltipEl;
+      const keep = (tooltipEl == null ? void 0 : tooltipEl.parentNode) === w.dom.elWrap && ((_c = (_b = this.ttItems) == null ? void 0 : _b[0]) == null ? void 0 : _c.parentNode) === tooltipEl;
       if (!keep) {
         tooltipEl == null ? void 0 : tooltipEl.remove();
         this.tooltipTitle = null;
@@ -30248,23 +30345,72 @@ var __async = (__this, __arguments, generator) => {
       }
       this.legendLabels = w.dom.baseEl.querySelectorAll(".apexcharts-legend-text");
       this.addSVGEvents();
-      if (keep && tooltipEl.classList.contains("apexcharts-active")) {
-        const h2 = this.hoverAreaListeners[0];
-        if (h2 && /move/.test((_c = this.e) == null ? void 0 : _c.type) && !w.config.chart.group) {
-          let n2 = 600;
-          const replay = () => {
-            if (h2 !== this.hoverAreaListeners[0] || w.globals.isDestroyed) return;
-            if (!w.globals.animationEnded && n2-- && typeof requestAnimationFrame == "function")
-              requestAnimationFrame(replay);
-            else if (tooltipEl.classList.contains("apexcharts-active")) {
+      if (wasOpen) {
+        if (/move|mouseup/.test((_d = this.e) == null ? void 0 : _d.type) && !w.config.chart.group && // the pointer's, or any kept box on a plot-wide listener; one the
+        // keyboard opened over marks has no pointer to look under, and closes
+        (this.pointerDriven || keep && this.hoverAreaListeners[0])) {
+          const show = () => {
+            const e2 = this.e.type === "mouseup" ? {
+              type: "mousemove",
+              clientX: this.e.clientX,
+              clientY: this.e.clientY,
+              target: this.e.target
+            } : this.e;
+            const opt = this.hoverAt(e2);
+            if (opt) {
               delete tooltipEl.dataset.positioned;
-              this.seriesHover(h2.opt, this.e);
+              this.seriesHover(opt, e2);
+            }
+            return !!opt;
+          };
+          const token = this.pendingReplay = {};
+          let n2 = 600;
+          const land = () => {
+            if (this.pendingReplay !== token || w.globals.isDestroyed) return;
+            if (stillMoving(w) && n2-- && typeof requestAnimationFrame == "function")
+              requestAnimationFrame(land);
+            else {
+              this.pendingReplay = null;
+              if (!show()) this.handleMouseOut({ tooltipEl });
             }
           };
           w.dom.baseEl.classList.remove("apexcharts-tooltip-active");
-          replay();
-        } else this.handleMouseOut({ tooltipEl });
+          land();
+          if (this.pendingReplay === token) {
+            show();
+            this.marker.resetPointsSize();
+            w.dom.baseEl.classList.remove("apexcharts-tooltip-active");
+          }
+        } else if (keep) this.handleMouseOut({ tooltipEl });
       }
+    }
+    /**
+     * The hover options a move at the pointer of `e` would reach now: the
+     * plot-wide listener's, else those of the mark under the pointer, found
+     * as the move's bubbling would, `e` then pointed at that mark. Null with
+     * no mark there or no hit test (a DOM shim).
+     * @param {any} e
+     * @returns {Record<string, any> | null}
+     */
+    hoverAt(e2) {
+      const h2 = this.hoverAreaListeners[0];
+      if (h2) return h2.opt;
+      const root = (
+        /** @type {any} */
+        this.w.dom.baseEl.getRootNode()
+      );
+      if (typeof root.elementsFromPoint !== "function") return null;
+      const svg = this.w.dom.Paper.node;
+      const { x: x2, y: y2 } = Utils.eventPointer(e2);
+      const hit = root.elementsFromPoint(x2, y2).find((el) => svg.contains(el));
+      for (let el = hit; el && el !== svg; el = el.parentNode) {
+        const opt = this.hoverOpts.get(el);
+        if (opt) {
+          e2.apexHoverTarget = hit;
+          return opt;
+        }
+      }
+      return null;
     }
     /**
      * @param {number} ttItemsCnt
@@ -30494,6 +30640,7 @@ var __async = (__this, __arguments, generator) => {
           hoverArea: opts.hoverArea,
           ttItems: opts.ttItems
         };
+        self2.hoverOpts.set(paths[p2], extendedOpts);
         const events = [
           "mousemove",
           "mouseup",
@@ -30540,6 +30687,7 @@ var __async = (__this, __arguments, generator) => {
      */
     /** @param {Record<string, any>} opt @param {any} e */
     onSeriesHover(opt, e2) {
+      this.pointerDriven = true;
       if (this.tConfig.interactive) {
         clearTimeout(this.interactiveHideTimeout);
         if (e2.type === "mouseout") {
@@ -30730,7 +30878,7 @@ var __async = (__this, __arguments, generator) => {
     // tooltip handling for line/area/bar/columns/scatter
     /** @param {{e: any, opt: any}} opts */
     axisChartsTooltips({ e: e2, opt }) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       let x2, y2;
       if (!opt.elGrid) return;
@@ -30796,7 +30944,7 @@ var __async = (__this, __arguments, generator) => {
         if (xcrosshairs !== null) {
           xcrosshairs.classList.add("apexcharts-active");
         }
-        const hasYAxisTooltip = (_e2 = this.yaxisTooltips) == null ? void 0 : _e2.filter(
+        const hasYAxisTooltip = (_e = this.yaxisTooltips) == null ? void 0 : _e.filter(
           (b) => {
             return b === true;
           }
@@ -31004,7 +31152,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Element} dotEl the hovered `.apexcharts-unit-area` node
      */
     renderUnitTooltip(dotEl) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const tooltipEl = this.getElTooltip();
       if (!tooltipEl) return;
@@ -31040,7 +31188,7 @@ var __async = (__this, __arguments, generator) => {
         });
       } else if (datum !== void 0 && datum !== null) {
         const label2 = datumObj ? (_c = (_b = (_a = datumObj.name) != null ? _a : datumObj.label) != null ? _b : datumObj.x) != null ? _c : null : null;
-        const dVal = datumObj ? (_e2 = (_d = datumObj.value) != null ? _d : datumObj.y) != null ? _e2 : null : datum;
+        const dVal = datumObj ? (_e = (_d = datumObj.value) != null ? _d : datumObj.y) != null ? _e : null : datum;
         body = label2 != null && dVal != null ? `${label2}: ${dVal}` : label2 != null ? String(label2) : dVal != null ? String(dVal) : `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
       } else {
         body = `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
@@ -31172,6 +31320,7 @@ var __async = (__this, __arguments, generator) => {
     handleMouseOut(opt) {
       var _a;
       const w = this.w;
+      this.pendingReplay = null;
       this.tooltipHidden = true;
       this.tooltipPosition.resetPlacementCache();
       const xcrosshairs = this.getElXCrosshairs();
@@ -31254,7 +31403,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean | null} shared
      */
     create(e2, context, capturedSeries, j, ttItems, shared = null) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const ttCtx = context;
       if (e2.type === "mouseup") {
@@ -31285,7 +31434,7 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.legend.tooltipHoverFormatter) {
         this.applyLegendHoverText(capturedSeries, j, shared);
       }
-      const y1 = (_f = (_e2 = w.rangeData.seriesRangeStart) == null ? void 0 : _e2[capturedSeries]) == null ? void 0 : _f[j];
+      const y1 = (_f = (_e = w.rangeData.seriesRangeStart) == null ? void 0 : _e[capturedSeries]) == null ? void 0 : _f[j];
       const y2 = (_h = (_g = w.rangeData.seriesRangeEnd) == null ? void 0 : _g[capturedSeries]) == null ? void 0 : _h[j];
       const commonSeriesTextsParams = __spreadValues(__spreadValues({
         ttItems,
@@ -32270,8 +32419,8 @@ var __async = (__this, __arguments, generator) => {
         if (svgRoot) {
           ctm = svgRoot.getScreenCTM();
         }
-        const onMove = (me) => {
-          const mev = me.type === "touchmove" ? me.touches[0] : me;
+        const onMove = (me2) => {
+          const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
           let dx = mev.clientX - startClientX;
           let dy = mev.clientY - startClientY;
           if (ctm) {
@@ -32443,8 +32592,8 @@ var __async = (__this, __arguments, generator) => {
           }
           const startX = parseFloat(el.attr("x")) || 0;
           const startW = parseFloat(el.attr("width")) || 0;
-          const onMove = (me) => {
-            const mev = me.type === "touchmove" ? me.touches[0] : me;
+          const onMove = (me2) => {
+            const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
             let dx = mev.clientX - startClientX;
             if (ctm) dx = dx / /** @type {any} */
             ctm.a;
@@ -34508,7 +34657,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} opts
      */
     fillPath(opts) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       this.opts = opts;
       const cnf = this.w.config;
@@ -34580,7 +34729,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (useGradient) {
         const colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : [];
-        let type = (_g = (_f = (_e2 = opts.fillConfig) == null ? void 0 : _e2.gradient) == null ? void 0 : _f.type) != null ? _g : cnf.fill.gradient.type;
+        let type = (_g = (_f = (_e = opts.fillConfig) == null ? void 0 : _e.gradient) == null ? void 0 : _f.type) != null ? _g : cnf.fill.gradient.type;
         if (drawMultiColorLine) {
           colorStops[this.seriesIndex] = this.computeColorStops(
             this.getSeriesAxisRange(this.seriesIndex),
@@ -34840,11 +34989,11 @@ var __async = (__this, __arguments, generator) => {
         this._perSeries = this._buildPerSeriesCache(realIndex, emit);
       }
       if (Array.isArray(pointsPos.x)) {
-        for (let q2 = 0; q2 < pointsPos.x.length; q2++) {
+        for (let q = 0; q < pointsPos.x.length; q++) {
           let dataPointIndex = j + 1;
           let shouldDraw = true;
-          if (j === 0 && q2 === 0) dataPointIndex = 0;
-          if (j === 0 && q2 === 1) dataPointIndex = 1;
+          if (j === 0 && q === 0) dataPointIndex = 0;
+          if (j === 0 && q === 1) dataPointIndex = 1;
           let radius = w.globals.markers.size[realIndex];
           if (zRatio !== Infinity) {
             const bubble = w.config.plotOptions.bubble;
@@ -34859,8 +35008,8 @@ var __async = (__this, __arguments, generator) => {
               radius = bubble.maxBubbleRadius;
             }
           }
-          const x2 = pointsPos.x[q2];
-          const y2 = pointsPos.y[q2];
+          const x2 = pointsPos.x[q];
+          const y2 = pointsPos.y[q];
           radius = radius || 0;
           if (y2 === null || typeof w.seriesData.series[realIndex][dataPointIndex] === "undefined") {
             shouldDraw = false;
@@ -35068,10 +35217,10 @@ var __async = (__this, __arguments, generator) => {
   }
   function pickBalancedLoser(later, earlier, boxes, groups) {
     const gl = groups.get(boxes[later].group);
-    const ge = groups.get(boxes[earlier].group);
-    if (!gl || !ge || gl === ge) return later;
-    const lossLater = (gl.hidden + 1) * ge.total;
-    const lossEarlier = (ge.hidden + 1) * gl.total;
+    const ge2 = groups.get(boxes[earlier].group);
+    if (!gl || !ge2 || gl === ge2) return later;
+    const lossLater = (gl.hidden + 1) * ge2.total;
+    const lossEarlier = (ge2.hidden + 1) * gl.total;
     return lossEarlier < lossLater ? earlier : later;
   }
   function resolveLabelOverlaps(boxes, opts) {
@@ -35082,7 +35231,7 @@ var __async = (__this, __arguments, generator) => {
     if (n2 < 2) return result;
     const { gap, maxShift, minY, maxY } = opts;
     const iterations = (_a = opts.iterations) != null ? _a : 6;
-    const idx = boxes.map((_2, i2) => i2).sort((a2, b) => boxes[a2].x - boxes[b].x);
+    const idx = boxes.map((_, i2) => i2).sort((a2, b) => boxes[a2].x - boxes[b].x);
     const clampShift = (i2, d2) => {
       const b = boxes[i2];
       if (b.fixed) return result[i2].dy;
@@ -35097,8 +35246,8 @@ var __async = (__this, __arguments, generator) => {
         const i2 = idx[p2];
         const a2 = boxes[i2];
         if (result[i2].hidden) continue;
-        for (let q2 = p2 + 1; q2 < idx.length; q2++) {
-          const j = idx[q2];
+        for (let q = p2 + 1; q < idx.length; q++) {
+          const j = idx[q];
           const b = boxes[j];
           if (result[j].hidden) continue;
           if (b.x >= a2.x + a2.width) break;
@@ -35148,8 +35297,8 @@ var __async = (__this, __arguments, generator) => {
       const i2 = idx[p2];
       if (result[i2].hidden) continue;
       const a2 = boxes[i2];
-      for (let q2 = p2 + 1; q2 < idx.length; q2++) {
-        const j = idx[q2];
+      for (let q = p2 + 1; q < idx.length; q++) {
+        const j = idx[q];
         if (result[j].hidden) continue;
         const b = boxes[j];
         if (b.x >= a2.x + a2.width) break;
@@ -35275,11 +35424,11 @@ var __async = (__this, __arguments, generator) => {
           class: "apexcharts-data-labels"
         }))).add(el)
       };
-      for (let q2 = 0; q2 < pos.x.length; q2++) {
-        if (j === 1 && q2 === 0) dataPointIndex = 0;
-        if (j === 1 && q2 === 1) dataPointIndex = 1;
-        x2 = pos.x[q2] + resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i2, dataPointIndex);
-        y2 = pos.y[q2] + resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i2, dataPointIndex) + strokeWidth;
+      for (let q = 0; q < pos.x.length; q++) {
+        if (j === 1 && q === 0) dataPointIndex = 0;
+        if (j === 1 && q === 1) dataPointIndex = 1;
+        x2 = pos.x[q] + resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i2, dataPointIndex);
+        y2 = pos.y[q] + resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i2, dataPointIndex) + strokeWidth;
         if (!isNaN(x2)) {
           let val = (row || w.seriesData.series[i2])[dataPointIndex];
           if (type === "rangeArea") {
@@ -35301,7 +35450,7 @@ var __async = (__this, __arguments, generator) => {
           if (w.config.chart.type === "bubble") {
             val = w.seriesData.seriesZ[i2][dataPointIndex];
             text = getText(val);
-            y2 = Scatter.centerTextInBubble(w, pos.y[q2]);
+            y2 = Scatter.centerTextInBubble(w, pos.y[q]);
           } else {
             if (typeof val !== "undefined") {
               text = getText(val);
@@ -35532,7 +35681,7 @@ var __async = (__this, __arguments, generator) => {
      * what it costs such a chart is the one measuring loop below.
      */
     avoidOverlaps() {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const cfg = w.config.dataLabels.avoidOverlap;
       if (!cfg) return;
@@ -35590,7 +35739,7 @@ var __async = (__this, __arguments, generator) => {
           group: box.group
         } : box
       );
-      const m2 = onScreen ? (_g = (_f = (_e2 = w.dom.elGraphical) == null ? void 0 : _e2.node) == null ? void 0 : _f.getScreenCTM) == null ? void 0 : _g.call(_f) : null;
+      const m2 = onScreen ? (_g = (_f = (_e = w.dom.elGraphical) == null ? void 0 : _e.node) == null ? void 0 : _f.getScreenCTM) == null ? void 0 : _g.call(_f) : null;
       const useScreen = !!m2 && m2.a > 0 && m2.d > 0;
       const extent = boxes[0].height;
       const unit = measured[0].scaleY;
@@ -35722,7 +35871,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ isUpdating: boolean }} opts
      */
     clear({ isUpdating }) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r;
       (_a = this.ctx.weave) == null ? void 0 : _a.teardown(isUpdating);
       const gl = this.w.globals;
       if (!isUpdating) {
@@ -35745,7 +35894,7 @@ var __async = (__this, __arguments, generator) => {
       if (isUpdating) {
         this.ctx._zoomPanSelection = null;
         this.ctx._toolbar = null;
-        (_e2 = this.ctx._keyboardNavigation) == null ? void 0 : _e2.destroy(true);
+        (_e = this.ctx._keyboardNavigation) == null ? void 0 : _e.destroy(true);
         this.ctx._keyboardNavigation = null;
       } else {
         (_f = this.ctx.perspectives) == null ? void 0 : _f.teardown();
@@ -36097,16 +36246,16 @@ var __async = (__this, __arguments, generator) => {
     return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
   }
   function reinstateWatermark(ctx, elWrap) {
-    const node = $.add(elWrap, { manage: false });
+    const node = T.add(elWrap, { manage: false });
     ctx._wmPainted = true;
     if (!node || typeof MutationObserver === "undefined") return;
     if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
     if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
     const nodeObs = new MutationObserver(() => {
-      const n2 = $.node(elWrap);
+      const n2 = T.node(elWrap);
       if (!n2) return;
       nodeObs.disconnect();
-      $.applyStyles(n2);
+      T.applyStyles(n2);
       nodeObs.takeRecords();
       nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
     });
@@ -36120,7 +36269,7 @@ var __async = (__this, __arguments, generator) => {
     if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
     if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
     const wrapObs = new MutationObserver(() => {
-      if (!$.node(elWrap)) reinstateWatermark(ctx, elWrap);
+      if (!T.node(elWrap)) reinstateWatermark(ctx, elWrap);
     });
     wrapObs.observe(elWrap, { childList: true });
     ctx._wmWrapObserver = wrapObs;
@@ -36140,7 +36289,7 @@ var __async = (__this, __arguments, generator) => {
     ctx._wmObservedNode = null;
     ctx._wmObservedWrap = null;
     const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-    if (wrap) $.remove(wrap, { manage: false });
+    if (wrap) T.remove(wrap, { manage: false });
   }
   function notifyTrial(ctx, key, features) {
     if (ctx._premiumLicenseNotified) return;
@@ -36216,7 +36365,7 @@ var __async = (__this, __arguments, generator) => {
     });
   }
   m.onChange(reevaluateLicenseAcrossCharts);
-  ct();
+  se();
   function unloadedTypeRejection(chartType, series) {
     const types = [chartType];
     if (Array.isArray(series)) {
@@ -36415,7 +36564,7 @@ var __async = (__this, __arguments, generator) => {
       }
       if (this._renderPromise) return this._renderPromise;
       const renderPromise = new Promise((resolve2, reject) => {
-        var _a2, _b2, _c, _d, _e2, _f, _g, _h, _i, _j, _k, _l, _m, _n;
+        var _a2, _b2, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
         if (Utils$1.elementExists(this.el)) {
           if (typeof Apex._chartInstances === "undefined") {
             Apex._chartInstances = [];
@@ -36450,7 +36599,7 @@ var __async = (__this, __arguments, generator) => {
             warnMissingFeature("`chart.link`", "link");
           }
           if (!this.ink) {
-            const inkOn = (_f = (_e2 = this.w.config.chart) == null ? void 0 : _e2.ink) == null ? void 0 : _f.enabled;
+            const inkOn = (_f = (_e = this.w.config.chart) == null ? void 0 : _e.ink) == null ? void 0 : _f.enabled;
             const anyDraggable = ((_h = (_g = this.w.config.annotations) == null ? void 0 : _g.points) != null ? _h : []).some(
               (p2) => p2 && p2.draggable
             );
@@ -36492,7 +36641,7 @@ var __async = (__this, __arguments, generator) => {
               if (Utils$1.is("ShadowRoot", rootNode) || this.w.config.chart.injectStyleSheet !== false) {
                 const nonce = ((_n = this.opts.chart) == null ? void 0 : _n.nonce) || this.w.config.chart.nonce;
                 const id = "apexcharts-css";
-                this._releaseCss = $e(this.el, id, apexCSS, { nonce });
+                this._releaseCss = Mt(this.el, id, apexCSS, { nonce });
               }
             }
           }
@@ -36582,7 +36731,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean} [overwriteInitialSeries=true]
      */
     create(ser, opts, overwriteInitialSeries = true) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       if (!this.core) {
         const initCtx = new InitCtxVariables(this);
@@ -36591,6 +36740,7 @@ var __async = (__this, __arguments, generator) => {
       const gl = this.w.globals;
       gl.noData = false;
       gl.animationEnded = false;
+      gl.liveTweens = /* @__PURE__ */ new Set();
       if (!Utils$1.elementExists(this.el)) {
         gl.animationEnded = true;
         return null;
@@ -36681,7 +36831,7 @@ var __async = (__this, __arguments, generator) => {
         dataLabels.dataLabelsBackground();
       }
       this.core.shiftGraphPosition();
-      (_f = (_e2 = this.legend) == null ? void 0 : _e2.heatmapGradientLegend) == null ? void 0 : _f.repositionToPlot();
+      (_f = (_e = this.legend) == null ? void 0 : _e.heatmapGradientLegend) == null ? void 0 : _f.repositionToPlot();
       if (w.globals.dataPoints > 50) {
         w.dom.elWrap.classList.add("apexcharts-disable-transitions");
       }
@@ -36703,26 +36853,26 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} graphData
      */
     mount(graphData = null) {
-      const me = this;
-      const w = me.w;
+      const me2 = this;
+      const w = me2.w;
       return new Promise((resolve2, reject) => {
-        var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k, _l, _m;
-        if (me.el === null) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+        if (me2.el === null) {
           return reject(
             new Error("Not enough data to display or target element not found")
           );
         } else if (w.globals.allSeriesCollapsed) {
-          me.series.handleNoData();
+          me2.series.handleNoData();
         }
-        me.grid = new Grid(me.w, me);
-        const elgrid = me.grid.drawGrid();
+        me2.grid = new Grid(me2.w, me2);
+        const elgrid = me2.grid.drawGrid();
         const AnnotationsCtor = InitCtxVariables._featureRegistry.get("annotations");
-        me.annotations = AnnotationsCtor ? new AnnotationsCtor(me.w, {
-          theme: me.theme,
-          timeScale: me.timeScale
+        me2.annotations = AnnotationsCtor ? new AnnotationsCtor(me2.w, {
+          theme: me2.theme,
+          timeScale: me2.timeScale
         }) : null;
-        (_a = me.annotations) == null ? void 0 : _a.drawImageAnnos();
-        (_b = me.annotations) == null ? void 0 : _b.drawTextAnnos();
+        (_a = me2.annotations) == null ? void 0 : _a.drawImageAnnos();
+        (_b = me2.annotations) == null ? void 0 : _b.drawTextAnnos();
         if (w.config.grid.position === "back") {
           if (elgrid) {
             w.dom.elGraphical.add(elgrid.el);
@@ -36747,16 +36897,16 @@ var __async = (__this, __arguments, generator) => {
             w.dom.elGraphical.add(elgrid.elGridBorders);
           }
         }
-        (_e2 = me.waterfall) == null ? void 0 : _e2.drawConnectors();
-        (_f = me.streamgraph) == null ? void 0 : _f.draw();
+        (_e = me2.waterfall) == null ? void 0 : _e.drawConnectors();
+        (_f = me2.streamgraph) == null ? void 0 : _f.draw();
         if (w.config.xaxis.crosshairs.position === "front") {
-          me.crosshairs.drawXCrosshairs();
+          me2.crosshairs.drawXCrosshairs();
         }
         if (w.config.yaxis[0].crosshairs.position === "front") {
-          me.crosshairs.drawYCrosshairs();
+          me2.crosshairs.drawYCrosshairs();
         }
         if (w.config.chart.type !== "treemap") {
-          me.axes.drawAxis(w.config.chart.type, elgrid);
+          me2.axes.drawAxis(w.config.chart.type, elgrid);
         }
         const xAxis = new XAxis(this.w, this.ctx, elgrid);
         const yaxis = new YAxis(
@@ -36774,21 +36924,21 @@ var __async = (__this, __arguments, generator) => {
           });
         }
         AxesUtils.pruneRedundantLabelTitles(w.dom.baseEl);
-        (_g = me.annotations) == null ? void 0 : _g.drawAxesAnnotations();
+        (_g = me2.annotations) == null ? void 0 : _g.drawAxesAnnotations();
         let tools;
         if (!w.globals.noData) {
           if (Environment.isBrowser() && w.config.tooltip.enabled && !w.globals.noData) {
-            (_h = me.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
+            (_h = me2.w.globals.tooltip) == null ? void 0 : _h.drawTooltip(graphData.xyRatios);
           }
           if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled && w.config.chart.accessibility.keyboard.navigation.enabled) {
-            (_i = me.keyboardNavigation) == null ? void 0 : _i.init();
+            (_i = me2.keyboardNavigation) == null ? void 0 : _i.init();
           }
           w.interact.keyNav = null;
           if (Environment.isBrowser() && w.globals.axisCharts && (w.axisFlags.isXNumeric || /** @type {Record<string,any>} */
           w.config.xaxis.convertedCatToNumeric || w.axisFlags.isRangeBar)) {
             if (w.config.chart.zoom.enabled || w.config.chart.selection && w.config.chart.selection.enabled || // @ts-ignore — chart.pan is an internal toolbar config property
             w.config.chart.pan && w.config.chart.pan.enabled) {
-              (_j = me.zoomPanSelection) == null ? void 0 : _j.init({
+              (_j = me2.zoomPanSelection) == null ? void 0 : _j.init({
                 xyRatios: graphData.xyRatios
               });
             }
@@ -36804,13 +36954,13 @@ var __async = (__this, __arguments, generator) => {
             });
           }
           if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
-            (_k = me.toolbar) == null ? void 0 : _k.createToolbar();
-          } else if (!w.globals.allSeriesCollapsed && ((_l = me.toolbar) == null ? void 0 : _l.resetControlDue())) {
-            me.toolbar.createToolbar({ resetOnly: true });
+            (_k = me2.toolbar) == null ? void 0 : _k.createToolbar();
+          } else if (!w.globals.allSeriesCollapsed && ((_l = me2.toolbar) == null ? void 0 : _l.resetControlDue())) {
+            me2.toolbar.createToolbar({ resetOnly: true });
           }
           if (tools) w.config.chart.toolbar.tools = tools;
         }
-        (_m = me.weave) == null ? void 0 : _m.dispatch("draw", {
+        (_m = me2.weave) == null ? void 0 : _m.dispatch("draw", {
           pass: "full",
           xyRatios: graphData == null ? void 0 : graphData.xyRatios
         });
@@ -36820,10 +36970,10 @@ var __async = (__this, __arguments, generator) => {
           });
         }
         if (!w.globals.axisCharts && !w.globals.noData) {
-          me.core.resizeNonAxisCharts();
+          me2.core.resizeNonAxisCharts();
         }
-        enforceLicense(w, me);
-        resolve2(me);
+        enforceLicense(w, me2);
+        resolve2(me2);
       });
     }
     /**
@@ -36867,7 +37017,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
      */
     updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = true) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       if (!this.core || !Utils$1.isObject(options2)) {
         console.warn(
@@ -36931,12 +37081,13 @@ var __async = (__this, __arguments, generator) => {
             }
           );
         }
-        if ((_e2 = this.history) == null ? void 0 : _e2.applying) {
+        if ((_e = this.history) == null ? void 0 : _e.applying) {
           this.updateHelpers.revertDefaultAxisMinMax();
         } else {
           this.updateHelpers.revertZoom();
         }
       }
+      const zoomedY = options2.yaxis && w.interact.zoomed ? this.updateHelpers.zoomedYBounds() : null;
       if (options2.xaxis) {
         options2 = this.updateHelpers.forceXAxisUpdate(options2);
       }
@@ -36954,7 +37105,8 @@ var __async = (__this, __arguments, generator) => {
         redraw,
         animate,
         updateSyncedCharts,
-        overwriteInitialConfig
+        overwriteInitialConfig,
+        zoomedY
       );
     }
     /**
@@ -37035,13 +37187,13 @@ var __async = (__this, __arguments, generator) => {
      */
     appendData(newData, overwriteInitialSeries = true) {
       var _a;
-      const me = this;
-      const gl = me.w.globals;
-      if (!me.core) return Promise.resolve(me);
-      const t2 = me.trellis;
+      const me2 = this;
+      const gl = me2.w.globals;
+      if (!me2.core) return Promise.resolve(me2);
+      const t2 = me2.trellis;
       if (t2 && (t2._mounted || t2._rendering)) {
-        return me.updateSeries(
-          me.w.config.series.map(
+        return me2.updateSeries(
+          me2.w.config.series.map(
             (s2, i2) => newData[i2] ? __spreadProps(__spreadValues({}, s2), { data: s2.data.concat(
               /** @type {any} */
               newData[i2].data
@@ -37049,13 +37201,13 @@ var __async = (__this, __arguments, generator) => {
           )
         );
       }
-      me.data.resetParsingFlags();
-      me.w.globals.dataChanged = true;
-      me.w.globals.shouldAnimate = true;
-      me.updateHelpers.capture(true);
+      me2.data.resetParsingFlags();
+      me2.w.globals.dataChanged = true;
+      me2.w.globals.shouldAnimate = true;
+      me2.updateHelpers.capture(true);
       const derivedRaw = (
         /** @type {any} */
-        gl[me.w.config.chart.requestedType + "RawSeries"]
+        gl[me2.w.config.chart.requestedType + "RawSeries"]
       );
       if (derivedRaw) {
         for (let i2 = 0; i2 < derivedRaw.length; i2++) {
@@ -37069,7 +37221,7 @@ var __async = (__this, __arguments, generator) => {
         }
         return this.update(void 0, overwriteInitialSeries);
       }
-      const newSeries = me.w.config.series.slice();
+      const newSeries = me2.w.config.series.slice();
       const reducerRaw = gl.dataReducerRawSeries;
       const records = [...gl.collapsedSeries, ...gl.ancillaryCollapsedSeries];
       for (let i2 = 0; i2 < newSeries.length; i2++) {
@@ -37089,10 +37241,10 @@ var __async = (__this, __arguments, generator) => {
           }
         }
       }
-      trimStreamingSeries(newSeries, me.w);
-      if (reducerRaw) trimStreamingSeries(reducerRaw, me.w);
-      trimStreamingSeries(records, me.w);
-      me.w.config.series = newSeries;
+      trimStreamingSeries(newSeries, me2.w);
+      if (reducerRaw) trimStreamingSeries(reducerRaw, me2.w);
+      trimStreamingSeries(records, me2.w);
+      me2.w.config.series = newSeries;
       return this.update(void 0, overwriteInitialSeries);
     }
     /**
@@ -37327,7 +37479,7 @@ var __async = (__this, __arguments, generator) => {
      */
     fastUpdate(animate, prevAxisScaleSig) {
       return new Promise((resolve2, reject) => {
-        var _a, _b, _c, _d, _e2, _f;
+        var _a, _b, _c, _d, _e, _f;
         try {
           const w = this.w;
           const gl = w.globals;
@@ -37338,6 +37490,7 @@ var __async = (__this, __arguments, generator) => {
           gl.shouldAnimate = animate;
           gl.dataChanged = true;
           gl.animationEnded = false;
+          gl.liveTweens = /* @__PURE__ */ new Set();
           PerformanceCache.invalidateSelectors(w);
           this.series.hasAllSeriesEqualX();
           if (gl.axisCharts) {
@@ -37413,7 +37566,7 @@ var __async = (__this, __arguments, generator) => {
           applyDataLabelTransition(w);
           playExitLabels(w);
           if (Environment.isBrowser() && w.config.tooltip.enabled && !gl.noData) {
-            (_e2 = w.globals.tooltip) == null ? void 0 : _e2.drawTooltip(xyRatios);
+            (_e = w.globals.tooltip) == null ? void 0 : _e.drawTooltip(xyRatios);
           }
           (_f = this.weave) == null ? void 0 : _f.dispatch("draw", { pass: "fast", xyRatios });
           if (defs && defs.childElementCount > defsBefore) {
@@ -37719,7 +37872,7 @@ var __async = (__this, __arguments, generator) => {
           `ApexCharts: registerTheme("${name2}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`
         );
       } else {
-        lt(name2, def);
+        ne(name2, def);
       }
       return ApexCharts;
     }
@@ -37731,7 +37884,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {typeof ApexCharts}
      */
     static unregisterTheme(name2) {
-      ut(name2);
+      ie(name2);
       return ApexCharts;
     }
     /**
@@ -38034,15 +38187,15 @@ var __async = (__this, __arguments, generator) => {
      */
     addXaxisAnnotation(opts, pushToMemory = true, context = void 0) {
       var _a;
-      let me = (
+      let me2 = (
         /** @type {ApexCharts} */
         /** @type {unknown} */
         this
       );
       if (context) {
-        me = context;
+        me2 = context;
       }
-      (_a = me.annotations) == null ? void 0 : _a.addXaxisAnnotationExternal(opts, pushToMemory, me);
+      (_a = me2.annotations) == null ? void 0 : _a.addXaxisAnnotationExternal(opts, pushToMemory, me2);
     }
     /**
      * Adds a y-axis annotation dynamically after render.
@@ -38053,15 +38206,15 @@ var __async = (__this, __arguments, generator) => {
      */
     addYaxisAnnotation(opts, pushToMemory = true, context = void 0) {
       var _a;
-      let me = (
+      let me2 = (
         /** @type {ApexCharts} */
         /** @type {unknown} */
         this
       );
       if (context) {
-        me = context;
+        me2 = context;
       }
-      (_a = me.annotations) == null ? void 0 : _a.addYaxisAnnotationExternal(opts, pushToMemory, me);
+      (_a = me2.annotations) == null ? void 0 : _a.addYaxisAnnotationExternal(opts, pushToMemory, me2);
     }
     /**
      * Adds a point annotation dynamically after render.
@@ -38072,15 +38225,15 @@ var __async = (__this, __arguments, generator) => {
      */
     addPointAnnotation(opts, pushToMemory = true, context = void 0) {
       var _a;
-      let me = (
+      let me2 = (
         /** @type {ApexCharts} */
         /** @type {unknown} */
         this
       );
       if (context) {
-        me = context;
+        me2 = context;
       }
-      (_a = me.annotations) == null ? void 0 : _a.addPointAnnotationExternal(opts, pushToMemory, me);
+      (_a = me2.annotations) == null ? void 0 : _a.addPointAnnotationExternal(opts, pushToMemory, me2);
     }
     /**
      * Removes all annotations from the chart.
@@ -38089,16 +38242,16 @@ var __async = (__this, __arguments, generator) => {
      */
     clearAnnotations(context = void 0) {
       var _a;
-      let me = (
+      let me2 = (
         /** @type {ApexCharts} */
         /** @type {unknown} */
         this
       );
       if (context) {
-        me = context;
+        me2 = context;
       }
-      me.lastUpdateOptions = null;
-      (_a = me.annotations) == null ? void 0 : _a.clearAnnotations(me);
+      me2.lastUpdateOptions = null;
+      (_a = me2.annotations) == null ? void 0 : _a.clearAnnotations(me2);
     }
     /**
      * Removes a specific annotation by its `id`.
@@ -38108,16 +38261,16 @@ var __async = (__this, __arguments, generator) => {
      */
     removeAnnotation(id, context = void 0) {
       var _a;
-      let me = (
+      let me2 = (
         /** @type {ApexCharts} */
         /** @type {unknown} */
         this
       );
       if (context) {
-        me = context;
+        me2 = context;
       }
-      me.lastUpdateOptions = null;
-      (_a = me.annotations) == null ? void 0 : _a.removeAnnotation(me, id);
+      me2.lastUpdateOptions = null;
+      (_a = me2.annotations) == null ? void 0 : _a.removeAnnotation(me2, id);
     }
     /**
      * Returns the inner SVG group element that contains all chart graphics.
@@ -38239,7 +38392,7 @@ var __async = (__this, __arguments, generator) => {
         seriesRangeEnd: w.rangeData.seriesRangeEnd,
         // a series without goals has no row internally; keep one per series
         seriesGoals: w.seriesData.series.map(
-          (_2, i2) => w.seriesData.seriesGoals[i2] || []
+          (_, i2) => w.seriesData.seriesGoals[i2] || []
         )
       };
     }
@@ -38396,7 +38549,7 @@ var __async = (__this, __arguments, generator) => {
       );
       if (!Utils$1.is("ShadowRoot", rootNode) && this.w.config.chart.injectStyleSheet === false)
         return;
-      this._releaseDsCss = $e(
+      this._releaseDsCss = Mt(
         this.el,
         `apexcharts-${styles.name}-css`,
         styles.css,
@@ -38567,7 +38720,7 @@ var __async = (__this, __arguments, generator) => {
      * screen-width chart down to a sheet would shrink 12px text to 4px.
      */
     _beforePrint() {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       if (this._printRestore || !this._printEnabled()) return;
       const w = this.w;
       const printWidth = (_b = (_a = w.config.chart.print) == null ? void 0 : _a.width) != null ? _b : 700;
@@ -38590,19 +38743,19 @@ var __async = (__this, __arguments, generator) => {
           `0 0 ${w.globals.svgWidth} ${w.globals.svgHeight}`
         );
         this._printRestore.viewBoxAdded = true;
-        (_f = (_e2 = w.dom) == null ? void 0 : _e2.elWrap) == null ? void 0 : _f.classList.add("apexcharts-printing");
+        (_f = (_e = w.dom) == null ? void 0 : _e.elWrap) == null ? void 0 : _f.classList.add("apexcharts-printing");
       }
     }
     /** Put back what _beforePrint() changed. */
     _afterPrint() {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       if (!this._printRestore) return;
       const w = this.w;
       const restore = this._printRestore;
       this._printRestore = null;
       if (restore.viewBoxAdded) {
         (_c = (_b = (_a = w.dom) == null ? void 0 : _a.Paper) == null ? void 0 : _b.node) == null ? void 0 : _c.removeAttribute("viewBox");
-        (_e2 = (_d = w.dom) == null ? void 0 : _d.elWrap) == null ? void 0 : _e2.classList.remove("apexcharts-printing");
+        (_e = (_d = w.dom) == null ? void 0 : _d.elWrap) == null ? void 0 : _e.classList.remove("apexcharts-printing");
       }
       if (w.config.chart.width !== restore.width) {
         this.updateHelpers._updateOptions(
@@ -39141,7 +39294,7 @@ var __async = (__this, __arguments, generator) => {
     resolveExportBackground() {
       var _a, _b, _c;
       const w = this.w;
-      return Mt({
+      return ge({
         background: w.config.chart.background,
         mode: w.config.theme.mode,
         fromVariant: !!w.globals.variantModeApplied,
@@ -39242,7 +39395,7 @@ var __async = (__this, __arguments, generator) => {
         }
       };
       const el = this.w.dom.elWrap;
-      (el ? Ne(el) : Array.from(document.styleSheets || [])).forEach(
+      (el ? St(el) : Array.from(document.styleSheets || [])).forEach(
         walkSheet
       );
       return Promise.all(remote).then(() => found);
@@ -39299,9 +39452,9 @@ var __async = (__this, __arguments, generator) => {
      */
     inlineFontFaceUrls(css, base) {
       const urls = [];
-      const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
+      const re2 = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
       let m2;
-      while ((m2 = re.exec(css)) !== null) {
+      while ((m2 = re2.exec(css)) !== null) {
         if (!m2[2].startsWith("data:")) urls.push(m2[2]);
       }
       if (!urls.length) return Promise.resolve(css.includes("data:") ? css : null);
@@ -39712,7 +39865,7 @@ var __async = (__this, __arguments, generator) => {
         rows.push(
           [csvCfg.headerCategory, csvCfg.headerValue].join(columnDelimiter)
         );
-        series.forEach((_2, sI) => {
+        series.forEach((_, sI) => {
           rows.push(
             [
               getFormattedCategory(w.labelData.labels[sI]),
@@ -40332,10 +40485,10 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} w
      */
     static colorScaleOf(w) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const type = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.type;
       if (!type) return null;
-      return ((_e2 = (_d = (_c = w == null ? void 0 : w.config) == null ? void 0 : _c.plotOptions) == null ? void 0 : _d[type]) == null ? void 0 : _e2.colorScale) || null;
+      return ((_e = (_d = (_c = w == null ? void 0 : w.config) == null ? void 0 : _c.plotOptions) == null ? void 0 : _d[type]) == null ? void 0 : _e.colorScale) || null;
     }
     /**
      * @param {any} w
@@ -40375,7 +40528,7 @@ var __async = (__this, __arguments, generator) => {
      *   so all plot-relative positioning is skipped.
      */
     draw(targetEl = null) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       this._targetEl = targetEl;
       const elLegendWrap = (
@@ -40437,7 +40590,7 @@ var __async = (__this, __arguments, generator) => {
       if (cfg.showLabels) {
         const labelColor = ((_c = cfg.labelStyle) == null ? void 0 : _c.colors) || (Array.isArray(w.config.legend.labels.colors) ? w.config.legend.labels.colors[0] : w.config.legend.labels.colors) || w.config.chart.foreColor;
         const labelFontSize = ((_d = cfg.labelStyle) == null ? void 0 : _d.fontSize) || "11px";
-        const labelFontFamily = ((_e2 = cfg.labelStyle) == null ? void 0 : _e2.fontFamily) || w.config.chart.fontFamily;
+        const labelFontFamily = ((_e = cfg.labelStyle) == null ? void 0 : _e.fontFamily) || w.config.chart.fontFamily;
         const fmt = this._getFormatter();
         const makeLabel = (text, x2, y2, anchor) => {
           const t2 = BrowserAPIs.createElementNS(SVG_NS, "text");
@@ -40505,20 +40658,20 @@ var __async = (__this, __arguments, generator) => {
         svgHeight
       };
       if (cfg.showHoverValue) {
-        const tt2 = BrowserAPIs.createElement("div");
-        tt2.classList.add("apexcharts-heatmap-gradient-legend-value");
-        tt2.style.position = "absolute";
-        tt2.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
-        tt2.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
-        tt2.style.background = "rgba(0,0,0,0.65)";
-        tt2.style.color = "#fff";
-        tt2.style.padding = "2px 6px";
-        tt2.style.borderRadius = `${Theme.radius(w, 3)}px`;
-        tt2.style.pointerEvents = "none";
-        tt2.style.whiteSpace = "nowrap";
-        tt2.style.opacity = "0";
-        tt2.style.transition = "opacity 120ms ease";
-        this.hoverValueEl = tt2;
+        const tt = BrowserAPIs.createElement("div");
+        tt.classList.add("apexcharts-heatmap-gradient-legend-value");
+        tt.style.position = "absolute";
+        tt.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
+        tt.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
+        tt.style.background = "rgba(0,0,0,0.65)";
+        tt.style.color = "#fff";
+        tt.style.padding = "2px 6px";
+        tt.style.borderRadius = `${Theme.radius(w, 3)}px`;
+        tt.style.pointerEvents = "none";
+        tt.style.whiteSpace = "nowrap";
+        tt.style.opacity = "0";
+        tt.style.transition = "opacity 120ms ease";
+        this.hoverValueEl = tt;
       }
       elLegendWrap.classList.add("apexcharts-heatmap-gradient-legend-wrap");
       elLegendWrap.classList.add(
@@ -40718,7 +40871,7 @@ var __async = (__this, __arguments, generator) => {
      * Tear down listeners (called before re-render).
      */
     destroy() {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       for (let i2 = 0; i2 < this._bandHitEls.length; i2++) {
         const el = this._bandHitEls[i2];
         (_a = el.removeEventListener) == null ? void 0 : _a.call(el, "mousemove", this._onBandEnter);
@@ -40728,7 +40881,7 @@ var __async = (__this, __arguments, generator) => {
       this._activeBandIndex = -1;
       if (!((_c = this.ctx) == null ? void 0 : _c.events)) return;
       try {
-        (_e2 = (_d = this.ctx.events).removeEventListener) == null ? void 0 : _e2.call(
+        (_e = (_d = this.ctx.events).removeEventListener) == null ? void 0 : _e.call(
           _d,
           "dataPointMouseEnter",
           this._onCellEnter
@@ -40738,7 +40891,7 @@ var __async = (__this, __arguments, generator) => {
           "dataPointMouseLeave",
           this._onCellLeave
         );
-      } catch (_2) {
+      } catch (_) {
       }
     }
     /** Wire mousemove/mouseout on each per-band hit-region (ranges mode). */
@@ -41145,7 +41298,7 @@ var __async = (__this, __arguments, generator) => {
     }
     drawLegends() {
       var _a, _b;
-      const me = this;
+      const me2 = this;
       const w = this.w;
       const elLegendWrap = (
         /** @type {HTMLElement} */
@@ -41171,7 +41324,7 @@ var __async = (__this, __arguments, generator) => {
       const markers = new Markers(w, this.ctx);
       const legendGroups = [];
       if (w.labelData.seriesGroups.length > 1 && w.config.legend.clusterGroupedSeries) {
-        w.labelData.seriesGroups.forEach((_2, gi) => {
+        w.labelData.seriesGroups.forEach((_, gi) => {
           legendGroups[gi] = BrowserAPIs.createElement("div");
           legendGroups[gi].classList.add(
             "apexcharts-legend-group",
@@ -41223,7 +41376,7 @@ var __async = (__this, __arguments, generator) => {
             "aria-label",
             template.replace(
               /\{(name|state)\}/g,
-              (_2, key) => key === "name" ? seriesName : statusText
+              (_, key) => key === "name" ? seriesName : statusText
             )
           );
           elLegend.setAttribute("aria-pressed", isCollapsed ? "true" : "false");
@@ -41291,17 +41444,17 @@ var __async = (__this, __arguments, generator) => {
           elLegend.classList.add("apexcharts-no-click");
         }
       }
-      w.dom.elWrap.addEventListener("click", me.onLegendClickEvent, true);
-      w.dom.elWrap.addEventListener("pointerdown", me.onLegendPointerDown, true);
-      w.dom.elWrap.addEventListener("pointerup", me.onLegendPointerUp, true);
+      w.dom.elWrap.addEventListener("click", me2.onLegendClickEvent, true);
+      w.dom.elWrap.addEventListener("pointerdown", me2.onLegendPointerDown, true);
+      w.dom.elWrap.addEventListener("pointerup", me2.onLegendPointerUp, true);
       if (w.config.legend.onItemHover.highlightDataSeries && w.config.legend.customLegendItems.length === 0) {
-        w.dom.elWrap.addEventListener("mousemove", me.onLegendHovered, true);
-        w.dom.elWrap.addEventListener("mouseout", me.onLegendHovered, true);
+        w.dom.elWrap.addEventListener("mousemove", me2.onLegendHovered, true);
+        w.dom.elWrap.addEventListener("mouseout", me2.onLegendHovered, true);
       }
       if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
         w.dom.elWrap.addEventListener(
           "keydown",
-          me.onLegendKeyDown.bind(me),
+          me2.onLegendKeyDown.bind(me2),
           true
         );
       }
@@ -41407,7 +41560,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {KeyboardEvent} e
      */
     onLegendKeyDown(e2) {
-      const me = this;
+      const me2 = this;
       const w = this.w;
       const target2 = (
         /** @type {Element} */
@@ -41417,7 +41570,7 @@ var __async = (__this, __arguments, generator) => {
       if (e2.key === "Enter" || e2.key === " ") {
         e2.preventDefault();
         const rel = target2.getAttribute("rel");
-        me.onLegendClick(e2);
+        me2.onLegendClick(e2);
         if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
           requestAnimationFrame(() => {
             var _a;
@@ -41646,16 +41799,16 @@ var __async = (__this, __arguments, generator) => {
       };
       appendZoomControl("zoomIn", this.elZoomIn, icoZoomIn);
       appendZoomControl("zoomOut", this.elZoomOut, icoZoomOut);
-      const zoomSelectionCtrls = (z2) => {
-        if (this.t[z2] && w.config.chart[z2].enabled) {
+      const zoomSelectionCtrls = (z) => {
+        if (this.t[z] && w.config.chart[z].enabled) {
           toolbarControls.push({
-            el: z2 === "zoom" ? this.elZoom : this.elSelection,
-            icon: typeof this.t[z2] === "string" ? this.t[z2] : z2 === "zoom" ? icoZoom : icoSelect,
+            el: z === "zoom" ? this.elZoom : this.elSelection,
+            icon: typeof this.t[z] === "string" ? this.t[z] : z === "zoom" ? icoZoom : icoSelect,
             title: (
               /** @type {any} */
-              this.localeValues[z2 === "zoom" ? "selectionZoom" : "selection"]
+              this.localeValues[z === "zoom" ? "selectionZoom" : "selection"]
             ),
-            class: `apexcharts-${z2}-icon`
+            class: `apexcharts-${z}-icon`
           });
         }
       };
@@ -41796,7 +41949,7 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     addToolbarEventListeners() {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i;
       (_a = this.elZoomReset) == null ? void 0 : _a.addEventListener("click", this.handleZoomReset.bind(this));
       (_b = this.elSelection) == null ? void 0 : _b.addEventListener(
         "click",
@@ -41807,7 +41960,7 @@ var __async = (__this, __arguments, generator) => {
         this.toggleZoomSelection.bind(this, "zoom")
       );
       (_d = this.elZoomIn) == null ? void 0 : _d.addEventListener("click", this.handleZoomIn.bind(this));
-      (_e2 = this.elZoomOut) == null ? void 0 : _e2.addEventListener("click", this.handleZoomOut.bind(this));
+      (_e = this.elZoomOut) == null ? void 0 : _e.addEventListener("click", this.handleZoomOut.bind(this));
       (_f = this.elPan) == null ? void 0 : _f.addEventListener("click", this.togglePanning.bind(this));
       (_g = this.elMeasure) == null ? void 0 : _g.addEventListener("click", this.toggleMeasure.bind(this));
       (_h = this.elMenuIcon) == null ? void 0 : _h.addEventListener("click", this.toggleMenu.bind(this));
@@ -42175,7 +42328,7 @@ var __async = (__this, __arguments, generator) => {
         var _a2, _b;
         const origin = (
           /** @type {Node} */
-          ke(e2)
+          gt(e2)
         );
         if (((_a2 = this.elMenu) == null ? void 0 : _a2.contains(origin)) || ((_b = this.elMenuIcon) == null ? void 0 : _b.contains(origin))) {
           return;
@@ -42313,7 +42466,7 @@ var __async = (__this, __arguments, generator) => {
     /** @param {{xyRatios: any}} opts */
     init({ xyRatios }) {
       const w = this.w;
-      const me = this;
+      const me2 = this;
       this.xyRatios = xyRatios;
       this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
       this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
@@ -42344,18 +42497,18 @@ var __async = (__this, __arguments, generator) => {
       this.hoverArea.classList.add("apexcharts-zoomable");
       this.eventList.forEach((event) => {
         var _a;
-        (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.svgMouseEvents.bind(me), {
+        (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.svgMouseEvents.bind(me2), {
           capture: false,
           passive: true
         });
       });
       if (this._wheelZoomEnabled()) {
-        this.hoverArea.addEventListener("wheel", me.mouseWheelEvent.bind(me), {
+        this.hoverArea.addEventListener("wheel", me2.mouseWheelEvent.bind(me2), {
           capture: false,
           passive: false
         });
       }
-      this.hoverArea.addEventListener("keydown", me.escapeResetEvent.bind(me), {
+      this.hoverArea.addEventListener("keydown", me2.escapeResetEvent.bind(me2), {
         capture: false,
         passive: true
       });
@@ -42363,7 +42516,7 @@ var __async = (__this, __arguments, generator) => {
         ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
           (event) => {
             var _a;
-            (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
+            (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me2.momentumTouch.bind(me2), {
               capture: false,
               passive: false
             });
@@ -42374,13 +42527,13 @@ var __async = (__this, __arguments, generator) => {
     // remove the event listeners which were previously added on hover area
     destroy() {
       if (this.w.globals.isDestroyed) {
-        const it2 = this.w.interact;
-        const st2 = this._wheel();
-        BrowserAPIs.cancelAnimationFrame(st2.rafId);
-        clearTimeout(st2.endTimer);
+        const it = this.w.interact;
+        const st = this._wheel();
+        BrowserAPIs.cancelAnimationFrame(st.rafId);
+        clearTimeout(st.endTimer);
         this._hideWheelHint();
         this._cancelInertia();
-        it2.wheel = it2.momentum = void 0;
+        it.wheel = it.momentum = void 0;
       }
       if (this.slDraggableRect) {
         this.slDraggableRect.draggable(false);
@@ -42567,17 +42720,17 @@ var __async = (__this, __arguments, generator) => {
         el.offsetWidth;
       }
       el.classList.add("apexcharts-wheel-hint-visible");
-      const it2 = w.interact;
-      if (it2.wheelHintTimer) clearTimeout(it2.wheelHintTimer);
-      it2.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
+      const it = w.interact;
+      if (it.wheelHintTimer) clearTimeout(it.wheelHintTimer);
+      it.wheelHintTimer = setTimeout(() => this._hideWheelHint(), 1200);
     }
     _hideWheelHint() {
       var _a;
       const w = this.w;
-      const it2 = w.interact;
-      if (it2.wheelHintTimer) {
-        clearTimeout(it2.wheelHintTimer);
-        it2.wheelHintTimer = null;
+      const it = w.interact;
+      if (it.wheelHintTimer) {
+        clearTimeout(it.wheelHintTimer);
+        it.wheelHintTimer = null;
       }
       const el = (_a = w.dom.elWrap) == null ? void 0 : _a.querySelector(".apexcharts-wheel-hint");
       if (el) el.classList.remove("apexcharts-wheel-hint-visible");
@@ -42636,9 +42789,9 @@ var __async = (__this, __arguments, generator) => {
     }
     /** Lazily-created, re-render-surviving wheel-gesture state. */
     _wheel() {
-      const it2 = this.w.interact;
-      if (!it2.wheel) {
-        it2.wheel = {
+      const it = this.w.interact;
+      if (!it.wheel) {
+        it.wheel = {
           factor: 1,
           clientX: 0,
           /** @type {number|null} */
@@ -42647,14 +42800,14 @@ var __async = (__this, __arguments, generator) => {
           endTimer: null
         };
       }
-      return it2.wheel;
+      return it.wheel;
     }
     /**
      * @param {any} e
      */
     mouseWheelEvent(e2) {
-      const st2 = this._wheel();
-      if (!this._wheelZoomGreedy() && !e2.ctrlKey && !e2.metaKey && st2.endTimer == null) {
+      const st = this._wheel();
+      if (!this._wheelZoomGreedy() && !e2.ctrlKey && !e2.metaKey && st.endTimer == null) {
         this._showWheelHint(e2);
         return;
       }
@@ -42663,13 +42816,13 @@ var __async = (__this, __arguments, generator) => {
       let dy = e2.deltaY;
       if (e2.deltaMode === 1) dy *= 33;
       else if (e2.deltaMode === 2) dy *= 330;
-      st2.factor *= Math.pow(2, dy / WHEEL_ZOOM_PIXELS_PER_2X);
-      st2.clientX = e2.clientX;
-      if (st2.rafId == null) {
-        st2.rafId = requestAnimationFrame(() => this._applyWheelZoom());
+      st.factor *= Math.pow(2, dy / WHEEL_ZOOM_PIXELS_PER_2X);
+      st.clientX = e2.clientX;
+      if (st.rafId == null) {
+        st.rafId = requestAnimationFrame(() => this._applyWheelZoom());
       }
-      if (st2.endTimer) clearTimeout(st2.endTimer);
-      st2.endTimer = setTimeout(() => this._endWheelZoom(), 150);
+      if (st.endTimer) clearTimeout(st.endTimer);
+      st.endTimer = setTimeout(() => this._endWheelZoom(), 150);
     }
     /**
      * Apply the zoom factor accumulated since the last animation frame, keeping
@@ -42677,17 +42830,17 @@ var __async = (__this, __arguments, generator) => {
      */
     _applyWheelZoom() {
       const w = this.w;
-      const st2 = this._wheel();
-      st2.rafId = null;
-      const scale = st2.factor;
-      st2.factor = 1;
+      const st = this._wheel();
+      st.rafId = null;
+      const scale = st.factor;
+      st.factor = 1;
       if (scale === 1 || w.globals.isDestroyed) return;
       const gridWidth = w.layout.gridWidth;
       if (!this._hasPlot() || !gridWidth) return;
       const { min, max } = this._currentXWindow();
       const range = max - min;
       const mouseX = Math.min(
-        Math.max(this._screenXToPlotPx(st2.clientX) / gridWidth, 0),
+        Math.max(this._screenXToPlotPx(st.clientX) / gridWidth, 0),
         1
       );
       let newRange = range * scale;
@@ -42718,8 +42871,8 @@ var __async = (__this, __arguments, generator) => {
     /** Fire the zoomed callback once the wheel gesture settles (mirrors _endPinch). */
     _endWheelZoom() {
       const w = this.w;
-      const st2 = this._wheel();
-      st2.endTimer = null;
+      const st = this._wheel();
+      st.endTimer = null;
       if (w.globals.isDestroyed || !w.interact.zoomed) return;
       const { min, max } = this._currentXWindow();
       const yaxis = this.yaxisForXWindow();
@@ -42867,12 +43020,22 @@ var __async = (__this, __arguments, generator) => {
       if (!(maxPx > PLOT_ORIGIN_PX)) return;
       const x2 = parseFloat(rect.node.getAttribute("x")) || 0;
       const width = parseFloat(rect.node.getAttribute("width")) || 0;
-      const clamp = (px2) => Math.min(Math.max(px2, PLOT_ORIGIN_PX), maxPx);
-      const left = clamp(x2);
-      const right = clamp(x2 + width);
+      const left = this._clampPlotPx(x2, maxPx);
+      const right = this._clampPlotPx(x2 + width, maxPx);
       if (left === x2 && right === x2 + width) return;
       rect.attr({ x: left, width: right - left });
       if (rect._updateSelectPositions) rect._updateSelectPositions();
+    }
+    /**
+     * Clamp one plot-origin pixel to the span the plot occupies, `[0, maxPx]`.
+     * A plot with no pixel size (pre-layout) collapses to the origin.
+     * @param {number} px
+     * @param {number} maxPx
+     * @returns {number}
+     */
+    _clampPlotPx(px2, maxPx) {
+      if (!(maxPx > PLOT_ORIGIN_PX)) return PLOT_ORIGIN_PX;
+      return Math.min(Math.max(px2, PLOT_ORIGIN_PX), maxPx);
     }
     /**
      * @param {any} rect
@@ -42889,61 +43052,35 @@ var __async = (__this, __arguments, generator) => {
     }
     selectionDrawing({ context, zoomtype }) {
       const w = this.w;
-      const me = context;
+      const me2 = context;
       if (!this._hasPlot()) return;
-      const startX = me.startX;
-      const startY = me.startY;
-      let inversedX = false;
-      let inversedY = false;
-      const left = this._screenXToPlotPx(me.clientX);
-      const top = this._screenYToPlotPx(me.clientY);
-      let selectionWidth = left - startX;
-      let selectionHeight = top - startY;
-      let selectionRect = {
+      const plotW = w.layout.gridWidth;
+      const plotH = w.layout.gridHeight;
+      const startX = this._clampPlotPx(me2.startX, plotW);
+      const startY = this._clampPlotPx(me2.startY, plotH);
+      const endX = this._clampPlotPx(this._screenXToPlotPx(me2.clientX), plotW);
+      const endY = this._clampPlotPx(this._screenYToPlotPx(me2.clientY), plotH);
+      let x2 = Math.min(startX, endX);
+      let y2 = Math.min(startY, endY);
+      let width = Math.abs(endX - startX);
+      let height = Math.abs(endY - startY);
+      if (zoomtype === "x") {
+        y2 = 0;
+        height = plotH;
+      } else if (zoomtype === "y") {
+        x2 = 0;
+        width = plotW;
+      }
+      const selectionRect = {
+        x: x2,
+        y: y2,
+        width,
+        height,
         translateX: w.layout.translateX,
         translateY: w.layout.translateY
       };
-      if (Math.abs(selectionWidth + startX) > w.layout.gridWidth) {
-        selectionWidth = w.layout.gridWidth - startX;
-      } else if (left < 0) {
-        selectionWidth = startX;
-      }
-      if (startX > left) {
-        inversedX = true;
-        selectionWidth = Math.abs(selectionWidth);
-      }
-      if (startY > top) {
-        inversedY = true;
-        selectionHeight = Math.abs(selectionHeight);
-      }
-      if (zoomtype === "x") {
-        selectionRect = {
-          x: inversedX ? startX - selectionWidth : startX,
-          y: 0,
-          width: selectionWidth,
-          height: w.layout.gridHeight
-        };
-      } else if (zoomtype === "y") {
-        selectionRect = {
-          x: 0,
-          y: inversedY ? startY - selectionHeight : startY,
-          width: w.layout.gridWidth,
-          height: selectionHeight
-        };
-      } else {
-        selectionRect = {
-          x: inversedX ? startX - selectionWidth : startX,
-          y: inversedY ? startY - selectionHeight : startY,
-          width: selectionWidth,
-          height: selectionHeight
-        };
-      }
-      selectionRect = __spreadProps(__spreadValues({}, selectionRect), {
-        translateX: w.layout.translateX,
-        translateY: w.layout.translateY
-      });
-      me.drawSelectionRect(selectionRect);
-      me.selectionDragging("resizing");
+      me2.drawSelectionRect(selectionRect);
+      me2.selectionDragging("resizing");
       return selectionRect;
     }
     /**
@@ -43050,11 +43187,11 @@ var __async = (__this, __arguments, generator) => {
     selectionDrawn({ context, zoomtype }) {
       var _a;
       const w = this.w;
-      const me = context;
+      const me2 = context;
       const xyRatios = this.xyRatios;
       const toolbar = this.ctx.toolbar;
-      const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
-      if (!me._hasPlot()) return;
+      const selRect = w.interact.zoomEnabled ? me2.zoomRect.node.getBoundingClientRect() : me2.selectionRect.node.getBoundingClientRect();
+      if (!me2._hasPlot()) return;
       const localStartX = this._screenXToPlotPx(selRect.left);
       const localEndX = this._screenXToPlotPx(selRect.right);
       const localStartY = this._screenYToPlotPx(selRect.top);
@@ -43069,14 +43206,14 @@ var __async = (__this, __arguments, generator) => {
       }
       const yHighestValue = [];
       const yLowestValue = [];
-      w.config.yaxis.forEach((_2, index) => {
+      w.config.yaxis.forEach((_, index) => {
         const seriesIndex = w.globals.seriesYAxisMap[index][0];
         const highestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localStartY;
         const lowestVal = w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * localEndY;
         yHighestValue.push(highestVal);
         yLowestValue.push(lowestVal);
       });
-      if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
+      if (me2.dragged && (me2.dragX > 10 || me2.dragY > 10) && xLowestValue !== xHighestValue) {
         if (w.interact.zoomEnabled) {
           if (!w.globals.initialConfig) return;
           let yaxis = Utils$1.clone(w.globals.initialConfig.yaxis);
@@ -43118,15 +43255,15 @@ var __async = (__this, __arguments, generator) => {
           if (!w.config.chart.group) {
             options2.yaxis = yaxis;
           }
-          const applied = me.ctx.updateHelpers._updateOptions(
+          const applied = me2.ctx.updateHelpers._updateOptions(
             options2,
             false,
-            me.w.config.chart.animations.dynamicAnimation.enabled
+            me2.w.config.chart.animations.dynamicAnimation.enabled
           );
           if (applied && typeof applied.then === "function") {
-            applied.then(() => me._focusForKeyboard());
+            applied.then(() => me2._focusForKeyboard());
           } else {
-            me._focusForKeyboard();
+            me2._focusForKeyboard();
           }
           if (typeof w.config.chart.events.zoomed === "function") {
             toolbar.zoomCallback(xaxis, yaxis);
@@ -43149,14 +43286,14 @@ var __async = (__this, __arguments, generator) => {
               yaxe.max = yHighestValue[index];
             });
           }
-          w.interact.selection = me.selection;
+          w.interact.selection = me2.selection;
           if (typeof w.config.chart.events.selection === "function") {
-            w.config.chart.events.selection(me.ctx, {
+            w.config.chart.events.selection(me2.ctx, {
               xaxis,
               yaxis
             });
           }
-          (_a = me.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
+          (_a = me2.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
         }
       }
     }
@@ -43164,10 +43301,10 @@ var __async = (__this, __arguments, generator) => {
     panDragging({ context }) {
       var _a;
       const w = this.w;
-      const me = context;
+      const me2 = context;
       if (typeof w.interact.lastClientPosition.x !== "undefined") {
-        const deltaX = w.interact.lastClientPosition.x - me.clientX;
-        const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me.clientY;
+        const deltaX = w.interact.lastClientPosition.x - me2.clientX;
+        const deltaY = ((_a = w.interact.lastClientPosition.y) != null ? _a : 0) - me2.clientY;
         if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
           this.moveDirection = "left";
         } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
@@ -43179,12 +43316,12 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       w.interact.lastClientPosition = {
-        x: me.clientX,
-        y: me.clientY
+        x: me2.clientX,
+        y: me2.clientY
       };
       const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
       const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
-      me.panScrolled(xLowestValue, xHighestValue);
+      me2.panScrolled(xLowestValue, xHighestValue);
     }
     /**
      * @param {number} xLowestValue
@@ -43274,9 +43411,9 @@ var __async = (__this, __arguments, generator) => {
     }
     /** Lazily-created, re-render-surviving gesture state on the interaction slice. */
     _m() {
-      const it2 = this.w.interact;
-      if (!it2.momentum) {
-        it2.momentum = {
+      const it = this.w.interact;
+      if (!it.momentum) {
+        it.momentum = {
           busy: false,
           /** @type {any} */
           pinch: null,
@@ -43288,7 +43425,7 @@ var __async = (__this, __arguments, generator) => {
           inertiaRAF: null
         };
       }
-      return it2.momentum;
+      return it.momentum;
     }
     /** Current x data-window (rangeBars carry the datetime domain on y). */
     _currentXWindow() {
@@ -43593,8 +43730,8 @@ var __async = (__this, __arguments, generator) => {
       if (samples.length >= 2) {
         const a2 = samples[0];
         const b = samples[samples.length - 1];
-        const dt2 = b.t - a2.t;
-        if (dt2 > 0) vel = (b.x - a2.x) / dt2;
+        const dt = b.t - a2.t;
+        if (dt > 0) vel = (b.x - a2.x) / dt;
       }
       m2.samples = [];
       if (s2 && s2.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY) {
@@ -43630,9 +43767,9 @@ var __async = (__this, __arguments, generator) => {
           m2.inertiaRAF = requestAnimationFrame(step);
           return;
         }
-        const dt2 = ts - lastT;
+        const dt = ts - lastT;
         lastT = ts;
-        vel *= Math.pow(friction, dt2 / FRAME_MS_60FPS);
+        vel *= Math.pow(friction, dt / FRAME_MS_60FPS);
         if (Math.abs(vel) < INERTIA_STOP_VELOCITY) {
           m2.inertiaRAF = null;
           m2.busy = false;
@@ -43642,7 +43779,7 @@ var __async = (__this, __arguments, generator) => {
         const win = this._currentXWindow();
         const gw = w.layout.gridWidth || 1;
         const ratio = (win.max - win.min) / gw;
-        const deltaData = vel * dt2 * ratio;
+        const deltaData = vel * dt * ratio;
         const applied = this._applyXRange(
           win.min - deltaData,
           win.max - deltaData,
@@ -44501,16 +44638,16 @@ var __async = (__this, __arguments, generator) => {
      */
     getPointTooltipContent(anno) {
       const w = this.w;
-      const tt2 = anno.tooltip || {};
-      if (typeof tt2.formatter === "function") {
-        return tt2.formatter({
+      const tt = anno.tooltip || {};
+      if (typeof tt.formatter === "function") {
+        return tt.formatter({
           annotation: anno,
           seriesIndex: anno.seriesIndex,
           id: anno.id,
           w
         });
       }
-      let content = tt2.text != null ? tt2.text : anno.label && anno.label.text;
+      let content = tt.text != null ? tt.text : anno.label && anno.label.text;
       if (Array.isArray(content)) {
         content = content.join("<br/>");
       }
@@ -44787,13 +44924,13 @@ var __async = (__this, __arguments, generator) => {
       contextMethod
     }) {
       var _a;
-      const me = context;
-      const w = me.w;
+      const me2 = context;
+      const w = me2.w;
       const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`);
       const remember = (id) => {
         if (pushToMemory) {
           w.globals.memory.methodsToExec.push({
-            context: me,
+            context: me2,
             id: id ? id : Utils$1.randomId(),
             method: contextMethod,
             label: "addAnnotation",
@@ -45337,12 +45474,12 @@ var __async = (__this, __arguments, generator) => {
         clientX = plot.left + (painted.x + painted.width / 2) * plot.zoom;
         clientY = plot.top + (painted.y + painted.height / 2) * plot.zoom;
       } else if (w.globals.pointsArray && w.globals.pointsArray[i2] && w.globals.pointsArray[i2][j]) {
-        const pt = w.globals.pointsArray[i2][j];
+        const pt2 = w.globals.pointsArray[i2][j];
         const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
         if (elGrid) {
           const plot = Utils.plotRect(w);
-          clientX = plot.left + (pt[0] || 0) * plot.zoom;
-          clientY = plot.top + (pt[1] || 0) * plot.zoom;
+          clientX = plot.left + (pt2[0] || 0) * plot.zoom;
+          clientY = plot.top + (pt2[1] || 0) * plot.zoom;
         }
       } else {
         const svgEl = w.dom.Paper && w.dom.Paper.node;
@@ -45354,16 +45491,18 @@ var __async = (__this, __arguments, generator) => {
       }
       if (!this._isBarLikeSeries(i2) && (type === "line" || type === "area" || type === "rangeArea" || type === "scatter" || type === "bubble" || type === "radar")) {
         if (w.globals.pointsArray && w.globals.pointsArray[i2] && w.globals.pointsArray[i2][j]) {
-          const pt = w.globals.pointsArray[i2][j];
+          const pt2 = w.globals.pointsArray[i2][j];
           const elGrid = ttCtx.getElGrid && ttCtx.getElGrid();
           if (elGrid) {
             const plot = Utils.plotRect(w);
-            clientX = plot.left + (pt[0] || 0) * plot.zoom;
-            clientY = plot.top + (pt[1] || 0) * plot.zoom;
+            clientX = plot.left + (pt2[0] || 0) * plot.zoom;
+            clientY = plot.top + (pt2[1] || 0) * plot.zoom;
           }
         }
       }
       ttCtx.e = { type: "mousemove", clientX, clientY };
+      ttCtx.pointerDriven = false;
+      ttCtx.pendingReplay = null;
       ttCtx.clientX = clientX;
       ttCtx.clientY = clientY;
     }
@@ -45978,7 +46117,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {string}
      */
     _buildPointLabel(i2, j) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const type = w.config.chart.type;
       const seriesNames = w.seriesData.seriesNames || [];
@@ -46009,7 +46148,7 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       let category = "";
-      const categoryLabels = (_e2 = w.labelData) == null ? void 0 : _e2.categoryLabels;
+      const categoryLabels = (_e = w.labelData) == null ? void 0 : _e.categoryLabels;
       const seriesX = (_g = (_f = w.seriesData) == null ? void 0 : _f.seriesX) == null ? void 0 : _g[i2];
       if (Array.isArray(categoryLabels) && categoryLabels[j] != null) {
         category = String(categoryLabels[j]);
@@ -46370,8 +46509,8 @@ var __async = (__this, __arguments, generator) => {
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    const pts = items.map((it2) => {
-      const [x2, y2] = getXY(it2);
+    const pts = items.map((it) => {
+      const [x2, y2] = getXY(it);
       if (x2 < minX) minX = x2;
       if (x2 > maxX) maxX = x2;
       if (y2 < minY) minY = y2;
@@ -46566,8 +46705,8 @@ var __async = (__this, __arguments, generator) => {
       const gl = this.w.globals;
       const graphical = (_a = this.w.dom.elGraphical) == null ? void 0 : _a.node;
       const plot = gl.layoutTween && !gl.layoutTween.done && gl.layoutTween.graphical === graphical ? gl.layoutTween.rect : null;
-      const ct2 = gl.circleTween;
-      const circle = ct2 && !ct2.done && (graphical == null ? void 0 : graphical.contains(ct2.node)) ? ct2 : null;
+      const ct = gl.circleTween;
+      const circle = ct && !ct.done && (graphical == null ? void 0 : graphical.contains(ct.node)) ? ct : null;
       const scale = circle ? circle.circle.r / circle.target.r : 1;
       this._snapshot = {
         fromType,
@@ -46879,15 +47018,15 @@ var __async = (__this, __arguments, generator) => {
         probe.remove();
         return null;
       }
-      const pt = svg.createSVGPoint();
+      const pt2 = svg.createSVGPoint();
       const hit = (x2, y2) => {
-        pt.x = x2;
-        pt.y = y2;
+        pt2.x = x2;
+        pt2.y = y2;
         const p2 = (
           /** @type {any} */
           probe
         );
-        return p2.isPointInFill(pt) || p2.isPointInStroke(pt);
+        return p2.isPointInFill(pt2) || p2.isPointInStroke(pt2);
       };
       const SCAN = 48;
       const intervalsAt = (bandLo, bandHi, horizontal) => {
@@ -46903,7 +47042,7 @@ var __async = (__this, __arguments, generator) => {
         const edge = (inside, outside, major) => {
           let a2 = outside;
           let b = inside;
-          for (let it2 = 0; it2 < 6; it2++) {
+          for (let it = 0; it < 6; it++) {
             const m2 = (a2 + b) / 2;
             if (at2(m2, major)) b = m2;
             else a2 = m2;
@@ -48773,7 +48912,7 @@ var __async = (__this, __arguments, generator) => {
     _setScales(xyRatios) {
       const w = this.w;
       const gl = w.globals;
-      const L2 = w.layout;
+      const L = w.layout;
       if (!xyRatios || !gl.axisCharts) {
         this._currentScales = null;
         return;
@@ -48787,7 +48926,7 @@ var __async = (__this, __arguments, generator) => {
       const isRangeBar = !!w.axisFlags.isRangeBar;
       const banded = gl.dataPoints > 0 && (!w.axisFlags.isXNumeric || horizontal);
       const rowCount = horizontal && isRangeBar ? w.labelData.labels.length : gl.dataPoints;
-      const span = horizontal ? L2.gridHeight : L2.gridWidth;
+      const span = horizontal ? L.gridHeight : L.gridWidth;
       const band = banded && rowCount > 0 ? span / rowCount : 0;
       const rows = /* @__PURE__ */ new Map();
       if (banded) {
@@ -48817,12 +48956,12 @@ var __async = (__this, __arguments, generator) => {
       };
       const y2 = horizontal ? (v, axis = 0) => {
         const range = Math.abs(maxY(axis) - minY(axis));
-        const px2 = range ? (v - minY(axis)) / range * L2.gridWidth : 0;
-        return reversed(axis) ? L2.gridWidth - px2 : px2;
+        const px2 = range ? (v - minY(axis)) / range * L.gridWidth : 0;
+        return reversed(axis) ? L.gridWidth - px2 : px2;
       } : (v, axis = 0) => {
         const f2 = logFraction(v, axis);
         if (f2 !== null) {
-          return reversed(axis) ? f2 * L2.gridHeight : (1 - f2) * L2.gridHeight;
+          return reversed(axis) ? f2 * L.gridHeight : (1 - f2) * L.gridHeight;
         }
         return reversed(axis) ? (v - minY(axis)) / yr(axis) : (maxY(axis) - v) / yr(axis);
       };
@@ -48840,8 +48979,8 @@ var __async = (__this, __arguments, generator) => {
          * @param {number} [axis]
          */
         point: (vx, vy, axis = 0) => horizontal ? { x: y2(vy, axis), y: x2(vx) } : { x: x2(vx), y: y2(vy, axis) },
-        gridWidth: L2.gridWidth,
-        gridHeight: L2.gridHeight,
+        gridWidth: L.gridWidth,
+        gridHeight: L.gridHeight,
         ratios: xyRatios
       };
     }
@@ -49327,14 +49466,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} name
      * @param {{ z?: 'front'|'behind', className?: string }} opts
      */
-    _layer(name2, { z: z2 = "front", className = "" } = {}) {
+    _layer(name2, { z = "front", className = "" } = {}) {
       let g2 = this._layers.get(name2);
       if (!g2) {
         g2 = this.ctx.graphics.group({
           class: `apexcharts-plugin-${name2} ${className}`.trim()
         });
         const parent = this.w.dom.elGraphical.node;
-        if (z2 === "behind") parent.insertBefore(g2.node, parent.firstChild);
+        if (z === "behind") parent.insertBefore(g2.node, parent.firstChild);
         else parent.appendChild(g2.node);
         g2.node.setAttribute("aria-hidden", "true");
         this._layers.set(name2, g2);
@@ -49647,14 +49786,14 @@ var __async = (__this, __arguments, generator) => {
         return {
           /** @param {any} o */
           path: (o2 = {}) => {
-            var _a, _b, _c, _d, _e2, _f, _g, _h, _i;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _i;
             return tag(
               emit.drawPath({
                 d: o2.d || "",
                 stroke: (_a = o2.stroke) != null ? _a : "#000",
                 strokeWidth: (_c = (_b = o2.width) != null ? _b : o2.strokeWidth) != null ? _c : 1,
                 fill: (_d = o2.fill) != null ? _d : "none",
-                fillOpacity: (_f = o2.fillOpacity) != null ? _f : o2.fill && o2.fill !== "none" ? (_e2 = o2.opacity) != null ? _e2 : 1 : 0,
+                fillOpacity: (_f = o2.fillOpacity) != null ? _f : o2.fill && o2.fill !== "none" ? (_e = o2.opacity) != null ? _e : 1 : 0,
                 strokeOpacity: (_h = (_g = o2.strokeOpacity) != null ? _g : o2.opacity) != null ? _h : 1,
                 strokeDashArray: (_i = o2.dash) != null ? _i : 0,
                 strokeLinecap: o2.lineCap
@@ -49678,14 +49817,14 @@ var __async = (__this, __arguments, generator) => {
           },
           /** @param {any} o */
           rect: (o2 = {}) => {
-            var _a, _b, _c, _d, _e2, _f, _g, _h;
+            var _a, _b, _c, _d, _e, _f, _g, _h;
             return tag(
               emit.drawRect(
                 (_a = o2.x) != null ? _a : 0,
                 (_b = o2.y) != null ? _b : 0,
                 (_c = o2.w) != null ? _c : 0,
                 (_d = o2.h) != null ? _d : 0,
-                (_e2 = o2.r) != null ? _e2 : 0,
+                (_e = o2.r) != null ? _e : 0,
                 (_f = o2.fill) != null ? _f : "#000",
                 (_g = o2.opacity) != null ? _g : 1,
                 o2.stroke != null ? (_h = o2.strokeWidth) != null ? _h : 1 : null,
@@ -49695,14 +49834,14 @@ var __async = (__this, __arguments, generator) => {
           },
           /** @param {any} o */
           circle: (o2 = {}) => {
-            var _a, _b, _c, _d, _e2;
+            var _a, _b, _c, _d, _e;
             return tag(
               emit.drawCircle((_a = o2.r) != null ? _a : 0, {
                 cx: (_b = o2.cx) != null ? _b : 0,
                 cy: (_c = o2.cy) != null ? _c : 0,
                 fill: (_d = o2.fill) != null ? _d : "#000",
                 stroke: o2.stroke || "none",
-                "stroke-width": (_e2 = o2.strokeWidth) != null ? _e2 : o2.stroke ? 1 : 0
+                "stroke-width": (_e = o2.strokeWidth) != null ? _e : o2.stroke ? 1 : 0
               })
             );
           },
@@ -49739,7 +49878,7 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.theme.follow !== "os" || !Environment.isBrowser()) return;
       let watcher = ctx._osTheme;
       if (!watcher) {
-        watcher = new xt({
+        watcher = new ye({
           host: (
             /** @type {any} */
             BrowserAPIs
@@ -49803,7 +49942,7 @@ var __async = (__this, __arguments, generator) => {
     const buckets = new Array(n2);
     for (let k2 = 0; k2 < n2; k2++) buckets[k2] = [];
     for (let i2 = 0; i2 < values.length; i2++) {
-      const k2 = L(values[i2], edges);
+      const k2 = N(values[i2], edges);
       if (k2 >= 0) buckets[k2].push(values[i2]);
     }
     return buckets;
@@ -49811,9 +49950,9 @@ var __async = (__this, __arguments, generator) => {
   function fiveNumberSummary(values, opts = {}) {
     if (!Array.isArray(values) || values.length === 0) return null;
     const sorted = values.slice().sort((a2, b) => a2 - b);
-    const q1 = S(sorted, 0.25);
-    const median = S(sorted, 0.5);
-    const q3 = S(sorted, 0.75);
+    const q1 = x(sorted, 0.25);
+    const median = x(sorted, 0.5);
+    const q3 = x(sorted, 0.75);
     const iqr = q3 - q1;
     let lo = sorted[0];
     let hi = sorted[sorted.length - 1];
@@ -49840,7 +49979,7 @@ var __async = (__this, __arguments, generator) => {
     let h2 = opts.bandwidth;
     if (!(typeof h2 === "number" && h2 > 0)) {
       const sd = stdDev(sorted);
-      const iqr = S(sorted, 0.75) - S(sorted, 0.25);
+      const iqr = x(sorted, 0.75) - x(sorted, 0.25);
       const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
       h2 = 0.9 * spread * Math.pow(n2, -1 / 5);
     }
@@ -49866,8 +50005,8 @@ var __async = (__this, __arguments, generator) => {
       const x2 = lo + g2 * step;
       let sum2 = 0;
       for (let i2 = 0; i2 < n2; i2++) {
-        const z2 = (x2 - sorted[i2]) / h2;
-        sum2 += Math.exp(-0.5 * z2 * z2);
+        const z = (x2 - sorted[i2]) / h2;
+        sum2 += Math.exp(-0.5 * z * z);
       }
       density.push([x2, sum2 * norm]);
     }
@@ -50120,8 +50259,8 @@ var __async = (__this, __arguments, generator) => {
       const fillColor = colors[c2.realIndex] || colors[0];
       return {
         name: c2.name,
-        data: thinned.clusters[i2].map((v, q2) => __spreadValues({
-          id: `${c2.realIndex}:${i2}:${q2}`,
+        data: thinned.clusters[i2].map((v, q) => __spreadValues({
+          id: `${c2.realIndex}:${i2}:${q}`,
           x: c2.name,
           y: v
         }, fillColor ? { fillColor } : {}))
@@ -50218,7 +50357,7 @@ var __async = (__this, __arguments, generator) => {
      * @return {object} dataLabels node-element which you can append later
      **/
     handleBarDataLabels(opts) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const {
         x: x2,
         y: y2,
@@ -50347,7 +50486,7 @@ var __async = (__this, __arguments, generator) => {
         dataLabelsPos = this.calculateColumnsDataLabelsPosition(params);
       }
       if (waterfallStep !== null && this.barCtx.isHorizontal && barDataLabelsConfig.position === "center") {
-        const box = (_f = (_e2 = w.waterfallData.geometry) == null ? void 0 : _e2[realIndex]) == null ? void 0 : _f[j];
+        const box = (_f = (_e = w.waterfallData.geometry) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[j];
         if (box && box.horizontal) {
           dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX;
         }
@@ -50924,10 +51063,10 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   function isHistogramOverlay(w) {
-    var _a, _b, _c, _d, _e2, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g;
     if (((_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.requestedType) !== "histogram") return false;
     if (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.histogram) == null ? void 0 : _d.overlap) === false) return false;
-    return ((_g = (_f = (_e2 = w.seriesData) == null ? void 0 : _e2.series) == null ? void 0 : _f.length) != null ? _g : 0) > 1;
+    return ((_g = (_f = (_e = w.seriesData) == null ? void 0 : _e.series) == null ? void 0 : _f.length) != null ? _g : 0) > 1;
   }
   let Helpers$1 = class Helpers {
     /**
@@ -50964,7 +51103,7 @@ var __async = (__this, __arguments, generator) => {
             /**
              * @param {any} _
              */
-            brArr.map((_2) => "none")
+            brArr.map((_) => "none")
           )
         );
       }
@@ -51333,7 +51472,7 @@ var __async = (__this, __arguments, generator) => {
       ) : null;
       const isBar = (i2) => !barIndices || barIndices.has(i2);
       if (!groups || groups.length < 2) {
-        const bucket = Array.from({ length: numSeries }, (_2, i2) => i2).filter(isBar);
+        const bucket = Array.from({ length: numSeries }, (_, i2) => i2).filter(isBar);
         return bucket.length ? [bucket] : [];
       }
       const buckets = Array.from({ length: groups.length }, () => []);
@@ -52164,7 +52303,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       let nonZeroColumns = 0;
       let zeroEncounters = 0;
-      const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_2, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
+      const seriesIndices = w.config.plotOptions.bar.horizontal ? w.seriesData.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
       seriesIndices.forEach((_si) => {
         const val = w.seriesData.series[_si][j];
         if (val) {
@@ -52311,7 +52450,7 @@ var __async = (__this, __arguments, generator) => {
      * @return {Element} element which is supplied to parent chart draw method for appending
      **/
     draw(series, seriesIndex) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const coreUtils = new CoreUtils(this.w);
@@ -52451,7 +52590,7 @@ var __async = (__this, __arguments, generator) => {
           );
           if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_d = w.config.plotOptions.funnel) == null ? void 0 : _d.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
             const barShadow = this.barHelpers.drawBarShadow({
-              color: typeof pathFill.color === "string" && ((_e2 = pathFill.color) == null ? void 0 : _e2.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i2]),
+              color: typeof pathFill.color === "string" && ((_e = pathFill.color) == null ? void 0 : _e.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i2]),
               prevPaths: this.pathArr[this.pathArr.length - 1],
               currPaths: paths,
               realIndex,
@@ -52571,7 +52710,7 @@ var __async = (__this, __arguments, generator) => {
       noLabel
       // a datum's extra paths (box halves, box lane) label nothing
     }) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       const graphics = new Graphics(this.w, this.ctx);
       const emit = seriesEmitter(this.ctx, graphics);
@@ -52652,7 +52791,7 @@ var __async = (__this, __arguments, generator) => {
         if (((_a = dlAnimCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlAnimCfg.countUp) == null ? void 0 : _b.enabled)) {
           const stampDelay = String(Math.round(delayMs));
           (_d = (_c = dataLabelsObj.dataLabels) == null ? void 0 : _c.node) == null ? void 0 : _d.setAttribute("data:dlDelay", stampDelay);
-          (_f = (_e2 = dataLabelsObj.totalDataLabels) == null ? void 0 : _e2.node) == null ? void 0 : _f.setAttribute(
+          (_f = (_e = dataLabelsObj.totalDataLabels) == null ? void 0 : _e.node) == null ? void 0 : _f.setAttribute(
             "data:dlDelay",
             stampDelay
           );
@@ -53155,7 +53294,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {boolean}
      */
     isLengthTransition(realIndex) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       if (!this._ltCache) this._ltCache = {};
       if (this._ltCache[realIndex] !== void 0) return this._ltCache[realIndex];
       const w = this.w;
@@ -53168,7 +53307,7 @@ var __async = (__this, __arguments, generator) => {
           result = dataLen > 0;
         } else if (keyed) {
           const now = new Set(this._keys(realIndex));
-          result = ((_f = (_e2 = (_d = (_c = w.globals.prevStreamFrame) == null ? void 0 : _c.seriesY) == null ? void 0 : _d[realIndex]) == null ? void 0 : _e2.length) != null ? _f : dataLen) !== dataLen || [...keyed.keys()].some((k2) => !now.has(k2));
+          result = ((_f = (_e = (_d = (_c = w.globals.prevStreamFrame) == null ? void 0 : _c.seriesY) == null ? void 0 : _d[realIndex]) == null ? void 0 : _e.length) != null ? _f : dataLen) !== dataLen || [...keyed.keys()].some((k2) => !now.has(k2));
         } else {
           result = record.paths.length !== dataLen;
         }
@@ -53309,9 +53448,9 @@ var __async = (__this, __arguments, generator) => {
     static pathBox(d2) {
       if (!d2) return null;
       const pts = [];
-      const re = /([MLC])([^MLCZz]*)/g;
+      const re2 = /([MLC])([^MLCZz]*)/g;
       let m2;
-      while ((m2 = re.exec(d2)) !== null) {
+      while ((m2 = re2.exec(d2)) !== null) {
         const nums2 = m2[2].trim().split(/[\s,]+/).map(Number);
         if (nums2.length < 2 || nums2.some(isNaN)) continue;
         pts.push([nums2[nums2.length - 2], nums2[nums2.length - 1]]);
@@ -53409,7 +53548,7 @@ var __async = (__this, __arguments, generator) => {
         series = w.globals.comboCharts ? (
           /** @type {any} */
           seriesIndex.map(
-            (_2) => w.globals.seriesPercent[_2]
+            (_) => w.globals.seriesPercent[_]
           )
         ) : w.globals.seriesPercent.slice();
       }
@@ -54318,7 +54457,7 @@ var __async = (__this, __arguments, generator) => {
             elSeries,
             record: this._prevRecord(realIndex),
             newKeys: this._keys(realIndex).filter(
-              (_2, j) => series[i2][j] != null
+              (_, j) => series[i2][j] != null
             ),
             isHorizontal: this.isHorizontal,
             speed: w.config.chart.animations.dynamicAnimation.speed
@@ -54392,22 +54531,22 @@ var __async = (__this, __arguments, generator) => {
       const q3 = slot + band - band / 4;
       const half = (vertical ? strokeWidth : -strokeWidth) / 2;
       const M = (a3, c2) => vertical ? graphics.move(c2, a3) : graphics.move(a3, c2);
-      const L2 = (a3, c2) => vertical ? graphics.line(c2, a3) : graphics.line(a3, c2);
+      const L = (a3, c2) => vertical ? graphics.line(c2, a3) : graphics.line(a3, c2);
       let pathTo;
       if (this.isOHLC) {
         const openA = along(ohlc.o);
         const closeA = along(ohlc.c);
         pathTo = [
-          M(l1, mid) + L2(l2, mid) + M(openA, mid) + L2(openA, slot) + M(closeA, mid) + L2(closeA, far)
+          M(l1, mid) + L(l2, mid) + M(openA, mid) + L(openA, slot) + M(closeA, mid) + L(closeA, far)
         ];
       } else if (this.isBoxPlot) {
         pathTo = [
-          M(a1, slot) + L2(a1, mid) + L2(l1, mid) + L2(l1, q1) + L2(l1, q3) + L2(l1, mid) + L2(a1, mid) + L2(a1, far) + L2(m2, far) + L2(m2, slot) + L2(a1 + half, slot),
-          M(m2, slot) + L2(m2, far) + L2(a2, far) + L2(a2, mid) + L2(l2, mid) + L2(l2, q3) + L2(l2, q1) + L2(l2, mid) + L2(a2, mid) + L2(a2, slot) + L2(m2, slot) + "z"
+          M(a1, slot) + L(a1, mid) + L(l1, mid) + L(l1, q1) + L(l1, q3) + L(l1, mid) + L(a1, mid) + L(a1, far) + L(m2, far) + L(m2, slot) + L(a1 + half, slot),
+          M(m2, slot) + L(m2, far) + L(a2, far) + L(a2, mid) + L(l2, mid) + L(l2, q3) + L(l2, q1) + L(l2, mid) + L(a2, mid) + L(a2, slot) + L(m2, slot) + "z"
         ];
       } else {
         pathTo = [
-          M(a2, slot) + L2(a2, mid) + L2(l1, mid) + L2(a2, mid) + L2(a2, far) + L2(a1, far) + L2(a1, mid) + L2(l2, mid) + L2(a1, mid) + L2(a1, slot) + L2(a2 - half, slot)
+          M(a2, slot) + L(a2, mid) + L(l1, mid) + L(a2, mid) + L(a2, far) + L(a1, far) + L(a1, mid) + L(l2, mid) + L(a1, mid) + L(a1, slot) + L(a2 - half, slot)
         ];
       }
       let pathFrom = null;
@@ -54825,6 +54964,8 @@ var __async = (__this, __arguments, generator) => {
                   }
                 });
               }
+            } else if (!w.globals.dataChanged) {
+              w.globals.animationEnded = true;
             }
             if (w.globals.dataChanged) {
               let speed = 1;
@@ -54841,7 +54982,11 @@ var __async = (__this, __arguments, generator) => {
                       to: { x: x1, y: y1, width: cellW, height: yDivision }
                     });
                   } else {
-                    new Animations(this.w).animatePop(cell, { speed });
+                    const animations = new Animations(this.w);
+                    animations.animatePop(cell, {
+                      speed,
+                      onComplete: () => animations.animationCompleted(cell)
+                    });
                   }
                 } else {
                   const box = prev.rect;
@@ -54859,6 +55004,8 @@ var __async = (__this, __arguments, generator) => {
                     }
                   );
                 }
+              } else {
+                w.globals.animationEnded = true;
               }
             }
           }
@@ -55043,6 +55190,7 @@ var __async = (__this, __arguments, generator) => {
         fill: colorTo
       }, box == null ? void 0 : box.to));
       if (box) runner.ease(morphEasing(this.w));
+      runner.after(() => new Animations(this.w).animationCompleted(el));
     }
   }
   class Helpers {
@@ -55352,7 +55500,7 @@ var __async = (__this, __arguments, generator) => {
       this._stackXs = null;
       if (w.config.chart.stacked && w.axisFlags.isXNumeric) {
         const xs = series.map(
-          (_2, i2) => w.globals.comboCharts ? (
+          (_, i2) => w.globals.comboCharts ? (
             /** @type {any} */
             seriesIndex[i2]
           ) : i2
@@ -55764,7 +55912,7 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
     _handlePaths({ type, realIndex, i: i2, paths }) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const emit = seriesEmitter(this.ctx, graphics);
@@ -55918,7 +56066,7 @@ var __async = (__this, __arguments, generator) => {
             });
           }
           const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-            pathFrom: streamScroll ? projectPathToPrevFrame(linePathsToDraw[p2], streamScroll) : (_f = (_e2 = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e2.from) != null ? _f : paths.pathFromLine,
+            pathFrom: streamScroll ? projectPathToPrevFrame(linePathsToDraw[p2], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
             pathTo: linePathsToDraw[p2],
             pathToNumeric: numericXY ? { xs: numericXY.xs, ys: numericXY.ys } : void 0,
             pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
@@ -56393,15 +56541,15 @@ var __async = (__this, __arguments, generator) => {
         case "monotoneCubic": {
           const yAj = isRangeStart ? yArrj : y2Arrj;
           const getSmoothInputs = (xArr, yArr) => {
-            return xArr.map((_2, i3) => {
-              return [_2, yArr[i3]];
-            }).filter((_2) => _2[1] !== null);
+            return xArr.map((_, i3) => {
+              return [_, yArr[i3]];
+            }).filter((_) => _[1] !== null);
           };
           const getSegmentLengths = (yArr) => {
             const segLens = [];
             let count = 0;
-            yArr.forEach((_2) => {
-              if (_2 !== null) {
+            yArr.forEach((_) => {
+              if (_ !== null) {
                 count++;
               } else if (count > 0) {
                 segLens.push(count);
@@ -56459,11 +56607,11 @@ var __async = (__this, __arguments, generator) => {
               }
               let segmentCount = 0;
               let smoothInputsIndex = 0;
-              getSegments(_yAj, points).forEach((_2) => {
+              getSegments(_yAj, points).forEach((_) => {
                 segmentCount++;
-                const svgPoints = svgPath(_2);
+                const svgPoints = svgPath(_);
                 const _start = smoothInputsIndex;
-                smoothInputsIndex += _2.length;
+                smoothInputsIndex += _.length;
                 const _end = smoothInputsIndex - 1;
                 if (isLowerRangeAreaPath) {
                   linePath = graphics.move(
@@ -57105,7 +57253,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const helpers = new CircularChartsHelpers(w);
       const lineSets = (w.seriesData.seriesNames || []).map(
-        (_2, i2) => this.getExternalLabelLines(i2)
+        (_, i2) => this.getExternalLabelLines(i2)
       );
       const maxLabelWidth = helpers.getMaxLabelWidth(
         lineSets.flat(),
@@ -57302,7 +57450,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any[]} series
      */
     drawArcs(sectorAngleArr, series) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const filters = new Filters(this.w);
       const graphics = new Graphics(this.w);
@@ -57485,7 +57633,7 @@ var __async = (__this, __arguments, generator) => {
         if (this.getExpandOffset() > 0) {
           elPath.node.addEventListener("mouseup", this.pieClicked.bind(this, i2));
         } else if (i2 === 0 && Filters.drilldownBlocksSliceOffset(w)) {
-          (_e2 = this.ctx.drilldown) == null ? void 0 : _e2.warnSliceOffsetDisabled();
+          (_e = this.ctx.drilldown) == null ? void 0 : _e.warnSliceOffsetDisabled();
         }
         if (typeof w.interact.selectedDataPoints[0] !== "undefined" && w.interact.selectedDataPoints[0].indexOf(i2) > -1) {
           if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0) {
@@ -57680,7 +57828,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} opts
      */
     animatePaths(el, opts) {
-      const me = this;
+      const me2 = this;
       let angle = opts.endAngle < opts.startAngle ? this.fullAngle + opts.endAngle - opts.startAngle : opts.endAngle - opts.startAngle;
       let prevAngle = angle;
       let fromStartAngle = opts.startAngle;
@@ -57692,7 +57840,7 @@ var __async = (__this, __arguments, generator) => {
       if (angle === this.fullAngle && !this.isFullTurnSlice(angle)) {
         angle = this.fullAngle - 0.01;
       }
-      me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
+      me2.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
     }
     /**
      * @param {any} el
@@ -57703,7 +57851,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} opts
      */
     animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
-      const me = this;
+      const me2 = this;
       const w = this.w;
       const animations = new Animations(this.w);
       const size = opts.size;
@@ -57722,8 +57870,8 @@ var __async = (__this, __arguments, generator) => {
       const hasPrevSize = typeof opts.prevSize === "number";
       if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
         if (Number.isFinite(opts.prevEndAngle)) {
-          path = me.getPiePath({
-            me,
+          path = me2.getPiePath({
+            me: me2,
             startAngle: opts.prevStartAngle,
             angle: opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle,
             size: hasPrevSize ? opts.prevSize : size
@@ -57735,11 +57883,11 @@ var __async = (__this, __arguments, generator) => {
         el.animate(opts.dur, opts.animBeginArr[opts.i]).after(
           /** @this {any} */
           function() {
-            if (me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea") {
+            if (me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea") {
               this.animate(
                 w.config.chart.animations.dynamicAnimation.speed
               ).attr({
-                "stroke-width": me.strokeWidth
+                "stroke-width": me2.strokeWidth
               });
             }
             if (opts.collapsed) el.attr({ d: "" });
@@ -57753,8 +57901,8 @@ var __async = (__this, __arguments, generator) => {
             currAngle = prevAngle + (angle - prevAngle) * pos;
             startAngle = fromStartAngle - prevAngle + (toStartAngle - (fromStartAngle - prevAngle)) * pos;
           }
-          path = me.getPiePath({
-            me,
+          path = me2.getPiePath({
+            me: me2,
             startAngle,
             angle: currAngle,
             size: hasPrevSize ? opts.prevSize + (size - opts.prevSize) * pos : size
@@ -57765,8 +57913,8 @@ var __async = (__this, __arguments, generator) => {
           });
         });
       } else {
-        path = me.getPiePath({
-          me,
+        path = me2.getPiePath({
+          me: me2,
           startAngle,
           angle,
           size
@@ -57777,7 +57925,7 @@ var __async = (__this, __arguments, generator) => {
         el.node.setAttribute("data:pathOrig", path);
         el.attr({
           d: opts.collapsed ? "" : path,
-          "stroke-width": me.strokeWidth
+          "stroke-width": me2.strokeWidth
         });
       }
     }
@@ -57793,10 +57941,10 @@ var __async = (__this, __arguments, generator) => {
      */
     pieClicked(i2, opts) {
       const w = this.w;
-      const me = this;
+      const me2 = this;
       const animate = !(opts && opts.animate === false);
       const elPath = w.dom.Paper.findOne(
-        `.apexcharts-${me.chartType.toLowerCase()}-slice-${i2}`
+        `.apexcharts-${me2.chartType.toLowerCase()}-slice-${i2}`
       );
       if (!elPath) return;
       if (elPath.attr("data:pieClicked") === "true") {
@@ -58025,7 +58173,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {{me: any, startAngle: number, angle: number, size: number}} opts
      * @returns {{startDeg: number, spanDeg: number, endDeg: number}}
      */
-    getSliceExtent({ me, startAngle, angle, size }) {
+    getSliceExtent({ me: me2, startAngle, angle, size }) {
       const w = this.w;
       let startDeg = startAngle;
       let endDeg = angle + startAngle;
@@ -58033,10 +58181,10 @@ var __async = (__this, __arguments, generator) => {
         endDeg = this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle - 0.01;
       }
       let spanDeg = endDeg - startDeg;
-      const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+      const isSliceType = me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea";
       const spacing = w.config.plotOptions.pie.spacing;
       if (isSliceType && spacing > 0 && spanDeg > 0) {
-        const rRef = me.chartType === "donut" ? (size + me.donutSize) / 2 : size;
+        const rRef = me2.chartType === "donut" ? (size + me2.donutSize) / 2 : size;
         const gapDeg = rRef > 0 ? spacing / rRef * (180 / Math.PI) : 0;
         const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.5));
         startDeg += inset;
@@ -58072,10 +58220,10 @@ var __async = (__this, __arguments, generator) => {
      * @param {{me: any, startAngle: number, size: number}} opts
      * @returns {string}
      */
-    getFullTurnPath({ me, startAngle, size }) {
+    getFullTurnPath({ me: me2, startAngle, size }) {
       const graphics = new Graphics(this.w);
-      const cx = me.centerX;
-      const cy = me.centerY;
+      const cx = me2.centerX;
+      const cy = me2.centerY;
       const outerStart = Utils$1.polarToCartesian(cx, cy, size, startAngle);
       const outerMid = Utils$1.polarToCartesian(cx, cy, size, startAngle + 180);
       const path = [
@@ -58100,17 +58248,17 @@ var __async = (__this, __arguments, generator) => {
         outerStart.y,
         "z"
       ];
-      if (me.chartType === "donut") {
+      if (me2.chartType === "donut") {
         const innerStart = Utils$1.polarToCartesian(
           cx,
           cy,
-          me.donutSize,
+          me2.donutSize,
           startAngle
         );
         const innerMid = Utils$1.polarToCartesian(
           cx,
           cy,
-          me.donutSize,
+          me2.donutSize,
           startAngle + 180
         );
         path.push(
@@ -58118,16 +58266,16 @@ var __async = (__this, __arguments, generator) => {
           innerStart.x,
           innerStart.y,
           "A",
-          me.donutSize,
-          me.donutSize,
+          me2.donutSize,
+          me2.donutSize,
           0,
           1,
           0,
           innerMid.x,
           innerMid.y,
           "A",
-          me.donutSize,
-          me.donutSize,
+          me2.donutSize,
+          me2.donutSize,
           0,
           1,
           0,
@@ -58139,20 +58287,20 @@ var __async = (__this, __arguments, generator) => {
       return graphics.roundPathCorners(path.join(" "), this.strokeWidth * 2);
     }
     /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
-    getPiePath({ me, startAngle, angle, size }) {
+    getPiePath({ me: me2, startAngle, angle, size }) {
       let path;
       const w = this.w;
       const graphics = new Graphics(this.w);
-      const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+      const isSliceType = me2.chartType === "pie" || me2.chartType === "donut" || me2.chartType === "polarArea";
       if (isSliceType && this.isFullTurnSlice(angle)) {
-        return this.getFullTurnPath({ me, startAngle, size });
+        return this.getFullTurnPath({ me: me2, startAngle, size });
       }
       if (isSliceType && Number.isFinite(angle) && !(angle > 0)) {
-        const p2 = Utils$1.polarToCartesian(me.centerX, me.centerY, size, startAngle);
+        const p2 = Utils$1.polarToCartesian(me2.centerX, me2.centerY, size, startAngle);
         return `M ${p2.x} ${p2.y}`;
       }
       const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
-        me,
+        me: me2,
         startAngle,
         angle,
         size
@@ -58161,7 +58309,7 @@ var __async = (__this, __arguments, generator) => {
       const borderRadius = w.config.plotOptions.pie.borderRadius;
       if (borderRadius > 0 && isSliceType) {
         const roundedPath = this.getRoundedSlicePath({
-          me,
+          me: me2,
           startDeg,
           spanDeg,
           size,
@@ -58170,33 +58318,33 @@ var __async = (__this, __arguments, generator) => {
         if (roundedPath) return roundedPath;
       }
       const endRadians = Math.PI * (endDeg - 90) / 180;
-      const x1 = me.centerX + size * Math.cos(startRadians);
-      const y1 = me.centerY + size * Math.sin(startRadians);
-      const x2 = me.centerX + size * Math.cos(endRadians);
-      const y2 = me.centerY + size * Math.sin(endRadians);
+      const x1 = me2.centerX + size * Math.cos(startRadians);
+      const y1 = me2.centerY + size * Math.sin(startRadians);
+      const x2 = me2.centerX + size * Math.cos(endRadians);
+      const y2 = me2.centerY + size * Math.sin(endRadians);
       const startInner = Utils$1.polarToCartesian(
-        me.centerX,
-        me.centerY,
-        me.donutSize,
+        me2.centerX,
+        me2.centerY,
+        me2.donutSize,
         endDeg
       );
       const endInner = Utils$1.polarToCartesian(
-        me.centerX,
-        me.centerY,
-        me.donutSize,
+        me2.centerX,
+        me2.centerY,
+        me2.donutSize,
         startDeg
       );
       const largeArc = spanDeg > 180 ? 1 : 0;
       const pathBeginning = ["M", x1, y1, "A", size, size, 0, largeArc, 1, x2, y2];
-      if (me.chartType === "donut") {
+      if (me2.chartType === "donut") {
         path = [
           ...pathBeginning,
           "L",
           startInner.x,
           startInner.y,
           "A",
-          me.donutSize,
-          me.donutSize,
+          me2.donutSize,
+          me2.donutSize,
           0,
           largeArc,
           0,
@@ -58207,8 +58355,8 @@ var __async = (__this, __arguments, generator) => {
           y1,
           "z"
         ].join(" ");
-      } else if (me.chartType === "pie" || me.chartType === "polarArea") {
-        path = [...pathBeginning, "L", me.centerX, me.centerY, "L", x1, y1].join(
+      } else if (me2.chartType === "pie" || me2.chartType === "polarArea") {
+        path = [...pathBeginning, "L", me2.centerX, me2.centerY, "L", x1, y1].join(
           " "
         );
       } else {
@@ -58233,14 +58381,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {{me: any, startDeg: number, spanDeg: number, size: number, borderRadius: number}} opts
      * @returns {string | null}
      */
-    getRoundedSlicePath({ me, startDeg, spanDeg, size, borderRadius }) {
+    getRoundedSlicePath({ me: me2, startDeg, spanDeg, size, borderRadius }) {
       if (!(spanDeg > 0)) return null;
       const D2R2 = Math.PI / 180;
-      const cx = me.centerX;
-      const cy = me.centerY;
-      const isDonut = me.chartType === "donut";
+      const cx = me2.centerX;
+      const cy = me2.centerY;
+      const isDonut = me2.chartType === "donut";
       const rOut = size;
-      const rIn = isDonut ? me.donutSize : 0;
+      const rIn = isDonut ? me2.donutSize : 0;
       const spanRad = spanDeg * D2R2;
       let r2 = borderRadius;
       r2 = Math.min(r2, spanRad * rOut / 2);
@@ -59239,7 +59387,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const trackThickness = strokeWidth * parseInt(rb.track.strokeWidth, 10) / 100;
       const rings2 = series.map(
-        (_2, i2) => Object.freeze({
+        (_, i2) => Object.freeze({
           seriesIndex: i2,
           radius: steps[rb.inverseOrder ? n2 - 1 - i2 : i2],
           thickness: strokeWidth,
@@ -60029,7 +60177,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} seriesIndex
      */
     draw(series, seriesIndex) {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       const graphics = new Graphics(this.w);
       this.rangeBarOptions = this.w.config.plotOptions.rangeBar;
@@ -60109,7 +60257,7 @@ var __async = (__this, __arguments, generator) => {
             barYPosition = y2 + barHeight * /** @type {any} */
             this.visibleI;
             const srty = (yDivision - barHeight * seriesLen) / 2;
-            if (((_e2 = data[j]) == null ? void 0 : _e2.x) != null) {
+            if (((_e = data[j]) == null ? void 0 : _e.x) != null) {
               const positions = this.detectOverlappingBars({
                 i: realIndex,
                 j,
@@ -60898,6 +61046,8 @@ var __async = (__this, __arguments, generator) => {
                 cascadeDelays[k2] || 0
               );
             }
+          } else if (!w.globals.dataChanged) {
+            w.globals.animationEnded = true;
           }
           let labelFrom = null;
           let prevLook = null;
@@ -60936,6 +61086,8 @@ var __async = (__this, __arguments, generator) => {
                 }
               }
               tileTween = this.animateTreemap(elRect, fromRect, to, speed);
+            } else if (!morphFrom) {
+              w.globals.animationEnded = true;
             }
           }
           let fontSize = this.getFontSize(r2);
@@ -61592,10 +61744,10 @@ var __async = (__this, __arguments, generator) => {
      */
     zoomLive(w, drilldown) {
       var _a;
-      const z2 = w.config.plotOptions.treemap.zoom;
-      if (!(z2 == null ? void 0 : z2.enabled) || !showsParents(w)) return false;
+      const z = w.config.plotOptions.treemap.zoom;
+      if (!(z == null ? void 0 : z.enabled) || !showsParents(w)) return false;
       const dd = w.config.drilldown;
-      return drilldown && (dd == null ? void 0 : dd.enabled) && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown) ? null : z2;
+      return drilldown && (dd == null ? void 0 : dd.enabled) && (((_a = dd.series) == null ? void 0 : _a.length) || dd.onDrillDown) ? null : z;
     }
     /** @returns {boolean} */
     _zoomEnabled() {
@@ -61974,8 +62126,8 @@ var __async = (__this, __arguments, generator) => {
     }
     /** The breadcrumb config: a treemap-local override on the shared block. */
     _breadcrumbCfg() {
-      const z2 = this.w.config.plotOptions.treemap.zoom;
-      return breadcrumbConfig(this.w, z2 && z2.breadcrumb);
+      const z = this.w.config.plotOptions.treemap.zoom;
+      return breadcrumbConfig(this.w, z && z.breadcrumb);
     }
     /**
      * Breadcrumb back out of a zoom. Markup, config and accessible semantics are
@@ -62183,15 +62335,15 @@ var __async = (__this, __arguments, generator) => {
      * @returns {string}
      */
     _formatValue(v, si) {
-      var _a, _b, _c, _d, _e2;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
-      const fmt = ((_b = (_a = w.config.tooltip) == null ? void 0 : _a.y) == null ? void 0 : _b.formatter) || ((_e2 = (_d = (_c = w.config.yaxis) == null ? void 0 : _c[0]) == null ? void 0 : _d.labels) == null ? void 0 : _e2.formatter);
+      const fmt = ((_b = (_a = w.config.tooltip) == null ? void 0 : _a.y) == null ? void 0 : _b.formatter) || ((_e = (_d = (_c = w.config.yaxis) == null ? void 0 : _c[0]) == null ? void 0 : _d.labels) == null ? void 0 : _e.formatter);
       if (typeof fmt === "function") {
         try {
           return String(
             fmt(v, { seriesIndex: si || 0, dataPointIndex: -1, w })
           );
-        } catch (_2) {
+        } catch (_) {
         }
       }
       return String(v);
@@ -62295,14 +62447,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {string | number} fontSize
      */
     _labelRect(graphics, text, fontSize) {
-      const st2 = this.w.config.dataLabels.style;
+      const st = this.w.config.dataLabels.style;
       return graphics.getTextRects(
         text,
         String(fontSize),
-        st2.fontFamily,
+        st.fontFamily,
         "",
         true,
-        st2.fontWeight
+        st.fontWeight
       );
     }
     // This is an alternative label formatting method that uses a
@@ -62789,7 +62941,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {{realIndex: number, j: number, center: number, halfExtent: number, alongFn: (v: number) => number, vertical: boolean}} opts
      */
     buildViolin({ realIndex, j, center, halfExtent, alongFn, vertical }) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       const density = this.getDensity(realIndex, j);
       const maxWeight = this.effectiveMaxWeight(density);
@@ -62813,7 +62965,7 @@ var __async = (__this, __arguments, generator) => {
       });
       const pathTo = body(false);
       let pathFrom = null;
-      const morphFrom = (_f = (_e2 = this.ctx) == null ? void 0 : _e2.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
+      const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
       if (morphFrom) {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
@@ -62859,7 +63011,7 @@ var __async = (__this, __arguments, generator) => {
         return { nodes: [], maxWeight: 0 };
       }
       const order = d2.values.map(
-        (_2, k2) => k2
+        (_, k2) => k2
       );
       order.sort(
         (a2, b) => d2.values[a2] - d2.values[b]
@@ -62976,18 +63128,18 @@ var __async = (__this, __arguments, generator) => {
       const [lo, q1, med, q3, hi] = summary.map((v) => alongFn(v));
       const build2 = (half, boxHalf) => {
         const graphics = new Graphics(this.w);
-        const pt = (cross2, along) => vertical ? [cross2, along] : [along, cross2];
+        const pt2 = (cross2, along) => vertical ? [cross2, along] : [along, cross2];
         const seg = (pts) => pts.map(
           ([px2, py], k2) => k2 === 0 ? graphics.move(px2, py) : graphics.line(px2, py)
         ).join("");
         const c2 = boxCenter;
-        const whiskers = seg([pt(c2, lo), pt(c2, q1)]) + seg([pt(c2, q3), pt(c2, hi)]) + seg([pt(c2 - half, lo), pt(c2 + half, lo)]) + seg([pt(c2 - half, hi), pt(c2 + half, hi)]);
+        const whiskers = seg([pt2(c2, lo), pt2(c2, q1)]) + seg([pt2(c2, q3), pt2(c2, hi)]) + seg([pt2(c2 - half, lo), pt2(c2 + half, lo)]) + seg([pt2(c2 - half, hi), pt2(c2 + half, hi)]);
         const box = seg([
-          pt(c2 - boxHalf, q1),
-          pt(c2 + boxHalf, q1),
-          pt(c2 + boxHalf, q3),
-          pt(c2 - boxHalf, q3)
-        ]) + "z" + seg([pt(c2 - boxHalf, med), pt(c2 + boxHalf, med)]);
+          pt2(c2 - boxHalf, q1),
+          pt2(c2 + boxHalf, q1),
+          pt2(c2 + boxHalf, q3),
+          pt2(c2 - boxHalf, q3)
+        ]) + "z" + seg([pt2(c2 - boxHalf, med), pt2(c2 + boxHalf, med)]);
         return { whiskers, box };
       };
       const full = build2(capHalf, boxHalfPx);
@@ -63226,7 +63378,7 @@ var __async = (__this, __arguments, generator) => {
   const PK_CORNER = 1;
   const PK_GLYPH = 2;
   function springParams(preset, speed) {
-    const [stiffness, damping] = z(
+    const [stiffness, damping] = _t(
       /** @type {import('apex-commons').SpringPreset|undefined} */
       preset
     );
@@ -63550,7 +63702,7 @@ var __async = (__this, __arguments, generator) => {
           r: typeof p2.r === "number" && p2.r > 0 ? p2.r : void 0
         });
       });
-      const clusters = counts.map((_2, i2) => ({
+      const clusters = counts.map((_, i2) => ({
         i: i2,
         cx: gw / 2,
         cy: gh / 2,
@@ -63662,7 +63814,7 @@ var __async = (__this, __arguments, generator) => {
       const gw = w.layout.gridWidth;
       const gh = w.layout.gridHeight;
       const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6;
-      const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
+      const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
       const Kv = Math.max(1, visible.length);
       const slotOf = new Array(counts.length).fill(-1);
       visible.forEach((i2, s2) => slotOf[i2] = s2);
@@ -63677,7 +63829,7 @@ var __async = (__this, __arguments, generator) => {
       const cy = labelSpace + availH / 2;
       const outerRs = counts.map((n2) => step * Math.sqrt(Math.max(1, n2)) + dotR);
       const cellCentre = (i2) => slotOf[i2] >= 0 ? cellW * (slotOf[i2] + 0.5) : gw / 2;
-      let centers = counts.map((_2, i2) => cellCentre(i2));
+      let centers = counts.map((_, i2) => cellCentre(i2));
       const visOuter = visible.map((i2) => outerRs[i2]);
       let overlap = false;
       for (let s2 = 1; s2 < Kv; s2++) {
@@ -63702,10 +63854,10 @@ var __async = (__this, __arguments, generator) => {
         } else {
           const lo = visOuter[0];
           const hi = gw - visOuter[Kv - 1];
-          visCenters = visOuter.map((_2, s2) => lo + (hi - lo) * s2 / (Kv - 1));
+          visCenters = visOuter.map((_, s2) => lo + (hi - lo) * s2 / (Kv - 1));
         }
         centers = counts.map(
-          (_2, i2) => slotOf[i2] >= 0 ? visCenters[slotOf[i2]] : gw / 2
+          (_, i2) => slotOf[i2] >= 0 ? visCenters[slotOf[i2]] : gw / 2
         );
       }
       return counts.map((n2, i2) => ({
@@ -63737,11 +63889,11 @@ var __async = (__this, __arguments, generator) => {
       this._lastDotR = this._dotRadiusFromStep(step, opts);
       const cx = gw / 2;
       const cy = labelSpace + (gh - labelSpace) / 2;
-      const order = counts.map((_2, i2) => i2);
+      const order = counts.map((_, i2) => i2);
       if (opts.sortByGroup !== false) {
         order.sort((a2, b) => counts[a2] - counts[b]);
       }
-      const clusters = counts.map((_2, i2) => ({
+      const clusters = counts.map((_, i2) => ({
         i: i2,
         cx,
         cy,
@@ -63820,7 +63972,7 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       seats.sort((s1, s2) => s1.a - s2.a);
-      const clusters = counts.map((_2, i2) => ({
+      const clusters = counts.map((_, i2) => ({
         i: i2,
         cx,
         cy,
@@ -63855,10 +64007,10 @@ var __async = (__this, __arguments, generator) => {
       const hi = Math.max(a0, a1);
       const xs = [0, ux(a0), ux(a1)];
       const ys = [0, uy(a0), uy(a1)];
-      const q2 = Math.PI / 2;
-      for (let k2 = Math.ceil(lo / q2); k2 * q2 <= hi; k2++) {
-        xs.push(ux(k2 * q2));
-        ys.push(uy(k2 * q2));
+      const q = Math.PI / 2;
+      for (let k2 = Math.ceil(lo / q); k2 * q <= hi; k2++) {
+        xs.push(ux(k2 * q));
+        ys.push(uy(k2 * q));
       }
       return {
         minX: Math.min(...xs),
@@ -63947,7 +64099,7 @@ var __async = (__this, __arguments, generator) => {
       const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
       const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
       const topPad = labelsOn && !labelsBelow ? 30 : 6;
-      const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
+      const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
       const Kv = Math.max(1, visible.length);
       const slotOf = new Array(counts.length).fill(-1);
       visible.forEach((i2, s2) => slotOf[i2] = s2);
@@ -64062,7 +64214,7 @@ var __async = (__this, __arguments, generator) => {
       const originX = (gw - blockW) / 2 + pitch / 2;
       const topY = labelSpace + (availH - blockH) / 2;
       const rowY = (rowIdx) => fillFrom === "bottom" ? topY + blockH - pitch / 2 - rowIdx * pitch : topY + pitch / 2 + rowIdx * pitch;
-      const clusters = counts.map((_2, i2) => ({
+      const clusters = counts.map((_, i2) => ({
         i: i2,
         cx: gw / 2,
         cy: labelSpace + availH / 2,
@@ -64108,14 +64260,14 @@ var __async = (__this, __arguments, generator) => {
       const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
       const cellsPerTile = Math.max(1, Math.round(gcfg.total > 0 ? gcfg.total : 100));
       const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
-      const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
-      const K2 = Math.max(1, visible.length);
+      const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
+      const K = Math.max(1, visible.length);
       const denom = gcfg.max > 0 ? gcfg.max : Math.max(...counts) || 1;
       const tileCols = Math.max(
         1,
-        Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K2)))
+        Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K)))
       );
-      const tileRows = Math.max(1, Math.ceil(K2 / tileCols));
+      const tileRows = Math.max(1, Math.ceil(K / tileCols));
       const labelsOn = !(opts.clusterLabels && opts.clusterLabels.show === false);
       const labelsBelow = labelsOn && opts.clusterLabels && opts.clusterLabels.position === "bottom";
       const topBand = labelsOn && !labelsBelow ? 22 : 4;
@@ -64210,7 +64362,7 @@ var __async = (__this, __arguments, generator) => {
         (cat) => Array.isArray(cat) ? cat.map(valueOf2) : []
       );
       const isNum = (v) => v != null && isFinite(v);
-      const visible = catVals.map((_2, i2) => i2).filter((i2) => catVals[i2].some(isNum));
+      const visible = catVals.map((_, i2) => i2).filter((i2) => catVals[i2].some(isNum));
       const Kv = Math.max(1, visible.length);
       let vmin = Infinity;
       let vmax = -Infinity;
@@ -64329,7 +64481,7 @@ var __async = (__this, __arguments, generator) => {
       const isNum = (v) => v != null;
       const xOf = (d2) => d2 && typeof d2 === "object" ? toNum(d2.x) : null;
       const yOf2 = (d2) => d2 && typeof d2 === "object" ? toNum(d2.y != null ? d2.y : d2.value) : null;
-      const visible = unitData.map((_2, i2) => i2).filter(
+      const visible = unitData.map((_, i2) => i2).filter(
         (i2) => (unitData[i2] || []).some((d2) => isNum(xOf(d2)) && isNum(yOf2(d2)))
       );
       let xmn = Infinity;
@@ -64445,10 +64597,10 @@ var __async = (__this, __arguments, generator) => {
       let zmax = -Infinity;
       unitData.forEach(
         (cat) => (cat || []).forEach((d2) => {
-          const z2 = d2 && typeof d2 === "object" ? d2[field] : null;
-          if (typeof z2 === "number" && isFinite(z2)) {
-            if (z2 < zmin) zmin = z2;
-            if (z2 > zmax) zmax = z2;
+          const z = d2 && typeof d2 === "object" ? d2[field] : null;
+          if (typeof z === "number" && isFinite(z)) {
+            if (z < zmin) zmin = z;
+            if (z > zmax) zmax = z;
           }
         })
       );
@@ -64463,14 +64615,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {{zmin:number,zmax:number,rMin:number,rMax:number,field:string}} st
      * @param {number} fallback @returns {number}
      */
-    _scatterRadius(d2, st2, fallback) {
-      if (!st2) return fallback;
-      const z2 = d2 && typeof d2 === "object" ? d2[st2.field] : null;
-      if (typeof z2 !== "number" || !isFinite(z2)) return st2.rMin;
-      const t2 = st2.zmax > st2.zmin ? (z2 - st2.zmin) / (st2.zmax - st2.zmin) : 1;
+    _scatterRadius(d2, st, fallback) {
+      if (!st) return fallback;
+      const z = d2 && typeof d2 === "object" ? d2[st.field] : null;
+      if (typeof z !== "number" || !isFinite(z)) return st.rMin;
+      const t2 = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
       const tc = Math.max(0, Math.min(1, t2));
-      const aMin = st2.rMin * st2.rMin;
-      const aMax = st2.rMax * st2.rMax;
+      const aMin = st.rMin * st.rMin;
+      const aMax = st.rMax * st.rMax;
       return Math.sqrt(aMin + tc * (aMax - aMin));
     }
     /**
@@ -64503,11 +64655,11 @@ var __async = (__this, __arguments, generator) => {
           const s2 = center + off;
           let ok = true;
           for (let m2 = placed.length - 1; m2 >= 0; m2--) {
-            const q2 = placed[m2];
-            const df = p2.f - q2.f;
+            const q = placed[m2];
+            const df = p2.f - q.f;
             if (df > pr + rCap) break;
-            const need = pr + q2.r;
-            const ds = s2 - q2.s;
+            const need = pr + q.r;
+            const ds = s2 - q.s;
             if (df * df + ds * ds < need * need) {
               ok = false;
               break;
@@ -65292,8 +65444,8 @@ var __async = (__this, __arguments, generator) => {
       for (let k2 = 0; k2 < dots.length; k2++) {
         const d2 = dots[k2];
         const carried = live && !d2.isEnter && d2.key != null ? live.get(d2.key) : null;
-        const sx = carried ? carried.x : q(d2.cx0, stiffness, damping);
-        const sy = carried ? carried.y : q(d2.cy0, stiffness, damping);
+        const sx = carried ? carried.x : Rt(d2.cx0, stiffness, damping);
+        const sy = carried ? carried.y : Rt(d2.cy0, stiffness, damping);
         if (carried) {
           sx.stiffness = stiffness;
           sy.stiffness = stiffness;
@@ -65373,7 +65525,7 @@ var __async = (__this, __arguments, generator) => {
           this.w.globals.unitGatherRAF = null;
           return;
         }
-        const dt2 = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1e3));
+        const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1e3));
         last = now;
         let done = true;
         for (let k2 = 0; k2 < n2; k2++) {
@@ -65384,12 +65536,12 @@ var __async = (__this, __arguments, generator) => {
           let cx, cy;
           if (d2.sx && d2.sy) {
             if (elapsed >= 0 && !d2.released) {
-              I(d2.sx, d2.x);
-              I(d2.sy, d2.y);
+              Ot(d2.sx, d2.x);
+              Ot(d2.sy, d2.y);
               d2.released = true;
             }
-            const restX = _(d2.sx, dt2);
-            const restY = _(d2.sy, dt2);
+            const restX = Ft(d2.sx, dt);
+            const restY = Ft(d2.sy, dt);
             if (!d2.released || !restX || !restY) done = false;
             cx = d2.sx.value;
             cy = d2.sy.value;
@@ -65626,12 +65778,12 @@ ${percent2.toFixed(1)}%`;
         });
       });
       if (!items.length) return;
-      const maxLines = items.reduce((m2, it2) => Math.max(m2, it2.lines.length), 1);
+      const maxLines = items.reduce((m2, it) => Math.max(m2, it.lines.length), 1);
       const block = maxLines * lineHeight;
       const half = block / 2;
       ["left", "right"].forEach((side) => {
         spaceOutLabels(
-          items.filter((it2) => it2.side === side),
+          items.filter((it) => it.side === side),
           block + 2,
           gh - half,
           half
@@ -65645,17 +65797,17 @@ ${percent2.toFixed(1)}%`;
         group2.node.classList.add("apexcharts-unit-label-delay");
         group2.node.style.animationDelay = `${Math.min(speed * 0.45, 600) / 1e3}s`;
       }
-      items.forEach((it2) => {
-        const color = w.globals.colors[it2.i] || w.globals.colors[0] || "#008FFB";
+      items.forEach((it) => {
+        const color = w.globals.colors[it.i] || w.globals.colors[0] || "#008FFB";
         group2.add(
           drawOuterLabel(w, {
-            lines: it2.lines,
+            lines: it.lines,
             lineHeight,
-            anchor: it2.anchor,
-            elbow: it2.elbow,
-            labelX: it2.labelX,
-            labelY: it2.labelY,
-            side: it2.side,
+            anchor: it.anchor,
+            elbow: it.elbow,
+            labelX: it.labelX,
+            labelY: it.labelY,
+            side: it.side,
             connector: {
               show: conn.show !== false,
               width: conn.width != null ? conn.width : 1.5,
@@ -68756,7 +68908,7 @@ ${percent2.toFixed(1)}%`;
       values,
       order,
       carrier: visible.length ? visible[0] : 0,
-      hidden: raw.map((_2, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
+      hidden: raw.map((_, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
     };
     const carrier = w.dumbbellData.carrier;
     return raw.map((s2, k2) => __spreadProps(__spreadValues({}, s2), {
@@ -68820,7 +68972,7 @@ ${percent2.toFixed(1)}%`;
      * streamgraph, has labels switched off, or drew no bands.
      */
     drawLabels() {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       if (!this.isActive()) return;
       const cfg = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.labels;
@@ -68833,7 +68985,7 @@ ${percent2.toFixed(1)}%`;
       const group2 = graphics.group({ class: "apexcharts-streamgraph-labels" });
       const fontSize = ((_c = cfg.style) == null ? void 0 : _c.fontSize) || "auto";
       const fontFamily = ((_d = cfg.style) == null ? void 0 : _d.fontFamily) || w.config.chart.fontFamily;
-      const fontWeight = ((_e2 = cfg.style) == null ? void 0 : _e2.fontWeight) || 600;
+      const fontWeight = ((_e = cfg.style) == null ? void 0 : _e.fontWeight) || 600;
       const minWidth = cfg.minWidth == null ? 24 : cfg.minWidth;
       const placed = [];
       for (let i2 = 0; i2 < data.order.length; i2++) {
@@ -69611,7 +69763,7 @@ ${percent2.toFixed(1)}%`;
       order: bandOrder,
       lines,
       offset,
-      hidden: raw.map((_2, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
+      hidden: raw.map((_, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
     };
     return raw.map((s2, k2) => {
       if (!band[k2]) {
@@ -69943,7 +70095,7 @@ ${percent2.toFixed(1)}%`;
       colKeys: null,
       seriesNames,
       xForm: u2.sawKeyed ? u2.xForm : "plain",
-      unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_2, i2) => i2),
+      unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_, i2) => i2),
       xIsNumeric: u2.xIsNumeric,
       dropped,
       warnings
@@ -70069,7 +70221,7 @@ ${percent2.toFixed(1)}%`;
       colKeys,
       seriesNames,
       xForm: u2.sawKeyed ? u2.xForm : "plain",
-      unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_2, i2) => i2),
+      unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_, i2) => i2),
       xIsNumeric: u2.xIsNumeric,
       dropped: 0,
       warnings
@@ -70115,7 +70267,7 @@ ${percent2.toFixed(1)}%`;
     return out;
   }
   function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
-    var _a, _b, _c, _d, _e2, _f;
+    var _a, _b, _c, _d, _e, _f;
     const frames = {
       plotOptions: null,
       yExtentOverride: null,
@@ -70192,7 +70344,7 @@ ${percent2.toFixed(1)}%`;
           "a heatmap trellis must share its color scale (the same color meaning different values per panel is a silent lie); ignoring scales.color 'independent'."
         );
       }
-      const userRanges = (_e2 = (_d = plot.heatmap) == null ? void 0 : _d.colorScale) == null ? void 0 : _e2.ranges;
+      const userRanges = (_e = (_d = plot.heatmap) == null ? void 0 : _d.colorScale) == null ? void 0 : _e.ranges;
       if (!(Array.isArray(userRanges) && userRanges.length > 0)) {
         let min = Infinity;
         let max = -Infinity;
@@ -70432,7 +70584,7 @@ ${percent2.toFixed(1)}%`;
     const barFamily = ["bar", "column", "histogram"].includes(host.chartType || "");
     const yaxes = host.yaxis || [];
     const axisNames = host.axisNames;
-    const axes = axisNames ? axisNames.map((_2, ai) => ai) : [0];
+    const axes = axisNames ? axisNames.map((_, ai) => ai) : [0];
     const onAxis = (group2, ai) => axisNames ? group2.map((p2) => __spreadProps(__spreadValues({}, p2), {
       series: p2.series.filter((s2) => axisNames[ai].includes(s2.name))
     })) : group2;
@@ -70444,9 +70596,9 @@ ${percent2.toFixed(1)}%`;
       const ya = yaxes[ai] || {};
       if (ya.logarithmic && ext.min > 0) {
         const b = ya.logBase || 10;
-        const L2 = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
-        const lo = Math.floor(L2(ext.min));
-        const hi = Math.max(lo + 1, Math.ceil(L2(ext.max)));
+        const L = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
+        const lo = Math.floor(L(ext.min));
+        const hi = Math.max(lo + 1, Math.ceil(L(ext.max)));
         return {
           min: __pow(b, lo),
           max: __pow(b, hi),
@@ -70549,7 +70701,7 @@ ${percent2.toFixed(1)}%`;
     const labelsMode = cfg.axes && cfg.axes.labels || "edges";
     const scales = cfg.scales || {};
     const single = cols === 1;
-    const cells = Array.from({ length: panelCount }, (_2, i2) => {
+    const cells = Array.from({ length: panelCount }, (_, i2) => {
       const r2 = Math.floor(i2 / cols);
       const c2 = i2 % cols;
       let showXLabels;
@@ -70859,7 +71011,7 @@ ${percent2.toFixed(1)}%`;
         /** @type {any} */
         p2.chart.w
       ));
-      const wire = (_2, p2) => {
+      const wire = (_, p2) => {
         var _a;
         const ev = p2.chart !== chart && ((_a = p2.chart) == null ? void 0 : _a.ctx.events);
         if (!ev) return;
@@ -70916,10 +71068,10 @@ ${percent2.toFixed(1)}%`;
         t2._tool = tool;
         t2.panels.forEach((p2) => {
           if (!p2.chart) return;
-          const it2 = p2.chart.w.interact;
-          it2.zoomEnabled = tool === "zoom" && p2.chart.w.config.chart.zoom.enabled;
-          it2.panEnabled = tool === "pan";
-          it2.selectionEnabled = false;
+          const it = p2.chart.w.interact;
+          it.zoomEnabled = tool === "zoom" && p2.chart.w.config.chart.zoom.enabled;
+          it.panEnabled = tool === "pan";
+          it.selectionEnabled = false;
         });
         buttons.zoom.classList.toggle("apexcharts-selected", tool === "zoom");
         buttons.pan.classList.toggle("apexcharts-selected", tool === "pan");
@@ -71608,7 +71760,7 @@ ${percent2.toFixed(1)}%`;
     /** @param {any} panel */
     _mount(panel) {
       return __async(this, null, function* () {
-        var _a, _b, _c, _d, _e2, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         const t2 = this.trellis;
         if (!panel.el || panel.chart || panel.noMount) return;
         const stash = panel.viewStash;
@@ -71686,7 +71838,7 @@ ${percent2.toFixed(1)}%`;
         }
         panel.viewStash = null;
         if (independentY) {
-          const wpx = (_h = (_g = (_f = (_e2 = chart.w) == null ? void 0 : _e2.globals) == null ? void 0 : _f.yLabelsCoords) == null ? void 0 : _g[0]) == null ? void 0 : _h.width;
+          const wpx = (_h = (_g = (_f = (_e = chart.w) == null ? void 0 : _e.globals) == null ? void 0 : _f.yLabelsCoords) == null ? void 0 : _g[0]) == null ? void 0 : _h.width;
           if (typeof wpx === "number" && isFinite(wpx)) {
             const pad = chart.w.globals.isBarHorizontal ? 0 : t2._yLabelPad();
             const tight = Math.max(0, wpx - pad);
@@ -72324,8 +72476,8 @@ ${percent2.toFixed(1)}%`;
         )
       );
       const rise = ascent + (lines ? lines / 2 * fs : 0) - offY;
-      const K2 = 1 - 1 / 2.2;
-      need = Math.max(need, (rise - K2 * plotH / n2) / (1 - K2 / n2));
+      const K = 1 - 1 / 2.2;
+      need = Math.max(need, (rise - K * plotH / n2) / (1 - K / n2));
     });
     if (cnf.stroke.show) need = Math.max(need, largest(cnf.stroke.width) / 2);
     const types = [cnf.chart.type].concat(
@@ -73169,7 +73321,7 @@ ${percent2.toFixed(1)}%`;
      * @returns {Record<string, any>}
      */
     _assemblePanelOptions(i2, { noAnimation = false } = {}) {
-      var _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k;
+      var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
       const w = this.w;
       const split2 = (
         /** @type {import('./TrellisSplit').TrellisSplitResult} */
@@ -73182,7 +73334,7 @@ ${percent2.toFixed(1)}%`;
       const slice = split2.panels[i2];
       const _a = this.ctx.opts || {}, {
         series: _s,
-        trellis: _t,
+        trellis: _t2,
         responsive: _r
       } = _a, userOpts = __objRest(_a, [
         "series",
@@ -73231,7 +73383,7 @@ ${percent2.toFixed(1)}%`;
           // all. Read from the page's options, not the merged config: a type
           // default (histogram, waterfall, sparkline) keeps the grid's zoom.
           zoom: {
-            enabled: this.cfg.zoom !== "none" && ((_g = (_f = (_e2 = this.ctx.opts) == null ? void 0 : _e2.chart) == null ? void 0 : _f.zoom) == null ? void 0 : _g.enabled) !== false,
+            enabled: this.cfg.zoom !== "none" && ((_g = (_f = (_e = this.ctx.opts) == null ? void 0 : _e.chart) == null ? void 0 : _f.zoom) == null ? void 0 : _g.enabled) !== false,
             resetControl: this.cfg.toolbar == "none" && w.config.chart.zoom.resetControl !== false
           }
         }, animationsOff ? { animations: { enabled: false } } : {}), this._panelRenderer ? { renderer: this._panelRenderer } : {}), {
@@ -73370,8 +73522,8 @@ ${percent2.toFixed(1)}%`;
       return __async(this, null, function* () {
         var _a, _b, _c, _d;
         const widths = this.panels.map((p2) => {
-          var _a2, _b2, _c2, _d2, _e2;
-          return (_e2 = (_d2 = (_c2 = (_b2 = (_a2 = p2.chart) == null ? void 0 : _a2.w) == null ? void 0 : _b2.globals) == null ? void 0 : _c2.yLabelsCoords) == null ? void 0 : _d2[0]) == null ? void 0 : _e2.width;
+          var _a2, _b2, _c2, _d2, _e;
+          return (_e = (_d2 = (_c2 = (_b2 = (_a2 = p2.chart) == null ? void 0 : _a2.w) == null ? void 0 : _b2.globals) == null ? void 0 : _c2.yLabelsCoords) == null ? void 0 : _d2[0]) == null ? void 0 : _e.width;
         }).filter((v) => typeof v === "number" && isFinite(v));
         if (!widths.length) return;
         const isHorizontal = !!((_d = (_c = (_b = (_a = this.panels[0]) == null ? void 0 : _a.chart) == null ? void 0 : _b.w) == null ? void 0 : _c.globals) == null ? void 0 : _d.isBarHorizontal);
@@ -74118,7 +74270,7 @@ ${percent2.toFixed(1)}%`;
       this._renderLive();
     }
     /** @param {any} _e */
-    _onUp(_e2) {
+    _onUp(_e) {
       var _a, _b;
       const doc = this._doc();
       if (doc) {
@@ -74208,7 +74360,7 @@ ${percent2.toFixed(1)}%`;
       const v = read(varName);
       if (v && role && v === read(varName + "-ig")) {
         const ds = this.ctx && this.ctx.theme && this.ctx.theme.designSystem;
-        return it(ds, role, this.w.config.theme.mode) || fallback;
+        return Gt(ds, role, this.w.config.theme.mode) || fallback;
       }
       return v || fallback;
     }
@@ -74255,26 +74407,26 @@ ${percent2.toFixed(1)}%`;
      * @param {{dx:number,dy:number,pct:number,slope:number}} st @param {string} mode
      * @returns {string[]}
      */
-    _label(a2, b, st2, mode) {
+    _label(a2, b, st, mode) {
       const fn = this._cfg().label;
       if (typeof fn === "function") {
         const out = fn({
           from: { x: a2.x, y: a2.y },
           to: { x: b.x, y: b.y },
-          dx: st2.dx,
-          dy: st2.dy,
-          percentChange: st2.pct,
-          slope: st2.slope,
+          dx: st.dx,
+          dy: st.dy,
+          percentChange: st.pct,
+          slope: st.slope,
           mode
         });
         return Array.isArray(out) ? out.map(String) : [String(out)];
       }
       if (mode === "span") {
-        const arrow2 = st2.dy === 0 ? "" : st2.dy > 0 ? " ↑" : " ↓";
-        const pct = isFinite(st2.pct) ? "(" + this._fmtPct(st2.pct) + ")" : "";
-        return [this._fmtY(st2.dy) + "  " + pct + arrow2, this._fmtX(a2.x) + "  to  " + this._fmtX(b.x)];
+        const arrow2 = st.dy === 0 ? "" : st.dy > 0 ? " ↑" : " ↓";
+        const pct = isFinite(st.pct) ? "(" + this._fmtPct(st.pct) + ")" : "";
+        return [this._fmtY(st.dy) + "  " + pct + arrow2, this._fmtX(a2.x) + "  to  " + this._fmtX(b.x)];
       }
-      return ["Δx " + this._fmtDx(st2.dx), "Δy " + this._fmtY(st2.dy), this._fmtPct(st2.pct)];
+      return ["Δx " + this._fmtDx(st.dx), "Δy " + this._fmtY(st.dy), this._fmtPct(st.pct)];
     }
     /**
      * Format an x delta, treating datetime x as a day count.
@@ -74394,12 +74546,12 @@ ${percent2.toFixed(1)}%`;
      * @param {string} [mode] 'span' (finance-style band, default) | 'free'
      */
     _drawRuler(g2, a2, b, pinned, mode) {
-      const st2 = this._stats(a2, b);
+      const st = this._stats(a2, b);
       const rg = this.graphics.group({
-        class: "apexcharts-measure-ruler " + this._dirClass(st2.dy) + (pinned ? " apexcharts-measure-pinned" : "")
+        class: "apexcharts-measure-ruler " + this._dirClass(st.dy) + (pinned ? " apexcharts-measure-pinned" : "")
       });
-      if ((mode || this._mode()) === "free") this._drawFree(rg, a2, b, st2);
-      else this._drawSpan(rg, a2, b, st2);
+      if ((mode || this._mode()) === "free") this._drawFree(rg, a2, b, st);
+      else this._drawSpan(rg, a2, b, st);
       g2.add(rg);
     }
     /** Endpoint dots on the series line (skipped when markers:false).
@@ -74446,11 +74598,11 @@ ${percent2.toFixed(1)}%`;
      * @param {{gx:number,gy:number,x:number,y:number}} b
      * @param {{dx:number,dy:number,pct:number,slope:number}} st
      */
-    _drawSpan(g2, a2, b, st2) {
+    _drawSpan(g2, a2, b, st) {
       const w = this.w;
       const cfg = this._cfg();
       const gh = w.layout.gridHeight;
-      const color = this._dirColor(st2.dy);
+      const color = this._dirColor(st.dy);
       const lx = Math.min(a2.gx, b.gx);
       const rx = Math.max(a2.gx, b.gx);
       if (cfg.band !== false) {
@@ -74467,7 +74619,7 @@ ${percent2.toFixed(1)}%`;
         });
       }
       [a2, b].forEach((p2) => this._dot(g2, p2, color));
-      const lines = this._label(a2, b, st2, "span");
+      const lines = this._label(a2, b, st, "span");
       const longest = lines.reduce((m2, s2) => Math.max(m2, s2.length), 0);
       const boxW = Math.max(148, longest * 6.4);
       const boxH = 20 + lines.length * 15;
@@ -74482,13 +74634,13 @@ ${percent2.toFixed(1)}%`;
      * @param {{gx:number,gy:number,x:number,y:number}} b
      * @param {{dx:number,dy:number,pct:number,slope:number}} st
      */
-    _drawFree(g2, a2, b, st2) {
-      const color = this._dirColor(st2.dy);
+    _drawFree(g2, a2, b, st) {
+      const color = this._dirColor(st.dy);
       const line = this.graphics.drawLine(a2.gx, a2.gy, b.gx, b.gy, color, 0, 2);
       line.node.setAttribute("class", "apexcharts-measure-line");
       g2.add(line);
       [a2, b].forEach((p2) => this._dot(g2, p2, color));
-      const lines = this._label(a2, b, st2, "free");
+      const lines = this._label(a2, b, st, "free");
       const longest = lines.reduce((m2, s2) => Math.max(m2, s2.length), 0);
       const boxW = Math.max(72, longest * 6.2);
       const boxH = 16 + lines.length * 15;
@@ -74502,14 +74654,14 @@ ${percent2.toFixed(1)}%`;
      * @param {{x:number,y:number}} a @param {{x:number,y:number}} b
      */
     _fireMeasured(a2, b) {
-      const st2 = this._stats(a2, b);
+      const st = this._stats(a2, b);
       const payload = {
         from: { x: a2.x, y: a2.y },
         to: { x: b.x, y: b.y },
-        dx: st2.dx,
-        dy: st2.dy,
-        percentChange: st2.pct,
-        slope: st2.slope
+        dx: st.dx,
+        dy: st.dy,
+        percentChange: st.pct,
+        slope: st.slope
       };
       const fn = this.w.config.chart.events.measured;
       if (typeof fn === "function") fn(this.ctx, payload);
@@ -74692,7 +74844,7 @@ ${percent2.toFixed(1)}%`;
     _cf() {
       const link = this.w.config.chart.link;
       const id = link && (link.id || this.w.config.chart.group);
-      return id ? _e.get(id) : null;
+      return id ? Cn.get(id) : null;
     }
     _isPie() {
       return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -74806,7 +74958,7 @@ ${percent2.toFixed(1)}%`;
      * A pie slice / bar was clicked: toggle its bucket key on the coordinator.
      * @param {any} _e @param {any} _ctx @param {{dataPointIndex?:number}} opts
      */
-    _onPointSelect(_e2, _ctx, opts) {
+    _onPointSelect(_e, _ctx, opts) {
       if (this._mode() !== "filter" || !opts || opts.dataPointIndex == null) return;
       const cf = this._cf();
       if (!cf) return;
@@ -74931,12 +75083,12 @@ ${percent2.toFixed(1)}%`;
       (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("filterChange", [this.ctx, args]);
     }
     teardown() {
-      var _a, _b, _c, _d, _e2, _f;
+      var _a, _b, _c, _d, _e, _f;
       this.clear();
       if (this._wired) {
         (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "dataPointSelection", this._onPointSelect);
         (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "mounted", this._afterRender);
-        (_f = (_e2 = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e2, "updated", this._afterRender);
+        (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "updated", this._afterRender);
         const cf = this._cf();
         if (cf) {
           cf.off("change", this._onChange);
@@ -74950,7 +75102,7 @@ ${percent2.toFixed(1)}%`;
     linkedViews: LinkedViews,
     crossfilter: (
       /** @type {any} */
-      _e
+      Cn
     )
   });
   const DRAG_CLASS = "apexcharts-ink-draggable";
@@ -75174,11 +75326,11 @@ ${percent2.toFixed(1)}%`;
       doc.addEventListener("touchend", this._onUp);
     }
     /** @param {any} me */
-    _onMove(me) {
+    _onMove(me2) {
       const d2 = this._drag;
       if (!d2) return;
-      if (me.cancelable) me.preventDefault();
-      const mev = me.type === "touchmove" ? me.touches[0] : me;
+      if (me2.cancelable) me2.preventDefault();
+      const mev = me2.type === "touchmove" ? me2.touches[0] : me2;
       d2.dxPixel = (mev.clientX - d2.startX) / d2.scaleX;
       d2.dyPixel = (mev.clientY - d2.startY) / d2.scaleY;
       if (Math.abs(d2.dxPixel) > CLICK_SLOP_PX || Math.abs(d2.dyPixel) > CLICK_SLOP_PX) {
@@ -75742,7 +75894,7 @@ ${percent2.toFixed(1)}%`;
       const ed = this._editor;
       if (!ed || ed.card.contains(
         /** @type {Node} */
-        ke(e2)
+        gt(e2)
       )) return;
       this._closeEditor(true);
     }
@@ -76026,7 +76178,7 @@ ${percent2.toFixed(1)}%`;
       if (!doc || typeof IntersectionObserver === "undefined") return 0;
       let root = null;
       if (opts.scroller) {
-        root = typeof opts.scroller === "string" ? Ce(this.ctx.el, opts.scroller) : opts.scroller;
+        root = typeof opts.scroller === "string" ? vt(this.ctx.el, opts.scroller) : opts.scroller;
       }
       this._beats = this._resolveBeats(this.ctx.el, root, opts.beats);
       if (!this._beats.length) return 0;
@@ -76062,7 +76214,7 @@ ${percent2.toFixed(1)}%`;
         beatsOpt.forEach((b, i2) => {
           var _a, _b;
           if (!b) return;
-          const el = b.el && typeof b.el === "object" ? b.el : b.selector ? Ce(chartEl, b.selector) : null;
+          const el = b.el && typeof b.el === "object" ? b.el : b.selector ? vt(chartEl, b.selector) : null;
           if (!el) {
             console.warn(
               `apexcharts: storyboard beat ${i2} has no resolvable element; skipped.`
@@ -76080,7 +76232,7 @@ ${percent2.toFixed(1)}%`;
         });
         return beats;
       }
-      const found = root ? Array.from(root.querySelectorAll("[data-apex-beat]")) : Te(chartEl, "[data-apex-beat]");
+      const found = root ? Array.from(root.querySelectorAll("[data-apex-beat]")) : bt(chartEl, "[data-apex-beat]");
       found.forEach((el, i2) => {
         beats.push({
           el,
@@ -77216,10 +77368,10 @@ ${percent2.toFixed(1)}%`;
      * @param {number} z
      * @returns {any}
      */
-    _cmd(tag, z2) {
+    _cmd(tag, z) {
       const cmd = {
         tag,
-        z: z2 || 0,
+        z: z || 0,
         fill: void 0,
         stroke: void 0,
         strokeWidth: void 0,
@@ -78481,27 +78633,27 @@ ${percent2.toFixed(1)}%`;
       const raw = Array.isArray(cfg.items) && cfg.items.length ? cfg.items : ["annotate", "xline", "yline", "measure"];
       const labels = cfg.labels || {};
       const out = [];
-      raw.forEach((it2) => {
-        if (typeof it2 === "string") {
-          if (it2 === "annotate") {
+      raw.forEach((it) => {
+        if (typeof it === "string") {
+          if (it === "annotate") {
             out.push({
               id: "annotate",
               label: labels.annotate || "Add note here",
               run: () => this._annotate(context)
             });
-          } else if (it2 === "xline") {
+          } else if (it === "xline") {
             out.push({
               id: "xline",
               label: labels.xline || "Annotate here",
               run: () => this._line(context, "x")
             });
-          } else if (it2 === "yline") {
+          } else if (it === "yline") {
             out.push({
               id: "yline",
               label: labels.yline || "Mark this level",
               run: () => this._line(context, "y")
             });
-          } else if (it2 === "measure") {
+          } else if (it === "measure") {
             const m2 = this.ctx.measure;
             const on = m2 && this.w.config.chart.measure && this.w.config.chart.measure.enabled;
             if (on) {
@@ -78512,11 +78664,11 @@ ${percent2.toFixed(1)}%`;
               });
             }
           }
-        } else if (it2 && typeof it2 === "object" && typeof it2.onClick === "function") {
+        } else if (it && typeof it === "object" && typeof it.onClick === "function") {
           out.push({
-            id: it2.id || "custom",
-            label: it2.label || "Action",
-            run: () => it2.onClick(this.ctx, context)
+            id: it.id || "custom",
+            label: it.label || "Action",
+            run: () => it.onClick(this.ctx, context)
           });
         }
       });
@@ -78607,13 +78759,13 @@ ${percent2.toFixed(1)}%`;
       menu.setAttribute("role", "menu");
       menu.style.position = "absolute";
       menu.style.visibility = "hidden";
-      items.forEach((it2, i2) => {
+      items.forEach((it, i2) => {
         const btn = doc.createElement("button");
         btn.type = "button";
         btn.className = "apexcharts-context-menu-item";
         btn.setAttribute("role", "menuitem");
         btn.tabIndex = -1;
-        btn.textContent = it2.label;
+        btn.textContent = it.label;
         btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
           this._activate(i2);
@@ -78655,15 +78807,15 @@ ${percent2.toFixed(1)}%`;
     }
     /** @param {number} i */
     _activate(i2) {
-      const it2 = this._items[i2];
+      const it = this._items[i2];
       this.close();
-      if (it2) it2.run();
+      if (it) it.run();
     }
     /** @param {any} e */
     _onDocDown(e2) {
       if (this.menu && this.menu.contains(
         /** @type {Node} */
-        ke(e2)
+        gt(e2)
       ))
         return;
       this.close();
@@ -78832,7 +78984,7 @@ ${percent2.toFixed(1)}%`;
         /** @type {any} */
         this.ctx.el
       );
-      const origin = ke(e2);
+      const origin = gt(e2);
       this._engaged = !!(el && origin && el.contains(origin));
     }
     /**
@@ -78847,7 +78999,7 @@ ${percent2.toFixed(1)}%`;
         this.ctx.el
       );
       if (!el) return;
-      const active = Le(el);
+      const active = yt(el);
       if (isEditableTarget(active)) return;
       if (!(el.contains(active) || this._engaged)) return;
       const redo = key === "y" || e2.shiftKey;
@@ -79110,7 +79262,7 @@ ${percent2.toFixed(1)}%`;
     }
     /** Drop the stack + detach listeners (called on full destroy). */
     teardown() {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       clearTimeout(this._coalesceTimer);
       clearTimeout(this._settleTimer);
       this._coalesceTimer = null;
@@ -79119,7 +79271,7 @@ ${percent2.toFixed(1)}%`;
       if (this._wired) {
         (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "mounted", this._onMounted);
         (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "updated", this._onUpdated);
-        (_f = (_e2 = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e2, "scrolled", this._onUpdated);
+        (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "scrolled", this._onUpdated);
         (_h = (_g = this.ctx).removeEventListener) == null ? void 0 : _h.call(_g, "dataPointSelection", this._onSelection);
       }
       this.stack = [];
@@ -79264,7 +79416,7 @@ ${percent2.toFixed(1)}%`;
         buttons: e2.buttons
       } : e2;
       target2.dispatchEvent(new e2.constructor(type, init));
-    } catch (_2) {
+    } catch (_) {
     }
   }
   function stripSeries(s2) {
@@ -79404,7 +79556,7 @@ ${percent2.toFixed(1)}%`;
     }
   }, own));
   function paint(hf, p2, g2, s2) {
-    var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     const w = hf.w;
     const gl = w.globals;
     const cfg = hf.cfg;
@@ -79420,7 +79572,7 @@ ${percent2.toFixed(1)}%`;
     const mount = !gl.dataChanged || !gl.shouldAnimate;
     const area = ((_c = cfg.pie) == null ? void 0 : _c.encoding) === "area";
     const vals = w.seriesData.series;
-    const byPart = ((_e2 = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e2 : "part") === "part";
+    const byPart = ((_e = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e : "part") === "part";
     const outline2 = p2.strokeWidth > 0 && ((_g = (_f = cfg.outline) == null ? void 0 : _f.width) != null ? _g : 1) > 0 ? { opacity: (_i = (_h = cfg.outline) == null ? void 0 : _h.opacity) != null ? _i : 1 } : null;
     const labelsWas = (_j = gl.prevHighlightLabels) == null ? void 0 : _j.get(-1);
     const rides = [];
@@ -79429,7 +79581,7 @@ ${percent2.toFixed(1)}%`;
       return ((_a2 = n2.classList) == null ? void 0 : _a2.contains(c2)) || ` ${(_b2 = n2.getAttribute) == null ? void 0 : _b2.call(n2, "class")} `.indexOf(` ${c2} `) > -1;
     };
     Array.from(g2.node.childNodes).filter((n2) => has(n2, "apexcharts-pie-series")).forEach((sg) => {
-      var _a2, _b2, _c2, _d2, _e3, _f2;
+      var _a2, _b2, _c2, _d2, _e2, _f2;
       const node = Array.from(sg.childNodes).find(
         (n2) => has(n2, "apexcharts-pie-area")
       );
@@ -79587,7 +79739,7 @@ ${percent2.toFixed(1)}%`;
       const r1 = target2 != null ? target2 : 0;
       hf._fade(
         node,
-        mount ? look(fadeTo) : cover ? COVERED : prev ? { f: prev.f, o: (_e3 = prev.o) != null ? _e3 : look(prev.f).o } : PLAIN,
+        mount ? look(fadeTo) : cover ? COVERED : prev ? { f: prev.f, o: (_e2 = prev.o) != null ? _e2 : look(prev.f).o } : PLAIN,
         lands ? COVERED : look(fadeTo),
         { delayMs, speed: arc == null ? void 0 : arc.a.run, el: arc == null ? void 0 : arc.el },
         {
@@ -79727,7 +79879,7 @@ ${percent2.toFixed(1)}%`;
   const LANE = 0.45;
   const LANE_CLS = `${PART} apexcharts-radialbar-highlight-lane`;
   function radialPass(hf, r2) {
-    var _a, _b, _c, _d, _e2, _f;
+    var _a, _b, _c, _d, _e, _f;
     const w = hf.w;
     const hd = w.highlightData;
     const said = (_b = (_a = hf.ctx.lastUpdateOptions) == null ? void 0 : _a.tooltip) == null ? void 0 : _b.enabled;
@@ -79749,10 +79901,10 @@ ${percent2.toFixed(1)}%`;
         );
       }
     }
-    if (!hd.active && !((_e2 = hf._prev()) == null ? void 0 : _e2.size)) return;
-    const tt2 = w.config.tooltip;
-    if (hd.active && !tt2.enabled && hf._tipUser == null && Environment.isBrowser()) {
-      tt2.enabled = true;
+    if (!hd.active && !((_e = hf._prev()) == null ? void 0 : _e.size)) return;
+    const tt = w.config.tooltip;
+    if (hd.active && !tt.enabled && hf._tipUser == null && Environment.isBrowser()) {
+      tt.enabled = true;
       hf._tipOn = true;
     }
     wrapCentre(hf, r2);
@@ -79786,7 +79938,7 @@ ${percent2.toFixed(1)}%`;
     }
   }
   function ring(hf, r2, el, c2, ap) {
-    var _a, _b, _c, _d, _e2, _f;
+    var _a, _b, _c, _d, _e, _f;
     const w = hf.w;
     const gl = w.globals;
     const cfg = hf.cfg;
@@ -79801,9 +79953,9 @@ ${percent2.toFixed(1)}%`;
     const prev = mount ? void 0 : prevMap == null ? void 0 : prevMap.get(key);
     const rb = w.config.plotOptions.radialBar;
     const ind = hf._ind;
-    const st2 = node.getAttribute("stroke");
+    const st = node.getAttribute("stroke");
     const fl = node.getAttribute("fill");
-    const paint2 = st2 && st2 !== "transparent" ? st2 : morph && fl && fl !== "none" ? fl : null;
+    const paint2 = st && st !== "transparent" ? st : morph && fl && fl !== "none" ? fl : null;
     const needle = i2 === 0 && (ind === "needle" || !paint2);
     const whole = w.seriesData.series[i2];
     const pv = active && gl.collapsedSeriesIndices.indexOf(i2) < 0 ? (_b = (_a = hd.parts[i2]) == null ? void 0 : _a[0]) != null ? _b : null : null;
@@ -79874,7 +80026,7 @@ ${percent2.toFixed(1)}%`;
         fill: "none",
         // The whole's own strength, taken before the whole is faded.
         strokeOpacity: ownOpacity(node, "stroke-opacity"),
-        strokeDashArray: (_e2 = node.getAttribute("stroke-dasharray")) != null ? _e2 : 0,
+        strokeDashArray: (_e = node.getAttribute("stroke-dasharray")) != null ? _e : 0,
         classes: `${PART} apexcharts-radialbar-highlight-part`
       });
       const pn = part.node;
@@ -79922,8 +80074,8 @@ ${percent2.toFixed(1)}%`;
       insertAfter(part.node, tn);
       const at2 = (a2) => {
         const p2 = Utils$1.polarToCartesian(cx, cy, size - sw / 2, a2);
-        const q2 = Utils$1.polarToCartesian(cx, cy, size + sw / 2, a2);
-        tn.setAttribute("d", `M ${p2.x} ${p2.y} L ${q2.x} ${q2.y}`);
+        const q = Utils$1.polarToCartesian(cx, cy, size + sw / 2, a2);
+        tn.setAttribute("d", `M ${p2.x} ${p2.y} L ${q.x} ${q.y}`);
       };
       const a0 = anim ? finite(c2.prevEndAngle) && !mount ? c2.prevEndAngle : start : wholeEnd;
       at2(a0);
@@ -79984,7 +80136,7 @@ ${percent2.toFixed(1)}%`;
     if (i2 === 0) needlePart(hf, r2, el, needle, pv, mount, morph, c2);
   }
   function lanes(hf, r2, el, o2) {
-    var _a, _b, _c, _d, _e2, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g;
     const { i: i2, c: c2, prev, mount, pv, whole, wholeEnd, run, anim, delayMs, size } = o2;
     const w = hf.w;
     const gl = w.globals;
@@ -80014,7 +80166,7 @@ ${percent2.toFixed(1)}%`;
       we0 = (_b = prev == null ? void 0 : prev.we) != null ? _b : finite(c2.prevEndAngle) ? c2.prevEndAngle : we1;
       e0 = (_c = prev == null ? void 0 : prev.e) != null ? _c : cfg.enter === "baseline" ? start : we0;
     } else if (sweep) we0 = e0 = start;
-    const f1 = s1 ? (_f = (_e2 = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e2.opacity) != null ? _f : LANE : 1;
+    const f1 = s1 ? (_f = (_e = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e.opacity) != null ? _f : LANE : 1;
     const f0 = morph ? 1 : go ? prev ? prev.f : 1 : f1;
     const sw = morph ? r2.getStrokeWidth({
       size: gl.circleGeometry.r,
@@ -80051,9 +80203,9 @@ ${percent2.toFixed(1)}%`;
     const tn = tracksOf(r2)[rb.inverseOrder ? n2 - 1 - i2 : i2];
     const t0 = tn && [tn.getAttribute("d"), tn.getAttribute("stroke-width")];
     const pct = t0 ? (parseFloat(t0[1]) || 0) / (sw || 1) : 0;
-    let it2 = null;
+    let it = null;
     if (tn) {
-      it2 = new Graphics(w).drawPath({
+      it = new Graphics(w).drawPath({
         d: "",
         stroke: tn.getAttribute("stroke"),
         strokeWidth: 0,
@@ -80062,10 +80214,10 @@ ${percent2.toFixed(1)}%`;
         classes: `${PART} apexcharts-radialbar-highlight-track`
       });
       const tf = tn.getAttribute("filter");
-      if (tf) it2.node.setAttribute("filter", tf);
-      it2.node.setAttribute("pointer-events", "none");
-      it2.node.setAttribute("aria-hidden", "true");
-      insertAfter(tn, it2.node);
+      if (tf) it.node.setAttribute("filter", tf);
+      it.node.setAttribute("pointer-events", "none");
+      it.node.setAttribute("aria-hidden", "true");
+      insertAfter(tn, it.node);
     }
     const R0 = size - sw / 2;
     const R1 = size + sw / 2;
@@ -80084,11 +80236,11 @@ ${percent2.toFixed(1)}%`;
     };
     const trackAt = (R) => {
       const ts = r2.trackStartAngle;
-      let te = r2.trackEndAngle;
-      if (Math.abs(te) + Math.abs(ts) >= 360) {
-        te = 360 - Math.abs(r2.startAngle) - 0.1;
+      let te2 = r2.trackEndAngle;
+      if (Math.abs(te2) + Math.abs(ts) >= 360) {
+        te2 = 360 - Math.abs(r2.startAngle) - 0.1;
       }
-      const span = te < ts ? r2.fullAngle + te - ts : te - ts;
+      const span = te2 < ts ? r2.fullAngle + te2 - ts : te2 - ts;
       return r2.getPiePath({
         me: r2,
         startAngle: ts,
@@ -80108,27 +80260,27 @@ ${percent2.toFixed(1)}%`;
       cy: c2 ? c2.centerY : gl.circleGeometry.cy
     };
     hf._targets.set(RAD + i2, rec);
-    const draw = (s2, we, e2) => {
+    const draw = (s2, we2, e2) => {
       rec.s = s2;
-      rec.we = we;
+      rec.we = we2;
       rec.e = e2;
       const wo = R1 - inset * s2;
       const wi = R0 + s2 * (R1 - inset - lw - R0);
       const pi = R0 + inset * s2;
       const po = pi + s2 * lw;
       rec.mid = (wi + po) / 2;
-      put(wl.node, arcAt(we, (wi + wo) / 2), wo - wi);
+      put(wl.node, arcAt(we2, (wi + wo) / 2), wo - wi);
       put(pl.node, po > pi ? arcAt(e2, (pi + po) / 2) : "", po - pi);
       if (!tn) return;
       if (s2) {
         put(tn, trackAt((wi + wo) / 2), (wo - wi) * pct);
-        put(it2.node, trackAt((pi + po) / 2), (po - pi) * pct);
+        put(it.node, trackAt((pi + po) / 2), (po - pi) * pct);
       } else {
         put(tn, t0[0], t0[1]);
-        put(it2.node, "", 0);
+        put(it.node, "", 0);
       }
     };
-    const els = [wl.node, pl.node, it2 == null ? void 0 : it2.node].filter(Boolean);
+    const els = [wl.node, pl.node, it == null ? void 0 : it.node].filter(Boolean);
     let shown = !morph;
     const show = () => {
       shown = true;
@@ -80208,16 +80360,16 @@ ${percent2.toFixed(1)}%`;
     return Math.hypot(ux - rec.cx, uy - rec.cy) > rec.mid ? "whole" : "part";
   }
   function morphOut(hf) {
-    const mt2 = hf.ctx.morphTypeChange;
-    if (!mt2 || mt2._hfOut) return;
-    mt2._hfOut = true;
-    const cb = mt2.captureBeforeDestroy;
-    mt2.captureBeforeDestroy = (a2) => {
+    const mt = hf.ctx.morphTypeChange;
+    if (!mt || mt._hfOut) return;
+    mt._hfOut = true;
+    const cb = mt.captureBeforeDestroy;
+    mt.captureBeforeDestroy = (a2) => {
       const plan = outPlan(hf, a2 == null ? void 0 : a2.fromType);
-      if (!plan) return cb.call(mt2, a2);
-      const cf = mt2._captureFromDOM;
-      mt2._captureFromDOM = (t2) => {
-        const got = cf.call(mt2, t2);
+      if (!plan) return cb.call(mt, a2);
+      const cf = mt._captureFromDOM;
+      mt._captureFromDOM = (t2) => {
+        const got = cf.call(mt, t2);
         got.marks.forEach((m2) => {
           var _a;
           m2.d = (_a = plan.marks.get(m2.realIndex)) != null ? _a : m2.d;
@@ -80226,26 +80378,26 @@ ${percent2.toFixed(1)}%`;
       };
       let ok;
       try {
-        ok = cb.call(mt2, a2);
+        ok = cb.call(mt, a2);
       } finally {
-        mt2._captureFromDOM = cf;
+        mt._captureFromDOM = cf;
       }
-      const snap = mt2._snapshot;
-      if (ok && snap && !mt2._ghost && !snap.pieceOut && !snap.pieceIn) {
-        mt2._ghost = plan.ghost();
+      const snap = mt._snapshot;
+      if (ok && snap && !mt._ghost && !snap.pieceOut && !snap.pieceIn) {
+        mt._ghost = plan.ghost();
       }
       return ok;
     };
   }
   function outPlan(hf, from) {
-    var _a, _b, _c, _d, _e2;
+    var _a, _b, _c, _d, _e;
     const w = hf.w;
     const gl = w.globals;
     const root = (_a = w.dom.baseEl) == null ? void 0 : _a.querySelector(".apexcharts-radialbar");
     if (from !== "radialBar" && from !== "gauge" || !root) return null;
-    const mt2 = hf.ctx.morphTypeChange;
+    const mt = hf.ctx.morphTypeChange;
     const cx = (_c = (_b = gl.circleGeometry) == null ? void 0 : _b.cx) != null ? _c : 0;
-    const cy = (_e2 = (_d = gl.circleGeometry) == null ? void 0 : _d.cy) != null ? _e2 : 0;
+    const cy = (_e = (_d = gl.circleGeometry) == null ? void 0 : _d.cy) != null ? _e : 0;
     const marks2 = /* @__PURE__ */ new Map();
     const keep = /* @__PURE__ */ new Set();
     const out = /* @__PURE__ */ new Set();
@@ -80262,7 +80414,7 @@ ${percent2.toFixed(1)}%`;
       const sw = +(part == null ? void 0 : part.getAttribute("stroke-width"));
       let d2 = null;
       if (pd && sw > 0 && part.getAttribute("opacity") !== "0") {
-        d2 = mt2._radialArcToFilledSegment(pd, sw, cx, cy) || pd;
+        d2 = mt._radialArcToFilledSegment(pd, sw, cx, cy) || pd;
         out.add(part);
       } else {
         const m2 = /M\s*(-?[\d.e]+)\s+(-?[\d.e]+)/.exec(
@@ -80354,16 +80506,16 @@ ${percent2.toFixed(1)}%`;
     const gl = w.globals;
     if (hf._ind !== "lanes") return;
     const active = w.highlightData.active;
-    let st2 = r2._hfLine;
-    if (!st2) {
+    let st = r2._hfLine;
+    if (!st) {
       const mount = !gl.dataChanged || !gl.shouldAnimate;
       const prev = mount ? void 0 : (_a = hf._prev()) == null ? void 0 : _a.get(LINE$1);
       const now = active ? wholeText(hf, c2, -1) : "";
       const o1 = now ? 1 : 0;
       const o0 = mount || !Environment.isBrowser() ? o1 : (_b = prev == null ? void 0 : prev.f) != null ? _b : 0;
-      st2 = r2._hfLine = { node: null, rec: null };
+      st = r2._hfLine = { node: null, rec: null };
       if (!o1 && !o0) return;
-      st2.rec = {
+      st.rec = {
         d: null,
         c: !active,
         t: now || (prev == null ? void 0 : prev.t) || "",
@@ -80373,11 +80525,11 @@ ${percent2.toFixed(1)}%`;
         // The value it stood under, to hold while it leaves (see below).
         pv: o1 ? null : prev == null ? void 0 : prev.vt
       };
-      hf._targets.set(LINE$1, st2.rec);
+      hf._targets.set(LINE$1, st.rec);
     }
-    const rec = st2.rec;
+    const rec = st.rec;
     if (group2) {
-      st2.node = null;
+      st.node = null;
       if (!rec || !rec.lf && rec.done) return;
       const kids2 = group2.node.childNodes;
       const v = c2.value.show ? kids2[kids2.length - 1] : null;
@@ -80390,18 +80542,18 @@ ${percent2.toFixed(1)}%`;
       const now = active ? wholeText(hf, c2, -1) : "";
       const t2 = drawLine(w, c2, v, now || rec.t);
       group2.add(t2);
-      st2.node = t2.node;
+      st.node = t2.node;
     } else if (active) {
       const t2 = wholeText(hf, c2, i2);
       const v = (_c = w.dom.baseEl) == null ? void 0 : _c.querySelector(".apexcharts-datalabel-value");
-      if (!st2.node && t2 && i2 > -1 && v) {
-        st2.node = drawLine(w, c2, v, t2).node;
-        v.parentNode.appendChild(st2.node);
+      if (!st.node && t2 && i2 > -1 && v) {
+        st.node = drawLine(w, c2, v, t2).node;
+        v.parentNode.appendChild(st.node);
       }
-      if (st2.node) st2.node.textContent = t2;
+      if (st.node) st.node.textContent = t2;
       if (rec && v) rec.vt = v.textContent;
     }
-    lineLook(st2);
+    lineLook(st);
   }
   function drawLine(w, c2, v, text) {
     const fv = parseFloat(c2.value.fontSize) || 14;
@@ -80421,14 +80573,14 @@ ${percent2.toFixed(1)}%`;
     t2.node.setAttribute("aria-hidden", "true");
     return t2;
   }
-  function lineLook(st2) {
+  function lineLook(st) {
     var _a, _b, _c;
-    (_c = st2.node) == null ? void 0 : _c.setAttribute("fill-opacity", String(0.6 * ((_b = (_a = st2.rec) == null ? void 0 : _a.lf) != null ? _b : 1)));
+    (_c = st.node) == null ? void 0 : _c.setAttribute("fill-opacity", String(0.6 * ((_b = (_a = st.rec) == null ? void 0 : _a.lf) != null ? _b : 1)));
   }
   function lineClock(hf, clock) {
     var _a;
-    const st2 = (_a = hf._render) == null ? void 0 : _a._hfLine;
-    const rec = st2 == null ? void 0 : st2.rec;
+    const st = (_a = hf._render) == null ? void 0 : _a._hfLine;
+    const rec = st == null ? void 0 : st.rec;
     if (!rec || rec.run || rec.lf === rec.f) return;
     const o0 = rec.lf;
     const done = () => {
@@ -80436,16 +80588,16 @@ ${percent2.toFixed(1)}%`;
       rec.run = false;
       if (rec.f) return;
       rec.done = true;
-      const v = (_a2 = st2.node) == null ? void 0 : _a2.previousSibling;
+      const v = (_a2 = st.node) == null ? void 0 : _a2.previousSibling;
       if (rec.hold != null && v && v.textContent === rec.pv) {
         v.textContent = rec.vt = rec.hold;
       }
-      (_b = st2.node) == null ? void 0 : _b.remove();
-      st2.node = null;
+      (_b = st.node) == null ? void 0 : _b.remove();
+      st.node = null;
     };
     if (!clock) {
       rec.lf = rec.f;
-      lineLook(st2);
+      lineLook(st);
       done();
       return;
     }
@@ -80455,7 +80607,7 @@ ${percent2.toFixed(1)}%`;
       clock.speed,
       (t2) => {
         rec.lf = mix(o0, rec.f, t2);
-        lineLook(st2);
+        lineLook(st);
       },
       done,
       void 0,
@@ -80650,9 +80802,9 @@ ${percent2.toFixed(1)}%`;
       if (f2 < 1) g2.node.setAttribute("opacity", String(f2));
       else g2.node.removeAttribute("opacity");
     };
-    const mt2 = hf.ctx.morphTypeChange;
-    const m2 = (mt2 == null ? void 0 : mt2.isActive()) ? {
-      delay: mt2.getSpeed(),
+    const mt = hf.ctx.morphTypeChange;
+    const m2 = (mt == null ? void 0 : mt.isActive()) ? {
+      delay: mt.getSpeed(),
       speed: w.config.chart.animations.dynamicAnimation.speed
     } : r2.needleMotion();
     if (m2 && f0 !== f1) {
@@ -80729,32 +80881,32 @@ ${percent2.toFixed(1)}%`;
         const c2 = kids(w, d2, path);
         if (c2) {
           const ch = c2[0].map((x2) => leaf2(stripSeries(x2), c2[1]));
-          const pt2 = __spreadValues({}, d2);
+          const pt3 = __spreadValues({}, d2);
           const src = c2[0];
-          if (c2[1] === path) pt2.children = ch;
+          if (c2[1] === path) pt3.children = ch;
           else {
-            Object.defineProperty(pt2, "children", {
+            Object.defineProperty(pt3, "children", {
               get: () => {
                 var _a2;
                 return drilldownAsLevels(w) && ((_a2 = drilldownById(w, d2.drilldown)) == null ? void 0 : _a2.data) === src ? ch : void 0;
               }
             });
           }
-          return pt2;
+          return pt3;
         }
         const j = k2++;
-        const pt = isPoint(d2) ? __spreadValues({}, d2) : { x: "", y: d2 };
-        if (path.includes(pt.drilldown)) delete pt.drilldown;
-        pt.highlight = typeof parts === "function" ? parts({
+        const pt2 = isPoint(d2) ? __spreadValues({}, d2) : { x: "", y: d2 };
+        if (path.includes(pt2.drilldown)) delete pt2.drilldown;
+        pt2.highlight = typeof parts === "function" ? parts({
           seriesIndex: i2,
           dataPointIndex: j,
           seriesName: s2.name,
-          x: (_a = pt.x) != null ? _a : pt.name,
-          value: typeof ((_b = pt.y) != null ? _b : pt.value) === "number" ? (_c = pt.y) != null ? _c : pt.value : null,
+          x: (_a = pt2.x) != null ? _a : pt2.name,
+          value: typeof ((_b = pt2.y) != null ? _b : pt2.value) === "number" ? (_c = pt2.y) != null ? _c : pt2.value : null,
           datum: d2,
           w
         }) : row == null ? void 0 : row[j];
-        return pt;
+        return pt2;
       };
       if (Array.isArray(out.data))
         out.data = out.data.map((d2) => leaf2(d2, []));
@@ -80901,14 +81053,14 @@ ${percent2.toFixed(1)}%`;
       hf._targets.set(key, rec);
       tiles.set(ij, rec);
       const ease = colourEase(from.c, to.c);
-      const write = (L2) => {
-        rec.ls = L2.s;
-        rec.lf = L2.f;
-        rec.lc = L2.c;
+      const write = (L) => {
+        rec.ls = L.s;
+        rec.lf = L.f;
+        rec.lc = L.c;
         stops.forEach((n2, k2) => {
-          n2.setAttribute("offset", String(k2 === 0 ? 0 : k2 === 3 ? 1 : L2.s));
-          n2.setAttribute("stop-color", L2.c);
-          n2.setAttribute("stop-opacity", String(k2 < 2 ? 1 : L2.f));
+          n2.setAttribute("offset", String(k2 === 0 ? 0 : k2 === 3 ? 1 : L.s));
+          n2.setAttribute("stop-color", L.c);
+          n2.setAttribute("stop-opacity", String(k2 < 2 ? 1 : L.f));
         });
         tone(rec, fore);
       };
@@ -80986,14 +81138,14 @@ ${percent2.toFixed(1)}%`;
       var _a, _b, _c;
       show.call(tm, e2, node);
       const h2 = node.highlight;
-      const tt2 = hf.cfg.tooltip || {};
-      if ((h2 == null ? void 0 : h2.value) == null || tt2.show === false || typeof ((_b = (_a = hf.w.config.plotOptions.treemap.parents) == null ? void 0 : _a.tooltip) == null ? void 0 : _b.formatter) === "function") {
+      const tt = hf.cfg.tooltip || {};
+      if ((h2 == null ? void 0 : h2.value) == null || tt.show === false || typeof ((_b = (_a = hf.w.config.plotOptions.treemap.parents) == null ? void 0 : _a.tooltip) == null ? void 0 : _b.formatter) === "function") {
         return;
       }
       const v = (_c = tm._tip()) == null ? void 0 : _c.querySelector(".apexcharts-tooltip-text-y-value");
       if (!v) return;
       let rest = `/ ${tm._formatValue(h2.total, node._si)}`;
-      if (tt2.share && h2.total) rest += ` · ${Math.round(h2.share * 100)}%`;
+      if (tt.share && h2.total) rest += ` · ${Math.round(h2.share * 100)}%`;
       v.innerHTML = `${tm._formatValue(h2.value, node._si)} <span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">${rest}</span>`;
     };
   }
@@ -81048,8 +81200,8 @@ ${percent2.toFixed(1)}%`;
     }
     return false;
   }
-  function partAt(pt, hd, j) {
-    return isPoint(pt) && "highlight" in pt ? pt.highlight : hd ? hd[j] : null;
+  function partAt(pt2, hd, j) {
+    return isPoint(pt2) && "highlight" in pt2 ? pt2.highlight : hd ? hd[j] : null;
   }
   class HighlightFilter {
     /**
@@ -81341,8 +81493,8 @@ ${percent2.toFixed(1)}%`;
       }
       const parts = [];
       for (let i2 = 0; i2 < n2; i2++) {
-        const pt = point ? pts[i2] : null;
-        const v = pt && "highlight" in pt ? pt.highlight : arr ? arr[i2] : null;
+        const pt2 = point ? pts[i2] : null;
+        const v = pt2 && "highlight" in pt2 ? pt2.highlight : arr ? arr[i2] : null;
         parts.push([
           finite(v) ? gl.collapsedSeriesIndices.indexOf(i2) > -1 ? 0 : v : null
         ]);
@@ -81390,7 +81542,7 @@ ${percent2.toFixed(1)}%`;
       );
       const prev = /* @__PURE__ */ new Map();
       this._targets.forEach((t2, key) => {
-        var _a, _b, _c, _d, _e2, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g;
         if (t2.c && !t2.run) return;
         const n2 = t2.n;
         const on = !!(n2 == null ? void 0 : n2.isConnected);
@@ -81402,7 +81554,7 @@ ${percent2.toFixed(1)}%`;
           o: (_c = t2.lo) != null ? _c : t2.o,
           // A treemap tile's share and colour as drawn (see TreemapPart).
           s: (_d = t2.ls) != null ? _d : t2.s,
-          col: (_e2 = t2.lc) != null ? _e2 : t2.col,
+          col: (_e = t2.lc) != null ? _e : t2.col,
           // A part's alpha and carried stroke as drawn (see _paintBar).
           al: (_f = t2.la) != null ? _f : t2.al,
           k: (_g = t2.lk) != null ? _g : t2.k,
@@ -81509,7 +81661,7 @@ ${percent2.toFixed(1)}%`;
      * @param {{i: number, j: number, realIndex: number, translationsIndex: number, paths: any, zeroH: number, zeroW: number}} o
      */
     bar(bar, o2) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const w = this.w;
       const hd = w.highlightData;
       if (!hd) return void 0;
@@ -81541,7 +81693,7 @@ ${percent2.toFixed(1)}%`;
       };
       if (active) {
         const label2 = {};
-        if (((_e2 = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e2 : "part") === "part") {
+        if (((_e = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e : "part") === "part") {
           Object.assign(
             label2,
             p2 == null ? { hide: true } : __spreadValues({ val: (_f = geo == null ? void 0 : geo.val) != null ? _f : p2 }, geo == null ? void 0 : geo.label)
@@ -81618,16 +81770,16 @@ ${percent2.toFixed(1)}%`;
         const horiz = /^(left|right)/.test(origin);
         const edge = parseFloat(ghost.getAttribute("data:ghostEdge") || "");
         const [lo] = pathSpan(t2.d, horiz ? 0 : 1);
-        const st2 = node.style;
-        st2.transformBox = "fill-box";
-        st2.transformOrigin = isFinite(edge) ? horiz ? `${edge - lo}px 50%` : `50% ${edge - lo}px` : origin;
+        const st = node.style;
+        st.transformBox = "fill-box";
+        st.transformOrigin = isFinite(edge) ? horiz ? `${edge - lo}px 50%` : `50% ${edge - lo}px` : origin;
         const step = () => {
           if (!ghost.parentNode || w.globals.isDestroyed) {
             node.remove();
             return;
           }
-          st2.transform = ghost.style.transform;
-          st2.opacity = ghost.style.opacity;
+          st.transform = ghost.style.transform;
+          st.opacity = ghost.style.opacity;
           BrowserAPIs.requestAnimationFrame(step);
         };
         step();
@@ -82080,12 +82232,12 @@ ${percent2.toFixed(1)}%`;
       const row = pct ? raw.map(
         (v, j) => v == null ? v : whole[j] ? v * pct[j] / whole[j] : 0
       ) : (ax == null ? void 0 : ax.logarithmic) && !w.globals.invalidLogScale ? raw.map((v) => cu.getLogValAtSeriesIndex(v, realIndex)) : raw.slice();
-      const ft2 = (
+      const ft = (
         /** @type {any} */
         w.config.fill.type
       );
       const last = row.length - 1;
-      if ((ft2 === "gradient" || ft2[i2] === "gradient") && row[last] != null && row.every((v) => v === row[0])) {
+      if ((ft === "gradient" || ft[i2] === "gradient") && row[last] != null && row.every((v) => v === row[0])) {
         row[last] += 1e-6;
       }
       return row;
@@ -82174,11 +82326,11 @@ ${percent2.toFixed(1)}%`;
      * @param {{width: number, land?: {f: number, o: number}, done?: () => void, rec: any, ease?: (t: number) => number, also?: (t: number) => void, force?: boolean}} opt
      */
     _fadeLine(type, marks2, a2, b, opt) {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       const cfg = this.cfg;
       const fo = (_a = cfg.fadeOpacity) != null ? _a : 0.2;
       const ow = (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1;
-      const oo = (_e2 = (_d = cfg.outline) == null ? void 0 : _d.opacity) != null ? _e2 : 1;
+      const oo = (_e = (_d = cfg.outline) == null ? void 0 : _d.opacity) != null ? _e : 1;
       const dash = (_g = (_f = cfg.line) == null ? void 0 : _f.dashArray) != null ? _g : 4;
       const rec = opt.rec;
       const names = [
@@ -82205,7 +82357,7 @@ ${percent2.toFixed(1)}%`;
         items.forEach(({ node, own, k: k2, fill }) => {
           if (f2 >= 1 && o2 <= 0) {
             names.forEach(
-              (x2, q2) => own[q2] == null ? node.removeAttribute(x2) : node.setAttribute(x2, own[q2])
+              (x2, q) => own[q] == null ? node.removeAttribute(x2) : node.setAttribute(x2, own[q])
             );
           } else if (fill) {
             node.setAttribute("fill-opacity", String(k2 * f2 * mix(1, fo, o2)));
@@ -82282,15 +82434,15 @@ ${percent2.toFixed(1)}%`;
               j,
               prevY: pp.yArrj[0]
             });
-            pos.x.forEach((x2, q2) => {
-              if (raw[j ? j + 1 : q2] == null) {
+            pos.x.forEach((x2, q) => {
+              if (raw[j ? j + 1 : q] == null) {
                 boxes[realIndex].push({ x: NaN, y: NaN, width: 0, height: 0 });
                 return;
               }
               const el = dl.drawDataLabel({
                 type,
                 pos: {
-                  x: j ? [x2] : q2 ? [NaN, x2] : [x2, NaN],
+                  x: j ? [x2] : q ? [NaN, x2] : [x2, NaN],
                   y: pos.y
                 },
                 i: realIndex,
@@ -82424,20 +82576,20 @@ ${percent2.toFixed(1)}%`;
         items.push({ els, dx: s2.x - x2, dy: s2.y - y2, o: s2.o, to: 0, out: true });
       });
       if (!items.length) return;
-      items.forEach((it2) => {
-        it2.bases = it2.els.map((e2) => e2.getAttribute("transform") || "");
-        it2.ops = it2.els.map(
+      items.forEach((it) => {
+        it.bases = it.els.map((e2) => e2.getAttribute("transform") || "");
+        it.ops = it.els.map(
           (e2) => {
             var _a;
-            return parseFloat((_a = e2.getAttribute("opacity")) != null ? _a : "1") / (it2.out && it2.o > 0 ? it2.o : 1);
+            return parseFloat((_a = e2.getAttribute("opacity")) != null ? _a : "1") / (it.out && it.o > 0 ? it.o : 1);
           }
         );
       });
       const place2 = (e2) => items.forEach(
-        ({ els, dx, dy, o: o2, to, out, bases, ops }) => els.forEach((el, q2) => {
+        ({ els, dx, dy, o: o2, to, out, bases, ops }) => els.forEach((el, q) => {
           const b = (
             /** @type {string[]} */
-            bases[q2]
+            bases[q]
           );
           const k2 = out ? 1 : 1 - e2;
           if (k2) {
@@ -82450,7 +82602,7 @@ ${percent2.toFixed(1)}%`;
           const op = mix(o2, to, e2);
           const own = (
             /** @type {number[]} */
-            ops[q2]
+            ops[q]
           );
           if (op >= 1 && own >= 1) el.removeAttribute("opacity");
           else el.setAttribute("opacity", String(own * op));
@@ -82460,7 +82612,7 @@ ${percent2.toFixed(1)}%`;
         0,
         w.config.chart.animations.dynamicAnimation.speed,
         place2,
-        () => items.forEach((it2) => it2.out && it2.els.forEach((el) => el.remove()))
+        () => items.forEach((it) => it.out && it.els.forEach((el) => el.remove()))
       );
     }
     /**
@@ -82473,7 +82625,7 @@ ${percent2.toFixed(1)}%`;
      * @param {{key: string, prev: any, geo: any, fadeTo: number, active: boolean, whole: any, bar: any}} s
      */
     _paintBar(o2, el, r2, s2) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
       const w = this.w;
       const cfg = this.cfg;
       const animate = this._animates();
@@ -82533,28 +82685,28 @@ ${percent2.toFixed(1)}%`;
       const a1 = lands ? alpha : 1;
       const width = (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1;
       const ow = s2.whole || (prev == null ? void 0 : prev.o) ? width : 0;
-      const wn = el.node;
-      const sc = wn.getAttribute("stroke");
+      const wn2 = el.node;
+      const sc = wn2.getAttribute("stroke");
       const k0 = (start == null ? void 0 : start.cover) && animate ? 1 : (prev == null ? void 0 : prev.d) ? (_d = prev.k) != null ? _d : 0 : 0;
       const k1 = lands ? 1 : 0;
-      const carry = !!part && (ow > 0 || !(width > 0) && !!s2.whole) && (k0 > 0 || k1 > 0) && parseFloat(wn.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
-      const so = ownOpacity(wn, "stroke-opacity");
+      const carry = !!part && (ow > 0 || !(width > 0) && !!s2.whole) && (k0 > 0 || k1 > 0) && parseFloat(wn2.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
+      const so = ownOpacity(wn2, "stroke-opacity");
       const SK = ["stroke", "stroke-width", "stroke-opacity", "stroke-dasharray"];
       const bare = {};
       if (carry) {
         SK.forEach((n2) => {
           var _a2;
           bare[n2] = part.node.getAttribute(n2);
-          part.node.setAttribute(n2, (_a2 = wn.getAttribute(n2)) != null ? _a2 : "");
+          part.node.setAttribute(n2, (_a2 = wn2.getAttribute(n2)) != null ? _a2 : "");
         });
-        if (!wn.hasAttribute("stroke-dasharray")) {
+        if (!wn2.hasAttribute("stroke-dasharray")) {
           part.node.removeAttribute("stroke-dasharray");
         }
       }
       const rec = {
         d: null,
         f: fadeTo,
-        base: (_e2 = geo == null ? void 0 : geo.base) != null ? _e2 : prev == null ? void 0 : prev.base,
+        base: (_e = geo == null ? void 0 : geo.base) != null ? _e : prev == null ? void 0 : prev.base,
         edge: false,
         s: (_f = geo == null ? void 0 : geo.s) != null ? _f : prev == null ? void 0 : prev.s,
         n: exit ? part == null ? void 0 : part.node : null,
@@ -82575,7 +82727,7 @@ ${percent2.toFixed(1)}%`;
         if (k2 > 0 || t2 < 1) {
           part.node.setAttribute("stroke-opacity", String(so * k2));
           if (ow > 0 && !(rec.lo > 0) && k2 > 0) {
-            wn.setAttribute("stroke-opacity", "0");
+            wn2.setAttribute("stroke-opacity", "0");
           }
         } else {
           part.attr(bare);
@@ -82934,18 +83086,18 @@ ${percent2.toFixed(1)}%`;
      * @param {any} f the row's formatters
      */
     tooltipRow(refs, s2, j, f2) {
-      var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
       const w = this.w;
       const cfg = this.cfg;
-      const tt2 = cfg.tooltip || {};
+      const tt = cfg.tooltip || {};
       const ax = w.globals.axisCharts;
-      const on = this.isActive() && tt2.show !== false && (j != null || !ax) && !!refs.yValue;
+      const on = this.isActive() && tt.show !== false && (j != null || !ax) && !!refs.yValue;
       const lane = !ax && this._ind === "lanes" && w.config.chart.type === "radialBar" ? ((_a = this._lane) == null ? void 0 : _a[0]) === s2 ? this._lane[1] : "part" : void 0;
       if (refs.marker) {
         swatch(
           refs.marker,
           on && !w.config.tooltip.fillSeriesColor ? ((_c = (_b = this._tiles) == null ? void 0 : _b.get(s2 + "|" + j)) == null ? void 0 : _c.base) || w.globals.colors[s2] : null,
-          lane ? (_f = (_e2 = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e2.opacity) != null ? _f : LANE : cfg.fadeOpacity,
+          lane ? (_f = (_e = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e.opacity) != null ? _f : LANE : cfg.fadeOpacity,
           lane,
           Theme.radius(w, 3)
         );
@@ -82965,8 +83117,8 @@ ${percent2.toFixed(1)}%`;
         highlight: info(p2, whole),
         lane
       });
-      if (typeof tt2.formatter === "function") {
-        refs.yValue.innerHTML = String((_h = tt2.formatter(p2, whole != null ? whole : null, opts)) != null ? _h : "");
+      if (typeof tt.formatter === "function") {
+        refs.yValue.innerHTML = String((_h = tt.formatter(p2, whole != null ? whole : null, opts)) != null ? _h : "");
         return;
       }
       const muted = '<span class="apexcharts-highlight-total" style="font-weight: 400; opacity: 0.6">';
@@ -82980,7 +83132,7 @@ ${percent2.toFixed(1)}%`;
       let rest = refs.yValue.innerHTML;
       if (p2 != null) {
         rest = `/ ${rest}`;
-        if (tt2.share && whole) {
+        if (tt.share && whole) {
           rest += ` · ${Math.round(p2 / whole * 100)}%`;
         }
       }
@@ -83044,11 +83196,11 @@ ${percent2.toFixed(1)}%`;
       }
       const ride2 = this._ride;
       this._ride = null;
-      const ct2 = (
+      const ct = (
         /** @type {any} */
         this.w.globals.circleTween
       );
-      if (ride2 && !(ct2 && !ct2.done)) ride2();
+      if (ride2 && !(ct && !ct.done)) ride2();
       const was = this._drawnSig;
       const now = this._sig;
       if (was === now) return;
@@ -83223,17 +83375,17 @@ ${percent2.toFixed(1)}%`;
   function nearest(xs, x2) {
     let k2 = -1;
     let best = Infinity;
-    xs.forEach((v, q2) => {
+    xs.forEach((v, q) => {
       if (v != null && Math.abs(v - x2) < best) {
         best = Math.abs(v - x2);
-        k2 = q2;
+        k2 = q;
       }
     });
     return k2;
   }
   function nearestIn(xs) {
     const at2 = /* @__PURE__ */ new Map();
-    xs.forEach((v, q2) => isFinite(v != null ? v : NaN) && !at2.has(+v) && at2.set(+v, q2));
+    xs.forEach((v, q) => isFinite(v != null ? v : NaN) && !at2.has(+v) && at2.set(+v, q));
     return (x2) => {
       var _a;
       return (_a = at2.get(x2)) != null ? _a : nearest(xs, x2);
@@ -83247,20 +83399,20 @@ ${percent2.toFixed(1)}%`;
     return whole != null && whole !== 0 && p2 / whole > 1;
   }
   function swatch(m2, c2, fade = 0.2, lane, radius = 3) {
-    const st2 = m2.style;
+    const st = m2.style;
     const shape = m2.firstElementChild;
     if (!c2) {
       if (!m2._apxHl) return;
       m2._apxHl = false;
-      st2.background = st2.boxShadow = st2.borderRadius = "";
+      st.background = st.boxShadow = st.borderRadius = "";
       if (shape) shape.style.display = "";
       return;
     }
     m2._apxHl = true;
     const tint = c2.charAt(0) === "#" ? Utils$1.hexToRgba(c2, fade) : `color-mix(in srgb, ${c2} ${fade * 100}%, transparent)`;
-    st2.background = lane === "part" ? c2 : lane ? tint : `linear-gradient(90deg, ${c2} 50%, ${tint} 50%)`;
-    st2.boxShadow = `inset 0 0 0 1px ${c2}`;
-    st2.borderRadius = `${radius}px`;
+    st.background = lane === "part" ? c2 : lane ? tint : `linear-gradient(90deg, ${c2} 50%, ${tint} 50%)`;
+    st.boxShadow = `inset 0 0 0 1px ${c2}`;
+    st.borderRadius = `${radius}px`;
     if (shape) shape.style.display = "none";
   }
   function valueOf(d2, parsed) {
@@ -83336,7 +83488,7 @@ ${percent2.toFixed(1)}%`;
       const runs = [];
       rb.targets.forEach(
         (t2, k2) => {
-          var _a2, _b, _c, _d, _e2, _f;
+          var _a2, _b, _c, _d, _e, _f;
           if (!t2) return;
           const seriesIndex = (_a2 = t2.seriesIndex) != null ? _a2 : 0;
           const ring2 = geo.rings[seriesIndex];
@@ -83404,7 +83556,7 @@ ${percent2.toFixed(1)}%`;
             const fs = parseFloat(fontSize) || 11;
             const out = position === "inside" ? -1 : 1;
             const tip = position === "inside" ? Math.min(near, far) : Math.max(near, far);
-            const offset = Number((_e2 = lab.offset) != null ? _e2 : 4);
+            const offset = Number((_e = lab.offset) != null ? _e : 4);
             elLabel = graphics.drawText({
               x: cx,
               y: cy,
@@ -83625,11 +83777,11 @@ ${percent2.toFixed(1)}%`;
       );
       for (let k2 = 1; k2 <= steps; k2++) {
         const t2 = theta + delta * k2 / steps;
-        const ct2 = Math.cos(t2);
-        const st2 = Math.sin(t2);
+        const ct = Math.cos(t2);
+        const st = Math.sin(t2);
         poly.push({
-          x: ccx + rx * ct2 * cosP - ry * st2 * sinP,
-          y: ccy + rx * ct2 * sinP + ry * st2 * cosP
+          x: ccx + rx * ct * cosP - ry * st * sinP,
+          y: ccy + rx * ct * sinP + ry * st * cosP
         });
       }
       px2 = x2;
@@ -83992,10 +84144,10 @@ ${percent2.toFixed(1)}%`;
     let used = 0;
     const rest = [];
     for (let i2 = 0; i2 < weights.length; i2++) {
-      const q2 = total * weights[i2] / sum2;
-      out[i2] = Math.floor(q2);
+      const q = total * weights[i2] / sum2;
+      out[i2] = Math.floor(q);
       used += out[i2];
-      rest.push({ i: i2, frac: q2 - out[i2] });
+      rest.push({ i: i2, frac: q - out[i2] });
     }
     rest.sort((a2, b) => b.frac - a2.frac);
     for (let k2 = 0; used < total; k2++, used++) out[rest[k2 % rest.length].i]++;
@@ -84247,11 +84399,11 @@ ${percent2.toFixed(1)}%`;
       const sinT = Math.sin(tilt);
       const SAMPLES = 40;
       const project = (sinPhi, cosPhi, lon) => {
-        const z2 = cosPhi * Math.cos(lon);
+        const z = cosPhi * Math.cos(lon);
         return {
           x: radius * cosPhi * Math.sin(lon),
-          y: radius * (sinPhi * cosT + z2 * sinT),
-          depth: z2 * cosT - sinPhi * sinT
+          y: radius * (sinPhi * cosT + z * sinT),
+          depth: z * cosT - sinPhi * sinT
         };
       };
       const candidatesAt = (pitch2) => {
@@ -84297,8 +84449,8 @@ ${percent2.toFixed(1)}%`;
             const p2 = project(sinPhi, cosPhi, lon);
             pts.push(p2);
             if (k2 > 0) {
-              const q2 = pts[k2 - 1];
-              cum.push(cum[k2 - 1] + Math.hypot(p2.x - q2.x, p2.y - q2.y));
+              const q = pts[k2 - 1];
+              cum.push(cum[k2 - 1] + Math.hypot(p2.x - q.x, p2.y - q.y));
             }
           }
           const len = cum[cum.length - 1];

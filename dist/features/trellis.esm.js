@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -807,65 +807,65 @@ function split2d(list, cfg, warnings, alignToUnion = true, datetime) {
     warnings
   };
 }
-const x = 1e3;
-function S(t, e) {
+const S = 1e3;
+function x(t, e) {
   const n = t.length;
   if (0 === n) return NaN;
   if (1 === n) return t[0];
-  const s = (n - 1) * e, i = Math.floor(s), r = Math.ceil(s);
-  return i === r ? t[i] : t[i] + (t[r] - t[i]) * (s - i);
+  const r = (n - 1) * e, s = Math.floor(r), i = Math.ceil(r);
+  return s === i ? t[s] : t[s] + (t[i] - t[s]) * (r - s);
 }
 function A(t, e, n) {
-  const s = t.length, i = (t2) => e / Math.max(1, Math.ceil(t2)), r = () => i(Math.log2(s) + 1);
+  const r = t.length, s = (t2) => e / Math.max(1, Math.ceil(t2)), i = () => s(Math.log2(r) + 1);
   switch (n) {
     case "sqrt":
-      return { width: i(Math.sqrt(s)), rule: "sqrt" };
+      return { width: s(Math.sqrt(r)), rule: "sqrt" };
     case "rice":
-      return { width: i(2 * Math.cbrt(s)), rule: "rice" };
+      return { width: s(2 * Math.cbrt(r)), rule: "rice" };
     case "scott": {
       const e2 = (function(t2) {
         const e3 = t2.length;
         if (e3 < 2) return 0;
         let n2 = 0;
-        for (let s3 = 0; s3 < e3; s3++) n2 += t2[s3];
-        const s2 = n2 / e3;
-        let i2 = 0;
+        for (let r3 = 0; r3 < e3; r3++) n2 += t2[r3];
+        const r2 = n2 / e3;
+        let s2 = 0;
         for (let n3 = 0; n3 < e3; n3++) {
-          const e4 = t2[n3] - s2;
-          i2 += e4 * e4;
+          const e4 = t2[n3] - r2;
+          s2 += e4 * e4;
         }
-        return Math.sqrt(i2 / e3);
+        return Math.sqrt(s2 / e3);
       })(t);
-      return e2 > 0 ? { width: 3.49 * e2 * Math.pow(s, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
+      return e2 > 0 ? { width: 3.49 * e2 * Math.pow(r, -1 / 3), rule: "scott" } : { width: i(), rule: "sturges" };
     }
     case "fd": {
-      const e2 = S(t, 0.75) - S(t, 0.25);
-      return e2 > 0 ? { width: 2 * e2 * Math.pow(s, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
+      const e2 = x(t, 0.75) - x(t, 0.25);
+      return e2 > 0 ? { width: 2 * e2 * Math.pow(r, -1 / 3), rule: "fd" } : { width: i(), rule: "sturges" };
     }
     case "auto": {
-      const e2 = r(), n2 = S(t, 0.75) - S(t, 0.25);
+      const e2 = i(), n2 = x(t, 0.75) - x(t, 0.25);
       if (n2 <= 0) return { width: e2, rule: "sturges" };
-      const i2 = 2 * n2 * Math.pow(s, -1 / 3);
-      return i2 < e2 ? { width: i2, rule: "fd" } : { width: e2, rule: "sturges" };
+      const s2 = 2 * n2 * Math.pow(r, -1 / 3);
+      return s2 < e2 ? { width: s2, rule: "fd" } : { width: e2, rule: "sturges" };
     }
     default:
-      return { width: r(), rule: "sturges" };
+      return { width: i(), rule: "sturges" };
   }
 }
 function k(t, e = {}) {
   if (!Array.isArray(t) || 0 === t.length) return null;
   const n = t.slice().sort(((t2, e2) => t2 - e2));
-  let s = n[0], i = n[n.length - 1];
-  const r = e.range;
-  if (Array.isArray(r) && 2 === r.length) {
-    const t2 = Number(r[0]), e2 = Number(r[1]);
-    Number.isFinite(t2) && Number.isFinite(e2) && e2 > t2 && (s = t2, i = e2);
+  let r = n[0], s = n[n.length - 1];
+  const i = e.range;
+  if (Array.isArray(i) && 2 === i.length) {
+    const t2 = Number(i[0]), e2 = Number(i[1]);
+    Number.isFinite(t2) && Number.isFinite(e2) && e2 > t2 && (r = t2, s = e2);
   }
-  if (!(i > s)) {
-    const t2 = Math.abs(s) > 0 ? 0.05 * Math.abs(s) : 0.5;
-    return { edges: [s - t2, s + t2], binWidth: 2 * t2, rule: "single", capped: false };
+  if (!(s > r)) {
+    const t2 = Math.abs(r) > 0 ? 0.05 * Math.abs(r) : 0.5;
+    return { edges: [r - t2, r + t2], binWidth: 2 * t2, rule: "single", capped: false };
   }
-  const o = i - s;
+  const o = s - r;
   let l, a;
   if ("number" == typeof e.binWidth && e.binWidth > 0) l = e.binWidth, a = "binWidth";
   else if ("number" == typeof e.bins && e.bins >= 1) l = o / Math.floor(e.bins), a = "count";
@@ -877,36 +877,36 @@ function k(t, e = {}) {
   let c = Math.ceil(o / l);
   (!Number.isFinite(c) || c < 1) && (c = 1);
   let u = false;
-  c > x && (c = x, u = true), l = o / c;
+  c > S && (c = S, u = true), l = o / c;
   const d = new Array(c + 1);
-  for (let t2 = 0; t2 <= c; t2++) d[t2] = s + t2 * l;
-  return d[c] = Math.max(d[c], i), { edges: d, binWidth: l, rule: a, capped: u };
+  for (let t2 = 0; t2 <= c; t2++) d[t2] = r + t2 * l;
+  return d[c] = Math.max(d[c], s), { edges: d, binWidth: l, rule: a, capped: u };
 }
-function L(t, e) {
+function N(t, e) {
   const n = e.length - 1;
   if (!(t >= e[0]) || t > e[n]) return -1;
   if (t === e[n]) return n - 1;
-  const s = (e[n] - e[0]) / n;
-  if (s > 0) {
-    let i2 = Math.floor((t - e[0]) / s);
-    return i2 < 0 && (i2 = 0), i2 > n - 1 && (i2 = n - 1), t < e[i2] ? i2-- : t >= e[i2 + 1] && i2++, i2 < 0 || i2 > n - 1 ? -1 : i2;
+  const r = (e[n] - e[0]) / n;
+  if (r > 0) {
+    let s2 = Math.floor((t - e[0]) / r);
+    return s2 < 0 && (s2 = 0), s2 > n - 1 && (s2 = n - 1), t < e[s2] ? s2-- : t >= e[s2 + 1] && s2++, s2 < 0 || s2 > n - 1 ? -1 : s2;
   }
-  let i = 0, r = n - 1;
-  for (; i <= r; ) {
-    const n2 = i + r >> 1;
-    if (t < e[n2]) r = n2 - 1;
+  let s = 0, i = n - 1;
+  for (; s <= i; ) {
+    const n2 = s + i >> 1;
+    if (t < e[n2]) i = n2 - 1;
     else {
       if (!(t >= e[n2 + 1])) return n2;
-      i = n2 + 1;
+      s = n2 + 1;
     }
   }
   return -1;
 }
 function C(t, e) {
   const n = new Array(Math.max(0, e.length - 1)).fill(0);
-  for (let s = 0; s < t.length; s++) {
-    const i = L(t[s], e);
-    i >= 0 && n[i]++;
+  for (let r = 0; r < t.length; r++) {
+    const s = N(t[r], e);
+    s >= 0 && n[s]++;
   }
   return n;
 }
@@ -930,7 +930,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = S(sorted, 0.75) - S(sorted, 0.25);
+    const iqr = x(sorted, 0.75) - x(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -1350,9 +1350,9 @@ function resolve(splitResult, cfg = {}, host = {}) {
     const ya = yaxes[ai] || {};
     if (ya.logarithmic && ext.min > 0) {
       const b = ya.logBase || 10;
-      const L2 = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
-      const lo = Math.floor(L2(ext.min));
-      const hi = Math.max(lo + 1, Math.ceil(L2(ext.max)));
+      const L = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
+      const lo = Math.floor(L(ext.min));
+      const hi = Math.max(lo + 1, Math.ceil(L(ext.max)));
       return {
         min: __pow(b, lo),
         max: __pow(b, hi),

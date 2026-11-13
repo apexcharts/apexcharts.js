@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -27,16 +27,16 @@ const t = globalThis.console;
 function e(e2, ...n) {
   t.error(e2, ...n);
 }
-const je = "__apexcharts_crossfilters__";
-function Re(t2) {
+const wn = "__apexcharts_crossfilters__";
+function Mn(t2) {
   if (!Number.isFinite(t2)) return t2;
   const e2 = Number(t2.toPrecision(12));
   return Object.is(e2, -0) ? 0 : e2;
 }
-function De(t2) {
+function Sn(t2) {
   return "number" == typeof t2 && Number.isFinite(t2);
 }
-function Fe(t2) {
+function xn(t2) {
   if ("function" == typeof t2) return t2;
   if (t2 && "object" == typeof t2) {
     if ("string" == typeof t2.sum) {
@@ -58,47 +58,47 @@ function Fe(t2) {
   }
   return (t3) => t3.length;
 }
-function Ke(t2, e2) {
+function An(t2, e2) {
   return "function" == typeof e2 ? t2.slice().sort(e2) : "asc" === e2 ? t2.slice().sort(((t3, e3) => t3 > e3 ? 1 : t3 < e3 ? -1 : 0)) : "desc" === e2 ? t2.slice().sort(((t3, e3) => t3 < e3 ? 1 : t3 > e3 ? -1 : 0)) : t2;
 }
-function Oe(t2, e2) {
-  if (!De(t2)) return -1;
+function kn(t2, e2) {
+  if (!Sn(t2)) return -1;
   const n = e2.length - 1;
   if (t2 < e2[0] || t2 > e2[n]) return -1;
   if (t2 === e2[n]) return n - 1;
-  for (let s = 0; s < n; s++) if (t2 >= e2[s] && t2 < e2[s + 1]) return s;
+  for (let r = 0; r < n; r++) if (t2 >= e2[r] && t2 < e2[r + 1]) return r;
   return -1;
 }
-function qe(t2) {
+function Nn(t2) {
   const e2 = [];
-  for (let n = 0; n < t2.length - 1; n++) e2.push(Re((t2[n] + t2[n + 1]) / 2));
+  for (let n = 0; n < t2.length - 1; n++) e2.push(Mn((t2[n] + t2[n + 1]) / 2));
   return e2;
 }
-class _e {
+class Cn {
   constructor(t2, e2) {
     this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = t2, this.records = Array.isArray(e2) ? e2 : [];
   }
   static store() {
     const t2 = globalThis;
-    return t2[je] || (t2[je] = /* @__PURE__ */ new Map()), t2[je];
+    return t2[wn] || (t2[wn] = /* @__PURE__ */ new Map()), t2[wn];
   }
   static getOrCreate(t2) {
     if (!t2 || "string" != typeof t2.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
-    const e2 = _e.store(), n = e2.get(t2.id);
+    const e2 = Cn.store(), n = e2.get(t2.id);
     if (n) return t2.records && n.setRecords(t2.records), n;
-    const s = new _e(t2.id, t2.records);
-    return e2.set(t2.id, s), s;
+    const r = new Cn(t2.id, t2.records);
+    return e2.set(t2.id, r), r;
   }
   static get(t2) {
-    return _e.store().get(t2) || null;
+    return Cn.store().get(t2) || null;
   }
   setRecords(t2) {
     return this.records = Array.isArray(t2) ? t2 : [], this.dims.forEach(((t3) => this.recomputeDomain(t3))), this.emit("records", this.state()), this.emit("change", this.state()), this;
   }
   registerDimension(t2, e2) {
     if (!e2 || "function" != typeof e2.dimension) throw new Error(`crossfilter.registerDimension("${t2}") needs a dimension function.`);
-    const n = e2.type || (e2.bins ? "range" : "category"), s = { accessor: e2.dimension, reducer: Fe(e2.reduce), type: n, bins: e2.bins, order: e2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
-    return this.dims.set(t2, s), this.recomputeDomain(s), null != e2.filter && this.setFilterOn(s, e2.filter), this;
+    const n = e2.type || (e2.bins ? "range" : "category"), r = { accessor: e2.dimension, reducer: xn(e2.reduce), type: n, bins: e2.bins, order: e2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+    return this.dims.set(t2, r), this.recomputeDomain(r), null != e2.filter && this.setFilterOn(r, e2.filter), this;
   }
   hasDimension(t2) {
     return this.dims.has(t2);
@@ -110,51 +110,51 @@ class _e {
   recomputeDomain(t2) {
     if ("matrix" === t2.type) {
       const e2 = (function(t3, e3, n) {
-        const s = /* @__PURE__ */ new Set(), i = /* @__PURE__ */ new Set(), r = [], o = [];
+        const r = /* @__PURE__ */ new Set(), s = /* @__PURE__ */ new Set(), i = [], o = [];
         for (let n2 = 0; n2 < t3.length; n2++) {
           const l = e3(t3[n2]);
           if (!l) continue;
           const a = l[0], c = l[1];
-          null == a || s.has(a) || (s.add(a), r.push(a)), null == c || i.has(c) || (i.add(c), o.push(c));
+          null == a || r.has(a) || (r.add(a), i.push(a)), null == c || s.has(c) || (s.add(c), o.push(c));
         }
-        return { xLabels: Ke(r, n), yLabels: Ke(o, n) };
+        return { xLabels: An(i, n), yLabels: An(o, n) };
       })(this.records, t2.accessor, t2.order);
       return t2.xLabels = e2.xLabels, t2.yLabels = e2.yLabels, void (t2.edges = null);
     }
     if ("range" === t2.type) return t2.edges = (function(t3, e2, n) {
       if (n && Array.isArray(n.thresholds) && n.thresholds.length >= 2) {
-        const t4 = Array.from(new Set(n.thresholds.filter(De))).sort(((t5, e3) => t5 - e3));
-        return t4.length >= 2 ? t4.map(Re) : [0, 1];
+        const t4 = Array.from(new Set(n.thresholds.filter(Sn))).sort(((t5, e3) => t5 - e3));
+        return t4.length >= 2 ? t4.map(Mn) : [0, 1];
       }
-      let s = 1 / 0, i = -1 / 0;
+      let r = 1 / 0, s = -1 / 0;
       for (let n2 = 0; n2 < t3.length; n2++) {
-        const r2 = e2(t3[n2]);
-        De(r2) && (r2 < s && (s = r2), r2 > i && (i = r2));
+        const i2 = e2(t3[n2]);
+        Sn(i2) && (i2 < r && (r = i2), i2 > s && (s = i2));
       }
-      if (s === 1 / 0) return [0, 1];
-      if (s === i) {
-        const t4 = Math.abs(s) > 0 ? Math.abs(s) : 1;
-        return [Re(s), Re(s + t4)];
+      if (r === 1 / 0) return [0, 1];
+      if (r === s) {
+        const t4 = Math.abs(r) > 0 ? Math.abs(r) : 1;
+        return [Mn(r), Mn(r + t4)];
       }
-      if (n && De(n.width) && n.width > 0) {
-        const t4 = n.width, e3 = Math.floor(s / t4) * t4;
-        let r2 = Math.ceil(i / t4) * t4;
-        r2 <= e3 && (r2 = e3 + t4);
-        const o2 = Math.max(1, Math.round((r2 - e3) / t4)), l2 = new Array(o2 + 1);
-        for (let n2 = 0; n2 <= o2; n2++) l2[n2] = Re(e3 + n2 * t4);
+      if (n && Sn(n.width) && n.width > 0) {
+        const t4 = n.width, e3 = Math.floor(r / t4) * t4;
+        let i2 = Math.ceil(s / t4) * t4;
+        i2 <= e3 && (i2 = e3 + t4);
+        const o2 = Math.max(1, Math.round((i2 - e3) / t4)), l2 = new Array(o2 + 1);
+        for (let n2 = 0; n2 <= o2; n2++) l2[n2] = Mn(e3 + n2 * t4);
         return l2;
       }
-      const r = n && De(n.count) && n.count >= 1 ? Math.floor(n.count) : 30, o = (i - s) / r, l = new Array(r + 1);
-      for (let t4 = 0; t4 <= r; t4++) l[t4] = Re(s + t4 * o);
-      return l[r] = Re(i), l;
-    })(this.records, t2.accessor, t2.bins), void (t2.labels = qe(t2.edges));
+      const i = n && Sn(n.count) && n.count >= 1 ? Math.floor(n.count) : 30, o = (s - r) / i, l = new Array(i + 1);
+      for (let t4 = 0; t4 <= i; t4++) l[t4] = Mn(r + t4 * o);
+      return l[i] = Mn(s), l;
+    })(this.records, t2.accessor, t2.bins), void (t2.labels = Nn(t2.edges));
     if (t2.labels = (function(t3, e2, n) {
-      const s = /* @__PURE__ */ new Set(), i = [];
+      const r = /* @__PURE__ */ new Set(), s = [];
       for (let n2 = 0; n2 < t3.length; n2++) {
-        const r = e2(t3[n2]);
-        null != r && (s.has(r) || (s.add(r), i.push(r)));
+        const i = e2(t3[n2]);
+        null != i && (r.has(i) || (r.add(i), s.push(i)));
       }
-      return Ke(i, n);
+      return An(s, n);
     })(this.records, t2.accessor, t2.order), t2.edges = null, t2.filter instanceof Set) {
       const e2 = new Set(t2.labels);
       Array.from(t2.filter).forEach(((n) => {
@@ -170,15 +170,15 @@ class _e {
     const n = this.dims.get(t2);
     if (!n || "category" !== n.type) return this;
     n.filter instanceof Set || (n.filter = /* @__PURE__ */ new Set());
-    const s = n.filter;
-    return s.has(e2) ? s.delete(e2) : s.add(e2), 0 === s.size && (n.filter = null), this.emit("change", this.state()), this;
+    const r = n.filter;
+    return r.has(e2) ? r.delete(e2) : r.add(e2), 0 === r.size && (n.filter = null), this.emit("change", this.state()), this;
   }
   setFilterOn(t2, e2) {
     if (null == e2) return void (t2.filter = null);
     if ("range" === t2.type) {
-      if (Array.isArray(e2) && 2 === e2.length && e2.every(De)) {
-        const [n2, s] = e2;
-        t2.filter = [Math.min(n2, s), Math.max(n2, s)];
+      if (Array.isArray(e2) && 2 === e2.length && e2.every(Sn)) {
+        const [n2, r] = e2;
+        t2.filter = [Math.min(n2, r), Math.max(n2, r)];
       } else t2.filter = null;
       return;
     }
@@ -201,14 +201,14 @@ class _e {
     if (!this.hasFilter(t2)) return true;
     const n = t2.accessor(e2);
     if (t2.filter instanceof Set) return t2.filter.has(n);
-    if (!De(n)) return false;
-    const [s, i] = t2.filter;
-    return n >= s && n <= i;
+    if (!Sn(n)) return false;
+    const [r, s] = t2.filter;
+    return n >= r && n <= s;
   }
   filteredRecords(t2) {
     const e2 = [];
-    return this.dims.forEach(((n, s) => {
-      s !== t2 && this.hasFilter(n) && e2.push(n);
+    return this.dims.forEach(((n, r) => {
+      r !== t2 && this.hasFilter(n) && e2.push(n);
     })), 0 === e2.length ? this.records : this.records.filter(((t3) => e2.every(((e3) => this.passes(e3, t3)))));
   }
   filteredRows() {
@@ -219,30 +219,30 @@ class _e {
     if (!e2) return { type: "category", labels: [], values: [], keys: [] };
     const n = this.filteredRecords(t2);
     if ("matrix" === e2.type) {
-      const t3 = new Map(e2.xLabels.map(((t4, e3) => [t4, e3]))), s2 = new Map(e2.yLabels.map(((t4, e3) => [t4, e3]))), i = e2.yLabels.map((() => e2.xLabels.map((() => []))));
-      for (let r = 0; r < n.length; r++) {
-        const o = e2.accessor(n[r]);
+      const t3 = new Map(e2.xLabels.map(((t4, e3) => [t4, e3]))), r2 = new Map(e2.yLabels.map(((t4, e3) => [t4, e3]))), s = e2.yLabels.map((() => e2.xLabels.map((() => []))));
+      for (let i = 0; i < n.length; i++) {
+        const o = e2.accessor(n[i]);
         if (!o) continue;
-        const l = t3.get(o[0]), a = s2.get(o[1]);
-        null != l && null != a && i[a][l].push(n[r]);
+        const l = t3.get(o[0]), a = r2.get(o[1]);
+        null != l && null != a && s[a][l].push(n[i]);
       }
-      return { type: "matrix", xLabels: e2.xLabels.slice(), yLabels: e2.yLabels.slice(), matrix: i.map(((t4) => t4.map(((t5) => e2.reducer(t5))))) };
+      return { type: "matrix", xLabels: e2.xLabels.slice(), yLabels: e2.yLabels.slice(), matrix: s.map(((t4) => t4.map(((t5) => e2.reducer(t5))))) };
     }
     if ("range" === e2.type) {
-      const t3 = e2.edges || [0, 1], s2 = t3.length - 1, i = Array.from({ length: s2 }, (() => []));
-      for (let s3 = 0; s3 < n.length; s3++) {
-        const r = Oe(e2.accessor(n[s3]), t3);
-        r >= 0 && i[r].push(n[s3]);
+      const t3 = e2.edges || [0, 1], r2 = t3.length - 1, s = Array.from({ length: r2 }, (() => []));
+      for (let r3 = 0; r3 < n.length; r3++) {
+        const i = kn(e2.accessor(n[r3]), t3);
+        i >= 0 && s[i].push(n[r3]);
       }
-      return { type: "range", labels: qe(t3), values: i.map(((t4) => e2.reducer(t4))), keys: i.map(((e3, n2) => [t3[n2], t3[n2 + 1]])), edges: t3 };
+      return { type: "range", labels: Nn(t3), values: s.map(((t4) => e2.reducer(t4))), keys: s.map(((e3, n2) => [t3[n2], t3[n2 + 1]])), edges: t3 };
     }
-    const s = /* @__PURE__ */ new Map();
-    e2.labels.forEach(((t3) => s.set(t3, [])));
+    const r = /* @__PURE__ */ new Map();
+    e2.labels.forEach(((t3) => r.set(t3, [])));
     for (let t3 = 0; t3 < n.length; t3++) {
-      const i = s.get(e2.accessor(n[t3]));
-      i && i.push(n[t3]);
+      const s = r.get(e2.accessor(n[t3]));
+      s && s.push(n[t3]);
     }
-    return { type: "category", labels: e2.labels.slice(), values: e2.labels.map(((t3) => e2.reducer(s.get(t3) || []))), keys: e2.labels.slice() };
+    return { type: "category", labels: e2.labels.slice(), values: e2.labels.map(((t3) => e2.reducer(r.get(t3) || []))), keys: e2.labels.slice() };
   }
   aggregateAll() {
     const t2 = {};
@@ -269,10 +269,10 @@ class _e {
     return null == (n = this.listeners.get(t2)) || n.delete(e2), this;
   }
   emit(t2, n) {
-    var s;
-    null == (s = this.listeners.get(t2)) || s.forEach(((s2) => {
+    var r;
+    null == (r = this.listeners.get(t2)) || r.forEach(((r2) => {
       try {
-        s2(n);
+        r2(n);
       } catch (n2) {
         e(`[Apex] a crossfilter ${t2} listener threw`, n2);
       }
@@ -287,19 +287,19 @@ class _e {
     return (e2 ? Object.keys(e2) : []).map(((t3) => ({ field: t3, label: t3 })));
   }
   tableHTML(t2, e2, n) {
-    const s = "<thead><tr>" + t2.map(((t3) => `<th>${_e.esc(t3.label)}</th>`)).join("") + "</tr></thead>", i = "<tbody>" + e2.map(((e3) => "<tr>" + t2.map(((t3) => {
-      const n2 = e3[t3.field], s2 = t3.format ? t3.format(n2, e3) : n2;
-      return `<td>${_e.esc(s2)}</td>`;
+    const r = "<thead><tr>" + t2.map(((t3) => `<th>${Cn.esc(t3.label)}</th>`)).join("") + "</tr></thead>", s = "<tbody>" + e2.map(((e3) => "<tr>" + t2.map(((t3) => {
+      const n2 = e3[t3.field], r2 = t3.format ? t3.format(n2, e3) : n2;
+      return `<td>${Cn.esc(r2)}</td>`;
     })).join("") + "</tr>")).join("") + "</tbody>";
-    return `<table class="apexcharts-cf-table">${`<caption>${e2.length} of ${n} rows</caption>`}${s}${i}</table>`;
+    return `<table class="apexcharts-cf-table">${`<caption>${e2.length} of ${n} rows</caption>`}${r}${s}</table>`;
   }
   dataTable(t2, e2) {
     if (!t2) return { refresh() {
     }, destroy() {
     } };
-    const n = e2 || {}, s = this.resolveColumns(n.columns), i = n.pageSize || 0, r = n.page || 0, o = () => {
-      const e3 = this.filteredRows(), n2 = i ? e3.slice(r * i, r * i + i) : e3;
-      t2.innerHTML = this.tableHTML(s, n2, e3.length);
+    const n = e2 || {}, r = this.resolveColumns(n.columns), s = n.pageSize || 0, i = n.page || 0, o = () => {
+      const e3 = this.filteredRows(), n2 = s ? e3.slice(i * s, i * s + s) : e3;
+      t2.innerHTML = this.tableHTML(r, n2, e3.length);
     };
     o();
     const l = this.on("change", o);
@@ -308,7 +308,7 @@ class _e {
     } };
   }
   destroy() {
-    _e.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
+    Cn.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
   }
 }
 const MARK_SELECTOR = [
@@ -461,7 +461,7 @@ class LinkedViews {
   _cf() {
     const link = this.w.config.chart.link;
     const id = link && (link.id || this.w.config.chart.group);
-    return id ? _e.get(id) : null;
+    return id ? Cn.get(id) : null;
   }
   _isPie() {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -575,7 +575,7 @@ class LinkedViews {
    * A pie slice / bar was clicked: toggle its bucket key on the coordinator.
    * @param {any} _e @param {any} _ctx @param {{dataPointIndex?:number}} opts
    */
-  _onPointSelect(_e2, _ctx, opts) {
+  _onPointSelect(_e, _ctx, opts) {
     if (this._mode() !== "filter" || !opts || opts.dataPointIndex == null) return;
     const cf = this._cf();
     if (!cf) return;
@@ -700,12 +700,12 @@ class LinkedViews {
     (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("filterChange", [this.ctx, args]);
   }
   teardown() {
-    var _a, _b, _c, _d, _e2, _f;
+    var _a, _b, _c, _d, _e, _f;
     this.clear();
     if (this._wired) {
       (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "dataPointSelection", this._onPointSelect);
       (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "mounted", this._afterRender);
-      (_f = (_e2 = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e2, "updated", this._afterRender);
+      (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "updated", this._afterRender);
       const cf = this._cf();
       if (cf) {
         cf.off("change", this._onChange);
@@ -719,7 +719,7 @@ ApexCharts.registerFeatures({
   linkedViews: LinkedViews,
   crossfilter: (
     /** @type {any} */
-    _e
+    Cn
   )
 });
 export {

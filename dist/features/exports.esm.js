@@ -1,31 +1,31 @@
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function Mt({ background: t, dark: e, designSystemPaper: n, fromVariant: s, light: i, mode: r }) {
-  return t && "transparent" !== t ? t : "dark" === r ? s && n || e : i || "#fff";
-}
-function Ae(t) {
+function pt(t) {
   const e = t.getRootNode ? t.getRootNode() : null;
   return e && (9 === e.nodeType || 11 === e.nodeType && "host" in e) ? e : t.ownerDocument || document;
 }
-function Ne(t) {
+function St(t) {
   const e = [];
   let n = t;
   for (; n; ) {
-    const t2 = Ae(n);
+    const t2 = pt(n);
     e.unshift(t2), n = 11 === t2.nodeType ? t2.host : null;
   }
-  const s = [];
+  const r = [];
   for (const t2 of e) {
-    for (const e3 of Array.from(t2.styleSheets || [])) s.push(e3);
+    for (const e3 of Array.from(t2.styleSheets || [])) r.push(e3);
     const e2 = t2.adoptedStyleSheets;
-    if (e2) for (const t3 of e2) s.push(t3);
+    if (e2) for (const t3 of e2) r.push(t3);
   }
-  return s;
+  return r;
+}
+function ge({ background: t, dark: e, designSystemPaper: n, fromVariant: r, light: s, mode: i }) {
+  return t && "transparent" !== t ? t : "dark" === i ? r && n || e : s || "#fff";
 }
 const AxesUtils = _core.__apex_axes_AxesUtils;
 const Defaults = _core.__apex_Defaults;
@@ -347,7 +347,7 @@ class Exports {
   resolveExportBackground() {
     var _a, _b, _c;
     const w = this.w;
-    return Mt({
+    return ge({
       background: w.config.chart.background,
       mode: w.config.theme.mode,
       fromVariant: !!w.globals.variantModeApplied,
@@ -448,7 +448,7 @@ class Exports {
       }
     };
     const el = this.w.dom.elWrap;
-    (el ? Ne(el) : Array.from(document.styleSheets || [])).forEach(
+    (el ? St(el) : Array.from(document.styleSheets || [])).forEach(
       walkSheet
     );
     return Promise.all(remote).then(() => found);

@@ -1,11 +1,11 @@
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function ke(t) {
+function gt(t) {
   const e = "function" == typeof t.composedPath ? t.composedPath() : null;
   return (null == e ? void 0 : e.length) ? e[0] : t.target;
 }
@@ -802,7 +802,7 @@ class InkLayer {
     const ed = this._editor;
     if (!ed || ed.card.contains(
       /** @type {Node} */
-      ke(e)
+      gt(e)
     )) return;
     this._closeEditor(true);
   }

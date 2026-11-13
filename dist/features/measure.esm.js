@@ -18,13 +18,13 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-function it(t, e, n) {
+function Gt(t, e, n) {
   return t ? t.color(e, n) : void 0;
 }
 const Graphics = _core.__apex_Graphics;
@@ -489,7 +489,7 @@ class Measure {
     const v = read(varName);
     if (v && role && v === read(varName + "-ig")) {
       const ds = this.ctx && this.ctx.theme && this.ctx.theme.designSystem;
-      return it(ds, role, this.w.config.theme.mode) || fallback;
+      return Gt(ds, role, this.w.config.theme.mode) || fallback;
     }
     return v || fallback;
   }

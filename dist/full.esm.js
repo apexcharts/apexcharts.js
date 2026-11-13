@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.8.1
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts";
@@ -163,7 +163,7 @@ function expandPath(analysis, ownIdx) {
   const out = [["M", anchors[0][0], anchors[0][1]]];
   let firstOwn = 0;
   while (firstOwn < m2 && ownIdx[firstOwn] !== 0) firstOwn++;
-  for (let q2 = 1; q2 <= firstOwn; q2++) out.push(degen(anchors[0]));
+  for (let q = 1; q <= firstOwn; q++) out.push(degen(anchors[0]));
   let entry = firstOwn + 1;
   for (let s2 = 0; s2 < n2 - 1; s2++) {
     let interior = 0;
@@ -175,8 +175,8 @@ function expandPath(analysis, ownIdx) {
       const totalParts = interior + 1;
       let start = anchors[s2];
       let rest = cmd;
-      for (let q2 = 0; q2 < interior; q2++) {
-        const t2 = 1 / (totalParts - q2);
+      for (let q = 0; q < interior; q++) {
+        const t2 = 1 / (totalParts - q);
         const sp = segType === "C" ? splitCubic(start, rest, t2) : splitLine(start, rest, t2);
         out.push(sp.first);
         start = sp.mid;
@@ -280,7 +280,7 @@ function uniquifyKeys(keys) {
 }
 function seriesKeys(w, realIndex, n2 = ((_a) => (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length)() | 0) {
   return uniquifyKeys(
-    Array.from({ length: n2 }, (_2, j) => datumKey(w, realIndex, j))
+    Array.from({ length: n2 }, (_, j) => datumKey(w, realIndex, j))
   );
 }
 function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false, sj = buildJoin(w, realIndex)) {
@@ -299,7 +299,7 @@ function buildJoin(w, realIndex) {
   if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
   if (!oldY.length || !newY.length) return null;
   const oldKeys = uniquifyKeys(
-    oldY.map((_2, j) => frameDatumKey(frame, realIndex, j))
+    oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
   );
   const newKeys = seriesKeys(w, realIndex);
   return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
@@ -889,7 +889,7 @@ class Violin extends BarBase {
    * @param {{realIndex: number, j: number, center: number, halfExtent: number, alongFn: (v: number) => number, vertical: boolean}} opts
    */
   buildViolin({ realIndex, j, center, halfExtent, alongFn, vertical }) {
-    var _a, _b, _c, _d, _e2, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const density = this.getDensity(realIndex, j);
     const maxWeight = this.effectiveMaxWeight(density);
@@ -913,7 +913,7 @@ class Violin extends BarBase {
     });
     const pathTo = body(false);
     let pathFrom = null;
-    const morphFrom = (_f = (_e2 = this.ctx) == null ? void 0 : _e2.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
+    const morphFrom = (_f = (_e = this.ctx) == null ? void 0 : _e.morphTypeChange) == null ? void 0 : _f.getInitialPathFor(realIndex, j);
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
@@ -959,7 +959,7 @@ class Violin extends BarBase {
       return { nodes: [], maxWeight: 0 };
     }
     const order = d2.values.map(
-      (_2, k2) => k2
+      (_, k2) => k2
     );
     order.sort(
       (a2, b) => d2.values[a2] - d2.values[b]
@@ -1076,18 +1076,18 @@ class Violin extends BarBase {
     const [lo, q1, med, q3, hi] = summary.map((v) => alongFn(v));
     const build2 = (half, boxHalf) => {
       const graphics = new Graphics(this.w);
-      const pt = (cross2, along) => vertical ? [cross2, along] : [along, cross2];
+      const pt2 = (cross2, along) => vertical ? [cross2, along] : [along, cross2];
       const seg = (pts) => pts.map(
         ([px, py], k2) => k2 === 0 ? graphics.move(px, py) : graphics.line(px, py)
       ).join("");
       const c2 = boxCenter;
-      const whiskers = seg([pt(c2, lo), pt(c2, q1)]) + seg([pt(c2, q3), pt(c2, hi)]) + seg([pt(c2 - half, lo), pt(c2 + half, lo)]) + seg([pt(c2 - half, hi), pt(c2 + half, hi)]);
+      const whiskers = seg([pt2(c2, lo), pt2(c2, q1)]) + seg([pt2(c2, q3), pt2(c2, hi)]) + seg([pt2(c2 - half, lo), pt2(c2 + half, lo)]) + seg([pt2(c2 - half, hi), pt2(c2 + half, hi)]);
       const box = seg([
-        pt(c2 - boxHalf, q1),
-        pt(c2 + boxHalf, q1),
-        pt(c2 + boxHalf, q3),
-        pt(c2 - boxHalf, q3)
-      ]) + "z" + seg([pt(c2 - boxHalf, med), pt(c2 + boxHalf, med)]);
+        pt2(c2 - boxHalf, q1),
+        pt2(c2 + boxHalf, q1),
+        pt2(c2 + boxHalf, q3),
+        pt2(c2 - boxHalf, q3)
+      ]) + "z" + seg([pt2(c2 - boxHalf, med), pt2(c2 + boxHalf, med)]);
       return { whiskers, box };
     };
     const full = build2(capHalf, boxHalfPx);
@@ -1313,37 +1313,37 @@ function e(e2, ...n2) {
 function n(e2) {
   t.warn(e2);
 }
-const s = ["community", "pro", "premium", "embedded", "oem"], i = { enterprise: "oem" }, r = { community: 0, pro: 1, premium: 2, embedded: 2, oem: 2 }, o = (t2) => s.includes(t2);
+const r = ["community", "pro", "premium", "embedded", "oem"], s = { enterprise: "oem" }, i = { community: 0, pro: 1, premium: 2, embedded: 2, oem: 2 }, o = (t2) => r.includes(t2);
 function l(t2) {
   if ("string" != typeof t2) return null;
   const e2 = t2.trim().toLowerCase();
-  return o(e2) ? e2 : Object.prototype.hasOwnProperty.call(i, e2) ? i[e2] : null;
+  return o(e2) ? e2 : Object.prototype.hasOwnProperty.call(s, e2) ? s[e2] : null;
 }
 function a(t2) {
   const e2 = l(t2);
-  return e2 ? r[e2] : null;
+  return e2 ? i[e2] : null;
 }
 const c = "APEX-", u = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), d = "__apex_license_v1__";
-function h() {
+function f() {
   const t2 = globalThis;
   let e2 = t2[d];
   return e2 || (e2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, t2[d] = e2), e2;
 }
-const f = class {
+const h = class {
   static get licenseKey() {
-    return h().key;
+    return f().key;
   }
   static set licenseKey(t2) {
-    h().key = t2;
+    f().key = t2;
   }
   static get listeners() {
-    return h().listeners;
+    return f().listeners;
   }
   static get validationResult() {
-    return h().result;
+    return f().result;
   }
   static set validationResult(t2) {
-    h().result = t2;
+    f().result = t2;
   }
   static getKey() {
     return this.licenseKey;
@@ -1364,13 +1364,13 @@ const f = class {
   }
   static setLicense(t2) {
     var _a;
-    var s2, i2, r2, o2, c2;
+    var r2, s2, i2, o2, c2;
     if (!t2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
     const u2 = this.validateKey(t2);
-    if (u2.valid || t2 === this.licenseKey || !(null == (s2 = this.validationResult) ? void 0 : s2.valid)) {
+    if (u2.valid || t2 === this.licenseKey || !(null == (r2 = this.validationResult) ? void 0 : r2.valid)) {
       if (u2.valid && t2 !== this.licenseKey && this.licenseKey) {
-        const t3 = this.getLicenseStatus(), e2 = t3.valid ? a(null == (i2 = t3.data) ? void 0 : i2.plan) : null, s3 = a(null == (r2 = u2.data) ? void 0 : r2.plan);
-        if (null !== e2 && null !== s3 && s3 < e2) return void n(`[Apex] Ignoring license key: its plan (${l(null == (o2 = u2.data) ? void 0 : o2.plan)}) is lower than ${l(null == (c2 = t3.data) ? void 0 : c2.plan)}, the plan of the license already active on this page. Call setLicense("") first to replace it with a lower plan.`);
+        const t3 = this.getLicenseStatus(), e2 = t3.valid ? a(null == (s2 = t3.data) ? void 0 : s2.plan) : null, r3 = a(null == (i2 = u2.data) ? void 0 : i2.plan);
+        if (null !== e2 && null !== r3 && r3 < e2) return void n(`[Apex] Ignoring license key: its plan (${l(null == (o2 = u2.data) ? void 0 : o2.plan)}) is lower than ${l(null == (c2 = t3.data) ? void 0 : c2.plan)}, the plan of the license already active on this page. Call setLicense("") first to replace it with a lower plan.`);
       }
       this.licenseKey = t2, this.publish(u2), u2.valid || e(`[Apex] ${u2.message}`);
     } else n(`[Apex] Ignoring license key: ${(_a = u2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
@@ -1378,18 +1378,18 @@ const f = class {
   static validateKey(t2) {
     const e2 = this.parseKey(t2), n2 = this.validateStructure(t2, e2);
     if (!n2.valid || !(null == e2 ? void 0 : e2.signature)) return n2;
-    const s2 = this.verdicts.get(t2);
-    return false === s2 ? { data: e2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === s2 && this.verifySignature(t2, e2, n2), __spreadProps(__spreadValues({}, n2), { signatureVerified: true === s2 }));
+    const r2 = this.verdicts.get(t2);
+    return false === r2 ? { data: e2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === r2 && this.verifySignature(t2, e2, n2), __spreadProps(__spreadValues({}, n2), { signatureVerified: true === r2 }));
   }
   static _resetSignatureState() {
     this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
   }
   static base64ToBytes(t2) {
-    const e2 = t2.replace(/-/g, "+").replace(/_/g, "/"), n2 = e2.padEnd(4 * Math.ceil(e2.length / 4), "="), s2 = globalThis.atob;
-    if ("function" != typeof s2) throw new Error("no base64 decoder available");
-    const i2 = s2(n2), r2 = new Uint8Array(i2.length);
-    for (let t3 = 0; t3 < i2.length; t3++) r2[t3] = i2.charCodeAt(t3);
-    return r2;
+    const e2 = t2.replace(/-/g, "+").replace(/_/g, "/"), n2 = e2.padEnd(4 * Math.ceil(e2.length / 4), "="), r2 = globalThis.atob;
+    if ("function" != typeof r2) throw new Error("no base64 decoder available");
+    const s2 = r2(n2), i2 = new Uint8Array(s2.length);
+    for (let t3 = 0; t3 < s2.length; t3++) i2[t3] = s2.charCodeAt(t3);
+    return i2;
   }
   static canonicalPayload(t2) {
     const e2 = t2.domains && t2.domains.length > 0 ? t2.domains.join(",") : "";
@@ -1419,28 +1419,28 @@ const f = class {
     const n2 = (t3) => ({ expired: false, message: t3, signatureVerified: false, valid: false });
     if ("string" != typeof t2 || !t2.startsWith(c)) return n2('Invalid license key format. License key must start with "APEX-".');
     if (!e2) return n2("Invalid license key. Unable to decode license data.");
-    const { data: s2, signature: i2 } = e2;
-    if (!i2 && /* @__PURE__ */ new Date() >= u) return n2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
-    if (new Date(s2.expiryDate) < /* @__PURE__ */ new Date()) return { data: s2, expired: true, message: `License expired on ${s2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
-    if (s2.domains && s2.domains.length > 0) {
+    const { data: r2, signature: s2 } = e2;
+    if (!s2 && /* @__PURE__ */ new Date() >= u) return n2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+    if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
+    if (r2.domains && r2.domains.length > 0) {
       const t3 = "undefined" == typeof location ? "" : location.hostname;
-      if (!s2.domains.some(((e3) => t3 === e3 || t3.endsWith(`.${e3}`)))) return { data: s2, expired: false, message: `License is not valid for this domain (${t3}). Allowed domains: ${s2.domains.join(", ")}.`, signatureVerified: false, valid: false };
+      if (!r2.domains.some(((e3) => t3 === e3 || t3.endsWith(`.${e3}`)))) return { data: r2, expired: false, message: `License is not valid for this domain (${t3}). Allowed domains: ${r2.domains.join(", ")}.`, signatureVerified: false, valid: false };
     }
-    return { data: s2, expired: false, signatureVerified: false, valid: true };
+    return { data: r2, expired: false, signatureVerified: false, valid: true };
   }
-  static verifySignature(t2, s2, i2) {
+  static verifySignature(t2, r2, s2) {
     return __async(this, null, function* () {
-      var r2;
+      var i2;
       if (this.verifying.has(t2) || this.verdicts.has(t2)) return;
       this.verifying.add(t2);
-      const o2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+      const o2 = this.epoch, l2 = null == (i2 = globalThis.crypto) ? void 0 : i2.subtle;
       if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(t2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, n(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
-      const a2 = new TextEncoder().encode(this.canonicalPayload(s2.data));
+      const a2 = new TextEncoder().encode(this.canonicalPayload(r2.data));
       let c2 = false;
       for (const t3 of this.publicKeysSpki) {
         try {
           const e2 = yield l2.importKey("spki", this.base64ToBytes(t3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-          c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, e2, this.base64ToBytes(s2.signature), a2);
+          c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, e2, this.base64ToBytes(r2.signature), a2);
         } catch (e2) {
           c2 = false;
         }
@@ -1448,16 +1448,16 @@ const f = class {
       }
       if (this.verifying.delete(t2), this.epoch !== o2) return;
       if (this.verdicts.set(t2, c2), c2) {
-        const e2 = __spreadProps(__spreadValues({}, i2), { signatureVerified: true });
+        const e2 = __spreadProps(__spreadValues({}, s2), { signatureVerified: true });
         return void (this.licenseKey === t2 ? this.publish(e2) : this.notify(e2));
       }
-      const u2 = "Invalid license key. The license signature does not verify.", d2 = { data: s2.data, expired: false, message: u2, signatureVerified: true, valid: false };
+      const u2 = "Invalid license key. The license signature does not verify.", d2 = { data: r2.data, expired: false, message: u2, signatureVerified: true, valid: false };
       this.licenseKey === t2 ? this.publish(d2) : this.notify(d2), e(`[Apex] ${u2}`);
     });
   }
 };
-f.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], f.verdicts = /* @__PURE__ */ new Map(), f.verifying = /* @__PURE__ */ new Set(), f.warnedUnverifiable = false, f.epoch = 0;
-let m = f;
+h.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], h.verdicts = /* @__PURE__ */ new Map(), h.verifying = /* @__PURE__ */ new Set(), h.warnedUnverifiable = false, h.epoch = 0;
+let m = h;
 const p = /* @__PURE__ */ new Set();
 function g$2() {
   var t2;
@@ -1467,75 +1467,75 @@ function g$2() {
 function y(t2) {
   var e2;
   try {
-    const i2 = m.getLicenseStatus();
-    if (!i2.valid) return false;
-    const o2 = null == (e2 = i2.data) ? void 0 : e2.plan, a2 = l(o2);
-    if (a2) return r[a2] >= r[t2];
+    const s2 = m.getLicenseStatus();
+    if (!s2.valid) return false;
+    const o2 = null == (e2 = s2.data) ? void 0 : e2.plan, a2 = l(o2);
+    if (a2) return i[a2] >= i[t2];
     const c2 = "string" == typeof o2 && o2.trim() ? o2.trim() : "(missing)";
-    return p.has(c2) || (p.add(c2), n(`[apex] licence plan ${JSON.stringify(c2)} is not a known plan, so plan-gated features are being allowed. Expected one of: ${s.join(", ")}.`)), true;
+    return p.has(c2) || (p.add(c2), n(`[apex] licence plan ${JSON.stringify(c2)} is not a known plan, so plan-gated features are being allowed. Expected one of: ${r.join(", ")}.`)), true;
   } catch (e3) {
     return false;
   }
 }
-const x = 1e3;
-function S(t2, e2) {
+const S = 1e3;
+function x(t2, e2) {
   const n2 = t2.length;
   if (0 === n2) return NaN;
   if (1 === n2) return t2[0];
-  const s2 = (n2 - 1) * e2, i2 = Math.floor(s2), r2 = Math.ceil(s2);
-  return i2 === r2 ? t2[i2] : t2[i2] + (t2[r2] - t2[i2]) * (s2 - i2);
+  const r2 = (n2 - 1) * e2, s2 = Math.floor(r2), i2 = Math.ceil(r2);
+  return s2 === i2 ? t2[s2] : t2[s2] + (t2[i2] - t2[s2]) * (r2 - s2);
 }
 function A$1(t2, e2, n2) {
-  const s2 = t2.length, i2 = (t3) => e2 / Math.max(1, Math.ceil(t3)), r2 = () => i2(Math.log2(s2) + 1);
+  const r2 = t2.length, s2 = (t3) => e2 / Math.max(1, Math.ceil(t3)), i2 = () => s2(Math.log2(r2) + 1);
   switch (n2) {
     case "sqrt":
-      return { width: i2(Math.sqrt(s2)), rule: "sqrt" };
+      return { width: s2(Math.sqrt(r2)), rule: "sqrt" };
     case "rice":
-      return { width: i2(2 * Math.cbrt(s2)), rule: "rice" };
+      return { width: s2(2 * Math.cbrt(r2)), rule: "rice" };
     case "scott": {
       const e3 = (function(t3) {
         const e4 = t3.length;
         if (e4 < 2) return 0;
         let n3 = 0;
-        for (let s4 = 0; s4 < e4; s4++) n3 += t3[s4];
-        const s3 = n3 / e4;
-        let i3 = 0;
+        for (let r4 = 0; r4 < e4; r4++) n3 += t3[r4];
+        const r3 = n3 / e4;
+        let s3 = 0;
         for (let n4 = 0; n4 < e4; n4++) {
-          const e5 = t3[n4] - s3;
-          i3 += e5 * e5;
+          const e5 = t3[n4] - r3;
+          s3 += e5 * e5;
         }
-        return Math.sqrt(i3 / e4);
+        return Math.sqrt(s3 / e4);
       })(t2);
-      return e3 > 0 ? { width: 3.49 * e3 * Math.pow(s2, -1 / 3), rule: "scott" } : { width: r2(), rule: "sturges" };
+      return e3 > 0 ? { width: 3.49 * e3 * Math.pow(r2, -1 / 3), rule: "scott" } : { width: i2(), rule: "sturges" };
     }
     case "fd": {
-      const e3 = S(t2, 0.75) - S(t2, 0.25);
-      return e3 > 0 ? { width: 2 * e3 * Math.pow(s2, -1 / 3), rule: "fd" } : { width: r2(), rule: "sturges" };
+      const e3 = x(t2, 0.75) - x(t2, 0.25);
+      return e3 > 0 ? { width: 2 * e3 * Math.pow(r2, -1 / 3), rule: "fd" } : { width: i2(), rule: "sturges" };
     }
     case "auto": {
-      const e3 = r2(), n3 = S(t2, 0.75) - S(t2, 0.25);
+      const e3 = i2(), n3 = x(t2, 0.75) - x(t2, 0.25);
       if (n3 <= 0) return { width: e3, rule: "sturges" };
-      const i3 = 2 * n3 * Math.pow(s2, -1 / 3);
-      return i3 < e3 ? { width: i3, rule: "fd" } : { width: e3, rule: "sturges" };
+      const s3 = 2 * n3 * Math.pow(r2, -1 / 3);
+      return s3 < e3 ? { width: s3, rule: "fd" } : { width: e3, rule: "sturges" };
     }
     default:
-      return { width: r2(), rule: "sturges" };
+      return { width: i2(), rule: "sturges" };
   }
 }
 function k(t2, e2 = {}) {
   if (!Array.isArray(t2) || 0 === t2.length) return null;
   const n2 = t2.slice().sort(((t3, e3) => t3 - e3));
-  let s2 = n2[0], i2 = n2[n2.length - 1];
-  const r2 = e2.range;
-  if (Array.isArray(r2) && 2 === r2.length) {
-    const t3 = Number(r2[0]), e3 = Number(r2[1]);
-    Number.isFinite(t3) && Number.isFinite(e3) && e3 > t3 && (s2 = t3, i2 = e3);
+  let r2 = n2[0], s2 = n2[n2.length - 1];
+  const i2 = e2.range;
+  if (Array.isArray(i2) && 2 === i2.length) {
+    const t3 = Number(i2[0]), e3 = Number(i2[1]);
+    Number.isFinite(t3) && Number.isFinite(e3) && e3 > t3 && (r2 = t3, s2 = e3);
   }
-  if (!(i2 > s2)) {
-    const t3 = Math.abs(s2) > 0 ? 0.05 * Math.abs(s2) : 0.5;
-    return { edges: [s2 - t3, s2 + t3], binWidth: 2 * t3, rule: "single", capped: false };
+  if (!(s2 > r2)) {
+    const t3 = Math.abs(r2) > 0 ? 0.05 * Math.abs(r2) : 0.5;
+    return { edges: [r2 - t3, r2 + t3], binWidth: 2 * t3, rule: "single", capped: false };
   }
-  const o2 = i2 - s2;
+  const o2 = s2 - r2;
   let l2, a2;
   if ("number" == typeof e2.binWidth && e2.binWidth > 0) l2 = e2.binWidth, a2 = "binWidth";
   else if ("number" == typeof e2.bins && e2.bins >= 1) l2 = o2 / Math.floor(e2.bins), a2 = "count";
@@ -1547,40 +1547,40 @@ function k(t2, e2 = {}) {
   let c2 = Math.ceil(o2 / l2);
   (!Number.isFinite(c2) || c2 < 1) && (c2 = 1);
   let u2 = false;
-  c2 > x && (c2 = x, u2 = true), l2 = o2 / c2;
+  c2 > S && (c2 = S, u2 = true), l2 = o2 / c2;
   const d2 = new Array(c2 + 1);
-  for (let t3 = 0; t3 <= c2; t3++) d2[t3] = s2 + t3 * l2;
-  return d2[c2] = Math.max(d2[c2], i2), { edges: d2, binWidth: l2, rule: a2, capped: u2 };
+  for (let t3 = 0; t3 <= c2; t3++) d2[t3] = r2 + t3 * l2;
+  return d2[c2] = Math.max(d2[c2], s2), { edges: d2, binWidth: l2, rule: a2, capped: u2 };
 }
-function L(t2, e2) {
+function N(t2, e2) {
   const n2 = e2.length - 1;
   if (!(t2 >= e2[0]) || t2 > e2[n2]) return -1;
   if (t2 === e2[n2]) return n2 - 1;
-  const s2 = (e2[n2] - e2[0]) / n2;
-  if (s2 > 0) {
-    let i3 = Math.floor((t2 - e2[0]) / s2);
-    return i3 < 0 && (i3 = 0), i3 > n2 - 1 && (i3 = n2 - 1), t2 < e2[i3] ? i3-- : t2 >= e2[i3 + 1] && i3++, i3 < 0 || i3 > n2 - 1 ? -1 : i3;
+  const r2 = (e2[n2] - e2[0]) / n2;
+  if (r2 > 0) {
+    let s3 = Math.floor((t2 - e2[0]) / r2);
+    return s3 < 0 && (s3 = 0), s3 > n2 - 1 && (s3 = n2 - 1), t2 < e2[s3] ? s3-- : t2 >= e2[s3 + 1] && s3++, s3 < 0 || s3 > n2 - 1 ? -1 : s3;
   }
-  let i2 = 0, r2 = n2 - 1;
-  for (; i2 <= r2; ) {
-    const n3 = i2 + r2 >> 1;
-    if (t2 < e2[n3]) r2 = n3 - 1;
+  let s2 = 0, i2 = n2 - 1;
+  for (; s2 <= i2; ) {
+    const n3 = s2 + i2 >> 1;
+    if (t2 < e2[n3]) i2 = n3 - 1;
     else {
       if (!(t2 >= e2[n3 + 1])) return n3;
-      i2 = n3 + 1;
+      s2 = n3 + 1;
     }
   }
   return -1;
 }
 function C(t2, e2) {
   const n2 = new Array(Math.max(0, e2.length - 1)).fill(0);
-  for (let s2 = 0; s2 < t2.length; s2++) {
-    const i2 = L(t2[s2], e2);
-    i2 >= 0 && n2[i2]++;
+  for (let r2 = 0; r2 < t2.length; r2++) {
+    const s2 = N(t2[r2], e2);
+    s2 >= 0 && n2[s2]++;
   }
   return n2;
 }
-const E = class {
+const $ = class {
   static applyStyles(t2) {
     Object.assign(t2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
@@ -1622,8 +1622,8 @@ const E = class {
   static explainPlan(t2) {
     const e2 = g$2();
     if (!e2 || y(t2)) return;
-    const s2 = `${e2}>${t2}`;
-    this.explainedPlans.has(s2) || (this.explainedPlans.add(s2), n(`[Apex] The license key is valid, but its plan (${e2}) does not include a product on this page that needs ${t2} or higher, so that product keeps the trial watermark.`));
+    const r2 = `${e2}>${t2}`;
+    this.explainedPlans.has(r2) || (this.explainedPlans.add(r2), n(`[Apex] The license key is valid, but its plan (${e2}) does not include a product on this page that needs ${t2} or higher, so that product keeps the trial watermark.`));
   }
   static erase(t2) {
     var e2;
@@ -1646,75 +1646,75 @@ const E = class {
     })));
   }
 };
-E.WATERMARK_ATTR = "data-apexcharts-watermark", E.WATERMARK_TEXT = "APEXCHARTS", E.ATTR = "data-apexcharts-watermark", E.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, E.managed = /* @__PURE__ */ new Map(), E.subscribed = false, E.explainedPlans = /* @__PURE__ */ new Set();
-let $ = E;
-const D = 0.05, F = 0.05, K = 1 / 45;
-function q(t2, e2, n2, s2) {
-  const i2 = { value: t2, velocity: 0, target: t2, stiffness: e2, damping: n2 };
-  return i2;
-}
-function _(t2, e2) {
-  if (e2 <= 0) return W(t2);
-  let n2 = e2;
-  for (; n2 > 0; ) {
-    const e3 = Math.min(n2, K), s2 = -t2.stiffness * (t2.value - t2.target) - t2.damping * t2.velocity;
-    t2.velocity += s2 * e3, t2.value += t2.velocity * e3, n2 -= e3;
-  }
-  return !!W(t2) && (t2.value = t2.target, t2.velocity = 0, true);
-}
-function I(t2, e2) {
-  t2.target = e2;
-}
-function W(t2) {
-  var _a, _b;
-  const e2 = (_a = t2.restVelocity) != null ? _a : D, n2 = (_b = t2.restDisplacement) != null ? _b : F;
-  return Math.abs(t2.velocity) < e2 && Math.abs(t2.value - t2.target) < n2;
-}
-const V = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
-function z(t2) {
-  var _a;
-  return (_a = V[t2 != null ? t2 : "crisp"]) != null ? _a : V.crisp;
-}
-function it(t2, e2, n2) {
-  return t2 ? t2.color(e2, n2) : void 0;
-}
-function Ae(t2) {
+$.WATERMARK_ATTR = "data-apexcharts-watermark", $.WATERMARK_TEXT = "APEXCHARTS", $.ATTR = "data-apexcharts-watermark", $.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, $.managed = /* @__PURE__ */ new Map(), $.subscribed = false, $.explainedPlans = /* @__PURE__ */ new Set();
+let T = $;
+function pt(t2) {
   const e2 = t2.getRootNode ? t2.getRootNode() : null;
   return e2 && (9 === e2.nodeType || 11 === e2.nodeType && "host" in e2) ? e2 : t2.ownerDocument || document;
 }
-function ke(t2) {
+function gt(t2) {
   const e2 = "function" == typeof t2.composedPath ? t2.composedPath() : null;
   return (null == e2 ? void 0 : e2.length) ? e2[0] : t2.target;
 }
-function Le(t2) {
+function yt(t2) {
   var e2;
   const n2 = t2.ownerDocument || t2;
-  let s2 = n2 && "activeElement" in n2 ? n2.activeElement : null;
-  for (; null == (e2 = null == s2 ? void 0 : s2.shadowRoot) ? void 0 : e2.activeElement; ) s2 = s2.shadowRoot.activeElement;
+  let r2 = n2 && "activeElement" in n2 ? n2.activeElement : null;
+  for (; null == (e2 = null == r2 ? void 0 : r2.shadowRoot) ? void 0 : e2.activeElement; ) r2 = r2.shadowRoot.activeElement;
+  return r2;
+}
+function vt(t2, e2) {
+  const n2 = pt(t2), r2 = n2.querySelector(e2);
+  if (r2) return r2;
+  const s2 = t2.ownerDocument;
+  return s2 && s2 !== n2 ? s2.querySelector(e2) : null;
+}
+function bt(t2, e2) {
+  const n2 = pt(t2), r2 = Array.from(n2.querySelectorAll(e2));
+  if (r2.length) return r2;
+  const s2 = t2.ownerDocument;
+  return s2 && s2 !== n2 ? Array.from(s2.querySelectorAll(e2)) : [];
+}
+const $t = 0.05, Tt = 0.05, Et = 1 / 45;
+function Rt(t2, e2, n2, r2) {
+  const s2 = { value: t2, velocity: 0, target: t2, stiffness: e2, damping: n2 };
   return s2;
 }
-function Ce(t2, e2) {
-  const n2 = Ae(t2), s2 = n2.querySelector(e2);
-  if (s2) return s2;
-  const i2 = t2.ownerDocument;
-  return i2 && i2 !== n2 ? i2.querySelector(e2) : null;
+function Ft(t2, e2) {
+  if (e2 <= 0) return It(t2);
+  let n2 = e2;
+  for (; n2 > 0; ) {
+    const e3 = Math.min(n2, Et), r2 = -t2.stiffness * (t2.value - t2.target) - t2.damping * t2.velocity;
+    t2.velocity += r2 * e3, t2.value += t2.velocity * e3, n2 -= e3;
+  }
+  return !!It(t2) && (t2.value = t2.target, t2.velocity = 0, true);
 }
-function Te(t2, e2) {
-  const n2 = Ae(t2), s2 = Array.from(n2.querySelectorAll(e2));
-  if (s2.length) return s2;
-  const i2 = t2.ownerDocument;
-  return i2 && i2 !== n2 ? Array.from(i2.querySelectorAll(e2)) : [];
+function Ot(t2, e2) {
+  t2.target = e2;
 }
-const je = "__apexcharts_crossfilters__";
-function Re(t2) {
+function It(t2) {
+  var _a, _b;
+  const e2 = (_a = t2.restVelocity) != null ? _a : $t, n2 = (_b = t2.restDisplacement) != null ? _b : Tt;
+  return Math.abs(t2.velocity) < e2 && Math.abs(t2.value - t2.target) < n2;
+}
+const Kt = { crisp: [210, 26], gentle: [120, 20], snappy: [320, 30] };
+function _t(t2) {
+  var _a;
+  return (_a = Kt[t2 != null ? t2 : "crisp"]) != null ? _a : Kt.crisp;
+}
+function Gt(t2, e2, n2) {
+  return t2 ? t2.color(e2, n2) : void 0;
+}
+const wn = "__apexcharts_crossfilters__";
+function Mn(t2) {
   if (!Number.isFinite(t2)) return t2;
   const e2 = Number(t2.toPrecision(12));
   return Object.is(e2, -0) ? 0 : e2;
 }
-function De(t2) {
+function Sn(t2) {
   return "number" == typeof t2 && Number.isFinite(t2);
 }
-function Fe(t2) {
+function xn(t2) {
   if ("function" == typeof t2) return t2;
   if (t2 && "object" == typeof t2) {
     if ("string" == typeof t2.sum) {
@@ -1736,47 +1736,47 @@ function Fe(t2) {
   }
   return (t3) => t3.length;
 }
-function Ke(t2, e2) {
+function An(t2, e2) {
   return "function" == typeof e2 ? t2.slice().sort(e2) : "asc" === e2 ? t2.slice().sort(((t3, e3) => t3 > e3 ? 1 : t3 < e3 ? -1 : 0)) : "desc" === e2 ? t2.slice().sort(((t3, e3) => t3 < e3 ? 1 : t3 > e3 ? -1 : 0)) : t2;
 }
-function Oe(t2, e2) {
-  if (!De(t2)) return -1;
+function kn(t2, e2) {
+  if (!Sn(t2)) return -1;
   const n2 = e2.length - 1;
   if (t2 < e2[0] || t2 > e2[n2]) return -1;
   if (t2 === e2[n2]) return n2 - 1;
-  for (let s2 = 0; s2 < n2; s2++) if (t2 >= e2[s2] && t2 < e2[s2 + 1]) return s2;
+  for (let r2 = 0; r2 < n2; r2++) if (t2 >= e2[r2] && t2 < e2[r2 + 1]) return r2;
   return -1;
 }
-function qe(t2) {
+function Nn(t2) {
   const e2 = [];
-  for (let n2 = 0; n2 < t2.length - 1; n2++) e2.push(Re((t2[n2] + t2[n2 + 1]) / 2));
+  for (let n2 = 0; n2 < t2.length - 1; n2++) e2.push(Mn((t2[n2] + t2[n2 + 1]) / 2));
   return e2;
 }
-class _e {
+class Cn {
   constructor(t2, e2) {
     this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = t2, this.records = Array.isArray(e2) ? e2 : [];
   }
   static store() {
     const t2 = globalThis;
-    return t2[je] || (t2[je] = /* @__PURE__ */ new Map()), t2[je];
+    return t2[wn] || (t2[wn] = /* @__PURE__ */ new Map()), t2[wn];
   }
   static getOrCreate(t2) {
     if (!t2 || "string" != typeof t2.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
-    const e2 = _e.store(), n2 = e2.get(t2.id);
+    const e2 = Cn.store(), n2 = e2.get(t2.id);
     if (n2) return t2.records && n2.setRecords(t2.records), n2;
-    const s2 = new _e(t2.id, t2.records);
-    return e2.set(t2.id, s2), s2;
+    const r2 = new Cn(t2.id, t2.records);
+    return e2.set(t2.id, r2), r2;
   }
   static get(t2) {
-    return _e.store().get(t2) || null;
+    return Cn.store().get(t2) || null;
   }
   setRecords(t2) {
     return this.records = Array.isArray(t2) ? t2 : [], this.dims.forEach(((t3) => this.recomputeDomain(t3))), this.emit("records", this.state()), this.emit("change", this.state()), this;
   }
   registerDimension(t2, e2) {
     if (!e2 || "function" != typeof e2.dimension) throw new Error(`crossfilter.registerDimension("${t2}") needs a dimension function.`);
-    const n2 = e2.type || (e2.bins ? "range" : "category"), s2 = { accessor: e2.dimension, reducer: Fe(e2.reduce), type: n2, bins: e2.bins, order: e2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
-    return this.dims.set(t2, s2), this.recomputeDomain(s2), null != e2.filter && this.setFilterOn(s2, e2.filter), this;
+    const n2 = e2.type || (e2.bins ? "range" : "category"), r2 = { accessor: e2.dimension, reducer: xn(e2.reduce), type: n2, bins: e2.bins, order: e2.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+    return this.dims.set(t2, r2), this.recomputeDomain(r2), null != e2.filter && this.setFilterOn(r2, e2.filter), this;
   }
   hasDimension(t2) {
     return this.dims.has(t2);
@@ -1788,51 +1788,51 @@ class _e {
   recomputeDomain(t2) {
     if ("matrix" === t2.type) {
       const e2 = (function(t3, e3, n2) {
-        const s2 = /* @__PURE__ */ new Set(), i2 = /* @__PURE__ */ new Set(), r2 = [], o2 = [];
+        const r2 = /* @__PURE__ */ new Set(), s2 = /* @__PURE__ */ new Set(), i2 = [], o2 = [];
         for (let n3 = 0; n3 < t3.length; n3++) {
           const l2 = e3(t3[n3]);
           if (!l2) continue;
           const a2 = l2[0], c2 = l2[1];
-          null == a2 || s2.has(a2) || (s2.add(a2), r2.push(a2)), null == c2 || i2.has(c2) || (i2.add(c2), o2.push(c2));
+          null == a2 || r2.has(a2) || (r2.add(a2), i2.push(a2)), null == c2 || s2.has(c2) || (s2.add(c2), o2.push(c2));
         }
-        return { xLabels: Ke(r2, n2), yLabels: Ke(o2, n2) };
+        return { xLabels: An(i2, n2), yLabels: An(o2, n2) };
       })(this.records, t2.accessor, t2.order);
       return t2.xLabels = e2.xLabels, t2.yLabels = e2.yLabels, void (t2.edges = null);
     }
     if ("range" === t2.type) return t2.edges = (function(t3, e2, n2) {
       if (n2 && Array.isArray(n2.thresholds) && n2.thresholds.length >= 2) {
-        const t4 = Array.from(new Set(n2.thresholds.filter(De))).sort(((t5, e3) => t5 - e3));
-        return t4.length >= 2 ? t4.map(Re) : [0, 1];
+        const t4 = Array.from(new Set(n2.thresholds.filter(Sn))).sort(((t5, e3) => t5 - e3));
+        return t4.length >= 2 ? t4.map(Mn) : [0, 1];
       }
-      let s2 = 1 / 0, i2 = -1 / 0;
+      let r2 = 1 / 0, s2 = -1 / 0;
       for (let n3 = 0; n3 < t3.length; n3++) {
-        const r3 = e2(t3[n3]);
-        De(r3) && (r3 < s2 && (s2 = r3), r3 > i2 && (i2 = r3));
+        const i3 = e2(t3[n3]);
+        Sn(i3) && (i3 < r2 && (r2 = i3), i3 > s2 && (s2 = i3));
       }
-      if (s2 === 1 / 0) return [0, 1];
-      if (s2 === i2) {
-        const t4 = Math.abs(s2) > 0 ? Math.abs(s2) : 1;
-        return [Re(s2), Re(s2 + t4)];
+      if (r2 === 1 / 0) return [0, 1];
+      if (r2 === s2) {
+        const t4 = Math.abs(r2) > 0 ? Math.abs(r2) : 1;
+        return [Mn(r2), Mn(r2 + t4)];
       }
-      if (n2 && De(n2.width) && n2.width > 0) {
-        const t4 = n2.width, e3 = Math.floor(s2 / t4) * t4;
-        let r3 = Math.ceil(i2 / t4) * t4;
-        r3 <= e3 && (r3 = e3 + t4);
-        const o3 = Math.max(1, Math.round((r3 - e3) / t4)), l3 = new Array(o3 + 1);
-        for (let n3 = 0; n3 <= o3; n3++) l3[n3] = Re(e3 + n3 * t4);
+      if (n2 && Sn(n2.width) && n2.width > 0) {
+        const t4 = n2.width, e3 = Math.floor(r2 / t4) * t4;
+        let i3 = Math.ceil(s2 / t4) * t4;
+        i3 <= e3 && (i3 = e3 + t4);
+        const o3 = Math.max(1, Math.round((i3 - e3) / t4)), l3 = new Array(o3 + 1);
+        for (let n3 = 0; n3 <= o3; n3++) l3[n3] = Mn(e3 + n3 * t4);
         return l3;
       }
-      const r2 = n2 && De(n2.count) && n2.count >= 1 ? Math.floor(n2.count) : 30, o2 = (i2 - s2) / r2, l2 = new Array(r2 + 1);
-      for (let t4 = 0; t4 <= r2; t4++) l2[t4] = Re(s2 + t4 * o2);
-      return l2[r2] = Re(i2), l2;
-    })(this.records, t2.accessor, t2.bins), void (t2.labels = qe(t2.edges));
+      const i2 = n2 && Sn(n2.count) && n2.count >= 1 ? Math.floor(n2.count) : 30, o2 = (s2 - r2) / i2, l2 = new Array(i2 + 1);
+      for (let t4 = 0; t4 <= i2; t4++) l2[t4] = Mn(r2 + t4 * o2);
+      return l2[i2] = Mn(s2), l2;
+    })(this.records, t2.accessor, t2.bins), void (t2.labels = Nn(t2.edges));
     if (t2.labels = (function(t3, e2, n2) {
-      const s2 = /* @__PURE__ */ new Set(), i2 = [];
+      const r2 = /* @__PURE__ */ new Set(), s2 = [];
       for (let n3 = 0; n3 < t3.length; n3++) {
-        const r2 = e2(t3[n3]);
-        null != r2 && (s2.has(r2) || (s2.add(r2), i2.push(r2)));
+        const i2 = e2(t3[n3]);
+        null != i2 && (r2.has(i2) || (r2.add(i2), s2.push(i2)));
       }
-      return Ke(i2, n2);
+      return An(s2, n2);
     })(this.records, t2.accessor, t2.order), t2.edges = null, t2.filter instanceof Set) {
       const e2 = new Set(t2.labels);
       Array.from(t2.filter).forEach(((n2) => {
@@ -1848,15 +1848,15 @@ class _e {
     const n2 = this.dims.get(t2);
     if (!n2 || "category" !== n2.type) return this;
     n2.filter instanceof Set || (n2.filter = /* @__PURE__ */ new Set());
-    const s2 = n2.filter;
-    return s2.has(e2) ? s2.delete(e2) : s2.add(e2), 0 === s2.size && (n2.filter = null), this.emit("change", this.state()), this;
+    const r2 = n2.filter;
+    return r2.has(e2) ? r2.delete(e2) : r2.add(e2), 0 === r2.size && (n2.filter = null), this.emit("change", this.state()), this;
   }
   setFilterOn(t2, e2) {
     if (null == e2) return void (t2.filter = null);
     if ("range" === t2.type) {
-      if (Array.isArray(e2) && 2 === e2.length && e2.every(De)) {
-        const [n3, s2] = e2;
-        t2.filter = [Math.min(n3, s2), Math.max(n3, s2)];
+      if (Array.isArray(e2) && 2 === e2.length && e2.every(Sn)) {
+        const [n3, r2] = e2;
+        t2.filter = [Math.min(n3, r2), Math.max(n3, r2)];
       } else t2.filter = null;
       return;
     }
@@ -1879,14 +1879,14 @@ class _e {
     if (!this.hasFilter(t2)) return true;
     const n2 = t2.accessor(e2);
     if (t2.filter instanceof Set) return t2.filter.has(n2);
-    if (!De(n2)) return false;
-    const [s2, i2] = t2.filter;
-    return n2 >= s2 && n2 <= i2;
+    if (!Sn(n2)) return false;
+    const [r2, s2] = t2.filter;
+    return n2 >= r2 && n2 <= s2;
   }
   filteredRecords(t2) {
     const e2 = [];
-    return this.dims.forEach(((n2, s2) => {
-      s2 !== t2 && this.hasFilter(n2) && e2.push(n2);
+    return this.dims.forEach(((n2, r2) => {
+      r2 !== t2 && this.hasFilter(n2) && e2.push(n2);
     })), 0 === e2.length ? this.records : this.records.filter(((t3) => e2.every(((e3) => this.passes(e3, t3)))));
   }
   filteredRows() {
@@ -1897,30 +1897,30 @@ class _e {
     if (!e2) return { type: "category", labels: [], values: [], keys: [] };
     const n2 = this.filteredRecords(t2);
     if ("matrix" === e2.type) {
-      const t3 = new Map(e2.xLabels.map(((t4, e3) => [t4, e3]))), s3 = new Map(e2.yLabels.map(((t4, e3) => [t4, e3]))), i2 = e2.yLabels.map((() => e2.xLabels.map((() => []))));
-      for (let r2 = 0; r2 < n2.length; r2++) {
-        const o2 = e2.accessor(n2[r2]);
+      const t3 = new Map(e2.xLabels.map(((t4, e3) => [t4, e3]))), r3 = new Map(e2.yLabels.map(((t4, e3) => [t4, e3]))), s2 = e2.yLabels.map((() => e2.xLabels.map((() => []))));
+      for (let i2 = 0; i2 < n2.length; i2++) {
+        const o2 = e2.accessor(n2[i2]);
         if (!o2) continue;
-        const l2 = t3.get(o2[0]), a2 = s3.get(o2[1]);
-        null != l2 && null != a2 && i2[a2][l2].push(n2[r2]);
+        const l2 = t3.get(o2[0]), a2 = r3.get(o2[1]);
+        null != l2 && null != a2 && s2[a2][l2].push(n2[i2]);
       }
-      return { type: "matrix", xLabels: e2.xLabels.slice(), yLabels: e2.yLabels.slice(), matrix: i2.map(((t4) => t4.map(((t5) => e2.reducer(t5))))) };
+      return { type: "matrix", xLabels: e2.xLabels.slice(), yLabels: e2.yLabels.slice(), matrix: s2.map(((t4) => t4.map(((t5) => e2.reducer(t5))))) };
     }
     if ("range" === e2.type) {
-      const t3 = e2.edges || [0, 1], s3 = t3.length - 1, i2 = Array.from({ length: s3 }, (() => []));
-      for (let s4 = 0; s4 < n2.length; s4++) {
-        const r2 = Oe(e2.accessor(n2[s4]), t3);
-        r2 >= 0 && i2[r2].push(n2[s4]);
+      const t3 = e2.edges || [0, 1], r3 = t3.length - 1, s2 = Array.from({ length: r3 }, (() => []));
+      for (let r4 = 0; r4 < n2.length; r4++) {
+        const i2 = kn(e2.accessor(n2[r4]), t3);
+        i2 >= 0 && s2[i2].push(n2[r4]);
       }
-      return { type: "range", labels: qe(t3), values: i2.map(((t4) => e2.reducer(t4))), keys: i2.map(((e3, n3) => [t3[n3], t3[n3 + 1]])), edges: t3 };
+      return { type: "range", labels: Nn(t3), values: s2.map(((t4) => e2.reducer(t4))), keys: s2.map(((e3, n3) => [t3[n3], t3[n3 + 1]])), edges: t3 };
     }
-    const s2 = /* @__PURE__ */ new Map();
-    e2.labels.forEach(((t3) => s2.set(t3, [])));
+    const r2 = /* @__PURE__ */ new Map();
+    e2.labels.forEach(((t3) => r2.set(t3, [])));
     for (let t3 = 0; t3 < n2.length; t3++) {
-      const i2 = s2.get(e2.accessor(n2[t3]));
-      i2 && i2.push(n2[t3]);
+      const s2 = r2.get(e2.accessor(n2[t3]));
+      s2 && s2.push(n2[t3]);
     }
-    return { type: "category", labels: e2.labels.slice(), values: e2.labels.map(((t3) => e2.reducer(s2.get(t3) || []))), keys: e2.labels.slice() };
+    return { type: "category", labels: e2.labels.slice(), values: e2.labels.map(((t3) => e2.reducer(r2.get(t3) || []))), keys: e2.labels.slice() };
   }
   aggregateAll() {
     const t2 = {};
@@ -1947,10 +1947,10 @@ class _e {
     return null == (n2 = this.listeners.get(t2)) || n2.delete(e2), this;
   }
   emit(t2, n2) {
-    var s2;
-    null == (s2 = this.listeners.get(t2)) || s2.forEach(((s3) => {
+    var r2;
+    null == (r2 = this.listeners.get(t2)) || r2.forEach(((r3) => {
       try {
-        s3(n2);
+        r3(n2);
       } catch (n3) {
         e(`[Apex] a crossfilter ${t2} listener threw`, n3);
       }
@@ -1965,19 +1965,19 @@ class _e {
     return (e2 ? Object.keys(e2) : []).map(((t3) => ({ field: t3, label: t3 })));
   }
   tableHTML(t2, e2, n2) {
-    const s2 = "<thead><tr>" + t2.map(((t3) => `<th>${_e.esc(t3.label)}</th>`)).join("") + "</tr></thead>", i2 = "<tbody>" + e2.map(((e3) => "<tr>" + t2.map(((t3) => {
-      const n3 = e3[t3.field], s3 = t3.format ? t3.format(n3, e3) : n3;
-      return `<td>${_e.esc(s3)}</td>`;
+    const r2 = "<thead><tr>" + t2.map(((t3) => `<th>${Cn.esc(t3.label)}</th>`)).join("") + "</tr></thead>", s2 = "<tbody>" + e2.map(((e3) => "<tr>" + t2.map(((t3) => {
+      const n3 = e3[t3.field], r3 = t3.format ? t3.format(n3, e3) : n3;
+      return `<td>${Cn.esc(r3)}</td>`;
     })).join("") + "</tr>")).join("") + "</tbody>";
-    return `<table class="apexcharts-cf-table">${`<caption>${e2.length} of ${n2} rows</caption>`}${s2}${i2}</table>`;
+    return `<table class="apexcharts-cf-table">${`<caption>${e2.length} of ${n2} rows</caption>`}${r2}${s2}</table>`;
   }
   dataTable(t2, e2) {
     if (!t2) return { refresh() {
     }, destroy() {
     } };
-    const n2 = e2 || {}, s2 = this.resolveColumns(n2.columns), i2 = n2.pageSize || 0, r2 = n2.page || 0, o2 = () => {
-      const e3 = this.filteredRows(), n3 = i2 ? e3.slice(r2 * i2, r2 * i2 + i2) : e3;
-      t2.innerHTML = this.tableHTML(s2, n3, e3.length);
+    const n2 = e2 || {}, r2 = this.resolveColumns(n2.columns), s2 = n2.pageSize || 0, i2 = n2.page || 0, o2 = () => {
+      const e3 = this.filteredRows(), n3 = s2 ? e3.slice(i2 * s2, i2 * s2 + s2) : e3;
+      t2.innerHTML = this.tableHTML(r2, n3, e3.length);
     };
     o2();
     const l2 = this.on("change", o2);
@@ -1986,7 +1986,7 @@ class _e {
     } };
   }
   destroy() {
-    _e.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
+    Cn.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
   }
 }
 const LAYOUT_KEY$1 = "__apexcharts_unit_layouts__";
@@ -2191,7 +2191,7 @@ const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
 function springParams(preset, speed) {
-  const [stiffness, damping] = z(
+  const [stiffness, damping] = _t(
     /** @type {import('apex-commons').SpringPreset|undefined} */
     preset
   );
@@ -2515,7 +2515,7 @@ class Unit {
         r: typeof p2.r === "number" && p2.r > 0 ? p2.r : void 0
       });
     });
-    const clusters = counts.map((_2, i2) => ({
+    const clusters = counts.map((_, i2) => ({
       i: i2,
       cx: gw / 2,
       cy: gh / 2,
@@ -2627,7 +2627,7 @@ class Unit {
     const gw = w.layout.gridWidth;
     const gh = w.layout.gridHeight;
     const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6;
-    const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
+    const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i2, s2) => slotOf[i2] = s2);
@@ -2642,7 +2642,7 @@ class Unit {
     const cy = labelSpace + availH / 2;
     const outerRs = counts.map((n2) => step * Math.sqrt(Math.max(1, n2)) + dotR);
     const cellCentre = (i2) => slotOf[i2] >= 0 ? cellW * (slotOf[i2] + 0.5) : gw / 2;
-    let centers = counts.map((_2, i2) => cellCentre(i2));
+    let centers = counts.map((_, i2) => cellCentre(i2));
     const visOuter = visible.map((i2) => outerRs[i2]);
     let overlap = false;
     for (let s2 = 1; s2 < Kv; s2++) {
@@ -2667,10 +2667,10 @@ class Unit {
       } else {
         const lo = visOuter[0];
         const hi = gw - visOuter[Kv - 1];
-        visCenters = visOuter.map((_2, s2) => lo + (hi - lo) * s2 / (Kv - 1));
+        visCenters = visOuter.map((_, s2) => lo + (hi - lo) * s2 / (Kv - 1));
       }
       centers = counts.map(
-        (_2, i2) => slotOf[i2] >= 0 ? visCenters[slotOf[i2]] : gw / 2
+        (_, i2) => slotOf[i2] >= 0 ? visCenters[slotOf[i2]] : gw / 2
       );
     }
     return counts.map((n2, i2) => ({
@@ -2702,11 +2702,11 @@ class Unit {
     this._lastDotR = this._dotRadiusFromStep(step, opts);
     const cx = gw / 2;
     const cy = labelSpace + (gh - labelSpace) / 2;
-    const order = counts.map((_2, i2) => i2);
+    const order = counts.map((_, i2) => i2);
     if (opts.sortByGroup !== false) {
       order.sort((a2, b) => counts[a2] - counts[b]);
     }
-    const clusters = counts.map((_2, i2) => ({
+    const clusters = counts.map((_, i2) => ({
       i: i2,
       cx,
       cy,
@@ -2785,7 +2785,7 @@ class Unit {
       }
     }
     seats.sort((s1, s2) => s1.a - s2.a);
-    const clusters = counts.map((_2, i2) => ({
+    const clusters = counts.map((_, i2) => ({
       i: i2,
       cx,
       cy,
@@ -2820,10 +2820,10 @@ class Unit {
     const hi = Math.max(a0, a1);
     const xs = [0, ux(a0), ux(a1)];
     const ys = [0, uy(a0), uy(a1)];
-    const q2 = Math.PI / 2;
-    for (let k2 = Math.ceil(lo / q2); k2 * q2 <= hi; k2++) {
-      xs.push(ux(k2 * q2));
-      ys.push(uy(k2 * q2));
+    const q = Math.PI / 2;
+    for (let k2 = Math.ceil(lo / q); k2 * q <= hi; k2++) {
+      xs.push(ux(k2 * q));
+      ys.push(uy(k2 * q));
     }
     return {
       minX: Math.min(...xs),
@@ -2912,7 +2912,7 @@ class Unit {
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
     const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
     const topPad = labelsOn && !labelsBelow ? 30 : 6;
-    const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
+    const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i2, s2) => slotOf[i2] = s2);
@@ -3027,7 +3027,7 @@ class Unit {
     const originX = (gw - blockW) / 2 + pitch / 2;
     const topY = labelSpace + (availH - blockH) / 2;
     const rowY = (rowIdx) => fillFrom === "bottom" ? topY + blockH - pitch / 2 - rowIdx * pitch : topY + pitch / 2 + rowIdx * pitch;
-    const clusters = counts.map((_2, i2) => ({
+    const clusters = counts.map((_, i2) => ({
       i: i2,
       cx: gw / 2,
       cy: labelSpace + availH / 2,
@@ -3073,14 +3073,14 @@ class Unit {
     const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
     const cellsPerTile = Math.max(1, Math.round(gcfg.total > 0 ? gcfg.total : 100));
     const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
-    const visible = counts.map((_2, i2) => i2).filter((i2) => counts[i2] > 0);
-    const K2 = Math.max(1, visible.length);
+    const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
+    const K = Math.max(1, visible.length);
     const denom = gcfg.max > 0 ? gcfg.max : Math.max(...counts) || 1;
     const tileCols = Math.max(
       1,
-      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K2)))
+      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K)))
     );
-    const tileRows = Math.max(1, Math.ceil(K2 / tileCols));
+    const tileRows = Math.max(1, Math.ceil(K / tileCols));
     const labelsOn = !(opts.clusterLabels && opts.clusterLabels.show === false);
     const labelsBelow = labelsOn && opts.clusterLabels && opts.clusterLabels.position === "bottom";
     const topBand = labelsOn && !labelsBelow ? 22 : 4;
@@ -3175,7 +3175,7 @@ class Unit {
       (cat) => Array.isArray(cat) ? cat.map(valueOf2) : []
     );
     const isNum = (v) => v != null && isFinite(v);
-    const visible = catVals.map((_2, i2) => i2).filter((i2) => catVals[i2].some(isNum));
+    const visible = catVals.map((_, i2) => i2).filter((i2) => catVals[i2].some(isNum));
     const Kv = Math.max(1, visible.length);
     let vmin = Infinity;
     let vmax = -Infinity;
@@ -3294,7 +3294,7 @@ class Unit {
     const isNum = (v) => v != null;
     const xOf = (d2) => d2 && typeof d2 === "object" ? toNum(d2.x) : null;
     const yOf2 = (d2) => d2 && typeof d2 === "object" ? toNum(d2.y != null ? d2.y : d2.value) : null;
-    const visible = unitData.map((_2, i2) => i2).filter(
+    const visible = unitData.map((_, i2) => i2).filter(
       (i2) => (unitData[i2] || []).some((d2) => isNum(xOf(d2)) && isNum(yOf2(d2)))
     );
     let xmn = Infinity;
@@ -3410,10 +3410,10 @@ class Unit {
     let zmax = -Infinity;
     unitData.forEach(
       (cat) => (cat || []).forEach((d2) => {
-        const z2 = d2 && typeof d2 === "object" ? d2[field] : null;
-        if (typeof z2 === "number" && isFinite(z2)) {
-          if (z2 < zmin) zmin = z2;
-          if (z2 > zmax) zmax = z2;
+        const z = d2 && typeof d2 === "object" ? d2[field] : null;
+        if (typeof z === "number" && isFinite(z)) {
+          if (z < zmin) zmin = z;
+          if (z > zmax) zmax = z;
         }
       })
     );
@@ -3430,9 +3430,9 @@ class Unit {
    */
   _scatterRadius(d2, st, fallback) {
     if (!st) return fallback;
-    const z2 = d2 && typeof d2 === "object" ? d2[st.field] : null;
-    if (typeof z2 !== "number" || !isFinite(z2)) return st.rMin;
-    const t2 = st.zmax > st.zmin ? (z2 - st.zmin) / (st.zmax - st.zmin) : 1;
+    const z = d2 && typeof d2 === "object" ? d2[st.field] : null;
+    if (typeof z !== "number" || !isFinite(z)) return st.rMin;
+    const t2 = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
     const tc = Math.max(0, Math.min(1, t2));
     const aMin = st.rMin * st.rMin;
     const aMax = st.rMax * st.rMax;
@@ -3468,11 +3468,11 @@ class Unit {
         const s2 = center + off;
         let ok = true;
         for (let m2 = placed.length - 1; m2 >= 0; m2--) {
-          const q2 = placed[m2];
-          const df = p2.f - q2.f;
+          const q = placed[m2];
+          const df = p2.f - q.f;
           if (df > pr + rCap) break;
-          const need = pr + q2.r;
-          const ds = s2 - q2.s;
+          const need = pr + q.r;
+          const ds = s2 - q.s;
           if (df * df + ds * ds < need * need) {
             ok = false;
             break;
@@ -3639,20 +3639,20 @@ class Unit {
         );
       }
       if (ax.yTitle) {
-        const yt = BrowserAPIs.createElementNS(NS, "text");
-        yt.setAttribute("class", "apexcharts-unit-axis-title");
+        const yt2 = BrowserAPIs.createElementNS(NS, "text");
+        yt2.setAttribute("class", "apexcharts-unit-axis-title");
         const tx = 14;
         const ty = (ax.plotT + ax.plotB) / 2;
-        yt.setAttribute("x", String(tx));
-        yt.setAttribute("y", String(ty));
-        yt.setAttribute("text-anchor", "middle");
-        yt.setAttribute("font-size", "12px");
-        yt.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
-        yt.setAttribute("font-weight", "600");
-        yt.setAttribute("fill", labelColor);
-        yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
-        yt.textContent = String(ax.yTitle);
-        g2.node.appendChild(yt);
+        yt2.setAttribute("x", String(tx));
+        yt2.setAttribute("y", String(ty));
+        yt2.setAttribute("text-anchor", "middle");
+        yt2.setAttribute("font-size", "12px");
+        yt2.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
+        yt2.setAttribute("font-weight", "600");
+        yt2.setAttribute("fill", labelColor);
+        yt2.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
+        yt2.textContent = String(ax.yTitle);
+        g2.node.appendChild(yt2);
       }
       ret.add(g2);
       return;
@@ -3666,20 +3666,20 @@ class Unit {
       });
       line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor);
       if (ax.valueTitle) {
-        const yt = BrowserAPIs.createElementNS(NS, "text");
-        yt.setAttribute("class", "apexcharts-unit-axis-title");
+        const yt2 = BrowserAPIs.createElementNS(NS, "text");
+        yt2.setAttribute("class", "apexcharts-unit-axis-title");
         const tx = 14;
         const ty = (ax.plotT + ax.plotB) / 2;
-        yt.setAttribute("x", String(tx));
-        yt.setAttribute("y", String(ty));
-        yt.setAttribute("text-anchor", "middle");
-        yt.setAttribute("font-size", "12px");
-        yt.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
-        yt.setAttribute("font-weight", "600");
-        yt.setAttribute("fill", labelColor);
-        yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
-        yt.textContent = String(ax.valueTitle);
-        g2.node.appendChild(yt);
+        yt2.setAttribute("x", String(tx));
+        yt2.setAttribute("y", String(ty));
+        yt2.setAttribute("text-anchor", "middle");
+        yt2.setAttribute("font-size", "12px");
+        yt2.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
+        yt2.setAttribute("font-weight", "600");
+        yt2.setAttribute("fill", labelColor);
+        yt2.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
+        yt2.textContent = String(ax.valueTitle);
+        g2.node.appendChild(yt2);
       }
       ax.lanes.forEach((lane) => {
         const color = configuredLabelColor || w.globals.colors[lane.i] || w.globals.colors[0] || "#008FFB";
@@ -4257,8 +4257,8 @@ class Unit {
     for (let k2 = 0; k2 < dots.length; k2++) {
       const d2 = dots[k2];
       const carried = live && !d2.isEnter && d2.key != null ? live.get(d2.key) : null;
-      const sx = carried ? carried.x : q(d2.cx0, stiffness, damping);
-      const sy = carried ? carried.y : q(d2.cy0, stiffness, damping);
+      const sx = carried ? carried.x : Rt(d2.cx0, stiffness, damping);
+      const sy = carried ? carried.y : Rt(d2.cy0, stiffness, damping);
       if (carried) {
         sx.stiffness = stiffness;
         sy.stiffness = stiffness;
@@ -4349,12 +4349,12 @@ class Unit {
         let cx, cy;
         if (d2.sx && d2.sy) {
           if (elapsed >= 0 && !d2.released) {
-            I(d2.sx, d2.x);
-            I(d2.sy, d2.y);
+            Ot(d2.sx, d2.x);
+            Ot(d2.sy, d2.y);
             d2.released = true;
           }
-          const restX = _(d2.sx, dt);
-          const restY = _(d2.sy, dt);
+          const restX = Ft(d2.sx, dt);
+          const restY = Ft(d2.sy, dt);
           if (!d2.released || !restX || !restY) done = false;
           cx = d2.sx.value;
           cy = d2.sy.value;
@@ -4591,12 +4591,12 @@ ${percent2.toFixed(1)}%`;
       });
     });
     if (!items.length) return;
-    const maxLines = items.reduce((m2, it2) => Math.max(m2, it2.lines.length), 1);
+    const maxLines = items.reduce((m2, it) => Math.max(m2, it.lines.length), 1);
     const block = maxLines * lineHeight;
     const half = block / 2;
     ["left", "right"].forEach((side) => {
       spaceOutLabels(
-        items.filter((it2) => it2.side === side),
+        items.filter((it) => it.side === side),
         block + 2,
         gh - half,
         half
@@ -4610,17 +4610,17 @@ ${percent2.toFixed(1)}%`;
       group2.node.classList.add("apexcharts-unit-label-delay");
       group2.node.style.animationDelay = `${Math.min(speed * 0.45, 600) / 1e3}s`;
     }
-    items.forEach((it2) => {
-      const color = w.globals.colors[it2.i] || w.globals.colors[0] || "#008FFB";
+    items.forEach((it) => {
+      const color = w.globals.colors[it.i] || w.globals.colors[0] || "#008FFB";
       group2.add(
         drawOuterLabel(w, {
-          lines: it2.lines,
+          lines: it.lines,
           lineHeight,
-          anchor: it2.anchor,
-          elbow: it2.elbow,
-          labelX: it2.labelX,
-          labelY: it2.labelY,
-          side: it2.side,
+          anchor: it.anchor,
+          elbow: it.elbow,
+          labelX: it.labelX,
+          labelY: it.labelY,
+          side: it.side,
           connector: {
             show: conn.show !== false,
             width: conn.width != null ? conn.width : 1.5,
@@ -6670,9 +6670,9 @@ function stdDev(values) {
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a2, b) => a2 - b);
-  const q1 = S(sorted, 0.25);
-  const median = S(sorted, 0.5);
-  const q3 = S(sorted, 0.75);
+  const q1 = x(sorted, 0.25);
+  const median = x(sorted, 0.5);
+  const q3 = x(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -6699,7 +6699,7 @@ function kernelDensity(values, opts = {}) {
   let h2 = opts.bandwidth;
   if (!(typeof h2 === "number" && h2 > 0)) {
     const sd = stdDev(sorted);
-    const iqr = S(sorted, 0.75) - S(sorted, 0.25);
+    const iqr = x(sorted, 0.75) - x(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h2 = 0.9 * spread * Math.pow(n2, -1 / 5);
   }
@@ -6725,8 +6725,8 @@ function kernelDensity(values, opts = {}) {
     const x2 = lo + g2 * step;
     let sum2 = 0;
     for (let i2 = 0; i2 < n2; i2++) {
-      const z2 = (x2 - sorted[i2]) / h2;
-      sum2 += Math.exp(-0.5 * z2 * z2);
+      const z = (x2 - sorted[i2]) / h2;
+      sum2 += Math.exp(-0.5 * z * z);
     }
     density.push([x2, sum2 * norm]);
   }
@@ -8226,7 +8226,7 @@ function dumbbellTransform(ser, w) {
     values,
     order,
     carrier: visible.length ? visible[0] : 0,
-    hidden: raw.map((_2, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
+    hidden: raw.map((_, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
   };
   const carrier = w.dumbbellData.carrier;
   return raw.map((s2, k2) => __spreadProps(__spreadValues({}, s2), {
@@ -8371,7 +8371,7 @@ class StreamLabels {
    * streamgraph, has labels switched off, or drew no bands.
    */
   drawLabels() {
-    var _a, _b, _c, _d, _e2, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     if (!this.isActive()) return;
     const cfg = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.streamgraph) == null ? void 0 : _b.labels;
@@ -8384,7 +8384,7 @@ class StreamLabels {
     const group2 = graphics.group({ class: "apexcharts-streamgraph-labels" });
     const fontSize = ((_c = cfg.style) == null ? void 0 : _c.fontSize) || "auto";
     const fontFamily = ((_d = cfg.style) == null ? void 0 : _d.fontFamily) || w.config.chart.fontFamily;
-    const fontWeight = ((_e2 = cfg.style) == null ? void 0 : _e2.fontWeight) || 600;
+    const fontWeight = ((_e = cfg.style) == null ? void 0 : _e.fontWeight) || 600;
     const minWidth = cfg.minWidth == null ? 24 : cfg.minWidth;
     const placed = [];
     for (let i2 = 0; i2 < data.order.length; i2++) {
@@ -9162,7 +9162,7 @@ function streamgraphTransform(ser, w) {
     order: bandOrder,
     lines,
     offset,
-    hidden: raw.map((_2, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
+    hidden: raw.map((_, k2) => k2).filter((k2) => collapsed.indexOf(k2) !== -1)
   };
   return raw.map((s2, k2) => {
     if (!band[k2]) {
@@ -9789,7 +9789,7 @@ function split(series, cfg = {}, host = {}) {
     colKeys: null,
     seriesNames,
     xForm: u2.sawKeyed ? u2.xForm : "plain",
-    unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_2, i2) => i2),
+    unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_, i2) => i2),
     xIsNumeric: u2.xIsNumeric,
     dropped,
     warnings
@@ -9915,7 +9915,7 @@ function split2d(list, cfg, warnings, alignToUnion = true, datetime) {
     colKeys,
     seriesNames,
     xForm: u2.sawKeyed ? u2.xForm : "plain",
-    unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_2, i2) => i2),
+    unionX: u2.sawKeyed ? u2.unionX : Array.from({ length: u2.plainMaxLen }, (_, i2) => i2),
     xIsNumeric: u2.xIsNumeric,
     dropped: 0,
     warnings
@@ -9961,7 +9961,7 @@ function zValues(data) {
   return out;
 }
 function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
-  var _a, _b, _c, _d, _e2, _f;
+  var _a, _b, _c, _d, _e, _f;
   const frames = {
     plotOptions: null,
     yExtentOverride: null,
@@ -10038,7 +10038,7 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
         "a heatmap trellis must share its color scale (the same color meaning different values per panel is a silent lie); ignoring scales.color 'independent'."
       );
     }
-    const userRanges = (_e2 = (_d = plot.heatmap) == null ? void 0 : _d.colorScale) == null ? void 0 : _e2.ranges;
+    const userRanges = (_e = (_d = plot.heatmap) == null ? void 0 : _d.colorScale) == null ? void 0 : _e.ranges;
     if (!(Array.isArray(userRanges) && userRanges.length > 0)) {
       let min = Infinity;
       let max = -Infinity;
@@ -10279,7 +10279,7 @@ function resolve(splitResult, cfg = {}, host = {}) {
   const barFamily = ["bar", "column", "histogram"].includes(host.chartType || "");
   const yaxes = host.yaxis || [];
   const axisNames = host.axisNames;
-  const axes = axisNames ? axisNames.map((_2, ai) => ai) : [0];
+  const axes = axisNames ? axisNames.map((_, ai) => ai) : [0];
   const onAxis = (group2, ai) => axisNames ? group2.map((p2) => __spreadProps(__spreadValues({}, p2), {
     series: p2.series.filter((s2) => axisNames[ai].includes(s2.name))
   })) : group2;
@@ -10291,9 +10291,9 @@ function resolve(splitResult, cfg = {}, host = {}) {
     const ya = yaxes[ai] || {};
     if (ya.logarithmic && ext.min > 0) {
       const b = ya.logBase || 10;
-      const L2 = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
-      const lo = Math.floor(L2(ext.min));
-      const hi = Math.max(lo + 1, Math.ceil(L2(ext.max)));
+      const L = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
+      const lo = Math.floor(L(ext.min));
+      const hi = Math.max(lo + 1, Math.ceil(L(ext.max)));
       return {
         min: __pow(b, lo),
         max: __pow(b, hi),
@@ -10396,7 +10396,7 @@ function compute({
   const labelsMode = cfg.axes && cfg.axes.labels || "edges";
   const scales = cfg.scales || {};
   const single = cols === 1;
-  const cells = Array.from({ length: panelCount }, (_2, i2) => {
+  const cells = Array.from({ length: panelCount }, (_, i2) => {
     const r2 = Math.floor(i2 / cols);
     const c2 = i2 % cols;
     let showXLabels;
@@ -10625,10 +10625,10 @@ class HeatmapGradientLegend {
    * @param {any} w
    */
   static colorScaleOf(w) {
-    var _a, _b, _c, _d, _e2;
+    var _a, _b, _c, _d, _e;
     const type = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.type;
     if (!type) return null;
-    return ((_e2 = (_d = (_c = w == null ? void 0 : w.config) == null ? void 0 : _c.plotOptions) == null ? void 0 : _d[type]) == null ? void 0 : _e2.colorScale) || null;
+    return ((_e = (_d = (_c = w == null ? void 0 : w.config) == null ? void 0 : _c.plotOptions) == null ? void 0 : _d[type]) == null ? void 0 : _e.colorScale) || null;
   }
   /**
    * @param {any} w
@@ -10668,7 +10668,7 @@ class HeatmapGradientLegend {
    *   so all plot-relative positioning is skipped.
    */
   draw(targetEl = null) {
-    var _a, _b, _c, _d, _e2, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     this._targetEl = targetEl;
     const elLegendWrap = (
@@ -10730,7 +10730,7 @@ class HeatmapGradientLegend {
     if (cfg.showLabels) {
       const labelColor = ((_c = cfg.labelStyle) == null ? void 0 : _c.colors) || (Array.isArray(w.config.legend.labels.colors) ? w.config.legend.labels.colors[0] : w.config.legend.labels.colors) || w.config.chart.foreColor;
       const labelFontSize = ((_d = cfg.labelStyle) == null ? void 0 : _d.fontSize) || "11px";
-      const labelFontFamily = ((_e2 = cfg.labelStyle) == null ? void 0 : _e2.fontFamily) || w.config.chart.fontFamily;
+      const labelFontFamily = ((_e = cfg.labelStyle) == null ? void 0 : _e.fontFamily) || w.config.chart.fontFamily;
       const fmt = this._getFormatter();
       const makeLabel = (text, x2, y2, anchor) => {
         const t2 = BrowserAPIs.createElementNS(SVG_NS, "text");
@@ -11011,7 +11011,7 @@ class HeatmapGradientLegend {
    * Tear down listeners (called before re-render).
    */
   destroy() {
-    var _a, _b, _c, _d, _e2, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g;
     for (let i2 = 0; i2 < this._bandHitEls.length; i2++) {
       const el = this._bandHitEls[i2];
       (_a = el.removeEventListener) == null ? void 0 : _a.call(el, "mousemove", this._onBandEnter);
@@ -11021,7 +11021,7 @@ class HeatmapGradientLegend {
     this._activeBandIndex = -1;
     if (!((_c = this.ctx) == null ? void 0 : _c.events)) return;
     try {
-      (_e2 = (_d = this.ctx.events).removeEventListener) == null ? void 0 : _e2.call(
+      (_e = (_d = this.ctx.events).removeEventListener) == null ? void 0 : _e.call(
         _d,
         "dataPointMouseEnter",
         this._onCellEnter
@@ -11031,7 +11031,7 @@ class HeatmapGradientLegend {
         "dataPointMouseLeave",
         this._onCellLeave
       );
-    } catch (_2) {
+    } catch (_) {
     }
   }
   /** Wire mousemove/mouseout on each per-band hit-region (ranges mode). */
@@ -11616,7 +11616,7 @@ class TrellisChrome {
       /** @type {any} */
       p2.chart.w
     ));
-    const wire = (_2, p2) => {
+    const wire = (_, p2) => {
       var _a;
       const ev = p2.chart !== chart && ((_a = p2.chart) == null ? void 0 : _a.ctx.events);
       if (!ev) return;
@@ -11673,10 +11673,10 @@ class TrellisChrome {
       t2._tool = tool;
       t2.panels.forEach((p2) => {
         if (!p2.chart) return;
-        const it2 = p2.chart.w.interact;
-        it2.zoomEnabled = tool === "zoom" && p2.chart.w.config.chart.zoom.enabled;
-        it2.panEnabled = tool === "pan";
-        it2.selectionEnabled = false;
+        const it = p2.chart.w.interact;
+        it.zoomEnabled = tool === "zoom" && p2.chart.w.config.chart.zoom.enabled;
+        it.panEnabled = tool === "pan";
+        it.selectionEnabled = false;
       });
       buttons.zoom.classList.toggle("apexcharts-selected", tool === "zoom");
       buttons.pan.classList.toggle("apexcharts-selected", tool === "pan");
@@ -12365,7 +12365,7 @@ class TrellisVirtual {
   /** @param {any} panel */
   _mount(panel) {
     return __async(this, null, function* () {
-      var _a, _b, _c, _d, _e2, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const t2 = this.trellis;
       if (!panel.el || panel.chart || panel.noMount) return;
       const stash = panel.viewStash;
@@ -12443,7 +12443,7 @@ class TrellisVirtual {
       }
       panel.viewStash = null;
       if (independentY) {
-        const wpx = (_h = (_g = (_f = (_e2 = chart.w) == null ? void 0 : _e2.globals) == null ? void 0 : _f.yLabelsCoords) == null ? void 0 : _g[0]) == null ? void 0 : _h.width;
+        const wpx = (_h = (_g = (_f = (_e = chart.w) == null ? void 0 : _e.globals) == null ? void 0 : _f.yLabelsCoords) == null ? void 0 : _g[0]) == null ? void 0 : _h.width;
         if (typeof wpx === "number" && isFinite(wpx)) {
           const pad = chart.w.globals.isBarHorizontal ? 0 : t2._yLabelPad();
           const tight = Math.max(0, wpx - pad);
@@ -13107,8 +13107,8 @@ function topInkClearance(dims, plotH) {
       )
     );
     const rise = ascent + (lines ? lines / 2 * fs : 0) - offY;
-    const K2 = 1 - 1 / 2.2;
-    need = Math.max(need, (rise - K2 * plotH / n2) / (1 - K2 / n2));
+    const K = 1 - 1 / 2.2;
+    need = Math.max(need, (rise - K * plotH / n2) / (1 - K / n2));
   });
   if (cnf.stroke.show) need = Math.max(need, largest(cnf.stroke.width) / 2);
   const types = [cnf.chart.type].concat(
@@ -13952,7 +13952,7 @@ class Trellis {
    * @returns {Record<string, any>}
    */
   _assemblePanelOptions(i2, { noAnimation = false } = {}) {
-    var _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k;
+    var _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     const w = this.w;
     const split2 = (
       /** @type {import('./TrellisSplit').TrellisSplitResult} */
@@ -13965,7 +13965,7 @@ class Trellis {
     const slice = split2.panels[i2];
     const _a = this.ctx.opts || {}, {
       series: _s,
-      trellis: _t,
+      trellis: _t2,
       responsive: _r
     } = _a, userOpts = __objRest(_a, [
       "series",
@@ -14014,7 +14014,7 @@ class Trellis {
         // all. Read from the page's options, not the merged config: a type
         // default (histogram, waterfall, sparkline) keeps the grid's zoom.
         zoom: {
-          enabled: this.cfg.zoom !== "none" && ((_g = (_f = (_e2 = this.ctx.opts) == null ? void 0 : _e2.chart) == null ? void 0 : _f.zoom) == null ? void 0 : _g.enabled) !== false,
+          enabled: this.cfg.zoom !== "none" && ((_g = (_f = (_e = this.ctx.opts) == null ? void 0 : _e.chart) == null ? void 0 : _f.zoom) == null ? void 0 : _g.enabled) !== false,
           resetControl: this.cfg.toolbar == "none" && w.config.chart.zoom.resetControl !== false
         }
       }, animationsOff ? { animations: { enabled: false } } : {}), this._panelRenderer ? { renderer: this._panelRenderer } : {}), {
@@ -14153,8 +14153,8 @@ class Trellis {
     return __async(this, null, function* () {
       var _a, _b, _c, _d;
       const widths = this.panels.map((p2) => {
-        var _a2, _b2, _c2, _d2, _e2;
-        return (_e2 = (_d2 = (_c2 = (_b2 = (_a2 = p2.chart) == null ? void 0 : _a2.w) == null ? void 0 : _b2.globals) == null ? void 0 : _c2.yLabelsCoords) == null ? void 0 : _d2[0]) == null ? void 0 : _e2.width;
+        var _a2, _b2, _c2, _d2, _e;
+        return (_e = (_d2 = (_c2 = (_b2 = (_a2 = p2.chart) == null ? void 0 : _a2.w) == null ? void 0 : _b2.globals) == null ? void 0 : _c2.yLabelsCoords) == null ? void 0 : _d2[0]) == null ? void 0 : _e.width;
       }).filter((v) => typeof v === "number" && isFinite(v));
       if (!widths.length) return;
       const isHorizontal = !!((_d = (_c = (_b = (_a = this.panels[0]) == null ? void 0 : _a.chart) == null ? void 0 : _b.w) == null ? void 0 : _c.globals) == null ? void 0 : _d.isBarHorizontal);
@@ -14901,7 +14901,7 @@ class Measure {
     this._renderLive();
   }
   /** @param {any} _e */
-  _onUp(_e2) {
+  _onUp(_e) {
     var _a, _b;
     const doc = this._doc();
     if (doc) {
@@ -14991,7 +14991,7 @@ class Measure {
     const v = read(varName);
     if (v && role && v === read(varName + "-ig")) {
       const ds = this.ctx && this.ctx.theme && this.ctx.theme.designSystem;
-      return it(ds, role, this.w.config.theme.mode) || fallback;
+      return Gt(ds, role, this.w.config.theme.mode) || fallback;
     }
     return v || fallback;
   }
@@ -15475,7 +15475,7 @@ class LinkedViews {
   _cf() {
     const link = this.w.config.chart.link;
     const id = link && (link.id || this.w.config.chart.group);
-    return id ? _e.get(id) : null;
+    return id ? Cn.get(id) : null;
   }
   _isPie() {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -15589,7 +15589,7 @@ class LinkedViews {
    * A pie slice / bar was clicked: toggle its bucket key on the coordinator.
    * @param {any} _e @param {any} _ctx @param {{dataPointIndex?:number}} opts
    */
-  _onPointSelect(_e2, _ctx, opts) {
+  _onPointSelect(_e, _ctx, opts) {
     if (this._mode() !== "filter" || !opts || opts.dataPointIndex == null) return;
     const cf = this._cf();
     if (!cf) return;
@@ -15714,12 +15714,12 @@ class LinkedViews {
     (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("filterChange", [this.ctx, args]);
   }
   teardown() {
-    var _a, _b, _c, _d, _e2, _f;
+    var _a, _b, _c, _d, _e, _f;
     this.clear();
     if (this._wired) {
       (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "dataPointSelection", this._onPointSelect);
       (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "mounted", this._afterRender);
-      (_f = (_e2 = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e2, "updated", this._afterRender);
+      (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "updated", this._afterRender);
       const cf = this._cf();
       if (cf) {
         cf.off("change", this._onChange);
@@ -15733,7 +15733,7 @@ _core__default.registerFeatures({
   linkedViews: LinkedViews,
   crossfilter: (
     /** @type {any} */
-    _e
+    Cn
   )
 });
 const Options = _core.__apex_Options;
@@ -16526,7 +16526,7 @@ class InkLayer {
     const ed = this._editor;
     if (!ed || ed.card.contains(
       /** @type {Node} */
-      ke(e2)
+      gt(e2)
     )) return;
     this._closeEditor(true);
   }
@@ -16843,16 +16843,16 @@ function licensedForPremium(key) {
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = $.add(elWrap, { manage: false });
+  const node = T.add(elWrap, { manage: false });
   ctx._wmPainted = true;
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n2 = $.node(elWrap);
+    const n2 = T.node(elWrap);
     if (!n2) return;
     nodeObs.disconnect();
-    $.applyStyles(n2);
+    T.applyStyles(n2);
     nodeObs.takeRecords();
     nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
@@ -16866,7 +16866,7 @@ function addWatermark(ctx, elWrap) {
   if (ctx._wmWrapObserver && ctx._wmObservedWrap === elWrap) return;
   if (ctx._wmWrapObserver) ctx._wmWrapObserver.disconnect();
   const wrapObs = new MutationObserver(() => {
-    if (!$.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!T.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -16886,7 +16886,7 @@ function teardownWatermark(ctx, elWrap) {
   ctx._wmObservedNode = null;
   ctx._wmObservedWrap = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) $.remove(wrap, { manage: false });
+  if (wrap) T.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
@@ -16995,7 +16995,7 @@ class Storyboard {
     if (!doc || typeof IntersectionObserver === "undefined") return 0;
     let root = null;
     if (opts.scroller) {
-      root = typeof opts.scroller === "string" ? Ce(this.ctx.el, opts.scroller) : opts.scroller;
+      root = typeof opts.scroller === "string" ? vt(this.ctx.el, opts.scroller) : opts.scroller;
     }
     this._beats = this._resolveBeats(this.ctx.el, root, opts.beats);
     if (!this._beats.length) return 0;
@@ -17031,7 +17031,7 @@ class Storyboard {
       beatsOpt.forEach((b, i2) => {
         var _a, _b;
         if (!b) return;
-        const el = b.el && typeof b.el === "object" ? b.el : b.selector ? Ce(chartEl, b.selector) : null;
+        const el = b.el && typeof b.el === "object" ? b.el : b.selector ? vt(chartEl, b.selector) : null;
         if (!el) {
           console.warn(
             `apexcharts: storyboard beat ${i2} has no resolvable element; skipped.`
@@ -17049,7 +17049,7 @@ class Storyboard {
       });
       return beats;
     }
-    const found = root ? Array.from(root.querySelectorAll("[data-apex-beat]")) : Te(chartEl, "[data-apex-beat]");
+    const found = root ? Array.from(root.querySelectorAll("[data-apex-beat]")) : bt(chartEl, "[data-apex-beat]");
     found.forEach((el, i2) => {
       beats.push({
         el,
@@ -18185,10 +18185,10 @@ class CanvasGraphics {
    * @param {number} z
    * @returns {any}
    */
-  _cmd(tag, z2) {
+  _cmd(tag, z) {
     const cmd = {
       tag,
-      z: z2 || 0,
+      z: z || 0,
       fill: void 0,
       stroke: void 0,
       strokeWidth: void 0,
@@ -19475,27 +19475,27 @@ class ContextMenu {
     const raw = Array.isArray(cfg.items) && cfg.items.length ? cfg.items : ["annotate", "xline", "yline", "measure"];
     const labels = cfg.labels || {};
     const out = [];
-    raw.forEach((it2) => {
-      if (typeof it2 === "string") {
-        if (it2 === "annotate") {
+    raw.forEach((it) => {
+      if (typeof it === "string") {
+        if (it === "annotate") {
           out.push({
             id: "annotate",
             label: labels.annotate || "Add note here",
             run: () => this._annotate(context)
           });
-        } else if (it2 === "xline") {
+        } else if (it === "xline") {
           out.push({
             id: "xline",
             label: labels.xline || "Annotate here",
             run: () => this._line(context, "x")
           });
-        } else if (it2 === "yline") {
+        } else if (it === "yline") {
           out.push({
             id: "yline",
             label: labels.yline || "Mark this level",
             run: () => this._line(context, "y")
           });
-        } else if (it2 === "measure") {
+        } else if (it === "measure") {
           const m2 = this.ctx.measure;
           const on = m2 && this.w.config.chart.measure && this.w.config.chart.measure.enabled;
           if (on) {
@@ -19506,11 +19506,11 @@ class ContextMenu {
             });
           }
         }
-      } else if (it2 && typeof it2 === "object" && typeof it2.onClick === "function") {
+      } else if (it && typeof it === "object" && typeof it.onClick === "function") {
         out.push({
-          id: it2.id || "custom",
-          label: it2.label || "Action",
-          run: () => it2.onClick(this.ctx, context)
+          id: it.id || "custom",
+          label: it.label || "Action",
+          run: () => it.onClick(this.ctx, context)
         });
       }
     });
@@ -19601,13 +19601,13 @@ class ContextMenu {
     menu.setAttribute("role", "menu");
     menu.style.position = "absolute";
     menu.style.visibility = "hidden";
-    items.forEach((it2, i2) => {
+    items.forEach((it, i2) => {
       const btn = doc.createElement("button");
       btn.type = "button";
       btn.className = "apexcharts-context-menu-item";
       btn.setAttribute("role", "menuitem");
       btn.tabIndex = -1;
-      btn.textContent = it2.label;
+      btn.textContent = it.label;
       btn.addEventListener("click", (ev) => {
         ev.stopPropagation();
         this._activate(i2);
@@ -19649,15 +19649,15 @@ class ContextMenu {
   }
   /** @param {number} i */
   _activate(i2) {
-    const it2 = this._items[i2];
+    const it = this._items[i2];
     this.close();
-    if (it2) it2.run();
+    if (it) it.run();
   }
   /** @param {any} e */
   _onDocDown(e2) {
     if (this.menu && this.menu.contains(
       /** @type {Node} */
-      ke(e2)
+      gt(e2)
     ))
       return;
     this.close();
@@ -19826,7 +19826,7 @@ class History {
       /** @type {any} */
       this.ctx.el
     );
-    const origin = ke(e2);
+    const origin = gt(e2);
     this._engaged = !!(el && origin && el.contains(origin));
   }
   /**
@@ -19841,7 +19841,7 @@ class History {
       this.ctx.el
     );
     if (!el) return;
-    const active = Le(el);
+    const active = yt(el);
     if (isEditableTarget(active)) return;
     if (!(el.contains(active) || this._engaged)) return;
     const redo = key === "y" || e2.shiftKey;
@@ -20104,7 +20104,7 @@ class History {
   }
   /** Drop the stack + detach listeners (called on full destroy). */
   teardown() {
-    var _a, _b, _c, _d, _e2, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     clearTimeout(this._coalesceTimer);
     clearTimeout(this._settleTimer);
     this._coalesceTimer = null;
@@ -20113,7 +20113,7 @@ class History {
     if (this._wired) {
       (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "mounted", this._onMounted);
       (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "updated", this._onUpdated);
-      (_f = (_e2 = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e2, "scrolled", this._onUpdated);
+      (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "scrolled", this._onUpdated);
       (_h = (_g = this.ctx).removeEventListener) == null ? void 0 : _h.call(_g, "dataPointSelection", this._onSelection);
     }
     this.stack = [];
@@ -20407,7 +20407,7 @@ function forward(target2, type, e2) {
       buttons: e2.buttons
     } : e2;
     target2.dispatchEvent(new e2.constructor(type, init));
-  } catch (_2) {
+  } catch (_) {
   }
 }
 function stripSeries(s2) {
@@ -20568,7 +20568,7 @@ const proxy = (p2, size, own) => Object.create(p2, __spreadValues({
   }
 }, own));
 function paint(hf, p2, g2, s2) {
-  var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
   const w = hf.w;
   const gl = w.globals;
   const cfg = hf.cfg;
@@ -20584,7 +20584,7 @@ function paint(hf, p2, g2, s2) {
   const mount = !gl.dataChanged || !gl.shouldAnimate;
   const area = ((_c = cfg.pie) == null ? void 0 : _c.encoding) === "area";
   const vals = w.seriesData.series;
-  const byPart = ((_e2 = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e2 : "part") === "part";
+  const byPart = ((_e = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e : "part") === "part";
   const outline2 = p2.strokeWidth > 0 && ((_g = (_f = cfg.outline) == null ? void 0 : _f.width) != null ? _g : 1) > 0 ? { opacity: (_i = (_h = cfg.outline) == null ? void 0 : _h.opacity) != null ? _i : 1 } : null;
   const labelsWas = (_j = gl.prevHighlightLabels) == null ? void 0 : _j.get(-1);
   const rides = [];
@@ -20593,7 +20593,7 @@ function paint(hf, p2, g2, s2) {
     return ((_a2 = n2.classList) == null ? void 0 : _a2.contains(c2)) || ` ${(_b2 = n2.getAttribute) == null ? void 0 : _b2.call(n2, "class")} `.indexOf(` ${c2} `) > -1;
   };
   Array.from(g2.node.childNodes).filter((n2) => has(n2, "apexcharts-pie-series")).forEach((sg) => {
-    var _a2, _b2, _c2, _d2, _e3, _f2;
+    var _a2, _b2, _c2, _d2, _e2, _f2;
     const node = Array.from(sg.childNodes).find(
       (n2) => has(n2, "apexcharts-pie-area")
     );
@@ -20751,7 +20751,7 @@ function paint(hf, p2, g2, s2) {
     const r1 = target2 != null ? target2 : 0;
     hf._fade(
       node,
-      mount ? look(fadeTo) : cover ? COVERED : prev ? { f: prev.f, o: (_e3 = prev.o) != null ? _e3 : look(prev.f).o } : PLAIN,
+      mount ? look(fadeTo) : cover ? COVERED : prev ? { f: prev.f, o: (_e2 = prev.o) != null ? _e2 : look(prev.f).o } : PLAIN,
       lands ? COVERED : look(fadeTo),
       { delayMs, speed: arc == null ? void 0 : arc.a.run, el: arc == null ? void 0 : arc.el },
       {
@@ -20891,7 +20891,7 @@ const NEEDLE_KEYS = ["length", "baseWidth", "tipWidth", "offsetY"];
 const LANE = 0.45;
 const LANE_CLS = `${PART} apexcharts-radialbar-highlight-lane`;
 function radialPass(hf, r2) {
-  var _a, _b, _c, _d, _e2, _f;
+  var _a, _b, _c, _d, _e, _f;
   const w = hf.w;
   const hd = w.highlightData;
   const said = (_b = (_a = hf.ctx.lastUpdateOptions) == null ? void 0 : _a.tooltip) == null ? void 0 : _b.enabled;
@@ -20913,7 +20913,7 @@ function radialPass(hf, r2) {
       );
     }
   }
-  if (!hd.active && !((_e2 = hf._prev()) == null ? void 0 : _e2.size)) return;
+  if (!hd.active && !((_e = hf._prev()) == null ? void 0 : _e.size)) return;
   const tt = w.config.tooltip;
   if (hd.active && !tt.enabled && hf._tipUser == null && Environment.isBrowser()) {
     tt.enabled = true;
@@ -20950,7 +20950,7 @@ function radialPass(hf, r2) {
   }
 }
 function ring(hf, r2, el, c2, ap) {
-  var _a, _b, _c, _d, _e2, _f;
+  var _a, _b, _c, _d, _e, _f;
   const w = hf.w;
   const gl = w.globals;
   const cfg = hf.cfg;
@@ -21038,7 +21038,7 @@ function ring(hf, r2, el, c2, ap) {
       fill: "none",
       // The whole's own strength, taken before the whole is faded.
       strokeOpacity: ownOpacity(node, "stroke-opacity"),
-      strokeDashArray: (_e2 = node.getAttribute("stroke-dasharray")) != null ? _e2 : 0,
+      strokeDashArray: (_e = node.getAttribute("stroke-dasharray")) != null ? _e : 0,
       classes: `${PART} apexcharts-radialbar-highlight-part`
     });
     const pn = part.node;
@@ -21086,8 +21086,8 @@ function ring(hf, r2, el, c2, ap) {
     insertAfter(part.node, tn);
     const at = (a2) => {
       const p2 = Utils.polarToCartesian(cx, cy, size - sw / 2, a2);
-      const q2 = Utils.polarToCartesian(cx, cy, size + sw / 2, a2);
-      tn.setAttribute("d", `M ${p2.x} ${p2.y} L ${q2.x} ${q2.y}`);
+      const q = Utils.polarToCartesian(cx, cy, size + sw / 2, a2);
+      tn.setAttribute("d", `M ${p2.x} ${p2.y} L ${q.x} ${q.y}`);
     };
     const a0 = anim ? finite(c2.prevEndAngle) && !mount ? c2.prevEndAngle : start : wholeEnd;
     at(a0);
@@ -21148,7 +21148,7 @@ function ring(hf, r2, el, c2, ap) {
   if (i2 === 0) needlePart(hf, r2, el, needle, pv, mount, morph, c2);
 }
 function lanes(hf, r2, el, o2) {
-  var _a, _b, _c, _d, _e2, _f, _g;
+  var _a, _b, _c, _d, _e, _f, _g;
   const { i: i2, c: c2, prev, mount, pv, whole, wholeEnd, run, anim, delayMs, size } = o2;
   const w = hf.w;
   const gl = w.globals;
@@ -21178,7 +21178,7 @@ function lanes(hf, r2, el, o2) {
     we0 = (_b = prev == null ? void 0 : prev.we) != null ? _b : finite(c2.prevEndAngle) ? c2.prevEndAngle : we1;
     e0 = (_c = prev == null ? void 0 : prev.e) != null ? _c : cfg.enter === "baseline" ? start : we0;
   } else if (sweep) we0 = e0 = start;
-  const f1 = s1 ? (_f = (_e2 = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e2.opacity) != null ? _f : LANE : 1;
+  const f1 = s1 ? (_f = (_e = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e.opacity) != null ? _f : LANE : 1;
   const f0 = morph ? 1 : go ? prev ? prev.f : 1 : f1;
   const sw = morph ? r2.getStrokeWidth({
     size: gl.circleGeometry.r,
@@ -21215,9 +21215,9 @@ function lanes(hf, r2, el, o2) {
   const tn = tracksOf(r2)[rb.inverseOrder ? n2 - 1 - i2 : i2];
   const t0 = tn && [tn.getAttribute("d"), tn.getAttribute("stroke-width")];
   const pct = t0 ? (parseFloat(t0[1]) || 0) / (sw || 1) : 0;
-  let it2 = null;
+  let it = null;
   if (tn) {
-    it2 = new Graphics(w).drawPath({
+    it = new Graphics(w).drawPath({
       d: "",
       stroke: tn.getAttribute("stroke"),
       strokeWidth: 0,
@@ -21226,10 +21226,10 @@ function lanes(hf, r2, el, o2) {
       classes: `${PART} apexcharts-radialbar-highlight-track`
     });
     const tf = tn.getAttribute("filter");
-    if (tf) it2.node.setAttribute("filter", tf);
-    it2.node.setAttribute("pointer-events", "none");
-    it2.node.setAttribute("aria-hidden", "true");
-    insertAfter(tn, it2.node);
+    if (tf) it.node.setAttribute("filter", tf);
+    it.node.setAttribute("pointer-events", "none");
+    it.node.setAttribute("aria-hidden", "true");
+    insertAfter(tn, it.node);
   }
   const R0 = size - sw / 2;
   const R1 = size + sw / 2;
@@ -21286,13 +21286,13 @@ function lanes(hf, r2, el, o2) {
     if (!tn) return;
     if (s2) {
       put(tn, trackAt((wi + wo) / 2), (wo - wi) * pct);
-      put(it2.node, trackAt((pi + po) / 2), (po - pi) * pct);
+      put(it.node, trackAt((pi + po) / 2), (po - pi) * pct);
     } else {
       put(tn, t0[0], t0[1]);
-      put(it2.node, "", 0);
+      put(it.node, "", 0);
     }
   };
-  const els = [wl.node, pl.node, it2 == null ? void 0 : it2.node].filter(Boolean);
+  const els = [wl.node, pl.node, it == null ? void 0 : it.node].filter(Boolean);
   let shown = !morph;
   const show = () => {
     shown = true;
@@ -21402,14 +21402,14 @@ function morphOut(hf) {
   };
 }
 function outPlan(hf, from) {
-  var _a, _b, _c, _d, _e2;
+  var _a, _b, _c, _d, _e;
   const w = hf.w;
   const gl = w.globals;
   const root = (_a = w.dom.baseEl) == null ? void 0 : _a.querySelector(".apexcharts-radialbar");
   if (from !== "radialBar" && from !== "gauge" || !root) return null;
   const mt = hf.ctx.morphTypeChange;
   const cx = (_c = (_b = gl.circleGeometry) == null ? void 0 : _b.cx) != null ? _c : 0;
-  const cy = (_e2 = (_d = gl.circleGeometry) == null ? void 0 : _d.cy) != null ? _e2 : 0;
+  const cy = (_e = (_d = gl.circleGeometry) == null ? void 0 : _d.cy) != null ? _e : 0;
   const marks2 = /* @__PURE__ */ new Map();
   const keep = /* @__PURE__ */ new Set();
   const out = /* @__PURE__ */ new Set();
@@ -21897,32 +21897,32 @@ function treeSeries(hf, base, parts) {
       const c2 = kids(w, d2, path);
       if (c2) {
         const ch = c2[0].map((x2) => leaf2(stripSeries(x2), c2[1]));
-        const pt2 = __spreadValues({}, d2);
+        const pt3 = __spreadValues({}, d2);
         const src = c2[0];
-        if (c2[1] === path) pt2.children = ch;
+        if (c2[1] === path) pt3.children = ch;
         else {
-          Object.defineProperty(pt2, "children", {
+          Object.defineProperty(pt3, "children", {
             get: () => {
               var _a2;
               return drilldownAsLevels(w) && ((_a2 = drilldownById(w, d2.drilldown)) == null ? void 0 : _a2.data) === src ? ch : void 0;
             }
           });
         }
-        return pt2;
+        return pt3;
       }
       const j = k2++;
-      const pt = isPoint(d2) ? __spreadValues({}, d2) : { x: "", y: d2 };
-      if (path.includes(pt.drilldown)) delete pt.drilldown;
-      pt.highlight = typeof parts === "function" ? parts({
+      const pt2 = isPoint(d2) ? __spreadValues({}, d2) : { x: "", y: d2 };
+      if (path.includes(pt2.drilldown)) delete pt2.drilldown;
+      pt2.highlight = typeof parts === "function" ? parts({
         seriesIndex: i2,
         dataPointIndex: j,
         seriesName: s2.name,
-        x: (_a = pt.x) != null ? _a : pt.name,
-        value: typeof ((_b = pt.y) != null ? _b : pt.value) === "number" ? (_c = pt.y) != null ? _c : pt.value : null,
+        x: (_a = pt2.x) != null ? _a : pt2.name,
+        value: typeof ((_b = pt2.y) != null ? _b : pt2.value) === "number" ? (_c = pt2.y) != null ? _c : pt2.value : null,
         datum: d2,
         w
       }) : row == null ? void 0 : row[j];
-      return pt;
+      return pt2;
     };
     if (Array.isArray(out.data))
       out.data = out.data.map((d2) => leaf2(d2, []));
@@ -22069,14 +22069,14 @@ function treemapPass(hf, tm) {
     hf._targets.set(key, rec);
     tiles.set(ij, rec);
     const ease = colourEase(from.c, to.c);
-    const write = (L2) => {
-      rec.ls = L2.s;
-      rec.lf = L2.f;
-      rec.lc = L2.c;
+    const write = (L) => {
+      rec.ls = L.s;
+      rec.lf = L.f;
+      rec.lc = L.c;
       stops.forEach((n2, k2) => {
-        n2.setAttribute("offset", String(k2 === 0 ? 0 : k2 === 3 ? 1 : L2.s));
-        n2.setAttribute("stop-color", L2.c);
-        n2.setAttribute("stop-opacity", String(k2 < 2 ? 1 : L2.f));
+        n2.setAttribute("offset", String(k2 === 0 ? 0 : k2 === 3 ? 1 : L.s));
+        n2.setAttribute("stop-color", L.c);
+        n2.setAttribute("stop-opacity", String(k2 < 2 ? 1 : L.f));
       });
       tone(rec, fore);
     };
@@ -22216,8 +22216,8 @@ function seriesHasHighlight(s2) {
   }
   return false;
 }
-function partAt(pt, hd, j) {
-  return isPoint(pt) && "highlight" in pt ? pt.highlight : hd ? hd[j] : null;
+function partAt(pt2, hd, j) {
+  return isPoint(pt2) && "highlight" in pt2 ? pt2.highlight : hd ? hd[j] : null;
 }
 class HighlightFilter {
   /**
@@ -22509,8 +22509,8 @@ class HighlightFilter {
     }
     const parts = [];
     for (let i2 = 0; i2 < n2; i2++) {
-      const pt = point ? pts[i2] : null;
-      const v = pt && "highlight" in pt ? pt.highlight : arr ? arr[i2] : null;
+      const pt2 = point ? pts[i2] : null;
+      const v = pt2 && "highlight" in pt2 ? pt2.highlight : arr ? arr[i2] : null;
       parts.push([
         finite(v) ? gl.collapsedSeriesIndices.indexOf(i2) > -1 ? 0 : v : null
       ]);
@@ -22558,7 +22558,7 @@ class HighlightFilter {
     );
     const prev = /* @__PURE__ */ new Map();
     this._targets.forEach((t2, key) => {
-      var _a, _b, _c, _d, _e2, _f, _g;
+      var _a, _b, _c, _d, _e, _f, _g;
       if (t2.c && !t2.run) return;
       const n2 = t2.n;
       const on = !!(n2 == null ? void 0 : n2.isConnected);
@@ -22570,7 +22570,7 @@ class HighlightFilter {
         o: (_c = t2.lo) != null ? _c : t2.o,
         // A treemap tile's share and colour as drawn (see TreemapPart).
         s: (_d = t2.ls) != null ? _d : t2.s,
-        col: (_e2 = t2.lc) != null ? _e2 : t2.col,
+        col: (_e = t2.lc) != null ? _e : t2.col,
         // A part's alpha and carried stroke as drawn (see _paintBar).
         al: (_f = t2.la) != null ? _f : t2.al,
         k: (_g = t2.lk) != null ? _g : t2.k,
@@ -22677,7 +22677,7 @@ class HighlightFilter {
    * @param {{i: number, j: number, realIndex: number, translationsIndex: number, paths: any, zeroH: number, zeroW: number}} o
    */
   bar(bar, o2) {
-    var _a, _b, _c, _d, _e2, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
     const hd = w.highlightData;
     if (!hd) return void 0;
@@ -22709,7 +22709,7 @@ class HighlightFilter {
     };
     if (active) {
       const label2 = {};
-      if (((_e2 = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e2 : "part") === "part") {
+      if (((_e = (_d = cfg.dataLabels) == null ? void 0 : _d.value) != null ? _e : "part") === "part") {
         Object.assign(
           label2,
           p2 == null ? { hide: true } : __spreadValues({ val: (_f = geo == null ? void 0 : geo.val) != null ? _f : p2 }, geo == null ? void 0 : geo.label)
@@ -23342,11 +23342,11 @@ class HighlightFilter {
    * @param {{width: number, land?: {f: number, o: number}, done?: () => void, rec: any, ease?: (t: number) => number, also?: (t: number) => void, force?: boolean}} opt
    */
   _fadeLine(type, marks2, a2, b, opt) {
-    var _a, _b, _c, _d, _e2, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g;
     const cfg = this.cfg;
     const fo = (_a = cfg.fadeOpacity) != null ? _a : 0.2;
     const ow = (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1;
-    const oo = (_e2 = (_d = cfg.outline) == null ? void 0 : _d.opacity) != null ? _e2 : 1;
+    const oo = (_e = (_d = cfg.outline) == null ? void 0 : _d.opacity) != null ? _e : 1;
     const dash = (_g = (_f = cfg.line) == null ? void 0 : _f.dashArray) != null ? _g : 4;
     const rec = opt.rec;
     const names = [
@@ -23373,7 +23373,7 @@ class HighlightFilter {
       items.forEach(({ node, own, k: k2, fill }) => {
         if (f2 >= 1 && o2 <= 0) {
           names.forEach(
-            (x2, q2) => own[q2] == null ? node.removeAttribute(x2) : node.setAttribute(x2, own[q2])
+            (x2, q) => own[q] == null ? node.removeAttribute(x2) : node.setAttribute(x2, own[q])
           );
         } else if (fill) {
           node.setAttribute("fill-opacity", String(k2 * f2 * mix(1, fo, o2)));
@@ -23450,15 +23450,15 @@ class HighlightFilter {
             j,
             prevY: pp.yArrj[0]
           });
-          pos.x.forEach((x2, q2) => {
-            if (raw[j ? j + 1 : q2] == null) {
+          pos.x.forEach((x2, q) => {
+            if (raw[j ? j + 1 : q] == null) {
               boxes[realIndex].push({ x: NaN, y: NaN, width: 0, height: 0 });
               return;
             }
             const el = dl.drawDataLabel({
               type,
               pos: {
-                x: j ? [x2] : q2 ? [NaN, x2] : [x2, NaN],
+                x: j ? [x2] : q ? [NaN, x2] : [x2, NaN],
                 y: pos.y
               },
               i: realIndex,
@@ -23592,20 +23592,20 @@ class HighlightFilter {
       items.push({ els, dx: s2.x - x2, dy: s2.y - y2, o: s2.o, to: 0, out: true });
     });
     if (!items.length) return;
-    items.forEach((it2) => {
-      it2.bases = it2.els.map((e2) => e2.getAttribute("transform") || "");
-      it2.ops = it2.els.map(
+    items.forEach((it) => {
+      it.bases = it.els.map((e2) => e2.getAttribute("transform") || "");
+      it.ops = it.els.map(
         (e2) => {
           var _a;
-          return parseFloat((_a = e2.getAttribute("opacity")) != null ? _a : "1") / (it2.out && it2.o > 0 ? it2.o : 1);
+          return parseFloat((_a = e2.getAttribute("opacity")) != null ? _a : "1") / (it.out && it.o > 0 ? it.o : 1);
         }
       );
     });
     const place = (e2) => items.forEach(
-      ({ els, dx, dy, o: o2, to, out, bases, ops }) => els.forEach((el, q2) => {
+      ({ els, dx, dy, o: o2, to, out, bases, ops }) => els.forEach((el, q) => {
         const b = (
           /** @type {string[]} */
-          bases[q2]
+          bases[q]
         );
         const k2 = out ? 1 : 1 - e2;
         if (k2) {
@@ -23618,7 +23618,7 @@ class HighlightFilter {
         const op = mix(o2, to, e2);
         const own = (
           /** @type {number[]} */
-          ops[q2]
+          ops[q]
         );
         if (op >= 1 && own >= 1) el.removeAttribute("opacity");
         else el.setAttribute("opacity", String(own * op));
@@ -23628,7 +23628,7 @@ class HighlightFilter {
       0,
       w.config.chart.animations.dynamicAnimation.speed,
       place,
-      () => items.forEach((it2) => it2.out && it2.els.forEach((el) => el.remove()))
+      () => items.forEach((it) => it.out && it.els.forEach((el) => el.remove()))
     );
   }
   /**
@@ -23641,7 +23641,7 @@ class HighlightFilter {
    * @param {{key: string, prev: any, geo: any, fadeTo: number, active: boolean, whole: any, bar: any}} s
    */
   _paintBar(o2, el, r2, s2) {
-    var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     const w = this.w;
     const cfg = this.cfg;
     const animate = this._animates();
@@ -23701,28 +23701,28 @@ class HighlightFilter {
     const a1 = lands ? alpha : 1;
     const width = (_c = (_b = cfg.outline) == null ? void 0 : _b.width) != null ? _c : 1;
     const ow = s2.whole || (prev == null ? void 0 : prev.o) ? width : 0;
-    const wn = el.node;
-    const sc = wn.getAttribute("stroke");
+    const wn2 = el.node;
+    const sc = wn2.getAttribute("stroke");
     const k0 = (start == null ? void 0 : start.cover) && animate ? 1 : (prev == null ? void 0 : prev.d) ? (_d = prev.k) != null ? _d : 0 : 0;
     const k1 = lands ? 1 : 0;
-    const carry = !!part && (ow > 0 || !(width > 0) && !!s2.whole) && (k0 > 0 || k1 > 0) && parseFloat(wn.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
-    const so = ownOpacity(wn, "stroke-opacity");
+    const carry = !!part && (ow > 0 || !(width > 0) && !!s2.whole) && (k0 > 0 || k1 > 0) && parseFloat(wn2.getAttribute("stroke-width")) > 0 && !!sc && sc !== "none" && sc !== "transparent";
+    const so = ownOpacity(wn2, "stroke-opacity");
     const SK = ["stroke", "stroke-width", "stroke-opacity", "stroke-dasharray"];
     const bare = {};
     if (carry) {
       SK.forEach((n2) => {
         var _a2;
         bare[n2] = part.node.getAttribute(n2);
-        part.node.setAttribute(n2, (_a2 = wn.getAttribute(n2)) != null ? _a2 : "");
+        part.node.setAttribute(n2, (_a2 = wn2.getAttribute(n2)) != null ? _a2 : "");
       });
-      if (!wn.hasAttribute("stroke-dasharray")) {
+      if (!wn2.hasAttribute("stroke-dasharray")) {
         part.node.removeAttribute("stroke-dasharray");
       }
     }
     const rec = {
       d: null,
       f: fadeTo,
-      base: (_e2 = geo == null ? void 0 : geo.base) != null ? _e2 : prev == null ? void 0 : prev.base,
+      base: (_e = geo == null ? void 0 : geo.base) != null ? _e : prev == null ? void 0 : prev.base,
       edge: false,
       s: (_f = geo == null ? void 0 : geo.s) != null ? _f : prev == null ? void 0 : prev.s,
       n: exit ? part == null ? void 0 : part.node : null,
@@ -23743,7 +23743,7 @@ class HighlightFilter {
       if (k2 > 0 || t2 < 1) {
         part.node.setAttribute("stroke-opacity", String(so * k2));
         if (ow > 0 && !(rec.lo > 0) && k2 > 0) {
-          wn.setAttribute("stroke-opacity", "0");
+          wn2.setAttribute("stroke-opacity", "0");
         }
       } else {
         part.attr(bare);
@@ -24102,7 +24102,7 @@ class HighlightFilter {
    * @param {any} f the row's formatters
    */
   tooltipRow(refs, s2, j, f2) {
-    var _a, _b, _c, _d, _e2, _f, _g, _h, _i, _j, _k;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     const w = this.w;
     const cfg = this.cfg;
     const tt = cfg.tooltip || {};
@@ -24113,7 +24113,7 @@ class HighlightFilter {
       swatch(
         refs.marker,
         on && !w.config.tooltip.fillSeriesColor ? ((_c = (_b = this._tiles) == null ? void 0 : _b.get(s2 + "|" + j)) == null ? void 0 : _c.base) || w.globals.colors[s2] : null,
-        lane ? (_f = (_e2 = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e2.opacity) != null ? _f : LANE : cfg.fadeOpacity,
+        lane ? (_f = (_e = (_d = cfg.radialBar) == null ? void 0 : _d.lanes) == null ? void 0 : _e.opacity) != null ? _f : LANE : cfg.fadeOpacity,
         lane,
         Theme.radius(w, 3)
       );
@@ -24391,17 +24391,17 @@ function pathSpan(d2, axis) {
 function nearest(xs, x2) {
   let k2 = -1;
   let best = Infinity;
-  xs.forEach((v, q2) => {
+  xs.forEach((v, q) => {
     if (v != null && Math.abs(v - x2) < best) {
       best = Math.abs(v - x2);
-      k2 = q2;
+      k2 = q;
     }
   });
   return k2;
 }
 function nearestIn(xs) {
   const at = /* @__PURE__ */ new Map();
-  xs.forEach((v, q2) => isFinite(v != null ? v : NaN) && !at.has(+v) && at.set(+v, q2));
+  xs.forEach((v, q) => isFinite(v != null ? v : NaN) && !at.has(+v) && at.set(+v, q));
   return (x2) => {
     var _a;
     return (_a = at.get(x2)) != null ? _a : nearest(xs, x2);
@@ -24504,7 +24504,7 @@ class RadialTargets {
     const runs = [];
     rb.targets.forEach(
       (t2, k2) => {
-        var _a2, _b, _c, _d, _e2, _f;
+        var _a2, _b, _c, _d, _e, _f;
         if (!t2) return;
         const seriesIndex = (_a2 = t2.seriesIndex) != null ? _a2 : 0;
         const ring2 = geo.rings[seriesIndex];
@@ -24572,7 +24572,7 @@ class RadialTargets {
           const fs = parseFloat(fontSize) || 11;
           const out = position === "inside" ? -1 : 1;
           const tip = position === "inside" ? Math.min(near, far) : Math.max(near, far);
-          const offset = Number((_e2 = lab.offset) != null ? _e2 : 4);
+          const offset = Number((_e = lab.offset) != null ? _e : 4);
           elLabel = graphics.drawText({
             x: cx,
             y: cy,
@@ -25160,10 +25160,10 @@ function allocate(weights, total) {
   let used = 0;
   const rest = [];
   for (let i2 = 0; i2 < weights.length; i2++) {
-    const q2 = total * weights[i2] / sum2;
-    out[i2] = Math.floor(q2);
+    const q = total * weights[i2] / sum2;
+    out[i2] = Math.floor(q);
     used += out[i2];
-    rest.push({ i: i2, frac: q2 - out[i2] });
+    rest.push({ i: i2, frac: q - out[i2] });
   }
   rest.sort((a2, b) => b.frac - a2.frac);
   for (let k2 = 0; used < total; k2++, used++) out[rest[k2 % rest.length].i]++;
@@ -25415,11 +25415,11 @@ function buildGlobe(meta) {
     const sinT = Math.sin(tilt);
     const SAMPLES = 40;
     const project = (sinPhi, cosPhi, lon) => {
-      const z2 = cosPhi * Math.cos(lon);
+      const z = cosPhi * Math.cos(lon);
       return {
         x: radius * cosPhi * Math.sin(lon),
-        y: radius * (sinPhi * cosT + z2 * sinT),
-        depth: z2 * cosT - sinPhi * sinT
+        y: radius * (sinPhi * cosT + z * sinT),
+        depth: z * cosT - sinPhi * sinT
       };
     };
     const candidatesAt = (pitch2) => {
@@ -25465,8 +25465,8 @@ function buildGlobe(meta) {
           const p2 = project(sinPhi, cosPhi, lon);
           pts.push(p2);
           if (k2 > 0) {
-            const q2 = pts[k2 - 1];
-            cum.push(cum[k2 - 1] + Math.hypot(p2.x - q2.x, p2.y - q2.y));
+            const q = pts[k2 - 1];
+            cum.push(cum[k2 - 1] + Math.hypot(p2.x - q.x, p2.y - q.y));
           }
         }
         const len = cum[cum.length - 1];
