@@ -570,6 +570,9 @@ export default class Defaults {
    */
   static syncSparkline(config, was, options) {
     const now = !!config.chart.sparkline?.enabled
+    // A yaxis in the payload arrives filled with the plain axis defaults,
+    // show: true included, so it is hidden again on every such update (#5434).
+    if (now && options?.yaxis) new Defaults(config).hideYAxis()
     if (now === !!was) return
     const d = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] })
     const plain = plainFor(config)
