@@ -846,6 +846,7 @@ describe('Export Csv: datetime categories', () => {
 
   it('keeps a category name that Date.parse would accept', () => {
     // "Endpoint 1" is 10 characters and Date.parse reads it as 1 Jan 2001.
+    // It has no 4-digit year, so it stays text beside a real date.
     const csv = csvOf({
       chart: { type: 'line' },
       xaxis: { type: 'datetime' },
@@ -857,6 +858,26 @@ describe('Export Csv: datetime categories', () => {
     expect(csv).toContain('Endpoint 1,1,')
     expect(csv).toContain('Sun Jan 02 2000,,2')
     expect(csv).not.toContain('2001')
+  })
+
+  it('formats a datetime category that starts with a month or a weekday', () => {
+    // These used to export as dates. Requiring the string to start with a
+    // digit left them as raw text, so one column mixed formats.
+    const csv = csvOf({
+      chart: { type: 'line' },
+      xaxis: { type: 'datetime' },
+      series: [
+        { name: 'A', data: [{ x: 'Oct 20 2023', y: 1 }] },
+        { name: 'B', data: [{ x: 'Fri, 20 Oct 2023 00:00:00 GMT', y: 2 }] },
+        { name: 'C', data: [{ x: '2000-01-02T00:00:00.000Z', y: 3 }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,A,B,C\n' +
+        'Sun Jan 02 2000,,,3\n' +
+        'Fri Oct 20 2023,,2,\n' +
+        'Fri Oct 20 2023,1,,',
+    )
   })
 
   it('prints the local day and time when xaxis.labels.datetimeUTC is off', () => {
@@ -948,6 +969,41 @@ describe('Export Csv: datetime range endpoints', () => {
     expect(csv).toBe(
       'category,minimum,maximum\nFri Oct 20 2023,1,5\nSat Oct 21 2023,3,7',
     )
+  })
+
+  it('keeps a numeric range when the vertical x is a month-name date', () => {
+    // x is the date, so the category formats and y stays a number.
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      xaxis: { type: 'datetime' },
+      series: [
+        {
+          data: [
+            { x: 'Oct 20 2023', y: [1, 5] },
+            { x: 'Oct 21 2023', y: [3, 7] },
+          ],
+        },
+      ],
+    })
+    expect(csv).toBe(
+      'category,minimum,maximum\nFri Oct 20 2023,1,5\nSat Oct 21 2023,3,7',
+    )
+  })
+
+  it('does not read a vertical range as 1970 when x is a month-name date', () => {
+    // A 10-digit y is only an epoch when x is not the date. Missing the year
+    // in "Oct 20 2023" formatted these as milliseconds since 1970.
+    const csv = csvOf({
+      chart: { type: 'rangeBar' },
+      xaxis: { type: 'datetime' },
+      series: [
+        { data: [{ x: 'Oct 20 2023', y: [1697760000, 1697846400] }] },
+      ],
+    })
+    expect(csv).toBe(
+      'category,minimum,maximum\nFri Oct 20 2023,1697760000,1697846400',
+    )
+    expect(csv).not.toContain('1970')
   })
 
   it('uses xaxis.labels.format for the range endpoints', () => {

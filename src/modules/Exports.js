@@ -938,8 +938,9 @@ class Exports {
     }
 
     // A datetime category: an epoch, a Date, or a date string. Date.parse is
-    // not that test — it accepts "Endpoint 1" as 1 Jan 2001 — so a category
-    // name on a datetime axis stays text.
+    // not that test — it accepts "Endpoint 1" as 1 Jan 2001 — so a name with
+    // no 4-digit year stays text. A date can start with a month or a weekday
+    // ("Oct 20 2023", "Fri, 20 Oct 2023 00:00:00 GMT").
     /**
      * @param {any} cat
      */
@@ -954,7 +955,7 @@ class Exports {
       }
       if (typeof cat !== 'string') return false
       const s = cat.trim()
-      return s.length >= 10 && /^\d/.test(s) && !isNaN(new Date(s).getTime())
+      return s.length >= 10 && /\d{4}/.test(s) && !isNaN(new Date(s).getTime())
     }
 
     // A datetime category in the zone the axis shows: the day, or the time as
