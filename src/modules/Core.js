@@ -1236,10 +1236,18 @@ export default class Core {
     // setupEventHandlers runs this on every render. Wrapping `selection`
     // again nested the previous handler, and a brush with no user handler
     // then updated its target from inside that update (#1912 was reverted
-    // for the loop). One wrapper per brush instance.
+    // for the loop). The wrapper below is not a user handler.
     const ev = w.config.chart.events
     const installed = /** @type {any} */ (ev.selection)
     if (installed?.__apexBrush === ctx) return
+
+    // The handler to call, read when the selection fires. A closure captured
+    // the first callback, so a wrapper installed earlier kept calling it
+    // after updateOptions replaced or cleared chart.events.selection.
+    ctx._brushUser =
+      typeof installed === 'function' && !installed.__apexBrush
+        ? installed
+        : null
 
     targets.forEach((/** @type {any} */ target) => {
       const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
@@ -1274,11 +1282,6 @@ export default class Core {
     // longer moved the brush (#5006). Sync always runs; the user's handler
     // is called as well. A handler this brush already installed is not a
     // user handler — calling it would nest the sync.
-    const userSelection =
-      typeof installed === 'function' && !installed.__apexBrush
-        ? installed
-        : null
-
     ev.selection = Object.assign(
       (/** @type {any} */ chart, /** @type {any} */ e) => {
         targets.forEach((/** @type {any} */ target) => {
@@ -1299,7 +1302,7 @@ export default class Core {
             false,
           )
         })
-        if (userSelection) userSelection(chart, e)
+        if (ctx._brushUser) ctx._brushUser(chart, e)
       },
       { __apexBrush: ctx },
     )

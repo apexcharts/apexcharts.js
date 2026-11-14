@@ -108,6 +108,77 @@ it('a custom selection handler still syncs the brush target', async () => {
   target.destroy()
 })
 
+it('replacing the selection callback on update calls the new one, and clearing it stops both', async () => {
+  document.body.innerHTML = '<div id="t"></div><div id="b"></div>'
+  const seen = []
+  const first = (chart, e) => {
+    seen.push({ which: 'first', min: e.xaxis.min, max: e.xaxis.max })
+  }
+  const second = (chart, e) => {
+    seen.push({ which: 'second', min: e.xaxis.min, max: e.xaxis.max })
+  }
+  const target = new ApexCharts(document.querySelector('#t'), targetOpts())
+  await target.render()
+  const brush = new ApexCharts(
+    document.querySelector('#b'),
+    brushOpts({ selection: first }),
+  )
+  await brush.render()
+
+  expect(seen.map((s) => s.which)).toEqual(['first'])
+  // Kept across the updates below. It used to close over this first callback.
+  const wrapper = brush.w.config.chart.events.selection
+  expect(wrapper.__apexBrush).toBe(brush)
+  const syncs = countTargetSyncs(target)
+
+  seen.length = 0
+  syncs.length = 0
+  await brush.updateOptions({
+    chart: { events: { selection: second } },
+  })
+
+  // The re-render reports the configured selection through the new handler
+  // only, and the wrapper from the first render does too. One sync: the
+  // new handler is not nested inside the old one.
+  expect(seen.map((s) => s.which)).toEqual(['second'])
+  expect(syncs).toEqual([min])
+
+  const nextMin = data[1][0]
+  const nextMax = data[3][0]
+  seen.length = 0
+  syncs.length = 0
+  wrapper(brush, {
+    xaxis: { min: nextMin, max: nextMax },
+    yaxis: {},
+  })
+  expect(seen).toEqual([{ which: 'second', min: nextMin, max: nextMax }])
+  expect(syncs).toEqual([nextMin])
+
+  seen.length = 0
+  syncs.length = 0
+  await brush.updateOptions({
+    chart: { events: { selection: undefined } },
+  })
+  expect(seen).toEqual([])
+  expect(syncs).toEqual([min])
+
+  wrapper(brush, {
+    xaxis: { min: nextMin, max: nextMax },
+    yaxis: {},
+  })
+  expect(seen).toEqual([])
+  expect(syncs).toEqual([min, nextMin])
+
+  // A further render still syncs once, and still does not call a removed handler.
+  syncs.length = 0
+  await brush.updateOptions({ title: { text: 'again' } })
+  expect(seen).toEqual([])
+  expect(syncs).toEqual([min])
+
+  brush.destroy()
+  target.destroy()
+})
+
 it('a brush with no selection handler syncs once per render', async () => {
   document.body.innerHTML = '<div id="t"></div><div id="b"></div>'
   const target = new ApexCharts(document.querySelector('#t'), targetOpts())
