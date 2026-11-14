@@ -296,10 +296,12 @@ export default class ApexCharts {
           })
         }
 
-        // destroy() released the modules; setLocale below needs them
+        // destroy() released the modules; Localization below needs them
         if (!this.core) new InitCtxVariables(this).initModules()
         // set the locale here
-        this.setLocale(this.w.config.chart.defaultLocale)
+        this.localization.setCurrentLocaleValues(
+          this.w.config.chart.defaultLocale,
+        )
         const beforeMount = this.w.config.chart.events.beforeMount
         if (typeof beforeMount === 'function') {
           beforeMount(this, this.w)
@@ -2860,9 +2862,13 @@ export default class ApexCharts {
    * Switches the active locale, updating all locale-dependent labels (toolbar tooltips, month names, etc.).
    *
    * @param {string} localeName - Must match a locale name defined in `chart.locales`.
+   * @returns {Promise<any>}
    */
   setLocale(localeName) {
     this.localization.setCurrentLocaleValues(localeName)
+    if (!this.w.dom.Paper) return Promise.resolve(this)
+    this.lastUpdateOptions = null
+    return this.update()
   }
 
   /**
