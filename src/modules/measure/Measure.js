@@ -1,5 +1,7 @@
 // @ts-check
+import { designSystemColor } from 'apex-commons'
 import Graphics from '../Graphics'
+import Theme from '../Theme'
 import TooltipUtils from '../tooltip/Utils'
 import { Environment } from '../../utils/Environment.js'
 
@@ -524,14 +526,25 @@ export default class Measure {
 
   /**
    * Resolve a color: explicit config value, else a `--apx-measure-*` CSS custom
-   * property, else the built-in default.
+   * property, else the built-in default. Under a design system the
+   * stylesheet's twin hands the property its token's raw text (`hsl(from
+   * ...)` in some Ignite UI sheets) through an `-ig` copy; a value equal to
+   * the copy is the twin's and becomes the colour Theme read for `role`, as
+   * hex or rgba(). A page's own value is used as written.
    * @param {any} cfgVal @param {string} varName @param {string} fallback
    * @param {CSSStyleDeclaration|null} [cs]
+   * @param {import('apex-commons').DesignSystemColorRole} [role]
    */
-  _resolveColor(cfgVal, varName, fallback, cs) {
+  _resolveColor(cfgVal, varName, fallback, cs, role) {
     if (cfgVal) return cfgVal
     const style = cs !== undefined ? cs : this._computedStyle()
-    const v = style ? style.getPropertyValue(varName).trim() : ''
+    const read = (/** @type {string} */ n) =>
+      style ? style.getPropertyValue(n).trim() : ''
+    const v = read(varName)
+    if (v && role && v === read(varName + '-ig')) {
+      const ds = this.ctx && this.ctx.theme && this.ctx.theme.designSystem
+      return designSystemColor(ds, role, this.w.config.theme.mode) || fallback
+    }
     return v || fallback
   }
 
@@ -540,10 +553,10 @@ export default class Measure {
     const c = this._cfg().colors || {}
     const cs = this._computedStyle()
     return {
-      up: this._resolveColor(c.up, '--apx-measure-up', '#16a34a', cs),
-      down: this._resolveColor(c.down, '--apx-measure-down', '#dc2626', cs),
-      neutral: this._resolveColor(c.neutral, '--apx-measure-neutral', '#64748b', cs),
-      guide: this._resolveColor(c.guide, '--apx-measure-guide', '#94a3b8', cs),
+      up: this._resolveColor(c.up, '--apx-measure-up', '#16a34a', cs, 'positive'),
+      down: this._resolveColor(c.down, '--apx-measure-down', '#dc2626', cs, 'negative'),
+      neutral: this._resolveColor(c.neutral, '--apx-measure-neutral', '#64748b', cs, 'neutral'),
+      guide: this._resolveColor(c.guide, '--apx-measure-guide', '#94a3b8', cs, 'guide'),
     }
   }
 
@@ -775,7 +788,8 @@ export default class Measure {
    * @param {any} g @param {string[]} lines @param {number} bx @param {number} by
    * @param {number} boxW @param {number} boxH @param {string} color */
   _readout(g, lines, bx, by, boxW, boxH, color) {
-    const box = this.graphics.drawRect(bx, by, boxW, boxH, 4)
+    const r = Theme.radius(this.w, 4)
+    const box = this.graphics.drawRect(bx, by, boxW, boxH, r)
     box.node.setAttribute('class', 'apexcharts-measure-label-bg')
     box.attr({ fill: '#ffffff', 'fill-opacity': 0.95, stroke: color, 'stroke-width': 1 })
     g.add(box)

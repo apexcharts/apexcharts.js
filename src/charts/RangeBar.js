@@ -94,10 +94,8 @@ class RangeBar extends Bar {
         let barWidth = initPositions.barWidth ?? 0
         let barHeight = initPositions.barHeight ?? 0
 
-        // A zoom that collapsed the scale can leave a series row unset.
-        // Reading [j] off it throws, and Reset Zoom never finishes (#4986).
-        const y1 = this.seriesRangeStart[realIndex]?.[j]
-        const y2 = this.seriesRangeEnd[realIndex]?.[j]
+        const y1 = this.seriesRangeStart[realIndex][j]
+        const y2 = this.seriesRangeEnd[realIndex][j]
 
         let paths = /** @type {any} */ (null)
         let barXPosition = null
@@ -149,10 +147,10 @@ class RangeBar extends Bar {
           barWidth = paths.barWidth
         } else {
           if (w.axisFlags.isXNumeric) {
-            const sx = w.seriesData.seriesX[realIndex]
-            if (sx) {
-              x = (sx[j] - w.globals.minX) / this.xRatio - barWidth / 2
-            }
+            x =
+              (w.seriesData.seriesX[realIndex][j] - w.globals.minX) /
+                this.xRatio -
+              barWidth / 2
           }
 
           barXPosition = x + barWidth * /** @type {any} */ (this).visibleI
@@ -570,8 +568,8 @@ class RangeBar extends Bar {
   getRangeValue(i, j) {
     const w = this.w
     return {
-      start: w.rangeData.seriesRangeStart[i]?.[j],
-      end: w.rangeData.seriesRangeEnd[i]?.[j],
+      start: w.rangeData.seriesRangeStart[i][j],
+      end: w.rangeData.seriesRangeEnd[i][j],
     }
   }
 }

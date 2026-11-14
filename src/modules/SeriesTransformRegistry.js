@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * A `globalThis`-backed registry of pre-parse series transforms, mirroring
- * ChartFactory's type registry, ThemeRegistry and UnitLayoutRegistry so a
+ * ChartFactory's type registry, the theme registry and UnitLayoutRegistry so a
  * transform registered once survives duplicate CJS+ESM module instances.
  *
  * A transform is the contract for a chart type whose series carries **raw

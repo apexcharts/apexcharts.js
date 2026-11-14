@@ -258,6 +258,8 @@ function chromeTween(w, duration, ease, onFrame, onDone) {
       if (!over) onFrame(eased)
     },
     finish,
+    // landed early (finishChromeTweens): stop, or it still counts as moving
+    () => !over,
   )
 }
 

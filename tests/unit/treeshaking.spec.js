@@ -299,3 +299,56 @@ describe('core.esm.js contains all __apex_* named exports', () => {
     ).toHaveLength(0)
   })
 })
+
+// ─── 6. The Ignite UI add-on stays opt-in ────────────────────────────────────
+// Plan 36, revised D1: following an Ignite UI theme is an add-on, so neither
+// its stylesheet twins nor the commons reader and token map may reach a
+// baseline. Comments survive in the readable builds, so the minified files are
+// the ones checked. Skipped until a build writes the add-on.
+
+describe.skipIf(!existsSync(dist('features/ignite-ui.esm.js')))(
+  'the Ignite UI add-on',
+  () => {
+    test.each([
+      'apexcharts.min.js',
+      'apexcharts.core.min.js',
+      'apexcharts.full.min.js',
+      'apexcharts.common.js',
+      'core.common.js',
+      'full.common.js',
+    ])('%s carries no Ignite UI twin and reads no --ig-* token', (file) => {
+      const content = read(file)
+      expect(content, `dist/${file} not found`).not.toBeNull()
+      expect(content).not.toContain('apexcharts-igniteui')
+      expect(content).not.toContain('--ig-')
+    })
+
+    test.each([
+      'features/ignite-ui.js',
+      'features/ignite-ui.esm.js',
+      'features/ignite-ui.common.js',
+    ])('%s carries the twins and the token map', (file) => {
+      const content = read(file)
+      expect(content, `dist/${file} not found`).not.toBeNull()
+      expect(content).toContain('apexcharts-igniteui')
+      expect(content).toContain('--ig-theme-variant')
+    })
+
+    test('features/ignite-ui.esm.js takes the chart class from apexcharts/core', () => {
+      const content = read('features/ignite-ui.esm.js')
+      expect(content).toContain('from "apexcharts/core"')
+      expect(countClass(content, 'Theme')).toBe(0)
+    })
+
+    test('a bundler keeps its bare import: the source and built entries are side effects', () => {
+      const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf-8'))
+      expect(pkg.sideEffects).toEqual(
+        expect.arrayContaining(['./src/features/*.js', './dist/features/*.esm.js']),
+      )
+      expect(pkg.exports['./features/ignite-ui']).toEqual({
+        import: './dist/features/ignite-ui.esm.js',
+        require: './dist/features/ignite-ui.common.js',
+      })
+    })
+  },
+)

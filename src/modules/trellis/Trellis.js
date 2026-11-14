@@ -32,6 +32,8 @@ import { Environment } from '../../utils/Environment.js'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { addResizeListener, removeResizeListener } from '../../utils/Resize'
 import RendererController from '../RendererController'
+import Theme from '../Theme'
+import Config from '../settings/Config'
 import CoreUtils from '../CoreUtils'
 import InitCtxVariables from '../helpers/InitCtxVariables'
 import {
@@ -952,9 +954,13 @@ export default class Trellis {
     const foreColor = this.w.config.chart?.foreColor
     if (foreColor) wrap.style.setProperty('--apx-trellis-fore', foreColor)
 
-    // Same for the font: headers, strips, legend and title inherit it from here
-    const fontFamily = this.w.config.chart?.fontFamily
-    if (fontFamily) wrap.style.fontFamily = fontFamily
+    // A panel's canvas resets the family tokens under `theme.tokens: false`
+    // (Theme._applyRadiusFactor); the chrome around the panels is the
+    // host's, so it does the same here.
+    if (this.w.config.theme.tokens === false) {
+      wrap.style.setProperty('--apx-font-family', 'initial')
+      wrap.style.setProperty('--apx-radius-factor', 'initial')
+    }
 
     const chromeTop = BrowserAPIs.createElement('div')
     chromeTop.className = 'apexcharts-trellis-chrome'
@@ -968,6 +974,16 @@ export default class Trellis {
     el.appendChild(wrap)
     this.elWrap = wrap
     this.elGrid = grid
+
+    // Same for the font: headers, strips, legend and title inherit it from
+    // here. Where the page named none (`ctx.opts` holds every option it
+    // passed, later updates included), the panels take a font token, so the
+    // host reads the same layers, once the wrap is in the page to inherit
+    // them.
+    const fontFamily = Config.hasExplicitFontFamily(this.ctx.opts)
+      ? this.w.config.chart.fontFamily
+      : Theme.tokenFont(this.w, wrap) || this.w.config.chart.fontFamily
+    if (fontFamily) wrap.style.fontFamily = fontFamily
 
     // The license enforcer and Destroy both address the chart through
     // w.dom.elWrap / baseEl; the trellis wrapper IS this host's canvas.

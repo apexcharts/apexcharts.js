@@ -32,6 +32,13 @@ export default class Base {
     // Likewise '#373d3f' and '#f6f7f8', and the tooltip theme 'light'.
     globals.themeForeColorExplicit = Config.hasExplicitForeColor(this.opts)
     globals.tooltipThemeExplicit = Config.hasExplicitTooltipTheme(this.opts)
+    // And the font and the grid and axis colours, which a token must not
+    // replace once the page named them, the default value included.
+    globals.themeFontFamilyExplicit = Config.hasExplicitFontFamily(this.opts)
+    globals.themeGridColorsExplicit = Config.explicitGridColors(
+      this.opts,
+      Environment.getApex(),
+    )
 
     const w = {
       config,

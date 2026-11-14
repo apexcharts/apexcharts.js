@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1983,10 +1983,17 @@ class Helpers {
     const graphics = new Graphics(this.barCtx.w);
     const utils = new Utils();
     const shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    const mixed = /^color-mix\(in srgb, (.+) [\d.]+%, transparent\)$/.exec(
+      color
+    );
+    const shade = utils.shadeColor(
+      0.5,
+      mixed ? mixed[1] : Utils.rgb2hex(color) || color,
+      w.dom.elWrap
+    );
     return graphics.drawPath({
       d: shadowPath,
-      // rgb2hex reads rgb()/rgba() only; shade any other colour as given
-      fill: utils.shadeColor(0.5, Utils.rgb2hex(color) || color),
+      fill: shade,
       stroke: "none",
       strokeWidth: 0,
       fillOpacity: 1,
@@ -2143,14 +2150,22 @@ function buildJoin(w, realIndex) {
   return { join: joinKeys(oldKeys, newKeys), oldKeys, newKeys };
 }
 function rafTween(w, duration, ease, onFrame, onDone, alive, startAt = performance.now()) {
+  var _a;
+  const live = (_a = w.globals).liveTweens || (_a.liveTweens = /* @__PURE__ */ new Set());
+  const self = {};
+  live.add(self);
   const step = (now) => {
-    if (w.globals.isDestroyed || alive && !alive()) return;
+    if (w.globals.isDestroyed || alive && !alive()) {
+      live.delete(self);
+      return;
+    }
     const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
     onFrame(ease(raw), raw);
     if (raw < 1) {
       BrowserAPIs.requestAnimationFrame(step);
-    } else if (onDone) {
-      onDone();
+    } else {
+      live.delete(self);
+      if (onDone) onDone();
     }
   };
   BrowserAPIs.requestAnimationFrame(step);

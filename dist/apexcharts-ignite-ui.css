@@ -1,0 +1,126 @@
+/* Ignite UI twins (plan 36): the stylesheet of the opt-in Ignite UI add-on,
+   `apexcharts/features/ignite-ui`. The add-on injects it right after
+   apexcharts.css, in the same root; with chart.injectStyleSheet: false, link
+   dist/apexcharts-ignite-ui.css after dist/apexcharts.css.
+
+   Theme.js puts `apexcharts-igniteui` on the canvas while Ignite UI's colours
+   apply, with `apexcharts-igniteui-light` or `-dark` for the sheet's variant.
+   :where() adds no specificity, so a twin beats the apexcharts.css rule it
+   shadows by order alone and a page rule still beats it. The brand and
+   semantic roles apply in any mode; overlays, hairlines and greys only to what
+   is drawn in the sheet's own variant (a dark sheet's gray-100 is near black).
+   Twins never declare the --apx-* family tokens, and high-contrast rules get
+   none. The rules keep the order they had inside apexcharts.css. */
+
+/* Focus indicator. A dark chart keeps apexcharts.css's yellow: a primary seed
+   can fall below 3:1 on a dark surface (Indigo's is 2.4:1). */
+.apexcharts-canvas:where(.apexcharts-igniteui) {
+  --apexcharts-focus-color: var(--ig-primary-seed, var(--ig-primary-500, #008FFB));
+}
+
+/* Measure ruler. Each twin value also sits in an -ig copy: a value equal to
+   it is the twin's, which the ruler swaps for the colour Theme read (hex or
+   rgba()), and a page's own value is used as written. */
+.apexcharts-canvas:where(.apexcharts-igniteui) {
+  --apx-measure-up-ig: var(--ig-success-seed, var(--ig-success-500, #16a34a));
+  --apx-measure-down-ig: var(--ig-error-seed, var(--ig-error-500, #dc2626));
+  --apx-measure-up: var(--apx-measure-up-ig, #16a34a);
+  --apx-measure-down: var(--apx-measure-down-ig, #dc2626);
+}
+/* The ruler is drawn on the chart, so its greys follow the chart's mode. */
+.apexcharts-canvas:where(.apexcharts-theme-light.apexcharts-igniteui-light),
+.apexcharts-canvas:where(.apexcharts-theme-dark.apexcharts-igniteui-dark) {
+  --apx-measure-neutral-ig: var(--ig-gray-600, #64748b);
+  --apx-measure-guide-ig: var(--ig-gray-400, #94a3b8);
+  --apx-measure-neutral: var(--apx-measure-neutral-ig, #64748b);
+  --apx-measure-guide: var(--apx-measure-guide-ig, #94a3b8);
+}
+
+/* The context menu and the ink card have no dark style. Their twins follow a
+   light sheet, and a dark one only on a dark chart and through the sheet's
+   overlay roles (Ignite UI 7.5 on): without them every -ig helper is invalid
+   and each value falls back to the light default. */
+.apexcharts-canvas:where(.apexcharts-igniteui-light) {
+  --apx-menu-bg: var(--ig-surface-overlay, #ffffff);
+  --apx-menu-fg: var(--ig-surface-overlay-contrast, #1e293b);
+  --apx-menu-border: var(--ig-gray-300, #e2e8f0);
+  --apx-menu-hover: var(--ig-gray-100, #f1f5f9);
+}
+.apexcharts-canvas:where(.apexcharts-theme-dark.apexcharts-igniteui-dark) {
+  --apx-menu-bg: var(--ig-surface-overlay, #ffffff);
+  --apx-menu-fg: var(--ig-surface-overlay-contrast, #1e293b);
+  --apx-menu-border-ig: color-mix(in srgb, var(--ig-surface-overlay-contrast) 16%, var(--ig-surface-overlay));
+  --apx-menu-border: var(--apx-menu-border-ig, #e2e8f0);
+  --apx-menu-hover-ig: color-mix(in srgb, var(--ig-surface-overlay-contrast) 8%, var(--ig-surface-overlay));
+  --apx-menu-hover: var(--apx-menu-hover-ig, #f1f5f9);
+}
+
+/* Ink card. */
+.apexcharts-canvas:where(.apexcharts-igniteui) {
+  --apx-ink-card-accent: var(--ig-primary-seed, var(--ig-primary-500, #6366f1));
+}
+.apexcharts-canvas:where(.apexcharts-igniteui-light) {
+  --apx-ink-card-bg: var(--ig-surface-overlay, #ffffff);
+  --apx-ink-card-fg: var(--ig-surface-overlay-contrast, #1e293b);
+  --apx-ink-card-border: var(--ig-gray-300, #e2e8f0);
+  --apx-ink-card-hover: var(--ig-gray-100, #f1f5f9);
+}
+.apexcharts-canvas:where(.apexcharts-theme-dark.apexcharts-igniteui-dark) {
+  --apx-ink-card-bg: var(--ig-surface-overlay, #ffffff);
+  --apx-ink-card-fg: var(--ig-surface-overlay-contrast, #1e293b);
+  --apx-ink-card-border: var(--apx-menu-border-ig, #e2e8f0);
+  --apx-ink-card-hover: var(--apx-menu-hover-ig, #f1f5f9);
+}
+:where(.apexcharts-igniteui) .apexcharts-context-menu,
+:where(.apexcharts-igniteui) .apexcharts-ink-card {
+  font-family: var(--apx-font-family, var(--ig-font-family, Helvetica, Arial, sans-serif));
+}
+
+/* Tooltip. A mix of an absent token is invalid rather than empty, so the
+   muted text reads it through a helper, which then falls through to the
+   default. */
+:where(.apexcharts-igniteui-light) .apexcharts-tooltip {
+  --apx-tt-bg: var(--ig-surface-overlay, #ffffff);
+  --apx-tt-border: var(--ig-gray-300, rgba(15, 23, 42, 0.12));
+  --apx-tt-color: var(--ig-surface-overlay-contrast, #0f172a);
+  --apx-tt-color-muted-ig: color-mix(in srgb, var(--ig-surface-overlay-contrast) 55%, transparent);
+  --apx-tt-color-muted: var(--apx-tt-color-muted-ig, rgba(15, 23, 42, 0.55));
+}
+
+:where(.apexcharts-igniteui-dark) .apexcharts-tooltip.apexcharts-theme-dark {
+  --apx-tt-bg: var(--ig-surface-overlay, #1c1c1f);
+  --apx-tt-border: var(--ig-gray-300, rgba(255, 255, 255, 0.16));
+  --apx-tt-color: var(--ig-surface-overlay-contrast, #f3f4f6);
+  --apx-tt-color-muted-ig: color-mix(in srgb, var(--ig-surface-overlay-contrast) 55%, transparent);
+  --apx-tt-color-muted: var(--apx-tt-color-muted-ig, rgba(243, 244, 246, 0.55));
+}
+
+/* Axis tooltips. */
+:where(.apexcharts-igniteui-light) .apexcharts-xaxistooltip,
+:where(.apexcharts-igniteui-light) .apexcharts-yaxistooltip {
+  --apx-axt-bg: var(--ig-surface-overlay, #ffffff);
+  --apx-axt-border: var(--ig-gray-300, rgba(15, 23, 42, 0.08));
+  --apx-axt-color: var(--ig-surface-overlay-contrast, #0f172a);
+}
+
+:where(.apexcharts-igniteui-dark) .apexcharts-xaxistooltip.apexcharts-theme-dark,
+:where(.apexcharts-igniteui-dark) .apexcharts-yaxistooltip.apexcharts-theme-dark {
+  --apx-axt-bg: var(--ig-surface-overlay, #1c1c1f);
+  --apx-axt-border: var(--ig-gray-300, rgba(255, 255, 255, 0.1));
+  --apx-axt-color: var(--ig-surface-overlay-contrast, #f3f4f6);
+}
+
+/* Export menu. */
+:where(.apexcharts-igniteui-light) .apexcharts-menu {
+  --apx-menu-bg: var(--ig-surface-overlay, rgba(255, 255, 255, 0.95));
+  --apx-menu-fg: var(--ig-surface-overlay-contrast, currentColor);
+  --apx-menu-border: var(--ig-gray-300, rgba(15, 23, 42, 0.08));
+  --apx-menu-hover: var(--ig-gray-100, rgba(15, 23, 42, 0.06));
+}
+
+.apexcharts-theme-dark:where(.apexcharts-igniteui-dark) .apexcharts-menu {
+  --apx-menu-bg: var(--ig-surface-overlay, rgba(28, 28, 31, 0.92));
+  --apx-menu-fg: var(--ig-surface-overlay-contrast, #f3f4f6);
+  --apx-menu-border: var(--ig-gray-300, rgba(255, 255, 255, 0.08));
+  --apx-menu-hover: var(--ig-gray-100, rgba(255, 255, 255, 0.08));
+}

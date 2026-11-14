@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * A `globalThis`-backed registry of named unit-chart layouts, mirroring
- * ChartFactory's type registry and ThemeRegistry so a layout registered once
+ * ChartFactory's type registry and the theme registry so a layout registered once
  * (via `ApexCharts.registerUnitLayout`) survives duplicate CJS+ESM module
  * instances and is resolvable by every chart on the page.
  *

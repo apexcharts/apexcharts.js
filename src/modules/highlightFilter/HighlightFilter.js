@@ -28,6 +28,7 @@ import Graphics from '../Graphics'
 import CoreUtils from '../CoreUtils'
 import Series from '../Series'
 import Utils from '../../utils/Utils'
+import Theme from '../Theme'
 import { prefersReducedMotion } from '../Animations'
 import DataLabels from '../DataLabels'
 import {
@@ -2542,6 +2543,7 @@ export default class HighlightFilter {
           : null,
         lane ? (cfg.radialBar?.lanes?.opacity ?? LANE) : cfg.fadeOpacity,
         lane,
+        Theme.radius(w, 3),
       )
     }
     if (!on) return
@@ -2928,8 +2930,9 @@ function overflows(p, whole) {
  * @param {string | null} c
  * @param {number} [fade]
  * @param {'part' | 'whole'} [lane]
+ * @param {number} [radius] its corners, in px (the radius factor applied)
  */
-function swatch(m, c, fade = 0.2, lane) {
+function swatch(m, c, fade = 0.2, lane, radius = 3) {
   const st = m.style
   const shape = m.firstElementChild
   if (!c) {
@@ -2951,7 +2954,7 @@ function swatch(m, c, fade = 0.2, lane) {
         ? tint
         : `linear-gradient(90deg, ${c} 50%, ${tint} 50%)`
   st.boxShadow = `inset 0 0 0 1px ${c}`
-  st.borderRadius = '3px'
+  st.borderRadius = `${radius}px`
   if (shape) shape.style.display = 'none'
 }
 

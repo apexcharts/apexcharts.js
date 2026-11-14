@@ -50,10 +50,10 @@ const typeOwned = (fn) => {
  *
  * The line drawn here is between what a chart DOES and how it is PAINTED. A
  * leaf that decides what is read, what is said, or what is hit-tested belongs
- * to the type and hands over. A leaf that decides colour, opacity, stroke,
- * spacing or legend placement stays put, so that changing type re-reads the
- * data without also restyling the chart out from under a morph in flight, and
- * so that a palette chosen for a bar survives its becoming a line.
+ * to the type and hands over. A leaf that decides colour, opacity, stroke
+ * colour, spacing or legend placement stays put, so that changing type
+ * re-reads the data without also restyling the chart out from under a morph in
+ * flight, and so that a palette chosen for a bar survives its becoming a line.
  *
  * A leaf only hands over when it still holds exactly what the outgoing type
  * chose for it. Anything the user set, then or in this same update, is theirs
@@ -73,6 +73,10 @@ const TYPE_OWNED_PATHS = [
   'plotOptions.bar.dataLabels.position',
   // A box plot's outlier markers are hit targets; a violin draws none.
   'markers.size',
+  // A bar's 0 width draws a line as nothing at all (#5435).
+  'stroke.width',
+  'stroke.curve',
+  'stroke.lineCap',
   // The violin layers a raincloud rearranges: which side the density is on,
   // whether the box lane exists and how its whiskers are computed, and where
   // the jitter sits. All decide what is drawn, so they hand over when the
@@ -241,12 +245,12 @@ const getRangeValues = ({
   y2,
   w,
 }) => {
-  // The row is absent when a zoom collapsed that series (#4986).
-  let start = w.rangeData.seriesRangeStart[seriesIndex]?.[dataPointIndex]
-  let end = w.rangeData.seriesRangeEnd[seriesIndex]?.[dataPointIndex]
+  let start = w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
+  let end = w.rangeData.seriesRangeEnd[seriesIndex][dataPointIndex]
   let ylabel = w.labelData.labels[dataPointIndex]
-  const seriesCfg = w.config.series[seriesIndex]
-  let seriesName = seriesCfg?.name ? seriesCfg.name : ''
+  let seriesName = w.config.series[seriesIndex].name
+    ? w.config.series[seriesIndex].name
+    : ''
   const yLbFormatter = w.formatters.ttKeyFormatter
   const yLbTitleFormatter = w.config.tooltip.y.title.formatter
 
@@ -264,8 +268,8 @@ const getRangeValues = ({
       ? yLbTitleFormatter(seriesName, opts)
       : seriesName,
   )
-  if (seriesCfg?.data?.[dataPointIndex]?.x) {
-    ylabel = seriesCfg.data[dataPointIndex].x
+  if (w.config.series[seriesIndex].data[dataPointIndex]?.x) {
+    ylabel = w.config.series[seriesIndex].data[dataPointIndex].x
   }
 
   if (!isTimeline) {
@@ -453,6 +457,25 @@ export default class Defaults {
   }
 
   /**
+   * Add to `named` every type-owned path that one of `sources` (constructor
+   * options, global Apex options, an update payload) names. Comparing by value
+   * cannot tell a user's curve: 'straight' from a line's own, so the ask is
+   * remembered instead.
+   *
+   * @param {Set<string>} named
+   * @param {...(Record<string, any> | undefined)} sources
+   */
+  static noteAskedTypeOwned(named, ...sources) {
+    for (const src of sources) {
+      if (!src) continue
+      for (const path of TYPE_OWNED_PATHS) {
+        if (readPath(src, path) !== undefined) named.add(path)
+      }
+    }
+    return named
+  }
+
+  /**
    * Re-choose the type-owned leaves (see TYPE_OWNED_PATHS) after
    * `updateOptions({ chart: { type } })` moved the chart from one type to
    * another, so the chart behaves as the type it now is.
@@ -461,13 +484,17 @@ export default class Defaults {
    * chose for it. That single test covers every way a value can be the user's
    * instead of ours: set at construction, set by an earlier update, or set by
    * this very update. `options` is consulted too, so an explicit ask in the
-   * same call wins even when it happens to equal the outgoing default.
+   * same call wins even when it happens to equal the outgoing default, and so
+   * is `named`, for an earlier ask that happens to equal it (a line set to
+   * curve: 'straight' stays straight as an area).
    *
    * @param {Record<string, any>} config the merged w.config, mutated in place
    * @param {string} fromType the type (or requested alias) before this update
    * @param {Record<string, any>} [options] this update's payload
+   * @param {Set<string>} [named] type-owned paths the user named before, see
+   *   Defaults.noteAskedTypeOwned
    */
-  static handOverTypeDefaults(config, fromType, options) {
+  static handOverTypeDefaults(config, fromType, options, named) {
     // Every update can reach a combination construction settles, whether or
     // not it changes the type.
     Defaults.reconcile(config, true)
@@ -534,6 +561,7 @@ export default class Defaults {
         ]
       : TYPE_OWNED_PATHS) {
       if (options && readPath(options, path) !== undefined) continue
+      if (named?.has(path)) continue
       const fromDefault = readPath(from, path)
       const toDefault = readPath(to, path)
       if (fromDefault === undefined && toDefault === undefined) continue
@@ -562,7 +590,9 @@ export default class Defaults {
    * Put on or take off the sparkline preset when an update turns
    * `chart.sparkline.enabled` on or off; construction is the only other place
    * it is applied. A leaf moves only while it still holds what the outgoing
-   * mode chose, and never when this update names it.
+   * mode chose, and never when this update names it. The one exception is the
+   * y-axis of a sparkline: any update that passes yaxis hides it again, as
+   * construction does whatever the axis asks for.
    *
    * @param {Record<string, any>} config the merged w.config, mutated in place
    * @param {boolean} was whether the sparkline was on before the update
@@ -570,6 +600,9 @@ export default class Defaults {
    */
   static syncSparkline(config, was, options) {
     const now = !!config.chart.sparkline?.enabled
+    // A yaxis in the payload arrives filled with the plain axis defaults,
+    // show: true included, so the axis is hidden again here (#5434).
+    if (now && options?.yaxis) new Defaults(config).hideYAxis()
     if (now === !!was) return
     const d = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] })
     const plain = plainFor(config)
@@ -1432,8 +1465,8 @@ export default class Defaults {
         ) {
           const getVal = () => {
             const start =
-              w.rangeData.seriesRangeStart[seriesIndex]?.[dataPointIndex]
-            const end = w.rangeData.seriesRangeEnd[seriesIndex]?.[dataPointIndex]
+              w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
+            const end = w.rangeData.seriesRangeEnd[seriesIndex][dataPointIndex]
             return end - start
           }
           if (w.globals.comboCharts) {

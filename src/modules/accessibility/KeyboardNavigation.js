@@ -687,6 +687,10 @@ export default class KeyboardNavigation {
     }
 
     ttCtx.e = { type: 'mousemove', clientX, clientY }
+    // The keyboard has the tooltip now: no pointer replay after an update,
+    // and none still waiting on one's tween.
+    ttCtx.pointerDriven = false
+    ttCtx.pendingReplay = null
     // The box that follows the pointer reads this chart's own pointer first
     // (Position.computeTooltipPosition) and the event only without one. It
     // starts at 0, 0, which is a pointer, and after a hover it is wherever

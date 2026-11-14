@@ -160,41 +160,41 @@ describe('chart.foreColor: an explicit foreColor beats the mode default', () => 
     token.destroy()
   })
 
-  // v8.7.0 parity: a foreColor equal to the default of its OWN mode is still
-  // replaceable by a fore token, as the grid and axis defaults are. Only the
-  // other mode's default is kept as a choice.
+  // Plan 36 (D5): a foreColor the page named beats every token, even one
+  // equal to the default of its own mode. Until 1B it yielded to a fore
+  // token, as the grid and axis defaults did.
   for (const mode of ['light', 'dark']) {
     const own = modeDefault(mode)
-    it(`${mode}: an explicit ${own} (this mode's default) yields to a fore token`, async () => {
+    it(`${mode}: an explicit ${own} (this mode's default) beats a fore token`, async () => {
       ApexCharts.registerTheme('nightC2', { tokens: { fore: '#abcdef' } })
       const chart = make({
         theme: { mode, name: 'nightC2' },
         chart: { foreColor: own },
       })
       await chart.render()
-      expectFore(chart, '#abcdef')
+      expectFore(chart, own)
       await chart.updateOptions({ title: { text: 'kept' } })
-      expectFore(chart, '#abcdef')
+      expectFore(chart, own)
       chart.destroy()
     })
   }
 
-  it('a window.Apex foreColor equal to the light default yields to a fore token', async () => {
+  it('a window.Apex foreColor equal to the light default beats a fore token', async () => {
     ApexCharts.registerTheme('nightC2', { tokens: { fore: '#abcdef' } })
     window.Apex = { chart: { foreColor: LIGHT } }
     const chart = make({ theme: { name: 'nightC2' } })
     await chart.render()
-    expectFore(chart, '#abcdef')
+    expectFore(chart, LIGHT)
     chart.destroy()
   })
 
-  it('an updateOptions foreColor equal to the light default yields to a fore token', async () => {
+  it('an updateOptions foreColor equal to the light default beats a fore token', async () => {
     ApexCharts.registerTheme('nightC2', { tokens: { fore: '#abcdef' } })
     const chart = make({ theme: { name: 'nightC2' } })
     await chart.render()
     expectFore(chart, '#abcdef')
     await chart.updateOptions({ chart: { foreColor: LIGHT } })
-    expectFore(chart, '#abcdef')
+    expectFore(chart, LIGHT)
     chart.destroy()
   })
 

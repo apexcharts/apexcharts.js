@@ -394,6 +394,14 @@ export interface XYRatios {
   baseLineX: number
 }
 
+/** Which grid and axis colours the page named (`axisBorder` and `axisTicks` per axis). */
+export interface GridColorsExplicit {
+  grid: boolean
+  xaxis: { border: boolean; ticks: boolean }
+  /** One entry per y axis, in the order the page listed them. */
+  yaxis: { border: boolean; ticks: boolean }[]
+}
+
 // ---------------------------------------------------------------------------
 // ChartGlobals — the full `w.globals` flat object
 //
@@ -478,10 +486,17 @@ export interface ChartGlobals
    */
   tokenSurface: string | undefined
   /**
-   * The `--apx-fore` / `--apx-grid` tokens the last render applied, so a
-   * changed or removed token can replace the value Theme itself wrote.
+   * The fore, grid and font values the last render applied from a token
+   * layer (`--apx-*`, a named theme, the design system), so a changed or
+   * removed token can replace the value Theme itself wrote.
    */
-  tokenChrome: { fore?: string; grid?: string } | undefined
+  tokenChrome: { fore?: string; grid?: string; font?: string } | undefined
+  /**
+   * `--apx-radius-factor` as a number (1 when unset, never below 0), read
+   * with the tokens on every render. The radii drawn in JS are scaled by it
+   * through Theme.radius, as the stylesheet scales its own.
+   */
+  radiusFactor: number
   /**
    * What the named theme wrote into `config.theme` (its mode, colorBlindMode,
    * and the monochrome object it replaced), so switching to another named
@@ -490,6 +505,14 @@ export interface ChartGlobals
   namedThemeApplied:
     | { mode?: string; accessibility?: string; monochrome?: any }
     | undefined
+  /**
+   * Present while the dark mode came from the design system's variant
+   * (`--ig-theme-variant`) rather than the page. `state` is the tooltip
+   * theme the chart had before the variant darkened it. A light or removed
+   * sheet takes the mode back; a mode the page passes drops the record. See
+   * Theme._takeBackVariantMode.
+   */
+  variantModeApplied: { state?: string } | undefined
   /**
    * Whether the page named `theme.palette` (in the chart's options, in
    * window.Apex or in an updateOptions payload). An explicit palette is kept
@@ -510,6 +533,16 @@ export interface ChartGlobals
    * however the mode arrived (a named theme, `theme.follow: 'os'`).
    */
   tooltipThemeExplicit: boolean
+  /**
+   * Whether the page named `chart.fontFamily`. A named font beats
+   * `--apx-font-family` and the design system's font, the default included.
+   */
+  themeFontFamilyExplicit: boolean
+  /**
+   * Which grid and axis colours the page named, y axes by index. A named
+   * colour beats every token layer, its default included.
+   */
+  themeGridColorsExplicit: GridColorsExplicit
   /**
    * Whether a responsive breakpoint that matches the current render names
    * `tooltip.theme`. Set by Responsive.checkResponsiveConfig; counts as
@@ -647,7 +680,7 @@ export interface ChartGlobals
   svgWidth: number
   svgHeight: number
   /** Container inputs the last render was sized from; see Core.getResizeSignature. */
-  lastResizeSignature: { w: number; h: number; iw?: number } | null
+  lastResizeSignature: { w: number; h: number; iw?: number; ph?: number } | null
   yAxisLabelsWidth: number
   yAxisWidths: number[]
   translateYAxisX: number[]
@@ -764,6 +797,8 @@ export interface ChartGlobals
   } | null
   // The chrome tweens AxisTransition has running; each entry lands its tween.
   chromeTweens: Set<() => void> | null
+  // The rafTweens of the render on screen still running, a set per render.
+  liveTweens: Set<object> | null
   // A circle chart's outgoing circle, captured before an update's teardown
   // (CircleTransition.captureCircle) and consumed once after it mounts.
   // `circle` is what was on screen (in flight, mid-tween), `rendered` where

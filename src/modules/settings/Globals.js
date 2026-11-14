@@ -467,12 +467,19 @@ export default class Globals {
       // update it (see Theme.applyTokenChrome). Persistent: a re-render must
       // not forget it.
       tokenSurface: undefined,
-      // The tokens the last render applied to fore and grid, for the same
-      // reason (see Theme.applyTokenChrome).
+      // The tokens the last render applied to fore, grid and font, for the
+      // same reason (see Theme.applyTokenChrome).
       tokenChrome: undefined,
+      // `--apx-radius-factor` as a number, read with the tokens on every
+      // render (see Theme.radius).
+      radiusFactor: 1,
       // What the named theme (theme.name) wrote into config.theme, so a switch
       // to another named theme can take it back (see Theme._applyNamedThemeMode).
       namedThemeApplied: undefined,
+      // Set while the dark mode came from the design system's variant, so a
+      // light or removed sheet can take it back (see
+      // Theme._takeBackVariantMode).
+      variantModeApplied: undefined,
       // Whether the page named theme.palette, so the mode defaults leave it
       // alone (see Theme.applyModePalette). Set by Base and updateOptions.
       themePaletteExplicit: false,
@@ -481,6 +488,15 @@ export default class Globals {
       // Theme._applyModeDefaults). Set by Base and updateOptions.
       themeForeColorExplicit: false,
       tooltipThemeExplicit: false,
+      // The same for chart.fontFamily and the grid and axis colours: a value
+      // the page named beats every token, its default included (see
+      // Theme.applyTokenChrome). Set by Base and updateOptions.
+      themeFontFamilyExplicit: false,
+      themeGridColorsExplicit: {
+        grid: false,
+        xaxis: { border: false, ticks: false },
+        yaxis: [],
+      },
       // Whether a responsive breakpoint that matches this render names
       // tooltip.theme. Set by Responsive.checkResponsiveConfig.
       responsiveTooltipTheme: false,
@@ -572,6 +588,8 @@ export default class Globals {
       // The chrome tweens AxisTransition has running (each entry lands its
       // tween), so the next update can land them before reading the chrome.
       chromeTweens: null,
+      // The rafTweens of the render on screen still running, a set per render.
+      liveTweens: null,
       // A circle chart's circle (and, without axes, its plot rect) captured
       // before an update's teardown; consumed once by CircleTransition after
       // the new render mounts.

@@ -393,6 +393,9 @@ export default class HeatMap {
                 },
               })
             }
+          } else if (!w.globals.dataChanged) {
+            // Animations off: drawn at rest, and over.
+            w.globals.animationEnded = true
           }
 
           if (w.globals.dataChanged) {
@@ -421,7 +424,11 @@ export default class HeatMap {
                     to: { x: x1, y: y1, width: cellW, height: yDivision },
                   })
                 } else {
-                  new Animations(this.w).animatePop(cell, { speed })
+                  const animations = new Animations(this.w)
+                  animations.animatePop(cell, {
+                    speed,
+                    onComplete: () => animations.animationCompleted(cell),
+                  })
                 }
               } else {
                 // A rect cell also eases from the box it had. An update that
@@ -460,6 +467,9 @@ export default class HeatMap {
                   },
                 )
               }
+            } else {
+              // An update that does not animate is over as it is drawn.
+              w.globals.animationEnded = true
             }
           }
         }
@@ -693,5 +703,7 @@ export default class HeatMap {
     // On the layout tween's easing, so the cells keep step with the plot and
     // the y-axis labels when dynamicAnimation.easing is set.
     if (box) runner.ease(morphEasing(this.w))
+    // The update is over when its cells land.
+    runner.after(() => new Animations(this.w).animationCompleted(el))
   }
 }

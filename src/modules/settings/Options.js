@@ -2871,12 +2871,19 @@ export default class Options {
         // and it keeps following the mode (see Theme.applyModePalette).
         palette: 'palette1',
         // Facet (#13): read `--apx-*` CSS design tokens from the cascade
-        // (accent/fore/grid/surface + series-1..N). true (default) reads any
-        // present (absence is a no-op); false disables. Tokens top the
+        // (accent/fore/grid/surface + series-1..N, font-family, radius-factor).
+        // true (default) reads any present (absence is a no-op); false
+        // disables them and the design-system layer below. Tokens top the
         // resolution chain below explicit config. Tokens are re-read on every
         // render; call chart.refreshTokens() to pick up a runtime CSS change
         // that does not itself trigger a render.
         tokens: true,
+        // Plan 36: follow a design system's stylesheet on the page (Ignite UI's
+        // `--ig-*` tokens) for series, chrome, font and an unset mode, while
+        // the add-on (apexcharts/features/ignite-ui) is loaded; without it this
+        // does nothing. It ranks below every other source; false turns it off
+        // and keeps `--apx-*`.
+        designSystem: true,
         // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
         // reactively (SSR-safe, cleaned up on destroy). false disables.
         follow: false, // 'os' | false

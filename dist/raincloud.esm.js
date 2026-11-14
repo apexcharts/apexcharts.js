@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -45,12 +45,12 @@ function registerSeriesTransform(name, fn) {
   getTransforms()[name] = fn;
 }
 const Utils = _core.__apex_Utils;
-function A(e, t) {
-  const s = e.length;
-  if (0 === s) return NaN;
-  if (1 === s) return e[0];
-  const n = (s - 1) * t, i = Math.floor(n), r = Math.ceil(n);
-  return i === r ? e[i] : e[i] + (e[r] - e[i]) * (n - i);
+function x(t, e) {
+  const n = t.length;
+  if (0 === n) return NaN;
+  if (1 === n) return t[0];
+  const r = (n - 1) * e, s = Math.floor(r), i = Math.ceil(r);
+  return s === i ? t[s] : t[s] + (t[i] - t[s]) * (r - s);
 }
 function stdDev(values) {
   const n = values.length;
@@ -68,9 +68,9 @@ function stdDev(values) {
 function fiveNumberSummary(values, opts = {}) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
-  const q1 = A(sorted, 0.25);
-  const median = A(sorted, 0.5);
-  const q3 = A(sorted, 0.75);
+  const q1 = x(sorted, 0.25);
+  const median = x(sorted, 0.5);
+  const q3 = x(sorted, 0.75);
   const iqr = q3 - q1;
   let lo = sorted[0];
   let hi = sorted[sorted.length - 1];
@@ -97,7 +97,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
+    const iqr = x(sorted, 0.75) - x(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -120,13 +120,13 @@ function kernelDensity(values, opts = {}) {
   const norm = 1 / (n * h * Math.sqrt(2 * Math.PI));
   const density = [];
   for (let g = 0; g < steps; g++) {
-    const x = lo + g * step;
+    const x2 = lo + g * step;
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const z = (x - sorted[i]) / h;
+      const z = (x2 - sorted[i]) / h;
       sum += Math.exp(-0.5 * z * z);
     }
-    density.push([x, sum * norm]);
+    density.push([x2, sum * norm]);
   }
   return { density, bandwidth: h };
 }
@@ -453,7 +453,7 @@ function renderJitter({
   pointsByCat.forEach(({ groups, j }) => {
     const catColor = distributed ? w.globals.colors[j] : w.globals.colors[realIndex];
     const fc = options.fillColor;
-    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45) : fc || darkenColor(catColor, 0.45);
+    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45, w.dom.elWrap) : fc || darkenColor(catColor, 0.45, w.dom.elWrap);
     groups.forEach((g) => {
       const elPoints = graphics.drawPath({
         d: g.d,
@@ -472,18 +472,20 @@ function renderJitter({
   });
   elSeries.add(elPointsWrap);
 }
-function darkenColor(color, amount) {
-  const rgb = Utils.parseColor(color) || Utils.parseColor(Utils.resolveColor(color));
-  if (!rgb) return color;
+function darkenColor(color, amount, el) {
+  const { c: rgb, resolved } = Utils.readColor(color, el);
+  if (!rgb) {
+    return Utils.isColor(color) ? Utils.mixColor(resolved, -amount) : color;
+  }
   const f = Math.max(0, 1 - amount);
   return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
 }
 function rampColorAt(colors, t) {
   if (!colors.length) return "#000";
   if (colors.length === 1) return colors[0];
-  const x = Math.max(0, Math.min(1, t)) * (colors.length - 1);
-  const i = Math.floor(x);
-  const frac = x - i;
+  const x2 = Math.max(0, Math.min(1, t)) * (colors.length - 1);
+  const i = Math.floor(x2);
+  const frac = x2 - i;
   const c0 = Utils.parseHex(colors[i]) || [0, 0, 0];
   const c1 = Utils.parseHex(colors[Math.min(i + 1, colors.length - 1)]) || c0;
   const mix = (a, b) => Math.round(a + (b - a) * frac);
@@ -550,7 +552,7 @@ class Violin extends BarBase {
       class: "apexcharts-violin-series apexcharts-plot-series"
     });
     for (let i = 0; i < series.length; i++) {
-      let x;
+      let x2;
       let y;
       const yArrj = [];
       const xArrj = [];
@@ -582,8 +584,8 @@ class Violin extends BarBase {
         zeroH
       } = initPositions;
       y = initY;
-      x = initX;
-      xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
+      x2 = initX;
+      xArrj.push(x2 + (barWidth != null ? barWidth : 0) / 2);
       const elDataLabelsWrap = graphics.group({
         class: "apexcharts-datalabels",
         "data:realIndex": realIndex
@@ -608,12 +610,12 @@ class Violin extends BarBase {
           zeroW
         }) : this.drawVerticalViolin({
           indexes: { i, j, realIndex, translationsIndex },
-          x,
+          x: x2,
           xDivision,
           barWidth,
           zeroH
         });
-        x = paths.x;
+        x2 = paths.x;
         y = paths.y;
         if (j > 0) {
           xArrj.push(paths.center);
@@ -650,7 +652,7 @@ class Violin extends BarBase {
           pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
-          x,
+          x: x2,
           y,
           series,
           columnGroupIndex,
@@ -683,7 +685,7 @@ class Violin extends BarBase {
               pathTo: bp.pathTo,
               strokeWidth: boxStrokeWidth,
               elSeries,
-              x,
+              x: x2,
               y,
               series,
               columnGroupIndex,
@@ -726,19 +728,19 @@ class Violin extends BarBase {
     return ret;
   }
   /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
-  drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
+  drawVerticalViolin({ indexes, x: x2, xDivision, barWidth, zeroH }) {
     const { realIndex, j, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex] * (this.isReversed ? -1 : 1);
-    let barXPosition = x + barWidth * this.visibleI;
+    let barXPosition = x2 + barWidth * this.visibleI;
     if (this.w.axisFlags.isXNumeric) {
-      ({ x, barXPosition } = this.getBarXForNumericXAxis({
-        x,
+      ({ x: x2, barXPosition } = this.getBarXForNumericXAxis({
+        x: x2,
         barWidth,
         realIndex,
         j
       }));
     } else {
-      x = x + xDivision;
+      x2 = x2 + xDivision;
     }
     return __spreadProps(__spreadValues({}, this.buildViolin({
       realIndex,
@@ -748,7 +750,7 @@ class Violin extends BarBase {
       alongFn: (v) => zeroH - this.logVal(v, realIndex) / yRatio,
       vertical: true
     })), {
-      x,
+      x: x2,
       y: zeroH
     });
   }
