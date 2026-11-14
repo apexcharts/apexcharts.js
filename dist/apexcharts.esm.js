@@ -18010,12 +18010,7 @@ class Line {
       pY2 = prevY2;
       y2Arrj.push(yArrj[0] !== null ? prevY2 : null);
     }
-    const pathsFrom = this._calculatePathsFrom(
-      realIndex,
-      prevY,
-      pX,
-      type === "rangeArea"
-    );
+    const pathsFrom = this._calculatePathsFrom(realIndex, prevY);
     const rYArrj = [yArrj[0]];
     const rY2Arrj = [y2Arrj[0]];
     const iteratingOpts = {
@@ -18043,7 +18038,7 @@ class Line {
       isRangeStart: true
     }));
     if (type === "rangeArea") {
-      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2, pX);
+      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2);
       const rangePaths = this._iterateOverDataPoints(__spreadProps(__spreadValues({}, iteratingOpts), {
         series: seriesRangeEnd,
         xArrj: [x2],
@@ -18063,14 +18058,6 @@ class Line {
       const prevBand = paths.linePaths.length === 1 ? this.lineHelpers.previousRangeAreaPath(realIndex) : null;
       paths.pathFromLine = prevBand != null ? prevBand : rangePaths.pathFromLine + paths.pathFromLine;
     } else if (!/z\s*$/i.test(paths.pathFromArea)) {
-      if (this.appendPathFrom && !w.globals.hasNullValues && paths.xArrj.length >= 2) {
-        const x0 = paths.xArrj[0];
-        const xLast = paths.xArrj[paths.xArrj.length - 1];
-        if (typeof x0 === "number" && typeof xLast === "number") {
-          const graphics = new Graphics(this.w);
-          paths.pathFromArea += graphics.line(xLast, this.areaBottomY) + graphics.line(x0, this.areaBottomY);
-        }
-      }
       paths.pathFromArea += "z";
     }
     return paths;
@@ -18177,29 +18164,12 @@ class Line {
    * The baseline pathFrom a series grows from on mount, or the previous
    * render's paths when there are any. `prevY` rides along for the first
    * point's marker.
-   *
-   * The opening anchor sits at the first point's x, on the baseline. The
-   * per-point walk then adds one `L x baseline` per later point (two for a
-   * step curve, which emits two commands per point), so each from-anchor
-   * shares its destination's x and the morph rises vertically. An opening
-   * segment at x = 0 (and a second copy of it) shifted every later anchor
-   * onto the previous point, and the line slid diagonally (#4994).
-   *
-   * RangeArea's lower edge is the exception: it opens `M x0 yHigh L x0 yLow`,
-   * so it still needs that second anchor, now at x0 rather than at x = 0.
    * @param {number} realIndex
    * @param {number} prevY
-   * @param {number} originX first point's x — the same x `pathTo` starts at
-   * @param {boolean} [duplicateOpening] second anchor at x0, for the range
-   *   area lower edge only
    */
-  _calculatePathsFrom(realIndex, prevY, originX, duplicateOpening = false) {
+  _calculatePathsFrom(realIndex, prevY) {
     const graphics = new Graphics(this.w);
-    const x0 = typeof originX === "number" ? originX : 0;
-    let pathFromLine = graphics.move(x0, this.areaBottomY);
-    if (duplicateOpening) {
-      pathFromLine += graphics.line(x0, this.areaBottomY);
-    }
+    let pathFromLine = graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY);
     let pathFromArea = pathFromLine;
     if (this.w.globals.previousPaths.length > 0) {
       const pathFrom = this.lineHelpers.checkPreviousPaths({
@@ -18710,21 +18680,8 @@ class Line {
       areaPath = calculatedPaths.areaPath;
       linePath = calculatedPaths.linePath;
       if (this.appendPathFrom && !w.globals.hasNullValues && !(curve === "monotoneCubic" && type === "rangeArea")) {
-        const bottom = this.areaBottomY;
-        let fromXs;
-        if (curve === "stepline") {
-          fromXs = [x2, x2];
-        } else if (curve === "linestep") {
-          const prevX = xArrj[xArrj.length - 2];
-          fromXs = [typeof prevX === "number" ? prevX : x2, x2];
-        } else {
-          fromXs = [x2];
-        }
-        for (let k2 = 0; k2 < fromXs.length; k2++) {
-          const seg = graphics.line(fromXs[k2], bottom);
-          pathFromLine += seg;
-          pathFromArea += seg;
-        }
+        pathFromLine += graphics.line(x2, this.areaBottomY);
+        pathFromArea += graphics.line(x2, this.areaBottomY);
       }
       if (!this._shapeOnly) {
         this.handleNullDataPoints(series, pointsPos, i, j, realIndex);
