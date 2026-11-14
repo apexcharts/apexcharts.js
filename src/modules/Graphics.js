@@ -1584,8 +1584,18 @@ class Graphics {
       useBBox,
       fontWeight,
     ].join('\0')
-    const cache = w.globals.textRectsCache
-    if (cache && cache.has(cacheKey)) {
+    // Created as a Map in Globals.initGlobalVars, and cleared to a fresh Map
+    // on every resetGlobals. A later read can still see a replacement: a
+    // clone or a JSON round-trip turns a Map into a plain {}, and that object
+    // is truthy, so `cache && cache.has` throws
+    // `TypeError: cache.has is not a function` (minified: `l.has is not a
+    // function`) inside render()'s promise (#5170). Put a Map back first.
+    let cache = w.globals.textRectsCache
+    if (!(cache instanceof Map)) {
+      cache = new Map()
+      w.globals.textRectsCache = cache
+    }
+    if (cache.has(cacheKey)) {
       return /** @type {{ width: number, height: number }} */ (
         cache.get(cacheKey)
       )
@@ -1631,9 +1641,7 @@ class Graphics {
       centerOffset: useBBox ? bboxY + rect.height / 2 - -200 : 0,
     }
 
-    if (cache) {
-      cache.set(cacheKey, result)
-    }
+    cache.set(cacheKey, result)
 
     return result
   }
