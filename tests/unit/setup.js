@@ -60,3 +60,18 @@ if (typeof ResizeObserver === 'undefined') {
     }
   }
 }
+
+// jsdom stamps a frame with the age of the window (performance.now() minus
+// its value at window creation), not with performance.now(). A tween that
+// took its start from performance.now() then stays negative by that offset
+// and never finishes. Browsers use one clock, so pass performance.now().
+if (
+  typeof window !== 'undefined' &&
+  typeof window.requestAnimationFrame === 'function'
+) {
+  const requestFrame = window.requestAnimationFrame.bind(window)
+  window.requestAnimationFrame = (callback) =>
+    requestFrame(() => {
+      callback(performance.now())
+    })
+}

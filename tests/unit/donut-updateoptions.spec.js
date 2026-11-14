@@ -4,8 +4,10 @@
 // config and then skip the redraw, so the slices and their labels stayed as
 // first rendered until a window resize rebuilt them. The codepen below is the
 // report's reproduction. Pie shares that draw path.
+import { vi } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/standard.js'
+import { BrowserAPIs } from '../../src/ssr/BrowserAPIs.js'
 
 const LABELS = ['One', 'Two', 'Three', 'Four']
 const INITIAL = [1, 2, 3, 4]
@@ -177,6 +179,22 @@ describe('donut and pie updateOptions rebuild slices and labels (#5057)', () => 
   })
 
   it('donut: an animated updateOptions redraws the slices', async () => {
+    // Queue frames and stamp them, as datalabel-countup-landing does, so the
+    // sweep does not poll real timers. Entrance slices are released by
+    // setTimeout; those stay fake so a delay cannot fire after rAF is restored.
+    const frames = []
+    vi.spyOn(BrowserAPIs, 'requestAnimationFrame').mockImplementation((cb) => {
+      frames.push(cb)
+      return frames.length
+    })
+    const t0 = 1000
+    vi.spyOn(performance, 'now').mockReturnValue(t0)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const pump = (t) => {
+      const pending = frames.splice(0, frames.length)
+      for (const cb of pending) cb(t0 + t)
+    }
+
     document.body.innerHTML = '<div id="chart"></div>'
     const options = {
       chart: {
@@ -192,20 +210,31 @@ describe('donut and pie updateOptions rebuild slices and labels (#5057)', () => 
       series: INITIAL.slice(),
     }
     const chart = new ApexCharts(document.querySelector('#chart'), options)
-    await chart.render()
-    const before = paths(chart)
+    try {
+      await chart.render()
+      // Last slice waits the sum of the earlier sweeps, under animations.speed.
+      await vi.advanceTimersByTimeAsync(800)
+      await Promise.resolve()
+      pump(10000)
+      await Promise.resolve()
+      pump(10000)
+      const before = paths(chart)
 
-    await chart.updateOptions({ ...options, series: NEXT.slice() })
-    for (let t = 0; t < 1000 && !chart.w.globals.animationEnded; t += 20) {
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      await chart.updateOptions({ ...options, series: NEXT.slice() })
+      pump(40)
+
+      // The sweep leaves the first render. data:value / data:angle are the
+      // shares the sweep is going to, not the ones it started from.
+      expect(paths(chart)).not.toEqual(before)
+      expect(values(chart)).toEqual(['5', '6', '7', '8'])
+      expect(angles(chart).map((a) => Math.round(a))).toEqual([
+        69, 83, 97, 111,
+      ])
+      expect(chart.w.globals.animationEnded).toBe(true)
+    } finally {
+      chart.destroy()
+      vi.useRealTimers()
+      vi.restoreAllMocks()
     }
-
-    // The sweep leaves the first render. data:value / data:angle are the
-    // shares the sweep is going to, not the ones it started from.
-    expect(paths(chart)).not.toEqual(before)
-    expect(values(chart)).toEqual(['5', '6', '7', '8'])
-    expect(angles(chart).map((a) => Math.round(a))).toEqual([69, 83, 97, 111])
-    expect(chart.w.globals.animationEnded).toBe(true)
-    chart.destroy()
   })
 })

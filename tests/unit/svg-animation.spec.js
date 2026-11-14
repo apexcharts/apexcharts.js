@@ -192,11 +192,11 @@ describe('SVGAnimationRunner: colour attributes', () => {
     }
   })
 
-  it('finishes when the frame stamp stays behind performance.now()', async () => {
-    // jsdom's requestAnimationFrame stamp is performance.now() minus the age
-    // of the window. Compared with a start captured from performance.now(),
-    // that difference never closes, so a 40ms tween was still running after
-    // the donut updateOptions spec gave up on animationEnded.
+  it('stays on the frame clock when the first stamp precedes the tween', async () => {
+    // A frame stamped at its start can be earlier than performance.now() at
+    // the moment the tween was scheduled. Following the wall clock from then
+    // on would finish this tween while the frame clock is still behind, and
+    // desync it from the tweens that share its duration.
     let wall = 10000
     const frames = []
     const raf = vi
@@ -221,11 +221,13 @@ describe('SVGAnimationRunner: colour attributes', () => {
         ended = true
       })
       await Promise.resolve()
-      wall = 10020
       frames.shift()(wall - 5000)
       expect(ended).toBe(false)
-      wall = 10040
-      frames.shift()(wall - 5000)
+      // Wall time is long past the duration; the frame stamp is not.
+      wall = 20000
+      frames.shift()(5000)
+      expect(ended).toBe(false)
+      frames.shift()(10040)
       expect(ended).toBe(true)
     } finally {
       raf.mockRestore()
