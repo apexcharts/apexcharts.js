@@ -1,0 +1,39 @@
+/* Ignite UI 7.4.1 themes/dark/fluent.css (igniteui-webcomponents), :root only:
+   the --ig-* tokens ApexCharts reads and the properties their values use.
+   Generated from Chromium's capture in plan 36's token inventory. */
+:root {
+  --ig-theme: fluent;
+  --ig-theme-variant: dark;
+  --ig-primary-300: hsl(from var(--ig-primary-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-primary-500: #0078d4;
+  --ig-primary-700: hsl(from var(--ig-primary-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-primary-seed: #0078d4;
+  --ig-secondary-300: hsl(from var(--ig-secondary-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-secondary-500: #2b88d8;
+  --ig-secondary-700: hsl(from var(--ig-secondary-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-secondary-seed: #2b88d8;
+  --ig-gray-100: hsl(from var(--ig-gray-500) h s 26%);
+  --ig-gray-300: hsl(from var(--ig-gray-500) h s 54%);
+  --ig-gray-400: hsl(from var(--ig-gray-500) h s 62%);
+  --ig-gray-500: hsl(0, 0%, 74%);
+  --ig-gray-600: hsl(from var(--ig-gray-500) h s 88%);
+  --ig-gray-800: hsl(from var(--ig-gray-500) h s 96%);
+  --ig-surface-500: #1b1b1b;
+  --ig-info-300: hsl(from var(--ig-info-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-info-500: #1377d5;
+  --ig-info-700: hsl(from var(--ig-info-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-info-seed: #1377d5;
+  --ig-success-300: hsl(from var(--ig-success-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-success-500: #107c10;
+  --ig-success-700: hsl(from var(--ig-success-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-success-seed: #107c10;
+  --ig-warn-300: hsl(from var(--ig-warn-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-warn-500: #797673;
+  --ig-warn-700: hsl(from var(--ig-warn-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-warn-seed: #797673;
+  --ig-error-300: hsl(from var(--ig-error-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-error-500: #a80000;
+  --ig-error-700: hsl(from var(--ig-error-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-error-seed: #a80000;
+  --ig-font-family: Open Sans, Helvetica, Arial, sans-serif;
+}

@@ -1,5 +1,6 @@
 // @ts-check
 import Defaults from '../settings/Defaults'
+import { Environment } from '../../utils/Environment.js'
 import Config from '../settings/Config'
 import Theme from '../Theme'
 import CoreUtils from '../CoreUtils'
@@ -125,6 +126,7 @@ export default class UpdateHelpers {
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
+   * @param {Array<{min: any, max: any} | null> | null} [zoomedY] - the y bounds a zoom wrote, from zoomedYBounds(), to keep through this update
    */
   _updateOptions(
     options,
@@ -132,6 +134,7 @@ export default class UpdateHelpers {
     animate = true,
     updateSyncedCharts = true,
     overwriteInitialConfig = false,
+    zoomedY = null,
   ) {
     return new Promise((resolve, reject) => {
       let charts = [this.ctx]
@@ -214,6 +217,8 @@ export default class UpdateHelpers {
           // `tooltip: undefined` in a payload means "not given", as it does
           // on a new chart (see Config.dropEmptyOptions).
           options = Config.dropEmptyOptions(options)
+          // Read before extendArrayProps fills every y axis with defaults.
+          const gridNamed = Config.explicitGridColors(options)
           ch.config = new Config(options)
           // Collapse user-facing chart-type aliases (funnel / pyramid → bar
           // with isFunnel; gauge → radialBar). On the initial render this
@@ -311,6 +316,27 @@ export default class UpdateHelpers {
           if (options.tooltip?.theme) {
             w.globals.tooltipThemeExplicit = !filled?.tooltip
           }
+          // A font or grid colour it names, too. Grid colours only from the
+          // page's own calls: zoom, pan and scroll hand back copies of the
+          // chart's axes, colours included, with overwriteInitialConfig off.
+          // The y axes a call names replace the chart's, so their flags are
+          // the payload's; a sibling's yaxis was dropped above and leaves
+          // them alone. A new object, since a History checkpoint may hold
+          // the old one.
+          if (options.chart?.fontFamily) {
+            w.globals.themeFontFamilyExplicit = true
+          }
+          if (overwriteInitialConfig) {
+            const was = w.globals.themeGridColorsExplicit
+            w.globals.themeGridColorsExplicit = {
+              grid: was.grid || gridNamed.grid,
+              xaxis: {
+                border: was.xaxis.border || gridNamed.xaxis.border,
+                ticks: was.xaxis.ticks || gridNamed.xaxis.ticks,
+              },
+              yaxis: options.yaxis ? gridNamed.yaxis : was.yaxis,
+            }
+          }
 
           w.config = Utils.extend(w.config, options)
           // A payload that sets the mode moves a chart with no palette of its
@@ -331,7 +357,20 @@ export default class UpdateHelpers {
           // would otherwise outlive that type. Runs before the initialConfig
           // snapshot below, so a later resetSeries restores the config the
           // chart actually has rather than the stale one.
-          Defaults.handOverTypeDefaults(w.config, fromType, options)
+          // What the user named before this update, so a value of theirs
+          // that equals the outgoing type's default is still theirs.
+          ch._askedTypeOwned ??= Defaults.noteAskedTypeOwned(
+            new Set(),
+            ch.opts,
+            Environment.getApex(),
+          )
+          Defaults.handOverTypeDefaults(
+            w.config,
+            fromType,
+            options,
+            ch._askedTypeOwned,
+          )
+          Defaults.noteAskedTypeOwned(ch._askedTypeOwned, options)
           Defaults.syncCatToNumeric(w.config, options)
           Defaults.syncSparkline(w.config, wasSparkline, options)
           Defaults.syncHorizontal(w.config, wasHorizontal, options)
@@ -371,6 +410,13 @@ export default class UpdateHelpers {
               !options.series && prevInitialSeries
                 ? prevInitialSeries
                 : Utils.copySeriesShallow(w.config.series)
+            if (w.interact.zoomed && w.globals.initialConfig) {
+              this.keepPreZoomBounds(
+                initialConfig,
+                w.globals.initialConfig,
+                options,
+              )
+            }
             w.globals.initialConfig = initialConfig
             if (options.series) {
               // lazy snapshot: deep clone deferred to first read
@@ -395,6 +441,12 @@ export default class UpdateHelpers {
           ) {
             w.config.series = Utils.copySeriesShallow(w.config.series)
             ch.series.reconcileCollapsedByName()
+          }
+
+          // Last, after both snapshots above took the payload's bounds: they
+          // are where a zoom reset returns to, the zoomed range is not.
+          if (zoomedY && ch === this.ctx && options.yaxis) {
+            this.restoreZoomedYBounds(options.yaxis, zoomedY)
           }
         }
 
@@ -954,6 +1006,78 @@ export default class UpdateHelpers {
           }
         }
       }
+    })
+  }
+
+  /**
+   * The initialConfig snapshot a page's updateOptions() takes is where a zoom
+   * reset and the next zoom start from. Taken from w.config mid-zoom, it held
+   * the zoomed bounds, so a reset after any update (a title, a wrapper
+   * re-render) left the x range zoomed. Each bound the payload does not set
+   * stays what it was before the zoom. New objects throughout: the snapshot
+   * shares its nested axes with the live config.
+   * @param {Record<string, any>} next - the snapshot being taken
+   * @param {Record<string, any>} prev - the one it replaces
+   * @param {Record<string, any>} options - the payload, axes normalised
+   */
+  keepPreZoomBounds(next, prev, options) {
+    /**
+     * @param {Record<string, any>} axis
+     * @param {Record<string, any> | undefined} was
+     * @param {Record<string, any> | undefined} named
+     */
+    const keep = (axis, was, named) => {
+      const out = { ...axis }
+      for (const k of ['min', 'max']) {
+        if (named?.[k] === undefined) out[k] = was?.[k]
+      }
+      return out
+    }
+    // xaxis merges, so its zoomed bounds outlive a payload that names it.
+    next.xaxis = keep(next.xaxis, prev.xaxis, options.xaxis)
+    // yaxis is replaced by a payload that names it, bounds and all, so only
+    // the axes it leaves in place still carry the zoom.
+    if (options.yaxis) return
+    if (Array.isArray(next.yaxis) && Array.isArray(prev.yaxis)) {
+      if (next.yaxis.length !== prev.yaxis.length) return
+      next.yaxis = next.yaxis.map((y, i) => keep(y, prev.yaxis[i], undefined))
+    }
+  }
+
+  /**
+   * The y bounds a zoom wrote into the config, per axis: null for an axis
+   * still on the bounds the chart was given (an x zoom keeps those).
+   * @returns {Array<{min: any, max: any} | null>}
+   */
+  zoomedYBounds() {
+    const w = this.w
+    const initial = w.globals.initialConfig?.yaxis || []
+    return w.config.yaxis.map((y, i) => {
+      const was = /** @type {any} */ (initial[i]) || {}
+      return y.min === was.min && y.max === was.max
+        ? null
+        : { min: y.min, max: y.max }
+    })
+  }
+
+  /**
+   * A page's updateOptions() that names yaxis replaces the y axes, and with
+   * them the range an xy or y zoom had written there, while the x range and
+   * the zoomed flag stayed: half the zoom snapped back. An axis whose new
+   * options set no bounds of their own keeps the zoomed ones until a reset.
+   * Axes added or removed by the update start fresh.
+   * @param {any[]} newYaxis - the payload's y axes, normalised to an array
+   * @param {Array<{min: any, max: any} | null>} zoomedY
+   */
+  restoreZoomedYBounds(newYaxis, zoomedY) {
+    const w = this.w
+    if (w.config.yaxis.length !== zoomedY.length) return
+    // A new array: the merge left w.config.yaxis as the payload's own.
+    w.config.yaxis = w.config.yaxis.map((y, i) => {
+      const b = zoomedY[i]
+      const named = newYaxis[i] || {}
+      if (!b || named.min !== undefined || named.max !== undefined) return y
+      return { ...y, min: b.min, max: b.max }
     })
   }
 

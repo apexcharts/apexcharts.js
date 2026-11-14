@@ -32,6 +32,11 @@ import {
  * (functions survive Utils.clone by reference) and patches only what the
  * trellis owns.
  *
+ * Except the axis border and tick colours the page did not name: those are
+ * the theme's (a token's, plan 36 D5), and handed back through updateOptions
+ * they would count as named and stop following the token. Left out, the axis
+ * takes its default and the panel's Theme writes the current token again.
+ *
  * @param {any} chart a panel instance
  * @param {Record<string, any>} patch
  * @returns {any[]}
@@ -39,7 +44,13 @@ import {
 export function yaxisPayload(chart, patch) {
   const current = Utils.clone(chart.w.config.yaxis)
   const arr = Array.isArray(current) ? current : [current]
-  return arr.map((/** @type {any} */ entry) => Utils.extend(entry, patch))
+  const named = chart.w.globals.themeGridColorsExplicit
+  return arr.map((/** @type {any} */ entry, /** @type {number} */ i) => {
+    const flags = (named && named.yaxis[i]) || {}
+    if (!flags.border && entry.axisBorder) delete entry.axisBorder.color
+    if (!flags.ticks && entry.axisTicks) delete entry.axisTicks.color
+    return Utils.extend(entry, patch)
+  })
 }
 
 export default class TrellisSync {

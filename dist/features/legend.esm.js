@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -508,6 +508,7 @@ function shadePercent(w, chartType, p, negRange) {
   return chartType === "treemap" ? (1 - p) * k : 1 - p;
 }
 const TooltipUtils = _core.__apex_tooltip_Utils;
+const Theme = _core.__apex_Theme;
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -651,7 +652,7 @@ class HeatmapGradientLegend {
     rect.setAttribute("y", String(stripY));
     rect.setAttribute("width", String(isVertical ? stripThickness : stripLength));
     rect.setAttribute("height", String(isVertical ? stripLength : stripThickness));
-    rect.setAttribute("rx", "2");
+    rect.setAttribute("rx", String(Theme.radius(w, 2)));
     rect.setAttribute("fill", `url(#${gradId})`);
     svg.appendChild(rect);
     if (cfg.showLabels) {
@@ -733,7 +734,7 @@ class HeatmapGradientLegend {
       tt.style.background = "rgba(0,0,0,0.65)";
       tt.style.color = "#fff";
       tt.style.padding = "2px 6px";
-      tt.style.borderRadius = "3px";
+      tt.style.borderRadius = `${Theme.radius(w, 3)}px`;
       tt.style.pointerEvents = "none";
       tt.style.whiteSpace = "nowrap";
       tt.style.opacity = "0";
@@ -1241,7 +1242,11 @@ class HeatmapGradientLegend {
         const t = s / (n - 1);
         const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
         const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
-        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
+        const shaded = plot.enableShades ? utils.shadeColor(
+          w.config.theme.mode === "dark" ? -c : c,
+          baseColor,
+          w.dom.elWrap
+        ) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
     }
@@ -1343,6 +1348,9 @@ class Legend {
         strokeWidth: mBorderWidth,
         size: mSize
       });
+      if (w.config.legend.customLegendItems.length) {
+        markerConfig.pointFillOpacity = 1;
+      }
       const SVG = (
         /** @type {any} */
         globalThis.SVG

@@ -18,13 +18,17 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
+function Gt(t, e, n) {
+  return t ? t.color(e, n) : void 0;
+}
 const Graphics = _core.__apex_Graphics;
+const Theme = _core.__apex_Theme;
 const TooltipUtils = _core.__apex_tooltip_Utils;
 const Environment = _core.__apex_Environment_Environment;
 class Measure {
@@ -469,14 +473,24 @@ class Measure {
   }
   /**
    * Resolve a color: explicit config value, else a `--apx-measure-*` CSS custom
-   * property, else the built-in default.
+   * property, else the built-in default. Under a design system the
+   * stylesheet's twin hands the property its token's raw text (`hsl(from
+   * ...)` in some Ignite UI sheets) through an `-ig` copy; a value equal to
+   * the copy is the twin's and becomes the colour Theme read for `role`, as
+   * hex or rgba(). A page's own value is used as written.
    * @param {any} cfgVal @param {string} varName @param {string} fallback
    * @param {CSSStyleDeclaration|null} [cs]
+   * @param {import('apex-commons').DesignSystemColorRole} [role]
    */
-  _resolveColor(cfgVal, varName, fallback, cs) {
+  _resolveColor(cfgVal, varName, fallback, cs, role) {
     if (cfgVal) return cfgVal;
     const style = cs !== void 0 ? cs : this._computedStyle();
-    const v = style ? style.getPropertyValue(varName).trim() : "";
+    const read = (n) => style ? style.getPropertyValue(n).trim() : "";
+    const v = read(varName);
+    if (v && role && v === read(varName + "-ig")) {
+      const ds = this.ctx && this.ctx.theme && this.ctx.theme.designSystem;
+      return Gt(ds, role, this.w.config.theme.mode) || fallback;
+    }
     return v || fallback;
   }
   /** Resolved semantic colors (config -> CSS var -> built-in default). */
@@ -484,10 +498,10 @@ class Measure {
     const c = this._cfg().colors || {};
     const cs = this._computedStyle();
     return {
-      up: this._resolveColor(c.up, "--apx-measure-up", "#16a34a", cs),
-      down: this._resolveColor(c.down, "--apx-measure-down", "#dc2626", cs),
-      neutral: this._resolveColor(c.neutral, "--apx-measure-neutral", "#64748b", cs),
-      guide: this._resolveColor(c.guide, "--apx-measure-guide", "#94a3b8", cs)
+      up: this._resolveColor(c.up, "--apx-measure-up", "#16a34a", cs, "positive"),
+      down: this._resolveColor(c.down, "--apx-measure-down", "#dc2626", cs, "negative"),
+      neutral: this._resolveColor(c.neutral, "--apx-measure-neutral", "#64748b", cs, "neutral"),
+      guide: this._resolveColor(c.guide, "--apx-measure-guide", "#94a3b8", cs, "guide")
     };
   }
   /** @param {number} dy */
@@ -688,7 +702,8 @@ class Measure {
    * @param {any} g @param {string[]} lines @param {number} bx @param {number} by
    * @param {number} boxW @param {number} boxH @param {string} color */
   _readout(g, lines, bx, by, boxW, boxH, color) {
-    const box = this.graphics.drawRect(bx, by, boxW, boxH, 4);
+    const r = Theme.radius(this.w, 4);
+    const box = this.graphics.drawRect(bx, by, boxW, boxH, r);
     box.node.setAttribute("class", "apexcharts-measure-label-bg");
     box.attr({ fill: "#ffffff", "fill-opacity": 0.95, stroke: color, "stroke-width": 1 });
     g.add(box);

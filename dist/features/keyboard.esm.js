@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -490,6 +490,8 @@ class KeyboardNavigation {
       }
     }
     ttCtx.e = { type: "mousemove", clientX, clientY };
+    ttCtx.pointerDriven = false;
+    ttCtx.pendingReplay = null;
     ttCtx.clientX = clientX;
     ttCtx.clientY = clientY;
   }

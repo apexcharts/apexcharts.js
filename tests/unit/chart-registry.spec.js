@@ -156,4 +156,21 @@ describe('chart registry', () => {
     expect(chart.w.globals.isExecCalled).toBe(false)
     chart.destroy()
   })
+
+  it('exec reaches refreshTokens and re-renders the chart', async () => {
+    document.body.innerHTML = '<div id="e2"></div>'
+    const chart = new ApexCharts(document.querySelector('#e2'), {
+      chart: { id: 'e2', type: 'line', animations: { enabled: false } },
+      series: [{ name: 'A', data: [1, 2, 3] }],
+    })
+    await chart.render()
+    const update = vi.spyOn(chart, 'update')
+    const ret = ApexCharts.exec('e2', 'refreshTokens')
+    expect(ret).toBeInstanceOf(Promise)
+    await ret
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(chart.w.globals.isExecCalled).toBe(false)
+    update.mockRestore()
+    chart.destroy()
+  })
 })

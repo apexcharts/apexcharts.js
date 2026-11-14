@@ -857,15 +857,25 @@ export default class ZoomPanSelection extends Toolbar {
     const x = parseFloat(rect.node.getAttribute('x')) || 0
     const width = parseFloat(rect.node.getAttribute('width')) || 0
 
-    const clamp = (/** @type {number} */ px) =>
-      Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx)
-    const left = clamp(x)
-    const right = clamp(x + width)
+    const left = this._clampPlotPx(x, maxPx)
+    const right = this._clampPlotPx(x + width, maxPx)
 
     if (left === x && right === x + width) return
 
     rect.attr({ x: left, width: right - left })
     if (rect._updateSelectPositions) rect._updateSelectPositions()
+  }
+
+  /**
+   * Clamp one plot-origin pixel to the span the plot occupies, `[0, maxPx]`.
+   * A plot with no pixel size (pre-layout) collapses to the origin.
+   * @param {number} px
+   * @param {number} maxPx
+   * @returns {number}
+   */
+  _clampPlotPx(px, maxPx) {
+    if (!(maxPx > PLOT_ORIGIN_PX)) return PLOT_ORIGIN_PX
+    return Math.min(Math.max(px, PLOT_ORIGIN_PX), maxPx)
   }
 
   /**
@@ -888,71 +898,39 @@ export default class ZoomPanSelection extends Toolbar {
 
     if (!this._hasPlot()) return
 
-    // The rect's corner is the pixel the drag started on, in both axes. (x
-    // used to start a pixel left of it: an offset that once came paired with
-    // a matching one on the width, and outlived it.)
-    const startX = me.startX
-    const startY = me.startY
-    let inversedX = false
-    let inversedY = false
+    const plotW = w.layout.gridWidth
+    const plotH = w.layout.gridHeight
 
-    const left = this._screenXToPlotPx(me.clientX)
-    const top = this._screenYToPlotPx(me.clientY)
+    // Both ends of the drag, in plot-origin pixels. A brush (or zoom) gesture
+    // often starts on the y-axis, which sits left of the plot, or runs past
+    // the far edge. Clamp each end to the plot before measuring the rect.
+    // The old guards only rewrote the width and assumed the drag had started
+    // inside, so a negative startX was kept and the rect (and the range pushed
+    // onto a brush target) extended past the chart edge (#4934). Handle
+    // resizes are clamped separately in _clampSelectionRectToPlot.
+    const startX = this._clampPlotPx(me.startX, plotW)
+    const startY = this._clampPlotPx(me.startY, plotH)
+    const endX = this._clampPlotPx(this._screenXToPlotPx(me.clientX), plotW)
+    const endY = this._clampPlotPx(this._screenYToPlotPx(me.clientY), plotH)
 
-    let selectionWidth = left - startX
-    let selectionHeight = top - startY
-
-    /** @type {any} */
-    let selectionRect = {
-      translateX: w.layout.translateX,
-      translateY: w.layout.translateY,
-    }
-
-    if (Math.abs(selectionWidth + startX) > w.layout.gridWidth) {
-      // user dragged the mouse outside drawing area to the right
-      selectionWidth = w.layout.gridWidth - startX
-    } else if (left < 0) {
-      // user dragged the mouse outside drawing area to the left
-      selectionWidth = startX
-    }
-
-    // inverse selection X
-    if (startX > left) {
-      inversedX = true
-      selectionWidth = Math.abs(selectionWidth)
-    }
-
-    // inverse selection Y
-    if (startY > top) {
-      inversedY = true
-      selectionHeight = Math.abs(selectionHeight)
-    }
+    let x = Math.min(startX, endX)
+    let y = Math.min(startY, endY)
+    let width = Math.abs(endX - startX)
+    let height = Math.abs(endY - startY)
 
     if (zoomtype === 'x') {
-      selectionRect = {
-        x: inversedX ? startX - selectionWidth : startX,
-        y: 0,
-        width: selectionWidth,
-        height: w.layout.gridHeight,
-      }
+      y = 0
+      height = plotH
     } else if (zoomtype === 'y') {
-      selectionRect = {
-        x: 0,
-        y: inversedY ? startY - selectionHeight : startY,
-        width: w.layout.gridWidth,
-        height: selectionHeight,
-      }
-    } else {
-      selectionRect = {
-        x: inversedX ? startX - selectionWidth : startX,
-        y: inversedY ? startY - selectionHeight : startY,
-        width: selectionWidth,
-        height: selectionHeight,
-      }
+      x = 0
+      width = plotW
     }
 
-    selectionRect = {
-      ...selectionRect,
+    const selectionRect = {
+      x,
+      y,
+      width,
+      height,
       translateX: w.layout.translateX,
       translateY: w.layout.translateY,
     }

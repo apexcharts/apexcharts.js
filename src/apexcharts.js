@@ -25,7 +25,6 @@ import {
   getChartClass,
   unregister,
 } from './modules/ChartFactory'
-import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
 import {
   registerUnitLayout,
   unregisterUnitLayout,
@@ -60,7 +59,13 @@ import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
 import warnMissingFeature from './utils/MissingFeature.js'
 import { BrowserAPIs } from './ssr/BrowserAPIs.js'
-import { injectStyle, LicenseManager } from 'apex-commons'
+import {
+  injectStyle,
+  LicenseManager,
+  registerTheme,
+  registeredThemes,
+  unregisterTheme,
+} from 'apex-commons'
 import {
   enforceLicense,
   teardownWatermark,
@@ -72,6 +77,12 @@ import {
  *
  * @module ApexCharts
  **/
+
+// Facet (#13): named themes live in the family registry on
+// `globalThis.__apexcharts_themes__`, shared with every other product and
+// every module copy on the page. Touch it once so the key exists from import,
+// as it always has.
+registeredThemes()
 
 /**
  * The rejection for an update that names a built-in type this page never
@@ -168,14 +179,16 @@ export default class ApexCharts {
   /** @type {string[]} */ eventList = []
   /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {number | null} */ _parentResizeWaiter = null
-  /** @type {{ el: number[], parent: number[] } | null} */
+  /** @type {{ el: number[] } | null} */
   _heldDimensions = null
-  /** @type {{ from: { w: number, h: number, iw?: number } | null, heightChanged: boolean, at: number, returns: number, win: number[] } | null} */
+  /** @type {{ from: { w: number, h: number, iw?: number } | null, heightChanged: boolean, at: number, returns: number, growth: number, win: number[] } | null} */
   _lastResizeRedraw = null
   /** @type {{width: any, viewBoxAdded?: boolean} | null} */
   _printRestore = null
   /** @type {any} */ beforePrintHandler
   /** @type {any} */ afterPrintHandler
+  // The token font a re-read on load is armed for (see _watchTokenFont).
+  /** @type {string | undefined} */ _tokenFontWatched = undefined
   /** @type {any} */ config
   /** @type {any} */ perspectives
   /** @type {any} */ storyboard
@@ -517,6 +530,9 @@ export default class ApexCharts {
 
     gl.noData = false
     gl.animationEnded = false
+    // This render's tweens, on a set of its own: those of the render it
+    // replaces, running or held back, no longer count (stillMoving).
+    gl.liveTweens = new Set()
 
     if (!Utils.elementExists(this.el)) {
       gl.animationEnded = true
@@ -651,6 +667,8 @@ export default class ApexCharts {
 
     // this is a good time to set theme colors first
     this.theme.init()
+    this._injectDesignSystemCss()
+    this._watchTokenFont()
 
     // as markers accepts array, we need to setup global markers for easier access
     const markers = new Markers(this.w, this)
@@ -972,6 +990,10 @@ export default class ApexCharts {
       this._releaseCss()
       this._releaseCss = null
     }
+    if (this._releaseDsCss) {
+      this._releaseDsCss()
+      this._releaseDsCss = null
+    }
     new Destroy(this.ctx).clear({ isUpdating: false })
   }
 
@@ -1132,6 +1154,13 @@ export default class ApexCharts {
         this.updateHelpers.revertZoom()
       }
     }
+    // Still zoomed (no new series): new y axes keep the zoomed y range, as an
+    // xaxis without bounds keeps the zoomed x range. A wrapper re-sending its
+    // options on every render otherwise undid half of an xy zoom.
+    const zoomedY =
+      options.yaxis && w.interact.zoomed
+        ? this.updateHelpers.zoomedYBounds()
+        : null
     // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
     if (options.xaxis) {
       options = this.updateHelpers.forceXAxisUpdate(options)
@@ -1144,7 +1173,7 @@ export default class ApexCharts {
     }
     /* update theme mode#459 */
     if (options.theme) {
-      options = this.theme.updateThemeOptions(options)
+      options = this.theme.updateThemeOptions(options, !!this.history?.applying)
     }
     return this.updateHelpers._updateOptions(
       options,
@@ -1152,6 +1181,7 @@ export default class ApexCharts {
       animate,
       updateSyncedCharts,
       overwriteInitialConfig,
+      zoomedY,
     )
   }
 
@@ -1696,6 +1726,7 @@ export default class ApexCharts {
         gl.shouldAnimate = animate
         gl.dataChanged = true
         gl.animationEnded = false
+        gl.liveTweens = new Set() // as in create()
 
         // Invalidate per-render selector cache (PerformanceCache uses TTL + render invalidation)
         PerformanceCache.invalidateSelectors(w)
@@ -2234,7 +2265,15 @@ export default class ApexCharts {
    * @returns {typeof ApexCharts}
    */
   static registerTheme(name, def) {
-    registerTheme(name, def)
+    if (!name || typeof name !== 'string') {
+      console.warn('ApexCharts: registerTheme requires a non-empty name.')
+    } else if (def != null && (typeof def !== 'object' || Array.isArray(def))) {
+      console.warn(
+        `ApexCharts: registerTheme("${name}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`,
+      )
+    } else {
+      registerTheme(name, def)
+    }
     return ApexCharts
   }
 
@@ -2937,6 +2976,86 @@ export default class ApexCharts {
   }
 
   /**
+   * Plan 36: the design-system add-on's stylesheet (`features/ignite-ui`
+   * registers it with its adapter), once per chart and only while Theme
+   * read a layer. It goes right after the main sheet in the same root and
+   * under the same rule (always in a shadow root, otherwise unless
+   * `chart.injectStyleSheet` is false), so its twins win by order alone and
+   * a page rule still beats them. Here rather than with the main sheet in
+   * render(), so a chart rendered before the add-on loaded picks it up on
+   * its next render. A chart that later loses its layer keeps its use of the
+   * sheet until destroy(); without the gate classes the twins match nothing.
+   * @private
+   */
+  _injectDesignSystemCss() {
+    if (this._releaseDsCss || !this.theme.designSystem) return
+    const styles = /** @type {any} */ (
+      InitCtxVariables._featureRegistry.get('designSystemStyles')
+    )
+    if (!styles) return
+    const rootNode = /** @type {any} */ (
+      this.el.getRootNode && this.el.getRootNode()
+    )
+    if (
+      !Utils.is('ShadowRoot', rootNode) &&
+      this.w.config.chart.injectStyleSheet === false
+    )
+      return
+    this._releaseDsCss = injectStyle(
+      this.el,
+      `apexcharts-${styles.name}-css`,
+      styles.css,
+      {
+        nonce: this.opts.chart?.nonce || this.w.config.chart.nonce,
+        after: 'apexcharts-css',
+      },
+    )
+  }
+
+  /**
+   * Plan 36 (1F): a font that came from a token (`--apx-font-family`, Ignite
+   * UI's `--ig-font-family`) is usually a web font, and design-system sheets
+   * ship no `@font-face` to have it ready. Labels measured while it loads
+   * keep the fallback font's widths, so the tokens are read again once the
+   * font has loaded: once per font, and only while it is not in place, so a
+   * loaded font costs no second render. This runs before the first label is
+   * drawn, when nothing is loading yet and `fonts.ready` has already settled,
+   * so `fonts.load()` starts the fetch and is what is waited on. Never for a
+   * font the page passed, server side, or without `document.fonts`.
+   * @private
+   */
+  _watchTokenFont() {
+    const g = this.w.globals
+    const font = g.tokenChrome && g.tokenChrome.font
+    if (
+      !font ||
+      g.themeFontFamilyExplicit ||
+      this.w.config.chart.fontFamily !== font ||
+      this._tokenFontWatched === font
+    )
+      return
+    const doc = BrowserAPIs.getDocument()
+    const fonts = /** @type {any} */ (doc && doc.fonts)
+    if (!fonts || !fonts.load) return
+    let loading
+    try {
+      if (fonts.check(`1em ${font}`)) return
+      loading = fonts.load(`1em ${font}`)
+    } catch (e) {
+      // A family list the font shorthand cannot parse: nothing to wait on.
+      return
+    }
+    this._tokenFontWatched = font
+    // A font that fails to load leaves the fallback, which the labels have.
+    Promise.resolve(loading).then(
+      () => {
+        if (!this.w.globals.isDestroyed) this.refreshTokens()
+      },
+      () => {},
+    )
+  }
+
+  /**
    * Drills into the child level referenced by `id` (a `chart.drilldown.series` entry).
    * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
    *
@@ -3181,6 +3300,7 @@ export default class ApexCharts {
       // captures only the container inputs that feed the size, so a pixel-sized
       // chart never redraws on resize while a percentage-sized one still does.
       let returns = 0
+      let growth = 0
       if (this.core && gl.lastResizeSignature) {
         const cur = gl.lastResizeSignature
         const sig = this.core.getResizeSignature()
@@ -3190,6 +3310,9 @@ export default class ApexCharts {
         // The chart and the page answering each other (see _resizeReturns).
         returns = this._resizeReturns(sig)
         if (returns > 1 && sig.w >= cur.w && sig.h >= cur.h) return
+        // A parent that grows with the chart itself (see _parentGrowth).
+        growth = this._parentGrowth(sig, cur)
+        if (growth > 1) return
       }
 
       gl.resized = true
@@ -3204,11 +3327,10 @@ export default class ApexCharts {
       // scrollbar-free page, drawn into one that has a scrollbar again, and the
       // page settled back where it started, so no observer ever reported the
       // mismatch (react-apexcharts#187). Resize redraws only; an update the
-      // caller asked for measures the page as before.
-      this._heldDimensions = {
-        el: Utils.getDimensions(this.el),
-        parent: Utils.getDimensions(this.el.parentNode),
-      }
+      // caller asked for measures the page as before. The width only: a
+      // percentage height resolves against the parent after the clear, since
+      // a parent sized by its content holds the old chart's height too.
+      this._heldDimensions = { el: Utils.getDimensions(this.el) }
       // we need to redraw the whole chart on window resize (with a small delay).
       try {
         this.ctx.update()
@@ -3221,6 +3343,7 @@ export default class ApexCharts {
         heightChanged: this.w.globals.svgHeight !== fromHeight,
         at: Date.now(),
         returns,
+        growth: this.w.globals.svgHeight > fromHeight ? growth : 0,
         win: [window.innerWidth, window.innerHeight],
       }
     }, 150)
@@ -3258,6 +3381,47 @@ export default class ApexCharts {
     const back =
       sig.w === last.from.w && sig.h === last.from.h && sig.iw === last.from.iw
     return back ? last.returns + 1 : 0
+  }
+
+  /**
+   * How many height-only redraws in a row, counting this one, a percentage
+   * height chart takes to follow a parent that keeps growing with it. 0 when
+   * this resize is not one.
+   *
+   * A percentage height resolves against the parent with the chart cleared,
+   * which settles after one redraw when the chart is the parent's only
+   * content of its own size. Two such charts in one parent sized by its
+   * content (a card holding both) each size from a parent that holds the
+   * other: each redraw makes the parent taller, which is the other chart's
+   * next resize, and the two grow without end. CSS itself treats a percentage
+   * of a parent sized by its content as auto for this reason.
+   *
+   * Counted only when the parent is known to follow the chart (its height
+   * after the last draw differs from the one the chart was sized from, which
+   * never happens to a parent with a height of its own), only the parent's
+   * height grew, the last redraw also grew the chart moments ago, and the
+   * window is the size it was then. The caller refuses the second in a row,
+   * the same bound _resizeReturns keeps, so a parent that grows once (a
+   * heading that wraps, a font loading) is still followed, and a width change
+   * always redraws and starts the count again.
+   *
+   * @param {{ w: number, h: number, iw?: number }} sig
+   * @param {{ w: number, h: number, iw?: number, ph?: number }} cur
+   * @returns {number}
+   */
+  _parentGrowth(sig, cur) {
+    if (cur.ph === undefined || cur.ph === cur.h) return 0
+    if (sig.w !== cur.w || sig.iw !== cur.iw || !(sig.h > cur.h)) return 0
+    const last = this._lastResizeRedraw
+    const streak =
+      last &&
+      last.growth &&
+      Date.now() - last.at <= 1000 &&
+      last.win[0] === window.innerWidth &&
+      last.win[1] === window.innerHeight
+        ? last.growth
+        : 0
+    return streak + 1
   }
 
   _windowResizeHandler() {

@@ -153,15 +153,22 @@ describe('the behavioural leaves hand over', () => {
     const chart = await morph('bar', 'boxPlot')
     expect(chart.w.config.dataLabels.enabled).toBe(false)
   })
+
+  it('a bar that becomes a line draws its line like a fresh one (#5435)', async () => {
+    const chart = await morph('bar', 'line')
+    expect(chart.w.config.stroke.width).toBe(5)
+    expect(chart.w.config.stroke.curve).toBe('straight')
+    expect(chart.w.config.stroke.lineCap).toBe('butt')
+  })
 })
 
 describe('the painted leaves deliberately do not', () => {
-  it('fill, stroke and legend placement survive a type change', async () => {
+  it('fill, stroke colour and legend placement survive a type change', async () => {
     const chart = await morph('bar', 'donut')
-    // A donut would have chosen 1, 2 and 'right' for these. Keeping the bar's
-    // is the point: a morph re-reads the data without restyling mid-flight.
+    // A donut would have chosen 1, white and 'right' for these. Keeping the
+    // bar's is the point: a morph re-reads the data without restyling mid-flight.
     expect(chart.w.config.fill.opacity).toBe(0.85)
-    expect(chart.w.config.stroke.width).toBe(0)
+    expect(chart.w.config.stroke.colors).toBe(undefined)
     expect(chart.w.config.legend.position).toBe('bottom')
   })
 })
@@ -177,6 +184,26 @@ describe('what the user set is never re-chosen', () => {
     // update payload is consulted directly rather than only by value.
     const chart = await morph('boxPlot', 'violin', {}, { markers: { size: 7 } })
     expect(chart.w.config.markers.size).toBe(7)
+  })
+
+  it('a curve set at construction survives even when it equals the outgoing default', async () => {
+    // 'straight' is also a line's own curve, so by value alone it would read
+    // as untouched and the area would replace it with 'smooth'.
+    const line = await morph('line', 'area', { stroke: { curve: 'straight' } })
+    expect(line.w.config.stroke.curve).toBe('straight')
+    const area = await morph('area', 'line', { stroke: { curve: 'smooth' } })
+    expect(area.w.config.stroke.curve).toBe('smooth')
+  })
+
+  it('a curve set by an earlier update survives a later type change', async () => {
+    const chart = await morph('line', 'line', {}, { stroke: { curve: 'straight' } })
+    await chart.updateOptions({ chart: { type: 'area' }, series: BARS })
+    expect(chart.w.config.stroke.curve).toBe('straight')
+  })
+
+  it('GUARD an unset curve still hands over between line and area', async () => {
+    const chart = await morph('line', 'area')
+    expect(chart.w.config.stroke.curve).toBe('smooth')
   })
 
   it('an explicit zoom setting is not overridden by the incoming type', async () => {

@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -75,12 +75,11 @@ class TreemapHelpers {
     if (opts.enableShades) {
       const shadeColor = new Utils().shadeColor(
         w.config.theme.mode === "dark" ? -colorShadePercent : colorShadePercent,
-        color
+        color,
+        w.dom.elWrap
       );
-      color = Utils.hexToRgba(
-        Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-        w.config.fill.opacity
-      );
+      const hex = Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor);
+      color = hex || !Utils.isColor(color) ? Utils.hexToRgba(hex, w.config.fill.opacity) : Utils.applyOpacityToColor(shadeColor, w.config.fill.opacity);
     }
     return { color, colorProps };
   }
@@ -426,13 +425,15 @@ class HeatMap {
                 }
               });
             }
+          } else if (!w.globals.dataChanged) {
+            w.globals.animationEnded = true;
           }
           if (w.globals.dataChanged) {
             let speed = 1;
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed;
               const prev = w.globals.previousPaths[i] && w.globals.previousPaths[i][j];
-              const colorTo = Utils.isColorHex(color) ? color : Utils.rgb2hex(color);
+              const colorTo = Utils.isColorHex(color) ? color : Utils.rgb2hex(color) || color;
               if (!(prev == null ? void 0 : prev.color)) {
                 if (isRectCell) {
                   const cx = x1 + cellW / 2;
@@ -442,7 +443,11 @@ class HeatMap {
                     to: { x: x1, y: y1, width: cellW, height: yDivision }
                   });
                 } else {
-                  new Animations(this.w).animatePop(cell, { speed });
+                  const animations = new Animations(this.w);
+                  animations.animatePop(cell, {
+                    speed,
+                    onComplete: () => animations.animationCompleted(cell)
+                  });
                 }
               } else {
                 const box = prev.rect;
@@ -451,7 +456,7 @@ class HeatMap {
                 ) && (Math.abs(box.x - x1) > 0.5 || Math.abs(box.y - y1) > 0.5 || Math.abs(box.width - cellW) > 0.5 || Math.abs(box.height - yDivision) > 0.5) ? box : null;
                 this.animateHeatColor(
                   cell,
-                  Utils.isColorHex(prev.color) ? prev.color : Utils.rgb2hex(prev.color),
+                  Utils.isColorHex(prev.color) ? prev.color : Utils.rgb2hex(prev.color) || prev.color,
                   colorTo,
                   speed,
                   boxFrom && {
@@ -460,6 +465,8 @@ class HeatMap {
                   }
                 );
               }
+            } else {
+              w.globals.animationEnded = true;
             }
           }
         }
@@ -644,6 +651,7 @@ class HeatMap {
       fill: colorTo
     }, box == null ? void 0 : box.to));
     if (box) runner.ease(morphEasing(this.w));
+    runner.after(() => new Animations(this.w).animationCompleted(el));
   }
 }
 _core__default.use({

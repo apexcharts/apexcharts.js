@@ -9,6 +9,7 @@ import {
   shadePercent,
 } from '../../charts/common/treemap/ColorScale'
 import TooltipUtils from '../tooltip/Utils'
+import Theme from '../Theme'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -236,7 +237,7 @@ export default class HeatmapGradientLegend {
     rect.setAttribute('y', String(stripY))
     rect.setAttribute('width', String(isVertical ? stripThickness : stripLength))
     rect.setAttribute('height', String(isVertical ? stripLength : stripThickness))
-    rect.setAttribute('rx', '2')
+    rect.setAttribute('rx', String(Theme.radius(w, 2)))
     rect.setAttribute('fill', `url(#${gradId})`)
     svg.appendChild(rect)
 
@@ -351,7 +352,7 @@ export default class HeatmapGradientLegend {
       tt.style.background = 'rgba(0,0,0,0.65)'
       tt.style.color = '#fff'
       tt.style.padding = '2px 6px'
-      tt.style.borderRadius = '3px'
+      tt.style.borderRadius = `${Theme.radius(w, 3)}px`
       tt.style.pointerEvents = 'none'
       tt.style.whiteSpace = 'nowrap'
       tt.style.opacity = '0'

@@ -248,6 +248,13 @@ void _xaxis; void _series
 const _themeAuto: ApexCharts.ApexTheme = { mode: '' }
 void _themeAuto
 
+// the design-system switch (plan 36) and a named theme's font token
+const _themeDs: ApexCharts.ApexTheme = { designSystem: false, tokens: true }
+const _themeDef: Parameters<typeof ApexCharts.registerTheme>[1] = {
+  tokens: { font: 'Inter, sans-serif' },
+}
+void _themeDs; void _themeDef
+
 // xaxis.axisBorder.width
 const _xb: ApexCharts.ApexXAxis = { axisBorder: { width: '100%' } }
 void _xb

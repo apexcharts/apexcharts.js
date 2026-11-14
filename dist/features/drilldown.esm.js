@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -47,6 +47,7 @@ import { default as default2 } from "apexcharts/core";
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Theme = _core.__apex_Theme;
 const BREADCRUMB_HEIGHT = 18;
 function avoidChromeOverlap(w, nav) {
   const chrome = (
@@ -96,7 +97,7 @@ function placeInReservedBand(w, ctx, nav, cfg) {
   nav.style.top = `${titleArea + offsetY}px`;
   const dark = w.config.theme.mode === "dark";
   nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
-  nav.style.borderRadius = "4px";
+  nav.style.borderRadius = `${Theme.radius(w, 4)}px`;
   return false;
 }
 function positionBreadcrumb(nav, cfg) {

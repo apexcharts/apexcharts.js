@@ -16,7 +16,17 @@
   --apexcharts-focus-color: #008FFB;
 }
 
-/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */
+/* The Ignite UI add-on's twins of the custom properties below (the focus
+   colour, the measure ruler, both menus, the ink card and both tooltips) live
+   in apexcharts-ignite-ui.css, which goes right after this sheet. */
+
+/* Every fixed px radius below is scaled by --apx-radius-factor (default 1, at
+   which nothing changes; 0 squares the corners). Circles (50%) stay round.
+   Theme.radius() scales the radii drawn in JS by the same token. */
+
+/* Dark theme & high-contrast: brighter focus colour for sufficient contrast.
+   No Ignite UI twin: a primary seed can fall below 3:1 on a dark surface
+   (Indigo's is 2.4:1), so a dark chart keeps this yellow. */
 .apexcharts-canvas .apexcharts-theme-dark,
 .apexcharts-theme-dark.apexcharts-canvas {
   --apexcharts-focus-color: #FFD500;
@@ -64,7 +74,7 @@
 }
 
 .apexcharts-canvas ::-webkit-scrollbar-thumb {
-  border-radius: 4px;
+  border-radius: calc(4px * var(--apx-radius-factor, 1));
   background-color: rgba(0, 0, 0, .5);
   box-shadow: 0 0 1px rgba(255, 255, 255, .5);
   -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)
@@ -158,11 +168,11 @@ rect.legend-mouseover-inactive,
 .apexcharts-context-menu {
   min-width: 168px;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--apx-radius-factor, 1));
   background: var(--apx-menu-bg);
   border: 1px solid var(--apx-menu-border);
   box-shadow: 0 6px 22px var(--apx-menu-shadow);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--apx-font-family, Helvetica, Arial, sans-serif);
   font-size: 13px;
   z-index: 20;
   user-select: none;
@@ -174,7 +184,7 @@ rect.legend-mouseover-inactive,
   text-align: left;
   padding: 7px 12px;
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
   background: transparent;
   color: var(--apx-menu-fg);
   font: inherit;
@@ -205,11 +215,11 @@ rect.legend-mouseover-inactive,
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--apx-radius-factor, 1));
   background: var(--apx-ink-card-bg);
   border: 1px solid var(--apx-ink-card-border);
   box-shadow: 0 6px 22px var(--apx-ink-card-shadow);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--apx-font-family, Helvetica, Arial, sans-serif);
   font-size: 12px;
   color: var(--apx-ink-card-fg);
   user-select: none;
@@ -229,7 +239,7 @@ rect.legend-mouseover-inactive,
   color: inherit;
   background: transparent;
   border: 1px solid var(--apx-ink-card-border);
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
 }
 .apexcharts-ink-card input.apexcharts-ink-editor:focus {
   outline: none;
@@ -244,7 +254,7 @@ rect.legend-mouseover-inactive,
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
   background: transparent;
   color: inherit;
   font: inherit;
@@ -408,7 +418,7 @@ rect.legend-mouseover-inactive,
   --apx-tt-arrow-bg: var(--apx-tt-bg);
   --apx-tt-color: #0f172a;
   --apx-tt-color-muted: rgba(15, 23, 42, 0.55);
-  border-radius: 8px;
+  border-radius: calc(8px * var(--apx-radius-factor, 1));
   background: var(--apx-tt-bg);
   border: 1px solid var(--apx-tt-border);
   box-shadow: var(--apx-tt-shadow);
@@ -849,7 +859,7 @@ rect.legend-mouseover-inactive,
   font-size: 12px;
   font-weight: 500;
   text-align: center;
-  border-radius: 6px;
+  border-radius: calc(6px * var(--apx-radius-factor, 1));
   position: absolute;
   z-index: 10;
   background: var(--apx-axt-bg);
@@ -1057,16 +1067,20 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-wheel-hint span {
+  --apx-wheel-hint-bg: rgba(28, 28, 31, 0.82);
+  --apx-wheel-hint-fg: #fff;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--apx-radius-factor, 1));
   font-size: 13px;
-  color: #fff;
-  background: rgba(28, 28, 31, 0.82);
+  color: var(--apx-wheel-hint-fg);
+  background: var(--apx-wheel-hint-bg);
 }
 
 .apexcharts-theme-dark .apexcharts-wheel-hint span {
-  color: #1c1c1f;
-  background: rgba(255, 255, 255, 0.9);
+  --apx-wheel-hint-bg: rgba(255, 255, 255, 0.9);
+  --apx-wheel-hint-fg: #1c1c1f;
+  color: var(--apx-wheel-hint-fg);
+  background: var(--apx-wheel-hint-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1096,7 +1110,7 @@ rect.legend-mouseover-inactive,
   margin: 0;
   background: transparent;
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1171,30 +1185,40 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-toolbar {
+  --apx-toolbar-bg: rgba(255, 255, 255, 0.85);
   position: absolute;
   z-index: 11;
   display: inline-flex;
   align-items: center;
   gap: 1px;
   padding: 3px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.85);
+  border-radius: calc(8px * var(--apx-radius-factor, 1));
+  background: var(--apx-toolbar-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
 .apexcharts-theme-dark .apexcharts-toolbar {
-  background: rgba(28, 28, 31, 0.82);
+  --apx-toolbar-bg: rgba(28, 28, 31, 0.82);
+  background: var(--apx-toolbar-bg);
 }
 
+/* The export menu. It reads the --apx-menu-* names the context menu does,
+   with its own defaults declared here, so a page value for the context menu
+   on the canvas does not reach it. Its text inherits unless one is set. */
 .apexcharts-menu {
-  background: rgba(255, 255, 255, 0.95);
+  --apx-menu-bg: rgba(255, 255, 255, 0.95);
+  --apx-menu-fg: currentColor;
+  --apx-menu-border: rgba(15, 23, 42, 0.08);
+  --apx-menu-hover: rgba(15, 23, 42, 0.06);
+  background: var(--apx-menu-bg);
+  color: var(--apx-menu-fg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   position: absolute;
   top: calc(100% + 4px);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
+  border: 1px solid var(--apx-menu-border);
+  border-radius: calc(8px * var(--apx-radius-factor, 1));
   padding: 4px;
   right: 0;
   opacity: 0;
@@ -1214,23 +1238,27 @@ rect.legend-mouseover-inactive,
 .apexcharts-menu-item {
   padding: 6px 9px;
   font-size: 12px;
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
   cursor: pointer
 }
 
 .apexcharts-theme-light .apexcharts-menu-item:hover {
-  background: rgba(15, 23, 42, 0.06)
+  background: var(--apx-menu-hover)
 }
 
 .apexcharts-theme-dark .apexcharts-menu {
-  background: rgba(28, 28, 31, 0.92);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #f3f4f6;
+  --apx-menu-bg: rgba(28, 28, 31, 0.92);
+  --apx-menu-fg: #f3f4f6;
+  --apx-menu-border: rgba(255, 255, 255, 0.08);
+  --apx-menu-hover: rgba(255, 255, 255, 0.08);
+  background: var(--apx-menu-bg);
+  border-color: var(--apx-menu-border);
+  color: var(--apx-menu-fg);
   box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)
 }
 
 .apexcharts-theme-dark .apexcharts-menu-item:hover {
-  background: rgba(255, 255, 255, 0.08)
+  background: var(--apx-menu-hover)
 }
 
 @media screen and (min-width:768px) {
@@ -1256,7 +1284,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-zoomout-icon:focus-visible {
   outline: 2px solid var(--apexcharts-focus-color, #008FFB);
   outline-offset: 1px;
-  border-radius: 5px
+  border-radius: calc(5px * var(--apx-radius-factor, 1))
 }
 
 /* Focus indicator for hamburger menu items */
@@ -1366,7 +1394,7 @@ rect.legend-mouseover-inactive,
   background: transparent;
   border: none;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: calc(3px * var(--apx-radius-factor, 1));
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -1568,7 +1596,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis-panel.apexcharts-trellis-skeleton {
   background: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
   opacity: 0.05;
-  border-radius: 4px;
+  border-radius: calc(4px * var(--apx-radius-factor, 1));
 }
 /* tooltip: 'panel' — the group still syncs every panel's crosshair, but only
    the hovered cell shows its tooltip cards. */
@@ -1596,7 +1624,7 @@ rect.legend-mouseover-inactive,
   background: var(--apx-bg, #fff);
   color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
   border: 1px solid rgba(120, 120, 120, 0.25);
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
   box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
   font-size: 12px;
   min-width: 140px;
@@ -1700,7 +1728,7 @@ rect.legend-mouseover-inactive,
   min-width: 132px;
   background: var(--apx-bg, #fff);
   border: 1px solid rgba(120, 120, 120, 0.25);
-  border-radius: 5px;
+  border-radius: calc(5px * var(--apx-radius-factor, 1));
   box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
   padding: 4px;
   z-index: 15;
@@ -1714,7 +1742,7 @@ rect.legend-mouseover-inactive,
   text-align: left;
   font-size: 12px;
   padding: 5px 8px;
-  border-radius: 3px;
+  border-radius: calc(3px * var(--apx-radius-factor, 1));
   cursor: pointer;
   color: var(--apx-fore, var(--apx-trellis-fore, #373d3f));
 }
@@ -1734,7 +1762,7 @@ rect.legend-mouseover-inactive,
   background: transparent;
   padding: 2px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: calc(3px * var(--apx-radius-factor, 1));
   color: #6e8192;
   line-height: 0;
 }

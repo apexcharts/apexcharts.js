@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -349,6 +349,8 @@ class RendererController {
     this.w.globals.activeRenderer = null;
   }
 }
+const Theme = _core.__apex_Theme;
+const Config = _core.__apex_Config;
 const CoreUtils = _core.__apex_CoreUtils;
 const InitCtxVariables = _core.__apex_helpers_InitCtxVariables;
 const PIVOT_FACET = Symbol("facet");
@@ -805,108 +807,108 @@ function split2d(list, cfg, warnings, alignToUnion = true, datetime) {
     warnings
   };
 }
-const M = 1e3;
-function A(e, t) {
-  const s = e.length;
-  if (0 === s) return NaN;
-  if (1 === s) return e[0];
-  const n = (s - 1) * t, i = Math.floor(n), r = Math.ceil(n);
-  return i === r ? e[i] : e[i] + (e[r] - e[i]) * (n - i);
+const S = 1e3;
+function x(t, e) {
+  const n = t.length;
+  if (0 === n) return NaN;
+  if (1 === n) return t[0];
+  const r = (n - 1) * e, s = Math.floor(r), i = Math.ceil(r);
+  return s === i ? t[s] : t[s] + (t[i] - t[s]) * (r - s);
 }
-function S(e, t, s) {
-  const n = e.length, i = (e2) => t / Math.max(1, Math.ceil(e2)), r = () => i(Math.log2(n) + 1);
-  switch (s) {
+function A(t, e, n) {
+  const r = t.length, s = (t2) => e / Math.max(1, Math.ceil(t2)), i = () => s(Math.log2(r) + 1);
+  switch (n) {
     case "sqrt":
-      return { width: i(Math.sqrt(n)), rule: "sqrt" };
+      return { width: s(Math.sqrt(r)), rule: "sqrt" };
     case "rice":
-      return { width: i(2 * Math.cbrt(n)), rule: "rice" };
+      return { width: s(2 * Math.cbrt(r)), rule: "rice" };
     case "scott": {
-      const t2 = (function(e2) {
-        const t3 = e2.length;
-        if (t3 < 2) return 0;
+      const e2 = (function(t2) {
+        const e3 = t2.length;
+        if (e3 < 2) return 0;
+        let n2 = 0;
+        for (let r3 = 0; r3 < e3; r3++) n2 += t2[r3];
+        const r2 = n2 / e3;
         let s2 = 0;
-        for (let n3 = 0; n3 < t3; n3++) s2 += e2[n3];
-        const n2 = s2 / t3;
-        let i2 = 0;
-        for (let s3 = 0; s3 < t3; s3++) {
-          const t4 = e2[s3] - n2;
-          i2 += t4 * t4;
+        for (let n3 = 0; n3 < e3; n3++) {
+          const e4 = t2[n3] - r2;
+          s2 += e4 * e4;
         }
-        return Math.sqrt(i2 / t3);
-      })(e);
-      return t2 > 0 ? { width: 3.49 * t2 * Math.pow(n, -1 / 3), rule: "scott" } : { width: r(), rule: "sturges" };
+        return Math.sqrt(s2 / e3);
+      })(t);
+      return e2 > 0 ? { width: 3.49 * e2 * Math.pow(r, -1 / 3), rule: "scott" } : { width: i(), rule: "sturges" };
     }
     case "fd": {
-      const t2 = A(e, 0.75) - A(e, 0.25);
-      return t2 > 0 ? { width: 2 * t2 * Math.pow(n, -1 / 3), rule: "fd" } : { width: r(), rule: "sturges" };
+      const e2 = x(t, 0.75) - x(t, 0.25);
+      return e2 > 0 ? { width: 2 * e2 * Math.pow(r, -1 / 3), rule: "fd" } : { width: i(), rule: "sturges" };
     }
     case "auto": {
-      const t2 = r(), s2 = A(e, 0.75) - A(e, 0.25);
-      if (s2 <= 0) return { width: t2, rule: "sturges" };
-      const i2 = 2 * s2 * Math.pow(n, -1 / 3);
-      return i2 < t2 ? { width: i2, rule: "fd" } : { width: t2, rule: "sturges" };
+      const e2 = i(), n2 = x(t, 0.75) - x(t, 0.25);
+      if (n2 <= 0) return { width: e2, rule: "sturges" };
+      const s2 = 2 * n2 * Math.pow(r, -1 / 3);
+      return s2 < e2 ? { width: s2, rule: "fd" } : { width: e2, rule: "sturges" };
     }
     default:
-      return { width: r(), rule: "sturges" };
+      return { width: i(), rule: "sturges" };
   }
 }
-function x(e, t = {}) {
-  if (!Array.isArray(e) || 0 === e.length) return null;
-  const s = e.slice().sort(((e2, t2) => e2 - t2));
-  let n = s[0], i = s[s.length - 1];
-  const r = t.range;
-  if (Array.isArray(r) && 2 === r.length) {
-    const e2 = Number(r[0]), t2 = Number(r[1]);
-    Number.isFinite(e2) && Number.isFinite(t2) && t2 > e2 && (n = e2, i = t2);
+function k(t, e = {}) {
+  if (!Array.isArray(t) || 0 === t.length) return null;
+  const n = t.slice().sort(((t2, e2) => t2 - e2));
+  let r = n[0], s = n[n.length - 1];
+  const i = e.range;
+  if (Array.isArray(i) && 2 === i.length) {
+    const t2 = Number(i[0]), e2 = Number(i[1]);
+    Number.isFinite(t2) && Number.isFinite(e2) && e2 > t2 && (r = t2, s = e2);
   }
-  if (!(i > n)) {
-    const e2 = Math.abs(n) > 0 ? 0.05 * Math.abs(n) : 0.5;
-    return { edges: [n - e2, n + e2], binWidth: 2 * e2, rule: "single", capped: false };
+  if (!(s > r)) {
+    const t2 = Math.abs(r) > 0 ? 0.05 * Math.abs(r) : 0.5;
+    return { edges: [r - t2, r + t2], binWidth: 2 * t2, rule: "single", capped: false };
   }
-  const a = i - n;
-  let o, l;
-  if ("number" == typeof t.binWidth && t.binWidth > 0) o = t.binWidth, l = "binWidth";
-  else if ("number" == typeof t.bins && t.bins >= 1) o = a / Math.floor(t.bins), l = "count";
+  const o = s - r;
+  let l, a;
+  if ("number" == typeof e.binWidth && e.binWidth > 0) l = e.binWidth, a = "binWidth";
+  else if ("number" == typeof e.bins && e.bins >= 1) l = o / Math.floor(e.bins), a = "count";
   else {
-    const e2 = S(s, a, "string" == typeof t.bins ? t.bins : "auto");
-    o = e2.width, l = e2.rule;
+    const t2 = A(n, o, "string" == typeof e.bins ? e.bins : "auto");
+    l = t2.width, a = t2.rule;
   }
-  (!Number.isFinite(o) || o <= 0) && (o = a);
-  let c = Math.ceil(a / o);
+  (!Number.isFinite(l) || l <= 0) && (l = o);
+  let c = Math.ceil(o / l);
   (!Number.isFinite(c) || c < 1) && (c = 1);
   let u = false;
-  c > M && (c = M, u = true), o = a / c;
-  const h = new Array(c + 1);
-  for (let e2 = 0; e2 <= c; e2++) h[e2] = n + e2 * o;
-  return h[c] = Math.max(h[c], i), { edges: h, binWidth: o, rule: l, capped: u };
+  c > S && (c = S, u = true), l = o / c;
+  const d = new Array(c + 1);
+  for (let t2 = 0; t2 <= c; t2++) d[t2] = r + t2 * l;
+  return d[c] = Math.max(d[c], s), { edges: d, binWidth: l, rule: a, capped: u };
 }
-function k(e, t) {
-  const s = t.length - 1;
-  if (!(e >= t[0]) || e > t[s]) return -1;
-  if (e === t[s]) return s - 1;
-  const n = (t[s] - t[0]) / s;
-  if (n > 0) {
-    let i2 = Math.floor((e - t[0]) / n);
-    return i2 < 0 && (i2 = 0), i2 > s - 1 && (i2 = s - 1), e < t[i2] ? i2-- : e >= t[i2 + 1] && i2++, i2 < 0 || i2 > s - 1 ? -1 : i2;
+function N(t, e) {
+  const n = e.length - 1;
+  if (!(t >= e[0]) || t > e[n]) return -1;
+  if (t === e[n]) return n - 1;
+  const r = (e[n] - e[0]) / n;
+  if (r > 0) {
+    let s2 = Math.floor((t - e[0]) / r);
+    return s2 < 0 && (s2 = 0), s2 > n - 1 && (s2 = n - 1), t < e[s2] ? s2-- : t >= e[s2 + 1] && s2++, s2 < 0 || s2 > n - 1 ? -1 : s2;
   }
-  let i = 0, r = s - 1;
-  for (; i <= r; ) {
-    const s2 = i + r >> 1;
-    if (e < t[s2]) r = s2 - 1;
+  let s = 0, i = n - 1;
+  for (; s <= i; ) {
+    const n2 = s + i >> 1;
+    if (t < e[n2]) i = n2 - 1;
     else {
-      if (!(e >= t[s2 + 1])) return s2;
-      i = s2 + 1;
+      if (!(t >= e[n2 + 1])) return n2;
+      s = n2 + 1;
     }
   }
   return -1;
 }
-function L(e, t) {
-  const s = new Array(Math.max(0, t.length - 1)).fill(0);
-  for (let n = 0; n < e.length; n++) {
-    const i = k(e[n], t);
-    i >= 0 && s[i]++;
+function C(t, e) {
+  const n = new Array(Math.max(0, e.length - 1)).fill(0);
+  for (let r = 0; r < t.length; r++) {
+    const s = N(t[r], e);
+    s >= 0 && n[s]++;
   }
-  return s;
+  return n;
 }
 function stdDev(values) {
   const n = values.length;
@@ -928,7 +930,7 @@ function kernelDensity(values, opts = {}) {
   let h = opts.bandwidth;
   if (!(typeof h === "number" && h > 0)) {
     const sd = stdDev(sorted);
-    const iqr = A(sorted, 0.75) - A(sorted, 0.25);
+    const iqr = x(sorted, 0.75) - x(sorted, 0.25);
     const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd;
     h = 0.9 * spread * Math.pow(n, -1 / 5);
   }
@@ -1035,7 +1037,7 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
       (p) => p.series.map((s) => observationValues(s.data))
     );
     const union = panelSeriesVals.flat(2);
-    const binning = x(union, {
+    const binning = k(union, {
       bins: hcfg.bins,
       binWidth: hcfg.binWidth,
       range: hcfg.range
@@ -1052,7 +1054,7 @@ function buildTypeFrames(splitResult, cfg, hostConfig, chartType) {
       panelSeriesVals.forEach(
         (seriesVals) => seriesVals.forEach((vals) => {
           if (!vals.length) return;
-          const ys = normalizeCounts(L(vals, edges), {
+          const ys = normalizeCounts(C(vals, edges), {
             normalize: hcfg.normalize,
             cumulative: hcfg.cumulative,
             binWidth: binning.binWidth
@@ -1348,9 +1350,9 @@ function resolve(splitResult, cfg = {}, host = {}) {
     const ya = yaxes[ai] || {};
     if (ya.logarithmic && ext.min > 0) {
       const b = ya.logBase || 10;
-      const L2 = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
-      const lo = Math.floor(L2(ext.min));
-      const hi = Math.max(lo + 1, Math.ceil(L2(ext.max)));
+      const L = (v) => +(Math.log(v) / Math.log(b)).toFixed(9);
+      const lo = Math.floor(L(ext.min));
+      const hi = Math.max(lo + 1, Math.ceil(L(ext.max)));
       return {
         min: __pow(b, lo),
         max: __pow(b, hi),
@@ -1782,7 +1784,7 @@ class HeatmapGradientLegend {
     rect.setAttribute("y", String(stripY));
     rect.setAttribute("width", String(isVertical ? stripThickness : stripLength));
     rect.setAttribute("height", String(isVertical ? stripLength : stripThickness));
-    rect.setAttribute("rx", "2");
+    rect.setAttribute("rx", String(Theme.radius(w, 2)));
     rect.setAttribute("fill", `url(#${gradId})`);
     svg.appendChild(rect);
     if (cfg.showLabels) {
@@ -1864,7 +1866,7 @@ class HeatmapGradientLegend {
       tt.style.background = "rgba(0,0,0,0.65)";
       tt.style.color = "#fff";
       tt.style.padding = "2px 6px";
-      tt.style.borderRadius = "3px";
+      tt.style.borderRadius = `${Theme.radius(w, 3)}px`;
       tt.style.pointerEvents = "none";
       tt.style.whiteSpace = "nowrap";
       tt.style.opacity = "0";
@@ -2372,7 +2374,11 @@ class HeatmapGradientLegend {
         const t = s / (n - 1);
         const p = total === 0 ? 0 : Math.min(min + t * (max - min), hi) / total;
         const c = Math.max(-1, Math.min(1, shadePercent(w, type, p, false)));
-        const shaded = plot.enableShades ? utils.shadeColor(w.config.theme.mode === "dark" ? -c : c, baseColor) : baseColor;
+        const shaded = plot.enableShades ? utils.shadeColor(
+          w.config.theme.mode === "dark" ? -c : c,
+          baseColor,
+          w.dom.elWrap
+        ) : baseColor;
         stops.push({ percent: t, color: shaded });
       }
     }
@@ -2795,7 +2801,13 @@ class TrellisChrome {
 function yaxisPayload(chart, patch) {
   const current = Utils.clone(chart.w.config.yaxis);
   const arr = Array.isArray(current) ? current : [current];
-  return arr.map((entry) => Utils.extend(entry, patch));
+  const named = chart.w.globals.themeGridColorsExplicit;
+  return arr.map((entry, i) => {
+    const flags = named && named.yaxis[i] || {};
+    if (!flags.border && entry.axisBorder) delete entry.axisBorder.color;
+    if (!flags.ticks && entry.axisTicks) delete entry.axisTicks.color;
+    return Utils.extend(entry, patch);
+  });
 }
 class TrellisSync {
   /**
@@ -4781,7 +4793,7 @@ class Trellis {
     return isFinite(h) && h > 0 ? h : 0;
   }
   _buildSkeleton() {
-    var _a, _b;
+    var _a;
     const el = (
       /** @type {HTMLElement} */
       this.ctx.el
@@ -4798,8 +4810,10 @@ class Trellis {
     wrap.setAttribute("data-tooltip-mode", this.cfg.tooltip || "panel");
     const foreColor = (_a = this.w.config.chart) == null ? void 0 : _a.foreColor;
     if (foreColor) wrap.style.setProperty("--apx-trellis-fore", foreColor);
-    const fontFamily = (_b = this.w.config.chart) == null ? void 0 : _b.fontFamily;
-    if (fontFamily) wrap.style.fontFamily = fontFamily;
+    if (this.w.config.theme.tokens === false) {
+      wrap.style.setProperty("--apx-font-family", "initial");
+      wrap.style.setProperty("--apx-radius-factor", "initial");
+    }
     const chromeTop = BrowserAPIs.createElement("div");
     chromeTop.className = "apexcharts-trellis-chrome";
     wrap.appendChild(chromeTop);
@@ -4810,6 +4824,8 @@ class Trellis {
     el.appendChild(wrap);
     this.elWrap = wrap;
     this.elGrid = grid;
+    const fontFamily = Config.hasExplicitFontFamily(this.ctx.opts) ? this.w.config.chart.fontFamily : Theme.tokenFont(this.w, wrap) || this.w.config.chart.fontFamily;
+    if (fontFamily) wrap.style.fontFamily = fontFamily;
     this.w.dom.baseEl = el;
     this.w.dom.elWrap = wrap;
   }

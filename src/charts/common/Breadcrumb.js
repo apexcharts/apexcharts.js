@@ -22,6 +22,7 @@
  */
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
+import Theme from '../../modules/Theme'
 
 const XHTML = 'http://www.w3.org/1999/xhtml'
 
@@ -170,7 +171,7 @@ export function placeInReservedBand(w, ctx, nav, cfg) {
   nav.style.top = `${titleArea + offsetY}px`
   const dark = w.config.theme.mode === 'dark'
   nav.style.background = dark ? 'rgba(20,24,30,0.82)' : 'rgba(255,255,255,0.86)'
-  nav.style.borderRadius = '4px'
+  nav.style.borderRadius = `${Theme.radius(w, 4)}px`
   return false
 }
 

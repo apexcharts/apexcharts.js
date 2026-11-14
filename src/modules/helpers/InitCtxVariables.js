@@ -47,7 +47,7 @@ if (Environment.isBrowser()) {
 }
 
 /**
- * Versioned globalThis slot, matching ChartFactory / ThemeRegistry /
+ * Versioned globalThis slot, matching ChartFactory / the theme registry /
  * RendererController.
  *
  * A class static would live once per copy of this module, and a page can hold
@@ -118,6 +118,7 @@ export default class InitCtxVariables {
       'showSeries',
       'hideSeries',
       'setLocale',
+      'refreshTokens',
       'resetSeries',
       'zoomX',
       'toggleDataPointSelection',

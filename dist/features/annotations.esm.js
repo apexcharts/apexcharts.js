@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v8.7.0
+ * ApexCharts v8.8.2
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -205,7 +205,7 @@ class Helpers {
    * @param {Record<string, any>} anno
    */
   getY1Y2(type, anno) {
-    var _a, _b, _c;
+    var _a, _b;
     const w = this.w;
     const y = type === "y1" ? anno.y : anno.y2;
     const isPx = typeof y === "string" && y.includes("px");
@@ -217,10 +217,8 @@ class Helpers {
       if (!isPx && catIndex === -1) {
         return { yP: 0, clipped: true };
       }
-      const xLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
-      );
-      yP = xLabel ? parseFloat((_a = xLabel.getAttribute("y")) != null ? _a : "0") : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
+      const rowCount = w.rangeData.seriesRange.length && w.globals.isBarHorizontal ? w.labelData.labels.length : w.globals.dataPoints || labels.length;
+      yP = rowCount > 0 ? (catIndex + 0.5) * (w.layout.gridHeight / rowCount) : 0;
       if (anno.seriesIndex !== void 0 && w.globals.barHeight) {
         yP += this.barSlotOffset(anno.seriesIndex, w.globals.barHeight);
       }
@@ -229,7 +227,7 @@ class Helpers {
         return { yP: 0, clipped: true };
       }
       const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
-      const seriesIndex = (_b = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _b : null;
+      const seriesIndex = (_a = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _a : null;
       if (seriesIndex === null && w.seriesData.series.length) {
         return { yP: 0, clipped: true };
       }
@@ -246,7 +244,7 @@ class Helpers {
       if (anno.marker && (anno.y === void 0 || anno.y === null)) {
         yP = 0;
       }
-      if ((_c = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _c.reversed) {
+      if ((_b = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _b.reversed) {
         yP = yPos;
       }
     }
@@ -305,20 +303,30 @@ class Helpers {
    * share the slot only among the series actually laid out side by side:
    * a stacked chart draws them all in one column, and a hidden series (empty
    * data) or a non-bar combo series takes no slot.
+   *
+   * Grouped-row range bars (`plotOptions.bar.rangeBarGroupRows`) share a
+   * slot too. bar/Helpers forces `seriesLen` to 1, so every series is drawn
+   * on the row centre — the dumbbell / per-row-colour pattern. A point
+   * annotation's `seriesIndex` is 0 when it names the first series, and
+   * offsetting by that lifts the marker off the row by
+   * `barHeight * (0 - (n - 1) / 2)` (#5078).
    * @param {number} i
    * @param {number} size bar width, or bar height when horizontal
    */
   barSlotOffset(i, size) {
+    var _a, _b;
     const w = this.w;
-    if (w.config.chart.stacked) return 0;
+    if (w.config.chart.stacked || ((_b = (_a = w.config.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.rangeBarGroupRows)) {
+      return 0;
+    }
     let n = 0;
     let ordinal = 0;
     w.seriesData.series.forEach(
       (s, si) => {
-        var _a;
+        var _a2;
         const type = (
           /** @type {any} */
-          (_a = w.config.series[si]) == null ? void 0 : _a.type
+          (_a2 = w.config.series[si]) == null ? void 0 : _a2.type
         );
         if (s.length && (!w.globals.comboCharts || type === "bar" || type === "column")) {
           if (si < i) ordinal++;

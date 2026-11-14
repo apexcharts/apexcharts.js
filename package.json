@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "8.7.0",
+  "version": "8.8.2",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -325,6 +325,10 @@
       "import": "./dist/features/radial-targets.esm.js",
       "require": "./dist/features/radial-targets.common.js"
     },
+    "./features/ignite-ui": {
+      "import": "./dist/features/ignite-ui.esm.js",
+      "require": "./dist/features/ignite-ui.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"
@@ -379,7 +383,7 @@
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "dependencies": {
-    "apex-commons": "^0.8.3"
+    "apex-commons": "^0.11.0"
   },
   "devDependencies": {
     "@blazediff/core": "1.0.0",

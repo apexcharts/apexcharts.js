@@ -1,0 +1,39 @@
+/* Ignite UI 7.4.1 themes/light/bootstrap.css (igniteui-webcomponents), :root only:
+   the --ig-* tokens ApexCharts reads and the properties their values use.
+   Generated from Chromium's capture in plan 36's token inventory. */
+:root {
+  --ig-theme: bootstrap;
+  --ig-theme-variant: light;
+  --ig-primary-300: hsl(from var(--ig-primary-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-primary-500: #0d6efd;
+  --ig-primary-700: hsl(from var(--ig-primary-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-primary-seed: #0d6efd;
+  --ig-secondary-300: hsl(from var(--ig-secondary-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-secondary-500: #6c757d;
+  --ig-secondary-700: hsl(from var(--ig-secondary-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-secondary-seed: #6c757d;
+  --ig-gray-100: hsl(from var(--ig-gray-500) h s 96%);
+  --ig-gray-300: hsl(from var(--ig-gray-500) h s 88%);
+  --ig-gray-400: hsl(from var(--ig-gray-500) h s 74%);
+  --ig-gray-500: hsl(210, 10.81%, 62%);
+  --ig-gray-600: hsl(from var(--ig-gray-500) h s 54%);
+  --ig-gray-800: hsl(from var(--ig-gray-500) h s 26%);
+  --ig-surface-500: #f8f9fa;
+  --ig-info-300: hsl(from var(--ig-info-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-info-500: #0dcaf0;
+  --ig-info-700: hsl(from var(--ig-info-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-info-seed: #0dcaf0;
+  --ig-success-300: hsl(from var(--ig-success-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-success-500: #198754;
+  --ig-success-700: hsl(from var(--ig-success-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-success-seed: #198754;
+  --ig-warn-300: hsl(from var(--ig-warn-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-warn-500: #ffc107;
+  --ig-warn-700: hsl(from var(--ig-warn-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-warn-seed: #ffc107;
+  --ig-error-300: hsl(from var(--ig-error-500) h calc(s * 0.73) calc(l * 1.19));
+  --ig-error-500: #dc3545;
+  --ig-error-700: hsl(from var(--ig-error-500) h calc(s * 1.26) calc(l * 0.81));
+  --ig-error-seed: #dc3545;
+  --ig-font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+}

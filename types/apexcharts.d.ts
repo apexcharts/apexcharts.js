@@ -5717,12 +5717,29 @@ type ApexTheme = {
   /**
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade
    * (`--apx-accent`, `--apx-fore`, `--apx-grid`, `--apx-surface`,
-   * `--apx-series-1..N`). They top the resolution chain, below explicit config.
-   * true (default) reads any present (absence is a no-op); false disables.
+   * `--apx-series-1..N`, `--apx-font-family`, `--apx-radius-factor`). They top
+   * the resolution chain, below explicit config.
+   * true (default) reads any present (absence is a no-op); false disables
+   * them and the design-system layer (`designSystem`).
    * Tokens are re-read on each render; use `chart.refreshTokens()` after a
-   * runtime CSS change that does not itself trigger a render.
+   * runtime CSS change that does not itself trigger a render. A font that
+   * came from a token and is still loading is read again once it has loaded.
    */
   tokens?: boolean
+  /**
+   * Follow a design system's stylesheet on the page. Has an effect only while
+   * the Ignite UI add-on is loaded (`import 'apexcharts/features/ignite-ui'`,
+   * or `dist/features/ignite-ui.js` after apexcharts.js); without it the
+   * `--ig-*` tokens are ignored and this option does nothing. With the add-on
+   * and an Ignite UI theme on the page, its `--ig-*` tokens supply the series
+   * colours, the text, grid and overlay colours, the font, and an unset
+   * `mode` (from `--ig-theme-variant`). It ranks below everything else:
+   * explicit options, the chart's own CSS variables, `--apx-*` tokens, a
+   * named theme and an explicit `palette` all win. `colorBlindMode` and
+   * `monochrome` keep their own colours. Default true; false turns this layer
+   * off for this chart and keeps the `--apx-*` tokens.
+   */
+  designSystem?: boolean
   /**
    * Facet (#13): 'os' follows the operating system's `prefers-color-scheme`
    * (light/dark) and `prefers-contrast` reactively, with no JS. SSR-safe.
@@ -5746,8 +5763,18 @@ interface ApexThemeDef {
   mode?: 'light' | 'dark'
   /** Series palette (overrides the built-in palette). */
   palette?: string[]
-  /** Design-token values applied as chrome + palette seed. */
-  tokens?: { accent?: string; fore?: string; grid?: string; surface?: string; series?: string[] }
+  /**
+   * Design-token values applied as chrome + palette seed. `font` sets
+   * `chart.fontFamily` unless the page passed one.
+   */
+  tokens?: {
+    accent?: string
+    fore?: string
+    grid?: string
+    surface?: string
+    series?: string[]
+    font?: string
+  }
   monochrome?: ApexTheme['monochrome']
   accessibility?: ApexTheme['accessibility']
 }

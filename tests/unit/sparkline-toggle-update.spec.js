@@ -72,3 +72,20 @@ describe('chart.sparkline.enabled through updateOptions', () => {
     chart.destroy()
   })
 })
+
+describe('updateOptions with yaxis on a sparkline', () => {
+  it('keeps the y-axis hidden, as a chart built that way does', async () => {
+    const asSpark = await fresh(true)
+    const options = (max) => ({
+      chart: { ...CHART, sparkline: { enabled: true } },
+      series: SERIES,
+      yaxis: { min: 0, max },
+    })
+    const chart = new ApexCharts(host(), options(20))
+    await chart.render()
+    await chart.updateOptions(options(30))
+    expect(look(chart.w.config)).toEqual(asSpark)
+    expect(chart.el.querySelector('.apexcharts-yaxis-label')).toBeNull()
+    chart.destroy()
+  })
+})
