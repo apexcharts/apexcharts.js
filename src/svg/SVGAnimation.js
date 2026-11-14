@@ -216,7 +216,9 @@ class SVGAnimationRunner {
        * @param {number} now
        */
       const tick = (now) => {
-        const elapsed = now - start
+        // A frame is stamped at its start, which can be earlier than this
+        // tween was scheduled. Stay on that clock; just don't run backwards.
+        const elapsed = Math.max(0, now - start)
         const rawPos = Math.min(elapsed / duration, 1)
         const pos = easing(rawPos)
 

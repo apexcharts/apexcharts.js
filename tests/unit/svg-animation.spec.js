@@ -191,4 +191,47 @@ describe('SVGAnimationRunner: colour attributes', () => {
       perf.mockRestore()
     }
   })
+
+  it('stays on the frame clock when the first stamp precedes the tween', async () => {
+    // A frame stamped at its start can be earlier than performance.now() at
+    // the moment the tween was scheduled. Following the wall clock from then
+    // on would finish this tween while the frame clock is still behind, and
+    // desync it from the tweens that share its duration.
+    let wall = 10000
+    const frames = []
+    const raf = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb) => {
+        frames.push(cb)
+        return frames.length
+      })
+    const perf = vi.spyOn(performance, 'now').mockImplementation(() => wall)
+    try {
+      let ended = false
+      const el = {
+        attr() {
+          return this
+        },
+        plot() {
+          return this
+        },
+        node: {},
+      }
+      new SVGAnimationRunner(el, 40, 0).after(() => {
+        ended = true
+      })
+      await Promise.resolve()
+      frames.shift()(wall - 5000)
+      expect(ended).toBe(false)
+      // Wall time is long past the duration; the frame stamp is not.
+      wall = 20000
+      frames.shift()(5000)
+      expect(ended).toBe(false)
+      frames.shift()(10040)
+      expect(ended).toBe(true)
+    } finally {
+      raf.mockRestore()
+      perf.mockRestore()
+    }
+  })
 })
