@@ -4224,11 +4224,11 @@ describe('Intersect.handleBarTooltip: a horizontal bar', () => {
 describe('Intersect.handleBarTooltip: a column with no room beside it', () => {
   /**
    * A column at grid-local `bar` (x, y, width, height) in a TALL plot whose
-   * elWrap is `wrapWidth` wide, hovered with the arrow on.
+   * elWrap is `wrapWidth` wide. `arrow` defaults to on.
    */
   function hoverColumn(
     bar,
-    { wrapWidth = 400, ttWidth = 100, card = null } = {},
+    { wrapWidth = 400, ttWidth = 100, card = null, arrow = true } = {},
   ) {
     const ctx = makeCtx({
       ...TALL,
@@ -4236,6 +4236,7 @@ describe('Intersect.handleBarTooltip: a column with no room beside it', () => {
       ttHeight: 60,
       wrapRect: { ...TALL.wrapRect, width: wrapWidth },
       chart: { type: 'bar' },
+      tooltip: { arrow },
     })
     const { w, ttCtx, tooltipEl, elWrap } = ctx
     if (card) clipTo(elWrap, card)
@@ -4316,6 +4317,24 @@ describe('Intersect.handleBarTooltip: a column with no room beside it', () => {
     expect(tooltipEl.style.top).toBe(120 - GAP - 60 + 'px')
     expect(tooltipEl.style.left).toBe('50px')
     expect(tooltipEl.style.getPropertyValue('--apx-tt-arrow-x')).toBe('45px')
+  })
+
+  // #5119: with the arrow off, the box is the x from the width flip. Once
+  // `x + ttWidth` passed the plot, `x - ttWidth` went negative and the box
+  // left the chart. It is held inside the plot instead. The arrow-on path
+  // still places beside the bar, or above it when neither side fits.
+  it('keeps an arrow-less tooltip inside the plot when the width flip would go negative', () => {
+    // bar grid-local 10..26, so x = 26. A 280px box on the 300px plot:
+    // 26 - 280 = -254, which painted the box at 50 + -254 = -204.
+    const tooltipEl = hoverColumn(
+      { x: 10, y: 80, width: 16, height: 40 },
+      { ttWidth: 280, arrow: false },
+    )
+    // plot is translateX 50 .. 350. The box sits as far right as it fits,
+    // 50 + (300 - 280) = 70, and ends on the plot's right edge.
+    expect(tooltipEl.style.left).toBe('70px')
+    expect(parseFloat(tooltipEl.style.left) + 280).toBe(350)
+    expect(tooltipEl.dataset.placement).toBeUndefined()
   })
 })
 
