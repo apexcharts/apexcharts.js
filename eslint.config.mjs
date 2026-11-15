@@ -19,6 +19,8 @@ export default [
       // Gitignored scratch: repro pages, drivers, and vendored old releases
       // pulled in for before/after comparison. Not ours to lint.
       'issues/**',
+      // Gitignored planning notes and the workflow scripts kept beside them.
+      'plans/**',
       // Agent worktrees: whole checkouts, built dist included, already linted
       // where they came from.
       '.claude/**',
