@@ -137,6 +137,19 @@ test.describe('candlestick/candlestick-line', () => {
     expect(marks.length).toBeGreaterThan(5)
     for (const m of marks) {
       await hover(page, m)
+      // A CI runner can open the tooltip after the hover's settle, so wait for
+      // it on this candle; a miss still fails on the checks below.
+      await page
+        .waitForFunction(
+          (j) =>
+            document
+              .querySelector('.apexcharts-tooltip')
+              ?.classList.contains('apexcharts-active') &&
+            window.chart.w.interact.capturedDataPointIndex === j,
+          m.j,
+          { timeout: 3000 },
+        )
+        .catch(() => {})
       const at = await page.evaluate((j) => {
         const band = document.querySelector('.apexcharts-xcrosshairs')
         const width = window.chart.ctx.tooltip.xcrosshairsWidth

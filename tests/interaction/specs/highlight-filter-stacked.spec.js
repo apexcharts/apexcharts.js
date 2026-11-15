@@ -1287,6 +1287,8 @@ test.describe('Stacked highlight: parts are solid', () => {
   test('a re-pick, a legend hide and show, and a resize stay solid on every frame', async ({
     page,
   }) => {
+    // four recorded transitions; 14 to 15s on a CI runner
+    test.setTimeout(40_000)
     const errors = await loadStacked(page)
     const solidThroughout = (rec) => {
       for (const f of rec.probes) for (const p of f.parts) expect(p.a).toBe(1)

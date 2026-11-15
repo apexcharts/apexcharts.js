@@ -248,6 +248,8 @@ test.describe('Treemap click-to-zoom', () => {
   ]
 
   test('each step starts on the picture that was on screen and lands at rest', async ({ page }) => {
+    // one recorded transition per step; 12 to 13s on a CI runner
+    test.setTimeout(40_000)
     const errors = await loadSample(page, 'treemap', 'nested-market-map')
     for (const [what, act] of STEPS) {
       const rec = await recordTransition(page, act(page), { probe: treemapPicture, ms: 1200 })
