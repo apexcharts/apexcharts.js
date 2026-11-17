@@ -5832,8 +5832,14 @@ interface ApexUnitMarkDef {
   name?: string
   /** Outline path data, in `viewBox` units. */
   path: string
-  /** Defaults to `[0, 0, 100, 100]`, the catalog's convention. */
-  viewBox?: [number, number, number, number]
+  /**
+   * `[minX, minY, width, height]`, or the string form an SVG's own `viewBox`
+   * attribute uses (`'0 0 24 24'`, space or comma separated), so an icon's
+   * attribute can be pasted as it is. Defaults to `[0, 0, 100, 100]`, the
+   * catalog's convention. A viewBox that is not 4 numbers with a positive
+   * width and height warns once and draws `pictogram.fallback` instead.
+   */
+  viewBox?: [number, number, number, number] | string
   fillRule?: 'nonzero' | 'evenodd'
 }
 

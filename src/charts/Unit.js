@@ -177,8 +177,6 @@ export default class Unit {
     this._scatterAxis = null
     /** @type {Map<string, any>} glyph draw specs, keyed (mark, quantised r) */
     this._specCache = new Map()
-    /** @type {Set<string>|null} mark names already warned about */
-    this._markWarned = null
   }
 
   /**
@@ -2586,7 +2584,21 @@ export default class Unit {
    */
   _resolveMark(ref) {
     if (ref == null) return null
-    if (typeof ref === 'object') return normalizeUnitMark(ref)
+    if (typeof ref === 'object') {
+      const inline = normalizeUnitMark(ref)
+      if (inline) return inline
+      // An inline mark that cannot draw used to fall back without a word, so
+      // a viewBox the chart could not read looked like a sizing bug.
+      const vb = JSON.stringify(ref.viewBox)
+      this._warnMarkOnce(
+        'inline:' + vb,
+        `[ApexCharts] unit chart: a mark object needs a path string and a ` +
+          `viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a ` +
+          `positive width and height (got viewBox ${vb}). Drawing ` +
+          `pictogram.fallback instead.`,
+      )
+      return null
+    }
     if (typeof ref !== 'string' || !ref) return null
     const s = ref.trim()
     // Sugar: an inline outline rather than a registered name.
@@ -2601,19 +2613,32 @@ export default class Unit {
       NORMALISED.set(/** @type {object} */ (found), mark)
     }
     if (mark) return mark
-    if (!this._markWarned) this._markWarned = new Set()
-    if (!this._markWarned.has(s)) {
-      this._markWarned.add(s)
-      console.warn(
-        found
-          ? `[ApexCharts] unit chart: mark "${s}" needs a path string and a ` +
-              `viewBox of 4 numbers with a positive width and height.`
-          : `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
-              `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
-              `or import a catalog from 'apexcharts/pictograms'.`,
-      )
-    }
+    this._warnMarkOnce(
+      s,
+      found
+        ? `[ApexCharts] unit chart: mark "${s}" needs a path string and a ` +
+            `viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a ` +
+            `positive width and height.`
+        : `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
+            `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
+            `or import a catalog from 'apexcharts/pictograms'.`,
+    )
     return null
+  }
+
+  /**
+   * Warn about a mark that cannot draw, once per chart rather than once per
+   * render: a Unit is made anew for every render, so a set held on it would
+   * warn again on each update of a live chart. Kept on the chart, as
+   * `_applyMaxUnits` keeps `_unitCapWarned`.
+   * @param {string} key what the warning is about @param {string} msg
+   */
+  _warnMarkOnce(key, msg) {
+    const ctx = /** @type {any} */ (this.ctx || this)
+    if (!ctx._unitMarkWarned) ctx._unitMarkWarned = new Set()
+    if (ctx._unitMarkWarned.has(key)) return
+    ctx._unitMarkWarned.add(key)
+    console.warn(msg)
   }
 
   /**
