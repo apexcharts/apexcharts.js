@@ -10,6 +10,9 @@
  *     NOT throw, and must leave the last tooltip alone rather than flickering.
  *     That degradation is deliberate and unfixable portably
  *     (`pointer-events: bounding-box` is Chrome only), so it is pinned here.
+ *     A HOLE is different: a glyph drawn `fillRule: 'evenodd'` owns its hole
+ *     through the chart's own hit test (Unit#_holeHitTest), which a notch,
+ *     being outside the outline, never reaches.
  *   - Swapping the mark or the layout at runtime goes through updateOptions and
  *     must not leave stale nodes, stale listeners, or a broken tooltip.
  *

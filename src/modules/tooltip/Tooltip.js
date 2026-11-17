@@ -141,6 +141,13 @@ export default class Tooltip {
      */
     this.offMarkHideTimeout = undefined
     /**
+     * Is the pointer in the hole of a unit glyph, holding its mark's
+     * tooltip? Only then does a move out onto bare plot close it, the way
+     * leaving ink does: see addUnitHoleListeners.
+     * @type {boolean}
+     */
+    this.unitHoleHeld = false
+    /**
      * The replay of an open tooltip that drawTooltip holds for the update's
      * tween; a later render or handleMouseOut drops it.
      * @type {object | null}
@@ -856,6 +863,11 @@ export default class Tooltip {
     ) {
       const seriesAll = w.dom.baseEl.querySelectorAll('.apexcharts-series')
       this.addPathsEventListeners(seriesAll, seriesHoverParams)
+      // A unit glyph with a hole lets the pointer through to the plot, which
+      // no series group hears: listen there too (see Unit#_holeHitTest).
+      if (type === 'unit' && w.globals.unitHoleHit) {
+        this.addUnitHoleListeners(hoverArea, seriesHoverParams)
+      }
     }
 
     if (this.showOnIntersect) {
@@ -1018,6 +1030,98 @@ export default class Tooltip {
         })
       })
     }
+  }
+
+  /**
+   * Listen on the whole plot for the moves that land in the hole of a unit
+   * glyph (a ring, however it winds and is filled). Over its hole the pointer
+   * is on the plot's background, which no series group hears, so the tooltip
+   * used to close there and reopen on the ink. Only events that reach no
+   * series group are taken: a move over a mark is its group's, and handling
+   * it twice would let this listener cancel that group's pending draw.
+   *
+   * Away from holes this listener changes nothing. A move on bare plot is
+   * passed on only when it is the first one out of a hole, and then as the
+   * mouseout that leaving ink is: it closes at once, or after the grace an
+   * interactive box gives the pointer to reach it, which entering the box
+   * calls off. Every other bare-plot move is left alone, as no listener
+   * heard it before: leaving ink has already started the close, and passing
+   * those moves on would cancel that grace and close the box under a pointer
+   * on its way to it. A touch dragged out of a hole leaves the box as a
+   * touch dragged off ink does, and its touchend closes it.
+   *
+   * @param {Element} hoverArea the chart's svg
+   * @param {Record<string, any>} opts the series hover params
+   */
+  addUnitHoleListeners(hoverArea, opts) {
+    const opt = {
+      paths: hoverArea,
+      tooltipEl: opts.tooltipEl,
+      elGrid: opts.elGrid,
+      hoverArea,
+      ttItems: opts.ttItems,
+    }
+    this.unitHoleHeld = false
+    ;['mousemove', 'touchmove', 'mouseout', 'touchend'].forEach((ev) => {
+      const handler = (/** @type {any} */ e) => {
+        const isMove = ev === 'mousemove' || ev === 'touchmove'
+        const t = e.target
+        if (t && typeof t.closest === 'function' && t.closest('.apexcharts-series')) {
+          // On a mark's ink: its group has the pointer, no hole does.
+          if (isMove) this.unitHoleHeld = false
+          return
+        }
+        if (isMove && this.unitMarkAt(e, opt)) {
+          this.unitHoleHeld = true
+          this.onSeriesHover(opt, e)
+          return
+        }
+        // Off every hole, and none was holding the box: nothing to do.
+        if (!this.unitHoleHeld) return
+        // A drag off the hole: the box stays until the touch lifts.
+        if (ev === 'touchmove') return
+        this.unitHoleHeld = false
+        if (ev === 'mousemove') {
+          // The first move out of a hole is the pointer leaving its mark.
+          const at = Utils.eventPointer(e)
+          this.onSeriesHover(opt, {
+            type: 'mouseout',
+            target: t,
+            relatedTarget: t,
+            clientX: at.x,
+            clientY: at.y,
+          })
+          return
+        }
+        this.onSeriesHover(opt, e)
+      }
+      this.hoverAreaListeners.push({ el: hoverArea, ev, handler, opt })
+      hoverArea.addEventListener(ev, handler, { capture: false, passive: true })
+    })
+  }
+
+  /**
+   * The unit mark under the pointer: the one whose ink the event is on, else
+   * the one whose hole it is in (Unit#_holeHitTest). A mouseout is about where
+   * the pointer went, not the mark it left, so only the hole test answers it.
+   *
+   * @param {any} e
+   * @param {Record<string, any>} opt
+   * @returns {Element | null}
+   */
+  unitMarkAt(e, opt) {
+    if (e.type !== 'mouseout') {
+      const hovered = Utils.hoverTarget(e)
+      const dot =
+        hovered && typeof hovered.closest === 'function'
+          ? hovered.closest('.apexcharts-unit-area')
+          : null
+      if (dot) return dot
+    }
+    const hit = this.w.globals.unitHoleHit
+    if (typeof hit !== 'function' || e.type === 'touchend') return null
+    const at = Utils.eventPointer(e, opt)
+    return hit(at.x, at.y)
   }
 
   /**
@@ -1653,14 +1757,33 @@ export default class Tooltip {
   /** @param {{e: any, opt: any, tooltipRect: any}} opts */
   nonAxisChartsTooltips({ e, opt, tooltipRect }) {
     const w = this.w
-    const rel = opt.paths.getAttribute('rel')
+    const isUnit = w.config.chart.type === 'unit'
+    // Unit chart: the listener sits on the cluster GROUP (or, for a glyph
+    // with a hole, on the plot), but the hovered element is the individual
+    // dot. Resolve it so each dot tooltips its own identity (category + index
+    // within the category) instead of every dot repeating the cluster
+    // aggregate.
+    const unitDot = isUnit ? this.unitMarkAt(e, opt) : null
+    // Off the ink into a glyph's own hole: still on that mark.
+    if (unitDot && e.type === 'mouseout') return
+    // A move over the plot itself that is on no mark closes. The hole
+    // listener passes on only the moves that are in a hole, so this is a
+    // replay after an update (hoverAt) finding the pointer on no mark.
+    const offUnitMarks =
+      isUnit &&
+      !unitDot &&
+      opt.paths === opt.hoverArea &&
+      (e.type === 'mousemove' || e.type === 'touchmove')
+    const rel = unitDot
+      ? unitDot.closest('.apexcharts-series')?.getAttribute('rel')
+      : opt.paths.getAttribute('rel')
 
     const tooltipEl = this.getElTooltip()
     if (!tooltipEl) return
 
     const seriesBound = w.dom.elWrap.getBoundingClientRect()
 
-    if (e.type === 'mousemove' || e.type === 'touchmove') {
+    if ((e.type === 'mousemove' || e.type === 'touchmove') && !offUnitMarks) {
       w.dom.baseEl.classList.add('apexcharts-tooltip-active')
       tooltipEl.classList.add('apexcharts-active')
       if (
@@ -1670,16 +1793,7 @@ export default class Tooltip {
         tooltipEl.removeAttribute('aria-hidden')
       }
 
-      // Unit chart: the listener sits on the cluster GROUP, but the hovered
-      // element is the individual dot. Resolve it so each dot tooltips its
-      // own identity (category + index within the category) instead of every
-      // dot repeating the cluster aggregate.
-      if (w.config.chart.type === 'unit') {
-        const hovered = Utils.hoverTarget(e)
-        const unitDot =
-          hovered && typeof hovered.closest === 'function'
-            ? hovered.closest('.apexcharts-unit-area')
-            : null
+      if (isUnit) {
         // Over a label / gap (no dot): leave the last tooltip untouched.
         if (!unitDot) return
         this.renderUnitTooltip(unitDot)
@@ -1729,7 +1843,11 @@ export default class Tooltip {
       if (w.config.legend.tooltipHoverFormatter) {
         this.applyLegendHoverText(rel - 1, rel - 1, false)
       }
-    } else if (e.type === 'mouseout' || e.type === 'touchend') {
+    } else if (
+      e.type === 'mouseout' ||
+      e.type === 'touchend' ||
+      offUnitMarks
+    ) {
       tooltipEl.classList.remove('apexcharts-active')
       w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
       if (w.config.legend.tooltipHoverFormatter) {

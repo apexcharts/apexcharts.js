@@ -428,6 +428,9 @@ export default class Globals {
       radialTargetRAF: null,
       unitGatherRAF: null,
       unitExitRAF: null,
+      // The unit chart's hit test for the holes of its glyphs (Unit#_holeHitTest),
+      // set by every unit render: null when no glyph has a hole.
+      unitHoleHit: null,
       // The gauge needle's last angle (the next tween starts there) and its
       // tick fade-in timer, which Destroy.clear() clears.
       radialNeedleAngle: undefined,

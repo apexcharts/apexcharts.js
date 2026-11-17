@@ -50,6 +50,166 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
  */
 const NORMALISED = new WeakMap()
 
+/** Numbers each path command takes per repeat. */
+const PATH_ARGS = /** @type {Record<string, number>} */ ({
+  M: 2,
+  L: 2,
+  T: 2,
+  H: 1,
+  V: 1,
+  S: 4,
+  Q: 4,
+  C: 6,
+  A: 7,
+  Z: 0,
+})
+const PATH_NUMBER = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/y
+
+/**
+ * Split path data into its subpaths, each standing on its own: a subpath that
+ * opened with a relative `m` (placed from where the last one ended) is given
+ * its absolute start, so it draws where it did inside the whole path.
+ * Subpaths that draw nothing (a bare moveto) are dropped. Parsing stops at the
+ * first malformed token, as a browser stops drawing there.
+ *
+ * Only end points are tracked, so no curve is flattened: each subpath is the
+ * original commands, verbatim but for its opening moveto.
+ *
+ * @param {string} d
+ * @returns {string[]}
+ */
+export function splitSubpaths(d) {
+  /** @type {string[]} */
+  const subs = []
+  // The subpath being read, while `live`.
+  /** @type {string[]} */
+  let cur = []
+  let live = false
+  let drew = false
+  let started = false
+  let px = 0
+  let py = 0
+  let sx = 0
+  let sy = 0
+  let closed = false
+  let cmd = ''
+  let i = 0
+  const n = d.length
+  const skip = () => {
+    while (i < n && /[\s,]/.test(d[i])) i++
+  }
+  /** @returns {number} NaN when the next token is not a number */
+  const num = () => {
+    skip()
+    PATH_NUMBER.lastIndex = i
+    const m = PATH_NUMBER.exec(d)
+    if (!m) return NaN
+    i += m[0].length
+    return Number(m[0])
+  }
+  /** An arc flag is one character, so '110' reads as 1, 1, 0. */
+  const flag = () => {
+    skip()
+    const c = d[i]
+    if (c !== '0' && c !== '1') return NaN
+    i++
+    return +c
+  }
+  const finish = () => {
+    if (live && drew) subs.push(cur.join(''))
+    live = false
+    drew = false
+  }
+  /** @param {number} x @param {number} y @returns {string[]} */
+  const open = (x, y) => {
+    finish()
+    const next = ['M' + x + ' ' + y]
+    cur = next
+    live = true
+    sx = px = x
+    sy = py = y
+    closed = false
+    started = true
+    return next
+  }
+
+  for (;;) {
+    skip()
+    if (i >= n) break
+    const c = d[i]
+    if (/[a-z]/i.test(c)) {
+      if (!(c.toUpperCase() in PATH_ARGS)) break
+      cmd = c
+      i++
+    } else if (!cmd || cmd === 'Z' || cmd === 'z') {
+      // A number with no command to repeat: malformed.
+      break
+    }
+    const U = cmd.toUpperCase()
+    const rel = cmd !== U
+    if (U === 'Z') {
+      if (live) {
+        cur.push('Z')
+        px = sx
+        py = sy
+        closed = true
+      }
+      continue
+    }
+    // One repeat of the command's arguments.
+    /** @type {number[]} */
+    const a = []
+    for (let k = 0; k < PATH_ARGS[U]; k++) {
+      a.push(U === 'A' && (k === 3 || k === 4) ? flag() : num())
+    }
+    if (!a.every((v) => isFinite(v))) break
+    if (U === 'M') {
+      open(a[0] + (rel ? px : 0), a[1] + (rel ? py : 0))
+      // Further pairs after a move are lines of the same relativity.
+      cmd = rel ? 'l' : 'L'
+      continue
+    }
+    // A path must open with a move; nothing draws otherwise.
+    if (!started) break
+    // A command straight after Z starts a new subpath where the last began.
+    const seg = !live || closed ? open(sx, sy) : cur
+    seg.push(cmd + a.join(' '))
+    drew = true
+    if (U === 'H') {
+      px = rel ? px + a[0] : a[0]
+    } else if (U === 'V') {
+      py = rel ? py + a[0] : a[0]
+    } else {
+      const x = a[a.length - 2]
+      const y = a[a.length - 1]
+      px = rel ? px + x : x
+      py = rel ? py + y : y
+    }
+  }
+  finish()
+  return subs
+}
+
+/**
+ * A glyph's subpaths when it has two or more (see splitSubpaths), else null:
+ * a single contour is hit on its own ink, so it needs no hole test. Cached by
+ * path data, which a crowd of one glyph shares.
+ * @type {Map<string, string[]|null>}
+ */
+const CONTOURS = new Map()
+/** @param {string} d @returns {string[]|null} */
+function contoursOf(d) {
+  let c = CONTOURS.get(d)
+  if (c === undefined) {
+    const subs = typeof d === 'string' ? splitSubpaths(d) : []
+    c = subs.length > 1 ? subs : null
+    // Per-datum inline marks are unbounded in number: keep the cache small.
+    if (CONTOURS.size >= 256) CONTOURS.clear()
+    CONTOURS.set(d, c)
+  }
+  return c
+}
+
 /**
  * Suffix a repeated id ("a", "a#2", ...) so every unit sharing it keeps a key of
  * its own.
@@ -193,6 +353,7 @@ export default class Unit {
     BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0)
     BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0)
     w.globals.unitGatherRAF = w.globals.unitExitRAF = null
+    w.globals.unitHoleHit = null
     if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret
     }
@@ -338,6 +499,10 @@ export default class Unit {
     const nextPrev = new Map()
     /** @type {UnitAnimDot[]} */
     const animDots = []
+    // Glyphs of two or more contours (one may be a hole), for the hover hit
+    // test. A single contour is hit on its own ink.
+    /** @type {{node: SVGElement, x: number, y: number, spec: any}[]} */
+    const holed = []
 
     // Per-unit data (one datum per dot) when the caller passed the object form
     // series: [{ name, data: [...] }]. Lets a dot carry its own colour + info.
@@ -454,6 +619,7 @@ export default class Unit {
         const spec = this._markSpecFor(opts, datum, cluster.i, rj)
         const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec)
         elSeries.add(el)
+        if (spec.contours) holed.push({ node: el.node, x: d.x, y: d.y, spec })
         // Identity keying: a specific unit (by id/name) persists across any
         // regroup or relayout. Flow: anonymous crowd by global draw order.
         // Group (default): the category slot.
@@ -605,6 +771,8 @@ export default class Unit {
     // Stored even when not animating (e.g. resize) so the following update
     // starts from the correct on-screen positions.
     if (this.ctx) this.ctx._unitPrevDots = nextPrev
+
+    if (holed.length) w.globals.unitHoleHit = this._holeHitTest(ret.node, holed)
 
     // A render that placed its dots outright (resize, animations off, reduced
     // motion) makes any live spring state stale: the springs describe where a
@@ -2511,6 +2679,8 @@ export default class Unit {
    * @property {number} [ox] glyph: pre-scaled x of the viewBox centre
    * @property {number} [oy] glyph: pre-scaled y of the viewBox centre
    * @property {string} [tail] glyph: the pre-built `) scale(s)` transform tail
+   * @property {string[]|null} [contours] glyph: its subpaths, each standing
+   *   alone, when it has two or more (the hover hole test); else null
    * @property {number} [r] the radius this spec was fitted to
    */
 
@@ -2689,10 +2859,115 @@ export default class Unit {
       ox: (vb[0] + vb[2] / 2) * s,
       oy: (vb[1] + vb[3] / 2) * s,
       tail: ') scale(' + s + ')',
+      contours: contoursOf(mark.path),
       r: qr,
     })
     this._specCache.set(key, spec)
     return spec
+  }
+
+  /**
+   * The hover hit test for glyphs that may have a hole.
+   *
+   * Unit hover is plain DOM hit-testing: the tooltip listens on each series
+   * group and reads the hovered `<path>` off the event. A glyph with a hole (a
+   * ring, whichever way its contours wind and whatever its fill rule) is hit
+   * only on its ink, so over its hole the pointer falls through to the
+   * background, and the tooltip closes and reopens as it crosses the ring, or
+   * a mark beneath takes it. The DOM cannot
+   * widen one path's hit area to its outline portably and for free:
+   * `pointer-events: bounding-box` is Chromium only, and would also take in a
+   * glyph's notches (the gap between a figure's legs) and spill onto
+   * neighbours; a second, invisible hit path per mark doubles the nodes a
+   * crowd of thousands draws and moves every frame.
+   *
+   * So the hole is resolved here, where the geometry is known, and only for
+   * the glyphs that can have one: a hole needs a second contour, so a glyph
+   * of one subpath is never asked about, and the tooltip asks only when the
+   * pointer is on no mark's ink. A point is the mark's when it lies inside any
+   * one of its subpaths taken alone (filled `nonzero`). The outer contour on
+   * its own covers its hole whichever way the hole winds and whatever rule
+   * fills the whole, and nothing outside its outline: a notch stays a miss,
+   * a gap between separate parts (a figure's head and body) stays a miss, and
+   * no hit area reaches a neighbour. The subpaths of each distinct glyph are
+   * built into Path2Ds once, and a bucket grid over the resting slots keeps a
+   * query to a handful of marks.
+   *
+   * @param {SVGGElement} root the unit chart's root group: the slots' space
+   * @param {{node: SVGElement, x: number, y: number, spec: any}[]} holed
+   * @returns {((clientX: number, clientY: number) => Element|null)|null} null
+   *   where there is no Path2D to test with (SSR)
+   */
+  _holeHitTest(root, holed) {
+    if (typeof Path2D !== 'function') return null
+    // Each glyph's box, centred on its slot, in the root's user space.
+    const boxes = holed.map((h) => {
+      const vb = h.spec.mark.viewBox
+      return { hw: (h.spec.s * vb[2]) / 2, hh: (h.spec.s * vb[3]) / 2 }
+    })
+    // Cells at least as wide as the widest box, so the slot of any box that
+    // holds a point is in the point's cell or one of its 8 neighbours.
+    const cell = boxes.reduce((m, b) => Math.max(m, 2 * b.hw, 2 * b.hh), 1)
+    /** @type {Map<string, number[]>} */
+    const buckets = new Map()
+    holed.forEach((h, k) => {
+      const key = Math.floor(h.x / cell) + ',' + Math.floor(h.y / cell)
+      const list = buckets.get(key)
+      if (list) list.push(k)
+      else buckets.set(key, [k])
+    })
+    /** @type {Map<string, Path2D[]>} */
+    const paths = new Map()
+    /** @type {CanvasRenderingContext2D|null} */
+    let ctx2d = null
+
+    return (clientX, clientY) => {
+      const ctm = typeof root.getScreenCTM === 'function' ? root.getScreenCTM() : null
+      if (!ctm) return null
+      if (!ctx2d) {
+        const canvas = /** @type {HTMLCanvasElement|null} */ (
+          BrowserAPIs.createElement('canvas')
+        )
+        ctx2d = canvas && canvas.getContext ? canvas.getContext('2d') : null
+        if (!ctx2d) return null
+      }
+      const inv = ctm.inverse()
+      const px = inv.a * clientX + inv.c * clientY + inv.e
+      const py = inv.b * clientX + inv.d * clientY + inv.f
+      const cx = Math.floor(px / cell)
+      const cy = Math.floor(py / cell)
+      /** @type {number[]} */
+      const near = []
+      for (let gx = cx - 1; gx <= cx + 1; gx++) {
+        for (let gy = cy - 1; gy <= cy + 1; gy++) {
+          const list = buckets.get(gx + ',' + gy)
+          if (list) near.push(...list)
+        }
+      }
+      // Topmost first: a later mark paints over an earlier one.
+      near.sort((a, b) => b - a)
+      for (const k of near) {
+        const h = holed[k]
+        const b = boxes[k]
+        if (Math.abs(px - h.x) > b.hw || Math.abs(py - h.y) > b.hh) continue
+        const s = h.spec
+        const vb = s.mark.viewBox
+        // Into the glyph's own viewBox units: the inverse of what `_place`
+        // writes, translate(x - ox, y - oy) scale(s).
+        const lx = (px - h.x) / s.s + vb[0] + vb[2] / 2
+        const ly = (py - h.y) / s.s + vb[1] + vb[3] / 2
+        /** @type {Path2D[]} */
+        let parts = paths.get(s.d) || []
+        if (!parts.length) {
+          parts = s.contours.map((/** @type {string} */ c) => new Path2D(c))
+          paths.set(s.d, parts)
+        }
+        for (const p of parts) {
+          if (ctx2d.isPointInPath(p, lx, ly, 'nonzero')) return h.node
+        }
+      }
+      return null
+    }
   }
 
   /**
