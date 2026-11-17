@@ -6,7 +6,7 @@ import { getUnitMark, normalizeUnitMark } from '../modules/UnitMarkRegistry'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
-import { prefersReducedMotion } from '../modules/Animations'
+import Animations, { prefersReducedMotion } from '../modules/Animations'
 import { resolveEasing } from '../modules/animations/Easing'
 import { lerpRGBA, resolveRGBA } from '../utils/Color'
 import {
@@ -337,6 +337,8 @@ export default class Unit {
     this._scatterAxis = null
     /** @type {Map<string, any>} glyph draw specs, keyed (mark, quantised r) */
     this._specCache = new Map()
+    /** @type {any} this render's root group, handed to animationEnd */
+    this._root = null
   }
 
   /**
@@ -348,6 +350,7 @@ export default class Unit {
     const graphics = new Graphics(w, this.ctx)
 
     const ret = graphics.group({ class: 'apexcharts-unit' })
+    this._root = ret
     // The previous render's loops animate nodes this render just replaced,
     // whether or not this one animates.
     BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0)
@@ -3404,7 +3407,10 @@ export default class Unit {
         // The gather is the unit chart's animation, so its completion is what
         // "the chart has settled" means here. Raised only when the loop reaches
         // rest, so a snapshot taken on this signal catches the final layout.
-        this.w.globals.animationEnded = true
+        // Through animationCompleted, as every other chart type finishes, so
+        // `chart.events.animationEnd` fires once for the whole gather; it
+        // raises `animationEnded` and is a no-op once that is already set.
+        new Animations(this.w, this.ctx).animationCompleted(this._root)
       } else {
         this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn)
       }
