@@ -627,21 +627,34 @@ export default class Tooltip {
   /**
    * The hover options a move at the pointer of `e` would reach now: the
    * plot-wide listener's, else those of the mark under the pointer, found
-   * as the move's bubbling would, `e` then pointed at that mark. Null with
-   * no mark there or no hit test (a DOM shim).
+   * as the move's bubbling would. Either way `e` is then pointed at what is
+   * under the pointer now. Null with nothing of the chart there, no mark
+   * there for a chart with no plot-wide listener, or no hit test (a DOM
+   * shim, where the plot-wide listener's are kept as the move found them).
+   *
+   * The plot-wide answer needs the pointing too. Its readers look at the
+   * target: a unit chart with holed glyphs, the one unit chart with a
+   * plot-wide listener, reads the mark off it. The update has replaced the
+   * node the last move landed on, so the mark it held answered no more, and
+   * a mark with no hole now under the pointer (a disc among rings) went
+   * unseen: the tooltip closed over it.
    * @param {any} e
    * @returns {Record<string, any> | null}
    */
   hoverAt(e) {
     const h = this.hoverAreaListeners[0]
-    if (h) return h.opt
     const root = /** @type {any} */ (this.w.dom.baseEl.getRootNode())
-    if (typeof root.elementsFromPoint !== 'function') return null
+    if (typeof root.elementsFromPoint !== 'function') return h ? h.opt : null
     const svg = this.w.dom.Paper.node
     const { x, y } = Utils.eventPointer(e)
     const hit = root
       .elementsFromPoint(x, y)
       .find((/** @type {Element} */ el) => svg.contains(el))
+    if (!hit) return null
+    if (h) {
+      e.apexHoverTarget = hit
+      return h.opt
+    }
     for (let el = hit; el && el !== svg; el = el.parentNode) {
       const opt = this.hoverOpts.get(el)
       if (opt) {
