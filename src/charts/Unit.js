@@ -263,10 +263,12 @@ const MAX_FRAME_STEP = 0.25
  *   PK_CIRCLE  cx / cy at the centre
  *   PK_CORNER  x / y at the top-left  (square, image)
  *   PK_GLYPH   transform="translate(...) scale(s)"  (pictogram)
+ *   PK_LABEL   x / y on a tile label, and x on each of its lines' tspans
  */
 const PK_CIRCLE = 0
 const PK_CORNER = 1
 const PK_GLYPH = 2
+const PK_LABEL = 3
 
 /**
  * Resolve a spring preset to a `[stiffness, damping]` pair rescaled for the
@@ -738,7 +740,7 @@ export default class Unit {
         const t = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color)
         // A tile label rides with its cells (kept out of the exit ghosts).
         if (t && gridSplit) {
-          const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 }
+          const spec = { pk: PK_LABEL, hx: 0, hy: 0, r: 0 }
           const lx = +(t.getAttribute('x') || 0)
           const ly = +(t.getAttribute('y') || 0)
           glide(t, spec, lx, ly, 'lbl:' + cluster.i, 0, at, animDots.length > at)
@@ -1401,11 +1403,24 @@ export default class Unit {
     // side keeps a small default margin.
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show)
     const labelsBelow = labelsOn && opts.clusterLabels.position === 'bottom'
-    const topPad = labelsOn && !labelsBelow ? 30 : 6
 
     // Only VISIBLE (non-empty) categories claim a column slot, so a legend-hidden
     // bar leaves NO gap: the remaining bars re-flow to fill the row.
     const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0)
+
+    // A label split over several lines ("\n" in its formatter's text) grows
+    // away from its bar, so its band grows by the extra lines.
+    let labelBand = 30
+    if (labelsOn) {
+      const total = counts.reduce((a, b) => a + b, 0)
+      const maxLines = visible.reduce(
+        (m, i) => Math.max(m, this._clusterLabelLines(i, counts[i], total, opts).length),
+        1,
+      )
+      const fontSize = parseFloat(opts.clusterLabels.fontSize) || 13
+      labelBand += (maxLines - 1) * Math.round(fontSize * 1.35)
+    }
+    const topPad = labelsOn && !labelsBelow ? labelBand : 6
     const Kv = Math.max(1, visible.length)
     const slotOf = new Array(counts.length).fill(-1)
     visible.forEach((i, s) => (slotOf[i] = s))
@@ -1414,7 +1429,7 @@ export default class Unit {
     const barW = cellW * 0.62 // gap between neighbouring bars
     // Keep the baseline off the legend / plot edge, plus a label band below the
     // bars when the labels sit there.
-    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0)
+    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? labelBand : 0)
     const availH = Math.max(4, gh - topPad - bottomPad)
     const maxCount = Math.max(1, ...counts)
     const spacing = opts.spacing > 0 ? opts.spacing : 1
@@ -2672,7 +2687,7 @@ export default class Unit {
    * carrying an int the frame loop switches on. `_place` is the only writer.
    *
    * @typedef {object} UnitMarkSpec
-   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH
+   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH | PK_LABEL
    * @property {number} [hx] corner: half-width
    * @property {number} [hy] corner: half-height
    * @property {any} [mark] glyph: the resolved mark definition
@@ -2714,6 +2729,14 @@ export default class Unit {
     } else if (s.pk === PK_CORNER) {
       node.setAttribute('x', String(x - s.hx * k))
       node.setAttribute('y', String(y - s.hy * k))
+    } else if (s.pk === PK_LABEL) {
+      // A tile label. Each line of a multi-line one is a tspan with its own
+      // x (that is what starts it under the first), so the lines move too.
+      node.setAttribute('x', String(x))
+      node.setAttribute('y', String(y))
+      for (let c = node.firstChild; c; c = c.nextSibling) {
+        if (c.nodeName === 'tspan') /** @type {Element} */ (c).setAttribute('x', String(x))
+      }
     } else {
       node.setAttribute('cx', String(x))
       node.setAttribute('cy', String(y))
@@ -3747,6 +3770,24 @@ export default class Unit {
   }
 
   /**
+   * One cluster label's text, as lines. A `clusterLabels.formatter` may return
+   * "\n"-separated text to split the label, as it may for an outer label.
+   * @param {number} i @param {number} value @param {number} total @param {any} opts
+   * @returns {string[]}
+   */
+  _clusterLabelLines(i, value, total, opts) {
+    const w = this.w
+    const name = w.seriesData.seriesNames[i] || `series-${i + 1}`
+    const percent = total > 0 ? (value / total) * 100 : 0
+    const cfg = opts.clusterLabels
+    const text =
+      typeof cfg.formatter === 'function'
+        ? cfg.formatter(name, { seriesIndex: i, value, percent, w })
+        : `${name} (${percent.toFixed(1)}%)`
+    return String(text).split('\n')
+  }
+
+  /**
    * A cluster label placed above (default) or below the cluster/bar. A TOP label
    * over a wide grouped/packed blob rides a curved arc (invisible arc path +
    * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
@@ -3762,24 +3803,10 @@ export default class Unit {
     if (!Environment.isBrowser()) return
     const NS = 'http://www.w3.org/2000/svg'
 
-    const name = w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`
-    const percent = total > 0 ? (value / total) * 100 : 0
     const cfg = opts.clusterLabels
     const fontSize = parseFloat(cfg.fontSize) || 13
-
-    let text
-    if (typeof cfg.formatter === 'function') {
-      text = cfg.formatter(name, {
-        seriesIndex: cluster.i,
-        value,
-        percent,
-        w,
-      })
-    } else {
-      text = `${name} (${percent.toFixed(1)}%)`
-    }
-
-    const str = typeof text === 'string' ? text : String(text)
+    const lines = this._clusterLabelLines(cluster.i, value, total, opts)
+    const str = lines.join('\n')
 
     const textEl = BrowserAPIs.createElementNS(NS, 'text')
     textEl.setAttribute('class', 'apexcharts-unit-label')
@@ -3800,10 +3827,12 @@ export default class Unit {
     // Curve only a TOP label over a grouped/packed blob wide enough to carry it.
     // A bottom label, a 'columns' bar (cluster.flat), or a tiny cluster takes a
     // straight label instead.
+    // An arc carries one line, so a label split over several is straight.
     const curved =
       !bottom &&
       !cluster.flat &&
       cfg.curved !== false &&
+      lines.length === 1 &&
       estWidth <= Math.PI * R * 0.95
 
     if (curved) {
@@ -3836,8 +3865,24 @@ export default class Unit {
       const y = bottom
         ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0)
         : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0)
-      textEl.setAttribute('y', String(y))
-      textEl.textContent = str
+      if (lines.length === 1) {
+        textEl.setAttribute('y', String(y))
+        textEl.textContent = str
+      } else {
+        // One tspan per line, as the outer labels draw them. The line nearest
+        // the cluster stays where a one-line label sits, and the block grows
+        // away from it: upward for a top label, downward for a bottom one.
+        const lh = Math.round(fontSize * 1.35)
+        const y0 = bottom ? y : y - (lines.length - 1) * lh
+        textEl.setAttribute('y', String(y0))
+        lines.forEach((line, k) => {
+          const ts = BrowserAPIs.createElementNS(NS, 'tspan')
+          ts.setAttribute('x', String(cluster.cx))
+          ts.setAttribute('dy', k === 0 ? '0' : String(lh))
+          ts.textContent = line
+          textEl.appendChild(ts)
+        })
+      }
     }
 
     elSeries.node.appendChild(textEl)

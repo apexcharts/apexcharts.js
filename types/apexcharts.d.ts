@@ -4331,7 +4331,13 @@ type ApexPlotOptions = {
       /** Defaults to the cluster's own colour when undefined. */
       color?: string
       offsetY?: number
-      /** Return "\n"-separated text to split an outer label over several lines. */
+      /**
+       * Return "\n"-separated text to split the label over several lines, for
+       * an outer label and for a straight cluster label alike. A split
+       * cluster label is always straight (an arc carries one line); a top
+       * label grows upward and a bottom one downward, so the line nearest the
+       * cluster stays where a one-line label sits.
+       */
       formatter?(
         name: string,
         opts: { seriesIndex: number; value: number; percent: number; w: any }
