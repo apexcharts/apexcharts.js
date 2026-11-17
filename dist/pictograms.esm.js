@@ -18,14 +18,21 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v8.8.2
+ * ApexCharts v8.9.0
  * (c) 2018-2026 ApexCharts
  */
+function readViewBox(vb) {
+  if (!vb || typeof vb === "string" && !vb.trim()) return [0, 0, 100, 100];
+  if (typeof vb !== "string") return vb;
+  const parts = vb.trim().split(/[\s,]+/);
+  const nums = parts.map(Number);
+  return parts.length === 4 && nums.every((n) => isFinite(n)) ? nums : vb;
+}
 function definePictogram(meta) {
   const mark = (
     /** @type {any} */
     __spreadProps(__spreadValues({}, meta), {
-      viewBox: meta.viewBox || [0, 0, 100, 100]
+      viewBox: readViewBox(meta.viewBox)
     })
   );
   mark.with = (overrides) => definePictogram(__spreadValues(__spreadValues({}, meta), overrides));

@@ -55,7 +55,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.8.2
+ * ApexCharts v8.9.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -5681,6 +5681,10 @@ var __async = (__this, __arguments, generator) => {
     "plotOptions.bar.dataLabels.position",
     // A box plot's outlier markers are hit targets; a violin draws none.
     "markers.size",
+    // A bar's 0 width draws a line as nothing at all (#5435).
+    "stroke.width",
+    "stroke.curve",
+    "stroke.lineCap",
     // The violin layers a raincloud rearranges: which side the density is on,
     // whether the box lane exists and how its whiskers are computed, and where
     // the jitter sits. All decide what is drawn, so they hand over when the
@@ -5952,6 +5956,24 @@ var __async = (__this, __arguments, generator) => {
       return chartDefaults;
     }
     /**
+     * Add to `named` every type-owned path that one of `sources` (constructor
+     * options, global Apex options, an update payload) names. Comparing by value
+     * cannot tell a user's curve: 'straight' from a line's own, so the ask is
+     * remembered instead.
+     *
+     * @param {Set<string>} named
+     * @param {...(Record<string, any> | undefined)} sources
+     */
+    static noteAskedTypeOwned(named, ...sources) {
+      for (const src of sources) {
+        if (!src) continue;
+        for (const path of TYPE_OWNED_PATHS) {
+          if (readPath(src, path) !== void 0) named.add(path);
+        }
+      }
+      return named;
+    }
+    /**
      * Re-choose the type-owned leaves (see TYPE_OWNED_PATHS) after
      * `updateOptions({ chart: { type } })` moved the chart from one type to
      * another, so the chart behaves as the type it now is.
@@ -5960,13 +5982,17 @@ var __async = (__this, __arguments, generator) => {
      * chose for it. That single test covers every way a value can be the user's
      * instead of ours: set at construction, set by an earlier update, or set by
      * this very update. `options` is consulted too, so an explicit ask in the
-     * same call wins even when it happens to equal the outgoing default.
+     * same call wins even when it happens to equal the outgoing default, and so
+     * is `named`, for an earlier ask that happens to equal it (a line set to
+     * curve: 'straight' stays straight as an area).
      *
      * @param {Record<string, any>} config the merged w.config, mutated in place
      * @param {string} fromType the type (or requested alias) before this update
      * @param {Record<string, any>} [options] this update's payload
+     * @param {Set<string>} [named] type-owned paths the user named before, see
+     *   Defaults.noteAskedTypeOwned
      */
-    static handOverTypeDefaults(config, fromType, options2) {
+    static handOverTypeDefaults(config, fromType, options2, named) {
       var _a, _b;
       Defaults.reconcile(config, true);
       const asked = options2 == null ? void 0 : options2.chart;
@@ -6010,6 +6036,7 @@ var __async = (__this, __arguments, generator) => {
         "tooltip.shared"
       ] : TYPE_OWNED_PATHS) {
         if (options2 && readPath(options2, path) !== void 0) continue;
+        if (named == null ? void 0 : named.has(path)) continue;
         const fromDefault = readPath(from, path);
         const toDefault = readPath(to, path);
         if (fromDefault === void 0 && toDefault === void 0) continue;
@@ -6036,7 +6063,9 @@ var __async = (__this, __arguments, generator) => {
      * Put on or take off the sparkline preset when an update turns
      * `chart.sparkline.enabled` on or off; construction is the only other place
      * it is applied. A leaf moves only while it still holds what the outgoing
-     * mode chose, and never when this update names it.
+     * mode chose, and never when this update names it. The one exception is the
+     * y-axis of a sparkline: any update that passes yaxis hides it again, as
+     * construction does whatever the axis asks for.
      *
      * @param {Record<string, any>} config the merged w.config, mutated in place
      * @param {boolean} was whether the sparkline was on before the update
@@ -6045,6 +6074,7 @@ var __async = (__this, __arguments, generator) => {
     static syncSparkline(config, was, options2) {
       var _a;
       const now = !!((_a = config.chart.sparkline) == null ? void 0 : _a.enabled);
+      if (now && (options2 == null ? void 0 : options2.yaxis)) new Defaults(config).hideYAxis();
       if (now === !!was) return;
       const d2 = new Defaults({ yaxis: [{ title: {}, axisBorder: {}, axisTicks: {} }] });
       const plain = plainFor(config);
@@ -6096,6 +6126,36 @@ var __async = (__this, __arguments, generator) => {
           writePath(config, p2, readPath(plain, p2));
         }
       }
+    }
+    /**
+     * A sparkline with no tooltip has nothing for the keyboard to reach, so
+     * unless the user set accessibility.keyboard.enabled it is no tab stop and
+     * reads as an image (#5431). Every other chart keeps the keyboard on. Runs
+     * on a new chart and after every update, so a sparkline that gains a tooltip
+     * gains its tab stop back.
+     *
+     * @param {Record<string, any>} config the merged config, mutated in place
+     * @param {boolean} named whether the user set keyboard.enabled anywhere
+     */
+    static syncSparklineKeyboard(config, named) {
+      var _a, _b, _c;
+      const keyboard = (_a = config.chart.accessibility) == null ? void 0 : _a.keyboard;
+      if (named || !keyboard) return;
+      keyboard.enabled = !(((_b = config.chart.sparkline) == null ? void 0 : _b.enabled) && ((_c = config.tooltip) == null ? void 0 : _c.enabled) === false);
+    }
+    /**
+     * Does any of `sources` (constructor options, global Apex options, an update
+     * payload) set accessibility.keyboard.enabled?
+     *
+     * @param {...(Record<string, any> | undefined)} sources
+     */
+    static namesKeyboard(...sources) {
+      return sources.some(
+        (src) => {
+          var _a, _b, _c;
+          return ((_c = (_b = (_a = src == null ? void 0 : src.chart) == null ? void 0 : _a.accessibility) == null ? void 0 : _b.keyboard) == null ? void 0 : _c.enabled) !== void 0;
+        }
+      );
     }
     /**
      * Settle the option combinations the renderers do not support. Runs on a new
@@ -8101,6 +8161,10 @@ var __async = (__this, __arguments, generator) => {
       _Config.applyGlobalDarkDefaults(config, opts);
       _Config.normalizeAxisBounds(config);
       config.theme.palette = ((_i = opts.theme) == null ? void 0 : _i.palette) || ((_j = Environment.getApex().theme) == null ? void 0 : _j.palette) || _Config.modeDefaultPalette(config.theme.mode);
+      Defaults.syncSparklineKeyboard(
+        config,
+        Defaults.namesKeyboard(opts, Environment.getApex())
+      );
       Defaults.reconcile(config);
       return config;
     }
@@ -8997,6 +9061,9 @@ var __async = (__this, __arguments, generator) => {
         radialTargetRAF: null,
         unitGatherRAF: null,
         unitExitRAF: null,
+        // The unit chart's hit test for the holes of its glyphs (Unit#_holeHitTest),
+        // set by every unit render: null when no glyph has a hole.
+        unitHoleHit: null,
         // The gauge needle's last angle (the next tween starts there) and its
         // tick fade-in timer, which Destroy.clear() clears.
         radialNeedleAngle: void 0,
@@ -24842,7 +24909,7 @@ var __async = (__this, __arguments, generator) => {
         const payload = options2;
         const filled = Theme.modeDefaultsFilled(payload);
         const updates = charts.map((ch) => {
-          var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
           const w = ch.w;
           options2 = payload;
           if (options2 && typeof options2 === "object") {
@@ -24938,10 +25005,27 @@ var __async = (__this, __arguments, generator) => {
               );
             }
             (_i = ch.responsive) == null ? void 0 : _i.absorb(options2);
-            Defaults.handOverTypeDefaults(w.config, fromType, options2);
+            (_j = ch._askedTypeOwned) != null ? _j : ch._askedTypeOwned = Defaults.noteAskedTypeOwned(
+              /* @__PURE__ */ new Set(),
+              ch.opts,
+              Environment.getApex()
+            );
+            Defaults.handOverTypeDefaults(
+              w.config,
+              fromType,
+              options2,
+              ch._askedTypeOwned
+            );
+            Defaults.noteAskedTypeOwned(ch._askedTypeOwned, options2);
             Defaults.syncCatToNumeric(w.config, options2);
             Defaults.syncSparkline(w.config, wasSparkline, options2);
             Defaults.syncHorizontal(w.config, wasHorizontal, options2);
+            ch._keyboardNamed || (ch._keyboardNamed = Defaults.namesKeyboard(
+              ch.opts,
+              Environment.getApex(),
+              options2
+            ));
+            Defaults.syncSparklineKeyboard(w.config, ch._keyboardNamed);
             if (overwriteInitialConfig) {
               if (options2.xaxis) w.globals.lastXAxis = Utils$1.clone(options2.xaxis);
               if (options2.yaxis) w.globals.lastYAxis = Utils$1.clone(options2.yaxis);
@@ -30088,6 +30172,7 @@ var __async = (__this, __arguments, generator) => {
       this.seriesHoverTimeout = void 0;
       this.interactiveHideTimeout = void 0;
       this.offMarkHideTimeout = void 0;
+      this.unitHoleHeld = false;
       this.pendingReplay = null;
       this.pointerDriven = false;
       this.clientX = 0;
@@ -30387,22 +30472,35 @@ var __async = (__this, __arguments, generator) => {
     /**
      * The hover options a move at the pointer of `e` would reach now: the
      * plot-wide listener's, else those of the mark under the pointer, found
-     * as the move's bubbling would, `e` then pointed at that mark. Null with
-     * no mark there or no hit test (a DOM shim).
+     * as the move's bubbling would. Either way `e` is then pointed at what is
+     * under the pointer now. Null with nothing of the chart there, no mark
+     * there for a chart with no plot-wide listener, or no hit test (a DOM
+     * shim, where the plot-wide listener's are kept as the move found them).
+     *
+     * The plot-wide answer needs the pointing too. Its readers look at the
+     * target: a unit chart with holed glyphs, the one unit chart with a
+     * plot-wide listener, reads the mark off it. The update has replaced the
+     * node the last move landed on, so the mark it held answered no more, and
+     * a mark with no hole now under the pointer (a disc among rings) went
+     * unseen: the tooltip closed over it.
      * @param {any} e
      * @returns {Record<string, any> | null}
      */
     hoverAt(e2) {
       const h2 = this.hoverAreaListeners[0];
-      if (h2) return h2.opt;
       const root = (
         /** @type {any} */
         this.w.dom.baseEl.getRootNode()
       );
-      if (typeof root.elementsFromPoint !== "function") return null;
+      if (typeof root.elementsFromPoint !== "function") return h2 ? h2.opt : null;
       const svg = this.w.dom.Paper.node;
       const { x: x2, y: y2 } = Utils.eventPointer(e2);
       const hit = root.elementsFromPoint(x2, y2).find((el) => svg.contains(el));
+      if (!hit) return null;
+      if (h2) {
+        e2.apexHoverTarget = hit;
+        return h2.opt;
+      }
       for (let el = hit; el && el !== svg; el = el.parentNode) {
         const opt = this.hoverOpts.get(el);
         if (opt) {
@@ -30531,6 +30629,9 @@ var __async = (__this, __arguments, generator) => {
       } else if (!w.globals.axisCharts || type === "heatmap" || type === "treemap") {
         const seriesAll = w.dom.baseEl.querySelectorAll(".apexcharts-series");
         this.addPathsEventListeners(seriesAll, seriesHoverParams);
+        if (type === "unit" && w.globals.unitHoleHit) {
+          this.addUnitHoleListeners(hoverArea, seriesHoverParams);
+        }
       }
       if (this.showOnIntersect) {
         const lineAreaPoints = w.dom.baseEl.querySelectorAll(
@@ -30664,6 +30765,89 @@ var __async = (__this, __arguments, generator) => {
           });
         });
       }
+    }
+    /**
+     * Listen on the whole plot for the moves that land in the hole of a unit
+     * glyph (a ring, however it winds and is filled). Over its hole the pointer
+     * is on the plot's background, which no series group hears, so the tooltip
+     * used to close there and reopen on the ink. Only events that reach no
+     * series group are taken: a move over a mark is its group's, and handling
+     * it twice would let this listener cancel that group's pending draw.
+     *
+     * Away from holes this listener changes nothing. A move on bare plot is
+     * passed on only when it is the first one out of a hole, and then as the
+     * mouseout that leaving ink is: it closes at once, or after the grace an
+     * interactive box gives the pointer to reach it, which entering the box
+     * calls off. Every other bare-plot move is left alone, as no listener
+     * heard it before: leaving ink has already started the close, and passing
+     * those moves on would cancel that grace and close the box under a pointer
+     * on its way to it. A touch dragged out of a hole leaves the box as a
+     * touch dragged off ink does, and its touchend closes it.
+     *
+     * @param {Element} hoverArea the chart's svg
+     * @param {Record<string, any>} opts the series hover params
+     */
+    addUnitHoleListeners(hoverArea, opts) {
+      const opt = {
+        paths: hoverArea,
+        tooltipEl: opts.tooltipEl,
+        elGrid: opts.elGrid,
+        hoverArea,
+        ttItems: opts.ttItems
+      };
+      this.unitHoleHeld = false;
+      ["mousemove", "touchmove", "mouseout", "touchend"].forEach((ev) => {
+        const handler = (e2) => {
+          const isMove = ev === "mousemove" || ev === "touchmove";
+          const t2 = e2.target;
+          if (t2 && typeof t2.closest === "function" && t2.closest(".apexcharts-series")) {
+            if (isMove) this.unitHoleHeld = false;
+            return;
+          }
+          if (isMove && this.unitMarkAt(e2, opt)) {
+            this.unitHoleHeld = true;
+            this.onSeriesHover(opt, e2);
+            return;
+          }
+          if (!this.unitHoleHeld) return;
+          if (ev === "touchmove") return;
+          this.unitHoleHeld = false;
+          if (ev === "mousemove") {
+            const at2 = Utils.eventPointer(e2);
+            this.onSeriesHover(opt, {
+              type: "mouseout",
+              target: t2,
+              relatedTarget: t2,
+              clientX: at2.x,
+              clientY: at2.y
+            });
+            return;
+          }
+          this.onSeriesHover(opt, e2);
+        };
+        this.hoverAreaListeners.push({ el: hoverArea, ev, handler, opt });
+        hoverArea.addEventListener(ev, handler, { capture: false, passive: true });
+      });
+    }
+    /**
+     * The unit mark under the pointer: the one whose ink the event is on, else
+     * the one whose hole it is in (Unit#_holeHitTest). A mouseout is about where
+     * the pointer went, not the mark it left, so only the hole test answers it.
+     *
+     * @param {any} e
+     * @param {Record<string, any>} opt
+     * @returns {Element | null}
+     */
+    unitMarkAt(e2, opt) {
+      if (e2.type !== "mouseout") {
+        const hovered = Utils.hoverTarget(e2);
+        const dot = hovered && typeof hovered.closest === "function" ? hovered.closest(".apexcharts-unit-area") : null;
+        if (dot) return dot;
+      }
+      const hit = this.w.globals.unitHoleHit;
+      if (typeof hit !== "function" || e2.type === "touchend") return null;
+      const at2 = Utils.eventPointer(e2, opt);
+      return hit(at2.x, at2.y);
     }
     /**
      * Take off the hover listeners the last addSVGEvents put on the svg. Every
@@ -31057,20 +31241,23 @@ var __async = (__this, __arguments, generator) => {
     // tooltip handling for pie/donuts
     /** @param {{e: any, opt: any, tooltipRect: any}} opts */
     nonAxisChartsTooltips({ e: e2, opt, tooltipRect }) {
+      var _a;
       const w = this.w;
-      const rel = opt.paths.getAttribute("rel");
+      const isUnit = w.config.chart.type === "unit";
+      const unitDot = isUnit ? this.unitMarkAt(e2, opt) : null;
+      if (unitDot && e2.type === "mouseout") return;
+      const offUnitMarks = isUnit && !unitDot && opt.paths === opt.hoverArea && (e2.type === "mousemove" || e2.type === "touchmove");
+      const rel = unitDot ? (_a = unitDot.closest(".apexcharts-series")) == null ? void 0 : _a.getAttribute("rel") : opt.paths.getAttribute("rel");
       const tooltipEl = this.getElTooltip();
       if (!tooltipEl) return;
       const seriesBound = w.dom.elWrap.getBoundingClientRect();
-      if (e2.type === "mousemove" || e2.type === "touchmove") {
+      if ((e2.type === "mousemove" || e2.type === "touchmove") && !offUnitMarks) {
         w.dom.baseEl.classList.add("apexcharts-tooltip-active");
         tooltipEl.classList.add("apexcharts-active");
         if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
           tooltipEl.removeAttribute("aria-hidden");
         }
-        if (w.config.chart.type === "unit") {
-          const hovered = Utils.hoverTarget(e2);
-          const unitDot = hovered && typeof hovered.closest === "function" ? hovered.closest(".apexcharts-unit-area") : null;
+        if (isUnit) {
           if (!unitDot) return;
           this.renderUnitTooltip(unitDot);
         } else {
@@ -31102,7 +31289,7 @@ var __async = (__this, __arguments, generator) => {
         if (w.config.legend.tooltipHoverFormatter) {
           this.applyLegendHoverText(rel - 1, rel - 1, false);
         }
-      } else if (e2.type === "mouseout" || e2.type === "touchend") {
+      } else if (e2.type === "mouseout" || e2.type === "touchend" || offUnitMarks) {
         tooltipEl.classList.remove("apexcharts-active");
         w.dom.baseEl.classList.remove("apexcharts-tooltip-active");
         if (w.config.legend.tooltipHoverFormatter) {
@@ -35880,6 +36067,7 @@ var __async = (__this, __arguments, generator) => {
         clearTimeout((_c = gl.radialTickTimer) != null ? _c : void 0);
       }
       clearTimeout((_d = gl.selectionResizeTimer) != null ? _d : void 0);
+      gl.unitHoleHit = null;
       if (this.ctx._zoomPanSelection) {
         this.ctx._zoomPanSelection.destroy();
       }
@@ -36042,6 +36230,21 @@ var __async = (__this, __arguments, generator) => {
       globalThis[MARK_KEY$1]
     );
   }
+  function parseUnitMarkViewBox(vb) {
+    if (vb == null || typeof vb === "string" && !vb.trim()) return [0, 0, 100, 100];
+    const parts = typeof vb === "string" ? vb.trim().split(/[\s,]+/) : Array.isArray(vb) ? vb : null;
+    if (!parts || parts.length !== 4) return null;
+    const nums2 = parts.map(
+      (n2) => typeof n2 === "string" && !n2.trim() ? NaN : Number(n2)
+    );
+    if (!nums2.every((n2) => isFinite(n2)) || nums2[2] <= 0 || nums2[3] <= 0) {
+      return null;
+    }
+    return (
+      /** @type {[number,number,number,number]} */
+      nums2
+    );
+  }
   function normalizeUnitMark(def, name2) {
     if (typeof def === "string") {
       const d2 = def.trim();
@@ -36057,10 +36260,8 @@ var __async = (__this, __arguments, generator) => {
     }
     if (!def || typeof def !== "object") return null;
     if (typeof def.path !== "string" || !def.path.trim()) return null;
-    const vb = Array.isArray(def.viewBox) && def.viewBox.length === 4 ? def.viewBox.map(Number) : [0, 0, 100, 100];
-    if (!vb.every((n2) => isFinite(n2)) || vb[2] <= 0 || vb[3] <= 0) {
-      return null;
-    }
+    const vb = parseUnitMarkViewBox(def.viewBox);
+    if (!vb) return null;
     return Object.freeze(__spreadProps(__spreadValues({}, def), {
       name: name2 || def.name || "anonymous",
       path: def.path.trim(),
@@ -36080,7 +36281,7 @@ var __async = (__this, __arguments, generator) => {
     const mark = normalizeUnitMark(def, name2);
     if (!mark) {
       console.warn(
-        `ApexCharts: registerUnitMark("${name2}") expects path data, or {path, viewBox?, fillRule?}.`
+        `ApexCharts: registerUnitMark("${name2}") expects path data, or {path, viewBox?, fillRule?} with a viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') and a positive width and height.`
       );
       return;
     }
@@ -37950,7 +38151,8 @@ var __async = (__this, __arguments, generator) => {
      *
      * @param {string} name  the mark name, e.g. 'person'
      * @param {string|any} def path data in a 0..100 box, or
-     *   `{path, viewBox?, fillRule?}`
+     *   `{path, viewBox?, fillRule?}`, the viewBox as `[minX, minY, w, h]` or
+     *   the SVG string form `'0 0 24 24'`
      * @returns {typeof ApexCharts}
      */
     static registerUnitMark(name2, def) {
@@ -56657,7 +56859,7 @@ var __async = (__this, __arguments, generator) => {
             const l2 = (bx - ax) * 0.35;
             return graphics.curve(ax + l2, ay, bx - l2, by, bx, by);
           };
-          if (series[i2][j] === null) {
+          if (series[i2][j] === null || series[i2][j] === void 0) {
             pathState = 0;
           } else {
             switch (pathState) {
@@ -56730,7 +56932,7 @@ var __async = (__this, __arguments, generator) => {
             }
             return path;
           };
-          if (series[i2][j] === null) {
+          if (series[i2][j] === null || series[i2][j] === void 0) {
             pathState = 0;
           } else {
             switch (pathState) {
@@ -63360,6 +63562,131 @@ var __async = (__this, __arguments, generator) => {
   });
   const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
   const NORMALISED = /* @__PURE__ */ new WeakMap();
+  const PATH_ARGS = (
+    /** @type {Record<string, number>} */
+    {
+      M: 2,
+      L: 2,
+      T: 2,
+      H: 1,
+      V: 1,
+      S: 4,
+      Q: 4,
+      C: 6,
+      A: 7,
+      Z: 0
+    }
+  );
+  const PATH_NUMBER = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/y;
+  function splitSubpaths(d2) {
+    const subs = [];
+    let cur = [];
+    let live = false;
+    let drew = false;
+    let started = false;
+    let px2 = 0;
+    let py = 0;
+    let sx = 0;
+    let sy = 0;
+    let closed = false;
+    let cmd = "";
+    let i2 = 0;
+    const n2 = d2.length;
+    const skip = () => {
+      while (i2 < n2 && /[\s,]/.test(d2[i2])) i2++;
+    };
+    const num = () => {
+      skip();
+      PATH_NUMBER.lastIndex = i2;
+      const m2 = PATH_NUMBER.exec(d2);
+      if (!m2) return NaN;
+      i2 += m2[0].length;
+      return Number(m2[0]);
+    };
+    const flag = () => {
+      skip();
+      const c2 = d2[i2];
+      if (c2 !== "0" && c2 !== "1") return NaN;
+      i2++;
+      return +c2;
+    };
+    const finish = () => {
+      if (live && drew) subs.push(cur.join(""));
+      live = false;
+      drew = false;
+    };
+    const open = (x2, y2) => {
+      finish();
+      const next = ["M" + x2 + " " + y2];
+      cur = next;
+      live = true;
+      sx = px2 = x2;
+      sy = py = y2;
+      closed = false;
+      started = true;
+      return next;
+    };
+    for (; ; ) {
+      skip();
+      if (i2 >= n2) break;
+      const c2 = d2[i2];
+      if (/[a-z]/i.test(c2)) {
+        if (!(c2.toUpperCase() in PATH_ARGS)) break;
+        cmd = c2;
+        i2++;
+      } else if (!cmd || cmd === "Z" || cmd === "z") {
+        break;
+      }
+      const U = cmd.toUpperCase();
+      const rel = cmd !== U;
+      if (U === "Z") {
+        if (live) {
+          cur.push("Z");
+          px2 = sx;
+          py = sy;
+          closed = true;
+        }
+        continue;
+      }
+      const a2 = [];
+      for (let k2 = 0; k2 < PATH_ARGS[U]; k2++) {
+        a2.push(U === "A" && (k2 === 3 || k2 === 4) ? flag() : num());
+      }
+      if (!a2.every((v) => isFinite(v))) break;
+      if (U === "M") {
+        open(a2[0] + (rel ? px2 : 0), a2[1] + (rel ? py : 0));
+        cmd = rel ? "l" : "L";
+        continue;
+      }
+      if (!started) break;
+      const seg = !live || closed ? open(sx, sy) : cur;
+      seg.push(cmd + a2.join(" "));
+      drew = true;
+      if (U === "H") {
+        px2 = rel ? px2 + a2[0] : a2[0];
+      } else if (U === "V") {
+        py = rel ? py + a2[0] : a2[0];
+      } else {
+        const x2 = a2[a2.length - 2];
+        const y2 = a2[a2.length - 1];
+        px2 = rel ? px2 + x2 : x2;
+        py = rel ? py + y2 : y2;
+      }
+    }
+    finish();
+    return subs;
+  }
+  const CONTOURS = /* @__PURE__ */ new Map();
+  function contoursOf(d2) {
+    let c2 = CONTOURS.get(d2);
+    if (c2 === void 0) {
+      const subs = typeof d2 === "string" ? splitSubpaths(d2) : [];
+      c2 = subs.length > 1 ? subs : null;
+      if (CONTOURS.size >= 256) CONTOURS.clear();
+      CONTOURS.set(d2, c2);
+    }
+    return c2;
+  }
   const uniqueId = (seen, id) => {
     const n2 = (seen.get(id) || 0) + 1;
     seen.set(id, n2);
@@ -63377,6 +63704,7 @@ var __async = (__this, __arguments, generator) => {
   const PK_CIRCLE = 0;
   const PK_CORNER = 1;
   const PK_GLYPH = 2;
+  const PK_LABEL = 3;
   function springParams(preset, speed) {
     const [stiffness, damping] = _t(
       /** @type {import('apex-commons').SpringPreset|undefined} */
@@ -63398,7 +63726,7 @@ var __async = (__this, __arguments, generator) => {
       this._gridDenom = 1;
       this._scatterAxis = null;
       this._specCache = /* @__PURE__ */ new Map();
-      this._markWarned = null;
+      this._root = null;
     }
     /**
      * @param {any[]} series - flat count array (non-axis / pie-shaped data)
@@ -63408,9 +63736,11 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const graphics = new Graphics(w, this.ctx);
       const ret = graphics.group({ class: "apexcharts-unit" });
+      this._root = ret;
       BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0);
       BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0);
       w.globals.unitGatherRAF = w.globals.unitExitRAF = null;
+      w.globals.unitHoleHit = null;
       if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
         return ret;
       }
@@ -63460,6 +63790,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const nextPrev = /* @__PURE__ */ new Map();
       const animDots = [];
+      const holed = [];
       const unitData = w.seriesData.unitData || [];
       const sizeStats = this._bubbleStats(unitData, opts, dotR);
       let gIndex = 0;
@@ -63527,6 +63858,7 @@ var __async = (__this, __arguments, generator) => {
           const spec = this._markSpecFor(opts, datum, cluster.i, rj);
           const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec);
           elSeries.add(el);
+          if (spec.contours) holed.push({ node: el.node, x: d2.x, y: d2.y, spec });
           let key;
           if (identity) {
             const id = datum && typeof datum === "object" ? datum.id != null ? datum.id : datum.name : void 0;
@@ -63587,7 +63919,7 @@ var __async = (__this, __arguments, generator) => {
           const labelTotal = gridSplit ? this._gridDenom : total;
           const t2 = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
           if (t2 && gridSplit) {
-            const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 };
+            const spec = { pk: PK_LABEL, hx: 0, hy: 0, r: 0 };
             const lx = +(t2.getAttribute("x") || 0);
             const ly = +(t2.getAttribute("y") || 0);
             glide(t2, spec, lx, ly, "lbl:" + cluster.i, 0, at2, animDots.length > at2);
@@ -63607,6 +63939,7 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       if (this.ctx) this.ctx._unitPrevDots = nextPrev;
+      if (holed.length) w.globals.unitHoleHit = this._holeHitTest(ret.node, holed);
       if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null;
       if (animate && animDots.length) {
         this._runGather(animDots, speed);
@@ -64098,14 +64431,24 @@ var __async = (__this, __arguments, generator) => {
       const gh = w.layout.gridHeight;
       const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
       const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
-      const topPad = labelsOn && !labelsBelow ? 30 : 6;
       const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
+      let labelBand = 30;
+      if (labelsOn) {
+        const total = counts.reduce((a2, b) => a2 + b, 0);
+        const maxLines = visible.reduce(
+          (m2, i2) => Math.max(m2, this._clusterLabelLines(i2, counts[i2], total, opts).length),
+          1
+        );
+        const fontSize = parseFloat(opts.clusterLabels.fontSize) || 13;
+        labelBand += (maxLines - 1) * Math.round(fontSize * 1.35);
+      }
+      const topPad = labelsOn && !labelsBelow ? labelBand : 6;
       const Kv = Math.max(1, visible.length);
       const slotOf = new Array(counts.length).fill(-1);
       visible.forEach((i2, s2) => slotOf[i2] = s2);
       const cellW = gw / Kv;
       const barW = cellW * 0.62;
-      const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0);
+      const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? labelBand : 0);
       const availH = Math.max(4, gh - topPad - bottomPad);
       const maxCount = Math.max(1, ...counts);
       const spacing = opts.spacing > 0 ? opts.spacing : 1;
@@ -65107,7 +65450,7 @@ var __async = (__this, __arguments, generator) => {
      * carrying an int the frame loop switches on. `_place` is the only writer.
      *
      * @typedef {object} UnitMarkSpec
-     * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH
+     * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH | PK_LABEL
      * @property {number} [hx] corner: half-width
      * @property {number} [hy] corner: half-height
      * @property {any} [mark] glyph: the resolved mark definition
@@ -65117,6 +65460,8 @@ var __async = (__this, __arguments, generator) => {
      * @property {number} [ox] glyph: pre-scaled x of the viewBox centre
      * @property {number} [oy] glyph: pre-scaled y of the viewBox centre
      * @property {string} [tail] glyph: the pre-built `) scale(s)` transform tail
+     * @property {string[]|null} [contours] glyph: its subpaths, each standing
+     *   alone, when it has two or more (the hover hole test); else null
      * @property {number} [r] the radius this spec was fitted to
      */
     /**
@@ -65143,6 +65488,12 @@ var __async = (__this, __arguments, generator) => {
       } else if (s2.pk === PK_CORNER) {
         node.setAttribute("x", String(x2 - s2.hx * k2));
         node.setAttribute("y", String(y2 - s2.hy * k2));
+      } else if (s2.pk === PK_LABEL) {
+        node.setAttribute("x", String(x2));
+        node.setAttribute("y", String(y2));
+        for (let c2 = node.firstChild; c2; c2 = c2.nextSibling) {
+          if (c2.nodeName === "tspan") c2.setAttribute("x", String(x2));
+        }
       } else {
         node.setAttribute("cx", String(x2));
         node.setAttribute("cy", String(y2));
@@ -65186,7 +65537,16 @@ var __async = (__this, __arguments, generator) => {
      */
     _resolveMark(ref) {
       if (ref == null) return null;
-      if (typeof ref === "object") return normalizeUnitMark(ref);
+      if (typeof ref === "object") {
+        const inline = normalizeUnitMark(ref);
+        if (inline) return inline;
+        const vb = JSON.stringify(ref.viewBox);
+        this._warnMarkOnce(
+          "inline:" + vb,
+          `[ApexCharts] unit chart: a mark object needs a path string and a viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a positive width and height (got viewBox ${vb}). Drawing pictogram.fallback instead.`
+        );
+        return null;
+      }
       if (typeof ref !== "string" || !ref) return null;
       const s2 = ref.trim();
       if (s2[0] === "M" || s2[0] === "m") return normalizeUnitMark(s2);
@@ -65201,14 +65561,28 @@ var __async = (__this, __arguments, generator) => {
         );
       }
       if (mark) return mark;
-      if (!this._markWarned) this._markWarned = /* @__PURE__ */ new Set();
-      if (!this._markWarned.has(s2)) {
-        this._markWarned.add(s2);
-        console.warn(
-          found ? `[ApexCharts] unit chart: mark "${s2}" needs a path string and a viewBox of 4 numbers with a positive width and height.` : `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
-        );
-      }
+      this._warnMarkOnce(
+        s2,
+        found ? `[ApexCharts] unit chart: mark "${s2}" needs a path string and a viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a positive width and height.` : `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
+      );
       return null;
+    }
+    /**
+     * Warn about a mark that cannot draw, once per chart rather than once per
+     * render: a Unit is made anew for every render, so a set held on it would
+     * warn again on each update of a live chart. Kept on the chart, as
+     * `_applyMaxUnits` keeps `_unitCapWarned`.
+     * @param {string} key what the warning is about @param {string} msg
+     */
+    _warnMarkOnce(key, msg) {
+      const ctx = (
+        /** @type {any} */
+        this.ctx || this
+      );
+      if (!ctx._unitMarkWarned) ctx._unitMarkWarned = /* @__PURE__ */ new Set();
+      if (ctx._unitMarkWarned.has(key)) return;
+      ctx._unitMarkWarned.add(key);
+      console.warn(msg);
     }
     /**
      * The draw spec for one glyph at the current lattice pitch, cached per
@@ -65247,10 +65621,103 @@ var __async = (__this, __arguments, generator) => {
         ox: (vb[0] + vb[2] / 2) * s2,
         oy: (vb[1] + vb[3] / 2) * s2,
         tail: ") scale(" + s2 + ")",
+        contours: contoursOf(mark.path),
         r: qr
       });
       this._specCache.set(key, spec);
       return spec;
+    }
+    /**
+     * The hover hit test for glyphs that may have a hole.
+     *
+     * Unit hover is plain DOM hit-testing: the tooltip listens on each series
+     * group and reads the hovered `<path>` off the event. A glyph with a hole (a
+     * ring, whichever way its contours wind and whatever its fill rule) is hit
+     * only on its ink, so over its hole the pointer falls through to the
+     * background, and the tooltip closes and reopens as it crosses the ring, or
+     * a mark beneath takes it. The DOM cannot
+     * widen one path's hit area to its outline portably and for free:
+     * `pointer-events: bounding-box` is Chromium only, and would also take in a
+     * glyph's notches (the gap between a figure's legs) and spill onto
+     * neighbours; a second, invisible hit path per mark doubles the nodes a
+     * crowd of thousands draws and moves every frame.
+     *
+     * So the hole is resolved here, where the geometry is known, and only for
+     * the glyphs that can have one: a hole needs a second contour, so a glyph
+     * of one subpath is never asked about, and the tooltip asks only when the
+     * pointer is on no mark's ink. A point is the mark's when it lies inside any
+     * one of its subpaths taken alone (filled `nonzero`). The outer contour on
+     * its own covers its hole whichever way the hole winds and whatever rule
+     * fills the whole, and nothing outside its outline: a notch stays a miss,
+     * a gap between separate parts (a figure's head and body) stays a miss, and
+     * no hit area reaches a neighbour. The subpaths of each distinct glyph are
+     * built into Path2Ds once, and a bucket grid over the resting slots keeps a
+     * query to a handful of marks.
+     *
+     * @param {SVGGElement} root the unit chart's root group: the slots' space
+     * @param {{node: SVGElement, x: number, y: number, spec: any}[]} holed
+     * @returns {((clientX: number, clientY: number) => Element|null)|null} null
+     *   where there is no Path2D to test with (SSR)
+     */
+    _holeHitTest(root, holed) {
+      if (typeof Path2D !== "function") return null;
+      const boxes = holed.map((h2) => {
+        const vb = h2.spec.mark.viewBox;
+        return { hw: h2.spec.s * vb[2] / 2, hh: h2.spec.s * vb[3] / 2 };
+      });
+      const cell = boxes.reduce((m2, b) => Math.max(m2, 2 * b.hw, 2 * b.hh), 1);
+      const buckets = /* @__PURE__ */ new Map();
+      holed.forEach((h2, k2) => {
+        const key = Math.floor(h2.x / cell) + "," + Math.floor(h2.y / cell);
+        const list = buckets.get(key);
+        if (list) list.push(k2);
+        else buckets.set(key, [k2]);
+      });
+      const paths = /* @__PURE__ */ new Map();
+      let ctx2d = null;
+      return (clientX, clientY) => {
+        const ctm = typeof root.getScreenCTM === "function" ? root.getScreenCTM() : null;
+        if (!ctm) return null;
+        if (!ctx2d) {
+          const canvas = (
+            /** @type {HTMLCanvasElement|null} */
+            BrowserAPIs.createElement("canvas")
+          );
+          ctx2d = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+          if (!ctx2d) return null;
+        }
+        const inv = ctm.inverse();
+        const px2 = inv.a * clientX + inv.c * clientY + inv.e;
+        const py = inv.b * clientX + inv.d * clientY + inv.f;
+        const cx = Math.floor(px2 / cell);
+        const cy = Math.floor(py / cell);
+        const near = [];
+        for (let gx = cx - 1; gx <= cx + 1; gx++) {
+          for (let gy = cy - 1; gy <= cy + 1; gy++) {
+            const list = buckets.get(gx + "," + gy);
+            if (list) near.push(...list);
+          }
+        }
+        near.sort((a2, b) => b - a2);
+        for (const k2 of near) {
+          const h2 = holed[k2];
+          const b = boxes[k2];
+          if (Math.abs(px2 - h2.x) > b.hw || Math.abs(py - h2.y) > b.hh) continue;
+          const s2 = h2.spec;
+          const vb = s2.mark.viewBox;
+          const lx = (px2 - h2.x) / s2.s + vb[0] + vb[2] / 2;
+          const ly = (py - h2.y) / s2.s + vb[1] + vb[3] / 2;
+          let parts = paths.get(s2.d) || [];
+          if (!parts.length) {
+            parts = s2.contours.map((c2) => new Path2D(c2));
+            paths.set(s2.d, parts);
+          }
+          for (const p2 of parts) {
+            if (ctx2d.isPointInPath(p2, lx, ly, "nonzero")) return h2.node;
+          }
+        }
+        return null;
+      };
     }
     /**
      * Which mark THIS unit draws.
@@ -65571,7 +66038,7 @@ var __async = (__this, __arguments, generator) => {
             }
           }
           this.w.globals.unitGatherRAF = null;
-          this.w.globals.animationEnded = true;
+          new Animations(this.w, this.ctx).animationCompleted(this._root);
         } else {
           this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn);
         }
@@ -65828,6 +66295,20 @@ ${percent2.toFixed(1)}%`;
       ret.add(group2);
     }
     /**
+     * One cluster label's text, as lines. A `clusterLabels.formatter` may return
+     * "\n"-separated text to split the label, as it may for an outer label.
+     * @param {number} i @param {number} value @param {number} total @param {any} opts
+     * @returns {string[]}
+     */
+    _clusterLabelLines(i2, value, total, opts) {
+      const w = this.w;
+      const name2 = w.seriesData.seriesNames[i2] || `series-${i2 + 1}`;
+      const percent2 = total > 0 ? value / total * 100 : 0;
+      const cfg = opts.clusterLabels;
+      const text = typeof cfg.formatter === "function" ? cfg.formatter(name2, { seriesIndex: i2, value, percent: percent2, w }) : `${name2} (${percent2.toFixed(1)}%)`;
+      return String(text).split("\n");
+    }
+    /**
      * A cluster label placed above (default) or below the cluster/bar. A TOP label
      * over a wide grouped/packed blob rides a curved arc (invisible arc path +
      * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
@@ -65842,22 +66323,10 @@ ${percent2.toFixed(1)}%`;
       const w = this.w;
       if (!Environment.isBrowser()) return;
       const NS = "http://www.w3.org/2000/svg";
-      const name2 = w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`;
-      const percent2 = total > 0 ? value / total * 100 : 0;
       const cfg = opts.clusterLabels;
       const fontSize = parseFloat(cfg.fontSize) || 13;
-      let text;
-      if (typeof cfg.formatter === "function") {
-        text = cfg.formatter(name2, {
-          seriesIndex: cluster.i,
-          value,
-          percent: percent2,
-          w
-        });
-      } else {
-        text = `${name2} (${percent2.toFixed(1)}%)`;
-      }
-      const str = typeof text === "string" ? text : String(text);
+      const lines = this._clusterLabelLines(cluster.i, value, total, opts);
+      const str = lines.join("\n");
       const textEl = BrowserAPIs.createElementNS(NS, "text");
       textEl.setAttribute("class", "apexcharts-unit-label");
       textEl.setAttribute("text-anchor", "middle");
@@ -65868,7 +66337,7 @@ ${percent2.toFixed(1)}%`;
       const bottom = cfg.position === "bottom";
       const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
       const estWidth = str.length * fontSize * 0.55;
-      const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95;
+      const curved = !bottom && !cluster.flat && cfg.curved !== false && lines.length === 1 && estWidth <= Math.PI * R * 0.95;
       if (curved) {
         const yMid = cluster.cy;
         const x1 = cluster.cx - R;
@@ -65890,8 +66359,21 @@ ${percent2.toFixed(1)}%`;
       } else {
         textEl.setAttribute("x", String(cluster.cx));
         const y2 = bottom ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0) : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0);
-        textEl.setAttribute("y", String(y2));
-        textEl.textContent = str;
+        if (lines.length === 1) {
+          textEl.setAttribute("y", String(y2));
+          textEl.textContent = str;
+        } else {
+          const lh = Math.round(fontSize * 1.35);
+          const y0 = bottom ? y2 : y2 - (lines.length - 1) * lh;
+          textEl.setAttribute("y", String(y0));
+          lines.forEach((line, k2) => {
+            const ts = BrowserAPIs.createElementNS(NS, "tspan");
+            ts.setAttribute("x", String(cluster.cx));
+            ts.setAttribute("dy", k2 === 0 ? "0" : String(lh));
+            ts.textContent = line;
+            textEl.appendChild(ts);
+          });
+        }
       }
       elSeries.node.appendChild(textEl);
       return (
@@ -84907,11 +85389,18 @@ ${percent2.toFixed(1)}%`;
     });
     return names;
   }
+  function readViewBox(vb) {
+    if (!vb || typeof vb === "string" && !vb.trim()) return [0, 0, 100, 100];
+    if (typeof vb !== "string") return vb;
+    const parts = vb.trim().split(/[\s,]+/);
+    const nums2 = parts.map(Number);
+    return parts.length === 4 && nums2.every((n2) => isFinite(n2)) ? nums2 : vb;
+  }
   function definePictogram(meta) {
     const mark = (
       /** @type {any} */
       __spreadProps(__spreadValues({}, meta), {
-        viewBox: meta.viewBox || [0, 0, 100, 100]
+        viewBox: readViewBox(meta.viewBox)
       })
     );
     mark.with = (overrides) => definePictogram(__spreadValues(__spreadValues({}, meta), overrides));
