@@ -202,11 +202,29 @@ export function assign(objects, slots, order, pitch) {
 }
 
 /**
+ * The widest gap a NARROW row (up to NARROW dots) may spread to, in pitches.
+ *
+ * A narrow feature (a funnel, a limb, a stroke crossing a row) holds two to
+ * four dots across, and a row given one dot fewer than it has room for spreads
+ * the rest a third to a half wider than the rows beside it, so the feature
+ * reads as stripes. Capped here, the row keeps this gap and centres in its
+ * span, which costs a narrow row at most a fraction of a pitch at each end.
+ *
+ * Wider rows are left to spread up to WIDE_SPREAD as before. When a whole
+ * layout has slack, every row spreads alike, so nothing stripes, and capping
+ * those rows would narrow the shape while its height stayed put.
+ */
+const NARROW = 4
+const MAX_SPREAD = 1.15
+const WIDE_SPREAD = 1.5
+
+/**
  * Place a cell's dots along its span.
  *
- * Spreading a row to its own edges is what keeps the outline crisp. A row that
- * came out sparse would spread into visible holes instead, so past a threshold
- * it keeps the nominal gap and centres itself in the span.
+ * Spreading a row to its own edges is what keeps the outline crisp. A narrow
+ * row stops at MAX_SPREAD and centres itself in its span; a wider row that came
+ * out sparse would spread into visible holes, so past WIDE_SPREAD it keeps the
+ * nominal gap and centres instead.
  *
  * @param {Cell} cell
  * @param {number} n
@@ -224,8 +242,9 @@ export function placeRow(cell, n, dx, inset, r, into) {
   let a = cell.x0 + inset
   const b = cell.x1 - inset
   let gap = (b - a) / (n - 1)
-  if (gap > dx * 1.5) {
-    gap = dx
+  const cap = n <= NARROW ? dx * MAX_SPREAD : gap > dx * WIDE_SPREAD ? dx : gap
+  if (gap > cap) {
+    gap = cap
     a = (cell.x0 + cell.x1) / 2 - (gap * (n - 1)) / 2
   }
   for (let j = 0; j < n; j++) {
