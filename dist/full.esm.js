@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.9.0
+ * ApexCharts v8.9.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts";
@@ -2407,6 +2407,8 @@ class Unit {
             x: n2("x") + n2("width") / 2,
             y: n2("y") + n2("height") / 2,
             r: Math.min(n2("width"), n2("height")) / 2,
+            // That is the piece's DRAWN size, so no draw factor applies.
+            g: 1,
             fill: el.getAttribute("fill")
           }));
         });
@@ -2444,7 +2446,7 @@ class Unit {
           cx0,
           cy0,
           key,
-          r0: from && from.r != null ? from.r : r2,
+          r0: from && from.r != null ? this._startRadius(from, spec) : r2,
           r1: r2,
           delay: 0,
           isEnter: !from,
@@ -2495,7 +2497,7 @@ class Unit {
           key = `${cluster.i}:${j}`;
         }
         gIndex++;
-        nextPrev.set(key, { x: d2.x, y: d2.y, fill: dotFill, r: rj, spec });
+        nextPrev.set(key, { x: d2.x, y: d2.y, fill: dotFill, r: rj, g: this._drawFactor(spec), spec });
         if (pieceTakeover) {
           this._place(el.node, spec, d2.x, d2.y);
           el.node.setAttribute("opacity", "0");
@@ -2523,8 +2525,10 @@ class Unit {
             key,
             // Radius tween: an identity-kept dot grows/shrinks from its previous
             // size to its new one (e.g. bubble sizing turning on) instead of
-            // snapping. Enters/uniform updates keep r0 === r1 (no-op).
-            r0: from && from.r != null ? from.r : rj,
+            // snapping. Enters/uniform updates keep r0 === r1 (no-op). The
+            // start is the size it was DRAWN at, so a glyph whose
+            // `pictogram.scale` or `padding` changed eases too.
+            r0: from && from.r != null ? this._startRadius(from, spec) : rj,
             r1: rj,
             // Colour tween: a dot that flows into a differently coloured group
             // recolours as it travels rather than snapping at the first frame.
@@ -4087,7 +4091,46 @@ class Unit {
    * @property {string[]|null} [contours] glyph: its subpaths, each standing
    *   alone, when it has two or more (the hover hole test); else null
    * @property {number} [r] the radius this spec was fitted to
+   * @property {number} [g] glyph: drawn box size over the layout's diameter,
+   *   `(1 - pictogram.padding) * pictogram.scale`
+   * @property {number} [f] glyph: its longest side over the side `fit` binds,
+   *   1 under 'contain'
    */
+  /**
+   * How much bigger than its layout radius a mark is DRAWN. A glyph's box is
+   * `2r * (1 - padding) * scale`; a circle, square or image draws at `r`
+   * itself, so 1.
+   * @param {any} spec @returns {number}
+   */
+  _drawFactor(spec) {
+    return spec && spec.pk === PK_GLYPH && spec.g > 0 ? spec.g : 1;
+  }
+  /**
+   * The radius a size tween starts from, in the NEW spec's terms: the size the
+   * mark was last drawn at. A size tween scales the new spec by r0 / r1, so a
+   * changed draw factor (`pictogram.scale`, `padding`, or `fit` for the same
+   * mark, set differently for this render) would otherwise apply in full on
+   * the first frame and pop every glyph before it eased. `fit` counts only for
+   * the same mark: a unit that swaps to a glyph of another aspect has no size
+   * of its own to ease from.
+   * @param {{r?: number, g?: number, spec?: any}} from the mark's previous render
+   * @param {any} spec this render's spec
+   * @returns {number}
+   */
+  _startRadius(from, spec) {
+    const r2 = (
+      /** @type {number} */
+      from.r
+    );
+    let g0 = from.g != null && from.g > 0 ? from.g : 1;
+    let g1 = this._drawFactor(spec);
+    const was = from.spec;
+    if (was && was.pk === PK_GLYPH && spec && spec.pk === PK_GLYPH && was.d === spec.d && String(was.mark.viewBox) === String(spec.mark.viewBox)) {
+      g0 *= was.f || 1;
+      g1 *= spec.f || 1;
+    }
+    return g0 === g1 ? r2 : r2 * g0 / g1;
+  }
   /**
    * Position one mark at (x, y), whatever element it is.
    *
@@ -4242,6 +4285,10 @@ class Unit {
       d: mark.path,
       fillRule: mark.fillRule,
       s: s2,
+      // Drawn size over layout radius (see _drawFactor), and what `fit` adds
+      // to the longest side (see _startRadius).
+      g: (1 - pad) * grow,
+      f: Math.max(vb[2], vb[3]) / (pcfg.fit === "width" ? vb[2] : pcfg.fit === "height" ? vb[3] : Math.max(vb[2], vb[3])),
       ox: (vb[0] + vb[2] / 2) * s2,
       oy: (vb[1] + vb[3] / 2) * s2,
       tail: ") scale(" + s2 + ")",
@@ -25513,6 +25560,9 @@ function assign(objects, slots, order, pitch) {
   }
   return out;
 }
+const NARROW = 4;
+const MAX_SPREAD = 1.15;
+const WIDE_SPREAD = 1.5;
 function placeRow(cell, n2, dx, inset, r2, into) {
   if (n2 <= 0) return;
   if (n2 === 1) {
@@ -25522,8 +25572,9 @@ function placeRow(cell, n2, dx, inset, r2, into) {
   let a2 = cell.x0 + inset;
   const b = cell.x1 - inset;
   let gap = (b - a2) / (n2 - 1);
-  if (gap > dx * 1.5) {
-    gap = dx;
+  const cap = n2 <= NARROW ? dx * MAX_SPREAD : gap > dx * WIDE_SPREAD ? dx : gap;
+  if (gap > cap) {
+    gap = cap;
     a2 = (cell.x0 + cell.x1) / 2 - gap * (n2 - 1) / 2;
   }
   for (let j = 0; j < n2; j++) {

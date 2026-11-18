@@ -52,7 +52,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.9.0
+ * ApexCharts v8.9.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
