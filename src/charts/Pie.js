@@ -8,6 +8,8 @@ import Scales from '../modules/Scales'
 import Helpers from './common/circle/Helpers'
 import { spaceOutLabels } from './common/OuterLabels'
 import { Environment } from '../utils/Environment'
+import { BrowserAPIs } from '../ssr/BrowserAPIs'
+import { SVGNS } from '../svg/math'
 import {
   roundedDonutSegmentPath,
   roundedPieSegmentPath,
@@ -2069,7 +2071,7 @@ class Pie {
       : labelsConfig.name.formatter(name, isTotal, w)
 
     if (elLabel !== null) {
-      elLabel.textContent = name
+      this.writeLabelLines(elLabel, name)
     }
 
     if (elValue !== null) {
@@ -2079,6 +2081,33 @@ class Pie {
       const elLabelEl = /** @type {HTMLElement} */ (elLabel)
       elLabelEl.style.fill = labelColor
     }
+  }
+
+  /**
+   * Write a centre label in place. An array label (a multi-line label, as
+   * in `labels: [['Line', 'Two']]`) gets one tspan per line, the same markup
+   * Graphics.drawText gives it on first render, instead of the array's
+   * comma-joined string.
+   * @param {Element} elLabel
+   * @param {string | string[]} name
+   */
+  writeLabelLines(elLabel, name) {
+    if (!Array.isArray(name)) {
+      elLabel.textContent = name
+      return
+    }
+    elLabel.textContent = ''
+    const x = elLabel.getAttribute('x')
+    name.forEach((line, i) => {
+      const tspan = BrowserAPIs.createElementNS(SVGNS, 'tspan')
+      tspan.textContent = line
+      if (i > 0) {
+        tspan.setAttribute('dy', '1.1em')
+        tspan.setAttribute('data-newline', '1')
+        if (x !== null) tspan.setAttribute('x', x)
+      }
+      elLabel.appendChild(tspan)
+    })
   }
 
   /**
