@@ -303,38 +303,9 @@ describe('TimeScale.removeOverlappingTS', () => {
 
 describe('TimeScale boundary scenarios', () => {
   function assertInvariants(ticks, ctx = '') {
-    const ms = ticks
-      .map((t) => {
-        if (t.unit === 'year') return Date.UTC(t.year, 0, 1)
-        if (t.unit === 'month') return Date.UTC(t.year, t.month - 1, 1)
-        if (t.unit === 'day') {
-          return Date.UTC(t.year, t.month - 1, t.day)
-        }
-        if (t.unit === 'hour') {
-          return Date.UTC(t.year, t.month - 1, t.day, t.hour)
-        }
-        if (t.unit === 'minute') {
-          return Date.UTC(
-            t.year,
-            t.month - 1,
-            t.day,
-            t.hour,
-            t.minute,
-          )
-        }
-        if (t.unit === 'second') {
-          return Date.UTC(
-            t.year,
-            t.month - 1,
-            t.day,
-            t.hour,
-            t.minute,
-            t.second,
-          )
-        }
-        return NaN
-      })
-      .filter((n) => !Number.isNaN(n))
+    // The real instant, not the wall-clock fields: when a fall-back repeats
+    // an hour, two local ticks read the same time.
+    const ms = ticks.map((t) => t.timestamp)
     for (let i = 1; i < ms.length; i++) {
       expect(
         ms[i],
