@@ -819,7 +819,7 @@ describe('renderers and scope', () => {
     c.destroy()
   })
 
-  test('a range area and a combo warn once and draw no parts', () => {
+  test('a column and line combo draws parts on both series', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const c = chart({
       series: [
@@ -833,12 +833,14 @@ describe('renderers and scope', () => {
       ],
       xaxis: { categories: ['a', 'b', 'c'] },
     })
-    expect(c.highlightFilter.isActive()).toBe(false)
-    expect(q(c, '.apexcharts-highlight-part').length).toBe(0)
+    expect(c.w.globals.comboCharts).toBe(true)
+    expect(c.highlightFilter.isActive()).toBe(true)
+    expect(q(c, '.apexcharts-bar-highlight-part').length).toBe(3)
+    expect(q(c, '.apexcharts-line-highlight-part').length).toBeGreaterThan(0)
     expect(
       warn.mock.calls.filter((m) => String(m[0]).includes('highlightFilter'))
         .length,
-    ).toBe(1)
+    ).toBe(0)
     c.destroy()
   })
 })

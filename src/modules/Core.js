@@ -279,6 +279,11 @@ export default class Core {
   plotChartType(ser, xyRatios) {
     const { w, ctx } = this
 
+    // Highlight filter: one render pass, even when a combo chart draws
+    // through several series renderers (Bar, then Line). The getter is null
+    // without the feature.
+    ctx.highlightFilter?.beginPass()
+
     // Strata (#2): start a fresh series display list for the canvas renderer.
     // Series marks emitted during draw() below are recorded, not added to the
     // DOM; they are painted at the end of this method (see the wrap below).

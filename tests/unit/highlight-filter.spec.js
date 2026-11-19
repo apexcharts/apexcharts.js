@@ -65,6 +65,19 @@ const labelsOf = (chart, realIndex) =>
 afterEach(() => vi.restoreAllMocks())
 
 describe('drawing', () => {
+  test('a series with no parts still fades when the chart is not a combo', () => {
+    const chart = column({
+      series: [
+        { name: 'Revenue', data: [120, 140, 90], highlightData: [45, 60, 30] },
+        { name: 'Cost', data: [80, 60, 40] },
+      ],
+    })
+    const cost = wholes(chart).filter((n) => n.getAttribute('index') === '1')
+    expect(cost.length).toBe(3)
+    for (const el of cost) expect(el.getAttribute('fill-opacity')).toBe('0.2')
+    chart.destroy()
+  })
+
   test('every whole fades and each non-null part is drawn once', () => {
     const chart = column()
     expect(chart.highlightFilter.isActive()).toBe(true)
@@ -1155,7 +1168,7 @@ describe('frames and renderers', () => {
 })
 
 describe('scope', () => {
-  test('a stacked chart draws its parts; a combo warns once and draws without', () => {
+  test('a stacked chart draws its parts, and so does a column and line combo', () => {
     expect(
       column({ chart: { stacked: true } }).highlightFilter.isActive(),
     ).toBe(true)
@@ -1172,12 +1185,13 @@ describe('scope', () => {
         { name: 'B', type: 'line', data: [3, 2, 1] },
       ],
     })
-    expect(chart.highlightFilter.isActive()).toBe(false)
-    expect(parts(chart).length).toBe(0)
+    expect(chart.w.globals.comboCharts).toBe(true)
+    expect(chart.highlightFilter.isActive()).toBe(true)
+    expect(parts(chart).length).toBe(3)
     const ours = warn.mock.calls.filter((c) =>
       String(c[0]).includes('highlightFilter'),
     )
-    expect(ours.length).toBe(1)
+    expect(ours.length).toBe(0)
   })
 
   test('premium usage is flagged only while parts are drawn', async () => {
