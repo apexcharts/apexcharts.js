@@ -292,7 +292,7 @@ declare class ApexCharts {
    * Switches the active locale, updating all locale-dependent labels.
    * @param localeName Must match a name defined in chart.locales.
    */
-  setLocale(localeName: string): void
+  setLocale(localeName: string): Promise<any>
 
   /**
    * Subscribes to a chart event by name.
