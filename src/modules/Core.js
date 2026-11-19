@@ -1229,42 +1229,61 @@ export default class Core {
 
     if (!w.config.chart.brush.enabled) return
 
-    if (typeof w.config.chart.events.selection !== 'function') {
-      const targets = Array.isArray(w.config.chart.brush.targets)
-        ? w.config.chart.brush.targets
-        : [w.config.chart.brush.target]
-      targets.forEach((/** @type {any} */ target) => {
-        const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
-          target,
+    const targets = Array.isArray(w.config.chart.brush.targets)
+      ? w.config.chart.brush.targets
+      : [w.config.chart.brush.target]
+
+    // setupEventHandlers runs this on every render. Wrapping `selection`
+    // again nested the previous handler, and a brush with no user handler
+    // then updated its target from inside that update (#1912 was reverted
+    // for the loop). The wrapper below is not a user handler.
+    const ev = w.config.chart.events
+    const installed = /** @type {any} */ (ev.selection)
+    if (installed?.__apexBrush === ctx) return
+
+    // The handler to call, read when the selection fires. A closure captured
+    // the first callback, so a wrapper installed earlier kept calling it
+    // after updateOptions replaced or cleared chart.events.selection.
+    ctx._brushUser =
+      typeof installed === 'function' && !installed.__apexBrush
+        ? installed
+        : null
+
+    targets.forEach((/** @type {any} */ target) => {
+      const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
+        target,
+      )
+      // getChartByID returns undefined for a missing/mistyped id, or one whose
+      // chart has not rendered yet. Warn and skip instead of throwing an opaque
+      // TypeError mid-render.
+      if (!targetChart) {
+        console.warn(
+          `ApexCharts: brush target "${target}" was not found. Ensure the target chart is rendered (and its chart.id matches) before the brush chart.`,
         )
-        // getChartByID returns undefined for a missing/mistyped id, or one whose
-        // chart has not rendered yet. Warn and skip instead of throwing an opaque
-        // TypeError mid-render.
-        if (!targetChart) {
-          console.warn(
-            `ApexCharts: brush target "${target}" was not found. Ensure the target chart is rendered (and its chart.id matches) before the brush chart.`,
-          )
-          return
-        }
-        targetChart.w.globals.brushSource = this.ctx
+        return
+      }
+      targetChart.w.globals.brushSource = this.ctx
 
-        // The injected handlers carry the brush that owns them, so a later
-        // brush replaces a stale one and unhookBrush() removes only its own,
-        // never a user handler.
-        const ev = targetChart.w.config.chart.events
-        for (const k of ['zoomed', 'scrolled']) {
-          if (typeof ev[k] !== 'function' || ev[k].__apexBrush) {
-            ev[k] = Object.assign(() => this.updateSourceChart(targetChart), {
-              __apexBrush: ctx,
-            })
-          }
+      // The injected handlers carry the brush that owns them, so a later
+      // brush replaces a stale one and unhookBrush() removes only its own,
+      // never a user handler.
+      const tev = targetChart.w.config.chart.events
+      for (const k of ['zoomed', 'scrolled']) {
+        if (typeof tev[k] !== 'function' || tev[k].__apexBrush) {
+          tev[k] = Object.assign(() => this.updateSourceChart(targetChart), {
+            __apexBrush: ctx,
+          })
         }
-      })
+      }
+    })
 
-      w.config.chart.events.selection = (
-        /** @type {any} */ chart,
-        /** @type {any} */ e,
-      ) => {
+    // A page-supplied selection handler used to skip this whole block, so
+    // the brush no longer moved its target and the target's pan/zoom no
+    // longer moved the brush (#5006). Sync always runs; the user's handler
+    // is called as well. A handler this brush already installed is not a
+    // user handler — calling it would nest the sync.
+    ev.selection = Object.assign(
+      (/** @type {any} */ chart, /** @type {any} */ e) => {
         targets.forEach((/** @type {any} */ target) => {
           const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
             target,
@@ -1283,8 +1302,10 @@ export default class Core {
             false,
           )
         })
-      }
-    }
+        if (ctx._brushUser) ctx._brushUser(chart, e)
+      },
+      { __apexBrush: ctx },
+    )
   }
 
   /**
